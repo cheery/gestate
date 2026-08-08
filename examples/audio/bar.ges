@@ -1,0 +1,85 @@
+# A marimba bar — and what a maker does to one.
+#
+#   python -m gestate.audio examples/audio/bar.ges -o bar.wav
+#   python -m gestate.audio examples/audio/bar.ges --seconds 6
+#
+# `bell.ges` is the same machinery on a tubular bell and is the one to read
+# first; this file is about the **tuning**, which is the whole difference
+# between a bar that sounds like a note and a bar that sounds like a plank.
+#
+# ── What a free bar does by itself ───────────────────────────────────────
+#
+# A uniform bar, supported at its nodes and struck, rings at
+#
+#     1  :  2.756  :  5.404  :  8.933
+#
+# and not one of those is a whole-number multiple of another.  That is the
+# sound of a glockenspiel, or of dropping a piece of metal on the floor:
+# bright, metallic, and with no pitch you could sing.  Those are exactly
+# the ratios `bell.ges` uses, because a tubular bell *is* a long bar.
+#
+# ── What a maker does to it ──────────────────────────────────────────────
+#
+# The underside of a marimba bar is cut away in an arch.  Removing wood
+# from the middle lowers the first overtone much more than it lowers the
+# fundamental, and the maker keeps cutting until it lands on
+#
+#     1  :  4  :  9.2          two octaves, and a little over three
+#
+# Two octaves is a *harmonic* of the fundamental, so the ear fuses it and
+# hears one pitch.  **The instrument is the tuning; the physics is the same
+# either way** — change the three numbers in `partials` below to 2.756,
+# 5.404 and 8.933 and this file plays a glockenspiel instead.
+#
+# A xylophone is cut to 3 : 1 rather than 4 : 1, which is why it is
+# brighter and slightly hollow beside a marimba.
+
+# ── The strike ───────────────────────────────────────────────────────────
+#
+# `dust` takes a `Seed` and a density signal.  Roughly three strikes a
+# second, wandering, so the pattern is never heard as one.
+
+strike : Sig Float
+strike = dust 41 (3.0 + 1.5 * sine 0.17)
+
+# ── The bar ──────────────────────────────────────────────────────────────
+#
+# One mode is a `resonate` rung by the strike, and its decay is **in
+# seconds** — the high modes die away first, because thin wood loses its
+# high partials in a fraction of a second and that spread of decay times is
+# most of what makes a marimba sound wooden rather than metallic.
+
+mode : Float -> Float -> Float -> Sig Float -> Sig Float
+mode hz seconds level s = !level * resonate (!hz) seconds s
+
+#: The three tuned partials of a marimba bar.  Swap the ratios for
+#: 2.756 / 5.404 / 8.933 and it is an untuned slab.
+partials : Float -> Sig Float -> Sig Float
+partials f s = mode f            0.60 1.00 s
+             + mode (f * 4.0)    0.22 0.35 s
+             + mode (f * 9.2)    0.09 0.12 s
+
+#: Under every marimba bar hangs a tube, closed at the bottom, a quarter
+#: of a wavelength long at the bar's own pitch.  It reinforces the
+#: fundamental and nothing else, which is why the tuned overtone can be as
+#: quiet as it is and the bar still reads as pitched.
+resonator : Float -> Sig Float -> Sig Float
+resonator f s = 0.6 * resonate (!f) 0.35 s
+
+bar : Float -> Sig Float -> Sig Float
+bar f s = partials f s + resonator f (partials f s)
+
+# ── The output ───────────────────────────────────────────────────────────
+#
+# Three bars a fourth and a fifth apart, each struck by its own seeded
+# `dust`, so they do not land together.  Nothing else: the file is about
+# the bar, and anything under it would be something else to listen to.
+
+# `clip` after `limit`, which is what `limit`'s own prose says to do when a
+# hard bound is wanted: three bars ringing together reached 1.21 without
+# it, and a sample over full scale is a click in the file.
+sound : Sig Float
+sound = clip (limit 0.9 (compress (Comp 0.2 4.0 0.004 0.2)
+                            (0.5 * bar 233.08 strike
+                           + 0.4 * bar 349.23 (dust 42 2.0)
+                           + 0.3 * bar 466.16 (dust 43 1.5))))

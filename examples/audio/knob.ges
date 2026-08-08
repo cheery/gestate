@@ -1,0 +1,71 @@
+# A synth with a knob: the first example whose sound comes from outside it.
+#
+#   python -m gestate.audioeditor examples/audio/knob.ges
+#   python -m gestate.audio examples/audio/knob.ges -o knob.wav
+#
+# `blip.ges` and `drums.ges` are closed: given the sample rate, everything
+# they will ever do is already written down.  This one has a **control-rate
+# parameter** — a second clock, ticking once per block rather than once per
+# sample — and the environment's slider is what turns it.
+#
+# The two rates are not a convenience.  An audio-rate signal advances every
+# sample and a control-rate one is held constant across a block, so a knob
+# costs a few instructions per block instead of per sample.  `sync` had this
+# structure in the language before there was any engine to want it, and
+# `spec/liveaudio.md` §"Two clocks" is where it became `.kr` and `.ar`.
+
+# ── The parameter ────────────────────────────────────────────────────────
+
+knobChan : Chan Int
+knobChan = chan
+
+#: 0 .. 100 from the host, once per block.  The `:::` value is what it
+#: holds before the first arrival — so a synth is never waiting on a knob
+#: that has not been turned yet.
+knob : Sig Int
+knob = 40 ::: mkSig (wait knobChan)
+
+# ── The voice ────────────────────────────────────────────────────────────
+#
+# Two signals with two different clocks meet in a `zip`, and that meeting
+# *is* the `.kr → .ar` boundary.  They cannot simply be paired — each has
+# its own clock — so the combinator asks `sync` which arrived and carries
+# the other over, which is sound because a signal is a cell overwritten in
+# place.  `Reading` is the pair, spelled as a data type because it has to be
+# flat: a tuple would do as well, and a list would not.
+
+Reading := Reading Int Int
+
+readAt : Int -> Int -> Reading
+readAt n k = Reading n k
+
+#: 110 Hz at the bottom of the knob, 510 Hz at the top.
+hzOf : Int -> Float
+hzOf k = 115.0 + 4.0 * toFloat k
+
+stepPhase : Float -> Reading -> Float
+stepPhase p r = case r of
+    Reading n k -> wrap (p + hzOf k / sampleRate)
+
+#: A gentle two-second tremolo, so the tone is not a dead sine even when
+#: nobody is touching the knob.
+tremoloAt : Int -> Float
+tremoloAt n = 0.7 + 0.3 * triangleOf (wrap (toFloat n / (2.0 * sampleRate)))
+
+voiceOut : Reading -> Float
+voiceOut r = case r of
+    Reading n k -> tremoloAt n
+
+# ── The chain ────────────────────────────────────────────────────────────
+
+driven : Sig Reading
+driven = zip readAt ticks knob
+
+turning : Sig Float
+turning = scan stepPhase 0.0 driven
+
+raw : Sig Float
+raw = zip (p r => triangleOf p * voiceOut r) turning driven
+
+sound : Sig Float
+sound = gain 0.4 (lowpass 0.6 raw)

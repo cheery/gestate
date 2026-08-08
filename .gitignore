@@ -1,0 +1,76 @@
+# What is not source.
+#
+# The rule this file follows: **ignore what a command can make again, keep
+# what it cannot.**  Two kinds of file in this tree look like output and
+# are not, and both are called out below rather than left to a pattern.
+
+# ── Python ───────────────────────────────────────────────────────────────
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtualenvs, whatever they are called.
+.venv/
+venv/
+env/
+
+# ── Native build output ──────────────────────────────────────────────────
+#
+# `audiollvm.build()` shells out to clang and `audiohost.Host` compiles
+# `host.c`; both write into a temporary directory, but a run interrupted at
+# the wrong moment can leave one of these behind.  `host.c` itself is
+# source and is not matched by any of these.
+
+*.so
+*.o
+*.ll
+*.bc
+*.dylib
+*.dll
+
+# ── Rendered audio ───────────────────────────────────────────────────────
+#
+# Sixteen megabytes of it at the time of writing, every byte of which
+# `python -m gestate.audio <file> -o <out>.wav` will make again from the
+# `.ges` beside it.
+
+*.wav
+*.mp3
+*.flac
+*.ogg
+
+# ── Editor and OS litter ─────────────────────────────────────────────────
+
+*~
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Two things that are NOT ignored, deliberately ────────────────────────
+#
+# **`*.samples` — the golden buffers.**  They look like build output and
+# are the opposite: each one is `render()` pinned, and it is the *oracle*
+# three engines are checked against.  `test_audio.py` fails outright
+# without them, and regenerating one does not restore it — it re-records
+# whatever the code does today, which is precisely the question the file
+# exists to answer.  Never add a rule for these.
+#
+# **`*.mid` — not all of them can be made again.**  Most of
+# `examples/music/` regenerates from the `.ges` beside it, so a blanket
+# rule looks safe.  It is not:
+#
+#   * `examples/contrib/neon_yossa.mid` has no `.ges` at all;
+#   * the other three files in `examples/contrib/` were MIDI pieces and
+#     have since been given gestate instruments, so `gestate.midi` no
+#     longer renders them — their `.mid` is now the only copy of what they
+#     sounded like before.
+#
+# Four of the twelve are therefore irreplaceable, and a pattern cannot tell
+# which four.  So none of them are ignored; a genuinely disposable render
+# is better deleted than pattern-matched.

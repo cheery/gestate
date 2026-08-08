@@ -1,0 +1,29 @@
+# A walking bass line, for a MIDI instrument.
+#
+#   python -m gestate.midi examples/music/duetline.ges          # write a .mid
+#
+# **The MIDI half of the same idea.**  `examples/audio/duet.ges` writes this
+# figure in its own payload type and assigns it with `voices.bass`, so it is
+# played by an instrument written in gestate.  This one commits to `Play
+# (Midi …)` instead and hands the sound to somebody else's synthesiser.
+#
+# The two committed leaves — `Play Rendered` and `Assigned Voice` — are the
+# same construct at different ages: a sum over the targets a backend offers,
+# each carrying its target's payload.  Keeping both is what lets one `Score`
+# type serve either.
+#
+# Instrument 32 is an acoustic bass in General MIDI.
+
+bpm : Int
+bpm = 96
+
+#: Four bars over A minor, one note a beat, with the fifth walking up to
+#: the next root — the shape that leaves room above it for a hand.
+walk : [: Int :]
+walk = '45 ++ '52 ++ '48 ++ '55
+    ++ '41 ++ '48 ++ '45 ++ '52
+    ++ '43 ++ '50 ++ '47 ++ '54
+    ++ '45 ++ '52 ++ '48 ++ '43
+
+score : [: Void :]
+score = walk >>= prog 32

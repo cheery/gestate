@@ -1,0 +1,49 @@
+# The shortest thing that is a note: one sine, one envelope.
+#
+#   python -m gestate.audio examples/audio/sine.ges -o sine.wav
+#   python -m gestate.audio examples/audio/sine.ges --seconds 1 --peak
+#
+# `blip.ges` is the file to read for what a synth *is* — an oscillator, an
+# envelope and a filter, each written out as a fold over time.  This one is
+# the other end of the same idea: both halves are already in `synth.ges`, so
+# the instrument is a `zip` of an oscillator and an envelope and what is
+# left to write is the shape of the note.
+#
+# **The envelope carries no state**, and that is the fact worth taking from
+# this file.  `adsrOf e n on off` is a function of the *instant*: the level
+# a note that began at `on` and was released at `off` has reached by sample
+# `n`.  So attack, decay, sustain and release are arithmetic rather than
+# four more fields to fold, which is what lets a six-voice bank share one
+# envelope (`fmpoly.ges`) — and here, with one note, means the whole synth
+# needs no `scan` of its own at all.
+#
+# Both instants are **1-based** and zero means *nothing*: `on = 0` has never
+# played, `off = 0` is still held.  They are constants here; a `voices` bank
+# supplies them as `Played on off payload`, from the layout that placed the
+# note or from the moment a key went down — see `duet.ges`.  The times in
+# `Adsr` are seconds and the instants are sample numbers, so `seconds` is
+# the one conversion, made where the note is described rather than inside
+# the envelope.
+
+#: 10 ms up, a third of a second falling to half, and 0.4 s to silence
+#: once the key comes up — a note that is over by 0.9 s.  A zero attack is
+#: a step rather than a division by zero, which is the case a percussive
+#: patch actually wants.
+env : Adsr
+env = Adsr 0.01 0.3 0.5 0.4
+
+onAt : Int
+onAt = seconds 0.1
+
+offAt : Int
+offAt = seconds 0.5
+
+#: The note itself.  `sine` is the oscillator with its phase already
+#: folded, `ticks` is the instant, and the `zip` is where the two meet.
+held : Sig Float
+held = zip (x n => x * adsrOf env n onAt offAt) (sine 440.0) ticks
+
+#: `gain` because the attack reaches 1.0, and a synth that leaves no
+#: headroom is one nothing else can be mixed with.
+sound : Sig Float
+sound = gain 0.6 held

@@ -1,0 +1,123 @@
+# A chain of segments that follows the pointer.
+#
+#   python -m gestate.gui examples/gui/chain.ges
+#
+# Move the mouse.  Escape or the close button quits.
+#
+# `bounce.ges` holds one thing in its state.  This one holds a *list*, and
+# the animation is two lines: the head eases toward the pointer, and the
+# rest of the chain is where the head has recently been.
+#
+#     new_head = ease k head pointer
+#     new_list = new_head :: (the list, minus its last)
+#
+# **That list is the point.**  A signal here is a heap cell overwritten as
+# time passes — it does not remember, and cannot be asked what it held a
+# moment ago.  So a program that wants the past has to carry it, explicitly,
+# in its own state.  Sixteen positions is sixteen positions of memory and
+# not one byte more, which is exactly the property a stream-based FRP has to
+# work for.
+
+# ── The world ────────────────────────────────────────────────────────────
+
+Point := P Float Float
+
+#: The pointer, and the chain trailing behind it.
+Chain := Chain Float Float (List Point)
+
+segments : Int
+segments = 16
+
+width : Int
+width = 480
+
+height : Int
+height = 360
+
+repeatPoint : Int -> Point -> List Point
+repeatPoint n p = case n == 0 of
+    True -> []
+    False -> p :: repeatPoint (n - 1) p
+
+start : Chain
+start = Chain 240.0 180.0 (repeatPoint segments (P 240.0 180.0))
+
+# ── Following ────────────────────────────────────────────────────────────
+
+#: A step of the way from `a` to `b`.  `k` near 0 is sluggish, near 1 snaps.
+ease : Float -> Float -> Float -> Float
+ease k a b = a + k * (b - a)
+
+toward : Float -> Point -> Point -> Point
+toward k p target = case p of
+    P x y -> case target of
+        P tx ty -> P (ease k x tx) (ease k y ty)
+
+#: Everything but the last element.  Dropping one as the new head is
+#: prepended is what keeps the chain the same length.
+initOf : List Point -> List Point
+initOf ps = case ps of
+    [] -> []
+    p :: rest -> case rest of
+        [] -> []
+        q :: more -> p :: initOf rest
+
+#: Ease the head toward the pointer, and let the rest of the chain be where
+#: the head has just been.
+drag : Float -> Float -> List Point -> List Point
+drag mx my ps = case ps of
+    [] -> []
+    p :: rest -> toward 0.3 p (P mx my) :: initOf ps
+
+stepChain : Chain -> Event -> Chain
+stepChain c e = case e of
+    Tick -> case c of
+        Chain mx my ps -> Chain mx my (drag mx my ps)
+    Move mx my -> case c of
+        Chain ox oy ps -> Chain (toFloat mx) (toFloat my) ps
+    Press mx my -> case c of
+        Chain ox oy ps -> Chain (toFloat mx) (toFloat my) ps
+    Release mx my -> c
+    Key k -> c
+
+# ── Drawing ──────────────────────────────────────────────────────────────
+
+slate : Colour
+slate = RGB 18 20 30
+
+#: The canvas, drawn from its own centre like everything else — so the
+#: whole picture is built around `width / 2, height / 2` and `Shift`
+#: places each dot at the absolute spot its physics computed.
+backdrop : Sub
+backdrop = Shift (width / 2) (height / 2) (Rect width height slate)
+
+#: Thick at the head, thin at the tail.
+radiusAt : Int -> Int
+radiusAt i = case 18 - i < 3 of
+    True -> 3
+    False -> 18 - i
+
+#: Warm at the head, cool at the tail.  The renderer clamps each component,
+#: so these need no minding at the ends.
+colourAt : Int -> Colour
+colourAt i = RGB (250 - i * 6) (170 - i * 9) (90 + i * 9)
+
+#: **An ordinary fold, over `Sub` values.**  A list of dots used to be a
+#: `List Shape` because a `Scene` was one; a substrate is a tree, so the
+#: same recursion builds it with `Over` and needs no list at all.
+dots : Int -> List Point -> Sub
+dots i ps = case ps of
+    [] -> Gap 0 0
+    p :: rest -> case p of
+        P x y -> Over (Shift (floor x) (floor y)
+                             (Circle (radiusAt i) (colourAt i)))
+                      (dots (i + 1) rest)
+
+drawChain : Chain -> Sub
+drawChain c = case c of
+    Chain mx my ps -> Over backdrop (dots 0 ps)
+
+#: `world` is gone: it was `map draw (scan step init events)` and nothing
+#: else, which is short enough to write where it is meant.
+substrate : Sig Sub
+substrate = map drawChain (scan stepChain start events)

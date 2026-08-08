@@ -1,0 +1,23 @@
+# Sixteenth-note arpeggios under a held bass — what `|/` and `|*` are for.
+#
+#   python -m gestate.midi examples/music/arpeggio.ges --events
+#
+# `|/ 4` divides a subtree's duration, so a beat becomes a sixteenth; 96
+# ticks to the beat is chosen so every such division is exact.  `|*` scales
+# the other way, and both bind *looser* than `++`, so they apply to the
+# whole sequence beside them rather than to its last note.
+
+figure : Int -> [: Int :]
+figure root = ('root ++ '(root + 4) ++ '(root + 7) ++ '(root + 12)) |/ 4
+
+bass : Int -> [: Int :]
+bass root = 'root |* 4
+
+voice : [: Int :]
+voice = figure 60 ++ figure 60 ++ figure 65 ++ figure 67
+
+score : [: Void :]
+score = (voice >>= prog 11) || (bass 36 ++ bass 41 >>= prog 33)
+
+bpm : Int
+bpm = 96

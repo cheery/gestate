@@ -1,0 +1,106 @@
+# A fifth synth: a plucked string, built by adding sines up.
+#
+#   python -m gestate.audio examples/audio/pluck.ges -o pluck.wav
+#   python -m gestate.audiolive examples/audio/pluck.ges --seconds 6
+#
+# `fm.ges` is the caller for `sin`.  This one is the caller for **`exp`**,
+# and for a reason that is physics rather than convenience: on a real
+# string the higher partials lose energy faster than the lower ones, and
+# that — not the attack, not the filter — is what makes a pluck sound
+# plucked.  Each harmonic here therefore gets its own exponential decay,
+# steeper the higher it is.
+#
+# It is also the first example with **several oscillators in one graph**.
+# `spec/liveaudio.md` says a polyphonic graph is one the extractor already
+# handles and that dynamic voice allocation should wait until one voice
+# runs; one voice has run since stage 7.4, and nothing had tested the first
+# half of that claim until this file.
+#
+# Three partials rather than a Karplus-Strong delay line, deliberately: a
+# delay line is a *buffer*, and the audio fragment admits no allocation and
+# no unbounded indexing.  Additive synthesis is what the fragment can say,
+# and it says this sound perfectly well.
+
+# ── The tune ─────────────────────────────────────────────────────────────
+
+noteOf : Int -> Float
+noteOf i = case i of
+    0 -> 164.81
+    1 -> 220.0
+    2 -> 246.94
+    3 -> 329.63
+    4 -> 246.94
+    _ -> 220.0
+
+noteCount : Int
+noteCount = 6
+
+speed : Int
+speed = 2
+
+samplesPerNote : Int
+samplesPerNote = floor (sampleRate / toFloat speed)
+
+noteAt : Int -> Float
+noteAt n = noteOf (prim_mod_int (prim_div_int n samplesPerNote) noteCount)
+
+#: How far through its note sample `n` is, 0.0 .. 1.0.
+throughNote : Int -> Float
+throughNote n = toFloat (prim_mod_int n samplesPerNote) / toFloat samplesPerNote
+
+# ── The decay ────────────────────────────────────────────────────────────
+#
+# `exp (-rate * t)`, with the rate rising with the partial.  This is the
+# whole example in one function: change `3.0` to `0.0` and every partial
+# decays together, which sounds like an organ note being faded out rather
+# than like a string being plucked.
+
+decayOf : Float -> Int -> Float
+decayOf t k = exp (negate (2.0 + 3.0 * toFloat k) * t)
+
+#: Partials get quieter as they go up, before the decay is applied at all.
+levelOf : Int -> Float
+levelOf k = 1.0 / (1.0 + 2.0 * toFloat k)
+
+# ── The voice ────────────────────────────────────────────────────────────
+#
+# Three phases in one `scan`, for the reason `fm.ges` gives: they advance
+# together, and three separate `scan`s would have to be zipped back into a
+# triple every sample to be summed.
+
+Pluck := Pluck Float Float Float Int
+
+advance : Float -> Float -> Float
+advance p hz = wrap (p + hz / sampleRate)
+
+stepPluck : Pluck -> Int -> Pluck
+stepPluck v n = case v of
+    Pluck a b c i -> stepAt (noteAt n) a b c n
+
+#: Harmonics 1, 2 and 3 of the fundamental.  A real string is very slightly
+#: inharmonic and this is not; the ear forgives it at this length.
+stepAt : Float -> Float -> Float -> Float -> Int -> Pluck
+stepAt hz a b c n =
+    Pluck (advance a hz) (advance b (2.0 * hz)) (advance c (3.0 * hz)) n
+
+#: One partial: its own sine, its own level, its own decay.
+partial : Float -> Int -> Float -> Float
+partial p k t = levelOf k * decayOf t k * sineOf p
+
+voiceOut : Pluck -> Float
+voiceOut v = case v of
+    Pluck a b c n -> sumOf a b c (throughNote n)
+
+sumOf : Float -> Float -> Float -> Float -> Float
+sumOf a b c t = partial a 0 t + partial b 1 t + partial c 2 t
+
+# ── The chain ────────────────────────────────────────────────────────────
+
+raw : Sig Float
+raw = map voiceOut (scan stepPluck (Pluck 0.0 0.0 0.0 0) ticks)
+
+#: Barely filtered.  The partials are already shaped by their own decays,
+#: so a filter here would be doing the same job twice — the difference from
+#: `blip.ges`, where a sawtooth arrives with everything in it at once.
+sound : Sig Float
+sound = gain 0.7 (lowpass 0.85 raw)

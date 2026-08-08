@@ -1,0 +1,80 @@
+# Two sines, two ears: 440 Hz on the left, 442 Hz on the right.
+#
+#   python -m gestate.audio examples/audio/stereo.ges -o stereo.wav
+#   python -m gestate.audiolive examples/audio/stereo.ges --seconds 6
+#   python -m gestate.audioeditor examples/audio/stereo.ges
+#
+# The simplest thing that is not mono.  Nothing here is a new idea about
+# synthesis — a phase is a `scan` over `ticks` and a sine is a function of
+# it, exactly as `blip.ges` and `fm.ges` have it.  What is new is the
+# *shape of the output*: `sound` is a `Sig Stereo` rather than a `Sig
+# Float`, so one instant carries two numbers instead of one.
+#
+# Two hertz apart, because that is the interval that makes the example
+# audible as an example.  Summed into one channel 440 and 442 beat twice a
+# second; kept apart they do not beat at all, and the difference sits
+# somewhere behind your forehead and drifts.  If a stereo render came out
+# sounding like a 2 Hz tremolo, the two channels got added somewhere they
+# should not have been.
+
+# ── The frame ────────────────────────────────────────────────────────────
+#
+# `Stereo := Stereo Float Float` is not declared here: `synth.ges` has it,
+# so two programs mean the same thing by a stereo frame.  Field order is
+# channel order — left, then right — because that is how the constructor is
+# written and how a WAV interleaves them.
+#
+# `sound : Sig (Float, Float)` would work too, and identically: a tuple is
+# a record whose name nobody wrote, and the renderer reads either.  The
+# named one is what a program with more than one frame type wants, because
+# `Stereo` says which of them this is.
+
+# ── Two oscillators ──────────────────────────────────────────────────────
+#
+# Accumulated rather than computed from `n * hz / rate`, for the usual
+# reason: an accumulating phase stays exact for as long as you care to run
+# it, and a multiplied one loses its low bits as `n` grows.
+#
+# Written out twice rather than as `phase hz`, and the duplication is the
+# *fragment* talking rather than a preference.  `scan (advance hz) 0.0
+# ticks` is rejected — a partial application is a closure built while the
+# program runs, and the graph has to be fixed before it does.  A `scan`'s
+# step has to be a name or a lambda written at the call.
+
+stepLeft : Float -> Int -> Float
+stepLeft p n = wrap (p + 440.0 / sampleRate)
+
+stepRight : Float -> Int -> Float
+stepRight p n = wrap (p + 442.0 / sampleRate)
+
+phaseLeft : Sig Float
+phaseLeft = scan stepLeft 0.0 ticks
+
+phaseRight : Sig Float
+phaseRight = scan stepRight 0.0 ticks
+
+amplitude : Float
+amplitude = 0.7
+
+toneOf : Float -> Float
+toneOf p = amplitude * sineOf p
+
+left : Sig Float
+left = map toneOf phaseLeft
+
+right : Sig Float
+right = map toneOf phaseRight
+
+# ── Both of them ─────────────────────────────────────────────────────────
+#
+# One `zip`, and note that `addSig` is precisely what is *not* being
+# used: two channels are two numbers kept apart, and the moment they are
+# summed the example stops being about stereo.
+#
+# `Stereo` is passed as the combining function itself.  A constructor is an
+# ordinary value, so the pair needs no combinator and no wrapper of its
+# own — this file used to carry a `frameOf l r = Stereo l r` because it
+# did not, which was the language asking the author to eta-expand for it.
+
+sound : Sig Stereo
+sound = zip Stereo left right

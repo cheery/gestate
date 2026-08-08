@@ -1,0 +1,24 @@
+# A round: one melody against itself, entering two bars late.
+#
+#   python -m gestate.midi examples/music/canon.ges
+#
+# This is what `at` and `||` are for together.  The second voice is the
+# *same* score, offset — no duplication, no second definition.  Because
+# `at` translates a score's extent and not its duration, the two voices
+# keep their own lengths and the piece simply runs as long as the later
+# one needs.
+#
+# Each voice binds a different instrument, so the renderer gives them
+# separate MIDI channels.
+
+bar : Int
+bar = 4 * ticksPerBeat
+
+theme : [: Int :]
+theme = '67 ++ '69 ++ '71 ++ '72 ++ '71 ++ '69 ++ '67 ++ r
+
+score : [: Void :]
+score = (theme >>= prog 73) || at (2 * bar) (theme >>= prog 42)
+
+bpm : Int
+bpm = 108

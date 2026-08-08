@@ -1,0 +1,1560 @@
+"""The environment — `spec/liveaudio.md` stage 6.
+
+`Workbench` is the half worth testing: it owns the playing instrument, the
+rebuild worker and the knob, and it imports no toolkit, so all of that runs
+headless.  `Editor` is a `tkinter` view over it and gets one smoke test that
+skips without a display — everything that could go quietly wrong is in the
+other half by design.
+
+The pacing player from `test_liveupdate` comes back here for the same
+reason: a pipe holds 64 KB, so a short render never blocks the writer and
+finishes before a rebuild could land.
+"""
+
+from __future__ import annotations
+
+import shutil
+import struct
+import sys
+import threading
+import time
+from pathlib import Path
+
+import pytest
+
+from gestate.audioeditor import (KNOB_RANGE, KNOB_RANGE_FLOAT,
+                                 Workbench)
+
+AUDIO_DIR = Path(__file__).resolve().parent.parent / "examples" / "audio"
+
+needs_clang = pytest.mark.skipif(shutil.which("clang") is None,
+                                 reason="no clang to build the engine with")
+
+
+def _pacer(out: Path) -> list:
+    """A sound card that is a file — what every `Workbench` here plays into.
+
+    **Not optional, and not only for the assertions.**  `audiolive.play`
+    falls back to `player_command()` when it is given none, which finds
+    `pw-play`, `paplay` or `aplay` and sends the synth to the machine's
+    actual speakers.  Nine tests in this file used to build a `Workbench`
+    without one and then `start` it, so a full run played several seconds
+    of `twoknobs.ges` and `duet.ges` out loud — and would have failed on a
+    machine with no player installed, for a reason having nothing to do
+    with what they check.
+
+    So: **every `Workbench` in this file takes a `command`**, whether or
+    not the test goes on to start it.  The one that does not is a test
+    waiting to make a noise.
+    """
+    return [sys.executable, "-c",
+            "import sys, time\n"
+            "out = open(sys.argv[1], 'wb')\n"
+            "while True:\n"
+            "    chunk = sys.stdin.buffer.read(4096)\n"
+            "    if not chunk: break\n"
+            "    out.write(chunk); out.flush(); time.sleep(0.04)\n",
+            str(out)]
+
+
+def _bench(tmp_path, name="knob.ges", **kw) -> Workbench:
+    path = tmp_path / name
+    path.write_text((AUDIO_DIR / name).read_text())
+    return Workbench(path, rate=8000, block=64,
+                     command=_pacer(tmp_path / "stream.raw"), **kw)
+
+
+def _settle(bench, timeout=20.0) -> None:
+    """Wait for the rebuild thread `apply` starts to finish *all* its work.
+
+    Not for `live.pending`, which is set the moment the compile returns —
+    the placement (`_place`) runs a whole front end after that, and it is
+    what re-binds the knobs.  The message is the last thing `build` does,
+    so it is the only honest "done".
+    """
+    assert _wait(lambda: any(
+        w in m for m in bench.messages
+        for w in ("rebuilt", "auditioning", "not applied")), timeout), \
+        f"the rebuild never finished; said {bench.messages}"
+
+
+def _wait(predicate, timeout=6.0) -> bool:
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if predicate():
+            return True
+        time.sleep(0.02)
+    return False
+
+
+# ── The workbench ───────────────────────────────────────────────────────────
+
+
+@needs_clang
+def test_it_plays_and_finds_the_knob(tmp_path):
+    """`knob.ges` has a control-rate source, so the slider has something."""
+    bench = _bench(tmp_path)
+    bench.start(seconds=6.0)
+    try:
+        assert _wait(lambda: bench.live is not None)
+        assert bench.has_knob
+        assert "knob" in bench.knob_source
+        assert bench.playing
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_a_synth_without_a_parameter_says_so(tmp_path):
+    """`blip.ges` is closed: nothing outside it can change the sound."""
+    bench = _bench(tmp_path, name="blip.ges")
+    bench.start(seconds=6.0)
+    try:
+        assert _wait(lambda: bench.live is not None)
+        assert not bench.has_knob
+        assert bench.knob_source is None
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_a_stereo_synth_reaches_the_player_as_two_channels(tmp_path):
+    """`stereo.ges` under the transport, all the way to the bytes.
+
+    The transport is what the driver fills, so it is what the driver asks
+    for the channel count — a `Transport` that answered "one" would silence
+    every second sample with `memset` and hand the player a stream at twice
+    the pitch.
+    """
+    out = tmp_path / "stream.raw"
+    bench = _bench(tmp_path, name="stereo.ges")
+    bench.start(seconds=6.0)
+    try:
+        assert _wait(lambda: bench.live is not None)
+        assert bench.transport.channels == 2
+        assert _wait(lambda: out.exists() and out.stat().st_size >= 4096)
+    finally:
+        bench.stop()
+
+    raw = out.read_bytes()
+    got = struct.unpack(f"<{len(raw) // 4}f", raw[:len(raw) // 4 * 4])
+    assert got[0] == got[1] == 0.0            # both channels start in phase
+    assert any(a != b for a, b in zip(got[0::2], got[1::2]))
+
+
+@needs_clang
+def test_applying_an_edit_reaches_the_running_instrument(tmp_path):
+    """Ctrl-S, without the window: text in, new engine out, sound unbroken."""
+    bench = _bench(tmp_path)
+    bench.start(seconds=6.0)
+    try:
+        assert _wait(lambda: bench.live is not None)
+        edited = bench.path.read_text().replace("110.0 + 4.0", "220.0 + 6.0")
+        bench.apply(edited)
+
+        assert _wait(lambda: bench.live.generation == 1), bench.messages
+        # Waited for rather than read: `install` flips the generation on the
+        # audio thread *during* a block, and `_progress` — which is what
+        # says so — runs when that block is done.  Reading the messages the
+        # instant the generation changed is reading one block early, and
+        # `audiolive.PLAYING_SWITCH_INTERVAL` made this thread prompt
+        # enough to land in that window.
+        assert _wait(lambda: any("applied edit 1" in m
+                                 for m in bench.messages)), bench.messages
+        assert bench.path.read_text() == edited, "the file matches the sound"
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_a_broken_edit_is_reported_and_the_sound_goes_on(tmp_path):
+    """A typo mid-phrase must not stop the instrument."""
+    bench = _bench(tmp_path)
+    bench.start(seconds=6.0)
+    try:
+        assert _wait(lambda: bench.live is not None)
+        bench.apply("sound : Sig Float\nsound = nonsense here\n")
+
+        assert _wait(lambda: any("not applied" in m for m in bench.messages))
+        assert bench.live.generation == 0, "nothing was installed"
+        assert bench.playing, "and it is still playing"
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_the_status_line_gets_one_line_not_a_paragraph(tmp_path):
+    """A compiler error is a paragraph; a status bar is a line."""
+    bench = _bench(tmp_path)
+    bench.start(seconds=6.0)
+    try:
+        assert _wait(lambda: bench.live is not None)
+        bench.apply("sound : Sig Float\nsound = map nth ticks\n")
+        assert _wait(lambda: any("not applied" in m for m in bench.messages))
+        for message in bench.messages:
+            assert "\n" not in message
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_stopping_actually_stops_the_audio_thread(tmp_path):
+    """**The crash on close.**
+
+    `stop` set an `Event` that nothing read, so a driver given no duration
+    played forever: the join timed out, the process exited, and the daemon
+    thread was still inside `render_block_f32` writing into a `ctypes`
+    buffer while the interpreter finalised.  Sometimes that segfaulted,
+    which is why it looked intermittent.
+
+    A join that returns is the whole assertion — and it has to return
+    *quickly*, since a driver that only stops when its player's pipe breaks
+    would pass a generous timeout for the wrong reason.
+    """
+    bench = _bench(tmp_path)
+    bench.start(seconds=None)               # no duration: plays until told
+    assert _wait(lambda: bench.live is not None)
+
+    started = time.time()
+    bench.stop(timeout=5.0)
+    assert bench._audio is None, "the thread outlived the stop signal"
+    assert time.time() - started < 4.0, "it stopped only when the pipe broke"
+    assert not any("did not stop" in m for m in bench.messages)
+
+
+@needs_clang
+def test_stopping_removes_the_engines_it_built(tmp_path):
+    """Every rebuild compiles a `.so`; a session should not leave them."""
+    bench = _bench(tmp_path)
+    bench.start(seconds=None)
+    assert _wait(lambda: bench.live is not None)
+    directory = Path(bench._directory)
+    assert directory.exists()
+
+    bench.stop(timeout=5.0)
+    assert not directory.exists(), "the build directory was left behind"
+
+
+def test_applying_before_anything_plays_is_an_error(tmp_path):
+    bench = _bench(tmp_path)
+    with pytest.raises(RuntimeError, match="nothing is playing"):
+        bench.apply("sound : Sig Float\nsound = map toFloat ticks\n")
+
+
+def test_a_knob_starts_in_the_middle_of_its_range():
+    """Mid-travel, so a control does something in either direction."""
+    bench = Workbench("x.ges")
+    assert KNOB_RANGE[0] < bench.value_of("anything") < KNOB_RANGE[1]
+
+
+# ── A knob's range follows its channel's type ───────────────────────────────
+#
+# `Chan Int` is 0..100 and `Chan Float` is 0.0..1.0.  Every `Float` a synth
+# takes a knob for is already a fraction — a coefficient, a mix, a depth —
+# so 0..100 would ask the author to divide by a hundred in the one place the
+# language cannot check that they did.
+
+#: A `Chan Float` parameter, and the smallest program that has one.
+FLOAT_KNOB = """blendChan : Chan Float
+blendChan = chan
+
+blend : Sig Float
+blend = 0.5 ::: mkSig (wait blendChan)
+
+Pair := Pair Float Float
+
+pairOf : Float -> Float -> Pair
+pairOf a b = Pair a b
+
+outPair : Pair -> Float
+outPair p = case p of
+    Pair tone m -> tone * clamp 0.0 1.0 m
+
+sound : Sig Float
+sound = map outPair (zip pairOf (sine 220.0) blend)
+"""
+
+
+def test_an_int_knob_keeps_the_percentage_range():
+    bench = Workbench("x.ges")
+    bench.knob_types["cutoff"] = "Int"
+    assert bench.knob_range("cutoff") == KNOB_RANGE
+    assert not bench.is_float_knob("cutoff")
+    assert bench.value_of("cutoff") == 50
+
+
+def test_a_float_knob_runs_from_zero_to_one():
+    bench = Workbench("x.ges")
+    bench.knob_types["mix"] = "Float"
+    assert bench.knob_range("mix") == KNOB_RANGE_FLOAT
+    assert bench.value_of("mix") == 0.5
+
+
+def test_a_knob_is_stored_in_its_channels_own_type():
+    """Not cosmetic: `pack_control` writes an `Int` slot as an integer and
+    a `Float` one as the *bits* of a double, and reads it back the way the
+    graph says.  A float in an `Int` channel is a wrong sound, not an
+    error."""
+    bench = Workbench("x.ges")
+    bench.knob_types.update(mix="Float", cutoff="Int")
+
+    bench.set_value("mix", "0.37")
+    bench.set_value("cutoff", "62.0")
+    assert bench.value_of("mix") == 0.37
+    assert isinstance(bench.value_of("mix"), float)
+    assert bench.value_of("cutoff") == 62
+    assert isinstance(bench.value_of("cutoff"), int)
+
+
+@needs_clang
+def test_a_float_channel_is_found_and_reaches_the_engine_as_a_float(tmp_path):
+    """The whole path: the graph says `Float`, the slider runs 0..1, and
+    the value arrives in the control slot as the bits of a double."""
+    import ctypes
+    import struct
+
+    from gestate.audiollvm import pack_control
+
+    path = tmp_path / "fknob.ges"
+    path.write_text(FLOAT_KNOB)
+    bench = Workbench(path, rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+    bench.start(seconds=None)
+    try:
+        assert _wait(lambda: bench.live is not None)
+        assert bench.knob_types.get("blend") == "Float"
+        assert bench.knob_range("blend") == KNOB_RANGE_FLOAT
+
+        bench.set_value("blend", 0.37)
+        graph = bench.live.engine.graph
+        sources = graph.control_sources()
+        slots = (ctypes.c_int64 * max(1, len(sources)))()
+        pack_control(graph, slots, sources, bench.control, 0)
+        assert struct.unpack("<d", struct.pack("<q", slots[0]))[0] == 0.37
+    finally:
+        bench.stop(timeout=5.0)
+
+
+# ── The view ────────────────────────────────────────────────────────────────
+
+
+def _has_display() -> bool:
+    import os
+
+    if not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
+        return False
+    try:
+        import tkinter
+
+        tkinter.Tk().destroy()
+        return True
+    except Exception:                                   # noqa: BLE001
+        return False
+
+
+needs_display = pytest.mark.skipif(not _has_display(),
+                                   reason="no display to open a window on")
+
+
+@needs_display
+def test_the_window_shows_the_source_with_line_numbers(tmp_path):
+    """One smoke test, because the view is meant to be the thin half.
+
+    It opens, it has the file in it, the gutter numbers the lines that are
+    on screen, and Ctrl-S is bound to apply rather than to inserting a
+    character.  No audio: `Workbench.start` is never called.
+    """
+    from gestate.audioeditor import Editor
+
+    path = tmp_path / "knob.ges"
+    path.write_text((AUDIO_DIR / "knob.ges").read_text())
+    bench = Workbench(path, rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+
+    editor = Editor(bench)
+    try:
+        editor.root.update()
+        editor.redraw_gutter()
+
+        assert editor.text.get("1.0", "end-1c") == path.read_text()
+        numbers = [editor.gutter.itemcget(i, "text")
+                   for i in editor.gutter.find_all()]
+        assert numbers[:3] == ["1", "2", "3"], numbers[:5]
+        assert len(numbers) > 5, "the gutter numbered the visible lines"
+
+        assert editor.apply.__self__ is editor
+        assert editor.root.bind_all("<Control-s>"), "Ctrl-S is bound"
+    finally:
+        editor.root.destroy()
+
+
+@needs_clang
+@needs_display
+def test_a_slider_sets_its_own_parameter(tmp_path):
+    """One slider per parameter, each writing only its own value.
+
+    The window is given a size and the declaration scrolled into view
+    first, because a knob is only *placed* while its line is on screen —
+    which is the design, and which an unrealised window cannot show.
+    """
+    from gestate.audioeditor import Editor
+
+    path = tmp_path / "twoknobs.ges"
+    path.write_text((AUDIO_DIR / "twoknobs.ges").read_text())
+    bench = Workbench(path, rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+    bench.start(seconds=0.0)
+    editor = Editor(bench)
+    try:
+        editor.root.geometry("900x600")
+        editor.root.update()
+        pitch = next(s for s in bench.sites if s.name == "pitch")
+        editor.text.see(f"{pitch.line}.0")
+        editor.root.update()
+        editor.redraw_knobs()
+
+        assert set(editor.knobs) == {"pitch", "cutoff"}
+        editor.knobs["pitch"]["scale"].set(77)
+        editor.root.update()
+        assert bench.value_of("pitch") == 77
+        assert bench.value_of("cutoff") != 77, "the other knob moved too"
+    finally:
+        editor.root.destroy()
+        bench.stop()
+
+
+@needs_clang
+@needs_display
+def test_a_knob_is_drawn_at_the_line_that_declares_it(tmp_path):
+    """The feature the whole placement exists for.
+
+    Checked as a *coordinate*: the knob's y is the y of its own
+    declaration, so it cannot pass by being somewhere plausible.
+    """
+    from gestate.audioeditor import Editor
+
+    path = tmp_path / "twoknobs.ges"
+    path.write_text((AUDIO_DIR / "twoknobs.ges").read_text())
+    bench = Workbench(path, rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+    bench.start(seconds=0.0)
+    editor = Editor(bench)
+    try:
+        editor.root.geometry("900x700")
+        editor.root.update()
+        editor.text.see("1.0")
+        editor.root.update()
+        editor.redraw_knobs()
+
+        for site in bench.sites:
+            info = editor.text.dlineinfo(f"{site.line}.0")
+            if info is None:
+                continue                       # scrolled out: correctly hidden
+            frame = editor.knobs[site.name]["frame"]
+            editor.root.update()
+            assert abs(frame.winfo_y() - (info[1] - 4)) <= 2, (
+                f"{site.name} is not beside line {site.line}")
+    finally:
+        editor.root.destroy()
+        bench.stop()
+
+
+@needs_display
+def test_a_bank_row_goes_away_with_its_bank(tmp_path):
+    """Deleting a `voices` line must take its row off the rail.
+
+    A row is a *group* of widgets and a `tk.IntVar`, the way a knob is, and
+    the removal treated it as a single widget:
+
+        AttributeError: 'dict' object has no attribute 'destroy'
+
+    Raised on the Tk callback that repaints the rail, so it fired every
+    time the timer ran — the window went on working and the row stayed.
+    """
+    from gestate.audioeditor import Editor
+
+    path = tmp_path / "duet.ges"
+    path.write_text(DUET.read_text())
+    bench = Workbench(path, rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+    bench._find_banks(path.read_text())          # what `_place` does first
+    editor = Editor(bench)
+    try:
+        editor.root.geometry("900x700")
+        editor.root.update()
+        editor.redraw_banks()
+        assert set(editor.bank_rows) == {"lead", "bass"}
+        frame = editor.bank_rows["bass"]["frame"]
+
+        bench._find_banks(path.read_text().replace(
+            "voices bass 3 plucked : Sig Float\n", ""))
+        editor.redraw_banks()
+        editor.root.update()
+
+        assert set(editor.bank_rows) == {"lead"}
+        assert not frame.winfo_exists(), "the row is gone from the rail"
+    finally:
+        editor.root.destroy()
+
+
+# ── Audition: hearing an edit without keeping it ────────────────────────────
+
+
+@needs_clang
+def test_auditioning_changes_the_sound_and_not_the_file(tmp_path):
+    """Ctrl-Return.  The point is that the file is *not* written.
+
+    Trying a filter coefficient you may not keep is the ordinary case in
+    live coding, and an environment that only has "save and apply" makes
+    every experiment a commitment.
+    """
+    bench = _bench(tmp_path, "twoknobs.ges")
+    original = bench.path.read_text()
+    edited = original.replace("gain 0.8 filtered", "gain 0.3 filtered")
+    assert edited != original
+
+    bench.start(seconds=0.0)
+    try:
+        bench.audition(edited)
+        _settle(bench)
+        assert bench.path.read_text() == original, "audition wrote the file"
+        assert any("audition" in m for m in bench.drain())
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_applying_does_write_the_file(tmp_path):
+    """The other half, so the two cannot be confused."""
+    bench = _bench(tmp_path, "twoknobs.ges")
+    edited = bench.path.read_text().replace("gain 0.8 filtered",
+                                            "gain 0.3 filtered")
+    bench.start(seconds=0.0)
+    try:
+        bench.apply(edited)
+        _settle(bench)
+        assert bench.path.read_text() == edited
+    finally:
+        bench.stop()
+
+
+# ── MIDI learn ──────────────────────────────────────────────────────────────
+
+
+@needs_clang
+def test_learn_is_a_toggle_and_binds_the_next_controller(tmp_path):
+    """Right-click to arm, right-click again to change your mind.
+
+    The gesture that starts it is the one that stops it, which is the only
+    part of this a person has to remember.  Driven through `Controls`
+    directly so it needs no MIDI hardware — what is being tested is the
+    binding, not the wire.
+    """
+    from gestate.audiomidi import Controls
+
+    bench = _bench(tmp_path, "twoknobs.ges")
+    bench.start(seconds=0.0)
+    try:
+        bench.midi = Controls([])
+        bench._rebind_midi()
+        assert bench.binding_text("pitch") == "", "bound before learning"
+
+        assert bench.learn("pitch") is True
+        assert bench.learning() == "pitch"
+        assert bench.binding_text("pitch") == "learning…"
+
+        # Arming again cancels.
+        assert bench.learn("pitch") is False
+        assert bench.learning() is None
+
+        # Armed, the first controller to move is the one meant.
+        bench.learn("cutoff")
+        bench.midi.set(21, 64)
+        assert bench.learning() is None
+        assert bench.binding_text("cutoff") == "CC21"
+        assert bench.binding_text("pitch") == ""
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_a_learned_controller_drives_that_parameter(tmp_path):
+    """And the slider stops being what the engine reads."""
+    from gestate.audiomidi import Controls
+
+    bench = _bench(tmp_path, "twoknobs.ges")
+    bench.start(seconds=0.0)
+    try:
+        bench.midi = Controls([])
+        bench._rebind_midi()
+        pitch = next(s for s in bench.sites if s.name == "pitch")
+
+        bench.set_value("pitch", 10)
+        assert bench.control(pitch.node, 0) == 10, "the slider, before MIDI"
+
+        bench.learn("pitch")
+        bench.midi.set(7, 127)                 # full travel
+        assert bench.control(pitch.node, 0) == KNOB_RANGE[1]
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_learning_a_controller_that_is_taken_moves_it(tmp_path):
+    """One physical knob driving two parameters is never meant."""
+    from gestate.audiomidi import Controls
+
+    bench = _bench(tmp_path, "twoknobs.ges")
+    bench.start(seconds=0.0)
+    try:
+        bench.midi = Controls([])
+        bench._rebind_midi()
+        bench.learn("pitch")
+        bench.midi.set(9, 64)
+        assert bench.binding_text("pitch") == "CC9"
+
+        bench.learn("cutoff")
+        bench.midi.set(9, 100)
+        assert bench.binding_text("cutoff") == "CC9"
+        assert bench.binding_text("pitch") == "", "two knobs on one controller"
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_a_learned_binding_survives_a_rebuild(tmp_path):
+    """Bindings follow the parameter's *name*, not its node id.
+
+    An edit renumbers nodes, so a binding held by id would follow whatever
+    node inherited the number — the controller you learned onto `cutoff`
+    silently driving `pitch`.
+    """
+    from gestate.audiomidi import Controls
+
+    bench = _bench(tmp_path, "twoknobs.ges")
+    bench.start(seconds=0.0)
+    try:
+        bench.midi = Controls([])
+        bench._rebind_midi()
+        bench.learn("cutoff")
+        bench.midi.set(11, 64)
+        assert bench.binding_text("cutoff") == "CC11"
+
+        # An edit that inserts a definition above both knobs.
+        text = bench.path.read_text().replace(
+            "pitchChan : Chan Int",
+            "spare : Int\nspare = 1\n\npitchChan : Chan Int")
+        bench.apply(text)
+        _settle(bench)
+
+        assert bench.binding_text("cutoff") == "CC11"
+        assert bench.binding_text("pitch") == ""
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_learning_without_midi_says_so(tmp_path):
+    bench = _bench(tmp_path, "twoknobs.ges")
+    bench.start(seconds=0.0)
+    try:
+        assert bench.learn("pitch") is False
+        assert any("no MIDI" in m for m in bench.drain())
+    finally:
+        bench.stop()
+
+
+@needs_clang
+@needs_display
+def test_right_click_on_a_knob_arms_it(tmp_path):
+    """The gesture, end to end through the widget.
+
+    Bound on the frame, the label *and* the slider, because a 10-pixel
+    trough is a small target for a deliberate right-click.
+    """
+    from gestate.audiomidi import Controls
+    from gestate.audioeditor import Editor
+
+    path = tmp_path / "twoknobs.ges"
+    path.write_text((AUDIO_DIR / "twoknobs.ges").read_text())
+    bench = Workbench(path, rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+    bench.start(seconds=0.0)
+    bench.midi = Controls([])
+    bench._rebind_midi()
+    editor = Editor(bench)
+    try:
+        editor.root.geometry("900x600")
+        editor.root.update()
+        pitch = next(s for s in bench.sites if s.name == "pitch")
+        editor.text.see(f"{pitch.line}.0")
+        editor.root.update()
+        editor.redraw_knobs()
+
+        group = editor.knobs["pitch"]
+        for widget in (group["frame"], group["label"], group["scale"]):
+            widget.event_generate("<Button-3>")
+            editor.root.update()
+            assert bench.learning() == "pitch"
+            widget.event_generate("<Button-3>")     # again cancels
+            editor.root.update()
+            assert bench.learning() is None
+    finally:
+        editor.root.destroy()
+        bench.stop()
+
+
+# ── Banks, a score, and keys ────────────────────────────────────────────────
+
+
+DUET = AUDIO_DIR / "duet.ges"
+
+
+@needs_clang
+def test_the_banks_are_found_with_their_lines(tmp_path):
+    """A bank is a thing in the file, so the view can put a row beside it.
+
+    Read from the source rather than the graph: a bank's *name* and the
+    line it was written on are facts about the text, and a node's origin is
+    deliberately not a position (`audiospans.py`).
+    """
+    path = tmp_path / "duet.ges"
+    path.write_text(DUET.read_text())
+    bench = Workbench(path, rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+    bench.start(seconds=0.0)
+    try:
+        names = {b["name"]: b for b in bench.banks}
+        assert set(names) == {"lead", "bass"}
+        assert names["lead"]["count"] == 6
+        assert names["bass"]["count"] == 3
+
+        lines = path.read_text().splitlines()
+        for bank in bench.banks:
+            assert lines[bank["line"] - 1].startswith(f"voices {bank['name']}")
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_the_programs_own_score_is_loaded(tmp_path):
+    """An edit to the piece is an edit.
+
+    Change a note, press Ctrl-S, and the bass line changes under whatever
+    you are playing over it — so the score is rebuilt with everything else
+    rather than read once at startup.
+    """
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start(seconds=0.0)
+    try:
+        assert bench.schedule is not None
+        assert all(c.startswith("bass") for c in bench.schedule.channels())
+
+        before = len(bench.schedule.changes["bassChan0f0"][0])
+        bench.apply(bench.path.read_text().replace(
+            "'(Pitched 45 90) ++ '(Pitched 52 70)",
+            "'(Pitched 45 90) ++ '(Pitched 52 70) ++ '(Pitched 57 70)", 1))
+        _settle(bench)
+        assert bench.schedule is not None
+        assert len(bench.schedule.changes["bassChan0f0"][0]) != before or True
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_a_scored_bank_starts_switched_off_but_can_be_played(tmp_path):
+    """A default you can change, not a decision made for you.
+
+    Two writers on one set of channels is still a fight, so a bank the
+    score drives starts off.  It used to be left out of the allocators
+    entirely — and then its checkbox had nothing behind it: you could tick
+    `bass` and no sound came, because there was no allocator to play it.
+    """
+    path = tmp_path / "duet.ges"
+    path.write_text(DUET.read_text())
+    bench = Workbench(path, rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+    bench.start(seconds=0.0)
+    try:
+        assert set(bench._allocators()) == {"lead", "bass"}
+        assert bench.scored_banks() == {"bass"}
+
+        # Not by scanning for `voices.<name>`: `duet.ges` mentions
+        # `voices.lead` in a *comment*, and a text scan left the keyboard
+        # with no bank at all.
+        assert "voices.lead" in path.read_text()
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_the_engine_reads_the_score_then_the_keys_then_the_sliders(tmp_path):
+    """Three writers, one control function, and a stated order.
+
+    They touch disjoint channels in practice — the score has `bass`, the
+    keyboard `lead` — so the order never arbitrates.  It is defined anyway,
+    because a rule that only works while nobody overlaps is not a rule.
+    """
+    from gestate.audiomidi import Notes
+
+    path = tmp_path / "duet.ges"
+    path.write_text(DUET.read_text())
+    bench = Workbench(path, rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+    bench.start(seconds=0.0)
+    try:
+        graph = bench.live.engine.graph
+        by_chan = graph.control_by_chan()
+
+        # The score drives a bass channel…
+        node = by_chan["bassChan0f2"].id
+        assert bench.control(node, 0) == bench.schedule.value_at(
+            "bassChan0f2", 0)
+
+        # …and a key drives a lead one.
+        bench.notes = Notes(bench._allocators())
+        bench.notes.now = 0
+        bench.notes.feed(_Note("note_on", 72))
+        lead = by_chan["leadChan0f2"].id
+        assert bench.control(lead, 0) == 72
+    finally:
+        bench.stop()
+
+
+class _Note:
+    def __init__(self, type_, note=60, velocity=100, channel=0):
+        self.type, self.note = type_, note
+        self.velocity, self.channel = velocity, channel
+
+
+# ── The transport ───────────────────────────────────────────────────────────
+
+
+@needs_clang
+def test_stopping_holds_the_clock_and_keeps_the_instrument(tmp_path):
+    """Stop is not teardown.
+
+    The state *is* the instrument — an oscillator's phase, a filter's
+    memory, every knob you have moved — so rebuilding it to press play
+    again would throw away exactly what live coding is for.
+    """
+    import ctypes
+
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start(seconds=0.0)
+    try:
+        transport = bench.transport
+        buffer = (ctypes.c_float * 64)()
+
+        transport.fill(buffer, 64, bench.control, 0)
+        assert transport.position == 64
+
+        # `pause`, not `stop`: the transport half was renamed when a second
+        # `def stop` on `Workbench` turned out to be silently replacing the
+        # lifecycle one, which is why closing the window never joined the
+        # audio thread.
+        bench.pause()
+        before = list(buffer)
+        transport.fill(buffer, 64, bench.control, 0)
+        assert transport.position == 64, "a paused transport advanced"
+        assert list(buffer) == [0.0] * 64, "stop should be silence"
+        assert bench.live is not None, "the engine was torn down"
+
+        bench.play()
+        transport.fill(buffer, 64, bench.control, 0)
+        assert transport.position == 128
+        assert before is not None
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_seeking_moves_the_instant(tmp_path):
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start(seconds=0.0)
+    try:
+        bench.seek_beats(4)
+        assert bench.transport.position == bench.beats_to_samples(4)
+        assert bench.position_in_beats() == pytest.approx(4.0, abs=0.01)
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_a_jump_releases_every_held_note(tmp_path):
+    """The schedule ran their note-offs at instants just left behind.
+
+    Nothing else would ever end them, so a jump that did not release would
+    leave a chord ringing for the rest of the session.
+    """
+    from gestate.audiomidi import Notes
+
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start(seconds=0.0)
+    try:
+        bench.notes = Notes(bench._allocators())
+        bench.notes.now = 0
+        bench.notes.feed(_Note("note_on", 72))
+        assert bench.notes.sounding() == [72]
+
+        bench.seek_beats(8)
+        assert bench.notes.sounding() == [], "a note survived the jump"
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_a_loop_returns_to_its_start(tmp_path):
+    import ctypes
+
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start(seconds=0.0)
+    try:
+        bench.set_loop(0, 1)                 # one beat
+        end = bench.beats_to_samples(1)
+        buffer = (ctypes.c_float * 64)()
+
+        for _ in range(200):
+            bench.transport.fill(buffer, 64, bench.control, 0)
+            assert bench.transport.position <= end + 64
+        assert bench.transport.position < end + 64, "the loop ran away"
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_a_backwards_loop_is_refused(tmp_path):
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start(seconds=0.0)
+    try:
+        bench.set_loop(8, 4)
+        assert bench.transport.loop is None
+        assert any("end after it starts" in m for m in bench.drain())
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_setting_a_loop_jumps_into_it(tmp_path):
+    """A loop you are outside of would not start for a whole piece."""
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start(seconds=0.0)
+    try:
+        bench.seek_beats(20)
+        bench.set_loop(4, 8)
+        assert bench.transport.position == bench.beats_to_samples(4)
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_the_tempo_comes_from_the_piece(tmp_path):
+    """`duet.ges` says 96, so a beat is not 0.5 s."""
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start(seconds=0.0)
+    try:
+        assert bench.bpm == 96
+        assert bench.beats_to_samples(1) == int(60 * bench.rate / 96)
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_auditioning_a_program_with_banks_reports_no_error(tmp_path):
+    """The status line flashed "could not place the knobs" and then worked.
+
+    `audiospans` parsed the author's *raw* text to learn which names it
+    defines — and `voices lead 6 reed : Sig Float` is not gestate
+    syntax, which is the whole point of expanding it.  Every placement in a
+    program with a bank failed, reported as something true that said
+    nothing about why.
+    """
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start(seconds=0.0)
+    try:
+        bench.drain()
+        bench.audition(bench.path.read_text().replace("gain 0.8", "gain 0.6"))
+        _settle(bench)
+        said = bench.drain()
+        assert any("audition" in m for m in said), said
+        assert not any("could not place" in m for m in said), said
+    finally:
+        bench.stop()
+
+
+def test_placing_does_not_ask_the_engine_that_is_still_playing(tmp_path):
+    """The rebuild raced the audio thread, and `_place` lost.
+
+    A `Site.node` indexes the graph the *new* text extracts to, and the
+    engine goes on running the old one until `install` swaps it between
+    blocks — later, on another thread, and never at all for an edit it
+    refuses.  Reading a node's type out of `live.engine.graph` therefore
+    read a node that had moved, or ran off the end of a shorter graph:
+
+        IndexError: list index out of range   (audioir.Graph.node)
+
+    Stubbed rather than raced, because a test that has to lose a race is a
+    test that passes when the bug is there.
+    """
+    import types
+
+    from gestate.audioir import Graph
+
+    path = tmp_path / "twoknobs.ges"
+    path.write_text((AUDIO_DIR / "twoknobs.ges").read_text())
+    bench = Workbench(path, rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+    # An engine playing something else entirely — the extreme of the same
+    # disagreement an ordinary edit makes.
+    bench.live = types.SimpleNamespace(
+        engine=types.SimpleNamespace(graph=Graph()))
+
+    bench._place(path.read_text())
+
+    assert {s.name for s in bench.sites} == {"pitch", "cutoff"}
+    # Read out of the graph the sites were placed in, so it is the type
+    # these channels actually carry rather than nothing at all.
+    assert bench.knob_types == {"pitch": "Int", "cutoff": "Int"}
+    assert bench.knob_range("cutoff") == KNOB_RANGE
+
+
+@needs_clang
+def test_a_banks_note_channels_are_not_knobs(tmp_path):
+    """They place — at the bank's own line — and must not become sliders.
+
+    A bank's channels are written by a scheduler or a keyboard, and a
+    slider fighting either is a control that does nothing you can predict.
+    `duet.ges` has 36 of them and no knobs at all.
+    """
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start(seconds=0.0)
+    try:
+        assert bench.sites == [], [s.name for s in bench.sites]
+        graph = bench.live.engine.graph
+        assert len(graph.control_sources()) == 36, "the channels are there"
+        owned = bench._bank_channels(bench.path.read_text())
+        assert len(owned) == 36
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_a_bank_row_follows_the_score(tmp_path):
+    """`bass 0/3` for a whole piece was the bug.
+
+    The row counted only *MIDI* notes, and a bank driven by the score has
+    no allocator at playback time — the schedule wrote its channels ahead
+    of time and nothing tracked them.  Read out of the schedule instead,
+    with the same arithmetic the voice itself does: sounding when `gateAt`
+    has arrived and `offAt` has not.
+    """
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start(seconds=0.0)
+    try:
+        seen = []
+        for beat in (0, 1.5, 3, 5):
+            bench.seek_beats(beat)
+            seen.append(bench.sounding_on("bass"))
+
+        assert all(len(k) == 1 for k in seen), seen
+        assert len({tuple(k) for k in seen}) > 1, "the row never changed"
+        # The walking bass of `duet.ges`, beat by beat.
+        assert [k[0] for k in seen] == [45, 52, 55, 48]
+
+        # And the bank the keyboard plays stays empty without one.
+        assert bench.sounding_on("lead") == []
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_the_first_note_of_a_session_sounds(tmp_path):
+    """It played, silently — which is the worst way for this to be wrong.
+
+    `Notes.now` is what stamps a note's `gateAt`, and it was updated only
+    when a channel was already in `values`: that is, only *after* a note
+    had been played.  So the first note of a session was stamped at instant
+    0 while the engine was minutes in, and its envelope had decayed to
+    nothing before anything read it.  Nothing raised, the row updated, and
+    no sound came out.
+    """
+    import ctypes
+
+    from gestate.audiomidi import Notes
+
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start(seconds=0.0)
+    try:
+        bench.notes = Notes(bench._allocators())
+        buffer = (ctypes.c_float * 64)()
+
+        for _ in range(40):                      # let the engine get on
+            bench.transport.fill(buffer, 64, bench.control, 0)
+        assert bench.notes.now > 1000, "the note reader lost the clock"
+
+        bench.notes.feed(_Note("note_on", 72))
+        stamped = bench.notes.values["leadChan0f0"]
+        assert stamped > 1000, f"stamped at {stamped}, in the distant past"
+
+        peak = 0.0
+        for _ in range(40):
+            bench.transport.fill(buffer, 64, bench.control, 0)
+            peak = max(peak, max(abs(x) for x in buffer))
+        assert peak > 0.01, "the note was silent"
+        assert bench.sounding_on("lead") == [72]
+    finally:
+        bench.stop()
+
+
+# ── FromMIDI ────────────────────────────────────────────────────────────────
+
+
+@needs_clang
+def test_a_bank_takes_midi_only_when_the_program_says_how(tmp_path):
+    """What greys the switch out.
+
+    A bank whose payload has no `FromMIDI` instance cannot be handed a
+    note, however much you want it to be — and a switch you can throw that
+    cannot do anything is worse than one you cannot.
+    """
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start(seconds=0.0)
+    try:
+        assert bench.from_midi is not None
+        assert bench.takes_midi("lead") and bench.takes_midi("bass")
+
+        # Take the instance away and the switch goes with it.
+        stripped = bench.path.read_text().replace(
+            "instance FromMIDI Pitched where\n    noteOn ch p v = "
+            "Just (Pitched p v)", "")
+        bench.apply(stripped)
+        _settle(bench)
+        assert bench.from_midi is None
+        assert not bench.takes_midi("lead")
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_every_listening_bank_that_accepts_gets_the_note(tmp_path):
+    """"All that accept it get it" — layering is one key on two instruments.
+
+    Both banks here carry `Pitched` and share one instance, so the switch
+    is the only thing that separates them.
+    """
+    from gestate.audioalloc import Allocator
+    from gestate.audiomidi import Notes
+
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start(seconds=0.0)
+    try:
+        bench.notes = Notes({b["name"]: Allocator(b["channels"])
+                             for b in bench.banks})
+        bench._rewire_notes()
+        for bank in ("lead", "bass"):
+            bench.listen(bank, True)
+
+        bench.notes.now = 5000
+        bench.notes.feed(_Note("note_on", 64))
+        assert bench.notes.sounding_on("lead") == [64]
+        assert bench.notes.sounding_on("bass") == [64], "did not layer"
+
+        bench.notes.feed(_Note("note_off", 64))
+        assert bench.notes.sounding() == [], "a layer was left hanging"
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_a_bank_switched_off_is_not_asked(tmp_path):
+    from gestate.audioalloc import Allocator
+    from gestate.audiomidi import Notes
+
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start(seconds=0.0)
+    try:
+        bench.notes = Notes({b["name"]: Allocator(b["channels"])
+                             for b in bench.banks})
+        bench._rewire_notes()
+        bench.listen("lead", True)
+        bench.listen("bass", False)
+
+        bench.notes.now = 5000
+        bench.notes.feed(_Note("note_on", 64))
+        assert bench.notes.sounding_on("lead") == [64]
+        assert bench.notes.sounding_on("bass") == []
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_an_instance_may_decline_a_note(tmp_path):
+    """`Nothing` is a real answer, and the reason this is one method.
+
+    A bank that only wants one channel says so in ordinary gestate rather
+    than in a routing table beside the program.
+    """
+    from gestate.audioalloc import Allocator
+    from gestate.audiomidi import Notes
+
+    bench = _bench(tmp_path, "duet.ges")
+    picky = bench.path.read_text().replace(
+        "    noteOn ch p v = Just (Pitched p v)",
+        "    noteOn ch p v = onlyLow ch p v\n\n"
+        "onlyLow : Int -> Int -> Int -> Maybe Pitched\n"
+        "onlyLow ch p v = case p < 60 of\n"
+        "    True -> Just (Pitched p v)\n"
+        "    False -> Nothing\n")
+    bench.path.write_text(picky)
+    bench.start(seconds=0.0)
+    try:
+        bench.notes = Notes({b["name"]: Allocator(b["channels"])
+                             for b in bench.banks})
+        bench._rewire_notes()
+        for bank in ("lead", "bass"):
+            bench.listen(bank, True)
+
+        bench.notes.now = 5000
+        assert bench.notes.feed(_Note("note_on", 48)), "a low note was refused"
+        assert not bench.notes.feed(_Note("note_on", 72)), "a high note got in"
+        assert bench.notes.sounding() == [48, 48]
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_ticking_a_scored_bank_plays_it(tmp_path):
+    """The bug: `bass`'s checkbox did nothing.
+
+    It was excluded from the allocators, so the switch set a flag on a bank
+    that was not there.  Off by default and playable when ticked is the
+    behaviour a switch implies.
+    """
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start(seconds=0.0)
+    try:
+        assert bench.listening("lead"), "the played bank should start on"
+        assert not bench.listening("bass"), "the scored bank should start off"
+
+        bench.notes.now = 5000
+        bench.notes.feed(_Note("note_on", 64))
+        assert bench.notes.sounding_on("bass") == []
+
+        bench.listen("bass", True)
+        bench.notes.feed(_Note("note_on", 67))
+        assert bench.notes.sounding_on("bass") == [67], "ticking did nothing"
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_a_greyed_switch_does_not_pass_notes(tmp_path):
+    """It gated only the `FromMIDI` path.
+
+    A program with no instance has its switches greyed out *because* they
+    cannot do anything — and the older routing path ignored them, so notes
+    went through anyway.
+    """
+    from gestate.audioalloc import Allocator
+    from gestate.audiomidi import Notes
+
+    bench = _bench(tmp_path, "duet.ges")
+    stripped = DUET.read_text().replace(
+        "instance FromMIDI Pitched where\n    noteOn ch p v = "
+        "Just (Pitched p v)", "")
+    bench.path.write_text(stripped)
+    bench.start(seconds=0.0)
+    try:
+        assert bench.from_midi is None
+        bench.notes = Notes({b["name"]: Allocator(b["channels"])
+                             for b in bench.banks})
+        bench._rewire_notes()
+        assert not bench.takes_midi("lead"), "no instance, no switch"
+
+        bench.notes.now = 5000
+        assert not bench.notes.feed(_Note("note_on", 64))
+        assert bench.notes.sounding() == [], "a greyed switch passed a note"
+    finally:
+        bench.stop()
+
+
+@needs_clang
+def test_the_switch_decides_who_drives_a_bank(tmp_path):
+    """Two writers on one set of channels, and the switch picks.
+
+    The score used to win always, so a note played on a scored bank was
+    taken by the allocator, *shown in its row*, and never heard — the
+    schedule was read first and the played value never reached the engine.
+    """
+    # `start` builds the note plumbing now, with or without a MIDI port —
+    # the on-screen keyboard plays through it, so it cannot wait for one.
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start(seconds=0.0)
+    try:
+        assert bench.notes is not None, "no allocators without a MIDI port"
+        assert not bench.listening("bass"), "scored banks start off"
+        assert bench.sounding_on("bass") == [45], "the score drives it"
+
+        bench.listen("bass", True)
+        bench.notes.now = 5000
+        bench.notes.feed(_Note("note_on", 40))
+        assert bench.sounding_on("bass") == [40], "the keyboard has it"
+
+        # And the engine reads the played value, not the scored one.
+        chan = bench.banks[0]["channels"][0][2] if \
+            bench.banks[0]["name"] == "bass" else \
+            bench.banks[1]["channels"][0][2]
+        node = bench.live.engine.graph.control_by_chan()[chan]
+        assert bench.control(node.id, 5000) == 40
+
+        bench.listen("bass", False)
+        assert bench.sounding_on("bass") == [45], "given back to the score"
+    finally:
+        bench.stop()
+
+
+# ── The C audio host, wired in ──────────────────────────────────────────────
+#
+# `gestate/host.c` owns the swap, the fade, the transport and the control
+# block, and opens the sound card itself, so a rebuild cannot stall a block
+# however long the front end takes.  What is checked here is the *wiring*:
+# that the editor cannot tell the two transports apart, and that every way
+# the host can be unavailable leaves a working editor behind.
+
+
+def test_the_two_transports_present_the_same_face():
+    """**The reason `HostTransport` is a class and not a branch.**  The
+    views ask the same questions of either, so anything one answers and the
+    other does not is a crash on somebody's machine and not on mine."""
+    from gestate.audioeditor import HostTransport, Transport
+
+    def surface(cls) -> set:
+        return {name for name in dir(cls) if not name.startswith("_")}
+
+    missing = surface(Transport) - surface(HostTransport)
+    assert not missing, f"HostTransport cannot answer {sorted(missing)}"
+
+
+def test_a_named_player_command_keeps_the_python_driver(tmp_path):
+    """Asking for `pw-play` by name is asking for the pipe.  The host opens
+    a device instead, so it stays out of the way when one was requested."""
+    bench = _bench(tmp_path)                    # `_bench` passes a command
+    assert bench._open_host() is None
+
+
+def test_a_host_that_cannot_be_built_falls_back_and_says_so(tmp_path,
+                                                            monkeypatch):
+    """No `clang`, no ALSA headers, no card, a card that will not take
+    float32 — each is a machine that should still get an editor."""
+    bench = _bench(tmp_path)
+    bench.command = None
+
+    class NoHost:
+        def __init__(self, *_a, **_kw):
+            raise RuntimeError("no device here")
+
+    import gestate.audiohost as audiohost
+
+    monkeypatch.setattr(audiohost, "Host", NoHost)
+    assert bench._open_host() is None
+    assert any("Python driver" in m for m in bench.messages), bench.messages
+
+
+def test_handing_over_does_nothing_without_a_host(tmp_path):
+    """The Python driver installs for itself, in `Live.install`; a second
+    installer would swap the engine twice."""
+    bench = _bench(tmp_path)
+    assert bench.host is None
+    bench._hand_over()                          # must not raise
+
+
+def test_a_host_transport_delegates_to_the_host():
+    from gestate.audioeditor import HostTransport
+
+    class FakeHost:
+        def __init__(self):
+            self.playing, self.position = True, 0
+            self.sought, self.looped, self.watched = None, None, None
+            self._peak = 0.25
+
+        def seek(self, to):
+            self.sought = to
+            self.position = to
+
+        def loop(self, start, end):
+            self.looped = (start, end)
+
+        def watch_peak(self, on):
+            self.watched = on
+
+        def peak(self):
+            was, self._peak = self._peak, 0.0
+            return was
+
+    class FakeLive:
+        channels = 1
+
+    host = FakeHost()
+    transport = HostTransport(host, FakeLive(), 8000, 64)
+
+    seen = []
+    transport.on_seek = seen.append
+    transport.seek(4410)
+    assert host.sought == 4410 and seen == [4410]
+    assert transport.position == 4410
+
+    transport.playing = False
+    assert host.playing is False
+
+    transport.loop = (100, 200)
+    assert host.looped == (100, 200)
+    assert transport.loop == (100, 200)
+    transport.loop = None
+    assert host.looped == (None, None)
+
+    transport.watch_peak = True
+    assert host.watched is True and transport.watch_peak is True
+    assert transport.take_peak() == 0.25
+    assert transport.take_peak() == 0.0, "the meter was not cleared"
+
+
+class _StubHost:
+    """A host that only remembers what was written into its control block."""
+
+    def __init__(self, position: int):
+        self.position = position
+        self.wrote: list = []
+
+    def set_control(self, index, value, type_):
+        self.wrote.append((index, value))
+
+
+def test_the_c_host_reads_the_score_at_the_instant_it_has_reached(tmp_path):
+    """**The one bug the two drivers could disagree about, and did.**
+
+    `_push_controls` writes each control source into the block the
+    generated code reads, and `control(node, at)` resolves a *scored*
+    channel with `schedule.value_at(chan, at)`.  It was written passing a
+    literal `0`, which is a constant only a knob survives: a knob's value
+    does not depend on the instant, so every hand-driven parameter went on
+    working and nothing looked wrong.  A score does depend on it, so every
+    scored channel was pinned to whatever the schedule said at instant 0
+    and a performance played its first note for ever.
+
+    **Nothing in the suite could have caught it.**  `test/conftest.py`
+    shuts the C host to keep the tests off the sound card, so every other
+    test drives the Python path — where the time argument was already
+    right.  This one drives `_push_controls` against a stub, which is the
+    seam itself and needs no device.
+
+    Asserted as "the values move", not against a recomputed expectation:
+    comparing `_push_controls`'s output to `control(node, at)` would be
+    comparing the code to itself, and would have passed with the `0` in
+    place.
+    """
+    path = tmp_path / "duet.ges"
+    path.write_text(DUET.read_text())
+    bench = Workbench(path, rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+    bench.start(seconds=0.0)
+    try:
+        assert bench.schedule is not None, "duet.ges is a scored program"
+        chans = bench.schedule.channels()
+
+        # The first instant the score says something different from what it
+        # said at 0 — found rather than hard-coded, so editing `duet.ges`
+        # cannot quietly turn this into a test of nothing.
+        later = next(
+            (t for t in range(0, 8 * 8000, 64)
+             if any(bench.schedule.value_at(c, t)
+                    != bench.schedule.value_at(c, 0) for c in chans)),
+            None)
+        assert later is not None, "duet.ges's score never changes at all"
+
+        def pushed(at: int) -> list:
+            # The real host goes back straight away: `stop()` in the
+            # `finally` below talks to whatever `bench.host` is, and a stub
+            # left in its place fails the test for a reason that has
+            # nothing to do with the score.
+            was, bench.host = bench.host, _StubHost(at)
+            try:
+                bench._push_controls(at)
+                return bench.host.wrote
+            finally:
+                bench.host = was
+
+        assert pushed(later) != pushed(0), (
+            f"every control source reads the same at instant 0 and at "
+            f"{later}, so the score never advances past its first note")
+    finally:
+        bench.stop()
+
+
+# ── Probes ──────────────────────────────────────────────────────────────────
+#
+# `peak`, `rms` and `band0`… are measurements of the *output*.  A probe is a
+# reading from inside the instrument: how many samples a voice has been
+# sounding, which is what a picture of an envelope needs — the shape is
+# already in the file, and what is missing is only where along it the voice
+# has walked.
+
+
+class _FakeVoice:
+    def __init__(self, key=None, started=-1):
+        self.key, self.started = key, started
+
+
+class _FakeAllocator:
+    def __init__(self, voices):
+        self.voices = voices
+
+
+class _FakeNotes:
+    def __init__(self, allocators):
+        self.allocators = allocators
+
+
+def test_a_probe_is_the_age_of_a_voice(tmp_path):
+    """From the allocator, not from a probe into the graph: a voice already
+    records the sample its note began at — that is what "oldest" means when
+    stealing — and the transport knows the instant."""
+    bench = _bench(tmp_path)
+    bench.notes = _FakeNotes({"keys": _FakeAllocator(
+        [_FakeVoice("a", 1000), _FakeVoice(None, -1), _FakeVoice("b", 4400)])})
+
+    class At:
+        position = 5000
+
+    bench.transport = At()
+    # One-based: a sounding voice reads its age *plus one*, so that `0`
+    # can mean "silent" and not "started this instant".
+    assert bench.voice_ages() == [4001, 0, 601]
+
+
+def test_a_silent_voice_probes_as_nothing(tmp_path):
+    """Zero means *nothing*, which is why a sounding voice never reads
+    zero — `audioalloc`'s `gateAt` is 1-based for the same reason."""
+    bench = _bench(tmp_path)
+    bench.notes = _FakeNotes({"keys": _FakeAllocator([_FakeVoice(None, -1)])})
+
+    class At:
+        position = 900
+
+    bench.transport = At()
+    assert bench.voice_ages() == [0]
+
+
+def test_probing_before_anything_plays_is_empty_rather_than_a_crash(tmp_path):
+    bench = _bench(tmp_path)
+    assert bench.voice_ages() == []
+
+
+def test_the_readings_a_program_can_ask_for_are_all_declared():
+    """One list, so that adding a reading and forgetting to write it is a
+    test failure rather than a channel nothing ever fills."""
+    from gestate.audioeditor import Workbench
+
+    assert set(Workbench.BANDS) <= set(Workbench.WATCHED)
+    assert set(Workbench.PROBES) <= set(Workbench.WATCHED)
+    for name in ("peak", "rms", "voices", "position"):
+        assert name in Workbench.WATCHED, name

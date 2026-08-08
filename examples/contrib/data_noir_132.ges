@@ -1,0 +1,707 @@
+# HENKKA DATA NOIR 132
+#
+# Alkuperainen nopea techno / synthwave -kappale Gestate-kielella.
+# Tunnelma: kaunis + iloinen + synkka + datainen.
+# Tempo: 132 BPM, 4/4, 36 tahtia, noin 1 min 05 s.
+#
+# Lead ei kopioi minkaan olemassa olevan kappaleen melodiaa.
+# MIDI-soundi mallintaa aggressiivista myohais-1990-luvun trance-leadia
+# kerrostamalla General MIDI -soundeja:
+#   81 = Lead 2 Sawtooth (0-pohjainen MIDI-ohjelmanumero)
+#   80 = Lead 1 Square
+#   30 = Distortion Guitar
+#   62 = Synth Brass 1
+# Tarkka sahalaita-/sarosoundi riippuu MIDI-soittimesta tai soundfontista.
+#
+# Renderointi:
+#   python gestate_single.py midi henkka_data_noir_132.ges --events
+#   python gestate_single.py midi henkka_data_noir_132.ges -o henkka_data_noir_132.mid
+
+# ── Yleiset rakennefunktiot ──────────────────────────────────────────────
+
+twice : [: a :] -> [: a :]
+twice x = x ++ x
+
+four : [: a :] -> [: a :]
+four x = twice (twice x)
+
+eight : [: a :] -> [: a :]
+eight x = twice (four x)
+
+sixteen : [: a :] -> [: a :]
+sixteen x = twice (eight x)
+
+barRest : [: a :]
+barRest = r |* 4
+
+fourBarsRest : [: a :]
+fourBarsRest = four barRest
+
+transpose : Int -> [: Int :] -> [: Int :]
+transpose n s = s >>= (k => '(k + n))
+
+downOctave : [: Int :] -> [: Int :]
+downOctave s = s >>= (k => '(k - 12))
+
+upOctave : [: Int :] -> [: Int :]
+upOctave s = s >>= (k => '(k + 12))
+
+# ── Pitkat pad-soinnut ──────────────────────────────────────────────────
+
+emPad : [: Int :]
+emPad = ('52 || '55 || '59 || '64) |* 4
+
+cPad : [: Int :]
+cPad = ('48 || '52 || '55 || '59) |* 4
+
+gPad : [: Int :]
+gPad = ('50 || '55 || '59 || '62) |* 4
+
+dPad : [: Int :]
+dPad = ('50 || '54 || '57 || '62) |* 4
+
+b7Pad : [: Int :]
+b7Pad = ('47 || '51 || '54 || '57) |* 4
+
+amPad : [: Int :]
+amPad = ('45 || '48 || '52 || '57) |* 4
+
+# Synkka mutta valoisa peruskierto.
+darkProgression4 : [: Int :]
+darkProgression4 = emPad ++ cPad ++ gPad ++ dPad
+
+# Dropin jannitteisempi kierto, B7 palauttaa E-molliin.
+dropProgression4 : [: Int :]
+dropProgression4 = emPad ++ gPad ++ cPad ++ b7Pad
+
+# Breakin valoisampi kaannos.
+brightProgression4 : [: Int :]
+brightProgression4 = cPad ++ gPad ++ dPad ++ emPad
+
+# Viimeisen dropin hieman synkempi vaihtoehto.
+noirProgression4 : [: Int :]
+noirProgression4 = emPad ++ cPad ++ amPad ++ b7Pad
+
+# ── Offbeat-syntikkastabit ──────────────────────────────────────────────
+
+emStabUnit : [: Int :]
+emStabUnit = (r ++ ('64 || '67 || '71)) |/ 2
+
+cStabUnit : [: Int :]
+cStabUnit = (r ++ ('60 || '64 || '67)) |/ 2
+
+gStabUnit : [: Int :]
+gStabUnit = (r ++ ('62 || '67 || '71)) |/ 2
+
+dStabUnit : [: Int :]
+dStabUnit = (r ++ ('62 || '66 || '69)) |/ 2
+
+b7StabUnit : [: Int :]
+b7StabUnit = (r ++ ('59 || '63 || '66 || '69)) |/ 2
+
+amStabUnit : [: Int :]
+amStabUnit = (r ++ ('57 || '60 || '64)) |/ 2
+
+emStab : [: Int :]
+emStab = four emStabUnit
+
+cStab : [: Int :]
+cStab = four cStabUnit
+
+gStab : [: Int :]
+gStab = four gStabUnit
+
+dStab : [: Int :]
+dStab = four dStabUnit
+
+b7Stab : [: Int :]
+b7Stab = four b7StabUnit
+
+amStab : [: Int :]
+amStab = four amStabUnit
+
+dropStabs4 : [: Int :]
+dropStabs4 = emStab ++ gStab ++ cStab ++ b7Stab
+
+noirStabs4 : [: Int :]
+noirStabs4 = emStab ++ cStab ++ amStab ++ b7Stab
+
+# ── Nopea 16-osabasso ──────────────────────────────────────────────────
+
+bassEm : [: Int :]
+bassEm = ('40 ++ '40 ++ '52 ++ '47 ++ '40 ++ '43 ++ '47 ++ '52
+       ++ '40 ++ '40 ++ '52 ++ '47 ++ '43 ++ '40 ++ '47 ++ '52) |/ 4
+
+bassC : [: Int :]
+bassC = ('36 ++ '36 ++ '48 ++ '43 ++ '36 ++ '40 ++ '43 ++ '48
+      ++ '36 ++ '36 ++ '48 ++ '43 ++ '40 ++ '36 ++ '43 ++ '48) |/ 4
+
+bassG : [: Int :]
+bassG = ('31 ++ '31 ++ '43 ++ '38 ++ '31 ++ '35 ++ '38 ++ '43
+      ++ '31 ++ '31 ++ '43 ++ '38 ++ '35 ++ '31 ++ '38 ++ '43) |/ 4
+
+bassD : [: Int :]
+bassD = ('38 ++ '38 ++ '50 ++ '45 ++ '38 ++ '42 ++ '45 ++ '50
+      ++ '38 ++ '38 ++ '50 ++ '45 ++ '42 ++ '38 ++ '45 ++ '50) |/ 4
+
+bassB : [: Int :]
+bassB = ('35 ++ '35 ++ '47 ++ '42 ++ '35 ++ '39 ++ '42 ++ '47
+      ++ '35 ++ '35 ++ '47 ++ '42 ++ '39 ++ '35 ++ '42 ++ '47) |/ 4
+
+bassA : [: Int :]
+bassA = ('33 ++ '33 ++ '45 ++ '40 ++ '33 ++ '36 ++ '40 ++ '45
+      ++ '33 ++ '33 ++ '45 ++ '40 ++ '36 ++ '33 ++ '40 ++ '45) |/ 4
+
+darkBass4 : [: Int :]
+darkBass4 = bassEm ++ bassC ++ bassG ++ bassD
+
+dropBass4 : [: Int :]
+dropBass4 = bassEm ++ bassG ++ bassC ++ bassB
+
+brightBass4 : [: Int :]
+brightBass4 = bassC ++ bassG ++ bassD ++ bassEm
+
+noirBass4 : [: Int :]
+noirBass4 = bassEm ++ bassC ++ bassA ++ bassB
+
+# ── Datainen 16-osaarpeggio ─────────────────────────────────────────────
+
+arpEm : [: Int :]
+arpEm = ('76 ++ '83 ++ '79 ++ '88 ++ '78 ++ '83 ++ '79 ++ '86
+      ++ '76 ++ '83 ++ '79 ++ '88 ++ '74 ++ '79 ++ '83 ++ '86) |/ 4
+
+arpC : [: Int :]
+arpC = ('72 ++ '79 ++ '76 ++ '84 ++ '71 ++ '79 ++ '76 ++ '83
+     ++ '72 ++ '79 ++ '76 ++ '84 ++ '67 ++ '72 ++ '76 ++ '79) |/ 4
+
+arpG : [: Int :]
+arpG = ('74 ++ '83 ++ '79 ++ '86 ++ '71 ++ '79 ++ '74 ++ '83
+     ++ '74 ++ '83 ++ '79 ++ '86 ++ '67 ++ '74 ++ '79 ++ '83) |/ 4
+
+arpD : [: Int :]
+arpD = ('74 ++ '81 ++ '78 ++ '86 ++ '69 ++ '78 ++ '74 ++ '81
+     ++ '74 ++ '81 ++ '78 ++ '86 ++ '66 ++ '74 ++ '78 ++ '81) |/ 4
+
+arpB : [: Int :]
+arpB = ('71 ++ '78 ++ '75 ++ '83 ++ '69 ++ '75 ++ '78 ++ '81
+     ++ '71 ++ '78 ++ '75 ++ '83 ++ '66 ++ '71 ++ '75 ++ '78) |/ 4
+
+arpA : [: Int :]
+arpA = ('69 ++ '76 ++ '72 ++ '81 ++ '67 ++ '72 ++ '76 ++ '79
+     ++ '69 ++ '76 ++ '72 ++ '81 ++ '64 ++ '69 ++ '72 ++ '76) |/ 4
+
+darkArp4 : [: Int :]
+darkArp4 = arpEm ++ arpC ++ arpG ++ arpD
+
+dropArp4 : [: Int :]
+dropArp4 = arpEm ++ arpG ++ arpC ++ arpB
+
+brightArp4 : [: Int :]
+brightArp4 = arpC ++ arpG ++ arpD ++ arpEm
+
+noirArp4 : [: Int :]
+noirArp4 = arpEm ++ arpC ++ arpA ++ arpB
+
+# Toinen digitaalinen kanava tuottaa binäärisen E/F#-pulssin.
+binaryCell : [: Int :]
+binaryCell = ('88 ++ '76 ++ '90 ++ '78 ++ '88 ++ '83 ++ '90 ++ '79) |/ 4
+
+binaryBar : [: Int :]
+binaryBar = twice binaryCell
+
+binary4 : [: Int :]
+binary4 = four binaryBar
+
+# ── Rummut: 4-on-the-floor techno ──────────────────────────────────────
+
+kick4 : [: Int :]
+kick4 = '36 ++ '36 ++ '36 ++ '36
+
+clap24 : [: Int :]
+clap24 = r ++ '39 ++ r ++ '39
+
+closedHats8 : [: Int :]
+closedHats8 = eight ('42 |/ 2)
+
+closedHats16 : [: Int :]
+closedHats16 = sixteen ('42 |/ 4)
+
+offHatUnit : [: Int :]
+offHatUnit = (r ++ '46) |/ 2
+
+openHats : [: Int :]
+openHats = four offHatUnit
+
+ride16 : [: Int :]
+ride16 = sixteen ('51 |/ 4)
+
+basicDrumBar : [: Int :]
+basicDrumBar = kick4 || clap24 || closedHats8
+
+technoDrumBar : [: Int :]
+technoDrumBar = kick4 || clap24 || closedHats16 || openHats
+
+rideDrumBar : [: Int :]
+rideDrumBar = kick4 || clap24 || ride16 || openHats
+
+snareRush : [: Int :]
+snareRush = eight ('38 |/ 8)
+
+fillBar : [: Int :]
+fillBar = technoDrumBar || at (3 * ticksPerBeat) snareRush
+
+rideFillBar : [: Int :]
+rideFillBar = rideDrumBar || at (3 * ticksPerBeat) snareRush
+
+crashBar : [: Int :]
+crashBar = '49 ++ (r |* 3)
+
+basicDrums4 : [: Int :]
+basicDrums4 = basicDrumBar ++ basicDrumBar ++ basicDrumBar ++ fillBar
+
+technoDrums4 : [: Int :]
+technoDrums4 = technoDrumBar ++ technoDrumBar ++ technoDrumBar ++ fillBar
+
+rideDrums4 : [: Int :]
+rideDrums4 = rideDrumBar ++ rideDrumBar ++ rideDrumBar ++ rideFillBar
+
+# ── Alkuperainen supersaw-leadmelodia ───────────────────────────────────
+# Jokainen leadBar kestaa yhden tahdin. Melodia ei kayta Sandstormin
+# melodiaa, rytmista hookia tai nuottijarjestysta.
+
+leadBar1 : [: Int :]
+leadBar1 = ('76 ++ '79 ++ '83 ++ '86 ++ '83 ++ '79 ++ '78 ++ '76) |/ 2
+
+leadBar2 : [: Int :]
+leadBar2 = ('79 ++ '81 ++ '83 ++ '88 ++ '86 ++ '83 ++ '81 ++ '78) |/ 2
+
+leadBar3 : [: Int :]
+leadBar3 = ('84 ++ '83 ++ '79 ++ '76 ++ '79 ++ '81 ++ '83 ++ '79) |/ 2
+
+leadBar4 : [: Int :]
+leadBar4 = ('78 ++ '81 ++ '83 ++ '87 ++ '88 ++ '83 ++ '78 ++ '75) |/ 2
+
+leadHook4 : [: Int :]
+leadHook4 = leadBar1 ++ leadBar2 ++ leadBar3 ++ leadBar4
+
+leadBar5 : [: Int :]
+leadBar5 = ('83 ++ '86 ++ '88 ++ '91 ++ '88 ++ '86 ++ '83 ++ '79) |/ 2
+
+leadBar6 : [: Int :]
+leadBar6 = ('81 ++ '84 ++ '88 ++ '86 ++ '83 ++ '81 ++ '79 ++ '78) |/ 2
+
+leadBar7 : [: Int :]
+leadBar7 = ('79 ++ '83 ++ '86 ++ '88 ++ '91 ++ '88 ++ '86 ++ '83) |/ 2
+
+leadBar8 : [: Int :]
+leadBar8 = ('78 ++ '75 ++ '78 ++ '83 ++ '81 ++ '78 ++ '76 ++ r) |/ 2
+
+leadLift4 : [: Int :]
+leadLift4 = leadBar5 ++ leadBar6 ++ leadBar7 ++ leadBar8
+
+leadTheme8 : [: Int :]
+leadTheme8 = leadHook4 ++ leadLift4
+
+# Drop B:ssa lead saa nopeamman 16-osavariaation.
+riffBar1 : [: Int :]
+riffBar1 = ('76 ++ '76 ++ '79 ++ '83 ++ '78 ++ '76 ++ '74 ++ '71
+         ++ '76 ++ '79 ++ '83 ++ '86 ++ '83 ++ '79 ++ '78 ++ '76) |/ 4
+
+riffBar2 : [: Int :]
+riffBar2 = ('79 ++ '79 ++ '81 ++ '83 ++ '88 ++ '86 ++ '83 ++ '81
+         ++ '78 ++ '81 ++ '83 ++ '86 ++ '88 ++ '83 ++ '81 ++ '78) |/ 4
+
+riffBar3 : [: Int :]
+riffBar3 = ('84 ++ '83 ++ '79 ++ '76 ++ '79 ++ '81 ++ '83 ++ '79
+         ++ '84 ++ '83 ++ '79 ++ '76 ++ '74 ++ '76 ++ '79 ++ '83) |/ 4
+
+riffBar4 : [: Int :]
+riffBar4 = ('78 ++ '81 ++ '83 ++ '87 ++ '88 ++ '83 ++ '78 ++ '75
+         ++ '78 ++ '83 ++ '87 ++ '88 ++ '86 ++ '83 ++ '78 ++ '76) |/ 4
+
+leadRiff4 : [: Int :]
+leadRiff4 = riffBar1 ++ riffBar2 ++ riffBar3 ++ riffBar4
+
+leadDropB8 : [: Int :]
+leadDropB8 = leadRiff4 ++ leadLift4
+
+# Break-melodia on avoimempi ja kauniimpi.
+breakBar1 : [: Int :]
+breakBar1 = ('76 |* 2) ++ '79 ++ '83
+
+breakBar2 : [: Int :]
+breakBar2 = ('84 |* 2) ++ '83 ++ '79
+
+breakBar3 : [: Int :]
+breakBar3 = ('81 |* 2) ++ '78 ++ '76
+
+breakBar4 : [: Int :]
+breakBar4 = ('79 |* 2) ++ '78 ++ '76
+
+breakTheme4 : [: Int :]
+breakTheme4 = breakBar1 ++ breakBar2 ++ breakBar3 ++ breakBar4
+
+breakTheme8 : [: Int :]
+breakTheme8 = twice breakTheme4
+
+# Outro purkaa jannitteen E-molliin.
+outroLead8 : [: Int :]
+outroLead8 = ('83 |* 2) ++ ('79 |* 2)
+          ++ ('76 |* 2) ++ ('74 |* 2)
+          ++ ('72 |* 2) ++ ('71 |* 2)
+          ++ ('74 |* 2) ++ ('76 |* 2)
+          ++ ('79 |* 2) ++ ('78 |* 2)
+          ++ ('76 |* 4)
+          ++ fourBarsRest
+
+# ── Soittimet: gestate-aanisynteesi ────────────────────────────────────
+#
+# **The score above is untouched.**  Every part was already routed through
+# one of seven one-line functions — `pads v = v >>= prog 89` — so turning a
+# MIDI piece into a played one is a rewrite of those seven lines and of
+# nothing else.  Three hundred lines of music did not have to know.
+
+Stroke := Stroke Int Int                # key number (or drum), velocity
+
+voices pad 6 padVoice : Sig Float
+voices bass 2 bassVoice : Sig Float
+voices lead 3 leadVoice : Sig Float
+voices arp 4 arpVoice : Sig Float
+voices stab 3 stabVoice : Sig Float
+voices soft 2 softVoice : Sig Float
+voices drums 4 drumVoice : Sig Float
+
+instance FromMIDI Stroke where
+    noteOn ch p v = Just (Stroke p v)
+
+hzOf : Stroke -> Float
+hzOf q = case q of
+    Stroke k v -> keyHz k
+
+velOf : Stroke -> Float
+velOf q = case q of
+    Stroke k v -> toFloat v / 127.0
+
+detuned : Float -> Sig Float -> Sig Float
+detuned cents hz = map (h => centsHz cents h) hz
+
+# ── Pad: wide, slow, and the width is a chorus ──────────────────────────
+#
+# Three saws a few cents apart is the body; `chorus` is what makes it wide,
+# and it is applied to the *bank* below rather than per voice — one delay
+# line for six voices, which is both cheaper and what a chorus pedal is.
+
+padEnv : Adsr
+padEnv = Adsr 0.45 0.6 0.75 0.9
+
+padVoice : Sig Gate -> Sig Stroke -> Sig Float
+padVoice g s = lowpassSvf (sweep 300.0 2600.0 (adsr padEnv g)) 0.22
+                 (saw (detuned (0.0 - 7.0) (!hzOf s))
+                    + saw (!hzOf s) * 0.8
+                    + saw (detuned 7.0 (!hzOf s)))
+             * adsr padEnv g * !velOf s * 0.20
+
+#: A filter cutoff that follows an envelope between two frequencies.
+sweep : Float -> Float -> Sig Float -> Sig Float
+sweep lo hi e = map (v => mix lo hi v) e
+
+# ── Bass: a ladder, and a compressor to keep it planted ─────────────────
+
+bassEnv : Adsr
+bassEnv = Adsr 0.004 0.16 0.55 0.10
+
+bassFilt : Adsr
+bassFilt = Adsr 0.002 0.11 0.28 0.09
+
+bassComp : Comp
+bassComp = Comp 0.30 4.0 0.006 0.09
+
+bassVoice : Sig Gate -> Sig Stroke -> Sig Float
+bassVoice g s = compress bassComp
+                  (lowpassLadder (sweep 90.0 2100.0 (adsr bassFilt g)) 0.30
+                     (saw (!hzOf s) + square (detuned (0.0 - 1200.0) (!hzOf s)) * 0.6))
+             * adsr bassEnv g * !velOf s * 0.55
+
+# ── Lead: a supersaw, flanged, and held under a ceiling ─────────────────
+#
+# The MIDI version layered three programs and an octave below.  A supersaw
+# *is* that layering, so it happens inside one voice: five saws spread in
+# cents and a sixth an octave down.  `flanger` gives it the sweep the
+# original asked a chorus pedal for, and `brickwall` is what stops five
+# detuned saws from leaving the rails when a chord lands.
+
+leadEnv : Adsr
+leadEnv = Adsr 0.006 0.20 0.70 0.16
+
+superSaw : Sig Float -> Sig Float
+superSaw hz = saw (detuned (0.0 - 14.0) hz) * 0.8
+            + saw (detuned (0.0 - 6.0) hz)
+            + saw hz
+            + saw (detuned 6.0 hz)
+            + saw (detuned 14.0 hz) * 0.8
+            + saw (detuned (0.0 - 1200.0) hz) * 0.5
+
+leadVoice : Sig Gate -> Sig Stroke -> Sig Float
+leadVoice g s = lowpassSvf (sweep 700.0 6500.0 (adsr leadEnv g)) 0.18
+                  (superSaw (!hzOf s))
+             * adsr leadEnv g * !velOf s * 0.16
+
+# ── Arp: feedback FM, which is where the "data" in the title lives ──────
+#
+# `pmSelf` folds an oscillator's own output back into its phase, and the
+# index is what decides how metallic it gets.  Short, bright and slightly
+# unstable is exactly the charang the MIDI version was reaching for.
+
+arpEnv : Adsr
+arpEnv = Adsr 0.001 0.09 0.10 0.06
+
+arpVoice : Sig Gate -> Sig Stroke -> Sig Float
+arpVoice g s = pmSelf (!hzOf s) 0.72
+             * adsr arpEnv g * !velOf s * 0.22
+
+# ── Stabs: two-operator FM brass ────────────────────────────────────────
+#
+# The modulator is a fifth above the carrier and its index rides the
+# envelope, so the stab is bright at the attack and hollows out — which is
+# what a brass section does and what a fixed index cannot say.
+
+stabEnv : Adsr
+stabEnv = Adsr 0.008 0.14 0.35 0.12
+
+stabVoice : Sig Gate -> Sig Stroke -> Sig Float
+stabVoice g s = pm (!hzOf s)
+                   (sine (map (h => h * 1.5) (!hzOf s))
+                      * adsr stabEnv g * 2.4)
+             * adsr stabEnv g * !velOf s * 0.20
+
+# ── Soft lead: a sine, and the room it is in ────────────────────────────
+#
+# `reverb` on the bank, for the reason the chorus is on the pad's: a room
+# is a property of the room, not of each note that sounds in it.
+
+softEnv : Adsr
+softEnv = Adsr 0.10 0.35 0.60 0.55
+
+softVoice : Sig Gate -> Sig Stroke -> Sig Float
+softVoice g s = (sine (!hzOf s) + sine (detuned 4.0 (!hzOf s)) * 0.5
+                   + sine (map (h => h * 2.0) (!hzOf s)) * 0.18)
+             * adsr softEnv g * !velOf s * 0.22
+
+# ── The kit ─────────────────────────────────────────────────────────────
+#
+# One voice bank, four drums, selected by key number: 36 kick, 39 clap,
+# 42 closed hat, 46 open hat, 51 ride.  A drum is chosen by *multiplying*
+# rather than by branching, because a branch on a signal is not in the
+# static fragment and a multiply by zero is.
+
+isKey : Int -> Stroke -> Float
+isKey want q = case q of
+    Stroke k v -> case k == want of
+        True -> toFloat v / 127.0
+        False -> 0.0
+
+#: **One noise source, shared.**  Four voices each folding their own white
+#: noise is four generators from four seeds; one signal is one fold, and it
+#: is also what a real kit is — the hats and the ride are the same cymbal
+#: metal heard through different filters.
+hiss : Sig Float
+hiss = white 13220806
+
+#: 36 — a pitch envelope before it is an amplitude envelope: 165 Hz down to
+#: 46 in about thirty milliseconds is the whole sound.
+#:
+#: **`perc`'s argument is a *rate*, not a time** — e-foldings per second —
+#: and reading it as a decay time is what made this kit "high pitched
+#: klingy noise".  `perc 0.030` is not a thirty-millisecond sweep, it is a
+#: thirty-*second* one: the pitch envelope never moved, so the kick was a
+#: 320 Hz sine that rang for seconds.  Every drum here had the same fault,
+#: so all six were sustaining into one continuous high wash while four
+#: voices fought over them.
+kick : Sig Gate -> Sig Float
+kick g = sine (46.0 + 119.0 * perc 30.0 g) * perc 6.5 g
+
+#: 38 — a band of noise with a little tuned body under it, which is what
+#: tells a snare from a clap.
+snare : Sig Gate -> Sig Float
+snare g = (bandpassSvf (constSig 1900.0) 0.45 hiss * 0.8
+             + sine (constSig 185.0) * 0.35)
+        * perc 15.0 g * 0.5
+
+#: 39 — lower and drier than the snare, and no tone at all.
+clap : Sig Gate -> Sig Float
+clap g = bandpassSvf (constSig 1450.0) 0.55 hiss * perc 22.0 g * 0.5
+
+#: The two hats are the same filter and differ only in how long they ring,
+#: which is what a pedal does to a real one.  **Quiet**: a sixteenth-note
+#: hat pattern sounds thirty-two times a bar against four kicks, so a hat
+#: at the kick's level is all anybody hears.
+closedHat : Sig Gate -> Sig Float
+closedHat g = highpassSvf (constSig 7400.0) 0.18 hiss * perc 55.0 g * 0.26
+
+openHat : Sig Gate -> Sig Float
+openHat g = highpassSvf (constSig 7400.0) 0.18 hiss * perc 11.0 g * 0.22
+
+#: 51 — lower and longer than a hat, and washier rather than pingy.  The
+#: resonator that used to be here was the "kling": a high `resonate` on
+#: noise is a struck metal bar, not a ride cymbal.
+ride : Sig Gate -> Sig Float
+ride g = highpassSvf (constSig 5200.0) 0.15 hiss * perc 5.0 g * 0.20
+
+#: `constSig 36` and not a bare `36`: `!` lifts **every** argument it is
+#: given, so a literal beside a signal would have to be a `Sig Int` — and
+#: `Num (Sig Int)` is `gui.ges`'s instance, which a program that only
+#: sounds does not have.  Naming the constant signal says the same thing
+#: and asks for nothing.
+drumVoice : Sig Gate -> Sig Stroke -> Sig Float
+drumVoice g s = kick g * !isKey (constSig 36) s
+              + snare g * !isKey (constSig 38) s
+              + clap g * (!isKey (constSig 39) s + !isKey (constSig 40) s)
+              + closedHat g * !isKey (constSig 42) s
+              + openHat g * !isKey (constSig 46) s
+              + ride g * !isKey (constSig 51) s
+
+# ── Instrumenttikerrokset ──────────────────────────────────────────────
+#
+# The seven lines that were `>>= prog N`.  Everything above this point in
+# the file is the piece and did not change.
+
+pitched : Int -> [: Int :] -> [: Stroke :]
+pitched v s = s >>= (k => '(Stroke k v))
+
+pads : [: Int :] -> [: Void :]
+pads v = pitched 84 v >>= voices.pad
+
+superBass : [: Int :] -> [: Void :]
+superBass v = pitched 104 v >>= voices.bass
+
+superLead : [: Int :] -> [: Void :]
+superLead v = pitched 106 v >>= voices.lead
+
+dataLead : [: Int :] -> [: Void :]
+dataLead v = pitched 92 v >>= voices.arp
+
+stabs : [: Int :] -> [: Void :]
+stabs v = pitched 96 v >>= voices.stab
+
+softLead : [: Int :] -> [: Void :]
+softLead v = pitched 74 v >>= voices.soft
+
+kit : [: Int :] -> [: Void :]
+kit v = pitched 110 v >>= voices.drums
+
+# ── Kappaleen osat, yhteensa 36 tahtia ─────────────────────────────────
+
+# 4 tahtia: pad ja datainen arpeggio; rummut liittyvat mukaan lopussa.
+intro4 : [: Void :]
+intro4 = pads darkProgression4
+      || dataLead darkArp4
+      || kit (twice barRest ++ basicDrumBar ++ fillBar)
+
+# 4 tahtia: basso, stab-akordit ja lead kaynnistavat technon.
+build4 : [: Void :]
+build4 = pads dropProgression4
+      || superBass dropBass4
+      || dataLead dropArp4
+      || stabs dropStabs4
+      || superLead leadHook4
+      || kit technoDrums4
+
+# 8 tahtia: ensimmainen suuri drop ja kokonainen alkuperainen leadteema.
+dropA8 : [: Void :]
+dropA8 = pads (twice dropProgression4)
+      || superBass (twice dropBass4)
+      || dataLead (twice dropArp4)
+      || stabs (twice dropStabs4)
+      || superLead leadTheme8
+      || kit (technoDrums4 ++ rideDrums4)
+
+# 4 tahtia: valoisampi break; binaaripulssi alkaa puolivalissa.
+break4 : [: Void :]
+break4 = pads brightProgression4
+      || softLead breakTheme4
+      || at (2 * 4 * ticksPerBeat) (dataLead (twice binaryBar))
+      || kit (twice barRest ++ basicDrumBar ++ fillBar)
+
+# 8 tahtia: synkempi harmonia ja nopeampi 16-osalead.
+dropB8 : [: Void :]
+dropB8 = pads (twice noirProgression4)
+      || superBass (twice noirBass4)
+      || dataLead (twice noirArp4)
+      || stabs (twice noirStabs4)
+      || superLead leadDropB8
+      || kit (rideDrums4 ++ technoDrums4)
+
+# 4 tahtia: kappaleen tihein huipennus.
+finale4 : [: Void :]
+finale4 = pads dropProgression4
+       || superBass dropBass4
+       || dataLead dropArp4
+       || stabs dropStabs4
+       || superLead leadRiff4
+       || kit rideDrums4
+
+# Neljan tahdin loppumelodia purkaa jannitteen E-molliin.
+outroLead4 : [: Int :]
+outroLead4 = ('83 |* 2) ++ ('79 |* 2)
+          ++ ('76 |* 2) ++ ('74 |* 2)
+          ++ ('72 |* 2) ++ ('71 |* 2)
+          ++ ('74 |* 2) ++ ('76 |* 2)
+
+# 4 tahtia: elementit putoavat pois.
+outro4 : [: Void :]
+outro4 = pads darkProgression4
+      || superBass darkBass4
+      || softLead outroLead4
+      || kit (basicDrumBar ++ fillBar ++ twice barRest)
+
+score : [: Void :]
+score = intro4
+     ++ build4
+     ++ dropA8
+     ++ break4
+     ++ dropB8
+     ++ finale4
+     ++ outro4
+
+# ── Tempo ───────────────────────────────────────────────────────────────
+#
+# 132 all the way through, and then the outro lets go.  The song is 36 bars
+# — 144 beats — and `outro4` is the last four of them, so the tempo holds
+# flat until beat 128 and rolls back to 96 across the final bars.
+#
+# **This is why tempo is linear in *time*.**  The ramp is a real
+# ritardando: each beat takes longer than the one before it, and the
+# schedule is still precomputed into sample instants, because a tempo
+# linear in time integrates to a beat quadratic in time and a quadratic
+# inverts in closed form.
+tempo : List Tempo
+tempo = [Step 0.0 132.0, Step 128.0 132.0, Ramp 144.0 96.0]
+
+# ── Miksaus ─────────────────────────────────────────────────────────────
+#
+# Each bank's name is bound to the **sum of its voices**, so the mix is
+# ordinary signal arithmetic and the effects go on a whole bank at once —
+# one chorus for six pad voices, one room for the soft lead.  That is both
+# cheaper than per-voice and what the pedal actually is.
+
+#: **The per-voice gains above are the balance; this is the level.**  One
+#: number, measured rather than guessed.
+#:
+#: It has been wrong in both directions.  First too hot by thirty-five
+#: times, so `brickwall` ran flat out for the whole song and a limiter that
+#: is never off is a distortion box rather than a safety net.  Then, once
+#: the kit stopped sustaining, seventeen times too *quiet* — which is the
+#: more interesting number, because it says the old drums had been
+#: ninety-four percent of the mix and nothing else was really audible.
+#:
+#: Scaled here and not in each voice, so changing how loud the record is
+#: cannot change how the parts sit against each other.
+sound : Sig Float
+sound = brickwall 0.92
+          (( chorus 0.55 0.35 pad * 0.9
+           + bass
+           + flanger 0.32 0.55 lead
+           + arp * 0.8
+           + stab
+           + reverb 1.6 0.30 soft * 0.7
+           + drums * 0.9 ) * 0.45)

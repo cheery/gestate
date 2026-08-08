@@ -1,0 +1,18 @@
+# Transitive closure — the Datalog query, as Datafun writes it.
+#
+#   python -m gestate.typecheck examples/closure.ges
+#
+# `fix r => …` is a least fixed point over a semilattice; `\/` is union.
+# The comprehension is the query: two generators and a guard, which is
+# exactly `path(x,w) :- path(x,y), edge(y,w)`.
+#
+# The element type is `Cyclic 8` rather than `Int` because `fix` needs a
+# *fixtype* — a set whose element type is finite — or it could not promise
+# to terminate.  Seminaïve evaluation is applied automatically: the compiler
+# derives the query and iterates only over what changed.
+
+closure : Box (Set (Cyclic 8, Cyclic 8)) -> Set (Cyclic 8, Cyclic 8)
+closure (Box e) = fix r => e \/ {(x, w) | (x, y) in r, (z, w) in e, y == z}
+
+main : Set (Cyclic 8, Cyclic 8)
+main = closure (Box {(0, 1), (1, 2), (2, 3)})

@@ -1,0 +1,357 @@
+# signal.ges — the combinators every reactive program needs.
+#
+# Shared by `gestate/gui.py` and `gestate/audio.py`, which each prepend this
+# and then their own vocabulary.  It is separate because both backends want
+# all of it.
+#
+# It declares **one** constructor, `Both`, which `!` needs to lift over more
+# than two signals — so unlike a file with none it does renumber the ones
+# after it, and its position among the preludes is fixed rather than free.
+#
+# None of these are in the core prelude, because nothing outside a reactive
+# program has a signal to build.
+
+#: "A value, later" becomes "a signal, later" — each arrival extends the
+#: signal by one instant.  Every signal fed by a channel starts here, and
+#: `:::` turns the result into a signal with a value *now*.
+mkSig : ExL a -> ExL (Sig a)
+mkSig = gfix q => (d => delay (q2 x => x ::: q2 d) <*> q <@> d)
+
+#: **A signal is a container of the thing it carries**, so changing what it
+#: carries is `map` and nothing else.  `map f s` is the same node the
+#: engine always emitted — `mapSig` is still what it is written in terms
+#: of, and is internal below — and the name is now the one `List` and
+#: `Maybe` already answer to.
+#:
+#: Statically resolved, which is what makes it admissible at audio rate:
+#: `Functor Sig` has no context, so its dictionary is a constant and
+#: `elaborate.resolve_static_methods` turns the projection into a direct
+#: call to `__Functor_Sig_map__` before the fragment ever sees it.  That
+#: name is a signal former in `audiograph.FORMERS`, beside `mapSig`.
+instance Functor Sig where
+    map f s = mapSig f s
+
+#: **State over time.**  `scan f z s` holds `z` now and `f z (head s)` at
+#: the next instant — an accumulator folded over the signal as it arrives.
+#: Ordinary guarded recursion: the recursive call sits under `delay`, so the
+#: result is productive by construction.  An oscillator's phase, a filter's
+#: memory and a game's world are all this.
+scan : (b -> a -> b) -> b -> Sig a -> Sig b
+scan = gfix q => (f z s => z ::: (delay (q2 => q2 f (f z (head s))) <*> q <@> tail s))
+
+#: **Two signals meet.**  `zip f s t` is `f` of the two, instant by
+#: instant — the node a synth reaches for whenever one signal has to see
+#: another, and the shape `Num (Sig Float)`'s `+` is written in terms of.
+#:
+#: Statically resolved, like `map` above and for the same reason: `Zip Sig`
+#: has no context, so `__Zip_Sig_zip__` is a signal former in
+#: `audiograph.FORMERS` and the fragment sees the node it always saw.
+instance Zip Sig where
+    zip f s t = zipSig f s t
+#: Two things at once — what a lift over more than two signals is built
+#: from.
+#:
+#: `zipSig` combines *two* signals and there is no three-signal former, so
+#: `!f x y z` pairs its arguments up and takes the pairs apart again at the
+#: end.  A **record** rather than a tuple, because the extractor lays out
+#: `Int`, `Float` and declared data types and nothing else (`fixme.md`
+#: F95) — the same reason a `voices` bank generates its own `Part` records
+#: to fold k channels with binary zips.
+#:
+#: A declaration and nothing else: the `zipSig` that builds one is given a
+#: *lambda*, because a step function is emitted once at one type and a
+#: named pairer would have to serve every element type a program lifts
+#: over.
+Both a b := Both a b
+
+#: **A delay line with a fold around it** — `scan` with a longer arm.
+#:
+#:     scan       f z s :  out[t] = f (out[t-1], s[t])
+#:     feedback n f   s :  out[t] = f (out[t-n], s[t])
+#:
+#: The step sees what left the line `n` samples ago and this instant's
+#: input, and what it returns is both the output *and* what goes back into
+#: the line.  That is a feedback comb, an echo with repeats, a Schroeder
+#: allpass, and therefore a reverb:
+#:
+#:     echo n g s = feedback n (y x => x + g * y) s
+#:
+#: **`n` is fixed before the program runs.**  The state is that many
+#: samples wide and the engine has no allocator, so `feedback (seconds
+#: 0.25) …` is fine — it folds to a number — and a length that varies is
+#: refused with that sentence.
+#:
+#: No cycle in the graph, which is why this is the first delay primitive
+#: rather than the general one: the loop is *inside* the node exactly as a
+#: `scan`'s is.  `spec/delaylines.md` is the design, and `loop` below is
+#: the same node with a *filter* in the line.
+#:
+#: **The definition below is the oracle's, not the engine's.**  Like every
+#: other former in this file, the audio backend recognises the name and
+#: emits a node; the body is what `render` runs to produce the samples the
+#: engine is checked against, and it carries the line as an ordinary list
+#: because that is a thing the interpreter can do and the engine cannot.
+feedback : Int -> (Float -> Float -> Float) -> Sig Float -> Sig Float
+feedback n f s = map lineOut (scan (buf x => lineStep f buf x)
+                                   (lineZero n) s)
+
+#: **A delay line you read at a moving position** — the other half of
+#: `spec/delaylines.md`, and the one that composes.
+#:
+#:     tap n pos s
+#:
+#: `s` goes in, `pos` is how many samples back to read it from, and `n` is
+#: the furthest back it can reach.  The position is a **signal** and may be
+#: fractional — the read is interpolated between the two samples either
+#: side — which is what chorus, flanger and vibrato are: a delay of a few
+#: milliseconds with an LFO on the position.
+#:
+#: A plain delay is this at a constant: `tap n (!(toFloat n)) s`.  There is
+#: no `delay` beside it because a delay *is* a tap that does not move.
+#:
+#: **The position is clamped to 1 .. n-1**, and the lower bound is not
+#: fussiness.  A tap that could hand back the sample it was given this
+#: instant would let a cycle close with nothing in it — and reading at
+#: least one sample back is exactly what makes this node's output a
+#: function of its *state*, which is what a feedback path leaving the node
+#: and coming back would have to close through.  `loop` needs none of
+#: that: its line is inside the node, as `feedback`'s is.
+#:
+#: The definition below is the oracle's, as `feedback`'s is: the audio
+#: backend knows the name and emits a node, and this is what `render` runs
+#: to produce the samples that node is checked against.
+tap : Int -> Sig Float -> Sig Float -> Sig Float
+tap n pos s = zipSig tapRead (scan tapPush (lineZero n) s) pos
+
+#: **A delay line with a filter in it** — `feedback`, plus where the step
+#: was an instant ago.
+#:
+#:     scan       f z s :  st[t] = f          st[t-1]  s[t]
+#:     feedback n f   s :  st[t] = f  st[t-n]          s[t]
+#:     loop     n f z s :  st[t] = f  st[t-1] st[t-n]  s[t]
+#:
+#: One ring of `n` states carries both arms: the slot about to be
+#: overwritten is `n` instants old, the one written before it is one
+#: instant old.  At `n` of 1 those are the same slot and this *is*
+#: `feedback` — with a state of your choosing rather than a bare sample.
+#:
+#: The second arm is what a plucked string needs.  Karplus-Strong averages
+#: the two samples that left the line, and the older of the pair is not
+#: something `feedback`'s step can reach, so the state carries it forward:
+#:
+#:     Wire := Wire Float Float      #: the sample out, and the one before
+#:
+#:     wireStep : Wire -> Wire -> Float -> Wire
+#:     wireStep prev old x = case prev of
+#:         Wire y p -> case old of
+#:             Wire yn q -> Wire (x + 0.5 * (yn + p)) yn
+#:
+#:     wireOut : Wire -> Float
+#:     wireOut st = case st of
+#:         Wire y p -> y
+#:
+#:     pluck n s = map wireOut (loop n wireStep (Wire 0.0 0.0) s)
+#:
+#: **The names matter here**, and not for taste: `synth.ges` declares its
+#: own `Ks` for `string`, the library is prepended to every program, and a
+#: second declaration of a name it already has is a duplicate rather than a
+#: shadow.  Copying this example verbatim is why it is not called `Ks`.
+#:
+#: `string` is this with the pitch and a decay worked out for you, and
+#: `damped` is the same shape with a lowpass in the line.
+#:
+#: That is a string of `n` samples' round trip — the rate over `n`
+#: hertz — excited by whatever `s` is, and the averaging is a lowpass, so
+#: the harmonics die before the fundamental does, as they do on a string.
+#: Put a different filter in the step and the line becomes a waveguide.
+#:
+#: **`n` is fixed before the program runs**, as `feedback`'s is, and the
+#: state is `n` copies of whatever `z` is — a wide state times a long line
+#: is a lot of memory, and it is spent whether or not the line is full.
+#:
+#: No cycle in the graph: the loop is inside the node, as `scan`'s and
+#: `feedback`'s are.  A feedback path that has to go *out* through other
+#: nodes and back is what `tap` is for.
+#:
+#: The definition below is the oracle's, as `feedback`'s and `tap`'s are:
+#: the audio backend recognises the name and emits a node, and this is what
+#: `render` runs to produce the samples that node is checked against.
+loop : Int -> (b -> b -> Float -> b) -> b -> Sig Float -> Sig b
+loop n f z s = map (buf => loopPrev z buf)
+                   (scan (buf x => loopStep f z buf x) (loopZero n z) s)
+
+#: Scale a signal by a constant.
+gain : Float -> Sig Float -> Sig Float
+gain g s = map (x => g * x) s
+
+# ════════════════════════════════════════════════════════════════════════
+internal
+# ════════════════════════════════════════════════════════════════════════
+#
+# **The one `Functor Sig` is built out of.**  `map` is its public face and
+# says everything there was to say; `mapSig` is here because the instance
+# needs a name to call, and because the desugaring of `!` writes one
+# directly — a lift is not a method call the front end could have made.
+
+#: Change what a signal carries, one instant at a time.
+mapSig : (a -> b) -> Sig a -> Sig b
+mapSig = gfix q => (f s => f (head s) ::: (delay (q2 => q2 f) <*> q <@> tail s))
+
+#: **The one `Zip Sig` is built out of**, and the hard part of it.
+#:
+#: Two signals need not tick together — each has its own clock — so this
+#: cannot simply pair up their tails.  `sync` reports which of the two
+#: arrived, and the one that did not keeps the signal it already had:
+#:
+#:   * `SyncLeft s2`     — only the left advanced; carry the old right.
+#:   * `SyncRight t2`    — only the right advanced; carry the old left.
+#:   * `SyncBoth s2 t2`  — both did.
+#:
+#: Carrying the old one over is sound precisely because a signal is a *cell*
+#: overwritten in place: the one that did not tick still holds what it held,
+#: and there is nothing stale to read.
+zipSig : (a -> b -> c) -> Sig a -> Sig b -> Sig c
+zipSig = gfix q => (f s t => f (head s) (head t) ::: (delay (q2 z => case z of
+    SyncLeft s2 -> q2 f s2 t
+    SyncRight t2 -> q2 f s t2
+    SyncBoth s2 t2 -> q2 f s2 t2) <*> q <@> sync (tail s) (tail t)))
+
+# **The three that `Num (Sig Float)` is built out of.**  `audio.ges` writes
+#
+#     instance Num (Sig Float) where
+#         (+) a b = addSig a b
+#         (-) a b = subSig a b
+#         (*) a b = mulSig a b
+#
+# so `+`, `-` and `*` are already the public face of these, and a synth
+# that says `tone * env` has said everything there is to say.  They are
+# here rather than deleted because the instance needs a name to call, and
+# because `spec/frp_lesson.md` is the argument that arithmetic on signals
+# should look like arithmetic — which is exactly the argument for not
+# writing `addSig` in a program.
+
+# **The three that `feedback`'s oracle is built out of.**  A delay line as
+# a *list*, oldest last: the interpreter can hold one and the engine cannot,
+# which is the whole reason the engine has a node kind instead.
+
+#: `n` samples of silence — the line before anything has entered it.
+lineZero : Int -> List Float
+lineZero n = case n < 1 of
+    True -> []
+    False -> 0.0 :: lineZero (n - 1)
+
+#: What left the line `n` samples ago: the last element, or silence while
+#: the line is still filling.
+lineOut : List Float -> Float
+lineOut buf = case buf of
+    [] -> 0.0
+    x :: rest -> x
+
+#: One sample: read the oldest, fold it with the input, and put the result
+#: in at the near end.  The list is newest-first, so "oldest" is the last
+#: and dropping it is what makes the line a fixed length.
+lineStep : (Float -> Float -> Float) -> List Float -> Float -> List Float
+lineStep f buf x = f (lineOldest buf) x :: lineButLast buf
+
+lineOldest : List Float -> Float
+lineOldest buf = case buf of
+    [] -> 0.0
+    x :: rest -> case rest of
+        [] -> x
+        y :: more -> lineOldest rest
+
+#: Polymorphic because `loop`'s ring holds whole states rather than
+#: samples; dropping the far end is the same operation either way.
+lineButLast : List a -> List a
+lineButLast buf = case buf of
+    [] -> []
+    x :: rest -> case rest of
+        [] -> []
+        y :: more -> x :: lineButLast rest
+
+# **`tap`'s oracle**, and it is the same list one sample at a time.
+
+#: The newest sample at the near end, and the far end falls off — so the
+#: list is `[s[t], s[t-1], …]` and index `d` is `d` samples back.
+tapPush : List Float -> Float -> List Float
+tapPush buf x = x :: lineButLast buf
+
+#: Read at `d` samples back, interpolating between the two either side.
+#:
+#: Clamped to 1 .. n-1: index 0 is *this* instant's sample, which a delay
+#: must not return, and n-1 is as far as the line reaches.
+tapRead : List Float -> Float -> Float
+tapRead buf d = tapMix buf (tapWhere (length buf) d)
+
+tapWhere : Int -> Float -> Float
+tapWhere n d = case d < 1.0 of
+    True -> 1.0
+    False -> case toFloat (n - 1) < d of
+        True -> toFloat (n - 1)
+        False -> d
+
+tapMix : List Float -> Float -> Float
+tapMix buf d = tapBlend (lineAt buf (floor d)) (lineAt buf (floor d + 1))
+                        (d - toFloat (floor d))
+
+tapBlend : Float -> Float -> Float -> Float
+tapBlend a b f = a + (b - a) * f
+
+lineAt : List Float -> Int -> Float
+lineAt buf i = case buf of
+    [] -> 0.0
+    x :: rest -> case i < 1 of
+        True -> x
+        False -> lineAt rest (i - 1)
+
+# **`loop`'s oracle**, and it is `feedback`'s list holding whole states
+# rather than bare samples — which is what puts both ends within reach: the
+# near end is the previous instant, the far end is `n` instants ago.
+
+#: `n` copies of the initial state — the ring before anything has run.
+loopZero : Int -> a -> List a
+loopZero n z = case n < 1 of
+    True -> []
+    False -> z :: loopZero (n - 1) z
+
+#: Where the step was an instant ago: the near end, or the initial state
+#: while nothing has been written yet.
+loopPrev : a -> List a -> a
+loopPrev z buf = case buf of
+    [] -> z
+    x :: rest -> x
+
+#: What left the line `n` instants ago: the far end, or the initial state.
+loopOld : a -> List a -> a
+loopOld z buf = case buf of
+    [] -> z
+    x :: rest -> case rest of
+        [] -> x
+        y :: more -> loopOld z rest
+
+#: One instant.  The step sees both ends and this instant's input, and what
+#: it returns goes on the near end while the far end falls off.
+loopStep : (a -> a -> Float -> a) -> a -> List a -> Float -> List a
+loopStep f z buf x = f (loopPrev z buf) (loopOld z buf) x :: lineButLast buf
+
+#: Add two signals — the reason `zipSig` was wanted.  Two oscillators can be
+#: two signals now, rather than two fields of one state.
+addSig : Sig Float -> Sig Float -> Sig Float
+addSig a b = zipSig (x y => x + y) a b
+
+#: Multiply two signals — a gain you can *turn*.
+#:
+#: `gain` takes a `Float`, and a `Float` is a constant the extractor folds
+#: into the graph as a literal; a knob is a `Sig Float`, so it cannot go
+#: there and `gain level s` does not typecheck.  This is what does: a
+#: parameter that varies is a second signal, and combining two signals is
+#: `zipSig`.  The same shape is an amplitude envelope, a tremolo, or one
+#: oscillator's output used as another's volume — none of which needed a
+#: combinator of their own.
+mulSig : Sig Float -> Sig Float -> Sig Float
+mulSig a b = zipSig (x y => x * y) a b
+
+#: Subtract one signal from another.  Here for the same reason `addSig` is,
+#: and because `Num (Sig Float)` needs all three to be a `Num` at all.
+subSig : Sig Float -> Sig Float -> Sig Float
+subSig a b = zipSig (x y => x - y) a b

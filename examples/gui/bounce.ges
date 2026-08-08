@@ -1,0 +1,103 @@
+# A ball bouncing in a box, which you can throw with the mouse.
+#
+#   python -m gestate.gui examples/gui/bounce.ges
+#   python -m gestate.gui examples/gui/bounce.ges --frames 5   # no window
+#
+# Click to move the ball there.  Escape or the close button quits.
+#
+# This is the FRP half doing what it is for.  There is no callback, no
+# mutable variable, no update method.  There is a **state**, a **step**
+# function from a state and an event to the next state, and a **picture** of
+# a state — and `world` folds them into a signal:
+#
+#     scene = world stepBall start draw
+#
+# What makes that legitimate rather than a trick is `scan`, in `gui.ges`.
+# It is defined by guarded recursion: its recursive call sits under a
+# `delay`, so the type system knows the signal is *productive* — it always
+# has a next value and can never deadlock waiting for its own.  And a signal
+# is a heap cell overwritten in place, so the hundred thousand past
+# positions of this ball do not accumulate anywhere.  That is the property
+# a stream-based FRP has to be careful about and this one cannot lose.
+#
+# The ball's position is a `Float`.  Velocities like 2.3 pixels a frame are
+# the reason floats exist; in integers it would move in visible steps or
+# not at all.
+
+# ── The world ────────────────────────────────────────────────────────────
+
+Ball := Ball Float Float Float Float          # x, y, dx, dy
+
+width : Int
+width = 480
+
+height : Int
+height = 360
+
+start : Ball
+start = Ball 240.0 60.0 2.3 1.7
+
+# ── Stepping it ──────────────────────────────────────────────────────────
+
+inRange : Float -> Float -> Bool
+inRange v limit = case v < 0.0 of
+    True -> False
+    False -> not (v > limit)
+
+#: Reverse the velocity when the new position has left the box.  Reflecting
+#: on *exit* rather than clamping means the ball never sticks to a wall: one
+#: frame outside, then it is heading back in.
+reflect : Float -> Float -> Float -> Float
+reflect p v limit = case inRange p limit of
+    True -> v
+    False -> negate v
+
+advance : Ball -> Ball
+advance b = case b of
+    Ball x y dx dy -> settle (x + dx) (y + dy) dx dy
+
+settle : Float -> Float -> Float -> Float -> Ball
+settle x y dx dy = Ball x y (reflect x dx (toFloat width)) (reflect y dy (toFloat height))
+
+#: Throw the ball: put it under the pointer, keeping whatever speed it had.
+throwTo : Ball -> Int -> Int -> Ball
+throwTo b px py = case b of
+    Ball x y dx dy -> Ball (toFloat px) (toFloat py) dx dy
+
+stepBall : Ball -> Event -> Ball
+stepBall b e = case e of
+    Tick -> advance b
+    Press px py -> throwTo b px py
+    Move px py -> b
+    Release px py -> b
+    Key k -> b
+
+# ── Drawing it ───────────────────────────────────────────────────────────
+
+slate : Colour
+slate = RGB 24 28 38
+
+amber : Colour
+amber = RGB 240 184 72
+
+shadow : Colour
+shadow = RGB 34 40 54
+
+draw : Ball -> Sub
+draw b = case b of
+    Ball x y dx dy -> Over backdrop
+        (Over (floorMark (floor x))
+              (Shift (floor x) (floor y) (Circle 14 amber)))
+
+#: Drawn from its own centre like everything else, so the rest of the
+#: picture is placed at the absolute coordinates the physics computed.
+backdrop : Sub
+backdrop = Shift (width / 2) (height / 2) (Rect width height slate)
+
+#: A mark on the floor under the ball, so the horizontal motion is legible
+#: even when the ball is high up.
+floorMark : Int -> Sub
+floorMark x = Shift x (height - 3) (Rect 28 6 shadow)
+
+substrate : Sig Sub
+substrate = map draw (scan stepBall start events)

@@ -1,0 +1,188 @@
+# An envelope, drawn as the function it is, with the voice walking it.
+#
+#   python -m gestate.audiopygame examples/audio/envelope.ges --midi
+#
+# `spectrum.ges` shows the host *measuring* the output.  This shows
+# something better: the canvas calling **the same function the sound
+# calls**.  The envelope's shape is `percOf`, an ordinary function of an
+# ordinary `Int`, and both halves of this file read it —
+#
+#   * the compiled half, once per sample, to shape the voice;
+#   * the interpreted half, forty times per frame, to draw the curve.
+#
+# So the picture cannot drift from the sound: it is not a picture *beside*
+# the envelope, it is the envelope.  Change `fall` below and the chart and
+# the note change together.
+#
+# ── What a probe is ──────────────────────────────────────────────────────
+#
+# `peak`, `rms` and `band0`… are measurements of the *output*.  A **probe**
+# is a reading from inside the instrument: `probe0` is how many samples
+# voice 0 has been sounding, and `0` when it is silent.
+#
+# That one number is the whole of what a chart like this needs.  The shape
+# is already here, in the file; what the host has to say is only **where
+# along it** the voice has walked.
+
+voices keys 4 pluck : Sig Float
+
+Note := Note Int Int              # key, velocity
+
+instance FromMIDI Note where
+    noteOn ch p v = Just (Note p v)
+
+# ── The envelope, as a function ──────────────────────────────────────────
+#
+# One definition, read by both halves.  `percOf rate n on` is the library's
+# one-shot decay: silent before the note, falling after it.
+
+fall : Float
+fall = 3.5
+
+#: The envelope at `age` samples after the note began.  `percOf` wants the
+#: instant and the onset; from an age those are `age` and `1`.
+shapeAt : Int -> Float
+shapeAt age = percOf fall age 1
+
+# ── What you hear ────────────────────────────────────────────────────────
+
+hzOf : Int -> Float
+hzOf k = 8.1758 * pow 2.0 (toFloat k / 12.0)
+
+pluck : Sig Gate -> Sig Note -> Sig Float
+pluck g s = 0.5 * saw (!hzOfNote s) * perc fall g
+
+hzOfNote : Note -> Float
+hzOfNote n = case n of
+    Note k v -> hzOf k
+
+sound : Sig Float
+sound = brickwall 0.9 (lowpassSvf 2600.0 0.2 keys)
+
+# ── What the instrument tells you ────────────────────────────────────────
+
+# One per voice — the bank has four, so there are four probes and four
+# dots.  Play a chord and they walk the curve independently.
+
+probe0 : Chan Float
+probe0 = chan
+probe1 : Chan Float
+probe1 = chan
+probe2 : Chan Float
+probe2 = chan
+probe3 : Chan Float
+probe3 = chan
+
+age0 : Sig Float
+age0 = 0.0 ::: mkSig (wait probe0)
+age1 : Sig Float
+age1 = 0.0 ::: mkSig (wait probe1)
+age2 : Sig Float
+age2 = 0.0 ::: mkSig (wait probe2)
+age3 : Sig Float
+age3 = 0.0 ::: mkSig (wait probe3)
+
+peak : Chan Float
+peak = chan
+
+loud : Sig Float
+loud = 0.0 ::: mkSig (wait peak)
+
+# ── What you see ─────────────────────────────────────────────────────────
+
+wide : Int
+wide = 320
+
+tall : Int
+tall = 160
+
+#: How many samples the chart spans, left to right.  Two seconds, so a
+#: `fall` of 3.5 e-foldings a second is most of the way down by the right
+#: edge and the shape is legible rather than crammed.
+span : Float
+span = 2.0
+
+#: Where a point on the chart sits, as an offset from the chart's
+#: **centre** — because that is where everything is placed from now.  The
+#: canvas still counts y downward, so a loud envelope is a *negative*
+#: offset, which is the one place that direction is written down.
+xOf : Int -> Int
+xOf age = floor (toFloat wide * clamp 0.0 1.0
+                   (toFloat age / (span * sampleRate))) - wide / 2
+
+yOf : Float -> Int
+yOf v = tall / 2 - floor (toFloat tall * clamp 0.0 1.0 v)
+
+#: How tall the envelope stands at step `i`.
+hAt : Int -> Int
+hAt i = floor (toFloat tall * clamp 0.0 1.0 (shapeAt (stepAt i)))
+
+stepAt : Int -> Int
+stepAt i = floor (toFloat i * span * sampleRate / 40.0)
+
+#: One upright tick of the curve, in its own slot.  `Sized` gives every
+#: tick the same slot whatever its height, so `Row` spaces them evenly and
+#: no tick has to know its own x — the forty positions the old version
+#: computed are the layout's job now.
+#:
+#: Standing on the floor is `(tall - h) / 2` below centre, the same rule
+#: the spectrum's bars use.
+tick : Int -> Sub
+tick i = Sized (wide / 40) tall
+    (Shift 0 ((tall - hAt i) / 2) (Rect 2 (hAt i) (RGB 90 130 170)))
+
+#: Forty of them, built by counting.  **An ordinary recursive function
+#: over `Sub` values** — the interpreted half has the whole language, so a
+#: list of forty things needs no signal machinery and no library
+#: combinator to fold it: `Row` is a constructor and this is a fold.
+ticksFrom : Int -> Sub
+ticksFrom i = case i > 40 of
+    True -> Gap 0 0
+    False -> Row (tick i) (ticksFrom (i + 1))
+
+curve : Sub
+curve = Sized wide tall
+    (Over (Rect wide tall (RGB 26 28 34)) (ticksFrom 0))
+
+#: **Where a voice is.**  A dot on the curve at the age the probe reports
+#: — the same `shapeAt` the ticks were drawn with, so it cannot sit off the
+#: line it is walking.
+#:
+#: **Nothing at all when the voice is silent**, which is what makes the
+#: probe's 1-based encoding worth having: `0` is *no voice*, and drawing it
+#: as an age would park four dots at the start of the envelope for four
+#: notes nobody played.  The age is one *past* the truth, so the marker
+#: subtracts it back off.
+dotAt : Int -> Float -> Sub
+dotAt i age = case age < 1.0 of
+    True -> Gap 0 0
+    False -> Shift (xOf (floor age - 1)) (yOf (shapeAt (floor age - 1)))
+                   (Circle 5 (voiceHue i))
+
+#: A colour each, so two voices at the same point on the curve are still
+#: two voices.
+voiceHue : Int -> Colour
+voiceHue i = RGB (240 - 30 * i) (180 - 10 * i) (80 + 40 * i)
+
+#: A level meter beside it, so there is something to check the chart
+#: against: when the dot is high the meter should be too.
+meter : Float -> Sub
+meter v = Sized 22 tall
+    (Shift 0 ((tall - mOf v) / 2) (Rect 22 (mOf v) (RGB 60 200 90)))
+
+mOf : Float -> Int
+mOf v = floor (toFloat tall * clamp 0.0 1.0 v)
+
+#: The chart, the four voices walking it, and the meter beside them.
+#:
+#: **`!` lifts over any number of signals**, so the voice index is an
+#: ordinary argument and the `walker0`…`walker3` wrappers this file used
+#: to carry are gone — `!dotAt 0 age0` is `dotAt` meeting two signals at
+#: once.  `constSig curve` and not a lift, because `curve` is the same
+#: forty ticks every frame and there is no signal for it to meet.
+substrate : Sig Sub
+substrate = moveXY 170 130
+    ((constSig curve
+        `over` !dotAt 0 age0 `over` !dotAt 1 age1
+        `over` !dotAt 2 age2 `over` !dotAt 3 age3)
+     `row` gap 20 0 `row` !meter loud)

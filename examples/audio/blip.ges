@@ -1,0 +1,96 @@
+# A little synth: eight notes, a sawtooth, an envelope and a filter.
+#
+#   python -m gestate.audio examples/audio/blip.ges -o blip.wav
+#   aplay blip.wav          # or open it in anything
+#
+# This is offline rendering — see `gestate/audio.ges` for why that is the
+# design and not a shortcoming.
+#
+# Everything below is one idea: **a synth is a fold over time.**  An
+# oscillator's phase, an envelope's level and a filter's memory are all
+# state that depends on the previous instant, and `scan` is what carries
+# state across instants.  There is no buffer, no loop, no index — just a
+# step function from the state and the current sample number to the next
+# state.
+#
+# The signal chain, bottom to top:
+#
+#     ticks  ─scan stepVoice─►  Voice  ─map voiceOut─►  raw  ─lowpass─►  sound
+#
+# `lowpass` is a *signal transformation*: a signal in, a signal out, its
+# memory held by another `scan`.  Chaining those is what a synth is.
+
+# ── The tune ─────────────────────────────────────────────────────────────
+#
+# A minor pentatonic, because everything in it sounds fine next to
+# everything else in it.
+
+#: The tune, as a **table**: an index in, a frequency out.
+#:
+#: Written as a list it would read a little better and be outside the audio
+#: fragment (`spec/liveaudio.md`), because `nth` walks a cons list once per
+#: sample — a heap structure of unbounded size, traversed 22,050 times a
+#: second, in code that must run in bounded time with no allocation.  A
+#: `case` over the index is the same tune with a fixed cost.
+noteOf : Int -> Float
+noteOf i = case i of
+    0 -> 220.0
+    1 -> 261.63
+    2 -> 293.66
+    3 -> 329.63
+    4 -> 392.0
+    5 -> 440.0
+    6 -> 392.0
+    _ -> 293.66
+
+noteCount : Int
+noteCount = 8
+
+#: Notes per second.
+speed : Int
+speed = 4
+
+samplesPerNote : Int
+samplesPerNote = floor (sampleRate / toFloat speed)
+
+#: Which note sample `n` belongs to, wrapping round the phrase.
+noteAt : Int -> Float
+noteAt n = noteOf (prim_mod_int (prim_div_int n samplesPerNote) noteCount)
+
+#: How far through its note sample `n` is, 0.0 .. 1.0.
+throughNote : Int -> Float
+throughNote n = toFloat (prim_mod_int n samplesPerNote) / toFloat samplesPerNote
+
+#: A percussive envelope: loud at the attack, decaying across the note.
+#: Squared, so it falls away quickly and the notes separate.
+envAt : Int -> Float
+envAt n = decay (1.0 - throughNote n)
+
+decay : Float -> Float
+decay v = v * v * v
+
+# ── The voice ────────────────────────────────────────────────────────────
+#
+# Phase and sample number.  The phase has to be *accumulated* rather than
+# computed from `n`, because the frequency changes: `wrap (p + f/rate)` is
+# continuous across a note change, and `n * f / rate` would jump and click.
+
+Voice := Voice Float Int
+
+stepVoice : Voice -> Int -> Voice
+stepVoice v n = case v of
+    Voice p m -> Voice (wrap (p + noteAt n / sampleRate)) n
+
+voiceOut : Voice -> Float
+voiceOut v = case v of
+    Voice p n -> sawOf p * envAt n
+
+# ── The chain ────────────────────────────────────────────────────────────
+
+raw : Sig Float
+raw = map voiceOut (scan stepVoice (Voice 0.0 0) ticks)
+
+#: A sawtooth is buzzy on its own; one pole takes the edge off.  0.25 is
+#: gentle — nearer 1.0 lets more through, nearer 0.0 muffles it.
+sound : Sig Float
+sound = gain 0.6 (lowpass 0.25 raw)

@@ -1,0 +1,17 @@
+# A rising scale, one note per beat.
+#
+#   python -m gestate.midi examples/scale.ges
+#
+# A music program supplies `score` and `bpm`; the renderer supplies `main`.
+# `'n` is a note carrying a MIDI key number, and `>>= prog p` assigns
+# every unassigned note to MIDI program `p` — which is what makes the score
+# performable, i.e. `[: Void :]`.
+
+melody : [: Int :]
+melody = '60 ++ '62 ++ '64 ++ '65 ++ '67 ++ '69 ++ '71 ++ '72
+
+score : [: Void :]
+score = melody >>= prog 0
+
+bpm : Int
+bpm = 120

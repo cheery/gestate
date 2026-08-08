@@ -1,0 +1,20 @@
+# Overlay, duration, and the offset that shifts the grid.
+#
+#   python -m gestate.midi examples/chords.ges --events
+#
+# `||` overlays — both voices share a span.  `|*` scales a subtree's
+# duration, and binds *looser* than `++`, so `a ++ b |* 2` scales the whole
+# sequence.  `at n` offsets a score by `n` ticks; a beat is 96.
+#
+# `at` moves a score's *extent* and leaves its *duration* alone, so the
+# grace note below starts half a beat early — overlapping the chord — and
+# the final chord still lands where it would have without it.
+
+major : Int -> [: Int :]
+major root = 'root || '(root + 4) || '(root + 7)
+
+score : [: Void :]
+score = (major 60 ++ at (0 - 48) ('67) ++ (major 65 |* 2)) >>= prog 0
+
+bpm : Int
+bpm = 100

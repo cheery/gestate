@@ -1,0 +1,94 @@
+# A drum head — a circular membrane, and the kettle that tunes one.
+#
+#   python -m gestate.audio examples/audio/membrane.ges -o membrane.wav
+#   python -m gestate.audio examples/audio/membrane.ges --seconds 6
+#
+# The third modal example, after `bell.ges` and `bar.ges`, and the one
+# where the modes are furthest from anything harmonic.
+#
+# ── Why a drum has no pitch ──────────────────────────────────────────────
+#
+# A bar vibrates along a line and its modes fall where they do; a membrane
+# vibrates across a *disc*, and its modes are the zeros of a Bessel
+# function — which is a sentence you can ignore, because the numbers are
+# the point:
+#
+#     1  :  1.593  :  2.135  :  2.295  :  2.653  :  2.917
+#
+# They are close together and none is a multiple of the fundamental, so the
+# ear has nothing to fuse.  That is a tom, a bongo, a frame drum: a *thud*
+# with a colour, not a note.
+#
+# ── Why a timpano does ───────────────────────────────────────────────────
+#
+# A kettledrum is the same membrane stretched over a bowl of air.  The air
+# loads the head unevenly — it resists the modes that move a lot of air far
+# more than the ones that do not — and that pulls the first four towards
+#
+#     1  :  1.5  :  2  :  2.5
+#
+# which is a harmonic series on half the fundamental, and is why a timpano
+# can be tuned to a note and played in a chord.  **The bowl is a tuning
+# device, not a resonator**, and swapping the ratios below is the whole
+# difference between the two instruments.
+
+# ── The strike ───────────────────────────────────────────────────────────
+#
+# A stick is not an impulse.  It has width, it stays in contact for a
+# millisecond or two, and it puts a short burst of *noise* into the head
+# rather than a single sample — which is most of why a real drum has a
+# "thwack" before it has a tone.
+#
+# `dust` gives the instants; `burst` turns each one into a short decay, and
+# multiplying that by `white` makes it noise.  A `scan` that takes the
+# larger of the incoming impulse and its own decayed value is the whole of
+# it — an envelope retriggered by whatever arrives.
+
+burst : Float -> Sig Float -> Sig Float
+burst decay trig = scan (y x => louder x (y * decay)) 0.0 trig
+
+louder : Float -> Float -> Float
+louder a b = case a < b of
+    True -> b
+    False -> a
+
+stick : Sig Float
+stick = burst 0.9965 (dust 61 (2.0 + 0.8 * sine 0.13)) * white 62
+
+# ── The head ─────────────────────────────────────────────────────────────
+#
+# Six modes, each a `resonate` with its decay **in seconds**.  The higher
+# ones spread their energy over more of the head and lose it faster, and it
+# is that spread of decay times, more than the ratios, that says "skin"
+# rather than "metal" — half a second at the bottom, a tenth at the top.
+
+mode : Float -> Float -> Float -> Sig Float -> Sig Float
+mode hz seconds level s = !level * resonate (!hz) seconds s
+
+#: An untuned head: the ideal membrane's own modes.  For a timpano, use
+#: 1.5, 2.0 and 2.5 for the first three overtones and drop the rest.
+#:
+#: Called `skin` and not `head`, which is what it wanted to be called:
+#: `head` is Rizzo's — the value a signal holds *now* — and shadowing it
+#: reports as `No instance for Floating (Sig (Sig Float -> Sig Float))`,
+#: which names neither the word nor the line.
+skin : Float -> Sig Float -> Sig Float
+skin f s = mode f             0.55 1.00 s
+         + mode (f * 1.593)   0.34 0.70 s
+         + mode (f * 2.135)   0.24 0.50 s
+         + mode (f * 2.295)   0.20 0.40 s
+         + mode (f * 2.653)   0.15 0.30 s
+         + mode (f * 2.917)   0.11 0.20 s
+
+# ── The output ───────────────────────────────────────────────────────────
+#
+# Two drums a fourth apart — which for a membrane is not an interval, only
+# two different thuds.  The compressor earns its place here: a drum is
+# nearly all transient, so without it the strikes are painful and the
+# tails inaudible.
+
+sound : Sig Float
+sound = limit 0.9 (compress (Comp 0.18 5.0 0.002 0.18)
+                            (0.6 * skin 98.0 stick
+                           + 0.45 * skin 131.0 (burst 0.996 (dust 63 1.3)
+                                                * white 64)))

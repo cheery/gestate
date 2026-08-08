@@ -1,0 +1,612 @@
+# HENKKA TUNNEL CORE 53
+#
+# Uusi Gestate-kappale rakennettuna alkuperaisen Modular Tunnel -raidan
+# 53 sekunnin kohdan ymparille.
+#
+# Tuossa kohdassa soivat:
+#   - F-pohjainen pad: C-F-A-C
+#   - nopea F-pulssibasso
+#   - pehmea lead C5 -> C#5
+#   - ei rumpuja
+#
+# Tassa versiossa sama aaniyhdistelma on kappaleen ydin. Sen ymparille
+# avautuvat techno-rummut, data-arp, metalliset stab-akordit ja tunnelikaiku.
+# Tempo 136 BPM, 4/4, 36 tahtia.
+#
+# Renderointi:
+#   python gestate_single.py midi henkka_tunnel_core_53_136.ges --events
+#   python gestate_single.py midi henkka_tunnel_core_53_136.ges -o henkka_tunnel_core_53_136.mid
+
+# ── Yleiset modulaariset rakennefunktiot ────────────────────────────────
+
+twice : [: a :] -> [: a :]
+twice x = x ++ x
+
+four : [: a :] -> [: a :]
+four x = twice (twice x)
+
+eight : [: a :] -> [: a :]
+eight x = twice (four x)
+
+sixteen : [: a :] -> [: a :]
+sixteen x = twice (eight x)
+
+barRest : [: a :]
+barRest = r |* 4
+
+twoBarsRest : [: a :]
+twoBarsRest = twice barRest
+
+upOctave : [: Int :] -> [: Int :]
+upOctave s = s >>= (k => '(k + 12))
+
+downOctave : [: Int :] -> [: Int :]
+downOctave s = s >>= (k => '(k - 12))
+
+# ── 53 sekunnin harmoninen ydin ─────────────────────────────────────────
+# F/C on alkuperaisen kohdan tarkka pad-sointu. Db, Dm ja C jatkavat
+# C-C#-D-liikkeen harmoniseksi tunneliksi.
+
+fCorePad : [: Int :]
+fCorePad = ('48 || '53 || '57 || '60) |* 4
+
+dbPad : [: Int :]
+dbPad = ('49 || '53 || '56 || '61) |* 4
+
+dmPad : [: Int :]
+dmPad = ('50 || '53 || '57 || '62) |* 4
+
+cPad : [: Int :]
+cPad = ('48 || '52 || '55 || '60) |* 4
+
+bbPad : [: Int :]
+bbPad = ('46 || '50 || '53 || '58) |* 4
+
+a7Pad : [: Int :]
+a7Pad = ('45 || '49 || '52 || '55) |* 4
+
+coreProgression4 : [: Int :]
+coreProgression4 = fCorePad ++ dbPad ++ dmPad ++ cPad
+
+darkProgression4 : [: Int :]
+darkProgression4 = fCorePad ++ bbPad ++ dmPad ++ a7Pad
+
+returnProgression4 : [: Int :]
+returnProgression4 = fCorePad ++ dbPad ++ cPad ++ fCorePad
+
+# ── Pulssibasso: sama F-kuvio kuin 53 sekunnin kohdassa ─────────────────
+
+bassF : [: Int :]
+bassF = ('29 ++ '29 ++ '41 ++ '36 ++ '29 ++ '33 ++ '36 ++ '41
+      ++ '29 ++ '29 ++ '45 ++ '41 ++ '36 ++ '33 ++ '29 ++ '36) |/ 4
+
+bassDb : [: Int :]
+bassDb = ('25 ++ '25 ++ '37 ++ '32 ++ '25 ++ '29 ++ '32 ++ '37
+       ++ '25 ++ '25 ++ '41 ++ '37 ++ '32 ++ '29 ++ '25 ++ '32) |/ 4
+
+bassDm : [: Int :]
+bassDm = ('26 ++ '26 ++ '38 ++ '33 ++ '26 ++ '29 ++ '33 ++ '38
+       ++ '26 ++ '26 ++ '41 ++ '38 ++ '33 ++ '29 ++ '26 ++ '33) |/ 4
+
+bassC : [: Int :]
+bassC = ('24 ++ '24 ++ '36 ++ '31 ++ '24 ++ '28 ++ '31 ++ '36
+      ++ '24 ++ '24 ++ '40 ++ '36 ++ '31 ++ '28 ++ '24 ++ '31) |/ 4
+
+bassBb : [: Int :]
+bassBb = ('22 ++ '22 ++ '34 ++ '29 ++ '22 ++ '26 ++ '29 ++ '34
+       ++ '22 ++ '22 ++ '38 ++ '34 ++ '29 ++ '26 ++ '22 ++ '29) |/ 4
+
+bassA : [: Int :]
+bassA = ('21 ++ '21 ++ '33 ++ '28 ++ '21 ++ '25 ++ '28 ++ '33
+      ++ '21 ++ '21 ++ '37 ++ '33 ++ '28 ++ '25 ++ '21 ++ '28) |/ 4
+
+coreBass4 : [: Int :]
+coreBass4 = bassF ++ bassDb ++ bassDm ++ bassC
+
+darkBass4 : [: Int :]
+darkBass4 = bassF ++ bassBb ++ bassDm ++ bassA
+
+returnBass4 : [: Int :]
+returnBass4 = bassF ++ bassDb ++ bassC ++ bassF
+
+# ── Valomotiivi: 53 sekunnin C5 -> C#5 -liike ───────────────────────────
+# Jokainen lead-tahti kestaa nelja iskua. Melodia on kokonaan uusi,
+# mutta sen tunnus on alkuperaisen hetken puolisavelaskel.
+
+coreLeadBar1 : [: Int :]
+coreLeadBar1 = ('72 |* 2) ++ ('73 |* 2)
+
+coreLeadBar2 : [: Int :]
+coreLeadBar2 = ('74 |* 2) ++ ('69 |* 2)
+
+coreLeadBar3 : [: Int :]
+coreLeadBar3 = ('72 ++ '73 ++ '74 ++ '77 ++ '76 ++ '74 ++ '73 ++ '72) |/ 2
+
+coreLeadBar4 : [: Int :]
+coreLeadBar4 = ('69 |* 1) ++ ('72 |* 1) ++ ('73 |* 1) ++ ('72 |* 1)
+
+coreLead4 : [: Int :]
+coreLead4 = coreLeadBar1 ++ coreLeadBar2 ++ coreLeadBar3 ++ coreLeadBar4
+
+# Dropissa sama motiivi nopeutuu 16-osaiseksi porttikuvioksi.
+lightGateBar : [: Int :]
+lightGateBar = ('72 ++ '73 ++ '74 ++ '72 ++ '77 ++ '76 ++ '74 ++ '73
+             ++ '72 ++ '73 ++ '76 ++ '77 ++ '74 ++ '73 ++ '72 ++ '69) |/ 4
+
+lightGate4 : [: Int :]
+lightGate4 = four lightGateBar
+
+answerBar1 : [: Int :]
+answerBar1 = ('77 ++ '76 ++ '74 ++ '73 ++ '72 ++ '73 ++ '74 ++ '76) |/ 2
+
+answerBar2 : [: Int :]
+answerBar2 = ('81 ++ '77 ++ '76 ++ '74 ++ '73 ++ '72 ++ '69 ++ '72) |/ 2
+
+answerBar3 : [: Int :]
+answerBar3 = ('72 ++ '73 ++ '77 ++ '76 ++ '74 ++ '73 ++ '72 ++ '69) |/ 2
+
+answerBar4 : [: Int :]
+answerBar4 = ('73 |* 1) ++ ('74 |* 1) ++ ('72 |* 2)
+
+answerLead4 : [: Int :]
+answerLead4 = answerBar1 ++ answerBar2 ++ answerBar3 ++ answerBar4
+
+finalLead8 : [: Int :]
+finalLead8 = coreLead4 ++ answerLead4
+
+# ── Data-arp: rakentuu samoista C-C#-D- ja F-A-savelista ────────────────
+
+arpF : [: Int :]
+arpF = ('72 ++ '77 ++ '81 ++ '84 ++ '73 ++ '77 ++ '81 ++ '84
+     ++ '72 ++ '77 ++ '81 ++ '89 ++ '84 ++ '81 ++ '77 ++ '73) |/ 4
+
+arpDb : [: Int :]
+arpDb = ('73 ++ '77 ++ '80 ++ '85 ++ '73 ++ '80 ++ '85 ++ '89
+      ++ '73 ++ '77 ++ '80 ++ '85 ++ '89 ++ '85 ++ '80 ++ '77) |/ 4
+
+arpDm : [: Int :]
+arpDm = ('74 ++ '77 ++ '81 ++ '86 ++ '74 ++ '81 ++ '86 ++ '89
+      ++ '74 ++ '77 ++ '81 ++ '86 ++ '89 ++ '86 ++ '81 ++ '77) |/ 4
+
+arpC : [: Int :]
+arpC = ('72 ++ '76 ++ '79 ++ '84 ++ '72 ++ '79 ++ '84 ++ '88
+     ++ '72 ++ '76 ++ '79 ++ '84 ++ '88 ++ '84 ++ '79 ++ '76) |/ 4
+
+arpBb : [: Int :]
+arpBb = ('70 ++ '74 ++ '77 ++ '82 ++ '70 ++ '77 ++ '82 ++ '86
+      ++ '70 ++ '74 ++ '77 ++ '82 ++ '86 ++ '82 ++ '77 ++ '74) |/ 4
+
+arpA7 : [: Int :]
+arpA7 = ('69 ++ '73 ++ '76 ++ '79 ++ '69 ++ '76 ++ '79 ++ '85
+      ++ '69 ++ '73 ++ '76 ++ '79 ++ '85 ++ '79 ++ '76 ++ '73) |/ 4
+
+coreArp4 : [: Int :]
+coreArp4 = arpF ++ arpDb ++ arpDm ++ arpC
+
+darkArp4 : [: Int :]
+darkArp4 = arpF ++ arpBb ++ arpDm ++ arpA7
+
+returnArp4 : [: Int :]
+returnArp4 = arpF ++ arpDb ++ arpC ++ arpF
+
+# ── Offbeat-metallistabit ────────────────────────────────────────────────
+
+fStabUnit : [: Int :]
+fStabUnit = (r ++ ('60 || '65 || '69)) |/ 2
+
+dbStabUnit : [: Int :]
+dbStabUnit = (r ++ ('61 || '65 || '68)) |/ 2
+
+dmStabUnit : [: Int :]
+dmStabUnit = (r ++ ('62 || '65 || '69)) |/ 2
+
+cStabUnit : [: Int :]
+cStabUnit = (r ++ ('60 || '64 || '67)) |/ 2
+
+bbStabUnit : [: Int :]
+bbStabUnit = (r ++ ('58 || '62 || '65)) |/ 2
+
+a7StabUnit : [: Int :]
+a7StabUnit = (r ++ ('57 || '61 || '64 || '67)) |/ 2
+
+fStab : [: Int :]
+fStab = four fStabUnit
+
+dbStab : [: Int :]
+dbStab = four dbStabUnit
+
+dmStab : [: Int :]
+dmStab = four dmStabUnit
+
+cStab : [: Int :]
+cStab = four cStabUnit
+
+bbStab : [: Int :]
+bbStab = four bbStabUnit
+
+a7Stab : [: Int :]
+a7Stab = four a7StabUnit
+
+coreStabs4 : [: Int :]
+coreStabs4 = fStab ++ dbStab ++ dmStab ++ cStab
+
+darkStabs4 : [: Int :]
+darkStabs4 = fStab ++ bbStab ++ dmStab ++ a7Stab
+
+# ── Techno-rummut ───────────────────────────────────────────────────────
+
+kick4 : [: Int :]
+kick4 = '36 ++ '36 ++ '36 ++ '36
+
+clap24 : [: Int :]
+clap24 = r ++ '39 ++ r ++ '39
+
+hat8 : [: Int :]
+hat8 = eight ('42 |/ 2)
+
+hat16 : [: Int :]
+hat16 = sixteen ('42 |/ 4)
+
+offHatUnit : [: Int :]
+offHatUnit = (r ++ '46) |/ 2
+
+openHats : [: Int :]
+openHats = four offHatUnit
+
+tomTunnel : [: Int :]
+tomTunnel = ('45 ++ '47 ++ '48 ++ '50 ++ '48 ++ '47 ++ '45 ++ r) |/ 2
+
+snareRush : [: Int :]
+snareRush = eight ('38 |/ 8)
+
+kickOnlyBar : [: Int :]
+kickOnlyBar = kick4
+
+basicDrumBar : [: Int :]
+basicDrumBar = kick4 || clap24 || hat8
+
+fullDrumBar : [: Int :]
+fullDrumBar = kick4 || clap24 || hat16 || openHats
+
+tunnelDrumBar : [: Int :]
+tunnelDrumBar = fullDrumBar || tomTunnel
+
+fillBar : [: Int :]
+fillBar = fullDrumBar || at (3 * ticksPerBeat) snareRush
+
+basicDrums4 : [: Int :]
+basicDrums4 = basicDrumBar ++ basicDrumBar ++ basicDrumBar ++ fillBar
+
+fullDrums4 : [: Int :]
+fullDrums4 = fullDrumBar ++ fullDrumBar ++ tunnelDrumBar ++ fillBar
+
+# ── Soittimet: gestate-aanisynteesi ─────────────────────────────────────
+#
+# The score above is untouched — every part was already routed through one
+# of seven one-line functions, so giving a MIDI piece real instruments is a
+# rewrite of those seven lines.
+#
+# The third set in this directory, and again built from what the other two
+# left alone: the **FM matrix** (`modulates`) for the metal, `resonate`
+# tracking the note for the plucks, `tap` read at a moving position on the
+# soft lead, and `bimix` morphing one oscillator into another.
+
+Stroke := Stroke Int Int
+
+voices pad 6 padTone : Sig Float
+voices low 2 lowTone : Sig Float
+voices soft 3 softTone : Sig Float
+voices core 3 coreTone : Sig Float
+voices pluck 4 pluckTone : Sig Float
+voices metal 3 metalTone : Sig Float
+voices drums 4 drumTone : Sig Float
+
+instance FromMIDI Stroke where
+    noteOn ch p v = Just (Stroke p v)
+
+hzOf : Stroke -> Float
+hzOf q = case q of
+    Stroke k v -> keyHz k
+
+velOf : Stroke -> Float
+velOf q = case q of
+    Stroke k v -> toFloat v / 127.0
+
+detuned : Float -> Sig Float -> Sig Float
+detuned cents hz = map (h => centsHz cents h) hz
+
+sweep : Float -> Float -> Sig Float -> Sig Float
+sweep lo hi e = map (v => mix lo hi v) e
+
+# ── Pad: and the tunnel is a resonance ──────────────────────────────────
+#
+# The chords are ordinary detuned saws.  What makes them a *tunnel* is on
+# the bank below: a `resonate` at one fixed frequency, so every chord
+# excites the same ringing pitch whatever it is playing.  A room with a
+# note of its own is what a tunnel sounds like, and it is one combinator.
+
+padEnv : Adsr
+padEnv = Adsr 0.50 0.7 0.74 1.0
+
+padTone : Sig Gate -> Sig Stroke -> Sig Float
+padTone g s = lowpassSvf (sweep 240.0 3400.0 (adsr padEnv g)) 0.20
+                (saw (detuned (0.0 - 8.0) (!hzOf s))
+                   + saw (detuned 8.0 (!hzOf s))
+                   + triangle (detuned (0.0 - 1200.0) (!hzOf s)) * 0.6)
+            * adsr padEnv g * !velOf s * 0.20
+
+# ── Bass: one oscillator morphing into another ──────────────────────────
+#
+# `pulse`'s width is a `Float` and not a signal — the fragment needs it
+# fixed — so this is not pulse-width modulation.  It is the same idea by a
+# different route: `bimix` crossfades saw into square on a slow LFO, and
+# because `bimix` takes a **bipolar** control the LFO goes in exactly as it
+# comes out, with no scaling written at the call site.
+
+bassEnv : Adsr
+bassEnv = Adsr 0.004 0.15 0.52 0.10
+
+bassFilt : Adsr
+bassFilt = Adsr 0.002 0.13 0.30 0.09
+
+morph : Sig Float -> Sig Float
+morph hz = bimix (saw hz) (square hz) (sine (constSig 0.17))
+
+lowTone : Sig Gate -> Sig Stroke -> Sig Float
+lowTone g s = lowpassLadder (sweep 85.0 1900.0 (adsr bassFilt g)) 0.28
+                (morph (!hzOf s) + sine (detuned (0.0 - 1200.0) (!hzOf s)) * 0.5)
+            * adsr bassEnv g * !velOf s * 0.52
+
+# ── Soft lead ───────────────────────────────────────────────────────────
+#
+# Plain here; what makes it drift is on the bank below, where `tap` reads a
+# delay line at a moving position.  `tap` is the raw form of what a chorus
+# is built from, and used slowly it is a drift rather than a shimmer.
+
+softEnv : Adsr
+softEnv = Adsr 0.09 0.30 0.66 0.50
+
+softTone : Sig Gate -> Sig Stroke -> Sig Float
+softTone g s = (triangle (!hzOf s)
+                  + sine (detuned 5.0 (!hzOf s)) * 0.45)
+             * adsr softEnv g * !velOf s * 0.26
+
+# ── Core lead: four-operator FM, tuned like a bell ──────────────────────
+#
+# Operators 1 and 2 are a harmonic pair — the note.  Operators 3 and 4 run
+# at 2.0 and 3.5, and 3.5 is **not a whole-number multiple** of anything
+# else in the patch, which is the whole reason it reads as struck glass
+# rather than as a brighter note.
+
+corePatch : Patch
+corePatch = Patch (Quad 1.0 1.0 2.0 3.5)
+                  (modulates 2 1 0.85 (modulates 4 3 0.45 noWiring))
+                  (Quad 0.9 0.0 0.32 0.0)
+
+coreBody : Adsr
+coreBody = Adsr 0.020 1.6 0.42 0.40
+
+coreMod : Adsr
+coreMod = Adsr 0.006 0.55 0.10 0.20
+
+coreLevels : Int -> Both Gate Stroke -> Quad
+coreLevels t nn = case nn of
+    Both w q -> case w of
+        Gate on off -> Quad
+            (adsrOf coreBody t on off) (adsrOf coreMod t on off)
+            (adsrOf coreBody t on off) (adsrOf coreMod t on off)
+
+coreTone : Sig Gate -> Sig Stroke -> Sig Float
+coreTone g s = fm corePatch (map hzOf s) (zip coreLevels ticks (!Both g s))
+             * !velOf s * 0.20
+
+# ── Plucks: a resonator tuned to the note ───────────────────────────────
+#
+# **`resonate`'s frequency is a signal**, so it can follow the note — which
+# turns it from an effect into an instrument.  A very short noise burst
+# through a resonator tuned to the pitch is a struck bar: the excitation
+# says *struck* and the resonator says *what*.  That is modal synthesis in
+# two lines, and it is the nearest thing to `string` for a voice whose
+# pitch is not known until it sounds — `string`'s length is a `Float`, so
+# it cannot follow a note at all.
+
+pluckTone : Sig Gate -> Sig Stroke -> Sig Float
+pluckTone g s = resonate (!hzOf s) 0.06 (white 5309 * perc 90.0 g)
+              * perc 7.0 g * !velOf s * 0.80
+
+# ── Metal stabs: the FM matrix, wired for inharmonicity ─────────────────
+#
+# Ratios 3.3 and 7.1 against a fundamental of 1.0, plus a little feedback
+# on the diagonal.  Whole-number ratios make harmonics and sound like a
+# note played louder; these divide into nothing, so what comes out is a
+# partial series belonging to no pitch, which is what reads as metal.
+
+metalPatch : Patch
+metalPatch = Patch (Quad 1.0 3.3 1.0 7.1)
+                   (modulates 2 1 1.5 (modulates 4 3 0.8
+                       (modulates 2 2 0.22 noWiring)))
+                   (Quad 0.8 0.0 0.45 0.0)
+
+metalAmp : Adsr
+metalAmp = Adsr 0.004 0.30 0.18 0.16
+
+metalMod : Adsr
+metalMod = Adsr 0.001 0.13 0.04 0.09
+
+metalLevels : Int -> Both Gate Stroke -> Quad
+metalLevels t nn = case nn of
+    Both w q -> case w of
+        Gate on off -> Quad
+            (adsrOf metalAmp t on off) (adsrOf metalMod t on off)
+            (adsrOf metalAmp t on off) (adsrOf metalMod t on off)
+
+metalTone : Sig Gate -> Sig Stroke -> Sig Float
+metalTone g s = fm metalPatch (map hzOf s) (zip metalLevels ticks (!Both g s))
+              * !velOf s * 0.36
+
+# ── The kit ─────────────────────────────────────────────────────────────
+#
+# **`perc` takes a rate, not a time** — e-foldings per second — so 55 is a
+# closed hat and 7 is a kick.  Reading it the other way round is what made
+# this directory's first kit ring for seconds a drum.
+
+hiss : Sig Float
+hiss = white 1360806
+
+isKey : Int -> Stroke -> Float
+isKey want q = case q of
+    Stroke k v -> case k == want of
+        True -> toFloat v / 127.0
+        False -> 0.0
+
+kick : Sig Gate -> Sig Float
+kick g = sine (45.0 + 125.0 * perc 34.0 g) * perc 7.0 g
+
+snare : Sig Gate -> Sig Float
+snare g = (bandpassSvf (constSig 1850.0) 0.42 hiss
+             + sine (constSig 190.0) * 0.30)
+        * perc 14.0 g * 0.45
+
+clap : Sig Gate -> Sig Float
+clap g = bandpassSvf (constSig 1400.0) 0.55 hiss * perc 20.0 g * 0.48
+
+closedHat : Sig Gate -> Sig Float
+closedHat g = highpassSvf (constSig 7600.0) 0.18 hiss * perc 55.0 g * 0.50
+
+openHat : Sig Gate -> Sig Float
+openHat g = highpassSvf (constSig 7600.0) 0.18 hiss * perc 10.0 g * 0.42
+
+drumTone : Sig Gate -> Sig Stroke -> Sig Float
+drumTone g s = kick g * !isKey (constSig 36) s
+             + snare g * !isKey (constSig 38) s
+             + clap g * !isKey (constSig 39) s
+             + closedHat g * !isKey (constSig 42) s
+             + openHat g * !isKey (constSig 46) s
+
+# ── MIDI-instrumenttimoduulit ───────────────────────────────────────────
+#
+# The seven lines that were `>>= prog N`.  The octave doublings the MIDI
+# version wrote as extra layers are inside the voices now, where they cost
+# no extra polyphony.
+
+pitched : Int -> [: Int :] -> [: Stroke :]
+pitched v s = s >>= (k => '(Stroke k v))
+
+pads : [: Int :] -> [: Void :]
+pads v = pitched 82 v >>= voices.pad
+
+pulseBass : [: Int :] -> [: Void :]
+pulseBass v = pitched 104 v >>= voices.low
+
+softLead : [: Int :] -> [: Void :]
+softLead v = pitched 78 v >>= voices.soft
+
+coreTunnelLead : [: Int :] -> [: Void :]
+coreTunnelLead v = pitched 96 v >>= voices.core
+
+arpVoice : [: Int :] -> [: Void :]
+arpVoice v = pitched 92 v >>= voices.pluck
+
+metalStabs : [: Int :] -> [: Void :]
+metalStabs v = pitched 100 v >>= voices.metal
+
+kit : [: Int :] -> [: Void :]
+kit v = pitched 108 v >>= voices.drums
+
+# ── Kappaleen rakenne: 36 tahtia ────────────────────────────────────────
+
+# 1-4: tarkka 53 sekunnin ydinsoundi esitellaan ilman rumpuja.
+memory4 : [: Void :]
+memory4 = pads coreProgression4
+       || pulseBass coreBass4
+       || softLead coreLead4
+
+# 5-8: sama ydin saa kickin ja hiljaisen data-arpin.
+ignition4 : [: Void :]
+ignition4 = pads coreProgression4
+         || pulseBass coreBass4
+         || softLead coreLead4
+         || arpVoice coreArp4
+         || kit (kickOnlyBar ++ kickOnlyBar ++ basicDrumBar ++ fillBar)
+
+# 9-16: ensimmainen techno-drop, mutta 53 s lead pysyy keskella.
+coreDrop8 : [: Void :]
+coreDrop8 = pads (twice coreProgression4)
+         || pulseBass (twice coreBass4)
+         || arpVoice (twice coreArp4)
+         || metalStabs (twice coreStabs4)
+         || coreTunnelLead (coreLead4 ++ answerLead4)
+         || kit (fullDrums4 ++ fullDrums4)
+
+# 17-20: rummut katoavat ja alkuperainen soundi palaa lahes paljaana.
+airBreak4 : [: Void :]
+airBreak4 = pads returnProgression4
+          || pulseBass returnBass4
+          || softLead coreLead4
+          || at (2 * 4 * ticksPerBeat) (arpVoice (twice arpF))
+
+# 21-28: tumma tunnelivariaatio ja nopea C-C#-D-portti.
+darkTunnel8 : [: Void :]
+darkTunnel8 = pads (twice darkProgression4)
+            || pulseBass (twice darkBass4)
+            || arpVoice (twice darkArp4)
+            || metalStabs (twice darkStabs4)
+            || coreTunnelLead (lightGate4 ++ answerLead4)
+            || kit (fullDrums4 ++ fullDrums4)
+
+# 29-32: lopullinen yhdistelma, jossa ydinmotiivi ja data-portti kohtaavat.
+finale4 : [: Void :]
+finale4 = pads returnProgression4
+       || pulseBass returnBass4
+       || arpVoice returnArp4
+       || metalStabs coreStabs4
+       || coreTunnelLead coreLead4
+       || at 5 (softLead lightGate4)
+       || kit fullDrums4
+
+# 33-36: puretaan takaisin tismalleen 53 s tunnelmaan.
+return53 : [: Void :]
+return53 = pads coreProgression4
+        || pulseBass coreBass4
+        || softLead coreLead4
+        || kit (basicDrumBar ++ fillBar ++ twoBarsRest)
+
+score : [: Void :]
+score = memory4
+     ++ ignition4
+     ++ coreDrop8
+     ++ airBreak4
+     ++ darkTunnel8
+     ++ finale4
+     ++ return53
+
+bpm : Int
+bpm = 136
+
+# ── Miksaus ─────────────────────────────────────────────────────────────
+#
+# Every effect is on a **bank**, not inside a voice: one resonator for six
+# pad voices, one drifting tap for three lead voices.  Cheaper, and it is
+# also what a send is.
+#
+# `resonate 118.0` is the tunnel — one fixed pitch that every chord
+# excites, whatever it is playing, so the room has a note of its own.
+#
+# `tap 1400` reads the soft lead's delay line at a position that moves
+# between about 300 and 1100 samples on a slow sine.  That is a chorus
+# written out: the read head moving *is* the effect.
+tunnelHz : Sig Float
+tunnelHz = constSig 118.0
+
+drift : Sig Float
+drift = map (v => 700.0 + 400.0 * v) (sine (constSig 0.13))
+
+sound : Sig Float
+sound = brickwall 0.92
+          (( pad * 0.55 + resonate tunnelHz 0.30 pad * 0.28
+           + low
+           + tap 1400 drift soft
+           + core
+           + pluck * 0.9
+           + metal
+           + drums * 0.9 ) * 0.030)

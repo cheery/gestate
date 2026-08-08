@@ -1,0 +1,134 @@
+# Two knobs: the first synth with more than one parameter.
+#
+#   python -m gestate.audioeditor examples/audio/twoknobs.ges
+#   python -m gestate.audiospans examples/audio/twoknobs.ges --controls --source
+#
+# `knob.ges` established that a control-rate parameter is a second clock.
+# This one establishes that **several parameters are several channels**,
+# not several fields of one record — and the reason is live coding rather
+# than taste.
+#
+# A record would make the knobs one value of one type.  Adding a third
+# parameter changes that type, and `spec/liveaudio.md` stage 5 migrates
+# state by *shape*, so the two knobs you were already turning would snap
+# back to their initial values the moment you declared a third.  Separate
+# channels are separate nodes with separate origins: add one, and the
+# others keep both their value and the oscillator phase downstream of them.
+#
+# It is also what lets an environment draw each knob beside the line that
+# declares it — one `Site` per parameter, which `gestate/audiospans.py`
+# reports and a single record could not.
+
+# ── The parameters ───────────────────────────────────────────────────────
+#
+# Each is its own channel, and each holds a value before anything arrives,
+# so the synth is never waiting on a knob nobody has touched.
+
+pitchChan : Chan Int
+pitchChan = chan
+
+#: 0 .. 100 — the note, low to high.
+pitch : Sig Int
+pitch = 40 ::: mkSig (wait pitchChan)
+
+cutoffChan : Chan Int
+cutoffChan = chan
+
+#: 0 .. 100 — how much of the harmonics survive the filter.
+cutoff : Sig Int
+cutoff = 70 ::: mkSig (wait cutoffChan)
+
+# ── Reading them together ────────────────────────────────────────────────
+#
+# `Reading` is the pair of knobs and the sample number, spelled as a data
+# type because it has to be flat.  The two `zip`s are the `.kr → .ar`
+# boundary twice over: each control value is held across the block and the
+# audio side advances every sample.
+
+Knobs := Knobs Int Int
+
+#: **Clamped at the boundary, and not as a nicety.**  A knob is the one
+#: value in a synth that does not come from the synth, so nothing here
+#: constrains it — the offline renderer drives every control channel with
+#: the *sample index*, which is exactly the sort of thing a host is free to
+#: send.  Unclamped, the filter coefficient below leaves 0 .. 1 within a
+#: few hundred samples and the one-pole feedback diverges to 1e40.
+#: Clamping is what makes this program's output defined for any input, and
+#: therefore what makes a golden buffer of it mean anything.
+clampKnob : Int -> Int
+clampKnob v = case v < 0 of
+    True -> 0
+    False -> case v > 100 of
+        True -> 100
+        False -> v
+
+pairUp : Int -> Int -> Knobs
+pairUp p c = Knobs (clampKnob p) (clampKnob c)
+
+Reading := Reading Int Knobs
+
+readAt : Int -> Knobs -> Reading
+readAt n k = Reading n k
+
+#: 110 Hz at the bottom of the knob, 510 at the top.
+hzOf : Int -> Float
+hzOf k = 110.0 + 4.0 * toFloat k
+
+# ── The voice ────────────────────────────────────────────────────────────
+
+stepPhase : Float -> Reading -> Float
+stepPhase p r = case r of
+    Reading n k -> advanceBy p k
+
+advanceBy : Float -> Knobs -> Float
+advanceBy p k = case k of
+    Knobs pitchK cutoffK -> wrap (p + hzOf pitchK / sampleRate)
+
+#: A sawtooth, so the second knob has harmonics to take away.
+voiceAt : Float -> Reading -> Float
+voiceAt p r = case r of
+    Reading n k -> sawOf p * 0.5
+
+#: The filter coefficient is the *other* knob, which is what makes this
+#: example about two parameters rather than one twice.
+cutoffOf : Reading -> Float
+cutoffOf r = case r of
+    Reading n k -> coeffOf k
+
+coeffOf : Knobs -> Float
+coeffOf k = case k of
+    Knobs pitchK cutoffK -> 0.02 + 0.0098 * toFloat cutoffK
+
+# ── The chain ────────────────────────────────────────────────────────────
+
+knobs : Sig Knobs
+knobs = zip pairUp pitch cutoff
+
+driven : Sig Reading
+driven = zip readAt ticks knobs
+
+turning : Sig Float
+turning = scan stepPhase 0.0 driven
+
+raw : Sig Float
+raw = zip voiceAt turning driven
+
+#: A one-pole filter whose coefficient varies — so `lowpass` from
+#: `audio.ges` will not do, since that one takes a constant.  Written out
+#: here, which is the whole argument of `blip.ges` again: a filter is a
+#: `scan`, so a filter with a moving cutoff is the same `scan` reading one
+#: more input.
+filtered : Sig Float
+filtered = scan stepFilter 0.0 (zip withCutoff raw driven)
+
+Sample := Sample Float Float
+
+withCutoff : Float -> Reading -> Sample
+withCutoff x r = Sample x (cutoffOf r)
+
+stepFilter : Float -> Sample -> Float
+stepFilter y s = case s of
+    Sample x k -> y + k * (x - y)
+
+sound : Sig Float
+sound = gain 0.8 filtered

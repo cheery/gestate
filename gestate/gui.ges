@@ -1,0 +1,255 @@
+# gui.ges — the vocabulary a GUI program is written in.
+#
+# **Not part of the core prelude**, for the reason `music.ges` is not: it
+# declares constructors, and a constructor's tag is its position, so merging
+# it into every program would renumber `Nil`/`Cons` for all of them.  The
+# GUI backend prepends it to a GUI program's source instead.
+#
+# A GUI program supplies `substrate : Sig Sub` — a picture that varies over
+# time and says what it listens to.  `gestate/gui.py` drives it: input
+# arrives on one channel, and whatever the substrate holds at that instant
+# is what gets drawn.
+
+# ── What can be drawn ────────────────────────────────────────────────────
+
+Colour := RGB Int Int Int
+
+#: A picture, its extent, and what it listens to — all one tree.
+#:
+#: **Data rather than a function**, which is what keeps the host's job
+#: first-order.  It walks this tree to draw it and accumulates the position
+#: on the way down, so when a press arrives it already knows where each
+#: element ended up and needs no machinery to find out.
+#:
+#: **Every element has an extent, and every element is placed by its
+#: centre.**  Those two together are what makes layout possible at all: a
+#: combinator that has to arrange two things needs to know how big they
+#: are, and needs one agreed point on each to line up.  The centre is that
+#: point everywhere, with no alignment argument anywhere — `spec/data.md`
+#: has the same instinct about one job per name.
+#:
+#: **The extent is declared, never measured.**  `Rect w h` is `w` by `h`
+#: because it says so, not because that is what got painted; `Sized`
+#: declares one outright.  A host that inferred extents from the pixels it
+#: drew would give `Gap` no size at all, and a layout that changed when a
+#: colour changed to the background colour.
+Sub := Rect Int Int Colour
+     | Circle Int Colour
+     | Gap Int Int
+     | Over Sub Sub
+     | Row Sub Sub
+     | Column Sub Sub
+     | Shift Int Int Sub
+     | Sized Int Int Sub
+     | Pad Int Sub
+     | TouchX (Chan Float) Sub
+     | TouchY (Chan Float) Sub
+
+# ── What can arrive ──────────────────────────────────────────────────────
+#
+# One event type on one channel, rather than a channel per kind of input.
+# Channel identifiers are handed out in allocation order, so several
+# channels would be positional and fragile; one is also the honest reading
+# of what a GUI receives — a single stream of things that happened.
+
+Event := Tick
+       | Move Int Int
+       | Press Int Int
+       | Release Int Int
+       | Key Int
+
+input : Chan Event
+input = chan
+
+# ── Signals ─────────────────────────────────────────────────────────────
+#
+# `mkSig`, `map`, `scan` and `zipSig` come from `gestate/signal.ges`,
+# which the backend prepends before this file.
+
+#: The event stream.  `Tick` before anything has happened, so a program has
+#: a value to show at the first instant.
+events : Sig Event
+events = Tick ::: mkSig (wait input)
+# ── The substrate ────────────────────────────────────────────────────────
+#
+# **A substrate is a value, built from smaller ones by ordinary functions**
+# — `spec/substrate.md`.  A program supplies one:
+#
+#     substrate : Sig Sub
+#
+# the way a synth supplies one `sound`, and what is drawn is what that
+# expression says.  Not a registry: nothing appears because of the type its
+# declaration happens to have, and nothing is discovered by walking the
+# program.  What puts a thing on the canvas is that some expression put it
+# there, in the file, where you can read it.
+#
+# **One level of each name, and it is the one over signals.**  Every
+# combinator below takes and returns `Sig`, and there is no second `…Sub`
+# spelling of any of them.  The pair used to exist because a helper built
+# from numbers it already has is an ordinary function; what it cost was a
+# vocabulary twice the size in which the two halves had to be kept in step,
+# and a reader had to know which level they were on before they could read
+# a line.  `!` is still what joins the two levels, and it lifts over *any*
+# number of signals — so the primitives below are one `!` each, and an
+# author's own helper is lifted once where it meets a signal.
+
+# ── Colour ───────────────────────────────────────────────────────────────
+
+#: A colour, and one that may vary — which is the point.  A meter that
+#: turns red as it clips is one expression, not a second element.
+colour : Sig Int -> Sig Int -> Sig Int -> Sig Colour
+colour r g b = !RGB r g b
+
+# ── What there is to draw ────────────────────────────────────────────────
+#
+# Two shapes and a spacer.  Deliberately few: the point is to see layout
+# and attachment working, not to be a drawing library.
+
+#: A filled rectangle, `w` by `h`, **placed by its centre** like everything
+#: else here.
+rect : Sig Int -> Sig Int -> Sig Colour -> Sig Sub
+rect w h c = !Rect w h c
+
+#: A filled circle of radius `r`.  Its extent is the `2r` square around it,
+#: so a circle in a `row` reserves the room it looks like it occupies.
+circle : Sig Int -> Sig Colour -> Sig Sub
+circle r c = !Circle r c
+
+#: Room, and nothing drawn in it.  What a layout is padded and spaced with
+#: when the space is meant to be somewhere in particular rather than
+#: everywhere — `pad` is the everywhere case.
+gap : Sig Int -> Sig Int -> Sig Sub
+gap w h = !Gap w h
+
+#: Nothing at all, and no room either.  The identity of `over`, `row` and
+#: `column` alike, so a fold that builds a substrate has somewhere to
+#: start.
+blank : Sig Sub
+blank = gap 0 0
+
+# ── Putting things together ──────────────────────────────────────────────
+#
+# Three combinators, one per direction — on top of, beside, below — and
+# every one of them lines its two children up **by their centres**.  There
+# is no alignment argument anywhere, which is the whole reason a centre is
+# the origo: one agreed point on each element and the arranging has nothing
+# left to decide.
+
+#: `over a b` draws `a` and then `b`, so **`b` is on top**.  Painter's
+#: order, and it is in the program rather than in the file's line order,
+#: because the whole point is that composition is something you can read.
+#: The extent is the larger of the two, centred.
+over : Sig Sub -> Sig Sub -> Sig Sub
+over a b = !Over a b
+
+#: `a` to the left of `b`, centres level.  The extent is the two widths
+#: added and the taller height.
+row : Sig Sub -> Sig Sub -> Sig Sub
+row a b = !Row a b
+
+#: `a` above `b`, centres level.  The extent is the two heights added and
+#: the wider width.
+column : Sig Sub -> Sig Sub -> Sig Sub
+column a b = !Column a b
+
+# ── Saying how big something is ──────────────────────────────────────────
+
+#: Declare an extent, whatever the thing inside it happens to be.  The
+#: child is centred in the box and is **not** resized — nothing here scales
+#: a picture; this says how much room to reserve.  Room larger than the
+#: child is a margin, room smaller is a deliberate overlap.
+sized : Sig Int -> Sig Int -> Sig Sub -> Sig Sub
+sized w h s = !Sized w h s
+
+#: Room on all four sides.  `pad 8 x` is `x` with eight pixels of clearance
+#: — the extent grows by sixteen in each direction and the picture does not
+#: move relative to its own centre.
+pad : Sig Int -> Sig Sub -> Sig Sub
+pad n s = !Pad n s
+
+#: Move a whole substrate, picture, attachments and all — and by an amount
+#: that may itself vary, which is how a handle follows what it is bound to.
+#:
+#: **Layout-neutral, and this is the one thing to know about it.**  The
+#: extent is the child's, unmoved, so the parent `row` still reserves the
+#: room the child declared and the things beside it do not shuffle when
+#: this number changes.  That is what makes it usable for a handle inside a
+#: fader: the handle slides, the fader stays the size it said it was.  A
+#: `moveXY` that dragged the layout with it would make every animation
+#: relayout the window.
+moveXY : Sig Int -> Sig Int -> Sig Sub -> Sig Sub
+moveXY x y s = !Shift x y s
+
+# ── Attachment ───────────────────────────────────────────────────────────
+#
+# **The channel goes in.**  An element is bound to what it feeds by an
+# ordinary combinator, and what it feeds is a channel the program declared:
+#
+#     cutoff : Chan Float
+#     cutoff = chan
+#
+#     fader : Sig Sub
+#     fader = onTouchY cutoff (rect 40 200 grey)
+#
+#     level : Sig Float
+#     level = 0.5 ::: mkSig (wait cutoff)
+#
+# The channel travels *inside the structure*, so the host that walks this
+# tree to draw it finds the channel it needs at the node that named it — no
+# name to resolve, no identifier handed out by allocation order.  The
+# program reads it back with `:::` for a behaviour or `wait` for an event,
+# which is why there is no `Sub a`: a `Chan` is the source they are both
+# derived from.
+#
+# **What arrives is a fraction of the element's own extent**, from 0 at the
+# left or top edge to 1 at the right or bottom, and the host clamps it
+# there.  Two things follow, and both were missing before.
+#
+# *Motion is constrained by construction.*  A fader used to report a raw
+# pixel offset, so a hand that kept going carried the handle off the end of
+# its own track and there was nowhere in the program to say it should not.
+# The bound is now the element's extent, which the element declared, and no
+# program has to restate it.
+#
+# *The number means something without knowing the size.*  `level` is 0 to
+# 1 whether the fader is 200 pixels or 40, so the thing it drives is
+# written once and the picture is resized without touching it — and the
+# same signal drives a synth parameter directly, which is what a control
+# value is.
+#
+# **The channel does not vary and is not a signal.**  It is what this
+# element *is* — which channel it feeds — rather than anything it shows,
+# and a `Chan` could not go inside a `Sig` in any case: the subgrammar
+# keeps channels out of the types signals carry (`spec/data.md` §II.1).
+# So only the picture is lifted, with `map` rather than `!` for that
+# reason — `!f c s` would lift both arguments and the channel is not one
+# to lift.
+#
+# **One channel per axis, one job per name.**  A fader is `onTouchY` and
+# nothing else; a pad is both on one element, which is honest, because a
+# pad *is* two parameters and on the audio side would be two knobs.  An
+# `Axis` argument would have made every call site carry a constant that
+# says which of two functions it meant.
+
+#: Report where a touch is across this element, 0 at the left edge and 1 at
+#: the right, clamped.  In the element's *own* extent, so a `moveXY` moves
+#: what it hears along with what it draws.
+onTouchX : Chan Float -> Sig Sub -> Sig Sub
+onTouchX c s = map (p => TouchX c p) s
+
+#: Report where a touch is down this element, 0 at the top edge and 1 at
+#: the bottom, clamped.
+onTouchY : Chan Float -> Sig Sub -> Sig Sub
+onTouchY c s = map (p => TouchY c p) s
+
+# ── Numbers beside a substrate ───────────────────────────────────────────
+
+#: What a bare number means beside a substrate: the same number, always —
+#: so `rect 40 200 grey` and `moveXY 60 80 s` read as the sizes and
+#: placements they are.  The same instance `audio.ges` gives `Sig Float`,
+#: for the type a coordinate has.
+instance Num (Sig Int) where
+    fromInteger n = constSig n
+    (+) a b = zipSig (x y => x + y) a b
+    (-) a b = zipSig (x y => x - y) a b
+    (*) a b = zipSig (x y => x * y) a b

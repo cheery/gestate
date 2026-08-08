@@ -1,0 +1,2492 @@
+"""The environment — `spec/liveaudio.md` stage 6.
+
+A window with the synth's source in it, playing, and **a knob beside every
+line that declares one**.  Edit, press Ctrl-S, and the sound changes without
+stopping.
+
+    python -m gestate.audioeditor examples/audio/twoknobs.ges
+    python -m gestate.audioeditor examples/audio/knob.ges --midi
+
+**Two halves, and only one of them is a GUI.**  `Workbench` owns the playing
+instrument, the worker that rebuilds it, and the parameters; `Keyboard` owns
+what a key means.  Neither imports a toolkit, and both are what the tests
+drive.  `Editor` is a `tkinter` view over them — a text widget, a
+line-number gutter, a status line, a column of knobs drawn at the y of the
+definitions they belong to, and a piano along the bottom.
+
+**The keyboard has no path of its own.**  A key becomes a message and goes
+to `audiomidi.Notes.feed`, which is where a real MIDI keyboard's notes go
+and where a `Score`'s allocator writes; the engine cannot tell them apart.
+Click the keys to play them; click the piano and the *computer* keyboard
+plays it too, in the tracker layout — `z` is middle C, the row above is the
+black keys, and `<`/`>` move the octave.  Focus is the whole of that mode:
+the letters are bound to the piano rather than globally, so they can never
+reach the source text, and clicking back into the code hands them to it.
+
+**Knobs are placed, not listed.**  `gestate/audiospans.py` says which file
+and line each control source was written on, so a parameter appears next to
+its own declaration rather than in a panel that has to be read against the
+code.  That is the whole reason the placement exists, and it is why several
+control channels had to come first: one channel is one knob, however many
+parameters a synth wants.
+
+**Written in Python, deliberately.**  `spec/liveaudio.md` used to ask for an
+editor written *in* gestate, and §"Why the editor is not written in gestate"
+records why that is withdrawn — the short form being that the language
+cannot measure text, so it cannot lay text out.  `tkinter` because it is in
+the standard library, and `tk.Text` because cursors, selection and undo are
+solved problems that are not this project's problem.  `gestate/balanced.py`
+stays unused here for the same reason: `tk.Text` already *is* a document,
+and a second one beside it would be two.
+"""
+
+from __future__ import annotations
+
+import threading
+from dataclasses import dataclass
+from pathlib import Path
+
+from .audiolive import (DEFAULT_BLOCK, DEFAULT_LATENCY_MS, DEFAULT_RATE,
+                        Live, play)
+
+#: What a slider hands the running graph when the channel carries an `Int`.
+#: 0..100 reads as a percentage and is what the examples expect.
+KNOB_RANGE = (0, 100)
+
+#: And when it carries a `Float`.  Every `Float` a synth takes a knob for is
+#: already a fraction — a filter coefficient, a mix, a modulation depth — so
+#: 0..100 would ask the author to divide by a hundred in the one place the
+#: language cannot check that they remembered to.
+KNOB_RANGE_FLOAT = (0.0, 1.0)
+
+#: How finely a `Float` slider moves.  A hundred steps across the range, so
+#: it has the same feel under the hand as the integer one.
+KNOB_STEP_FLOAT = 0.01
+
+
+def _unwritten(error) -> bool:
+    """Did this fail because a definition has not been written yet?
+
+    **A hole is not a broken program; it is an absent declaration.**  Every
+    half of a file here is optional — a synth need not draw, a canvas need
+    not sound, and a program with no `score` simply has no piece — so the
+    honest reading of `substrate = _` is a file with no canvas *yet*, and
+    the honest thing to do about it is what this host already does for a
+    file that declares no canvas at all: nothing, quietly, while everything
+    else goes on running.
+
+    `gmachine.Hole` says so by name when the code around it is reached, and
+    this is the one place that name is recognised — three loaders ask, and
+    a fourth would be a fourth opinion about what a `_` means.
+    """
+    return "a hole (`_`)" in str(error)
+
+
+class HostTransport:
+    """`Transport`'s face, with `gestate/host.c` behind it.
+
+    Same six things — play, stop, seek, loop, position, meter — and none of
+    them on the audio thread any more.  `Transport` did them between blocks
+    from Python, which is the only place they are cheap *in Python*; the C
+    host does them between blocks too, and cannot be stopped by a garbage
+    collection while it is at it.
+
+    **The editor cannot tell the two apart**, which is the point of the
+    class: `Workbench` and the views ask the same questions of either.
+
+    Two things genuinely differ, and both are written down rather than
+    hidden:
+
+    * **A seek is a request.**  `Transport.seek` wrote the new instant into
+      the engine's state on the spot, which is safe when the caller *is*
+      the thread that renders.  Here the render loop is inside C and may be
+      halfway through a block, so the instant is left where C will pick it
+      up — one block later, which is 5 ms.
+    * **The note clock is sampled, not pushed.**  `control` used to stamp
+      `notes.now` once per block, and there is no per-block Python left to
+      do it in.  A housekeeping thread reads the position instead, at a
+      rate chosen to match what a block gave: see `_HOUSEKEEPING`.
+    """
+
+    def __init__(self, host, live, rate: int, block: int):
+        self.host = host
+        self.live = live
+        self.rate = rate
+        self.block = block
+        self.on_seek = None
+        self._loop: tuple | None = None
+
+    # -- what the view asks --------------------------------------------------
+
+    @property
+    def channels(self) -> int:
+        return self.live.channels
+
+    @property
+    def playing(self) -> bool:
+        return self.host.playing
+
+    @playing.setter
+    def playing(self, on: bool) -> None:
+        self.host.playing = bool(on)
+
+    @property
+    def position(self) -> int:
+        return self.host.position
+
+    @position.setter
+    def position(self, at: int) -> None:
+        self.host.seek(at)
+
+    @property
+    def loop(self) -> tuple | None:
+        return self._loop
+
+    @loop.setter
+    def loop(self, span: tuple | None) -> None:
+        self._loop = span
+        self.host.loop(*(span or (None, None)))
+
+    @property
+    def watch_peak(self) -> bool:
+        return self._watching
+
+    @watch_peak.setter
+    def watch_peak(self, on: bool) -> None:
+        self._watching = bool(on)
+        self.host.watch_peak(bool(on))
+
+    _watching = False
+
+    def take_peak(self) -> float:
+        """The loudest sample since the last look — C clears it on read,
+        for the reason `Transport.take_peak` gives: a meter shows what has
+        happened since it last looked."""
+        return self.host.peak()
+
+    # -- and what a *driver* asks, when one is filling ----------------------
+
+    def fill(self, buffer, frames: int, control=None, t: int = 0) -> None:
+        """One block, for a driver that owns the clock.
+
+        Not used on the device path — there C runs the loop and nothing
+        here is called at all — and present because it makes this a true
+        stand-in for `Transport`, which is what lets the views be unable to
+        tell them apart.
+
+        It is also the shape a **sounddevice** path would take: PortAudio
+        calls a Python callback, so the swap, the fade and the transport
+        would still be C's and only the one call would be Python's.  That
+        is strictly better than the Python driver and is not wired up,
+        because nothing has needed it yet.
+        """
+        self.host.fill(buffer, frames)
+
+    def take_rms(self) -> float:
+        return self.host.rms()
+
+    def watch_bands(self, on: bool) -> None:
+        self.host.watch_bands(on)
+
+    def band(self, k: int) -> float:
+        return self.host.band(k)
+
+    def seek(self, sample: int) -> None:
+        """Jump.  The instrument keeps its shape; its notes do not.
+
+        Every held note is released, because a jump leaves them hanging:
+        the schedule already ran their note-offs at instants the transport
+        has just left behind, and nothing would end them.
+        """
+        sample = max(0, int(sample))
+        self.host.seek(sample)
+        if self.on_seek is not None:
+            self.on_seek(sample)
+
+
+class Transport:
+    """Play, stop, seek and loop — wrapped around the block filler.
+
+    **It sits between the driver and the engine**, because that is the only
+    place all four are cheap.  A block is filled by one call; stopping is
+    filling it with silence and *not advancing*, seeking is writing a new
+    instant into the state, and a loop is a comparison made between blocks —
+    the same gap `Live.install` already uses, on the same thread, with no
+    deadline to miss.
+
+    Stopping does not tear the engine down.  The state is the instrument:
+    an oscillator's phase, a filter's memory, every knob you have moved.
+    Rebuilding it to press play again would throw away exactly what live
+    coding is for.
+    """
+
+    def __init__(self, live, rate: int, block: int):
+        self.live = live
+        self.rate = rate
+        self.block = block
+        self.playing = True
+        #: `(start, end)` in samples, or `None`.
+        self.loop: tuple | None = None
+        #: Where the engine has reached.  Tracked rather than read back out
+        #: of the state each block: it advances by exactly `frames`, and
+        #: unpacking the whole state to learn that would be work in the one
+        #: place there is none to spare.
+        self.position = 0
+        #: Called with the sample seeked to — the view's cue to redraw.
+        self.on_seek = None
+        #: Track the loudest sample, for a canvas that shows one.  Off
+        #: unless a substrate asks: this is the one place in the program
+        #: with no time to spare, and a reading nobody looks at is a cost
+        #: nobody agreed to.
+        self.watch_peak = False
+        self._peak = 0.0
+
+    @property
+    def channels(self) -> int:
+        """The instrument's, passed straight through.
+
+        `audiolive.channels_of` asks whatever it is filling, and a
+        transport is what it is filling here — so a `sound : Sig Stereo`
+        under a transport reaches the sound card as two channels rather
+        than as a mono buffer read at twice the rate.
+        """
+        return self.live.channels
+
+    # -- the audio thread calls this ---------------------------------------
+
+    def fill(self, buffer, frames: int, control=None, t: int = 0) -> None:
+        import ctypes
+
+        if self.loop is not None and self.position >= self.loop[1]:
+            self.seek(self.loop[0])
+
+        if not self.playing:
+            # Silence, and the clock does not move: a stopped transport is
+            # stopped, not playing nothing.  Through `address_of` for the
+            # same reason the engine is: PortAudio's buffer is cffi's, and
+            # `memset` will not take it either.
+            from .audiolive import address_of
+
+            ctypes.memset(address_of(buffer), 0,
+                          frames * self.channels
+                          * ctypes.sizeof(ctypes.c_float))
+            return
+
+        self.live.fill(buffer, frames, control, self.position)
+        self.position += frames
+
+        if self.watch_peak:
+            # **Sampled, not scanned.**  Sixteen points of a block is
+            # enough to see a meter move and is a rounding error beside
+            # the block itself; reading all 256 in Python, 187 times a
+            # second, is the sort of thing `PLAYING_SWITCH_INTERVAL`
+            # exists to protect.
+            #
+            # **Read through a typed view, whatever kind of buffer this
+            # is.**  The pipe driver allocates a `ctypes` array of floats
+            # and indexing it gives a float; **PortAudio hands the
+            # callback raw bytes**, and indexing *that* gives a `bytes` of
+            # length one — so `abs` raised `TypeError` inside a callback
+            # that may not raise, which aborted the stream.  A file that
+            # declared `peak` therefore played nothing at all on the
+            # low-latency path, `examples/audio/substrate.ges` included.
+            # `audiolive.address_of` already exists for this exact
+            # difference, and this is the second reader of it.
+            from .audiolive import address_of
+
+            span = frames * self.channels
+            step = max(1, span // 16)
+            samples = (ctypes.c_float * span).from_address(
+                address_of(buffer).value)
+            loudest = max(abs(samples[i]) for i in range(0, span, step))
+            self._peak = max(self._peak, loudest)
+
+    def take_rms(self) -> float:
+        """The Python driver samples a peak and not a level: an RMS is a
+        second accumulator in the one place there is no time to spare, and
+        a machine on this path is already rendering the slow way."""
+        return 0.0
+
+    def watch_bands(self, on: bool) -> None:
+        """**The Python driver has no filter bank**, and says so by doing
+        nothing rather than by growing one.  Analysing eight bands per
+        sample in the interpreter is exactly the work this driver exists
+        to avoid; a machine on this path is already rendering the sound
+        the slow way and does not need a picture of it too."""
+
+    def band(self, _k: int) -> float:
+        return 0.0
+
+    def take_peak(self) -> float:
+        """The loudest sample since the last time this was asked.
+
+        Taken rather than read: a meter shows what has happened since it
+        last looked, and one that decayed on its own would be showing its
+        own decay rather than the instrument.
+        """
+        peak, self._peak = self._peak, 0.0
+        return peak
+
+    # -- and the view calls these ------------------------------------------
+
+    def seek(self, sample: int) -> None:
+        """Jump.  The instrument keeps its shape; its notes do not.
+
+        Every held note is released, because a jump leaves them hanging:
+        the schedule already ran their note-offs at instants the transport
+        has just left behind, and nothing would end them.
+        """
+        sample = max(0, int(sample))
+        # The rings come back out and go straight back in: a seek moves the
+        # *clock*, and a delay line's buffer is as much the instrument's
+        # shape as an oscillator's phase is.
+        values, _t, lines = self.live.engine.snapshot()
+        self.live.engine.restore(values, sample, lines)
+        self.position = sample
+        if self.on_seek is not None:
+            self.on_seek(sample)
+
+
+class Keyboard:
+    """A keyboard with no hardware behind it.
+
+    **It plays through exactly what a real one plays through.**  A key press
+    becomes a message and goes to `audiomidi.Notes.feed`, which routes it to
+    a bank, runs the program's `FromMIDI` instance to build a payload, and
+    asks the `Allocator` for a voice.  Nothing here knows what a voice is,
+    and `mido` is not involved at any point — `feed` reads four attributes
+    off whatever it is handed.
+
+    That is the same claim `duet.ges` is built on, tested from the other
+    side: a note is the same thing whether a schedule or a hand decided it,
+    and only *when it was decided* differs.  If this needed its own path
+    into the engine, that claim would have been false.
+
+    No toolkit in here, for the reason `Workbench` has none: the useful
+    half — what a key means, which are held, whether a bank will take one —
+    is testable without opening a window, and `test_audiokeyboard.py` never
+    opens one.
+    """
+
+    #: The tracker layout, and it is worth saying why rather than which.
+    #: The lower row is one octave with the black keys on the row above, so
+    #: the shape under your fingers is the shape on the screen; `,` is the
+    #: octave above's C, so a scale can be finished without reaching for
+    #: the octave control.  Every tracker since Soundtracker has used it,
+    #: which makes it the layout a person is most likely to already know.
+    LOWER = "zsxdcvgbhnjm,"
+    #: The row above plays an octave higher, so two hands reach two octaves.
+    UPPER = "q2w3er5t6y7ui"
+
+    #: Semitone offsets from the row's C, in the order the rows above spell
+    #: them: white, black, white, black, white, white, black, …
+    _STEPS = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
+
+    #: MIDI key 60 is middle C, and is octave 4 by the convention every
+    #: keyboard's front panel uses.
+    MIDDLE_C = 60
+
+    def __init__(self, bench, channel: int = 0, velocity: int = 96):
+        self.bench = bench
+        #: Which MIDI channel the notes claim to be on.  It matters: the
+        #: default routing is `by_midi_channel` when a program has more
+        #: than one bank, so this is what chooses between them.
+        self.channel = channel
+        self.velocity = velocity
+        #: Octave 4 puts `z` on middle C.
+        self.octave = 4
+        #: Keys currently down, by MIDI number.
+        self.held: set = set()
+        #: **Physical key → the note it started.**  A release has to end
+        #: the note the *press* began, and recomputing it from the
+        #: character is wrong in every case where the two differ: move the
+        #: octave while holding a key and the recomputed note is a
+        #: different one, so the original is never released and sticks
+        #: forever.  X11 also delivers `KeyRelease` with an empty `char`
+        #: often enough to matter, and an empty char maps to no note at
+        #: all.  A `keysym` is stable between the two events, so that is
+        #: what is remembered.
+        self._by_key: dict = {}
+
+    # -- what a key means ---------------------------------------------------
+
+    def key_for(self, char: str) -> int | None:
+        """The MIDI note a typed character plays, or `None` for any other.
+
+        The empty string is `None` and the guard is load-bearing: `str.find`
+        answers 0 for it, so an event with no character — which X11 sends
+        for every modifier and for many key releases — would have played
+        middle C.
+        """
+        char = (char or "").lower()
+        if len(char) != 1:
+            return None
+        i = self.LOWER.find(char)
+        if i >= 0:
+            return self._note(self._STEPS[i])
+        i = self.UPPER.find(char)
+        if i >= 0:
+            return self._note(self._STEPS[i] + 12)
+        return None
+
+    def _note(self, offset: int) -> int:
+        return self.MIDDLE_C + (self.octave - 4) * 12 + offset
+
+    def transpose(self, octaves: int) -> int:
+        """Move the keyboard, releasing anything held.
+
+        Held notes are released rather than carried, because the key that
+        would release them has just changed pitch: a note carried across a
+        transpose has no key left to end it.
+        """
+        self.all_off()
+        self.octave = max(0, min(9, self.octave + octaves))
+        return self.octave
+
+    # -- playing ------------------------------------------------------------
+
+    def press(self, note: int) -> bool:
+        """Start `note`.  `False` if it was already down or nothing took it."""
+        if note in self.held:
+            return False                       # auto-repeat, not a new press
+        self.held.add(note)
+        if not self._feed("note_on", note, self.velocity):
+            self.held.discard(note)
+            return False
+        return True
+
+    def release(self, note: int) -> bool:
+        if note not in self.held:
+            return False
+        self.held.discard(note)
+        return self._feed("note_off", note, 0)
+
+    # -- by physical key ----------------------------------------------------
+    #
+    # What the view calls.  A typed key is identified by its `keysym`, which
+    # is the same string on the press and the release; the note it plays is
+    # decided *once*, at the press, and remembered.
+
+    def press_key(self, char: str, keysym: str = "") -> int | None:
+        """Play whatever this physical key plays.
+
+        Returns the note on a **fresh press of a note key**, and `None` for
+        a key that plays nothing or one already down — so a caller can tell
+        a first press from auto-repeat, which is what makes X11's repeated
+        `KeyPress` harmless here.
+
+        The note comes back **whether or not a bank took it**, and the key
+        is remembered either way.  Both follow from `_by_key` meaning "this
+        physical key is down", which is a fact about the hand rather than
+        about the synth: step mode writes a note nothing played, and a
+        release must still be matched even when the press made no sound.
+        Ask `sounding()` for whether it was heard.
+        """
+        ident = keysym or char
+        if not ident or ident in self._by_key:
+            return None
+        note = self.key_for(char)
+        if note is None:
+            return None
+        self._by_key[ident] = note
+        self.press(note)
+        return note
+
+    def release_key(self, keysym: str, char: str = "") -> int | None:
+        """End the note this physical key started, whatever it was."""
+        note = self._by_key.pop(keysym or char, None)
+        if note is None:
+            return None
+        self.release(note)
+        return note
+
+    def is_down(self, keysym: str) -> bool:
+        return keysym in self._by_key
+
+    def all_off(self) -> None:
+        """Every held key up — what a window losing focus has to do.
+
+        Without it a note held while you click away is held forever: the
+        `KeyRelease` goes to whatever has focus now, and the voice is never
+        handed back to the allocator.
+        """
+        for note in sorted(self.held):
+            self._feed("note_off", note, 0)
+        self.held.clear()
+        self._by_key.clear()
+
+    def sounding(self) -> set:
+        """The notes this keyboard believes are down."""
+        return set(self.held)
+
+    def _feed(self, kind: str, note: int, velocity: int) -> bool:
+        notes = self.bench.notes
+        if notes is None:
+            return False
+        return notes.feed(_Press(kind, self.channel, note, velocity))
+
+
+@dataclass(frozen=True)
+class _Press:
+    """What `Notes.feed` reads, and nothing more.
+
+    A `mido.Message` in the four attributes that matter.  Deliberately not
+    a `mido` object: the virtual keyboard has to work on a machine with no
+    MIDI stack installed at all, which is most machines.
+    """
+    type: str
+    channel: int
+    note: int
+    velocity: int
+
+
+class Workbench:
+    """A synth that is playing and can be edited.  No toolkit in here.
+
+    The audio runs on its own thread and rebuilds happen on another, so the
+    view's job is only to hand over text and read back messages.  Nothing
+    here blocks: `apply` returns immediately and the result arrives as a
+    status line, because a 400 ms rebuild in a GUI callback is a frozen
+    window.
+
+    **Parameters are keyed by name, not by node id.**  An edit renumbers
+    nodes — insert a definition and everything after it shifts — so a knob
+    remembered by id would jump to a different parameter the moment you
+    added a line above it.  The name is what the person turning it thinks
+    they are turning.
+    """
+
+    def __init__(self, path, rate: int = DEFAULT_RATE,
+                 block: int = DEFAULT_BLOCK, command: list | None = None,
+                 midi: bool = False, midi_port: str | None = None,
+                 latency_ms: int = DEFAULT_LATENCY_MS):
+        self.path = Path(path)
+        #: **A file that is not there yet, held in memory until it is
+        #: saved.**  Naming a file that does not exist is how an editor is
+        #: asked to start a new one, and every other editor waits for the
+        #: first `Ctrl-S` before anything appears on disk — so this does
+        #: too.  Empty when the file exists, and then `source()` reads the
+        #: file as it always did.
+        self.pending = "" if Path(path).exists() else STARTER
+        #: **The last compiler complaint, whole.**  A status bar shows one
+        #: line of it because a status bar *is* one line; this is where the
+        #: other nine live, so that "expected X, got Y, at this position"
+        #: is something the editor can still be asked for rather than
+        #: something that existed until it was formatted.  Cleared when an
+        #: edit lands, because an error that no longer applies should stop
+        #: being offered.
+        self.trouble = ""
+        #: The C audio host when one could be opened, and `None` when the
+        #: Python driver is doing the work — see `_open_host`.
+        self.host = None
+        self.rate = rate
+        self.block = block
+        self.command = command
+        #: What the *player* may hold.  The delay you feel when playing a
+        #: key is this, not the engine — see `audiolive.DEFAULT_LATENCY_MS`.
+        self.latency_ms = latency_ms
+        #: Parameter name → its value.  Survives a rebuild; see the class
+        #: docstring for why it is not keyed by node.
+        self.values: dict = {}
+        #: Parameter name → the type its control channel carries, `"Int"`
+        #: or `"Float"`.  What `knob_range` reads; recomputed with the
+        #: sites, because an edit can change a channel's type.
+        self.knob_types: dict = {}
+        #: Where each parameter was declared — `audiospans.Site`s, in
+        #: reading order.  Recomputed on every successful rebuild.
+        self.sites: list = []
+        #: `voices` banks, and the line each was declared on — what the
+        #: view puts a row beside.  Recomputed with the knobs, and for the
+        #: same reason: an edit moves them.
+        self.banks: list = []
+        #: The piece this program plays, as a `Schedule`, or `None`.
+        self.schedule = None
+        self.notes = None
+        #: The program's canvas, when it has one — `spec/substrate.md`.
+        #: Rebuilt with the sound, because a substrate is the same file.
+        self.substrate = None
+        #: The on-screen keyboard.  Built here rather than by the view, so
+        #: what it is holding survives a rebuild and so a test can play it
+        #: without a window — see `Keyboard`.
+        self.keyboard = Keyboard(self)
+        self.transport = None
+        #: Banks whose MIDI switch has been seeded once, so a rebuild does
+        #: not undo what you set.
+        self._switched: set = set()
+        #: Channels belonging to a bank the keyboard has been given.  The
+        #: score does not drive these; see `control`.
+        self._midi_channels: set = set()
+        #: Runs the program's `FromMIDI` instances, or `None` when it
+        #: declares none.  An interpreter kept beside the native engine —
+        #: the engine is machine code and knows nothing about instances.
+        self.from_midi = None
+        #: The piece's tempo, so the transport can talk in beats.  A synth
+        #: with no score keeps the default, which makes a bar a round
+        #: number of samples rather than a special case.
+        self.bpm = 120
+        self.messages: list = []
+        self.live: Live | None = None
+        self.midi = None
+        self.listener = None
+        self._want_midi = midi
+        self._midi_port = midi_port
+        self._audio: threading.Thread | None = None
+        self._stop = threading.Event()
+        self._directory = None
+        self._seen = 0
+
+    # -- lifecycle ----------------------------------------------------------
+
+    def start(self, seconds: float | None = None) -> None:
+        """Compile the file and start playing it."""
+        import tempfile
+
+        self._directory = tempfile.mkdtemp()
+        text = self.source()
+        self.live = Live.start(text, self.rate, self._directory)
+        self._load_substrate(text)
+        self._place(text)
+        self._load_score(text)
+        self._load_from_midi(text)
+        # Always, and before the port: the on-screen keyboard needs the
+        # allocators whether or not a MIDI device was asked for.
+        self._start_notes()
+        if self._want_midi:
+            self._start_midi()
+        # It compiled and it is playing; whatever it said last time is
+        # over.  `start` is the other way a program becomes good, and it
+        # does not go through `apply`.
+        self.trouble = ""
+        self.say(f"playing {self.path.name} at {self.rate} Hz"
+                 + (f" — {len(self.sites)} knob(s)" if self.sites
+                    else " — no parameters"))
+
+        # **The C host when the machine has one, and Python otherwise.**
+        # `gestate/host.c` owns the swap, the fade, the transport and the
+        # control block, and opens the sound card itself — so a rebuild
+        # cannot stall a block however long the front end takes.  Where
+        # there is no device backend to build (no `alsa/asoundlib.h`) or no
+        # `clang`, the Python driver is still there and still works; it is
+        # the same sound with a garbage collector in front of it.
+        self.host = self._open_host()
+
+        # Wraps `Live`, not `Engine`: an edit swaps the engine underneath
+        # and the transport must not be holding the old one.
+        self.transport = (HostTransport(self.host, self.live, self.rate,
+                                        self.block)
+                          if self.host is not None
+                          else Transport(self.live, self.rate, self.block))
+        self.transport.on_seek = self._after_seek
+        if self.substrate is not None:
+            self.transport.watch_peak = "peak" in self.substrate.by_name
+            self.transport.watch_bands(
+                any(n in self.substrate.by_name for n in self.BANDS))
+
+        def run():
+            try:
+                if self.host is not None:
+                    self._run_host(seconds)
+                else:
+                    play(None, seconds, self.rate, self.block,
+                         command=self.command, engine=self.transport,
+                         progress=self._progress, control=self.control,
+                         latency_ms=self.latency_ms,
+                         should_stop=self._stop.is_set)
+            except Exception as exc:                    # noqa: BLE001
+                self.say(f"audio stopped: {exc}")
+
+        self._audio = threading.Thread(target=run, daemon=True)
+        self._audio.start()
+
+    #: How often the housekeeping thread looks, in seconds.  **Matched to
+    #: what a block gave**, not chosen: `control` used to stamp
+    #: `notes.now` once per block — 5.3 ms at 48 kHz — and there is no
+    #: per-block Python left to stamp it in.  Five milliseconds keeps a
+    #: note's `gateAt` as accurate as it was, and 200 wake-ups a second of
+    #: three attribute reads is nowhere near anything with a deadline.
+    _HOUSEKEEPING = 0.005
+
+    def _open_host(self):
+        """A `Host` with the sound card open, or `None` to use Python.
+
+        Returns `None` rather than raising for every reason it can fail —
+        no `clang`, no ALSA headers, no card, a card that will not take
+        float32 — because each of those is a machine that should still get
+        an editor.  A `command` was asked for by name, so that is honoured
+        as it always was and this stays out of the way.
+        """
+        if self.command is not None:
+            return None
+        try:
+            from .audiohost import Host
+
+            host = Host(channels=self.live.channels, rate=self.rate,
+                        controls=len(self.live.engine.control_sources),
+                        directory=self._directory)
+            if not host.has_device:
+                host.close()
+                return None
+            host.open(latency_ms=self.latency_ms)
+        except Exception as exc:                        # noqa: BLE001
+            self.say(f"no C audio host ({exc}); using the Python driver")
+            return None
+        host.install(self.live.engine)
+        return host
+
+    def _run_host(self, seconds: float | None) -> None:
+        """The C render loop, and a housekeeping thread beside it.
+
+        Nothing in the loop is Python.  What is left up here is what was
+        never per-block work in the first place: pushing knob values in
+        when they change, sampling the position for the note clock, and
+        draining the message queue the view reads.
+        """
+        watching = threading.Event()
+
+        def housekeeping():
+            while not watching.wait(self._HOUSEKEEPING):
+                if self._stop.is_set():
+                    self.host.stop()
+                    return
+                # **One reading of the position, used for both.**  The
+                # schedule is asked what it says *at this instant*, and the
+                # note clock is stamped with the same one — two readings a
+                # few hundred microseconds apart would put a note's start
+                # and its `gateAt` on different instants.
+                at = self.host.position
+                self._push_controls(at)
+                if self.notes is not None:
+                    self.notes.now = at
+                self._progress(self.host.frames)
+
+        keeper = threading.Thread(target=housekeeping, daemon=True)
+        keeper.start()
+        try:
+            self.host.run_device(
+                self.block, 0 if seconds is None else int(seconds * self.rate))
+        finally:
+            watching.set()
+            keeper.join(timeout=1.0)
+
+    def _push_controls(self, at: int) -> None:
+        """Knob values into the block the generated code reads.
+
+        **Pushed when they are looked at, not pulled every block.**  The
+        Python driver called `control(node, t)` once per block per
+        parameter; here the value is written where the render loop will
+        find it, and the loop never asks anybody anything.
+
+        **`at` is where the engine has reached, and it has to be.**  This
+        was written passing `0`, which is a constant only a knob could
+        survive: a knob's value does not depend on the instant, so every
+        hand-driven parameter worked and nothing looked wrong.  A *score*
+        does depend on it — `control` resolves a scheduled channel with
+        `schedule.value_at(chan, at)` — so every scored channel was pinned
+        to whatever the schedule said at instant 0 and a performance played
+        its first note for ever.  It also re-armed the bug `control`'s own
+        docstring records: `notes.now` is what stamps a note's `gateAt`,
+        and stamping it 0 while the engine is at instant 200,000 gives a
+        note whose envelope decayed before anybody read it.
+
+        Nothing in the suite saw either, because `test/conftest.py` shuts
+        the C host to keep the tests off the sound card, so every test
+        drives the Python path where the time argument was already right.
+        The gap is between the two drivers, which is where a second
+        implementation of anything puts its bugs.
+        """
+        sources = self.live.engine.control_sources
+        for i, node in enumerate(sources):
+            self.host.set_control(i, self.control(node.id, at), node.type_)
+
+    def _load_substrate(self, text: str) -> None:
+        """Start (or restart) the canvas half of this file.
+
+        Best-effort, exactly as `_place` is: a canvas that fails to compile
+        must not stop the instrument.  A file with no `substrate` and no
+        `scene` has none, and pays nothing for it.
+        """
+        from .audio import has_scene
+        from .gui import Substrate
+
+        if not has_scene(text):
+            self.substrate = None
+            return
+        try:
+            self.substrate = Substrate(text, self.rate)
+            # **Both inside the guard.**  `_load_substrate` runs from
+            # `start` *before* there is a transport, so a reading switched
+            # on out here raised on `None` — and the `except` below turned
+            # that into "no canvas", which is how one misplaced line made
+            # every substrate program in the tree draw nothing at all.
+            if self.transport is not None:
+                self.transport.watch_peak = "peak" in self.substrate.by_name
+                self.transport.watch_bands(
+                    any(n in self.substrate.by_name for n in self.BANDS))
+        except Exception as exc:                        # noqa: BLE001
+            self.substrate = None
+            self.say(f"no canvas: {self._first_line(exc)}" if _unwritten(exc)
+                     else f"the canvas did not build: {self._first_line(exc)}")
+
+    #: What the host will write into a canvas, if the canvas declares it.
+    #:
+    #: Well-known names, the way `sound`, `scene`, `substrate`, `score` and
+    #: `bpm` are well-known: the program says it wants a reading by
+    #: declaring a channel with that name, and says nothing at all if it
+    #: does not.  Both are one control value, for the reason every other
+    #: channel is.
+    #: **`band0` … `band7` are the spectrum.**  Eight numbers, written the
+    #: same way and for the same reason: a program that wants a spectrum
+    #: analyser declares the channels and gets one, and a program that does
+    #: not is not charged for the filter bank.  The names are positional
+    #: because the bands are — `band0` is the lowest.
+    BANDS = tuple(f"band{k}" for k in range(8))
+
+    #: **Probes — readings from inside the instrument.**  Where `peak`,
+    #: `rms` and the bands are measurements of the *output*, a probe says
+    #: what one of the program's own voices is doing: `probe0` is how many
+    #: samples voice 0 of the first `voices` bank has been sounding, and
+    #: `0` when it is silent.
+    #:
+    #: That one number is what a picture of an envelope needs.  The
+    #: envelope's *shape* the canvas already has — it is a function the
+    #: file declares, and the interpreted half can call the same one the
+    #: sound does — so what is missing is only **where along it** the voice
+    #: has walked, which is its age.
+    #:
+    #: The first bank, and said rather than guessed at: a program with two
+    #: banks gets probes into the one it declared first.  Naming a bank
+    #: would be the general answer and nothing has needed it.
+    PROBES = tuple(f"probe{k}" for k in range(8))
+
+    WATCHED = ("peak", "rms", "voices", "position") + BANDS + PROBES
+
+    def observe(self) -> None:
+        """Write what the instrument is doing into the canvas.
+
+        Called once a *frame* by the view — not per block, and not from the
+        audio thread.  The engine's own clock is far faster than anything
+        anyone can watch, so a meter that updated per block would be
+        drawing sixty of them a frame and showing the last.
+        """
+        if self.substrate is None or self.transport is None:
+            return
+        if "peak" in self.substrate.by_name:
+            self.substrate.write("peak", self.transport.take_peak())
+        if "position" in self.substrate.by_name:
+            self.substrate.write("position", self.transport.position)
+        if "rms" in self.substrate.by_name:
+            self.substrate.write("rms", self.transport.take_rms())
+        for k, name in enumerate(self.BANDS):
+            if name in self.substrate.by_name:
+                self.substrate.write(name, self.transport.band(k))
+        if "voices" in self.substrate.by_name:
+            self.substrate.write("voices", self.voices_held())
+        if any(n in self.substrate.by_name for n in self.PROBES):
+            ages = self.voice_ages()
+            for k, name in enumerate(self.PROBES):
+                if name in self.substrate.by_name:
+                    self.substrate.write(name, ages[k] if k < len(ages) else 0)
+
+    def voices_held(self) -> int:
+        """How many voices are sounding, across every bank."""
+        return sum(len(self.sounding_on(b["name"]))
+                   for b in getattr(self, "banks", []))
+
+    def voice_ages(self) -> list:
+        """Samples each voice of the first bank has been sounding, or `0`.
+
+        **From the allocator, not from a probe into the graph.**  A voice
+        records the sample its note began at — `audioalloc.Voice.started`,
+        which is what "oldest" means when stealing — and the transport
+        knows the instant, so the age is a subtraction the host can already
+        do.  Reading it out of the engine's state would be the general
+        mechanism and is not needed for this.
+
+        **One-based, so that zero means *nothing*.**  A silent voice and a
+        note that began this instant are both "age 0", and a picture drawn
+        from that puts a marker at the start of the envelope for four
+        voices that are not playing.  `audioalloc` solved the same problem
+        the same way and says so at length: `gateAt` and `offAt` are
+        1-based precisely so that a bank whose channels were never written
+        reads as "nothing has played" rather than "everything started at
+        sample 0".  A probe follows its own timing convention.
+        """
+        if self.notes is None or self.transport is None:
+            return []
+        names = list(self.notes.allocators)
+        if not names:
+            return []
+        at = self.transport.position
+        out = []
+        for voice in self.notes.allocators[names[0]].voices:
+            started = getattr(voice, "started", -1)
+            sounding = voice.key is not None and started >= 0
+            out.append(max(0, at - started) + 1 if sounding else 0)
+        return out
+
+    def touch(self, kind: str, x: int, y: int) -> None:
+        """A gesture on the canvas — `"press"`, `"drag"` or `"release"`.
+
+        **One gesture, both halves.**  The interpreted channel is written
+        so the picture follows, and the value is left where `control` will
+        find it by name so the sound does.  Neither half knows about the
+        other; the program named the channel once.
+        """
+        if self.substrate is not None:
+            self.substrate.touch(kind, x, y)
+
+    def picture(self) -> list:
+        """What the canvas shows now, as shapes a view can draw."""
+        return [] if self.substrate is None else self.substrate.picture()
+
+    def stop(self, timeout: float = 2.0) -> None:
+        self._stop.set()
+        # **The C loop is asked to stop first**, because it is the one that
+        # cannot be asked anything else: it is inside a foreign call with
+        # the GIL released and the only thing it looks at is this flag.
+        if self.host is not None:
+            self.host.stop()
+        # Keys first: a note still down when the audio thread goes away is
+        # a voice the allocator never gets back, and the next run would
+        # start with it already spent.
+        self.keyboard.all_off()
+        if self.listener is not None:
+            self.listener.close()
+            self.listener = None
+        if self._audio is not None:
+            self._audio.join(timeout)
+            if self.host is not None:
+                self.host.close()
+                self.host = None
+            # **Said out loud rather than shrugged off.**  The thread is a
+            # daemon, so a join that times out means the process will exit
+            # with it still inside the generated code — which is the
+            # segfault-on-close this signal exists to prevent.  If it ever
+            # happens again, the message is what says where to look.
+            if self._audio.is_alive():
+                self.say("the audio thread did not stop; "
+                         "closing now may crash")
+            else:
+                self._audio = None
+                self._clean_up()
+
+    def _clean_up(self) -> None:
+        """Remove the directory the engines were built in.
+
+        **After the join, never before.**  Every `.so` the session compiled
+        lives here, and while `dlopen` keeps a mapping alive across the
+        file being unlinked, removing it under a thread that is about to
+        build the next engine would not be.
+        """
+        import shutil
+
+        if self._directory is not None:
+            shutil.rmtree(self._directory, ignore_errors=True)
+            self._directory = None
+
+    @property
+    def playing(self) -> bool:
+        return self._audio is not None and self._audio.is_alive()
+
+    # -- parameters ---------------------------------------------------------
+
+    def _find_banks(self, text: str) -> None:
+        """The `voices` declarations, and the line each is on.
+
+        Read from the source rather than from the graph: a bank's *name*
+        and the line it was written on are facts about the text, and the
+        graph has neither — its nodes carry an origin path, which is
+        deliberately not a position (`audiospans.py`).
+        """
+        from .audiovoices import banks_of
+
+        try:
+            found = banks_of(text)
+        except Exception as exc:                        # noqa: BLE001
+            self.say(f"could not read the banks: {self._first_line(exc)}")
+            return
+        from .audiovoices import channels_of
+
+        self.banks = []
+        for bank in found:
+            try:
+                rows = channels_of(text, bank)
+            except Exception:                           # noqa: BLE001
+                rows = []
+            # The channel rows are cached here rather than looked up when
+            # the row is drawn: the view redraws ten times a second and
+            # `channels_of` parses.
+            self.banks.append({"name": bank.name, "count": bank.count,
+                               "line": bank.line + 1, "record": bank.record,
+                               "channels": rows})
+
+    @staticmethod
+    def _bank_channels(text: str) -> set:
+        """Every channel a `voices` bank owns.
+
+        **Not knobs.**  A bank's channels are written by a scheduler or a
+        keyboard, and a slider fighting either would be a control that does
+        nothing you can predict.  They still *place*, because the innermost
+        definition their origin can reach is the bank itself — which is why
+        a synth with two banks offered thirty-six sliders at one line.
+
+        Asked of the expander, which generated them and knows what it
+        called them, rather than inferred from an origin path.  Computed
+        **once per rebuild**: it parses, and per-site it turned a 1.7 s
+        audition into 2.8 s.
+        """
+        from .audiovoices import banks_of, channels_of
+
+        try:
+            return {c for b in banks_of(text) for row in channels_of(text, b)
+                    for c in row}
+        except Exception:                               # noqa: BLE001
+            return set()
+
+    def sounding_on(self, bank: str) -> list:
+        """What that bank is playing *now*, from either source.
+
+        Both, and that is the point of asking here rather than of asking
+        the allocator.  A bank driven by a keyboard has an allocator that
+        knows what it holds; a bank driven by the **score** has none at
+        playback time — the schedule wrote its channels ahead of time and
+        nothing tracks them.  A row that counted only the first would sit
+        at `0/3` through an entire piece.
+        """
+        keys = []
+        if self.notes is not None:
+            try:
+                keys += self.notes.sounding_on(bank)
+            except KeyError:
+                pass
+        return sorted(keys + self._scheduled_on(bank))
+
+    def _scheduled_on(self, bank: str) -> list:
+        """The scored notes sounding at the transport's instant.
+
+        Read straight out of the schedule: a voice is sounding when its
+        `gateAt` has arrived and its `offAt` has not.  That is the same
+        arithmetic the *voice* does per sample, which is what makes the row
+        agree with what you can hear.
+        """
+        if self.schedule is None or self.transport is None:
+            return []
+        if self.notes is not None and self.notes.listening.get(bank, False):
+            # Handed to the keyboard, so the score is not driving it — and
+            # a row that went on listing the notes it *would* have played
+            # would be reporting sound nobody can hear.
+            return []
+        rows = next((b["channels"] for b in self.banks
+                     if b["name"] == bank), [])
+        now = self.transport.position
+        out = []
+        for row in rows:
+            if len(row) < 3:
+                continue
+            on = self.schedule.value_at(row[0], now)
+            off = self.schedule.value_at(row[1], now)
+            if not on or now < on - 1:
+                continue
+            if off and now >= off - 1:
+                continue
+            value = self.schedule.value_at(row[2], now)
+            if value is not None:
+                out.append(value)
+        return out
+
+    def _place(self, text: str) -> None:
+        """Work out where each control source was declared.
+
+        Best-effort: a synth is playing either way, and a placement that
+        failed should cost the knobs their *position*, not the sound.  So a
+        failure here is reported and the previous placement kept.
+        """
+        from .audiospans import controls_and_graph as sites
+
+        # Banks first: they are read from the text and cannot fail the way
+        # placement can, and losing them to a placement error would take
+        # the view's bank rows with it.
+        self._find_banks(text)
+        try:
+            # **The graph the sites were placed in, not the one playing.**
+            # A `Site.node` is an index into the graph `text` extracts to,
+            # and the engine is still running the *previous* one until the
+            # audio thread installs the rebuild between blocks — so asking
+            # it about these nodes read a node that had moved, or, when the
+            # edit removed one, ran off the end of the list (`IndexError` in
+            # `Graph.node`).  `install` can also refuse an edit outright
+            # (a channel-count change), which leaves the two disagreeing
+            # for as long as the synth plays.
+            self.sites, graph = sites(text, rate=self.rate,
+                                      path=self.path.name)
+        except Exception as exc:                        # noqa: BLE001
+            self.say(f"could not place the knobs: {self._first_line(exc)}")
+            return
+        owned = self._bank_channels(text)
+        if owned:
+            self.sites = [s for s in self.sites
+                          if graph.node(s.node).chan not in owned]
+        # **A knob's range follows its channel's type.**  Recorded here
+        # because this is where the sites and the graph are both in hand;
+        # `value_of` is asked by the view long before either is.
+        for site in self.sites:
+            self.knob_types[site.name] = graph.node(site.node).type_
+            self.values.setdefault(site.name, self.knob_default(site.name))
+        if self.midi is not None:
+            self._rebind_midi()
+
+    def knob_range(self, name: str) -> tuple:
+        """`(low, high)` for this parameter's slider.
+
+        **A `Float` channel runs 0.0 .. 1.0 and an `Int` one 0 .. 100**,
+        because those are the numbers each is written against: a filter
+        coefficient, a mix, a depth — every `Float` a synth takes a knob
+        for is already a fraction, and handing it 0 .. 100 asks the author
+        to divide by a hundred in the one place the language cannot check
+        that they did.  An `Int` knob is a note number or a percentage, so
+        it keeps the range the examples expect.
+        """
+        return (KNOB_RANGE_FLOAT if self.is_float_knob(name) else KNOB_RANGE)
+
+    def is_float_knob(self, name: str) -> bool:
+        return self.knob_types.get(name) == "Float"
+
+    def knob_default(self, name: str):
+        """Mid-travel, so a control does something in either direction."""
+        low, high = self.knob_range(name)
+        return (low + high) / 2.0 if self.is_float_knob(name) else \
+            (low + high) // 2
+
+    @property
+    def has_knob(self) -> bool:
+        """Does the running graph have a control-rate source to drive?"""
+        return bool(self.sites)
+
+    @property
+    def knob_source(self) -> str | None:
+        """The origin of the first parameter, or `None`.
+
+        Kept for the one thing that wants a single answer — the status line
+        of a synth with one knob — now that there may be several.
+        """
+        return self.sites[0].origin if self.sites else None
+
+    def value_of(self, name: str):
+        return self.values.get(name, self.knob_default(name))
+
+    def set_value(self, name: str, value) -> None:
+        """Store what the slider says, in the channel's own type.
+
+        The coercion is not cosmetic: `audiollvm.pack_control` writes an
+        `Int` channel as an integer and a `Float` one as the *bits* of a
+        double, and reads the slot back the way the graph says.  A float
+        arriving in an `Int` channel, or an int in a `Float` one, is a
+        silently wrong sound rather than an error.
+        """
+        self.values[name] = (float(value) if self.is_float_knob(name)
+                             else int(float(value)))
+
+    def control(self, node: int, _t: int):
+        """What the engine reads once per block, per control source.
+
+        MIDI wins when a controller is bound and has been moved, because a
+        physical knob is the one the person's hand is on.  Otherwise the
+        slider's value.
+        """
+        # **Unconditionally, and first.**  `now` is what stamps a note's
+        # `gateAt`, and it used to be set only when a channel was already
+        # in `values` — that is, only *after* a note had been played.  So
+        # the first note of a session was stamped at instant 0 while the
+        # engine was at instant 200,000, and its envelope had decayed to
+        # nothing before it was ever read.  The note played, silently.
+        if self.notes is not None:
+            self.notes.now = _t
+
+        chan = self.live.engine.graph.node(node).chan if self.live else ""
+        # **A bank handed to the keyboard is not driven by the score.**
+        # Both write the same channels, and the allocator hands out voices
+        # the schedule writes past — so with the score winning, a played
+        # note on a scored bank was taken, shown in its row, and never
+        # heard.  Ticking the switch takes the bank; unticking gives it
+        # back.
+        if chan in self._midi_channels:
+            if self.notes is not None:
+                return self.notes.values.get(
+                    chan, self.live.engine.graph.node(node).init)
+        elif self.schedule is not None and chan:
+            value = self.schedule.value_at(chan, _t)
+            if value is not None:
+                return value
+        if self.notes is not None and chan in self.notes.values:
+            return self.notes.values[chan]
+
+        # The canvas, if this channel is one a substrate element feeds.
+        # By *name*, which is the whole bridge: the graph calls it `cutoff`
+        # because the program did, and so does the element that writes it.
+        if self.substrate is not None and chan in self.substrate.values:
+            return self.substrate.values[chan]
+
+        name = next((s.name for s in self.sites if s.node == node), None)
+        if name is None:
+            return 0
+        if self.midi is not None:
+            binding = self.midi.binding_of(node)
+            if binding is not None and binding.cc is not None \
+                    and binding.cc in self.midi.latest:
+                return binding.value_of(self.midi.latest[binding.cc])
+        return self.value_of(name)
+
+    # -- MIDI ---------------------------------------------------------------
+
+    def _start_notes(self) -> None:
+        """The note plumbing — allocators and `Notes`, with no port.
+
+        **Split out of `_start_midi` because the on-screen keyboard plays
+        through this and not through MIDI.**  It used to be built inside
+        the `try` that opens a port, so a machine with no MIDI device — or
+        an editor started without `--midi`, which is the ordinary case —
+        had no allocators, and there was nothing for a key press to reach.
+
+        Nothing here imports `mido`: `audiomidi` defers that to the two
+        functions that open a port, so `Notes` is available on a machine
+        with no MIDI stack installed at all.
+        """
+        from .audiomidi import Notes
+
+        allocators = self._allocators()
+        self.notes = Notes(allocators) if allocators else None
+        self._rewire_notes()                 # seeds the switches in turn
+
+    def _start_midi(self) -> None:
+        """Open a port, so knobs and keys can arrive from hardware too.
+
+        `_start_notes` has already run, so a failure here costs the *port*
+        and not the keyboard: the window still plays.
+        """
+        from .audiomidi import Controls, Listener, MidiError, NoteListener
+
+        try:
+            self.midi = Controls([])
+            self._rebind_midi()
+            # One port carries knobs and keys alike, so the listener reads
+            # both when there is a bank to play and controllers only when
+            # there is not.
+            listener = (NoteListener(self.midi, self.notes, self._midi_port)
+                        if self.notes is not None
+                        else Listener(self.midi, self._midi_port))
+            self.listener = listener.start()
+            played = ", ".join(f"`{b}`" for b in self.notes.allocators) \
+                if self.notes is not None else "no banks"
+            self.say(f"MIDI: {played}; right-click a knob to learn a controller")
+        except MidiError as exc:
+            self.midi, self.listener = None, None
+            self.say(f"no MIDI: {exc}")
+
+    def _rewire_notes(self) -> None:
+        """Point `Notes` at the program's `FromMIDI`, if it has one.
+
+        Kept out of `_start_midi` because a rebuild replaces the instances
+        as surely as it replaces the graph: edit `noteOn`, press Ctrl-S,
+        and the next key you press goes through the new one.
+        """
+        if self.notes is None:
+            return
+        if self.from_midi is None:
+            self.notes.accepts = None
+            # Still seeded: the early return skipped it, so a program with
+            # no instance kept every switch on — greyed out in the view and
+            # passing notes underneath, which is the exact thing the switch
+            # is there to stop.
+            self._seed_switches()
+            return
+
+        def accepts(bank, message):
+            return self.from_midi.payload_for(
+                bank, getattr(message, "channel", 0), message.note,
+                message.velocity)
+
+        self.notes.accepts = accepts
+        self._seed_switches()
+
+    def _seed_switches(self) -> None:
+        """Set each bank's switch once, then leave it alone.
+
+        A bank the score drives starts **off** — two writers on one set of
+        channels is a fight — and one you have touched keeps what you set,
+        across every rebuild.  A bank that cannot take MIDI at all is
+        forced off whatever anyone set, because its switch is greyed and a
+        greyed switch that still passes notes is worse than no switch.
+        """
+        if self.notes is None:
+            return
+        scored = self.scored_banks()
+        for bank in list(self.notes.allocators):
+            if bank not in self._switched:
+                self.notes.listening[bank] = bank not in scored
+                self._switched.add(bank)
+            if not self.takes_midi(bank):
+                self.notes.listening[bank] = False
+        self._note_midi_channels()
+
+    def _note_midi_channels(self) -> None:
+        """Which channels the keyboard owns, recomputed when a switch moves."""
+        owned = set()
+        if self.notes is not None:
+            for bank in self.banks:
+                if self.notes.listening.get(bank["name"], False):
+                    owned.update(c for row in bank["channels"] for c in row)
+        self._midi_channels = owned
+
+    def _allocators(self) -> dict:
+        """One allocator per bank the keyboard may play.
+
+        **Every bank, including the ones a score drives.**  Leaving those
+        out meant their switch had nothing behind it — you could tick
+        `bass` and nothing would play, because there was no allocator to
+        play it.  Two writers on one set of channels is still a fight, so
+        a scored bank starts switched *off*; that is a default you can
+        change rather than a decision made for you.
+        """
+        from .audioalloc import AllocError, Allocator
+        from .audiovoices import banks_of, channels_of
+
+        text = self.source()
+        out = {}
+        for bank in banks_of(text):
+            try:
+                out[bank.name] = Allocator(channels_of(text, bank))
+            except AllocError:
+                continue
+        return out
+
+    def scored_banks(self) -> set:
+        """Which banks the program's own `score` writes to.
+
+        Taken from the **schedule's own channels**, not by looking for
+        `voices.<name>` in the text.  Scanning the source finds mentions in
+        *comments* too — `duet.ges` has one suggesting you try
+        `voices.lead` — and that silently left the keyboard with no bank at
+        all.  The schedule knows exactly which channels it writes, so it is
+        the thing to ask.
+        """
+        if self.schedule is None:
+            return set()
+        return {c.split("Chan")[0] for c in self.schedule.channels()}
+
+    # -- the transport ------------------------------------------------------
+
+    def play(self) -> None:
+        if self.transport is not None:
+            self.transport.playing = True
+            self.say("playing")
+
+    def pause(self) -> None:
+        """Silence, and the clock stops.  The instrument is untouched.
+
+        **Called `pause` because it was called `stop`**, and a second
+        `def stop` in this class silently replaced the *lifecycle* one
+        above — so shutting the window set `transport.playing = False` and
+        never signalled the audio thread, never joined it and never closed
+        the MIDI port.  The process then exited with a daemon thread still
+        inside the generated code, which is the intermittent crash on
+        close.  Two methods of one name is a thing Python will not tell you
+        about; the fix is not to have two.
+        """
+        if self.transport is not None:
+            self.transport.playing = False
+            self.say(f"stopped at {self.position_in_beats():.1f}")
+
+    def toggle(self) -> bool:
+        if self.transport is None:
+            return False
+        (self.pause if self.transport.playing else self.play)()
+        return self.transport.playing
+
+    def seek_beats(self, beat: float) -> None:
+        if self.transport is not None:
+            self.transport.seek(self.beats_to_samples(beat))
+
+    def set_loop(self, start_beat: float, end_beat: float) -> None:
+        """Loop a section, in beats.  `end` must be after `start`."""
+        if self.transport is None:
+            return
+        start = self.beats_to_samples(start_beat)
+        end = self.beats_to_samples(end_beat)
+        if end <= start:
+            self.say("a loop must end after it starts")
+            return
+        self.transport.loop = (start, end)
+        self.say(f"looping {start_beat:g}–{end_beat:g}")
+        if not (start <= self.transport.position < end):
+            self.transport.seek(start)
+
+    def clear_loop(self) -> None:
+        if self.transport is not None:
+            self.transport.loop = None
+            self.say("loop off")
+
+    def _after_seek(self, _sample: int) -> None:
+        """Every held note released — the jump left them with no note-off.
+
+        The schedule ran their releases at instants the transport has just
+        left, so nothing else would ever end them.
+        """
+        if self.notes is not None:
+            self.notes.all_off()
+        for bank in self.banks:
+            allocator = (self.notes.allocators.get(bank["name"])
+                         if self.notes is not None else None)
+            if allocator is not None:
+                for chan, value in allocator.all_off(0):
+                    self.notes.values[chan] = value
+
+    # -- beats and samples --------------------------------------------------
+
+    def beats_to_samples(self, beat: float) -> int:
+        return int(beat * 60 * self.rate / max(1, self.bpm))
+
+    def samples_to_beats(self, sample: int) -> float:
+        return sample * self.bpm / (60.0 * self.rate)
+
+    def position_in_beats(self) -> float:
+        return self.samples_to_beats(
+            self.transport.position if self.transport else 0)
+
+    def _load_from_midi(self, text: str) -> None:
+        """Compile a state that can run this program's `FromMIDI` instances.
+
+        **Skipped entirely when the program declares none**, which is the
+        common case and would otherwise pay a whole extra front end on
+        every rebuild for nothing.  The textual check is the same one the
+        expander uses to decide whether to emit a forwarder, so the two
+        cannot disagree about whether there is anything to run.
+        """
+        from .audiomidi import FromMidi
+
+        if "instance FromMIDI" not in text:
+            self.from_midi = None
+            return
+        try:
+            from .audioperform import has_score
+            from .audioscore import assemble_performance
+            from .audio import assemble
+            from .pipeline import compile as _compile
+
+            program = (assemble_performance(text, "", self.rate)
+                       if has_score(text) else assemble(text, self.rate))
+            self.from_midi = FromMidi(_compile(program),
+                                      [b["name"] for b in self.banks])
+        except Exception as exc:                        # noqa: BLE001
+            self.from_midi = None
+            if not _unwritten(exc):
+                self.say(f"FromMIDI not loaded: {self._first_line(exc)}")
+
+    def takes_midi(self, bank: str) -> bool:
+        """Is this bank able to take MIDI at all?
+
+        What greys the switch out: a bank whose payload has no `FromMIDI`
+        instance cannot be handed a note, however much you want it to be.
+        """
+        return self.from_midi is not None and self.from_midi.offers(bank)
+
+    def listening(self, bank: str) -> bool:
+        """Is it *set* to take MIDI?  The switch itself."""
+        return (self.notes is not None
+                and self.notes.listening.get(bank, False))
+
+    def listen(self, bank: str, on: bool) -> None:
+        if self.notes is not None and self.takes_midi(bank):
+            self._switched.add(bank)
+            self.notes.listening[bank] = on
+            if not on:
+                # Handing the bank back ends whatever is being held on it:
+                # the channels stop answering to the keyboard, so a note
+                # left down could never be released and would simply be
+                # forgotten while still counted.
+                for chan, value in self.notes.allocators[bank].all_off(
+                        self.notes.now):
+                    self.notes.values[chan] = value
+                self.notes.playing = {
+                    k: [b for b in v if b != bank]
+                    for k, v in self.notes.playing.items()}
+            self._note_midi_channels()
+            self.say(f"{bank}: MIDI {'on' if on else 'off'}"
+                     + (" (the score no longer drives it)" if on else ""))
+
+    # -- a note, as source --------------------------------------------------
+
+    def note_text(self, note: int) -> str:
+        """What a played note looks like written down.
+
+        **The key number and nothing else.**  It once rendered the bank's
+        whole payload — `'(Key 60 96)` — which is more than a step
+        sequencer should decide: a number goes wherever you put the cursor,
+        into an argument list, a `chord 45 60 64 67`, or inside a `'(…)` you
+        are already writing.  A pre-spelled constructor only fits the one
+        place it guessed at, and is in the way everywhere else.
+        """
+        return str(note)
+
+    def _load_score(self, text: str) -> None:
+        """The piece this program plays, if it has one.
+
+        Rebuilt with everything else, because an edit to the score is an
+        edit: change a note, press Ctrl-S, and the bass line changes under
+        whatever you are playing over it.
+        """
+        from .audioperform import has_score
+
+        if not has_score(text):
+            self.schedule = None
+            return
+        try:
+            from .audioalloc import Allocator
+            from .audioscore import perform_voices, schedule_voices
+            from .audiovoices import banks_of, channels_of
+
+            # **Once.**  `perform_voices` is a whole front end and a run,
+            # and calling it for the tempo and again inside `scored` made
+            # every audition wait for two of them — on top of the two the
+            # rebuild and the knob placement already cost.
+            self.bpm, events = perform_voices(text, "", self.rate)
+            allocators = {b.name: Allocator(channels_of(text, b))
+                          for b in banks_of(text)}
+            self.schedule = schedule_voices(
+                events, self.bpm, self.rate, allocators, block=self.block)
+        except Exception as exc:                        # noqa: BLE001
+            self.schedule = None
+            self.say(f"no piece: {self._first_line(exc)}" if _unwritten(exc)
+                     else f"score not loaded: {self._first_line(exc)}")
+
+    def _rebind_midi(self) -> None:
+        """Carry the learned controllers across a rebuild, by name.
+
+        Node ids move when the file is edited, so a binding held by id
+        would follow whatever node inherited the number — a knob you
+        learned onto `cutoff` silently driving `pitch`.
+        """
+        from .audiomidi import Binding
+
+        if self.midi is None:
+            return
+        was = {b.name: b.cc for b in self.midi.bindings}
+        init = {}
+        if self.live is not None:
+            init = {n.id: n.init for n in self.live.engine.graph.control_sources()}
+        self.midi.bindings = [
+            Binding(node=s.node, name=s.name, cc=was.get(s.name),
+                    span=KNOB_RANGE, initial=init.get(s.node, 0))
+            for s in self.sites]
+
+    def learn(self, name: str) -> bool:
+        """Arm (or disarm) `name` for MIDI learn.  Returns whether it is armed.
+
+        A toggle, because the gesture that starts it is the one that should
+        stop it: right-click to learn, right-click again to change your mind
+        (`spec/liveaudio.md` stage 6).
+        """
+        if self.midi is None:
+            self.say("no MIDI to learn from")
+            return False
+        site = next((s for s in self.sites if s.name == name), None)
+        if site is None:
+            return False
+        if self.midi.learning == site.node:
+            self.midi.cancel()
+            self.say(f"{name}: learn cancelled")
+            return False
+        self.midi.learn(site.node)
+        self.say(f"{name}: move a controller to bind it")
+        return True
+
+    def learning(self) -> str | None:
+        """The name of the parameter waiting for a controller, if any."""
+        if self.midi is None or self.midi.learning is None:
+            return None
+        return next((s.name for s in self.sites
+                     if s.node == self.midi.learning), None)
+
+    def binding_text(self, name: str) -> str:
+        """`CC7`, `learning…`, or empty — what to show beside a knob."""
+        if self.learning() == name:
+            return "learning…"
+        if self.midi is None:
+            return ""
+        site = next((s for s in self.sites if s.name == name), None)
+        binding = None if site is None else self.midi.binding_of(site.node)
+        return "" if binding is None or binding.cc is None else f"CC{binding.cc}"
+
+    # -- editing ------------------------------------------------------------
+
+    def apply(self, text: str, save: bool = True) -> None:
+        """Rebuild from `text`, without blocking the caller.
+
+        `save` writes the file first, so what is playing and what is on disk
+        are the same thing.  **`save=False` is an audition**: the sound
+        changes and the file does not, which is what you want while trying
+        a filter coefficient you may not keep.  The status line says which
+        happened, because an environment where the two are indistinguishable
+        is how work gets lost.
+        """
+        if self.live is None:
+            raise RuntimeError("nothing is playing yet")
+        if save:
+            # The first save is what creates a new file — and its parent,
+            # so `gestate.audiopygame sketches/a.ges` works before
+            # `sketches` does.
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            self.path.write_text(text)
+            self.pending = ""
+        self.saved = save
+
+        def build():
+            self.live.compile(text)
+            if isinstance(self.live.pending, Exception):
+                self.say(f"not applied: {self._first_line(self.live.pending)}")
+            else:
+                self._load_substrate(text)
+                self._place(text)
+                self._load_score(text)
+                self._load_from_midi(text)
+                self._rewire_notes()
+                # **The build succeeded, so the complaint is over.**  This
+                # used to be cleared only in `_progress`, which the driver
+                # calls *between blocks* — so an error survived being fixed
+                # for as long as nothing was playing, and a program that
+                # started clean still showed the error that had stopped it
+                # starting the time before.  Cleared where the good news is
+                # known rather than where it is next heard.
+                self.trouble = ""
+                self.say("rebuilt; waiting for the next block"
+                         if save else "auditioning (not saved)")
+
+        threading.Thread(target=build, daemon=True).start()
+
+    def audition(self, text: str) -> None:
+        """Hear the edit without committing it to the file."""
+        self.apply(text, save=False)
+
+    def _progress(self, _written) -> None:
+        """Called between blocks, or by the housekeeping thread when the C
+        host is running — never on the render loop either way."""
+        self._hand_over()
+        while self.live.errors:
+            self.say("error: " + self._first_line(self.live.errors.pop(0)))
+        if self.live.generation != self._seen:
+            self._seen = self.live.generation
+            # An edit that ran is an error that no longer applies.
+            self.trouble = ""
+            self.say(f"applied edit {self._seen}"
+                     + ("" if self.has_knob else " (no knob in this synth)"))
+
+    def _hand_over(self) -> None:
+        """Give a freshly compiled engine to the C host, migrated.
+
+        **Migration stays in Python, and happens here rather than in the
+        render loop.**  `audioengine.migrate` is a hundred lines of
+        dictionary work matching nodes by origin, which has no business on
+        a thread with five milliseconds to fill a buffer — and the reason
+        it can be up here is the crossfade: the state it reads is a
+        snapshot of an engine that is still sounding, so it is a block or
+        so stale by the time the new one takes over, and a 40 ms fade is
+        long enough that nobody can hear the difference.
+
+        The read is not synchronised with the render loop, and that is a
+        deliberate acceptance rather than an oversight: every field of the
+        state is an independent scalar — a phase, a filter's memory, a
+        ring — so a torn read is a phase from one instant beside a filter
+        from the next, which is a fraction of a sample of drift and not a
+        broken value.  There is no invariant across fields to break.
+        """
+        if self.host is None:
+            return                              # the Python driver installs
+        waiting = self.live.pending
+        if waiting is None or isinstance(waiting, Exception):
+            return
+        self.live.pending = None
+        if waiting.channels != self.live.engine.channels:
+            self.live.errors.append(
+                f"this edit changes the output from "
+                f"{self.live.engine.channels} channel(s) to "
+                f"{waiting.channels}, and the card was opened with the old "
+                f"count.  Restart to hear it")
+            return
+        from .audioengine import State, migrate
+
+        values, t, lines = self.live.engine.snapshot()
+        carried = migrate(self.live.engine.graph, State(values, t, lines),
+                          waiting.graph)
+        waiting.restore(carried.values, carried.t, carried.lines)
+        waiting.frames = self.live.engine.frames
+        self.live.engine = waiting
+        self.live.generation += 1
+        self.host.publish(waiting)
+
+    def _whole(self, error) -> str:
+        """The error in full, with its line numbers moved back into the
+        author's file.
+
+        Every position a compiler error carries counts from the top of the
+        *assembled* program, preludes included, so a mistake on line 3 was
+        reported at line 872 and named no file at all — a number that is
+        not wrong so much as answering a question nobody asked.  This is
+        the one place every message in this class passes through, which is
+        why the translation is here and not at each of the six call sites.
+        """
+        from .audiospans import in_source
+
+        try:
+            return in_source(str(error), self._source_text, self.path)
+        except Exception:                                   # noqa: BLE001
+            return str(error)            # never lose the error to the fixer
+
+    def _first_line(self, error) -> str:
+        """A compiler error is a paragraph; a status bar is a line.
+
+        **And the rest of the paragraph is kept**, which it was not: this
+        returned the first line and dropped the others on the floor, so the
+        half of a type error that says *what was expected where* existed
+        only until it was formatted.  What the bar shows is a summary now
+        rather than the whole of what is known — `trouble` holds the rest,
+        and the editor offers it.
+        """
+        self.trouble = text = self._whole(error).strip()
+        lines = text.splitlines()
+        return lines[0] if lines else "unknown error"
+
+    def source(self) -> str:
+        """The program's text — **from the file, or from what will be saved
+        into it.**
+
+        Every reader of the program goes through here: compiling it,
+        placing its knobs, finding its banks, sizing the prelude in front
+        of it.  A new file has none of that on disk yet and all of it in
+        `pending`, and routing the reads through one method is what lets
+        the engine play a program that has never been written.
+        """
+        try:
+            return self.path.read_text()
+        except OSError:
+            return self.pending
+
+    @property
+    def _source_text(self) -> str:
+        """The author's own text, for sizing the prelude in front of it.
+
+        A program with a `score` is assembled with `music.ges` as well, so
+        the offset depends on the source — see `audiospans._regions`.
+        """
+        return self.source()
+
+    # -- messages -----------------------------------------------------------
+
+    def say(self, message: str) -> None:
+        self.messages.append(message)
+
+    def drain(self) -> list:
+        """Everything said since the last call.  The view polls this."""
+        out, self.messages = self.messages, []
+        return out
+
+
+# ── The view ────────────────────────────────────────────────────────────────
+
+
+class Editor:
+    """A `tkinter` window over a `Workbench`.
+
+    Deliberately small.  Everything that could be got wrong quietly — the
+    audio, the rebuild, the state migration, which controller drives which
+    parameter — is in the half above, which is tested; this half is a text
+    widget, a gutter, and a column of sliders that has to know where the
+    lines are.
+
+    **The knob column is the one interesting thing here.**  A parameter is
+    drawn at the y of the line that declares it, using `dlineinfo` — the
+    same call the gutter uses for line numbers.  Nothing is inserted into
+    the document: embedding a widget with `window_create` would make the
+    knobs part of the text, so editing would move them and undo would
+    delete them.  A parallel column scrolls with the text and cannot.
+
+        Ctrl-S       save and apply
+        Ctrl-Return  audition — apply without saving
+        right-click  MIDI learn on that knob, again to cancel
+    """
+
+    #: Enough for a slider and its label, beside the code rather than in it.
+    KNOB_WIDTH = 190
+
+    def __init__(self, workbench: Workbench):
+        import tkinter as tk
+
+        self.bench = workbench
+        self.root = tk.Tk()
+        self.root.title(f"gestate — {workbench.path.name}")
+        #: Parameter name → the widgets drawn for it, so a redraw moves
+        #: them rather than making new ones every 100 ms.
+        self.knobs: dict = {}
+        #: Bank name → its row, kept the same way and for the same reason.
+        self.bank_rows: dict = {}
+
+        frame = tk.Frame(self.root)
+        frame.pack(fill="both", expand=True)
+
+        self.gutter = tk.Canvas(frame, width=48, background="#f0f0f0",
+                                highlightthickness=0)
+        self.gutter.pack(side="left", fill="y")
+
+        scroll = tk.Scrollbar(frame)
+        scroll.pack(side="right", fill="y")
+
+        self.rail = tk.Canvas(frame, width=self.KNOB_WIDTH,
+                              background="#f6f6f6", highlightthickness=0)
+        self.rail.pack(side="right", fill="y")
+
+        self.text = tk.Text(frame, wrap="none", undo=True,
+                            font=("monospace", 11),
+                            yscrollcommand=lambda *a: (scroll.set(*a),
+                                                       self.redraw()))
+        self.text.pack(side="left", fill="both", expand=True)
+        scroll.config(command=lambda *a: (self.text.yview(*a), self.redraw()))
+        self.text.insert("1.0", workbench.source())
+        self.text.edit_modified(False)
+
+        buttons = tk.Frame(self.root)
+        buttons.pack(fill="x")
+        tk.Button(buttons, text="Apply  (Ctrl-S)",
+                  command=self.apply).pack(side="left", padx=4, pady=4)
+        tk.Button(buttons, text="Audition  (Ctrl-Return)",
+                  command=self.audition).pack(side="left", padx=4, pady=4)
+
+        # ── The transport ────────────────────────────────────────────────
+        #
+        # Everything here is a call into `Workbench`; the bar holds no state
+        # of its own.  What it shows — the position — is read on the same
+        # 100 ms tick that drains the status line, because the audio thread
+        # owns it and polling is how a view learns anything from a thread.
+        bar = tk.Frame(self.root)
+        bar.pack(fill="x")
+        self.play_button = tk.Button(bar, text="▶  Play  (Space)",
+                                     width=14, command=self.toggle)
+        self.play_button.pack(side="left", padx=4, pady=4)
+
+        tk.Label(bar, text="beat").pack(side="left")
+        self.where = tk.Entry(bar, width=6)
+        self.where.insert(0, "0")
+        self.where.pack(side="left", padx=2)
+        tk.Button(bar, text="Go", command=self.seek).pack(side="left")
+
+        self.looping = tk.IntVar(value=0)
+        tk.Checkbutton(bar, text="loop", variable=self.looping,
+                       command=self.set_loop).pack(side="left", padx=(12, 2))
+        self.loop_from = tk.Entry(bar, width=5)
+        self.loop_from.insert(0, "0")
+        self.loop_from.pack(side="left")
+        tk.Label(bar, text="–").pack(side="left")
+        self.loop_to = tk.Entry(bar, width=5)
+        self.loop_to.insert(0, "16")
+        self.loop_to.pack(side="left")
+        for entry in (self.loop_from, self.loop_to):
+            entry.bind("<Return>", lambda _e: self.set_loop())
+
+        self.position = tk.Label(bar, text="0.0", font=("monospace", 10),
+                                 width=10, anchor="e")
+        self.position.pack(side="right", padx=6)
+
+        self._build_keyboard()
+
+        self.status = tk.Label(self.root, anchor="w", relief="sunken",
+                               text="starting…")
+        self.status.pack(fill="x")
+
+        self.root.bind_all("<Control-s>", self.apply)
+        self.root.bind_all("<Control-Return>", self.audition)
+        # Space, but not while typing — the text widget keeps its own.
+        self.root.bind("<space>", self._space)
+        self.text.bind("<KeyRelease>", lambda _e: self.redraw())
+        self.text.bind("<Configure>", lambda _e: self.redraw())
+        self.root.protocol("WM_DELETE_WINDOW", self.close)
+
+    # -- the keyboard -------------------------------------------------------
+    #
+    # A view over `Keyboard`, which holds every decision worth testing.  What
+    # is here is rectangles and event plumbing.
+
+    #: Two octaves is what fits above a status line without crowding, and is
+    #: what the two typing rows reach.
+    OCTAVES = 2
+    WHITE_W, WHITE_H, BLACK_H = 26, 68, 42
+    #: Semitones of the seven white keys, and of the five black ones with
+    #: the white index each sits after.
+    _WHITE = (0, 2, 4, 5, 7, 9, 11)
+    _BLACK = ((1, 0), (3, 1), (6, 3), (8, 4), (10, 5))
+
+    def _build_keyboard(self) -> None:
+        import tkinter as tk
+
+        bar = tk.Frame(self.root)
+        bar.pack(fill="x")
+
+        self.piano = tk.Canvas(bar, height=self.WHITE_H + 2,
+                               width=self.OCTAVES * 7 * self.WHITE_W + 2,
+                               background="#ffffff", highlightthickness=1,
+                               highlightbackground="#c0c0c0",
+                               takefocus=True)
+        self.piano.pack(side="left", padx=4, pady=4)
+
+        side = tk.Frame(bar)
+        side.pack(side="left", padx=6)
+
+        self.octave_label = tk.Label(side, text="octave 4",
+                                     font=("monospace", 9), width=9)
+        tk.Button(side, text="−", width=2,
+                  command=lambda: self.transpose(-1)).pack(side="left")
+        self.octave_label.pack(side="left")
+        tk.Button(side, text="+", width=2,
+                  command=lambda: self.transpose(1)).pack(side="left")
+
+        # **Step mode: what you play is also what you write.**  A tracker's
+        # entry mode, and it costs almost nothing here because the note is
+        # already a value the program could have contained — `Workbench`
+        # renders it in the payload the *bank* declares, so what lands in
+        # the buffer is the note you heard, spelled the way this program
+        # spells notes.
+        #
+        # Playing still sounds while it is on.  Entering a melody deaf is
+        # the thing a step sequencer is meant to stop you having to do.
+        self.step = tk.IntVar(value=0)
+        tk.Checkbutton(side, text="step mode", variable=self.step,
+                       command=self._step_changed).pack(side="left", padx=10)
+
+        tk.Label(side, text="vel").pack(side="left")
+        self.velocity = tk.Scale(side, from_=1, to=127, orient="horizontal",
+                                 length=90, showvalue=True, width=10,
+                                 font=("monospace", 7),
+                                 command=self._set_velocity)
+        self.velocity.set(self.bench.keyboard.velocity)
+        self.velocity.pack(side="left")
+
+        #: The note the mouse is holding, or `None`.  Separate from the
+        #: typed keys: the pointer leaving the canvas must end its own note
+        #: and not a chord somebody is holding down with the other hand.
+        self._mouse_note = None
+        #: keysym → the `after` id of a release waiting to see whether it
+        #: was auto-repeat.  See `REPEAT_MS`.
+        self._pending: dict = {}
+
+        self.piano.bind("<Button-1>", self._piano_down)
+        self.piano.bind("<ButtonRelease-1>", self._piano_up)
+        self.piano.bind("<Leave>", self._piano_up)
+        self.piano.bind("<KeyPress>", self._key_down)
+        self.piano.bind("<KeyRelease>", self._key_up)
+        self.piano.bind("<FocusOut>", self._lost_focus)
+        self.draw_keyboard()
+
+    def draw_keyboard(self) -> None:
+        """The keys, with whatever is held drawn down.
+
+        Redrawn whole rather than patched: two octaves is thirty rectangles
+        and the status tick already runs ten times a second, so there is
+        nothing to gain by being clever and a stale highlight to lose.
+        """
+        board = self.bench.keyboard
+        held = board.sounding()
+        self.piano.delete("all")
+        base = board.MIDDLE_C + (board.octave - 4) * 12
+
+        for octave in range(self.OCTAVES):
+            for i, step in enumerate(self._WHITE):
+                note = base + octave * 12 + step
+                x = (octave * 7 + i) * self.WHITE_W + 1
+                self.piano.create_rectangle(
+                    x, 1, x + self.WHITE_W, self.WHITE_H,
+                    fill="#8fb8e8" if note in held else "#ffffff",
+                    outline="#808080")
+        # Black keys second, so they sit over the white ones they overlap.
+        for octave in range(self.OCTAVES):
+            for step, after in self._BLACK:
+                note = base + octave * 12 + step
+                x = ((octave * 7 + after + 1) * self.WHITE_W
+                     - self.WHITE_W // 3 + 1)
+                self.piano.create_rectangle(
+                    x, 1, x + 2 * self.WHITE_W // 3, self.BLACK_H,
+                    fill="#3f7fc8" if note in held else "#202020",
+                    outline="#202020")
+
+    def _note_at(self, x: int, y: int) -> int | None:
+        """Which key is under the pointer — black first, since it is on top."""
+        board = self.bench.keyboard
+        base = board.MIDDLE_C + (board.octave - 4) * 12
+        if y <= self.BLACK_H:
+            for octave in range(self.OCTAVES):
+                for step, after in self._BLACK:
+                    left = ((octave * 7 + after + 1) * self.WHITE_W
+                            - self.WHITE_W // 3 + 1)
+                    if left <= x < left + 2 * self.WHITE_W // 3:
+                        return base + octave * 12 + step
+        i = (x - 1) // self.WHITE_W
+        if 0 <= i < self.OCTAVES * 7:
+            return base + (i // 7) * 12 + self._WHITE[i % 7]
+        return None
+
+    def _piano_down(self, event) -> str:
+        self.piano.focus_set()
+        note = self._note_at(event.x, event.y)
+        if note is not None:
+            # Only ever one at a time — there is one pointer — and held
+            # separately from the typed keys so that leaving the canvas
+            # ends the *mouse's* note and not somebody's held chord.
+            self._mouse_note = note
+            self.bench.keyboard.press(note)
+            self._played(note)
+        return "break"
+
+    def _piano_up(self, _event=None) -> str:
+        note, self._mouse_note = self._mouse_note, None
+        if note is not None:
+            self.bench.keyboard.release(note)
+            self.draw_keyboard()
+        return "break"
+
+    # **Auto-repeat, and why a release is deferred.**
+    #
+    # X11 implements a held key as a stream of `KeyRelease`/`KeyPress`
+    # *pairs*, delivered a fraction of a millisecond apart and
+    # indistinguishable from a very fast re-press.  Acting on the release
+    # immediately therefore machine-guns the note; ignoring releases
+    # entirely makes it stick.  So a release is scheduled a few
+    # milliseconds out and cancelled if the matching press arrives first —
+    # which for auto-repeat it always does, and for a human never does.
+    REPEAT_MS = 25
+
+    def _key_down(self, event) -> str:
+        pending = self._pending.pop(event.keysym, None)
+        if pending is not None:
+            self.root.after_cancel(pending)     # auto-repeat: it is still down
+            return "break"
+        if self.bench.keyboard.key_for(event.char) is None:
+            return self._octave_key(event)
+        self._played(self.bench.keyboard.press_key(event.char, event.keysym))
+        return "break"
+
+    def _key_up(self, event) -> str:
+        if not self.bench.keyboard.is_down(event.keysym):
+            return "break"
+        self._pending[event.keysym] = self.root.after(
+            self.REPEAT_MS, lambda k=event.keysym: self._really_up(k))
+        return "break"
+
+    def _really_up(self, keysym: str) -> None:
+        self._pending.pop(keysym, None)
+        if self.bench.keyboard.release_key(keysym) is not None:
+            self.draw_keyboard()
+
+    def _octave_key(self, event) -> str:
+        """`<` and `>` move the octave — the tracker keys for it.
+
+        Shifted, and that is forced rather than chosen: unshifted `,` is a
+        *note* in the lower row, so binding the octave to it would take a
+        key away from the layout.  This only runs for keys `key_for`
+        declined, so the note always wins anyway; the shifted names are
+        what is left.
+        """
+        if event.keysym == "less" or event.char == "<":
+            self.transpose(-1)
+        elif event.keysym in ("greater", "period") or event.char == ">":
+            self.transpose(1)
+        return "break"
+
+    def _played(self, note: int | None) -> None:
+        """One press: draw it, maybe write it, and complain only if silence
+        was not the point.
+
+        **In step mode a note nothing played is not a failure.**  Writing it
+        down is what was asked for, and a program with no bank at all — a
+        `[: Int :]` score being entered by ear — would otherwise be told off
+        once per key.  With step mode off, silence *is* the failure, and it
+        is indistinguishable from a broken synth unless something says so.
+        """
+        self.draw_keyboard()
+        if note is None:
+            return
+        if self.step.get():
+            self._step_insert(note)
+            return
+        if note not in self.bench.keyboard.sounding():
+            self.bench.say(
+                "no bank took that note — tick a bank's MIDI switch, or the "
+                "program declares no `FromMIDI` instance")
+
+    def _lost_focus(self, _event=None) -> None:
+        """Clicking away ends every note that was held.
+
+        A `KeyRelease` goes to whatever has focus *now*, so a note held
+        across a click would never be released and its voice never handed
+        back to the allocator.
+        """
+        self.bench.keyboard.all_off()
+        self.draw_keyboard()
+
+    # -- step mode ----------------------------------------------------------
+
+    #: Nothing needs a separator after one of these, because a number is
+    #: the first thing on the line or the first thing inside a bracket.
+    #: Everything else gets a space, which is what separates two numbers
+    #: in every place a number can go.
+    _OPENERS = ("(", "[", "{", ",")
+
+    def _step_changed(self) -> None:
+        """Say what it will do, since it changes what playing means."""
+        self.bench.say("step mode: a played note types its key number "
+                       "at the cursor" if self.step.get() else "step mode off")
+
+    def _step_insert(self, note: int) -> None:
+        """Write the note at the cursor.
+
+        Inserted at `tk.Text`'s own insert mark rather than at a position
+        this class remembers: the piano has focus while you play, but the
+        cursor is still wherever you last left it in the code, and that is
+        where a person expects text to land.
+
+        A space goes in front unless the line is empty or the character
+        before opens something — so playing a run fills `chord 45 60 64 67`
+        the way you would type it, and playing into `'(Key ` does not
+        insert a leading space where none belongs.
+        """
+        before = self.text.get("insert linestart", "insert")
+        text = self.bench.note_text(note)
+        if before.strip() and not before.endswith(self._OPENERS + (" ",)):
+            text = " " + text
+        self.text.insert("insert", text)
+        self.text.see("insert")
+
+    def transpose(self, octaves: int) -> None:
+        octave = self.bench.keyboard.transpose(octaves)
+        self.octave_label.config(text=f"octave {octave}")
+        self.draw_keyboard()
+
+    def _set_velocity(self, value) -> None:
+        self.bench.keyboard.velocity = int(float(value))
+
+    # -- drawing ------------------------------------------------------------
+
+    def redraw(self) -> None:
+        self.redraw_gutter()
+        self.redraw_knobs()
+        self.redraw_banks()
+
+    def redraw_gutter(self) -> None:
+        """Line numbers, drawn against the lines actually on screen.
+
+        `dlineinfo` gives the y of each visible line, so wrapped or
+        scrolled text stays aligned without counting anything.
+        """
+        self.gutter.delete("all")
+        index = self.text.index("@0,0")
+        while True:
+            info = self.text.dlineinfo(index)
+            if info is None:
+                break
+            self.gutter.create_text(
+                42, info[1], anchor="ne", font=("monospace", 11),
+                fill="#808080", text=index.split(".")[0])
+            index = self.text.index(f"{index}+1line")
+
+    def redraw_knobs(self) -> None:
+        """Put each parameter beside its own declaration.
+
+        A parameter whose line is scrolled out of view is *hidden* rather
+        than parked at the edge: a knob that stays put while its definition
+        leaves the screen is a knob that has stopped meaning anything.
+        """
+        import tkinter as tk
+
+        wanted = {s.name: s for s in self.bench.sites
+                  if s.file == self.bench.path.name}
+        for name in list(self.knobs):
+            if name not in wanted:
+                # `hasattr`: the group carries its range as well as its
+                # widgets, and a tuple has nothing to destroy.
+                for widget in self.knobs.pop(name).values():
+                    if hasattr(widget, "destroy"):
+                        widget.destroy()
+
+        for name, site in wanted.items():
+            info = self.text.dlineinfo(f"{site.line}.0")
+            # Rebuilt when the *range* changes, not only when the knob is
+            # new: an edit can turn a `Chan Int` into a `Chan Float`, and a
+            # slider left on 0..100 would keep handing a hundred to a
+            # parameter that now means a fraction.
+            group = self.knobs.get(name)
+            if group is not None and group["range"] != self.bench.knob_range(name):
+                for widget in self.knobs.pop(name).values():
+                    if hasattr(widget, "destroy"):
+                        widget.destroy()
+            if name not in self.knobs:
+                self.knobs[name] = self._make_knob(name)
+            group = self.knobs[name]
+            if info is None:
+                group["frame"].place_forget()
+                continue
+            group["frame"].place(in_=self.rail, x=2, y=max(0, info[1] - 4))
+            group["label"].config(
+                text=f"{name}  {self.bench.binding_text(name)}".rstrip())
+            armed = self.bench.learning() == name
+            group["frame"].config(
+                background="#ffe9a8" if armed else "#f6f6f6")
+            group["label"].config(
+                background="#ffe9a8" if armed else "#f6f6f6")
+            if int(float(group["scale"].get())) != self.bench.value_of(name):
+                group["scale"].set(self.bench.value_of(name))
+
+    def redraw_banks(self) -> None:
+        """A row beside each `voices` declaration, showing what it plays.
+
+        The same placement the knobs use, for the same reason: a bank is a
+        thing in the file, and a panel listing banks somewhere else would
+        have to be read against the code.  What it shows is what the bank
+        is *doing* — the keys sounding on it right now — which is the one
+        fact you cannot get by reading.
+        """
+        import tkinter as tk
+
+        wanted = {b["name"]: b for b in self.bench.banks}
+        for name in list(self.bank_rows):
+            if name not in wanted:
+                # A row is the *group* `_make_bank_row` returns, the way a
+                # knob is — and one of its members is a `tk.IntVar`, which
+                # has nothing to destroy.  Same `hasattr` test, same reason.
+                for widget in self.bank_rows.pop(name).values():
+                    if hasattr(widget, "destroy"):
+                        widget.destroy()
+
+        for name, bank in wanted.items():
+            info = self.text.dlineinfo(f"{bank['line']}.0")
+            if name not in self.bank_rows:
+                self.bank_rows[name] = self._make_bank_row(name)
+            row = self.bank_rows[name]
+            if info is None:
+                row["frame"].place_forget()
+                continue
+
+            keys = self.bench.sounding_on(name)
+            held = " ".join(str(k) for k in keys[:5]) or "—"
+            row["label"].config(
+                text=f"{name}  {len(keys)}/{bank['count']}  {held}")
+
+            # **Disabled when the program says nothing about how a MIDI
+            # note becomes this bank's payload.**  A switch you can throw
+            # that cannot do anything is worse than one you cannot.
+            takes = self.bench.takes_midi(name)
+            row["midi"].config(state="normal" if takes else "disabled")
+            row["var"].set(1 if self.bench.listening(name) else 0)
+            row["frame"].place(in_=self.rail, x=2, y=max(0, info[1] - 2),
+                               width=self.KNOB_WIDTH - 4)
+
+    def _make_bank_row(self, name: str) -> dict:
+        import tkinter as tk
+
+        frame = tk.Frame(self.rail, background="#e8eef6")
+        label = tk.Label(frame, background="#e8eef6", anchor="w",
+                         font=("monospace", 8))
+        label.pack(side="left", fill="x", expand=True)
+        var = tk.IntVar(value=0)
+        midi = tk.Checkbutton(
+            frame, text="midi", variable=var, background="#e8eef6",
+            font=("monospace", 7),
+            command=lambda n=name, v=var: self.bench.listen(n, bool(v.get())))
+        midi.pack(side="right")
+        return {"frame": frame, "label": label, "midi": midi, "var": var}
+
+    def _make_knob(self, name: str) -> dict:
+        import tkinter as tk
+
+        frame = tk.Frame(self.rail, background="#f6f6f6")
+        label = tk.Label(frame, text=name, background="#f6f6f6",
+                         font=("monospace", 8), anchor="w")
+        label.pack(fill="x")
+        # The range is the *channel's*, not one number for every knob: a
+        # `Float` parameter runs 0.0 .. 1.0 in hundredths, an `Int` one
+        # 0 .. 100.  `resolution` is what makes `tk.Scale` report a float
+        # at all — left at its default of 1 it rounds every position to an
+        # integer, so a 0..1 slider would have exactly two settings.
+        low, high = self.bench.knob_range(name)
+        step = KNOB_STEP_FLOAT if self.bench.is_float_knob(name) else 1
+        scale = tk.Scale(frame, from_=low, to=high, resolution=step,
+                         orient="horizontal", showvalue=True, length=170,
+                         sliderlength=14, width=10, font=("monospace", 7),
+                         command=lambda v, n=name: self.bench.set_value(n, v))
+        scale.set(self.bench.value_of(name))
+        scale.pack()
+        # Right-click anywhere on the knob — the slider *or* its label, since
+        # a 10-pixel trough is a small target for a deliberate gesture.
+        for widget in (frame, label, scale):
+            widget.bind("<Button-3>", lambda _e, n=name: self.learn(n))
+        return {"frame": frame, "label": label, "scale": scale,
+                "range": (low, high)}
+
+    # -- actions ------------------------------------------------------------
+
+    def _text(self) -> str:
+        return self.text.get("1.0", "end-1c")
+
+    def apply(self, _event=None) -> str:
+        self.bench.apply(self._text())
+        return "break"                     # Ctrl-S must not insert anything
+
+    def audition(self, _event=None) -> str:
+        """Hear it without writing the file.  Ctrl-Return."""
+        self.bench.audition(self._text())
+        return "break"
+
+    # -- the transport ------------------------------------------------------
+
+    def toggle(self, _event=None) -> str:
+        playing = self.bench.toggle()
+        self.play_button.config(
+            text="⏸  Stop  (Space)" if playing else "▶  Play  (Space)")
+        return "break"
+
+    def _space(self, event=None) -> str:
+        """Space plays and stops — unless the cursor is in the code.
+
+        A transport shortcut that types a space into your program would be
+        worse than no shortcut.
+        """
+        if self.root.focus_get() is self.text:
+            return ""
+        return self.toggle()
+
+    def seek(self, _event=None) -> str:
+        try:
+            self.bench.seek_beats(float(self.where.get()))
+        except ValueError:
+            self.status.config(text=f"`{self.where.get()}` is not a beat")
+        return "break"
+
+    def set_loop(self, _event=None) -> str:
+        if not self.looping.get():
+            self.bench.clear_loop()
+            return "break"
+        try:
+            self.bench.set_loop(float(self.loop_from.get()),
+                                float(self.loop_to.get()))
+        except ValueError:
+            self.status.config(text="a loop wants two beat numbers")
+            self.looping.set(0)
+        return "break"
+
+    def learn(self, name: str) -> str:
+        self.bench.learn(name)
+        self.redraw_knobs()
+        return "break"
+
+    def close(self) -> None:
+        self.bench.stop()
+        self.root.destroy()
+
+    def pump(self) -> None:
+        """Move the workbench's messages into the status bar."""
+        for message in self.bench.drain():
+            self.status.config(text=message)
+        self.position.config(text=f"{self.bench.position_in_beats():.1f}")
+        # Appended to the *message*, not to whatever is on screen: doing
+        # the latter added "[stopped]" ten times a second until the bar was
+        # nothing else.
+        if not self.bench.playing and self.bench.live is not None:
+            text = self.status.cget("text")
+            if not text.endswith("[stopped]"):
+                self.status.config(text=text + "  [stopped]")
+        self.redraw_knobs()
+        self.redraw_banks()
+        self.root.after(100, self.pump)
+
+    def run(self) -> None:
+        self.redraw()
+        self.root.after(100, self.pump)
+        self.root.mainloop()
+
+
+# ── CLI ─────────────────────────────────────────────────────────────────────
+
+
+#: What a file that does not exist yet is opened as.
+#:
+#: **Not empty.**  An empty file has no `sound`, so the editor would open
+#: on a compile error — which is a poor first second in a tool whose whole
+#: point is that the program is running while you type.  This is the
+#: smallest program that plays, and it shows the one declaration the
+#: engine looks for.
+STARTER = """# A new synth.
+#
+# `sound : Sig Float` is what the engine plays — samples in -1.0 .. 1.0,
+# one per instant.  Everything else in this file is yours.
+#
+# `doc/ref/index.md` is what is in scope; the [ref] button top right is
+# the same pages in here.
+
+sound : Sig Float
+sound = 0.2 * sine 220.0
+"""
+
+
+def is_new(path) -> bool:
+    """Is this a file that does not exist yet?
+
+    **A missing file is not an error for an editor.**  `python -m
+    gestate.audiopygame a.ges` on a name that is not there used to be a
+    `FileNotFoundError` traceback out of `Pane.open`; naming a file that
+    does not exist yet is how every editor is asked to start a new one.
+
+    Nothing is written here.  `Workbench` opens on `STARTER` held in
+    memory and the **first `Ctrl-S` creates the file**, which is what every
+    other editor does and what a name typed by mistake deserves.
+    """
+    return not Path(path).exists()
+
+
+def main(argv=None) -> int:
+    import argparse
+    import sys
+
+    ap = argparse.ArgumentParser(
+        prog="python -m gestate.audioeditor",
+        description="Edit a synth while it plays.")
+    ap.add_argument("file")
+    ap.add_argument("--rate", type=int, default=DEFAULT_RATE)
+    ap.add_argument("--block", type=int, default=DEFAULT_BLOCK)
+    ap.add_argument("--midi", nargs="?", const="", default=None,
+                    metavar="PORT",
+                    help="listen for MIDI; right-click a knob to bind a "
+                         "controller to it")
+    ap.add_argument("--latency", type=int, default=DEFAULT_LATENCY_MS,
+                    metavar="MS",
+                    help="how much sound the player may hold — the delay "
+                         "you feel when playing a key, and nothing to do "
+                         f"with the engine (default {DEFAULT_LATENCY_MS} ms)")
+    args = ap.parse_args(argv)
+
+    fresh = is_new(args.file)
+    bench = Workbench(args.file, args.rate, args.block,
+                      midi=args.midi is not None,
+                      midi_port=args.midi or None,
+                      latency_ms=args.latency)
+    if fresh:
+        print(f"gestate: {args.file} is new — nothing is written until you "
+              f"save", file=sys.stderr)
+    try:
+        editor = Editor(bench)
+    except Exception as exc:                            # noqa: BLE001
+        print(f"gestate: no window to open ({exc})", file=sys.stderr)
+        return 1
+    try:
+        bench.start()
+    except Exception as exc:                            # noqa: BLE001
+        print(f"gestate: {exc}", file=sys.stderr)
+        return 1
+    editor.run()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

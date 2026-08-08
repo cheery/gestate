@@ -1,0 +1,348 @@
+# Five minutes in D minor — eight sections over one bass.
+#
+#   python -m gestate.midi examples/music/passacaglia.ges
+#   timidity passacaglia.mid
+#
+# A passacaglia is a piece built by repeating a bass line and varying what
+# happens above it, which is a musical form and also a description of how
+# this file works.  `bassLine` is written once.  Everything else is a
+# variation stacked on top of it.
+#
+# It is 120 bars at 96 bpm, which is exactly five minutes, and it is here to
+# find out whether the language holds up at that length.  Things it leans on
+# that the shorter examples do not:
+#
+#   * **`transpose`, written in the language.**  `s >>= (k => '(k + n))` —
+#     the score monad substitutes a new note for each old one.  Nothing in
+#     `music.ges` knows about transposition; it falls out of `>>=`.
+#   * **Sections as values.**  Each is a `[: Void :]` of a known length, and
+#     the piece is `intro ++ verse ++ ...`.  They can be reordered by moving
+#     one word.
+#   * **Continuation lines**, so a four-bar phrase is four lines of source.
+#
+# Everything inside a `||` starts at the same instant, so a section's voices
+# must agree on their length.  Each section below says how many bars it is.
+
+# ── Shape ────────────────────────────────────────────────────────────────
+
+twice : [: a :] -> [: a :]
+twice x = x ++ x
+
+four : [: a :] -> [: a :]
+four x = twice (twice x)
+
+eight : [: a :] -> [: a :]
+eight x = twice (four x)
+
+#: A bar of silence, and four of them.
+barRest : [: a :]
+barRest = r |* 4
+
+fourBarsRest : [: a :]
+fourBarsRest = four barRest
+
+#: Move every note by `n` semitones.  The score monad replaces each note
+#: with a score; here that score is one note, a different one.
+transpose : Int -> [: Int :] -> [: Int :]
+transpose n s = s >>= (k => '(k + n))
+
+octaveDown : [: Int :] -> [: Int :]
+octaveDown s = transpose (0 - 12) s
+
+# ── Harmony ──────────────────────────────────────────────────────────────
+#
+# Dm - Bb - F - C, one bar each: the ground the whole piece stands on.  A
+# chord is three notes overlaid and stretched across the bar.
+
+dmin : [: Int :]
+dmin = ('62 || '65 || '69) |* 4
+
+bflat : [: Int :]
+bflat = ('58 || '62 || '65) |* 4
+
+fmaj : [: Int :]
+fmaj = ('57 || '60 || '65) |* 4
+
+cmaj : [: Int :]
+cmaj = ('55 || '60 || '64) |* 4
+
+gmin : [: Int :]
+gmin = ('55 || '58 || '62) |* 4
+
+#: Four bars.
+ground : [: Int :]
+ground = dmin ++ bflat ++ fmaj ++ cmaj
+
+#: The bridge leans on the subdominant instead of opening on the tonic.
+turnGround : [: Int :]
+turnGround = gmin ++ dmin ++ bflat ++ cmaj
+
+# ── Bass ─────────────────────────────────────────────────────────────────
+#
+# Root, root, fifth, root under each chord.
+
+bassD : [: Int :]
+bassD = '38 ++ '38 ++ '45 ++ '38
+
+bassBf : [: Int :]
+bassBf = '34 ++ '34 ++ '41 ++ '34
+
+bassF : [: Int :]
+bassF = '41 ++ '41 ++ '48 ++ '41
+
+bassC : [: Int :]
+bassC = '36 ++ '36 ++ '43 ++ '36
+
+bassG : [: Int :]
+bassG = '43 ++ '43 ++ '50 ++ '43
+
+bassLine : [: Int :]
+bassLine = bassD
+        ++ bassBf
+        ++ bassF
+        ++ bassC
+
+turnBass : [: Int :]
+turnBass = bassG
+        ++ bassD
+        ++ bassBf
+        ++ bassC
+
+#: Half-time: the roots alone, one to the bar, for the quiet section.
+bassHeld : [: Int :]
+bassHeld = ('38 |* 4)
+        ++ ('34 |* 4)
+        ++ ('41 |* 4)
+        ++ ('36 |* 4)
+
+# ── Drums ────────────────────────────────────────────────────────────────
+#
+# 36 kick, 38 snare, 42 closed hat, 46 open hat, 51 ride, 49 crash,
+# 43/45/47 toms.
+
+hats : [: Int :]
+hats = eight ('42 |/ 2)
+
+rides : [: Int :]
+rides = eight ('51 |/ 2)
+
+backbeat : [: Int :]
+backbeat = '36 ++ '38 ++ '36 ++ '38
+
+groove : [: Int :]
+groove = backbeat || hats
+
+#: The same backbeat under a ride — brighter, for the louder sections.
+grooveRide : [: Int :]
+grooveRide = backbeat || rides
+
+#: A double kick on the third ticksPerBeat.
+grooveBusy : [: Int :]
+grooveBusy = ('36 ++ '38 ++ ('36 ++ '36) |/ 2 ++ '38) || hats
+
+#: A bar of toms, eighth notes, running down the kit.
+tomFill : [: Int :]
+tomFill = ('47 ++ '47 ++ '45 ++ '45) |/ 2
+       ++ ('43 ++ '43 ++ '38 ++ '38) |/ 2
+
+#: Sixteenths on the snare, laid over the last ticksPerBeat rather than added to
+#: the bar — `||` is what keeps four bars four bars.
+snareRoll : [: Int :]
+snareRoll = four ('38) |/ 4
+
+grooveFill : [: Int :]
+grooveFill = groove || at (3 * ticksPerBeat) snareRoll
+
+#: Four bars: three plain, then the fill.  This is the drum unit.
+drums4 : [: Int :]
+drums4 = groove ++ groove ++ groove ++ grooveFill
+
+drumsRide4 : [: Int :]
+drumsRide4 = grooveRide ++ grooveRide ++ grooveRide ++ grooveFill
+
+drumsBusy4 : [: Int :]
+drumsBusy4 = grooveBusy ++ grooveBusy ++ grooveBusy ++ tomFill
+
+#: A crash on the downbeat, over four bars of nothing else.
+crash4 : [: Int :]
+crash4 = ('49 |* 4) ++ barRest ++ barRest ++ barRest
+
+# ── Themes ───────────────────────────────────────────────────────────────
+#
+# D minor: D E F G A Bb C.  74 is D5, 86 is D6.
+
+themeA : [: Int :]
+themeA = '74 ++ '77 ++ '81 ++ '77
+      ++ '82 ++ '81 ++ '77 ++ '74
+      ++ '77 ++ '81 ++ '84 ++ '81
+      ++ '79 ++ '76 ++ '79 ++ r
+
+themeB : [: Int :]
+themeB = '81 ++ '84 ++ '86 ++ '84
+      ++ '82 ++ '81 ++ '77 ++ '81
+      ++ '84 ++ '81 ++ '77 ++ '74
+      ++ '76 ++ '79 ++ '74 ++ r
+
+#: Eight bars: statement and answer.
+tune : [: Int :]
+tune = themeA ++ themeB
+
+#: Over the bridge's chords, and higher.
+themeC : [: Int :]
+themeC = '79 ++ '82 ++ '86 ++ '82
+      ++ '81 ++ '77 ++ '74 ++ '77
+      ++ '82 ++ '86 ++ '82 ++ '81
+      ++ '84 ++ '81 ++ '79 ++ r
+
+# ── Runs ─────────────────────────────────────────────────────────────────
+#
+# `|/ 2` on a four-note group makes it two beats, so a pair of groups is a
+# bar.  Two scaled groups running one after the other is the shape that
+# settled `|*`'s precedence — it needs `|*` to bind *tighter* than `++`,
+# or the second one swallows everything before it.
+
+runUp : [: Int :]
+runUp = ('74 ++ '76 ++ '77 ++ '79) |/ 2
+     ++ ('81 ++ '82 ++ '84 ++ '86) |/ 2
+
+runDown : [: Int :]
+runDown = ('86 ++ '84 ++ '82 ++ '81) |/ 2
+       ++ ('79 ++ '77 ++ '76 ++ '74) |/ 2
+
+runTurn : [: Int :]
+runTurn = ('77 ++ '79 ++ '81 ++ '82) |/ 2
+       ++ ('84 ++ '82 ++ '81 ++ '79) |/ 2
+
+runCadence : [: Int :]
+runCadence = '81 ++ '77 ++ '74 ++ r
+
+#: Four bars of continuous eighths, landing on a held note.
+flourish : [: Int :]
+flourish = runUp ++ runDown ++ runTurn ++ runCadence
+
+# ── Long notes, for the quiet section ────────────────────────────────────
+
+breath : [: Int :]
+breath = ('74 |* 4)
+      ++ ('77 |* 4)
+      ++ ('81 |* 4)
+      ++ ('79 |* 4)
+
+breathHigh : [: Int :]
+breathHigh = ('86 |* 4)
+          ++ ('84 |* 4)
+          ++ ('82 |* 4)
+          ++ ('81 |* 4)
+
+# ── Instruments ──────────────────────────────────────────────────────────
+#
+# 48 strings, 33 fingered bass, 73 flute, 4 electric piano, 46 harp.
+
+strings : [: Int :] -> [: Void :]
+strings v = v >>= prog 48
+
+bass : [: Int :] -> [: Void :]
+bass v = v >>= prog 33
+
+flute : [: Int :] -> [: Void :]
+flute v = v >>= prog 73
+
+piano : [: Int :] -> [: Void :]
+piano v = v >>= prog 4
+
+harp : [: Int :] -> [: Void :]
+harp v = v >>= prog 46
+
+kit : [: Int :] -> [: Void :]
+kit v = v >>= percussion
+
+# ── Sections ─────────────────────────────────────────────────────────────
+#
+# Eight of them, 120 bars, 96 bpm — five minutes.
+
+#: 8 bars.  The ground twice, alone, then a crash to bring the band in.
+intro : [: Void :]
+intro = strings (twice ground)
+     || bass (twice bassLine)
+     || kit (fourBarsRest ++ crash4)
+
+#: 16 bars.  The tune arrives over the ground.
+verse : [: Void :]
+verse = strings (four ground)
+     || bass (four bassLine)
+     || flute (twice tune)
+     || kit (four drums4)
+
+#: 16 bars.  A piano doubles the tune an octave down; the kit moves to the
+#: ride.
+verseDoubled : [: Void :]
+verseDoubled = strings (four ground)
+            || piano (twice (octaveDown tune))
+            || bass (four bassLine)
+            || flute (twice tune)
+            || kit (four drumsRide4)
+
+#: 16 bars.  Different chords, a higher line, a busier kit.
+bridge : [: Void :]
+bridge = strings (four turnGround)
+      || bass (four turnBass)
+      || flute (four themeC)
+      || kit (four drumsBusy4)
+
+#: 16 bars.  Continuous eighths on the harp against the tune.
+runs : [: Void :]
+runs = strings (four ground)
+    || bass (four bassLine)
+    || harp (four flourish)
+    || flute (twice tune)
+    || kit (four drumsRide4)
+
+#: 16 bars.  Everything drops away: held bass, long notes, no drums.
+quiet : [: Void :]
+quiet = strings (four ground)
+     || bass (four bassHeld)
+     || flute (twice breath ++ twice breathHigh)
+
+#: 16 bars.  The whole band, the tune, and the runs underneath it.
+finale : [: Void :]
+finale = strings (four ground)
+      || piano (twice (octaveDown tune))
+      || bass (four bassLine)
+      || flute (twice tune)
+      || harp (four flourish)
+      || kit (four drumsBusy4)
+
+#: 16 bars.  Thinning: twelve bars of the ground, then a held D minor.
+lastChord : [: Int :]
+lastChord = dmin |* 4
+
+outroStrings : [: Int :]
+outroStrings = ground ++ ground ++ ground ++ lastChord
+
+outroBass : [: Int :]
+outroBass = bassLine ++ bassLine ++ bassLine ++ ('38 |* 16)
+
+outroFlute : [: Int :]
+outroFlute = fourBarsRest
+          ++ breath
+          ++ runCadence ++ barRest ++ barRest ++ barRest
+          ++ ('74 |* 16)
+
+outro : [: Void :]
+outro = strings outroStrings
+     || bass outroBass
+     || flute outroFlute
+     || kit (drums4 ++ fourBarsRest ++ fourBarsRest ++ fourBarsRest)
+
+score : [: Void :]
+score = intro
+     ++ verse
+     ++ verseDoubled
+     ++ bridge
+     ++ runs
+     ++ quiet
+     ++ finale
+     ++ outro
+
+bpm : Int
+bpm = 96

@@ -1,0 +1,24 @@
+# Rizzo's FRP half: a signal driven by a channel, and `map` over it.
+#
+#   python -m gestate.typecheck examples/signals.ges
+#
+# `Chan A` is an input; `wait c` is a `⃝∃A`, a value that will arrive.
+# `mkSig` turns one into a signal by tying a guarded fixed point — every
+# recursive call sits under a `delay`, which is what makes it productive.
+#
+# `⃝∀` is written `FaL` and `⃝∃` is `ExL`; `<*>` is Rizzo's ⊛ and `<@>` is 5.
+
+mkSig : ExL a -> ExL (Sig a)
+mkSig = gfix q => (d => delay (q2 x => x ::: q2 d) <*> q <@> d)
+
+map : (a -> b) -> Sig a -> Sig b
+map = gfix q => (f s => f (head s) ::: (delay (q2 => q2 f) <*> q <@> tail s))
+
+c : Chan Int
+c = chan
+
+ticks : Sig Int
+ticks = 0 ::: mkSig (wait c)
+
+main : Sig Int
+main = map (n => n * 2) ticks

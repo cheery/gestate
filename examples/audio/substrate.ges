@@ -1,0 +1,96 @@
+# A synth you can see and touch — `spec/substrate.md`.
+#
+#   python -m gestate.audiopygame examples/audio/substrate.ges
+#
+# One file, two halves.  The `sound` is compiled and runs at the sample
+# rate; the `substrate` is interpreted and runs at frame rate; and they
+# meet where the host already stands, at the block boundary.
+#
+# **Nothing here is a widget.**  A fader is a picture with a channel
+# attached to it, composed with the same `over` and `moveXY` any other
+# picture is, and the value it feeds is a signal this file declares — the
+# *same* signal the filter reads.  That is the whole idea: one fold, two
+# readers, and the wire between them is a name you can see.
+
+# ── What you turn ────────────────────────────────────────────────────────
+
+#: The channel the fader writes.  Declared here, handed to the element,
+#: read back below — the host never has to name it, because the element
+#: carries it.
+#:
+#: **A fraction**, 0 at the top of the track and 1 at the bottom, because
+#: that is what an element reports: the host clamps a touch to the extent
+#: the element declared, so the value cannot leave 0…1 and nothing here
+#: has to say that it should not.
+cutoff : Chan Float
+cutoff = chan
+
+#: What it holds, and what it holds before you have touched it.
+level : Sig Float
+level = 0.5 ::: mkSig (wait cutoff)
+
+# ── What you hear ────────────────────────────────────────────────────────
+
+#: The fraction is the *parameter*, so this is where it becomes a pitch —
+#: one line, and the only place the range 120…1560 Hz is written down.
+hzOf : Float -> Float
+hzOf v = mix 120.0 1560.0 v
+
+sound : Sig Float
+sound = gain 0.4 (lowpassSvf 4000.0 0.15 (saw (!hzOf level)))
+
+# ── What the instrument tells you ────────────────────────────────────────
+#
+# `peak` is written by the host once a frame: the loudest sample since it
+# last looked.  A file that does not declare it is told nothing and pays
+# nothing for the silence.
+
+peak : Chan Float
+peak = chan
+
+loud : Sig Float
+loud = 0.0 ::: mkSig (wait peak)
+
+# ── What you see ─────────────────────────────────────────────────────────
+
+grey : Sig Colour
+grey = colour 60 60 70
+
+bone : Sig Colour
+bone = colour 220 220 200
+
+green : Sig Colour
+green = colour 60 200 90
+
+#: The handle, at the height the fraction says.  `moveXY` is
+#: **layout-neutral** — the extent stays the track's — so the fader does
+#: not change size as the handle slides, and the meter beside it in the
+#: `row` does not shuffle.
+#:
+#: The track is 200 tall and everything is placed by its centre, so the
+#: travel is -100…100: `bimix` is exactly that, a mix over a signed range.
+handle : Float -> Sub
+handle v = Shift 0 (floor (mix (0.0 - 100.0) 100.0 v)) (Rect 40 10 (RGB 220 220 200))
+
+#: A fader: a track, a handle where the value says, and a channel attached
+#: to the pair of them.  `onTouchY` reports a fraction of *this element's*
+#: extent, so `moveXY` below moves what it hears along with what it draws.
+fader : Sig Sub
+fader = onTouchY cutoff (over (rect 40 200 grey) (!handle level))
+
+#: A meter, as tall as the sound is loud.  `sized` keeps it reserving the
+#: same room whatever it is showing, so the row does not breathe.
+meter : Float -> Sub
+meter v = Sized 20 200 (Rect 20 (floor (v * 180.0)) (RGB 60 200 90))
+
+#: And the layout, which is the one place that composes things that
+#: *vary*.  `row` puts them side by side and lines their centres up; there
+#: is no alignment to state because a centre is the only point either of
+#: them is placed by.
+#:
+#: `` `row` `` rather than `row a b`, because what this line is about is
+#: one thing being beside another and infix is where a reader looks for
+#: that.  Any name in backticks is an operator; `row` is an ordinary
+#: definition either way.
+substrate : Sig Sub
+substrate = moveXY 120 140 (fader `row` gap 30 0 `row` !meter loud)

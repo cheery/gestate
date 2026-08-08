@@ -1,0 +1,625 @@
+id : a -> a
+id x = x
+
+const : a -> b -> a
+const x y = x
+
+flip : (a -> b -> c) -> b -> a -> c
+flip f x y = f y x
+
+#: **Composition** — `(f @ g) x` is `f (g x)`.  It reads right to left,
+#: the direction the arrows in its own signature point.
+#:
+#: `infixr 9`, the tightest an infix operator gets here, so a chain of
+#: them is one pipeline that every other operator lets group first:
+#: `gain 0.5 @ softClip @ drive 3.0` is a value you can pass around, and
+#: `map (show @ negate) xs` needs no parentheses inside the argument.
+#:
+#: This was `compose` and is spelled `@` because the symbol was free and
+#: composition is the one function common enough to earn one.
+(@) : (b -> c) -> (a -> b) -> a -> c
+(@) f g x = f (g x)
+
+# **What it means to be a container of things you can change.**  `map` is
+# the method, not a list function — the same reason `++` is `Semigroup`'s
+# and `>>=` is `Monad`'s.
+#
+# `signal.ges` adds the `Sig` instance, where the class cannot see it: a
+# signal is a reactive program's, and this file is in scope for programs
+# that have none.  What it took is worth stating, because it was the one
+# instance the fragment had an opinion about — the static fragment
+# recognises a signal former by *name*, and a method arrives under the
+# generated `__Functor_Sig_map__`.  `elaborate.resolve_static_methods`
+# makes that an ordinary global before the fragment reads it, so
+# `audiograph.FORMERS` lists the generated name beside `mapSig` and a
+# `map` over a signal is the same node it always was.
+class Functor f where
+    map : (a -> b) -> f a -> f b
+
+instance Functor List where
+    map g xs = case xs of
+        [] -> []
+        x :: rest -> g x :: map g rest
+
+instance Functor Maybe where
+    map g m = case m of
+        Nothing -> Nothing
+        Just x -> Just (g x)
+
+#: **Two containers, combined pointwise.**  `zip f xs ys` applies `f` to
+#: the two element-wise, which at a list stops when the shorter one does
+#: and at a signal is the whole of how two signals meet.
+#:
+#: `signal.ges` adds the `Sig` instance, where the class cannot see it —
+#: the same arrangement `Functor` has and for the same reason.  It was
+#: `zipSig` there, which is a name wearing its one type: a signal is
+#: *the* thing you zip in a synth, so the plain word belongs to it as much
+#: as `map` does.
+#:
+#: Not `Applicative`.  `<*>` needs `pure` and a partial application per
+#: element, and the audio fragment admits neither; `zip` is the one shape
+#: the engine has a node for, so it is the one the class states.
+class Zip f where
+    zip : (a -> b -> c) -> f a -> f b -> f c
+
+instance Zip List where
+    zip f xs ys = case xs of
+        [] -> []
+        x :: rest -> case ys of
+            [] -> []
+            y :: more -> f x y :: zip f rest more
+
+# **What a container is, for the purpose of being walked.**  `foldr` is
+# the one method; `length`, `null`, `sum`, `product`, `all`, `any` and
+# `elem` below are ordinary functions written against it, and stop being
+# list functions by saying so.
+#
+# `foldl` is a method too rather than a derived function: at a list it is
+# the *accumulating* one and that is a difference in cost, not in result,
+# which a default written as `foldr` would quietly throw away.
+#
+# **No `Foldable Score`, deliberately.**  A score could answer "how many
+# notes" or "how long" and neither is what `length` means; an instance
+# picking one would be a guess with the authority of a law.  A class with
+# no instance at a type is a complete answer — unlike `Num`, where a
+# missing method is a silent placeholder rather than an error.
+class Foldable t where
+    foldr : (a -> b -> b) -> b -> t a -> b
+    foldl : (b -> a -> b) -> b -> t a -> b
+
+instance Foldable List where
+    foldr f z xs = case xs of
+        [] -> z
+        x :: rest -> f x (foldr f z rest)
+
+    foldl f z xs = case xs of
+        [] -> z
+        x :: rest -> foldl f (f z x) rest
+
+instance Foldable Maybe where
+    foldr f z m = case m of
+        Nothing -> z
+        Just x -> f x z
+
+    foldl f z m = case m of
+        Nothing -> z
+        Just x -> f z x
+
+# `++` is `syntax.md`'s list append — and *music sequence*, and anything
+# else with an associative join.  So it is a class method rather than a
+# list function.
+#
+# **It used to be a plain definition, and that was a bug you could reach.**
+# `music.ges` declared its own `(++) : [: a :] -> [: a :] -> [: a :]`, and
+# `prelude.merge` resolves a redefinition by hiding the prelude's — so
+# inside any program with a `score`, `[1,2] ++ [3]` failed with
+# `expected 'Score', got 'List'` and list append was unreachable by its own
+# operator.  `append` still worked, which is why nobody noticed.
+#
+# The shadow was chosen rather than stumbled into: `music.ges` recorded
+# that "a class would have left both in scope and clashing", which is true
+# of adding a class *beside* a plain `(++)` and not of making the plain one
+# the method.  There is one `++` here and an instance at each type.
+class Semigroup a where
+    (++) : a -> a -> a
+
+instance Semigroup (List b) where
+    (++) xs ys = append xs ys
+
+# **`concat` was `join` all along**, and `music.ges` had written the other
+# half of the same class: a `(>>=)` over scores, with `Note` for `pure` and
+# no name for either.  So the monad existed twice, in halves, and was
+# called neither time.
+#
+# One class, and `join` rather than `concat` because the operation is not
+# about lists — flattening a `Maybe (Maybe a)` or a score of scores is the
+# same fold.  `single` is gone for the same reason: it was `pure` at one
+# type, and `'x` is already `pure` written as syntax.
+class Monad m where
+    pure : a -> m a
+    (>>=) : m a -> (a -> m b) -> m b
+
+instance Monad List where
+    pure x = [x]
+    (>>=) xs f = case xs of
+        [] -> []
+        y :: rest -> append (f y) (rest >>= f)
+
+instance Monad Maybe where
+    pure x = Just x
+    (>>=) m f = case m of
+        Nothing -> Nothing
+        Just x -> f x
+
+#: **`pure`, written as syntax.**  `'60` is one note, `'x` is `[x]` at a
+#: list and `Just x` at a `Maybe` — one element in whatever container the
+#: context asks for.
+#:
+#: It was `music.ges`'s and typed `a -> [: a :]`, which is `pure` pinned to
+#: one instance; here it is the method, and `'60 ++ '62` still means a
+#: two-note phrase inside a piece because that is what the surrounding
+#: signature says it is.
+#:
+#: **Write the signature.**  `melody : [: Int :]` above the definition is
+#: what settles the container, and without one an ambiguous `'` is not
+#: reported — see `journal.md` Part II.
+(') : (Monad m) => a -> m a
+(') x = pure x
+
+#: One layer off a nested structure — what `concat` was for a list of
+#: lists, and the same function for anything else that nests.
+join : (Monad m) => m (m a) -> m a
+join xss = xss >>= (xs => xs)
+
+#: **Back to front.**  A class rather than a list function, because the
+#: musical retrograde — a phrase played backwards — *is* this operation and
+#: deserves the word rather than a synonym.  `music.ges` adds the `Score`
+#: instance.
+#:
+#: The list one accumulates, so it is linear.  Written the obvious way,
+#: `reverse rest ++ [x]` walks the whole reversed prefix once per element,
+#: which is O(n²) for the one list function nobody expects to be expensive.
+class Reversible t where
+    reverse : t a -> t a
+
+instance Reversible List where
+    reverse xs = reverseOnto xs []
+
+length : (Foldable t) => t a -> Int
+length xs = foldr (x n => n + 1) 0 xs
+
+# **`filter` is not `Foldable`'s**, and the signature is why: it hands back
+# a `t a`, so it has to *rebuild* the container rather than only walk it.
+# A fold can be written for anything with elements; putting one back
+# together is a second ability and not every container has it.
+class Filterable t where
+    filter : (a -> Bool) -> t a -> t a
+
+instance Filterable List where
+    filter p xs = case xs of
+        [] -> []
+        x :: rest -> case p x of
+            True -> x :: filter p rest
+            False -> filter p rest
+
+instance Filterable Maybe where
+    filter p m = case m of
+        Nothing -> Nothing
+        Just x -> case p x of
+            True -> Just x
+            False -> Nothing
+
+not : Bool -> Bool
+not b = case b of
+    True -> False
+    False -> True
+
+fst : (a, b) -> a
+fst (x, y) = x
+
+snd : (a, b) -> b
+snd (x, y) = y
+
+swap : (a, b) -> (b, a)
+swap (x, y) = (y, x)
+
+# Monotone projections.  `fst`/`snd` above take their argument at the
+# ordinary arrow, which is Datafun's `□A -> B`, so they cannot be applied
+# to a *monotone* variable — and that is exactly what `fix` at a product
+# semilattice binds.  A projection is monotone (a product is ordered
+# componentwise), so these are the same functions at the arrow that says
+# so, and they are what makes `fix r => (…, …)` writable.
+fstM : (a, b) ~> a
+fstM (x, y) = x
+
+sndM : (a, b) ~> b
+sndM (x, y) = y
+
+#: **The second boolean, and the one a fixed point can use.**  `Prop` is
+#: Datafun's `bool`: `{}` is false, `{()}` is true, `\/` is or, and
+#: `for (u in p) e` is the one-sided conditional.
+#:
+#: The difference from `Bool` is that a `Prop` can only *grow* — false to
+#: true and never back — which is what lets a predicate returning one be
+#: computed by `fix`.  `Bool` cannot: `not` runs downhill, and a `fix`
+#: over it need not converge.  Write `Bool` unless you are inside a
+#: fixpoint; `holds` and `guard` convert between them.
+#:
+#: An alias rather than a type of its own, because every one of those
+#: properties *is* the set structure and nothing else (`errata.md` D5).
+type Prop = {()}
+
+#: **What a comprehension's guard clause accepts** — either boolean.
+#:
+#: `{e | C, g}` desugars to `for (x in guard g) {e}` with `x` fresh and
+#: unused, so `{x | x in xs, x > 3}` and `{x | x in xs, reaches x}` both
+#: work: at `Prop` `guard` is the identity, at `Bool` it is the injection.
+#: You would rarely write it by hand; it is here because the guard clause
+#: is written in terms of it and an error message may name it.
+#:
+#: A class rather than a type-directed desugaring because desugaring runs
+#: long before inference — `errata.md` D5.  The `Bool` instance is
+#: monotone despite the `~>`, and lawfully so: `Bool` is ordered by
+#: equality, and every function out of a discrete type is monotone.
+class Guard a where
+    guard : a ~> Prop
+
+instance Guard Prop where
+    guard p = p
+
+instance Guard Bool where
+    guard b = case b of
+        True -> {()}
+        False -> {}
+
+#: Out of `Prop` and back into `Bool` — "is this one true?", which is how
+#: you read a fixpoint's answer once it has converged.
+#:
+#: Takes its argument *discretely* (the plain `->` is `□A -> B`), which is
+#: what makes it non-monotone, as Datafun requires: a growing `Prop` may
+#: not be turned into a `Bool` somewhere still growing.  `empty?` is the
+#: primitive underneath — it cannot be defined, because `for` eliminates
+#: only into a semilattice and `Bool` is not one — and this is the
+#: reading people want.
+holds : Prop -> Bool
+holds p = not (empty? p)
+
+# Equality and ordering at the built-in structures.  `Eq Int` and `Ord Int`
+# are compiler-provided (they bottom out in the integer primitives); every
+# other instance below is ordinary code compiled through the same pipeline.
+
+instance Eq () where
+    (==) a b = True
+    (/=) a b = False
+
+instance Ord () where
+    (<) a b = False
+    (<=) a b = True
+    (>) a b = False
+    (>=) a b = True
+
+instance Eq Bool where
+    (==) a b = case a of
+        True -> b
+        False -> not b
+    (/=) a b = not (a == b)
+
+instance Ord Bool where
+    (<) a b = case a of
+        True -> False
+        False -> b
+    (<=) a b = not (b < a)
+    (>) a b = b < a
+    (>=) a b = not (a < b)
+
+instance (Eq a) => Eq (List a) where
+    (==) xs ys = case xs of
+        [] -> case ys of
+            [] -> True
+            z :: zs -> False
+        x :: rest -> case ys of
+            [] -> False
+            z :: zs -> case x == z of
+                True -> rest == zs
+                False -> False
+    (/=) xs ys = not (xs == ys)
+
+instance (Eq a) => Eq (Maybe a) where
+    (==) p q = case p of
+        Nothing -> case q of
+            Nothing -> True
+            Just b -> False
+        Just a -> case q of
+            Nothing -> False
+            Just b -> a == b
+    (/=) p q = not (p == q)
+
+instance (Eq a, Eq b) => Eq (a, b) where
+    (==) p q = case p of
+        (a, b) -> case q of
+            (c, d) -> case a == c of
+                True -> b == d
+                False -> False
+    (/=) p q = not (p == q)
+
+elem : (Eq a, Foldable t) => a -> t a -> Bool
+elem y xs = any (x => x == y) xs
+
+sum : (Foldable t) => t Int -> Int
+sum xs = foldr (x y => x + y) 0 xs
+
+product : (Foldable t) => t Int -> Int
+product xs = foldr (x y => x * y) 1 xs
+
+null : (Foldable t) => t a -> Bool
+null xs = foldr (x b => False) True xs
+
+all : (Foldable t) => (a -> Bool) -> t a -> Bool
+all p xs = foldr (x b => case p x of
+    True -> b
+    False -> False) True xs
+
+any : (Foldable t) => (a -> Bool) -> t a -> Bool
+any p xs = foldr (x b => case p x of
+    True -> True
+    False -> b) False xs
+
+# Show.  `show : a -> String`, and `String = List Char`, so rendering is
+# ordinary list building — `append` is the concatenation.
+#
+# Note `show` on a `String` renders it element-wise (`[h, i]`), because
+# `String` *is* `List Char` and coherence forbids an instance overlapping
+# `Show (List a)`.  A string is already a `String`; nothing needs showing.
+
+class Show a where
+    show : a -> String
+
+instance Show Char where
+    show c = [c]
+
+instance Show Bool where
+    show b = case b of
+        True -> "True"
+        False -> "False"
+
+instance Show () where
+    show u = "()"
+
+instance Show Int where
+    show n = case n < 0 of
+        True -> append "-" (showNat (0 - n))
+        False -> showNat n
+
+# The helper takes the rendering function rather than a `Show a` context:
+# passing `show` as a value routes through the instance's own dictionary,
+# which is the same path `Show (Maybe a)` takes.
+showItemsWith : (a -> String) -> List a -> String
+showItemsWith f xs = case xs of
+    [] -> ""
+    x :: rest -> case rest of
+        [] -> f x
+        y :: ys -> append (f x) (append ", " (showItemsWith f rest))
+
+instance (Show a) => Show (List a) where
+    show xs = append "[" (append (showItemsWith show xs) "]")
+
+instance (Show a) => Show (Maybe a) where
+    show m = case m of
+        Nothing -> "Nothing"
+        Just x -> append "Just " (show x)
+
+instance (Show a, Show b) => Show (a, b) where
+    show p = case p of
+        (a, b) -> append "(" (append (show a) (append ", " (append (show b) ")")))
+
+# ── Ordering, put to work ────────────────────────────────────────────────
+#
+# **Here rather than in a library, because a program that is not a synth
+# needs them too.**  `clamp` lived in `synth.ges` and `min` and `max` did
+# not exist at all, so a canvas program — 41 names in scope — could be
+# handed a drag position and had no way to bound it.  That is not a gap in
+# the canvas; it is a gap here.
+#
+# `Ord`, not `Float`: a MIDI key held to 0..127, a filter coefficient held
+# to 0..1 and a handle held to its track are the same function, and a class
+# of their own would be one instance per type all saying this.
+
+#: The smaller of two.
+min : (Ord a) => a -> a -> a
+min a b = case a < b of
+    True -> a
+    False -> b
+
+#: The larger of two.
+max : (Ord a) => a -> a -> a
+max a b = case a < b of
+    True -> b
+    False -> a
+
+#: `clamp lo hi x` — `x`, held between the two.
+#:
+#: Used at every boundary where a number arrives from outside: a knob is
+#: the one value a synth does not compute, the offline renderer drives
+#: every control channel with the *sample index*, and an unclamped filter
+#: coefficient leaves 0..1 within a few hundred samples and diverges
+#: (`twoknobs.ges` says so at length).  A pointer is the same kind of
+#: outside.
+clamp : (Ord a) => a -> a -> a -> a
+clamp lo hi x = min hi (max lo x)
+
+# ── Blending ─────────────────────────────────────────────────────────────
+#
+# `Num`, so each is one definition at every numeric type: `Float`, a
+# `Stereo` where a literal `t` reaches both channels, and a `Sig Float`
+# where a *varying* `t` is a crossfade rather than a constant blend.
+
+#: `mix a b t` — linear interpolation: at `t` of 0 the first, at 1 the
+#: second.
+mix : (Num a) => a -> a -> a -> a
+mix a b t = a + (b - a) * t
+
+#: `bimix a b t` — the same, driven by a **bipolar** `t`: −1 is the first,
+#: 0 is halfway, 1 is the second.
+#:
+#: What an oscillator hands you is −1..1, so this is the blend a modulation
+#: actually wants — `bimix dark bright (sine 5.0)` sweeps between two
+#: colours, two cutoffs or two pictures without a conversion at the call.
+#:
+#: Spelled out rather than written `mix a b (unipolar t)`, which is what it
+#: means: `unipolar` is a signal function in `synth.ges` — a `map` — and
+#: the prelude comes before there are signals.  The arithmetic is three
+#: characters and the dependency would be a layer.
+#:
+#: **Two constraints where `mix` has one, and the half is why.**  `mix`
+#: names no literal, so `Num` carries it at every numeric type including
+#: `Sig Int`; this one has to halve, and a fractional literal is
+#: `Floating`.  Both are needed and neither implies the other — they are
+#: synthetic classes `declarations.py` generates rather than a hierarchy a
+#: program could write, so there is no superclass to inherit `+` from.
+#:
+#: It costs nothing real: the types with a meaningful midpoint are exactly
+#: the types that have one.
+bimix : (Num a, Floating a) => a -> a -> a -> a
+bimix a b t = mix a b (0.5 + 0.5 * t)
+
+# ── Floats ───────────────────────────────────────────────────────────────
+#
+# A literal with a point in it is a `Float`; one without is an `Int`.
+# Nothing is defaulted, so the two never mix by accident — but they do mix
+# on purpose, because `2` is `Num a => a` and unifies with `Float`:
+# `x * 2 + 1.5` needs no coercion when `x : Float`.
+
+# Division is `class Div a`, with `/` and `%` at `Int` and at `Float`.
+# The class is declared by the compiler, beside `Num` and `Ord` — see
+# `declarations.py`, and `doc/ref/index.md` for the list.
+#
+# **This reverses an earlier decision, and the earlier one was not silly.**
+# `/` used to be `Float -> Float -> Float` and nothing else, on the
+# argument that an overloaded `/` which silently *floors* at `Int` is the
+# classic footgun, so a program meaning to truncate should have to say so.
+# What that cost was measured rather than guessed: it made `prim_div_int`
+# and `prim_mod_int` the only way to divide an integer, and those appeared
+# **sixteen times across `examples/`** — a name spelled `prim_` is a
+# compiler internal by every convention there is, and it was in the code a
+# person writes on their first day.
+#
+# So the footgun is kept and the internal name is not: `/` at `Int` floors,
+# which is what `%` agreeing with it means, and both are documented rather
+# than hidden behind a spelling nobody would choose.
+
+toFloat : Int -> Float
+toFloat n = prim_to_float n
+
+#: The greatest integer not above its argument — floor, not truncation,
+#: so it agrees with `prim_div_int` on negatives.
+floor : Float -> Int
+floor x = prim_floor_float x
+
+#: The least integer not below its argument — `floor` the other way.
+#:
+#: Not a primitive: `ceil x` is `negate (floor (negate x))` exactly, at
+#: every float including the integral ones, so a sixth primitive to keep
+#: in agreement with the interpreter would buy nothing.  Same argument as
+#: `tan` and `pow`.
+ceil : Float -> Int
+ceil x = negate (floor (negate x))
+
+# The transcendentals.  Each is libm's function of the same name, on both
+# sides of the audio pipeline: the interpreter calls Python's `math`, and
+# generated code calls `llvm.<name>.f64`, and the two are the same libm on
+# the same machine.  `spec/liveaudio.md` open question 2 argues why that
+# identity is what matters and `test/test_transcendental.py` measures it —
+# these are not correctly-rounded functions, so nothing *but* being the
+# same implementation would make the comparison exact.
+#
+#: The angle is in radians.
+sin : Float -> Float
+sin x = prim_sin_float x
+
+cos : Float -> Float
+cos x = prim_cos_float x
+
+#: Undefined below zero — the interpreter raises where C returns NaN, so
+#: this is an error rather than a value the two would disagree about.
+sqrt : Float -> Float
+sqrt x = prim_sqrt_float x
+
+exp : Float -> Float
+exp x = prim_exp_float x
+
+#: Natural log.  Undefined at and below zero, for the reason `sqrt` gives.
+log : Float -> Float
+log x = prim_log_float x
+
+#: Not a primitive, and it does not need to be: written here it is the same
+#: expression on both sides, so it is bit-identical by construction rather
+#: than by libm agreeing about `tan`.  (Which is also why `llvm.tan.f64`
+#: needing LLVM 19 costs nothing.)
+tan : Float -> Float
+tan x = sin x / cos x
+
+#: `pow b e` is `b ** e`, for a positive base.  Same argument as `tan`: an
+#: identity in the language beats a sixth primitive to keep in agreement.
+pow : Float -> Float -> Float
+pow b e = exp (e * log b)
+
+# Showing a float.  Three decimal places, truncated rather than rounded —
+# rounding needs a carry into the integer part, and nothing yet needs it.
+# The sign is peeled off first: `floor` is *floor*, so `floor (0.0 - 2.7)`
+# is -3, and taking the fraction from that would print -2.7 as "-3.300".
+
+instance Show Float where
+    show x = showFloat x
+
+# ════════════════════════════════════════════════════════════════════════
+internal
+# ════════════════════════════════════════════════════════════════════════
+#
+# The prelude's own machinery.  Each of these has a public face above and
+# is listed in `doc/ref/prelude.md` under Internals — documented because an
+# editor or a stack trace may show you one, not because it is yours to
+# call.  `gestate/internals.py` reports a program that names one.
+#
+# `showItemsWith` is deliberately *not* here.  It is `(a -> String) -> List
+# a -> String`, which is exactly what somebody writing `Show` for their own
+# container reaches for; nothing outside the prelude uses it only because
+# nobody has written that instance yet, and marking it would foreclose the
+# case rather than reflect it.
+
+#: `++` at a list, which is the only thing that calls it.  Here rather
+#: than above because `++` *is* its public face: `instance Semigroup
+#: (List b)` is one line long and this is that line's body.
+append : List a -> List a -> List a
+append xs ys = case xs of
+    [] -> ys
+    x :: rest -> x :: append rest ys
+
+#: `reverseOnto xs acc` is `reverse xs ++ acc` without building the
+#: intermediate — the accumulator that makes `reverse` linear.  Written
+#: the obvious way, `reverse` walks the reversed prefix once per element,
+#: which is O(n²) for the one list function nobody expects to be
+#: expensive.
+reverseOnto : List a -> List a -> List a
+reverseOnto xs acc = case xs of
+    [] -> acc
+    x :: rest -> reverseOnto rest (x :: acc)
+
+#: `show` at `Int` is the public face of this; here is its **unsigned**
+#: half, with the sign peeled off by the instance.
+showNat : Int -> String
+showNat n = case n < 10 of
+    True -> [chr (n + 48)]
+    False -> append (showNat (prim_div_int n 10)) [chr (prim_mod_int n 10 + 48)]
+
+pad3 : Int -> String
+pad3 n = case n < 10 of
+    True -> append "00" (showNat n)
+    False -> case n < 100 of
+        True -> append "0" (showNat n)
+        False -> showNat n
+
+showFloat : Float -> String
+showFloat x = case x < 0.0 of
+    True -> append "-" (showFloat (negate x))
+    False -> append (showNat (floor x))
+                    (append "." (pad3 (floor ((x - toFloat (floor x)) * 1000.0))))

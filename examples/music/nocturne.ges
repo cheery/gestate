@@ -1,0 +1,247 @@
+# A minute and a half in A minor — the longest example here.
+#
+#   python -m gestate.midi examples/music/nocturne.ges
+#   timidity nocturne.mid
+#
+# The point of this one is *structure*.  The shorter examples each show a
+# single operator; this shows what the operators are for once a piece is
+# long enough that writing it out note by note would be unbearable.
+#
+# Three ideas do all the work:
+#
+#   * A section is an **overlay of voices** — `chords || bass || tune ||
+#     drums` — and each voice binds its own instrument, so the renderer
+#     gives it its own MIDI channel.
+#   * A piece is a **sequence of sections**, `intro ++ verse ++ ...`.  Both
+#     are `[: Void :]`, so the same `++` that joins two notes joins two
+#     twenty-second-long arrangements.
+#   * Repetition is a **function**, not a copy.  `twice` and `four` below
+#     are ordinary definitions over `[: a :]`; the chord progression is
+#     written once and played eight times.
+#
+# One thing to keep an eye on when editing: everything inside a `||` runs
+# from the same instant, so a section's voices must agree on how many bars
+# they are.
+#
+# A body may be broken across lines when the next one starts with an
+# operator, which is what lets a phrase be written a bar to a line.
+
+# ── Shape ────────────────────────────────────────────────────────────────
+
+twice : [: a :] -> [: a :]
+twice x = x ++ x
+
+four : [: a :] -> [: a :]
+four x = twice (twice x)
+
+#: A bar of silence.  `r` is one ticksPerBeat, like a note.
+barRest : [: a :]
+barRest = r |* 4
+
+# ── Harmony ──────────────────────────────────────────────────────────────
+#
+# Am - F - C - G, one bar each.  A chord is three notes overlaid and then
+# stretched over the bar: `||` makes them sound together, `|* 4` makes them
+# last.  The voicings move by step rather than by root, which is why the
+# inner notes barely shift between chords.
+
+am : [: Int :]
+am = ('57 || '60 || '64) |* 4
+
+fmaj : [: Int :]
+fmaj = ('53 || '57 || '60) |* 4
+
+cmaj : [: Int :]
+cmaj = ('52 || '55 || '60) |* 4
+
+gmaj : [: Int :]
+gmaj = ('50 || '55 || '59) |* 4
+
+progression : [: Int :]
+progression = am ++ fmaj ++ cmaj ++ gmaj
+
+# ── Bass ─────────────────────────────────────────────────────────────────
+#
+# Root, root, fifth, root under each chord — four quarter notes to the bar.
+
+bassAm : [: Int :]
+bassAm = '45 ++ '45 ++ '52 ++ '45
+
+bassF : [: Int :]
+bassF = '41 ++ '41 ++ '48 ++ '41
+
+bassC : [: Int :]
+bassC = '48 ++ '48 ++ '55 ++ '48
+
+bassG : [: Int :]
+bassG = '43 ++ '43 ++ '50 ++ '43
+
+bassLine : [: Int :]
+bassLine = bassAm
+        ++ bassF
+        ++ bassC
+        ++ bassG
+
+# ── Drums ────────────────────────────────────────────────────────────────
+#
+# Kick and snare on the quarters, hats on the eighths.  `|/ 2` halves a
+# note's duration, so eight hats fill the same bar the four backbeats do.
+
+hats : [: Int :]
+hats = twice (four ('42 |/ 2))
+
+backbeat : [: Int :]
+backbeat = '36 ++ '38 ++ '36 ++ '38
+
+groove : [: Int :]
+groove = backbeat || hats
+
+#: A snare fill, four notes in the space of one ticksPerBeat.
+fill : [: Int :]
+fill = four '38 |/ 4
+
+#: The last bar of a phrase, with the fill laid *over* its final ticksPerBeat.
+#:
+#: `||` rather than `++` is what keeps the bar a bar.  Sequencing the fill
+#: on would add its duration — the phrase would come out five beats long,
+#: and since a section is only as long as its longest voice, every section
+#: after this one would start two beats late.  `at` places the fill within
+#: the bar instead, and overlaying leaves the duration at the groove's.
+grooveFill : [: Int :]
+grooveFill = groove || at (3 * ticksPerBeat) fill
+
+#: Four bars of drums: three plain, then the fill.
+drumPhrase : [: Int :]
+drumPhrase = twice groove ++ groove ++ grooveFill
+
+# ── Tune ─────────────────────────────────────────────────────────────────
+#
+# A minor throughout.  Quarter notes in the first phrase, eighth-note runs
+# in the second — the contrast is what makes the return in section four
+# sound like a return.
+
+phraseA : [: Int :]
+phraseA = '69 ++ '71 ++ '72 ++ '76
+       ++ '77 ++ '76 ++ '72 ++ '69
+       ++ '72 ++ '76 ++ '79 ++ '76
+       ++ '74 ++ '71 ++ '74 ++ r
+
+phraseB : [: Int :]
+phraseB = '69 ++ '72 ++ '76 ++ '81
+       ++ '81 ++ '79 ++ '77 ++ '76
+       ++ '76 ++ '72 ++ '74 ++ '76
+       ++ '72 ++ '71 ++ '69 ++ r
+
+tune : [: Int :]
+tune = phraseA ++ phraseB
+
+#: Eighth-note runs.  `|/ 2` on a four-note group makes it two beats, so a
+#: pair of groups is a bar.  `|/` binds loosely on the left and tightly on
+#: the right, so the parentheses below are what pick out the group — the
+#: `2` never reaches past itself.
+runUpLow : [: Int :]
+runUpLow = ('69 ++ '71 ++ '72 ++ '74) |/ 2
+
+runUpHigh : [: Int :]
+runUpHigh = ('76 ++ '77 ++ '79 ++ '81) |/ 2
+
+runDownHigh : [: Int :]
+runDownHigh = ('81 ++ '79 ++ '77 ++ '76) |/ 2
+
+runDownLow : [: Int :]
+runDownLow = ('74 ++ '72 ++ '71 ++ '69) |/ 2
+
+runUp : [: Int :]
+runUp = runUpLow ++ runUpHigh
+
+runDown : [: Int :]
+runDown = runDownHigh ++ runDownLow
+
+turn : [: Int :]
+turn = ('72 ++ '74 ++ '76 ++ '77) |/ 2 ++ '79 ++ '76
+
+cadence : [: Int :]
+cadence = '74 ++ '71 ++ '69 ++ r
+
+phraseC : [: Int :]
+phraseC = runUp ++ runDown ++ turn ++ cadence
+
+# ── Instruments ──────────────────────────────────────────────────────────
+#
+# General MIDI programs: 48 strings, 33 fingered bass, 73 flute, 4 electric
+# piano.  Each `>>=` commits a voice to one of them, and a voice bound to
+# an instrument carries no payload left — which is what `[: Void :]` means.
+
+strings : [: Int :] -> [: Void :]
+strings v = v >>= prog 48
+
+bass : [: Int :] -> [: Void :]
+bass v = v >>= prog 33
+
+flute : [: Int :] -> [: Void :]
+flute v = v >>= prog 73
+
+piano : [: Int :] -> [: Void :]
+piano v = v >>= prog 4
+
+kit : [: Int :] -> [: Void :]
+kit v = v >>= percussion
+
+# ── Sections ─────────────────────────────────────────────────────────────
+
+#: Four bars: harmony and bass alone.
+intro : [: Void :]
+intro = strings progression || bass bassLine
+
+#: Eight bars: the tune arrives, and so do the drums.
+verse : [: Void :]
+verse = strings (twice progression)
+     || bass (twice bassLine)
+     || flute tune
+     || kit (twice drumPhrase)
+
+#: Eight bars: runs, with a piano doubling the harmony.
+middle : [: Void :]
+middle = strings (twice progression)
+      || piano (twice progression)
+      || bass (twice bassLine)
+      || flute (twice phraseC)
+      || kit (twice drumPhrase)
+
+#: Eight bars: the first tune returns, the runs now underneath it.
+reprise : [: Void :]
+reprise = strings (twice progression)
+       || bass (twice bassLine)
+       || flute tune
+       || piano (twice runUp ++ twice runDown)
+       || kit (twice drumPhrase)
+
+#: Six bars, thinning out: four as before, then a held Am to finish.
+lastChord : [: Int :]
+lastChord = am |* 2
+
+outroStrings : [: Int :]
+outroStrings = progression ++ lastChord
+
+outroBass : [: Int :]
+outroBass = bassLine ++ ('45 |* 8)
+
+outroFlute : [: Int :]
+outroFlute = barRest ++ barRest ++ barRest
+          ++ ('69 |* 4)
+          ++ ('69 |* 8)
+
+outro : [: Void :]
+outro = strings outroStrings
+     || bass outroBass
+     || flute outroFlute
+
+score : [: Void :]
+score = intro
+     ++ verse
+     ++ middle
+     ++ reprise
+     ++ outro
+
+bpm : Int
+bpm = 96

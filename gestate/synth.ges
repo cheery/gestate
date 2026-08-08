@@ -1,0 +1,1768 @@
+# synth.ges — the instrument builder's vocabulary.
+#
+# Prepended by `gestate/audio.py` after `signal.ges` and `audio.ges`, so
+# every synth program has all of this without saying so.  `audio.ges` gives
+# a program *time* — `ticks`, `sampleRate`, the four oscillator shapes.
+# This gives it the parts you would reach for after that: envelopes, filters
+# with resonance, an FM engine you wire yourself, noise, saturation, and the
+# stereo frame.
+#
+# ── Two rules the whole file is shaped by ────────────────────────────────
+#
+# **A component is a state record and a step function, never a closure.**
+# The static fragment (`spec/liveaudio.md` stage 1) forbids building a
+# function while the program runs, because the graph is fixed before it
+# does.  So there is no `makeOscillator hz` here that hands you back an
+# oscillator.  There is an `Svf` and an `svfNext`, and you fold the second
+# over the first with `scan`.  What looks like a restriction is what makes
+# a synth here a *value* you can read the state of, migrate across an edit,
+# and compile to a struct.
+#
+# **A parameter travels in the state or in the signal, never in a partial
+# application.**  `scan (osc hz) …` is rejected; `scan stepOsc freqSig` is
+# not.  The signal-level wrappers below — `lowpassSvf`, `pan` — do take
+# constant parameters, and they work because the extractor *inlines* them:
+# the lambda that captures the cutoff is written at the `scan`, which is
+# exactly what the fragment allows.  A cutoff that has to *vary* is a
+# second signal, and that is the `…At` form of each filter.
+#
+# ── What is deliberately not here ────────────────────────────────────────
+#
+# **No wavetable and no sample playback.**  Those want an engine that owns
+# memory, and this one owns none — the fragment admits no allocation and no
+# unbounded indexing.
+#
+# A delay line used to be on this list, and is not: `feedback`, `tap` and
+# `loop` in `signal.ges` are one node each whose *state* is a fixed ring,
+# which is a buffer the engine can lay out because its length is known
+# before the program runs.  So `echo`, `comb` and `resonate` are here, and
+# Karplus-Strong is `loop`'s own example.  What is still out is a delay
+# whose length is a signal, for the reason wavetables are.
+
+# ── Small arithmetic ─────────────────────────────────────────────────────
+#
+# **`clamp` and `mix` carry a class context, and until recently that was
+# not allowed here.**  A constrained definition compiles to one that takes
+# a dictionary, and the fragment is monomorphic — a dictionary is a record
+# of functions and the engine has nowhere to put one — so `clampF` had to
+# be written at `Float` and named for it.  `gestate/specialise.py` gives a
+# call whose dictionaries are constants a copy with them substituted in,
+# which is every call a synth makes, so the context costs nothing and the
+# `F` is gone from both names.
+
+#: `clamp lo hi x` — hold a value between a low and a high bound.
+#:
+#: An amount in decibels as a multiplier.  `dbGain 0.0` is 1.0.
+dbGain : Float -> Float
+dbGain db = pow 10.0 (db / 20.0)
+
+#: MIDI key number to hertz.  Key 69 is 440 Hz, and each semitone is the
+#: twelfth root of two.
+keyHz : Int -> Float
+keyHz k = 440.0 * pow 2.0 (toFloat (k - 69) / 12.0)
+
+#: Detune in cents.  A hundred cents is a semitone.
+centsHz : Float -> Float -> Float
+centsHz cents hz = hz * pow 2.0 (cents / 1200.0)
+
+#: `secondsSince n from` — how long, in seconds, instant `n` is after the
+#: 1-based instant `from`.  `audio.ges`'s `seconds` is the other direction — a duration into a count
+#: of samples — and between them they are the whole conversion between the
+#: two clocks a program thinks in.
+secondsSince : Int -> Int -> Float
+secondsSince n from = toFloat (n - from + 1) / sampleRate
+
+#: The highest frequency this sample rate can carry, less a margin.
+#:
+#: One place for the Nyquist limit, because every filter here has to clamp
+#: its cutoff to it: `tan` blows up at half the sample rate, and a cutoff
+#: that arrives from a knob has nothing else stopping it.
+nyquist : Float
+nyquist = sampleRate * 0.49
+
+# ── Oscillators ──────────────────────────────────────────────────────────
+#
+# `audio.ges` supplies the *shapes* — `sineOf`, `sawOf`, `squareOf`,
+# `triangleOf`, each a function of one **turn** in 0..1 — and `wrap`.  What
+# is here is an oscillator: a shape with a phase running under it, so a
+# synth names a frequency and gets a signal.
+#
+# **One name per shape, and the frequency is always a signal.**
+#
+#     sine 440.0        a fixed pitch
+#     sine hz           one that follows `hz`
+#
+# The same function, because `instance Num (Sig Float)` makes a literal a
+# constant signal already — `Floating (Sig Float)`'s `fromFloat x =
+# constSig x` — and `audioextract._fold_constants` folds that constant back
+# into the step, so the fixed form costs exactly what a fixed form should.
+# There used to be a `…At` for the first and a `…From` for the second, and
+# they were one function written twice.
+#
+# **A phase is a `Float` in turns**, not a type of its own.  `phase hz` is
+# the running turn number and every oscillator here is a shape mapped over
+# it; a `Phase` wrapper bought nothing but a node per oscillator.
+
+#: The turn number, 0..1, running at a frequency.  For a shape this file
+#: does not already wrap — otherwise reach for `sine` and the rest.
+phase : Sig Float -> Sig Float
+phase hz = scan phaseStep 0.0 hz
+
+#: A sine.  The shortest thing this file can say.
+sine : Sig Float -> Sig Float
+sine hz = map sineOf (phase hz)
+
+saw : Sig Float -> Sig Float
+saw hz = map sawOf (phase hz)
+
+square : Sig Float -> Sig Float
+square hz = map squareOf (phase hz)
+
+triangle : Sig Float -> Sig Float
+triangle hz = map triangleOf (phase hz)
+
+#: A pulse of the given width — `pulse 0.5` is `square`.  Narrower widths
+#: thin it towards a spike, and the harmonic content moves with the width,
+#: which is what makes it worth having separately.
+pulse : Float -> Sig Float -> Sig Float
+pulse width hz = map (p => pulseOf width p) (phase hz)
+
+#: A pulse as a *shape* — the one `audio.ges` does not have.
+pulseOf : Float -> Float -> Float
+pulseOf width p = case p < clamp 0.01 0.99 width of
+    True -> 1.0
+    False -> negate 1.0
+
+#: −1..1 to 0..1.  A modulation depth usually wants this — `mix lo hi
+#: (unipolar (sine 5.0))` reads as the range it sweeps — and it replaces
+#: the old `lfoAt`, which was named for its frequency when what differed
+#: was its polarity, and worked on one shape when this works on any.
+unipolar : Sig Float -> Sig Float
+unipolar s = map (x => 0.5 + 0.5 * x) s
+
+#: 0..1 back to −1..1 — `unipolar`'s inverse.
+bipolar : Sig Float -> Sig Float
+bipolar s = map (x => 2.0 * x - 1.0) s
+
+# ── Noise ────────────────────────────────────────────────────────────────
+#
+# A linear congruential generator, folded like everything else.  It is a
+# *fold over time* rather than a call to a random primitive, and that is
+# not a workaround: a signal has to be reproducible for the oracle to mean
+# anything, and a seed carried in the state is what makes the same program
+# render the same noise twice.
+
+#: **Which stream of randomness.**  Any integer will do and no two are
+#: alike; what matters is that the same one gives the same sound twice,
+#: which is what makes a render reproducible and an oracle possible.
+#:
+#: An alias rather than a type of its own: it is an `Int` and arithmetic on
+#: it is meaningful (`seed + 1` is a perfectly good second stream).  What
+#: the name buys is a signature that says *which* integer is wanted —
+#: `dust : Seed -> Sig Float -> Sig Float` reads, and
+#: `dust : Int -> Sig Float -> Sig Float` does not.
+type Seed = Int
+
+#: **White noise** — flat, and the source the four colours below filter.
+#:
+#: Give two of them different seeds and they are uncorrelated, which is
+#: what a stereo noise bed needs.  Named for its colour rather than for
+#: being noise, now that there are five of those: `white 1` beside
+#: `pink (white 1)` reads as one family.
+white : Seed -> Sig Float
+white seed = map rngOf (scan rngNext (Rng seed) ticks)
+
+#: **Random impulses at an average rate** — SuperCollider's `Dust`.
+#:
+#: `dust 20.0` fires about twenty times a second, at unpredictable
+#: instants, each impulse a value in 0.0 .. 1.0 and every other sample
+#: zero.  It is the sparse counterpart of `white`: where white noise is a
+#: texture, this is *events*, and what it is for is triggering things —
+#: multiply it into a percussive envelope, or feed it to a resonant filter
+#: and the filter rings once per impulse.
+#:
+#: **The density is a signal**, so it can move: `dust (5.0 + 40.0 *
+#: unipolar (sine 0.2))` thickens and thins over five seconds, which is a
+#: shape you would otherwise have to write a sequencer for.  A literal is
+#: already a constant signal, so `dust 20.0` costs nothing extra.
+#:
+#: One draw of the generator decides both whether an impulse happens and
+#: how large it is, which is what `Dust` does and is why the impulses are
+#: uniform rather than all the same height.
+#:
+#: The seed comes first, as `white`'s does: two `dust` at one density are
+#: the *same* impulses unless they are seeded apart, and a drum kit whose
+#: four voices fire together is not a kit.
+dust : Seed -> Sig Float -> Sig Float
+dust seed density = zip dustAt (scan rngPer (Rng seed) density) density
+
+# ── Colouring noise ──────────────────────────────────────────────────────
+#
+# **These are filters, not generators.**  `pink (white 1)` is pink noise;
+# the four names are the *slopes* that turn white into each colour, and
+# each is an ordinary filter that will happily colour anything else you
+# give it.  Two names rather than one because a colour is a property of
+# the spectrum and `white` is where the randomness is — and because
+# `brown (dust 40.0 2)` is a perfectly good thing to want.
+#
+#     white   flat            `white`
+#     pink    −3 dB/octave    equal energy per octave; the natural one
+#     brown   −6 dB/octave    white, integrated: rumble, wind, surf
+#     blue    +3 dB/octave    pink, differentiated: hiss with body
+#     violet  +6 dB/octave    white, differentiated: pure hiss
+
+#: −3 dB/octave.  **The one that sounds even** — equal energy per octave
+#: rather than per hertz, which is how hearing is spaced, so pink noise is
+#: the noise that does not seem to lean towards the top.
+#:
+#: Three one-pole filters summed, which is Paul Kellet's approximation:
+#: within about a tenth of a decibel across the audible range, and three
+#: multiply-adds rather than the octave-band bank the exact answer needs.
+pink : Sig Float -> Sig Float
+pink s = map pinkOut (scan pinkNext pinkZero s)
+
+#: −6 dB/octave.  White noise integrated — the slope of a river, distant
+#: thunder, wind.
+#:
+#: `lowpassOnePole` at 20 Hz *is* the leaky integrator this wants, and
+#: writing it that way is what makes the colour right at every sample rate
+#: rather than at the one the coefficient was picked for.  The gain goes
+#: as √rate because an integrator's output does, which is the one place a
+#: filter here has to know what rate it is running at.
+brown : Sig Float -> Sig Float
+brown s = !(0.0615 * sqrt sampleRate) * lowpassOnePole 20.0 s
+
+#: +6 dB/octave.  The first difference — white noise differentiated, which
+#: is all treble and the harshest of the four.
+violet : Sig Float -> Sig Float
+violet s = map violetOut (scan violetNext (Diff 0.0 0.0) s)
+
+#: +3 dB/octave.  `violet (pink s)`, and that is not a trick: differentiating
+#: adds six decibels an octave to pink's minus three.
+blue : Sig Float -> Sig Float
+blue s = 4.2 * violet (pink s)
+
+# ── Envelopes ────────────────────────────────────────────────────────────
+#
+# **An envelope is a shape you name and a signal you multiply by.**  Write
+# the shape as an `Adsr`, hand it to `adsr` with the note's gate, and the
+# result is a `Sig Float` between 0 and 1 — so a voice reads
+#
+#     sine hz * adsr env g
+#
+# and there is nothing else to it.  Two envelopes on one note cost no extra
+# state, which is what makes a second one for the filter cutoff ordinary
+# rather than expensive.
+#
+# **Two kinds, and the difference is state.**  `adsr` and `perc` are pure
+# functions of three integers — the instant, the sample the note began at,
+# and the sample it was released at — recomputed every sample, which is
+# cheap and exact and *cannot change shape while a note sounds*.  `slew`
+# has state, so its rate and its target may both be signals and it moves
+# toward what you ask rather than to it.  Reach for the first for a fixed
+# envelope and the second for one a knob turns.
+#
+# The convention underneath is `audio.ges`'s: `on` and `off` are **1-based**
+# sample indices and **zero means nothing** — `on = 0` has never played,
+# `off = 0` is still held.  That is what makes an untouched bank silent.
+
+#: Attack, decay, sustain, release.  The three times are in seconds; the
+#: sustain is a level in 0.0 .. 1.0.
+#:
+#: `adsr` is what turns one of these into a signal.
+Adsr := Adsr Float Float Float Float
+
+#: `adsrOf env n on off` — the envelope's level at instant `n`, for a note
+#: that began at `on` and was released at `off`.
+#:
+#: **The whole envelope, as arithmetic.**  `adsr` is this with the
+#: instants read off a `Sig Gate`, and is what a `voices` bank wants; this
+#: is the one to reach for when you already know when the note is —
+#: `sine.ges` holds one note between two constants and needs no `scan` of
+#: its own because of it.
+adsrOf : Adsr -> Int -> Int -> Int -> Float
+adsrOf e n on off = case on of
+    0 -> 0.0
+    _ -> adsrStarted e n on off
+
+#: A one-shot exponential decay — the envelope a plucked or struck sound
+#: wants, which does not sustain and does not care when the key came up.
+#: The rate is how many e-foldings a second.  `perc` is its signal form.
+percOf : Float -> Int -> Int -> Float
+percOf rate n on = case on of
+    0 -> 0.0
+    _ -> percStarted rate n on
+
+#: The note's envelope, from its own timing.  **The one that removes the
+#: bookkeeping**: `on`, `off` and the instant were what a voice carried a
+#: counter for, and all three are here.
+adsr : Adsr -> Sig Gate -> Sig Float
+adsr e g = zipSig (t w => case w of
+    Gate on off -> adsrOf e t on off) ticks g
+
+#: The one-shot decay, the same way — for a struck or plucked voice, which
+#: does not sustain and does not care when the key came up.
+perc : Float -> Sig Gate -> Sig Float
+perc rate g = zipSig (t w => case w of
+    Gate on off -> percOf rate t on) ticks g
+
+#: When the note began, as a signal — for a voice whose own state is a fold
+#: over the instant rather than a function of it.
+onset : Sig Gate -> Sig Int
+onset g = map (w => case w of
+    Gate on off -> on) g
+
+#: `slew rate target` — move toward the target at that rate.  **Both are
+#: signals**, so both may evolve.
+#:
+#: `adsr` is a pure function of three integers: it recomputes the whole
+#: curve every sample, which is what makes it cheap and exact.  What that
+#: costs is that its shape cannot *change* while a note sounds — give it a
+#: new decay halfway through and the level jumps to wherever the new curve
+#: says it should be, which is a click.
+#:
+#: This is the other kind of envelope, and the one a knob can turn.  It
+#: has state, so it moves *toward* what you ask rather than *to* it, and
+#: its output changes by at most `rate` per sample — so nothing you ask of it
+#: can make it jump.  It is the same one-pole `audio.ges`'s `lowpass` is,
+#: with the coefficient let out.
+#:
+#: A portamento is `slew rate (!hzOf s)`, a smoothed knob is
+#: `slew 0.001 level`, and an ADSR whose segments move is a target of 1,
+#: the sustain, or 0 by stage, at that stage's rate.
+slew : Sig Float -> Sig Float -> Sig Float
+slew rate target = scan slewStep 0.0
+    (zipSig (r x => SlewIn r x) rate target)
+
+# ── Filters ──────────────────────────────────────────────────────────────
+#
+# `audio.ges` has `lowpass`, a one-pole taking a *coefficient*.  These take
+# a **cutoff in hertz and a resonance**, which is what a musician means,
+# and they are the reason this file exists at all.
+#
+# **Every filter here is a signal in and a signal out**, and picking one is
+# picking two things: which circuit, and which band.
+#
+# | | |
+# |---|---|
+# | one pole, no resonance | `lowpassOnePole`, `highpassOnePole` |
+# | state variable, 12 dB | `lowpassSvf`, `bandpassSvf`, `highpassSvf`, `notchSvf` |
+# | ladder, 24 dB | `lowpassLadder` |
+#
+# **Whether the cutoff moves is not a third choice.**  It is a `Sig Float`,
+# and a number is one — so
+#
+#     lowpassSvf 800.0 0.4 voice                       a fixed filter
+#     lowpassSvf (200.0 + 3000.0 * adsr e g) 0.4 v a sweep
+#
+# are the same function.  There used to be a `sweep…` beside each of these
+# for the second form; they were these written twice, and the fixed form
+# pays nothing for the merge because a literal folds back into the step
+# (`audioextract._fold_constants`).
+#
+# A sweep is what a filter envelope is for.  The two circuits sound unlike
+# each other and that is the only reason to have both — the ladder is
+# steeper and its resonance thins the bass as it climbs, which is the
+# character rather than a defect.
+#
+# The integrators, the coefficients and the step functions are below
+# `internal`.  Nothing above needs them.
+
+# -- one pole, by frequency -----------------------------------------------
+
+#: A gentle 6 dB/octave lowpass, by frequency rather than by coefficient.
+#:
+#: Named for its circuit like the others: `audio.ges`'s `lowpass` is the
+#: same filter taking a raw *coefficient*, which is an implementation
+#: detail rather than a thing a musician asks for, and it keeps the plain
+#: name because twenty-one files already spell it that way.
+lowpassOnePole : Sig Float -> Sig Float -> Sig Float
+lowpassOnePole hz s = scan onePoleNext 0.0
+    (zipSig (x h => OnePoleIn x h) s hz)
+
+#: Its complement: what the lowpass took away.
+highpassOnePole : Sig Float -> Sig Float -> Sig Float
+highpassOnePole hz s = zipSig (x lo => x - lo) s (lowpassOnePole hz s)
+
+#: Remove the constant offset a rectified or asymmetric waveshaper leaves.
+#: Not decoration — a DC offset costs headroom and does not make a sound,
+#: so it is loudness thrown away.
+dcBlock : Sig Float -> Sig Float
+dcBlock s = highpassOnePole 12.0 s
+
+# -- state variable, with resonance ---------------------------------------
+#
+# The topology-preserving transform of the Chamberlin SVF: two integrators,
+# stable at every cutoff, and all four responses available from one state
+# for one filter's worth of work.  `res` runs 0.0 .. 1.0 the way a person
+# expects rather than as a Q, and 1.0 stops just short of oscillating.
+
+#: A resonant lowpass.  The ordinary way to use the SVF.
+#:
+#: **The cutoff is a signal, and a number is one.**  `lowpassSvf 800.0 0.4
+#: voice` is a fixed filter and `lowpassSvf (220.0 + 2600.0 * adsr
+#: filtEnv g) 0.4 voice` is a sweep — the same function, because a literal
+#: is a constant signal (`Floating (Sig Float)`) and
+#: `audioextract._fold_constants` folds it back into the step, so the fixed
+#: form costs what a fixed form should.  There used to be a separate
+#: `sweepSvf` for the second, and it was this written twice.
+#:
+#: The resonance stays a `Float`: one that moves is rare, and it reaches
+#: the step as a folded constant either way.
+lowpassSvf : Sig Float -> Float -> Sig Float -> Sig Float
+lowpassSvf hz res s = map svfLow
+    (scan svfNext svfZero (zipSig (x h => SvfIn x h res) s hz))
+
+#: Only the band around the cutoff — the resonant peak on its own.
+bandpassSvf : Sig Float -> Float -> Sig Float -> Sig Float
+bandpassSvf hz res s = map svfBand
+    (scan svfNext svfZero (zipSig (x h => SvfIn x h res) s hz))
+
+#: Everything above the cutoff.
+highpassSvf : Sig Float -> Float -> Sig Float -> Sig Float
+highpassSvf hz res s = map svfHigh
+    (scan svfNext svfZero (zipSig (x h => SvfIn x h res) s hz))
+
+#: Everything *except* the band around the cutoff — the fourth response the
+#: one state already computes, and the one a phaser is built from.
+notchSvf : Sig Float -> Float -> Sig Float -> Sig Float
+notchSvf hz res s = map svfNotch
+    (scan svfNext svfZero (zipSig (x h => SvfIn x h res) s hz))
+
+# -- ladder ---------------------------------------------------------------
+#
+# Four one-poles in series with the output fed back to the input, which is
+# the arrangement every transistor-ladder filter is a version of.
+
+#: A four-pole lowpass — steeper than the SVF, and its resonance thins the
+#: bass as it climbs, which is the character rather than a defect.
+#:
+#: The cutoff is a signal here for the reason it is on `lowpassSvf`, and
+#: `sweepLadder` is gone for the same one.
+lowpassLadder : Sig Float -> Float -> Sig Float -> Sig Float
+lowpassLadder hz res s = map ladderOut
+    (scan ladderNext ladderZero (zipSig (x h => LadderIn x h res) s hz))
+
+# -- resonator ------------------------------------------------------------
+#
+# **A filter asked for in the units a struck object is described in.**
+# Every other filter here takes a resonance in 0.0 .. 1.0, which is the
+# right dial for a synthesiser and the wrong one for a bell: what a bell
+# has is a *decay time*, and turning a 0.0 .. 1.0 knob until it sounds
+# right is not a design, it is a search.
+#
+# It is also the one the SVF cannot reach.  `svfK` floors its damping at
+# 0.02 so the filter cannot oscillate on its own, and that floor caps the
+# ring: **measured, `bandpassSvf 220.0 1.0` decays to −60 dB in 0.503 s**
+# whatever else is asked of it.  That is a marimba bar (~0.5 s) and a drum
+# head (~0.2 s) and it is nowhere near a tubular bell (3–10 s).  The cap is
+# right for a filter you sweep; a resonator is a different instrument.
+
+#: **A struck resonance** — a frequency, how long it takes to die away, and
+#: whatever is exciting it.
+#:
+#:     resonate 440.0 3.0 strike
+#:
+#: The decay is in **seconds to −60 dB**, which is how a physical object's
+#: ring is measured and quoted.  A bell is 3 to 10, a marimba bar about
+#: 0.5, a drum head about 0.2, a woodblock 0.05.
+#:
+#: This is what modal synthesis is made of: an object that has been struck
+#: is a sum of these, one per mode, each at its own frequency and its own
+#: decay.  `examples/audio/bell.ges`, `bar.ges` and `membrane.ges` are the
+#: same four lines with different numbers in them, and the numbers are the
+#: instrument.
+#:
+#: Two poles and no zeros, normalised so the peak of the impulse response
+#: is about 1 — measured 0.87 at a 0.05 s decay rising to 0.998 at 3 s, and
+#: 0.97 to 0.99 across the range from 110 Hz to 1760 Hz.  So a mode's level
+#: is the number you multiply it by rather than a number you discover.  Unlike `bandpassSvf` it **will** ring for
+#: minutes if asked, which also means a decay long enough and an excitation
+#: loud enough will pile up; `limit` after a bank of them is not optional.
+resonate : Sig Float -> Float -> Sig Float -> Sig Float
+resonate hz decay s = map resoOut
+    (scan resoNext resoZero (zipSig (x h => ResoIn x h decay) s hz))
+
+# ── Saturation and shaping ───────────────────────────────────────────────
+
+#: A soft limiter: linear near zero, curving into ±1 rather than folding.
+#:
+#: `x - x³/3` is the cubic every analogue emulation starts from — it adds
+#: only odd harmonics, so it thickens without sounding rectified — held
+#: flat beyond the point where the cubic would turn back down.
+softClip : Float -> Float
+softClip x = case abs x < 1.0 of
+    True -> x - x * x * x / 3.0
+    False -> sign x * 0.6666666666666666
+
+#: Drive into the soft clipper and back out at a matched level, so turning
+#: the amount up changes the *tone* rather than only the volume.
+driveOf : Float -> Float -> Float
+driveOf amount x = softClip (x * (1.0 + amount * 9.0)) * 1.5
+
+#: The same, as a signal transformation.
+drive : Float -> Sig Float -> Sig Float
+drive amount s = map (x => driveOf amount x) s
+
+#: Fold the signal back on itself instead of limiting it — harsh, metallic,
+#: and completely unlike `softClip` at the same input level.
+wrapFold : Float -> Float
+wrapFold x = case abs x < 1.0 of
+    True -> x
+    False -> sign x * 2.0 - x
+
+# ── Dynamics ─────────────────────────────────────────────────────────────
+#
+# **How loud is it right now**, and what to do about it.  Both are ordinary
+# folds — a compressor needs no machinery the library did not already have,
+# which is why it can exist while a reverb cannot: nothing here looks
+# backwards further than one sample.
+
+#: **A peak envelope follower** — how loud the signal has been, lately.
+#:
+#: `follow 0.005 0.2 s` rises to a new peak in about 5 ms and falls away
+#: over about 200 ms, which is roughly how a VU meter behaves and exactly
+#: what a compressor's detector is.  Useful on its own: a side-chain, a
+#: level meter, an auto-wah (`lowpassSvf (200.0 + 4000.0 * follow …)`).
+#:
+#: Times are in **seconds**, and asymmetric on purpose: a detector that
+#: rose and fell at the same rate would either miss transients or chatter.
+follow : Float -> Float -> Sig Float -> Sig Float
+follow attack release s =
+    scan (y x => followStep (rateCoeff attack) (rateCoeff release) y x) 0.0
+         (map abs s)
+
+#: A compressor's settings, as one value — the shape `Adsr` and `Patch`
+#: already use for the same reason.
+#:
+#: `Comp threshold ratio attack release`, with the threshold **linear**
+#: rather than in decibels (0.5 is −6 dB; `dbGain (0.0 - 6.0)` writes it
+#: that way if you prefer) and the ratio the usual n:1 — 4.0 is gentle,
+#: 20.0 is a limiter.
+Comp := Comp Float Float Float Float
+
+#: **Turn down what is loud**, by the ratio, above the threshold.
+#:
+#:     compress (Comp 0.3 4.0 0.005 0.15) mix
+#:
+#: Hard knee, feed-forward, peak-detecting: the plainest compressor there
+#: is, and the one whose behaviour you can predict from its numbers.  It
+#: applies **no makeup gain** — the output is quieter than the input by
+#: construction, and multiplying by a number afterwards is a thing you can
+#: see rather than a thing this does behind your back.
+compress : Comp -> Sig Float -> Sig Float
+compress c s = s * map (e => compGain c e)
+                       (follow (compAttack c) (compRelease c) s)
+
+#: A limiter: the same compressor with the ratio turned up and the attack
+#: turned down, because "stop it going over 0.5" is what a master bus
+#: wants and spelling the numbers out every time invites a wrong one.
+#:
+#: **It approaches the ceiling; it does not guarantee it.**  Measured
+#: against a 220 Hz sine and a ceiling of 0.5: four times over comes out
+#: at 0.541 and ten times over at 0.571, so the overshoot grows slowly and
+#: does not run away.
+#: Two reasons, and both are the topology rather than the numbers: a
+#: finite ratio always lets a little through, and a peak detector's
+#: envelope sags between the peaks of a low note, so the gain is loosest
+#: exactly where the waveform is climbing again.  Faster ballistics do not
+#: fix the second — measured across three settings, the overshoot did not
+#: move.
+#:
+#: A brick wall needs **lookahead**, and `brickwall` below is it.  This one
+#: is kept because a limiter that does not delay the signal is the one a
+#: live path wants: `brickwall` costs 2 ms of latency, and there are places
+#: that is worse than an overshoot.  `clip` after this is still a hard
+#: bound if you want one without the delay.
+limit : Float -> Sig Float -> Sig Float
+limit ceiling s = compress (Comp ceiling 100.0 0.001 0.05) s
+
+#: **A brick-wall limiter** — `limit` that sees the peak coming.
+#:
+#:     brickwall ceiling s
+#:
+#: The gain is computed from the signal and applied to a copy delayed by
+#: 2 ms, so it is already down by the time the peak arrives instead of
+#: chasing it.  That is the one thing `limit` cannot do and the reason it
+#: overshoots.
+#:
+#: **The bound is guaranteed by the `clip` at the end, not by the
+#: limiter**, and that is worth being blunt about because the first version
+#: of this had no clip and did not hold: a 220 Hz sine came out at the
+#: ceiling, and the first piece of real music put through it — drums, so
+#: transients of well under a millisecond — went **2.71 in, 1.93 out**.
+#: Two reasons, both structural.  A peak follower with an attack time
+#: constant reaches 63% of a step in one of them, so an attack as long as
+#: the lookahead has not arrived when the delayed peak does; the attack
+#: here is 0.2 ms against 2 ms of lookahead, ten time constants, which is
+#: caught up.  And a *finite* ratio lets the excess through divided rather
+#: than removed — at ratio 100 a signal three times the ceiling still aims
+#: 2% above it.  The limiter's job is to make the clip rare; the clip's job
+#: is to make the ceiling true.
+#:
+#: **It costs 2 ms of latency**, which is not free and is why `limit` is
+#: still there.  On a master bus it does not matter; between a key and a
+#: sound it is the difference you can feel.
+brickwall : Float -> Sig Float -> Sig Float
+brickwall ceiling s = map (x => ceilAt ceiling x) (brickRaw ceiling s)
+
+#: The limiter proper, before the ceiling is made true.
+brickRaw : Float -> Sig Float -> Sig Float
+brickRaw ceiling s =
+    tap (seconds 0.004) (!(sampleRate * 0.002)) s * brickGain ceiling s
+
+# ── Delay ────────────────────────────────────────────────────────────────
+#
+# **The first thing built on `signal.ges`'s `feedback`**, which is a `scan`
+# with a longer arm: `out[t] = f (out[t-n], s[t])`, with `n` fixed before
+# the program runs.  `spec/delaylines.md` is the design and says what is
+# still missing — a `tap` you can read at a moving position, and a `loop`
+# with a *filter* in it, which is what Karplus-Strong and every waveguide
+# want.  What is here is what a plain delay line gives you.
+
+#: **An echo.**  `echo 0.25 0.5 s` repeats `s` a quarter of a second later
+#: at half the level, and again, and again — each repeat quieter by the
+#: same factor.
+#:
+#: The time is in **seconds** and folds to a sample count before the
+#: program runs; `feedback` is what refuses one that cannot.  Feedback at
+#: or above 1.0 never dies away and will grow without bound, so it is
+#: clamped just below.
+echo : Float -> Float -> Sig Float -> Sig Float
+echo time feedbackAmount s =
+    feedback (seconds time) (y x => x + clamp 0.0 0.98 feedbackAmount * y) s
+
+#: **A comb filter** — the same line with the repeats fast enough to be
+#: heard as a *pitch* rather than as echoes.
+#:
+#: A delay of `1/hz` seconds fed back on itself resonates at `hz` and at
+#: every multiple of it, which is the comb its response is named for.  At
+#: 100 Hz and above it is a tone; below about 20 it is an echo, and the
+#: only difference is the number.
+#:
+#: This is the resonator a plucked string is made of, and what it is
+#: missing is a *filter* in the loop to make the high partials die first.
+#: Without one it rings all its harmonics equally, which is a comb and not
+#: yet a string — `string` below is that comb with the filter in it.
+comb : Float -> Float -> Sig Float -> Sig Float
+comb hz feedbackAmount s =
+    feedback (seconds (1.0 / clamp 1.0 nyquist hz))
+             (y x => x + clamp 0.0 0.98 feedbackAmount * y) s
+
+#: **A plucked string** — Karplus-Strong, which is `comb` with an averaging
+#: filter in the loop, and the smallest physical model there is.
+#:
+#:     string hz decay s
+#:
+#: `hz` is the pitch, `decay` is how many seconds it takes to fall 60 dB —
+#: `resonate`'s parameter and the same meaning — and `s` excites it.
+#:
+#: The pitch *is* the line's length:
+#: a round trip of `sampleRate / hz` samples is a wave of that frequency,
+#: so the number is fixed before the program runs, as every delay length
+#: here is — a bent note is a `tap` with a moving position, not this.
+#:
+#: **The length is a whole number of samples, so the pitch is quantised.**
+#: At 44100 Hz an A at 220 asks for 200.45 samples, gets 200, and plays
+#: 220.5 — about four cents sharp, which is small.  At 8000 it asks for
+#: 36.4, gets 36, and plays 222.2, which is not.  The error grows with the
+#: pitch and shrinks with the sample rate, and the cure is a fractional
+#: delay: `loop` reads whole slots, `tap` interpolates.
+#:
+#: The string keeps whatever it is handed and filters it down, so what you
+#: excite it with is what it sounds like.  A few milliseconds of `white` is
+#: the classic pluck; a single impulse is a much thinner tap on a wire; and
+#: `dust` gives a string being scratched.
+#:
+#:     stringVoice g s = string (hzOfKey s) 2.5 (white 1 * perc 400.0 g)
+#:
+#: Averaging two neighbouring samples is a gentle lowpass, so every round
+#: trip loses the highest partial first and the sound dies from the top
+#: down, which is what a real string does — and it is the whole difference
+#: between this and the `comb` underneath it.
+#:
+#: **The `decay` is not decoration, and textbook Karplus-Strong is wrong
+#: without it.**  The averaging filter has gain 1 at zero frequency, so
+#: whatever DC the excitation carried circulates undamped: measured, a
+#: noise burst at 880 Hz left the audible part gone within a third of a
+#: second and a **−0.137 offset sitting there for good**.  That is
+#: inaudible alone, stacks across voices, and eats headroom until it clips.
+#: A loop gain below 1 damps it with everything else.
+#:
+#: The gain is applied once per *round trip*, and there are `hz` of those a
+#: second — so it is raised to the pitch before it reaches the ear.  The
+#: exponent divides by the length again to undo that, which is what makes
+#: `decay` mean the same **seconds** at every pitch, as `resonate`'s does.
+#: Measured across two octaves at `decay` 2.0, the tail at 0.85 s is within
+#: a factor of three at every pitch, where the raw filter alone left 110 Hz
+#: ringing after 880 Hz had gone silent.
+#:
+#: **Excite it with about one line's worth of sound.**  The string sums
+#: whatever arrives during a round trip, so a burst longer than the line
+#: stacks: 60 samples of noise at 0.7 into an 880 Hz string — a 9-sample
+#: line at 8 kHz — measured a peak of **1.35**.  A short note wants a short
+#: burst, and `clip` is there for when it does not.
+#:
+#: Put a different filter in `loop`'s step to damp it differently — that is
+#: what a waveguide is, and this is the shortest one.
+string : Float -> Float -> Sig Float -> Sig Float
+string hz decay s = map ksOut
+    (loop (stringLen hz)
+          (prev old x => ksNext (stringGain hz decay) prev old x)
+          (Ks 0.0 0.0) s)
+
+#: **A Schroeder allpass** — a delay that passes every frequency at full
+#: strength and only rearranges *when* each arrives.
+#:
+#:     allpass time g s
+#:
+#: `time` is the delay in seconds and `g` how much is fed back, below 1.
+#: Its magnitude response is flat — measured, four octaves within a few
+#: percent of each other — so it colours nothing and smears everything,
+#: which is exactly what a reverb needs between its combs: a comb alone
+#: repeats at an audible rate and sounds like a corridor, and a chain of
+#: these turns the repeats into a wash.
+#:
+#: Alone it is nearly inaudible on a steady sound and obvious on a
+#: transient, which is the usual way to hear phase.
+#:
+#: The state carries two numbers because the output needs both ends of the
+#: line at once — `v[t] = x + g * v[t-n]` and `y = v[t-n] - g * v[t]` — and
+#: a `feedback` step only ever sees one of them.
+allpass : Float -> Float -> Sig Float -> Sig Float
+allpass time g s = map apOut
+    (loop (seconds time)
+          (prev old x => apStep (clamp 0.0 0.98 g) prev old x)
+          (Ap 0.0 0.0) s)
+
+#: **A comb with a lowpass in the loop** — `echo` that gets duller each
+#: time round instead of repeating unchanged.
+#:
+#:     damped time feedbackAmount damp s
+#:
+#: `damp` from 0 to 1 is how much of each repeat's top end is lost on the
+#: way round.  At 0 this is `echo`; at 0.5 a bright sound turns to a dull
+#: one over a few repeats, which is what air and soft walls do to a room
+#: and what makes a reverb built on it sound like a place rather than a
+#: bucket.
+#:
+#: **This is the case `loop` exists for.**  The filter's state has to
+#: advance every sample while the line reaches back `n` of them, so the
+#: step needs the state from an instant ago *and* the state from a round
+#: trip ago — the two arms, and neither is reachable from `feedback`.
+damped : Float -> Float -> Float -> Sig Float -> Sig Float
+damped time feedbackAmount damp s = map cmOut
+    (loop (seconds time)
+          (prev old x => cmStep (clamp 0.0 0.98 feedbackAmount)
+                                (clamp 0.0 0.95 damp) prev old x)
+          (Cm 0.0 0.0) s)
+
+#: **A room** — Schroeder's reverb, which is four damped combs in parallel
+#: into two allpasses in series.
+#:
+#:     reverb decay damp s
+#:
+#: `decay` is roughly how many seconds the tail takes to fall 60 dB and
+#: `damp` how fast the top end goes with it.  `0.25 * reverb 2.0 0.4 s`
+#: added to `s` is a hall; the reverb alone is the wet signal and mixing it
+#: is the caller's, because how wet a sound wants to be is a mix decision
+#: and not a property of the room.
+#:
+#: The four comb lengths are close together but share no common divisor —
+#: 29.7, 37.1, 41.1 and 43.7 ms — so their repeats interleave instead of
+#: landing on top of each other.  Delays that divide evenly would ring on
+#: one pitch, which is the difference between a room and a comb filter.
+#:
+#: **It is not free.** Four lines of ~40 ms plus two allpasses is about
+#: 7000 samples of state at 44100 Hz, and the state is allocated whether or
+#: not anything is sounding.
+reverb : Float -> Float -> Sig Float -> Sig Float
+reverb decay damp s = allpass 0.005 0.7 (allpass 0.0017 0.7
+    (0.25 * (damped 0.0297 (reverbGain 0.0297 decay) damp s
+           + damped 0.0371 (reverbGain 0.0371 decay) damp s
+           + damped 0.0411 (reverbGain 0.0411 decay) damp s
+           + damped 0.0437 (reverbGain 0.0437 decay) damp s)))
+
+#: **A flanger** — a very short delay whose length is swept by an LFO,
+#: added back to the dry signal.
+#:
+#:     flanger rate depth s
+#:
+#: `rate` is the sweep in hertz — a fraction of one is the usual — and
+#: `depth` from 0 to 1 how far it swings.  The sum of a signal and a
+#: delayed copy of itself cancels at every frequency whose half-period the
+#: delay matches, so a delay of a few milliseconds puts a comb across the
+#: audible range, and moving it drags the notches through the sound.
+#:
+#: A *fixed* position is a feedforward comb and is one line of `tap`; what
+#: makes a flanger is that the position moves.  `chorus` is the same thing
+#: with a longer delay, and the length is the whole difference between
+#: them — short enough to hear as notches, or long enough to hear as a
+#: second voice slightly out of tune.
+flanger : Float -> Float -> Sig Float -> Sig Float
+flanger rate depth s = 0.5 * (s + tap (seconds 0.012)
+    (sweepPos 0.005 (0.004 * clamp 0.0 1.0 depth) rate) s)
+
+#: **A chorus** — `flanger` with the delay long enough to be heard as a
+#: second player rather than as a filter.
+#:
+#:     chorus rate depth s
+#:
+#: 25 ms rather than 5.  At that length the sweep is heard as *pitch*
+#: rather than as notches, because a delay that is changing length is a
+#: doppler shift — which is what two instruments not quite in tune sound
+#: like, and why this thickens a single voice.
+chorus : Float -> Float -> Sig Float -> Sig Float
+chorus rate depth s = 0.5 * (s + tap (seconds 0.045)
+    (sweepPos 0.025 (0.015 * clamp 0.0 1.0 depth) rate) s)
+
+# ── Stereo ───────────────────────────────────────────────────────────────
+#
+# The output frame, declared here so that a program which wants two
+# channels does not have to invent the type — and so that two programs mean
+# the same thing by it.  Field order is channel order: left, then right.
+
+Stereo := Stereo Float Float
+
+#: **Two channels are a number, so they do arithmetic.**  `padMix +
+#: bassMix` is a mix and `0.85 * mix` is a fader, which is what those two
+#: things are — and the alternative was `mixStereo` and `gainStereo`, four
+#: names for `+` and `*` at two types.  `audio.ges` makes the same argument
+#: for `Sig Float`, and `spec/frp_lesson.md` is the argument itself.
+#:
+#: `*` is componentwise, which is what a gain wants and is *not* a
+#: meaningful "multiply two stereo signals" — there is no such operation in
+#: audio and nothing here pretends otherwise.
+instance Num Stereo where
+    fromInteger n = Stereo (toFloat n) (toFloat n)
+    (+) a b = case a of
+        Stereo la ra -> case b of
+            Stereo lb rb -> Stereo (la + lb) (ra + rb)
+    (-) a b = case a of
+        Stereo la ra -> case b of
+            Stereo lb rb -> Stereo (la - lb) (ra - rb)
+    (*) a b = case a of
+        Stereo la ra -> case b of
+            Stereo lb rb -> Stereo (la * lb) (ra * rb)
+
+#: What `0.85 * mix` means: the same number in both channels.
+instance Floating Stereo where
+    fromFloat x = Stereo x x
+
+instance Num (Sig Stereo) where
+    fromInteger n = constSig (Stereo (toFloat n) (toFloat n))
+    (+) a b = zipSig (x y => x + y) a b
+    (-) a b = zipSig (x y => x - y) a b
+    (*) a b = zipSig (x y => x * y) a b
+
+instance Floating (Sig Stereo) where
+    fromFloat x = constSig (Stereo x x)
+
+#: `audio.ges` declares `Wrap` and `Clip` and gives them their `Float` and
+#: `Sig Float` instances; the two frame instances belong here, where the
+#: frame is.  Both are componentwise, which is the only reading either has
+#: — a stereo bus is clipped one channel at a time, not by its sum.
+instance Wrap Stereo where
+    wrap s = case s of
+        Stereo l r -> Stereo (wrap l) (wrap r)
+
+instance Wrap (Sig Stereo) where
+    wrap s = map wrap s
+
+instance Clip Stereo where
+    clip s = case s of
+        Stereo l r -> Stereo (clip l) (clip r)
+
+instance Clip (Sig Stereo) where
+    clip s = map clip s
+
+#: Equal-power pan.  The position runs -1.0 (hard left) to 1.0 (hard
+#: right), and the two channels stay at a constant *power* across the
+#: sweep rather than a constant sum — which is what keeps a sound from
+#: dipping in the middle.
+panOf : Float -> Float -> Stereo
+panOf p x = panAngle x (0.7853981633974483 * (clamp (negate 1.0) 1.0 p + 1.0))
+
+#: One channel into two, unchanged.
+widenOf : Float -> Stereo
+widenOf x = Stereo x x
+
+#: Both channels summed back to one — for metering, or a mono send.
+monoOf : Stereo -> Float
+monoOf s = case s of
+    Stereo l r -> (l + r) * 0.5
+
+#: Place a mono signal in the field.
+pan : Float -> Sig Float -> Sig Stereo
+pan p s = map (x => panOf p x) s
+
+widen : Sig Float -> Sig Stereo
+widen s = map widenOf s
+
+#: Two mono signals *are* a stereo signal — the cheapest way to get width,
+#: and what `stereo.ges` does with two detuned oscillators.
+pair : Sig Float -> Sig Float -> Sig Stereo
+pair l r = zipSig Stereo l r
+
+# ── FM ───────────────────────────────────────────────────────────────────
+#
+# **FM here is arithmetic, and the bank below is the packaged version.**
+#
+# Phase modulation is a sine read at a phase you have added something to,
+# and `phase` is an ordinary `Sig Float` in turns — that was decided when
+# the `Phase` newtype came out, and this is what it bought.  So a two
+# operator patch is one line and the modulator can be *anything the library
+# produces*:
+#
+#     pm 440.0 (2.0 * sine 880.0)          two operators
+#     pm 440.0 (2.0 * pm 880.0 (1.5 * sine 1760.0))       three, stacked
+#     pm 440.0 (1.2 * saw 110.0)           a modulator that is not a sine
+#     pm 440.0 (0.4 * pink (white 1))      …or not a tone at all
+#     pm 440.0 (2.0 * adsr env g * sine 880.0)      with its own envelope
+#
+# and a filter, a delay line or another instrument can sit anywhere in
+# that expression, because every part of it is an ordinary signal.
+#
+# **The bank is not the interface, it is an optimisation**: four operators
+# in one node with one state record, and a `Patch` you can store and pass
+# around.  Reach for it when you want a bank; reach for `pm` when you want
+# FM woven into something else.
+
+#: **Phase modulation** — a carrier at `hz`, its phase shifted by `mod`.
+#:
+#: The depth is in **turns**, like every phase in this file: `pm hz (d *
+#: sine m)` shifts the carrier by `d` whole cycles at full modulator
+#: swing.  Every FM tutorial you will read quotes the *index* instead,
+#: which is radians — so an index of 2π ≈ 6.3 is a depth of 1.0, and the
+#: useful indices of 1 to 8 are depths of about **0.15 to 1.3**.
+#:
+#: One `map` and one addition.  It is here for the name rather than for the
+#: work: `map sineOf (phase hz + mod)` was always legal and nothing said so.
+pm : Sig Float -> Sig Float -> Sig Float
+pm hz mod = map sineOf (phase hz + mod)
+
+#: **An operator modulating itself** — the diagonal, as one oscillator.
+#:
+#: Feedback on a single sine sweeps it towards a sawtooth as the amount
+#: rises, and it is the cheapest bright waveform there is.  Measured
+#: against a plain sine at 250 Hz: an amount of 0.0 is bit-identical to
+#: `sine`, and 0.5 is five times as bright.
+#:
+#: A *cycle*, which `pm` cannot express — the carrier reads its own output
+#: — so this is `feedback 1`, the one-sample delay line, with the sine
+#: inside the loop.  Useful amounts are under about 1.0; past that it
+#: turns to noise, which is occasionally what you want.
+pmSelf : Sig Float -> Float -> Sig Float
+pmSelf hz amount = feedback 1 (y x => sineOf (x + amount * y)) (phase hz)
+
+# ── The operator bank ────────────────────────────────────────────────────
+#
+# Four operators, and **you wire them**.  A DX7 offers thirty-two fixed
+# algorithms; what is here instead is the matrix those algorithms are
+# points in — one number for how much each operator moves each operator's
+# phase, including its own.  An algorithm is then a `Patch` you write, and
+# feedback is not a special case of anything: it is the diagonal.
+#
+# **Every operator reads the previous sample's outputs.**  That is what
+# makes an arbitrary wiring meaningful at all — a cycle in the matrix would
+# otherwise be a value defined in terms of itself — and it is also exactly
+# how feedback works on the hardware.  The cost is one sample of delay
+# around every loop, which at 44.1 kHz is 23 microseconds and inaudible.
+#
+# Modulation is in **turns**, matching every phase in this file: a matrix
+# entry of 1.0 shifts the target a whole cycle for a full-scale modulator,
+# which is a very large index.  Useful values are mostly under 2.0.
+
+#: **A number per operator**, for operators 1, 2, 3 and 4 in that order —
+#: the same order `Matrix`'s rows and `Patch`'s fields use.
+#:
+#: One type used four ways on purpose, and what a number *means* depends on
+#: which way:
+#:
+#: | as | each number is | usual range |
+#: |---|---|---|
+#: | **ratios** | a multiple of the note's frequency | 0.5 to 20; whole numbers are harmonic, others are not |
+#: | **a `Matrix` row** | how much that operator shifts this one's phase, in **turns** | 0 to 2; an index of 2π ≈ 6.3 is 1.0 |
+#: | **levels** (what `fm` takes) | that operator's output amplitude | 0 to 1 — this is where an envelope goes |
+#: | **amps** | how much of that operator reaches the output | 0 to 1; non-zero makes it a carrier |
+#:
+#: **A level does two jobs, and that is the whole of why FM sounds alive.**
+#: It multiplies an operator's sine *before* anything reads it, and both
+#: the wiring and the output mix read the result — so on a modulator the
+#: level is modulation depth and turning its envelope down makes the sound
+#: **duller**, while on a carrier the same number is loudness.  An operator
+#: that is both does both at once.  Four envelopes on four operators is
+#: therefore a timbre that changes as the note decays, which a single
+#: envelope over the whole bank cannot do.
+#:
+#: Giving all four uses one name is what lets `quadDot` serve them; the
+#: cost is that the type cannot tell you which you are holding, and
+#: swapping ratios for amps typechecks.  It is audible immediately, which
+#: is why it has been left that way.
+Quad := Quad Float Float Float Float
+
+#: One row per *target*: `Matrix r1 r2 r3 r4` and `r2`'s third component is
+#: how much operator 3 modulates operator 2.
+Matrix := Matrix Quad Quad Quad Quad
+
+#: The instrument: frequency ratios, the wiring, and how much of each
+#: operator reaches the output.
+#:
+#: A carrier is simply an operator with a non-zero amount here.  Nothing
+#: marks an operator as a carrier or a modulator, because nothing needs to
+#: — an operator can be both, and on the interesting patches it is.
+Patch := Patch Quad Matrix Quad
+
+#: **The bank, as a signal transformation** — a patch, a pitch, four
+#: levels, a sound.
+#:
+#:     leadVoice g s = fm bellPatch (!hzOf s) (leadLevels g) * !velOf s
+#:
+#: The second signal is the **four operator levels**, 1 to 4 in order, each
+#: normally 0 to 1 — and that is where the envelopes go.  `Quad` says what
+#: a level does; briefly, it scales an operator's output *before* both the
+#: wiring and the mix read it, so on a modulator it is brightness and on a
+#: carrier it is loudness.
+#:
+#: Four envelopes on four operators is what makes this sound like an
+#: instrument rather than a chord of sine waves — the timbre changes as
+#: the note decays.  `fmpoly.ges` is four `adsrOf` calls doing exactly
+#: that, with the modulators shorter than the carriers.
+#:
+#: The last component of `synth.ges` to get a face, and every program that
+#: used FM before it wrote the same eight lines: a named step because the
+#: fragment wants one at a `scan`, a `scan` over `fmZero`, and a `map` of
+#: `fmOut` back out.  That is the machinery, it is below `internal` now,
+#: and this is what it was for.
+#:
+#: **One patch, not two.**  The old shape passed it to the step *and* to
+#: the output mix, so using two different patches in the two places
+#: typechecked and made a sound belonging to neither.
+#:
+#: **Two signals, not a `Drive`.**  This used to take a `Sig Drive`, which
+#: nothing in the library produced — both examples that used FM built one
+#: by hand, with the same `zip`, because a `scan` takes a single signal.
+#: That is exactly what `SvfIn` is for a filter, and `SvfIn` is internal;
+#: `lowpassSvf hz res s` takes its arguments apart and pairs them itself.
+#: This does now too, and `Drive` has gone where the other step records
+#: are.
+fm : Patch -> Sig Float -> Sig Quad -> Sig Float
+fm pt hz levels = map (bank => fmOut pt bank) (scan (st d => fmNext pt st d) fmZero (zip Drive hz levels))
+
+# -- writing the wiring ---------------------------------------------------
+#
+# **Sixteen numbers of which three are usually not zero.**  A `Matrix`
+# literal is the honest representation and a poor way to write one: the
+# examples that used it had to redraw it in a comment, one line per row,
+# to say which number meant what.  When a file annotates a library's data
+# structure line by line, the structure is wrong for writing.
+#
+# So start from silence and name the edges.  It costs nothing: a patch is
+# a constant, and `audioextract._fold_constants` folds the whole
+# construction away — measured bit-identical against the literal it
+# replaces.
+#
+# They **nest rather than compose**: `modulates 2 1 1.1 @ modulates 4 3 0.5`
+# is rejected with "a function has no layout in a state struct", because
+# the fragment judges every reachable definition *before* constants are
+# folded, and so holds patch-construction code to audio-rate rules.  Worth
+# fixing one day; it is not this.
+
+#: No wiring at all — four independent sines.  Where a patch starts.
+noWiring : Matrix
+noWiring = Matrix (Quad 0.0 0.0 0.0 0.0) (Quad 0.0 0.0 0.0 0.0)
+                  (Quad 0.0 0.0 0.0 0.0) (Quad 0.0 0.0 0.0 0.0)
+
+#: `modulates src dst amount` — operator `src` moves operator `dst`'s
+#: phase by `amount` turns.  Operators are numbered 1..4.
+#:
+#: `modulates 2 2 0.18` is **feedback**, and needs no other mechanism: the
+#: diagonal is an operator modulating itself, which works because every
+#: operator reads the previous sample's outputs.
+#:
+#: A whole turn is a very large index; useful amounts are mostly under 2.
+modulates : Int -> Int -> Float -> Matrix -> Matrix
+modulates src dst amount m = setRow dst (setQuad src amount (rowOf dst m)) m
+
+#: 4 → 3 → 2 → 1, and only operator 1 is heard.  The deepest algorithm a
+#: four-operator bank has, and the one that gets metallic fastest.
+fmStack : Patch
+fmStack = Patch (Quad 1.0 1.0 1.0 1.0)
+                (modulates 4 3 1.0 (modulates 3 2 1.0
+                    (modulates 2 1 1.0 noWiring)))
+                (Quad 1.0 0.0 0.0 0.0)
+
+#: Two independent pairs, 2 → 1 and 4 → 3, both heard.  Operator 4 runs at
+#: 3.5× — a ratio that is not a whole number, which is what makes the
+#: second pair inharmonic and the whole thing sound like a bell.
+fmBell : Patch
+fmBell = Patch (Quad 1.0 2.0 1.0 3.5)
+               (modulates 4 3 0.4 (modulates 2 1 0.7 noWiring))
+               (Quad 0.6 0.0 0.4 0.0)
+
+#: Operator 1 modulates itself, which is the diagonal and nothing else.
+#: Feedback on a single operator sweeps a sine towards a sawtooth as the
+#: amount rises, and is the cheapest bright sound this bank can make.
+fmFeedback : Patch
+fmFeedback = Patch (Quad 1.0 1.0 1.0 1.0)
+                   (modulates 1 1 0.35 noWiring)
+                   (Quad 1.0 0.0 0.0 0.0)
+
+# ════════════════════════════════════════════════════════════════════════
+internal
+# ════════════════════════════════════════════════════════════════════════
+#
+# Everything below is this file's own machinery, and naming it from another
+# file is an error `gestate/internals.py` reports.  It is here rather than
+# hidden because the insides of a filter are worth reading — and because a
+# stack trace, a `--query` or the editor's [ref] pane will show you one of
+# these names and you are owed an answer about it.
+#
+# Each of them has a public face above: the `…Svf` and `…Ladder` wrappers
+# are the filters, `adsr` and `perc` are the envelopes, `white`
+# is the generator, and `sineFrom`/`sawFrom` are the phase.
+
+# ── Noise ────────────────────────────────────────────────────────────────
+#
+# A linear congruential generator, folded like everything else.  It is a
+# *fold over time* rather than a call to a random primitive, and that is
+# not a workaround: a signal has to be reproducible for the oracle to mean
+# anything, and a seed carried in the state is what makes the same program
+# render the same noise twice.
+
+#: The generator's state — one seed.
+Rng := Rng Int
+
+#: `drums.ges`'s constants: a 63-bit LCG whose reach was measured rather
+#: than assumed, because `Int` narrows to `i64` in the engine.
+rngNext : Rng -> Int -> Rng
+rngNext r n = case r of
+    Rng seed -> Rng (prim_mod_int (seed * 1103515245 + 12345) 2147483648)
+
+#: The seed as a sample in -1.0 .. 1.0.
+rngOf : Rng -> Float
+rngOf r = case r of
+    Rng seed -> toFloat (prim_mod_int seed 65536) / 32768.0 - 1.0
+
+#: The seed as a sample in 0.0 .. 1.0 — the same draw `rngOf` reads
+#: bipolar, which is what lets one draw decide `dust`'s two questions.
+#:
+#: **The high bits, where `rngOf` takes the low ones**, and the difference
+#: is measurable.  A linear congruential generator's low bits cycle with
+#: short periods, which a *spectrum* does not notice — white noise
+#: measured flat either way — and a *threshold test* very much does:
+#: `dust 200.0` fired 115 times in half a second where it should have
+#: fired 100, and every density was high by the same 15%.  Taking bits 15
+#: upward instead costs one division: 98 of 100, 407 of 400, 752 of 800 —
+#: within the Poisson noise of the counts themselves.
+#:
+#: **Twenty-four bits, not sixteen, and the sixteen were a bug at every
+#: real sample rate.**  `dust`'s chance per sample is `density /
+#: sampleRate`, which at 44100 Hz and a density of one event a second is
+#: 2.3e-5 — smaller than a 16-bit draw's smallest nonzero value of 1.5e-5.
+#: So only the draw *zero* cleared the threshold, and its height is
+#: `0 / p`, which is **zero**: measured, `dust` was silent below 0.673
+#: events a second and quantised to multiples of it above — 0.673, 0.7 and
+#: 1.0 all fired 0.67 times a second, and a density of 5.0 fired 1.35.
+#:
+#: The tests did not catch it because they run at 6 to 8 kHz, where `p` is
+#: five to seven times larger and the resolution reaches.  A parameter that
+#: works at test rates and not at the rate anybody listens at is the worst
+#: kind, so this reaches to a density of 0.003 events a second at 44100 and
+#: still discards the seven low bits the paragraph above is about.
+rngUnit : Rng -> Float
+rngUnit r = case r of
+    Rng seed -> toFloat (prim_div_int seed 128) / 16777216.0
+
+#: The generator, advanced once per instant of *whatever signal it is
+#: given*.  `dust`'s density is a signal, so the fold needs one to run on
+#: and the density is the one it has; the value is ignored here and read
+#: by `dustAt` in the `zip` beside it.
+rngPer : Rng -> Float -> Rng
+rngPer r x = rngNext r 0
+
+#: One impulse or none, at this instant's density.  The chance per sample
+#: is `density / sampleRate`; the draw that cleared it is also the
+#: impulse's height, rescaled so the heights are uniform over 0..1 rather
+#: than crowded against a small threshold.
+dustAt : Rng -> Float -> Float
+dustAt r density = dustOf (density / sampleRate) r
+
+dustOf : Float -> Rng -> Float
+dustOf p r = case rngUnit r < p of
+    True -> rngUnit r / p
+    False -> 0.0
+
+# ── Colouring noise ──────────────────────────────────────────────────────
+
+#: Three one-pole states, which is what Kellet's pink filter carries.
+Pink := Pink Float Float Float
+
+pinkZero : Pink
+pinkZero = Pink 0.0 0.0 0.0
+
+pinkNext : Pink -> Float -> Pink
+pinkNext st x = case st of
+    Pink b0 b1 b2 -> Pink (0.99765 * b0 + x * 0.0990460)
+                          (0.96300 * b1 + x * 0.2965164)
+                          (0.57000 * b2 + x * 1.0526913)
+
+#: The three poles summed, plus a direct term, scaled to sit in the same
+#: range `white` does.
+pinkOut : Pink -> Float
+pinkOut st = case st of
+    Pink b0 b1 b2 -> (b0 + b1 + b2) * 0.16
+
+#: One sample of memory, and the difference across it.
+Diff := Diff Float Float
+
+violetNext : Diff -> Float -> Diff
+violetNext st x = case st of
+    Diff was out -> Diff x (x - was)
+
+violetOut : Diff -> Float
+violetOut st = case st of
+    Diff was out -> out * 0.4
+
+#: One sample of `slew`.  A named step rather than a lambda because the
+#: fragment wants one at a `scan`, and a `Both` because `scan` takes a
+#: single signal and this needs two.
+#: Its own record for the reason `OnePoleIn` is — see there.
+SlewIn := SlewIn Float Float
+
+slewStep : Float -> SlewIn -> Float
+slewStep y p = case p of
+    SlewIn k t -> y + k * (t - y)
+
+#: One sample of a phase, at a frequency in hertz.  `phase` is the fold
+#: every oscillator above is written in terms of, and this is its step.
+phaseStep : Float -> Float -> Float
+phaseStep p hz = wrap (p + hz / sampleRate)
+
+# ── Envelopes ────────────────────────────────────────────────────────────
+#
+# The segments, as pure functions of the instant, the sample the note began
+# at and the sample it was released at.  `adsr` and `perc` are what
+# lift them into signals, and a voice wants those.
+
+adsrStarted : Adsr -> Int -> Int -> Int -> Float
+adsrStarted e n on off = case n < on - 1 of
+    True -> 0.0
+    False -> adsrPhase e n on off
+
+adsrPhase : Adsr -> Int -> Int -> Int -> Float
+adsrPhase e n on off = case off of
+    0 -> adsrHeld e (secondsSince n on)
+    _ -> adsrMaybeReleased e n on off
+
+adsrMaybeReleased : Adsr -> Int -> Int -> Int -> Float
+adsrMaybeReleased e n on off = case n < off - 1 of
+    True -> adsrHeld e (secondsSince n on)
+    False -> adsrAfterOff e on off (secondsSince n off)
+
+#: The level the note had reached when the key came up is what the release
+#: falls *from*, so it is computed from the release instant rather than
+#: remembered — which is one less field in every voice's state.
+adsrAfterOff : Adsr -> Int -> Int -> Float -> Float
+adsrAfterOff e on off t = adsrReleased e (adsrHeld e (secondsSince off on)) t
+
+#: Attack, then decay towards the sustain level, then hold there.
+adsrHeld : Adsr -> Float -> Float
+adsrHeld e t = case e of
+    Adsr a d s r -> adsrRise a d s t
+
+adsrRise : Float -> Float -> Float -> Float -> Float
+adsrRise a d s t = case t < a of
+    True -> rampUp a t
+    False -> adsrFall a d s t
+
+#: Zero attack is a step rather than a division by zero — which is the case
+#: a percussive patch actually wants, so it is the one that must not be an
+#: error.
+rampUp : Float -> Float -> Float
+rampUp a t = case a < 0.000001 of
+    True -> 1.0
+    False -> t / a
+
+adsrFall : Float -> Float -> Float -> Float -> Float
+adsrFall a d s t = case t < a + d of
+    True -> mix 1.0 s (rampUp d (t - a))
+    False -> s
+
+#: Linear to silence over the release time, from whatever level the note
+#: had reached when the key came up.
+adsrReleased : Adsr -> Float -> Float -> Float
+adsrReleased e level t = case e of
+    Adsr a d s r -> level * clamp 0.0 1.0 (1.0 - rampUp r t)
+
+percStarted : Float -> Int -> Int -> Float
+percStarted rate n on = case n < on - 1 of
+    True -> 0.0
+    False -> exp (negate rate * secondsSince n on)
+
+# ── Filters ──────────────────────────────────────────────────────────────
+
+# -- one pole --------------------------------------------------------------
+
+#: The one-pole coefficient for a cutoff in hertz, clamped to a range where
+#: the feedback cannot diverge.
+#: One sample of the one-pole, with the cutoff arriving per sample so it
+#: may vary — the same `y + k * (x - y)` `audio.ges`'s `lowpass` folds with
+#: a fixed `k`.
+#: **Its own record, not `Both`.**  A constructor's layout is chosen by
+#: *tag*, so one used at two instantiations in a single graph collides in
+#: the code generator — `Both Float Float` here and `Both Gate Key` in a
+#: `voices` bank is one tag with two shapes, and `fmpoly.ges` stopped
+#: building with `insertvalue operand and field disagree in type`.  That is
+#: the same defect `quartet.ges` records about two `Played`s, and it is why
+#: `SvfIn` and `LadderIn` are their own types rather than pairs.
+OnePoleIn := OnePoleIn Float Float
+
+onePoleNext : Float -> OnePoleIn -> Float
+onePoleNext y p = case p of
+    OnePoleIn x hz -> y + onePoleK hz * (x - y)
+
+onePoleK : Float -> Float
+onePoleK hz = clamp 0.0 1.0
+    (1.0 - exp (negate tau * clamp 1.0 nyquist hz / sampleRate))
+
+# -- state variable --------------------------------------------------------
+#
+# `k` is the damping — small `k` is a tall resonant peak — and `svfK` is
+# what turns the 0.0 .. 1.0 a person turns into it.
+
+#: Two integrator states, and the three outputs the last sample produced.
+#:
+#: The outputs are *stored* rather than recomputed because the whole point
+#: of this topology is that lowpass, bandpass and highpass fall out of one
+#: pass — recomputing would be running the filter three times to hear it
+#: once.
+Svf := Svf Float Float Float Float Float
+
+#: A fresh filter: silent, and with nothing in its integrators.
+svfZero : Svf
+svfZero = Svf 0.0 0.0 0.0 0.0 0.0
+
+#: What one sample of filtering needs: the sample, the cutoff in hertz, and
+#: the resonance in 0.0 .. 1.0.  A record because a `zipSig`'s step takes
+#: one value, and this is the flat shape the engine lays out.
+SvfIn := SvfIn Float Float Float
+
+#: One sample.  `scan svfNext svfZero` over a signal of these is the filter.
+svfNext : Svf -> SvfIn -> Svf
+svfNext s i = case i of
+    SvfIn x hz res -> svfWith s x (svfG hz) (svfK res)
+
+#: The integrator gain.  `tan` is what makes this the *bilinear* transform
+#: rather than a naive one, and is why the cutoff stays where it is asked
+#: to be right up to Nyquist.
+svfG : Float -> Float
+svfG hz = tan (3.141592653589793 * clamp 1.0 nyquist hz / sampleRate)
+
+#: Resonance 0.0 .. 1.0 as damping.  1.0 stops just short of oscillating;
+#: the 0.02 floor is what keeps it from doing so on its own.
+svfK : Float -> Float
+svfK res = 2.0 - 1.98 * clamp 0.0 1.0 res
+
+svfWith : Svf -> Float -> Float -> Float -> Svf
+svfWith s x g k = case s of
+    Svf i1 i2 lo bp hi -> svfSolve i1 i2 x g k (1.0 / (1.0 + g * (g + k)))
+
+svfSolve : Float -> Float -> Float -> Float -> Float -> Float -> Svf
+svfSolve i1 i2 x g k a1 = svfBands i1 i2 x g k
+    (a1 * i1 + g * a1 * (x - i2))
+
+#: The last argument is the bandpass output; the lowpass integrates it and
+#: the highpass is what is left of the input once both are taken out.
+svfBands : Float -> Float -> Float -> Float -> Float -> Float -> Svf
+svfBands i1 i2 x g k v1 = svfStore i1 i2 x k v1 (i2 + g * v1)
+
+svfStore : Float -> Float -> Float -> Float -> Float -> Float -> Svf
+svfStore i1 i2 x k v1 v2 = Svf
+    (2.0 * v1 - i1) (2.0 * v2 - i2) v2 v1 (x - k * v1 - v2)
+
+svfLow : Svf -> Float
+svfLow s = case s of
+    Svf i1 i2 lo bp hi -> lo
+
+svfBand : Svf -> Float
+svfBand s = case s of
+    Svf i1 i2 lo bp hi -> bp
+
+svfHigh : Svf -> Float
+svfHigh s = case s of
+    Svf i1 i2 lo bp hi -> hi
+
+#: The band the filter rejects — everything except the peak.
+svfNotch : Svf -> Float
+svfNotch s = case s of
+    Svf i1 i2 lo bp hi -> lo + hi
+
+# -- ladder ----------------------------------------------------------------
+
+#: Four cascaded stages, and the last output — the feedback path.
+Ladder := Ladder Float Float Float Float Float
+
+ladderZero : Ladder
+ladderZero = Ladder 0.0 0.0 0.0 0.0 0.0
+
+LadderIn := LadderIn Float Float Float
+
+ladderNext : Ladder -> LadderIn -> Ladder
+ladderNext l i = case i of
+    LadderIn x hz res -> ladderWith l x (onePoleK hz) (4.0 * clamp 0.0 1.0 res)
+
+#: The feedback is saturated rather than clipped, because a ladder's
+#: resonance is *meant* to fold over into distortion at the top of the
+#: knob — a hard clip there buzzes instead.
+ladderWith : Ladder -> Float -> Float -> Float -> Ladder
+ladderWith l x g q = case l of
+    Ladder s1 s2 s3 s4 last -> ladderStages g s1 s2 s3 s4 (x - q * softClip last)
+
+ladderStages : Float -> Float -> Float -> Float -> Float -> Float -> Ladder
+ladderStages g s1 s2 s3 s4 u = ladderCascade g (s1 + g * (u - s1)) s2 s3 s4
+
+ladderCascade : Float -> Float -> Float -> Float -> Float -> Ladder
+ladderCascade g n1 s2 s3 s4 = ladderTail g n1 (s2 + g * (n1 - s2)) s3 s4
+
+ladderTail : Float -> Float -> Float -> Float -> Float -> Ladder
+ladderTail g n1 n2 s3 s4 = ladderLast n1 n2 (s3 + g * (n2 - s3))
+                                     (s4 + g * (s3 + g * (n2 - s3) - s4))
+
+ladderLast : Float -> Float -> Float -> Float -> Ladder
+ladderLast n1 n2 n3 n4 = Ladder n1 n2 n3 n4 n4
+
+ladderOut : Ladder -> Float
+ladderOut l = case l of
+    Ladder s1 s2 s3 s4 last -> s4
+
+# -- resonator ------------------------------------------------------------
+#
+# `y[n] = (1-r)*x[n] + 2*r*cos(w)*y[n-1] - r*r*y[n-2]` — two poles at
+# radius `r` and angle `w`.  The classic resonator, and the arithmetic is
+# the whole of it: `r` decides how long it rings and `w` decides at what.
+
+#: The two samples of output a two-pole filter remembers.
+# **`string`'s state**, and it is the smallest thing `loop` can do that
+# `feedback` cannot.  Karplus-Strong averages the two samples that left the
+# line, and the older of the pair is one `feedback`'s step cannot reach —
+# so the state carries it: the sample out, and the one before it.
+
+Ks := Ks Float Float
+
+#: The near arm is where the string was an instant ago and holds the *older*
+#: of the two samples; the far arm is the state from a whole round trip ago
+#: and holds the newer.  Averaging them is the loop filter, and what it
+#: returns goes back around — through `g`, which is what stops the average
+#: from preserving DC for ever.
+ksNext : Float -> Ks -> Ks -> Float -> Ks
+ksNext g prev old x = case prev of
+    Ks y p -> case old of
+        Ks yn q -> Ks (x + g * 0.5 * (yn + p)) yn
+
+ksOut : Ks -> Float
+ksOut st = case st of
+    Ks y p -> y
+
+#: The line's length in samples: one round trip at that pitch.  A whole
+#: number, which is what quantises the pitch.
+stringLen : Float -> Int
+stringLen hz = seconds (1.0 / clamp 1.0 nyquist hz)
+
+#: Loop gain from a decay time.  `ln 1000` is the 60 dB the time is quoted
+#: to, and the exponent is per *round trip* rather than per sample, which
+#: is why a low string rings longer than a high one at the same setting.
+#:
+#: Clamped below 1: a gain at or above it never dies away, which is the
+#: rule `echo` and `comb` follow for the same reason.
+stringGain : Float -> Float -> Float
+stringGain hz decay = clamp 0.0 0.9999
+    (exp (negate 6.907755278982137 * toFloat (stringLen hz)
+          / (clamp 0.0 3600.0 decay * sampleRate + 1.0)))
+
+# **`allpass`'s state.**  Its output needs both ends of the line in the
+# same instant — the value going in and the value coming out — so the step
+# computes both and the ring carries the pair.
+
+Ap := Ap Float Float
+
+#: `v[t] = x + g * v[t-n]` is what circulates and `y = v[t-n] - g * v[t]`
+#: is what comes out.  Only the far arm is read: a Schroeder allpass has no
+#: use for the previous instant, which is what makes it the smaller half of
+#: what `loop` can do.
+apStep : Float -> Ap -> Ap -> Float -> Ap
+apStep g prev old x = case old of
+    Ap vn yn -> apMake g (x + g * vn) vn
+
+apMake : Float -> Float -> Float -> Ap
+apMake g v vn = Ap v (vn - g * v)
+
+apOut : Ap -> Float
+apOut st = case st of
+    Ap v y -> y
+
+# **`damped`'s state**, and the case `loop` was built for: the sample out,
+# and the loop filter's own state.  The filter has to advance every sample
+# while the line reaches back `n` of them, so the step reads its filter
+# from the near arm and its delayed sample from the far one.
+
+Cm := Cm Float Float
+
+cmStep : Float -> Float -> Cm -> Cm -> Float -> Cm
+cmStep g d prev old x = case prev of
+    Cm y f -> case old of
+        Cm yn fn -> cmMake g x ((1.0 - d) * yn + d * f)
+
+cmMake : Float -> Float -> Float -> Cm
+cmMake g x f = Cm (x + g * f) f
+
+cmOut : Cm -> Float
+cmOut st = case st of
+    Cm y f -> y
+
+#: Feedback for one comb of a reverb, from the tail's decay time.  Each
+#: line has its own length and so its own gain — the *tail* is what the
+#: number means, and four lines reaching it together is the point.
+reverbGain : Float -> Float -> Float
+reverbGain time decay =
+    exp (negate 6.907755278982137 * time / clamp 0.001 3600.0 decay)
+
+#: An LFO on a delay position, in **samples**, for `flanger` and `chorus`.
+#: `centre` and `swing` are seconds; the result never reaches zero, which
+#: is what `tap` clamps for anyway.
+sweepPos : Float -> Float -> Float -> Sig Float
+sweepPos centre swing rate =
+    map (x => (centre + swing * x) * sampleRate) (sine (!rate))
+
+#: The gain a brick wall asks for, as its own signal — `compress` builds
+#: the same thing inline, but a lookahead limiter has to apply it to a
+#: *different* signal from the one it measured.
+brickGain : Float -> Sig Float -> Sig Float
+brickGain ceiling s = map (e => compGain (Comp ceiling 100.0 0.0002 0.05) e)
+                          (follow 0.0002 0.05 s)
+
+#: `clip` bounds at ±1, so a ceiling anywhere else is a scale, a clip and a
+#: scale back.  This is the last arithmetic before the sound card.
+ceilAt : Float -> Float -> Float
+ceilAt ceiling x = ceiling * clip (x / ceiling)
+
+Reso := Reso Float Float
+
+#: The input a `scan` step sees: this sample, the frequency, the decay.
+#: Its own record for the reason `SvfIn` has one — a `Both` instantiated
+#: twice in one program breaks code generation.
+ResoIn := ResoIn Float Float Float
+
+resoZero : Reso
+resoZero = Reso 0.0 0.0
+
+#: Pole radius from a decay time.  `ln 1000` is the −60 dB the time is
+#: quoted to; the `+ 1.0` on the sample count keeps a zero decay from
+#: dividing by zero and makes it mean "one sample", which is what asking
+#: for no ring should give.
+resoR : Float -> Float
+resoR decay = exp (negate 6.907755278982137 / (decay * sampleRate + 1.0))
+
+resoNext : Reso -> ResoIn -> Reso
+resoNext st inp = case inp of
+    ResoIn x hz decay -> resoWith st x (resoR decay)
+        (6.283185307179586 * clamp 1.0 nyquist hz / sampleRate)
+
+#: **`sin w` and not `1 - r`**, and the difference is the whole point of
+#: normalising at all.  The impulse response is `g * r^n * sin((n+1)w) /
+#: sin w`, so its peak is `g / sin w`: with `g = 1 - r` the peak *falls* as
+#: the decay lengthens — measured 0.087 at 0.05 s and 0.0006 at 8 s, a
+#: factor of 140 — and a mode's `level` would have meant nothing.  With
+#: `g = sin w` the peak is within a few percent of 1 whatever the decay,
+#: so `0.7 * resonate …` is a mode at 0.7.
+resoWith : Reso -> Float -> Float -> Float -> Reso
+resoWith st x r w = case st of
+    Reso y1 y2 -> Reso (sin w * x + 2.0 * r * cos w * y1 - r * r * y2) y1
+
+resoOut : Reso -> Float
+resoOut st = case st of
+    Reso y1 y2 -> y1
+
+# ── Saturation and shaping ───────────────────────────────────────────────
+
+# ── Dynamics ─────────────────────────────────────────────────────────────
+
+#: A one-pole coefficient from a time constant in seconds.  The `+ 1.0`
+#: floor on the sample count is what keeps a zero time from dividing by
+#: zero: the fastest a one-pole can move is all the way in one sample,
+#: and that is what asking for zero should give you.
+rateCoeff : Float -> Float
+rateCoeff t = 1.0 - exp (negate 1.0 / (t * sampleRate + 1.0))
+
+#: One sample of `follow`: rise at `up`, fall at `down`.
+followStep : Float -> Float -> Float -> Float -> Float
+followStep up down y x = case y < x of
+    True -> y + up * (x - y)
+    False -> y + down * (x - y)
+
+#: The two times, read out as scalars.  **Not a `case` at signal level** —
+#: `compress` is a signal expression and the fragment admits no `case` in
+#: one, so the settings are taken apart by ordinary functions the extractor
+#: folds away rather than inside the expression that uses them.
+compAttack : Comp -> Float
+compAttack c = case c of
+    Comp threshold ratio attack release -> attack
+
+compRelease : Comp -> Float
+compRelease c = case c of
+    Comp threshold ratio attack release -> release
+
+#: The gain to apply at this envelope level.  Below the threshold nothing
+#: happens; above it the excess is divided by the ratio, and the *gain* is
+#: what that target is over what arrived.
+compGain : Comp -> Float -> Float
+compGain c e = case c of
+    Comp threshold ratio attack release -> case e < threshold of
+        True -> 1.0
+        False -> (threshold + (e - threshold) / ratio) / e
+
+sign : Float -> Float
+sign x = case x < 0.0 of
+    True -> negate 1.0
+    False -> 1.0
+
+# ── Stereo ───────────────────────────────────────────────────────────────
+
+panAngle : Float -> Float -> Stereo
+panAngle x a = Stereo (x * cos a) (x * sin a)
+
+# ── FM ───────────────────────────────────────────────────────────────────
+#
+# The bank itself: four phases stepped by their ratios, four sines read at
+# whatever the wiring adds to them, and the `Quad` arithmetic all of it is
+# said in.  `fm` above is the one end of it a program touches.
+
+#: What one sample feeds the bank: the note's frequency, and a level per
+#: operator.  A record because a `zip`'s step takes one value, and this is
+#: the flat shape the engine lays out — the same reason `SvfIn` is one, and
+#: it lives down here for the same reason too.
+Drive := Drive Float Quad
+
+#: An operator bank's state: four phases, and the four outputs of the
+#: previous sample that the wiring reads.
+#:
+#: **Every operator reads the previous sample's outputs**, which is what
+#: makes an arbitrary wiring meaningful at all — a cycle in the matrix
+#: would otherwise be a value defined in terms of itself — and it is also
+#: exactly how feedback works on the hardware.  One sample of delay around
+#: every loop, 23 microseconds at 44.1 kHz, inaudible.
+Fm := Fm Quad Quad
+
+fmZero : Fm
+fmZero = Fm (Quad 0.0 0.0 0.0 0.0) (Quad 0.0 0.0 0.0 0.0)
+
+#: One sample of the whole bank.  `fm` is what `scan`s this.
+fmNext : Patch -> Fm -> Drive -> Fm
+fmNext pt st d = case pt of
+    Patch ratios wiring amps -> fmRatios ratios wiring st d
+
+#: The bank's sample: each operator's output times its share of the mix.
+fmOut : Patch -> Fm -> Float
+fmOut pt st = case pt of
+    Patch ratios wiring amps -> fmMix amps st
+
+# -- indexing a `Quad` and a `Matrix`, which is what `modulates` needs ----
+#
+# Operators are numbered 1..4 in the interface because that is how every
+# FM synthesiser has ever numbered them; the `_` alternative is 4 rather
+# than an error, because a fifth operator is a typo the author will hear.
+
+setQuad : Int -> Float -> Quad -> Quad
+setQuad i v q = case q of
+    Quad a b c d -> case i of
+        1 -> Quad v b c d
+        2 -> Quad a v c d
+        3 -> Quad a b v d
+        _ -> Quad a b c v
+
+rowOf : Int -> Matrix -> Quad
+rowOf i m = case m of
+    Matrix r1 r2 r3 r4 -> case i of
+        1 -> r1
+        2 -> r2
+        3 -> r3
+        _ -> r4
+
+setRow : Int -> Quad -> Matrix -> Matrix
+setRow i q m = case m of
+    Matrix r1 r2 r3 r4 -> case i of
+        1 -> Matrix q r2 r3 r4
+        2 -> Matrix r1 q r3 r4
+        3 -> Matrix r1 r2 q r4
+        _ -> Matrix r1 r2 r3 q
+
+quadDot : Quad -> Quad -> Float
+quadDot a b = case a of
+    Quad a1 a2 a3 a4 -> quadDotWith a1 a2 a3 a4 b
+
+quadDotWith : Float -> Float -> Float -> Float -> Quad -> Float
+quadDotWith a1 a2 a3 a4 b = case b of
+    Quad b1 b2 b3 b4 -> a1 * b1 + a2 * b2 + a3 * b3 + a4 * b4
+
+quadMul : Quad -> Quad -> Quad
+quadMul a b = case a of
+    Quad a1 a2 a3 a4 -> quadMulWith a1 a2 a3 a4 b
+
+quadMulWith : Float -> Float -> Float -> Float -> Quad -> Quad
+quadMulWith a1 a2 a3 a4 b = case b of
+    Quad b1 b2 b3 b4 -> Quad (a1 * b1) (a2 * b2) (a3 * b3) (a4 * b4)
+
+quadScale : Float -> Quad -> Quad
+quadScale g a = case a of
+    Quad a1 a2 a3 a4 -> Quad (g * a1) (g * a2) (g * a3) (g * a4)
+
+quadSum : Quad -> Float
+quadSum a = case a of
+    Quad a1 a2 a3 a4 -> a1 + a2 + a3 + a4
+
+fmRatios : Quad -> Matrix -> Fm -> Drive -> Fm
+fmRatios ratios wiring st d = case st of
+    Fm phases outs -> fmDriven ratios wiring phases outs d
+
+fmDriven : Quad -> Matrix -> Quad -> Quad -> Drive -> Fm
+fmDriven ratios wiring phases outs d = case d of
+    Drive hz levels -> fmStepped ratios wiring phases outs hz levels
+
+fmStepped : Quad -> Matrix -> Quad -> Quad -> Float -> Quad -> Fm
+fmStepped ratios wiring phases outs hz levels =
+    fmAdvanced (fmPhases phases (quadScale hz ratios)) wiring outs levels
+
+#: Every operator's phase moves by its own ratio of the note's frequency.
+fmPhases : Quad -> Quad -> Quad
+fmPhases phases hzs = case phases of
+    Quad p1 p2 p3 p4 -> fmPhasesWith p1 p2 p3 p4 hzs
+
+fmPhasesWith : Float -> Float -> Float -> Float -> Quad -> Quad
+fmPhasesWith p1 p2 p3 p4 hzs = case hzs of
+    Quad h1 h2 h3 h4 -> Quad (fmTurn p1 h1) (fmTurn p2 h2) (fmTurn p3 h3) (fmTurn p4 h4)
+
+fmTurn : Float -> Float -> Float
+fmTurn p hz = wrap (p + hz / sampleRate)
+
+fmAdvanced : Quad -> Matrix -> Quad -> Quad -> Fm
+fmAdvanced phases wiring outs levels = case wiring of
+    Matrix r1 r2 r3 r4 -> fmRows phases r1 r2 r3 r4 outs levels
+
+fmRows : Quad -> Quad -> Quad -> Quad -> Quad -> Quad -> Quad -> Fm
+fmRows phases r1 r2 r3 r4 outs levels =
+    Fm phases (quadMul (fmSines phases r1 r2 r3 r4 outs) levels)
+
+#: The four sines, each read at its own phase plus whatever the wiring
+#: says the *previous* sample's operators add to it.
+fmSines : Quad -> Quad -> Quad -> Quad -> Quad -> Quad -> Quad
+fmSines phases r1 r2 r3 r4 outs = case phases of
+    Quad p1 p2 p3 p4 -> Quad (fmOp p1 r1 outs) (fmOp p2 r2 outs) (fmOp p3 r3 outs) (fmOp p4 r4 outs)
+
+#: One operator: its own phase, moved by whatever the wiring says the
+#: previous sample's operators add to it.
+fmOp : Float -> Quad -> Quad -> Float
+fmOp p row outs = sineOf (p + quadDot row outs)
+
+fmMix : Quad -> Fm -> Float
+fmMix amps st = case st of
+    Fm phases outs -> quadDot amps outs

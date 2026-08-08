@@ -1,0 +1,334 @@
+# music.ges — `spec/music.md`
+#
+# **Not part of the core prelude.**  It declares eight constructors, and a
+# constructor's tag is its position, so merging this into every program
+# would renumber `Nil`/`Cons` for all of them — and cost every non-musical
+# program the compile time, which is superlinear in program size.  The MIDI
+# backend prepends this to a music program's source instead.
+#
+# A `[: a :]` is a box-layout tree over a payload `a`.  `layout` resolves it
+# into timed events; the payload is opaque to everything here.
+
+#: A committed, playable event: program, key, velocity.  Concrete because
+#: MIDI is the only backend; this type is the seam where another would go.
+# `Midi` is a pitched note on some program; `Perc` is an unpitched one.
+# The distinction is musical, not a transport detail — percussion is a
+# different *kind* of sound, and which MIDI channel carries it is the
+# renderer's business (`gestate/midi.py`).
+Rendered := Midi Int Int Int
+          | Perc Int Int
+
+#: The other kind of committed note: one assigned to a `voices` bank of the
+#: audio backend.  **Opaque here on purpose** — its constructors are
+#: generated per program, one per declared bank, each carrying that bank's
+#: own payload type.  This file only needs to know that `Assigned` carries
+#: *something* and that it is not the payload `a`, which is what keeps
+#: `[: Void :]` proving that every note was assigned.
+#:
+#: `Voice` and `Rendered` are the same construct at different ages: a sum
+#: over the targets a backend offers, each carrying its target's payload.
+#: They are kept side by side rather than merged because merging would make
+#: `Rendered` — and therefore this file — partly generated, and two is not
+#: yet a pattern.
+#:
+#: A program with no banks gets `Voice := NoVoice` from the expander, since
+#: gestate cannot declare a type with no constructors at all (`fixme.md`
+#: F60) and `Score` names this one.
+
+# **`Par` and not `Over`**, which is what it was called.  `gui.ges` declares
+# an `Over Sub Sub` for painter's order, and a file that plays a `score` and
+# draws a `substrate` is compiled with both preludes in front of it — one
+# program, two declarations of one name, and whichever came last silently
+# took it.  `over a b = Over a b` in `gui.ges` then failed to type-check
+# against `Score`, so the two features could not be used in one file at all;
+# worse, `gui.py` reads `cons["Over"].tag` by name to walk the picture, which
+# would have found the *score*'s constructor and drawn by the wrong tag.
+#
+# The name is internal either way — what a piece writes is `||` and what a
+# canvas writes is `over` — so the rename costs no program a line.  `Seq`
+# and `Par` is also the pair every other music language uses.
+
+Score a := Note a                # `'x` — unassigned, carries the payload
+         | Play Rendered         # committed to MIDI: parametric in `a`
+         | Assigned Voice        # committed to a `voices` bank; likewise
+         | Rest
+         | Seq (Score a) (Score a)
+         | Par (Score a) (Score a)   # `||` — at the same time
+         | At Int (Score a)
+         | Scale (Score a) Int
+         | Shrink (Score a) Int
+         | Retro (Score a)          # `reverse` — back to front
+
+#: **Ticks to the beat.**  96 divides by 2,3,4,6,8,12,16,24,32,48, so every
+#: division anyone writes is exact — and the whole score is laid out in
+#: these, so a bar of four is `4 * ticksPerBeat`.
+#:
+#: It was `beat`, and the plain word has gone to the *audio* side, where
+#: `beat : Sig Float` is what time it is in beats.  Two things called
+#: "beat" is one too many, and of the two this is the one that is really a
+#: resolution rather than a beat.
+ticksPerBeat : Int
+ticksPerBeat = 96
+
+r : [: a :]
+r = Rest
+
+# `++` is *music sequence* here, shadowing the core prelude's list append.
+# A class with two instances would be the general answer and is not needed:
+# An *instance* rather than a redefinition, which is what stops it hiding
+# the prelude's list append — see `prelude.ges`, where `++` is now
+# `Semigroup`'s method.  A music program has both again.
+instance Semigroup (Score b) where
+    (++) s t = Seq s t
+
+(||) : [: a :] -> [: a :] -> [: a :]
+(||) a b = Par a b
+
+#: **Retrograde** — the phrase backwards, which is the third of the four
+#: things a canon does to a subject.
+#:
+#: A *constructor* rather than a walk that turns the tree inside out, and
+#: `||` is why: an overlay is **left-aligned**, so reversing `a || b`
+#: structurally would leave two voices of unequal length still starting
+#: together, when what a retrograde means is that they still *end*
+#: together.  The duration is not known until the subtree is laid out, so
+#: the mirror happens where the duration is — in `layOnto`, against the
+#: events, exactly as `Scale` does.
+#:
+#: `reverse` and not `retrograde`, because that is what this operation is
+#: called everywhere else it appears; `prelude.ges` has the class and the
+#: list instance.
+instance Reversible Score where
+    reverse s = Retro s
+
+# `at` translates a score's *extent* and leaves its *duration* alone, which
+# is why `a ++ at (-1) b` overlaps `a` without moving what follows.
+at : Int -> [: a :] -> [: a :]
+at n s = At n s
+
+(|<) : [: a :] -> [: a :]
+(|<) s = At (0 - ticksPerBeat) s
+
+(>|) : [: a :] -> [: a :]
+(>|) s = At ticksPerBeat s
+
+(|*) : [: a :] -> Int -> [: a :]
+(|*) s k = Scale s k
+
+(|/) : [: a :] -> Int -> [: a :]
+(|/) s k = Shrink s k
+
+# Substitute a score for each *unassigned* note.  `Play` is left alone —
+# it carries no payload — which is why "ignored if an instrument is already
+# selected" needs no runtime mark.
+# An *instance*, for the reason `++` above is one.  A score's `pure` is
+# `Note`, which is exactly what `'x` already writes.
+instance Monad Score where
+    pure x = Note x
+
+    (>>=) s f = case s of
+        Note x -> f x
+        Play e -> Play e
+        # Committed, so an instrument does not reach it — the same reason
+        # `Play` is left alone, and what makes `>>=` idempotent on a bound
+        # score.
+        Assigned v -> Assigned v
+        Rest -> Rest
+        Seq a b -> Seq (a >>= f) (b >>= f)
+        Par a b -> Par (a >>= f) (b >>= f)
+        At n t -> At n (t >>= f)
+        Scale t k -> Scale (t >>= f) k
+        Shrink t k -> Shrink (t >>= f) k
+        Retro t -> Retro (t >>= f)
+
+#: **A MIDI program number, as an instrument.**  `melody >>= prog 73`
+#: commits every unassigned note in `melody` to program 73 — a flute.
+#:
+#: An instrument is any function from a note's payload to a committed
+#: score, applied with `>>=`; this is the one that names a MIDI program,
+#: and `percussion` is the other.  A score bound with one holds no payload,
+#: so it is parametric and unifies with `Void` — which is what makes it
+#: performable.
+#:
+#: Named `prog` and not `instrument` because a composer wants that word:
+#: this file is prepended as *text*, so a piece that defines its own
+#: `instrument` would have collided with the library rather than shadowed
+#: it, and "instrument" is the first thing anyone reaches for when naming
+#: the four voices of a quartet.
+prog : Int -> Int -> [: b :]
+prog n pitch = Play (Midi n pitch 64)
+
+#: The percussion instrument.  It needs no program number, so it is itself
+#: the function `>>=` wants: `pattern >>= percussion`.
+percussion : Int -> [: b :]
+percussion key = Play (Perc key 96)
+
+lay : [: a :] -> (Int, List (Int, Int, Rendered))
+lay s = case layOnto 0 s [] of
+    (d, es) -> (d, reverse es)
+
+layout : [: Void :] -> List (Int, Int, Rendered)
+layout s = snd (lay s)
+
+#: The audio backend's `layout`: a piece as bank-assigned, timed events.
+layVoices : [: Void :] -> List (Int, Int, Voice)
+layVoices s = reverse (snd (layVoicesOnto 0 s []))
+
+# ════════════════════════════════════════════════════════════════════════
+# ── Tempo ────────────────────────────────────────────────────────────────
+#
+# **A piece's tempo, as an envelope over beats.**  A piece writes either a
+# plain `bpm : Int`, which is what it always wrote, or
+#
+#     tempo : List Tempo
+#     tempo = [Step 0.0 120.0, Ramp 32.0 90.0, Step 48.0 120.0]
+#
+# and never both — two answers to how fast a piece goes is not a question
+# this can settle, so it is refused by name.
+#
+# **Linear in *time*, not in beat, and that is the whole design.**  The two
+# readings look interchangeable and are not: with tempo linear in time,
+# beat is its integral — a quadratic — and a quadratic inverts in closed
+# form, so "when does beat 48 happen" is the quadratic formula and costs
+# nothing.  That inverse is not elegance, it is four features: a schedule
+# precomputed into sample instants, seeking to a bar, a bar ruler, and
+# looping between bars.  An arbitrary `Sig Float` tempo has none of them —
+# it can only be integrated forward from zero, so a seek is a replay.
+#
+# `Step b y` steps to `y` at beat `b`, holding the previous tempo right up
+# to it.  `Ramp b y` slides to `y`, arriving exactly at beat `b`.  The flag
+# is a property of the point being *arrived at*, so "get to 90 by bar 9"
+# says nothing about what happens after bar 9.
+
+Tempo := Step Float Float
+       | Ramp Float Float
+
+internal
+# ════════════════════════════════════════════════════════════════════════
+#
+# **The layout half, and none of it is a composer's.**  A piece is written
+# with the dozen names above — `'`, `r`, `++`, `||`, `at`, `|*`, `|/`,
+# `prog`, `percussion`.  These turn one into a list of timed events,
+# which is the backend's job and nobody else's: measured, not one of them
+# is named from any `.ges` file in this repository.
+#
+# `lay`, `layout` and `layVoices` stay above because the generated entry
+# point names them — `main = (bpm, layout score)` — so they are the seam
+# between a piece and whatever plays it.
+#
+# The `…V` pair beside each `place…` is the same function over a `Voice`
+# rather than a `Rendered`; that duplication is invisible from here, which
+# is the point of the marker.
+
+maxInt : Int -> Int -> Int
+maxInt a b = case a < b of
+    True -> b
+    False -> a
+
+# Scaling a subtree's events into place: `placeScaled off k es` puts local
+# coordinate `x` of a scaled subtree at `off + x*k`.  Only `Scale` and `Shrink` need this —
+# translation composes with the offset `layOnto` already carries, so there
+# is no `shiftEvents` any more.
+#
+# These destructure in the lambda rather than projecting: a lambda
+# parameter's type is not known at a projection site — `map`'s
+# instantiation settles it later, and projection is resolved from the type
+# (`fixme.md` F28) — while a pattern needs no such knowledge, which is what
+# the error message says to do.
+placeScaled : Int -> Int -> List (Int, Int, Rendered) -> List (Int, Int, Rendered)
+placeScaled off k es = map ((a, b, x) => (off + a * k, off + b * k, x)) es
+
+placeShrunk : Int -> Int -> List (Int, Int, Rendered) -> List (Int, Int, Rendered)
+placeShrunk off k es = map ((a, b, x) => (off + prim_div_int a k, off + prim_div_int b k, x)) es
+
+#: Mirroring a subtree's events inside its own duration — `Retro`'s half of
+#: the same idea `placeScaled` is `Scale`'s.
+placeRetro : Int -> Int -> List (Int, Int, Rendered) -> List (Int, Int, Rendered)
+placeRetro off dt es = map ((a, b, x) => (off + dt - b, off + dt - a, x)) es
+
+# `(duration, events)` — the two measurements kept apart.
+#
+# Written the direct way, `Seq a b` is `append ea (shiftEvents da eb)`, and
+# a melody is one long `Seq` chain: each level copies the events gathered so
+# far, so laying out n notes costs O(n²).  Nesting the chain the other way
+# only moves the cost from `append` to `shiftEvents`.
+#
+# `layOnto` removes both.  It carries the offset *down* instead of shifting
+# events up, and prepends onto an accumulator instead of appending — so it
+# touches each event once.  The accumulator therefore comes out reversed,
+# which `lay` undoes once at the end rather than n times on the way.
+#
+#     layOnto off s acc  =  (duration of s, reverse (events of s at off) ++ acc)
+
+layOnto : Int -> [: a :] -> List (Int, Int, Rendered) -> (Int, List (Int, Int, Rendered))
+layOnto off s acc = case s of
+    Note x -> (ticksPerBeat, acc)
+    Play e -> (ticksPerBeat, (off, off + ticksPerBeat, e) :: acc)
+    # Laid out by `layVoices`, not here: this function's events are
+    # `Rendered`, and a bank-assigned note is not one.  It still takes its
+    # beat, so a piece keeps its shape whichever backend reads it.
+    Assigned v -> (ticksPerBeat, acc)
+    Rest -> (ticksPerBeat, acc)
+    # `a` first, then `b` at `off + da`: prepending reverses, so laying them
+    # in order leaves them in order once reversed.
+    Seq a b -> case layOnto off a acc of
+        (da, acc1) -> case layOnto (off + da) b acc1 of
+            (db, acc2) -> (da + db, acc2)
+    Par a b -> case layOnto off a acc of
+        (da, acc1) -> case layOnto off b acc1 of
+            (db, acc2) -> (maxInt da db, acc2)
+    # A translation composes with the offset, so it stays free.
+    At n t -> layOnto (off + n) t acc
+    # Scaling does not: an event of `t` at local `x` belongs at `off + x*k`,
+    # which is not `(off + x)*k`.  So these two lay their subtree at the
+    # origin and transform its events — the one place a pass over the
+    # subtree's events remains, exactly as it was before.
+    Scale t k -> case layOnto 0 t [] of
+        (dt, et) -> (dt * k, placeScaled off k et ++ acc)
+    Shrink t k -> case layOnto 0 t [] of
+        (dt, et) -> (prim_div_int dt k, placeShrunk off k et ++ acc)
+    # Retrograde is the same shape: lay the subtree at the origin so its
+    # own duration is known, then mirror its events inside that duration.
+    # An event at `a .. b` of a subtree lasting `dt` belongs at
+    # `dt - b .. dt - a`, which is what "still ends together" means.
+    Retro t -> case layOnto 0 t [] of
+        (dt, et) -> (dt, placeRetro off dt et ++ acc)
+
+# ── The other backend's half ─────────────────────────────────────────────
+#
+# The same walk, collecting `Assigned` instead of `Play`.  Two functions
+# rather than one parameterised by which leaf to keep: the fragment has no
+# higher-order values, and a `Score` is walked by the *interpreter* anyway,
+# so the duplication costs a reader nothing and buys both of them a type.
+
+layVoicesOnto : Int -> [: a :] -> List (Int, Int, Voice) -> (Int, List (Int, Int, Voice))
+layVoicesOnto off s acc = case s of
+    Note x -> (ticksPerBeat, acc)
+    Play e -> (ticksPerBeat, acc)
+    Assigned v -> (ticksPerBeat, (off, off + ticksPerBeat, v) :: acc)
+    Rest -> (ticksPerBeat, acc)
+    Seq a b -> case layVoicesOnto off a acc of
+        (da, acc1) -> case layVoicesOnto (off + da) b acc1 of
+            (db, acc2) -> (da + db, acc2)
+    Par a b -> case layVoicesOnto off a acc of
+        (da, acc1) -> case layVoicesOnto off b acc1 of
+            (db, acc2) -> (maxInt da db, acc2)
+    At n t -> layVoicesOnto (off + n) t acc
+    Scale t k -> case layVoicesOnto 0 t [] of
+        (dt, et) -> (dt * k, placeScaledV off k et ++ acc)
+    Shrink t k -> case layVoicesOnto 0 t [] of
+        (dt, et) -> (prim_div_int dt k, placeShrunkV off k et ++ acc)
+    Retro t -> case layVoicesOnto 0 t [] of
+        (dt, et) -> (dt, placeRetroV off dt et ++ acc)
+
+placeScaledV : Int -> Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
+placeScaledV off k es = map (e => case e of
+    (a, b, v) -> (off + a * k, off + b * k, v)) es
+
+placeShrunkV : Int -> Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
+placeShrunkV off k es = map (e => case e of
+    (a, b, v) -> (off + prim_div_int a k, off + prim_div_int b k, v)) es
+
+placeRetroV : Int -> Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
+placeRetroV off dt es = map (e => case e of
+    (a, b, v) -> (off + dt - b, off + dt - a, v)) es

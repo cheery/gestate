@@ -1,0 +1,33 @@
+# A drum pattern with a fill that arrives early — the case `at` exists for.
+#
+#   python -m gestate.midi examples/music/drums.ges --events
+#
+# `percussion` is the instrument that needs no program number, so it is
+# itself the function `>>=` wants.  Its keys are General MIDI drum sounds:
+# 36 bass drum, 38 snare, 42 closed hi-hat, 49 crash.
+#
+# The fill is pushed a beat *before* the bar it belongs to, overlapping
+# what precedes it.  Because `at` moves a score's extent and leaves its
+# duration alone, the crash that follows still lands on the downbeat — the
+# fill is early, and the grid is not.
+
+kick : [: Int :]
+kick = '36
+
+snare : [: Int :]
+snare = '38
+
+hat : [: Int :]
+hat = '42 |/ 2
+
+groove : [: Int :]
+groove = (kick ++ snare ++ kick ++ snare) || (hat ++ hat ++ hat ++ hat ++ hat ++ hat ++ hat ++ hat)
+
+fill : [: Int :]
+fill = ('38 ++ '38 ++ '38 ++ '38) |/ 4
+
+score : [: Void :]
+score = (groove ++ at (0 - ticksPerBeat) (fill) ++ '49) >>= percussion
+
+bpm : Int
+bpm = 132

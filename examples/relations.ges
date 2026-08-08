@@ -1,0 +1,22 @@
+# Two relations in one fixed point, and a set of a user data type.
+#
+#   python -m gestate.typecheck examples/relations.ges
+#
+# `fix` works at any *fixtype*, including a product of semilattices — which
+# is how a query computes two relations at once.  `fstM`/`sndM` are the
+# monotone projections: `fst`/`snd` take their argument discretely and so
+# cannot see the variable `fix` binds.
+#
+# `Colour` is a set element because `deriving Ord` gives it a total order,
+# comparing constructors by declaration position.
+
+Colour := Red | Green | Blue deriving (Show, Eq, Ord)
+
+warm : Set Colour
+warm = {x | x in {Red, Green, Blue}, x < Blue}
+
+reach : Box (Set (Cyclic 8)) -> (Set (Cyclic 8), Set (Cyclic 8))
+reach (Box e) = fix r => (e \/ {x + 1 | x in fstM r, x < 4}, {x + 1 | x in fstM r})
+
+main : String
+main = show (holds (for (c in warm) (guard (c == Red))))

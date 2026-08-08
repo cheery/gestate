@@ -1,0 +1,590 @@
+# HENKKA JAM / ANALYYSISTÄ SÄVELLYKSEKSI
+#
+# Tämä Gestate-kappale on generoitu henkkajam.acc- ja henkkajam2.acc-
+# analyysidatasta. Se ei ole pelkkä MP3 -> MIDI -kopio, vaan analyysiin
+# perustuva sävellys ja sovitus.
+#
+# Dataan perustuvat valinnat:
+#   * yhteinen tempo 94 BPM = analysoitujen tempojen
+#     102.74 ja 86.21 BPM pyöristetty keskiarvo
+#   * henkkajam A: harvempi neljäsosapohjainen teema
+#   * henkkajam B: tiheämpi kahdeksasosapohjainen vastausteema
+#   * keskusnuotit E3/F3 ja toistot E-F-E sekä G-G#-G
+#   * harmonia yhdistää analyysien E-molli- ja F-molli-keskukset
+#   * exactA/exactB säilyttävät analyysin nuottisegmenttien ajoituksia
+#     1/16-iskun ruudukkoon kvantisoituina
+#
+# Renderöinti nykyisellä yhden tiedoston Gestatella:
+#   python gestate_single.py midi henkka_jam_analysis_song.ges \
+#       -o henkka_jam_analysis_song.mid
+
+# ── Yleiset rakennefunktiot ──────────────────────────────────────────────
+
+twice : [: a :] -> [: a :]
+twice x = x ++ x
+
+four : [: a :] -> [: a :]
+four x = twice (twice x)
+
+eight : [: a :] -> [: a :]
+eight x = twice (four x)
+
+sixteen : [: a :] -> [: a :]
+sixteen x = twice (eight x)
+
+bar : Int
+bar = 4 * ticksPerBeat
+
+barRest : [: a :]
+barRest = r |* 4
+
+fourBarsRest : [: a :]
+fourBarsRest = four barRest
+
+fiveBarsRest : [: a :]
+fiveBarsRest = fourBarsRest ++ barRest
+
+transpose : Int -> [: Int :] -> [: Int :]
+transpose n s = s >>= (k => '(k + n))
+
+# Kvantisoidut nuottipituudet.
+n16 : Int -> [: Int :]
+n16 n = 'n |/ 4
+
+n8 : Int -> [: Int :]
+n8 n = 'n |/ 2
+
+n4 : Int -> [: Int :]
+n4 n = 'n
+
+n2 : Int -> [: Int :]
+n2 n = 'n |* 2
+
+# ── Analyysistä poimitut tarkat sävelkorkeus-/aikakerrokset ─────────────
+#
+# MIDI-numerot ovat alkuperäisellä rekisterillä. Sovitus transponoi nämä
+# myöhemmin kaksi oktaavia ylöspäin lead-äänille.
+
+exactAraw : [: Int :]
+exactAraw = fourBarsRest
+     || at 0 (n16 47)
+     || at 24 (n16 48)
+     || at 48 (n16 51)
+     || at 72 (n16 52)
+     || at 96 (n16 53)
+     || at 96 (n16 52)
+     || at 144 (n16 55)
+     || at 168 (n16 56)
+     || at 168 (n16 55)
+     || at 192 (n16 56)
+     || at 216 (n16 55)
+     || at 216 (n16 51)
+     || at 264 (n16 52)
+     || at 264 (n16 53)
+     || at 288 (n16 52)
+     || at 480 (n16 52)
+     || at 528 (n8 56)
+     || at 576 (n16 55)
+     || at 624 (n16 52)
+     || at 720 (n16 47)
+     || at 744 (n16 48)
+     || at 768 (n16 52)
+     || at 792 (n16 53)
+     || at 816 (n8 52)
+     || at 864 (n16 55)
+     || at 912 (n16 56)
+     || at 936 (n16 55)
+     || at 960 (n16 53)
+     || at 960 (n4 52)
+     || at 1128 (n16 52)
+     || at 1176 (n16 53)
+     || at 1176 (n16 52)
+     || at 1224 (n16 55)
+     || at 1248 (n16 56)
+     || at 1272 (n16 55)
+     || at 1296 (n16 53)
+     || at 1320 (n16 52)
+
+exactBraw : [: Int :]
+exactBraw = fiveBarsRest
+     || at 0 (n16 46)
+     || at 24 (n8 47)
+     || at 96 (n16 52)
+     || at 120 (n16 53)
+     || at 144 (n16 52)
+     || at 168 (n16 53)
+     || at 168 (n16 52)
+     || at 192 (n16 53)
+     || at 216 (n16 56)
+     || at 240 (n16 55)
+     || at 240 (n8 56)
+     || at 336 (n16 52)
+     || at 336 (n16 51)
+     || at 360 (n16 52)
+     || at 384 (n16 53)
+     || at 408 (n16 52)
+     || at 576 (n8 53)
+     || at 624 (n16 52)
+     || at 624 (n16 53)
+     || at 672 (n4 56)
+     || at 792 (n16 52)
+     || at 816 (n16 53)
+     || at 816 (n16 52)
+     || at 840 (n8 53)
+     || at 936 (n16 47)
+     || at 960 (n16 48)
+     || at 1008 (n8 53)
+     || at 1056 (n16 52)
+     || at 1080 (n16 53)
+     || at 1128 (n16 56)
+     || at 1128 (n16 55)
+     || at 1152 (n8 56)
+     || at 1224 (n16 52)
+     || at 1248 (n16 53)
+     || at 1272 (n16 52)
+     || at 1296 (n16 53)
+     || at 1296 (n16 52)
+     || at 1368 (n16 48)
+     || at 1440 (n16 52)
+     || at 1464 (n8 53)
+     || at 1512 (n16 52)
+     || at 1560 (n16 56)
+     || at 1560 (n16 55)
+     || at 1584 (n8 56)
+     || at 1656 (n16 53)
+     || at 1656 (n16 52)
+     || at 1680 (n8 53)
+
+exactAlead : [: Int :]
+exactAlead = transpose 24 exactAraw
+
+exactBlead : [: Int :]
+exactBlead = transpose 24 exactBraw
+
+# ── Selkeytetyt pääteemat ────────────────────────────────────────────────
+# A käyttää 16 analyysinuottia neljäsosina: 4 tahtia.
+
+jamAraw : [: Int :]
+jamAraw = '47 ++ '48 ++ '51 ++ '52 ++ '53 ++ '52 ++ '55 ++ '56 ++ '55 ++ '56 ++ '55 ++ '51 ++ '52 ++ '53 ++ '52 ++ '52
+
+jamATheme : [: Int :]
+jamATheme = transpose 24 jamAraw
+
+# B käyttää tiheämpää 16 nuotin kuviota kahdeksasosina: 2 tahtia,
+# ja se toistetaan neljän tahdin fraasiksi.
+
+jamBraw2 : [: Int :]
+jamBraw2 = ('46 ++ '47 ++ '52 ++ '53 ++ '52 ++ '53 ++ '52 ++ '53 ++ '56 ++ '55 ++ '56 ++ '52 ++ '51 ++ '52 ++ '53 ++ '52) |/ 2
+
+jamBTheme : [: Int :]
+jamBTheme = transpose 24 (twice jamBraw2)
+
+jamBMid : [: Int :]
+jamBMid = transpose 12 (twice jamBraw2)
+
+# Käyttäjän 33 "di" -iskun idea: 32 nopeaa pulssia ja viimeinen pitkä E.
+diCell : [: Int :]
+diCell = ('52 ++ '53 ++ '52 ++ '53 ++ '55 ++ '56 ++ '55 ++ '52) |/ 4
+
+di32 : [: Int :]
+di32 = four diCell
+
+diHook : [: Int :]
+diHook = transpose 24 di32 ++ ('76 |* 8)
+
+# ── Harmonia: E-molli / F-molli -kromaattinen akseli ────────────────────
+
+em : [: Int :]
+em = ('52 || '55 || '59) |* 4
+
+fmin : [: Int :]
+fmin = ('53 || '56 || '60) |* 4
+
+cmaj : [: Int :]
+cmaj = ('48 || '52 || '55) |* 4
+
+b7 : [: Int :]
+b7 = ('47 || '51 || '54 || '57) |* 4
+
+progression4 : [: Int :]
+progression4 = em ++ fmin ++ cmaj ++ b7
+
+progression5 : [: Int :]
+progression5 = progression4 ++ em
+
+turnProgression : [: Int :]
+turnProgression = fmin ++ em ++ b7 ++ em
+
+# ── Basso ────────────────────────────────────────────────────────────────
+
+bassEm : [: Int :]
+bassEm = '40 ++ '40 ++ '47 ++ '40
+
+bassFm : [: Int :]
+bassFm = '41 ++ '41 ++ '48 ++ '41
+
+bassC : [: Int :]
+bassC = '36 ++ '36 ++ '43 ++ '36
+
+bassB : [: Int :]
+bassB = '35 ++ '35 ++ '42 ++ '35
+
+bassLine4 : [: Int :]
+bassLine4 = bassEm ++ bassFm ++ bassC ++ bassB
+
+bassLine5 : [: Int :]
+bassLine5 = bassLine4 ++ bassEm
+
+turnBass : [: Int :]
+turnBass = bassFm ++ bassEm ++ bassB ++ bassEm
+
+# ── Arpeggio: analyysin E/F- ja G/G#-liike ──────────────────────────────
+
+arpEm : [: Int :]
+arpEm = ('64 ++ '67 ++ '71 ++ '67 ++ '64 ++ '67 ++ '71 ++ '67) |/ 2
+
+arpFm : [: Int :]
+arpFm = ('65 ++ '68 ++ '72 ++ '68 ++ '65 ++ '68 ++ '72 ++ '68) |/ 2
+
+arpC : [: Int :]
+arpC = ('60 ++ '64 ++ '67 ++ '64 ++ '60 ++ '64 ++ '67 ++ '64) |/ 2
+
+arpB : [: Int :]
+arpB = ('59 ++ '63 ++ '66 ++ '69 ++ '66 ++ '63 ++ '59 ++ '63) |/ 2
+
+arpLine4 : [: Int :]
+arpLine4 = arpEm ++ arpFm ++ arpC ++ arpB
+
+# ── Rummut ───────────────────────────────────────────────────────────────
+
+hats8 : [: Int :]
+hats8 = eight ('42 |/ 2)
+
+hats16 : [: Int :]
+hats16 = sixteen ('42 |/ 4)
+
+backbeat : [: Int :]
+backbeat = '36 ++ '38 ++ '36 ++ '38
+
+busyBeat : [: Int :]
+busyBeat = (('36 ++ '36) |/ 2) ++ '38
+        ++ (('36 ++ '36) |/ 2) ++ '38
+
+grooveA : [: Int :]
+grooveA = backbeat || hats8
+
+grooveB : [: Int :]
+grooveB = busyBeat || hats16
+
+fill : [: Int :]
+fill = four ('38 |/ 4)
+
+grooveAFill : [: Int :]
+grooveAFill = grooveA || at (3 * ticksPerBeat) fill
+
+grooveBFill : [: Int :]
+grooveBFill = grooveB || at (3 * ticksPerBeat) fill
+
+drums4A : [: Int :]
+drums4A = grooveA ++ grooveA ++ grooveA ++ grooveAFill
+
+drums4B : [: Int :]
+drums4B = grooveB ++ grooveB ++ grooveB ++ grooveBFill
+
+drums5B : [: Int :]
+drums5B = drums4B ++ grooveBFill
+
+# ── Soittimet: gestate-aanisynteesi ─────────────────────────────────────
+#
+# The score above is untouched.  Every part was already routed through one
+# of seven one-line functions — `pads v = v >>= prog 89` — so giving a MIDI
+# piece real instruments is a rewrite of those seven lines and nothing
+# else.
+#
+# A slower, warmer set than `data_noir_132.ges`'s, and deliberately built
+# from the parts of the library that song did not touch: `allpass` and
+# `damped` for diffusion and comb colour, `echo` on the arpeggio, `limit`
+# on the bass, `bandpassSvf` used three at a time as **formants** — which
+# is what makes a "voice ooh" a voice rather than a filtered saw.
+
+Stroke := Stroke Int Int                # key number (or drum), velocity
+
+voices pad 6 padVoice : Sig Float
+voices low 2 lowVoice : Sig Float
+voices ooh 4 oohVoice : Sig Float
+voices lead 3 leadVoice : Sig Float
+voices pluck 4 pluckVoice : Sig Float
+voices keys 4 keysVoice : Sig Float
+voices drums 4 drumVoice : Sig Float
+
+instance FromMIDI Stroke where
+    noteOn ch p v = Just (Stroke p v)
+
+hzOf : Stroke -> Float
+hzOf q = case q of
+    Stroke k v -> keyHz k
+
+velOf : Stroke -> Float
+velOf q = case q of
+    Stroke k v -> toFloat v / 127.0
+
+detuned : Float -> Sig Float -> Sig Float
+detuned cents hz = map (h => centsHz cents h) hz
+
+sweep : Float -> Float -> Sig Float -> Sig Float
+sweep lo hi e = map (v => mix lo hi v) e
+
+# ── Pad: diffused rather than reverberated ──────────────────────────────
+#
+# Two `allpass` sections in series smear the attack without adding a room:
+# an allpass passes every frequency at full strength and only moves them in
+# time, so what comes out is the same chord with its edges gone.  That is a
+# different thing from `reverb` and the right one here — the piece is a
+# jam, and a long tail would blur the bar lines it is played against.
+
+padEnv : Adsr
+padEnv = Adsr 0.55 0.8 0.72 1.1
+
+padVoice : Sig Gate -> Sig Stroke -> Sig Float
+padVoice g s = lowpassSvf (sweep 260.0 1900.0 (adsr padEnv g)) 0.20
+                 (saw (detuned (0.0 - 9.0) (!hzOf s))
+                    + saw (detuned 9.0 (!hzOf s))
+                    + triangle (detuned (0.0 - 1200.0) (!hzOf s)) * 0.5)
+             * adsr padEnv g * !velOf s * 0.22
+
+# ── Bass: round, and held down by a limiter rather than a compressor ────
+#
+# `limit` is the hard one — it does not lean on the signal the way
+# `compress` does, it simply refuses to go past its ceiling — which is what
+# a bass wants when the pad underneath it is already moving.
+
+bassEnv : Adsr
+bassEnv = Adsr 0.010 0.22 0.62 0.14
+
+bassFilt : Adsr
+bassFilt = Adsr 0.004 0.18 0.34 0.12
+
+lowVoice : Sig Gate -> Sig Stroke -> Sig Float
+lowVoice g s = limit 0.85
+                 (lowpassLadder (sweep 80.0 1500.0 (adsr bassFilt g)) 0.26
+                    (sine (!hzOf s) + saw (!hzOf s) * 0.55))
+             * adsr bassEnv g * !velOf s * 0.50
+
+# ── The "ooh": three formants, which is what a vowel is ─────────────────
+#
+# A vowel is not a filter sweep, it is **three fixed resonances** — the
+# throat and mouth do not move with the pitch, so the formants stay put
+# while the note changes underneath them.  These are roughly /u/: 320 Hz,
+# 800 Hz and 2300 Hz.  A saw through three narrow bandpasses at those
+# frequencies sings; the same saw through one moving lowpass does not, and
+# that difference is the whole reason this bank exists.
+
+formants : Sig Float -> Sig Float
+formants src = bandpassSvf (constSig 320.0) 0.14 src
+             + bandpassSvf (constSig 800.0) 0.11 src * 0.55
+             + bandpassSvf (constSig 2300.0) 0.09 src * 0.22
+
+oohEnv : Adsr
+oohEnv = Adsr 0.16 0.30 0.68 0.45
+
+#: A little vibrato, because a held vowel with none is an organ.
+oohVoice : Sig Gate -> Sig Stroke -> Sig Float
+oohVoice g s = formants (saw (!hzOf s * (1.0 + sine (constSig 5.2) * 0.004)))
+             * adsr oohEnv g * !velOf s * 1.30
+
+# ── Lead: a saw with a comb in it ───────────────────────────────────────
+#
+# `damped` is a comb whose feedback path is filtered, so the repeats lose
+# their top end as they go round — a resonant colour that decays into a
+# dull one.  On a sustained lead that reads as body rather than as echo,
+# which is why the delay is five milliseconds and not fifty.
+
+leadEnv : Adsr
+leadEnv = Adsr 0.020 0.24 0.68 0.22
+
+leadVoice : Sig Gate -> Sig Stroke -> Sig Float
+leadVoice g s = damped 0.005 0.55 0.35
+                  (lowpassSvf (sweep 500.0 4200.0 (adsr leadEnv g)) 0.16
+                     (saw (detuned (0.0 - 5.0) (!hzOf s))
+                        + saw (detuned 5.0 (!hzOf s))))
+             * adsr leadEnv g * !velOf s * 0.16
+
+# ── Arp: a short pulse, and the echo is the arpeggio's other half ───────
+
+arpEnv : Adsr
+arpEnv = Adsr 0.002 0.11 0.14 0.08
+
+pluckVoice : Sig Gate -> Sig Stroke -> Sig Float
+pluckVoice g s = lowpassSvf (sweep 900.0 5200.0 (adsr arpEnv g)) 0.14
+                   (pulse 0.28 (!hzOf s))
+              * adsr arpEnv g * !velOf s * 0.20
+
+# ── Keys: two-operator FM, which is what an electric piano is ───────────
+#
+# A Rhodes is a modulator a few octaves above its carrier whose index
+# **decays much faster than the note** — that is the bell-like attack and
+# the mellow body under it, and it is one envelope rather than a sample.
+
+keysAmp : Adsr
+keysAmp = Adsr 0.003 0.70 0.28 0.35
+
+keysVoice : Sig Gate -> Sig Stroke -> Sig Float
+keysVoice g s = pm (!hzOf s)
+                   (sine (map (h => h * 7.0) (!hzOf s)) * perc 9.0 g * 1.7)
+             * adsr keysAmp g * !velOf s * 0.26
+
+# ── The kit: 36 kick, 38 snare, 42 hat ──────────────────────────────────
+#
+# Softer than the techno kit — this is a jam at 94 and the drums sit under
+# the band rather than in front of it.  **`perc` takes a rate, not a
+# time**: e-foldings per second, so 55 is a closed hat and 6 is a kick.
+# Reading it the other way round is what made `data_noir`'s first kit ring
+# for seconds each.
+
+hiss : Sig Float
+hiss = white 940806
+
+isKey : Int -> Stroke -> Float
+isKey want q = case q of
+    Stroke k v -> case k == want of
+        True -> toFloat v / 127.0
+        False -> 0.0
+
+kick : Sig Gate -> Sig Float
+kick g = sine (44.0 + 105.0 * perc 32.0 g) * perc 7.5 g
+
+#: Brushed rather than cracked: more noise, less body, and a slower decay
+#: than a techno snare.
+snare : Sig Gate -> Sig Float
+snare g = (bandpassSvf (constSig 1650.0) 0.40 hiss
+             + sine (constSig 195.0) * 0.28)
+        * perc 12.0 g * 0.42
+
+hat : Sig Gate -> Sig Float
+hat g = highpassSvf (constSig 7000.0) 0.20 hiss * perc 50.0 g * 0.22
+
+drumVoice : Sig Gate -> Sig Stroke -> Sig Float
+drumVoice g s = kick g * !isKey (constSig 36) s
+              + snare g * !isKey (constSig 38) s
+              + hat g * !isKey (constSig 42) s
+
+# ── Instrumentit ────────────────────────────────────────────────────────
+#
+# The seven lines that were `>>= prog N`.
+
+pitched : Int -> [: Int :] -> [: Stroke :]
+pitched v s = s >>= (k => '(Stroke k v))
+
+pads : [: Int :] -> [: Void :]
+pads v = pitched 80 v >>= voices.pad
+
+bass : [: Int :] -> [: Void :]
+bass v = pitched 102 v >>= voices.low
+
+voiceA : [: Int :] -> [: Void :]
+voiceA v = pitched 88 v >>= voices.ooh
+
+voiceB : [: Int :] -> [: Void :]
+voiceB v = pitched 100 v >>= voices.lead
+
+arp : [: Int :] -> [: Void :]
+arp v = pitched 86 v >>= voices.pluck
+
+piano : [: Int :] -> [: Void :]
+piano v = pitched 96 v >>= voices.keys
+
+kit : [: Int :] -> [: Void :]
+kit v = pitched 106 v >>= voices.drums
+
+# ── Kappaleen osat ──────────────────────────────────────────────────────
+
+# 4 tahtia: spektrisesti pehmeä alku, vain pad ja arpeggio.
+intro : [: Void :]
+intro = pads progression4
+     || arp arpLine4
+
+# 4 tahtia: ensimmäisen ääninäytteen analyysistä kvantisoitu teema.
+sourceA : [: Void :]
+sourceA = pads progression4
+      || bass bassLine4
+      || voiceA exactAlead
+      || kit drums4A
+
+# 5 tahtia: toisen näytteen pidempi ja tiheämpi analyysirakenne.
+sourceB : [: Void :]
+sourceB = pads progression5
+      || bass bassLine5
+      || voiceB exactBlead
+      || kit drums5B
+
+# 8 tahtia: selkeytetty kysymys-vastaus; B tulee toisella kierroksella mukaan.
+duet : [: Void :]
+duet = pads (twice progression4)
+    || bass (twice bassLine4)
+    || voiceA (twice jamATheme)
+    || at (4 * bar) (voiceB jamBTheme)
+    || kit (drums4A ++ drums4B)
+
+# 4 tahtia: 33 di-iskun koneellinen koukku.
+bridge : [: Void :]
+bridge = pads turnProgression
+      || bass turnBass
+      || voiceB diHook
+      || kit drums4B
+
+# 8 tahtia: molemmat analyysimotiivit ja arpeggio samassa huipennuksessa.
+finale : [: Void :]
+finale = pads (twice progression4)
+      || bass (twice bassLine4)
+      || arp (twice arpLine4)
+      || voiceA (twice jamATheme)
+      || voiceB (twice jamBMid)
+      || kit (drums4B ++ drums4B)
+
+# 4 tahtia: analyysin E-F-E/G#-G-jännite purkautuu E:hen.
+outroLead : [: Int :]
+outroLead = ('76 |* 2) ++ ('77 |* 2)
+         ++ ('76 |* 2) ++ ('80 |* 2)
+         ++ ('79 |* 2) ++ ('76 |* 2)
+         ++ ('75 |* 2) ++ ('76 |* 2)
+
+outro : [: Void :]
+outro = pads progression4
+     || bass bassLine4
+     || voiceA outroLead
+
+score : [: Void :]
+score = intro
+     ++ sourceA
+     ++ sourceB
+     ++ duet
+     ++ bridge
+     ++ finale
+     ++ outro
+
+bpm : Int
+bpm = 94
+
+# ── Miksaus ─────────────────────────────────────────────────────────────
+#
+# Effects go on a **bank**, not on each voice: one echo for four arpeggio
+# voices, one room for the whole band.  That is both cheaper than
+# per-voice and what a send actually is.
+#
+# `echo 0.32 0.35` at 94 bpm is a dotted-eighth against the beat — the
+# repeat lands between the arpeggio's own notes rather than on top of
+# them, which is what makes it sound like part of the part.
+#
+# The level below is measured, not guessed: with the ceiling lifted the
+# mix peaks well past 1, and a `brickwall` that is never off is a
+# distortion box rather than a safety net.
+
+sound : Sig Float
+sound = brickwall 0.92
+          (( reverb 2.1 0.26 (pad * 0.9)
+           + low
+           + ooh * 0.55
+           + lead
+           + echo 0.32 0.35 (pluck * 0.8)
+           + keys
+           + drums * 0.85 ) * 0.58)

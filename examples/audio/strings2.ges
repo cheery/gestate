@@ -1,0 +1,427 @@
+# An autoharp with a kit behind it, and the room opening up in the middle.
+#
+#   python -m gestate.audioperform examples/audio/strings2.ges -o strings2.wav --seconds 180
+#   python -m gestate.audiopygame examples/audio/strings2.ges
+#
+# `strings.ges` is this piece without the drums and without the break.  What
+# is added here is the two things a three-minute piece needs that a loop does
+# not: something keeping time, and somewhere it stops keeping time.
+#
+# Everything new since the delay lines landed is here: `string` for the
+# strings, `damped` and `reverb` for the room, `chorus` for the width,
+# `flanger` on the pad, and `brickwall` holding the ceiling at the end.
+#
+# ── The break ────────────────────────────────────────────────────────────
+#
+# Sections 3 and 4 — 76 to 126 seconds — are the middle, and there the mix
+# inverts: the drums stop, the dry signal drops away, and what is left is
+# the reverb with a long damped delay feeding it.  Every one of those is a
+# *level*, so each is a signal rather than a number, and `slew` smooths the
+# step so the change is heard as a swell rather than as an edit.
+#
+# ── Why the strings are *fixed* ──────────────────────────────────────────
+#
+# `string hz decay s` is Karplus-Strong, and its pitch is the length of a
+# delay line — a whole number of samples, decided before the program runs.
+# So a string cannot be retuned by a note arriving at run time, and this
+# cannot be a `voices` bank the way `duet.ges` is.
+#
+# That is not a workaround, it is an instrument.  An autoharp, a zither and
+# the sympathetic strings inside a sitar are all a fixed set that you excite
+# a subset of, and the harmony comes from *which* strings you pluck rather
+# than from retuning any of them.  Eight strings of A minor pentatonic over
+# two octaves is what is strung here, and the chords below choose among
+# them.
+#
+# The piece is written the way `drums.ges` is — arithmetic over `ticks`,
+# with the pattern as case tables — because there is no keyboard in it and
+# nothing to schedule.
+
+# ── Time ─────────────────────────────────────────────────────────────────
+
+tempo : Int
+tempo = 76
+
+#: A sixteenth note, in samples.  `15 / tempo` seconds is a quarter of a
+#: beat, which is what `drums.ges` calls a step too.
+samplesPerStep : Int
+samplesPerStep = floor (sampleRate * 15.0 / toFloat tempo)
+
+stepsPerBar : Int
+stepsPerBar = 16
+
+barsPerSection : Int
+barsPerSection = 8
+
+#: Which sixteenth of the bar sample `n` falls in.
+stepAt : Int -> Int
+stepAt n = prim_mod_int (prim_div_int n samplesPerStep) stepsPerBar
+
+#: How far through that sixteenth it is, 0.0 .. 1.0.
+throughStep : Int -> Float
+throughStep n = toFloat (prim_mod_int n samplesPerStep) / toFloat samplesPerStep
+
+#: Is this instant inside the break?  Sections 3 and 4, which at eight bars
+#: each puts it squarely in the middle of the three minutes.
+inBreak : Int -> Bool
+inBreak n = case sectionAt n of
+    3 -> True
+    4 -> True
+    _ -> False
+
+#: 1.0 through the break and 0.0 outside it, smoothed.  A step in a gain is
+#: a click; `slew` at 1.5 units a second takes about two thirds of a second
+#: to cross, which is a swell.
+breakLevel : Sig Float
+breakLevel = slew (!1.5) (map breakTarget ticks)
+
+breakTarget : Int -> Float
+breakTarget n = case inBreak n of
+    True -> 1.0
+    False -> 0.0
+
+#: Which of the seven sections, wrapping — so the form repeats rather than
+#: running out, and a render longer than three minutes simply goes round
+#: again.  Seven sections of eight bars at this tempo is 2:57.
+sectionAt : Int -> Int
+sectionAt n = prim_mod_int (prim_div_int (barIndex n) barsPerSection) sections
+
+sections : Int
+sections = 7
+
+#: Which bar of the piece, counting from the first.
+barIndex : Int -> Int
+barIndex n = prim_div_int n (samplesPerStep * stepsPerBar)
+
+#: Which bar of the section — used to thin the pattern out at the start of
+#: each one, which is what keeps eight bars from sounding like one bar.
+barAt : Int -> Int
+barAt n = prim_mod_int (barIndex n) barsPerSection
+
+# ── The pattern ──────────────────────────────────────────────────────────
+#
+# One string is plucked every eighth note, chosen by an eight-place figure
+# that changes with the section.  `-1` is silence, and every table returns
+# a string index otherwise.
+
+#: The string to pluck at this instant, or -1 for none.
+noteAt : Int -> Int
+noteAt n = case prim_mod_int (stepAt n) 2 of
+    0 -> figure (sectionAt n) (prim_div_int (stepAt n) 2)
+    _ -> 0 - 1
+
+#: The eight-place figure each section plays.  Four shapes over seven
+#: sections, so the form returns to where it started twice on the way
+#: through — which is the whole reason a listener hears it as a form.
+figure : Int -> Int -> Int
+figure sec i = case sec of
+    0 -> amin i
+    1 -> fmaj i
+    2 -> cmaj i
+    3 -> amin i
+    4 -> gmaj i
+    5 -> fmaj i
+    6 -> cmaj i
+    _ -> amin i
+
+#: A minor: the root, the fifth, the octave, and back down through the
+#: third.  Rising then falling is what makes a figure sound like a phrase
+#: rather than a scale.
+amin : Int -> Int
+amin i = case i of
+    0 -> 0
+    1 -> 3
+    2 -> 5
+    3 -> 7
+    4 -> 5
+    5 -> 4
+    6 -> 3
+    _ -> 1
+
+#: F major, reached by leaving the root where it is and moving everything
+#: above it — which is why the two chords sound related.
+fmaj : Int -> Int
+fmaj i = case i of
+    0 -> 1
+    1 -> 4
+    2 -> 6
+    3 -> 4
+    4 -> 5
+    5 -> 6
+    6 -> 4
+    _ -> 2
+
+cmaj : Int -> Int
+cmaj i = case i of
+    0 -> 1
+    1 -> 4
+    2 -> 6
+    3 -> 7
+    4 -> 6
+    5 -> 4
+    6 -> 2
+    _ -> 4
+
+gmaj : Int -> Int
+gmaj i = case i of
+    0 -> 2
+    1 -> 4
+    2 -> 7
+    3 -> 5
+    4 -> 4
+    5 -> 2
+    6 -> 5
+    _ -> 4
+
+# ── Exciting a string ────────────────────────────────────────────────────
+#
+# A string sounds like whatever you hand it, filtered down: a few
+# milliseconds of noise is a pluck.  The burst is deliberately shorter than
+# one round trip of the lowest string — `string`'s own documentation is
+# about what happens when it is not, which is that the excitation stacks and
+# the peak climbs.
+
+#: A short noise burst at the start of the step this string is plucked in.
+burst : Float -> Float
+burst t = case t > 0.02 of
+    True -> 0.0
+    False -> 1.0 - t / 0.02
+
+onlyIf : Bool -> Float -> Float
+onlyIf on v = case on of
+    True -> v
+    False -> 0.0
+
+#: Is string `k` plucked at instant `n`?  Two conditions, and the second is
+#: what stops eight bars sounding like one: the lowest string is struck only
+#: on the first bar of a section, so each section lands.
+struckAt : Int -> Int -> Bool
+struckAt k n = case eqInt (noteAt n) k of
+    True -> case eqInt k 0 of
+        True -> eqInt (barAt n) 0
+        False -> True
+    False -> False
+
+eqInt : Int -> Int -> Bool
+eqInt a b = case a - b of
+    0 -> True
+    _ -> False
+
+#: The excitation for one string: silence, except for a few milliseconds
+#: whenever the pattern calls for it.  Its own seed per string, so eight
+#: plucks are eight different bursts rather than the same one eight times.
+excite : Int -> Sig Float
+excite k = zip (n w => exciteAt k n w) ticks (white (101 + k))
+
+exciteAt : Int -> Int -> Float -> Float
+exciteAt k n w = onlyIf (struckAt k n) (w * burst (throughStep n))
+
+#: One string: a pitch, a decay, and what excites it.  `hz` is a parameter
+#: rather than a signal, and folds to a constant at each of the eight call
+#: sites below — which is what lets `string` turn it into a line length.
+voice : Float -> Int -> Sig Float
+voice hz k = string hz 2.6 (excite k)
+
+# ── The instrument ───────────────────────────────────────────────────────
+#
+# A minor pentatonic, A2 up to E4.  Eight strings is eight delay lines and
+# about 6000 samples of state at 44100 Hz, which is the price of the sound.
+
+harp : Sig Float
+harp = voice 110.00 0 + voice 130.81 1 + voice 146.83 2 + voice 164.81 3
+     + voice 196.00 4 + voice 220.00 5 + voice 261.63 6 + voice 329.63 7
+
+#: A drone under it, and the one place `flanger` earns its keep: a sound
+#: with no transients in it is where a moving notch is heard as motion
+#: rather than as a filter.  `pm` gives it more than a sine to move over.
+pad : Sig Float
+pad = 0.10 * flanger 0.13 0.9 (pm (!55.0) (0.5 * sine (!110.5)))
+
+#: Occasional high partials over the top, struck by `dust` rather than by
+#: the pattern — so they never quite line up with the strings, which is what
+#: keeps three minutes of an eight-bar figure from closing in.
+#:
+#: **Three modes, because one is a bottle.**  The first version was a single
+#: `resonate` at 1318 Hz ringing for four seconds, struck 0.67 times a
+#: second at a peak of 0.31 — and what that sounds like is somebody tapping
+#: a wine bottle, over and over, on top of the music.  A bell is several
+#: partials at once and they are *not* whole-number multiples of each
+#: other: 2.76 and 5.40 are the ratios a struck bar gives, the same ones
+#: `bar.ges` is built on, and they are what makes the sound metal rather
+#: than glass.
+#:
+#: Quieter, sparser and shorter than it was as well.  It is meant to be
+#: noticed occasionally, not listened to.
+strike : Sig Float
+strike = dust 5 (!0.22)
+
+shimmer : Sig Float
+shimmer = 0.06 * resonate (!1318.5) 2.2 strike
+        + 0.03 * resonate (!3639.1) 1.4 strike
+        + 0.02 * resonate (!7120.0) 0.9 strike
+
+# ── The kit ──────────────────────────────────────────────────────────────
+#
+# Three voices from arithmetic, as `drums.ges` builds them: a kick whose
+# pitch falls across its own envelope, noise for the snare and the hat, and
+# a table each for when they land.  Nothing new is needed here — the point
+# of the drums is that the strings now have something to be in time with.
+
+#: A percussive decay lasting `len` of a step, silent after.
+cube : Float -> Float
+cube v = v * v * v
+
+fall : Float -> Float -> Float
+fall len t = case t > len of
+    True -> 0.0
+    False -> cube (1.0 - t / len)
+
+kickAt : Int -> Bool
+kickAt s = case s of
+    0 -> True
+    7 -> True
+    10 -> True
+    _ -> False
+
+snareAt : Int -> Bool
+snareAt s = case s of
+    4 -> True
+    12 -> True
+    _ -> False
+
+#: Every other sixteenth.
+hatAt : Int -> Bool
+hatAt s = case prim_mod_int s 2 of
+    0 -> True
+    _ -> False
+
+#: The kick needs a phase of its own, because its pitch falls as it sounds —
+#: 195 Hz down to 45 — and a falling pitch is a fold rather than a function
+#: of the instant.
+Kit := Kit Float Int
+
+kickHz : Int -> Float
+kickHz n = 45.0 + 150.0 * fall 0.5 (throughStep n)
+
+stepKit : Kit -> Int -> Kit
+stepKit k n = case k of
+    Kit ph m -> Kit (wrap (ph + kickHz n / sampleRate)) n
+
+kickOut : Kit -> Float
+kickOut k = case k of
+    Kit ph n -> onlyIf (kickAt (stepAt n)) (triangleOf ph * fall 0.55 (throughStep n))
+
+kick : Sig Float
+kick = map kickOut (scan stepKit (Kit 0.0 0) ticks)
+
+#: **The click, and it is not decoration.**  Measured, 97.5% of the kick's
+#: energy sits below 200 Hz and there is nothing at all above 500 — which is
+#: most of a laptop speaker's range gone, so on one the kick simply is not
+#: there.  A real drum has a beater striking a head, and that transient is
+#: broadband; four milliseconds of noise with the bottom taken off is it,
+#: and it is what makes the kick audible on something with no bass.
+kickClick : Sig Float
+kickClick = highpassOnePole (!2200.0) (zip clickMix ticks (white 71))
+
+clickMix : Int -> Float -> Float
+clickMix n w = onlyIf (kickAt (stepAt n)) (w * fall 0.035 (throughStep n))
+
+snareNoise : Sig Float
+snareNoise = zip snareMix ticks (white 31)
+
+snareMix : Int -> Float -> Float
+snareMix n w = onlyIf (snareAt (stepAt n)) (w * fall 0.30 (throughStep n))
+
+#: Noise alone is a hiss; a snare is a hiss with a drum under it, and one
+#: `resonate` at the head's pitch is that drum.
+#:
+#: **The resonator's coefficient is small for a measured reason.**
+#: `resonate` is normalised so that an *impulse* comes back at about 1, and
+#: a snare hands it thirty milliseconds of noise instead — which the
+#: resonator accumulates.  At 0.65 this line peaked at **10.2**; the
+#: balance below is what puts the pair back at about one.
+snare : Sig Float
+snare = 0.5 * snareNoise + 0.035 * resonate (!190.0) 0.14 snareNoise
+
+hatNoise : Sig Float
+hatNoise = zip hatMix ticks (white 57)
+
+hatMix : Int -> Float -> Float
+hatMix n w = onlyIf (hatAt (stepAt n)) (w * fall 0.05 (throughStep n))
+
+#: A hat is the top of the noise and nothing else, so the bottom goes.
+hat : Sig Float
+hat = highpassOnePole (!6000.0) hatNoise
+
+#: Snare and hat carry the time on a small speaker, so they are mixed
+#: louder than they would be for headphones — and the click is mixed as
+#: part of the kick rather than as a voice of its own, because it is one
+#: sound.
+#: **Weighted for a small speaker, and measured through a model of one.**
+#: Two poles at 400 Hz is roughly what a laptop does to the bottom end, and
+#: through it the kick loses most of itself while the click, the snare and
+#: the hat lose almost nothing.  Balanced by ear on headphones the kit came
+#: out at half the strings once filtered; these are the weights that put it
+#: level with them, which is why the click is mixed louder than the drum it
+#: belongs to.
+kit : Sig Float
+kit = 0.95 * kick + 1.80 * kickClick + 1.00 * snare + 0.60 * hat
+
+#: **The drums stop in the break**, which is the whole reason a break is
+#: audible: what changes is not the volume but whether anything is keeping
+#: time.
+drums : Sig Float
+drums = kit * (1.0 - breakLevel)
+
+# ── The room ─────────────────────────────────────────────────────────────
+#
+# `damped` before `reverb` on purpose.  The reverb is a wash and has no
+# rhythm of its own; a single damped repeat three eighths behind the beat
+# puts the room *in time* with the piece, and loses its top end each pass so
+# it recedes instead of cluttering.
+
+echoTime : Float
+echoTime = 45.0 / toFloat tempo
+
+dry : Sig Float
+dry = 0.9 * harp + pad + shimmer
+
+#: **The wash, and it only exists in the middle.**  A delay near a second
+#: long, fed back most of the way and losing its top each pass, is a sound
+#: with no attack and no pitch of its own — and it is fed `dry *
+#: breakLevel`, so outside the break there is nothing in the line at all
+#: and it costs its memory and no attention.
+wash : Sig Float
+wash = damped 0.90 0.70 0.45 (dry * breakLevel)
+
+room : Sig Float
+room = reverb 3.4 0.35 (roomIn)
+
+roomIn : Sig Float
+roomIn = dry + 0.35 * damped echoTime 0.55 0.5 dry + 0.55 * wash
+
+#: The two levels that invert across the break: the dry signal steps back
+#: and the room comes forward.  Neither is switched — `breakLevel` is
+#: slewed, so both are crossfades.
+dryLevel : Sig Float
+dryLevel = 1.0 - 0.62 * breakLevel
+
+#: **A swell, not a wall.**  The first setting put 0.80 here and the break
+#: came out three times the RMS of the verse with the limiter pinned flat
+#: through all fifty seconds of it — which is not a change of scene, it is
+#: a change of volume.  What should carry the middle is that the dry signal
+#: has gone and only the room is left.
+wetLevel : Sig Float
+wetLevel = 0.45 + 0.38 * breakLevel
+
+dryMix : Sig Float
+dryMix = 0.85 * chorus 0.21 0.55 dry * dryLevel
+
+wetMix : Sig Float
+wetMix = room * wetLevel
+
+#: `brickwall` last, and nothing after it.  Eight strings, a kit, a pad and
+#: a reverb can line up on a peak that none of them reaches alone; a limiter
+#: that sees it coming is the difference between a ceiling and a hope.
+sound : Sig Float
+sound = brickwall 0.92 (dryMix + wetMix + 1.0 * drums)

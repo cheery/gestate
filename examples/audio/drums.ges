@@ -1,0 +1,135 @@
+# A drum machine: kick, snare and hat, from arithmetic alone.
+#
+#   python -m gestate.audio examples/audio/drums.ges -o drums.wav --seconds 5
+#
+# `blip.ges` is one voice with a melody.  This is three voices at once, and
+# it needs two things that one did not.
+#
+# **Noise, from a fold.**  A snare is filtered noise and a hat is short
+# noise, and there is no random number generator here — so the state carries
+# a seed and steps it every sample:
+#
+#     seed' = (1103515245 * seed + 12345) mod 2^31
+#
+# A pure function of the previous instant, which is what `scan` is for.  The
+# same program renders the same file every time, which is a property worth
+# having in a sound you intend to keep.
+#
+# **Mixing, inside one state.**  `map` maps a signal but cannot pair two,
+# so three voices cannot be three signals added together — they are three
+# readings of one `Kit`, summed as it is turned into a sample.  A `zip`
+# would lift that restriction and nothing has needed one yet.
+#
+# The kick is a triangle whose pitch falls 195 Hz to 45 Hz across its
+# envelope, which is what gives it the thump.  No `sin` is involved
+# anywhere; saw, square and triangle are all arithmetic on a phase.
+
+# ── The beat ─────────────────────────────────────────────────────────────
+
+tempo : Int
+tempo = 96
+
+stepsPerBar : Int
+stepsPerBar = 16
+
+#: A sixteenth note, in samples.
+samplesPerStep : Int
+samplesPerStep = floor (sampleRate * 15.0 / toFloat tempo)
+
+#: Which sixteenth of the bar sample `n` falls in.
+stepAt : Int -> Int
+stepAt n = prim_mod_int (prim_div_int n samplesPerStep) stepsPerBar
+
+#: How far through that sixteenth it is, 0.0 .. 1.0.
+throughStep : Int -> Float
+throughStep n = toFloat (prim_mod_int n samplesPerStep) / toFloat samplesPerStep
+
+#: The pattern, as three **tables** over the sixteenth `stepAt` returns.
+#:
+#: `elem (stepAt n) [0, 6, 10]` says the same thing and is outside the audio
+#: fragment (`spec/liveaudio.md`): `elem` walks a cons list per sample, and
+#: being polymorphic it arrives carrying an `Eq Int` dictionary — a record
+#: of functions, in code the engine has to lay out as a struct.
+kickAt : Int -> Bool
+kickAt s = case s of
+    0 -> True
+    6 -> True
+    10 -> True
+    _ -> False
+
+snareAt : Int -> Bool
+snareAt s = case s of
+    4 -> True
+    12 -> True
+    _ -> False
+
+#: Every other sixteenth.
+hatAt : Int -> Bool
+hatAt s = case prim_mod_int s 2 of
+    0 -> True
+    _ -> False
+
+# ── Envelopes ────────────────────────────────────────────────────────────
+
+cube : Float -> Float
+cube v = v * v * v
+
+#: A percussive decay lasting `len` of a step, silent after.
+decay : Float -> Float -> Float
+decay len t = case t > len of
+    True -> 0.0
+    False -> cube (1.0 - t / len)
+
+gate : Bool -> Float -> Float
+gate on v = case on of
+    True -> v
+    False -> 0.0
+
+# ── Noise ────────────────────────────────────────────────────────────────
+
+#: A linear congruential generator — the same one C's `rand` used.  Its low
+#: bits are poor, so `noiseOf` reads from the middle.
+nextSeed : Int -> Int
+nextSeed s = prim_mod_int (1103515245 * s + 12345) 2147483648
+
+noiseOf : Int -> Float
+noiseOf s = toFloat (prim_mod_int (prim_div_int s 65536) 2048) / 1024.0 - 1.0
+
+# ── The kit ──────────────────────────────────────────────────────────────
+#
+# Kick phase, noise seed, sample number.  Everything three voices need to
+# know, in one value, because they have to be summed rather than mixed.
+
+Kit := Kit Float Int Int
+
+#: The kick's pitch falls as its envelope does — a triangle at 195 Hz
+#: dropping to 45 Hz is the whole trick.
+kickHz : Int -> Float
+kickHz n = 45.0 + 150.0 * decay 0.5 (throughStep n)
+
+stepKit : Kit -> Int -> Kit
+stepKit k n = case k of
+    Kit p seed m -> Kit (wrap (p + kickHz n / sampleRate)) (nextSeed seed) n
+
+kickOut : Kit -> Float
+kickOut k = case k of
+    Kit p seed n -> gate (kickAt (stepAt n)) (triangleOf p * decay 0.55 (throughStep n))
+
+snareOut : Kit -> Float
+snareOut k = case k of
+    Kit p seed n -> gate (snareAt (stepAt n)) (noiseOf seed * decay 0.3 (throughStep n))
+
+hatOut : Kit -> Float
+hatOut k = case k of
+    Kit p seed n -> gate (hatAt (stepAt n)) (noiseOf seed * decay 0.08 (throughStep n))
+
+kitOut : Kit -> Float
+kitOut k = clip (kickOut k * 0.95 + snareOut k * 0.45 + hatOut k * 0.22)
+
+raw : Sig Float
+raw = map kitOut (scan stepKit (Kit 0.0 20250804 0) ticks)
+
+#: Barely any filtering — a hat is high frequencies, and smoothing it away
+#: would leave a kit with no top on it.
+sound : Sig Float
+sound = gain 0.8 (lowpass 0.8 raw)

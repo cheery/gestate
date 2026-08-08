@@ -1,0 +1,118 @@
+# A fourth synth: FM, which is the one instrument that needs a real sine.
+#
+#   python -m gestate.audio examples/audio/fm.ges -o fm.wav
+#   python -m gestate.audiolive examples/audio/fm.ges --seconds 5
+#
+# `blip.ges` and `drums.ges` are built from ramps — a sawtooth is `2p - 1`
+# and a triangle is two lines, so both are arithmetic on a phase.  This one
+# cannot be: **FM's whole character comes from the modulator being a sine**,
+# because a sine's spectrum is one partial and everything you hear is the
+# sidebands the modulation creates.  Modulate with a sawtooth instead and
+# you get noise, not a bell.
+#
+# So this example exists to be the *caller* for `sin` (`spec/liveaudio.md`
+# open question 2), and it brings a second new thing with it: two
+# oscillators where one drives the other, which is two `scan`s in a chain
+# rather than two side by side.
+#
+# The signal chain:
+#
+#     ticks ─scan stepFM─► FM ─map voiceOut─► raw ─lowpass─► sound
+#
+# One `scan` carries both phases, because they advance together and a pair
+# of them would have to be re-zipped every sample to be used together.
+
+# ── The tune ─────────────────────────────────────────────────────────────
+#
+# A `case` table rather than a list, for the reason `blip.ges` gives at
+# length: a cons list is a heap structure walked once per sample, and the
+# audio fragment admits neither the allocation nor the unbounded walk.
+
+noteOf : Int -> Float
+noteOf i = case i of
+    0 -> 220.0
+    1 -> 293.66
+    2 -> 349.23
+    3 -> 440.0
+    4 -> 349.23
+    5 -> 293.66
+    _ -> 261.63
+
+noteCount : Int
+noteCount = 7
+
+speed : Int
+speed = 3
+
+samplesPerNote : Int
+samplesPerNote = floor (sampleRate / toFloat speed)
+
+noteAt : Int -> Float
+noteAt n = noteOf (prim_mod_int (prim_div_int n samplesPerNote) noteCount)
+
+#: How far through its note sample `n` is, 0.0 .. 1.0.
+throughNote : Int -> Float
+throughNote n = toFloat (prim_mod_int n samplesPerNote) / toFloat samplesPerNote
+
+# ── The two envelopes ────────────────────────────────────────────────────
+#
+# FM has two, and that is the point of it.  The amplitude envelope says how
+# loud, and the **index** envelope says how bright — the modulation depth
+# falling faster than the volume is what makes a struck sound: a bright
+# attack that settles into something near a sine.  One oscillator, two
+# envelopes, and the timbre changes over the note.
+
+#: Amplitude.  `exp` rather than a polynomial because a real decay *is*
+#: exponential, and `decay v = v * v * v` in `blip.ges` is an approximation
+#: of this shape that was chosen when there was no `exp`.
+ampAt : Int -> Float
+ampAt n = exp (negate 4.0 * throughNote n)
+
+#: Modulation depth, in radians of carrier phase.  Starts at `index` and
+#: falls three times as fast as the amplitude, so the partials die away
+#: while the note is still sounding.
+index : Float
+index = 4.0
+
+indexAt : Int -> Float
+indexAt n = index * exp (negate 12.0 * throughNote n)
+
+#: The modulator's frequency, as a ratio of the carrier's.  A small whole
+#: number gives a harmonic sound; 2.0 is a hollow, bell-like one.
+ratio : Float
+ratio = 2.0
+
+# ── The voice ────────────────────────────────────────────────────────────
+#
+# Both phases accumulate, for the same reason `blip.ges`'s does: the
+# frequency changes at a note boundary, and `n * f / rate` would jump where
+# `wrap (p + f/rate)` stays continuous.  A jump in phase is a click.
+
+FM := FM Float Float Int
+
+#: One step of a phase at `hz`.  Both oscillators advance the same way and
+#: differ only in frequency, so saying it once is saying what is true.
+advance : Float -> Float -> Float
+advance p hz = wrap (p + hz / sampleRate)
+
+stepFM : FM -> Int -> FM
+stepFM v n = case v of
+    FM c m i -> FM (advance c (noteAt n)) (advance m (ratio * noteAt n)) n
+
+#: Phase modulation, which is what every "FM" synth actually does: the
+#: modulator is added to the carrier's *phase* rather than to its frequency.
+#: The two are equivalent up to an envelope on the index, and this one does
+#: not drift, because the carrier's own phase is still the accumulated one.
+voiceOut : FM -> Float
+voiceOut v = case v of
+    FM c m n -> ampAt n * sin (tau * c + indexAt n * sineOf m)
+
+# ── The chain ────────────────────────────────────────────────────────────
+
+raw : Sig Float
+raw = map voiceOut (scan stepFM (FM 0.0 0.0 0) ticks)
+
+#: Gentler than `blip.ges`'s filter: FM's brightness is already under the
+#: index envelope's control, so this is only taking the corners off.
+sound : Sig Float
+sound = gain 0.5 (lowpass 0.7 raw)

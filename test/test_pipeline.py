@@ -1,0 +1,113 @@
+"""What `pipeline.analyse` may hand out twice — `fixme.md` F99.
+
+The front end is the expensive half of everything here, and one text is
+run through it several times a second by readers that know nothing of each
+other: the engine's graph, the knob placement, the `FromMIDI` instances,
+the sidebar, `?` and `Tab`.  So the answer is kept.
+
+Keeping it is only sound because an `Analysis` is a pure function of its
+source *and stays usable* — a later front end must not disturb one, and
+`compile` must read rather than rewrite it.  Inference is destructive
+through a module global (`types.unifying`), which is exactly the kind of
+thing that would make the second claim false, so both are tested here
+rather than assumed.  If either of these fails, the cache in
+`pipeline.analyse` is not safe and the speed it buys is not worth having.
+"""
+
+from __future__ import annotations
+
+from gestate.audio import assemble
+from gestate.audioengine import run as run_graph
+from gestate.audioextract import extract_analysis
+from gestate.pipeline import (analyse, compile as pcompile, forget_analyses,
+                              _KEEP_ANALYSED, _analysed)
+from gestate.show import show_type
+
+RATE = 8000
+
+SYNTH = """cutoff : Sig Float
+cutoff = mkKnob 0.6
+
+sound : Sig Float
+sound = zip (x c => x * c) (sine 220.0) cutoff
+"""
+
+
+def _types(analysis) -> list:
+    return sorted((str(n), show_type(t)) for n, t in analysis.types.items())
+
+
+def _graph(analysis):
+    return extract_analysis(analysis, entry="sound", rate=RATE)
+
+
+def test_the_same_text_is_analysed_once():
+    forget_analyses()
+    src = assemble(SYNTH, RATE)
+    assert analyse(src) is analyse(src)
+
+
+def test_a_different_text_is_a_different_answer():
+    forget_analyses()
+    a = analyse(assemble(SYNTH, RATE))
+    b = analyse(assemble(SYNTH.replace("220.0", "330.0"), RATE))
+    assert a is not b
+    assert _graph(a).nodes != _graph(b).nodes or True   # both extract at all
+    assert run_graph(_graph(a), 64) != run_graph(_graph(b), 64)
+
+
+def test_an_analysis_survives_another_front_end():
+    """Inference is destructive through a *module global*, so this is the
+    claim most likely to be false — and the one the cache rests on."""
+    forget_analyses()
+    src = assemble(SYNTH, RATE)
+    kept = analyse(src)
+    types, samples = _types(kept), run_graph(_graph(kept), 128)
+
+    analyse("main : Int\nmain = 1 + 2\n")      # someone else's program
+    analyse(assemble(SYNTH.replace("220.0", "440.0"), RATE))
+
+    assert _types(kept) == types
+    assert run_graph(_graph(kept), 128) == samples
+
+
+def test_compiling_does_not_rewrite_the_analysis_it_read():
+    """`compile` continues from `analysis.scs` through lifting and the ϕ/δ
+    transform, and now does it to an object someone else is holding."""
+    forget_analyses()
+    src = assemble(SYNTH, RATE)
+    kept = analyse(src)
+    scs, types, samples = len(kept.scs), _types(kept), run_graph(_graph(kept), 128)
+
+    pcompile(src)                              # the same text, all the way
+
+    assert len(kept.scs) == scs
+    assert _types(kept) == types
+    assert run_graph(_graph(kept), 128) == samples
+
+
+def test_a_datafun_program_survives_its_own_transform():
+    """The hardest case: ϕ/δ rewrites a program with sets in it."""
+    forget_analyses()
+    src = "main : Set Int\nmain = {1, 2} \\/ {3}\n"
+    kept = analyse(src)
+    scs, types = len(kept.scs), _types(kept)
+    pcompile(src)
+    assert (len(kept.scs), _types(kept)) == (scs, types)
+
+
+def test_only_a_few_are_kept():
+    """An editor has three assemblies of one file live at once and a fourth
+    slot for what survives a keystroke — not a session's worth of memory."""
+    forget_analyses()
+    for i in range(_KEEP_ANALYSED + 3):
+        analyse(f"main : Int\nmain = {i}\n")
+    assert len(_analysed) == _KEEP_ANALYSED
+
+
+def test_forgetting_is_what_a_measurement_needs():
+    forget_analyses()
+    src = assemble(SYNTH, RATE)
+    first = analyse(src)
+    forget_analyses()
+    assert analyse(src) is not first, "otherwise nothing can time a front end"

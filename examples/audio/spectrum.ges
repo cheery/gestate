@@ -1,0 +1,151 @@
+# A spectrum analyser, and a sound to point it at — `spec/substrate.md`.
+#
+#   python -m gestate.audiopygame examples/audio/spectrum.ges
+#
+# `substrate.ges` shows a fader reaching the sound.  This is the other
+# direction: the **instrument reaching the picture**.  Eight numbers arrive
+# once a frame — `band0` is the lowest — and eight bars are drawn from
+# them.  Nothing here computes a spectrum; the host does that per sample in
+# `gestate/host.c`, because eight one-pole filters at the sample rate is
+# not something an interpreter should be asked for sixty times a second.
+#
+# **A program that does not declare these channels is not charged for the
+# filter bank**, which is the same bargain `peak` makes.  Declaring
+# `band0` is what switches it on.
+#
+# The two halves are one file, as always: change the sweep below and the
+# bars follow it on the next block, because they are a picture *of* it
+# rather than a picture beside it.
+
+# ── What you hear ────────────────────────────────────────────────────────
+#
+# Something with a moving spectrum, so there is something to watch: a slow
+# sweep through the bands, a bass note under it, and a hiss on top that the
+# top bars can find.
+
+#: A sweep that takes eight seconds to cross the range, exponentially —
+#: which is what makes it cross the *bars* evenly, since they are spaced by
+#: octaves and an octave is a doubling.
+sweepHz : Sig Float
+sweepHz = map hzAt (phase (!0.125))
+
+hzAt : Float -> Float
+hzAt p = 80.0 * pow 2.0 (p * 7.0)
+
+voice : Sig Float
+voice = 0.50 * sine sweepHz
+
+#: **Quiet on purpose.**  At 0.30 it held the bottom bar up the whole
+#: time and the sweep was the second thing you noticed; the point of the
+#: picture is the thing that moves.
+bass : Sig Float
+bass = 0.14 * sine (!55.0) * (0.5 + 0.5 * sine (!0.5))
+
+#: A little noise, so the top two bars have something to say even when the
+#: sweep is nowhere near them.
+air : Sig Float
+air = 0.05 * highpassOnePole (!6000.0) (white 3)
+
+sound : Sig Float
+sound = brickwall 0.9 (voice + bass + air)
+
+# ── What the instrument tells you ────────────────────────────────────────
+#
+# One channel per band, in order.  The host writes each once a frame and
+# says nothing about the ones a file does not declare.
+
+band0 : Chan Float
+band0 = chan
+band1 : Chan Float
+band1 = chan
+band2 : Chan Float
+band2 = chan
+band3 : Chan Float
+band3 = chan
+band4 : Chan Float
+band4 = chan
+band5 : Chan Float
+band5 = chan
+band6 : Chan Float
+band6 = chan
+band7 : Chan Float
+band7 = chan
+
+#: Each as a signal, starting at silence.  `0.0 ::: mkSig (wait c)` is the
+#: shape every readable channel takes — `substrate.ges` says why.
+level0 : Sig Float
+level0 = 0.0 ::: mkSig (wait band0)
+level1 : Sig Float
+level1 = 0.0 ::: mkSig (wait band1)
+level2 : Sig Float
+level2 = 0.0 ::: mkSig (wait band2)
+level3 : Sig Float
+level3 = 0.0 ::: mkSig (wait band3)
+level4 : Sig Float
+level4 = 0.0 ::: mkSig (wait band4)
+level5 : Sig Float
+level5 = 0.0 ::: mkSig (wait band5)
+level6 : Sig Float
+level6 = 0.0 ::: mkSig (wait band6)
+level7 : Sig Float
+level7 = 0.0 ::: mkSig (wait band7)
+
+# ── What you see ─────────────────────────────────────────────────────────
+
+tall : Int
+tall = 190
+
+wide : Int
+wide = 26
+
+#: How high a bar stands.  **A square root rather than the level itself**:
+#: a band that is a tenth as loud is not a tenth as interesting, and a
+#: linear bar spends most of its height showing the difference between
+#: loud and very loud.  Clamped, because the top of the window is the top
+#: of the window.
+heightOf : Float -> Int
+heightOf v = floor (toFloat tall * clamp 0.0 1.0 (sqrt (v * 2.2)))
+
+#: Cold at the bottom, warm at the top — the bar's *own* colour rather
+#: than a gradient, so which band is loud is legible at a glance and not
+#: only by height.
+hueOf : Int -> Colour
+hueOf i = RGB (60 + 22 * i) (200 - 14 * i) (200 - 20 * i)
+
+#: The trough a bar stands in — always there, so the row reads as eight
+#: places whether or not there is anything in them.
+trough : Sub
+trough = Rect wide tall (RGB 30 32 38)
+
+#: One bar: the trough, with the level standing in it from the bottom.
+#:
+#: Everything is placed by its centre, so a bar of height `h` sitting on
+#: the trough's floor has its centre `(tall - h) / 2` below the trough's.
+#: That is the whole of "grows upward" — there is no downward-counting
+#: canvas coordinate left in this file to get the wrong way round.
+#:
+#: `Sized` pins the extent whatever the level is, so the row does not
+#: breathe as the music moves; the six extra pixels are the gap between
+#: bars, declared once here instead of multiplied into eight positions.
+bar : Int -> Float -> Sub
+bar i v = Sized (wide + 6) tall (Over trough
+    (Shift 0 ((tall - heightOf v) / 2) (Rect wide (heightOf v) (hueOf i))))
+
+#: The row.
+#:
+#: **`!` lifts over any number of signals**, so the band index is an
+#: ordinary argument: `!bar 0 level0` is `bar` meeting two signals at
+#: once, and the `0` is a `Sig Int` because a bare number beside a
+#: substrate is the constant signal of it.  This file used to carry
+#: `bar0`…`bar7` — eight one-line wrappers whose only job was to spend the
+#: index before a lift that was thought to take one argument.
+#:
+#: And `row` does the placing, so no bar knows where it is.  The
+#: arithmetic that used to space them — `i * (wide + 6)` — is gone with
+#: the wrappers: a layout combinator is what that arithmetic *was*.
+substrate : Sig Sub
+substrate = moveXY 150 120
+    (       !bar 0 level0 `row` !bar 1 level1
+      `row` !bar 2 level2 `row` !bar 3 level3
+      `row` !bar 4 level4 `row` !bar 5 level5
+      `row` !bar 6 level6 `row` !bar 7 level7)

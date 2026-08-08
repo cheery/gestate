@@ -1,0 +1,27 @@
+# Records, projection, classes and deriving.
+#
+#   python -m gestate.typecheck examples/records.ges
+#
+# A record is a data type with one constructor — `syntax.md` says so, and
+# pattern matching on one always worked.  `x.0` selects a field, resolved
+# from `x`'s *type* rather than through a class: where the type is not known
+# the compiler says so and suggests a signature or a pattern.
+
+Point := Point Int Int deriving (Show, Eq, Ord)
+
+# Projection: the field type comes from the record's declaration.
+xOf : Point -> Int
+xOf p = p.0
+
+# …and a pattern does the same without needing the type known.
+yOf : Point -> Int
+yOf (Point x y) = y
+
+class Norm a where
+    norm : a -> Int
+
+instance Norm Point where
+    norm (Point x y) = x * x + y * y
+
+main : String
+main = show (norm (Point 3 4), (Point 1 2).1)
