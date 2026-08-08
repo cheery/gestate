@@ -331,20 +331,47 @@ def test_declaring_both_a_bpm_and_a_tempo_is_refused_by_name():
         _onsets("bpm : Int\nbpm = 96\n" + AS_ENVELOPE)
 
 
-def test_asking_for_beat_under_an_envelope_says_why_it_is_not_there():
-    """A piecewise tempo makes the beat clock piecewise *quadratic*, and
-    reading it needs a segment search the static fragment refuses.
+def test_beat_is_available_under_a_tempo_envelope():
+    """**The hole this closes.**
 
-    Answered by name rather than as `Unknown global 'beat'` from a prelude
-    the author never wrote — the difference between a restriction and a
-    mystery.
+    Under an envelope the beat clock is piecewise *quadratic* — tempo is
+    linear in time and beat is its integral — so reading it means finding
+    which segment an instant falls in, a search the static audio fragment
+    refuses.  It used to be refused by name for that reason.  `envexpand`
+    now compiles `beatOf` the same way it compiles `on`: a balanced tree
+    over the segment boundaries with `a + b·t + c·t²` at each leaf.
     """
-    from gestate.audioscore import ScoreError
+    from gestate.audioperform import graph_of
 
     using = SLOWING.replace("sound = gain 0.4 lead",
-                            "sound = gain 0.4 lead * (0.5 + beat * 0.0)")
-    with pytest.raises(ScoreError, match="piecewise quadratic"):
-        _onsets(using)
+                            "sound = gain 0.4 lead * (0.5 + 0.001 * beat)")
+    assert len(graph_of(using, "", rate=SCORE_RATE).nodes) > 0
+
+
+def test_the_beat_a_synth_reads_agrees_with_where_the_notes_landed():
+    """**The one that would matter if it broke.**
+
+    A performance has two readings of one tempo: the *schedule* decides
+    which sample each note starts at, and `beat` tells the instrument what
+    beat it is while it plays.  If those came from two derivations they
+    would drift apart over a ritardando, and the symptom would be a synth
+    modulating a beat early by the end of the piece — audible, and very
+    hard to attribute.
+
+    Both go through `tempo.envelope`, and this is what says so: at the
+    sample a note is scheduled to start, the beat clock reads that note's
+    own beat position.
+    """
+    from gestate.audioscore import perform_voices, samples_of
+
+    tempo, events = perform_voices(SLOWING, "", rate=SCORE_RATE)
+    assert tempo.varies
+    for onset, _off, _bank, _payload in events:
+        at = samples_of(onset, tempo, SCORE_RATE)
+        beat_there = tempo.beat_at(at / SCORE_RATE)
+        assert beat_there == pytest.approx(onset / 96, abs=1e-3), (
+            f"note at tick {onset} lands at sample {at}, where the beat "
+            f"clock reads {beat_there:.4f} rather than {onset / 96:.4f}")
 
 
 def test_a_step_and_a_ramp_are_different_pieces():

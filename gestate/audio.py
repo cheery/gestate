@@ -145,6 +145,25 @@ BEAT = ("\nbeat : Sig Float\n"
         "beat = map (n => toFloat n * toFloat bpm / (60.0 * sampleRate))"
         " ticks\n")
 
+#: The same clock under a `tempo` envelope, where it is piecewise
+#: *quadratic* — tempo is linear in time and beat is its integral.
+#:
+#: `beatOf` walks a cons list and the audio fragment refuses that, so
+#: `envexpand.py` rewrites this call into a balanced tree over the segment
+#: boundaries with `a + b·t + c·t²` at each leaf.  Which is why the clock
+#: is written against `elapsed` rather than `ticks`: seconds are what the
+#: polynomial is in, and `tempo.envelope` — the same derivation the
+#: *schedule* is built from — is what supplies its coefficients.
+BEAT_ENVELOPE = ("\nbeat : Sig Float\n"
+                 "beat = map (t => beatOf tempo t) elapsed\n")
+
+
+def has_tempo(source: str) -> bool:
+    """Does this program state its tempo as an envelope?"""
+    import re
+
+    return re.search(r"^tempo\s*[:=]", source, re.M) is not None
+
 
 def preludes(source: str) -> str:
     """The vocabulary this program is compiled against.
@@ -281,7 +300,8 @@ def assemble(source: str, rate: int = DEFAULT_RATE) -> str:
     # returns — an unrenamed copy, which is what that comparison needs.
     # `beat` after the author's file, because it reads the author's `bpm`.
     # A program that states no tempo gets none and pays nothing for it.
-    clock = BEAT if has_bpm(source) else ""
+    clock = (BEAT if has_bpm(source)
+             else BEAT_ENVELOPE if has_tempo(source) else "")
     return (shadow_libraries(prelude, program) + "\n" + program + "\n"
             + clock + _entry(rate))
 

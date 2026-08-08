@@ -34,7 +34,7 @@ from dataclasses import dataclass, field
 
 #: `spec/music.md`, and `midi.TICKS_PER_BEAT` — kept as one number by
 #: importing it rather than repeating it.
-from .audio import BEAT
+from .audio import BEAT, BEAT_ENVELOPE, has_tempo
 from .midi import TICKS_PER_BEAT
 
 
@@ -192,40 +192,6 @@ _TEMPO_ENTRY = ("main : (List Tempo, List (Int, Int, Voice))\n"
                 "main = (tempo, layVoices score)\n")
 
 
-def has_tempo(source: str) -> bool:
-    """Does this piece write its tempo as an envelope?
-
-    Textual, and for the reason `audio.has_scene` is: the answer decides
-    *which* entry point to compile, so it cannot be had by compiling.
-    """
-    import re
-
-    return re.search(r"^tempo\s*[:=]", source, re.M) is not None
-
-
-def _names_beat(source: str) -> bool:
-    """Does this program actually *call* `beat`?
-
-    **Driven by the tokenizer, not by a substring.**  A regex for the bare
-    word matched the file's own prose — a piece whose comment said "the
-    tempo holds flat until beat 128" was refused for asking about a beat
-    clock it never mentions in code.  That is the same mistake a substring
-    check for `sampleRate` made against a doc comment in `signal.ges`, and
-    `prelude.shadow_libraries` had already written down the answer: only a
-    `WORD` token is a name, so a word inside a `#` comment is prose and is
-    left alone.
-    """
-    from .syntax.tokenize import TT, tokenize
-
-    try:
-        return any(tok.kind is TT.WORD and tok.value == "beat"
-                   for tok in tokenize(source))
-    except Exception:
-        # A source that does not tokenise has a real error waiting for it
-        # further down, and it is a better message than this one would be.
-        return False
-
-
 def _tempo_of(source: str) -> str:
     """Which spelling this piece uses, refusing both at once.
 
@@ -264,28 +230,6 @@ def _tempo_of(source: str) -> str:
 #: unscored one that states a `bpm`, and two spellings of one definition
 #: is two clocks waiting to disagree.
 _BEAT = BEAT
-
-#: Why a piece with a varying tempo has no `beat` yet.
-#:
-#: The definition above is linear, which is what makes it a `map` the
-#: static fragment accepts.  Under an envelope the beat clock is piecewise
-#: *quadratic*, and reading it means finding which segment an instant falls
-#: in — a search over a list, which the fragment refuses for exactly the
-#: reason it refuses every list: no fixed size.
-#:
-#: The fix is the one `spec/liveaudio.md` names for a constant table: lift
-#: it to a constant array and index it, as a node kind, the way `line`,
-#: `tap` and `loop` were added.  Until then a piece may have a varying
-#: tempo *or* a `beat`, and asking for both is answered here rather than by
-#: `Unknown global 'beat'` from a prelude the author never wrote.
-_NO_BEAT = (
-    "this piece's tempo is an envelope, and `beat` is not available under "
-    "one yet: the beat clock is piecewise quadratic there, and reading it "
-    "needs a segment search, which the static audio fragment refuses for "
-    "the same reason it refuses every list — no fixed size.  Either write "
-    "the tempo as a plain `bpm`, which keeps `beat` linear, or drive the "
-    "modulation from something other than the beat for now")
-
 
 def assemble_performance(synth: str, piece: str = "", rate: int = 22050,
                          *, entry: str | None = None) -> str:
@@ -340,10 +284,14 @@ def assemble_performance(synth: str, piece: str = "", rate: int = 22050,
     # reads the author's `bpm` and so must come after the author's file.
     # A piece whose tempo is an envelope has no linear `bpm` to read, so it
     # gets no `beat` — and is told why if it asked for one.
+    # A plain `bpm` makes the beat clock linear; an envelope makes it
+    # piecewise quadratic.  Both are `map`s the fragment accepts — the
+    # second only because `envexpand` expands `beatOf` — so a scored
+    # program has a `beat` either way.
     if _tempo_of(synth + "\n" + piece) == "bpm":
         tail = _BEAT + tail
-    elif _names_beat(synth + "\n" + piece):
-        raise ScoreError(_NO_BEAT)
+    else:
+        tail = BEAT_ENVELOPE + tail
     # `internal`, enforced on both halves at once — see `audio.assemble` for
     # why it cannot be asked any later than this.  A performance is one
     # program, so it is one check: a piece that names a filter's insides is

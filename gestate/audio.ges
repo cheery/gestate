@@ -283,6 +283,25 @@ on ps x = case ps of
         Step b y -> onFrom b y rest x
         Ramp b y -> onFrom b y rest x
 
+# ── The beat clock under a tempo envelope ────────────────────────────────
+#
+# `beat` is linear when the tempo is a plain `bpm`, and a piecewise
+# *quadratic* when it is an envelope: tempo is linear in time, so beat —
+# its integral — is one degree higher.  That is the same fact that makes
+# "when does beat 48 happen" invertible in closed form (`gestate/tempo.py`).
+#
+# **This definition is the meaning, not the implementation.**  It walks a
+# cons list, which the static audio fragment refuses, so `envexpand.py`
+# rewrites `beatOf <points> t` into a balanced tree over the segment
+# boundaries with `a + b·t + c·t²` at each leaf.  This is what that rewrite
+# is checked against, and it is what an interpreted program runs.
+
+#: What beat it is, `t` seconds in.
+beatOf : List Envelope -> Float -> Float
+beatOf ps t = case ps of
+    [] -> 0.0
+    (p :: rest) -> beatOpen (envAt p) (envVal p) rest t
+
 internal
 
 #: The walk, once the first point has been opened: `b`/`y` are the point
@@ -305,3 +324,58 @@ onRamp : Float -> Float -> Float -> Float -> Float -> Float
 onRamp b y c z x = case c - b <= 0.0 of
     True -> z
     False -> y + (z - y) * (x - b) / (c - b)
+
+
+envAt : Envelope -> Float
+envAt p = case p of
+    Step b y -> b
+    Ramp b y -> b
+
+envVal : Envelope -> Float
+envVal p = case p of
+    Step b y -> y
+    Ramp b y -> y
+
+envRamps : Envelope -> Bool
+envRamps p = case p of
+    Step b y -> False
+    Ramp b y -> True
+
+#: Before the first point the tempo is the first tempo, held — so the beat
+#: clock is linear there, and the first point falls at `60·b₀/y₀`.
+beatOpen : Float -> Float -> List Envelope -> Float -> Float
+beatOpen b0 y0 rest t = case y0 <= 0.0 of
+    True -> 0.0
+    False -> case t * y0 / 60.0 < b0 of
+        True -> t * y0 / 60.0
+        False -> beatWalk (60.0 * b0 / y0) b0 y0 rest t
+
+#: One segment at a time, carrying where it starts in *both* coordinates.
+#: `dt` is the trapezoid — a linear ramp covers its beats in the time its
+#: mean tempo would — and `k` is the slope in bpm per second.
+beatWalk : Float -> Float -> Float -> List Envelope -> Float -> Float
+beatWalk t0 b0 y0 rest t = case rest of
+    [] -> b0 + y0 / 60.0 * (t - t0)
+    (q :: more) -> beatSeg t0 b0 y0 (envAt q) (envVal q) (envRamps q) more t
+
+beatSeg : Float -> Float -> Float -> Float -> Float -> Bool -> List Envelope
+        -> Float -> Float
+beatSeg t0 b0 y0 b1 y1 ramps more t = let d = beatDt b0 y0 b1 y1 ramps in beatIn t0 b0 y0 d (beatK y0 y1 d ramps) b1 y1 more t
+
+beatDt : Float -> Float -> Float -> Float -> Bool -> Float
+beatDt b0 y0 b1 y1 ramps = case ramps of
+    True -> 120.0 * (b1 - b0) / (y0 + y1)
+    False -> 60.0 * (b1 - b0) / y0
+
+beatK : Float -> Float -> Float -> Bool -> Float
+beatK y0 y1 dt ramps = case ramps of
+    False -> 0.0
+    True -> case dt <= 0.0 of
+        True -> 0.0
+        False -> (y1 - y0) / dt
+
+beatIn : Float -> Float -> Float -> Float -> Float -> Float -> Float
+       -> List Envelope -> Float -> Float
+beatIn t0 b0 y0 dt k b1 y1 more t = case t < t0 + dt of
+    True -> b0 + y0 / 60.0 * (t - t0) + k / 120.0 * (t - t0) * (t - t0)
+    False -> beatWalk (t0 + dt) b1 y1 more t

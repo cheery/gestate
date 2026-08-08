@@ -150,7 +150,7 @@ The same value at every instant.  What it is constant *over* is whichever clock 
 beat : Sig Float
 ```
 
-**What beat it is** — at audio rate, for a synth moving in time with the music rather than with the second.  In scope wherever the program states a `bpm`, score or no score: a drone on a grid needs a tempo and no notes.  A program that states none gets `Unknown global 'beat'`, which is the truth — there is nothing to answer with.  Not available under a `tempo` envelope yet: the beat clock is piecewise quadratic there and reading it needs a segment search the audio fragment refuses.
+**What beat it is** — at audio rate, for a synth moving in time with the music rather than with the second.  In scope wherever the program states a `bpm`, score or no score: a drone on a grid needs a tempo and no notes.  A program that states none gets `Unknown global 'beat'`, which is the truth — there is nothing to answer with.  Under a `tempo` envelope it is piecewise *quadratic* rather than linear, because tempo is linear in time and beat is its integral; it is compiled from the same derivation the schedule is, so what a synth reads and where the notes landed cannot drift apart.
 
 ### `elapsed`
 

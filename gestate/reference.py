@@ -160,9 +160,11 @@ PRIMITIVES = (
          "the program states a `bpm`, score or no score: a drone on a grid "
          "needs a tempo and no notes.  A program that states none gets "
          "`Unknown global 'beat'`, which is the truth — there is nothing "
-         "to answer with.  Not available under a `tempo` envelope yet: the "
-         "beat clock is piecewise quadratic there and reading it needs a "
-         "segment search the audio fragment refuses."),
+         "to answer with.  Under a `tempo` envelope it is piecewise "
+         "*quadratic* rather than linear, because tempo is linear in time "
+         "and beat is its integral; it is compiled from the same "
+         "derivation the schedule is, so what a synth reads and where the "
+         "notes landed cannot drift apart."),
         ("elapsed", "Sig Float",
          "How long the program has been running, in **seconds**.  The "
          "clock a piece with no tempo has, and what an `Envelope` is "

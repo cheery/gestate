@@ -44,8 +44,11 @@ class EnvelopeError(Exception):
     pass
 
 
-#: The name a program calls.  `audio.ges` is the one place it is defined.
+#: The two names a program calls.  `audio.ges` is the one place either is
+#: defined, and each has a readable recursive body there that this rewrite
+#: is checked against.
 ON = "on"
+BEAT_OF = "beatOf"
 
 #: What a `Float` literal looks like after elaboration.
 _FROM_FLOAT = "__Floating_Float_fromFloat__"
@@ -185,6 +188,73 @@ def _tree(points, lo: int, hi: int, var: str, cons) -> Expr:
     ])
 
 
+def _quadratic(a: float, b: float, c: float, var: str) -> Expr:
+    """`a + b·t + c·t²`, with the degenerate cases folded away."""
+    if c == 0.0:
+        return _affine(a, b, var)
+    square = EAp(EAp(EGlobal(_MUL), EVar(var)), EVar(var))
+    term = EAp(EAp(EGlobal(_MUL), _lit(c)), square)
+    if b != 0.0:
+        term = EAp(EAp(EGlobal(_ADD), term),
+                   EAp(EAp(EGlobal(_MUL), _lit(b)), EVar(var)))
+    if a == 0.0:
+        return term
+    return EAp(EAp(EGlobal(_ADD), _lit(a)), term)
+
+
+def _beat_leaf(env, i: int, var: str) -> Expr:
+    """The beat clock on segment `i`, as a polynomial in `t`.
+
+    `beat = b₀ + s·(t-T) + d·(t-T)²` where `T` is where the segment starts,
+    `s` the tempo in beats per second and `d` half its slope.  Expanded in
+    `t` so the leaf is three constants and no subtraction: the shift by `T`
+    is a compile-time fact and has no business in a per-sample loop.
+    """
+    T = env.ts[i]
+    s = env.bpms[i] / 60.0
+    d = env.ks[i] / 120.0
+    return _quadratic(env.beats[i] - s * T + d * T * T, s - 2.0 * d * T, d, var)
+
+
+def _beat_tree(env, lo: int, hi: int, var: str, cons) -> Expr:
+    """Which segment `t` falls in, over `[lo, hi]` inclusive.
+
+    The breakpoints are the segment *start times*, and segment `i` owns
+    `ts[i] <= t < ts[i+1]`.  `ts[0]` is always 0 — `tempo.envelope` inserts
+    a segment at the origin when the first tempo mark is not there — so
+    there is no "before the envelope" leaf to write: segment 0 already
+    covers everything below the first real mark, at the tempo held there.
+    """
+    if lo >= hi:
+        return _beat_leaf(env, lo, var)
+    mid = (lo + hi + 1) // 2
+    test = EAp(EAp(EGlobal(_LT), EVar(var)), _lit(env.ts[mid]))
+    return ECase(test, [
+        Alter(cons["True"].tag, [], _beat_tree(env, lo, mid - 1, var, cons)),
+        Alter(cons["False"].tag, [], _beat_tree(env, mid, hi, var, cons)),
+    ])
+
+
+def _expanded_beat(points, arg: Expr, cons, fresh) -> Expr:
+    """`let t = <arg> in <tree>` for `beatOf`, or `None` to decline.
+
+    The derivation — trapezoid segment durations, slopes, and where each
+    segment starts in seconds — is `tempo.envelope`'s, reused rather than
+    written twice.  It is the same function the *schedule* is built with,
+    so a note's instant and the beat clock the synth reads cannot come from
+    two different readings of one tempo.
+    """
+    from .tempo import TempoError, envelope
+
+    try:
+        env = envelope(points)
+    except TempoError:
+        return None                 # a tempo this cannot make sense of
+    var = fresh()
+    return ELet(False, [(var, arg)],
+                _beat_tree(env, 0, len(env.ts) - 1, var, cons))
+
+
 def _expanded(points, arg: Expr, cons, fresh) -> Expr:
     """`let x = <arg> in <tree>` — the whole rewrite for one call.
 
@@ -225,10 +295,15 @@ def expand(scs, cons):
     def go(e: Expr) -> Expr:
         # `on ps x` is two applications deep: `EAp(EAp(on, ps), x)`.
         if (isinstance(e, EAp) and isinstance(e.fn, EAp)
-                and isinstance(e.fn.fn, EGlobal) and e.fn.fn.name == ON):
+                and isinstance(e.fn.fn, EGlobal)
+                and e.fn.fn.name in (ON, BEAT_OF)):
             points = _points_of(e.fn.arg, cons, constants)
             if points is not None:
-                return _expanded(points, go(e.arg), cons, fresh)
+                if e.fn.fn.name == ON:
+                    return _expanded(points, go(e.arg), cons, fresh)
+                built = _expanded_beat(points, go(e.arg), cons, fresh)
+                if built is not None:
+                    return built
         return map_children(e, go)
 
     out = []
