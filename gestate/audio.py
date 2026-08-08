@@ -159,10 +159,22 @@ BEAT_ENVELOPE = ("\nbeat : Sig Float\n"
 
 
 def has_tempo(source: str) -> bool:
-    """Does this program state its tempo as an envelope?"""
+    """Does this program state its tempo as an **envelope**?
+
+    By the declared *type*, not by the name.  `tempo` is an ordinary word
+    and programs use it for ordinary things — `examples/audio/drums.ges`
+    has had `tempo : Int` since long before envelopes existed, and matching
+    the bare name handed it a beat clock built from `beatOf tempo`, which
+    wants a list.  The failure was a type error deep inside a generated
+    line the author never wrote.
+
+    A program that writes the list without a signature gets no `beat`,
+    which is the conservative way round: nothing is inferred from a name.
+    """
     import re
 
-    return re.search(r"^tempo\s*[:=]", source, re.M) is not None
+    return re.search(r"^tempo\s*:\s*List\s+(Tempo|Envelope)\b",
+                     source, re.M) is not None
 
 
 def preludes(source: str) -> str:
