@@ -50,8 +50,14 @@ class EnvelopeError(Exception):
 ON = "on"
 BEAT_OF = "beatOf"
 
-#: What a `Float` literal looks like after elaboration.
+#: What a `Float` literal looks like after elaboration.  **Both of them**:
+#: `2.0` goes through `Floating`'s `fromFloat` and `2` through `Num`'s
+#: `fromInteger`, and an integer literal at `Float` is an ordinary thing to
+#: write — `Step 0 50` is a tempo mark anybody would type.  Reading only
+#: the first meant the rewrite quietly declined on such a program, and the
+#: report was the *list* error it exists to prevent.
 _FROM_FLOAT = "__Floating_Float_fromFloat__"
+_FROM_INT = "__Num_Float_fromInteger__"
 
 _LT = "__Ord_Float_<__"
 _ADD = "__Num_Float_+__"
@@ -70,7 +76,8 @@ def _float_of(e: Expr):
     if isinstance(e, ENum):
         return float(e.n)
     if (isinstance(e, EAp) and isinstance(e.fn, EGlobal)
-            and e.fn.name == _FROM_FLOAT and isinstance(e.arg, ENum)):
+            and e.fn.name in (_FROM_FLOAT, _FROM_INT)
+            and isinstance(e.arg, ENum)):
         return float(e.arg.n)
     return None
 

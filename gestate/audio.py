@@ -115,17 +115,77 @@ def has_sound(source: str) -> bool:
     return re.search(r"^sound\s*[:=]", source, re.M) is not None
 
 
-def has_bpm(source: str) -> bool:
-    """Does this program state a tempo?
+def _authored(source: str):
+    """The author's own declarations, parsed — `({name: type}, {names})`.
 
-    A *definition* at the start of a line, like `has_sound` and
-    `has_scene`, and not a mention: prose does not begin a line with
-    `bpm :`.  A substring search for the bare word would match this
-    sentence.
+    **Parsed, not matched.**  These questions are about what a program
+    *declares*, and a regular expression can only ask what its text looks
+    like.  The two are not the same question and the gap is not
+    theoretical: `tempo : [Envelope]` and `tempo : List Envelope` are one
+    declaration written two ways, and a pattern for the second sees
+    nothing in the first.
+
+    The author's file alone, without the preludes in front of it, so this
+    can be asked before deciding what to put there.  A source that does not
+    parse yields nothing and every caller then behaves as though the
+    declaration were absent — which is right: the real error is a parse
+    error and it is about to be reported by somebody with more to say
+    about it.
     """
-    import re
+    from .syntax import parse
+    from .syntax.ast import VSCDecl, VSig
 
-    return re.search(r"^bpm\s*[:=]", source, re.M) is not None
+    try:
+        module = parse(source, descend_fixity=False)
+    except Exception:
+        # **A `voices` line is not an ordinary declaration**, so a program
+        # with a bank does not parse on its own at all — which is why
+        # `prelude.shadow_libraries` reads the *expanded* text.  Expanding
+        # is a parse per bank, so it is paid only here, on the path where
+        # the plain reading has already failed.
+        #
+        # The prelude goes in because a bank's frame type may live there:
+        # `voices pad … -> Sig Stereo` names `Stereo`, which is
+        # `synth.ges`'s, and expanding without it fails on every stereo
+        # bank in the tree.
+        try:
+            from .audiovoices import expand
+
+            module = parse(expand(source, preludes(source)),
+                           descend_fixity=False)
+        except Exception:
+            return {}, set()
+    types = {str(i.name): i.type_ for i in module.items if isinstance(i, VSig)}
+    names = {str(i.name) for i in module.items
+             if isinstance(i, (VSig, VSCDecl))}
+    return types, names
+
+
+def has_bpm(source: str) -> bool:
+    """Does this program state a tempo as a plain number?"""
+    return "bpm" in _authored(source)[1]
+
+
+def _is_envelope_list(type_) -> bool:
+    """Is this the type of a tempo envelope, however it was spelled?
+
+    `List Tempo`, `List Envelope`, `[Tempo]` and `[Envelope]` are the same
+    type said four ways — `music.ges` makes `Tempo` an alias of `Envelope`,
+    and `[a]` is the list shorthand, which parses to a different node
+    entirely.
+    """
+    from .syntax.ast import VApp, VConId, VList
+
+    heads = ("Tempo", "Envelope")
+    if isinstance(type_, VList):
+        return (type_.tail is None and len(type_.items) == 1
+                and isinstance(type_.items[0], VConId)
+                and type_.items[0].value in heads)
+    if isinstance(type_, VApp):
+        return (isinstance(type_.fn, VConId) and type_.fn.value == "List"
+                and isinstance(type_.arg, VConId)
+                and type_.arg.value in heads)
+    return False
 
 
 #: **What beat it is** — the piece's own clock, at audio rate.
@@ -161,20 +221,20 @@ BEAT_ENVELOPE = ("\nbeat : Sig Float\n"
 def has_tempo(source: str) -> bool:
     """Does this program state its tempo as an **envelope**?
 
-    By the declared *type*, not by the name.  `tempo` is an ordinary word
-    and programs use it for ordinary things — `examples/audio/drums.ges`
-    has had `tempo : Int` since long before envelopes existed, and matching
-    the bare name handed it a beat clock built from `beatOf tempo`, which
-    wants a list.  The failure was a type error deep inside a generated
-    line the author never wrote.
+    By the declared *type*, and by the type the parser saw rather than the
+    one the text looks like.  Two mistakes are on the record here:
 
-    A program that writes the list without a signature gets no `beat`,
-    which is the conservative way round: nothing is inferred from a name.
+    * matching the bare name `tempo` — `examples/audio/drums.ges` has had
+      `tempo : Int` since long before envelopes existed, and it was handed
+      a beat clock built from `beatOf tempo`, failing with a type error
+      inside a generated line its author never wrote;
+    * then matching `List Tempo` textually, which does not match
+      `[Envelope]` — the same declaration, written the other way.
+
+    A program that writes the list with no signature gets no `beat`, which
+    is the conservative way round: nothing is inferred from a name.
     """
-    import re
-
-    return re.search(r"^tempo\s*:\s*List\s+(Tempo|Envelope)\b",
-                     source, re.M) is not None
+    return _is_envelope_list(_authored(source)[0].get("tempo"))
 
 
 def preludes(source: str) -> str:

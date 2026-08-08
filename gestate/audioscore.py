@@ -34,7 +34,7 @@ from dataclasses import dataclass, field
 
 #: `spec/music.md`, and `midi.TICKS_PER_BEAT` — kept as one number by
 #: importing it rather than repeating it.
-from .audio import BEAT, BEAT_ENVELOPE, has_tempo
+from .audio import BEAT, BEAT_ENVELOPE, has_bpm, has_tempo
 from .midi import TICKS_PER_BEAT
 
 
@@ -198,12 +198,13 @@ def _tempo_of(source: str) -> str:
     Two answers to how fast a piece goes is not a question this can
     settle, and letting one win silently is how a piece plays at a tempo
     nothing in the file states.
-    """
-    import re
 
-    bpm = re.search(r"^bpm\s*[:=]", source, re.M) is not None
+    Both questions go through `audio`'s parsed answers rather than being
+    matched here: `tempo : [Envelope]` and `tempo : List Envelope` are one
+    declaration written two ways, and only a parse sees that.
+    """
     if has_tempo(source):
-        if bpm:
+        if has_bpm(source):
             raise ScoreError(
                 "this piece declares both a `bpm` and a `tempo`, and only "
                 "one of them says how fast it goes.  A `bpm` is a `tempo` "
@@ -281,13 +282,12 @@ def assemble_performance(synth: str, piece: str = "", rate: int = 22050,
         f"\nconstSig : a -> Sig a\nconstSig v = mapSig (n => v) ticks\n\n"
         + entry)
     # `beat` goes with the entry point rather than into `head`, because it
-    # reads the author's `bpm` and so must come after the author's file.
-    # A piece whose tempo is an envelope has no linear `bpm` to read, so it
-    # gets no `beat` — and is told why if it asked for one.
-    # A plain `bpm` makes the beat clock linear; an envelope makes it
-    # piecewise quadratic.  Both are `map`s the fragment accepts — the
-    # second only because `envexpand` expands `beatOf` — so a scored
-    # program has a `beat` either way.
+    # reads the author's own `bpm` or `tempo` and must come after their
+    # file.  A plain `bpm` makes the beat clock linear; an envelope makes
+    # it piecewise *quadratic*, since tempo is linear in time and beat is
+    # its integral.  Both are `map`s the fragment accepts — the second only
+    # because `envexpand` expands `beatOf` into a tree over the segment
+    # boundaries — so a scored program has a `beat` either way.
     if _tempo_of(synth + "\n" + piece) == "bpm":
         tail = _BEAT + tail
     else:

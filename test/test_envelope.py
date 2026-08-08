@@ -187,3 +187,38 @@ def test_an_envelope_still_works_where_there_is_no_fragment_at_all():
     got = render(_program(CURVE, "toFloat n * 0.7"), n, 1)
     want = [value_on(CURVE, i * 0.7) for i in range(n)]
     assert got == pytest.approx(want, abs=1e-12)
+
+
+# ── Literals, both spellings ────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("points", [
+    "[Step 0 50, Ramp 100 2000]",              # integers throughout
+    "[Step 0.0 50.0, Ramp 100.0 2000.0]",      # floats throughout
+    "[Step 0 50.0, Ramp 100.0 2000]",          # mixed
+])
+def test_an_integer_literal_at_float_is_still_a_point(points):
+    """**`Num Float` defines `fromInteger`, so `Step 0 50` is a tempo mark
+    anybody would type** — and it elaborates to `__Num_Float_fromInteger__`
+    rather than to `Floating`'s `fromFloat`.
+
+    Reading only the second made the rewrite quietly decline on such a
+    program, and what got reported was the *list* error the rewrite exists
+    to prevent — pointing the author at a cons walk they had not written
+    while their perfectly ordinary literal went unmentioned.
+    """
+    source = (f"tempo : [Envelope]\ntempo = {points}\n\n"
+              "sound : Sig Float\nsound = 0.2 * sine (220.0 + !sineOf beat)\n")
+    report = check(source, rate=22050)
+    assert report.errors == [], "\n".join(report.errors)
+
+
+def test_both_literal_spellings_give_the_same_envelope():
+    """They are the same numbers, so they had better be the same sound."""
+    from gestate.audio import render
+
+    ints = ("pts : [Envelope]\npts = [Step 0 1, Ramp 8 3]\n\n"
+            "sound : Sig Float\nsound = map (n => on pts (toFloat n)) ticks\n")
+    floats = ints.replace("[Step 0 1, Ramp 8 3]",
+                          "[Step 0.0 1.0, Ramp 8.0 3.0]")
+    assert render(ints, 12.0, 1) == render(floats, 12.0, 1)

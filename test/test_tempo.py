@@ -436,3 +436,47 @@ def test_a_scored_program_defines_beat_exactly_once():
     text = assemble_performance(source, "", 8000)
     assert sum(1 for line in text.splitlines()
                if line.startswith("beat =")) == 1
+
+
+# ── Which declaration is a tempo envelope ───────────────────────────────────
+
+
+@pytest.mark.parametrize("signature,is_envelope", [
+    ("tempo : List Tempo", True),
+    ("tempo : List Envelope", True),
+    ("tempo : [Tempo]", True),
+    ("tempo : [Envelope]", True),
+    ("tempo : Int", False),
+    ("tempo : List Int", False),
+])
+def test_a_tempo_envelope_is_recognised_by_its_type_however_spelled(
+        signature, is_envelope):
+    """**Parsed, not matched**, and both halves of that were bugs.
+
+    Matching the bare name `tempo` handed `examples/audio/drums.ges` — which
+    has had `tempo : Int` since long before envelopes existed — a beat clock
+    built from `beatOf tempo`, and it failed with a type error inside a
+    generated line its author never wrote.
+
+    Matching `List Tempo` textually then missed `[Envelope]`, which is the
+    same declaration written the other way and parses to a different node
+    entirely.  A regular expression can only ask what text looks like; the
+    question is what the program declares.
+    """
+    from gestate.audio import has_tempo
+
+    assert has_tempo(f"{signature}\ntempo = [Step 0.0 120.0]\n") is is_envelope
+
+
+def test_a_tempo_in_prose_declares_nothing():
+    from gestate.audio import has_tempo
+
+    assert not has_tempo("# tempo : [Envelope] would be one\n"
+                         "sound : Sig Float\nsound = ticks\n")
+
+
+def test_a_list_with_no_signature_is_not_taken_for_a_tempo():
+    """The conservative way round: nothing is inferred from a name."""
+    from gestate.audio import has_tempo
+
+    assert not has_tempo("tempo = [Step 0.0 120.0]\n")

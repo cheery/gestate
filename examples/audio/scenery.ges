@@ -19,6 +19,10 @@
 # function on the whole line and the piece does not have to end when the
 # last point does.
 #
+# The curves below are laid out over several lines, which a bracketed
+# expression may be: inside brackets the offside rule is suspended, so a
+# list is written however it reads best.
+#
 # **What this example is really demonstrating** is that the line above
 # compiles at all.  `on` walks a cons list, which the static audio fragment
 # refuses — no fixed size — so `gestate/envexpand.py` rewrites a call whose
@@ -36,16 +40,21 @@
 
 #: How loud the wind is.  Two gusts, the second longer and softer.
 windGain : List Envelope
-windGain = [Step 0.0 0.00, Ramp 6.0 0.55, Ramp 14.0 0.18, Ramp 22.0 0.70, Ramp 34.0 0.05, Ramp 52.0 0.30, Ramp 68.0 0.00]
+windGain = [ Step 0.0 0.00, Ramp  6.0 0.55, Ramp 14.0 0.18
+           , Ramp 22.0 0.70, Ramp 34.0 0.05, Ramp 52.0 0.30
+           , Ramp 68.0 0.00 ]
 
 #: Where the wind sits.  A gust is *brighter* as well as louder — that
 #: coupling is what stops two envelopes from sounding like two knobs.
 windHz : List Envelope
-windHz = [Step 0.0 320.0, Ramp 6.0 1400.0, Ramp 14.0 520.0, Ramp 22.0 2100.0, Ramp 34.0 380.0, Ramp 52.0 900.0, Ramp 68.0 300.0]
+windHz = [ Step 0.0 320.0, Ramp  6.0 1400.0, Ramp 14.0  520.0
+         , Ramp 22.0 2100.0, Ramp 34.0  380.0, Ramp 52.0  900.0
+         , Ramp 68.0 300.0 ]
 
 #: The drone underneath everything: absent, then present, then gone.
 droneGain : List Envelope
-droneGain = [Step 0.0 0.00, Ramp 10.0 0.22, Step 40.0 0.22, Ramp 58.0 0.34, Ramp 82.0 0.00]
+droneGain = [ Step 0.0 0.00, Ramp 10.0 0.22, Step 40.0 0.22
+            , Ramp 58.0 0.34, Ramp 82.0 0.00 ]
 
 #: The drone's filter opens across the whole piece and shuts at the end.
 droneHz : List Envelope
@@ -59,7 +68,8 @@ droneSpread = [Step 0.0 2.0, Ramp 36.0 33.0, Ramp 70.0 6.0]
 
 #: Rain: nothing, then a shower, then dripping.
 rainDensity : List Envelope
-rainDensity = [Step 0.0 0.0, Step 26.0 0.0, Ramp 33.0 900.0, Ramp 48.0 140.0, Ramp 64.0 22.0, Ramp 86.0 0.0]
+rainDensity = [ Step 0.0 0.0, Step 26.0   0.0, Ramp 33.0 900.0
+              , Ramp 48.0 140.0, Ramp 64.0 22.0, Ramp 86.0 0.0 ]
 
 #: Bells, and they only exist in the last third.
 bellGain : List Envelope
