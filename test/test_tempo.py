@@ -235,10 +235,19 @@ def test_one_point_is_a_constant():
         assert value_on([(3.0, False, 0.4)], x) == 0.4
 
 
-def test_two_points_at_the_same_place_do_not_divide_by_zero():
-    """A vertical step is a legal thing to write and must not be a crash."""
-    assert value_on([(0.0, False, 0.0), (0.0, True, 1.0)], 0.0) == 0.0
+def test_two_points_at_the_same_place_land_on_the_later_one():
+    """A vertical step is legal, must not divide by zero, and **the later
+    point wins** — a jump lands on its top, which is what writing two
+    points at one instant is for.
+
+    Stated here because it is the one case where the rule is a choice
+    rather than a consequence, and because `envexpand`'s compiled tree has
+    to make the same one: it did not, at first, and the disagreement showed
+    up only against this reading.
+    """
+    assert value_on([(0.0, False, 0.0), (0.0, True, 1.0)], 0.0) == 1.0
     assert value_on([(0.0, False, 0.0), (0.0, True, 1.0)], 1.0) == 1.0
+    assert value_on([(0.0, False, 0.0), (0.0, True, 1.0)], -1.0) == 0.0
 
 
 def test_an_empty_envelope_is_refused_where_it_is_read():

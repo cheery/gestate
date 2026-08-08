@@ -200,8 +200,12 @@ layVoices s = reverse (snd (layVoicesOnto 0 s []))
 # is a property of the point being *arrived at*, so "get to 90 by bar 9"
 # says nothing about what happens after bar 9.
 
-Tempo := Step Float Float
-       | Ramp Float Float
+#: **A tempo *is* an envelope** — of beats per minute, against beats — so
+#: this is `audio.ges`'s `Envelope` under the name a piece calls it by,
+#: rather than a second type with the same two constructors.  Declaring it
+#: twice would give a scored program two `Step`s, and a constructor's name
+#: is the whole program's.
+type Tempo = Envelope
 
 internal
 # ════════════════════════════════════════════════════════════════════════

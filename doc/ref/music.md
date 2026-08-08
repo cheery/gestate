@@ -218,12 +218,17 @@ The audio backend's `layout`: a piece as bank-assigned, timed events.
 ## Tempo
 
 
-### `Tempo`  <sub>data</sub>
+### `Tempo`  <sub>type alias</sub>
 
 ```
-Tempo := Step Float Float
-    Ramp Float Float
+type Tempo = Envelope
 ```
+
+**A tempo *is* an envelope** — of beats per minute, against beats — so
+this is `audio.ges`'s `Envelope` under the name a piece calls it by,
+rather than a second type with the same two constructors.  Declaring it
+twice would give a scored program two `Step`s, and a constructor's name
+is the whole program's.
 
 
 ---

@@ -118,6 +118,40 @@ The next instant at which a signal holds a `Just`.  A signal turned back into an
 
 Where an ordinary function meets signals.  `!f x y z` pairs its arguments up through `Both` and takes them apart again, so it lifts over **any number** of them — there is no three-signal former and none is needed.
 
+## The renderer's own
+
+### `ticks`
+
+```
+ticks : Sig Int
+```
+
+The instant number, one per sample.  The clock everything at audio rate is a function of, and the argument `map` is usually given.
+
+### `sampleRate`
+
+```
+sampleRate : Float
+```
+
+How many instants there are in a second.  The *renderer's* answer, not the program's: the same synth renders at any rate, and which one is a property of the file being written.
+
+### `constSig`
+
+```
+constSig : a -> Sig a
+```
+
+The same value at every instant.  What it is constant *over* is whichever clock is running — `ticks` for a synth, the event stream for a canvas — which is why the renderer supplies it and no library can.
+
+### `beat`
+
+```
+beat : Sig Float
+```
+
+**What beat it is** — the piece's own clock, at audio rate, for a synth modulating against the music rather than against the second.  In scope exactly where `score` and `bpm` are, so an unscored synth naming it gets `Unknown global 'beat'`, which is the truth: there is no tempo to answer with.  Not available under a `tempo` envelope yet — the beat clock is piecewise quadratic there and reading it needs a segment search.
+
 ## Why these are not in a library
 
 `wait c` is not a call — the desugaring turns it into an `EWait` node, and inference gives that node a type directly.  There is no `wait` to declare and nothing for the generator to read, which is why every page here listed the libraries and none listed the language.

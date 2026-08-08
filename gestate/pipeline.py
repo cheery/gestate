@@ -23,6 +23,7 @@ from .elaborate import (
     check_main_has_no_context, elaborate, resolve_static_methods,
 )
 from .specialise import specialise
+from .envexpand import expand as expand_envelopes
 from .kindcheck import build_kind_env, check_kind, KindError
 from .helpers import generate_all_helpers, _type_suffix
 from .seminaive import transform as seminaive_transform, make_semifix_helpers
@@ -466,6 +467,18 @@ def _analyse(source: str, *, typecheck: bool = True,
     # of instance methods now called by name, which the ϕ/δ gate must
     # therefore treat as ordinary supercombinators.
     scs, method_scs = resolve_static_methods(scs)
+
+    # `on <points> x` into a balanced tree of comparisons, so that an
+    # envelope can be read at audio rate — `envexpand.py`.
+    #
+    # **After `resolve_static_methods`, and that is not a preference.**
+    # What it has to recognise is a `Float` literal, which at this point in
+    # the pipeline is a call to `Floating`'s `fromFloat` — but only *after*
+    # this line, because until it runs the same thing is a projection out
+    # of a dictionary.  Placed one line earlier the pass matched nothing at
+    # all and silently changed no program, which is the failure mode a
+    # rewrite that declines to fire always has.
+    scs = expand_envelopes(scs, program.cons)
     return Analysis(scs, program, results, method_scs, main_type)
 
 

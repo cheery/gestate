@@ -51,7 +51,13 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # A canvas rather than a synth, so no golden for the reason
             # `substrate.ges` has none: what it *shows* is the point, and a
             # buffer of the sound it makes would not check that.
-            "spectrum.ges", "envelope.ges"]
+            "spectrum.ges", "envelope.ges",
+            # A soundscape: no score, no notes, no keyboard — every input
+            # moved by an `Envelope` read against `elapsed`.  No golden for
+            # the reason the pieces have none: ninety seconds re-rendered
+            # through the interpreter twice a run, for a thing whose
+            # combinators are already checked sample-for-sample elsewhere.
+            "scenery.ges"]
 
 #: The ones with committed golden buffers — all of them, now.  `knob.ges`
 #: had none for as long as the interpreter and the engine disagreed about

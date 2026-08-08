@@ -44,6 +44,17 @@ ticks = 0 ::: mkSig (wait clock)
 seconds : Float -> Int
 seconds t = floor (t * sampleRate)
 
+#: **How long the program has been running, in seconds.**  The clock a
+#: piece with no score has.
+#:
+#: `beat` is the other one and is a *score's* — it needs a `bpm`, so an
+#: unscored synth naming it is told there is no tempo to answer with.  A
+#: drone, a soundscape or anything else that varies over its own duration
+#: rather than over a bar wants this instead, and `on <points> elapsed` is
+#: what reading an envelope against it looks like.
+elapsed : Sig Float
+elapsed = map (n => toFloat n / sampleRate) ticks
+
 # ── Signals ─────────────────────────────────────────────────────────────
 #
 # `mkSig`, `map`, `scan`, `zipSig`, `addSig` and `gain` come from
@@ -239,3 +250,58 @@ instance Clip Float where
 
 instance Clip (Sig Float) where
     clip s = map clip s
+
+# ── Envelopes ────────────────────────────────────────────────────────────
+#
+# A curve given as breakpoints, read at a point.  `Step b y` steps to `y`
+# at `b`, holding whatever came before right up to it; `Ramp b y` slides to
+# `y`, arriving exactly at `b`.  The flag rides on the point being *arrived
+# at*, so "reach 0.8 by beat 16" says nothing about beat 17.
+#
+# **Total: it never fails.**  Before the first point it reads the first
+# value and after the last it reads the last.  Its argument is nearly
+# always a clock — a beat, an age, a position — and a clock will run past
+# the end of any envelope written for it, so refusing there would put a
+# `clamp` that says nothing at every call site, and extrapolating would
+# send a filter cutoff to infinity ten seconds after the note ended.
+#
+# **This definition is the meaning, not the implementation.**  It walks a
+# cons list, which the static audio fragment refuses — no fixed size — so
+# `gestate/envexpand.py` rewrites `on <points> x` into a balanced tree of
+# comparisons over the breakpoints, which is flat and first-order and is
+# what actually runs in a synth.  This is what that rewrite is checked
+# against, and it is what an interpreted program runs unchanged.
+
+Envelope := Step Float Float
+          | Ramp Float Float
+
+#: What the envelope reads at `x`.
+on : List Envelope -> Float -> Float
+on ps x = case ps of
+    [] -> 0.0
+    (p :: rest) -> case p of
+        Step b y -> onFrom b y rest x
+        Ramp b y -> onFrom b y rest x
+
+internal
+
+#: The walk, once the first point has been opened: `b`/`y` are the point
+#: behind us and `rest` is what is still ahead.
+onFrom : Float -> Float -> List Envelope -> Float -> Float
+onFrom b y rest x = case x <= b of
+    True -> y
+    False -> case rest of
+        [] -> y
+        (p :: more) -> case p of
+            Step c z -> case x < c of
+                True -> y
+                False -> onFrom c z more x
+            Ramp c z -> case x < c of
+                True -> onRamp b y c z x
+                False -> onFrom c z more x
+
+#: One linear segment, between two points.
+onRamp : Float -> Float -> Float -> Float -> Float -> Float
+onRamp b y c z x = case c - b <= 0.0 of
+    True -> z
+    False -> y + (z - y) * (x - b) / (c - b)

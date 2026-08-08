@@ -80,16 +80,23 @@ def value_on(points, x: float) -> float:
     """
     if not points:
         raise TempoError("an envelope with no points in it has no value")
-    if x <= points[0][0]:
+
+    # **The same search `envexpand` compiles**, written the same way on
+    # purpose: find the first breakpoint strictly above `x`, and read the
+    # segment arriving at it.  There are `n+1` answers for `n` points —
+    # before the first, between each pair, and past the last — and this is
+    # the reading the audio fragment runs, so it is the reading here.
+    #
+    # Strict `<` throughout decides the one ambiguous case: **two points at
+    # the same place, and the later one wins.**  A vertical jump lands on
+    # its top, which is what writing two points at one instant is for.
+    if x < points[0][0]:
         return float(points[0][2])
-    for (x0, _r0, y0), (x1, r1, y1) in zip(points, points[1:]):
-        # `>=`, so a point's own value is what is read *at* it: `At 8 0.25`
-        # means the envelope is 0.25 at 8, not just after it.  With `>` the
-        # step landed one segment late and every point read as the value
-        # before it — which for a tempo mark is a whole bar at the old
-        # tempo.
+    for i in range(1, len(points)):
+        x1, r1, y1 = points[i]
         if x >= x1:
             continue
+        x0, _r0, y0 = points[i - 1]
         if not r1 or x1 == x0:
             return float(y0)                    # hold, then step at x1
         return float(y0) + (float(y1) - float(y0)) * (x - x0) / (x1 - x0)

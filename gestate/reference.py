@@ -133,6 +133,36 @@ PRIMITIVES = (
          "lifts over **any number** of them — there is no three-signal "
          "former and none is needed."),
     )),
+    # **Supplied by the renderer, defined in no library file.**  Which is
+    # exactly why they belong here: `reference.py` builds its pages from
+    # the `.ges` sources, so a name the *host* puts into the assembly is
+    # invisible to it and is reported as not existing.  `beat` was — it
+    # works in any scored program and appeared nowhere in `doc/ref/` but
+    # in prose, so the honest conclusion from reading the reference was
+    # that there is no such thing.
+    ("The renderer's own", (
+        ("ticks", "Sig Int",
+         "The instant number, one per sample.  The clock everything at "
+         "audio rate is a function of, and the argument `map` is usually "
+         "given."),
+        ("sampleRate", "Float",
+         "How many instants there are in a second.  The *renderer's* "
+         "answer, not the program's: the same synth renders at any rate, "
+         "and which one is a property of the file being written."),
+        ("constSig", "a -> Sig a",
+         "The same value at every instant.  What it is constant *over* is "
+         "whichever clock is running — `ticks` for a synth, the event "
+         "stream for a canvas — which is why the renderer supplies it and "
+         "no library can."),
+        ("beat", "Sig Float",
+         "**What beat it is** — the piece's own clock, at audio rate, for "
+         "a synth modulating against the music rather than against the "
+         "second.  In scope exactly where `score` and `bpm` are, so an "
+         "unscored synth naming it gets `Unknown global 'beat'`, which is "
+         "the truth: there is no tempo to answer with.  Not available "
+         "under a `tempo` envelope yet — the beat clock is piecewise "
+         "quadratic there and reading it needs a segment search."),
+    )),
 )
 
 #: `# ── Oscillators ────` — the section headers the library files already
