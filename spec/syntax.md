@@ -432,7 +432,19 @@ block and no layout tokens:
   ever does;
 * the line **begins with `(`**, the usual way a long application is broken;
 * the previous line **ends with `=`**, which only a definition body can
-  follow.
+  follow;
+* the line **begins with a word, number or constructor and binds nothing**
+  — no top-level `=` before its end.  That last clause is what separates a
+  continuation from a block item, which one token of lookahead cannot do:
+  `y = 6` under a `let` and `2` under a broken application both start with
+  an ordinary token, and only the `=` tells them apart.
+
+**Inside a bracket the offside rule is suspended entirely.**  A newline
+deeper in brackets than the block it sits in is not a newline, so a list, a
+tuple or a parenthesised expression spans as many lines as it needs.  The
+comparison is against the bracket depth *the current block began at*, not
+against zero, because a block may be opened inside a bracket — `foldr (x b
+=> case p x of` — and inside that block the rule is in force again.
 
 None of these applies directly after a **block opener** — `of`, `where`,
 `let`, `letrec`, `given` — where the indented line is the block's first
@@ -451,7 +463,7 @@ and both would otherwise be indistinguishable from one.
 
 Anything else opens a block, which is what keeps a `let` whose first
 binding is on the `let` line and whose later ones are indented beneath it
-working: `y = 6` could begin an item, so it still does.
+working: `y = 6` carries an `=`, so it is an item and still begins one.
 
 A line indented *the same* as the one above is never a continuation, even
 if it begins with an operator: it is the next item.

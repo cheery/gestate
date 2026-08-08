@@ -433,6 +433,37 @@ class Tokenizer:
         #: would otherwise look exactly like a continuation.
         openers = ("of", "where", "let", "letrec", "given")
 
+        def next_line_binds() -> bool:
+            """Does the coming line contain a top-level `=`?
+
+            Which is what tells a block *item* from a continuation when the
+            line starts with an ordinary word: `y = 6` under a `let` binds
+            a name and begins an item, while `x` under a broken
+            application does not and continues one.  Bracketed `=` does not
+            count, and `==` is a `SYMBOL` rather than a `SEP`, so neither
+            can be mistaken for a binding.
+            """
+            save = (self._i, self._line, self._col)
+            try:
+                d = 0
+                seen = False
+                while True:
+                    t = self._next_token()
+                    if t is None or t.kind is TT.EOF:
+                        return False
+                    if t.kind is TT.NEWLINE:
+                        return False if not seen else False
+                    seen = True
+                    if t.kind is TT.SEP:
+                        if t.value in ("(", "[", "{"):
+                            d += 1
+                        elif t.value in (")", "]", "}"):
+                            d -= 1
+                        elif t.value == "=" and d == 0:
+                            return True
+            finally:
+                self._i, self._line, self._col = save
+
         def is_continuation() -> bool:
             """Does the coming, more-indented line continue this one?
 
@@ -456,6 +487,28 @@ class Tokenizer:
             if prev_real is not None and prev_real.kind is TT.RESERVED \
                     and prev_real.value in openers:
                 return False
+            # **Inside a bracket opened since this block began, a newline
+            # is not a newline.**  Implicit line joining, as every
+            # bracketed language has it: a list or a parenthesised
+            # expression may be laid out over as many lines as it needs,
+            # and no continuation rule has to be learned for it.
+            #
+            # `depth_stack[-1]` and not simply `depth > 0`, because a
+            # layout block may be *opened* inside a bracket — `foldr (x b
+            # => case p x of` in `prelude.ges` is one — and inside that
+            # block the offside rule is in force again.  `depth_stack[-1]`
+            # is the bracket depth the current block began at, so this asks
+            # exactly the right question: are we deeper in brackets than
+            # this block is?
+            #
+            # **After the opener check, and that is the whole of it.**
+            # Tried before it, the same comparison swallowed the newline
+            # after `of` in the line above and `all`/`any` silently became
+            # one-alternative `case`s — non-exhaustive, and reported
+            # against the *prelude*, from a program that had touched
+            # neither.
+            if depth > depth_stack[-1]:
+                return True
             if prev_real is not None and prev_real.kind is TT.SEP \
                     and prev_real.value == "=":
                 return True
@@ -469,7 +522,23 @@ class Tokenizer:
             # the only other thing a deeper `(` can begin — a tuple-pattern
             # alternative, an operator class member — follows a block opener
             # and is excluded above.
-            return t.kind is TT.SEP and t.value in ("->", "::", ":::", "..", "(")
+            if t.kind is TT.SEP and t.value in ("->", "::", ":::", "..", "("):
+                return True
+            # **An ordinary word, number or constructor — unless the line
+            # binds something.**  This is the one shape that was left out,
+            # and it is the commonest way to break a long expression:
+            #
+            #     sound = gain 0.4
+            #         (lowpass cutoff osc)
+            #
+            # It could not simply be allowed, because a `let` block's
+            # second binding looks identical from one token of lookahead —
+            # `y = 6` starts with a word too.  What separates them is the
+            # `=`: an item binds a name and a continuation does not, so the
+            # line is scanned to its end and asked.
+            if t.kind in (TT.WORD, TT.NUMBER, TT.CONID):
+                return not next_line_binds()
+            return False
 
         skip_newlines = False
         tok = self._next_token()

@@ -126,10 +126,26 @@ trailing `=`; and the two things that *can* start with `(` — a
 tuple-pattern alternative, an operator class member — always come directly
 after `of`, `where`, `let` or `given`, which never take a continuation.
 
-Anything else indented opens a *block*, which is why `let x = 5` with its
-remaining bindings under it still works.  A bare operand on its own line
-(`f 1` then an indented `2`) is not a continuation; put the operator first,
-or parenthesise.
+A **bare operand** on its own line continues too — `f 1` with an indented
+`2` under it — and the way it is told from a block item is that an item
+*binds a name* and a continuation does not.  The line is scanned to its
+end: a top-level `=` on it makes it an item, so `let x = 5` with `y = 6`
+indented beneath still opens a block, exactly as before.
+
+Inside brackets none of this applies: a list, a tuple or a parenthesised
+expression may be spread over as many lines as it likes, with no rule to
+learn.
+
+```
+windGain : List Envelope
+windGain = [ Step 0.0 0.0, Ramp 6.0 0.55
+           , Ramp 14.0 0.18, Ramp 22.0 0.70 ]
+```
+
+A block *opened* inside a bracket keeps the offside rule — `foldr (x b =>
+case p x of` with its alternatives indented under it is how `all` and `any`
+are written in the prelude — because what is suppressed is only a newline
+deeper in brackets than the block it sits in.
 
 ### Data
 

@@ -281,15 +281,24 @@ def test_an_indented_line_that_could_begin_an_item_still_opens_a_block():
                     "           y = 6\n       in x + y\n") == "11"
 
 
-def test_a_bare_operand_on_its_own_line_is_not_a_continuation():
-    """Documented as not covered — there is no way to tell it from an item.
+def test_a_bare_operand_on_its_own_line_is_a_continuation():
+    """It used to be documented as not covered, on the grounds that there
+    is no way to tell it from an item.  There is one: **an item binds a
+    name and a continuation does not.**
 
-    If this ever starts working, the manual and `spec/syntax.md` both say it
-    does not; update them rather than restoring the limitation.
+    `y = 6` under a `let` has a top-level `=` on its line and `2` does not,
+    so the line is scanned to its end and asked, rather than judged from
+    the single token of lookahead that could not separate them.
     """
-    with pytest.raises(Exception):
-        evaluate("f : Int -> Int -> Int\nf a b = a + b\n\n"
-                 "main : Int\nmain = f 1\n    2\n")
+    assert evaluate("f : Int -> Int -> Int\nf a b = a + b\n\n"
+                    "main : Int\nmain = f 1\n    2\n") == "3"
+
+
+def test_a_binding_on_its_own_line_still_begins_an_item():
+    """The other half, and the reason the scan is needed at all: `let`
+    keeps its block because its second binding *does* carry an `=`."""
+    assert evaluate("main : Int\nmain = let x = 5\n"
+                    "           y = 6\n       in x + y\n") == "11"
 
 
 # ── A continuation may begin with `(` (`fixme.md` F86) ──────────────────────
