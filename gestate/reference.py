@@ -155,13 +155,20 @@ PRIMITIVES = (
          "stream for a canvas — which is why the renderer supplies it and "
          "no library can."),
         ("beat", "Sig Float",
-         "**What beat it is** — the piece's own clock, at audio rate, for "
-         "a synth modulating against the music rather than against the "
-         "second.  In scope exactly where `score` and `bpm` are, so an "
-         "unscored synth naming it gets `Unknown global 'beat'`, which is "
-         "the truth: there is no tempo to answer with.  Not available "
-         "under a `tempo` envelope yet — the beat clock is piecewise "
-         "quadratic there and reading it needs a segment search."),
+         "**What beat it is** — at audio rate, for a synth moving in time "
+         "with the music rather than with the second.  In scope wherever "
+         "the program states a `bpm`, score or no score: a drone on a grid "
+         "needs a tempo and no notes.  A program that states none gets "
+         "`Unknown global 'beat'`, which is the truth — there is nothing "
+         "to answer with.  Not available under a `tempo` envelope yet: the "
+         "beat clock is piecewise quadratic there and reading it needs a "
+         "segment search the audio fragment refuses."),
+        ("elapsed", "Sig Float",
+         "How long the program has been running, in **seconds**.  The "
+         "clock a piece with no tempo has, and what an `Envelope` is "
+         "usually read against — `on <points> elapsed`.  Defined in "
+         "`audio.ges` rather than supplied, but it belongs beside `beat`: "
+         "they are the two answers to \"how far in are we\"."),
     )),
 )
 

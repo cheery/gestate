@@ -115,6 +115,37 @@ def has_sound(source: str) -> bool:
     return re.search(r"^sound\s*[:=]", source, re.M) is not None
 
 
+def has_bpm(source: str) -> bool:
+    """Does this program state a tempo?
+
+    A *definition* at the start of a line, like `has_sound` and
+    `has_scene`, and not a mention: prose does not begin a line with
+    `bpm :`.  A substring search for the bare word would match this
+    sentence.
+    """
+    import re
+
+    return re.search(r"^bpm\s*[:=]", source, re.M) is not None
+
+
+#: **What beat it is** — the piece's own clock, at audio rate.
+#:
+#: Generated rather than written in a library, for the `bpm` in it: a tempo
+#: is the *program's*, and a synth that states none has no beat to answer
+#: with.  `sampleRate` is supplied one step further out for the same
+#: reason, and this sits beside it.
+#:
+#: **Wherever `bpm` is, and not only in a scored program.**  It used to be
+#: added by `audioscore.assemble_performance` alone, so a synth locked to a
+#: tempo but playing no notes — a drone on a grid, an arpeggiator, anything
+#: that wants to move in time with a number the file states — was told
+#: `Unknown global 'beat'` while `bpm` sat defined three lines above it.
+#: The score was never what `beat` needed; `bpm` is.
+BEAT = ("\nbeat : Sig Float\n"
+        "beat = map (n => toFloat n * toFloat bpm / (60.0 * sampleRate))"
+        " ticks\n")
+
+
 def preludes(source: str) -> str:
     """The vocabulary this program is compiled against.
 
@@ -248,8 +279,11 @@ def assemble(source: str, rate: int = DEFAULT_RATE) -> str:
     # is asked of the author's own lines, which this does not touch, and
     # `internals.libraries_in_scope` compares against what `preludes`
     # returns — an unrenamed copy, which is what that comparison needs.
+    # `beat` after the author's file, because it reads the author's `bpm`.
+    # A program that states no tempo gets none and pays nothing for it.
+    clock = BEAT if has_bpm(source) else ""
     return (shadow_libraries(prelude, program) + "\n" + program + "\n"
-            + _entry(rate))
+            + clock + _entry(rate))
 
 
 def _signal(state):

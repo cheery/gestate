@@ -356,3 +356,56 @@ def test_a_step_and_a_ramp_are_different_pieces():
     # flat piece's; the ramp is already slowing by then.
     assert _onsets(stepped)[1] == _onsets(FLAT)[1]
     assert _onsets(SLOWING)[1] > _onsets(FLAT)[1]
+
+
+# ── `beat` is available wherever a `bpm` is ─────────────────────────────────
+
+
+BPM_ONLY = """
+bpm : Int
+bpm = 120
+
+sound : Sig Float
+sound = beat
+"""
+
+
+def test_beat_is_defined_by_a_bpm_and_does_not_need_a_score():
+    """**A tempo is what `beat` needs; a score never was.**
+
+    It used to be added by `assemble_performance` alone, so a synth locked
+    to a tempo but playing no notes — a drone on a grid, an arpeggiator,
+    anything moving in time with a number the file states — was told
+    `Unknown global 'beat'` while `bpm` sat defined three lines above it.
+    """
+    from gestate.audio import render
+
+    got = render(BPM_ONLY, 1.0, 8000)
+    # 120 bpm is two beats a second, so sample 4000 of 8000 is beat 1.
+    for n in (0, 2000, 4000, 6000):
+        assert got[n] == pytest.approx(n * 120 / (60 * 8000))
+
+
+def test_a_program_that_states_no_tempo_has_no_beat():
+    """And is told so, rather than given a clock it never asked for."""
+    from gestate.audio import assemble
+
+    assert "beat =" not in assemble("sound : Sig Float\nsound = ticks\n", 8000)
+
+
+def test_a_scored_program_defines_beat_exactly_once():
+    """Two spellings of one definition is two clocks waiting to disagree.
+
+    A scored assembly gets `beat` from `audioscore` and an unscored one
+    from `audio.assemble`; both name `audio.BEAT`, and this is what says
+    the two paths cannot both fire.
+    """
+    from pathlib import Path
+
+    from gestate.audioscore import assemble_performance
+
+    source = (Path(__file__).resolve().parent.parent / "examples" / "audio"
+              / "quartet.ges").read_text()
+    text = assemble_performance(source, "", 8000)
+    assert sum(1 for line in text.splitlines()
+               if line.startswith("beat =")) == 1

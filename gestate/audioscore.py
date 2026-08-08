@@ -34,6 +34,7 @@ from dataclasses import dataclass, field
 
 #: `spec/music.md`, and `midi.TICKS_PER_BEAT` — kept as one number by
 #: importing it rather than repeating it.
+from .audio import BEAT
 from .midi import TICKS_PER_BEAT
 
 
@@ -258,9 +259,11 @@ def _tempo_of(source: str) -> str:
 #: answer with.  `music.ges`'s ticks-per-beat resolution is
 #: `ticksPerBeat`; this is the plain word, because "what beat are we on"
 #: is the thing a synth wants to modulate against.
-_BEAT = ("\nbeat : Sig Float\n"
-         "beat = map (n => toFloat n * toFloat bpm / (60.0 * sampleRate))"
-         " ticks\n")
+#: `audio.BEAT`, under the name this module already used.  **One copy**:
+#: it is added here for a scored program and by `audio.assemble` for an
+#: unscored one that states a `bpm`, and two spellings of one definition
+#: is two clocks waiting to disagree.
+_BEAT = BEAT
 
 #: Why a piece with a varying tempo has no `beat` yet.
 #:
