@@ -123,3 +123,58 @@ baked") and should be.  Stage two waits on nothing at home and on the
 G-machine port abroad.  Stage three waits on the transcript format —
 a performance that listens must be a performance that can be replayed,
 or the four silent defects of stage 10 get a stage of their own.
+
+## Three questions, considered the evening this was written
+
+**What happens when a lazy score hangs mid-piece?**  The performer
+runs off the audio thread, like every note-deciding thing already
+does — so the answer is structural before it is a policy: **a hang is
+absence, never corruption.**  The engine keeps rendering; every
+change already emitted plays out, note-offs included; what stops is
+the future.  This is `audiolive`'s own rule one floor up — "a synth
+that does not compile must not stop the one that is playing" — and
+the fragment's totality guarantee was never claimed for the
+interpreted half, whose discipline has always been budgets instead.
+So the performer forces against a **beat-horizon budget**: events for
+beat *B* must exist while *B* is still ahead.  A blown budget is a
+*stall*, reported at the beat it happened (and recorded — a stall is
+a transcript event); if production resumes, events whose beats have
+passed are **dropped, and said so** — a section that lost its place
+rejoins at the current bar, it does not play the missed bars fast.
+Productivity is the piece's responsibility; audibility-as-absence,
+naming the beat, and rejoining cleanly are the performer's.
+
+**What does a responsive performance extract, and from where?**  The
+context contract already answers, and stage three should refuse any
+other source: **readings and arrivals on declared channels, sampled
+at decision instants.**  The inventory is longer than it first looks,
+and every entry exists today as a channel or an arrival: the
+knobs (chance, density, a transposition dial); the note port (call
+and answer — the keyboard as an input *to the score*); the analysis
+channels (`peak`, `bands` — a score that thins when the mix is
+thick); the canvas's clicks, once the substrate travels; and `beat`
+itself, which is where the performer stands.  Decisions happen at
+control rate — between blocks, like every note that ever arrived from
+a keyboard — and the *values* carry exactness, as `gateAt` always
+has.  What the performer read is what the transcript records; its
+view of the world **is** the log, which is what makes stage three
+replayable rather than anecdotal.
+
+**Randomness — pseudorandom as ever, but seeded from the world?**
+The mechanism already exists (`Seed`, the `Rng` machinery, every
+`dust` in the tree) and it stays: randomness *within* a performance
+is a PRNG walking from a seed.  The new question is only where the
+seed comes from, and the contract answers again: **entropy is a
+renderer's own name.**  A program that writes `Seed 7` is fixed art,
+replayable from its text alone.  A program that names the renderer's
+entropy gets *a seed nobody chose* — the OS's at instance creation
+for a plugin or the editor, a `--seed` flag or the clock for an
+offline render — under one unbreakable rule: **the renderer records
+what it supplied**, in the transcript, the take's metadata, the
+plugin's state.  Fresh surprise every performance, exact replay of
+any performance somebody kept: improvisation with provenance, again,
+because the provenance is one integer.  Re-seeding *mid*-piece is the
+same rule at more instants — each draw from the renderer is a
+recorded event — and the default should be the coarse one: seed at
+the top, walk the PRNG, because one number replaying a whole night is
+the property worth defending.
