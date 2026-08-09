@@ -638,6 +638,147 @@ static NOTE_PORTS: clap_plugin_note_ports = clap_plugin_note_ports {
     get: notes_get,
 };
 
+// ── State: the session remembers the knobs and the matrix ──────────────
+//
+// What saves is what the *host* believes in: knob slots and routing
+// rows, behind a magic, a version, and a shape hash of the exported
+// program — a preset from a different export refuses to load rather
+// than pouring bits into the wrong slots.  Engine state does not save:
+// a note mid-decay belongs to the take, not the project.
+
+const STATE_MAGIC: u32 = 0x67657374; // "gest"
+const STATE_VERSION: u32 = 1;
+
+fn shape_hash(desc: &Descriptor) -> u64 {
+    // FNV-1a over what the slots mean; two exports that disagree on
+    // any of it must not exchange state.
+    let mut h: u64 = 0xcbf29ce484222325;
+    let mut eat = |bytes: &[u8]| {
+        for b in bytes {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+    };
+    eat(desc.id.as_bytes());
+    eat(&(desc.state_bytes as u64).to_le_bytes());
+    for c in desc.controls {
+        eat(c.chan.as_bytes());
+        eat(&[c.knob as u8, (c.kind == engine::Kind::Float) as u8]);
+    }
+    for b in engine::BANKS {
+        eat(b.name.as_bytes());
+    }
+    h
+}
+
+unsafe extern "C" fn state_save(plugin: *const clap_plugin,
+                                stream: *const clap_ostream) -> bool {
+    if stream.is_null() {
+        return false;
+    }
+    let inst = instance(plugin);
+    let mut out: Vec<u8> = Vec::new();
+    out.extend(STATE_MAGIC.to_le_bytes());
+    out.extend(STATE_VERSION.to_le_bytes());
+    out.extend(shape_hash(inst.desc).to_le_bytes());
+    let knobs: Vec<usize> = inst.desc.controls.iter().enumerate()
+        .filter(|(_, c)| c.knob).map(|(i, _)| i).collect();
+    out.extend((knobs.len() as u32).to_le_bytes());
+    for slot in &knobs {
+        out.extend((*slot as u32).to_le_bytes());
+        out.extend(inst.control[*slot].to_le_bytes());
+    }
+    out.extend((inst.routing.len() as u32).to_le_bytes());
+    for row in &inst.routing {
+        out.extend(row.to_le_bytes());
+    }
+    let mut sent = 0usize;
+    while sent < out.len() {
+        let n = ((*stream).write)(stream,
+                                  out[sent..].as_ptr() as *const c_void,
+                                  (out.len() - sent) as u64);
+        if n <= 0 {
+            return false;
+        }
+        sent += n as usize;
+    }
+    true
+}
+
+unsafe fn read_exact(stream: *const clap_istream, buf: &mut [u8]) -> bool {
+    let mut got = 0usize;
+    while got < buf.len() {
+        let n = ((*stream).read)(stream,
+                                 buf[got..].as_mut_ptr() as *mut c_void,
+                                 (buf.len() - got) as u64);
+        if n <= 0 {
+            return false;
+        }
+        got += n as usize;
+    }
+    true
+}
+
+unsafe extern "C" fn state_load(plugin: *const clap_plugin,
+                                stream: *const clap_istream) -> bool {
+    if stream.is_null() {
+        return false;
+    }
+    let inst = instance(plugin);
+    let mut w4 = [0u8; 4];
+    let mut w8 = [0u8; 8];
+    if !read_exact(stream, &mut w4)
+        || u32::from_le_bytes(w4) != STATE_MAGIC {
+        return false;
+    }
+    if !read_exact(stream, &mut w4)
+        || u32::from_le_bytes(w4) != STATE_VERSION {
+        return false;
+    }
+    if !read_exact(stream, &mut w8)
+        || u64::from_le_bytes(w8) != shape_hash(inst.desc) {
+        return false;
+    }
+    if !read_exact(stream, &mut w4) {
+        return false;
+    }
+    for _ in 0..u32::from_le_bytes(w4) {
+        if !read_exact(stream, &mut w4) {
+            return false;
+        }
+        let slot = u32::from_le_bytes(w4) as usize;
+        if !read_exact(stream, &mut w8) {
+            return false;
+        }
+        match inst.desc.controls.get(slot) {
+            Some(c) if c.knob => {
+                inst.control[slot] = i64::from_le_bytes(w8);
+            }
+            _ => return false,
+        }
+    }
+    if !read_exact(stream, &mut w4) {
+        return false;
+    }
+    let rows = u32::from_le_bytes(w4) as usize;
+    if rows != inst.routing.len() {
+        return false;
+    }
+    let mut w2 = [0u8; 2];
+    for b in 0..rows {
+        if !read_exact(stream, &mut w2) {
+            return false;
+        }
+        inst.routing[b] = u16::from_le_bytes(w2);
+    }
+    true
+}
+
+static STATE: clap_plugin_state = clap_plugin_state {
+    save: state_save,
+    load: state_load,
+};
+
 unsafe extern "C" fn plugin_get_extension(_plugin: *const clap_plugin,
                                           id: *const c_char)
                                           -> *const c_void {
@@ -652,6 +793,9 @@ unsafe extern "C" fn plugin_get_extension(_plugin: *const clap_plugin,
         if want.to_bytes_with_nul() == CLAP_EXT_NOTE_PORTS
             && !engine::BANKS.is_empty() {
             return &NOTE_PORTS as *const _ as *const c_void;
+        }
+        if want.to_bytes_with_nul() == CLAP_EXT_STATE {
+            return &STATE as *const _ as *const c_void;
         }
     }
     // A null for the rest is a plugin without those extensions,

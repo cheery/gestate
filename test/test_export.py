@@ -106,6 +106,61 @@ class Transport(ctypes.Structure):
 IS_PLAYING = 1 << 4
 
 
+class OStream(ctypes.Structure):
+    _fields_ = [("ctx", c_void_p),
+                ("write", ctypes.CFUNCTYPE(c_int64, c_void_p, c_void_p,
+                                           c_uint64))]
+
+
+class IStream(ctypes.Structure):
+    _fields_ = [("ctx", c_void_p),
+                ("read", ctypes.CFUNCTYPE(c_int64, c_void_p, c_void_p,
+                                          c_uint64))]
+
+
+class StateExt(ctypes.Structure):
+    _fields_ = [("save", ctypes.CFUNCTYPE(c_bool, c_void_p, c_void_p)),
+                ("load", ctypes.CFUNCTYPE(c_bool, c_void_p, c_void_p))]
+
+
+def _state_roundtrip(plugin, plug_raw, plugin2, plug2_raw):
+    """Save one instance's state, load it into another."""
+    raw = plugin.get_extension(plug_raw, b"clap.state")
+    assert raw, "no clap.state extension"
+    state = ctypes.cast(raw, POINTER(StateExt)).contents
+
+    saved = bytearray()
+
+    def write(_ctx, buf, size):
+        saved.extend(ctypes.string_at(buf, size))
+        return size
+
+    out = OStream(ctx=None,
+                  write=ctypes.CFUNCTYPE(c_int64, c_void_p, c_void_p,
+                                         c_uint64)(write))
+    assert state.save(plug_raw, ctypes.cast(ctypes.pointer(out),
+                                            c_void_p))
+    assert saved, "an empty save"
+
+    cursor = [0]
+
+    def read(_ctx, buf, size):
+        take = min(int(size), len(saved) - cursor[0])
+        ctypes.memmove(buf, bytes(saved[cursor[0]:cursor[0] + take]),
+                       take)
+        cursor[0] += take
+        return take
+
+    raw2 = plugin2.get_extension(plug2_raw, b"clap.state")
+    state2 = ctypes.cast(raw2, POINTER(StateExt)).contents
+    ins = IStream(ctx=None,
+                  read=ctypes.CFUNCTYPE(c_int64, c_void_p, c_void_p,
+                                        c_uint64)(read))
+    assert state2.load(plug2_raw, ctypes.cast(ctypes.pointer(ins),
+                                              c_void_p)), \
+        "the state did not load"
+
+
 class ParamInfo(ctypes.Structure):
     _fields_ = [("id", c_uint32), ("flags", c_uint32),
                 ("cookie", c_void_p),
@@ -468,6 +523,19 @@ def test_the_knobs_are_the_daws_parameters(tmp_path):
     assert params.get_value(plug_raw, knobs["pitch"].id,
                             ctypes.byref(got2))
     assert got2.value == 52.0, "the parameter display and the sound differ"
+
+    # **The session remembers the knob** — `clap.state`: save this
+    # instance, load into a fresh one, and the fresh one reads 52 too.
+    lib2, plug2_raw, plugin2 = _plugin_of(out)
+    assert plugin2.init(plug2_raw)
+    _state_roundtrip(plugin, plug_raw, plugin2, plug2_raw)
+    raw2 = plugin2.get_extension(plug2_raw, b"clap.params")
+    params2 = ctypes.cast(raw2, POINTER(Params)).contents
+    got3 = c_double()
+    assert params2.get_value(plug2_raw, knobs["pitch"].id,
+                             ctypes.byref(got3))
+    assert got3.value == 52.0, "the project forgot the knob"
+    plugin2.destroy(plug2_raw)
     plugin.destroy(plug_raw)
 
 
@@ -680,4 +748,17 @@ def test_the_routing_matrix_layers_banks(tmp_path):
     assert played == pytest.approx(offline), \
         "the routed notes are not the allocated notes"
     assert max(abs(x) for x in offline) > 0.05, "silent: nothing compared"
+
+    # **The session remembers the matrix** — the ticked `bass ch1`
+    # survives a save into a fresh instance.
+    lib2, plug2_raw, plugin2 = _plugin_of(out)
+    assert plugin2.init(plug2_raw)
+    _state_roundtrip(plugin, plug_raw, plugin2, plug2_raw)
+    raw2 = plugin2.get_extension(plug2_raw, b"clap.params")
+    params2 = ctypes.cast(raw2, POINTER(Params)).contents
+    got = c_double()
+    assert params2.get_value(plug2_raw, cells["bass ch1"].id,
+                             ctypes.byref(got))
+    assert got.value == 1.0, "the project forgot the matrix"
+    plugin2.destroy(plug2_raw)
     plugin.destroy(plug_raw)

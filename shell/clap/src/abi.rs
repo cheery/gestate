@@ -205,6 +205,34 @@ pub struct clap_plugin_params {
                                     out_events: *const clap_output_events),
 }
 
+// ── State extension ─────────────────────────────────────────────────────
+
+pub const CLAP_EXT_STATE: &[u8] = b"clap.state\0";
+
+#[repr(C)]
+pub struct clap_ostream {
+    pub ctx: *mut c_void,
+    pub write: unsafe extern "C" fn(stream: *const clap_ostream,
+                                    buffer: *const c_void,
+                                    size: u64) -> i64,
+}
+
+#[repr(C)]
+pub struct clap_istream {
+    pub ctx: *mut c_void,
+    pub read: unsafe extern "C" fn(stream: *const clap_istream,
+                                   buffer: *mut c_void,
+                                   size: u64) -> i64,
+}
+
+#[repr(C)]
+pub struct clap_plugin_state {
+    pub save: unsafe extern "C" fn(plugin: *const clap_plugin,
+                                   stream: *const clap_ostream) -> bool,
+    pub load: unsafe extern "C" fn(plugin: *const clap_plugin,
+                                   stream: *const clap_istream) -> bool,
+}
+
 // ── Note ports extension ────────────────────────────────────────────────
 
 pub const CLAP_EXT_NOTE_PORTS: &[u8] = b"clap.note-ports\0";
