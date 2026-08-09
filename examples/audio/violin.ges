@@ -1,0 +1,104 @@
+# VIOLIN OVER DUBGATE - a concert soloist wanders into the sound system.
+#
+#   python -m gestate.audiolive examples/audio/violin.ges
+#   python -m gestate.audio examples/audio/violin.ges -o violin.wav --seconds 16
+#
+# The dub half is `examples/super/dubgate.ges`, copied whole: a drum
+# machine drowning in tape echo, whose send only opens on the bar's last
+# quarter.  On top, a violin - saw through three body formants, wide
+# stage vibrato, portamento between every note because the player is
+# *expressive* - which stops bowing for exactly the quarter-bar the echo
+# answers in, out of professional courtesy, and is fed to the same tape
+# so the sound system dubs the fiddle too.
+
+# ── The dubgate, as it ships ─────────────────────────────────────────────
+
+kickEnv : Sig Float
+kickEnv = map (t => exp (negate 25.0 * wrap (2.0 * t))) elapsed
+
+kick : Sig Float
+kick = sine (44.0 + 150.0 * kickEnv) * kickEnv
+
+snareEnv : Sig Float
+snareEnv = map (t => exp (negate 20.0 * wrap (t + 0.5))) elapsed
+
+snare : Sig Float
+snare = (0.6 * white 2 + 0.5 * triangle 190.0) * snareEnv
+
+hat : Sig Float
+hat = highpassSvf 7000.0 0.2 (white 3)
+    * map (t => exp (negate 70.0 * wrap (4.0 * t + 0.5))) elapsed
+
+#: The skank: an offbeat stab, the reggae backbone.
+stab : Sig Float
+stab = lowpassSvf 1400.0 0.6 (saw 220.0 + saw 277.18 + saw 329.63)
+     * map (t => exp (negate 18.0 * wrap (2.0 * t + 0.5))) elapsed * 0.3
+
+#: THE TRICK: the echo's *input* is gated by a step pattern - it only
+#: hears the bar's last quarter, so the echo answers instead of smearing.
+#: Steal `sendGate` and gate any send you own.
+sendPat : List Envelope
+sendPat = [ Step 0.0 0.0, Step 1.5 1.0, Step 1.75 0.0 ]
+
+sendGate : Sig Float
+sendGate = map (t => on sendPat (2.0 * wrap (t / 2.0))) elapsed
+
+#: The echo itself warbles like a worn tape loop (slide, lesson A5),
+#: and gets duller each pass (the 0.55 * lowpass in the fold).
+tapePos : Sig Float
+tapePos = map (x => sampleRate * (0.375 + 0.004 * x)) (sine 0.9)
+
+tape : Sig Float -> Sig Float
+tape s = lowpass 0.35 (slide (seconds 0.45) (y x => x + 0.62 * y) tapePos s)
+
+dry : Sig Float
+dry = 0.65 * kick + 0.4 * snare + 0.2 * hat + stab
+
+# ── The soloist ──────────────────────────────────────────────────────────
+
+#: An A-major lick over two bars - the stab is an A-major triad, so the
+#: fiddle is *technically* in key, whatever else may be said of it.
+fiddleLine : List Envelope
+fiddleLine = [ Step 0.0 440.0,  Step 0.5 554.37, Step 1.0 659.25
+             , Step 2.0 880.0,  Step 2.5 739.99, Step 3.0 554.37
+             , Step 3.5 493.88 ]
+
+#: `slew` between the steps: at most 0.05 Hz a sample, so every
+#: interval is taken as a slide.  This is called portamento when a
+#: soloist does it and a problem when anyone else does.
+fiddleHz : Sig Float
+fiddleHz = slew 0.05 (map (t => on fiddleLine (4.0 * wrap (t / 4.0))) elapsed)
+
+#: Stage vibrato - wide, 5.5 Hz, applied to everything all the time.
+vibHz : Sig Float
+vibHz = fiddleHz * (1.0 + 0.012 * sine 5.5)
+
+#: The bow: on for the bar's first three quarters, lifted for exactly
+#: the quarter the echo answers in.  `gateOn` reads the courtesy off
+#: the same two-second cycle `sendPat` steps through, and `adsr` gives
+#: the swell a bow stroke has and a drum machine never will.
+bow : Sig Float
+bow = adsr (Adsr 0.09 0.2 0.8 0.12) (gateOn (!(x => x < 0.75) (phase 0.5)))
+
+#: A violin body is formants: the air resonance, the wood, the sheen.
+#: The wood one *breathes* - its resonance is a signal, slowly leaning
+#: in and out like a player turning to face the audience.
+body : Sig Float -> Sig Float
+body s = 1.0 * bandpassSvf 290.0 0.7 s
+       + 0.8 * bandpassSvf 650.0 (0.55 + 0.2 * unipolar (sine 0.31)) s
+       + 0.45 * bandpassSvf 1350.0 0.5 s
+       + 0.25 * s
+
+#: Rosin: the noise a bow actually makes, riding the same envelope.
+scratch : Sig Float
+scratch = 0.06 * bandpassSvf 3600.0 0.3 (white 7) * bow
+
+violin : Sig Float
+violin = 0.5 * body (saw vibHz) * bow + scratch
+
+# ── The mix, fiddle in the sound system ──────────────────────────────────
+
+sound : Sig Float
+sound = brickwall 0.9
+    (dry + violin
+         + 0.8 * tape ((snare + stab + 0.5 * violin) * sendGate))
