@@ -154,3 +154,27 @@ def test_cyclic_arithmetic_wraps():
 
 def test_integer_arithmetic_does_not_wrap():
     assert evaluate("main : Int\nmain = 3 + 3\n") == "6"
+
+
+# ── `let` is sequential ─────────────────────────────────────────────────────
+
+
+def test_a_later_let_binding_sees_an_earlier_one():
+    """`ELet`'s contract: a plain `let`'s bindings scope *sequentially* —
+    each sees the ones above it.  The desugarer used to give later
+    bindings the outer scope only, so `b = a + 1` resolved `a` as a
+    global and failed a definition away from where it was written; the
+    G-machine hid the earlier cells to match.  Both now thread them.
+    """
+    assert _int("main : Int\n"
+                "main = let a = 5\n"
+                "           b = a + 1\n"
+                "           c = a + b\n"
+                "       in c\n") == 11
+
+
+def test_a_let_binding_may_shadow_and_the_old_value_reaches_the_new():
+    assert _int("main : Int\n"
+                "main = let a = 5\n"
+                "           a = a + 1\n"
+                "       in a\n") == 6

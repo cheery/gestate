@@ -1,0 +1,65 @@
+# CLOCKWORK - a music box playing a canon it cannot stop.
+#
+#   python -m gestate.audioperform examples/super/clockwork.ges -o clockwork.wav
+#   python -m gestate.audioperform examples/super/clockwork.ges --midi
+#
+# Steal: the celesta voice (a sine and its fourth partial, decaying at
+# different speeds - two lines and it is metal), and the score built
+# entirely by transformation: one phrase, then `>>=`, `at`, `reverse`
+# and `|/` do the composing.
+
+Key := Key Int Int
+
+voices box 10 tine : Sig Float
+
+instance FromMIDI Key where
+    noteOn ch p v = Just (Key p v)
+
+hzOf : Key -> Float
+hzOf q = case q of
+    Key k v -> keyHz k
+
+velOf : Key -> Float
+velOf q = case q of
+    Key k v -> toFloat v / 127.0
+
+#: The tine: fundamental rings, the high partial dies fast - struck
+#: metal in miniature.  4.05x, slightly sharp of harmonic, is the metal.
+tine : Sig Gate -> Sig Key -> Sig Float
+tine g s = (sine (!hzOf s) * perc 3.0 g
+            + 0.3 * sine (!hzOf s * 4.05) * perc 12.0 g) * !velOf s
+
+# ── The clockwork: one phrase, four machines turning it ──────────────────
+
+bpm : Int
+bpm = 76
+
+n : Int -> [: Key :]
+n k = '(Key k 78)
+
+#: The comb the barrel plays.  Change these eight pins and the whole
+#: canon follows.
+pins : [: Key :]
+pins = (n 76 ++ n 79 ++ n 83 ++ n 88 ++ n 86 ++ n 83 ++ n 81 ++ n 79) |/ 2
+
+up : Int -> Key -> [: Key :]
+up j q = case q of
+    Key k v -> '(Key (k + j) v)
+
+#: The canon: the phrase, its octave shadow two beats late, its crab
+#: (retrograde) four beats late an octave down, and a slow bass drawn
+#: from every fourth pin by `|* 4`s worth of stretching.
+turn : [: Key :]
+turn = pins
+    || at (2 * ticksPerBeat) (pins >>= up 12)
+    || at (4 * ticksPerBeat) (reverse pins >>= up (negate 12))
+
+ground : [: Key :]
+ground = (n 52 ++ n 47 ++ n 45 ++ n 47) |* 2
+
+score : [: Void :]
+score = ((turn ++ turn) || (ground ++ ground)) >>= voices.box
+
+#: A small wooden room, not a hall: a music box sits on a table.
+sound : Sig Float
+sound = brickwall 0.85 (0.5 * box + 0.15 * reverb 0.9 0.6 box)

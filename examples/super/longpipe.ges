@@ -1,0 +1,50 @@
+# LONGPIPE - one breath, held for as long as you care to listen.
+#
+#   python -m gestate.audiolive examples/super/longpipe.ges
+#   python -m gestate.audio examples/super/longpipe.ges -o longpipe.wav --seconds 30
+#
+# A wind drone in the didgeridoo family: everything grows from ONE
+# fundamental, and the music is in the mouth, not the notes.
+#
+# Steal: the drone (pmSelf brightening on the rhythm of the breath), the
+# mouth (one resonant band sweeping the drone's own overtones), and the
+# tonguing - a triangle LFO `case`d into a rhythm by a scalar function.
+
+#: D2 - a long pipe.
+root : Float
+root = 73.42
+
+#: The breath: a slow cycle everything else rides.  Not a sine - inhale
+#: is quicker than the blow, so the wrap-ramp is shaped by pow.
+breath : Sig Float
+breath = map (t => pow (wrap (t / 7.0)) 0.4) elapsed
+
+#: The lips: self-modulated sine whose feedback FOLLOWS the breath - it
+#: buzzes harder mid-blow, and that is timbre moving, not volume.
+lips : Sig Float
+lips = pmSelf (!root) 0.6 * (0.4 + 0.6 * breath)
+     + 0.15 * pmSelf (!(root * 0.5)) 0.2
+
+#: The mouth: a narrow band sweeping the overtone ladder.  Because it
+#: sweeps the *drone*, what comes out are the pipe's own harmonics rung
+#: one after another - the wow-wow every circular breather plays.
+mouth : Sig Float
+mouth = bandpassSvf (300.0 + 900.0 * unipolar (sine 0.23)) 0.93 lips
+
+#: The tongue: fast triple-taps that come and go with the breath.
+tapped : Float -> Float -> Float
+tapped u b = case u < 0.12 * b of
+    True -> 0.4
+    False -> 1.0
+
+tongue : Sig Float
+tongue = zip tapped (map (t => wrap (2.2 * t)) elapsed) breath
+
+#: The chest: brown-noise rumble through the same pipe length, so the
+#: air sounds like it is inside the instrument rather than beside it.
+chest : Sig Float
+chest = 0.12 * resonate (!root) 0.4 (brown (white 8))
+
+sound : Sig Float
+sound = brickwall 0.88 ((0.5 * lips + 0.8 * mouth + chest) * tongue
+                        + 0.2 * reverb 1.8 0.5 (mouth * tongue))

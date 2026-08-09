@@ -110,6 +110,93 @@ the formant centres, the servo's slew rate.
 
 ---
 
+## The second shelf
+
+Six more, from six other worlds — same rules of theft.
+
+## `gamelan.ges` — interlocking bronze
+
+Struck-metal resonator pairs on a pelog-flavoured row, hit by three
+strike clocks in a 2:3:5 relation — the pattern only comes home once
+every full cycle, which is why a bar of it never bores.
+
+**Steal:** `bronze` — a resonator and its 9-cents-sharp twin; one rings,
+a pair *shimmers*, and that beating is what makes metal sound like metal.
+And the polyrhythm recipe: clocks whose rates share no small factor.
+
+**Grab first:** the ratios (try 3:4:7), the row's five pitches, the
+strike offsets.
+
+## `choirloft.ges` — voices without words
+
+Three singers — a detuned buzz through three formant bands *is* a vowel —
+whose pitch lines are `Ramp` envelopes, so chord changes are slides of
+breath rather than note boundaries.  Mostly reverb, which is what a
+choir in a stone room is.  (The singer's wiring is a signal-level `let`:
+one page, no plumbing names.)
+
+**Steal:** `singer`, whole.  Then the phrasing trick: writing melody as
+`Ramp`s makes portamento the default and articulation the exception,
+which is exactly backwards from a keyboard and exactly how singing works.
+
+**Grab first:** the chord tones in the three lines, the second formant's
+`depth` coupling, the swell rate.
+
+## `clockwork.ges` — the music box
+
+A scored canon on a two-partial celesta: eight pins on a barrel, and the
+piece is the machine turning them — octave shadow two beats late, crab
+four beats late, a stretched ground beneath.  Play along over MIDI; the
+box does not mind.
+
+**Steal:** the tine (a sine ringing and its 4.05× partial dying fast —
+struck metal in two lines), and the canon machine: change the eight pins
+and the whole composition follows.
+
+**Grab first:** the pins, the entry distances, the 4.05.
+
+## `longpipe.ges` — one breath
+
+A wind drone where everything grows from one fundamental: `pmSelf` lips
+that buzz harder mid-blow, a resonant mouth sweeping the pipe's own
+overtones, tongued triple-taps riding a breath cycle shaped by `pow`
+(inhale is quicker than the blow).  The music is in the mouth, not the
+notes.
+
+**Steal:** the breath — one slow shaped ramp that *several* parameters
+ride, which is what makes a drone feel alive rather than sustained.
+
+**Grab first:** the breath length (7 s), the mouth sweep range, the
+`pmSelf` feedback.
+
+## `tapeloop.ges` — the room's imperfect memory
+
+Process music: eight notes play once, then a five-second `slide` loop at
+0.955 feedback repeats them — duller every pass (`damped`), never at
+quite the right speed (the warp) — until the phrase is a rumour.  The
+piece is the decay, not the melody.
+
+**Steal:** the one-shot gate (`case t < 12.0` — the players leave), and
+the memory: delay + loss + wobble is every tape-music piece ever made,
+in three definitions.
+
+**Grab first:** the feedback (0.98 remembers for five minutes), the damp,
+the warp depth.
+
+## `breaksmith.ges` — jungle arithmetic
+
+A 170-ish break on a sixteenth grid: `case`-table lanes for kick, snare
+and hats, a *fill row* selected every fourth bar, and the snare lane
+carrying its own velocities — the ghost notes are what make a break roll
+instead of march.  A two-note sub sits a floor below it all.
+
+**Steal:** the two-level pattern (step table chosen by bar — fills are
+data, not luck) and the ghost-note lane.
+
+**Grab first:** the snare ghosts, bar 3's fill rows, the tempo.
+
+---
+
 ## The habits underneath, one last time
 
 Every patch here obeys the same five: gains set on the thickest moment;

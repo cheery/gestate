@@ -1,0 +1,116 @@
+# BREAKSMITH - a broken beat, cut and reassembled 170 times a minute.
+#
+#   python -m gestate.audiolive examples/super/breaksmith.ges
+#   python -m gestate.audio examples/super/breaksmith.ges -o breaksmith.wav --seconds 16
+#
+# Jungle arithmetic: the drums live on a sixteenth grid as `case`
+# tables, and every fourth bar the kit plays a different row - the fill
+# is data, not luck.  Steal the two-level pattern (step table chosen by
+# bar) and the ghost-note velocity lane.
+
+bpmish : Float
+bpmish = 170.0
+
+#: Sixteenths per second.
+stepsPerSec : Float
+stepsPerSec = bpmish / 15.0
+
+#: Which sixteenth, which bar - the two coordinates every lane reads.
+stepOf : Float -> Int
+stepOf t = prim_mod_int (floor (t * stepsPerSec)) 16
+
+barOf : Float -> Int
+barOf t = prim_mod_int (prim_div_int (floor (t * stepsPerSec)) 16) 4
+
+within : Float -> Float
+within t = wrap (t * stepsPerSec)
+
+#: Kick rows: the main two-step, and bar 3's stumble.
+kickRow : Int -> Int -> Float
+kickRow bar i = case bar of
+    3 -> kickFill i
+    _ -> kickMain i
+
+kickMain : Int -> Float
+kickMain i = case i of
+    0 -> 1.0
+    10 -> 0.9
+    _ -> 0.0
+
+kickFill : Int -> Float
+kickFill i = case i of
+    0 -> 1.0
+    6 -> 0.8
+    12 -> 0.9
+    14 -> 0.7
+    _ -> 0.0
+
+#: The snare lane carries its *velocity*: 1.0 on the backbeats, ghosts
+#: between - the ghosts are what makes a break roll instead of march.
+snareRow : Int -> Int -> Float
+snareRow bar i = case bar of
+    3 -> snareFill i
+    _ -> snareMain i
+
+snareMain : Int -> Float
+snareMain i = case i of
+    4 -> 1.0
+    7 -> 0.25
+    9 -> 0.3
+    12 -> 1.0
+    15 -> 0.2
+    _ -> 0.0
+
+snareFill : Int -> Float
+snareFill i = case i of
+    4 -> 1.0
+    6 -> 0.4
+    8 -> 0.5
+    10 -> 0.6
+    12 -> 0.8
+    13 -> 0.6
+    14 -> 1.0
+    15 -> 0.7
+    _ -> 0.0
+
+hatRow : Int -> Float
+hatRow i = case prim_mod_int i 2 of
+    0 -> 0.5
+    _ -> 0.9
+
+#: One lane each: table velocity x a fast decay within the step.  The
+#: fragment is first-order, so each lane names its own table rather than
+#: taking it as an argument.
+kickAt : Float -> Float -> Float
+kickAt rate t = kickRow (barOf t) (stepOf t) * exp (negate rate * within t)
+
+snareAt : Float -> Float
+snareAt t = snareRow (barOf t) (stepOf t) * exp (negate 35.0 * within t)
+
+kick : Sig Float
+kick = sine (48.0 + 120.0 * map (t => kickAt 30.0 t) elapsed)
+     * map (t => kickAt 18.0 t) elapsed
+
+snare : Sig Float
+snare = (0.7 * white 2 + 0.4 * triangle 210.0) * map snareAt elapsed
+
+hat : Sig Float
+hat = highpassSvf 7500.0 0.2 (white 3)
+    * map (t => hatRow (stepOf t) * exp (negate 80.0 * within t)) elapsed
+
+#: The sub: two notes a bar, played by the same grid, sitting far below
+#: the break the way a jungle bass does.
+subHz : Int -> Float
+subHz bar = case bar of
+    0 -> 41.2
+    1 -> 41.2
+    2 -> 36.71
+    _ -> 55.0
+
+sub : Sig Float
+sub = 0.5 * sine (map (t => subHz (barOf t)) elapsed)
+    * map (t => 0.4 + 0.6 * exp (negate 3.0 * wrap (t * stepsPerSec / 8.0))) elapsed
+
+sound : Sig Float
+sound = brickwall 0.9 (drive 1.3 (0.7 * kick + 0.45 * snare + 0.22 * hat)
+                       + sub)

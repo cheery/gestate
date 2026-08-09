@@ -1,0 +1,44 @@
+# TAPELOOP - a phrase is played once, and the room forgets it slowly.
+#
+#   python -m gestate.audio examples/super/tapeloop.ges -o tapeloop.wav --seconds 90
+#   python -m gestate.audiolive examples/super/tapeloop.ges
+#
+# Process music: the piece is not the phrase, it is the *decay*.  A
+# five-second loop repeats through a line that loses treble every pass
+# and never runs at quite the right speed, so each return is duller,
+# smaller and slightly elsewhere - for ninety seconds the music is the
+# room's imperfect memory of eight notes.
+#
+# Steal: the one-shot gate (`case t < …` - the phrase plays ONCE), and
+# the memory itself: `damped` for the forgetting, `slide` for the warp.
+
+#: Eight notes, once.  After twelve seconds the players leave.
+phrase : List Envelope
+phrase = [ Step 0.0 220.0, Step 1.5 261.63, Step 3.0 246.94, Step 4.5 329.63
+         , Step 6.0 293.66, Step 7.5 261.63, Step 9.0 246.94, Step 10.5 220.0 ]
+
+once : Float -> Float
+once t = case t < 12.0 of
+    True -> 1.0
+    False -> 0.0
+
+#: The playing: a soft horn-ish tone, already half memory.
+played : Sig Float
+played = 0.4 * lowpassSvf 1200.0 0.3 (triangle (map (t => on phrase t) elapsed)
+                                      + 0.3 * saw 110.0)
+       * map (t => once t * exp (negate 1.2 * wrap (t / 1.5))) elapsed
+
+#: The memory: a five-second loop at 0.955 feedback loses its top on
+#: every pass (`damped`), and the `slide` around it stretches the loop
+#: by a slow breathing amount - tape that was stored badly.
+#: 0.955 ^ 18 is about 0.44: a minute in, the phrase is a rumour.
+warp : Sig Float
+warp = map (x => sampleRate * (4.8 + 0.05 * x)) (sine 0.07)
+
+memory : Sig Float -> Sig Float
+memory s = slide (seconds 5.0) (y x => x + 0.955 * y) warp
+                 (damped 0.001 0.0 0.35 s)
+
+sound : Sig Float
+sound = brickwall 0.9 (played + 0.8 * memory played
+                       + 0.3 * reverb 3.5 0.5 (memory played))

@@ -1,0 +1,45 @@
+# GAMELAN - interlocking metal, three clocks that only meet once a cycle.
+#
+#   python -m gestate.audiolive examples/super/gamelan.ges
+#   python -m gestate.audio examples/super/gamelan.ges -o gamelan.wav --seconds 24
+#
+# Steal: the polyrhythm - three strike clocks in 2:3:5, so the pattern
+# only repeats every whole cycle - and the detuned resonator pairs that
+# make struck metal shimmer instead of ping.
+
+#: A pelog-flavoured five-note row, as ratios of a low A.
+tone : Int -> Float
+tone i = case i of
+    0 -> 110.0
+    1 -> 124.5
+    2 -> 146.9
+    3 -> 165.1
+    _ -> 189.7
+
+#: One strike clock: a click whenever its wrapped phase resets.
+#: `rate` in cycles per second; the offset staggers the entries.
+strikeAt : Float -> Float -> Float -> Float
+strikeAt rate off t = exp (negate 500.0 * wrap (rate * t + off))
+
+#: A gong tone: two resonators a few cents apart.  One rings; a *pair*
+#: beats slowly against itself, which is the shimmer of real bronze.
+bronze : Float -> Float -> Sig Float -> Sig Float
+bronze hz ring s = resonate (!hz) ring s
+                 + resonate (constSig (centsHz 9.0 hz)) (ring * 0.8) s
+
+#: Three lines: low gong on the slow clock, middle pair interlocking,
+#: high bells running.  2:3:5 - they line up once every two seconds.
+low : Sig Float
+low = bronze (tone 0) 5.0 (0.5 * map (t => strikeAt 0.5 0.0 t) elapsed)
+
+mid : Sig Float
+mid = bronze (tone 2) 2.5 (0.4 * map (t => strikeAt 1.5 0.25 t) elapsed)
+    + bronze (tone 3) 2.0 (0.3 * map (t => strikeAt 1.5 0.75 t) elapsed)
+
+high : Sig Float
+high = bronze (tone 1 * 2.0) 1.2 (0.25 * map (t => strikeAt 2.5 0.4 t) elapsed)
+     + bronze (tone 4 * 2.0) 1.0 (0.2 * map (t => strikeAt 2.5 0.9 t) elapsed)
+
+sound : Sig Float
+sound = brickwall 0.9 (0.5 * low + 0.4 * mid + 0.3 * high
+                   + 0.25 * reverb 2.5 0.5 (mid + high))

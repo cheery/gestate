@@ -118,6 +118,8 @@ The next instant at which a signal holds a `Just`.  A signal turned back into an
 
 Where an ordinary function meets signals.  `!f x y z` pairs its arguments up through `Both` and takes them apart again, so it lifts over **any number** of them — there is no three-signal former and none is needed.
 
+**`!(f x)` is the same lift as `!f x`, not a constant** — application folds into an atom before fixity resolution, so the two spellings are one tree and the parentheses cannot carry a second meaning.  The reading people reach for — *make this computed value a constant signal* — is spelled `constSig (f x)`: the same node `!x` builds, taking any expression.  (`!(a * b)` **is** that constant, because an operator expression is not an application spine; the asymmetry is the parse, not a policy.)
+
 ## The renderer's own
 
 ### `ticks`
