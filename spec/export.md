@@ -19,17 +19,44 @@ facts found on the way in: the engine's state buffer starts
 `init` itself, so no state image travels), and the whole engine
 contract is one symbol plus that buffer and the control slots.
 Self-playing synths export today (`dubgate.clap`, `violin.clap`),
-and they **follow the transport, stop meaning rewind**: silence while
-the timeline is stopped, and the rising edge zeroes the state — which
-is the rewind, since the generated code reseeds everything at `t = 0`
-— so two plays are the same performance, proven by the replay block
-being byte-identical to the first (`test_export.py`).  A null
-transport is a free-running host and the instrument simply plays.
-Still to come, in order of need: the **params** extension from the
-`mkKnob` table the descriptor already carries; **note ports**, which
-is the big one — the live note-to-channel assignment lives in
-Python's allocator and the shell needs its own; `clap.state`
-save/load as a `State` snapshot; more than one compiled rate.*
+under one transport rule for every plugin: **it plays while the
+transport runs, or while a note does.**  Self-playing material is
+silent while the timeline is stopped, and the rising edge rewinds to
+the piece's top (two plays are the same performance, proven by the
+replay block being byte-identical to the first) — but the knobs
+survive the rewind, because a knob's value is the host's belief; and
+a held or ringing voice keeps the render alive regardless, ten
+seconds of tail after release, so a keyboard is auditionable with the
+timeline stopped and a hybrid gets both halves of the rule at once.
+The transport is handled before the events drain — learned the hard
+way, when the first note of every play shared a block with the play
+edge and was rewound away.  A null transport is a free-running host
+and everything simply plays.
+**Knobs are DAW parameters now** (`clap.params`): a control channel is
+a parameter unless the `voices` expansion generated it — automation
+into a bank's payload field would be a note nobody played — with the
+author's own names (`cutoffChan` shows as `cutoff`), the program's own
+defaults, `Int` knobs stepped, and events applied at block start
+because control rate in gestate *is* once per block.  The range is the
+exporter's stated heuristic (`export._range_of`) until the language
+declares ranges.  Proven the strong way: a `PARAM_VALUE` event into
+the plugin and a `control` answer into `run_native` are the same fact
+through two doors, and the samples must not know which
+(`test_the_knobs_are_the_daws_parameters`).  **Note ports are in**: a
+keyboard plays the first declared bank through a Rust mirror of
+`audioalloc` (released-longest-ago first, oldest stolen, oldest
+released per key), payloads come from the program's own `FromMIDI`
+instance run through the G-machine *at export time* and tabled — 128
+keys × 32 velocity levels, full velocity exact — with the live path's
+structural `(key, velocity)` fallback for banks without an instance,
+and onsets stamped `t + event.time` so a mid-block note begins at its
+own sample.  The parity is the strictest yet: a NOTE_ON through the
+plugin's port equals the same note through Python's allocator and
+schedule, sample for sample (`test_a_played_note_is_the_scheduled_note`)
+— both halves are second implementations, which is where bugs live,
+so both are held to the first.  Still to come: `clap.state` save/load
+as a `State` snapshot; more than one compiled rate; the velocity
+table's 32 levels, the day somebody hears them.*
 
 Everything gestate produces is audible only to someone holding this
 repository, a Python, and an LLVM.  The synths cannot be handed to

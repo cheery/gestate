@@ -163,6 +163,101 @@ pub struct clap_event_header {
     pub flags: u32,
 }
 
+// ── Params extension ────────────────────────────────────────────────────
+
+pub const CLAP_EXT_PARAMS: &[u8] = b"clap.params\0";
+pub const CLAP_PATH_SIZE: usize = 1024;
+pub const CLAP_PARAM_IS_STEPPED: u32 = 1 << 0;
+pub const CLAP_PARAM_IS_AUTOMATABLE: u32 = 1 << 5;
+
+#[repr(C)]
+pub struct clap_param_info {
+    pub id: u32,
+    pub flags: u32,
+    pub cookie: *mut c_void,
+    pub name: [c_char; CLAP_NAME_SIZE],
+    pub module: [c_char; CLAP_PATH_SIZE],
+    pub min_value: f64,
+    pub max_value: f64,
+    pub default_value: f64,
+}
+
+#[repr(C)]
+pub struct clap_plugin_params {
+    pub count: unsafe extern "C" fn(plugin: *const clap_plugin) -> u32,
+    pub get_info: unsafe extern "C" fn(plugin: *const clap_plugin,
+                                       param_index: u32,
+                                       info: *mut clap_param_info) -> bool,
+    pub get_value: unsafe extern "C" fn(plugin: *const clap_plugin,
+                                        param_id: u32,
+                                        out: *mut f64) -> bool,
+    pub value_to_text: unsafe extern "C" fn(plugin: *const clap_plugin,
+                                            param_id: u32,
+                                            value: f64,
+                                            out: *mut c_char,
+                                            capacity: u32) -> bool,
+    pub text_to_value: unsafe extern "C" fn(plugin: *const clap_plugin,
+                                            param_id: u32,
+                                            text: *const c_char,
+                                            out: *mut f64) -> bool,
+    pub flush: unsafe extern "C" fn(plugin: *const clap_plugin,
+                                    in_events: *const clap_input_events,
+                                    out_events: *const clap_output_events),
+}
+
+// ── Note ports extension ────────────────────────────────────────────────
+
+pub const CLAP_EXT_NOTE_PORTS: &[u8] = b"clap.note-ports\0";
+pub const CLAP_NOTE_DIALECT_CLAP: u32 = 1 << 0;
+
+#[repr(C)]
+pub struct clap_note_port_info {
+    pub id: u32,
+    pub supported_dialects: u32,
+    pub preferred_dialect: u32,
+    pub name: [c_char; CLAP_NAME_SIZE],
+}
+
+#[repr(C)]
+pub struct clap_plugin_note_ports {
+    pub count: unsafe extern "C" fn(plugin: *const clap_plugin,
+                                    is_input: bool) -> u32,
+    pub get: unsafe extern "C" fn(plugin: *const clap_plugin, index: u32,
+                                  is_input: bool,
+                                  info: *mut clap_note_port_info) -> bool,
+}
+
+// ── Core events ─────────────────────────────────────────────────────────
+
+pub const CLAP_CORE_EVENT_SPACE_ID: u16 = 0;
+pub const CLAP_EVENT_NOTE_ON: u16 = 0;
+pub const CLAP_EVENT_NOTE_OFF: u16 = 1;
+pub const CLAP_EVENT_NOTE_CHOKE: u16 = 2;
+pub const CLAP_EVENT_PARAM_VALUE: u16 = 5;
+
+#[repr(C)]
+pub struct clap_event_note {
+    pub header: clap_event_header,
+    pub note_id: i32,
+    pub port_index: i16,
+    pub channel: i16,
+    pub key: i16,
+    /// 0..1 — a double, not the 0..127 MIDI speaks.
+    pub velocity: f64,
+}
+
+#[repr(C)]
+pub struct clap_event_param_value {
+    pub header: clap_event_header,
+    pub param_id: u32,
+    pub cookie: *mut c_void,
+    pub note_id: i32,
+    pub port_index: i16,
+    pub channel: i16,
+    pub key: i16,
+    pub value: f64,
+}
+
 // ── Transport ───────────────────────────────────────────────────────────
 
 pub const CLAP_TRANSPORT_IS_PLAYING: u32 = 1 << 4;

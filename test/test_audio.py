@@ -70,7 +70,11 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # others; what it exercises (`gateOn`, `slew`, `slide`, the
             # signal-resonance filters) is each tested by name elsewhere,
             # and `test_examples.py` compiles it every run.
-            "violin.ges"]
+            "violin.ges",
+            # The Float-knob showcase for the CLAP export — a drone whose
+            # two dials are the interface.  A drone, so no golden; the
+            # knobs themselves are exercised by `test_export.py`.
+            "warmdrone.ges"]
 
 #: The ones with committed golden buffers — all of them, now.  `knob.ges`
 #: had none for as long as the interpreter and the engine disagreed about

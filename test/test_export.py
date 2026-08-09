@@ -106,6 +106,102 @@ class Transport(ctypes.Structure):
 IS_PLAYING = 1 << 4
 
 
+class ParamInfo(ctypes.Structure):
+    _fields_ = [("id", c_uint32), ("flags", c_uint32),
+                ("cookie", c_void_p),
+                ("name", ctypes.c_char * 256),
+                ("module", ctypes.c_char * 1024),
+                ("min_value", c_double), ("max_value", c_double),
+                ("default_value", c_double)]
+
+
+class Params(ctypes.Structure):
+    _fields_ = [("count", ctypes.CFUNCTYPE(c_uint32, c_void_p)),
+                ("get_info", ctypes.CFUNCTYPE(c_bool, c_void_p, c_uint32,
+                                              POINTER(ParamInfo))),
+                ("get_value", ctypes.CFUNCTYPE(c_bool, c_void_p, c_uint32,
+                                               POINTER(c_double))),
+                ("value_to_text",
+                 ctypes.CFUNCTYPE(c_bool, c_void_p, c_uint32, c_double,
+                                  c_char_p, c_uint32)),
+                ("text_to_value",
+                 ctypes.CFUNCTYPE(c_bool, c_void_p, c_uint32, c_char_p,
+                                  POINTER(c_double))),
+                ("flush", ctypes.CFUNCTYPE(None, c_void_p, c_void_p,
+                                           c_void_p))]
+
+
+class ParamValueEvent(ctypes.Structure):
+    _fields_ = [("header", EventHeader),
+                ("param_id", c_uint32),
+                ("cookie", c_void_p),
+                ("note_id", c_int32),
+                ("port_index", ctypes.c_int16),
+                ("channel", ctypes.c_int16),
+                ("key", ctypes.c_int16),
+                ("value", c_double)]
+
+
+class InputEvents(ctypes.Structure):
+    _fields_ = [("ctx", c_void_p),
+                ("size", ctypes.CFUNCTYPE(c_uint32, c_void_p)),
+                ("get", ctypes.CFUNCTYPE(c_void_p, c_void_p, c_uint32))]
+
+
+class NoteEvent(ctypes.Structure):
+    _fields_ = [("header", EventHeader),
+                ("note_id", c_int32),
+                ("port_index", ctypes.c_int16),
+                ("channel", ctypes.c_int16),
+                ("key", ctypes.c_int16),
+                ("velocity", c_double)]
+
+
+def _note_event(type_: int, key: int, velocity: float):
+    """An event list holding one NOTE_ON (0) or NOTE_OFF (1)."""
+    ev = NoteEvent()
+    ev.header.size = ctypes.sizeof(NoteEvent)
+    ev.header.time = 0
+    ev.header.space_id = 0
+    ev.header.type_ = type_
+    ev.header.flags = 0
+    ev.note_id = -1
+    ev.port_index = 0
+    ev.channel = 0
+    ev.key = key
+    ev.velocity = velocity
+
+    size_cb = ctypes.CFUNCTYPE(c_uint32, c_void_p)(lambda _ctx: 1)
+    get_cb = ctypes.CFUNCTYPE(c_void_p, c_void_p, c_uint32)(
+        lambda _ctx, _i: ctypes.cast(ctypes.pointer(ev), c_void_p).value)
+    events = InputEvents(ctx=None, size=size_cb, get=get_cb)
+    return events, (ev, size_cb, get_cb)
+
+
+def _one_event(param_id: int, value: float):
+    """A host's event list holding a single PARAM_VALUE."""
+    ev = ParamValueEvent()
+    ev.header.size = ctypes.sizeof(ParamValueEvent)
+    ev.header.time = 0
+    ev.header.space_id = 0                    # CLAP_CORE_EVENT_SPACE_ID
+    ev.header.type_ = 5                       # CLAP_EVENT_PARAM_VALUE
+    ev.header.flags = 0
+    ev.param_id = param_id
+    ev.note_id = -1
+    ev.port_index = -1
+    ev.channel = -1
+    ev.key = -1
+    ev.value = value
+
+    size_cb = ctypes.CFUNCTYPE(c_uint32, c_void_p)(lambda _ctx: 1)
+    get_cb = ctypes.CFUNCTYPE(c_void_p, c_void_p, c_uint32)(
+        lambda _ctx, _i: ctypes.cast(ctypes.pointer(ev), c_void_p).value)
+    events = InputEvents(ctx=None, size=size_cb, get=get_cb)
+    # Everything the callbacks close over rides along, or it is
+    # collected while the plugin walks the list.
+    return events, (ev, size_cb, get_cb)
+
+
 class Process(ctypes.Structure):
     _fields_ = [("steady_time", c_int64),
                 ("frames_count", c_uint32),
@@ -232,4 +328,205 @@ def test_the_transport_is_followed_and_stop_means_rewind(tmp_path):
     assert block(playing=False) == [0.0] * frames, "not silent on stop"
     assert block(playing=True) == first, \
         "play after stop is not the piece from the top"
+    plugin.destroy(plug_raw)
+
+
+@needs_toolchain
+def test_the_knobs_are_the_daws_parameters(tmp_path):
+    """`twoknobs.ges` exported: two automatable parameters, named as
+    the author named them, defaulted as the program declares — and a
+    turned knob renders exactly what the engine renders at that value.
+
+    The last equality is the one that matters: a `PARAM_VALUE` event
+    into the plugin and a `control` answer into `run_native` are the
+    same fact through two doors, and the samples must not know which
+    door it came through.
+    """
+    from gestate.audiollvm import run_native
+    from gestate.audioperform import graph_of
+    from gestate.export import export_clap
+
+    source = (Path(__file__).resolve().parent.parent
+              / "examples" / "audio" / "twoknobs.ges").read_text()
+    out = tmp_path / "twoknobs.clap"
+    export_clap(source, out, rate=RATE, name="twoknobs")
+
+    lib, plug_raw, plugin = _plugin_of(out)
+    assert plugin.init(plug_raw)
+    raw = plugin.get_extension(plug_raw, b"clap.params")
+    assert raw, "no clap.params extension"
+    params = ctypes.cast(raw, POINTER(Params)).contents
+
+    assert params.count(plug_raw) == 2
+    knobs = {}
+    for i in range(2):
+        info = ParamInfo()
+        assert params.get_info(plug_raw, i, ctypes.byref(info))
+        knobs[info.name.decode()] = info
+    # The author wrote `pitchChan` and `cutoffChan`; the knobs drop the
+    # `Chan`, and the defaults are the program's own `40` and `70`.
+    assert set(knobs) == {"pitch", "cutoff"}
+    assert knobs["pitch"].default_value == 40.0
+    assert knobs["cutoff"].default_value == 70.0
+    for info in knobs.values():
+        assert info.flags & (1 << 5), "not automatable"
+        assert info.flags & (1 << 0), "an Int knob is stepped"
+
+    assert plugin.activate(plug_raw, float(RATE), 32, 512)
+    assert plugin.start_processing(plug_raw)
+
+    frames = 256
+    buf = (c_float * frames)()
+    chans = (POINTER(c_float) * 1)(ctypes.cast(buf, POINTER(c_float)))
+    port = AudioBuffer(data32=chans, data64=None, channel_count=1,
+                       latency=0, constant_mask=0)
+    events, kept = _one_event(knobs["pitch"].id, 52.0)
+    proc = Process(steady_time=0, frames_count=frames, transport=None,
+                   audio_inputs=None, audio_outputs=ctypes.pointer(port),
+                   audio_inputs_count=0, audio_outputs_count=1,
+                   in_events=ctypes.cast(ctypes.pointer(events), c_void_p),
+                   out_events=None)
+    assert plugin.process(plug_raw, ctypes.byref(proc)) == 1
+    turned = list(buf)
+
+    got = c_double()
+    assert params.get_value(plug_raw, knobs["pitch"].id,
+                            ctypes.byref(got))
+    assert got.value == 52.0, "the event did not land in the slot"
+
+    graph = graph_of(source, "", rate=RATE)
+    by_id = {n.id: (52 if n.chan == "pitchChan" else n.init)
+             for n in graph.control_sources()}
+    with tempfile.TemporaryDirectory() as d:
+        offline = list(run_native(graph, d, frames, block=frames,
+                                  control=lambda node, _t: by_id[node]))
+    assert turned == pytest.approx(offline), \
+        "a turned knob is not the engine at that value"
+    assert max(abs(x) for x in offline) > 0.05, "silent: nothing compared"
+
+    # **The knobs survive the rewind.**  Stop, then play: the piece
+    # restarts from its top, but the knob's value is the host's belief
+    # and must not quietly return to its default — the samples after
+    # the rewind are the first block at 52 again, and the parameter
+    # still reads 52.
+    transport = Transport()
+    for flags in (0, IS_PLAYING):
+        transport.flags = flags
+        proc2 = Process(steady_time=0, frames_count=frames,
+                        transport=ctypes.pointer(transport),
+                        audio_inputs=None,
+                        audio_outputs=ctypes.pointer(port),
+                        audio_inputs_count=0, audio_outputs_count=1,
+                        in_events=None, out_events=None)
+        assert plugin.process(plug_raw, ctypes.byref(proc2)) == 1
+    assert list(buf) == pytest.approx(offline), \
+        "the rewind forgot the knob"
+    got2 = c_double()
+    assert params.get_value(plug_raw, knobs["pitch"].id,
+                            ctypes.byref(got2))
+    assert got2.value == 52.0, "the parameter display and the sound differ"
+    plugin.destroy(plug_raw)
+
+
+@needs_toolchain
+def test_a_played_note_is_the_scheduled_note(tmp_path):
+    """`fmpoly.ges` exported: a NOTE_ON through the plugin's port is a
+    note through Python's own allocator, sample for sample.
+
+    The shell carries its own voice allocation (Rust, mirroring
+    `audioalloc`) and its own payloads (`noteOn` run through the
+    G-machine at export time and tabled).  Both are second
+    implementations, which is where bugs live — so both halves of this
+    test are driven from one fact, *a note on key 60 at sample 0,
+    released at sample 128*, and the samples must agree about it.
+
+    The velocity sits exactly on a table level (127·x quantising to
+    103, the level's own evaluation point), so the comparison is exact
+    rather than within a bucket.
+    """
+    from gestate.audio import assemble
+    from gestate.audioalloc import Allocator, into_schedule
+    from gestate.audiollvm import run_native
+    from gestate.audiomidi import FromMidi
+    from gestate.audioperform import graph_of, has_score
+    from gestate.audioschedule import Schedule
+    from gestate.audioscore import assemble_performance
+    from gestate.audiovoices import banks_of, channels_of
+    from gestate.export import export_clap
+    from gestate.pipeline import compile as _compile
+
+    source = (Path(__file__).resolve().parent.parent
+              / "examples" / "audio" / "fmpoly.ges").read_text()
+    out = tmp_path / "fmpoly.clap"
+    export_clap(source, out, rate=RATE, name="fmpoly")
+
+    lib, plug_raw, plugin = _plugin_of(out)
+    assert plugin.init(plug_raw)
+    assert plugin.get_extension(plug_raw, b"clap.note-ports"), \
+        "no clap.note-ports extension"
+    assert plugin.activate(plug_raw, float(RATE), 32, 512)
+    assert plugin.start_processing(plug_raw)
+
+    frames, key, vel127 = 128, 60, 103
+    buf = (c_float * frames)()
+    chans = (POINTER(c_float) * 1)(ctypes.cast(buf, POINTER(c_float)))
+    port = AudioBuffer(data32=chans, data64=None, channel_count=1,
+                       latency=0, constant_mask=0)
+
+    def block(events=None) -> list:
+        proc = Process(steady_time=0, frames_count=frames, transport=None,
+                       audio_inputs=None,
+                       audio_outputs=ctypes.pointer(port),
+                       audio_inputs_count=0, audio_outputs_count=1,
+                       in_events=ctypes.cast(ctypes.pointer(events),
+                                             c_void_p) if events else None,
+                       out_events=None)
+        assert plugin.process(plug_raw, ctypes.byref(proc)) == 1
+        return list(buf)
+
+    on, kept_on = _note_event(0, key, vel127 / 127.0)
+    off, kept_off = _note_event(1, key, 0.0)
+    played = block(on) + block(off) + block()
+
+    graph = graph_of(source, "", rate=RATE)
+    bank = banks_of(source)[0]
+    allocator = Allocator(channels_of(source, bank), policy="oldest")
+    # The assembly the program needs — `fmpoly` carries a demo score,
+    # so the music prelude rides along, exactly as `export.note_bank`
+    # chooses it.
+    assembled = (assemble_performance(source, "", RATE)
+                 if has_score(source) else assemble(source, RATE))
+    fm = FromMidi(_compile(assembled), [bank.name])
+    payload = fm.payload_for(bank.name, 0, key, vel127)
+    assert payload is not None, "the instance declined the test note"
+    schedule = Schedule()
+    into_schedule(schedule, allocator.note_on((0, key), payload, 0),
+                  0, frames)
+    into_schedule(schedule, allocator.note_off((0, key), frames),
+                  frames, frames)
+    with tempfile.TemporaryDirectory() as d:
+        offline = list(run_native(graph, d, 3 * frames, block=frames,
+                                  control=schedule.control_for(graph)))
+
+    assert played == pytest.approx(offline), \
+        "a played note is not the scheduled note"
+    assert max(abs(x) for x in offline) > 0.05, "silent: nothing compared"
+
+    # **It plays while the transport runs, or while a note does.**  A
+    # DAW sends keyboard notes with the timeline stopped, and a synth
+    # that refused them could not be auditioned — a held or ringing
+    # voice keeps the render alive; the stop-means-silence half of the
+    # rule gates only self-playing material.
+    transport = Transport()
+    transport.flags = 0                                   # stopped
+    on2, kept2 = _note_event(0, key, vel127 / 127.0)
+    proc = Process(steady_time=0, frames_count=frames,
+                   transport=ctypes.pointer(transport),
+                   audio_inputs=None, audio_outputs=ctypes.pointer(port),
+                   audio_inputs_count=0, audio_outputs_count=1,
+                   in_events=ctypes.cast(ctypes.pointer(on2), c_void_p),
+                   out_events=None)
+    assert plugin.process(plug_raw, ctypes.byref(proc)) == 1
+    assert max(abs(x) for x in buf) > 0.05, \
+        "an instrument refused a note because the timeline was stopped"
     plugin.destroy(plug_raw)

@@ -22,6 +22,21 @@ use engine::{Descriptor, DESCRIPTOR};
 
 // ── The instance ────────────────────────────────────────────────────────
 
+/// `audioalloc.Voice`, in Rust: one voice of the bank and what it is
+/// doing.  The semantics are that module's, mirrored deliberately —
+/// free voices are taken released-longest-ago first (never-played
+/// counts as released at the beginning of time), a full bank steals
+/// the oldest, and a release finds the *oldest* voice on its key.
+#[derive(Clone, Copy)]
+struct VoiceState {
+    key: Option<(i16, i16)>,
+    started: i64,
+    released: Option<i64>,
+}
+
+const FRESH_VOICE: VoiceState =
+    VoiceState { key: None, started: -1, released: None };
+
 /// One sounding instance: the zeroed state, the control slots at their
 /// declared defaults, and a scratch buffer for the interleaved frames.
 struct Instance {
@@ -33,16 +48,24 @@ struct Instance {
     /// `plugin_process`: a piece on a timeline starts when the
     /// timeline does.
     playing: bool,
+    /// The instant the next block begins at — what a note's `gateAt`
+    /// is stamped from, `t + event.time`, so an onset is
+    /// sample-accurate however late in the block it lands.
+    t: i64,
+    voices: Vec<VoiceState>,
 }
 
 impl Instance {
     fn new(desc: &'static Descriptor) -> Self {
+        let voices = engine::BANK.map_or(0, |b| b.voices.len());
         Instance {
             desc,
             state: vec![0u8; desc.state_bytes],
             control: desc.controls.iter().map(|c| c.init_bits).collect(),
             scratch: Vec::new(),
             playing: false,
+            t: 0,
+            voices: vec![FRESH_VOICE; voices],
         }
     }
 
@@ -53,6 +76,142 @@ impl Instance {
         self.state.iter_mut().for_each(|b| *b = 0);
         for (slot, c) in self.control.iter_mut().zip(self.desc.controls) {
             *slot = c.init_bits;
+        }
+        self.t = 0;
+        self.voices.iter_mut().for_each(|v| *v = FRESH_VOICE);
+    }
+
+    /// The transport's rewind: the piece restarts, the knobs stay.
+    ///
+    /// Only non-knob slots reset — a knob's value is the *host's*
+    /// belief (it drew the dial, it recorded the automation), and a
+    /// plugin that quietly restored defaults on every play would
+    /// disagree with its own parameter display from then on.
+    fn rewind(&mut self) {
+        self.state.iter_mut().for_each(|b| *b = 0);
+        for (slot, c) in self.control.iter_mut().zip(self.desc.controls) {
+            if !c.knob {
+                *slot = c.init_bits;
+            }
+        }
+        self.t = 0;
+        self.voices.iter_mut().for_each(|v| *v = FRESH_VOICE);
+    }
+
+    /// `Allocator.note_on`: pick a voice, stamp its channels.  `at` is
+    /// the note's own instant; `gateAt`/`offAt` are 1-based so an
+    /// untouched bank reads as "never played" (`audioalloc`'s whole
+    /// encoding).
+    fn note_on(&mut self, at: i64, channel: i16, key: i16, velocity: f64) {
+        let Some(bank) = engine::BANK else { return };
+        let fields = bank.voices[0].len() - 2;
+        let vel127 = (velocity * 127.0).round().clamp(0.0, 127.0) as i64;
+
+        let mut payload = [0i64; 16];
+        if let Some(table) = bank.table {
+            let k = key.clamp(0, 127) as usize;
+            let level = (vel127 as usize >> 2).min(table.levels - 1);
+            let cell = k * table.levels + level;
+            if !table.ok[cell] {
+                return; // the instance declined: `Nothing` is an answer
+            }
+            let base = cell * table.fields;
+            payload[..fields]
+                .copy_from_slice(&table.data[base..base + fields]);
+        } else {
+            // The structural default the live path uses for a bank
+            // with no `FromMIDI` instance: `(key, velocity)[:fields]`,
+            // through each slot's own reinterpretation.
+            let raw = [key as f64, vel127 as f64];
+            for (j, slot) in bank.voices[0][2..].iter().enumerate() {
+                payload[j] = self.desc.controls[*slot]
+                    .bits_of(raw.get(j).copied().unwrap_or(0.0));
+            }
+        }
+
+        // Free voices, released-longest-ago first; else steal oldest.
+        let pick = self.voices.iter().enumerate()
+            .filter(|(_, v)| v.key.is_none())
+            .min_by_key(|(i, v)| (v.released.unwrap_or(-1), *i))
+            .map(|(i, _)| i)
+            .unwrap_or_else(|| {
+                self.voices.iter().enumerate()
+                    .min_by_key(|(i, v)| (v.started, *i))
+                    .map(|(i, _)| i).unwrap()
+            });
+
+        self.voices[pick] =
+            VoiceState { key: Some((channel, key)), started: at,
+                         released: None };
+        let chans = bank.voices[pick];
+        self.control[chans[0]] = at + 1;
+        self.control[chans[1]] = 0;
+        for (j, slot) in chans[2..].iter().enumerate() {
+            self.control[*slot] = payload[j];
+        }
+    }
+
+    /// `Allocator.note_off`: the oldest voice on this key releases; a
+    /// release for a key nothing plays is ordinary and is nothing.
+    fn note_off(&mut self, at: i64, channel: i16, key: i16) {
+        let Some(bank) = engine::BANK else { return };
+        let held = self.voices.iter().enumerate()
+            .filter(|(_, v)| v.key == Some((channel, key))
+                    && v.released.is_none())
+            .min_by_key(|(i, v)| (v.started, *i))
+            .map(|(i, _)| i);
+        if let Some(i) = held {
+            self.voices[i].released = Some(at);
+            self.voices[i].key = None;
+            self.control[bank.voices[i][1]] = at + 1;
+        }
+    }
+
+    /// Apply every `PARAM_VALUE` in the list to its slot.  At the
+    /// block's start, not sample-accurately — which is not a corner
+    /// cut: control rate in gestate *is* once per block, so this is
+    /// the engine's own semantics meeting the host's event list.
+    unsafe fn drain(&mut self, events: *const clap_input_events) {
+        if events.is_null() {
+            return;
+        }
+        let list = &*events;
+        for i in 0..(list.size)(events) {
+            let header = (list.get)(events, i);
+            if header.is_null() {
+                continue;
+            }
+            let h = &*header;
+            if h.space_id != CLAP_CORE_EVENT_SPACE_ID {
+                continue;
+            }
+            match h.type_ {
+                CLAP_EVENT_PARAM_VALUE => {
+                    let ev = &*(header as *const clap_event_param_value);
+                    let slot = ev.param_id as usize;
+                    if let Some(c) = self.desc.controls.get(slot) {
+                        if c.knob {
+                            self.control[slot] = c.bits_of(ev.value);
+                        }
+                    }
+                }
+                // Notes are stamped `t + event.time`: the *value*
+                // carries the true onset, so an event late in the
+                // block still begins its note at the right sample —
+                // "a note delivered at a block boundary still begins
+                // partway through the block".
+                CLAP_EVENT_NOTE_ON => {
+                    let ev = &*(header as *const clap_event_note);
+                    self.note_on(self.t + h.time as i64, ev.channel,
+                                 ev.key, ev.velocity);
+                }
+                CLAP_EVENT_NOTE_OFF | CLAP_EVENT_NOTE_CHOKE => {
+                    let ev = &*(header as *const clap_event_note);
+                    self.note_off(self.t + h.time as i64, ev.channel,
+                                  ev.key);
+                }
+                _ => {}
+            }
         }
     }
 
@@ -68,6 +227,7 @@ impl Instance {
                            frames as i64,
                            self.control.as_ptr());
         }
+        self.t += frames as i64;
         // The engine speaks interleaved frames; a CLAP port is one
         // pointer per channel.  A host channel past what the graph has
         // repeats the last one, which is how mono meets a stereo port.
@@ -139,30 +299,44 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
         return CLAP_PROCESS_ERROR;
     }
     let inst = instance(plugin);
-    // **The transport is followed, and stop means rewind.**  A DAW's
-    // audio engine calls `process` whether the timeline moves or not,
-    // so without this a piece plays from the moment the session opens.
-    // With it: silence while stopped, and the rising edge zeroes the
-    // state — which *is* the rewind, since the generated code's
-    // first-instant branch reseeds everything at `t = 0`.  Pressing
-    // play therefore always plays the piece from its top, and two
-    // plays are the same performance.  A null transport is a
-    // free-running host, and the instrument simply plays — the
-    // offline parity test is exactly such a host.
+    // **One rule: it plays while the transport runs, or while a note
+    // does.**  Self-playing material lives on the timeline — silence
+    // while stopped, and the rising edge rewinds to the piece's top,
+    // sparing the knobs (`rewind` vs `reset`: a knob's value is the
+    // host's belief).  Notes live under the player's hands — a DAW
+    // sends keyboard notes with the timeline stopped, and they must
+    // sound, held or ringing out; a voice counts as ringing for ten
+    // seconds after its release, which is what lets a tail die
+    // naturally instead of being cut at the key.  A hybrid — a bed
+    // with a bank on top — gets both halves of the rule at once.
+    //
+    // The transport is handled **before** the events drain.  It was
+    // the other way once, and the first note of every play — which
+    // always shares a block with the play edge — was applied and then
+    // wiped by the rewind.  A null transport is a free-running host,
+    // and everything simply plays.
+    let mut stopped = false;
     if !p.transport.is_null() {
         let now = (*p.transport).flags & CLAP_TRANSPORT_IS_PLAYING != 0;
         if now && !inst.playing {
-            inst.reset();
+            inst.rewind();
         }
         inst.playing = now;
-        if !now {
-            let ports = out.channel_count as usize;
-            for c in 0..ports {
-                std::ptr::write_bytes(*out.data32.add(c), 0,
-                                      p.frames_count as usize);
-            }
-            return CLAP_PROCESS_CONTINUE;
+        stopped = !now;
+    }
+    inst.drain(p.in_events);
+    let grace = 10 * inst.desc.rate as i64;
+    let keyed = inst.voices.iter().any(|v| {
+        v.key.is_some()
+            || v.released.map_or(false, |r| inst.t - r < grace)
+    });
+    if stopped && !keyed {
+        let ports = out.channel_count as usize;
+        for c in 0..ports {
+            std::ptr::write_bytes(*out.data32.add(c), 0,
+                                  p.frames_count as usize);
         }
+        return CLAP_PROCESS_CONTINUE;
     }
     inst.process(out, p.frames_count);
     CLAP_PROCESS_CONTINUE
@@ -204,6 +378,154 @@ static AUDIO_PORTS: clap_plugin_audio_ports = clap_plugin_audio_ports {
     get: ports_get,
 };
 
+// ── Params: the knobs, as the DAW's own ────────────────────────────────
+//
+// A parameter's id *is* its control slot index, so an id needs no
+// table to resolve; the non-knob slots — a bank's note channels —
+// simply advertise no parameter over them.  Names are the channel's,
+// with a trailing `Chan` trimmed: `cutoffChan` is the author's
+// spelling of a channel, `cutoff` of a knob.
+
+unsafe fn nth_knob(plugin: *const clap_plugin, index: u32)
+                   -> Option<(usize, &'static engine::Control)> {
+    instance(plugin).desc.controls.iter().enumerate()
+        .filter(|(_, c)| c.knob)
+        .nth(index as usize)
+}
+
+unsafe extern "C" fn params_count(plugin: *const clap_plugin) -> u32 {
+    instance(plugin).desc.controls.iter().filter(|c| c.knob).count() as u32
+}
+
+unsafe extern "C" fn params_get_info(plugin: *const clap_plugin,
+                                     index: u32,
+                                     info: *mut clap_param_info) -> bool {
+    let Some((slot, c)) = nth_knob(plugin, index) else {
+        return false;
+    };
+    if info.is_null() {
+        return false;
+    }
+    let out = &mut *info;
+    out.id = slot as u32;
+    out.flags = CLAP_PARAM_IS_AUTOMATABLE
+        | if c.kind == engine::Kind::Int { CLAP_PARAM_IS_STEPPED }
+          else { 0 };
+    out.cookie = std::ptr::null_mut();
+    out.name = [0; CLAP_NAME_SIZE];
+    let shown = c.chan.strip_suffix("Chan").unwrap_or(c.chan);
+    for (dst, src) in out.name.iter_mut()
+        .zip(shown.bytes().take(CLAP_NAME_SIZE - 1)) {
+        *dst = src as c_char;
+    }
+    out.module = [0; CLAP_PATH_SIZE];
+    out.min_value = c.min;
+    out.max_value = c.max;
+    out.default_value = c.init_value();
+    true
+}
+
+unsafe extern "C" fn params_get_value(plugin: *const clap_plugin,
+                                      param_id: u32,
+                                      out: *mut f64) -> bool {
+    let inst = instance(plugin);
+    let slot = param_id as usize;
+    match inst.desc.controls.get(slot) {
+        Some(c) if c.knob && !out.is_null() => {
+            *out = c.value_of(inst.control[slot]);
+            true
+        }
+        _ => false,
+    }
+}
+
+unsafe extern "C" fn params_value_to_text(plugin: *const clap_plugin,
+                                          param_id: u32, value: f64,
+                                          out: *mut c_char,
+                                          capacity: u32) -> bool {
+    let slot = param_id as usize;
+    let Some(c) = instance(plugin).desc.controls.get(slot) else {
+        return false;
+    };
+    if !c.knob || out.is_null() || capacity == 0 {
+        return false;
+    }
+    let text = match c.kind {
+        engine::Kind::Int => format!("{}", value.round() as i64),
+        engine::Kind::Float => format!("{value:.3}"),
+    };
+    let take = text.len().min(capacity as usize - 1);
+    std::ptr::copy_nonoverlapping(text.as_ptr() as *const c_char,
+                                  out, take);
+    *out.add(take) = 0;
+    true
+}
+
+unsafe extern "C" fn params_text_to_value(plugin: *const clap_plugin,
+                                          param_id: u32,
+                                          text: *const c_char,
+                                          out: *mut f64) -> bool {
+    let slot = param_id as usize;
+    let Some(c) = instance(plugin).desc.controls.get(slot) else {
+        return false;
+    };
+    if !c.knob || text.is_null() || out.is_null() {
+        return false;
+    }
+    match std::ffi::CStr::from_ptr(text).to_str()
+        .ok().and_then(|s| s.trim().parse::<f64>().ok()) {
+        Some(v) => {
+            *out = v;
+            true
+        }
+        None => false,
+    }
+}
+
+unsafe extern "C" fn params_flush(plugin: *const clap_plugin,
+                                  in_events: *const clap_input_events,
+                                  _out: *const clap_output_events) {
+    instance(plugin).drain(in_events);
+}
+
+static PARAMS: clap_plugin_params = clap_plugin_params {
+    count: params_count,
+    get_info: params_get_info,
+    get_value: params_get_value,
+    value_to_text: params_value_to_text,
+    text_to_value: params_text_to_value,
+    flush: params_flush,
+};
+
+// ── Note ports: a keyboard's door to the bank ───────────────────────────
+
+unsafe extern "C" fn notes_count(_plugin: *const clap_plugin,
+                                 is_input: bool) -> u32 {
+    (is_input && engine::BANK.is_some()) as u32
+}
+
+unsafe extern "C" fn notes_get(_plugin: *const clap_plugin, index: u32,
+                               is_input: bool,
+                               info: *mut clap_note_port_info) -> bool {
+    if !is_input || index != 0 || info.is_null() || engine::BANK.is_none() {
+        return false;
+    }
+    let out = &mut *info;
+    out.id = 0;
+    out.supported_dialects = CLAP_NOTE_DIALECT_CLAP;
+    out.preferred_dialect = CLAP_NOTE_DIALECT_CLAP;
+    out.name = [0; CLAP_NAME_SIZE];
+    for (dst, src) in out.name.iter_mut().zip(b"notes\0") {
+        *dst = *src as c_char;
+    }
+    true
+}
+
+static NOTE_PORTS: clap_plugin_note_ports = clap_plugin_note_ports {
+    count: notes_count,
+    get: notes_get,
+};
+
 unsafe extern "C" fn plugin_get_extension(_plugin: *const clap_plugin,
                                           id: *const c_char)
                                           -> *const c_void {
@@ -212,9 +534,16 @@ unsafe extern "C" fn plugin_get_extension(_plugin: *const clap_plugin,
         if want.to_bytes_with_nul() == CLAP_EXT_AUDIO_PORTS {
             return &AUDIO_PORTS as *const _ as *const c_void;
         }
+        if want.to_bytes_with_nul() == CLAP_EXT_PARAMS {
+            return &PARAMS as *const _ as *const c_void;
+        }
+        if want.to_bytes_with_nul() == CLAP_EXT_NOTE_PORTS
+            && engine::BANK.is_some() {
+            return &NOTE_PORTS as *const _ as *const c_void;
+        }
     }
-    // Params and note ports are the next milestone; a null for the
-    // rest is a plugin without those extensions, which hosts accept.
+    // A null for the rest is a plugin without those extensions,
+    // which hosts accept.
     std::ptr::null()
 }
 

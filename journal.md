@@ -4312,3 +4312,32 @@ silent defects across while the suite drove only the Python path.
 Every assertion is total — whole vectors, whole runs — because silence
 was the failure mode being closed.  The transcript format is still to
 come; these are the checks that needed no format to exist.
+
+### The instrument leaves the workshop
+
+`spec/export.md` stopped being a design in one long evening: `shell/`
+holds a CLAP shell in Rust (a hand-declared ABI subset, no
+dependencies, an empty well-formed factory until a graph arrives), and
+`python -m gestate.export` turns a `.ges` into a `.clap` — the graph's
+IR as a static archive, a generated `descriptor.rs` carrying what only
+the compiler knows, cargo around both.  The fact that made the shell
+thin: the engine's state starts as zeroes, because the generated
+code's first-instant branch seeds every `init` itself — so no state
+image travels, and *rewind is free*, which became the transport rule
+(stop is silence, play is the piece from its top, two plays are one
+performance).  Knobs are CLAP parameters — a channel is a knob unless
+the `voices` expansion made it — and notes play the first bank through
+a Rust mirror of `audioalloc`, with payloads from the program's own
+`noteOn` run through the G-machine at export time and tabled.
+
+Every step shipped with its parity, each a miniature ctypes CLAP host
+in `test/test_export.py`: the plugin renders what `run_native`
+renders; the replay after stop is byte-identical to the first play; a
+turned knob is the engine at that value; **a played note is the
+scheduled note**, the Rust allocator against the Python one through
+the samples.  The near-misses worth remembering: the audio-ports
+extension, whose absence a home-made host cannot see and a real DAW
+punishes with silence; and `fmpoly`'s demo score, which made plain
+`assemble` the wrong assembly and taught the test to choose the way
+`note_bank` does.  Six plugins in `~/.clap` tonight, next to Dexed
+and Surge, at a sixtieth of their size.
