@@ -168,7 +168,7 @@ def descend(module: VModule) -> VModule:
     """Resolve all VOpPhrase nodes in *module* to concrete fixity trees."""
     table = _build_fixity_table(module)
     items = [_descend_val(item, table) for item in module.items]
-    return VModule(items, module.span)
+    return VModule(items, module.span, comments=module.comments)
 
 
 def _descend_val(val: Val, table: dict) -> Val:

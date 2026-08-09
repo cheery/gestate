@@ -436,3 +436,9 @@ class VInternal(Val):
 class VModule(Val):
     items: list[Val]
     span: Span = field(default_factory=Span)
+    #: Comments met inside declarations — trailing on an equation,
+    #: interior to an expression, between a data type's alternatives —
+    #: in source order, spans intact.  Trivia to the tree, not to the
+    #: file: the formatter reattaches these and any tool can read every
+    #: comment of a file from here plus the `VComment` items above.
+    comments: list = field(default_factory=list)

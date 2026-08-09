@@ -1,5 +1,9 @@
 # Comments are semantic, and the compiler was never told — a root cause analysis
 
+*The repair landed 2026-08-09 — the section at the end says what was
+built.  The analysis below is kept as written; its present tense is the
+world before the fix.*
+
 The footgun: a trailing comment on an expression breaks the program, and
 the error blames something the author wrote correctly.
 
@@ -137,3 +141,49 @@ The middle option deletes the footgun for the price of a parser branch
 and honours every consumer that actually exists.  The first can ride
 along with it as the error message for whatever site the next
 refactoring forgets.
+
+## What landed (2026-08-09)
+
+The goal set for the fix: comments easily accessible from the parsed
+file, and carried through to the formatter and the documentation
+tools.  What shipped is the real fix with the principled fix's storage
+— trivia on the side, but collected by the parser rather than the
+lexer, so the one-parse architecture stays:
+
+* **A comment is never an atom.**  `_can_start_atom` no longer admits
+  `COMMENT`, and `_parse_atom` has no comment branch.  `x = 5  # gain`
+  is `x = 5`; the constructor-arity lies are gone; the three footgun
+  cases (equation, case alternative, constructor) compile and render
+  sample-identically to their uncommented spellings
+  (`test_a_trailing_comment_is_not_an_argument`).
+
+* **Nothing is dropped.**  Every site that used to skip a comment now
+  *collects* it — `_skip_trivia` (the data-declaration site that once
+  deleted a constructor's trailing comment on the way past) and the
+  application loop (`_take_trivia`, which also serves interior
+  comments in multi-line expressions).  Top-level comments stay module
+  items; class and instance bodies keep theirs as members, exactly as
+  before.
+
+* **One list, spans intact.**  Everything collected ships on
+  `VModule.comments`, in source order — the accessible half of the
+  goal.  A tool that wants every comment of a file reads the `VComment`
+  items plus this list; `descend` carries it through fixity resolution
+  (it used to rebuild `VModule` and would have silently dropped the
+  field — the exact bug class this file is about, one layer up).
+
+* **The formatter reattaches.**  After printing an item, it prints the
+  trivia whose lines fell inside that item's span, as full-line
+  comments beside their declaration; leftovers flush at the end.  The
+  exact column does not survive reformatting — the text and the
+  neighbourhood always do
+  (`test_trailing_comment_survives_the_formatter`,
+  `test_a_declarations_interior_comment_survives`).
+
+* **The documentation tools were already right** — `reference.py` and
+  `internals.py` read the raw text and never depended on the tree.
+  They are unchanged, and unbroken.
+
+The postfix lookahead's reading — a comment is a boundary, never
+content — is now the whole grammar's reading, which closes the
+self-disagreement why 4 found.

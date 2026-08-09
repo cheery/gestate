@@ -282,6 +282,37 @@ def test_comment_preserved():
     assert "comment" in out
 
 
+def test_trailing_comment_survives_the_formatter():
+    """`x = 5  # gain` — trivia, reattached, never deleted.
+
+    The comment is not part of the expression (`spec/comments.md`), but
+    it is part of the file: it comes back out beside its declaration.
+    """
+    src = "x = 5  # gain\ny = 6  # level\n"
+    out = format(src)
+    assert "gain" in out and "level" in out
+    assert out.index("gain") < out.index("y ="), "reattached out of order"
+
+
+def test_a_declarations_interior_comment_survives():
+    """A comment inside a multi-line expression is kept too — the
+    position degrades to 'beside the declaration', the text never."""
+    src = "x = (f\n    # pick the base\n    5)\n\nf y = y\n"
+    out = format(src)
+    assert "pick the base" in out
+
+
+def test_trivia_is_one_list_on_the_module():
+    """Every inside-a-declaration comment, in source order, spans intact
+    — the accessible half of the design in `spec/comments.md`."""
+    from gestate.syntax.parse import parse_module
+    from gestate.syntax.tokenize import tokenize
+
+    m = parse_module(tokenize("x = 5  # gain\ny = 6  # level\n"))
+    assert [(c.text, c.span.start.line) for c in m.comments] == \
+        [("gain", 0), ("level", 1)]
+
+
 # ── Idempotency ──────────────────────────────────────────────────────────────
 
 

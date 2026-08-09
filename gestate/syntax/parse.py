@@ -69,6 +69,16 @@ class Parser:
         #: Counter for the fresh variables `_guardN` that comprehension
         #: guards bind.  Per-parse, and the body never mentions them.
         self._guard_n = 0
+        #: Comments met *inside* declarations — trailing on an equation,
+        #: interior to a multi-line expression, between a data type's
+        #: alternatives.  They are trivia to the tree (never operands:
+        #: `x = 5  # gain` is `x = 5`) but not to the file: everything
+        #: collected here ships on `VModule.comments`, spans intact, so
+        #: the formatter can put each one back and any tool can read all
+        #: of a file's comments from one list.  Top-level comments are
+        #: module items as before, and class/instance bodies keep theirs
+        #: as members.
+        self._trivia: list[VComment] = []
 
     # -- low-level helpers --
 
@@ -153,10 +163,20 @@ class Parser:
 
         A comment is an item at the top level, where the formatter keeps
         it, but inside a declaration it is only trivia, and treating it as
-        a terminator lets it change what a program means.
+        a terminator lets it change what a program means.  Trivia is
+        *collected*, not dropped: dropping it here was the formatter
+        silently deleting a constructor's trailing comment.
         """
         while self._at(TT.NEWLINE) or self._at(TT.COMMENT):
-            self._adv()
+            if self._at(TT.COMMENT):
+                self._trivia.append(self._parse_comment())
+            else:
+                self._adv()
+
+    def _take_trivia(self):
+        """Comments only — where an expression may meet one mid-flight."""
+        while self._at(TT.COMMENT):
+            self._trivia.append(self._parse_comment())
 
     def _at_bol(self) -> bool:
         """True when an INDENT, DEDENT, or real token after NEWLINE."""
@@ -191,7 +211,10 @@ class Parser:
             items.append(self._parse_top_item())
             self._skip_nl()
 
-        return VModule(items, Span(items[0].span.start if items else Pos(), Pos()))
+        trivia = sorted(self._trivia,
+                        key=lambda c: (c.span.start.line, c.span.start.col))
+        return VModule(items, Span(items[0].span.start if items else Pos(), Pos()),
+                       comments=trivia)
 
     # ── Top-level items ──────────────────────────────────────────────────
 
@@ -778,6 +801,7 @@ class Parser:
         Multiple consecutive atoms form left-nested application.
         Projections (`.0`, `.field`) bind tightly to the preceding atom.
         """
+        self._take_trivia()
         if self._cur is not None and self._marks_head(self._cur):
             # `!f x` — the marker takes one atom, the head, exactly as it
             # does in argument position below.  The application it heads
@@ -791,6 +815,11 @@ class Parser:
         else:
             val = self._parse_projections(self._parse_atom())
         while self._cur:
+            # A comment between arguments, or trailing after the last one,
+            # is trivia — collected, never applied.
+            self._take_trivia()
+            if not self._cur:
+                break
             if self._can_start_atom(self._cur):
                 arg = self._parse_projections(self._parse_atom())
             elif self._starts_prefix_arg():
@@ -858,8 +887,16 @@ class Parser:
         return val
 
     def _can_start_atom(self, t: T) -> bool:
-        """Check if t can start an atom (for application parsing)."""
-        if t.kind in (TT.WORD, TT.CONID, TT.NUMBER, TT.STRING, TT.COMMENT):
+        """Check if t can start an atom (for application parsing).
+
+        A COMMENT deliberately cannot: it used to, and `x = 5  # gain`
+        parsed as the number *applied to its own comment* — the arity
+        errors blamed whatever the phantom argument hit
+        (`spec/comments.md`).  The application loop collects comments as
+        trivia instead, which is also what the postfix lookahead always
+        assumed a comment was.
+        """
+        if t.kind in (TT.WORD, TT.CONID, TT.NUMBER, TT.STRING):
             return True
         if t.kind == TT.SEP and t.value in ("(", "[", "{"):
             return True
@@ -872,9 +909,8 @@ class Parser:
         if t is None:
             raise ParseError("expected atom, got EOF")
 
-        # comment
-        if t.kind == TT.COMMENT:
-            return self._parse_comment()
+        # A comment is never an atom — `_parse_app_expr` collects it as
+        # trivia before this is reached (`spec/comments.md`).
 
         # parenthesized
         if self._at(TT.SEP, "("):

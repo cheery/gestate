@@ -151,16 +151,37 @@ class Formatter:
 
     def _format_module(self, module: VModule):
         items = module.items
+        # Trivia — comments the parser met *inside* declarations
+        # (`VModule.comments`).  Reattached after the item whose lines
+        # they fell in, as full-line comments: the exact column is gone
+        # once the item is reformatted, but the comment and its
+        # neighbourhood survive, which is the promise (`spec/comments.md`).
+        trivia = list(getattr(module, "comments", []))
         for i, item in enumerate(items):
             if isinstance(item, VComment):
                 self._pending_comments.append(item)
                 continue
             self._flush_comments()
             self._format_top_item(item)
+            trivia = self._flush_trivia_in(item, trivia)
             if i + 1 < len(items) and not isinstance(items[i + 1], VComment):
                 if self._should_blank_after(item, items, i):
                     self._blank()
             self._start_line()
+        for c in trivia:
+            self._ln(f"#{c.text}")
+
+    def _flush_trivia_in(self, item: Val, trivia: list) -> list:
+        """Print the trivia that fell inside `item`; return the rest."""
+        left = []
+        for c in trivia:
+            span = getattr(item, "span", None)
+            if (span is not None
+                    and span.start.line <= c.span.start.line <= span.end.line):
+                self._ln(f"#{c.text}")
+            else:
+                left.append(c)
+        return left
 
     def _should_blank_after(self, item: Val, items: list[Val], i: int) -> bool:
         """Insert a blank line after *item* if the next item is a different

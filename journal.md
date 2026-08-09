@@ -4258,3 +4258,38 @@ builds, over whichever clock is running — and the `Floating`/`Num`
 instances still build on it.  Every `constSig` in `examples/` and the
 tests now spells its constant with the marker, and the one test that
 enshrined the old necessity is replaced by two that state the new rule.
+
+### Every filter dial is a signal now
+
+`lowpassSvf`, `bandpassSvf`, `highpassSvf`, `notchSvf` and
+`lowpassLadder` take their **resonance** as a `Sig Float`; `resonate`
+takes its **decay** as one; `audio.ges`'s `lowpass` takes its
+**coefficient** as one.  The engine had paid for this all along — every
+step function reads its dials per sample out of its `In` record, and the
+`Float` in the signatures was only the interface being narrower than the
+machine under it.  The promotion is the sweep-merge argument finished:
+a literal is a constant signal, the constant folds back into the step,
+and the fixed form costs what a fixed form should — so the narrow types
+bought nothing but the inability to move a dial.
+
+One shared internal record carries each filter's control pair
+(`CtlIn := CtlIn Float Float` — one tag, one shape, any number of
+graphs; it is one tag with *two* shapes that collides).  `audio.ges`
+grew `LowpassIn` for the same job at its level.  Six author-side sites
+needed the lift for a `Float`-typed dial — `(!filtQ)`, `(!bassQ)`,
+`(!seconds)` in the three modal instruments, `(!ring)` in `gamelan` —
+and every other caller was already a literal.
+
+### Comments are trivia now, and none are lost
+
+The `spec/comments.md` repair landed, aimed at three goals at once:
+comments must never change what a program means, must be easy for a
+tool to reach, and must survive the formatter.  A comment is no longer
+an atom — `x = 5  # gain` is `x = 5`, and the constructor-arity lies
+are gone — and no skip site drops one either: the parser collects every
+in-declaration comment onto `VModule.comments` in source order with
+spans, the formatter reattaches each beside its declaration, and the
+documentation tools keep reading the raw text they always read.  The
+near-miss worth remembering: `descend` rebuilds the `VModule`, and the
+first draft of the fix lost the new field right there — the same
+one-representation-two-consumers trap, one layer up.

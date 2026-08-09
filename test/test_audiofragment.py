@@ -672,6 +672,27 @@ def test_a_lift_with_no_arguments_is_a_constant_signal():
     assert _run("sound : Sig Float\nsound = !0.25\n", 4) == [0.25] * 4
 
 
+def test_a_trailing_comment_is_not_an_argument():
+    """`sound = f x  # why` is `sound = f x` — the comment is trivia.
+
+    It used to parse as a *argument* — `VApp(f x, VComment)` — and the
+    failure blamed whatever the phantom hit: `Unsupported expression
+    form` for a plain head, `Constructor … applied to 2 args` for a
+    constructor (`spec/comments.md`).  Sample-for-sample equality is
+    the whole claim: a comment changes nothing.
+    """
+    plain = _run("sound : Sig Float\nsound = sine 440.0\n", 32)
+    assert plain == _run(
+        "sound : Sig Float\nsound = sine 440.0  # concert A, ish\n", 32)
+    assert plain == _run(
+        "hz : Maybe Float\nhz = Just 440.0  # the note\n"
+        "\npick : Maybe Float -> Float\n"
+        "pick m = case m of\n"
+        "    Just h -> h  # held\n"
+        "    Nothing -> 220.0\n"
+        "\nsound : Sig Float\nsound = sine (!(pick hz))\n", 32)
+
+
 def test_a_lift_over_one_signal_is_a_map():
     source = ("hzOf : Int -> Float\nhzOf k = keyHz k\n"
               "\npitch : Sig Int\npitch = !60\n"
