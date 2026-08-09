@@ -50,7 +50,7 @@ strike = dust 41 (3.0 + 1.5 * sine 0.17)
 # most of what makes a marimba sound wooden rather than metallic.
 
 mode : Float -> Float -> Float -> Sig Float -> Sig Float
-mode hz seconds level s = !level * resonate (!hz) seconds s
+mode hz seconds level s = !level * resonate (!hz) (!seconds) s
 
 #: The three tuned partials of a marimba bar.  Swap the ratios for
 #: 2.756 / 5.404 / 8.933 and it is an untuned slab.

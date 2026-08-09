@@ -46,7 +46,7 @@ strike = dust 23 (2.0 + 1.0 * sine 0.125)
 
 #: One mode: a frequency, how long it rings, how loud it is in the sum.
 mode : Float -> Float -> Float -> Sig Float -> Sig Float
-mode hz seconds level s = !level * resonate (!hz) seconds s
+mode hz seconds level s = !level * resonate (!hz) (!seconds) s
 
 #: Four modes, at the ratios a real bar has, and **the decays are in
 #: seconds** — which is how a bell is actually described.  The higher ones

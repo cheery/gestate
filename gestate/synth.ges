@@ -417,7 +417,7 @@ dcBlock s = highpassOnePole 12.0 s
 
 #: A resonant lowpass.  The ordinary way to use the SVF.
 #:
-#: **The cutoff is a signal, and a number is one.**  `lowpassSvf 800.0 0.4
+#: **Every dial is a signal, and a number is one.**  `lowpassSvf 800.0 0.4
 #: voice` is a fixed filter and `lowpassSvf (220.0 + 2600.0 * adsr
 #: filtEnv g) 0.4 voice` is a sweep — the same function, because a literal
 #: is a constant signal (`Floating (Sig Float)`) and
@@ -425,27 +425,33 @@ dcBlock s = highpassOnePole 12.0 s
 #: form costs what a fixed form should.  There used to be a separate
 #: `sweepSvf` for the second, and it was this written twice.
 #:
-#: The resonance stays a `Float`: one that moves is rare, and it reaches
-#: the step as a folded constant either way.
-lowpassSvf : Sig Float -> Float -> Sig Float -> Sig Float
+#: The resonance moves the same way — the step already read it per sample
+#: from `SvfIn`, so a `Float` here was only the interface being narrower
+#: than the engine.  A `Float`-typed *expression* needs the lift, as the
+#: cutoff does: `lowpassSvf hz (!r) voice`.
+lowpassSvf : Sig Float -> Sig Float -> Sig Float -> Sig Float
 lowpassSvf hz res s = map svfLow
-    (scan svfNext svfZero (zipSig (x h => SvfIn x h res) s hz))
+    (scan svfNext svfZero (zipSig (x c => case c of
+        CtlIn h r -> SvfIn x h r) s (zipSig (h r => CtlIn h r) hz res)))
 
 #: Only the band around the cutoff — the resonant peak on its own.
-bandpassSvf : Sig Float -> Float -> Sig Float -> Sig Float
+bandpassSvf : Sig Float -> Sig Float -> Sig Float -> Sig Float
 bandpassSvf hz res s = map svfBand
-    (scan svfNext svfZero (zipSig (x h => SvfIn x h res) s hz))
+    (scan svfNext svfZero (zipSig (x c => case c of
+        CtlIn h r -> SvfIn x h r) s (zipSig (h r => CtlIn h r) hz res)))
 
 #: Everything above the cutoff.
-highpassSvf : Sig Float -> Float -> Sig Float -> Sig Float
+highpassSvf : Sig Float -> Sig Float -> Sig Float -> Sig Float
 highpassSvf hz res s = map svfHigh
-    (scan svfNext svfZero (zipSig (x h => SvfIn x h res) s hz))
+    (scan svfNext svfZero (zipSig (x c => case c of
+        CtlIn h r -> SvfIn x h r) s (zipSig (h r => CtlIn h r) hz res)))
 
 #: Everything *except* the band around the cutoff — the fourth response the
 #: one state already computes, and the one a phaser is built from.
-notchSvf : Sig Float -> Float -> Sig Float -> Sig Float
+notchSvf : Sig Float -> Sig Float -> Sig Float -> Sig Float
 notchSvf hz res s = map svfNotch
-    (scan svfNext svfZero (zipSig (x h => SvfIn x h res) s hz))
+    (scan svfNext svfZero (zipSig (x c => case c of
+        CtlIn h r -> SvfIn x h r) s (zipSig (h r => CtlIn h r) hz res)))
 
 # -- ladder ---------------------------------------------------------------
 #
@@ -455,11 +461,12 @@ notchSvf hz res s = map svfNotch
 #: A four-pole lowpass — steeper than the SVF, and its resonance thins the
 #: bass as it climbs, which is the character rather than a defect.
 #:
-#: The cutoff is a signal here for the reason it is on `lowpassSvf`, and
-#: `sweepLadder` is gone for the same one.
-lowpassLadder : Sig Float -> Float -> Sig Float -> Sig Float
+#: Cutoff and resonance are signals here for the reason they are on
+#: `lowpassSvf`, and `sweepLadder` is gone for the same one.
+lowpassLadder : Sig Float -> Sig Float -> Sig Float -> Sig Float
 lowpassLadder hz res s = map ladderOut
-    (scan ladderNext ladderZero (zipSig (x h => LadderIn x h res) s hz))
+    (scan ladderNext ladderZero (zipSig (x c => case c of
+        CtlIn h r -> LadderIn x h r) s (zipSig (h r => CtlIn h r) hz res)))
 
 # -- resonator ------------------------------------------------------------
 #
@@ -497,9 +504,13 @@ lowpassLadder hz res s = map ladderOut
 #: is the number you multiply it by rather than a number you discover.  Unlike `bandpassSvf` it **will** ring for
 #: minutes if asked, which also means a decay long enough and an excitation
 #: loud enough will pile up; `limit` after a bank of them is not optional.
-resonate : Sig Float -> Float -> Sig Float -> Sig Float
+#: The decay is a signal like every other dial, and a number is one, as
+#: on `lowpassSvf` — a bell whose ring shortens as a damper leans in is
+#: this with the damper's envelope in the decay position.
+resonate : Sig Float -> Sig Float -> Sig Float -> Sig Float
 resonate hz decay s = map resoOut
-    (scan resoNext resoZero (zipSig (x h => ResoIn x h decay) s hz))
+    (scan resoNext resoZero (zipSig (x c => case c of
+        CtlIn h d -> ResoIn x h d) s (zipSig (h d => CtlIn h d) hz decay)))
 
 # ── Saturation and shaping ───────────────────────────────────────────────
 
@@ -1402,6 +1413,14 @@ svfZero = Svf 0.0 0.0 0.0 0.0 0.0
 #: the resonance in 0.0 .. 1.0.  A record because a `zipSig`'s step takes
 #: one value, and this is the flat shape the engine lays out.
 SvfIn := SvfIn Float Float Float
+
+#: The two dials a filter reads per sample — the cutoff and whatever
+#: rides beside it (a resonance, or `resonate`'s decay).  One record for
+#: every filter's control pair: a zip needs a carrier, a tuple has no
+#: layout in the fragment, and one tag with one *shape* may appear in as
+#: many graphs as it likes — it is one tag with two shapes that collides
+#: (the two-`Played` defect `quartet.ges` records).
+CtlIn := CtlIn Float Float
 
 #: One sample.  `scan svfNext svfZero` over a signal of these is the filter.
 svfNext : Svf -> SvfIn -> Svf

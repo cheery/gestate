@@ -63,7 +63,7 @@ stick = burst 0.9965 (dust 61 (2.0 + 0.8 * sine 0.13)) * white 62
 # rather than "metal" — half a second at the bottom, a tenth at the top.
 
 mode : Float -> Float -> Float -> Sig Float -> Sig Float
-mode hz seconds level s = !level * resonate (!hz) seconds s
+mode hz seconds level s = !level * resonate (!hz) (!seconds) s
 
 #: An untuned head: the ideal membrane's own modes.  For a timpano, use
 #: 1.5, 2.0 and 2.5 for the first three overtones and drop the rest.

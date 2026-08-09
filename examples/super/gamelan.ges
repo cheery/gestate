@@ -24,8 +24,8 @@ strikeAt rate off t = exp (negate 500.0 * wrap (rate * t + off))
 #: A gong tone: two resonators a few cents apart.  One rings; a *pair*
 #: beats slowly against itself, which is the shimmer of real bronze.
 bronze : Float -> Float -> Sig Float -> Sig Float
-bronze hz ring s = resonate (!hz) ring s
-                 + resonate (!(centsHz 9.0 hz)) (ring * 0.8) s
+bronze hz ring s = resonate (!hz) (!ring) s
+                 + resonate (!(centsHz 9.0 hz)) (!(ring * 0.8)) s
 
 #: Three lines: low gong on the slow clock, middle pair interlocking,
 #: high bells running.  2:3:5 - they line up once every two seconds.

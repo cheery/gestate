@@ -228,8 +228,13 @@ class FromMIDI a where
 #: A one-pole lowpass, as a *signal transformation*.  A coefficient near 0
 #: is very smooth, near 1 lets everything through.  This is the shape the whole
 #: design is for: a signal in, a signal out, state held by `scan`.
-lowpass : Float -> Sig Float -> Sig Float
-lowpass k s = scan (y x => y + k * (x - y)) 0.0 s
+#:
+#: The coefficient is a signal, and a number is one — `lowpass 0.1 s` is
+#: the fixed filter it always was, and a coefficient an envelope moves is
+#: the same function.  A `Float`-typed expression needs the lift: `lowpass
+#: (!k) s`.
+lowpass : Sig Float -> Sig Float -> Sig Float
+lowpass k s = scan lowpassNext 0.0 (zipSig (x c => LowpassIn x c) s k)
 
 #: **Keep a sample in range** — hard-limit it to -1.0 .. 1.0, which is
 #: what a renderer can write and anything beyond is what a renderer
@@ -303,6 +308,15 @@ beatOf ps t = case ps of
     (p :: rest) -> beatOpen (envAt p) (envVal p) rest t
 
 internal
+
+#: `lowpass`'s sample and coefficient arriving together — a zip needs a
+#: carrier and a tuple has no layout in the fragment.
+LowpassIn := LowpassIn Float Float
+
+#: `lowpass`, one sample: the state chases `x` by `c` of the distance.
+lowpassNext : Float -> LowpassIn -> Float
+lowpassNext y p = case p of
+    LowpassIn x c -> y + c * (x - y)
 
 #: The walk, once the first point has been opened: `b`/`y` are the point
 #: behind us and `rest` is what is still ahead.

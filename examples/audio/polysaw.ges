@@ -106,7 +106,7 @@ cutoff g = map (x => clamp 20.0 nyquist (filtBase + filtSweep * x))
                (adsr filtEnv g)
 
 sawVoice : Sig Gate -> Sig Key -> Sig Float
-sawVoice g s = lowpassLadder (cutoff g) filtQ (oscillators (!hzOf s))
+sawVoice g s = lowpassLadder (cutoff g) (!filtQ) (oscillators (!hzOf s))
              * adsr ampEnv g * !levelOf s
 
 # ── The piece ────────────────────────────────────────────────────────────

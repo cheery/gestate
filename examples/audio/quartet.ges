@@ -139,7 +139,7 @@ bassOsc : Sig Float -> Sig Float
 bassOsc hz = 0.6 * saw hz + 0.3 * square (hz * 0.5)
 
 bassVoice : Sig Gate -> Sig Stroke -> Sig Float
-bassVoice g s = lowpassLadder (sweepOf 120.0 2200.0 (adsr bassFiltEnv g)) bassQ
+bassVoice g s = lowpassLadder (sweepOf 120.0 2200.0 (adsr bassFiltEnv g)) (!bassQ)
                     (bassOsc (!hzOf s))
               * adsr bassAmpEnv g * !velOf s * 0.9
 
