@@ -31,6 +31,7 @@ same as everything else in `spec/liveaudio.md`.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from functools import lru_cache
 
 #: `spec/music.md`, and `midi.TICKS_PER_BEAT` — kept as one number by
 #: importing it rather than repeating it.
@@ -179,17 +180,22 @@ def duration_of(events: list, bpm: int, rate: int) -> int:
 # constructor's position is the bank, and its arguments are the payload.
 
 
-#: What a performance program supplies in place of `main`.
-_VOICE_ENTRY = ("main : (Int, List (Int, Int, Voice))\n"
-                "main = (bpm, layVoices score)\n")
+#: The score's own entry point, beside `main` rather than in place of it.
+#: Named so the *one* assembly carries both readings: `main = sound` for
+#: the graph, `scoreMain` for the layout, and `perform_voices` evaluates
+#: the second by name.  An author defining `scoreMain` collides with it and
+#: is told so as a duplicate definition, exactly as defining `main` is
+#: refused — the name is part of the assembly's contract.
+_VOICE_ENTRY = ("scoreMain : (Int, List (Int, Int, Voice))\n"
+                "scoreMain = (bpm, layVoices score)\n")
 
 #: The same, for a piece whose tempo is an envelope rather than a number.
 #:
 #: A second entry rather than a wider one: a piece writes `bpm` *or*
 #: `tempo`, so an entry naming both would demand a definition of whichever
 #: the author did not write.
-_TEMPO_ENTRY = ("main : (List Tempo, List (Int, Int, Voice))\n"
-                "main = (tempo, layVoices score)\n")
+_TEMPO_ENTRY = ("scoreMain : (List Tempo, List (Int, Int, Voice))\n"
+                "scoreMain = (tempo, layVoices score)\n")
 
 
 def _tempo_of(source: str) -> str:
@@ -232,15 +238,25 @@ def _tempo_of(source: str) -> str:
 #: is two clocks waiting to disagree.
 _BEAT = BEAT
 
-def assemble_performance(synth: str, piece: str = "", rate: int = 22050,
-                         *, entry: str | None = None) -> str:
-    """The whole program a performance compiles: preludes, both sources, entry.
+@lru_cache(maxsize=4)
+def assemble_performance(synth: str, piece: str = "", rate: int = 22050) -> str:
+    """The whole program a performance compiles: preludes, both sources, entries.
 
-    Two entry points, because a performance is read twice.  Extracting the
-    *graph* wants `main = sound`, which is `audio._entry`; reading the
-    *score* wants `main = (bpm, layVoices score)`, which is
-    `_VOICE_ENTRY`.  One assembly with a choice of last line, so the two
-    readings cannot drift apart in anything else.
+    Cached, because one editor start asks for this text four ways — the
+    graph, the score, the `FromMIDI` interpreter and the sidebar — and
+    the expansion, the `internal` check and the shadowing each parse.  It
+    is a pure function of its arguments; a violation `enforce` raises is
+    not cached, so a broken program is told so every time it asks.
+
+    Two entry points, because a performance is read twice — and **both are
+    in the one text**.  Extracting the *graph* wants `main = sound`, which
+    is `audio._entry`; reading the *score* wants `scoreMain = (bpm,
+    layVoices score)`, which is `_VOICE_ENTRY`, evaluated by name.  One
+    assembly carrying both, so the two readings cannot drift apart in
+    anything — and so they are one front end rather than two:
+    `pipeline._analysed` is keyed by exact text, and a choice of last line
+    was a whole second analysis of the same program, paid on every start
+    and every Ctrl-S of the editor.
 
     **Synth and piece are one program**, and that is not a convenience.
     `voices.lead` names a bank lexically, and the payload type it carries
@@ -271,16 +287,12 @@ def assemble_performance(synth: str, piece: str = "", rate: int = 22050,
 
     music = (Path(__file__).with_name("music.ges")).read_text()
     head = preludes(synth + "\n" + piece) + "\n" + music
-    # **Everything `audio._entry` supplies except `main`.**  The custom
-    # entry replaces the *entry point* and nothing else, and it used to
-    # replace `constSig` with it by accident — which nothing noticed until a
-    # prelude was written in terms of one: reading the score of a program
-    # that also draws then failed with `Unknown global 'constSig'`, and a
-    # piece that will not load is a synth that plays no notes at all.
-    tail = _entry(rate) if entry is None else (
-        f"\nsampleRate : Float\nsampleRate = {float(rate)}\n"
-        f"\nconstSig : a -> Sig a\nconstSig v = mapSig (n => v) ticks\n\n"
-        + entry)
+    # `audio._entry`'s tail — `sampleRate`, `constSig`, `main = sound` —
+    # and the score's own entry after it, under its own name.  Which
+    # spelling of the tempo the piece uses decides the pair's first half.
+    tail = _entry(rate) + "\n" + (
+        _VOICE_ENTRY if _tempo_of(synth + "\n" + piece) == "bpm"
+        else _TEMPO_ENTRY)
     # `beat` goes with the entry point rather than into `head`, because it
     # reads the author's own `bpm` or `tempo` and must come after their
     # file.  A plain `bpm` makes the beat clock linear; an envelope makes
@@ -304,7 +316,14 @@ def assemble_performance(synth: str, piece: str = "", rate: int = 22050,
     # where it matters most: `chorus` is an effect in `synth.ges` and a
     # section of a song in every piece ever written, and the collision that
     # found this was exactly that (`examples/audio/quartet.ges`).
-    return (shadow_libraries(head, written) + "\n" + written + "\n" + tail)
+    from .syntax import note_seam
+
+    shadowed = shadow_libraries(head, written)
+    out = shadowed + "\n" + written + "\n" + tail
+    # Only an unshadowed head can stand alone — see `audio.assemble`.
+    if shadowed is head:
+        note_seam(out, len(shadowed) + 1)
+    return out
 
 
 def perform_voices(synth: str, piece: str = "", rate: int = 22050) -> tuple:
@@ -318,12 +337,17 @@ def perform_voices(synth: str, piece: str = "", rate: int = 22050) -> tuple:
     from .midi import _force, _int, _list
     from .pipeline import compile as _compile
 
-    from .gmachine import NCon, is_tuple, run
+    from .gmachine import NCon, PushGlobal, Unwind, is_tuple, run
 
     spelling = _tempo_of(synth + "\n" + piece)
-    entry = _VOICE_ENTRY if spelling == "bpm" else _TEMPO_ENTRY
-    source = assemble_performance(synth, piece, rate, entry=entry)
+    # The *same* text the graph was extracted from — `assemble_performance`
+    # carries both entries — so the front end is answered from
+    # `pipeline._analysed` rather than run again.  The score's reading is
+    # `scoreMain`, evaluated by name the way `gui.Substrate._force` does.
+    source = assemble_performance(synth, piece, rate)
     state = _compile(source)
+    state._code, state._pc = [PushGlobal("scoreMain"), Unwind()], 0
+    state.stack, state.dump = [], []
     run(state)
     top = _force(state.stack[0], state)
     if not is_tuple(top, 2):

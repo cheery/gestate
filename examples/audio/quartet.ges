@@ -3,13 +3,11 @@
 #   python -m gestate.audioperform examples/audio/quartet.ges
 #   python -m gestate.audioperform examples/audio/quartet.ges --seconds 20 -o intro.wav
 #
-# **Play it, do not render it.**  Without `-o` the piece goes through the
-# compiled engine and plays in real time; `-o` goes through `audioengine`,
-# which is one Python object per node per sample and renders this graph at
-# about a thousandth of real time — fine for the two-second examples it was
-# written to define, and roughly a day and a half for these three minutes.
-# The obvious missing thing is `run_native` behind `-o`, which renders the
-# whole piece in under a minute.
+# Both routes go through the compiled engine: without `-o` the piece
+# plays in real time, and `-o` renders the whole three minutes in under a
+# minute.  Only a machine with no `clang` falls back to `audioengine` —
+# one Python object per node per sample, about a thousandth of real time,
+# roughly a day and a half for this file.
 #
 # `polysaw.ges` is one bank playing eight bars.  `nocturne.ges` is a piece
 # of some length handed to somebody else's synthesiser.  This is both at

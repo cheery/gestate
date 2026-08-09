@@ -9,9 +9,9 @@
 # ── Why this lead is not a `string` ──────────────────────────────────────
 #
 # `strings.ges` is Karplus-Strong, and a Karplus-Strong string **cannot
-# slide**.  Its pitch is the length of a delay line, that length is a whole
-# number of samples decided before the program runs, and a slide is a pitch
-# that moves continuously.  The delay line that *could* slide is `tap`,
+# slide**.  Its pitch is the length of a delay line — an integer line and
+# a tuning allpass, decided before the program runs — and a slide is a
+# pitch that moves continuously.  The delay line that *could* slide is `tap`,
 # whose position is a signal and may be fractional — but a string needs the
 # line's output fed back into it, and a feedback path that leaves a node
 # and comes back is a cycle in the graph, which the extractor still
@@ -282,8 +282,12 @@ cabHz = 2400.0 + 1200.0 * sine (!0.07)
 cabinet : Sig Float -> Sig Float
 cabinet s = lowpassLadder cabHz 0.22 s
 
+#: `dcBlock` because `drive` is the one stage that can *create* an offset:
+#: the highpass ahead of it leaves the waveform asymmetric, and a
+#: waveshaper turns asymmetry into DC — which the cabinet's lowpass then
+#: keeps.  An amplifier's coupling capacitor, in one word.
 leadDry : Sig Float
-leadDry = cabinet (drive 0.45 preamp)
+leadDry = dcBlock (cabinet (drive 0.45 preamp))
 
 #: A slapback and a room.  The delay is a dotted eighth, which is the one
 #: every guitarist reaches for, and `damped` rather than `echo` so the
@@ -331,8 +335,8 @@ chordOsc : Sig Float
 chordOsc = 0.5 * saw chordHz + 0.5 * saw (1.4983 * chordHz)
 
 backing : Sig Float
-backing = lowpassLadder (!1500.0) 0.15
-    (drive 0.7 (highpassOnePole (!90.0) (1.6 * chordOsc * chugSig)))
+backing = dcBlock (lowpassLadder (!1500.0) 0.15
+    (drive 0.7 (highpassOnePole (!90.0) (1.6 * chordOsc * chugSig))))
 
 # ── Drums ────────────────────────────────────────────────────────────────
 

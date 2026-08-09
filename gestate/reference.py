@@ -452,8 +452,7 @@ def index_page() -> str:
         "| a synth with a piece | `sound`, `score`, `bpm`, and a "
         "`voices` bank per instrument | `main = (bpm, layVoices score)`, "
         "read beside `main = sound` |",
-        "| a canvas | `substrate : Sig Sub` (or the older `scene : Sig "
-        "Scene`) | `main = substrate` |",
+        "| a canvas | `substrate : Sig Sub` | `main = substrate` |",
         "", "Optional, and recognised wherever they make sense:", "",
         "- **`voices NAME N VOICE : Sig Float`** — a bank of `N` copies of "
         "one voice, summed.  Its name is bound to that sum, so mixing "

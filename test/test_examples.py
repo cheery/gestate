@@ -408,10 +408,10 @@ def test_the_audio_examples_are_actually_being_found():
 
 
 def _canvas_example_names() -> list:
-    from gestate.audio import has_scene
+    from gestate.audio import has_substrate
 
     return sorted(p.name for p in AUDIO_DIR.glob("*.ges")
-                  if has_scene(p.read_text()))
+                  if has_substrate(p.read_text()))
 
 
 @pytest.mark.parametrize("name", _canvas_example_names())

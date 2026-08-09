@@ -1600,7 +1600,7 @@ class Pane:
         gives, because it is the same walk: a hole takes the type its
         context demands, so reading it back is what says what belongs.
         """
-        from .audio import assemble, has_scene
+        from .audio import assemble, has_substrate
         from .audioperform import has_score
         from .audioscore import assemble_performance
         from .audiospans import _regions

@@ -116,7 +116,9 @@ def perform(source: str) -> tuple[int, list[tuple[int, int, int, int, int]]]:
     `main`, so `main` is supplied here.  Onsets are *not* normalised — that
     is the writer's job, and a grid view would want them as they are.
     """
-    if "\nmain " in "\n" + source or source.lstrip().startswith("main "):
+    from .audio import _authored
+
+    if "main" in _authored(source)[1]:
         raise MidiError(
             "a music program defines `score` and `bpm`, not `main` — "
             "`main` is supplied by the renderer"

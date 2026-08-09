@@ -111,3 +111,83 @@ def test_forgetting_is_what_a_measurement_needs():
     first = analyse(src)
     forget_analyses()
     assert analyse(src) is not first, "otherwise nothing can time a front end"
+
+
+# ── The staged front end ────────────────────────────────────────────────────
+#
+# `_analyse_staged` answers the library stack from `_stack_front` and
+# analyses only the author's part against it.  These pin the property the
+# whole design rests on: the staged answer *is* the whole-text answer.
+
+
+def _case_tags(analysis):
+    from collections import Counter
+
+    from gestate.expr import subexprs
+
+    out = {}
+    for name, _a, lam, _s in analysis.scs:
+        tags = Counter()
+
+        def walk(e):
+            alts = getattr(e, "alts", None)
+            if alts is not None and hasattr(alts, "keys"):
+                for k in alts.keys():
+                    tags[k] += 1
+            for x in subexprs(e):
+                walk(x)
+
+        walk(lam)
+        out[str(name)] = tags
+    return out
+
+
+def test_staged_analysis_is_the_whole_text_analysis():
+    """Same SC names, same types, same case tags — not merely same sounds.
+
+    The one defect this family of changes can introduce is *two
+    numberings in one program*: the cached stack compiled under one tag
+    assignment and the author's part under another, which surfaces as a
+    `case` meeting a constructor it has no alternative for.
+    """
+    import gestate.syntax as syn
+
+    src = assemble(SYNTH, RATE)
+    forget_analyses()
+    staged = analyse(src)
+    seam = syn._SEAMS.pop(src)
+    forget_analyses()
+    try:
+        plain = analyse(src)
+    finally:
+        syn._SEAMS[src] = seam
+    assert sorted(str(s[0]) for s in staged.scs) == \
+        sorted(str(s[0]) for s in plain.scs)
+    assert {k: str(v) for k, v in staged.types.items()} == \
+        {k: str(v) for k, v in plain.types.items()}
+    assert _case_tags(staged) == _case_tags(plain)
+
+
+def test_stack_front_survives_a_pickle():
+    """The disk store is a pickle round-trip; extraction must not notice.
+
+    The two ways this has actually broken: constraint sites keyed by
+    `id()` (a new process, new objects, new ids — dictionaries stopped
+    reaching their call sites), and `Nil`/`Cons`/`False`/`True` numbered
+    by position (a cached `case` met a `True` built under the other
+    numbering).  Extraction exercises both.
+    """
+    import pickle
+
+    from gestate.pipeline import _STACK_FRONTS, _analysed
+
+    src = assemble(SYNTH, RATE)
+    forget_analyses()
+    analyse(src)
+    (head, front), = _STACK_FRONTS.items()
+    round_tripped = pickle.loads(
+        pickle.dumps(front, protocol=pickle.HIGHEST_PROTOCOL))
+    forget_analyses()
+    _STACK_FRONTS[head] = round_tripped
+    graph = extract_analysis(analyse(src), rate=RATE)
+    assert graph.nodes, "the round-tripped stack front extracted nothing"

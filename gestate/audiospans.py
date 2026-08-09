@@ -106,10 +106,9 @@ def _names_of(text: str) -> frozenset:
     # `prelude._defined_names` rather than a copy: it is the same question
     # `merge` asks to decide shadowing, and two answers to it would be two
     # opinions about which definition the author owns.
-    from .prelude import _defined_names
-    from .syntax import parse
+    from .prelude import _defined_names, _parsed
 
-    return frozenset(_defined_names(parse(text, descend_fixity=False).items))
+    return frozenset(_defined_names(_parsed(text).items))
 
 
 def _regions(source: str = "") -> tuple:
@@ -134,13 +133,13 @@ def _regions(source: str = "") -> tuple:
     lengths — a file that does or does not end in a newline shifts the
     total, and this cannot be off by one for that reason.
     """
-    from .audio import _SIGNAL, has_scene, preludes
+    from .audio import _SIGNAL, has_substrate, preludes
 
     # Where `audio.ges` begins: after `signal.ges`, and after `gui.ges` too
     # when there is one.  The same order `audio._AUDIO_GUI` builds, counted
     # off the same texts.
     before_audio = _SIGNAL + "\n"
-    if source and has_scene(source):
+    if source and has_substrate(source):
         before_audio += _prelude_path("gui.ges").read_text() + "\n"
     head = preludes(source) + "\n"
     if source and _has_score(source):
@@ -149,9 +148,9 @@ def _regions(source: str = "") -> tuple:
 
 
 def _has_score(source: str) -> bool:
-    import re
+    from .audioperform import has_score
 
-    return re.search(r"^score\s*[:=]", source, re.M) is not None
+    return has_score(source)
 
 
 def prelude_lines(source: str = "") -> int:

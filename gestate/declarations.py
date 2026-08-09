@@ -168,7 +168,10 @@ class Program:
 
 def classify(module: VModule) -> Program:
 
-    _next_tag = 0
+    # 4, not 0: tags 0–3 are `Nil`/`Cons`/`False`/`True`, pinned in
+    # `gmachine` so that every numbering agrees on them — see the synthetic
+    # ADT block below.
+    _next_tag = 4
     _next_param = -1
 
     fixities: list[VFixity] = []
@@ -386,16 +389,25 @@ def classify(module: VModule) -> Program:
             ))
 
     # Synthetic ADT: List a = Nil | Cons a (List a)
+    #
+    # Pinned tags, like `Maybe`'s and `Sync`'s below and for the reason
+    # `gmachine` gives beside them: a tag handed out after the module's
+    # declarations lands at a different number depending on how many
+    # types the program declares, and the staged front end compiles the
+    # library stack and the program under two such numberings.
+    from .gmachine import TAG_CONS, TAG_FALSE, TAG_NIL, TAG_TRUE
+
     p = adt_param_tv("a")
     list_ret = TApp(TCon("List"), p)
-    cons["Nil"] = ConInfo(name="Nil", tag=fresh_tag(), arity=0, type_=list_ret)
-    cons["Cons"] = ConInfo(name="Cons", tag=fresh_tag(), arity=2,
+    cons["Nil"] = ConInfo(name="Nil", tag=TAG_NIL, arity=0, type_=list_ret)
+    cons["Cons"] = ConInfo(name="Cons", tag=TAG_CONS, arity=2,
                            type_=TFun(p, TFun(list_ret, list_ret)))
 
     # Synthetic ADT: Bool = False | True
     bool_ty = TCon("Bool")
-    cons["False"] = ConInfo(name="False", tag=fresh_tag(), arity=0, type_=bool_ty)
-    cons["True"] = ConInfo(name="True", tag=fresh_tag(), arity=0, type_=bool_ty)
+    cons["False"] = ConInfo(name="False", tag=TAG_FALSE, arity=0,
+                            type_=bool_ty)
+    cons["True"] = ConInfo(name="True", tag=TAG_TRUE, arity=0, type_=bool_ty)
 
     # Synthetic ADT: Maybe a = Nothing | Just a
     #

@@ -88,8 +88,11 @@ def _build_builtins() -> dict:
     }
 
 
-def _kind_check_program(program, sigs):
+def _kind_check_program(program, sigs, assume: dict | None = None):
     kind_env = build_kind_env(program.cons, program.kind_decls)
+    if assume:
+        for name, kind in assume.items():
+            kind_env.setdefault(name, kind)
     for ci in program.cons.values():
         check_kind(ci.type_, kind_env)
     for _name, _arity, _lam, sig in sigs:
@@ -380,16 +383,273 @@ def forget_analyses() -> None:
 
     For a caller that means to *measure* a front end, and for a test that
     means to run one — there is nothing to invalidate otherwise, since the
-    key is the whole text.
+    key is the whole text.  The in-memory stack fronts go with it; the
+    disk store stays, because a measurement that must not see it says
+    `GESTATE_STACK_CACHE=0` instead.
     """
     with _analysed_lock:
         _analysed.clear()
+    _STACK_FRONTS.clear()
+
+
+# ── The stack front: the libraries' analysis, remembered ────────────────────
+
+#: Bump whenever the shape of what `StackFront` pickles changes — a store
+#: with another schema in its name is simply not found, and rebuilt.
+#: 2: constraint sites are stamps on the nodes rather than `id()`s.
+#: 3: `Nil`/`Cons`/`False`/`True` are pinned tags, baked into cached SCs.
+_STACK_SCHEMA = 3
+
+
+@dataclass
+class StackFront:
+    """The library stack's front half, stopped just after inference.
+
+    Everything after this point — constraint solving, elaboration,
+    specialisation — runs *whole-program*, because a program's call sites
+    reach into library bodies (a constant dictionary specialises a library
+    function).  Everything before it is closed over the stack alone: the
+    libraries never name a program definition, and a program-side instance
+    cannot change how a library body elaborates, because a constrained
+    library SC keeps its dictionary parameter until `specialise` anyway.
+
+    The one thing a program *can* do to the stack is shadow a name, and
+    then this whole object is wrong for it — `_analyse_staged` detects
+    that and falls back to the whole-text path, which renames.  A program
+    shadowing an *audio-library* name never reaches that fallback:
+    `shadow_libraries` renames the library text before the seam is cut,
+    so the head is simply a different text with its own entry here.
+    """
+    #: The stack's declarations, parsed and fixity-resolved — reused as
+    #: the head of every program's module, never mutated by later passes.
+    items: list
+    #: Desugared, inferred, field-lowered SCs — annotated trees, shared.
+    scs: list
+    results: dict
+    per_sc_constraints: list
+    per_sc_givens: list
+    #: name → `Scheme` — what program inference imports.
+    imports: dict
+    #: Where the stack's `Fresh` stopped, so a program starts above it.
+    fresh_end: int
+    #: Every value name the stack defines — the shadowing check.
+    defined: frozenset
+
+
+_STACK_FRONTS: OrderedDict = OrderedDict()
+_KEEP_STACK_FRONTS = 4
+
+
+def _stack_store():
+    """The directory pickled stack fronts live in, or `None` when off.
+
+    A *cache*, in the strict sense: nothing in it is authoritative, a
+    missing or corrupt file costs one rebuild, and `GESTATE_STACK_CACHE=0`
+    turns the disk half off entirely (the in-memory half has no reason to
+    be optional)."""
+    import os
+    from pathlib import Path
+
+    if os.environ.get("GESTATE_STACK_CACHE", "1") == "0":
+        return None
+    root = os.environ.get("XDG_CACHE_HOME") or (Path.home() / ".cache")
+    return Path(root) / "gestate"
+
+
+def _stack_front(head: str) -> StackFront:
+    got = _STACK_FRONTS.get(head)
+    if got is not None:
+        _STACK_FRONTS.move_to_end(head)
+        return got
+    import hashlib
+    import pickle
+
+    store = _stack_store()
+    path = None
+    if store is not None:
+        sha = hashlib.sha256(head.encode()).hexdigest()[:32]
+        path = store / f"stack-{_STACK_SCHEMA}-{sha}.pickle"
+    front = None
+    if path is not None and path.exists():
+        try:
+            with open(path, "rb") as f:
+                front = pickle.load(f)
+        except Exception:                               # noqa: BLE001
+            front = None
+    if front is None:
+        front = _build_stack_front(head)
+        if path is not None:
+            try:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                tmp = path.with_name(path.name + ".tmp")
+                with open(tmp, "wb") as f:
+                    pickle.dump(front, f, protocol=pickle.HIGHEST_PROTOCOL)
+                tmp.replace(path)   # atomic — a reader sees whole files
+            except Exception:                           # noqa: BLE001
+                pass                # a cache that cannot write is only slow
+    _STACK_FRONTS[head] = front
+    while len(_STACK_FRONTS) > _KEEP_STACK_FRONTS:
+        _STACK_FRONTS.popitem(last=False)
+    return front
+
+
+def _build_stack_front(head: str) -> StackFront:
+    """The front half, run over the stack text alone."""
+    from .infer import Fresh
+
+    module = _merge_prelude(head)
+    program = classify(module)
+    exhaust_errors = check_program(program)
+    if exhaust_errors:
+        raise ExhaustError('\n'.join(exhaust_errors))
+    scs = desugar_program(program)
+    from .kindcheck import KType
+
+    # `Voice` is generated per program from its `voices` banks (a stub,
+    # for a MIDI piece), so the stack that mentions it in `layVoices`'s
+    # signature is checked assuming it is a type — the type-level mirror
+    # of assuming `sampleRate` below.
+    _kind_check_program(program, scs, assume={"Voice": KType()})
+    sc_contexts = {sc.name: sc.sig_constraints for sc in program.scs
+                   if sc.sig_constraints}
+    fresh = Fresh()
+    imports: dict = {}
+    # The renderer-supplied names (`doc/ref/index.md` § "Names no page
+    # lists").  They are *defined* in the tail, program-side, but the
+    # libraries reference them — `seconds` reads `sampleRate`, `!x`
+    # desugars to `constSig x` — so the stack alone assumes exactly the
+    # types the tail always defines them at.
+    from .infer import Scheme
+
+    supplied = {"constSig": Scheme(frozenset({0}),
+                                   TFun(TVar(0),
+                                        TApp(TCon("Sig"), TVar(0))))}
+    results, per_c, per_g = infer_program(
+        scs, _build_builtins() | {"sampleRate": TCon("Float")},
+        program.cons, program.classes, sc_contexts,
+        imports=supplied, fresh=fresh, export=imports)
+    scs = lower_fields(scs)
+    mono_errors = check_monotone(scs)
+    if mono_errors:
+        raise MonotoneError('\n'.join(mono_errors))
+    grammar_errors = check_subgrammars(scs, program.cons)
+    if grammar_errors:
+        raise SubgrammarError('\n'.join(grammar_errors))
+    return StackFront(list(module.items), scs, results, per_c, per_g,
+                      imports, fresh._n, frozenset(results))
+
+
+def _analyse_staged(source: str):
+    """`_analyse`, with the library stack answered from `_stack_front`.
+
+    Only for a text whose assembler registered a seam, and only when the
+    program shadows nothing the stack defines — otherwise `None`, and the
+    whole-text path does what it always did.  The program's items are
+    parsed at their assembled line offset (the same shifted tokens
+    `syntax.parse` uses for a seam), so every position and error message
+    comes out identical to the unstaged path's.
+    """
+    from . import syntax as _syn
+
+    cut = _syn._SEAMS.get(source)
+    if cut is None:
+        return None
+    from .infer import Fresh
+    from .syntax import _shifted, parse_module, tokenize
+    from .syntax.descend import _build_fixity_table, _descend_val
+
+    head, rest = source[:cut], source[cut:]
+    sf = _stack_front(head)
+    dn = head.count("\n")
+    rest_mod = parse_module([_shifted(t, dn) for t in tokenize(rest)])
+    mine = {str(i.name) for i in rest_mod.items if hasattr(i, "name")}
+    if mine & sf.defined:
+        # The program shadows a stack name.  The whole-text path renames
+        # the stack's binding out of the way; this one cannot, because the
+        # renaming would have to reach inside the cached analysis.
+        return None
+    table = _build_fixity_table(VModule(list(sf.items) + list(rest_mod.items)))
+    rest_items = [_descend_val(i, table) for i in rest_mod.items]
+    module = VModule(list(sf.items) + rest_items)
+    program = classify(module)
+    exhaust_errors = check_program(program)
+    if exhaust_errors:
+        raise ExhaustError('\n'.join(exhaust_errors))
+    scs_all = desugar_program(program)
+    scs_prog = scs_all[len(sf.scs):]
+    _kind_check_program(program, scs_all)
+    sc_contexts = {sc.name: sc.sig_constraints for sc in program.scs
+                   if sc.sig_constraints}
+    results_p, per_c_p, per_g_p = infer_program(
+        scs_prog, _build_builtins(), program.cons, program.classes,
+        sc_contexts, imports=sf.imports, fresh=Fresh(sf.fresh_end))
+    main_type = results_p.get("main")
+    scs_prog = lower_fields(scs_prog)
+    mono_errors = check_monotone(scs_prog)
+    if mono_errors:
+        raise MonotoneError('\n'.join(mono_errors))
+    grammar_errors = check_subgrammars(scs_prog, program.cons)
+    if grammar_errors:
+        raise SubgrammarError('\n'.join(grammar_errors))
+    scs = list(sf.scs) + list(scs_prog)
+    results = {**sf.results, **results_p}
+    scs = _discharge(scs, program, results,
+                     list(sf.per_sc_constraints) + per_c_p,
+                     list(sf.per_sc_givens) + per_g_p)
+    scs, method_scs = resolve_static_methods(scs)
+    scs = expand_envelopes(scs, program.cons)
+    return Analysis(scs, program, results, method_scs, main_type)
+
+
+def _discharge(scs, program, results, per_sc_constraints, per_sc_givens):
+    """Solve the program's constraints and rewrite the SCs they touch.
+
+    The half of the front end after inference: contexts checked, instances
+    solved, dictionaries inserted (`elaborate`) and constant ones folded
+    away (`specialise`).  One function because the staged path and the
+    whole-text path both end here, on the *combined* SC list, so the two
+    cannot drift.
+    """
+    check_main_has_no_context(
+        {name: 1 for (name, _a, _l, _s), givens
+         in zip(scs, per_sc_givens) if givens})
+    # A constraint the SC's own context already grants is discharged by
+    # a dictionary parameter, not by an instance.
+    all_constraints = [
+        p
+        for preds, givens in zip(per_sc_constraints, per_sc_givens)
+        for p in preds
+        if not _is_given(p, givens)
+    ]
+    if all_constraints or any(per_sc_givens):
+        resolved = solve_constraints(all_constraints, program.instances)
+        givens_by_name = {str(name): givens
+                          for (name, _a, _l, _s), givens
+                          in zip(scs, per_sc_givens) if givens}
+        scs = elaborate(scs, per_sc_constraints, resolved, program,
+                        results, per_sc_givens)
+        # A constrained definition called with constant dictionaries
+        # gets a copy with them substituted in, which is what lets one
+        # be written at all in a synth: the fragment is monomorphic and
+        # refuses anything that so much as mentions a dictionary.
+        # `resolved` as well as `program.instances`: a `Num Float` is
+        # *manufactured* while constraints are solved (`constraint.
+        # _num_instance`) and appears in no declaration, so the
+        # instance list alone does not know what `__dict_Num_Float__`
+        # stands for.
+        scs = specialise(scs, givens_by_name,
+                         list(program.instances) + list(resolved.values()))
+    return scs
 
 
 def _analyse(source: str, *, typecheck: bool = True,
              prelude: bool = True) -> Analysis:
     main_type = None
     results: dict = {}
+    if typecheck and prelude:
+        staged = _analyse_staged(source)
+        if staged is not None:
+            return staged
     if prelude:
         module = _merge_prelude(source)
     else:
@@ -432,35 +692,8 @@ def _analyse(source: str, *, typecheck: bool = True,
         grammar_errors = check_subgrammars(scs, program.cons)
         if grammar_errors:
             raise SubgrammarError('\n'.join(grammar_errors))
-        check_main_has_no_context(
-            {name: 1 for (name, _a, _l, _s), givens
-             in zip(scs, per_sc_givens) if givens})
-        # A constraint the SC's own context already grants is discharged by
-        # a dictionary parameter, not by an instance.
-        all_constraints = [
-            p
-            for preds, givens in zip(per_sc_constraints, per_sc_givens)
-            for p in preds
-            if not _is_given(p, givens)
-        ]
-        if all_constraints or any(per_sc_givens):
-            resolved = solve_constraints(all_constraints, program.instances)
-            givens_by_name = {str(name): givens
-                              for (name, _a, _l, _s), givens
-                              in zip(scs, per_sc_givens) if givens}
-            scs = elaborate(scs, per_sc_constraints, resolved, program,
-                            results, per_sc_givens)
-            # A constrained definition called with constant dictionaries
-            # gets a copy with them substituted in, which is what lets one
-            # be written at all in a synth: the fragment is monomorphic and
-            # refuses anything that so much as mentions a dictionary.
-            # `resolved` as well as `program.instances`: a `Num Float` is
-            # *manufactured* while constraints are solved (`constraint.
-            # _num_instance`) and appears in no declaration, so the
-            # instance list alone does not know what `__dict_Num_Float__`
-            # stands for.
-            scs = specialise(scs, givens_by_name,
-                             list(program.instances) + list(resolved.values()))
+        scs = _discharge(scs, program, results,
+                         per_sc_constraints, per_sc_givens)
 
     # Resolve `πᵢ __dict_C_T__` to the method it selects, before ϕ/δ can
     # meet a projection out of a discrete value.  `method_scs` is the set

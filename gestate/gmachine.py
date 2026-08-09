@@ -90,6 +90,7 @@ __all__ = [
     "TAG_WAIT", "TAG_WATCH", "TAG_SYNC", "TAG_NEVER",
     "TAG_TAIL", "TAG_EXISTS5", "TAG_DELAY",
     "TAG_NOTHING", "TAG_JUST", "TAG_SYNC_L", "TAG_SYNC_R", "TAG_SYNC_BOTH",
+    "TAG_NIL", "TAG_CONS", "TAG_FALSE", "TAG_TRUE",
     "TAG_TUPLE_BASE", "tuple_tag", "is_tuple_tag", "tuple_arity", "is_tuple",
     "StackRef", "Arg", "Local",
     "GmState", "compile_program", "run", "step", "show_result",
@@ -473,6 +474,20 @@ TAG_JUST      = 81
 TAG_SYNC_L    = 82
 TAG_SYNC_R    = 83
 TAG_SYNC_BOTH = 84
+
+# `List` and `Bool`, pinned for a third reason: the staged front end
+# (`pipeline._stack_front`) numbers the library stack's constructors once
+# and a program's after them, so a tag handed out *after* the module's own
+# declarations would land at a different number depending on how many
+# types the program declares — and a cached `case` over `Bool` would then
+# meet a `True` built under the other numbering.  A pinned tag is the same
+# in every numbering.  Pinned at the *front* — declared constructors start
+# at 4 — because that is where a program with no declarations always put
+# them anyway.
+TAG_NIL   = 0
+TAG_CONS  = 1
+TAG_FALSE = 2
+TAG_TRUE  = 3
 
 #: Tuple tags — `TAG_TUPLE_BASE + n` is the tag of an `n`-tuple.
 #:

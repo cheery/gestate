@@ -94,7 +94,9 @@ def test_a_user_data_type_can_be_a_set_element():
     was reported "not an eqtype" however simple it was.  `Maybe Bool`
     escaped only by being a type *application*.
     """
-    assert _tags(COLOUR + "main : Set C\nmain = {G, R, B, R}\n") == ["0", "1", "2"]
+    # 4, 5, 6: declared constructors start at 4, after the pinned
+    # `Nil`/`Cons`/`False`/`True` — see `gmachine.TAG_NIL`.
+    assert _tags(COLOUR + "main : Set C\nmain = {G, R, B, R}\n") == ["4", "5", "6"]
 
 
 def test_a_set_of_a_user_type_dedups():

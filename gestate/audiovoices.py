@@ -176,6 +176,21 @@ def _banks(lines: list) -> list:
     return out
 
 
+def _module(source: str):
+    """`source`, parsed once — every reader below asks for declarations
+    out of the same text.
+
+    The text is the program with the prelude in front of it, thousands of
+    lines, and there are several questions per bank: measured on
+    `quartet.ges`, parsing per question was seventeen parses and eleven
+    seconds of the editor's start.  The readers only *read* the module, so
+    `prelude._parsed`'s one shared cache can serve them all.
+    """
+    from .prelude import _parsed
+
+    return _parsed(source)
+
+
 def _payload_of(source: str, bank: Bank) -> str:
     """What this bank's notes carry, read off its voice's signature.
 
@@ -189,7 +204,6 @@ def _payload_of(source: str, bank: Bank) -> str:
     `voices lead 4 (tine piano) : Sig Float` reads `tine`'s — an applied
     voice still says what a note is.
     """
-    from .syntax import parse
     from .syntax.ast import VSig
 
     # An *applied* voice — `(tine piano)` — has its first parameters
@@ -197,7 +211,7 @@ def _payload_of(source: str, bank: Bank) -> str:
     words = bank.voice.strip("()").split() if bank.voice else [""]
     head, supplied = words[0], len(words) - 1
     try:
-        module = parse(source, descend_fixity=False)
+        module = _module(source)
     except Exception as exc:                            # noqa: BLE001
         raise VoicesError(f"could not read the program: {exc}") from None
 
@@ -341,14 +355,13 @@ def _fields(source: str, record: str, bank: str) -> list:
 
 @lru_cache(maxsize=8)
 def _field_types(source: str, record: str, bank: str) -> tuple:
-    from .syntax import parse
     from .syntax.ast import VConId, VTypeDecl
 
     if _is_scalar(record):
         return (record,)
 
     try:
-        module = parse(source, descend_fixity=False)
+        module = _module(source)
     except Exception as exc:                            # noqa: BLE001
         raise VoicesError(f"could not read the program: {exc}") from None
 
@@ -387,12 +400,11 @@ def _type_decls(source: str) -> tuple:
     about and it is the same text every time — see `_frame`, which looks a
     frame type up in the program and then in the prelude.
     """
-    from .syntax import parse
     from .syntax.ast import VTypeDecl
 
     if not source.strip():
         return ()
-    return tuple(i for i in parse(source, descend_fixity=False).items
+    return tuple(i for i in _module(source).items
                  if isinstance(i, VTypeDecl))
 
 
@@ -742,10 +754,9 @@ def _refuse_collisions(source: str, generated: list, banks: list) -> None:
     honest fix is to report it in terms of the declaration that caused it.
     """
     from .prelude import _defined_names
-    from .syntax import parse
 
     try:
-        mine = _defined_names(parse(source, descend_fixity=False).items)
+        mine = _defined_names(_module(source).items)
     except Exception:                                       # noqa: BLE001
         # An unparseable program has a better error waiting for it than
         # anything this could say about names.

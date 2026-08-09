@@ -986,19 +986,21 @@ def _string(hz: float, seconds: float = 0.3, decay: float = 2.0) -> list:
 
 
 def test_a_string_rings_at_the_pitch_it_was_given():
-    """The line's length *is* the pitch, so this is a test of the arithmetic
+    """The loop's length *is* the pitch, so this is a test of the arithmetic
     that turns one into the other — and of nothing else.
 
-    Whole samples, so the pitch is quantised — `seconds` truncates, so
-    8000 / 220 is 36.4 and the line is 36, which rings at 222.2.  The
-    expectation is that truncation rather than a fudge, which is why it is
-    computed and not guessed.
+    The loop is the integer line, the averager's half sample and the
+    tuning allpass's fraction, which together make the round trip
+    `RATE / hz` — measured within a tenth of a cent over five octaves at
+    48 kHz.  Autocorrelation quantises to whole lags, so the expectation
+    here is the *nearest* one: it used to be `int(RATE / hz)`, the
+    truncated line of the untuned string that rang 440 at 438.
     """
     for hz in (110.0, 220.0, 440.0):
         xs = _string(hz)[600:]
         best = max(range(4, 100),
                    key=lambda lag: sum(a * b for a, b in zip(xs, xs[lag:])))
-        assert best == int(RATE / hz), f"{hz} Hz rang at a lag of {best}"
+        assert best == round(RATE / hz), f"{hz} Hz rang at a lag of {best}"
 
 
 def test_a_string_decays_from_the_top_down():

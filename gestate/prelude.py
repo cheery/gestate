@@ -104,7 +104,7 @@ def shadow_libraries(library: str, program: str) -> str:
     """
     from .syntax.tokenize import TT, tokenize
 
-    taken = _defined_names(parse(program, descend_fixity=False).items)
+    taken = _defined_names(_parsed(program).items)
     if not taken:
         return library
     defines = _defined_names(_parsed(library).items)
@@ -156,7 +156,7 @@ def shadow_libraries(library: str, program: str) -> str:
     return out
 
 
-@functools.lru_cache(maxsize=4)
+@functools.lru_cache(maxsize=16)
 def _parsed(source: str) -> VModule:
     """`parse(source, descend_fixity=False)`, remembered.
 
@@ -169,12 +169,17 @@ def _parsed(source: str) -> VModule:
     rebuilds every node it visits rather than resolving fixity in place,
     `_rename` below does the same, and `classify`/`desugar` read.  The one
     rule this depends on is therefore worth stating: a pass over `V*` nodes
-    must return new ones.  Inference does annotate — `expr.type_ = t` — but
-    that is on the *desugared* `Expr` tree, which is built fresh each time.
+    must return new ones.  Inference does annotate — `expr.type_ = t` —
+    but that is on the *desugared* `Expr` tree, which is built fresh each
+    time.
 
-    Small cache: the callers are the bundled prelude and, in tests, one or
-    two alternates.  It is keyed by text, so an edited prelude file that
-    has been re-read is a different key rather than a stale hit.
+    **Every read-only parse goes through here**, not only the prelude's:
+    an editor start asks `mentions`, `shadow_libraries`, `_authored` and
+    the `voices` readers about the same handful of texts, and measured on
+    `quartet.ges` that was 24 parses of which 11 were re-parses.  Sixteen
+    entries holds a start's worth of distinct texts.  Keyed by text, so an
+    edited file that has been re-read is a different key rather than a
+    stale hit.
     """
     return parse(source, descend_fixity=False)
 
@@ -182,7 +187,7 @@ def _parsed(source: str) -> VModule:
 def merge(user_source: str, prelude_path: str | None = None) -> VModule:
     """Parse the prelude and ``user_source`` and merge them into one module."""
     prelude_module = _parsed(load(prelude_path))
-    user_module = parse(user_source, descend_fixity=False)
+    user_module = _parsed(user_source)
 
     shadowed = _defined_names(prelude_module.items) & _defined_names(user_module.items)
     items = list(prelude_module.items)

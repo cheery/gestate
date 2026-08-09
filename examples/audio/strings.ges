@@ -10,9 +10,9 @@
 # ── Why the strings are *fixed* ──────────────────────────────────────────
 #
 # `string hz decay s` is Karplus-Strong, and its pitch is the length of a
-# delay line — a whole number of samples, decided before the program runs.
-# So a string cannot be retuned by a note arriving at run time, and this
-# cannot be a `voices` bank the way `duet.ges` is.
+# delay line — an integer line plus a tuning allpass, decided before the
+# program runs.  So a string cannot be retuned by a note arriving at run
+# time, and this cannot be a `voices` bank the way `duet.ges` is.
 #
 # That is not a workaround, it is an instrument.  An autoharp, a zither and
 # the sympathetic strings inside a sitar are all a fixed set that you excite

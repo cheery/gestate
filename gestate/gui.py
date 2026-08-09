@@ -5,7 +5,7 @@ The same shape as `gestate/midi.py`, deliberately:
     music                          GUI
     ────────────────────────────   ────────────────────────────────
     `music.ges`, prepended         `gui.ges`, prepended
-    program gives `score`, `bpm`   program gives `scene : Sig Scene`
+    program gives `score`, `bpm`   program gives `substrate : Sig Sub`
     `perform` — pure, tested       `scenes` — pure, tested
     `write` — needs `mido`         `run` — needs `pygame`
 
@@ -31,8 +31,8 @@ from .reactive import init_program, react
 _SIGNAL = (Path(__file__).with_name("signal.ges")).read_text()
 _GUI = _SIGNAL + "\n" + (Path(__file__).with_name("gui.ges")).read_text()
 
-#: The program supplies `substrate` (or the older `scene`); `main` is ours,
-#: as in the MIDI backend.  See `_entry`.
+#: The program supplies `substrate`; `main` is ours, as in the MIDI
+#: backend.  See `_entry`.
 
 
 def _preludes(source: str) -> str:
@@ -40,7 +40,7 @@ def _preludes(source: str) -> str:
 
     Asked rather than assumed, because a file that draws *and* sounds is
     one program and has to be compiled with one constructor numbering.  A
-    `scene` alone still gets exactly what it always got.
+    canvas alone still gets exactly what it always got.
 
     **And `music.ges` when the file plays a piece**, which is the same
     choice `audioscore.assemble_performance` makes and has to be the same
@@ -101,11 +101,12 @@ def _drawn(source: str) -> str:
     A program still carrying a `scene` is told so by name rather than
     compiled into something that draws nothing.
     """
-    import re
+    from .audio import _authored
 
-    if re.search(r"^substrate\s*[:=]", source, re.M) is not None:
+    names = _authored(source)[1]
+    if "substrate" in names:
         return "substrate"
-    if re.search(r"^scene\s*[:=]", source, re.M) is not None:
+    if "scene" in names:
         raise GuiError(
             "this program declares a `scene`, which the canvas no longer "
             "draws.  Rename it `substrate` and build it from `rect`, "
@@ -653,12 +654,18 @@ def _gesture_value(target: dict, kind: str, x: int, y: int):
 def _channel_names(source: str) -> list:
     """Every `name : Chan …` a program declares, in the order written.
 
-    Textual, like `has_scene` and `audioperform.has_score`: the question is
-    which names to *force*, and forcing them is what answers it properly.
+    From the parsed signatures, like every other question about what a
+    program declares — `audio._authored` keeps them in the order written.
     """
-    import re
+    from .audio import _authored
+    from .syntax.ast import VApp, VConId
 
-    return re.findall(r"^(\w+)\s*:\s*Chan\b", source, re.M)
+    def is_chan(t) -> bool:
+        while isinstance(t, VApp):
+            t = t.fn
+        return isinstance(t, VConId) and t.value == "Chan"
+
+    return [n for n, t in _authored(source)[0].items() if is_chan(t)]
 
 
 # ── The window ──────────────────────────────────────────────────────────────

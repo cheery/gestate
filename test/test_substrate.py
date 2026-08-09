@@ -22,7 +22,7 @@ import shutil
 
 import pytest
 
-from gestate.audio import has_scene, has_sound, preludes
+from gestate.audio import has_substrate, has_sound, preludes
 from gestate.audioengine import run
 from gestate.audioextract import extract
 from gestate.gui import scenes
@@ -64,9 +64,9 @@ BOTH = SOUND + SCENE
 
 
 def test_a_program_says_which_halves_it_has():
-    assert has_sound(SOUND) and not has_scene(SOUND)
-    assert has_scene(SCENE) and not has_sound(SCENE)
-    assert has_sound(BOTH) and has_scene(BOTH)
+    assert has_sound(SOUND) and not has_substrate(SOUND)
+    assert has_substrate(SCENE) and not has_sound(SCENE)
+    assert has_sound(BOTH) and has_substrate(BOTH)
 
 
 def test_a_synth_that_draws_nothing_pays_nothing():

@@ -10,11 +10,11 @@
 # bandpass filter rung by an impulse is exactly one such mode, so a bell is
 # a handful of them summed.
 #
-# `spec/delaylines.md` sorts the three families of physical modelling and
-# says which are reachable: the *modal* one is this file, the *mass-spring*
-# one is an ordinary `scan`, and only the *waveguide* family — strings,
-# tubes, brass — is blocked, because a waveguide is a delay line with a
-# filter in its loop and this language has no delay line yet.
+# `spec/delaylines.md` sorts the three families of physical modelling:
+# the *modal* one is this file, the *mass-spring* one is an ordinary
+# `scan`, and the *waveguide* family — strings, tubes, brass — needed a
+# delay line with a filter in its loop, which `loop` now is:
+# `examples/audio/strings.ges` is Karplus-Strong on eight of them.
 
 # ── The strike ───────────────────────────────────────────────────────────
 #

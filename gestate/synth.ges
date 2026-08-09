@@ -215,9 +215,11 @@ dust seed density = zip dustAt (scan rngPer (Rng seed) density) density
 #: rather than per hertz, which is how hearing is spaced, so pink noise is
 #: the noise that does not seem to lean towards the top.
 #:
-#: Three one-pole filters summed, which is Paul Kellet's approximation:
-#: within about a tenth of a decibel across the audible range, and three
-#: multiply-adds rather than the octave-band bank the exact answer needs.
+#: Three one-pole filters summed, which is Paul Kellet's *economy*
+#: approximation: measured within about half a decibel per octave across
+#: the audible range at 48 kHz (the coefficients are quoted for 44.1), and
+#: three multiply-adds rather than the octave-band bank the exact answer
+#: needs.  His seven-state version is the one good to a tenth.
 pink : Sig Float -> Sig Float
 pink s = map pinkOut (scan pinkNext pinkZero s)
 
@@ -705,11 +707,18 @@ comb hz feedbackAmount s =
 #:
 #: Put a different filter in `loop`'s step to damp it differently — that is
 #: what a waveguide is, and this is the shortest one.
+#: **Tuned to the hertz asked for, not to the nearest whole line.**  The
+#: loop is the integer line *plus half a sample* (the averager reads two
+#: neighbouring taps), and the remainder is supplied by a first-order
+#: allpass inside the loop — measured, the raw quantisation left 440 Hz
+#: sounding at 438 and put every string of an eight-string chord out by
+#: its own few cents, which is a chord that beats against itself.
 string : Float -> Float -> Sig Float -> Sig Float
 string hz decay s = map ksOut
     (loop (stringLen hz)
-          (prev old x => ksNext (stringGain hz decay) prev old x)
-          (Ks 0.0 0.0) s)
+          (prev old x => ksNext (stringGain hz decay) (stringTune hz)
+                                prev old x)
+          (Ks 0.0 0.0 0.0 0.0) s)
 
 #: **A Schroeder allpass** — a delay that passes every frequency at full
 #: strength and only rearranges *when* each arrives.
@@ -776,12 +785,15 @@ damped time feedbackAmount damp s = map cmOut
 #: **It is not free.** Four lines of ~40 ms plus two allpasses is about
 #: 7000 samples of state at 44100 Hz, and the state is allocated whether or
 #: not anything is sounding.
+#:
+#: **The input is DC-blocked**, because the combs are ruinous to an offset:
+#: a comb's gain at zero frequency is 1/(1−g), which at a 3.4 s decay is
+#: about ×17 — measured, a harp whose plucks left a wandering 0.005 offset
+#: came out of the room carrying 0.10, a tenth of the headroom spent on
+#: silence.  Every other frequency band is the caller's mix decision; DC is
+#: not a sound and no caller wants it back.
 reverb : Float -> Float -> Sig Float -> Sig Float
-reverb decay damp s = allpass 0.005 0.7 (allpass 0.0017 0.7
-    (0.25 * (damped 0.0297 (reverbGain 0.0297 decay) damp s
-           + damped 0.0371 (reverbGain 0.0371 decay) damp s
-           + damped 0.0411 (reverbGain 0.0411 decay) damp s
-           + damped 0.0437 (reverbGain 0.0437 decay) damp s)))
+reverb decay damp s = reverbCombs decay damp (dcBlock s)
 
 #: **A flanger** — a very short delay whose length is swept by an LFO,
 #: added back to the dry signal.
@@ -1446,28 +1458,52 @@ ladderOut l = case l of
 # **`string`'s state**, and it is the smallest thing `loop` can do that
 # `feedback` cannot.  Karplus-Strong averages the two samples that left the
 # line, and the older of the pair is one `feedback`'s step cannot reach —
-# so the state carries it: the sample out, and the one before it.
+# so the state carries it: the sample out, and the one before it — plus
+# the tuning allpass's two samples of memory.
 
-Ks := Ks Float Float
+Ks := Ks Float Float Float Float
 
 #: The near arm is where the string was an instant ago and holds the *older*
 #: of the two samples; the far arm is the state from a whole round trip ago
 #: and holds the newer.  Averaging them is the loop filter, and what it
-#: returns goes back around — through `g`, which is what stops the average
-#: from preserving DC for ever.
-ksNext : Float -> Ks -> Ks -> Float -> Ks
-ksNext g prev old x = case prev of
-    Ks y p -> case old of
-        Ks yn q -> Ks (x + g * 0.5 * (yn + p)) yn
+#: returns goes back around — through the tuning allpass and `g`, which is
+#: what stops the average from preserving DC for ever.
+ksNext : Float -> Float -> Ks -> Ks -> Float -> Ks
+ksNext g a prev old x = case prev of
+    Ks y p ax ay -> case old of
+        Ks yn q bx by -> ksStep g a x yn (0.5 * (yn + p)) ax ay
+
+#: The tuning allpass, `y[n] = a·x[n] + x[n-1] − a·y[n-1]`, then the loop
+#: gain.  Two steps as two functions because the fragment has no `let` and
+#: the allpass output is needed twice — once to go around, once to carry.
+ksStep : Float -> Float -> Float -> Float -> Float -> Float -> Float -> Ks
+ksStep g a x yn avg ax ay = ksMake g x yn avg (a * avg + ax - a * ay)
+
+ksMake : Float -> Float -> Float -> Float -> Float -> Ks
+ksMake g x yn avg ap = Ks (x + g * ap) yn avg ap
 
 ksOut : Ks -> Float
 ksOut st = case st of
-    Ks y p -> y
+    Ks y p ax ay -> y
 
-#: The line's length in samples: one round trip at that pitch.  A whole
-#: number, which is what quantises the pitch.
+#: The line's *integer* length: what remains of a round trip at that pitch
+#: after the averager's half sample and the tuning allpass's fraction.
+#: The 0.57 keeps the allpass's share in about 0.07 .. 1.07, away from the
+#: a ≈ 1 corner where a first-order allpass stops behaving.
 stringLen : Float -> Int
-stringLen hz = seconds (1.0 / clamp 1.0 nyquist hz)
+stringLen hz = floor (clamp 2.0 sampleRate
+                            (sampleRate / clamp 1.0 nyquist hz - 0.57))
+
+#: What the allpass must delay: the round trip, less the line, less the
+#: averager's half sample.
+stringFrac : Float -> Float
+stringFrac hz = sampleRate / clamp 1.0 nyquist hz
+              - toFloat (stringLen hz) - 0.5
+
+#: The allpass coefficient for that fraction — `(1−d)/(1+d)` is the
+#: standard low-frequency fit, and low frequencies are where pitch lives.
+stringTune : Float -> Float
+stringTune hz = (1.0 - stringFrac hz) / (1.0 + stringFrac hz)
 
 #: Loop gain from a decay time.  `ln 1000` is the 60 dB the time is quoted
 #: to, and the exponent is per *round trip* rather than per sample, which
@@ -1526,6 +1562,16 @@ cmOut st = case st of
 reverbGain : Float -> Float -> Float
 reverbGain time decay =
     exp (negate 6.907755278982137 * time / clamp 0.001 3600.0 decay)
+
+#: The room proper, after `reverb` has blocked the input's DC — a separate
+#: definition because the fragment admits no `let`, and the blocker should
+#: be applied once rather than once per comb.
+reverbCombs : Float -> Float -> Sig Float -> Sig Float
+reverbCombs decay damp s = allpass 0.005 0.7 (allpass 0.0017 0.7
+    (0.25 * (damped 0.0297 (reverbGain 0.0297 decay) damp s
+           + damped 0.0371 (reverbGain 0.0371 decay) damp s
+           + damped 0.0411 (reverbGain 0.0411 decay) damp s
+           + damped 0.0437 (reverbGain 0.0437 decay) damp s)))
 
 #: An LFO on a delay position, in **samples**, for `flanger` and `chorus`.
 #: `centre` and `swing` are seconds; the result never reaches zero, which

@@ -121,13 +121,14 @@ def scored_midi(synth: str, piece: str, bank: str, *, rate: int, block: int,
 def has_score(source: str) -> bool:
     """Does this program declare a `score` of its own?
 
-    Textual, and matching how `midi.perform` decides a program is a music
-    program: the alternative is compiling it to find out, and the answer is
-    needed to choose *which* assembly to compile.
+    By its declarations, not its text — `audio._authored` parses the
+    author's file — because the answer decides *which* assembly to
+    compile, and it should be about what the program declares rather than
+    what a line happens to look like.
     """
-    import re
+    from .audio import _authored
 
-    return re.search(r"^score\s*[:=]", source, re.M) is not None
+    return "score" in _authored(source)[1]
 
 
 def scored(synth: str, piece: str = "", *, rate: int, block: int,
@@ -171,22 +172,37 @@ def graph_of(synth: str, piece: str = "", *, rate: int):
     return extract(synth, rate=rate)
 
 
+def _frames(graph, samples: int, block: int, control) -> list:
+    """`samples` frames of a graph — compiled when there is a compiler.
+
+    `quartet.ges` measured the gap: the interpreter renders its three
+    minutes in about a day and a half, the generated code in under a
+    minute.  The two are bit-identical (`test_audiollvm.py` is that
+    check), so which one ran is not something a listener can tell — a
+    machine with no `clang` simply takes the long way rather than failing.
+    """
+    import shutil
+    import tempfile
+
+    if shutil.which("clang") is not None:
+        from .audiollvm import run_native
+
+        with tempfile.TemporaryDirectory() as d:
+            return run_native(graph, d, samples, block=block, control=control)
+    from .audioengine import run
+
+    return graph.frames(run(graph, samples, block=block, control=control))
+
+
 def render_wav(graph, path: str, seconds: float, rate: int, block: int,
                control) -> int:
-    """Render a performance to a `.wav` through the *engine*.
-
-    The engine rather than the oracle, because a scored piece of any length
-    is minutes of interpreter and milliseconds of compiled code — and the
-    two are bit-identical, which is the whole point of having checked.
-    """
+    """Render a performance to a `.wav` — `_frames`, packed and written."""
     import struct
     import wave
 
     from .audio import safe_sample
-    from .audioengine import run
 
-    samples = graph.frames(
-        run(graph, int(seconds * rate), block=block, control=control))
+    samples = _frames(graph, int(seconds * rate), block, control)
     channels = graph.channels()
     data = bytearray()
     for frame in samples:

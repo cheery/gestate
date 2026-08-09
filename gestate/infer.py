@@ -8,6 +8,8 @@ at the core-Expr boundary.
 
 from __future__ import annotations
 
+import itertools as _itertools
+
 from .expr import (
     EAnnot, EAp, EAppEx, EAppFa, EBox, ECase, EChan, ECon, EDelay, EField,
     EFix, EFor,
@@ -75,14 +77,27 @@ class UnresolvedName(InferError):
 
 class Fresh:
     __slots__ = ("_n",)
-    def __init__(self): self._n = 0
+    def __init__(self, start: int = 0): self._n = start
     def tv(self) -> TVar:
         v = TVar(self._n); self._n += 1; return v
 
 
+_SITE_TOKENS = _itertools.count(1)
+
+
 def _at_site(preds: list[Predicate], expr: Expr) -> list[Predicate]:
-    """Tag constraints with the occurrence that emitted them."""
-    return [Predicate(p.class_name, p.type_, id(expr)) for p in preds]
+    """Tag constraints with the occurrence that emitted them.
+
+    The tag is a stamp written *onto the node*, not `id(expr)`: an id is
+    process-local, and a cached stack front carries its constraints
+    through a pickle — the node comes back a new object with a new id,
+    while a stamp rides along with it.
+    """
+    site = getattr(expr, "site_token", None)
+    if site is None:
+        site = next(_SITE_TOKENS)
+        expr.site_token = site
+    return [Predicate(p.class_name, p.type_, site) for p in preds]
 
 
 def _apply_subst_constraints(constraints_out: list[Predicate] | None, s: Subst) -> None:
@@ -1172,6 +1187,10 @@ def infer_program(
     cons: dict[str, ConInfo] | None = None,
     classes: dict[str, ClassInfo] | None = None,
     sc_constraints: dict[str, list[Predicate]] | None = None,
+    *,
+    imports: dict[Name, Scheme] | None = None,
+    fresh: "Fresh | None" = None,
+    export: dict | None = None,
 ) -> tuple[dict[str, Type], list[list[Predicate]], list[list[Predicate]]]:
     """Type-check a group of supercombinators.
 
@@ -1180,9 +1199,20 @@ def infer_program(
     nothing (`fixme.md` F78).  Everything returned has been through
     `s.apply`, so nothing escapes still pointing into a store that is about
     to go away.
+
+    ``imports`` are *schemes*, not types, and that is the whole point of
+    the parameter: a `builtins` entry is monomorphic, so a library's `map`
+    seeded through it would be pinned to one caller's types for everybody.
+    An import is instantiated fresh at every use, exactly as a signature
+    is.  ``fresh`` lets a caller start the variable counter above another
+    run's, so a stack analysed earlier and a program analysed now cannot
+    mint the same variable; ``export``, when given, is filled with each
+    SC's final scheme — type *and* constraints, the half `results` drops —
+    which is what a later run needs to import.
     """
     with unifying():
-        return _infer_program(scs, builtins, cons, classes, sc_constraints)
+        return _infer_program(scs, builtins, cons, classes, sc_constraints,
+                              imports=imports, fresh=fresh, export=export)
 
 
 def _infer_program(
@@ -1191,6 +1221,10 @@ def _infer_program(
     cons: dict[str, ConInfo] | None = None,
     classes: dict[str, ClassInfo] | None = None,
     sc_constraints: dict[str, list[Predicate]] | None = None,
+    *,
+    imports: dict[Name, Scheme] | None = None,
+    fresh: Fresh | None = None,
+    export: dict | None = None,
 ) -> tuple[dict[str, Type], list[list[Predicate]], list[list[Predicate]]]:
     """Type-check a group of supercombinators.
 
@@ -1209,7 +1243,11 @@ def _infer_program(
     if sc_constraints is None: sc_constraints = {}
 
     env: dict[Name, Scheme] = {n: scheme_mono(t) for n, t in builtins.items()}
-    fresh = Fresh()
+    imported = frozenset(imports) if imports else frozenset()
+    if imports:
+        env.update(imports)
+    if fresh is None:
+        fresh = Fresh()
     all_constraints: list[Predicate] = []
     per_sc: list[list[Predicate]] = []
 
@@ -1250,7 +1288,9 @@ def _infer_program(
         # `append : List a -> List a -> List a` to `Char` for the whole
         # program (`fixme.md` F36).
         for n in env:
-            if n in signed:
+            if n in signed or n in imported:
+                # An import's variables are the exporting run's and are all
+                # quantified; substituting is a no-op paid per SC.
                 continue
             env[n] = _subst_scheme(env[n], s)
         # Attach filtered constraints to this SC's scheme so
@@ -1273,11 +1313,28 @@ def _infer_program(
         final_env[name] = scheme_mono(results[name])
     for n, t in builtins.items():
         final_env[n] = scheme_mono(t)
+    if imports:
+        for n, sch in imports.items():
+            final_env.setdefault(n, sch)
 
     for name in results:
         other_env = {n: final_env[n] for n in final_env if n != name}
         inferred = env[name].constraints
         results[name] = generalize(other_env, results[name], inferred).type_
+
+    if export is not None:
+        # Each SC's final *scheme*: the generalized type together with its
+        # constraints under the final substitution — declared for a signed
+        # SC, attached for an inferred one, read off the same place either
+        # way.  Quantify everything free, so an importer's substitution
+        # can never reach in.
+        for name, _arity, _lam, _sig in scs:
+            given = tuple(Predicate(p.class_name, s.apply(p.type_), p.site)
+                          for p in env[name].constraints)
+            quant = free_vars(results[name])
+            for g in given:
+                quant |= free_vars(g.type_)
+            export[name] = Scheme(frozenset(quant), results[name], given)
 
     # `chan`'s element type was recorded when the occurrence was visited,
     # so it may still be a metavariable that got solved later in the same

@@ -31,6 +31,7 @@ from __future__ import annotations
 import struct
 import sys
 import wave
+from functools import lru_cache
 from pathlib import Path
 
 from .gmachine import NInd, NNum
@@ -75,8 +76,8 @@ _AUDIO = (_SIGNAL + "\n"
 #:
 #: **One numbering, and only when it is wanted.**  Both files declare
 #: constructors, and a constructor's tag is its position, so a program with
-#: a `sound` *and* a `scene` has to be compiled with one prelude stack or
-#: its two halves are two different programs.  Conditional for the reason
+#: a `sound` *and* a `substrate` has to be compiled with one prelude stack
+#: or its two halves are two different programs.  Conditional for the reason
 #: `music.ges` is: three constructors and their compile time are not
 #: something a synth that draws nothing should pay, which is the rule
 #: `roadmap.md` states for the score prelude and this follows.
@@ -90,31 +91,38 @@ _AUDIO_GUI = (_SIGNAL + "\n"
               + library_text("synth.ges"))
 
 
-def has_scene(source: str) -> bool:
+def has_substrate(source: str) -> bool:
     """Does this program draw?
 
     `substrate : Sig Sub` is what to write.  A leftover `scene` counts too
     — **deliberately**, even though the canvas no longer draws one: it has
     to get `gui.ges` in front of it to reach `gui._drawn`, which refuses it
-    by name.  Matching only `substrate` would compile it without the
+    by name.  Counting only `substrate` would compile it without the
     vocabulary and report `Unknown global 'scene'` from a prelude the
     author never wrote.
-
-    Textual, and matching `audioperform.has_score` exactly: the answer
-    decides *which* assembly to compile, so it cannot be had by compiling.
     """
-    import re
-
-    return re.search(r"^(substrate|scene)\s*[:=]", source, re.M) is not None
+    return bool({"substrate", "scene"} & _authored(source)[1])
 
 
 def has_sound(source: str) -> bool:
     """Does this program sound?"""
-    import re
-
-    return re.search(r"^sound\s*[:=]", source, re.M) is not None
+    return "sound" in _authored(source)[1]
 
 
+def _expansion_prelude() -> str:
+    """Every library a bank's frame type could live in, as one text.
+
+    `audiovoices.expand` reads a prelude for its *type declarations* only,
+    so a superset is harmless and the constructor numbering does not
+    matter — nothing assembled from this is ever compiled.  Fixed rather
+    than `preludes(source)`, because choosing the preludes asks
+    `has_sound`, which asks `_authored`, which is who is asking here — a
+    cycle, if the answer depended on itself.
+    """
+    return _AUDIO_GUI + "\n" + library_text("music.ges")
+
+
+@lru_cache(maxsize=8)
 def _authored(source: str):
     """The author's own declarations, parsed — `({name: type}, {names})`.
 
@@ -131,12 +139,16 @@ def _authored(source: str):
     declaration were absent — which is right: the real error is a parse
     error and it is about to be reported by somebody with more to say
     about it.
+
+    Cached, because every backend asks several of these questions of the
+    same text — the editor several times a second — and the answer is a
+    pure function of it.  Callers treat the result as read-only.
     """
-    from .syntax import parse
+    from .prelude import _parsed
     from .syntax.ast import VSCDecl, VSig
 
     try:
-        module = parse(source, descend_fixity=False)
+        module = _parsed(source)
     except Exception:
         # **A `voices` line is not an ordinary declaration**, so a program
         # with a bank does not parse on its own at all — which is why
@@ -151,8 +163,7 @@ def _authored(source: str):
         try:
             from .audiovoices import expand
 
-            module = parse(expand(source, preludes(source)),
-                           descend_fixity=False)
+            module = _parsed(expand(source, _expansion_prelude()))
         except Exception:
             return {}, set()
     types = {str(i.name): i.type_ for i in module.items if isinstance(i, VSig)}
@@ -253,7 +264,7 @@ def preludes(source: str) -> str:
     * a `substrate` alone — `gui.ges` and no audio, which is what a GUI
       program has always been compiled with.
     """
-    sounds, draws = has_sound(source), has_scene(source)
+    sounds, draws = has_sound(source), has_substrate(source)
     if sounds and draws:
         return _AUDIO_GUI
     if draws:
@@ -317,6 +328,7 @@ def _assembled(error, offset: int):
     return ParseError(moved, pos)
 
 
+@lru_cache(maxsize=4)
 def assemble(source: str, rate: int = DEFAULT_RATE) -> str:
     """The whole program the renderer compiles: prelude, source, entry.
 
@@ -324,6 +336,11 @@ def assemble(source: str, rate: int = DEFAULT_RATE) -> str:
     reconstruct it: `audiograph.py` checks the program that *runs*, so a
     fragment check of a slightly different assembly would be a check of a
     different program.
+
+    Cached for the reason `audioscore.assemble_performance` is: several
+    readers ask for this text per editor start, and the expansion, the
+    `internal` check and the shadowing each parse.  Pure text to text; an
+    `enforce` violation raises and is not cached.
 
     `voices` banks are expanded here, for that same reason: the checker, the
     extractor, the oracle and `audiospans` all go through this function, so
@@ -374,8 +391,20 @@ def assemble(source: str, rate: int = DEFAULT_RATE) -> str:
     # A program that states no tempo gets none and pays nothing for it.
     clock = (BEAT if has_bpm(source)
              else BEAT_ENVELOPE if has_tempo(source) else "")
-    return (shadow_libraries(prelude, program) + "\n" + program + "\n"
-            + clock + _entry(rate))
+    # The libraries are the same text on every compile and most of the
+    # tokens; telling the parser where they end lets it keep their tokens
+    # across compiles and re-tokenize only the author's part.  **Only when
+    # nothing was shadowed**: a renamed head references `__prelude_…`
+    # names that exist only once the program is merged in, so it cannot be
+    # analysed on its own — no seam, and the whole-text path renames as it
+    # always did.
+    from .syntax import note_seam
+
+    shadowed = shadow_libraries(prelude, program)
+    out = shadowed + "\n" + program + "\n" + clock + _entry(rate)
+    if shadowed is prelude:
+        note_seam(out, len(shadowed) + 1)
+    return out
 
 
 def _signal(state):

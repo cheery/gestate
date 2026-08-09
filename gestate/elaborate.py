@@ -129,7 +129,7 @@ class _Router:
         self.assumptions = assumptions
 
     def route(self, node: EGlobal) -> Expr | None:
-        preds = self.by_site.get(id(node))
+        preds = self.by_site.get(getattr(node, "site_token", None))
         if preds:
             arity = self.dicts.constrained.get(node.name)
             if arity:

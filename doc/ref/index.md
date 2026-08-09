@@ -26,7 +26,7 @@ Every name the standard library defines, with the signature and the prose the li
 | a synth | `sound : Sig Float` — or `Sig Stereo` for two channels | `main = sound` |
 | a piece for MIDI | `score : [: Void :]` **and** `bpm : Int` (*no* `main`) | `main = (bpm, layout score)` |
 | a synth with a piece | `sound`, `score`, `bpm`, and a `voices` bank per instrument | `main = (bpm, layVoices score)`, read beside `main = sound` |
-| a canvas | `substrate : Sig Sub` (or the older `scene : Sig Scene`) | `main = substrate` |
+| a canvas | `substrate : Sig Sub` | `main = substrate` |
 
 Optional, and recognised wherever they make sense:
 

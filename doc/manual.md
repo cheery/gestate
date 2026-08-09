@@ -45,14 +45,18 @@ sounds, which keeps what it was holding rather than starting again. Soft
 
 ## 2. Five minutes
 
-There is nothing to install.  The compiler is pure Python; only the MIDI
-renderer needs a third-party package (`mido`).
+There is nothing to install.  The compiler and the `.wav` renderer are pure
+Python; the backends that touch the outside world want a package each —
+`mido` for MIDI, `pygame` for the canvas and the editor — and the suite
+skips what it cannot import.  `requirements.txt` says which is for what,
+at length.
 
 ```
 $ python -m gestate.typecheck examples/closure.ges     # infer and print types
 $ python -m gestate.typecheck examples/closure.ges --check   # errors only
 $ python -m gestate.midi examples/music/drums.ges --events   # lay out a score
 $ python -m gestate.midi examples/music/drums.ges            # write drums.mid
+$ python -m gestate.audio examples/audio/sine.ges -o sine.wav  # render a synth
 $ python -m pytest test -q                                   # the suite
 ```
 
@@ -70,10 +74,13 @@ main : Int
 main = double 21
 ```
 
-Two kinds of program are shaped differently and have `main` supplied for
-them.  A **music** program defines `score : [: Void :]` and `bpm : Int` (§7).
-A **GUI** program defines `scene : Sig Scene` and is run with
-`python -m gestate.gui` (§6).
+Three kinds of program are shaped differently and have `main` supplied
+for them.  A **music** program defines `score : [: Void :]` and
+`bpm : Int` (§7).  A **synth** defines `sound : Sig Float` and is rendered
+with `python -m gestate.audio` or played live (§6).  A **canvas** program
+defines `substrate : Sig Sub` and is run with `python -m gestate.gui`
+(§6).  A backend finds your program by these names — `doc/ref/index.md`
+holds the full table of who looks for what, and what each puts in scope.
 
 ---
 
@@ -260,7 +267,8 @@ substrate = moveXY 60 80 fader `over` moveXY 140 80 meter
 `` x `over` y `` *is* `over x y` — the same definition, applied the same
 way — so a local, a constructor and an implicit's `using` all behave as
 they do anywhere else.  Undeclared it binds tightly and to the left, like
-any operator nobody has given a fixity; `infixr 5 \`pair\`` says otherwise.
+any operator nobody has given a fixity; ``infixr 5 `pair` `` says
+otherwise.
 
 ### Let
 
@@ -701,6 +709,17 @@ positions are not retained anywhere.  Those two properties together are the
 thing FRP usually has to be careful about, and here they are the type
 system's job.
 
+### Putting it on a speaker
+
+The other driver of the same half is sound.  A synth defines
+`sound : Sig Float` — one sample per instant — and
+`python -m gestate.audio` renders it to a `.wav`, while
+`python -m gestate.audiopygame` plays it and reloads it while you edit.
+The combinators (`sineOf`, `lowpass`, `adsr` and the rest) live in
+`audio.ges` and `synth.ges`, and every one is in `doc/ref/`; how a
+`Sig Float` becomes a flat graph and then machine code is
+`spec/liveaudio.md`'s story, not this manual's.
+
 ### Why the two halves do not interfere
 
 `Sig`, `Chan`, `FaL` and `ExL` are simply **not in** the grammars that
@@ -794,6 +813,13 @@ place content before the origin); the *renderer* normalises, because a grid
 view might want to show that a fill precedes bar 1 while a MIDI file cannot
 hold a negative timestamp.
 
+A synth can perform a score too — `voices` banks stand as instruments, and
+`python -m gestate.audioperform` plays the piece on them.  There the tempo
+need not be a constant: `tempo : List Envelope` in place of `bpm` makes
+the beat clock follow a curve, and stating a tempo either way puts
+`beat : Sig Float` — what time it is in beats, at audio rate — in scope
+for the synth to read.  `doc/ref/audio.md` has the details.
+
 The music definitions live in `gestate/music.ges`, which the MIDI backend
 prepends to your program.  They are deliberately not in the core prelude:
 they declare eight constructors, and since a constructor's tag is its
@@ -817,6 +843,9 @@ gestate/          the compiler
   music.ges         the music library (loaded only by the MIDI backend)
   midi.py           the MIDI renderer, and its CLI
   signal.ges        the signal combinators both reactive backends share
+  synth.ges         the synthesis library — voices, adsr, the knobs
+  envexpand.py      an `on` over known points becomes a comparison tree
+  reference.py      generates doc/ref/ from the libraries' own prose
   gui.py            the GUI backend (pygame), with gui.ges
   audio.py          the offline synth renderer (.wav), with audio.ges
   audiograph.py     is this synth in the audio fragment? (liveaudio.md)
@@ -836,8 +865,12 @@ gestate/          the compiler
   audiopygame.py    the same, in pygame, with the program's canvas beside it
 spec/             the design documents — see below
 doc/manual.md     this file
+doc/audit.md      what the synth primitives *measure* as, against their
+                  docs — the findings, and how to repeat the measurement
+doc/ref/          the generated reference — every library name, with its
+                  signature and prose; `python -m gestate.reference` remakes it
 examples/         programs that run, exercised by the test suite
-test/             ~1,201 tests
+test/             ~1,900 tests
 ```
 
 The `spec/` directory is unusually load-bearing, so it is worth knowing
@@ -851,15 +884,17 @@ what each file is *for*:
 | `data.md` | Datafun and its compilation, in detail |
 | `frp.md` | Rizzo, the driver, the machine |
 | `music.md` | what a score is |
+| `substrate.md` | the canvas behind the editor — what a `Sub` is |
 | `liveaudio.md` | where the project is going: a synth you edit while it sounds |
+| `delaylines.md` | delay lines — the fifth audio node kind |
 | `errata.md` | where the specs disagree with the papers, and what was decided — and, at the top, **which three papers those are**, by title and arXiv number |
 | `supercomb.md` | the G-machine |
 
 And two files that are not specs but are how the project is steered:
 
 - **`fixme.md`** — every known divergence between implementation and spec,
-  ~94 entries, most resolved, each with the reasoning.  The table at the
-  top lists what is still open.
+  over a hundred entries, most resolved, each with the reasoning.  The
+  table at the top lists what is still open.
 - **`roadmap.md`** — what is left and *why in that order*, plus the rule the
   project is run by:
 
@@ -911,22 +946,7 @@ bind one.  That is the trade §4 explains.
 
 ---
 
-## 10. Where to go next
-
-Read `examples/closure.ges` and `examples/music/drums.ges` — between them
-they touch most of the language.  Then `spec/data.md` §I if you want to
-know how the incrementality actually works, or `spec/frp.md` if you want
-the driver.
-
-For where the project is going rather than what it is: `spec/liveaudio.md`
-states the live-audio architecture and the evidence behind it, and
-`roadmap.md` §"Stage 7" says which part is being built next.
-
-If you are going to change something, read the top of `fixme.md` first: it
-will tell you whether what you are about to fix is already known, already
-decided against, or genuinely open.
-
-## Asking the compiler
+## 10. Asking the compiler
 
 Three questions, each answered about the program *as compiled* — the type
 from inference, the position from the parser — so an editor showing them
@@ -970,3 +990,21 @@ search (`typecheck.fits_in_scope`) with nothing retyped in the middle.
 `Sig`, `Adsr` and the rest are in scope, `--query adsr` reaches the
 paragraph above it in the library, and hole positions are still the ones
 your own file has.
+
+---
+
+## 11. Where to go next
+
+Read `examples/closure.ges` and `examples/music/drums.ges` — between them
+they touch most of the language.  Then `spec/data.md` §I if you want to
+know how the incrementality actually works, or `spec/frp.md` if you want
+the driver.  To look a name up rather than learn in order,
+`doc/ref/index.md` is the entrance.
+
+For where the project is going rather than what it is: `spec/liveaudio.md`
+states the live-audio architecture and the evidence behind it, and
+`roadmap.md` §"Stage 7" says which part is being built next.
+
+If you are going to change something, read the top of `fixme.md` first: it
+will tell you whether what you are about to fix is already known, already
+decided against, or genuinely open.

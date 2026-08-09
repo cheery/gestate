@@ -63,11 +63,18 @@ partials f s = mode f            0.60 1.00 s
 #: of a wavelength long at the bar's own pitch.  It reinforces the
 #: fundamental and nothing else, which is why the tuned overtone can be as
 #: quiet as it is and the bar still reads as pitched.
+#:
+#: **Rung by the strike, not by the bar's own output.**  `resonate` is
+#: normalised for an impulse, and the strike is one; feed it the bar's
+#: ringing instead and it is being driven *at its own resonance*, where a
+#: peak-normalised resonator's gain is in the hundreds — measured, that
+#: wiring pinned two thirds of the render at full scale, and no
+#: coefficient rescues it because the gain scales with the ring it is fed.
 resonator : Float -> Sig Float -> Sig Float
 resonator f s = 0.6 * resonate (!f) 0.35 s
 
 bar : Float -> Sig Float -> Sig Float
-bar f s = partials f s + resonator f (partials f s)
+bar f s = partials f s + resonator f s
 
 # ── The output ───────────────────────────────────────────────────────────
 #

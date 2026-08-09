@@ -223,7 +223,9 @@ def libraries_in_scope(source: str) -> tuple:
 
 
 def _has_score(source: str) -> bool:
-    return re.search(r"^score\s*[:=]", source, re.M) is not None
+    from .audioperform import has_score
+
+    return has_score(source)
 
 
 # ── Reading the program ─────────────────────────────────────────────────────
@@ -244,9 +246,9 @@ def mentions(text: str) -> dict:
     Positions are 1-based lines, as an editor counts them; the tokenizer
     counts from 0.
     """
-    from .syntax import parse
+    from .prelude import _parsed
 
-    module = parse(text, descend_fixity=False)
+    module = _parsed(text)
     used: dict = {}
     bound: set = set()
     _walk(module, used, bound)

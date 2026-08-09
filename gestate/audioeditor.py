@@ -643,11 +643,18 @@ class Workbench:
 
         self._directory = tempfile.mkdtemp()
         text = self.source()
+        # The canvas, the score and the `FromMIDI` interpreter need only
+        # the text, so they compile on a thread while `Live.start` waits
+        # on `clang` — the one stretch of a start that holds no GIL, and
+        # measured at several seconds on `quartet.ges`.  Joined before
+        # anything below reads what they set.
+        side = threading.Thread(target=lambda: (self._load_substrate(text),
+                                                self._load_score(text),
+                                                self._load_from_midi(text)))
+        side.start()
         self.live = Live.start(text, self.rate, self._directory)
-        self._load_substrate(text)
         self._place(text)
-        self._load_score(text)
-        self._load_from_midi(text)
+        side.join()
         # Always, and before the port: the on-screen keyboard needs the
         # allocators whether or not a MIDI device was asked for.
         self._start_notes()
@@ -802,13 +809,13 @@ class Workbench:
         """Start (or restart) the canvas half of this file.
 
         Best-effort, exactly as `_place` is: a canvas that fails to compile
-        must not stop the instrument.  A file with no `substrate` and no
-        `scene` has none, and pays nothing for it.
+        must not stop the instrument.  A file with no `substrate` has no
+        canvas, and pays nothing for it.
         """
-        from .audio import has_scene
+        from .audio import has_substrate
         from .gui import Substrate
 
-        if not has_scene(text):
+        if not has_substrate(text):
             self.substrate = None
             return
         try:
@@ -829,7 +836,7 @@ class Workbench:
 
     #: What the host will write into a canvas, if the canvas declares it.
     #:
-    #: Well-known names, the way `sound`, `scene`, `substrate`, `score` and
+    #: Well-known names, the way `sound`, `substrate`, `score` and
     #: `bpm` are well-known: the program says it wants a reading by
     #: declaring a channel with that name, and says nothing at all if it
     #: does not.  Both are one control value, for the reason every other
@@ -1470,12 +1477,16 @@ class Workbench:
             from .audioperform import has_score
             from .audioscore import assemble_performance
             from .audio import assemble
+            from .audiovoices import banks_of
             from .pipeline import compile as _compile
 
             program = (assemble_performance(text, "", self.rate)
                        if has_score(text) else assemble(text, self.rate))
+            # `banks_of(text)`, not `self.banks`: this runs on `start`'s
+            # side thread, and `self.banks` is `_place`'s to fill — on the
+            # main thread, in a race this used to win by being sequential.
             self.from_midi = FromMidi(_compile(program),
-                                      [b["name"] for b in self.banks])
+                                      [b.name for b in banks_of(text)])
         except Exception as exc:                        # noqa: BLE001
             self.from_midi = None
             if not _unwritten(exc):
