@@ -163,6 +163,28 @@ pub struct clap_event_header {
     pub flags: u32,
 }
 
+// ── Transport ───────────────────────────────────────────────────────────
+
+pub const CLAP_TRANSPORT_IS_PLAYING: u32 = 1 << 4;
+
+#[repr(C)]
+pub struct clap_event_transport {
+    pub header: clap_event_header,
+    pub flags: u32,
+    pub song_pos_beats: i64,
+    pub song_pos_seconds: i64,
+    pub tempo: f64,
+    pub tempo_inc: f64,
+    pub loop_start_beats: i64,
+    pub loop_end_beats: i64,
+    pub loop_start_seconds: i64,
+    pub loop_end_seconds: i64,
+    pub bar_start: i64,
+    pub bar_number: i32,
+    pub tsig_num: u16,
+    pub tsig_denom: u16,
+}
+
 // ── Audio ports extension ───────────────────────────────────────────────
 //
 // Not optional in practice: a host learns what buffers to hand
@@ -200,7 +222,8 @@ pub struct clap_plugin_audio_ports {
 pub struct clap_process {
     pub steady_time: i64,
     pub frames_count: u32,
-    pub transport: *const c_void, // clap_event_transport; unread for now
+    /// Null in a free-running host — an instrument then simply plays.
+    pub transport: *const clap_event_transport,
     pub audio_inputs: *const clap_audio_buffer,
     pub audio_outputs: *mut clap_audio_buffer,
     pub audio_inputs_count: u32,

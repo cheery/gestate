@@ -29,6 +29,10 @@ struct Instance {
     state: Vec<u8>,
     control: Vec<i64>,
     scratch: Vec<f32>,
+    /// The transport's last word.  A rising edge rewinds — see
+    /// `plugin_process`: a piece on a timeline starts when the
+    /// timeline does.
+    playing: bool,
 }
 
 impl Instance {
@@ -38,6 +42,7 @@ impl Instance {
             state: vec![0u8; desc.state_bytes],
             control: desc.controls.iter().map(|c| c.init_bits).collect(),
             scratch: Vec::new(),
+            playing: false,
         }
     }
 
@@ -133,7 +138,33 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
     if out.data32.is_null() {
         return CLAP_PROCESS_ERROR;
     }
-    instance(plugin).process(out, p.frames_count);
+    let inst = instance(plugin);
+    // **The transport is followed, and stop means rewind.**  A DAW's
+    // audio engine calls `process` whether the timeline moves or not,
+    // so without this a piece plays from the moment the session opens.
+    // With it: silence while stopped, and the rising edge zeroes the
+    // state — which *is* the rewind, since the generated code's
+    // first-instant branch reseeds everything at `t = 0`.  Pressing
+    // play therefore always plays the piece from its top, and two
+    // plays are the same performance.  A null transport is a
+    // free-running host, and the instrument simply plays — the
+    // offline parity test is exactly such a host.
+    if !p.transport.is_null() {
+        let now = (*p.transport).flags & CLAP_TRANSPORT_IS_PLAYING != 0;
+        if now && !inst.playing {
+            inst.reset();
+        }
+        inst.playing = now;
+        if !now {
+            let ports = out.channel_count as usize;
+            for c in 0..ports {
+                std::ptr::write_bytes(*out.data32.add(c), 0,
+                                      p.frames_count as usize);
+            }
+            return CLAP_PROCESS_CONTINUE;
+        }
+    }
+    inst.process(out, p.frames_count);
     CLAP_PROCESS_CONTINUE
 }
 

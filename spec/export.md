@@ -18,7 +18,13 @@ facts found on the way in: the engine's state buffer starts
 **zeroed** (the generated code's first-instant branch seeds every
 `init` itself, so no state image travels), and the whole engine
 contract is one symbol plus that buffer and the control slots.
-Self-playing synths export today (`dubgate.clap`, `violin.clap`).
+Self-playing synths export today (`dubgate.clap`, `violin.clap`),
+and they **follow the transport, stop meaning rewind**: silence while
+the timeline is stopped, and the rising edge zeroes the state — which
+is the rewind, since the generated code reseeds everything at `t = 0`
+— so two plays are the same performance, proven by the replay block
+being byte-identical to the first (`test_export.py`).  A null
+transport is a free-running host and the instrument simply plays.
 Still to come, in order of need: the **params** extension from the
 `mkKnob` table the descriptor already carries; **note ports**, which
 is the big one — the live note-to-channel assignment lives in

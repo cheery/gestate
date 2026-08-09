@@ -80,10 +80,36 @@ class AudioBuffer(ctypes.Structure):
                 ("constant_mask", c_uint64)]
 
 
+class EventHeader(ctypes.Structure):
+    _fields_ = [("size", c_uint32), ("time", c_uint32),
+                ("space_id", ctypes.c_uint16), ("type_", ctypes.c_uint16),
+                ("flags", c_uint32)]
+
+
+class Transport(ctypes.Structure):
+    _fields_ = [("header", EventHeader),
+                ("flags", c_uint32),
+                ("song_pos_beats", c_int64),
+                ("song_pos_seconds", c_int64),
+                ("tempo", c_double),
+                ("tempo_inc", c_double),
+                ("loop_start_beats", c_int64),
+                ("loop_end_beats", c_int64),
+                ("loop_start_seconds", c_int64),
+                ("loop_end_seconds", c_int64),
+                ("bar_start", c_int64),
+                ("bar_number", c_int32),
+                ("tsig_num", ctypes.c_uint16),
+                ("tsig_denom", ctypes.c_uint16)]
+
+
+IS_PLAYING = 1 << 4
+
+
 class Process(ctypes.Structure):
     _fields_ = [("steady_time", c_int64),
                 ("frames_count", c_uint32),
-                ("transport", c_void_p),
+                ("transport", POINTER(Transport)),
                 ("audio_inputs", c_void_p),
                 ("audio_outputs", POINTER(AudioBuffer)),
                 ("audio_inputs_count", c_uint32),
@@ -137,6 +163,9 @@ def test_the_exported_plugin_renders_what_the_engine_does(tmp_path):
     chans = (POINTER(c_float) * 1)(ctypes.cast(buf, POINTER(c_float)))
     port = AudioBuffer(data32=chans, data64=None, channel_count=1,
                        latency=0, constant_mask=0)
+    # No transport at all: a free-running host, in which an instrument
+    # simply plays — which is also what keeps this comparison honest
+    # against `run_native`, which has no transport either.
     proc = Process(steady_time=0, frames_count=frames, transport=None,
                    audio_inputs=None, audio_outputs=ctypes.pointer(port),
                    audio_inputs_count=0, audio_outputs_count=1,
@@ -157,4 +186,50 @@ def test_the_exported_plugin_renders_what_the_engine_does(tmp_path):
 
     plugin.stop_processing(plug_raw)
     plugin.deactivate(plug_raw)
+    plugin.destroy(plug_raw)
+
+
+@needs_toolchain
+def test_the_transport_is_followed_and_stop_means_rewind(tmp_path):
+    """Play a block; stop — silence; play again — the *same* block.
+
+    The replay being byte-identical to the first play is the whole
+    rewind claim in one equality: the rising edge zeroed the state, and
+    a zeroed state is the piece's top.  A synth whose second play
+    continued mid-phrase, or drifted by one block of retained filter
+    memory, fails here.
+    """
+    from gestate.export import export_clap
+
+    out = tmp_path / "tone.clap"
+    export_clap(SOURCE, out, rate=RATE, name="tone")
+    lib, plug_raw, plugin = _plugin_of(out)
+    assert plugin.init(plug_raw)
+    assert plugin.activate(plug_raw, float(RATE), 32, 512)
+    assert plugin.start_processing(plug_raw)
+
+    frames = 200
+    buf = (c_float * frames)()
+    chans = (POINTER(c_float) * 1)(ctypes.cast(buf, POINTER(c_float)))
+    port = AudioBuffer(data32=chans, data64=None, channel_count=1,
+                       latency=0, constant_mask=0)
+    transport = Transport()
+    proc = Process(steady_time=0, frames_count=frames,
+                   transport=ctypes.pointer(transport),
+                   audio_inputs=None, audio_outputs=ctypes.pointer(port),
+                   audio_inputs_count=0, audio_outputs_count=1,
+                   in_events=None, out_events=None)
+
+    def block(playing: bool) -> list:
+        transport.flags = IS_PLAYING if playing else 0
+        assert plugin.process(plug_raw, ctypes.byref(proc)) == 1
+        return list(buf)
+
+    first = block(playing=True)
+    assert max(abs(x) for x in first) > 0.4, "silent on play"
+    second = block(playing=True)
+    assert second != first, "the piece did not advance while playing"
+    assert block(playing=False) == [0.0] * frames, "not silent on stop"
+    assert block(playing=True) == first, \
+        "play after stop is not the piece from the top"
     plugin.destroy(plug_raw)
