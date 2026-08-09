@@ -44,6 +44,19 @@ from .reference import entries_of
 #: merged as a module rather than prepended, and is in scope either way.
 LIBRARIES = tuple(name for name, _title, _when in _PAGES)
 
+#: Names the renderer writes below the author's text (`audio._entry`, the
+#: canvas entry in `gui.py`) that are machinery all the same.  `constSig`
+#: is the node the `!` marker builds — `!x` is the constant signal of `x`,
+#: `!(f x)` of the *computed value* `f x` — and the marker is the spelling;
+#: the name exists so the entry can define it over its own clock and the
+#: libraries can build their instances from it.  `ticks`, `sampleRate` and
+#: `beat` stay public: they are values a program reads, not machinery with
+#: a better spelling.
+RENDERER = "the renderer"
+RENDERER_PRIVATE: dict = {
+    "constSig": ("The renderer's own", ("!",)),
+}
+
 
 class InternalError(Exception):
     """A program named something a library keeps to itself."""
@@ -402,6 +415,13 @@ def check(source: str, libraries=None, text: str | None = None) -> list:
             found.append(Use(name=name, library=library, line=line,
                              column=column, section=private[name],
                              instead=faces.get(name, ())))
+    # The renderer's own machinery, private in every program alike — no
+    # library carries these, so no `_split` finds them.
+    for name, (section, faces) in RENDERER_PRIVATE.items():
+        if name in named:
+            line, column = named[name]
+            found.append(Use(name=name, library=RENDERER, line=line,
+                             column=column, section=section, instead=faces))
     return sorted(found, key=lambda u: (u.line, u.column, u.name))
 
 

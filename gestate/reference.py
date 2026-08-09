@@ -131,7 +131,12 @@ PRIMITIVES = (
          "Where an ordinary function meets signals.  `!f x y z` pairs its "
          "arguments up through `Both` and takes them apart again, so it "
          "lifts over **any number** of them — there is no three-signal "
-         "former and none is needed."),
+         "former and none is needed.  The marker binds the **next atom** "
+         "and the application around it supplies the lifted arguments, so "
+         "parentheses read the way an eye expects: `!f x` lifts `f` over "
+         "the signal `x`; `!(f x)` is the constant signal of the computed "
+         "value `f x`; `!(f x) y` lifts the computed function `f x` over "
+         "`y`; `!x` alone is the constant signal of `x`."),
     )),
     # **Supplied by the renderer, defined in no library file.**  Which is
     # exactly why they belong here: `reference.py` builds its pages from
@@ -153,7 +158,10 @@ PRIMITIVES = (
          "The same value at every instant.  What it is constant *over* is "
          "whichever clock is running — `ticks` for a synth, the event "
          "stream for a canvas — which is why the renderer supplies it and "
-         "no library can."),
+         "no library can.  **Internal**: it is the node `!` builds, and "
+         "the marker is the spelling — `!x`, or `!(f x)` for a computed "
+         "value.  A program that names it is refused, the way a library's "
+         "own machinery is."),
         ("beat", "Sig Float",
          "**What beat it is** — at audio rate, for a synth moving in time "
          "with the music rather than with the second.  In scope wherever "
@@ -475,8 +483,8 @@ def index_page() -> str:
         "| name | type | in scope when |",
         "|---|---|---|",
         "| `sampleRate` | `Float` | any audio or canvas program |",
-        "| `constSig` | `a -> Sig a` | any reactive program — `!x` with no "
-        "arguments is this |",
+        "| `constSig` | `a -> Sig a` | **internal** — write `!x`, or "
+        "`!(f x)` for a computed value |",
         "| `beat` | `Sig Float` | a **scored** synth only |",
         "",
         "`beat` is what time it is in beats, at audio rate — `sine (5.0 + "

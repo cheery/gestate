@@ -178,11 +178,12 @@ mOf v = floor (toFloat tall * clamp 0.0 1.0 v)
 #: **`!` lifts over any number of signals**, so the voice index is an
 #: ordinary argument and the `walker0`…`walker3` wrappers this file used
 #: to carry are gone — `!dotAt 0 age0` is `dotAt` meeting two signals at
-#: once.  `constSig curve` and not a lift, because `curve` is the same
-#: forty ticks every frame and there is no signal for it to meet.
+#: once.  `!curve` alone is the constant: `curve` is the same forty ticks
+#: every frame, there is no signal for it to meet, and a marker given no
+#: arguments lifts nothing.
 substrate : Sig Sub
 substrate = moveXY 170 130
-    ((constSig curve
+    ((!curve
         `over` !dotAt 0 age0 `over` !dotAt 1 age1
         `over` !dotAt 2 age2 `over` !dotAt 3 age3)
      `row` gap 20 0 `row` !meter loud)

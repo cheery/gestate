@@ -380,16 +380,16 @@ lowVoice g s = limit 0.85
 # that difference is the whole reason this bank exists.
 
 formants : Sig Float -> Sig Float
-formants src = bandpassSvf (constSig 320.0) 0.14 src
-             + bandpassSvf (constSig 800.0) 0.11 src * 0.55
-             + bandpassSvf (constSig 2300.0) 0.09 src * 0.22
+formants src = bandpassSvf (!320.0) 0.14 src
+             + bandpassSvf (!800.0) 0.11 src * 0.55
+             + bandpassSvf (!2300.0) 0.09 src * 0.22
 
 oohEnv : Adsr
 oohEnv = Adsr 0.16 0.30 0.68 0.45
 
 #: A little vibrato, because a held vowel with none is an organ.
 oohVoice : Sig Gate -> Sig Stroke -> Sig Float
-oohVoice g s = formants (saw (!hzOf s * (1.0 + sine (constSig 5.2) * 0.004)))
+oohVoice g s = formants (saw (!hzOf s * (1.0 + sine (!5.2) * 0.004)))
              * adsr oohEnv g * !velOf s * 1.30
 
 # ── Lead: a saw with a comb in it ───────────────────────────────────────
@@ -456,17 +456,17 @@ kick g = sine (44.0 + 105.0 * perc 32.0 g) * perc 7.5 g
 #: Brushed rather than cracked: more noise, less body, and a slower decay
 #: than a techno snare.
 snare : Sig Gate -> Sig Float
-snare g = (bandpassSvf (constSig 1650.0) 0.40 hiss
-             + sine (constSig 195.0) * 0.28)
+snare g = (bandpassSvf (!1650.0) 0.40 hiss
+             + sine (!195.0) * 0.28)
         * perc 12.0 g * 0.42
 
 hat : Sig Gate -> Sig Float
-hat g = highpassSvf (constSig 7000.0) 0.20 hiss * perc 50.0 g * 0.22
+hat g = highpassSvf (!7000.0) 0.20 hiss * perc 50.0 g * 0.22
 
 drumVoice : Sig Gate -> Sig Stroke -> Sig Float
-drumVoice g s = kick g * !isKey (constSig 36) s
-              + snare g * !isKey (constSig 38) s
-              + hat g * !isKey (constSig 42) s
+drumVoice g s = kick g * !isKey (!36) s
+              + snare g * !isKey (!38) s
+              + hat g * !isKey (!42) s
 
 # ── Instrumentit ────────────────────────────────────────────────────────
 #

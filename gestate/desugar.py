@@ -101,23 +101,19 @@ class DesugarError(Exception):
 def _lift_spine(val):
     """`(head, args)` if `val` is a `!`-marked application, else `None`.
 
-    `!` binds to the head — `!f x y` reads as `(!f) x y` — and the marker
-    is found by walking the application spine down to its head, exactly
-    where a reader sees it.  `!(f x y)` says the same thing with the
-    parentheses an eye may prefer, and arrives here as a marker whose
-    operand is already the spine.
+    `!` binds to the head — the parser takes one atom for it, so `!f x y`
+    arrives as `(!f) x y` — and the marker is found by walking the
+    application spine down to its head, exactly where a reader sees it.
+    The marker's own operand is **one value and stays one value**:
+    `!(f x)` is the constant signal of the *computed value* `f x`, and
+    `!(f x) y` lifts that computed function over `y`.  One rule serves
+    every spelling — the marker takes the next atom, and the application
+    around it supplies the lifted arguments.
 
-    **The parentheses cannot mean anything else**, and it is worth being
-    plain about why: application is folded into an atom before fixity
-    resolution runs, so `!f x` and `!(f x)` are one and the same tree by
-    the time anything can look — the unwind below serves both spellings
-    at once, and there is no second reading left for the parenthesised
-    one to carry.  The reading people reach for — "make this *computed
-    value* a constant signal" — is therefore spelled `constSig (f x)`,
-    which is the same node `!x` builds and takes any expression.  (An
-    operator operand — `!(a * b)` — is not an application spine, walks
-    zero steps, and so *is* that constant; the asymmetry is the parse,
-    not a policy.)
+    (It was not always so: the marker used to be resolved after
+    application folding, which made `!(f x)` and `!f x` the same tree
+    and the parenthesised constant unwritable — the history is in
+    `spec/exclamation.md`.)
     """
     args = []
     node = val
@@ -126,12 +122,7 @@ def _lift_spine(val):
         node = node.fn
     if not (isinstance(node, VPrefix) and node.op == "!"):
         return None
-    inner = node.arg
-    # `!(f x y)`: the parenthesised application is the operand.
-    while isinstance(inner, VApp):
-        args.append(inner.arg)
-        inner = inner.fn
-    return inner, list(reversed(args))
+    return node.arg, list(reversed(args))
 
 
 def _desugar_lift(lifted, locals_, cons, using_map, aliases) -> Expr:

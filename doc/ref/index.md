@@ -42,7 +42,7 @@ Optional, and recognised wherever they make sense:
 | name | type | in scope when |
 |---|---|---|
 | `sampleRate` | `Float` | any audio or canvas program |
-| `constSig` | `a -> Sig a` | any reactive program — `!x` with no arguments is this |
+| `constSig` | `a -> Sig a` | **internal** — write `!x`, or `!(f x)` for a computed value |
 | `beat` | `Sig Float` | a **scored** synth only |
 
 `beat` is what time it is in beats, at audio rate — `sine (5.0 + beat)` rises a hertz a beat.  It is the renderer's because it reads the piece's own `bpm`, and a synth with no piece has no tempo to answer with: naming it there is `Unknown global 'beat'`, which is the truth.  `music.ges`'s `ticksPerBeat` is the layout resolution and a different thing.

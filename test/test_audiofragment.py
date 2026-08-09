@@ -539,15 +539,17 @@ sound : Sig Float
 sound = sine 440.0 * (0.5 + wiggle * 0.25)
 """
 
-#: The same signal, with every lift written out.  What `LIFTED` has to mean.
+#: The same signal, with every lift written out — including the constants,
+#: which are the `map` over the clock that `!v` abbreviates.  What `LIFTED`
+#: has to mean.
 UNLIFTED = """wiggle : Sig Float
 wiggle = sine 3.0
 
 depth : Sig Float
-depth = zip (x y => x * y) wiggle (constSig 0.25)
+depth = zip (x y => x * y) wiggle (map (n => 0.25) ticks)
 
 amount : Sig Float
-amount = zip (x y => x + y) (constSig 0.5) depth
+amount = zip (x y => x + y) (map (n => 0.5) ticks) depth
 
 sound : Sig Float
 sound = zip (x y => x * y) (sine 440.0) amount
@@ -668,13 +670,11 @@ def _run(source: str, samples: int = 300, rate: int = 8000) -> list:
 def test_a_lift_with_no_arguments_is_a_constant_signal():
     """`!x` is applicative `pure`."""
     assert _run("sound : Sig Float\nsound = !0.25\n", 4) == [0.25] * 4
-    assert _run("sound : Sig Float\nsound = !0.25\n", 4) == \
-        _run("sound : Sig Float\nsound = constSig 0.25\n", 4)
 
 
 def test_a_lift_over_one_signal_is_a_map():
     source = ("hzOf : Int -> Float\nhzOf k = keyHz k\n"
-              "\npitch : Sig Int\npitch = constSig 60\n"
+              "\npitch : Sig Int\npitch = !60\n"
               "\nsound : Sig Float\nsound = {}\n")
     assert _run(source.format("sine (!hzOf pitch)")) == \
         _run(source.format("sine (map hzOf pitch)"))
@@ -715,35 +715,44 @@ def test_a_lift_over_three_signals_pairs_them_up():
     assert any(x != 0.0 for x in got), "silent"
 
 
-def test_the_marker_may_take_the_parenthesised_application():
-    """`!(f x y)` and `!f x y` are the same lift — necessarily.
+def test_the_marker_takes_one_atom():
+    """`!(f x)` is the constant signal of the *computed value* `f x`.
 
-    Application folds into an atom before fixity resolution, so the two
-    spellings are one tree by the time anything can look; the parentheses
-    *cannot* carry a second meaning.  The guides both reached for one
-    anyway — "make this computed value a constant signal" — and the test
-    below this one is that reading's real spelling.
-    """
-    source = ("blend : Float -> Float -> Float\n"
-              "blend a b = a * 0.5 + b * 0.5\n"
-              "\nsound : Sig Float\nsound = {}\n")
-    assert _run(source.format("!(blend (sine 440.0) (sine 660.0))")) == \
-        _run(source.format("!blend (sine 440.0) (sine 660.0)"))
-
-
-def test_a_computed_constant_is_spelled_constSig():
-    """`constSig (f x)` — the constant signal of a *computed* value.
-
-    `!x` builds exactly this node, but `!` on a parenthesised application
-    is the lift above, so the applied form needs the name written out.
-    Both guides tripped over this; `doc/ref/language.md` now says it where
-    `!` is documented.
+    The marker binds the next atom — the parser takes it before folding
+    the application — so parentheses distinguish `!f x` (lift `f` over
+    the signal `x`) from `!(f x)` (a constant, `f` applied once at Float).
+    Both guides reached for exactly this reading and the old parse could
+    not express it; `spec/exclamation.md` has the history.
     """
     source = ("half : Float -> Float\n"
               "half x = x * 0.5\n"
               "\nsound : Sig Float\nsound = {}\n")
-    assert _run(source.format("sine (constSig (half 880.0))")) == \
+    assert _run(source.format("sine !(half 880.0)")) == \
         _run(source.format("sine 440.0"))
+
+
+def test_the_marker_lifts_a_computed_head():
+    """`!(f x) y` is `map (f x) y` — the fragment's refusal is the proof.
+
+    One rule serves every spelling: `!` takes the next atom as the head,
+    and the application around the marker supplies the lifted arguments.
+    A *computed* head is a closure, and the static fragment refuses a
+    closure however it is spelled — so the marker spelling and the `map`
+    written out must draw the identical refusal, which is the strongest
+    statement available that they are one program.
+    """
+    source = ("scaleBy : Float -> Float -> Float\n"
+              "scaleBy k x = k * x\n"
+              "\nsound : Sig Float\nsound = {}\n")
+    ours = check(source.format("!(scaleBy 0.5) (sine 440.0)"), rate=8000)
+    hand = check(source.format("map (scaleBy 0.5) (sine 440.0)"), rate=8000)
+    assert not ours and not hand, "a computed head is a closure"
+    # The one difference is the former's *name* — `!` reaches `mapSig`
+    # directly where `map` goes through its `Functor` instance — and the
+    # name is the desugaring showing through, so it is asserted too.
+    assert [e.split("step function")[1] for e in ours.errors] == \
+        [e.split("step function")[1] for e in hand.errors]
+    assert any("`mapSig`" in e for e in ours.errors)
 
 
 def test_a_signal_of_functions_is_refused():

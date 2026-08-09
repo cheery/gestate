@@ -4228,3 +4228,33 @@ in the Python *around* the engine and none in the language, the fragment or
 code generation.  That half is checked sample-for-sample and turned up
 almost nothing; this half has no oracle, and four of the nine were silent —
 the synth played and every indicator said it worked.
+
+### `!` binds one atom, and `constSig` goes inside
+
+`!(f x)` used to be the same lift as `!f x`, and the codebase asserted the
+conflation was *necessary* — "application folds into an atom before fixity
+resolution, so the two spellings are one tree by the time anything can
+look."  That was true of the routing and false of the grammar, and the
+counterexample was already in the parser: in argument position `g !f x`
+binds the marker to one atom (`_PREFIX_ONLY_OPS`).  Doing the same at head
+position (`parse._marks_head`) separates the trees with no paren node
+anywhere — the parentheses carry no meaning of their own, they change which
+atom follows the marker, exactly as they change which atom follows `f` in
+`f (g x)`.  `spec/exclamation.md` walks the whole argument.
+
+The rule is now uniform: **`!` takes the next atom as the head, and the
+application around it supplies the lifted arguments.**  `!x` and `!f x y`
+mean what they meant; `!(f x)` is the constant signal of the computed value
+— the reading both guides wrote and the old parse silently turned into a
+lift; `!(f x) y` lifts a computed head, and the fragment refuses it for the
+closure it is, with the same message the hand-written `map` draws.  The old
+sharp edge — `!(a * b)` a constant but `!(f x)` a lift — is simply gone.
+
+With the parenthesised constant writable, `constSig` had no job left in a
+program, so it is the renderer's machinery now in the enforced sense:
+`internals.RENDERER_PRIVATE`, refused from author text with "reach for `!`
+instead".  The renderer still defines it — it is the node the marker
+builds, over whichever clock is running — and the `Floating`/`Num`
+instances still build on it.  Every `constSig` in `examples/` and the
+tests now spells its constant with the marker, and the one test that
+enshrined the old necessity is replaced by two that state the new rule.

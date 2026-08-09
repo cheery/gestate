@@ -142,8 +142,8 @@ pair hz = saw (spread 1.0 hz) + saw (spread (0.0 - 1.0) hz)
 
 drone : Sig Float
 drone = lowpassSvf droneCutoff 0.18
-          (pair (constSig 55.0) + pair (constSig 82.5) * 0.7
-             + sine (constSig 27.5) * 0.9)
+          (pair (!55.0) + pair (!82.5) * 0.7
+             + sine (!27.5) * 0.9)
       * droneLevel
 
 # ── The rain ─────────────────────────────────────────────────────────────
@@ -154,8 +154,8 @@ drone = lowpassSvf droneCutoff 0.18
 # thing, and struck things are what rain on a roof is.
 
 drops : Sig Float
-drops = resonate (constSig 2600.0) 0.09 (dust 7 rainRate) * 0.5
-      + resonate (constSig 5400.0) 0.06 (dust 13 (rainRate * 0.4)) * 0.3
+drops = resonate (!2600.0) 0.09 (dust 7 rainRate) * 0.5
+      + resonate (!5400.0) 0.06 (dust 13 (rainRate * 0.4)) * 0.3
 
 # ── The bells ────────────────────────────────────────────────────────────
 #
@@ -163,9 +163,9 @@ drops = resonate (constSig 2600.0) 0.09 (dust 7 rainRate) * 0.5
 # dust, so they ring together and never quite land on a chord.
 
 bells : Sig Float
-bells = ( resonate (constSig 330.0) 2.0 (dust 5 (constSig 0.55)) * 1.0
-        + resonate (constSig 494.0) 1.6 (dust 9 (constSig 0.40)) * 0.8
-        + resonate (constSig 742.0) 1.3 (dust 17 (constSig 0.28)) * 0.5 )
+bells = ( resonate (!330.0) 2.0 (dust 5 (!0.55)) * 1.0
+        + resonate (!494.0) 1.6 (dust 9 (!0.40)) * 0.8
+        + resonate (!742.0) 1.3 (dust 17 (!0.28)) * 0.5 )
       * bellLevel
 
 # ── The scenery ──────────────────────────────────────────────────────────

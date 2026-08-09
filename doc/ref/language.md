@@ -116,9 +116,7 @@ The next instant at which a signal holds a `Just`.  A signal turned back into an
 (!) : (a -> … -> z) -> Sig a -> … -> Sig z
 ```
 
-Where an ordinary function meets signals.  `!f x y z` pairs its arguments up through `Both` and takes them apart again, so it lifts over **any number** of them — there is no three-signal former and none is needed.
-
-**`!(f x)` is the same lift as `!f x`, not a constant** — application folds into an atom before fixity resolution, so the two spellings are one tree and the parentheses cannot carry a second meaning.  The reading people reach for — *make this computed value a constant signal* — is spelled `constSig (f x)`: the same node `!x` builds, taking any expression.  (`!(a * b)` **is** that constant, because an operator expression is not an application spine; the asymmetry is the parse, not a policy.)
+Where an ordinary function meets signals.  `!f x y z` pairs its arguments up through `Both` and takes them apart again, so it lifts over **any number** of them — there is no three-signal former and none is needed.  The marker binds the **next atom** and the application around it supplies the lifted arguments, so parentheses read the way an eye expects: `!f x` lifts `f` over the signal `x`; `!(f x)` is the constant signal of the computed value `f x`; `!(f x) y` lifts the computed function `f x` over `y`; `!x` alone is the constant signal of `x`.
 
 ## The renderer's own
 
@@ -144,7 +142,7 @@ How many instants there are in a second.  The *renderer's* answer, not the progr
 constSig : a -> Sig a
 ```
 
-The same value at every instant.  What it is constant *over* is whichever clock is running — `ticks` for a synth, the event stream for a canvas — which is why the renderer supplies it and no library can.
+The same value at every instant.  What it is constant *over* is whichever clock is running — `ticks` for a synth, the event stream for a canvas — which is why the renderer supplies it and no library can.  **Internal**: it is the node `!` builds, and the marker is the spelling — `!x`, or `!(f x)` for a computed value.  A program that names it is refused, the way a library's own machinery is.
 
 ### `beat`
 

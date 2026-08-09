@@ -686,6 +686,11 @@ class Parser:
         """Parse a segment: prefix_ops* (lambda | app_expr) postfix_ops*."""
         prefix_ops: list[str] = []
         while self._cur and self._is_prefix_op(self._cur):
+            # `!` binds the *next atom*, not the segment — stop collecting
+            # and let `_parse_app_expr` take it as the head, so `!f x` is
+            # `(!f) x` and `!(f x)` keeps its parentheses in the tree.
+            if self._marks_head(self._cur):
+                break
             prefix_ops.append(self._adv().value)
 
         # Try to parse a lambda: `pat+ => body`
@@ -773,7 +778,18 @@ class Parser:
         Multiple consecutive atoms form left-nested application.
         Projections (`.0`, `.field`) bind tightly to the preceding atom.
         """
-        val = self._parse_projections(self._parse_atom())
+        if self._cur is not None and self._marks_head(self._cur):
+            # `!f x` — the marker takes one atom, the head, exactly as it
+            # does in argument position below.  The application it heads
+            # is then folded by this loop like any other, so `!f x` and
+            # `!(f x)` are *different* trees: the first lifts `f` over
+            # `x`, the second is the constant signal of `f x`.
+            op = self._adv()
+            inner = self._parse_projections(self._parse_atom())
+            val: Val = VOpPhrase([op.value, inner],
+                                 Span(op.pos, inner.span.end))
+        else:
+            val = self._parse_projections(self._parse_atom())
         while self._cur:
             if self._can_start_atom(self._cur):
                 arg = self._parse_projections(self._parse_atom())
@@ -795,6 +811,21 @@ class Parser:
         """Is the parser looking at `'x` where an argument may stand?"""
         t = self._cur
         if t is None or t.kind != TT.SYMBOL or t.value not in _PREFIX_ONLY_OPS:
+            return False
+        nxt = self._ts[self._i + 1] if self._i + 1 < len(self._ts) else None
+        return nxt is not None and self._can_start_atom(nxt)
+
+    def _marks_head(self, t: T) -> bool:
+        """Is `t` a `!` about to mark the head of an application?
+
+        Only `!` — `'` and `|<` keep their phrase behaviour.  The marker
+        binding one atom is what lets parentheses distinguish `!f x`
+        (lift `f` over `x`) from `!(f x)` (the constant signal of the
+        value `f x`): the parens are not recorded anywhere, they simply
+        change which atom follows the marker, the same way they change
+        which atom follows `f` in `f (g x)`.
+        """
+        if t.kind != TT.SYMBOL or t.value != "!":
             return False
         nxt = self._ts[self._i + 1] if self._i + 1 < len(self._ts) else None
         return nxt is not None and self._can_start_atom(nxt)

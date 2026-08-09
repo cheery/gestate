@@ -163,6 +163,16 @@ names apply to it exactly once.
 declares a fixity for it is **rejected** rather than silently ignored.
 `~>` goes with it: both are type syntax rather than expression operators.
 
+`!` — the signal lift — is not in the table below because it is grammar
+rather than a declarable operator: the parser binds it to the **next
+atom**, in head position and argument position alike, and the
+application around it supplies the lifted arguments.  So `!f x` lifts
+`f` over `x`, `!(f x)` is the constant signal of the computed value
+`f x`, and `!(f x) y` lifts the computed head — the parentheses mean
+nothing in themselves; they change which atom follows the marker.
+`spec/exclamation.md` records why this is parsed in the grammar and not
+resolved by fixity.
+
 | Fixity       | Op       | Meaning                                |
 |--------------|----------|----------------------------------------|
 | `infixr 5`   | `::`     | list cons                              |

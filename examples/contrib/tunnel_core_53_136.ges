@@ -350,7 +350,7 @@ bassFilt : Adsr
 bassFilt = Adsr 0.002 0.13 0.30 0.09
 
 morph : Sig Float -> Sig Float
-morph hz = bimix (saw hz) (square hz) (sine (constSig 0.17))
+morph hz = bimix (saw hz) (square hz) (sine (!0.17))
 
 lowTone : Sig Gate -> Sig Stroke -> Sig Float
 lowTone g s = lowpassLadder (sweep 85.0 1900.0 (adsr bassFilt g)) 0.28
@@ -463,25 +463,25 @@ kick : Sig Gate -> Sig Float
 kick g = sine (45.0 + 125.0 * perc 34.0 g) * perc 7.0 g
 
 snare : Sig Gate -> Sig Float
-snare g = (bandpassSvf (constSig 1850.0) 0.42 hiss
-             + sine (constSig 190.0) * 0.30)
+snare g = (bandpassSvf (!1850.0) 0.42 hiss
+             + sine (!190.0) * 0.30)
         * perc 14.0 g * 0.45
 
 clap : Sig Gate -> Sig Float
-clap g = bandpassSvf (constSig 1400.0) 0.55 hiss * perc 20.0 g * 0.48
+clap g = bandpassSvf (!1400.0) 0.55 hiss * perc 20.0 g * 0.48
 
 closedHat : Sig Gate -> Sig Float
-closedHat g = highpassSvf (constSig 7600.0) 0.18 hiss * perc 55.0 g * 0.50
+closedHat g = highpassSvf (!7600.0) 0.18 hiss * perc 55.0 g * 0.50
 
 openHat : Sig Gate -> Sig Float
-openHat g = highpassSvf (constSig 7600.0) 0.18 hiss * perc 10.0 g * 0.42
+openHat g = highpassSvf (!7600.0) 0.18 hiss * perc 10.0 g * 0.42
 
 drumTone : Sig Gate -> Sig Stroke -> Sig Float
-drumTone g s = kick g * !isKey (constSig 36) s
-             + snare g * !isKey (constSig 38) s
-             + clap g * !isKey (constSig 39) s
-             + closedHat g * !isKey (constSig 42) s
-             + openHat g * !isKey (constSig 46) s
+drumTone g s = kick g * !isKey (!36) s
+             + snare g * !isKey (!38) s
+             + clap g * !isKey (!39) s
+             + closedHat g * !isKey (!42) s
+             + openHat g * !isKey (!46) s
 
 # ── MIDI-instrumenttimoduulit ───────────────────────────────────────────
 #
@@ -596,10 +596,10 @@ bpm = 136
 # between about 300 and 1100 samples on a slow sine.  That is a chorus
 # written out: the read head moving *is* the effect.
 tunnelHz : Sig Float
-tunnelHz = constSig 118.0
+tunnelHz = !118.0
 
 drift : Sig Float
-drift = map (v => 700.0 + 400.0 * v) (sine (constSig 0.13))
+drift = map (v => 700.0 + 400.0 * v) (sine (!0.13))
 
 sound : Sig Float
 sound = brickwall 0.92

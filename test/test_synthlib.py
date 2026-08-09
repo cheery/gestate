@@ -959,9 +959,9 @@ def test_the_expression_voice_is_in_the_fragment():
 
 
 def test_an_oscillator_that_follows_a_signal_is_the_one_that_does_not():
-    """`sine (constSig hz)` is `sine hz`, sample for sample."""
+    """`sine (!hz)` is `sine hz`, sample for sample."""
     fixed = _render("sound : Sig Float\nsound = sine 440.0\n", 0.05)
-    followed = _render("hz : Sig Float\nhz = constSig 440.0\n"
+    followed = _render("hz : Sig Float\nhz = !440.0\n"
                        "\nsound : Sig Float\nsound = sine hz\n", 0.05)
     assert fixed == followed
     assert max(fixed) == pytest.approx(1.0, abs=0.01)

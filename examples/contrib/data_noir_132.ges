@@ -523,29 +523,29 @@ kick g = sine (46.0 + 119.0 * perc 30.0 g) * perc 6.5 g
 #: 38 — a band of noise with a little tuned body under it, which is what
 #: tells a snare from a clap.
 snare : Sig Gate -> Sig Float
-snare g = (bandpassSvf (constSig 1900.0) 0.45 hiss * 0.8
-             + sine (constSig 185.0) * 0.35)
+snare g = (bandpassSvf (!1900.0) 0.45 hiss * 0.8
+             + sine (!185.0) * 0.35)
         * perc 15.0 g * 0.5
 
 #: 39 — lower and drier than the snare, and no tone at all.
 clap : Sig Gate -> Sig Float
-clap g = bandpassSvf (constSig 1450.0) 0.55 hiss * perc 22.0 g * 0.5
+clap g = bandpassSvf (!1450.0) 0.55 hiss * perc 22.0 g * 0.5
 
 #: The two hats are the same filter and differ only in how long they ring,
 #: which is what a pedal does to a real one.  **Quiet**: a sixteenth-note
 #: hat pattern sounds thirty-two times a bar against four kicks, so a hat
 #: at the kick's level is all anybody hears.
 closedHat : Sig Gate -> Sig Float
-closedHat g = highpassSvf (constSig 7400.0) 0.18 hiss * perc 55.0 g * 0.26
+closedHat g = highpassSvf (!7400.0) 0.18 hiss * perc 55.0 g * 0.26
 
 openHat : Sig Gate -> Sig Float
-openHat g = highpassSvf (constSig 7400.0) 0.18 hiss * perc 11.0 g * 0.22
+openHat g = highpassSvf (!7400.0) 0.18 hiss * perc 11.0 g * 0.22
 
 #: 51 — lower and longer than a hat, and washier rather than pingy.  The
 #: resonator that used to be here was the "kling": a high `resonate` on
 #: noise is a struck metal bar, not a ride cymbal.
 ride : Sig Gate -> Sig Float
-ride g = highpassSvf (constSig 5200.0) 0.15 hiss * perc 5.0 g * 0.20
+ride g = highpassSvf (!5200.0) 0.15 hiss * perc 5.0 g * 0.20
 
 #: `constSig 36` and not a bare `36`: `!` lifts **every** argument it is
 #: given, so a literal beside a signal would have to be a `Sig Int` — and
@@ -553,12 +553,12 @@ ride g = highpassSvf (constSig 5200.0) 0.15 hiss * perc 5.0 g * 0.20
 #: sounds does not have.  Naming the constant signal says the same thing
 #: and asks for nothing.
 drumVoice : Sig Gate -> Sig Stroke -> Sig Float
-drumVoice g s = kick g * !isKey (constSig 36) s
-              + snare g * !isKey (constSig 38) s
-              + clap g * (!isKey (constSig 39) s + !isKey (constSig 40) s)
-              + closedHat g * !isKey (constSig 42) s
-              + openHat g * !isKey (constSig 46) s
-              + ride g * !isKey (constSig 51) s
+drumVoice g s = kick g * !isKey (!36) s
+              + snare g * !isKey (!38) s
+              + clap g * (!isKey (!39) s + !isKey (!40) s)
+              + closedHat g * !isKey (!42) s
+              + openHat g * !isKey (!46) s
+              + ride g * !isKey (!51) s
 
 # ── Instrumenttikerrokset ──────────────────────────────────────────────
 #

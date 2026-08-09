@@ -77,10 +77,13 @@ DEFAULT_PREFIX: dict[str, int] = {
     "-":    7,
     "|<":   6,
     "'":    9,
-    #: `!f x y` — lift an application over signals.  At 9 it binds to the
-    #: head alone, so the marker takes the *whole* application by being
-    #: read back off the spine in `desugar`; `!(f x y)` says the same thing
-    #: with the parentheses an eye may prefer.
+    #: `!f x y` — lift an application over signals.  The parser itself
+    #: binds `!` to the next atom (`parse._marks_head`), so the marker
+    #: heads the spine and `desugar` reads the lifted arguments back off
+    #: it; `!(f x)` keeps its parentheses in the tree and is the constant
+    #: signal of the computed value.  The entry here still matters: it
+    #: keeps `!` in `_PREFIX_ONLY_OPS` for argument position (`g !x`),
+    #: and resolves the marker phrase itself (`['!', atom]`) to `VPrefix`.
     "!":    9,
 }
 
@@ -108,8 +111,11 @@ RIGHT_PREC: dict[str, int] = {
 }
 
 #: Operators whose fixity a program may not declare.  `syntax.md` names
-#: `->`; `~>` is the same form of type syntax and goes with it.
-_UNOVERRIDABLE = frozenset({"->", "~>"})
+#: `->`; `~>` is the same form of type syntax and goes with it.  `!` is
+#: grammar: the *parser* binds it to the next atom (`parse._marks_head`)
+#: and `desugar` matches it by name, so a declared fixity could only
+#: contradict the two of them.
+_UNOVERRIDABLE = frozenset({"->", "~>", "!"})
 
 # ── Fixity table ─────────────────────────────────────────────────────────────
 
@@ -127,9 +133,12 @@ def _build_fixity_table(module: VModule) -> dict[str, tuple[str, int]]:
             # rather than ignored: ignoring a declaration the user wrote is
             # its own surprise.
             if item.op in _UNOVERRIDABLE:
+                what = ("the signal lift, parsed in the grammar"
+                        if item.op == "!" else
+                        "type syntax, not an expression operator")
                 raise FixityError(
                     f"`{item.op}` has a fixed fixity and cannot be given "
-                    f"one: it is type syntax, not an expression operator"
+                    f"one: it is {what}"
                 )
             assoc_char = {"infixl": "L", "infixr": "R", "infix": "N",
                           "prefix": "P", "postfix": "O"}.get(item.mode, "L")
