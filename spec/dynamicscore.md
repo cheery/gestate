@@ -178,3 +178,36 @@ same rule at more instants — each draw from the renderer is a
 recorded event — and the default should be the coarse one: seed at
 the top, walk the PRNG, because one number replaying a whole night is
 the property worth defending.
+
+**And the parting question: does "seek and perform" change the score
+format?**  Stage one, no: the events are beat-sorted, position is a
+bisect, and the state at bar 33 is a *silent replay* of the allocator
+over what came before — exactly the work `into_schedule` did at bake
+time, now done on demand in microseconds; the parity gains a clause,
+*seek-then-perform equals `value_at`*.  Stage two, yes — but the
+change is a refusal: an unforced infinite list cannot be bisected,
+and the repair is not a cleverer flat format, it is **keeping the
+layout tree the flattening threw away**.  `++` and `||` already carry
+duration algebra (`duration_of` is it); a tree annotated with its
+spans seeks by *descent*, forcing only the branch holding the target
+— and splittable seeds, one per section instead of one PRNG walked
+end to end, make even an `unfold` jumpable without walking.  Seek is
+about the time, and the tree already keeps it.
+
+**And the envelopes — the half that already seeks.**  Stage 10 made
+every envelope *arithmetic on the instant* (`adsrOf` carries no
+state; `on` is random access in time), so the performer's seek
+problem is only ever about discrete decisions — the continuous
+material evaluates at whatever bar the clock lands on, free.  They
+also point at what a performance delivers beyond notes: the `Gate`
+trick — values name the instants, voices do the arithmetic — extends
+to a **note of automation**: a fixed-size segment (from-beat,
+to-beat, from, to, curve) delivered on a channel and evaluated
+against `beat`, giving sample-accurate crescendos across bars from
+control-rate delivery.  Fixed segments deliberately, not
+`List Envelope`: runtime-delivered lists cannot ride `envexpand`'s
+compile-time rewrite, and a segment chains the way notes chain.  And
+dynamics over a *span* — a crescendo across a section — is an
+annotation on exactly the layout subtree the seek design keeps: the
+tree holds the time, the envelopes hold its shape, and a seek
+descends past both together.
