@@ -178,6 +178,49 @@ def _note_event(type_: int, key: int, velocity: float):
     return events, (ev, size_cb, get_cb)
 
 
+def _event_list(*events):
+    """A host event list over any mix of already-built event structs."""
+    kept = list(events)
+    size_cb = ctypes.CFUNCTYPE(c_uint32, c_void_p)(
+        lambda _ctx: len(kept))
+    get_cb = ctypes.CFUNCTYPE(c_void_p, c_void_p, c_uint32)(
+        lambda _ctx, i: ctypes.cast(ctypes.pointer(kept[i]),
+                                    c_void_p).value)
+    return InputEvents(ctx=None, size=size_cb, get=get_cb), \
+        (kept, size_cb, get_cb)
+
+
+def _note_struct(type_: int, key: int, velocity: float) -> NoteEvent:
+    ev = NoteEvent()
+    ev.header.size = ctypes.sizeof(NoteEvent)
+    ev.header.time = 0
+    ev.header.space_id = 0
+    ev.header.type_ = type_
+    ev.header.flags = 0
+    ev.note_id = -1
+    ev.port_index = 0
+    ev.channel = 0
+    ev.key = key
+    ev.velocity = velocity
+    return ev
+
+
+def _param_struct(param_id: int, value: float) -> "ParamValueEvent":
+    ev = ParamValueEvent()
+    ev.header.size = ctypes.sizeof(ParamValueEvent)
+    ev.header.time = 0
+    ev.header.space_id = 0
+    ev.header.type_ = 5
+    ev.header.flags = 0
+    ev.param_id = param_id
+    ev.note_id = -1
+    ev.port_index = -1
+    ev.channel = -1
+    ev.key = -1
+    ev.value = value
+    return ev
+
+
 def _one_event(param_id: int, value: float):
     """A host's event list holding a single PARAM_VALUE."""
     ev = ParamValueEvent()
@@ -529,4 +572,112 @@ def test_a_played_note_is_the_scheduled_note(tmp_path):
     assert plugin.process(plug_raw, ctypes.byref(proc)) == 1
     assert max(abs(x) for x in buf) > 0.05, \
         "an instrument refused a note because the timeline was stopped"
+    plugin.destroy(plug_raw)
+
+
+@needs_toolchain
+def test_the_routing_matrix_layers_banks(tmp_path):
+    """`duet.ges` exported: channel 1 plays `lead` by default, and
+    ticking the `bass ch1` checkbox layers both banks on one key.
+
+    The matrix is parameters — one stepped 0/1 per (bank × channel),
+    module `routing`, defaulted to the diagonal that is
+    `audiomidi.by_midi_channel`'s own rule — so every DAW's generic
+    parameter view *is* the checkbox matrix.  Parity as ever: the
+    routed notes must equal the same notes through Python's own
+    allocators, one per bank, sample for sample.
+    """
+    from gestate.audio import assemble
+    from gestate.audioalloc import Allocator, into_schedule
+    from gestate.audiollvm import run_native
+    from gestate.audiomidi import FromMidi
+    from gestate.audioperform import graph_of, has_score
+    from gestate.audioschedule import Schedule
+    from gestate.audioscore import assemble_performance
+    from gestate.audiovoices import banks_of, channels_of
+    from gestate.export import export_clap
+    from gestate.pipeline import compile as _compile
+
+    source = (Path(__file__).resolve().parent.parent
+              / "examples" / "audio" / "duet.ges").read_text()
+    out = tmp_path / "duet.clap"
+    export_clap(source, out, rate=RATE, name="duet")
+
+    lib, plug_raw, plugin = _plugin_of(out)
+    assert plugin.init(plug_raw)
+    raw = plugin.get_extension(plug_raw, b"clap.params")
+    params = ctypes.cast(raw, POINTER(Params)).contents
+
+    cells = {}
+    for i in range(params.count(plug_raw)):
+        info = ParamInfo()
+        assert params.get_info(plug_raw, i, ctypes.byref(info))
+        if info.module == b"routing":
+            cells[info.name.decode()] = info
+    assert {"lead ch1", "bass ch2"} <= set(cells), sorted(cells)[:4]
+    assert len(cells) == 32, "two banks, sixteen channels each"
+    assert cells["lead ch1"].default_value == 1.0, "the diagonal"
+    assert cells["bass ch1"].default_value == 0.0
+
+    assert plugin.activate(plug_raw, float(RATE), 32, 512)
+    assert plugin.start_processing(plug_raw)
+
+    frames, key, vel127 = 128, 60, 103
+    buf = (c_float * frames)()
+    chans = (POINTER(c_float) * 1)(ctypes.cast(buf, POINTER(c_float)))
+    port = AudioBuffer(data32=chans, data64=None, channel_count=1,
+                       latency=0, constant_mask=0)
+
+    def block(*evs) -> list:
+        events, kept = _event_list(*evs) if evs else (None, None)
+        proc = Process(steady_time=0, frames_count=frames, transport=None,
+                       audio_inputs=None,
+                       audio_outputs=ctypes.pointer(port),
+                       audio_inputs_count=0, audio_outputs_count=1,
+                       in_events=ctypes.cast(ctypes.pointer(events),
+                                             c_void_p) if evs else None,
+                       out_events=None)
+        assert plugin.process(plug_raw, ctypes.byref(proc)) == 1
+        return list(buf)
+
+    velocity = vel127 / 127.0
+    played = (
+        block(_note_struct(0, key, velocity))            # lead only
+        + block(_note_struct(1, key, 0.0))
+        + block(_param_struct(cells["bass ch1"].id, 1.0),  # tick the box,
+                _note_struct(0, key, velocity))            # layer both
+        + block(_note_struct(1, key, 0.0))
+        + block())
+
+    graph = graph_of(source, "", rate=RATE)
+    banks = banks_of(source)
+    allocators = {b.name: Allocator(channels_of(source, b),
+                                    policy="oldest") for b in banks}
+    assembled = (assemble_performance(source, "", RATE)
+                 if has_score(source) else assemble(source, RATE))
+    fm = FromMidi(_compile(assembled), [b.name for b in banks])
+    schedule = Schedule()
+
+    def strike(names, on_at):
+        for name in names:
+            payload = fm.payload_for(name, 0, key, vel127)
+            assert payload is not None
+            into_schedule(schedule,
+                          allocators[name].note_on((0, key), payload,
+                                                   on_at),
+                          on_at, frames)
+            into_schedule(schedule,
+                          allocators[name].note_off((0, key),
+                                                    on_at + frames),
+                          on_at + frames, frames)
+
+    strike(["lead"], 0)
+    strike(["lead", "bass"], 2 * frames)
+    with tempfile.TemporaryDirectory() as d:
+        offline = list(run_native(graph, d, 5 * frames, block=frames,
+                                  control=schedule.control_for(graph)))
+
+    assert played == pytest.approx(offline), \
+        "the routed notes are not the allocated notes"
+    assert max(abs(x) for x in offline) > 0.05, "silent: nothing compared"
     plugin.destroy(plug_raw)

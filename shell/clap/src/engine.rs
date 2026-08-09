@@ -78,6 +78,7 @@ impl Control {
 /// `offAt`, then the author's payload fields — `audioalloc`'s layout,
 /// resolved to control-buffer positions at export.
 pub struct Bank {
+    pub name: &'static str,
     pub voices: &'static [&'static [usize]],
     /// `None`: the structural payload the live path defaults to —
     /// `(key, velocity)` truncated to the field count.  `Some`: the
@@ -132,10 +133,10 @@ pub static DESCRIPTOR: Option<&Descriptor> = Some(&linked::DESCRIPTOR);
 pub static DESCRIPTOR: Option<&Descriptor> = None;
 
 #[cfg(feature = "engine")]
-pub static BANK: Option<&Bank> = linked::BANK;
+pub static BANKS: &[Bank] = linked::BANKS;
 
 #[cfg(not(feature = "engine"))]
-pub static BANK: Option<&Bank> = None;
+pub static BANKS: &[Bank] = &[];
 
 /// The render call, with the no-engine build honest about itself: a
 /// shell with no graph linked writes silence and could never be asked

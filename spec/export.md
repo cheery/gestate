@@ -54,9 +54,18 @@ own sample.  The parity is the strictest yet: a NOTE_ON through the
 plugin's port equals the same note through Python's allocator and
 schedule, sample for sample (`test_a_played_note_is_the_scheduled_note`)
 — both halves are second implementations, which is where bugs live,
-so both are held to the first.  Still to come: `clap.state` save/load
-as a `State` snapshot; more than one compiled rate; the velocity
-table's 32 levels, the day somebody hears them.*
+so both are held to the first.  **Every bank exports, routed by a
+matrix**: one stepped 0/1 parameter per (bank × MIDI channel), module
+`routing`, so a DAW's generic parameter view *is* the checkbox matrix
+— no GUI extension needed.  The default is the diagonal
+(`audiomidi.by_midi_channel`'s rule, channel *n* plays bank *n*), a
+ticked cell layers banks on one channel, releases search every bank
+so a matrix change mid-note cannot strand a voice, and the matrix
+survives the rewind (host belief, like the knobs).  Parity:
+`test_the_routing_matrix_layers_banks` holds the layered notes
+against one Python allocator per bank.  Still to come: `clap.state`
+save/load as a `State` snapshot; more than one compiled rate; the
+velocity table's 32 levels, the day somebody hears them.*
 
 Everything gestate produces is audible only to someone holding this
 repository, a Python, and an LLVM.  The synths cannot be handed to

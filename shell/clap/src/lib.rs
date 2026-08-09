@@ -52,12 +52,24 @@ struct Instance {
     /// is stamped from, `t + event.time`, so an onset is
     /// sample-accurate however late in the block it lands.
     t: i64,
-    voices: Vec<VoiceState>,
+    /// Per bank, per voice.
+    voices: Vec<Vec<VoiceState>>,
+    /// The routing matrix, one 16-bit row per bank: bit `c` set means
+    /// the bank listens on MIDI channel `c`.  Defaults to the
+    /// diagonal — channel *n* plays bank *n*, `audiomidi
+    /// .by_midi_channel`'s own rule — and every cell is a stepped
+    /// parameter, so the DAW's generic UI *is* the checkbox matrix.
+    routing: Vec<u16>,
+}
+
+fn default_routing() -> Vec<u16> {
+    (0..engine::BANKS.len())
+        .map(|b| if b < 16 { 1 << b } else { 0 })
+        .collect()
 }
 
 impl Instance {
     fn new(desc: &'static Descriptor) -> Self {
-        let voices = engine::BANK.map_or(0, |b| b.voices.len());
         Instance {
             desc,
             state: vec![0u8; desc.state_bytes],
@@ -65,7 +77,9 @@ impl Instance {
             scratch: Vec::new(),
             playing: false,
             t: 0,
-            voices: vec![FRESH_VOICE; voices],
+            voices: engine::BANKS.iter()
+                .map(|b| vec![FRESH_VOICE; b.voices.len()]).collect(),
+            routing: default_routing(),
         }
     }
 
@@ -78,7 +92,10 @@ impl Instance {
             *slot = c.init_bits;
         }
         self.t = 0;
-        self.voices.iter_mut().for_each(|v| *v = FRESH_VOICE);
+        self.voices.iter_mut()
+            .for_each(|bank| bank.iter_mut()
+                      .for_each(|v| *v = FRESH_VOICE));
+        self.routing = default_routing();
     }
 
     /// The transport's rewind: the piece restarts, the knobs stay.
@@ -86,7 +103,8 @@ impl Instance {
     /// Only non-knob slots reset — a knob's value is the *host's*
     /// belief (it drew the dial, it recorded the automation), and a
     /// plugin that quietly restored defaults on every play would
-    /// disagree with its own parameter display from then on.
+    /// disagree with its own parameter display from then on.  The
+    /// routing matrix is the host's belief too, and survives.
     fn rewind(&mut self) {
         self.state.iter_mut().for_each(|b| *b = 0);
         for (slot, c) in self.control.iter_mut().zip(self.desc.controls) {
@@ -95,15 +113,31 @@ impl Instance {
             }
         }
         self.t = 0;
-        self.voices.iter_mut().for_each(|v| *v = FRESH_VOICE);
+        self.voices.iter_mut()
+            .for_each(|bank| bank.iter_mut()
+                      .for_each(|v| *v = FRESH_VOICE));
     }
 
-    /// `Allocator.note_on`: pick a voice, stamp its channels.  `at` is
-    /// the note's own instant; `gateAt`/`offAt` are 1-based so an
+    /// `Allocator.note_on`, per routed bank: the routing matrix says
+    /// which banks hear channel `channel`, and each that does
+    /// allocates its own voice — two banks on one channel is a
+    /// layered patch, which is what a matrix buys over a selector.
+    fn note_on(&mut self, at: i64, channel: i16, key: i16, velocity: f64) {
+        let ch = channel.clamp(0, 15) as u16;
+        for b in 0..engine::BANKS.len() {
+            if self.routing[b] & (1 << ch) != 0 {
+                self.note_on_bank(b, at, channel, key, velocity);
+            }
+        }
+    }
+
+    /// One bank's `note_on`: pick a voice, stamp its channels.  `at`
+    /// is the note's own instant; `gateAt`/`offAt` are 1-based so an
     /// untouched bank reads as "never played" (`audioalloc`'s whole
     /// encoding).
-    fn note_on(&mut self, at: i64, channel: i16, key: i16, velocity: f64) {
-        let Some(bank) = engine::BANK else { return };
+    fn note_on_bank(&mut self, b: usize, at: i64, channel: i16, key: i16,
+                    velocity: f64) {
+        let bank = &engine::BANKS[b];
         let fields = bank.voices[0].len() - 2;
         let vel127 = (velocity * 127.0).round().clamp(0.0, 127.0) as i64;
 
@@ -130,19 +164,19 @@ impl Instance {
         }
 
         // Free voices, released-longest-ago first; else steal oldest.
-        let pick = self.voices.iter().enumerate()
+        let vs = &mut self.voices[b];
+        let pick = vs.iter().enumerate()
             .filter(|(_, v)| v.key.is_none())
             .min_by_key(|(i, v)| (v.released.unwrap_or(-1), *i))
             .map(|(i, _)| i)
             .unwrap_or_else(|| {
-                self.voices.iter().enumerate()
+                vs.iter().enumerate()
                     .min_by_key(|(i, v)| (v.started, *i))
                     .map(|(i, _)| i).unwrap()
             });
 
-        self.voices[pick] =
-            VoiceState { key: Some((channel, key)), started: at,
-                         released: None };
+        vs[pick] = VoiceState { key: Some((channel, key)), started: at,
+                                released: None };
         let chans = bank.voices[pick];
         self.control[chans[0]] = at + 1;
         self.control[chans[1]] = 0;
@@ -151,19 +185,22 @@ impl Instance {
         }
     }
 
-    /// `Allocator.note_off`: the oldest voice on this key releases; a
-    /// release for a key nothing plays is ordinary and is nothing.
+    /// `Allocator.note_off`, in **every** bank holding this key — not
+    /// only the routed ones, because the matrix may have changed while
+    /// the note was down, and a note that cannot be released is worse
+    /// than one that plays on the wrong bank.
     fn note_off(&mut self, at: i64, channel: i16, key: i16) {
-        let Some(bank) = engine::BANK else { return };
-        let held = self.voices.iter().enumerate()
-            .filter(|(_, v)| v.key == Some((channel, key))
-                    && v.released.is_none())
-            .min_by_key(|(i, v)| (v.started, *i))
-            .map(|(i, _)| i);
-        if let Some(i) = held {
-            self.voices[i].released = Some(at);
-            self.voices[i].key = None;
-            self.control[bank.voices[i][1]] = at + 1;
+        for (b, bank) in engine::BANKS.iter().enumerate() {
+            let held = self.voices[b].iter().enumerate()
+                .filter(|(_, v)| v.key == Some((channel, key))
+                        && v.released.is_none())
+                .min_by_key(|(i, v)| (v.started, *i))
+                .map(|(i, _)| i);
+            if let Some(i) = held {
+                self.voices[b][i].released = Some(at);
+                self.voices[b][i].key = None;
+                self.control[bank.voices[i][1]] = at + 1;
+            }
         }
     }
 
@@ -188,10 +225,25 @@ impl Instance {
             match h.type_ {
                 CLAP_EVENT_PARAM_VALUE => {
                     let ev = &*(header as *const clap_event_param_value);
-                    let slot = ev.param_id as usize;
-                    if let Some(c) = self.desc.controls.get(slot) {
-                        if c.knob {
-                            self.control[slot] = c.bits_of(ev.value);
+                    let id = ev.param_id as usize;
+                    let n = self.desc.controls.len();
+                    if id < n {
+                        if let Some(c) = self.desc.controls.get(id) {
+                            if c.knob {
+                                self.control[id] = c.bits_of(ev.value);
+                            }
+                        }
+                    } else {
+                        // A routing cell: ids above the control slots
+                        // are `n + bank*16 + channel`.
+                        let cell = id - n;
+                        let (b, ch) = (cell / 16, cell % 16);
+                        if b < self.routing.len() {
+                            if ev.value >= 0.5 {
+                                self.routing[b] |= 1 << ch;
+                            } else {
+                                self.routing[b] &= !(1 << ch);
+                            }
                         }
                     }
                 }
@@ -326,7 +378,7 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
     }
     inst.drain(p.in_events);
     let grace = 10 * inst.desc.rate as i64;
-    let keyed = inst.voices.iter().any(|v| {
+    let keyed = inst.voices.iter().flatten().any(|v| {
         v.key.is_some()
             || v.released.map_or(false, |r| inst.t - r < grace)
     });
@@ -393,49 +445,100 @@ unsafe fn nth_knob(plugin: *const clap_plugin, index: u32)
         .nth(index as usize)
 }
 
+fn knob_count(plugin: *const clap_plugin) -> u32 {
+    unsafe {
+        instance(plugin).desc.controls.iter()
+            .filter(|c| c.knob).count() as u32
+    }
+}
+
+fn write_name(dst: &mut [c_char; CLAP_NAME_SIZE], text: &str) {
+    *dst = [0; CLAP_NAME_SIZE];
+    for (d, s) in dst.iter_mut()
+        .zip(text.bytes().take(CLAP_NAME_SIZE - 1)) {
+        *d = s as c_char;
+    }
+}
+
 unsafe extern "C" fn params_count(plugin: *const clap_plugin) -> u32 {
-    instance(plugin).desc.controls.iter().filter(|c| c.knob).count() as u32
+    knob_count(plugin) + (engine::BANKS.len() * 16) as u32
 }
 
 unsafe extern "C" fn params_get_info(plugin: *const clap_plugin,
                                      index: u32,
                                      info: *mut clap_param_info) -> bool {
-    let Some((slot, c)) = nth_knob(plugin, index) else {
-        return false;
-    };
     if info.is_null() {
         return false;
     }
     let out = &mut *info;
-    out.id = slot as u32;
-    out.flags = CLAP_PARAM_IS_AUTOMATABLE
-        | if c.kind == engine::Kind::Int { CLAP_PARAM_IS_STEPPED }
-          else { 0 };
-    out.cookie = std::ptr::null_mut();
-    out.name = [0; CLAP_NAME_SIZE];
-    let shown = c.chan.strip_suffix("Chan").unwrap_or(c.chan);
-    for (dst, src) in out.name.iter_mut()
-        .zip(shown.bytes().take(CLAP_NAME_SIZE - 1)) {
-        *dst = src as c_char;
+    let knobs = knob_count(plugin);
+    if index < knobs {
+        let Some((slot, c)) = nth_knob(plugin, index) else {
+            return false;
+        };
+        out.id = slot as u32;
+        out.flags = CLAP_PARAM_IS_AUTOMATABLE
+            | if c.kind == engine::Kind::Int { CLAP_PARAM_IS_STEPPED }
+              else { 0 };
+        out.cookie = std::ptr::null_mut();
+        write_name(&mut out.name,
+                   c.chan.strip_suffix("Chan").unwrap_or(c.chan));
+        out.module = [0; CLAP_PATH_SIZE];
+        out.min_value = c.min;
+        out.max_value = c.max;
+        out.default_value = c.init_value();
+        return true;
     }
+    // A routing cell — the checkbox matrix, one stepped 0/1 per
+    // (bank × MIDI channel), grouped under `routing` so a host that
+    // draws modules draws the matrix as its own panel.  The default is
+    // the diagonal: channel *n* plays bank *n*.
+    let cell = (index - knobs) as usize;
+    let (b, ch) = (cell / 16, cell % 16);
+    let Some(bank) = engine::BANKS.get(b) else {
+        return false;
+    };
+    let n = instance(plugin).desc.controls.len();
+    out.id = (n + cell) as u32;
+    out.flags = CLAP_PARAM_IS_AUTOMATABLE | CLAP_PARAM_IS_STEPPED;
+    out.cookie = std::ptr::null_mut();
+    write_name(&mut out.name, &format!("{} ch{}", bank.name, ch + 1));
     out.module = [0; CLAP_PATH_SIZE];
-    out.min_value = c.min;
-    out.max_value = c.max;
-    out.default_value = c.init_value();
+    for (d, s) in out.module.iter_mut().zip(b"routing\0") {
+        *d = *s as c_char;
+    }
+    out.min_value = 0.0;
+    out.max_value = 1.0;
+    out.default_value = (b < 16 && ch == b) as u32 as f64;
     true
 }
 
 unsafe extern "C" fn params_get_value(plugin: *const clap_plugin,
                                       param_id: u32,
                                       out: *mut f64) -> bool {
+    if out.is_null() {
+        return false;
+    }
     let inst = instance(plugin);
-    let slot = param_id as usize;
-    match inst.desc.controls.get(slot) {
-        Some(c) if c.knob && !out.is_null() => {
-            *out = c.value_of(inst.control[slot]);
+    let id = param_id as usize;
+    let n = inst.desc.controls.len();
+    if id < n {
+        return match inst.desc.controls.get(id) {
+            Some(c) if c.knob => {
+                *out = c.value_of(inst.control[id]);
+                true
+            }
+            _ => false,
+        };
+    }
+    let cell = id - n;
+    let (b, ch) = (cell / 16, cell % 16);
+    match inst.routing.get(b) {
+        Some(row) => {
+            *out = ((row >> ch) & 1) as f64;
             true
         }
-        _ => false,
+        None => false,
     }
 }
 
@@ -443,16 +546,24 @@ unsafe extern "C" fn params_value_to_text(plugin: *const clap_plugin,
                                           param_id: u32, value: f64,
                                           out: *mut c_char,
                                           capacity: u32) -> bool {
-    let slot = param_id as usize;
-    let Some(c) = instance(plugin).desc.controls.get(slot) else {
-        return false;
-    };
-    if !c.knob || out.is_null() || capacity == 0 {
+    if out.is_null() || capacity == 0 {
         return false;
     }
-    let text = match c.kind {
-        engine::Kind::Int => format!("{}", value.round() as i64),
-        engine::Kind::Float => format!("{value:.3}"),
+    let id = param_id as usize;
+    let n = instance(plugin).desc.controls.len();
+    let text = if id < n {
+        let Some(c) = instance(plugin).desc.controls.get(id) else {
+            return false;
+        };
+        if !c.knob {
+            return false;
+        }
+        match c.kind {
+            engine::Kind::Int => format!("{}", value.round() as i64),
+            engine::Kind::Float => format!("{value:.3}"),
+        }
+    } else {
+        String::from(if value >= 0.5 { "on" } else { "off" })
     };
     let take = text.len().min(capacity as usize - 1);
     std::ptr::copy_nonoverlapping(text.as_ptr() as *const c_char,
@@ -501,13 +612,14 @@ static PARAMS: clap_plugin_params = clap_plugin_params {
 
 unsafe extern "C" fn notes_count(_plugin: *const clap_plugin,
                                  is_input: bool) -> u32 {
-    (is_input && engine::BANK.is_some()) as u32
+    (is_input && !engine::BANKS.is_empty()) as u32
 }
 
 unsafe extern "C" fn notes_get(_plugin: *const clap_plugin, index: u32,
                                is_input: bool,
                                info: *mut clap_note_port_info) -> bool {
-    if !is_input || index != 0 || info.is_null() || engine::BANK.is_none() {
+    if !is_input || index != 0 || info.is_null()
+        || engine::BANKS.is_empty() {
         return false;
     }
     let out = &mut *info;
@@ -538,7 +650,7 @@ unsafe extern "C" fn plugin_get_extension(_plugin: *const clap_plugin,
             return &PARAMS as *const _ as *const c_void;
         }
         if want.to_bytes_with_nul() == CLAP_EXT_NOTE_PORTS
-            && engine::BANK.is_some() {
+            && !engine::BANKS.is_empty() {
             return &NOTE_PORTS as *const _ as *const c_void;
         }
     }

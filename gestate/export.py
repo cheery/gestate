@@ -92,18 +92,20 @@ def _range_of(node) -> tuple:
 VEL_LEVELS = 32
 
 
-def note_bank(source: str, graph, rate: int):
-    """`(voices, table)` for the bank a keyboard plays, or `None`.
+def note_banks(source: str, graph, rate: int) -> list:
+    """`[(name, voices, table)]` for **every** bank, in declaration
+    order — the order that gives the routing matrix its default
+    diagonal, `audiomidi.by_midi_channel`'s own rule: MIDI channel *n*
+    plays bank *n*.
 
-    The **first declared bank**, which is this exporter's answer to
-    "which bank listens" — live, that is the environment's switch; a
-    plugin has no environment, and the first bank is the author's own
-    ordering.  `voices` is `audioalloc`'s channel layout resolved to
-    control-slot indices; `table` is the program's `FromMIDI` instance
-    run through the G-machine at export time, 128 keys × `VEL_LEVELS`
-    velocities on channel 0 — the same evaluations `audiomidi.FromMidi`
-    makes per key press live, made once here instead.  A bank with no
-    instance gets `None`, and the shell uses the structural
+    Per bank, `voices` is `audioalloc`'s channel layout resolved to
+    control-slot indices, and `table` is the program's `FromMIDI`
+    instance run through the G-machine at export time, 128 keys ×
+    `VEL_LEVELS` velocities — the same evaluations `audiomidi.FromMidi`
+    makes per key press live, made once here.  (Channel 0 to the
+    instance: a plugin routes by the matrix, so an instance's own
+    channel-based declining is superseded by it.)  A bank with no
+    instance gets `None` and the shell uses the structural
     `(key, velocity)` payload the live path defaults to.
     """
     from .audio import assemble
@@ -115,66 +117,70 @@ def note_bank(source: str, graph, rate: int):
 
     banks = banks_of(source)
     if not banks:
-        return None
-    bank = banks[0]
+        return []
     slot_of = {n.chan: i for i, n in enumerate(graph.control_sources())}
-    voices = [[slot_of[c] for c in voice]
-              for voice in channels_of(source, bank)]
-
     assembled = (assemble_performance(source, "", rate)
                  if has_score(source) else assemble(source, rate))
     fm = FromMidi(_compile(assembled), [b.name for b in banks])
-    if not fm.offers(bank.name):
-        return voices, None
 
-    fields = len(voices[0]) - 2
-    kinds = [graph.control_sources()[s].type_ for s in voices[0][2:]]
-    ok: list = []
-    data: list = []
-    for key in range(128):
-        for level in range(VEL_LEVELS):
-            payload = fm.payload_for(bank.name, 0, key,
-                                     min(127, level * 4 + 3))
-            if payload is None or len(payload) != fields:
-                ok.append(False)
-                data.extend([0] * fields)
-                continue
-            ok.append(True)
-            for value, kind in zip(payload, kinds):
-                data.append(
-                    struct.unpack("<q", struct.pack("<d", float(value)))[0]
-                    if kind == "Float" else int(value))
-    return voices, (ok, data, fields)
-
-
-def _bank_rs(bank) -> str:
-    """The `Bank` half of `descriptor.rs`."""
-    if bank is None:
-        return "pub static BANK: Option<&Bank> = None;\n"
-    voices, table = bank
     out = []
-    for i, voice in enumerate(voices):
-        out.append(f"static VOICE{i}: [usize; {len(voice)}] = "
-                   f"{voice!r};\n")
-    rows = ", ".join(f"&VOICE{i}" for i in range(len(voices)))
-    out.append(f"static VOICES: [&'static [usize]; {len(voices)}] = "
-               f"[{rows}];\n")
-    if table is None:
-        out.append("pub static BANK: Option<&Bank> = Some(&THE_BANK);\n"
-                   "static THE_BANK: Bank = "
-                   "Bank { voices: &VOICES, table: None };\n")
-        return "".join(out)
-    ok, data, fields = table
-    flags = ", ".join("true" if b else "false" for b in ok)
-    cells = ", ".join(str(v) for v in data)
-    out.append(f"static NOTE_OK: [bool; {len(ok)}] = [{flags}];\n")
-    out.append(f"static NOTE_DATA: [i64; {len(data)}] = [{cells}];\n")
-    out.append(f"static TABLE: NoteTable = NoteTable {{ levels: "
-               f"{VEL_LEVELS}, fields: {fields}, ok: &NOTE_OK, "
-               f"data: &NOTE_DATA }};\n")
-    out.append("pub static BANK: Option<&Bank> = Some(&THE_BANK);\n"
-               "static THE_BANK: Bank = "
-               "Bank { voices: &VOICES, table: Some(&TABLE) };\n")
+    for bank in banks:
+        voices = [[slot_of[c] for c in voice]
+                  for voice in channels_of(source, bank)]
+        if not fm.offers(bank.name):
+            out.append((bank.name, voices, None))
+            continue
+        fields = len(voices[0]) - 2
+        kinds = [graph.control_sources()[s].type_ for s in voices[0][2:]]
+        ok: list = []
+        data: list = []
+        for key in range(128):
+            for level in range(VEL_LEVELS):
+                payload = fm.payload_for(bank.name, 0, key,
+                                         min(127, level * 4 + 3))
+                if payload is None or len(payload) != fields:
+                    ok.append(False)
+                    data.extend([0] * fields)
+                    continue
+                ok.append(True)
+                for value, kind in zip(payload, kinds):
+                    data.append(
+                        struct.unpack("<q",
+                                      struct.pack("<d", float(value)))[0]
+                        if kind == "Float" else int(value))
+        out.append((bank.name, voices, (ok, data, fields)))
+    return out
+
+
+def _banks_rs(banks: list) -> str:
+    """The `BANKS` half of `descriptor.rs`."""
+    if not banks:
+        return "pub static BANKS: &[Bank] = &[];\n"
+    out = []
+    entries = []
+    for b, (name, voices, table) in enumerate(banks):
+        for i, voice in enumerate(voices):
+            out.append(f"static B{b}V{i}: [usize; {len(voice)}] = "
+                       f"{voice!r};\n")
+        rows = ", ".join(f"&B{b}V{i}" for i in range(len(voices)))
+        out.append(f"static B{b}VOICES: [&'static [usize]; "
+                   f"{len(voices)}] = [{rows}];\n")
+        table_ref = "None"
+        if table is not None:
+            ok, data, fields = table
+            flags = ", ".join("true" if x else "false" for x in ok)
+            cells = ", ".join(str(v) for v in data)
+            out.append(f"static B{b}OK: [bool; {len(ok)}] = [{flags}];\n")
+            out.append(f"static B{b}DATA: [i64; {len(data)}] = "
+                       f"[{cells}];\n")
+            out.append(f"static B{b}TABLE: NoteTable = NoteTable {{ "
+                       f"levels: {VEL_LEVELS}, fields: {fields}, "
+                       f"ok: &B{b}OK, data: &B{b}DATA }};\n")
+            table_ref = f"Some(&B{b}TABLE)"
+        entries.append(f"    Bank {{ name: {_rust_str(name)}, "
+                       f"voices: &B{b}VOICES, table: {table_ref} }},\n")
+    out.append("pub static BANKS: &[Bank] = &[\n"
+               + "".join(entries) + "];\n")
     return "".join(out)
 
 
@@ -195,17 +201,17 @@ def descriptor_rs(graph, *, id_: str, name: str, version: str,
             f"knob: {'true' if n.chan in knobs else 'false'}, "
             f"min: {lo!r}, max: {hi!r} }},\n")
     # `Bank` always: the bank-less descriptor still *names* the type in
-    # its `None`.
+    # its empty slice.
     used = ["Bank", "Control", "Descriptor"]
     if controls:
         used.append("Kind")
-    if bank is not None and bank[1] is not None:
+    if any(table is not None for _n, _v, table in (bank or [])):
         used.append("NoteTable")
     kinds = "use super::{" + ", ".join(sorted(used)) + "};"
     return (f"// Written by `python -m gestate.export` — regenerated per "
             f"export, never edited.\n"
             f"{kinds}\n\n"
-            f"{_bank_rs(bank)}\n"
+            f"{_banks_rs(bank or [])}\n"
             f"pub static DESCRIPTOR: Descriptor = Descriptor {{\n"
             f"    id: {_rust_str(id_)},\n"
             f"    name: {_rust_str(name)},\n"
@@ -269,7 +275,7 @@ def export_clap(source: str, out: Path, *, rate: int, name: str,
     banked = bank_channels(source)
     knobs = frozenset(n.chan for n in graph.control_sources()
                       if n.chan not in banked)
-    bank = note_bank(source, graph, rate)
+    bank = note_banks(source, graph, rate)
     with tempfile.TemporaryDirectory() as d:
         archive(graph, d)
         (shell / "src" / "descriptor.rs").write_text(descriptor_rs(
