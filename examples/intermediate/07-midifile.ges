@@ -1,0 +1,44 @@
+# Lesson 7: a piece for someone else's instrument - writing a MIDI file.
+#
+#   python -m gestate.midi examples/intermediate/07-midifile.ges --events
+#   python -m gestate.midi examples/intermediate/07-midifile.ges
+#
+# No `sound`, no `voices`: this program is *only* a score, and the notes
+# carry bare MIDI key numbers.  `prog` commits notes to a General MIDI
+# program; `percussion` needs none.  The second command writes
+# `07-midifile.mid` beside the source - open it in any DAW or player.
+
+bpm : Int
+bpm = 108
+
+# ── The pitched half ─────────────────────────────────────────────────────
+
+melody : [: Int :]
+melody = '57 ++ '60 ++ '64 ++ '67 ++ ('64 || '69) |* 2
+      ++ '62 ++ '65 ++ '69 ++ '72 ++ ('69 || '74) |* 2
+
+bassline : [: Int :]
+bassline = '45 |* 2 ++ '41 |* 2 ++ '43 |* 2 ++ '45 |* 2
+
+# ── The kit: GM drum keys - 36 kick, 38 snare, 42 closed hat ─────────────
+
+kick : [: Int :]
+kick = '36 ++ r ++ '36 ++ r
+
+backbeat : [: Int :]
+backbeat = r ++ '38 ++ r ++ '38
+
+hats : [: Int :]
+hats = ('42 ++ '42 ++ '42 ++ '42 ++ '42 ++ '42 ++ '42 ++ '42) |/ 2
+
+groove : [: Int :]
+groove = kick || backbeat || hats
+
+# ── The commitment: each part names its instrument ───────────────────────
+
+#: General MIDI: 0 piano, 32 acoustic bass; try 73 (flute), 81 (square
+#: lead), 24 (nylon guitar) - the same notes through different throats.
+score : [: Void :]
+score = (melody >>= prog 0)
+     || (bassline >>= prog 32)
+     || ((groove ++ groove) >>= percussion)

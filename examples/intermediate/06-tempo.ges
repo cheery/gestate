@@ -1,0 +1,60 @@
+# Lesson 6: tempo is a curve, and `beat` is the clock everything shares.
+#
+#   python -m gestate.audioperform examples/intermediate/06-tempo.ges -o l6.wav --seconds 16
+#
+# `tempo` in place of `bpm` makes the pulse a drawn envelope - points are
+# (seconds, bpm).  This piece starts at 70, leans up to 130 over ten
+# seconds, and settles back.  Two things follow the curve together:
+#
+#   * the scored arpeggio - the schedule lands its notes on the moving grid;
+#   * an unscored tick, built from `beat` the way the beginner guide built
+#     envelopes from `elapsed` - it never sees a note, and cannot drift.
+
+Key := Key Int Int
+
+voices arp 4 arpVoice : Sig Float
+
+instance FromMIDI Key where
+    noteOn ch p v = Just (Key p v)
+
+#: try: flatten it (one Step) and hear what the curve was doing; make the
+#: ramp fall instead - a piece that runs out of breath.
+tempo : List Tempo
+tempo = [ Step 0.0 70.0, Ramp 10.0 130.0, Step 12.0 130.0, Ramp 16.0 90.0 ]
+
+# ── The scored half ──────────────────────────────────────────────────────
+
+hzOf : Key -> Float
+hzOf q = case q of
+    Key k v -> keyHz k
+
+velOf : Key -> Float
+velOf q = case q of
+    Key k v -> toFloat v / 127.0
+
+arpVoice : Sig Gate -> Sig Key -> Sig Float
+arpVoice g s = square (!hzOf s) * perc 8.0 g * !velOf s * 0.5
+
+n : Int -> [: Key :]
+n k = '(Key k 90)
+
+figure : [: Key :]
+figure = (n 45 ++ n 57 ++ n 60 ++ n 64) |/ 2
+
+eight : [: Key :] -> [: Key :]
+eight s = s ++ s ++ s ++ s ++ s ++ s ++ s ++ s
+
+score : [: Void :]
+score = (eight figure ++ eight figure) >>= voices.arp
+
+# ── The unscored half: arithmetic over `beat` ────────────────────────────
+
+#: The beginner guide's wrap-trick, on the piece's own clock: one tick per
+#: beat, wherever the beat happens to be.  try: 2.0 * b for offbeats too;
+#: try swapping `elapsed` in and hear it fall off the grid as the tempo moves.
+tick : Sig Float
+tick = highpassSvf 5000.0 0.3 (white 7)
+     * map (b => exp (negate 50.0 * wrap b)) beat
+
+sound : Sig Float
+sound = 0.6 * arp + 0.2 * tick

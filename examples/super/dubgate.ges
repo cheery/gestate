@@ -1,0 +1,51 @@
+# DUBGATE - a drum machine drowning in tape echo.
+#
+#   python -m gestate.audiolive examples/super/dubgate.ges
+#   python -m gestate.audio examples/super/dubgate.ges -o dubgate.wav --seconds 16
+#
+# Steal: the send that only opens on beat 3 - dub is *when* the echo
+# hears, not what it does - and the warbling slide echo behind it.
+
+kickEnv : Sig Float
+kickEnv = map (t => exp (negate 25.0 * wrap (2.0 * t))) elapsed
+
+kick : Sig Float
+kick = sine (44.0 + 150.0 * kickEnv) * kickEnv
+
+snareEnv : Sig Float
+snareEnv = map (t => exp (negate 20.0 * wrap (t + 0.5))) elapsed
+
+snare : Sig Float
+snare = (0.6 * white 2 + 0.5 * triangle 190.0) * snareEnv
+
+hat : Sig Float
+hat = highpassSvf 7000.0 0.2 (white 3)
+    * map (t => exp (negate 70.0 * wrap (4.0 * t + 0.5))) elapsed
+
+#: The skank: an offbeat stab, the reggae backbone.
+stab : Sig Float
+stab = lowpassSvf 1400.0 0.6 (saw 220.0 + saw 277.18 + saw 329.63)
+     * map (t => exp (negate 18.0 * wrap (2.0 * t + 0.5))) elapsed * 0.3
+
+#: THE TRICK: the echo's *input* is gated by a step pattern - it only
+#: hears the bar's last quarter, so the echo answers instead of smearing.
+#: Steal `sendGate` and gate any send you own.
+sendPat : List Envelope
+sendPat = [ Step 0.0 0.0, Step 1.5 1.0, Step 1.75 0.0 ]
+
+sendGate : Sig Float
+sendGate = map (t => on sendPat (2.0 * wrap (t / 2.0))) elapsed
+
+#: The echo itself warbles like a worn tape loop (slide, lesson A5),
+#: and gets duller each pass (the 0.55 * lowpass in the fold).
+tapePos : Sig Float
+tapePos = map (x => sampleRate * (0.375 + 0.004 * x)) (sine 0.9)
+
+tape : Sig Float -> Sig Float
+tape s = lowpass 0.35 (slide (seconds 0.45) (y x => x + 0.62 * y) tapePos s)
+
+dry : Sig Float
+dry = 0.65 * kick + 0.4 * snare + 0.2 * hat + stab
+
+sound : Sig Float
+sound = brickwall 0.9 (dry + 0.8 * tape ((snare + stab) * sendGate))

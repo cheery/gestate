@@ -1,0 +1,70 @@
+# Lesson 7: dirt and dynamics - shaping loudness instead of frequency.
+#
+#   python -m gestate.audiolive examples/advanced/07-shape.ges --seconds 12
+#   python -m gestate.audio examples/advanced/07-shape.ges -o l7.wav
+#
+# Four tools that act on *level*, from gentle to violent:
+#
+#     follow    - measures loudness (an envelope follower)
+#     compress  - turns the loud parts down
+#     drive     - saturates: softClip pushed and level-matched
+#     wrapFold  - folds the wave back on itself; not subtle
+#
+# and two habits: `dcBlock` after any asymmetric shaper (an offset is
+# headroom spent on silence), `dbGain` when a level is easier to think
+# in decibels.
+
+# ── A kick and a bass, to work the tools against ─────────────────────────
+
+kickEnv : Sig Float
+kickEnv = map (t => exp (negate 22.0 * wrap (2.0 * t))) elapsed
+
+kick : Sig Float
+kick = sine (43.0 + 160.0 * kickEnv) * kickEnv
+
+bass : Sig Float
+bass = 0.5 * saw 55.0
+
+# ── Sidechain ducking: follow one signal, steer another ──────────────────
+
+#: `follow up down s` is "how loud s has been lately".  Subtracting it
+#: from one and multiplying is the pump in every dance mix - the bass
+#: gets out of the kick's way and breathes back.
+#: try: duckDepth 0.0 (off) then 1.4 (gasping); slower recovery 0.5.
+duckDepth : Float
+duckDepth = 1.1
+
+duckAt : Float -> Float
+duckAt k = clamp 0.0 1.0 (1.0 - duckDepth * k)
+
+ducked : Sig Float
+ducked = bass * !duckAt (follow 0.004 0.18 kick)
+
+# ── Saturation: three tempers of the same idea ───────────────────────────
+
+#: try each line as `voiced` in turn.  `drive 0.5` warms; `drive 4.0`
+#: growls; `wrapFold` at rising depth is a sound design lab on its own -
+#: sweep `foldDepth` 1.0 .. 6.0 and a sine turns metallic.
+foldDepth : Float
+foldDepth = 2.5
+
+foldAt : Float -> Float
+foldAt x = wrapFold (foldDepth * x)
+
+voiced : Sig Float
+voiced = drive 1.5 ducked
+# voiced = map foldAt ducked            - the violent version
+# voiced = ducked                       - clean, for reference
+
+# ── The bus: compress, then bound ────────────────────────────────────────
+
+#: `Comp threshold ratio attack release`, threshold linear (0.5 is -6 dB
+#: - `dbGain` converts if you think in dB).  The compressor makes loud
+#: and quiet closer; the brickwall makes the ceiling true.
+#: try: ratio 20.0 is a limiter; attack 0.05 lets each kick's front
+#: through and the mix starts to *thump*.
+bus : Sig Float
+bus = compress (Comp 0.4 4.0 0.006 0.2) (0.8 * kick + voiced)
+
+sound : Sig Float
+sound = brickwall 0.9 (dcBlock (1.6 * bus))

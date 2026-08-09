@@ -1,0 +1,42 @@
+# ACIDLINE - a squelching 303-ish bass sequence.
+#
+#   python -m gestate.audiolive examples/super/acidline.ges
+#   python -m gestate.audio examples/super/acidline.ges -o acidline.wav --seconds 16
+#
+# Steal: the Step-envelope sequencer with accent lane, the
+# envelope-into-resonant-ladder squelch, the drive on the way out.
+
+#: The line, as a step envelope over a 2-second loop (8 steps).
+#: Pitches in Hz; steal the loop trick: `on <points> (loopT t)`.
+line : List Envelope
+line = [ Step 0.0 55.0,  Step 0.25 55.0, Step 0.5 110.0, Step 0.75 55.0
+       , Step 1.0 82.41, Step 1.25 55.0, Step 1.5 61.74, Step 1.75 123.47 ]
+
+#: The accent lane: same clock, gain per step - accents are the groove.
+accent : List Envelope
+accent = [ Step 0.0 1.0,  Step 0.25 0.5, Step 0.5 0.9, Step 0.75 0.4
+         , Step 1.0 0.8,  Step 1.25 0.5, Step 1.5 1.0, Step 1.75 0.6 ]
+
+loopT : Float -> Float
+loopT t = 2.0 * wrap (t / 2.0)
+
+pitch : Sig Float
+pitch = map (t => on line (loopT t)) elapsed
+
+hit : Sig Float
+hit = map (t => on accent (loopT t)) elapsed
+
+#: One pluck per step: 4 steps a second is wrap(4t) - the same trick,
+#: fast.  The filter envelope is *this*, scaled up.
+env : Sig Float
+env = map (t => exp (negate 14.0 * wrap (4.0 * t))) elapsed
+
+#: The squelch: envelope into a resonant ladder, resonance high enough
+#: to sing.  The accent multiplies the *sweep*, not just the volume -
+#: that is the 303 trick everyone misses.
+squelch : Sig Float
+squelch = lowpassLadder (120.0 + 2600.0 * env * hit) 0.82 (saw pitch)
+
+sound : Sig Float
+sound = brickwall 0.85 (drive 1.8 (0.5 * squelch * env * hit)
+                        + 0.22 * echo 0.375 0.45 (squelch * env * hit))

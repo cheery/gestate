@@ -2220,3 +2220,86 @@ def test_the_canvas_is_what_is_drawn_behind_it(tmp_path):
     pane.button("piano")
     # `_draw` chooses the canvas branch on either of these being true.
     assert pane.mode == "piano" and pane.piano_over == "canvas"
+
+
+# ── The patch next door ─────────────────────────────────────────────────────
+#
+# `prev`/`next` walk the directory, `[patch]` is a chooser over the same
+# list, and `steal` is save-as-copy-and-continue.  All of it is `Pane`
+# methods with no pygame in them, which is what these assert on.
+
+
+def _three(tmp_path) -> Pane:
+    for name in ("a.ges", "b.ges", "c.ges"):
+        (tmp_path / name).write_text(f"# {name}\n" + SOURCE)
+    return Pane.open(Workbench(tmp_path / "a.ges", rate=8000, block=64))
+
+
+def test_next_and_prev_walk_the_directory(tmp_path):
+    pane = _three(tmp_path)
+    assert pane.switch_by(1) == "opened b.ges"
+    assert pane.bench.path.name == "b.ges"
+    assert pane.document.text.startswith("# b.ges")
+    assert pane.switch_by(-1) == "opened a.ges"
+    # The ends wrap, so the buttons never die at a wall.
+    assert pane.switch_by(-1) == "opened c.ges"
+
+
+def test_a_dirty_file_holds_the_door(tmp_path):
+    pane = _three(tmp_path)
+    pane.document.insert("edited ")
+    said = pane.switch_by(1)
+    assert "unsaved" in said and pane.bench.path.name == "a.ges", \
+        "a switch must not silently discard edits"
+    assert (tmp_path / "a.ges").read_text().startswith("# a.ges"), \
+        "and must not silently save them either"
+    # The same request again is the confirmation.
+    assert pane.switch_by(1) == "opened b.ges"
+    assert not pane.dirty
+
+
+def test_a_different_target_restarts_the_question(tmp_path):
+    pane = _three(tmp_path)
+    pane.document.insert("edited ")
+    assert "unsaved" in pane.switch_by(1)          # asks about b
+    assert "unsaved" in pane.switch_by(-1), \
+        "changing the target must ask again, not inherit the confirmation"
+
+
+def test_steal_copies_the_unsaved_text_and_moves_there(tmp_path):
+    pane = _three(tmp_path)
+    pane.document.insert("# bent\n")
+    said = pane.steal()
+    assert said == "stole into a-take2.ges"
+    assert pane.bench.path.name == "a-take2.ges"
+    assert (tmp_path / "a-take2.ges").read_text().startswith("# bent")
+    assert (tmp_path / "a.ges").read_text().startswith("# a.ges"), \
+        "the original is left exactly as it was"
+    assert not pane.dirty, "the copy opens clean - the edits are saved in it"
+    # Stealing a steal counts upward rather than growing a suffix.
+    assert pane.steal() == "stole into a-take3.ges"
+
+
+def test_the_chooser_picks_with_arrows_and_return(tmp_path):
+    pane = _three(tmp_path)
+    said = pane.choose()
+    assert pane.choosing and pane.dialog is not None and "3 patches" in said
+    assert pane.choice_move(1) == "b.ges"
+    assert pane.choice_commit() == "opened b.ges"
+    assert not pane.choosing and pane.dialog is None
+    assert pane.bench.path.name == "b.ges"
+
+
+def test_dismissing_the_chooser_changes_nothing(tmp_path):
+    pane = _three(tmp_path)
+    pane.choose()
+    pane.choice_move(1)
+    pane.dismiss()
+    assert not pane.choosing and pane.bench.path.name == "a.ges"
+
+
+def test_the_patch_buttons_exist():
+    """Containment is `test_every_button_is_inside_the_chrome`'s sweep;
+    this pins that the four are in the chrome at all."""
+    for name in ("prev", "patch", "next", "steal"):
+        assert name in _layout().buttons, name

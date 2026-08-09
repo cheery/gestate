@@ -951,11 +951,13 @@ def compile_let(defs, body, env):
     n = len(defs)
     out = []
     for i, (nm, d) in enumerate(defs):
-        # While compiling def i, only outer (older) binders are visible;
-        # defs do not see each other.  Each def's evaluation pushes a
-        # cell onto the stack, so subsequent defs need a bumped env
-        # (i more cells already pushed).
-        out += compile_c(d, _apply_n_bump_env(i, env))
+        # While compiling def i the cells of defs 0..i-1 are already on
+        # the stack, so a later binding may read an earlier one — the
+        # sequential scope `ELet`'s contract states, which the desugarer
+        # now threads.  `_local_env` over the first `i` names is exactly
+        # that stack: def j's cell at depth i-1-j, the outer references
+        # bumped by the i cells pushed over them.
+        out += compile_c(d, _local_env([nm2 for nm2, _ in defs[:i]], env))
     out += compile_c(body, _local_env([nm for (nm, _) in defs], env))
     out.append(Slide(n))
     return out

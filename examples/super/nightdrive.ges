@@ -1,0 +1,82 @@
+# NIGHTDRIVE - eight bars of synthwave, the whole band in one file.
+#
+#   python -m gestate.audioperform examples/super/nightdrive.ges -o nightdrive.wav
+#   python -m gestate.audioperform examples/super/nightdrive.ges --midi
+#
+# Steal: the three-bank arrangement and its mix; the sixteenth-note
+# arpeggio written as one bar `>>=`-multiplied over a chord progression.
+
+Key := Key Int Int
+
+voices bass 3 bassVoice : Sig Float
+voices pad 8 padVoice : Sig Float
+voices arp 4 arpVoice : Sig Float
+
+instance FromMIDI Key where
+    noteOn ch p v = Just (Key p v)
+
+hzOf : Key -> Float
+hzOf q = case q of
+    Key k v -> keyHz k
+
+velOf : Key -> Float
+velOf q = case q of
+    Key k v -> toFloat v / 127.0
+
+#: The bass: octave saws into a closing ladder - the pluck that drives.
+bassVoice : Sig Gate -> Sig Key -> Sig Float
+bassVoice g s = lowpassLadder (100.0 + 1800.0 * perc 10.0 g) 0.55
+                    (saw (!hzOf s) + 0.6 * saw (!hzOf s * 0.5))
+              * perc 6.0 g * !velOf s
+
+padEnv : Adsr
+padEnv = Adsr 0.3 0.4 0.65 0.9
+
+padVoice : Sig Gate -> Sig Key -> Sig Float
+padVoice g s = lowpassSvf 2200.0 0.2
+                   (saw (!hzOf s) + saw (!hzOf s * 1.005))
+             * adsr padEnv g * !velOf s * 0.35
+
+#: The arp: bright, short, and mostly echo.
+arpVoice : Sig Gate -> Sig Key -> Sig Float
+arpVoice g s = square (!hzOf s) * perc 14.0 g * !velOf s
+
+# ── The piece: two bars each over Am - F - C - G ─────────────────────────
+
+bpm : Int
+bpm = 118
+
+n : Int -> [: Key :]
+n k = '(Key k 96)
+
+soft : Int -> [: Key :]
+soft k = '(Key k 70)
+
+#: One bar of sixteenth arpeggio up-down over a root - written once,
+#: bound over the progression: `>>=` is the arranger.
+arpBar : Key -> [: Key :]
+arpBar q = case q of
+    Key k v -> (soft (k + 12) ++ soft (k + 16) ++ soft (k + 19) ++ soft (k + 24)
+             ++ soft (k + 19) ++ soft (k + 16) ++ soft (k + 12) ++ soft (k + 16)) |/ 2
+
+#: The progression, one note a bar, stated once and reused three ways.
+roots : [: Key :]
+roots = n 45 |* 4 ++ n 41 |* 4 ++ n 48 |* 4 ++ n 43 |* 4
+
+eighths : Key -> [: Key :]
+eighths q = case q of
+    Key k v -> (n k ++ n k ++ n k ++ n k ++ n k ++ n k ++ n k ++ n k) |/ 2
+
+fifth : Key -> [: Key :]
+fifth q = case q of
+    Key k v -> '(Key (k + 12) 60) || '(Key (k + 19) 55) || '(Key (k + 24) 50)
+
+score : [: Void :]
+score = ((roots >>= eighths) >>= voices.bass)
+     || ((roots >>= fifth) >>= voices.pad)
+     || ((roots >>= arpBar) >>= voices.arp)
+
+#: The mix: bass dry and centred, arp swimming in echo, pad behind.
+sound : Sig Float
+sound = brickwall 0.88 (0.55 * bass + 0.5 * pad
+                        + 0.35 * arp + 0.3 * echo 0.318 0.5 arp)

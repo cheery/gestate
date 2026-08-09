@@ -1,0 +1,59 @@
+# MACHINIST - the console of a ship that thinks in vowels.
+#
+#   python -m gestate.audiolive examples/super/machinist.ges
+#   python -m gestate.audio examples/super/machinist.ges -o machinist.wav --seconds 30
+#
+# Steal: the S&H bleep computer, the vowel drone (formants on a comb),
+# the servo (slew chasing a staircase - motion you can hear deciding).
+
+# ── The computer: sample-and-hold running the bridge ─────────────────────
+
+SH := SH Float Float
+
+stepSH : SH -> Float -> SH
+stepSH st w = case st of
+    SH p h -> heldAt (wrap (p + 9.0 / sampleRate)) p h w
+
+heldAt : Float -> Float -> Float -> Float -> SH
+heldAt p2 p h w = case p2 < p of
+    True -> SH p2 w
+    False -> SH p2 h
+
+held : Sig Float
+held = map (st => case st of SH p h -> h) (scan stepSH (SH 0.0 0.0) (white 6))
+
+#: Quantised to a whole-tone-ish grid: random, but *tuned* random.
+bleepHz : Float -> Float
+bleepHz h = 440.0 * pow 2.0 (toFloat (prim_mod_int (floor (6.0 * h)) 5) / 6.0)
+
+bleeps : Sig Float
+bleeps = 0.14 * sine (!bleepHz held)
+       * map (t => exp (negate 30.0 * wrap (9.0 * t))) elapsed
+
+# ── The engine: a comb drone that almost speaks ──────────────────────────
+
+throb : Sig Float
+throb = feedback (floor (sampleRate / 55.0)) (y x => x + 0.9 * y)
+                 (0.25 * brown (white 1))
+
+#: Two formants drifting on unrelated clocks: now "oh", now "ah", never
+#: a word - which is exactly as unsettling as intended.
+mouth : Sig Float
+mouth = 2.4 * bandpassSvf (500.0 + 250.0 * sine 0.07) 0.9 throb
+      + 1.6 * bandpassSvf (1100.0 + 500.0 * sine 0.043) 0.92 throb
+
+# ── The servo: a motor you can hear making up its mind ───────────────────
+
+#: `slew` chasing the S&H staircase = a pitch that *travels* to each new
+#: order.  The rate is the motor's temperament.
+servo : Sig Float
+servo = 0.09 * triangle (slew 0.0004 (!servoHz held))
+
+servoHz : Float -> Float
+servoHz h = 160.0 + 120.0 * (0.5 + 0.5 * h)
+
+# ── The room is small and metal ──────────────────────────────────────────
+
+sound : Sig Float
+sound = brickwall 0.85 (mouth + bleeps + servo
+                        + 0.3 * reverb 1.2 0.6 (bleeps + servo))

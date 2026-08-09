@@ -1,0 +1,66 @@
+# Lesson 1: the floor - a synth written as the fold it is.
+#
+#   python -m gestate.audiolive examples/advanced/01-fold.ges --seconds 8
+#   python -m gestate.audio examples/advanced/01-fold.ges -o l1.wav
+#
+# Every combinator you have used - `sine`, `adsr`, `lowpassSvf` - is a fold
+# over time: a step function carried across instants by `scan`.  This file
+# uses none of them above the waist, so you can see the machinery bare.
+#
+# The chain:   ticks --scan stepBlip--> Blip --map blipOut--> sound
+#
+# Rules of the compiled fragment, all visible here:
+#   * the tune is a `case` table, not a list - a cons walk per sample has
+#     no fixed cost, and the fragment refuses it;
+#   * the state is a declared record (`Blip`), taken apart by `case` in
+#     named functions - the fragment has no `let`, and multi-way data
+#     wants its own record type;
+#   * the phase *accumulates* (`wrap (p + hz/rate)`) rather than being
+#     computed as `n * hz / rate` - so a frequency change bends the wave
+#     instead of snapping the phase, and a snap is a click.
+
+# ── The tune, as a table ─────────────────────────────────────────────────
+
+#: try: change the notes; add a case - and bump `count`.
+noteOf : Int -> Float
+noteOf i = case i of
+    0 -> 110.0
+    1 -> 164.81
+    2 -> 146.83
+    3 -> 196.0
+    _ -> 110.0
+
+count : Int
+count = 5
+
+stepLen : Int
+stepLen = floor (sampleRate * 0.4)
+
+hzAt : Int -> Float
+hzAt n = noteOf (prim_mod_int (prim_div_int n stepLen) count)
+
+#: How far through its step this sample is, 0.0 .. 1.0.
+through : Int -> Float
+through n = toFloat (prim_mod_int n stepLen) / toFloat stepLen
+
+# ── The state and its step ───────────────────────────────────────────────
+
+Blip := Blip Float Int                  # phase, instant
+
+stepBlip : Blip -> Int -> Blip
+stepBlip v n = case v of
+    Blip p _ -> Blip (wrap (p + hzAt n / sampleRate)) n
+
+#: try: `sawOf` -> `triangleOf`, `squareOf`, `sineOf` - same phase, any
+#: shape; the envelope rate 5.0 -> 25.0 turns notes to ticks.
+blipOut : Blip -> Float
+blipOut v = case v of
+    Blip p n -> sawOf p * exp (negate 5.0 * through n)
+
+# ── The chain ────────────────────────────────────────────────────────────
+
+raw : Sig Float
+raw = map blipOut (scan stepBlip (Blip 0.0 0) ticks)
+
+sound : Sig Float
+sound = 0.4 * lowpass 0.4 raw

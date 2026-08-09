@@ -664,6 +664,67 @@ def test_the_generated_engine_honours_the_mix_contract():
             "complementary ramps did not sum to unity — a fade would dip"
 
 
+# ── The master fade at the edges of a render ────────────────────────────────
+#
+# The first sample of a synth is a step from silence to wherever the
+# waveform happens to begin, and stopping at `--seconds` is a step back —
+# and a step is a click, the same fact the crossfade above exists for.  The
+# same generated ramp serves both: `MasterFader` zeroes the block and lets
+# the engine add into it through `render_block_mix_f32`.  Off by default,
+# which is what keeps every bit-identical comparison in this file honest;
+# the CLI is what asks for it.
+
+
+@needs_clang
+def test_the_master_fade_takes_both_edges_off_a_finite_render():
+    """End to end: the bytes on the pipe rise from silence and return to
+    it, and between the fades they are exactly the engine's own."""
+    src = "sound : Sig Float\nsound = map (n => 1.0) ticks\n"
+    out = Path(tempfile.mkdtemp()) / "faded.raw"
+    frames, _backend = play(src, seconds=0.2, rate=1000, block=8,
+                            command=["sh", "-c", f"cat > {out}"], fade_ms=40)
+    assert frames == 200
+    got = list(struct.unpack("<200f", out.read_bytes()))
+    span = 40                                    # 40 ms at 1000 Hz
+    assert got[0] < 0.05 and got[-1] < 0.05, "an edge is still loud"
+    assert got[:span] == sorted(got[:span]), "the fade-in is not monotone"
+    assert got[-span:] == sorted(got[-span:], reverse=True), \
+        "the fade-out is not monotone"
+    assert got[span:-span] == [1.0] * (200 - 2 * span), \
+        "between the fades the stream is not the engine's own samples"
+
+
+def test_outside_its_fades_the_master_fader_stands_clear():
+    """Blocks at full level go through the plain entry point — the fade
+    must not put a cost on every block of a long render, and an open-ended
+    play (`--seconds` omitted) has no end to fade toward, so after the
+    fade-in every block is plain."""
+    import ctypes
+
+    from gestate.audiolive import MasterFader
+
+    class _Counting(_Steady):
+        def __init__(self):
+            super().__init__(1.0)
+            self.plain, self.mixed = 0, 0
+
+        def fill(self, buffer, frames, control=None, t=0):
+            self.plain += 1
+            super().fill(buffer, frames, control, t)
+
+        def fill_mix(self, buffer, frames, control, t, g0, g1):
+            self.mixed += 1
+            super().fill_mix(buffer, frames, control, t, g0, g1)
+
+    engine = _Counting()
+    fader = MasterFader(engine, 1000, None)      # 40 ms -> 40 samples, no end
+    buffer = (ctypes.c_float * 8)()
+    for t in range(0, 400, 8):
+        fader.fill(buffer, 8, None, t)
+    assert engine.mixed == 5, "the fade-in is 40 samples in blocks of 8"
+    assert engine.plain == 45, "a block at full level was still mixed"
+
+
 # ── What a rebuild is allowed to do to the thread with a deadline ───────────
 
 

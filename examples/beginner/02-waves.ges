@@ -1,0 +1,4 @@
+# Lesson 2: waveforms are timbre.
+sound : Sig Float
+sound = 0.25 * (0.4 * sine 110.0 + 0.3 * triangle 110.0
+              + 0.2 * square 110.0 + 0.4 * saw 110.0 + 0.3 * pulse 0.15 110.0)

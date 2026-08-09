@@ -1,0 +1,16 @@
+# Lesson 7: physical modelling - a string and a bell.
+pluckEnv : Sig Float
+pluckEnv = map (t => exp (negate 300.0 * wrap (1.0 * t))) elapsed
+
+plucked : Sig Float
+plucked = string 220.0 2.0 (white 1 * pluckEnv)
+
+strike : Sig Float
+strike = dust 7 0.5
+
+bell : Sig Float
+bell = resonate 660.0 5.0 strike + 0.6 * resonate 1512.0 4.0 strike
+     + 0.4 * resonate 2403.0 3.0 strike
+
+sound : Sig Float
+sound = limit 0.9 (0.6 * plucked + 0.4 * bell)

@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from .audio import AUDIO_CLOCK
 from .audiograph import (FORMERS, PRIMITIVES, check_analysis, _arrow,
-                         _signal_elem)
+                         _signal_elem, let_inlined)
 from .audioir import (Call, Case, Con, Const, Field, Func, Graph, Let, Node,
                       Prim, Var)
 from .expr import (EAnnot, EAp, ECase, ECon, EGlobal, ELambda, ELet, ENum,
@@ -338,6 +338,14 @@ class _Extract:
                 if name in FORMERS:
                     return self._former(name, args, env, path, elem)
                 return self._inline(name, args, env, path, elem)
+
+        if isinstance(e, ELet):
+            # Substituted away, as the checker substituted it — a `let`
+            # over signals is a name for a subexpression and nothing else.
+            if e.is_rec:
+                raise ExtractError(f"{path}: a recursive `let` reached "
+                                   f"extraction at signal level")
+            return self._signal(let_inlined(e), env, path, elem)
 
         raise ExtractError(f"{path}: not a signal expression: {e!r}")
 

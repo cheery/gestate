@@ -9,6 +9,22 @@ which 653 tests had touched.
 `test/test_examples.py` runs all of them, so an example that stops working
 is a failing test rather than a stale file.
 
+## The courses — `beginner/`, `intermediate/`, `advanced/`, `super/`
+
+Four directories of lesson synths, one per guide in `doc/`, meant to be
+read *with* their guide and edited while they sound
+(`python -m gestate.audiolive <file> --watch`):
+
+| directory | guide | what it teaches |
+|---|---|---|
+| `beginner/` | `doc/beginner.md` | synthesis itself: oscillators, envelopes, filters, LFOs, noise, FM, effects — patches that trigger themselves |
+| `intermediate/` | `doc/intermediate.md` | instruments and pieces: `voices` banks, gates, payloads, knobs, stereo, scores, tempo curves, MIDI files |
+| `advanced/` | `doc/advanced.md` | the toolkit's own construction: raw `scan` folds, the delay-line primitives, noise colours, dynamics, the filter cabinet, the FM operator bank, a canvas UI |
+| `super/` | `doc/super.md` | no lessons — six finished patches, built to be stolen from |
+
+`test/test_courses.py` builds every one of them, so these cannot quietly
+go stale either; the guides' `try:` lines are the listening half.
+
 ## The language
 
 | file | what it shows |

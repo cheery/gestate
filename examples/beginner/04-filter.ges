@@ -1,0 +1,6 @@
+# Lesson 4: subtractive synthesis - a filtered sawtooth.
+env : Sig Float
+env = map (t => exp (negate 6.0 * wrap (2.0 * t))) elapsed
+
+sound : Sig Float
+sound = 0.4 * lowpassSvf (150.0 + 2500.0 * env) 0.7 (saw 55.0) * env

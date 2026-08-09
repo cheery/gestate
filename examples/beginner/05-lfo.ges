@@ -1,0 +1,12 @@
+# Lesson 5: LFOs - slow oscillators as modulators.
+vibrato : Sig Float
+vibrato = sine (220.0 + 4.0 * sine 5.0)
+
+tremolo : Sig Float
+tremolo = 0.6 + 0.4 * unipolar (sine 3.0)
+
+wah : Sig Float
+wah = lowpassSvf (400.0 + 1800.0 * unipolar (sine 0.4)) 0.8 (saw 55.0)
+
+sound : Sig Float
+sound = 0.25 * vibrato * tremolo + 0.2 * wah

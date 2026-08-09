@@ -1,0 +1,35 @@
+# Lesson 10: a little piece.
+melody : List Envelope
+melody = [ Step 0.0 220.0, Step 0.5 261.63, Step 1.0 329.63, Step 1.5 440.0
+         , Step 2.0 392.0, Step 2.5 329.63, Step 3.0 261.63, Step 3.5 293.66 ]
+
+pitch : Sig Float
+pitch = map (t => on melody (4.0 * wrap (t / 4.0))) elapsed
+
+leadEnv : Sig Float
+leadEnv = map (t => exp (negate 8.0 * wrap (2.0 * t))) elapsed
+
+lead : Sig Float
+lead = lowpassSvf (300.0 + 2200.0 * leadEnv) 0.6 (saw pitch) * leadEnv
+
+bass : Sig Float
+bass = lowpassSvf 500.0 0.4 (saw (0.25 * pitch))
+
+kickEnv : Sig Float
+kickEnv = map (t => exp (negate 25.0 * wrap (2.0 * t))) elapsed
+
+kick : Sig Float
+kick = sine (45.0 + 180.0 * kickEnv) * kickEnv
+
+hatEnv : Sig Float
+hatEnv = map (t => exp (negate 60.0 * wrap (4.0 * t + 0.5))) elapsed
+
+hat : Sig Float
+hat = highpassSvf 6000.0 0.3 (white 1) * hatEnv
+
+mix : Sig Float
+mix = 0.5 * lead + 0.25 * echo 0.375 0.5 lead
+    + 0.3 * bass + 0.6 * kick + 0.2 * hat
+
+sound : Sig Float
+sound = brickwall 0.85 (mix + 0.2 * reverb 1.5 0.5 mix)

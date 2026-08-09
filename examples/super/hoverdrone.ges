@@ -1,0 +1,47 @@
+# HOVERDRONE - a pad that fills the room and never repeats itself.
+#
+#   python -m gestate.audiolive examples/super/hoverdrone.ges
+#   python -m gestate.audio examples/super/hoverdrone.ges -o hoverdrone.wav --seconds 60
+#
+# Steal: the six-saw stack (three pitches x two ears), the drifting
+# filter pair, the shimmer bank struck by dust.
+
+#: The chord: root, fifth, octave.  Steal the stack and feed it your own.
+root : Float
+root = 55.0
+
+#: A saw at a computed pitch - `!hz` lifts the Float to a signal.
+sawAt : Float -> Sig Float
+sawAt hz = saw (!hz)
+
+#: One ear of the stack: three saws, each detuned its own way.
+stack : Float -> Sig Float
+stack cents = sawAt (centsHz cents root)
+            + 0.7 * sawAt (centsHz (negate cents) (root * 1.5))
+            + 0.5 * sawAt (centsHz (cents * 0.5) (root * 2.0))
+
+#: Two filters that breathe out of phase - the pad never sits still.
+breatheL : Sig Float
+breatheL = lowpassSvf (300.0 + 900.0 * unipolar (sine 0.031)) 0.4 (stack 4.0)
+
+breatheR : Sig Float
+breatheR = lowpassSvf (300.0 + 900.0 * unipolar (sine 0.043)) 0.4 (stack (negate 5.0))
+
+#: Shimmer: high modes struck at random, ringing for seconds.
+sparkle : Sig Float
+sparkle = dust 21 0.4
+
+shimmer : Sig Float
+shimmer = 0.10 * resonate 1760.0 6.0 sparkle
+        + 0.06 * resonate 2637.0 5.0 sparkle
+        + 0.04 * resonate 4157.0 4.0 sparkle
+
+#: The room: mostly wet, which is what "ambient" means.
+wet : Sig Float -> Sig Float
+wet s = 0.35 * s + 0.65 * reverb 5.0 0.3 s
+
+#: `brickwall` is mono, so each ear gets its own - the pad moves too
+#: slowly for the pair to pump apart.
+sound : Sig Stereo
+sound = pair (brickwall 0.9 (wet (0.16 * breatheL + shimmer)))
+             (brickwall 0.9 (wet (0.16 * breatheR + shimmer)))

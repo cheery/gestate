@@ -1,0 +1,73 @@
+# Lesson 3: two instruments in one program - a band is a sum.
+#
+#   python -m gestate.audioperform examples/intermediate/03-band.ges -o l3.wav
+#
+# Two banks, two characters: a bass that plucks and decays on its own
+# (`perc` - release means nothing to a plucked string), a pad that swells
+# and sustains (`adsr`).  One payload type serves both - two banks must
+# share one, and the guide says why.
+
+Key := Key Int Int
+
+voices bass 3 bassVoice : Sig Float
+
+voices pad 8 padVoice : Sig Float
+
+instance FromMIDI Key where
+    noteOn ch p v = Just (Key p v)
+
+hzOf : Key -> Float
+hzOf q = case q of
+    Key k v -> keyHz k
+
+velOf : Key -> Float
+velOf q = case q of
+    Key k v -> toFloat v / 127.0
+
+# ── The bass: subtractive, plucked ───────────────────────────────────────
+
+#: try: decay 2.0 rings across the bar; the filter envelope is the same
+#: `perc`, so brightness dies with loudness - give it its own rate and
+#: they part ways.
+bassVoice : Sig Gate -> Sig Key -> Sig Float
+bassVoice g s = lowpassSvf (150.0 + 2200.0 * perc 9.0 g) 0.5
+                           (saw (!hzOf s)) * perc 5.0 g * !velOf s
+
+# ── The pad: additive, sustained ─────────────────────────────────────────
+
+padEnv : Adsr
+padEnv = Adsr 0.4 0.3 0.7 0.8
+
+#: try: detune the second harmonic - `2.003` - and the pad starts to shimmer.
+padVoice : Sig Gate -> Sig Key -> Sig Float
+padVoice g s = (sine (!hzOf s) + 0.4 * sine (!hzOf s * 2.0))
+             * adsr padEnv g * !velOf s * 0.5
+
+# ── The piece: each part goes to its own bank ────────────────────────────
+
+bpm : Int
+bpm = 84
+
+n : Int -> [: Key :]
+n k = '(Key k 90)
+
+chord : Int -> Int -> Int -> [: Key :]
+chord a b c = n a || n b || n c
+
+bassLine : [: Key :]
+bassLine = n 45 ++ n 45 ++ n 43 ++ n 43 ++ n 41 ++ n 41 ++ n 43 ++ n 45
+
+pads : [: Key :]
+pads = chord 57 60 64 |* 2 ++ chord 55 59 62 |* 2
+    ++ chord 53 57 60 |* 2 ++ chord 55 59 64 |* 2
+
+#: Each `>>=` commits one part to one bank; `||` plays them together.
+#: try: swap the two banks and hear the same notes wearing the wrong clothes.
+score : [: Void :]
+score = (bassLine >>= voices.bass) || (pads >>= voices.pad)
+
+# ── The mix: bank names are signals ──────────────────────────────────────
+
+#: try: 0.15 * reverb 2.0 0.4 pad, added in - space on the pad only.
+sound : Sig Float
+sound = 0.5 * bass + 0.35 * pad

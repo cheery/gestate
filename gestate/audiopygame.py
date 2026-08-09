@@ -543,6 +543,147 @@ class Pane:
         self.saved = self.document.text
         return f"saved {self.bench.path.name}"
 
+    # -- the patch next door --------------------------------------------------
+
+    def siblings(self) -> list:
+        """Every `.ges` beside the open file, sorted — the file included."""
+        return sorted(self.bench.path.parent.glob("*.ges"))
+
+    def _bench_for(self, path):
+        """A bench for `path`, dressed like the one being replaced."""
+        if self.reopen is not None:
+            return self.reopen(path)
+        from .audioeditor import Workbench
+
+        old = self.bench
+        return Workbench(path, rate=old.rate, block=old.block,
+                         midi=getattr(old, "_want_midi", False),
+                         midi_port=getattr(old, "_midi_port", None))
+
+    def switch(self, path) -> str:
+        """Open the file next door, in place of this one.
+
+        **Unsaved edits hold the door.**  The first press says what is
+        unsaved and does nothing; asking for the *same* file again is the
+        confirmation, and `Ctrl-S` first is always the polite way through.
+        A switch away is not a save: the edits stay in the window until
+        they are confirmed away.
+
+        The old instrument is stopped and a new one started only if the
+        old one was running — a bench that never started (a file that does
+        not compile, a test) is replaced without waking the audio thread.
+        """
+        path = Path(path)
+        if path == self.bench.path:
+            self.pending_switch = None
+            return f"{path.name} is already open"
+        if self.starting:
+            return "still starting — try again in a moment"
+        if self.dirty and self.pending_switch != path:
+            self.pending_switch = path
+            return (f"{self.bench.path.name} has unsaved edits — the same "
+                    f"switch again discards them; Ctrl-S keeps them")
+        self.pending_switch = None
+        old = self.bench
+        was_running = getattr(old, "live", None) is not None
+        bench = self._bench_for(path)
+        try:
+            old.stop()
+        except Exception:                               # noqa: BLE001
+            pass                    # a bench that never started, mid-close
+        self.bench = bench
+        text = bench.source()
+        self.document = Document(text)
+        self.saved = text
+        self.history = []
+        self.top = 0
+        self.dialog, self.asked, self.choosing = None, "", False
+        if was_running:
+            _starting(self, bench, path)
+        return f"opened {path.name}"
+
+    def switch_by(self, step: int) -> str:
+        """`prev`/`next` — the neighbouring patch, wrapping at the ends."""
+        files = self.siblings()
+        if len(files) < 2 and self.bench.path in files:
+            return "no other patch here"
+        try:
+            i = files.index(self.bench.path)
+        except ValueError:
+            # A file not on disk yet: `next` lands on the first
+            # neighbour, `prev` on the last.
+            i = -1 if step > 0 else 0
+        return self.switch(files[(i + step) % len(files)])
+
+    def steal(self) -> str:
+        """Save this text under the next free `<name>-take<n>.ges` and go
+        on editing the copy — the original file is left exactly as it was.
+
+        The *text*, not the file: stealing an edited patch keeps the
+        edits, which is the point — it was being bent when it got good.
+        Stealing a steal counts upward rather than growing a suffix.
+        """
+        import re
+
+        stem, parent = self.bench.path.stem, self.bench.path.parent
+        m = re.match(r"(.*)-take(\d+)$", stem)
+        base = m.group(1) if m else stem
+        n = int(m.group(2)) + 1 if m else 2
+        while (parent / f"{base}-take{n}.ges").exists():
+            n += 1
+        path = parent / f"{base}-take{n}.ges"
+        path.write_text(self.document.text)
+        # The text is safe in the copy, so the dirty guard has nothing
+        # left to protect: pre-confirm the switch.
+        self.pending_switch = path
+        said = self.switch(path)
+        return (f"stole into {path.name}" if said.startswith("opened")
+                else said)
+
+    def choose(self) -> str:
+        """`[patch]` — the files next door, as a list to pick from.
+
+        Arrows move, `Return` opens, anything else leaves it.  A *dialog*
+        rather than a mode: it is one pick, not a place to be.
+        """
+        files = self.siblings()
+        if not files:
+            return "no patches here"
+        try:
+            self.choice = files.index(self.bench.path)
+        except ValueError:
+            self.choice = 0
+        self.choosing = True
+        self.dialog = Dialog(self._choice_rows(files), scrolls=True,
+                             top=max(0, self.choice - 3))
+        return f"{len(files)} patches — arrows move, Return opens"
+
+    def _choice_rows(self, files) -> list:
+        return [("query" if i == self.choice else "prose",
+                 ("▸ " if i == self.choice else "  ") + f.name)
+                for i, f in enumerate(files)]
+
+    def choice_move(self, by: int) -> str:
+        files = self.siblings()
+        if not files or self.dialog is None:
+            return ""
+        self.choice = max(0, min(len(files) - 1, self.choice + by))
+        self.dialog.rows = self._choice_rows(files)
+        # Keep the chosen row in the window, whichever way it left.
+        if self.choice < self.dialog.top:
+            self.dialog.top = self.choice
+        if self.choice >= self.dialog.top + self.dialog.shown:
+            self.dialog.top = self.choice - self.dialog.shown + 1
+        return files[self.choice].name
+
+    def choice_commit(self) -> str:
+        files = self.siblings()
+        was_choosing, self.choosing = self.choosing, False
+        self.dialog, self.asked = None, ""
+        if not (was_choosing and 0 <= self.choice < len(files)):
+            return ""
+        return self.switch(files[self.choice])
+
     # -- undo -----------------------------------------------------------------
 
     def remember(self) -> None:
@@ -646,6 +787,18 @@ class Pane:
     looping: bool = False
     loop_from: float = 0.0
     loop_to: object = None
+    #: How to make a `Workbench` for a neighbouring file, or `None` for
+    #: the default that copies this bench's own settings.  A test injects
+    #: a fake here; `switch` is what calls it.
+    reopen: object = None
+    #: The switch a dirty file is holding up, or `None`.  Two presses are
+    #: the confirmation: asking for the same file again means it.
+    pending_switch: object = None
+    #: Is the dialog the patch chooser, and which row is chosen?  The
+    #: chooser rides the ordinary `Dialog` — same box, same scrolling —
+    #: and these two fields are the whole of what makes it pickable.
+    choosing: bool = False
+    choice: int = 0
 
     def escape(self) -> str:
         """Outward: text → command → canvas, and stop.
@@ -1452,6 +1605,7 @@ class Pane:
         if self.dialog is None:
             return False
         self.dialog, self.asked = None, ""
+        self.choosing = False
         return True
 
     def answer(self) -> list:
@@ -1787,6 +1941,10 @@ class Pane:
             "step": lambda: self.open_piano(step=True),
             "bigger": self.bigger,
             "smaller": self.smaller,
+            "prev": lambda: self.switch_by(-1),
+            "next": lambda: self.switch_by(1),
+            "patch": self.choose,
+            "steal": self.steal,
         }.get(name, lambda: "")()
 
     def travel(self, rows: int, cols: int, select: bool = False) -> None:
@@ -2122,6 +2280,18 @@ class Layout:
             "reference": (self.width - BORDER - 2 * b - 12 - 5 * self.advance
                           - 8, BORDER, 5 * self.advance + 8, b),
         }
+        # **The patch group, centre-right**: prev, the file's own name (the
+        # dropdown), next, and [steal].  Centred so it reads as "where you
+        # are" rather than as transport, and biased right so the clock the
+        # loop button trails has its room on narrow windows.
+        patch_w = max(8 * self.advance, min(18 * self.advance, self.width // 4))
+        steal_w = 7 * self.advance + 8
+        group = b + 4 + patch_w + 4 + b + 8 + steal_w
+        gx = max(self.width // 2 - group // 2, self.width * 2 // 5)
+        out["prev"] = (gx, BORDER, b, b)
+        out["patch"] = (gx + b + 4, BORDER, patch_w, b)
+        out["next"] = (gx + b + 4 + patch_w + 4, BORDER, b, b)
+        out["steal"] = (gx + b + 4 + patch_w + 4 + b + 8, BORDER, steal_w, b)
         sy = self.height - bar + BORDER - 2
         out["smaller"] = (self.width - BORDER - 2 * b - 4, sy, b, b)
         out["bigger"] = (self.width - BORDER - b, sy, b, b)
@@ -2358,17 +2528,18 @@ def run(path, style: str = "", size=(960, 640), fps: int = 60,
                             event.pos[1] - layout.inner[1]) or status
 
             # What the instrument is doing, into the canvas — once a frame,
-            # which is as often as anyone can see it.
-            bench.observe()
+            # which is as often as anyone can see it.  Through the *pane*,
+            # because a switch to the patch next door replaces the bench.
+            pane.bench.observe()
 
-            while bench.messages:
-                status = bench.messages.pop(0)
+            while pane.bench.messages:
+                status = pane.bench.messages.pop(0)
 
             _draw(screen, pygame, font, layout, pane, status)
             pygame.display.flip()
             clock.tick(fps)
     finally:
-        bench.stop()
+        pane.bench.stop()
         pygame.quit()
 
 
@@ -2564,6 +2735,18 @@ def _in_dialog(pane: Pane, event, pygame) -> str:
     without closing it is a list that was never shown to you.
     """
     dialog = pane.dialog
+    if pane.choosing:
+        # The patch chooser: the arrows move the *choice* rather than the
+        # window, `Return` opens it, and anything else is a change of mind.
+        if event.key in (pygame.K_UP, pygame.K_DOWN):
+            return pane.choice_move(-1 if event.key == pygame.K_UP else 1)
+        if event.key in (pygame.K_PAGEUP, pygame.K_PAGEDOWN):
+            return pane.choice_move(dialog.shown if event.key
+                                    == pygame.K_PAGEDOWN else -dialog.shown)
+        if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+            return pane.choice_commit()
+        pane.dismiss()
+        return ""
     if dialog.scrolls:
         by = {pygame.K_UP: -1, pygame.K_DOWN: 1,
               pygame.K_PAGEUP: -dialog.shown, pygame.K_PAGEDOWN: dialog.shown,
@@ -2748,6 +2931,22 @@ def _toolbar(screen, pygame, font, layout: Layout, pane: Pane, ink) -> None:
                         True, _KEYCAP)
     screen.blit(clock, (layout.buttons["loop"][0]
                         + layout.buttons["loop"][2] + 10, y))
+
+    # **The patch group.**  The file's own name in the middle is the
+    # dropdown; the arrows either side are its neighbours; `steal` is the
+    # save-as-copy.  `[+]` marks unsaved edits here as it does in the
+    # caption, because this row is what a switch will ask about.
+    for name, glyph in (("prev", "<"), ("next", ">")):
+        _chip(screen, pygame, font, layout.buttons[name], glyph,
+              _KEYCAP, _EDGE[pane.mode])
+    px, py, pw, ph = layout.buttons["patch"]
+    shown_name = pane.bench.path.name + (" [+]" if pane.dirty else "")
+    cols = max(1, (pw - 12) // layout.advance)
+    _chip(screen, pygame, font, layout.buttons["patch"],
+          _elided(shown_name, cols), _KEYCAP, _EDGE[pane.mode],
+          filled=pane.choosing)
+    _chip(screen, pygame, font, layout.buttons["steal"], "steal",
+          _KEYCAP, _EDGE[pane.mode])
 
     # **A word, not an icon.**  A reference is the one control a person
     # goes looking for without knowing it exists, and no glyph says

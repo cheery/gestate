@@ -1,0 +1,54 @@
+# Lesson 1: an instrument, not a patch - four voices, a gate, a payload.
+#
+#   python -m gestate.audioperform examples/intermediate/01-instrument.ges -o l1.wav
+#   python -m gestate.audioperform examples/intermediate/01-instrument.ges --midi
+#
+# The beginner lessons triggered themselves; this one is *played* - by the
+# score at the bottom, or by a keyboard.  The bank hands each voice two
+# signals: when its note began and ended (Sig Gate), and what the note is
+# (the payload).  Neither is yours to compute any more.
+
+Key := Key Int Int                        # key number, velocity
+
+voices lead 4 leadVoice : Sig Float
+
+instance FromMIDI Key where
+    noteOn ch p v = Just (Key p v)
+
+# ── The patch: everything to turn is here ────────────────────────────────
+
+#: try: attack 0.3 for a bowed swell; release 1.5 for a long tail.
+env : Adsr
+env = Adsr 0.01 0.2 0.6 0.35
+
+# ── The voice ────────────────────────────────────────────────────────────
+
+hzOf : Key -> Float
+hzOf q = case q of
+    Key k v -> keyHz k
+
+velOf : Key -> Float
+velOf q = case q of
+    Key k v -> toFloat v / 127.0
+
+#: try: swap `triangle` for `saw`, then wrap it in
+#: `lowpassSvf (300.0 + 3000.0 * adsr env g) 0.6 (...)` - lesson 4 of the
+#: beginner guide, per note now.
+leadVoice : Sig Gate -> Sig Key -> Sig Float
+leadVoice g s = triangle (!hzOf s) * adsr env g * !velOf s
+
+# ── The piece ────────────────────────────────────────────────────────────
+
+bpm : Int
+bpm = 100
+
+#: try: your own notes; a chord is `'a || 'b || 'c`.
+tune : [: Key :]
+tune = '(Key 57 100) ++ '(Key 60 90) ++ '(Key 64 90) ++ '(Key 67 100)
+    ++ ('(Key 57 90) || '(Key 64 80) || '(Key 69 90)) |* 2
+
+score : [: Void :]
+score = tune >>= voices.lead
+
+sound : Sig Float
+sound = gain 0.3 lead

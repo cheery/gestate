@@ -1,0 +1,57 @@
+# Lesson 4: loop - a delay line with a filter living inside it.
+#
+#   python -m gestate.audiolive examples/advanced/04-loop.ges --seconds 10
+#   python -m gestate.audio examples/advanced/04-loop.ges -o l4.wav
+#
+# `feedback`'s step sees only what left the line.  A plucked string needs
+# more: Karplus-Strong averages the two *neighbouring* samples at the far
+# end, and the older of that pair is out of `feedback`'s reach.  `loop`
+# carries it:
+#
+#     feedback n f   s :  st[t] = f  st[t-n]          s[t]
+#     loop     n f z s :  st[t] = f  st[t-1] st[t-n]  s[t]
+#
+# The state is yours to declare, so the line can carry anything - here a
+# sample and its neighbour; put a different filter in the step and the
+# line is a waveguide.  This is `string` with the lid off (`synth.ges`
+# adds fine tuning and exact decay on top of exactly this shape).
+
+# ── The string, from the spec of `loop` ──────────────────────────────────
+
+Wire := Wire Float Float                # the sample out, and the one before
+
+#: The loop filter: average the two samples leaving the line, times a
+#: gain just under one.  The average is a gentle lowpass, so each round
+#: trip dulls the top first - a string dies from the treble down.
+#: try: gain 0.4999 -> 0.493 is a muted palm; drop the averaging
+#: (`x + 0.4995 * yn`) and hear it ring cold, comb-like, undamped.
+wireStep : Wire -> Wire -> Float -> Wire
+wireStep prev old x = case prev of
+    Wire y p -> stepOld x p old
+
+stepOld : Float -> Float -> Wire -> Wire
+stepOld x p old = case old of
+    Wire yn q -> Wire (x + 0.4995 * (yn + p)) yn
+
+wireOut : Wire -> Float
+wireOut st = case st of
+    Wire y p -> y
+
+#: The pitch is the line's length: `n` samples of round trip ring at
+#: sampleRate / n hertz.  try: 110.0, 330.0.
+stringHz : Float
+stringHz = 220.0
+
+pluck : Sig Float -> Sig Float
+pluck s = map wireOut
+              (loop (floor (sampleRate / stringHz)) wireStep (Wire 0.0 0.0) s)
+
+# ── The excitation is the instrument's character ─────────────────────────
+
+#: A few milliseconds of noise = a pluck.  try: `dust 9 3.0` scratches
+#: the wire at random; a single triangle cycle taps it like a nail.
+burst : Sig Float
+burst = white 5 * map (t => exp (negate 300.0 * wrap (0.7 * t))) elapsed
+
+sound : Sig Float
+sound = 0.6 * pluck burst

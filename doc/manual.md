@@ -995,6 +995,11 @@ your own file has.
 
 ## 11. Where to go next
 
+If sound is what brought you here, there is a four-course path built for
+that: `doc/beginner.md` (synthesis), `doc/intermediate.md` (instruments
+and scores), `doc/advanced.md` (the toolkit's own construction) and
+`doc/super.md` (a patch book), each with its lessons under `examples/`.
+
 Read `examples/closure.ges` and `examples/music/drums.ges` — between them
 they touch most of the language.  Then `spec/data.md` §I if you want to
 know how the incrementality actually works, or `spec/frp.md` if you want

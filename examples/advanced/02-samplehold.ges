@@ -1,0 +1,62 @@
+# Lesson 2: your own combinator - sample-and-hold, from one `scan`.
+#
+#   python -m gestate.audiolive examples/advanced/02-samplehold.ges --seconds 8
+#   python -m gestate.audio examples/advanced/02-samplehold.ges -o l2.wav
+#
+# The library has no sample-and-hold.  It is fifteen lines, and the point
+# of the lesson is that nothing distinguishes yours from the library's:
+# `synth.ges` is folds like this one, all the way down.
+#
+# S&H is the oldest modulator on any synth: grab the noise's value, hold
+# it for a step, grab again - a random staircase.  Here it drives a filter
+# over a drone, which is the sound every sci-fi computer made.
+
+#: Steps per second.  try: 12.0 twitches, 1.0 broods.
+shRate : Float
+shRate = 6.0
+
+# ── The combinator ───────────────────────────────────────────────────────
+#
+# State: its own record, not a tuple and not `Both` - the fragment lays a
+# record out per declared type, and a shared one used at two element types
+# collides in the code generator.
+
+SH := SH Float Float                    # phase, held value
+
+#: The step: advance the phase; if it wrapped, this is the instant to
+#: sample the input.  `case` on the comparison - there is no `if`.
+stepSH : SH -> Float -> SH
+stepSH st w = case st of
+    SH p h -> heldAt (wrap (p + shRate / sampleRate)) p h w
+
+#: True means the phase wrapped this sample: take the input.  False
+#: means mid-step: keep what we held.
+heldAt : Float -> Float -> Float -> Float -> SH
+heldAt p2 p h w = case p2 < p of
+    True -> SH p2 w
+    False -> SH p2 h
+
+shOut : SH -> Float
+shOut st = case st of
+    SH p h -> h
+
+#: The face: a signal in, a signal out.  This line is the whole
+#: difference between "a fold I wrote" and "a combinator I have".
+sampleHold : Sig Float -> Sig Float
+sampleHold s = map shOut (scan stepSH (SH 0.0 0.0) s)
+
+# ── The patch: a staircase on a filter ───────────────────────────────────
+
+#: The held value is -1..1; this puts it on a cutoff range.
+#: try: quantise it - `220.0 * toFloat (1 + prim_mod_int (floor (3.0 * h)) 3)`
+#: turns random cutoffs into random *pitches* of a resonant peak.
+cutAt : Float -> Float
+cutAt h = 500.0 + 2100.0 * (0.5 + 0.5 * h)
+
+stepped : Sig Float
+stepped = sampleHold (white 3)
+
+#: try: feed `sampleHold` something other than noise - a slow sine gives
+#: an arpeggio-like staircase; the drone itself gives chaos.
+sound : Sig Float
+sound = brickwall 0.85 (0.28 * lowpassSvf (!cutAt stepped) 0.7 (saw 55.0 + saw 82.5))

@@ -101,11 +101,23 @@ class DesugarError(Exception):
 def _lift_spine(val):
     """`(head, args)` if `val` is a `!`-marked application, else `None`.
 
-    `!` binds to the head — `!f x y` parses as `(!f) x y` — so the marker
+    `!` binds to the head — `!f x y` reads as `(!f) x y` — and the marker
     is found by walking the application spine down to its head, exactly
     where a reader sees it.  `!(f x y)` says the same thing with the
     parentheses an eye may prefer, and arrives here as a marker whose
     operand is already the spine.
+
+    **The parentheses cannot mean anything else**, and it is worth being
+    plain about why: application is folded into an atom before fixity
+    resolution runs, so `!f x` and `!(f x)` are one and the same tree by
+    the time anything can look — the unwind below serves both spellings
+    at once, and there is no second reading left for the parenthesised
+    one to carry.  The reading people reach for — "make this *computed
+    value* a constant signal" — is therefore spelled `constSig (f x)`,
+    which is the same node `!x` builds and takes any expression.  (An
+    operator operand — `!(a * b)` — is not an application spine, walks
+    zero steps, and so *is* that constant; the asymmetry is the parse,
+    not a policy.)
     """
     args = []
     node = val
@@ -792,10 +804,18 @@ def desugar_expr(val: Val, locals_: frozenset[str],
 
     if isinstance(val, VLet):
         binder_names = frozenset(val.bindings[i][0] for i in range(len(val.bindings)))
+        # A recursive group sees every binder everywhere; a plain `let`
+        # is *sequential* — each binding sees the ones above it, which is
+        # `ELet`'s stated contract and what `compile_let` lays out.  It
+        # used to see none of them, so `let a = …` followed by
+        # `b = f a` resolved `a` as a global and failed a definition away
+        # from where it was written.
         rhs_env = locals_ | binder_names if val.is_rec else locals_
         defs: list[tuple[Name, Expr]] = []
         for nm, rhs in val.bindings:
             defs.append((nm, desugar_expr(rhs, rhs_env, cons, using_map, aliases)))
+            if not val.is_rec:
+                rhs_env = rhs_env | frozenset((nm,))
         body = desugar_expr(val.body, locals_ | binder_names, cons, using_map, aliases)
         return ELet(val.is_rec, defs, body)
 

@@ -1,0 +1,46 @@
+# Lesson 5: tap and slide - delay lines that move while you listen.
+#
+#   python -m gestate.audiolive examples/advanced/05-tap.ges --seconds 12
+#   python -m gestate.audio examples/advanced/05-tap.ges -o l5.wav
+#
+# `feedback` and `loop` have a fixed arm.  The other two delay primitives
+# have a *position signal*, fractional and interpolated:
+#
+#     tap   n pos s  - read s, pos samples back; no feedback path
+#     slide n f pos s - feedback's loop, read at pos - the line that bends
+#
+# A moving read is a doppler shift, so "delay whose length moves" is the
+# whole mechanism behind flanger, chorus, vibrato and tape wow.  The
+# library's `flanger`/`chorus` are this file with the numbers chosen.
+
+# ── The source ───────────────────────────────────────────────────────────
+
+dry : Sig Float
+dry = 0.5 * saw 165.0 * map (t => exp (negate 4.0 * wrap (0.5 * t))) elapsed
+
+# ── A flanger, by hand: a few ms, swept slowly, mixed with the dry ───────
+
+#: The position in *samples*, swinging 1..~5 ms.  try: freeze it (a fixed
+#: comb - hear what the motion was doing); sweep faster (0.9 Hz).
+flangePos : Sig Float
+flangePos = map (x => sampleRate * (0.003 + 0.002 * x)) (sine 0.15)
+
+flanged : Sig Float
+flanged = dry + tap (seconds 0.006) flangePos dry
+
+#: try: centre 25 ms, swing 5 - the same code is a chorus: too long to
+#: comb, so the ear hears a second, slightly detuned player.
+
+# ── A warble echo: slide is feedback whose length bends ──────────────────
+
+#: A quarter-second echo whose time flutters like worn tape.  The wobble
+#: is 6 ms deep at 0.4 Hz - try 20 ms and it turns seasick, 0.0 and it is
+#: lesson 3's echo again.
+warblePos : Sig Float
+warblePos = map (x => sampleRate * (0.25 + 0.006 * x)) (sine 0.4)
+
+warble : Sig Float -> Sig Float
+warble s = slide (seconds 0.3) (y x => x + 0.55 * y) warblePos s
+
+sound : Sig Float
+sound = 0.5 * flanged + 0.35 * warble dry

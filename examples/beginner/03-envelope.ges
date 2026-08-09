@@ -1,0 +1,6 @@
+# Lesson 3: an envelope repeating twice a second.
+env : Sig Float
+env = map (t => exp (negate 6.0 * wrap (2.0 * t))) elapsed
+
+sound : Sig Float
+sound = 0.4 * sine 220.0 * env

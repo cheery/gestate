@@ -376,6 +376,20 @@ class _Check:
             if isinstance(head, EGlobal):
                 return self._call(str(head.name), args)
 
+        if isinstance(e, ELet):
+            # A `let` over signals names a subexpression, and naming is
+            # all it does: the bindings are substituted and the body is
+            # what the graph sees — `let_inlined` says why that costs
+            # nothing the written-out program does not.
+            if e.is_rec:
+                self._error(self.here,
+                            "is a recursive `let` at signal level.  A "
+                            "signal defined in terms of itself is a cycle "
+                            "in the graph, which the delay primitives "
+                            "(`feedback`, `loop`, `slide`) exist to close")
+                return
+            return self._signal(let_inlined(e))
+
         self._error(self.here, f"is not a signal expression: "
                                f"{_describe(e)}")
 
@@ -708,6 +722,65 @@ def _monomorphise(t: Type) -> Type:
         return TFun(_monomorphise(t.arg), _monomorphise(t.ret),
                     None, getattr(t, "mono", False))
     return t
+
+
+def _subst_free(e, name: str, value):
+    """`e` with free occurrences of `name` replaced by `value`.
+
+    `match.subst_var` is blind to binders, which its one caller can afford
+    and a `let`'s body cannot: a lambda parameter or a `case` binder of
+    the same name shadows, and substituting under it would rewrite
+    somebody else's variable.
+    """
+    from dataclasses import replace as _replace
+
+    if isinstance(e, EVar):
+        return value if e.name == name else e
+    if isinstance(e, ELambda):
+        if name in e.params:
+            return e
+        return _replace(e, body=_subst_free(e.body, name, value))
+    if isinstance(e, ECase):
+        alts = [alt if name in alt.names
+                else _replace(alt, body=_subst_free(alt.body, name, value))
+                for alt in e.alts]
+        return _replace(e, scrut=_subst_free(e.scrut, name, value), alts=alts)
+    if isinstance(e, ELet):
+        bound = [n for n, _ in e.defs]
+        if e.is_rec:
+            if name in bound:
+                return e
+            return _replace(
+                e, defs=[(n, _subst_free(v, name, value)) for n, v in e.defs],
+                body=_subst_free(e.body, name, value))
+        defs, shadowed = [], False
+        for n, v in e.defs:
+            defs.append((n, v if shadowed else _subst_free(v, name, value)))
+            if n == name:
+                shadowed = True
+        return _replace(e, defs=defs,
+                        body=e.body if shadowed
+                        else _subst_free(e.body, name, value))
+    from .expr import map_children
+
+    return map_children(e, lambda c: _subst_free(c, name, value))
+
+
+def let_inlined(e) -> object:
+    """A signal-position `let`, substituted away: its body with every
+    binding written back in place of its name.
+
+    A signal definition is inlined at every use — a global signal named
+    twice is two subgraphs — and a `let` at signal level means the same
+    thing locally, so substitution *is* its semantics: the program costs
+    exactly what it costs with the names written out, and sharing is not
+    what the `let` buys.  Later bindings may use earlier ones, which is
+    why the fold runs right to left.
+    """
+    out = e.body
+    for name, value in reversed(e.defs):
+        out = _subst_free(out, name, value)
+    return out
 
 
 def _spine_ap(e) -> tuple:

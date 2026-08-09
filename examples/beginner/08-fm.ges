@@ -1,0 +1,9 @@
+# Lesson 8: FM - one sine bending another.
+env : Sig Float
+env = map (t => exp (negate 3.0 * wrap t)) elapsed
+
+voice : Sig Float
+voice = pm 220.0 (0.8 * env * sine 308.0)
+
+sound : Sig Float
+sound = 0.4 * env * voice

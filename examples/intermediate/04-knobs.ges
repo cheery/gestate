@@ -1,0 +1,45 @@
+# Lesson 4: knobs - parameters that arrive from outside while it sounds.
+#
+#   python -m gestate.audioeditor examples/intermediate/04-knobs.ges
+#   python -m gestate.audiolive examples/intermediate/04-knobs.ges --midi
+#   python -m gestate.audio examples/intermediate/04-knobs.ges -o l4.wav
+#
+# Everything so far was decided when the file was saved.  `mkKnob` is a
+# value that is *not*: the editor draws a slider beside each declaration,
+# and `audiolive --midi` maps them to MIDI CC in order.  A Float knob runs
+# 0.0 .. 1.0 - scale it in the program, where the range is documented by
+# the arithmetic itself.
+#
+# The offline renderer has no hands, so it sweeps every knob with the
+# sample index - which is why `clamp` guards each use below: a knob is the
+# one number a synth does not compute, and trust stops at the boundary.
+
+#: How open the filter is.  0.0 shut, 1.0 wide.
+cutoff : Sig Float
+cutoff = mkKnob 0.4
+
+#: How hard the drone leans on its fifth.
+blend : Sig Float
+blend = mkKnob 0.3
+
+# ── A drone to play the knobs against ────────────────────────────────────
+
+#: A knob is a Float per instant, so guarding it is a scalar function
+#: lifted with `!` - `clamp` itself cannot meet a signal.
+unit : Float -> Float
+unit x = clamp 0.0 1.0 x
+
+#: Root and fifth, an octave apart in weight.  try: a fourth (4.0 / 3.0),
+#: or a major third - the blend knob changes meaning with it.
+drone : Sig Float
+drone = saw 55.0 + !unit blend * saw (55.0 * 1.5)
+
+#: The knob becomes hertz here: 150 Hz shut, ~5 kHz open.  Squared, so the
+#: slider's low half is all bass - hearing is logarithmic and a linear
+#: sweep spends most of its travel on the top octave.
+#: try: make the resonance a knob too - `mkKnob 0.5` clamped to 0.0..0.9.
+hzOfKnob : Float -> Float
+hzOfKnob x = 150.0 + 4800.0 * unit x * unit x
+
+sound : Sig Float
+sound = 0.25 * lowpassSvf (!hzOfKnob cutoff) 0.7 drone

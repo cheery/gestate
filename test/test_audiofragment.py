@@ -716,12 +716,34 @@ def test_a_lift_over_three_signals_pairs_them_up():
 
 
 def test_the_marker_may_take_the_parenthesised_application():
-    """`!(f x y)` and `!f x y` are the same lift."""
+    """`!(f x y)` and `!f x y` are the same lift — necessarily.
+
+    Application folds into an atom before fixity resolution, so the two
+    spellings are one tree by the time anything can look; the parentheses
+    *cannot* carry a second meaning.  The guides both reached for one
+    anyway — "make this computed value a constant signal" — and the test
+    below this one is that reading's real spelling.
+    """
     source = ("blend : Float -> Float -> Float\n"
               "blend a b = a * 0.5 + b * 0.5\n"
               "\nsound : Sig Float\nsound = {}\n")
     assert _run(source.format("!(blend (sine 440.0) (sine 660.0))")) == \
         _run(source.format("!blend (sine 440.0) (sine 660.0)"))
+
+
+def test_a_computed_constant_is_spelled_constSig():
+    """`constSig (f x)` — the constant signal of a *computed* value.
+
+    `!x` builds exactly this node, but `!` on a parenthesised application
+    is the lift above, so the applied form needs the name written out.
+    Both guides tripped over this; `doc/ref/language.md` now says it where
+    `!` is documented.
+    """
+    source = ("half : Float -> Float\n"
+              "half x = x * 0.5\n"
+              "\nsound : Sig Float\nsound = {}\n")
+    assert _run(source.format("sine (constSig (half 880.0))")) == \
+        _run(source.format("sine 440.0"))
 
 
 def test_a_signal_of_functions_is_refused():
@@ -739,3 +761,44 @@ def test_a_signal_of_functions_is_refused():
         rate=8000)
     assert not report
     assert any("function" in e for e in report.errors), report.errors
+
+
+# ── `let` over signals ──────────────────────────────────────────────────────
+#
+# A signal definition is inlined at every use, and a `let` at signal level
+# means the same thing locally: naming a subexpression, nothing else.  The
+# checker and the extractor both substitute it away, so the program costs
+# exactly what it costs with the names written out.
+
+
+def test_a_let_over_signals_is_the_names_written_out():
+    named = ("sound : Sig Float\n"
+             "sound = let osc = sine 220.0\n"
+             "            env = map (t => exp (negate 5.0 * wrap t)) elapsed\n"
+             "        in 0.5 * osc * env\n")
+    plain = ("osc : Sig Float\nosc = sine 220.0\n"
+             "\nenv : Sig Float\n"
+             "env = map (t => exp (negate 5.0 * wrap t)) elapsed\n"
+             "\nsound : Sig Float\nsound = 0.5 * osc * env\n")
+    got = _run(named)
+    assert got == _run(plain)
+    assert any(x != 0.0 for x in got), "silent — nothing is proven"
+
+
+def test_a_later_binding_may_use_an_earlier_one():
+    source = ("sound : Sig Float\n"
+              "sound = let tone = sine 110.0\n"
+              "            pairy = tone + 0.5 * sine 165.0\n"
+              "        in 0.25 * pairy\n")
+    assert _run(source) == _run(
+        "sound : Sig Float\n"
+        "sound = 0.25 * (sine 110.0 + 0.5 * sine 165.0)\n")
+
+
+def test_a_recursive_let_over_signals_is_refused():
+    """A signal defined in terms of itself is a cycle in the graph; the
+    delay primitives are the sanctioned way to close one, and the message
+    says so."""
+    report = check("sound : Sig Float\n"
+                   "sound = letrec s = 0.5 * s in s\n", rate=8000)
+    assert not report

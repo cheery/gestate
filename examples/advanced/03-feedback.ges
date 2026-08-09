@@ -1,0 +1,48 @@
+# Lesson 3: feedback - a delay line with a fold around it.
+#
+#   python -m gestate.audiolive examples/advanced/03-feedback.ges --seconds 10
+#   python -m gestate.audio examples/advanced/03-feedback.ges -o l3.wav
+#
+# `scan` reaches one sample back; `feedback n` reaches `n` samples back:
+#
+#     scan       f z s :  out[t] = f (out[t-1], s[t])
+#     feedback n f   s :  out[t] = f (out[t-n], s[t])
+#
+# That one change of arm is an echo, a comb, and half of every effect in
+# `synth.ges`.  The line's length is fixed before the program runs - the
+# engine has no allocator - so `n` must fold to a number, which
+# `seconds t` and arithmetic on `sampleRate` both do.
+#
+# One idea, two lengths:
+#   * ~400 ms  -> the repeats are *rhythm* (an echo);
+#   * ~1/220 s -> the repeats are *pitch* (a comb - the same code).
+
+# ── The source: sparse plucks ────────────────────────────────────────────
+
+pluckEnv : Sig Float
+pluckEnv = map (t => exp (negate 200.0 * wrap (0.5 * t))) elapsed
+
+dry : Sig Float
+dry = triangle 220.0 * pluckEnv
+
+# ── An echo, by hand ─────────────────────────────────────────────────────
+
+#: The whole effect: what left the line, times g, plus what came in,
+#: goes back into the line.  try: 0.75 hangs on; 0.98 nearly forever;
+#: at 1.0 the library refuses - a loop gain of one never dies.
+myEcho : Sig Float -> Sig Float
+myEcho s = feedback (seconds 0.4) (y x => x + 0.6 * y) s
+
+# ── A comb, which is the same line shorter ───────────────────────────────
+
+#: One period of 220 Hz.  Feed it *impulses* and it rings at 220 - this
+#: is the resonator a plucked string is built on.
+#: try: the length of 110.0 (an octave down); dust density 8.0.
+combLen : Int
+combLen = floor (sampleRate / 220.0)
+
+ping : Sig Float
+ping = feedback combLen (y x => x + 0.93 * y) (dust 11 2.0)
+
+sound : Sig Float
+sound = 0.4 * myEcho dry + 0.25 * ping

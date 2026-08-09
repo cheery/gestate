@@ -1,0 +1,45 @@
+# Lesson 6: the noise cabinet - five colours and a rain of impulses.
+#
+#   python -m gestate.audiolive examples/advanced/06-noise.ges --seconds 12
+#   python -m gestate.audio examples/advanced/06-noise.ges -o l6.wav
+#
+# Noise is a spectrum you choose by slope:
+#
+#     violet  +6 dB/oct   all treble, harshest
+#     blue    +3 dB/oct   bright
+#     white    0          flat per hertz (which the ear hears as bright)
+#     pink    -3 dB/oct   flat per *octave* - the even-sounding one
+#     brown   -6 dB/oct   distant thunder, wind, surf
+#
+# and `dust` is noise pulled apart into events.  A shoreline, built from
+# nothing else:
+
+#: The swell: brown noise is almost all low end, and a slow breathing
+#: gain makes it surf.  try: breathe faster (0.4) - a squall.
+surf : Sig Float
+surf = brown (white 1) * (0.5 + 0.5 * unipolar (sine 0.09))
+
+#: The air: pink sits behind everything without leaning treble-ward.
+#: try each colour here in turn - same gain, very different weather:
+#: `white 2` glares, `blue (white 2)` hisses, `violet (white 2)` stings.
+air : Sig Float
+air = 0.3 * pink (white 2)
+
+#: Rain: impulses at a density that itself drifts.  Each drop rings two
+#: small resonators - lesson: dust is for *triggering* things.
+#: try: density 200.0 is a downpour; 0.5 is the last drops off a roof.
+drops : Sig Float
+drops = dust 9 (4.0 + 14.0 * unipolar (sine 0.05))
+
+rain : Sig Float
+rain = 0.35 * resonate 2100.0 0.12 drops + 0.2 * resonate 3400.0 0.08 drops
+
+#: A gull, occasionally: violet noise is so top-heavy that a narrow band
+#: of it, gated by very sparse dust through a slow follower, reads as a
+#: cry rather than as hiss.
+cries : Sig Float
+cries = bandpassSvf 2800.0 0.95 (violet (white 3))
+      * follow 0.01 0.35 (dust 4 0.3) * 2.0
+
+sound : Sig Float
+sound = limit 0.9 (0.5 * surf + air + rain + cries)

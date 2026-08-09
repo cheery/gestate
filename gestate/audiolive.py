@@ -618,11 +618,66 @@ def position_of(engine) -> int:
     return getattr(engine, "position", None) or getattr(engine, "frames", 0)
 
 
+class MasterFader:
+    """Fade the whole render in at the start and out at the end.
+
+    The first sample of a synth is a step from silence to wherever the
+    waveform happens to begin, and the last is a step back — and a step is
+    a click, the same fact `Live`'s crossfade exists for.  The same
+    machinery serves: inside a fade the block is zeroed and the engine
+    *adds* into it through `render_block_mix_f32`'s per-frame ramp, so
+    nothing here runs per sample.  Outside a fade the plain entry point is
+    called and this costs two comparisons per block.
+
+    The endpoints are handed over unclamped, as `Live._blend` hands its
+    own — the generated ramp clamps per sample, so a corner that falls
+    inside a block lands on the sample it belongs to rather than being
+    smeared across the block.
+
+    The fade-out needs to know where the end is, so an open-ended play
+    (`--seconds` omitted) fades in and then stands clear; there is nothing
+    to anchor a fade-out to when the end is a Ctrl-C.
+    """
+
+    def __init__(self, engine, rate: int, seconds: float | None,
+                 fade_ms: int = FADE_MS):
+        self.engine = engine
+        self.span = max(1, int(rate * fade_ms / 1000))
+        self.total = None if seconds is None else int(seconds * rate)
+
+    @property
+    def channels(self) -> int:
+        return channels_of(self.engine)
+
+    @property
+    def position(self) -> int:
+        return position_of(self.engine)
+
+    def _level(self, t: int) -> float:
+        """The fader at frame `t`, unclamped.  `min` of two lines is
+        concave, so a block whose endpoints are both at or above 1 is at
+        full level throughout — the test `fill` steers by."""
+        rise = t / self.span
+        if self.total is None:
+            return rise
+        return min(rise, (self.total - t) / self.span)
+
+    def fill(self, buffer, frames: int, control=None, t: int = 0) -> None:
+        g0 = self._level(t)
+        g1 = self._level(t + frames)
+        if g0 >= 1.0 and g1 >= 1.0:
+            self.engine.fill(buffer, frames, control, t)
+            return
+        ctypes.memset(address_of(buffer), 0,
+                      frames * self.channels * ctypes.sizeof(ctypes.c_float))
+        self.engine.fill_mix(buffer, frames, control, t, g0, g1)
+
+
 def play(source: str, seconds: float | None = None, rate: int = DEFAULT_RATE,
          block: int = DEFAULT_BLOCK, prefer: str | None = None,
          command: list | None = None, progress=None, engine=None,
          control=None, latency_ms: int = DEFAULT_LATENCY_MS,
-         should_stop=None) -> tuple:
+         should_stop=None, fade_ms: int = 0) -> tuple:
     """Compile and play.  Returns `(frames, backend)`.
 
     **`should_stop` is what makes closing the window safe**, and its
@@ -650,6 +705,12 @@ def play(source: str, seconds: float | None = None, rate: int = DEFAULT_RATE,
 
     with tempfile.TemporaryDirectory() as directory, deadline_scheduling():
         engine = engine or Engine.compile(source, rate, directory)
+        # `0` keeps the stream bit-identical to the oracle, which is what
+        # the tests compare and the default an API caller gets; the CLI
+        # asks for the fade.  A `Live` has no `fill_mix` — its own fade is
+        # the crossfade — so `--watch` passes through unfaded.
+        if fade_ms and hasattr(engine, "fill_mix"):
+            engine = MasterFader(engine, rate, seconds, fade_ms)
 
         if command is None and prefer is None:
             try:
@@ -705,7 +766,8 @@ class SourceWatcher:
 def watch(path, seconds: float | None = None, rate: int = DEFAULT_RATE,
           block: int = DEFAULT_BLOCK, prefer: str | None = None,
           command: list | None = None, report=None,
-          interval: float = 0.15, control=None, should_stop=None) -> tuple:
+          interval: float = 0.15, control=None, should_stop=None,
+          fade_ms: int = 0) -> tuple:
     """Play a file and recompile it whenever it changes.
 
     The loop that live coding is for: edit the synth in an editor, save,
@@ -758,7 +820,8 @@ def watch(path, seconds: float | None = None, rate: int = DEFAULT_RATE,
 
             frames, backend = play(None, seconds, rate, block, prefer,
                                    command, progress, engine=live,
-                                   control=control, should_stop=should_stop)
+                                   control=control, should_stop=should_stop,
+                                   fade_ms=fade_ms)
         finally:
             stop.set()
     return frames, backend
@@ -829,6 +892,10 @@ def main(argv=None) -> int:
     ap.add_argument("--watch", action="store_true",
                     help="recompile and swap whenever the file changes, "
                          "keeping the state of every node the edit left alone")
+    ap.add_argument("--fade", type=int, default=FADE_MS, metavar="MS",
+                    help="fade the master in at the start and, when "
+                         "--seconds is given, out at the end, so neither "
+                         f"edge pops (default {FADE_MS} ms; 0 for none)")
     ap.add_argument("--midi", nargs="?", const="", default=None,
                     metavar="PORT",
                     help="drive the synth's control channels from MIDI CC, "
@@ -858,12 +925,14 @@ def main(argv=None) -> int:
             frames, backend = watch(
                 args.file, args.seconds, args.rate, args.block,
                 prefer=args.player, control=control,
-                report=lambda m: print(m, file=sys.stderr, flush=True))
+                report=lambda m: print(m, file=sys.stderr, flush=True),
+                fade_ms=args.fade)
         else:
             frames, backend = play(Path(args.file).read_text(), args.seconds,
                                    args.rate, args.block, prefer=args.player,
                                    control=control,
-                                   latency_ms=args.latency)
+                                   latency_ms=args.latency,
+                                   fade_ms=args.fade)
     except (ExtractError, LLVMError, LiveError) as exc:
         print(f"gestate: {cli_error(exc, args.file)}", file=sys.stderr)
         return 1

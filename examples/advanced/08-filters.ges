@@ -1,0 +1,74 @@
+# Lesson 8: the filter cabinet - one state, four doors, and vowels.
+#
+#   python -m gestate.audiolive examples/advanced/08-filters.ges --seconds 12
+#   python -m gestate.audio examples/advanced/08-filters.ges -o l8.wav
+#
+# The SVF computes four responses in one pass - `lowpassSvf`,
+# `highpassSvf`, `bandpassSvf`, `notchSvf` - and which one you take is
+# the sound.  Around them, the rest of the cabinet: the one-pole pair
+# (gentle, 6 dB/oct), the ladder (steep, saturating), and `phase` for
+# building an oscillator the library does not have.
+#
+# The centrepiece: **a voice is a filter bank.**  A vowel is two narrow
+# bandpasses at its formant frequencies; move the formants and a buzzing
+# saw starts to sing.
+
+# ── An oscillator from `phase`: pulse whose width breathes ───────────────
+
+#: `phase hz` is the raw 0..1 turn; any Float -> Float over it is an
+#: oscillator.  `pulseOf w p` is the shape - and since the width here is
+#: computed per sample, this is PWM, which `pulse` alone cannot do.
+#: try: widthAt swinging 0.05..0.5 - thin and reedy to hollow and square.
+widthAt : Float -> Float
+widthAt x = 0.5 + 0.32 * x
+
+pwm : Sig Float
+pwm = zip (w p => pulseOf w p) (!widthAt (sine 0.4)) (phase 82.41)
+
+# ── The vowels: two formants over the buzz ───────────────────────────────
+
+#: Formant pairs, roughly: ah 700/1220, eh 530/1840, ee 270/2290.
+#: `bimix` blends a..b from a bipolar -1..1, so one slow sine sweeps
+#: ah -> ee and back.  try: pin `v` at -1.0, 0.0, 1.0 and hear each
+#: vowel alone; make the sweep a `sampleHold` staircase (lesson 2).
+f1 : Sig Float
+f1 = !bimix1 (sine 0.11)
+
+f2 : Sig Float
+f2 = !bimix2 (sine 0.11)
+
+bimix1 : Float -> Float
+bimix1 v = bimix 700.0 270.0 v
+
+bimix2 : Float -> Float
+bimix2 v = bimix 1220.0 2290.0 v
+
+#: Narrow bands ring; `resonate`'s cousins.  The two formants are summed
+#: louder-first, and the notch takes a bite where the voice has none.
+vowel : Sig Float
+vowel = 1.4 * bandpassSvf f1 0.93 pwm + 0.9 * bandpassSvf f2 0.95 pwm
+
+# ── The floor under it: ladder versus one-pole ───────────────────────────
+
+#: The same bass through two filters - hold each line as `floor'` alone.
+#: The ladder is steeper and its resonance sings; the one-pole only
+#: leans.  `dbGain (negate 6.0)` is 0.5 written as what it means.
+floorLadder : Sig Float
+floorLadder = lowpassLadder 300.0 0.6 (saw 41.2)
+
+floorOnePole : Sig Float
+floorOnePole = lowpassOnePole 300.0 (saw 41.2)
+
+floorGain : Float
+floorGain = dbGain (negate 6.0)
+
+floor' : Sig Float
+floor' = !floorGain * floorLadder
+
+#: The top: what the lowpass took away, kept quiet - `highpassOnePole`
+#: is the complement, and a notch is "everything but the peak".
+sheen : Sig Float
+sheen = 0.06 * highpassOnePole 6000.0 (white 4)
+
+sound : Sig Float
+sound = brickwall 0.9 (0.5 * vowel + floor' + sheen + 0.15 * notchSvf 1000.0 0.8 pwm)

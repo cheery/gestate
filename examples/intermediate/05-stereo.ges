@@ -1,0 +1,80 @@
+# Lesson 5: stereo - where a sound sits is part of the sound.
+#
+#   python -m gestate.audioperform examples/intermediate/05-stereo.ges -o l5.wav
+#
+# `sound : Sig Stereo` and the renderer writes two channels.  A Stereo is a
+# pair of floats and a number (`Num (Sig Stereo)`), so mixing and gain read
+# exactly as they did in mono.  Three ways to get width, one per part below:
+# place a mono voice (`panOf`), detune two oscillators into two ears
+# (`pair`), and leave the middle to the part that anchors (`widen`).
+
+Key := Key Int Int
+
+voices harp 8 harpVoice : Sig Stereo
+
+instance FromMIDI Key where
+    noteOn ch p v = Just (Key p v)
+
+hzOf : Key -> Float
+hzOf q = case q of
+    Key k v -> keyHz k
+
+velOf : Key -> Float
+velOf q = case q of
+    Key k v -> toFloat v / 127.0
+
+#: Where a key sits: low notes left, high notes right, middle C centred -
+#: a harp heard from the player's seat.  try: negate it (the audience
+#: side); try `0.0` and the image collapses to mono.
+panOf' : Key -> Float
+panOf' q = case q of
+    Key k v -> clamp (negate 1.0) 1.0 (toFloat (k - 60) / 24.0)
+
+#: A mono pluck, placed by its own key.  `panOf` is equal-power, so a
+#: glissando crosses the field without dipping in the middle.
+harpVoice : Sig Gate -> Sig Key -> Sig Stereo
+harpVoice g s = !panOf (!panOf' s) (triangle (!hzOf s) * perc 5.0 g * !velOf s)
+
+# ── A bed under it: width from detune ────────────────────────────────────
+
+#: Two oscillators, three cents apart, one per ear.  Not the same sound
+#: panned - two slightly different sounds, which the ear reads as room.
+#: try: 12.0 cents is seasick; 0.0 is mono.  A computed Float meets a
+#: signal argument through `!`, which makes it a constant signal.
+spread : Float
+spread = 3.0
+
+#: `!hz` makes a computed Float a constant signal - a literal lifts by
+#: itself, anything calculated needs the `!`.
+bedSide : Float -> Sig Float
+bedSide hz = lowpassSvf 800.0 0.3 (saw (!hz))
+
+bed : Sig Stereo
+bed = pair (bedSide (centsHz (negate spread) 110.0))
+           (bedSide (centsHz spread 110.0))
+
+# ── The anchor: what must hold the centre ────────────────────────────────
+
+#: `widen` sends one mono signal to both ears unchanged.  A bass or a kick
+#: lives here: width above, weight in the middle.
+anchor : Sig Stereo
+anchor = widen (sine 55.0)
+
+# ── The piece ────────────────────────────────────────────────────────────
+
+bpm : Int
+bpm = 96
+
+n : Int -> [: Key :]
+n k = '(Key k 85)
+
+sweep : [: Key :]
+sweep = (n 45 ++ n 52 ++ n 57 ++ n 60 ++ n 64 ++ n 69 ++ n 72 ++ n 76) |/ 2
+
+score : [: Void :]
+score = (sweep ++ reverse sweep) >>= voices.harp
+
+#: Stereo arithmetic is the same arithmetic - the bed is already dull, so
+#: the plucks carry the detail.
+sound : Sig Stereo
+sound = 0.5 * harp + 0.12 * bed + 0.1 * anchor

@@ -1,0 +1,21 @@
+# Lesson 6: drums are shaped noise.
+kickEnv : Sig Float
+kickEnv = map (t => exp (negate 25.0 * wrap (2.0 * t))) elapsed
+
+kick : Sig Float
+kick = sine (45.0 + 180.0 * kickEnv) * kickEnv
+
+hatEnv : Sig Float
+hatEnv = map (t => exp (negate 60.0 * wrap (4.0 * t + 0.5))) elapsed
+
+hat : Sig Float
+hat = highpassSvf 6000.0 0.3 (white 1) * hatEnv
+
+snareEnv : Sig Float
+snareEnv = map (t => exp (negate 18.0 * wrap (t + 0.5))) elapsed
+
+snare : Sig Float
+snare = (0.7 * white 2 + 0.5 * triangle 180.0) * snareEnv
+
+sound : Sig Float
+sound = 0.6 * kick + 0.25 * hat + 0.35 * snare

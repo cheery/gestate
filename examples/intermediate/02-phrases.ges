@@ -1,0 +1,74 @@
+# Lesson 2: the score algebra - phrases are values, so music is arithmetic.
+#
+#   python -m gestate.audioperform examples/intermediate/02-phrases.ges -o l2.wav
+#
+# One simple instrument, and all the attention on the piece.  A score is a
+# value like any other: name a phrase once, then sequence it, stack it,
+# stretch it, reverse it, offset it, transpose it - each is one operator,
+# and they compose.
+
+Key := Key Int Int
+
+voices pluck 8 pluckVoice : Sig Float
+
+instance FromMIDI Key where
+    noteOn ch p v = Just (Key p v)
+
+hzOf : Key -> Float
+hzOf q = case q of
+    Key k v -> keyHz k
+
+velOf : Key -> Float
+velOf q = case q of
+    Key k v -> toFloat v / 127.0
+
+pluckVoice : Sig Gate -> Sig Key -> Sig Float
+pluckVoice g s = triangle (!hzOf s) * perc 6.0 g * !velOf s
+
+# ── The material: one four-note cell ─────────────────────────────────────
+
+bpm : Int
+bpm = 110
+
+n : Int -> [: Key :]
+n k = '(Key k 90)
+
+#: The whole piece grows out of this.  try: change these four notes and
+#: every transformation below follows.
+cell : [: Key :]
+cell = n 57 ++ n 60 ++ n 64 ++ n 62
+
+# ── The transformations ──────────────────────────────────────────────────
+
+#: Transpose: `>>=` replaces every note, so "up an octave" is a function.
+#: try: `up 7` (a fifth), `up (negate 12)`.
+up : Int -> Key -> [: Key :]
+up j q = case q of
+    Key k v -> '(Key (k + j) v)
+
+#: Twice as fast.  `|/ 2` halves every duration inside.
+quick : [: Key :]
+quick = (cell ++ (cell >>= up 12)) |/ 2
+
+#: The same cell backwards - retrograde.  try: `reverse quick`.
+crab : [: Key :]
+crab = reverse cell
+
+#: A round: the phrase against itself, one bar late.  `at` moves a score's
+#: extent without changing its duration, and `||` starts both together.
+#: try: three entries; try entering at 2 beats instead of 4.
+theme : [: Key :]
+theme = cell ++ quick ++ crab
+
+round2 : [: Key :]
+round2 = theme || at (4 * ticksPerBeat) (theme >>= up 12)
+
+#: Rests are `r`; a bass note under the last bar, held four beats.
+ground : [: Key :]
+ground = r |* 8 ++ n 45 |* 4
+
+score : [: Void :]
+score = (round2 || ground) >>= voices.pluck
+
+sound : Sig Float
+sound = gain 0.35 pluck

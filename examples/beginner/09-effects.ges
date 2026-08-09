@@ -1,0 +1,10 @@
+# Lesson 9: effects - space and dirt.
+pluckEnv : Sig Float
+pluckEnv = map (t => exp (negate 300.0 * wrap t)) elapsed
+
+dry : Sig Float
+dry = string 330.0 1.5 (white 1 * pluckEnv)
+
+sound : Sig Float
+sound = brickwall 0.8 (dry + 0.4 * echo 0.375 0.45 dry
+                           + 0.3 * reverb 2.0 0.4 dry)

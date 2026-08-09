@@ -1,0 +1,74 @@
+# Lesson 9: the operator bank - four sines and a wiring loom.
+#
+#   python -m gestate.audiolive examples/advanced/09-fm.ges --seconds 12
+#   python -m gestate.audio examples/advanced/09-fm.ges -o l9.wav
+#
+# The beginner guide's `pm` was one sine bending another.  `fm` is four,
+# and the *patch* - which operator shakes which, at what ratio - is data:
+#
+#     Patch <ratios> <matrix> <amps>
+#
+#     ratios : Quad - each op's frequency, as a multiple of the note
+#     matrix : who modulates whom, in turns; built with `modulates`
+#     amps   : Quad - how much of each op reaches the output (carriers)
+#
+# The levels arrive per sample as a `Sig Quad`, and that is where the
+# envelopes go: a modulator's level is *brightness*, a carrier's is
+# loudness, and separate envelopes per operator are why FM sounds alive.
+
+# ── The patch ────────────────────────────────────────────────────────────
+
+#: Op 2 bends op 1 hard; op 3 adds a fast shimmer to 1; op 2 chews on
+#: itself a little (the diagonal is feedback).  Ops 1 and 4 are heard -
+#: 4 is a near-octave sparkle.
+#: try: ratio 2.0 -> 2.01 (chorus-y beating); the 3.51 to 4.0 (harmonic,
+#: suddenly polite); feedback 0.15 -> 0.5 (grit).
+#: try: the presets - `fm fmBell`, `fm fmStack`, `fm fmFeedback` - same
+#: levels, very different animals.
+wiring : Matrix
+wiring = modulates 2 1 0.9 (modulates 3 1 0.25 (modulates 2 2 0.15 noWiring))
+
+patch : Patch
+patch = Patch (Quad 1.0 2.0 3.51 2.005) wiring (Quad 1.0 0.0 0.0 0.12)
+
+# ── The levels: one envelope per operator ────────────────────────────────
+
+#: Notes retrigger twice a second (the wrap-trick on `elapsed`).  The
+#: modulators decay *faster* than the carriers: every note starts bright
+#: metal and dies to a near-sine.
+#: try: swap the rates - notes that open up instead of dying.
+levelsAt : Float -> Quad
+levelsAt t = levelsOf (wrap (0.5 * t))
+
+levelsOf : Float -> Quad
+levelsOf u = Quad (exp (negate 2.0 * u)) (exp (negate 7.0 * u))
+                  (exp (negate 16.0 * u)) (exp (negate 3.0 * u))
+
+levels : Sig Quad
+levels = map levelsAt elapsed
+
+# ── The pitch: a bass line the bank follows ──────────────────────────────
+
+noteOf : Int -> Float
+noteOf i = case i of
+    0 -> 55.0
+    1 -> 55.0
+    2 -> 82.41
+    _ -> 73.42
+
+hzAt : Float -> Float
+hzAt t = noteOf (prim_mod_int (floor (0.5 * t)) 4)
+
+pitch : Sig Float
+pitch = map hzAt elapsed
+
+# ── The other diagonal: one operator alone ───────────────────────────────
+
+#: `pmSelf hz amount` is a sine modulating itself - the cheapest bright
+#: wave there is.  Here it is the pad under the bank.
+#: try: amount 0.0 (a plain sine) up to 0.9 (nearly a saw).
+bed : Sig Float
+bed = 0.1 * pmSelf 110.0 0.35
+
+sound : Sig Float
+sound = 0.45 * fm patch pitch levels + bed
