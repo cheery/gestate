@@ -384,6 +384,51 @@ def test_the_exported_plugin_renders_what_the_engine_does(tmp_path):
 
 
 @needs_toolchain
+def test_a_stereo_program_fills_both_channel_pointers(tmp_path):
+    """The engine speaks interleaved frames; a CLAP port is one pointer
+    per channel — the deinterleave is shipped, and this is its test.
+
+    Left and right must differ (a pan is the point) and each must be
+    its half of `run_native`'s interleaved stream.
+    """
+    from gestate.audiollvm import run_native
+    from gestate.audioperform import graph_of
+    from gestate.export import export_clap
+
+    source = "sound : Sig Stereo\nsound = pan 0.3 (sine 440.0)\n"
+    out = tmp_path / "wide.clap"
+    export_clap(source, out, rate=RATE, name="wide")
+    lib, plug_raw, plugin = _plugin_of(out)
+    assert plugin.init(plug_raw)
+    assert plugin.activate(plug_raw, float(RATE), 32, 512)
+    assert plugin.start_processing(plug_raw)
+
+    frames = 128
+    left = (c_float * frames)()
+    right = (c_float * frames)()
+    chans = (POINTER(c_float) * 2)(
+        ctypes.cast(left, POINTER(c_float)),
+        ctypes.cast(right, POINTER(c_float)))
+    port = AudioBuffer(data32=chans, data64=None, channel_count=2,
+                       latency=0, constant_mask=0)
+    proc = Process(steady_time=0, frames_count=frames, transport=None,
+                   audio_inputs=None, audio_outputs=ctypes.pointer(port),
+                   audio_inputs_count=0, audio_outputs_count=1,
+                   in_events=None, out_events=None)
+    assert plugin.process(plug_raw, ctypes.byref(proc)) == 1
+
+    graph = graph_of(source, "", rate=RATE)
+    with tempfile.TemporaryDirectory() as d:
+        pairs = list(run_native(graph, d, frames, block=frames))
+    assert list(left) == pytest.approx([p[0] for p in pairs]), \
+        "left is not left"
+    assert list(right) == pytest.approx([p[1] for p in pairs]), \
+        "right is not right"
+    assert list(left) != pytest.approx(list(right)), "the pan did nothing"
+    plugin.destroy(plug_raw)
+
+
+@needs_toolchain
 def test_one_plugin_is_honest_at_several_rates(tmp_path):
     """Exported at two rates, the plugin carries two whole graphs and
     `activate` picks the one the host names — each rendering exactly

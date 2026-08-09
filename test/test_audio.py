@@ -79,7 +79,12 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # arithmetic on `beat`, so the DAW's transport conducts it.
             # A groove, so no golden; the host clock is exercised by
             # `test_export.py`'s beat parity.
-            "fourfloor.ges"]
+            "fourfloor.ges",
+            # The stereo showcase: a pluck alternating ears on the beat,
+            # a detuned bed, a crossing swoosh.  A piece, so no golden;
+            # the two-channel port is exercised by `test_export.py`'s
+            # stereo parity.
+            "pingpong.ges"]
 
 #: The ones with committed golden buffers — all of them, now.  `knob.ges`
 #: had none for as long as the interpreter and the engine disagreed about

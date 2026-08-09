@@ -214,7 +214,13 @@ def _is_envelope_list(type_) -> bool:
 #: The score was never what `beat` needed; `bpm` is.
 BEAT = ("\nbeat : Sig Float\n"
         "beat = map (n => toFloat n * toFloat bpm / (60.0 * sampleRate))"
-        " ticks\n")
+        " ticks\n"
+        # `beatRate` — how fast, in beats a second: `beat`'s slope.  A
+        # constant here; the DAW's transport in an exported plugin
+        # (`export.host_clock`) — one name, one meaning, one
+        # implementation per renderer.
+        "\nbeatRate : Sig Float\n"
+        "beatRate = !(toFloat bpm / 60.0)\n")
 
 #: The same clock under a `tempo` envelope, where it is piecewise
 #: *quadratic* — tempo is linear in time and beat is its integral.
@@ -226,7 +232,9 @@ BEAT = ("\nbeat : Sig Float\n"
 #: polynomial is in, and `tempo.envelope` — the same derivation the
 #: *schedule* is built from — is what supplies its coefficients.
 BEAT_ENVELOPE = ("\nbeat : Sig Float\n"
-                 "beat = map (t => beatOf tempo t) elapsed\n")
+                 "beat = map (t => beatOf tempo t) elapsed\n"
+                 "\nbeatRate : Sig Float\n"
+                 "beatRate = map (t => on tempo t / 60.0) elapsed\n")
 
 
 def has_tempo(source: str) -> bool:
