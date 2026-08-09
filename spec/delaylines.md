@@ -1,6 +1,8 @@
 # Delay lines — the fifth node kind
 
-*A design, not an implementation.  Nothing in this file is built yet.*
+*Written as a design; most of it is built now.  `feedback`, `tap` and
+`loop` are the static-length family, and `slide` — recorded at the end —
+is the delay whose length is a signal.*
 
 `synth.ges` says, in the list of what is deliberately absent:
 
@@ -268,6 +270,39 @@ what is forbidden everywhere else here.
 cycle is created, `_check_recursion` is untouched, and `tap` remains the
 only node that can close one — which is still the route for a feedback
 path that has to leave the node and come back.
+
+### The length became a signal — `slide`
+
+The one instrument the family above still could not make was the one
+`lead.ges` apologises for: a feedback loop whose *length* moves.  A
+`feedback`'s slot is its cursor, so its length cannot; a `tap`'s position
+is already a signal, but its loop would have to leave the node, and the
+graph refuses the cycle.  `slide` is the two folded together — `tap`'s
+interpolated moving read closed into `feedback`'s loop:
+
+    feedback n f     s :  out[t] = f (out[t - n],      s[t])
+    slide    n f pos s :  out[t] = f (out[t - pos[t]], s[t])
+
+The ring holds the node's own output; `pos` is a signal in samples, may
+be fractional (the read interpolates, exactly as `tap`'s does), and is
+clamped to 1 .. n-1 so the loop always has a sample of delay in it.  `n`
+is the ring's width and fixed at build, as every length here is — it is
+the furthest the position can reach, not the position.
+
+Still no cycle in the graph, no change to `_check_recursion`, and no
+change to the discipline: the loop is inside the node.  The step is pure,
+`Float -> a -> Float`, so a filter inside the loop is still spelled as
+arithmetic (the interpolation's own half-sample smear is a gentle
+per-pass lowpass, which for a tape echo is the right accident).  Silence
+at `t = 0`, `scan`'s asymmetry, oracle first and the engines checked
+bit-identical against it — `test_delayline.py`'s slide block is the
+check, and the fractional-position test pins the lerp to the sample.
+
+**Buys:** a Karplus-Strong string that slides
+(`examples/audio/bottleneck.ges`), a tape echo with wow and flutter
+(`examples/audio/flutter.ges`), vibrato and portamento on any waveguide,
+dub delays whose time is played by hand — every feedback instrument
+whose length is a gesture rather than a constant.
 
 ---
 

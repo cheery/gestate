@@ -263,7 +263,7 @@ class _Extract:
         # its buffer is `length` samples of state, and dropping it because
         # nothing reads it *this* recompile loses all of it.
         stack += [n.id for n in self.graph.nodes
-                  if n.kind in ("source", "scan", "line", "tap", "loop")]
+                  if n.kind in ("source", "scan", "line", "tap", "loop", "slide")]
         while stack:
             i = stack.pop()
             if i in keep:
@@ -418,7 +418,8 @@ class _Extract:
         # ask the shape rather than assuming a position.
         params, result = ((None, None) if kind == "tap" else
                           self._step_arrow(
-                              args[1 if kind in ("line", "loop") else 0]))
+                              args[1 if kind in ("line", "loop", "slide")
+                                   else 0]))
 
         def of(i: int) -> str:                                    # noqa: D401
             """The `i`th parameter's layout, when it has one.
@@ -479,6 +480,22 @@ class _Extract:
             inputs = [self._signal(sig_e, env, path, of(2))]
             init = self._constant(init_e, env, path)
             type_ = self._value_type(init)
+        elif kind == "slide":
+            # `slide n f pos s` — the step folds the interpolated read with
+            # the input, `step : Float -> a -> Float`, and the ring holds
+            # the node's own output, so the element type is the step's
+            # first parameter (always `Float` — interpolation is what the
+            # node *is*, and only floats blend).
+            length_e, step_e, pos_e, sig_e = args
+            length = self._length(length_e, env, path)
+            if length < 2:
+                raise ExtractError(
+                    f"{path}: a `slide` of {length} has no room to move — "
+                    f"its position is clamped to 1 .. n-1, so the shortest "
+                    f"line that means anything is 2")
+            inputs = [self._signal(sig_e, env, path, of(1)),
+                      self._signal(pos_e, env, path, "Float")]
+            init, type_ = None, "Float"
         else:                                             # zip
             step_e, left_e, right_e = args
             inputs = [self._signal(left_e, env, path, of(0)),
@@ -501,7 +518,8 @@ class _Extract:
                 else self._step(step_e, env, origin, want))
         return self._add(Node(id=0, kind=kind, inputs=tuple(inputs),
                               step=step, init=init, type_=type_,
-                              length=(length if kind in ("line", "tap", "loop")
+                              length=(length if kind in ("line", "tap",
+                                                         "loop", "slide")
                                       else 0)),
                          path, kind, origin=origin)
 

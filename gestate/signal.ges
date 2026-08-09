@@ -123,6 +123,38 @@ feedback n f s = map lineOut (scan (buf x => lineStep f buf x)
 tap : Int -> Sig Float -> Sig Float -> Sig Float
 tap n pos s = zipSig tapRead (scan tapPush (lineZero n) s) pos
 
+#: **A delay line that bends** — `tap`'s moving, interpolated read, closed
+#: into `feedback`'s loop.  The ring holds the node's *own* output, the
+#: position says how far back this instant reaches into it, and the step
+#: folds what it finds there with the input:
+#:
+#:     feedback n f     s :  out[t] = f (out[t - n],      s[t])
+#:     slide    n f pos s :  out[t] = f (out[t - pos[t]], s[t])
+#:
+#: `pos` is a **signal**, in samples, and may be fractional — the read is
+#: interpolated between the two samples either side, exactly as `tap`'s
+#: is.  That one difference is a sliding Karplus-Strong string, a waveguide
+#: whose pitch is a signal, an echo whose time warbles like tape: every
+#: feedback instrument whose *length* wants to move, which `feedback`
+#: cannot do (its slot is its cursor) and `tap` alone cannot either (its
+#: loop would have to leave the node, and the graph refuses the cycle).
+#:
+#: The position is clamped to 1 .. n-1, as `tap`'s is and for `tap`'s
+#: reason: reading at least one sample back is what makes the value a
+#: function of the *state*, so the loop always has a sample of delay in
+#: it.  `n` is fixed before the program runs — it is the ring's width and
+#: the furthest the position can reach, so give a sliding pitch its lowest
+#: note's room.
+#:
+#: The definition below is the oracle's, as its three siblings' are: the
+#: audio backend recognises the name and emits a node, and this is what
+#: `render` runs to produce the samples that node is checked against.
+slide : Int -> (Float -> Float -> Float) -> Sig Float -> Sig Float
+      -> Sig Float
+slide n f pos s = map slideHead
+    (scan (buf i => slideStep f buf i) (lineZero n)
+          (zipSig (x d => SlideIn x d) s pos))
+
 #: **A delay line with a filter in it** — `feedback`, plus where the step
 #: was an instant ago.
 #:
@@ -296,6 +328,31 @@ tapMix buf d = tapBlend (lineAt buf (floor d)) (lineAt buf (floor d + 1))
 
 tapBlend : Float -> Float -> Float -> Float
 tapBlend a b f = a + (b - a) * f
+
+# **`slide`'s oracle** — `tap`'s read over a ring of the node's own
+# output.  The scan's ring is newest-first *before* this instant's push,
+# so "d samples back" is list index d - 1; the clamp is `tapWhere`'s, so
+# the two nodes agree about where a position may reach.
+
+#: The input and the position, folded through one scan — its own record,
+#: not `Both`, for the reason `synth.ges` gives at `OnePoleIn`: a
+#: constructor's layout is chosen by tag, so one record at two
+#: instantiations in a graph collides in the code generator.
+SlideIn := SlideIn Float Float
+
+slideStep : (Float -> Float -> Float) -> List Float -> SlideIn -> List Float
+slideStep f buf i = case i of
+    SlideIn x d -> f (slideRead buf d) x :: lineButLast buf
+
+slideRead : List Float -> Float -> Float
+slideRead buf d = tapMix buf (tapWhere (length buf) d - 1.0)
+
+#: What the step just wrote — the node's output is this instant's sample,
+#: as `loop`'s is, not the far end of the ring as `feedback`'s is.
+slideHead : List Float -> Float
+slideHead buf = case buf of
+    [] -> 0.0
+    y :: rest -> y
 
 lineAt : List Float -> Int -> Float
 lineAt buf i = case buf of

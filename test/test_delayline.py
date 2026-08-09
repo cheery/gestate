@@ -523,3 +523,93 @@ def test_a_loop_that_did_not_change_keeps_its_buffer():
     carried = migrate(old, state, new)
     now = next(n for n in new.nodes if n.kind == "loop")
     assert carried.lines[now.id] == ring
+
+
+# ── `slide` — the position becomes a signal ─────────────────────────────────
+#
+# `tap`'s interpolated moving read closed into `feedback`'s loop: the ring
+# holds the node's own output and the length of the feedback path is a
+# *signal*.  A constant position must therefore sound exactly like the
+# `feedback` it degenerates to, a fractional one must split a repeat
+# across the two samples either side, and a moving one is a glissando.
+
+SLIDE_COMB = IMPULSE + (
+    "sound : Sig Float\n"
+    "sound = slide 40 (y x => x + 0.6 * y) (!20.0) trig\n")
+
+
+def test_a_slide_at_a_constant_position_is_a_feedback_comb():
+    n = 120
+    graph = _graph(SLIDE_COMB)
+    got = run(graph, n)
+    plain = run(_graph(IMPULSE + (
+        "sound : Sig Float\n"
+        "sound = feedback 20 (y x => x + 0.6 * y) trig\n")), n)
+    assert [round(v, 12) for v in got] == [round(v, 12) for v in plain]
+
+
+def test_the_three_engines_agree_about_a_slide():
+    """The whole method, applied to the new node: the oracle is the
+    definition, the block engine is the meaning, the generated code is
+    what plays — and a block boundary must not be audible."""
+    n = 160
+    src = IMPULSE + (
+        "pos : Int -> Float\n"
+        "pos t = 12.0 + toFloat t * 0.05\n\n"
+        "sound : Sig Float\n"
+        "sound = slide 64 (y x => x + 0.7 * y) (map pos ticks) trig\n")
+    oracle = render(src, n / RATE, RATE)
+    graph = _graph(src)
+    blockless = run(graph, n)
+    blocked = run(_graph(src), n, block=13)
+    assert oracle == blockless == blocked
+
+
+@needs_clang
+def test_the_generated_slide_is_bit_identical():
+    from gestate.audiollvm import run_native
+
+    n = 160
+    src = IMPULSE + (
+        "pos : Int -> Float\n"
+        "pos t = 12.0 + toFloat t * 0.05\n\n"
+        "sound : Sig Float\n"
+        "sound = slide 64 (y x => x + 0.7 * y) (map pos ticks) trig\n")
+    graph = _graph(src)
+    with tempfile.TemporaryDirectory() as d:
+        native = run_native(graph, d, n, block=13)
+    assert native == run(graph, n)
+
+
+def test_a_fractional_position_splits_the_repeat():
+    """Position 20.5 puts the first repeat *between* two samples: the lerp
+    lands 0.3 on each neighbour, which is the interpolation doing exactly
+    what `tap`'s does — this is the sample-accurate half of a slide's
+    tuning, measured rather than trusted."""
+    got = run(_graph(IMPULSE + (
+        "sound : Sig Float\n"
+        "sound = slide 40 (y x => x + 0.6 * y) (!20.5) trig\n")), 60)
+    repeat = {i: round(v, 6) for i, v in enumerate(got) if 20 < i < 30 and v}
+    assert repeat == {25: 0.3, 26: 0.3}
+
+
+def test_a_moving_position_widens_the_echo():
+    src = IMPULSE + (
+        "pos : Int -> Float\n"
+        "pos t = 12.0 + toFloat t * 0.05\n\n"
+        "sound : Sig Float\n"
+        "sound = slide 64 (y x => x + 0.7 * y) (map pos ticks) trig\n")
+    got = run(_graph(src), 200)
+    onsets = [i for i, v in enumerate(got) if abs(v) > 1e-3]
+    heads = [i for i in onsets if i - 1 not in onsets]
+    gaps = [b - a for a, b in zip(heads, heads[1:])]
+    assert gaps == sorted(gaps) and gaps[0] < gaps[-1], \
+        f"a rising position should stretch the repeats: {gaps}"
+
+
+def test_a_slide_with_no_room_is_refused_with_a_reason():
+    with pytest.raises(ExtractError) as err:
+        _graph(IMPULSE + (
+            "sound : Sig Float\n"
+            "sound = slide 1 (y x => x + y) (!1.0) trig\n"))
+    assert "room to move" in str(err.value)

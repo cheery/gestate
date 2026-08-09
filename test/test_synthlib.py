@@ -32,10 +32,10 @@ from gestate.audiollvm import run_native
 
 AUDIO_DIR = Path(__file__).resolve().parent.parent / "examples" / "audio"
 
-#: The examples built on the library.  All five are *scored*, so they are
+#: The examples built on the library.  All six are *scored*, so they are
 #: read through `audioperform` rather than through `audio.render`.
 LIB_EXAMPLES = ["polysine.ges", "fmpoly.ges", "polysaw.ges", "stereopad.ges",
-                "quartet.ges"]
+                "quartet.ges", "gyre.ges"]
 
 needs_clang = pytest.mark.skipif(shutil.which("clang") is None,
                                  reason="no clang to build the engine with")

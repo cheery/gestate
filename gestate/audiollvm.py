@@ -471,7 +471,7 @@ def emit(graph: Graph) -> str:
         if not node.step:
             continue
         inputs = [graph.node(i).type_ for i in node.inputs]
-        if node.kind in ("scan", "line"):
+        if node.kind in ("scan", "line", "slide"):
             e.function(node.step, [node.type_, inputs[0]])
         elif node.kind == "loop":
             # Both ends of the ring, then the input: `b -> b -> a -> b`.
@@ -488,7 +488,7 @@ def emit(graph: Graph) -> str:
     def _field(node) -> str:
         cell = e.t.of(node.type_)
         return (f"[{node.length} x {cell}]"
-                if node.kind in ("line", "tap", "loop") else cell)
+                if node.kind in ("line", "tap", "loop", "slide") else cell)
 
     state_fields = ", ".join(["i64"] + [_field(n) for n in graph.nodes])
     lines = [
@@ -616,12 +616,14 @@ def _render_block(graph: Graph, e: _Emit, name: str, out_type: str,
             was = e.fresh("was")
             e.emit(f"{was} = load {ty}, ptr {pslot}")
             prevs[node.id] = was
-        elif node.kind == "tap":
-            # **The one node whose read and write are different places.**
-            # A `line` reads the slot it is about to overwrite; a tap reads
-            # wherever its position points and writes at `t`, so the base
-            # pointer is what is kept and the two indices are computed
-            # where they are used.
+        elif node.kind in ("tap", "slide"):
+            # **The nodes whose read and write are different places.**
+            # A `line` reads the slot it is about to overwrite; a tap or a
+            # slide reads wherever its position points, so the base
+            # pointer is what is kept and the indices are computed where
+            # they are used.  A slide still writes at `t`, during the pass
+            # — its read is clamped a sample back and never touches that
+            # slot.
             slot = e.fresh("tapbase")
             rings[node.id] = slot
             e.emit(f"{slot} = getelementptr inbounds %State, ptr %s, i32 0, "
@@ -630,7 +632,7 @@ def _render_block(graph: Graph, e: _Emit, name: str, out_type: str,
             e.emit(f"{slot} = getelementptr inbounds %State, ptr %s, i32 0, "
                    f"i32 {node.id + 1}")
         held = f"%held{node.id}"
-        if node.kind != "tap":
+        if node.kind not in ("tap", "slide"):
             e.emit(f"{held} = load {ty}, ptr {slot}")
 
         if node.kind == "source":
@@ -709,6 +711,27 @@ def _render_block(graph: Graph, e: _Emit, name: str, out_type: str,
             out = _emit_tap(e, node, ty, values[node.inputs[1]], rings[node.id])
             values[node.id] = out
             taps.append(node)
+        elif node.kind == "slide":
+            # `tap`'s read, `feedback`'s write: fold the interpolated read
+            # with the input, store the result at `t` — during the pass,
+            # because the read is clamped a sample back and cannot see it.
+            read = _emit_tap(e, node, ty, values[node.inputs[1]],
+                             rings[node.id])
+            stepped = e.fresh("sl")
+            arg_t = e.t.of(graph.node(node.inputs[0]).type_)
+            e.emit(f"{stepped} = call fastcc {ty} @{_fn(node.step)}"
+                   f"({ty} {read}, {arg_t} {values[node.inputs[0]]})")
+            # Silence at the first instant, as the oracle's `scan` gives.
+            quiet, _t = e.constant(_zero_of(graph, node.type_))
+            out = e.fresh("slv")
+            e.emit(f"{out} = select i1 %first, {ty} {quiet}, {ty} {stepped}")
+            values[node.id] = out
+            at = e.fresh("sat")
+            e.emit(f"{at} = urem i64 %t, {node.length}")
+            where = e.fresh("sslot")
+            e.emit(f"{where} = getelementptr inbounds [{node.length} x {ty}], "
+                   f"ptr {rings[node.id]}, i64 0, i64 {at}")
+            e.emit(f"store {ty} {out}, ptr {where}")
         else:                                                     # zip
             out = e.fresh("z")
             a_t = e.t.of(graph.node(node.inputs[0]).type_)
@@ -717,7 +740,7 @@ def _render_block(graph: Graph, e: _Emit, name: str, out_type: str,
                    f"({a_t} {values[node.inputs[0]]}, "
                    f"{b_t} {values[node.inputs[1]]})")
             values[node.id] = out
-        if node.kind != "tap":
+        if node.kind not in ("tap", "slide"):
             e.emit(f"store {ty} {values[node.id]}, ptr {slot}")
 
     # **The taps are written last**, and that is what a delay line is: its
@@ -959,13 +982,43 @@ def check_int_range(graph: Graph) -> None:
 _BUILD = __import__("itertools").count()
 
 
+#: Bump when what `build` produces changes for the same IR text — the
+#: store's key is `(schema, sha256(IR), opt)`, and nothing else.
+_SO_SCHEMA = 1
+
+
+def _so_store():
+    """Where compiled objects are remembered, or `None` when off.
+
+    The `.so` is a pure function of the IR text and the flags, so this is
+    a content-addressed cache in the strict sense: nothing in it is
+    authoritative, a miss costs one clang run, and `GESTATE_SO_CACHE=0`
+    turns it off.  Reopening yesterday's synth stops paying for clang,
+    which was measured at 3.5 s of a cold editor start.
+    """
+    import os
+    from pathlib import Path
+
+    if os.environ.get("GESTATE_SO_CACHE", "1") == "0":
+        return None
+    root = os.environ.get("XDG_CACHE_HOME") or (Path.home() / ".cache")
+    return Path(root) / "gestate"
+
+
 def build(graph: Graph, directory, opt: str = "-O2"):
     """Compile the graph to a shared object and return its path.
 
     `-O2` is safe for the comparison and worth stating why: LLVM will not
     reassociate floating-point arithmetic without fast-math flags on the
     instructions, and this emitter writes none.
+
+    Answered from the store when the same IR was built before: the object
+    is *copied* into `directory` rather than loaded from the store, so a
+    cached build and a fresh one live identical lives — a fresh name in a
+    caller-owned directory — and a cleared cache mid-session breaks
+    nothing that is already mapped.
     """
+    import shutil
     import subprocess
     from pathlib import Path
 
@@ -977,7 +1030,23 @@ def build(graph: Graph, directory, opt: str = "-O2"):
     stem = f"synth{next(_BUILD)}"
     ll = directory / f"{stem}.ll"
     so = directory / f"{stem}.so"
-    ll.write_text(emit(graph))
+    text = emit(graph)
+    ll.write_text(text)
+
+    store = _so_store()
+    kept = None
+    if store is not None:
+        import hashlib
+
+        sha = hashlib.sha256(f"{opt}\n{text}".encode()).hexdigest()[:32]
+        kept = store / f"so-{_SO_SCHEMA}-{sha}.so"
+        if kept.exists():
+            try:
+                shutil.copyfile(kept, so)
+                return so
+            except OSError:
+                pass                     # a torn cache is only a slow one
+
     # `-lm` is not optional: `llvm.floor.f64` becomes an SSE instruction at
     # `-O2` and a call to libm's `floor` at `-O0`, so leaving it out builds
     # a shared object that loads cleanly and segfaults the first time a
@@ -985,6 +1054,14 @@ def build(graph: Graph, directory, opt: str = "-O2"):
     # because comparing them is how the no-fast-math claim is checked.
     subprocess.run(["clang", opt, "-shared", "-fPIC", str(ll), "-o", str(so),
                     "-lm"], check=True, capture_output=True)
+    if kept is not None:
+        try:
+            kept.parent.mkdir(parents=True, exist_ok=True)
+            tmp = kept.with_name(kept.name + f".tmp{stem}")
+            shutil.copyfile(so, tmp)
+            tmp.replace(kept)            # atomic — a reader sees whole files
+        except OSError:
+            pass
     return so
 
 
@@ -1078,7 +1155,7 @@ def _slots(graph: Graph, node) -> int:
     """
     words = _words(graph, node.type_)
     return (words * node.length
-            if node.kind in ("line", "tap", "loop") else words)
+            if node.kind in ("line", "tap", "loop", "slide") else words)
 
 
 def _words(graph: Graph, type_name: str) -> int:
@@ -1111,7 +1188,7 @@ def pack_state(graph: Graph, values: list, t: int, lines=None) -> bytes:
 
     out = bytearray(struct.pack("<q", t))
     for node, value in zip(graph.nodes, values):
-        if node.kind in ("line", "tap", "loop"):
+        if node.kind in ("line", "tap", "loop", "slide"):
             # **A line's slot is its ring, not its sample.**  `values` is
             # one value per node and a line's is the sample downstream
             # read; the ring lives in `State.lines`, and what goes into the
@@ -1136,7 +1213,7 @@ def unpack_state(graph: Graph, data) -> tuple:
     t = struct.unpack_from("<q", raw, 0)[0]
     values, lines, at = [], {}, 8
     for node in graph.nodes:
-        if node.kind in ("line", "tap", "loop"):
+        if node.kind in ("line", "tap", "loop", "slide"):
             ring = []
             for _ in range(node.length):
                 held, at = _unpack(graph, node.type_, raw, at)

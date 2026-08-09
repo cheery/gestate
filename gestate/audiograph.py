@@ -75,6 +75,11 @@ FORMERS = {
     #: states rather than samples, so the step reaches both the far end and
     #: the near one.  Still no cycle: the loop is inside the node.
     "loop": "loop",
+    #: A delay line that bends: `tap`'s interpolated moving read closed
+    #: into `feedback`'s loop, so the *length* of a feedback path may be a
+    #: signal.  Still no cycle in the graph — the loop is inside the node —
+    #: and the read is clamped a sample back, so it cannot close empty.
+    "slide": "slide",
 }
 
 #: What each former takes, by the *node kind* rather than by the name — two
@@ -94,6 +99,9 @@ SHAPES = {
     # `loop n f z s` — the length first as a `line`'s is, then the step,
     # then the initial state, which is where a `scan` keeps it too.
     "loop": ("value", "step", "value", "signal"),
+    # `slide n f pos s` — the length first as its siblings', the step, and
+    # then two signals: the position and the input.
+    "slide": ("value", "step", "signal", "signal"),
 }
 
 #: Machine primitives over flat types.  `chr`/`ord` move between `Int` and

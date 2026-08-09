@@ -345,6 +345,15 @@ def perform_voices(synth: str, piece: str = "", rate: int = 22050) -> tuple:
     # `pipeline._analysed` rather than run again.  The score's reading is
     # `scoreMain`, evaluated by name the way `gui.Substrate._force` does.
     source = assemble_performance(synth, piece, rate)
+    stored = _score_path(source)
+    if stored is not None and stored.exists():
+        import pickle
+
+        try:
+            with open(stored, "rb") as f:
+                return pickle.load(f)
+        except Exception:                               # noqa: BLE001
+            pass                        # a torn cache is only a slow one
     state = _compile(source)
     state._code, state._pc = [PushGlobal("scoreMain"), Unwind()], 0
     state.stack, state.dump = [], []
@@ -381,7 +390,46 @@ def perform_voices(synth: str, piece: str = "", rate: int = 22050) -> tuple:
                 f"declare (constructor tag {v.tag})")
         payload = tuple(_read_flat(a, state) for a in v.args)
         events.append((_int(onset, state), _int(offset, state), bank, payload))
+    if stored is not None:
+        import pickle
+
+        try:
+            stored.parent.mkdir(parents=True, exist_ok=True)
+            tmp = stored.with_name(stored.name + ".tmp")
+            with open(tmp, "wb") as f:
+                pickle.dump((bpm, events), f,
+                            protocol=pickle.HIGHEST_PROTOCOL)
+            tmp.replace(stored)         # atomic — a reader sees whole files
+        except Exception:                               # noqa: BLE001
+            pass
     return bpm, events
+
+
+#: Bump when what `perform_voices` returns changes shape — the stored
+#: layout is keyed by `(schema, sha256(assembled source))`, and the source
+#: hash covers the rate, which is written into the assembly's own
+#: `sampleRate` line.
+_SCORE_SCHEMA = 1
+
+
+def _score_path(source: str):
+    """Where this piece's laid-out score would be remembered, or `None`.
+
+    A *cache* in the strict sense, like the stack front's and the compiled
+    object's: the G-machine layout of a long piece is seconds of
+    interpreter (five, for `quartet.ges`), it is a pure function of the
+    assembled text, and reopening an unedited piece should not pay it
+    twice.  `GESTATE_SCORE_CACHE=0` turns it off.
+    """
+    import hashlib
+    import os
+    from pathlib import Path
+
+    if os.environ.get("GESTATE_SCORE_CACHE", "1") == "0":
+        return None
+    root = os.environ.get("XDG_CACHE_HOME") or (Path.home() / ".cache")
+    sha = hashlib.sha256(source.encode()).hexdigest()[:32]
+    return Path(root) / "gestate" / f"score-{_SCORE_SCHEMA}-{sha}.pickle"
 
 
 def _tempo_envelope(node, state):

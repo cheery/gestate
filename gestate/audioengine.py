@@ -302,12 +302,12 @@ def migrate(old: Graph, state: State, new: Graph) -> State:
         # 4410` to `4400` while a sound is playing restarts that line and
         # nothing else, which is the same rule a `scan` follows when its
         # type changes.
-        if (kept and node.kind in ("line", "tap", "loop")
+        if (kept and node.kind in ("line", "tap", "loop", "slide")
                 and before[0].length != node.length):
             kept = False
         if kept:
             values.append(before[2])
-            if (node.kind in ("line", "tap", "loop")
+            if (node.kind in ("line", "tap", "loop", "slide")
                     and before[0].id in state.lines):
                 lines[node.id] = list(state.lines[before[0].id])
         elif node.init is not None:
@@ -403,6 +403,22 @@ def render_block(graph: Graph, state: State, n: int, control=None) -> list:
                           call(graph, node.step,
                                [buf[at], cur[node.inputs[0]]]))
                 buf[at] = cur[i]
+            elif node.kind == "slide":
+                # **`tap`'s read closed into `feedback`'s loop.**  The ring
+                # holds this node's own output; the read happens before the
+                # write, at wherever the position points this instant, and
+                # `_tap_read`'s clamp keeps it at least one sample back —
+                # so the loop always has a sample of delay in it.  Silence
+                # at `t = 0`, as the oracle's `scan` gives: `s[0]` never
+                # reaches a fold.
+                buf = state.ring(graph, node)
+                if t == 0:
+                    cur[i] = 0.0
+                else:
+                    read = _tap_read(buf, t, cur[node.inputs[1]])
+                    cur[i] = call(graph, node.step,
+                                  [read, cur[node.inputs[0]]])
+                buf[t % len(buf)] = cur[i]
             elif node.kind == "loop":
                 # **A `line` whose ring holds whole states**, which is what
                 # brings both ends of it within reach in one read: slot
