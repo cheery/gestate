@@ -1,0 +1,29 @@
+# WARMDRONE - one chord, two Float dials.
+#
+#   python -m gestate.export examples/audio/warmdrone.ges -o warmdrone.clap
+#
+# `heat` is how hard the chord leans into the ceiling, `air` how open
+# the filter sits.  Both are Float knobs in 0..1 - the range a DAW
+# draws them with (`export._range_of`) - and the drone is the kind of
+# patch such dials are for: nothing to play, everything to lean on.
+
+heatChan : Chan Float
+heatChan = chan
+
+heat : Sig Float
+heat = 0.35 ::: mkSig (wait heatChan)
+
+airChan : Chan Float
+airChan = chan
+
+air : Sig Float
+air = 0.5 ::: mkSig (wait airChan)
+
+#: Three detuned saws and a sub - close enough to beat, far enough to
+#: shimmer.
+bed : Sig Float
+bed = saw 55.0 + 0.8 * saw 55.4 + 0.4 * saw 110.3 + 0.6 * sine 27.5
+
+sound : Sig Float
+sound = brickwall 0.9
+    (0.55 * lowpassSvf (220.0 + 4300.0 * air) 0.35 (bed * (0.5 + 2.5 * heat)))
