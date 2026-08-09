@@ -60,6 +60,11 @@ struct Instance {
     /// .by_midi_channel`'s own rule — and every cell is a stepped
     /// parameter, so the DAW's generic UI *is* the checkbox matrix.
     routing: Vec<u16>,
+    /// The compiled rate `activate` picked — the graph being played.
+    active: Option<&'static engine::RateCase>,
+    /// The shell's own beat position, for a host with a tempo but no
+    /// beats timeline; a timeline host overwrites it every block.
+    beat_pos: f64,
 }
 
 fn default_routing() -> Vec<u16> {
@@ -72,7 +77,7 @@ impl Instance {
     fn new(desc: &'static Descriptor) -> Self {
         Instance {
             desc,
-            state: vec![0u8; desc.state_bytes],
+            state: Vec::new(),
             control: desc.controls.iter().map(|c| c.init_bits).collect(),
             scratch: Vec::new(),
             playing: false,
@@ -80,6 +85,8 @@ impl Instance {
             voices: engine::BANKS.iter()
                 .map(|b| vec![FRESH_VOICE; b.voices.len()]).collect(),
             routing: default_routing(),
+            active: None,
+            beat_pos: 0.0,
         }
     }
 
@@ -92,6 +99,7 @@ impl Instance {
             *slot = c.init_bits;
         }
         self.t = 0;
+        self.beat_pos = 0.0;
         self.voices.iter_mut()
             .for_each(|bank| bank.iter_mut()
                       .for_each(|v| *v = FRESH_VOICE));
@@ -113,6 +121,7 @@ impl Instance {
             }
         }
         self.t = 0;
+        self.beat_pos = 0.0;
         self.voices.iter_mut()
             .for_each(|bank| bank.iter_mut()
                       .for_each(|v| *v = FRESH_VOICE));
@@ -273,11 +282,15 @@ impl Instance {
         if self.scratch.len() < need {
             self.scratch.resize(need, 0.0);
         }
-        unsafe {
-            engine::render(self.state.as_mut_ptr(),
-                           self.scratch.as_mut_ptr(),
-                           frames as i64,
-                           self.control.as_ptr());
+        if let Some(case) = self.active {
+            unsafe {
+                (case.render)(self.state.as_mut_ptr(),
+                              self.scratch.as_mut_ptr(),
+                              frames as i64,
+                              self.control.as_ptr());
+            }
+        } else {
+            self.scratch[..need].fill(0.0);
         }
         self.t += frames as i64;
         // The engine speaks interleaved frames; a CLAP port is one
@@ -316,13 +329,16 @@ unsafe extern "C" fn plugin_activate(plugin: *const clap_plugin,
                                      _min_frames: u32,
                                      _max_frames: u32) -> bool {
     // `sampleRate` is a constant folded through the compiled graph, so
-    // the first cut refuses the rates it would lie at rather than
-    // resampling behind the host's back — `spec/export.md`, "what
-    // export must refuse".
+    // a plugin carries one whole graph per rate it is honest at
+    // (`RATES`) and still refuses the rates it would lie at rather
+    // than resampling behind the host's back — `spec/export.md`.
     let inst = instance(plugin);
-    if sample_rate as u32 != inst.desc.rate {
+    let Some(case) = engine::RATES.iter()
+        .find(|c| c.rate == sample_rate as u32) else {
         return false;
-    }
+    };
+    inst.active = Some(case);
+    inst.state = vec![0u8; case.state_bytes];
     inst.reset();
     true
 }
@@ -376,8 +392,39 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
         inst.playing = now;
         stopped = !now;
     }
+    // **The host clock**: `beat` and `beatRate` are the renderer's
+    // own, and in a DAW the renderer is the transport.  The three
+    // descriptor-declared slots carry a *line* — beat at this block's
+    // start, beats per second, and the anchor sample — which the
+    // program's `beat` evaluates at `ticks`, audio-rate smooth.  A
+    // timeline host pins the position exactly; a tempo-only host gets
+    // the shell's own accumulation; a stopped transport freezes the
+    // clock by zeroing the slope; and no transport at all leaves the
+    // channels at their defaults — the program conducts itself at its
+    // declared `bpm`, exactly as it does offline.
+    if let (Some((b, s, t0)), false) =
+        (engine::BEAT_SLOTS, p.transport.is_null()) {
+        let tr = &*p.transport;
+        if tr.flags & CLAP_TRANSPORT_HAS_TEMPO != 0 && tr.tempo > 0.0 {
+            let rate = inst.active.map_or(48000, |c| c.rate) as f64;
+            let playing = tr.flags & CLAP_TRANSPORT_IS_PLAYING != 0;
+            let bps = tr.tempo / 60.0;
+            if tr.flags & CLAP_TRANSPORT_HAS_BEATS_TIMELINE != 0 {
+                inst.beat_pos = tr.song_pos_beats as f64
+                    / CLAP_BEATTIME_FACTOR as f64;
+            }
+            inst.control[b] = inst.beat_pos.to_bits() as i64;
+            inst.control[s] = (if playing { bps } else { 0.0 })
+                .to_bits() as i64;
+            inst.control[t0] = inst.t;
+            if playing
+                && tr.flags & CLAP_TRANSPORT_HAS_BEATS_TIMELINE == 0 {
+                inst.beat_pos += bps * p.frames_count as f64 / rate;
+            }
+        }
+    }
     inst.drain(p.in_events);
-    let grace = 10 * inst.desc.rate as i64;
+    let grace = 10 * inst.active.map_or(48000, |c| c.rate) as i64;
     let keyed = inst.voices.iter().flatten().any(|v| {
         v.key.is_some()
             || v.released.map_or(false, |r| inst.t - r < grace)

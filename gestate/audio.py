@@ -329,8 +329,16 @@ def _assembled(error, offset: int):
 
 
 @lru_cache(maxsize=4)
-def assemble(source: str, rate: int = DEFAULT_RATE) -> str:
+def assemble(source: str, rate: int = DEFAULT_RATE,
+             clock_text: str | None = None) -> str:
     """The whole program the renderer compiles: prelude, source, entry.
+
+    `clock_text` is a renderer's own `beat`: `None` derives the clock
+    from the program's declared `bpm` or `tempo` as always; a string is
+    used verbatim in its place — `gestate.export` passes the host-fed
+    clock a DAW's transport drives, which is the context contract's
+    clause 1 (`spec/substrate.md`): one meaning for `beat`, one
+    implementation per renderer.
 
     Named because a second reader wants exactly this text and must not
     reconstruct it: `audiograph.py` checks the program that *runs*, so a
@@ -389,7 +397,8 @@ def assemble(source: str, rate: int = DEFAULT_RATE) -> str:
     # returns — an unrenamed copy, which is what that comparison needs.
     # `beat` after the author's file, because it reads the author's `bpm`.
     # A program that states no tempo gets none and pays nothing for it.
-    clock = (BEAT if has_bpm(source)
+    clock = (clock_text if clock_text is not None
+             else BEAT if has_bpm(source)
              else BEAT_ENVELOPE if has_tempo(source) else "")
     # The libraries are the same text on every compile and most of the
     # tokens; telling the parser where they end lets it keep their tokens

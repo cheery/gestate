@@ -63,9 +63,48 @@ ticked cell layers banks on one channel, releases search every bank
 so a matrix change mid-note cannot strand a voice, and the matrix
 survives the rewind (host belief, like the knobs).  Parity:
 `test_the_routing_matrix_layers_banks` holds the layered notes
-against one Python allocator per bank.  Still to come: `clap.state`
-save/load as a `State` snapshot; more than one compiled rate; the
-velocity table's 32 levels, the day somebody hears them.*
+against one Python allocator per bank.  **The session remembers**
+(`clap.state`): knob slots and routing rows save behind a magic, a
+version, and a shape hash of the exported program — a preset from a
+different export refuses to load rather than pouring bits into the
+wrong slots, and engine state deliberately does not save: a note
+mid-decay belongs to the take, not the project.  Both roundtrips are
+tested into fresh instances.  **Multi-rate**: a plugin carries one
+whole compiled graph per rate (default 44100 and 48000 — `sampleRate`
+is folded through the program, so honesty at two rates is two
+graphs), the entry symbols renamed per rate in the IR text and
+`objcopy` localising everything else so the objects link side by
+side; `activate` picks the case the host names and still refuses the
+rest.  **`beat` and `beatRate` are the renderer's own, and in a DAW the
+renderer is the transport** — the context contract in force, and
+`tempoChan` retired the same day it was confessed.  The exporter
+assembles with a host-fed clock in the derived `beat`'s place
+(`export.host_clock`, through the `clock_text` seam both assemblies
+now carry): three descriptor-declared slots carry a *line* — beat at
+a recent block start, beats per second, the anchor sample — and the
+program's `beat` evaluates it at `ticks`, audio-rate smooth however
+coarsely the host updates it.  `beatRate` is the middle channel bare:
+how fast the piece is going, in beats a second.  Nothing is spelled
+in the shell — the slots travel as `BEAT_SLOTS` in the descriptor —
+and nothing is advertised as a parameter.  A timeline host pins the
+position; a tempo-only host gets the shell's accumulation; a stopped
+transport freezes the clock by zeroing the slope; and a free-running
+host leaves the channels at their defaults, where the program
+conducts itself at its declared `bpm` exactly as it does offline.
+The program's own `bpm` and `tempo` are not discarded in a DAW; they
+are how gestate-as-its-own-renderer answers the same name, and the
+free-running default besides.  Still to come: the
+velocity table's 32 levels, the day somebody hears them; a `clap.gui`
+panel is *deliberately deferred* — it is the one extension that is a
+project rather than an evening, and gestate's GUI energy belongs to
+`spec/editor.md`'s type-derived widgets first.  When it comes, the
+routing matrix drawn from the descriptor is its first panel — and it
+brings the real dependency with it: a substrate is interpreted, so
+the panel (and the playground's editing cut) eventually needs **the
+G-machine ported to Rust**, held against `gmachine.py` the way the
+engines are held against each other.  `spec/substrate.md` draws that
+line; the tabled `noteOn` is the export dodging it for notes, and it
+dodges no further.*
 
 Everything gestate produces is audible only to someone holding this
 repository, a Python, and an LLVM.  The synths cannot be handed to

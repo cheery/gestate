@@ -288,7 +288,11 @@ pub struct clap_event_param_value {
 
 // ── Transport ───────────────────────────────────────────────────────────
 
+pub const CLAP_TRANSPORT_HAS_TEMPO: u32 = 1 << 0;
+pub const CLAP_TRANSPORT_HAS_BEATS_TIMELINE: u32 = 1 << 1;
 pub const CLAP_TRANSPORT_IS_PLAYING: u32 = 1 << 4;
+/// `clap_beattime` is fixed-point: beats × this.
+pub const CLAP_BEATTIME_FACTOR: i64 = 1 << 31;
 
 #[repr(C)]
 pub struct clap_event_transport {

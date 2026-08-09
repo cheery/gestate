@@ -384,6 +384,119 @@ def test_the_exported_plugin_renders_what_the_engine_does(tmp_path):
 
 
 @needs_toolchain
+def test_one_plugin_is_honest_at_several_rates(tmp_path):
+    """Exported at two rates, the plugin carries two whole graphs and
+    `activate` picks the one the host names — each rendering exactly
+    what the engine renders *at that rate*, and every other rate still
+    refused.
+    """
+    from gestate.audiollvm import run_native
+    from gestate.audioperform import graph_of
+    from gestate.export import export_clap
+
+    out = tmp_path / "tone.clap"
+    export_clap(SOURCE, out, rate=(8000, 12000), name="tone")
+    lib, plug_raw, plugin = _plugin_of(out)
+    assert plugin.init(plug_raw)
+
+    frames = 256
+    buf = (c_float * frames)()
+    chans = (POINTER(c_float) * 1)(ctypes.cast(buf, POINTER(c_float)))
+    port = AudioBuffer(data32=chans, data64=None, channel_count=1,
+                       latency=0, constant_mask=0)
+    proc = Process(steady_time=0, frames_count=frames, transport=None,
+                   audio_inputs=None, audio_outputs=ctypes.pointer(port),
+                   audio_inputs_count=0, audio_outputs_count=1,
+                   in_events=None, out_events=None)
+
+    assert not plugin.activate(plug_raw, 44100.0, 32, 512), \
+        "activated at a rate the plugin does not carry"
+    for rate in (8000, 12000):
+        assert plugin.activate(plug_raw, float(rate), 32, 512), rate
+        assert plugin.start_processing(plug_raw)
+        assert plugin.process(plug_raw, ctypes.byref(proc)) == 1
+        got = list(buf)
+        graph = graph_of(SOURCE, "", rate=rate)
+        with tempfile.TemporaryDirectory() as d:
+            want = list(run_native(graph, d, frames, block=frames))
+        assert got == pytest.approx(want), f"wrong sound at {rate} Hz"
+        plugin.stop_processing(plug_raw)
+        plugin.deactivate(plug_raw)
+    plugin.destroy(plug_raw)
+
+
+@needs_toolchain
+def test_beat_is_the_renderers_own_and_the_daw_is_the_renderer(tmp_path):
+    """`beat` and `beatRate`, supplied by the transport — the context
+    contract's clause 1, and `tempoChan`'s retirement in force.
+
+    The program names `beat` and `beatRate` and declares its own
+    `bpm`; nothing in it mentions a host.  Free-running, it conducts
+    itself at its declared 120.  Under a transport with a beats
+    timeline it plays the *session's* clock: `beatRate` is the DAW's
+    tempo in beats a second, and `beat` is the transport's position
+    continued sample-accurately through the block — one block late,
+    which is the engine's own control-rate semantics.  The supply
+    channels are descriptor-declared slots, never parameters.
+    """
+    from gestate.export import export_clap
+
+    source = ("bpm : Int\nbpm = 120\n"
+              "\nsound : Sig Float\n"
+              "sound = 0.01 * beatRate + 0.001 * beat\n")
+    out = tmp_path / "beaten.clap"
+    export_clap(source, out, rate=RATE, name="beaten")
+    lib, plug_raw, plugin = _plugin_of(out)
+    assert plugin.init(plug_raw)
+
+    raw = plugin.get_extension(plug_raw, b"clap.params")
+    params = ctypes.cast(raw, POINTER(Params)).contents
+    for i in range(params.count(plug_raw)):
+        info = ParamInfo()
+        assert params.get_info(plug_raw, i, ctypes.byref(info))
+        assert not info.name.startswith(b"beat"), \
+            "the host clock leaked into the parameter list"
+
+    assert plugin.activate(plug_raw, float(RATE), 32, 512)
+    assert plugin.start_processing(plug_raw)
+    frames = 64
+    buf = (c_float * frames)()
+    chans = (POINTER(c_float) * 1)(ctypes.cast(buf, POINTER(c_float)))
+    port = AudioBuffer(data32=chans, data64=None, channel_count=1,
+                       latency=0, constant_mask=0)
+
+    # Free-running: its own conductor at the declared 120 — beatRate
+    # 2.0 beats a second, beat ramping from zero.
+    proc = Process(steady_time=0, frames_count=frames, transport=None,
+                   audio_inputs=None, audio_outputs=ctypes.pointer(port),
+                   audio_inputs_count=0, audio_outputs_count=1,
+                   in_events=None, out_events=None)
+    assert plugin.process(plug_raw, ctypes.byref(proc)) == 1
+    own = [0.01 * 2.0 + 0.001 * (2.0 * n / RATE) for n in range(frames)]
+    assert list(buf) == pytest.approx(own), \
+        "free-running, the program is not its own conductor"
+
+    # Under a transport: bar 3 of a 90 bpm session (beat 8, 1.5 bps).
+    transport = Transport()
+    transport.flags = IS_PLAYING | (1 << 0) | (1 << 1)
+    transport.tempo = 90.0
+    transport.song_pos_beats = 8 << 31
+    proc.transport = ctypes.pointer(transport)
+    # One block for the `:::` initials to hand over to the channels —
+    # only the *first* write is masked by them; every later one lands
+    # on its own block.
+    assert plugin.process(plug_raw, ctypes.byref(proc)) == 1
+    assert plugin.process(plug_raw, ctypes.byref(proc)) == 1
+    # The line is anchored at this block's own start (t = 128):
+    # beat = 8 + 1.5·(n − 128)/rate across n = 128… .
+    want = [0.01 * 1.5 + 0.001 * (8.0 + 1.5 * (n - 2 * frames) / RATE)
+            for n in range(2 * frames, 3 * frames)]
+    assert list(buf) == pytest.approx(want, rel=1e-4), \
+        "beat is not the transport's"
+    plugin.destroy(plug_raw)
+
+
+@needs_toolchain
 def test_the_transport_is_followed_and_stop_means_rewind(tmp_path):
     """Play a block; stop — silence; play again — the *same* block.
 

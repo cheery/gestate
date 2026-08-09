@@ -239,7 +239,8 @@ def _tempo_of(source: str) -> str:
 _BEAT = BEAT
 
 @lru_cache(maxsize=4)
-def assemble_performance(synth: str, piece: str = "", rate: int = 22050) -> str:
+def assemble_performance(synth: str, piece: str = "", rate: int = 22050,
+                         clock_text: str | None = None) -> str:
     """The whole program a performance compiles: preludes, both sources, entries.
 
     Cached, because one editor start asks for this text four ways — the
@@ -300,7 +301,13 @@ def assemble_performance(synth: str, piece: str = "", rate: int = 22050) -> str:
     # its integral.  Both are `map`s the fragment accepts — the second only
     # because `envexpand` expands `beatOf` into a tree over the segment
     # boundaries — so a scored program has a `beat` either way.
-    if _tempo_of(synth + "\n" + piece) == "bpm":
+    # `clock_text` overrides the derivation — a hosting DAW's transport
+    # is the conductor where there is one (`spec/substrate.md`, the
+    # context contract); the program's own `bpm`/`tempo` stay what they
+    # are: how gestate-as-its-own-renderer answers the same name.
+    if clock_text is not None:
+        tail = clock_text + tail
+    elif _tempo_of(synth + "\n" + piece) == "bpm":
         tail = _BEAT + tail
     else:
         tail = BEAT_ENVELOPE + tail

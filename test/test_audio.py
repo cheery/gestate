@@ -74,7 +74,12 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # The Float-knob showcase for the CLAP export — a drone whose
             # two dials are the interface.  A drone, so no golden; the
             # knobs themselves are exercised by `test_export.py`.
-            "warmdrone.ges"]
+            "warmdrone.ges",
+            # The tempo showcase: a drum machine whose every envelope is
+            # arithmetic on `beat`, so the DAW's transport conducts it.
+            # A groove, so no golden; the host clock is exercised by
+            # `test_export.py`'s beat parity.
+            "fourfloor.ges"]
 
 #: The ones with committed golden buffers — all of them, now.  `knob.ges`
 #: had none for as long as the interpreter and the engine disagreed about

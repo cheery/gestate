@@ -1,0 +1,43 @@
+# FOURFLOOR - the cliche, on purpose: kick on the floor, snare on the
+# backbeat, hats on the off.
+#
+#   python -m gestate.export examples/audio/fourfloor.ges -o fourfloor.clap
+#
+# Every envelope here is arithmetic on `beat` - the renderer's own
+# clock - so whoever conducts, conducts the drummer: offline it is the
+# `bpm` below, and in a DAW it is the session's tempo, ridden live.
+# Drag the project BPM mid-play and the machine follows without a
+# click, because `beat` is one smooth line and the envelopes are
+# functions of it.
+
+bpm : Int
+bpm = 128
+
+#: The floor: a pitch-dropping thump on every beat.
+kickEnv : Sig Float
+kickEnv = map (b => exp (negate 20.0 * wrap b)) beat
+
+kick : Sig Float
+kick = sine (46.0 + 130.0 * kickEnv) * kickEnv
+
+#: The backbeat: beats 2 and 4 of the bar - `(b + 1) / 2` crosses a
+#: whole number exactly there.
+snareEnv : Sig Float
+snareEnv = map (b => exp (negate 15.0 * wrap ((b + 1.0) / 2.0))) beat
+
+snare : Sig Float
+snare = (0.55 * white 2 + 0.4 * triangle 185.0) * snareEnv
+
+#: The off: closed hats between the kicks, and every fourth one held
+#: open a little longer - the cheapest shuffle there is.
+hatEnv : Sig Float
+hatEnv = map (b => exp (negate 55.0 * wrap (b + 0.5))) beat
+
+openEnv : Sig Float
+openEnv = map (b => exp (negate 9.0 * wrap ((b + 0.5) / 4.0))) beat
+
+hats : Sig Float
+hats = highpassSvf 7500.0 0.2 (white 3) * (0.5 * hatEnv + 0.35 * openEnv)
+
+sound : Sig Float
+sound = brickwall 0.9 (0.9 * kick + 0.55 * snare + hats)

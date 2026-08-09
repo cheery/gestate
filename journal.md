@@ -4341,3 +4341,45 @@ punishes with silence; and `fmpoly`'s demo score, which made plain
 `assemble` the wrong assembly and taught the test to choose the way
 `note_bank` does.  Six plugins in `~/.clap` tonight, next to Dexed
 and Surge, at a sixtieth of their size.
+
+### Multi-rate, host tempo, and the pack closes
+
+The last two items on the CLAP list.  **Multi-rate** is what "a
+constant folded through the program" costs when the host disagrees:
+one whole graph per rate, the entry symbols suffixed in the IR text
+(`\b` in the rename, learned when `@render_block` ate its own longer
+siblings' prefixes), `objcopy` localising the shared helper names so
+two graphs link into one library, and `activate` picking by rate.
+**Tempo** cost nothing but a convention: a Float channel spelled
+`tempoChan` is the transport's, not a parameter — the program reads
+the DAW's tempo as an ordinary signal.  The one finding on the way:
+the "bug" where the tempo landed a block late was the engine's own
+control-rate semantics (`:::`'s initial plays the first block),
+verified against `run_native` before the shell was blamed — the
+differential habit paying for itself on the first suspicious block.
+
+Seven parity tests now walk the plugin as a host would, and the pack
+in `~/.clap` — a dub track, a violin joke, a drone with Float dials, a
+duet with a routing matrix, an FM piano — sits beside Dexed and Surge
+at a fiftieth of their size, remembering its knobs, following the
+timeline, answering a keyboard at any of its rates.  Where this pulls
+the substrate is the question the next session inherits.
+
+### `beat` finds its conductor, and the convention dies young
+
+`tempoChan` lived one day.  The context contract said why it was wrong
+(a channel's spelling carrying meaning the compiler cannot see), and
+the repair is in: both assemblies grew a `clock_text` seam, the
+exporter passes a host-fed `beat` — three channels carrying a *line*,
+evaluated at `ticks` by ordinary signal arithmetic, slots declared in
+the descriptor rather than spelled in the shell — and `beatRate`
+answers "how fast is this going" in beats a second.  The design
+questions resolved on the way: a program's `bpm` and `tempo` are not
+discarded in a DAW, they are how gestate-as-its-own-renderer answers
+`beat` and the free-running default besides; `bpm : Int` stays a
+declaration because the schedule is compiled from it, and the runtime
+rate is `beatRate`'s to carry; the unused clock prunes with
+reachability, which is all "discarded when not needed" ever needed to
+mean.  One measurement corrected a belief: control writes land on
+their *own* block — the one-block lag the tempo test recorded was the
+`:::` initial masking the first write, nothing more.

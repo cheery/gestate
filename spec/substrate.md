@@ -577,3 +577,84 @@ descent.  A design that hides the structure has to reconstruct that
 information; one that does not, does not.  If a future element wants to be
 opaque — one whose picture is computed rather than composed — this is where
 to start reading.
+
+## Where the export pulls this  *(added 2026-08-09, the day the CLAP shell landed)*
+
+The plugin work (`spec/export.md`, `shell/clap/`) proved something this
+file should own, because the substrate is where it points.
+
+**A gestate program composes with a foreign host through exactly three
+things.**  Names the renderer supplies (`ticks`, `sampleRate`, the
+clock a `constSig` is constant over); typed channels crossing in both
+directions (knobs, a bank's notes, the editor's `peak` and `bands`
+readings); and a descriptor of what only the compiler knew.  Nothing
+of ours runs in the DAW — no Python, no interpreter, no runtime — and
+none was missed.  The boundary was already this narrow; the export
+merely walked through it.
+
+**So the plugin GUI question and the substrate are the same
+question.**  `spec/export.md` defers `clap.gui` as "a project rather
+than an evening" — but the project it is, is *this file*.  A substrate
+is a value a host walks to draw; the editor already hosts one file's
+sound and face in one window; a plugin host offering a window is the
+same request from a different landlord.  The synth that draws its own
+panel — the routing matrix, the knobs, a meter breathing off the
+`peak` channel — is not a new UI framework beside the substrate, it is
+a substrate whose host happens to be a DAW.  When `clap.gui`'s day
+comes, the panel is a `substrate` declaration in the same `.ges` file
+as the `sound`, and the browser playground's canvas is the third
+landlord for the identical value.
+
+**The context contract**, stated once, because every piece of it
+already exists and only the name was missing.  A `.ges` file works in
+*every* context — editor, offline render, plugin, canvas, playground —
+exactly when:
+
+1. **Its needs are names the renderer supplies.**  One meaning, as
+   many implementations as there are renderers: `constSig` is constant
+   over whichever clock is asking, `sampleRate` is the file's or the
+   device's, `beat` is the score's — or, in a DAW, the transport's own
+   beats timeline, which is the supply that makes a scored program
+   lock to the session's bars.  A context that cannot answer refuses
+   **by name** (`Unknown global 'beat'`), never answers wrongly.
+2. **Everything else crosses a typed channel**, and a channel is
+   meaningful to the program alone — the host learns which channels
+   exist and what they carry from the descriptor, not from what they
+   are called.
+3. **What only the compiler knows travels as a descriptor** — rates,
+   layouts, banks, defaults — so a host needs no opinion about the
+   language.
+
+**And a confession the contract makes unavoidable: `tempoChan` is
+wrong.**  It works — the shell feeds the transport's tempo to a Float
+channel spelled exactly `tempoChan` — and it is this project's first
+*nominal convention*: meaning smuggled through a channel's spelling,
+invisible to the compiler, impossible to refuse by name, and honored
+in one context out of five.  Clause 1 says what the repair is: the
+host's tempo belongs among **the renderer's own**.  Supply `beat`
+from a DAW's beats timeline and tempo's rate beside it where a
+context has one; compile them from `bpm` and the `tempo` envelope
+where the program is its own conductor, as today.  That a renderer's-
+own name compiles differently per renderer is not the wrinkle, it is
+the whole pattern — `constSig` has worked that way from the start.
+The convention stays until that lands, marked transitional where it
+is documented, and this paragraph is its retirement notice.
+
+**And the interpreter has to travel — the G-machine ports to Rust,
+eventually.**  The compiled fragment crosses into foreign hosts today
+because it is machine code with a two-symbol contract; everything the
+*interpreted* half does stays home, because it is Python.  The export
+has dodged that line once already: `FromMIDI` payloads are the
+G-machine run at export time and tabled — a dodge that works for
+notes because a keyboard's domain is 128 keys, and works for nothing
+bigger.  A `clap.gui` panel is a `substrate`, and a substrate is
+*interpreted by design* (§ above: closures and functions-as-values
+are fine there precisely because the fragment discipline does not
+reach the canvas) — so the panel needs the G-machine inside the
+shell, and the browser playground's second cut (editing, not just
+playing) needs it in WASM.  One Rust port serves both landlords, the
+way one C ABI shell did for sound; `gmachine.py` stays the reference
+the port is held against, sample-for-sample on `Sub` trees the way
+the engines are held together on samples.  Not soon — the tabled
+dodge and the parameter matrix cover the pack that exists — but the
+line is drawn here so nobody mistakes the dodge for the design.

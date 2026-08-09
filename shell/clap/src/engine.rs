@@ -113,18 +113,27 @@ pub struct Descriptor {
     pub controls: &'static [Control],
 }
 
+/// One compiled rate of the graph.  `sampleRate` is a constant folded
+/// through the program, so a plugin honest at several rates carries
+/// several *graphs* — same nodes, different constants, different
+/// delay-line lengths (hence `state_bytes` per case) — and `activate`
+/// picks the one the host's rate names.
+pub struct RateCase {
+    pub rate: u32,
+    pub state_bytes: usize,
+    pub render: unsafe extern "C" fn(state: *mut u8, out: *mut f32,
+                                     frames: i64, control: *const i64),
+}
+
+// (`tempoChan`, the nominal convention that briefly lived here, is
+// retired: the host clock now arrives through descriptor-declared
+// slots — `BEAT_SLOTS` — never through a channel's spelling.
+// `spec/substrate.md`'s context contract is why.)
+
 #[cfg(feature = "engine")]
 mod linked {
     include!("descriptor.rs");
-
-    extern "C" {
-        pub fn render_block_f32(state: *mut u8, out: *mut f32,
-                                frames: i64, control: *const i64);
-    }
 }
-
-#[cfg(feature = "engine")]
-pub use linked::render_block_f32;
 
 #[cfg(feature = "engine")]
 pub static DESCRIPTOR: Option<&Descriptor> = Some(&linked::DESCRIPTOR);
@@ -138,14 +147,17 @@ pub static BANKS: &[Bank] = linked::BANKS;
 #[cfg(not(feature = "engine"))]
 pub static BANKS: &[Bank] = &[];
 
-/// The render call, with the no-engine build honest about itself: a
-/// shell with no graph linked writes silence and could never be asked
-/// to, because its factory offers no plugin.
-#[allow(unused_variables)]
-pub unsafe fn render(state: *mut u8, out: *mut f32, frames: i64,
-                     control: *const i64) {
-    #[cfg(feature = "engine")]
-    render_block_f32(state, out, frames, control);
-    #[cfg(not(feature = "engine"))]
-    std::ptr::write_bytes(out, 0, frames as usize);
-}
+#[cfg(feature = "engine")]
+pub static RATES: &[RateCase] = linked::RATES;
+
+#[cfg(not(feature = "engine"))]
+pub static RATES: &[RateCase] = &[];
+
+/// The host clock's slots — `(base, beats-per-second, anchor tick)`,
+/// a *line* the program's `beat` evaluates at `ticks`.  `None` when
+/// the program never reaches `beat` and reachability pruned it.
+#[cfg(feature = "engine")]
+pub static BEAT_SLOTS: Option<(usize, usize, usize)> = linked::BEAT_SLOTS;
+
+#[cfg(not(feature = "engine"))]
+pub static BEAT_SLOTS: Option<(usize, usize, usize)> = None;

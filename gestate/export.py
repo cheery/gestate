@@ -185,7 +185,8 @@ def _banks_rs(banks: list) -> str:
 
 
 def descriptor_rs(graph, *, id_: str, name: str, version: str,
-                  rate: int, knobs: frozenset, bank=None) -> str:
+                  rate: int, knobs: frozenset, bank=None,
+                  graphs=None, beat=None) -> str:
     """The Rust the shell includes — everything only the compiler knows."""
     from .audiollvm import _slots
 
@@ -200,9 +201,9 @@ def descriptor_rs(graph, *, id_: str, name: str, version: str,
             f"init_bits: {_init_bits(n)}, "
             f"knob: {'true' if n.chan in knobs else 'false'}, "
             f"min: {lo!r}, max: {hi!r} }},\n")
-    # `Bank` always: the bank-less descriptor still *names* the type in
-    # its empty slice.
-    used = ["Bank", "Control", "Descriptor"]
+    # `Bank` and `RateCase` always: the bank-less descriptor still
+    # *names* the types in its empty slices.
+    used = ["Bank", "Control", "Descriptor", "RateCase"]
     if controls:
         used.append("Kind")
     if any(table is not None for _n, _v, table in (bank or [])):
@@ -211,7 +212,10 @@ def descriptor_rs(graph, *, id_: str, name: str, version: str,
     return (f"// Written by `python -m gestate.export` — regenerated per "
             f"export, never edited.\n"
             f"{kinds}\n\n"
+            f"{_rates_rs(graphs if graphs is not None else {rate: graph})}\n"
             f"{_banks_rs(bank or [])}\n"
+            f"pub static BEAT_SLOTS: Option<(usize, usize, usize)> = "
+            f"{'Some(' + repr(tuple(beat)) + ')' if beat else 'None'};\n\n"
             f"pub static DESCRIPTOR: Descriptor = Descriptor {{\n"
             f"    id: {_rust_str(id_)},\n"
             f"    name: {_rust_str(name)},\n"
@@ -225,32 +229,156 @@ def descriptor_rs(graph, *, id_: str, name: str, version: str,
             f"[\n{''.join(rows)}];\n")
 
 
-def archive(graph, directory) -> Path:
-    """`libgraph.a` — the graph's code as something a linker takes.
+#: The entry points one compiled graph exports, longest first so the
+#: rename never eats a longer name's prefix.
+_ENTRIES = ("render_block_mix_f32", "render_block_f32", "render_block")
+
+
+def archive(graphs: dict, directory) -> Path:
+    """`libgraph.a` — every rate's graph, coexisting in one archive.
 
     The same IR `audiollvm.build` turns into the live engine's shared
-    object, compiled to an object file instead: `clang -c` then `ar`.
-    One archive per export, in a directory the export owns, because
-    `build.rs` is pointed at the *directory* and two graphs in one
-    would be a coin toss.
+    object, one object per rate: the entry symbols are renamed with the
+    rate as a suffix (the `.ll` is text, and the rename is three
+    ordered replaces), and `objcopy` then localises everything *else*
+    in each object — two graphs share every internal helper name, and
+    keeping only the renamed entries global is what lets them link
+    side by side.
     """
+    import re
+
     from .audiollvm import emit
 
     directory = Path(directory)
-    ll = directory / "graph.ll"
-    obj = directory / "graph.o"
-    ll.write_text(emit(graph))
-    subprocess.run(["clang", "-O2", "-c", "-fPIC", str(ll),
-                    "-o", str(obj)], check=True, capture_output=True)
+    objs = []
+    for rate, graph in graphs.items():
+        text = emit(graph)
+        for name in _ENTRIES:
+            # `\b`: `@render_block` must not match inside
+            # `@render_block_f32` — `_` is a word character, so the
+            # boundary holds exactly where the plain name ends.
+            text = re.sub(rf"@{name}\b", f"@{name}_{rate}", text)
+        ll = directory / f"graph_{rate}.ll"
+        obj = directory / f"graph_{rate}.o"
+        ll.write_text(text)
+        subprocess.run(["clang", "-O2", "-c", "-fPIC", str(ll),
+                        "-o", str(obj)], check=True, capture_output=True)
+        keep = [arg for name in _ENTRIES
+                for arg in ("-G", f"{name}_{rate}")]
+        subprocess.run(["objcopy", *keep, str(obj)],
+                       check=True, capture_output=True)
+        objs.append(str(obj))
     lib = directory / "libgraph.a"
-    subprocess.run(["ar", "rcs", str(lib), str(obj)],
+    subprocess.run(["ar", "rcs", str(lib), *objs],
                    check=True, capture_output=True)
     return lib
 
 
-def export_clap(source: str, out: Path, *, rate: int, name: str,
+def _rates_rs(graphs: dict) -> str:
+    """The `RATES` half of `descriptor.rs` — one case per compiled rate."""
+    from .audiollvm import _slots
+
+    externs = []
+    cases = []
+    for rate, graph in graphs.items():
+        state = 8 * (1 + sum(_slots(graph, n) for n in graph.nodes))
+        externs.append(
+            f"    fn render_block_f32_{rate}(state: *mut u8, "
+            f"out: *mut f32, frames: i64, control: *const i64);\n")
+        cases.append(f"    RateCase {{ rate: {rate}, "
+                     f"state_bytes: {state}, "
+                     f"render: render_block_f32_{rate} }},\n")
+    return ("extern \"C\" {\n" + "".join(externs) + "}\n\n"
+            "pub static RATES: &[RateCase] = &[\n"
+            + "".join(cases) + "];\n")
+
+
+#: What a plugin is honest at unless told otherwise — the two rates
+#: sessions actually run at.
+DEFAULT_RATES = (44100, 48000)
+
+#: The channels the host clock rides in on.  Spelled here and *only*
+#: here: the shell learns their slots from the descriptor
+#: (`BEAT_SLOTS`), never from these names — the context contract's
+#: answer to the `tempoChan` convention this replaces.
+_BEAT_CHANS = ("beatBaseChan", "beatBpsChan", "beatTickChan")
+
+
+def _bpm_of(source: str) -> float:
+    """The program's own tempo as a number, for the free-running default.
+
+    A `bpm = N` literal, read textually — the common case, and the
+    fallback of 120 costs a program with a computed `bpm` only its
+    tempo *before a transport speaks*, which no DAW leaves long."""
+    import re
+
+    found = re.search(r"^bpm\s*=\s*(\d+)", source, re.M)
+    return float(found.group(1)) if found else 120.0
+
+
+def host_clock(source: str) -> str:
+    """`beat` and `beatRate`, fed by whoever is hosting.
+
+    The renderer's-own clock for an exported plugin
+    (`spec/substrate.md`, the context contract): three channels carry
+    a *line* — the beat at some recent block start, the beats per
+    second, and the sample that anchor was taken at — and `beat` is
+    that line evaluated at `ticks`, audio-rate smooth however coarsely
+    the host updates it.  `beatRate` is the same middle channel bare:
+    how fast the piece is going, in beats a second.
+
+    Untouched channels hold the program's *own* tempo (`bpm`, or 120),
+    so a free-running host plays the piece at its declared pace — the
+    program is its own conductor exactly until a transport speaks.
+    """
+    bps = _bpm_of(source) / 60.0
+    return (f"\nbeatBaseChan : Chan Float\nbeatBaseChan = chan\n"
+            f"\nbeatBpsChan : Chan Float\nbeatBpsChan = chan\n"
+            f"\nbeatTickChan : Chan Int\nbeatTickChan = chan\n"
+            f"\nbeatRate : Sig Float\n"
+            f"beatRate = {bps!r} ::: mkSig (wait beatBpsChan)\n"
+            f"\nbeat : Sig Float\n"
+            f"beat = (0.0 ::: mkSig (wait beatBaseChan))\n"
+            f"     + beatRate * (map toFloat ticks\n"
+            f"         - map toFloat (0 ::: mkSig (wait beatTickChan)))\n"
+            f"       * !(1.0 / sampleRate)\n")
+
+
+def host_graph(source: str, rate: int):
+    """The graph, assembled with the host-fed clock in `beat`'s place."""
+    from .audio import assemble
+    from .audioextract import extract_analysis
+    from .audioperform import has_score
+    from .audioscore import assemble_performance
+    from .pipeline import analyse
+
+    clock = host_clock(source)
+    text = (assemble_performance(source, "", rate, clock_text=clock)
+            if has_score(source) else
+            assemble(source, rate, clock_text=clock))
+    return extract_analysis(analyse(text), rate=rate)
+
+
+def beat_slots(graph):
+    """`(base, bps, tick)` slot indices, or `None` when the program
+    never reaches `beat` — reachability prunes the channels, and a
+    plugin with no use for a clock carries none."""
+    slot_of = {n.chan: i for i, n in enumerate(graph.control_sources())}
+    try:
+        return tuple(slot_of[c] for c in _BEAT_CHANS)
+    except KeyError:
+        return None
+
+
+def export_clap(source: str, out: Path, *, rate=None, name: str,
                 version: str = "0.1.0", shell: Path = SHELL) -> Path:
-    """One `.ges` in, one `.clap` out."""
+    """One `.ges` in, one `.clap` out.
+
+    `rate` may be one rate or several; the default is both of
+    `DEFAULT_RATES`.  Each is a whole compiled graph — `sampleRate` is
+    folded through the program — and `activate` picks the case the
+    host names, still refusing the rates the plugin would lie at.
+    """
     import shutil
     import tempfile
 
@@ -262,7 +390,11 @@ def export_clap(source: str, out: Path, *, rate: int, name: str,
         raise ExportError("no cargo to build the shell with — the CLAP "
                           "shell is Rust (`shell/clap/`)")
 
-    graph = graph_of(source, "", rate=rate)
+    rates = (list(DEFAULT_RATES) if rate is None
+             else [rate] if isinstance(rate, int) else list(rate))
+    graphs = {r: host_graph(source, r) for r in rates}
+    primary = rates[0]
+    graph = graphs[primary]
     for node in graph.control_sources():
         if node.type_ not in ("Float", "Int", "Gate", "Key"):
             # A slot is one i64 and the shell reinterprets it the way
@@ -271,16 +403,27 @@ def export_clap(source: str, out: Path, *, rate: int, name: str,
             raise ExportError(
                 f"channel `{node.chan}` carries `{node.type_}`, which "
                 f"does not fit a control slot")
+    # The slot table must be one table: rate only changes folded
+    # constants, so the channel order must agree across the graphs —
+    # asserted, because everything downstream indexes by it.
+    order = [n.chan for n in graph.control_sources()]
+    for r, g in graphs.items():
+        if [n.chan for n in g.control_sources()] != order:
+            raise ExportError(f"the graph at {r} Hz orders its channels "
+                              f"differently — export cannot share slots")
 
     banked = bank_channels(source)
     knobs = frozenset(n.chan for n in graph.control_sources()
-                      if n.chan not in banked)
-    bank = note_banks(source, graph, rate)
+                      if n.chan not in banked
+                      and n.chan not in _BEAT_CHANS)
+    bank = note_banks(source, graph, primary)
+    beat = beat_slots(graph)
     with tempfile.TemporaryDirectory() as d:
-        archive(graph, d)
+        archive(graphs, d)
         (shell / "src" / "descriptor.rs").write_text(descriptor_rs(
             graph, id_=f"org.gestate.{name}", name=name,
-            version=version, rate=rate, knobs=knobs, bank=bank))
+            version=version, rate=primary, knobs=knobs, bank=bank,
+            graphs=graphs, beat=beat))
         env = dict(**__import__("os").environ, GESTATE_GRAPH_DIR=d)
         done = subprocess.run(
             ["cargo", "build", "--release", "--features", "engine"],
@@ -302,9 +445,11 @@ def main(argv=None) -> int:
     ap.add_argument("file")
     ap.add_argument("-o", "--out", default=None,
                     help="output path (default: <name>.clap)")
-    ap.add_argument("--rate", type=int, default=48000,
-                    help="the sample rate the graph is compiled at; the "
-                         "plugin refuses activation at any other")
+    ap.add_argument("--rate", type=int, action="append", default=None,
+                    help="a sample rate to compile the graph at; may "
+                         "repeat.  Default: 44100 and 48000.  The "
+                         "plugin refuses activation at any rate it "
+                         "does not carry")
     args = ap.parse_args(argv)
 
     path = Path(args.file)
