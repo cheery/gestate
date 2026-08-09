@@ -336,6 +336,22 @@ slew : Sig Float -> Sig Float -> Sig Float
 slew rate target = scan slewStep 0.0
     (zipSig (r x => SlewIn r x) rate target)
 
+# ── Gates ────────────────────────────────────────────────────────────────
+#
+# Where a note's *timing* comes from when there is no keyboard and no
+# score.  A `Gate` is two instants — began, released — and nothing about
+# them requires a note.  To `adsr` and `perc` a generated gate is
+# indistinguishable from a played one, which is the point.
+
+#: Any condition, as a note: a rising edge presses, a falling edge
+#: releases.  `gateOn (!(v => 0.5 < v) lfo)` plays while the LFO is
+#: high; a threshold over a follower turns *audio* into notes; and a
+#: metronome is a comparison on `phase` —
+#: `gateOn (!(x => x < 0.5) (phase 2.0))` presses twice a second and
+#: holds each press for a quarter of one.
+gateOn : Sig Bool -> Sig Gate
+gateOn bs = scan gateEdge (Gate 0 0) (zip (n b => GateEdge n b) ticks bs)
+
 # ── Filters ──────────────────────────────────────────────────────────────
 #
 # `audio.ges` has `lowpass`, a one-pole taking a *coefficient*.  These take
@@ -1311,6 +1327,33 @@ percStarted : Float -> Int -> Int -> Float
 percStarted rate n on = case n < on - 1 of
     True -> 0.0
     False -> exp (negate rate * secondsSince n on)
+
+# ── Gates ────────────────────────────────────────────────────────────────
+#
+# `gateOn` is one fold whose state is the `Gate` it is emitting.
+
+#: One instant of `gateOn`'s fold arriving: which sample it is, and
+#: whether the condition holds there.
+GateEdge := GateEdge Int Bool
+
+#: The fold: only the *edges* do anything — a press while up, a release
+#: while down — and the other two cases carry the gate unchanged.
+gateEdge : Gate -> GateEdge -> Gate
+gateEdge w e = case w of
+    Gate on off -> case e of
+        GateEdge n b -> case b of
+            True -> case gateHeld on off of
+                True  -> Gate on off
+                False -> Gate n 0
+            False -> case gateHeld on off of
+                True  -> Gate on n
+                False -> Gate on off
+
+#: Begun, and not yet released.
+gateHeld : Int -> Int -> Bool
+gateHeld on off = case 0 < on of
+    True  -> off == 0
+    False -> False
 
 # ── Filters ──────────────────────────────────────────────────────────────
 

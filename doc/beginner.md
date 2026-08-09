@@ -115,10 +115,38 @@ Multiplying the oscillator by it is the whole trick: **a note is a tone ×
 an envelope**.  The `6.0` is how fast it dies — try 2.0 (a soft pad-like
 tail) and 30.0 (a tick).  The `2.0` is how often it repeats.
 
-The library also has proper envelope tools — `Adsr`, `adsr`, `perc` — that
-read a note's timing from a keyboard; they arrive at the end of this
-course, because they need notes to react to.  The `wrap` trick needs
-nothing, which is why these lessons run on it.
+The library has the same curve as a tool: `perc` is exactly this
+exponential fall, and it reads *when to fall* off a **gate** — a note's
+timing, the sample it began and the sample it was released.  A keyboard
+or a score makes gates, but so does any true/false signal, through
+`gateOn` — a rising edge presses, a falling edge releases — and one is
+a comparison away:
+
+```
+easy : Sig Float
+easy = perc 6.0 (gateOn (!(x => x < 0.5) (phase 2.0)))
+```
+
+Two new tools, each one idea.  `phase 2.0` is the ramp you just built
+by hand — 0..1, twice a second — as a library word.  `!` **lifts** an
+ordinary function over signals: `!(x => x < 0.5) (phase 2.0)` asks *is
+the ramp in its first half* at every instant, the same job `map` did
+for `env`, one character shorter.  The comparison is true for the
+first half of each turn, so the gate presses twice a second, and
+`perc 6.0` is the `6.0` you just tuned — the same pluck, with the
+note's *timing* and its *shape* finally separate things.  Swap `env`
+for `easy` in `sound` and it barely changes.  The other envelope tool
+is `adsr`, which sustains while the gate is held and *releases* when
+it lets go — `adsr (Adsr 0.01 0.1 0.7 0.2) (gateOn (!(x => x < 0.6)
+(phase 0.5)))` is a slow organ-like note, and the four numbers are
+attack, decay, sustain level, release.  And a gate need not come from
+the clock at all: a note that plays whenever an LFO is high is
+`gateOn (!(v => 0.5 < v) lfo)`, which lesson 5 will give you the LFO
+for.
+
+The `wrap` trick stays worth knowing — an envelope is just arithmetic
+on time, and later lessons bend that arithmetic in ways no preset
+shape offers.  These lessons keep using both.
 
 ## Lesson 4 — subtractive synthesis  (`04-filter.ges`)
 
@@ -381,8 +409,9 @@ leadVoice gate note = triangle (!keyHz note) * adsr (Adsr 0.01 0.2 0.6 0.3) gate
 ```
 
 eight copies of a voice, driven by MIDI (`--midi`), each handed *when* it
-was struck and released (`Sig Gate`) and *what* (the note).  `adsr` is the
-grown-up lesson 3: attack, decay, sustain, release, read off the gate.
+was struck and released (`Sig Gate`) and *what* (the note).  The `adsr`
+is lesson 3's, unchanged — a played gate and a generated one are the
+same thing to an envelope; only where the timing comes from is new.
 `examples/audio/duet.ges` and `doc/ref/audio.md` are the path in.
 
 **The rest of the toolbox.**  `doc/ref/synth.md` documents every

@@ -1,6 +1,18 @@
-# Lesson 3: an envelope repeating twice a second.
+# Lesson 3: an envelope repeating twice a second — drawn by hand,
+# then the same note from the library's own tools.
 env : Sig Float
 env = map (t => exp (negate 6.0 * wrap (2.0 * t))) elapsed
 
+# The same pluck from the library.  `phase 2.0` is the hand-built ramp
+# as a word; `!` lifts the comparison over it; `gateOn` turns the
+# true/false into a note's timing — a rising edge presses, a falling
+# edge releases — and `perc` is the exponential fall above, reading
+# *when* off it.
+easy : Sig Float
+easy = perc 6.0 (gateOn (!(x => x < 0.5) (phase 2.0)))
+
+# Swap `env` for `easy` here and the pluck barely changes; swap in
+# `adsr (Adsr 0.01 0.1 0.7 0.2) (gateOn (!(x => x < 0.6) (phase 0.5)))`
+# for a held, organ-like note with a real release.
 sound : Sig Float
 sound = 0.4 * sine 220.0 * env

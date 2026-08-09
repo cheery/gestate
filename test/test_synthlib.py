@@ -967,6 +967,61 @@ def test_an_oscillator_that_follows_a_signal_is_the_one_that_does_not():
     assert max(fixed) == pytest.approx(1.0, abs=0.01)
 
 
+# ── Gates — a note's timing without a note ──────────────────────────────────
+
+
+def test_a_phase_comparison_is_a_metronome():
+    """Lesson 3's `easy`: `perc` retriggered by `gateOn` of a `phase` ramp.
+
+    The retrigger is the assertion that matters: the envelope must be
+    *restored* at each period boundary, which is what no pure decay
+    does.  The condition is true from the first sample, so the first
+    press is the first sample — the gate plays from the program's
+    start, exactly as the hand-drawn envelope beside it does.
+    """
+    xs = _render("env : Sig Float\n"
+                 "env = perc 60.0 "
+                 "(gateOn (!(x => x < 0.5) (phase 50.0)))\n"
+                 "\nsound : Sig Float\nsound = sine 220.0 * env\n", 0.06)
+    period = int(RATE / 50.0)
+    tail = max(abs(x) for x in xs[period - 20:period])
+    head = max(abs(x) for x in xs[period:period + 20])
+    assert head > tail * 2, "no retrigger at the period boundary"
+
+
+def test_a_gate_holds_and_releases():
+    """The falling edge is a *release*: `adsr` must fall there.
+
+    The condition is true for the first 60% of one long ramp, so with
+    sustain 1.0 and a fast release the level right before the falling
+    edge is the sustain and shortly after it is near zero — the two
+    sides of `off` arriving.
+    """
+    xs = _render("env : Sig Float\n"
+                 "env = adsr (Adsr 0.001 0.001 1.0 0.002) "
+                 "(gateOn (!(x => x < 0.6) (phase 20.0)))\n"
+                 "\nsound : Sig Float\nsound = env\n", 0.05)
+    edge = int(0.6 * RATE / 20.0)
+    assert xs[edge - 5] == pytest.approx(1.0, abs=0.05), "not sustaining"
+    assert abs(xs[edge + int(0.004 * RATE)]) < 0.1, "no release at the edge"
+
+
+def test_a_condition_is_a_note():
+    """`gateOn` presses on the rising edge and releases on the falling.
+
+    A 10 Hz LFO above 0.5 is high just under a third of each cycle, so
+    with a fast attack and release the audible fraction must sit near
+    it — silent-or-always-on is what edge detection gone wrong sounds
+    like.
+    """
+    xs = _render("env : Sig Float\n"
+                 "env = adsr (Adsr 0.001 0.001 1.0 0.001) "
+                 "(gateOn (map (v => 0.5 < v) (sine 10.0)))\n"
+                 "\nsound : Sig Float\nsound = env\n", 0.2)
+    audible = sum(1 for x in xs if abs(x) > 0.5) / len(xs)
+    assert 0.2 < audible < 0.45, audible
+
+
 # ── `string` — the smallest physical model ──────────────────────────────────
 
 
