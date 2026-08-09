@@ -1,7 +1,10 @@
 # Verification — an oracle for the other half
 
-*Written as a design; none of it is built.  The problem statement is
-already in `journal.md`, recorded the day stage 10 landed.*
+*Written as a design; the differential oracles are built now
+(`test/test_verification.py`: the identity edit, block-size
+invariance, determinism, and live-quiescent = offline — all passing
+on first contact).  The transcript format is not yet.  The problem
+statement is `journal.md`'s, recorded the day stage 10 landed.*
 
 The engine half of this project is verified the strong way: the LLVM
 output is checked sample-for-sample against a reference interpreter,

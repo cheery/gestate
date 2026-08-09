@@ -4293,3 +4293,22 @@ documentation tools keep reading the raw text they always read.  The
 near-miss worth remembering: `descend` rebuilds the `VModule`, and the
 first draft of the fix lost the new field right there — the same
 one-representation-two-consumers trap, one layer up.
+
+### The other half gets its first oracles
+
+`spec/verification.md`'s differential checks are in
+(`test/test_verification.py`), and all four passed on first contact —
+which, for once, is the headline: the engine's reputation extends
+further into the Python around it than the stage-10 postmortem feared.
+The identity edit moves nothing (`migrate(g, s, g') ≡ s` for unchanged
+source, delay-line rings included); 512 samples diced as 1×512, 8×64
+and a ragged mix are the same samples and the same final state; two
+copies of one mid-flight state render the same sound to the last slot;
+and **a quiescent scored session through the C host is the offline
+render** — one `schedule.control_for` feeding both `run_native` and
+`Host.fill` with controls pushed at exact block boundaries, which is
+the seam `audioeditor._push_controls` documents having shipped two
+silent defects across while the suite drove only the Python path.
+Every assertion is total — whole vectors, whole runs — because silence
+was the failure mode being closed.  The transcript format is still to
+come; these are the checks that needed no format to exist.
