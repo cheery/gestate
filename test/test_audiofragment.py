@@ -61,7 +61,12 @@ def test_the_classification_is_the_graph():
     function calls is a scalar, and the one `chan` is the audio clock.
     """
     report = check(_source("blip.ges"))
-    assert set(report.signals) == {"sound", "raw", "ticks", "gain", "lowpass"}
+    # `constSig` and the `Floating` coercion joined the signal set when
+    # `lowpass`'s coefficient became a `Sig Float`: the literal `0.25`
+    # now reaches it as a constant signal, through those two.
+    assert set(report.signals) == {"sound", "raw", "ticks", "gain",
+                                   "lowpass", "constSig",
+                                   "__Floating_Sig_Float_fromFloat__"}
     assert report.clocks == ["clock"]
     # The tune, the oscillator, the envelope and the phase are step code.
     # `wrap` is `class Wrap`'s method now, so what the fragment sees is the

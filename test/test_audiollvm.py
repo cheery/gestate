@@ -123,8 +123,10 @@ def test_the_state_is_one_field_per_node():
     text = emit(graph)
     state = next(line for line in text.splitlines()
                  if line.startswith("%State"))
-    # `t`, then Int, Voice, Float, Float, Float.
-    assert state == '%State = type { i64, i64, %"Voice", double, double, double }'
+    # `t`, then Int, Voice, Float, LowpassIn (the zip `lowpass`'s
+    # signal coefficient rides in), Float, Float.
+    assert state == ('%State = type { i64, i64, %"Voice", double, '
+                     '%"LowpassIn", double, double }')
     assert '%"Voice" = type { i64, double, i64 }' in text
 
 

@@ -147,17 +147,21 @@ sound = gain 0.4 (osc 220.0 + osc 330.0)
 
 
 def test_the_graph_is_the_signal_chain_and_nothing_else():
-    """`blip`'s five nodes, in order, with the definitions inlined away.
+    """`blip`'s six nodes, in order, with the definitions inlined away.
 
-    `gain` and `lowpass` are not nodes; they *become* the last two, with
-    their arguments folded into the step functions.  That is what makes the
-    engine's job straight-line arithmetic.
+    `gain` is not a node; it *becomes* the last one, its argument folded
+    into the step.  `lowpass` is two — a zip carrying the sample and the
+    coefficient, then the scan — because its coefficient is a **signal**,
+    which is the shape every SVF filter always had; the constant `0.25`
+    folds into the zip's step, so the pair is still straight-line
+    arithmetic per sample.
     """
     graph = extract(_source("blip.ges"), rate=22050)
     assert [n.kind for n in graph.nodes] == [
-        "source", "scan", "map", "scan", "map"]
-    assert [n.inputs for n in graph.nodes] == [(), (0,), (1,), (2,), (3,)]
-    assert graph.out == 4
+        "source", "scan", "map", "map", "scan", "map"]
+    assert [n.inputs for n in graph.nodes] == [(), (0,), (1,), (2,), (3,),
+                                               (4,)]
+    assert graph.out == 5
     assert graph.node(1).type_ == "Voice", "the scan's state is the voice"
     # The tag is read out of the layout rather than written as a number:
     # a constructor's tag is its *position among all of them*, so adding
@@ -165,7 +169,8 @@ def test_the_graph_is_the_signal_chain_and_nothing_else():
     # this test fail for `Played` arriving, which is not what it is about.
     voice_tag = graph.layouts["Voice"][0]["tag"]
     assert graph.node(1).init == (voice_tag, (0.0, 0)), "Voice 0.0 0"
-    assert graph.node(3).init == 0.0, "the filter starts silent"
+    assert graph.node(3).type_ == "LowpassIn", "the zip carries the pair"
+    assert graph.node(4).init == 0.0, "the filter starts silent"
     assert graph.rate == 22050
 
 
@@ -342,8 +347,13 @@ def test_adding_a_node_leaves_the_ones_before_it_alone():
                            "gain 0.6 (lowpass 0.25 (gain 0.9 raw))")
     origins = _origins(after)
     assert len(origins) == len(_origins(before)) + 1
-    for kept in ("sound/raw/ticks/source#0", "sound/raw/scan#0",
-                 "sound/raw/map#0"):
+    # The `ticks` source is shared and its origin is the *first* path
+    # that reaches it — which, with `lowpass`'s coefficient a signal, is
+    # the coefficient literal's own coercion (`fromFloat` → `constSig` →
+    # `ticks`).  Asserted as the oscillator's own nodes plus the filter's,
+    # which are the ones an insert downstream must not move.
+    for kept in ("sound/raw/scan#0", "sound/raw/map#0",
+                 "sound/lowpass/scan#0"):
         assert kept in origins
 
 
@@ -552,7 +562,7 @@ def test_the_cli_prints_a_graph(capsys):
 
     assert main([str(AUDIO_DIR / "blip.ges"), "--rate", "8000"]) == 0
     out = capsys.readouterr().out
-    assert "source" in out and "scan" in out and "out = 4" in out
+    assert "source" in out and "scan" in out and "out = 5" in out
 
 
 def test_the_cli_reports_a_program_it_cannot_extract(tmp_path, capsys):

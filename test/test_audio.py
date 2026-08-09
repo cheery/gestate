@@ -64,7 +64,13 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # the reason the pieces have none: ninety seconds re-rendered
             # through the interpreter twice a run, for a thing whose
             # combinators are already checked sample-for-sample elsewhere.
-            "scenery.ges"]
+            "scenery.ges",
+            # A joke with a `slide` in it — the dubgate with a portamento
+            # violin over the top.  A piece, so no golden, same as the
+            # others; what it exercises (`gateOn`, `slew`, `slide`, the
+            # signal-resonance filters) is each tested by name elsewhere,
+            # and `test_examples.py` compiles it every run.
+            "violin.ges"]
 
 #: The ones with committed golden buffers — all of them, now.  `knob.ges`
 #: had none for as long as the interpreter and the engine disagreed about
