@@ -1,0 +1,25 @@
+[package]
+name = "gestate-clap"
+version = "0.1.0"
+edition = "2021"
+description = "The CLAP shell: a host shim around one compiled gestate graph."
+license = "MIT"
+
+[lib]
+# `cdylib`: a plain shared object (.so/.dylib/.dll) exposing only the
+# `#[no_mangle] extern "C"` symbols — which is what a CLAP host dlopens
+# and probes for `clap_entry`.  `rlib` beside it so `cargo test` can
+# link the crate into test binaries; the host never sees that one.
+crate-type = ["cdylib", "rlib"]
+
+# No dependencies, deliberately.  CLAP is a stable C ABI and the subset a
+# generated synth needs is small; `src/abi.rs` declares exactly that
+# subset, so the shell builds offline and owns every line it ships.
+[dependencies]
+
+[features]
+# Off: the factory reports zero plugins — an empty shell that loads
+# cleanly in a host, which is what CI can build without a graph.
+# On: `src/descriptor.rs` (written by `python -m gestate.export`) and the
+# graph's object file (linked via build.rs) turn it into an instrument.
+engine = []

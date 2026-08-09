@@ -1,7 +1,29 @@
 # Export — the instrument leaves the workshop
 
-*Written as a design; none of it is built.  Companion to
-`spec/liveaudio.md`, which built the engine this proposes to ship.*
+*Written as a design; the CLAP shell's skeleton is built now
+(`shell/clap/`, in **Rust** rather than the C this file first assumed —
+CLAP is a stable C ABI, so Rust reaches it with no runtime and better
+honesty about null and lifetime than a shim deserves to need).  The
+crate hand-declares the CLAP subset it uses (`src/abi.rs`, no
+dependencies, builds offline), exports `clap_entry`, and is an *empty*
+factory until `python -m gestate.export` — **written now** — emits
+`src/descriptor.rs` and the graph's static archive beside it and
+builds with `--features engine`.  `test/test_export.py` is the parity
+this file demands, as a miniature ctypes CLAP host: the exported
+artifact renders what `run_native` renders, refuses the wrong sample
+rate, advances state across blocks, and answers for
+`clap.audio-ports` — the extension a real DAW configures buffers
+from, whose absence is a plugin that loads and sits silent.  Two
+facts found on the way in: the engine's state buffer starts
+**zeroed** (the generated code's first-instant branch seeds every
+`init` itself, so no state image travels), and the whole engine
+contract is one symbol plus that buffer and the control slots.
+Self-playing synths export today (`dubgate.clap`, `violin.clap`).
+Still to come, in order of need: the **params** extension from the
+`mkKnob` table the descriptor already carries; **note ports**, which
+is the big one — the live note-to-channel assignment lives in
+Python's allocator and the shell needs its own; `clap.state`
+save/load as a `State` snapshot; more than one compiled rate.*
 
 Everything gestate produces is audible only to someone holding this
 repository, a Python, and an LLVM.  The synths cannot be handed to
