@@ -48,6 +48,13 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # a composition would be a slow, brittle oracle for things
             # already tested precisely.
             "strings.ges", "strings2.ges", "lead.ges",
+            # Three more pieces, for the same reason — and the two `slide`
+            # showcases would be the *worst* goldens in the file: the
+            # slide oracle walks its whole ring per sample, so a minute of
+            # it through the interpreter is the forty-five-minute mistake
+            # again.  `test_delayline.py` checks the node itself
+            # sample-for-sample against all three engines.
+            "gyre.ges", "bottleneck.ges", "flutter.ges",
             # A canvas rather than a synth, so no golden for the reason
             # `substrate.ges` has none: what it *shows* is the point, and a
             # buffer of the sound it makes would not check that.
