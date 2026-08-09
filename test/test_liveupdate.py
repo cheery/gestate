@@ -197,7 +197,14 @@ def test_a_brand_new_node_starts_at_its_init_not_at_zero():
     fresh = [n for n in edited.nodes
              if n.origin not in {m.origin for m in graph.nodes}]
     assert fresh, "the edit added a node"
-    for node in fresh:
+    # The claim is about *state*: nodes with an `init` written.  A fresh
+    # stateless node — `lowpass`'s zip stage, since its coefficient
+    # became a signal — has `init = None` and its slot legitimately
+    # holds its type's zero; a map is recomputed every block and never
+    # reads it.
+    stateful = [n for n in fresh if n.init is not None]
+    assert stateful, "the edit added a stateful node"
+    for node in stateful:
         assert carried.values[node.id] == node.init
 
 
