@@ -1,7 +1,7 @@
 # A synth with a knob: the first example whose sound comes from outside it.
 #
 #   python -m gestate.audioeditor examples/audio/knob.ges
-#   python -m gestate.audio examples/audio/knob.ges -o knob.wav
+#   python -m gestate.audioperform examples/audio/knob.ges -o knob.wav
 #
 # `blip.ges` and `drums.ges` are closed: given the sample rate, everything
 # they will ever do is already written down.  This one has a **control-rate

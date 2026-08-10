@@ -1,7 +1,7 @@
 # A marimba bar — and what a maker does to one.
 #
-#   python -m gestate.audio examples/audio/bar.ges -o bar.wav
-#   python -m gestate.audio examples/audio/bar.ges --seconds 6
+#   python -m gestate.audioperform examples/audio/bar.ges -o bar.wav
+#   python -m gestate.audioperform examples/audio/bar.ges --seconds 6
 #
 # `bell.ges` is the same machinery on a tubular bell and is the one to read
 # first; this file is about the **tuning**, which is the whole difference

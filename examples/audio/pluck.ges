@@ -1,7 +1,7 @@
 # A fifth synth: a plucked string, built by adding sines up.
 #
-#   python -m gestate.audio examples/audio/pluck.ges -o pluck.wav
-#   python -m gestate.audiolive examples/audio/pluck.ges --seconds 6
+#   python -m gestate.audioperform examples/audio/pluck.ges -o pluck.wav
+#   python -m gestate.audioperform examples/audio/pluck.ges --seconds 6
 #
 # `fm.ges` is the caller for `sin`.  This one is the caller for **`exp`**,
 # and for a reason that is physics rather than convenience: on a real

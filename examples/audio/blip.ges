@@ -1,6 +1,6 @@
 # A little synth: eight notes, a sawtooth, an envelope and a filter.
 #
-#   python -m gestate.audio examples/audio/blip.ges -o blip.wav
+#   python -m gestate.audioperform examples/audio/blip.ges -o blip.wav
 #   aplay blip.wav          # or open it in anything
 #
 # This is offline rendering — see `gestate/audio.ges` for why that is the

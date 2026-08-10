@@ -1,6 +1,6 @@
 # A drum machine: kick, snare and hat, from arithmetic alone.
 #
-#   python -m gestate.audio examples/audio/drums.ges -o drums.wav --seconds 5
+#   python -m gestate.audioperform examples/audio/drums.ges -o drums.wav --seconds 5
 #
 # `blip.ges` is one voice with a melody.  This is three voices at once, and
 # it needs two things that one did not.

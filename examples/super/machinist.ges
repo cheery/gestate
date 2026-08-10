@@ -1,7 +1,7 @@
 # MACHINIST - the console of a ship that thinks in vowels.
 #
-#   python -m gestate.audiolive examples/super/machinist.ges
-#   python -m gestate.audio examples/super/machinist.ges -o machinist.wav --seconds 30
+#   python -m gestate.audioperform examples/super/machinist.ges
+#   python -m gestate.audioperform examples/super/machinist.ges -o machinist.wav --seconds 30
 #
 # Steal: the S&H bleep computer, the vowel drone (formants on a comb),
 # the servo (slew chasing a staircase - motion you can hear deciding).

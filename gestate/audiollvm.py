@@ -1264,31 +1264,14 @@ def _unpack(graph: Graph, type_name: str, raw: bytes, at: int) -> tuple:
 
 
 def main(argv=None) -> int:
-    import argparse
-    from pathlib import Path
+    """Retired — the IR is a library call on the way to sound."""
+    import sys
 
-    from .audioextract import ExtractError, extract
-
-    ap = argparse.ArgumentParser(
-        prog="python -m gestate.audiollvm",
-        description="Generate LLVM IR for a synth program.")
-    ap.add_argument("file")
-    ap.add_argument("--rate", type=int, default=22050)
-    ap.add_argument("-o", "--output", default=None)
-    args = ap.parse_args(argv)
-
-    try:
-        graph = extract(Path(args.file).read_text(), rate=args.rate)
-        text = emit(graph)
-    except (ExtractError, LLVMError) as exc:
-        print(f"gestate: {exc}")
-        return 1
-    if args.output:
-        Path(args.output).write_text(text)
-        print(f"{args.output}: {len(text.splitlines())} lines of IR")
-    else:
-        print(text, end="")
-    return 0
+    print("gestate: the `gestate.audiollvm` CLI is retired — the IR is a "
+          "library call (`audiollvm.emit`),\nand every render through "
+          "`python -m gestate.audioperform -o` compiles it on the way to "
+          "sound.", file=sys.stderr)
+    return 2
 
 
 if __name__ == "__main__":

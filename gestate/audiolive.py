@@ -864,84 +864,16 @@ def _open_midi(source: str, rate: int, port: str | None, span: str | None):
 
 
 def main(argv=None) -> int:
+    """Retired — `audioperform` plays, and the live room is an editor."""
     import sys
-    from pathlib import Path
 
-    import argparse
-
-    from .audiospans import cli_error
-
-    from .audioextract import ExtractError
-    from .audiollvm import LLVMError
-
-    ap = argparse.ArgumentParser(
-        prog="python -m gestate.audiolive",
-        description="Compile a synth and play it.")
-    ap.add_argument("file")
-    ap.add_argument("--seconds", type=float, default=None,
-                    help="how long to play; omit to play until interrupted")
-    ap.add_argument("--rate", type=int, default=DEFAULT_RATE)
-    ap.add_argument("--block", type=int, default=DEFAULT_BLOCK)
-    ap.add_argument("--player", default=None,
-                    help=f"force one of: {', '.join(PLAYERS)}")
-    ap.add_argument("--latency", type=int, default=DEFAULT_LATENCY_MS,
-                    metavar="MS",
-                    help="how much sound the player may hold; this is the "
-                         "delay you feel when playing (default "
-                         f"{DEFAULT_LATENCY_MS} ms)")
-    ap.add_argument("--watch", action="store_true",
-                    help="recompile and swap whenever the file changes, "
-                         "keeping the state of every node the edit left alone")
-    ap.add_argument("--fade", type=int, default=FADE_MS, metavar="MS",
-                    help="fade the master in at the start and, when "
-                         "--seconds is given, out at the end, so neither "
-                         f"edge pops (default {FADE_MS} ms; 0 for none)")
-    ap.add_argument("--midi", nargs="?", const="", default=None,
-                    metavar="PORT",
-                    help="drive the synth's control channels from MIDI CC, "
-                         "one per knob in declaration order starting at CC1; "
-                         "give a port name or omit for the first one")
-    ap.add_argument("--midi-span", default=None, metavar="LO:HI",
-                    help="map every controller's 0..127 onto this range "
-                         "(e.g. 0:100); omit to pass the raw CC value")
-    args = ap.parse_args(argv)
-
-    control, listener = None, None
-    if args.midi is not None:
-        try:
-            controls, listener = _open_midi(
-                Path(args.file).read_text(), args.rate,
-                args.midi or None, args.midi_span)
-        except (ExtractError, LiveError) as exc:
-            print(f"gestate: {cli_error(exc, args.file)}", file=sys.stderr)
-            return 1
-        control = controls.control()
-        print(f"MIDI: {controls.describe()}", file=sys.stderr)
-
-    try:
-        print(f"compiling {args.file} at {args.rate} Hz…", file=sys.stderr)
-        if args.watch:
-            print("watching for edits; Ctrl-C to stop", file=sys.stderr)
-            frames, backend = watch(
-                args.file, args.seconds, args.rate, args.block,
-                prefer=args.player, control=control,
-                report=lambda m: print(m, file=sys.stderr, flush=True),
-                fade_ms=args.fade)
-        else:
-            frames, backend = play(Path(args.file).read_text(), args.seconds,
-                                   args.rate, args.block, prefer=args.player,
-                                   control=control,
-                                   latency_ms=args.latency,
-                                   fade_ms=args.fade)
-    except (ExtractError, LLVMError, LiveError) as exc:
-        print(f"gestate: {cli_error(exc, args.file)}", file=sys.stderr)
-        return 1
-    except FileNotFoundError as exc:
-        print(f"gestate: {cli_error(exc, args.file)}", file=sys.stderr)
-        return 1
-    print(f"{args.file}: {frames} frames "
-          f"({frames / args.rate:.2f}s) through {backend}", file=sys.stderr)
-    return 0
+    print("gestate: the `gestate.audiolive` CLI is retired —\n"
+          "  python -m gestate.audioperform <file> [--midi]   plays;\n"
+          "  python -m gestate.audioeditor  <file>            edits it live;\n"
+          "  python -m gestate.audiopygame  <file>            with the canvas.\n"
+          "The engine and the drivers live on here; every player still "
+          "uses them.", file=sys.stderr)
+    return 2
 
 
 if __name__ == "__main__":

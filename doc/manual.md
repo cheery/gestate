@@ -56,7 +56,7 @@ $ python -m gestate.typecheck examples/closure.ges     # infer and print types
 $ python -m gestate.typecheck examples/closure.ges --check   # errors only
 $ python -m gestate.midi examples/music/drums.ges --events   # lay out a score
 $ python -m gestate.midi examples/music/drums.ges            # write drums.mid
-$ python -m gestate.audio examples/audio/sine.ges -o sine.wav  # render a synth
+$ python -m gestate.audioperform examples/audio/sine.ges -o sine.wav  # render a synth
 $ python -m pytest test -q                                   # the suite
 ```
 
@@ -77,7 +77,7 @@ main = double 21
 Three kinds of program are shaped differently and have `main` supplied
 for them.  A **music** program defines `score : [: Void :]` and
 `bpm : Int` (§7).  A **synth** defines `sound : Sig Float` and is rendered
-with `python -m gestate.audio` or played live (§6).  A **canvas** program
+with `python -m gestate.audioperform` or played live (§6).  A **canvas** program
 defines `substrate : Sig Sub` and is run with `python -m gestate.gui`
 (§6).  A backend finds your program by these names — `doc/ref/index.md`
 holds the full table of who looks for what, and what each puts in scope.
@@ -713,7 +713,7 @@ system's job.
 
 The other driver of the same half is sound.  A synth defines
 `sound : Sig Float` — one sample per instant — and
-`python -m gestate.audio` renders it to a `.wav`, while
+`python -m gestate.audioperform` renders it to a `.wav`, while
 `python -m gestate.audiopygame` plays it and reloads it while you edit.
 The combinators (`sineOf`, `lowpass`, `adsr` and the rest) live in
 `audio.ges` and `synth.ges`, and every one is in `doc/ref/`; how a

@@ -1,7 +1,7 @@
 # An auditory scenery — ninety seconds of weather, and nothing plays a note.
 #
 #   python -m gestate.audiopygame examples/audio/scenery.ges
-#   python -m gestate.audio examples/audio/scenery.ges --seconds 90 -o scenery.wav
+#   python -m gestate.audioperform examples/audio/scenery.ges --seconds 90 -o scenery.wav
 #
 # **No score, no keyboard, no voices.**  There is nothing to trigger here:
 # the whole piece is a handful of continuous sounds whose *inputs* are

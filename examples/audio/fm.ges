@@ -1,7 +1,7 @@
 # A fourth synth: FM, which is the one instrument that needs a real sine.
 #
-#   python -m gestate.audio examples/audio/fm.ges -o fm.wav
-#   python -m gestate.audiolive examples/audio/fm.ges --seconds 5
+#   python -m gestate.audioperform examples/audio/fm.ges -o fm.wav
+#   python -m gestate.audioperform examples/audio/fm.ges --seconds 5
 #
 # `blip.ges` and `drums.ges` are built from ramps — a sawtooth is `2p - 1`
 # and a triangle is two lines, so both are arithmetic on a phase.  This one

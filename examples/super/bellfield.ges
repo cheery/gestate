@@ -1,7 +1,7 @@
 # BELLFIELD - FM bells scattered across a field, forever.
 #
-#   python -m gestate.audiolive examples/super/bellfield.ges
-#   python -m gestate.audio examples/super/bellfield.ges -o bellfield.wav --seconds 45
+#   python -m gestate.audioperform examples/super/bellfield.ges
+#   python -m gestate.audioperform examples/super/bellfield.ges -o bellfield.wav --seconds 45
 #
 # Steal: the fm bell patch with per-operator decays, and stereo made of
 # two ears that strike at different rates - they can never line up, so

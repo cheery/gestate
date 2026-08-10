@@ -1,7 +1,7 @@
 # CHOIRLOFT - voices in a stone room, and nobody is singing words.
 #
-#   python -m gestate.audiolive examples/super/choirloft.ges
-#   python -m gestate.audio examples/super/choirloft.ges -o choirloft.wav --seconds 40
+#   python -m gestate.audioperform examples/super/choirloft.ges
+#   python -m gestate.audioperform examples/super/choirloft.ges -o choirloft.wav --seconds 40
 #
 # Steal: the singer - a detuned buzz through three formant bands IS a
 # vowel - and the chord written as Ramp envelopes, so the voices *slide*

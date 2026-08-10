@@ -1,6 +1,6 @@
 # Flutter — a worn tape echo, which is a delay whose *time* is a signal.
 #
-#   python -m gestate.audio examples/audio/flutter.ges -o flutter.wav --seconds 50
+#   python -m gestate.audioperform examples/audio/flutter.ges -o flutter.wav --seconds 50
 #   python -m gestate.audiopygame examples/audio/flutter.ges
 #
 # `echo` repeats exactly, because `feedback`'s length is a constant — its

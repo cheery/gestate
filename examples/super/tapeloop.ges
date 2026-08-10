@@ -1,7 +1,7 @@
 # TAPELOOP - a phrase is played once, and the room forgets it slowly.
 #
-#   python -m gestate.audio examples/super/tapeloop.ges -o tapeloop.wav --seconds 90
-#   python -m gestate.audiolive examples/super/tapeloop.ges
+#   python -m gestate.audioperform examples/super/tapeloop.ges -o tapeloop.wav --seconds 90
+#   python -m gestate.audioperform examples/super/tapeloop.ges
 #
 # Process music: the piece is not the phrase, it is the *decay*.  A
 # five-second loop repeats through a line that loses treble every pass

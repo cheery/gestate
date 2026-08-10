@@ -1,7 +1,7 @@
 # Two sines, two ears: 440 Hz on the left, 442 Hz on the right.
 #
-#   python -m gestate.audio examples/audio/stereo.ges -o stereo.wav
-#   python -m gestate.audiolive examples/audio/stereo.ges --seconds 6
+#   python -m gestate.audioperform examples/audio/stereo.ges -o stereo.wav
+#   python -m gestate.audioperform examples/audio/stereo.ges --seconds 6
 #   python -m gestate.audioeditor examples/audio/stereo.ges
 #
 # The simplest thing that is not mono.  Nothing here is a new idea about

@@ -21,7 +21,7 @@ file uses only what it must.
 ## Hearing anything at all
 
 ```
-$ python -m gestate.audiolive examples/beginner/01-tone.ges --seconds 3
+$ python -m gestate.audioperform examples/beginner/01-tone.ges --seconds 3
 ```
 
 `audiolive` compiles the synth to machine code and plays it through your
@@ -29,8 +29,8 @@ speakers — this is the fast path, and the one to use.  Two more forms of it
 are worth knowing from day one:
 
 ```
-$ python -m gestate.audiolive examples/beginner/01-tone.ges --watch
-$ python -m gestate.audio examples/beginner/01-tone.ges -o tone.wav
+$ python -m gestate.audioperform examples/beginner/01-tone.ges --watch
+$ python -m gestate.audioperform examples/beginner/01-tone.ges -o tone.wav
 ```
 
 `--watch` keeps playing while you edit the file, swapping the sound at each

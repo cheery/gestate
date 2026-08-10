@@ -5,7 +5,7 @@
 # import only the standard library:
 #
 #     python -m gestate.typecheck  examples/closure.ges
-#     python -m gestate.audio      examples/audio/sine.ges -o sine.wav
+#     python -m gestate.audioperform examples/audio/sine.ges --oracle -o sine.wav
 #     python -m gestate.reference
 #
 # Everything below is a *backend* or a *tool*.  Each one gates a set of
@@ -54,7 +54,7 @@ pygame>=2.5
 
 # ── Live audio ───────────────────────────────────────────────────────────
 #
-# PortAudio, for `gestate.audiolive` — playing a synth while you edit it.
+# PortAudio, for `gestate.audiolive` — the engine every player and editor speaks to.
 # Verified at 0.5.5.
 #
 # **Not needed to run the suite, and the suite must never reach it.**

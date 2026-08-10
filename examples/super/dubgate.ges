@@ -1,7 +1,7 @@
 # DUBGATE - a drum machine drowning in tape echo.
 #
-#   python -m gestate.audiolive examples/super/dubgate.ges
-#   python -m gestate.audio examples/super/dubgate.ges -o dubgate.wav --seconds 16
+#   python -m gestate.audioperform examples/super/dubgate.ges
+#   python -m gestate.audioperform examples/super/dubgate.ges -o dubgate.wav --seconds 16
 #
 # Steal: the send that only opens on beat 3 - dub is *when* the echo
 # hears, not what it does - and the warbling slide echo behind it.

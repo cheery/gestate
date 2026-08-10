@@ -1,7 +1,7 @@
 # The shortest thing that is a note: one sine, one envelope.
 #
-#   python -m gestate.audio examples/audio/sine.ges -o sine.wav
-#   python -m gestate.audio examples/audio/sine.ges --seconds 1 --peak
+#   python -m gestate.audioperform examples/audio/sine.ges -o sine.wav
+#   python -m gestate.audioperform examples/audio/sine.ges --seconds 1 --peak
 #
 # `blip.ges` is the file to read for what a synth *is* — an oscillator, an
 # envelope and a filter, each written out as a fold over time.  This one is

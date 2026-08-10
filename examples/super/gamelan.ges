@@ -1,7 +1,7 @@
 # GAMELAN - interlocking metal, three clocks that only meet once a cycle.
 #
-#   python -m gestate.audiolive examples/super/gamelan.ges
-#   python -m gestate.audio examples/super/gamelan.ges -o gamelan.wav --seconds 24
+#   python -m gestate.audioperform examples/super/gamelan.ges
+#   python -m gestate.audioperform examples/super/gamelan.ges -o gamelan.wav --seconds 24
 #
 # Steal: the polyrhythm - three strike clocks in 2:3:5, so the pattern
 # only repeats every whole cycle - and the detuned resonator pairs that

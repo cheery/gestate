@@ -292,6 +292,65 @@ def render_wav(graph, path: str, seconds: float, rate: int, block: int,
 # ── CLI ─────────────────────────────────────────────────────────────────────
 
 
+def _oracle_main(args) -> int:
+    """`gestate.audio`'s retired CLI, living here now: the interpreter
+    render — the reference, the goldens' own machine.  `args.synth` is
+    the file; a `piece` argument makes no sense at the oracle (it
+    renders one program) and is refused rather than ignored."""
+    import sys
+    from pathlib import Path
+
+    from .audio import (DEFAULT_RATE, GOLDEN_SUFFIX, render_frames,
+                        write, write_golden)
+
+    if args.piece:
+        print("gestate: --oracle renders one program; give it one file",
+              file=sys.stderr)
+        return 1
+
+    def tick(fraction):
+        print(f"\r  rendering {fraction:>5.0%}", end="", file=sys.stderr)
+
+    try:
+        if args.golden:
+            n, rate = write_golden(args.synth, args.seconds, args.rate,
+                                   tick, control_every=args.control_every)
+            out = Path(args.synth).with_suffix(GOLDEN_SUFFIX)
+            print(f"\r{out}: {n} samples at {rate} Hz")
+            return 0
+
+        source = Path(args.synth).read_text()
+        seconds = 2.0 if args.seconds is None else args.seconds
+        rate = DEFAULT_RATE if args.rate is None else args.rate
+        if args.peak:
+            frames = render_frames(source, seconds, rate)
+            channels = len(frames[0]) if frames else 1
+            peaks = [max((abs(f[c]) for f in frames), default=0.0)
+                     for c in range(channels)]
+            # Per channel, because a stereo synth with one silent side
+            # is exactly the mistake a single overall peak would hide.
+            shown = ", ".join(f"{p:.3f}" for p in peaks)
+            print(f"{len(frames)} frames at {rate} Hz, "
+                  f"{channels} channel{'s' if channels != 1 else ''}, "
+                  f"peak {shown}")
+            return 0
+        out = args.output or str(Path(args.synth).with_suffix(".wav").name)
+        n, peak = write(source, out, seconds, rate, tick)
+        print(f"\r{out}: {n} frames at {rate} Hz, "
+              f"{n / rate:.2f}s, peak {peak:.3f}")
+        return 0
+    except Exception as exc:                     # noqa: BLE001 — CLI boundary
+        from .audiospans import in_source
+
+        try:
+            text = in_source(str(exc), Path(args.synth).read_text(),
+                             args.synth)
+        except Exception:                        # noqa: BLE001
+            text = str(exc)
+        print(f"\ngestate: {type(exc).__name__}: {text}", file=sys.stderr)
+        return 1
+
+
 def main(argv=None) -> int:
     import argparse
 
@@ -313,7 +372,10 @@ def main(argv=None) -> int:
     ap.add_argument("--midi-bank", default="lead")
     ap.add_argument("--midi", nargs="?", const="", default=None,
                     metavar="PORT", help="play `--midi-bank` from a keyboard")
-    ap.add_argument("--rate", type=int, default=DEFAULT_RATE)
+    # `None`, not a number: the oracle's flags need to know whether a
+    # rate was *said* — a golden re-rendered supplies its own — and
+    # the player and the oracle default differently.
+    ap.add_argument("--rate", type=int, default=None)
     ap.add_argument("--block", type=int, default=DEFAULT_BLOCK)
     ap.add_argument("--seconds", type=float, default=None)
     ap.add_argument("--policy", default="oldest",
@@ -328,7 +390,32 @@ def main(argv=None) -> int:
                          "stalls, drops — after rendering")
     ap.add_argument("-o", "--output", default=None,
                     help="render to a .wav instead of playing")
+    # ── The oracle's flags, folded in from `gestate.audio`'s retired
+    # CLI: one door for every rendering, whichever machine answers.
+    # The oracle is the interpreter — slow, pure Python, the reference
+    # the goldens hold three engines against — and it stays reachable
+    # from the same command that plays.
+    ap.add_argument("--oracle", action="store_true",
+                    help="render through the interpreter — the "
+                         "reference, pure Python, no clang — instead "
+                         "of the engine")
+    ap.add_argument("--golden", action="store_true",
+                    help="write the golden buffer beside the source; "
+                         "an existing one supplies the rate, duration "
+                         "and control schedule it was made at")
+    ap.add_argument("--peak", action="store_true",
+                    help="report the oracle's peak sample per channel "
+                         "and write nothing")
+    ap.add_argument("--control-every", type=int, default=None,
+                    help="tick the oracle's control clock every N "
+                         "samples — the block size a control-rate "
+                         "golden is rendered at")
     args = ap.parse_args(argv)
+
+    if args.golden or args.peak or args.oracle:
+        return _oracle_main(args)
+    if args.rate is None:
+        args.rate = DEFAULT_RATE
 
     listener = None
     performer = None

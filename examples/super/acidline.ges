@@ -1,7 +1,7 @@
 # ACIDLINE - a squelching 303-ish bass sequence.
 #
-#   python -m gestate.audiolive examples/super/acidline.ges
-#   python -m gestate.audio examples/super/acidline.ges -o acidline.wav --seconds 16
+#   python -m gestate.audioperform examples/super/acidline.ges
+#   python -m gestate.audioperform examples/super/acidline.ges -o acidline.wav --seconds 16
 #
 # Steal: the Step-envelope sequencer with accent lane, the
 # envelope-into-resonant-ladder squelch, the drive on the way out.

@@ -1,7 +1,7 @@
 # BREAKSMITH - a broken beat, cut and reassembled 170 times a minute.
 #
-#   python -m gestate.audiolive examples/super/breaksmith.ges
-#   python -m gestate.audio examples/super/breaksmith.ges -o breaksmith.wav --seconds 16
+#   python -m gestate.audioperform examples/super/breaksmith.ges
+#   python -m gestate.audioperform examples/super/breaksmith.ges -o breaksmith.wav --seconds 16
 #
 # Jungle arithmetic: the drums live on a sixteenth grid as `case`
 # tables, and every fourth bar the kit plays a different row - the fill

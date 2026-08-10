@@ -1,7 +1,7 @@
 # LONGPIPE - one breath, held for as long as you care to listen.
 #
-#   python -m gestate.audiolive examples/super/longpipe.ges
-#   python -m gestate.audio examples/super/longpipe.ges -o longpipe.wav --seconds 30
+#   python -m gestate.audioperform examples/super/longpipe.ges
+#   python -m gestate.audioperform examples/super/longpipe.ges -o longpipe.wav --seconds 30
 #
 # A wind drone in the didgeridoo family: everything grows from ONE
 # fundamental, and the music is in the mouth, not the notes.

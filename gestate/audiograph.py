@@ -844,26 +844,14 @@ def _dedup(messages: list[str]) -> list[str]:
 
 
 def main(argv=None) -> int:
-    import argparse
-    from pathlib import Path
+    """Retired — the fragment check runs wherever a synth compiles."""
+    import sys
 
-    ap = argparse.ArgumentParser(
-        prog="python -m gestate.audiograph",
-        description="Is this synth in the static signal fragment?")
-    ap.add_argument("file")
-    args = ap.parse_args(argv)
-
-    report = check(Path(args.file).read_text())
-    if report:
-        print(f"{args.file}: in the fragment — "
-              f"{len(report.signals)} signal node(s), "
-              f"{len(report.scalars)} step definition(s), "
-              f"{len(report.clocks)} clock(s)")
-        return 0
-    print(f"{args.file} is not in the static signal fragment:")
-    for line in report.errors:
-        print(f"  {line}")
-    return 1
+    print("gestate: the `gestate.audiograph` CLI is retired — a program "
+          "outside the fragment is refused by name\nby every door that "
+          "compiles it (`gestate.audioperform`, the editors).",
+          file=sys.stderr)
+    return 2
 
 
 if __name__ == "__main__":

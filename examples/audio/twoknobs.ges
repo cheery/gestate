@@ -1,7 +1,7 @@
 # Two knobs: the first synth with more than one parameter.
 #
 #   python -m gestate.audioeditor examples/audio/twoknobs.ges
-#   python -m gestate.audiospans examples/audio/twoknobs.ges --controls --source
+#   python -m gestate.audioperform examples/audio/twoknobs.ges -o twoknobs.wav
 #
 # `knob.ges` established that a control-rate parameter is a second clock.
 # This one establishes that **several parameters are several channels**,

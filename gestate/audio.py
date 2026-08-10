@@ -984,73 +984,16 @@ def write_golden(path: str, seconds: float | None = None,
 
 
 def main(argv=None) -> int:
-    import argparse
+    """Retired — the oracle's flags live on `gestate.audioperform` now."""
+    import sys
 
-    ap = argparse.ArgumentParser(
-        prog="python -m gestate.audio",
-        description="Render a gestate synth program to a .wav file.")
-    ap.add_argument("file")
-    ap.add_argument("-o", "--output", default=None)
-    ap.add_argument("--seconds", type=float, default=None)
-    ap.add_argument("--rate", type=int, default=None)
-    ap.add_argument("--peak", action="store_true",
-                    help="report the peak sample and write nothing")
-    ap.add_argument("--golden", action="store_true",
-                    help=f"write the `{GOLDEN_SUFFIX}` buffer beside the "
-                         "source; an existing one supplies the rate, "
-                         "duration and control schedule it was made at")
-    ap.add_argument("--control-every", type=int, default=None,
-                    help="tick the control clock every N samples — the "
-                         "block size a control-rate example is rendered at")
-    args = ap.parse_args(argv)
-
-    def tick(fraction):
-        print(f"\r  rendering {fraction:>5.0%}", end="", file=sys.stderr)
-
-    try:
-        if args.golden:
-            n, rate = write_golden(args.file, args.seconds, args.rate, tick,
-                                   control_every=args.control_every)
-            out = Path(args.file).with_suffix(GOLDEN_SUFFIX)
-            print(f"\r{out}: {n} samples at {rate} Hz")
-            return 0
-
-        source = Path(args.file).read_text()
-        seconds = 2.0 if args.seconds is None else args.seconds
-        rate = DEFAULT_RATE if args.rate is None else args.rate
-        if args.peak:
-            frames = render_frames(source, seconds, rate)
-            channels = len(frames[0]) if frames else 1
-            peaks = [max((abs(f[c]) for f in frames), default=0.0)
-                     for c in range(channels)]
-            # Per channel, because a stereo synth with one silent side is
-            # exactly the mistake a single overall peak would hide.
-            shown = ", ".join(f"{p:.3f}" for p in peaks)
-            print(f"{len(frames)} frames at {rate} Hz, "
-                  f"{channels} channel{'s' if channels != 1 else ''}, "
-                  f"peak {shown}")
-            return 0
-        out = args.output or str(Path(args.file).with_suffix(".wav").name)
-
-        n, peak = write(source, out, seconds, rate, tick)
-        # `rate`, not `args.rate`: the latter is `None` unless `--rate` was
-        # given, so writing a `.wav` without one divided by `None`.
-        print(f"\r{out}: {n} frames at {rate} Hz, "
-              f"{n / rate:.2f}s, peak {peak:.3f}")
-        return 0
-    except Exception as exc:                     # noqa: BLE001 — CLI boundary
-        # Line numbers moved back into the file the author wrote, for the
-        # reason `audiospans.in_source` gives: every position a compiler
-        # error carries counts from the top of the *assembled* program,
-        # preludes and all, so an untranslated one names a line nobody has.
-        from .audiospans import in_source
-
-        try:
-            text = in_source(str(exc), Path(args.file).read_text(), args.file)
-        except Exception:                        # noqa: BLE001
-            text = str(exc)
-        print(f"\ngestate: {type(exc).__name__}: {text}", file=sys.stderr)
-        return 1
+    print("gestate: the `gestate.audio` CLI is retired — one door now:\n"
+          "  python -m gestate.audioperform <file> --oracle "
+          "[-o out.wav | --golden | --peak]\n"
+          "renders through the same interpreter, flags intact.  The\n"
+          "library — `render`, `write_golden`, the goldens — lives on "
+          "here.", file=sys.stderr)
+    return 2
 
 
 if __name__ == "__main__":

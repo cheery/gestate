@@ -1,7 +1,7 @@
 # A drum head — a circular membrane, and the kettle that tunes one.
 #
-#   python -m gestate.audio examples/audio/membrane.ges -o membrane.wav
-#   python -m gestate.audio examples/audio/membrane.ges --seconds 6
+#   python -m gestate.audioperform examples/audio/membrane.ges -o membrane.wav
+#   python -m gestate.audioperform examples/audio/membrane.ges --seconds 6
 #
 # The third modal example, after `bell.ges` and `bar.ges`, and the one
 # where the modes are furthest from anything harmonic.

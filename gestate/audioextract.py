@@ -951,27 +951,14 @@ def _join(path: str, name: str) -> str:
 
 
 def main(argv=None) -> int:
-    import argparse
-    import json
-    from pathlib import Path
+    """Retired — a stage-7 debugging window the tools outgrew."""
+    import sys
 
-    ap = argparse.ArgumentParser(
-        prog="python -m gestate.audioextract",
-        description="Extract the flat signal graph of a synth program.")
-    ap.add_argument("file")
-    ap.add_argument("--rate", type=int, default=22050)
-    ap.add_argument("--json", action="store_true")
-    args = ap.parse_args(argv)
-
-    try:
-        graph = extract(Path(args.file).read_text(), rate=args.rate)
-    except ExtractError as exc:
-        from .audiospans import cli_error
-
-        print(f"gestate: {cli_error(exc, args.file)}")
-        return 1
-    print(json.dumps(graph.to_dict(), indent=2) if args.json else graph.show())
-    return 0
+    print("gestate: the `gestate.audioextract` CLI is retired — "
+          "`python -m gestate.typecheck <file> --audio` answers what is "
+          "in scope,\nand the graph itself is a library call "
+          "(`audioextract.extract`).", file=sys.stderr)
+    return 2
 
 
 if __name__ == "__main__":

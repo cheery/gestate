@@ -440,50 +440,14 @@ def controls_and_graph(source: str, *, rate: int = 22050,
 
 
 def main(argv=None) -> int:
-    """`python -m gestate.audiospans <file>` — the placement, as a table.
-
-    Worth having beyond debugging: the join is the sort of thing that can be
-    wrong by one line for a year without anything failing, and reading it
-    against the files is how a person checks it.
-    """
-    import argparse
+    """Retired — the editors place knobs from this same table, live."""
     import sys
 
-    ap = argparse.ArgumentParser(
-        prog="python -m gestate.audiospans",
-        description="Show where each node of a synth's graph was written.")
-    ap.add_argument("file")
-    ap.add_argument("--rate", type=int, default=22050)
-    ap.add_argument("--controls", action="store_true",
-                    help="only the control-rate sites — the ones an "
-                         "environment would offer a knob for")
-    ap.add_argument("--source", action="store_true",
-                    help="print the line each site names, read back from "
-                         "the file it names")
-    args = ap.parse_args(argv)
-
-    path = Path(args.file)
-    source = path.read_text()
-    try:
-        found = (controls if args.controls else locate)(
-            source, rate=args.rate, path=path.name)
-    except Exception as exc:                       # noqa: BLE001 — a CLI
-        print(f"gestate: {type(exc).__name__}: "
-              f"{cli_error(exc, args.file)}", file=sys.stderr)
-        return 1
-
-    if not found:
-        print("no control-rate sites" if args.controls else "no sites")
-        return 0
-
-    width = max(len(s.name) for s in found)
-    for s in found:
-        where = f"{s.file}:{s.line}"
-        print(f"  {s.name:<{width}}  {s.kind:<6} {s.clock:<7} {where}")
-        if args.source:
-            text = (s.path.read_text() if s.path else source).splitlines()
-            print(f"  {'':<{width}}  | {text[s.line - 1]}")
-    return 0
+    print("gestate: the `gestate.audiospans` CLI is retired — the editors "
+          "place every knob from this same table, live,\nand the "
+          "placement query lives on as a library (`audiospans.placed`, "
+          "`in_source`).", file=sys.stderr)
+    return 2
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # Bottleneck — a Karplus-Strong string that slides, at last.
 #
-#   python -m gestate.audio examples/audio/bottleneck.ges -o bottleneck.wav --seconds 46
+#   python -m gestate.audioperform examples/audio/bottleneck.ges -o bottleneck.wav --seconds 46
 #   python -m gestate.audiopygame examples/audio/bottleneck.ges
 #
 # `lead.ges` opens with an apology: a Karplus-Strong string cannot slide,

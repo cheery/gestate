@@ -1,7 +1,7 @@
 # HOVERDRONE - a pad that fills the room and never repeats itself.
 #
-#   python -m gestate.audiolive examples/super/hoverdrone.ges
-#   python -m gestate.audio examples/super/hoverdrone.ges -o hoverdrone.wav --seconds 60
+#   python -m gestate.audioperform examples/super/hoverdrone.ges
+#   python -m gestate.audioperform examples/super/hoverdrone.ges -o hoverdrone.wav --seconds 60
 #
 # Steal: the six-saw stack (three pitches x two ears), the drifting
 # filter pair, the shimmer bank struck by dust.

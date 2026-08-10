@@ -31,8 +31,8 @@ library and language, documented down to the measured decibel.
 ## Hear it
 
 ```sh
-python -m gestate.audiolive examples/super/dubgate.ges      # live, editable
-python -m gestate.audio examples/super/dubgate.ges -o dub.wav --seconds 16
+python -m gestate.audioperform examples/super/dubgate.ges      # live, editable
+python -m gestate.audioperform examples/super/dubgate.ges -o dub.wav --seconds 16
 python -m pytest                                            # the suite
 ```
 

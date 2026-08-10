@@ -8,7 +8,7 @@ plays live; most reward `audiolive --watch` left running while you gut
 them.
 
 ```
-$ python -m gestate.audiolive examples/super/hoverdrone.ges
+$ python -m gestate.audioperform examples/super/hoverdrone.ges
 $ python -m gestate.audio     examples/super/acidline.ges -o acid.wav --seconds 16
 $ python -m gestate.audioperform examples/super/nightdrive.ges --midi
 ```

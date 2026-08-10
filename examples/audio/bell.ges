@@ -1,7 +1,7 @@
 # A tubular bell, by modal synthesis — struck by chance.
 #
-#   python -m gestate.audio examples/audio/bell.ges -o bell.wav
-#   python -m gestate.audio examples/audio/bell.ges --seconds 6
+#   python -m gestate.audioperform examples/audio/bell.ges -o bell.wav
+#   python -m gestate.audioperform examples/audio/bell.ges --seconds 6
 #
 # **This is physical modelling, and it needs nothing the library did not
 # already have.**  A struck bar or bell does not have a waveform; it has

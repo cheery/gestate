@@ -635,7 +635,7 @@ def test_the_golden_cli_reuses_the_settings_it_finds(tmp_path):
     so `--golden` with no flags reproduces the same buffer and only the
     numbers can change.
     """
-    from gestate.audio import main as audio_main
+    from gestate.audioperform import main as audio_main
 
     src = tmp_path / "tone.ges"
     src.write_text("sound : Sig Float\nsound = map (n => 0.25) ticks\n")
