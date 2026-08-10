@@ -68,8 +68,9 @@ wrapTo n i = case i < n of
     False -> wrapTo n (i - n)
 
 #: One sixteenth: rung `i mod count` of the sorted chord.  Sorting is
-#: what makes it a ladder — `holds` reports keys in channel order,
-#: the order you pressed them, not the order they stack.
+#: what makes it a ladder — the reading happens to arrive sorted
+#: today, but bottom-to-top is this file's promise, so it is said
+#: here rather than inherited.
 rung : Int -> List Int -> [: Tone :]
 rung i ks = case sort ks of
     Nil -> r

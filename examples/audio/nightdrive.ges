@@ -1,0 +1,255 @@
+# NIGHTDRIVE — dark synthwave: an octave bass that never stops, chords
+# that arrive rather than strike, drums with the reverb of a room much
+# larger than the one you are in.
+#
+#   python -m gestate.audioperform examples/audio/nightdrive.ges --seconds 32 -o nightdrive.wav
+#   python -m gestate.audioperform examples/audio/nightdrive.ges --seconds 32 -o take.wav --seed 7
+#
+# The score is endless (`cycle`) and chancy (`sown`), so it performs
+# dynamically and a take with no `--seed` draws one and says so.  The
+# decision is taken once per four bars: one seed picks the progression
+# the pad, the bass and the lead all read, so however the dice land the
+# band lands together.  Inside the block the lead rolls its own bars —
+# including bar `3`, which is four beats of nothing, because the genre
+# is a groove with a view and the view needs the space.
+#
+# The drums and the sidechain pump are not in the score at all: they are
+# arithmetic on `beat`, the renderer's own clock (`fourfloor.ges` makes
+# the argument), so the pulse survives any decision the seed takes.
+
+Tone := Tone Float Int
+
+hzOf : Tone -> Float
+hzOf t = case t of
+    Tone v k -> keyHz k
+
+velOf : Tone -> Float
+velOf t = case t of
+    Tone v k -> v
+
+# ── The harmony: seven chords, four roads through them ───────────────────
+#
+# Everything is written against a chord *index* rather than a pitch, so
+# one table owns the voicing and the three parts cannot drift apart.
+# All of it sits in A minor; the E major in two of the roads is the
+# harmonic-minor dominant, which is the darkest cheap trick there is.
+
+#: 0 Am, 1 C, 2 Dm, 3 Em, 4 E, 5 F, 6 G — roots around A3, where the
+#: pad wants them; the bass reads two octaves down, the lead one up.
+chordRoot : Int -> Int
+chordRoot c = case c of
+    0 -> 57
+    1 -> 60
+    2 -> 62
+    3 -> 64
+    4 -> 64
+    5 -> 53
+    _ -> 55
+
+chordThird : Int -> Int
+chordThird c = case c of
+    0 -> 3
+    1 -> 4
+    2 -> 3
+    3 -> 3
+    4 -> 4
+    5 -> 4
+    _ -> 4
+
+#: The four roads: the seed picks one per block.  Every road leaves
+#: from Am, because the tonic is the road surface — what varies is
+#: where the middle leans and whether the turn home is E or G.
+progAt : Int -> Int -> Int
+progAt v j = case v of
+    0 -> case j of
+        0 -> 0
+        1 -> 5
+        2 -> 1
+        _ -> 6
+    1 -> case j of
+        0 -> 0
+        1 -> 5
+        2 -> 2
+        _ -> 4
+    2 -> case j of
+        0 -> 0
+        1 -> 6
+        2 -> 5
+        _ -> 4
+    _ -> case j of
+        0 -> 0
+        1 -> 3
+        2 -> 5
+        _ -> 6
+
+# ── The voices ───────────────────────────────────────────────────────────
+
+voices pad 6 padVoice : Sig Float
+
+voices bass 2 bassVoice : Sig Float
+
+voices lead 2 leadVoice : Sig Float
+
+#: A frequency signal moved by `cents` — `centsHz` lifted, so a detune
+#: can be applied to a pitch that is itself a signal.
+detuned : Float -> Sig Float -> Sig Float
+detuned cents hz = map (h => centsHz cents h) hz
+
+#: Two saws eight cents apart into a dark lowpass whose envelope opens
+#: slower than the amplitude's: the chord is *there* before it is
+#: bright, which is what "arrives rather than strikes" means.
+padCut : Sig Gate -> Sig Float
+padCut g = map (x => clamp 60.0 nyquist (220.0 + 1500.0 * x))
+               (adsr (Adsr 0.9 1.4 0.5 1.4) g)
+
+padVoice : Sig Gate -> Sig Tone -> Sig Float
+padVoice g s = lowpassSvf (padCut g) 0.15
+                   (0.5 * saw (detuned (negate 8.0) (!hzOf s))
+                  + 0.5 * saw (detuned 8.0 (!hzOf s)))
+             * adsr (Adsr 0.5 1.0 0.75 1.2) g * (!velOf s)
+
+#: Saw plus a square one octave under it, through the ladder — whose
+#: resonance thinning the bass as it climbs is exactly the snap this
+#: wants — with a fast filter envelope and `drive` after: the classic
+#: rubber pluck every synthwave bassline is made of.
+bassCut : Sig Gate -> Sig Float
+bassCut g = map (x => clamp 40.0 nyquist (80.0 + 2200.0 * x))
+                (adsr (Adsr 0.004 0.16 0.2 0.08) g)
+
+bassVoice : Sig Gate -> Sig Tone -> Sig Float
+bassVoice g s = drive 1.5
+                    (lowpassLadder (bassCut g) 0.2
+                        (saw (!hzOf s) + 0.6 * pulse 0.5 (0.5 * (!hzOf s))))
+              * adsr (Adsr 0.003 0.18 0.55 0.06) g * (!velOf s)
+
+#: A hollow pulse with a saw behind it, darker filter than a lead
+#: usually gets — it should sound like it is remembering the melody,
+#: not announcing it.
+leadVoice : Sig Gate -> Sig Tone -> Sig Float
+leadVoice g s = lowpassSvf 2600.0 0.2
+                    (0.6 * pulse 0.35 (!hzOf s)
+                   + 0.4 * saw (detuned 6.0 (!hzOf s)))
+              * adsr (Adsr 0.012 0.22 0.45 0.3) g * (!velOf s)
+
+# ── The drums: arithmetic on the renderer's clock ────────────────────────
+
+kickEnv : Sig Float
+kickEnv = map (b => exp (negate 17.0 * wrap b)) beat
+
+kick : Sig Float
+kick = sine (44.0 + 110.0 * kickEnv) * kickEnv
+
+#: Beats 2 and 4.  The burst is mostly noise with a little tone at
+#: 180 Hz for the shell; the room it fires into is in the mix below,
+#: because how much snare a canyon gets is a mix decision.
+snareEnv : Sig Float
+snareEnv = map (b => exp (negate 11.0 * wrap ((b + 1.0) / 2.0))) beat
+
+snare : Sig Float
+snare = (0.6 * highpassSvf 1700.0 0.3 (white 4) + 0.3 * triangle 180.0)
+      * snareEnv
+
+hatEnv : Sig Float
+hatEnv = map (b => exp (negate 60.0 * wrap (b + 0.5))) beat
+
+hats : Sig Float
+hats = highpassSvf 8200.0 0.2 (white 9) * (0.4 * hatEnv)
+
+#: The sidechain, without the chain: dip at every downbeat, recover
+#: across the beat.  The pad and the lead breathe with the kick, which
+#: is most of what makes a synthwave record sound like it is *driving*.
+pump : Sig Float
+pump = map (b => 0.4 + 0.6 * (1.0 - exp (negate 4.5 * wrap b))) beat
+
+# ── The score: one decision per four bars, taken by everyone ─────────────
+
+note : Float -> Int -> Int -> [: Tone :]
+note v c off = '(Tone v (chordRoot c + off))
+
+#: Root, third, fifth, octave — held for the bar, wide enough that the
+#: detune has something to shimmer between.
+padChord : Int -> [: Tone :]
+padChord c = note 0.5 c 0 || note 0.4 c (chordThird c)
+          || note 0.4 c 7 || note 0.35 c 12
+
+padPart : Int -> [: Tone :]
+padPart v = (padChord (progAt v 0) |* 4) ++ (padChord (progAt v 1) |* 4)
+         ++ (padChord (progAt v 2) |* 4) ++ (padChord (progAt v 3) |* 4)
+
+#: The engine: root-octave eighths, accents on the floor.  The last
+#: eighth of each bar sometimes leans on the minor seventh instead of
+#: the octave — a passing shadow, and the only luck the bass takes.
+bn : Int -> Int -> Float -> [: Tone :]
+bn c off v = '(Tone v (chordRoot c - 24 + off))
+
+bassBar : Int -> [: Tone :]
+bassBar c = (bn c 0 0.95 ++ bn c 12 0.6 ++ bn c 0 0.8 ++ bn c 12 0.6
+          ++ bn c 0 0.9 ++ bn c 12 0.6 ++ bn c 0 0.8
+          ++ roll (x => case x < 0.3 of
+                 True -> bn c 10 0.85
+                 False -> bn c 12 0.6)) |/ 2
+
+bassPart : Int -> [: Tone :]
+bassPart v = bassBar (progAt v 0) ++ bassBar (progAt v 1)
+          ++ bassBar (progAt v 2) ++ bassBar (progAt v 3)
+
+#: Four bars the lead can roll: an answer low, a run down from the
+#: octave, something high and unresolved, and silence — which is a
+#: bar of music here, not a bar of nothing.
+phraseAt : Int -> Int -> [: Tone :]
+phraseAt n c = case n of
+    0 -> note 0.6 c 12 ++ r ++ note 0.5 c 19 ++ note 0.55 c 22
+    1 -> ((note 0.6 c 24 ++ note 0.5 c 22 ++ note 0.5 c 19
+        ++ note 0.5 c (12 + chordThird c)) |/ 2) ++ (note 0.55 c 12 |* 2)
+    2 -> r ++ note 0.5 c 27 ++ note 0.45 c 24 ++ r
+    _ -> r |* 4
+
+leadBar : Int -> [: Tone :]
+leadBar c = (sown (s => phraseAt (below 4 s) c) |* 4)
+
+leadPart : Int -> [: Tone :]
+leadPart v = leadBar (progAt v 0) ++ leadBar (progAt v 1)
+          ++ leadBar (progAt v 2) ++ leadBar (progAt v 3)
+
+blockOf : Int -> [: Void :]
+blockOf v = (padPart v >>= voices.pad)
+         || (bassPart v >>= voices.bass)
+         || (leadPart v >>= voices.lead)
+
+score : [: Void :]
+score = cycle (sown (s => blockOf (below 4 s)) |* 16)
+
+bpm : Int
+bpm = 104
+
+# ── The mix ──────────────────────────────────────────────────────────────
+#
+# Stereo made honestly from mono parts: the pad goes through two
+# choruses at different rates, one per ear, so the width *moves*; the
+# lead's echo — a dotted eighth at this tempo — leans right; the hats
+# lean left to answer it.  Kick, snare and bass stay centred, because
+# the low end of a record that drives is a single lane.
+
+padDucked : Sig Float
+padDucked = pump * pad
+
+leadDucked : Sig Float
+leadDucked = pump * lead
+
+echoTail : Sig Float
+echoTail = echo 0.433 0.4 (0.6 * leadDucked)
+
+#: One room for everyone — mostly snare, a little pad and lead — so
+#: the parts sound like they were played in the same place.
+room : Sig Float
+room = reverb 1.7 0.45 (0.5 * snare + 0.2 * padDucked + 0.2 * leadDucked)
+
+centre : Sig Float
+centre = 0.95 * kick + 0.7 * snare + 0.85 * bass + 0.28 * room
+
+sound : Sig Stereo
+sound = pair
+    (brickwall 0.9 (centre + 0.55 * hats + 0.5 * leadDucked
+                  + 0.25 * echoTail + 0.6 * chorus 0.29 0.5 padDucked))
+    (brickwall 0.9 (centre + 0.4 * hats + 0.5 * leadDucked
+                  + 0.45 * echoTail + 0.6 * chorus 0.41 0.5 padDucked))
