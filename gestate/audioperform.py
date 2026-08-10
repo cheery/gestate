@@ -147,7 +147,7 @@ def has_score(source: str) -> bool:
 
 
 def scored(synth: str, piece: str = "", *, rate: int, block: int,
-           policy="oldest"):
+           policy="oldest", seed: int = 0):
     """`(schedule, samples, allocators)` — a piece assigned to its own banks.
 
     The `voices.<bank>` path: the piece names its banks lexically, so which
@@ -161,7 +161,7 @@ def scored(synth: str, piece: str = "", *, rate: int, block: int,
     from .audiovoices import banks_of, channels_of
 
     both = synth + "\n" + piece
-    bpm, events = perform_voices(synth, piece, rate)
+    bpm, events = perform_voices(synth, piece, rate, seed)
     allocators = {b.name: Allocator(channels_of(both, b), policy=policy)
                   for b in banks_of(both)}
     schedule = schedule_voices(events, bpm, rate, allocators, block=block)
@@ -169,7 +169,8 @@ def scored(synth: str, piece: str = "", *, rate: int, block: int,
 
 
 def dynamic(synth: str, piece: str = "", *, rate: int, block: int,
-            policy="oldest", horizon: float = 4.0):
+            policy="oldest", horizon: float = 4.0, seed: int = 0,
+            patience: float | None = None):
     """`scored`'s twin with nothing baked: `(performer, allocators)`.
 
     Stage two's portal (`spec/dynamicscore.md`): the layout is forced as
@@ -186,10 +187,10 @@ def dynamic(synth: str, piece: str = "", *, rate: int, block: int,
     from .audiovoices import banks_of, channels_of
 
     both = synth + "\n" + piece
-    tempo, state, root, by_tag = stream_root(synth, piece, rate)
+    tempo, state, root, by_tag = stream_root(synth, piece, rate, seed)
     allocators = {b.name: Allocator(channels_of(both, b), policy=policy)
                   for b in banks_of(both)}
-    stream = ScoreStream(state, root, by_tag)
+    stream = ScoreStream(state, root, by_tag, patience=patience)
     performer = LazyPerformer(stream, tempo, rate, allocators, block=block,
                               horizon=horizon)
     return performer, allocators
@@ -289,6 +290,9 @@ def main(argv=None) -> int:
                     help="voice stealing: oldest, or none to drop the note")
     ap.add_argument("--dynamic", action="store_true",
                     help="perform the score as it plays instead of baking it")
+    ap.add_argument("--seed", type=int, default=None,
+                    help="the take's seed; omitted, a chancy score draws "
+                         "one and says so")
     ap.add_argument("-o", "--output", default=None,
                     help="render to a .wav instead of playing")
     args = ap.parse_args(argv)
@@ -300,6 +304,24 @@ def main(argv=None) -> int:
         graph = graph_of(synth, piece, rate=args.rate)
         performance = Performance(graph)
         seconds = args.seconds
+
+        # The take's seed.  An author-declared `seed` wins inside the
+        # assembly whatever is passed; entropy is drawn only when the
+        # piece can tell the difference, and **the renderer records what
+        # it supplied** — here, by saying it, so the take is repeatable
+        # with `--seed` (`spec/dynamicscore.md`, provenance).
+        import re
+
+        seed = args.seed
+        if seed is None:
+            if re.search(r"\b(sown|roll|chance|sow)\b", synth + "\n" + piece):
+                import os as _os
+
+                seed = int.from_bytes(_os.urandom(8), "big")
+                print(f"seed: {seed} (replay this take with --seed {seed})",
+                      file=sys.stderr)
+            else:
+                seed = 0
 
         if has_score(synth + "\n" + piece):
             from .audioscore import unfolding_names
@@ -323,9 +345,13 @@ def main(argv=None) -> int:
                           "an unfolding score ends; give --seconds",
                           file=sys.stderr)
                     return 1
+                # A wall-clock budget only when the clock is a wall's:
+                # an offline render waits out an expensive forcing, a
+                # live one must not.
                 performer, allocators = dynamic(
                     synth, piece, rate=args.rate, block=args.block,
-                    policy=args.policy)
+                    policy=args.policy, seed=seed,
+                    patience=None if args.output else 0.05)
                 performance.sources.append(from_performer(performer))
                 print(f"score (dynamic): performed across "
                       f"{', '.join('`' + b + '`' for b in sorted(allocators))}"
@@ -333,7 +359,7 @@ def main(argv=None) -> int:
             else:
                 schedule, samples, allocators = scored(
                     synth, piece, rate=args.rate, block=args.block,
-                    policy=args.policy)
+                    policy=args.policy, seed=seed)
                 performance.sources.append(from_schedule(schedule))
                 if seconds is None:
                     seconds = samples / args.rate

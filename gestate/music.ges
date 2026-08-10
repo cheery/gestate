@@ -58,6 +58,14 @@ Score a := Note a                # `'x` — unassigned, carries the payload
          | Scale (Score a) Int
          | Shrink (Score a) Int
          | Retro (Score a)          # `reverse` — back to front
+         # Stage three (`spec/dynamicscore.md`): a leaf whose *content* is
+         # decided from the seed its position carries, and the box such
+         # content is clipped to.  The seed is spelled `Int` because this
+         # file also serves the MIDI backend alone, where `synth.ges`'s
+         # `Seed` alias is not in scope; where both are, they are one type.
+         | Sown (Int -> Score a)     # `sown f` — one beat, seed decides
+         | Sow Int (Score a)         # `sow n s` — re-root a subtree's seed
+         | Clip Int (Score a)        # content clipped to a declared span
 
 #: **Ticks to the beat.**  96 divides by 2,3,4,6,8,12,16,24,32,48, so every
 #: division anyone writes is exact — and the whole score is laid out in
@@ -140,6 +148,12 @@ instance Monad Score where
         Scale t k -> Scale (t >>= f) k
         Shrink t k -> Shrink (t >>= f) k
         Retro t -> Retro (t >>= f)
+        # The instrument reaches *through* a decision not yet made: bind
+        # composes with the continuation, so `sown g >>= voices.lead`
+        # assigns whatever the seed decides.
+        Sown g -> Sown (sd => g sd >>= f)
+        Sow n t -> Sow n (t >>= f)
+        Clip w t -> Clip w (t >>= f)
 
 #: **A MIDI program number, as an instrument.**  `melody >>= prog 73`
 #: commits every unassigned note in `melody` to program 73 — a flute.
@@ -229,6 +243,86 @@ unfold z f = case f z of
 #: stays above the marker; the walk it fronts is below.
 streamVoices : [: Void :] -> List (Int, Int, Voice)
 streamVoices s = streamVoicesAt 0 s
+
+# ── Reading the seed — `spec/dynamicscore.md`, stage three ───────────────
+#
+# The seed rides the layout tree: `++` and `||` each split it, left and
+# right, so every subtree owns a stream of randomness derived from its
+# *place in the piece*.  A draw at bar 33 is a descent's worth of splits;
+# two draws under one overlay are independent because they sit on
+# different split paths; each turn of a `cycle` is a fresh split.  The
+# arithmetic is SplitMix64-shaped and lives below the marker — the
+# fragment's own noise (`white`, `dust`) keeps its LCG, because that one
+# must fit an i64 for the compiled code and the interpreter to agree.
+# The LCG is a texture; this is an index.
+
+#: **A leaf whose content the seed decides.**  One beat, like every
+#: leaf; `|*` and `|/` scale it; content longer than the span is
+#: clipped.  What varies is what sounds — never how long it takes,
+#: which is what keeps a chancy score seekable and bakeable.
+sown : (Int -> [: a :]) -> [: a :]
+sown f = Sown f
+
+#: Re-root a subtree's seed: `sow 7 intro ++ improvisation` is fixed
+#: art inside an improvisation.
+sow : Int -> [: a :] -> [: a :]
+sow n s = Sow n s
+
+#: One value, drawn whole from a seed — the class is what lets an
+#: author's payload be drawn the way it is built, one split per field.
+#: An instance receives a seed it owns outright; what it does not
+#: `split` it must not reuse.
+class Random a where
+    random : Int -> a
+
+instance Random Float where
+    random s = unit s
+
+instance Random Bool where
+    random s = unit s < 0.5
+
+#: Two independent seeds from one — how randomness travels *into*
+#: ordinary code: thread one half, hand on the other.
+split : Int -> (Int, Int)
+split s = (mix64 (wrap64 (s + 11400714819323198485)),
+           mix64 (wrap64 (s + 4354685564936845354)))
+
+#: One draw in 0 .. n-1.
+below : Int -> Int -> Int
+below n s = prim_mod_int (mix64 (wrap64 s)) n
+
+#: `sown`, with the seed already spent on one uniform draw.
+roll : (Float -> [: a :]) -> [: a :]
+roll f = sown (s => f (unit s))
+
+#: Play `s` with probability `p`, else rest — for the same span either
+#: way, which is the stage's whole invariant in one function.
+chance : Float -> [: a :] -> [: a :]
+chance p s = roll (x => case x < p of
+    True -> s
+    False -> r)
+
+#: **Where the seed enters the tree** — named by the generated entry
+#: points beside `layVoices` and `streamVoices`, which is why it stays
+#: above the marker.  A score with no `sown` in it passes through
+#: unchanged whatever the seed, which is what keeps fixed art fixed.
+sowScore : Int -> [: a :] -> [: a :]
+sowScore sd s = case s of
+    Sown f -> Clip ticksPerBeat (sowScore sd (f sd))
+    Sow n t -> sowScore n t
+    Seq a b -> case split sd of
+        (l, r) -> Seq (sowScore l a) (sowScore r b)
+    Par a b -> case split sd of
+        (l, r) -> Par (sowScore l a) (sowScore r b)
+    At n t -> At n (sowScore sd t)
+    Scale t k -> Scale (sowScore sd t) k
+    Shrink t k -> Shrink (sowScore sd t) k
+    Retro t -> Retro (sowScore sd t)
+    Clip w t -> Clip w (sowScore sd t)
+    Note x -> Note x
+    Play e -> Play e
+    Assigned v -> Assigned v
+    Rest -> Rest
 
 internal
 # ════════════════════════════════════════════════════════════════════════
@@ -320,6 +414,17 @@ layOnto off s acc = case s of
     # `dt - b .. dt - a`, which is what "still ends together" means.
     Retro t -> case layOnto 0 t [] of
         (dt, et) -> (dt, placeRetro off dt et ++ acc)
+    # An un-sown decision is a rest that keeps its beat: the entry points
+    # sow the tree (`sowScore`), so meeting a bare `Sown` here means a
+    # path that did not, and silence with the right duration is the
+    # honest sound of no decision.
+    Sown f -> (ticksPerBeat, acc)
+    Sow n t -> layOnto off (sowScore n t) acc
+    # A clipped box: lay at the origin like `Scale`, keep what starts
+    # inside the window, and the box's own width is the duration —
+    # content bends, time doesn't.
+    Clip w t -> case layOnto 0 t [] of
+        (dt, et) -> (w, placeFrom off (keepBelow w et) ++ acc)
 
 # ── The other backend's half ─────────────────────────────────────────────
 #
@@ -347,6 +452,12 @@ layVoicesOnto off s acc = case s of
         (dt, et) -> (prim_div_int dt k, placeShrunkV off k et ++ acc)
     Retro t -> case layVoicesOnto 0 t [] of
         (dt, et) -> (dt, placeRetroV off dt et ++ acc)
+    # The three stage-three arms, as in `layOnto` above and for the same
+    # reasons.
+    Sown f -> (ticksPerBeat, acc)
+    Sow n t -> layVoicesOnto off (sowScore n t) acc
+    Clip w t -> case layVoicesOnto 0 t [] of
+        (dt, et) -> (w, placeFromV off (keepBelowV w et) ++ acc)
 
 placeScaledV : Int -> Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
 placeScaledV off k es = map (e => case e of
@@ -359,6 +470,37 @@ placeShrunkV off k es = map (e => case e of
 placeRetroV : Int -> Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
 placeRetroV off dt es = map (e => case e of
     (a, b, v) -> (off + dt - b, off + dt - a, v)) es
+
+# ── Clipping — the stage-three box, in both payloads ─────────────────────
+#
+# `keepBelow` filters, for the eager walks whose lists are in tree order;
+# `takeBelowV` stops at the first event past the window, which is only
+# correct on the *ordered* stream — and is what lets an endless
+# continuation live inside a finite box.  A note that starts inside the
+# window plays whole: a section may ring past its box, it may not begin
+# past it.
+
+placeFrom : Int -> List (Int, Int, Rendered) -> List (Int, Int, Rendered)
+placeFrom off es = map (e => case e of
+    (a, b, x) -> (off + a, off + b, x)) es
+
+keepBelow : Int -> List (Int, Int, Rendered) -> List (Int, Int, Rendered)
+keepBelow w es = filter (e => case e of (a, b, x) -> a < w) es
+
+placeFromV : Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
+placeFromV off es = map (e => case e of
+    (a, b, v) -> (off + a, off + b, v)) es
+
+keepBelowV : Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
+keepBelowV w es = filter (e => case e of (a, b, v) -> a < w) es
+
+takeBelowV : Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
+takeBelowV w es = case es of
+    Nil -> Nil
+    e :: rest -> case e of
+        (a, b, v) -> case a < w of
+            True -> e :: takeBelowV w rest
+            False -> Nil
 
 # ── The unfolding half — `spec/dynamicscore.md`, stage two ───────────────
 #
@@ -402,6 +544,12 @@ durOf s = case s of
     Scale t k -> durOf t * k
     Shrink t k -> prim_div_int (durOf t) k
     Retro t -> durOf t
+    # A decision is one beat before it is made — the invariant that keeps
+    # this function total on a listening score.  A clip's duration is the
+    # box, whatever the content did.
+    Sown f -> ticksPerBeat
+    Sow n t -> durOf t
+    Clip w t -> w
 
 #: Two beat-ordered streams as one.  **Left-biased** on a shared onset,
 #: which keeps an overlay's branches in writing order at the instant they
@@ -435,3 +583,63 @@ streamVoicesAt off s = case s of
     # so the subtree must end to be reversed.  An endless one diverges in
     # `durOf` first, which the performer's budget reports as a stall.
     Retro t -> reverse (placeRetroV off (durOf t) (streamVoicesAt 0 t))
+    Sown f -> Nil                       # un-sown: no decision, no events
+    Sow n t -> streamVoicesAt off (sowScore n t)
+    # Lazily clipped: the stream is beat-ordered, so the box is a
+    # `takeBelowV` — which is also what lets a `sown` continuation be
+    # endless (`cycle` inside a one-beat decision) and still stream.
+    Clip w t -> placeFromV off (takeBelowV w (streamVoicesAt 0 t))
+
+# ── The seed arithmetic — SplitMix64, spelled portable ───────────────────
+#
+# Every operation is written against an explicit 2^64, so the G-machine's
+# unbounded integers, an eager bake, and a Rust cursor with `u64` compute
+# the **same bits** — `python draws == rust draws` is a parity test
+# waiting to be written, and these constants are its contract:
+#
+#     golden   0x9E3779B97F4A7C15 = 11400714819323198485
+#     2*golden 0x3C6EF372FE94F82A =  4354685564936845354  (mod 2^64)
+#     mixB     0xBF58476D1CE4E5B9 = 13787848793156543929
+#     mixD     0x94D049BB133111EB = 10723151780598845931
+#
+# `xorBits` folds the exclusive-or a bit at a time — the language has no
+# bitwise primitive, and does not need one: draws happen at decision
+# instants, a few per beat, and a hundred-odd reductions per draw is
+# nothing beside forcing the score that asked.
+
+wrap64 : Int -> Int
+wrap64 x = prim_mod_int x 18446744073709551616
+
+xorBits : Int -> Int -> Int
+xorBits a b = xorGo a b 1 0
+
+xorGo : Int -> Int -> Int -> Int -> Int
+xorGo a b bit acc = case a + b of
+    0 -> acc
+    _ -> xorGo (prim_div_int a 2) (prim_div_int b 2) (bit * 2)
+               (acc + bit * prim_mod_int (a + b) 2)
+
+#: `z ^ (z >> 30)`, and its two siblings — shifts are division, because
+#: the numbers are kept non-negative by `wrap64` at every entry.
+mixA : Int -> Int
+mixA z = xorBits z (prim_div_int z 1073741824)
+
+mixB : Int -> Int
+mixB z = wrap64 (z * 13787848793156543929)
+
+mixC : Int -> Int
+mixC z = xorBits z (prim_div_int z 134217728)
+
+mixD : Int -> Int
+mixD z = wrap64 (z * 10723151780598845931)
+
+mixE : Int -> Int
+mixE z = xorBits z (prim_div_int z 2147483648)
+
+mix64 : Int -> Int
+mix64 z = mixE (mixD (mixC (mixB (mixA (wrap64 z)))))
+
+#: One uniform draw in 0.0 .. 1.0 — the top 53 bits, which is every bit
+#: a `Float` can hold.
+unit : Int -> Float
+unit s = toFloat (prim_div_int (mix64 (wrap64 s)) 2048) / 9007199254740992.0

@@ -12,7 +12,8 @@ CLAP cursor) is not.  Stage two is built at home — `streamVoices` in
 interleave), `cycle` and `unfold`, `ScoreStream`/`LazyPerformer` under a
 `StepLimit` budget with the stall-and-drop rules below, held by
 `test_lazyscore.py`; abroad it waits on the G-machine port
-(`spec/crust.md`).  Stage three is not started.*
+(`spec/crust.md`).  Stage three is not built; its surface was settled
+2026-08-10 and is specified at the end of this file.*
 
 Today a `Score` is scheduled entirely at compile time: the layout
 becomes events, the events become a `Schedule` of channel changes at
@@ -221,3 +222,152 @@ dynamics over a *span* — a crescendo across a section — is an
 annotation on exactly the layout subtree the seek design keeps: the
 tree holds the time, the envelopes hold its shape, and a seek
 descends past both together.
+
+## Stage three, the surface — settled 2026-08-10
+
+*Sketched in conversation the evening stages one and two landed at
+home; recorded here so the build has a sheet to be checked against.
+Nothing below is built.*
+
+### The invariant everything else hangs from
+
+**A listening score bends content, never time.**  Stage one moved when
+a note is *delivered*, stage two moved when it is *forced*, and stage
+three moves when it is *decided* — and none of the three moves the
+timeline.  Every reactive leaf below is a leaf of the ordinary layout
+algebra: one beat unless `|*` and `|/` say otherwise, its extent
+declared in the text, only its *content* decided late.  So `durOf`
+stays total, a seek still descends a tree whose spans are written
+down, and no performance can accelerate its own structure — the Zeno
+guard stays a budget, never a semantics.  Content a decision produces
+beyond its declared span is clipped, and said so, in the drop rule's
+own vocabulary: a section that outruns its box rejoins nothing.
+
+### `probe` — reading the world
+
+    probe : Chan b -> (b -> [: a :]) -> [: a :]
+
+A one-beat leaf whose content is the continuation applied to **what
+the channel reads at the leaf's own downbeat**.  The decision instant
+is the leaf's position in the score — the layout algebra already
+gives every node its offset, so nothing new says when — and the
+performer answers the reading from exactly where the graph's control
+node would read the same channel: one channel, two clocks, audio rate
+for the graph and decision instants for the score.  Probing a
+*channel* rather than a signal is the context contract enforced by
+the type: what a score may hear is declared, nothing nominal, nothing
+ambient.  `beat` needs no probe; a probe already knows where it
+stands.
+
+Responsiveness needs no policy on top: a probe cannot be forced
+before its downbeat approaches, so the stream's frontier rides the
+clock through listening sections — stage two's stall machinery *is*
+the suspension mechanism, and the latency of a reactive figure is the
+probe granularity its author wrote (`|/ 4` listens every sixteenth),
+never the performer's horizon.
+
+The note port arrives as a channel like everything else: the proposed
+spelling is `holds.<bank>` — the currently-held keys of the bank a
+`FromMIDI` instance plays, wired by the expander the way
+`voices.<bank>` is.  The acceptance test for the whole stage is the
+**arpeggiator**: `cycle (probe holds.lead step |/ 4) >>= voices.lead`
+— held keys sampled each sixteenth, one planted note each, sample
+accuracy carried by `gateAt` as always.
+
+### `sown` — reading the seed
+
+    sown  : (Seed -> [: a :]) -> [: a :]
+    split : Seed -> (Seed, Seed)
+    below : Int -> Seed -> Int              -- one draw in 0 .. n-1
+    random : (Random a) => Seed -> a        -- one draw of a whole value
+    sow   : Seed -> [: a :] -> [: a :]      -- re-root a subtree's seed
+
+`probe` reads the world; `sown` reads the seed — the same leaf shape,
+the same span discipline, and the pair is the whole of stage three's
+input story.  **The seed rides the layout tree**: `++` and `||` each
+split it, left and right, so every subtree owns a stream derived from
+its place in the piece.  A draw at bar 33 is a descent's worth of
+splits, not a night's worth of generator steps; two rolls under one
+overlay are independent because they sit on different split paths;
+each turn of a `cycle` is a fresh right-split, so a looped chance
+breathes differently every bar — from one integer.
+
+`Random` is a class so that a *value* is drawn the way a value is
+built: `Random Float` is the unit interval, and an author's payload
+draws whole — `sown (s => '(random s))` — its instance splitting the
+seed it owns, one field each.  An instance receives its seed
+outright; what it does not split it must not reuse.  `roll`, `chance`
+and `pick` are library sugar over `sown` and `random`, not machinery.
+
+`sow` re-roots: `sow (Seed 7) intro ++ improvisation` is fixed art
+inside an improvisation, and a seed taken *from the world* is `probe`
+composed with `sow` — no new event kind, and provenance holds by
+composition because the probe was already logged.
+
+**Two generators, one documented boundary.**  The audio fragment
+keeps its LCG — its constants were chosen so every product fits an
+i64, which is why the interpreter and the generated code agree to the
+bit, and nothing may disturb that.  The score's splitter is
+SplitMix64, because LCG streams split by nudging constants are
+*correlated* — in a texture nobody hears it, in two "independent"
+`chance` branches it is audibly the same choice twice.  Spelled with
+an explicit modulus so the G-machine's integers, the bake, and the
+Rust cursor compute identical draws — `python draws == rust draws` is
+a parity test to be written, and exactly where a stage-10-style
+silent defect would otherwise nest.  The LCG is a texture; SplitMix
+is an index.
+
+### Provenance
+
+A program that writes `seed = Seed 7` is fixed art, replayable from
+its text alone.  A program that reaches `sown` without writing a seed
+gets the renderer's entropy — the OS's at instance creation, a
+`--seed` flag or the clock offline — under the unbreakable rule: the
+renderer records what it supplied, in the transcript, the take's
+metadata, the plugin's state.  **The transcript records the world and
+the seed; everything else is arithmetic.**  Probes are logged, beat
+by beat, channel and value; draws are never logged, because they are
+derivable — which is "one integer replays the whole night" held as a
+theorem rather than a hope.
+
+And because a draw is a pure function of seed and position, **chance
+music stays bakeable**: once the seed is known, the eager layout can
+evaluate `sown` exactly as the performer would, so `sown` does not
+force the dynamic path and `unfolding_names` must not flag it.  The
+parity clause extends: *a rolled score bakes and performs
+identically, given the seed.*
+
+### Seeds on the audio side
+
+`Seed` is already an `Int` on purpose over there, and a seed is a
+value, so the transports already exist; stage three adds no new one.
+
+* **The noise family's seed parameter is promoted to `Sig Seed`** —
+  `white : Sig Seed -> Sig Float`, `dust : Sig Seed -> Sig Float ->
+  Sig Float` — with reseed-on-change semantics: a constant seed seeds
+  once and means exactly what it means today; a seed that changes
+  re-mixes the generator's state at the instant it changes.  No
+  second name beside `white`: the promotion is the feature.
+* **Per take**: `entropy : Seed` as a renderer's own name — the
+  `sampleRate` pattern — substituted at instance creation and
+  recorded where it was supplied.  `white (!(entropy + 1))` beside
+  `white (!(entropy + 2))` is a stereo bed fresh every take and exact
+  on every replay.
+* **Per note**: a payload field is already a channel into the voice,
+  so the score draws, the note carries, the voice re-seeds — the
+  `Gate` trick a third time, values name and voices do the
+  arithmetic.  A snare whose burst is decided per hit by the piece,
+  improvised live, bit-exact on replay.
+* **Per gesture**: any control channel can carry a `Seed`, because a
+  `Seed` is an `Int` — a knob, a probe, an automation lane.
+
+### The order of work
+
+The transcript format first — it is what keeps everything after it
+honest, and stage two's `history` and `transcript` lists are its
+embryo; *a live performance equals its own replay* is the oracle, and
+it can be written before any input exists.  Then `sown` and the seed
+algebra, whose bake-parity test needs no world at all.  Then `probe`
+with a knob, the first logged reading end to end.  Then `holds` and
+the arpeggiator, which is the stage's proof: one of everything,
+almost all of it already built.

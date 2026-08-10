@@ -186,24 +186,39 @@ def duration_of(events: list, bpm: int, rate: int) -> int:
 #: the second by name.  An author defining `scoreMain` collides with it and
 #: is told so as a duplicate definition, exactly as defining `main` is
 #: refused — the name is part of the assembly's contract.
-_VOICE_ENTRY = ("scoreMain : (Int, List (Int, Int, Voice))\n"
-                "scoreMain = (bpm, layVoices score)\n")
+#: The entries take the take's **seed** as an argument rather than baking
+#: it into the text: entropy differs per take, and a seed in the assembly
+#: would shatter every cache keyed on the source — `pipeline._analysed`,
+#: the compiled object, the laid-out score.  The host applies the entry
+#: to a number (`PushInt`/`Mkap`); `seedRoot` lets an author-declared
+#: `seed` win over whatever the renderer supplied, which is the fixed-art
+#: rule of `spec/dynamicscore.md` stage three.  A score with no `sown`
+#: passes through `sowScore` unchanged whatever the number, so fixed art
+#: stays fixed without asking.
+_VOICE_ENTRY = ("scoreMain : Int -> (Int, List (Int, Int, Voice))\n"
+                "scoreMain sd = (bpm, layVoices (sowScore (seedRoot sd) score))\n")
 
 #: The same, for a piece whose tempo is an envelope rather than a number.
 #:
 #: A second entry rather than a wider one: a piece writes `bpm` *or*
 #: `tempo`, so an entry naming both would demand a definition of whichever
 #: the author did not write.
-_TEMPO_ENTRY = ("scoreMain : (List Tempo, List (Int, Int, Voice))\n"
-                "scoreMain = (tempo, layVoices score)\n")
+_TEMPO_ENTRY = ("scoreMain : Int -> (List Tempo, List (Int, Int, Voice))\n"
+                "scoreMain sd = (tempo, layVoices (sowScore (seedRoot sd) score))\n")
 
 #: The score again, as the stream a *dynamic* performance forces — beside
 #: `scoreMain` rather than in place of it, in the one assembly, so the
 #: eager and the unfolding readings cannot drift apart in anything
 #: (`spec/dynamicscore.md`, stage two).  Evaluated by name and only by
 #: the dynamic path; a baked performance never touches it.
-_STREAM_ENTRY = ("streamMain : List (Int, Int, Voice)\n"
-                 "streamMain = streamVoices score\n")
+_STREAM_ENTRY = ("streamMain : Int -> List (Int, Int, Voice)\n"
+                 "streamMain sd = streamVoices (sowScore (seedRoot sd) score)\n")
+
+#: `seedRoot` — one line, chosen by whether the author declared a `seed`.
+#: Their number is fixed art, replayable from the text alone; the
+#: argument is the renderer's entropy, recorded by whoever supplied it.
+_SEED_OWN = "seedRoot : Int -> Int\nseedRoot sd = seed\n"
+_SEED_GIVEN = "seedRoot : Int -> Int\nseedRoot sd = sd\n"
 
 
 def _tempo_of(source: str) -> str:
@@ -299,9 +314,13 @@ def assemble_performance(synth: str, piece: str = "", rate: int = 22050,
     # `audio._entry`'s tail — `sampleRate`, `constSig`, `main = sound` —
     # and the score's own entry after it, under its own name.  Which
     # spelling of the tempo the piece uses decides the pair's first half.
+    from .audio import _authored
+
     tail = _entry(rate) + "\n" + (
         _VOICE_ENTRY if _tempo_of(synth + "\n" + piece) == "bpm"
-        else _TEMPO_ENTRY) + _STREAM_ENTRY
+        else _TEMPO_ENTRY) + _STREAM_ENTRY + (
+        _SEED_OWN if "seed" in _authored(synth + "\n" + piece)[1]
+        else _SEED_GIVEN)
     # `beat` goes with the entry point rather than into `head`, because it
     # reads the author's own `bpm` or `tempo` and must come after their
     # file.  A plain `bpm` makes the beat clock linear; an envelope makes
@@ -341,18 +360,26 @@ def assemble_performance(synth: str, piece: str = "", rate: int = 22050,
     return out
 
 
-def perform_voices(synth: str, piece: str = "", rate: int = 22050) -> tuple:
+def perform_voices(synth: str, piece: str = "", rate: int = 22050,
+                   seed: int = 0) -> tuple:
     """`(bpm, [(onset, offset, bank, payload)])` — a piece, in ticks.
 
     `bank` is the name from the `voices` declaration and `payload` a tuple
     of the author's own record's fields, so nothing downstream has to know
     what either means.
+
+    `seed` reaches `sowScore` through the entry point.  A score with no
+    `sown` lays out identically whatever it is — which is why a default
+    of 0 changes nothing for fixed art — and a caller performing a chancy
+    score is the one who chose the number, so recording it is theirs to
+    do (`spec/dynamicscore.md`, provenance).
     """
     from .audiovoices import banks_of
     from .midi import _force, _int, _list
     from .pipeline import compile as _compile
 
-    from .gmachine import NCon, PushGlobal, Unwind, is_tuple, run
+    from .gmachine import (NCon, Mkap, PushGlobal, PushInt, Unwind, is_tuple,
+                           run)
 
     # Refused here rather than hung here: laying out is a walk to the
     # score's end, and these names say there may not be one.
@@ -372,7 +399,7 @@ def perform_voices(synth: str, piece: str = "", rate: int = 22050) -> tuple:
     # `pipeline._analysed` rather than run again.  The score's reading is
     # `scoreMain`, evaluated by name the way `gui.Substrate._force` does.
     source = assemble_performance(synth, piece, rate)
-    stored = _score_path(source)
+    stored = _score_path(source, seed)
     if stored is not None and stored.exists():
         import pickle
 
@@ -382,7 +409,10 @@ def perform_voices(synth: str, piece: str = "", rate: int = 22050) -> tuple:
         except Exception:                               # noqa: BLE001
             pass                        # a torn cache is only a slow one
     state = _compile(source)
-    state._code, state._pc = [PushGlobal("scoreMain"), Unwind()], 0
+    # The entry applied to the seed: `Mkap` takes the function from the
+    # top, so the argument is pushed first.
+    state._code = [PushInt(seed), PushGlobal("scoreMain"), Mkap(), Unwind()]
+    state._pc = 0
     state.stack, state.dump = [], []
     run(state)
     top = _force(state.stack[0], state)
@@ -523,7 +553,8 @@ def unfolding_names(source: str) -> list:
     return sorted(blame)
 
 
-def stream_root(synth: str, piece: str = "", rate: int = 22050) -> tuple:
+def stream_root(synth: str, piece: str = "", rate: int = 22050,
+                seed: int = 0) -> tuple:
     """`(tempo, state, root, by_tag)` — the unforced stream and its readers.
 
     The stage-two entry.  Nothing of the layout is forced here: `tempo`
@@ -538,12 +569,14 @@ def stream_root(synth: str, piece: str = "", rate: int = 22050) -> tuple:
     from .midi import _force, _int
     from .pipeline import compile as _compile
 
-    from .gmachine import PushGlobal, Unwind, is_tuple, run
+    from .gmachine import Mkap, NAp, NNum, PushGlobal, PushInt, Unwind, \
+        is_tuple, run
 
     spelling = _tempo_of(synth + "\n" + piece)
     source = assemble_performance(synth, piece, rate)
     state = _compile(source)
-    state._code, state._pc = [PushGlobal("scoreMain"), Unwind()], 0
+    state._code = [PushInt(seed), PushGlobal("scoreMain"), Mkap(), Unwind()]
+    state._pc = 0
     state.stack, state.dump = [], []
     run(state)
     top = _force(state.stack[0], state)
@@ -559,7 +592,8 @@ def stream_root(synth: str, piece: str = "", rate: int = 22050) -> tuple:
         info = state.cons.get(name)
         if info is not None:
             by_tag[info.tag] = bank.name
-    return tempo, state, state.globals["streamMain"], by_tag
+    root = NAp(state.globals["streamMain"], NNum(seed))
+    return tempo, state, root, by_tag
 
 
 #: Bump when what `perform_voices` returns changes shape — the stored
@@ -569,14 +603,15 @@ def stream_root(synth: str, piece: str = "", rate: int = 22050) -> tuple:
 _SCORE_SCHEMA = 1
 
 
-def _score_path(source: str):
+def _score_path(source: str, seed: int = 0):
     """Where this piece's laid-out score would be remembered, or `None`.
 
     A *cache* in the strict sense, like the stack front's and the compiled
     object's: the G-machine layout of a long piece is seconds of
     interpreter (five, for `quartet.ges`), it is a pure function of the
-    assembled text, and reopening an unedited piece should not pay it
-    twice.  `GESTATE_SCORE_CACHE=0` turns it off.
+    assembled text — and, since stage three, of the seed — and reopening
+    an unedited piece should not pay it twice.  `GESTATE_SCORE_CACHE=0`
+    turns it off.
     """
     import hashlib
     import os
@@ -585,7 +620,7 @@ def _score_path(source: str):
     if os.environ.get("GESTATE_SCORE_CACHE", "1") == "0":
         return None
     root = os.environ.get("XDG_CACHE_HOME") or (Path.home() / ".cache")
-    sha = hashlib.sha256(source.encode()).hexdigest()[:32]
+    sha = hashlib.sha256(f"{seed}\n{source}".encode()).hexdigest()[:32]
     return Path(root) / "gestate" / f"score-{_SCORE_SCHEMA}-{sha}.pickle"
 
 

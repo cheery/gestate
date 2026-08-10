@@ -172,7 +172,7 @@ class ScoreStream:
     """
 
     def __init__(self, state, root, by_tag, *, fuel: int = 200_000,
-                 burst: int = 4096, patience: float = 0.05):
+                 burst: int = 4096, patience: float | None = None):
         self.state = state
         self.by_tag = by_tag
         #: The spine: the next cell, not yet forced past WHNF.
@@ -199,6 +199,13 @@ class ScoreStream:
         #: between fuel instalments; a machine mid-monster-multiply
         #: still cannot be interrupted, which is a cost model's job and
         #: therefore `spec/crust.md`'s, not a deadline's.
+        #:
+        #: **`None` — no deadline — is the default, because the wall
+        #: clock is a *live* concept.**  An offline render's `t` is not
+        #: time, it is a loop counter: a deadline there lets the counter
+        #: outrun an expensive first forcing and drop the downbeat of a
+        #: piece that a listener would simply have waited out.  A live
+        #: caller, whose `t` really does march, sets its budget.
         self.patience = patience
         self._deadline = None
         self._scratch = None
@@ -312,11 +319,13 @@ class ScoreStream:
 
         out = []
         self.stalled = False
-        self._deadline = monotonic() + self.patience
+        self._deadline = (None if self.patience is None
+                          else monotonic() + self.patience)
         cons = self.state.cons["Cons"].tag
         nil = self.state.cons["Nil"].tag
         while not self.done:
-            if len(out) >= self.burst or monotonic() > self._deadline:
+            if len(out) >= self.burst or (self._deadline is not None
+                                          and monotonic() > self._deadline):
                 self.stalled = True         # outran a budget, not the horizon
                 break
             if self.ready is not None:
