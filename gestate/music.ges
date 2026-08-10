@@ -72,6 +72,14 @@ Score a := Note a                # `'x` — unassigned, carries the payload
          # reading is a list of Ints — held keys as they are; a knob will
          # arrive as a singleton when its bridge lands.
          | Probe Int (List Int -> Score a)
+         # Ariadne (`spec/ariadne.md`): the reactive surface as lawful
+         # leaves of the algebra, free-monad shaped — a value arrives, the
+         # continuation is the rest of the subtree, and no box clips it.
+         # `Draw` is eliminated by the sower (a draw is pure given seed
+         # and position); `Hear` reaches the performer as a question whose
+         # answer places what follows.
+         | Draw (Int -> Score a)
+         | Hear Int (List Int -> Score a)
 
 #: **Ticks to the beat.**  96 divides by 2,3,4,6,8,12,16,24,32,48, so every
 #: division anyone writes is exact — and the whole score is laid out in
@@ -162,6 +170,8 @@ instance Monad Score where
         Clip w t -> Clip w (t >>= f)
         Mark n -> Mark n
         Probe p g -> Probe p (xs => g xs >>= f)
+        Draw g -> Draw (sd => g sd >>= f)
+        Hear p g -> Hear p (xs => g xs >>= f)
 
 #: **A MIDI program number, as an instrument.**  `melody >>= prog 73`
 #: commits every unassigned note in `melody` to program 73 — a flute.
@@ -338,6 +348,24 @@ type Port = Int
 probe : Port -> (List Int -> [: a :]) -> [: a :]
 probe p f = Probe p f
 
+#: **The seed at this position** — ariadne's chance leaf
+#: (`spec/ariadne.md`).  A value, not a span: `do s <- draw; f s` is
+#: `f` of the seed this position carries, to the tick — the sower
+#: eliminates every `Draw` before any walk measures, so the algebra
+#: never notices the draw happened.  N draws are N binds; a walk seeds
+#: itself with `do s <- draw; unfold (mix64 s) step`.
+draw : [: Int :]
+draw = Draw (sd => 'sd)
+
+#: **The world at this instant** — ariadne's listening leaf.  The
+#: reading arrives at the leaf's own downbeat, the content it chooses
+#: carries its own time, and **what follows is placed after whatever
+#: the answer chose** — the one place time is decided by the thread
+#: rather than the text (`spec/ariadne.md`, B7 restated).  Unlike
+#: `probe`, there is no box: a four-beat answer takes four beats.
+hear : Port -> [: List Int :]
+hear p = Hear p (xs => 'xs)
+
 #: Every mark and where it falls, `(tick, mark)`, beat-ordered and
 #: lazy — `streamVoices`' little sibling, named by its own generated
 #: entry (`marksMain`), which is why it stands above the marker.
@@ -383,6 +411,12 @@ resumeAt t s = case t < 1 of
         Sown f -> r
         Mark n -> r
         Probe p g -> r
+        # Ariadne's leaves distribute: the cut applies to whatever the
+        # value decides, when it is decided.  (For `Hear` mid-resume the
+        # honest source of that answer is the thread — stage four; until
+        # it lands, a rejoined hear asks again.)
+        Draw g -> Draw (sd => resumeAt t (g sd))
+        Hear p g -> Hear p (xs => resumeAt t (g xs))
 
 resumeSeq : Int -> Int -> [: a :] -> [: a :] -> [: a :]
 resumeSeq t da a b = case t < da of
@@ -448,6 +482,13 @@ sowScore sd s = case s of
     Rest -> Rest
     Mark n -> Mark n
     Probe p g -> Probe p (xs => sowScore sd (g xs))
+    # **The sower eliminates `Draw` entirely**: the draw takes the left
+    # split, the continuation the right, so a chain of binds is a chain
+    # of splits and no walk below this line ever meets a `Draw` on a
+    # sown tree — the constructor's whole tax is this one arm.
+    Draw g -> case split sd of
+        (l, r2) -> sowScore r2 (g l)
+    Hear p g -> Hear p (xs => sowScore sd (g xs))
 
 internal
 # ════════════════════════════════════════════════════════════════════════
@@ -547,6 +588,11 @@ layOnto off s acc = case s of
     Sow n t -> layOnto off (sowScore n t) acc
     Mark n -> (0, acc)
     Probe p g -> (ticksPerBeat, acc)
+    # An unsown draw and an unheard question are nothing at all — no
+    # width, no sound: the leaves are zero-wide by law (`spec/ariadne.md`)
+    # and an eager walk has no seed and no world to widen them with.
+    Draw g -> (0, acc)
+    Hear p g -> (0, acc)
     # A clipped box: lay at the origin like `Scale`, keep what starts
     # inside the window, and the box's own width is the duration —
     # content bends, time doesn't.
@@ -585,6 +631,8 @@ layVoicesOnto off s acc = case s of
     Sow n t -> layVoicesOnto off (sowScore n t) acc
     Mark n -> (0, acc)
     Probe p g -> (ticksPerBeat, acc)
+    Draw g -> (0, acc)
+    Hear p g -> (0, acc)
     Clip w t -> case layVoicesOnto 0 t [] of
         (dt, et) -> (w, placeFromV off (keepBelowV w et) ++ acc)
 
@@ -662,6 +710,8 @@ streamMarksAt : Int -> [: a :] -> List (Int, Int)
 streamMarksAt off s = case s of
     Mark n -> (off, n) :: Nil
     Probe p g -> Nil
+    Draw g -> Nil
+    Hear p g -> Nil
     Note x -> Nil
     Play e -> Nil
     Assigned v -> Nil
@@ -690,6 +740,8 @@ streamMarksTo limit off s = case limit <= off of
     False -> case s of
         Mark n -> (off, n) :: Nil
         Probe p g -> Nil
+        Draw g -> Nil
+        Hear p g -> Nil
         Note x -> Nil
         Play e -> Nil
         Assigned v -> Nil
@@ -762,6 +814,12 @@ durOf s = case s of
     Clip w t -> w
     Mark n -> 0
     Probe p g -> ticksPerBeat
+    # Zero, and the honest reading of it: durations are measured up to
+    # the first unanswered leaf.  A sown tree has no `Draw` left, and a
+    # `Hear`'s time is the answer's — the frontier's fact, made the
+    # measure's (`spec/ariadne.md`, time linearized at the joints).
+    Draw g -> 0
+    Hear p g -> 0
 
 #: Two beat-ordered streams as one.  **Left-biased** on a shared onset,
 #: which keeps an overlay's branches in writing order at the instant they
@@ -801,6 +859,8 @@ streamVoicesAt off s = case s of
     # The flat stream cannot await a reading; `liveVoices` below is the
     # walk that can, and a probing score is performed through it.
     Probe p g -> Nil
+    Draw g -> Nil
+    Hear p g -> Nil
     # Lazily clipped: the stream is beat-ordered, so the box is a
     # `takeBelowV` — which is also what lets a `sown` continuation be
     # endless (`cycle` inside a one-beat decision) and still stream.
@@ -994,3 +1054,13 @@ liveTo off s rest = case s of
     Probe p g -> CueAsk off p (zs => appendCues
         (placeCues off (cueBelow ticksPerBeat (liveTo 0 (g zs) Nil)))
         rest) :: Nil
+    Draw g -> rest
+    # Ariadne's question, unboxed: the answer's content carries its own
+    # time, and **what follows moves by exactly what the answer chose** —
+    # `rest`'s cues shift by the chosen duration, which is the one place
+    # time is decided by the thread rather than the text.  The bounds-
+    # ride-the-continuation lesson, third time: `rest`, `off` and now the
+    # shift all travel *into* the closure.
+    Hear p g -> CueAsk off p (zs =>
+        given phrase = g zs
+        in liveTo off phrase (placeCues (durOf phrase) rest)) :: Nil

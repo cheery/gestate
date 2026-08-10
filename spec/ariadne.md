@@ -1,8 +1,20 @@
 # Ariadne — the score's reactive surface, redesigned
 
 *Written 2026-08-10 at Henri's request, to be shot at — "let me see
-whether it holds."  This is a proposal, not a record: nothing below
-is built, and every decision marked **open** is his.  Companions:
+whether it holds."  Held, and **stages one to three are built the
+same night**: `Draw` and `Hear` live in `music.ges` beside the old
+surface (which is untouched until its retirement stage), the sower
+eliminates every `Draw` in one arm, `Hear` reaches the performer as
+the `CueAsk` it always secretly was — the crust twin listens with
+zero new machinery — and `test/test_ariadne.py` holds the constant
+law both ways: a constant draw is invisible to the bake at any seed,
+a constant answer equals its own splice to the tick, and the same
+written coda starts at three different ticks under three different
+worlds, which is B7-restated, measured.  The take-entropy gap (§D4)
+is closed: `do s <- draw; unfold s step` streams, replayable from
+its seed.  Still ahead: paths and the thread's re-keying, shapes and
+`tempoShape`, the old spellings' retirement.  Every decision marked
+**open** remains his.  Companions:
 `spec/dynscore-constraints.md` (the walls this must stand inside),
 `spec/monad.md` (the syntax this stands on), `spec/sown.md` (the
 autopsy of the surface this replaces).  The name is the design: the
