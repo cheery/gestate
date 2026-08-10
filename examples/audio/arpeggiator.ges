@@ -1,0 +1,85 @@
+# The arpeggiator — hold keys on one bank, the line comes out another.
+#
+#   python -m gestate.audioperform examples/audio/arpeggiator.ges --midi --midi-bank keys --seconds 60
+#   python -m gestate.audioperform examples/audio/arpeggiator.ges --seconds 8 -o arp.wav
+#
+# **Two banks, and that is the design.**  `keys` is the *input*: the
+# keyboard plays it and it sounds only as a soft monitor.  `lead` is
+# the *output*: the score's own probe reads what `keys` holds and
+# plants the line there.  One bank cannot be both — the score would be
+# writing the very channels the keyboard drives, each masking the
+# other — so the arpeggiator is a conversation between two.
+#
+# The probe is the responsiveness, written: `|/ 4` consults the world
+# every sixteenth.  The seed picks which held key each sixteenth plays,
+# so a chord becomes a line that breathes rather than a ladder — and
+# `--seed` replays the same breathing.  **Empty hands are silence** —
+# an arpeggiator with nothing held plays nothing, at every level: no
+# idle figure, no fallback pitch, no note the player cannot account
+# for.
+
+Tone := Tone Float Int
+
+instance FromMIDI Tone where
+    noteOn c n v = Just (Tone (toFloat v / 127.0) n)
+
+# ── Input: what your hands hold, softly monitored ────────────────────────
+
+voices keys 6 held : Sig Float
+
+held : Sig Gate -> Sig Tone -> Sig Float
+held g s = triangle (!hzOf s) * (!velOf s) * adsr (Adsr 0.01 0.2 0.5 0.2) g
+
+# ── Output: the line ─────────────────────────────────────────────────────
+
+voices lead 4 pluck : Sig Float
+
+#: A few milliseconds of attack: an instant one samples the oscillator
+#: mid-cycle, and at sixteen notes a bar that is a bed of clicks.
+pluck : Sig Gate -> Sig Tone -> Sig Float
+pluck g s = triangle (!hzOf s) * (!velOf s) * adsr (Adsr 0.004 0.22 0.0 0.06) g
+
+hzOf : Tone -> Float
+hzOf t = case t of
+    Tone v k -> keyHz k
+
+velOf : Tone -> Float
+velOf t = case t of
+    Tone v k -> v
+
+sound : Sig Float
+sound = brickwall 0.9 (0.6 * lead + 0.12 * keys)
+
+# ── Picking from what is held ────────────────────────────────────────────
+
+#: Zero on the empty list — never a made-up pitch: a fallback note
+#: here is a note nobody played, surfacing exactly when hands lift.
+nth : Int -> List Int -> Int
+nth n ks = case ks of
+    Nil -> 0
+    k :: kt -> case n < 1 of
+        True -> k
+        False -> nth (n - 1) kt
+
+count : List Int -> Int
+count ks = case ks of
+    Nil -> 0
+    k :: kt -> 1 + count kt
+
+anyOf : List Int -> Int -> Int
+anyOf ks s = nth (below (count ks) s) ks
+
+#: One sixteenth: a seeded pick from the keys, an octave hop now and
+#: then so the line climbs out of the chord.
+step : List Int -> [: Tone :]
+step ks = sown (s => roll (x => case x < 0.2 of
+    True -> '(Tone 0.6 (anyOf ks s + 12))
+    False -> '(Tone 0.7 (anyOf ks s))))
+
+score : [: Void :]
+score = cycle (probe holds.keys (ks => case sort ks of
+    Nil -> r
+    k :: kt -> step ks) |/ 4) >>= voices.lead
+
+bpm : Int
+bpm = 128

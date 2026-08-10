@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from .syntax import parse
 from .syntax.ast import VModule
-from .prelude import merge as prelude_merge
+from .prelude import load as prelude_load, merge as prelude_merge
 from .declarations import classify
 from .desugar import (
     desugar_program, lower_fields, strip_annotations, DesugarError,
@@ -468,7 +468,11 @@ def _stack_front(head: str) -> StackFront:
     store = _stack_store()
     path = None
     if store is not None:
-        sha = hashlib.sha256(head.encode()).hexdigest()[:32]
+        # The front bakes in the merged prelude (`_build_stack_front` calls
+        # `_merge_prelude`), but `head` is only the seam's library half — so
+        # the prelude text must be part of the key, or an edit to
+        # `prelude.ges` keeps serving fronts built from the old one.
+        sha = hashlib.sha256((prelude_load() + head).encode()).hexdigest()[:32]
         path = store / f"stack-{_STACK_SCHEMA}-{sha}.pickle"
     front = None
     if path is not None and path.exists():

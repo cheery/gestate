@@ -1,0 +1,88 @@
+# The ladder — the arpeggiator, deterministic: hold keys on one bank,
+# the line walks them bottom to top, in order, around again, forever.
+#
+#   python -m gestate.audioperform examples/audio/ladder.ges --midi --midi-bank keys --seconds 60
+#   python -m gestate.audioperform examples/audio/ladder.ges --seconds 8 -o ladder.wav
+#
+# `arpeggiator.ges` rolls a seed each sixteenth so its line breathes;
+# this is the ladder that file declined to be.  What replaces the seed
+# is a step counter carried through the unfold: `climb i` plays one
+# sixteenth and recurses at `i + 1`, so the position in the chord is
+# the position in time and the same held chord always plays the same
+# line.  Everything else — two banks, a probe every sixteenth, silence
+# on empty hands — is that file's design, kept.
+
+Tone := Tone Float Int
+
+instance FromMIDI Tone where
+    noteOn c n v = Just (Tone (toFloat v / 127.0) n)
+
+# ── Input: what your hands hold, softly monitored ────────────────────────
+
+voices keys 6 held : Sig Float
+
+held : Sig Gate -> Sig Tone -> Sig Float
+held g s = triangle (!hzOf s) * (!velOf s) * adsr (Adsr 0.01 0.2 0.5 0.2) g
+
+# ── Output: the line ─────────────────────────────────────────────────────
+
+voices lead 4 pluck : Sig Float
+
+#: A few milliseconds of attack: an instant one samples the oscillator
+#: mid-cycle, and at sixteen notes a bar that is a bed of clicks.
+pluck : Sig Gate -> Sig Tone -> Sig Float
+pluck g s = triangle (!hzOf s) * (!velOf s) * adsr (Adsr 0.004 0.22 0.0 0.06) g
+
+hzOf : Tone -> Float
+hzOf t = case t of
+    Tone v k -> keyHz k
+
+velOf : Tone -> Float
+velOf t = case t of
+    Tone v k -> v
+
+sound : Sig Float
+sound = brickwall 0.9 (0.6 * lead + 0.12 * keys)
+
+# ── Walking what is held ─────────────────────────────────────────────────
+
+#: Zero on the empty list — never a made-up pitch: a fallback note
+#: here is a note nobody played, surfacing exactly when hands lift.
+nth : Int -> List Int -> Int
+nth n ks = case ks of
+    Nil -> 0
+    k :: kt -> case n < 1 of
+        True -> k
+        False -> nth (n - 1) kt
+
+count : List Int -> Int
+count ks = case ks of
+    Nil -> 0
+    k :: kt -> 1 + count kt
+
+#: `i` into `[0, n)` by subtraction, affordable because `climb` keeps
+#: the counter itself under sixty.
+wrapTo : Int -> Int -> Int
+wrapTo n i = case i < n of
+    True -> i
+    False -> wrapTo n (i - n)
+
+#: One sixteenth: rung `i mod count` of the sorted chord.  Sorting is
+#: what makes it a ladder — `holds` reports keys in channel order,
+#: the order you pressed them, not the order they stack.
+rung : Int -> List Int -> [: Tone :]
+rung i ks = case sort ks of
+    Nil -> r
+    k :: kt -> '(Tone 0.7 (nth (wrapTo (count ks) i) (k :: kt)))
+
+#: The unfold the seed used to hide.  The counter wraps at sixty — a
+#: multiple of every chord size a six-voice bank can hold — so the
+#: wrap lands exactly where a lap ends and no chord skips a rung.
+climb : Int -> [: Tone :]
+climb i = (probe holds.keys (rung i) |/ 4) ++ climb (wrapTo 60 (i + 1))
+
+score : [: Void :]
+score = climb 0 >>= voices.lead
+
+bpm : Int
+bpm = 128
