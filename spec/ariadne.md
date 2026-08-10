@@ -12,9 +12,28 @@ a constant answer equals its own splice to the tick, and the same
 written coda starts at three different ticks under three different
 worlds, which is B7-restated, measured.  The take-entropy gap (§D4)
 is closed: `do s <- draw; unfold s step` streams, replayable from
-its seed.  Still ahead: paths and the thread's re-keying, shapes and
-`tempoShape`, the old spellings' retirement.  Every decision marked
-**open** remains his.  Companions:
+its seed.
+
+**The retirement is done, and it taught the interpreter its final
+shape.**  Live testing jammed the pygame bench on the first cut of
+`hear` — a `placeCues` wrapper per answer piled onto the endless
+tail, quadratic in questions asked — and the revision is the one this
+spec should have started with: **self-terminated cue streams**.
+Every stream ends with `CueEnd e`, the tick its subtree *actually*
+reached, answers included; `Seq` is `spliceEnd` (continue where the
+left really ended) and `durOf` appears nowhere in the live walk;
+`Par` joins at the larger reported end, so the constant law holds
+through overlays too; `Scale` and `Shrink` scale the end, which makes
+a listener under `|/ 4` lawful.  All six pieces perform in fractions
+of a second where they jammed.  `sown` and `probe` are gone —
+constructors, boxes, and all — refused by name with the rewrite in
+the message; `roll`/`chance` are sugar over `draw`; a draw's value is
+the position's own seed (the SplitMix bit contract unchanged, so
+takes replay across the retirement) with the continuation re-seeded
+by the right split; and every piece and fixture in the tree speaks
+the new surface.  Still ahead: paths and the thread's re-keying,
+shapes and `tempoShape`.  Every decision marked **open** remains
+his.  Companions:
 `spec/dynscore-constraints.md` (the walls this must stand inside),
 `spec/monad.md` (the syntax this stands on), `spec/sown.md` (the
 autopsy of the surface this replaces).  The name is the design: the
