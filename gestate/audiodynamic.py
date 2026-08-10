@@ -171,7 +171,8 @@ class ScoreStream:
     section arrives late rather than never.
     """
 
-    def __init__(self, state, root, by_tag, *, fuel: int = 200_000):
+    def __init__(self, state, root, by_tag, *, fuel: int = 200_000,
+                 burst: int = 4096, patience: float = 0.05):
         self.state = state
         self.by_tag = by_tag
         #: The spine: the next cell, not yet forced past WHNF.
@@ -182,6 +183,24 @@ class ScoreStream:
         self.stalled = False
         self.frontier = 0
         self.fuel = fuel
+        #: The most events one pull may yield, horizon notwithstanding.
+        #: `fuel` guards against one expensive thunk; this guards against
+        #: an endless parade of cheap ones — a score whose sections
+        #: shrink geometrically piles infinitely many events *below* any
+        #: horizon past its accumulation point, and a budget that only
+        #: watched depth would chase them for ever.  Blowing it is the
+        #: same stall as blowing `fuel`: the piece outran its budget, and
+        #: absence with the beat on record is the answer either way.
+        self.burst = burst
+        #: Seconds one pull may take, wall clock — the third guard, for
+        #: the hang the other two cannot see: a step budget counts
+        #: *steps*, and a single multiply on an integer doubled once per
+        #: event is one step at any width.  Checked between events and
+        #: between fuel instalments; a machine mid-monster-multiply
+        #: still cannot be interrupted, which is a cost model's job and
+        #: therefore `spec/crust.md`'s, not a deadline's.
+        self.patience = patience
+        self._deadline = None
         self._scratch = None
         self._scratch_for = None
 
@@ -195,6 +214,8 @@ class ScoreStream:
         updates along the way are shared, so redoing a walk that parked
         costs only the unfinished part.
         """
+        from time import monotonic
+
         from .gmachine import Eval, GmState, NInd, StepLimit, run
 
         if self._scratch is not None and self._scratch_for is not node:
@@ -205,10 +226,18 @@ class ScoreStream:
         if self._scratch is None:
             self._scratch = GmState([Eval()], [node], self.state.globals, [])
             self._scratch_for = node
-        try:
-            run(self._scratch, max_steps=self.fuel)
-        except StepLimit:
-            return None
+        # In instalments rather than one call, so the wall clock gets a
+        # word in between them — see `patience`.
+        spent = 0
+        while True:
+            try:
+                run(self._scratch, max_steps=min(65_536, self.fuel - spent))
+                break
+            except StepLimit:
+                spent += 65_536
+                if spent >= self.fuel or (self._deadline is not None
+                                          and monotonic() > self._deadline):
+                    return None
         out = self._scratch.stack[0] if self._scratch.stack else node
         self._scratch = self._scratch_for = None
         while isinstance(out, NInd) and out.target is not None:
@@ -279,11 +308,17 @@ class ScoreStream:
         """Every event with onset below `horizon` ticks, budget permitting."""
         from .gmachine import NCon
 
+        from time import monotonic
+
         out = []
         self.stalled = False
+        self._deadline = monotonic() + self.patience
         cons = self.state.cons["Cons"].tag
         nil = self.state.cons["Nil"].tag
         while not self.done:
+            if len(out) >= self.burst or monotonic() > self._deadline:
+                self.stalled = True         # outran a budget, not the horizon
+                break
             if self.ready is not None:
                 if self.ready[0] >= horizon:
                     break

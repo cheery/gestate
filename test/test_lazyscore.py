@@ -205,6 +205,39 @@ bpm = 120
     assert 40 not in pitches and 40.0 not in pitches
 
 
+def test_a_zeno_score_stalls_instead_of_jamming():
+    """Faster and faster for ever: absence, not a hang.
+
+    Sections shrinking geometrically pile infinitely many events below
+    any horizon past their accumulation point, so a budget that only
+    watched forcing depth chased them for ever — `advance` never
+    returned.  Two more guards feed the same stall rule: `burst` caps
+    events per pull, `patience` caps its wall clock (the generator's
+    state doubles in *width* per event, and a step budget cannot see
+    bit-width).  The piece degrades to a stall and honest drops; the
+    performer keeps answering.
+    """
+    piece = """
+zeno : Int -> ([: Custom :], Int)
+zeno k = (('(Custom 0.5 60) |/ k), k * 2)
+
+score : [: Void :]
+score = unfold 1 zeno >>= voices.lead
+
+bpm : Int
+bpm = 120
+"""
+    tempo, state, root, by_tag = stream_root(SYNTH, piece, RATE)
+    from gestate.audiodynamic import ScoreStream as _SS
+
+    stream = _SS(state, root, by_tag, burst=256, patience=0.02)
+    lazy = LazyPerformer(stream, tempo, RATE, _allocators(), block=BLOCK)
+    _changes(lazy, 3 * BEAT)
+    assert [e[0] for e in lazy.transcript if e[0] == "stall"] == ["stall"]
+    assert lazy.history, "the convergent head should still have played"
+    assert isinstance(lazy.advance(3 * BEAT + BLOCK), list)   # still answering
+
+
 # ── The transport, on a score with no end ───────────────────────────────────
 
 
