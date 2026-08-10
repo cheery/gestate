@@ -40,13 +40,20 @@ keying handed it the take's opening ones.  Held by
 `test_ariadne.py`, counter-proof included: the same rejoin answered
 in arrival order drifts.
 
-That work turned up one honest limit, documented at `resumeAt`'s own
-arm: **a joint of undeclared width cannot be skipped by arithmetic.**
-`durOf` of an unanswered question is 0, so `Seq` cannot step over
-one, and a resume into `cycle (do ks <- hear p; …)` stalls into
-silence — absence, not corruption, but quiet.  Declaring the width
-cures it and is the idiom (`cycle (long 1 (do ks <- hear p; …))`).
-Making the undeclared case *say so* is the open end.
+That work turned up one honest limit and then closed the bad half of
+it.  **A joint of undeclared width cannot be skipped by arithmetic**:
+`durOf` of an unanswered question is 0, so `Seq` has nothing to step
+over.  Stepping over it anyway advanced nothing and fell *silent* —
+so `resumeSeq` asks `opaqueHead` first and stops there instead: the
+phrase **restarts at the joint**, audible and answered from the
+thread by key, rather than the piece going quiet.  Declaring the
+width is the cure and the idiom (`cycle (long 1 (do ks <- hear p;
+…))`), which is why `long` turns out to be load-bearing rather than
+optional.  `opaqueHead` terminates where the naive walk does not, and
+for a reason worth stating: it descends into a right sibling only
+when the left is measured-as-zero *and* not itself a question — a
+chain of `mark`s, finite in any piece — and a `long` answers `False`
+at once.
 
 Still ahead: the label half of paths (sections as bound payloads,
 seek by name), shapes and `tempoShape`.  Every decision marked

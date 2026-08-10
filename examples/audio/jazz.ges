@@ -70,11 +70,11 @@ sound = brickwall 0.9 (0.34 * horn + 0.12 * reverb 0.35 0.012 horn + 0.3 * keys 
 #: silence if not.  Every listening beat in the band goes through here,
 #: so "the band lays out" is one arm of one function.
 hearing : (List Int -> [: Tone :]) -> [: Tone :]
-hearing f = do
+hearing f = long 1 (do
     ks <- hear holds.keys
     case ks of
         Nil -> r
-        k :: kt -> f ks
+        k :: kt -> f ks)
 
 nth : Int -> List Int -> Int
 nth n ks = case ks of

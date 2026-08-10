@@ -253,7 +253,7 @@ streamVoices : [: Void :] -> List (Int, Int, Voice)
 streamVoices s = streamVoicesAt 0 s
 
 #: The stream a *listening* performance forces — `streamVoices` with one
-#: more power: it can end in a question.  A `CueAsk` is a probe reached:
+#: more power: it can end in a question.  A `CueAsk` is a `hear` reached:
 #: its continuation holds **the entire rest of the performance**, so the
 #: host answers it with the port's reading at the downbeat and simply
 #: keeps walking the list the answer returns.  No rebuilding, no second
@@ -288,8 +288,10 @@ sow n s = Sow n s
 #: trust; next it is what lets a performer *skip*: a branch whose width
 #: is written down can be passed over without forcing what is inside,
 #: so resuming a long-running piece descends by arithmetic instead of
-#: unfolding from the left.  (`sown` sections carry this box already —
-#: every decision is born clipped.)
+#: unfolding from the left.  (A listening bar wants one: a question's
+#: own width is unknown until it is answered, so `long 1 (do ks <-
+#: hear p; …)` is what lets a rebuild skip past the bar it stands
+#: in — see `opaqueHead`.)
 long : Int -> [: a :] -> [: a :]
 long n s = Clip (n * ticksPerBeat) s
 
@@ -312,7 +314,7 @@ mark n = Mark n
 bar : [: a :]
 bar = Mark 0
 
-#: **Which reading a `probe` asks for.**  An alias of `Int` for the
+#: **Which reading a `hear` asks for.**  An alias of `Int` for the
 #: reason `Seed` is over in `synth.ges`: the number is an identity the
 #: expander assigns (`holds.<bank>` is port `k` for the `k`-th bank),
 #: and what the name buys is a signature that says which integer is
@@ -333,7 +335,8 @@ draw = Draw (sd => 'sd)
 #: carries its own time, and **what follows is placed after whatever
 #: the answer chose** — the one place time is decided by the thread
 #: rather than the text (`spec/ariadne.md`, B7 restated).  Unlike
-#: `probe`, there is no box: a four-beat answer takes four beats.
+#: the surface this replaced, there is no box: a four-beat answer
+#: takes four beats.
 hear : Port -> [: List Int :]
 hear p = Hear p 0 (xs => 'xs)
 
@@ -385,24 +388,66 @@ resumeAt t s = case t < 1 of
         # rejoined question by its stamped key, so a resume lands on the
         # answers the take gave (`spec/ariadne.md`, the thread).
         #
-        # **A joint of undeclared width cannot be skipped**, and this is
-        # where that shows: `durOf` of an unanswered question is 0, so
-        # `Seq`'s arithmetic cannot step over one, and a resume into
-        # `cycle (do ks <- hear p; …)` walks without advancing until the
-        # budget calls it a stall — absence, not corruption, but silent.
-        # Declaring the width is the cure and the idiom:
-        # `cycle (long 1 (do ks <- hear p; …))` skips by arithmetic like
-        # anything else.  Making the un-declared case *say so* rather
-        # than go quiet is the open end of this (`roadmap.md`).
+        # **A joint of undeclared width cannot be skipped**: `durOf` of
+        # an unanswered question is 0, so the `Seq` arithmetic has
+        # nothing to step over.  `resumeSeq` stops there rather than
+        # stepping repeatedly (which advanced nothing and fell silent),
+        # so the phrase **restarts at the joint** — defined, audible,
+        # and answered from the thread by key.  Declaring the width is
+        # the cure and the idiom: `cycle (long 1 (do ks <- hear p; …))`
+        # skips by arithmetic like anything else.
         Draw g -> Draw (sd => resumeAt t (g sd))
         Hear p ky g -> Hear p ky (xs => resumeAt t (g xs))
+
+#: **Does this subtree's head hold an unanswered question?**  The one
+#: thing a resume cannot step over: `durOf` of a `Hear` is 0, so the
+#: `Seq` arithmetic below would drop the branch and try the next —
+#: forever, on a `cycle`.  Asking first turns that into a defined
+#: answer (resume *at* the joint) instead of a walk that never
+#: advances.
+#:
+#: It terminates where the naive walk does not, and for the reason
+#: worth writing down: it descends into a right sibling **only** when
+#: the left is both measured-as-zero and not itself a question — a
+#: chain of `mark`s, which is finite in any piece — and a declared
+#: `long` answers `False` at once, because a box's width is known
+#: whatever its content does.  That is the idiom this predicate exists
+#: to reward.
+opaqueHead : [: a :] -> Bool
+opaqueHead s = case s of
+    Hear p ky g -> True
+    Draw g -> True
+    Seq a b -> case opaqueHead a of
+        True -> True
+        False -> case durOf a < 1 of
+            True -> opaqueHead b
+            False -> False
+    Par a b -> case opaqueHead a of
+        True -> True
+        False -> opaqueHead b
+    At n u -> opaqueHead u
+    Scale u k -> opaqueHead u
+    Shrink u k -> opaqueHead u
+    Sow n u -> opaqueHead u
+    _ -> False
 
 resumeSeq : Int -> Int -> [: a :] -> [: a :] -> [: a :]
 resumeSeq t da a b = case t < da of
     # The cut branch is boxed to its shortened width, or every sibling
     # after it would land early by exactly the material removed.
     True -> Seq (Clip (da - t) (resumeAt t a)) b
-    False -> resumeAt (t - da) b
+    # **Stop where the arithmetic runs out.**  A zero-measured branch
+    # holding an unanswered question is not empty — it is unmeasured —
+    # so stepping over it would drop a bar that will play, and stepping
+    # over it *repeatedly* is the walk that never advances.  Resuming
+    # here instead is defined and audible: the phrase restarts at the
+    # joint rather than the piece falling silent, and declaring the
+    # width (`long n`) skips it properly.
+    False -> case da < 1 of
+        True -> case opaqueHead a of
+            True -> Seq a b
+            False -> resumeAt (t - da) b
+        False -> resumeAt (t - da) b
 
 #: One value, drawn whole from a seed — the class is what lets an
 #: author's payload be drawn the way it is built, one split per field.
@@ -452,7 +497,7 @@ chance p s = roll (x => case x < p of
 
 #: **Where the seed enters the tree** — named by the generated entry
 #: points beside `layVoices` and `streamVoices`, which is why it stays
-#: above the marker.  A score with no `sown` in it passes through
+#: above the marker.  A score with no `draw` in it passes through
 #: unchanged whatever the seed, which is what keeps fixed art fixed.
 sowScore : Int -> [: a :] -> [: a :]
 sowScore sd s = case s of

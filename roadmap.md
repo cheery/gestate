@@ -444,15 +444,17 @@ Two things it left behind:
   tick), paths as bind provenance (`verse/3/2`), `seek "verse/3"`, and
   the skip-identical certificate.  The keys are machine identity; labels
   are the human one, and the acceptance test below is still unwritten.
-- **A joint of undeclared width cannot be skipped, and goes quiet about
-  it.**  `durOf` of an unanswered question is 0, so `Seq`'s arithmetic
-  cannot step over one: a resume into `cycle (do ks <- hear p; …)` walks
-  without advancing until the budget calls it a stall.  Absence, not
-  corruption — but silent, and the cure is one word in the text
-  (`cycle (long 1 (do ks <- hear p; …))`).  **Make it say so**: this is
-  the same shape as `unfolding_names` refusing a bake it cannot finish,
-  and the same answer would suit — name the joint and the width it
-  wants.
+- **A joint of undeclared width cannot be skipped** — now *defined*
+  rather than silent.  `durOf` of an unanswered question is 0, so `Seq`
+  has nothing to step over; `resumeSeq` asks `opaqueHead` and stops at
+  the joint, so the phrase restarts there (audible, answered from the
+  thread) instead of the walk never advancing and falling quiet.  The
+  cure for wanting the skip is one word — `long n` — which is why it is
+  load-bearing.  **Still open**: *saying* so.  A rebuild that restarted
+  a phrase because it could not measure past a question should be able
+  to tell you, the way `unfolding_names` names a score it cannot bake —
+  the check would be `opaqueHead` asked from the host, and the message
+  would name the joint and suggest the width.
 
 - **A position is a path, and the labels are payloads.**  Henri's own
   spelling, measured holding to the tick on the plain algebra:

@@ -310,3 +310,22 @@ def test_a_rejoin_replays_the_thread_instead_of_asking_again():
                for on, off, b, p in ordered.history]
     assert drifted != got, "order-keying happened to agree — pick a "\
                            "script whose worlds differ more"
+
+
+def test_a_rejoin_into_an_undeclared_joint_restarts_it_rather_than_stalling():
+    """`durOf` of an unanswered question is 0, so a resume has nothing
+    to step over — and stepping *repeatedly* was a walk that never
+    advanced and fell silent.  It stops at the joint now: the phrase
+    restarts there, audibly, with the thread answering by key.  The
+    cure for wanting the skip is one word — `long` — and the test
+    beside this one shows that spelling skipping properly.
+    """
+    undeclared = LISTENER.replace(
+        "cycle (long 1 (do ks <- hear 0; phraseOf ks))",
+        "cycle (do ks <- hear 0; phraseOf ks)")
+    tempo, state, root, by_tag = stream_root(SYNTH, undeclared + BPM,
+                                             RATE, 8, 6 * 96, live=True)
+    stream = LiveStream(state, root, by_tag)
+    stream.pull(20 * 96)
+    assert stream.ask is not None, "the resume fell silent again"
+    assert not stream.stalled, "a question is not a stall"

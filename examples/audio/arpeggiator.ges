@@ -79,11 +79,11 @@ step ks = do
         False -> '(Tone 0.7 (anyOf ks s)))
 
 score : [: Void :]
-score = cycle ((do
+score = cycle ((long 1 (do
     ks <- hear holds.keys
     case sort ks of
         Nil -> r
-        k :: kt -> step ks) |/ 4) >>= voices.lead
+        k :: kt -> step ks)) |/ 4) >>= voices.lead
 
 bpm : Int
 bpm = 128
