@@ -256,6 +256,53 @@ def test_the_bake_refuses_an_unfolding_score():
         perform_voices(SYNTH, FOREVER, RATE)
 
 
+def test_an_author_type_named_note_no_longer_breaks_the_bind():
+    """The demo.ges collision, pinned: `Note := Note Int` beside
+    `Score a := Note a`.
+
+    `shadow_libraries` now renames shadowed library *constructors* the
+    way it always renamed identifiers; before that, the `Monad Score`
+    instance dispatched on the author's `Note` and every `>>=` died at
+    performance time with `unknown global '>>='` — on the baked path and
+    the stream alike.
+    """
+    synth = """
+Note := Note Int
+
+freq (Note x) = keyHz x
+
+voices lead 4 leadVoice : Sig Float
+
+leadVoice : Sig Gate -> Sig Note -> Sig Float
+leadVoice gate note = triangle (!freq note) * perc 5 gate
+
+sound : Sig Float
+sound = lead
+"""
+    piece = """
+bpm : Int
+bpm = 60
+
+score : [: Void :]
+score = ('69 ++ '55) >>= (voices.lead @ Note)
+"""
+    bpm, events = perform_voices(synth, piece, RATE)
+    assert events == [(0, 96, "lead", ((69,),)), (96, 192, "lead", ((55,),))]
+
+    from gestate.audioalloc import Allocator
+    from gestate.audioscore import stream_root
+    from gestate.audiovoices import banks_of, channels_of
+
+    both = synth + "\n" + piece
+    tempo, state, root, by_tag = stream_root(synth, piece, RATE)
+    allocators = {b.name: Allocator(channels_of(both, b))
+                  for b in banks_of(both)}
+    lazy = LazyPerformer(ScoreStream(state, root, by_tag), tempo, RATE,
+                         allocators, block=BLOCK)
+    _changes(lazy, 4 * BEAT)
+    assert [e[:2] for e in lazy.history] == [(0, 96), (96, 192)]
+
+
 def test_an_authors_own_recursion_is_flagged_and_still_plays():
     """A recursive score that *does* end: flagged, routed, and correct.
 

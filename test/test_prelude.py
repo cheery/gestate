@@ -392,6 +392,39 @@ def test_nothing_moves_when_nothing_collides():
     assert shadow_libraries(library, "other : Int\nother = 1\n") == library
 
 
+def test_a_library_constructor_the_program_takes_is_renamed_too():
+    """Types and constructors shadow by the same rule as identifiers.
+
+    Left alone, two constructors wear one name and whichever the cons
+    table keeps wins silently — the way an author's `Note := Note Int`
+    broke `Score`'s `Monad` instance with `unknown global '>>='` at
+    performance time, naming neither the collision nor the file.
+    """
+    from gestate.prelude import library_shadowed_con, shadow_libraries
+
+    library = ("Wave a := Note a | Hush\n\n"
+               "hum : Wave Int -> Int\n"
+               "hum w = case w of\n"
+               "    Note x -> x\n"
+               "    Hush -> 0\n")
+    moved = shadow_libraries(library, "Note := Note Int\n")
+    assert library_shadowed_con("Note") in moved
+    assert "| Note" not in moved and ":= Note" not in moved
+    # The case arm follows its constructor; the untouched one stays.
+    assert f"    {library_shadowed_con('Note')} x -> x" in moved
+    assert "Hush -> 0" in moved
+
+
+def test_a_shadowed_type_name_moves_out_of_library_signatures():
+    from gestate.prelude import library_shadowed_con, shadow_libraries
+
+    library = ("Wave a := Ping a\n\n"
+               "hum : Wave Int -> Wave Int\nhum w = w\n")
+    moved = shadow_libraries(library, "Wave := Wave Float\n")
+    assert f"hum : {library_shadowed_con('Wave')} Int" in moved
+    assert "Ping" in moved                      # not shadowed, not moved
+
+
 def test_only_real_identifiers_move():
     """Driven by the tokenizer rather than by a pattern, so a name in a
     comment or a string literal is not an identifier and is left alone."""

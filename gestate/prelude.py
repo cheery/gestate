@@ -68,6 +68,17 @@ def library_shadowed_name(name: str) -> str:
     return f"__library_{name}__"
 
 
+def library_shadowed_con(name: str) -> str:
+    """`library_shadowed_name`, for a type or constructor.
+
+    Its own spelling because the case must survive: the tokenizer reads
+    case as the namespace (`TT.CONID` against `TT.WORD`), so a
+    constructor moved to `__library_Note__` would stop *being* a
+    constructor and the library text would stop parsing.
+    """
+    return f"Library_{name}__"
+
+
 def shadow_libraries(library: str, program: str) -> str:
     """`library`, with any name `program` also defines renamed out of the way.
 
@@ -104,11 +115,27 @@ def shadow_libraries(library: str, program: str) -> str:
     """
     from .syntax.tokenize import TT, tokenize
 
-    taken = _defined_names(_parsed(program).items)
-    if not taken:
+    program_items = _parsed(program).items
+    taken = _defined_names(program_items)
+    taken_types = _type_names(program_items)
+    if not taken and not taken_types:
         return library
-    defines = _defined_names(_parsed(library).items)
+    library_items = _parsed(library).items
+    defines = _defined_names(library_items)
     shadowed = defines & taken
+    # **Types and constructors shadow too, and by the same rule.**  A
+    # program's `Note := Note Int` beside `Score a := Note a` used to
+    # leave two constructors wearing one name — the tokenizer separates
+    # the namespaces by case, so the identifier renames below never saw
+    # them — and the `Monad Score` instance then dispatched on whichever
+    # one the cons table kept.  The failure was `unknown global '>>='`
+    # at *performance* time, which names neither the collision nor the
+    # file it started in.  Constructors the library reads back **by
+    # name** from the heap (`Step`, `Ramp`) need no lookup indirection:
+    # a program that shadows one can no longer build the library's
+    # type at all, so the value the host reads is typed before it is
+    # read.
+    shadowed_types = _type_names(library_items) & taken_types
 
     # **Names the program shadows out of `prelude.ges` rather than out of
     # these libraries.**  `merge` renames the prelude's binding and rewrites
@@ -127,7 +154,7 @@ def shadow_libraries(library: str, program: str) -> str:
     # why that test renders instead of inspecting names.
     from_prelude = (_defined_names(_parsed(load()).items) & taken) - defines
 
-    if not shadowed and not from_prelude:
+    if not shadowed and not from_prelude and not shadowed_types:
         return library
 
     # Two prefixes, because they are two libraries and the binding each
@@ -136,6 +163,9 @@ def shadow_libraries(library: str, program: str) -> str:
     # keeps winning for it.
     renames = {n: library_shadowed_name(n) for n in shadowed}
     renames.update({n: shadowed_name(n) for n in from_prelude})
+    # Prelude *constructors* a program shadows (`Just`, `Cons`…) are
+    # `merge`'s question, one layer down, and are not answered here.
+    renames.update({n: library_shadowed_con(n) for n in shadowed_types})
     # `Pos` is a line and a column; the splice wants an offset.
     lines = library.split("\n")
     start_of, at = [], 0
@@ -145,7 +175,7 @@ def shadow_libraries(library: str, program: str) -> str:
 
     edits = []
     for token in tokenize(library):
-        if token.kind is TT.WORD and token.value in renames:
+        if token.kind in (TT.WORD, TT.CONID) and token.value in renames:
             begin = start_of[token.pos.line] + token.pos.col
             edits.append((begin, begin + len(token.value),
                           renames[token.value]))
@@ -212,6 +242,25 @@ def _defined_names(items: list[Val]) -> set[str]:
     out: set[str] = set()
     for item in items:
         if isinstance(item, (VSCDecl, VSig)):
+            out.add(item.name)
+    return out
+
+
+def _type_names(items: list[Val]) -> set[str]:
+    """The type, alias and constructor names declared by ``items``.
+
+    One set for all three, because the tokenizer keeps them one
+    namespace: every `CONID` token of a shadowed name moves, whether it
+    stood for the type or its constructor.
+    """
+    from .syntax.ast import VTypeAlias, VTypeDecl
+
+    out: set[str] = set()
+    for item in items:
+        if isinstance(item, VTypeDecl):
+            out.add(item.name)
+            out.update(c.name for c in item.constructors)
+        elif isinstance(item, VTypeAlias):
             out.add(item.name)
     return out
 
