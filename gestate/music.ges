@@ -68,10 +68,21 @@ Score a := Note a                # `'x` — unassigned, carries the payload
          # and position); `Hear` reaches the performer as a question whose
          # answer places what follows.
          | Draw (Int -> Score a)
-         # The second `Int` is the **position key**, stamped by the
-         # sower: a question's identity, so the thread can answer it
-         # from anywhere in the piece (`spec/ariadne.md`, the thread).
-         | Hear Int Int (List Int -> Score a)
+         # A **channel** the score listens to, its stamped position
+         # key, and what the reading decides.  The channel is a `Chan`
+         # and not an integer alias: `Chan` is a builtin type in scope
+         # here, and `NChan` already carries a unique id, so the alias
+         # `Port = Int` this replaced was a fiction standing where a
+         # type belonged (`spec/shape.md`).
+         | Hear (Chan (List Int)) Int (List Int -> Score a)
+         | TempoShape (List Tempo) (Score a)
+         # A channel the score writes across a span, and a point at
+         # which it waits for one (`spec/shape.md`).  A fermata's
+         # channel is `Chan Int` — what it reads is *hold while
+         # non-zero*, which a pedal, a knob and a held-key count all
+         # spell the same way.
+         | Shape (Chan Float) (List Envelope) (Score a)
+         | Fermata (Chan Int)
 
 #: **Ticks to the beat.**  96 divides by 2,3,4,6,8,12,16,24,32,48, so every
 #: division anyone writes is exact — and the whole score is laid out in
@@ -162,6 +173,9 @@ instance Monad Score where
         Mark n -> Mark n
         Draw g -> Draw (sd => g sd >>= f)
         Hear p ky g -> Hear p ky (xs => g xs >>= f)
+        TempoShape e u -> TempoShape e (u >>= f)
+        Shape c e u -> Shape c e (u >>= f)
+        Fermata c -> Fermata c
 
 #: **A MIDI program number, as an instrument.**  `melody >>= prog 73`
 #: commits every unassigned note in `melody` to program 73 — a flute.
@@ -327,6 +341,51 @@ mark n = Mark n
 section : String -> [: a :] -> [: a :]
 section name s = Seq (Mark name) s
 
+#: **A tempo, written where it happens.**  `tempoShape` bends the
+#: clock across one subtree's span — a ritardando in the bar it
+#: belongs to, rather than at the top of the file:
+#:
+#:     coda = tempoShape [Step 0.0 120.0, Ramp 1.0 60.0] lastBar
+#:
+#: The points are the same `Tempo` a piece writes globally — absolute
+#: beats-per-minute — and their beats are **fractions of the span**,
+#: so the shape scales with `|*` and reverses with `reverse` the way
+#: any annotation over a subtree does.
+#:
+#: **It is spliced into the piece's one envelope, not integrated.**
+#: `tempo.py` keeps tempo linear in *time* precisely so beat inverts
+#: in closed form, and that inverse is four features (a precomputed
+#: schedule, seek-to-bar, the bar ruler, looping).  A local shape is
+#: therefore a *rewrite* of the global envelope at two computable
+#: beats — one envelope still, still invertible — and never a second
+#: clock integrated forward, which is the shape `music.ges` refused
+#: when it chose an envelope over a `Sig Float` in the first place.
+tempoShape : List Tempo -> [: a :] -> [: a :]
+tempoShape e s = TempoShape e s
+
+#: **A channel written across a span** — a crescendo said where it
+#: happens.  The points' beats are *fractions of the span*, so the
+#: shape scales with `|*` and reverses with `reverse` as any
+#: annotation over a subtree does, and a flat envelope is a knob set
+#: once.  What it writes is automation at control rate, which in
+#: gestate is once per block; smoothing finer than that is `slew`'s
+#: job in signal land.
+shape : Chan Float -> List Envelope -> [: a :] -> [: a :]
+shape c e s = Shape c e s
+
+#: **Wait here until the world says go.**  Zero beats wide, like a
+#: mark: what it holds is the *clock*, so the notes already sounding
+#: simply go on sounding — their releases sit at ticks the clock has
+#: not reached — and nothing in the layout moves.  It holds while the
+#: channel reads non-zero and releases when it reads zero, so a pedal,
+#: a knob and a count of held keys all drive it the same way.
+#:
+#: It holds for as long as it is held.  There is no ceiling: a fermata
+#: means *wait*, the player is right there, and a transport can always
+#: seek.
+fermata : Chan Int -> [: a :]
+fermata c = Fermata c
+
 #: **An anonymous bar point** — `bar ++ verse ++ bar ++ chorus` marks
 #: the seams without naming them.  Anonymity works because a resume
 #: goes to the nearest point by *tick*, never by number; the
@@ -359,12 +418,27 @@ draw = Draw (sd => 'sd)
 #: rather than the text (`spec/ariadne.md`, B7 restated).  Unlike
 #: the surface this replaced, there is no box: a four-beat answer
 #: takes four beats.
-hear : Port -> [: List Int :]
-hear p = Hear p 0 (xs => 'xs)
+hear : Chan (List Int) -> [: List Int :]
+hear c = Hear c 0 (xs => 'xs)
 
 #: Every mark and where it falls, `(tick, mark)`, beat-ordered and
 #: lazy — `streamVoices`' little sibling, named by its own generated
 #: entry (`marksMain`), which is why it stands above the marker.
+#: Every `tempoShape` and the span it covers, `(from, to, points)` in
+#: ticks — the piece's own tempo rewrites, enumerated the way marks
+#: are and for the same reason: a host has to know them *before* it
+#: can schedule, and an endless piece must be able to answer for a
+#: prefix.
+tempoSpans : [: Void :] -> List (Int, Int, List Tempo)
+tempoSpans s = tempoSpansAt 0 s
+
+#: Every `shape` and the span it covers, `(from, to, chan, points)` in
+#: ticks — read the way `tempoSpans` is, and for the same reason: the
+#: host writes the channel and must know where the span is before it
+#: can.
+shapeSpans : [: Void :] -> List (Int, Int, Chan Float, List Envelope)
+shapeSpans s = shapeSpansAt 0 s
+
 streamMarks : [: Void :] -> List (Int, String)
 streamMarks s = streamMarksAt 0 s
 
@@ -420,6 +494,9 @@ resumeAt t s = case t < 1 of
         # skips by arithmetic like anything else.
         Draw g -> Draw (sd => resumeAt t (g sd))
         Hear p ky g -> Hear p ky (xs => resumeAt t (g xs))
+        TempoShape e u -> TempoShape e (resumeAt t u)
+        Shape c e u -> Shape c e (resumeAt t u)
+        Fermata c -> r
 
 #: **Does this subtree's head hold an unanswered question?**  The one
 #: thing a resume cannot step over: `durOf` of a `Hear` is 0, so the
@@ -451,6 +528,9 @@ opaqueHead s = case s of
     Scale u k -> opaqueHead u
     Shrink u k -> opaqueHead u
     Sow n u -> opaqueHead u
+    TempoShape e u -> opaqueHead u
+    Shape c e u -> opaqueHead u
+    Fermata c -> False
     _ -> False
 
 resumeSeq : Int -> Int -> [: a :] -> [: a :] -> [: a :]
@@ -556,6 +636,9 @@ sowScore sd s = case s of
     # `sow` means fixed art, and a listening subtree is not that.)
     Hear p ky g -> case split sd of
         (l, r2) -> Hear p (keyOf l) (xs => sowScore r2 (g xs))
+    TempoShape e u -> TempoShape e (sowScore sd u)
+    Shape c e u -> Shape c e (sowScore sd u)
+    Fermata c -> Fermata c
 
 internal
 # ════════════════════════════════════════════════════════════════════════
@@ -658,6 +741,9 @@ layOnto off s acc = case s of
     # and an eager walk has no seed and no world to widen them with.
     Draw g -> (0, acc)
     Hear p ky g -> (0, acc)
+    TempoShape e u -> layOnto off u acc
+    Shape c e u -> layOnto off u acc
+    Fermata c -> (0, acc)
     # A clipped box: lay at the origin like `Scale`, keep what starts
     # inside the window, and the box's own width is the duration —
     # content bends, time doesn't.
@@ -696,6 +782,9 @@ layVoicesOnto off s acc = case s of
     Mark n -> (0, acc)
     Draw g -> (0, acc)
     Hear p ky g -> (0, acc)
+    TempoShape e u -> layVoicesOnto off u acc
+    Shape c e u -> layVoicesOnto off u acc
+    Fermata c -> (0, acc)
     Clip w t -> case layVoicesOnto 0 t [] of
         (dt, et) -> (w, placeFromV off (keepBelowV w et) ++ acc)
 
@@ -770,11 +859,67 @@ minInt a b = case a < b of
     True -> a
     False -> b
 
+tempoSpansAt : Int -> [: a :] -> List (Int, Int, List Tempo)
+tempoSpansAt off s = case s of
+    TempoShape e u -> (off, off + durOf u, e) :: tempoSpansAt off u
+    Shape c e u -> tempoSpansAt off u
+    Fermata c -> Nil
+    Seq a b -> tempoSpansAt off a ++ tempoSpansAt (off + durOf a) b
+    Par a b -> tempoSpansAt off a ++ tempoSpansAt off b
+    At n t -> tempoSpansAt (off + n) t
+    Scale t k -> map (e => case e of
+        (a, b, ps) -> (off + (a - off) * k, off + (b - off) * k, ps))
+        (tempoSpansAt off t)
+    Shrink t k -> map (e => case e of
+        (a, b, ps) -> (off + prim_div_int (a - off) k,
+                       off + prim_div_int (b - off) k, ps))
+        (tempoSpansAt off t)
+    Retro t -> Nil
+    Sow n t -> tempoSpansAt off (sowScore n t)
+    Clip w t -> tempoSpansAt off t
+    Mark n -> Nil
+    Note x -> Nil
+    Play e -> Nil
+    Assigned v -> Nil
+    Rest -> Nil
+    Draw g -> Nil
+    Hear p ky g -> Nil
+
+shapeSpansAt : Int -> [: a :]
+            -> List (Int, Int, Chan Float, List Envelope)
+shapeSpansAt off s = case s of
+    Shape c e u -> (off, off + durOf u, c, e) :: shapeSpansAt off u
+    Seq a b -> shapeSpansAt off a ++ shapeSpansAt (off + durOf a) b
+    Par a b -> shapeSpansAt off a ++ shapeSpansAt off b
+    At n t -> shapeSpansAt (off + n) t
+    Scale t k -> map (e => case e of
+        (a, b, c, ps) -> (off + (a - off) * k, off + (b - off) * k, c, ps))
+        (shapeSpansAt off t)
+    Shrink t k -> map (e => case e of
+        (a, b, c, ps) -> (off + prim_div_int (a - off) k,
+                          off + prim_div_int (b - off) k, c, ps))
+        (shapeSpansAt off t)
+    Retro t -> Nil
+    Sow n t -> shapeSpansAt off (sowScore n t)
+    Clip w t -> shapeSpansAt off t
+    TempoShape e u -> shapeSpansAt off u
+    Mark n -> Nil
+    Note x -> Nil
+    Play e -> Nil
+    Assigned v -> Nil
+    Rest -> Nil
+    Draw g -> Nil
+    Hear p ky g -> Nil
+    Fermata c -> Nil
+
 streamMarksAt : Int -> [: a :] -> List (Int, String)
 streamMarksAt off s = case s of
     Mark n -> (off, n) :: Nil
     Draw g -> Nil
     Hear p ky g -> Nil
+    TempoShape e u -> streamMarksAt off u
+    Shape c e u -> streamMarksAt off u
+    Fermata c -> Nil
     Note x -> Nil
     Play e -> Nil
     Assigned v -> Nil
@@ -803,6 +948,9 @@ streamMarksTo limit off s = case limit <= off of
         Mark n -> (off, n) :: Nil
         Draw g -> Nil
         Hear p ky g -> Nil
+        TempoShape e u -> streamMarksTo limit off u
+        Shape c e u -> streamMarksTo limit off u
+        Fermata c -> Nil
         Note x -> Nil
         Play e -> Nil
         Assigned v -> Nil
@@ -878,6 +1026,9 @@ durOf s = case s of
     # measure's (`spec/ariadne.md`, time linearized at the joints).
     Draw g -> 0
     Hear p ky g -> 0
+    TempoShape e u -> durOf u
+    Shape c e u -> durOf u
+    Fermata c -> 0
 
 #: Two beat-ordered streams as one.  **Left-biased** on a shared onset,
 #: which keeps an overlay's branches in writing order at the instant they
@@ -917,6 +1068,9 @@ streamVoicesAt off s = case s of
     # walk that can, and a probing score is performed through it.
     Draw g -> Nil
     Hear p ky g -> Nil
+    TempoShape e u -> streamVoicesAt off u
+    Shape c e u -> streamVoicesAt off u
+    Fermata c -> Nil
     # Lazily clipped: the stream is beat-ordered, so the box is a
     # `takeBelowV` — which is also what lets a `sown` continuation be
     # endless (`cycle` inside a one-beat decision) and still stream.
@@ -1015,8 +1169,9 @@ unit s = toFloat (prim_div_int (mix64 (wrap64 s)) 2048) / 9007199254740992.0
 # `streamVoicesAt` — the parity the suites hold, change for change.
 
 Cue := CueEv Int Int Voice
-     | CueAsk Int Int Int (List Int -> List Cue)
+     | CueAsk Int (Chan (List Int)) Int (List Int -> List Cue)
      | CueEnd Int
+     | CueHold Int (Chan Int)
 
 #: Continue a self-terminated stream: walk to its `CueEnd`, hand the
 #: end tick to what follows.  This is `Seq` — and it is why `durOf`
@@ -1030,6 +1185,7 @@ spliceEnd cs f = case cs of
     c :: ct -> case c of
         CueEv a b v -> c :: spliceEnd ct f
         CueAsk tk p ky k -> CueAsk tk p ky (zs => spliceEnd (k zs) f) :: Nil
+        CueHold tk ch -> c :: spliceEnd ct f
         CueEnd e -> f e
 
 #: The larger of a finished branch's end and whatever the surviving
@@ -1041,6 +1197,7 @@ raiseEnd e cs = case cs of
     c :: ct -> case c of
         CueEv a b v -> c :: raiseEnd e ct
         CueAsk tk p ky k -> CueAsk tk p ky (zs => raiseEnd e (k zs)) :: Nil
+        CueHold tk ch -> c :: raiseEnd e ct
         CueEnd e2 -> CueEnd (maxInt e e2) :: Nil
 
 #: A declared box's own end, whatever the content did — `Clip`'s cap.
@@ -1050,6 +1207,7 @@ endAt w cs = case cs of
     c :: ct -> case c of
         CueEv a b v -> c :: endAt w ct
         CueAsk tk p ky k -> CueAsk tk p ky (zs => endAt w (k zs)) :: Nil
+        CueHold tk ch -> c :: endAt w ct
         CueEnd e -> CueEnd w :: Nil
 
 mergeCues : List Cue -> List Cue -> List Cue
@@ -1066,17 +1224,20 @@ mergeCues xs ys = case xs of
                         CueEv a b v -> x :: mergeCues xt ys
                         CueAsk tk p ky k ->
                             CueAsk tk p ky (zs => mergeCues (k zs) ys) :: Nil
+                        CueHold tk ch -> x :: mergeCues xt ys
                         CueEnd e -> raiseEnd e ys
                     False -> case y of
                         CueEv a b v -> y :: mergeCues xs yt
                         CueAsk tk p ky k ->
                             CueAsk tk p ky (zs => mergeCues xs (k zs)) :: Nil
+                        CueHold tk ch -> y :: mergeCues xs yt
                         CueEnd e -> raiseEnd e xs
 
 cueTick : Cue -> Int
 cueTick c = case c of
     CueEv a b v -> a
     CueAsk tk p ky k -> tk
+    CueHold tk ch -> tk
     CueEnd e -> e
 
 cueBelow : Int -> List Cue -> List Cue
@@ -1087,6 +1248,7 @@ cueBelow w cs = case cs of
         True -> case c of
             CueEv a b v -> c :: cueBelow w ct
             CueAsk tk p ky k -> CueAsk tk p ky (zs => cueBelow w (k zs)) :: Nil
+            CueHold tk ch -> c :: cueBelow w ct
             CueEnd e -> CueEnd e :: Nil
 
 placeCues : Int -> List Cue -> List Cue
@@ -1096,6 +1258,7 @@ placeCues off cs = case cs of
         CueEv a b v -> CueEv (off + a) (off + b) v :: placeCues off ct
         CueAsk tk p ky k ->
             CueAsk (off + tk) p ky (zs => placeCues off (k zs)) :: Nil
+        CueHold tk ch -> CueHold (off + tk) ch :: placeCues off ct
         CueEnd e -> CueEnd (off + e) :: Nil
 
 scaleCues : Int -> List Cue -> List Cue
@@ -1105,6 +1268,7 @@ scaleCues k cs = case cs of
         CueEv a b v -> CueEv (a * k) (b * k) v :: scaleCues k ct
         CueAsk tk p ky q ->
             CueAsk (tk * k) p ky (zs => scaleCues k (q zs)) :: Nil
+        CueHold tk ch -> CueHold (tk * k) ch :: scaleCues k ct
         CueEnd e -> CueEnd (e * k) :: Nil
 
 shrinkCues : Int -> List Cue -> List Cue
@@ -1116,6 +1280,8 @@ shrinkCues k cs = case cs of
         CueAsk tk p ky q ->
             CueAsk (prim_div_int tk k) p ky
                 (zs => shrinkCues k (q zs)) :: Nil
+        CueHold tk ch ->
+            CueHold (prim_div_int tk k) ch :: shrinkCues k ct
         CueEnd e -> CueEnd (prim_div_int e k) :: Nil
 
 cuesOfEvents : List (Int, Int, Voice) -> List Cue -> List Cue
@@ -1153,3 +1319,9 @@ liveTo off s = case s of
     # follows there — the width of a decision is a fact its stream
     # tells, never a number a wrapper adds.
     Hear p ky g -> CueAsk off p ky (zs => liveTo off (g zs)) :: Nil
+    TempoShape e u -> liveTo off u
+    Shape c e u -> liveTo off u
+    # A fermata is a point the clock waits at: the cue says where
+    # and on which channel, and the walk carries straight on — the
+    # waiting is the performer's, not the layout's.
+    Fermata c -> CueHold off c :: CueEnd off :: Nil

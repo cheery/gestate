@@ -218,6 +218,15 @@ _STREAM_ENTRY = ("streamMain : Int -> List (Int, Int, Voice)\n"
 #: offer re-entry, and what a resume will name instead of unfolding
 #: everything left of it (`spec/dynamicscore.md`, the span-and-mark
 #: answer to the rebuild question).
+_SPANS_ENTRY = ("spansMain : Int -> List (Int, Int, List Tempo)\n"
+                "spansMain sd = tempoSpans "
+                "(sowScore (seedRoot sd) score)\n")
+
+_SHAPES_ENTRY = ("shapesMain : Int -> "
+                 "List (Int, Int, Chan Float, List Envelope)\n"
+                 "shapesMain sd = shapeSpans "
+                 "(sowScore (seedRoot sd) score)\n")
+
 _MARKS_ENTRY = ("marksMain : Int -> List (Int, String)\n"
                 "marksMain sd = streamMarks (sowScore (seedRoot sd) score)\n")
 
@@ -363,11 +372,13 @@ def assemble_performance(synth: str, piece: str = "", rate: int = 22050,
     # spelling of the tempo the piece uses decides the pair's first half.
     from .audio import _authored
 
-    tail = _entry(rate) + "\n" + (
-        _VOICE_ENTRY if _tempo_of(synth + "\n" + piece) == "bpm"
-        else _TEMPO_ENTRY) + _STREAM_ENTRY + _MARKS_ENTRY + _RESUME_ENTRY + _LIVE_ENTRY + (
-        _SEED_OWN if "seed" in _authored(synth + "\n" + piece)[1]
-        else _SEED_GIVEN)
+    tail = (_entry(rate) + "\n"
+            + (_VOICE_ENTRY if _tempo_of(synth + "\n" + piece) == "bpm"
+               else _TEMPO_ENTRY)
+            + _STREAM_ENTRY + _MARKS_ENTRY + _SPANS_ENTRY + _SHAPES_ENTRY
+            + _RESUME_ENTRY + _LIVE_ENTRY
+            + (_SEED_OWN if "seed" in _authored(synth + "\n" + piece)[1]
+               else _SEED_GIVEN))
     # `beat` goes with the entry point rather than into `head`, because it
     # reads the author's own `bpm` or `tempo` and must come after their
     # file.  A plain `bpm` makes the beat clock linear; an envelope makes
@@ -468,6 +479,11 @@ def perform_voices(synth: str, piece: str = "", rate: int = 22050,
         raise ScoreError("internal: the entry point did not produce a pair")
     bpm = (_int(top.args[0], state) if spelling == "bpm"
            else _tempo_envelope(top.args[0], state))
+    # **A piece's own tempo shapes, spliced into that envelope** — one
+    # envelope still, so everything downstream (the bake, the seek, the
+    # bar ruler) keeps the closed-form inverse it rests on.
+    bpm = with_shapes(bpm, _shape_spans(state, seed,
+                                    source=synth + piece))
 
     # Tag → bank name, from the constructors the expander generated: one per
     # bank, named `<Bank>Note`, in declaration order.
@@ -658,16 +674,32 @@ def assigned_banks(source: str) -> set:
     return banks
 
 
-def ports_of(source: str) -> dict:
-    """`{port id: bank name}` — the identities `holds.<bank>` expands to.
+def ports_of(source: str, state=None) -> dict:
+    """`{channel id: bank name}` — the note ports `holds.<bank>` names.
 
-    The expander numbers ports by bank declaration order, so this is the
-    same enumeration read back; a reader answers `reader(port)` with the
-    keys that bank's note port currently holds.
+    The expander generates one `Chan (List Int)` per bank, so the
+    identities are the channels' own (`NChan.chan_id`) and this reads
+    them back by forcing each definition.  Without a compiled `state`
+    — a caller that only wants the bank order — it falls back to
+    declaration order, which is what the ids used to be.
     """
     from .audiovoices import banks_of
 
-    return {i: b.name for i, b in enumerate(banks_of(source))}
+    banks = banks_of(source)
+    if state is None:
+        return {i: b.name for i, b in enumerate(banks)}
+    from .gmachine import NChan
+    from .midi import _force
+
+    out = {}
+    for i, bank in enumerate(banks):
+        name = "holds" + bank.name[0].upper() + bank.name[1:]
+        node = state.globals.get(name)
+        if node is None:
+            continue
+        forced = _force(node, state)
+        out[forced.chan_id if isinstance(forced, NChan) else i] = bank.name
+    return out
 
 
 def stream_root(synth: str, piece: str = "", rate: int = 22050,
@@ -701,6 +733,11 @@ def stream_root(synth: str, piece: str = "", rate: int = 22050,
         raise ScoreError("internal: the entry point did not produce a pair")
     tempo = (_int(top.args[0], state) if spelling == "bpm"
              else _tempo_envelope(top.args[0], state))
+    # **A piece's own tempo shapes, spliced into that envelope** — one
+    # envelope still, so everything downstream (the bake, the seek, the
+    # bar ruler) keeps the closed-form inverse it rests on.
+    tempo = with_shapes(tempo, _shape_spans(state, seed,
+                                        source=synth + piece))
 
     banks = banks_of(synth + "\n" + piece)
     by_tag = {}
@@ -720,6 +757,184 @@ def stream_root(synth: str, piece: str = "", rate: int = 22050,
     else:
         root = NAp(state.globals["streamMain"], NNum(seed))
     return tempo, state, root, by_tag
+
+
+def _shape_spans(state, seed: int, limit: int = 64,
+                 source: str | None = None) -> list:
+    """`[(from_tick, to_tick, [(beat, ramp, bpm)])]` — every
+    `tempoShape` the piece writes, read off the score itself.
+
+    **Asked only of a piece that says `tempoShape`**, and that guard is
+    not an optimisation: a walk looking for spans in an endless score
+    that has none never finds one and never ends — the
+    `streamMarksTo` lesson (*a bound must travel*) in its other form.
+    A count bound cannot help, because nothing is being counted.  The
+    text scan is `unfolding_names`-shaped and costs a false positive
+    only the walk.
+
+    Bounded by count as well, for the reason `marks_of` is: a piece
+    that *does* shape its tempo endlessly answers for a prefix.
+    """
+    if source is not None and "tempoShape" not in source:
+        return []
+    from .gmachine import NAp, NCon, NNum, is_tuple
+    from .midi import _force, _int, _list
+
+    cons = state.cons["Cons"].tag
+    nil = state.cons["Nil"].tag
+    ramp = state.cons["Ramp"].tag
+    node = _force(NAp(state.globals["spansMain"], NNum(seed)), state)
+    out: list = []
+    while len(out) < limit:
+        if not isinstance(node, NCon) or node.tag not in (cons, nil):
+            raise ScoreError("internal: the spans stream is not a list")
+        if node.tag == nil:
+            break
+        entry = _force(node.args[0], state)
+        if not is_tuple(entry, 3):
+            raise ScoreError("internal: a span is not (from, to, points)")
+        points = []
+        for cell in _list(entry.args[2], state):
+            point = _force(cell, state)
+            points.append((_float_of(point.args[0], state),
+                           point.tag == ramp,
+                           _float_of(point.args[1], state)))
+        out.append((_int(entry.args[0], state), _int(entry.args[1], state),
+                    points))
+        node = _force(node.args[1], state)
+    return out
+
+
+def _float_of(node, state) -> float:
+    from .midi import _force
+
+    return float(_force(node, state).n)
+
+
+def with_shapes(tempo, spans: list):
+    """The piece's tempo with its `tempoShape` spans spliced in.
+
+    **A rewrite of one envelope, never a second clock.**  Each span's
+    points are fractions of its own width, so they land at absolute
+    beats between the span's ends; the base tempo's points inside the
+    span give way to them, and the span's end restores whatever the
+    base said there — which is what makes a shape *local*.  The result
+    goes back through `tempo.envelope`, so the trapezoid, the
+    closed-form inverse and the collapse-to-constant all apply exactly
+    as they do to a written envelope.
+    """
+    from .midi import TICKS_PER_BEAT
+    from .tempo import TempoEnvelope, envelope
+
+    if not spans:
+        return tempo
+    env = tempo if isinstance(tempo, TempoEnvelope) else None
+    base = ([(b, k != 0.0, y) for b, k, y
+             in zip(env.beats, env.ks, env.bpms)] if env is not None
+            else [(0.0, False, float(tempo))])
+
+    def at(beat: float) -> float:
+        """What the base envelope says at `beat` — the value a span's
+        end restores."""
+        found = base[0][2]
+        for b, _r, y in base:
+            if b <= beat:
+                found = y
+        return found
+
+    points = list(base)
+    for start, stop, shape in spans:
+        if not shape or stop <= start:
+            continue
+        b0 = start / TICKS_PER_BEAT
+        b1 = stop / TICKS_PER_BEAT
+        width = b1 - b0
+        points = [(b, r, y) for b, r, y in points if b <= b0 or b >= b1]
+        for frac, ramps, bpm in shape:
+            points.append((b0 + frac * width, ramps, bpm))
+        points.append((b1, False, at(b1)))
+    # **Two points may share a beat, and must.**  A span that ramps to
+    # 60 and hands the tempo back is exactly "arrive at 60 *at* b1,
+    # then step to 120 *at* b1" — an envelope says that with two
+    # points and a zero-length segment between them, which
+    # `tempo.envelope` already handles (its order check refuses only
+    # *decreasing* beats).  Collapsing them dropped the arrival and
+    # left the piece flat, which is the whole feature going quiet.
+    points.sort(key=lambda pt: pt[0])
+    return envelope(points)
+
+
+def _chan_names(state, source: str) -> dict:
+    """`{chan_id: declared name}` for every `Chan Float` the program
+    names.
+
+    A channel *value* carries its identity (`NChan.chan_id`), and the
+    graph knows channels by the name they were declared with — so the
+    join is to force each declaration and read the id off it.  Read
+    from the text because that is where the declarations are; a name
+    the program does not declare is not a channel it may write.
+    """
+    import re
+
+    from .gmachine import NChan
+    from .midi import _force
+
+    out: dict = {}
+    for name in re.findall(r"^(\w+)\s*:\s*Chan\s+Float\s*$", source,
+                           re.M):
+        node = state.globals.get(name)
+        if node is None:
+            continue
+        try:
+            forced = _force(node, state)
+        except Exception:                        # noqa: BLE001
+            continue
+        if isinstance(forced, NChan):
+            out[forced.chan_id] = name
+    return out
+
+
+def shape_plan(state, seed: int, source: str, limit: int = 64) -> list:
+    """`[(from_tick, to_tick, channel name, points)]` — what the
+    piece's `shape` annotations ask the host to write.
+
+    Guarded by the text for the reason `_shape_spans` is: a walk
+    hunting spans through an endless score that has none never ends.
+    """
+    if "shape" not in source:
+        return []
+    from .gmachine import NAp, NChan, NCon, NNum, is_tuple
+    from .midi import _force, _int, _list
+
+    cons = state.cons["Cons"].tag
+    nil = state.cons["Nil"].tag
+    ramp = state.cons["Ramp"].tag
+    names = _chan_names(state, source)
+    node = _force(NAp(state.globals["shapesMain"], NNum(seed)), state)
+    out: list = []
+    while len(out) < limit:
+        if not isinstance(node, NCon) or node.tag not in (cons, nil):
+            raise ScoreError("internal: the shapes stream is not a list")
+        if node.tag == nil:
+            break
+        entry = _force(node.args[0], state)
+        if not is_tuple(entry, 4):
+            raise ScoreError("internal: a shape span has four parts")
+        chan = _force(entry.args[2], state)
+        if not isinstance(chan, NChan):
+            raise ScoreError("a shape must name a channel")
+        points = []
+        for cell in _list(entry.args[3], state):
+            point = _force(cell, state)
+            points.append((_float_of(point.args[0], state),
+                           point.tag == ramp,
+                           _float_of(point.args[1], state)))
+        name = names.get(chan.chan_id)
+        if name is not None:
+            out.append((_int(entry.args[0], state),
+                        _int(entry.args[1], state), name, points))
+        node = _force(node.args[1], state)
+    return out
 
 
 def marks_of(synth: str, piece: str = "", rate: int = 22050,

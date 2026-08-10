@@ -28,7 +28,14 @@ _SIMPLE = {gm.Unwind: "Unwind", gm.Mkap: "Mkap", gm.Eval: "Eval",
            gm.SubInt: "SubInt", gm.MulInt: "MulInt", gm.DivInt: "DivInt",
            gm.ModInt: "ModInt", gm.XorInt: "XorInt",
            gm.DivFloat: "DivFloat", gm.ModFloat: "ModFloat",
-           gm.ToFloat: "ToFloat", gm.FloorFloat: "FloorFloat"}
+           gm.ToFloat: "ToFloat", gm.FloorFloat: "FloorFloat",
+           # **The one reactive instruction a *score* needs.**  A score
+           # creates channels — `hear` names one — and never reads
+           # them; the host does the reading.  So `NewChan` crosses and
+           # the rest of the reactive half (`SigCons`, `SigHead`,
+           # `MkDelayAp`) stays home, where the substrate will want it
+           # (`spec/crust.md`).
+           gm.NewChan: "NewChan"}
 _UNARY = {gm.Push: "Push", gm.PushArg: "PushArg",
           gm.Update: "Update", gm.Pop: "Pop", gm.Alloc: "Alloc",
           gm.Slide: "Slide", gm.Proj: "Proj"}

@@ -94,9 +94,19 @@ def test_a_user_data_type_can_be_a_set_element():
     was reported "not an eqtype" however simple it was.  `Maybe Bool`
     escaped only by being a type *application*.
     """
-    # 4, 5, 6: declared constructors start at 4, after the pinned
-    # `Nil`/`Cons`/`False`/`True` — see `gmachine.TAG_NIL`.
-    assert _tags(COLOUR + "main : Set C\nmain = {G, R, B, R}\n") == ["4", "5", "6"]
+    # **The numbers, and why they are not 4, 5, 6.**  A tag is a
+    # position: the pinned `Nil`/`Cons`/`False`/`True` come first, then
+    # every constructor the *prelude* declares, then the program's own.
+    # `Envelope`'s `Step`/`Ramp` joined the prelude when a score had to
+    # be able to carry a curve (`spec/shape.md`), so a user type now
+    # starts two later.  What this test is really about is that the
+    # three tags are **consecutive and distinct** — that a parameterless
+    # data type is an eqtype at all — so it is written that way, and the
+    # next constructor the prelude gains will not send anyone hunting.
+    tags = _tags(COLOUR + "main : Set C\nmain = {G, R, B, R}\n")
+    assert len(tags) == 3 and len(set(tags)) == 3
+    assert [int(x) for x in tags] == list(range(int(tags[0]),
+                                                int(tags[0]) + 3))
 
 
 def test_a_set_of_a_user_type_dedups():

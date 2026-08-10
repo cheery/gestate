@@ -240,11 +240,14 @@ def dynamic(synth: str, piece: str = "", *, rate: int, block: int,
 
     stream = (live_native(state, by_tag, seed, tick)
               or LiveStream(state, root, by_tag, patience=patience))
+    from .audioscore import shape_plan
+
+    shapes = shape_plan(state, seed, both)
     record = Transcript(source_sha=Transcript.sha_of(both), rate=rate,
                         block=block, seed=seed)
     performer = LazyPerformer(stream, tempo, rate, allocators, block=block,
                               horizon=horizon, record=record, origin=tick,
-                              reader=reader)
+                              reader=reader, shapes=shapes)
     return performer, allocators
 
 

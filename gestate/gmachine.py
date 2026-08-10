@@ -1532,8 +1532,17 @@ def _force(node: Node, s: GmState) -> Node:
     into the finished one, the same way the reactive driver re-enters the
     evaluator (`fixme.md` F20).
     """
-    scratch = GmState([Eval()], [node], s.globals, [])
+    # **The channel counter travels with it.**  `NewChan` mints ids
+    # from the state it runs on, and a scratch state starting at zero
+    # hands the same id to every channel forced separately — so two
+    # `chan` globals both came out `NChan(0)` and an identity that the
+    # node's own docstring calls globally unique was not.  Nothing
+    # noticed while channels were only ever named by their
+    # declaration; a score that *listens* to one names it by id.
+    scratch = GmState([Eval()], [node], s.globals, [],
+                      chanCounter=s.chanCounter)
     run(scratch, max_steps=1_000_000)
+    s.chanCounter = scratch.chanCounter
     return scratch.stack[0] if scratch.stack else node
 
 

@@ -360,6 +360,13 @@ class ScoreStream:
                 break
             if event is _SKIP:
                 self.node = node.args[1]
+                # A `CueHold` is skipped *and* stops the pull: the
+                # events after a fermata must not be admitted at the
+                # instants they would have had, or the waiting changes
+                # nothing (`spec/shape.md`).  A plain `CueEnd` sets no
+                # hold and the walk carries on.
+                if getattr(self, "hold", None) is not None:
+                    break
                 continue
             self.node = node.args[1]
             self.ready = event
@@ -397,6 +404,13 @@ class LiveStream(ScoreStream):
         #: self-terminated cues (`spec/ariadne.md`).  Not an event: a
         #: fact, harvested into `frontier` and skipped.
         self._endt = state.cons["CueEnd"].tag
+        self._holdt = state.cons["CueHold"].tag
+        #: `(tick, chan_id)` while the piece is waiting at a fermata,
+        #: else `None` (`spec/shape.md`).  **It parks the pull, the
+        #: way a question does** — and it must: a horizon that reached
+        #: past the hold would admit the notes after it at the instants
+        #: they would have had, and the wait would change nothing.
+        self.hold = None
 
     def _event(self, cell):
         from .gmachine import NCon, NNum
@@ -406,6 +420,14 @@ class LiveStream(ScoreStream):
             return None
         if not isinstance(head, NCon):
             raise ScoreError("expected a cue in the live stream")
+        if head.tag == self._holdt:
+            tick = self._whnf(head.args[0])
+            chan = self._whnf(head.args[1])
+            if tick is None or chan is None:
+                return None
+            self.hold = (tick.n, getattr(chan, "chan_id", 0))
+            self.frontier = max(self.frontier, tick.n)
+            return _SKIP
         if head.tag == self._endt:
             tick = self._whnf(head.args[0])
             if tick is None:
@@ -420,14 +442,18 @@ class LiveStream(ScoreStream):
             key = self._whnf(head.args[2])
             if tick is None or port is None or key is None:
                 return None                     # budget parked mid-question
-            if not (isinstance(tick, NNum) and isinstance(port, NNum)
-                    and isinstance(key, NNum)):
-                raise ScoreError("a question with no instant or port")
-            #: The **position key** rides beside the port: a question's
-            #: identity, so a rejoin can be answered from the thread
-            #: rather than from the world it never heard
+            # The port is a **channel** now rather than an integer
+            # standing in for one, and its own `chan_id` is the
+            # identity a reader is keyed by (`spec/shape.md`).
+            chan = getattr(port, "chan_id", None)
+            if not (isinstance(tick, NNum) and isinstance(key, NNum)
+                    and chan is not None):
+                raise ScoreError("a question with no instant or channel")
+            #: The **position key** rides beside the channel: a
+            #: question's identity, so a rejoin can be answered from
+            #: the thread rather than from the world it never heard
             #: (`spec/ariadne.md`, the thread).
-            self.ask = (tick.n, port.n, key.n)
+            self.ask = (tick.n, chan, key.n)
             self._ask_k = head.args[3]
             self.frontier = max(self.frontier, tick.n)
             return None                         # parks the pull, as a stall
@@ -457,12 +483,18 @@ class LiveStream(ScoreStream):
         return (ticks[0], ticks[1], bank, payload)
 
     def pull(self, horizon: int) -> list:
+        if self.hold is not None:
+            return []                            # waiting at a fermata
         if self.ask is not None:
             return []                            # a question is owed first
         out = super().pull(horizon)
         if self.ask is not None:
             self.stalled = False                 # a question is not a stall
         return out
+
+    def release(self) -> None:
+        """The world let go: the piece walks on from the fermata."""
+        self.hold = None
 
     def answer(self, reading) -> None:
         """The port's reading, in: the performance continues into what
@@ -501,7 +533,8 @@ class LazyPerformer:
 
     def __init__(self, stream, tempo, rate: int, allocators: dict, *,
                  block: int, horizon: float = 4.0, record=None,
-                 origin: int = 0, reader=None):
+                 origin: int = 0, reader=None, shapes=None,
+                 holding=None):
         from .tempo import TempoEnvelope, constant
         from .transcript import Transcript
 
@@ -512,6 +545,15 @@ class LazyPerformer:
         self._env = (tempo if isinstance(tempo, TempoEnvelope)
                      else constant(tempo))
         self.rate, self.block = rate, block
+        #: `[(from_tick, to_tick, channel, points)]` — the piece's own
+        #: automation (`audioscore.shape_plan`), written per block.
+        self.shapes = list(shapes or ())
+        #: Samples spent waiting at fermatas, and the bookkeeping for
+        #: it: `holding(chan_id)` is the world the piece waits on.
+        self._held = 0
+        self._last_t = 0
+        self._released: set = set()
+        self.holding = holding or (lambda chan: False)
         self.allocators = allocators
         #: How many beats ahead of the clock the stream is forced.
         self.horizon = horizon
@@ -551,16 +593,48 @@ class LazyPerformer:
         return (at // self.block) * self.block
 
     def _tick_at(self, t: int) -> float:
-        """The tick the sample clock stands at — the beat, resolved."""
-        return self._env.beat_at(t / self.rate) * TICKS_PER_BEAT
+        """The tick the sample clock stands at — the beat, resolved.
+
+        **Minus what the piece has spent waiting.**  A fermata holds
+        the clock, and a hold is a wall-time offset rather than a rate
+        change — which is what keeps the map invertible in closed form
+        and leaves a piece with no fermata subtracting zero.
+        """
+        return self._env.beat_at((t - self._held) / self.rate) * TICKS_PER_BEAT
+
+    def _serve_holds(self, t: int) -> None:
+        """Stop the clock where the piece says wait, while it is held.
+
+        The notes already sounding keep sounding without anything
+        special being done for them: their releases sit at ticks the
+        clock has not reached, so the instrument simply holds them —
+        which is what a fermata *is*.
+        """
+        hold = getattr(self.stream, "hold", None)
+        if hold is None:
+            self._last_t = t
+            return
+        _at, chan = hold
+        if self.holding(chan):
+            # The clock stands still: every later instant moves with it.
+            self._held += max(0, t - self._last_t)
+        else:
+            self.stream.release()
+        self._last_t = t
 
     # -- taking what the stream yields -----------------------------------------
 
     def _admit(self, event, *, live: bool):
         onset, offset, bank, payload = event
-        start = samples_of(onset + self.origin, self.tempo, self.rate)
-        end = max(samples_of(offset + self.origin, self.tempo, self.rate),
-                  start)
+        # **Plus what the piece has waited.**  A fermata's hold is a
+        # wall-time offset, so an event decided after one is delivered
+        # that much later — and an event admitted *before* it keeps the
+        # instant it already had, because `_held` was smaller then.
+        # The clock gates the pull, so the two stay in step.
+        held = self._held
+        start = samples_of(onset + self.origin, self.tempo, self.rate) + held
+        end = max(samples_of(offset + self.origin, self.tempo,
+                             self.rate) + held, start)
         if live and self._boundary(start) <= self.position:
             self.transcript.append(
                 ("dropped", (onset + self.origin) / TICKS_PER_BEAT, bank))
@@ -610,6 +684,32 @@ class LazyPerformer:
             self.transcript.append(("stall", self._tick_at(t) / TICKS_PER_BEAT))
         self._stalling = self.stream.stalled
 
+    def _write_shapes(self, t: int) -> list:
+        """What the piece's `shape` annotations say at this instant.
+
+        **Automation at control rate**, which in gestate is once per
+        block — so a shape is the performer writing a channel exactly
+        where an allocator writes a note's payload, and nothing in the
+        engine has to learn a new idea.  The envelope's points are
+        fractions of the span, so the reading is the span's own
+        position; before and after it the shape says nothing, which is
+        what makes it local.
+        """
+        if not self.shapes:
+            return []
+        from .tempo import value_on
+
+        tick = self._tick_at(t)
+        out = []
+        for start, stop, name, points in self.shapes:
+            if stop <= start or not (start <= tick <= stop):
+                continue
+            value = value_on(points, (tick - start) / (stop - start))
+            if self.values.get(name) != value:
+                self.values[name] = value
+                out.append((self._boundary(t), name, value))
+        return out
+
     def _covered(self):
         """The sample below which the pending heap is the whole truth."""
         if self.stream.done:
@@ -632,9 +732,10 @@ class LazyPerformer:
 
     def advance(self, t: int) -> list:
         """Force to the horizon, perform what is due — the spec's own loop."""
+        self._serve_holds(t)
         self._pull(t)
         covered = self._covered()
-        out = []
+        out = self._write_shapes(t)
         held = []
         while self.pending:
             entry = heappop(self.pending)

@@ -495,7 +495,27 @@ Two things it left behind:
   top stands, held against the thread; and the existing five oracles keep
   passing, re-keyed.
 
-### Then: `shape`, and `tempoShape`
+### Then: `shape`, `fermata`, and `tempoShape`
+
+**Designed now — `spec/shape.md`.**  The three turn out to be one
+family distinguished by what they bend: `hear` bends content, `shape`
+bends a value, `tempoShape` bends time, and **`fermata` bends whether
+time runs at all** — Henri's channel-taking fermata, which is `hear`'s
+twin across the table.  Two consequences worth carrying here: the
+build splits (`shape` and `fermata` are cheap and need no engine
+change; `tempoShape` alone carries the integrating clock and its cost,
+so ship it separately), and it **dissolves the `Chan -> Port` bridge**
+rather than building one: `Port` was introduced on a premise nobody
+checked (that `Chan` is out of scope in `music.ges`) and the premise
+is false — `Chan` is a builtin and `NChan` already carries a unique
+id, so the signatures take channels directly and the bridge stops
+being a thing that needs crossing.  Its one cost was measured and then paid:
+`crust` learned `NewChan` — the smallest widening of the pure core, a
+counter and an allocation — so listening pieces keep the native path.
+**All three are built**, and the migration turned up a real defect:
+`_force` minted channel ids from a scratch counter, so separately
+forced channels all came out `NChan(0)`.  The sketch below is kept for
+its reasoning; the spec supersedes its details.
 
     shape : Chan Float -> Env -> [: a :] -> [: a :]
 

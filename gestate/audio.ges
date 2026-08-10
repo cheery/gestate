@@ -277,17 +277,6 @@ instance Clip (Sig Float) where
 # what actually runs in a synth.  This is what that rewrite is checked
 # against, and it is what an interpreted program runs unchanged.
 
-Envelope := Step Float Float
-          | Ramp Float Float
-
-#: What the envelope reads at `x`.
-on : List Envelope -> Float -> Float
-on ps x = case ps of
-    [] -> 0.0
-    (p :: rest) -> case p of
-        Step b y -> onFrom b y rest x
-        Ramp b y -> onFrom b y rest x
-
 # ── The beat clock under a tempo envelope ────────────────────────────────
 #
 # `beat` is linear when the tempo is a plain `bpm`, and a piecewise
@@ -317,43 +306,6 @@ LowpassIn := LowpassIn Float Float
 lowpassNext : Float -> LowpassIn -> Float
 lowpassNext y p = case p of
     LowpassIn x c -> y + c * (x - y)
-
-#: The walk, once the first point has been opened: `b`/`y` are the point
-#: behind us and `rest` is what is still ahead.
-onFrom : Float -> Float -> List Envelope -> Float -> Float
-onFrom b y rest x = case x <= b of
-    True -> y
-    False -> case rest of
-        [] -> y
-        (p :: more) -> case p of
-            Step c z -> case x < c of
-                True -> y
-                False -> onFrom c z more x
-            Ramp c z -> case x < c of
-                True -> onRamp b y c z x
-                False -> onFrom c z more x
-
-#: One linear segment, between two points.
-onRamp : Float -> Float -> Float -> Float -> Float -> Float
-onRamp b y c z x = case c - b <= 0.0 of
-    True -> z
-    False -> y + (z - y) * (x - b) / (c - b)
-
-
-envAt : Envelope -> Float
-envAt p = case p of
-    Step b y -> b
-    Ramp b y -> b
-
-envVal : Envelope -> Float
-envVal p = case p of
-    Step b y -> y
-    Ramp b y -> y
-
-envRamps : Envelope -> Bool
-envRamps p = case p of
-    Step b y -> False
-    Ramp b y -> True
 
 #: Before the first point the tempo is the first tempo, held — so the beat
 #: clock is linear there, and the first point falls at `60·b₀/y₀`.

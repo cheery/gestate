@@ -140,7 +140,7 @@ lawful, time-from-content.  The reactive surface becomes **two
 zero-width leaves**, entering the monad as values:
 
     draw : [: Seed :]                 -- the seed at this position
-    hear : Port -> [: List Int :]     -- the world at this instant
+    hear : Chan (List Int) -> [: List Int :]   -- the world now
 
 Zero width is what makes them lawful: like `mark`, they occupy no
 time of their own, so `durOf` distributes past them and the
@@ -382,9 +382,12 @@ by name, the retirement rule.
 ## Open, and deliberately so
 
 - The fermata question (may a joint wait?) — above, and the largest.
-- `hear`'s port vocabulary: `holds.<bank>` today; knobs as ports
-  (the `Chan -> Port` bridge) wants deciding here rather than bolted
-  on later.
+- ~~`hear`'s port vocabulary and the `Chan -> Port` bridge~~ —
+  **dissolved rather than built** (`spec/shape.md`).  `Port = Int`
+  rested on a premise nobody checked, that `Chan` is out of scope in
+  `music.ges`; it is a builtin and it is not.  `hear` takes a
+  `Chan (List Int)`, `holds.<bank>` *is* one, and a knob steering a
+  score needs no bridge — it was always this signature.
 - Path spelling and the autolabel format (`verse.3/bar.2` is a
   sketch, not a decision).
 - ~~Whether `long` survives as a skip annotation~~ — **answered by

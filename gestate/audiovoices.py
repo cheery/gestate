@@ -812,14 +812,21 @@ def _rewrite_holds(source: str, banks: list) -> str:
 
 
 def _holds_defs(banks: list) -> list:
-    """`holdsLead : Int` per bank — the port ids `audioscore.ports_of`
-    reads back.  `Int` rather than `Port` so the definitions stand in a
-    program assembled without `music.ges`; where both exist the alias
-    makes them one type."""
+    """`holdsLead : Chan (List Int)` per bank — the note port a score
+    listens to, as a **channel**.
+
+    It was `holdsLead : Int = <bank index>`, an identity wearing a
+    number, because `hear` took a `Port = Int`.  A channel says what
+    it carries and is the identity by itself (`NChan.chan_id`), so the
+    generated definition is now the thing itself rather than a token
+    standing for it; `audioscore.ports_of` reads the ids back by
+    forcing these.  `Chan` is a builtin type, so this stands in a
+    program assembled without `music.ges` exactly as the integer did.
+    """
     out = []
-    for i, bank in enumerate(banks):
-        out.append(f"holds{_cap(bank.name)} : Int")
-        out.append(f"holds{_cap(bank.name)} = {i}")
+    for bank in banks:
+        out.append(f"holds{_cap(bank.name)} : Chan (List Int)")
+        out.append(f"holds{_cap(bank.name)} = chan")
         out.append("")
     return out
 

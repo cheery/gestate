@@ -1661,7 +1661,9 @@ class Workbench:
                 # `self.notes` is looked up at *call* time — rebuilds
                 # replace the Notes object, and a reader that captured
                 # one would listen to a keyboard nobody holds anymore.
-                ports = ports_of(text)
+                # By channel id, which needs the compiled state:
+                # `holds.<bank>` is a `Chan` now, not an index.
+                ports = ports_of(text, state)
 
                 def reader(port, key=None, _ports=ports):
                     return holds_reader(self.notes, _ports)(port, key)

@@ -57,6 +57,9 @@ fn as_f(n: Num) -> f64 {
 #[derive(Clone, Debug)]
 enum Node {
     Num(Num),
+    /// A channel identity — the score's own name for a place a value
+    /// comes from.  Created, never read: the host does the reading.
+    Chan(i64),
     Ap(Idx, Idx),
     Global(usize, usize),        // arity, block id
     Ind(Option<Idx>),
@@ -94,6 +97,7 @@ enum Instr {
     ToFloat,
     FloorFloat,
     MathFloat(MathFn),
+    NewChan,
     MatchFail,
 }
 
@@ -116,6 +120,9 @@ pub struct Machine {
     dump: Vec<(Vec<Instr>, usize, Vec<Idx>)>,
     code: Vec<Instr>,
     pc: usize,
+    /// Fresh channel ids, minted in the order the reference mints
+    /// them so a program means the same thing on both machines.
+    chans: i64,
 }
 
 /// A refusal.  Spelled as a panic carrying the message, because the
@@ -245,7 +252,8 @@ impl Machine {
                             walked = true;
                         }
                         Node::Ind(None) => fail("Unwind on null indirection"),
-                        Node::Num(_) | Node::Con(..) => {
+                        Node::Num(_) | Node::Con(..)
+                        | Node::Chan(_) => {
                             if walked {
                                 self.code.clear();
                                 self.pc = 0;
@@ -496,6 +504,12 @@ impl Machine {
                 };
                 self.prim_result1(Node::Num(Num::F(v)));
             }
+            Instr::NewChan => {
+                let id = self.chans;
+                self.chans += 1;
+                let i = self.alloc(Node::Chan(id));
+                self.stack.push(i);
+            }
             Instr::MatchFail => {
                 fail("pattern match failure: no alternative matched");
             }
@@ -605,6 +619,7 @@ fn parse(text: &str) -> (Vec<Vec<Instr>>, Vec<(String, usize, usize)>, String) {
                     "Mkap" => Instr::Mkap,
                     "Eval" => Instr::Eval,
                     "MatchFail" => Instr::MatchFail,
+                    "NewChan" => Instr::NewChan,
                     "AddInt" => Instr::AddInt,
                     "SubInt" => Instr::SubInt,
                     "MulInt" => Instr::MulInt,
@@ -692,6 +707,7 @@ impl Machine {
             dump: Vec::new(),
             code: Vec::new(),
             pc: 0,
+            chans: 0,
         };
         for (name, arity, block) in globals {
             let i = m.alloc(Node::Global(arity, block));
@@ -1033,17 +1049,18 @@ impl Stream {
                 let Some(kn) = self.whnf(m, args[2], fuel) else {
                     return Cell::Parked;
                 };
+                // The port is a **channel**: its own id is the
+                // identity the host keys a reading by.
                 let (tick, port, key) = match (&m.heap[tn], &m.heap[pn],
                                                &m.heap[kn]) {
-                    (Node::Num(Num::I(t)), Node::Num(Num::I(p)),
+                    (Node::Num(Num::I(t)), Node::Chan(p),
                      Node::Num(Num::I(k))) => (
                         i64::try_from(*t).unwrap_or_else(
                             |_| fail("a tick wider than 64 bits")),
-                        i64::try_from(*p).unwrap_or_else(
-                            |_| fail("a port wider than 64 bits")),
+                        *p,
                         i64::try_from(*k).unwrap_or_else(
                             |_| fail("a key wider than 64 bits"))),
-                    _ => fail("a question with no instant or port"),
+                    _ => fail("a question with no instant or channel"),
                 };
                 self.ask = Some((tick, port, key));
                 self.ask_k = Some(args[3]);

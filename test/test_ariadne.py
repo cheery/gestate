@@ -15,6 +15,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from test_dynamicscore import BLOCK, RATE, SYNTH, _allocators
@@ -96,13 +98,16 @@ score = (do s <- draw; unfold s step) >>= voices.lead
 
 
 HEARD = """
+world : Chan (List Int)
+world = chan
+
 phraseOf : List Int -> [: Custom :]
 phraseOf ks = case ks of
     Nil -> r
     k :: kt -> '(Custom 0.9 k) ++ phraseOf kt
 
 score : [: Void :]
-score = ((do ks <- hear 0; phraseOf ks) ++ '(Custom 0.5 36)) >>= voices.lead
+score = ((do ks <- hear world; phraseOf ks) ++ '(Custom 0.5 36)) >>= voices.lead
 """
 
 
@@ -184,13 +189,16 @@ def test_the_old_spellings_are_refused_by_name():
 
 
 LISTENER = """
+world : Chan (List Int)
+world = chan
+
 phraseOf : List Int -> [: Custom :]
 phraseOf ks = case ks of
     Nil -> r
     k :: kt -> '(Custom 0.9 k)
 
 score : [: Void :]
-score = cycle (long 1 (do ks <- hear 0; phraseOf ks)) >>= voices.lead
+score = cycle (long 1 (do ks <- hear world; phraseOf ks)) >>= voices.lead
 """
 
 #: Three different worlds at three times, so a reader answering *in
@@ -321,8 +329,8 @@ def test_a_rejoin_into_an_undeclared_joint_restarts_it_rather_than_stalling():
     beside this one shows that spelling skipping properly.
     """
     undeclared = LISTENER.replace(
-        "cycle (long 1 (do ks <- hear 0; phraseOf ks))",
-        "cycle (do ks <- hear 0; phraseOf ks)")
+        "cycle (long 1 (do ks <- hear world; phraseOf ks))",
+        "cycle (do ks <- hear world; phraseOf ks)")
     tempo, state, root, by_tag = stream_root(SYNTH, undeclared + BPM,
                                              RATE, 8, 6 * 96, live=True)
     stream = LiveStream(state, root, by_tag)
@@ -410,17 +418,18 @@ def test_bind_distributes_through_a_joint():
     (b >>= f)` even where `a` is decided by the world — which is the
     property the old boxed surface broke and the whole redesign is
     for."""
-    joined = ("\nphraseOf : List Int -> [: Custom :]\n"
+    joined = ("\nworld : Chan (List Int)\nworld = chan\n"
+              "\nphraseOf : List Int -> [: Custom :]\n"
               "phraseOf ks = case ks of\n"
               "    Nil -> r\n"
               "    k :: kt -> '(Custom 0.9 k)\n"
               "\nscore : [: Void :]\n"
-              "score = (((do ks <- hear 0; phraseOf ks)"
+              "score = (((do ks <- hear world; phraseOf ks)"
               " ++ '(Custom 0.5 36)) >>= voices.lead)\n")
     spread = joined.replace(
-        "(((do ks <- hear 0; phraseOf ks) ++ '(Custom 0.5 36))"
+        "(((do ks <- hear world; phraseOf ks) ++ '(Custom 0.5 36))"
         " >>= voices.lead)",
-        "(((do ks <- hear 0; phraseOf ks) >>= voices.lead)"
+        "(((do ks <- hear world; phraseOf ks) >>= voices.lead)"
         " ++ ('(Custom 0.5 36) >>= voices.lead))")
     assert spread != joined
     for world in ([60], [60, 64], []):
@@ -439,12 +448,15 @@ def test_the_label_bind_sentence_holds_with_joints_inside():
     position in the music.
     """
     parts = """
+world : Chan (List Int)
+world = chan
+
 opening : [: Custom :]
 opening = '(Custom 1.0 60) |* 2
 
 verse : [: Custom :]
 verse = do
-    ks <- hear 0
+    ks <- hear world
     case ks of
         Nil -> r
         k :: kt -> '(Custom 0.9 k)
@@ -533,3 +545,153 @@ def test_a_section_costs_the_music_nothing():
             "\nscore : [: Void :]\n"
             "score = (verse ++ chorus) >>= voices.lead\n")
     assert _events(named) == _events(bare)
+
+
+# ── tempoShape: a tempo written where it happens ───────────────────────────
+
+
+def _onsets(piece):
+    from gestate.audioscore import perform_voices, samples_of
+
+    tempo, events = perform_voices(SYNTH, piece + BPM, RATE)
+    return [samples_of(on, tempo, RATE) for on, _o, _b, _p in events]
+
+
+PHRASE = ("\nscore : [: Void :]\n"
+          "score = (BODY ++ '(Custom 0.8 67)) >>= voices.lead\n")
+PAIR = "('(Custom 1.0 60) ++ '(Custom 0.9 64))"
+
+
+def test_a_flat_tempo_shape_is_invisible():
+    """The constant law at the clock — and it costs nothing to keep,
+    because `tempo.envelope` already collapses an envelope of one
+    value back to the *integer* path a plain `bpm` takes."""
+    plain = PHRASE.replace("BODY", PAIR)
+    flat = PHRASE.replace("BODY", f"tempoShape [Step 0.0 120.0] {PAIR}")
+    assert _onsets(flat) == _onsets(plain)
+
+
+def test_a_written_rit_slows_its_span_and_moves_what_follows():
+    """A tempo written where it happens: the span slows, and the beat
+    after it lands later by exactly the time the slowing added — the
+    displacement is real and local, which is what a rit *is*."""
+    plain = PHRASE.replace("BODY", PAIR)
+    rit = PHRASE.replace(
+        "BODY", f"tempoShape [Step 0.0 120.0, Ramp 1.0 60.0] {PAIR}")
+    was, now = _onsets(plain), _onsets(rit)
+    assert now[0] == was[0], "the span starts where it always did"
+    assert now[1] > was[1], "the second beat should arrive late"
+    assert now[2] - now[1] > was[2] - was[1], \
+        "and the beat after the span carries the displacement"
+
+
+def test_a_tempo_shape_keeps_the_closed_form_inverse():
+    """The property the whole design rests on: a shaped piece is still
+    an envelope, so beat -> time is the quadratic formula rather than
+    a replay.  `time_at` answering at all is the assertion."""
+    from gestate.audioscore import perform_voices
+    from gestate.tempo import TempoEnvelope
+
+    rit = PHRASE.replace(
+        "BODY", f"tempoShape [Step 0.0 120.0, Ramp 1.0 60.0] {PAIR}")
+    tempo, _events = perform_voices(SYNTH, rit + BPM, RATE)
+    assert isinstance(tempo, TempoEnvelope)
+    assert tempo.time_at(2.0) > 1.0, "beat 2 arrives after the rit"
+    assert tempo.beat_at(tempo.time_at(3.0)) == pytest.approx(3.0), \
+        "the two directions must be one answer"
+
+
+# ── shape and fermata ──────────────────────────────────────────────────────
+
+
+SHAPED = """
+swell : Chan Float
+swell = chan
+
+score : [: Void :]
+score = shape swell POINTS ('(Custom 1.0 60) ++ '(Custom 0.9 64)) >>= voices.lead
+"""
+
+
+def _swell(points, beats=4):
+    from gestate.audioperform import dynamic
+
+    perf, _a = dynamic(SYNTH, SHAPED.replace("POINTS", points) + BPM,
+                       rate=RATE, block=BLOCK)
+    seen = []
+    for t in range(0, beats * 2000, BLOCK):
+        perf.advance(t)
+        seen.append(perf.values.get("swell"))
+    return seen
+
+
+def test_a_shape_writes_its_channel_across_its_span():
+    """Automation at control rate, which in gestate is once per block:
+    the channel follows the envelope, the points being fractions of
+    the span's own width."""
+    seen = _swell("[Step 0.0 0.2, Ramp 1.0 0.9]")
+    assert seen[0] == pytest.approx(0.2)
+    assert seen[len(seen) // 4] > 0.2, "it should be climbing"
+    assert max(v for v in seen if v is not None) == pytest.approx(0.9, abs=0.02)
+    assert all(a <= b + 1e-9 for a, b in zip(seen, seen[1:])), "monotone"
+
+
+def test_a_flat_shape_is_a_knob_set_once():
+    """The constant law: an envelope of one value is indistinguishable
+    from writing the knob."""
+    assert set(_swell("[Step 0.0 0.5]")) == {0.5}
+
+
+FERMATA = """
+pedal : Chan Int
+pedal = chan
+
+score : [: Void :]
+score = ('(Custom 1.0 60) ++ fermata pedal ++ '(Custom 0.9 64)) >>= voices.lead
+"""
+
+
+def _held_take(samples_held):
+    from gestate.audioalloc import GATE_AT
+    from gestate.audiodynamic import LazyPerformer, LiveStream
+
+    tempo, state, root, tags = stream_root(SYNTH, FERMATA + BPM, RATE,
+                                           0, 0, live=True)
+    now = [0]
+    perf = LazyPerformer(LiveStream(state, root, tags), tempo, RATE,
+                         _allocators(), block=BLOCK,
+                         holding=lambda chan: now[0] < samples_held)
+    gates = []
+    for t in range(0, 20 * 2000, BLOCK):
+        now[0] = t
+        for boundary, chan, value in perf.advance(t):
+            if chan.endswith("f0") and value:
+                gates.append(boundary)
+    return gates, perf
+
+
+def test_a_fermata_waits_exactly_as_long_as_it_is_held():
+    """The world chooses *when*: what follows the fermata arrives
+    later by exactly the time the piece spent waiting, and a fermata
+    nobody holds costs the piece nothing."""
+    loose, _p = _held_take(0)
+    short, _q = _held_take(3 * 2000)
+    long_, _r = _held_take(6 * 2000)
+    assert len(loose) == len(short) == len(long_) == 2
+    assert loose[1] == pytest.approx(1984, abs=64)
+    assert short[1] - loose[1] == pytest.approx(3 * 2000, abs=128)
+    assert long_[1] - loose[1] == pytest.approx(6 * 2000, abs=128)
+
+
+def test_a_held_note_goes_on_sounding_through_the_fermata():
+    """It falls out rather than being built: the note's release sits
+    at a tick the clock has not reached, so the instrument simply
+    holds it — which is what stopping the clock *means*."""
+    from gestate.audioalloc import OFF_AT
+
+    _gates, perf = _held_take(6 * 2000)
+    offs = [chan for chan, value in perf.values.items()
+            if chan.endswith("f1") and value]
+    # The first note's release lands only after the wait is over, so
+    # during the hold nothing was released early.
+    assert perf._held >= 6 * 2000 - 128, "the clock did not wait"
