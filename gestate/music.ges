@@ -874,7 +874,9 @@ tempoSpansAt off s = case s of
         (a, b, ps) -> (off + prim_div_int (a - off) k,
                        off + prim_div_int (b - off) k, ps))
         (tempoSpansAt off t)
-    Retro t -> Nil
+    Retro t -> map (e => case e of
+        (a, b, ps) -> (off + durOf t - b, off + durOf t - a, flipEnv ps))
+        (tempoSpansAt 0 t)
     Sow n t -> tempoSpansAt off (sowScore n t)
     Clip w t -> tempoSpansAt off t
     Mark n -> Nil
@@ -884,6 +886,40 @@ tempoSpansAt off s = case s of
     Rest -> Nil
     Draw g -> Nil
     Hear p ky g -> Nil
+
+#: An envelope read backwards: each point's fraction mirrored and the
+#: list turned round, so a shape under `reverse` runs backwards over
+#: the reversed content — the law `spec/shape.md` states.
+#:
+#: **The flags ride their own points**, which is the one thing a
+#: mirror cannot make exact: `Step` and `Ramp` say what happens on
+#: *arrival*, and arrival changes ends when time does.  A ramp
+#: reversed is a ramp to where it came from, which is what a player
+#: means by it; a step reversed steps at the mirrored place.
+flipEnv : List Envelope -> List Envelope
+flipEnv ps = shiftFlags (reverse (map flipPoint ps))
+
+flipPoint : Envelope -> Envelope
+flipPoint p = case p of
+    Step b y -> Step (1.0 - b) y
+    Ramp b y -> Ramp (1.0 - b) y
+
+#: **The flags move one place along.**  `Step`/`Ramp` is a property of
+#: the point being *arrived at*, so a segment's slope belongs to its
+#: later end — and reversing time swaps which end that is.  Mirroring
+#: the beats alone left every ramp behind a step, which reads as a
+#: flat line: the whole shape went quiet while looking correct.
+shiftFlags : List Envelope -> List Envelope
+shiftFlags ps = case ps of
+    [] -> []
+    (p :: rest) -> Step (envAt p) (envVal p) :: shiftGo (envRamps p) rest
+
+shiftGo : Bool -> List Envelope -> List Envelope
+shiftGo prev ps = case ps of
+    [] -> []
+    (p :: rest) -> case prev of
+        True -> Ramp (envAt p) (envVal p) :: shiftGo (envRamps p) rest
+        False -> Step (envAt p) (envVal p) :: shiftGo (envRamps p) rest
 
 shapeSpansAt : Int -> [: a :]
             -> List (Int, Int, Chan Float, List Envelope)
@@ -899,7 +935,13 @@ shapeSpansAt off s = case s of
         (a, b, c, ps) -> (off + prim_div_int (a - off) k,
                           off + prim_div_int (b - off) k, c, ps))
         (shapeSpansAt off t)
-    Retro t -> Nil
+    # A retrograde mirrors what is inside it, shapes included: the
+    # span turns round within the subtree's own width and its envelope
+    # is read from the other end.
+    Retro t -> map (e => case e of
+        (a, b, c, ps) -> (off + durOf t - b, off + durOf t - a, c,
+                          flipEnv ps))
+        (shapeSpansAt 0 t)
     Sow n t -> shapeSpansAt off (sowScore n t)
     Clip w t -> shapeSpansAt off t
     TempoShape e u -> shapeSpansAt off u

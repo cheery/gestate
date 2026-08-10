@@ -929,12 +929,63 @@ def shape_plan(state, seed: int, source: str, limit: int = 64) -> list:
             points.append((_float_of(point.args[0], state),
                            point.tag == ramp,
                            _float_of(point.args[1], state)))
+        start, stop = _int(entry.args[0], state), _int(entry.args[1],
+                                                       state)
+        if stop <= start:
+            # **A shape needs a measurable span.**  Its points are
+            # fractions, and `durOf` of an unanswered question is 0 —
+            # so a shape wrapped round a `hear` has no width to be a
+            # fraction of.  Refused by name with the cure in it, the
+            # way a resume's own limit is (`spec/shape.md`).
+            raise ScoreError(
+                f"a `shape` at beat {start / TICKS_PER_BEAT:g} has no "
+                f"width to spread its envelope over — the span holds a "
+                f"question, and a question's width is not known until "
+                f"it is answered.  Declare one: "
+                f"`shape c e (long n (…))`")
         name = names.get(chan.chan_id)
         if name is not None:
-            out.append((_int(entry.args[0], state),
-                        _int(entry.args[1], state), name, points))
+            out.append((start, stop, name, points))
         node = _force(node.args[1], state)
     return out
+
+
+def shapes_of(synth: str, piece: str = "", rate: int = 22050,
+              seed: int = 0) -> list:
+    """The piece's `shape` plan, for a caller that has no state of its
+    own — the eager path, which compiles through `perform_voices` and
+    never sees one."""
+    both = synth + "\n" + piece
+    if "shape" not in both:
+        return []
+    _tempo, state, _root, _tags = stream_root(synth, piece, rate, seed)
+    return shape_plan(state, seed, both)
+
+
+def schedule_shapes(schedule, plan: list, tempo, rate: int, *,
+                    block: int):
+    """Write a shape plan into a `Schedule` — the bake's half of
+    automation.
+
+    One value per block across each span, which is what the performer
+    writes live and what control rate means here; outside its span a
+    shape says nothing, so the channel keeps whatever it was left at.
+    """
+    from .tempo import value_on
+
+    for start, stop, name, points in plan:
+        if stop <= start:
+            continue
+        first = samples_of(start, tempo, rate)
+        last = samples_of(stop, tempo, rate)
+        at = (first // block) * block
+        while at <= last:
+            tick = start + (stop - start) * max(0, at - first) / max(
+                1, last - first)
+            frac = (tick - start) / (stop - start)
+            schedule.change(at, name, value_on(points, min(1.0, frac)))
+            at += block
+    return schedule
 
 
 def marks_of(synth: str, piece: str = "", rate: int = 22050,

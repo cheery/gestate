@@ -128,6 +128,24 @@ class Transcript:
 
         return reader
 
+    def holding_of(self):
+        """Replay's fermatas: each hold lasts what it lasted.
+
+        A fermata's *length* is world input — the one thing about it
+        that is not arithmetic — so a replay reads it from here rather
+        than from a channel nobody is touching.  Keyed by `(beat,
+        channel)`, which is stable: a fermata is zero beats wide and
+        holding the clock moves no score tick, so the same fermata is
+        at the same beat in every take of the piece.
+        """
+        waits = {(entry[1], entry[2]): entry[3]
+                 for entry in self.events if entry[0] == "held"}
+
+        def holding(chan, beat, waited):
+            return waited < waits.get((beat, chan), 0)
+
+        return holding
+
     def confessions(self) -> dict:
         """What the performance owned up to, counted by kind.
 

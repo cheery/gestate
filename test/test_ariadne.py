@@ -660,7 +660,7 @@ def _held_take(samples_held):
     now = [0]
     perf = LazyPerformer(LiveStream(state, root, tags), tempo, RATE,
                          _allocators(), block=BLOCK,
-                         holding=lambda chan: now[0] < samples_held)
+                         holding=lambda chan, beat, waited: now[0] < samples_held)
     gates = []
     for t in range(0, 20 * 2000, BLOCK):
         now[0] = t
@@ -695,3 +695,117 @@ def test_a_held_note_goes_on_sounding_through_the_fermata():
     # The first note's release lands only after the wait is over, so
     # during the hold nothing was released early.
     assert perf._held >= 6 * 2000 - 128, "the clock did not wait"
+
+
+def test_a_take_that_waited_replays_as_one_that_waited():
+    """The oracle, with fermatas in it.  A hold's *length* is world
+    input — the one thing about a fermata that is not arithmetic — so
+    the thread records it and a replay holds for exactly as long,
+    with no channel being touched at all.  Without this entry
+    "improv equals replay" is false for any piece that waits.
+    """
+    from gestate.audiodynamic import LazyPerformer, LiveStream
+    from gestate.transcript import Transcript
+
+    source = SYNTH + "\n" + FERMATA + BPM
+
+    def take(holding, record):
+        tempo, state, root, tags = stream_root(SYNTH, FERMATA + BPM, RATE,
+                                               0, 0, live=True)
+        perf = LazyPerformer(LiveStream(state, root, tags), tempo, RATE,
+                             _allocators(), block=BLOCK, record=record,
+                             holding=holding)
+        gates = []
+        for t in range(0, 20 * 2000, BLOCK):
+            take.now = t
+            for boundary, chan, value in perf.advance(t):
+                if chan.endswith("f0") and value:
+                    gates.append(boundary)
+        return gates
+
+    record = Transcript(source_sha=Transcript.sha_of(source), rate=RATE,
+                        block=BLOCK, seed=0)
+    live = take(lambda chan, beat, waited: take.now < 5 * 2000, record)
+    held = [e for e in record.events if e[0] == "held"]
+    assert held, "the wait went unrecorded"
+    assert held[0][3] == pytest.approx(5 * 2000, abs=128)
+
+    replayed = take(record.holding_of(), None)
+    assert replayed == live, "the replay did not wait what the take waited"
+
+
+def _shaped(expr, beats=3, points="[Step 0.0 0.2, Ramp 1.0 0.9]"):
+    from gestate.audioperform import dynamic
+
+    piece = ("\nswell : Chan Float\nswell = chan\n\nscore : [: Void :]\n"
+             f"score = {expr.replace('POINTS', points)} >>= voices.lead\n")
+    perf, _a = dynamic(SYNTH, piece + BPM, rate=RATE, block=BLOCK)
+    out = []
+    for t in range(0, beats * 2000, BLOCK):
+        perf.advance(t)
+        out.append(perf.values.get("swell"))
+    return [v for v in out if v is not None]
+
+
+PAIR2 = "('(Custom 1.0 60) ++ '(Custom 0.9 64))"
+
+
+def test_a_shape_reverses_with_its_content():
+    """Acceptance 8, the law that was quietly broken: a shape under
+    `reverse` runs backwards.  It was *dropped* (the span walk said
+    `Nil` at a retrograde), and mirroring the beats alone left every
+    ramp behind a step — a flat line that looked like a shape."""
+    forward = _shaped(f"shape swell POINTS {PAIR2}")
+    backward = _shaped(f"reverse (shape swell POINTS {PAIR2})")
+    assert forward[0] == pytest.approx(0.2, abs=0.02)
+    assert backward[0] == pytest.approx(0.9, abs=0.02)
+    assert backward[len(backward) // 3] < backward[0], "it must descend"
+
+
+def test_a_shape_scales_with_its_span():
+    """Fractions of the span, so `|*` stretches the curve rather than
+    leaving it behind."""
+    plain = _shaped(f"shape swell POINTS {PAIR2}", beats=3)
+    wide = _shaped(f"(shape swell POINTS {PAIR2}) |* 2", beats=5)
+    assert plain[0] == pytest.approx(wide[0], abs=0.02)
+    # Half way through the doubled span reads what the whole one read
+    # half way through its own.
+    assert wide[len(wide) // 4] == pytest.approx(plain[len(plain) // 4],
+                                                 abs=0.08)
+
+
+def test_a_shape_survives_the_instrument_bind():
+    """It commutes with `>>=`: the annotation rides the subtree, so
+    committing the notes to a bank leaves it writing."""
+    assert max(_shaped(f"shape swell POINTS {PAIR2}")) > 0.8
+
+
+def test_the_bake_writes_a_shape_too():
+    """An offline render of a shaped piece should sound like a live
+    one — so the schedule carries the automation beside the notes."""
+    from gestate.audioperform import scored
+
+    piece = ("\nswell : Chan Float\nswell = chan\n\nscore : [: Void :]\n"
+             f"score = shape swell [Step 0.0 0.2, Ramp 1.0 0.9] {PAIR2}"
+             " >>= voices.lead\n")
+    schedule, _samples, _a = scored(SYNTH, piece + BPM, rate=RATE,
+                                    block=BLOCK)
+    early = schedule.value_at("swell", 0)
+    late = schedule.value_at("swell", 3 * RATE // 2)
+    assert early == pytest.approx(0.2, abs=0.02)
+    assert late > early, "the baked automation must climb"
+
+
+def test_a_shape_over_a_question_is_refused_by_name():
+    """A shape's points are fractions and a question has no width
+    until it is answered, so there is nothing to be a fraction of.
+    Refused with the cure in the message."""
+    from gestate.audioperform import scored
+    from gestate.audioscore import ScoreError
+
+    piece = ("\nworld : Chan (List Int)\nworld = chan\n"
+             "\nswell : Chan Float\nswell = chan\n\nscore : [: Void :]\n"
+             "score = shape swell [Step 0.0 0.2, Ramp 1.0 0.9]"
+             " (do ks <- hear world; '(Custom 1.0 60)) >>= voices.lead\n")
+    with pytest.raises(ScoreError, match="long"):
+        scored(SYNTH, piece + BPM, rate=RATE, block=BLOCK)

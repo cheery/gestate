@@ -551,9 +551,13 @@ class LazyPerformer:
         #: Samples spent waiting at fermatas, and the bookkeeping for
         #: it: `holding(chan_id)` is the world the piece waits on.
         self._held = 0
+        self._waited = 0
         self._last_t = 0
         self._released: set = set()
-        self.holding = holding or (lambda chan: False)
+        #: `holding(chan, beat, waited)` — the world a fermata waits
+        #: on.  `waited` is how long this hold has lasted, which is
+        #: what lets a replay hold for exactly what the thread recorded.
+        self.holding = holding or (lambda chan, beat, waited: False)
         self.allocators = allocators
         #: How many beats ahead of the clock the stream is forced.
         self.horizon = horizon
@@ -571,8 +575,9 @@ class LazyPerformer:
         self.record = record if record is not None else Transcript(
             rate=rate, block=block)
         #: What the performance had to decide beyond the notes:
-        #: `("stall", beat)`, `("dropped", beat, bank)` and — on a
-        #: replay whose thread ran out — `("dry", beat, port, key)`.
+        #: `("stall", beat)`, `("dropped", beat, bank)`,
+        #: `("held", beat, chan, samples)` for a fermata's wait, and —
+        #: on a replay whose thread ran out — `("dry", beat, port, key)`.
         #: **The same list** the record holds — appended as it happens,
         #: never transcribed after the fact.
         self.transcript: list = self.record.events
@@ -614,11 +619,22 @@ class LazyPerformer:
         if hold is None:
             self._last_t = t
             return
-        _at, chan = hold
-        if self.holding(chan):
+        at, chan = hold
+        beat = (at + self.origin) / TICKS_PER_BEAT
+        if self.holding(chan, beat, self._waited):
             # The clock stands still: every later instant moves with it.
-            self._held += max(0, t - self._last_t)
+            step = max(0, t - self._last_t)
+            self._held += step
+            self._waited += step
         else:
+            # **How long it waited goes in the thread.**  A fermata's
+            # length is world input like a reading is, so a take that
+            # waited four seconds must replay as one that waited four
+            # seconds — without this entry the oracle the whole stage
+            # rests on is false for any piece that holds.
+            if self._waited:
+                self.transcript.append(("held", beat, chan, self._waited))
+            self._waited = 0
             self.stream.release()
         self._last_t = t
 

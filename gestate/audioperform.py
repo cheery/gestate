@@ -157,7 +157,7 @@ def scored(synth: str, piece: str = "", *, rate: int, block: int,
     """
     from .audioalloc import Allocator
     from .audioscore import (duration_of_voices, perform_voices,
-                             schedule_voices)
+                             schedule_shapes, schedule_voices, shapes_of)
     from .audiovoices import banks_of, channels_of
 
     both = synth + "\n" + piece
@@ -165,6 +165,10 @@ def scored(synth: str, piece: str = "", *, rate: int, block: int,
     allocators = {b.name: Allocator(channels_of(both, b), policy=policy)
                   for b in banks_of(both)}
     schedule = schedule_voices(events, bpm, rate, allocators, block=block)
+    # The piece's own automation, baked beside its notes: an offline
+    # render of a shaped piece should sound like a live one.
+    schedule_shapes(schedule, shapes_of(synth, piece, rate, seed), bpm,
+                    rate, block=block)
     return schedule, duration_of_voices(events, bpm, rate), allocators
 
 
