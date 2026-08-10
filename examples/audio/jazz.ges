@@ -1,0 +1,137 @@
+# jazz.ges — a trio that waits for its keyboardist.
+#
+#   python -m gestate.audioperform jazz.ges --seconds 600 --dynamic --midi --midi-bank keys
+#   (or open it in the editor and play the `keys` bank)
+#
+# Everything the dynamic score learned, in one band.  The form is a
+# `cycle` (stage two: forever is a value).  The horn's lines and the
+# walking bass are `sown` (the seed half: chance with provenance — the
+# same `--seed` replays a night exactly).  And the whole band *listens*
+# (stage three): you comp on `keys` — your hands, softly monitored, ARE
+# the comping — while the horn solos over whatever harmony you hold,
+# in its own register, and the bass walks the same changes an octave
+# down.  Neither ever mimics your voicing: pitch classes travel,
+# registers are the band's own.  **Lift your hands and the band lays
+# out** — no idle track, no fallback: a rendered take with no player
+# is an honest silence.  Every reading lands in the transcript, so any
+# night somebody kept can be handed back note for note.
+
+Tone := Tone Float Int
+
+# The keyboard's way in — without this the horn's port has nothing to
+# hold, and `--midi` would listen to nobody.
+instance FromMIDI Tone where
+    noteOn c n v = Just (Tone (toFloat v / 127.0) n)
+
+# ── The band ─────────────────────────────────────────────────────────────
+
+voices horn 3 hornVoice : Sig Float
+
+voices keys 5 keysVoice : Sig Float
+
+voices bass 2 bassVoice : Sig Float
+
+hzOf : Tone -> Float
+hzOf t = case t of
+    Tone v k -> keyHz k
+
+velOf : Tone -> Float
+velOf t = case t of
+    Tone v k -> v
+
+# Three instruments, three bodies — one triangle for the whole band was
+# a rehearsal room with one keyboard.  Attacks are all a few
+# milliseconds or more, because `perc`'s instant one samples the
+# oscillator mid-cycle and dense swing turns that into crackle.
+
+#: The horn: a sawtooth's reeds, a slow vibrato, a resonant lowpass for
+#: the bore, and a breath of an attack.
+hornVoice : Sig Gate -> Sig Tone -> Sig Float
+hornVoice g s = lowpassSvf (700.0 + 2200.0 * adsr (Adsr 0.05 0.5 0.55 0.2) g) 0.35 (saw ((!hzOf s) * (1.0 + 0.006 * sine 5.2))) * (!velOf s) * adsr (Adsr 0.04 0.35 0.6 0.18) g
+
+#: The comp: an e-piano-ish pair — fundamental and a fading octave bell.
+keysVoice : Sig Gate -> Sig Tone -> Sig Float
+keysVoice g s = (triangle (!hzOf s) + 0.35 * sine ((!hzOf s) * 2.0) * adsr (Adsr 0.002 0.25 0.0 0.1) g) * (!velOf s) * adsr (Adsr 0.004 0.5 0.18 0.12) g
+
+#: The bass: round and short — mostly sine, a little edge, quick decay.
+bassVoice : Sig Gate -> Sig Tone -> Sig Float
+bassVoice g s = (0.85 * sine (!hzOf s) + 0.25 * triangle (!hzOf s)) * (!velOf s) * adsr (Adsr 0.006 0.45 0.25 0.1) g
+
+# The ceiling is a `brickwall` because `limit` overshoots on
+# transients, and an over-range sample is not loud, it is wrong.  The
+# horn alone gets a short room, which is most of why it reads as a
+# horn and not a wire.
+sound : Sig Float
+sound = brickwall 0.9 (0.34 * horn + 0.12 * reverb 0.35 0.012 horn + 0.3 * keys + 0.4 * bass)
+
+# ── Hearing the keyboardist ──────────────────────────────────────────────
+
+#: One beat that plays only while hands are down: the held keys if any,
+#: silence if not.  Every listening beat in the band goes through here,
+#: so "the band lays out" is one arm of one function.
+hearing : (List Int -> [: Tone :]) -> [: Tone :]
+hearing f = do
+    ks <- hear holds.keys
+    case ks of
+        Nil -> r
+        k :: kt -> f ks
+
+nth : Int -> List Int -> Int
+nth n ks = case ks of
+    Nil -> 0
+    k :: kt -> case n < 1 of
+        True -> k
+        False -> nth (n - 1) kt
+
+count : List Int -> Int
+count ks = case ks of
+    Nil -> 0
+    k :: kt -> 1 + count kt
+
+anyOf : List Int -> Int -> Int
+anyOf ks s = nth (below (count ks) s) ks
+
+#: A pitch class, placed in a register — what lets the band follow the
+#: *harmony* of whatever is held without aping its voicing: the horn
+#: takes the class from 60, the bass from 36, whoever's hands.  The
+#: base must be a multiple of 12 or it transposes instead of placing.
+register : Int -> Int -> Int
+register base k = base + k % 12
+
+# ── Swing, by arithmetic ─────────────────────────────────────────────────
+#
+# A swung pair is two-thirds and one-third of the beat: scale the pair
+# to three beats, give the first note two of them, shrink by three.
+swung : [: a :] -> [: a :] -> [: a :]
+swung a b = ((a |* 2) ++ b) |/ 3
+
+# ── The walking bass — down on the one, seeded in between ───────────────
+
+bassBeat : [: Tone :]
+bassBeat = hearing (ks => do s <- draw; '(Tone 0.9 (register 36 (anyOf ks s))))
+
+bassBar : [: Tone :]
+bassBar = hearing (ks => '(Tone 0.9 (register 36 (nth 0 ks)))) ++ bassBeat ++ bassBeat ++ bassBeat
+
+# ── The horn — swung eighths over your changes ───────────────────────────
+
+hornEighths : List Int -> [: Tone :]
+hornEighths ks = swung (do s <- draw; '(Tone 0.8 (register 60 (anyOf ks s))))
+                       (do s <- draw; chance 0.7 '(Tone 0.6 (register 72 (anyOf ks s))))
+
+hornBeat : [: Tone :]
+hornBeat = hearing hornEighths
+
+hornBar : [: Tone :]
+hornBar = hornBeat ++ hornBeat ++ hornBeat ++ hornBeat
+
+# ── The form: forever, a bar at a time, for as long as you play ─────────
+
+oneBar : [: Void :]
+oneBar = (hornBar >>= voices.horn) || (bassBar >>= voices.bass)
+
+score : [: Void :]
+score = cycle (bar ++ oneBar)
+
+bpm : Int
+bpm = 138
