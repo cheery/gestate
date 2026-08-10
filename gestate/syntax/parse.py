@@ -13,7 +13,8 @@ from dataclasses import dataclass
 from typing import Iterator
 
 from .ast import (
-    Pat, PVar, PCon, PLit, PTuple, PList, PSigCons, PAnnot, PBox,
+    CharLit, Pat, PVar, PCon, PLit, PTuple, PList, PSigCons,
+    PAnnot, PBox,
     Val, VWord, VConId, VNum, VStr, VApp, VFunc, VLet, VGiven, VCase, VAlt,
     VOpPhrase, VTuple, VList, VSet, VProj, VAnnot, VConstraint,
     VBox, VUnbox, VFor, VFix, VGfix, VComment,
@@ -610,7 +611,7 @@ class Parser:
 
         if t.kind == TT.STRING:
             tok = self._adv()
-            return PLit(tok.value, tok.span)
+            return Parser._string_pat(tok.value, tok.span)
 
         # variable
         if t.kind == TT.WORD:
@@ -1058,6 +1059,23 @@ class Parser:
             return pats
         return [Parser._to_pat(val)]
 
+
+    @staticmethod
+    def _string_pat(text: str, span) -> Pat:
+        """A string literal *pattern* is a list pattern of its
+        characters — `"ab"` is `'a' :: 'b' :: []`.
+
+        Sugar, and desugared here so nothing downstream ever meets a
+        `PLit` holding a string: `String` is `List Char` and a `Char`
+        is a number (`spec/syntax.md` — there is no separate character
+        syntax), so the match compiler's integer-literal rule already
+        knows how to test each one.  Without this, matching a label
+        had to be written `case name == "verse" of True -> …`, which
+        reads as a comparison where the author meant a *case*.
+        """
+        return PList([PLit(CharLit(ord(ch)), span) for ch in text],
+                     None, span)
+
     @staticmethod
     def _to_pat(val: Val) -> Pat:
         if isinstance(val, VWord):
@@ -1072,7 +1090,7 @@ class Parser:
         if isinstance(val, VNum):
             return PLit(val.value, val.span)
         if isinstance(val, VStr):
-            return PLit(val.value, val.span)
+            return Parser._string_pat(val.value, val.span)
         if isinstance(val, VTuple):
             return PTuple([Parser._to_pat(i) for i in val.items], val.span)
         return PVar("_", val.span)

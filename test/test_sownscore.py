@@ -281,27 +281,20 @@ def test_marks_enumerate_without_touching_a_note():
     instrument reaches through them), recur per pass of a `cycle`, and
     cost nothing they stand between.
     """
-    from gestate.gmachine import NAp, NNum, is_tuple
-    from gestate.midi import _force, _int, _list
+    from gestate.audioscore import marks_of
 
     piece = """
 intro : [: Custom :]
 intro = '(Custom 1.0 60) ++ '(Custom 0.9 62)
 
 score : [: Void :]
-score = (bar ++ intro ++ mark 2 ++ long 2 (cycle intro)) >>= voices.lead
+score = (bar ++ intro ++ mark "middle" ++ long 2 (cycle intro)) >>= voices.lead
 
 bpm : Int
 bpm = 120
 """
-    tempo, state, root, by_tag = stream_root(SYNTH, piece, RATE, seed=3)
-    marks_root = NAp(state.globals["marksMain"], NNum(3))
-    marks = []
-    for cell in _list(marks_root, state):
-        node = _force(cell, state)
-        assert is_tuple(node, 2)
-        marks.append((_int(node.args[0], state), _int(node.args[1], state)))
-    assert marks == [(0, 0), (192, 2)]   # anonymous, then named
+    marks = marks_of(SYNTH, piece, RATE, seed=3, limit=8)
+    assert marks == [(0, ""), (192, "middle")]   # anonymous, then named
 
     # And the notes neither moved nor multiplied for it — checked on a
     # finite variant, because the eager bake lays a clip's content whole

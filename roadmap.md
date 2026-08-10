@@ -439,11 +439,17 @@ rejoin answered in arrival order drifts.
 
 Two things it left behind:
 
-- **The label half.**  Sections as bound payloads
-  (`('"opening" ++ '"verse") >>= scoreParts`, measured holding to the
-  tick), paths as bind provenance (`verse/3/2`), `seek "verse/3"`, and
-  the skip-identical certificate.  The keys are machine identity; labels
-  are the human one, and the acceptance test below is still unwritten.
+- ~~**The label half.**~~  **Built.**  A section is a *point*, not a
+  wrapper — `Mark` carries a `String` and `section name s` is
+  `Mark name ++ s` — so the existing marks stream became the piece's
+  map with no second walk.  `marks_of` reads it (a prefix, for an
+  endless form), `tick_of_mark` counts occurrences left to right, and
+  naming a part costs no event and no tick.  It also forced a language
+  change worth having: **`case` matches string literals**, so
+  `case name of "verse" -> …` is writable at last.  What remains of
+  this line is the **skip-identical certificate** —
+  `(text, seed slice, readings slice)` — which is now a small step
+  from the keys and the map.
 - **A joint of undeclared width cannot be skipped** — now *defined*
   rather than silent.  `durOf` of an unanswered question is 0, so `Seq`
   has nothing to step over; `resumeSeq` asks `opaqueHead` and stops at

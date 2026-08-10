@@ -228,9 +228,34 @@ main = case 3 of
 """) == "30"
 
 
-def test_non_integer_literal_pattern_is_rejected():
+def test_a_string_pattern_is_a_list_pattern():
+    """`String` is `List Char`, so a string literal *pattern* is the
+    list of its characters — sugar, desugared in the parser.  It used
+    to be refused ("only integer literal patterns"), which meant
+    matching a label had to be written `case s == "verse" of True ->`,
+    a comparison where the author meant a case.
+
+    A `Char` is integer-*represented* but its own type, so the
+    elements compare through `ord`; integer patterns are untouched.
+    """
+    assert _eval('''f : String -> Int
+f s = case s of
+    "" -> 1
+    "ab" -> 2
+    "abc" -> 3
+    _ -> 4
+
+main : String
+main = show (f "abc" * 1000 + f "ab" * 100 + f "" * 10 + f "z")
+''') == "3214"
+
+
+def test_a_float_literal_pattern_is_still_rejected():
+    """The refusal that remains, and it is honest: an exact test on a
+    float is a question about bits wearing the clothes of a value."""
     with pytest.raises(DesugarError, match="integer literal"):
-        evaluate('f : Int -> Int\nf "a" = 1\nf n = 2\n\nmain : Int\nmain = f 1\n')
+        evaluate("f : Float -> Int\nf 1.5 = 1\nf n = 2\n"
+                 "\nmain : Int\nmain = f 1.5\n")
 
 
 # ── Variables and wildcards in alternatives ──────────────────────────────────

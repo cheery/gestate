@@ -70,10 +70,26 @@ steady stall is mentioned rather than repeated).  An empty world and
 a dry thread sound identical and read apart, which is the whole
 point: *silence is what it plays; which silence is what it knows.*
 
-Still ahead: the label half of paths (sections as bound payloads,
-with `section` as the small arm the label lands on — the author's own
-function receives the label, which is what reconciles the payload
-spelling with a mechanism), shapes and `tempoShape`.  Every decision marked
+**The label half of paths is built**, and cheaply, because a section
+turned out to be a *point* rather than a wrapper: `Mark` carries a
+`String` now and `section name s` is `Mark name ++ s`, so the whole
+marks stream — lazy, bound-riding, already tested — became the
+piece's map without a second walk.  `marks_of` reads it off the score
+(a prefix, for an endless form) and `tick_of_mark` counts occurrences
+left to right, which is what `seek "verse/3"` means.  Naming a part
+changes no event and no tick; a computed form maps exactly as a
+written one does.
+
+One language change came with it, because the idiom demanded it:
+**`case` matches string literals now.**  `scoreParts name = section
+name (case name of "verse" -> …)` was unwritable — patterns were
+integers only, so a label had to be tested with `==`, a comparison
+where the author meant a case.  A string pattern is a list pattern of
+its characters (sugar, desugared in the parser); `Char` is
+integer-*represented* but its own type, so those elements compare
+through `ord`, and integer patterns are untouched.
+
+Still ahead: shapes and `tempoShape`.  Every decision marked
 **open** remains his.  Companions:
 `spec/dynscore-constraints.md` (the walls this must stand inside),
 `spec/monad.md` (the syntax this stands on), `spec/sown.md` (the
@@ -371,8 +387,12 @@ by name, the retirement rule.
   on later.
 - Path spelling and the autolabel format (`verse.3/bar.2` is a
   sketch, not a decision).
-- Whether `long` survives as a skip annotation or paths make it
-  redundant.
+- ~~Whether `long` survives as a skip annotation~~ — **answered by
+  evidence, and it is load-bearing.**  A question's own width is
+  unknown until it is answered, so only a declared span lets a rebuild
+  skip the bar it stands in; without one the resume stops at the joint
+  and restarts the phrase.  Declaring it costs nothing — measured, not
+  one event moves — so the three listening pieces now do.
 - The plugin boundary: an exported ariadne piece under a DAW — the
   notes port answers `hear` (already true), the transport answers
   time; whether a fermata is expressible abroad at all.

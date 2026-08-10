@@ -399,3 +399,137 @@ def test_a_dry_thread_is_a_recorded_fact_not_only_a_silence():
     empty = [e for e in replay.events
              if e[0] == "reading" and e[3] == []]
     assert empty, "the dry questions still read as silence"
+
+
+# ── The two acceptance clauses the suite still owed ─────────────────────────
+
+
+def test_bind_distributes_through_a_joint():
+    """Acceptance 2 (`spec/ariadne.md`): the homomorphism holds when a
+    branch contains a question.  `(a ++ b) >>= f` is `(a >>= f) ++
+    (b >>= f)` even where `a` is decided by the world — which is the
+    property the old boxed surface broke and the whole redesign is
+    for."""
+    joined = ("\nphraseOf : List Int -> [: Custom :]\n"
+              "phraseOf ks = case ks of\n"
+              "    Nil -> r\n"
+              "    k :: kt -> '(Custom 0.9 k)\n"
+              "\nscore : [: Void :]\n"
+              "score = (((do ks <- hear 0; phraseOf ks)"
+              " ++ '(Custom 0.5 36)) >>= voices.lead)\n")
+    spread = joined.replace(
+        "(((do ks <- hear 0; phraseOf ks) ++ '(Custom 0.5 36))"
+        " >>= voices.lead)",
+        "(((do ks <- hear 0; phraseOf ks) >>= voices.lead)"
+        " ++ ('(Custom 0.5 36) >>= voices.lead))")
+    assert spread != joined
+    for world in ([60], [60, 64], []):
+        assert _drive(joined, world) == _drive(spread, world), world
+
+
+def test_the_label_bind_sentence_holds_with_joints_inside():
+    """Acceptance 7: Henri's own spelling — the sections of a piece as
+    *payloads*, bound to the function that plays them —
+
+        ('"opening" ++ '"verse" ++ '"closing") >>= scoreParts
+
+    equals the piece written out, to the tick, and keeps doing so when
+    the parts listen.  This is what makes labels *paths*: bind
+    preserves the spine exactly, so a position in the form is a
+    position in the music.
+    """
+    parts = """
+opening : [: Custom :]
+opening = '(Custom 1.0 60) |* 2
+
+verse : [: Custom :]
+verse = do
+    ks <- hear 0
+    case ks of
+        Nil -> r
+        k :: kt -> '(Custom 0.9 k)
+
+closing : [: Custom :]
+closing = '(Custom 0.6 72) |* 2
+
+scoreParts : String -> [: Custom :]
+scoreParts name = case name == "opening" of
+    True -> opening
+    False -> case name == "verse" of
+        True -> verse
+        False -> closing
+"""
+    bound = parts + ("\nscore : [: Void :]\n"
+                     "score = (('\"opening\" ++ '\"verse\" ++ '\"closing\")"
+                     " >>= scoreParts) >>= voices.lead\n")
+    written = parts + ("\nscore : [: Void :]\n"
+                       "score = (opening ++ verse ++ closing)"
+                       " >>= voices.lead\n")
+    for world in ([64], []):
+        assert _drive(bound, world) == _drive(written, world), world
+
+
+# ── The label half of paths: sections, and seeking by name ─────────────────
+
+
+FORM = """
+verse : [: Custom :]
+verse = '(Custom 0.9 64)
+
+chorus : [: Custom :]
+chorus = '(Custom 1.0 72) |* 2
+
+scoreParts : String -> [: Custom :]
+scoreParts name = section name (case name of
+    "verse" -> verse
+    _ -> chorus)
+"""
+
+
+def test_a_piece_names_its_own_parts():
+    """Acceptance 6 (`spec/ariadne.md`), the label half: the form
+    written as *payloads* and bound to the function that plays them
+    gives the transport a map — `[(tick, name)]` — read off the score
+    itself, so a form that is computed maps as a written one does.
+    """
+    from gestate.audioscore import marks_of, tick_of_mark
+
+    piece = FORM + ("\nscore : [: Void :]\n"
+                    "score = (('\"opening\" ++ '\"verse\" ++ '\"closing\")"
+                    " >>= scoreParts) >>= voices.lead\n") + BPM
+    marks = marks_of(SYNTH, piece, RATE, limit=8)
+    assert marks == [(0, "opening"), (192, "verse"), (288, "closing")]
+    assert tick_of_mark(marks, "verse") == 192
+    assert tick_of_mark(marks, "nowhere") is None
+
+
+def test_an_endless_form_maps_as_far_as_it_is_asked():
+    """A `cycle` of sections has endless marks, so the map is a
+    *prefix* — the honest shape of the question — and occurrences are
+    counted left to right, which is how a person reads a form and how
+    `seek "verse/3"` finds its bar."""
+    from gestate.audioscore import marks_of, tick_of_mark
+
+    piece = FORM + ("\nscore : [: Void :]\n"
+                    "score = ((cycle ('\"verse\" ++ '\"chorus\"))"
+                    " >>= scoreParts) >>= voices.lead\n") + BPM
+    marks = marks_of(SYNTH, piece, RATE, limit=6)
+    assert len(marks) == 6, "the map should stop where it was asked to"
+    assert [m for _t, m in marks] == ["verse", "chorus"] * 3
+    assert tick_of_mark(marks, "verse", 3) == 576
+    assert tick_of_mark(marks, "chorus", 2) == 384
+
+
+def test_a_section_costs_the_music_nothing():
+    """The constant law once more: naming a part changes no event and
+    no tick — a mark is zero wide and the body follows it, so
+    `durOf (section n s)` is `durOf s` by construction."""
+    named = FORM + ("\nscore : [: Void :]\n"
+                    "score = (('\"verse\" ++ '\"chorus\"')"
+                    " >>= scoreParts) >>= voices.lead\n").replace("'\"chorus\"'",
+                                                                  "'\"chorus\"")
+    bare = ("\nverse : [: Custom :]\nverse = '(Custom 0.9 64)\n"
+            "\nchorus : [: Custom :]\nchorus = '(Custom 1.0 72) |* 2\n"
+            "\nscore : [: Void :]\n"
+            "score = (verse ++ chorus) >>= voices.lead\n")
+    assert _events(named) == _events(bare)

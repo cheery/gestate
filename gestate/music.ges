@@ -60,7 +60,7 @@ Score a := Note a                # `'x` — unassigned, carries the payload
          | Retro (Score a)          # `reverse` — back to front
          | Sow Int (Score a)         # `sow n s` — re-root a subtree's seed
          | Clip Int (Score a)        # `long n s` — a declared span
-         | Mark Int                  # `mark n` — a bar point, zero wide
+         | Mark String               # a named point, zero wide
          # Ariadne (`spec/ariadne.md`): the reactive surface as lawful
          # leaves of the algebra, free-monad shaped — a value arrives, the
          # continuation is the rest of the subtree, and no box clips it.
@@ -302,8 +302,30 @@ long n s = Clip (n * ticksPerBeat) s
 #: unfolding everything to its left.  Numbered rather than named,
 #: the way seeds are: what matters is that the same one means the
 #: same place twice.
-mark : Int -> [: a :]
+mark : String -> [: a :]
 mark n = Mark n
+
+#: **A named span** — `section "verse" body` marks where the verse
+#: begins and plays it.  A *point*, not a wrapper: the mark is zero
+#: wide and the body follows it, so a section costs the algebra
+#: nothing and `durOf (section n s)` is `durOf s` by construction.
+#:
+#: The idiom this exists for is Henri's — the form of a piece written
+#: as *payloads* and bound to the function that plays them:
+#:
+#:     score = ('"opening" ++ '"verse" ++ '"closing") >>= scoreParts
+#:
+#:     scoreParts name = section name (case name of
+#:         "opening" -> intro
+#:         "verse" -> verse
+#:         _ -> coda)
+#:
+#: Bind preserves the spine exactly, so a position in the form is a
+#: position in the music: that is what makes these names *paths*
+#: rather than decorations, and what lets a transport re-enter by one
+#: (`streamMarks`, `spec/ariadne.md`).
+section : String -> [: a :] -> [: a :]
+section name s = Seq (Mark name) s
 
 #: **An anonymous bar point** — `bar ++ verse ++ bar ++ chorus` marks
 #: the seams without naming them.  Anonymity works because a resume
@@ -312,7 +334,7 @@ mark n = Mark n
 #: which shifts when marks are added — a place that must keep its
 #: name across edits writes `mark n` instead.
 bar : [: a :]
-bar = Mark 0
+bar = Mark ""
 
 #: **Which reading a `hear` asks for.**  An alias of `Int` for the
 #: reason `Seed` is over in `synth.ges`: the number is an identity the
@@ -343,7 +365,7 @@ hear p = Hear p 0 (xs => 'xs)
 #: Every mark and where it falls, `(tick, mark)`, beat-ordered and
 #: lazy — `streamVoices`' little sibling, named by its own generated
 #: entry (`marksMain`), which is why it stands above the marker.
-streamMarks : [: Void :] -> List (Int, Int)
+streamMarks : [: Void :] -> List (Int, String)
 streamMarks s = streamMarksAt 0 s
 
 #: **The remainder of a score from tick `t` on** — what a resume plays,
@@ -727,7 +749,8 @@ takeBelowV w es = case es of
 # touches a payload, and a `Clip` bounds its branch the same way, which
 # is what keeps the walk cheap on an endless piece.
 
-mergeMarks : List (Int, Int) -> List (Int, Int) -> List (Int, Int)
+mergeMarks : List (Int, String) -> List (Int, String)
+          -> List (Int, String)
 mergeMarks xs ys = case xs of
     Nil -> ys
     x :: xt -> case ys of
@@ -738,7 +761,7 @@ mergeMarks xs ys = case xs of
                     True -> x :: mergeMarks xt ys
                     False -> y :: mergeMarks xs yt
 
-placeMarks : Int -> List (Int, Int) -> List (Int, Int)
+placeMarks : Int -> List (Int, String) -> List (Int, String)
 placeMarks off ms = map (e => case e of
     (a, m) -> (off + a, m)) ms
 
@@ -747,7 +770,7 @@ minInt a b = case a < b of
     True -> a
     False -> b
 
-streamMarksAt : Int -> [: a :] -> List (Int, Int)
+streamMarksAt : Int -> [: a :] -> List (Int, String)
 streamMarksAt off s = case s of
     Mark n -> (off, n) :: Nil
     Draw g -> Nil
@@ -773,7 +796,7 @@ streamMarksAt off s = case s of
 # the bound has to ride the spine and cut it where the offset crosses
 # the box.  The duplication beside `streamMarksAt` is the `…V` pattern's
 # again: the same walk with one more fact in hand.
-streamMarksTo : Int -> Int -> [: a :] -> List (Int, Int)
+streamMarksTo : Int -> Int -> [: a :] -> List (Int, String)
 streamMarksTo limit off s = case limit <= off of
     True -> Nil
     False -> case s of

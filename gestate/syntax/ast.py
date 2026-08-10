@@ -250,6 +250,18 @@ class PCon(Pat):
     span: Span = field(default_factory=Span)
 
 
+class CharLit(int):
+    """An integer literal that remembers it was written as a character.
+
+    `String` is `List Char` and a `Char` is integer-*represented* but
+    its own type, so a string pattern's elements compare through `ord`
+    rather than directly (`match._lit_rule`).  Subclassing `int` keeps
+    every existing `isinstance(v, int)` test true, so nothing else in
+    the pipeline has to learn the distinction.
+    """
+    __slots__ = ()
+
+
 @dataclass
 class PLit(Pat):
     value: Union[int, float, str]

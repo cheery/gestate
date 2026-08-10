@@ -361,11 +361,20 @@ class Matcher:
             if v not in values:
                 values.append(v)
 
+        # **A char compares through `ord`.**  `Char` is its own type
+        # sharing `Int`'s representation, so the scrutinee of a string
+        # pattern's element needs the coercion the language already
+        # names; an integer pattern is untouched.
+        from .syntax.ast import CharLit
+
+        scrut = (EAp(EGlobal("ord"), EVar(u))
+                 if any(isinstance(r.pats[0].value, CharLit) for r in group)
+                 else EVar(u))
         result = default
         for value in reversed(values):
             rows = [_shift(r, [], {}) for r in group if r.pats[0].value == value]
             matched = self._compile(us, rows, default, locals_)
-            test = EAp(EAp(EGlobal("prim_eq_int"), EVar(u)), ENum(value))
+            test = EAp(EAp(EGlobal("prim_eq_int"), scrut), ENum(value))
             result = ECase(test, [
                 Alter(self.true_tag, [], matched),
                 Alter(self.false_tag, [], result),

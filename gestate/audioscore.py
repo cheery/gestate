@@ -218,7 +218,7 @@ _STREAM_ENTRY = ("streamMain : Int -> List (Int, Int, Voice)\n"
 #: offer re-entry, and what a resume will name instead of unfolding
 #: everything left of it (`spec/dynamicscore.md`, the span-and-mark
 #: answer to the rebuild question).
-_MARKS_ENTRY = ("marksMain : Int -> List (Int, Int)\n"
+_MARKS_ENTRY = ("marksMain : Int -> List (Int, String)\n"
                 "marksMain sd = streamMarks (sowScore (seedRoot sd) score)\n")
 
 #: The remainder from tick `t`, rebased to zero — the resume a rebuild
@@ -720,6 +720,64 @@ def stream_root(synth: str, piece: str = "", rate: int = 22050,
     else:
         root = NAp(state.globals["streamMain"], NNum(seed))
     return tempo, state, root, by_tag
+
+
+def marks_of(synth: str, piece: str = "", rate: int = 22050,
+             seed: int = 0, limit: int = 256) -> list:
+    """**The piece's map** — `[(tick, name)]`, in beat order.
+
+    What a transport offers as re-entry points, and what `section`
+    writes: the names a piece gives its own parts, at the ticks they
+    begin.  Lazy and therefore bounded by `limit`, because an endless
+    piece has endless marks — asking for the first N of a `cycle` is
+    the honest shape of the question.
+
+    Read from the score itself rather than from the text, so a form
+    that is *computed* — bound from payloads, chosen by a seed, even
+    heard — maps exactly as a written one does.
+    """
+    from .gmachine import NAp, NCon, NNum, is_tuple
+    from .midi import _force, _int, _list
+
+    _tempo, state, _root, _tags = stream_root(synth, piece, rate, seed)
+    cons = state.cons["Cons"].tag
+    nil = state.cons["Nil"].tag
+    # **The spine, cell by cell.**  Not `midi._list`, which walks to
+    # `Nil` and therefore never returns on an endless form — the very
+    # kind of piece whose map is most worth having.  A name is finite,
+    # so its own characters may be forced whole.
+    node = _force(NAp(state.globals["marksMain"], NNum(seed)), state)
+    out: list = []
+    while len(out) < limit:
+        if not isinstance(node, NCon) or node.tag not in (cons, nil):
+            raise ScoreError("internal: the marks stream is not a list")
+        if node.tag == nil:
+            break
+        entry = _force(node.args[0], state)
+        if not is_tuple(entry, 2):
+            raise ScoreError("internal: a mark is not a (tick, name)")
+        name = "".join(chr(_int(c, state))
+                       for c in _list(entry.args[1], state))
+        out.append((_int(entry.args[0], state), name))
+        node = _force(node.args[1], state)
+    return out
+
+
+def tick_of_mark(marks: list, name: str, occurrence: int = 1):
+    """Where a named part begins — `("verse", 2)` is the second verse.
+
+    Occurrences are counted left to right, which is how a person reads
+    a form and how a host should number them; `None` when the piece
+    has no such part (or not that many of it), which a caller should
+    say rather than guess at.
+    """
+    seen = 0
+    for tick, mark in marks:
+        if mark == name:
+            seen += 1
+            if seen == occurrence:
+                return tick
+    return None
 
 
 #: Bump when what `perform_voices` returns changes shape — the stored
