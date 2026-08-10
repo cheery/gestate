@@ -742,8 +742,17 @@ def test_a_played_note_is_the_scheduled_note(tmp_path):
     port = AudioBuffer(data32=chans, data64=None, channel_count=1,
                        latency=0, constant_mask=0)
 
+    # A *stopped* transport, not a null one: `fmpoly` carries a demo
+    # score, and with no transport at all a free-running host now
+    # performs it (the cursor, `spec/dynamicscore.md` stage one) —
+    # this test is the keyboard's, and a DAW auditions a keyboard
+    # with the timeline stopped.
+    still = Transport()
+    still.flags = 0
+
     def block(events=None) -> list:
-        proc = Process(steady_time=0, frames_count=frames, transport=None,
+        proc = Process(steady_time=0, frames_count=frames,
+                       transport=ctypes.pointer(still),
                        audio_inputs=None,
                        audio_outputs=ctypes.pointer(port),
                        audio_inputs_count=0, audio_outputs_count=1,
@@ -854,9 +863,16 @@ def test_the_routing_matrix_layers_banks(tmp_path):
     port = AudioBuffer(data32=chans, data64=None, channel_count=1,
                        latency=0, constant_mask=0)
 
+    # Stopped rather than null: `duet`'s bass is scored, and a null
+    # transport free-runs the piece now — the matrix is the keyboard's
+    # test, so the timeline stands still.
+    still = Transport()
+    still.flags = 0
+
     def block(*evs) -> list:
         events, kept = _event_list(*evs) if evs else (None, None)
-        proc = Process(steady_time=0, frames_count=frames, transport=None,
+        proc = Process(steady_time=0, frames_count=frames,
+                       transport=ctypes.pointer(still),
                        audio_inputs=None,
                        audio_outputs=ctypes.pointer(port),
                        audio_inputs_count=0, audio_outputs_count=1,
@@ -919,4 +935,175 @@ def test_the_routing_matrix_layers_banks(tmp_path):
                              ctypes.byref(got))
     assert got.value == 1.0, "the project forgot the matrix"
     plugin2.destroy(plug2_raw)
+    plugin.destroy(plug_raw)
+
+
+# ── The score cursor — `spec/dynamicscore.md` stage one's Rust half ─────────
+
+
+def _transport_at(t: int, rate: int, bpm: float) -> "Transport":
+    """A playing timeline standing at engine sample `t` — beats fixed
+    point the way a host computes it, rounded, so the cursor's slack
+    is exercised rather than sidestepped."""
+    transport = Transport()
+    transport.flags = IS_PLAYING | (1 << 0) | (1 << 1)
+    transport.tempo = bpm
+    transport.song_pos_beats = round(t / rate * (bpm / 60.0) * (1 << 31))
+    return transport
+
+
+@needs_toolchain
+def test_the_daw_plays_the_piece(tmp_path):
+    """Press play and the piece performs itself — the stage-one
+    promise, through the exported artifact.
+
+    The descriptor carries `duet`'s events in beats; a playing
+    transport at the piece's own tempo walks the cursor over them; and
+    the result must be the *bake* — the same `schedule_voices` control
+    the offline render uses — sample for sample, because cursor and
+    bake share one arithmetic (`tick * 60 * rate // (bpm * TPB)`) and
+    one allocation order.
+    """
+    from gestate.audioalloc import Allocator
+    from gestate.audiollvm import run_native
+    from gestate.audioperform import graph_of
+    from gestate.audioscore import (duration_of_voices, perform_voices,
+                                    schedule_voices)
+    from gestate.audiovoices import banks_of, channels_of
+    from gestate.export import export_clap
+
+    source = (Path(__file__).resolve().parent.parent
+              / "examples" / "audio" / "duet.ges").read_text()
+    out = tmp_path / "duet.clap"
+    export_clap(source, out, rate=RATE, name="duet")
+
+    lib, plug_raw, plugin = _plugin_of(out)
+    assert plugin.init(plug_raw)
+    assert plugin.activate(plug_raw, float(RATE), 32, 512)
+    assert plugin.start_processing(plug_raw)
+
+    bpm, events = perform_voices(source, "", RATE)
+    frames = 128
+    samples = duration_of_voices(events, bpm, RATE)
+    blocks = samples // frames
+
+    buf = (c_float * frames)()
+    chans = (POINTER(c_float) * 1)(ctypes.cast(buf, POINTER(c_float)))
+    port = AudioBuffer(data32=chans, data64=None, channel_count=1,
+                       latency=0, constant_mask=0)
+    played: list = []
+    for k in range(blocks):
+        transport = _transport_at(k * frames, RATE, float(bpm))
+        proc = Process(steady_time=0, frames_count=frames,
+                       transport=ctypes.pointer(transport),
+                       audio_inputs=None,
+                       audio_outputs=ctypes.pointer(port),
+                       audio_inputs_count=0, audio_outputs_count=1,
+                       in_events=None, out_events=None)
+        assert plugin.process(plug_raw, ctypes.byref(proc)) == 1
+        played += list(buf)
+
+    graph = graph_of(source, "", rate=RATE)
+    allocators = {b.name: Allocator(channels_of(source, b),
+                                    policy="oldest")
+                  for b in banks_of(source)}
+    schedule = schedule_voices(events, bpm, RATE, allocators,
+                               block=frames)
+    with tempfile.TemporaryDirectory() as d:
+        offline = list(run_native(graph, d, blocks * frames,
+                                  block=frames,
+                                  control=schedule.control_for(graph)))
+
+    assert max(abs(x) for x in offline) > 0.05, "silent: nothing compared"
+    assert played == pytest.approx(offline), \
+        "the performed piece is not the baked piece"
+    plugin.destroy(plug_raw)
+
+
+@needs_toolchain
+def test_play_from_bar_five_plays_bar_five(tmp_path):
+    """Seek to the middle and press play: the piece continues from
+    there, standing exactly where playing from the top would stand.
+
+    The oracle is `audiodynamic.Performer` itself — seek then advance,
+    its changes poured into a `Schedule` with the time-valued channels
+    rebased to the plugin's engine clock (`gateAt` names an instant
+    before the engine began, which is how a held note resumes
+    mid-envelope).  One semantics, two implementations, one render
+    each.
+    """
+    from gestate.audioalloc import GATE_AT, OFF_AT, Allocator
+    from gestate.audiodynamic import Performer
+    from gestate.audiollvm import run_native
+    from gestate.audioperform import graph_of
+    from gestate.audioschedule import Schedule
+    from gestate.audioscore import duration_of_voices, perform_voices
+    from gestate.audiovoices import banks_of, channels_of
+    from gestate.export import export_clap
+
+    source = (Path(__file__).resolve().parent.parent
+              / "examples" / "audio" / "duet.ges").read_text()
+    out = tmp_path / "duet.clap"
+    export_clap(source, out, rate=RATE, name="duet")
+
+    lib, plug_raw, plugin = _plugin_of(out)
+    assert plugin.init(plug_raw)
+    assert plugin.activate(plug_raw, float(RATE), 32, 512)
+    assert plugin.start_processing(plug_raw)
+
+    bpm, events = perform_voices(source, "", RATE)
+    frames = 128
+    samples = duration_of_voices(events, bpm, RATE)
+    target = samples // 2                      # beat 8 of 16, on a beat
+    blocks = (samples - target) // frames
+
+    buf = (c_float * frames)()
+    chans = (POINTER(c_float) * 1)(ctypes.cast(buf, POINTER(c_float)))
+    port = AudioBuffer(data32=chans, data64=None, channel_count=1,
+                       latency=0, constant_mask=0)
+    played: list = []
+    for k in range(blocks):
+        transport = _transport_at(target + k * frames, RATE, float(bpm))
+        proc = Process(steady_time=0, frames_count=frames,
+                       transport=ctypes.pointer(transport),
+                       audio_inputs=None,
+                       audio_outputs=ctypes.pointer(port),
+                       audio_inputs_count=0, audio_outputs_count=1,
+                       in_events=None, out_events=None)
+        assert plugin.process(plug_raw, ctypes.byref(proc)) == 1
+        played += list(buf)
+
+    # The Python performer's own seek, rebased to the plugin's clock:
+    # the plugin rewound at the play edge, so its engine sample 0 is
+    # score sample `target`, and every gate/off stamp shifts by it.
+    allocators = {b.name: Allocator(channels_of(source, b),
+                                    policy="oldest")
+                  for b in banks_of(source)}
+    timechans = set()
+    for b in banks_of(source):
+        for voice in channels_of(source, b):
+            timechans.update((voice[GATE_AT], voice[OFF_AT]))
+
+    def rebased(chan, value):
+        return value - target if value and chan in timechans else value
+
+    performer = Performer(events, bpm, RATE, allocators, block=frames)
+    performer.seek(target)
+    schedule = Schedule()
+    for chan, value in performer.values.items():
+        schedule.change(0, chan, rebased(chan, value))
+    for t in range(target, samples + frames, frames):
+        for boundary, chan, value in performer.advance(t):
+            schedule.change(boundary - target, chan,
+                            rebased(chan, value))
+
+    graph = graph_of(source, "", rate=RATE)
+    with tempfile.TemporaryDirectory() as d:
+        offline = list(run_native(graph, d, blocks * frames,
+                                  block=frames,
+                                  control=schedule.control_for(graph)))
+
+    assert max(abs(x) for x in offline) > 0.05, "silent: nothing compared"
+    assert played == pytest.approx(offline), \
+        "playing from the middle is not standing in the middle"
     plugin.destroy(plug_raw)

@@ -44,6 +44,16 @@ env/
 *.flac
 *.ogg
 
+# ── The Rust workspace ───────────────────────────────────────────────────
+#
+# `crust/` and `shell/clap` each ignore their own `target/`; these two
+# cover a cargo run from the root.  The lock stays unignored nowhere:
+# both crates are zero-dependency by rule, so the lock pins nothing a
+# command cannot make again.
+
+/target/
+Cargo.lock
+
 # ── Editor and OS litter ─────────────────────────────────────────────────
 
 *~

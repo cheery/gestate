@@ -125,6 +125,22 @@ pub struct RateCase {
                                      frames: i64, control: *const i64),
 }
 
+/// One event of the piece's own score, in *beats* — `spec/
+/// dynamicscore.md` stage one's descriptor half.  `tick` is the beat
+/// position × `SCORE_TPB`, exact where a float would drift; `key` is
+/// the event's own index, `timed_events`' note identity; `payload` is
+/// the author's record already reinterpreted to slot bits, empty on a
+/// release.  The exporter writes the list in the performance's one
+/// true order — `(tick, releases-first)` — and the cursor
+/// (`score.rs`) preserves it.
+pub struct ScoreEvent {
+    pub tick: i64,
+    pub key: u32,
+    pub bank: usize,
+    pub is_off: bool,
+    pub payload: &'static [i64],
+}
+
 // (`tempoChan`, the nominal convention that briefly lived here, is
 // retired: the host clock now arrives through descriptor-declared
 // slots — `BEAT_SLOTS` — never through a channel's spelling.
@@ -161,3 +177,29 @@ pub static BEAT_SLOTS: Option<(usize, usize, usize)> = linked::BEAT_SLOTS;
 
 #[cfg(not(feature = "engine"))]
 pub static BEAT_SLOTS: Option<(usize, usize, usize)> = None;
+
+/// The piece's own events in beats — empty for a plugin that is an
+/// instrument without a piece, which is every scoreless export and,
+/// until the G-machine travels (`spec/crust.md`), every unfolding one.
+#[cfg(feature = "engine")]
+pub static SCORE: &[ScoreEvent] = linked::SCORE;
+
+#[cfg(not(feature = "engine"))]
+pub static SCORE: &[ScoreEvent] = &[];
+
+/// `midi.TICKS_PER_BEAT`, written by the exporter so the two never
+/// spell it separately.
+#[cfg(feature = "engine")]
+pub static SCORE_TPB: i64 = linked::SCORE_TPB;
+
+#[cfg(not(feature = "engine"))]
+pub static SCORE_TPB: i64 = 96;
+
+/// The piece's own tempo, for a host with no transport at all: a
+/// free-running host plays the score at its declared pace, the same
+/// convention as the untouched beat slots.
+#[cfg(feature = "engine")]
+pub static SCORE_BPM: f64 = linked::SCORE_BPM;
+
+#[cfg(not(feature = "engine"))]
+pub static SCORE_BPM: f64 = 120.0;

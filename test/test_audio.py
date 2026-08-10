@@ -84,7 +84,22 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # a detuned bed, a crossing swoosh.  A piece, so no golden;
             # the two-channel port is exercised by `test_export.py`'s
             # stereo parity.
-            "pingpong.ges"]
+            "pingpong.ges",
+            # Two endless, seeded pieces (`cycle` + `sown`), so they are
+            # the dynamic path's to play and a golden is impossible by
+            # construction — a bake would refuse them by name
+            # (`unfolding_names`).  What they exercise is pinned in
+            # `test_sownscore.py` and `test_lazyscore.py`, and the
+            # rejoin-cost measurement carries a fixture of `moods.ges`'s
+            # own shape.
+            "moods.ges", "nightdrive.ges",
+            # The two listeners: hold keys on one bank, the line comes
+            # out another — chancy and deterministic respectively.  A
+            # probe piece with no hands is honest silence, so a golden
+            # would be a buffer of nothing; the listening semantics are
+            # pinned in `test_probescore.py`, keyboard to line, end to
+            # end.
+            "arpeggiator.ges", "ladder.ges"]
 
 #: The ones with committed golden buffers — all of them, now.  `knob.ges`
 #: had none for as long as the interpreter and the engine disagreed about

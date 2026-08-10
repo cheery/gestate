@@ -1,0 +1,10 @@
+# The workspace — `spec/crust.md` §"Name and place": `crust/` is the
+# interpreted core traveling, `shell/clap` is a shim with no opinions,
+# and this file is what lets the shell take the machine as a dependency
+# the day the plugin needs to force a score (`spec/dynamicscore.md`
+# stage two abroad).  Both crates keep their own `target/` via
+# `--target-dir` at their call sites (`test_crust.py`, `export.py`), so
+# joining the tree moved no artifact anyone reads.
+[workspace]
+resolver = "2"
+members = ["crust", "shell/clap"]

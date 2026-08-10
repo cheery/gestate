@@ -13,29 +13,20 @@
 
 mod abi;
 mod engine;
+mod score;
 
 use std::ffi::c_char;
 use std::os::raw::c_void;
 
 use abi::*;
 use engine::{Descriptor, DESCRIPTOR};
+use score::{NoteKey, VoiceState, FRESH_VOICE};
 
 // ── The instance ────────────────────────────────────────────────────────
-
-/// `audioalloc.Voice`, in Rust: one voice of the bank and what it is
-/// doing.  The semantics are that module's, mirrored deliberately —
-/// free voices are taken released-longest-ago first (never-played
-/// counts as released at the beginning of time), a full bank steals
-/// the oldest, and a release finds the *oldest* voice on its key.
-#[derive(Clone, Copy)]
-struct VoiceState {
-    key: Option<(i16, i16)>,
-    started: i64,
-    released: Option<i64>,
-}
-
-const FRESH_VOICE: VoiceState =
-    VoiceState { key: None, started: -1, released: None };
+//
+// (`VoiceState` and the allocation itself live in `score.rs` now,
+// shared between this file's MIDI path and the score cursor — one
+// bank is one set of voices however its notes arrive.)
 
 /// One sounding instance: the zeroed state, the control slots at their
 /// declared defaults, and a scratch buffer for the interleaved frames.
@@ -65,6 +56,9 @@ struct Instance {
     /// The shell's own beat position, for a host with a tempo but no
     /// beats timeline; a timeline host overwrites it every block.
     beat_pos: f64,
+    /// The score cursor — `spec/dynamicscore.md` stage one's Rust
+    /// half.  Idle for a plugin whose `SCORE` is empty.
+    performer: score::Performer,
 }
 
 fn default_routing() -> Vec<u16> {
@@ -87,6 +81,7 @@ impl Instance {
             routing: default_routing(),
             active: None,
             beat_pos: 0.0,
+            performer: score::Performer::new(),
         }
     }
 
@@ -104,6 +99,7 @@ impl Instance {
             .for_each(|bank| bank.iter_mut()
                       .for_each(|v| *v = FRESH_VOICE));
         self.routing = default_routing();
+        self.performer.reset();
     }
 
     /// The transport's rewind: the piece restarts, the knobs stay.
@@ -125,6 +121,7 @@ impl Instance {
         self.voices.iter_mut()
             .for_each(|bank| bank.iter_mut()
                       .for_each(|v| *v = FRESH_VOICE));
+        self.performer.reset();
     }
 
     /// `Allocator.note_on`, per routed bank: the routing matrix says
@@ -172,20 +169,12 @@ impl Instance {
             }
         }
 
-        // Free voices, released-longest-ago first; else steal oldest.
+        // Free voices, released-longest-ago first; else steal oldest —
+        // `score::pick_voice`, the same allocation the cursor uses.
         let vs = &mut self.voices[b];
-        let pick = vs.iter().enumerate()
-            .filter(|(_, v)| v.key.is_none())
-            .min_by_key(|(i, v)| (v.released.unwrap_or(-1), *i))
-            .map(|(i, _)| i)
-            .unwrap_or_else(|| {
-                vs.iter().enumerate()
-                    .min_by_key(|(i, v)| (v.started, *i))
-                    .map(|(i, _)| i).unwrap()
-            });
-
-        vs[pick] = VoiceState { key: Some((channel, key)), started: at,
-                                released: None };
+        let pick = score::pick_voice(vs);
+        vs[pick] = VoiceState { key: Some(NoteKey::Midi(channel, key)),
+                                started: at, released: None };
         let chans = bank.voices[pick];
         self.control[chans[0]] = at + 1;
         self.control[chans[1]] = 0;
@@ -200,14 +189,8 @@ impl Instance {
     /// than one that plays on the wrong bank.
     fn note_off(&mut self, at: i64, channel: i16, key: i16) {
         for (b, bank) in engine::BANKS.iter().enumerate() {
-            let held = self.voices[b].iter().enumerate()
-                .filter(|(_, v)| v.key == Some((channel, key))
-                        && v.released.is_none())
-                .min_by_key(|(i, v)| (v.started, *i))
-                .map(|(i, _)| i);
-            if let Some(i) = held {
-                self.voices[b][i].released = Some(at);
-                self.voices[b][i].key = None;
+            if let Some(i) = score::release_voice(
+                &mut self.voices[b], NoteKey::Midi(channel, key), at) {
                 self.control[bank.voices[i][1]] = at + 1;
             }
         }
@@ -384,9 +367,13 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
     // wiped by the rewind.  A null transport is a free-running host,
     // and everything simply plays.
     let mut stopped = false;
+    let mut rose = false;
+    let mut fell = false;
     if !p.transport.is_null() {
         let now = (*p.transport).flags & CLAP_TRANSPORT_IS_PLAYING != 0;
-        if now && !inst.playing {
+        rose = now && !inst.playing;
+        fell = !now && inst.playing;
+        if rose {
             inst.rewind();
         }
         inst.playing = now;
@@ -420,6 +407,87 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
             if playing
                 && tr.flags & CLAP_TRANSPORT_HAS_BEATS_TIMELINE == 0 {
                 inst.beat_pos += bps * p.frames_count as f64 / rate;
+            }
+        }
+    }
+    // **The score cursor** — `spec/dynamicscore.md` stage one's Rust
+    // half.  The piece's events live in *beats* in the descriptor; the
+    // cursor performs each as the timeline reaches it, a jump in the
+    // timeline is a seek (a loop is a seek on a boundary, and the
+    // second pass is the first), and a host with no transport at all
+    // free-runs the piece at its own declared tempo — everything
+    // simply plays.  Steady playback stays anchored to `origin`
+    // rather than re-deriving it per block, so the delivery
+    // boundaries and the stamped instants keep the bake's exact
+    // integers, which is the stage's parity clause.
+    if !engine::SCORE.is_empty() {
+        let rate = inst.active.map_or(inst.desc.rate, |c| c.rate);
+        let tb = score::Tables {
+            events: engine::SCORE,
+            banks: engine::BANKS,
+            controls: inst.desc.controls,
+            tpb: engine::SCORE_TPB,
+            rate,
+        };
+        let (tempo, playing, actual) = if p.transport.is_null() {
+            (engine::SCORE_BPM, true, inst.t - inst.performer.origin)
+        } else {
+            let tr = &*p.transport;
+            let tempo = if tr.flags & CLAP_TRANSPORT_HAS_TEMPO != 0
+                && tr.tempo > 0.0 { tr.tempo } else { engine::SCORE_BPM };
+            let playing = tr.flags & CLAP_TRANSPORT_IS_PLAYING != 0;
+            let actual = if tr.flags
+                & CLAP_TRANSPORT_HAS_BEATS_TIMELINE != 0 {
+                score::beats_q31_samples(tr.song_pos_beats, tempo, rate)
+            } else {
+                (inst.beat_pos * 60.0 / tempo * rate as f64)
+                    .floor() as i64
+            };
+            (tempo, playing, actual)
+        };
+        if fell {
+            // The timeline stopped: the piece's notes release now —
+            // they live on the timeline — while a played key, which
+            // lives under the player's hands, holds on.
+            for (b, bank) in engine::BANKS.iter().enumerate() {
+                for i in 0..inst.voices[b].len() {
+                    if matches!(inst.voices[b][i].key,
+                                Some(NoteKey::Score(_))) {
+                        inst.voices[b][i].released = Some(inst.t);
+                        inst.voices[b][i].key = None;
+                        inst.control[bank.voices[i][1]] = inst.t + 1;
+                    }
+                }
+            }
+        }
+        if playing {
+            if actual < 0 {
+                // A count-in: the piece has not begun.  Stand at the
+                // top with the anchor placed so beat zero lands on
+                // time, and deliver nothing.
+                if inst.performer.pos != 0 {
+                    inst.performer.seek(&tb, tempo, 0, inst.t,
+                                        &mut inst.voices,
+                                        &mut inst.control);
+                }
+                inst.performer.origin = inst.t - actual;
+            } else {
+                // A jump reads as a seek; steady playback stays
+                // anchored.  The slack is a block (or 20 ms, the
+                // larger): host jitter stays under it, a loop seam
+                // or a dragged playhead does not.
+                let predicted = inst.t - inst.performer.origin;
+                let slack = (p.frames_count as i64)
+                    .max(rate as i64 / 50);
+                if rose || (actual - predicted).abs() > slack {
+                    inst.performer.seek(&tb, tempo, actual, inst.t,
+                                        &mut inst.voices,
+                                        &mut inst.control);
+                }
+                let end = inst.t - inst.performer.origin
+                    + p.frames_count as i64;
+                inst.performer.advance(&tb, tempo, &mut inst.voices,
+                                       &mut inst.control, end);
             }
         }
     }

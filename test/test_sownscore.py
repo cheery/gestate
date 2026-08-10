@@ -369,25 +369,36 @@ bpm = 120
 
 
 def test_a_rebuild_rejoins_in_seconds_not_minutes():
-    """The measurement that motivated all of this: resuming `moods.ges`
-    fifteen minutes in cost 157 seconds of left-to-right forcing; by
-    declared widths it must be near-instant.  Ten seconds is the loose
-    ceiling for a slow machine — the observed figure is well under one.
+    """The measurement that motivated all of this: resuming an endless
+    sown piece fifteen minutes in cost 157 seconds of left-to-right
+    forcing (measured on `moods.ges`, a scratch piece that lived at the
+    repo root); by declared widths it must be near-instant.  The
+    fixture below reproduces that piece's shape — an endless `cycle` of
+    sown two-beat bars, the right-nested `Seq` whose bar-`k` seed is
+    `k` mix64s deep — so the claim no longer depends on a file the
+    repository never owned.  Ten seconds is the loose ceiling for a
+    slow machine; the observed figure is well under one.
     """
     import time
-    from pathlib import Path
 
     from gestate.audioalloc import Allocator
     from gestate.audiovoices import banks_of, channels_of
 
-    source = (Path(__file__).resolve().parent.parent
-              / "moods.ges").read_text()
+    piece = """
+score : [: Void :]
+score = cycle (sown (s => '(Custom (random s) 60)) |* 2
+               ++ sown (s => '(Custom (random s) 64)) |* 2) >>= voices.lead
+
+bpm : Int
+bpm = 96
+"""
+    source = SYNTH + piece
     RATE48 = 48000
     minutes = 15
     target = minutes * 60 * RATE48
     tick = (minutes * 60 * 96 * 96) // 60      # beats at 96 bpm, in ticks
 
-    tempo, state, root, by_tag = stream_root(source, "", RATE48, 7, tick)
+    tempo, state, root, by_tag = stream_root(SYNTH, piece, RATE48, 7, tick)
     allocators = {b.name: Allocator(channels_of(source, b))
                   for b in banks_of(source)}
     lazy = LazyPerformer(ScoreStream(state, root, by_tag), tempo, RATE48,

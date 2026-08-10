@@ -5,6 +5,13 @@ edition = "2021"
 description = "The G-machine's pure core, in Rust — spec/crust.md."
 license = "MIT"
 
+[lib]
+# `rlib` for the CLI and for tests; `cdylib` for the hosts that load
+# the machine in-process — gestate's Python side does, over ctypes
+# (stdlib), which is what keeps this crate's zero-dependency rule
+# intact on *both* sides of the seam.
+crate-type = ["rlib", "cdylib"]
+
 # Zero dependencies, deliberately: the program format is flat text made
 # for split_whitespace, so nothing here can rot offline, and the crate
 # stays buildable the day a plugin shell needs it.

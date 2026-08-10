@@ -152,6 +152,81 @@ def note_banks(source: str, graph, rate: int) -> list:
     return out
 
 
+def score_events(source: str, graph, rate: int):
+    """The piece's own events in beats, for the shell's cursor —
+    `spec/dynamicscore.md` stage one's descriptor half.
+
+    `[(tick, key, bank_index, is_off, payload_bits)]` in the
+    performance's one true order, or `None` when the program has no
+    score or an unfolding one.  The order and the identities are
+    `timed_events`' own, taken at the identity tempo — 60 bpm at
+    `TICKS_PER_BEAT` samples a second makes `samples_of` the identity
+    on ticks, so the shared sort is reused rather than respelled.
+    An unfolding score is the honest discard it has always been in an
+    export: until the G-machine travels (`spec/crust.md`), the plugin
+    is the instrument without its piece.
+    """
+    from .audioperform import has_score
+    from .audioscore import (ScoreError, _flatten, perform_voices,
+                             timed_events)
+    from .audiovoices import banks_of, channels_of
+    from .midi import TICKS_PER_BEAT
+
+    if not has_score(source):
+        return None
+    try:
+        _bpm, events = perform_voices(source, "", rate)
+    except ScoreError:
+        return None
+    banks = banks_of(source)
+    index = {b.name: i for i, b in enumerate(banks)}
+    controls = graph.control_sources()
+    slot_of = {n.chan: i for i, n in enumerate(controls)}
+    kinds = {}
+    for b in banks:
+        first = channels_of(source, b)[0]
+        kinds[b.name] = [controls[slot_of[c]].type_ for c in first[2:]]
+
+    out = []
+    for tick, _order, key, bank, payload, is_off in timed_events(
+            events, 60, TICKS_PER_BEAT):
+        bits: tuple = ()
+        if not is_off:
+            bits = tuple(
+                struct.unpack("<q", struct.pack("<d", float(v)))[0]
+                if kind == "Float" else int(v)
+                for v, kind in zip(_flatten(payload), kinds[bank]))
+        out.append((tick, key, index[bank], is_off, bits))
+    return out
+
+
+def _score_rs(score, bpm: float) -> str:
+    """The `SCORE` third of `descriptor.rs`."""
+    from .midi import TICKS_PER_BEAT
+
+    out = []
+    rows = []
+    payloads: dict = {}
+    for tick, key, bank, is_off, bits in (score or []):
+        ref = "&[]"
+        if bits:
+            if bits not in payloads:
+                payloads[bits] = f"SP{len(payloads)}"
+                cells = ", ".join(str(v) for v in bits)
+                out.append(f"static {payloads[bits]}: [i64; {len(bits)}] "
+                           f"= [{cells}];\n")
+            ref = f"&{payloads[bits]}"
+        rows.append(f"    ScoreEvent {{ tick: {tick}, key: {key}, "
+                    f"bank: {bank}, "
+                    f"is_off: {'true' if is_off else 'false'}, "
+                    f"payload: {ref} }},\n")
+    out.append("pub static SCORE: &[ScoreEvent] = &[\n"
+               + "".join(rows) + "];\n")
+    out.append(f"pub static SCORE_TPB: i64 = {TICKS_PER_BEAT};\n")
+    out.append(f"pub static SCORE_BPM: f64 = {bpm!r};\n")
+    return "".join(out)
+
+
 def _banks_rs(banks: list) -> str:
     """The `BANKS` half of `descriptor.rs`."""
     if not banks:
@@ -186,7 +261,8 @@ def _banks_rs(banks: list) -> str:
 
 def descriptor_rs(graph, *, id_: str, name: str, version: str,
                   rate: int, knobs: frozenset, bank=None,
-                  graphs=None, beat=None) -> str:
+                  graphs=None, beat=None, score=None,
+                  bpm: float = 120.0) -> str:
     """The Rust the shell includes — everything only the compiler knows."""
     from .audiollvm import _slots
 
@@ -201,9 +277,9 @@ def descriptor_rs(graph, *, id_: str, name: str, version: str,
             f"init_bits: {_init_bits(n)}, "
             f"knob: {'true' if n.chan in knobs else 'false'}, "
             f"min: {lo!r}, max: {hi!r} }},\n")
-    # `Bank` and `RateCase` always: the bank-less descriptor still
-    # *names* the types in its empty slices.
-    used = ["Bank", "Control", "Descriptor", "RateCase"]
+    # `Bank`, `RateCase` and `ScoreEvent` always: the bank-less
+    # descriptor still *names* the types in its empty slices.
+    used = ["Bank", "Control", "Descriptor", "RateCase", "ScoreEvent"]
     if controls:
         used.append("Kind")
     if any(table is not None for _n, _v, table in (bank or [])):
@@ -214,6 +290,7 @@ def descriptor_rs(graph, *, id_: str, name: str, version: str,
             f"{kinds}\n\n"
             f"{_rates_rs(graphs if graphs is not None else {rate: graph})}\n"
             f"{_banks_rs(bank or [])}\n"
+            f"{_score_rs(score, bpm)}\n"
             f"pub static BEAT_SLOTS: Option<(usize, usize, usize)> = "
             f"{'Some(' + repr(tuple(beat)) + ')' if beat else 'None'};\n\n"
             f"pub static DESCRIPTOR: Descriptor = Descriptor {{\n"
@@ -418,15 +495,21 @@ def export_clap(source: str, out: Path, *, rate=None, name: str,
                       and n.chan not in _BEAT_CHANS)
     bank = note_banks(source, graph, primary)
     beat = beat_slots(graph)
+    score = score_events(source, graph, primary)
     with tempfile.TemporaryDirectory() as d:
         archive(graphs, d)
         (shell / "src" / "descriptor.rs").write_text(descriptor_rs(
             graph, id_=f"org.gestate.{name}", name=name,
             version=version, rate=primary, knobs=knobs, bank=bank,
-            graphs=graphs, beat=beat))
+            graphs=graphs, beat=beat, score=score,
+            bpm=_bpm_of(source)))
         env = dict(**__import__("os").environ, GESTATE_GRAPH_DIR=d)
+        # `--target-dir` pins the artifact under the shell whether or
+        # not the crate builds inside the workspace — the workspace
+        # root's `target/` is where cargo would otherwise put it.
         done = subprocess.run(
-            ["cargo", "build", "--release", "--features", "engine"],
+            ["cargo", "build", "--release", "--features", "engine",
+             "--target-dir", str(shell / "target")],
             cwd=shell, env=env, capture_output=True, text=True)
         if done.returncode != 0:
             raise ExportError("the shell did not build:\n" + done.stderr)

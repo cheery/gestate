@@ -846,14 +846,27 @@ xorGo a b bit acc = case a + b of
 mixA : Int -> Int
 mixA z = xorBits z (prim_div_int z 1073741824)
 
+#: `(a * b) mod 2^64`, with every intermediate under 2^96.  A full
+#: 64×64 product reaches 2^128 − 2^65 — one bit past what a signed
+#: 128-bit machine holds — and `crust` refuses it rather than wrap;
+#: the reference never noticed, Python's integers having no width,
+#: which is exactly the kind of fact a second machine exists to
+#: surface.  Split the left factor at 2^32 and reduce the high half
+#: early: bit-identical mod 2^64, so no draw moves.
+mulWrap : Int -> Int -> Int
+mulWrap a b =
+    wrap64 (prim_mod_int a 4294967296 * b
+            + prim_mod_int (prim_div_int a 4294967296 * b) 4294967296
+              * 4294967296)
+
 mixB : Int -> Int
-mixB z = wrap64 (z * 13787848793156543929)
+mixB z = mulWrap z 13787848793156543929
 
 mixC : Int -> Int
 mixC z = xorBits z (prim_div_int z 134217728)
 
 mixD : Int -> Int
-mixD z = wrap64 (z * 10723151780598845931)
+mixD z = mulWrap z 10723151780598845931
 
 mixE : Int -> Int
 mixE z = xorBits z (prim_div_int z 2147483648)

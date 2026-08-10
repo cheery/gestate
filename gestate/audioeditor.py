@@ -1661,8 +1661,18 @@ class Workbench:
 
                 def reader(port, _ports=ports):
                     return holds_reader(self.notes, _ports)(port)
+                # **Crust forces the score when the piece can cross**
+                # (`crust.live_native` — the one routing decision,
+                # spelled once beside `audioperform.dynamic`'s use).
+                # The fuel is the 20 ms patience below, respelled in
+                # steps; the fallback is never wrong, only slower.
+                from .crust import live_native
+
+                stream = live_native(state, by_tag, self.seed or 0,
+                                     tick, fuel=100_000)
                 with self._performer_lock:
                     self.performer = LazyPerformer(
+                        stream if stream is not None else
                         LiveStream(state, root, by_tag, patience=0.02),
                         tempo, self.rate, allocators, block=self.block,
                         origin=tick, reader=reader)

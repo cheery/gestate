@@ -11,14 +11,16 @@
 # Each voice binds a different instrument, so the renderer gives them
 # separate MIDI channels.
 
-bar : Int
-bar = 4 * ticksPerBeat
+# (`barLen`, not `bar`: `music.ges` now owns `bar` — the
+# anonymous re-entry mark — so a piece names its own measure.)
+barLen : Int
+barLen = 4 * ticksPerBeat
 
 theme : [: Int :]
 theme = '67 ++ '69 ++ '71 ++ '72 ++ '71 ++ '69 ++ '67 ++ r
 
 score : [: Void :]
-score = (theme >>= prog 73) || at (2 * bar) (theme >>= prog 42)
+score = (theme >>= prog 73) || at (2 * barLen) (theme >>= prog 42)
 
 bpm : Int
 bpm = 108

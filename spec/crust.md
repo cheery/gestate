@@ -1,13 +1,57 @@
 # G-machine implementation in Rust
 
-*Status, 2026-08-10: begun.  `crust/` exists at the repo root — the
-pure integer core (the score-forcing instruction set, i128 arithmetic
-refusing wider, Python's floor division exactly), a zero-dependency
-flat text program format written by `gestate/crust.py`, and
-`test/test_crust.py` holding it to `gmachine.py` program for program:
-recursion, negative division, lazy sharing, and `music.ges`'s own
-SplitMix64 block to the bit.  Not yet: floats, the reactive half, a
-collector, the workspace with `shell/clap`.*
+*Status, 2026-08-10, second wave: the pure core is built and floats
+are in.  `crust/` at the repo root carries the score-forcing
+instruction set — i128 arithmetic refusing wider, Python's floor
+division exactly, and now `f64` beside the integers in one `Num` the
+way `NNum` holds either, with CPython's own float `%` and `//`
+transcribed and literals crossing the seam as IEEE bits (canonical
+floats print as bits too: float parity is bit parity).  The whole
+SplitMix64 block crosses now, `unit`'s uniform draw included — and
+porting it found a real ceiling: a 64×64 product overflows a signed
+128-bit machine by one bit, which Python's widthless integers never
+noticed, so `music.ges` gained `mulWrap` (the multiply split at 2³²,
+bit-identical mod 2⁶⁴, no draw moved).  The workspace exists: a
+root `Cargo.toml` joins `crust` and `shell/clap`, with `--target-dir`
+pinned at both call sites so no artifact path moved.  **The machine is
+in-process now**: the crate builds a `cdylib` beside the binary, five
+`extern "C"` functions (`src/lib.rs` `ffi`, panics caught at the
+boundary, errors as messages), and `gestate.crust.Native` loads it
+over ctypes — the `audiollvm` pattern, zero new dependencies on
+either side, PyO3 considered and declined for exactly that reason.
+Loading a compiled program costs ~3 ms, one eager score layout ~0.3 ms
+against ~3 ms interpreted — 14× on the layout benchmark, bit-identical
+answers, the heap persisting across forces.  **The forcing protocol and the
+collector are built, together, as the rule demanded**: `Stream` in
+`src/lib.rs` is `audiodynamic.ScoreStream`'s twin — resumable fueled
+pulls to a tick horizon, the frontier/stall facts kept across calls,
+a parked forcing living in the machine's own registers — and the
+Cheney semispace copy runs between pulls, the pull-to-pull window
+being exactly the workload that justifies it (800 bars of an endless
+seeded cycle hold under two million heap nodes, events identical to
+the reference throughout).  The wire is rung one as decided: flat
+i64s over ctypes — `[onset, offset, voice_tag, nfields,
+(kind, value)…]` per event, floats as bits — read by
+`gestate.crust.NativeStream`, with `native_stream` as `stream_root`'s
+twin.  And the host machinery needed *no change*: `LazyPerformer`
+drives a `NativeStream` as it drives the reference, change for
+change, because `getattr(stream, "ask")` was already its only
+probe-shaped assumption.  **The live extension is in and the
+editor is plumbed**: cue cells decode beside the plain triples
+(`CueAsk` parks as a question, not a stall; `crust_stream_answer`
+splices the reading into the continuation, `NAp(k, list)`, and the
+spine walks on), the wire carries payload *structure* (kind 2 opens a
+constructor; `history` is an interface the editor indexes into, so an
+event off the wire is the reference's event, nesting and all), and
+`audioeditor` routes every dynamic piece through the twin — the state
+already compiled, the seam costing one serialization and a ~3 ms
+load — falling back to the reference machine on any `CrustError`,
+which is never wrong, only slower.  The arpeggiator scenario runs
+change-for-change identical over either machine, readings included,
+and the pygame bench inherits the routing by riding the same
+workbench.  Not yet: the reactive half (the substrate's, when the
+panel moves in), and the offline CLI's dynamic path, which could take
+the same route whenever someone wants the render sooner.*
 
 For now this is a proposal.
 

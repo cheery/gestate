@@ -211,7 +211,13 @@ def dynamic(synth: str, piece: str = "", *, rate: int, block: int,
                                              tick, live=True)
     allocators = {b.name: Allocator(channels_of(both, b), policy=policy)
                   for b in banks_of(both)}
-    stream = LiveStream(state, root, by_tag, patience=patience)
+    # Crust forces the score when the piece can cross (~10× on layouts
+    # and draws — a take of an endless piece renders sooner); the
+    # reference machine remains the fallback and the meaning.
+    from .crust import live_native
+
+    stream = (live_native(state, by_tag, seed, tick)
+              or LiveStream(state, root, by_tag, patience=patience))
     record = Transcript(source_sha=Transcript.sha_of(both), rate=rate,
                         block=block, seed=seed)
     performer = LazyPerformer(stream, tempo, rate, allocators, block=block,

@@ -1,5 +1,7 @@
 # fixme.md — where `gestate/` and `spec/` disagree
 
+bug: constSig is not an internal function
+
 Read of `gestate/**.py` against `spec/*.md`.  Only **divergences from the
 spec** are listed; things the spec never decided are in `spec/errata.md`, and
 things `journal.md` Part I already tracks as unbuilt increments are

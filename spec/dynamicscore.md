@@ -4,10 +4,22 @@
 made it thinkable) and `spec/verification.md` (whose oracles will keep
 it honest).*
 
-*Status, 2026-08-10: stage one is built at home — `audiodynamic.Performer`,
-held to the bake by `test_dynamicscore.py`, with the seek/loop semantics
-pinned there before any second implementation exists; its Rust half (the
-CLAP cursor) is not.  Stage two is built at home — `streamVoices` in
+*Status, 2026-08-10: stage one is built at home **and abroad** —
+`audiodynamic.Performer`, held to the bake by `test_dynamicscore.py`,
+with the seek/loop semantics pinned there before any second
+implementation existed; and its Rust half, the CLAP cursor
+(`shell/clap/src/score.rs`), which is that file's retelling with the
+clock in the transport's hands: the exporter writes the piece's
+events in *beats* into the descriptor (`export.score_events`, ticks
+exact via the identity-tempo reuse of `timed_events`), and the cursor
+performs them against `song_pos_beats` — a timeline jump is a seek, a
+loop is a seek on a boundary, a host with no transport free-runs the
+piece at its own tempo, and steady playback keeps the bake's exact
+integers (`tick·60·rate // (bpm·TPB)`, in i128).  Held by the cursor's
+own unit tests and by `test_export.py`'s ctypes host end to end:
+pressing play performs the bake sample for sample, and playing from
+the middle stands where playing from the top would stand.  Stage two
+is built at home — `streamVoices` in
 `music.ges` (an ordered lazy merge, so two endless branches of a `||`
 interleave), `cycle` and `unfold`, `ScoreStream`/`LazyPerformer` under a
 `StepLimit` budget with the stall-and-drop rules below, held by
