@@ -458,3 +458,15 @@ def test_a_program_redefining_clamp_does_not_rewire_the_synth_library():
     plain = list(render(impulse + body, 0.05, 8000))
     assert [x for x in plain if x != 0.0], "the echo was silent to begin with"
     assert list(render(mine, 0.05, 8000)) == plain
+
+
+def test_sort_orders_whatever_ord_reaches():
+    assert _eval("main : String\nmain = show (sort [3, 1, 2])\n") \
+        == "[1, 2, 3]"
+    assert _eval("main : String\nmain = show (sort ([] : List Int))\n") \
+        == "[]"
+    assert _eval("main : String\nmain = show (sort [5, 5, 4, 1, 5])\n") \
+        == "[1, 4, 5, 5, 5]"
+    assert _eval("main : Int\nmain = case sort [9, 2] of\n"
+                 "    x :: xs -> x\n"
+                 "    [] -> 0\n") == "2"

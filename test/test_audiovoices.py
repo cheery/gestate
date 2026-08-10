@@ -204,7 +204,7 @@ def test_a_record_of_any_width_is_folded_from_its_channels(fields, record):
     A constructor is not a first-class function and `zip` takes two
     signals, so the shape of the generated builder changes with the width.
     """
-    source = (f"\n{record}\n\nvoices lead 1 : Note -> Sig Float\nlead = ident\n"
+    source = (f"\n{record}\n\nvoices lead 1 ident : Sig Float\n"
               "\nident : Sig Gate -> Sig Note -> Sig Float\n"
               "ident g s = !one s\n"
               "\none : Note -> Float\none n = 0.1\n"
@@ -216,14 +216,20 @@ def test_a_record_of_any_width_is_folded_from_its_channels(fields, record):
 # ── What it refuses ─────────────────────────────────────────────────────────
 
 
-def test_a_bank_with_no_voice_equation_is_refused():
+def test_the_two_part_spelling_is_retired_by_name():
+    """`voices lead 2 : Note -> Sig Float` + `lead = voice` was the old
+    way to say it, and it is refused *as itself*: a stray old file gets
+    told what to write, not silently accepted — silent compatibility is
+    where this project's longest evenings came from."""
     source = "\nNote := Note Int\n\nvoices lead 2 : Note -> Sig Float\n"
-    with pytest.raises(VoicesError, match="has no `lead = <voice>`"):
+    with pytest.raises(VoicesError, match="retired"):
         expand(source)
+    with pytest.raises(VoicesError, match="voices lead 2 <voice>"):
+        expand(source + "lead = f\n")
 
 
 def test_a_bank_naming_no_data_type_is_refused():
-    source = "\nvoices lead 2 : Nope -> Sig Float\nlead = f\n"
+    source = "\nvoices lead 2 f : Sig Float\n"
     with pytest.raises(VoicesError, match="nor a data type declared here"):
         expand(source)
 
@@ -241,7 +247,7 @@ def test_a_line_that_is_not_a_full_signature_is_not_a_bank():
 def test_a_frame_bank_sums_componentwise():
     """`addSig` is `Sig Float` only, so a stereo bank gets its own adder."""
     source = ("\nNote := Note Int\nStereo := Stereo Float Float\n"
-              "\nvoices wide 2 : Note -> Sig Stereo\nwide = breathy\n")
+              "\nvoices wide 2 breathy : Sig Stereo\n")
     out = expand(source)
     assert "wide : Sig Stereo" in out
     assert "zipSig wideAdd" in out
@@ -252,13 +258,13 @@ def test_a_frame_bank_sums_componentwise():
 def test_a_frame_of_something_other_than_floats_is_refused():
     """Every field of a frame is an output channel, so every field is a sample."""
     source = ("\nNote := Note Int\nOdd := Odd Float Int\n"
-              "\nvoices wide 2 : Note -> Sig Odd\nwide = f\n")
+              "\nvoices wide 2 f : Sig Odd\n")
     with pytest.raises(VoicesError, match="not a frame"):
         expand(source)
 
 
 def test_a_record_with_several_constructors_is_refused():
-    source = ("\nNote := A Int | B Int\n\nvoices lead 2 : Note -> Sig Float\nlead = f\n")
+    source = ("\nNote := A Int | B Int\n\nvoices lead 2 f : Sig Float\n")
     with pytest.raises(VoicesError, match="2 constructors"):
         expand(source)
 
@@ -266,26 +272,26 @@ def test_a_record_with_several_constructors_is_refused():
 def test_a_field_that_is_not_a_control_value_is_refused():
     """Every field becomes a control channel, and those carry one slot."""
     source = ("\nInner := Inner Int\nNote := Note Inner\n"
-              "\nvoices lead 2 : Note -> Sig Float\nlead = f\n")
+              "\nvoices lead 2 f : Sig Float\n")
     with pytest.raises(VoicesError, match="one slot"):
         expand(source)
 
 
 def test_a_record_with_no_fields_is_refused():
-    source = "\nNote := Note\n\nvoices lead 2 : Note -> Sig Float\nlead = f\n"
+    source = "\nNote := Note\n\nvoices lead 2 f : Sig Float\n"
     with pytest.raises(VoicesError, match="nothing to play"):
         expand(source)
 
 
 def test_two_banks_of_the_same_name_are_refused():
-    source = ("\nNote := Note Int\n\nvoices lead 2 : Note -> Sig Float\nlead = f\n"
-              "\nvoices lead 3 : Note -> Sig Float\n")
+    source = ("\nNote := Note Int\n\nvoices lead 2 f : Sig Float\n"
+              "\nvoices lead 3 g : Sig Float\n")
     with pytest.raises(VoicesError, match="both called"):
         expand(source)
 
 
 def test_a_bank_of_no_voices_is_refused():
-    source = "\nNote := Note Int\n\nvoices lead 0 : Note -> Sig Float\nlead = f\n"
+    source = "\nNote := Note Int\n\nvoices lead 0 f : Sig Float\n"
     with pytest.raises(VoicesError, match="at least one voice"):
         expand(source)
 
@@ -367,13 +373,12 @@ def test_the_voice_is_written_where_the_bank_is_declared():
     assert "sineVoice leadGate1 leadPayload1" in out
 
 
-def test_both_spellings_are_the_same_bank():
-    """Line for line, but for the comment that quotes the declaration."""
+def test_the_older_spelling_of_the_same_bank_is_refused():
+    """It used to expand identically; now it is named and turned away."""
     older = INLINE.replace("voices lead 2 sineVoice : Sig Float",
                            "voices lead 2 : Key -> Sig Float\nlead = sineVoice")
-    strip = lambda text: [ln for ln in text.splitlines()
-                          if not ln.startswith("# ── generated")]
-    assert strip(expand(INLINE))[1:] == strip(expand(older))[2:]
+    with pytest.raises(VoicesError, match="retired"):
+        expand(older)
 
 
 def test_the_payload_comes_from_the_voices_own_signature():

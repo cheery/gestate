@@ -43,8 +43,7 @@ needs_clang = pytest.mark.skipif(shutil.which("clang") is None,
 SYNTH = """
 Pitched := Pitched Int
 
-voices lead 4 : Pitched -> Sig Float
-lead = plucked
+voices lead 4 plucked : Sig Float
 
 hzOf : Int -> Float
 hzOf k = 8.1758 * pow 2.0 (toFloat k / 12.0)

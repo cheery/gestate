@@ -144,8 +144,7 @@ def test_the_same_state_renders_the_same_sound():
 SCORED = """
 Custom := Custom Float Int
 
-voices lead 3 : Custom -> Sig Float
-lead = myVoice
+voices lead 3 myVoice : Sig Float
 
 outV : Both Gate Custom -> Float
 outV p = case p of

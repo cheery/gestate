@@ -367,6 +367,94 @@ class ScoreStream:
         return out
 
 
+class LiveStream(ScoreStream):
+    """`liveMain` forced cell by cell — a stream that can end in a question.
+
+    A `CueAsk` reached parks the pull exactly as a blown budget does —
+    `stalled`, frontier at the question's own tick, so nothing beyond it
+    is emitted — and `ask` says what is owed.  `answer(reading)` applies
+    the question's continuation (which holds the entire rest of the
+    performance) and the spine simply continues into what it returns:
+    no rebuild, no second walk, the suspension *is* the stream.
+    """
+
+    def __init__(self, state, root, by_tag, **kw):
+        super().__init__(state, root, by_tag, **kw)
+        #: `(tick, port)` when a question is owed, else `None`.
+        self.ask = None
+        self._ask_k = None
+        self._ev = state.cons["CueEv"].tag
+        self._askt = state.cons["CueAsk"].tag
+
+    def _event(self, cell):
+        from .gmachine import NCon, NNum
+
+        head = self._whnf(cell)
+        if head is None:
+            return None
+        if not isinstance(head, NCon):
+            raise ScoreError("expected a cue in the live stream")
+        if head.tag == self._askt:
+            tick = self._whnf(head.args[0])
+            port = self._whnf(head.args[1])
+            if tick is None or port is None:
+                return None                     # budget parked mid-question
+            if not (isinstance(tick, NNum) and isinstance(port, NNum)):
+                raise ScoreError("a question with no instant or port")
+            self.ask = (tick.n, port.n)
+            self._ask_k = head.args[2]
+            self.frontier = max(self.frontier, tick.n)
+            return None                         # parks the pull, as a stall
+        if head.tag != self._ev:
+            raise ScoreError(f"unexpected cue tag {head.tag}")
+        ticks = []
+        for arg in head.args[:2]:
+            node = self._whnf(arg)
+            if node is None:
+                return None
+            if not isinstance(node, NNum):
+                raise ScoreError("expected a number in a cue")
+            ticks.append(node.n)
+        voice = self._whnf(head.args[2])
+        if voice is None:
+            return None
+        if not isinstance(voice, NCon):
+            raise ScoreError("expected a `Voice` value")
+        bank = self.by_tag.get(voice.tag)
+        if bank is None:
+            raise ScoreError(
+                f"a note assigned to a voice bank this program does not "
+                f"declare (constructor tag {voice.tag})")
+        payload = self._flat(voice.args)
+        if payload is None:
+            return None
+        return (ticks[0], ticks[1], bank, payload)
+
+    def pull(self, horizon: int) -> list:
+        if self.ask is not None:
+            return []                            # a question is owed first
+        out = super().pull(horizon)
+        if self.ask is not None:
+            self.stalled = False                 # a question is not a stall
+        return out
+
+    def answer(self, reading) -> None:
+        """The port's reading, in: the performance continues into what
+        the question's continuation returns."""
+        from .gmachine import NAp, NCon, NNum
+
+        if self.ask is None:
+            raise ScoreError("no question is owed")
+        nil = NCon(self.state.cons["Nil"].tag, ())
+        cons = self.state.cons["Cons"].tag
+        lst = nil
+        for v in reversed([int(x) for x in reading]):
+            lst = NCon(cons, (NNum(v), lst))
+        self.node = NAp(self._ask_k, lst)
+        self.ask = None
+        self._ask_k = None
+
+
 class LazyPerformer:
     """A performer whose score arrives as it is forced — stage two.
 
@@ -387,7 +475,7 @@ class LazyPerformer:
 
     def __init__(self, stream, tempo, rate: int, allocators: dict, *,
                  block: int, horizon: float = 4.0, record=None,
-                 origin: int = 0):
+                 origin: int = 0, reader=None):
         from .tempo import TempoEnvelope, constant
         from .transcript import Transcript
 
@@ -405,6 +493,10 @@ class LazyPerformer:
         #: a resumed remainder (`resumeAt`) is rebased, and this puts it
         #: back.  Zero for a performance from the top.
         self.origin = origin
+        #: `port id -> list of ints` — what the world holds, asked at
+        #: decision instants and never earlier.  `None` reads as silence
+        #: (an empty reading), which is what an unplugged port holds.
+        self.reader = reader
         self.values: dict = {}
         #: The performance's log (`transcript.Transcript`) — the caller
         #: fills the header, the performer writes the events.
@@ -456,9 +548,26 @@ class LazyPerformer:
 
     def _pull(self, t: int):
         horizon = int(self._tick_at(t) + self.horizon * TICKS_PER_BEAT) + 1
-        for event in self.stream.pull(max(horizon - self.origin, 0)):
-            self.history.append(event)
-            self._admit(event, live=True)
+        while True:
+            for event in self.stream.pull(max(horizon - self.origin, 0)):
+                self.history.append(event)
+                self._admit(event, live=True)
+            ask = getattr(self.stream, "ask", None)
+            if ask is None:
+                break
+            tick, port = ask
+            due = samples_of(tick + self.origin, self.tempo, self.rate)
+            if self._boundary(due) > t:
+                break                   # its downbeat has not arrived
+            # **The reading, at the decision instant, into the log** —
+            # the sentence the whole stage rests on: the transcript
+            # records the world and the seed; everything else is
+            # arithmetic.
+            reading = list(self.reader(port)) if self.reader else []
+            self.transcript.append(
+                ("reading", (tick + self.origin) / TICKS_PER_BEAT, port,
+                 list(reading)))
+            self.stream.answer(reading)
         if self.stream.stalled and not self._stalling:
             self.transcript.append(("stall", self._tick_at(t) / TICKS_PER_BEAT))
         self._stalling = self.stream.stalled

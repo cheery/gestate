@@ -168,9 +168,27 @@ def scored(synth: str, piece: str = "", *, rate: int, block: int,
     return schedule, duration_of_voices(events, bpm, rate), allocators
 
 
+def holds_reader(notes, ports: dict):
+    """`Notes` as a probe's world: what each bank's port holds, sorted.
+
+    Sorted for determinism — a chord is a set, but a reading is a value
+    in a transcript, and one spelling of it replays.
+    """
+    def reader(port):
+        bank = ports.get(port)
+        if bank is None or notes is None:
+            return []
+        # A playing key is `(channel, note)` — the port holds *notes*.
+        return sorted((key[1] if isinstance(key, tuple) else key)
+                      for key, banks in notes.playing.items()
+                      if bank in banks)
+
+    return reader
+
+
 def dynamic(synth: str, piece: str = "", *, rate: int, block: int,
             policy="oldest", horizon: float = 4.0, seed: int = 0,
-            patience: float | None = None):
+            patience: float | None = None, tick: int = 0, reader=None):
     """`scored`'s twin with nothing baked: `(performer, allocators)`.
 
     Stage two's portal (`spec/dynamicscore.md`): the layout is forced as
@@ -182,21 +200,23 @@ def dynamic(synth: str, piece: str = "", *, rate: int, block: int,
     exists beside it, held equal on finite scores by `test_lazyscore.py`.
     """
     from .audioalloc import Allocator
-    from .audiodynamic import LazyPerformer, ScoreStream
+    from .audiodynamic import LazyPerformer, LiveStream
     from .audioscore import stream_root
     from .audiovoices import banks_of, channels_of
 
     from .transcript import Transcript
 
     both = synth + "\n" + piece
-    tempo, state, root, by_tag = stream_root(synth, piece, rate, seed)
+    tempo, state, root, by_tag = stream_root(synth, piece, rate, seed,
+                                             tick, live=True)
     allocators = {b.name: Allocator(channels_of(both, b), policy=policy)
                   for b in banks_of(both)}
-    stream = ScoreStream(state, root, by_tag, patience=patience)
+    stream = LiveStream(state, root, by_tag, patience=patience)
     record = Transcript(source_sha=Transcript.sha_of(both), rate=rate,
                         block=block, seed=seed)
     performer = LazyPerformer(stream, tempo, rate, allocators, block=block,
-                              horizon=horizon, record=record)
+                              horizon=horizon, record=record, origin=tick,
+                              reader=reader)
     return performer, allocators
 
 
@@ -388,7 +408,34 @@ def main(argv=None) -> int:
         if args.midi is not None:
             from .audiomidi import Listener, MidiError, Notes
 
-            notes = Notes(allocator_for(synth, args.midi_bank, args.policy))
+            # **Named, not bare**: a bare allocator becomes the anonymous
+            # bank `""`, and then `holds.<bank>` looks for a name the
+            # note port never records — the arpeggiator that cannot hear
+            # its own player.
+            notes = Notes({args.midi_bank:
+                           allocator_for(synth, args.midi_bank,
+                                         args.policy)})
+            # The program's own `FromMIDI` instances, exactly as the
+            # editor wires them: without this, a computed payload
+            # (`Tone (toFloat v / 127.0) n`) would be replaced by the
+            # raw `(key, velocity)` default — in whatever order the
+            # record's fields happen to sit.
+            from .audiomidi import FromMidi
+            from .audioscore import assemble_performance
+            from .pipeline import compile as _compile_program
+
+            from .audio import assemble as _assemble
+
+            assembled = (assemble_performance(synth, piece, args.rate)
+                         if has_score(synth + "\n" + piece)
+                         else _assemble(synth, args.rate))
+            fm = FromMidi(_compile_program(assembled), [args.midi_bank])
+            if fm.banks:
+                def _accepts(bank, message):
+                    return fm.payload_for(bank, getattr(message, "channel", 0),
+                                          message.note, message.velocity)
+
+                notes.accepts = _accepts
             performance.sources.append(from_notes(notes))
             try:
                 listener = Listener(None, args.midi or None)

@@ -35,11 +35,9 @@ needs_clang = pytest.mark.skipif(shutil.which("clang") is None,
 SYNTH = """
 Custom := Custom Float Int
 
-voices lead 3 : Custom -> Sig Float
-lead = myVoice
+voices lead 3 myVoice : Sig Float
 
-voices bass 2 : Custom -> Sig Float
-bass = myVoice
+voices bass 2 myVoice : Sig Float
 
 outV : Both Gate Custom -> Float
 outV p = case p of

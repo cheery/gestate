@@ -157,16 +157,25 @@ def _banks(lines: list) -> list:
         # thing without a lookahead.
         match = _DECL.match(stripped)
         if match is not None:
+            # **The two-part spelling is retired, by name.**  It was
+            # `voices lead 2 : Note -> Sig Float` above a `lead = voice`
+            # line; accepting it silently is how it survived long enough
+            # to be copied out of an old test into three new pieces.  A
+            # stray old file is told exactly what to write instead.
             name, count, record, result = match.groups()
-            voice, record_known = "", record
-        else:
-            match = _DECL_INLINE.match(stripped)
-            if match is None:
-                continue
-            name, count, voice, result = match.groups()
-            # Filled in from the voice's own signature once the program can
-            # be parsed — see `_payload_of`.
-            record_known = ""
+            raise VoicesError(
+                f"`voices {name} {count} : {record} -> {result}` is the "
+                f"retired two-part spelling.  Name the voice in the "
+                f"declaration — `voices {name} {count} <voice> : {result}` "
+                f"— and drop the `{name} = <voice>` line: the payload type "
+                f"now comes from the voice's own signature")
+        match = _DECL_INLINE.match(stripped)
+        if match is None:
+            continue
+        name, count, voice, result = match.groups()
+        # Filled in from the voice's own signature once the program can
+        # be parsed — see `_payload_of`.
+        record_known = ""
         if int(count) < 1:
             raise VoicesError(
                 f"`voices {name} {count}` — a bank needs at least one voice")
@@ -690,6 +699,8 @@ def expand(source: str, prelude: str = "") -> str:
     if not banks:
         if _DOTTED.search(source):
             _rewrite_dots(source, banks)        # raises, naming the bank
+        if _HOLDS.search(source):
+            _rewrite_holds(source, banks)       # likewise
         return source
 
     seen = set()
@@ -722,8 +733,10 @@ def expand(source: str, prelude: str = "") -> str:
     # music prelude by `audioperform`.
     if _DOTTED.search(source):
         generated += _voice_type(banks)
+    if _HOLDS.search(source):
+        generated += _holds_defs(banks)
     _refuse_collisions(blanked, generated, banks)
-    return (_rewrite_dots(blanked, banks) + "\n\n"
+    return (_rewrite_holds(_rewrite_dots(blanked, banks), banks) + "\n\n"
             + "\n".join(generated) + "\n")
 
 
@@ -778,6 +791,37 @@ def _refuse_collisions(source: str, generated: list, banks: list) -> None:
 
 #: `voices.lead` in an expression.
 _DOTTED = re.compile(r"\bvoices\.([A-Za-z_]\w*)")
+
+#: `holds.lead` — the bank's note port as a `probe` target.
+_HOLDS = re.compile(r"\bholds\.([A-Za-z_]\w*)")
+
+
+def _rewrite_holds(source: str, banks: list) -> str:
+    """`holds.lead` → `holdsLead`, by the rule `_rewrite_dots` records."""
+    known = {b.name for b in banks}
+
+    def one(match):
+        name = match.group(1)
+        if name not in known:
+            raise VoicesError(
+                f"`holds.{name}` names no bank; this program declares "
+                + (", ".join(f"`{b}`" for b in sorted(known)) or "none"))
+        return "holds" + _cap(name)
+
+    return _HOLDS.sub(one, source)
+
+
+def _holds_defs(banks: list) -> list:
+    """`holdsLead : Int` per bank — the port ids `audioscore.ports_of`
+    reads back.  `Int` rather than `Port` so the definitions stand in a
+    program assembled without `music.ges`; where both exist the alias
+    makes them one type."""
+    out = []
+    for i, bank in enumerate(banks):
+        out.append(f"holds{_cap(bank.name)} : Int")
+        out.append(f"holds{_cap(bank.name)} = {i}")
+        out.append("")
+    return out
 
 
 def _rewrite_dots(source: str, banks: list) -> str:

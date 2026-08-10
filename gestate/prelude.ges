@@ -594,6 +594,37 @@ append xs ys = case xs of
     [] -> ys
     x :: rest -> x :: append rest ys
 
+#: **Sort, ascending** — a merge sort, because the obvious insertion
+#: is quadratic on exactly the lists somebody bothers to sort.  The
+#: halves come from taking every other element, which needs no length;
+#: the cost is that ties keep no promise about their original order —
+#: said here rather than discovered, since a stable sort would need a
+#: different split and nothing in the tree has asked for one yet.
+sort : (Ord a) => List a -> List a
+sort xs = case xs of
+    [] -> []
+    x :: rest -> case rest of
+        [] -> xs
+        y :: more -> sortMerge (sort (everyOther xs)) (sort (everyOther rest))
+
+#: Every second element: the evens of a list and the evens of its tail
+#: are its two halves, interleaved.
+everyOther : List a -> List a
+everyOther xs = case xs of
+    [] -> []
+    x :: rest -> case rest of
+        [] -> x :: []
+        y :: more -> x :: everyOther more
+
+sortMerge : (Ord a) => List a -> List a -> List a
+sortMerge xs ys = case xs of
+    [] -> ys
+    x :: xt -> case ys of
+        [] -> xs
+        y :: yt -> case x <= y of
+            True -> x :: sortMerge xt ys
+            False -> y :: sortMerge xs yt
+
 #: `reverseOnto xs acc` is `reverse xs ++ acc` without building the
 #: intermediate — the accumulator that makes `reverse` linear.  Written
 #: the obvious way, `reverse` walks the reversed prefix once per element,

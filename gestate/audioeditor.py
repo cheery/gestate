@@ -1629,8 +1629,9 @@ class Workbench:
                 # is baked: the performer decides notes as the transport
                 # reaches them, off the audio thread — `control` and the
                 # housekeeping push are its clock.
-                from .audiodynamic import LazyPerformer, ScoreStream
-                from .audioscore import stream_root
+                from .audiodynamic import LazyPerformer, LiveStream
+                from .audioperform import holds_reader
+                from .audioscore import ports_of, stream_root
                 from .tempo import TempoEnvelope, constant
 
                 # A rebuild mid-piece resumes at the beat the transport
@@ -1647,14 +1648,23 @@ class Workbench:
                     tick = int(env.beat_at(
                         self.transport.position / self.rate)) * 96
                 tempo, state, root, by_tag = stream_root(
-                    text, "", self.rate, self.seed or 0, tick)
+                    text, "", self.rate, self.seed or 0, tick, live=True)
                 self.bpm = tempo
                 self.schedule = None
+                # The world a probe reads: the keyboard's own note
+                # port, asked at decision instants, never earlier.
+                # `self.notes` is looked up at *call* time — rebuilds
+                # replace the Notes object, and a reader that captured
+                # one would listen to a keyboard nobody holds anymore.
+                ports = ports_of(text)
+
+                def reader(port, _ports=ports):
+                    return holds_reader(self.notes, _ports)(port)
                 with self._performer_lock:
                     self.performer = LazyPerformer(
-                        ScoreStream(state, root, by_tag, patience=0.02),
+                        LiveStream(state, root, by_tag, patience=0.02),
                         tempo, self.rate, allocators, block=self.block,
-                        origin=tick)
+                        origin=tick, reader=reader)
             else:
                 from .audioscore import perform_voices, schedule_voices
 

@@ -76,6 +76,27 @@ class Transcript:
 
     # -- holding a performance to it ------------------------------------------
 
+    def reader_of(self):
+        """Replay's world: each port's questions answered in recorded order.
+
+        Decisions are deterministic given the seed, so the k-th question a
+        port asks in a replay is the k-th it asked live — a queue per port
+        is the whole mechanism, and running past the log's end reads as
+        silence, exactly as an unplugged port does.
+        """
+        from collections import defaultdict, deque
+
+        queues = defaultdict(deque)
+        for entry in self.events:
+            if entry[0] == "reading":
+                queues[entry[2]].append(list(entry[3]))
+
+        def reader(port):
+            q = queues.get(port)
+            return list(q.popleft()) if q else []
+
+        return reader
+
     def belongs_to(self, source: str) -> bool:
         """Is this the transcript of `source`?  A replay must ask first:
         feeding one program another's log is not a replay, it is a

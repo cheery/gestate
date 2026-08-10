@@ -229,6 +229,15 @@ _RESUME_ENTRY = ("resumeMain : Int -> Int -> List (Int, Int, Voice)\n"
                  "resumeMain sd t = streamVoices (resumeAt t "
                  "(sowScore (seedRoot sd) score))\n")
 
+#: The listening reading: a stream that can end in a question
+#: (`music.ges`, `liveVoices`).  On a probe-free score it must sound
+#: exactly `streamMain` — `test_probescore.py` holds the two equal —
+#: so the dynamic path reads through this one always, and the flat
+#: stream remains the bake's and the parity suite's.
+_LIVE_ENTRY = ("liveMain : Int -> Int -> List Cue\n"
+               "liveMain sd t = liveVoices (resumeAt t "
+               "(sowScore (seedRoot sd) score))\n")
+
 #: `seedRoot` — one line, chosen by whether the author declared a `seed`.
 #: Their number is fixed art, replayable from the text alone; the
 #: argument is the renderer's entropy, recorded by whoever supplied it.
@@ -333,7 +342,7 @@ def assemble_performance(synth: str, piece: str = "", rate: int = 22050,
 
     tail = _entry(rate) + "\n" + (
         _VOICE_ENTRY if _tempo_of(synth + "\n" + piece) == "bpm"
-        else _TEMPO_ENTRY) + _STREAM_ENTRY + _MARKS_ENTRY + _RESUME_ENTRY + (
+        else _TEMPO_ENTRY) + _STREAM_ENTRY + _MARKS_ENTRY + _RESUME_ENTRY + _LIVE_ENTRY + (
         _SEED_OWN if "seed" in _authored(synth + "\n" + piece)[1]
         else _SEED_GIVEN)
     # `beat` goes with the entry point rather than into `head`, because it
@@ -625,8 +634,20 @@ def assigned_banks(source: str) -> set:
     return banks
 
 
+def ports_of(source: str) -> dict:
+    """`{port id: bank name}` — the identities `holds.<bank>` expands to.
+
+    The expander numbers ports by bank declaration order, so this is the
+    same enumeration read back; a reader answers `reader(port)` with the
+    keys that bank's note port currently holds.
+    """
+    from .audiovoices import banks_of
+
+    return {i: b.name for i, b in enumerate(banks_of(source))}
+
+
 def stream_root(synth: str, piece: str = "", rate: int = 22050,
-                seed: int = 0, tick: int = 0) -> tuple:
+                seed: int = 0, tick: int = 0, live: bool = False) -> tuple:
     """`(tempo, state, root, by_tag)` — the unforced stream and its readers.
 
     The stage-two entry.  Nothing of the layout is forced here: `tempo`
@@ -664,7 +685,10 @@ def stream_root(synth: str, piece: str = "", rate: int = 22050,
         info = state.cons.get(name)
         if info is not None:
             by_tag[info.tag] = bank.name
-    if tick > 0:
+    if live:
+        # The listening reading: resume-aware by its own second argument.
+        root = NAp(NAp(state.globals["liveMain"], NNum(seed)), NNum(tick))
+    elif tick > 0:
         # The remainder from `tick`, rebased to zero: `resumeAt` descends
         # by declared widths, so what stood left of the tick is skipped,
         # never forced — the rebuild answer (`spec/dynamicscore.md`).

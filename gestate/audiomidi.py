@@ -583,18 +583,30 @@ class FromMidi:
         node = _deref(scratch.stack[0])
         if not isinstance(node, NCon) or node.tag != self.state.cons["Just"].tag:
             return None                      # `Nothing`: the bank declined
-        return _fields_of(_deref(node.args[0]))
+        return _fields_of(node.args[0], self.state)
 
 
-def _fields_of(node) -> tuple:
-    """A payload record's fields, flattened to the values a channel takes."""
-    from .gmachine import NCon, NNum, _deref
+def _fields_of(node, state) -> tuple:
+    """A payload record's fields, flattened to the values a channel takes.
 
+    **Forced, field by field** — a record built by an instance holds
+    thunks wherever the instance *computed* (`Tone (toFloat v / 127.0)
+    n`), and the version that only dereferenced skipped those fields
+    silently.  Every raw-field instance in the tree worked; the first
+    computed field played its note with the wrong arity.  A field that
+    is not a value after forcing is a loud error, not a shorter payload.
+    """
+    from .gmachine import GmError, NCon, NInd, NNum, _force
+
+    node = _force(node, state)
+    while isinstance(node, NInd) and node.target is not None:
+        node = node.target
     if isinstance(node, NNum):
         return (node.n,)
     if isinstance(node, NCon):
         out: list = []
         for arg in node.args:
-            out.extend(_fields_of(_deref(arg)))
+            out.extend(_fields_of(arg, state))
         return tuple(out)
-    return ()
+    raise GmError(
+        f"a payload field that is not a value: {type(node).__name__}")

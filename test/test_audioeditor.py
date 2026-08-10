@@ -1595,3 +1595,41 @@ def test_an_unfolding_score_plays_through_the_performer(tmp_path):
         assert bench.control(gate.id, 8000) not in (None, 0)
     finally:
         bench.stop()
+
+
+@needs_clang
+def test_the_arpeggiator_hears_press_and_release(tmp_path):
+    """The holds mechanism, locked in: press and the line is your key,
+    release and the line is silence — no idle figure, no fallback pitch,
+    no note the player cannot account for.
+    """
+    path = tmp_path / "arpeggiator.ges"
+    path.write_text((AUDIO_DIR / "arpeggiator.ges").read_text())
+    bench = Workbench(path, rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+    bench.start(seconds=0.0)
+    try:
+        assert bench.performer is not None
+        graph = bench.live.engine.graph
+        gate = graph.control_by_chan()["leadChan0f0"]
+        beat = 8000 * 60 // 128
+
+        for t in range(0, beat, 64):
+            bench.control(gate.id, t)
+        assert not bench.performer.history, "empty hands must be silence"
+
+        bench.keyboard.press(62)
+        for t in range(beat, 3 * beat, 64):
+            bench.control(gate.id, t)
+        played = {e[3][0][1] for e in bench.performer.history
+                  if e[2] == "lead"}
+        assert played and played <= {62, 74}, played
+
+        bench.keyboard.release(62)
+        seen = len(bench.performer.history)
+        for t in range(3 * beat + 4 * 64, 5 * beat, 64):
+            bench.control(gate.id, t)
+        late = [e for e in bench.performer.history[seen:] if e[2] == "lead"]
+        assert not late, f"released, yet it kept playing: {late}"
+    finally:
+        bench.stop()

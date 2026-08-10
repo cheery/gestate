@@ -595,8 +595,7 @@ def test_the_stereo_bank_really_carries_two_channels():
 
 PAYLOAD = """Key := Key Int Int
 
-voices lead 2 : Key -> Sig Float
-lead = voice
+voices lead 2 voice : Sig Float
 
 env : Adsr
 env = Adsr 0.01 0.25 0.6 0.3

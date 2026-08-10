@@ -40,8 +40,7 @@ needs_clang = pytest.mark.skipif(shutil.which("clang") is None,
 SYNTH = """
 Custom := Custom Float Int
 
-voices lead 3 : Custom -> Sig Float
-lead = myVoice
+voices lead 3 myVoice : Sig Float
 
 levelAt : Int -> Int -> Int -> Float
 levelAt n on off = case on of
@@ -114,8 +113,7 @@ def test_a_payload_may_not_reach_a_bank_that_does_not_take_it():
         "sound = gain 0.5 lead",
         "sound = 0.5 * (lead + bass)\n\n"
         "Other := Other Int\n\n"
-        "voices bass 2 : Other -> Sig Float\n"
-        "bass = bassVoice\n\n"
+        "voices bass 2 bassVoice : Sig Float\n\n"
         "bassVoice : Sig Gate -> Sig Other -> Sig Float\n"
         "bassVoice s = map (p => 0.0) s\n")
     bad = PIECE.replace("tune >>= voices.lead", "tune >>= voices.bass")
