@@ -245,6 +245,29 @@ _SEED_OWN = "seedRoot : Int -> Int\nseedRoot sd = seed\n"
 _SEED_GIVEN = "seedRoot : Int -> Int\nseedRoot sd = sd\n"
 
 
+#: The boxed stage-three surface, retired by ariadne
+#: (`spec/ariadne.md`) — refused *as itself*, the retirement rule: a
+#: stray old piece gets told what to write, not an unknown-name error.
+_RETIRED = {
+    "sown": "`sown (s => X)` is retired — write `do s <- draw; X`: the "
+            "seed is a value now, and the content's time is its own "
+            "(`long n` is the box, where a box is meant)",
+    "probe": "`probe p f` is retired — write `do ks <- hear p; f ks`: "
+             "no box, a four-beat answer takes four beats",
+}
+
+
+def _refuse_retired(authored: str) -> None:
+    import re
+
+    bare = re.sub(r"#[^\n]*", "", authored)
+    for name, hint in _RETIRED.items():
+        found = re.search(rf"\b{name}\b", bare)
+        if found:
+            line = bare[:found.start()].count("\n") + 1
+            raise ScoreError(f"line {line}: {hint}")
+
+
 def _tempo_of(source: str) -> str:
     """Which spelling this piece uses, refusing both at once.
 
@@ -369,6 +392,7 @@ def assemble_performance(synth: str, piece: str = "", rate: int = 22050,
     authored = synth + "\n" + piece
     written = expand(authored, head)
     enforce(authored, text=written)
+    _refuse_retired(authored)
     # **A program's own name wins**, as in `audio.assemble` and for the same
     # reason — and this is the path a *composition* takes, so it is the one
     # where it matters most: `chorus` is an effect in `synth.ges` and a

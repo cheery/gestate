@@ -162,3 +162,19 @@ def test_the_crust_twin_speaks_hear_unchanged(tmp_path):
     got = drive_stream(lambda r: LazyPerformer(
         stream, tempo2, RATE, _allocators(), block=BLOCK, reader=r))
     assert got == want and want
+
+
+def test_the_old_spellings_are_refused_by_name():
+    """`sown` and `probe` are retired as themselves — a stray old piece
+    gets told what to write (`spec/ariadne.md`, the retirement stage),
+    never an unknown-name error."""
+    import pytest
+
+    from gestate.audioscore import ScoreError
+
+    with pytest.raises(ScoreError, match="do s <- draw"):
+        _events("\nscore : [: Void :]\n"
+                "score = (sown (s => '(Custom 1.0 60))) >>= voices.lead\n")
+    with pytest.raises(ScoreError, match="do ks <- hear"):
+        _events("\nscore : [: Void :]\n"
+                "score = (probe 0 (ks => r)) >>= voices.lead\n")
