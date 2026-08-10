@@ -1,4 +1,4 @@
-"""`spec/dynamicscore.md` stage three, the seed half — `sown` and kin.
+"""The seed half — `draw` and kin (`spec/ariadne.md`).
 
 The claims under test are the spec's own: a draw is a pure function of
 seed and position (so chance music *bakes*, and bake equals stream,
@@ -133,12 +133,11 @@ def test_an_authors_seed_beats_the_renderers():
 # ── The box ─────────────────────────────────────────────────────────────────
 
 
-def test_sown_content_is_clipped_to_its_beat():
-    """Content bends, time doesn't: a decision is one beat wide.
-
-    The continuation answers three beats of material; only what starts
-    inside the box plays, and the phrase after the decision lands on the
-    downbeat it always had.
+def test_a_draws_content_takes_its_own_time_and_long_is_the_box():
+    """Ariadne's reading of the old box law (`spec/ariadne.md`): a
+    decision's content carries its own time — three beats take three
+    beats, and what follows waits — and a *written* box is spelled
+    where boxes are spelled, with `long`.  The constant law both ways.
     """
     piece = """
 run : Float -> [: Custom :]
@@ -151,7 +150,13 @@ bpm : Int
 bpm = 120
 """
     events = perform_voices(SYNTH, piece, RATE, seed=4)[1]
-    assert len(events) == 2, events            # one clipped note + the next
+    assert len(events) == 4, events            # all three, then the next
+    assert [e[:2] for e in events] == [(0, 96), (96, 192), (192, 288),
+                                       (288, 384)], "time from content"
+
+    boxed = piece.replace("roll run", "long 1 (roll run)")
+    events = perform_voices(SYNTH, boxed, RATE, seed=4)[1]
+    assert len(events) == 2, events            # the box, written, clips
     assert events[0][:2] == (0, 96)
     assert events[1][:2] == (96, 192), "the downbeat after must not move"
 
@@ -349,7 +354,7 @@ def test_a_resume_skips_instead_of_unfolding():
     """
     piece = """
 score : [: Void :]
-score = cycle (sown (s => '(Custom (random s) 60)) |* 2) >>= voices.lead
+score = cycle ((do s <- draw; '(Custom (random s) 60)) |* 2) >>= voices.lead
 
 bpm : Int
 bpm = 120
@@ -386,8 +391,8 @@ def test_a_rebuild_rejoins_in_seconds_not_minutes():
 
     piece = """
 score : [: Void :]
-score = cycle (sown (s => '(Custom (random s) 60)) |* 2
-               ++ sown (s => '(Custom (random s) 64)) |* 2) >>= voices.lead
+score = cycle ((do s <- draw; '(Custom (random s) 60)) |* 2
+               ++ (do s <- draw; '(Custom (random s) 64)) |* 2) >>= voices.lead
 
 bpm : Int
 bpm = 96

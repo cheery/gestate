@@ -306,7 +306,7 @@ def test_an_endless_stream_pulls_bounded(crust_bin):
 
     piece = """
 score : [: Void :]
-score = cycle (sown (s => '(Custom (random s) 60)) |* 2) >>= voices.lead
+score = cycle ((do s <- draw; '(Custom (random s) 60)) |* 2) >>= voices.lead
 
 bpm : Int
 bpm = 120
@@ -362,7 +362,7 @@ def test_the_collector_keeps_an_endless_night_bounded(crust_bin):
 
     piece = """
 score : [: Void :]
-score = cycle (sown (s => '(Custom (random s) 60)) |* 2) >>= voices.lead
+score = cycle ((do s <- draw; '(Custom (random s) 60)) |* 2) >>= voices.lead
 
 bpm : Int
 bpm = 120
@@ -400,7 +400,7 @@ def test_a_lazy_performer_drives_the_twin_unchanged(crust_bin):
 
     piece = """
 score : [: Void :]
-score = cycle (sown (s => '(Custom (random s) 60)) |* 2) >>= voices.lead
+score = cycle ((do s <- draw; '(Custom (random s) 60)) |* 2) >>= voices.lead
 
 bpm : Int
 bpm = 120

@@ -158,6 +158,11 @@ class Performer:
 # the time it finally appears is dropped, and said so.
 
 
+#: A cell that is a fact rather than an event — skipped by the pull,
+#: after it said what it knows (`LiveStream._event`, the `CueEnd` arm).
+_SKIP = object()
+
+
 class ScoreStream:
     """`streamMain` forced cell by cell, under a fuel budget.
 
@@ -353,6 +358,9 @@ class ScoreStream:
             if event is None:
                 self.stalled = True
                 break
+            if event is _SKIP:
+                self.node = node.args[1]
+                continue
             self.node = node.args[1]
             self.ready = event
             self._begun = True
@@ -385,6 +393,10 @@ class LiveStream(ScoreStream):
         self._ask_k = None
         self._ev = state.cons["CueEv"].tag
         self._askt = state.cons["CueAsk"].tag
+        #: The stream's own report of where a subtree ended — ariadne's
+        #: self-terminated cues (`spec/ariadne.md`).  Not an event: a
+        #: fact, harvested into `frontier` and skipped.
+        self._endt = state.cons["CueEnd"].tag
 
     def _event(self, cell):
         from .gmachine import NCon, NNum
@@ -394,6 +406,14 @@ class LiveStream(ScoreStream):
             return None
         if not isinstance(head, NCon):
             raise ScoreError("expected a cue in the live stream")
+        if head.tag == self._endt:
+            tick = self._whnf(head.args[0])
+            if tick is None:
+                return None                     # budget parked mid-end
+            if not isinstance(tick, NNum):
+                raise ScoreError("an end with no instant")
+            self.frontier = max(self.frontier, tick.n)
+            return _SKIP
         if head.tag == self._askt:
             tick = self._whnf(head.args[0])
             port = self._whnf(head.args[1])

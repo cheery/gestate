@@ -109,7 +109,9 @@ phraseOf n = case n of
 #: stretched back to the bar (`|* 4`); the `chance` above bends its
 #: pair the same way, or only the first note would survive its box.
 bar : [: Tone :]
-bar = (sown (s => phraseOf (below 4 s) |/ 4) |* 4)
+bar = do
+    s <- draw
+    long 4 (phraseOf (below 4 s))
 
 ground : [: Tone :]
 ground = ('(Tone 0.9 0) |* 2) ++ ('(Tone 0.8 3) |* 2)

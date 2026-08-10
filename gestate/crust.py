@@ -161,7 +161,8 @@ def _stream_abi(lib):
     lib.crust_stream_free.restype = None
     lib.crust_stream_open_live.argtypes = [
         ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int64, ctypes.c_int64,
-        ctypes.c_int64, ctypes.c_int64, ctypes.c_int64, ctypes.c_int64]
+        ctypes.c_int64, ctypes.c_int64, ctypes.c_int64, ctypes.c_int64,
+        ctypes.c_int64]
     lib.crust_stream_open_live.restype = ctypes.c_void_p
     lib.crust_stream_ask.argtypes = [
         ctypes.c_void_p, ctypes.POINTER(ctypes.c_int64)]
@@ -287,10 +288,10 @@ class NativeStream:
         if live_tags is not None:
             # A `liveMain` stream: cue cells, and the tick always
             # applies — resume-aware by its own second argument.
-            ev, askt = live_tags
+            ev, askt, endt = live_tags
             self._s = self._lib.crust_stream_open_live(
                 native._m, entry.encode(), seed, tick,
-                cons_tag, nil_tag, ev, askt)
+                cons_tag, nil_tag, ev, askt, endt)
         else:
             self._s = self._lib.crust_stream_open(
                 native._m, entry.encode(), seed, tick,
@@ -425,7 +426,8 @@ def live_native(state, by_tag: dict, seed: int, tick: int = 0,
             nil_tag=state.cons["Nil"].tag,
             by_tag=by_tag,
             live_tags=(state.cons["CueEv"].tag,
-                       state.cons["CueAsk"].tag),
+                       state.cons["CueAsk"].tag,
+                       state.cons["CueEnd"].tag),
             fuel=fuel)
     except (CrustError, OSError, subprocess.CalledProcessError):
         return None
@@ -453,7 +455,8 @@ def native_stream(synth: str, piece: str = "", rate: int = 22050,
                                               seed, tick, live=live)
     if live:
         entry = "liveMain"
-        live_tags = (state.cons["CueEv"].tag, state.cons["CueAsk"].tag)
+        live_tags = (state.cons["CueEv"].tag, state.cons["CueAsk"].tag,
+                     state.cons["CueEnd"].tag)
     else:
         entry = "resumeMain" if tick > 0 else "streamMain"
         live_tags = None

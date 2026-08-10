@@ -205,7 +205,9 @@ phraseAt n c = case n of
     _ -> r |* 4
 
 leadBar : Int -> [: Tone :]
-leadBar c = (sown (s => phraseAt (below 4 s) c |/ 4) |* 4)
+leadBar c = do
+    s <- draw
+    long 4 (phraseAt (below 4 s) c)
 
 leadPart : Int -> [: Tone :]
 leadPart v = leadBar (progAt v 0) ++ leadBar (progAt v 1)
@@ -216,13 +218,15 @@ blockOf v = (padPart v >>= voices.pad)
          || (bassPart v >>= voices.bass)
          || (leadPart v >>= voices.lead)
 
-#: A `sown` decision is one beat wide, by law — content bends, time
+#: A drawn block is sixteen declared beats (`long`) — content bends,
 #: doesn't.  To let one seed govern four bars, the four bars bend:
 #: written `|/ 16` so the whole block fits the decision's beat, then
 #: `|* 16` so the beat is four bars long again.  Each turn of the
 #: `cycle` is a fresh split, so every block draws its own road.
 score : [: Void :]
-score = cycle (sown (s => blockOf (below 4 s) |/ 16) |* 16)
+score = cycle (do
+    s <- draw
+    long 16 (blockOf (below 4 s)))
 
 bpm : Int
 bpm = 104

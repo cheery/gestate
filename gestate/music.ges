@@ -58,20 +58,9 @@ Score a := Note a                # `'x` — unassigned, carries the payload
          | Scale (Score a) Int
          | Shrink (Score a) Int
          | Retro (Score a)          # `reverse` — back to front
-         # Stage three (`spec/dynamicscore.md`): a leaf whose *content* is
-         # decided from the seed its position carries, and the box such
-         # content is clipped to.  The seed is spelled `Int` because this
-         # file also serves the MIDI backend alone, where `synth.ges`'s
-         # `Seed` alias is not in scope; where both are, they are one type.
-         | Sown (Int -> Score a)     # `sown f` — one beat, seed decides
          | Sow Int (Score a)         # `sow n s` — re-root a subtree's seed
-         | Clip Int (Score a)        # content clipped to a declared span
+         | Clip Int (Score a)        # `long n s` — a declared span
          | Mark Int                  # `mark n` — a bar point, zero wide
-         # Stage three's world half: a leaf whose content is decided from
-         # what a declared port reads at the leaf's own downbeat.  The
-         # reading is a list of Ints — held keys as they are; a knob will
-         # arrive as a singleton when its bridge lands.
-         | Probe Int (List Int -> Score a)
          # Ariadne (`spec/ariadne.md`): the reactive surface as lawful
          # leaves of the algebra, free-monad shaped — a value arrives, the
          # continuation is the rest of the subtree, and no box clips it.
@@ -165,11 +154,9 @@ instance Monad Score where
         # The instrument reaches *through* a decision not yet made: bind
         # composes with the continuation, so `sown g >>= voices.lead`
         # assigns whatever the seed decides.
-        Sown g -> Sown (sd => g sd >>= f)
         Sow n t -> Sow n (t >>= f)
         Clip w t -> Clip w (t >>= f)
         Mark n -> Mark n
-        Probe p g -> Probe p (xs => g xs >>= f)
         Draw g -> Draw (sd => g sd >>= f)
         Hear p g -> Hear p (xs => g xs >>= f)
 
@@ -269,7 +256,7 @@ streamVoices s = streamVoicesAt 0 s
 #: keeps walking the list the answer returns.  No rebuilding, no second
 #: walk — the question is the spine, suspended.
 liveVoices : [: Void :] -> List Cue
-liveVoices s = liveTo 0 s Nil
+liveVoices s = liveTo 0 s
 
 # ── Reading the seed — `spec/dynamicscore.md`, stage three ───────────────
 #
@@ -282,13 +269,6 @@ liveVoices s = liveTo 0 s Nil
 # fragment's own noise (`white`, `dust`) keeps its LCG, because that one
 # must fit an i64 for the compiled code and the interpreter to agree.
 # The LCG is a texture; this is an index.
-
-#: **A leaf whose content the seed decides.**  One beat, like every
-#: leaf; `|*` and `|/` scale it; content longer than the span is
-#: clipped.  What varies is what sounds — never how long it takes,
-#: which is what keeps a chancy score seekable and bakeable.
-sown : (Int -> [: a :]) -> [: a :]
-sown f = Sown f
 
 #: Re-root a subtree's seed: `sow 7 intro ++ improvisation` is fixed
 #: art inside an improvisation.
@@ -335,18 +315,6 @@ bar = Mark 0
 #: and what the name buys is a signature that says which integer is
 #: wanted.
 type Port = Int
-
-#: **A leaf whose content the world decides** — `probe holds.lead f`
-#: plays `f` of whatever keys the lead port holds *at this leaf's own
-#: downbeat*.  One beat, like every leaf; `|*` and `|/` scale it;
-#: content past the box is clipped: the stage-three invariant again —
-#: what varies is what sounds, never how long it takes.  A probe can
-#: not be forced early — the reading does not exist yet — so the
-#: performance decides exactly as late as the author wrote (`|/ 4`
-#: listens every sixteenth), and every reading lands in the transcript,
-#: which is what makes an improvisation replayable.
-probe : Port -> (List Int -> [: a :]) -> [: a :]
-probe p f = Probe p f
 
 #: **The seed at this position** — ariadne's chance leaf
 #: (`spec/ariadne.md`).  A value, not a span: `do s <- draw; f s` is
@@ -408,9 +376,7 @@ resumeAt t s = case t < 1 of
         Play e -> r
         Assigned v -> r
         Rest -> r
-        Sown f -> r
         Mark n -> r
-        Probe p g -> r
         # Ariadne's leaves distribute: the cut applies to whatever the
         # value decides, when it is decided.  (For `Hear` mid-resume the
         # honest source of that answer is the thread — stage four; until
@@ -448,12 +414,17 @@ split s = (mix64 (wrap64 (s + 11400714819323198485)),
 below : Int -> Int -> Int
 below n s = prim_mod_int (mix64 (wrap64 s)) n
 
-#: `sown`, with the seed already spent on one uniform draw.
+#: `draw`, with the seed already spent on one uniform draw.  The
+#: content's time is its own — ariadne has no box to fit.
 roll : (Float -> [: a :]) -> [: a :]
-roll f = sown (s => f (unit s))
+roll f = do
+    s <- draw
+    f (unit s)
 
-#: Play `s` with probability `p`, else rest — for the same span either
-#: way, which is the stage's whole invariant in one function.
+#: Play `s` with probability `p`, else a beat of rest.  (Under the old
+#: boxed surface both arms were clipped alike; ariadne keeps the time
+#: of whichever arm plays, so give the arms equal width yourself when
+#: `s` is wider than a beat.)
 chance : Float -> [: a :] -> [: a :]
 chance p s = roll (x => case x < p of
     True -> s
@@ -465,7 +436,6 @@ chance p s = roll (x => case x < p of
 #: unchanged whatever the seed, which is what keeps fixed art fixed.
 sowScore : Int -> [: a :] -> [: a :]
 sowScore sd s = case s of
-    Sown f -> Clip ticksPerBeat (sowScore sd (f sd))
     Sow n t -> sowScore n t
     Seq a b -> case split sd of
         (l, r) -> Seq (sowScore l a) (sowScore r b)
@@ -481,13 +451,16 @@ sowScore sd s = case s of
     Assigned v -> Assigned v
     Rest -> Rest
     Mark n -> Mark n
-    Probe p g -> Probe p (xs => sowScore sd (g xs))
-    # **The sower eliminates `Draw` entirely**: the draw takes the left
-    # split, the continuation the right, so a chain of binds is a chain
-    # of splits and no walk below this line ever meets a `Draw` on a
-    # sown tree — the constructor's whole tax is this one arm.
+    # **The sower eliminates `Draw` entirely**, and no walk below this
+    # line ever meets one on a sown tree — the constructor's whole tax
+    # is this one arm.  The draw's value is the position's own seed —
+    # the bit contract `test_sownscore.py` pins, unchanged from the old
+    # surface, so takes replay across the retirement — and the
+    # continuation is re-seeded with the right split, so a *chain* of
+    # draws is a chain of fresh values, which the old surface could not
+    # spell at all.
     Draw g -> case split sd of
-        (l, r2) -> sowScore r2 (g l)
+        (l, r2) -> sowScore r2 (g sd)
     Hear p g -> Hear p (xs => sowScore sd (g xs))
 
 internal
@@ -584,10 +557,8 @@ layOnto off s acc = case s of
     # sow the tree (`sowScore`), so meeting a bare `Sown` here means a
     # path that did not, and silence with the right duration is the
     # honest sound of no decision.
-    Sown f -> (ticksPerBeat, acc)
     Sow n t -> layOnto off (sowScore n t) acc
     Mark n -> (0, acc)
-    Probe p g -> (ticksPerBeat, acc)
     # An unsown draw and an unheard question are nothing at all — no
     # width, no sound: the leaves are zero-wide by law (`spec/ariadne.md`)
     # and an eager walk has no seed and no world to widen them with.
@@ -627,10 +598,8 @@ layVoicesOnto off s acc = case s of
         (dt, et) -> (dt, placeRetroV off dt et ++ acc)
     # The three stage-three arms, as in `layOnto` above and for the same
     # reasons.
-    Sown f -> (ticksPerBeat, acc)
     Sow n t -> layVoicesOnto off (sowScore n t) acc
     Mark n -> (0, acc)
-    Probe p g -> (ticksPerBeat, acc)
     Draw g -> (0, acc)
     Hear p g -> (0, acc)
     Clip w t -> case layVoicesOnto 0 t [] of
@@ -709,14 +678,12 @@ minInt a b = case a < b of
 streamMarksAt : Int -> [: a :] -> List (Int, Int)
 streamMarksAt off s = case s of
     Mark n -> (off, n) :: Nil
-    Probe p g -> Nil
     Draw g -> Nil
     Hear p g -> Nil
     Note x -> Nil
     Play e -> Nil
     Assigned v -> Nil
     Rest -> Nil
-    Sown f -> Nil
     Seq a b -> streamMarksAt off a ++ streamMarksAt (off + durOf a) b
     Par a b -> mergeMarks (streamMarksAt off a) (streamMarksAt off b)
     At n t -> streamMarksAt (off + n) t
@@ -739,14 +706,12 @@ streamMarksTo limit off s = case limit <= off of
     True -> Nil
     False -> case s of
         Mark n -> (off, n) :: Nil
-        Probe p g -> Nil
         Draw g -> Nil
         Hear p g -> Nil
         Note x -> Nil
         Play e -> Nil
         Assigned v -> Nil
         Rest -> Nil
-        Sown f -> Nil
         Seq a b -> streamMarksTo limit off a
                 ++ streamMarksTo limit (off + durOf a) b
         Par a b -> mergeMarks (streamMarksTo limit off a)
@@ -809,11 +774,9 @@ durOf s = case s of
     # A decision is one beat before it is made — the invariant that keeps
     # this function total on a listening score.  A clip's duration is the
     # box, whatever the content did.
-    Sown f -> ticksPerBeat
     Sow n t -> durOf t
     Clip w t -> w
     Mark n -> 0
-    Probe p g -> ticksPerBeat
     # Zero, and the honest reading of it: durations are measured up to
     # the first unanswered leaf.  A sown tree has no `Draw` left, and a
     # `Hear`'s time is the answer's — the frontier's fact, made the
@@ -853,12 +816,10 @@ streamVoicesAt off s = case s of
     # so the subtree must end to be reversed.  An endless one diverges in
     # `durOf` first, which the performer's budget reports as a stall.
     Retro t -> reverse (placeRetroV off (durOf t) (streamVoicesAt 0 t))
-    Sown f -> Nil                       # un-sown: no decision, no events
     Sow n t -> streamVoicesAt off (sowScore n t)
     Mark n -> Nil                       # a point is not a note
     # The flat stream cannot await a reading; `liveVoices` below is the
     # walk that can, and a probing score is performed through it.
-    Probe p g -> Nil
     Draw g -> Nil
     Hear p g -> Nil
     # Lazily clipped: the stream is beat-ordered, so the box is a
@@ -942,50 +903,86 @@ unit s = toFloat (prim_div_int (mix64 (wrap64 s)) 2048) / 9007199254740992.0
 
 # ── The live walk — a stream that can end in a question ──────────────────
 #
-# `spec/dynamicscore.md` stage three, the world half.  `liveTo` is
-# `streamVoicesAt` in continuation style: `rest` is what follows this
-# subtree, threaded down so that when the walk meets a `Probe` it can
-# put *everything after the decision* inside the question.  The three
-# lemmas that keep it honest, each a wrap on the continuation:
+# Ariadne's interpreter (`spec/ariadne.md`).  Every stream is
+# **self-terminated**: it ends with `CueEnd e`, the tick its subtree
+# actually reached — answers included — so `Seq` is `spliceEnd`
+# (continue where the left *really* ended) and `durOf` appears nowhere
+# in this walk.  That is what lets a `hear`'s content take exactly the
+# time it takes with no wrapper accumulating per answer: the first cut
+# shifted the continuation's tail once per question, which piled a
+# `placeCues` layer per answer and ground the editor to a halt on a
+# quarter-beat listener — measured, and the reason this shape exists.
+# The lemmas each push bounds and context *into* a question's
+# continuation (`streamMarksTo`'s lesson, still), and each now carries
+# the end through its own arithmetic.
 #
-#   * `appendCues` pushes what-comes-after inside a question's answer;
-#   * `mergeCues` keeps an overlay's other branch flowing up to the
-#     question's own tick, then waits inside it — the performer's
-#     pending heap absorbs the seam, as it absorbs every seam;
-#   * `cueBelow` rides a box's bound into the answer, the lesson
-#     `streamMarksTo` taught: a filter waits forever on a branch that
-#     never yields; a bound must travel.
-#
-# On a probe-free tree this walk must sound exactly `streamVoicesAt` —
-# `test_probescore.py` holds the two equal, change for change.
+# On a question-free tree this walk must sound exactly
+# `streamVoicesAt` — the parity the suites hold, change for change.
 
 Cue := CueEv Int Int Voice
      | CueAsk Int Int (List Int -> List Cue)
+     | CueEnd Int
 
-appendCues : List Cue -> List Cue -> List Cue
-appendCues xs rest = case xs of
-    Nil -> rest
+#: Continue a self-terminated stream: walk to its `CueEnd`, hand the
+#: end tick to what follows.  This is `Seq` — and it is why `durOf`
+#: no longer appears in the live walk at all: **the width of a
+#: subtree is a fact its own stream reports**, answers included,
+#: which is what makes a `hear`'s content take exactly the time it
+#: takes (`spec/ariadne.md`, time linearized at the joints).
+spliceEnd : List Cue -> (Int -> List Cue) -> List Cue
+spliceEnd cs f = case cs of
+    Nil -> Nil
     c :: ct -> case c of
-        CueEv a b v -> c :: appendCues ct rest
-        CueAsk tk p k -> CueAsk tk p (zs => appendCues (k zs) rest) :: Nil
+        CueEv a b v -> c :: spliceEnd ct f
+        CueAsk tk p k -> CueAsk tk p (zs => spliceEnd (k zs) f) :: Nil
+        CueEnd e -> f e
+
+#: The larger of a finished branch's end and whatever the surviving
+#: branch reports — `Par`'s join, where the constant law demands the
+#: overlay be as wide as its widest answered branch.
+raiseEnd : Int -> List Cue -> List Cue
+raiseEnd e cs = case cs of
+    Nil -> CueEnd e :: Nil
+    c :: ct -> case c of
+        CueEv a b v -> c :: raiseEnd e ct
+        CueAsk tk p k -> CueAsk tk p (zs => raiseEnd e (k zs)) :: Nil
+        CueEnd e2 -> CueEnd (maxInt e e2) :: Nil
+
+#: A declared box's own end, whatever the content did — `Clip`'s cap.
+endAt : Int -> List Cue -> List Cue
+endAt w cs = case cs of
+    Nil -> CueEnd w :: Nil
+    c :: ct -> case c of
+        CueEv a b v -> c :: endAt w ct
+        CueAsk tk p k -> CueAsk tk p (zs => endAt w (k zs)) :: Nil
+        CueEnd e -> CueEnd w :: Nil
 
 mergeCues : List Cue -> List Cue -> List Cue
 mergeCues xs ys = case xs of
     Nil -> ys
-    x :: xt -> case ys of
-        Nil -> xs
-        y :: yt -> case cueTick x <= cueTick y of
-            True -> case x of
-                CueEv a b v -> x :: mergeCues xt ys
-                CueAsk tk p k -> CueAsk tk p (zs => mergeCues (k zs) ys) :: Nil
-            False -> case y of
-                CueEv a b v -> y :: mergeCues xs yt
-                CueAsk tk p k -> CueAsk tk p (zs => mergeCues xs (k zs)) :: Nil
+    x :: xt -> case x of
+        CueEnd ea -> raiseEnd ea ys
+        _ -> case ys of
+            Nil -> xs
+            y :: yt -> case y of
+                CueEnd eb -> raiseEnd eb xs
+                _ -> case cueTick x <= cueTick y of
+                    True -> case x of
+                        CueEv a b v -> x :: mergeCues xt ys
+                        CueAsk tk p k ->
+                            CueAsk tk p (zs => mergeCues (k zs) ys) :: Nil
+                        CueEnd e -> raiseEnd e ys
+                    False -> case y of
+                        CueEv a b v -> y :: mergeCues xs yt
+                        CueAsk tk p k ->
+                            CueAsk tk p (zs => mergeCues xs (k zs)) :: Nil
+                        CueEnd e -> raiseEnd e xs
 
 cueTick : Cue -> Int
 cueTick c = case c of
     CueEv a b v -> a
     CueAsk tk p k -> tk
+    CueEnd e -> e
 
 cueBelow : Int -> List Cue -> List Cue
 cueBelow w cs = case cs of
@@ -995,6 +992,7 @@ cueBelow w cs = case cs of
         True -> case c of
             CueEv a b v -> c :: cueBelow w ct
             CueAsk tk p k -> CueAsk tk p (zs => cueBelow w (k zs)) :: Nil
+            CueEnd e -> CueEnd e :: Nil
 
 placeCues : Int -> List Cue -> List Cue
 placeCues off cs = case cs of
@@ -1003,6 +1001,7 @@ placeCues off cs = case cs of
         CueEv a b v -> CueEv (off + a) (off + b) v :: placeCues off ct
         CueAsk tk p k ->
             CueAsk (off + tk) p (zs => placeCues off (k zs)) :: Nil
+        CueEnd e -> CueEnd (off + e) :: Nil
 
 scaleCues : Int -> List Cue -> List Cue
 scaleCues k cs = case cs of
@@ -1011,6 +1010,7 @@ scaleCues k cs = case cs of
         CueEv a b v -> CueEv (a * k) (b * k) v :: scaleCues k ct
         CueAsk tk p q ->
             CueAsk (tk * k) p (zs => scaleCues k (q zs)) :: Nil
+        CueEnd e -> CueEnd (e * k) :: Nil
 
 shrinkCues : Int -> List Cue -> List Cue
 shrinkCues k cs = case cs of
@@ -1020,6 +1020,7 @@ shrinkCues k cs = case cs of
             CueEv (prim_div_int a k) (prim_div_int b k) v :: shrinkCues k ct
         CueAsk tk p q ->
             CueAsk (prim_div_int tk k) p (zs => shrinkCues k (q zs)) :: Nil
+        CueEnd e -> CueEnd (prim_div_int e k) :: Nil
 
 cuesOfEvents : List (Int, Int, Voice) -> List Cue -> List Cue
 cuesOfEvents es rest = case es of
@@ -1027,40 +1028,32 @@ cuesOfEvents es rest = case es of
     e :: et -> case e of
         (a, b, v) -> CueEv a b v :: cuesOfEvents et rest
 
-liveTo : Int -> [: a :] -> List Cue -> List Cue
-liveTo off s rest = case s of
-    Assigned v -> CueEv off (off + ticksPerBeat) v :: rest
-    Note x -> rest
-    Play e -> rest
-    Rest -> rest
-    Mark n -> rest
-    Sown f -> rest
-    Seq a b -> liveTo off a (liveTo (off + durOf a) b rest)
-    Par a b -> appendCues (mergeCues (liveTo off a Nil)
-                                     (liveTo off b Nil)) rest
-    At n t -> liveTo (off + n) t rest
-    Scale t k -> appendCues (placeCues off (scaleCues k (liveTo 0 t Nil)))
-                            rest
-    Shrink t k -> appendCues (placeCues off (shrinkCues k (liveTo 0 t Nil)))
-                             rest
+liveTo : Int -> [: a :] -> List Cue
+liveTo off s = case s of
+    Assigned v -> CueEv off (off + ticksPerBeat) v
+               :: CueEnd (off + ticksPerBeat) :: Nil
+    Note x -> CueEnd (off + ticksPerBeat) :: Nil
+    Play e -> CueEnd (off + ticksPerBeat) :: Nil
+    Rest -> CueEnd (off + ticksPerBeat) :: Nil
+    Mark n -> CueEnd off :: Nil
+    Seq a b -> spliceEnd (liveTo off a) (e => liveTo e b)
+    Par a b -> mergeCues (liveTo off a) (liveTo off b)
+    # `at` moves the extent and leaves the duration alone: the content
+    # walks shifted, the reported end does not move with it.
+    At n t -> spliceEnd (liveTo (off + n) t) (e => CueEnd (e - n) :: Nil)
+    Scale t k -> placeCues off (scaleCues k (liveTo 0 t))
+    Shrink t k -> placeCues off (shrinkCues k (liveTo 0 t))
     # A retrograde cannot listen: its first event is its subject's last,
     # so a question inside it has no answer that is not also the past.
-    # Probes under `reverse` are silent, deliberately and documented.
+    # Questions under `reverse` are silent, deliberately and documented.
     Retro t -> cuesOfEvents (reverse (placeRetroV off (durOf t)
-                                      (streamVoicesAt 0 t))) rest
-    Sow n t -> liveTo off (sowScore n t) rest
-    Clip w t -> appendCues (placeCues off (cueBelow w (liveTo 0 t Nil)))
-                           rest
-    Probe p g -> CueAsk off p (zs => appendCues
-        (placeCues off (cueBelow ticksPerBeat (liveTo 0 (g zs) Nil)))
-        rest) :: Nil
-    Draw g -> rest
-    # Ariadne's question, unboxed: the answer's content carries its own
-    # time, and **what follows moves by exactly what the answer chose** —
-    # `rest`'s cues shift by the chosen duration, which is the one place
-    # time is decided by the thread rather than the text.  The bounds-
-    # ride-the-continuation lesson, third time: `rest`, `off` and now the
-    # shift all travel *into* the closure.
-    Hear p g -> CueAsk off p (zs =>
-        given phrase = g zs
-        in liveTo off phrase (placeCues (durOf phrase) rest)) :: Nil
+                                      (streamVoicesAt 0 t)))
+                            (CueEnd (off + durOf t) :: Nil)
+    Sow n t -> liveTo off (sowScore n t)
+    Clip w t -> placeCues off (endAt w (cueBelow w (liveTo 0 t)))
+    Draw g -> CueEnd off :: Nil
+    # Ariadne's question, unboxed and shift-free: the answer's own walk
+    # reports where it ended, and `spliceEnd` one level up places what
+    # follows there — the width of a decision is a fact its stream
+    # tells, never a number a wrapper adds.
+    Hear p g -> CueAsk off p (zs => liveTo off (g zs)) :: Nil

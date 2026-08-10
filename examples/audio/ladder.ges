@@ -80,7 +80,7 @@ rung i ks = case sort ks of
 #: multiple of every chord size a six-voice bank can hold — so the
 #: wrap lands exactly where a lap ends and no chord skips a rung.
 climb : Int -> [: Tone :]
-climb i = (probe holds.keys (rung i) |/ 4) ++ climb (wrapTo 60 (i + 1))
+climb i = ((do ks <- hear holds.keys; rung i ks) |/ 4) ++ climb (wrapTo 60 (i + 1))
 
 score : [: Void :]
 score = climb 0 >>= voices.lead

@@ -848,10 +848,11 @@ pub struct Stream {
     cons_tag: i64,
     nil_tag: i64,
     tuple3_tag: i64,
-    /// `Some((CueEv tag, CueAsk tag))` for a `liveMain` stream — the
-    /// cells carry cues rather than bare triples, and the stream can
-    /// end in a question (`audiodynamic.LiveStream`).
-    live: Option<(i64, i64)>,
+    /// `Some((CueEv, CueAsk, CueEnd tags))` for a `liveMain` stream —
+    /// the cells carry cues rather than bare triples, the stream can
+    /// end in a question, and a subtree reports its own end
+    /// (`audiodynamic.LiveStream`, ariadne's self-terminated cues).
+    live: Option<(i64, i64, i64)>,
     /// `(tick, port)` when a question is owed, else `None`.
     pub ask: Option<(i64, i64)>,
     /// The question's continuation — it holds the entire rest of the
@@ -869,6 +870,9 @@ enum Cell {
     Event((i64, Vec<i64>)),
     Parked,
     Question,
+    /// A fact, not an event — a `CueEnd`, harvested into the frontier
+    /// and stepped over.
+    Skip,
 }
 
 /// Collect when the heap outgrows this or twice the last live set,
@@ -912,10 +916,10 @@ impl Stream {
     /// its own second argument.
     pub fn open_live(m: &mut Machine, entry: &str, seed: i64, tick: i64,
                      cons_tag: i64, nil_tag: i64, ev_tag: i64,
-                     ask_tag: i64) -> Stream {
+                     ask_tag: i64, end_tag: i64) -> Stream {
         let mut s = Stream::open(m, entry, seed, tick, true,
                                  cons_tag, nil_tag, 0);
-        s.live = Some((ev_tag, ask_tag));
+        s.live = Some((ev_tag, ask_tag, end_tag));
         s
     }
 
@@ -1000,7 +1004,21 @@ impl Stream {
             return Cell::Parked;
         };
         let args = match (self.live, m.heap[head].clone()) {
-            (Some((_, askt)), Node::Con(t, args)) if t == askt => {
+            (Some((_, _, endt)), Node::Con(t, args)) if t == endt => {
+                let Some(en) = self.whnf(m, args[0], fuel) else {
+                    return Cell::Parked;
+                };
+                match m.heap[en] {
+                    Node::Num(Num::I(e)) => {
+                        self.frontier = self.frontier.max(
+                            i64::try_from(e).unwrap_or_else(
+                                |_| fail("an end wider than 64 bits")));
+                    }
+                    _ => fail("an end with no instant"),
+                }
+                return Cell::Skip;
+            }
+            (Some((_, askt, _)), Node::Con(t, args)) if t == askt => {
                 // A question: its instant and port forced (either may
                 // park the budget mid-question), then the pull parks
                 // on it — nothing beyond a question can exist yet.
@@ -1023,7 +1041,7 @@ impl Stream {
                 self.frontier = self.frontier.max(tick);
                 return Cell::Question;
             }
-            (Some((ev, _)), Node::Con(t, args)) if t == ev => args,
+            (Some((ev, _, _)), Node::Con(t, args)) if t == ev => args,
             (Some(_), _) => fail("expected a cue in the live stream"),
             (None, Node::Con(t, args)) if t == self.tuple3_tag
                 && args.len() == 3 => args,
@@ -1121,6 +1139,9 @@ impl Stream {
                 Cell::Parked | Cell::Question => {
                     self.stalled = true;
                     break;
+                }
+                Cell::Skip => {
+                    self.node = args[1];
                 }
                 Cell::Event((onset, ev)) => {
                     self.node = args[1];
@@ -1357,7 +1378,8 @@ pub mod ffi {
                                                     cons_tag: i64,
                                                     nil_tag: i64,
                                                     ev_tag: i64,
-                                                    ask_tag: i64)
+                                                    ask_tag: i64,
+                                                    end_tag: i64)
                                                     -> *mut Stream {
         hush();
         if m.is_null() || entry.is_null() {
@@ -1368,7 +1390,7 @@ pub mod ffi {
         let machine = &mut *m;
         match catch_unwind(AssertUnwindSafe(|| Stream::open_live(
             machine, &entry, seed, tick, cons_tag, nil_tag,
-            ev_tag, ask_tag))) {
+            ev_tag, ask_tag, end_tag))) {
             Ok(s) => Box::into_raw(Box::new(s)),
             Err(e) => {
                 park(e);

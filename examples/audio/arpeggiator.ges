@@ -72,14 +72,18 @@ anyOf ks s = nth (below (count ks) s) ks
 #: One sixteenth: a seeded pick from the keys, an octave hop now and
 #: then so the line climbs out of the chord.
 step : List Int -> [: Tone :]
-step ks = sown (s => roll (x => case x < 0.2 of
-    True -> '(Tone 0.6 (anyOf ks s + 12))
-    False -> '(Tone 0.7 (anyOf ks s))))
+step ks = do
+    s <- draw
+    roll (x => case x < 0.2 of
+        True -> '(Tone 0.6 (anyOf ks s + 12))
+        False -> '(Tone 0.7 (anyOf ks s)))
 
 score : [: Void :]
-score = cycle (probe holds.keys (ks => case sort ks of
-    Nil -> r
-    k :: kt -> step ks) |/ 4) >>= voices.lead
+score = cycle ((do
+    ks <- hear holds.keys
+    case sort ks of
+        Nil -> r
+        k :: kt -> step ks) |/ 4) >>= voices.lead
 
 bpm : Int
 bpm = 128

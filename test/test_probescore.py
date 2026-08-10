@@ -1,4 +1,4 @@
-"""`spec/dynamicscore.md` stage three, the world half — `probe` and `holds`.
+"""The world half — `hear` and `holds` (`spec/ariadne.md`).
 
 The stage's shape, held by tests: a probe is a leaf whose content the
 world decides *at the leaf's own downbeat* — never earlier, because the
@@ -27,7 +27,9 @@ ARP = """
 step : List Int -> [: Custom :]
 step ks = case ks of
     Nil -> r
-    k :: kt -> sown (s => '(Custom 0.8 (pick ks s)))
+    k :: kt -> do
+        s <- draw
+        '(Custom 0.8 (pick ks s))
 
 pick : List Int -> Int -> Int
 pick ks s = nth (below (length ks) s) ks
@@ -40,7 +42,7 @@ nth n ks = case ks of
         False -> nth (n - 1) kt
 
 score : [: Void :]
-score = (cycle (probe holds.lead step |/ 2) >>= voices.lead) || (cycle ('(Custom 0.6 36) |* 2) >>= voices.bass)
+score = (cycle ((do ks <- hear holds.lead; step ks) |/ 2) >>= voices.lead) || (cycle ('(Custom 0.6 36) |* 2) >>= voices.bass)
 
 bpm : Int
 bpm = 120
@@ -122,9 +124,9 @@ def test_the_arpeggiator_follows_the_hands():
         "readings land on the written cadence, every half beat"
 
 
-def test_probed_bars_keep_their_width_whatever_arrives():
-    """Content bends, time doesn't, third verse: a probe's bar is a bar
-    whether the world was empty, one note, or a fistful."""
+def test_the_unheard_branch_of_an_overlay_is_unbent():
+    """The listener's answers stretch its own branch and no other: the
+    bass walks its written two-beat bars whatever the lead heard."""
     held: list = []
     live = _performer(ARP, seed=4, reader=lambda port: list(held))
     for t in range(0, 4 * BEAT + BLOCK, BLOCK):
