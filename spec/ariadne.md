@@ -55,8 +55,25 @@ when the left is measured-as-zero *and* not itself a question — a
 chain of `mark`s, finite in any piece — and a `long` answers `False`
 at once.
 
+**A thread that runs dry is a fact, not just a silence** (Henri's
+call, and the bug asking the question found): past the end of a take
+— or in a bar it never reached — a question the log has no record of
+plays as nothing, which is right, and the queue must *not* answer for
+it, which it used to, serving stale readings from the take: a replay
+inventing a world it never had.  The reader answers `None` there
+rather than `[]`, the performer plays the silence and writes
+`("dry", beat, port, key)` beside the stalls and the drops, and both
+hosts say so — the CLI names the confessions where it once counted
+events, the editor speaks them from its housekeeping loop under a
+doubling rule (said once, then only when the count has doubled, so a
+steady stall is mentioned rather than repeated).  An empty world and
+a dry thread sound identical and read apart, which is the whole
+point: *silence is what it plays; which silence is what it knows.*
+
 Still ahead: the label half of paths (sections as bound payloads,
-seek by name), shapes and `tempoShape`.  Every decision marked
+with `section` as the small arm the label lands on — the author's own
+function receives the label, which is what reconciles the payload
+spelling with a mechanism), shapes and `tempoShape`.  Every decision marked
 **open** remains his.  Companions:
 `spec/dynscore-constraints.md` (the walls this must stand inside),
 `spec/monad.md` (the syntax this stands on), `spec/sown.md` (the

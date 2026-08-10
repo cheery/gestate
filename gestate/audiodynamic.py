@@ -529,7 +529,8 @@ class LazyPerformer:
         self.record = record if record is not None else Transcript(
             rate=rate, block=block)
         #: What the performance had to decide beyond the notes:
-        #: `("stall", beat)` and `("dropped", beat, bank)` entries.
+        #: `("stall", beat)`, `("dropped", beat, bank)` and — on a
+        #: replay whose thread ran out — `("dry", beat, port, key)`.
         #: **The same list** the record holds — appended as it happens,
         #: never transcribed after the fact.
         self.transcript: list = self.record.events
@@ -589,13 +590,21 @@ class LazyPerformer:
             # the sentence the whole stage rests on: the transcript
             # records the world and the seed; everything else is
             # arithmetic.
-            reading = (list(self.reader(port, key)) if self.reader
-                       else [])
+            answer = self.reader(port, key) if self.reader else []
+            beat = (tick + self.origin) / TICKS_PER_BEAT
+            if answer is None:
+                # **A dry thread**: this question was never recorded, so
+                # the replay has nothing to say and says nothing — the
+                # same silence an empty world gives, and a *different*
+                # fact, written down beside the stalls and the drops so
+                # a player can be told which they heard.
+                self.transcript.append(("dry", beat, port, key))
+                answer = []
+            reading = list(answer)
             # The key rides *last* so a reader of the first four fields
             # — beat, port, values — reads a schema-1 log unchanged.
             self.transcript.append(
-                ("reading", (tick + self.origin) / TICKS_PER_BEAT, port,
-                 list(reading), key))
+                ("reading", beat, port, list(reading), key))
             self.stream.answer(reading)
         if self.stream.stalled and not self._stalling:
             self.transcript.append(("stall", self._tick_at(t) / TICKS_PER_BEAT))

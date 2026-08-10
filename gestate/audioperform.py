@@ -186,6 +186,28 @@ def holds_reader(notes, ports: dict):
     return reader
 
 
+#: How a performance's confessions read out loud, singular and plural.
+#: A stall, a dropped note and a dry thread all *sound* like silence;
+#: the log is the only thing that can say which one a listener heard,
+#: so the words are spelled here rather than left as bare counts.
+_CONFESSED = {
+    "stall": ("stall", "stalls"),
+    "dropped": ("dropped note", "dropped notes"),
+    "dry": ("question the thread had no record of",
+            "questions the thread had no record of"),
+}
+
+
+def _confessed(counts: dict) -> str:
+    if not counts:
+        return ""
+    parts = []
+    for kind, n in sorted(counts.items()):
+        one, many = _CONFESSED.get(kind, (kind, kind))
+        parts.append(f"{n} {one if n == 1 else many}")
+    return " — " + ", ".join(parts)
+
+
 def dynamic(synth: str, piece: str = "", *, rate: int, block: int,
             policy="oldest", horizon: float = 4.0, seed: int = 0,
             patience: float | None = None, tick: int = 0, reader=None):
@@ -551,8 +573,13 @@ def main(argv=None) -> int:
                 else:
                     performer.record.save(args.transcript)
                     kept = len(performer.record.events)
-                    print(f"{args.transcript}: seed {performer.record.seed}, "
-                          f"{kept} event(s)", file=sys.stderr)
+                    # **What the performance owned up to**, named rather
+                    # than counted: a stall, a dropped note and a dry
+                    # thread all sound like silence, and only the log
+                    # can say which silence was heard.
+                    said = _confessed(performer.record.confessions())
+                    print(f"{args.transcript}: seed {performer.record.seed},"
+                          f" {kept} event(s)" + said, file=sys.stderr)
             return 0
 
         frames, backend = play(synth, seconds, args.rate, args.block,

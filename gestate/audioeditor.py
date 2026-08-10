@@ -638,6 +638,9 @@ class Workbench:
         #: number of samples rather than a special case.
         self.bpm = 120
         self.messages: list = []
+        #: Per confession kind, the count last reported —
+        #: see `_report_confessions`' doubling rule.
+        self._confessed_at: dict = {}
         self.live: Live | None = None
         self.midi = None
         self.listener = None
@@ -778,6 +781,7 @@ class Workbench:
                 if self.notes is not None:
                     self.notes.now = at
                 self._progress(self.host.frames)
+                self._report_confessions()
 
         keeper = threading.Thread(target=housekeeping, daemon=True)
         keeper.start()
@@ -1915,6 +1919,44 @@ class Workbench:
         the offset depends on the source — see `audiospans._regions`.
         """
         return self.source()
+
+    # -- what the performance owned up to -------------------------------
+
+    #: How a confession reads, singular and plural.  A stall, a dropped
+    #: note and a dry thread all *sound* like silence, and the player
+    #: deserves to be told which silence they just heard.
+    _CONFESSED = {
+        "stall": ("the score stalled", "the score stalled"),
+        "dropped": ("a note arrived too late to play",
+                    "notes arrived too late to play"),
+        "dry": ("a question the thread had no record of",
+                "questions the thread had no record of"),
+    }
+
+    def _report_confessions(self) -> None:
+        """Say what the performer confessed, once and then rarely.
+
+        **Doubling, not every time.**  A piece that stalls once wants
+        one line; a piece stalling every bar wants to be mentioned, not
+        to fill the log with the same sentence — so a kind is said on
+        its first occurrence and again only when its count has doubled.
+        Silence about a thing happening steadily is its own bug.
+        """
+        performer = self.performer
+        if performer is None:
+            return
+        counts: dict = {}
+        for entry in list(performer.transcript):
+            if entry[0] != "reading":
+                counts[entry[0]] = counts.get(entry[0], 0) + 1
+        for kind, n in sorted(counts.items()):
+            told = self._confessed_at.get(kind, 0)
+            if n < max(1, told * 2):
+                continue
+            self._confessed_at[kind] = n
+            one, many = self._CONFESSED.get(kind, (kind, kind))
+            self.say(f"{one if n == 1 else many}"
+                     + ("" if n == 1 else f" ({n} so far)"))
 
     # -- messages -----------------------------------------------------------
 

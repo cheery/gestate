@@ -329,3 +329,73 @@ def test_a_rejoin_into_an_undeclared_joint_restarts_it_rather_than_stalling():
     stream.pull(20 * 96)
     assert stream.ask is not None, "the resume fell silent again"
     assert not stream.stalled, "a question is not a stall"
+
+
+def test_a_thread_that_runs_dry_reads_as_silence():
+    """Past the end of a take — or in a bar it never reached — the
+    honest reading is that the world said nothing.  The queue must not
+    answer there: falling back to it served *stale* answers, which is a
+    replay inventing a world it never had.  A replay is exactly as long
+    as its thread, and the band lays out after it.
+    """
+    from gestate.transcript import Transcript
+
+    source = SYNTH + "\n" + LISTENER + BPM
+    tempo, state, root, by_tag = stream_root(SYNTH, LISTENER + BPM, RATE,
+                                             8, 0, live=True)
+    record = Transcript(source_sha=Transcript.sha_of(source), rate=RATE,
+                        block=BLOCK, seed=8)
+    live = LazyPerformer(LiveStream(state, root, by_tag), tempo, RATE,
+                         _allocators(), block=BLOCK, record=record,
+                         reader=lambda port, key=None: [60, 64])
+    for t in range(0, 3 * 2000, BLOCK):
+        live.advance(t)
+    assert live.history, "the take was silent — the test is empty"
+
+    t2, s2, r2, g2 = stream_root(SYNTH, LISTENER + BPM, RATE, 8, 0,
+                                 live=True)
+    dry = LazyPerformer(LiveStream(s2, r2, g2), t2, RATE, _allocators(),
+                        block=BLOCK, reader=record.reader_of())
+    for t in range(0, 12 * 2000, BLOCK):      # four times the take
+        dry.advance(t)
+    assert len(dry.history) == len(live.history), \
+        "the replay played on past what the thread knew"
+
+
+def test_a_dry_thread_is_a_recorded_fact_not_only_a_silence():
+    """Henri's rule: silence is the right sound, and the performance
+    should be able to say *which* silence it was.  A question the
+    thread has no record of plays as nothing and is written down —
+    beside the stalls and the drops — so a host can explain it."""
+    from gestate.transcript import Transcript
+
+    source = SYNTH + "\n" + LISTENER + BPM
+    tempo, state, root, by_tag = stream_root(SYNTH, LISTENER + BPM, RATE,
+                                             8, 0, live=True)
+    record = Transcript(source_sha=Transcript.sha_of(source), rate=RATE,
+                        block=BLOCK, seed=8)
+    live = LazyPerformer(LiveStream(state, root, by_tag), tempo, RATE,
+                         _allocators(), block=BLOCK, record=record,
+                         reader=lambda port, key=None: [60, 64])
+    for t in range(0, 3 * 2000, BLOCK):
+        live.advance(t)
+
+    t2, s2, r2, g2 = stream_root(SYNTH, LISTENER + BPM, RATE, 8, 0,
+                                 live=True)
+    replay = Transcript(source_sha=Transcript.sha_of(source), rate=RATE,
+                        block=BLOCK, seed=8)
+    dry = LazyPerformer(LiveStream(s2, r2, g2), t2, RATE, _allocators(),
+                        block=BLOCK, record=replay,
+                        reader=record.reader_of())
+    for t in range(0, 9 * 2000, BLOCK):
+        dry.advance(t)
+
+    told = replay.confessions()
+    assert told.get("dry"), "a dry thread went unrecorded"
+    assert not [e for e in record.events if e[0] == "dry"], \
+        "the live take had a world; nothing there was dry"
+    # And the two silences are told apart: an empty world is a reading
+    # of nothing, a dry thread is no reading at all.
+    empty = [e for e in replay.events
+             if e[0] == "reading" and e[3] == []]
+    assert empty, "the dry questions still read as silence"

@@ -105,14 +105,42 @@ class Transcript:
             queues[entry[2]].append(list(entry[3]))
             if len(entry) > 4:
                 by_key[entry[4]] = list(entry[3])
+        keyed = bool(by_key)
 
         def reader(port, key=None):
-            if key is not None and key in by_key:
-                return list(by_key[key])
+            if keyed:
+                # **A key the thread never heard is silence** — past
+                # the end of a take, or in a bar it never reached, the
+                # world said nothing, and the queue must not answer for
+                # it (falling through served *stale* readings, a replay
+                # inventing a world it never had).
+                #
+                # `None` rather than `[]`, and that is the whole of the
+                # distinction the performer needs: **silence is what it
+                # plays either way, but a dry thread is a fact about the
+                # replay and an empty world is a fact about the music.**
+                # The performer answers `None` with silence and writes
+                # it down; nobody has to guess afterwards which one they
+                # were listening to.
+                return by_key.get(key)
             q = queues.get(port)
             return list(q.popleft()) if q else []
 
         return reader
+
+    def confessions(self) -> dict:
+        """What the performance owned up to, counted by kind.
+
+        `{"stall": n, "dropped": n, "dry": n}` — the entries that are
+        not readings.  A host with a status line asks this rather than
+        filtering the events itself, so "what happened" is one
+        sentence in one place.
+        """
+        out: dict = {}
+        for entry in self.events:
+            if entry[0] != "reading":
+                out[entry[0]] = out.get(entry[0], 0) + 1
+        return out
 
     def belongs_to(self, source: str) -> bool:
         """Is this the transcript of `source`?  A replay must ask first:
