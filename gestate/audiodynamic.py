@@ -417,12 +417,18 @@ class LiveStream(ScoreStream):
         if head.tag == self._askt:
             tick = self._whnf(head.args[0])
             port = self._whnf(head.args[1])
-            if tick is None or port is None:
+            key = self._whnf(head.args[2])
+            if tick is None or port is None or key is None:
                 return None                     # budget parked mid-question
-            if not (isinstance(tick, NNum) and isinstance(port, NNum)):
+            if not (isinstance(tick, NNum) and isinstance(port, NNum)
+                    and isinstance(key, NNum)):
                 raise ScoreError("a question with no instant or port")
-            self.ask = (tick.n, port.n)
-            self._ask_k = head.args[2]
+            #: The **position key** rides beside the port: a question's
+            #: identity, so a rejoin can be answered from the thread
+            #: rather than from the world it never heard
+            #: (`spec/ariadne.md`, the thread).
+            self.ask = (tick.n, port.n, key.n)
+            self._ask_k = head.args[3]
             self.frontier = max(self.frontier, tick.n)
             return None                         # parks the pull, as a stall
         if head.tag != self._ev:
@@ -575,7 +581,7 @@ class LazyPerformer:
             ask = getattr(self.stream, "ask", None)
             if ask is None:
                 break
-            tick, port = ask
+            tick, port, key = ask
             due = samples_of(tick + self.origin, self.tempo, self.rate)
             if self._boundary(due) > t:
                 break                   # its downbeat has not arrived
@@ -583,10 +589,13 @@ class LazyPerformer:
             # the sentence the whole stage rests on: the transcript
             # records the world and the seed; everything else is
             # arithmetic.
-            reading = list(self.reader(port)) if self.reader else []
+            reading = (list(self.reader(port, key)) if self.reader
+                       else [])
+            # The key rides *last* so a reader of the first four fields
+            # — beat, port, values — reads a schema-1 log unchanged.
             self.transcript.append(
                 ("reading", (tick + self.origin) / TICKS_PER_BEAT, port,
-                 list(reading)))
+                 list(reading), key))
             self.stream.answer(reading)
         if self.stream.stalled and not self._stalling:
             self.transcript.append(("stall", self._tick_at(t) / TICKS_PER_BEAT))

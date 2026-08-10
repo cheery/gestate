@@ -34,7 +34,7 @@ def _drive(piece, reading, beats=14, seed=3):
                                              seed, 0, True)
     perf = LazyPerformer(LiveStream(state, root, by_tag), tempo, RATE,
                          _allocators(), block=BLOCK,
-                         reader=lambda port: list(reading))
+                         reader=lambda port, key=None: list(reading))
     for t in range(0, beats * 2000, BLOCK):
         perf.advance(t)
     return [(on, off, p) for on, off, _b, p in perf.history]
@@ -145,7 +145,7 @@ def test_the_crust_twin_speaks_hear_unchanged(tmp_path):
 
     def drive_stream(make_perf):
         held = [60, 64]
-        perf = make_perf(lambda port: list(held))
+        perf = make_perf(lambda port, key=None: list(held))
         out = []
         for t in range(0, 20_000, BLOCK):
             out += perf.advance(t)
@@ -178,3 +178,135 @@ def test_the_old_spellings_are_refused_by_name():
     with pytest.raises(ScoreError, match="do ks <- hear"):
         _events("\nscore : [: Void :]\n"
                 "score = (probe 0 (ks => r)) >>= voices.lead\n")
+
+
+# ── The thread: readings keyed by position ──────────────────────────────────
+
+
+LISTENER = """
+phraseOf : List Int -> [: Custom :]
+phraseOf ks = case ks of
+    Nil -> r
+    k :: kt -> '(Custom 0.9 k)
+
+score : [: Void :]
+score = cycle (long 1 (do ks <- hear 0; phraseOf ks)) >>= voices.lead
+"""
+
+#: Three different worlds at three times, so a reader answering *in
+#: order* cannot help but drift once a prefix is skipped.
+SCRIPT = {0: [60], 4 * 2000: [64], 8 * 2000: [67]}
+
+
+def _take(reader, beats=12, seed=8, tick=0):
+    """One performance — from the top, or rejoined at `tick`."""
+    from gestate.audioalloc import Allocator
+    from gestate.audiovoices import banks_of, channels_of
+
+    source = SYNTH + "\n" + LISTENER + BPM
+    tempo, state, root, by_tag = stream_root(SYNTH, LISTENER + BPM, RATE,
+                                             seed, tick, live=True)
+    allocators = {b.name: Allocator(channels_of(source, b))
+                  for b in banks_of(source)}
+    from gestate.transcript import Transcript
+
+    record = Transcript(source_sha=Transcript.sha_of(source), rate=RATE,
+                        block=BLOCK, seed=seed)
+    perf = LazyPerformer(LiveStream(state, root, by_tag), tempo, RATE,
+                         allocators, block=BLOCK, origin=tick,
+                         record=record, reader=reader)
+    for t in range(tick * RATE // 96 // 20, beats * 2000, BLOCK):
+        perf.advance(t)
+    return perf
+
+
+def _scripted():
+    """A world that changes on the clock the script names."""
+    now = {"keys": []}
+    seen = {"t": 0}
+
+    def reader(port, *rest):
+        return list(now["keys"])
+
+    def tick(t):
+        for at, keys in SCRIPT.items():
+            if t >= at:
+                now["keys"] = keys
+    return reader, tick
+
+
+def test_a_rejoin_replays_the_thread_instead_of_asking_again():
+    """The defect paths exist for (`roadmap.md`, ariadne's next stage):
+    a rebuild mid-piece resumes **by descent** — the prefix is skipped,
+    never walked — so a thread answering *in arrival order* hands the
+    resumed walk answers meant for beats it never played.  Keyed by
+    position, the thread answers correctly from anywhere in the piece.
+    """
+    from gestate.audioalloc import Allocator
+    from gestate.audiovoices import banks_of, channels_of
+
+    # The take, with the world on a script.
+    reader, tick_world = _scripted()
+    source = SYNTH + "\n" + LISTENER + BPM
+    tempo, state, root, by_tag = stream_root(SYNTH, LISTENER + BPM, RATE,
+                                             8, 0, live=True)
+    allocators = {b.name: Allocator(channels_of(source, b))
+                  for b in banks_of(source)}
+    from gestate.transcript import Transcript
+
+    record = Transcript(source_sha=Transcript.sha_of(source), rate=RATE,
+                        block=BLOCK, seed=8)
+    live = LazyPerformer(LiveStream(state, root, by_tag), tempo, RATE,
+                         allocators, block=BLOCK, record=record,
+                         reader=reader)
+    for t in range(0, 12 * 2000, BLOCK):
+        tick_world(t)
+        live.advance(t)
+    assert live.history, "the take was silent — the test is empty"
+
+    # Rejoin at beat 6 with the thread as the only world.
+    tickpos = 6 * 96
+    want = [e for e in live.history if e[0] >= tickpos]
+    assert want, "nothing to rejoin into"
+
+    tempo2, state2, root2, tags2 = stream_root(SYNTH, LISTENER + BPM,
+                                               RATE, 8, tickpos, live=True)
+    rejoined = LazyPerformer(
+        LiveStream(state2, root2, tags2), tempo2, RATE,
+        {b.name: Allocator(channels_of(source, b))
+         for b in banks_of(source)},
+        block=BLOCK, origin=tickpos, reader=record.reader_of())
+    for t in range(6 * 2000, 12 * 2000, BLOCK):
+        rejoined.advance(t)
+    got = [(on + tickpos, off + tickpos, b, p)
+           for on, off, b, p in rejoined.history]
+    assert got, "the rejoined take was silent"
+    assert got == want[:len(got)], (got[:3], want[:3])
+
+    # And the keys are *what* fixed it: answering the same rejoin in
+    # arrival order — the mechanism before ariadne — hands it the
+    # take's opening answers, which is the defect itself.
+    from collections import defaultdict, deque
+
+    queues = defaultdict(deque)
+    for entry in record.events:
+        if entry[0] == "reading":
+            queues[entry[2]].append(list(entry[3]))
+
+    def in_order(port, key=None):
+        q = queues.get(port)
+        return list(q.popleft()) if q else []
+
+    t3, s3, r3, g3 = stream_root(SYNTH, LISTENER + BPM, RATE, 8,
+                                 tickpos, live=True)
+    ordered = LazyPerformer(
+        LiveStream(s3, r3, g3), t3, RATE,
+        {b.name: Allocator(channels_of(source, b))
+         for b in banks_of(source)},
+        block=BLOCK, origin=tickpos, reader=in_order)
+    for t in range(6 * 2000, 12 * 2000, BLOCK):
+        ordered.advance(t)
+    drifted = [(on + tickpos, off + tickpos, b, p)
+               for on, off, b, p in ordered.history]
+    assert drifted != got, "order-keying happened to agree — pick a "\
+                           "script whose worlds differ more"

@@ -96,7 +96,7 @@ def test_the_arpeggiator_follows_the_hands():
     merge exists for.
     """
     held: list = []
-    live = _performer(ARP, seed=4, reader=lambda port: list(held))
+    live = _performer(ARP, seed=4, reader=lambda port, key=None: list(held))
 
     for t in range(0, 8 * BEAT, BLOCK):
         if t >= 2 * BEAT:
@@ -128,7 +128,7 @@ def test_the_unheard_branch_of_an_overlay_is_unbent():
     """The listener's answers stretch its own branch and no other: the
     bass walks its written two-beat bars whatever the lead heard."""
     held: list = []
-    live = _performer(ARP, seed=4, reader=lambda port: list(held))
+    live = _performer(ARP, seed=4, reader=lambda port, key=None: list(held))
     for t in range(0, 4 * BEAT + BLOCK, BLOCK):
         if t >= BEAT:
             held[:] = [60]
@@ -149,7 +149,7 @@ def test_an_improvisation_equals_its_own_replay(tmp_path):
 
     script = {2 * BEAT: [60, 64, 67], 5 * BEAT: [59, 62]}
     held: list = []
-    live = _performer(ARP, seed=11, reader=lambda port: list(held))
+    live = _performer(ARP, seed=11, reader=lambda port, key=None: list(held))
     first = []
     for t in range(0, 8 * BEAT, BLOCK):
         for at, keys in script.items():
@@ -189,7 +189,7 @@ def test_an_instance_that_computes_a_field_keeps_every_field():
     from gestate.pipeline import compile as compile_program
 
     source = (Path(__file__).resolve().parent.parent
-              / "jazz.ges").read_text()
+              / "examples" / "audio" / "jazz.ges").read_text()
     banks = [b.name for b in banks_of(source)]
     fm = FromMidi(compile_program(assemble_performance(source, "", RATE)),
                   banks)

@@ -174,7 +174,7 @@ def holds_reader(notes, ports: dict):
     Sorted for determinism — a chord is a set, but a reading is a value
     in a transcript, and one spelling of it replays.
     """
-    def reader(port):
+    def reader(port, key=None):
         bank = ports.get(port)
         if bank is None or notes is None:
             return []

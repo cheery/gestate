@@ -99,7 +99,12 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # would be a buffer of nothing; the listening semantics are
             # pinned in `test_probescore.py`, keyboard to line, end to
             # end.
-            "arpeggiator.ges", "ladder.ges"]
+            "arpeggiator.ges", "ladder.ges",
+            # The trio that waits: a listening piece is honest silence
+            # without hands, so a golden would be a buffer of nothing.
+            # `test_probescore.py` holds its `FromMIDI` instance, and
+            # the listening semantics are pinned there end to end.
+            "jazz.ges"]
 
 #: The ones with committed golden buffers — all of them, now.  `knob.ges`
 #: had none for as long as the interpreter and the engine disagreed about

@@ -1659,8 +1659,8 @@ class Workbench:
                 # one would listen to a keyboard nobody holds anymore.
                 ports = ports_of(text)
 
-                def reader(port, _ports=ports):
-                    return holds_reader(self.notes, _ports)(port)
+                def reader(port, key=None, _ports=ports):
+                    return holds_reader(self.notes, _ports)(port, key)
                 # **Crust forces the score when the piece can cross**
                 # (`crust.live_native` — the one routing decision,
                 # spelled once beside `audioperform.dynamic`'s use).

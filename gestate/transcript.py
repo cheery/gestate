@@ -28,7 +28,13 @@ class TranscriptError(Exception):
 
 
 #: Bump when the shape of the header or the events changes.
-_SCHEMA = 1
+#:
+#: **2** — a reading carries the **position key** its question was
+#: stamped with (`spec/ariadne.md`): `("reading", beat, port, values,
+#: key)`.  The key rides last so the first four fields read exactly as
+#: schema 1 did, and a schema-1 log still replays — by arrival order,
+#: which is all it ever knew.
+_SCHEMA = 2
 
 
 @dataclass
@@ -65,7 +71,7 @@ class Transcript:
     def load(cls, path) -> "Transcript":
         with open(path) as f:
             doc = json.load(f)
-        if doc.get("schema") != _SCHEMA:
+        if doc.get("schema") not in (1, _SCHEMA):
             raise TranscriptError(
                 f"this transcript is schema {doc.get('schema')!r} and this "
                 f"reader is {_SCHEMA}; it was kept, so a reader for it can "
@@ -77,21 +83,32 @@ class Transcript:
     # -- holding a performance to it ------------------------------------------
 
     def reader_of(self):
-        """Replay's world: each port's questions answered in recorded order.
+        """Replay's world: each question answered by **where it stands**.
 
-        Decisions are deterministic given the seed, so the k-th question a
-        port asks in a replay is the k-th it asked live — a queue per port
-        is the whole mechanism, and running past the log's end reads as
-        silence, exactly as an unplugged port does.
+        A reading is keyed by its position key — stamped by the sower,
+        so it survives the cut a rejoin makes — which is what lets a
+        replay begin anywhere.  Order-keying was the whole mechanism
+        once, and it holds only from the top: a rebuild mid-piece
+        resumes *by descent*, skipping the prefix it never walks, so
+        the k-th question of a rejoin is not the k-th of the take.
+        The queue survives as the fallback, for a schema-1 log and for
+        a question the thread never heard; running past what was
+        recorded reads as silence, exactly as an unplugged port does.
         """
         from collections import defaultdict, deque
 
+        by_key: dict = {}
         queues = defaultdict(deque)
         for entry in self.events:
-            if entry[0] == "reading":
-                queues[entry[2]].append(list(entry[3]))
+            if entry[0] != "reading":
+                continue
+            queues[entry[2]].append(list(entry[3]))
+            if len(entry) > 4:
+                by_key[entry[4]] = list(entry[3])
 
-        def reader(port):
+        def reader(port, key=None):
+            if key is not None and key in by_key:
+                return list(by_key[key])
             q = queues.get(port)
             return list(q.popleft()) if q else []
 

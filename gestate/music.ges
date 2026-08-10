@@ -68,7 +68,10 @@ Score a := Note a                # `'x` — unassigned, carries the payload
          # and position); `Hear` reaches the performer as a question whose
          # answer places what follows.
          | Draw (Int -> Score a)
-         | Hear Int (List Int -> Score a)
+         # The second `Int` is the **position key**, stamped by the
+         # sower: a question's identity, so the thread can answer it
+         # from anywhere in the piece (`spec/ariadne.md`, the thread).
+         | Hear Int Int (List Int -> Score a)
 
 #: **Ticks to the beat.**  96 divides by 2,3,4,6,8,12,16,24,32,48, so every
 #: division anyone writes is exact — and the whole score is laid out in
@@ -158,7 +161,7 @@ instance Monad Score where
         Clip w t -> Clip w (t >>= f)
         Mark n -> Mark n
         Draw g -> Draw (sd => g sd >>= f)
-        Hear p g -> Hear p (xs => g xs >>= f)
+        Hear p ky g -> Hear p ky (xs => g xs >>= f)
 
 #: **A MIDI program number, as an instrument.**  `melody >>= prog 73`
 #: commits every unassigned note in `melody` to program 73 — a flute.
@@ -332,7 +335,7 @@ draw = Draw (sd => 'sd)
 #: rather than the text (`spec/ariadne.md`, B7 restated).  Unlike
 #: `probe`, there is no box: a four-beat answer takes four beats.
 hear : Port -> [: List Int :]
-hear p = Hear p (xs => 'xs)
+hear p = Hear p 0 (xs => 'xs)
 
 #: Every mark and where it falls, `(tick, mark)`, beat-ordered and
 #: lazy — `streamVoices`' little sibling, named by its own generated
@@ -378,11 +381,21 @@ resumeAt t s = case t < 1 of
         Rest -> r
         Mark n -> r
         # Ariadne's leaves distribute: the cut applies to whatever the
-        # value decides, when it is decided.  (For `Hear` mid-resume the
-        # honest source of that answer is the thread — stage four; until
-        # it lands, a rejoined hear asks again.)
+        # value decides, when it is decided — and the thread answers a
+        # rejoined question by its stamped key, so a resume lands on the
+        # answers the take gave (`spec/ariadne.md`, the thread).
+        #
+        # **A joint of undeclared width cannot be skipped**, and this is
+        # where that shows: `durOf` of an unanswered question is 0, so
+        # `Seq`'s arithmetic cannot step over one, and a resume into
+        # `cycle (do ks <- hear p; …)` walks without advancing until the
+        # budget calls it a stall — absence, not corruption, but silent.
+        # Declaring the width is the cure and the idiom:
+        # `cycle (long 1 (do ks <- hear p; …))` skips by arithmetic like
+        # anything else.  Making the un-declared case *say so* rather
+        # than go quiet is the open end of this (`roadmap.md`).
         Draw g -> Draw (sd => resumeAt t (g sd))
-        Hear p g -> Hear p (xs => resumeAt t (g xs))
+        Hear p ky g -> Hear p ky (xs => resumeAt t (g xs))
 
 resumeSeq : Int -> Int -> [: a :] -> [: a :] -> [: a :]
 resumeSeq t da a b = case t < da of
@@ -409,6 +422,13 @@ instance Random Bool where
 split : Int -> (Int, Int)
 split s = (mix64 (wrap64 (s + 11400714819323198485)),
            mix64 (wrap64 (s + 4354685564936845354)))
+
+#: A seed narrowed to a **position key** that fits a signed 64-bit
+#: slot.  A seed is 64 unsigned bits and the key travels through two
+#: machines, one of which counts in signed integers (`crust`); one bit
+#: is the whole price, and identity is what the number is for.
+keyOf : Int -> Int
+keyOf s = prim_mod_int s 9223372036854775807
 
 #: One draw in 0 .. n-1.
 below : Int -> Int -> Int
@@ -461,7 +481,14 @@ sowScore sd s = case s of
     # spell at all.
     Draw g -> case split sd of
         (l, r2) -> sowScore r2 (g sd)
-    Hear p g -> Hear p (xs => sowScore sd (g xs))
+    # **The key is the position's own seed**, which costs nothing to
+    # thread because the sower already carries it — and the split is
+    # what makes a *chain* of questions distinct: the question takes
+    # the left, its continuation the right, exactly as `Draw` does.
+    # (Two `sow`-pinned copies of one listening subtree would collide;
+    # `sow` means fixed art, and a listening subtree is not that.)
+    Hear p ky g -> case split sd of
+        (l, r2) -> Hear p (keyOf l) (xs => sowScore r2 (g xs))
 
 internal
 # ════════════════════════════════════════════════════════════════════════
@@ -563,7 +590,7 @@ layOnto off s acc = case s of
     # width, no sound: the leaves are zero-wide by law (`spec/ariadne.md`)
     # and an eager walk has no seed and no world to widen them with.
     Draw g -> (0, acc)
-    Hear p g -> (0, acc)
+    Hear p ky g -> (0, acc)
     # A clipped box: lay at the origin like `Scale`, keep what starts
     # inside the window, and the box's own width is the duration —
     # content bends, time doesn't.
@@ -601,7 +628,7 @@ layVoicesOnto off s acc = case s of
     Sow n t -> layVoicesOnto off (sowScore n t) acc
     Mark n -> (0, acc)
     Draw g -> (0, acc)
-    Hear p g -> (0, acc)
+    Hear p ky g -> (0, acc)
     Clip w t -> case layVoicesOnto 0 t [] of
         (dt, et) -> (w, placeFromV off (keepBelowV w et) ++ acc)
 
@@ -679,7 +706,7 @@ streamMarksAt : Int -> [: a :] -> List (Int, Int)
 streamMarksAt off s = case s of
     Mark n -> (off, n) :: Nil
     Draw g -> Nil
-    Hear p g -> Nil
+    Hear p ky g -> Nil
     Note x -> Nil
     Play e -> Nil
     Assigned v -> Nil
@@ -707,7 +734,7 @@ streamMarksTo limit off s = case limit <= off of
     False -> case s of
         Mark n -> (off, n) :: Nil
         Draw g -> Nil
-        Hear p g -> Nil
+        Hear p ky g -> Nil
         Note x -> Nil
         Play e -> Nil
         Assigned v -> Nil
@@ -782,7 +809,7 @@ durOf s = case s of
     # `Hear`'s time is the answer's — the frontier's fact, made the
     # measure's (`spec/ariadne.md`, time linearized at the joints).
     Draw g -> 0
-    Hear p g -> 0
+    Hear p ky g -> 0
 
 #: Two beat-ordered streams as one.  **Left-biased** on a shared onset,
 #: which keeps an overlay's branches in writing order at the instant they
@@ -821,7 +848,7 @@ streamVoicesAt off s = case s of
     # The flat stream cannot await a reading; `liveVoices` below is the
     # walk that can, and a probing score is performed through it.
     Draw g -> Nil
-    Hear p g -> Nil
+    Hear p ky g -> Nil
     # Lazily clipped: the stream is beat-ordered, so the box is a
     # `takeBelowV` — which is also what lets a `sown` continuation be
     # endless (`cycle` inside a one-beat decision) and still stream.
@@ -920,7 +947,7 @@ unit s = toFloat (prim_div_int (mix64 (wrap64 s)) 2048) / 9007199254740992.0
 # `streamVoicesAt` — the parity the suites hold, change for change.
 
 Cue := CueEv Int Int Voice
-     | CueAsk Int Int (List Int -> List Cue)
+     | CueAsk Int Int Int (List Int -> List Cue)
      | CueEnd Int
 
 #: Continue a self-terminated stream: walk to its `CueEnd`, hand the
@@ -934,7 +961,7 @@ spliceEnd cs f = case cs of
     Nil -> Nil
     c :: ct -> case c of
         CueEv a b v -> c :: spliceEnd ct f
-        CueAsk tk p k -> CueAsk tk p (zs => spliceEnd (k zs) f) :: Nil
+        CueAsk tk p ky k -> CueAsk tk p ky (zs => spliceEnd (k zs) f) :: Nil
         CueEnd e -> f e
 
 #: The larger of a finished branch's end and whatever the surviving
@@ -945,7 +972,7 @@ raiseEnd e cs = case cs of
     Nil -> CueEnd e :: Nil
     c :: ct -> case c of
         CueEv a b v -> c :: raiseEnd e ct
-        CueAsk tk p k -> CueAsk tk p (zs => raiseEnd e (k zs)) :: Nil
+        CueAsk tk p ky k -> CueAsk tk p ky (zs => raiseEnd e (k zs)) :: Nil
         CueEnd e2 -> CueEnd (maxInt e e2) :: Nil
 
 #: A declared box's own end, whatever the content did — `Clip`'s cap.
@@ -954,7 +981,7 @@ endAt w cs = case cs of
     Nil -> CueEnd w :: Nil
     c :: ct -> case c of
         CueEv a b v -> c :: endAt w ct
-        CueAsk tk p k -> CueAsk tk p (zs => endAt w (k zs)) :: Nil
+        CueAsk tk p ky k -> CueAsk tk p ky (zs => endAt w (k zs)) :: Nil
         CueEnd e -> CueEnd w :: Nil
 
 mergeCues : List Cue -> List Cue -> List Cue
@@ -969,19 +996,19 @@ mergeCues xs ys = case xs of
                 _ -> case cueTick x <= cueTick y of
                     True -> case x of
                         CueEv a b v -> x :: mergeCues xt ys
-                        CueAsk tk p k ->
-                            CueAsk tk p (zs => mergeCues (k zs) ys) :: Nil
+                        CueAsk tk p ky k ->
+                            CueAsk tk p ky (zs => mergeCues (k zs) ys) :: Nil
                         CueEnd e -> raiseEnd e ys
                     False -> case y of
                         CueEv a b v -> y :: mergeCues xs yt
-                        CueAsk tk p k ->
-                            CueAsk tk p (zs => mergeCues xs (k zs)) :: Nil
+                        CueAsk tk p ky k ->
+                            CueAsk tk p ky (zs => mergeCues xs (k zs)) :: Nil
                         CueEnd e -> raiseEnd e xs
 
 cueTick : Cue -> Int
 cueTick c = case c of
     CueEv a b v -> a
-    CueAsk tk p k -> tk
+    CueAsk tk p ky k -> tk
     CueEnd e -> e
 
 cueBelow : Int -> List Cue -> List Cue
@@ -991,7 +1018,7 @@ cueBelow w cs = case cs of
         False -> Nil
         True -> case c of
             CueEv a b v -> c :: cueBelow w ct
-            CueAsk tk p k -> CueAsk tk p (zs => cueBelow w (k zs)) :: Nil
+            CueAsk tk p ky k -> CueAsk tk p ky (zs => cueBelow w (k zs)) :: Nil
             CueEnd e -> CueEnd e :: Nil
 
 placeCues : Int -> List Cue -> List Cue
@@ -999,8 +1026,8 @@ placeCues off cs = case cs of
     Nil -> Nil
     c :: ct -> case c of
         CueEv a b v -> CueEv (off + a) (off + b) v :: placeCues off ct
-        CueAsk tk p k ->
-            CueAsk (off + tk) p (zs => placeCues off (k zs)) :: Nil
+        CueAsk tk p ky k ->
+            CueAsk (off + tk) p ky (zs => placeCues off (k zs)) :: Nil
         CueEnd e -> CueEnd (off + e) :: Nil
 
 scaleCues : Int -> List Cue -> List Cue
@@ -1008,8 +1035,8 @@ scaleCues k cs = case cs of
     Nil -> Nil
     c :: ct -> case c of
         CueEv a b v -> CueEv (a * k) (b * k) v :: scaleCues k ct
-        CueAsk tk p q ->
-            CueAsk (tk * k) p (zs => scaleCues k (q zs)) :: Nil
+        CueAsk tk p ky q ->
+            CueAsk (tk * k) p ky (zs => scaleCues k (q zs)) :: Nil
         CueEnd e -> CueEnd (e * k) :: Nil
 
 shrinkCues : Int -> List Cue -> List Cue
@@ -1018,8 +1045,9 @@ shrinkCues k cs = case cs of
     c :: ct -> case c of
         CueEv a b v ->
             CueEv (prim_div_int a k) (prim_div_int b k) v :: shrinkCues k ct
-        CueAsk tk p q ->
-            CueAsk (prim_div_int tk k) p (zs => shrinkCues k (q zs)) :: Nil
+        CueAsk tk p ky q ->
+            CueAsk (prim_div_int tk k) p ky
+                (zs => shrinkCues k (q zs)) :: Nil
         CueEnd e -> CueEnd (prim_div_int e k) :: Nil
 
 cuesOfEvents : List (Int, Int, Voice) -> List Cue -> List Cue
@@ -1056,4 +1084,4 @@ liveTo off s = case s of
     # reports where it ended, and `spliceEnd` one level up places what
     # follows there — the width of a decision is a fact its stream
     # tells, never a number a wrapper adds.
-    Hear p g -> CueAsk off p (zs => liveTo off (g zs)) :: Nil
+    Hear p ky g -> CueAsk off p ky (zs => liveTo off (g zs)) :: Nil

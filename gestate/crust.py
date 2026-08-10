@@ -304,15 +304,16 @@ class NativeStream:
 
     @property
     def ask(self):
-        """`(tick, port)` when a question is owed, else `None` — what
-        `LazyPerformer` duck-types for."""
+        """`(tick, port, key)` when a question is owed, else `None` —
+        what `LazyPerformer` duck-types for.  The key is the
+        question's stamped position (`spec/ariadne.md`)."""
         import ctypes
 
         if self._s is None:
             return None
-        out = (ctypes.c_int64 * 2)()
+        out = (ctypes.c_int64 * 3)()
         if self._lib.crust_stream_ask(self._s, out):
-            return (out[0], out[1])
+            return (out[0], out[1], out[2])
         return None
 
     def answer(self, reading) -> None:

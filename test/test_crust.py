@@ -460,13 +460,13 @@ def test_the_live_twin_listens_and_answers(crust_bin):
                                              True)
     reference = LazyPerformer(
         LiveStream(state, root, by_tag), tempo, RATE, _allocators(),
-        block=BLOCK, reader=lambda port: list(held_a))
+        block=BLOCK, reader=lambda port, key=None: list(held_a))
 
     held_b: list = []
     tempo2, native, stream, _tags = native_stream(SYNTH, ARP, RATE,
                                                   seed=4, live=True)
     twin = LazyPerformer(stream, tempo2, RATE, _allocators(),
-                         block=BLOCK, reader=lambda port: list(held_b))
+                         block=BLOCK, reader=lambda port, key=None: list(held_b))
 
     want = drive(reference, held_a)
     got = drive(twin, held_b)

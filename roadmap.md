@@ -428,13 +428,31 @@ are zero-width leaves of the score monad, the boxes are gone, `sown` and
 streams (`CueEnd`) so a decision's width is a fact its own stream reports.
 Two stages remain, and the order below is the argued one.
 
-### Next: paths, and the thread re-keyed
+### Next: paths — **the machine half is built**, the labels are not
 
-**Why first**: it is the cheaper of the two, it touches no engine, and one
-*defect* waits on it — `resumeAt` distributes into a `Hear`'s continuation,
-so a rebuild mid-piece **asks again** instead of replaying what the world
-already said.  The thread is the only honest answer to that, and the thread
-needs paths to key by.  Written into `music.ges` at the arm itself.
+The **position key** is in: the sower stamps each question with the seed
+of the place it stands, the cue carries it, and `Transcript.reader_of`
+answers by it, so a rebuild mid-piece lands on the answers the take gave
+rather than on its opening ones.  That closed the defect this stage was
+ordered for.  `test_ariadne.py` holds it with a counter-proof — the same
+rejoin answered in arrival order drifts.
+
+Two things it left behind:
+
+- **The label half.**  Sections as bound payloads
+  (`('"opening" ++ '"verse") >>= scoreParts`, measured holding to the
+  tick), paths as bind provenance (`verse/3/2`), `seek "verse/3"`, and
+  the skip-identical certificate.  The keys are machine identity; labels
+  are the human one, and the acceptance test below is still unwritten.
+- **A joint of undeclared width cannot be skipped, and goes quiet about
+  it.**  `durOf` of an unanswered question is 0, so `Seq`'s arithmetic
+  cannot step over one: a resume into `cycle (do ks <- hear p; …)` walks
+  without advancing until the budget calls it a stall.  Absence, not
+  corruption — but silent, and the cure is one word in the text
+  (`cycle (long 1 (do ks <- hear p; …))`).  **Make it say so**: this is
+  the same shape as `unfolding_names` refusing a bake it cannot finish,
+  and the same answer would suit — name the joint and the width it
+  wants.
 
 - **A position is a path, and the labels are payloads.**  Henri's own
   spelling, measured holding to the tick on the plain algebra:

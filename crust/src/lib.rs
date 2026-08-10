@@ -853,8 +853,10 @@ pub struct Stream {
     /// end in a question, and a subtree reports its own end
     /// (`audiodynamic.LiveStream`, ariadne's self-terminated cues).
     live: Option<(i64, i64, i64)>,
-    /// `(tick, port)` when a question is owed, else `None`.
-    pub ask: Option<(i64, i64)>,
+    /// `(tick, port, key)` when a question is owed, else `None` — the
+    /// key being the question's stamped position, so a rejoin can be
+    /// answered from the thread (`spec/ariadne.md`).
+    pub ask: Option<(i64, i64, i64)>,
     /// The question's continuation — it holds the entire rest of the
     /// performance, so answering is applying it and walking on.
     ask_k: Option<Idx>,
@@ -1028,16 +1030,23 @@ impl Stream {
                 let Some(pn) = self.whnf(m, args[1], fuel) else {
                     return Cell::Parked;
                 };
-                let (tick, port) = match (&m.heap[tn], &m.heap[pn]) {
-                    (Node::Num(Num::I(t)), Node::Num(Num::I(p))) => (
+                let Some(kn) = self.whnf(m, args[2], fuel) else {
+                    return Cell::Parked;
+                };
+                let (tick, port, key) = match (&m.heap[tn], &m.heap[pn],
+                                               &m.heap[kn]) {
+                    (Node::Num(Num::I(t)), Node::Num(Num::I(p)),
+                     Node::Num(Num::I(k))) => (
                         i64::try_from(*t).unwrap_or_else(
                             |_| fail("a tick wider than 64 bits")),
                         i64::try_from(*p).unwrap_or_else(
-                            |_| fail("a port wider than 64 bits"))),
+                            |_| fail("a port wider than 64 bits")),
+                        i64::try_from(*k).unwrap_or_else(
+                            |_| fail("a key wider than 64 bits"))),
                     _ => fail("a question with no instant or port"),
                 };
-                self.ask = Some((tick, port));
-                self.ask_k = Some(args[2]);
+                self.ask = Some((tick, port, key));
+                self.ask_k = Some(args[3]);
                 self.frontier = self.frontier.max(tick);
                 return Cell::Question;
             }
@@ -1400,7 +1409,7 @@ pub mod ffi {
     }
 
     /// # Safety
-    /// `out` must hold two i64s.  Returns 1 with `[tick, port]`
+    /// `out` must hold three i64s.  Returns 1 with `[tick, port, key]`
     /// written when a question is owed, else 0.
     #[no_mangle]
     pub unsafe extern "C" fn crust_stream_ask(s: *const Stream,
@@ -1409,9 +1418,10 @@ pub mod ffi {
             return 0;
         }
         match (*s).ask {
-            Some((tick, port)) => {
+            Some((tick, port, key)) => {
                 *out.add(0) = tick;
                 *out.add(1) = port;
+                *out.add(2) = key;
                 1
             }
             None => 0,

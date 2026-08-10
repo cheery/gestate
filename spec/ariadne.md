@@ -31,9 +31,26 @@ the message; `roll`/`chance` are sugar over `draw`; a draw's value is
 the position's own seed (the SplitMix bit contract unchanged, so
 takes replay across the retirement) with the continuation re-seeded
 by the right split; and every piece and fixture in the tree speaks
-the new surface.  Still ahead: paths and the thread's re-keying,
-shapes and `tempoShape`.  Every decision marked **open** remains
-his.  Companions:
+the new surface.  **The thread is keyed by position now**: the sower stamps each
+question with the seed of the place it stands (narrowed to a signed
+slot, since the key travels through crust too), the cue carries it,
+and `Transcript.reader_of` answers by it — so a rebuild mid-piece
+lands on the answers the take actually gave, where arrival-order
+keying handed it the take's opening ones.  Held by
+`test_ariadne.py`, counter-proof included: the same rejoin answered
+in arrival order drifts.
+
+That work turned up one honest limit, documented at `resumeAt`'s own
+arm: **a joint of undeclared width cannot be skipped by arithmetic.**
+`durOf` of an unanswered question is 0, so `Seq` cannot step over
+one, and a resume into `cycle (do ks <- hear p; …)` stalls into
+silence — absence, not corruption, but quiet.  Declaring the width
+cures it and is the idiom (`cycle (long 1 (do ks <- hear p; …))`).
+Making the undeclared case *say so* is the open end.
+
+Still ahead: the label half of paths (sections as bound payloads,
+seek by name), shapes and `tempoShape`.  Every decision marked
+**open** remains his.  Companions:
 `spec/dynscore-constraints.md` (the walls this must stand inside),
 `spec/monad.md` (the syntax this stands on), `spec/sown.md` (the
 autopsy of the surface this replaces).  The name is the design: the
@@ -112,7 +129,7 @@ over `draw`.
 | 2. N draws need N leaves | **gone** — N draws are N binds: `do a <- draw; b <- draw; …` |
 | 3. the probe box trap (silent horns) | **gone** — `hear` has no box; the phrase it feeds has its written width |
 | 4. take-entropy cannot seed a walk | **gone** — `do s <- draw; unfold (mix64 s) step` — the draw is first-class |
-| 5. Clip/Mark duality | **replaced** — positions are paths (below); `long` survives only as an honest skip-width annotation, if at all (open) |
+| 5. Clip/Mark duality | **replaced** — positions are paths (below); and `long` is now known to be *load-bearing* rather than optional: a declared width is what lets a resume skip a listening bar by arithmetic |
 | 6. eager/lazy asymmetry | **gone** — one interpreter (below); "the bake" is its effect-free special case |
 | 7. CPS wrap lemmas | **absorbed** — the continuation is ordinary `>>=`; the lemmas become the monad laws |
 | 8. constructor tax | **shrinks** — Sown/Sow/Clip/Probe/Mark leave the walks; Draw/Hear/Section enter (net −2, and each new one is algebra-shaped) |
