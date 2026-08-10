@@ -169,25 +169,30 @@ def scored(synth: str, piece: str = "", *, rate: int, block: int,
 
 
 def dynamic(synth: str, piece: str = "", *, rate: int, block: int,
-            policy="oldest"):
-    """`scored`'s twin with nothing baked: `(performer, samples, allocators)`.
+            policy="oldest", horizon: float = 4.0):
+    """`scored`'s twin with nothing baked: `(performer, allocators)`.
 
-    The same events, banks and allocators — only *when each note is
-    decided* differs (`spec/dynamicscore.md`, stage one).  The bake stays
-    the default everywhere; this path exists beside it, held equal by
-    `test_dynamicscore.py`.
+    Stage two's portal (`spec/dynamicscore.md`): the layout is forced as
+    the clock reaches it, a beat horizon at a time, so an endless score —
+    `cycle`, `unfold` — is as welcome as one that ends.  Which is why,
+    unlike `scored`, this returns no duration: an unfolding score does
+    not know when it ends, and pretending otherwise would mean forcing
+    it to find out.  The bake stays the default everywhere; this path
+    exists beside it, held equal on finite scores by `test_lazyscore.py`.
     """
     from .audioalloc import Allocator
-    from .audiodynamic import Performer
-    from .audioscore import duration_of_voices, perform_voices
+    from .audiodynamic import LazyPerformer, ScoreStream
+    from .audioscore import stream_root
     from .audiovoices import banks_of, channels_of
 
     both = synth + "\n" + piece
-    bpm, events = perform_voices(synth, piece, rate)
+    tempo, state, root, by_tag = stream_root(synth, piece, rate)
     allocators = {b.name: Allocator(channels_of(both, b), policy=policy)
                   for b in banks_of(both)}
-    performer = Performer(events, bpm, rate, allocators, block=block)
-    return performer, duration_of_voices(events, bpm, rate), allocators
+    stream = ScoreStream(state, root, by_tag)
+    performer = LazyPerformer(stream, tempo, rate, allocators, block=block,
+                              horizon=horizon)
+    return performer, allocators
 
 
 def graph_of(synth: str, piece: str = "", *, rate: int):
@@ -297,17 +302,34 @@ def main(argv=None) -> int:
         seconds = args.seconds
 
         if has_score(synth + "\n" + piece):
+            from .audioscore import unfolding_names
+
             # The piece names its own banks, so nothing here chooses one.
-            if args.dynamic:
-                performer, samples, allocators = dynamic(
+            # A score the bake cannot be trusted to finish laying out is
+            # routed to the dynamic path rather than refused: it plays
+            # the same where both can play at all, and only this path
+            # can play it.
+            unfolding = args.dynamic or unfolding_names(synth + "\n" + piece)
+            if unfolding and not args.dynamic:
+                print("score: unfolds ("
+                      + ", ".join(f"`{n}`" for n in unfolding)
+                      + "); performing dynamically", file=sys.stderr)
+            if unfolding:
+                if seconds is None:
+                    # An unfolding score does not know when it ends, and
+                    # forcing it to find out is exactly what this path is
+                    # for not doing.
+                    print("gestate: a dynamic performance cannot know when "
+                          "an unfolding score ends; give --seconds",
+                          file=sys.stderr)
+                    return 1
+                performer, allocators = dynamic(
                     synth, piece, rate=args.rate, block=args.block,
                     policy=args.policy)
                 performance.sources.append(from_performer(performer))
-                if seconds is None:
-                    seconds = samples / args.rate
                 print(f"score (dynamic): performed across "
                       f"{', '.join('`' + b + '`' for b in sorted(allocators))}"
-                      f", {samples / args.rate:.1f}s", file=sys.stderr)
+                      f", {seconds:.1f}s", file=sys.stderr)
             else:
                 schedule, samples, allocators = scored(
                     synth, piece, rate=args.rate, block=args.block,

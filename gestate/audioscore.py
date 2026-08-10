@@ -197,6 +197,14 @@ _VOICE_ENTRY = ("scoreMain : (Int, List (Int, Int, Voice))\n"
 _TEMPO_ENTRY = ("scoreMain : (List Tempo, List (Int, Int, Voice))\n"
                 "scoreMain = (tempo, layVoices score)\n")
 
+#: The score again, as the stream a *dynamic* performance forces — beside
+#: `scoreMain` rather than in place of it, in the one assembly, so the
+#: eager and the unfolding readings cannot drift apart in anything
+#: (`spec/dynamicscore.md`, stage two).  Evaluated by name and only by
+#: the dynamic path; a baked performance never touches it.
+_STREAM_ENTRY = ("streamMain : List (Int, Int, Voice)\n"
+                 "streamMain = streamVoices score\n")
+
 
 def _tempo_of(source: str) -> str:
     """Which spelling this piece uses, refusing both at once.
@@ -293,7 +301,7 @@ def assemble_performance(synth: str, piece: str = "", rate: int = 22050,
     # spelling of the tempo the piece uses decides the pair's first half.
     tail = _entry(rate) + "\n" + (
         _VOICE_ENTRY if _tempo_of(synth + "\n" + piece) == "bpm"
-        else _TEMPO_ENTRY)
+        else _TEMPO_ENTRY) + _STREAM_ENTRY
     # `beat` goes with the entry point rather than into `head`, because it
     # reads the author's own `bpm` or `tempo` and must come after their
     # file.  A plain `bpm` makes the beat clock linear; an envelope makes
@@ -345,6 +353,18 @@ def perform_voices(synth: str, piece: str = "", rate: int = 22050) -> tuple:
     from .pipeline import compile as _compile
 
     from .gmachine import NCon, PushGlobal, Unwind, is_tuple, run
+
+    # Refused here rather than hung here: laying out is a walk to the
+    # score's end, and these names say there may not be one.
+    unfolding = unfolding_names(synth + "\n" + piece)
+    if unfolding:
+        raise ScoreError(
+            "this score unfolds — "
+            + ", ".join(f"`{n}`" for n in unfolding)
+            + " — so laying it out whole may never finish.  Perform it "
+              "dynamically instead (`--dynamic` with `--seconds`, or "
+              "`audiodynamic.LazyPerformer`); a score that does end plays "
+              "the same either way")
 
     spelling = _tempo_of(synth + "\n" + piece)
     # The *same* text the graph was extracted from — `assemble_performance`
@@ -410,6 +430,136 @@ def perform_voices(synth: str, piece: str = "", rate: int = 22050) -> tuple:
         except Exception:                               # noqa: BLE001
             pass
     return bpm, events
+
+
+#: The library's two declared-endless makers.  Everything else in
+#: `music.ges` terminates on finite input; these two are endless *by
+#: contract*, which is why naming one is already the answer.
+_ENDLESS = ("cycle", "unfold")
+
+
+def unfolding_names(source: str) -> list:
+    """Why this score cannot be laid out whole — the names to blame, or `[]`.
+
+    A layout is walked to its end before it plays, and a score with no
+    end hangs that walk rather than failing it.  Whether a score *has*
+    an end is not decidable, and is not what is decided here: the scan
+    asks the weaker, safer question — can the bake be **trusted** to
+    end?  No recursion reachable from `score` in the author's own text
+    means yes: the language has no other loop, and the library's walks
+    terminate on finite input.  A reachable `cycle` or `unfold` (endless
+    by contract), or the author's own recursion (self or mutual), means
+    the score is treated as *unfolding*.
+
+    Conservative by design, and the price of a false positive is
+    deliberately nothing but routing: a recursive score that does end
+    plays through the dynamic path exactly what the bake would have
+    baked (`test_lazyscore.py` holds the two equal), so being unsure
+    costs correctness nothing — where guessing "finite" and being wrong
+    costs a hang.
+    """
+    import dataclasses
+
+    from .audio import _expansion_prelude
+    from .prelude import _parsed
+    from .syntax.ast import VSCDecl, VWord
+
+    try:
+        module = _parsed(source)
+    except Exception:                                    # noqa: BLE001
+        try:
+            from .audiovoices import expand
+
+            module = _parsed(expand(source, _expansion_prelude()))
+        except Exception:                                # noqa: BLE001
+            return []          # the real error is a parse error, told elsewhere
+
+    defs = {item.name: item for item in module.items
+            if isinstance(item, VSCDecl)}
+
+    def words_of(node, out):
+        if isinstance(node, VWord):
+            out.add(node.value)
+        if dataclasses.is_dataclass(node):
+            for f in dataclasses.fields(node):
+                words_of(getattr(node, f.name), out)
+        elif isinstance(node, (list, tuple)):
+            for item in node:
+                words_of(item, out)
+
+    mentions = {}
+
+    def mentioned(name):
+        if name not in mentions:
+            out: set = set()
+            words_of(defs[name].equations, out)
+            mentions[name] = out
+        return mentions[name]
+
+    blame, seen, stack = set(), set(), ["score"]
+    while stack:
+        name = stack.pop()
+        if name in seen or name not in defs:
+            continue
+        seen.add(name)
+        for word in mentioned(name):
+            if word in _ENDLESS and word not in defs:
+                blame.add(word)
+            if word in defs:
+                stack.append(word)
+
+    for name in seen:
+        frontier = {w for w in mentioned(name) if w in defs}
+        visited: set = set()
+        while frontier:
+            n = frontier.pop()
+            if n == name:
+                blame.add(name)
+                break
+            if n in visited or n not in defs:
+                continue
+            visited.add(n)
+            frontier |= {w for w in mentioned(n) if w in defs}
+    return sorted(blame)
+
+
+def stream_root(synth: str, piece: str = "", rate: int = 22050) -> tuple:
+    """`(tempo, state, root, by_tag)` — the unforced stream and its readers.
+
+    The stage-two entry.  Nothing of the layout is forced here: `tempo`
+    is `scoreMain`'s first component, which a lazy pair yields without
+    touching its second, and `root` is `streamMain`'s own global,
+    unevaluated — so an endless score returns at once, and every cons
+    cell after this is paid for under `audiodynamic.ScoreStream`'s
+    budget.  No pickle cache, deliberately: the eager cache memoises a
+    *finished* walk, and this walk is finished only when the piece is.
+    """
+    from .audiovoices import banks_of
+    from .midi import _force, _int
+    from .pipeline import compile as _compile
+
+    from .gmachine import PushGlobal, Unwind, is_tuple, run
+
+    spelling = _tempo_of(synth + "\n" + piece)
+    source = assemble_performance(synth, piece, rate)
+    state = _compile(source)
+    state._code, state._pc = [PushGlobal("scoreMain"), Unwind()], 0
+    state.stack, state.dump = [], []
+    run(state)
+    top = _force(state.stack[0], state)
+    if not is_tuple(top, 2):
+        raise ScoreError("internal: the entry point did not produce a pair")
+    tempo = (_int(top.args[0], state) if spelling == "bpm"
+             else _tempo_envelope(top.args[0], state))
+
+    banks = banks_of(synth + "\n" + piece)
+    by_tag = {}
+    for bank in banks:
+        name = bank.name[0].upper() + bank.name[1:] + "Note"
+        info = state.cons.get(name)
+        if info is not None:
+            by_tag[info.tag] = bank.name
+    return tempo, state, state.globals["streamMain"], by_tag
 
 
 #: Bump when what `perform_voices` returns changes shape — the stored

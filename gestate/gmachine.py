@@ -102,6 +102,19 @@ class GmError(Exception):
     pass
 
 
+class StepLimit(GmError):
+    """`run` spent its whole budget without finishing.
+
+    A subclass rather than a message, because the two mean opposite
+    things to a caller with a budget: a `GmError` is the *program's*
+    fault and final; a `StepLimit` is the caller's allowance running out,
+    and the state it interrupts is left mid-flight and **resumable** —
+    call `run` again and evaluation continues where it stopped.  The
+    dynamic score's stall rule (`spec/dynamicscore.md`) is built on that
+    difference.
+    """
+
+
 # ---------------------------------------------------------------------------
 # Instructions
 # ---------------------------------------------------------------------------
@@ -1460,7 +1473,7 @@ def run(s: GmState, max_steps=10_000_000) -> GmState:
             dispatch[type(instr)](instr, s)
         n += 1
         if n > max_steps:
-            raise GmError("run: step limit exceeded (possible infinite loop)")
+            raise StepLimit("run: step limit exceeded (possible infinite loop)")
 
 
 # ---------------------------------------------------------------------------

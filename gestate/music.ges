@@ -207,6 +207,29 @@ layVoices s = reverse (snd (layVoicesOnto 0 s []))
 #: is the whole program's.
 type Tempo = Envelope
 
+# ── Forever is a value — `spec/dynamicscore.md`, stage two ───────────────
+
+#: `cycle bar` is `bar`, then `cycle bar` — which the lazy machine only
+#: ever builds as far as somebody plays it.  Nothing here is new to the
+#: language; what is new is a performer that stops demanding.
+cycle : [: a :] -> [: a :]
+cycle s = s ++ cycle s
+
+#: A generative score: `unfold seed next`, where `next` grows one section
+#: and the state the following one grows from.  Seed it and it is
+#: replayable — the transcript records the seed, not the surprise.
+unfold : b -> (b -> ([: a :], b)) -> [: a :]
+unfold z f = case f z of
+    (s, z2) -> s ++ unfold z2 f
+
+#: The stream a dynamic performance forces — `layVoices`' twin, an event
+#: list in **beat order, lazy in its tail**, so a performer can force
+#: enough to cover the next few beats and no more.  Like `layVoices` it
+#: is named by a generated entry point (`streamMain`), which is why it
+#: stays above the marker; the walk it fronts is below.
+streamVoices : [: Void :] -> List (Int, Int, Voice)
+streamVoices s = streamVoicesAt 0 s
+
 internal
 # ════════════════════════════════════════════════════════════════════════
 #
@@ -336,3 +359,79 @@ placeShrunkV off k es = map (e => case e of
 placeRetroV : Int -> Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
 placeRetroV off dt es = map (e => case e of
     (a, b, v) -> (off + dt - b, off + dt - a, v)) es
+
+# ── The unfolding half — `spec/dynamicscore.md`, stage two ───────────────
+#
+# `layVoicesOnto` above walks the whole layout before its first event
+# exists: an accumulator, reversed once at the end — the right shape for
+# a score that ends, and no shape at all for one that does not.  What
+# follows is the same arithmetic emitted the other way round: an event
+# stream in **beat order**, lazy in its tail, so a performer can force
+# enough to cover the next few beats and no more.
+#
+# Beat order is what the merge buys.  An overlay's two branches may both
+# be endless, and flattening depth-first would play the first for ever;
+# `mergeVoices` takes whichever branch sounds next, so two endless voices
+# interleave.  A *sequence* appends instead — its right half cannot sound
+# before its left half ends, so an endless left half never yielding it is
+# what `forever ++ coda` means.
+#
+# Two spellings of where-a-note-is, held together the way the engines
+# are: for every score that ends, this stream sounds exactly what
+# `layVoices` lays out (`test_lazyscore.py`, change for change through
+# the allocator).  `at` with a negative offset can locally disorder a
+# seam — an event may arrive after one that sounds later — and that is
+# the performer's to absorb or refuse: it reorders inside its horizon
+# window and drops, with a report, what falls outside.
+
+#: A score's **duration in ticks, from its shape alone** — no events are
+#: laid to answer it, which is what lets a sequence stream: the right
+#: half's offset needs the left half's duration, not its notes.
+#: The algebra is `layVoicesOnto`'s, separated from the laying: `at`
+#: translates extent and leaves duration alone, an overlay lasts as long
+#: as its longer branch, and every leaf — even a rest — is one beat.
+durOf : [: a :] -> Int
+durOf s = case s of
+    Note x -> ticksPerBeat
+    Play e -> ticksPerBeat
+    Assigned v -> ticksPerBeat
+    Rest -> ticksPerBeat
+    Seq a b -> durOf a + durOf b
+    Par a b -> maxInt (durOf a) (durOf b)
+    At n t -> durOf t
+    Scale t k -> durOf t * k
+    Shrink t k -> prim_div_int (durOf t) k
+    Retro t -> durOf t
+
+#: Two beat-ordered streams as one.  **Left-biased** on a shared onset,
+#: which keeps an overlay's branches in writing order at the instant they
+#: coincide — the same order the eager layout gives a stable sort, so the
+#: allocator makes the same choices either way.
+mergeVoices : List (Int, Int, Voice) -> List (Int, Int, Voice) -> List (Int, Int, Voice)
+mergeVoices xs ys = case xs of
+    Nil -> ys
+    x :: xt -> case ys of
+        Nil -> xs
+        y :: yt -> case x of
+            (a, b, v) -> case y of
+                (c, d, w) -> case a <= c of
+                    True -> x :: mergeVoices xt ys
+                    False -> y :: mergeVoices xs yt
+
+streamVoicesAt : Int -> [: a :] -> List (Int, Int, Voice)
+streamVoicesAt off s = case s of
+    Note x -> Nil
+    Play e -> Nil
+    Assigned v -> (off, off + ticksPerBeat, v) :: Nil
+    Rest -> Nil
+    Seq a b -> streamVoicesAt off a ++ streamVoicesAt (off + durOf a) b
+    Par a b -> mergeVoices (streamVoicesAt off a) (streamVoicesAt off b)
+    At n t -> streamVoicesAt (off + n) t
+    # Lazy where the eager walk was strict: `map` yields as its argument
+    # does, so a scaled endless section still streams.
+    Scale t k -> placeScaledV off k (streamVoicesAt 0 t)
+    Shrink t k -> placeShrunkV off k (streamVoicesAt 0 t)
+    # Strict by nature: a retrograde's first event is its subject's last,
+    # so the subtree must end to be reversed.  An endless one diverges in
+    # `durOf` first, which the performer's budget reports as a stall.
+    Retro t -> reverse (placeRetroV off (durOf t) (streamVoicesAt 0 t))

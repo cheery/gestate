@@ -1,8 +1,18 @@
 # The dynamic score — a performance that executes as it plays
 
-*Written as a design; none of it is built.  Companion to
-`spec/export.md` (whose transport made it thinkable) and
-`spec/verification.md` (whose oracles will keep it honest).*
+*Written as a design; companion to `spec/export.md` (whose transport
+made it thinkable) and `spec/verification.md` (whose oracles will keep
+it honest).*
+
+*Status, 2026-08-10: stage one is built at home — `audiodynamic.Performer`,
+held to the bake by `test_dynamicscore.py`, with the seek/loop semantics
+pinned there before any second implementation exists; its Rust half (the
+CLAP cursor) is not.  Stage two is built at home — `streamVoices` in
+`music.ges` (an ordered lazy merge, so two endless branches of a `||`
+interleave), `cycle` and `unfold`, `ScoreStream`/`LazyPerformer` under a
+`StepLimit` budget with the stall-and-drop rules below, held by
+`test_lazyscore.py`; abroad it waits on the G-machine port
+(`spec/crust.md`).  Stage three is not started.*
 
 Today a `Score` is scheduled entirely at compile time: the layout
 becomes events, the events become a `Schedule` of channel changes at
