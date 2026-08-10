@@ -67,8 +67,7 @@ def _program(count: int = 2, tail: str = "sound = lowpass 0.5 (gain 0.9 lead)"):
     return (f"""
 Note := Note Int Int Int
 
-voices lead {count} : Note -> Sig Float
-lead = plucked
+voices lead {count} plucked : Sig Float
 """ + VOICE + f"\nsound : Sig Float\n{tail}\n")
 
 
@@ -229,7 +228,8 @@ def test_the_two_part_spelling_is_retired_by_name():
 
 
 def test_a_bank_naming_no_data_type_is_refused():
-    source = "\nvoices lead 2 f : Sig Float\n"
+    source = ("\nvoices lead 2 f : Sig Float\n"
+              "\nf : Sig Gate -> Sig Note -> Sig Float\n")
     with pytest.raises(VoicesError, match="nor a data type declared here"):
         expand(source)
 
@@ -247,7 +247,8 @@ def test_a_line_that_is_not_a_full_signature_is_not_a_bank():
 def test_a_frame_bank_sums_componentwise():
     """`addSig` is `Sig Float` only, so a stereo bank gets its own adder."""
     source = ("\nNote := Note Int\nStereo := Stereo Float Float\n"
-              "\nvoices wide 2 breathy : Sig Stereo\n")
+              "\nvoices wide 2 breathy : Sig Stereo\n"
+              "\nbreathy : Sig Gate -> Sig Note -> Sig Stereo\n")
     out = expand(source)
     assert "wide : Sig Stereo" in out
     assert "zipSig wideAdd" in out
@@ -258,13 +259,15 @@ def test_a_frame_bank_sums_componentwise():
 def test_a_frame_of_something_other_than_floats_is_refused():
     """Every field of a frame is an output channel, so every field is a sample."""
     source = ("\nNote := Note Int\nOdd := Odd Float Int\n"
-              "\nvoices wide 2 f : Sig Odd\n")
+              "\nvoices wide 2 f : Sig Odd\n"
+              "\nf : Sig Gate -> Sig Note -> Sig Odd\n")
     with pytest.raises(VoicesError, match="not a frame"):
         expand(source)
 
 
 def test_a_record_with_several_constructors_is_refused():
-    source = ("\nNote := A Int | B Int\n\nvoices lead 2 f : Sig Float\n")
+    source = ("\nNote := A Int | B Int\n\nvoices lead 2 f : Sig Float\n"
+              "\nf : Sig Gate -> Sig Note -> Sig Float\n")
     with pytest.raises(VoicesError, match="2 constructors"):
         expand(source)
 
@@ -272,13 +275,15 @@ def test_a_record_with_several_constructors_is_refused():
 def test_a_field_that_is_not_a_control_value_is_refused():
     """Every field becomes a control channel, and those carry one slot."""
     source = ("\nInner := Inner Int\nNote := Note Inner\n"
-              "\nvoices lead 2 f : Sig Float\n")
+              "\nvoices lead 2 f : Sig Float\n"
+              "\nf : Sig Gate -> Sig Note -> Sig Float\n")
     with pytest.raises(VoicesError, match="one slot"):
         expand(source)
 
 
 def test_a_record_with_no_fields_is_refused():
-    source = "\nNote := Note\n\nvoices lead 2 f : Sig Float\n"
+    source = ("\nNote := Note\n\nvoices lead 2 f : Sig Float\n"
+              "\nf : Sig Gate -> Sig Note -> Sig Float\n")
     with pytest.raises(VoicesError, match="nothing to play"):
         expand(source)
 

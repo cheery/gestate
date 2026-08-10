@@ -12,8 +12,15 @@ CLAP cursor) is not.  Stage two is built at home — `streamVoices` in
 interleave), `cycle` and `unfold`, `ScoreStream`/`LazyPerformer` under a
 `StepLimit` budget with the stall-and-drop rules below, held by
 `test_lazyscore.py`; abroad it waits on the G-machine port
-(`spec/crust.md`).  Stage three is not built; its surface was settled
-2026-08-10 and is specified at the end of this file.*
+(`spec/crust.md`).  Stage three is built at home — its surface was
+settled 2026-08-10, is specified at the end of this file, and landed
+the same day: `sown` and the seed algebra (SplitMix64 in `music.ges`
+itself, bit-exact as the crust parity contract), `probe` as a cue
+stream (`liveVoices` in CPS, an ask's continuation holding the rest of
+the performance), `resumeAt` descent, and the transcript with its
+improv-equals-replay oracle — held by `test_sownscore.py`,
+`test_probescore.py` and `test_lazyscore.py`, with `jazz.ges` and the
+arpeggiator as the acceptance pieces.  Abroad it waits with the rest.*
 
 Today a `Score` is scheduled entirely at compile time: the layout
 becomes events, the events become a `Schedule` of channel changes at
