@@ -1,0 +1,11 @@
+[package]
+name = "crust"
+version = "0.1.0"
+edition = "2021"
+description = "The G-machine's pure core, in Rust — spec/crust.md."
+license = "MIT"
+
+# Zero dependencies, deliberately: the program format is flat text made
+# for split_whitespace, so nothing here can rot offline, and the crate
+# stays buildable the day a plugin shell needs it.
+[dependencies]

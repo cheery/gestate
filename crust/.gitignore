@@ -1,0 +1,5 @@
+# As shell/clap's: what cargo makes again is not source.  The lock too —
+# this crate has zero dependencies, deliberately, so there is nothing in
+# it a build could resolve differently.
+target/
+Cargo.lock

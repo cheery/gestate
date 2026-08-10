@@ -1558,3 +1558,40 @@ def test_the_readings_a_program_can_ask_for_are_all_declared():
     assert set(Workbench.PROBES) <= set(Workbench.WATCHED)
     for name in ("peak", "rms", "voices", "position"):
         assert name in Workbench.WATCHED, name
+
+
+@needs_clang
+def test_an_unfolding_score_plays_through_the_performer(tmp_path):
+    """A `cycle`d piece has no bake; the editor performs it instead.
+
+    The performer stands beside the schedule at the same `control()`
+    seam: notes decided as the clock reaches them, off the audio thread,
+    with the transport's seek answered by the performer's own
+    (`spec/dynamicscore.md`, stages one and two, in the editor at last).
+    """
+    path = tmp_path / "forever-duet.ges"
+    path.write_text(DUET.read_text().replace(
+        "score = walk >>= voices.bass",
+        "score = cycle walk >>= voices.bass"))
+    bench = Workbench(path, rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+    bench.start(seconds=0.0)
+    try:
+        assert bench.schedule is None
+        assert bench.performer is not None
+        assert bench.scored_banks() == {"bass"}
+
+        graph = bench.live.engine.graph
+        gate = graph.control_by_chan()["bassChan0f0"]
+        # Drive the control seam the way a render would: the first note
+        # arrives, and four beats later the cycle is still producing.
+        assert bench.control(gate.id, 0) not in (None, 0)
+        for t in range(0, 8000 * 12, 4096):
+            bench.control(gate.id, t)
+        assert len(bench.performer.history) >= 8, "the cycle should unfold"
+
+        # A seek is the performer's own: silent replay, nothing stuck.
+        bench._after_seek(8000)
+        assert bench.control(gate.id, 8000) not in (None, 0)
+    finally:
+        bench.stop()

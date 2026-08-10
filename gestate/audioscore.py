@@ -553,6 +553,63 @@ def unfolding_names(source: str) -> list:
     return sorted(blame)
 
 
+def assigned_banks(source: str) -> set:
+    """Which banks the score assigns to — by parsed mention, not by text.
+
+    A dynamic score has no baked schedule to enumerate channels from, so
+    the *source* must answer — but scanned as declarations, reachable
+    from `score`, never as text: a `voices.lead` in a comment is exactly
+    the false positive `audioeditor.scored_banks`' docstring records.
+    The expander has rewritten `voices.<bank>` to `voices<Bank>` by the
+    time anything parses, so those are the words looked for.
+    """
+    import dataclasses
+
+    from .audio import _expansion_prelude
+    from .audiovoices import banks_of
+    from .prelude import _parsed
+    from .syntax.ast import VSCDecl, VWord
+
+    try:
+        module = _parsed(source)
+    except Exception:                                    # noqa: BLE001
+        try:
+            from .audiovoices import expand
+
+            module = _parsed(expand(source, _expansion_prelude()))
+        except Exception:                                # noqa: BLE001
+            return set()
+    defs = {item.name: item for item in module.items
+            if isinstance(item, VSCDecl)}
+    spelling = {"voices" + b.name[0].upper() + b.name[1:]: b.name
+                for b in banks_of(source)}
+
+    def words_of(node, out):
+        if isinstance(node, VWord):
+            out.add(node.value)
+        if dataclasses.is_dataclass(node):
+            for f in dataclasses.fields(node):
+                words_of(getattr(node, f.name), out)
+        elif isinstance(node, (list, tuple)):
+            for item in node:
+                words_of(item, out)
+
+    banks, seen, stack = set(), set(), ["score"]
+    while stack:
+        name = stack.pop()
+        if name in seen or name not in defs:
+            continue
+        seen.add(name)
+        out: set = set()
+        words_of(defs[name].equations, out)
+        for word in out:
+            if word in spelling:
+                banks.add(spelling[word])
+            if word in defs:
+                stack.append(word)
+    return banks
+
+
 def stream_root(synth: str, piece: str = "", rate: int = 22050,
                 seed: int = 0) -> tuple:
     """`(tempo, state, root, by_tag)` — the unforced stream and its readers.

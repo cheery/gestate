@@ -186,13 +186,17 @@ def dynamic(synth: str, piece: str = "", *, rate: int, block: int,
     from .audioscore import stream_root
     from .audiovoices import banks_of, channels_of
 
+    from .transcript import Transcript
+
     both = synth + "\n" + piece
     tempo, state, root, by_tag = stream_root(synth, piece, rate, seed)
     allocators = {b.name: Allocator(channels_of(both, b), policy=policy)
                   for b in banks_of(both)}
     stream = ScoreStream(state, root, by_tag, patience=patience)
+    record = Transcript(source_sha=Transcript.sha_of(both), rate=rate,
+                        block=block, seed=seed)
     performer = LazyPerformer(stream, tempo, rate, allocators, block=block,
-                              horizon=horizon)
+                              horizon=horizon, record=record)
     return performer, allocators
 
 
@@ -293,11 +297,15 @@ def main(argv=None) -> int:
     ap.add_argument("--seed", type=int, default=None,
                     help="the take's seed; omitted, a chancy score draws "
                          "one and says so")
+    ap.add_argument("--transcript", default=None, metavar="PATH",
+                    help="write the dynamic performance's log — seed, "
+                         "stalls, drops — after rendering")
     ap.add_argument("-o", "--output", default=None,
                     help="render to a .wav instead of playing")
     args = ap.parse_args(argv)
 
     listener = None
+    performer = None
     try:
         synth = Path(args.synth).read_text()
         piece = Path(args.piece).read_text() if args.piece else ""
@@ -396,6 +404,15 @@ def main(argv=None) -> int:
             n = render_wav(graph, args.output, seconds or 2.0,
                            args.rate, args.block, control)
             print(f"{args.output}: {n} samples at {args.rate} Hz")
+            if args.transcript is not None:
+                if performer is None:
+                    print("gestate: only a dynamic performance keeps a "
+                          "transcript; nothing was written", file=sys.stderr)
+                else:
+                    performer.record.save(args.transcript)
+                    kept = len(performer.record.events)
+                    print(f"{args.transcript}: seed {performer.record.seed}, "
+                          f"{kept} event(s)", file=sys.stderr)
             return 0
 
         frames, backend = play(synth, seconds, args.rate, args.block,

@@ -601,6 +601,18 @@ class Workbench:
         self.banks: list = []
         #: The piece this program plays, as a `Schedule`, or `None`.
         self.schedule = None
+        #: The piece again, when it *unfolds* (`spec/dynamicscore.md`):
+        #: a `LazyPerformer` deciding notes as the transport reaches
+        #: them.  One of `schedule`/`performer` is set, never both.
+        self.performer = None
+        self._performer_lock = threading.Lock()
+        #: Banks the score assigns to, by spelling — the dynamic path
+        #: cannot enumerate its channels up front, so the text answers.
+        self._score_banks: set = set()
+        #: The session's take, drawn once and said once — stable across
+        #: rebuilds, so Ctrl-S changes the music you edited, not the
+        #: music chance dealt you.
+        self.seed = None
         self.notes = None
         #: The program's canvas, when it has one — `spec/substrate.md`.
         #: Rebuilt with the sound, because a substrate is the same file.
@@ -1068,6 +1080,24 @@ class Workbench:
                 pass
         return sorted(keys + self._scheduled_on(bank))
 
+    def _performed_value(self, chan: str, at: int):
+        """The dynamic score's answer for `chan` at instant `at`.
+
+        The advance rides whoever asked — the housekeeping push on the C
+        path, `control` per block on the Python one — which keeps the
+        forcing off the audio thread on both.  A performer that has not
+        yet begun while the transport stands past zero (a rebuild
+        mid-play) **seeks first**: silent replay to here, so an edit
+        rejoins the piece instead of replaying its whole past fortissimo.
+        """
+        with self._performer_lock:
+            if self.performer.position < 0 and at > 0:
+                self.performer.seek(at)
+            # A few blocks of lookahead: delivery may land early — the
+            # value names its exact instant — never late.
+            self.performer.advance(at + 4 * self.block)
+            return self.performer.values.get(chan)
+
     def _scheduled_on(self, bank: str) -> list:
         """The scored notes sounding at the transport's instant.
 
@@ -1076,7 +1106,8 @@ class Workbench:
         arithmetic the *voice* does per sample, which is what makes the row
         agree with what you can hear.
         """
-        if self.schedule is None or self.transport is None:
+        if (self.schedule is None and self.performer is None) \
+                or self.transport is None:
             return []
         if self.notes is not None and self.notes.listening.get(bank, False):
             # Handed to the keyboard, so the score is not driving it — and
@@ -1086,17 +1117,24 @@ class Workbench:
         rows = next((b["channels"] for b in self.banks
                      if b["name"] == bank), [])
         now = self.transport.position
+
+        def look(chan):
+            if self.schedule is not None:
+                return self.schedule.value_at(chan, now)
+            with self._performer_lock:
+                return self.performer.values.get(chan)
+
         out = []
         for row in rows:
             if len(row) < 3:
                 continue
-            on = self.schedule.value_at(row[0], now)
-            off = self.schedule.value_at(row[1], now)
+            on = look(row[0])
+            off = look(row[1])
             if not on or now < on - 1:
                 continue
             if off and now >= off - 1:
                 continue
-            value = self.schedule.value_at(row[2], now)
+            value = look(row[2])
             if value is not None:
                 out.append(value)
         return out
@@ -1222,6 +1260,10 @@ class Workbench:
                     chan, self.live.engine.graph.node(node).init)
         elif self.schedule is not None and chan:
             value = self.schedule.value_at(chan, _t)
+            if value is not None:
+                return value
+        elif self.performer is not None and chan:
+            value = self._performed_value(chan, _t)
             if value is not None:
                 return value
         if self.notes is not None and chan in self.notes.values:
@@ -1376,9 +1418,14 @@ class Workbench:
         all.  The schedule knows exactly which channels it writes, so it is
         the thing to ask.
         """
-        if self.schedule is None:
-            return set()
-        return {c.split("Chan")[0] for c in self.schedule.channels()}
+        if self.schedule is not None:
+            return {c.split("Chan")[0] for c in self.schedule.channels()}
+        if self.performer is not None:
+            # No baked channels to ask, so the *parsed* assignment scan
+            # answers — reachable declarations, never comments, which is
+            # the mistake recorded above (`audioscore.assigned_banks`).
+            return set(self._score_banks)
+        return set()
 
     # -- the transport ------------------------------------------------------
 
@@ -1446,6 +1493,13 @@ class Workbench:
             if allocator is not None:
                 for chan, value in allocator.all_off(0):
                     self.notes.values[chan] = value
+        # A dynamic score answers the transport's question itself:
+        # release what sounds, silent replay to the target
+        # (`audiodynamic.LazyPerformer.seek` — stage one's semantics,
+        # already pinned by its tests).
+        if self.performer is not None:
+            with self._performer_lock:
+                self.performer.seek(_sample)
 
     # -- beats and samples --------------------------------------------------
 
@@ -1545,27 +1599,64 @@ class Workbench:
         edit: change a note, press Ctrl-S, and the bass line changes under
         whatever you are playing over it.
         """
+        import re
+
         from .audioperform import has_score
 
         if not has_score(text):
             self.schedule = None
+            self.performer = None
             return
         try:
             from .audioalloc import Allocator
-            from .audioscore import perform_voices, schedule_voices
+            from .audioscore import assigned_banks, unfolding_names
             from .audiovoices import banks_of, channels_of
 
-            # **Once.**  `perform_voices` is a whole front end and a run,
-            # and calling it for the tempo and again inside `scored` made
-            # every audition wait for two of them — on top of the two the
-            # rebuild and the knob placement already cost.
-            self.bpm, events = perform_voices(text, "", self.rate)
+            self._score_banks = assigned_banks(text)
+            # The session's seed, drawn the first time a piece can tell
+            # the difference and **said** — the renderer records what it
+            # supplied — then held, so a rebuild replays the same take.
+            if self.seed is None and re.search(
+                    r"\b(sown|roll|chance|sow)\b", text):
+                import os
+
+                self.seed = int.from_bytes(os.urandom(8), "big")
+                self.say(f"seed {self.seed} — this session's take")
             allocators = {b.name: Allocator(channels_of(text, b))
                           for b in banks_of(text)}
-            self.schedule = schedule_voices(
-                events, self.bpm, self.rate, allocators, block=self.block)
+            if unfolding_names(text):
+                # The score has no end (or no proof of one), so nothing
+                # is baked: the performer decides notes as the transport
+                # reaches them, off the audio thread — `control` and the
+                # housekeeping push are its clock.
+                from .audiodynamic import LazyPerformer, ScoreStream
+                from .audioscore import stream_root
+
+                tempo, state, root, by_tag = stream_root(
+                    text, "", self.rate, self.seed or 0)
+                self.bpm = tempo
+                self.schedule = None
+                with self._performer_lock:
+                    self.performer = LazyPerformer(
+                        ScoreStream(state, root, by_tag, patience=0.02),
+                        tempo, self.rate, allocators, block=self.block)
+            else:
+                from .audioscore import perform_voices, schedule_voices
+
+                # **Once.**  `perform_voices` is a whole front end and a
+                # run, and calling it for the tempo and again inside
+                # `scored` made every audition wait for two of them — on
+                # top of the two the rebuild and the knob placement
+                # already cost.
+                self.bpm, events = perform_voices(text, "", self.rate,
+                                                  self.seed or 0)
+                self.performer = None
+                self.schedule = schedule_voices(
+                    events, self.bpm, self.rate, allocators,
+                    block=self.block)
         except Exception as exc:                        # noqa: BLE001
             self.schedule = None
+            self.performer = None
             self.say(f"no piece: {self._first_line(exc)}" if _unwritten(exc)
                      else f"score not loaded: {self._first_line(exc)}")
 

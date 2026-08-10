@@ -1,5 +1,14 @@
 # G-machine implementation in Rust
 
+*Status, 2026-08-10: begun.  `crust/` exists at the repo root — the
+pure integer core (the score-forcing instruction set, i128 arithmetic
+refusing wider, Python's floor division exactly), a zero-dependency
+flat text program format written by `gestate/crust.py`, and
+`test/test_crust.py` holding it to `gmachine.py` program for program:
+recursion, negative division, lazy sharing, and `music.ges`'s own
+SplitMix64 block to the bit.  Not yet: floats, the reactive half, a
+collector, the workspace with `shell/clap`.*
+
 For now this is a proposal.
 
 By now it has become necessary that various facets of gestate

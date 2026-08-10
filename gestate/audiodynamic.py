@@ -206,7 +206,12 @@ class ScoreStream:
         #: outrun an expensive first forcing and drop the downbeat of a
         #: piece that a listener would simply have waited out.  A live
         #: caller, whose `t` really does march, sets its budget.
+        #: …and even live, patience starts **after the first event**: a
+        #: cold start blocking for its downbeat is the orchestra tuning,
+        #: not a stall — dropping the head of the piece because forcing
+        #: its first cell cost 30ms is a report nobody wants.
         self.patience = patience
+        self._begun = False
         self._deadline = None
         self._scratch = None
         self._scratch_for = None
@@ -319,7 +324,7 @@ class ScoreStream:
 
         out = []
         self.stalled = False
-        self._deadline = (None if self.patience is None
+        self._deadline = (None if self.patience is None or not self._begun
                           else monotonic() + self.patience)
         cons = self.state.cons["Cons"].tag
         nil = self.state.cons["Nil"].tag
@@ -350,6 +355,7 @@ class ScoreStream:
                 break
             self.node = node.args[1]
             self.ready = event
+            self._begun = True
         if self.done:
             pass                            # nothing more is coming; `frontier`
                                             # stops mattering
@@ -380,8 +386,9 @@ class LazyPerformer:
     """
 
     def __init__(self, stream, tempo, rate: int, allocators: dict, *,
-                 block: int, horizon: float = 4.0):
+                 block: int, horizon: float = 4.0, record=None):
         from .tempo import TempoEnvelope, constant
+        from .transcript import Transcript
 
         if block <= 0:
             raise ScoreError(f"a block size of {block}")
@@ -394,9 +401,15 @@ class LazyPerformer:
         #: How many beats ahead of the clock the stream is forced.
         self.horizon = horizon
         self.values: dict = {}
+        #: The performance's log (`transcript.Transcript`) — the caller
+        #: fills the header, the performer writes the events.
+        self.record = record if record is not None else Transcript(
+            rate=rate, block=block)
         #: What the performance had to decide beyond the notes:
         #: `("stall", beat)` and `("dropped", beat, bank)` entries.
-        self.transcript: list = []
+        #: **The same list** the record holds — appended as it happens,
+        #: never transcribed after the fact.
+        self.transcript: list = self.record.events
         #: Every event ever pulled, in arrival order — the replay a seek
         #: walks, and stage three's log waiting for its format.
         self.history: list = []

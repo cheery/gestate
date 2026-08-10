@@ -198,3 +198,43 @@ bpm = 120
         got = _velocities(perform_voices(SYNTH, piece, RATE, seed=seed)[1])
         left, right = split(seed)
         assert got == [unit(left), unit(right)], seed
+
+
+# ── The transcript ──────────────────────────────────────────────────────────
+
+
+def test_a_performance_equals_its_own_replay(tmp_path):
+    """The format's oracle, `spec/dynamicscore.md`: the transcript records
+    the world and the seed; everything else is arithmetic.
+
+    Today the world half carries only the performance's own confessions
+    (stalls, drops), so a replay is the same text under the transcript's
+    seed — and it must match change for change, through a round trip on
+    disk, refusing another program's log by name.
+    """
+    from gestate.audioperform import dynamic
+    from gestate.transcript import Transcript
+
+    def changes_of(performer):
+        out = []
+        for t in range(0, 6 * BEAT, BLOCK):
+            out += performer.advance(t)
+        return out
+
+    live, _allocs = dynamic(SYNTH, CHANCY, rate=RATE, block=BLOCK,
+                            seed=424242)
+    first = changes_of(live)
+    path = tmp_path / "take.transcript"
+    live.record.save(path)
+
+    kept = Transcript.load(path)
+    assert kept.seed == 424242
+    assert kept.belongs_to(SYNTH + "\n" + CHANCY)
+    assert not kept.belongs_to(SYNTH + "\n" + PIECE), \
+        "another program's log is a collage, not a replay"
+    assert kept.events == live.record.events
+
+    again, _allocs = dynamic(SYNTH, CHANCY, rate=RATE, block=BLOCK,
+                             seed=kept.seed)
+    assert changes_of(again) == first
+    assert again.record.events == kept.events
