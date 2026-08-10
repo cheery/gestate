@@ -377,13 +377,17 @@ def test_playing_shortens_the_gil_slice_and_puts_it_back():
 # ── The CLI ─────────────────────────────────────────────────────────────────
 
 
-def test_the_cli_reports_a_program_it_cannot_play(tmp_path, capsys):
-    from gestate.audiolive import main
+def test_the_cli_reports_a_program_it_cannot_play(capsys):
+    """The retired door refuses by name and points at
+    the replacement — the voices-retirement rule for a
+    CLI (`spec/crust.md` era consolidation: one door,
+    `gestate.audioperform`, beside the editors)."""
+    from gestate.audiolive import main as retired_main
 
-    bad = tmp_path / "bad.ges"
-    bad.write_text("sound : Sig Float\nsound = 0.0 ::: never\n")
-    assert main([str(bad)]) == 1
-    assert "fragment" in capsys.readouterr().err
+    assert retired_main([]) == 2
+    err = capsys.readouterr().err
+    assert "retired" in err
+    assert "audioeditor" in err
 
 
 # ── The sounddevice path ────────────────────────────────────────────────────

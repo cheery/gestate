@@ -1189,6 +1189,8 @@ class Parser:
             return self._parse_given()
         if kw.value == "case":
             return self._parse_case()
+        if kw.value == "do":
+            return self._parse_do()
         if kw.value == "for":
             return self._parse_for()
         if kw.value == "fix":
@@ -1351,6 +1353,104 @@ class Parser:
         self._eat(TT.SEP, "->")
         body = self._parse_val()
         return VAlt(pat, body, Span(start_p, body.span.end))
+
+    # ── Do ───────────────────────────────────────────────────────────────
+
+    def _parse_do(self) -> Val:
+        """`do` — the monad's sugar, desugared here and gone
+        (`spec/monad.md`).
+
+        No node leaves this method that the rest of the compiler has
+        to learn: a block of items becomes the `>>=` chain it means,
+        so the renamer, the checker and every backend stay ignorant of
+        the keyword.  The item scan is the `let` scan generalised — a
+        top-level `<-` makes a bind the way a top-level `=` makes a
+        binding — spelled as attempt-and-backtrack, the way
+        `_parse_clause` already decides `p in e` against a bare guard.
+        """
+        start = self._eat(TT.RESERVED, "do").pos
+        self._skip_nl()
+        if self._at(TT.INDENT):
+            self._adv()
+        items: list[tuple] = []
+
+        def item() -> None:
+            # The same trivia-and-nested-block discipline as a `case`
+            # alternative, for the same reasons (F45, F72).
+            self._skip_trivia()
+            start_i = self._i
+            items.append(self._parse_do_item())
+            self._close_inner_blocks(start_i)
+            self._skip_trivia()
+
+        def at_end() -> bool:
+            return (self._at(TT.DEDENT) or self._at(TT.EOF)
+                    or any(self._at(TT.SEP, c)
+                           for c in (")", "]", "}", ",")))
+
+        item()
+        while not at_end():
+            if self._at(TT.SEP, ";"):
+                self._adv()
+                self._skip_nl()
+            item()
+            if at_end():
+                break
+        # Leave the DEDENT unconsumed, as `case` does: the caller's
+        # application loop sees it and stops.
+        return self._desugar_do(items, start)
+
+    def _parse_do_item(self) -> tuple:
+        # `name = e` — a pure binding, decided by two tokens of
+        # lookahead; nothing else in item position carries a bare `=`.
+        t = self._cur
+        nxt = self._ts[self._i + 1] if self._i + 1 < len(self._ts) else None
+        if (t is not None and t.kind is TT.WORD and nxt is not None
+                and nxt.kind is TT.SEP and nxt.value == "="):
+            name = self._adv().value
+            self._eat(TT.SEP, "=")
+            return ("let", name, self._parse_val())
+        # `p <- e` — attempted; the token list is materialised, so
+        # backtracking is restoring an index.
+        saved = self._i
+        try:
+            pat = self._parse_pat()
+            if self._at(TT.SYMBOL, "<-"):
+                self._adv()
+                return ("bind", pat, self._parse_val())
+        except ParseError:
+            pass
+        self._i = saved
+        return ("expr", self._parse_val())
+
+    def _desugar_do(self, items: list[tuple], start: Pos) -> Val:
+        last = items[-1]
+        if last[0] != "expr":
+            what = "a binding" if last[0] == "let" else "a bind"
+            raise ParseError(
+                f"a do block ends with an expression — its value — "
+                f"not {what}", start)
+        val: Val = last[1]
+        for kind, *rest in reversed(items[:-1]):
+            if kind == "bind":
+                pat, e = rest
+                fn = VFunc([pat], val, Span(pat.span.start, val.span.end))
+                val = VOpPhrase([e, ">>=", fn],
+                                Span(e.span.start, val.span.end))
+            elif kind == "let":
+                name, e = rest
+                val = VLet(False, [(name, e)], val,
+                           Span(e.span.start, val.span.end))
+            else:
+                e = rest[0]
+                # The dropped value binds `_`, a pattern that names
+                # nothing — the wildcard every case arm already uses.
+                fn = VFunc([PVar("_", e.span)], val,
+                           Span(e.span.start, val.span.end))
+                val = VOpPhrase([e, ">>=", fn],
+                                Span(e.span.start, val.span.end))
+        val.span = Span(start, val.span.end)
+        return val
 
     # ── For ──────────────────────────────────────────────────────────────
 

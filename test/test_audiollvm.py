@@ -318,23 +318,17 @@ def test_it_is_fast_enough_to_be_the_point_of_all_this():
 # ── The CLI ─────────────────────────────────────────────────────────────────
 
 
-def test_the_cli_writes_ir(tmp_path, capsys):
-    from gestate.audiollvm import main
+def test_the_cli_writes_ir(capsys):
+    """The retired door refuses by name and points at
+    the replacement — the voices-retirement rule for a
+    CLI (`spec/crust.md` era consolidation: one door,
+    `gestate.audioperform`, beside the editors)."""
+    from gestate.audiollvm import main as retired_main
 
-    out = tmp_path / "synth.ll"
-    assert main([str(AUDIO_DIR / "blip.ges"), "--rate", "8000",
-                 "-o", str(out)]) == 0
-    assert "lines of IR" in capsys.readouterr().out
-    assert "define void @render_block" in out.read_text()
-
-
-def test_the_cli_reports_a_program_it_cannot_generate(tmp_path, capsys):
-    from gestate.audiollvm import main
-
-    bad = tmp_path / "bad.ges"
-    bad.write_text("sound : Sig Float\nsound = 0.0 ::: never\n")
-    assert main([str(bad)]) == 1
-    assert "fragment" in capsys.readouterr().out
+    assert retired_main([]) == 2
+    err = capsys.readouterr().err
+    assert "retired" in err
+    assert "library call" in err
 
 
 @needs_clang

@@ -55,7 +55,7 @@ _RESERVED = frozenset({
     "class", "instance", "case", "let", "letrec",
     "where", "in", "for", "of", "type", "kind",
     "gfix", "fix", "unbox", "Box", "given", "using",
-    "deriving", "implicit", "internal",
+    "deriving", "implicit", "internal", "do",
 })
 
 # ── Token ────────────────────────────────────────────────────────────────────
@@ -431,7 +431,7 @@ class Tokenizer:
         #: item, whatever it starts with — a case alternative may be
         #: `(a, b) -> …` and a class member may be `(==) : …`, and both
         #: would otherwise look exactly like a continuation.
-        openers = ("of", "where", "let", "letrec", "given")
+        openers = ("of", "where", "let", "letrec", "given", "do")
 
         def next_line_binds() -> bool:
             """Does the coming line contain a top-level `=`?

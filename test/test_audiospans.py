@@ -281,18 +281,14 @@ def test_the_prelude_offset_is_where_the_authors_first_line_lands():
 
 
 def test_the_cli_prints_the_placement(capsys):
-    assert main([str(AUDIO_DIR / "knob.ges"), "--rate", str(RATE),
-                 "--source"]) == 0
-    out = capsys.readouterr().out
-    assert "knob.ges:" in out and "audio.ges:" in out
-    assert "knob = 40 ::: mkSig (wait knobChan)" in out
-
-
-def test_the_cli_reports_a_program_it_cannot_place(tmp_path, capsys):
-    bad = tmp_path / "bad.ges"
-    bad.write_text("sound : Int\nsound = 1\n")
-    assert main([str(bad)]) == 1
-    assert "gestate:" in capsys.readouterr().err
+    """The retired door refuses by name and points at
+    the replacement — the voices-retirement rule for a
+    CLI (`spec/crust.md` era consolidation: one door,
+    `gestate.audioperform`, beside the editors)."""
+    assert main([]) == 2
+    err = capsys.readouterr().err
+    assert "retired" in err
+    assert "the editors place" in err
 
 
 # ── Error messages, in the author's coordinates ─────────────────────────────

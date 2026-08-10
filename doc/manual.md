@@ -756,6 +756,23 @@ is exact.
 `Maybe`; which one you get is whatever the surrounding signature asks for,
 so **write the signature** on a phrase.
 
+`>>=` and `'` are the two halves of the prelude's **`Monad`** class, and
+the language carries `do` sugar over it (`spec/monad.md`):
+
+```
+walk : Maybe Int
+walk = do
+    x <- Just 4
+    y <- Just 5
+    '(x + y)
+```
+
+An item `p <- e` binds, `name = e` is a pure binding (a `let`, no monad
+involved), a bare item's value is dropped, and the **last item is the
+block's value** — there is no `return`, because `'` is already `pure`.
+One line holds several items with `;`.  Over a score, remember that `do`
+reads as *substitution* — "for each note" — not as time passing.
+
 **`reverse` is retrograde**, and it reverses *time* rather than the tree:
 an overlay is left-aligned, so `reverse (a || b)` gives you two voices that
 now **end** together, which is what a retrograde of two unequal voices

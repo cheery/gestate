@@ -558,20 +558,16 @@ def test_the_audio_clock_is_found_by_name_not_by_id():
 
 
 def test_the_cli_prints_a_graph(capsys):
-    from gestate.audioextract import main
+    """The retired door refuses by name and points at
+    the replacement — the voices-retirement rule for a
+    CLI (`spec/crust.md` era consolidation: one door,
+    `gestate.audioperform`, beside the editors)."""
+    from gestate.audiograph import main as retired_main
 
-    assert main([str(AUDIO_DIR / "blip.ges"), "--rate", "8000"]) == 0
-    out = capsys.readouterr().out
-    assert "source" in out and "scan" in out and "out = 5" in out
-
-
-def test_the_cli_reports_a_program_it_cannot_extract(tmp_path, capsys):
-    from gestate.audioextract import main
-
-    bad = tmp_path / "bad.ges"
-    bad.write_text("sound : Sig Float\nsound = 0.0 ::: never\n")
-    assert main([str(bad)]) == 1
-    assert "not in the static signal fragment" in capsys.readouterr().out
+    assert retired_main([]) == 2
+    err = capsys.readouterr().err
+    assert "retired" in err
+    assert "refused by name" in err
 
 
 def test_two_knobs_are_driven_independently():

@@ -277,3 +277,21 @@ def test_manual_s9_an_implicit_parameter_is_invisible_in_the_signature():
     assert evaluate(PPQ + "f : Int\nf (using ppq) = ppq\n\n"
                     "g : Int\ng = f + 1\n\n"
                     "main : Int\nmain = given ppq = 1 in g\n") == "2", _UPDATE
+
+
+def test_manual_s7_do_is_sugar_over_the_monad_the_prelude_declares():
+    """The manual's `do` example, run: the block means the `>>=` chain
+    (`spec/monad.md`), and `'` closes it because `'` is already `pure`."""
+    prog = """
+walk : Maybe Int
+walk = do
+    x <- Just 4
+    y <- Just 5
+    '(x + y)
+
+main : Int
+main = case walk of
+    Nothing -> 0
+    Just n -> n
+"""
+    assert evaluate(prog) == "9"

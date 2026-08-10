@@ -290,21 +290,16 @@ def test_an_unknown_type_is_a_rejection_here_and_not_elsewhere():
 
 
 def test_the_cli_accepts_an_example(capsys):
-    from gestate.audiograph import main
+    """The retired door refuses by name and points at
+    the replacement — the voices-retirement rule for a
+    CLI (`spec/crust.md` era consolidation: one door,
+    `gestate.audioperform`, beside the editors)."""
+    from gestate.audiograph import main as retired_main
 
-    assert main([str(AUDIO_DIR / "drums.ges")]) == 0
-    assert "in the fragment" in capsys.readouterr().out
-
-
-def test_the_cli_reports_a_program_that_is_not(tmp_path, capsys):
-    from gestate.audiograph import main
-
-    bad = tmp_path / "bad.ges"
-    bad.write_text(REJECTED["unbounded recursion"][0])
-    assert main([str(bad)]) == 1
-    out = capsys.readouterr().out
-    assert "not in the static signal fragment" in out
-    assert "countdown" in out
+    assert retired_main([]) == 2
+    err = capsys.readouterr().err
+    assert "retired" in err
+    assert "refused by name" in err
 
 
 # ── A constructor's own parameters are not the question ─────────────────────
