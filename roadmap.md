@@ -8,8 +8,16 @@ two apart is the point: **this file is future tense.**
 Stages 0–6 are the language, and they are done.  Stages 7–10 are the live
 audio environment, argued in full in `spec/liveaudio.md`: a synth compiles
 to machine code, a piece written in gestate is played by instruments
-written in gestate, and both can be edited while they sound.  **Stage 10 is
-the most recent**, and §"What is left after stage 10" is where to start.
+written in gestate, and both can be edited while they sound.  §"What is
+left after stage 10" is the record of what followed — the dynamic score,
+the CLAP export, and the G-machine's Rust port (`crust`).
+
+**The most recent work is ariadne**, and §"Ariadne — what is left of it"
+is where to start.  It is the redesign of the score's reactive surface
+(`spec/ariadne.md`): chance and listening as lawful zero-width leaves of
+the score monad rather than boxed constructs beside it, bound with the
+`do` sugar (`spec/monad.md`).  Its first three stages are built and the
+old surface is retired; two remain, and that section argues their order.
 
 What comes after it has a spec of its own now: `spec/substrate.md`, a
 canvas behind the editor in the same window, written in gestate, and
@@ -408,6 +416,111 @@ citation that no longer resolves is worse than a long file.
 - **A sixth synth, when there is a reason for one.**  Five have now failed
   to find a fragment boundary; the rule says the next one needs a purpose
   of its own rather than a hope of turning something up.
+
+---
+
+## Ariadne — what is left of it
+
+`spec/ariadne.md` is the design and `spec/dynscore-constraints.md` is the
+sheet it answers to.  **Stages one to three are built**: `draw` and `hear`
+are zero-width leaves of the score monad, the boxes are gone, `sown` and
+`probe` are retired by name, and the interpreter walks self-terminated cue
+streams (`CueEnd`) so a decision's width is a fact its own stream reports.
+Two stages remain, and the order below is the argued one.
+
+### Next: paths, and the thread re-keyed
+
+**Why first**: it is the cheaper of the two, it touches no engine, and one
+*defect* waits on it — `resumeAt` distributes into a `Hear`'s continuation,
+so a rebuild mid-piece **asks again** instead of replaying what the world
+already said.  The thread is the only honest answer to that, and the thread
+needs paths to key by.  Written into `music.ges` at the arm itself.
+
+- **A position is a path, and the labels are payloads.**  Henri's own
+  spelling, measured holding to the tick on the plain algebra:
+
+      piece = ('"opening" ++ '"verse" ++ '"closing") >>= scoreParts
+
+  Sections arise from `>>=` exactly as instruments do — no `Section`
+  constructor, no combinator, and therefore no constructor tax.  A path is
+  then **bind provenance**: the labels of the binds above a position, plus
+  the structural turns between them (`verse/3/2` — third turn of a
+  `cycle`, second bar).  The precedent is stage 5's: graph nodes carry
+  origin paths and live migration works *because* identity is structural.
+- **The open mechanic** is how a subtree learns which label bound it — an
+  annotation the walk threads, or a provenance the sower stamps.  Either is
+  invisible to the algebra, which is what makes it a free choice.
+- **The thread** becomes transcript schema 2: the seed, and readings keyed
+  by path rather than by beat.  Draws stay unlogged (derivable), positions
+  stay unlogged (structural).  Keying by path is what survives an edit
+  between takes, and what survives joint-dependent time — a tick after a
+  `hear` may be uncomputable before the answer, `closing` names its place
+  regardless.
+- **What it buys, in one list**: rewind (replay the thread to the target,
+  go live past it — past from the log, future from the world); resume by
+  descent, with the effect-free arithmetic fast path kept; and
+  **skip-what-is-identical** with a checkable certificate — a section's
+  identity is `(its text, its seed slice, its readings slice)`, which is
+  what makes rehearsal jumping sound rather than hopeful.
+- **Ticks stay** as a derived coordinate wherever they are computable —
+  every effect-free prefix — which is everything the DAW boundary needs.
+  `mark`/`bar` are subsumed: an anonymous section is a bar point.
+- **Acceptance**: `seek "verse/3"` stands exactly where playing from the
+  top stands, held against the thread; and the existing five oracles keep
+  passing, re-keyed.
+
+### Then: `shape`, and `tempoShape`
+
+    shape : Chan Float -> Env -> [: a :] -> [: a :]
+
+    verse = shape swellChan (env [(0.0, 0.2), (1.0, 0.9)]) versePattern
+
+An annotation over a subtree: across the subtree's own extent the named
+channel follows the envelope, its breakpoints in **fractions of the span**.
+A crescendo across a verse is a musical fact the score has never been able
+to state — `bpm`/`tempo` are global, dynamics are the DAW's automation, and
+`Envelope` lives in signal land against `elapsed`.
+
+- **The laws come from the law** (route a constant through it and the
+  algebra must not notice): fractions make it scale with `|*` and reverse
+  with `reverse` definitionally; riding the subtree rather than the events
+  makes it commute with `>>=`; and a flat envelope is a channel written
+  once, indistinguishable from today's knob.
+- **Delivery is solved machinery under a new name.**  The host clock
+  already drives `beat` sample-smooth from block-rate updates by sending a
+  *line* — `(base, slope, anchor)` — that the graph evaluates at `ticks`.
+  A score envelope is that pattern generalised: one line segment per
+  breakpoint interval, at block boundaries, through the channel machinery
+  that exists.  No new engine capability, no new wire.
+- **Why after paths**: fractions of a span need the span, and the
+  `CueEnd` revision is what made a span's true width — answers included —
+  a fact the stream reports.  Shape over an *answered* span is only
+  implementable on top of that, which is a happy accident of the jam
+  Henri found by playing.
+- **`tempoShape` is the same construct pointed at the clock**: a local
+  reparameterisation of a span's own time, so a ritardando is written
+  where it happens.  This is the expensive half — it opens A6 (the one
+  beats→samples conversion becomes a *composition* of per-span maps along
+  the path), which stays one owned spelling but is real new arithmetic in
+  `samples_of`, the CLAP cursor, and the descriptor.  Ship `shape` first
+  and alone if the tempo half wants more thought.
+
+### Open, and his to answer
+
+Carried from `spec/ariadne.md` so they are not lost between sessions:
+
+- **The fermata** — may a joint *wait*, or must every `hear` be answerable
+  at its instant by sampling?  The arpeggiator needs only sampling; a
+  conducted cue needs waiting; under the second reading "a hang is
+  absence" becomes "a hang is a fermata", and lateness turns from a defect
+  into a musical object.  The largest of these.
+- **Polytempo** — `tempoShape` under `||`: two branches walking their own
+  clocks between joins, or refused in v1?  The honest end of that road,
+  and the most expensive register renegotiation on the page.
+- **The port vocabulary** — `holds.<bank>` today; knobs as ports (the
+  `Chan -> Port` bridge) wants deciding here rather than bolted on later.
+- **Path spelling** and the autolabel format (`verse/3/2` is a sketch).
+- **Whether `long` survives** as a skip-width annotation once paths exist.
 
 ---
 
