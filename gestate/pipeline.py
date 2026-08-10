@@ -62,6 +62,7 @@ def _build_builtins() -> dict:
         "prim_sub_int": TFun(TCon("Int"), TFun(TCon("Int"), TCon("Int"))),
         "prim_mul_int": TFun(TCon("Int"), TFun(TCon("Int"), TCon("Int"))),
         "prim_div_int": TFun(TCon("Int"), TFun(TCon("Int"), TCon("Int"))),
+        "prim_xor_int": TFun(TCon("Int"), TFun(TCon("Int"), TCon("Int"))),
         "prim_eq_float": TFun(TCon("Float"), TFun(TCon("Float"), TCon("Bool"))),
         "prim_lt_float": TFun(TCon("Float"), TFun(TCon("Float"), TCon("Bool"))),
         "prim_add_float": TFun(TCon("Float"), TFun(TCon("Float"), TCon("Float"))),

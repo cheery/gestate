@@ -214,6 +214,21 @@ _TEMPO_ENTRY = ("scoreMain : Int -> (List Tempo, List (Int, Int, Voice))\n"
 _STREAM_ENTRY = ("streamMain : Int -> List (Int, Int, Voice)\n"
                  "streamMain sd = streamVoices (sowScore (seedRoot sd) score)\n")
 
+#: The bar points, `(tick, mark)`, lazily — what a transport lists to
+#: offer re-entry, and what a resume will name instead of unfolding
+#: everything left of it (`spec/dynamicscore.md`, the span-and-mark
+#: answer to the rebuild question).
+_MARKS_ENTRY = ("marksMain : Int -> List (Int, Int)\n"
+                "marksMain sd = streamMarks (sowScore (seedRoot sd) score)\n")
+
+#: The remainder from tick `t`, rebased to zero — the resume a rebuild
+#: plays.  Sown *first*, cut second: the surviving subtrees keep the
+#: seeds their positions always had, which is what makes a resumed take
+#: the same take.
+_RESUME_ENTRY = ("resumeMain : Int -> Int -> List (Int, Int, Voice)\n"
+                 "resumeMain sd t = streamVoices (resumeAt t "
+                 "(sowScore (seedRoot sd) score))\n")
+
 #: `seedRoot` — one line, chosen by whether the author declared a `seed`.
 #: Their number is fixed art, replayable from the text alone; the
 #: argument is the renderer's entropy, recorded by whoever supplied it.
@@ -318,7 +333,7 @@ def assemble_performance(synth: str, piece: str = "", rate: int = 22050,
 
     tail = _entry(rate) + "\n" + (
         _VOICE_ENTRY if _tempo_of(synth + "\n" + piece) == "bpm"
-        else _TEMPO_ENTRY) + _STREAM_ENTRY + (
+        else _TEMPO_ENTRY) + _STREAM_ENTRY + _MARKS_ENTRY + _RESUME_ENTRY + (
         _SEED_OWN if "seed" in _authored(synth + "\n" + piece)[1]
         else _SEED_GIVEN)
     # `beat` goes with the entry point rather than into `head`, because it
@@ -611,7 +626,7 @@ def assigned_banks(source: str) -> set:
 
 
 def stream_root(synth: str, piece: str = "", rate: int = 22050,
-                seed: int = 0) -> tuple:
+                seed: int = 0, tick: int = 0) -> tuple:
     """`(tempo, state, root, by_tag)` — the unforced stream and its readers.
 
     The stage-two entry.  Nothing of the layout is forced here: `tempo`
@@ -649,7 +664,13 @@ def stream_root(synth: str, piece: str = "", rate: int = 22050,
         info = state.cons.get(name)
         if info is not None:
             by_tag[info.tag] = bank.name
-    root = NAp(state.globals["streamMain"], NNum(seed))
+    if tick > 0:
+        # The remainder from `tick`, rebased to zero: `resumeAt` descends
+        # by declared widths, so what stood left of the tick is skipped,
+        # never forced — the rebuild answer (`spec/dynamicscore.md`).
+        root = NAp(NAp(state.globals["resumeMain"], NNum(seed)), NNum(tick))
+    else:
+        root = NAp(state.globals["streamMain"], NNum(seed))
     return tempo, state, root, by_tag
 
 

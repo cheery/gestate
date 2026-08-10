@@ -1631,15 +1631,30 @@ class Workbench:
                 # housekeeping push are its clock.
                 from .audiodynamic import LazyPerformer, ScoreStream
                 from .audioscore import stream_root
+                from .tempo import TempoEnvelope, constant
 
+                # A rebuild mid-piece resumes at the beat the transport
+                # stands on: `resumeAt` descends by declared widths, so
+                # rejoining minute forty costs what rejoining bar two
+                # does.  Fresh takes start at zero like always.
+                tick = 0
+                if self.transport is not None and self.transport.position > 0:
+                    probe_tempo = (self.bpm if not isinstance(self.bpm, str)
+                                   else 120)
+                    env = (probe_tempo
+                           if isinstance(probe_tempo, TempoEnvelope)
+                           else constant(probe_tempo))
+                    tick = int(env.beat_at(
+                        self.transport.position / self.rate)) * 96
                 tempo, state, root, by_tag = stream_root(
-                    text, "", self.rate, self.seed or 0)
+                    text, "", self.rate, self.seed or 0, tick)
                 self.bpm = tempo
                 self.schedule = None
                 with self._performer_lock:
                     self.performer = LazyPerformer(
                         ScoreStream(state, root, by_tag, patience=0.02),
-                        tempo, self.rate, allocators, block=self.block)
+                        tempo, self.rate, allocators, block=self.block,
+                        origin=tick)
             else:
                 from .audioscore import perform_voices, schedule_voices
 

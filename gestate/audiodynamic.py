@@ -386,7 +386,8 @@ class LazyPerformer:
     """
 
     def __init__(self, stream, tempo, rate: int, allocators: dict, *,
-                 block: int, horizon: float = 4.0, record=None):
+                 block: int, horizon: float = 4.0, record=None,
+                 origin: int = 0):
         from .tempo import TempoEnvelope, constant
         from .transcript import Transcript
 
@@ -400,6 +401,10 @@ class LazyPerformer:
         self.allocators = allocators
         #: How many beats ahead of the clock the stream is forced.
         self.horizon = horizon
+        #: Where the stream's tick zero stands on the absolute timeline —
+        #: a resumed remainder (`resumeAt`) is rebased, and this puts it
+        #: back.  Zero for a performance from the top.
+        self.origin = origin
         self.values: dict = {}
         #: The performance's log (`transcript.Transcript`) — the caller
         #: fills the header, the performer writes the events.
@@ -434,11 +439,12 @@ class LazyPerformer:
 
     def _admit(self, event, *, live: bool):
         onset, offset, bank, payload = event
-        start = samples_of(onset, self.tempo, self.rate)
-        end = max(samples_of(offset, self.tempo, self.rate), start)
+        start = samples_of(onset + self.origin, self.tempo, self.rate)
+        end = max(samples_of(offset + self.origin, self.tempo, self.rate),
+                  start)
         if live and self._boundary(start) <= self.position:
             self.transcript.append(
-                ("dropped", onset / TICKS_PER_BEAT, bank))
+                ("dropped", (onset + self.origin) / TICKS_PER_BEAT, bank))
             return
         key = self._events
         self._events += 1
@@ -450,7 +456,7 @@ class LazyPerformer:
 
     def _pull(self, t: int):
         horizon = int(self._tick_at(t) + self.horizon * TICKS_PER_BEAT) + 1
-        for event in self.stream.pull(horizon):
+        for event in self.stream.pull(max(horizon - self.origin, 0)):
             self.history.append(event)
             self._admit(event, live=True)
         if self.stream.stalled and not self._stalling:
@@ -461,7 +467,8 @@ class LazyPerformer:
         """The sample below which the pending heap is the whole truth."""
         if self.stream.done:
             return None
-        return samples_of(self.stream.frontier, self.tempo, self.rate)
+        return samples_of(self.stream.frontier + self.origin, self.tempo,
+                          self.rate)
 
     def _perform(self, key, bank, payload, at, is_off):
         allocator = self.allocators.get(bank)
@@ -540,8 +547,9 @@ class LazyPerformer:
         entries = []
         for event in self.history:
             onset, offset, bank, payload = event
-            start = samples_of(onset, self.tempo, self.rate)
-            end = max(samples_of(offset, self.tempo, self.rate), start)
+            start = samples_of(onset + self.origin, self.tempo, self.rate)
+            end = max(samples_of(offset + self.origin, self.tempo,
+                                 self.rate), start)
             key = self._events
             self._events += 1
             entries.append((start, 1, self._entries, key, bank, payload,

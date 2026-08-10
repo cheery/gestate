@@ -361,6 +361,20 @@ value, so the transports already exist; stage three adds no new one.
 * **Per gesture**: any control channel can carry a `Seed`, because a
   `Seed` is an `Int` — a knob, a probe, an automation lane.
 
+### `long` — the span, handed to the author
+
+*(Added after the first rebuild measurement: resuming a 5-minute
+performance cost 48 seconds of left-to-right forcing.)*  `long n s`
+declares that a branch is `n` beats wide whatever its content does —
+`Clip`, which every `sown` decision already wears, given a public
+name.  The declaration pays twice: structure a reader can trust today,
+and the box a resuming performer skips *without forcing what is
+inside* tomorrow.  Two tracks close the resume question: declared
+spans skipped by arithmetic (`resumeAt`, the in-language re-rooter,
+runs on the sown tree so every seed keeps its position), and the
+tree-walking performer for scores that declare nothing — which is the
+same machine `probe` needs, and they land together.
+
 ### The order of work
 
 The transcript format first — it is what keeps everything after it

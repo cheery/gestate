@@ -66,6 +66,7 @@ Score a := Note a                # `'x` — unassigned, carries the payload
          | Sown (Int -> Score a)     # `sown f` — one beat, seed decides
          | Sow Int (Score a)         # `sow n s` — re-root a subtree's seed
          | Clip Int (Score a)        # content clipped to a declared span
+         | Mark Int                  # `mark n` — a bar point, zero wide
 
 #: **Ticks to the beat.**  96 divides by 2,3,4,6,8,12,16,24,32,48, so every
 #: division anyone writes is exact — and the whole score is laid out in
@@ -154,6 +155,7 @@ instance Monad Score where
         Sown g -> Sown (sd => g sd >>= f)
         Sow n t -> Sow n (t >>= f)
         Clip w t -> Clip w (t >>= f)
+        Mark n -> Mark n
 
 #: **A MIDI program number, as an instrument.**  `melody >>= prog 73`
 #: commits every unassigned note in `melody` to program 73 — a flute.
@@ -268,6 +270,92 @@ sown f = Sown f
 sow : Int -> [: a :] -> [: a :]
 sow n s = Sow n s
 
+#: **A declared span: this branch is `n` beats long, whatever its
+#: content does.**  `long 16 verse` pins the verse to sixteen beats —
+#: content past the box is clipped, content short of it rests out the
+#: difference — which is the stage-three invariant handed to the
+#: author: content bends, time doesn't.
+#:
+#: The declaration pays twice.  Today it is structure a reader can
+#: trust; next it is what lets a performer *skip*: a branch whose width
+#: is written down can be passed over without forcing what is inside,
+#: so resuming a long-running piece descends by arithmetic instead of
+#: unfolding from the left.  (`sown` sections carry this box already —
+#: every decision is born clipped.)
+long : Int -> [: a :] -> [: a :]
+long n s = Clip (n * ticksPerBeat) s
+
+#: **A bar point** — zero beats wide, so `mark 1 ++ verse` moves
+#: nothing.  A mark is a place the music can be re-entered: the
+#: performer enumerates them (`streamMarks`, below with the walks)
+#: without touching a single note, and a resume names one instead of
+#: unfolding everything to its left.  Numbered rather than named,
+#: the way seeds are: what matters is that the same one means the
+#: same place twice.
+mark : Int -> [: a :]
+mark n = Mark n
+
+#: **An anonymous bar point** — `bar ++ verse ++ bar ++ chorus` marks
+#: the seams without naming them.  Anonymity works because a resume
+#: goes to the nearest point by *tick*, never by number; the
+#: enumeration numbers these left to right for a human to point at,
+#: which shifts when marks are added — a place that must keep its
+#: name across edits writes `mark n` instead.
+bar : [: a :]
+bar = Mark 0
+
+#: Every mark and where it falls, `(tick, mark)`, beat-ordered and
+#: lazy — `streamVoices`' little sibling, named by its own generated
+#: entry (`marksMain`), which is why it stands above the marker.
+streamMarks : [: Void :] -> List (Int, Int)
+streamMarks s = streamMarksAt 0 s
+
+#: **The remainder of a score from tick `t` on** — what a resume plays,
+#: with `t` rebased to zero.  The walk *descends by declared widths*:
+#: a `Clip` whose box ends before `t` is skipped without forcing one
+#: thing inside it, which is what turns resuming a long-running piece
+#: from an unfolding into an arithmetic.  Run on the **sown** tree
+#: (`resumeMain` composes it after `sowScore`), so every surviving
+#: subtree keeps exactly the seed its position always had.
+#:
+#: Two honest slops, both bounded by where resumes happen (beat and
+#: bar points): a cut inside `Scale k` floors to the nearest multiple
+#: of `k`, and a cut *into* a retrograde keeps it whole — a mirror has
+#: no remainder that is not also a different piece.
+resumeAt : Int -> [: a :] -> [: a :]
+resumeAt t s = case t < 1 of
+    True -> s
+    False -> case s of
+        Seq a b -> resumeSeq t (durOf a) a b
+        Par a b -> Par (resumeAt t a) (resumeAt t b)
+        # Dropping the `At` is the rebasing: events sat at `n + x`, the
+        # remainder wants `n + x - t`, and `resumeAt (t - n)` inside
+        # yields exactly that.  The parent `Seq`'s `Clip` (below) keeps
+        # the sibling arithmetic right where the duration shifted.
+        At n u -> resumeAt (t - n) u
+        Scale u k -> Scale (resumeAt (prim_div_int t k) u) k
+        Shrink u k -> Shrink (resumeAt (t * k) u) k
+        Retro u -> Retro u
+        Clip w u -> case w <= t of
+            True -> r
+            False -> Clip (w - t) (resumeAt t u)
+        Sow n u -> resumeAt t (sowScore n u)
+        # A leaf `t` lands inside is a note already begun: passed, and
+        # dropped — the parent's `Clip` rests out what remained of it.
+        Note x -> r
+        Play e -> r
+        Assigned v -> r
+        Rest -> r
+        Sown f -> r
+        Mark n -> r
+
+resumeSeq : Int -> Int -> [: a :] -> [: a :] -> [: a :]
+resumeSeq t da a b = case t < da of
+    # The cut branch is boxed to its shortened width, or every sibling
+    # after it would land early by exactly the material removed.
+    True -> Seq (Clip (da - t) (resumeAt t a)) b
+    False -> resumeAt (t - da) b
+
 #: One value, drawn whole from a seed — the class is what lets an
 #: author's payload be drawn the way it is built, one split per field.
 #: An instance receives a seed it owns outright; what it does not
@@ -323,6 +411,7 @@ sowScore sd s = case s of
     Play e -> Play e
     Assigned v -> Assigned v
     Rest -> Rest
+    Mark n -> Mark n
 
 internal
 # ════════════════════════════════════════════════════════════════════════
@@ -420,6 +509,7 @@ layOnto off s acc = case s of
     # honest sound of no decision.
     Sown f -> (ticksPerBeat, acc)
     Sow n t -> layOnto off (sowScore n t) acc
+    Mark n -> (0, acc)
     # A clipped box: lay at the origin like `Scale`, keep what starts
     # inside the window, and the box's own width is the duration —
     # content bends, time doesn't.
@@ -456,6 +546,7 @@ layVoicesOnto off s acc = case s of
     # reasons.
     Sown f -> (ticksPerBeat, acc)
     Sow n t -> layVoicesOnto off (sowScore n t) acc
+    Mark n -> (0, acc)
     Clip w t -> case layVoicesOnto 0 t [] of
         (dt, et) -> (w, placeFromV off (keepBelowV w et) ++ acc)
 
@@ -501,6 +592,85 @@ takeBelowV w es = case es of
         (a, b, v) -> case a < w of
             True -> e :: takeBelowV w rest
             False -> Nil
+
+# ── The marks walk — `streamVoicesAt`'s little sibling ───────────────────
+#
+# The same order discipline over `(tick, mark)` pairs, so a transport can
+# enumerate re-entry points lazily without forcing one note: nothing here
+# touches a payload, and a `Clip` bounds its branch the same way, which
+# is what keeps the walk cheap on an endless piece.
+
+mergeMarks : List (Int, Int) -> List (Int, Int) -> List (Int, Int)
+mergeMarks xs ys = case xs of
+    Nil -> ys
+    x :: xt -> case ys of
+        Nil -> xs
+        y :: yt -> case x of
+            (a, m) -> case y of
+                (c, k) -> case a <= c of
+                    True -> x :: mergeMarks xt ys
+                    False -> y :: mergeMarks xs yt
+
+placeMarks : Int -> List (Int, Int) -> List (Int, Int)
+placeMarks off ms = map (e => case e of
+    (a, m) -> (off + a, m)) ms
+
+minInt : Int -> Int -> Int
+minInt a b = case a < b of
+    True -> a
+    False -> b
+
+streamMarksAt : Int -> [: a :] -> List (Int, Int)
+streamMarksAt off s = case s of
+    Mark n -> (off, n) :: Nil
+    Note x -> Nil
+    Play e -> Nil
+    Assigned v -> Nil
+    Rest -> Nil
+    Sown f -> Nil
+    Seq a b -> streamMarksAt off a ++ streamMarksAt (off + durOf a) b
+    Par a b -> mergeMarks (streamMarksAt off a) (streamMarksAt off b)
+    At n t -> streamMarksAt (off + n) t
+    Scale t k -> placeMarks off (map (e => case e of
+        (a, m) -> (a * k, m)) (streamMarksAt 0 t))
+    Shrink t k -> placeMarks off (map (e => case e of
+        (a, m) -> (prim_div_int a k, m)) (streamMarksAt 0 t))
+    Retro t -> reverse (placeMarks off (map (e => case e of
+        (a, m) -> (durOf t - a, m)) (streamMarksAt 0 t)))
+    Sow n t -> streamMarksAt off (sowScore n t)
+    Clip w t -> placeMarks off (streamMarksTo w 0 t)
+
+# The bounded walk a `Clip` needs — and a *filter* cannot be: a markless
+# endless branch never yields the element the filter is waiting on, so
+# the bound has to ride the spine and cut it where the offset crosses
+# the box.  The duplication beside `streamMarksAt` is the `…V` pattern's
+# again: the same walk with one more fact in hand.
+streamMarksTo : Int -> Int -> [: a :] -> List (Int, Int)
+streamMarksTo limit off s = case limit <= off of
+    True -> Nil
+    False -> case s of
+        Mark n -> (off, n) :: Nil
+        Note x -> Nil
+        Play e -> Nil
+        Assigned v -> Nil
+        Rest -> Nil
+        Sown f -> Nil
+        Seq a b -> streamMarksTo limit off a
+                ++ streamMarksTo limit (off + durOf a) b
+        Par a b -> mergeMarks (streamMarksTo limit off a)
+                              (streamMarksTo limit off b)
+        At n t -> streamMarksTo limit (off + n) t
+        Scale t k -> placeMarks off (map (e => case e of
+            (a, m) -> (a * k, m))
+            (streamMarksTo (prim_div_int (limit - off) k) 0 t))
+        Shrink t k -> placeMarks off (map (e => case e of
+            (a, m) -> (prim_div_int a k, m))
+            (streamMarksTo ((limit - off) * k) 0 t))
+        Retro t -> reverse (placeMarks off (map (e => case e of
+            (a, m) -> (durOf t - a, m)) (streamMarksTo (durOf t) 0 t)))
+        Sow n t -> streamMarksTo limit off (sowScore n t)
+        Clip w t -> placeMarks off
+                        (streamMarksTo (minInt w (limit - off)) 0 t)
 
 # ── The unfolding half — `spec/dynamicscore.md`, stage two ───────────────
 #
@@ -550,6 +720,7 @@ durOf s = case s of
     Sown f -> ticksPerBeat
     Sow n t -> durOf t
     Clip w t -> w
+    Mark n -> 0
 
 #: Two beat-ordered streams as one.  **Left-biased** on a shared onset,
 #: which keeps an overlay's branches in writing order at the instant they
@@ -585,6 +756,7 @@ streamVoicesAt off s = case s of
     Retro t -> reverse (placeRetroV off (durOf t) (streamVoicesAt 0 t))
     Sown f -> Nil                       # un-sown: no decision, no events
     Sow n t -> streamVoicesAt off (sowScore n t)
+    Mark n -> Nil                       # a point is not a note
     # Lazily clipped: the stream is beat-ordered, so the box is a
     # `takeBelowV` — which is also what lets a `sown` continuation be
     # endless (`cycle` inside a one-beat decision) and still stream.
@@ -610,8 +782,14 @@ streamVoicesAt off s = case s of
 wrap64 : Int -> Int
 wrap64 x = prim_mod_int x 18446744073709551616
 
+#: The primitive, because the fold below cost 64 case-splits per call
+#: and a resume descends through two mix64s *per spine level* — 71
+#: seconds of rejoin were measured before this line.  `xorGo` stays as
+#: the primitive's written-out meaning: what `prim_xor_int` computes,
+#: what `crust`'s `XorInt` is held to, and what either would be checked
+#: against if they ever disagreed.
 xorBits : Int -> Int -> Int
-xorBits a b = xorGo a b 1 0
+xorBits a b = prim_xor_int a b
 
 xorGo : Int -> Int -> Int -> Int -> Int
 xorGo a b bit acc = case a + b of

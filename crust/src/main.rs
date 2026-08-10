@@ -57,6 +57,7 @@ enum Instr {
     MulInt,
     DivInt,
     ModInt,
+    XorInt,
     MatchFail,
 }
 
@@ -290,6 +291,13 @@ impl Machine {
                 if b == 0 { fail("ModInt: division by zero"); }
                 self.prim_result(Node::Num(fmod(a, b)));
             }
+            Instr::XorInt => {
+                // The fold's meaning, not two's-complement: negatives are
+                // refused, as the reference refuses them.
+                let (a, b) = self.two_nums("XorInt");
+                if a < 0 || b < 0 { fail("XorInt on a negative number"); }
+                self.prim_result(Node::Num(a ^ b));
+            }
             Instr::MatchFail => {
                 fail("pattern match failure: no alternative matched");
             }
@@ -397,6 +405,7 @@ fn parse(text: &str) -> (Vec<Vec<Instr>>, Vec<(String, usize, usize)>, String) {
                     "MulInt" => Instr::MulInt,
                     "DivInt" => Instr::DivInt,
                     "ModInt" => Instr::ModInt,
+                    "XorInt" => Instr::XorInt,
                     "PushInt" => Instr::PushInt(num("n")),
                     "Push" => Instr::Push(num("n") as usize),
                     "PushArg" => Instr::PushArg(num("n") as usize),

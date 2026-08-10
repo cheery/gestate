@@ -26,7 +26,7 @@ class CrustError(Exception):
 _SIMPLE = {gm.Unwind: "Unwind", gm.Mkap: "Mkap", gm.Eval: "Eval",
            gm.MatchFail: "MatchFail", gm.AddInt: "AddInt",
            gm.SubInt: "SubInt", gm.MulInt: "MulInt", gm.DivInt: "DivInt",
-           gm.ModInt: "ModInt"}
+           gm.ModInt: "ModInt", gm.XorInt: "XorInt"}
 _UNARY = {gm.PushInt: "PushInt", gm.Push: "Push", gm.PushArg: "PushArg",
           gm.Update: "Update", gm.Pop: "Pop", gm.Alloc: "Alloc",
           gm.Slide: "Slide", gm.Proj: "Proj"}

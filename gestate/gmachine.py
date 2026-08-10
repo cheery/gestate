@@ -270,6 +270,20 @@ class DivInt:
 
 
 @dataclass(frozen=True)
+class XorInt:
+    """Pop two non-negative NNum, push their bitwise exclusive-or.
+
+    Refused on a negative, deliberately: the meaning this implements is
+    `music.ges`'s `xorGo` — a fold over binary digits — which only a
+    non-negative number has.  Python's own `^` would answer for
+    negatives in two's-complement, which is a *different* function, and
+    a primitive that quietly widens its own definition is how two
+    machines come to disagree (`crust` mirrors this refusal).
+    """
+    __slots__ = ()
+
+
+@dataclass(frozen=True)
 class MatchFail:
     """Abort: a pattern match fell through every alternative.
 
@@ -719,6 +733,7 @@ def add_primitives(state: GmState, true_tag: int, false_tag: int,
     state.globals["prim_sub_int"] = NGlobal(2, _prim_binop_code(SubInt()))
     state.globals["prim_mul_int"] = NGlobal(2, _prim_binop_code(MulInt()))
     state.globals["prim_div_int"] = NGlobal(2, _prim_binop_code(DivInt()))
+    state.globals["prim_xor_int"] = NGlobal(2, _prim_binop_code(XorInt()))
     # Floats.  Only division and the two coercions are their own
     # instructions; the rest share the integer ones because Python's
     # operators are already correct on either kind of number.  The separate
@@ -1339,6 +1354,13 @@ def _divint(_: DivInt, s: GmState):
     _prim_result(s, NNum(a.n // b.n))
 
 
+def _xorint(_: XorInt, s: GmState):
+    a, b = _prim_operands(s, "XorInt")
+    if a.n < 0 or b.n < 0:
+        raise GmError("XorInt on a negative number")
+    _prim_result(s, NNum(a.n ^ b.n))
+
+
 def _modint(_: ModInt, s: GmState):
     a, b = _prim_operands(s, "ModInt")
     if b.n == 0:
@@ -1413,6 +1435,7 @@ _DISPATCH = {
     Push:       _push,
     PushArg:    _pusharg,
     Mkap:       _mkap,
+    XorInt:     _xorint,
     Update:     _update,
     Pop:        _pop,
     Alloc:      _alloc,

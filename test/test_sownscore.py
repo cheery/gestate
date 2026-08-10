@@ -238,3 +238,165 @@ def test_a_performance_equals_its_own_replay(tmp_path):
                              seed=kept.seed)
     assert changes_of(again) == first
     assert again.record.events == kept.events
+
+
+# ── Declared spans ──────────────────────────────────────────────────────────
+
+
+def test_long_pins_a_branch_to_its_declared_beats():
+    """`long n s` — the stage-three invariant, handed to the author.
+
+    Four beats of content in a two-beat box: the overflow is clipped
+    and the phrase after lands where the declaration said, not where
+    the content wandered.  Short content rests out the difference the
+    same way.
+    """
+    piece = """
+runOn : [: Custom :]
+runOn = '(Custom 1.0 60) ++ '(Custom 0.9 62) ++ '(Custom 0.8 64) ++ '(Custom 0.7 65)
+
+score : [: Void :]
+score = (long 2 runOn ++ long 4 '(Custom 0.6 72) ++ '(Custom 0.5 74)) >>= voices.lead
+
+bpm : Int
+bpm = 120
+"""
+    events = perform_voices(SYNTH, piece, RATE, seed=0)[1]
+    onsets = [e[:2] for e in events]
+    assert onsets == [(0, 96), (96, 192),      # two of four survive the box
+                      (192, 288),              # the boxed single note
+                      (576, 672)], events      # after 2 + 4 declared beats
+
+
+def test_marks_enumerate_without_touching_a_note():
+    """`mark n` — zero beats wide, invisible to the banks, listed lazily.
+
+    The marks stream is the transport's map of re-entry points; the
+    event stream must not know they exist.  Marks survive `>>=` (an
+    instrument reaches through them), recur per pass of a `cycle`, and
+    cost nothing they stand between.
+    """
+    from gestate.gmachine import NAp, NNum, is_tuple
+    from gestate.midi import _force, _int, _list
+
+    piece = """
+intro : [: Custom :]
+intro = '(Custom 1.0 60) ++ '(Custom 0.9 62)
+
+score : [: Void :]
+score = (bar ++ intro ++ mark 2 ++ long 2 (cycle intro)) >>= voices.lead
+
+bpm : Int
+bpm = 120
+"""
+    tempo, state, root, by_tag = stream_root(SYNTH, piece, RATE, seed=3)
+    marks_root = NAp(state.globals["marksMain"], NNum(3))
+    marks = []
+    for cell in _list(marks_root, state):
+        node = _force(cell, state)
+        assert is_tuple(node, 2)
+        marks.append((_int(node.args[0], state), _int(node.args[1], state)))
+    assert marks == [(0, 0), (192, 2)]   # anonymous, then named
+
+    # And the notes neither moved nor multiplied for it — checked on a
+    # finite variant, because the eager bake lays a clip's content whole
+    # before filtering, so `cycle` under `long` is (rightly) the dynamic
+    # path's to play.
+    finite = piece.replace("long 2 (cycle intro)", "long 2 intro")
+    events = perform_voices(SYNTH, finite, RATE, seed=3)[1]
+    assert [e[:2] for e in events] == [(0, 96), (96, 192),
+                                       (192, 288), (288, 384)]
+
+
+# ── Resume: the remainder from a tick ───────────────────────────────────────
+
+
+def _stream_events(piece, seed, tick, horizon=100_000, synth=SYNTH):
+    tempo, state, root, by_tag = stream_root(synth, piece, RATE, seed, tick)
+    stream = ScoreStream(state, root, by_tag)
+    out = []
+    while not stream.done:
+        got = stream.pull(horizon)
+        out += got
+        if not got and not stream.stalled:
+            break
+        assert not stream.stalled, "these fixtures must not stall"
+    return out
+
+
+def test_a_resume_is_the_suffix_of_the_same_take():
+    """`resumeAt` rebased against the full take, draw for draw.
+
+    Sown first, cut second: the third roll's velocity after the resume
+    is the velocity it had in the uninterrupted performance, because
+    the cut never moved its position in the tree — which is the whole
+    point of seeds that ride structure instead of a walked generator.
+    """
+    full = _stream_events(CHANCY, seed=5, tick=0)
+    resumed = _stream_events(CHANCY, seed=5, tick=192)
+    want = [(on - 192, off - 192, bank, payload)
+            for on, off, bank, payload in full if on >= 192]
+    assert resumed == want and want, (resumed, want)
+
+
+def test_a_resume_skips_instead_of_unfolding():
+    """Bar 50 of an endless cycle, reached by arithmetic.
+
+    The resumed stream's first events equal the full stream's at that
+    region, rebased — same positions, same draws — while the resume
+    side forced only its own neighbourhood, never the forty-nine bars
+    it skipped.
+    """
+    piece = """
+score : [: Void :]
+score = cycle (sown (s => '(Custom (random s) 60)) |* 2) >>= voices.lead
+
+bpm : Int
+bpm = 120
+"""
+    T = 100 * 96                                # beat 100: bar 50 of 2-beat bars
+    full = [e for e in _stream_events(piece, seed=9, tick=0,
+                                      horizon=T + 4 * 96) if e[0] >= T]
+    tempo, state, root, by_tag = stream_root(SYNTH, piece, RATE, 9, T)
+    stream = ScoreStream(state, root, by_tag)
+    resumed = []
+    for _ in range(200):            # a deep descent spans fuel rounds
+        resumed += stream.pull(4 * 96)
+        if resumed and not stream.stalled:
+            break
+    want = [(on - T, off - T, b, p) for on, off, b, p in full]
+    assert resumed == want[:len(resumed)] and resumed, (resumed, want)
+
+
+def test_a_rebuild_rejoins_in_seconds_not_minutes():
+    """The measurement that motivated all of this: resuming `moods.ges`
+    fifteen minutes in cost 157 seconds of left-to-right forcing; by
+    declared widths it must be near-instant.  Ten seconds is the loose
+    ceiling for a slow machine — the observed figure is well under one.
+    """
+    import time
+    from pathlib import Path
+
+    from gestate.audioalloc import Allocator
+    from gestate.audiovoices import banks_of, channels_of
+
+    source = (Path(__file__).resolve().parent.parent
+              / "moods.ges").read_text()
+    RATE48 = 48000
+    minutes = 15
+    target = minutes * 60 * RATE48
+    tick = (minutes * 60 * 96 * 96) // 60      # beats at 96 bpm, in ticks
+
+    t0 = time.monotonic()
+    tempo, state, root, by_tag = stream_root(source, "", RATE48, 7, tick)
+    allocators = {b.name: Allocator(channels_of(source, b))
+                  for b in banks_of(source)}
+    lazy = LazyPerformer(ScoreStream(state, root, by_tag), tempo, RATE48,
+                         allocators, block=64, origin=tick)
+    for k in range(0, 400):         # housekeeping ticks; fuel rounds included
+        lazy.advance(target + k * 64)
+        if lazy.history:
+            break
+    took = time.monotonic() - t0
+    assert lazy.history, "the resumed remainder should be sounding"
+    assert took < 10.0, f"rejoin took {took:.1f}s"
