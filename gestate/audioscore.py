@@ -485,6 +485,33 @@ def _read_flat(node, state):
     raise ScoreError(f"a payload field that is not a value: {type(node).__name__}")
 
 
+def timed_events(events: list, bpm, rate: int) -> list:
+    """A `layVoices` layout in the performance's one true order.
+
+    `[(sample, order, key, bank, payload, is_off)]`, sorted by `(sample,
+    releases-first)`: at one instant a release comes *first*, so a voice
+    freed at the same sample can be taken by the note arriving there —
+    which is what a legato line of one voice needs.
+
+    Shared by the bake below and by `audiodynamic.Performer`, deliberately:
+    when a note happens is decided *here and only here*, because two
+    spellings of that decision is exactly where a note goes missing
+    silently (`spec/dynamicscore.md`, the stage-one parity claim).
+
+    `key` is the event's own index: a `Score` may hold the same payload
+    twice and each is its own note, where MIDI's key doubles as an
+    identity because a keyboard cannot press one key twice.
+    """
+    timed: list = []
+    for i, (onset, offset, bank, payload) in enumerate(events):
+        start = samples_of(onset, bpm, rate)
+        end = samples_of(offset, bpm, rate)
+        timed.append((start, 1, i, bank, payload, False))
+        timed.append((max(end, start), 0, i, bank, payload, True))
+    timed.sort(key=lambda e: (e[0], e[1]))
+    return timed
+
+
 def schedule_voices(events: list, bpm: int, rate: int, allocators: dict, *,
                     block: int, schedule=None):
     """A `layVoices` layout as a `Schedule`, one allocator per bank.
@@ -498,24 +525,14 @@ def schedule_voices(events: list, bpm: int, rate: int, allocators: dict, *,
     from .audioschedule import Schedule
 
     schedule = Schedule() if schedule is None else schedule
-    timed: list = []
-    for i, (onset, offset, bank, payload) in enumerate(events):
-        start = samples_of(onset, bpm, rate)
-        end = samples_of(offset, bpm, rate)
-        timed.append((start, 1, i, bank, payload, False))
-        timed.append((max(end, start), 0, i, bank, payload, True))
-    timed.sort(key=lambda e: (e[0], e[1]))
-
-    for at, _order, key, bank, payload, is_off in timed:
+    for at, _order, key, bank, payload, is_off in timed_events(events, bpm,
+                                                               rate):
         allocator = allocators.get(bank)
         if allocator is None:
             raise ScoreError(
                 f"this piece assigns notes to `{bank}` and no allocator was "
                 f"given for it; there is "
                 + (", ".join(f"`{b}`" for b in sorted(allocators)) or "none"))
-        # Keyed by the event's own index: a `Score` may hold the same
-        # payload twice and each is its own note, where MIDI's key doubles
-        # as an identity because a keyboard cannot press one key twice.
         changes = (allocator.note_off(key, at) if is_off
                    else allocator.note_on(key, _flatten(payload), at))
         into_schedule(schedule, changes, at, block)

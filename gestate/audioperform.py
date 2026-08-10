@@ -77,6 +77,21 @@ def from_notes(notes):
     return source
 
 
+def from_performer(performer):
+    """A `Performer` as a source: advanced to `t`, then read like `Notes`.
+
+    The advance rides the control tick — the first channel asked at a
+    boundary moves the cursor, every channel then reads the values it
+    left — so a performer costs what a schedule lookup costs, plus the
+    allocator exactly when a note happens.
+    """
+    def source(chan, t):
+        performer.advance(t)
+        return performer.values.get(chan)
+
+    return source
+
+
 def bank_named(source: str, name: str):
     """One `voices` bank of a synth, by name, with a useful failure."""
     from .audiovoices import banks_of
@@ -151,6 +166,28 @@ def scored(synth: str, piece: str = "", *, rate: int, block: int,
                   for b in banks_of(both)}
     schedule = schedule_voices(events, bpm, rate, allocators, block=block)
     return schedule, duration_of_voices(events, bpm, rate), allocators
+
+
+def dynamic(synth: str, piece: str = "", *, rate: int, block: int,
+            policy="oldest"):
+    """`scored`'s twin with nothing baked: `(performer, samples, allocators)`.
+
+    The same events, banks and allocators — only *when each note is
+    decided* differs (`spec/dynamicscore.md`, stage one).  The bake stays
+    the default everywhere; this path exists beside it, held equal by
+    `test_dynamicscore.py`.
+    """
+    from .audioalloc import Allocator
+    from .audiodynamic import Performer
+    from .audioscore import duration_of_voices, perform_voices
+    from .audiovoices import banks_of, channels_of
+
+    both = synth + "\n" + piece
+    bpm, events = perform_voices(synth, piece, rate)
+    allocators = {b.name: Allocator(channels_of(both, b), policy=policy)
+                  for b in banks_of(both)}
+    performer = Performer(events, bpm, rate, allocators, block=block)
+    return performer, duration_of_voices(events, bpm, rate), allocators
 
 
 def graph_of(synth: str, piece: str = "", *, rate: int):
@@ -245,6 +282,8 @@ def main(argv=None) -> int:
     ap.add_argument("--seconds", type=float, default=None)
     ap.add_argument("--policy", default="oldest",
                     help="voice stealing: oldest, or none to drop the note")
+    ap.add_argument("--dynamic", action="store_true",
+                    help="perform the score as it plays instead of baking it")
     ap.add_argument("-o", "--output", default=None,
                     help="render to a .wav instead of playing")
     args = ap.parse_args(argv)
@@ -259,15 +298,26 @@ def main(argv=None) -> int:
 
         if has_score(synth + "\n" + piece):
             # The piece names its own banks, so nothing here chooses one.
-            schedule, samples, allocators = scored(
-                synth, piece, rate=args.rate, block=args.block,
-                policy=args.policy)
-            performance.sources.append(from_schedule(schedule))
-            if seconds is None:
-                seconds = samples / args.rate
-            print(f"score: {len(schedule.channels())} channels across "
-                  f"{', '.join('`' + b + '`' for b in sorted(allocators))}, "
-                  f"{samples / args.rate:.1f}s", file=sys.stderr)
+            if args.dynamic:
+                performer, samples, allocators = dynamic(
+                    synth, piece, rate=args.rate, block=args.block,
+                    policy=args.policy)
+                performance.sources.append(from_performer(performer))
+                if seconds is None:
+                    seconds = samples / args.rate
+                print(f"score (dynamic): performed across "
+                      f"{', '.join('`' + b + '`' for b in sorted(allocators))}"
+                      f", {samples / args.rate:.1f}s", file=sys.stderr)
+            else:
+                schedule, samples, allocators = scored(
+                    synth, piece, rate=args.rate, block=args.block,
+                    policy=args.policy)
+                performance.sources.append(from_schedule(schedule))
+                if seconds is None:
+                    seconds = samples / args.rate
+                print(f"score: {len(schedule.channels())} channels across "
+                      f"{', '.join('`' + b + '`' for b in sorted(allocators))}"
+                      f", {samples / args.rate:.1f}s", file=sys.stderr)
         elif args.piece is not None:
             schedule, samples = scored_midi(
                 synth, piece, args.score_bank,
