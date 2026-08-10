@@ -122,22 +122,33 @@ here.
 
 ## Position — paths, not ticks
 
-A position is a **path through the tree**: which side of every
-junction, which turn of every `cycle`, which bind of every chain —
-derived automatically from structure, with one construct for saying
-it in words:
+A position is a **path through the tree**, and — Henri's own
+spelling, which is now the design — the sections that name it are not
+a combinator but *payloads, bound in*:
 
-    section : String -> [: a :] -> [: a :]
+    piece = ('"opening" ++ '"verse" ++ '"closing") >>= scoreParts
 
-    piece = section "opening" intro
-         ++ section "verse"   (cycle versePattern)
-         ++ section "closing" coda
+**This runs today and equals the piece written out, to the tick**
+(measured 2026-08-10, string payloads through the plain algebra) —
+which is the whole point: sections arise from `>>=` exactly as
+instruments do, so the labeling construct is the algebra itself and
+the constructor tax on `Section` is zero.  A first draft of this file
+proposed `section : String -> [: a :] -> [: a :]`; that was
+constructor-thinking surviving into the redesign, and the label-bind
+spelling replaces it (a wrapper can return as sugar if wanted — it
+would desugar to `'"name" >>= (_ => body)`-shaped provenance, not to
+a node).
 
-`opening`, `verse.3/bar.2` — the maze-walk string.  The precedent is
-stage 5's proudest fact: graph nodes carry origin paths and live
-migration works *because* identity is structural; ariadne applies the
-same discipline to score positions.  Three properties paths have that
-ticks do not:
+The path, then, is **bind provenance**: a position is named by the
+labels of the binds above it plus the structural turns between them —
+`verse/3/2` for the second bar of the third cycle turn bound from
+`"verse"`.  The precedent is stage 5's proudest fact: graph nodes
+carry origin paths and live migration works *because* identity is
+structural; ariadne applies the same discipline to score positions.
+**Open (mechanics):** how the interpreter records which label a
+subtree was bound from — an annotation the walk threads, or a
+provenance the sower stamps; either is invisible to the algebra.
+Three properties paths have that ticks do not:
 
 1. they survive edits (a tick shifts when any earlier duration
    changes; a path names a place);
@@ -151,6 +162,62 @@ Ticks remain as a *derived* coordinate wherever they are computable
 (all effect-free prefixes), which is everything the DAW boundary
 needs.  `mark`/`bar` are subsumed: an anonymous section is a bar
 point.
+
+## Envelopes in the score, connected to channels
+
+The second half of the proposal (Henri, same evening): tempo
+envelopes, and envelopes in general, have always lived *outside* the
+score — `bpm`/`tempo` as global declarations, dynamics as knob
+automation a DAW owns, `Envelope` as signal-land machinery read
+against `elapsed`.  A crescendo across a verse is a musical fact and
+the score cannot say it.  `spec/dynamicscore.md` anticipated the
+shape in one line — *"the tree holds the time, the envelopes hold its
+shape"* — and ariadne gives it the algebra-lawful form:
+
+    shape : Chan Float -> Env -> [: a :] -> [: a :]
+
+    verse = shape swellChan (env [(0.0, 0.2), (1.0, 0.9)]) versePattern
+
+An annotation over a subtree: across the subtree's own extent, the
+named channel follows the envelope, its breakpoints given in
+**fractions of the span** so the shape is the subtree's the way a
+slur is a phrase's.  The laws come from the law:
+
+- **it scales**: `shape c e s |* 2` stretches the envelope with the
+  span — fractions make this definitional;
+- **it reverses**: `reverse (shape c e s)` plays the shape backwards
+  over the reversed content;
+- **it commutes with bind**: `shape c e s >>= f` shapes the
+  substituted content — the annotation rides the subtree, touching no
+  event, so the homomorphism is undisturbed;
+- **route a constant through it**: an envelope that is one flat value
+  is a channel set once — indistinguishable from today's knob write.
+
+**Delivery is a solved problem wearing a new name.**  The host clock
+already drives `beat` sample-smooth from block-rate updates by
+sending a *line* — `(base, slope, anchor)` — that the graph evaluates
+at `ticks`.  A score envelope is that pattern generalized: the
+performer delivers one line segment per breakpoint interval, at block
+boundaries, through the channel machinery that exists; the synth
+reads the channel as it reads any knob, sample-smooth for free.  No
+new engine capability, no new wire — the beat channels were the
+prototype all along.
+
+**Tempo is the same construct pointed at the clock**:
+
+    rit : [: a :] -> [: a :]
+    rit s = tempoShape (env [(0.0, 1.0), (1.0, 0.5)]) s
+
+a local reparameterization of the span's own time — a ritardando
+written where it happens, not in a global declaration.  This opens
+the A6 door deliberately: the one beats→samples conversion becomes a
+*composition* of per-span maps along the path, which stays a single
+owned spelling (the composition is associative and written in the
+tree) but is real new arithmetic in `samples_of`, the cursor, and the
+descriptor.  **Open (Henri's):** whether `tempoShape` under `||`
+means polytempo — two branches walking their own clocks between
+joins — or is refused there in v1; polytempo is the honest end of
+this road and the most expensive register renegotiation on the page.
 
 ## The thread
 
@@ -215,6 +282,14 @@ by name, the retirement rule.
    seconds by path (exists as ticks; re-keyed).
 6. **The maze walk** — `seek "verse.3"` stands exactly where playing
    from the top stands, held against the thread.
+7. **The label-bind sentence** —
+   `('"opening" ++ '"verse" ++ '"closing") >>= scoreParts` equals the
+   piece written out, to the tick.  Already passing on the plain
+   algebra (measured 2026-08-10); ariadne must keep it passing with
+   joints and shapes inside the parts.
+8. **The shape laws** — a `shape` scales with `|*`, reverses with
+   `reverse`, commutes with `>>=`, and a constant envelope is a knob
+   write.
 
 ## Open, and deliberately so
 
