@@ -1,0 +1,121 @@
+# moods.ges — a live score with two moods on two knobs.
+#
+#   python -m gestate.audioperform moods.ges --seconds 30 -o take.wav
+#   python -m gestate.audioperform moods.ges --seconds 30 -o take.wav --seed 7
+#
+# The score is endless (`cycle`) and chancy (`sown`), so it routes to the
+# dynamic performer by itself; a take with no `--seed` draws one and says
+# so.  The *notes* are scale degrees, not pitches — which is what lets
+# `mood` re-voice them while they sound: turn it and the same degrees
+# lean minor or major, morphing through everything between.  `push` is
+# how hard the band leans in: drive, bite and level at once.
+
+# ── The two knobs ────────────────────────────────────────────────────────
+
+moodChan : Chan Int
+moodChan = chan
+
+#: 0 sad .. 100 happy — the third, the sixth and the seventh move.
+mood : Sig Int
+mood = 35 ::: mkSig (wait moodChan)
+
+pushChan : Chan Int
+pushChan = chan
+
+#: 0 leisurely .. 100 hard.
+push : Sig Int
+push = 25 ::: mkSig (wait pushChan)
+
+#: A knob comes from outside, so nothing constrains it — clamp at the
+#: boundary or an offline sweep renders `inf` (`twoknobs.ges` says why).
+knobAt : Int -> Float
+knobAt v = case v < 0 of
+    True -> 0.0
+    False -> case v > 100 of
+        True -> 1.0
+        False -> toFloat v / 100.0
+
+# ── Degrees, leaned by the mood ──────────────────────────────────────────
+
+Tone := Tone Float Int
+
+minorOff : Int -> Int
+minorOff d = case d of
+    0 -> 0
+    1 -> 2
+    2 -> 3
+    3 -> 5
+    4 -> 7
+    5 -> 8
+    _ -> 10
+
+majorOff : Int -> Int
+majorOff d = case d of
+    0 -> 0
+    1 -> 2
+    2 -> 4
+    3 -> 5
+    4 -> 7
+    5 -> 9
+    _ -> 11
+
+blend : Float -> Float -> Float -> Float
+blend a b x = a + (b - a) * x
+
+#: A degree's frequency, leaned: sad reads the minor offset, happy the
+#: major, anywhere on the knob reads between them — so a held chord
+#: *bends* from one mode to the other rather than snapping.
+hzOf : Tone -> Int -> Float
+hzOf t m = case t of
+    Tone v d -> blend (keyHz (45 + minorOff d)) (keyHz (45 + majorOff d))
+                      (knobAt m)
+
+velOf : Tone -> Float
+velOf t = case t of
+    Tone v d -> v
+
+# ── The voices ───────────────────────────────────────────────────────────
+
+voices lead 4 toneVoice : Sig Float
+
+voices bass 2 toneVoice : Sig Float
+
+toneVoice : Sig Gate -> Sig Tone -> Sig Float
+toneVoice g s = triangle (zip hzOf s mood) * (!velOf s) * perc 4 g
+
+# ── Leaning in ───────────────────────────────────────────────────────────
+
+#: Leisurely is quiet and round; hard is driven and clipped.  One knob,
+#: because "how hard" is one decision however many parameters it moves.
+leanAt : Float -> Int -> Float
+leanAt x p = blend (0.35 * x) (0.8 * clip (x * 3.0)) (knobAt p)
+
+sound : Sig Float
+sound = zip leanAt (lead + bass) push
+
+# ── The score: endless, chancy, replayable ───────────────────────────────
+
+phraseOf : Int -> [: Tone :]
+phraseOf n = case n of
+    0 -> '(Tone 0.9 0) ++ '(Tone 0.7 1) ++ ('(Tone 0.8 2) |* 2)
+    1 -> ('(Tone 0.8 4) |* 2) ++ '(Tone 0.7 3) ++ '(Tone 0.9 2)
+    2 -> '(Tone 0.9 5) ++ '(Tone 0.6 4) ++ '(Tone 0.7 3) ++ '(Tone 0.8 1)
+    _ -> ('(Tone 0.7 2) |* 2)
+      ++ (chance 0.6 (('(Tone 0.9 6) ++ '(Tone 0.8 4)) |/ 2) |* 2)
+
+#: One bar: a four-beat decision, phrased when its downbeat arrives.
+#: A decision is one beat wide — content bends, time doesn't — so the
+#: four-beat phrase bends into the beat (`|/ 4`) and the beat is
+#: stretched back to the bar (`|* 4`); the `chance` above bends its
+#: pair the same way, or only the first note would survive its box.
+bar : [: Tone :]
+bar = (sown (s => phraseOf (below 4 s) |/ 4) |* 4)
+
+ground : [: Tone :]
+ground = ('(Tone 0.9 0) |* 2) ++ ('(Tone 0.8 3) |* 2)
+
+score : [: Void :]
+score = (cycle bar >>= voices.lead) || (cycle ground >>= voices.bass)
+
+bpm : Int
+bpm = 96

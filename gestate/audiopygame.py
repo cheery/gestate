@@ -2392,7 +2392,7 @@ _OCTAVES = 3
 
 def run(path, style: str = "", size=(960, 640), fps: int = 60,
         rate: int = 0, block: int = 0, midi: bool = False,
-        midi_port=None) -> int:
+        midi_port=None, seed: int | None = None) -> int:
     """Open the window and play the file until it is closed."""
     try:
         import pygame
@@ -2406,7 +2406,7 @@ def run(path, style: str = "", size=(960, 640), fps: int = 60,
 
     bench = Workbench(Path(path), rate=rate or DEFAULT_RATE,
                       block=block or DEFAULT_BLOCK,
-                      midi=midi, midi_port=midi_port)
+                      midi=midi, midi_port=midi_port, seed=seed)
     pane = Pane.open(bench, style=style)
 
     pygame.init()
@@ -3406,6 +3406,9 @@ def main(argv=None) -> int:
                     help="list the MIDI inputs on this machine and stop")
     ap.add_argument("--rate", type=int, default=0)
     ap.add_argument("--block", type=int, default=0)
+    ap.add_argument("--seed", type=int, default=None,
+                    help="the session's seed; omitted, a chancy score "
+                         "draws one and says so")
     args = ap.parse_args(argv)
 
     if args.midi_ls:
@@ -3430,7 +3433,8 @@ def main(argv=None) -> int:
         raise SystemExit(str(exc))
     return run(args.file, style=PLAIN if args.plain else "",
                rate=args.rate, block=args.block,
-               midi=args.midi is not None, midi_port=port)
+               midi=args.midi is not None, midi_port=port,
+               seed=args.seed)
 
 
 if __name__ == "__main__":

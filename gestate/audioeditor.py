@@ -559,7 +559,8 @@ class Workbench:
     def __init__(self, path, rate: int = DEFAULT_RATE,
                  block: int = DEFAULT_BLOCK, command: list | None = None,
                  midi: bool = False, midi_port: str | None = None,
-                 latency_ms: int = DEFAULT_LATENCY_MS):
+                 latency_ms: int = DEFAULT_LATENCY_MS,
+                 seed: int | None = None):
         self.path = Path(path)
         #: **A file that is not there yet, held in memory until it is
         #: saved.**  Naming a file that does not exist is how an editor is
@@ -609,10 +610,10 @@ class Workbench:
         #: Banks the score assigns to, by spelling — the dynamic path
         #: cannot enumerate its channels up front, so the text answers.
         self._score_banks: set = set()
-        #: The session's take, drawn once and said once — stable across
-        #: rebuilds, so Ctrl-S changes the music you edited, not the
-        #: music chance dealt you.
-        self.seed = None
+        #: The session's take: `--seed` when given, else drawn once and
+        #: said once — stable across rebuilds either way, so Ctrl-S
+        #: changes the music you edited, not the music chance dealt you.
+        self.seed = seed
         self.notes = None
         #: The program's canvas, when it has one — `spec/substrate.md`.
         #: Rebuilt with the sound, because a substrate is the same file.
