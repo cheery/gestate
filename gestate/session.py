@@ -254,6 +254,9 @@ class Session:
     said: list = field(default_factory=list)
     #: What a played note does: `"off"`, `"on"` or `"step"`.
     performing: str = "on"
+    #: Which argument the window is asking about — `(verb, index,
+    #: query)` — or `None` when it is not asking.
+    asking: object = None
     #: What `filter` last produced, or `None` when nothing is being
     #: filtered.  **`None` and `[]` are different**: no filter shows
     #: everything, a filter that matched nothing shows nothing.
@@ -263,6 +266,68 @@ class Session:
         """The palette.  Derived from `command.ges` every time it is
         asked for, which is cheap and cannot go stale."""
         return vocabulary()
+
+    def names(self) -> list:
+        """Every name a `Named` argument could be, and what it is.
+
+        Knobs and banks, which are the names a person means when a
+        command asks for one — and they are already facts the workbench
+        keeps, so this is a reading rather than a second list.
+        """
+        out, seen = [], set()
+        kinds = getattr(self.bench, "knob_types", {}) or {}
+        for site in getattr(self.bench, "sites", []) or []:
+            name = getattr(site, "name", None)
+            if name is None or name in seen:
+                continue
+            seen.add(name)
+            out.append((name, f"Chan {kinds.get(name, 'Int')}"))
+        for bank in getattr(self.bench, "banks", []) or []:
+            name = getattr(bank, "name", str(bank))
+            if name in seen:
+                continue
+            seen.add(name)
+            out.append((name, f"{getattr(bank, 'voices', 0)} voices"))
+        return out
+
+    def naming(self, query: str) -> list:
+        """The names a typed query means, best first.
+
+        **The same rule as `matching`, over names instead of commands**,
+        and here for the same reason: which of several things a person
+        meant is a decision, and a decision belongs in one place.
+        """
+        query = query.strip().lower()
+        found = []
+        for i, (name, note) in enumerate(self.names()):
+            low = name.lower()
+            if not query:
+                rank = 3
+            elif low == query:
+                rank = 0
+            elif low.startswith(query):
+                rank = 1
+            elif query in low:
+                rank = 2
+            else:
+                continue
+            found.append((rank, i, (name, note)))
+        return [pair for _r, _i, pair in sorted(found, key=lambda f: f[:2])]
+
+    def choices(self) -> list:
+        """What the argument being asked for could be, or nothing."""
+        if self.asking is None:
+            return []
+        verb, at, query = self.asking
+        found = self.find(verb)
+        if found is None or at >= found.arity:
+            return []
+        if found.args[at] != "Named":
+            # **Only names can be offered.**  A number or a piece of
+            # text is typed, not chosen; offering a list of numbers
+            # would be a menu of guesses.
+            return []
+        return self.naming(query)
 
     def palette_list(self) -> list:
         """What the command list should be showing right now."""
@@ -327,6 +392,10 @@ class Session:
         handler = getattr(self, f"do_{name}", None)
         if handler is None:
             return self._say(f"`{name}` is declared and not implemented")
+        try:
+            args = _typed(verb, args)
+        except ValueError as e:
+            return self._say(str(e))
         try:
             return self._say(handler(*args))
         except Exception as e:                            # noqa: BLE001
@@ -562,6 +631,35 @@ class Session:
 BEATS_PER_BAR = 4
 
 
+def _typed(verb: "Verb", args: tuple) -> tuple:
+    """The arguments a verb declared, from what actually arrived.
+
+    **Everything from a palette is text**, because a person typed it and
+    the wire carries names and literals; the signature in `command.ges`
+    is the only thing that knows `seek` wants a number.  Reading the
+    declared types here is what keeps every handler from parsing its own
+    arguments — and what makes a mistyped number a sentence rather than
+    a traceback.
+
+    A type this does not recognise is left alone. `set : Named a -> a ->
+    Command` has a *variable* second argument, whose real type is
+    whatever the named channel carries — `do_set` resolves that from
+    `knob_types`, which is the only place it is known.
+    """
+    out = []
+    for kind, given in zip(verb.args, args):
+        if not isinstance(given, str) or kind not in ("Int", "Float"):
+            out.append(given)
+            continue
+        try:
+            out.append(int(given) if kind == "Int" else float(given))
+        except ValueError:
+            raise ValueError(
+                f"{verb.name}: `{given}` is not "
+                f"{'a whole number' if kind == 'Int' else 'a number'}")
+    return tuple(out)
+
+
 def _beats_of(bar: int) -> float:
     """A bar number as the beat it starts on."""
     return float(max(0, bar - 1) * BEATS_PER_BAR)
@@ -616,7 +714,7 @@ def furniture(session: "Session", bench=None) -> str:
 
     out.append(f"play\t{1 if getattr(b, 'playing', False) else 0}"
                f"\t{_beats(b)}")
-    span = getattr(b, "loop_span", None)
+    span = _looping(b)
     if span:
         out.append(f"loop\t{span[0]}\t{span[1]}")
 
@@ -625,8 +723,16 @@ def furniture(session: "Session", bench=None) -> str:
     # the model's, so the window is handed an answer rather than a
     # question.
     for verb in session.palette_list():
+        # **The argument types travel with the command**, because they
+        # are what let the view *ask*: a list that only said `loop <int>
+        # <int>` would leave the window parsing a usage string to learn
+        # how many boxes to open, and a usage string is prose.
         out.append(f"command\t{verb.name}\t{verb}\t{verb.key}"
-                   f"\t{verb.summary}")
+                   f"\t{verb.summary}\t{','.join(verb.args)}")
+
+    # What the argument being asked for could be, when one is.
+    for text, note in session.choices():
+        out.append(f"choice\t{text}\t{note}")
     return "\n".join(out)
 
 
@@ -649,6 +755,26 @@ def _listening(bench, name: str) -> bool:
         return bool(bench.listening(name))
     except Exception:                                    # noqa: BLE001
         return False
+
+
+def _looping(bench) -> tuple | None:
+    """The loop, in beats, or nothing.
+
+    **Read from the transport, in beats.**  The transport keeps it in
+    *samples*, because that is what the audio thread compares against;
+    the description says beats, because beats are what `loop` was given
+    and what the readout shows. One conversion, here, where the rate is
+    already known.
+    """
+    transport = getattr(bench, "transport", None)
+    span = getattr(transport, "loop", None) if transport is not None else None
+    if not span:
+        return None
+    try:
+        return (round(bench.samples_to_beats(span[0]), 1),
+                round(bench.samples_to_beats(span[1]), 1))
+    except Exception:                                    # noqa: BLE001
+        return None
 
 
 def _beats(bench) -> float:
@@ -690,6 +816,20 @@ def act(session: "Session", line: str) -> str:
             return session.run("set", parts[1], float(parts[2]))
         except ValueError:
             return f"turn: `{parts[2]}` is not a number"
+    if verb == "wants" and len(parts) >= 4:
+        # The window asking what an argument could be.  It knows which
+        # command and which argument; what each one *could* be is the
+        # model's to say, like every other ranking here.
+        try:
+            at = int(parts[2])
+        except ValueError:
+            return f"wants: `{parts[2]}` is not an argument number"
+        session.asking = (parts[1], at, parts[3])
+        found = session.choices()
+        return f"{len(found)} name(s)" if found else ""
+    if verb == "asked":
+        session.asking = None
+        return ""
     if verb == "edited":
         return ""
     if verb == "state" and len(parts) >= 5:

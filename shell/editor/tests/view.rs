@@ -500,3 +500,60 @@ fn no_description_is_no_chrome() {
     assert_eq!(frame(&d, &v, &LARGE),
                frame_with(&d, &v, &LARGE, &Furniture::default()));
 }
+
+// ── The transport, at the foot ───────────────────────────────────────────
+//
+// The description carried `play` and `loop` from the day the wire was
+// built and nothing drew them, which made `seek` and `play` look like
+// commands that did nothing: they answered "at bar 8" and the window
+// showed exactly what it had before.  A command whose only evidence is
+// its own sentence cannot be told from one that failed.
+
+fn transport(playing: bool, beat: f64) -> gestate_editor::furniture::Furniture {
+    use gestate_editor::furniture::Furniture;
+    Furniture { playing, beat, has_transport: true, ..Furniture::default() }
+}
+
+fn foot(f: &gestate_editor::furniture::Furniture) -> Vec<String> {
+    let doc = Document::new("one\n");
+    let view = view(600, 200);
+    let frame = gestate_editor::view::frame_with(&doc, &view, &LARGE, f);
+    let sy = view.h - view.status_h(&LARGE);
+    frame.items.iter().filter_map(|i| match i {
+        Item::Run { y, s, .. } if *y >= sy => Some(s.clone()),
+        _ => None,
+    }).collect()
+}
+
+#[test]
+fn the_transport_is_shown_as_a_bar_and_a_beat() {
+    // Bar and beat, counting from one, because that is what `seek` and
+    // `loop` are *given* — a readout in other units than the command
+    // takes is a second thing to learn.
+    let said = foot(&transport(true, 0.0));
+    assert!(said.iter().any(|s| s.contains("1.1")), "{said:?}");
+    let said = foot(&transport(true, 8.0));
+    assert!(said.iter().any(|s| s.contains("3.1")), "bar 3 beat 1: {said:?}");
+    let said = foot(&transport(true, 9.0));
+    assert!(said.iter().any(|s| s.contains("3.2")), "bar 3 beat 2: {said:?}");
+}
+
+/// `loop 2 6` must read back as `2-6`.  The end is exclusive, so the
+/// bars actually *played* are two to five — but a readout that
+/// disagreed with the command that made it would be a puzzle to solve
+/// every time rather than a thing to read.
+#[test]
+fn a_loop_is_shown_in_the_bars_it_was_given() {
+    let mut f = transport(false, 0.0);
+    f.looping = Some((4.0, 20.0));           // what `loop 2 6` sets
+    let said = foot(&f);
+    assert!(said.iter().any(|s| s.contains("2-6")), "{said:?}");
+}
+
+/// **A model that has said nothing about time has no position.**  A
+/// readout invented for it would be a fact the window made up.
+#[test]
+fn nothing_is_shown_when_there_is_no_transport() {
+    let said = foot(&gestate_editor::furniture::Furniture::default());
+    assert!(said.iter().all(|s| !s.contains("1.1")), "{said:?}");
+}

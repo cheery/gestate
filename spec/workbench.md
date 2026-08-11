@@ -321,7 +321,8 @@ it:
     knobs    : [(name, row, value, min, max, kind)]
     banks    : [(name, row, voices, listening)]
     transport: playing, position in beats, loop span
-    commands : [(name, summary, key)]
+    commands : [(name, summary, key, argument types)]
+    choices  : [(text, note)] — what the argument being asked for could be
 
 This is `shell/panel`'s pattern exactly — a descriptor in, a display
 list out, one painter — and it is the reason the plugin panel and the
@@ -332,10 +333,43 @@ the move, because the row is a fact the model already has from
 
 Gestures come back the same way, flat and few:
 
-    command(name)              a command was chosen
+    command(name, args)        a command was chosen, with what it takes
+    filter(query)              the list is showing this much of a query
+    wants(name, nth, query)    what could the nth argument of this be?
+    asked()                    done asking
     turn(name, value)          a knob was dragged
     note(midi, on)             a key was played
-    edited()                   the text changed  (already built)
+    edited()                   the text changed
+    state(zoom, rungs, undos, redos)   where the window's own state is
+
+**The argument types are what let the view ask.**  Eleven of the
+twenty-nine commands take something, and picking one of those is not
+running it — the list becomes a question about its first argument, and
+the prompt is the usage line with what has been given standing where its
+placeholder was: `loop 4 <int>`.  A `Named` argument gets the names,
+ranked, from the model; an `Int` or a `Text` is typed, because offering
+a list of numbers would be a menu of guesses.  Backspace on an empty
+argument steps back one, and then out of the question into the list you
+came from — picking the wrong command is the ordinary mistake here.
+
+Which names a query means is ranked *in the model*, by the same rule
+that ranks commands, and for the same reason: it is a decision, and a
+decision belongs in one place.
+
+**`state` is a mirror, not a request.**  Undo and the zoom live on the
+window's thread, and `undo` has to answer *"undone"* or *"nothing to
+undo"* the instant it runs; it cannot wait a frame to find out which.
+So the window volunteers its counts whenever they move and the model
+answers from its copy.  The alternative — a synchronous call into the
+rope from another thread — is the one thing this boundary exists to
+prevent.
+
+Orders go the other way, for the same reason:
+
+    zoom(steps)   undo()   redo()   goto(line)   insert(text)
+
+A command that is about the window leaves one of these and the window
+obeys it on its next frame.
 
 **Nothing in that list is a pointer into the other side's memory**, and
 nothing needs to be freed by the wrong language.  That is not

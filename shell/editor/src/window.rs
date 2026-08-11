@@ -456,6 +456,15 @@ impl EditorWindow {
             self.host.edited(&doc);
             self.host.gesture(Gesture::Edited.line());
         }
+        if did.drew {
+            // **An order moves the caret too.**  `after` reports this
+            // for keys and clicks; without the same line here the
+            // model's idea of where the caret is survives a `goto`
+            // unchanged, and every command that reads it — anything
+            // about "here" — answers about where you used to be.
+            let doc = self.doc.borrow();
+            self.host.moved(doc.pos());
+        }
         self.tell();
     }
 
@@ -557,7 +566,11 @@ impl WindowHandler for EditorWindow {
             if at != self.furnished.get() {
                 self.furnished.set(at);
                 let f = Furniture::read(&text);
-                self.palette.borrow_mut().offer(f.commands.clone());
+                {
+                    let mut pal = self.palette.borrow_mut();
+                    pal.offer(f.commands.clone());
+                    pal.offer_choices(f.choices.clone());
+                }
                 if let Some(sent) = self.asked.take() {
                     let us = Instant::now().duration_since(sent)
                         .as_micros() as u64;
@@ -786,6 +799,15 @@ impl WindowHandler for EditorWindow {
                         return EventStatus::Captured;
                     }
                 }
+                // **What the platform actually handed us**, when asked.
+                // A layout complaint is unanswerable without this: the
+                // character, the physical key it came from and the
+                // modifiers are three different things and only one of
+                // them is wrong at a time.
+                if std::env::var_os("GESTATE_EDITOR_KEYS").is_some() {
+                    eprintln!("[keys] key={:?} code={:?} mods={:?}",
+                              k.key, k.code, k.modifiers);
+                }
                 let Some(key) = translate(&k) else {
                     return EventStatus::Ignored;
                 };
@@ -822,13 +844,22 @@ impl WindowHandler for EditorWindow {
                         // the answer to a question nobody asked.  An
                         // empty query already means "no filter", so this
                         // needs no new verb.
-                        Asks::Run(name) => {
-                            self.host.gesture(Gesture::Command(name).line());
+                        Asks::Run(name, args) => {
+                            self.host.gesture(
+                                Gesture::Command(name, args).line());
+                            self.host.gesture(Gesture::Asked.line());
                             self.host.gesture(
                                 Gesture::Filter(String::new()).line());
                         }
-                        Asks::Closed => self.host.gesture(
-                            Gesture::Filter(String::new()).line()),
+                        // A command that takes something turns the list
+                        // into a question about its first argument.
+                        Asks::Wants(name, at, q) => self.host.gesture(
+                            Gesture::Wants(name, at, q).line()),
+                        Asks::Closed => {
+                            self.host.gesture(Gesture::Asked.line());
+                            self.host.gesture(
+                                Gesture::Filter(String::new()).line());
+                        }
                         Asks::Nothing => {}
                     }
                     self.dirty.set(true);

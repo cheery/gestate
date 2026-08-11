@@ -20,7 +20,7 @@ the arguments are the ones the types promised.
 from __future__ import annotations
 
 from gestate.session import (KEYS, Detached, Session, Verb, act,
-                             vocabulary)
+                             furniture, vocabulary)
 
 
 class Bench:
@@ -99,6 +99,13 @@ class Bench:
 
     knob_types = {"cutoff": "Int", "drive": "Float"}
     sites = ()
+
+
+class _Site:
+    """A declaration site, as `audiospans` reports one."""
+
+    def __init__(self, name, line):
+        self.name, self.line = name, line
 
 
 def session(**kw) -> Session:
@@ -663,3 +670,67 @@ def test_zoom_commands_run_end_to_end():
     assert it.run("zoomOut") == "smaller"
     assert it.run("zoomOut") == "as small as it goes"
     assert ed.orders == ["zoom\t1", "zoom\t-1"]
+
+
+# ── Commands that take arguments ─────────────────────────────────────────
+#
+# Eleven of the twenty-nine do.  None of them were reachable from the
+# list until it could *ask*, which is what `spec/workbench.md` means by
+# "the types are what let the view ask".
+
+def test_arguments_arrive_as_text_and_are_read_as_declared():
+    """Everything from a palette is text; the signature is what knows
+    `seek` wants a number."""
+    it = session()
+    assert it.run("seek", "4") == "at bar 4"
+    assert it.run("loop", "2", "6") == "looping bars 2-6"
+    assert it.run("octave", "1") == "octave 1"
+
+
+def test_a_number_that_is_not_one_is_a_sentence():
+    it = session()
+    assert it.run("seek", "soon") == "seek: `soon` is not a whole number"
+
+
+def test_the_palette_says_what_each_command_takes():
+    it = session()
+    lines = furniture(it).splitlines()
+    said = {l.split("\t")[1]: l.split("\t")[5]
+            for l in lines if l.startswith("command\t")}
+    assert said["loop"] == "Int,Int"
+    assert said["listen"] == "Named"
+    assert said["stop"] == "", "a command that takes nothing says so"
+
+
+def test_asking_about_a_named_argument_offers_names():
+    it = session()
+    it.bench.sites = (_Site("cutoff", 12), _Site("pitch", 30))
+    it.bench.knob_types = {"cutoff": "Float", "pitch": "Int"}
+    assert act(it, "wants\tlisten\t0\t") == "2 name(s)"
+    assert [n for n, _note in it.choices()] == ["cutoff", "pitch"]
+    lines = furniture(it).splitlines()
+    assert "choice\tcutoff\tChan Float" in lines
+
+
+def test_names_are_ranked_the_way_commands_are():
+    it = session()
+    it.bench.sites = (_Site("cut", 1), _Site("cutoff", 2), _Site("uncut", 3))
+    it.bench.knob_types = {}
+    assert [n for n, _ in it.naming("cut")] == ["cut", "cutoff", "uncut"]
+
+
+def test_a_number_argument_is_typed_not_chosen():
+    """Offering a list of numbers would be a menu of guesses."""
+    it = session()
+    it.bench.sites = (_Site("cutoff", 12),)
+    act(it, "wants\tseek\t0\t")
+    assert it.choices() == []
+
+
+def test_the_window_can_say_it_has_stopped_asking():
+    it = session()
+    act(it, "wants\tlisten\t0\tcut")
+    assert it.asking is not None
+    act(it, "asked")
+    assert it.asking is None
+    assert it.choices() == []

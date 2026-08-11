@@ -13,7 +13,7 @@ use gestate_editor::palette::{Asks, Entry, Palette};
 use gestate_editor::view::Item;
 
 fn entry(name: &str, key: &str) -> Entry {
-    Entry { usage: name.into(), name: name.into(),
+    Entry { usage: name.into(), name: name.into(), args: Vec::new(),
             summary: format!("what {name} does."), key: key.into() }
 }
 
@@ -87,7 +87,7 @@ fn moving_and_choosing() {
     for _ in 0..9 { p.key(Key::Down); }
     assert_eq!(p.selected().map(|e| e.name.as_str()), Some("loop"));
 
-    assert_eq!(p.key(Key::Enter), Asks::Run("loop".into()));
+    assert_eq!(p.key(Key::Enter), Asks::Run("loop".into(), Vec::new()));
     assert!(!p.is_open(), "choosing closes it");
 }
 

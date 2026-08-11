@@ -46,6 +46,8 @@ pub const FILL: Colour = Colour::rgb(0x5c, 0xa8, 0xd8);
 /// target you can hit without looking.  It is also what the hardware
 /// this borrows from looks like, which is the point of borrowing.
 pub const HANDLE: Colour = Colour::rgb(0xc8, 0xdc, 0xe8);
+/// The transport readout while it is running.
+pub const LIVE: Colour = Colour::rgb(0x7c, 0xc8, 0x94);
 /// What the compiler had to say, and where.
 pub const ANGRY: Colour = Colour::rgb(0xc0, 0x4c, 0x48);
 /// The status line's ground.
@@ -371,6 +373,35 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
     if !chrome.status.is_empty() {
         f.items.push(Item::Run { x: 4, y: sy + 2, s: chrome.status.clone(),
                                  c: FAINT });
+    }
+
+    // **Where the music is, at the right of the same line.**  The
+    // description has carried the transport since the wire was built and
+    // nothing drew it, which made `seek` and `play` look like commands
+    // that did nothing: they answered *"at bar 8"* and the window showed
+    // exactly what it had before.  A command whose only evidence is its
+    // own sentence is indistinguishable from one that failed.
+    if chrome.has_transport {
+    let beat = chrome.beat.max(0.0);
+    let bar = (beat / 4.0).floor() as i64 + 1;
+    let mut when = format!("{} {}.{}",
+                           if chrome.playing { "\u{25b6}" } else { "\u{25a0}" },
+                           bar, (beat as i64).rem_euclid(4) + 1);
+    if let Some((from, to)) = chrome.looping {
+        // Bars, because that is what `loop` is given and a readout in
+        // other units than the command is a second thing to learn.
+        // **The bars the command was given**, both ends the same way.
+        // The end is exclusive — `loop 2 6` plays bars two to five —
+        // and showing the bars *played* would mean the readout and the
+        // command that made it disagree by one, which is a puzzle to
+        // solve every time rather than a thing to read.
+        when.push_str(&format!("  \u{21ba}{}-{}",
+                               (from / 4.0).floor() as i64 + 1,
+                               (to / 4.0).floor() as i64 + 1));
+    }
+    let at = view.w - 4 - width_of(&when) as i32 * cw;
+    f.items.push(Item::Run { x: at, y: sy + 2, s: when,
+                             c: if chrome.playing { LIVE } else { FAINT } });
     }
 
     // The caret last, so nothing is drawn over it.

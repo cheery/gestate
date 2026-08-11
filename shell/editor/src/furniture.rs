@@ -82,9 +82,17 @@ pub struct Furniture {
     pub banks: Vec<Bank>,
     pub playing: bool,
     pub beat: f64,
+    /// Whether the description mentioned a transport at all.
+    ///
+    /// **Not the same as a stopped one.**  A model that has said
+    /// nothing about time has no position to show, and a readout of
+    /// `1.1` invented for it would be a fact the window made up.
+    pub has_transport: bool,
     /// The loop, in beats, when there is one.
     pub looping: Option<(f64, f64)>,
     pub commands: Vec<crate::palette::Entry>,
+    /// What the argument being asked for could be, when one is.
+    pub choices: Vec<crate::palette::Choice>,
 }
 
 fn num<T: std::str::FromStr + Default>(s: Option<&&str>) -> T {
@@ -126,16 +134,30 @@ impl Furniture {
                 "play" => {
                     f.playing = p.get(1).copied() == Some("1");
                     f.beat = num(p.get(2));
+                    f.has_transport = true;
                 }
                 "loop" if p.len() >= 3 => {
                     f.looping = Some((num(p.get(1)), num(p.get(2))));
                 }
                 "command" if p.len() >= 5 => {
+                    // **The types are how the view knows to ask.**  An
+                    // older model that does not send them describes a
+                    // command that takes nothing, which is what it
+                    // always meant here before.
+                    let args = p.get(5).copied().unwrap_or("");
                     f.commands.push(crate::palette::Entry {
                         name: p[1].into(),
                         usage: p[2].into(),
                         key: p[3].into(),
                         summary: p[4].into(),
+                        args: args.split(',').filter(|a| !a.is_empty())
+                            .map(str::to_string).collect(),
+                    });
+                }
+                "choice" if p.len() >= 2 => {
+                    f.choices.push(crate::palette::Choice {
+                        text: p[1].into(),
+                        note: p.get(2).copied().unwrap_or("").into(),
                     });
                 }
                 // Unknown, or too short to mean anything.  Skipped.
@@ -212,8 +234,17 @@ impl Order {
 /// tab-separated line and drained by the model when it next looks.
 #[derive(Clone, PartialEq, Debug)]
 pub enum Gesture {
-    /// A command was chosen.
-    Command(String),
+    /// A command was chosen, with the arguments it asked for.
+    Command(String, Vec<String>),
+    /// The window is asking what a command's `at`th argument could be,
+    /// and showing this much of a query.
+    ///
+    /// **The types let the view ask, and the model answers** — which of
+    /// several names a query means is a decision, and it has the same
+    /// one home the command ranking does.
+    Wants(String, usize, String),
+    /// Done asking; nothing is being offered now.
+    Asked,
     /// The palette is showing this query and wants the entries for it.
     ///
     /// **The ranking is the model's**, so the view asks rather than
@@ -242,7 +273,16 @@ pub enum Gesture {
 impl Gesture {
     pub fn line(&self) -> String {
         match self {
-            Gesture::Command(n) => format!("command\t{n}"),
+            Gesture::Command(n, args) => {
+                let mut line = format!("command\t{n}");
+                for a in args {
+                    line.push('\t');
+                    line.push_str(a);
+                }
+                line
+            }
+            Gesture::Wants(n, at, q) => format!("wants\t{n}\t{at}\t{q}"),
+            Gesture::Asked => "asked".to_string(),
             Gesture::Filter(q) => format!("filter\t{q}"),
             Gesture::Turn(n, v) => format!("turn\t{n}\t{v}"),
             Gesture::Note(m, on) => {

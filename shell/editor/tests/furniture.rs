@@ -105,7 +105,15 @@ fn a_command_without_a_shortcut_is_still_a_command() {
 
 #[test]
 fn a_gesture_is_a_name_and_some_literals() {
-    assert_eq!(Gesture::Command("apply".into()).line(), "command\tapply");
+    assert_eq!(Gesture::Command("apply".into(), vec![]).line(),
+               "command\tapply");
+    // A command carries what it was given, in order.
+    assert_eq!(Gesture::Command("loop".into(),
+                                vec!["4".into(), "8".into()]).line(),
+               "command\tloop\t4\t8");
+    assert_eq!(Gesture::Wants("listen".into(), 0, "cut".into()).line(),
+               "wants\tlisten\t0\tcut");
+    assert_eq!(Gesture::Asked.line(), "asked");
     assert_eq!(Gesture::Filter("lo".into()).line(), "filter\tlo");
     assert_eq!(Gesture::Turn("cutoff".into(), 0.5).line(),
                "turn\tcutoff\t0.5");
@@ -118,7 +126,9 @@ fn a_gesture_is_a_name_and_some_literals() {
 /// on tabs, with the verb first — the same shape in both directions.
 #[test]
 fn every_gesture_is_one_line_with_a_verb_first() {
-    for g in [Gesture::Command("x".into()), Gesture::Filter("".into()),
+    for g in [Gesture::Command("x".into(), vec!["1".into()]),
+              Gesture::Filter("".into()),
+              Gesture::Wants("x".into(), 1, "q".into()), Gesture::Asked,
               Gesture::Turn("y".into(), 1.0), Gesture::Note(1, true),
               Gesture::Edited] {
         let line = g.line();
