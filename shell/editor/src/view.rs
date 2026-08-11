@@ -1,0 +1,286 @@
+//! A frame — **a pure function of the document, the caret and the
+//! viewport**, and nothing else.
+//!
+//! The same split `shell/panel` keeps and for the same reason: a layout
+//! is the one thing about a window that a test can check exactly, and a
+//! layout that can only be reached through a window is a layout checked
+//! by looking.  `frame()` takes a `Document` and a `View` and returns a
+//! list of things to draw; `paint()` puts that list on a `Canvas`.
+//! Neither mentions a window and both are tested without one.
+//!
+//! **Only the visible rows are read**, which is the whole reason the
+//! document is a tree.  A million-line file costs the rows on screen:
+//! `rope.rowpos` descends by the newline counts each node carries, so
+//! finding row 400,000 is the depth of the tree and not a scan.  A view
+//! that read the whole document to draw fifty lines would make the rope
+//! decorative.
+
+use gestate_panel::list::Colour;
+use gestate_panel::paint::Canvas;
+
+use crate::document::{width_of, Document};
+use crate::font::Font;
+
+// ── The palette ──────────────────────────────────────────────────────
+//
+// The panel's, shifted a shade: an editor and a plugin window sitting
+// in one application should not look like two applications.
+
+pub const BG: Colour = Colour::rgb(0x14, 0x16, 0x1a);
+pub const INK: Colour = Colour::rgb(0xd8, 0xdc, 0xe4);
+/// The gutter's numbers — present, and not competing with the code.
+pub const FAINT: Colour = Colour::rgb(0x4a, 0x52, 0x60);
+/// The line the caret is on.
+pub const CURRENT: Colour = Colour::rgb(0x1b, 0x1e, 0x25);
+pub const CARET: Colour = Colour::rgb(0x5c, 0xa8, 0xd8);
+pub const SELECT: Colour = Colour::rgb(0x24, 0x3a, 0x4c);
+
+/// One thing to draw.
+///
+/// **Two, deliberately.**  The editor's vocabulary is not the
+/// substrate's: a `Run` is text on the *cell grid*, in the bitmap font,
+/// which `gestate_panel::Item::Text` is not — that one carries a scale
+/// for the 3×5 chrome font and means something else.  Sharing a type
+/// across two meanings is how a painter ends up with a flag argument.
+#[derive(Clone, PartialEq, Debug)]
+pub enum Item {
+    Rect { x: i32, y: i32, w: i32, h: i32, c: Colour },
+    /// Text with its **top-left** at `(x, y)`, one cell per character.
+    Run { x: i32, y: i32, s: String, c: Colour },
+}
+
+#[derive(Clone, PartialEq, Debug, Default)]
+pub struct Frame {
+    pub items: Vec<Item>,
+}
+
+/// Where the window is looking, and how big it is.
+#[derive(Clone, Copy, Debug)]
+pub struct View {
+    /// The first visible row.
+    pub top: usize,
+    /// The first visible column — horizontal scrolling, because a long
+    /// line must be reachable and wrapping is a decision this does not
+    /// make for the author.
+    pub left: usize,
+    pub w: i32,
+    pub h: i32,
+    /// Whether to draw line numbers.
+    pub gutter: bool,
+    /// How many screen pixels one font pixel becomes.
+    ///
+    /// **Zoom lives here rather than in the font**, because a `Font` is
+    /// a static table shared by every window and a zoom is one
+    /// reader's choice.  The ladder pairs it with a size
+    /// (`font::LADDER`): the five native sizes first, then integer
+    /// scaling above them.
+    pub scale: i32,
+}
+
+impl Default for View {
+    fn default() -> Self {
+        View { top: 0, left: 0, w: 800, h: 600, gutter: true, scale: 1 }
+    }
+}
+
+impl View {
+    /// The cell this view draws in — the font's, scaled.
+    ///
+    /// Everything about layout goes through these two, so a zoom is one
+    /// number and not a sweep through the file looking for `font.w`.
+    pub fn cw(&self, font: &Font) -> i32 {
+        font.w * self.scale.max(1)
+    }
+
+    pub fn ch(&self, font: &Font) -> i32 {
+        font.h * self.scale.max(1)
+    }
+
+    /// How many rows fit, at least one.
+    ///
+    /// **At least one**, because a window one pixel tall must still
+    /// draw the line the caret is on — a viewport that can show
+    /// nothing is a viewport that divides by zero somewhere else.
+    pub fn rows(&self, font: &Font) -> usize {
+        ((self.h / self.ch(font)).max(1)) as usize
+    }
+
+    /// How wide the gutter is, in columns, for a document this long.
+    ///
+    /// Sized to the **document**, not to the visible rows, so it does
+    /// not change width as you scroll past line 999 — a gutter that
+    /// resizes shifts every line sideways and reads as the text
+    /// jumping.
+    pub fn gutter_cols(&self, doc: &Document) -> usize {
+        if !self.gutter {
+            return 0;
+        }
+        // The widest number, plus a space either side.
+        doc.rows().to_string().len() + 2
+    }
+
+    /// Columns available to the text itself.
+    pub fn text_cols(&self, font: &Font, doc: &Document) -> usize {
+        let used = self.gutter_cols(doc) as i32 * self.cw(font);
+        (((self.w - used) / self.cw(font)).max(1)) as usize
+    }
+
+    /// Scroll so the caret is visible, and return whether it moved.
+    ///
+    /// **Only far enough.**  Centring on the caret scrolls on every
+    /// keystroke, which under a held arrow reads as the page tearing
+    /// past; what a reader wants is for the view to stay still until
+    /// the caret reaches an edge and then to follow it by a line.
+    /// `audiopygame` learned this and the comment is kept.
+    pub fn follow(&mut self, doc: &Document, font: &Font) -> bool {
+        let (row, col) = doc.cursor();
+        let was = (self.top, self.left);
+        let rows = self.rows(font);
+        if row < self.top {
+            self.top = row;
+        } else if row >= self.top + rows {
+            self.top = row + 1 - rows;
+        }
+        let cols = self.text_cols(font, doc);
+        if col < self.left {
+            self.left = col;
+        } else if col >= self.left + cols {
+            self.left = col + 1 - cols;
+        }
+        (self.top, self.left) != was
+    }
+
+    /// Clamp to a document that may have shrunk under us.
+    pub fn clamp(&mut self, doc: &Document, font: &Font) {
+        let rows = self.rows(font);
+        let last = doc.rows().saturating_sub(rows.min(doc.rows()));
+        self.top = self.top.min(last);
+    }
+
+    /// What a click at `(x, y)` means, as a row and a column.
+    pub fn hit(&self, doc: &Document, font: &Font, x: i32, y: i32)
+        -> (usize, usize)
+    {
+        let row = self.top + (y.max(0) / self.ch(font)) as usize;
+        let gx = self.gutter_cols(doc) as i32 * self.cw(font);
+        let cw = self.cw(font);
+        let col = self.left
+            + (if x <= gx { 0 } else { (x - gx + cw / 2) / cw }) as usize;
+        (row.min(doc.rows() - 1), col)
+    }
+}
+
+/// Draw the document.  **Pure**: same document, same view, same list.
+pub fn frame(doc: &Document, view: &View, font: &Font) -> Frame {
+    let mut f = Frame::default();
+    let rows = view.rows(font);
+    let gutter = view.gutter_cols(doc);
+    let (cw, ch) = (view.cw(font), view.ch(font));
+    let text_x = gutter as i32 * cw;
+    let cols = view.text_cols(font, doc);
+    let (crow, ccol) = doc.cursor();
+
+    f.items.push(Item::Rect { x: 0, y: 0, w: view.w, h: view.h, c: BG });
+
+    for i in 0..rows {
+        let row = view.top + i;
+        if row >= doc.rows() {
+            break;
+        }
+        let y = i as i32 * ch;
+
+        // The caret's line, lit the whole width — a band rather than a
+        // box, so it says *where you are* without competing with the
+        // caret itself for saying *exactly* where.
+        if row == crow {
+            f.items.push(Item::Rect { x: 0, y, w: view.w, h: ch,
+                                      c: CURRENT });
+        }
+
+        if gutter > 0 {
+            let n = (row + 1).to_string();
+            // Right-aligned against the gutter's inner edge.
+            let x = (gutter - 1 - n.chars().count()) as i32 * cw;
+            f.items.push(Item::Run { x, y, s: n, c: FAINT });
+        }
+
+        // **The line, scrolled horizontally by columns and not by
+        // characters.**  A tab is four columns and one character, so
+        // cutting by characters would slide a line sideways depending
+        // on how it was indented.
+        let line = doc.line(row);
+        let shown: String = visible(&line, view.left, cols);
+        if !shown.is_empty() {
+            f.items.push(Item::Run { x: text_x, y, s: shown, c: INK });
+        }
+    }
+
+    // The caret last, so nothing is drawn over it.
+    if crow >= view.top && crow < view.top + rows && ccol >= view.left {
+        let x = text_x + (ccol - view.left) as i32 * cw;
+        let y = (crow - view.top) as i32 * ch;
+        if x < view.w {
+            f.items.push(Item::Rect { x, y, w: 2.max(cw / 5), h: ch,
+                                      c: CARET });
+        }
+    }
+    f
+}
+
+/// The part of a line between two columns, tabs expanded to spaces.
+///
+/// **Expanded here and nowhere else.**  A tab is a character in the
+/// document and a run of columns on the screen; turning it into spaces
+/// at the last moment means the rope never sees them and an edit never
+/// has to undo them.
+fn visible(line: &str, from: usize, cols: usize) -> String {
+    let mut out = String::new();
+    let mut col = 0usize;
+    for ch in line.chars() {
+        let next = if ch == '\t' { col / crate::document::TAB
+                                     * crate::document::TAB
+                                     + crate::document::TAB } else { col + 1 };
+        for c in col..next {
+            if c >= from && c < from + cols {
+                out.push(if ch == '\t' { ' ' } else { ch });
+            }
+        }
+        col = next;
+        if col >= from + cols {
+            break;
+        }
+    }
+    out
+}
+
+/// Put a frame on a canvas.
+pub fn paint(c: &mut Canvas, f: &Frame, font: &Font, scale: i32) {
+    for item in &f.items {
+        match item {
+            Item::Rect { x, y, w, h, c: col } => c.fill_rect(*x, *y, *w, *h, *col),
+            Item::Run { x, y, s, c: col } => {
+                font.draw_scaled(c, *x, *y, s, *col, scale);
+            }
+        }
+    }
+}
+
+/// How wide the widest visible line is, in columns — what a horizontal
+/// scrollbar would need.
+pub fn widest(doc: &Document, view: &View, font: &Font) -> usize {
+    (0..view.rows(font))
+        .map(|i| view.top + i)
+        .take_while(|r| *r < doc.rows())
+        .map(|r| width_of(&doc.line(r)))
+        .max()
+        .unwrap_or(0)
+}
+
+/// Where the caret sits in pixels, for a host that wants to place an
+/// input method or a tooltip.
+pub fn caret_at(doc: &Document, view: &View, font: &Font) -> (i32, i32) {
+    let (row, col) = doc.cursor();
+    let gx = view.gutter_cols(doc) as i32 * view.cw(font);
+    (gx + (col.saturating_sub(view.left)) as i32 * view.cw(font),
+     (row.saturating_sub(view.top)) as i32 * view.ch(font))
+}

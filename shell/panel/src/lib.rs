@@ -705,7 +705,13 @@ impl Panel {
 
     /// Paint the current layout into a fresh canvas.
     pub fn render(&self) -> Canvas {
-        let mut c = Canvas::new(self.width, self.height, panels::BG);
+        self.render_into(Canvas::new(self.width, self.height, panels::BG))
+    }
+
+    /// The same, onto a canvas the caller owns — so a window can keep
+    /// one between frames and let it carry the alpha its surface wants.
+    pub fn render_into(&self, mut c: Canvas) -> Canvas {
+        c.clear(panels::BG);
         #[cfg(feature = "substrate")]
         if self.tab == Tab::Canvas {
             if let Some(cv) = self.canvas.as_ref() {

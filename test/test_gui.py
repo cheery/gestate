@@ -205,3 +205,74 @@ def test_the_chain_tapers():
 def test_moving_without_a_tick_does_not_move_the_chain():
     out = scenes(CHAIN.read_text(), [("Move", 10, 10), ("Move", 470, 350)])
     assert _dots(out[0]) == _dots(out[1]) == _dots(out[2])
+
+
+def test_the_two_hosts_draw_the_same_letters():
+    """**One alphabet, two painters** — and the test is what makes it one.
+
+    A `Label` is drawn by whichever host is showing the canvas: the
+    reference blits `gui._GLYPHS`, the plugin blits the table in
+    `shell/panel/src/font.rs`.  Both are 3×5 cells because the *cell* is
+    part of the vocabulary — that is what lets the two agree on where a
+    caption goes without either measuring a glyph — so a character that
+    differed between them would draw the same program's label as two
+    different words.
+
+    The tables were copied by hand once and four glyphs came out wrong
+    within the hour: `(` and `)` were mirrored, and `3` and `7` had lost
+    their diagonals.  Nothing noticed, because a picture is checked by
+    looking at it and nobody had looked at a bracket.  This is the same
+    discipline `doc/ref` keeps — generated from the source so it cannot
+    drift — applied to a table that has to be duplicated because each
+    host owns its own painter.
+
+    `font.rs` is authoritative: it is hand-authored, it carries the
+    reasoning, and it is the one a plugin ships.
+    """
+    import re
+    from pathlib import Path
+
+    from gestate.gui import _GLYPHS
+
+    src = (Path(__file__).resolve().parents[1]
+           / "shell" / "panel" / "src" / "font.rs").read_text()
+    rust = {m.group(1): tuple(int(v.strip().replace("0b", ""), 2)
+                              for v in m.group(2).split(","))
+            for m in re.finditer(r"'(.)' => \[([^\]]+)\]", src)}
+    assert rust, "no glyphs parsed out of font.rs — has it been rewritten?"
+    assert set(rust) == set(_GLYPHS), (
+        f"only in font.rs: {''.join(sorted(set(rust) - set(_GLYPHS)))!r}; "
+        f"only in gui.py: {''.join(sorted(set(_GLYPHS) - set(rust)))!r}")
+    differ = [c for c in rust if rust[c] != _GLYPHS[c]]
+    assert not differ, f"these letters are drawn differently: {differ}"
+
+
+def test_a_label_reserves_its_box_and_fits_its_letters():
+    """The rule `gui.ges` states beside `Label`, checked on both ends.
+
+    The box is the program's; the scale is arithmetic on it.  Nothing
+    here measures a word, which is why a label is admissible where a
+    text editor was not.
+    """
+    from gestate.gui import _fit, scenes
+
+    # 3×5 cells with one column between: six letters need 6*4-1 = 23
+    # units across, five down.
+    assert _fit(52, 14, 6) == 2
+    assert _fit(46, 14, 6) == 2
+    assert _fit(45, 14, 6) == 1, "one unit short is one size smaller"
+    assert _fit(4, 4, 12) == 1, "too small still draws, and overflows"
+    assert _fit(100, 100, 0) == 1, "an empty caption has no width to fit"
+
+    src = (
+        "grey : Sig Colour\n"
+        "grey = colour 10 20 30\n"
+        "substrate : Sig Sub\n"
+        "substrate = moveXY 100 50 (label 52 14 \"WARMTH\" grey)\n"
+    )
+    (item,) = scenes(src, [])[0]
+    kind, x, y, words, colour, scale = item
+    assert (kind, words, colour, scale) == ("text", "WARMTH", (10, 20, 30), 2)
+    # Centred in its own declared box: six letters at scale 2 are 46
+    # wide and 10 tall.
+    assert (x, y) == (100 - 46 // 2, 50 - 10 // 2)

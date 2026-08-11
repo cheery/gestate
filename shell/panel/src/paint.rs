@@ -21,16 +21,37 @@ pub struct Canvas {
     pub w: i32,
     pub h: i32,
     pub px: Vec<u32>,
+    /// OR-ed into every pixel written.
+    ///
+    /// **Zero by default, and `0xFF00_0000` when a window wants it.**
+    /// `Colour::word()` is `0x00RRGGBB` — three components, because
+    /// that is what `gui.ges`'s `Colour` is — but an X11 window on a
+    /// compositor may hold a 32-bit visual, where a zero top byte means
+    /// *fully transparent*.  Both windows used to fix that with a pass
+    /// over the finished buffer, which is a whole extra sweep of the
+    /// screen: measured on the editor, **four milliseconds of a
+    /// thirteen-millisecond frame**, spent setting one byte.  Folding
+    /// it into the writes costs an `or` against a constant and lets the
+    /// buffer be handed over with a `memcpy`.
+    pub alpha: u32,
 }
 
 impl Canvas {
     pub fn new(w: i32, h: i32, bg: Colour) -> Self {
         let (w, h) = (w.max(0), h.max(0));
-        Canvas { w, h, px: vec![bg.word(); (w * h) as usize] }
+        Canvas { w, h, px: vec![bg.word(); (w * h) as usize], alpha: 0 }
+    }
+
+    /// The same, opaque — for a surface that reads the top byte.
+    pub fn opaque(w: i32, h: i32, bg: Colour) -> Self {
+        let mut c = Canvas::new(w, h, bg);
+        c.alpha = 0xFF00_0000;
+        c.px.fill(bg.word() | c.alpha);
+        c
     }
 
     pub fn clear(&mut self, bg: Colour) {
-        self.px.fill(bg.word());
+        self.px.fill(bg.word() | self.alpha);
     }
 
     /// One pixel, clipped.  Every primitive below goes through here, so
@@ -41,7 +62,7 @@ impl Canvas {
     #[inline]
     pub fn put(&mut self, x: i32, y: i32, c: u32) {
         if x >= 0 && y >= 0 && x < self.w && y < self.h {
-            self.px[(y * self.w + x) as usize] = c;
+            self.px[(y * self.w + x) as usize] = c | self.alpha;
         }
     }
 
@@ -54,18 +75,26 @@ impl Canvas {
     }
 
     pub fn fill_rect(&mut self, x: i32, y: i32, w: i32, h: i32, c: Colour) {
-        let word = c.word();
+        let word = c.word() | self.alpha;
         // Clamp the span before looping rather than testing per pixel:
         // a note strip is 128 cells and a redraw is every frame.
         let x0 = x.max(0);
         let y0 = y.max(0);
         let x1 = (x + w).min(self.w);
         let y1 = (y + h).min(self.h);
+        if x1 <= x0 {
+            return;
+        }
+        // **A memset per row, not a loop per pixel.**  The background is
+        // one of these covering the whole window, and writing seven
+        // hundred thousand pixels one indexed store at a time cost
+        // thirty milliseconds a frame in a debug build — an editor you
+        // could watch typing.  `fill` on a slice is the same code the
+        // optimiser would have written and is fast unoptimised too,
+        // which is what a debug build being usable depends on.
         for yy in y0..y1 {
             let row = (yy * self.w) as usize;
-            for xx in x0..x1 {
-                self.px[row + xx as usize] = word;
-            }
+            self.px[row + x0 as usize..row + x1 as usize].fill(word);
         }
     }
 
@@ -79,7 +108,7 @@ impl Canvas {
         if r <= 0 {
             return;
         }
-        let word = c.word();
+        let word = c.word() | self.alpha;
         let rr = r * r;
         for dy in -r..=r {
             let yy = cy + dy;

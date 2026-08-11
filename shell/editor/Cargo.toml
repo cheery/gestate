@@ -1,0 +1,36 @@
+[package]
+name = "gestate-editor"
+version = "0.1.0"
+edition = "2021"
+description = "The editor, in Rust: a rope, a bitmap font, and a window the host owns."
+license = "MIT"
+
+[lib]
+crate-type = ["rlib"]
+
+# **Nothing at all so far, deliberately.**  The rope is a tree of
+# `Rc`s, the font is a committed table, and a frame is a pure function
+# to `gestate-panel`'s display list — so everything up to the window
+# builds and tests with no dependency and no toolkit.  The window's own
+# crates arrive behind a feature when it does, the same split
+# `shell/panel` keeps (`spec/panel.md` §"Windowing: baseview").
+[dependencies]
+gestate-panel = { path = "../panel" }
+# Only under `window`, and `shell/panel` keeps the same split for the
+# same reason: everything above the window is a pure function, so the
+# half worth testing builds and tests with nothing at all.
+baseview = { version = "0.3", optional = true }
+softbuffer = { version = "0.4", optional = true }
+raw-window-handle = { version = "0.6", optional = true }
+# `baseview` hands keys through as `keyboard_types` and does not
+# re-export the crate, so the one module that touches them names it.
+keyboard-types = { version = "0.8", default-features = false, optional = true }
+
+[features]
+default = []
+window = ["dep:baseview", "dep:softbuffer", "dep:raw-window-handle",
+          "dep:keyboard-types", "gestate-panel/window"]
+
+[[example]]
+name = "edit"
+required-features = ["window"]

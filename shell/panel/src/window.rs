@@ -28,6 +28,7 @@ use raw_window_handle::{
 };
 
 use crate::model::Model;
+use crate::paint::Canvas;
 use crate::{panels, Change, Panel};
 
 /// The handle a host holds onto.
@@ -141,6 +142,8 @@ struct PanelWindow {
     /// platform actually delivers first.
     cursor: Cell<(i32, i32)>,
     sink: Arc<dyn Sink>,
+    /// The buffer, kept between frames rather than allocated per frame.
+    spare: RefCell<Canvas>,
     /// Kept for the platform bits the handler may need to ask about
     /// (the cursor, the scale factor) without going through baseview's
     /// own window handle.
@@ -185,6 +188,8 @@ impl PanelWindow {
             surface: RefCell::new(surface),
             cursor: Cell::new((0, 0)),
             sink,
+            spare: RefCell::new(Canvas::opaque(w.max(1), h.max(1),
+                                               panels::BG)),
             ctx,
         })
     }
@@ -246,20 +251,28 @@ impl WindowHandler for PanelWindow {
         // over the display list rather than in it, so painting the list
         // directly here is exactly how a window ends up with no
         // scrollbar while every unit test says there is one.
-        let canvas = panel.render();
-        // **The alpha byte, and why it is set here.**  The painter's
-        // words are `0x00RRGGBB` — `gui.ges`'s `Colour` is three
-        // components and the substrate has no transparency — but an X11
-        // window on a compositor may hold a 32-bit visual, where a zero
-        // top byte means *fully transparent* and the panel comes out
-        // see-through.  Opacity is the platform's requirement, not the
-        // display list's, so it is applied on the way to the surface
-        // and the canvas keeps meaning what `gui.py` means.
-        let n = buffer.len().min(canvas.px.len());
-        for (dst, src) in buffer[..n].iter_mut().zip(&canvas.px[..n]) {
-            *dst = *src | 0xFF00_0000;
+        let mut spare = self.spare.borrow_mut();
+        let mut work = std::mem::replace(&mut *spare,
+                                         Canvas::opaque(1, 1, panels::BG));
+        if work.w != panel.width || work.h != panel.height {
+            work = Canvas::opaque(panel.width, panel.height, panels::BG);
         }
+        let canvas = panel.render_into(work);
+        // **The alpha byte, and why it is folded into the writes.**  The
+        // painter's words are `0x00RRGGBB` — `gui.ges`'s `Colour` is
+        // three components and the substrate has no transparency — but
+        // an X11 window on a compositor may hold a 32-bit visual, where
+        // a zero top byte means *fully transparent* and the panel comes
+        // out see-through.  Opacity is the platform's requirement, not
+        // the display list's, so `Canvas::alpha` carries it and the
+        // canvas keeps meaning what `gui.py` means.  It used to be a
+        // second sweep over the finished buffer, which on the editor's
+        // larger window measured four milliseconds of a thirteen-
+        // millisecond frame — a whole extra pass to set one byte.
+        let n = buffer.len().min(canvas.px.len());
+        buffer[..n].copy_from_slice(&canvas.px[..n]);
         let _ = buffer.present();
+        *spare = canvas;
         Ok(())
     }
 

@@ -104,7 +104,17 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # without hands, so a golden would be a buffer of nothing.
             # `test_probescore.py` holds its `FromMIDI` instance, and
             # the listening semantics are pinned there end to end.
-            "jazz.ges"]
+            "jazz.ges",
+            # **All three halves at once** — an unfolding seeded score, a
+            # compiled synth, and a canvas.  No golden for both of the
+            # reasons above at the same time: the score is `cycle` +
+            # `draw`, so a bake refuses it by name, and what the canvas
+            # *shows* is the point, which a buffer of the sound would not
+            # check.  The picture is pinned instead where a picture can
+            # be — `shell/panel/tests/substrate_parity.rs` walks this
+            # file's own `substrate` and compares it with what `gui.py`
+            # draws, captions included.
+            "lantern.ges"]
 
 #: The ones with committed golden buffers — all of them, now.  `knob.ges`
 #: had none for as long as the interpreter and the engine disagreed about

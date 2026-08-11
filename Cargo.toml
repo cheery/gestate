@@ -7,4 +7,24 @@
 # joining the tree moved no artifact anyone reads.
 [workspace]
 resolver = "2"
-members = ["crust", "shell/clap", "shell/panel"]
+members = ["crust", "shell/clap", "shell/editor", "shell/panel"]
+
+# **A software rasterizer needs an optimiser, even to be debugged.**
+#
+# Everything that puts pixels on a screen here is a loop over bytes —
+# no GPU, no toolkit, by design — and `rustc` without `-O` leaves every
+# bounds check and every inlinable call in place.  Measured on the
+# editor: one repaint of a thousand-by-seven-hundred window was
+# **48 ms** unoptimised against 2 ms optimised, which is the difference
+# between typing and watching yourself type, and it made a correct
+# program look like a broken one.
+#
+# `opt-level = 1` keeps debug assertions, overflow checks and symbols —
+# so a panic still names its line — and costs a few seconds of build.
+# The dependencies get the full treatment because they are never the
+# thing being debugged.
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 2
