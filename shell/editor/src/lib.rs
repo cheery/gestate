@@ -31,6 +31,7 @@
 
 pub mod document;
 pub mod font;
+pub mod furniture;
 pub mod keys;
 pub mod palette;
 pub mod rope;

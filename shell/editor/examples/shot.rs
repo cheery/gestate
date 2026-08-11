@@ -4,7 +4,8 @@
 use std::io::Write;
 use gestate_editor::document::Document;
 use gestate_editor::font::{LARGE, SMALL};
-use gestate_editor::view::{frame, paint, View, BG};
+use gestate_editor::furniture::Furniture;
+use gestate_editor::view::{frame_with, paint, View, BG};
 use gestate_panel::paint::Canvas;
 
 fn main() {
@@ -16,7 +17,7 @@ fn main() {
         { &SMALL } else { &LARGE };
 
     let mut d = Document::new(&text);
-    let mut v = View { top: 0, left: 0, w: 860, h: 520, gutter: true, scale: 1 };
+    let mut v = View { top: 0, left: 0, w: 860, h: 520, gutter: true, aside: 0, scale: 1 };
     d.seek_rowcol(row + 6, 14);
     // A selection to look at, if asked for: three lines and a bit.
     if std::env::var("SHOT_SELECT").is_ok() {
@@ -25,8 +26,21 @@ fn main() {
         d.select(a, b);
     }
     v.top = row;
+    // `SHOT_CHROME=1` draws what a model would have said, so the
+    // margin, the complaint and the status line are in shot.
+    let chrome = if std::env::var("SHOT_CHROME").is_ok() {
+        v.aside = 10;
+        Furniture::read(&format!(
+            "status\tapplied — 2 knobs, 1 complaint\n\
+             trouble\t{}\texpected a type, got `night`\n\
+             knob\twarmth\t{}\t0.55\t0\t1\tFloat\n\
+             knob\tglow\t{}\t0.35\t0\t1\tFloat",
+            row + 9, row + 3, row + 12))
+    } else {
+        Furniture::default()
+    };
     let mut c = Canvas::new(v.w, v.h, BG);
-    paint(&mut c, &frame(&d, &v, font), font, 1);
+    paint(&mut c, &frame_with(&d, &v, font, &chrome), font, 1);
 
     let mut out = Vec::new();
     write!(out, "P6\n{} {}\n255\n", c.w, c.h).unwrap();

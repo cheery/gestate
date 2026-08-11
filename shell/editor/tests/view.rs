@@ -24,7 +24,14 @@ fn runs(f: &gestate_editor::view::Frame) -> Vec<String> {
 }
 
 fn view(w: i32, h: i32) -> View {
-    View { top: 0, left: 0, w, h, gutter: false, scale: 1 }
+    View { top: 0, left: 0, w, h, gutter: false, aside: 0, scale: 1 }
+}
+
+/// A view that fits exactly `rows` rows of text, with the status line
+/// paid for on top — the window is not all text.
+fn rows_of(rows: usize, w: i32) -> View {
+    let v = view(w, 0);
+    View { h: rows as i32 * v.ch(&LARGE) + v.status_h(&LARGE), ..v }
 }
 
 // ── The document ─────────────────────────────────────────────────────────
@@ -153,7 +160,7 @@ fn a_tall_document_costs_only_the_rows_on_screen() {
     assert!(d.rows() > 200_000);
 
     // Ten rows fit; ten runs of text come out, however deep in we look.
-    let mut v = View { top: 0, left: 0, w: 600, h: 10 * LARGE.h, gutter: false, scale: 1 };
+    let mut v = rows_of(10, 600);
     v.top = 180_000;
     d.seek_rowcol(180_003, 2);
     let f = frame(&d, &v, &LARGE);
@@ -166,7 +173,7 @@ fn a_tall_document_costs_only_the_rows_on_screen() {
 #[test]
 fn the_gutter_numbers_the_lines_and_does_not_resize_as_you_scroll() {
     let d = doc(&(0..1200).map(|i| format!("{i}\n")).collect::<String>());
-    let mut v = View { gutter: true, w: 400, h: 3 * LARGE.h, ..View::default() };
+    let mut v = View { gutter: true, ..rows_of(3, 400) };
     let a = v.gutter_cols(&d);
     v.top = 1100;
     assert_eq!(v.gutter_cols(&d), a,
@@ -182,7 +189,7 @@ fn the_gutter_numbers_the_lines_and_does_not_resize_as_you_scroll() {
 fn scrolling_follows_the_caret_to_the_edge_and_no_further() {
     let d0 = doc(&(0..100).map(|i| format!("row {i}\n")).collect::<String>());
     let mut d = d0.clone();
-    let mut v = View { top: 0, left: 0, w: 600, h: 10 * LARGE.h, gutter: false, scale: 1 };
+    let mut v = rows_of(10, 600);
 
     d.seek_rowcol(5, 0);
     assert!(!v.follow(&d, &LARGE), "the caret was already visible");
@@ -198,7 +205,7 @@ fn scrolling_follows_the_caret_to_the_edge_and_no_further() {
 
     // Horizontally, the same rule.
     let mut wide = doc(&"x".repeat(500));
-    let mut v = View { top: 0, left: 0, w: 20 * LARGE.w, h: 100, gutter: false, scale: 1 };
+    let mut v = View { top: 0, left: 0, w: 20 * LARGE.w, h: 100, gutter: false, aside: 0, scale: 1 };
     wide.seek(300);
     v.follow(&wide, &LARGE);
     assert_eq!(v.left, 300 + 1 - 20);
@@ -207,7 +214,7 @@ fn scrolling_follows_the_caret_to_the_edge_and_no_further() {
 #[test]
 fn a_click_lands_where_it_was_clicked() {
     let d = doc("hello\nworld\nagain");
-    let v = View { top: 1, left: 0, w: 400, h: 200, gutter: false, scale: 1 };
+    let v = View { top: 1, left: 0, w: 400, h: 200, gutter: false, aside: 0, scale: 1 };
     // Second visible row (row 2), fourth column.
     let (row, col) = v.hit(&d, &LARGE, LARGE.w * 4 + 1, LARGE.h + 3);
     assert_eq!((row, col), (2, 4));
@@ -241,7 +248,7 @@ fn the_caret_is_drawn_on_the_character_it_is_before() {
 #[test]
 fn horizontal_scrolling_cuts_by_columns() {
     let d = doc("\tabcdef\n    abcdef");
-    let v = View { top: 0, left: 4, w: 100 * LARGE.w, h: 200, gutter: false, scale: 1 };
+    let v = View { top: 0, left: 4, w: 100 * LARGE.w, h: 200, gutter: false, aside: 0, scale: 1 };
     let f = frame(&d, &v, &LARGE);
     let lines = runs(&f);
     assert_eq!(lines[0], lines[1],
@@ -293,7 +300,7 @@ fn the_empty_document_draws() {
 #[test]
 fn a_window_smaller_than_a_line_still_draws_one() {
     let d = doc("one\ntwo");
-    let v = View { top: 0, left: 0, w: 1, h: 1, gutter: false, scale: 1 };
+    let v = View { top: 0, left: 0, w: 1, h: 1, gutter: false, aside: 0, scale: 1 };
     assert_eq!(v.rows(&LARGE), 1);
     assert_eq!(v.text_cols(&LARGE, &d), 1);
     let f = frame(&d, &v, &LARGE);
@@ -309,12 +316,18 @@ fn a_window_smaller_than_a_line_still_draws_one() {
 #[test]
 fn zooming_moves_the_layout_and_the_hit_testing_together() {
     let d = doc("hello\nworld\nagain");
-    let one = View { top: 0, left: 0, w: 400, h: 200, gutter: false, scale: 1 };
+    let one = View { top: 0, left: 0, w: 400, h: 200, gutter: false, aside: 0, scale: 1 };
     let two = View { scale: 2, ..one };
 
     assert_eq!(two.cw(&LARGE), 2 * one.cw(&LARGE));
     assert_eq!(two.ch(&LARGE), 2 * one.ch(&LARGE));
-    assert_eq!(two.rows(&LARGE) * 2, one.rows(&LARGE));
+    // **Fewer rows, and not exactly half.**  The status line is a row
+    // at whatever the current cell is, so it grows with the zoom and
+    // comes out of the same height — `(h - status) / ch` is not
+    // `h / ch` halved, and asserting that it was would be asserting an
+    // arithmetic accident rather than the behaviour.
+    assert!(two.rows(&LARGE) < one.rows(&LARGE));
+    assert!(two.rows(&LARGE) >= 1, "a zoom must not leave no text");
 
     // The same pixel is a different cell at a different zoom, and both
     // hit tests agree with their own geometry.
@@ -328,7 +341,7 @@ fn zooming_moves_the_layout_and_the_hit_testing_together() {
 #[test]
 fn the_zoomed_frame_says_the_same_thing() {
     let d = doc("one\ntwo\nthree");
-    let one = View { top: 0, left: 0, w: 800, h: 400, gutter: true, scale: 1 };
+    let one = View { top: 0, left: 0, w: 800, h: 400, gutter: true, aside: 0, scale: 1 };
     let two = View { scale: 2, ..one };
     assert_eq!(runs(&frame(&d, &one, &LARGE)), runs(&frame(&d, &two, &LARGE)));
 }
@@ -376,4 +389,114 @@ fn a_scaled_glyph_is_the_same_glyph_in_bigger_pixels() {
             }
         }
     }
+}
+
+// ── What the model's description draws ───────────────────────────────────
+
+use gestate_editor::furniture::Furniture;
+use gestate_editor::view::{frame_with, ANGRY, FILL, TROUGH};
+
+fn chrome() -> Furniture {
+    Furniture::read("status\tapplied\n\
+                     trouble\t2\texpected a type\n\
+                     knob\tcutoff\t3\t0.25\t0\t1\tFloat")
+}
+
+/// **A knob is drawn beside the line that declares it**, which is the
+/// thing `audiospans` exists for and the reason a parameter is not in a
+/// panel you have to read against the code.
+#[test]
+fn a_knob_lands_in_the_margin_at_its_own_line() {
+    let d = doc("one\ntwo\nthree\nfour");
+    let v = View { aside: 8, ..rows_of(6, 600) };
+    let f = frame_with(&d, &v, &LARGE, &chrome());
+
+    let troughs: Vec<&Item> = f.items.iter()
+        .filter(|i| matches!(i, Item::Rect { c, .. } if *c == TROUGH))
+        .collect();
+    assert_eq!(troughs.len(), 1, "one knob, one trough");
+    let Item::Rect { x, y, h, .. } = troughs[0] else { unreachable!() };
+    // Line 3 is the third row, and the trough sits centred in it
+    // rather than at its top — a four-pixel bar on a twenty-pixel row.
+    let row_top = 2 * v.ch(&LARGE);
+    assert!(*y >= row_top && *y + *h <= row_top + v.ch(&LARGE),
+            "the trough is at {y}, outside row {row_top}");
+    assert!(*x > v.w - v.aside as i32 * v.cw(&LARGE) - 1, "not in the margin");
+
+    // And the fill says where it is turned to.  **Found by where it
+    // is, not by its colour**: a knob's fill and the caret are the same
+    // accent on purpose, so a test that counted blue rectangles would
+    // be counting the caret too.
+    let edge = v.w - v.aside as i32 * v.cw(&LARGE);
+    let fills: Vec<&Item> = f.items.iter()
+        .filter(|i| matches!(i, Item::Rect { c, x, .. }
+                             if *c == FILL && *x >= edge))
+        .collect();
+    assert_eq!(fills.len(), 1);
+    let (Item::Rect { w: full, .. }, Item::Rect { w: whole, .. }) =
+        (fills[0], troughs[0]) else { unreachable!() };
+    assert!((*full as f64 / *whole as f64 - 0.25).abs() < 0.06,
+            "{full} of {whole} is not a quarter");
+}
+
+#[test]
+fn no_margin_means_no_knobs_and_no_width_lost() {
+    let d = doc("one\ntwo\nthree");
+    let wide = View { aside: 0, ..rows_of(6, 600) };
+    let narrow = View { aside: 8, ..wide };
+    assert!(wide.text_cols(&LARGE, &d) > narrow.text_cols(&LARGE, &d),
+            "a margin costs columns");
+    let f = frame_with(&d, &wide, &LARGE, &chrome());
+    assert!(!f.items.iter().any(|i| matches!(i, Item::Rect { c, .. }
+                                             if *c == TROUGH)),
+            "a knob was drawn with no margin to draw it in");
+}
+
+/// **The complaint goes beside the line that caused it.**  A status bar
+/// is one line; this is where it belongs.
+#[test]
+fn the_trouble_is_drawn_at_its_own_line() {
+    let d = doc("one\ntwo\nthree");
+    let v = View { aside: 0, ..rows_of(6, 900) };
+    let f = frame_with(&d, &v, &LARGE, &chrome());
+
+    let said: Vec<(&String, &i32)> = f.items.iter().filter_map(|i| match i {
+        Item::Run { s, y, c, .. } if *c == ANGRY => Some((s, y)),
+        _ => None,
+    }).collect();
+    assert_eq!(said.len(), 1);
+    assert_eq!(said[0].0, "expected a type");
+    assert_eq!(*said[0].1, v.ch(&LARGE), "line 2 is the second row");
+
+    // And a mark in the gutter, so a scrolled-away message is still
+    // findable by the line it belongs to.
+    assert!(f.items.iter().any(|i| matches!(i, Item::Rect { x: 0, y, c, .. }
+                                            if *c == ANGRY && *y == v.ch(&LARGE))));
+}
+
+#[test]
+fn the_status_line_says_what_just_happened() {
+    let d = doc("x");
+    let v = rows_of(4, 400);
+    let f = frame_with(&d, &v, &LARGE, &chrome());
+    let said = runs(&f);
+    assert!(said.contains(&"applied".to_string()), "{said:?}");
+    // At the foot, and nothing *else* is drawn down there.
+    let sy = v.h - v.status_h(&LARGE);
+    for item in &f.items {
+        if let Item::Run { y, s, .. } = item {
+            assert!(*y < sy || s == "applied",
+                    "{s:?} is in the status line's row");
+        }
+    }
+}
+
+/// A description with nothing in it draws a window with nothing extra —
+/// the same frame `frame` gives.
+#[test]
+fn no_description_is_no_chrome() {
+    let d = doc("one\ntwo");
+    let v = rows_of(5, 400);
+    assert_eq!(frame(&d, &v, &LARGE),
+               frame_with(&d, &v, &LARGE, &Furniture::default()));
 }

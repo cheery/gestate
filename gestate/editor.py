@@ -84,6 +84,10 @@ def _library():
     lib.ged_set_text.restype = None
     lib.ged_free_str.argtypes = [ctypes.c_void_p]
     lib.ged_free_str.restype = None
+    lib.ged_set_furniture.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+    lib.ged_set_furniture.restype = None
+    lib.ged_gestures.argtypes = [ctypes.c_void_p]
+    lib.ged_gestures.restype = ctypes.c_void_p
     lib.ged_request_close.argtypes = [ctypes.c_void_p]
     lib.ged_request_close.restype = None
     lib.ged_close.argtypes = [ctypes.c_void_p]
@@ -154,6 +158,34 @@ class Editor:
             return False
         self._seen = now
         return True
+
+    def describe(self, furniture: str) -> None:
+        """Tell the window what the chrome says.
+
+        **Whole, not a diff**, and only when something changed — a diff
+        would be a second state to keep in step across a boundary, and
+        the description is a few hundred bytes.
+        """
+        if self._h:
+            self._lib.ged_set_furniture(self._h, furniture.encode())
+
+    def gestures(self) -> list:
+        """Everything the window has said since this was last called.
+
+        **Drained, not read**, so nothing is seen twice: a command run
+        because the queue was polled again is the sort of bug that plays
+        a note nobody asked for.
+        """
+        if not self._h:
+            return []
+        p = self._lib.ged_gestures(self._h)
+        if not p:
+            return []
+        try:
+            text = ctypes.cast(p, ctypes.c_char_p).value.decode()
+        finally:
+            self._lib.ged_free_str(p)
+        return [line for line in text.split("\n") if line]
 
     def request_close(self) -> None:
         """Ask the window to shut.  Returns at once."""

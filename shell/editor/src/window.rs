@@ -34,7 +34,9 @@ use raw_window_handle::{
 
 use crate::document::Document;
 use crate::font::Font;
+use crate::furniture::{Furniture, Gesture};
 use crate::keys::{self, Did, Key, Memory, Mods};
+use crate::palette::{Asks, Palette};
 use crate::view::{self, View};
 
 /// The handle a host holds onto.  A thin wrapper, so nothing above
@@ -95,6 +97,19 @@ pub trait Host: Send + Sync + 'static {
         None
     }
 
+    /// The chrome, when the model has described it since it was last
+    /// asked — `(version, description)`.
+    ///
+    /// A pull rather than a push, for the reason `incoming` is one: the
+    /// window's state belongs to the window's thread, and the model
+    /// leaves things where the window will collect them.
+    fn furniture(&self) -> Option<(u64, String)> {
+        None
+    }
+
+    /// Something the window has to say.  Called on the window's thread.
+    fn gesture(&self, _line: String) {}
+
     /// Whether the host has asked the window to shut.
     ///
     /// Checked once a frame, for the same reason: closing is the
@@ -141,6 +156,11 @@ struct EditorWindow {
     /// Cut and copy go here.  In-process; see `keys::Clipboard` for why
     /// the system one is somebody else's to provide.
     clip: RefCell<Memory>,
+    /// The chrome, as the model last described it, and which version.
+    chrome: RefCell<Furniture>,
+    furnished: Cell<u64>,
+    /// The command list — `spec/workbench.md`'s answer to modes.
+    palette: RefCell<Palette>,
     surface: RefCell<softbuffer::Surface<PlatformHandle, PlatformHandle>>,
     /// The last cursor position — `baseview` reports it on motion only,
     /// and a press carries a button and no point.
@@ -248,12 +268,15 @@ impl EditorWindow {
         Ok(EditorWindow {
             doc: RefCell::new(Document::new(&host.initial())),
             view: RefCell::new(View {
-                top: 0, left: 0, w, h, gutter: true,
+                top: 0, left: 0, w, h, gutter: true, aside: 0,
                 scale: crate::font::LADDER[crate::font::LADDER_DEFAULT].1,
             }),
             zoom: Cell::new(crate::font::LADDER_DEFAULT),
             dragging: Cell::new(false),
             clip: RefCell::new(Memory::default()),
+            chrome: RefCell::new(Furniture::default()),
+            furnished: Cell::new(0),
+            palette: RefCell::new(Palette::default()),
             canvas: RefCell::new(Canvas::opaque(w, h, view::BG)),
             surface: RefCell::new(surface),
             cursor: Cell::new((0, 0)),
@@ -281,6 +304,7 @@ impl EditorWindow {
         let doc = self.doc.borrow();
         if did.edited {
             self.host.edited(&doc);
+            self.host.gesture(Gesture::Edited.line());
         }
         if did.drew {
             self.host.moved(doc.pos());
@@ -346,6 +370,21 @@ impl WindowHandler for EditorWindow {
         if self.host.should_close() {
             self.ctx.request_close();
             return Ok(());
+        }
+        // The model's description, when it has changed.
+        if let Some((at, text)) = self.host.furniture() {
+            if at != self.furnished.get() {
+                self.furnished.set(at);
+                let f = Furniture::read(&text);
+                self.palette.borrow_mut().offer(f.commands.clone());
+                // **The margin appears only when something declares a
+                // knob**, so a synth with none loses no width to the
+                // possibility of them.
+                self.view.borrow_mut().aside =
+                    if f.knobs.is_empty() { 0 } else { 10 };
+                *self.chrome.borrow_mut() = f;
+                self.dirty.set(true);
+            }
         }
         if let Some(text) = self.host.incoming() {
             let doc = {
@@ -416,8 +455,20 @@ impl WindowHandler for EditorWindow {
         if canvas.w != view.w || canvas.h != view.h {
             *canvas = Canvas::opaque(view.w, view.h, view::BG);
         }
-        view::paint(&mut canvas, &view::frame(&doc, &view, font), font,
+        let chrome = self.chrome.borrow();
+        view::paint(&mut canvas,
+                    &view::frame_with(&doc, &view, font, &chrome), font,
                     self.scale());
+        // The palette over the text, in its own frame — chrome over a
+        // document, so the document's layout cannot depend on whether a
+        // list happens to be open.
+        let palette = self.palette.borrow();
+        if palette.is_open() {
+            let (cw, ch) = (view.cw(font), view.ch(font));
+            view::paint(&mut canvas,
+                        &palette.frame(view.w, view.h, cw, ch), font,
+                        self.scale());
+        }
         let t_paint = Instant::now();
 
         // **A memcpy, because the alpha is already there.**  The canvas
@@ -464,6 +515,20 @@ impl WindowHandler for EditorWindow {
                 if k.state != KeyState::Down {
                     return EventStatus::Ignored;
                 }
+                // Ctrl-K opens the list.  One key, and the answer to
+                // "what can this do" is complete by construction.
+                if k.modifiers.contains(Modifiers::CONTROL) {
+                    if let Kt::Character(s) = &k.key {
+                        if s.eq_ignore_ascii_case("k") {
+                            let asks = self.palette.borrow_mut().show();
+                            if let Asks::Filter(q) = asks {
+                                self.host.gesture(Gesture::Filter(q).line());
+                            }
+                            self.dirty.set(true);
+                            return EventStatus::Captured;
+                        }
+                    }
+                }
                 // **The zoom, which the editor keeps for itself.**
                 // `+`/`-` step the ladder and `0` goes back to where it
                 // started, which is what every application means by
@@ -486,6 +551,23 @@ impl WindowHandler for EditorWindow {
                 let Some(key) = translate(&k) else {
                     return EventStatus::Ignored;
                 };
+                // **The palette sees keys first, and only while it is
+                // open.**  That is the whole of its claim on the
+                // keyboard: nothing is taken from the text at any other
+                // time, which is what keeps "there is one mode, you are
+                // typing" true.
+                let asks = self.palette.borrow_mut().key(key.clone());
+                if asks != Asks::Nothing || self.palette.borrow().is_open() {
+                    match asks {
+                        Asks::Filter(q) => self.host.gesture(
+                            Gesture::Filter(q).line()),
+                        Asks::Run(name) => self.host.gesture(
+                            Gesture::Command(name).line()),
+                        _ => {}
+                    }
+                    self.dirty.set(true);
+                    return EventStatus::Captured;
+                }
                 let mods = Mods {
                     ctrl: k.modifiers.contains(Modifiers::CONTROL),
                     shift: k.modifiers.contains(Modifiers::SHIFT),

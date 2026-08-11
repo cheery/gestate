@@ -223,6 +223,9 @@ class Detached:
     def close(self) -> None:
         pass
 
+    def insert(self, _text: str) -> bool:
+        return False
+
 
 @dataclass
 class Session:
@@ -238,6 +241,8 @@ class Session:
     said: list = field(default_factory=list)
     #: What a played note does: `"off"`, `"on"` or `"step"`.
     performing: str = "on"
+    #: The palette's current answer — what `filter` last produced.
+    filtered: list = field(default_factory=list)
 
     def commands(self) -> list:
         """The palette.  Derived from `command.ges` every time it is
@@ -378,6 +383,14 @@ class Session:
         # 140 is a perfectly good `Int`.
         if not self.bench.has_knob or name not in self.bench.values:
             return f"no parameter `{name}`"
+        # **The wire is strings, so the type comes back here.**
+        # `Named a` gives an `Int` knob an `Int` where a command is
+        # *written*, and the checker holds that — but a gesture crossing
+        # the ABI is text, and `70` read as a float shows `cutoff = 70.0`
+        # on a knob whose channel carries an integer.  The kind the
+        # workbench already knows is what restores it.
+        if getattr(self.bench, "knob_types", {}).get(name) == "Int":
+            value = int(round(float(value)))
         low, high = self.bench.knob_range(name)
         held = min(high, max(low, value))
         self.bench.set_value(name, held)
@@ -500,6 +513,21 @@ class Session:
         self.view.close()
         return "closing"
 
+    def play_note(self, midi: int, on: bool) -> str:
+        """A note from the drawn piano or a controller.
+
+        **Where `performing` is read**, and the only place it is: the
+        setting says what a played note *does*, so this is the one
+        function that has to know, and every caller is spared asking.
+        """
+        if self.performing == "off":
+            return ""
+        self.bench.keyboard.press(midi) if on \
+            else self.bench.keyboard.release(midi)
+        if on and self.performing == "step":
+            self.view.insert(self.bench.note_text(midi))
+        return ""
+
     def do_skip(self) -> str:
         """The identity of `++`.
 
@@ -518,3 +546,108 @@ BEATS_PER_BAR = 4
 def _beats_of(bar: int) -> float:
     """A bar number as the beat it starts on."""
     return float(max(0, bar - 1) * BEATS_PER_BAR)
+
+
+# ── The window, and what passes between them ─────────────────────────────
+
+
+def furniture(session: "Session", bench=None) -> str:
+    """What the model has to say about the chrome — `furniture.rs`.
+
+    **Derived every time it is asked for**, which is cheap and cannot go
+    stale.  Everything in it is already a fact the workbench keeps for
+    its own reasons: `sites` is what puts a knob beside its declaration,
+    `values` is what a knob holds, `trouble` is the last complaint.  The
+    description is a *reading* of those, not a second copy.
+    """
+    b = bench if bench is not None else session.bench
+    out = [f"status\t{session.said[-1] if session.said else ''}"]
+
+    trouble = getattr(b, "trouble", "")
+    if trouble:
+        first = trouble.strip().splitlines()[0]
+        out.append(f"trouble\t{_line_of(trouble)}\t{first}")
+
+    seen = set()
+    for site in getattr(b, "sites", []):
+        name = getattr(site, "name", None)
+        if name is None or name in seen or name not in getattr(b, "values", {}):
+            continue
+        seen.add(name)
+        lo, hi = b.knob_range(name)
+        kind = getattr(b, "knob_types", {}).get(name, "Int")
+        out.append(f"knob\t{name}\t{getattr(site, 'line', 0)}"
+                   f"\t{b.values[name]}\t{lo}\t{hi}\t{kind}")
+
+    for bank in getattr(b, "banks", []) or []:
+        name = getattr(bank, "name", str(bank))
+        out.append(f"bank\t{name}\t{getattr(bank, 'line', 0)}"
+                   f"\t{getattr(bank, 'voices', 0)}"
+                   f"\t{1 if _listening(b, name) else 0}")
+
+    out.append(f"play\t{1 if getattr(b, 'playing', False) else 0}"
+               f"\t{_beats(b)}")
+    span = getattr(b, "loop_span", None)
+    if span:
+        out.append(f"loop\t{span[0]}\t{span[1]}")
+
+    for verb in session.commands():
+        out.append(f"command\t{verb.name}\t{verb}\t{verb.key}"
+                   f"\t{verb.summary}")
+    return "\n".join(out)
+
+
+def _line_of(trouble: str) -> int:
+    """Which line a complaint is about, or `0` for one about nowhere.
+
+    The compiler says `at 12:8-12:11`; a status bar shows one line of
+    that and the margin wants the number.  Read rather than re-derived,
+    because the message is the only place it exists by the time it gets
+    here.
+    """
+    import re
+
+    found = re.search(r"\bat (\d+):", trouble)
+    return int(found.group(1)) if found else 0
+
+
+def _listening(bench, name: str) -> bool:
+    try:
+        return bool(bench.listening(name))
+    except Exception:                                    # noqa: BLE001
+        return False
+
+
+def _beats(bench) -> float:
+    try:
+        return round(bench.position_in_beats(), 3)
+    except Exception:                                    # noqa: BLE001
+        return 0.0
+
+
+def act(session: "Session", line: str) -> str:
+    """One gesture from the window, done.
+
+    The other half of the wire, and the same shape: a verb, then
+    literals.  An unknown verb is a sentence rather than an exception,
+    for the reason every refusal here is — this is between a person and
+    a machine that is playing music.
+    """
+    parts = line.split("\t")
+    verb = parts[0] if parts else ""
+    if verb == "command":
+        return session.run(*(p for p in parts[1:] if p))
+    if verb == "filter":
+        query = parts[1] if len(parts) > 1 else ""
+        session.filtered = session.matching(query)
+        return f"{len(session.filtered)} of {len(session.commands())}"
+    if verb == "turn" and len(parts) >= 3:
+        try:
+            return session.run("set", parts[1], float(parts[2]))
+        except ValueError:
+            return f"turn: `{parts[2]}` is not a number"
+    if verb == "edited":
+        return ""
+    if verb == "note" and len(parts) >= 3:
+        return session.play_note(int(parts[1]), parts[2] == "1")
+    return f"no gesture `{verb}`"

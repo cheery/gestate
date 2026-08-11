@@ -95,3 +95,51 @@ def test_closing_twice_and_using_a_closed_editor_are_quiet():
     assert ed.text == ""
     assert ed.version == 0
     ed.request_close()
+
+
+@needs_display
+@needs_cargo
+def test_the_furniture_reaches_the_window_and_gestures_come_back():
+    """The wire, both directions, through a real window.
+
+    `spec/workbench.md`: the model publishes a description of the
+    furniture and the window draws it; what comes back is names and
+    literals.  Nothing in either direction is a pointer into the other
+    side's heap, which is what makes this a boundary rather than a
+    shared object.
+    """
+    from gestate.editor import Editor
+
+    with Editor("sound : Sig Float\n", 500, 360) as ed:
+        assert _wait(lambda: ed.is_open)
+        assert ed.gestures() == [], "nothing has happened yet"
+
+        ed.describe("status\tapplied\n"
+                    "knob\tcutoff\t1\t0.4\t0\t1\tFloat\n"
+                    "command\tapply\tapply\tCtrl-S\tRebuild it.\n"
+                    "command\tplay\tplay\tSpace\tStart or stop.")
+        # The window takes it on its next frame; nothing here waits on
+        # a reply, because a description is not a question.
+        time.sleep(0.2)
+        assert ed.is_open, "a description must not shut the window"
+        ed.request_close()
+        assert _wait(lambda: not ed.is_open)
+
+
+@needs_display
+@needs_cargo
+def test_gestures_are_drained_rather_than_read():
+    """Nothing is seen twice: a command run because the queue was polled
+    again is the sort of bug that plays a note nobody asked for."""
+    from gestate.editor import Editor
+
+    with Editor("x\n", 400, 300) as ed:
+        assert _wait(lambda: ed.is_open)
+        # An edit from this side is an edit, so the window says so.
+        ed.text = "y\n"
+        assert _wait(lambda: ed.gestures() != [] or ed.text == "y\n")
+        first = ed.gestures()
+        second = ed.gestures()
+        assert second == [], f"seen twice: {first} then {second}"
+        ed.request_close()
+        assert _wait(lambda: not ed.is_open)

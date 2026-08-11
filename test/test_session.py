@@ -431,3 +431,86 @@ def test_the_constraint_is_enforced_where_it_matters():
         assert "No instance" in str(e), e
     else:
         raise AssertionError("a name of the wrong kind was accepted")
+
+
+# ── The wire ─────────────────────────────────────────────────────────────
+
+
+def test_the_furniture_is_a_reading_of_facts_the_model_already_keeps():
+    """Nothing in the description is a second copy: `sites` is what puts
+    a knob beside its declaration, `values` is what a knob holds, and
+    `trouble` is the last complaint."""
+    from gestate.session import furniture
+
+    class Site:
+        def __init__(self, name, line):
+            self.name, self.line = name, line
+
+    s = session()
+    s.bench.sites = [Site("cutoff", 40), Site("drive", 44)]
+    s.bench.trouble = "expected a type, got `sound` (at 12:8-12:11)"
+    s.run("play")
+
+    lines = furniture(s).splitlines()
+    assert lines[0] == "status\tplaying"
+    assert "trouble\t12\texpected a type, got `sound` (at 12:8-12:11)" in lines
+    assert "knob\tcutoff\t40\t40\t0\t100\tInt" in lines
+    assert "knob\tdrive\t44\t0.5\t0.0\t1.0\tFloat" in lines
+    assert any(line.startswith("play\t") for line in lines)
+    # And every command, so the palette has something to show.
+    assert sum(1 for line in lines if line.startswith("command\t")) == \
+        len(s.commands())
+
+
+def test_a_gesture_is_a_verb_and_literals():
+    """The other half of the wire, and the same shape.  An unknown verb
+    is a sentence rather than an exception."""
+    from gestate.session import act
+
+    s = session()
+    assert act(s, "command\tplay") == "playing"
+    assert act(s, "turn\tcutoff\t70") == "cutoff = 70"
+    assert act(s, "edited") == ""
+    assert act(s, "wobble\t1") == "no gesture `wobble`"
+    assert act(s, "turn\tcutoff\tnope") == "turn: `nope` is not a number"
+
+
+def test_filtering_is_answered_by_the_model():
+    """**The ranking has one home.**  The window asks; it does not
+    sort — a second implementation there would be two copies of one
+    decision."""
+    from gestate.session import act
+
+    s = session()
+    said = act(s, "filter\tloop")
+    assert said.startswith("3 of "), said
+    assert [v.name for v in s.filtered][:3] == ["loop", "loopAll", "loopOff"]
+    # An empty query is everything, in the order the file declares.
+    act(s, "filter\t")
+    assert len(s.filtered) == len(s.commands())
+
+
+def test_a_played_note_obeys_what_performing_says():
+    """**The one place `performing` is read**, so every caller is spared
+    asking."""
+    from gestate.session import act
+
+    played = []
+
+    class Keys:
+        def press(self, n):
+            played.append(("on", n))
+
+        def release(self, n):
+            played.append(("off", n))
+
+    s = session()
+    s.bench.keyboard = Keys()
+    s.run("performOff")
+    act(s, "note\t60\t1")
+    assert played == [], "notes go nowhere"
+
+    s.run("performOn")
+    act(s, "note\t60\t1")
+    act(s, "note\t60\t0")
+    assert played == [("on", 60), ("off", 60)]

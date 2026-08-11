@@ -19,6 +19,7 @@ use gestate_panel::list::Colour;
 use gestate_panel::paint::Canvas;
 
 use crate::document::{column_of, width_of, Document};
+use crate::furniture::Furniture;
 use crate::font::Font;
 
 // ── The palette ──────────────────────────────────────────────────────
@@ -34,6 +35,13 @@ pub const FAINT: Colour = Colour::rgb(0x4a, 0x52, 0x60);
 pub const CURRENT: Colour = Colour::rgb(0x1b, 0x1e, 0x25);
 pub const CARET: Colour = Colour::rgb(0x5c, 0xa8, 0xd8);
 pub const SELECT: Colour = Colour::rgb(0x24, 0x3a, 0x4c);
+/// A knob's trough, in the margin beside the line that declares it.
+pub const TROUGH: Colour = Colour::rgb(0x24, 0x28, 0x30);
+pub const FILL: Colour = Colour::rgb(0x5c, 0xa8, 0xd8);
+/// What the compiler had to say, and where.
+pub const ANGRY: Colour = Colour::rgb(0xc0, 0x4c, 0x48);
+/// The status line's ground.
+pub const CHROME: Colour = Colour::rgb(0x1c, 0x1f, 0x25);
 
 /// One thing to draw.
 ///
@@ -67,6 +75,14 @@ pub struct View {
     pub h: i32,
     /// Whether to draw line numbers.
     pub gutter: bool,
+    /// Columns reserved on the right for knobs.
+    ///
+    /// **A margin, not a panel.**  `audiospans` says which line each
+    /// control source was declared on, so a parameter is drawn beside
+    /// its own declaration rather than in a list you have to read
+    /// against the code.  Zero when nothing declares one, so a synth
+    /// with no knobs loses no width to the possibility of them.
+    pub aside: usize,
     /// How many screen pixels one font pixel becomes.
     ///
     /// **Zoom lives here rather than in the font**, because a `Font` is
@@ -79,7 +95,8 @@ pub struct View {
 
 impl Default for View {
     fn default() -> Self {
-        View { top: 0, left: 0, w: 800, h: 600, gutter: true, scale: 1 }
+        View { top: 0, left: 0, w: 800, h: 600, gutter: true, aside: 0,
+               scale: 1 }
     }
 }
 
@@ -94,15 +111,6 @@ impl View {
 
     pub fn ch(&self, font: &Font) -> i32 {
         font.h * self.scale.max(1)
-    }
-
-    /// How many rows fit, at least one.
-    ///
-    /// **At least one**, because a window one pixel tall must still
-    /// draw the line the caret is on — a viewport that can show
-    /// nothing is a viewport that divides by zero somewhere else.
-    pub fn rows(&self, font: &Font) -> usize {
-        ((self.h / self.ch(font)).max(1)) as usize
     }
 
     /// How wide the gutter is, in columns, for a document this long.
@@ -121,8 +129,18 @@ impl View {
 
     /// Columns available to the text itself.
     pub fn text_cols(&self, font: &Font, doc: &Document) -> usize {
-        let used = self.gutter_cols(doc) as i32 * self.cw(font);
+        let used = (self.gutter_cols(doc) + self.aside) as i32 * self.cw(font);
         (((self.w - used) / self.cw(font)).max(1)) as usize
+    }
+
+    /// How tall the status line is — one row, plus air.
+    pub fn status_h(&self, font: &Font) -> i32 {
+        self.ch(font) + 4
+    }
+
+    /// Rows of *text*, which is the window minus the status line.
+    pub fn rows(&self, font: &Font) -> usize {
+        (((self.h - self.status_h(font)) / self.ch(font)).max(1)) as usize
     }
 
     /// Scroll so the caret is visible, and return whether it moved.
@@ -172,6 +190,12 @@ impl View {
 
 /// Draw the document.  **Pure**: same document, same view, same list.
 pub fn frame(doc: &Document, view: &View, font: &Font) -> Frame {
+    frame_with(doc, view, font, &Furniture::default())
+}
+
+/// The same, with what the model had to say about the chrome.
+pub fn frame_with(doc: &Document, view: &View, font: &Font,
+                  chrome: &Furniture) -> Frame {
     let mut f = Frame::default();
     let rows = view.rows(font);
     let gutter = view.gutter_cols(doc);
@@ -246,6 +270,58 @@ pub fn frame(doc: &Document, view: &View, font: &Font) -> Frame {
         if !shown.is_empty() {
             f.items.push(Item::Run { x: text_x, y, s: shown, c: INK });
         }
+    }
+
+    // **A knob in the margin at the line that declares it**, and the
+    // trouble at the line that caused it.  Both are drawn from the
+    // description rather than from anything this side knows, which is
+    // what keeps the model the only place a fact lives.
+    for i in 0..rows {
+        let row = view.top + i;
+        if row >= doc.rows() {
+            break;
+        }
+        let y = i as i32 * ch;
+        let line_no = row + 1;
+
+        if let Some(t) = chrome.trouble_at(line_no) {
+            // A mark in the gutter, and the message after the text — a
+            // status bar is one line and this is where the complaint
+            // belongs, beside what caused it.
+            f.items.push(Item::Rect { x: 0, y, w: cw / 2, h: ch, c: ANGRY });
+            let after = text_x
+                + (width_of(&doc.line(row)).saturating_sub(view.left) as i32
+                   + 2) * cw;
+            if after < view.w {
+                f.items.push(Item::Run { x: after, y, s: t.message.clone(),
+                                         c: ANGRY });
+            }
+        }
+
+        if view.aside > 0 {
+            if let Some(k) = chrome.knob_at(line_no) {
+                let wide = view.aside as i32 * cw - cw;
+                let x = view.w - view.aside as i32 * cw;
+                let mid = y + ch / 2 - 2;
+                f.items.push(Item::Rect { x, y: mid, w: wide, h: 4,
+                                          c: TROUGH });
+                let full = (wide as f64 * k.fraction()).round() as i32;
+                if full > 0 {
+                    f.items.push(Item::Rect { x, y: mid, w: full, h: 4,
+                                              c: FILL });
+                }
+            }
+        }
+    }
+
+    // The status line, at the foot — one sentence, which is what the
+    // model says every command answers with.
+    let sy = view.h - view.status_h(font);
+    f.items.push(Item::Rect { x: 0, y: sy, w: view.w,
+                              h: view.status_h(font), c: CHROME });
+    if !chrome.status.is_empty() {
+        f.items.push(Item::Run { x: 4, y: sy + 2, s: chrome.status.clone(),
+                                 c: FAINT });
     }
 
     // The caret last, so nothing is drawn over it.

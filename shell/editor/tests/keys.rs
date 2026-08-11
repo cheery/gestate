@@ -7,8 +7,13 @@ use gestate_editor::keys::{click, press, scroll, Key, Mods};
 use gestate_editor::view::View;
 
 fn setup(text: &str, rows: usize) -> (Document, View) {
-    (Document::new(text),
-     View { top: 0, left: 0, w: 600, h: rows as i32 * LARGE.h, gutter: false, scale: 1 })
+    // **Sized for the rows it wants, status line included.**  The
+    // window is not all text: one row at the foot says what just
+    // happened, so a test that asks for ten rows has to pay for it.
+    let v = View { top: 0, left: 0, w: 600, h: 0, gutter: false,
+                   aside: 0, scale: 1 };
+    let h = rows as i32 * v.ch(&LARGE) + v.status_h(&LARGE);
+    (Document::new(text), View { h, ..v })
 }
 
 fn tap(d: &mut Document, v: &mut View, k: Key) -> gestate_editor::keys::Did {

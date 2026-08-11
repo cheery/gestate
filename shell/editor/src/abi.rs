@@ -56,6 +56,17 @@ pub struct Shared {
     incoming: Mutex<Option<String>>,
     /// The host has asked the window to shut.
     closing: AtomicBool,
+    /// The chrome, as the model last described it.
+    ///
+    /// **A whole description each time, not a diff.**  A diff would be
+    /// a second state to keep in step across a boundary, which is the
+    /// thing this design keeps refusing; the description is a few
+    /// hundred bytes and is pushed only when something changed.
+    furniture: Mutex<String>,
+    /// Bumped when it does, so the window redraws without comparing.
+    furnished: AtomicU64,
+    /// What the window has to say back, oldest first.
+    gestures: Mutex<Vec<String>>,
     initial: Mutex<String>,
 }
 
@@ -68,6 +79,9 @@ impl Shared {
             open: AtomicBool::new(true),
             incoming: Mutex::new(None),
             closing: AtomicBool::new(false),
+            furniture: Mutex::new(String::new()),
+            furnished: AtomicU64::new(0),
+            gestures: Mutex::new(Vec::new()),
             initial: Mutex::new(initial),
         })
     }
@@ -84,6 +98,27 @@ impl Shared {
             *held = text;
         }
         self.version.fetch_add(1, Ordering::Release);
+    }
+
+    fn furniture_now(&self) -> Option<(u64, String)> {
+        let at = self.furnished.load(Ordering::Acquire);
+        if at == 0 {
+            return None;
+        }
+        self.furniture.lock().ok().map(|t| (at, t.clone()))
+    }
+
+    fn gesture_now(&self, line: String) {
+        if let Ok(mut q) = self.gestures.lock() {
+            // **Bounded.**  A host that stops draining — because it is
+            // rebuilding, or has gone away — must not let a dragged
+            // knob grow this without limit.  The newest are the ones
+            // that matter, so the oldest go.
+            if q.len() >= 4096 {
+                q.drain(..1024);
+            }
+            q.push(line);
+        }
     }
 }
 
@@ -103,6 +138,14 @@ impl Host for Shared {
 
     fn incoming(&self) -> Option<String> {
         self.take_incoming()
+    }
+
+    fn furniture(&self) -> Option<(u64, String)> {
+        self.furniture_now()
+    }
+
+    fn gesture(&self, line: String) {
+        self.gesture_now(line)
     }
 
     fn should_close(&self) -> bool {
@@ -219,6 +262,45 @@ pub unsafe extern "C" fn ged_set_text(e: *const Editor, text: *const c_char) {
     let ed = editor!(e, ());
     if let Ok(mut slot) = ed.shared.incoming.lock() {
         *slot = Some(text_of(text));
+    }
+}
+
+/// Describe the chrome — status, knobs, banks, transport, commands.
+///
+/// See `furniture.rs` for the format.  Pushed whole, and only when
+/// something changed.
+///
+/// # Safety
+/// As `ged_is_open`; `text` must be NUL-terminated or null.
+#[no_mangle]
+pub unsafe extern "C" fn ged_set_furniture(e: *const Editor,
+                                           text: *const c_char) {
+    let ed = editor!(e, ());
+    if let Ok(mut held) = ed.shared.furniture.lock() {
+        *held = text_of(text);
+    }
+    ed.shared.furnished.fetch_add(1, Ordering::Release);
+}
+
+/// Take everything the window has said since this was last called, one
+/// gesture a line.  A fresh C string, freed with `ged_free_str`.
+///
+/// **Drained rather than read**, so a host cannot see one twice: a
+/// command run because the queue was polled again is the sort of bug
+/// that plays a note nobody asked for.
+///
+/// # Safety
+/// As `ged_text`.
+#[no_mangle]
+pub unsafe extern "C" fn ged_gestures(e: *const Editor) -> *mut c_char {
+    let ed = editor!(e, std::ptr::null_mut());
+    let taken = match ed.shared.gestures.lock() {
+        Ok(mut q) => std::mem::take(&mut *q),
+        Err(_) => return std::ptr::null_mut(),
+    };
+    match CString::new(taken.join("\n")) {
+        Ok(s) => s.into_raw(),
+        Err(_) => std::ptr::null_mut(),
     }
 }
 
