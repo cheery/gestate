@@ -105,6 +105,8 @@ enum Instr {
     SigCons,
     /// Read a signal's current value, ✓-checked.
     SigHead,
+    /// Combine two delayed values into a delayed application.
+    MkDelayAp,
     MatchFail,
 }
 
@@ -283,6 +285,12 @@ impl Machine {
     /// Put a cell on the now heap — a driver seeding the sweep.
     pub fn push_now(&mut self, id: SigId) {
         self.now.push(id);
+    }
+
+    /// A global by name — what a host forces to reach a program's own
+    /// entry point.
+    pub fn globals_get(&self, name: &str) -> Option<&Idx> {
+        self.globals.get(name)
     }
 
     /// The node at an index, for a host reading a forced structure.
@@ -662,6 +670,40 @@ impl Machine {
                 let value = cell.value;
                 self.stack.push(value);
             }
+            // `⟨f⟩ ⟨x⟩ ⇒ ⟨f x⟩` — two `tagDelay` nodes into one.
+            //
+            // **Not the oracle's instruction after all.**  This was left
+            // home on the reasoning that only the audio reference
+            // reached it; in fact `compile_c` emits it for every delayed
+            // application, so `:::` and `mkSig` are built from it and no
+            // substrate can cross without it.  What must not move to
+            // crust is the *oracle* — the Python render that defines
+            // what a graph means — and that is a question of which
+            // implementation is authoritative, not of which instructions
+            // this one knows.
+            Instr::MkDelayAp => {
+                let b = self.stack.pop()
+                    .unwrap_or_else(|| fail("MkDelayAp without an argument"));
+                let a = self.stack.pop()
+                    .unwrap_or_else(|| fail("MkDelayAp without a function"));
+                let (bi, ai) = (self.deref(b), self.deref(a));
+                let f = match &self.heap[ai] {
+                    Node::Con(t, args)
+                        if *t == reactive::TAG_DELAY && args.len() == 1 =>
+                        args[0],
+                    _ => fail("MkDelayAp: the left operand is not a delay"),
+                };
+                let x = match &self.heap[bi] {
+                    Node::Con(t, args)
+                        if *t == reactive::TAG_DELAY && args.len() == 1 =>
+                        args[0],
+                    _ => fail("MkDelayAp: the right operand is not a delay"),
+                };
+                let ap = self.alloc(Node::Ap(f, x));
+                let wrapped = self.alloc(
+                    Node::Con(reactive::TAG_DELAY, vec![ap]));
+                self.stack.push(wrapped);
+            }
             Instr::NewChan => {
                 let id = self.chans;
                 self.chans += 1;
@@ -778,6 +820,9 @@ fn parse(text: &str) -> (Vec<Vec<Instr>>, Vec<(String, usize, usize)>, String) {
                     "Eval" => Instr::Eval,
                     "MatchFail" => Instr::MatchFail,
                     "NewChan" => Instr::NewChan,
+                    "SigCons" => Instr::SigCons,
+                    "MkDelayAp" => Instr::MkDelayAp,
+                    "SigHead" => Instr::SigHead,
                     "AddInt" => Instr::AddInt,
                     "SubInt" => Instr::SubInt,
                     "MulInt" => Instr::MulInt,

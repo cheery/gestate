@@ -29,13 +29,24 @@ _SIMPLE = {gm.Unwind: "Unwind", gm.Mkap: "Mkap", gm.Eval: "Eval",
            gm.ModInt: "ModInt", gm.XorInt: "XorInt",
            gm.DivFloat: "DivFloat", gm.ModFloat: "ModFloat",
            gm.ToFloat: "ToFloat", gm.FloorFloat: "FloorFloat",
-           # **The one reactive instruction a *score* needs.**  A score
-           # creates channels — `hear` names one — and never reads
-           # them; the host does the reading.  So `NewChan` crosses and
-           # the rest of the reactive half (`SigCons`, `SigHead`,
-           # `MkDelayAp`) stays home, where the substrate will want it
-           # (`spec/crust.md`).
-           gm.NewChan: "NewChan"}
+           # **The reactive half, now that something calls for it.**
+           # A score creates channels — `hear` names one — and never
+           # reads them; that is what `NewChan` alone bought.  A
+           # *substrate* is signals: `SigCons` allocates the cells and
+           # `SigHead` reads them, and `crust` holds both in a stable
+           # arena with the ✓ frontier checked at the read
+           # (`spec/crust.md` §"the reactive half").
+           #
+           # `MkDelayAp` comes with them: `compile_c` emits it for
+           # every delayed application, so `:::` and `mkSig` are built
+           # from it and no substrate crosses without it.  What stays
+           # home is the *oracle* — the Python render that says what a
+           # graph means — which is a question of which implementation
+           # is authoritative, not of which instructions this one knows.
+           gm.NewChan: "NewChan",
+           gm.SigCons: "SigCons",
+           gm.SigHead: "SigHead",
+           gm.MkDelayAp: "MkDelayAp"}
 _UNARY = {gm.Push: "Push", gm.PushArg: "PushArg",
           gm.Update: "Update", gm.Pop: "Pop", gm.Alloc: "Alloc",
           gm.Slide: "Slide", gm.Proj: "Proj"}

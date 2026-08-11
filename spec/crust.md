@@ -83,12 +83,30 @@ caller is the audio *oracle*, and the oracle is the meaning the
 compiled engines are checked against, so porting it would delete the
 thing doing the checking.
 
-Not yet: the reactive *driver* (`reactive.py`'s sweep) and the `Sub`
-walk, which is what a `clap.gui` canvas needs on top of this; and the
-offline CLI's dynamic path.  `gestate.crust.serialize` still refuses
-`SigCons`/`SigHead` by name — the machine can hold them, and no
-program is allowed to cross with them until the substrate deliberately
-opts in.*
+**And the substrate crosses now.**  The sweep is ported
+(`crust/src/reactive.rs` — `ticked`, `advance`, `update_one`,
+`reactive_step`, all six ⃝∃ forms, the `Sync` packing), the `Sub` walk
+with it (`shell/panel/src/substrate.rs`), and
+`shell/panel/tests/substrate_parity.rs` runs
+`examples/audio/substrate.ges` as the compiler produces it: forced on
+`crust`, walked, and drawing what `gui.py` draws item for item —
+then advanced by `reactive_step`, with the picture following the
+channel each instant.  That is the first *signal* program this machine
+has run, so it is also the check on the arena, on the now heap as a
+GC root, and on `SigHead`'s ✓ frontier.
+
+**`MkDelayAp` had to come after all**, and the reasoning that left it
+home was wrong: `compile_c` emits it for every delayed application, so
+`:::` and `mkSig` are built from it and no substrate crosses without
+it.  What must not move is the *oracle* — the Python render that says
+what a graph means — and that is a question of which implementation is
+authoritative, not of which instructions this one knows.
+
+Not yet: a host that drives the two at frame rate — the walk and the
+sweep are joined in a test, not in a window — and the offline CLI's
+dynamic path.  The reference driver's `cl`/`ticked` cross-check is
+deliberately not ported: it checks `reactive.py` against itself, and
+crust is checked against `reactive.py`.*
 
 For now this is a proposal.
 
