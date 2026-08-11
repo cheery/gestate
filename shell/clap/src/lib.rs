@@ -13,6 +13,8 @@
 
 mod abi;
 #[cfg(feature = "dynscore")]
+mod descend;
+#[cfg(feature = "dynscore")]
 pub mod dynscore;
 pub mod engine;
 #[cfg(feature = "gui")]
@@ -74,6 +76,10 @@ pub(crate) struct Instance {
     /// opened on `activate`, when the rate is finally known.
     #[cfg(feature = "dynscore")]
     piece: Option<dynscore::Performer>,
+    /// The worker that walks to a seek's target, so the audio thread
+    /// does not (`descend.rs`).
+    #[cfg(feature = "dynscore")]
+    descender: Option<descend::Descender>,
     /// The host, kept from `factory_create` so a panel can ask it to
     /// flush a change made while the transport is stopped
     /// (`spec/panel.md` §"What the ABI has to grow").
@@ -155,6 +161,8 @@ impl Instance {
             host: std::ptr::null(),
             #[cfg(feature = "dynscore")]
             piece: None,
+            #[cfg(feature = "dynscore")]
+            descender: None,
             #[cfg(feature = "gui")]
             gui: gui::Gui::default(),
             #[cfg(feature = "gui")]
@@ -573,6 +581,22 @@ unsafe fn advance_piece(inst: &mut Instance, tb: &score::Tables,
         inst.piece = Some(perf);
         return;
     };
+
+    // **Ask, then collect.**  A seek left a target behind; the worker
+    // walks to it while this thread keeps rendering, and the primed
+    // stream is installed the block it turns up.
+    if let Some(d) = inst.descender.as_mut() {
+        if let Some(tick) = perf.wanted() {
+            if !d.awaiting() {
+                d.request(tick, tb.tpb);
+            }
+        }
+        if let Some((tick, piece)) = d.take() {
+            let old = perf.install(tick, piece);
+            d.give_back(old);
+        }
+    }
+
     let held = held_keys(inst);
     perf.origin = inst.performer.origin;
     perf.advance(program, tb, tempo, &mut inst.voices,
@@ -601,6 +625,20 @@ unsafe fn open_piece(inst: &mut Instance) {
     inst.piece = engine::program()
         .and_then(|p| dynscore::Piece::open(p, 0).ok())
         .map(dynscore::Performer::new);
+    // The worker starts with the plugin: spawning one on the audio
+    // thread at the first seek would be the very thing this avoids.
+    if inst.descender.is_none() {
+        inst.descender = engine::program().map(descend::Descender::new);
+        // A second machine, built here on the main thread, so the
+        // worker's first descent re-roots a warm heap instead of
+        // parsing the program.
+        if let (Some(d), Some(p)) = (inst.descender.as_mut(),
+                                     engine::program()) {
+            if let Ok(spare) = dynscore::Piece::open(p, 0) {
+                d.prewarm(spare);
+            }
+        }
+    }
 }
 
 unsafe extern "C" fn plugin_activate(plugin: *const clap_plugin,

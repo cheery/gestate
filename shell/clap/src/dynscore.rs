@@ -107,6 +107,18 @@ impl Piece {
         Ok(())
     }
 
+    /// Compact the heap now — see `crust::Stream::compact`.
+    ///
+    /// Called by the descent worker before a stream changes hands, so
+    /// the audio thread inherits a small heap rather than the bill for
+    /// the walk that built it.
+    pub fn compact(&mut self) {
+        let Piece { machine, stream, failed } = self;
+        if let Err(e) = guard(|| stream.compact(machine)) {
+            *failed = Some(e);
+        }
+    }
+
     pub fn done(&self) -> bool {
         self.stream.done
     }
@@ -348,6 +360,14 @@ pub struct Performer {
     pub horizon_beats: f64,
     /// The last thing that went wrong.
     pub failed: Option<String>,
+    /// The descent in flight, if any — a seek asks for a stream and
+    /// the audio thread carries on without one until it arrives.
+    ///
+    /// **The score is silent while this is `Some`.**  That is the
+    /// trade: a late entry rather than an overrun, and the signal half
+    /// of an instrument keeps playing throughout, so a piece with drums
+    /// in its `sound` still has drums (`descend.rs`).
+    pub descending: bool,
     /// True until the first pull after a re-root has caught up.
     ///
     /// **A seek is allowed one expensive block.**  Re-rooting is cheap
@@ -361,6 +381,8 @@ pub struct Performer {
     /// How many blocks running the stream has failed to reach its
     /// horizon — what the panel reports when a piece cannot keep up.
     behind: u32,
+    /// A seek's target, until a primed stream for it arrives.
+    wanted: Option<i64>,
     /// The tick the stream was last rooted at **and has not moved
     /// from**, so a repeated seek to the same place costs nothing.
     ///
@@ -386,8 +408,10 @@ impl Performer {
             origin: 0,
             horizon_beats: 4.0,
             failed: None,
+            descending: false,
             priming: true,
             behind: 0,
+            wanted: None,
             opened_at: Some(0),
         }
     }
@@ -403,6 +427,9 @@ impl Performer {
         }
         // A few blocks behind is the budget doing its job; a hundred is
         // a piece this machine cannot force in time.
+        if self.descending {
+            return None;    // waiting is not a fault
+        }
         if self.behind > 100 {
             return Some("THE PIECE IS BEHIND - IT CANNOT BE FORCED IN TIME"
                         .to_string());
@@ -539,6 +566,13 @@ impl Performer {
                    control: &mut [i64], t: i64, block: i64,
                    held: &dyn Fn(usize) -> Vec<i64>) {
         if self.failed.is_some() {
+            return;
+        }
+        if self.descending {
+            // The stream under us is the *old* place.  Forcing it would
+            // deliver notes from where the playhead used to be, which
+            // is worse than the silence of waiting.
+            self.position = t;
             return;
         }
         self.pull(p, t, tempo, tb.rate, tb.tpb, block, held);
@@ -679,9 +713,15 @@ impl Performer {
         self.played.clear();
         self.position = -1;
         self.priming = true;
+        // **The top is cheap enough to do here.**  A descent to tick
+        // zero is no descent at all — `liveMain seed 0` is the piece
+        // from its start — so pressing play does not have to wait for a
+        // worker, and two plays stay one performance.
         match self.piece.reopen(p, 0) {
             Ok(()) => {
                 self.opened_at = Some(0);
+                self.wanted = None;
+                self.descending = false;
                 self.failed = None;
             }
             Err(e) => self.failed = Some(e),
@@ -736,29 +776,38 @@ impl Performer {
         self.position = -1;
         self.priming = true;
 
-        // Ticks the target stands at, and the stream re-rooted there.
+        // Ticks the target stands at.
         let ticks = if tempo > 0.0 && tb.rate > 0 {
             ((target as f64 / tb.rate as f64) * (tempo / 60.0)
              * tb.tpb as f64) as i64
         } else {
             0
         };
-        let ticks = ticks.max(0);
-        // **Nothing to do if we are already there.**  A host that
-        // reports the same position twice, or jitters by less than a
-        // tick, must not cost a re-root — and a rewind that arrives as
-        // a run of identical seeks is exactly that.
-        if self.opened_at == Some(ticks) {
-            return;
-        }
-        match self.piece.reopen(p, ticks) {
-            Ok(()) => {
-                self.opened_at = Some(ticks);
-                self.failed = None;
-            }
-            // A piece that will not re-open goes quiet and says so,
-            // rather than carrying on from the wrong place.
-            Err(e) => self.failed = Some(e),
-        }
+        self.wanted = Some(ticks.max(0));
+        self.descending = true;
+    }
+
+    /// The tick a seek asked for and has not been given yet.
+    pub fn wanted(&self) -> Option<i64> {
+        self.wanted
+    }
+
+    /// Install a stream the worker primed.
+    ///
+    /// Returns the piece it replaces, so the caller can hand the
+    /// machine back for the next descent to reuse — a warm heap is the
+    /// difference between re-rooting and re-parsing.
+    pub fn install(&mut self, tick: i64, piece: Piece) -> Piece {
+        let old = std::mem::replace(&mut self.piece, piece);
+        self.opened_at = Some(tick);
+        self.wanted = None;
+        self.descending = false;
+        self.priming = false;
+        self.failed = None;
+        self.pending.clear();
+        self.dropped.clear();
+        self.played.clear();
+        self.position = -1;
+        old
     }
 }

@@ -1204,6 +1204,25 @@ impl Stream {
         self.ask_k = None;
     }
 
+    /// Collect now, whatever the heap's size.
+    ///
+    /// `pull` collects when the heap has outgrown its floor, which is
+    /// the right rule for a stream being walked steadily.  It is the
+    /// wrong rule for a stream about to change hands: a descent leaves
+    /// a big heap, and whoever pulls next pays for compacting it.  A
+    /// worker that hands a primed stream to an audio thread calls this
+    /// first, so the bill is settled on the thread that ran it up.
+    pub fn compact(&mut self, m: &mut Machine) {
+        let mut roots: Vec<&mut Idx> = vec![&mut self.node];
+        if let Some(p) = self.parked_for.as_mut() {
+            roots.push(p);
+        }
+        if let Some(k) = self.ask_k.as_mut() {
+            roots.push(k);
+        }
+        self.last_live = m.collect(&mut roots);
+    }
+
     /// WHNF of `node` within the budget, or `None` — parked in the
     /// machine's registers, resumable.  `ScoreStream._whnf`.
     fn whnf(&mut self, m: &mut Machine, node: Idx, fuel: &mut i64)
