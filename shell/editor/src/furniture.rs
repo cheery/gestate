@@ -187,6 +187,12 @@ impl Furniture {
                     f.choices.push(crate::palette::Choice {
                         text: p[1].into(),
                         note: p.get(2).copied().unwrap_or("").into(),
+                        here: p.get(3).copied() == Some("1"),
+                        // **Absent means yes.**  Every choice before
+                        // `steal` was choosable, and a model that does
+                        // not say must not have its rows refused.
+                        can: p.get(4).copied() != Some("0"),
+                        step: p.get(5).copied().unwrap_or("").into(),
                     });
                 }
                 // Unknown, or too short to mean anything.  Skipped.

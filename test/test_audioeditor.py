@@ -1,10 +1,13 @@
 """The environment — `spec/liveaudio.md` stage 6.
 
-`Workbench` is the half worth testing: it owns the playing instrument, the
-rebuild worker and the knob, and it imports no toolkit, so all of that runs
-headless.  `Editor` is a `tkinter` view over it and gets one smoke test that
-skips without a display — everything that could go quietly wrong is in the
-other half by design.
+`Workbench` is the whole of it now: it owns the playing instrument, the
+rebuild worker and the knob, and it imports no toolkit, so all of this
+runs headless.  There used to be a `tkinter` view beside it with a
+handful of smoke tests that skipped without a display; both are gone —
+`shell/editor` is the window, tested in Rust and driven from
+`test_session.py`.  Everything that could go quietly wrong was in this
+half by design, which is why the view could be replaced without
+disturbing a line of it.
 
 The pacing player from `test_liveupdate` comes back here for the same
 reason: a pipe holds 64 KB, so a short render never blocks the writer and
@@ -356,147 +359,6 @@ needs_display = pytest.mark.skipif(not _has_display(),
                                    reason="no display to open a window on")
 
 
-@needs_display
-def test_the_window_shows_the_source_with_line_numbers(tmp_path):
-    """One smoke test, because the view is meant to be the thin half.
-
-    It opens, it has the file in it, the gutter numbers the lines that are
-    on screen, and Ctrl-S is bound to apply rather than to inserting a
-    character.  No audio: `Workbench.start` is never called.
-    """
-    from gestate.audioeditor import Editor
-
-    path = tmp_path / "knob.ges"
-    path.write_text((AUDIO_DIR / "knob.ges").read_text())
-    bench = Workbench(path, rate=8000, block=64,
-                      command=_pacer(tmp_path / "stream.raw"))
-
-    editor = Editor(bench)
-    try:
-        editor.root.update()
-        editor.redraw_gutter()
-
-        assert editor.text.get("1.0", "end-1c") == path.read_text()
-        numbers = [editor.gutter.itemcget(i, "text")
-                   for i in editor.gutter.find_all()]
-        assert numbers[:3] == ["1", "2", "3"], numbers[:5]
-        assert len(numbers) > 5, "the gutter numbered the visible lines"
-
-        assert editor.apply.__self__ is editor
-        assert editor.root.bind_all("<Control-s>"), "Ctrl-S is bound"
-    finally:
-        editor.root.destroy()
-
-
-@needs_clang
-@needs_display
-def test_a_slider_sets_its_own_parameter(tmp_path):
-    """One slider per parameter, each writing only its own value.
-
-    The window is given a size and the declaration scrolled into view
-    first, because a knob is only *placed* while its line is on screen —
-    which is the design, and which an unrealised window cannot show.
-    """
-    from gestate.audioeditor import Editor
-
-    path = tmp_path / "twoknobs.ges"
-    path.write_text((AUDIO_DIR / "twoknobs.ges").read_text())
-    bench = Workbench(path, rate=8000, block=64,
-                      command=_pacer(tmp_path / "stream.raw"))
-    bench.start(seconds=0.0)
-    editor = Editor(bench)
-    try:
-        editor.root.geometry("900x600")
-        editor.root.update()
-        pitch = next(s for s in bench.sites if s.name == "pitch")
-        editor.text.see(f"{pitch.line}.0")
-        editor.root.update()
-        editor.redraw_knobs()
-
-        assert set(editor.knobs) == {"pitch", "cutoff"}
-        editor.knobs["pitch"]["scale"].set(77)
-        editor.root.update()
-        assert bench.value_of("pitch") == 77
-        assert bench.value_of("cutoff") != 77, "the other knob moved too"
-    finally:
-        editor.root.destroy()
-        bench.stop()
-
-
-@needs_clang
-@needs_display
-def test_a_knob_is_drawn_at_the_line_that_declares_it(tmp_path):
-    """The feature the whole placement exists for.
-
-    Checked as a *coordinate*: the knob's y is the y of its own
-    declaration, so it cannot pass by being somewhere plausible.
-    """
-    from gestate.audioeditor import Editor
-
-    path = tmp_path / "twoknobs.ges"
-    path.write_text((AUDIO_DIR / "twoknobs.ges").read_text())
-    bench = Workbench(path, rate=8000, block=64,
-                      command=_pacer(tmp_path / "stream.raw"))
-    bench.start(seconds=0.0)
-    editor = Editor(bench)
-    try:
-        editor.root.geometry("900x700")
-        editor.root.update()
-        editor.text.see("1.0")
-        editor.root.update()
-        editor.redraw_knobs()
-
-        for site in bench.sites:
-            info = editor.text.dlineinfo(f"{site.line}.0")
-            if info is None:
-                continue                       # scrolled out: correctly hidden
-            frame = editor.knobs[site.name]["frame"]
-            editor.root.update()
-            assert abs(frame.winfo_y() - (info[1] - 4)) <= 2, (
-                f"{site.name} is not beside line {site.line}")
-    finally:
-        editor.root.destroy()
-        bench.stop()
-
-
-@needs_display
-def test_a_bank_row_goes_away_with_its_bank(tmp_path):
-    """Deleting a `voices` line must take its row off the rail.
-
-    A row is a *group* of widgets and a `tk.IntVar`, the way a knob is, and
-    the removal treated it as a single widget:
-
-        AttributeError: 'dict' object has no attribute 'destroy'
-
-    Raised on the Tk callback that repaints the rail, so it fired every
-    time the timer ran — the window went on working and the row stayed.
-    """
-    from gestate.audioeditor import Editor
-
-    path = tmp_path / "duet.ges"
-    path.write_text(DUET.read_text())
-    bench = Workbench(path, rate=8000, block=64,
-                      command=_pacer(tmp_path / "stream.raw"))
-    bench._find_banks(path.read_text())          # what `_place` does first
-    editor = Editor(bench)
-    try:
-        editor.root.geometry("900x700")
-        editor.root.update()
-        editor.redraw_banks()
-        assert set(editor.bank_rows) == {"lead", "bass"}
-        frame = editor.bank_rows["bass"]["frame"]
-
-        bench._find_banks(path.read_text().replace(
-            "voices bass 3 plucked : Sig Float\n", ""))
-        editor.redraw_banks()
-        editor.root.update()
-
-        assert set(editor.bank_rows) == {"lead"}
-        assert not frame.winfo_exists(), "the row is gone from the rail"
-    finally:
-        editor.root.destroy()
-
-
 # ── Audition: hearing an edit without keeping it ────────────────────────────
 
 
@@ -661,46 +523,6 @@ def test_learning_without_midi_says_so(tmp_path):
         assert bench.learn("pitch") is False
         assert any("no MIDI" in m for m in bench.drain())
     finally:
-        bench.stop()
-
-
-@needs_clang
-@needs_display
-def test_right_click_on_a_knob_arms_it(tmp_path):
-    """The gesture, end to end through the widget.
-
-    Bound on the frame, the label *and* the slider, because a 10-pixel
-    trough is a small target for a deliberate right-click.
-    """
-    from gestate.audiomidi import Controls
-    from gestate.audioeditor import Editor
-
-    path = tmp_path / "twoknobs.ges"
-    path.write_text((AUDIO_DIR / "twoknobs.ges").read_text())
-    bench = Workbench(path, rate=8000, block=64,
-                      command=_pacer(tmp_path / "stream.raw"))
-    bench.start(seconds=0.0)
-    bench.midi = Controls([])
-    bench._rebind_midi()
-    editor = Editor(bench)
-    try:
-        editor.root.geometry("900x600")
-        editor.root.update()
-        pitch = next(s for s in bench.sites if s.name == "pitch")
-        editor.text.see(f"{pitch.line}.0")
-        editor.root.update()
-        editor.redraw_knobs()
-
-        group = editor.knobs["pitch"]
-        for widget in (group["frame"], group["label"], group["scale"]):
-            widget.event_generate("<Button-3>")
-            editor.root.update()
-            assert bench.learning() == "pitch"
-            widget.event_generate("<Button-3>")     # again cancels
-            editor.root.update()
-            assert bench.learning() is None
-    finally:
-        editor.root.destroy()
         bench.stop()
 
 

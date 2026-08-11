@@ -309,7 +309,10 @@ def test_every_command_can_be_run_headless_without_raising():
     """
     s = session()
     sample = {"Int": 1, "Float": 0.5, "Text": "sine",
-              "Named": "cutoff", "a": 0.5}
+              "Named": "cutoff", "a": 0.5,
+              # A name that is certainly not there, so `open` and
+              # `steal` answer without touching the disk.
+              "Path": "no-such-file.ges"}
     for verb in vocabulary():
         args = tuple(sample[a] for a in verb.args)
         said = s.run(verb.name, *args)
@@ -716,8 +719,9 @@ def test_asking_about_a_named_argument_offers_names():
     it.bench.knob_types = {"cutoff": "Float", "pitch": "Int"}
     assert act(it, "wants\tlisten\t0\t") == "2 name(s)"
     assert [n for n, _note in it.choices()] == ["cutoff", "pitch"]
-    lines = furniture(it).splitlines()
-    assert "choice\tcutoff\tChan Float" in lines
+    lines = [l.split("\t")[:3] for l in furniture(it).splitlines()
+             if l.startswith("choice")]
+    assert ["choice", "cutoff", "Chan Float"] in lines
 
 
 def test_names_are_ranked_the_way_commands_are():
@@ -842,3 +846,138 @@ def test_canvas_answers_about_three_different_things():
 
     it.bench.substrate = object()
     assert it.run("canvas") == "canvas"
+
+
+# ── Opening a file, and taking a name ────────────────────────────────────
+
+def _looking(tmp_path):
+    """A session whose file sits in a directory with a few others."""
+    room = tmp_path / "here"
+    room.mkdir()
+    (room / "one.ges").write_text("sound : Sig Float\n")
+    (room / "two.ges").write_text("sound : Sig Float\n")
+    (room / "deeper").mkdir()
+    it = session()
+    it.bench.path = room / "one.ges"
+    return it, room
+
+
+def test_a_path_argument_offers_what_is_in_the_directory(tmp_path):
+    it, _room = _looking(tmp_path)
+    act(it, "wants\topen\t0\t")
+    shown = [text for text, _note, _can, _step in it.choices()]
+    assert shown[0] == "../", "going up is where the eye already is"
+    assert "deeper/" in shown and "one.ges" in shown and "two.ges" in shown
+
+
+def test_the_file_you_are_in_is_marked(tmp_path):
+    it, _room = _looking(tmp_path)
+    act(it, "wants\topen\t0\t")
+    marked = [l.split("\t")[1] for l in furniture(it).splitlines()
+              if l.startswith("choice") and l.split("\t")[3] == "1"]
+    assert marked == ["one.ges"]
+
+
+def test_going_up_stacks_rather_than_jumping(tmp_path):
+    """**`..` is a path, not a word.**  Choosing it must leave a query
+    you could have typed, because the query is what the next listing is
+    read from — a row that put an absolute path there would end the walk
+    you were in the middle of.
+
+    The *row* stays `../`, which is what it means at every depth; the
+    query it makes is what stacks.
+    """
+    it, _room = _looking(tmp_path)
+    act(it, "wants\topen\t0\t")
+    label, _note, _can, step = it.choices()[0]
+    assert (label, step) == ("../", "../")
+
+    act(it, "wants\topen\t0\t../")
+    label, _note, _can, step = it.choices()[0]
+    assert (label, step) == ("../", "../../"), "and again, and again"
+
+
+def test_a_query_narrows_without_losing_the_way_up(tmp_path):
+    it, _room = _looking(tmp_path)
+    act(it, "wants\topen\t0\ttwo")
+    assert [t for t, _n, _c, _s in it.choices()] == ["two.ges"]
+
+
+def test_opening_a_file_asks_the_window_for_it(tmp_path):
+    it, room = _looking(tmp_path)
+    win, _ed = a_window()
+    it.view = win
+    assert it.run("open", "two.ges") == "opened two.ges"
+    assert win.wanted == str(room / "two.ges")
+    assert "no file" in it.run("open", "nope.ges")
+
+
+def test_steal_greys_what_is_taken_and_refuses_it(tmp_path):
+    """The list is a courtesy; the check is the guarantee.  Overwriting
+    is not something a name box should do by accident."""
+    it, _room = _looking(tmp_path)
+    act(it, "wants\tsteal\t0\t")
+    rows = {text: can for text, _note, can, _step in it.choices()}
+    assert rows["one.ges"] is False and rows["two.ges"] is False
+    assert rows["deeper/"] is True, "a directory is a step, not a name"
+    assert rows["../"] is True
+    assert "is taken" in it.run("steal", "two.ges")
+
+
+def test_steal_takes_a_free_name(tmp_path):
+    it, room = _looking(tmp_path)
+    win, _ed = a_window()
+    it.view = win
+    assert it.run("steal", "fresh.ges") == "writing fresh.ges from now on"
+    assert it.bench.path == room / "fresh.ges"
+
+
+def test_a_file_is_taken_from_where_the_list_walked_to(tmp_path):
+    """**Relative to the query, not to the file you started in.**
+
+    The list walks: after `../other/` a row says `x.ges` and means the
+    one *there*.  Resolving against the open file's directory would find
+    a different `x.ges`, or none — a walk that lied about where it had
+    arrived.
+    """
+    it, room = _looking(tmp_path)
+    (room / "deeper" / "two.ges").write_text("sound : Sig Float\n")
+    win, _ed = a_window()
+    it.view = win
+
+    act(it, "wants\topen\t0\tdeeper/")
+    assert [t for t, _n, _c, _s in it.choices()] == ["../", "two.ges"]
+    it.run("open", "two.ges")
+    assert win.wanted == str(room / "deeper" / "two.ges"), \
+        "the one in the directory the list had walked to"
+
+
+def test_a_directory_is_a_step_and_a_file_is_the_answer(tmp_path):
+    it, _room = _looking(tmp_path)
+    act(it, "wants\topen\t0\t")
+    rows = {text: step for text, _note, _can, step in it.choices()}
+    assert rows["deeper/"] == "deeper/", "choosing it walks in"
+    assert rows["../"] == "../"
+    assert rows["one.ges"] == "", "a file ends the question"
+
+
+def test_reopening_the_list_starts_where_the_file_is(tmp_path):
+    """**Opening the list ends whatever it was asking.**
+
+    `hide` clears every scrap of the last question and `show` cleared
+    none of it on this side, so a list reopened after walking into a
+    directory was handed that directory's rows — and `open` did not
+    start where you are.
+    """
+    it, _room = _looking(tmp_path)
+    act(it, "wants\topen\t0\t")
+    home = [t for t, _n, _c, _s in it.choices()]
+    act(it, "wants\topen\t0\tdeeper/")
+    assert [t for t, _n, _c, _s in it.choices()] != home
+
+    act(it, "asked")                       # what opening the list sends
+    act(it, "filter\t")
+    assert it.asking is None
+    assert it.choices() == [], "nothing is being asked for"
+    act(it, "wants\topen\t0\t")
+    assert [t for t, _n, _c, _s in it.choices()] == home

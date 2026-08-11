@@ -224,6 +224,30 @@ find pattern = Stated
 findBack : Text -> Command
 findBack pattern = Stated
 
+#: A file to open, or a directory to look in.
+#:
+#: **Its own type, and that is what makes the list appear.**  `Text` is
+#: typed because offering a list of every possible string would be a
+#: menu of guesses; a path has a small, knowable set of next steps —
+#: what is in this directory — so the view can offer them. The rule is
+#: the same one `Named` follows: the *type* is what lets the view ask.
+type Path = Text
+
+#: Open a file.  A directory steps into it, and `..` steps out.
+open : Path -> Command
+open path = Stated
+
+#: Take a name for what you are writing, and keep it under that.
+#:
+#: **A name that is free, and only one.**  The list shows what is
+#: already there greyed out and will not let you pick it: overwriting
+#: somebody else's file is not a thing a name box should be able to do
+#: by accident, and a `steal` that could would be a delete wearing a
+#: friendlier word.
+steal : Path -> Command
+steal path = Stated
+
+
 #: Jump to where a name is declared.
 goto : Named a -> Command
 goto n = Stated

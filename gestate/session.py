@@ -346,6 +346,91 @@ class Session:
             found.append((rank, i, (name, note)))
         return [pair for _r, _i, pair in sorted(found, key=lambda f: f[:2])]
 
+    def _where(self, path: str):
+        """The file a chosen path names, from wherever the list had got to.
+
+        **Relative to the query, not to the file you started in.**  The
+        list walks: after `../audio/` a row says `two.ges` and means the
+        one *there*.  Resolving against the open file's directory would
+        find a different `two.ges`, or none — a walk that lied about
+        where it had arrived.
+        """
+        from pathlib import Path as _Path
+
+        here = _Path(getattr(self.bench, "path", ".")).resolve().parent
+        walked = ""
+        if self.asking and len(self.asking) > 2:
+            walked = str(self.asking[2]).rpartition("/")[0]
+        return (here / walked / path).resolve()
+
+    def _listing(self, query: str, free: bool = False) -> list:
+        """What is in the directory the query points at, best first.
+
+        **Directories first, then files, and `..` above both.**  Going
+        up is the move you make when you opened the wrong place, so it
+        is where the eye already is; and a directory is a step rather
+        than a destination, which is why its row says so.
+
+        The query is a *path*, not a filter: everything up to the last
+        separator says where to look, and only the last piece narrows
+        what is shown. That is what makes typing `exa/au` walk two
+        directories the way a shell does.
+        """
+        from pathlib import Path as _Path
+
+        here = _Path(getattr(self.bench, "path", ".")).resolve().parent
+        # **Split the text, not the path.**  `Path("../").parent` is
+        # `.` — a path object normalises away the trailing separator and
+        # then answers about the wrong directory, so `../` listed where
+        # you already were and the walk could not leave. Everything up
+        # to the last separator says *where*, and only what follows it
+        # narrows what is shown.
+        head, _sep, stem = query.rpartition("/")
+        where = here / head if head else here
+        try:
+            where = where.resolve()
+            entries = sorted(where.iterdir(), key=lambda e: e.name.lower())
+        except Exception:                                # noqa: BLE001
+            return []
+        out = []
+        low = stem.lower()
+        # **`..` is filtered like anything else.**  Always putting it
+        # first meant that typing a name left it still at the top and
+        # still selected, so Enter stepped *out* of the directory you
+        # were narrowing — the query said one thing and the cursor did
+        # another.
+        # **`..` is a path, not a word.**  Choosing it has to leave a
+        # query you could have typed — `../`, then `../../` — because
+        # the query is what the next listing is read from, and a row
+        # that put an absolute path there would end the walk you were
+        # in the middle of.
+        if where.parent != where and (not low or "..".startswith(low)):
+            import os
+
+            up = os.path.relpath(where.parent, here)
+            out.append(("../", str(where.parent), True, up + "/"))
+        for entry in entries:
+            if entry.name.startswith(".") and not stem.startswith("."):
+                continue
+            if low and low not in entry.name.lower():
+                continue
+            # **A name already taken is shown and not offered.**  You
+            # cannot choose what you cannot have, and hiding it would
+            # be worse: the reason the name is refused is that it is
+            # there, so it has to be visible for the refusal to read.
+            taken = free and entry.is_file()
+            # **A directory is a step, not an answer.**  Choosing one
+            # moves the query into it and asks again — which is what a
+            # file dialog does and what makes walking down and back up
+            # feel like walking. Choosing a *file* is the answer.
+            step = (head + "/" if head else "") + entry.name + "/" \
+                if entry.is_dir() else ""
+            out.append((entry.name + ("/" if entry.is_dir() else ""),
+                        "taken" if taken else
+                        "directory" if entry.is_dir() else _size(entry),
+                        not taken, step))
+        return out
+
     def choices(self) -> list:
         """What the argument being asked for could be, or nothing."""
         if self.asking is None:
@@ -354,10 +439,15 @@ class Session:
         found = self.find(verb)
         if found is None or at >= found.arity:
             return []
-        if found.args[at] != "Named":
-            # **Only names can be offered.**  A number or a piece of
-            # text is typed, not chosen; offering a list of numbers
-            # would be a menu of guesses.
+        kind = found.args[at]
+        if kind == "Path":
+            return self._listing(query, free=verb == "steal")
+        if kind != "Named":
+            # **Only names and paths can be offered.**  A number or a
+            # piece of text is typed, not chosen; offering a list of
+            # numbers would be a menu of guesses. A path has a small,
+            # knowable set of next steps — what is in this directory —
+            # which is exactly what makes it offerable.
             return []
         return self.naming(query)
 
@@ -565,6 +655,45 @@ class Session:
 
     def do_redo(self) -> str:
         return "redone" if self.view.redo() else "nothing to redo"
+
+    def do_open(self, path: str) -> str:
+        """Open a file, or step into a directory.
+
+        **A directory is not a refusal.**  Naming one means *look in
+        there*, so it answers by re-asking with the query moved along —
+        which is what makes typing a path feel like walking one.
+        """
+        want = self._where(path)
+        if want.is_dir():
+            # Stay in the question, one step along — and keep the path
+            # as it was *given*, so the query reads the way it was typed
+            # rather than jumping to an absolute one.
+            self.asking = ("open", 0, path.rstrip("/") + "/")
+            return f"{want.name or want}/"
+        if not want.exists():
+            return f"no file `{path}`"
+        return (f"opened {want.name}" if self.view.open(str(want))
+                else "this window cannot open another file yet")
+
+    def do_steal(self, path: str) -> str:
+        """Take a free name for what you are writing.
+
+        **Only a free one.**  Overwriting a file is not something a name
+        box should be able to do by accident — a `steal` that could
+        would be a delete wearing a friendlier word — so an existing
+        name is refused here as well as greyed in the list. The two are
+        the same rule said twice on purpose: the list is a courtesy and
+        the check is the guarantee.
+        """
+        want = self._where(path)
+        if want.is_dir():
+            self.asking = ("steal", 0, path.rstrip("/") + "/")
+            return f"{want.name or want}/"
+        if want.exists():
+            return f"`{want.name}` is taken; a name has to be free"
+        self.bench.path = want
+        self.bench.apply(self.view.text())
+        return f"writing {want.name} from now on"
 
     def do_find(self, pattern: str) -> str:
         at = self.view.find(pattern)
@@ -885,8 +1014,18 @@ def furniture(session: "Session", bench=None) -> str:
                    f"\t{REVERSE.get(verb.name, '')}")
 
     # What the argument being asked for could be, when one is.
-    for text, note in session.choices():
-        out.append(f"choice\t{text}\t{note}")
+    here = Path(getattr(b, "path", "") or "").name
+    # **The one you are on is marked, not selected.**  The view puts its
+    # cursor there and leaves the query blank, so the list opens showing
+    # where you are and the first letter you type is a new name rather
+    # than an edit of the old one.
+    for choice in session.choices():
+        text, note = choice[0], choice[1]
+        can = choice[2] if len(choice) > 2 else True
+        step = choice[3] if len(choice) > 3 else ""
+        out.append(f"choice\t{text}\t{note}"
+                   f"\t{1 if text == here else 0}\t{1 if can else 0}"
+                   f"\t{step}")
 
     # And a page to read, when a command answered with one.
     for line in session.page or []:
@@ -962,6 +1101,19 @@ def _reference(name: str) -> str | None:
     where = f" ({entry.library})" if entry.library else ""
     line = entry.signature.strip() or f"{entry.name} : ?"
     return f"{line}{where}" + (f" — {said}" if said else "")
+
+
+def _size(entry) -> str:
+    """A file's size, in the units a person reads."""
+    try:
+        n = entry.stat().st_size
+    except Exception:                                    # noqa: BLE001
+        return ""
+    for unit in ("B", "K", "M", "G"):
+        if n < 1024 or unit == "G":
+            return f"{n:.0f}{unit}" if unit == "B" else f"{n:.1f}{unit}"
+        n /= 1024.0
+    return ""
 
 
 def _draws(bench) -> bool:

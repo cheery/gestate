@@ -367,6 +367,22 @@ prevent.
 Orders go the other way, for the same reason:
 
     zoom(steps)   undo()   redo()   goto(line)   insert(text)
+    show(canvas | source)
+
+**The canvas has a channel of its own**, beside the description rather
+than inside it.  A substrate animates — anything reading `peak` redraws
+every frame — while the furniture next to it changes when a command
+runs; carrying them together would push every knob and command line
+across the boundary sixty times a second to move one dot.  The shapes
+are `gui.py`'s own display list, read into `gestate_panel::list::Item`
+and painted by **the same painter the plugin panel uses**: a second one
+would be a second set of rounding decisions, and the two windows would
+disagree about somebody's artwork.
+
+Asking for a canvas that has not compiled yet is the ordinary case, not
+an error — `start` builds it on its own thread — so `canvas` says it is
+opening and opens anyway; the picture fills in when it arrives.  Only a
+file with no `substrate` at all is told it draws nothing.
 
 A command that is about the window leaves one of these and the window
 obeys it on its next frame.

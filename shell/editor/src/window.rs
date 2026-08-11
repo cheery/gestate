@@ -1045,6 +1045,7 @@ impl WindowHandler for EditorWindow {
                 if self.palette.borrow().is_open() == false {
                     if let Some(e) = self.shortcut(&k) {
                         self.to_the_list();
+                        self.host.gesture(Gesture::Asked.line());
                         let asks = self.palette.borrow_mut().begin(&e);
                         match asks {
                             Asks::Run(name, args) => {
@@ -1068,6 +1069,15 @@ impl WindowHandler for EditorWindow {
                         if s.eq_ignore_ascii_case("k") {
                             self.to_the_list();
                             let asks = self.palette.borrow_mut().show();
+                            // **Opening it ends whatever it was asking.**
+                            // `hide` clears every scrap of the last
+                            // question and `show` cleared none of it on
+                            // the model's side — so a list reopened after
+                            // walking into a directory was handed that
+                            // directory's rows, and `open` did not start
+                            // where you are. The same asymmetry the
+                            // palette had internally, across the wire.
+                            self.host.gesture(Gesture::Asked.line());
                             if let Asks::Filter(q) = asks {
                                 self.host.gesture(Gesture::Filter(q).line());
                             }

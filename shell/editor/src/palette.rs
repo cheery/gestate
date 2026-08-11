@@ -54,6 +54,30 @@ pub struct Choice {
     pub text: String,
     /// What it is — `Chan Float`, `4 voices`.  Shown, never sent.
     pub note: String,
+    /// **What choosing it makes the query, if it is a step.**
+    ///
+    /// A directory is a step, not an answer: picking one moves the
+    /// query into it and asks again — which is what a file dialog does,
+    /// and what makes walking down and back up feel like walking.
+    /// Empty for a row that *is* the answer.
+    ///
+    /// The whole query, computed by the model, because it is path
+    /// arithmetic and the view has no business doing any.
+    pub step: String,
+    /// **Whether it may be chosen at all.**
+    ///
+    /// A name already taken is shown and not offered: you cannot choose
+    /// what you cannot have, and hiding it would be worse — the reason
+    /// the name is refused is that it is *there*, so it has to be
+    /// visible for the refusal to read.
+    pub can: bool,
+    /// **The one you are already on**, if any.
+    ///
+    /// Marked rather than selected: the cursor goes there and the query
+    /// stays blank, so the list opens showing where you are and the
+    /// first letter you type is a new name rather than an edit of the
+    /// old one.
+    pub here: bool,
 }
 
 /// A command picked, waiting for what it takes.
@@ -206,7 +230,16 @@ impl Palette {
     }
 
     pub fn offer_choices(&mut self, choices: Vec<Choice>) {
+        let fresh = self.choices.is_empty() && !choices.is_empty();
         self.choices = choices;
+        // Only on the way in, and only while nothing is typed: once a
+        // query narrows the list, where the cursor goes is the
+        // ranking's business.
+        if fresh && self.query.is_empty() {
+            if let Some(at) = self.choices.iter().position(|c| c.here) {
+                self.at = at;
+            }
+        }
         self.clamp();
     }
 
@@ -262,6 +295,22 @@ impl Palette {
         // you avoid typing it; an empty list means typing is all there
         // is, which is what a number or a piece of text always is.
         let given = match self.choices.get(self.at) {
+            // A row that may not be chosen is not chosen, and Enter
+            // does nothing rather than quietly taking what was typed —
+            // which would be the refusal failing open.
+            Some(c) if !c.can => {
+                self.asking = Some(asking);
+                return Asks::Nothing;
+            }
+            // A step moves the question along instead of answering it.
+            Some(c) if !c.step.is_empty() => {
+                let (verb, at) = (asking.verb.clone(), asking.got.len());
+                self.query = c.step.clone();
+                self.choices.clear();
+                self.at = 0;
+                self.asking = Some(asking);
+                return Asks::Wants(verb, at, self.query.clone());
+            }
             Some(c) if !c.text.is_empty() => c.text.clone(),
             _ => self.query.clone(),
         };
@@ -603,6 +652,11 @@ impl Palette {
             Some(_) => self.choices.iter()
                 .map(|c| (c.text.clone(), c.note.clone())).collect(),
         };
+        // Which of those rows are only to be read.
+        let dim: Vec<bool> = match &self.asking {
+            None => vec![false; rows.len()],
+            Some(_) => self.choices.iter().map(|c| !c.can).collect(),
+        };
         let from = self.window(most);
         for (i, (left, right)) in
             rows.iter().skip(from).take(shown).enumerate()
@@ -614,8 +668,13 @@ impl Palette {
             }
             let room = (((box_w - 8) / cw.max(1)) as usize)
                 .saturating_sub(right.chars().count() + 2).max(4);
-            f.items.push(Item::Run { x: x + 4, y: row,
-                                     s: elide(left, room), c: INK });
+            f.items.push(Item::Run {
+                x: x + 4, y: row, s: elide(left, room),
+                c: if dim.get(from + i).copied().unwrap_or(false) {
+                    FAINT
+                } else {
+                    INK
+                } });
             // The note, hard against the right edge — reading the name
             // teaches the key and pressing the key teaches the name,
             // which only works if both are on the row.
@@ -792,8 +851,8 @@ mod asking_tests {
         let mut p = listed();
         pick(&mut p, 2);
         p.offer_choices(vec![
-            Choice { text: "cutoff".into(), note: "Chan Float".into() },
-            Choice { text: "pitch".into(), note: "Chan Int".into() },
+            Choice { text: "cutoff".into(), note: "Chan Float".into(), here: false, can: true, step: String::new() },
+            Choice { text: "pitch".into(), note: "Chan Int".into(), here: false, can: true, step: String::new() },
         ]);
         p.at = 1;
         assert_eq!(p.key(Key::Enter),
@@ -1113,5 +1172,118 @@ mod reopening_tests {
         assert_eq!(p.key(Key::Backspace), Asks::Filter("loo".into()));
         assert_eq!(p.key(Key::Backspace), Asks::Filter("lo".into()));
         assert_eq!(p.query(), "lo");
+    }
+}
+
+#[cfg(test)]
+mod choosing_tests {
+    use super::*;
+
+    fn naming(verb: &str) -> Palette {
+        let mut p = Palette::default();
+        p.show();
+        p.offer(vec![
+            Entry { usage: format!("{verb} <path>"), name: verb.into(),
+                    summary: String::new(), key: String::new(),
+                    args: vec!["Path".into()], reverse: String::new() },
+        ]);
+        p.at = 0;
+        p.key(Key::Enter);
+        p
+    }
+
+    /// **The one you are on is marked, not selected.**  The cursor goes
+    /// there and the query stays blank, so the list opens showing where
+    /// you are and the first letter typed is a new name rather than an
+    /// edit of the old one.
+    #[test]
+    fn the_file_you_are_in_is_where_the_cursor_starts() {
+        let mut p = naming("open");
+        p.offer_choices(vec![
+            Choice { text: "..".into(), note: String::new(),
+                     here: false, can: true, step: String::new() },
+            Choice { text: "one.ges".into(), note: "2K".into(),
+                     here: false, can: true, step: String::new() },
+            Choice { text: "two.ges".into(), note: "3K".into(),
+                     here: true, can: true, step: String::new() },
+        ]);
+        assert_eq!(p.at, 2);
+        assert_eq!(p.query(), "", "and nothing is typed for you");
+    }
+
+    /// A name already taken cannot be chosen — and Enter does *nothing*
+    /// rather than quietly taking what was typed, which would be the
+    /// refusal failing open.
+    #[test]
+    fn a_taken_name_cannot_be_picked() {
+        let mut p = naming("steal");
+        for c in "one".chars() { p.key(Key::Char(c)); }
+        p.offer_choices(vec![
+            Choice { text: "one.ges".into(), note: "taken".into(),
+                     here: false, can: false, step: String::new() },
+        ]);
+        assert_eq!(p.key(Key::Enter), Asks::Nothing);
+        assert!(p.asking().is_some_and(|a| !a.done),
+                "still asking, because nothing was given");
+    }
+
+    /// And a free one can.
+    #[test]
+    fn a_free_name_is_taken_as_typed() {
+        let mut p = naming("steal");
+        for c in "new.ges".chars() { p.key(Key::Char(c)); }
+        p.offer_choices(Vec::new());
+        assert_eq!(p.key(Key::Enter),
+                   Asks::Run("steal".into(), vec!["new.ges".into()]));
+    }
+}
+
+#[cfg(test)]
+mod walking_tests {
+    use super::*;
+
+    /// **A directory is a step, not an answer.**  Picking one moves the
+    /// query into it and asks again — which is what a file dialog does,
+    /// and what makes going up and then down into another directory
+    /// feel like walking rather than like starting over.
+    #[test]
+    fn choosing_a_directory_walks_into_it() {
+        let mut p = Palette::default();
+        p.show();
+        p.offer(vec![
+            Entry { usage: "open <path>".into(), name: "open".into(),
+                    summary: String::new(), key: String::new(),
+                    args: vec!["Path".into()], reverse: String::new() },
+        ]);
+        p.at = 0;
+        p.key(Key::Enter);
+        p.offer_choices(vec![
+            Choice { text: "../".into(), note: String::new(), here: false,
+                     can: true, step: "../".into() },
+            Choice { text: "one.ges".into(), note: "2K".into(), here: false,
+                     can: true, step: String::new() },
+        ]);
+        // Up one: the query becomes the path, and it is still asking.
+        assert_eq!(p.key(Key::Enter),
+                   Asks::Wants("open".into(), 0, "../".into()));
+        assert_eq!(p.query(), "../");
+        assert!(p.asking().is_some_and(|a| !a.done));
+
+        // And down into another: the steps compose.
+        p.offer_choices(vec![
+            Choice { text: "audio/".into(), note: "directory".into(),
+                     here: false, can: true, step: "../audio/".into() },
+        ]);
+        assert_eq!(p.key(Key::Enter),
+                   Asks::Wants("open".into(), 0, "../audio/".into()));
+        assert_eq!(p.query(), "../audio/");
+
+        // A file is the answer, and ends the question.
+        p.offer_choices(vec![
+            Choice { text: "two.ges".into(), note: "3K".into(), here: false,
+                     can: true, step: String::new() },
+        ]);
+        assert_eq!(p.key(Key::Enter),
+                   Asks::Run("open".into(), vec!["two.ges".into()]));
     }
 }

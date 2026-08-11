@@ -47,6 +47,8 @@ class Window:
         self.editor = editor
         #: Which of the two the window is pointed at.
         self.showing = "source"
+        #: A file the model has asked to open, until the loop takes it.
+        self.wanted = None
         self.zoom_at = 0
         self.zoom_rungs = 1
         self.undos = 0
@@ -137,6 +139,17 @@ class Window:
         self.editor.order(f"show\t{what}")
         return True
 
+    def open(self, path: str) -> bool:
+        """Ask for another file.
+
+        **Left here rather than done here.**  Opening one means stopping
+        an instrument and starting another, which is the loop's business
+        and not a view port's — this is the same shape as an order, in
+        the direction the model already talks.
+        """
+        self.wanted = path
+        return True
+
     def insert(self, text: str) -> bool:
         if not text:
             return False
@@ -173,6 +186,42 @@ def pace(stirred: bool, wait: float) -> float:
     finished.
     """
     return BUSY if stirred else min(IDLE, wait * 2)
+
+
+def _begin(bench, session):
+    """Start an instrument beside the loop, and say how to stop it.
+
+    **Starting must not be able to hold the editor shut.**
+    `Workbench.start` compiles the file with `clang` — seconds on a
+    large score — and then asks for the sound card, which another
+    program may already have. Done on the way in, either of those leaves
+    a window that is open and answers nothing.
+
+    **And the shutdown has to wait for it.**  `stop` signals the C audio
+    loop, joins its thread and closes the host; called while `start` is
+    still building those, it stops a device that does not exist yet and
+    the one that arrives a moment later is never stopped at all — the
+    segfault `Workbench.stop` carries a comment about, earned once.
+    """
+    quitting = threading.Event()
+
+    def begin():
+        try:
+            bench.start()
+        except Exception as e:                           # noqa: BLE001
+            session.said.append(f"not playing: {e}")
+            return
+        if quitting.is_set():
+            # The window shut while the instrument was still coming up.
+            # Whoever started it stops it; nobody else knows it is there.
+            try:
+                bench.stop()
+            except Exception:                            # noqa: BLE001
+                pass
+
+    starter = threading.Thread(target=begin, daemon=True)
+    starter.start()
+    return quitting, starter
 
 
 def _shapes(picture) -> str:
@@ -230,29 +279,35 @@ def run(path, rate: int = 44100, block: int = 512,
     # at all.  The process then exits with a daemon thread inside the
     # generated code — which is the segfault `Workbench.stop` already
     # carries a comment about, earned once before.
-    quitting = threading.Event()
-
-    def begin():
-        try:
-            bench.start()
-        except Exception as e:                           # noqa: BLE001
-            session.said.append(f"not playing: {e}")
-            return
-        if quitting.is_set():
-            # The window shut while the instrument was still coming up.
-            # Whoever started it stops it; nobody else knows it is there.
-            try:
-                bench.stop()
-            except Exception:                            # noqa: BLE001
-                pass
-
-    starter = threading.Thread(target=begin, daemon=True)
-    starter.start()
+    quitting, starter = _begin(bench, session)
 
     said, drawn = "", None
     wait = IDLE
     try:
         while editor.is_open:
+            # **A file asked for is a whole new instrument.**  The window
+            # outlives it — the same rope, the same view, the same
+            # command list — and everything below it is replaced, which
+            # is what makes `open` a command rather than a second
+            # program.
+            wanted = getattr(session.view, "wanted", None)
+            if wanted:
+                session.view.wanted = None
+                said, drawn = "", None
+                quitting.set()
+                starter.join(timeout=15.0)
+                try:
+                    bench.stop()
+                except Exception:                        # noqa: BLE001
+                    pass
+                bench = Workbench(Path(wanted), rate=rate, block=block,
+                                  midi=midi, seed=seed)
+                editor.text = bench.source()
+                view = session.view
+                session = Session(bench=bench)
+                session.view = view
+                session.said.append(f"opened {Path(wanted).name}")
+                quitting, starter = _begin(bench, session)
             stirred = False
             # **Gestures first, then the description.**  A command run
             # this tick should be visible in the status line this tick,
