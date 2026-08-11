@@ -4629,3 +4629,89 @@ listening pieces keep the native path.
 
 The migration turned up a real defect: **`_force` minted channel ids from a
 scratch counter**, so separately forced channels all came out `NChan(0)`.
+
+## The plugin grows a face with two sides, and a seed you can turn
+
+Two features that turned out to be one piece of work, because both of
+them needed somewhere in the window to live.
+
+**A seed is a parameter now.**  A chancy piece is a *family* of
+performances — `nightdrive` picks a road every four bars, `arpeggiator`
+picks a held key every sixteenth — and the seed says which one.  Export
+baked the number the file was written with and that was the end of it:
+a plugin played one night, forever, and the only way to hear another was
+to edit the source and export again.  Making it a **parameter** rather
+than a setting decided everything else: the host saves it with the
+session, automates it, shows it in its own generic UI, and a player who
+found a take they like keeps it by doing nothing.
+
+The mechanism cost almost nothing, which is the sign the machinery was
+already right.  A new seed is a new piece from its first instant, so
+there is nothing to patch and no way to fade between two — the stream
+has to be opened again *where the transport stands*, which is exactly
+what a timeline jump does.  So a re-seed sets `needs_seek` and borrows
+the seek path whole; the two cannot drift apart because they are one
+path.  `Piece::open`/`reopen` take the seed as an argument instead of
+reading `Program.seed`, the descent worker's request carries it (a
+worker descending on the *exported* seed would hand back the wrong
+piece), and the saved state gained one optional field on the end — no
+version bump, so sessions written before the RNG existed still open, on
+the seed they were always playing.
+
+**And the canvas arrived.**  `spec/substrate.md`'s other half has been
+runnable at home since `gestate.gui` and unreachable from a plugin;
+it now exports.  `export.substrate_of` sends the serialized program,
+the eleven `Sub` constructor tags, the declared channel **names**, and
+the *bridge*; `shell/panel/src/canvas.rs` turns the loop once a frame —
+arrivals, `reactive_step`, `main`'s cell, walk, paint — on the window's
+own thread, so the picture and the score are forced by different
+threads and neither waits for the other.
+
+The **bridge** is the piece worth naming.  A channel the canvas writes
+may be a channel the compiled graph reads — that is "one fold, two
+readers" — so the export pairs each such channel with the control slot
+the graph reads it from, and a knob's slot *is* its parameter id.  A
+touch on a canvas fader therefore produces two things: the channel
+write that moves the picture, and the `Change` that moves the sound,
+as one gesture, so the DAW gets one undo step.  The reverse direction
+matters as much and was nearly missed — a host moving a bridged
+parameter has to write the channel too, or the canvas is a display
+that is right only while you are the one touching it.
+
+Two mistakes paid for, both about **what a host is allowed to assume
+about a program**:
+
+*Channel ids are not a property of the program.*  An id is allocated
+when a declaration is first forced, so it depends on what the host
+forces and in what order — forcing the declarations first gives
+`cutoff` id 0, letting the program reach it gives id 2, and both are
+correct readings of one file.  Sending ids meant two languages had to
+make the same choice with nothing checking, and they did not.  Names
+cross instead; the shell forces them in the order given and keeps
+whatever it is handed.  Nothing has to agree because nothing is being
+guessed.
+
+*The origin is part of the tree's meaning.*  `gui.py` walks from
+`cx = cy = 0`, so a substrate's centre sits at the window's **corner**
+and the program places itself — `substrate.ges` opens with
+`moveXY 120 140` for that reason.  Centring the picture in the pane
+looked more sensible and added half a window to an offset the program
+had already applied; the first screenshot had the fader in the
+bottom-right corner.  The parity fixture is now taken at the
+reference's own origin, so the test pins the convention rather than
+only the arithmetic.
+
+**The toolbar** is what made room for both: `CONTROLS | CANVAS` on the
+left, `SEED 01234 [RNG]` on the right, fixed chrome that does not
+scroll and is hit-tested before the content it lies over.  The names
+are `spec/panel.md`'s own — it already called the two sources the
+controls and the canvas — rather than naming where they sit, because
+where they sit is the part most likely to change.  `RNG` is a button
+and deliberately not a fader: every value a drag passed through would
+be a different piece, so a one-second drag would ask for sixty
+re-roots and throw away fifty-nine.  One press, one take.
+
+A strip that would be empty is not drawn, and a seed that governs
+nothing is not offered: a synth with a baked event list has no entropy
+to reroll, and a button that changes a number you cannot hear is worse
+than no button — it is one that lies.

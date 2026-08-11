@@ -27,7 +27,15 @@ the design and `journal.md` has what it cost.  A canvas behind the editor
 in the same window, written in gestate, composed the way a synth is — **a
 substrate is a value, `substrate : Sig Sub`, built from smaller ones by
 ordinary functions** — interpreted at frame rate, worth a control value to
-the compiled synth the way a knob is.  `spec/frp_lesson.md` is the reading
+the compiled synth the way a knob is.  **And it travels**: a file that
+declares one exports it, and the plugin draws it on the second tab of its
+own window beside the knobs, forced at frame rate on the window's thread
+while the score is forced on the audio thread.  A touch on a canvas fader
+is a parameter change the host sees, because the export pairs a drawn
+channel with the control slot the graph reads it from — one fold, two
+readers, delivered.  The plugin's **seed** is a parameter too, so a
+chancy piece is a family of takes you can roll rather than the one night
+it was exported with.  `spec/frp_lesson.md` is the reading
 that got the language ready for it: Fran set beside this one, and the four
 compiler gaps that were between them.
 
