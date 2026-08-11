@@ -49,9 +49,46 @@ load — falling back to the reference machine on any `CrustError`,
 which is never wrong, only slower.  The arpeggiator scenario runs
 change-for-change identical over either machine, readings included,
 and the pygame bench inherits the routing by riding the same
-workbench.  Not yet: the reactive half (the substrate's, when the
-panel moves in), and the offline CLI's dynamic path, which could take
-the same route whenever someone wants the render sooner.*
+workbench.  **The plugin carries the machine now**: `shell/clap` takes `crust`
+as an rlib under a `dynscore` feature — no FFI, the workspace's stated
+purpose finally paid — and an exported plugin forces its own unfolding
+score (`spec/dynamicscore.md`).
+
+**And the reactive half has its foundation**, which turned out to rest
+on one decision.  A signal cell is a *place*: it is mutated where it
+stands and the driver keys its clocks by where it stands, so a
+semispace copy that relocated it would break every table keyed by cell.
+So the cells do **not** live in the heap.  `Machine::sigs` is a stable
+arena with a free list; `Node::Sig(SigId)` is how the heap points at
+one; and the collector marks rather than moves them, rewriting only the
+fields *inside* each live cell.
+
+**Refcount for the host, tracing for the heap** — the two answer
+different questions and the design needs both.  A copying collector
+cannot maintain a true refcount, because dead nodes are never visited
+and so never decrement; but it *can* mark what it reaches.  What it
+cannot see is a cell the driver holds between steps while the program
+has momentarily dropped it — and that is exactly a signal's life.  So
+`sig_retain`/`sig_release` pin what the host is holding, the trace
+keeps what the program can still reach, and a cell dies when neither
+wants it.  `sig_release` deliberately frees nothing on its own: a cell
+at zero is only one the *host* has finished with.
+
+`SigCons` and `SigHead` are in, with the ✓ frontier checked at the
+read (Rizzo §4.1) — a premature read refuses rather than quietly
+answering last step's value, which with in-place update is the only
+thing standing between a scheduler-ordering bug and silent staleness.
+**`MkDelayAp` is deliberately absent**: its only interpreter-side
+caller is the audio *oracle*, and the oracle is the meaning the
+compiled engines are checked against, so porting it would delete the
+thing doing the checking.
+
+Not yet: the reactive *driver* (`reactive.py`'s sweep) and the `Sub`
+walk, which is what a `clap.gui` canvas needs on top of this; and the
+offline CLI's dynamic path.  `gestate.crust.serialize` still refuses
+`SigCons`/`SigHead` by name — the machine can hold them, and no
+program is allowed to cross with them until the substrate deliberately
+opts in.*
 
 For now this is a proposal.
 

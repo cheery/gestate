@@ -77,6 +77,11 @@ pub trait Sink: Send + Sync + 'static {
     /// The panel resized itself — a host that frames this window needs
     /// to be told, or the frame and the content disagree.
     fn resized(&self, _w: i32, _h: i32) {}
+
+    /// Anything the instrument needs to say, checked once a frame.
+    fn notice(&self) -> Option<String> {
+        None
+    }
 }
 
 /// A parent window handle CLAP handed us, wrapped so `baseview` can
@@ -156,10 +161,12 @@ impl PanelWindow {
 impl WindowHandler for PanelWindow {
     fn on_frame(&self) -> Result<(), baseview::HandlerError> {
         let values = self.sink.values();
+        let notice = self.sink.notice();
         let mut panel = self.panel.borrow_mut();
         if !values.is_empty() {
             panel.sync_values(&values);
         }
+        panel.set_notice(notice);
 
         let (w, h) = (panel.width.max(1) as u32, panel.height.max(1) as u32);
         let (Some(nw), Some(nh)) = (NonZeroU32::new(w), NonZeroU32::new(h))

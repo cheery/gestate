@@ -50,6 +50,8 @@ unsafe impl Sync for HostFlush {}
 pub struct Queue {
     changes: Mutex<Vec<Change>>,
     values: Mutex<Vec<(u32, f64)>>,
+    /// What the instrument needs to say, if anything.
+    notice: Mutex<Option<String>>,
     flush: std::sync::OnceLock<HostFlush>,
 }
 
@@ -107,6 +109,10 @@ impl Sink for Queue {
             _ => Vec::new(),
         }
     }
+
+    fn notice(&self) -> Option<String> {
+        self.notice.lock().ok().and_then(|n| n.clone())
+    }
 }
 
 impl Queue {
@@ -115,6 +121,18 @@ impl Queue {
         match self.changes.try_lock() {
             Ok(mut q) if !q.is_empty() => std::mem::take(&mut *q),
             _ => Vec::new(),
+        }
+    }
+
+    /// Say something, from the audio thread — never blocks, and a
+    /// dropped message is re-sent next block because the caller reads
+    /// the same state again.
+    pub fn say(&self, text: Option<&str>) {
+        if let Ok(mut n) = self.notice.try_lock() {
+            let next = text.map(|t| t.to_string());
+            if *n != next {
+                *n = next;
+            }
         }
     }
 
@@ -194,7 +212,7 @@ pub fn model_of(desc: &'static Descriptor, control: &[i64],
         score_param: base + (engine::BANKS.len() * 16 + i) as u32,
     }).collect();
 
-    Model { title: desc.name.to_string(), knobs, banks }
+    Model { title: desc.name.to_string(), notice: None, knobs, banks }
 }
 
 // ── The vtable ──────────────────────────────────────────────────────────

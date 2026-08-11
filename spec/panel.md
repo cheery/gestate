@@ -139,6 +139,60 @@ closes its own gesture — `BEGIN`, one `VALUE`, `END` — instead of
 leaving one hanging until the mouse comes up.  Giving toggles and
 faders one shape would mean a checkbox you have to drag.
 
+**Two rules the matrix grew from playing it.**
+
+*Scored banks take no MIDI by default.*  The old default was the plain
+diagonal — channel *n* plays bank *n* — which routes the player's notes
+into the voices the piece is using, so the piece falls silent and the
+player hears only themselves.  `export.scored_banks` answers which
+banks the score writes (by parsed mention, so it answers for an
+unfolding piece too), and the channels go to the ones it does not.
+That is the **two-bank law** the listening pieces are built on — an
+arpeggiator cannot listen to the bank it writes — made the default
+rather than left to a player to discover.
+
+With one floor: when the piece owns *every* bank there is no free one
+to give the channels to, and a plugin that refuses every note is
+indistinguishable from a broken one.  `fmpoly` is a piano with a demo
+score.  So the diagonal stands there, and the switch below is how a
+player hands a bank over instead.
+
+*Un-ticking a channel releases what it is holding.*  Routing is read at
+note-**on**, so a cell switched off while a key is down would otherwise
+leave the note sounding until the player happened to let go — a control
+that looks dead, because the only way to hear it is to stop playing.
+The bank releases the voices that channel put there, and nothing else:
+notes from other channels, and the score's own notes, are not that
+cell's business.  Ticking *on* is still felt at the next note-on,
+deliberately — a held note jumping banks mid-sustain is a worse
+surprise than waiting for the next key.
+
+## Who plays this bank
+
+A bank is a set of voices, and two things can want them: the piece and
+the player's hands.  The routing matrix is the hands' half.  The other
+half is one stepped parameter per bank — `<bank> from score` — drawn in
+the panel as a `SCORE` switch beside the channel cells, and grouped
+under its own parameter module so a DAW draws the two as two panels.
+
+The four states are the point: score on and MIDI off is a piece
+playing itself, MIDI on and score off is an instrument, both is
+doubling, neither is silence.  Switching the score off does **not**
+stop the piece advancing — the cursor keeps its place, so switching it
+back on rejoins where the music is rather than where it was left.
+
+Two things the panel says in colour, because the parameters cannot:
+
+* **The channel cells mute when the score plays the bank.**  Not
+  disabled — a ticked channel still layers hands over the piece, which
+  people want — but the question "who is playing this" has an answer,
+  and a matrix that looked identical either way made the reader work it
+  out from the switch beside it.
+* **The switch goes red when the score never writes that bank.**
+  Turning it on is not an error and is certainly not what the presser
+  meant: nothing will ever come out of it.  The panel says so rather
+  than refusing the click.
+
 **What is still not editable here: which keys a bank accepts.**  That
 is the program's own `FromMIDI` instance, and the way to change it is
 to change the program — the same answer `spec/editor.md` gives for

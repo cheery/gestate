@@ -42,7 +42,7 @@ type Idx = usize;
 /// promote; this enum is that fact written down, with the promotions
 /// spelled out below rather than inherited.
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum Num {
+pub enum Num {
     I(i128),
     F(f64),
 }
@@ -55,7 +55,7 @@ fn as_f(n: Num) -> f64 {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-enum Node {
+pub enum Node {
     Num(Num),
     /// A channel identity — the score's own name for a place a value
     /// comes from.  Created, never read: the host does the reading.
@@ -165,6 +165,9 @@ pub struct Machine {
     /// them are.
     sigs: Vec<Option<SigCell>>,
     free_sigs: Vec<SigId>,
+    /// The *now* heap: signal cells this sweep has already reached, in
+    /// allocation order — `GmState.now`.
+    now: Vec<SigId>,
     globals: HashMap<String, Idx>,
     blocks: Vec<Vec<Instr>>,
     stack: Vec<Idx>,             // top is the END, where Python's is [0]
@@ -181,6 +184,9 @@ pub struct Machine {
 /// text on stderr (the behaviour this always had), and the C surface
 /// catches it at the boundary and hands the text to the host — a
 /// panic must never unwind across FFI.
+/// The reactive sweep — `reactive.py`'s twin, over the signal arena.
+pub mod reactive;
+
 fn fail(msg: &str) -> ! {
     std::panic::panic_any(format!("crust: {msg}"))
 }
@@ -227,7 +233,7 @@ fn pyfloordiv_f(a: f64, b: f64) -> f64 {
 }
 
 impl Machine {
-    fn alloc(&mut self, node: Node) -> Idx {
+    pub fn alloc(&mut self, node: Node) -> Idx {
         self.heap.push(node);
         self.heap.len() - 1
     }
@@ -274,12 +280,22 @@ impl Machine {
         }
     }
 
+    /// Put a cell on the now heap — a driver seeding the sweep.
+    pub fn push_now(&mut self, id: SigId) {
+        self.now.push(id);
+    }
+
+    /// The node at an index, for a host reading a forced structure.
+    pub fn heap_at(&self, i: Idx) -> &Node {
+        &self.heap[i]
+    }
+
     /// How many cells are live — what a test asks to see reclamation.
     pub fn sig_live(&self) -> usize {
         self.sigs.iter().filter(|c| c.is_some()).count()
     }
 
-    fn deref(&self, mut i: Idx) -> Idx {
+    pub fn deref(&self, mut i: Idx) -> Idx {
         loop {
             match &self.heap[i] {
                 Node::Ind(Some(t)) => i = *t,
@@ -618,6 +634,9 @@ impl Machine {
                 let value = self.stack.pop()
                     .unwrap_or_else(|| fail("SigCons without a value"));
                 let id = self.sig_alloc(value, tail);
+                // Registered on the now heap as it is built — the sweep
+                // that allocated it will find it there.
+                self.now.push(id);
                 let node = self.alloc(Node::Sig(id));
                 self.stack.push(node);
             }
@@ -849,6 +868,7 @@ impl Machine {
             chans: 0,
             sigs: Vec::new(),
             free_sigs: Vec::new(),
+            now: Vec::new(),
         };
         for (name, arity, block) in globals {
             let i = m.alloc(Node::Global(arity, block));
@@ -865,6 +885,29 @@ impl Machine {
     /// interrupted redex may be left black-holed, so a later force
     /// through it refuses rather than answers.  A refusal, never
     /// corruption.
+    /// Force one node to WHNF and give back where it landed.
+    ///
+    /// The reference's `_apply` does this by running a fresh `Unwind`
+    /// on a scratch state; here the registers are the call's own —
+    /// leftovers from an interrupted run are overwritten — and the heap
+    /// is shared, which is what makes a forced thunk stay forced.
+    pub fn force_node(&mut self, root: Idx) -> Idx {
+        let saved = (std::mem::take(&mut self.stack),
+                     std::mem::take(&mut self.dump),
+                     std::mem::take(&mut self.code),
+                     self.pc);
+        self.stack = vec![root];
+        self.code = vec![Instr::Unwind];
+        self.pc = 0;
+        self.run();
+        let top = *self.stack.last().unwrap_or_else(|| fail("no result"));
+        self.stack = saved.0;
+        self.dump = saved.1;
+        self.code = saved.2;
+        self.pc = saved.3;
+        top
+    }
+
     pub fn force_entry(&mut self, entry: &str) -> String {
         let root = *self.globals.get(entry)
             .unwrap_or_else(|| fail(&format!("no entry global '{entry}'")));
@@ -980,6 +1023,15 @@ impl Machine {
         // dropped it, and the driver has not.
         for (id, cell) in self.sigs.iter().enumerate() {
             if cell.as_ref().map_or(false, |c| c.rc > 0) {
+                reached[id] = true;
+                pending.push(id);
+            }
+        }
+        // **The now heap is a root.**  A cell the sweep is holding is
+        // live even where the program has momentarily dropped it —
+        // which is the ordinary shape of a signal between instants.
+        for id in self.now.clone() {
+            if reached.get(id).copied() == Some(false) {
                 reached[id] = true;
                 pending.push(id);
             }

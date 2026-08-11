@@ -62,6 +62,8 @@ pub(crate) struct Instance {
     plays_score: Vec<bool>,
     /// The compiled rate `activate` picked — the graph being played.
     active: Option<&'static engine::RateCase>,
+    /// The engine sample the transport last stopped at, for the fade.
+    stopped_at: Option<i64>,
     /// The shell's own beat position, for a host with a tempo but no
     /// beats timeline; a timeline host overwrites it every block.
     beat_pos: f64,
@@ -147,6 +149,7 @@ impl Instance {
             routing: default_routing(),
             plays_score: default_plays(),
             active: None,
+            stopped_at: None,
             beat_pos: 0.0,
             performer: score::Performer::new(),
             host: std::ptr::null(),
@@ -499,6 +502,13 @@ unsafe extern "C" fn plugin_destroy(plugin: *const clap_plugin) {
     drop(Box::from_raw(plugin as *mut clap_plugin));
 }
 
+/// How long a stopped transport takes to go quiet.
+///
+/// Long enough that a release tail is not snatched away, short enough
+/// that "stop" means something — `spec/export.md`'s transport rule with
+/// a number attached.
+const STOP_FADE_SECONDS: f64 = 1.5;
+
 /// Whether this plugin carries a piece it must force rather than read.
 #[cfg(feature = "dynscore")]
 fn has_program() -> bool {
@@ -531,6 +541,16 @@ fn held_keys(inst: &Instance) -> Vec<Vec<i64>> {
     }).collect()
 }
 
+/// Play pressed: the piece goes back to its top.
+#[cfg(feature = "dynscore")]
+unsafe fn restart_piece(inst: &mut Instance) {
+    let Some(mut perf) = inst.piece.take() else { return };
+    if let Some(program) = engine::program() {
+        perf.restart(program);
+    }
+    inst.piece = Some(perf);
+}
+
 /// The forced piece follows the transport's jump.
 #[cfg(feature = "dynscore")]
 unsafe fn seek_piece(inst: &mut Instance, tb: &score::Tables, tempo: f64,
@@ -558,6 +578,15 @@ unsafe fn advance_piece(inst: &mut Instance, tb: &score::Tables,
     perf.advance(program, tb, tempo, &mut inst.voices,
                  &mut inst.control, end, frames.max(1),
                  &|bank| held.get(bank).cloned().unwrap_or_default());
+    // **A piece that stopped forcing says so.**  It goes quiet while
+    // everything else keeps playing, which sounds like a mix rather
+    // than a fault — the panel is where an instrument can be heard
+    // complaining.
+    #[cfg(feature = "gui")]
+    if inst.gui.is_open() {
+        let text = perf.complaint();
+        inst.gui.queue.say(text.as_deref());
+    }
     inst.piece = Some(perf);
 }
 
@@ -643,13 +672,14 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
         rose = now && !inst.playing;
         fell = !now && inst.playing;
         if rose {
+            inst.stopped_at = None;
             inst.rewind();
             // **Two plays are one performance.**  A baked cursor
-            // rewinds by resetting its index; a forced one has to
-            // re-open its stream, or the second play carries on from
-            // wherever the first one stopped.
+            // rewinds by resetting its index; a forced one re-roots its
+            // stream — *re-roots*, not rebuilds, or every press of play
+            // pays for the whole program again on the audio thread.
             #[cfg(feature = "dynscore")]
-            open_piece(inst);
+            restart_piece(inst);
         }
         inst.playing = now;
         stopped = !now;
@@ -739,6 +769,7 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
             (tempo, playing, actual)
         };
         if fell {
+            inst.stopped_at = Some(inst.t);
             // The timeline stopped: the piece's notes release now —
             // they live on the timeline — while a played key, which
             // lives under the player's hands, holds on.
@@ -806,7 +837,8 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
     // the user is the later authority.
     #[cfg(feature = "gui")]
     inst.emit_gui_changes(p.out_events);
-    let grace = 10 * inst.active.map_or(48000, |c| c.rate) as i64;
+    let rate = inst.active.map_or(48000, |c| c.rate) as i64;
+    let grace = 10 * rate;
     let keyed = inst.voices.iter().flatten().any(|v| {
         v.key.is_some()
             || v.released.map_or(false, |r| inst.t - r < grace)
@@ -819,7 +851,40 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
         }
         return CLAP_PROCESS_CONTINUE;
     }
+    let began = inst.t;
     inst.process(out, p.frames_count);
+
+    // **Stop means stop, within a stated time.**
+    //
+    // `spec/export.md` says stop is silence; what the shell did was let
+    // the instrument ring for the whole ten-second grace, and a patch
+    // with a long reverb (`nightdrive`'s `reverb 1.7 0.45` behind a
+    // 1.4 s pad release) stays audible for most of it.  Cutting at the
+    // stop would click; so the tail is *faded* across `STOP_FADE`
+    // instead, which ends it in a stated time without a discontinuity.
+    //
+    // Only while stopped, and only over the released tail: a key still
+    // held is the player's, and nothing here touches a running
+    // transport.
+    if stopped {
+        if let Some(since) = inst.stopped_at {
+            let fade = STOP_FADE_SECONDS * rate as f64;
+            let ports = out.channel_count as usize;
+            for c in 0..ports {
+                let chan = *out.data32.add(c);
+                for f in 0..p.frames_count as i64 {
+                    let elapsed = (began + f - since) as f64;
+                    let g = (1.0 - elapsed / fade).clamp(0.0, 1.0);
+                    // Equal-power rather than linear: a linear ramp on
+                    // a decaying tail sounds like it is being pulled
+                    // away, which is the thing a fade is for avoiding.
+                    let g = g * g;
+                    let v = *chan.add(f as usize) as f64 * g;
+                    *chan.add(f as usize) = v as f32;
+                }
+            }
+        }
+    }
     CLAP_PROCESS_CONTINUE
 }
 

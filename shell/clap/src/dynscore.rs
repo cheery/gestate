@@ -81,6 +81,32 @@ impl Piece {
         Ok(Piece { machine, stream, failed: None })
     }
 
+    /// Re-root the stream at `tick`, **keeping the machine**.
+    ///
+    /// **Not `open` again**, and the difference is the whole reason
+    /// this exists: `open` parses the program and starts a fresh heap,
+    /// so every thunk the piece had already forced is thrown away and
+    /// paid for again.  A DAW rewinding to the top does not send one
+    /// seek — it *revs*, a jump per block — and re-parsing fifty
+    /// kilobytes on the audio thread once per block is silence while it
+    /// scrubs, then whatever the allocator does about it.
+    ///
+    /// Re-rooting is a pointer: the heap stays, its forced work stays,
+    /// and the collector reclaims the old stream's nodes on the next
+    /// pull because nothing roots them any more.
+    pub fn reopen(&mut self, p: &Program, tick: i64) -> Result<(), String> {
+        let Piece { machine, stream, failed } = self;
+        let fresh = guard(|| {
+            crust::Stream::open_live(
+                machine, p.entry, p.seed, tick,
+                p.cons_tag, p.nil_tag,
+                p.cue_ev_tag, p.cue_ask_tag, p.cue_end_tag)
+        })?;
+        *stream = fresh;
+        *failed = None;
+        Ok(())
+    }
+
     pub fn done(&self) -> bool {
         self.stream.done
     }
@@ -322,6 +348,29 @@ pub struct Performer {
     pub horizon_beats: f64,
     /// The last thing that went wrong.
     pub failed: Option<String>,
+    /// True until the first pull after a re-root has caught up.
+    ///
+    /// **A seek is allowed one expensive block.**  Re-rooting is cheap
+    /// but the score's own spine is walked again, and four beats of it
+    /// under an ordinary per-block budget can take many blocks to
+    /// force — during which the piece has no notes and the signal half
+    /// of an instrument plays alone.  A transport jump already
+    /// interrupts the audio, so spending the work *there* is the right
+    /// trade; spreading it over the next thirty blocks is not.
+    priming: bool,
+    /// How many blocks running the stream has failed to reach its
+    /// horizon — what the panel reports when a piece cannot keep up.
+    behind: u32,
+    /// The tick the stream was last rooted at **and has not moved
+    /// from**, so a repeated seek to the same place costs nothing.
+    ///
+    /// Cleared by the first pull, because after that the stream is no
+    /// longer *at* that tick — it has walked on.  Recording the root
+    /// and not the walking made a seek back to the top look like a
+    /// seek to where we already were, so it was skipped and the piece
+    /// carried on from wherever it had got to: the transport moved and
+    /// the music did not.
+    opened_at: Option<i64>,
 }
 
 impl Performer {
@@ -337,11 +386,28 @@ impl Performer {
             origin: 0,
             horizon_beats: 4.0,
             failed: None,
+            priming: true,
+            behind: 0,
+            opened_at: Some(0),
         }
     }
 
     pub fn stalled(&self) -> bool {
         self.piece.stalled()
+    }
+
+    /// What the instrument needs to say, if anything.
+    pub fn complaint(&self) -> Option<String> {
+        if let Some(e) = &self.failed {
+            return Some(format!("THE PIECE STOPPED: {e}"));
+        }
+        // A few blocks behind is the budget doing its job; a hundred is
+        // a piece this machine cannot force in time.
+        if self.behind > 100 {
+            return Some("THE PIECE IS BEHIND - IT CANNOT BE FORCED IN TIME"
+                        .to_string());
+        }
+        None
     }
 
     /// Admit one forced note: its two ends into the heap.
@@ -378,6 +444,28 @@ impl Performer {
     /// has down — and is what `hear holds.<bank>` reads.
     fn pull(&mut self, p: &Program, t: i64, tempo: f64, rate: u32,
             tpb: i64, block: i64, held: &dyn Fn(usize) -> Vec<i64>) {
+        // **The deadline is the budget, not a step count.**
+        //
+        // Re-rooting is cheap but the *descent* is not: `resumeAt` walks
+        // to the target tick, and that walk costs more the deeper into
+        // the piece it goes — measured on `nightdrive`, 3 ms at the top
+        // and 22 ms eighteen seconds in, against an 11.6 ms block.  A
+        // step budget cannot express "and stop before the deadline",
+        // because the cost per step is the piece's, not ours.
+        //
+        // So the priming block watches the clock.  It takes what it can
+        // and leaves the rest to the next block: a deep seek starts a
+        // little late, which is a musical fault, where an overrun is a
+        // dropout in someone else's host.  The real cure is to descend
+        // off this thread entirely, and that is a design change rather
+        // than a number.
+        let started = std::time::Instant::now();
+        let slice = if rate > 0 {
+            std::time::Duration::from_secs_f64(
+                (block as f64 / rate as f64) * 0.4)
+        } else {
+            std::time::Duration::from_millis(4)
+        };
         // Where the piece's own clock stands: engine samples since its
         // tick zero, turned into ticks.
         let elapsed = (t - self.origin).max(0) as f64;
@@ -385,14 +473,35 @@ impl Performer {
             (elapsed / rate as f64) * (tempo / 60.0) * tpb as f64;
         let horizon = (tick_now
                        + self.horizon_beats * tpb as f64) as i64 + 1;
-        for _ in 0..64 {
-            let notes = self.piece.pull(p, horizon.max(0), 2_000_000, 4096);
+        // **Small slices while priming, because the clock is only
+        // read between pulls.**  A single pull runs to its fuel before
+        // it returns, so a large budget makes the deadline check
+        // useless — the first pull already overran it.  Priming asks
+        // for a little at a time and keeps asking until its slice is
+        // spent; an ordinary block asks once, generously, because it
+        // is not trying to catch up.
+        let (fuel, rounds) = if self.priming {
+            (250_000i64, 4096)
+        } else {
+            (2_000_000, 64)
+        };
+        for _ in 0..rounds {
+            let notes = self.piece.pull(p, horizon.max(0), fuel, 4096);
             for n in &notes {
                 self.admit(n, tempo, rate, tpb, block);
             }
             if self.piece.failed.is_some() {
                 self.failed = self.piece.failed.clone();
                 return;
+            }
+            // The stream has walked: it is no longer standing where it
+            // was rooted, so a later seek back there is a real move.
+            self.opened_at = None;
+            if self.piece.stalled() && self.priming {
+                if started.elapsed() < slice {
+                    continue;   // keep forcing: this block is the seek's
+                }
+                break;          // and the rest is the next block's
             }
             let Some((tick, chan, _key)) = self.piece.asking() else {
                 break;
@@ -433,6 +542,15 @@ impl Performer {
             return;
         }
         self.pull(p, t, tempo, tb.rate, tb.tpb, block, held);
+        self.priming = false;
+        // A piece that keeps missing its horizon is not silent by
+        // choice — `spec/dynamicscore.md`'s rule is that absence is the
+        // failure mode, so it has to be reportable.
+        if self.piece.stalled() {
+            self.behind = self.behind.saturating_add(1);
+        } else {
+            self.behind = 0;
+        }
 
         // Below this sample the heap is the whole truth; above it, a
         // later arrival could still come first.
@@ -543,6 +661,33 @@ fn perform(tb: &crate::score::Tables, e: &Entry, at: i64,
 }
 
 impl Performer {
+    /// Back to the top, **without rebuilding the machine**.
+    ///
+    /// What `rose` used to do was construct a whole new `Piece`: parse
+    /// the program again and start a cold heap, so every global the
+    /// piece had already forced was paid for a second time — under a
+    /// per-block fuel budget, which turns into a few hundred
+    /// milliseconds of the score not existing yet.  The signals half of
+    /// an instrument keeps sounding through that, so it reads as
+    /// "pressing play takes a moment, and only the drums come in".
+    ///
+    /// Re-rooting keeps the heap and its forced work; only the score's
+    /// own spine is walked again.
+    pub fn restart(&mut self, p: &Program) {
+        self.pending.clear();
+        self.dropped.clear();
+        self.played.clear();
+        self.position = -1;
+        self.priming = true;
+        match self.piece.reopen(p, 0) {
+            Ok(()) => {
+                self.opened_at = Some(0);
+                self.failed = None;
+            }
+            Err(e) => self.failed = Some(e),
+        }
+    }
+
     /// Stand at score sample `target` as if the piece had been played
     /// from its top, releasing what sounds at engine sample `now`.
     ///
@@ -589,6 +734,7 @@ impl Performer {
         self.dropped.clear();
         self.played.clear();
         self.position = -1;
+        self.priming = true;
 
         // Ticks the target stands at, and the stream re-rooted there.
         let ticks = if tempo > 0.0 && tb.rate > 0 {
@@ -597,9 +743,17 @@ impl Performer {
         } else {
             0
         };
-        match Piece::open(p, ticks.max(0)) {
-            Ok(piece) => {
-                self.piece = piece;
+        let ticks = ticks.max(0);
+        // **Nothing to do if we are already there.**  A host that
+        // reports the same position twice, or jitters by less than a
+        // tick, must not cost a re-root — and a rewind that arrives as
+        // a run of identical seeks is exactly that.
+        if self.opened_at == Some(ticks) {
+            return;
+        }
+        match self.piece.reopen(p, ticks) {
+            Ok(()) => {
+                self.opened_at = Some(ticks);
                 self.failed = None;
             }
             // A piece that will not re-open goes quiet and says so,

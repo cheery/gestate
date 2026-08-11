@@ -4,6 +4,28 @@
 made it thinkable) and `spec/verification.md` (whose oracles will keep
 it honest).*
 
+*Status, 2026-08-11: **stage two is abroad too, and an exported plugin
+now performs its own unfolding score.**  `shell/clap` takes `crust` as
+a dependency under a `dynscore` feature; `export.program_of` serializes
+the compiled program into the descriptor when `score_events` has no
+finite list to write, along with the entry, the seed, the constructor
+tags and the `holds.<bank>` ports; and `shell/clap/src/dynscore.rs` is
+`LazyPerformer` retold — the pending heap in `(sample, releases-first)`
+order, the frontier gate, drop-and-report, and the question loop that
+answers `hear` from the keys the player is holding.  Held against the
+reference by `shell/clap/tests/dynscore_parity.rs`, event for event.
+The sentence this file used to carry — "the plugin is the instrument
+without its piece" — is retired: `moods`, `arpeggiator`, `ladder` and
+`jazz` play as plugins.
+
+Seek re-opens the stream at the target tick and lets `liveMain`'s own
+second argument do the skipping, so a jump to bar 400 is a descent
+rather than a walk through 399 bars; a listening piece re-asks its
+questions afterwards rather than replaying answers, which is right
+live, where the world is the player's hands and they are where they are
+now.  Not yet: a transcript abroad, and the shapes and fermata the home
+performer writes.*
+
 *Status, 2026-08-10: stage one is built at home **and abroad** —
 `audiodynamic.Performer`, held to the bake by `test_dynamicscore.py`,
 with the seek/loop semantics pinned there before any second

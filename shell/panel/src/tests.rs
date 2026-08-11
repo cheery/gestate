@@ -16,7 +16,7 @@ fn knob(name: &str, param: u32, value: f64) -> Knob {
 
 fn model() -> Model {
     Model {
-        title: "TESTSYNTH".into(),
+        title: "TESTSYNTH".into(), notice: None,
         knobs: vec![knob("cutoff", 0, 0.25), knob("drive", 1, 0.5)],
         banks: vec![BankView {
             name: "lead".into(),
@@ -50,7 +50,7 @@ fn the_same_model_draws_the_same_list() {
 
 #[test]
 fn a_model_with_no_knobs_offers_no_parameters() {
-    let m = Model { title: "T".into(), knobs: vec![], banks: vec![] };
+    let m = Model { title: "T".into(), notice: None, knobs: vec![], banks: vec![] };
     let d = panels::view(&m, 600, None, 100, 0);
     assert!(d.hits.iter().all(|h| matches!(h.kind, Kind::Button(_))),
             "an empty descriptor still has its own text-size buttons, \
@@ -245,7 +245,7 @@ fn a_declined_key_reads_as_silent() {
 #[test]
 fn a_structural_bank_says_so_in_words() {
     let m = Model {
-        title: "T".into(),
+        title: "T".into(), notice: None,
         knobs: vec![],
         banks: vec![BankView { name: "keys".into(), voices: 4,
                                accepts: Accepts::Everything, routing: 0b0000_0000_0000_0010,

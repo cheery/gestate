@@ -87,6 +87,18 @@ pub enum Kind {
     /// `param` is `NO_PARAM` here, and a search by id alone will find
     /// a button where it meant a fader.
     Button(u32),
+    /// **A substrate's attachment**: drag along an axis and write a
+    /// *channel* the program named, not a parameter.
+    ///
+    /// The two coexist because the two halves of the window mean
+    /// different things.  Panel one draws the descriptor, and a knob
+    /// there is the host's parameter — the DAW owns it, automates it,
+    /// undoes it.  A canvas draws the *program*, and what an element
+    /// feeds is a channel the program declared and reads back itself
+    /// (`spec/substrate.md`: "the channel travels as a value, inside
+    /// the structure").  Collapsing them would make a canvas element
+    /// into an automatable plugin parameter, which is not what it is.
+    Chan(Axis, i64),
 }
 
 /// A region that listens, and what it writes to.
@@ -131,6 +143,10 @@ impl Hit {
             Kind::Fader(Axis::X) =>
                 (x - x0) as f64 / ((x1 - x0).max(1)) as f64,
             Kind::Fader(Axis::Y) =>
+                1.0 - (y - y0) as f64 / ((y1 - y0).max(1)) as f64,
+            Kind::Chan(Axis::X, _) =>
+                (x - x0) as f64 / ((x1 - x0).max(1)) as f64,
+            Kind::Chan(Axis::Y, _) =>
                 1.0 - (y - y0) as f64 / ((y1 - y0).max(1)) as f64,
             // Neither a toggle nor a button has a position to read:
             // one's value is its own, the other has no value at all.

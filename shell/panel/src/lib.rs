@@ -25,6 +25,9 @@ pub mod model;
 pub mod paint;
 pub mod panels;
 
+#[cfg(feature = "substrate")]
+pub mod substrate;
+
 #[cfg(feature = "window")]
 pub mod window;
 
@@ -156,6 +159,15 @@ impl Panel {
             touched |= Panel::set(&mut self.model, *param, *v);
         }
         if touched {
+            self.relayout();
+        }
+    }
+
+    /// Say something, or stop saying it.  Relays only on a change, so
+    /// a steady message costs no repaints.
+    pub fn set_notice(&mut self, notice: Option<String>) {
+        if self.model.notice != notice {
+            self.model.notice = notice;
             self.relayout();
         }
     }

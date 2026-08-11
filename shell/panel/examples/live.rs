@@ -32,7 +32,7 @@ fn knob(name: &str, param: u32, value: f64, min: f64, max: f64) -> Knob {
 
 fn main() {
     let model = Model {
-        title: "FMPOLY".into(),
+        title: "FMPOLY".into(), notice: None,
         knobs: vec![
             knob("cutoff", 0, 0.42, 0.0, 1.0),
             knob("resonance", 1, 0.2, 0.0, 1.0),

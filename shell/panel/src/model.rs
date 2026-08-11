@@ -171,4 +171,12 @@ pub struct Model {
     pub title: String,
     pub knobs: Vec<Knob>,
     pub banks: Vec<BankView>,
+    /// Something the instrument needs to say — a piece that stopped
+    /// forcing and why.
+    ///
+    /// **Because silence is this project's named failure mode.**  A
+    /// forced score that refuses goes quiet and everything else keeps
+    /// playing, which sounds exactly like a mix decision rather than a
+    /// fault.  The panel is where an instrument can say what happened.
+    pub notice: Option<String>,
 }

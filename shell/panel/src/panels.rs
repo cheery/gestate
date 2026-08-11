@@ -294,6 +294,13 @@ pub fn view(m: &Model, w: i32, hot: Option<u32>, scale: i32, scroll: i32)
 
     y += font::height(k.title_scale()).max(b) + k.pad();
 
+    if let Some(text) = &m.notice {
+        let h = font::height(k.label_scale()) + k.px(8);
+        d.rect(k.pad(), y, right - k.pad(), h, CELL_WRONG);
+        d.text(k.pad() + k.px(4), y + k.px(4), text, INK, k.label_scale());
+        y += h + k.pad();
+    }
+
     if !m.knobs.is_empty() {
         d.text(k.pad(), y, "KNOBS", DIM, k.small_scale());
         y += font::height(k.small_scale()) + 6 * k.s();
