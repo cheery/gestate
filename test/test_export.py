@@ -1112,6 +1112,16 @@ def test_play_from_bar_five_plays_bar_five(tmp_path):
 # ── The canvas, exported ─────────────────────────────────────────────────
 
 
+def _knobs_of(source: str, graph) -> frozenset:
+    """The channels the plugin publishes as parameters — `export_clap`'s
+    own rule, so the tests bridge against the same set the shell does."""
+    from gestate.export import _BEAT_CHANS, bank_channels
+
+    banked = bank_channels(source)
+    return frozenset(n.chan for n in graph.control_sources()
+                     if n.chan not in banked and n.chan not in _BEAT_CHANS)
+
+
 def _substrate_source() -> str:
     return (Path(__file__).resolve().parents[1]
             / "examples" / "audio" / "substrate.ges").read_text()
@@ -1131,7 +1141,7 @@ def test_the_canvas_crosses_with_its_tags_and_its_channels():
 
     source = _substrate_source()
     graph = host_graph(source, 48000)
-    sub = substrate_of(source, 48000, graph)
+    sub = substrate_of(source, 48000, graph, _knobs_of(source, graph))
     assert sub is not None, "substrate.ges declares a `substrate`"
     assert sub["entry"] == "main"
     assert len(sub["tags"]) == 11, "eleven `Sub` constructors"
@@ -1157,7 +1167,7 @@ def test_the_bridge_pairs_a_drawn_channel_with_the_slot_the_synth_reads():
 
     source = _substrate_source()
     graph = host_graph(source, 48000)
-    sub = substrate_of(source, 48000, graph)
+    sub = substrate_of(source, 48000, graph, _knobs_of(source, graph))
     slots = {n.chan: i for i, n in enumerate(graph.control_sources())}
 
     assert dict(sub["bridge"]) == {"cutoff": slots["cutoff"]}
@@ -1171,7 +1181,7 @@ def test_a_file_that_draws_nothing_carries_no_canvas():
 
     source = "sound : Sig Float\nsound = gain 0.2 (sine 220.0)\n"
     graph = host_graph(source, 48000)
-    assert substrate_of(source, 48000, graph) is None
+    assert substrate_of(source, 48000, graph, frozenset()) is None
 
 
 @needs_toolchain

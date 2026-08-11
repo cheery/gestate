@@ -742,3 +742,160 @@ fn the_panel_follows_the_hosts_seed() {
     p.sync_values(&[(500, 4242.0)]);
     assert_eq!(p.model.seed.as_ref().unwrap().value, 4242);
 }
+
+// ── Typing a seed in ─────────────────────────────────────────────────────
+
+use crate::Key;
+
+/// Open the seed field the way a hand does.
+fn typing() -> Panel {
+    let mut p = Panel::new(with_toolbar());
+    let hit = p.chrome().hits.iter()
+        .find(|h| h.kind == Kind::Button(panels::ACT_SEED_EDIT))
+        .expect("the seed field").clone();
+    let out = p.press((hit.region.0 + hit.region.2) / 2,
+                      (hit.region.1 + hit.region.3) / 2);
+    assert!(out.is_empty(), "opening a field told the host something");
+    assert!(p.is_editing());
+    p
+}
+
+/// **The keyboard is the host's until you are typing.**
+///
+/// `spec/panel.md`'s rule: a DAW lets you play the piano keys while a
+/// plugin window has focus, so a panel that captured them would take
+/// the instrument's own keyboard away.  The exception lasts exactly as
+/// long as a person is typing into a five-character box.
+#[test]
+fn the_panel_wants_no_keys_until_a_field_is_open() {
+    let mut p = Panel::new(with_toolbar());
+    assert!(!p.is_editing());
+    assert!(p.key(Key::Digit(7)).is_empty(),
+            "a key reached the panel with no field open");
+    assert_eq!(p.model.seed.as_ref().unwrap().value, 1234);
+}
+
+#[test]
+fn the_field_opens_showing_the_seed_it_is_editing() {
+    let p = typing();
+    assert_eq!(p.editing(), Some("1234"));
+}
+
+#[test]
+fn typing_digits_and_pressing_enter_sets_the_seed() {
+    let mut p = typing();
+    for _ in 0..4 {
+        p.key(Key::Backspace);
+    }
+    assert_eq!(p.editing(), Some(""));
+    for d in [4u8, 2, 4, 2] {
+        p.key(Key::Digit(d));
+    }
+    assert_eq!(p.editing(), Some("4242"));
+    let out = p.key(Key::Enter);
+    assert_eq!(out, vec![Change::Begin(500),
+                         Change::Value(500, 4242.0),
+                         Change::End(500)]);
+    assert!(!p.is_editing());
+    assert_eq!(p.model.seed.as_ref().unwrap().value, 4242);
+}
+
+#[test]
+fn escape_abandons_what_was_typed() {
+    let mut p = typing();
+    p.key(Key::Digit(9));
+    let out = p.key(Key::Escape);
+    assert!(out.is_empty(), "an abandoned field told the host something");
+    assert_eq!(p.model.seed.as_ref().unwrap().value, 1234);
+    assert!(!p.is_editing());
+}
+
+/// The field cannot hold a number its own range does not.
+#[test]
+fn the_field_stops_at_the_seeds_own_width() {
+    let mut p = typing();
+    for _ in 0..8 {
+        p.key(Key::Backspace);
+    }
+    for _ in 0..12 {
+        p.key(Key::Digit(9));
+    }
+    assert_eq!(p.editing(), Some("99999"), "five digits, because max is 99999");
+    p.key(Key::Enter);
+    assert_eq!(p.model.seed.as_ref().unwrap().value, 99_999);
+}
+
+/// **An empty field commits nothing.**  Backspacing everything and
+/// pressing Enter should not quietly select take zero, which is a real
+/// take and not the one anybody asked for.
+#[test]
+fn clearing_the_field_and_committing_changes_nothing() {
+    let mut p = typing();
+    for _ in 0..8 {
+        p.key(Key::Backspace);
+    }
+    let out = p.key(Key::Enter);
+    assert!(out.is_empty(), "an empty field committed {out:?}");
+    assert_eq!(p.model.seed.as_ref().unwrap().value, 1234);
+}
+
+/// A leading zero is dropped rather than refused, so typing `007`
+/// gives `7` and nobody has to know.
+#[test]
+fn a_typed_zero_gives_way_to_the_next_digit() {
+    let mut p = typing();
+    for _ in 0..8 {
+        p.key(Key::Backspace);
+    }
+    p.key(Key::Digit(0));
+    p.key(Key::Digit(7));
+    assert_eq!(p.editing(), Some("7"));
+}
+
+/// **A press elsewhere commits.**  Typing a number and then reaching
+/// for a fader means the number; throwing it away because the next
+/// click was somewhere else is a field that loses your work quietly.
+#[test]
+fn clicking_away_keeps_what_was_typed() {
+    let mut p = typing();
+    for _ in 0..4 {
+        p.key(Key::Backspace);
+    }
+    for d in [7u8, 7] {
+        p.key(Key::Digit(d));
+    }
+    // The first fader's track, well below the toolbar.
+    let fader = p.display().hits.iter()
+        .find(|h| matches!(h.kind, Kind::Fader(_)))
+        .expect("a fader").clone();
+    let out = p.press((fader.region.0 + fader.region.2) / 2,
+                      (fader.region.1 + fader.region.3) / 2);
+    assert!(out.contains(&Change::Value(500, 77.0)),
+            "the typed seed was dropped: {out:?}");
+    assert!(!p.is_editing());
+}
+
+/// Rolling and typing are two ways of saying the same thing, so one
+/// abandons the other rather than leaving a caret over a number it no
+/// longer describes.
+#[test]
+fn rolling_while_typing_closes_the_field() {
+    let mut p = typing();
+    p.key(Key::Digit(5));
+    let hit = p.chrome().hits.iter()
+        .find(|h| h.kind == Kind::Button(panels::ACT_RESEED))
+        .expect("the reroll").clone();
+    let out = p.press((hit.region.0 + hit.region.2) / 2,
+                      (hit.region.1 + hit.region.3) / 2);
+    assert!(!p.is_editing());
+    assert!(matches!(out.first(), Some(Change::Begin(500))), "{out:?}");
+}
+
+/// The open field looks different from the closed one — a caret is the
+/// only thing that says the keyboard is going somewhere.
+#[test]
+fn an_open_field_draws_differently_from_a_closed_one() {
+    let shut = Panel::new(with_toolbar());
+    let open = typing();
+    assert_ne!(shut.chrome(), open.chrome());
+}

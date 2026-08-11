@@ -15,6 +15,24 @@
 use crate::list::{Display, Kind};
 use crate::model::Model;
 
+/// The keys a panel knows about.
+///
+/// **Five, and no more, because the panel edits one five-digit
+/// number.**  Naming them here rather than taking `baseview`'s
+/// `KeyboardEvent` keeps `window` the only module that knows a windowing
+/// crate exists — the same rule the display list keeps for drawing —
+/// and it means the field is testable by pressing keys at it in a unit
+/// test.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Key {
+    Digit(u8),
+    Backspace,
+    /// Commit: what has been typed becomes the value.
+    Enter,
+    /// Abandon: the field goes back to what it was showing.
+    Escape,
+}
+
 /// What the shell must tell the host.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Change {

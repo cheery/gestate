@@ -39,6 +39,42 @@ python -m pytest                                            # the suite
 Try `examples/audio/violin.ges` for a concert soloist lost in a sound
 system, or anything under `examples/beginner/` beside its lesson.
 
+## Play it
+
+A gestate file exports as a **CLAP plugin** — one native graph, its
+knobs as automatable parameters, its voice banks fed by MIDI, and its
+score performed against the DAW's transport.
+
+```sh
+python -m gestate.export examples/audio/substrate.ges  -o ~/.clap/substrate.clap  --gui
+python -m gestate.export examples/audio/nightdrive.ges -o ~/.clap/nightdrive.clap --gui
+```
+
+<p align="center">
+  <img src="doc/substrate.png" width="420"
+       alt="the plugin window: CONTROLS and CANVAS tabs, a seed field, and a fader beside a meter">
+</p>
+
+The window has two sides and one painter.  **CONTROLS** is the
+descriptor — faders, a note-routing matrix, a switch per bank for who
+plays it.  **CANVAS** is the program's own picture: a file that declares
+a `substrate : Sig Sub` draws it here, interpreted at frame rate, and
+the fader above *is* the filter's cutoff, because they are the same
+signal.  Drag it and the sound moves with it; the meter beside it is
+the instrument's own loudness, arriving from the audio thread.
+
+**SEED** is the take.  A chancy piece — `nightdrive` picks a road every
+four bars, `arpeggiator` a held key every sixteenth — is a family of
+performances, and the seed says which one you are hearing.  Roll it, or
+type one in and keep it: it is a plugin parameter, so the session
+remembers it, the DAW can automate it, and writing the number down is
+enough to get the night back.  A piece whose score is a decided list of
+events has no entropy to reroll and is offered no seed.
+
+`spec/panel.md` and `spec/substrate.md` are the design; the whole face
+is software-rendered from a display list the language already speaks, so
+there is no toolkit in the build.
+
 ## Read it
 
 * **[The beginner course](doc/beginner.md)** — ten lessons from a sine

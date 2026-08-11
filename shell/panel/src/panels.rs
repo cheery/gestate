@@ -48,6 +48,10 @@ pub const BAR: Colour = Colour::rgb(0x6a, 0x74, 0x84);
 /// The toolbar's ground — a shade off the panel's, so the strip reads
 /// as chrome rather than as the first row of the content it sits over.
 pub const CHROME: Colour = Colour::rgb(0x1c, 0x1f, 0x25);
+/// A field being typed into.
+pub const FIELD: Colour = Colour::rgb(0x0c, 0x0e, 0x12);
+/// The caret in it.
+pub const CARET: Colour = Colour::rgb(0x5c, 0xa8, 0xd8);
 /// The tab you are looking at.
 pub const TAB_ON: Colour = Colour::rgb(0x33, 0x3a, 0x46);
 /// The one you are not.
@@ -65,6 +69,8 @@ pub const ACT_CONTROLS: u32 = 2;
 pub const ACT_CANVAS: u32 = 3;
 /// Roll a new seed — **a new take of the same piece.**
 pub const ACT_RESEED: u32 = 4;
+/// Type a seed in.
+pub const ACT_SEED_EDIT: u32 = 5;
 
 /// Zoom, as a **percentage**, in steps of `SCALE_STEP`.
 ///
@@ -223,6 +229,16 @@ pub fn toolbar_h(m: &Model, scale: i32) -> i32 {
 /// scrollbar is: the content beneath it may be scrolled to anywhere,
 /// and painting the strip last is what makes it opaque to that.
 pub fn toolbar(d: &mut Display, m: &Model, w: i32, scale: i32, tab: Tab) {
+    toolbar_editing(d, m, w, scale, tab, None)
+}
+
+/// The toolbar, with the seed field being typed into.
+///
+/// `editing` is the digits so far — `Some("")` is a field that has been
+/// opened and not yet typed in, which must look different from a field
+/// showing `0`.
+pub fn toolbar_editing(d: &mut Display, m: &Model, w: i32, scale: i32,
+                       tab: Tab, editing: Option<&str>) {
     let k = Metrics::new(scale);
     let h = toolbar_h(m, scale);
     if h == 0 {
@@ -259,10 +275,14 @@ pub fn toolbar(d: &mut Display, m: &Model, w: i32, scale: i32, tab: Tab) {
     }
 
     let Some(seed) = &m.seed else { return };
+    let _ = &editing;
     // Right-aligned, because the tabs grow leftwards from a fixed edge
     // and a seed that shuffled sideways as the tab names changed would
     // be a button that moves under the hand that is reaching for it.
-    let text = format!("{}", seed.value);
+    let text = match editing {
+        Some(typed) => typed.to_string(),
+        None => format!("{}", seed.value),
+    };
     let rw = font::width("RNG", k.small_scale()) + k.px(16);
     let vw = font::width("00000", k.small_scale()).max(
         font::width(&text, k.small_scale()));
@@ -271,7 +291,7 @@ pub fn toolbar(d: &mut Display, m: &Model, w: i32, scale: i32, tab: Tab) {
     let bx = right - rw;
     // Only if the three of them fit beside the tabs; a window squeezed
     // narrow keeps the tabs, which are the ones you cannot do without.
-    if bx - k.px(8) - vw - k.px(6) - lw < x {
+    if bx - k.px(8) - vw - k.px(10) - k.px(6) - lw < x {
         return;
     }
     d.rect(bx, y, rw, b, TRACK);
@@ -283,9 +303,28 @@ pub fn toolbar(d: &mut Display, m: &Model, w: i32, scale: i32, tab: Tab) {
 
     let vx = bx - k.px(8) - vw;
     let ty = y + (b - font::height(k.small_scale())) / 2;
-    d.text(vx + vw - font::width(&text, k.small_scale()), ty,
-           &text, INK, k.small_scale());
-    d.text(vx - k.px(6) - lw, ty, "SEED", DIM, k.small_scale());
+    // **The number is a field you can type in.**  Boxed always, so it
+    // reads as somewhere text goes rather than as a label that turns
+    // out to be clickable — a control you have to discover by clicking
+    // is one nobody discovers.
+    let pad = k.px(5);
+    let (fx, fw) = (vx - pad, vw + 2 * pad);
+    d.rect(fx, y, fw, b, if editing.is_some() { FIELD } else { TRACK });
+    let tw = font::width(&text, k.small_scale());
+    if editing.is_some() {
+        // Typed text runs from the left with a caret after it, because
+        // that is where the next digit will go.  A right-aligned number
+        // that crept leftwards as you typed would be a field arguing
+        // with your hand.
+        d.text(fx + pad, ty, &text, INK, k.small_scale());
+        d.rect(fx + pad + tw + k.px(1), y + k.px(3),
+               k.px(2).max(1), b - k.px(6), CARET);
+    } else {
+        d.text(fx + fw - pad - tw, ty, &text, INK, k.small_scale());
+    }
+    d.hit(Kind::Button(ACT_SEED_EDIT), crate::list::NO_PARAM,
+          (fx, y, fx + fw, y + b));
+    d.text(fx - k.px(6) - lw, ty, "SEED", DIM, k.small_scale());
 }
 
 /// How tall this model is at this scale and width — what a window would

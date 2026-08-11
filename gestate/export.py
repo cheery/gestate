@@ -267,7 +267,7 @@ _SUB_CONS = ("Rect", "Circle", "Gap", "Over", "Row", "Column",
              "Shift", "Sized", "Pad", "TouchX", "TouchY")
 
 
-def substrate_of(source: str, rate: int, graph):
+def substrate_of(source: str, rate: int, graph, knobs: frozenset):
     """The **canvas** as a program, for a plugin to run beside its sound.
 
     `spec/substrate.md`, abroad.  A file that declares a `substrate` has
@@ -294,10 +294,19 @@ def substrate_of(source: str, rate: int, graph):
     And one thing the score does not need: the **bridge**.  A channel
     the canvas writes may be a channel the compiled graph reads — that
     is the whole of "one fold, two readers" — so every declared channel
-    that is also a control source is paired with its slot.  A touch on
-    a fader then moves the picture *and* the sound, and the shell does
-    it by writing the parameter it already owns rather than by reaching
-    into the engine (`spec/panel.md` §"What the substrate will demand").
+    that is also a **knob** is paired with its slot.  A touch on a fader
+    then moves the picture *and* the sound, and the shell does it by
+    writing the parameter it already owns rather than by reaching into
+    the engine (`spec/panel.md` §"What the substrate will demand").
+
+    **A knob, not any control source**, and `envelope.ges` is why: its
+    graph reads sixteen `keysChan…` slots, one per voice of a bank, and
+    those are not parameters — `params_get_info` publishes only the
+    controls with `knob` set.  Pairing a channel with a slot that is not
+    published means handing the host an id that belongs to somebody
+    else's parameter, so a touch on the canvas would move an unrelated
+    knob.  The set of ids a shell may be handed is exactly the set it
+    publishes, and that set is `knobs`.
 
     `None` when the file draws nothing, or when the canvas cannot cross
     — the same honest refusal `program_of` makes.
@@ -343,7 +352,8 @@ def substrate_of(source: str, rate: int, graph):
     # as a control, paired with the slot it reads it from — the same
     # enumeration `descriptor_rs` writes `CONTROLS` in, so the two
     # cannot disagree about which slot is which.
-    slots = {n.chan: i for i, n in enumerate(graph.control_sources())}
+    slots = {n.chan: i for i, n in enumerate(graph.control_sources())
+             if n.chan in knobs}
     bridge = [(name, slots[name]) for name in names if name in slots]
 
     return {
@@ -749,7 +759,7 @@ def export_clap(source: str, out: Path, *, rate=None, name: str,
     # score: a file may draw and have no piece, or play a piece and
     # show nothing.  They are two halves the compiler leaves behind,
     # not two spellings of one.
-    canvas = substrate_of(source, primary, graph) if gui else None
+    canvas = substrate_of(source, primary, graph, knobs) if gui else None
     with tempfile.TemporaryDirectory() as d:
         archive(graphs, d)
         (shell / "src" / "descriptor.rs").write_text(descriptor_rs(

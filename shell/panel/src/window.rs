@@ -304,10 +304,43 @@ impl WindowHandler for PanelWindow {
                 self.panel.borrow_mut().scroll_by(dy as i32);
                 EventStatus::Captured
             }
-            // **Keyboard events are passed back deliberately.**  A DAW
+            // **Keyboard events are passed back deliberately** — a DAW
             // lets you play the piano keys while a plugin window has
             // focus, and a panel that captured them would take the
             // instrument's own keyboard away.
+            //
+            // The one exception is a person typing into the seed field,
+            // and it lasts exactly as long as they are: `is_editing`
+            // gates it, and every key the field does not want goes back
+            // to the host even while it is open, so the piano keeps
+            // working under a caret.
+            Event::Keyboard(k) => {
+                use keyboard_types::{Key as K, KeyState, NamedKey};
+                if k.state != KeyState::Down {
+                    return EventStatus::Ignored;
+                }
+                let mut panel = self.panel.borrow_mut();
+                if !panel.is_editing() {
+                    return EventStatus::Ignored;
+                }
+                let want = match &k.key {
+                    K::Character(c) => c.chars().next()
+                        .and_then(|c| c.to_digit(10))
+                        .map(|d| crate::Key::Digit(d as u8)),
+                    K::Named(NamedKey::Backspace) =>
+                        Some(crate::Key::Backspace),
+                    K::Named(NamedKey::Enter) => Some(crate::Key::Enter),
+                    K::Named(NamedKey::Escape) => Some(crate::Key::Escape),
+                    _ => None,
+                };
+                let Some(key) = want else {
+                    return EventStatus::Ignored;
+                };
+                let changes = panel.key(key);
+                drop(panel);
+                self.emit(changes);
+                EventStatus::Captured
+            }
             _ => EventStatus::Ignored,
         }
     }

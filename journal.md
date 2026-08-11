@@ -4678,8 +4678,8 @@ matters as much and was nearly missed — a host moving a bridged
 parameter has to write the channel too, or the canvas is a display
 that is right only while you are the one touching it.
 
-Two mistakes paid for, both about **what a host is allowed to assume
-about a program**:
+Three mistakes paid for, and the first two are about **what a host is
+allowed to assume about a program**:
 
 *Channel ids are not a property of the program.*  An id is allocated
 when a declaration is first forced, so it depends on what the host
@@ -4690,6 +4690,15 @@ make the same choice with nothing checking, and they did not.  Names
 cross instead; the shell forces them in the order given and keeps
 whatever it is handed.  Nothing has to agree because nothing is being
 guessed.
+
+*A knob is not any control source.*  The bridge first paired every
+declared channel the graph read, and `envelope.ges` showed what that
+meant: its graph reads sixteen `keysChan…` slots, one per voice of a
+bank, and those are not parameters — the plugin publishes only the
+controls with `knob` set.  Pairing a channel with an unpublished slot
+hands the host an id belonging to somebody else's parameter, so a touch
+on the canvas would have moved an unrelated knob.  The set of ids a
+shell may be handed is exactly the set it publishes.
 
 *The origin is part of the tree's meaning.*  `gui.py` walks from
 `cx = cy = 0`, so a substrate's centre sits at the window's **corner**
@@ -4715,3 +4724,17 @@ A strip that would be empty is not drawn, and a seed that governs
 nothing is not offered: a synth with a baked event list has no entropy
 to reroll, and a button that changes a number you cannot hear is worse
 than no button — it is one that lies.
+
+**The number is also a field you can type in**, which is the one place
+this panel takes the keyboard — and the rule it seemed to break is the
+rule it keeps.  Keys go back to the host, always, because a DAW lets you
+play the piano while a plugin window has focus; the exception lasts
+exactly as long as somebody is typing into a five-character box, and
+every key the field does not want goes back even while it is open.  The
+editor is digits, backspace, enter, escape and a caret: no selection, no
+cursor to move, no clipboard, because the field holds five characters
+and each of those would be a thing to get right for nobody.  What it
+does have is three ways of not losing your work quietly — a press
+elsewhere commits rather than discards, an empty field commits nothing
+rather than selecting take zero, and `RNG` closes the field rather than
+leaving a caret over a number it no longer describes.

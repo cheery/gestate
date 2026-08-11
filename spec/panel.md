@@ -417,7 +417,7 @@ after where they sit (front, behind) would have named the *window's
 arrangement* rather than what is on each side, and the arrangement is
 the part most likely to change.
 
-Beside them, **the seed**: `SEED 01234 [RNG]`.  It is a plugin
+Beside them, **the seed**: `SEED [01234] [RNG]`.  It is a plugin
 parameter like any other, so the host saves it, automates it and shows
 it — and pressing `RNG` is one whole gesture on it, `BEGIN`, one value,
 `END`, exactly as a drag is.  It is *not* a fader, and the reason is
@@ -425,8 +425,28 @@ worth stating because the obvious design is the wrong one: every value
 a drag passed through would be a different piece, and the plugin
 answers a new seed by re-rooting its stream, so a one-second drag asks
 for sixty re-roots of a score, fifty-nine of them thrown away.  One
-press, one take.  A player who wants a *particular* seed types it into
-the host's own parameter box, which is what that box is for.
+press, one take.
+
+**And the number is a field you can type in**, which is the one place
+this panel takes the keyboard.  §"Threads" and the event handler both
+say keys go back to the host — a DAW lets you play the piano while a
+plugin window has focus, and a panel that captured them would take the
+instrument's own keyboard away.  The exception lasts exactly as long as
+somebody is typing into a five-character box: `Panel::is_editing` gates
+it, every key the field does not want goes back to the host even while
+it is open, and `Escape` closes it.
+
+The editor is deliberately tiny — digits, backspace, enter, escape, and
+a caret.  No selection, no cursor to move, no clipboard: the field holds
+at most five characters, and each of those would be a thing to get right
+for nobody.  Three rules earn their keep, and each is a way of not
+losing somebody's work quietly: a press *elsewhere* commits rather than
+discards, because typing a number and then reaching for a fader means
+the number; an **empty** field commits nothing, because backspacing to
+blank and pressing enter must not silently select take zero; and
+pressing `RNG` closes the field, because rolling and typing are two ways
+of saying the same thing and a caret left blinking over a number it no
+longer describes is a lie.
 
 Recorded here because the panel is what turns these from questions
 into requirements.

@@ -16,6 +16,11 @@ crate-type = ["rlib"]
 [dependencies]
 baseview = { version = "0.3", optional = true }
 softbuffer = { version = "0.4", optional = true }
+# `baseview` hands keyboard events through as `keyboard_types` and does
+# not re-export the crate, so the one module that touches them names it
+# directly.  Nothing above `window` ever sees it: the panel has its own
+# five-key vocabulary (`interact::Key`).
+keyboard-types = { version = "0.8", default-features = false, optional = true }
 raw-window-handle = { version = "0.6", optional = true }
 # The G-machine, for walking a `Sub` tree.  Its own zero-dependency
 # rule is what lets the panel take it without giving up an offline
@@ -27,7 +32,8 @@ default = []
 # A window to put the pixels in.  Off: the crate is pure functions from
 # a descriptor to a display list, and from a display list to a buffer —
 # which is everything the tests check.
-window = ["dep:baseview", "dep:softbuffer", "dep:raw-window-handle"]
+window = ["dep:baseview", "dep:softbuffer", "dep:raw-window-handle",
+          "dep:keyboard-types"]
 # The canvas half: walking a program's own `Sub` into the same display
 # list panel one produces (`spec/substrate.md`).
 substrate = ["dep:crust"]

@@ -13,13 +13,14 @@
 //! **The canvas too**, when there is one to point it at:
 //!
 //! ```text
-//! cargo run -p gestate-panel --features substrate --example shot -- \
+//! cd shell/panel && cargo run --features substrate --example shot -- \
 //!     tests/substrate.program tests/substrate.tags cutoff peak > c.ppm
 //! ```
 //!
 //! Same two fixtures the parity test uses — which are exactly what the
 //! export sends a plugin — so what comes out is the picture a DAW
-//! draws, checkable by looking at it.
+//! draws, checkable by looking at it.  `doc/substrate.png` in the
+//! README is that command's output, converted.
 
 use gestate_panel::model::{Accepts, BankView, Knob, Model, SeedView};
 use gestate_panel::Panel;
@@ -107,6 +108,25 @@ fn main() {
         if let Ok(h) = h.parse::<i32>() { p.resize(p.width, h); }
     }
     if std::env::var("SHOT_SCROLL").is_ok() { p.scroll_by(120); }
+    // `SHOT_TYPING=42` opens the seed field with those digits in it, so
+    // the caret and the box are in shot.
+    if let Ok(digits) = std::env::var("SHOT_TYPING") {
+        if let Some(h) = p.chrome().hits.iter()
+            .find(|h| h.kind
+                  == gestate_panel::Kind::Button(gestate_panel::panels
+                                                 ::ACT_SEED_EDIT))
+            .cloned()
+        {
+            p.press((h.region.0 + h.region.2) / 2,
+                    (h.region.1 + h.region.3) / 2);
+            for _ in 0..8 { p.key(gestate_panel::Key::Backspace); }
+            for c in digits.chars() {
+                if let Some(d) = c.to_digit(10) {
+                    p.key(gestate_panel::Key::Digit(d as u8));
+                }
+            }
+        }
+    }
     let c = p.render();
     let mut out = Vec::new();
     write!(out, "P6\n{} {}\n255\n", c.w, c.h).unwrap();
