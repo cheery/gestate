@@ -75,8 +75,10 @@ def test_every_command_finds_the_method_it_needs(tmp_path):
     # `pitchChan` and the editors show it as `pitch` — the suffix is
     # dropped where a person reads it, which is a fact about the model
     # that only the model can teach.
+    # **A name that is certainly not on the disk**, so `open` and `steal`
+    # answer about a missing file rather than opening one under a test.
     sample = {"Int": 1, "Float": 0.5, "Text": "sine",
-              "Named": "pitch", "a": 40}
+              "Named": "pitch", "a": 40, "Path": "no-such-file.ges"}
     for verb in s.commands():
         said = s.run(verb.name, *(sample[a] for a in verb.args))
         assert "object has no attribute" not in said, \

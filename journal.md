@@ -4940,3 +4940,164 @@ the same "the document changed" path as a keystroke: the window is the
 authority on what the document holds, and a load that quietly skipped
 the notification left `ged_text` handing back the text the caller had
 just replaced.
+
+## The editor becomes the editor
+
+The rope and the window were the easy half.  What made it an editor was
+a day of Henri using it and saying what was wrong — twelve separate
+reports, of which **not one was found by a test**.  Two thousand of them
+passed throughout.
+
+**The command language is gestate, restricted.**  `gestate/command.ges`
+declares every verb with a type and a sentence; `gestate/session.py`
+reads that file and *is* the palette.  A capability therefore cannot
+exist without appearing in the list, because appearing in the list is
+what declaring one is — the same argument `doc/ref/` already makes about
+the libraries.  `Named a` is a phantom type, `FromCC` sits beside
+`FromMIDI`, and the restriction that makes a command language out of a
+programming one is the one this project keeps reaching for: no
+conditionals, no loops, no variables, reached by *taking away* rather
+than by inventing a second syntax.
+
+**The types are what let the view ask.**  Eleven of the thirty-two verbs
+take arguments and none of them were reachable until the list could
+collect them; the signature says how many and of what kind, so picking
+`loop` opens a question rather than running anything.  A `Named` gets
+the names ranked by the model, a `Path` gets what is in the directory,
+an `Int` is typed — offering a list of numbers would be a menu of
+guesses.  The ranking lives in exactly one place and the window asks for
+it, which is why `shell/editor/src/palette.rs` deliberately does not
+sort.
+
+### Three bugs that measurement found and reasoning did not
+
+**One keystroke behind.**  Typing showed the *previous* character, and
+only after the transport stopped.  Six guesses were wrong.  What is
+true: `baseview` waits on the X connection's file descriptor, and
+`softbuffer` was handed the *same* connection — its round trips read
+that socket, moving queued events into XCB's own queue where they are no
+longer bytes on a descriptor and no longer wake the loop.  A keystroke
+landing there waited for the next keystroke's bytes.  While the
+transport ran it was invisible, because the beat redrew the window sixty
+times a second and every present drained the queue; `stop` took the
+mask away.  **So a clean frame is presented anyway** — skipping the
+expensive half, keeping the copy and the present, half a millisecond for
+a connection drained on a schedule instead of whenever somebody types.
+`GESTATE_EDITOR_STRESS` was the decisive experiment: forcing every frame
+made the lag vanish, which pinned the mechanism in one run after an
+afternoon of theory.
+
+**A segfault on quit, and it was two bugs.**  `Workbench.stop` called
+`host.close()` immediately after `join(timeout)` — *whether or not the
+thread had stopped* — and only then said "closing now may crash".  That
+is not a risk of a crash, it is the crash: the workspace freed under a
+live audio thread.  Underneath it, the device loop could only exit on
+`h->stop && h->gain <= 0.0`, waiting for the fade-out to *arrive*, which
+is what keeps a quit from popping — and that waiting assumes the card is
+consuming frames.  With another program holding it, `snd_pcm_writei`
+blocks, the fade never advances, the loop never leaves.  So `host.c` has
+two stops now: `halt` breaks unconditionally, `snd_pcm_drop`s instead of
+`drain`ing, and — because a flag cannot reach a thread blocked inside
+`writei` — calls the drop *from the stopping thread* to end the wait.  A
+click on the way out is the right trade against a core file.  Quitting
+at ten moments of startup went from eight crashes in ten to none.
+
+**A loop that dragged its voices.**  The C engine closes its own loop
+between blocks: it moves `position` back and tells Python nothing, so
+`on_seek` never fired and the `LazyPerformer` — which only ever goes
+forward — went on answering with the values from the *end* of the loop
+for the whole next pass.  The clock going backwards is the only
+announcement there is, and the housekeeping thread now watches for it.
+That fix cost what it fixed: a seek replays the score silently from the
+top, measured at 19 ms at bar sixty-five, and a loop paid it every wrap.
+But a seek is a pure function of the past, so its answer can be kept —
+`LazyPerformer.snapshot`/`restore`, refused whenever the stream has
+grown since, because a performance quietly disagreeing with its own
+score is far worse than the seek it saves.  Wraps went from ~9 ms to
+0.06.  The test that matters does not measure: it drives two performers
+identically, one restoring and one seeking, and requires the same state
+*and the same subsequent changes*.
+
+### What the reports were actually about
+
+Six of the twelve were **a refusal naming the wrong reason**, and each
+looked like a broken editor:
+
+* `listen` reported success while `Workbench.listen` silently declined —
+  a bank whose payload has no `FromMIDI` instance cannot be handed a
+  note however much you want it to be.  No sound, and no reason.
+* `canvas` said *"this file draws nothing"* about a file that draws a
+  lantern, when the truth was that the window could not show one yet.
+  It now tells three cases apart, because a canvas still compiling is a
+  fact about the clock and not about the program.
+* The status line showed the palette's *"29 of 29"* after every command,
+  hiding its answer.  You pressed `seek`, it worked, and the line said
+  nothing had happened.
+* `play` was advertised as `Space` in a text editor, which is either a
+  shortcut that never fires or an editor you cannot type a space into.
+  Eleven shortcuts were advertised and two implemented; they are matched
+  against the key each command *publishes* now, so the list cannot
+  advertise one that does nothing.
+
+**And one was a design error, not a bug.**  `find foo` is what a person
+types; the palette wanted `find`, Return, `foo`, Return.  Henri worked
+the rule out himself after a long, frustrating stretch of concluding the
+build was stale — and the fix was one line: a space does what Return
+does, except inside a `Text`, where `find foo bar` has to be able to
+look for two words.  Every test drove the protocol that had just been
+written, which is exactly why none of them found it.  A harness built
+from an implementation can only find broken things, never missing ones.
+
+**Two pairs had to be read together.**  `hide` clears every scrap of the
+last question and `show` cleared none of it — once inside the palette,
+where backspace stopped backspacing, and once across the wire, where a
+reopened `open` was handed the directory you had walked into instead of
+the one you are in.  Both were written weeks apart from their partners
+and neither is wrong on its own line.
+
+### The window earns the widgets
+
+Margin knobs drag, and a click at 25% of a fader gives 24 of 0…100 —
+turning it and typing the number are the same act, which was acceptance
+clause 4.  Banks draw a box and `held/voices`: `voices 6` is in the text
+already and a window repeating it would be decoration, but that four of
+them are sounding *now* is what the text cannot say.  A piano appears
+only when asked for, takes the keyboard when drawn or clicked, and is
+drawn **grey when nothing will hear it** — a control that does nothing
+and looks exactly like one that works is how an evening goes into
+deciding whether the synth is broken.
+
+`open` and `steal` share a file dialog whose whole design fell out of
+three corrections: a directory is a *step* and a file is the answer;
+`..` reads `../` at every depth while the query it makes is what stacks;
+and the file you are in is *marked*, not selected, so the list shows
+where you are and the first letter typed is a new name.  `steal` greys
+what is taken and refuses it — overwriting is not something a name box
+should do by accident, and one that could would be a delete wearing a
+friendlier word.  The greying is a courtesy; the check is the guarantee.
+
+**The canvas came last and cost almost nothing**, which is the point.
+`gestate-panel` already turns a substrate into a display list and paints
+it for the plugin; the editor reads the same three shapes off a channel
+of its own and calls the same painter.  A second painter would be a
+second set of rounding decisions and the two windows would disagree
+about somebody's artwork.  It has its own channel because a substrate
+animates while the furniture beside it changes when a command runs —
+carrying them together would push every knob across the boundary sixty
+times a second to move one dot.
+
+### Retirement
+
+`audiopygame.py` went first, with its 151 tests.  The `tkinter` `Editor`
+followed — 640 lines, its `main`, and five smoke tests — the day
+`shell/editor` did all four of the things it did.  What made that cost
+nothing was decided long before either existed: **two halves, and only
+one of them is a GUI.**  Nothing above the window ever imported a
+toolkit, so replacing the window changed not one line of the half that
+is tested.  `audioeditor.py` is the model now, and `python -m
+gestate.workbench` is the way in.
+
+The lesson worth carrying is the cheapest one: **use the thing the naive
+way before calling it done.**  Type the whole line.  Click the obvious
+place.  Every defect above was one honest sentence or one keystroke away
+from obvious, and a person found all of them.

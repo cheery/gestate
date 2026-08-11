@@ -347,14 +347,45 @@ twenty-nine commands take something, and picking one of those is not
 running it — the list becomes a question about its first argument, and
 the prompt is the usage line with what has been given standing where its
 placeholder was: `loop 4 <int>`.  A `Named` argument gets the names,
-ranked, from the model; an `Int` or a `Text` is typed, because offering
-a list of numbers would be a menu of guesses.  Backspace on an empty
+ranked, from the model; a `Path` gets what is in the directory; an `Int`
+or a `Text` is typed, because offering a list of numbers would be a menu
+of guesses.  Backspace on an empty
 argument steps back one, and then out of the question into the list you
 came from — picking the wrong command is the ordinary mistake here.
 
 Which names a query means is ranked *in the model*, by the same rule
 that ranks commands, and for the same reason: it is a decision, and a
 decision belongs in one place.
+
+**`Path` is its own type so that the list can appear.**  It is the same
+rule `Named` follows — the type is what lets the view ask — and a path
+qualifies because it has a small, knowable set of next steps.  Three
+things fall out of it, and each was learned by getting it wrong first:
+
+* **A directory is a step, not an answer.**  Choosing one makes the
+  query walk into it and asks again, which is what a file dialog does;
+  choosing a *file* is the answer.  The whole new query comes from the
+  model, because it is path arithmetic and the view has no business
+  doing any.
+* **`..` is a path, not a word.**  Its row reads `../` at every depth
+  and the query it makes is what stacks, so going up and then down into
+  another directory is a walk rather than a fresh start.
+* **The file you are in is marked, not selected.**  The cursor opens
+  there and the query stays blank, so the list shows where you are and
+  the first letter typed is a new name rather than an edit of the old.
+
+`steal` reuses all of it to take a name, with what is already there
+shown greyed and refused: overwriting is not something a name box should
+do by accident, and a `steal` that could would be a delete wearing a
+friendlier word.  The greying is a courtesy; the check in the command is
+the guarantee.
+
+**Opening the list ends whatever it was asking**, on both sides of the
+wire.  `hide` cleared every scrap of the last question and `show`
+cleared none of it — twice: once inside the palette, where backspace
+stopped backspacing, and once across the boundary, where a reopened
+`open` was handed the directory you had walked into instead of the one
+you are in.  A pair like that has to be read together to notice.
 
 **`state` is a mirror, not a request.**  Undo and the zoom live on the
 window's thread, and `undo` has to answer *"undone"* or *"nothing to

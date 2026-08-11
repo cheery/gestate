@@ -114,7 +114,16 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # be — `shell/panel/tests/substrate_parity.rs` walks this
             # file's own `substrate` and compares it with what `gui.py`
             # draws, captions included.
-            "lantern.ges"]
+            "lantern.ges",
+            # One figure and a number saying how finely to divide it: an
+            # `unfold` writes each turn from the last, so the score is
+            # endless and a bake refuses it by name (`unfolding_names`)
+            # exactly as the seeded pieces are refused — deterministic
+            # here, which changes nothing about the golden.  What it
+            # exercises is `unfold` under `>>=` into two banks at once,
+            # pinned in `test_lazyscore.py`, and `test_examples.py`
+            # compiles it every run.
+            "spiral.ges"]
 
 #: The ones with committed golden buffers — all of them, now.  `knob.ges`
 #: had none for as long as the interpreter and the engine disagreed about

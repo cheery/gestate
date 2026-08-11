@@ -13,14 +13,21 @@ followed them — the dynamic score, the CLAP export, and the G-machine's
 Rust port (`crust`) — is recorded in `journal.md`; §"What is left after
 stage 10" keeps only the part of it that is still undone.
 
-**The most recent work is ariadne**, and §"Ariadne — what is left of it"
-is where to start.  It is the redesign of the score's reactive surface
+**The most recent work is the workbench**, and it is closed out in
+`journal.md` §"The editor becomes the editor".  `python -m
+gestate.workbench` is the only window now: a command list derived from
+`gestate/command.ges`, margin knobs and bank boxes, a piano, the
+substrate drawn by `gestate-panel`'s own painter, and a file dialog.
+The `tkinter` editor and `audiopygame` are retired.  §"What to build
+next" argues what that makes cheap.
+
+**Before it was ariadne**, the redesign of the score's reactive surface
 (`spec/ariadne.md`): chance and listening as lawful zero-width leaves of
 the score monad rather than boxed constructs beside it, bound with the
 `do` sugar (`spec/monad.md`).  Its first three stages are built, the old
 surface is retired, and `shape`/`fermata`/`tempoShape` landed with it
-(`spec/shape.md`).  **What is left is paths** — a position named by the
-binds above it rather than by a beat — and that section argues it.
+(`spec/shape.md`).  **What is left of it is paths** — a position named
+by the binds above it rather than by a beat — and §"Ariadne" argues it.
 
 The substrate is built and no longer future tense: `spec/substrate.md` is
 the design and `journal.md` has what it cost.  A canvas behind the editor
@@ -236,6 +243,16 @@ their own headings.  What is below is what is *not* done.
   audio core's whole method is that being wrong is *visible*.  There is no
   obvious oracle for "a key was pressed and a sound came out"; finding one
   is worth more than more care.
+
+  **This got worse before it got better, and there is now a first
+  instrument.**  The workbench's twelve defects were every one of them
+  found by a person using it while two thousand tests passed
+  (`journal.md`).  `tools/lagcheck.py` is the beginning of an answer: it
+  drives the real window with real X events through XTEST and reads the
+  result off the screen, which is the only oracle that has ever caught
+  any of this.  Widening it — a played key against the sound that comes
+  out — is the shape of the missing tool, and it is not a feature, which
+  is why it keeps losing to features.
 - **Changing the channel count in a running instrument.**  Stereo output is
   done; this is the part that is not.  The driver's buffer and the player
   process are fixed when playback starts, so an edit from mono to stereo
@@ -251,10 +268,13 @@ their own headings.  What is below is what is *not* done.
   necessity is gone and only the taste remains, so the comments should say
   that.  `Stereo` is the same question with an answer available:
   `sound : Sig (Float, Float)` could now replace it.
-- **What a second and third substrate element turn up.**  The substrate is
-  built (S1–S5); what is left is deliberately unspecified.  Hit-testing is
-  a bounding box today, and which events a host delivers — wheel, key,
-  hover — is a vocabulary question that should be settled by programs
+- **What a third substrate element turns up.**  The substrate is built
+  (S1–S5) and the *second* element has now arrived: `Label`, written up
+  in `journal.md` §"Words in a declared box".  It turned up the rule that
+  a drawn word is placed by its own box and carries where the glyphs go,
+  so a painter needs no second rule — and it did not move hit-testing,
+  which is still a bounding box.  Which events a host delivers — wheel,
+  key, hover — remains a vocabulary question to be settled by programs
   wanting them rather than in advance.  This is the same discipline that
   extracted `signal.ges` at the third combinator.
 - **More tools that ask the compiler.**  Three are built; these are worth
@@ -286,6 +306,132 @@ their own headings.  What is below is what is *not* done.
 - **A sixth synth, when there is a reason for one.**  Five have now failed
   to find a fragment boundary; the rule says the next one needs a purpose
   of its own rather than a hope of turning something up.
+
+---
+
+## What to build next
+
+Two, and they are different kinds of thing: one finishes something the
+workbench just made cheap, the other is a new capability Henri wants and
+that most of the parts for already exist.
+
+**`--migration OLD NEW` — what survives `Ctrl-S`.**
+
+It is already first in "more tools that ask the compiler, in the order
+the value falls".  What changed is that the sentence written there —
+*"in the editor it is a gutter mark: this edit resets the thing on line
+40"* — was future tense about an editor that did not exist.  It does
+now, and it has exactly the parts that line needs: a margin that draws
+per-line marks, a description keyed by line that already carries `knob`
+and `trouble`, and `apply` as a command you press deliberately.
+
+Both ends are built.  `audioengine.migrate(old, state, new)` exists and
+`audiolive.install` already calls it; **the tool is that comparison
+printed instead of applied**, and the gutter mark is the same comparison
+drawn instead of printed.
+
+The reason to do it before the others is not that it is cheap, though it
+is.  It is that it answers the question this whole environment's premise
+raises.  The sound does not stop when you save — so *which oscillators
+keep their phase, and which start over?*  Every live-coding system has
+that question and almost none can answer it, because almost none have a
+stable node identity.  This one does, by origin, and has since stage 5.
+Being able to see before you save that line 40 will reset is the
+difference between editing a running instrument and poking it.
+
+It also has the right shape for this project: it invents nothing, it
+makes an existing fact *visible*, and it is a third reading of the same
+node-origin map that `audiospans` and the knob column already read.
+
+**After it, in the order the value still falls**: a cost meter per
+definition, then locals in `--fits`, then `--uses NAME`.  All three are
+argued above and none of them changed.
+
+### A probe on a signal — Henri's, and the one to try in the editor
+
+**Drop a probe on a line and watch that signal**: a scope and a
+spectrogram, in the editor, on any node of the graph rather than only on
+the output.  The point is diagnosing a signal graph while it plays,
+which is the one thing the environment still cannot help with — you can
+hear that a filter is wrong and you cannot see where it went wrong.
+
+**Most of it already exists, which is why it is worth trying.**
+
+* The spectrum is built.  `host.c` keeps eight bands from seven one-pole
+  lowpasses (`GESTATE_BANDS`, `gestate_host_band`), and
+  `Workbench.WATCHED` already publishes `peak`, `rms`, `position`,
+  `band0…7` and `probe0…7` into a canvas that declares them.
+* The display surface is built, twice.  A substrate is a value composed
+  by ordinary functions, and the editor now draws one with
+  `gestate-panel`'s painter — so *a scope is a substrate somebody
+  writes*, and needs no new drawing vocabulary at all.
+* The node↔line map is built.  `audiospans` says which line produced
+  which node; it is what puts a knob beside its declaration, and "the
+  signal on line 40" is the same question asked of the same map.
+
+**What is genuinely new is the tap.**  Every reading above is of the
+*output* — `peak` and the bands are taken after the mix, and `probe0…7`
+are voice ages, not signals.  Nothing reads an interior node, because
+the graph compiles to machine code with no slot to read one from.  The
+honest shape of the answer is the one `export.py` already uses for drawn
+channels — **one fold, two readers** — turned around: a probed node gets
+a slot the host can read, added when the file is compiled.  Which means
+**dropping a probe is a rebuild**, exactly like `Ctrl-S`, and that is
+either fine or the whole problem depending on how a probe is meant to
+feel.  Deciding which is the first question, not an implementation
+detail.
+
+Three more to settle before writing any of it:
+
+* **Is a probe in the text or beside it?**  A `probe` in the source is a
+  declaration the compiler can see and the file remembers; a mark in the
+  margin is not, and has to survive edits by origin the way migration
+  does.  The first is cheaper and changes the program; the second does
+  not and costs a second identity.
+* **A scope wants samples, not a number per block.**  `peak` is one
+  reading a block and that is what makes it free; a waveform needs a
+  window of samples out of the audio thread without allocating on it —
+  a ring buffer the host fills and the window drains, which is the only
+  part with a real cost.
+
+  **And it is not the probe's cost alone, which is Henri's point and
+  changes the argument.**  `spec/sampling.md` — designed, none of it
+  built — specifies `input` as *"a channel whose slot is a block's worth
+  of samples, filled by the host before each `render_block`"*.  **A
+  probe is that node run backwards**: the same slot, the same block, the
+  same no-allocation-on-the-audio-thread discipline, and only the
+  direction differs.  The looper that spec defers on purpose — *"writing
+  into a named buffer at runtime… a real instrument, and a different
+  spec"* — wants the same buffer a third time.
+
+  So the block-of-samples slot has three callers, and the rule wants
+  callers: a diagnostic nobody can charge a node kind to, an unbuilt
+  half of a written spec, and an instrument.  Whichever is built first
+  should be built as *that slot* rather than as its own thing —
+  otherwise the second one arrives and finds a ring buffer shaped for
+  scopes.  The right order is probably to write the sampling spec's
+  `input` half properly and let the probe be its first reader, because
+  a spec that is already argued beats a diagnostic that is not; but the
+  probe is the one with a person asking for it today, and that is the
+  older rule.
+* **The word `probe` is spoken for twice.**  It was a score construct,
+  retired in ariadne (`spec/ariadne.md`), and it is *live* right now as
+  `Workbench.PROBES` — voice ages of the first bank.  A third meaning in
+  the same program would be the kind of collision this project has
+  avoided everywhere else.
+
+**And the rule applies to it like everything else**: it earns its place
+when a signal graph somebody is actually writing goes wrong in a way
+hearing it cannot locate.  That is not a hypothetical — it is how the
+last several synths were debugged — but it should be the caller, and it
+should be written down when it happens.
+
+**The runner-up is paths**, below, and it is the deeper work — the
+skip-identical certificate is a small step now that the keys and the map
+both exist, and the missing *report* is load-bearing because the cure
+for wanting the skip is one word (`long n`).  It loses to migration only
+on compounding: migration finishes something the workbench just made
+cheap, and paths does not.
 
 ---
 
