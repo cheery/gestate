@@ -28,11 +28,36 @@ use raw_window_handle::{
 };
 
 use crate::model::Model;
-use crate::{paint, panels, Change, Panel};
+use crate::{panels, Change, Panel};
 
-/// The handle a host holds onto — re-exported so the shell does not
-/// have to name `baseview` to store one.
-pub use baseview::Window;
+/// The handle a host holds onto.
+///
+/// A thin wrapper rather than a re-export, so the shell never names
+/// `baseview` — the same reason the display list is a type instead of
+/// calls into the painter.  Every method here is main-thread, which is
+/// what CLAP promises for `clap.gui`.
+pub struct Handle(baseview::Window);
+
+impl Handle {
+    pub fn show(&self) -> bool {
+        self.0.show().is_ok()
+    }
+
+    pub fn hide(&self) -> bool {
+        self.0.hide().is_ok()
+    }
+
+    pub fn resize(&self, w: i32, h: i32) -> bool {
+        self.0
+            .resize(baseview::dpi::PhysicalSize::new(w.max(1) as u32,
+                                                     h.max(1) as u32))
+            .is_ok()
+    }
+
+    pub fn close(self) {
+        self.0.close();
+    }
+}
 
 
 /// Where a panel's changes go, and where its values come from.
@@ -48,6 +73,10 @@ pub trait Sink: Send + Sync + 'static {
     fn values(&self) -> Vec<(u32, f64)> {
         Vec::new()
     }
+
+    /// The panel resized itself — a host that frames this window needs
+    /// to be told, or the frame and the content disagree.
+    fn resized(&self, _w: i32, _h: i32) {}
 }
 
 /// A parent window handle CLAP handed us, wrapped so `baseview` can
@@ -91,20 +120,29 @@ struct PanelWindow {
     /// platform actually delivers first.
     cursor: Cell<(i32, i32)>,
     sink: Arc<dyn Sink>,
+    /// Kept for the platform bits the handler may need to ask about
+    /// (the cursor, the scale factor) without going through baseview's
+    /// own window handle.
+    #[allow(dead_code)]
+    ctx: WindowContext,
 }
 
 impl PanelWindow {
-    fn new(ctx: WindowContext, model: Model, sink: Arc<dyn Sink>)
+    fn new(ctx: WindowContext, model: Model, sink: Arc<dyn Sink>,
+           w: i32, h: i32)
         -> Result<Self, softbuffer::SoftBufferError>
     {
         let handle = ctx.platform_handle();
         let context = softbuffer::Context::new(handle.clone())?;
         let surface = softbuffer::Surface::new(&context, handle)?;
+        let mut panel = Panel::new(model);
+        panel.resize(w, h);
         Ok(PanelWindow {
-            panel: RefCell::new(Panel::new(model)),
+            panel: RefCell::new(panel),
             surface: RefCell::new(surface),
             cursor: Cell::new((0, 0)),
             sink,
+            ctx,
         })
     }
 
@@ -137,11 +175,11 @@ impl WindowHandler for PanelWindow {
             return Ok(());
         };
 
-        // Paint into the presented buffer directly — the canvas and the
-        // surface hold the same `0x00RRGGBB` words, which is why the
-        // painter was written against that shape.
-        let mut canvas = paint::Canvas::new(w as i32, h as i32, panels::BG);
-        paint::paint(&mut canvas, panel.display());
+        // **Through `render`, not around it.**  The scrollbar is drawn
+        // over the display list rather than in it, so painting the list
+        // directly here is exactly how a window ends up with no
+        // scrollbar while every unit test says there is one.
+        let canvas = panel.render();
         // **The alpha byte, and why it is set here.**  The painter's
         // words are `0x00RRGGBB` — `gui.ges`'s `Colour` is three
         // components and the substrate has no transparency — but an X11
@@ -188,6 +226,17 @@ impl WindowHandler for PanelWindow {
                 self.emit(changes);
                 EventStatus::Captured
             }
+            Event::Mouse(MouseEvent::WheelScrolled { delta, .. }) => {
+                // Lines and pixels both arrive here depending on the
+                // platform; a line is worth about three text rows,
+                // which is the pace a list this dense reads at.
+                let dy = match delta {
+                    baseview::ScrollDelta::Lines { y, .. } => -y * 30.0,
+                    baseview::ScrollDelta::Pixels { y, .. } => -y,
+                };
+                self.panel.borrow_mut().scroll_by(dy as i32);
+                EventStatus::Captured
+            }
             // **Keyboard events are passed back deliberately.**  A DAW
             // lets you play the piano keys while a plugin window has
             // focus, and a panel that captured them would take the
@@ -206,17 +255,20 @@ pub unsafe fn open_parented(
     parent: RawWindowHandle,
     model: Model,
     sink: Arc<dyn Sink>,
-) -> Result<Window, baseview::Error> {
-    let (w, h) = panels::size(&model);
+    size: Option<(i32, i32)>,
+) -> Result<Handle, baseview::Error> {
+    let (w, h) = size.unwrap_or_else(
+        || panels::size(&model, panels::SCALE_DEFAULT));
     let parent = ParentWindow::new(parent);
     let settings = WindowSettings::new()
         .with_title("gestate")
         .with_size(baseview::dpi::PhysicalSize::new(w as u32, h as u32))
         .with_parent(&parent);
-    Window::create(settings, move |ctx| {
-        PanelWindow::new(ctx, model, sink)
+    baseview::Window::create(settings, move |ctx| {
+        PanelWindow::new(ctx, model, sink, w, h)
             .map_err(|e| baseview::HandlerError::from_boxed(Box::new(e)))
     })
+    .map(Handle)
 }
 
 /// Open the panel as its own window and run until it closes — the
@@ -224,12 +276,12 @@ pub unsafe fn open_parented(
 pub fn open_blocking(model: Model, sink: Arc<dyn Sink>)
     -> Result<(), baseview::Error>
 {
-    let (w, h) = panels::size(&model);
+    let (w, h) = panels::size(&model, panels::SCALE_DEFAULT);
     let settings = WindowSettings::new()
         .with_title("gestate panel")
         .with_size(baseview::dpi::PhysicalSize::new(w as u32, h as u32));
-    let window = Window::create(settings, move |ctx| {
-        PanelWindow::new(ctx, model, sink)
+    let window = baseview::Window::create(settings, move |ctx| {
+        PanelWindow::new(ctx, model, sink, w, h)
             .map_err(|e| baseview::HandlerError::from_boxed(Box::new(e)))
     })?;
     window.run_until_closed()

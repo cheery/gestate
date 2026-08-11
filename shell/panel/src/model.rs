@@ -97,6 +97,34 @@ impl Accepts {
     pub fn silent_at(&self, key: usize) -> bool {
         self.at(key).0 == 0
     }
+
+    /// The span of keys this bank answers, and whether it answers *all*
+    /// of them at *every* velocity.
+    ///
+    /// **The uniform case has to be recognised, not drawn.**  A strip
+    /// that is one colour end to end tells a player nothing and reads
+    /// as a rendering fault — the same reason `Everything` is words
+    /// rather than a full bar.  A table that happens to accept
+    /// everything deserves the same treatment, and only the caller
+    /// comparing the ends can tell.
+    pub fn span(&self) -> Option<(usize, usize, bool)> {
+        let mut lo = None;
+        let mut hi = 0usize;
+        let mut full = true;
+        for k in 0..128 {
+            let (yes, total) = self.at(k);
+            if yes == 0 {
+                full = false;
+                continue;
+            }
+            if yes < total {
+                full = false;
+            }
+            lo.get_or_insert(k);
+            hi = k;
+        }
+        lo.map(|l| (l, hi, full && l == 0 && hi == 127))
+    }
 }
 
 /// One `voices` bank as a player needs to see it.
@@ -105,6 +133,24 @@ pub struct BankView {
     pub name: String,
     pub voices: usize,
     pub accepts: Accepts,
+    /// Which MIDI channels feed this bank: bit `c` set means it
+    /// listens on channel `c`.  The shell's `Instance.routing` row.
+    pub routing: u16,
+    /// The parameter id of this bank's channel-0 cell; channel `c` is
+    /// `routing_param0 + c`.
+    ///
+    /// **The ids are the plugin's, not invented here.**
+    /// `params_get_info` numbers a routing cell
+    /// `controls.len() + bank*16 + channel`, and the panel takes that
+    /// base rather than recomputing it — one table, not two that have
+    /// to agree.
+    pub routing_param0: u32,
+}
+
+impl BankView {
+    pub fn listens_on(&self, channel: usize) -> bool {
+        channel < 16 && (self.routing >> channel) & 1 == 1
+    }
 }
 
 /// Everything panel one draws.

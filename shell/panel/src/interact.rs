@@ -12,7 +12,7 @@
 //! events to a list of `Change`s, which is a pure function of the state
 //! and the event.
 
-use crate::list::Display;
+use crate::list::{Display, Kind};
 use crate::model::Model;
 
 /// What the shell must tell the host.
@@ -73,6 +73,22 @@ impl Interaction {
         let Some(hit) = d.pick(x, y) else {
             return Vec::new();
         };
+        // **A click is a whole gesture.**  A toggle has nothing to drag
+        // — its value comes from the model, not from where in the cell
+        // you landed — so it opens and closes in one press rather than
+        // leaving a gesture hanging until the mouse comes up somewhere.
+        if hit.kind == Kind::Toggle {
+            let Some(on) = m.banks.iter().find_map(|b| {
+                let c = hit.param.checked_sub(b.routing_param0)? as usize;
+                (c < 16).then(|| b.listens_on(c))
+            }) else {
+                return Vec::new();
+            };
+            let v = if on { 0.0 } else { 1.0 };
+            return vec![Change::Begin(hit.param),
+                        Change::Value(hit.param, v),
+                        Change::End(hit.param)];
+        }
         let Some(knob) = m.knobs.iter().find(|k| k.param == hit.param) else {
             return Vec::new();
         };
@@ -93,7 +109,14 @@ impl Interaction {
         // **The region is the one the drag started on**, not whatever is
         // under the pointer now: dragging off a fader and onto its
         // neighbour must not hand the gesture over.
-        let Some(hit) = d.hits.iter().find(|h| h.param == param) else {
+        //
+        // Matched on *kind* as well as id, because a button carries no
+        // parameter and leaves `param` meaningless — looking one up by
+        // id alone once found a button where a fader was meant, and a
+        // drag then read its position out of the wrong box.
+        let Some(hit) = d.hits.iter()
+            .find(|h| h.param == param && matches!(h.kind, Kind::Fader(_)))
+        else {
             return Vec::new();
         };
         let Some(knob) = m.knobs.iter().find(|k| k.param == param) else {

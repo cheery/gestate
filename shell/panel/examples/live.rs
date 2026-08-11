@@ -52,9 +52,13 @@ fn main() {
                             || ((48..60).contains(&k) && l >= 2)
                     }).collect(),
                 },
+                routing: 0b0000_0000_0000_0001,
+                routing_param0: 100,
             },
             BankView { name: "keys".into(), voices: 4,
-                       accepts: Accepts::Everything },
+                       accepts: Accepts::Everything,
+                       routing: 0b0000_0000_0000_0010,
+                       routing_param0: 116 },
         ],
     };
 

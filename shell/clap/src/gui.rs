@@ -79,8 +79,10 @@ impl Queue {
 /// The GUI's own state, one per plugin instance.
 #[derive(Default)]
 pub struct Gui {
-    window: Option<gestate_panel::window::Window>,
+    window: Option<gestate_panel::window::Handle>,
     pub queue: Arc<Queue>,
+    /// The size a host resized us to, once it has.
+    size: Option<(i32, i32)>,
     /// Whether `create` has run.  `set_parent` is what actually opens
     /// the window — CLAP calls `create` first with only an API name,
     /// and a window with no parent yet has nowhere to go.
@@ -105,7 +107,8 @@ impl Gui {
 /// A knob's `param` is its **control slot index**, which is exactly the
 /// id `params_get_info` hands the host — so the panel and the host name
 /// the same parameter without a second table to keep in step.
-pub fn model_of(desc: &'static Descriptor, control: &[i64]) -> Model {
+pub fn model_of(desc: &'static Descriptor, control: &[i64],
+                routing: &[u16]) -> Model {
     let knobs = desc.controls.iter().enumerate()
         .filter(|(_, c)| c.knob)
         .map(|(slot, c)| Knob {
@@ -119,7 +122,10 @@ pub fn model_of(desc: &'static Descriptor, control: &[i64]) -> Model {
         })
         .collect();
 
-    let banks = engine::BANKS.iter().map(|b| BankView {
+    // A routing cell's id is `controls.len() + bank*16 + channel` —
+    // `params_get_info`'s own numbering, taken rather than re-derived.
+    let base = desc.controls.len() as u32;
+    let banks = engine::BANKS.iter().enumerate().map(|(i, b)| BankView {
         name: b.name.to_string(),
         voices: b.voices.len(),
         accepts: match b.table {
@@ -129,6 +135,8 @@ pub fn model_of(desc: &'static Descriptor, control: &[i64]) -> Model {
                 ok: t.ok.to_vec(),
             },
         },
+        routing: routing.get(i).copied().unwrap_or(0),
+        routing_param0: base + (i * 16) as u32,
     }).collect();
 
     Model { title: desc.name.to_string(), knobs, banks }
@@ -189,9 +197,12 @@ unsafe extern "C" fn gui_destroy(plugin: *const clap_plugin) {
 }
 
 unsafe extern "C" fn gui_set_scale(_p: *const clap_plugin, _s: f64) -> bool {
-    // The panel draws at integer cell scales and does not resize, so a
-    // fractional host scale has nothing to apply.  `false` is the
-    // honest answer and hosts handle it.
+    // **Declined, and the panel offers its own control instead.**  The
+    // font is a bitmap, so it enlarges in whole steps; a host handing
+    // us 1.5 could only be honoured by blurring the one thing this
+    // painter does exactly.  The `TEXT -/+` buttons are the same
+    // setting under the reader's hand, where a display-density guess
+    // belongs.
     false
 }
 
@@ -202,30 +213,81 @@ unsafe extern "C" fn gui_get_size(plugin: *const clap_plugin,
         return false;
     }
     let inst = crate::instance(plugin);
-    let (w, h) = panels::size(&model_of(inst.desc, &inst.control));
+    // Once a window exists it owns its size — a host asking after a
+    // resize must be told what it resized *to*, not what the descriptor
+    // originally wanted.
+    let (w, h) = match &inst.gui.size {
+        Some((w, h)) => (*w, *h),
+        None => panels::size(&model_of(inst.desc, &inst.control,
+                                       &inst.routing),
+                             panels::SCALE_DEFAULT),
+    };
     *width = w as u32;
     *height = h as u32;
     true
 }
 
 unsafe extern "C" fn gui_can_resize(_p: *const clap_plugin) -> bool {
-    false
+    true
 }
 
 unsafe extern "C" fn gui_get_resize_hints(_p: *const clap_plugin,
-                                          _h: *mut c_void) -> bool {
-    false
+                                          hints: *mut c_void) -> bool {
+    if hints.is_null() {
+        return false;
+    }
+    // **Free in both directions, no aspect ratio.**  Width gives the
+    // faders a longer throw and the note strips more room; height just
+    // shows more of the list.  Nothing here scales, so there is no
+    // ratio to preserve.
+    *(hints as *mut clap_gui_resize_hints) = clap_gui_resize_hints {
+        can_resize_horizontally: true,
+        can_resize_vertically: true,
+        preserve_aspect_ratio: false,
+        aspect_ratio_width: 1,
+        aspect_ratio_height: 1,
+    };
+    true
 }
 
-unsafe extern "C" fn gui_adjust_size(plugin: *const clap_plugin,
+/// The nearest size the panel will actually draw at.
+///
+/// A floor rather than a grid: below it the routing matrix stops
+/// fitting, and a host that asks for 40×20 should be told the truth
+/// rather than handed a window with nothing legible in it.  Height has
+/// almost none, because a short window **scrolls** rather than
+/// overflowing.
+///
+/// The numbers are the panel's own — it knows what its widest row needs
+/// — and a second set here would be a second place to get it wrong.
+fn clamp_size(w: u32, h: u32) -> (u32, u32) {
+    let k = panels::Metrics::new(panels::SCALE_DEFAULT);
+    (w.max(k.min_width() as u32), h.max(k.min_height() as u32))
+}
+
+unsafe extern "C" fn gui_adjust_size(_p: *const clap_plugin,
                                      width: *mut u32,
                                      height: *mut u32) -> bool {
-    gui_get_size(plugin, width, height)
+    if width.is_null() || height.is_null() {
+        return false;
+    }
+    let (w, h) = clamp_size(*width, *height);
+    *width = w;
+    *height = h;
+    true
 }
 
-unsafe extern "C" fn gui_set_size(_p: *const clap_plugin,
-                                  _w: u32, _h: u32) -> bool {
-    false
+unsafe extern "C" fn gui_set_size(plugin: *const clap_plugin,
+                                  w: u32, h: u32) -> bool {
+    let (w, h) = clamp_size(w, h);
+    let inst = crate::instance(plugin);
+    inst.gui.size = Some((w as i32, h as i32));
+    match &inst.gui.window {
+        Some(win) => win.resize(w as i32, h as i32),
+        // Before the window exists this is just the size to open at,
+        // which `get_size` will now report.
+        None => true,
+    }
 }
 
 unsafe extern "C" fn gui_set_parent(plugin: *const clap_plugin,
@@ -245,13 +307,14 @@ unsafe extern "C" fn gui_set_parent(plugin: *const clap_plugin,
     let Some(handle) = raw_parent(w.handle) else {
         return false;
     };
-    let model = model_of(inst.desc, &inst.control);
+    let model = model_of(inst.desc, &inst.control, &inst.routing);
     let queue = inst.gui.queue.clone();
+    let size = inst.gui.size;
 
     // SAFETY: the host's contract is that the parent window outlives
     // `gui.destroy`, and `gui_destroy` is where this window is closed.
     match unsafe {
-        gestate_panel::window::open_parented(handle, model, queue)
+        gestate_panel::window::open_parented(handle, model, queue, size)
     } {
         Ok(win) => {
             inst.gui.window = Some(win);
@@ -296,14 +359,14 @@ unsafe extern "C" fn gui_suggest_title(_p: *const clap_plugin,
 
 unsafe extern "C" fn gui_show(plugin: *const clap_plugin) -> bool {
     match &crate::instance(plugin).gui.window {
-        Some(w) => w.show().is_ok(),
+        Some(w) => w.show(),
         None => false,
     }
 }
 
 unsafe extern "C" fn gui_hide(plugin: *const clap_plugin) -> bool {
     match &crate::instance(plugin).gui.window {
-        Some(w) => w.hide().is_ok(),
+        Some(w) => w.hide(),
         None => false,
     }
 }

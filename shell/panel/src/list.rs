@@ -63,6 +63,32 @@ pub enum Axis {
     Y,
 }
 
+/// What kind of thing a region is.
+///
+/// **Two, because the descriptor has two.**  A knob is continuous and
+/// wants a drag; a routing cell is a stepped 0/1 the host already
+/// declares, and wants a click.  Giving them one shape would mean a
+/// checkbox you have to drag, which is the sort of interface nobody
+/// admits to having designed.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Kind {
+    /// Drag along an axis, value from position.
+    Fader(Axis),
+    /// Click to flip.  The value is in the model, not the geometry.
+    Toggle,
+    /// **Panel-local, and never a parameter.**  A view preference — how
+    /// big the text is — is not something a host should automate,
+    /// undo, or save in a song: it belongs to the person looking at the
+    /// window, not to the piece.  So a button carries its action code
+    /// in the `Kind` and leaves `param` meaningless, which is what
+    /// stops one from ever being handed to `out_events`.
+    ///
+    /// Anything looking a hit up by id must match on the kind too —
+    /// `param` is `NO_PARAM` here, and a search by id alone will find
+    /// a button where it meant a fader.
+    Button(u32),
+}
+
 /// A region that listens, and what it writes to.
 ///
 /// The substrate's walk emits `{axis, chan, region}` where `chan` is an
@@ -74,11 +100,15 @@ pub enum Axis {
 /// honestly stated beats a second case with no producer.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Hit {
-    pub axis: Axis,
+    pub kind: Kind,
+    /// The parameter this writes, or `NO_PARAM` for a `Button`.
     pub param: u32,
     /// `(x0, y0, x1, y1)`, half-open at the far edge.
     pub region: (i32, i32, i32, i32),
 }
+
+/// The `param` of a hit that writes no parameter.
+pub const NO_PARAM: u32 = u32::MAX;
 
 impl Hit {
     pub fn contains(&self, x: i32, y: i32) -> bool {
@@ -97,9 +127,14 @@ impl Hit {
     /// leaves the track should pin at the end rather than jump.
     pub fn fraction(&self, x: i32, y: i32) -> f64 {
         let (x0, y0, x1, y1) = self.region;
-        let f = match self.axis {
-            Axis::X => (x - x0) as f64 / ((x1 - x0).max(1)) as f64,
-            Axis::Y => 1.0 - (y - y0) as f64 / ((y1 - y0).max(1)) as f64,
+        let f = match self.kind {
+            Kind::Fader(Axis::X) =>
+                (x - x0) as f64 / ((x1 - x0).max(1)) as f64,
+            Kind::Fader(Axis::Y) =>
+                1.0 - (y - y0) as f64 / ((y1 - y0).max(1)) as f64,
+            // Neither a toggle nor a button has a position to read:
+            // one's value is its own, the other has no value at all.
+            Kind::Toggle | Kind::Button(_) => 0.0,
         };
         f.clamp(0.0, 1.0)
     }
@@ -135,8 +170,9 @@ impl Display {
         self.items.push(Item::Text { x, y, s: s.to_string(), c, scale });
     }
 
-    pub fn hit(&mut self, axis: Axis, param: u32, region: (i32, i32, i32, i32)) {
-        self.hits.push(Hit { axis, param, region });
+    pub fn hit(&mut self, kind: Kind, param: u32,
+               region: (i32, i32, i32, i32)) {
+        self.hits.push(Hit { kind, param, region });
     }
 
     /// The deepest region containing a point, or nothing.

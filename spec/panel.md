@@ -99,6 +99,20 @@ Per bank, in descriptor order: the bank's name, its voice count, and
 this bank's `FromMIDI` instance accepted that key at all, and at which
 velocities.
 
+**The strip scales to the window** rather than owning a fixed cell
+width: each key's edges come from the proportion, so the band ends
+exactly where the pane does — no overflow when a host narrows the
+panel, no gutter when it widens it.  A fresh window opens wide enough
+for about five pixels a key.
+
+**And it is labelled, because it could not otherwise be read.**  Keys
+of the same state merge into one band — the right way to show "this
+stretch answers" — but that leaves a five-pixel key invisible inside a
+sixty-pixel octave, and someone counting the blocks between octave
+marks counts eleven and concludes there are eleven keys.  The MIDI
+number under each mark is what turns the picture into a ruler, and the
+caption beside the bank name (`KEYS 48-83`) says the span in words.
+
 This is the panel that earns its place, because it makes a *silence*
 visible.  `NoteTable.ok[k * levels + l]` is already exported; nothing
 else in the system can show it to a player, and the player's question
@@ -108,11 +122,26 @@ accepts everything; the panel says so in words rather than drawing a
 strip that is uniformly true, because a wall of one colour looks like
 a bug.
 
-**Not a routing editor.**  Nothing here rebinds a bank to a key range.
-Which bank listens is the program's own `FromMIDI` instance, and the
-way to change it is to change the program — the same answer
-`spec/editor.md` gives for everything else, and for the same reason:
-a second model would drift.
+**And the routing matrix, which is the half you can change.**  Under
+each bank's strip is a row of sixteen cells, one per MIDI channel,
+showing which channels feed this bank — the shell's `Instance.routing`,
+whose cells are *already* stepped parameters (`params_get_info` numbers
+them `controls.len() + bank*16 + channel`, grouped under `routing` so a
+DAW's generic UI draws the same matrix).  Clicking a cell flips it.
+
+A cell is a **`Toggle`**, not a fader: its value comes from the model
+rather than from where in the cell you landed, so a click opens and
+closes its own gesture — `BEGIN`, one `VALUE`, `END` — instead of
+leaving one hanging until the mouse comes up.  Giving toggles and
+faders one shape would mean a checkbox you have to drag.
+
+**What is still not editable here: which keys a bank accepts.**  That
+is the program's own `FromMIDI` instance, and the way to change it is
+to change the program — the same answer `spec/editor.md` gives for
+everything else, and for the same reason: a second model would drift.
+Routing is different because the plugin *already* owns it as
+parameters; the panel is drawing a control that exists, not inventing
+one.
 
 ## One painter, two sources
 
@@ -229,9 +258,20 @@ the panel uses; the scale is a parameter, so a host that reports a
 this:
 
 1. **`clap.gui`** — `is_api_supported`, `get_preferred_api`, `create`,
-   `destroy`, `set_scale`, `get_size`, `can_resize`, `set_parent`,
+   `destroy`, `set_scale`, `get_size`, `can_resize`,
+   `get_resize_hints`, `adjust_size`, `set_size`, `set_parent`,
    `show`, `hide`.  The window API strings (`"x11"`, `"win32"`,
-   `"cocoa"`) and the `clap_window` union.
+   `"cocoa"`), the `clap_window` union and `clap_gui_resize_hints`.
+
+   **The panel resizes, freely and in both directions.**  Width gives
+   the faders a longer throw; height shows more of the list.  Nothing
+   scales, so there is no aspect ratio to preserve and
+   `get_resize_hints` says so.  `adjust_size` clamps to a floor rather
+   than snapping to a grid — below it the labels and the strips start
+   overlapping, and a host asking for 40×20 should be told the truth
+   rather than handed a window with nothing legible in it.  Once a
+   window exists it owns its size, so `get_size` reports what the host
+   resized *to* rather than what the descriptor first wanted.
 2. **The host's params extension** — `request_flush`, so a drag that
    happens while the plugin is not processing still reaches the host.
 3. **An output event path.**  The plugin today never writes

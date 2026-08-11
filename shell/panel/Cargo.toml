@@ -24,3 +24,10 @@ default = []
 # a descriptor to a display list, and from a display list to a buffer —
 # which is everything the tests check.
 window = ["dep:baseview", "dep:softbuffer", "dep:raw-window-handle"]
+
+# `live` opens a real window, so it only exists with the feature that
+# provides one — otherwise `cargo test` would try to build it against a
+# module that is not compiled in.
+[[example]]
+name = "live"
+required-features = ["window"]

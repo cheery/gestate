@@ -42,13 +42,22 @@ fn main() {
                             || ((48..60).contains(&k) && l >= 2)
                     }).collect(),
                 },
+                routing: 0b0000_0000_0000_0001,
+                routing_param0: 100,
             },
             BankView { name: "keys".into(), voices: 4,
-                       accepts: Accepts::Everything },
+                       accepts: Accepts::Everything,
+                       routing: 0b0000_0000_0000_0010,
+                       routing_param0: 116 },
         ],
     };
 
-    let p = Panel::new(model);
+    // A window shorter than its content, so the scrollbar is in shot.
+    let mut p = Panel::new(model);
+    if let Ok(h) = std::env::var("SHOT_H") {
+        if let Ok(h) = h.parse::<i32>() { p.resize(p.width, h); }
+    }
+    if std::env::var("SHOT_SCROLL").is_ok() { p.scroll_by(120); }
     let c = p.render();
     let mut out = Vec::new();
     write!(out, "P6\n{} {}\n255\n", c.w, c.h).unwrap();

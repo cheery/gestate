@@ -461,3 +461,13 @@ pub struct clap_plugin_gui {
     pub show: unsafe extern "C" fn(plugin: *const clap_plugin) -> bool,
     pub hide: unsafe extern "C" fn(plugin: *const clap_plugin) -> bool,
 }
+
+/// What a host may do to the panel's size.
+#[repr(C)]
+pub struct clap_gui_resize_hints {
+    pub can_resize_horizontally: bool,
+    pub can_resize_vertically: bool,
+    pub preserve_aspect_ratio: bool,
+    pub aspect_ratio_width: u32,
+    pub aspect_ratio_height: u32,
+}
