@@ -16,6 +16,16 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use crate::engine::Program;
 
+/// Whether a seek's descent is handed to the worker thread.
+///
+/// **A switch, because the two failure modes are different and both are
+/// real.**  Off the thread, a deep seek costs a *wait* while the worker
+/// walks — and if the host gives that worker little CPU, the wait is
+/// what a player hears.  On this thread, it costs one long *block*,
+/// which a host may or may not forgive.  Flipping this is how the two
+/// are told apart on a machine that is not mine.
+pub const DESCEND_OFF_THREAD: bool = true;
+
 /// One event off the wire: the piece's own note, in score ticks.
 ///
 /// `onset` and `offset` are ticks, not samples — turning them into
@@ -804,10 +814,20 @@ impl Performer {
         // buys a round-trip and pays for it in silence.  Every other
         // target goes to the worker, because every other target has a
         // walk in front of it.
-        if ticks == 0 {
-            match self.piece.reopen(p, 0) {
+        //
+        // Unless the worker is switched off (`DESCEND_OFF_THREAD`), in
+        // which case every target takes this door and the descent
+        // happens here, on the audio thread, where its cost is a long
+        // block rather than a wait.
+        if ticks == 0 || !DESCEND_OFF_THREAD {
+            // **At `ticks`, not at zero.**  This branch was written for
+            // the top, where the two are the same; widening it to every
+            // target left the `0` behind, so every seek re-rooted the
+            // piece at its beginning and played from there — the
+            // transport moved and the music started over.
+            match self.piece.reopen(p, ticks) {
                 Ok(()) => {
-                    self.opened_at = Some(0);
+                    self.opened_at = Some(ticks);
                     self.wanted = None;
                     self.descending = false;
                     self.failed = None;
@@ -818,6 +838,13 @@ impl Performer {
         }
         self.wanted = Some(ticks);
         self.descending = true;
+    }
+
+    /// How many note-ends are waiting for their instant — the number
+    /// that says whether a silent stretch is "nothing forced" or
+    /// "forced and not yet due".
+    pub fn pending_len(&self) -> usize {
+        self.pending.len()
     }
 
     /// The tick a seek asked for and has not been given yet.

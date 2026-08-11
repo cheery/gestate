@@ -20,6 +20,7 @@ pub mod engine;
 #[cfg(feature = "gui")]
 mod gui;
 pub mod score;
+mod trace;
 
 use std::ffi::c_char;
 use std::os::raw::c_void;
@@ -66,6 +67,8 @@ pub(crate) struct Instance {
     active: Option<&'static engine::RateCase>,
     /// The engine sample the transport last stopped at, for the fade.
     stopped_at: Option<i64>,
+    /// The session transcript, when `GESTATE_TRACE` asked for one.
+    tracing: Option<trace::Trace>,
     /// The shell's own beat position, for a host with a tempo but no
     /// beats timeline; a timeline host overwrites it every block.
     beat_pos: f64,
@@ -156,6 +159,7 @@ impl Instance {
             plays_score: default_plays(),
             active: None,
             stopped_at: None,
+            tracing: None,
             beat_pos: 0.0,
             performer: score::Performer::new(),
             host: std::ptr::null(),
@@ -506,6 +510,17 @@ unsafe extern "C" fn plugin_init(_plugin: *const clap_plugin) -> bool {
 }
 
 unsafe extern "C" fn plugin_destroy(plugin: *const clap_plugin) {
+    // A host is supposed to `deactivate` first, and the transcript is
+    // written there.  Written here too, because a recording lost to a
+    // host that skipped a step is the one recording you needed.
+    {
+        let inst = instance(plugin);
+        if let Some(t) = inst.tracing.take() {
+            if !t.is_empty() {
+                t.write();
+            }
+        }
+    }
     drop(Box::from_raw((*plugin).plugin_data as *mut Instance));
     drop(Box::from_raw(plugin as *mut clap_plugin));
 }
@@ -659,12 +674,24 @@ unsafe extern "C" fn plugin_activate(plugin: *const clap_plugin,
     inst.active = Some(case);
     inst.state = vec![0u8; case.state_bytes];
     inst.reset();
+    // Recording is asked for by the environment and set up here, on the
+    // main thread, so the audio thread only ever fills a row it already
+    // owns.
+    inst.tracing = trace::Trace::open(trace::Trace::DEFAULT_BLOCKS);
     #[cfg(feature = "dynscore")]
     open_piece(inst);
     true
 }
 
-unsafe extern "C" fn plugin_deactivate(_plugin: *const clap_plugin) {}
+unsafe extern "C" fn plugin_deactivate(plugin: *const clap_plugin) {
+    // Main thread: this is where a file may be opened.
+    let inst = instance(plugin);
+    if let Some(t) = inst.tracing.take() {
+        if !t.is_empty() {
+            t.write();
+        }
+    }
+}
 
 unsafe extern "C" fn plugin_start(_plugin: *const clap_plugin) -> bool {
     true
@@ -683,6 +710,7 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
     if p.audio_outputs_count == 0 || p.audio_outputs.is_null() {
         return CLAP_PROCESS_ERROR;
     }
+    let began_at = std::time::Instant::now();
     let out = &*p.audio_outputs;
     if out.data32.is_null() {
         return CLAP_PROCESS_ERROR;
@@ -730,6 +758,7 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
     // draining after the score advanced answered every question with
     // the previous block's hands, which is a ladder that plays the
     // chord it was holding a block ago, or nothing.
+    let (n_events, n_notes) = count_events(p.in_events);
     inst.drain(p.in_events);
     // **The host clock**: `beat` and `beatRate` are the renderer's
     // own, and in a DAW the renderer is the transport.  The three
@@ -925,7 +954,67 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
             }
         }
     }
+    // **The boundary, written down.**  One row per block: what the
+    // host handed us, what the piece made of it, and how long it took.
+    if inst.tracing.is_some() {
+        let tr = p.transport;
+        #[cfg(feature = "dynscore")]
+        let (descending, wanted, pending) = match &inst.piece {
+            Some(pf) => (pf.descending as u8,
+                         pf.wanted().unwrap_or(-1),
+                         pf.pending_len() as u32),
+            None => (0, -1, 0),
+        };
+        #[cfg(not(feature = "dynscore"))]
+        let (descending, wanted, pending) = (0u8, -1i64, 0u32);
+        let row = trace::Row {
+            steady_time: p.steady_time,
+            frames: p.frames_count,
+            has_transport: (!tr.is_null()) as u8,
+            flags: if tr.is_null() { 0 } else { (*tr).flags },
+            tempo: if tr.is_null() { 0.0 } else { (*tr).tempo },
+            song_pos_beats: if tr.is_null() { 0 }
+                            else { (*tr).song_pos_beats },
+            events: n_events,
+            notes: n_notes,
+            engine_t: inst.t,
+            descending,
+            wanted,
+            pending,
+            micros: began_at.elapsed().as_micros() as u32,
+        };
+        if let Some(t) = inst.tracing.as_mut() {
+            t.push(row);
+        }
+    }
     CLAP_PROCESS_CONTINUE
+}
+
+/// How many events arrived, and how many of them were notes.
+///
+/// Counted rather than copied: the transcript wants the shape of the
+/// traffic, and copying a host's event list on the audio thread to
+/// describe it would be the sort of thing this file exists to avoid.
+unsafe fn count_events(events: *const clap_input_events) -> (u32, u32) {
+    if events.is_null() {
+        return (0, 0);
+    }
+    let list = &*events;
+    let n = (list.size)(events);
+    let mut notes = 0;
+    for i in 0..n {
+        let h = (list.get)(events, i);
+        if h.is_null() {
+            continue;
+        }
+        let h = &*h;
+        if h.space_id == CLAP_CORE_EVENT_SPACE_ID
+            && (h.type_ == CLAP_EVENT_NOTE_ON || h.type_ == CLAP_EVENT_NOTE_OFF)
+        {
+            notes += 1;
+        }
+    }
+    (n, notes)
 }
 
 // ── Audio ports: the one extension that is not optional ────────────────
