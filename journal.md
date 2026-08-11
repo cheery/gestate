@@ -4725,6 +4725,47 @@ nothing is not offered: a synth with a baked event list has no entropy
 to reroll, and a button that changes a number you cannot hear is worse
 than no button — it is one that lies.
 
+**And then a file that does both.**  `examples/audio/lantern.ges` is
+the example the window had been missing: an unfolding score *and* a
+canvas, so both halves of the toolbar are lit at once.  Writing it
+turned up three defects that no existing file could reach, which is
+what the example was for.
+
+*The canvas assembly never shadowed its preludes.*  `audio.assemble`
+and `audioscore.assemble_performance` both put the author's text
+through `prelude.shadow_libraries`, so a program may name whatever it
+likes and the library definition it hides steps aside.  The canvas
+assembly did not, and nothing noticed for as long as no file both drew
+and played: a canvas alone never sees `music.ges`, and a piece alone
+never comes through `gui.py`.  `lantern` called one of its definitions
+`bar`, which `music.ges` also defines; the audio half compiled it and
+the canvas half refused with *"Duplicate type signature for 'bar'"*,
+about a name the author had every right to.  Three assemblies, three
+readings of one file, and they have to make the same promises about
+the author's namespace.
+
+*A comment could hang the host.*  `shape_plan`'s guard was `if "shape"
+not in source` — a raw substring scan, because walking an endless score
+for annotations it does not have never ends.  `lantern` wrote "they
+share a shape" in a sentence about its figures, and the offline render
+sat there until the step limit fired with nothing in the message to
+connect the two.  The guard now reads the *parsed* program, so the word
+has to be used rather than merely written, and falls back to the text
+scan only when the file will not parse — which is a file with a real
+error to report anyway.
+
+*The faders ran backwards.*  `onTouchY` reports 0 at the **top** edge:
+that is what the host measures and there is nowhere else for it to come
+from.  A fader drawn to fill from the bottom looks perfectly correct
+standing still and runs the wrong way the moment you drag it — the
+handle leaves your finger and climbs as you pull down.  The picture is
+the program's to compose, so nothing but a hand could have caught it,
+and the fix is the rule: **the handle goes where the finger is**, and
+what "more" means is chosen afterwards to suit.  `substrate_parity.rs`
+now presses top, middle and bottom and checks both the value *and*
+where the bright handle was drawn, because those two are produced by
+different halves of the system and can disagree.
+
 **The number is also a field you can type in**, which is the one place
 this panel takes the keyboard — and the rule it seemed to break is the
 rule it keeps.  Keys go back to the host, always, because a DAW lets you

@@ -370,3 +370,128 @@ fn the_canvas_is_drawn_under_the_toolbar_rather_than_behind_it() {
         }
     }
 }
+
+// ── A file with both halves ──────────────────────────────────────────────
+
+/// `examples/audio/lantern.ges`: an unfolding score *and* a canvas, in
+/// one plugin.  Two faders, both bridged to knobs the synth reads.
+fn lantern() -> CanvasProgram {
+    let raw: Vec<i64> = include_str!("lantern.tags")
+        .split_whitespace().map(|w| w.parse().unwrap()).collect();
+    CanvasProgram {
+        text: include_str!("lantern.program").to_string(),
+        entry: "main".to_string(),
+        tags: SubTags {
+            rect: raw[0], circle: raw[1], gap: raw[2], over: raw[3],
+            row: raw[4], column: raw[5], shift: raw[6], sized: raw[7],
+            pad: raw[8], touch_x: raw[9], touch_y: raw[10],
+        },
+        chans: vec!["warmthChan".into(), "glowChan".into(), "peak".into()],
+        // The slots `export.substrate_of` reports for this file.
+        bridge: vec![("warmthChan".into(), 4), ("glowChan".into(), 29)],
+    }
+}
+
+fn lantern_panel() -> Panel {
+    let mut p = Panel::with_scale(
+        Model { title: "LANTERN".into(), ..Default::default() }, 100);
+    p.resize(440, 380);
+    p.attach_canvas(Canvas::open(lantern()).expect("the canvas opened"));
+    p.set_tab(Tab::Canvas);
+    p.tick_canvas(&[]);
+    p
+}
+
+#[test]
+fn one_file_can_carry_two_faders_and_a_meter() {
+    let p = lantern_panel();
+    let d = p.canvas().expect("attached").display();
+    assert_eq!(d.hits.len(), 2, "two faders, two attachments");
+    // Two faders, eight meter segments, and the fills behind them.
+    assert!(d.items.len() >= 14, "drew {} items", d.items.len());
+}
+
+/// **The handle follows the finger.**
+///
+/// `onTouchY` reports 0 at the *top* edge and 1 at the bottom — that is
+/// what the host measures and there is nowhere else for it to come
+/// from.  A fader drawn the other way round looks perfectly fine
+/// standing still and runs backwards the moment you drag it, which is
+/// exactly how this shipped for an afternoon.  So: press near the top,
+/// get a low value; press near the bottom, get a high one.
+#[test]
+fn pressing_low_on_a_fader_gives_a_high_value() {
+    let mut p = lantern_panel();
+    let hit = p.canvas().unwrap().display().hits[0];
+    let (x0, y0, x1, y1) = hit.region;
+    let x = (x0 + x1) / 2;
+
+    let at = |p: &mut Panel, y: i32| -> f64 {
+        let out = p.press(x, y);
+        p.release();
+        out.iter().find_map(|c| match c {
+            Change::Value(_, v) => Some(*v),
+            _ => None,
+        }).expect("a value")
+    };
+    let top = at(&mut p, y0 + 2);
+    let mid = at(&mut p, (y0 + y1) / 2);
+    let low = at(&mut p, y1 - 2);
+    assert!(top < 0.1, "the top of the travel read {top}");
+    assert!((0.45..0.55).contains(&mid), "the middle read {mid}");
+    assert!(low > 0.9, "the bottom of the travel read {low}");
+}
+
+/// And the picture goes the same way as the number.
+///
+/// The two could disagree — the fill is drawn by the *program* and the
+/// value is measured by the *host* — and when they do, the handle
+/// crosses the pointer.  Checked by where the bright handle lands, not
+/// by the value that produced it.
+#[test]
+fn the_handle_is_drawn_where_the_finger_pressed() {
+    let mut p = lantern_panel();
+    let hit = p.canvas().unwrap().display().hits[0];
+    let (x0, y0, x1, y1) = hit.region;
+    let x = (x0 + x1) / 2;
+
+    // The handle is the one bone-coloured rectangle inside this fader.
+    let handle_y = |p: &Panel| -> i32 {
+        p.canvas().unwrap().display().items.iter().find_map(|i| match i {
+            Item::Rect { x: rx, y, w, c, .. }
+                if *c == Colour::rgb(232, 236, 244)
+                    && *rx < x && rx + w > x => Some(*y),
+            _ => None,
+        }).expect("a handle")
+    };
+    p.press(x, y0 + 6);
+    p.release();
+    let high = handle_y(&p);
+    p.press(x, y1 - 6);
+    p.release();
+    let low = handle_y(&p);
+    assert!(low > high,
+            "pressing lower drew the handle higher ({high} then {low})");
+}
+
+/// Both faders reach the host, on the parameters the export paired them
+/// with — and a press on one does not move the other.
+#[test]
+fn each_fader_writes_its_own_parameter() {
+    let mut p = lantern_panel();
+    let hits = p.canvas().unwrap().display().hits.clone();
+    let mut params = Vec::new();
+    for hit in &hits {
+        let (x0, y0, x1, y1) = hit.region;
+        let out = p.press((x0 + x1) / 2, (y0 + y1) / 2);
+        p.release();
+        let ids: Vec<u32> = out.iter().filter_map(|c| match c {
+            Change::Value(id, _) => Some(*id),
+            _ => None,
+        }).collect();
+        assert_eq!(ids.len(), 1, "one press, one parameter: {out:?}");
+        params.push(ids[0]);
+    }
+    params.sort_unstable();
+    assert_eq!(params, vec![4, 29], "the knobs `warmth` and `glow`");
+}

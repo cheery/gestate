@@ -1,0 +1,251 @@
+# lantern.ges — a night piece with a face on it.
+#
+#   python -m gestate.audioperform examples/audio/lantern.ges --seconds 40 -o take.wav
+#   python -m gestate.audioperform examples/audio/lantern.ges --seconds 40 -o take.wav --seed 7
+#   python -m gestate.export examples/audio/lantern.ges -o ~/.clap/lantern.clap --gui
+#
+# **One file, three halves**, which is the point of it: a score that
+# unfolds, a synth that is compiled, and a canvas that is interpreted.
+# Nothing here bridges them — they were never apart.  `warmth` is one
+# channel: the fader on the canvas writes it, the filter in the synth
+# reads it, and the panel shows it as a knob the DAW can automate,
+# because they are the same declaration.
+#
+# It exists to be the example where the plugin window has both its
+# halves lit at once — `CANVAS` drawing this file's own picture, `SEED`
+# choosing which of its nights you are hearing.  Every other example
+# has one or the other.
+
+# ── What you turn ────────────────────────────────────────────────────────
+#
+# Two channels, and **fractions**, because that is what an element
+# reports: the host clamps a touch to the extent the element declared, so
+# the value cannot leave 0…1 and nothing here has to say that it should
+# not.  Turning them into hertz and decibels is this file's business and
+# happens once, below, where you can read it.
+
+warmthChan : Chan Float
+warmthChan = chan
+
+#: How open the lanterns are.  **0 is the top of the fader** and 1 the
+#: bottom, because that is where a touch is measured from — so pulling
+#: down opens them, and the range below is written to suit.
+warmth : Sig Float
+warmth = 0.55 ::: mkSig (wait warmthChan)
+
+glowChan : Chan Float
+glowChan = chan
+
+#: How hard they burn.  Level and bite together, because "how much" is
+#: one decision however many parameters it moves — and pulled down, like
+#: its neighbour.
+glow : Sig Float
+glow = 0.35 ::: mkSig (wait glowChan)
+
+#: What the instrument says back — written by the host once a frame, the
+#: loudest sample since it last looked.  A file that does not declare it
+#: is told nothing and pays nothing for the silence.
+peak : Chan Float
+peak = chan
+
+loud : Sig Float
+loud = 0.0 ::: mkSig (wait peak)
+
+# ── What you hear ────────────────────────────────────────────────────────
+
+#: A note is a **degree and a weight**, not a pitch: the score decides
+#: which step of the scale, and the voice decides what that sounds like.
+#: That is what lets the knobs re-voice a note while it is still ringing.
+Tone := Tone Float Int
+
+#: The scale — a minor ninth, which is the sound of the thing.  Degrees
+#: run 0…7 and then keep climbing by octaves, so a phrase can reach up
+#: without the table growing.
+stepOf : Int -> Int
+stepOf d = case d of
+    0 -> 0
+    1 -> 2
+    2 -> 3
+    3 -> 5
+    4 -> 7
+    5 -> 10
+    6 -> 12
+    _ -> 14
+
+hzOf : Tone -> Float
+hzOf t = case t of
+    Tone v d -> keyHz (45 + stepOf d)
+
+velOf : Tone -> Float
+velOf t = case t of
+    Tone v d -> v
+
+#: The filter, in hertz.  **The only place the range is written down**,
+#: and the reason the fader does not have to know it: at the top of its
+#: travel 180 Hz is a lantern seen through fog, at the bottom 4200 is one
+#: held up to your face.
+cutoffAt : Float -> Float
+cutoffAt w = bimix 180.0 4200.0 w
+
+#: A lantern: a triangle through a filter that the knob opens, struck and
+#: left to ring.  The bell is in the decay, not in the waveform.
+lanternVoice : Sig Gate -> Sig Tone -> Sig Float
+lanternVoice g s =
+    lowpassSvf (!cutoffAt warmth) 0.22 (triangle (!hzOf s))
+        * (!velOf s) * perc 5.0 g
+
+#: And the ground it stands on: two octaves down, soft, slow to fade.
+groundVoice : Sig Gate -> Sig Tone -> Sig Float
+groundVoice g s =
+    lowpassSvf 420.0 0.12 (triangle (!hzOf s) * 0.25)
+        * (!velOf s) * perc 1.4 g
+
+voices lamps 5 lanternVoice : Sig Float
+
+voices ground 2 groundVoice : Sig Float
+
+#: What the second knob does: quiet and round at one end, driven and
+#: near-clipped at the other, with the level climbing all the way.
+burnAt : Float -> Float -> Float
+burnAt x g = bimix (0.14 * x) (0.44 * clip (x * 2.2)) g
+
+sound : Sig Float
+sound = reverb 0.72 0.35 (zip burnAt (lamps + ground) glow)
+
+# ── What it plays ────────────────────────────────────────────────────────
+#
+# Endless (`cycle`) and chancy (`draw`), so it routes to the dynamic
+# performer by itself and the plugin carries the *program* rather than a
+# list of events.  A take with no `--seed` draws one and says so; the
+# plugin's `SEED` field is the same number, under your hand.
+
+#: Four figures, and the seed picks one per bar.  They share a shape — up
+#: and settle — so the piece has a character the dice cannot spend.
+figureOf : Int -> [: Tone :]
+figureOf n = case n of
+    0 -> '(Tone 0.85 0) ++ '(Tone 0.60 2) ++ ('(Tone 0.75 4) |* 2)
+    1 -> ('(Tone 0.80 4) |* 2) ++ '(Tone 0.55 3) ++ '(Tone 0.85 1)
+    2 -> '(Tone 0.90 5) ++ '(Tone 0.55 4) ++ '(Tone 0.70 2) ++ '(Tone 0.80 0)
+    _ -> ('(Tone 0.70 2) |* 2)
+      ++ (chance 0.55 (('(Tone 0.95 7) ++ '(Tone 0.70 5)) |/ 2) |* 2)
+
+#: One bar.  **A decision is one beat wide** — content bends, time does
+#: not — so the four-beat figure is drawn inside a beat and the beat is
+#: widened back to the bar with `long`.  The `chance` above bends its own
+#: pair the same way, or only the first of the two would survive its box.
+bar : [: Tone :]
+bar = do
+    s <- draw
+    long 4 (figureOf (below 4 s))
+
+#: The ground: two long tones a bar, alternating, and never in doubt.
+#: Something has to stay put or a chancy piece is only weather.
+footing : [: Tone :]
+footing = ('(Tone 0.9 0) |* 2) ++ ('(Tone 0.8 3) |* 2)
+
+score : [: Void :]
+score = (cycle bar >>= voices.lamps) || (cycle footing >>= voices.ground)
+
+bpm : Int
+bpm = 78
+
+# ── What you see ─────────────────────────────────────────────────────────
+#
+# **Nothing here is a widget.**  A fader is a picture with a channel
+# attached to it, composed with the same `row` and `over` any other
+# picture is, and the value it feeds is the signal declared at the top of
+# this file — the *same* signal the filter reads.
+#
+# The whole face is drawn from three numbers: the two knobs and the
+# level.  Everything below is an ordinary function to a `Sub`, lifted
+# over its signal with `!` at the very end, which is why none of it
+# mentions time.
+
+night : Colour
+night = RGB 32 35 43
+
+bone : Colour
+bone = RGB 232 236 244
+
+#: A fader: a dark track, the part you have pulled through, and a handle
+#: where the value says.
+#:
+#: **The handle follows the finger, which decides which way is up.**
+#: `onTouchY` reports 0 at the *top* edge and 1 at the bottom — that is
+#: what the host measures and there is nowhere else for it to come from
+#: — so the handle sits at `-100 + 200v` and the fill runs from the top
+#: down to meet it.  Drawing it the other way round is the obvious
+#: mistake and it looks fine standing still: the picture only argues
+#: with your hand once you drag it, and then it runs backwards.
+#:
+#: Everything is placed by its centre and the track is 200 tall, so the
+#: travel is -100…100 and a fill of height `h` hangs from the top at
+#: `h/2 - 100`.  `Shift` is **layout-neutral** — the extent stays the
+#: track's — so nothing beside this moves as the handle slides.
+faderOf : Int -> Int -> Int -> Float -> Sub
+faderOf r g b v =
+    Over (Over (Rect 44 200 night)
+               (Shift 0 (floor (v * 100.0 - 100.0))
+                        (Rect 44 (floor (v * 200.0)) (RGB r g b))))
+         (Shift 0 (floor (v * 200.0 - 100.0)) (Rect 52 6 bone))
+
+#: Two of them, and their colours are the only labels a `Sub` can carry:
+#: cool for the filter, warm for the burn.  (`Sub` has no text — see
+#: `spec/panel.md`; the panel draws the names host-side and the canvas
+#: says what it means in colour and position.)
+warmPic : Float -> Sub
+warmPic v = faderOf 92 168 214 v
+
+glowPic : Float -> Sub
+glowPic v = faderOf 226 158 74 v
+
+warmFader : Sig Sub
+warmFader = onTouchY warmthChan (!warmPic warmth)
+
+glowFader : Sig Sub
+glowFader = onTouchY glowChan (!glowPic glow)
+
+#: The meter's ladder: green while there is room, amber near the top, red
+#: at the last two.  A segment above the level is drawn dark rather than
+#: left out, so the ladder keeps its shape and the eye reads a height
+#: instead of counting bars.
+#:
+#: **It rises where the faders fall, and that is not an inconsistency.**
+#: A fader is a thing you pull and its handle has to be under your
+#: finger; a meter is a level and a level goes up.  They are different
+#: objects and they read differently on purpose — the mixer on the
+#: desk beside you does the same.
+litOf : Int -> Colour
+litOf i = case i > 5 of
+    True -> RGB 226 92 78
+    False -> case i > 3 of
+        True -> RGB 226 176 74
+        False -> RGB 92 198 132
+
+segOf : Int -> Float -> Sub
+segOf i v = case v * 8.0 > toFloat i of
+    True -> Rect 30 18 (litOf i)
+    False -> Rect 30 18 night
+
+#: Eight of them, stacked, top segment first.  Ordinary recursion: this
+#: is a function to a picture and nothing about it is reactive.
+ladderOf : Int -> Float -> Sub
+ladderOf i v = case i of
+    0 -> segOf 0 v
+    _ -> Column (segOf i v) (Column (Gap 30 5) (ladderOf (i - 1) v))
+
+#: `Sized` keeps the meter reserving the same room whatever it shows, so
+#: the row does not breathe with the music.
+meterOf : Float -> Sub
+meterOf v = Sized 34 200 (ladderOf 7 v)
+
+meter : Sig Sub
+meter = !meterOf loud
+
+#: And the layout, which is the one place that composes things that vary.
+#: `row` puts them side by side and lines their centres up; there is no
+#: alignment to state because a centre is the only point any of them is
+#: placed by.
+substrate : Sig Sub
+substrate = moveXY 150 150
+    (warmFader `row` gap 22 0 `row` glowFader `row` gap 34 0 `row` meter)

@@ -759,6 +759,59 @@ def stream_root(synth: str, piece: str = "", rate: int = 22050,
     return tempo, state, root, by_tag
 
 
+def _mentions(source: str, word: str) -> bool:
+    """Whether the program's **code** uses `word` — prose excluded.
+
+    The guards below are the `unfolding_names` shape: asking a piece
+    that never says `shape` to hand over its shape spans means walking
+    an endless score for something that is not there, which does not
+    end.  A false positive costs the walk; a false negative costs the
+    annotation.
+
+    They were raw substring scans over the source text, and that made a
+    **comment** able to hang the host — `lantern.ges` said "they share a
+    shape" in a sentence about its figures and the offline render sat
+    there until the step limit fired, with nothing in the message to
+    connect the two.  Parsing first is what makes the scan read the
+    program rather than the file, and it cannot introduce a false
+    negative: an unparseable file falls back to the old text scan, and
+    an unparseable file has a real error to report anyway.
+    """
+    import dataclasses
+
+    from .audio import _expansion_prelude
+    from .audiovoices import expand
+    from .prelude import _parsed
+    from .syntax.ast import VWord
+
+    try:
+        module = _parsed(source)
+    except Exception:                                    # noqa: BLE001
+        try:
+            module = _parsed(expand(source, _expansion_prelude()))
+        except Exception:                                # noqa: BLE001
+            return word in source
+
+    found = False
+
+    def walk(node):
+        nonlocal found
+        if found:
+            return
+        if isinstance(node, VWord) and node.value == word:
+            found = True
+            return
+        if dataclasses.is_dataclass(node):
+            for f in dataclasses.fields(node):
+                walk(getattr(node, f.name))
+        elif isinstance(node, (list, tuple)):
+            for item in node:
+                walk(item)
+
+    walk(module.items)
+    return found
+
+
 def _shape_spans(state, seed: int, limit: int = 64,
                  source: str | None = None) -> list:
     """`[(from_tick, to_tick, [(beat, ramp, bpm)])]` — every
@@ -769,13 +822,14 @@ def _shape_spans(state, seed: int, limit: int = 64,
     that has none never finds one and never ends — the
     `streamMarksTo` lesson (*a bound must travel*) in its other form.
     A count bound cannot help, because nothing is being counted.  The
-    text scan is `unfolding_names`-shaped and costs a false positive
-    only the walk.
+    scan is `unfolding_names`-shaped — it reads the parsed program, so
+    the word has to be *used* rather than merely written; see
+    `_mentions` for the comment that once hung a render.
 
     Bounded by count as well, for the reason `marks_of` is: a piece
     that *does* shape its tempo endlessly answers for a prefix.
     """
-    if source is not None and "tempoShape" not in source:
+    if source is not None and not _mentions(source, "tempoShape"):
         return []
     from .gmachine import NAp, NCon, NNum, is_tuple
     from .midi import _force, _int, _list
@@ -898,10 +952,12 @@ def shape_plan(state, seed: int, source: str, limit: int = 64) -> list:
     """`[(from_tick, to_tick, channel name, points)]` — what the
     piece's `shape` annotations ask the host to write.
 
-    Guarded by the text for the reason `_shape_spans` is: a walk
-    hunting spans through an endless score that has none never ends.
+    Guarded for the reason `_shape_spans` is: a walk hunting spans
+    through an endless score that has none never ends.  Guarded on the
+    *parsed* program rather than on the text, so a comment that happens
+    to use the word does not send the host looking — see `_mentions`.
     """
-    if "shape" not in source:
+    if not _mentions(source, "shape"):
         return []
     from .gmachine import NAp, NChan, NCon, NNum, is_tuple
     from .midi import _force, _int, _list

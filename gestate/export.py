@@ -312,8 +312,7 @@ def substrate_of(source: str, rate: int, graph, knobs: frozenset):
     — the same honest refusal `program_of` makes.
     """
     from .crust import CrustError, serialize
-    from .gui import (GuiError, _channel_names, _entry, _preludes,
-                      _program)
+    from .gui import GuiError, _channel_names, assembled
     from .pipeline import compile as _compile
 
     from .audio import _authored
@@ -321,8 +320,10 @@ def substrate_of(source: str, rate: int, graph, knobs: frozenset):
         return None
 
     try:
-        state = _compile(_preludes(source) + "\n" + _program(source) + "\n"
-                         + _entry(source, rate))
+        # **`gui.assembled`, not a fourth assembly.**  It is the one that
+        # shadows the preludes, so a file may name a definition
+        # `music.ges` also names — which `lantern.ges` does.
+        state = _compile(assembled(source, rate))
         # **Forced here, in this state, before the program runs.**  A
         # channel gets its id when its declaration is first forced, so
         # forcing them now — sharing the machine's own counter — is

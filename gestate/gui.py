@@ -146,6 +146,39 @@ def _entry(source: str, rate: int) -> str:
     return f"\nsampleRate : Float\nsampleRate = {float(rate)}\n" + entry
 
 
+def assembled(source: str, rate: int = 0) -> str:
+    """The whole program the canvas compiles — **shadowed like the other
+    two halves.**
+
+    `audio.assemble` and `audioscore.assemble_performance` both put the
+    author's text through `prelude.shadow_libraries`, so a program may
+    name whatever it likes and the library definition it hides steps
+    aside.  This assembly did not, and nothing noticed for as long as no
+    file both drew *and* played: a canvas alone never sees `music.ges`,
+    and a piece alone never comes through here.
+
+    `lantern.ges` is the first file that does both, and it called one of
+    its definitions `bar` — which `music.ges` also defines.  The audio
+    half compiled it; the canvas half refused with *"Duplicate type
+    signature for 'bar'"*, about a name the author had every right to.
+    The three assemblies have to make the same promises about the
+    author's namespace, because they are three readings of one file.
+    """
+    from .audio import DEFAULT_RATE
+    from .prelude import shadow_libraries
+    from .syntax import note_seam
+
+    head = _preludes(source)
+    written = _program(source)
+    tail = _entry(source, rate or DEFAULT_RATE)
+    shadowed = shadow_libraries(head, written)
+    out = shadowed + "\n" + written + "\n" + tail
+    # Only an unshadowed head can stand alone — see `audio.assemble`.
+    if shadowed is head:
+        note_seam(out, len(shadowed) + 1)
+    return out
+
+
 class GuiError(Exception):
     pass
 
@@ -452,8 +485,7 @@ def scenes(source: str, events, rate: int = 0) -> list[list[tuple]]:
     """
     from .audio import DEFAULT_RATE
 
-    state = _compile(_preludes(source) + "\n" + _program(source) + "\n"
-                     + _entry(source, rate or DEFAULT_RATE))
+    state = _compile(assembled(source, rate))
     reactive = init_program(state)
     sig = _entry_signal(state)
 
@@ -491,8 +523,7 @@ def touches(source: str, gestures, rate: int = 0) -> list[list[tuple]]:
     """
     from .audio import DEFAULT_RATE
 
-    state = _compile(_preludes(source) + "\n" + _program(source) + "\n"
-                     + _entry(source, rate or DEFAULT_RATE))
+    state = _compile(assembled(source, rate))
     reactive = init_program(state)
     sig = _entry_signal(state)
 
@@ -540,8 +571,7 @@ class Substrate:
     def __init__(self, source: str, rate: int = 0):
         from .audio import DEFAULT_RATE
 
-        self.state = _compile(_preludes(source) + "\n" + _program(source) + "\n"
-                              + _entry(source, rate or DEFAULT_RATE))
+        self.state = _compile(assembled(source, rate))
         # **Before the program runs.**  A channel is allocated when its
         # declaration is first forced, so forcing them here — in this
         # state, sharing its counter — is what gives every declared channel
@@ -686,8 +716,7 @@ def run(source: str, size=_DEFAULT_SIZE, fps: int = 60, title="gestate",
 
     from .audio import DEFAULT_RATE
 
-    state = _compile(_preludes(source) + "\n" + _program(source) + "\n"
-                     + _entry(source, rate or DEFAULT_RATE))
+    state = _compile(assembled(source, rate))
     reactive = init_program(state)
     sig = _entry_signal(state)
     channel = min(reactive.chans) if reactive.chans else None
