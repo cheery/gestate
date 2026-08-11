@@ -85,6 +85,17 @@ pub struct Furniture {
     pub banks: Vec<Bank>,
     pub playing: bool,
     pub beat: f64,
+    /// What a played note would do — `off`, `on` or `step`.
+    pub performing: String,
+    /// The banks that would hear one.  **Empty means nobody**, and the
+    /// keyboard is drawn dead: a control that does nothing and looks
+    /// exactly like one that works is how an evening goes into deciding
+    /// whether the synth is broken.
+    pub heard: Vec<String>,
+    /// Which notes are down.
+    pub held: Vec<i32>,
+    /// Which octave the drawn keyboard starts at.
+    pub octave: i32,
     /// Whether the description mentioned a transport at all.
     ///
     /// **Not the same as a stopped one.**  A model that has said
@@ -96,6 +107,8 @@ pub struct Furniture {
     pub commands: Vec<crate::palette::Entry>,
     /// What the argument being asked for could be, when one is.
     pub choices: Vec<crate::palette::Choice>,
+    /// A page to read — what `what` found in the reference.
+    pub page: Vec<String>,
 }
 
 fn num<T: std::str::FromStr + Default>(s: Option<&&str>) -> T {
@@ -135,6 +148,16 @@ impl Furniture {
                     voices: num(p.get(4)),
                     listening: p[5] == "1",
                 }),
+                "perform" if p.len() >= 2 => {
+                    f.performing = p[1].into();
+                    f.heard = p.get(2).copied().unwrap_or("")
+                        .split(',').filter(|b| !b.is_empty())
+                        .map(str::to_string).collect();
+                    f.held = p.get(3).copied().unwrap_or("")
+                        .split(',').filter_map(|n| n.parse().ok()).collect();
+                    f.octave = p.get(4).and_then(|o| o.parse().ok())
+                        .unwrap_or(4);
+                }
                 "play" => {
                     f.playing = p.get(1).copied() == Some("1");
                     f.beat = num(p.get(2));
@@ -159,6 +182,7 @@ impl Furniture {
                         reverse: p.get(6).copied().unwrap_or("").into(),
                     });
                 }
+                "page" => f.page.push(p.get(1).copied().unwrap_or("").into()),
                 "choice" if p.len() >= 2 => {
                     f.choices.push(crate::palette::Choice {
                         text: p[1].into(),
@@ -180,6 +204,11 @@ impl Furniture {
     /// And the bank declared on a line.
     pub fn bank_at(&self, line: usize) -> Option<&Bank> {
         self.banks.iter().find(|b| b.line == line)
+    }
+
+    /// Whether a keyboard should be drawn at all.
+    pub fn performing(&self) -> bool {
+        !self.performing.is_empty() && self.performing != "off"
     }
 
     /// And the complaint about a line, if any.
@@ -265,6 +294,16 @@ pub enum Gesture {
     Turn(String, f64),
     /// A note was played or released.
     Note(i32, bool),
+    /// A key was struck while the piano had the keyboard — the
+    /// character it makes, the physical key it came from, and whether
+    /// it went down.
+    ///
+    /// **Both, because they answer different questions.**  The
+    /// character is which note it is, which follows the layout; the
+    /// physical key is *which key is down*, which does not — so a
+    /// release matches its press even if a modifier changed what the
+    /// letter would be.
+    Struck(String, String, bool),
     /// The text changed.
     Edited,
     /// Where the window's own state stands: the zoom rung and how many
@@ -297,6 +336,9 @@ impl Gesture {
             Gesture::Turn(n, v) => format!("turn\t{n}\t{v}"),
             Gesture::Note(m, on) => {
                 format!("note\t{m}\t{}", if *on { 1 } else { 0 })
+            }
+            Gesture::Struck(c, code, on) => {
+                format!("struck\t{c}\t{code}\t{}", if *on { 1 } else { 0 })
             }
             Gesture::Edited => "edited".to_string(),
             Gesture::State { zoom, rungs, undos, redos } => {

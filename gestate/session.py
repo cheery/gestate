@@ -273,7 +273,19 @@ class Session:
     #: test asserts on.
     said: list = field(default_factory=list)
     #: What a played note does: `"off"`, `"on"` or `"step"`.
-    performing: str = "on"
+    #:
+    #: **Off to begin with.**  A file is opened to be read at least as
+    #: often as to be played, and three rows of keys taken from the
+    #: document before anybody asked for them is a window that has
+    #: decided what you are here for.
+    performing: str = "off"
+    #: What `what` last found, as lines to show — or `None`.
+    #:
+    #: **A box rather than the status line.**  One sentence is the right
+    #: size for *what just happened*; a signature, where it comes from
+    #: and what it is for is a paragraph, and squeezing it into the foot
+    #: of the window is the same as hiding it.
+    page: object = None
     #: Which argument the window is asking about — `(verb, index,
     #: query)` — or `None` when it is not asking.
     asking: object = None
@@ -520,7 +532,26 @@ class Session:
         return self._listen(name, False)
 
     def _listen(self, name: str, on: bool) -> str:
+        """Throw the switch, and say what it actually did.
+
+        **`listen` refuses quietly.**  A bank whose payload has no
+        `FromMIDI` instance cannot be handed a note however much you
+        want it to be — `Workbench.listen` checks that and returns
+        without doing anything. This used to report success either way,
+        so `listen pad` on a bank that cannot take notes said *"pad
+        hears the keyboard"* and then nothing played, which is the worst
+        of both: no note, and no reason.
+        """
+        if not getattr(self.bench, "banks", None):
+            return f"no bank `{name}`"
+        if name not in {_of(b, "name", "") for b in self.bench.banks}:
+            return f"no bank `{name}`"
         self.bench.listen(name, on)
+        if _listening(self.bench, name) != on:
+            if on and not _takes_notes(self.bench, name):
+                return (f"`{name}` cannot be played from a keyboard: "
+                        f"its voices take no note")
+            return f"`{name}` would not switch"
         return f"{name} {'hears' if on else 'ignores'} the keyboard"
 
     def do_octave(self, by: int) -> str:
@@ -551,13 +582,27 @@ class Session:
             else f"`{name}` is on line {where}"
 
     def do_what(self, name: str) -> str:
+        """What a name is — this file first, then the reference.
+
+        **The reference is the same index the pages are made of**
+        (`gestate/reference.py`), so `what wait` answers out of the
+        language's own documentation rather than shrugging. Asking a
+        machine that is playing music what a word means and being told
+        *"no declaration"* — when the word is in the manual it ships
+        with — is the sort of answer that teaches somebody the tool does
+        not know things.
+        """
         kind = self.bench.knob_types.get(name) if hasattr(
             self.bench, "knob_types") else None
         if kind:
             return f"{name} : Chan {kind}"
-        if self._declared(name) is None:
-            return f"no declaration `{name}`"
-        return f"{name} is declared here"
+        if self._declared(name) is not None:
+            return f"{name} is declared here"
+        found = _reference(name)
+        if found is not None:
+            self.page = _page(name)
+            return found
+        return f"no declaration `{name}`"
 
     def _declared(self, name: str):
         """The line a name was declared on, or `None`.
@@ -574,12 +619,59 @@ class Session:
         for site in getattr(self.bench, "sites", []):
             if getattr(site, "name", None) == name:
                 return getattr(site, "line", None)
+        # **Banks are declarations too.**  `goto` used to know only the
+        # knobs, because `sites` is what puts a knob beside its own
+        # line — so `goto pad` on a `voices` bank answered "no
+        # declaration" about a name the window was drawing a box for
+        # three lines further down.
+        for bank in getattr(self.bench, "banks", []) or []:
+            if _of(bank, "name", "") == name:
+                return _of(bank, "line", None)
+        # And anything else the file declares, read from the text.  The
+        # workbench keeps lines for the things it draws; a name it draws
+        # nothing for still has one, and `goto` is the command for
+        # reaching a name rather than a widget.
+        return self._written(name)
+
+    def _written(self, name: str):
+        """The line a name is defined on in the source, or `None`.
+
+        **The signature or the definition, whichever comes first**, and
+        read rather than parsed: a declaration is a name at the left
+        margin followed by `:` or `=`, which is what the language's own
+        layout rule already guarantees.  Anything cleverer would be a
+        second front end that could disagree with the real one.
+        """
+        try:
+            text = self.view.text() or self.bench.source()
+        except Exception:                                # noqa: BLE001
+            return None
+        for n, line in enumerate(text.splitlines(), start=1):
+            if not line[:1].isalpha():
+                continue
+            head = line.split("=", 1)[0].split(":", 1)[0].strip()
+            if head == name and (":" in line or "=" in line):
+                return n
         return None
 
     # -- the window ----------------------------------------------------
 
     def do_canvas(self) -> str:
-        return "canvas" if self.view.show("canvas") else "this file draws nothing"
+        """Show the picture the file draws, if there is one.
+
+        **Two refusals, and telling them apart is the whole point.**  A
+        file with no `substrate` draws nothing, and saying so is a fact
+        about the file. A window that cannot show one yet is a fact
+        about the *window* — and answering the first when the second is
+        true sends somebody back to look for a bug in a program that is
+        perfectly fine. `lantern.ges` draws a lantern.
+        """
+        if getattr(self.bench, "substrate", None) is None:
+            return "this file draws nothing"
+        if self.view.show("canvas"):
+            return "canvas"
+        return ("this window shows the source only; "
+                "`python -m gestate.audioeditor` draws the canvas")
 
     def do_source(self) -> str:
         self.view.show("source")
@@ -597,13 +689,13 @@ class Session:
     # on typing, so this is a setting on the input road and not a mode of
     # the editor; where the keyboard goes is focus.
 
-    def do_performOff(self) -> str:
+    def do_pianoOff(self) -> str:
         return self._perform("off")
 
-    def do_performOn(self) -> str:
+    def do_pianoOn(self) -> str:
         return self._perform("on")
 
-    def do_performStep(self) -> str:
+    def do_pianoStep(self) -> str:
         return self._perform("step")
 
     def _perform(self, how: str) -> str:
@@ -624,6 +716,27 @@ class Session:
     def do_quit(self) -> str:
         self.view.close()
         return "closing"
+
+    def play_key(self, char: str, code: str, on: bool) -> str:
+        """A note from a *typed* key, while the piano has the keyboard.
+
+        **The mapping is the model's**, because which letter is which
+        note is a fact about `Keyboard`, and a window that knew it would
+        be a second one to keep in step. The window sends what was
+        pressed; this says what it means.
+        """
+        if self.performing == "off":
+            return ""
+        board = getattr(self.bench, "keyboard", None)
+        if board is None:
+            return ""
+        if not on:
+            board.release_key(code, char)
+            return ""
+        note = board.press_key(char, code)
+        if note is not None and self.performing == "step":
+            self.view.insert(self.bench.note_text(note))
+        return ""
 
     def play_note(self, midi: int, on: bool) -> str:
         """A note from the drawn piano or a controller.
@@ -739,6 +852,16 @@ def furniture(session: "Session", bench=None) -> str:
                    f"\t{1 if _listening(b, name) else 0}")
 
     out.append(f"play\t{1 if _rolling(b) else 0}\t{_beats(b)}")
+    # **What a played note would do, and whether anything would hear
+    # it.**  The keyboard is drawn from these two: a piano nobody is
+    # listening to is drawn grey, because a control that does nothing
+    # and looks exactly like one that works is how you lose an evening
+    # deciding whether your synth is broken.
+    heard = [_of(bank, "name", "") for bank in getattr(b, "banks", []) or []
+             if _listening(b, _of(bank, "name", ""))]
+    out.append(f"perform\t{session.performing}\t{','.join(heard)}"
+               f"\t{','.join(str(n) for n in sorted(_held_notes(b)))}"
+               f"\t{getattr(getattr(b, 'keyboard', None), 'octave', 4)}")
     span = _looping(b)
     if span:
         out.append(f"loop\t{span[0]}\t{span[1]}")
@@ -759,6 +882,10 @@ def furniture(session: "Session", bench=None) -> str:
     # What the argument being asked for could be, when one is.
     for text, note in session.choices():
         out.append(f"choice\t{text}\t{note}")
+
+    # And a page to read, when a command answered with one.
+    for line in session.page or []:
+        out.append(f"page\t{line}")
     return "\n".join(out)
 
 
@@ -803,6 +930,72 @@ def _held(bench, name: str) -> int:
         return len(bench.sounding_on(name))
     except Exception:                                    # noqa: BLE001
         return 0
+
+
+#: The reference, read once — it parses six files.
+_REFERENCE: dict | None = None
+
+
+def _reference(name: str) -> str | None:
+    """What the manual says about a name, in one line, or nothing."""
+    global _REFERENCE
+    if _REFERENCE is None:
+        try:
+            from .reference import all_entries
+
+            _REFERENCE = {}
+            for entry in all_entries():
+                _REFERENCE.setdefault(entry.name, entry)
+        except Exception:                                # noqa: BLE001
+            # A reference that will not parse must not stop a command
+            # from answering about the file in front of you.
+            _REFERENCE = {}
+    entry = _REFERENCE.get(name)
+    if entry is None:
+        return None
+    said = _plain(_first_sentence(" ".join(entry.doc))) if entry.doc else ""
+    where = f" ({entry.library})" if entry.library else ""
+    line = entry.signature.strip() or f"{entry.name} : ?"
+    return f"{line}{where}" + (f" — {said}" if said else "")
+
+
+def _held_notes(bench) -> set:
+    """Which notes the keyboard is holding down."""
+    try:
+        return {int(n) for n in bench.keyboard.held}
+    except Exception:                                    # noqa: BLE001
+        return set()
+
+
+def _page(name: str) -> list:
+    """What the manual says about a name, as lines to read."""
+    entry = (_REFERENCE or {}).get(name)
+    if entry is None:
+        return []
+    out = [entry.signature.strip() or name]
+    if entry.library:
+        out.append(entry.library
+                   + (f" — {entry.section}" if entry.section else ""))
+    if entry.doc:
+        out.append("")
+        out.extend(_plain(line) for line in entry.doc)
+    if entry.alternatives:
+        out.append("")
+        out.extend(f"  {alt}" for alt in entry.alternatives)
+    return out
+
+
+def _takes_notes(bench, name: str) -> bool:
+    """Whether a bank can be handed a note at all.
+
+    A fact about its payload's type, not about a cable: a bank whose
+    voices have no `FromMIDI` instance cannot be played from a keyboard,
+    on-screen or otherwise.
+    """
+    try:
+        return bool(bench.takes_midi(name))
+    except Exception:                                    # noqa: BLE001
+        return False
 
 
 def _listening(bench, name: str) -> bool:
@@ -908,6 +1101,10 @@ def act(session: "Session", line: str) -> str:
     if verb == "asked":
         session.asking = None
         return ""
+    if verb == "shut":
+        # The list is closed, so the page it was showing is over.
+        session.page = None
+        return ""
     if verb == "edited":
         return ""
     if verb == "state" and len(parts) >= 5:
@@ -922,6 +1119,8 @@ def act(session: "Session", line: str) -> str:
             except ValueError:
                 return f"state: {line!r} is not four numbers"
         return ""
+    if verb == "struck" and len(parts) >= 4:
+        return session.play_key(parts[1], parts[2], parts[3] == "1")
     if verb == "note" and len(parts) >= 3:
         return session.play_note(int(parts[1]), parts[2] == "1")
     return f"no gesture `{verb}`"

@@ -789,6 +789,64 @@ class LazyPerformer:
 
     # -- the transport's questions ----------------------------------------------
 
+    def snapshot(self) -> dict:
+        """Everything `seek` establishes, kept so it need not be redone.
+
+        **A seek is a pure function of the past, so its answer can be
+        remembered.**  `seek` releases what sounds and then silently
+        replays every entry before the target — which is what makes
+        seek-then-perform equal `value_at`, and what makes it cost more
+        the further into a piece you land: measured at nineteen
+        milliseconds at bar sixty-five. A loop pays that on *every* pass,
+        for the same instant every time, and the state at that instant is
+        the same state every time.
+
+        Everything below is either an immutable tuple or a container of
+        them, so the copies are shallow and the whole thing is a few
+        microseconds. The allocators are the one exception and they
+        answer for themselves — see `Allocator.state`.
+        """
+        return {
+            # **How much of the stream had been forced.**  The replay
+            # walks `history`, so a snapshot taken before it grew would
+            # put back a past missing whatever arrived since.  Laziness
+            # means it can only grow, so a length is enough to tell.
+            "history": len(self.history),
+            "allocators": {n: a.state()
+                           for n, a in self.allocators.items()},
+            "values": dict(self.values),
+            "pending": list(self.pending),
+            "dropped": set(self._dropped),
+            "played": set(self._played),
+            "events": self._events,
+            "entries": self._entries,
+            "position": self.position,
+        }
+
+    def restore(self, kept: dict) -> bool:
+        """Put a remembered moment back.  False if it no longer fits.
+
+        **Refused rather than forced.**  A stale snapshot would be a
+        performance that quietly disagreed with its own score, which is
+        far worse than the seek it saves: every caller can simply seek
+        instead.
+        """
+        if not kept or kept.get("history") != len(self.history):
+            return False
+        if set(kept["allocators"]) != set(self.allocators):
+            return False
+        if not all(self.allocators[n].restore(state)
+                   for n, state in kept["allocators"].items()):
+            return False
+        self.values = dict(kept["values"])
+        self.pending = list(kept["pending"])
+        self._dropped = set(kept["dropped"])
+        self._played = set(kept["played"])
+        self._events = kept["events"]
+        self._entries = kept["entries"]
+        self.position = kept["position"]
+        return True
+
     def seek(self, t: int) -> list:
         """Release what sounds, stand at `t` as if played from the top.
 

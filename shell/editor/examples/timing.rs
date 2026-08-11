@@ -10,7 +10,7 @@ fn main() {
     let mut d = Document::new(&text);
     println!("load {} chars, {} rows: {:?}", d.len(), d.rows(), t0.elapsed());
 
-    let mut v = View { top: 0, left: 0, w: 1200, h: 50 * LARGE.h, gutter: true, aside: 0, scale: 1 };
+    let mut v = View { top: 0, left: 0, w: 1200, h: 50 * LARGE.h, gutter: true, aside: 0, piano: 0, focused: false, scale: 1 };
     for top in [0usize, 100, 100_000, 199_000] {
         v.top = top;
         let t = Instant::now();

@@ -51,6 +51,17 @@ pub const LIVE: Colour = Colour::rgb(0x7c, 0xc8, 0x94);
 /// What the compiler had to say, and where.
 pub const ANGRY: Colour = Colour::rgb(0xc0, 0x4c, 0x48);
 /// The status line's ground.
+/// The drawn keyboard.  **Two palettes, and the dead one is the
+/// point**: a bank only takes a note if its payload has a `FromMIDI`
+/// instance and its switch is on, and a piano that plays nothing must
+/// not look like a piano that plays.
+pub const KEY_WHITE: Colour = Colour::rgb(0xd0, 0xd4, 0xdc);
+pub const KEY_BLACK: Colour = Colour::rgb(0x22, 0x26, 0x2e);
+pub const KEY_DEAD_WHITE: Colour = Colour::rgb(0x4e, 0x52, 0x58);
+pub const KEY_DEAD_BLACK: Colour = Colour::rgb(0x2a, 0x2c, 0x30);
+pub const KEY_DOWN: Colour = Colour::rgb(0x5c, 0xa8, 0xd8);
+pub const KEY_EDGE: Colour = Colour::rgb(0x14, 0x16, 0x1a);
+
 pub const CHROME: Colour = Colour::rgb(0x1c, 0x1f, 0x25);
 
 /// One thing to draw.
@@ -85,6 +96,13 @@ pub struct View {
     pub h: i32,
     /// Whether to draw line numbers.
     pub gutter: bool,
+    /// Whether the drawn keyboard has the keys.
+    pub focused: bool,
+    /// Rows reserved at the foot for the drawn keyboard, or zero.
+    ///
+    /// Set from the description like `aside`, so a file that is not
+    /// being performed loses no height to the possibility of it.
+    pub piano: i32,
     /// Columns reserved on the right for knobs.
     ///
     /// **A margin, not a panel.**  `audiospans` says which line each
@@ -106,6 +124,7 @@ pub struct View {
 impl Default for View {
     fn default() -> Self {
         View { top: 0, left: 0, w: 800, h: 600, gutter: true, aside: 0,
+               piano: 0, focused: false,
                scale: 1 }
     }
 }
@@ -148,9 +167,95 @@ impl View {
         self.ch(font) + 4
     }
 
-    /// Rows of *text*, which is the window minus the status line.
+    /// Rows of *text*, which is the window minus the status line and
+    /// whatever the keyboard is taking.
     pub fn rows(&self, font: &Font) -> usize {
-        (((self.h - self.status_h(font)) / self.ch(font)).max(1)) as usize
+        (((self.h - self.status_h(font) - self.piano) / self.ch(font)).max(1))
+            as usize
+    }
+
+    /// Where the drawn keyboard's band begins — its label's row.
+    pub fn piano_y(&self, font: &Font) -> i32 {
+        self.h - self.status_h(font) - self.piano
+    }
+
+    /// And where the keys themselves begin, and how tall they are.
+    ///
+    /// **The label is inside the band, not above it.**  Drawn a row
+    /// higher it lands on the last line of the document, which is a
+    /// caption sitting on somebody's code — the keyboard reserves the
+    /// room it needs and everything it draws stays inside it.
+    pub fn keys_y(&self, font: &Font) -> (i32, i32) {
+        let ch = self.ch(font);
+        (self.piano_y(font) + ch, (self.piano - ch).max(1))
+    }
+
+    /// **The white keys of two octaves**, as `(midi, x, width)`.
+    ///
+    /// Seven to an octave, and the black ones sit between them — which
+    /// is the whole of a piano's geometry and the reason this is a
+    /// table rather than a formula.
+    pub fn white_keys(&self) -> Vec<(i32, i32, i32)> {
+        const STEPS: [i32; 7] = [0, 2, 4, 5, 7, 9, 11];
+        let n = 14;
+        let w = (self.w / n).max(1);
+        (0..n).map(|i| {
+            let midi = 12 * (i / 7) + STEPS[(i % 7) as usize];
+            (midi, i * w, w)
+        }).collect()
+    }
+
+    /// And the black ones, which are drawn over them.
+    pub fn black_keys(&self) -> Vec<(i32, i32, i32)> {
+        // Where a black key sits, as an offset from its white one: after
+        // the 1st, 2nd, 4th, 5th and 6th of each octave, and nowhere
+        // else — the two gaps are what make a keyboard readable.
+        const AFTER: [i32; 5] = [0, 1, 3, 4, 5];
+        const STEPS: [i32; 5] = [1, 3, 6, 8, 10];
+        let whites = self.white_keys();
+        let w = whites.first().map(|k| k.2).unwrap_or(1);
+        let bw = (w * 3 / 5).max(2);
+        let mut out = Vec::new();
+        for octave in 0..2 {
+            for (i, after) in AFTER.iter().enumerate() {
+                let at = (octave * 7 + after) as usize;
+                if let Some((_m, x, _w)) = whites.get(at) {
+                    out.push((12 * octave + STEPS[i], x + w - bw / 2, bw));
+                }
+            }
+        }
+        out
+    }
+
+    /// The note under the pointer, if the keyboard is showing.
+    ///
+    /// **Black keys first**, because they are drawn on top and half of
+    /// each one overlaps a white key — asking in drawing order is what
+    /// makes the answer agree with what somebody sees.
+    pub fn key_at(&self, font: &Font, base: i32, x: i32, y: i32)
+        -> Option<i32>
+    {
+        if self.piano == 0 {
+            return None;
+        }
+        let (top, tall) = self.keys_y(font);
+        if y < top || y >= top + tall {
+            return None;
+        }
+        let black_h = tall * 3 / 5;
+        if y < top + black_h {
+            for (midi, kx, kw) in self.black_keys() {
+                if x >= kx && x < kx + kw {
+                    return Some(base + midi);
+                }
+            }
+        }
+        for (midi, kx, kw) in self.white_keys() {
+            if x >= kx && x < kx + kw {
+                return Some(base + midi);
+            }
+        }
+        None
     }
 
     /// Scroll so the caret is visible, and return whether it moved.
@@ -433,6 +538,56 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
                                           c: HANDLE });
             }
         }
+    }
+
+    // **The keyboard, when a note would do something.**  Above the
+    // status line and below the text, so it takes the room it needs
+    // from the document rather than covering it.
+    //
+    // Drawn dead — every key grey — when no bank is listening.  A bank
+    // only takes a note if its payload has a `FromMIDI` instance *and*
+    // its switch is on, and neither is visible in the text; a piano
+    // that plays nothing and looks exactly like one that plays is how
+    // an evening goes into deciding whether the synth is broken.
+    if view.piano > 0 {
+        let band = view.piano_y(font);
+        let (py, tall) = view.keys_y(font);
+        let live = !chrome.heard.is_empty();
+        let base = (chrome.octave + 1) * 12;
+        let (white, black) = if live {
+            (KEY_WHITE, KEY_BLACK)
+        } else {
+            (KEY_DEAD_WHITE, KEY_DEAD_BLACK)
+        };
+        f.items.push(Item::Rect { x: 0, y: band, w: view.w, h: view.piano,
+                                  c: KEY_EDGE });
+        for (midi, x, kw) in view.white_keys() {
+            let down = chrome.held.contains(&(base + midi));
+            f.items.push(Item::Rect { x: x + 1, y: py + 1, w: kw - 2,
+                                      h: tall - 2,
+                                      c: if down { KEY_DOWN } else { white } });
+        }
+        let black_h = tall * 3 / 5;
+        for (midi, x, kw) in view.black_keys() {
+            let down = chrome.held.contains(&(base + midi));
+            f.items.push(Item::Rect { x, y: py, w: kw, h: black_h,
+                                      c: if down { KEY_DOWN } else { black } });
+        }
+        // What it would do, said in the corner: `on` plays, `step`
+        // plays and writes the note into the text, and neither is
+        // guessable from a picture of a piano.
+        let mut said = chrome.performing.clone();
+        if !live {
+            said.push_str(" — nothing is listening");
+        }
+        if view.focused {
+            // **Said, and shown.**  A focus is only not a mode because
+            // you can see where it is.
+            said.push_str("   [the keys play]");
+            f.items.push(Item::Rect { x: 0, y: band, w: view.w, h: 2,
+                                      c: KEY_DOWN });
+        }
+        f.items.push(Item::Run { x: 4, y: band, s: said, c: FAINT });
     }
 
     // The status line, at the foot — one sentence, which is what the

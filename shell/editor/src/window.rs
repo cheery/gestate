@@ -190,6 +190,21 @@ struct EditorWindow {
     asked: Cell<Option<Instant>>,
     /// The last `State` gesture sent, so it goes out only when it moves.
     told: Cell<(usize, usize, usize, usize)>,
+    /// The note the pointer is holding down, if any.
+    playing: Cell<Option<i32>>,
+    /// **Whether the keyboard is the piano's.**
+    ///
+    /// `spec/commands.md` settled this when the piano was still an
+    /// idea: *"the letters go on typing, so this is a setting on the
+    /// input road rather than a mode of the editor, and where the
+    /// keyboard goes is **focus**: click the drawn piano and it has it,
+    /// click the text and the text does."*  A focus is not a mode
+    /// because it is visible and you point at it.
+    at_piano: Cell<bool>,
+    /// Which physical keys the piano is holding, so they can be let go
+    /// when it loses the keyboard — a note held while you click away is
+    /// held for ever otherwise.
+    fingers: RefCell<std::collections::HashSet<String>>,
     /// The knob being dragged, and the value last sent for it.
     ///
     /// **The value, so the same one is not sent twice.**  A pointer
@@ -324,7 +339,7 @@ impl EditorWindow {
         Ok(EditorWindow {
             doc: RefCell::new(Document::new(&host.initial())),
             view: RefCell::new(View {
-                top: 0, left: 0, w, h, gutter: true, aside: 0,
+                top: 0, left: 0, w, h, gutter: true, aside: 0, piano: 0, focused: false,
                 scale: crate::font::LADDER[crate::font::LADDER_DEFAULT].1,
             }),
             zoom: Cell::new(crate::font::LADDER_DEFAULT),
@@ -341,6 +356,9 @@ impl EditorWindow {
             asked: Cell::new(None),
             told: Cell::new((usize::MAX, 0, 0, 0)),
             turning: RefCell::new(None),
+            playing: Cell::new(None),
+            at_piano: Cell::new(false),
+            fingers: RefCell::new(std::collections::HashSet::new()),
             // **`GESTATE_EDITOR_STRESS` never goes clean**, so every
             // frame draws and presents.  It is how the *platform's*
             // half of a frame gets measured without a hand on the
@@ -421,11 +439,90 @@ impl EditorWindow {
                 self.host.gesture(Gesture::Wants(name, at, q).line())
             }
             Asks::Closed => {
+                self.host.gesture("shut".to_string());
                 self.host.gesture(Gesture::Asked.line());
                 self.host.gesture(Gesture::Filter(String::new()).line());
             }
             Asks::Nothing => {}
         }
+    }
+
+    /// A key, while the piano has the keyboard.
+    ///
+    /// `None` for anything that is not a letter to play — Escape hands
+    /// the keyboard back, and everything else falls through to the
+    /// editor, so the command list is still one Ctrl-K away.
+    fn finger(&self, k: &keyboard_types::KeyboardEvent)
+        -> Option<EventStatus>
+    {
+        if matches!(k.key, Kt::Named(NamedKey::Escape)) {
+            if k.state == KeyState::Down {
+                self.hands_off();
+                self.at_piano.set(false);
+                self.view.borrow_mut().focused = false;
+                self.dirty.set(true);
+            }
+            return Some(EventStatus::Captured);
+        }
+        let Kt::Character(c) = &k.key else { return None };
+        if c.chars().next().is_some_and(char::is_control) {
+            return None;
+        }
+        let code = format!("{:?}", k.code);
+        let down = k.state == KeyState::Down;
+        {
+            let mut held = self.fingers.borrow_mut();
+            if down {
+                // **Auto-repeat is not a second press.**  X11 sends a
+                // stream of them while a key is held, and each one
+                // would be another note on a voice that is already
+                // sounding.
+                if !held.insert(code.clone()) {
+                    return Some(EventStatus::Captured);
+                }
+            } else if !held.remove(&code) {
+                return Some(EventStatus::Captured);
+            }
+        }
+        self.host.gesture(Gesture::Struck(c.clone(), code, down).line());
+        Some(EventStatus::Captured)
+    }
+
+    /// The list is opening, so it takes the keyboard.
+    ///
+    /// **Opening it is asking to type into it.**  `Ctrl-K` reaches
+    /// past the piano because it holds Control, and without this the
+    /// list opened while the piano still owned every letter — so you
+    /// typed a command name and played a chord.
+    fn to_the_list(&self) {
+        if self.at_piano.get() {
+            self.hands_off();
+            self.at_piano.set(false);
+            self.view.borrow_mut().focused = false;
+        }
+    }
+
+    /// Let go of every key the piano is holding.
+    ///
+    /// **Called whenever it loses the keyboard.**  A note held while
+    /// you click away is held for ever: the release goes wherever the
+    /// focus went, and the voice is never handed back.
+    fn hands_off(&self) {
+        for code in self.fingers.borrow_mut().drain() {
+            self.host.gesture(
+                Gesture::Struck(String::new(), code, false).line());
+        }
+    }
+
+    /// The note under the pointer, if the keyboard is showing.
+    fn struck_key(&self, x: i32, y: i32) -> Option<i32> {
+        let view = self.view.borrow();
+        let chrome = self.chrome.borrow();
+        // **The octave the model is on**, so the drawn keys and
+        // `octave` agree; `+ 1` because MIDI's octave four starts at
+        // sixty, which is what the keyboard calls middle C.
+        let base = (chrome.octave + 1) * 12;
+        view.key_at(self.font(), base, x, y)
     }
 
     /// Turn a bank's listening on or off, if its box was pressed.
@@ -636,6 +733,7 @@ impl WindowHandler for EditorWindow {
                     let mut pal = self.palette.borrow_mut();
                     pal.offer(f.commands.clone());
                     pal.offer_choices(f.choices.clone());
+                    pal.offer_page(f.page.clone());
                 }
                 if let Some(sent) = self.asked.take() {
                     let us = Instant::now().duration_since(sent)
@@ -657,6 +755,26 @@ impl WindowHandler for EditorWindow {
                     } else {
                         10
                     };
+                // **And the keyboard takes its room from the document**,
+                // only while a played note would do something — so a
+                // file you are reading rather than playing keeps every
+                // row of it.
+                // **Drawing the piano hands it the keyboard**, which is
+                // what `pianoOn` means to somebody who just asked for a
+                // piano; putting it away hands it back.
+                if f.performing() != self.chrome.borrow().performing() {
+                    self.hands_off();
+                    self.at_piano.set(f.performing());
+                }
+                self.view.borrow_mut().focused = self.at_piano.get();
+                self.view.borrow_mut().piano = if f.performing() {
+                    // Three rows of keys, and one for what a played
+                    // note would do — which is not guessable from a
+                    // picture of a piano.
+                    self.font().h * self.scale() * 4
+                } else {
+                    0
+                };
                 *self.chrome.borrow_mut() = f;
                 self.dirty.set(true);
             }
@@ -836,6 +954,21 @@ impl WindowHandler for EditorWindow {
     fn on_event(&self, event: Event) -> EventStatus {
         match event {
             Event::Keyboard(k) => {
+                // **While the piano has the keyboard, the keys are
+                // notes.**  Releases matter here and nowhere else — a
+                // note has a length — so this is above the guard that
+                // drops them.
+                // Never while the list is open — it is being typed
+                // into, and a letter cannot be both a command's name
+                // and a note.
+                if self.at_piano.get()
+                    && !self.palette.borrow().is_open()
+                    && !k.modifiers.contains(Modifiers::CONTROL)
+                {
+                    if let Some(status) = self.finger(&k) {
+                        return status;
+                    }
+                }
                 if k.state != KeyState::Down {
                     return EventStatus::Ignored;
                 }
@@ -853,6 +986,7 @@ impl WindowHandler for EditorWindow {
                 // anyone who has pressed it anywhere else.
                 if self.palette.borrow().is_open() == false {
                     if let Some(e) = self.shortcut(&k) {
+                        self.to_the_list();
                         let asks = self.palette.borrow_mut().begin(&e);
                         match asks {
                             Asks::Run(name, args) => {
@@ -874,6 +1008,7 @@ impl WindowHandler for EditorWindow {
                 if k.modifiers.contains(Modifiers::CONTROL) {
                     if let Kt::Character(s) = &k.key {
                         if s.eq_ignore_ascii_case("k") {
+                            self.to_the_list();
                             let asks = self.palette.borrow_mut().show();
                             if let Asks::Filter(q) = asks {
                                 self.host.gesture(Gesture::Filter(q).line());
@@ -1014,6 +1149,23 @@ impl WindowHandler for EditorWindow {
                 // as running `listen` or `deafen` on that name, and it
                 // goes out as exactly that — so the widget and the
                 // command cannot come to mean different things.
+                // The drawn keyboard, which is a keyboard: pressing a
+                // key sends the note, releasing it ends the note.
+                if let Some(note) = self.struck_key(x, y) {
+                    self.at_piano.set(true);
+                    self.view.borrow_mut().focused = true;
+                    self.dirty.set(true);
+                    self.playing.set(Some(note));
+                    self.host.gesture(Gesture::Note(note, true).line());
+                    return EventStatus::Captured;
+                }
+                if self.at_piano.get() {
+                    // Clicking anything else is clicking away from it.
+                    self.hands_off();
+                    self.at_piano.set(false);
+                    self.view.borrow_mut().focused = false;
+                    self.dirty.set(true);
+                }
                 if let Some(line) = self.tick(x, y) {
                     self.host.gesture(line);
                     return EventStatus::Captured;
@@ -1041,6 +1193,9 @@ impl WindowHandler for EditorWindow {
             }) => {
                 self.dragging.set(false);
                 *self.turning.borrow_mut() = None;
+                if let Some(note) = self.playing.take() {
+                    self.host.gesture(Gesture::Note(note, false).line());
+                }
                 EventStatus::Captured
             }
             Event::Mouse(MouseEvent::WheelScrolled { delta, modifiers })

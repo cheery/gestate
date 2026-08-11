@@ -104,6 +104,32 @@ class Allocator:
     def fields(self) -> int:
         return len(self.channels[0])
 
+    # -- keeping a moment ---------------------------------------------------
+
+    def state(self) -> tuple:
+        """What its voices are doing, as plain values.
+
+        **Only the voices move.**  `channels` is read from the text and
+        `policy` is a function, so what a moment of this allocator *is*
+        comes to four numbers a voice: which key it holds, when that
+        began, and when it was let go.
+        """
+        return tuple((v.key, v.started, v.released) for v in self.voices)
+
+    def restore(self, state: tuple) -> bool:
+        """Put a moment back.  False if it does not fit these voices.
+
+        A state from a different bank — or from before a rebuild changed
+        how many voices there are — is refused rather than stretched:
+        half-restoring an allocator would leave notes owned by voices
+        that no longer exist.
+        """
+        if len(state) != len(self.voices):
+            return False
+        for voice, (key, started, released) in zip(self.voices, state):
+            voice.key, voice.started, voice.released = key, started, released
+        return True
+
     # -- choosing -----------------------------------------------------------
 
     def _pick(self, at: int):

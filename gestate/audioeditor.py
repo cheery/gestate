@@ -606,6 +606,8 @@ class Workbench:
         #: a `LazyPerformer` deciding notes as the transport reaches
         #: them.  One of `schedule`/`performer` is set, never both.
         self.performer = None
+        #: Remembered performer states, by the sample they stand at.
+        self._seeks: dict = {}
         self._performer_lock = threading.Lock()
         #: Banks the score assigns to, by spelling — the dynamic path
         #: cannot enumerate its channels up front, so the text answers.
@@ -1508,6 +1510,24 @@ class Workbench:
             self.transport.loop = None
             self.say("loop off")
 
+    #: How many seek targets to keep the performer's state for.
+    #:
+    #: A loop needs one.  A handful covers moving between a few places
+    #: in a piece, which is what somebody working on a middle section
+    #: actually does, and puts a ceiling on the memory.
+    _SEEKS_KEPT = 8
+
+    def _remember(self, sample: int) -> None:
+        """Keep the moment the performer now stands at."""
+        if self.performer is None:
+            return
+        if len(self._seeks) >= self._SEEKS_KEPT:
+            # Oldest out: a dict remembers its insertion order, and the
+            # place you have not been back to in a while is the place
+            # you are least likely to return to next.
+            del self._seeks[next(iter(self._seeks))]
+        self._seeks[sample] = self.performer.snapshot()
+
     @staticmethod
     def _wrapped(at: int, was: int) -> bool:
         """Whether the engine's clock has just jumped backwards.
@@ -1539,9 +1559,20 @@ class Workbench:
         # release what sounds, silent replay to the target
         # (`audiodynamic.LazyPerformer.seek` — stage one's semantics,
         # already pinned by its tests).
+        #
+        # **Remembered, because a loop asks the same question every
+        # pass.**  That replay costs more the further into a piece it
+        # lands — nineteen milliseconds at bar sixty-five — and a loop
+        # pays it on every wrap, on this thread, holding the lock that
+        # `_push_controls` also wants. The state at an instant is a pure
+        # function of what came before it, which is exactly what makes
+        # it safe to keep: `restore` refuses any moment that no longer
+        # fits and the seek happens after all.
         if self.performer is not None:
             with self._performer_lock:
-                self.performer.seek(_sample)
+                if not self.performer.restore(self._seeks.get(_sample)):
+                    self.performer.seek(_sample)
+                    self._remember(_sample)
 
     # -- beats and samples --------------------------------------------------
 
@@ -1714,6 +1745,8 @@ class Workbench:
                 stream = live_native(state, by_tag, self.seed or 0,
                                      tick, fuel=100_000)
                 with self._performer_lock:
+                    # A new score, so every remembered moment is stale.
+                    self._seeks.clear()
                     self.performer = LazyPerformer(
                         stream if stream is not None else
                         LiveStream(state, root, by_tag, patience=0.02),

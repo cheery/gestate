@@ -130,6 +130,8 @@ pub struct Palette {
     asking: Option<Asking>,
     /// What the model says this argument could be.
     choices: Vec<Choice>,
+    /// A page to read, under the list.
+    page: Vec<String>,
     /// Which row is picked.  **Clamped rather than reset** when the
     /// list changes: typing one more letter usually narrows the list
     /// around what you were already looking at, and jumping the
@@ -162,6 +164,16 @@ impl Palette {
     pub fn show(&mut self) -> Asks {
         self.open = true;
         self.query.clear();
+        // **And nothing of the last question survives it.**  Opening
+        // the list without clearing this left it still holding a
+        // finished call — so it looked like a list of commands while
+        // Backspace and the arrows still meant *search backwards*, and
+        // backspace stopped backspacing.  `hide` cleared all of it and
+        // `show` cleared none, which is one of those pairs that has to
+        // be read together to notice.
+        self.asking = None;
+        self.choices.clear();
+        self.page.clear();
         self.at = 0;
         Asks::Filter(String::new())
     }
@@ -171,6 +183,7 @@ impl Palette {
         self.query.clear();
         self.entries.clear();
         self.choices.clear();
+        self.page.clear();
         self.asking = None;
         self.at = 0;
         Asks::Closed
@@ -182,6 +195,16 @@ impl Palette {
     }
 
     /// What the model says the argument being asked for could be.
+    /// A page the model wants read — `what`'s answer, in full.
+    ///
+    /// **Under the list, not in the status line.**  One sentence is the
+    /// right size for *what just happened*; a signature, where it comes
+    /// from and what it is for is a paragraph, and folding that into
+    /// the foot of the window is the same as hiding it.
+    pub fn offer_page(&mut self, page: Vec<String>) {
+        self.page = page;
+    }
+
     pub fn offer_choices(&mut self, choices: Vec<Choice>) {
         self.choices = choices;
         self.clamp();
@@ -363,6 +386,24 @@ impl Palette {
                 // question, and the best answer to it is first.
                 self.requery()
             }
+            // **The arrows walk a finished call.**  A search is a walk
+            // in two directions and the keys for "the next one" and
+            // "the one before" are the same everywhere; while a call is
+            // live they mean that, and there is no list to move in
+            // anyway.
+            //
+            // **Backspace is not one of them.**  It was, briefly, and
+            // it was wrong: backspace means *undo the last keystroke*
+            // everywhere in this editor, and a key that deletes in one
+            // breath and searches in the next is a key you have to stop
+            // and think about. So it goes back to editing the argument,
+            // which is what it does in every other state of this list.
+            Key::Up if self.asking.as_ref().is_some_and(|a| a.done) => {
+                self.step(true)
+            }
+            Key::Down if self.asking.as_ref().is_some_and(|a| a.done) => {
+                self.step(false)
+            }
             Key::Backspace => {
                 if self.query.pop().is_none() {
                     // **Backspace on an empty query goes back one
@@ -373,20 +414,6 @@ impl Palette {
                     return self.back();
                 }
                 self.requery()
-            }
-            // **The arrows walk a finished call.**  A search is a walk
-            // in two directions and the keys for "the next one" and
-            // "the one before" are the same everywhere; while a call is
-            // live they mean that, and there is no list to move in
-            // anyway.  Backspace joins them going back, which is what
-            // Henri reached for.
-            Key::Up | Key::Backspace
-                if self.asking.as_ref().is_some_and(|a| a.done) =>
-            {
-                self.step(true)
-            }
-            Key::Down if self.asking.as_ref().is_some_and(|a| a.done) => {
-                self.step(false)
             }
             Key::Up => {
                 self.at = self.at.saturating_sub(1);
@@ -596,6 +623,24 @@ impl Palette {
                 let at = x + box_w - 4 - right.chars().count() as i32 * cw;
                 f.items.push(Item::Run { x: at, y: row, s: right.clone(),
                                          c: FAINT });
+            }
+        }
+
+        // The page, under the panel and in its own — as many lines as
+        // it has, which is why it is not the summary's single row.
+        if !self.page.is_empty() {
+            let room = (((box_w - 8) / cw.max(1)).max(4)) as usize;
+            let tall = ch * self.page.len() as i32 + 8;
+            let py = y + box_h + 6;
+            f.items.push(Item::Rect { x: x - 2, y: py - 2, w: box_w + 4,
+                                      h: tall + 4, c: EDGE });
+            f.items.push(Item::Rect { x, y: py, w: box_w, h: tall,
+                                      c: SHADE });
+            for (i, line) in self.page.iter().enumerate() {
+                f.items.push(Item::Run {
+                    x: x + 4, y: py + 4 + ch * i as i32,
+                    s: elide(line, room),
+                    c: if i == 0 { INK } else { FAINT } });
             }
         }
 
@@ -929,7 +974,8 @@ mod again_tests {
         p.offer(vec![
             Entry { usage: "find <text>".into(), name: "find".into(),
                     summary: "Find.".into(), key: "Ctrl-F".into(),
-                    args: vec!["Text".into()], reverse: String::new() },
+                    args: vec!["Text".into()],
+                    reverse: "findBack".into() },
         ]);
         p.at = 0;
         p.key(Key::Char(' '));                 // into the argument
@@ -966,6 +1012,37 @@ mod again_tests {
                    Asks::Run("find".into(), vec!["bz".into()]));
     }
 
+    /// **Backspace edits, it does not search.**  It means *undo the
+    /// last keystroke* everywhere else in this editor, and a key that
+    /// deletes in one breath and searches in the next is one you have
+    /// to stop and think about.
+    #[test]
+    fn backspace_goes_back_to_the_argument() {
+        let mut p = finding();
+        p.key(Key::Enter);
+        assert!(p.asking().is_some_and(|a| a.done));
+        p.key(Key::Backspace);
+        assert!(p.asking().is_some_and(|a| !a.done),
+                "back to editing what was searched for");
+        assert!(p.is_open());
+    }
+
+    /// The arrows are the walk: down is the next, up is the one before.
+    #[test]
+    fn the_arrows_walk_forwards_and_back() {
+        let mut p = finding();
+        p.key(Key::Enter);
+        assert_eq!(p.key(Key::Down),
+                   Asks::Run("find".into(), vec!["foo".into()]));
+        assert_eq!(p.key(Key::Up),
+                   Asks::Run("findBack".into(), vec!["foo".into()]));
+        assert_eq!(p.key(Key::Up),
+                   Asks::Run("findBack".into(), vec!["foo".into()]),
+                   "chosen by the key, never toggled");
+        assert_eq!(p.key(Key::Down),
+                   Asks::Run("find".into(), vec!["foo".into()]));
+    }
+
     /// And Escape leaves, which is the other way out.
     #[test]
     fn escape_leaves_a_finished_call() {
@@ -987,5 +1064,54 @@ mod again_tests {
                              args: Vec::new(), reverse: String::new() }]);
         assert_eq!(p.key(Key::Enter), Asks::Run("stop".into(), Vec::new()));
         assert!(!p.is_open());
+    }
+}
+
+#[cfg(test)]
+mod reopening_tests {
+    use super::*;
+
+    /// **Opening the list must start a new question.**  It used to keep
+    /// the last finished call, so the list looked ordinary while
+    /// Backspace and the arrows still meant *search backwards* — and
+    /// backspace stopped backspacing.
+    #[test]
+    fn opening_the_list_forgets_the_last_call() {
+        let mut p = Palette::default();
+        p.show();
+        p.offer(vec![
+            Entry { usage: "find <text>".into(), name: "find".into(),
+                    summary: String::new(), key: String::new(),
+                    args: vec!["Text".into()], reverse: "findBack".into() },
+        ]);
+        p.at = 0;
+        p.key(Key::Char(' '));
+        for c in "foo".chars() { p.key(Key::Char(c)); }
+        p.key(Key::Enter);
+        assert!(p.asking().is_some_and(|a| a.done));
+
+        p.show();
+        assert!(p.asking().is_none(), "a new question, not the old one");
+        // And Backspace edits the query again, which is what it is for.
+        for c in "loo".chars() { p.key(Key::Char(c)); }
+        assert_eq!(p.key(Key::Backspace), Asks::Filter("lo".into()));
+        assert_eq!(p.query(), "lo");
+    }
+
+    /// Backspace has always edited the query while a list is being
+    /// filtered; only a *finished call* changes what it means.
+    #[test]
+    fn backspace_edits_the_query_while_filtering() {
+        let mut p = Palette::default();
+        p.show();
+        p.offer(vec![
+            Entry { usage: "loop".into(), name: "loop".into(),
+                    summary: String::new(), key: String::new(),
+                    args: Vec::new(), reverse: String::new() },
+        ]);
+        for c in "loop".chars() { p.key(Key::Char(c)); }
+        assert_eq!(p.key(Key::Backspace), Asks::Filter("loo".into()));
+        assert_eq!(p.key(Key::Backspace), Asks::Filter("lo".into()));
+        assert_eq!(p.query(), "lo");
     }
 }

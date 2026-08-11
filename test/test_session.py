@@ -387,13 +387,19 @@ def test_what_answers_from_the_compiler():
 
 def test_performing_says_what_a_played_note_does():
     """**Not a mode of the editor.**  It changes what happens to a
-    *note*, not what a *key* means — the letters go on typing."""
+    *note*, not what a *key* means — the letters go on typing.
+
+    **Off to begin with**: a file is opened to be read at least as often
+    as to be played, and three rows of keys taken from the document
+    before anybody asked for them is a window that has decided what you
+    are here for.
+    """
     s = session()
-    assert s.performing == "on", "notes sound until told otherwise"
-    assert s.run("performStep") == "notes sound and are written"
+    assert s.performing == "off", "no piano until one is asked for"
+    assert s.run("pianoStep") == "notes sound and are written"
     assert s.performing == "step"
-    assert s.run("performOff") == "notes go nowhere"
-    assert s.run("performOn") == "notes sound"
+    assert s.run("pianoOff") == "notes go nowhere"
+    assert s.run("pianoOn") == "notes sound"
     assert s.performing == "on"
 
 
@@ -521,11 +527,11 @@ def test_a_played_note_obeys_what_performing_says():
 
     s = session()
     s.bench.keyboard = Keys()
-    s.run("performOff")
+    s.run("pianoOff")
     act(s, "note\t60\t1")
     assert played == [], "notes go nowhere"
 
-    s.run("performOn")
+    s.run("pianoOn")
     act(s, "note\t60\t1")
     act(s, "note\t60\t0")
     assert played == [("on", 60), ("off", 60)]
@@ -595,6 +601,8 @@ class Editor:
     def __init__(self, text: str = "one\ntwo\nthree\n"):
         self.text = text
         self.orders: list = []
+        #: Where the caret is — `find` walks forward from it.
+        self.pos = 0
 
     def order(self, line: str) -> None:
         self.orders.append(line)
@@ -744,7 +752,8 @@ def test_an_unfiltered_list_is_not_news():
     work, and the line would read "29 of 29".
     """
     it = session()
-    assert act(it, "filter\tloop") == "3 of 29"
+    shown = len(it.commands())
+    assert act(it, "filter\tloop") == f"3 of {shown}"
     assert act(it, "filter\t") == ""
     assert it.filtered is None
 
@@ -797,3 +806,20 @@ def test_a_shortcut_reaches_the_window_as_the_list_spells_it():
     assert advertised["find"] == "Ctrl-F"
     assert advertised["apply"] == "Ctrl-S"
     assert advertised["play"] == "Ctrl-Space"
+
+
+def test_canvas_tells_a_file_that_draws_nothing_from_a_window_that_cannot():
+    """**Two refusals, and telling them apart is the whole point.**
+
+    Answering "this file draws nothing" when the truth is "this window
+    cannot show it yet" sends somebody back to look for a bug in a
+    program that is perfectly fine.
+    """
+    it = session()
+    it.bench.substrate = None
+    assert it.run("canvas") == "this file draws nothing"
+
+    it.bench.substrate = object()          # the file does draw
+    said = it.run("canvas")
+    assert "this file draws nothing" not in said
+    assert "source only" in said

@@ -170,21 +170,24 @@ octave n = Stated
 # the editor, and where the keyboard goes is **focus**: click the drawn
 # piano and it has it, click the text and the text does.
 
-#: Played notes go nowhere.
-performOff : Command
-performOff = Stated
+#: Put the piano away.  Played notes go nowhere and the keys are not
+#: drawn, which is how a file you are reading rather than playing keeps
+#: every row of the window.
+pianoOff : Command
+pianoOff = Stated
 
-#: Played notes sound.
-performOn : Command
-performOn = Stated
+#: Draw the piano, and let played notes sound.
+pianoOn : Command
+pianoOn = Stated
 
-#: Played notes sound **and are written at the cursor**.
+#: Draw the piano; played notes sound **and are written at the
+#: cursor**.
 #:
 #: A stepped note is an ordinary text edit, so `spec/editor.md`'s rule
 #: holds with no special case: undo is text undo, and there is no second
 #: model recording what was played.
-performStep : Command
-performStep = Stated
+pianoStep : Command
+pianoStep = Stated
 
 # ── Chance ───────────────────────────────────────────────────────────────
 

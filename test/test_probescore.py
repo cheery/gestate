@@ -197,3 +197,94 @@ def test_an_instance_that_computes_a_field_keeps_every_field():
     assert payload is not None, "the instance declined"
     assert len(payload) == 2, payload
     assert payload == (pytest.approx(100 / 127.0), 62)
+
+
+# ── Remembering a moment ─────────────────────────────────────────────────
+#
+# `seek` releases what sounds and then silently replays every entry
+# before the target, which is what makes seek-then-perform equal
+# `value_at` — and what makes it cost more the further into a piece it
+# lands.  A loop pays that on every pass, for the same instant every
+# time.  The state at an instant is a pure function of what came before
+# it, so it can be kept; these hold that keeping it changes nothing.
+
+def _standing_at(performer):
+    """Everything about a performer that anything downstream can see."""
+    return (dict(performer.values), list(performer.pending),
+            performer.position,
+            {n: a.state() for n, a in performer.allocators.items()})
+
+
+def test_a_restored_moment_is_the_moment_it_replaced():
+    """The claim the whole optimisation rests on."""
+    one = _performer(ARP, seed=7)
+    _changes(one, 40 * BLOCK)
+    one.seek(20 * BLOCK)
+    kept = one.snapshot()
+    # Wander off, far enough to disturb everything a seek establishes.
+    _changes(one, 60 * BLOCK)
+    assert one.restore(kept) is True
+    restored = _standing_at(one)
+
+    # A second performer that only ever seeks, never restores.
+    two = _performer(ARP, seed=7)
+    _changes(two, 40 * BLOCK)
+    two.seek(20 * BLOCK)
+    _changes(two, 60 * BLOCK)
+    two.seek(20 * BLOCK)
+    assert restored == _standing_at(two)
+
+
+def test_performing_on_from_a_restored_moment_matches():
+    """Not just the state — what it goes on to play."""
+    one = _performer(ARP, seed=7)
+    _changes(one, 40 * BLOCK)
+    one.seek(20 * BLOCK)
+    kept = one.snapshot()
+    _changes(one, 60 * BLOCK)
+    one.restore(kept)
+    after_restore = _changes(one, 40 * BLOCK)
+
+    two = _performer(ARP, seed=7)
+    _changes(two, 40 * BLOCK)
+    two.seek(20 * BLOCK)
+    _changes(two, 60 * BLOCK)
+    two.seek(20 * BLOCK)
+    after_seek = _changes(two, 40 * BLOCK)
+    assert after_restore == after_seek
+
+
+def test_a_moment_from_before_the_stream_grew_is_refused():
+    """**Refused rather than forced.**  The replay walks `history`, so a
+    snapshot taken before it grew would put back a past missing whatever
+    arrived since — a performance quietly disagreeing with its score,
+    which is far worse than the seek it saves."""
+    p = _performer(ARP, seed=7)
+    _changes(p, 20 * BLOCK)
+    p.seek(10 * BLOCK)
+    kept = p.snapshot()
+    assert p.restore(kept) is True, "nothing has moved yet"
+    _changes(p, 200 * BLOCK)           # forces the stream much further
+    assert len(p.history) > kept["history"]
+    assert p.restore(kept) is False
+
+
+def test_an_allocator_keeps_and_refuses_a_moment():
+    from gestate.audioalloc import Allocator
+
+    # `channels` is [[channel per field] per voice], and the first few
+    # fields are the allocator's own — so a voice that carries one
+    # payload value needs `PAYLOAD + 1` names.
+    from gestate.audioalloc import PAYLOAD
+
+    names = lambda i: [f"v{i}f{f}" for f in range(PAYLOAD + 1)]
+    a = Allocator([names(0), names(1)])
+    a.note_on("a", [1.0], 100)
+    kept = a.state()
+    a.note_on("b", [2.0], 200)
+    a.note_off("a", 300)
+    assert a.state() != kept
+    assert a.restore(kept) is True
+    assert a.state() == kept
+    # A state that does not fit these voices is refused, never stretched.
+    assert a.restore(kept[:1]) is False

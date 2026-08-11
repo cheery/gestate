@@ -24,7 +24,7 @@ fn runs(f: &gestate_editor::view::Frame) -> Vec<String> {
 }
 
 fn view(w: i32, h: i32) -> View {
-    View { top: 0, left: 0, w, h, gutter: false, aside: 0, scale: 1 }
+    View { top: 0, left: 0, w, h, gutter: false, aside: 0, piano: 0, focused: false, scale: 1 }
 }
 
 /// A view that fits exactly `rows` rows of text, with the status line
@@ -205,7 +205,7 @@ fn scrolling_follows_the_caret_to_the_edge_and_no_further() {
 
     // Horizontally, the same rule.
     let mut wide = doc(&"x".repeat(500));
-    let mut v = View { top: 0, left: 0, w: 20 * LARGE.w, h: 100, gutter: false, aside: 0, scale: 1 };
+    let mut v = View { top: 0, left: 0, w: 20 * LARGE.w, h: 100, gutter: false, aside: 0, piano: 0, focused: false, scale: 1 };
     wide.seek(300);
     v.follow(&wide, &LARGE);
     assert_eq!(v.left, 300 + 1 - 20);
@@ -214,7 +214,7 @@ fn scrolling_follows_the_caret_to_the_edge_and_no_further() {
 #[test]
 fn a_click_lands_where_it_was_clicked() {
     let d = doc("hello\nworld\nagain");
-    let v = View { top: 1, left: 0, w: 400, h: 200, gutter: false, aside: 0, scale: 1 };
+    let v = View { top: 1, left: 0, w: 400, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1 };
     // Second visible row (row 2), fourth column.
     let (row, col) = v.hit(&d, &LARGE, LARGE.w * 4 + 1, LARGE.h + 3);
     assert_eq!((row, col), (2, 4));
@@ -248,7 +248,7 @@ fn the_caret_is_drawn_on_the_character_it_is_before() {
 #[test]
 fn horizontal_scrolling_cuts_by_columns() {
     let d = doc("\tabcdef\n    abcdef");
-    let v = View { top: 0, left: 4, w: 100 * LARGE.w, h: 200, gutter: false, aside: 0, scale: 1 };
+    let v = View { top: 0, left: 4, w: 100 * LARGE.w, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1 };
     let f = frame(&d, &v, &LARGE);
     let lines = runs(&f);
     assert_eq!(lines[0], lines[1],
@@ -300,7 +300,7 @@ fn the_empty_document_draws() {
 #[test]
 fn a_window_smaller_than_a_line_still_draws_one() {
     let d = doc("one\ntwo");
-    let v = View { top: 0, left: 0, w: 1, h: 1, gutter: false, aside: 0, scale: 1 };
+    let v = View { top: 0, left: 0, w: 1, h: 1, gutter: false, aside: 0, piano: 0, focused: false, scale: 1 };
     assert_eq!(v.rows(&LARGE), 1);
     assert_eq!(v.text_cols(&LARGE, &d), 1);
     let f = frame(&d, &v, &LARGE);
@@ -316,7 +316,7 @@ fn a_window_smaller_than_a_line_still_draws_one() {
 #[test]
 fn zooming_moves_the_layout_and_the_hit_testing_together() {
     let d = doc("hello\nworld\nagain");
-    let one = View { top: 0, left: 0, w: 400, h: 200, gutter: false, aside: 0, scale: 1 };
+    let one = View { top: 0, left: 0, w: 400, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1 };
     let two = View { scale: 2, ..one };
 
     assert_eq!(two.cw(&LARGE), 2 * one.cw(&LARGE));
@@ -341,7 +341,7 @@ fn zooming_moves_the_layout_and_the_hit_testing_together() {
 #[test]
 fn the_zoomed_frame_says_the_same_thing() {
     let d = doc("one\ntwo\nthree");
-    let one = View { top: 0, left: 0, w: 800, h: 400, gutter: true, aside: 0, scale: 1 };
+    let one = View { top: 0, left: 0, w: 800, h: 400, gutter: true, aside: 0, piano: 0, focused: false, scale: 1 };
     let two = View { scale: 2, ..one };
     assert_eq!(runs(&frame(&d, &one, &LARGE)), runs(&frame(&d, &two, &LARGE)));
 }
@@ -574,4 +574,90 @@ fn only_the_box_of_a_bank_is_pressable() {
     assert_eq!(v.bank_hit(&LARGE, &chrome, bx - 10, ch / 2), None);
     // And a line with no bank on it is nothing.
     assert_eq!(v.bank_hit(&LARGE, &chrome, bx + side / 2, ch * 3), None);
+}
+
+// ── The drawn keyboard ───────────────────────────────────────────────────
+
+fn performing(mode: &str, heard: &[&str], held: &[i32])
+    -> gestate_editor::furniture::Furniture
+{
+    use gestate_editor::furniture::Furniture;
+    Furniture { performing: mode.into(),
+                heard: heard.iter().map(|s| s.to_string()).collect(),
+                held: held.to_vec(), octave: 4, ..Furniture::default() }
+}
+
+#[test]
+fn a_keyboard_takes_its_room_from_the_document() {
+    let d = doc(&"x\n".repeat(60));
+    let mut v = view(600, 400);
+    let without = v.rows(&LARGE);
+    v.piano = LARGE.h * 4;
+    assert!(v.rows(&LARGE) < without,
+            "the keys must not be drawn over the text");
+    assert_eq!(v.piano_y(&LARGE) + v.piano, v.h - v.status_h(&LARGE));
+    let _ = d;
+}
+
+/// **The dead palette is the point.**  A bank only takes a note if its
+/// payload has a `FromMIDI` instance and its switch is on, and neither
+/// is visible in the text.
+#[test]
+fn a_keyboard_nobody_hears_is_drawn_dead() {
+    use gestate_editor::view::{KEY_DEAD_WHITE, KEY_WHITE};
+
+    let d = doc("x\n");
+    let mut v = view(600, 400);
+    v.piano = LARGE.h * 4;
+    let colours = |f: &gestate_editor::furniture::Furniture| {
+        frame_with(&d, &v, &LARGE, f).items.iter().filter_map(|i| match i {
+            Item::Rect { c, .. } => Some(*c),
+            _ => None,
+        }).collect::<Vec<_>>()
+    };
+    assert!(colours(&performing("on", &["pad"], &[])).contains(&KEY_WHITE));
+    let dead = colours(&performing("on", &[], &[]));
+    assert!(dead.contains(&KEY_DEAD_WHITE));
+    assert!(!dead.contains(&KEY_WHITE), "a piano that plays nothing must \
+                                         not look like one that plays");
+}
+
+#[test]
+fn a_held_note_is_drawn_down() {
+    use gestate_editor::view::KEY_DOWN;
+
+    let d = doc("x\n");
+    let mut v = view(600, 400);
+    v.piano = LARGE.h * 4;
+    let f = frame_with(&d, &v, &LARGE, &performing("on", &["pad"], &[60]));
+    assert!(f.items.iter().any(|i| matches!(i, Item::Rect { c, .. }
+                                            if *c == KEY_DOWN)));
+}
+
+/// Black keys are asked about first, because they are drawn on top and
+/// half of each overlaps a white one.
+#[test]
+fn the_pointer_finds_the_key_that_is_drawn_there() {
+    let mut v = view(600, 400);
+    v.piano = LARGE.h * 4;
+    let (top, tall) = v.keys_y(&LARGE);
+    let (midi, x, w) = v.black_keys()[0];        // C sharp
+    assert_eq!(v.key_at(&LARGE, 60, x + w / 2, top + 2), Some(60 + midi));
+    // **A black key straddles the boundary between its neighbours**, so
+    // below its middle is the *next* white key — which is exactly what
+    // a piano does, and why the black ones are asked about first.
+    assert_eq!(v.key_at(&LARGE, 60, x + w / 2, top + tall - 2), Some(62));
+    // Well inside the first white key, above or below, it is C.
+    let (_c, cx, cw) = v.white_keys()[0];
+    assert_eq!(v.key_at(&LARGE, 60, cx + cw / 5, top + tall - 2), Some(60));
+    assert_eq!(v.key_at(&LARGE, 60, cx + cw / 5, top + 2), Some(60));
+    // And above the keyboard is the document.
+    assert_eq!(v.key_at(&LARGE, 60, x + w / 2, top - 5), None);
+}
+
+#[test]
+fn there_is_no_keyboard_when_nothing_is_being_performed() {
+    let v = view(600, 400);
+    assert_eq!(v.piano, 0);
+    assert_eq!(v.key_at(&LARGE, 60, 100, 300), None);
 }
