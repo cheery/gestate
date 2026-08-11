@@ -32,7 +32,7 @@ pub const CELL_ON: Colour = Colour::rgb(0x5c, 0xa8, 0xd8);
 /// A routing cell that is off.
 pub const CELL_OFF: Colour = Colour::rgb(0x24, 0x28, 0x30);
 /// The scrollbar's thumb, when there is more than fits.
-pub const BAR: Colour = Colour::rgb(0x3a, 0x40, 0x4a);
+pub const BAR: Colour = Colour::rgb(0x6a, 0x74, 0x84);
 
 // ── Button actions ───────────────────────────────────────────────────
 
@@ -212,6 +212,16 @@ pub fn size(m: &Model, scale: i32) -> (i32, i32) {
     };
     (w.max(k.min_width(name_w)),
      content_height(m, scale).max(k.min_height()))
+}
+
+/// The narrowest window this model can be drawn in at this zoom.
+///
+/// A convenience over `Metrics::min_width` for callers that have the
+/// model but no reason to know the name column exists — which is every
+/// caller outside this file.
+pub fn min_size(m: &Model, scale: i32) -> (i32, i32) {
+    let k = Metrics::new(scale);
+    (k.min_width(name_column(m, &k)), k.min_height())
 }
 
 /// The furthest the view may be scrolled: zero when everything fits.

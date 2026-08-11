@@ -260,18 +260,19 @@ unsafe extern "C" fn gui_get_resize_hints(_p: *const clap_plugin,
 ///
 /// The numbers are the panel's own — it knows what its widest row needs
 /// — and a second set here would be a second place to get it wrong.
-fn clamp_size(w: u32, h: u32) -> (u32, u32) {
-    let k = panels::Metrics::new(panels::SCALE_DEFAULT);
-    (w.max(k.min_width() as u32), h.max(k.min_height() as u32))
+fn clamp_size(inst: &crate::Instance, w: u32, h: u32) -> (u32, u32) {
+    let model = model_of(inst.desc, &inst.control, &inst.routing);
+    let (mw, mh) = panels::min_size(&model, panels::SCALE_DEFAULT);
+    (w.max(mw as u32), h.max(mh as u32))
 }
 
-unsafe extern "C" fn gui_adjust_size(_p: *const clap_plugin,
+unsafe extern "C" fn gui_adjust_size(plugin: *const clap_plugin,
                                      width: *mut u32,
                                      height: *mut u32) -> bool {
     if width.is_null() || height.is_null() {
         return false;
     }
-    let (w, h) = clamp_size(*width, *height);
+    let (w, h) = clamp_size(crate::instance(plugin), *width, *height);
     *width = w;
     *height = h;
     true
@@ -279,8 +280,8 @@ unsafe extern "C" fn gui_adjust_size(_p: *const clap_plugin,
 
 unsafe extern "C" fn gui_set_size(plugin: *const clap_plugin,
                                   w: u32, h: u32) -> bool {
-    let (w, h) = clamp_size(w, h);
     let inst = crate::instance(plugin);
+    let (w, h) = clamp_size(inst, w, h);
     inst.gui.size = Some((w as i32, h as i32));
     match &inst.gui.window {
         Some(win) => win.resize(w as i32, h as i32),

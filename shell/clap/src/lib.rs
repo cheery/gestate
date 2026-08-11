@@ -32,7 +32,7 @@ use score::{NoteKey, VoiceState, FRESH_VOICE};
 
 /// One sounding instance: the zeroed state, the control slots at their
 /// declared defaults, and a scratch buffer for the interleaved frames.
-struct Instance {
+pub(crate) struct Instance {
     desc: &'static Descriptor,
     state: Vec<u8>,
     control: Vec<i64>,
