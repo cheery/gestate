@@ -13,13 +13,13 @@
 
 mod abi;
 #[cfg(feature = "dynscore")]
-mod descend;
+pub mod descend;
 #[cfg(feature = "dynscore")]
 pub mod dynscore;
 pub mod engine;
 #[cfg(feature = "gui")]
 mod gui;
-mod score;
+pub mod score;
 
 use std::ffi::c_char;
 use std::os::raw::c_void;
@@ -565,7 +565,6 @@ unsafe fn seek_piece(inst: &mut Instance, tb: &score::Tables, tempo: f64,
                      target: i64) {
     let Some(mut perf) = inst.piece.take() else { return };
     if let Some(program) = engine::program() {
-        perf.origin = inst.performer.origin;
         perf.seek(program, tb, tempo, target, inst.t,
                   &mut inst.voices, &mut inst.control);
     }
@@ -585,20 +584,23 @@ unsafe fn advance_piece(inst: &mut Instance, tb: &score::Tables,
     // **Ask, then collect.**  A seek left a target behind; the worker
     // walks to it while this thread keeps rendering, and the primed
     // stream is installed the block it turns up.
+    // **The performer owns its origin.**  It used to be copied from the
+    // baked cursor every block, which is right only while the two agree
+    // — and after a seek they do not, because a resumed stream is
+    // rebased and the cursor's events are not.
     if let Some(d) = inst.descender.as_mut() {
         if let Some(tick) = perf.wanted() {
             if !d.awaiting() {
                 d.request(tick, tb.tpb);
             }
         }
-        if let Some((tick, piece)) = d.take() {
-            let old = perf.install(tick, piece);
+        if let Some((tick, piece, notes)) = d.take() {
+            let old = perf.install(tick, piece, notes);
             d.give_back(old);
         }
     }
 
     let held = held_keys(inst);
-    perf.origin = inst.performer.origin;
     perf.advance(program, tb, tempo, &mut inst.voices,
                  &mut inst.control, end, frames.max(1),
                  &|bank| held.get(bank).cloned().unwrap_or_default());

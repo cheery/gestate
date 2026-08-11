@@ -30,7 +30,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread::JoinHandle;
 
-use crate::dynscore::Piece;
+use crate::dynscore::{Note, Piece};
 use crate::engine::Program;
 
 /// How far ahead the worker forces before handing a stream over, in
@@ -44,8 +44,17 @@ struct Shared {
     /// supersedes an earlier one rather than queueing behind it — a
     /// rewinding transport asks many times and only the last matters.
     want: Mutex<Option<(u64, i64, i64)>>,
-    /// `(serial, tick, piece)` — primed and waiting to be taken.
-    ready: Mutex<Option<(u64, i64, Piece)>>,
+    /// `(serial, tick, piece, notes)` — primed and waiting to be taken.
+    ///
+    /// **The notes travel with the stream**, and that is the whole
+    /// correction: forcing a stream *consumes* it.  The worker's pulls
+    /// return the notes they force, and a worker that dropped them
+    /// handed over a stream whose first `PRIME_BEATS` had already been
+    /// played to nobody — so every seek, and every press of play, ate
+    /// the opening of the music and the piece came in bars later.  A
+    /// self-playing piece looked like it never started; one with drums
+    /// in its `sound` looked like only the drums worked.
+    ready: Mutex<Option<(u64, i64, Piece, Vec<Note>)>>,
     /// Machines the audio thread has finished with.
     ///
     /// **A queue, not a slot, because dropping one here would be the
@@ -122,10 +131,10 @@ impl Descender {
     /// An answer to a superseded request is dropped: during a rewind
     /// the transport asks for a dozen places and only the last one is
     /// where the playhead ended up.
-    pub fn take(&mut self) -> Option<(i64, Piece)> {
+    pub fn take(&mut self) -> Option<(i64, Piece, Vec<Note>)> {
         let want = self.pending?;
         let mut ready = self.shared.ready.try_lock().ok()?;
-        let (serial, tick, piece) = ready.take()?;
+        let (serial, tick, piece, notes) = ready.take()?;
         if serial != want {
             // Stale: give the machine back rather than dropping it,
             // so the next descent is still warm.
@@ -134,7 +143,7 @@ impl Descender {
             return None;
         }
         self.pending = None;
-        Some((tick, piece))
+        Some((tick, piece, notes))
     }
 
     /// Hand a machine back for the next descent to reuse.
@@ -225,9 +234,18 @@ fn worker(program: &'static Program, shared: Arc<Shared>) {
             mine = Some(piece);
             continue;
         }
+        // **Relative, because a resumed stream is rebased.**
+        // `resumeAt` drops the `At` it descends through — "events sat
+        // at `n + x`, the remainder wants `n + x - t`" — so the stream
+        // handed back counts from *its own* zero, and a horizon of
+        // twelve beats means twelve beats of music from the seek, at
+        // any depth.  Adding `tick` here asks for a horizon the stream
+        // will never reach.
+        let _ = tick;
         let horizon = PRIME_BEATS * tpb;
+        let mut forced: Vec<Note> = Vec::new();
         for _ in 0..4096 {
-            piece.pull(program, horizon, 8_000_000, 4096);
+            forced.extend(piece.pull(program, horizon, 8_000_000, 4096));
             if piece.failed.is_some() || !piece.stalled()
                 || piece.asking().is_some() || piece.done() {
                 break;
@@ -252,10 +270,10 @@ fn worker(program: &'static Program, shared: Arc<Shared>) {
         if let Ok(mut ready) = shared.ready.lock() {
             // Anything already sitting there was never collected; keep
             // its machine rather than dropping it.
-            if let Some((_, _, old)) = ready.take() {
+            if let Some((_, _, old, _)) = ready.take() {
                 mine = Some(old);
             }
-            *ready = Some((serial, tick, piece));
+            *ready = Some((serial, tick, piece, forced));
         }
     }
 }

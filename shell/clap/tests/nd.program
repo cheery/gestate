@@ -1,0 +1,5295 @@
+crust 1
+block
+I PushGlobal score
+I PushArg 1
+I PushGlobal seedRoot
+I Mkap
+I PushGlobal sowScore
+I Mkap
+I Mkap
+I PushArg 2
+I PushGlobal resumeAt
+I Mkap
+I Mkap
+I PushGlobal liveVoices
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 0
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushGlobal liveTo
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 1
+I PushGlobal ticksPerBeat
+I PushArg 3
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I Push 2
+I Pack 54 3
+I PushGlobal ticksPerBeat
+I PushArg 3
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I Pack 56 1
+I Pack 0 0
+I Pack 1 2
+I Pack 1 2
+I Slide 1
+block
+I PushGlobal ticksPerBeat
+I PushArg 2
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I Pack 56 1
+I Pack 0 0
+I Pack 1 2
+I Slide 1
+block
+I PushGlobal ticksPerBeat
+I PushArg 2
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I Pack 56 1
+I Pack 0 0
+I Pack 1 2
+I Slide 1
+block
+I PushGlobal ticksPerBeat
+I PushArg 1
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I Pack 56 1
+I Pack 0 0
+I Pack 1 2
+I Slide 0
+block
+I PushArg 1
+I Pack 56 1
+I Pack 0 0
+I Pack 1 2
+I Slide 1
+block
+I Push 0
+I PushGlobal 121
+I Mkap
+I Push 2
+I PushArg 4
+I PushGlobal liveTo
+I Mkap
+I Mkap
+I PushGlobal spliceEnd
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 0
+I PushArg 3
+I PushGlobal liveTo
+I Mkap
+I Mkap
+I Push 2
+I PushArg 4
+I PushGlobal liveTo
+I Mkap
+I Mkap
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 1
+I PushGlobal 122
+I Mkap
+I Push 1
+I Push 3
+I PushArg 5
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I PushGlobal liveTo
+I Mkap
+I Mkap
+I PushGlobal spliceEnd
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 1
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushGlobal liveTo
+I Mkap
+I Mkap
+I Push 1
+I PushGlobal scaleCues
+I Mkap
+I Mkap
+I PushArg 3
+I PushGlobal placeCues
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 1
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushGlobal liveTo
+I Mkap
+I Mkap
+I Push 1
+I PushGlobal shrinkCues
+I Mkap
+I Mkap
+I PushArg 3
+I PushGlobal placeCues
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 0
+I PushGlobal durOf
+I Mkap
+I PushArg 2
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I Pack 56 1
+I Pack 0 0
+I Pack 1 2
+I Push 1
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushGlobal streamVoicesAt
+I Mkap
+I Mkap
+I Push 2
+I PushGlobal durOf
+I Mkap
+I PushArg 4
+I PushGlobal placeRetroV
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal __Reversible_List_reverse__
+I Mkap
+I PushGlobal cuesOfEvents
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 0
+I Push 2
+I PushGlobal sowScore
+I Mkap
+I Mkap
+I PushArg 3
+I PushGlobal liveTo
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 0
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushGlobal liveTo
+I Mkap
+I Mkap
+I Push 2
+I PushGlobal cueBelow
+I Mkap
+I Mkap
+I Push 2
+I PushGlobal endAt
+I Mkap
+I Mkap
+I PushArg 3
+I PushGlobal placeCues
+I Mkap
+I Mkap
+I Slide 2
+block
+I PushArg 1
+I Pack 56 1
+I Pack 0 0
+I Pack 1 2
+I Slide 1
+block
+I PushArg 3
+I Push 3
+I Push 3
+I PushArg 6
+I Push 4
+I PushGlobal 123
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 3
+block
+I Push 0
+I PushArg 3
+I PushGlobal liveTo
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 0
+I PushArg 4
+I PushGlobal liveTo
+I Mkap
+I Mkap
+I Slide 3
+block
+I PushArg 1
+I Push 1
+I Pack 57 2
+I PushArg 2
+I Pack 56 1
+I Pack 0 0
+I Pack 1 2
+I Pack 1 2
+I Slide 1
+block
+I PushArg 1
+I Eval
+I CaseJump 18 38 2 36 3 37 4 39 5 48 6 40 7 41 8 42 9 43 10 44 11 45 12 46 13 47 14 49 15 50 16 51 17 52 18 53 19
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I Mkap
+I PushArg 2
+I PushGlobal liveTo
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I Pack 0 0
+I Slide 0
+block
+I Push 2
+I PushArg 6
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I Push 2
+I PushArg 7
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I Push 2
+I Pack 54 3
+I Push 4
+I PushArg 7
+I PushGlobal placeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I PushArg 7
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I Push 3
+I Push 3
+I PushArg 9
+I Push 4
+I PushGlobal 118
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 1
+I PushArg 5
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I Push 1
+I Pack 57 2
+I Push 3
+I PushArg 6
+I PushGlobal placeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I Push 0
+I PushArg 4
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I Pack 56 1
+I Pack 0 0
+I Pack 1 2
+I Slide 1
+block
+I Push 1
+I Eval
+I CaseJump 4 54 23 55 24 57 25 56 26
+I Slide 2
+block
+I PushArg 1
+I Eval
+I CaseJump 2 0 22 1 27
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I PushArg 1
+I PushGlobal prim_add_int
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I Eval
+I PushArg 1
+I Eval
+I AddInt
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I Mkap
+I PushArg 2
+I PushGlobal placeCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 0
+I Pack 56 1
+I Pack 0 0
+I Pack 1 2
+I Slide 0
+block
+I Push 4
+I Push 4
+I PushArg 7
+I PushGlobal endAt
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 9
+I Push 4
+I PushGlobal 98
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 3
+I Push 3
+I PushArg 6
+I PushGlobal endAt
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 3
+I Pack 56 1
+I Pack 0 0
+I Pack 1 2
+I Slide 1
+block
+I Push 1
+I Eval
+I CaseJump 4 54 33 55 34 57 35 56 36
+I Slide 2
+block
+I PushArg 1
+I Eval
+I CaseJump 2 0 32 1 37
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I Mkap
+I PushArg 2
+I PushGlobal endAt
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I Pack 0 0
+I Slide 0
+block
+I Pack 0 0
+I Slide 0
+block
+I Push 4
+I Push 4
+I PushArg 7
+I PushGlobal cueBelow
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 9
+I Push 4
+I PushGlobal 117
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 3
+I Push 3
+I PushArg 6
+I PushGlobal cueBelow
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I Push 0
+I Pack 56 1
+I Pack 0 0
+I Pack 1 2
+I Slide 1
+block
+I Push 1
+I Eval
+I CaseJump 4 54 42 55 43 57 44 56 45
+I Slide 0
+block
+I PushArg 2
+I Push 2
+I PushGlobal cueTick
+I Mkap
+I PushGlobal __Ord_Int_<__
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 2 41 3 46
+I Slide 2
+block
+I PushArg 1
+I Eval
+I CaseJump 2 0 40 1 47
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I Mkap
+I PushArg 2
+I PushGlobal cueBelow
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 1
+I PushArg 1
+I PushGlobal prim_lt_int
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I Eval
+I PushArg 1
+I Eval
+I LtInt 3 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I Push 2
+I Slide 3
+block
+I Push 3
+I Slide 4
+block
+I Push 1
+I Slide 2
+block
+I Push 0
+I Slide 1
+block
+I PushArg 0
+I Eval
+I CaseJump 4 54 52 55 53 57 54 56 55
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I Update 1
+I Pop 1
+I Unwind
+block
+I Push 0
+I Push 2
+I PushGlobal sowScore
+I Mkap
+I Mkap
+I Slide 2
+block
+I PushArg 2
+I PushGlobal split
+I Mkap
+I Push 0
+I Eval
+I Proj 0
+I Push 1
+I Eval
+I Proj 1
+I Push 4
+I Push 2
+I PushGlobal sowScore
+I Mkap
+I Mkap
+I Push 4
+I Push 2
+I PushGlobal sowScore
+I Mkap
+I Mkap
+I Pack 40 2
+I Slide 2
+I Slide 1
+I Slide 2
+block
+I PushArg 2
+I PushGlobal split
+I Mkap
+I Push 0
+I Eval
+I Proj 0
+I Push 1
+I Eval
+I Proj 1
+I Push 4
+I Push 2
+I PushGlobal sowScore
+I Mkap
+I Mkap
+I Push 4
+I Push 2
+I PushGlobal sowScore
+I Mkap
+I Mkap
+I Pack 41 2
+I Slide 2
+I Slide 1
+I Slide 2
+block
+I Push 1
+I Push 1
+I PushArg 4
+I PushGlobal sowScore
+I Mkap
+I Mkap
+I Pack 42 2
+I Slide 2
+block
+I Push 1
+I PushArg 3
+I PushGlobal sowScore
+I Mkap
+I Mkap
+I Push 1
+I Pack 43 2
+I Slide 2
+block
+I Push 1
+I PushArg 3
+I PushGlobal sowScore
+I Mkap
+I Mkap
+I Push 1
+I Pack 44 2
+I Slide 2
+block
+I Push 0
+I PushArg 2
+I PushGlobal sowScore
+I Mkap
+I Mkap
+I Pack 45 1
+I Slide 1
+block
+I Push 1
+I Push 1
+I PushArg 4
+I PushGlobal sowScore
+I Mkap
+I Mkap
+I Pack 47 2
+I Slide 2
+block
+I Push 0
+I Pack 36 1
+I Slide 1
+block
+I Push 0
+I Pack 37 1
+I Slide 1
+block
+I Push 0
+I Pack 38 1
+I Slide 1
+block
+I Pack 39 0
+I Slide 0
+block
+I Push 0
+I Pack 48 1
+I Slide 1
+block
+I PushArg 1
+I PushGlobal split
+I Mkap
+I Push 0
+I Eval
+I Proj 0
+I Push 1
+I Eval
+I Proj 1
+I PushArg 4
+I Push 4
+I Mkap
+I Push 1
+I PushGlobal sowScore
+I Mkap
+I Mkap
+I Slide 2
+I Slide 1
+I Slide 1
+block
+I PushArg 3
+I PushGlobal split
+I Mkap
+I Push 0
+I Eval
+I Proj 0
+I Push 1
+I Eval
+I Proj 1
+I Push 5
+I Push 2
+I PushGlobal keyOf
+I Mkap
+I Push 2
+I Push 6
+I PushGlobal 72
+I Mkap
+I Mkap
+I Pack 50 3
+I Slide 2
+I Slide 1
+I Slide 3
+block
+I Push 1
+I Push 1
+I PushArg 4
+I PushGlobal sowScore
+I Mkap
+I Mkap
+I Pack 51 2
+I Slide 2
+block
+I Push 2
+I Push 2
+I Push 2
+I PushArg 6
+I PushGlobal sowScore
+I Mkap
+I Mkap
+I Pack 52 3
+I Slide 3
+block
+I Push 0
+I Pack 53 1
+I Slide 1
+block
+I PushArg 1
+I Eval
+I CaseJump 18 46 58 40 59 41 60 42 61 43 62 44 63 45 64 47 65 36 66 37 67 38 68 39 69 48 70 49 71 50 72 51 73 52 74 53 75
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I Mkap
+I PushArg 2
+I PushGlobal sowScore
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushInt 9223372036854775807
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 1
+I PushGlobal prim_mod_int
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 1
+I Eval
+I PushArg 1
+I Eval
+I ModInt
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushInt 11400714819323198485
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 1
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I PushGlobal wrap64
+I Mkap
+I PushGlobal mix64
+I Mkap
+I PushInt 4354685564936845354
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 2
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I PushGlobal wrap64
+I Mkap
+I PushGlobal mix64
+I Mkap
+I PackTuple 202 2
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I PushGlobal wrap64
+I Mkap
+I PushGlobal mixA
+I Mkap
+I PushGlobal mixB
+I Mkap
+I PushGlobal mixC
+I Mkap
+I PushGlobal mixD
+I Mkap
+I PushGlobal mixE
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushInt 2147483648
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 1
+I PushGlobal prim_div_int
+I Mkap
+I Mkap
+I PushArg 1
+I PushGlobal xorBits
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 1
+I PushArg 1
+I PushGlobal prim_xor_int
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I Eval
+I PushArg 1
+I Eval
+I XorInt
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I Eval
+I PushArg 1
+I Eval
+I DivInt
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushInt 10723151780598845931
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 1
+I PushGlobal mulWrap
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushInt 4294967296
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushInt 4294967296
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 3
+I PushInt 4294967296
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 4
+I PushGlobal prim_div_int
+I Mkap
+I Mkap
+I PushGlobal __Num_Int_*__
+I Mkap
+I Mkap
+I PushGlobal prim_mod_int
+I Mkap
+I Mkap
+I PushGlobal __Num_Int_*__
+I Mkap
+I Mkap
+I PushArg 2
+I PushInt 4294967296
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 3
+I PushGlobal prim_mod_int
+I Mkap
+I Mkap
+I PushGlobal __Num_Int_*__
+I Mkap
+I Mkap
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I PushGlobal wrap64
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushInt 18446744073709551616
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 1
+I PushGlobal prim_mod_int
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 1
+I PushArg 1
+I PushGlobal prim_mul_int
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I Eval
+I PushArg 1
+I Eval
+I MulInt
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushInt 134217728
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 1
+I PushGlobal prim_div_int
+I Mkap
+I Mkap
+I PushArg 1
+I PushGlobal xorBits
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushInt 13787848793156543929
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 1
+I PushGlobal mulWrap
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushInt 1073741824
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 1
+I PushGlobal prim_div_int
+I Mkap
+I Mkap
+I PushArg 1
+I PushGlobal xorBits
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 1
+I Slide 0
+block
+I Push 1
+I Eval
+I Proj 0
+I Push 2
+I Eval
+I Proj 1
+I Push 3
+I Eval
+I Proj 2
+I Push 2
+I Push 2
+I Push 2
+I Pack 54 3
+I PushArg 7
+I Push 5
+I PushGlobal cuesOfEvents
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+I Slide 2
+block
+I PushArg 0
+I Eval
+I CaseJump 2 0 94 1 95
+I Update 2
+I Pop 2
+I Unwind
+block
+I Pack 0 0
+I PushArg 1
+I PushGlobal reverseOnto
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 1
+I Slide 0
+block
+I Push 1
+I PushArg 4
+I Pack 1 2
+I Push 1
+I PushGlobal reverseOnto
+I Mkap
+I Mkap
+I Slide 2
+block
+I PushArg 0
+I Eval
+I CaseJump 2 0 98 1 99
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I PushArg 3
+I PushGlobal 78
+I Mkap
+I Mkap
+I PushGlobal __Functor_List_map__
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I Pack 0 0
+I Slide 0
+block
+I Push 1
+I PushArg 3
+I Mkap
+I Push 1
+I PushArg 4
+I PushGlobal __Functor_List_map__
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 1
+I Eval
+I CaseJump 2 0 102 1 103
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 2
+I Eval
+I Proj 0
+I PushArg 3
+I Eval
+I Proj 1
+I PushArg 4
+I Eval
+I Proj 2
+I Push 1
+I PushArg 4
+I PushArg 6
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I PushGlobal __Num_Int_-__
+I Mkap
+I Mkap
+I Push 3
+I PushArg 5
+I PushArg 7
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I PushGlobal __Num_Int_-__
+I Mkap
+I Mkap
+I Push 2
+I PackTuple 203 3
+I Slide 3
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 1
+I PushArg 1
+I PushGlobal prim_sub_int
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I Eval
+I PushArg 1
+I Eval
+I SubInt
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushGlobal ticksPerBeat
+I Slide 1
+block
+I PushGlobal ticksPerBeat
+I Slide 1
+block
+I PushGlobal ticksPerBeat
+I Slide 1
+block
+I PushGlobal ticksPerBeat
+I Slide 0
+block
+I Push 0
+I PushGlobal durOf
+I Mkap
+I Push 2
+I PushGlobal durOf
+I Mkap
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 0
+I PushGlobal durOf
+I Mkap
+I Push 2
+I PushGlobal durOf
+I Mkap
+I PushGlobal maxInt
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 0
+I PushGlobal durOf
+I Mkap
+I Slide 2
+block
+I Push 0
+I Push 2
+I PushGlobal durOf
+I Mkap
+I PushGlobal __Num_Int_*__
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 0
+I Push 2
+I PushGlobal durOf
+I Mkap
+I PushGlobal prim_div_int
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 0
+I PushGlobal durOf
+I Mkap
+I Slide 1
+block
+I Push 0
+I PushGlobal durOf
+I Mkap
+I Slide 2
+block
+I Push 1
+I Slide 2
+block
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 1
+block
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 1
+block
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 3
+block
+I Push 0
+I PushGlobal durOf
+I Mkap
+I Slide 2
+block
+I Push 0
+I PushGlobal durOf
+I Mkap
+I Slide 3
+block
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 1
+block
+I PushArg 0
+I Eval
+I CaseJump 18 36 108 37 109 38 110 39 111 40 112 41 113 42 114 43 115 44 116 45 117 46 118 47 119 48 120 49 121 50 122 51 123 52 124 53 125
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 1
+I Slide 0
+block
+I PushArg 0
+I Slide 0
+block
+I PushArg 1
+I PushArg 1
+I PushGlobal __Ord_Int_<__
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 127 2 128
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushInt 96
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Update 0
+I Pop 0
+I Unwind
+block
+I Pack 0 0
+I Slide 1
+block
+I Pack 0 0
+I Slide 1
+block
+I PushArg 1
+I PushGlobal ticksPerBeat
+I PushArg 3
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I Push 2
+I PackTuple 203 3
+I Pack 0 0
+I Pack 1 2
+I Slide 1
+block
+I Pack 0 0
+I Slide 0
+block
+I Push 0
+I Push 2
+I PushGlobal durOf
+I Mkap
+I PushArg 4
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I PushGlobal streamVoicesAt
+I Mkap
+I Mkap
+I Push 2
+I PushArg 4
+I PushGlobal streamVoicesAt
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_List_a-23_++__
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 0
+I PushArg 3
+I PushGlobal streamVoicesAt
+I Mkap
+I Mkap
+I Push 2
+I PushArg 4
+I PushGlobal streamVoicesAt
+I Mkap
+I Mkap
+I PushGlobal mergeVoices
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 0
+I Push 2
+I PushArg 4
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I PushGlobal streamVoicesAt
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 1
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushGlobal streamVoicesAt
+I Mkap
+I Mkap
+I Push 1
+I PushArg 4
+I PushGlobal placeScaledV
+I Mkap
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 1
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushGlobal streamVoicesAt
+I Mkap
+I Mkap
+I Push 1
+I PushArg 4
+I PushGlobal placeShrunkV
+I Mkap
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 0
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushGlobal streamVoicesAt
+I Mkap
+I Mkap
+I Push 1
+I PushGlobal durOf
+I Mkap
+I PushArg 3
+I PushGlobal placeRetroV
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal __Reversible_List_reverse__
+I Mkap
+I Slide 1
+block
+I Push 0
+I Push 2
+I PushGlobal sowScore
+I Mkap
+I Mkap
+I PushArg 3
+I PushGlobal streamVoicesAt
+I Mkap
+I Mkap
+I Slide 2
+block
+I Pack 0 0
+I Slide 1
+block
+I Pack 0 0
+I Slide 1
+block
+I Pack 0 0
+I Slide 3
+block
+I Push 0
+I PushArg 3
+I PushGlobal streamVoicesAt
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 0
+I PushArg 4
+I PushGlobal streamVoicesAt
+I Mkap
+I Mkap
+I Slide 3
+block
+I Pack 0 0
+I Slide 1
+block
+I Push 0
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushGlobal streamVoicesAt
+I Mkap
+I Mkap
+I Push 2
+I PushGlobal takeBelowV
+I Mkap
+I Mkap
+I PushArg 3
+I PushGlobal placeFromV
+I Mkap
+I Mkap
+I Slide 2
+block
+I PushArg 1
+I Eval
+I CaseJump 18 36 131 37 132 38 133 39 134 40 135 41 136 42 137 43 138 44 139 45 140 46 141 48 142 49 143 50 144 51 145 52 146 53 147 47 148
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I PushArg 1
+I PushGlobal 81
+I Mkap
+I PushGlobal __Functor_List_map__
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I Eval
+I Proj 0
+I PushArg 2
+I Eval
+I Proj 1
+I PushArg 3
+I Eval
+I Proj 2
+I Push 2
+I PushArg 4
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I Push 2
+I PushArg 5
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I Push 2
+I PackTuple 203 3
+I Slide 3
+I Update 2
+I Pop 2
+I Unwind
+block
+I Pack 0 0
+I Slide 0
+block
+I Push 4
+I Push 4
+I PushArg 7
+I PushGlobal takeBelowV
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 0
+block
+I Pack 0 0
+I Slide 0
+block
+I Push 1
+I Eval
+I Proj 0
+I Push 2
+I Eval
+I Proj 1
+I Push 3
+I Eval
+I Proj 2
+I PushArg 5
+I Push 3
+I PushGlobal __Ord_Int_<__
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 153 2 154
+I Slide 3
+I Slide 2
+block
+I PushArg 1
+I Eval
+I CaseJump 2 0 152 1 155
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I PushArg 3
+I PushGlobal 77
+I Mkap
+I Mkap
+I PushGlobal __Functor_List_map__
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 2
+I Eval
+I Proj 0
+I PushArg 3
+I Eval
+I Proj 1
+I PushArg 4
+I Eval
+I Proj 2
+I PushArg 3
+I Push 3
+I PushGlobal prim_div_int
+I Mkap
+I Mkap
+I PushArg 5
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I PushArg 4
+I Push 3
+I PushGlobal prim_div_int
+I Mkap
+I Mkap
+I PushArg 6
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I Push 2
+I PackTuple 203 3
+I Slide 3
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I PushArg 3
+I PushGlobal 76
+I Mkap
+I Mkap
+I PushGlobal __Functor_List_map__
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 2
+I Eval
+I Proj 0
+I PushArg 3
+I Eval
+I Proj 1
+I PushArg 4
+I Eval
+I Proj 2
+I PushArg 3
+I Push 3
+I PushGlobal __Num_Int_*__
+I Mkap
+I Mkap
+I PushArg 5
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I PushArg 4
+I Push 3
+I PushGlobal __Num_Int_*__
+I Mkap
+I Mkap
+I PushArg 6
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I Push 2
+I PackTuple 203 3
+I Slide 3
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 1
+I Slide 0
+block
+I PushArg 2
+I Slide 0
+block
+I Push 9
+I PushArg 12
+I Push 10
+I PushGlobal mergeVoices
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 0
+block
+I Push 7
+I Push 7
+I PushArg 12
+I PushGlobal mergeVoices
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 0
+block
+I Push 3
+I Eval
+I Proj 0
+I Push 4
+I Eval
+I Proj 1
+I Push 5
+I Eval
+I Proj 2
+I Push 4
+I Eval
+I Proj 0
+I Push 5
+I Eval
+I Proj 1
+I Push 6
+I Eval
+I Proj 2
+I Push 2
+I Push 6
+I PushGlobal __Ord_Int_<=__
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 163 2 164
+I Slide 3
+I Slide 3
+I Slide 2
+block
+I PushArg 3
+I Eval
+I CaseJump 2 0 162 1 165
+I Slide 2
+block
+I PushArg 0
+I Eval
+I CaseJump 2 0 161 1 166
+I Update 2
+I Pop 2
+I Unwind
+block
+I Pack 2 0
+I Slide 0
+block
+I Pack 3 0
+I Slide 0
+block
+I PushArg 0
+I PushArg 2
+I PushGlobal prim_lt_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 168 2 169
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I PushArg 1
+I PushGlobal append
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I Slide 0
+block
+I Push 1
+I PushArg 4
+I Push 2
+I PushGlobal append
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 0
+I Eval
+I CaseJump 2 0 172 1 173
+I Update 2
+I Pop 2
+I Unwind
+block
+I Pack 0 0
+I Slide 0
+block
+I PushArg 5
+I Push 3
+I PushGlobal prim_div_int
+I Mkap
+I Mkap
+I PushArg 6
+I Push 3
+I PushGlobal prim_div_int
+I Mkap
+I Mkap
+I Push 2
+I Pack 54 3
+I Push 4
+I PushArg 7
+I PushGlobal shrinkCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I PushArg 6
+I Push 4
+I PushGlobal prim_div_int
+I Mkap
+I Mkap
+I Push 3
+I Push 3
+I PushArg 9
+I Push 4
+I PushGlobal 120
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I PushArg 4
+I Push 2
+I PushGlobal prim_div_int
+I Mkap
+I Mkap
+I Push 1
+I Pack 57 2
+I Push 3
+I PushArg 6
+I PushGlobal shrinkCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 3
+I Push 1
+I PushGlobal prim_div_int
+I Mkap
+I Mkap
+I Pack 56 1
+I Pack 0 0
+I Pack 1 2
+I Slide 1
+block
+I Push 1
+I Eval
+I CaseJump 4 54 176 55 177 57 178 56 179
+I Slide 2
+block
+I PushArg 1
+I Eval
+I CaseJump 2 0 175 1 180
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I Mkap
+I PushArg 2
+I PushGlobal shrinkCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I Pack 0 0
+I Slide 0
+block
+I PushArg 5
+I Push 3
+I PushGlobal __Num_Int_*__
+I Mkap
+I Mkap
+I PushArg 6
+I Push 3
+I PushGlobal __Num_Int_*__
+I Mkap
+I Mkap
+I Push 2
+I Pack 54 3
+I Push 4
+I PushArg 7
+I PushGlobal scaleCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I PushArg 6
+I Push 4
+I PushGlobal __Num_Int_*__
+I Mkap
+I Mkap
+I Push 3
+I Push 3
+I PushArg 9
+I Push 4
+I PushGlobal 119
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I PushArg 4
+I Push 2
+I PushGlobal __Num_Int_*__
+I Mkap
+I Mkap
+I Push 1
+I Pack 57 2
+I Push 3
+I PushArg 6
+I PushGlobal scaleCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 3
+I Push 1
+I PushGlobal __Num_Int_*__
+I Mkap
+I Mkap
+I Pack 56 1
+I Pack 0 0
+I Pack 1 2
+I Slide 1
+block
+I Push 1
+I Eval
+I CaseJump 4 54 184 55 185 57 186 56 187
+I Slide 2
+block
+I PushArg 1
+I Eval
+I CaseJump 2 0 183 1 188
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I Mkap
+I PushArg 2
+I PushGlobal scaleCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I Pack 0 0
+I Slide 0
+block
+I Push 4
+I PushArg 7
+I Push 5
+I PushGlobal spliceEnd
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 10
+I Push 4
+I PushGlobal 96
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 3
+I PushArg 6
+I Push 4
+I PushGlobal spliceEnd
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I Push 0
+I PushArg 5
+I Mkap
+I Slide 1
+block
+I Push 1
+I Eval
+I CaseJump 4 54 192 55 193 57 194 56 195
+I Slide 2
+block
+I PushArg 0
+I Eval
+I CaseJump 2 0 191 1 196
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I PushArg 3
+I PushArg 2
+I Mkap
+I PushGlobal spliceEnd
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I PushGlobal __Num_Int_-__
+I Mkap
+I Mkap
+I Pack 56 1
+I Pack 0 0
+I Pack 1 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I Slide 0
+block
+I PushArg 4
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I PushArg 5
+I Slide 0
+block
+I PushArg 8
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 12
+I PushArg 15
+I Push 13
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 18
+I Push 4
+I PushGlobal 99
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 11
+I PushArg 14
+I Push 12
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 12
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 9
+I Eval
+I CaseJump 4 54 204 55 205 57 206 56 207
+I Slide 0
+block
+I Push 7
+I Push 7
+I PushArg 15
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 17
+I Push 4
+I PushGlobal 100
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 6
+I Push 6
+I PushArg 14
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 11
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 4
+I Eval
+I CaseJump 4 54 209 55 210 57 211 56 212
+I Slide 0
+block
+I Push 4
+I PushGlobal cueTick
+I Mkap
+I Push 10
+I PushGlobal cueTick
+I Mkap
+I PushGlobal __Ord_Int_<=__
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 208 2 213
+I Slide 3
+block
+I Push 13
+I PushArg 16
+I Push 14
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 19
+I Push 4
+I PushGlobal 101
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 12
+I PushArg 15
+I Push 13
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 13
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 10
+I Eval
+I CaseJump 4 54 215 55 216 57 217 56 218
+I Slide 0
+block
+I Push 8
+I Push 8
+I PushArg 16
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 18
+I Push 4
+I PushGlobal 102
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 7
+I Push 7
+I PushArg 15
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 12
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 5
+I Eval
+I CaseJump 4 54 220 55 221 57 222 56 223
+I Slide 0
+block
+I Push 5
+I PushGlobal cueTick
+I Mkap
+I Push 11
+I PushGlobal cueTick
+I Mkap
+I PushGlobal __Ord_Int_<=__
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 219 2 224
+I Slide 4
+block
+I Push 11
+I PushArg 14
+I Push 12
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 17
+I Push 4
+I PushGlobal 103
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 10
+I PushArg 13
+I Push 11
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 11
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 8
+I Eval
+I CaseJump 4 54 226 55 227 57 228 56 229
+I Slide 0
+block
+I Push 6
+I Push 6
+I PushArg 14
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 16
+I Push 4
+I PushGlobal 104
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 5
+I Push 5
+I PushArg 13
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 10
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 3
+I Eval
+I CaseJump 4 54 231 55 232 57 233 56 234
+I Slide 0
+block
+I Push 3
+I PushGlobal cueTick
+I Mkap
+I Push 9
+I PushGlobal cueTick
+I Mkap
+I PushGlobal __Ord_Int_<=__
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 230 2 235
+I Slide 2
+block
+I Push 1
+I Eval
+I CaseJump 4 56 203 54 214 55 225 57 236
+I Slide 2
+block
+I PushArg 6
+I Eval
+I CaseJump 2 0 202 1 237
+I Slide 3
+block
+I PushArg 6
+I Slide 0
+block
+I PushArg 9
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 13
+I PushArg 16
+I Push 14
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 19
+I Push 4
+I PushGlobal 105
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 12
+I PushArg 15
+I Push 13
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 13
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 10
+I Eval
+I CaseJump 4 54 241 55 242 57 243 56 244
+I Slide 0
+block
+I Push 7
+I Push 7
+I PushArg 16
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 18
+I Push 4
+I PushGlobal 106
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 6
+I Push 6
+I PushArg 15
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 12
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 4
+I Eval
+I CaseJump 4 54 246 55 247 57 248 56 249
+I Slide 0
+block
+I Push 4
+I PushGlobal cueTick
+I Mkap
+I Push 11
+I PushGlobal cueTick
+I Mkap
+I PushGlobal __Ord_Int_<=__
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 245 2 250
+I Slide 3
+block
+I Push 14
+I PushArg 17
+I Push 15
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 20
+I Push 4
+I PushGlobal 107
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 13
+I PushArg 16
+I Push 14
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 14
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 11
+I Eval
+I CaseJump 4 54 252 55 253 57 254 56 255
+I Slide 0
+block
+I Push 8
+I Push 8
+I PushArg 17
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 19
+I Push 4
+I PushGlobal 108
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 7
+I Push 7
+I PushArg 16
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 13
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 5
+I Eval
+I CaseJump 4 54 257 55 258 57 259 56 260
+I Slide 0
+block
+I Push 5
+I PushGlobal cueTick
+I Mkap
+I Push 12
+I PushGlobal cueTick
+I Mkap
+I PushGlobal __Ord_Int_<=__
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 256 2 261
+I Slide 4
+block
+I Push 12
+I PushArg 15
+I Push 13
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 18
+I Push 4
+I PushGlobal 109
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 11
+I PushArg 14
+I Push 12
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 12
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 9
+I Eval
+I CaseJump 4 54 263 55 264 57 265 56 266
+I Slide 0
+block
+I Push 6
+I Push 6
+I PushArg 15
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 17
+I Push 4
+I PushGlobal 110
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 5
+I Push 5
+I PushArg 14
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 11
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 3
+I Eval
+I CaseJump 4 54 268 55 269 57 270 56 271
+I Slide 0
+block
+I Push 3
+I PushGlobal cueTick
+I Mkap
+I Push 10
+I PushGlobal cueTick
+I Mkap
+I PushGlobal __Ord_Int_<=__
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 267 2 272
+I Slide 2
+block
+I Push 1
+I Eval
+I CaseJump 4 56 240 54 251 55 262 57 273
+I Slide 2
+block
+I PushArg 7
+I Eval
+I CaseJump 2 0 239 1 274
+I Slide 4
+block
+I PushArg 4
+I Slide 0
+block
+I PushArg 7
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 11
+I PushArg 14
+I Push 12
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 17
+I Push 4
+I PushGlobal 111
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 10
+I PushArg 13
+I Push 11
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 11
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 8
+I Eval
+I CaseJump 4 54 278 55 279 57 280 56 281
+I Slide 0
+block
+I Push 7
+I Push 7
+I PushArg 14
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 16
+I Push 4
+I PushGlobal 112
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 6
+I Push 6
+I PushArg 13
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 10
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 4
+I Eval
+I CaseJump 4 54 283 55 284 57 285 56 286
+I Slide 0
+block
+I Push 4
+I PushGlobal cueTick
+I Mkap
+I Push 9
+I PushGlobal cueTick
+I Mkap
+I PushGlobal __Ord_Int_<=__
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 282 2 287
+I Slide 3
+block
+I Push 12
+I PushArg 15
+I Push 13
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 18
+I Push 4
+I PushGlobal 113
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 11
+I PushArg 14
+I Push 12
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 12
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 9
+I Eval
+I CaseJump 4 54 289 55 290 57 291 56 292
+I Slide 0
+block
+I Push 8
+I Push 8
+I PushArg 15
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 17
+I Push 4
+I PushGlobal 114
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 7
+I Push 7
+I PushArg 14
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 11
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 5
+I Eval
+I CaseJump 4 54 294 55 295 57 296 56 297
+I Slide 0
+block
+I Push 5
+I PushGlobal cueTick
+I Mkap
+I Push 10
+I PushGlobal cueTick
+I Mkap
+I PushGlobal __Ord_Int_<=__
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 293 2 298
+I Slide 4
+block
+I Push 10
+I PushArg 13
+I Push 11
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 16
+I Push 4
+I PushGlobal 115
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 9
+I PushArg 12
+I Push 10
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 10
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 7
+I Eval
+I CaseJump 4 54 300 55 301 57 302 56 303
+I Slide 0
+block
+I Push 6
+I Push 6
+I PushArg 13
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 15
+I Push 4
+I PushGlobal 116
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 5
+I Push 5
+I PushArg 12
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I PushArg 9
+I Push 1
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 3
+I Eval
+I CaseJump 4 54 305 55 306 57 307 56 308
+I Slide 0
+block
+I Push 3
+I PushGlobal cueTick
+I Mkap
+I Push 8
+I PushGlobal cueTick
+I Mkap
+I PushGlobal __Ord_Int_<=__
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 304 2 309
+I Slide 2
+block
+I Push 1
+I Eval
+I CaseJump 4 56 277 54 288 55 299 57 310
+I Slide 2
+block
+I PushArg 5
+I Eval
+I CaseJump 2 0 276 1 311
+I Slide 2
+block
+I Push 1
+I Eval
+I CaseJump 4 56 201 54 238 55 275 57 312
+I Slide 2
+block
+I PushArg 0
+I Eval
+I CaseJump 2 0 200 1 313
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 0
+I Pack 56 1
+I Pack 0 0
+I Pack 1 2
+I Slide 0
+block
+I Push 4
+I Push 4
+I PushArg 7
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 3
+block
+I Push 3
+I Push 3
+I Push 3
+I PushArg 9
+I Push 4
+I PushGlobal 97
+I Mkap
+I Mkap
+I Pack 55 4
+I Pack 0 0
+I Pack 1 2
+I Slide 4
+block
+I Push 3
+I Push 3
+I PushArg 6
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Pack 1 2
+I Slide 2
+block
+I Push 0
+I PushArg 4
+I PushGlobal maxInt
+I Mkap
+I Mkap
+I Pack 56 1
+I Pack 0 0
+I Pack 1 2
+I Slide 1
+block
+I Push 1
+I Eval
+I CaseJump 4 54 316 55 317 57 318 56 319
+I Slide 2
+block
+I PushArg 1
+I Eval
+I CaseJump 2 0 315 1 320
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I Mkap
+I PushArg 2
+I PushGlobal raiseEnd
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I Mkap
+I PushArg 2
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 1
+I PushArg 3
+I PushArg 2
+I Mkap
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I Mkap
+I PushArg 2
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 1
+I PushArg 3
+I PushArg 2
+I Mkap
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I Mkap
+I PushArg 2
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 1
+I PushArg 3
+I PushArg 2
+I Mkap
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I Mkap
+I PushArg 2
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 1
+I PushArg 3
+I PushArg 2
+I Mkap
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I Mkap
+I PushArg 2
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 1
+I PushArg 3
+I PushArg 2
+I Mkap
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I Mkap
+I PushArg 2
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 1
+I PushArg 3
+I PushArg 2
+I Mkap
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I Mkap
+I PushArg 2
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 1
+I PushArg 3
+I PushArg 2
+I Mkap
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I Mkap
+I PushArg 2
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 1
+I PushArg 3
+I PushArg 2
+I Mkap
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I Mkap
+I PushArg 2
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 1
+I PushArg 3
+I PushArg 2
+I Mkap
+I PushGlobal mergeCues
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I PushGlobal liveTo
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I Slide 0
+block
+I Push 0
+I Push 2
+I Push 3
+I PushGlobal durOf
+I Mkap
+I PushArg 5
+I PushGlobal resumeSeq
+I Mkap
+I Mkap
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 1
+I PushArg 3
+I PushGlobal resumeAt
+I Mkap
+I Mkap
+I Push 1
+I PushArg 4
+I PushGlobal resumeAt
+I Mkap
+I Mkap
+I Pack 41 2
+I Slide 2
+block
+I Push 0
+I Push 2
+I PushArg 4
+I PushGlobal __Num_Int_-__
+I Mkap
+I Mkap
+I PushGlobal resumeAt
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 1
+I Push 1
+I PushArg 4
+I PushGlobal prim_div_int
+I Mkap
+I Mkap
+I PushGlobal resumeAt
+I Mkap
+I Mkap
+I Push 1
+I Pack 43 2
+I Slide 2
+block
+I Push 1
+I Push 1
+I PushArg 4
+I PushGlobal __Num_Int_*__
+I Mkap
+I Mkap
+I PushGlobal resumeAt
+I Mkap
+I Mkap
+I Push 1
+I Pack 44 2
+I Slide 2
+block
+I Push 0
+I Pack 45 1
+I Slide 1
+block
+I PushGlobal r
+I Slide 0
+block
+I PushArg 2
+I Push 2
+I PushGlobal __Num_Int_-__
+I Mkap
+I Mkap
+I Push 1
+I PushArg 4
+I PushGlobal resumeAt
+I Mkap
+I Mkap
+I Pack 47 2
+I Slide 0
+block
+I PushArg 2
+I Push 2
+I PushGlobal __Ord_Int_<=__
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 349 2 350
+I Slide 2
+block
+I Push 0
+I Push 2
+I PushGlobal sowScore
+I Mkap
+I Mkap
+I PushArg 3
+I PushGlobal resumeAt
+I Mkap
+I Mkap
+I Slide 2
+block
+I PushGlobal r
+I Slide 1
+block
+I PushGlobal r
+I Slide 1
+block
+I PushGlobal r
+I Slide 1
+block
+I PushGlobal r
+I Slide 0
+block
+I PushGlobal r
+I Slide 1
+block
+I PushArg 1
+I Push 1
+I PushGlobal 68
+I Mkap
+I Mkap
+I Pack 49 1
+I Slide 1
+block
+I Push 2
+I Push 2
+I PushArg 5
+I Push 3
+I PushGlobal 69
+I Mkap
+I Mkap
+I Pack 50 3
+I Slide 3
+block
+I Push 1
+I Push 1
+I PushArg 4
+I PushGlobal resumeAt
+I Mkap
+I Mkap
+I Pack 51 2
+I Slide 2
+block
+I Push 2
+I Push 2
+I Push 2
+I PushArg 6
+I PushGlobal resumeAt
+I Mkap
+I Mkap
+I Pack 52 3
+I Slide 3
+block
+I PushGlobal r
+I Slide 1
+block
+I PushArg 1
+I Eval
+I CaseJump 18 40 343 41 344 42 345 43 346 44 347 45 348 47 351 46 352 36 353 37 354 38 355 39 356 48 357 49 358 50 359 51 360 52 361 53 362
+I Slide 0
+block
+I PushInt 1
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 1
+I PushGlobal __Ord_Int_<__
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 342 2 363
+I Update 2
+I Pop 2
+I Unwind
+block
+I Pack 39 0
+I Update 0
+I Pop 0
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I Mkap
+I PushArg 2
+I PushGlobal resumeAt
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I Mkap
+I PushArg 2
+I PushGlobal resumeAt
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I PushGlobal __Num_Int_-__
+I Mkap
+I Mkap
+I PushArg 3
+I PushArg 2
+I PushGlobal resumeAt
+I Mkap
+I Mkap
+I Pack 47 2
+I PushArg 4
+I Pack 40 2
+I Slide 0
+block
+I PushArg 2
+I PushArg 4
+I Pack 40 2
+I Slide 0
+block
+I PushArg 3
+I PushArg 2
+I PushArg 2
+I PushGlobal __Num_Int_-__
+I Mkap
+I Mkap
+I PushGlobal resumeAt
+I Mkap
+I Mkap
+I Slide 0
+block
+I PushArg 2
+I PushGlobal opaqueHead
+I Mkap
+I Eval
+I CaseJump 2 3 369 2 370
+I Slide 0
+block
+I PushArg 3
+I PushArg 2
+I PushArg 2
+I PushGlobal __Num_Int_-__
+I Mkap
+I Mkap
+I PushGlobal resumeAt
+I Mkap
+I Mkap
+I Slide 0
+block
+I PushInt 1
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 2
+I PushGlobal __Ord_Int_<__
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 371 2 372
+I Slide 0
+block
+I PushArg 1
+I PushArg 1
+I PushGlobal __Ord_Int_<__
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 368 2 373
+I Update 4
+I Pop 4
+I Unwind
+block
+I Pack 3 0
+I Slide 3
+block
+I Pack 3 0
+I Slide 1
+block
+I Pack 3 0
+I Slide 0
+block
+I Push 0
+I PushGlobal opaqueHead
+I Mkap
+I Slide 0
+block
+I Pack 2 0
+I Slide 0
+block
+I PushInt 1
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Push 2
+I PushGlobal durOf
+I Mkap
+I PushGlobal __Ord_Int_<__
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 378 2 379
+I Slide 0
+block
+I Push 1
+I PushGlobal opaqueHead
+I Mkap
+I Eval
+I CaseJump 2 3 377 2 380
+I Slide 2
+block
+I Pack 3 0
+I Slide 0
+block
+I Push 0
+I PushGlobal opaqueHead
+I Mkap
+I Slide 0
+block
+I Push 1
+I PushGlobal opaqueHead
+I Mkap
+I Eval
+I CaseJump 2 3 382 2 383
+I Slide 2
+block
+I Push 0
+I PushGlobal opaqueHead
+I Mkap
+I Slide 2
+block
+I Push 1
+I PushGlobal opaqueHead
+I Mkap
+I Slide 2
+block
+I Push 1
+I PushGlobal opaqueHead
+I Mkap
+I Slide 2
+block
+I Push 0
+I PushGlobal opaqueHead
+I Mkap
+I Slide 2
+block
+I Push 0
+I PushGlobal opaqueHead
+I Mkap
+I Slide 2
+block
+I Push 0
+I PushGlobal opaqueHead
+I Mkap
+I Slide 3
+block
+I Pack 2 0
+I Slide 1
+block
+I Pack 2 0
+I Slide 1
+block
+I Pack 2 0
+I Slide 1
+block
+I Pack 2 0
+I Slide 1
+block
+I Pack 2 0
+I Slide 0
+block
+I Pack 2 0
+I Slide 1
+block
+I Pack 2 0
+I Slide 2
+block
+I Pack 2 0
+I Slide 1
+block
+I PushArg 0
+I Eval
+I CaseJump 18 50 375 49 376 40 381 41 384 42 385 43 386 44 387 46 388 51 389 52 390 53 391 36 392 37 393 38 394 39 395 45 396 47 397 48 398
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushGlobal 133
+I PushGlobal draw
+I PushGlobal __Monad_Score_>>=__
+I Mkap
+I Mkap
+I PushGlobal cycle
+I Mkap
+I Update 0
+I Pop 0
+I Unwind
+block
+I PushArg 0
+I PushGlobal cycle
+I Mkap
+I PushArg 1
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I Pack 40 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I Push 0
+I PushArg 3
+I Mkap
+I Slide 1
+block
+I Push 0
+I Pack 37 1
+I Slide 1
+block
+I Push 0
+I Pack 38 1
+I Slide 1
+block
+I Pack 39 0
+I Slide 0
+block
+I PushArg 3
+I Push 2
+I PushGlobal __Monad_Score_>>=__
+I Mkap
+I Mkap
+I PushArg 4
+I Push 2
+I PushGlobal __Monad_Score_>>=__
+I Mkap
+I Mkap
+I Pack 40 2
+I Slide 2
+block
+I PushArg 3
+I Push 2
+I PushGlobal __Monad_Score_>>=__
+I Mkap
+I Mkap
+I PushArg 4
+I Push 2
+I PushGlobal __Monad_Score_>>=__
+I Mkap
+I Mkap
+I Pack 41 2
+I Slide 2
+block
+I Push 1
+I PushArg 4
+I Push 2
+I PushGlobal __Monad_Score_>>=__
+I Mkap
+I Mkap
+I Pack 42 2
+I Slide 2
+block
+I PushArg 3
+I Push 2
+I PushGlobal __Monad_Score_>>=__
+I Mkap
+I Mkap
+I Push 1
+I Pack 43 2
+I Slide 2
+block
+I PushArg 3
+I Push 2
+I PushGlobal __Monad_Score_>>=__
+I Mkap
+I Mkap
+I Push 1
+I Pack 44 2
+I Slide 2
+block
+I PushArg 2
+I Push 1
+I PushGlobal __Monad_Score_>>=__
+I Mkap
+I Mkap
+I Pack 45 1
+I Slide 1
+block
+I Push 1
+I PushArg 4
+I Push 2
+I PushGlobal __Monad_Score_>>=__
+I Mkap
+I Mkap
+I Pack 46 2
+I Slide 2
+block
+I Push 1
+I PushArg 4
+I Push 2
+I PushGlobal __Monad_Score_>>=__
+I Mkap
+I Mkap
+I Pack 47 2
+I Slide 2
+block
+I Push 0
+I Pack 48 1
+I Slide 1
+block
+I PushArg 2
+I Push 1
+I PushGlobal 136
+I Mkap
+I Mkap
+I Pack 49 1
+I Slide 1
+block
+I Push 2
+I Push 2
+I PushArg 6
+I Push 3
+I PushGlobal 137
+I Mkap
+I Mkap
+I Pack 50 3
+I Slide 3
+block
+I Push 1
+I PushArg 4
+I Push 2
+I PushGlobal __Monad_Score_>>=__
+I Mkap
+I Mkap
+I Pack 51 2
+I Slide 2
+block
+I Push 2
+I Push 2
+I PushArg 6
+I Push 3
+I PushGlobal __Monad_Score_>>=__
+I Mkap
+I Mkap
+I Pack 52 3
+I Slide 3
+block
+I Push 0
+I Pack 53 1
+I Slide 1
+block
+I PushArg 0
+I Eval
+I CaseJump 18 36 404 37 405 38 406 39 407 40 408 41 409 42 410 43 411 44 412 45 413 46 414 47 415 48 416 49 417 50 418 51 419 52 420 53 421
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I PushArg 3
+I PushArg 2
+I Mkap
+I PushGlobal __Monad_Score_>>=__
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 1
+I PushArg 3
+I PushArg 2
+I Mkap
+I PushGlobal __Monad_Score_>>=__
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushGlobal 66
+I Pack 49 1
+I Update 0
+I Pop 0
+I Unwind
+block
+I PushArg 0
+I PushGlobal '#Monad_Score
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I PushGlobal __Monad_Score_pure__
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I Pack 36 1
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I PushInt 4
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushGlobal below
+I Mkap
+I Mkap
+I PushGlobal blockOf
+I Mkap
+I PushInt 16
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushGlobal long
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushGlobal ticksPerBeat
+I PushArg 1
+I PushGlobal __Num_Int_*__
+I Mkap
+I Mkap
+I PushArg 2
+I Pack 47 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushGlobal voicesLead
+I PushArg 1
+I PushGlobal leadPart
+I Mkap
+I PushGlobal __Monad_Score_>>=__
+I Mkap
+I Mkap
+I PushGlobal voicesBass
+I PushArg 2
+I PushGlobal bassPart
+I Mkap
+I PushGlobal __Monad_Score_>>=__
+I Mkap
+I Mkap
+I PushGlobal voicesPad
+I PushArg 3
+I PushGlobal padPart
+I Mkap
+I PushGlobal __Monad_Score_>>=__
+I Mkap
+I Mkap
+I PushGlobal ||
+I Mkap
+I Mkap
+I PushGlobal ||
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I Pack 41 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushInt 4
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushInt 3
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 2
+I PushGlobal progAt
+I Mkap
+I Mkap
+I PushGlobal padChord
+I Mkap
+I PushGlobal |*
+I Mkap
+I Mkap
+I PushInt 4
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushInt 2
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 3
+I PushGlobal progAt
+I Mkap
+I Mkap
+I PushGlobal padChord
+I Mkap
+I PushGlobal |*
+I Mkap
+I Mkap
+I PushInt 4
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushInt 1
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 4
+I PushGlobal progAt
+I Mkap
+I Mkap
+I PushGlobal padChord
+I Mkap
+I PushGlobal |*
+I Mkap
+I Mkap
+I PushInt 4
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 5
+I PushGlobal progAt
+I Mkap
+I Mkap
+I PushGlobal padChord
+I Mkap
+I PushGlobal |*
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushInt 16
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushGlobal long
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I Pack 43 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushInt 12
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 1
+I PushFloat 4599976659396224614
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushGlobal note
+I Mkap
+I Mkap
+I Mkap
+I PushInt 7
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 2
+I PushFloat 4600877379321698714
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushGlobal note
+I Mkap
+I Mkap
+I Mkap
+I PushArg 2
+I PushGlobal chordThird
+I Mkap
+I PushArg 3
+I PushFloat 4600877379321698714
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushGlobal note
+I Mkap
+I Mkap
+I Mkap
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 4
+I PushFloat 4602678819172646912
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushGlobal note
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal ||
+I Mkap
+I Mkap
+I PushGlobal ||
+I Mkap
+I Mkap
+I PushGlobal ||
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I PushArg 3
+I PushArg 3
+I PushGlobal chordRoot
+I Mkap
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I Pack 58 2
+I PushGlobal '#Monad_Score
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushInt 57
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 60
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 62
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 64
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 64
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 53
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 55
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 5
+I PushArg 1
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 442 2 443
+I Slide 0
+block
+I PushInt 4
+I PushArg 1
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 441 2 444
+I Slide 0
+block
+I PushInt 3
+I PushArg 1
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 440 2 445
+I Slide 0
+block
+I PushInt 2
+I PushArg 1
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 439 2 446
+I Slide 0
+block
+I PushInt 1
+I PushArg 1
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 438 2 447
+I Slide 0
+block
+I PushInt 0
+I PushArg 1
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 437 2 448
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 1
+I Eval
+I PushArg 1
+I Eval
+I EqInt 3 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 0
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushInt 3
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 4
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 3
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 3
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 4
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 4
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 4
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 5
+I PushArg 1
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 457 2 458
+I Slide 0
+block
+I PushInt 4
+I PushArg 1
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 456 2 459
+I Slide 0
+block
+I PushInt 3
+I PushArg 1
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 455 2 460
+I Slide 0
+block
+I PushInt 2
+I PushArg 1
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 454 2 461
+I Slide 0
+block
+I PushInt 1
+I PushArg 1
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 453 2 462
+I Slide 0
+block
+I PushInt 0
+I PushArg 1
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 452 2 463
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 5
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 1
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 6
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 2
+I PushArg 2
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 467 2 468
+I Slide 0
+block
+I PushInt 1
+I PushArg 2
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 466 2 469
+I Slide 0
+block
+I PushInt 0
+I PushArg 2
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 465 2 470
+I Slide 0
+block
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 5
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 2
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 4
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 2
+I PushArg 2
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 474 2 475
+I Slide 0
+block
+I PushInt 1
+I PushArg 2
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 473 2 476
+I Slide 0
+block
+I PushInt 0
+I PushArg 2
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 472 2 477
+I Slide 0
+block
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 6
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 5
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 4
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 2
+I PushArg 2
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 481 2 482
+I Slide 0
+block
+I PushInt 1
+I PushArg 2
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 480 2 483
+I Slide 0
+block
+I PushInt 0
+I PushArg 2
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 479 2 484
+I Slide 0
+block
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 3
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 5
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 6
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Slide 0
+block
+I PushInt 2
+I PushArg 2
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 488 2 489
+I Slide 0
+block
+I PushInt 1
+I PushArg 2
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 487 2 490
+I Slide 0
+block
+I PushInt 0
+I PushArg 2
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 486 2 491
+I Slide 0
+block
+I PushInt 2
+I PushArg 1
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 485 2 492
+I Slide 0
+block
+I PushInt 1
+I PushArg 1
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 478 2 493
+I Slide 0
+block
+I PushInt 0
+I PushArg 1
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 471 2 494
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 0
+I Pack 59 1
+I Pack 38 1
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushInt 3
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 1
+I PushGlobal progAt
+I Mkap
+I Mkap
+I PushGlobal bassBar
+I Mkap
+I PushInt 2
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 2
+I PushGlobal progAt
+I Mkap
+I Mkap
+I PushGlobal bassBar
+I Mkap
+I PushInt 1
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 3
+I PushGlobal progAt
+I Mkap
+I Mkap
+I PushGlobal bassBar
+I Mkap
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 4
+I PushGlobal progAt
+I Mkap
+I Mkap
+I PushGlobal bassBar
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushInt 16
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushGlobal long
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushInt 2
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 1
+I PushGlobal 131
+I Mkap
+I PushGlobal roll
+I Mkap
+I PushFloat 4605380978949069210
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 4
+I PushGlobal bn
+I Mkap
+I Mkap
+I Mkap
+I PushFloat 4603579539098121011
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushInt 12
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 5
+I PushGlobal bn
+I Mkap
+I Mkap
+I Mkap
+I PushFloat 4606281698874543309
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 6
+I PushGlobal bn
+I Mkap
+I Mkap
+I Mkap
+I PushFloat 4603579539098121011
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushInt 12
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 7
+I PushGlobal bn
+I Mkap
+I Mkap
+I Mkap
+I PushFloat 4605380978949069210
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 8
+I PushGlobal bn
+I Mkap
+I Mkap
+I Mkap
+I PushFloat 4603579539098121011
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushInt 12
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 9
+I PushGlobal bn
+I Mkap
+I Mkap
+I Mkap
+I PushFloat 4606732058837280358
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 10
+I PushGlobal bn
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushGlobal |/
+I Mkap
+I Mkap
+I PushInt 4
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushGlobal long
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I Pack 44 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 2
+I PushArg 2
+I PushInt 24
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 3
+I PushGlobal chordRoot
+I Mkap
+I PushGlobal __Num_Int_-__
+I Mkap
+I Mkap
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I Pack 58 2
+I PushGlobal '#Monad_Score
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 0
+I PushGlobal 70
+I Mkap
+I PushGlobal draw
+I PushGlobal __Monad_Score_>>=__
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 1
+I PushGlobal unit
+I Mkap
+I PushArg 1
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushFloat 4845873199050653696
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushInt 2048
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 2
+I PushGlobal wrap64
+I Mkap
+I PushGlobal mix64
+I Mkap
+I PushGlobal prim_div_int
+I Mkap
+I Mkap
+I PushGlobal toFloat
+I Mkap
+I PushGlobal __Div_Float_/__
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 1
+I PushArg 1
+I PushGlobal prim_div_float
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I Eval
+I PushArg 1
+I Eval
+I DivFloat
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 0
+I PushGlobal prim_to_float
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I Eval
+I ToFloat
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushFloat 4605831338911806259
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushInt 10
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 2
+I PushGlobal bn
+I Mkap
+I Mkap
+I Mkap
+I Slide 0
+block
+I PushFloat 4603579539098121011
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushInt 12
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 2
+I PushGlobal bn
+I Mkap
+I Mkap
+I Mkap
+I Slide 0
+block
+I PushFloat 4599075939470750515
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushArg 2
+I PushGlobal __Ord_Float_<__
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 508 2 509
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I PushArg 1
+I PushGlobal prim_lt_int
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 0
+I Pack 60 1
+I Pack 38 1
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushInt 3
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 1
+I PushGlobal progAt
+I Mkap
+I Mkap
+I PushGlobal leadBar
+I Mkap
+I PushInt 2
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 2
+I PushGlobal progAt
+I Mkap
+I Mkap
+I PushGlobal leadBar
+I Mkap
+I PushInt 1
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 3
+I PushGlobal progAt
+I Mkap
+I Mkap
+I PushGlobal leadBar
+I Mkap
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 4
+I PushGlobal progAt
+I Mkap
+I Mkap
+I PushGlobal leadBar
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushInt 16
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushGlobal long
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I PushGlobal 132
+I Mkap
+I PushGlobal draw
+I PushGlobal __Monad_Score_>>=__
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I PushInt 4
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushGlobal below
+I Mkap
+I Mkap
+I PushGlobal phraseAt
+I Mkap
+I Mkap
+I PushInt 4
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushGlobal long
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushInt 22
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 2
+I PushFloat 4603129179135383962
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushGlobal note
+I Mkap
+I Mkap
+I Mkap
+I PushInt 19
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 3
+I PushFloat 4602678819172646912
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushGlobal note
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal r
+I PushInt 12
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 5
+I PushFloat 4603579539098121011
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushGlobal note
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I Slide 0
+block
+I PushInt 2
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushInt 12
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 3
+I PushFloat 4603129179135383962
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushGlobal note
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal |*
+I Mkap
+I Mkap
+I PushInt 2
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 3
+I PushGlobal chordThird
+I Mkap
+I PushInt 12
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushGlobal __Num_Int_+__
+I Mkap
+I Mkap
+I PushArg 4
+I PushFloat 4602678819172646912
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushGlobal note
+I Mkap
+I Mkap
+I Mkap
+I PushInt 19
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 5
+I PushFloat 4602678819172646912
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushGlobal note
+I Mkap
+I Mkap
+I Mkap
+I PushInt 22
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 6
+I PushFloat 4602678819172646912
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushGlobal note
+I Mkap
+I Mkap
+I Mkap
+I PushInt 24
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 7
+I PushFloat 4603579539098121011
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushGlobal note
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushGlobal |/
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I Slide 0
+block
+I PushGlobal r
+I PushInt 24
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 3
+I PushFloat 4601778099247172813
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushGlobal note
+I Mkap
+I Mkap
+I Mkap
+I PushInt 27
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 4
+I PushFloat 4602678819172646912
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushGlobal note
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal r
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I PushGlobal __Semigroup_Score_a-101_++__
+I Mkap
+I Mkap
+I Slide 0
+block
+I PushInt 4
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushGlobal r
+I PushGlobal |*
+I Mkap
+I Mkap
+I Slide 0
+block
+I PushInt 2
+I PushArg 1
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 518 2 519
+I Slide 0
+block
+I PushInt 1
+I PushArg 1
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 517 2 520
+I Slide 0
+block
+I PushInt 0
+I PushArg 1
+I PushGlobal prim_eq_int
+I Mkap
+I Mkap
+I Eval
+I CaseJump 2 3 516 2 521
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I PushGlobal wrap64
+I Mkap
+I PushGlobal mix64
+I Mkap
+I PushGlobal prim_mod_int
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 0
+I Pack 61 1
+I Pack 38 1
+I Update 1
+I Pop 1
+I Unwind
+global liveMain 2 0
+global liveVoices 1 1
+global liveTo 2 20
+global 123 3 21
+global placeCues 2 28
+global __Num_Int_+__ 2 29
+global prim_add_int 2 30
+global 118 3 31
+global endAt 2 38
+global 98 3 39
+global cueBelow 2 48
+global 117 3 49
+global __Ord_Int_<__ 2 50
+global prim_lt_int 2 51
+global cueTick 1 56
+global __Num_Int_fromInteger__ 1 57
+global sowScore 2 76
+global 72 3 77
+global keyOf 1 78
+global prim_mod_int 2 79
+global split 1 80
+global mix64 1 81
+global mixE 1 82
+global xorBits 2 83
+global prim_xor_int 2 84
+global prim_div_int 2 85
+global mixD 1 86
+global mulWrap 2 87
+global wrap64 1 88
+global __Num_Int_*__ 2 89
+global prim_mul_int 2 90
+global mixC 1 91
+global mixB 1 92
+global mixA 1 93
+global cuesOfEvents 2 96
+global __Reversible_List_reverse__ 1 97
+global reverseOnto 2 100
+global placeRetroV 3 101
+global __Functor_List_map__ 2 104
+global 78 3 105
+global __Num_Int_-__ 2 106
+global prim_sub_int 2 107
+global durOf 1 126
+global maxInt 2 129
+global ticksPerBeat 0 130
+global streamVoicesAt 2 149
+global placeFromV 2 150
+global 81 2 151
+global takeBelowV 2 156
+global placeShrunkV 3 157
+global 77 3 158
+global placeScaledV 3 159
+global 76 3 160
+global mergeVoices 2 167
+global __Ord_Int_<=__ 2 170
+global __Semigroup_List_a-23_++__ 2 171
+global append 2 174
+global shrinkCues 2 181
+global 120 3 182
+global scaleCues 2 189
+global 119 3 190
+global spliceEnd 2 197
+global 96 3 198
+global 122 2 199
+global mergeCues 2 314
+global raiseEnd 2 321
+global 97 3 322
+global 116 3 323
+global 115 3 324
+global 114 3 325
+global 113 3 326
+global 112 3 327
+global 111 3 328
+global 110 3 329
+global 109 3 330
+global 108 3 331
+global 107 3 332
+global 106 3 333
+global 105 3 334
+global 104 3 335
+global 103 3 336
+global 102 3 337
+global 101 3 338
+global 100 3 339
+global 99 3 340
+global 121 2 341
+global resumeAt 2 364
+global r 0 365
+global 69 3 366
+global 68 3 367
+global resumeSeq 4 374
+global opaqueHead 1 399
+global seedRoot 1 400
+global score 0 401
+global cycle 1 402
+global __Semigroup_Score_a-101_++__ 2 403
+global __Monad_Score_>>=__ 2 422
+global 137 3 423
+global 136 3 424
+global draw 0 425
+global 66 1 426
+global '#Monad_Score 1 427
+global __Monad_Score_pure__ 1 428
+global 133 1 429
+global long 2 430
+global blockOf 1 431
+global || 2 432
+global padPart 1 433
+global |* 2 434
+global padChord 1 435
+global note 3 436
+global chordRoot 1 449
+global prim_eq_int 2 450
+global __Floating_Float_fromFloat__ 1 451
+global chordThird 1 464
+global progAt 2 495
+global voicesPad 1 496
+global bassPart 1 497
+global bassBar 1 498
+global |/ 2 499
+global bn 3 500
+global roll 1 501
+global 70 2 502
+global unit 1 503
+global __Div_Float_/__ 2 504
+global prim_div_float 2 505
+global toFloat 1 506
+global prim_to_float 1 507
+global 131 2 510
+global __Ord_Float_<__ 2 511
+global voicesBass 1 512
+global leadPart 1 513
+global leadBar 1 514
+global 132 2 515
+global phraseAt 2 522
+global below 2 523
+global voicesLead 1 524
+entry liveMain

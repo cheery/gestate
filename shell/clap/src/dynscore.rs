@@ -345,7 +345,7 @@ pub struct Performer {
     played: HashSet<u32>,
     /// The last sample advanced to; `-1` before the first block.
     position: i64,
-    /// The engine sample the piece's tick zero falls at.
+    /// The engine sample the **stream's** tick zero falls at.
     ///
     /// **Samples, not ticks**, and the distinction is load-bearing:
     /// `audiodynamic.LazyPerformer.origin` is a *tick* offset (it
@@ -383,6 +383,8 @@ pub struct Performer {
     behind: u32,
     /// A seek's target, until a primed stream for it arrives.
     wanted: Option<i64>,
+    /// Notes the worker forced while priming, waiting to be admitted.
+    primed: Vec<Note>,
     /// The tick the stream was last rooted at **and has not moved
     /// from**, so a repeated seek to the same place costs nothing.
     ///
@@ -412,6 +414,7 @@ impl Performer {
             priming: true,
             behind: 0,
             wanted: None,
+            primed: Vec::new(),
             opened_at: Some(0),
         }
     }
@@ -575,6 +578,12 @@ impl Performer {
             self.position = t;
             return;
         }
+        // The worker's forcing, admitted before this block's own.
+        if !self.primed.is_empty() {
+            for n in std::mem::take(&mut self.primed) {
+                self.admit(&n, tempo, tb.rate, tb.tpb, block);
+            }
+        }
         self.pull(p, t, tempo, tb.rate, tb.tpb, block, held);
         self.priming = false;
         // A piece that keeps missing its horizon is not silent by
@@ -708,6 +717,7 @@ impl Performer {
     /// Re-rooting keeps the heap and its forced work; only the score's
     /// own spine is walked again.
     pub fn restart(&mut self, p: &Program) {
+        self.origin = 0;    // `rewind` put the engine clock back to zero
         self.pending.clear();
         self.dropped.clear();
         self.played.clear();
@@ -783,7 +793,30 @@ impl Performer {
         } else {
             0
         };
-        self.wanted = Some(ticks.max(0));
+        // The rebased stream's zero is *here*: the engine sample the
+        // transport is standing on as it jumps.
+        self.origin = now;
+        let ticks = ticks.max(0);
+
+        // **The top is not a descent.**  `resumeAt 0` is the identity —
+        // there is nothing to walk past — so a seek to the beginning
+        // costs a re-root and no more, and waiting on the worker for it
+        // buys a round-trip and pays for it in silence.  Every other
+        // target goes to the worker, because every other target has a
+        // walk in front of it.
+        if ticks == 0 {
+            match self.piece.reopen(p, 0) {
+                Ok(()) => {
+                    self.opened_at = Some(0);
+                    self.wanted = None;
+                    self.descending = false;
+                    self.failed = None;
+                }
+                Err(e) => self.failed = Some(e),
+            }
+            return;
+        }
+        self.wanted = Some(ticks);
         self.descending = true;
     }
 
@@ -797,7 +830,16 @@ impl Performer {
     /// Returns the piece it replaces, so the caller can hand the
     /// machine back for the next descent to reuse — a warm heap is the
     /// difference between re-rooting and re-parsing.
-    pub fn install(&mut self, tick: i64, piece: Piece) -> Piece {
+    /// Install a stream the worker primed, **with the notes it forced
+    /// on the way**.
+    ///
+    /// Forcing consumes: the events the worker pulled are gone from the
+    /// stream, so they have to arrive by this door or not at all.  They
+    /// are admitted on the next `advance`, where the tempo and the rate
+    /// are known.
+    pub fn install(&mut self, tick: i64, piece: Piece, notes: Vec<Note>)
+        -> Piece
+    {
         let old = std::mem::replace(&mut self.piece, piece);
         self.opened_at = Some(tick);
         self.wanted = None;
@@ -808,6 +850,7 @@ impl Performer {
         self.dropped.clear();
         self.played.clear();
         self.position = -1;
+        self.primed = notes;
         old
     }
 }
