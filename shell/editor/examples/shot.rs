@@ -18,6 +18,12 @@ fn main() {
     let mut d = Document::new(&text);
     let mut v = View { top: 0, left: 0, w: 860, h: 520, gutter: true, scale: 1 };
     d.seek_rowcol(row + 6, 14);
+    // A selection to look at, if asked for: three lines and a bit.
+    if std::env::var("SHOT_SELECT").is_ok() {
+        let a = d.rope().rowpos(row + 4).unwrap() + 6;
+        let b = d.rope().rowpos(row + 6).unwrap() + 22;
+        d.select(a, b);
+    }
     v.top = row;
     let mut c = Canvas::new(v.w, v.h, BG);
     paint(&mut c, &frame(&d, &v, font), font, 1);

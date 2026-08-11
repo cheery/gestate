@@ -6,7 +6,9 @@ description = "The editor, in Rust: a rope, a bitmap font, and a window the host
 license = "MIT"
 
 [lib]
-crate-type = ["rlib"]
+# `cdylib` beside `rlib`: the shared object Python loads with `ctypes`,
+# the way `gestate/crust.py` already loads `libcrust.so`.
+crate-type = ["rlib", "cdylib"]
 
 # **Nothing at all so far, deliberately.**  The rope is a tree of
 # `Rc`s, the font is a committed table, and a frame is a pure function
@@ -30,6 +32,8 @@ keyboard-types = { version = "0.8", default-features = false, optional = true }
 default = []
 window = ["dep:baseview", "dep:softbuffer", "dep:raw-window-handle",
           "dep:keyboard-types", "gestate-panel/window"]
+# The C ABI a host drives the editor through.
+capi = ["window"]
 
 [[example]]
 name = "edit"

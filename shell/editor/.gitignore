@@ -1,0 +1,10 @@
+# As `crust/`'s and `shell/clap`'s: what cargo makes again is not
+# source.  The lock too — the pure half of this crate has no
+# dependencies at all, and the window's are pinned by the workspace.
+#
+# It was missing for exactly one session, and five hundred build
+# artifacts turned up staged for commit before anyone noticed.  Each
+# crate carries its own so that a cargo run from inside it is covered
+# as well as one from the root.
+target/
+Cargo.lock

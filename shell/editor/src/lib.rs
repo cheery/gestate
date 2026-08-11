@@ -38,6 +38,9 @@ pub mod view;
 #[cfg(feature = "window")]
 pub mod window;
 
+#[cfg(feature = "capi")]
+pub mod abi;
+
 pub use document::Document;
 pub use font::Font;
 pub use rope::Rope;

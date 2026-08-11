@@ -4851,3 +4851,92 @@ and a pixel offset became a fraction of the element's own extent so
 motion is constrained by construction.  `onPress` is in neither the
 built vocabulary nor the bin: open question 1 still holds it, and
 `Label` left it exactly where it was, needing no event at all.
+
+## The editor moves to Rust
+
+`shell/editor/` — a rope, a public-domain bitmap font, a window that
+owns its own event loop, and a C ABI Python drives it through.  The
+reason is one Henri stated plainly: pygame is ugly by default, and the
+GUI should live in one place.  The reason it was *worth* doing is
+narrower and was already on the record — three painters had drifted
+apart, one of them (`gui.run`) had been raising `NameError` for months
+because a window is the one thing the tests never open, and the glyph
+tables of the other two were four characters apart within an hour of
+being written.
+
+**The font question had a good answer sitting on the machine.**
+`/usr/share/doc/xfonts-base/copyright` says, of `font-misc-misc`:
+*"Public domain font.  Share and enjoy."*  No attribution, no reserved
+name, no licence to ship — and, more to the point, it is already a
+bitmap, so there is no rasterizer, no hinting, no glyph cache and no
+per-size atlas.  Coverage was measured rather than guessed: across
+three million characters of this repository's own `.ges`, `.py` and
+`.md`, 10×20 misses seven distinct characters, forty-eight occurrences
+between them.  `tools/pcf.py` lifts the glyphs out; what is committed is
+its output, checked by looking at the letters.
+
+**The rope's bug was real and had been there all along.**  Porting
+`balanced.py` against a replayed-edit fixture failed at edit 348 — and
+the *oracle* failed there too: measured over four thousand random
+edits, nodes reach `|balance| = 4`.  The text is always correct, which
+is why it never showed; the tree just quietly loses its logarithmic
+bound.  `retain` plus one `rebalance` is the textbook AVL move and is
+right when an edit moves *one* node, because then a subtree's height
+changes by at most one.  A rope's edits are **bulk**: one `erase` takes
+most of a subtree away, one `insert` grafts several levels on, and a
+single rotation only pushes the imbalance down to a child nothing will
+look at again.  The port uses `join` — descend the taller spine to a
+node of matching height and splice.  Six thousand randomized sessions
+agree, checking text, summaries *and shape* after every edit.
+
+**And a second rope fault that only measurement finds.**  Loading a
+file as one segment is defensible on paper — one allocation, and the
+tree earns its shape as it is edited — and is wrong: every `rowpos`
+became a scan of five million characters, and drawing fifty lines at
+row 199,000 took **1.5 seconds**.  Chunked and built bottom-up it is
+118 µs.  `SPLIT` went from eight to a hundred and twenty-eight at the
+same time, which was safe precisely because the parity fixture compares
+*answers* and not shape — stated when the fixture was written, and this
+is the change it was stated for.
+
+**"It feels slow" is not a measurement, and three separate things were
+wrong.**  The blit went per-pixel through a bounds-checked accessor,
+including the blank rows — and most rows of most glyphs are blank, so
+half the work was writing nothing.  `fill_rect` wrote the background
+one indexed store at a time: seven hundred thousand of them.  And every
+keystroke rebuilt the whole document as a `String` for a callback that
+ignored it.  Underneath all three: a software rasterizer without an
+optimiser is twenty times slower, so `[profile.dev] opt-level = 1` is
+now in the workspace — debug assertions kept, and a repaint at 3.6 ms
+instead of 48.
+
+The instrumentation is what settled it, and is kept:
+`GESTATE_EDITOR_TIME` prints where a frame goes,
+`GESTATE_EDITOR_STRESS` never lets the picture go clean so the
+*platform's* half can be measured without a hand on the keyboard.  It
+answered the question that mattered — **`present` costs 0.02 ms**, so
+softbuffer's MIT-SHM path through XWayland was never the problem and no
+amount of tuning it would have helped.  It also found four milliseconds
+a frame spent OR-ing an alpha byte over the whole screen; `Canvas` now
+carries the alpha into its writes and the buffer is handed over with a
+`memcpy`.  The plugin panel had the identical waste and shares the fix.
+
+**The boundary is a version, not a document.**  A keystroke never
+crosses it: the rope is Rust's, the window loop is Rust's, and Python
+polls `ged_version` — one atomic read — fetching the text only when it
+has moved.  `Workbench` stays the model and decides what the file is,
+when to rebuild and when to save; the editor never learns any of that
+and by construction cannot.  The ABI is hand-declared on both sides,
+like `crust.py`'s and like `shell/clap/src/abi.rs`, for the reason that
+file states.
+
+Two mistakes worth keeping.  Folding "type over a selection" into one
+undo step depends on *which* entry you drop: the erase pushes the
+original document and the insert pushes the half-done one, so what must
+go is the second — dropping the first is the obvious way round and
+makes undo stop at the hole, with the selection gone and the
+replacement gone too.  And loading text from the host has to go through
+the same "the document changed" path as a keystroke: the window is the
+authority on what the document holds, and a load that quietly skipped
+the notification left `ged_text` handing back the text the caller had
+just replaced.

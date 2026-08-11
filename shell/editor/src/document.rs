@@ -37,6 +37,14 @@ pub struct Document {
     /// editor does this and every one that does not is immediately
     /// annoying.
     goal: Option<usize>,
+    /// Where a selection started, if one is open.
+    ///
+    /// **One anchor, not a range**, because a selection is a *gesture*
+    /// in progress: the caret is one end and the anchor is where the
+    /// other end was put down.  Storing an ordered pair instead would
+    /// lose which end moves, and shift-left from the middle of a
+    /// selection would grow the wrong side.
+    anchor: Option<usize>,
     /// Roots this document used to have, newest last.
     undo: Vec<(Rope, usize)>,
     redo: Vec<(Rope, usize)>,
@@ -51,7 +59,7 @@ impl Default for Document {
 impl Document {
     pub fn new(text: &str) -> Document {
         Document { text: Rope::from_str(text), pos: 0, goal: None,
-                   undo: Vec::new(), redo: Vec::new() }
+                   anchor: None, undo: Vec::new(), redo: Vec::new() }
     }
 
     pub fn rope(&self) -> &Rope {
@@ -88,6 +96,63 @@ impl Document {
         let start = self.text.rowpos(row).unwrap_or(0);
         let line = self.line(row);
         (row, column_of(&line, self.pos - start))
+    }
+
+    // ── Selecting ────────────────────────────────────────────────────
+
+    /// The selected range, ordered, or `None` when nothing is.
+    ///
+    /// An anchor *at* the caret is not a selection — it is a shifted
+    /// motion that has not moved yet — so it reads as nothing, and
+    /// every caller is spared asking whether an empty range counts.
+    pub fn selection(&self) -> Option<(usize, usize)> {
+        match self.anchor {
+            Some(a) if a != self.pos => Some((a.min(self.pos), a.max(self.pos))),
+            _ => None,
+        }
+    }
+
+    pub fn selected(&self) -> String {
+        match self.selection() {
+            None => String::new(),
+            Some((a, b)) => self.text.read(a, b).unwrap_or_default(),
+        }
+    }
+
+    /// Start extending from here, if nothing is being extended yet.
+    pub fn begin_extend(&mut self) {
+        if self.anchor.is_none() {
+            self.anchor = Some(self.pos);
+        }
+    }
+
+    /// Drop the selection, keeping the caret.
+    pub fn clear_anchor(&mut self) {
+        self.anchor = None;
+    }
+
+    pub fn select_all(&mut self) {
+        self.anchor = Some(0);
+        self.pos = self.text.len();
+        self.goal = None;
+    }
+
+    /// Select a range outright — what a double click or a search would
+    /// do.  The caret lands at `to`, so a following shifted motion
+    /// grows from there.
+    pub fn select(&mut self, from: usize, to: usize) {
+        self.anchor = Some(from.min(self.text.len()));
+        self.pos = to.min(self.text.len());
+        self.goal = None;
+    }
+
+    /// Erase what is selected, if anything.
+    pub fn delete_selection(&mut self) -> Result<bool, OutOfRange> {
+        let Some((a, b)) = self.selection() else { return Ok(false) };
+        let next = self.text.erase(a, b)?;
+        self.anchor = None;
+        self.commit(next, a);
+        Ok(true)
     }
 
     // ── Moving ───────────────────────────────────────────────────────
@@ -174,15 +239,37 @@ impl Document {
     /// type.
     pub fn insert(&mut self, s: &str) -> Result<bool, OutOfRange> {
         if s.is_empty() {
-            return Ok(false);
+            // **Even an empty insert clears a selection**, because
+            // "replace this with nothing" is a thing a paste can mean
+            // and silently keeping the text would be the wrong half of
+            // the operation.
+            return self.delete_selection();
+        }
+        // Typing over a selection replaces it — one edit, so one undo.
+        let replaced = self.selection().is_some();
+        if replaced {
+            self.delete_selection()?;
         }
         let next = self.text.insert(self.pos, s)?;
         self.commit(next, self.pos + s.chars().count());
+        if replaced {
+            // **Fold the two halves into one step**, and the order is
+            // the whole of it: the erase pushed the *original*
+            // document and the insert pushed the half-done one, so what
+            // must go is the second.  Dropping the first instead — which
+            // is the obvious way round and the way this was written —
+            // makes undo stop at the hole, with the selection gone and
+            // the replacement gone too.
+            self.undo.pop();
+        }
         Ok(true)
     }
 
     /// Backspace: the character before the caret.  `false` at the top.
     pub fn backspace(&mut self) -> Result<bool, OutOfRange> {
+        if self.selection().is_some() {
+            return self.delete_selection();
+        }
         if self.pos == 0 {
             return Ok(false);
         }
@@ -193,6 +280,9 @@ impl Document {
 
     /// Delete: the character after it.  `false` at the end.
     pub fn delete(&mut self) -> Result<bool, OutOfRange> {
+        if self.selection().is_some() {
+            return self.delete_selection();
+        }
         if self.pos >= self.text.len() {
             return Ok(false);
         }
@@ -244,6 +334,7 @@ impl Document {
                 self.text = text;
                 self.pos = pos.min(self.text.len());
                 self.goal = None;
+                self.anchor = None;
                 true
             }
         }
@@ -257,6 +348,7 @@ impl Document {
                 self.text = text;
                 self.pos = pos.min(self.text.len());
                 self.goal = None;
+                self.anchor = None;
                 true
             }
         }

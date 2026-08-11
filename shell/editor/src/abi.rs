@@ -1,0 +1,264 @@
+//! The C ABI — **Rust owns the rope and the window, Python
+//! orchestrates.**
+//!
+//! The same shape `gestate/crust.py` already drives `libcrust.so` with:
+//! a handful of `extern "C"` functions, hand-declared on the Python
+//! side, no build-time coupling and no binding generator.
+//! `shell/clap/src/abi.rs` makes the same move about CLAP, and states
+//! the reason — declaring the subset you need and owning every line of
+//! it is cheaper than a dependency that declares all of them.
+//!
+//! **Why the rope lives here.**  A keystroke never crosses the
+//! boundary: it arrives in the window's own loop, the rope takes it and
+//! the frame is redrawn, all in Rust, in microseconds.  Were Python to
+//! own the text, every character typed would be a round trip and a
+//! re-render of the document — which is the arrangement the editor was
+//! moved out of.
+//!
+//! **What crosses instead is a version.**  Python polls `ged_version`,
+//! which is one atomic read, and only asks for the text when it has
+//! changed.  `audioeditor.Workbench` stays the model: it decides when a
+//! rebuild is worth doing, what the file is, and when to save — the
+//! editor never learns any of that, and by construction cannot.
+//!
+//! ## The thread
+//!
+//! `baseview`'s loop blocks, so `ged_open` puts it on a thread of its
+//! own and hands back a handle.  Everything the two sides share is in
+//! `Shared`, behind atomics and short mutexes; nothing in the drawing
+//! path takes a lock the other side can hold.
+
+use std::ffi::{c_char, CStr, CString};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
+
+use crate::document::Document;
+use crate::window::{self, Host};
+
+/// What the two sides pass between them.
+pub struct Shared {
+    /// The text as of the last edit.
+    ///
+    /// **Written by the window thread, read by whoever asks.**  A
+    /// quarter-megabyte file is a quarter-megabyte copy per edit —
+    /// measured at 0.28 ms — which is affordable at typing speed and is
+    /// the price of the other side not being able to reach the rope.
+    /// The alternative, handing out a pointer into a living tree, is a
+    /// use-after-free waiting for a rebuild.
+    text: Mutex<String>,
+    /// Bumped on every edit.  **One atomic read is the whole polling
+    /// protocol**, so a host can ask "did anything happen" sixty times
+    /// a second for nothing.
+    version: AtomicU64,
+    pos: AtomicUsize,
+    open: AtomicBool,
+    /// Text the host wants loaded, picked up on the next frame.
+    incoming: Mutex<Option<String>>,
+    /// The host has asked the window to shut.
+    closing: AtomicBool,
+    initial: Mutex<String>,
+}
+
+impl Shared {
+    fn new(initial: String) -> Arc<Shared> {
+        Arc::new(Shared {
+            text: Mutex::new(initial.clone()),
+            version: AtomicU64::new(0),
+            pos: AtomicUsize::new(0),
+            open: AtomicBool::new(true),
+            incoming: Mutex::new(None),
+            closing: AtomicBool::new(false),
+            initial: Mutex::new(initial),
+        })
+    }
+
+    /// Text the host asked to load, if any — the window thread's side
+    /// of `ged_set_text`.
+    pub fn take_incoming(&self) -> Option<String> {
+        self.incoming.lock().ok().and_then(|mut t| t.take())
+    }
+
+    /// The window thread saying the document changed.
+    pub fn published(&self, text: String) {
+        if let Ok(mut held) = self.text.lock() {
+            *held = text;
+        }
+        self.version.fetch_add(1, Ordering::Release);
+    }
+}
+
+impl Host for Shared {
+    fn edited(&self, doc: &Document) {
+        self.published(doc.text());
+        self.pos.store(doc.pos(), Ordering::Relaxed);
+    }
+
+    fn moved(&self, pos: usize) {
+        self.pos.store(pos, Ordering::Relaxed);
+    }
+
+    fn initial(&self) -> String {
+        self.initial.lock().map(|t| t.clone()).unwrap_or_default()
+    }
+
+    fn incoming(&self) -> Option<String> {
+        self.take_incoming()
+    }
+
+    fn should_close(&self) -> bool {
+        self.closing.load(Ordering::Acquire)
+    }
+}
+
+/// The handle Python holds — the shared state and the thread running
+/// the window.
+pub struct Editor {
+    shared: Arc<Shared>,
+    thread: Option<std::thread::JoinHandle<()>>,
+}
+
+fn text_of(p: *const c_char) -> String {
+    if p.is_null() {
+        return String::new();
+    }
+    // SAFETY: the caller's promise that this is a NUL-terminated
+    // string, which is the whole of the contract on this side.
+    unsafe { CStr::from_ptr(p) }.to_string_lossy().into_owned()
+}
+
+/// Open an editor window with this text.  Returns a handle, or null.
+///
+/// # Safety
+/// `text` must be NUL-terminated or null.
+#[no_mangle]
+pub unsafe extern "C" fn ged_open(text: *const c_char, w: i32, h: i32)
+    -> *mut Editor
+{
+    let shared = Shared::new(text_of(text));
+    let mine = shared.clone();
+    let thread = std::thread::Builder::new()
+        .name("gestate-editor".into())
+        .spawn(move || {
+            let host: Arc<dyn Host> = mine.clone();
+            let _ = window::open_blocking(host, w.max(160), h.max(120));
+            // The window closed: say so, so a host polling `ged_is_open`
+            // stops rather than waiting for an event that will not come.
+            mine.open.store(false, Ordering::Release);
+        })
+        .ok();
+    match thread {
+        None => std::ptr::null_mut(),
+        Some(t) => Box::into_raw(Box::new(Editor { shared, thread: Some(t) })),
+    }
+}
+
+macro_rules! editor {
+    ($e:expr, $default:expr) => {
+        match unsafe { $e.as_ref() } {
+            None => return $default,
+            Some(e) => e,
+        }
+    };
+}
+
+/// Whether the window is still there.
+///
+/// # Safety
+/// `e` must be a handle from `ged_open` that has not been closed.
+#[no_mangle]
+pub unsafe extern "C" fn ged_is_open(e: *const Editor) -> bool {
+    editor!(e, false).shared.open.load(Ordering::Acquire)
+}
+
+/// How many edits have happened.  **One atomic read** — poll it.
+///
+/// # Safety
+/// As `ged_is_open`.
+#[no_mangle]
+pub unsafe extern "C" fn ged_version(e: *const Editor) -> u64 {
+    editor!(e, 0).shared.version.load(Ordering::Acquire)
+}
+
+/// Where the caret is, as a character offset.
+///
+/// # Safety
+/// As `ged_is_open`.
+#[no_mangle]
+pub unsafe extern "C" fn ged_pos(e: *const Editor) -> usize {
+    editor!(e, 0).shared.pos.load(Ordering::Relaxed)
+}
+
+/// The text, as a fresh C string the caller must free with
+/// `ged_free_str`.
+///
+/// # Safety
+/// As `ged_is_open`.  The returned pointer is the caller's to free and
+/// must not be freed any other way.
+#[no_mangle]
+pub unsafe extern "C" fn ged_text(e: *const Editor) -> *mut c_char {
+    let ed = editor!(e, std::ptr::null_mut());
+    let held = match ed.shared.text.lock() {
+        Ok(t) => t.clone(),
+        Err(_) => return std::ptr::null_mut(),
+    };
+    // A document holding a NUL is not representable as a C string, and
+    // silently truncating one would hand back half a file.  Refusing is
+    // the honest answer; nothing that compiles has one.
+    match CString::new(held) {
+        Ok(s) => s.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Load text into the editor.  Picked up on its next frame.
+///
+/// # Safety
+/// As `ged_is_open`; `text` must be NUL-terminated or null.
+#[no_mangle]
+pub unsafe extern "C" fn ged_set_text(e: *const Editor, text: *const c_char) {
+    let ed = editor!(e, ());
+    if let Ok(mut slot) = ed.shared.incoming.lock() {
+        *slot = Some(text_of(text));
+    }
+}
+
+/// Free a string `ged_text` handed out.
+///
+/// # Safety
+/// `p` must have come from `ged_text` and not been freed.
+#[no_mangle]
+pub unsafe extern "C" fn ged_free_str(p: *mut c_char) {
+    if !p.is_null() {
+        drop(unsafe { CString::from_raw(p) });
+    }
+}
+
+/// Ask the window to shut.  Returns at once; poll `ged_is_open`.
+///
+/// # Safety
+/// As `ged_is_open`.
+#[no_mangle]
+pub unsafe extern "C" fn ged_request_close(e: *const Editor) {
+    editor!(e, ()).shared.closing.store(true, Ordering::Release);
+}
+
+/// Close the window and release the handle.
+///
+/// # Safety
+/// `e` must be a handle from `ged_open`, and must not be used again.
+#[no_mangle]
+pub unsafe extern "C" fn ged_close(e: *mut Editor) {
+    if e.is_null() {
+        return;
+    }
+    let mut ed = unsafe { Box::from_raw(e) };
+    ed.shared.closing.store(true, Ordering::Release);
+    // **The thread is joined, not abandoned.**  A window still drawing
+    // into a surface whose process is tearing down is the sort of crash
+    // that gets blamed on the host — so the close is *asked for* above
+    // (the window does it to itself, on its own thread, between frames)
+    // and this waits for the loop to come back.
+    if let Some(t) = ed.thread.take() {
+        let _ = t.join();
+    }
+}

@@ -18,7 +18,7 @@
 use gestate_panel::list::Colour;
 use gestate_panel::paint::Canvas;
 
-use crate::document::{width_of, Document};
+use crate::document::{column_of, width_of, Document};
 use crate::font::Font;
 
 // ── The palette ──────────────────────────────────────────────────────
@@ -202,6 +202,39 @@ pub fn frame(doc: &Document, view: &View, font: &Font) -> Frame {
             // Right-aligned against the gutter's inner edge.
             let x = (gutter - 1 - n.chars().count()) as i32 * cw;
             f.items.push(Item::Run { x, y, s: n, c: FAINT });
+        }
+
+        // **The selection, under the text and over the current-line
+        // band.**  Drawn per row as one span, because a selection is a
+        // *range of the document* and the rows it crosses are whatever
+        // the line breaks made them — computing it per row is what
+        // makes a three-line selection three rectangles instead of one
+        // that has to be clipped.
+        if let Some((a, b)) = doc.selection() {
+            if let Ok((rs, re)) = doc.rope().row_range(row) {
+                // The newline at a row's end is *in* the selection when
+                // the range runs past it, and that is what makes a
+                // whole-line selection look whole rather than stopping
+                // at the last character.
+                let over = b > re && b > rs;
+                let (lo, hi) = (a.max(rs), b.min(re));
+                if lo < hi || (over && a <= re) {
+                    let line = doc.line(row);
+                    let c0 = column_of(&line, lo.saturating_sub(rs));
+                    let c1 = column_of(&line, hi.saturating_sub(rs));
+                    let x0 = text_x + (c0.saturating_sub(view.left)) as i32 * cw;
+                    // A selection running past the line's end is drawn a
+                    // cell wider, standing for the newline it swallowed.
+                    let extra = if over { 1 } else { 0 };
+                    let x1 = text_x
+                        + (c1.saturating_sub(view.left) as i32 + extra) * cw;
+                    if x1 > x0 && c1 >= view.left {
+                        f.items.push(Item::Rect { x: x0, y,
+                                                  w: (x1 - x0).min(view.w - x0),
+                                                  h: ch, c: SELECT });
+                    }
+                }
+            }
         }
 
         // **The line, scrolled horizontally by columns and not by

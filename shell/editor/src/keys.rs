@@ -39,6 +39,53 @@ pub enum Key {
     Bottom,
     Undo,
     Redo,
+    Copy,
+    Cut,
+    Paste,
+    SelectAll,
+}
+
+impl Key {
+    /// Whether this key moves the caret rather than changing the text.
+    ///
+    /// **The one question shift changes the answer to.**  A shifted
+    /// motion extends the selection; an unshifted one drops it; and an
+    /// *edit* does neither, because typing over a selection replaces it
+    /// and the shift key was only how you got the capital letter.
+    pub fn is_motion(&self) -> bool {
+        matches!(self, Key::Left | Key::Right | Key::Up | Key::Down
+                     | Key::Home | Key::End | Key::PageUp | Key::PageDown
+                     | Key::Top | Key::Bottom)
+    }
+}
+
+/// Where cut and copy put things, and where paste takes them from.
+///
+/// **A trait, because there are two answers and only one of them is
+/// this crate's.**  Within the editor a `Memory` clipboard is complete
+/// and costs nothing.  The *system* clipboard is a platform
+/// negotiation — on X11 it is selection ownership and the INCR
+/// protocol, and `baseview` 0.3's `copy_to_clipboard` is a stub that
+/// ignores its argument — so it belongs to whoever embeds the editor
+/// and already owns a connection.  The seam is here so that one can be
+/// handed in without any of the code above changing.
+pub trait Clipboard {
+    fn get(&self) -> String;
+    fn set(&mut self, text: &str);
+}
+
+/// The editor's own, which does not leave the process.
+#[derive(Default)]
+pub struct Memory(String);
+
+impl Clipboard for Memory {
+    fn get(&self) -> String {
+        self.0.clone()
+    }
+
+    fn set(&mut self, text: &str) {
+        self.0 = text.to_string();
+    }
 }
 
 /// Which modifiers were down.  Only the two that change meaning here.
@@ -92,7 +139,25 @@ fn wrote(r: Result<bool, crate::rope::OutOfRange>) -> Did {
 pub fn press(doc: &mut Document, view: &mut View, font: &Font,
              key: Key, mods: Mods) -> Did
 {
+    press_with(doc, view, font, key, mods, &mut Memory::default())
+}
+
+/// The same, with somewhere for cut and paste to go.
+pub fn press_with(doc: &mut Document, view: &mut View, font: &Font,
+                  key: Key, mods: Mods, clip: &mut dyn Clipboard) -> Did
+{
     let rows = view.rows(font);
+    // **Before the motion, not after.**  Shift means "keep the end I
+    // am not moving", so the anchor has to be put down where the caret
+    // *was*; deciding afterwards would anchor it where it arrived and
+    // select nothing.
+    if key.is_motion() {
+        if mods.shift {
+            doc.begin_extend();
+        } else {
+            doc.clear_anchor();
+        }
+    }
     let did = match key {
         Key::Char(c) => {
             let mut b = [0u8; 4];
@@ -133,8 +198,35 @@ pub fn press(doc: &mut Document, view: &mut View, font: &Font,
         Key::Bottom => { doc.seek(doc.len()); Did::moved() }
         Key::Undo => if doc.undo() { Did::wrote() } else { Did::nothing() },
         Key::Redo => if doc.redo() { Did::wrote() } else { Did::nothing() },
+        Key::SelectAll => { doc.select_all(); Did::moved() }
+        Key::Copy => {
+            // **Copying nothing leaves the clipboard alone.**  Ctrl-C
+            // with no selection is a miss, and emptying what you had
+            // copied a moment ago is the worst possible answer to one.
+            match doc.selection() {
+                None => Did::nothing(),
+                Some(_) => {
+                    clip.set(&doc.selected());
+                    Did::nothing()
+                }
+            }
+        }
+        Key::Cut => match doc.selection() {
+            None => Did::nothing(),
+            Some(_) => {
+                clip.set(&doc.selected());
+                wrote(doc.delete_selection())
+            }
+        },
+        Key::Paste => {
+            let text = clip.get();
+            if text.is_empty() && doc.selection().is_none() {
+                Did::nothing()
+            } else {
+                wrote(doc.insert(&text))
+            }
+        }
     };
-    let _ = mods;
     if did.drew {
         view.clamp(doc, font);
         view.follow(doc, font);
@@ -142,13 +234,26 @@ pub fn press(doc: &mut Document, view: &mut View, font: &Font,
     did
 }
 
-/// A click: put the caret where the pointer is.
+/// A click: put the caret where the pointer is, dropping any
+/// selection.
 pub fn click(doc: &mut Document, view: &View, font: &Font, x: i32, y: i32)
     -> Did
 {
     let (row, col) = view.hit(doc, font, x, y);
+    doc.clear_anchor();
     doc.seek_rowcol(row, col);
     Did::moved()
+}
+
+/// A drag: the same, extending from wherever the press landed.
+pub fn drag(doc: &mut Document, view: &View, font: &Font, x: i32, y: i32)
+    -> Did
+{
+    let (row, col) = view.hit(doc, font, x, y);
+    doc.begin_extend();
+    let was = doc.pos();
+    doc.seek_rowcol(row, col);
+    Did { drew: doc.pos() != was, edited: false }
 }
 
 /// A wheel, in lines.  Positive is down the document.

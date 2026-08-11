@@ -34,7 +34,7 @@ use raw_window_handle::{
 
 use crate::document::Document;
 use crate::font::Font;
-use crate::keys::{self, Did, Key, Mods};
+use crate::keys::{self, Did, Key, Memory, Mods};
 use crate::view::{self, View};
 
 /// The handle a host holds onto.  A thin wrapper, so nothing above
@@ -84,6 +84,25 @@ pub trait Host: Send + Sync + 'static {
     fn initial(&self) -> String {
         String::new()
     }
+
+    /// Text the host wants loaded, checked once a frame.
+    ///
+    /// **A pull rather than a push**, because the document lives on the
+    /// window's thread and nothing off it may touch the rope.  The host
+    /// leaves the text somewhere; the window collects it when it is
+    /// next drawing anyway.
+    fn incoming(&self) -> Option<String> {
+        None
+    }
+
+    /// Whether the host has asked the window to shut.
+    ///
+    /// Checked once a frame, for the same reason: closing is the
+    /// window's own to do, and a host reaching in to do it would be
+    /// tearing down a surface that is possibly mid-frame.
+    fn should_close(&self) -> bool {
+        false
+    }
 }
 
 /// A host that does nothing, for a window with no owner.
@@ -117,6 +136,11 @@ struct EditorWindow {
     view: RefCell<View>,
     /// Where on the zoom ladder this window is sitting.
     zoom: Cell<usize>,
+    /// Whether the left button is down, so motion means drag-select.
+    dragging: Cell<bool>,
+    /// Cut and copy go here.  In-process; see `keys::Clipboard` for why
+    /// the system one is somebody else's to provide.
+    clip: RefCell<Memory>,
     surface: RefCell<softbuffer::Surface<PlatformHandle, PlatformHandle>>,
     /// The last cursor position — `baseview` reports it on motion only,
     /// and a press carries a button and no point.
@@ -228,6 +252,8 @@ impl EditorWindow {
                 scale: crate::font::LADDER[crate::font::LADDER_DEFAULT].1,
             }),
             zoom: Cell::new(crate::font::LADDER_DEFAULT),
+            dragging: Cell::new(false),
+            clip: RefCell::new(Memory::default()),
             canvas: RefCell::new(Canvas::opaque(w, h, view::BG)),
             surface: RefCell::new(surface),
             cursor: Cell::new((0, 0)),
@@ -278,6 +304,10 @@ fn translate(k: &keyboard_types::KeyboardEvent) -> Option<Key> {
                     'z' if k.modifiers.contains(Modifiers::SHIFT) => Some(Key::Redo),
                     'z' => Some(Key::Undo),
                     'y' => Some(Key::Redo),
+                    'c' => Some(Key::Copy),
+                    'x' => Some(Key::Cut),
+                    'v' => Some(Key::Paste),
+                    'a' => Some(Key::SelectAll),
                     'h' => Some(Key::Top),
                     'e' => Some(Key::Bottom),
                     _ => None,
@@ -312,6 +342,30 @@ fn translate(k: &keyboard_types::KeyboardEvent) -> Option<Key> {
 
 impl WindowHandler for EditorWindow {
     fn on_frame(&self) -> Result<(), baseview::HandlerError> {
+        if self.host.should_close() {
+            self.ctx.request_close();
+            return Ok(());
+        }
+        if let Some(text) = self.host.incoming() {
+            let doc = {
+                let mut doc = self.doc.borrow_mut();
+                doc.set_text(&text);
+                let mut v = self.view.borrow_mut();
+                v.clamp(&doc, self.font());
+                v.follow(&doc, self.font());
+                self.dirty.set(true);
+                doc.clone()
+            };
+            // **And say so.**  The window is the authority on what the
+            // document holds, so a load is an edit like any other —
+            // without this the host's own copy stays at whatever it was
+            // before, and `ged_text` hands back the text the *caller*
+            // replaced.  Circular-looking (the host is told what it
+            // asked for) and correct: anything else would make the two
+            // sides disagree the moment a load is clamped, rejected, or
+            // arrives while something else is happening.
+            self.host.edited(&doc);
+        }
         let timing = self.clock.borrow().on;
         if timing {
             let mut c = self.clock.borrow_mut();
@@ -438,24 +492,56 @@ impl WindowHandler for EditorWindow {
                 let did = {
                     let mut doc = self.doc.borrow_mut();
                     let mut view = self.view.borrow_mut();
-                    keys::press(&mut doc, &mut view, self.font(), key, mods)
+                    let mut clip = self.clip.borrow_mut();
+                    keys::press_with(&mut doc, &mut view, self.font(), key,
+                                     mods, &mut *clip)
                 };
                 self.after(did)
             }
             Event::Mouse(MouseEvent::CursorMoved { position, .. }) => {
-                self.cursor.set((position.x as i32, position.y as i32));
-                EventStatus::Captured
+                let (x, y) = (position.x as i32, position.y as i32);
+                self.cursor.set((x, y));
+                if !self.dragging.get() {
+                    return EventStatus::Captured;
+                }
+                // **A drag extends from where the button went down**,
+                // and keeps extending past the window's edge — which is
+                // what selecting more than a screenful means.  The view
+                // follows, so the text scrolls under the pointer.
+                let did = {
+                    let mut doc = self.doc.borrow_mut();
+                    let mut view = self.view.borrow_mut();
+                    let d = keys::drag(&mut doc, &view, self.font(), x, y);
+                    if d.drew {
+                        view.follow(&doc, self.font());
+                    }
+                    d
+                };
+                self.after(did)
             }
             Event::Mouse(MouseEvent::ButtonPressed {
-                button: MouseButton::Left, ..
+                button: MouseButton::Left, modifiers, ..
             }) => {
+                self.dragging.set(true);
                 let (x, y) = self.cursor.get();
                 let did = {
                     let mut doc = self.doc.borrow_mut();
                     let view = self.view.borrow();
-                    keys::click(&mut doc, &view, self.font(), x, y)
+                    // Shift-click extends rather than starts over, which
+                    // is how a selection is adjusted without redoing it.
+                    if modifiers.contains(Modifiers::SHIFT) {
+                        keys::drag(&mut doc, &view, self.font(), x, y)
+                    } else {
+                        keys::click(&mut doc, &view, self.font(), x, y)
+                    }
                 };
                 self.after(did)
+            }
+            Event::Mouse(MouseEvent::ButtonReleased {
+                button: MouseButton::Left, ..
+            }) => {
+                self.dragging.set(false);
+                EventStatus::Captured
             }
             Event::Mouse(MouseEvent::WheelScrolled { delta, modifiers }) => {
                 // Three lines a notch, which is what a wheel means
