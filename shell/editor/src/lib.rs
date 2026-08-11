@@ -35,6 +35,7 @@ pub mod furniture;
 pub mod keys;
 pub mod palette;
 pub mod rope;
+pub mod shapes;
 pub mod view;
 
 #[cfg(feature = "window")]

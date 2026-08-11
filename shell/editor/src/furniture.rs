@@ -234,6 +234,7 @@ impl Furniture {
 /// redo
 /// goto    <line>      counting from one
 /// insert  <text>
+/// show    <canvas|source>
 /// ```
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Order {
@@ -245,6 +246,8 @@ pub enum Order {
     Goto(usize),
     /// Type this, as if it had been typed.
     Insert(String),
+    /// Look at the canvas, or at the source.
+    Show(String),
 }
 
 impl Order {
@@ -261,6 +264,7 @@ impl Order {
             // inserted is somebody's text, and deciding it is not worth
             // inserting is not this layer's decision to make.
             "insert" => Some(Order::Insert(arg(1).into())),
+            "show" => Some(Order::Show(arg(1).into())),
             _ => None,
         }
     }

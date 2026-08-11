@@ -144,3 +144,12 @@ fn every_gesture_is_one_line_with_a_verb_first() {
                 "{verb:?} is not a verb");
     }
 }
+
+/// Looking at the canvas is an order like any other.
+#[test]
+fn showing_is_an_order() {
+    assert_eq!(Order::read("show\tcanvas"),
+               Some(Order::Show("canvas".into())));
+    assert_eq!(Order::read("show\tsource"),
+               Some(Order::Show("source".into())));
+}

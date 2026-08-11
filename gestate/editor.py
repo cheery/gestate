@@ -90,6 +90,8 @@ def _library():
     lib.ged_gestures.restype = ctypes.c_void_p
     lib.ged_order.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
     lib.ged_order.restype = None
+    lib.ged_set_picture.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+    lib.ged_set_picture.restype = None
     lib.ged_request_close.argtypes = [ctypes.c_void_p]
     lib.ged_request_close.restype = None
     lib.ged_close.argtypes = [ctypes.c_void_p]
@@ -188,6 +190,18 @@ class Editor:
         finally:
             self._lib.ged_free_str(p)
         return [line for line in text.split("\n") if line]
+
+    def draw(self, picture: str) -> None:
+        """The canvas, as shapes — see `shell/editor/src/shapes.rs`.
+
+        **Its own channel, not part of the description.**  A substrate
+        animates, so this changes every frame while the furniture beside
+        it changes when a command runs; sending them together would
+        carry every knob and command line across the boundary sixty
+        times a second to move one dot.
+        """
+        if self._h:
+            self._lib.ged_set_picture(self._h, picture.encode())
 
     def order(self, line: str) -> None:
         """Ask the window to do something — see `furniture::Order`.

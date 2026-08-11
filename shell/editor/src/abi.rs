@@ -67,6 +67,17 @@ pub struct Shared {
     furnished: AtomicU64,
     /// What the window has to say back, oldest first.
     gestures: Mutex<Vec<String>>,
+    /// The canvas, as shapes to draw.
+    ///
+    /// **Its own channel, not part of the furniture.**  A substrate
+    /// animates — a meter, a spectrum, anything reading `peak` — so its
+    /// display list changes every frame while the furniture beside it
+    /// changes when a command runs. Sending them together would make
+    /// every knob and command line cross the boundary sixty times a
+    /// second to carry a moving dot, which is the churn the beat's
+    /// rounding already had to be fixed for once.
+    picture: Mutex<String>,
+    drawn: AtomicU64,
     /// What the model has asked the window to *do*, oldest first.
     ///
     /// **The other direction, and it needs one.**  The furniture says
@@ -93,6 +104,8 @@ impl Shared {
             furnished: AtomicU64::new(0),
             gestures: Mutex::new(Vec::new()),
             orders: Mutex::new(Vec::new()),
+            picture: Mutex::new(String::new()),
+            drawn: AtomicU64::new(0),
             initial: Mutex::new(initial),
         })
     }
@@ -153,6 +166,14 @@ impl Host for Shared {
 
     fn furniture(&self) -> Option<(u64, String)> {
         self.furniture_now()
+    }
+
+    fn picture(&self) -> Option<(u64, String)> {
+        let at = self.drawn.load(Ordering::Acquire);
+        if at == 0 {
+            return None;
+        }
+        self.picture.lock().ok().map(|t| (at, t.clone()))
     }
 
     fn orders(&self) -> Vec<String> {
@@ -326,6 +347,20 @@ pub unsafe extern "C" fn ged_gestures(e: *const Editor) -> *mut c_char {
 ///
 /// # Safety
 /// `p` must have come from `ged_text` and not been freed.
+/// The canvas, as shapes to draw — see `shapes::read`.
+///
+/// # Safety
+/// `e` must be a live editor and `text` a NUL-terminated string.
+#[no_mangle]
+pub unsafe extern "C" fn ged_set_picture(e: *const Editor,
+                                         text: *const c_char) {
+    let ed = editor!(e, ());
+    if let Ok(mut held) = ed.shared.picture.lock() {
+        *held = text_of(text);
+    }
+    ed.shared.drawn.fetch_add(1, Ordering::Release);
+}
+
 /// Ask the window to do something — see `furniture::Order`.
 ///
 /// Queued and obeyed on the window's next frame, because the document

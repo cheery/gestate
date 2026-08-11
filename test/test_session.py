@@ -808,18 +808,37 @@ def test_a_shortcut_reaches_the_window_as_the_list_spells_it():
     assert advertised["play"] == "Ctrl-Space"
 
 
-def test_canvas_tells_a_file_that_draws_nothing_from_a_window_that_cannot():
-    """**Two refusals, and telling them apart is the whole point.**
+class _Showing:
+    """A view port that can be pointed at either half."""
 
-    Answering "this file draws nothing" when the truth is "this window
-    cannot show it yet" sends somebody back to look for a bug in a
-    program that is perfectly fine.
-    """
+    def __init__(self):
+        self.showing = "source"
+
+    def show(self, what):
+        self.showing = what
+        return True
+
+    def text(self):
+        return ""
+
+
+def test_canvas_answers_about_three_different_things():
+    """A file that draws nothing, a canvas still compiling, and a window
+    that cannot show one are three answers — and saying the first when
+    the second is true sends somebody back to look for a bug in a
+    program that is merely still building."""
     it = session()
+    it.view = _Showing()
     it.bench.substrate = None
+    it.bench.source = lambda: "sound : Sig Float\n"
     assert it.run("canvas") == "this file draws nothing"
+    assert it.view.showing == "source", "and it does not switch to nothing"
 
-    it.bench.substrate = object()          # the file does draw
+    # Declared, not built yet — `start` compiles it on its own thread.
+    it.bench.source = lambda: "substrate : Sig Sub\nsubstrate = moveXY 1 1\n"
     said = it.run("canvas")
-    assert "this file draws nothing" not in said
-    assert "source only" in said
+    assert "will appear" in said, said
+    assert it.view.showing == "canvas", "it opens and fills in"
+
+    it.bench.substrate = object()
+    assert it.run("canvas") == "canvas"

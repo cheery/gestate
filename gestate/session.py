@@ -657,21 +657,26 @@ class Session:
     # -- the window ----------------------------------------------------
 
     def do_canvas(self) -> str:
-        """Show the picture the file draws, if there is one.
+        """Show the picture the file draws.
 
-        **Two refusals, and telling them apart is the whole point.**  A
-        file with no `substrate` draws nothing, and saying so is a fact
-        about the file. A window that cannot show one yet is a fact
-        about the *window* — and answering the first when the second is
-        true sends somebody back to look for a bug in a program that is
-        perfectly fine. `lantern.ges` draws a lantern.
+        **Three answers, and they are about three different things.**  A
+        file with no `substrate` draws nothing, and that is a fact about
+        the file. A file that has one which is not built *yet* is a fact
+        about the clock — `start` compiles the canvas on its own thread,
+        so asking early is the ordinary case rather than an error, and
+        the honest reply is to say so and open it anyway: it fills in
+        when it arrives. Only a window that cannot show one at all is a
+        fact about the window.
+
+        Answering the first when the second is true sends somebody back
+        to look for a bug in a program that is merely still compiling.
         """
-        if getattr(self.bench, "substrate", None) is None:
+        if not _draws(self.bench):
             return "this file draws nothing"
-        if self.view.show("canvas"):
-            return "canvas"
-        return ("this window shows the source only; "
-                "`python -m gestate.audioeditor` draws the canvas")
+        if not self.view.show("canvas"):
+            return "this window shows the source only"
+        return ("canvas" if getattr(self.bench, "substrate", None) is not None
+                else "opening the canvas — it will appear when it builds")
 
     def do_source(self) -> str:
         self.view.show("source")
@@ -957,6 +962,25 @@ def _reference(name: str) -> str | None:
     where = f" ({entry.library})" if entry.library else ""
     line = entry.signature.strip() or f"{entry.name} : ?"
     return f"{line}{where}" + (f" — {said}" if said else "")
+
+
+def _draws(bench) -> bool:
+    """Whether this file draws a canvas at all.
+
+    **Asked of the text when the built one is not there yet.**  The
+    substrate compiles on its own thread, so `bench.substrate` being
+    `None` means either *no canvas* or *not yet* — and the source can
+    tell them apart, with the same check `_load_substrate` uses to
+    decide whether to compile one.
+    """
+    if getattr(bench, "substrate", None) is not None:
+        return True
+    try:
+        from .audio import has_substrate
+
+        return bool(has_substrate(bench.source()))
+    except Exception:                                    # noqa: BLE001
+        return False
 
 
 def _held_notes(bench) -> set:

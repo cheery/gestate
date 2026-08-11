@@ -378,6 +378,69 @@ pub fn frame(doc: &Document, view: &View, font: &Font) -> Frame {
     frame_with(doc, view, font, &Furniture::default())
 }
 
+/// The chrome alone, for a window showing the canvas.
+///
+/// **Looking at a picture does not stop a command from answering**, and
+/// an answer with nowhere to appear is an answer nobody reads — so the
+/// status line and the transport survive the switch, and nothing else
+/// does. The canvas is the program's own drawing and the window has no
+/// business writing over it.
+pub fn chrome_only(view: &View, font: &Font, chrome: &Furniture) -> Frame {
+    let mut f = Frame::default();
+    foot(&mut f, view, font, chrome);
+    f
+}
+
+/// The status line and the transport readout.
+///
+/// **Its own function because both frames want it.**  Looking at the
+/// canvas does not stop a command from answering, and an answer with
+/// nowhere to appear is an answer nobody reads.
+fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
+    let (cw, ch) = (view.cw(font), view.ch(font));
+    let _ = ch;
+    // The status line, at the foot — one sentence, which is what the
+    // model says every command answers with.
+    let sy = view.h - view.status_h(font);
+    f.items.push(Item::Rect { x: 0, y: sy, w: view.w,
+                              h: view.status_h(font), c: CHROME });
+    if !chrome.status.is_empty() {
+        f.items.push(Item::Run { x: 4, y: sy + 2, s: chrome.status.clone(),
+                                 c: FAINT });
+    }
+
+    // **Where the music is, at the right of the same line.**  The
+    // description has carried the transport since the wire was built and
+    // nothing drew it, which made `seek` and `play` look like commands
+    // that did nothing: they answered *"at bar 8"* and the window showed
+    // exactly what it had before.  A command whose only evidence is its
+    // own sentence is indistinguishable from one that failed.
+    if chrome.has_transport {
+    let beat = chrome.beat.max(0.0);
+    let bar = (beat / 4.0).floor() as i64 + 1;
+    let mut when = format!("{} {}.{}",
+                           if chrome.playing { "\u{25b6}" } else { "\u{25a0}" },
+                           bar, (beat as i64).rem_euclid(4) + 1);
+    if let Some((from, to)) = chrome.looping {
+        // Bars, because that is what `loop` is given and a readout in
+        // other units than the command is a second thing to learn.
+        // **The bars the command was given**, both ends the same way.
+        // The end is exclusive — `loop 2 6` plays bars two to five —
+        // and showing the bars *played* would mean the readout and the
+        // command that made it disagree by one, which is a puzzle to
+        // solve every time rather than a thing to read.
+        when.push_str(&format!("  \u{21ba}{}-{}",
+                               (from / 4.0).floor() as i64 + 1,
+                               (to / 4.0).floor() as i64 + 1));
+    }
+    let at = view.w - 4 - width_of(&when) as i32 * cw;
+    f.items.push(Item::Run { x: at, y: sy + 2, s: when,
+                             c: if chrome.playing { LIVE } else { FAINT } });
+    }
+
+}
+
+
 /// The same, with what the model had to say about the chrome.
 pub fn frame_with(doc: &Document, view: &View, font: &Font,
                   chrome: &Furniture) -> Frame {
@@ -590,44 +653,7 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
         f.items.push(Item::Run { x: 4, y: band, s: said, c: FAINT });
     }
 
-    // The status line, at the foot — one sentence, which is what the
-    // model says every command answers with.
-    let sy = view.h - view.status_h(font);
-    f.items.push(Item::Rect { x: 0, y: sy, w: view.w,
-                              h: view.status_h(font), c: CHROME });
-    if !chrome.status.is_empty() {
-        f.items.push(Item::Run { x: 4, y: sy + 2, s: chrome.status.clone(),
-                                 c: FAINT });
-    }
-
-    // **Where the music is, at the right of the same line.**  The
-    // description has carried the transport since the wire was built and
-    // nothing drew it, which made `seek` and `play` look like commands
-    // that did nothing: they answered *"at bar 8"* and the window showed
-    // exactly what it had before.  A command whose only evidence is its
-    // own sentence is indistinguishable from one that failed.
-    if chrome.has_transport {
-    let beat = chrome.beat.max(0.0);
-    let bar = (beat / 4.0).floor() as i64 + 1;
-    let mut when = format!("{} {}.{}",
-                           if chrome.playing { "\u{25b6}" } else { "\u{25a0}" },
-                           bar, (beat as i64).rem_euclid(4) + 1);
-    if let Some((from, to)) = chrome.looping {
-        // Bars, because that is what `loop` is given and a readout in
-        // other units than the command is a second thing to learn.
-        // **The bars the command was given**, both ends the same way.
-        // The end is exclusive — `loop 2 6` plays bars two to five —
-        // and showing the bars *played* would mean the readout and the
-        // command that made it disagree by one, which is a puzzle to
-        // solve every time rather than a thing to read.
-        when.push_str(&format!("  \u{21ba}{}-{}",
-                               (from / 4.0).floor() as i64 + 1,
-                               (to / 4.0).floor() as i64 + 1));
-    }
-    let at = view.w - 4 - width_of(&when) as i32 * cw;
-    f.items.push(Item::Run { x: at, y: sy + 2, s: when,
-                             c: if chrome.playing { LIVE } else { FAINT } });
-    }
+    foot(&mut f, view, font, chrome);
 
     // The caret last, so nothing is drawn over it.
     if crow >= view.top && crow < view.top + rows && ccol >= view.left {

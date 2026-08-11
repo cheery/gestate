@@ -110,6 +110,12 @@ pub trait Host: Send + Sync + 'static {
     /// Something the window has to say.  Called on the window's thread.
     fn gesture(&self, _line: String) {}
 
+    /// The canvas, when the model has redrawn it since it was last
+    /// asked — `(version, shapes)`.
+    fn picture(&self) -> Option<(u64, String)> {
+        None
+    }
+
     /// Things the model has asked the window to do, drained once a
     /// frame — see `furniture::Order`.
     ///
@@ -192,6 +198,15 @@ struct EditorWindow {
     told: Cell<(usize, usize, usize, usize)>,
     /// The note the pointer is holding down, if any.
     playing: Cell<Option<i32>>,
+    /// Whether the canvas is what the window is showing.
+    ///
+    /// **A view, not a mode.**  The text is still there and still
+    /// yours; this is which of the two the window is pointed at, the
+    /// way a second tab in the plugin panel is.
+    on_canvas: Cell<bool>,
+    /// The canvas, as the model last drew it, and which version.
+    picture: RefCell<Vec<gestate_panel::list::Item>>,
+    drawn: Cell<u64>,
     /// **Whether the keyboard is the piano's.**
     ///
     /// `spec/commands.md` settled this when the piano was still an
@@ -358,6 +373,9 @@ impl EditorWindow {
             turning: RefCell::new(None),
             playing: Cell::new(None),
             at_piano: Cell::new(false),
+            on_canvas: Cell::new(false),
+            picture: RefCell::new(Vec::new()),
+            drawn: Cell::new(0),
             fingers: RefCell::new(std::collections::HashSet::new()),
             // **`GESTATE_EDITOR_STRESS` never goes clean**, so every
             // frame draws and presents.  It is how the *platform's*
@@ -599,6 +617,14 @@ impl EditorWindow {
                 view.follow(&doc, self.font());
                 Did { drew: true, edited: false }
             }
+            Order::Show(what) => {
+                let want = what == "canvas";
+                if self.on_canvas.get() != want {
+                    self.on_canvas.set(want);
+                    self.dirty.set(true);
+                }
+                Did::nothing()
+            }
             Order::Insert(text) => {
                 let mut doc = self.doc.borrow_mut();
                 match doc.insert(&text) {
@@ -779,6 +805,15 @@ impl WindowHandler for EditorWindow {
                 self.dirty.set(true);
             }
         }
+        if let Some((at, text)) = self.host.picture() {
+            if at != self.drawn.get() {
+                self.drawn.set(at);
+                *self.picture.borrow_mut() = crate::shapes::read(&text);
+                if self.on_canvas.get() {
+                    self.dirty.set(true);
+                }
+            }
+        }
         for line in self.host.orders() {
             if let Some(order) = Order::read(&line) {
                 self.obey(order);
@@ -888,9 +923,32 @@ impl WindowHandler for EditorWindow {
         }
         let chrome = self.chrome.borrow();
         if painting {
-            view::paint(&mut canvas,
-                        &view::frame_with(&doc, &view, font, &chrome), font,
-                        self.scale());
+            if self.on_canvas.get() {
+                // **The same painter the plugin panel uses.**  A second
+                // one would be a second set of rounding decisions, and
+                // the two windows would disagree about somebody's
+                // artwork.  The canvas is centred because `gui.py`
+                // places a program's shapes around an origin and says
+                // so: *"a program places what it draws with `moveXY`"*.
+                // **From the window's corner, like the plugin panel.**
+                // `gui.py` walks from `cx = cy = 0` and a program places
+                // what it draws with `moveXY`; centring on top of that
+                // double-counts the move, which is a bug this project
+                // has already had once.
+                canvas.clear(view::BG);
+                let show = gestate_panel::list::Display {
+                    items: self.picture.borrow().clone(),
+                    hits: Vec::new(),
+                };
+                gestate_panel::paint::paint(&mut canvas, &show);
+                view::paint(&mut canvas,
+                            &view::chrome_only(&view, font, &chrome), font,
+                            self.scale());
+            } else {
+                view::paint(&mut canvas,
+                            &view::frame_with(&doc, &view, font, &chrome),
+                            font, self.scale());
+            }
         }
         // The palette over the text, in its own frame — chrome over a
         // document, so the document's layout cannot depend on whether a

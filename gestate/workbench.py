@@ -45,6 +45,8 @@ class Window:
 
     def __init__(self, editor):
         self.editor = editor
+        #: Which of the two the window is pointed at.
+        self.showing = "source"
         self.zoom_at = 0
         self.zoom_rungs = 1
         self.undos = 0
@@ -127,10 +129,13 @@ class Window:
         self.editor.order(f"zoom\t{int(by)}")
         return True
 
-    def show(self, _what: str) -> bool:
-        # The canvas is not drawn in this window yet.  A refusal that
-        # reads beats a command that lies.
-        return False
+    def show(self, what: str) -> bool:
+        """Point the window at the canvas, or back at the source."""
+        if what not in ("canvas", "source"):
+            return False
+        self.showing = what
+        self.editor.order(f"show\t{what}")
+        return True
 
     def insert(self, text: str) -> bool:
         if not text:
@@ -168,6 +173,30 @@ def pace(stirred: bool, wait: float) -> float:
     finished.
     """
     return BUSY if stirred else min(IDLE, wait * 2)
+
+
+def _shapes(picture) -> str:
+    """`gui.py`'s display list, as lines the window can read.
+
+    **The string last in each line**, because it is the only field that
+    can contain anything — everything before it is a number, so the
+    split is unambiguous however somebody's label is written.
+    """
+    out = []
+    for shape in picture or ():
+        kind = shape[0]
+        if kind == "rect":
+            _k, x, y, w, h, c = shape
+            out.append(f"rect\t{x}\t{y}\t{w}\t{h}"
+                       f"\t{c[0]}\t{c[1]}\t{c[2]}")
+        elif kind == "dot":
+            _k, cx, cy, r, c = shape
+            out.append(f"dot\t{cx}\t{cy}\t{r}\t{c[0]}\t{c[1]}\t{c[2]}")
+        elif kind == "text":
+            _k, x, y, text, c, scale = shape
+            out.append(f"text\t{x}\t{y}\t{scale}"
+                       f"\t{c[0]}\t{c[1]}\t{c[2]}\t{text}")
+    return "\n".join(out)
 
 
 def run(path, rate: int = 44100, block: int = 512,
@@ -220,7 +249,7 @@ def run(path, rate: int = 44100, block: int = 512,
     starter = threading.Thread(target=begin, daemon=True)
     starter.start()
 
-    said = ""
+    said, drawn = "", None
     wait = IDLE
     try:
         while editor.is_open:
@@ -245,6 +274,16 @@ def run(path, rate: int = 44100, block: int = 512,
             if now != said:
                 editor.describe(now)
                 said = now
+
+            # **The canvas, and only while it is what you are looking
+            # at.**  A substrate is a program that draws every frame, so
+            # asking for one nobody is watching is a whole graph forced
+            # per tick for a picture behind a page of text.
+            if getattr(session.view, "showing", "source") == "canvas":
+                drawing = _shapes(bench.picture())
+                if drawing != drawn:
+                    editor.draw(drawing)
+                    drawn = drawing
             wait = pace(stirred, wait)
             time.sleep(wait)
     finally:
