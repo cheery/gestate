@@ -36,7 +36,7 @@ use crate::document::Document;
 use crate::font::Font;
 use crate::furniture::{Furniture, Gesture, Order};
 use crate::keys::{self, Did, Key, Memory, Mods};
-use crate::palette::{Asks, Palette};
+use crate::palette::{Asks, Entry, Palette};
 use crate::view::{self, View};
 
 /// The handle a host holds onto.  A thin wrapper, so nothing above
@@ -373,6 +373,72 @@ impl EditorWindow {
         }
     }
 
+    /// The command this chord claims, if any advertises it.
+    ///
+    /// Spelled the way the model spells it — `Ctrl-S`, `Ctrl-Return`,
+    /// `Ctrl-+` — because that string is what the list shows, and a
+    /// second spelling would be a second table to keep in step.
+    fn shortcut(&self, k: &keyboard_types::KeyboardEvent) -> Option<Entry> {
+        let ctrl = k.modifiers.contains(Modifiers::CONTROL);
+        if !ctrl {
+            // Every shortcut this editor can have takes Control.  A
+            // bare key is text, and an editor that stole one would be
+            // an editor you cannot type in.
+            return None;
+        }
+        let tail = match &k.key {
+            Kt::Character(s) if s == " " => "Space".to_string(),
+            Kt::Character(s) => s.to_uppercase(),
+            Kt::Named(NamedKey::Enter) => "Return".to_string(),
+            Kt::Named(NamedKey::Tab) => "Tab".to_string(),
+            _ => return None,
+        };
+        let chord = format!("Ctrl-{tail}");
+        let chrome = self.chrome.borrow();
+        chrome.commands.iter()
+            .find(|e| !e.key.is_empty()
+                  && e.key.eq_ignore_ascii_case(&chord))
+            .cloned()
+    }
+
+    /// Say out loud what the list just asked for.
+    ///
+    /// **One place**, because three things reach it now — a key, a
+    /// shortcut and a click — and three copies of "which gestures does
+    /// this `Asks` mean" is three chances for them to disagree about
+    /// what picking a command does.
+    fn speak(&self, asks: Asks) {
+        match asks {
+            Asks::Filter(q) => self.host.gesture(Gesture::Filter(q).line()),
+            Asks::Run(name, args) => {
+                self.host.gesture(Gesture::Command(name, args).line());
+                self.host.gesture(Gesture::Asked.line());
+                self.host.gesture(Gesture::Filter(String::new()).line());
+            }
+            // A command that takes something turns the list into a
+            // question about its first argument.
+            Asks::Wants(name, at, q) => {
+                self.host.gesture(Gesture::Wants(name, at, q).line())
+            }
+            Asks::Closed => {
+                self.host.gesture(Gesture::Asked.line());
+                self.host.gesture(Gesture::Filter(String::new()).line());
+            }
+            Asks::Nothing => {}
+        }
+    }
+
+    /// Turn a bank's listening on or off, if its box was pressed.
+    fn tick(&self, x: i32, y: i32) -> Option<String> {
+        let (name, listening) = {
+            let view = self.view.borrow();
+            let chrome = self.chrome.borrow();
+            view.bank_hit(self.font(), &chrome, x, y)?
+        };
+        let verb = if listening { "deafen" } else { "listen" };
+        Some(Gesture::Command(verb.into(), vec![name]).line())
+    }
+
     /// Take hold of the knob under the pointer, if there is one.
     ///
     /// Returns the gesture to send, so the caller decides whether the
@@ -582,8 +648,15 @@ impl WindowHandler for EditorWindow {
                 // **The margin appears only when something declares a
                 // knob**, so a synth with none loses no width to the
                 // possibility of them.
+                // **The margin appears when something declares a
+                // knob or a bank**, so a synth with neither loses no
+                // width to the possibility of them.
                 self.view.borrow_mut().aside =
-                    if f.knobs.is_empty() { 0 } else { 10 };
+                    if f.knobs.is_empty() && f.banks.is_empty() {
+                        0
+                    } else {
+                        10
+                    };
                 *self.chrome.borrow_mut() = f;
                 self.dirty.set(true);
             }
@@ -766,6 +839,36 @@ impl WindowHandler for EditorWindow {
                 if k.state != KeyState::Down {
                     return EventStatus::Ignored;
                 }
+                // **A shortcut is looked up in the list that
+                // advertises it.**  Every command travels with the key
+                // it claims, so matching the chord against *that* keeps
+                // one table: a key cannot do something the list did not
+                // offer, and — the half that was missing — the list
+                // cannot advertise a key that does nothing.  `Ctrl-F`
+                // said `find` for as long as it took somebody to press
+                // it.
+                //
+                // A command that takes arguments opens the list already
+                // asking for the first, which is what `Ctrl-F` means to
+                // anyone who has pressed it anywhere else.
+                if self.palette.borrow().is_open() == false {
+                    if let Some(e) = self.shortcut(&k) {
+                        let asks = self.palette.borrow_mut().begin(&e);
+                        match asks {
+                            Asks::Run(name, args) => {
+                                self.host.gesture(
+                                    Gesture::Command(name, args).line());
+                            }
+                            Asks::Wants(name, at, q) => {
+                                self.dirty.set(true);
+                                self.host.gesture(
+                                    Gesture::Wants(name, at, q).line());
+                            }
+                            _ => {}
+                        }
+                        return EventStatus::Captured;
+                    }
+                }
                 // Ctrl-K opens the list.  One key, and the answer to
                 // "what can this do" is complete by construction.
                 if k.modifiers.contains(Modifiers::CONTROL) {
@@ -832,36 +935,7 @@ impl WindowHandler for EditorWindow {
                             self.asked.set(Some(Instant::now()));
                         }
                     }
-                    match asks {
-                        Asks::Filter(q) => self.host.gesture(
-                            Gesture::Filter(q).line()),
-                        // **Closing is a filter of nothing.**  The model
-                        // holds which commands the last query meant, and
-                        // a list that is shut has no query — without
-                        // saying so, the description goes on carrying
-                        // three commands out of twenty-nine for the rest
-                        // of the session, and the next Ctrl-K opens onto
-                        // the answer to a question nobody asked.  An
-                        // empty query already means "no filter", so this
-                        // needs no new verb.
-                        Asks::Run(name, args) => {
-                            self.host.gesture(
-                                Gesture::Command(name, args).line());
-                            self.host.gesture(Gesture::Asked.line());
-                            self.host.gesture(
-                                Gesture::Filter(String::new()).line());
-                        }
-                        // A command that takes something turns the list
-                        // into a question about its first argument.
-                        Asks::Wants(name, at, q) => self.host.gesture(
-                            Gesture::Wants(name, at, q).line()),
-                        Asks::Closed => {
-                            self.host.gesture(Gesture::Asked.line());
-                            self.host.gesture(
-                                Gesture::Filter(String::new()).line());
-                        }
-                        Asks::Nothing => {}
-                    }
+                    self.speak(asks);
                     self.dirty.set(true);
                     return EventStatus::Captured;
                 }
@@ -912,11 +986,38 @@ impl WindowHandler for EditorWindow {
                 button: MouseButton::Left, modifiers, ..
             }) => {
                 let (x, y) = self.cursor.get();
+                // **The list takes the pointer while it is open.**  It
+                // is a panel over the document, so a click in it is
+                // aimed at it — and a click that fell through to the
+                // text would move a caret you cannot see.
+                if self.palette.borrow().is_open() {
+                    let picked = {
+                        let view = self.view.borrow();
+                        let font = self.font();
+                        let (cw, ch) = (view.cw(font), view.ch(font));
+                        self.palette.borrow()
+                            .row_at(view.w, view.h, cw, ch, x, y)
+                    };
+                    if let Some(row) = picked {
+                        let asks = self.palette.borrow_mut().click(row);
+                        self.speak(asks);
+                    }
+                    self.dirty.set(true);
+                    return EventStatus::Captured;
+                }
                 // **The margin belongs to the knobs.**  A press there is
                 // a fader being taken hold of, not a caret being placed
                 // — and answering to the press rather than only to the
                 // drag is what makes a fader clickable at a value
                 // instead of only draggable towards one.
+                // A bank's box is a button: pressing it is the same act
+                // as running `listen` or `deafen` on that name, and it
+                // goes out as exactly that — so the widget and the
+                // command cannot come to mean different things.
+                if let Some(line) = self.tick(x, y) {
+                    self.host.gesture(line);
+                    return EventStatus::Captured;
+                }
                 if let Some(turn) = self.grab(x, y) {
                     self.host.gesture(turn);
                     return EventStatus::Captured;
@@ -940,6 +1041,25 @@ impl WindowHandler for EditorWindow {
             }) => {
                 self.dragging.set(false);
                 *self.turning.borrow_mut() = None;
+                EventStatus::Captured
+            }
+            Event::Mouse(MouseEvent::WheelScrolled { delta, modifiers })
+                if self.palette.borrow().is_open() =>
+            {
+                // The list scrolls, not the document behind it — see the
+                // click above for why an open list owns the pointer.
+                let by = match delta {
+                    baseview::ScrollDelta::Lines { y, .. } => -y as i32,
+                    baseview::ScrollDelta::Pixels { y, .. } => {
+                        let ch = self.view.borrow().ch(self.font()).max(1);
+                        -(y as i32) / ch
+                    }
+                };
+                let _ = modifiers;
+                if by != 0 {
+                    self.palette.borrow_mut().scroll(by);
+                    self.dirty.set(true);
+                }
                 EventStatus::Captured
             }
             Event::Mouse(MouseEvent::WheelScrolled { delta, modifiers }) => {

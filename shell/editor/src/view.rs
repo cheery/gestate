@@ -186,6 +186,45 @@ impl View {
     }
 
     /// What a click at `(x, y)` means, as a row and a column.
+    /// Where a bank's box goes: its left edge and its side.
+    ///
+    /// **Named once because two places need it.**  A box drawn by one
+    /// arithmetic and pressed by another drifts apart the first time
+    /// either moves, and a button that answers somewhere other than
+    /// where it is drawn is worse than no button — the same reason
+    /// `knob_hit` sits beside the trough it inverts.
+    pub fn bank_box(&self, font: &Font) -> (i32, i32) {
+        let (cw, ch) = (self.cw(font), self.ch(font));
+        let side = (ch - 4).max(5);
+        // Hard against the right edge, with the count to its left: the
+        // reading is what you scan down a file, and the control sits
+        // where it does not interrupt that.
+        let _ = cw;
+        (self.w - side - 2, side)
+    }
+
+    /// The bank whose box is under the pointer, and whether it is
+    /// listening now — so a caller knows which way a click turns it.
+    ///
+    /// **The box only, not the whole row.**  The count beside it is a
+    /// reading, and a reading you can press by accident is a control
+    /// wearing a disguise.
+    pub fn bank_hit(&self, font: &Font, chrome: &Furniture, x: i32, y: i32)
+        -> Option<(String, bool)>
+    {
+        if self.aside == 0 || y < 0 || y >= self.h - self.status_h(font) {
+            return None;
+        }
+        let ch = self.ch(font);
+        let (bx, side) = self.bank_box(font);
+        if x < bx || x > bx + side {
+            return None;
+        }
+        let line = self.top + (y / ch) as usize + 1;
+        let b = chrome.bank_at(line)?;
+        Some((b.name.clone(), b.listening))
+    }
+
     /// The knob under the pointer, and the value that point means.
     ///
     /// **The inverse of what `frame_with` drew**, and deliberately in
@@ -339,7 +378,38 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
             }
         }
 
+        // **A bank in the margin at the line that declares it**, the
+        // same rule the knobs follow — a box saying whether it is
+        // listening to the keyboard, and how many of its voices are
+        // sounding out of how many it has.
+        //
+        // `held` is what makes it worth drawing: `voices 4` is in the
+        // text already and a window that only repeated it would be
+        // decoration.  What the text cannot say is that three of them
+        // are down *now*.
         if view.aside > 0 {
+            if let Some(b) = chrome.bank_at(line_no) {
+                let count = format!("{}/{}", b.held, b.voices);
+                let (bx, side) = view.bank_box(font);
+                let top = y + 2;
+                // The reading first, then the button on its right —
+                // what you scan down a file is the count, and the
+                // control sits where it does not interrupt that.
+                f.items.push(Item::Run {
+                    x: bx - 4 - width_of(&count) as i32 * cw, y,
+                    s: count,
+                    c: if b.held > 0 { LIVE } else { FAINT } });
+                f.items.push(Item::Rect { x: bx, y: top, w: side, h: side,
+                                          c: TROUGH });
+                if b.listening {
+                    // Filled, not ticked: a tick is glyph-shaped and
+                    // this font is drawn at five pixels wide.
+                    let inset = (side / 4).max(1);
+                    f.items.push(Item::Rect { x: bx + inset, y: top + inset,
+                                              w: side - 2 * inset,
+                                              h: side - 2 * inset, c: FILL });
+                }
+            }
             if let Some(k) = chrome.knob_at(line_no) {
                 let wide = view.aside as i32 * cw - cw;
                 let x = view.w - view.aside as i32 * cw;

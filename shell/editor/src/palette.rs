@@ -31,6 +31,14 @@ pub struct Entry {
     pub summary: String,
     /// The shortcut, or empty.
     pub key: String,
+    /// The command that runs it the other way, or empty.
+    ///
+    /// **Read, never decided.**  That `find` runs backwards as
+    /// `findBack` is a fact about what those two do, and it is handed
+    /// over with the key and the argument types — a view that knew it
+    /// would be a second vocabulary, which is the thing the list exists
+    /// to prevent.
+    pub reverse: String,
     /// What it takes, as declared — `["Int", "Int"]` for `loop`.
     ///
     /// **The types are how the view knows to ask.**  A command with
@@ -56,6 +64,17 @@ pub struct Asking {
     pub types: Vec<String>,
     /// What has been collected so far.
     pub got: Vec<String>,
+    /// The command that runs it the other way, or empty.
+    pub reverse: String,
+    /// Whether it has everything and has already run once.
+    ///
+    /// **So that Return means *again*.**  `find foo` is not one act but
+    /// a walk: you press Return to reach the next one, and if the list
+    /// had closed on the first match, Return would be a newline in the
+    /// document instead.  Keeping the question open is what gives the
+    /// key somewhere to land — and typing takes the argument back, so
+    /// leaving is exactly as easy as staying.
+    pub done: bool,
 }
 
 impl Asking {
@@ -165,7 +184,30 @@ impl Palette {
     /// What the model says the argument being asked for could be.
     pub fn offer_choices(&mut self, choices: Vec<Choice>) {
         self.choices = choices;
-        self.at = self.at.min(self.choices.len().saturating_sub(1));
+        self.clamp();
+    }
+
+    /// Keep the pick inside **the list being shown**.
+    ///
+    /// Against `shown_len`, never against one of the two lists on its
+    /// own.  Clamping the pick to the *choices* while the commands are
+    /// what is on screen pins it to zero — there are no choices unless
+    /// an argument is being asked for — and because the description
+    /// arrives many times a second while the transport runs, the effect
+    /// was a list you could not move down: every arrow key was undone
+    /// before the next frame.
+    fn clamp(&mut self) {
+        let n = self.shown_len();
+        self.at = if n == 0 { 0 } else { self.at.min(n - 1) };
+    }
+
+    /// Start collecting for a command, or run it now — from a shortcut
+    /// as well as from the list, so both reach it the same way.
+    pub fn begin(&mut self, e: &Entry) -> Asks {
+        if !e.args.is_empty() {
+            self.open = true;
+        }
+        self.take(e)
     }
 
     /// Start collecting for the picked command, or run it now.
@@ -180,7 +222,8 @@ impl Palette {
         // about its first argument rather than doing anything.
         self.asking = Some(Asking { verb: e.name.clone(),
                                     types: e.args.clone(),
-                                    got: Vec::new() });
+                                    reverse: e.reverse.clone(),
+                                    got: Vec::new(), done: false });
         self.query.clear();
         self.choices.clear();
         self.at = 0;
@@ -205,8 +248,13 @@ impl Palette {
         }
         asking.got.push(given);
         if asking.got.len() >= asking.types.len() {
+            // **Complete, and still open.**  See `Asking::done`.
             let (verb, args) = (asking.verb.clone(), asking.got.clone());
-            self.hide();
+            asking.done = true;
+            self.asking = Some(asking);
+            self.query.clear();
+            self.choices.clear();
+            self.at = 0;
             return Asks::Run(verb, args);
         }
         let (verb, at) = (asking.verb.clone(), asking.got.len());
@@ -222,6 +270,9 @@ impl Palette {
         let Some(mut asking) = self.asking.take() else {
             return self.hide();
         };
+        if asking.done {
+            asking.done = false;
+        }
         self.query.clear();
         self.choices.clear();
         self.at = 0;
@@ -243,7 +294,7 @@ impl Palette {
     /// The entries the model answered with.
     pub fn offer(&mut self, entries: Vec<Entry>) {
         self.entries = entries;
-        self.at = self.at.min(self.entries.len().saturating_sub(1));
+        self.clamp();
     }
 
     /// How many rows the list has, whichever list it is.
@@ -271,7 +322,42 @@ impl Palette {
             return Asks::Nothing;
         }
         match key {
+            // **A space moves on, because that is how a command line
+            // reads.**  `find foo` is what a person types; making them
+            // press Return between the name and the argument is asking
+            // them to know a rule the line does not show.  So a space
+            // does what Return does — picks the command, or takes the
+            // argument and asks for the next.
+            //
+            // *Except in `Text`*, where a space is content: `find foo
+            // bar` has to be able to look for two words.  A command
+            // name never contains one, so nothing is lost in the list.
+            Key::Char(' ') if self.asking.is_none() => {
+                match self.selected().cloned() {
+                    Some(e) if !e.args.is_empty() => self.take(&e),
+                    _ => Asks::Nothing,
+                }
+            }
+            Key::Char(' ')
+                if self.asking.as_ref().map(|a| a.wants()) != Some("Text")
+                    && !self.query.is_empty() =>
+            {
+                self.accept()
+            }
             Key::Char(c) => {
+                // **Typing takes the last argument back.**  It is how a
+                // finished call is left: you are asking a new question
+                // of the same command, which is what typing over an
+                // answer means everywhere else.
+                if self.asking.as_ref().is_some_and(|a| a.done) {
+                    if let Some(a) = self.asking.as_mut() {
+                        a.done = false;
+                        a.got.pop();
+                    }
+                    self.query.clear();
+                    self.choices.clear();
+                    self.at = 0;
+                }
                 self.query.push(c);
                 // Back to the top: a longer query is a different
                 // question, and the best answer to it is first.
@@ -288,6 +374,20 @@ impl Palette {
                 }
                 self.requery()
             }
+            // **The arrows walk a finished call.**  A search is a walk
+            // in two directions and the keys for "the next one" and
+            // "the one before" are the same everywhere; while a call is
+            // live they mean that, and there is no list to move in
+            // anyway.  Backspace joins them going back, which is what
+            // Henri reached for.
+            Key::Up | Key::Backspace
+                if self.asking.as_ref().is_some_and(|a| a.done) =>
+            {
+                self.step(true)
+            }
+            Key::Down if self.asking.as_ref().is_some_and(|a| a.done) => {
+                self.step(false)
+            }
             Key::Up => {
                 self.at = self.at.saturating_sub(1);
                 Asks::Nothing
@@ -299,7 +399,11 @@ impl Palette {
                 Asks::Nothing
             }
             Key::Enter => {
-                if self.asking.is_some() {
+                if let Some(a) = &self.asking {
+                    if a.done {
+                        // Again — the next match, the next take.
+                        return Asks::Run(a.verb.clone(), a.got.clone());
+                    }
                     return self.accept();
                 }
                 match self.selected().cloned() {
@@ -324,6 +428,92 @@ impl Palette {
         } else {
             self.at + 1 - most
         }
+    }
+
+    /// Which row the pointer is over, if it is over one.
+    ///
+    /// **The inverse of `frame`, in the same file and from the same
+    /// numbers** — a list drawn by one arithmetic and clicked by
+    /// another answers somewhere other than where it is drawn, which is
+    /// the bug that makes a menu feel haunted.  `view::knob_hit` sits
+    /// beside its trough for the same reason.
+    pub fn row_at(&self, w: i32, h: i32, cw: i32, ch: i32, x: i32, y: i32)
+        -> Option<usize>
+    {
+        if !self.open {
+            return None;
+        }
+        let most = self.rows(h, ch);
+        let shown = self.shown_len().min(most);
+        let box_w = (w - 2 * cw).max(cw);
+        let (bx, by) = (cw, ch);
+        if x < bx || x > bx + box_w {
+            return None;
+        }
+        // The query is the first row and picks nothing; the list starts
+        // below it.
+        let from = self.window(most);
+        let top = by + 4 + ch;
+        if y < top {
+            return None;
+        }
+        let row = ((y - top) / ch.max(1)) as usize;
+        if row >= shown {
+            return None;
+        }
+        Some(from + row)
+    }
+
+    /// Pick the row the pointer is over, and do what Enter does to it.
+    ///
+    /// **A click is Enter somewhere else.**  Two ways to reach a
+    /// command that behaved differently would be two vocabularies, and
+    /// the list exists to prevent exactly that — so this moves the pick
+    /// and then takes the same path.
+    pub fn click(&mut self, at: usize) -> Asks {
+        if at >= self.shown_len() {
+            return Asks::Nothing;
+        }
+        self.at = at;
+        if self.asking.is_some() {
+            return self.accept();
+        }
+        match self.selected().cloned() {
+            None => Asks::Nothing,
+            Some(e) => self.take(&e),
+        }
+    }
+
+    /// Run a finished call again, forwards or back.
+    ///
+    /// Backwards is a *different command* — the model said which — so
+    /// the question becomes that command's, and the arrows keep walking
+    /// from wherever they leave you.  A call with no reverse simply
+    /// repeats, which is what one direction means.
+    fn step(&self, back: bool) -> Asks {
+        let Some(a) = self.asking.as_ref() else {
+            return Asks::Nothing;
+        };
+        // **Chosen, not toggled.**  Swapping the pair would make a
+        // second press of the same arrow go the other way, so holding
+        // Up would walk back and forth over two matches for ever.  The
+        // key names the direction; the pair names the two commands.
+        let verb = if back && !a.reverse.is_empty() {
+            a.reverse.clone()
+        } else {
+            a.verb.clone()
+        };
+        Asks::Run(verb, a.got.clone())
+    }
+
+    /// Scroll the list by whole rows.
+    pub fn scroll(&mut self, by: i32) {
+        let n = self.shown_len();
+        if n == 0 {
+            return;
+        }
+        let at = (self.at as i32 + by).clamp(0, n as i32 - 1);
+        self.at = at as usize;
     }
 
     /// Draw it over whatever is behind.
@@ -448,10 +638,10 @@ mod paint_tests {
             Entry { usage: "loop <int> <int>".into(), name: "loop".into(),
                     summary: "Play a stretch of bars over and over.".into(),
                     key: String::new(),
-                    args: vec!["Int".into(), "Int".into()] },
+                    args: vec!["Int".into(), "Int".into()], reverse: String::new() },
             Entry { usage: "stop".into(), name: "stop".into(),
                     summary: "Stop the transport where it is.".into(),
-                    key: "^.".into(), args: Vec::new() },
+                    key: "^.".into(), args: Vec::new(), reverse: String::new() },
         ]);
         p
     }
@@ -501,13 +691,13 @@ mod asking_tests {
         p.offer(vec![
             Entry { usage: "stop".into(), name: "stop".into(),
                     summary: "Stop.".into(), key: String::new(),
-                    args: Vec::new() },
+                    args: Vec::new(), reverse: String::new() },
             Entry { usage: "loop <int> <int>".into(), name: "loop".into(),
                     summary: "Loop.".into(), key: String::new(),
-                    args: vec!["Int".into(), "Int".into()] },
+                    args: vec!["Int".into(), "Int".into()], reverse: String::new() },
             Entry { usage: "listen <named>".into(), name: "listen".into(),
                     summary: "Listen.".into(), key: String::new(),
-                    args: vec!["Named".into()] },
+                    args: vec!["Named".into()], reverse: String::new() },
         ]);
         p
     }
@@ -543,7 +733,12 @@ mod asking_tests {
         p.key(Key::Char('8'));
         assert_eq!(p.key(Key::Enter),
                    Asks::Run("loop".into(), vec!["4".into(), "8".into()]));
-        assert!(!p.is_open(), "running it closes the list");
+        // **It stays open, holding the finished call.**  Return means
+        // *again* from here — see `Asking::done`.  Escape is the way
+        // out, and typing is the way to ask a new one.
+        assert!(p.is_open());
+        assert!(p.asking().is_some_and(|a| a.done));
+        assert_eq!(p.asking().unwrap().prompt(), "loop 4 8");
     }
 
     /// A name is *picked*, which is the point of offering names at all.
@@ -596,5 +791,201 @@ mod asking_tests {
         assert_eq!(p.key(Key::Backspace), Asks::Filter(String::new()));
         assert!(p.asking().is_none());
         assert!(p.is_open(), "back to the list, not out of it");
+    }
+}
+
+#[cfg(test)]
+mod space_tests {
+    use super::*;
+
+    fn listed() -> Palette {
+        let mut p = Palette::default();
+        p.show();
+        p.offer(vec![
+            Entry { usage: "find <text>".into(), name: "find".into(),
+                    summary: "Find.".into(), key: String::new(),
+                    args: vec!["Text".into()], reverse: String::new() },
+            Entry { usage: "loop <int> <int>".into(), name: "loop".into(),
+                    summary: "Loop.".into(), key: String::new(),
+                    args: vec!["Int".into(), "Int".into()], reverse: String::new() },
+            Entry { usage: "stop".into(), name: "stop".into(),
+                    summary: "Stop.".into(), key: String::new(),
+                    args: Vec::new(), reverse: String::new() },
+        ]);
+        p
+    }
+
+    fn typing(p: &mut Palette, text: &str) -> Asks {
+        let mut last = Asks::Nothing;
+        for c in text.chars() {
+            last = p.key(Key::Char(c));
+        }
+        last
+    }
+
+    /// `find foo` then Return — one line, the way a command line reads.
+    #[test]
+    fn a_space_moves_from_the_name_to_the_argument() {
+        let mut p = listed();
+        p.at = 0;
+        typing(&mut p, " ");
+        assert_eq!(p.asking().map(|a| a.verb.as_str()), Some("find"));
+        typing(&mut p, "foo");
+        assert_eq!(p.key(Key::Enter),
+                   Asks::Run("find".into(), vec!["foo".into()]));
+    }
+
+    /// `loop 2 6` in one line: a space between each.
+    #[test]
+    fn spaces_walk_through_several_arguments() {
+        let mut p = listed();
+        p.at = 1;
+        typing(&mut p, " 2 6");
+        assert_eq!(p.asking().unwrap().got, vec!["2".to_string()]);
+        assert_eq!(p.key(Key::Enter),
+                   Asks::Run("loop".into(), vec!["2".into(), "6".into()]));
+    }
+
+    /// **A space is content in `Text`.**  `find foo bar` must be able to
+    /// look for two words.
+    #[test]
+    fn a_space_inside_text_is_typed_not_obeyed() {
+        let mut p = listed();
+        p.at = 0;
+        typing(&mut p, " foo bar");
+        assert_eq!(p.query(), "foo bar");
+        assert_eq!(p.key(Key::Enter),
+                   Asks::Run("find".into(), vec!["foo bar".into()]));
+    }
+
+    /// A command name never contains a space, so one in the list means
+    /// nothing rather than filtering to nothing.
+    #[test]
+    fn a_space_does_nothing_for_a_command_that_takes_nothing() {
+        let mut p = listed();
+        p.at = 2;
+        assert_eq!(p.key(Key::Char(' ')), Asks::Nothing);
+        assert_eq!(p.query(), "");
+        assert!(p.asking().is_none());
+    }
+}
+
+#[cfg(test)]
+mod picking_tests {
+    use super::*;
+
+    fn listed() -> Palette {
+        let mut p = Palette::default();
+        p.show();
+        p.offer(vec![
+            Entry { usage: "one".into(), name: "one".into(),
+                    summary: String::new(), key: String::new(),
+                    args: Vec::new(), reverse: String::new() },
+            Entry { usage: "two".into(), name: "two".into(),
+                    summary: String::new(), key: String::new(),
+                    args: Vec::new(), reverse: String::new() },
+            Entry { usage: "three".into(), name: "three".into(),
+                    summary: String::new(), key: String::new(),
+                    args: Vec::new(), reverse: String::new() },
+        ]);
+        p
+    }
+
+    /// **The pick survives a description.**  One arrives many times a
+    /// second while the transport runs — the beat is in it — so a pick
+    /// that did not survive one could not be moved at all: every arrow
+    /// key was undone before the next frame.
+    #[test]
+    fn moving_down_the_list_survives_the_model_talking() {
+        let mut p = listed();
+        p.key(Key::Down);
+        p.key(Key::Down);
+        assert_eq!(p.at, 2);
+        p.offer_choices(Vec::new());          // no argument is being asked
+        assert_eq!(p.at, 2, "the pick was dragged back to the top");
+        p.offer(p.entries().to_vec());        // the same list again
+        assert_eq!(p.at, 2);
+    }
+
+    #[test]
+    fn the_pick_stays_inside_a_list_that_shrank() {
+        let mut p = listed();
+        p.key(Key::Down);
+        p.key(Key::Down);
+        p.offer(vec![Entry { usage: "one".into(), name: "one".into(),
+                             summary: String::new(), key: String::new(),
+                             args: Vec::new(), reverse: String::new() }]);
+        assert_eq!(p.at, 0);
+    }
+}
+
+#[cfg(test)]
+mod again_tests {
+    use super::*;
+
+    fn finding() -> Palette {
+        let mut p = Palette::default();
+        p.show();
+        p.offer(vec![
+            Entry { usage: "find <text>".into(), name: "find".into(),
+                    summary: "Find.".into(), key: "Ctrl-F".into(),
+                    args: vec!["Text".into()], reverse: String::new() },
+        ]);
+        p.at = 0;
+        p.key(Key::Char(' '));                 // into the argument
+        for c in "foo".chars() { p.key(Key::Char(c)); }
+        p
+    }
+
+    /// **Return means again.**  `find foo` is a walk, not one act — and
+    /// if the list closed on the first match, Return would be a newline
+    /// in the document instead of the next one.
+    #[test]
+    fn return_repeats_a_finished_call() {
+        let mut p = finding();
+        assert_eq!(p.key(Key::Enter),
+                   Asks::Run("find".into(), vec!["foo".into()]));
+        assert!(p.is_open(), "the list holds the key that means again");
+        assert_eq!(p.key(Key::Enter),
+                   Asks::Run("find".into(), vec!["foo".into()]));
+        assert_eq!(p.key(Key::Enter),
+                   Asks::Run("find".into(), vec!["foo".into()]));
+    }
+
+    /// Typing takes the argument back: a new question of the same
+    /// command, which is what typing over an answer means everywhere.
+    #[test]
+    fn typing_starts_the_search_over() {
+        let mut p = finding();
+        p.key(Key::Enter);
+        p.key(Key::Char('b'));
+        assert_eq!(p.query(), "b");
+        assert!(p.asking().is_some_and(|a| !a.done && a.got.is_empty()));
+        p.key(Key::Char('z'));
+        assert_eq!(p.key(Key::Enter),
+                   Asks::Run("find".into(), vec!["bz".into()]));
+    }
+
+    /// And Escape leaves, which is the other way out.
+    #[test]
+    fn escape_leaves_a_finished_call() {
+        let mut p = finding();
+        p.key(Key::Enter);
+        assert_eq!(p.key(Key::Escape), Asks::Closed);
+        assert!(!p.is_open());
+        assert!(p.asking().is_none());
+    }
+
+    /// A command that takes nothing is done when it runs, as before —
+    /// there is no argument to ask again with.
+    #[test]
+    fn a_command_without_arguments_still_closes() {
+        let mut p = Palette::default();
+        p.show();
+        p.offer(vec![Entry { usage: "stop".into(), name: "stop".into(),
+                             summary: String::new(), key: String::new(),
+                             args: Vec::new(), reverse: String::new() }]);
+        assert_eq!(p.key(Key::Enter), Asks::Run("stop".into(), Vec::new()));
+        assert!(!p.is_open());
     }
 }

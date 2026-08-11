@@ -767,6 +767,7 @@ class Workbench:
         watching = threading.Event()
 
         def housekeeping():
+            was = -1
             while not watching.wait(self._HOUSEKEEPING):
                 if self._stop.is_set():
                     self.host.stop()
@@ -777,6 +778,18 @@ class Workbench:
                 # few hundred microseconds apart would put a note's start
                 # and its `gateAt` on different instants.
                 at = self.host.position
+                # **And a loop wrap is a seek that nobody announced.**
+                # The C engine closes its own loop between blocks — it
+                # moves `position` back and tells this side nothing — so
+                # `on_seek` never fires and `_after_seek` never runs.
+                # A `LazyPerformer` only ever goes forward, so it went on
+                # answering with the values from the end of the loop for
+                # the whole of the next pass: notes late, or never
+                # released at all.  The clock going backwards is the
+                # announcement, and this is the thread that watches it.
+                if self._wrapped(at, was):
+                    self._after_seek(at)
+                was = at
                 self._push_controls(at)
                 if self.notes is not None:
                     self.notes.now = at
@@ -1494,6 +1507,19 @@ class Workbench:
         if self.transport is not None:
             self.transport.loop = None
             self.say("loop off")
+
+    @staticmethod
+    def _wrapped(at: int, was: int) -> bool:
+        """Whether the engine's clock has just jumped backwards.
+
+        **The Python transport cannot need this and the C one cannot do
+        without it.**  `Transport.fill` closes a loop by calling `seek`,
+        which announces itself; the generated host closes one by
+        assigning `position`, which announces nothing.  The gap between
+        two drivers is where a second implementation puts its bugs —
+        `_push_controls` carries the same note about the same pair.
+        """
+        return 0 <= at < was
 
     def _after_seek(self, _sample: int) -> None:
         """Every held note released — the jump left them with no note-off.

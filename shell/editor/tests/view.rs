@@ -557,3 +557,21 @@ fn nothing_is_shown_when_there_is_no_transport() {
     let said = foot(&gestate_editor::furniture::Furniture::default());
     assert!(said.iter().all(|s| !s.contains("1.1")), "{said:?}");
 }
+
+/// A bank's box is a button; the count beside it is a reading.
+#[test]
+fn only_the_box_of_a_bank_is_pressable() {
+    use gestate_editor::furniture::{Bank, Furniture};
+    let mut chrome = Furniture::default();
+    chrome.banks.push(Bank { name: "pad".into(), line: 1, held: 4,
+                             voices: 6, listening: false });
+    let v = View { w: 600, h: 300, aside: 10, ..view(600, 300) };
+    let ch = v.ch(&LARGE);
+    let (bx, side) = v.bank_box(&LARGE);
+    assert_eq!(v.bank_hit(&LARGE, &chrome, bx + side / 2, ch / 2),
+               Some(("pad".to_string(), false)));
+    // Left of the box is the count, which is a reading, not a control.
+    assert_eq!(v.bank_hit(&LARGE, &chrome, bx - 10, ch / 2), None);
+    // And a line with no bank on it is nothing.
+    assert_eq!(v.bank_hit(&LARGE, &chrome, bx + side / 2, ch * 3), None);
+}

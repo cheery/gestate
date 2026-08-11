@@ -82,20 +82,34 @@ class Window:
         self.editor.order("redo")
         return True
 
-    def find(self, pattern: str) -> int:
-        """The line a pattern is on, counting from one, or -1.
+    def find(self, pattern: str, back: bool = False) -> int:
+        """The next line a pattern is on, counting from one, or -1.
 
         **Searched here, where the text already is.**  The window would
         have to answer across a thread to be asked, and the model holds
         a copy of the document anyway — so the search is a fact the
         model can establish, and only moving the caret is an order.
+
+        **From the caret, wrapping** — which is what makes running it
+        again mean *next* rather than *the same one for ever*.  A search
+        that always started at line one would find the first match, and
+        then find it again, and there would be no way to reach the
+        second.
         """
         if not pattern:
             return -1
-        for n, line in enumerate(self.text().splitlines(), start=1):
-            if pattern in line:
-                self.goto(n)
-                return n
+        text = self.text()
+        lines = text.splitlines()
+        here = text[:self.editor.pos].count("\n")      # 0-based
+        if back:
+            order = (list(range(here - 1, -1, -1))
+                     + list(range(len(lines) - 1, here - 1, -1)))
+        else:
+            order = list(range(here + 1, len(lines))) + list(range(here + 1))
+        for i in order:
+            if pattern in lines[i]:
+                self.goto(i + 1)
+                return i + 1
         return -1
 
     def goto(self, line: int) -> bool:

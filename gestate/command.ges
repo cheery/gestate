@@ -213,6 +213,14 @@ redo = Stated
 find : Text -> Command
 find pattern = Stated
 
+#: The same search, the other way — back toward the top of the file.
+#: **A separate command rather than a flag**, because a capability that
+#: is not in this list is a capability nobody can find; the arrow keys
+#: reach it while a search is open, and that is a shortcut onto it
+#: rather than a second way of doing it.
+findBack : Text -> Command
+findBack pattern = Stated
+
 #: Jump to where a name is declared.
 goto : Named a -> Command
 goto n = Stated

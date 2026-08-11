@@ -14,6 +14,7 @@ use gestate_editor::view::Item;
 
 fn entry(name: &str, key: &str) -> Entry {
     Entry { usage: name.into(), name: name.into(), args: Vec::new(),
+            reverse: String::new(),
             summary: format!("what {name} does."), key: key.into() }
 }
 
@@ -172,4 +173,46 @@ fn a_long_list_follows_the_pick() {
             assert!(y + h <= 300, "{item:?} is below the window");
         }
     }
+}
+
+// ── Reaching a command with the pointer ──────────────────────────────────
+
+/// A click is Enter somewhere else: two ways to reach a command that
+/// behaved differently would be two vocabularies, which is the thing the
+/// list exists to prevent.
+#[test]
+fn clicking_a_row_runs_it() {
+    let mut p = Palette::default();
+    p.show();
+    p.offer(some());
+    let (cw, ch) = (9, 15);
+    // The second row of the list, in the middle of it: the panel starts
+    // at `ch`, the query line takes the first row, and rows are `ch` tall.
+    let y = ch + 4 + 2 * ch + ch / 2;
+    let row = p.row_at(600, 400, cw, ch, 100, y);
+    assert_eq!(row, Some(1));
+    assert_eq!(p.click(row.unwrap()),
+               Asks::Run("audition".into(), Vec::new()));
+}
+
+/// The query line is a row you can see and not one you can pick, and
+/// outside the panel belongs to the document.
+#[test]
+fn the_query_line_and_the_page_are_not_rows() {
+    let mut p = Palette::default();
+    p.show();
+    p.offer(some());
+    let (cw, ch) = (9, 15);
+    assert_eq!(p.row_at(600, 400, cw, ch, 100, ch + 6), None,
+               "the query line picks nothing");
+    assert_eq!(p.row_at(600, 400, cw, ch, 100, 390), None,
+               "below the list is the document");
+    assert_eq!(p.row_at(600, 400, cw, ch, 2, ch + 4 + ch + 2), None,
+               "left of the panel is the document");
+}
+
+#[test]
+fn a_closed_list_has_no_rows() {
+    let p = Palette::default();
+    assert_eq!(p.row_at(600, 400, 9, 15, 100, 40), None);
 }

@@ -1633,3 +1633,24 @@ def test_the_arpeggiator_hears_press_and_release(tmp_path):
         assert not late, f"released, yet it kept playing: {late}"
     finally:
         bench.stop()
+
+
+# ── A loop wrap is a seek nobody announced ───────────────────────────────
+
+def test_a_backward_clock_is_a_wrap():
+    """The C engine closes its own loop between blocks: it moves
+    `position` back and tells this side nothing, so `on_seek` never
+    fires.  The clock going backwards is the only announcement there is.
+
+    A `LazyPerformer` only ever goes forward, so without this it went on
+    answering with the values from the end of the loop for the whole of
+    the next pass — notes late, or never released at all.
+    """
+    from gestate.audioeditor import Workbench
+
+    assert Workbench._wrapped(at=100, was=5000) is True
+    assert Workbench._wrapped(at=5000, was=100) is False, "ordinary playing"
+    assert Workbench._wrapped(at=100, was=100) is False, "standing still"
+    # The first reading has nothing to compare against and must not look
+    # like a wrap; the thread starts `was` below zero for that.
+    assert Workbench._wrapped(at=0, was=-1) is False

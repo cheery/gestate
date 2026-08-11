@@ -12,8 +12,8 @@ status\tapplied
 trouble\t12\texpected a type, got `sound`
 knob\tcutoff\t40\t0.42\t0\t1\tFloat
 knob\tmode\t44\t3\t0\t100\tInt
-bank\tlead\t60\t6\t1
-bank\tkeys\t70\t4\t0
+bank\tlead\t60\t2\t6\t1
+bank\tkeys\t70\t0\t4\t0
 play\t1\t8.5
 loop\t4\t12
 command\tapply\tapply\tCtrl-S\tRebuild and swap it in.
@@ -40,6 +40,12 @@ fn a_description_reads_back_as_what_was_said() {
     assert!((f.knobs[1].fraction() - 0.03).abs() < 1e-9);
 
     assert_eq!(f.banks[0].listening, true);
+    // **How many are sounding, not just how many exist.**  `voices 6`
+    // is in the text already; that two of them are down right now is
+    // the part the text cannot say.
+    assert_eq!(f.banks[0].held, 2);
+    assert_eq!(f.banks[0].voices, 6);
+    assert_eq!(f.banks[1].held, 0);
     assert_eq!(f.banks[1].listening, false);
     assert_eq!(f.trouble[0].line, 12);
     assert!(f.trouble[0].message.starts_with("expected a type"));

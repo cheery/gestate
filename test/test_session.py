@@ -734,3 +734,66 @@ def test_the_window_can_say_it_has_stopped_asking():
     act(it, "asked")
     assert it.asking is None
     assert it.choices() == []
+
+
+def test_an_unfiltered_list_is_not_news():
+    """The window clears the filter after running a command.
+
+    A count answered for that would land in the status line *after* the
+    command's own sentence and hide it: you would pick `seek`, it would
+    work, and the line would read "29 of 29".
+    """
+    it = session()
+    assert act(it, "filter\tloop") == "3 of 29"
+    assert act(it, "filter\t") == ""
+    assert it.filtered is None
+
+
+def test_a_command_keeps_the_last_word():
+    it = session()
+    it.run("seek", "8")
+    act(it, "asked")
+    act(it, "filter\t")                      # what closing sends
+    said = furniture(it).splitlines()[0]
+    assert said == "status\tat bar 8", said
+
+
+class _Transport:
+    def __init__(self, playing):
+        self.playing = playing
+        self.loop = None
+
+
+def test_playing_means_the_beat_is_moving_not_the_thread_is_alive():
+    """`Workbench.playing` asks whether the audio *thread* is alive — a
+    different question wearing the same word, and true while stopped."""
+    it = session()
+    it.bench.playing = True                  # the thread is up …
+    it.bench.transport = _Transport(False)   # … and time is not moving
+    assert "play\t0\t" in furniture(it)
+    it.bench.transport.playing = True
+    assert "play\t1\t" in furniture(it)
+
+
+def test_every_shortcut_takes_control():
+    """There is one mode and you are typing in it, so a bare key is text.
+
+    `play` was advertised as `Space` for a while, inherited from a window
+    where the piano had the focus.  In an editor that is either a
+    shortcut that never fires or an editor you cannot type a space into.
+    """
+    bare = {name: key for name, key in KEYS.items()
+            if not key.startswith("Ctrl-")}
+    assert bare == {}, f"these could not work in a text editor: {bare}"
+
+
+def test_a_shortcut_reaches_the_window_as_the_list_spells_it():
+    """The window matches the chord against the key each command
+    advertises, so the two cannot drift.  This holds the spelling."""
+    it = session()
+    advertised = {l.split("\t")[1]: l.split("\t")[3]
+                  for l in furniture(it).splitlines()
+                  if l.startswith("command\t")}
+    assert advertised["find"] == "Ctrl-F"
+    assert advertised["apply"] == "Ctrl-S"
+    assert advertised["play"] == "Ctrl-Space"

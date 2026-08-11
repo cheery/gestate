@@ -183,13 +183,33 @@ def _first_sentence(text: str) -> str:
     return text
 
 
+#: Which command undoes the direction of which.
+#:
+#: **Beside the handlers, because it is a fact about what they do**, and
+#: sent out with the description so the window never has to know it.  A
+#: view that decided `find` runs backwards as `findBack` would be a
+#: second vocabulary, and the list exists to prevent exactly that: it is
+#: handed the pairing the same way it is handed the key and the argument
+#: types.  A test holds that both sides of every pair are real commands.
+REVERSE = {
+    "find": "findBack",
+    "findBack": "find",
+}
+
+
 #: The shortcuts.  **Every one names a command**, and a test holds that
 #: — a key that did something the list did not offer would be a second
 #: vocabulary, which is the thing the list exists to prevent.
+#:
+#: **And every one takes Control**, which a test also holds.  There is
+#: one mode and you are typing in it, so a bare key is text: `play` was
+#: advertised as `Space` for a while, inherited from a window where the
+#: piano had the focus, and in an editor that is either a shortcut that
+#: never fires or an editor you cannot type a space into.
 KEYS = {
     "apply": "Ctrl-S",
     "audition": "Ctrl-Return",
-    "play": "Space",
+    "play": "Ctrl-Space",
     "undo": "Ctrl-Z",
     "redo": "Ctrl-Y",
     "find": "Ctrl-F",
@@ -221,7 +241,7 @@ class Detached:
     def redo(self) -> bool:
         return False
 
-    def find(self, _pattern: str) -> int:
+    def find(self, _pattern: str, back: bool = False) -> int:
         return -1
 
     def goto(self, _line: int) -> bool:
@@ -283,11 +303,11 @@ class Session:
             seen.add(name)
             out.append((name, f"Chan {kinds.get(name, 'Int')}"))
         for bank in getattr(self.bench, "banks", []) or []:
-            name = getattr(bank, "name", str(bank))
-            if name in seen:
+            name = _of(bank, "name", "")
+            if not name or name in seen:
                 continue
             seen.add(name)
-            out.append((name, f"{getattr(bank, 'voices', 0)} voices"))
+            out.append((name, f"{_of(bank, 'count', 0)} voices"))
         return out
 
     def naming(self, query: str) -> list:
@@ -519,6 +539,10 @@ class Session:
         at = self.view.find(pattern)
         return f"found `{pattern}`" if at >= 0 else f"no `{pattern}`"
 
+    def do_findBack(self, pattern: str) -> str:
+        at = self.view.find(pattern, back=True)
+        return f"found `{pattern}`" if at >= 0 else f"no `{pattern}`"
+
     def do_goto(self, name: str) -> str:
         where = self._declared(name)
         if where is None:
@@ -707,13 +731,14 @@ def furniture(session: "Session", bench=None) -> str:
                    f"\t{value}\t{lo}\t{hi}\t{kind}")
 
     for bank in getattr(b, "banks", []) or []:
-        name = getattr(bank, "name", str(bank))
-        out.append(f"bank\t{name}\t{getattr(bank, 'line', 0)}"
-                   f"\t{getattr(bank, 'voices', 0)}"
+        name = _of(bank, "name", "")
+        if not name:
+            continue
+        out.append(f"bank\t{name}\t{_of(bank, 'line', 0)}"
+                   f"\t{_held(b, name)}\t{_of(bank, 'count', 0)}"
                    f"\t{1 if _listening(b, name) else 0}")
 
-    out.append(f"play\t{1 if getattr(b, 'playing', False) else 0}"
-               f"\t{_beats(b)}")
+    out.append(f"play\t{1 if _rolling(b) else 0}\t{_beats(b)}")
     span = _looping(b)
     if span:
         out.append(f"loop\t{span[0]}\t{span[1]}")
@@ -728,7 +753,8 @@ def furniture(session: "Session", bench=None) -> str:
         # <int>` would leave the window parsing a usage string to learn
         # how many boxes to open, and a usage string is prose.
         out.append(f"command\t{verb.name}\t{verb}\t{verb.key}"
-                   f"\t{verb.summary}\t{','.join(verb.args)}")
+                   f"\t{verb.summary}\t{','.join(verb.args)}"
+                   f"\t{REVERSE.get(verb.name, '')}")
 
     # What the argument being asked for could be, when one is.
     for text, note in session.choices():
@@ -750,11 +776,54 @@ def _line_of(trouble: str) -> int:
     return int(found.group(1)) if found else 0
 
 
+def _of(bank, key: str, default):
+    """One field of a bank, however the workbench keeps them.
+
+    **`Workbench.banks` is a list of dicts**, and reading it with
+    `getattr` — which is what this did — quietly gave the default for
+    every field: each bank went out named after its own `repr`, on line
+    zero, with no voices.  Nothing drew banks at the time, so the wire
+    carried nonsense for as long as it took somebody to look at it.
+    """
+    if isinstance(bank, dict):
+        return bank.get(key, default)
+    return getattr(bank, key, default)
+
+
+def _held(bench, name: str) -> int:
+    """How many of a bank's voices are sounding right now.
+
+    **From `sounding_on`, which asks both sources.**  A bank driven by a
+    keyboard has an allocator that knows what it holds; one driven by
+    the score has none, because the schedule wrote its channels ahead of
+    time and nothing tracks them — so a count that asked only the
+    allocator would sit at zero through an entire piece.
+    """
+    try:
+        return len(bench.sounding_on(name))
+    except Exception:                                    # noqa: BLE001
+        return 0
+
+
 def _listening(bench, name: str) -> bool:
     try:
         return bool(bench.listening(name))
     except Exception:                                    # noqa: BLE001
         return False
+
+
+def _rolling(bench) -> bool:
+    """Whether time is moving.
+
+    **Not `Workbench.playing`**, which asks whether the audio *thread*
+    is alive — a different question wearing the same word, and true even
+    with the transport stopped.  What a readout means by playing is that
+    the beat is advancing, and that is the transport's to say.
+    """
+    transport = getattr(bench, "transport", None)
+    if transport is not None:
+        return bool(getattr(transport, "playing", False))
+    return bool(getattr(bench, "playing", False))
 
 
 def _looping(bench) -> tuple | None:
@@ -809,6 +878,15 @@ def act(session: "Session", line: str) -> str:
     if verb == "filter":
         query = parts[1] if len(parts) > 1 else ""
         session.filtered = session.matching(query) if query else None
+        if not query:
+            # **Nothing to say about a list nobody is filtering.**  The
+            # window clears the filter after running a command, so a
+            # count answered here would land in the status line *after*
+            # the command's own sentence and hide it: you would pick
+            # `seek`, it would work, and the line would read "29 of 29".
+            # A command's answer is the news; the size of an unfiltered
+            # list is not.
+            return ""
         shown = session.palette_list()
         return f"{len(shown)} of {len(session.commands())}"
     if verb == "turn" and len(parts) >= 3:

@@ -62,6 +62,9 @@ impl Knob {
 pub struct Bank {
     pub name: String,
     pub line: usize,
+    /// How many of its voices are sounding right now.
+    pub held: usize,
+    /// How many it has.
     pub voices: usize,
     pub listening: bool,
 }
@@ -125,11 +128,12 @@ impl Furniture {
                     hi: num(p.get(5)),
                     kind: p[6].into(),
                 }),
-                "bank" if p.len() >= 5 => f.banks.push(Bank {
+                "bank" if p.len() >= 6 => f.banks.push(Bank {
                     name: p[1].into(),
                     line: num(p.get(2)),
-                    voices: num(p.get(3)),
-                    listening: p[4] == "1",
+                    held: num(p.get(3)),
+                    voices: num(p.get(4)),
+                    listening: p[5] == "1",
                 }),
                 "play" => {
                     f.playing = p.get(1).copied() == Some("1");
@@ -152,6 +156,7 @@ impl Furniture {
                         summary: p[4].into(),
                         args: args.split(',').filter(|a| !a.is_empty())
                             .map(str::to_string).collect(),
+                        reverse: p.get(6).copied().unwrap_or("").into(),
                     });
                 }
                 "choice" if p.len() >= 2 => {
@@ -170,6 +175,11 @@ impl Furniture {
     /// The knob declared on a line, if any — what the margin draws.
     pub fn knob_at(&self, line: usize) -> Option<&Knob> {
         self.knobs.iter().find(|k| k.line == line)
+    }
+
+    /// And the bank declared on a line.
+    pub fn bank_at(&self, line: usize) -> Option<&Bank> {
+        self.banks.iter().find(|b| b.line == line)
     }
 
     /// And the complaint about a line, if any.
