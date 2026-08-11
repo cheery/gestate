@@ -69,6 +69,17 @@ pub(crate) struct Instance {
     stopped_at: Option<i64>,
     /// The session transcript, when `GESTATE_TRACE` asked for one.
     tracing: Option<trace::Trace>,
+    /// A host reset happened and the transport has not been consulted
+    /// since.
+    ///
+    /// **A reset hides its own jump.**  `reset` puts the cursor's
+    /// origin back to zero along with the clock, so the next block's
+    /// `predicted` matches `actual` and the usual jump test sees
+    /// nothing to do — while the forced stream is still standing
+    /// wherever it was, minutes into the piece.  Every note then lands
+    /// that far in the future and waits there.  So a reset says
+    /// outright that the next block must re-seek.
+    needs_seek: bool,
     /// The shell's own beat position, for a host with a tempo but no
     /// beats timeline; a timeline host overwrites it every block.
     beat_pos: f64,
@@ -160,6 +171,7 @@ impl Instance {
             active: None,
             stopped_at: None,
             tracing: None,
+            needs_seek: false,
             beat_pos: 0.0,
             performer: score::Performer::new(),
             host: std::ptr::null(),
@@ -187,8 +199,20 @@ impl Instance {
         self.voices.iter_mut()
             .for_each(|bank| bank.iter_mut()
                       .for_each(|v| *v = FRESH_VOICE));
-        self.routing = default_routing();
+        // **Not the routing.**  A reset clears *processing* state; the
+        // matrix and the score switches are parameters, and a host that
+        // jumps the timeline has not asked the player to lose them.
         self.performer.reset();
+        // And the forced piece measures against the clock this just put
+        // back to zero — see `Performer::reset_clock`.  Clearing the
+        // clock is only half of it: the stream itself has to be
+        // re-rooted where the transport now stands, and only the next
+        // block knows where that is.
+        #[cfg(feature = "dynscore")]
+        if let Some(pf) = self.piece.as_mut() {
+            pf.reset_clock();
+        }
+        self.needs_seek = true;
     }
 
     /// The transport's rewind: the piece restarts, the knobs stay.
@@ -642,6 +666,12 @@ unsafe fn open_piece(inst: &mut Instance) {
     inst.piece = engine::program()
         .and_then(|p| dynscore::Piece::open(p, 0).ok())
         .map(dynscore::Performer::new);
+    // Let the worker force the opening rather than the first block.
+    if dynscore::DESCEND_OFF_THREAD {
+        if let Some(pf) = inst.piece.as_mut() {
+            pf.prime_at(0);
+        }
+    }
     // The worker starts with the plugin: spawning one on the audio
     // thread at the first seek would be the very thing this avoids.
     if inst.descender.is_none() {
@@ -872,10 +902,36 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
                 let predicted = inst.t - inst.performer.origin;
                 let slack = (p.frames_count as i64)
                     .max(rate as i64 / 50);
-                if rose || (actual - predicted).abs() > slack {
+                // **Drift is not a jump.**
+                //
+                // The anchor is fixed at the last seek, so any steady
+                // mismatch between the host's beats and our own sample
+                // count — a rounding, a tempo that is not quite what it
+                // says — accumulates until it crosses the slack, fires
+                // a full re-root, and starts accumulating again.  That
+                // is a seek every few hundred milliseconds forever, and
+                // a forced score spends the time between them waiting
+                // for a stream instead of playing.
+                //
+                // A *jump* moves the playhead somewhere else; drift
+                // creeps.  Below a quarter of a second the anchor is
+                // simply nudged back into line, which costs nothing and
+                // keeps the music where the transport is.
+                let drift = (actual - predicted).abs();
+                let creep = rate as i64 / 4;
+                if !rose && !inst.needs_seek
+                    && drift > slack && drift < creep {
+                    inst.performer.origin = inst.t - actual;
+                    #[cfg(feature = "dynscore")]
+                    if let Some(pf) = inst.piece.as_mut() {
+                        pf.nudge_origin(predicted - actual);
+                    }
+                }
+                if rose || inst.needs_seek || drift >= creep {
                     inst.performer.seek(&tb, tempo, actual, inst.t,
                                         &mut inst.voices,
                                         &mut inst.control);
+                    inst.needs_seek = false;
                     // The forced piece jumps too, or the playhead moves
                     // and the music does not.
                     #[cfg(feature = "dynscore")]
@@ -959,14 +1015,18 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
     if inst.tracing.is_some() {
         let tr = p.transport;
         #[cfg(feature = "dynscore")]
-        let (descending, wanted, pending) = match &inst.piece {
-            Some(pf) => (pf.descending as u8,
-                         pf.wanted().unwrap_or(-1),
-                         pf.pending_len() as u32),
-            None => (0, -1, 0),
-        };
+        let (descending, wanted, pending, played, dropped) =
+            match inst.piece.as_mut() {
+                Some(pf) => {
+                    let (p, d) = pf.take_counts();
+                    (pf.descending as u8, pf.wanted().unwrap_or(-1),
+                     pf.pending_len() as u32, p, d)
+                }
+                None => (0, -1, 0, 0, 0),
+            };
         #[cfg(not(feature = "dynscore"))]
-        let (descending, wanted, pending) = (0u8, -1i64, 0u32);
+        let (descending, wanted, pending, played, dropped) =
+            (0u8, -1i64, 0u32, 0u32, 0u32);
         let row = trace::Row {
             steady_time: p.steady_time,
             frames: p.frames_count,
@@ -981,6 +1041,8 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
             descending,
             wanted,
             pending,
+            played,
+            dropped,
             micros: began_at.elapsed().as_micros() as u32,
         };
         if let Some(t) = inst.tracing.as_mut() {

@@ -173,8 +173,9 @@ padChord c = note 0.5 c 0 || note 0.4 c (chordThird c)
           || note 0.4 c 7 || note 0.35 c 12
 
 padPart : Int -> [: Tone :]
-padPart v = (padChord (progAt v 0) |* 4) ++ (padChord (progAt v 1) |* 4)
-         ++ (padChord (progAt v 2) |* 4) ++ (padChord (progAt v 3) |* 4)
+padPart v = long 16 ((padChord (progAt v 0) |* 4)
+         ++ (padChord (progAt v 1) |* 4)
+         ++ (padChord (progAt v 2) |* 4) ++ (padChord (progAt v 3) |* 4))
 
 #: The engine: root-octave eighths, accents on the floor.  The last
 #: eighth of each bar sometimes leans on the minor seventh instead of
@@ -182,16 +183,22 @@ padPart v = (padChord (progAt v 0) |* 4) ++ (padChord (progAt v 1) |* 4)
 bn : Int -> Int -> Float -> [: Tone :]
 bn c off v = '(Tone v (chordRoot c - 24 + off))
 
+#: **`long 4` because the `roll` is a question.**  A drawn leaf has no
+#: width until it is answered, so `durOf` of this bar is zero and a
+#: resume cannot step over it by arithmetic — it has to force it.  The
+#: bar *is* four beats and always was; saying so costs no event (the
+#: constant law) and is what lets a seek skip whole bars instead of
+#: playing them silently on the way past.
 bassBar : Int -> [: Tone :]
-bassBar c = (bn c 0 0.95 ++ bn c 12 0.6 ++ bn c 0 0.8 ++ bn c 12 0.6
+bassBar c = long 4 ((bn c 0 0.95 ++ bn c 12 0.6 ++ bn c 0 0.8 ++ bn c 12 0.6
           ++ bn c 0 0.9 ++ bn c 12 0.6 ++ bn c 0 0.8
           ++ roll (x => case x < 0.3 of
                  True -> bn c 10 0.85
-                 False -> bn c 12 0.6)) |/ 2
+                 False -> bn c 12 0.6)) |/ 2)
 
 bassPart : Int -> [: Tone :]
-bassPart v = bassBar (progAt v 0) ++ bassBar (progAt v 1)
-          ++ bassBar (progAt v 2) ++ bassBar (progAt v 3)
+bassPart v = long 16 (bassBar (progAt v 0) ++ bassBar (progAt v 1)
+          ++ bassBar (progAt v 2) ++ bassBar (progAt v 3))
 
 #: Four bars the lead can roll: an answer low, a run down from the
 #: octave, something high and unresolved, and silence — which is a
@@ -210,8 +217,8 @@ leadBar c = do
     long 4 (phraseAt (below 4 s) c)
 
 leadPart : Int -> [: Tone :]
-leadPart v = leadBar (progAt v 0) ++ leadBar (progAt v 1)
-          ++ leadBar (progAt v 2) ++ leadBar (progAt v 3)
+leadPart v = long 16 (leadBar (progAt v 0) ++ leadBar (progAt v 1)
+          ++ leadBar (progAt v 2) ++ leadBar (progAt v 3))
 
 blockOf : Int -> [: Void :]
 blockOf v = (padPart v >>= voices.pad)

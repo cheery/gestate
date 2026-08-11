@@ -47,6 +47,9 @@ pub struct Row {
     pub descending: u8,
     pub wanted: i64,
     pub pending: u32,
+    /// Note-ons performed, and notes dropped, in this block.
+    pub played: u32,
+    pub dropped: u32,
     /// How long this block took, in microseconds — the number that
     /// turns "it stutters sometimes" into a row you can point at.
     pub micros: u32,
@@ -97,14 +100,16 @@ impl Trace {
         let mut out = std::io::BufWriter::new(file);
         let _ = writeln!(out, "gestate-trace 1");
         let _ = writeln!(out, "# steady frames tr flags tempo pos events \
-                              notes engine_t descending wanted pending us");
+                              notes engine_t descending wanted pending \
+                              played dropped us");
         for r in &self.rows[..self.used] {
             let _ = writeln!(
                 out,
-                "{} {} {} {} {} {} {} {} {} {} {} {} {}",
+                "{} {} {} {} {} {} {} {} {} {} {} {} {} {} {}",
                 r.steady_time, r.frames, r.has_transport, r.flags, r.tempo,
                 r.song_pos_beats, r.events, r.notes, r.engine_t,
-                r.descending, r.wanted, r.pending, r.micros);
+                r.descending, r.wanted, r.pending, r.played, r.dropped,
+                r.micros);
         }
         let _ = out.flush();
     }

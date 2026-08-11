@@ -395,6 +395,17 @@ pub struct Performer {
     wanted: Option<i64>,
     /// Notes the worker forced while priming, waiting to be admitted.
     primed: Vec<Note>,
+    /// Note-ons performed and notes dropped since the counters were
+    /// last read.
+    ///
+    /// **The column that tells three bugs apart.**  `pending` says
+    /// notes are waiting; it cannot say whether any were *played*.  A
+    /// silent stretch with nothing performed and nothing dropped is a
+    /// performer with nothing due; with drops, it is the rejoin rule
+    /// throwing away notes whose instant had passed; with performances,
+    /// the notes played and the silence is somewhere else entirely.
+    played_count: u32,
+    dropped_count: u32,
     /// The tick the stream was last rooted at **and has not moved
     /// from**, so a repeated seek to the same place costs nothing.
     ///
@@ -425,6 +436,8 @@ impl Performer {
             behind: 0,
             wanted: None,
             primed: Vec::new(),
+            played_count: 0,
+            dropped_count: 0,
             opened_at: Some(0),
         }
     }
@@ -462,6 +475,7 @@ impl Performer {
         let end = (self.origin + score_samples(n.offset, tempo, rate, tpb))
             .max(start);
         if boundary(start, block) <= self.position {
+            self.dropped_count = self.dropped_count.saturating_add(1);
             return;                     // its beat has passed
         }
         let key = self.events;
@@ -500,11 +514,14 @@ impl Performer {
         // off this thread entirely, and that is a design change rather
         // than a number.
         let started = std::time::Instant::now();
+        // A seek's block may spend more of itself catching up than an
+        // ordinary one, because it has further to come.
+        let share = if self.priming { 0.4 } else { 0.25 };
         let slice = if rate > 0 {
             std::time::Duration::from_secs_f64(
-                (block as f64 / rate as f64) * 0.4)
+                (block as f64 / rate as f64) * share)
         } else {
-            std::time::Duration::from_millis(4)
+            std::time::Duration::from_millis(3)
         };
         // Where the piece's own clock stands: engine samples since its
         // tick zero, turned into ticks.
@@ -520,11 +537,18 @@ impl Performer {
         // for a little at a time and keeps asking until its slice is
         // spent; an ordinary block asks once, generously, because it
         // is not trying to catch up.
-        let (fuel, rounds) = if self.priming {
-            (250_000i64, 4096)
-        } else {
-            (2_000_000, 64)
-        };
+        // **Spend the block's headroom, not a step count.**
+        //
+        // A fixed budget was the wrong unit: on a stall the stream's
+        // frontier stops moving, `advance` defers every note past it,
+        // their instants pass while they wait, and the rejoin rule
+        // drops them — so the score played in bursts with holes
+        // between, while the audio thread sat at three milliseconds of
+        // a ten-millisecond block.  There was time; there were no
+        // steps left.  Both cases now take small slices and keep
+        // asking until the stream is caught up or the slice is gone.
+        let fuel = 250_000i64;
+        let rounds = 4096;
         for _ in 0..rounds {
             let notes = self.piece.pull(p, horizon.max(0), fuel, 4096);
             for n in &notes {
@@ -537,9 +561,9 @@ impl Performer {
             // The stream has walked: it is no longer standing where it
             // was rooted, so a later seek back there is a real move.
             self.opened_at = None;
-            if self.piece.stalled() && self.priming {
+            if self.piece.stalled() {
                 if started.elapsed() < slice {
-                    continue;   // keep forcing: this block is the seek's
+                    continue;   // there is time left in this block
                 }
                 break;          // and the rest is the next block's
             }
@@ -640,12 +664,14 @@ impl Performer {
                 // Admitted in time, but gated behind a stall until its
                 // beat had passed: the rejoin rule, at the other gate.
                 self.dropped.insert(e.key);
+                self.dropped_count = self.dropped_count.saturating_add(1);
                 continue;
             }
             if e.is_off {
                 self.played.remove(&e.key);
             } else {
                 self.played.insert(e.key);
+                self.played_count = self.played_count.saturating_add(1);
             }
             perform(tb, &e, self.origin_at(e.sample), voices, control);
         }
@@ -808,18 +834,20 @@ impl Performer {
         self.origin = now;
         let ticks = ticks.max(0);
 
-        // **The top is not a descent.**  `resumeAt 0` is the identity —
-        // there is nothing to walk past — so a seek to the beginning
-        // costs a re-root and no more, and waiting on the worker for it
-        // buys a round-trip and pays for it in silence.  Every other
-        // target goes to the worker, because every other target has a
-        // walk in front of it.
+        // **The top goes to the worker like everywhere else.**
         //
-        // Unless the worker is switched off (`DESCEND_OFF_THREAD`), in
-        // which case every target takes this door and the descent
-        // happens here, on the audio thread, where its cost is a long
-        // block rather than a wait.
-        if ticks == 0 || !DESCEND_OFF_THREAD {
+        // It once did not: `resumeAt 0` is the identity, so a seek to
+        // the beginning has no walk in front of it and taking a
+        // round-trip for it looked like pure waste.  That reasoning was
+        // about the *descent*, and the descent is the cheap half.  The
+        // expensive half is the **priming** — forcing the first beats of
+        // music — and the worker is what does that.  Routing the top
+        // inline made the beginning the one seek that primed on the
+        // audio thread, in forty-percent slices of a block, which is a
+        // second of drums before the band arrives.  Every other jump
+        // was instant, and only this one was not, which is exactly what
+        // made it look like nonsense.
+        if !DESCEND_OFF_THREAD {
             // **At `ticks`, not at zero.**  This branch was written for
             // the top, where the two are the same; widening it to every
             // target left the `0` behind, so every seek re-rooted the
@@ -840,11 +868,62 @@ impl Performer {
         self.descending = true;
     }
 
+    /// Note-ons performed and notes dropped since this was last called.
+    pub fn take_counts(&mut self) -> (u32, u32) {
+        let out = (self.played_count, self.dropped_count);
+        self.played_count = 0;
+        self.dropped_count = 0;
+        out
+    }
+
     /// How many note-ends are waiting for their instant — the number
     /// that says whether a silent stretch is "nothing forced" or
     /// "forced and not yet due".
     pub fn pending_len(&self) -> usize {
         self.pending.len()
+    }
+
+    /// Slide the stream's zero by `by` samples.
+    ///
+    /// The transport crept away from where the anchor said it would be;
+    /// this puts the music back on it without re-rooting anything.  The
+    /// stream is untouched — only where its ticks land in engine time
+    /// moves.
+    pub fn nudge_origin(&mut self, by: i64) {
+        self.origin += by;
+    }
+
+    /// The host reset the processing state — put the clock back with
+    /// it.
+    ///
+    /// **`clap_plugin.reset()` is a jump the transport does not
+    /// announce.**  A host calls it when the timeline moves, and
+    /// `Instance::reset` obeys by zeroing the engine and putting `t`
+    /// back to zero.  This performer measures its notes against that
+    /// clock — `origin + score_samples(onset)` — so an origin left over
+    /// from before the reset put every note as far in the *future* as
+    /// the session had been long, and they sat in the heap waiting for
+    /// a clock that had gone back to the start.  The gap was exactly as
+    /// long as the playing that preceded it, which is why it felt
+    /// random.
+    pub fn reset_clock(&mut self) {
+        self.origin = 0;
+        self.position = -1;
+        self.pending.clear();
+        self.dropped.clear();
+        self.played.clear();
+        self.primed.clear();
+        self.priming = true;
+    }
+
+    /// Ask for a primed stream at `tick` without a transport doing it.
+    ///
+    /// Used at `activate`, so the very first block does not force the
+    /// opening of the piece itself — the only other place a block ever
+    /// went over budget in a recorded session.
+    pub fn prime_at(&mut self, tick: i64) {
+        self.wanted = Some(tick.max(0));
+        self.descending = true;
     }
 
     /// The tick a seek asked for and has not been given yet.

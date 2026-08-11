@@ -24,3 +24,15 @@ blocks.
   adds `baseview` and `softbuffer`.
 * A `worklet/` for the browser playground belongs here when its day
   comes.
+
+## When a plugin misbehaves in a DAW and not in a test
+
+Record the host's own boundary and replay it here — the transcript is
+`spec/verification.md` §"Recording a host", and it exists because a
+harness is a guess about the host:
+
+    GESTATE_TRACE=/tmp/nd.trace reaper        # provoke it, then quit
+    python test/replay_trace.py /tmp/nd.trace ~/.clap/nightdrive.clap 48000
+
+The rate argument must be the rate the recording was made at.  Off
+unless `GESTATE_TRACE` is set, and real-time safe when it is.

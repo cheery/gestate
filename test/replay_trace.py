@@ -31,7 +31,7 @@ import test_export as T  # noqa: E402
 
 FIELDS = ("steady", "frames", "has_transport", "flags", "tempo", "pos",
           "events", "notes", "engine_t", "descending", "wanted", "pending",
-          "micros")
+          "played", "dropped", "micros")
 
 
 def load(path: Path) -> list[dict]:
@@ -41,6 +41,11 @@ def load(path: Path) -> list[dict]:
         if not line or line.startswith("#") or line.startswith("gestate-trace"):
             continue
         parts = line.split()
+        # Traces recorded before the played/dropped counters existed are
+        # two columns short; read them, and report zero for what they
+        # could not know.
+        if len(parts) == len(FIELDS) - 2:
+            parts = parts[:-1] + ["0", "0"] + parts[-1:]
         if len(parts) != len(FIELDS):
             continue
         row = {}
@@ -99,8 +104,18 @@ def replay(trace: Path, clap: Path, rate: float = 48000.0) -> None:
     port = T.AudioBuffer(data32=arr, data64=None, channel_count=nch,
                          latency=0, constant_mask=0)
 
+    # **Reset where the host reset.**  A recorded `engine_t` that goes
+    # backwards is `clap_plugin.reset()` having been called — a host
+    # does that when the timeline jumps, and no harness in this project
+    # ever did, which is precisely why a whole class of bug was
+    # invisible here and audible in Reaper.  The replay obeys the trace.
+    resets = {i for i in range(1, len(rows))
+              if rows[i]["engine_t"] < rows[i - 1]["engine_t"]}
+
     took, level = [], []
-    for r in rows:
+    for i, r in enumerate(rows):
+        if i in resets:
+            plugin.reset(raw)
         tr = None
         if r["has_transport"]:
             tr = T.Transport()
@@ -126,6 +141,7 @@ def replay(trace: Path, clap: Path, rate: float = 48000.0) -> None:
 
     print(f"{clap.name}: {len(rows)} blocks, {nch} channel(s), "
           f"{frames} frames max")
+    print(f"  host resets replayed: {len(resets)}")
 
     # What the host did — the part a harness cannot invent.
     beats = [r["pos"] / (1 << 31) for r in rows]
@@ -164,6 +180,38 @@ def replay(trace: Path, clap: Path, rate: float = 48000.0) -> None:
     quiet = sum(1 for v in level if v < 1e-4)
     print(f"  replayed level: mean rms {sum(level)/len(level):.4f}, "
           f"{quiet}/{len(level)} blocks silent")
+
+    # **The gaps, named.**  "Sometimes only the drums play" is a stretch
+    # of blocks where the score made no sound, and the useful question
+    # is what the plugin was doing through it: descending (waiting for a
+    # stream), holding notes that were not yet due (`pending`), or
+    # neither — which would mean it had nothing to play at all.
+    floor = max(1e-4, 0.02 * (sum(level) / len(level)))
+    gaps, i = [], 0
+    while i < len(level):
+        if level[i] < floor:
+            j = i
+            while j < len(level) and level[j] < floor:
+                j += 1
+            gaps.append((i, j - i))
+            i = j
+        else:
+            i += 1
+    long_gaps = [g for g in gaps if g[1] * frames / rate > 0.15]
+    print(f"  silent stretches over 150 ms: {len(long_gaps)}")
+    for start, n in long_gaps[:8]:
+        window = rows[start:start + n]
+        desc = sum(r["descending"] for r in window)
+        pend = max(r["pending"] for r in window)
+        beat = window[0]["pos"] / (1 << 31)
+        played = sum(r["played"] for r in window)
+        dropped = sum(r["dropped"] for r in window)
+        print(f"     block {start:4d}  {n * frames / rate * 1000:6.0f} ms "
+              f"from beat {beat:7.2f}   descending {desc}/{n}, "
+              f"pending {pend}, played {played}, dropped {dropped}")
+    tot_p = sum(r["played"] for r in rows)
+    tot_d = sum(r["dropped"] for r in rows)
+    print(f"  notes performed {tot_p}, dropped {tot_d}")
 
 
 if __name__ == "__main__":
