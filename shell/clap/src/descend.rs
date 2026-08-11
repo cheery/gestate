@@ -40,10 +40,16 @@ const PRIME_BEATS: i64 = 12;
 
 /// A descent that has been asked for and not yet collected.
 struct Shared {
-    /// The tick the audio thread wants, and a serial so a later request
-    /// supersedes an earlier one rather than queueing behind it — a
-    /// rewinding transport asks many times and only the last matters.
-    want: Mutex<Option<(u64, i64, i64)>>,
+    /// `(serial, tick, tpb, seed)` — the tick the audio thread wants,
+    /// and a serial so a later request supersedes an earlier one
+    /// rather than queueing behind it: a rewinding transport asks many
+    /// times and only the last matters.
+    ///
+    /// **The seed travels with the request** rather than being read off
+    /// the `&'static Program`, because it is a parameter now: the
+    /// worker must descend the piece the player is listening to, not
+    /// the one the file was exported with.
+    want: Mutex<Option<(u64, i64, i64, i64)>>,
     /// `(serial, tick, piece, notes)` — primed and waiting to be taken.
     ///
     /// **The notes travel with the stream**, and that is the whole
@@ -108,10 +114,10 @@ impl Descender {
     /// A request that cannot be posted because the worker holds the
     /// lock is simply skipped: the transport will ask again next block,
     /// and asking twice for the same place is free.
-    pub fn request(&mut self, tick: i64, tpb: i64) -> bool {
+    pub fn request(&mut self, tick: i64, tpb: i64, seed: i64) -> bool {
         let serial = self.next;
         if let Ok(mut w) = self.shared.want.try_lock() {
-            *w = Some((serial, tick, tpb));
+            *w = Some((serial, tick, tpb, seed));
             self.next += 1;
             self.pending = Some(serial);
             self.shared.wake.notify_one();
@@ -205,7 +211,7 @@ fn worker(program: &'static Program, shared: Arc<Shared>) {
                 };
             }
         };
-        let (serial, tick, tpb) = request;
+        let (serial, tick, tpb, seed) = request;
 
         // Take back whatever the audio thread finished with; failing
         // that, build one.  Only the first descent of a session pays
@@ -221,7 +227,7 @@ fn worker(program: &'static Program, shared: Arc<Shared>) {
         }
         let mut piece = match mine.take() {
             Some(p) => p,
-            None => match Piece::open(program, tick) {
+            None => match Piece::open(program, seed, tick) {
                 Ok(p) => p,
                 Err(_) => continue,
             },
@@ -230,7 +236,7 @@ fn worker(program: &'static Program, shared: Arc<Shared>) {
         // Re-root and force ahead.  **Off the audio thread, so this may
         // take as long as it takes** — including a collection, which is
         // the cost no budget could slice.
-        if piece.reopen(program, tick).is_err() {
+        if piece.reopen(program, seed, tick).is_err() {
             mine = Some(piece);
             continue;
         }

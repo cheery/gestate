@@ -79,11 +79,18 @@ impl Piece {
     /// plugin that starts mid-timeline opens *there* rather than
     /// replaying from the top — the same descent the editor's rebuild
     /// uses.
-    pub fn open(p: &Program, tick: i64) -> Result<Piece, String> {
+    ///
+    /// **The seed is an argument, not `Program.seed`.**  Export bakes
+    /// the seed the file was written with; a player turning the RNG
+    /// wants a different night out of the same program, and a piece
+    /// re-rooted with the exported seed would ignore them.  So the
+    /// caller says which seed, every time, and `Program.seed` is only
+    /// the default it starts from.
+    pub fn open(p: &Program, seed: i64, tick: i64) -> Result<Piece, String> {
         let (machine, stream) = guard(|| {
             let (mut m, _entry) = crust::Machine::from_text(p.text);
             let s = crust::Stream::open_live(
-                &mut m, p.entry, p.seed, tick,
+                &mut m, p.entry, seed, tick,
                 p.cons_tag, p.nil_tag,
                 p.cue_ev_tag, p.cue_ask_tag, p.cue_end_tag);
             (m, s)
@@ -104,11 +111,13 @@ impl Piece {
     /// Re-rooting is a pointer: the heap stays, its forced work stays,
     /// and the collector reclaims the old stream's nodes on the next
     /// pull because nothing roots them any more.
-    pub fn reopen(&mut self, p: &Program, tick: i64) -> Result<(), String> {
+    pub fn reopen(&mut self, p: &Program, seed: i64, tick: i64)
+        -> Result<(), String>
+    {
         let Piece { machine, stream, failed } = self;
         let fresh = guard(|| {
             crust::Stream::open_live(
-                machine, p.entry, p.seed, tick,
+                machine, p.entry, seed, tick,
                 p.cons_tag, p.nil_tag,
                 p.cue_ev_tag, p.cue_ask_tag, p.cue_end_tag)
         })?;
@@ -416,10 +425,18 @@ pub struct Performer {
     /// carried on from wherever it had got to: the transport moved and
     /// the music did not.
     opened_at: Option<i64>,
+    /// The seed this performance is running on.
+    ///
+    /// **Held here because a re-root needs it and the audio thread is
+    /// where re-roots are decided.**  The instance owns the number (it
+    /// is a parameter, so the host owns it really); this is the copy
+    /// the piece was last opened with, and `set_seed` is what notices
+    /// the two have parted.
+    seed: i64,
 }
 
 impl Performer {
-    pub fn new(piece: Piece) -> Self {
+    pub fn new(piece: Piece, seed: i64) -> Self {
         Performer {
             piece,
             pending: BinaryHeap::new(),
@@ -439,7 +456,30 @@ impl Performer {
             played_count: 0,
             dropped_count: 0,
             opened_at: Some(0),
+            seed,
         }
+    }
+
+    pub fn seed(&self) -> i64 {
+        self.seed
+    }
+
+    /// Take a new seed.  Returns whether it actually changed — a
+    /// caller that re-rooted on every block would restart the piece
+    /// sixty times a second.
+    ///
+    /// **Nothing is re-rooted here.**  Changing the seed changes what
+    /// the piece *is* from its first instant, so the stream has to be
+    /// opened again at wherever the transport stands — which is a
+    /// seek, and seeks belong to the block that knows the transport.
+    /// This only records the number and says that something must
+    /// happen; `lib.rs` turns that into the seek.
+    pub fn set_seed(&mut self, seed: i64) -> bool {
+        if self.seed == seed {
+            return false;
+        }
+        self.seed = seed;
+        true
     }
 
     pub fn stalled(&self) -> bool {
@@ -763,7 +803,7 @@ impl Performer {
         // zero is no descent at all — `liveMain seed 0` is the piece
         // from its start — so pressing play does not have to wait for a
         // worker, and two plays stay one performance.
-        match self.piece.reopen(p, 0) {
+        match self.piece.reopen(p, self.seed, 0) {
             Ok(()) => {
                 self.opened_at = Some(0);
                 self.wanted = None;
@@ -853,7 +893,7 @@ impl Performer {
             // target left the `0` behind, so every seek re-rooted the
             // piece at its beginning and played from there — the
             // transport moved and the music started over.
-            match self.piece.reopen(p, ticks) {
+            match self.piece.reopen(p, self.seed, ticks) {
                 Ok(()) => {
                     self.opened_at = Some(ticks);
                     self.wanted = None;

@@ -38,6 +38,11 @@ use crate::{panels, Change, Panel};
 /// what CLAP promises for `clap.gui`.
 pub struct Handle(baseview::Window);
 
+/// What opening one can fail with — named here so the shell can spell
+/// the result type without ever spelling `baseview`, which is the
+/// whole point of this module being the only one that knows it exists.
+pub type Error = baseview::Error;
+
 impl Handle {
     pub fn show(&self) -> bool {
         self.0.show().is_ok()
@@ -80,6 +85,17 @@ pub trait Sink: Send + Sync + 'static {
 
     /// Anything the instrument needs to say, checked once a frame.
     fn notice(&self) -> Option<String> {
+        None
+    }
+
+    /// How loud the instrument has been since this was last asked —
+    /// `spec/substrate.md` S5's `peak`, and the only channel the *host*
+    /// writes rather than a hand.
+    ///
+    /// `None` from an instrument that is not measuring, which is every
+    /// one whose program never declares the channel: a fact nobody
+    /// asked for costs nothing to not produce.
+    fn peak(&self) -> Option<f64> {
         None
     }
 }
@@ -134,13 +150,35 @@ struct PanelWindow {
 
 impl PanelWindow {
     fn new(ctx: WindowContext, model: Model, sink: Arc<dyn Sink>,
-           w: i32, h: i32)
+           w: i32, h: i32,
+           #[cfg(feature = "substrate")]
+           canvas: Option<crate::canvas::CanvasProgram>)
         -> Result<Self, softbuffer::SoftBufferError>
     {
         let handle = ctx.platform_handle();
         let context = softbuffer::Context::new(handle.clone())?;
         let surface = softbuffer::Surface::new(&context, handle)?;
         let mut panel = Panel::new(model);
+        // **A clock, once, and only here.**  The panel is a pure
+        // function of its model everywhere else; the reroll button
+        // needs a stream that differs between openings, and this is the
+        // only place in the crate that knows what time it is.
+        if let Ok(d) = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH) {
+            panel.stir(d.as_nanos() as u64);
+        }
+        #[cfg(feature = "substrate")]
+        if let Some(program) = canvas {
+            // **A canvas that will not open is a notice, not a
+            // refusal.**  The knobs still work, the instrument still
+            // plays, and the window says what went wrong — which is
+            // strictly more useful than a plugin that declines to show
+            // a face because half of it is unhappy.
+            match crate::canvas::Canvas::open(program) {
+                Ok(c) => panel.attach_canvas(c),
+                Err(e) => panel.set_notice(Some(e)),
+            }
+        }
         panel.resize(w, h);
         Ok(PanelWindow {
             panel: RefCell::new(panel),
@@ -167,6 +205,28 @@ impl WindowHandler for PanelWindow {
             panel.sync_values(&values);
         }
         panel.set_notice(notice);
+
+        // **One instant of the canvas, once a frame.**  What arrives is
+        // what the *instrument* has to say: how loud it has been, and
+        // any bridged parameter the host moved without a hand on this
+        // window — automation, another controller, the DAW's own
+        // panel.  Without that second one the picture would be right
+        // only while you were the one touching it.
+        #[cfg(feature = "substrate")]
+        {
+            let mut writes: Vec<(i64, f64)> = Vec::new();
+            if let Some(level) = self.sink.peak() {
+                if let Some(ch) = panel.canvas_channel("peak") {
+                    writes.push((ch, level));
+                }
+            }
+            for (param, v) in &values {
+                if let Some(ch) = panel.canvas_channel_of_param(*param) {
+                    writes.push((ch, *v));
+                }
+            }
+            panel.tick_canvas(&writes);
+        }
 
         let (w, h) = (panel.width.max(1) as u32, panel.height.max(1) as u32);
         let (Some(nw), Some(nh)) = (NonZeroU32::new(w), NonZeroU32::new(h))
@@ -263,6 +323,8 @@ pub unsafe fn open_parented(
     model: Model,
     sink: Arc<dyn Sink>,
     size: Option<(i32, i32)>,
+    #[cfg(feature = "substrate")]
+    canvas: Option<crate::canvas::CanvasProgram>,
 ) -> Result<Handle, baseview::Error> {
     let (w, h) = size.unwrap_or_else(
         || panels::size(&model, panels::SCALE_DEFAULT));
@@ -272,7 +334,8 @@ pub unsafe fn open_parented(
         .with_size(baseview::dpi::PhysicalSize::new(w as u32, h as u32))
         .with_parent(&parent);
     baseview::Window::create(settings, move |ctx| {
-        PanelWindow::new(ctx, model, sink, w, h)
+        PanelWindow::new(ctx, model, sink, w, h,
+                         #[cfg(feature = "substrate")] canvas)
             .map_err(|e| baseview::HandlerError::from_boxed(Box::new(e)))
     })
     .map(Handle)
@@ -280,15 +343,19 @@ pub unsafe fn open_parented(
 
 /// Open the panel as its own window and run until it closes — the
 /// standalone view, for looking at a panel without a DAW.
-pub fn open_blocking(model: Model, sink: Arc<dyn Sink>)
-    -> Result<(), baseview::Error>
-{
+pub fn open_blocking(
+    model: Model,
+    sink: Arc<dyn Sink>,
+    #[cfg(feature = "substrate")]
+    canvas: Option<crate::canvas::CanvasProgram>,
+) -> Result<(), baseview::Error> {
     let (w, h) = panels::size(&model, panels::SCALE_DEFAULT);
     let settings = WindowSettings::new()
         .with_title("gestate panel")
         .with_size(baseview::dpi::PhysicalSize::new(w as u32, h as u32));
     let window = baseview::Window::create(settings, move |ctx| {
-        PanelWindow::new(ctx, model, sink, w, h)
+        PanelWindow::new(ctx, model, sink, w, h,
+                         #[cfg(feature = "substrate")] canvas)
             .map_err(|e| baseview::HandlerError::from_boxed(Box::new(e)))
     })?;
     window.run_until_closed()

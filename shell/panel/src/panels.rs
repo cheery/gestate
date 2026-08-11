@@ -7,7 +7,7 @@
 
 use crate::font;
 use crate::list::{Axis, Colour, Display, Kind};
-use crate::model::{Accepts, Model};
+use crate::model::{Accepts, Model, Tab};
 
 // ── The palette ──────────────────────────────────────────────────────
 //
@@ -45,6 +45,13 @@ pub const CELL_OFF_MUTED: Colour = Colour::rgb(0x1e, 0x21, 0x27);
 pub const CELL_WRONG: Colour = Colour::rgb(0xc0, 0x4c, 0x48);
 /// The scrollbar's thumb, when there is more than fits.
 pub const BAR: Colour = Colour::rgb(0x6a, 0x74, 0x84);
+/// The toolbar's ground — a shade off the panel's, so the strip reads
+/// as chrome rather than as the first row of the content it sits over.
+pub const CHROME: Colour = Colour::rgb(0x1c, 0x1f, 0x25);
+/// The tab you are looking at.
+pub const TAB_ON: Colour = Colour::rgb(0x33, 0x3a, 0x46);
+/// The one you are not.
+pub const TAB_OFF: Colour = Colour::rgb(0x1c, 0x1f, 0x25);
 
 // ── Button actions ───────────────────────────────────────────────────
 
@@ -52,6 +59,12 @@ pub const BAR: Colour = Colour::rgb(0x6a, 0x74, 0x84);
 pub const ACT_SMALLER: u32 = 0;
 /// Make the text one step larger.
 pub const ACT_LARGER: u32 = 1;
+/// Show the descriptor's own controls.
+pub const ACT_CONTROLS: u32 = 2;
+/// Show the program's canvas.
+pub const ACT_CANVAS: u32 = 3;
+/// Roll a new seed — **a new take of the same piece.**
+pub const ACT_RESEED: u32 = 4;
 
 /// Zoom, as a **percentage**, in steps of `SCALE_STEP`.
 ///
@@ -129,6 +142,8 @@ impl Metrics {
     /// not what anyone asking for bigger letters means.
     pub fn key_w_preferred(&self) -> i32 { 5 }
     pub fn button(&self) -> i32 { self.px(18) }
+    /// The toolbar's own height — a button with air above and below.
+    pub fn tool_h(&self) -> i32 { self.button() + self.px(10) }
     /// **Wide enough to grab.**  A four-pixel bar is a decoration you
     /// have to aim at; this one is a target.
     pub fn bar_w(&self) -> i32 { self.px(10) }
@@ -185,12 +200,101 @@ pub fn name_column(m: &Model, k: &Metrics) -> i32 {
     w + 16 * k.s()
 }
 
+/// How tall the toolbar is, or zero when there is nothing to put in it.
+///
+/// **A strip that would be empty is not drawn.**  A synth with a baked
+/// score and no canvas has neither a tab to switch nor a seed to roll,
+/// and giving it a bare band of chrome would be decoration charging
+/// rent on a small window.
+pub fn toolbar_h(m: &Model, scale: i32) -> i32 {
+    if !m.has_canvas && m.seed.is_none() {
+        return 0;
+    }
+    Metrics::new(scale).tool_h()
+}
+
+/// The toolbar: which source you are looking at, and which take you
+/// are hearing.
+///
+/// **Chrome, so it does not scroll.**  Everything in it is a way of
+/// getting somewhere else, and a control that leaves the window when
+/// you look down the list is a control you have to hunt for.  It is
+/// drawn in its own pass, over the content, for the same reason the
+/// scrollbar is: the content beneath it may be scrolled to anywhere,
+/// and painting the strip last is what makes it opaque to that.
+pub fn toolbar(d: &mut Display, m: &Model, w: i32, scale: i32, tab: Tab) {
+    let k = Metrics::new(scale);
+    let h = toolbar_h(m, scale);
+    if h == 0 {
+        return;
+    }
+    d.rect(0, 0, w, h, CHROME);
+    let b = k.button();
+    let y = (h - b) / 2;
+    let mut x = k.pad();
+
+    if m.has_canvas {
+        for (label, act, mine) in [
+            ("CONTROLS", ACT_CONTROLS, Tab::Controls),
+            ("CANVAS", ACT_CANVAS, Tab::Canvas),
+        ] {
+            let tw = font::width(label, k.small_scale());
+            let bw = tw + k.px(16);
+            let on = tab == mine;
+            d.rect(x, y, bw, b, if on { TAB_ON } else { TAB_OFF });
+            // **A lit edge, not only a lighter box.**  Two greys a
+            // shade apart is a distinction that survives neither a
+            // dark room nor a screenshot; the bar underneath says
+            // which one you are on at a glance.
+            if on {
+                d.rect(x, y + b - k.px(2), bw, k.px(2), FILL);
+            }
+            d.text(x + (bw - tw) / 2,
+                   y + (b - font::height(k.small_scale())) / 2,
+                   label, if on { INK } else { DIM }, k.small_scale());
+            d.hit(Kind::Button(act), crate::list::NO_PARAM,
+                  (x, y, x + bw, y + b));
+            x += bw + k.px(4);
+        }
+    }
+
+    let Some(seed) = &m.seed else { return };
+    // Right-aligned, because the tabs grow leftwards from a fixed edge
+    // and a seed that shuffled sideways as the tab names changed would
+    // be a button that moves under the hand that is reaching for it.
+    let text = format!("{}", seed.value);
+    let rw = font::width("RNG", k.small_scale()) + k.px(16);
+    let vw = font::width("00000", k.small_scale()).max(
+        font::width(&text, k.small_scale()));
+    let lw = font::width("SEED", k.small_scale());
+    let right = w - k.pad() - k.bar_w();
+    let bx = right - rw;
+    // Only if the three of them fit beside the tabs; a window squeezed
+    // narrow keeps the tabs, which are the ones you cannot do without.
+    if bx - k.px(8) - vw - k.px(6) - lw < x {
+        return;
+    }
+    d.rect(bx, y, rw, b, TRACK);
+    d.text(bx + (rw - font::width("RNG", k.small_scale())) / 2,
+           y + (b - font::height(k.small_scale())) / 2,
+           "RNG", INK, k.small_scale());
+    d.hit(Kind::Button(ACT_RESEED), crate::list::NO_PARAM,
+          (bx, y, bx + rw, y + b));
+
+    let vx = bx - k.px(8) - vw;
+    let ty = y + (b - font::height(k.small_scale())) / 2;
+    d.text(vx + vw - font::width(&text, k.small_scale()), ty,
+           &text, INK, k.small_scale());
+    d.text(vx - k.px(6) - lw, ty, "SEED", DIM, k.small_scale());
+}
+
 /// How tall this model is at this scale and width — what a window would
 /// have to be to show all of it at once.
 pub fn content_height(m: &Model, scale: i32) -> i32 {
     let k = Metrics::new(scale);
     let b = k.button();
-    let mut h = k.pad() + font::height(k.title_scale()).max(b) + k.pad();
+    let mut h = toolbar_h(m, scale)
+        + k.pad() + font::height(k.title_scale()).max(b) + k.pad();
     if !m.knobs.is_empty() {
         h += font::height(k.small_scale()) + 6 * k.s();
         h += m.knobs.len() as i32 * k.row_h();
@@ -259,7 +363,7 @@ pub fn view(m: &Model, w: i32, hot: Option<u32>, scale: i32, scroll: i32)
     let k = Metrics::new(scale);
     let name_w = name_column(m, &k);
     let mut d = Display::new();
-    let mut y = k.pad() - scroll;
+    let mut y = toolbar_h(m, scale) + k.pad() - scroll;
 
     d.text(k.pad(), y, &m.title, INK, k.title_scale());
 

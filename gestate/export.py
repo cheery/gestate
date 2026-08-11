@@ -260,6 +260,120 @@ def program_of(source: str, rate: int):
     }
 
 
+#: The `Sub` constructors, in the order `shell/panel`'s `SubTags`
+#: expects them.  A tag is a *position* in the program's own table, so
+#: the shell cannot derive one — same reasoning as the cue tags above.
+_SUB_CONS = ("Rect", "Circle", "Gap", "Over", "Row", "Column",
+             "Shift", "Sized", "Pad", "TouchX", "TouchY")
+
+
+def substrate_of(source: str, rate: int, graph):
+    """The **canvas** as a program, for a plugin to run beside its sound.
+
+    `spec/substrate.md`, abroad.  A file that declares a `substrate` has
+    a second half the compiler does not fold into the graph: it is
+    interpreted, it runs at frame rate, and until now it stayed at home
+    — `gestate.gui` could draw it and a plugin could not.
+
+    What crosses is the serialized machine code, the constructor tags
+    the walk decodes cells with — a tag is a *position* in this
+    program's own table, so a host cannot derive one — and the
+    **channel names in declaration order**.
+
+    Names rather than ids, and that is the correction worth stating: a
+    channel's id is allocated when its declaration is first forced, so
+    it depends on *what the host forces and in what order*.  Sending
+    ids meant the export and the plugin had to make the same choice
+    about that, in two languages, with nothing checking — and they did
+    not: forcing the declarations first gives `cutoff` id 0, letting
+    the program reach it gives id 2, and both are correct readings of
+    the same file.  So the shell forces the names in this order and
+    keeps whatever ids it is given.  Nothing has to agree because
+    nothing is being guessed.
+
+    And one thing the score does not need: the **bridge**.  A channel
+    the canvas writes may be a channel the compiled graph reads — that
+    is the whole of "one fold, two readers" — so every declared channel
+    that is also a control source is paired with its slot.  A touch on
+    a fader then moves the picture *and* the sound, and the shell does
+    it by writing the parameter it already owns rather than by reaching
+    into the engine (`spec/panel.md` §"What the substrate will demand").
+
+    `None` when the file draws nothing, or when the canvas cannot cross
+    — the same honest refusal `program_of` makes.
+    """
+    from .crust import CrustError, serialize
+    from .gui import (GuiError, _channel_names, _entry, _preludes,
+                      _program)
+    from .pipeline import compile as _compile
+
+    from .audio import _authored
+    if "substrate" not in _authored(source)[1]:
+        return None
+
+    try:
+        state = _compile(_preludes(source) + "\n" + _program(source) + "\n"
+                         + _entry(source, rate))
+        # **Forced here, in this state, before the program runs.**  A
+        # channel gets its id when its declaration is first forced, so
+        # forcing them now — sharing the machine's own counter — is
+        # what makes the id the host writes the id the program sees.
+        # `gui.Substrate.__init__` does exactly this and for exactly
+        # this reason.
+        names = _channel_names(source)
+        # Forced here only to *check* that each one really is a `Chan`
+        # — a declaration that lies is better caught at export than at
+        # the first frame in somebody's DAW.  The ids this hands back
+        # are deliberately thrown away; see the docstring.
+        from .gui import Substrate
+        probe = Substrate.__new__(Substrate)
+        probe.state = state
+        for name in names:
+            probe._force(name)
+        text = serialize(state, "main")
+    except (CrustError, GuiError, KeyError):
+        return None
+
+    missing = [c for c in _SUB_CONS if c not in state.cons]
+    if missing:
+        return None
+    tags = [state.cons[c].tag for c in _SUB_CONS]
+
+    # **The bridge.**  A declared channel the compiled graph also reads
+    # as a control, paired with the slot it reads it from — the same
+    # enumeration `descriptor_rs` writes `CONTROLS` in, so the two
+    # cannot disagree about which slot is which.
+    slots = {n.chan: i for i, n in enumerate(graph.control_sources())}
+    bridge = [(name, slots[name]) for name in names if name in slots]
+
+    return {
+        "text": text,
+        "entry": "main",
+        "tags": tags,
+        "chans": names,
+        "bridge": bridge,
+    }
+
+
+def _substrate_rs(sub) -> str:
+    """The `SUBSTRATE` fifth of `descriptor.rs`."""
+    if sub is None:
+        return ""
+    tags = ", ".join(str(t) for t in sub["tags"])
+    chans = ", ".join(_rust_str(n) for n in sub["chans"])
+    bridge = ", ".join(f"({_rust_str(n)}, {s})" for n, s in sub["bridge"])
+    return (
+        f"static SUB_CHANS: &[&str] = &[{chans}];\n"
+        f"static SUB_BRIDGE: &[(&str, usize)] = &[{bridge}];\n"
+        "pub static SUBSTRATE: Option<Substrate> = Some(Substrate {\n"
+        f"    text: {_rust_str(sub['text'])},\n"
+        f"    entry: {_rust_str(sub['entry'])},\n"
+        f"    tags: [{tags}],\n"
+        "    chans: SUB_CHANS,\n"
+        "    bridge: SUB_BRIDGE,\n"
+        "});\n")
+
+
 def _program_rs(program) -> str:
     """The `PROGRAM` fourth of `descriptor.rs`."""
     if program is None:
@@ -375,7 +489,7 @@ def _bools(flags) -> str:
 
 def descriptor_rs(graph, *, id_: str, name: str, version: str,
                   rate: int, knobs: frozenset, bank=None, program=None,
-                  scored=None,
+                  scored=None, substrate=None,
                   graphs=None, beat=None, score=None,
                   bpm: float = 120.0) -> str:
     """The Rust the shell includes — everything only the compiler knows."""
@@ -397,6 +511,8 @@ def descriptor_rs(graph, *, id_: str, name: str, version: str,
     used = ["Bank", "Control", "Descriptor", "RateCase", "ScoreEvent"]
     if program is not None:
         used.append("Program")
+    if substrate is not None:
+        used.append("Substrate")
     if controls:
         used.append("Kind")
     if any(table is not None for _n, _v, table in (bank or [])):
@@ -410,6 +526,7 @@ def descriptor_rs(graph, *, id_: str, name: str, version: str,
             f"pub static SCORED: &[bool] = &{_bools(scored or [])};\n"
             f"{_score_rs(score, bpm)}\n"
             f"{_program_rs(program)}\n"
+            f"{_substrate_rs(substrate)}\n"
             f"pub static BEAT_SLOTS: Option<(usize, usize, usize)> = "
             f"{'Some(' + repr(tuple(beat)) + ')' if beat else 'None'};\n\n"
             f"pub static DESCRIPTOR: Descriptor = Descriptor {{\n"
@@ -628,13 +745,18 @@ def export_clap(source: str, out: Path, *, rate=None, name: str,
     # compiled program, which the shell forces as it plays
     # (`spec/dynamicscore.md` stage two, abroad).
     program = program_of(source, primary) if score is None else None
+    # **The canvas, when the file draws one.**  Independent of the
+    # score: a file may draw and have no piece, or play a piece and
+    # show nothing.  They are two halves the compiler leaves behind,
+    # not two spellings of one.
+    canvas = substrate_of(source, primary, graph) if gui else None
     with tempfile.TemporaryDirectory() as d:
         archive(graphs, d)
         (shell / "src" / "descriptor.rs").write_text(descriptor_rs(
             graph, id_=f"org.gestate.{name}", name=name,
             version=version, rate=primary, knobs=knobs, bank=bank,
             graphs=graphs, beat=beat, score=score, program=program,
-            scored=scored_banks(source),
+            scored=scored_banks(source), substrate=canvas,
             bpm=_bpm_of(source)))
         env = dict(**__import__("os").environ, GESTATE_GRAPH_DIR=d)
         # `--target-dir` pins the artifact under the shell whether or
@@ -645,6 +767,8 @@ def export_clap(source: str, out: Path, *, rate=None, name: str,
             features.append("gui")
         if program is not None:
             features.append("dynscore")
+        if canvas is not None:
+            features.append("substrate")
         features = ",".join(features)
         done = subprocess.run(
             ["cargo", "build", "--release", "--features", features,

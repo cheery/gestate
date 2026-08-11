@@ -58,7 +58,7 @@ fn fixture() -> (String, Program, Vec<(i64, i64, usize, Vec<i64>)>) {
 #[test]
 fn the_plugin_forces_the_piece_the_reference_forces() {
     let (_text, program, want) = fixture();
-    let mut piece = Piece::open(&program, 0).expect("the program loaded");
+    let mut piece = Piece::open(&program, 0, 0).expect("the program loaded");
 
     // Sixteen beats, the horizon the fixture was taken at.  A stall is
     // the budget, not the end — pull again until the horizon is
@@ -86,7 +86,7 @@ fn the_plugin_forces_the_piece_the_reference_forces() {
 #[test]
 fn an_endless_piece_is_bounded_by_its_horizon() {
     let (_t, program, _w) = fixture();
-    let mut piece = Piece::open(&program, 0).expect("loaded");
+    let mut piece = Piece::open(&program, 0, 0).expect("loaded");
     // `moods` is a `cycle`: it never ends.  Asking for four beats must
     // return four beats' worth and stop, not walk forever.
     let mut n = 0;
@@ -127,7 +127,7 @@ fn nd_fixture() -> Program {
 #[test]
 fn the_frontier_keeps_up_with_a_blocks_budget() {
     let program = nd_fixture();
-    let mut piece = Piece::open(&program, 0).expect("loaded");
+    let mut piece = Piece::open(&program, 0, 0).expect("loaded");
     for block in 0..6 {
         let n = piece.pull(&program, 96 * 4, 2_000_000, 4096).len();
         eprintln!("  block {block}: {n} notes, frontier {}, stalled {}",
@@ -171,7 +171,7 @@ fn nightdrive_forces_what_the_reference_forces() {
             (v[0], v[1], v[2] as usize, v[4..].to_vec())
         }).collect();
 
-    let mut piece = Piece::open(&program, 0).expect("loaded");
+    let mut piece = Piece::open(&program, 0, 0).expect("loaded");
     let mut got = Vec::new();
     for _ in 0..64 {
         got.extend(piece.pull(&program, 96 * 8, 2_000_000, 4096));
@@ -225,7 +225,7 @@ fn the_performer_writes_the_notes_it_forces() {
         vec![vec![FRESH_VOICE; 2], vec![FRESH_VOICE; 2]];
     let mut control = vec![0i64; 16];
 
-    let mut perf = Performer::new(Piece::open(&program, 0).expect("open"));
+    let mut perf = Performer::new(Piece::open(&program, 0, 0).expect("open"), 0);
     let held = |_b: usize| Vec::new();
     let block = 512i64;
     let mut wrote = 0;
@@ -261,9 +261,9 @@ fn the_descent_worker_answers() {
     let program: &'static Program = Box::leak(Box::new(program));
     let mut d = Descender::new(program);
     // Prewarm, the way `activate` does.
-    d.prewarm(Piece::open(program, 0).expect("spare"));
+    d.prewarm(Piece::open(program, 0, 0).expect("spare"));
 
-    assert!(d.request(0, 96), "the request could not be posted");
+    assert!(d.request(0, 96, 0), "the request could not be posted");
     assert!(d.awaiting());
 
     let started = Instant::now();
@@ -316,9 +316,9 @@ fn pressing_play_still_reaches_the_control_slots() {
     let mut voices: Vec<Vec<VoiceState>> =
         vec![vec![FRESH_VOICE; 2], vec![FRESH_VOICE; 2]];
     let mut control = vec![0i64; 16];
-    let mut perf = Performer::new(Piece::open(program, 0).expect("open"));
+    let mut perf = Performer::new(Piece::open(program, 0, 0).expect("open"), 0);
     let mut d = Descender::new(program);
-    d.prewarm(Piece::open(program, 0).expect("spare"));
+    d.prewarm(Piece::open(program, 0, 0).expect("spare"));
 
     // Press play: `rose` seeks to the transport's position.
     perf.seek(program, &tb, 120.0, 0, 0, &mut voices, &mut control);
@@ -329,7 +329,7 @@ fn pressing_play_still_reaches_the_control_slots() {
     for b in 0..400 {
         if let Some(tick) = perf.wanted() {
             if !d.awaiting() {
-                d.request(tick, tb.tpb);
+                d.request(tick, tb.tpb, 0);
             }
         }
         if let Some((tick, piece, notes)) = d.take() {
@@ -361,5 +361,77 @@ fn a_program_that_is_not_one_refuses_rather_than_panics() {
         voice_banks: BANKS, holds: &[],
     };
     // A panic here would take a DAW down with it.
-    assert!(Piece::open(&bad, 0).is_err());
+    assert!(Piece::open(&bad, 0, 0).is_err());
+}
+
+// ── The seed ────────────────────────────────────────────────────────────
+
+/// Force the first `beats` beats of a piece on a given seed.
+fn take(program: &Program, seed: i64, beats: i64)
+    -> Vec<(i64, i64, usize, Vec<i64>)>
+{
+    let mut piece = Piece::open(program, seed, 0).expect("loaded");
+    let mut got = Vec::new();
+    for _ in 0..64 {
+        got.extend(piece.pull(program, 96 * beats, 2_000_000, 4096));
+        assert!(piece.failed.is_none(), "{:?}", piece.failed);
+        if !piece.stalled() || piece.done() || piece.asking().is_some() {
+            break;
+        }
+    }
+    got.into_iter()
+        .map(|n| (n.onset, n.offset, n.bank, n.payload))
+        .collect()
+}
+
+/// **A seed is a take, and a different seed is a different take.**
+///
+/// The thing the RNG button is for.  `nightdrive` picks a road every
+/// four bars and `moods` picks its material from the same entropy; a
+/// plugin that could only ever play the seed it was exported with was
+/// playing one night of a piece that has thousands.
+#[test]
+fn a_different_seed_is_a_different_performance() {
+    let program = nd_fixture();
+    let a = take(&program, 0, 16);
+    let b = take(&program, 7, 16);
+    assert!(!a.is_empty(), "a piece with no notes proves nothing");
+    assert_ne!(a, b, "two seeds performed identically");
+}
+
+/// And the same seed is the same take — which is the half that makes
+/// the number worth writing down.
+#[test]
+fn the_same_seed_replays() {
+    let program = nd_fixture();
+    assert_eq!(take(&program, 7, 16), take(&program, 7, 16));
+}
+
+/// Re-rooting on a new seed keeps the machine and changes the music.
+///
+/// This is the path the parameter actually takes: `apply_param` sets
+/// `needs_seek`, the next block seeks, and `seek` re-opens the stream
+/// on the seed the player chose — **without** rebuilding the heap,
+/// which is the whole reason `reopen` exists.
+#[test]
+fn reopening_on_a_new_seed_changes_the_music() {
+    let program = nd_fixture();
+    let mut piece = Piece::open(&program, 0, 0).expect("loaded");
+    let mut first = Vec::new();
+    for _ in 0..64 {
+        first.extend(piece.pull(&program, 96 * 8, 2_000_000, 4096));
+        if !piece.stalled() || piece.asking().is_some() { break; }
+    }
+    piece.reopen(&program, 7, 0).expect("re-rooted");
+    let mut second = Vec::new();
+    for _ in 0..64 {
+        second.extend(piece.pull(&program, 96 * 8, 2_000_000, 4096));
+        if !piece.stalled() || piece.asking().is_some() { break; }
+    }
+    let key = |v: &Vec<gestate_clap::dynscore::Note>| -> Vec<(i64, Vec<i64>)> {
+        v.iter().map(|n| (n.onset, n.payload.clone())).collect()
+    };
+    assert!(!first.is_empty());
+    assert_ne!(key(&first), key(&second),
+               "the same heap re-rooted on a new seed replayed the old take");
 }

@@ -146,9 +146,63 @@ pub struct ScoreEvent {
 // slots — `BEAT_SLOTS` — never through a channel's spelling.
 // `spec/substrate.md`'s context contract is why.)
 
+/// The **canvas** as a program — `spec/substrate.md`, abroad.
+///
+/// The sibling of `Program` above and the same idea: a half of the
+/// file the compiler does not fold into the graph, sent as machine
+/// code instead of as a result.  The score's program is forced on the
+/// audio thread and yields notes; this one is forced on the *window's*
+/// thread and yields a picture, which is why the two can be carried by
+/// the same plugin without either waiting on the other.
+#[cfg(feature = "substrate")]
+pub struct Substrate {
+    /// The serialized G-machine program, written by
+    /// `gestate.crust.serialize`.
+    pub text: &'static str,
+    /// The entry to force — `main`, which `gestate.gui` binds to the
+    /// file's `substrate`.
+    pub entry: &'static str,
+    /// The `Sub` constructor tags, in `gestate_panel::substrate
+    /// ::SubTags` order.  A tag is a position in this program's own
+    /// table, so it cannot be derived — only carried.
+    pub tags: [i64; 11],
+    /// Every `name : Chan …` the file declares, **in the order
+    /// written**.
+    ///
+    /// Names, not ids.  A channel's id is allocated when its
+    /// declaration is first forced, so it depends on what the host
+    /// forces and in what order; the shell forces these, in this
+    /// order, before the program runs, and keeps whatever ids it is
+    /// given.  Nothing has to agree across the two languages because
+    /// nothing is being guessed.
+    pub chans: &'static [&'static str],
+    /// **One fold, two readers**, as a table: a channel the canvas
+    /// writes that the compiled graph also reads, paired with the
+    /// control slot it reads it from.
+    ///
+    /// This is what makes a fader in the picture the same thing as a
+    /// knob in the panel.  The shell does not reach into the engine
+    /// with it — it turns the touch into the *parameter* change the
+    /// host already understands, so a substrate drag is undoable,
+    /// automatable and visible in the DAW like every other one
+    /// (`spec/panel.md` §"What the substrate will demand").
+    pub bridge: &'static [(&'static str, usize)],
+}
+
 #[cfg(feature = "engine")]
 mod linked {
     include!("descriptor.rs");
+}
+
+/// The canvas, if this plugin carries one.
+#[cfg(all(feature = "engine", feature = "substrate"))]
+pub fn substrate() -> Option<&'static Substrate> {
+    linked::SUBSTRATE.as_ref()
+}
+
+#[cfg(all(not(feature = "engine"), feature = "substrate"))]
+pub fn substrate() -> Option<&'static Substrate> {
+    None
 }
 
 #[cfg(feature = "engine")]

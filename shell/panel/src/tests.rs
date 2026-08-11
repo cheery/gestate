@@ -16,7 +16,7 @@ fn knob(name: &str, param: u32, value: f64) -> Knob {
 
 fn model() -> Model {
     Model {
-        title: "TESTSYNTH".into(), notice: None,
+        title: "TESTSYNTH".into(), notice: None, seed: None, has_canvas: false,
         knobs: vec![knob("cutoff", 0, 0.25), knob("drive", 1, 0.5)],
         banks: vec![BankView {
             name: "lead".into(),
@@ -50,7 +50,7 @@ fn the_same_model_draws_the_same_list() {
 
 #[test]
 fn a_model_with_no_knobs_offers_no_parameters() {
-    let m = Model { title: "T".into(), notice: None, knobs: vec![], banks: vec![] };
+    let m = Model { title: "T".into(), notice: None, seed: None, has_canvas: false, knobs: vec![], banks: vec![] };
     let d = panels::view(&m, 600, None, 100, 0);
     assert!(d.hits.iter().all(|h| matches!(h.kind, Kind::Button(_))),
             "an empty descriptor still has its own text-size buttons, \
@@ -245,7 +245,7 @@ fn a_declined_key_reads_as_silent() {
 #[test]
 fn a_structural_bank_says_so_in_words() {
     let m = Model {
-        title: "T".into(), notice: None,
+        title: "T".into(), notice: None, seed: None, has_canvas: false,
         knobs: vec![],
         banks: vec![BankView { name: "keys".into(), voices: 4,
                                accepts: Accepts::Everything, routing: 0b0000_0000_0000_0010,
@@ -581,4 +581,164 @@ fn the_bar_is_wide_enough_to_hit() {
     p.resize(p.width, 160);
     let (x0, _, x1, _) = p.bar_rect().unwrap();
     assert!(x1 - x0 >= 10, "a bar you have to aim at is not a control");
+}
+
+// ── The toolbar: which source, and which take ────────────────────────────
+
+use crate::model::{SeedView, Tab};
+
+fn with_toolbar() -> Model {
+    Model {
+        seed: Some(SeedView { param: 500, value: 1234, max: 99_999 }),
+        has_canvas: true,
+        ..model()
+    }
+}
+
+#[test]
+fn a_plugin_with_nothing_to_switch_grows_no_toolbar() {
+    // A synth with a baked score and no canvas has neither a tab nor a
+    // seed; a bare strip of chrome over it would be decoration charging
+    // rent on a small window.
+    assert_eq!(panels::toolbar_h(&model(), 100), 0);
+    assert!(panels::toolbar_h(&with_toolbar(), 100) > 0);
+}
+
+#[test]
+fn the_toolbar_offers_both_tabs_and_the_reroll() {
+    let m = with_toolbar();
+    let mut d = crate::Display::new();
+    panels::toolbar(&mut d, &m, 600, 150, Tab::Controls);
+    let acts: Vec<u32> = d.hits.iter().filter_map(|h| match h.kind {
+        Kind::Button(a) => Some(a),
+        _ => None,
+    }).collect();
+    assert!(acts.contains(&panels::ACT_CONTROLS));
+    assert!(acts.contains(&panels::ACT_CANVAS));
+    assert!(acts.contains(&panels::ACT_RESEED));
+}
+
+#[test]
+fn a_plugin_without_a_canvas_offers_no_canvas_tab() {
+    let m = Model { seed: Some(SeedView { param: 500, value: 0, max: 9 }),
+                    has_canvas: false, ..model() };
+    let mut d = crate::Display::new();
+    panels::toolbar(&mut d, &m, 600, 150, Tab::Controls);
+    let acts: Vec<u32> = d.hits.iter().filter_map(|h| match h.kind {
+        Kind::Button(a) => Some(a), _ => None }).collect();
+    assert!(!acts.contains(&panels::ACT_CANVAS),
+            "a tab with nothing behind it");
+    assert!(acts.contains(&panels::ACT_RESEED), "but the seed is still real");
+}
+
+/// **The toolbar does not scroll.**  Everything in it is a way of
+/// getting somewhere else, and a control that leaves the window when
+/// you look down the list is a control you have to hunt for.
+#[test]
+fn the_toolbar_stays_where_it_is_however_far_the_content_scrolls() {
+    let m = with_toolbar();
+    let mut p = Panel::with_scale(m, 150);
+    p.resize(600, 200);
+    let top = p.chrome().clone();
+    p.scroll_by(1000);
+    assert!(p.scroll() > 0, "there is more content than window");
+    assert_eq!(p.chrome(), &top, "the toolbar moved with the content");
+}
+
+/// And a press lands on it, not on whatever scrolled underneath.
+#[test]
+fn a_press_on_the_toolbar_is_not_a_press_on_the_content_beneath_it() {
+    let mut p = Panel::with_scale(with_toolbar(), 150);
+    p.resize(600, 200);
+    p.scroll_by(1000);
+    let hit = p.chrome().hits.iter()
+        .find(|h| h.kind == Kind::Button(panels::ACT_RESEED))
+        .expect("the reroll").clone();
+    let (x, y) = ((hit.region.0 + hit.region.2) / 2,
+                  (hit.region.1 + hit.region.3) / 2);
+    let out = p.press(x, y);
+    assert!(matches!(out.first(), Some(Change::Begin(500))),
+            "expected a reroll gesture, got {out:?}");
+}
+
+#[test]
+fn switching_tabs_is_panel_local() {
+    let mut p = Panel::new(with_toolbar());
+    let hit = p.chrome().hits.iter()
+        .find(|h| h.kind == Kind::Button(panels::ACT_CANVAS))
+        .expect("the canvas tab").clone();
+    let out = p.press((hit.region.0 + hit.region.2) / 2,
+                      (hit.region.1 + hit.region.3) / 2);
+    assert!(out.is_empty(), "a tab told the host something: {out:?}");
+    assert_eq!(p.tab(), Tab::Canvas);
+}
+
+/// **A reroll is one gesture**, like a drag — acceptance 4's rule,
+/// which is what makes it one undo step in the host rather than a
+/// parameter that changed by itself.
+#[test]
+fn a_reroll_is_one_whole_gesture_on_the_seed_parameter() {
+    let mut p = Panel::new(with_toolbar());
+    let hit = p.chrome().hits.iter()
+        .find(|h| h.kind == Kind::Button(panels::ACT_RESEED))
+        .expect("the reroll").clone();
+    let out = p.press((hit.region.0 + hit.region.2) / 2,
+                      (hit.region.1 + hit.region.3) / 2);
+    assert_eq!(out.len(), 3);
+    assert_eq!(out[0], Change::Begin(500));
+    assert_eq!(out[2], Change::End(500));
+    let Change::Value(param, v) = out[1] else { panic!("{out:?}") };
+    assert_eq!(param, 500);
+    assert!((0.0..=99_999.0).contains(&v), "seed {v} is out of range");
+    assert_ne!(v, 1234.0, "the reroll landed on the seed it started from");
+}
+
+/// Rerolling repeatedly walks somewhere — a button that returns the
+/// same "random" number every press is one nobody would press twice.
+#[test]
+fn rerolling_keeps_finding_new_takes() {
+    let mut p = Panel::new(with_toolbar());
+    let hit = p.chrome().hits.iter()
+        .find(|h| h.kind == Kind::Button(panels::ACT_RESEED))
+        .expect("the reroll").clone();
+    let (x, y) = ((hit.region.0 + hit.region.2) / 2,
+                  (hit.region.1 + hit.region.3) / 2);
+    let mut seen = std::collections::HashSet::new();
+    for _ in 0..12 {
+        for c in p.press(x, y) {
+            if let Change::Value(_, v) = c {
+                seen.insert(v as i64);
+            }
+        }
+        p.release();
+    }
+    assert!(seen.len() >= 10, "twelve presses gave {} takes", seen.len());
+}
+
+/// The panel is a pure function of its model everywhere, including
+/// here: two panels stirred alike reroll alike, and that is what makes
+/// the one interesting button in the window testable at all.
+#[test]
+fn the_reroll_is_deterministic_until_the_host_stirs_it() {
+    let roll = |entropy: Option<u64>| {
+        let mut p = Panel::new(with_toolbar());
+        if let Some(e) = entropy {
+            p.stir(e);
+        }
+        let hit = p.chrome().hits.iter()
+            .find(|h| h.kind == Kind::Button(panels::ACT_RESEED))
+            .expect("the reroll").clone();
+        p.press((hit.region.0 + hit.region.2) / 2,
+                (hit.region.1 + hit.region.3) / 2)
+    };
+    assert_eq!(roll(None), roll(None));
+    assert_ne!(roll(None), roll(Some(0xC0FFEE)));
+}
+
+/// A host reporting the seed moves the number the panel shows.
+#[test]
+fn the_panel_follows_the_hosts_seed() {
+    let mut p = Panel::new(with_toolbar());
+    p.sync_values(&[(500, 4242.0)]);
+    assert_eq!(p.model.seed.as_ref().unwrap().value, 4242);
 }

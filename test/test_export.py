@@ -1107,3 +1107,184 @@ def test_play_from_bar_five_plays_bar_five(tmp_path):
     assert played == pytest.approx(offline), \
         "playing from the middle is not standing in the middle"
     plugin.destroy(plug_raw)
+
+
+# ── The canvas, exported ─────────────────────────────────────────────────
+
+
+def _substrate_source() -> str:
+    return (Path(__file__).resolve().parents[1]
+            / "examples" / "audio" / "substrate.ges").read_text()
+
+
+def test_the_canvas_crosses_with_its_tags_and_its_channels():
+    """`spec/substrate.md`, abroad.
+
+    A file that draws has a half the compiler leaves behind, and until
+    now it stayed at home: `gestate.gui` could draw it and a plugin
+    could not.  What crosses is the program, the constructor tags —
+    **a tag is a position in this program's own table**, so a host that
+    guessed would draw a `Row` as whatever shared its number — and the
+    channel ids, which are allocation order and equally underivable.
+    """
+    from gestate.export import host_graph, substrate_of
+
+    source = _substrate_source()
+    graph = host_graph(source, 48000)
+    sub = substrate_of(source, 48000, graph)
+    assert sub is not None, "substrate.ges declares a `substrate`"
+    assert sub["entry"] == "main"
+    assert len(sub["tags"]) == 11, "eleven `Sub` constructors"
+    assert len(set(sub["tags"])) == 11, "and eleven distinct tags"
+    assert sub["chans"] == ["cutoff", "peak"], \
+        "the declarations, in the order the file writes them"
+
+
+def test_the_bridge_pairs_a_drawn_channel_with_the_slot_the_synth_reads():
+    """**One fold, two readers**, as a table.
+
+    `substrate.ges` declares `cutoff : Chan Float`, hands it to a fader
+    and reads `level` back in its `sound`.  The canvas knows the
+    channel by id and the compiled graph knows it by slot; the bridge
+    is what lets one touch move both, and without it the picture and
+    the sound are two instruments in one window.
+
+    `peak` is the counter-example that keeps the test honest: it is
+    declared and drawn and the *host* writes it, so it has no slot and
+    must not acquire one.
+    """
+    from gestate.export import host_graph, substrate_of
+
+    source = _substrate_source()
+    graph = host_graph(source, 48000)
+    sub = substrate_of(source, 48000, graph)
+    slots = {n.chan: i for i, n in enumerate(graph.control_sources())}
+
+    assert dict(sub["bridge"]) == {"cutoff": slots["cutoff"]}
+    assert "peak" not in dict(sub["bridge"]), \
+        "`peak` is written by the host, not read from a control slot"
+
+
+def test_a_file_that_draws_nothing_carries_no_canvas():
+    """The refusal, so a silent instrument pays nothing for it."""
+    from gestate.export import host_graph, substrate_of
+
+    source = "sound : Sig Float\nsound = gain 0.2 (sine 220.0)\n"
+    graph = host_graph(source, 48000)
+    assert substrate_of(source, 48000, graph) is None
+
+
+@needs_toolchain
+def test_the_seed_is_a_parameter_and_turning_it_changes_the_night(tmp_path):
+    """**One integer replays the whole night** — and a different one
+    plays a different night, through the exported artifact.
+
+    A chancy piece is a *family* of performances: `moods` draws its
+    material from a seed the way `nightdrive` picks a road every four
+    bars.  Export bakes the number the file was written with, and that
+    used to be the end of it — a plugin played one night, forever, and
+    the only way to hear another was to edit the source and export
+    again.
+
+    So it is a parameter, and this drives it as a host does: the same
+    plugin, the same blocks, one `PARAM_VALUE` between them.  The audio
+    has to move, and the two takes have to be *takes* — the same
+    instrument, both sounding.
+    """
+    from gestate.export import export_clap
+
+    source = (Path(__file__).resolve().parent.parent
+              / "examples" / "audio" / "moods.ges").read_text()
+    out = tmp_path / "moods.clap"
+    export_clap(source, out, rate=RATE, name="moods")
+
+    def take(seed):
+        lib, plug_raw, plugin = _plugin_of(out)
+        assert plugin.init(plug_raw)
+        ext = plugin.get_extension(plug_raw, b"clap.params")
+        assert ext, "no clap.params"
+        params = ctypes.cast(ext, POINTER(Params)).contents
+        seed_id = None
+        for i in range(params.count(plug_raw)):
+            info = ParamInfo()
+            assert params.get_info(plug_raw, i, ctypes.byref(info))
+            if info.name.decode() == "seed":
+                seed_id = info.id
+        assert seed_id is not None, "a piece with entropy offers no seed"
+
+        assert plugin.activate(plug_raw, float(RATE), 32, 512)
+        assert plugin.start_processing(plug_raw)
+        frames = 256
+        nch = 2 if b"stereo" else 1
+        # Ask the plugin how many channels it has rather than assuming
+        # — the mistake that once cost this project an afternoon of
+        # false measurements.
+        pext = plugin.get_extension(plug_raw, b"clap.audio-ports")
+        nch = 1
+        if pext:
+            class _Info(ctypes.Structure):
+                _fields_ = [("id", c_uint32), ("name", ctypes.c_char * 256),
+                            ("flags", c_uint32), ("channel_count", c_uint32),
+                            ("port_type", c_char_p),
+                            ("in_place_pair", c_uint32)]
+
+            class _Ports(ctypes.Structure):
+                _fields_ = [("count", ctypes.CFUNCTYPE(c_uint32, c_void_p,
+                                                       c_bool)),
+                            ("get", ctypes.CFUNCTYPE(c_bool, c_void_p,
+                                                     c_uint32, c_bool,
+                                                     POINTER(_Info)))]
+            ports = ctypes.cast(pext, POINTER(_Ports)).contents
+            pi = _Info()
+            if ports.get(plug_raw, 0, False, ctypes.byref(pi)):
+                nch = max(1, pi.channel_count)
+        bufs = [(c_float * frames)() for _ in range(nch)]
+        arr = (POINTER(c_float) * nch)(
+            *[ctypes.cast(b, POINTER(c_float)) for b in bufs])
+        port = AudioBuffer(data32=arr, data64=None, channel_count=nch,
+                           latency=0, constant_mask=0)
+
+        out_samples = []
+        keep = None
+        for k in range(140):
+            transport = _transport_at(k * frames, RATE, 120.0)
+            events = None
+            if k == 0:
+                # The seed arrives before a note does — a host restoring
+                # a session sends its parameters first.
+                evs, keep = _one_event(seed_id, float(seed))
+                events = ctypes.cast(ctypes.pointer(evs), c_void_p)
+            proc = Process(steady_time=k * frames, frames_count=frames,
+                           transport=ctypes.pointer(transport),
+                           audio_inputs=None,
+                           audio_outputs=ctypes.pointer(port),
+                           audio_inputs_count=0, audio_outputs_count=1,
+                           in_events=events, out_events=None)
+            assert plugin.process(plug_raw, ctypes.byref(proc)) == 1
+            out_samples += [x for b in bufs for x in b[:frames]]
+            del keep
+            keep = None
+        plugin.destroy(plug_raw)
+        return out_samples
+
+    a, b = take(1), take(9999)
+    assert max(abs(x) for x in a) > 0.01, "seed 1 was silent"
+    assert max(abs(x) for x in b) > 0.01, "seed 9999 was silent"
+    assert a != b, "two seeds performed the same night"
+
+    # **What is deliberately not asserted here: that the same seed
+    # gives the same samples.**
+    #
+    # It does not, and the reason is the descent worker rather than the
+    # entropy: the score is silent from the moment of a seek until the
+    # primed stream is handed over (`descend.rs`), and *when* that
+    # happens depends on how the two threads were scheduled.  Measured
+    # on this piece, three runs of one seed entered at blocks 16, 13
+    # and 17 and played the same music from there.  That is the trade
+    # the off-thread descent was chosen for — a late entry rather than
+    # an overrun — and it predates the seed entirely.
+    #
+    # The replay property itself is real and is checked where it can be
+    # checked exactly: `shell/clap/tests/dynscore_parity.rs`'s
+    # `the_same_seed_replays`, which forces the piece with no threads
+    # and no clock in the room.

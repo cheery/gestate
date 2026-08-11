@@ -165,6 +165,38 @@ impl BankView {
     }
 }
 
+/// The take's seed, as a thing to look at and reroll.
+///
+/// **A number and a button, not a fader.**  Dragging would be the
+/// obvious gesture and is the wrong one: every value a drag passes
+/// through is a *different piece*, and the plugin answers a new seed
+/// by re-rooting its stream — so a one-second drag asks for sixty
+/// re-roots of a score, of which fifty-nine are thrown away.  One
+/// press, one take.  A player who wants a *particular* seed types it
+/// into the host's own parameter box, which is what that box is for.
+#[derive(Clone, PartialEq, Debug)]
+pub struct SeedView {
+    pub param: u32,
+    pub value: i64,
+    pub max: i64,
+}
+
+/// Which of the two sources the window is showing.
+///
+/// **CONTROLS and CANVAS**, and the names are the ones this project
+/// already uses for these two things: `spec/panel.md` §"One painter,
+/// two sources" calls the descriptor-driven side the panel's controls
+/// and the program-driven side *the canvas*.  Naming them after where
+/// they sit — front, behind — would name the window's arrangement
+/// rather than what is on each side, and the arrangement is the part
+/// most likely to change.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum Tab {
+    #[default]
+    Controls,
+    Canvas,
+}
+
 /// Everything panel one draws.
 #[derive(Clone, PartialEq, Debug, Default)]
 pub struct Model {
@@ -179,4 +211,13 @@ pub struct Model {
     /// playing, which sounds exactly like a mix decision rather than a
     /// fault.  The panel is where an instrument can say what happened.
     pub notice: Option<String>,
+    /// The seed, when this plugin's piece has one to turn.
+    ///
+    /// `None` for a plugin whose score is a baked event list: the
+    /// events are already decided, so there is no entropy for a seed
+    /// to govern and a button offering to reroll it would be a lie.
+    pub seed: Option<SeedView>,
+    /// Whether this plugin carries a canvas — whether the second tab
+    /// has anything behind it.
+    pub has_canvas: bool,
 }

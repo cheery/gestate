@@ -41,3 +41,7 @@ gui = ["dep:gestate-panel", "dep:raw-window-handle"]
 # two abroad).  An unfolding score has no finite event list to export,
 # so the plugin carries the *program* and forces it as it plays.
 dynscore = ["dep:crust"]
+# The canvas: the program's own picture, drawn and touched in the
+# plugin's window (`spec/substrate.md`).  Implies `gui`, because a
+# canvas with nowhere to draw is a machine forced for nothing.
+substrate = ["gui", "dep:crust", "gestate-panel/substrate"]

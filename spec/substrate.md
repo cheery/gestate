@@ -647,14 +647,25 @@ from the start.  `journal.md` §"`beat` finds its conductor, and the
 convention dies young" is the record, and `shell/clap/src/engine.rs`
 keeps a one-line headstone where the convention briefly lived.
 
-*(Since written: it has.  `crust` holds the reactive half — signal
-cells in a stable arena, the sweep, the ✓ frontier — and
-`shell/panel/src/substrate.rs` walks a `Sub` into the same display list
-panel one produces.  A real substrate compiles, crosses, draws what the
-reference draws, and follows its channel each instant
-(`shell/panel/tests/substrate_parity.rs`).  What is still missing is a
-host that runs the two at frame rate inside a plugin window; the
-argument below is the one that got it built.)*
+*(Since written: it has, and the host is running.  `crust` holds the
+reactive half — signal cells in a stable arena, the sweep, the ✓
+frontier — `shell/panel/src/substrate.rs` walks a `Sub` into the same
+display list panel one produces, and `shell/panel/src/canvas.rs` turns
+the loop: arrivals, `reactive_step`, `main`'s cell, walk, paint, once a
+frame, on the plugin's window thread.  A file that declares a
+`substrate` now exports one — `export.substrate_of` sends the program,
+the constructor tags and the channel names — and it appears on the
+window's second tab, beside the knobs, with the sound and the picture
+reading one fold.  `examples/audio/substrate.ges` is the file that
+proves it: drag the fader and the filter moves, because they are the
+same `cutoff`.
+ 
+The one thing S5 promised that is now real rather than argued: `peak`
+is written by the audio thread every block and read by the canvas every
+frame, so the meter in the picture is the instrument's own loudness.
+The tabbed **editor** below is still not built; what exists is the
+tabbed *plugin window*, which is the same argument at a smaller
+scale.)*
 
 **And the interpreter has to travel — the G-machine ports to Rust,
 eventually.**  The compiled fragment crosses into foreign hosts today

@@ -83,6 +83,20 @@ pub(crate) struct Instance {
     /// The shell's own beat position, for a host with a tempo but no
     /// beats timeline; a timeline host overwrites it every block.
     beat_pos: f64,
+    /// **The take's seed.**  One integer replays the whole night.
+    ///
+    /// A chancy piece — `nightdrive` picks a road every four bars,
+    /// `arpeggiator` picks a held key every sixteenth — is a *family*
+    /// of performances, and the seed says which one.  Export bakes the
+    /// number the file was written with and that used to be the end of
+    /// it: a plugin played one night, forever, and the only way to
+    /// hear another was to edit the source and export again.
+    ///
+    /// So it is a **parameter**, which decides everything else about
+    /// it: the host saves it with the session, automates it, and shows
+    /// it in its own generic UI, and a player who found a take they
+    /// like keeps it by doing nothing.
+    seed: i64,
     /// The score cursor — `spec/dynamicscore.md` stage one's Rust
     /// half.  Idle for a plugin whose `SCORE` is empty.
     performer: score::Performer,
@@ -173,6 +187,7 @@ impl Instance {
             tracing: None,
             needs_seek: false,
             beat_pos: 0.0,
+            seed: engine::program().map(|p| p.seed).unwrap_or(0),
             performer: score::Performer::new(),
             host: std::ptr::null(),
             #[cfg(feature = "dynscore")]
@@ -184,6 +199,23 @@ impl Instance {
             #[cfg(feature = "gui")]
             gui_outbox: Vec::new(),
         }
+    }
+
+    /// The seed, when there is entropy for it to govern.
+    ///
+    /// **A baked event list has none.**  A finite score exports as
+    /// `SCORE` — a list of instants, already decided — so rerolling it
+    /// would change a number and nothing you could hear, which is
+    /// worse than having no button: it is a button that lies.  Only a
+    /// piece carried as a *program* answers a seed.
+    #[cfg(feature = "dynscore")]
+    fn seed_view(&self) -> Option<i64> {
+        engine::program().map(|_| self.seed)
+    }
+
+    #[cfg(not(feature = "dynscore"))]
+    fn seed_view(&self) -> Option<i64> {
+        None
     }
 
     fn reset(&mut self) {
@@ -199,9 +231,12 @@ impl Instance {
         self.voices.iter_mut()
             .for_each(|bank| bank.iter_mut()
                       .for_each(|v| *v = FRESH_VOICE));
-        // **Not the routing.**  A reset clears *processing* state; the
-        // matrix and the score switches are parameters, and a host that
-        // jumps the timeline has not asked the player to lose them.
+        // **Not the routing, and not the seed.**  A reset clears
+        // *processing* state; the matrix, the score switches and the
+        // seed are parameters, and a host that jumps the timeline has
+        // not asked the player to lose them.  (Learned the hard way
+        // once already: `reset` wiping the matrix silenced every bank
+        // on the first transport jump.)
         self.performer.reset();
         // And the forced piece measures against the clock this just put
         // back to zero — see `Performer::reset_clock`.  Clearing the
@@ -393,6 +428,20 @@ impl Instance {
         // switch per bank.
         let cell = id - n;
         let cells = engine::BANKS.len() * 16;
+        if cell == engine::BANKS.len() * 17 {
+            // **A new seed is a new piece from its first instant**, so
+            // there is nothing to patch and no way to fade between two
+            // — the stream has to be opened again.  `needs_seek` is
+            // already the flag for "the next block must re-root", so a
+            // re-seed borrows the machinery a timeline jump uses, and
+            // the two cannot drift apart because they are one path.
+            let next = (value.round() as i64).clamp(0, SEED_MAX);
+            if next != self.seed {
+                self.seed = next;
+                self.needs_seek = true;
+            }
+            return;
+        }
         if cell >= cells {
             if let Some(on) = self.plays_score.get_mut(cell - cells) {
                 *on = value >= 0.5;
@@ -498,6 +547,27 @@ impl Instance {
             self.scratch[..need].fill(0.0);
         }
         self.t += frames as i64;
+        // **How loud that was**, for a canvas that declares `peak`.
+        //
+        // `spec/substrate.md` S5: the host writes the loudest sample
+        // since it last looked, and a meter in the picture moves.
+        // Measured here rather than in the window because here is the
+        // only place the samples exist — and it is one pass over a
+        // buffer already in cache, which is the cheapest this can be.
+        // A plugin whose program never declares the channel still pays
+        // it; making that conditional would mean a branch per block to
+        // save a loop that is already the cost of the copy below.
+        #[cfg(all(feature = "gui", feature = "substrate"))]
+        if self.gui.is_open() {
+            let mut peak = 0.0f32;
+            for v in &self.scratch[..need] {
+                let a = v.abs();
+                if a > peak {
+                    peak = a;
+                }
+            }
+            self.gui.queue.saw(peak);
+        }
         // The engine speaks interleaved frames; a CLAP port is one
         // pointer per channel.  A host channel past what the graph has
         // repeats the last one, which is how mono meets a stereo port.
@@ -593,6 +663,9 @@ fn held_keys(inst: &Instance) -> Vec<Vec<i64>> {
 unsafe fn restart_piece(inst: &mut Instance) {
     let Some(mut perf) = inst.piece.take() else { return };
     if let Some(program) = engine::program() {
+        // A seed turned while the transport was stopped takes effect
+        // here, which is what a player pressing play expects.
+        perf.set_seed(inst.seed);
         perf.restart(program);
     }
     inst.piece = Some(perf);
@@ -604,6 +677,14 @@ unsafe fn seek_piece(inst: &mut Instance, tb: &score::Tables, tempo: f64,
                      target: i64) {
     let Some(mut perf) = inst.piece.take() else { return };
     if let Some(program) = engine::program() {
+        // **Where a new seed becomes a new night.**  Turning the RNG
+        // sets `needs_seek`, which brings the block here; the piece is
+        // then re-rooted at wherever the transport stands, on the seed
+        // the player just chose.  Nothing else has to know: a re-seed
+        // and a timeline jump are the same operation, because a piece
+        // opened at tick *n* with a different seed *is* a different
+        // piece from tick zero.
+        perf.set_seed(inst.seed);
         perf.seek(program, tb, tempo, target, inst.t,
                   &mut inst.voices, &mut inst.control);
     }
@@ -630,7 +711,7 @@ unsafe fn advance_piece(inst: &mut Instance, tb: &score::Tables,
     if let Some(d) = inst.descender.as_mut() {
         if let Some(tick) = perf.wanted() {
             if !d.awaiting() {
-                d.request(tick, tb.tpb);
+                d.request(tick, tb.tpb, perf.seed());
             }
         }
         if let Some((tick, piece, notes)) = d.take() {
@@ -663,9 +744,10 @@ unsafe fn advance_piece(inst: &mut Instance, tb: &score::Tables,
 /// still an instrument you can play with your hands.
 #[cfg(feature = "dynscore")]
 unsafe fn open_piece(inst: &mut Instance) {
+    let seed = inst.seed;
     inst.piece = engine::program()
-        .and_then(|p| dynscore::Piece::open(p, 0).ok())
-        .map(dynscore::Performer::new);
+        .and_then(|p| dynscore::Piece::open(p, seed, 0).ok())
+        .map(|piece| dynscore::Performer::new(piece, seed));
     // Let the worker force the opening rather than the first block.
     if dynscore::DESCEND_OFF_THREAD {
         if let Some(pf) = inst.piece.as_mut() {
@@ -681,7 +763,7 @@ unsafe fn open_piece(inst: &mut Instance) {
         // parsing the program.
         if let (Some(d), Some(p)) = (inst.descender.as_mut(),
                                      engine::program()) {
-            if let Ok(spare) = dynscore::Piece::open(p, 0) {
+            if let Ok(spare) = dynscore::Piece::open(p, seed, 0) {
                 d.prewarm(spare);
             }
         }
@@ -1145,10 +1227,33 @@ fn write_name(dst: &mut [c_char; CLAP_NAME_SIZE], text: &str) {
     }
 }
 
+/// The largest seed a player can dial.
+///
+/// **Five digits, not sixty-four bits.**  The number is a thing people
+/// read off a panel, type back in, and write in the margin of a
+/// take — `--seed 7` is how this project has always spelled it — and a
+/// nineteen-digit one is a hash, not a handle.  A hundred thousand
+/// nights is more than any piece will be listened to.
+pub const SEED_MAX: i64 = 99_999;
+
+/// The parameter id of the seed: **past everything else**.
+///
+/// Ids are positions here — a knob is its control slot, a routing cell
+/// is `controls.len() + bank*16 + channel` — so the seed goes on the
+/// end, where adding it cannot renumber anything a saved session
+/// already refers to.
+fn seed_param(inst: &Instance) -> u32 {
+    (inst.desc.controls.len() + engine::BANKS.len() * 17) as u32
+}
+
 unsafe extern "C" fn params_count(plugin: *const clap_plugin) -> u32 {
     // Knobs, then the routing matrix, then one "does the score play
-    // this bank" switch per bank.
+    // this bank" switch per bank, and the seed **only if the piece has
+    // entropy for it to govern** — a synth with a baked score or no
+    // score at all would otherwise show the host a control that
+    // changes a number and nothing you could hear.
     knob_count(plugin) + (engine::BANKS.len() * 17) as u32
+        + instance(plugin).seed_view().is_some() as u32
 }
 
 unsafe extern "C" fn params_get_info(plugin: *const clap_plugin,
@@ -1181,8 +1286,30 @@ unsafe extern "C" fn params_get_info(plugin: *const clap_plugin,
     // draws modules draws the matrix as its own panel.  The default is
     // the diagonal: channel *n* plays bank *n*.
     let cell = (index - knobs) as usize;
-    let n = instance(plugin).desc.controls.len();
+    let inst = instance(plugin);
+    let n = inst.desc.controls.len();
     let cells = engine::BANKS.len() * 16;
+    if cell == engine::BANKS.len() * 17 {
+        // **The seed.**  Stepped, because it is an integer and a host
+        // that let you land between two of them would be offering a
+        // take that does not exist.
+        if inst.seed_view().is_none() {
+            return false;
+        }
+        out.id = seed_param(inst);
+        out.flags = CLAP_PARAM_IS_AUTOMATABLE | CLAP_PARAM_IS_STEPPED;
+        out.cookie = std::ptr::null_mut();
+        write_name(&mut out.name, "seed");
+        out.module = [0; CLAP_PATH_SIZE];
+        for (d, sc) in out.module.iter_mut().zip(b"score\0") {
+            *d = *sc as c_char;
+        }
+        out.min_value = 0.0;
+        out.max_value = SEED_MAX as f64;
+        out.default_value =
+            engine::program().map(|p| p.seed).unwrap_or(0) as f64;
+        return true;
+    }
     if cell >= cells {
         // **The score switch.**  Whether the piece plays this bank —
         // the other half of the routing matrix, and stepped like every
@@ -1248,6 +1375,10 @@ unsafe extern "C" fn params_get_value(plugin: *const clap_plugin,
     }
     let cell = id - n;
     let cells = engine::BANKS.len() * 16;
+    if cell == engine::BANKS.len() * 17 {
+        *out = inst.seed as f64;
+        return true;
+    }
     if cell >= cells {
         return match inst.plays_score.get(cell - cells) {
             Some(on) => {
@@ -1275,7 +1406,16 @@ unsafe extern "C" fn params_value_to_text(plugin: *const clap_plugin,
         return false;
     }
     let id = param_id as usize;
-    let n = instance(plugin).desc.controls.len();
+    let inst = instance(plugin);
+    let n = inst.desc.controls.len();
+    if param_id == seed_param(inst) {
+        let text = format!("{}", value.round() as i64);
+        let take = text.len().min(capacity as usize - 1);
+        std::ptr::copy_nonoverlapping(text.as_ptr() as *const c_char,
+                                      out, take);
+        *out.add(take) = 0;
+        return true;
+    }
     let text = if id < n {
         let Some(c) = instance(plugin).desc.controls.get(id) else {
             return false;
@@ -1301,11 +1441,24 @@ unsafe extern "C" fn params_text_to_value(plugin: *const clap_plugin,
                                           param_id: u32,
                                           text: *const c_char,
                                           out: *mut f64) -> bool {
+    if text.is_null() || out.is_null() {
+        return false;
+    }
     let slot = param_id as usize;
+    if param_id == seed_param(instance(plugin)) {
+        return match std::ffi::CStr::from_ptr(text).to_str()
+            .ok().and_then(|t| t.trim().parse::<i64>().ok()) {
+            Some(v) => {
+                *out = v.clamp(0, SEED_MAX) as f64;
+                true
+            }
+            None => false,
+        };
+    }
     let Some(c) = instance(plugin).desc.controls.get(slot) else {
         return false;
     };
-    if !c.knob || text.is_null() || out.is_null() {
+    if !c.knob {
         return false;
     }
     match std::ffi::CStr::from_ptr(text).to_str()
@@ -1425,6 +1578,15 @@ unsafe extern "C" fn state_save(plugin: *const clap_plugin,
     for row in &inst.routing {
         out.extend(row.to_le_bytes());
     }
+    // **The seed, on the end, and the version did not move.**  A field
+    // appended after everything else is one an older state simply does
+    // not have, and `state_load` reads it as optional — so a session
+    // saved before the RNG existed still opens, on the seed it was
+    // always playing.  Bumping `STATE_VERSION` would have been the
+    // tidy-looking choice and would have made every one of those
+    // sessions fail to load, which is a strange thing to do to somebody
+    // for the sake of a number nobody reads.
+    out.extend(inst.seed.to_le_bytes());
     let mut sent = 0usize;
     while sent < out.len() {
         let n = ((*stream).write)(stream,
@@ -1503,6 +1665,14 @@ unsafe extern "C" fn state_load(plugin: *const clap_plugin,
             return false;
         }
         inst.routing[b] = u16::from_le_bytes(w2);
+    }
+    // The seed is optional: a state written before it existed ends
+    // here, and the piece keeps the seed it was exported with.
+    if read_exact(stream, &mut w8) {
+        inst.seed = i64::from_le_bytes(w8).clamp(0, SEED_MAX);
+        // A loaded session is a loaded take: the stream must be opened
+        // on *this* seed, not on whatever `activate` guessed.
+        inst.needs_seek = true;
     }
     true
 }

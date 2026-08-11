@@ -12,7 +12,7 @@
 use std::ffi::{c_char, c_void, CStr};
 use std::sync::{Arc, Mutex};
 
-use gestate_panel::model::{Accepts, BankView, Knob, Model};
+use gestate_panel::model::{Accepts, BankView, Knob, Model, SeedView};
 use gestate_panel::window::Sink;
 use gestate_panel::{panels, Change};
 
@@ -52,6 +52,18 @@ pub struct Queue {
     values: Mutex<Vec<(u32, f64)>>,
     /// What the instrument needs to say, if anything.
     notice: Mutex<Option<String>>,
+    /// The loudest sample since the window last looked —
+    /// `spec/substrate.md` S5's `peak`.
+    ///
+    /// **An atomic, not a lock, and it is the one place in this file
+    /// that needed to be.**  Every other channel here is a rare event
+    /// carrying a whole `Vec`; this is one number written by the audio
+    /// thread on *every* block, and a mutex it might contend on is
+    /// exactly the thing an audio thread must not own.  Bits, because
+    /// there is no `AtomicF32` — the same trick `Control` already uses
+    /// to put a float in an `i64` slot.
+    #[cfg(feature = "substrate")]
+    peak: std::sync::atomic::AtomicU32,
     flush: std::sync::OnceLock<HostFlush>,
 }
 
@@ -113,6 +125,16 @@ impl Sink for Queue {
     fn notice(&self) -> Option<String> {
         self.notice.lock().ok().and_then(|n| n.clone())
     }
+
+    /// **Read once and cleared**, so a frame reports the peak *since
+    /// the last frame* rather than since the plugin loaded.  A meter
+    /// that only ever climbed would be a high-water mark, which is a
+    /// different instrument.
+    #[cfg(feature = "substrate")]
+    fn peak(&self) -> Option<f64> {
+        use std::sync::atomic::Ordering;
+        Some(f32::from_bits(self.peak.swap(0, Ordering::Relaxed)) as f64)
+    }
 }
 
 impl Queue {
@@ -132,6 +154,22 @@ impl Queue {
             let next = text.map(|t| t.to_string());
             if *n != next {
                 *n = next;
+            }
+        }
+    }
+
+    /// How loud this block was — **from the audio thread, and it must
+    /// never wait for anything.**  A store and a compare, no lock.
+    #[cfg(feature = "substrate")]
+    pub fn saw(&self, level: f32) {
+        use std::sync::atomic::Ordering;
+        let bits = level.to_bits();
+        let mut was = self.peak.load(Ordering::Relaxed);
+        while f32::from_bits(was) < level {
+            match self.peak.compare_exchange_weak(
+                was, bits, Ordering::Relaxed, Ordering::Relaxed) {
+                Ok(_) => return,
+                Err(now) => was = now,
             }
         }
     }
@@ -178,7 +216,9 @@ impl Gui {
 /// id `params_get_info` hands the host — so the panel and the host name
 /// the same parameter without a second table to keep in step.
 pub fn model_of(desc: &'static Descriptor, control: &[i64],
-                routing: &[u16], plays: &[bool]) -> Model {
+                routing: &[u16], plays: &[bool], seed: Option<i64>)
+    -> Model
+{
     let knobs = desc.controls.iter().enumerate()
         .filter(|(_, c)| c.knob)
         .map(|(slot, c)| Knob {
@@ -212,7 +252,49 @@ pub fn model_of(desc: &'static Descriptor, control: &[i64],
         score_param: base + (engine::BANKS.len() * 16 + i) as u32,
     }).collect();
 
-    Model { title: desc.name.to_string(), notice: None, knobs, banks }
+    // **The seed only when there is entropy for it to govern.**  A
+    // baked event list is already decided; offering to reroll it would
+    // be a button that changes a number and nothing else.
+    let seed = seed.map(|value| SeedView {
+        param: (desc.controls.len() + engine::BANKS.len() * 17) as u32,
+        value,
+        max: crate::SEED_MAX,
+    });
+    #[cfg(feature = "substrate")]
+    let has_canvas = engine::substrate().is_some();
+    #[cfg(not(feature = "substrate"))]
+    let has_canvas = false;
+    Model { title: desc.name.to_string(), notice: None, knobs, banks,
+            seed, has_canvas }
+}
+
+/// The canvas as `gestate-panel` wants it.
+///
+/// A restatement, not a cast: the panel names what it needs in its own
+/// types and the shell fills them in (`model.rs`'s reasoning, applied
+/// to the second source).  The one piece of translation is the bridge
+/// — the export says which *control slot* a channel is, and a knob's
+/// slot **is** its parameter id, so the shell hands over the id the
+/// host already knows.
+#[cfg(feature = "substrate")]
+fn canvas_of(sub: &'static engine::Substrate)
+    -> gestate_panel::canvas::CanvasProgram
+{
+    use gestate_panel::substrate::SubTags;
+    let t = sub.tags;
+    gestate_panel::canvas::CanvasProgram {
+        text: sub.text.to_string(),
+        entry: sub.entry.to_string(),
+        tags: SubTags {
+            rect: t[0], circle: t[1], gap: t[2], over: t[3], row: t[4],
+            column: t[5], shift: t[6], sized: t[7], pad: t[8],
+            touch_x: t[9], touch_y: t[10],
+        },
+        chans: sub.chans.iter().map(|c| c.to_string()).collect(),
+        bridge: sub.bridge.iter()
+            .map(|(name, slot)| (name.to_string(), *slot as u32))
+            .collect(),
+    }
 }
 
 // ── The vtable ──────────────────────────────────────────────────────────
@@ -292,7 +374,8 @@ unsafe extern "C" fn gui_get_size(plugin: *const clap_plugin,
     let (w, h) = match &inst.gui.size {
         Some((w, h)) => (*w, *h),
         None => panels::size(&model_of(inst.desc, &inst.control,
-                                       &inst.routing, &inst.plays_score),
+                                       &inst.routing, &inst.plays_score,
+                                       inst.seed_view()),
                              panels::SCALE_DEFAULT),
     };
     *width = w as u32;
@@ -335,7 +418,7 @@ unsafe extern "C" fn gui_get_resize_hints(_p: *const clap_plugin,
 /// — and a second set here would be a second place to get it wrong.
 fn clamp_size(inst: &crate::Instance, w: u32, h: u32) -> (u32, u32) {
     let model = model_of(inst.desc, &inst.control, &inst.routing,
-                     &inst.plays_score);
+                         &inst.plays_score, inst.seed_view());
     let (mw, mh) = panels::min_size(&model, panels::SCALE_DEFAULT);
     (w.max(mw as u32), h.max(mh as u32))
 }
@@ -383,21 +466,45 @@ unsafe extern "C" fn gui_set_parent(plugin: *const clap_plugin,
         return false;
     };
     let model = model_of(inst.desc, &inst.control, &inst.routing,
-                     &inst.plays_score);
+                         &inst.plays_score, inst.seed_view());
     let queue = inst.gui.queue.clone();
     let size = inst.gui.size;
 
     // SAFETY: the host's contract is that the parent window outlives
     // `gui.destroy`, and `gui_destroy` is where this window is closed.
-    match unsafe {
-        gestate_panel::window::open_parented(handle, model, queue, size)
-    } {
+    match unsafe { open_window(handle, model, queue, size) } {
         Ok(win) => {
             inst.gui.window = Some(win);
             true
         }
         Err(_) => false,
     }
+}
+
+/// Open the panel, with this plugin's canvas if it carries one.
+///
+/// Two bodies under one name, because whether there *is* a canvas is a
+/// build-time fact and threading an `Option` of a type that may not
+/// exist through every caller is worse than writing the call twice.
+#[cfg(feature = "substrate")]
+unsafe fn open_window(handle: raw_window_handle::RawWindowHandle,
+                      model: gestate_panel::Model,
+                      queue: Arc<Queue>,
+                      size: Option<(i32, i32)>)
+    -> Result<gestate_panel::window::Handle, gestate_panel::window::Error>
+{
+    let canvas = engine::substrate().map(canvas_of);
+    gestate_panel::window::open_parented(handle, model, queue, size, canvas)
+}
+
+#[cfg(not(feature = "substrate"))]
+unsafe fn open_window(handle: raw_window_handle::RawWindowHandle,
+                      model: gestate_panel::Model,
+                      queue: Arc<Queue>,
+                      size: Option<(i32, i32)>)
+    -> Result<gestate_panel::window::Handle, gestate_panel::window::Error>
+{
+    gestate_panel::window::open_parented(handle, model, queue, size)
 }
 
 /// The platform id in `clap_window`, as a raw-window-handle.

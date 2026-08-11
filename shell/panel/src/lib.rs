@@ -26,6 +26,9 @@ pub mod paint;
 pub mod panels;
 
 #[cfg(feature = "substrate")]
+pub mod canvas;
+
+#[cfg(feature = "substrate")]
 pub mod substrate;
 
 #[cfg(feature = "window")]
@@ -33,7 +36,7 @@ pub mod window;
 
 pub use interact::{Change, Interaction};
 pub use list::{Axis, Colour, Display, Hit, Item, Kind};
-pub use model::{Accepts, BankView, Knob, Model};
+pub use model::{Accepts, BankView, Knob, Model, SeedView, Tab};
 pub use paint::Canvas;
 
 /// The panel as one object: a model, its layout, and the pointer state.
@@ -59,7 +62,46 @@ pub struct Panel {
     /// Whether the scrollbar's thumb is being dragged.
     bar_drag: bool,
     display: Display,
+    /// The toolbar, laid out separately because it does not scroll.
+    ///
+    /// **Two lists, not one, and the split is the same one the
+    /// scrollbar already made**: content is a function of the model and
+    /// the scroll, chrome is a function of the model and the window.
+    /// Keeping them apart is what lets a press be tested against the
+    /// chrome *first*, so a tab under which the content happens to have
+    /// scrolled a fader is still a tab.
+    chrome: Display,
+    tab: Tab,
+    /// The stream a press on `RNG` draws its next seed from.
+    ///
+    /// **Seeded to a constant, and stirred by the host.**  A panel is
+    /// a pure function of its model everywhere else, and reading a
+    /// clock in here would make the one interesting button in the
+    /// window untestable.  So the sequence is deterministic and
+    /// `stir` is how a real window gets a different one each time it
+    /// opens — the shell has a clock and this does not.
+    rng: u64,
+    /// The program's own picture, when this plugin carries one.
+    ///
+    /// **The second source, and it lives here rather than beside the
+    /// panel** because the two share everything downstream of the
+    /// display list: one painter, one scrollbar, one window, one set of
+    /// pointer events.  `spec/panel.md` §"One painter, two sources" is
+    /// the design; this field is the sentence where it stops being a
+    /// diagram.
+    #[cfg(feature = "substrate")]
+    canvas: Option<canvas::Canvas>,
     interaction: Interaction,
+}
+
+/// splitmix64 — one multiply-xor round, which is all a button that
+/// picks a five-digit number needs.
+fn next_rand(state: &mut u64) -> u64 {
+    *state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+    let mut z = *state;
+    z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    z ^ (z >> 31)
 }
 
 impl Panel {
@@ -78,6 +120,11 @@ impl Panel {
             scroll: 0,
             bar_drag: false,
             display: Display::new(),
+            chrome: Display::new(),
+            tab: Tab::default(),
+            rng: 0x5EED_5EED_5EED_5EED,
+            #[cfg(feature = "substrate")]
+            canvas: None,
             interaction: Interaction::new(),
         };
         p.relayout();
@@ -92,6 +139,109 @@ impl Panel {
         self.display = panels::view(&self.model, self.width,
                                     self.interaction.hot(), self.scale,
                                     self.scroll);
+        self.chrome = Display::new();
+        panels::toolbar(&mut self.chrome, &self.model, self.width,
+                        self.scale, self.tab);
+    }
+
+    pub fn tab(&self) -> Tab {
+        self.tab
+    }
+
+    /// Give this panel the program's own canvas.
+    ///
+    /// The second tab appears because there is now something behind
+    /// it, which is the only reason a tab should ever appear.
+    #[cfg(feature = "substrate")]
+    pub fn attach_canvas(&mut self, c: canvas::Canvas) {
+        self.canvas = Some(c);
+        self.model.has_canvas = true;
+        self.relayout();
+    }
+
+    #[cfg(feature = "substrate")]
+    pub fn canvas(&self) -> Option<&canvas::Canvas> {
+        self.canvas.as_ref()
+    }
+
+    /// The point the canvas's own origin lands on.
+    ///
+    /// **The top-left of what the toolbar leaves, not the middle**, and
+    /// that is the reference's convention rather than a choice made
+    /// here: `gui.py`'s `_flatten` walks from `cx = cy = 0`, so a
+    /// program's centre sits at the window's corner and the program
+    /// places itself — `substrate.ges` opens with `moveXY 120 140` for
+    /// exactly that reason.
+    ///
+    /// Centring here instead looked more sensible and was wrong: it
+    /// added half a window to an offset the program had already
+    /// applied, and every existing canvas came out down and to the
+    /// right of where its author put it.  The rule for this module is
+    /// that the two hosts agree tree for tree, and the origin is part
+    /// of the tree's meaning.
+    #[cfg(feature = "substrate")]
+    fn canvas_origin(&self) -> (i32, i32) {
+        (0, panels::toolbar_h(&self.model, self.scale))
+    }
+
+    /// One instant of the canvas, and the picture that follows it.
+    ///
+    /// Called once a frame by whatever owns the window.  **Even on the
+    /// tab you are not looking at**: a substrate is a fold over time,
+    /// and one that stopped folding while hidden would come back
+    /// showing a stale world and then jump — which is worse than
+    /// paying for a walk nobody sees.  A program that draws nothing
+    /// pays nothing, because there is no canvas to tick.
+    #[cfg(feature = "substrate")]
+    pub fn tick_canvas(&mut self, writes: &[(i64, f64)]) {
+        let (cx, cy) = self.canvas_origin();
+        let Some(c) = self.canvas.as_mut() else { return };
+        c.tick(writes, cx, cy);
+        let fault = c.fault().map(|f| f.to_string());
+        if let Some(f) = fault {
+            self.set_notice(Some(f));
+        }
+    }
+
+    /// Write a named channel the program declared — the *instrument*
+    /// reaching the canvas, where a touch is a hand reaching it.
+    ///
+    /// `peak` is the one this exists for: the host says how loud the
+    /// last block was and a meter in the picture moves.  A program
+    /// that declares no such channel is not written to and does not pay
+    /// for the reading.
+    #[cfg(feature = "substrate")]
+    pub fn canvas_channel(&self, name: &str) -> Option<i64> {
+        self.canvas.as_ref().and_then(|c| c.channel(name))
+    }
+
+    /// The canvas channel a host parameter also is, if any.
+    #[cfg(feature = "substrate")]
+    pub fn canvas_channel_of_param(&self, param: u32) -> Option<i64> {
+        self.canvas.as_ref().and_then(|c| c.chan_of_param(param))
+    }
+
+    /// Show the other source.  Returns whether it moved.
+    pub fn set_tab(&mut self, tab: Tab) -> bool {
+        if self.tab == tab || (tab == Tab::Canvas && !self.model.has_canvas) {
+            return false;
+        }
+        self.tab = tab;
+        self.relayout();
+        true
+    }
+
+    /// Give the reroll button a different stream to draw from.
+    ///
+    /// The shell calls this once, with a clock, when it opens a
+    /// window.  Nothing else in the panel reads entropy.
+    pub fn stir(&mut self, entropy: u64) {
+        self.rng ^= entropy;
+    }
+
+    /// The chrome — the toolbar, which does not scroll.
+    pub fn chrome(&self) -> &Display {
+        &self.chrome
     }
 
     pub fn scale(&self) -> i32 {
@@ -195,16 +345,34 @@ impl Panel {
                 return Vec::new();
             }
         }
+        // **The toolbar is tested before the content**, for the same
+        // reason the bar is: it lies over whatever has scrolled beneath
+        // it, and a press on `RNG` must be a reroll rather than a
+        // gesture on the fader that happens to be underneath.
+        if let Some(hit) = self.chrome.pick(x, y) {
+            if let Kind::Button(act) = hit.kind {
+                return self.act(act);
+            }
+            return Vec::new();
+        }
+        // **On the canvas the program owns the pointer.**  Its
+        // attachments are its own and nothing here knows what they
+        // mean; what comes back is a channel and a fraction, and the
+        // only ones that reach the host are those the export paired
+        // with a control.
+        #[cfg(feature = "substrate")]
+        if self.tab == Tab::Canvas {
+            if let Some(c) = self.canvas.as_mut() {
+                let writes = c.press(x, y);
+                let out = c.changes(&writes, true);
+                self.apply_canvas(&writes);
+                self.apply(&out);
+                return out;
+            }
+        }
         if let Some(hit) = self.display.pick(x, y) {
             if let Kind::Button(act) = hit.kind {
-                match act {
-                    panels::ACT_SMALLER =>
-                        { self.set_scale(self.scale - panels::SCALE_STEP); }
-                    panels::ACT_LARGER =>
-                        { self.set_scale(self.scale + panels::SCALE_STEP); }
-                    _ => {}
-                }
-                return Vec::new();
+                return self.act(act);
             }
         }
         let out = self.interaction.press(&self.display, &self.model, x, y);
@@ -212,10 +380,83 @@ impl Panel {
         out
     }
 
+    /// A canvas write, applied at once so the picture follows the hand
+    /// rather than waiting for the next frame.
+    #[cfg(feature = "substrate")]
+    fn apply_canvas(&mut self, writes: &[(i64, f64)]) {
+        if writes.is_empty() {
+            return;
+        }
+        self.tick_canvas(writes);
+    }
+
+    /// What a button does.
+    ///
+    /// **Every one of these is panel-local except the reroll**, and
+    /// the reroll is not an exception to the rule so much as proof of
+    /// it: it does not touch a seed, it asks the host to change a
+    /// *parameter*, in one whole gesture, exactly as a fader does.  The
+    /// panel still cannot reach the engine.
+    fn act(&mut self, act: u32) -> Vec<Change> {
+        match act {
+            panels::ACT_SMALLER => {
+                self.set_scale(self.scale - panels::SCALE_STEP);
+            }
+            panels::ACT_LARGER => {
+                self.set_scale(self.scale + panels::SCALE_STEP);
+            }
+            panels::ACT_CONTROLS => { self.set_tab(Tab::Controls); }
+            panels::ACT_CANVAS => { self.set_tab(Tab::Canvas); }
+            panels::ACT_RESEED => return self.reseed(),
+            _ => {}
+        }
+        Vec::new()
+    }
+
+    /// Roll a new take.
+    ///
+    /// The new seed is **never the old one** — a randomize button that
+    /// can land on the number it started from is one that sometimes
+    /// appears broken, and at one chance in a hundred thousand it would
+    /// be a bug nobody could reproduce.
+    fn reseed(&mut self) -> Vec<Change> {
+        let Some(seed) = self.model.seed.as_ref() else {
+            return Vec::new();
+        };
+        let (param, max, was) = (seed.param, seed.max.max(1), seed.value);
+        let mut next = was;
+        for _ in 0..8 {
+            next = (next_rand(&mut self.rng) % (max as u64 + 1)) as i64;
+            if next != was {
+                break;
+            }
+        }
+        if let Some(s) = self.model.seed.as_mut() {
+            s.value = next;
+        }
+        self.relayout();
+        vec![Change::Begin(param),
+             Change::Value(param, next as f64),
+             Change::End(param)]
+    }
+
     pub fn motion(&mut self, x: i32, y: i32) -> Vec<Change> {
         if self.bar_drag {
             self.scroll_to_thumb(y);
             return Vec::new();
+        }
+        #[cfg(feature = "substrate")]
+        if self.tab == Tab::Canvas {
+            if let Some(c) = self.canvas.as_mut() {
+                if !c.is_grabbing() {
+                    return Vec::new();
+                }
+                let writes = c.motion(x, y);
+                let out = c.changes(&writes, false);
+                self.apply_canvas(&writes);
+                self.apply(&out);
+                return out;
+            }
         }
         let out = self.interaction.motion(&self.display, &self.model, x, y);
         self.apply(&out);
@@ -224,6 +465,21 @@ impl Panel {
 
     pub fn release(&mut self) -> Vec<Change> {
         self.bar_drag = false;
+        #[cfg(feature = "substrate")]
+        if self.tab == Tab::Canvas {
+            if let Some(c) = self.canvas.as_mut() {
+                // Close the gesture on whatever was grabbed, exactly
+                // once — an unmatched `Begin` leaves the host in a
+                // gesture forever.
+                let out: Vec<Change> = c.grabbed()
+                    .and_then(|ch| c.param_of(ch))
+                    .map(Change::End)
+                    .into_iter()
+                    .collect();
+                c.release();
+                return out;
+            }
+        }
         let out = self.interaction.release();
         self.relayout();
         out
@@ -289,6 +545,12 @@ impl Panel {
             k.value = value;
             return true;
         }
+        if let Some(s) = model.seed.as_mut() {
+            if s.param == param {
+                s.value = (value.round() as i64).clamp(0, s.max);
+                return true;
+            }
+        }
         for b in model.banks.iter_mut() {
             if param == b.score_param {
                 b.plays_score = value >= 0.5;
@@ -317,10 +579,21 @@ impl Panel {
     /// Paint the current layout into a fresh canvas.
     pub fn render(&self) -> Canvas {
         let mut c = Canvas::new(self.width, self.height, panels::BG);
+        #[cfg(feature = "substrate")]
+        if self.tab == Tab::Canvas {
+            if let Some(cv) = self.canvas.as_ref() {
+                paint::paint(&mut c, cv.display());
+                paint::paint(&mut c, &self.chrome);
+                return c;
+            }
+        }
         paint::paint(&mut c, &self.display);
         // The bar is drawn over the content and outside the display
         // list, because it is a fact about the *window* rather than
         // about the model — nothing in a `Sub` will ever produce one.
+        // The toolbar over the content, so whatever has scrolled
+        // under it is covered rather than showing through.
+        paint::paint(&mut c, &self.chrome);
         let mut bar = Display::new();
         panels::scrollbar(&mut bar, &self.model, self.width, self.height,
                           self.scale, self.scroll);

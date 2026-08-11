@@ -237,8 +237,23 @@ pub fn walk(m: &mut Machine, t: &SubTags, node: usize,
 pub fn view(m: &mut Machine, t: &SubTags, root: usize, w: i32, h: i32)
     -> R<Display>
 {
+    view_at(m, t, root, half(w), half(h))
+}
+
+/// The same, centred wherever the caller says.
+///
+/// **Because a canvas rarely owns the whole window.**  A plugin puts a
+/// toolbar over it, and the alternative to moving the centre is to
+/// walk into the canvas's own coordinates and translate every item and
+/// every region afterwards — two passes that must agree, which is
+/// exactly the class of mistake that makes a picture and the thing
+/// that listens to it drift apart.  The walk already places by a
+/// centre it is handed; handing it a different one is free.
+pub fn view_at(m: &mut Machine, t: &SubTags, root: usize, cx: i32, cy: i32)
+    -> R<Display>
+{
     let mut d = Display::new();
-    walk(m, t, root, half(w), half(h), &mut d)?;
+    walk(m, t, root, cx, cy, &mut d)?;
     Ok(d)
 }
 

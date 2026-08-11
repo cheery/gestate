@@ -9,8 +9,19 @@
 //! look at.  It is also `spec/panel.md` acceptance 3's mechanism — the
 //! same display list must give the same pixels, and this is how those
 //! pixels get somewhere they can be compared.
+//!
+//! **The canvas too**, when there is one to point it at:
+//!
+//! ```text
+//! cargo run -p gestate-panel --features substrate --example shot -- \
+//!     tests/substrate.program tests/substrate.tags cutoff peak > c.ppm
+//! ```
+//!
+//! Same two fixtures the parity test uses — which are exactly what the
+//! export sends a plugin — so what comes out is the picture a DAW
+//! draws, checkable by looking at it.
 
-use gestate_panel::model::{Accepts, BankView, Knob, Model};
+use gestate_panel::model::{Accepts, BankView, Knob, Model, SeedView};
 use gestate_panel::Panel;
 use std::io::Write;
 
@@ -20,7 +31,8 @@ fn knob(name: &str, param: u32, value: f64, min: f64, max: f64) -> Knob {
 
 fn main() {
     let model = Model {
-        title: "FMPOLY".into(), notice: None,
+        title: "FMPOLY".into(), notice: None, has_canvas: false,
+        seed: Some(SeedView { param: 900, value: 1234, max: 99_999 }),
         knobs: vec![
             knob("cutoff", 0, 0.42, 0.0, 1.0),
             knob("resonance", 1, 0.2, 0.0, 1.0),
@@ -57,6 +69,40 @@ fn main() {
 
     // A window shorter than its content, so the scrollbar is in shot.
     let mut p = Panel::new(model);
+    #[cfg(feature = "substrate")]
+    {
+        use gestate_panel::canvas::{Canvas, CanvasProgram};
+        use gestate_panel::substrate::SubTags;
+        let args: Vec<String> = std::env::args().skip(1).collect();
+        if let (Some(prog), Some(tags)) = (args.first(), args.get(1)) {
+            let text = std::fs::read_to_string(prog).expect("the program");
+            let raw: Vec<i64> = std::fs::read_to_string(tags)
+                .expect("the tags")
+                .split_whitespace().map(|w| w.parse().unwrap()).collect();
+            let chans: Vec<String> = args[2..].to_vec();
+            let bridge = chans.iter().enumerate()
+                .map(|(i, n)| (n.clone(), i as u32)).collect();
+            let c = Canvas::open(CanvasProgram {
+                text, entry: "main".into(),
+                tags: SubTags {
+                    rect: raw[0], circle: raw[1], gap: raw[2], over: raw[3],
+                    row: raw[4], column: raw[5], shift: raw[6],
+                    sized: raw[7], pad: raw[8], touch_x: raw[9],
+                    touch_y: raw[10],
+                },
+                chans, bridge,
+            }).expect("the canvas opened");
+            p.attach_canvas(c);
+            p.set_tab(gestate_panel::Tab::Canvas);
+            p.resize(420, 360);
+            // A meter with something in it, so the picture is not the
+            // one frame where everything is zero.
+            let peak = p.canvas_channel("peak");
+            let writes: Vec<(i64, f64)> = peak.into_iter()
+                .map(|c| (c, 0.62)).collect();
+            p.tick_canvas(&writes);
+        }
+    }
     if let Ok(h) = std::env::var("SHOT_H") {
         if let Ok(h) = h.parse::<i32>() { p.resize(p.width, h); }
     }

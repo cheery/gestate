@@ -401,12 +401,38 @@ first part of this shell where more than one is involved.
   nothing here because the panel has no legitimate reason to touch
   either.
 
-## What the substrate will demand, when its turn comes
+## What the substrate demanded, when its turn came
+
+*(Since written: it came.  `shell/panel/src/canvas.rs` runs a program's
+own picture in the plugin window, on the second tab, and the answers
+below are marked where they were settled.  What follows is the list as
+it was written, because being right about which questions would matter
+is the part worth keeping.)*
+
+**The toolbar**, which none of this predicted and all of it needed: a
+window with two sources needs somewhere to say which one you are
+looking at.  `CONTROLS | CANVAS`, and the names are this document's own
+— §"One painter, two sources" already called them that.  Naming them
+after where they sit (front, behind) would have named the *window's
+arrangement* rather than what is on each side, and the arrangement is
+the part most likely to change.
+
+Beside them, **the seed**: `SEED 01234 [RNG]`.  It is a plugin
+parameter like any other, so the host saves it, automates it and shows
+it — and pressing `RNG` is one whole gesture on it, `BEGIN`, one value,
+`END`, exactly as a drag is.  It is *not* a fader, and the reason is
+worth stating because the obvious design is the wrong one: every value
+a drag passed through would be a different piece, and the plugin
+answers a new seed by re-rooting its stream, so a one-second drag asks
+for sixty re-roots of a score, fifty-nine of them thrown away.  One
+press, one take.  A player who wants a *particular* seed types it into
+the host's own parameter box, which is what that box is for.
 
 Recorded here because the panel is what turns these from questions
 into requirements.
 
-* **Text.**  `Sub` has no label, and the panels have names to draw.
+* **Text.**  *(Still open.)*  `Sub` has no label, and the panels have
+  names to draw.
   The editor's withdrawal turned on the language being unable to
   measure text — but `gui.ges` states its own rule directly above the
   datatype: *"The extent is declared, never measured."*  A label with
@@ -417,7 +443,9 @@ into requirements.
   it is why `Label String` under `Sized w h` is admissible where an
   editor was not.  Panel one draws its text host-side and does not
   settle this; a canvas that wants a legend does.
-* **`TouchX`/`TouchY` versus the spec's `onDrag`.**  The built
+* **`TouchX`/`TouchY` versus the spec's `onDrag`.**  *(Still open, and
+  now overdue: the canvas ships with `TouchX`/`TouchY` and nothing
+  else.)*  The built
   vocabulary attaches a `Chan Float` on one axis; `spec/substrate.md`
   §"Attachment" still describes `onDrag : Chan Point -> Sub -> Sub`.
   Panel one's knob rows are horizontal, so they are `TouchX` and the
@@ -425,12 +453,44 @@ into requirements.
   should be reconciled before a third element arrives and picks one by
   accident.
 * **A knob that is a `Sub` writes a channel; a knob in a plugin is a
-  parameter.**  If a knob panel ever becomes a real substrate, the
-  shell has to map "this channel is a knob" to "this is parameter *i*"
-  and route the write through the host.  `Control.knob` is already
-  that flag, which is the pleasant part; the unpleasant part is that a
-  `Sub` writing a channel is the substrate's whole mechanism, so the
-  mapping belongs in the shell rather than in the language.
+  parameter.**  *(Settled, and it was the interesting one.)*  If a
+  knob panel ever becomes a real substrate, the shell has to map "this
+  channel is a knob" to "this is parameter *i*" and route the write
+  through the host.  `Control.knob` is already that flag, which is the
+  pleasant part; the unpleasant part is that a `Sub` writing a channel
+  is the substrate's whole mechanism, so the mapping belongs in the
+  shell rather than in the language.
+
+  It does, and it is called the **bridge**: `export.substrate_of` pairs
+  every declared channel that is *also* a control source with the slot
+  the graph reads it from, and a knob's slot is its parameter id.  So a
+  touch on a canvas fader produces two things — the channel write that
+  moves the picture, and the `Change` that moves the sound — and they
+  are one gesture, so the DAW gets one undo step.  The reverse
+  direction matters as much and was nearly missed: a host moving a
+  bridged parameter (a lane playing back, the DAW's own generic panel)
+  writes the channel too, or the canvas is a display that is right only
+  while you are the one touching it.
+
+  **The bridge is keyed by name, not by channel id**, and that is the
+  correction this cost.  An id is allocated when a declaration is first
+  forced, so it is a fact about what the *host* does: forcing the
+  declarations first gives `cutoff` id 0, letting the program reach it
+  gives id 2, and both are correct readings of one file.  Sending ids
+  meant two languages had to make the same choice about that, with
+  nothing checking — and they did not.  Names cross; the shell forces
+  them in the order given and keeps whatever ids it is handed.  Nothing
+  has to agree because nothing is being guessed.
+
+* **Where the origin is.**  *(Settled, painfully.)*  `gui.py`'s
+  `_flatten` walks from `cx = cy = 0`: a substrate's centre sits at the
+  window's **corner** and the program places itself from there —
+  `substrate.ges` opens with `moveXY 120 140` for exactly that reason.
+  Centring the picture in the pane looked more sensible and was wrong;
+  it added half a window to an offset the program had already applied,
+  and the first screenshot had the fader in the bottom-right corner.
+  The rule is that the two hosts agree tree for tree, and the origin is
+  part of the tree's meaning.
 
 ## Acceptance
 
