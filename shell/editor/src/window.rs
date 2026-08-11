@@ -176,6 +176,10 @@ struct EditorWindow {
     /// to show a document nobody was touching would be a battery
     /// costing nothing.
     dirty: Cell<bool>,
+    /// When the oldest key still waiting for a repaint arrived.
+    struck: Cell<Option<Instant>>,
+    /// When the oldest unanswered `filter` went out to the model.
+    asked: Cell<Option<Instant>>,
     /// Never let the picture go clean — a measuring aid, see the
     /// constructor.
     stress: bool,
@@ -210,20 +214,55 @@ struct Timing {
     last: Option<Instant>,
     /// Wall time between the last two frames the loop asked for.
     gap_us: u64,
+    /// **Key to pixels** — from the event that changed something to the
+    /// `present` that put it on screen.  The only latency a typist can
+    /// actually feel, and the one number that says whether a character
+    /// appears under the finger that typed it.
+    strikes: u64,
+    strike_us: u64,
+    strike_max: u64,
+    /// **Query to list** — a letter typed into the command list, out to
+    /// the model that decides what it means, and back.  The window
+    /// draws what it was typed at once; *this* is what can trail your
+    /// hand, and it is a different number from `key->pixels` because it
+    /// crosses into another runtime and comes back.
+    answers: u64,
+    answer_us: u64,
+    answer_max: u64,
 }
 
 impl Timing {
     fn report(&mut self) {
-        let n = self.drawn.max(1);
+        // **Two denominators, because there are two kinds of frame.**
+        // Laying the document out and rasterising it happens only when
+        // something changed; the copy and the present happen every
+        // frame, because presenting is also what drains the X
+        // connection.  Dividing all four by `drawn` would quietly
+        // inflate the two that ran more often than that.
+        let drew = self.drawn.max(1);
+        let all = (self.drawn + self.idle).max(1);
         eprintln!("[editor] {} drawn, {} idle | paint {:.2}ms  copy {:.2}ms  \
 present {:.2}ms  resize {:.2}ms | loop asks every {:.2}ms",
                   self.drawn, self.idle,
-                  self.paint_us as f64 / n as f64 / 1000.0,
-                  self.copy_us as f64 / n as f64 / 1000.0,
-                  self.present_us as f64 / n as f64 / 1000.0,
-                  self.resize_us as f64 / n as f64 / 1000.0,
-                  self.gap_us as f64 / (self.drawn + self.idle).max(1) as f64
-                      / 1000.0);
+                  self.paint_us as f64 / drew as f64 / 1000.0,
+                  self.copy_us as f64 / all as f64 / 1000.0,
+                  self.present_us as f64 / all as f64 / 1000.0,
+                  self.resize_us as f64 / all as f64 / 1000.0,
+                  self.gap_us as f64 / all as f64 / 1000.0);
+        if self.answers > 0 {
+            eprintln!("[editor] query->list: {} answers, avg {:.2}ms, \
+worst {:.2}ms",
+                      self.answers,
+                      self.answer_us as f64 / self.answers as f64 / 1000.0,
+                      self.answer_max as f64 / 1000.0);
+        }
+        if self.strikes > 0 {
+            eprintln!("[editor] key->pixels: {} strikes, avg {:.2}ms, \
+worst {:.2}ms",
+                      self.strikes,
+                      self.strike_us as f64 / self.strikes as f64 / 1000.0,
+                      self.strike_max as f64 / 1000.0);
+        }
         *self = Timing { on: true, last: self.last, ..Default::default() };
     }
 }
@@ -281,6 +320,8 @@ impl EditorWindow {
             surface: RefCell::new(surface),
             cursor: Cell::new((0, 0)),
             dirty: Cell::new(true),
+            struck: Cell::new(None),
+            asked: Cell::new(None),
             // **`GESTATE_EDITOR_STRESS` never goes clean**, so every
             // frame draws and presents.  It is how the *platform's*
             // half of a frame gets measured without a hand on the
@@ -300,6 +341,9 @@ impl EditorWindow {
     fn after(&self, did: Did) -> EventStatus {
         if did.drew {
             self.dirty.set(true);
+            if self.clock.borrow().on && self.struck.get().is_none() {
+                self.struck.set(Some(Instant::now()));
+            }
         }
         let doc = self.doc.borrow();
         if did.edited {
@@ -377,6 +421,14 @@ impl WindowHandler for EditorWindow {
                 self.furnished.set(at);
                 let f = Furniture::read(&text);
                 self.palette.borrow_mut().offer(f.commands.clone());
+                if let Some(sent) = self.asked.take() {
+                    let us = Instant::now().duration_since(sent)
+                        .as_micros() as u64;
+                    let mut c = self.clock.borrow_mut();
+                    c.answers += 1;
+                    c.answer_us += us;
+                    c.answer_max = c.answer_max.max(us);
+                }
                 // **The margin appears only when something declares a
                 // knob**, so a synth with none loses no width to the
                 // possibility of them.
@@ -415,17 +467,50 @@ impl WindowHandler for EditorWindow {
             }
             c.last = Some(now);
         }
-        if !self.dirty.get() {
-            if timing {
-                let mut c = self.clock.borrow_mut();
-                c.idle += 1;
-                if c.idle + c.drawn >= 240 {
-                    c.report();
-                }
-            }
-            return Ok(());
+        // **A clean frame is still presented, and that is not waste.**
+        //
+        // `baseview` waits on the X connection's file descriptor to know
+        // a key has arrived.  `softbuffer` was handed the *same*
+        // connection, and its round trips read from that socket — which
+        // moves any events waiting there into XCB's own queue, where
+        // they are no longer bytes on a descriptor and no longer wake
+        // the loop.  A keystroke that lands in that queue sits in it
+        // until the next keystroke's bytes arrive, so the letter you see
+        // is the letter before the one you typed.
+        //
+        // While the transport runs it is invisible: the beat changes the
+        // description sixty times a second, every frame presents, and
+        // every present drains the queue.  Press `stop` and the window
+        // goes idle — and then the queue is only drained by typing, one
+        // letter late, for as long as the file is open.  That is the bug
+        // Henri could reproduce and no measurement could: the *editor*
+        // was always fast, and the keystroke had not arrived yet.
+        //
+        // So the frame is presented either way.  What a clean frame
+        // skips is the expensive half — laying out the document and
+        // rasterising it, two to four milliseconds — and what it keeps
+        // is the copy and the present, half a millisecond, which is the
+        // price of the connection being drained on a schedule instead of
+        // whenever somebody happens to type.
+        let painting = self.dirty.get();
+        if timing && !painting {
+            let mut c = self.clock.borrow_mut();
+            c.idle += 1;
         }
-        self.dirty.set(self.stress);
+        // **The picture goes clean only once it has been presented**,
+        // which is at the bottom of this function and not here.
+        //
+        // Clearing it up front looks equivalent and is not: every step
+        // between here and `present` can bail out — a zero-sized
+        // window, a surface that will not resize, a buffer that is not
+        // available this instant — and a frame dropped after the flag
+        // was cleared is a change that nothing will ever come back for.
+        // The next repaint waits for the *next* thing to happen, so the
+        // character you just typed appears when you type the one after
+        // it.  While the transport runs that is invisible, because the
+        // beat redirties the window sixty times a second and paints the
+        // arrears; stop the transport and it is the only thing you can
+        // see.
 
         let view = *self.view.borrow();
         let (Some(w), Some(h)) = (NonZeroU32::new(view.w.max(1) as u32),
@@ -456,14 +541,16 @@ impl WindowHandler for EditorWindow {
             *canvas = Canvas::opaque(view.w, view.h, view::BG);
         }
         let chrome = self.chrome.borrow();
-        view::paint(&mut canvas,
-                    &view::frame_with(&doc, &view, font, &chrome), font,
-                    self.scale());
+        if painting {
+            view::paint(&mut canvas,
+                        &view::frame_with(&doc, &view, font, &chrome), font,
+                        self.scale());
+        }
         // The palette over the text, in its own frame — chrome over a
         // document, so the document's layout cannot depend on whether a
         // list happens to be open.
         let palette = self.palette.borrow();
-        if palette.is_open() {
+        if painting && palette.is_open() {
             let (cw, ch) = (view.cw(font), view.ch(font));
             view::paint(&mut canvas,
                         &palette.frame(view.w, view.h, cw, ch), font,
@@ -479,10 +566,19 @@ impl WindowHandler for EditorWindow {
         buffer[..n].copy_from_slice(&canvas.px[..n]);
         let t2 = Instant::now();
         let _ = buffer.present();
+        self.dirty.set(self.stress);
         if timing {
             let t3 = Instant::now();
             let mut c = self.clock.borrow_mut();
-            c.drawn += 1;
+            if let Some(hit) = self.struck.take() {
+                let us = t3.duration_since(hit).as_micros() as u64;
+                c.strikes += 1;
+                c.strike_us += us;
+                c.strike_max = c.strike_max.max(us);
+            }
+            if painting {
+                c.drawn += 1;
+            }
             c.resize_us += t1.duration_since(t0).as_micros() as u64;
             c.paint_us += t_paint.duration_since(t1).as_micros() as u64;
             c.copy_us += t2.duration_since(t_paint).as_micros() as u64;
@@ -558,12 +654,40 @@ impl WindowHandler for EditorWindow {
                 // typing" true.
                 let asks = self.palette.borrow_mut().key(key.clone());
                 if asks != Asks::Nothing || self.palette.borrow().is_open() {
+                    // **The palette's keys are keys too.**  They do not
+                    // go through `after`, so without this the one place
+                    // a letter can visibly trail a hand is the one place
+                    // the timing report could not see.
+                    if self.clock.borrow().on {
+                        if self.struck.get().is_none() {
+                            self.struck.set(Some(Instant::now()));
+                        }
+                        if matches!(asks, Asks::Filter(_))
+                            && self.asked.get().is_none()
+                        {
+                            self.asked.set(Some(Instant::now()));
+                        }
+                    }
                     match asks {
                         Asks::Filter(q) => self.host.gesture(
                             Gesture::Filter(q).line()),
-                        Asks::Run(name) => self.host.gesture(
-                            Gesture::Command(name).line()),
-                        _ => {}
+                        // **Closing is a filter of nothing.**  The model
+                        // holds which commands the last query meant, and
+                        // a list that is shut has no query — without
+                        // saying so, the description goes on carrying
+                        // three commands out of twenty-nine for the rest
+                        // of the session, and the next Ctrl-K opens onto
+                        // the answer to a question nobody asked.  An
+                        // empty query already means "no filter", so this
+                        // needs no new verb.
+                        Asks::Run(name) => {
+                            self.host.gesture(Gesture::Command(name).line());
+                            self.host.gesture(
+                                Gesture::Filter(String::new()).line());
+                        }
+                        Asks::Closed => self.host.gesture(
+                            Gesture::Filter(String::new()).line()),
+                        Asks::Nothing => {}
                     }
                     self.dirty.set(true);
                     return EventStatus::Captured;

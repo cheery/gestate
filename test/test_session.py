@@ -19,7 +19,8 @@ the arguments are the ones the types promised.
 
 from __future__ import annotations
 
-from gestate.session import KEYS, Detached, Session, Verb, vocabulary
+from gestate.session import (KEYS, Detached, Session, Verb, act,
+                             vocabulary)
 
 
 class Bench:
@@ -485,9 +486,16 @@ def test_filtering_is_answered_by_the_model():
     said = act(s, "filter\tloop")
     assert said.startswith("3 of "), said
     assert [v.name for v in s.filtered][:3] == ["loop", "loopAll", "loopOff"]
-    # An empty query is everything, in the order the file declares.
+    # **An empty query is not a filter that matched everything.**  It
+    # is no filter at all, and the two are different: one shows the
+    # whole list, the other could legitimately show none of it.
     act(s, "filter\t")
-    assert len(s.filtered) == len(s.commands())
+    assert s.filtered is None
+    assert len(s.palette_list()) == len(s.commands())
+    # And a query nothing matches shows nothing, rather than everything.
+    act(s, "filter\tzzzz")
+    assert s.filtered == []
+    assert s.palette_list() == []
 
 
 def test_a_played_note_obeys_what_performing_says():
@@ -514,3 +522,55 @@ def test_a_played_note_obeys_what_performing_says():
     act(s, "note\t60\t1")
     act(s, "note\t60\t0")
     assert played == [("on", 60), ("off", 60)]
+
+
+# --- the loop's pacing -------------------------------------------------
+#
+# The command list is filtered by the model, so a keystroke in it costs a
+# round trip through `run`'s loop.  How long that loop sleeps *is* how
+# far the list trails your hand, which makes these two constants part of
+# the interface rather than a tuning detail.
+
+def test_pace_hurries_while_a_hand_is_moving():
+    from gestate.workbench import BUSY, pace
+    assert pace(True, 0.010) == BUSY
+    # A round trip is a poll plus a frame.  Fifteen milliseconds of frame
+    # leaves no room for a thirty-millisecond poll.
+    assert BUSY <= 0.005
+
+
+def test_pace_does_not_spin_on_a_moving_beat():
+    """The description differs every tick while the transport runs.
+
+    Pacing on *that* rather than on gestures would hold the fast pace
+    forever — a core spun to keep a number looking smooth.  So an
+    unstirred tick must back off, all the way, on its own.
+    """
+    from gestate.workbench import IDLE, pace
+    wait = pace(True, IDLE)
+    for _ in range(10):
+        wait = pace(False, wait)
+    assert wait == IDLE
+
+
+def test_pace_backs_off_gradually():
+    """People type in bursts; the second letter should not pay for the
+    first having finished."""
+    from gestate.workbench import BUSY, IDLE, pace
+    after_one_quiet_tick = pace(False, BUSY)
+    assert BUSY < after_one_quiet_tick < IDLE
+
+
+def test_closing_the_list_stops_filtering():
+    """A shut command list has no query.
+
+    Without this the description goes on carrying the three commands the
+    last query matched, and the next Ctrl-K opens onto the answer to a
+    question nobody asked.
+    """
+    it = session()
+    act(it, "filter\tloop")
+    assert len(it.palette_list()) < len(it.commands())
+    act(it, "filter\t")                       # what closing sends
+    assert it.filtered is None
+    assert it.palette_list() == it.commands()

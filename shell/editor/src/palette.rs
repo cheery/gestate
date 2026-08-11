@@ -182,7 +182,16 @@ impl Palette {
         }
         let most = self.rows(h, ch);
         let shown = self.entries.len().min(most);
-        let box_h = ch * (shown as i32 + 1) + 8;
+        // **The summary is a row of the panel, not a line beside it.**
+        // It used to be drawn below the box, where there is no
+        // background — so a sentence about the picked command was
+        // painted straight over the file, two texts sharing one set of
+        // pixels and neither readable.  A panel over a document has to
+        // own every pixel it writes on, which means counting the
+        // summary's row before the box is sized.
+        let telling = self.selected().is_some();
+        let rows = shown as i32 + 1 + i32::from(telling);
+        let box_h = ch * rows + 8;
         let box_w = (w - 2 * cw).max(cw);
         let (x, y) = (cw, ch);
 
@@ -206,8 +215,10 @@ impl Palette {
                 f.items.push(Item::Rect { x, y: row, w: box_w, h: ch,
                                           c: PICKED });
             }
+            let room = (((box_w - 8) / cw.max(1)) as usize)
+                .saturating_sub(e.key.chars().count() + 2).max(4);
             f.items.push(Item::Run { x: x + 4, y: row,
-                                     s: e.usage.clone(), c: INK });
+                                     s: elide(&e.usage, room), c: INK });
             // The key, hard against the right edge — reading the name
             // teaches the key and pressing the key teaches the name,
             // which only works if both are on the row.
@@ -218,13 +229,83 @@ impl Palette {
             }
         }
 
-        // The summary of whatever is picked, under the list: one line,
+        // The summary of whatever is picked, on the last row: one line,
         // because a list of twenty summaries is a wall and the one you
         // are looking at is the one you want.
         if let Some(e) = self.selected() {
-            f.items.push(Item::Run { x: x + 4, y: y + box_h + 6,
-                                     s: e.summary.clone(), c: FAINT });
+            // **Elided to the room there is**, and here rather than in
+            // the model: how much fits is a fact about this window's
+            // width, which the model has no business knowing.
+            let room = (((box_w - 8) / cw.max(1)).max(4)) as usize;
+            let row = y + 4 + ch * (shown as i32 + 1);
+            f.items.push(Item::Run { x: x + 4, y: row,
+                                     s: elide(&e.summary, room), c: FAINT });
         }
         f
+    }
+}
+
+/// Cut to `most` characters, with an ellipsis when something was cut.
+///
+/// A row that runs under the one beside it is worse than a row that
+/// says it has more to say.
+fn elide(text: &str, most: usize) -> String {
+    if text.chars().count() <= most {
+        return text.to_string();
+    }
+    text.chars().take(most.saturating_sub(1)).collect::<String>() + "…"
+}
+
+#[cfg(test)]
+mod paint_tests {
+    use super::*;
+    use crate::view::Item;
+
+    fn a_palette() -> Palette {
+        let mut p = Palette::default();
+        p.show();
+        p.offer(vec![
+            Entry { usage: "loop <int> <int>".into(), name: "loop".into(),
+                    summary: "Play a stretch of bars over and over.".into(),
+                    key: String::new() },
+            Entry { usage: "stop".into(), name: "stop".into(),
+                    summary: "Stop the transport where it is.".into(),
+                    key: "^.".into() },
+        ]);
+        p
+    }
+
+    /// Every glyph the palette draws must have palette behind it.
+    ///
+    /// The summary used to be drawn *below* the panel, over the file —
+    /// two texts in one set of pixels, and neither readable.  A panel
+    /// over a document owns every pixel it writes on.
+    #[test]
+    fn nothing_is_drawn_outside_the_panel() {
+        let (cw, ch) = (8, 16);
+        let f = a_palette().frame(800, 600, cw, ch);
+        // The shade is the second item; the border is the first.
+        let (top, bottom) = match f.items[1] {
+            Item::Rect { y, h, .. } => (y, y + h),
+            ref other => panic!("expected the panel's shade, got {other:?}"),
+        };
+        for item in &f.items {
+            if let Item::Run { y, s, .. } = item {
+                assert!(*y >= top && *y + ch <= bottom,
+                        "{s:?} is drawn at {y}, outside the panel \
+                         ({top}..{bottom})");
+            }
+        }
+    }
+
+    #[test]
+    fn the_summary_of_the_picked_command_is_shown() {
+        let f = a_palette().frame(800, 600, 8, 16);
+        let said: Vec<&String> = f.items.iter().filter_map(|i| match i {
+            Item::Run { s, .. } => Some(s),
+            _ => None,
+        }).collect();
+        assert!(said.iter().any(|s| s.starts_with("Play a stretch")),
+                "no summary among {said:?}");
     }
 }

@@ -151,10 +151,23 @@ def _summaries(source: str) -> dict:
             name = stripped.split(":", 1)[0].strip()
             if name.isidentifier() and held:
                 text = " ".join(t for t in held if t)
-                out.setdefault(name, _first_sentence(text))
+                out.setdefault(name, _plain(_first_sentence(text)))
         if not stripped.startswith("#:"):
             held = []
     return out
+
+
+def _plain(text: str) -> str:
+    """A doc comment's emphasis, taken off.
+
+    `spec/comments.md` makes doc comments markdown-ish, and a palette
+    row is not markdown — `**while it plays**` in a list of commands is
+    noise wearing the costume of emphasis.  Done here, where the
+    comment is read and where what a palette shows is decided, rather
+    than in the view: it is a fact about the *summary*, and the view
+    should not have to know the model writes markdown.
+    """
+    return text.replace("**", "").replace("`", "")
 
 
 def _first_sentence(text: str) -> str:
@@ -241,13 +254,19 @@ class Session:
     said: list = field(default_factory=list)
     #: What a played note does: `"off"`, `"on"` or `"step"`.
     performing: str = "on"
-    #: The palette's current answer — what `filter` last produced.
-    filtered: list = field(default_factory=list)
+    #: What `filter` last produced, or `None` when nothing is being
+    #: filtered.  **`None` and `[]` are different**: no filter shows
+    #: everything, a filter that matched nothing shows nothing.
+    filtered: object = None
 
     def commands(self) -> list:
         """The palette.  Derived from `command.ges` every time it is
         asked for, which is cheap and cannot go stale."""
         return vocabulary()
+
+    def palette_list(self) -> list:
+        """What the command list should be showing right now."""
+        return self.commands() if self.filtered is None else self.filtered
 
     def matching(self, query: str) -> list:
         """The commands a typed query means, **best first**.
@@ -591,7 +610,11 @@ def furniture(session: "Session", bench=None) -> str:
     if span:
         out.append(f"loop\t{span[0]}\t{span[1]}")
 
-    for verb in session.commands():
+    # **What the palette should be showing**, which is the filtered
+    # list when one is open and everything otherwise.  The ranking is
+    # the model's, so the window is handed an answer rather than a
+    # question.
+    for verb in session.palette_list():
         out.append(f"command\t{verb.name}\t{verb}\t{verb.key}"
                    f"\t{verb.summary}")
     return "\n".join(out)
@@ -619,8 +642,18 @@ def _listening(bench, name: str) -> bool:
 
 
 def _beats(bench) -> float:
+    """Where the transport is, at the precision a readout shows.
+
+    **How often this number changes is how often the window repaints.**
+    The description is compared whole and sent only when it differs, so
+    a beat carried to three decimals differs on every single tick of the
+    loop — and the window then reparses and redraws everything for a
+    digit no one can read. One decimal is what `audioeditor`'s own
+    position readout has always shown (`:.1f`), which makes this the
+    precision that was already decided rather than a new guess.
+    """
     try:
-        return round(bench.position_in_beats(), 3)
+        return round(bench.position_in_beats(), 1)
     except Exception:                                    # noqa: BLE001
         return 0.0
 
@@ -639,8 +672,9 @@ def act(session: "Session", line: str) -> str:
         return session.run(*(p for p in parts[1:] if p))
     if verb == "filter":
         query = parts[1] if len(parts) > 1 else ""
-        session.filtered = session.matching(query)
-        return f"{len(session.filtered)} of {len(session.commands())}"
+        session.filtered = session.matching(query) if query else None
+        shown = session.palette_list()
+        return f"{len(shown)} of {len(session.commands())}"
     if verb == "turn" and len(parts) >= 3:
         try:
             return session.run("set", parts[1], float(parts[2]))
