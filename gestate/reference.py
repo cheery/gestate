@@ -52,7 +52,7 @@ LIBRARIES = (
     ("signal.ges", "Signals",
      "Any reactive backend — a synth or a canvas."),
     ("audio.ges", "Audio",
-     "Synths: `audioperform`, `audioeditor`, `audiopygame`, `audio`."),
+     "Synths: `audioperform`, `audioeditor`, `audio`."),
     ("synth.ges", "Synthesis",
      "Synths, beside `audio.ges`. Oscillators, envelopes, filters, FM."),
     ("music.ges", "Music",
@@ -435,7 +435,7 @@ def index_page() -> str:
         "| you are writing | you run | in scope |",
         "|---|---|---|",
         "| plain code | `typecheck` | Prelude |",
-        "| a synth | `audioeditor`, `audiopygame`, `audioperform` | "
+        "| a synth | `audioeditor`, `audioperform` | "
         "Prelude, Signals, Audio, Synthesis |",
         "| a synth with a piece | `audioperform` | "
         "…and Music |",
@@ -512,10 +512,34 @@ def index_page() -> str:
         "python -m gestate.typecheck f.ges --audio --holes        "
         "# every `_`, and what belongs in it",
         "```", "",
-        "In `audiopygame` the same three are a key: `?` over a name, and "
+        "In the editor the same three are a command: `what` over a name, and "
         "`Tab` at a `_`.  The **[reference] button** opens these pages in "
         "the editor.",
     ]) + "\n"
+
+
+def all_entries() -> list:
+    """Every library's entries, plus the language's, each tagged.
+
+    **The language first**, because it is what a reader looking for
+    `wait` or `chan` is looking for, and because it is in none of the
+    library files — they are desugaring forms, not definitions, so
+    `entries_of` has nothing to find.  Searching the reference for the
+    most-used word in the language used to return nothing at all.
+
+    Lifted out of `audiopygame` when its reference browser went
+    (`spec/workbench.md`): the browser was chrome over an index, and the
+    index is what both a page and a palette are made of.
+    """
+    from pathlib import Path as _Path
+
+    here = _Path(__file__).parent
+    out = list(language_entries())
+    for name, title, _when in LIBRARIES:
+        for entry in entries_of((here / name).read_text()):
+            entry.library = title
+            out.append(entry)
+    return out
 
 
 def language_entries() -> list:

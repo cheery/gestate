@@ -870,7 +870,7 @@ def main(argv=None) -> int:
     print("gestate: the `gestate.audiolive` CLI is retired —\n"
           "  python -m gestate.audioperform <file> [--midi]   plays;\n"
           "  python -m gestate.audioeditor  <file>            edits it live;\n"
-          "  python -m gestate.audiopygame  <file>            with the canvas.\n"
+          "  python -m gestate.audioeditor  <file>            and edit it.\n"
           "The engine and the drivers live on here; every player still "
           "uses them.", file=sys.stderr)
     return 2

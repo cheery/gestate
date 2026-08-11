@@ -1,0 +1,194 @@
+# command.ges — what the editor can be asked to do.
+#
+# `spec/workbench.md`.  **This file is the command list.**  Not a copy of
+# it, not a menu kept beside it: the editor's palette is derived from
+# these declarations the way `doc/ref/` is derived from the libraries,
+# so a capability cannot exist without a name, a type and a sentence —
+# because that is what declaring one *is*.
+#
+# The vocabulary is gestate because there was already a suitable
+# language for commands and inventing a second one would have been a
+# second syntax to parse, a second set of errors to report and a second
+# thing to document, beside a language that has all three and is in the
+# window.  The restriction — no `case`, no recursion, no lambda — is a
+# **sublanguage**, which is a shape this project builds rather than a
+# new kind of thing: the monomorphic Datafun sublanguage, `[: Void :]`
+# as the scores the MIDI backend accepts, and the audio fragment are the
+# three before it.
+#
+# What a command may be, in full:
+#
+#     command ::= name literal…          an application spine
+#                | do { command ; … }     sequence
+#
+# which is the same shape `spec/editor.md`'s literal rule already picks
+# out for what a widget may edit.  Both are decidable from the AST, and
+# that the two arrived from opposite ends and met is the reason to
+# believe the shape is right.
+
+#: A name the program declared — a channel, a bank, a definition.
+#:
+#: **An alias rather than a wrapper**, so writing one is writing a
+#: string and the ergonomics cost nothing.  What it buys is at the
+#: *view*: an argument of this type is a name, so the palette can offer
+#: the names that exist instead of an empty box, and it knows that
+#: without being told.
+#:
+#: `List Char` rather than `String`, which is the same type under a name
+#: the prelude documents but does not declare — see `prelude.ges`
+#: §Show.  Spelling it out is the honest form and costs a reader
+#: nothing, since the alias is right here.
+type Name = List Char
+
+#: One transition of the editor — **a constructor applied to
+#: literals**, and nothing else.
+#:
+#: The restriction lives in the shape of the value rather than in a
+#: rule beside it: a `Command` cannot inspect another, cannot branch and
+#: cannot recur, because there is nothing in this type to do it with.
+#: That is `[: a :]`'s trick, and it makes the sublanguage's grammar —
+#: *an application spine over literals* — the same one
+#: `spec/editor.md`'s literal rule already picks out for what a widget
+#: may edit.
+#:
+#: The lowercase wrappers below are what a person writes; the
+#: constructors are what the editor reads.  `gui.ges` does exactly this
+#: with `Sub`, and for the same reason: the documented name and the
+#: representation are different jobs.
+Command := Apply
+         | Audition
+         | Play
+         | Stop
+         | Seek Int
+         | Loop Int Int
+         | LoopAll
+         | LoopOff
+         | Set Name Float
+         | Learn Name
+         | Listen Name Bool
+         | Octave Int
+         | Undo
+         | Redo
+         | Find Name
+         | What
+         | Canvas
+         | Source
+         | Zoom Int
+         | Quit
+         | Then Command Command
+
+# ── The instrument ───────────────────────────────────────────────────────
+
+#: Rebuild the instrument from the text and swap it in **while it
+#: plays**, migrating what can be migrated: an oscillator keeps its
+#: phase, a filter its memory.  Saves the file.
+apply : Command
+apply = Apply
+
+#: The same, without saving — hear the change before committing to it.
+audition : Command
+audition = Audition
+
+#: Start the transport, or stop it if it is running.
+play : Command
+play = Play
+
+#: Stop it, wherever it is.
+stop : Command
+stop = Stop
+
+#: Put the playhead at a bar, counting from one.
+seek : Int -> Command
+seek n = Seek n
+
+# ── The loop ─────────────────────────────────────────────────────────────
+
+#: Loop between two bars, counting from one.
+loop : Int -> Int -> Command
+loop a b = Loop a b
+
+#: Loop the whole piece.
+loopAll : Command
+loopAll = LoopAll
+
+#: Stop looping and let it run on.
+loopOff : Command
+loopOff = LoopOff
+
+# ── Parameters ───────────────────────────────────────────────────────────
+
+#: Turn a knob.  The name is the channel the program declared, and the
+#: value is in the range that channel carries — 0…100 for an `Int`,
+#: 0…1 for a `Float`.
+set : Name -> Float -> Command
+set n v = Set n v
+
+#: Bind the next controller that moves to this parameter.
+learn : Name -> Command
+learn n = Learn n
+
+# ── Notes ────────────────────────────────────────────────────────────────
+
+#: Let a bank hear the keyboard.  A bank the score plays is not the
+#: keyboard's by default — the two-bank law.
+listen : Name -> Command
+listen n = Listen n True
+
+#: And stop it hearing.
+deafen : Name -> Command
+deafen n = Listen n False
+
+#: Move the played octave.  Negative goes down.
+octave : Int -> Command
+octave n = Octave n
+
+# ── The text ─────────────────────────────────────────────────────────────
+
+#: Undo the last change.
+undo : Command
+undo = Undo
+
+#: Redo it.
+redo : Command
+redo = Redo
+
+#: Find text, and put the cursor on the next match.
+find : Name -> Command
+find pattern = Find pattern
+
+#: Say what the name under the cursor is, and what type it has.
+what : Command
+what = What
+
+# ── The window ───────────────────────────────────────────────────────────
+
+#: Show the program's own picture — its `substrate` — instead of the
+#: text.  `spec/substrate.md`.
+canvas : Command
+canvas = Canvas
+
+#: Show the text again.
+source : Command
+source = Source
+
+#: Make the letters bigger, one rung of the ladder.
+zoomIn : Command
+zoomIn = Zoom 1
+
+#: And smaller.
+zoomOut : Command
+zoomOut = Zoom (0 - 1)
+
+#: Close the editor.
+quit : Command
+quit = Quit
+
+# ── Sequence ─────────────────────────────────────────────────────────────
+
+#: One command, then another.
+#:
+#: **The only way commands compose**, and deliberately the whole of it.
+#: A macro, a transcript and an undo group are each a chain of these and
+#: nothing else, which is why one implementation serves all three.
+andThen : Command -> Command -> Command
+andThen a b = Then a b

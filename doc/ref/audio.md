@@ -1,6 +1,6 @@
 # Audio
 
-*Synths: `audioperform`, `audioeditor`, `audiopygame`, `audio`.*
+*Synths: `audioperform`, `audioeditor`, `audio`.*
 
 Source: `gestate/audio.ges` — 22 public, 8 internal.
 

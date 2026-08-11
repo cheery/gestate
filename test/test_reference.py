@@ -149,116 +149,15 @@ def test_doc_ref_is_not_behind_the_libraries():
 
 
 # ── The editor's view ───────────────────────────────────────────────────────
-
-
-def _ref():
-    from gestate.audiopygame import Reference
-
-    return Reference(entries_of(SOURCE))
-
-
-def test_the_search_puts_the_name_you_typed_first():
-    """A person typing `sine` wants the sines, not a filter whose prose
-    happens to mention one.
-
-    **Three of them, and no order between them.**  `sineOf` is the shape,
-    `sine` the oscillator at a fixed pitch and `sine` the one that
-    follows a signal; all three are exact prefix matches and ranking them
-    against each other would be inventing a preference the search has no
-    grounds for.  What is being pinned is that a *prefix* match beats a
-    *prose* match, which is the thing that was once wrong.
-    """
-    from gestate.audiopygame import Reference
-
-    ref = Reference()
-    ref.query = "sine"
-    names = [e.name for e in ref.results()]
-    assert set(names[:2]) == {"sineOf", "sine"}, names[:5]
-    ref.query = "sine"
-    assert ref.results()[0].name == "sine"
-
-
-def test_internals_are_hidden_until_the_switch_is_thrown():
-    ref = _ref()
-    assert "private" not in [e.name for e in ref.results()]
-    assert ref.toggle_internals() == "internals shown"
-    assert "private" in [e.name for e in ref.results()]
-    assert ref.toggle_internals() == "internals hidden"
-    assert "private" not in [e.name for e in ref.results()]
-
-
-def test_throwing_the_switch_does_not_leave_the_selection_on_a_new_entry():
-    """The list it indexed into just changed length, and an index that
-    survived would land somewhere else — which reads as the view jumping."""
-    ref = _ref()
-    ref.move(2)
-    ref.toggle_internals()
-    assert ref.at == 0
-
-
-def test_typing_searches_and_backspace_unsearches():
-    ref = _ref()
-    ref.toggle_internals()
-    for ch in "priv":
-        ref.type_in(ch)
-    assert [e.name for e in ref.results()] == ["private"]
-    for _ in range(4):
-        ref.backspace()
-    assert ref.query == "" and len(ref.results()) == 4
-
-
-def test_the_switch_keeps_the_query_you_searched_with():
-    """Finding nothing is the *reason* you reach for the switch, so a
-    toggle that cleared the box would make you type it again."""
-    ref = _ref()
-    for ch in "priv":
-        ref.type_in(ch)
-    assert ref.results() == [], "hidden: it is internal"
-    ref.toggle_internals()
-    assert ref.query == "priv"
-    assert [e.name for e in ref.results()] == ["private"]
-
-
-def test_a_query_that_matches_nothing_says_so_rather_than_going_blank():
-    ref = _ref()
-    for ch in "zzz":
-        ref.type_in(ch)
-    assert "no name matches" in ref.said()
-    assert ref.current() is None
-    assert ref.lines() == [("prose", "nothing matches")]
-
-
-def test_the_shown_entry_carries_its_signature_prose_and_where_it_lives():
-    ref = _ref()
-    kinds = dict((k, t) for k, t in ref.lines())
-    assert any("public : Int -> Int" == t for _k, t in ref.lines())
-    assert any("What a caller writes." == t for _k, t in ref.lines())
-    assert any("Vocabulary" in t for _k, t in ref.lines())
-    assert kinds is not None
-
-
-def test_an_internal_entry_says_that_it_is_one():
-    ref = _ref()
-    ref.toggle_internals()
-    ref.query = "private"
-    assert any("internal" in t for _k, t in ref.lines())
-
-
-def test_moving_stops_at_the_ends():
-    ref = _ref()
-    ref.move(-5)
-    assert ref.at == 0
-    ref.move(50)
-    assert ref.at == len(ref.results()) - 1
-
-
-# ── The language itself ─────────────────────────────────────────────────────
 #
-# `head`, `delay`, `wait`, `watch`, `tail`, `sync`, `chan` and `never` are
-# desugaring forms, not definitions — `desugar.py` turns `wait c` into an
-# `EWait` node and `infer.py` types the node.  So there is nothing in any
-# `.ges` file for the generator to read, and for a long time the reference
-# documented the libraries and silently omitted the language.
+# **The browser is gone with `audiopygame`** (`spec/workbench.md`): it was
+# one screen of chrome over a generated index, and `doc/ref/index.md` is a
+# better place to read one.  The part of it with a decision in it — that a
+# name match beats a prose match — was lifted into the command palette and
+# is tested in `test_session.py`.
+#
+# What stays here is the *index*, which is derived from the libraries and
+# is what both the page and the palette are made of.
 
 
 def test_every_frp_builtin_is_documented():
@@ -286,14 +185,17 @@ def test_the_operators_are_documented_too():
         assert name in documented, name
 
 
-def test_the_editor_can_find_the_language(monkeypatch):
-    """The pages are one reader and the editor's `[ref]` is another.  The
-    second gathers `entries_of` over the six libraries, so a form in no
-    library was in no list — searching `wait` returned nothing."""
-    from gestate.audiopygame import _library_entries
+def test_the_index_can_find_the_language():
+    """The pages are one reader and the editor is another.  The second
+    gathers `entries_of` over the six libraries, so a form in no library
+    was in no list — searching `wait` returned nothing.
 
-    found = {e.name: e for e in _library_entries()}
-    assert "wait" in found, "the editor still cannot find `wait`"
+    The browser this was written for is gone; the index it read is not,
+    and the bug it pins is a property of the index."""
+    from gestate.reference import all_entries
+
+    found = {e.name: e for e in all_entries()}
+    assert "wait" in found, "the index still cannot find `wait`"
     assert found["wait"].library == "Language"
     assert found["wait"].doc, "it is listed with nothing said about it"
 

@@ -11,7 +11,7 @@ Every name the standard library defines, with the signature and the prose the li
 | you are writing | you run | in scope |
 |---|---|---|
 | plain code | `typecheck` | Prelude |
-| a synth | `audioeditor`, `audiopygame`, `audioperform` | Prelude, Signals, Audio, Synthesis |
+| a synth | `audioeditor`, `audioperform` | Prelude, Signals, Audio, Synthesis |
 | a synth with a piece | `audioperform` | …and Music |
 | a piece for MIDI | `midi` | Prelude, Music |
 | a canvas | `gui`, the editor's canvas tab | Prelude, Signals, Canvas |
@@ -52,7 +52,7 @@ Optional, and recognised wherever they make sense:
 - **[The language](language.md)** — the forms the compiler provides: `chan`, `wait`, `:::`, `delay`, `gfix`, `!`.  Declared by no library, and so missing from every page below.
 - **[Prelude](prelude.md)** — Always in scope, in every program and every backend.
 - **[Signals](signal.md)** — Any reactive backend — a synth or a canvas.
-- **[Audio](audio.md)** — Synths: `audioperform`, `audioeditor`, `audiopygame`, `audio`.
+- **[Audio](audio.md)** — Synths: `audioperform`, `audioeditor`, `audio`.
 - **[Synthesis](synth.md)** — Synths, beside `audio.ges`. Oscillators, envelopes, filters, FM.
 - **[Music](music.md)** — Programs with a `score` — the MIDI backend and performances.
 - **[Canvas](gui.md)** — Programs with a `substrate` — `gui`, and the editor's canvas tab.
@@ -67,4 +67,4 @@ python -m gestate.typecheck f.ges --audio --fits TYPE    # what could stand wher
 python -m gestate.typecheck f.ges --audio --holes        # every `_`, and what belongs in it
 ```
 
-In `audiopygame` the same three are a key: `?` over a name, and `Tab` at a `_`.  The **[reference] button** opens these pages in the editor.
+In the editor the same three are a command: `what` over a name, and `Tab` at a `_`.  The **[reference] button** opens these pages in the editor.
