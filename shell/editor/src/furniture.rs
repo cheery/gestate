@@ -156,6 +156,55 @@ impl Furniture {
     }
 }
 
+/// What the model asks the window to do.
+///
+/// **The half of the wire the description cannot carry.**  Furniture
+/// says what things *are* — this says what to do about them, because
+/// undo, zoom and the caret are the window's own state and a command
+/// like `zoomIn` has no other way to reach them.
+///
+/// Names and arguments, like everything else that crosses here.  An
+/// order the window does not know is **skipped, not refused**, for the
+/// reason an unknown furniture verb is.
+///
+/// ```text
+/// zoom    <steps>     up the ladder; 0 goes back to where it started
+/// undo
+/// redo
+/// goto    <line>      counting from one
+/// insert  <text>
+/// ```
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum Order {
+    /// Steps up the ladder, or home when zero.
+    Zoom(i32),
+    Undo,
+    Redo,
+    /// Put the caret at the start of a line, counting from one.
+    Goto(usize),
+    /// Type this, as if it had been typed.
+    Insert(String),
+}
+
+impl Order {
+    /// Read one line.  `None` for anything this build does not know.
+    pub fn read(line: &str) -> Option<Order> {
+        let p: Vec<&str> = line.split('\t').collect();
+        let arg = |i: usize| p.get(i).copied().unwrap_or("");
+        match *p.first()? {
+            "zoom" => Some(Order::Zoom(arg(1).parse().ok()?)),
+            "undo" => Some(Order::Undo),
+            "redo" => Some(Order::Redo),
+            "goto" => Some(Order::Goto(arg(1).parse().ok()?)),
+            // **Not trimmed and not rejected when empty**: what is being
+            // inserted is somebody's text, and deciding it is not worth
+            // inserting is not this layer's decision to make.
+            "insert" => Some(Order::Insert(arg(1).into())),
+            _ => None,
+        }
+    }
+}
+
 /// What the window has to say back.
 ///
 /// **Names and literals, and nothing else** — the same rule the
@@ -177,6 +226,17 @@ pub enum Gesture {
     Note(i32, bool),
     /// The text changed.
     Edited,
+    /// Where the window's own state stands: the zoom rung and how many
+    /// rungs there are, then how deep undo and redo go.
+    ///
+    /// **A mirror, so the model can answer without asking.**  `undo`
+    /// has to say either *"undone"* or *"nothing to undo"* the moment it
+    /// runs, and it cannot wait a frame to find out which — so the
+    /// window volunteers the counts whenever they change and the model
+    /// answers from its copy.  The alternative is a synchronous call
+    /// into the rope from another thread, which is the one thing this
+    /// boundary exists to prevent.
+    State { zoom: usize, rungs: usize, undos: usize, redos: usize },
 }
 
 impl Gesture {
@@ -189,6 +249,40 @@ impl Gesture {
                 format!("note\t{m}\t{}", if *on { 1 } else { 0 })
             }
             Gesture::Edited => "edited".to_string(),
+            Gesture::State { zoom, rungs, undos, redos } => {
+                format!("state\t{zoom}\t{rungs}\t{undos}\t{redos}")
+            }
         }
+    }
+}
+
+#[cfg(test)]
+mod order_tests {
+    use super::*;
+
+    #[test]
+    fn orders_read_back_as_what_they_say() {
+        assert_eq!(Order::read("zoom\t1"), Some(Order::Zoom(1)));
+        assert_eq!(Order::read("zoom\t-1"), Some(Order::Zoom(-1)));
+        assert_eq!(Order::read("undo"), Some(Order::Undo));
+        assert_eq!(Order::read("goto\t42"), Some(Order::Goto(42)));
+        assert_eq!(Order::read("insert\tC4"),
+                   Some(Order::Insert("C4".into())));
+    }
+
+    /// An order this build does not know is skipped, not refused — the
+    /// model may learn to say something before the window learns to do
+    /// it, and a version mismatch must not look like a crash.
+    #[test]
+    fn an_unknown_order_is_skipped() {
+        assert_eq!(Order::read("teleport\t3"), None);
+        assert_eq!(Order::read(""), None);
+        assert_eq!(Order::read("zoom\tsideways"), None);
+    }
+
+    #[test]
+    fn the_state_gesture_says_all_four_numbers() {
+        let g = Gesture::State { zoom: 4, rungs: 9, undos: 2, redos: 0 };
+        assert_eq!(g.line(), "state\t4\t9\t2\t0");
     }
 }

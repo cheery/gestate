@@ -21,6 +21,7 @@ disappears; the report says which side to look at.
 
 from __future__ import annotations
 
+import threading
 import time
 from pathlib import Path
 
@@ -30,14 +31,24 @@ from .session import Session, act, furniture
 class Window:
     """`Session`'s view port, over the editor's ABI.
 
-    What is *not* here is as much the point as what is: undo, find and
-    zoom are the window's own keys and never cross the boundary, so a
-    keystroke costs nothing and the palette's versions of them refuse
-    honestly until there is a gesture for them.
+    **Two directions and neither is a call.**  Things the window did
+    arrive as gestures; things it should do leave as orders, obeyed on
+    its next frame. Undo, the zoom and the caret are the window's own
+    state and live on the window's thread, so nothing here reaches in.
+
+    What it *does* keep is a mirror of four numbers — which zoom rung,
+    how many there are, and how deep undo and redo go — because a
+    command has to answer *"undone"* or *"nothing to undo"* the instant
+    it runs and cannot wait a frame to find out which. The window
+    volunteers them whenever they move.
     """
 
     def __init__(self, editor):
         self.editor = editor
+        self.zoom_at = 0
+        self.zoom_rungs = 1
+        self.undos = 0
+        self.redos = 0
 
     def text(self) -> str:
         return self.editor.text
@@ -45,29 +56,73 @@ class Window:
     def close(self) -> None:
         self.editor.request_close()
 
-    # The window handles these itself, on its own thread, and there is
-    # no gesture yet that lets the model ask for one.  Saying so is
-    # better than pretending: the palette prints the refusal.
+    def note_state(self, zoom: int, rungs: int,
+                   undos: int, redos: int) -> None:
+        """The window saying where its own state stands."""
+        self.zoom_at, self.zoom_rungs = zoom, rungs
+        self.undos, self.redos = undos, redos
+
     def undo(self) -> bool:
-        return False
+        if self.undos <= 0:
+            return False
+        # **Counted here rather than waited for.**  The order is obeyed
+        # a frame from now and the window will say so; answering from
+        # the mirror keeps the sentence honest and immediate, and the
+        # count is corrected by the window either way.
+        self.undos -= 1
+        self.redos += 1
+        self.editor.order("undo")
+        return True
 
     def redo(self) -> bool:
-        return False
+        if self.redos <= 0:
+            return False
+        self.redos -= 1
+        self.undos += 1
+        self.editor.order("redo")
+        return True
 
-    def find(self, _pattern: str) -> int:
+    def find(self, pattern: str) -> int:
+        """The line a pattern is on, counting from one, or -1.
+
+        **Searched here, where the text already is.**  The window would
+        have to answer across a thread to be asked, and the model holds
+        a copy of the document anyway — so the search is a fact the
+        model can establish, and only moving the caret is an order.
+        """
+        if not pattern:
+            return -1
+        for n, line in enumerate(self.text().splitlines(), start=1):
+            if pattern in line:
+                self.goto(n)
+                return n
         return -1
 
-    def goto(self, _line: int) -> bool:
-        return False
+    def goto(self, line: int) -> bool:
+        if line < 1 or line > len(self.text().splitlines()) + 1:
+            return False
+        self.editor.order(f"goto\t{int(line)}")
+        return True
 
-    def zoom(self, _by: int) -> bool:
-        return False
+    def zoom(self, by: int) -> bool:
+        """Step the ladder, or say it is already at the end of it."""
+        at = self.zoom_at + by
+        if at < 0 or at >= self.zoom_rungs:
+            return False
+        self.zoom_at = at
+        self.editor.order(f"zoom\t{int(by)}")
+        return True
 
     def show(self, _what: str) -> bool:
+        # The canvas is not drawn in this window yet.  A refusal that
+        # reads beats a command that lies.
         return False
 
-    def insert(self, _text: str) -> bool:
-        return False
+    def insert(self, text: str) -> bool:
+        if not text:
+            return False
+        self.editor.order(f"insert\t{text}")
+        return True
 
 
 #: How long the loop sleeps while a hand is moving, and while it is not.
@@ -113,10 +168,43 @@ def run(path, rate: int = 44100, block: int = 512,
     editor = Editor(bench.source(), 1100, 760)
     session.view = Window(editor)
 
-    try:
-        bench.start()
-    except Exception as e:                               # noqa: BLE001
-        session.said.append(f"not playing: {e}")
+    # **Starting the instrument must not be able to hold the editor
+    # shut.**  `Workbench.start` compiles the file with `clang` — seconds
+    # on a large score — and then asks for the sound card, which another
+    # program may already have.  Done here on the way in, either of those
+    # leaves a window that is open and answers nothing, because the loop
+    # below has not begun; a DAW running in the background turns "the
+    # editor" into "the editor hangs".
+    #
+    # So it starts beside the loop.  You can type immediately, the status
+    # line says when the instrument arrives or why it did not, and a
+    # score you cannot hear is still a score you can edit — which is the
+    # right order of those two things.
+    # **And the shutdown has to wait for it.**  `stop` signals the C
+    # audio loop, joins its thread and closes the host; called while
+    # `start` is still building those, it stops a device that does not
+    # exist yet and the one that arrives a moment later is never stopped
+    # at all.  The process then exits with a daemon thread inside the
+    # generated code — which is the segfault `Workbench.stop` already
+    # carries a comment about, earned once before.
+    quitting = threading.Event()
+
+    def begin():
+        try:
+            bench.start()
+        except Exception as e:                           # noqa: BLE001
+            session.said.append(f"not playing: {e}")
+            return
+        if quitting.is_set():
+            # The window shut while the instrument was still coming up.
+            # Whoever started it stops it; nobody else knows it is there.
+            try:
+                bench.stop()
+            except Exception:                            # noqa: BLE001
+                pass
+
+    starter = threading.Thread(target=begin, daemon=True)
+    starter.start()
 
     said = ""
     wait = IDLE
@@ -147,7 +235,16 @@ def run(path, rate: int = 44100, block: int = 512,
             time.sleep(wait)
     finally:
         editor.close()
-        bench.stop()
+        # Say so first, *then* wait: a start already past its own check
+        # finishes and is stopped below, and one that has not reached it
+        # stops itself.  Either way something stops the device, and this
+        # returns only once that has happened.
+        quitting.set()
+        starter.join(timeout=15.0)
+        try:
+            bench.stop()
+        except Exception:                                # noqa: BLE001
+            pass
     return 0
 
 

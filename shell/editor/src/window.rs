@@ -34,7 +34,7 @@ use raw_window_handle::{
 
 use crate::document::Document;
 use crate::font::Font;
-use crate::furniture::{Furniture, Gesture};
+use crate::furniture::{Furniture, Gesture, Order};
 use crate::keys::{self, Did, Key, Memory, Mods};
 use crate::palette::{Asks, Palette};
 use crate::view::{self, View};
@@ -110,6 +110,14 @@ pub trait Host: Send + Sync + 'static {
     /// Something the window has to say.  Called on the window's thread.
     fn gesture(&self, _line: String) {}
 
+    /// Things the model has asked the window to do, drained once a
+    /// frame — see `furniture::Order`.
+    ///
+    /// A pull rather than a push, for the reason `incoming` is one.
+    fn orders(&self) -> Vec<String> {
+        Vec::new()
+    }
+
     /// Whether the host has asked the window to shut.
     ///
     /// Checked once a frame, for the same reason: closing is the
@@ -180,6 +188,15 @@ struct EditorWindow {
     struck: Cell<Option<Instant>>,
     /// When the oldest unanswered `filter` went out to the model.
     asked: Cell<Option<Instant>>,
+    /// The last `State` gesture sent, so it goes out only when it moves.
+    told: Cell<(usize, usize, usize, usize)>,
+    /// The knob being dragged, and the value last sent for it.
+    ///
+    /// **The value, so the same one is not sent twice.**  A pointer
+    /// moving along a fader crosses many pixels per step of an `Int`
+    /// parameter, and every repeat would be a round trip and a rebuild
+    /// for a number that did not change.
+    turning: RefCell<Option<(String, f64)>>,
     /// Never let the picture go clean — a measuring aid, see the
     /// constructor.
     stress: bool,
@@ -322,6 +339,8 @@ impl EditorWindow {
             dirty: Cell::new(true),
             struck: Cell::new(None),
             asked: Cell::new(None),
+            told: Cell::new((usize::MAX, 0, 0, 0)),
+            turning: RefCell::new(None),
             // **`GESTATE_EDITOR_STRESS` never goes clean**, so every
             // frame draws and presents.  It is how the *platform's*
             // half of a frame gets measured without a hand on the
@@ -336,6 +355,120 @@ impl EditorWindow {
             host,
             ctx,
         })
+    }
+
+    /// Tell the model where the window's own state stands, if it moved.
+    ///
+    /// Called after anything that could have moved it.  Cheap when
+    /// nothing did, which is why it can be called that liberally.
+    fn tell(&self) {
+        let doc = self.doc.borrow();
+        let now = (self.zoom.get(), crate::font::LADDER.len(),
+                   doc.undo_depth(), doc.redo_depth());
+        if now != self.told.get() {
+            self.told.set(now);
+            self.host.gesture(Gesture::State {
+                zoom: now.0, rungs: now.1, undos: now.2, redos: now.3,
+            }.line());
+        }
+    }
+
+    /// Take hold of the knob under the pointer, if there is one.
+    ///
+    /// Returns the gesture to send, so the caller decides whether the
+    /// press was the knobs' or the text's.
+    fn grab(&self, x: i32, y: i32) -> Option<String> {
+        let (name, value) = {
+            let view = self.view.borrow();
+            let chrome = self.chrome.borrow();
+            view.knob_hit(self.font(), &chrome, x, y)?
+        };
+        *self.turning.borrow_mut() = Some((name.clone(), value));
+        Some(Gesture::Turn(name, value).line())
+    }
+
+    /// Keep turning the knob already held, from a point.
+    ///
+    /// **Only the value moves, never which knob** — the row under the
+    /// pointer is irrelevant once a fader is held, or dragging one
+    /// would rewrite its neighbours on the way past.
+    fn twist(&self, x: i32, y: i32) -> Option<String> {
+        let held = self.turning.borrow().clone()?;
+        let (name, was) = held;
+        let value = {
+            let view = self.view.borrow();
+            let chrome = self.chrome.borrow();
+            let row = chrome.knobs.iter().position(|k| k.name == name)?;
+            let k = &chrome.knobs[row];
+            let (cw, _ch) = (view.cw(self.font()), 0);
+            let left = view.w - view.aside as i32 * cw;
+            let wide = (view.aside as i32 * cw - cw).max(1);
+            let along = ((x - left) as f64 / wide as f64).clamp(0.0, 1.0);
+            let _ = y;
+            k.lo + along * (k.hi - k.lo)
+        };
+        if (value - was).abs() < f64::EPSILON {
+            return None;
+        }
+        *self.turning.borrow_mut() = Some((name.clone(), value));
+        Some(Gesture::Turn(name, value).line())
+    }
+
+    /// One thing the model asked for.
+    fn obey(&self, order: Order) {
+        let did = match order {
+            Order::Zoom(0) => {
+                let home = crate::font::LADDER_DEFAULT as i32;
+                self.zoom_by(home - self.zoom.get() as i32);
+                Did::nothing()
+            }
+            Order::Zoom(by) => {
+                self.zoom_by(by);
+                Did::nothing()
+            }
+            Order::Undo => self.rework(true),
+            Order::Redo => self.rework(false),
+            Order::Goto(line) => {
+                let mut doc = self.doc.borrow_mut();
+                let mut view = self.view.borrow_mut();
+                doc.clear_anchor();
+                doc.seek_rowcol(line.saturating_sub(1), 0);
+                view.follow(&doc, self.font());
+                Did { drew: true, edited: false }
+            }
+            Order::Insert(text) => {
+                let mut doc = self.doc.borrow_mut();
+                match doc.insert(&text) {
+                    Ok(true) => Did { drew: true, edited: true },
+                    _ => Did::nothing(),
+                }
+            }
+        };
+        if did.drew {
+            self.dirty.set(true);
+            let doc = self.doc.borrow();
+            let mut v = self.view.borrow_mut();
+            v.clamp(&doc, self.font());
+            v.follow(&doc, self.font());
+        }
+        if did.edited {
+            let doc = self.doc.borrow();
+            self.host.edited(&doc);
+            self.host.gesture(Gesture::Edited.line());
+        }
+        self.tell();
+    }
+
+    /// Undo or redo, and say whether anything moved.
+    fn rework(&self, back: bool) -> Did {
+        let moved = {
+            let mut doc = self.doc.borrow_mut();
+            if back { doc.undo() } else { doc.redo() }
+        };
+        if !moved {
+            return Did::nothing();
+        }
+        Did { drew: true, edited: true }
     }
 
     fn after(&self, did: Did) -> EventStatus {
@@ -353,6 +486,10 @@ impl EditorWindow {
         if did.drew {
             self.host.moved(doc.pos());
         }
+        drop(doc);
+        // Typing deepens undo, and `Ctrl -` moves the zoom; the model's
+        // mirror has to hear about both or its answers go stale.
+        self.tell();
         EventStatus::Captured
     }
 }
@@ -436,6 +573,11 @@ impl WindowHandler for EditorWindow {
                     if f.knobs.is_empty() { 0 } else { 10 };
                 *self.chrome.borrow_mut() = f;
                 self.dirty.set(true);
+            }
+        }
+        for line in self.host.orders() {
+            if let Some(order) = Order::read(&line) {
+                self.obey(order);
             }
         }
         if let Some(text) = self.host.incoming() {
@@ -708,6 +850,15 @@ impl WindowHandler for EditorWindow {
             Event::Mouse(MouseEvent::CursorMoved { position, .. }) => {
                 let (x, y) = (position.x as i32, position.y as i32);
                 self.cursor.set((x, y));
+                // A knob, once taken hold of, keeps the pointer even
+                // when it wanders off its own row — which is what makes
+                // a fader usable, and what a caret drag does too.
+                if self.turning.borrow().is_some() {
+                    if let Some(turn) = self.twist(x, y) {
+                        self.host.gesture(turn);
+                    }
+                    return EventStatus::Captured;
+                }
                 if !self.dragging.get() {
                     return EventStatus::Captured;
                 }
@@ -729,8 +880,17 @@ impl WindowHandler for EditorWindow {
             Event::Mouse(MouseEvent::ButtonPressed {
                 button: MouseButton::Left, modifiers, ..
             }) => {
-                self.dragging.set(true);
                 let (x, y) = self.cursor.get();
+                // **The margin belongs to the knobs.**  A press there is
+                // a fader being taken hold of, not a caret being placed
+                // — and answering to the press rather than only to the
+                // drag is what makes a fader clickable at a value
+                // instead of only draggable towards one.
+                if let Some(turn) = self.grab(x, y) {
+                    self.host.gesture(turn);
+                    return EventStatus::Captured;
+                }
+                self.dragging.set(true);
                 let did = {
                     let mut doc = self.doc.borrow_mut();
                     let view = self.view.borrow();
@@ -748,6 +908,7 @@ impl WindowHandler for EditorWindow {
                 button: MouseButton::Left, ..
             }) => {
                 self.dragging.set(false);
+                *self.turning.borrow_mut() = None;
                 EventStatus::Captured
             }
             Event::Mouse(MouseEvent::WheelScrolled { delta, modifiers }) => {

@@ -574,3 +574,92 @@ def test_closing_the_list_stops_filtering():
     act(it, "filter\t")                       # what closing sends
     assert it.filtered is None
     assert it.palette_list() == it.commands()
+
+
+# ── Commands that are the window's ───────────────────────────────────────
+#
+# Undo, the zoom and the caret are the window's own state and live on the
+# window's thread.  A command reaches them by leaving an *order*, and
+# answers from a mirror the window volunteers — never by calling across.
+
+class Editor:
+    """The ABI, remembering what it was ordered to do."""
+
+    def __init__(self, text: str = "one\ntwo\nthree\n"):
+        self.text = text
+        self.orders: list = []
+
+    def order(self, line: str) -> None:
+        self.orders.append(line)
+
+    def request_close(self) -> None:
+        pass
+
+
+def a_window(text: str = "one\ntwo\nthree\n"):
+    from gestate.workbench import Window
+
+    ed = Editor(text)
+    return Window(ed), ed
+
+
+def test_zoom_orders_the_window_and_stops_at_the_ends():
+    win, ed = a_window()
+    win.note_state(zoom=0, rungs=3, undos=0, redos=0)
+    assert win.zoom(-1) is False, "already as small as it goes"
+    assert ed.orders == []
+    assert win.zoom(1) is True
+    assert win.zoom(1) is True
+    assert win.zoom(1) is False, "already as big as it goes"
+    assert ed.orders == ["zoom\t1", "zoom\t1"]
+
+
+def test_undo_answers_from_the_mirror():
+    """**Immediately, and honestly.**  `undo` has to say which of the two
+    sentences it is the instant it runs; it cannot wait a frame."""
+    win, ed = a_window()
+    win.note_state(zoom=0, rungs=9, undos=0, redos=0)
+    assert win.undo() is False
+    assert ed.orders == []
+    win.note_state(zoom=0, rungs=9, undos=2, redos=0)
+    assert win.undo() is True
+    assert win.redo() is True, "undoing made something to redo"
+    assert ed.orders == ["undo", "redo"]
+
+
+def test_find_searches_the_text_and_moves_the_caret():
+    """The model holds a copy of the document, so the search is a fact it
+    can establish; only moving the caret has to be an order."""
+    win, ed = a_window("alpha\nbeta\ngamma\n")
+    assert win.find("gamma") == 3
+    assert ed.orders == ["goto\t3"]
+    assert win.find("nowhere") == -1
+
+
+def test_goto_refuses_a_line_the_file_does_not_have():
+    win, ed = a_window("alpha\nbeta\n")
+    assert win.goto(9) is False
+    assert win.goto(0) is False
+    assert ed.orders == []
+    assert win.goto(2) is True
+    assert ed.orders == ["goto\t2"]
+
+
+def test_the_state_gesture_reaches_the_view():
+    win, _ed = a_window()
+    it = session()
+    it.view = win
+    act(it, "state\t4\t9\t3\t1")
+    assert (win.zoom_at, win.zoom_rungs, win.undos, win.redos) == (4, 9, 3, 1)
+
+
+def test_zoom_commands_run_end_to_end():
+    """What the palette does when `zoomIn` is picked."""
+    win, ed = a_window()
+    it = session()
+    it.view = win
+    act(it, "state\t0\t3\t0\t0")
+    assert it.run("zoomIn") == "bigger"
+    assert it.run("zoomOut") == "smaller"
+    assert it.run("zoomOut") == "as small as it goes"
+    assert ed.orders == ["zoom\t1", "zoom\t-1"]

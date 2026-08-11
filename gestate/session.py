@@ -592,11 +592,21 @@ def furniture(session: "Session", bench=None) -> str:
         name = getattr(site, "name", None)
         if name is None or name in seen or name not in getattr(b, "values", {}):
             continue
+        # **A knob whose range is not known yet is left out, not raised
+        # over.**  The description is read while the workbench may still
+        # be starting — it compiles and opens a sound card on its own
+        # thread now, so the editor is usable while it does — and a
+        # reading of a model halfway through becoming itself must not be
+        # the thing that stops the loop.  It reappears next tick.
+        try:
+            lo, hi = b.knob_range(name)
+            value = b.values[name]
+        except Exception:                                # noqa: BLE001
+            continue
         seen.add(name)
-        lo, hi = b.knob_range(name)
         kind = getattr(b, "knob_types", {}).get(name, "Int")
         out.append(f"knob\t{name}\t{getattr(site, 'line', 0)}"
-                   f"\t{b.values[name]}\t{lo}\t{hi}\t{kind}")
+                   f"\t{value}\t{lo}\t{hi}\t{kind}")
 
     for bank in getattr(b, "banks", []) or []:
         name = getattr(bank, "name", str(bank))
@@ -681,6 +691,18 @@ def act(session: "Session", line: str) -> str:
         except ValueError:
             return f"turn: `{parts[2]}` is not a number"
     if verb == "edited":
+        return ""
+    if verb == "state" and len(parts) >= 5:
+        # **The window volunteering its own state**, so commands about
+        # the window can answer at once instead of across a frame.  A
+        # view that does not keep a mirror simply does not hear it.
+        noting = getattr(session.view, "note_state", None)
+        if noting is not None:
+            try:
+                noting(int(parts[1]), int(parts[2]),
+                       int(parts[3]), int(parts[4]))
+            except ValueError:
+                return f"state: {line!r} is not four numbers"
         return ""
     if verb == "note" and len(parts) >= 3:
         return session.play_note(int(parts[1]), parts[2] == "1")

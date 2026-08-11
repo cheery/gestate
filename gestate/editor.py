@@ -88,6 +88,8 @@ def _library():
     lib.ged_set_furniture.restype = None
     lib.ged_gestures.argtypes = [ctypes.c_void_p]
     lib.ged_gestures.restype = ctypes.c_void_p
+    lib.ged_order.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+    lib.ged_order.restype = None
     lib.ged_request_close.argtypes = [ctypes.c_void_p]
     lib.ged_request_close.restype = None
     lib.ged_close.argtypes = [ctypes.c_void_p]
@@ -186,6 +188,18 @@ class Editor:
         finally:
             self._lib.ged_free_str(p)
         return [line for line in text.split("\n") if line]
+
+    def order(self, line: str) -> None:
+        """Ask the window to do something — see `furniture::Order`.
+
+        **Queued, not called.**  Undo, the zoom and the caret are the
+        window's own state and live on the window's thread; an order is
+        how a command reaches them without anything off that thread
+        touching the rope.  It happens on the next frame, which is the
+        same fifteen milliseconds a keystroke takes.
+        """
+        if self._h:
+            self._lib.ged_order(self._h, line.encode())
 
     def request_close(self) -> None:
         """Ask the window to shut.  Returns at once."""

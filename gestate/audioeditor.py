@@ -979,18 +979,29 @@ class Workbench:
             self.listener = None
         if self._audio is not None:
             self._audio.join(timeout)
-            if self.host is not None:
-                self.host.close()
-                self.host = None
-            # **Said out loud rather than shrugged off.**  The thread is a
-            # daemon, so a join that times out means the process will exit
-            # with it still inside the generated code — which is the
-            # segfault-on-close this signal exists to prevent.  If it ever
-            # happens again, the message is what says where to look.
+            # **Then insist.**  `stop` asks for a fade and the device loop
+            # waits for silence to arrive, which needs the card to keep
+            # taking frames; when another program holds the card it never
+            # does, and the polite request never completes.  `halt` leaves
+            # without the fade — a click on the way out, which is the
+            # right trade against the alternative below.
+            if self._audio.is_alive() and self.host is not None:
+                self.host.halt()
+                self._audio.join(timeout)
+            # **Freed only once nothing is using it.**  This used to close
+            # the host straight after the first join and warn about the
+            # danger afterwards — so a thread that had not stopped went on
+            # running in a workspace that had just been freed, which is
+            # not a risk of a crash but the crash itself.  A host left
+            # open leaks until the process ends, and the process is
+            # ending; that is the cheaper of the two.
             if self._audio.is_alive():
                 self.say("the audio thread did not stop; "
-                         "closing now may crash")
+                         "leaving its workspace alone")
             else:
+                if self.host is not None:
+                    self.host.close()
+                    self.host = None
                 self._audio = None
                 self._clean_up()
 

@@ -139,7 +139,8 @@ def library(directory=None):
     lib.gestate_host_has_device.argtypes = []
     lib.gestate_host_close_device.restype = None
     lib.gestate_host_close_device.argtypes = [ctypes.c_void_p]
-    for name in ("gestate_host_stop", "gestate_host_free"):
+    for name in ("gestate_host_stop", "gestate_host_halt",
+                 "gestate_host_free"):
         fn = getattr(lib, name)
         fn.restype = None
         fn.argtypes = [ctypes.c_void_p]
@@ -281,6 +282,18 @@ class Host:
 
     def stop(self) -> None:
         self.lib.gestate_host_stop(self._host)
+
+    def halt(self) -> None:
+        """Stop without waiting for the fade to reach silence.
+
+        **The one that does not negotiate.**  `stop` asks the device
+        loop to fade out and leave, which needs the card to keep
+        consuming frames; when another program holds the card it never
+        does, the fade never arrives and the loop never exits.  A thread
+        that outlives the interpreter reads a freed workspace, which is
+        a core file rather than a click.
+        """
+        self.lib.gestate_host_halt(self._host)
 
     @property
     def frames(self) -> int:

@@ -76,6 +76,21 @@ typedef struct {
     void *control;         /* the knob block; Python writes, the graph reads */
     int64_t frames;        /* frames rendered since the start */
     volatile int stop;
+    /* **Leave now, and never mind the fade.**
+     *
+     * `stop` is the polite one: it asks for a fade-out and the loops
+     * wait for silence to *arrive*, which is what keeps a quit from
+     * popping.  That waiting has a premise — that the device is
+     * consuming frames — and when another program holds the card the
+     * premise is false: `snd_pcm_writei` blocks, the fade never
+     * advances, and the loop never reaches its exit.  The thread then
+     * outlives the interpreter and segfaults reading a workspace Python
+     * has freed, which is the crash `Workbench.stop` warns about.
+     *
+     * So there are two stops. This is the one that does not negotiate,
+     * and a click on the way out is the correct trade against a core
+     * file. */
+    volatile int halt;
 
     /* The transport, which was a Python object between the driver and the
      * engine.  Play, stop, seek and loop are a comparison and a store
@@ -150,6 +165,7 @@ host *gestate_host_new(int channels, int64_t fade_len, void *control) {
     /* Silent, and fading up: the first block of a session is the same
      * step as any other and pops the same way. */
     h->gain = 0.0;
+    h->halt = 0;
     h->mute_len = fade_len / 4 > 1 ? fade_len / 4 : 1;
     return h;
 }
@@ -230,6 +246,22 @@ float gestate_host_rms(host *h) {
 }
 int gestate_host_fading(host *h) { return h->fading > 0; }
 void gestate_host_stop(host *h) { h->stop = 1; }
+
+/* Defined against the device, below: make a blocked write return.
+ *
+ * Setting a flag is not enough on its own.  A loop stuck inside
+ * `snd_pcm_writei` is not going to look at a flag — it is waiting for
+ * room in a ring buffer that a card somebody else owns will never
+ * drain, and it waits there for as long as the program runs.  Something
+ * has to reach in and end the wait. */
+void gestate_host_unblock(host *h);
+
+/* Stop without waiting for the fade — see `halt` on the struct. */
+void gestate_host_halt(host *h) {
+    h->halt = 1;
+    h->stop = 1;
+    gestate_host_unblock(h);
+}
 
 /* Put the master fader somewhere directly.
  *
@@ -387,6 +419,7 @@ int64_t gestate_host_run(host *h, int fd, float *scratch, int64_t block,
          * set closes the device mid-waveform, which is the pop you hear on
          * quit; `fill` is already fading toward silence by then, so this
          * waits for it to arrive. */
+        if (h->halt) break;
         if (h->stop && h->gain <= 0.0) break;
         int64_t want = block;
         if (total > 0 && written + want > total) want = total - written;
@@ -437,6 +470,7 @@ int64_t gestate_host_run_device(host *h, float *scratch, int64_t block,
     if (!h->pcm) return -1;
     while (total <= 0 || written < total) {
         /* Drained rather than broken out of — see the pipe loop above. */
+        if (h->halt) break;
         if (h->stop && h->gain <= 0.0) break;
         int64_t want = block;
         if (total > 0 && written + want > total) want = total - written;
@@ -453,7 +487,16 @@ int64_t gestate_host_run_device(host *h, float *scratch, int64_t block,
         }
         written += put;
     }
-    snd_pcm_drain((snd_pcm_t *)h->pcm);
+    /* **Drain only if draining can finish.**  `snd_pcm_drain` waits for
+     * the card to play out what is queued, which on a card somebody else
+     * is holding is a wait with no end; `snd_pcm_drop` throws the queue
+     * away and returns.  Having decided not to wait for the fade, this
+     * must not then wait for the buffer. */
+    if (h->halt) {
+        snd_pcm_drop((snd_pcm_t *)h->pcm);
+    } else {
+        snd_pcm_drain((snd_pcm_t *)h->pcm);
+    }
     return written;
 }
 
@@ -462,6 +505,16 @@ void gestate_host_close_device(host *h) {
         snd_pcm_close((snd_pcm_t *)h->pcm);
         h->pcm = 0;
     }
+}
+
+/* **Called from another thread, on purpose.**  `snd_pcm_drop` throws
+ * away what is queued and makes a blocked `writei` or `drain` return at
+ * once — which is the only way to get the device loop back to a place
+ * where it can be told anything.  The loop checks `halt` before it
+ * would use the handle again, so the drop does not race a write into a
+ * closed device. */
+void gestate_host_unblock(host *h) {
+    if (h->pcm) snd_pcm_drop((snd_pcm_t *)h->pcm);
 }
 
 int gestate_host_has_device(void) { return 1; }
@@ -479,6 +532,7 @@ int64_t gestate_host_run_device(host *h, float *scratch, int64_t block,
     return -1;
 }
 void gestate_host_close_device(host *h) { (void)h; }
+void gestate_host_unblock(host *h) { (void)h; }
 int gestate_host_has_device(void) { return 0; }
 
 #endif

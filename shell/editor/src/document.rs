@@ -319,6 +319,20 @@ impl Document {
         !self.undo.is_empty()
     }
 
+    /// How far back it can go, and how far forward.
+    ///
+    /// **A count rather than a yes or no**, because the model keeps a
+    /// mirror of it: `undo` has to answer *"undone"* or *"nothing to
+    /// undo"* the instant it runs, and the number is what lets it
+    /// without reaching across a thread into the rope.
+    pub fn undo_depth(&self) -> usize {
+        self.undo.len()
+    }
+
+    pub fn redo_depth(&self) -> usize {
+        self.redo.len()
+    }
+
     pub fn can_redo(&self) -> bool {
         !self.redo.is_empty()
     }

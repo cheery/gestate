@@ -38,6 +38,14 @@ pub const SELECT: Colour = Colour::rgb(0x24, 0x3a, 0x4c);
 /// A knob's trough, in the margin beside the line that declares it.
 pub const TROUGH: Colour = Colour::rgb(0x24, 0x28, 0x30);
 pub const FILL: Colour = Colour::rgb(0x5c, 0xa8, 0xd8);
+/// The handle, which is the part you take hold of.
+///
+/// **A fader is a thing with a grip, not a line with a gradient.**  A
+/// four-pixel rule reads as decoration and gives a pointer nothing to
+/// aim at; a bar the height of its row reads as a control and is a
+/// target you can hit without looking.  It is also what the hardware
+/// this borrows from looks like, which is the point of borrowing.
+pub const HANDLE: Colour = Colour::rgb(0xc8, 0xdc, 0xe8);
 /// What the compiler had to say, and where.
 pub const ANGRY: Colour = Colour::rgb(0xc0, 0x4c, 0x48);
 /// The status line's ground.
@@ -176,6 +184,37 @@ impl View {
     }
 
     /// What a click at `(x, y)` means, as a row and a column.
+    /// The knob under the pointer, and the value that point means.
+    ///
+    /// **The inverse of what `frame_with` drew**, and deliberately in
+    /// the same file: a trough drawn by one arithmetic and read by
+    /// another drifts apart the first time either changes, and a fader
+    /// that answers to a place it is not drawn is worse than no fader.
+    ///
+    /// `spec/workbench.md` acceptance 4 asks that turning a knob and
+    /// typing the number be the same act. That is why this returns a
+    /// *value in the knob's own range* rather than a fraction: what
+    /// travels back is what would have been typed.
+    pub fn knob_hit(&self, font: &Font, chrome: &Furniture, x: i32, y: i32)
+        -> Option<(String, f64)>
+    {
+        if self.aside == 0 || y < 0 || y >= self.h - self.status_h(font) {
+            return None;
+        }
+        let (cw, ch) = (self.cw(font), self.ch(font));
+        let left = self.w - self.aside as i32 * cw;
+        if x < left {
+            return None;
+        }
+        let line = self.top + (y / ch) as usize + 1;
+        let k = chrome.knob_at(line)?;
+        // The trough is one cell narrower than the margin — see the
+        // `wide` that draws it.
+        let wide = (self.aside as i32 * cw - cw).max(1);
+        let along = ((x - left) as f64 / wide as f64).clamp(0.0, 1.0);
+        Some((k.name.clone(), k.lo + along * (k.hi - k.lo)))
+    }
+
     pub fn hit(&self, doc: &Document, font: &Font, x: i32, y: i32)
         -> (usize, usize)
     {
@@ -302,14 +341,24 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
             if let Some(k) = chrome.knob_at(line_no) {
                 let wide = view.aside as i32 * cw - cw;
                 let x = view.w - view.aside as i32 * cw;
-                let mid = y + ch / 2 - 2;
-                f.items.push(Item::Rect { x, y: mid, w: wide, h: 4,
+                // **As tall as its line**, with a pixel of air above and
+                // below so two knobs on adjacent lines stay two knobs.
+                let top = y + 1;
+                let tall = (ch - 2).max(3);
+                f.items.push(Item::Rect { x, y: top, w: wide, h: tall,
                                           c: TROUGH });
                 let full = (wide as f64 * k.fraction()).round() as i32;
                 if full > 0 {
-                    f.items.push(Item::Rect { x, y: mid, w: full, h: 4,
+                    f.items.push(Item::Rect { x, y: top, w: full, h: tall,
                                               c: FILL });
                 }
+                // The grip, kept inside the trough at both ends so it
+                // never hangs off the edge it is reporting.
+                let grip = (cw / 2).max(3);
+                let at = (x + full - grip / 2)
+                    .clamp(x, x + wide - grip);
+                f.items.push(Item::Rect { x: at, y: top, w: grip, h: tall,
+                                          c: HANDLE });
             }
         }
     }

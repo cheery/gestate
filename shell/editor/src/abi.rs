@@ -67,6 +67,16 @@ pub struct Shared {
     furnished: AtomicU64,
     /// What the window has to say back, oldest first.
     gestures: Mutex<Vec<String>>,
+    /// What the model has asked the window to *do*, oldest first.
+    ///
+    /// **The other direction, and it needs one.**  The furniture says
+    /// what things are; this says what to do about them.  Undo, zoom
+    /// and the caret live on the window's thread and nothing off it may
+    /// touch the rope — so a command like `zoomIn` cannot reach in, it
+    /// leaves a name and its arguments here and the window collects
+    /// them when it is next drawing anyway.  Same shape as `incoming`
+    /// and `furniture`, same reason.
+    orders: Mutex<Vec<String>>,
     initial: Mutex<String>,
 }
 
@@ -82,6 +92,7 @@ impl Shared {
             furniture: Mutex::new(String::new()),
             furnished: AtomicU64::new(0),
             gestures: Mutex::new(Vec::new()),
+            orders: Mutex::new(Vec::new()),
             initial: Mutex::new(initial),
         })
     }
@@ -142,6 +153,13 @@ impl Host for Shared {
 
     fn furniture(&self) -> Option<(u64, String)> {
         self.furniture_now()
+    }
+
+    fn orders(&self) -> Vec<String> {
+        match self.orders.lock() {
+            Err(_) => Vec::new(),
+            Ok(mut q) => std::mem::take(&mut *q),
+        }
     }
 
     fn gesture(&self, line: String) {
@@ -308,6 +326,24 @@ pub unsafe extern "C" fn ged_gestures(e: *const Editor) -> *mut c_char {
 ///
 /// # Safety
 /// `p` must have come from `ged_text` and not been freed.
+/// Ask the window to do something — see `furniture::Order`.
+///
+/// Queued and obeyed on the window's next frame, because the document
+/// belongs to the window's thread.
+///
+/// # Safety
+/// `e` must be a live editor and `line` a NUL-terminated string.
+#[no_mangle]
+pub unsafe extern "C" fn ged_order(e: *const Editor, line: *const c_char) {
+    let ed = editor!(e, ());
+    if let Ok(mut q) = ed.shared.orders.lock() {
+        if q.len() >= 1024 {
+            q.drain(..256);
+        }
+        q.push(text_of(line));
+    }
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn ged_free_str(p: *mut c_char) {
     if !p.is_null() {
