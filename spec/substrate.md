@@ -45,7 +45,7 @@ there and was put there for this.
 rope with `insert`, `erase`, `row` and `rowpos` — a document interface, in
 Python, already written and already tested.  What `tkinter` was giving away
 for free is a text widget; what it was charging for is everything else, and
-`roadmap.md` already records that a *timeline* — scrubbing, dragging loop
+`journal.md` records that a *timeline* — scrubbing, dragging loop
 points, widgets between lines rather than beside them — is the thing tk
 cannot do.
 
@@ -181,8 +181,8 @@ it reads it the way it reads a knob: through a **control channel**.  The
 host writes one slot per block; the graph reads it once per block and holds
 it across the samples in between.  `audiollvm.pack_control` already does
 this, `audiolive` already calls it once per block, and the fragment already
-admits as many control channels as a program declares (`roadmap.md`, "one
-knob per synth — lifted").  A substrate element is a knob with a face, and
+admits as many control channels as a program declares (`journal.md`, "four files, and
+the knob limit they turned up").  A substrate element is a knob with a face, and
 the machinery underneath is the machinery that is there.
 
 Which settles the rate question before it is asked.  The substrate is
@@ -625,20 +625,27 @@ exactly when:
    layouts, banks, defaults — so a host needs no opinion about the
    language.
 
-**And a confession the contract makes unavoidable: `tempoChan` is
-wrong.**  It works — the shell feeds the transport's tempo to a Float
-channel spelled exactly `tempoChan` — and it is this project's first
-*nominal convention*: meaning smuggled through a channel's spelling,
-invisible to the compiler, impossible to refuse by name, and honored
-in one context out of five.  Clause 1 says what the repair is: the
-host's tempo belongs among **the renderer's own**.  Supply `beat`
-from a DAW's beats timeline and tempo's rate beside it where a
-context has one; compile them from `bpm` and the `tempo` envelope
-where the program is its own conductor, as today.  That a renderer's-
-own name compiles differently per renderer is not the wrinkle, it is
-the whole pattern — `constSig` has worked that way from the start.
-The convention stays until that lands, marked transitional where it
-is documented, and this paragraph is its retirement notice.
+**And a confession the contract made unavoidable: `tempoChan` was
+wrong — it is retired now, the same day it was confessed.**  It had
+worked, in the sense that the shell fed the transport's tempo to a
+Float channel spelled exactly `tempoChan`, and it was this project's
+first and only *nominal convention*: meaning smuggled through a
+channel's spelling, invisible to the compiler, impossible to refuse by
+name, and honored in one context out of five.
+
+Clause 1 said what the repair was and the repair is in: the host's
+tempo belongs among **the renderer's own**.  A DAW supplies `beat`
+from its beats timeline — three channels carrying a *line*
+`(base, slope, anchor)`, evaluated at `ticks` by ordinary signal
+arithmetic, with the slots declared in the descriptor rather than
+spelled in the shell — and `beatRate` answers "how fast is this going"
+in beats a second.  Where the program is its own conductor, both still
+compile from `bpm` and the `tempo` envelope, as before.  That a
+renderer's-own name compiles differently per renderer was never the
+wrinkle; it is the whole pattern, and `constSig` has worked that way
+from the start.  `journal.md` §"`beat` finds its conductor, and the
+convention dies young" is the record, and `shell/clap/src/engine.rs`
+keeps a one-line headstone where the convention briefly lived.
 
 **And the interpreter has to travel — the G-machine ports to Rust,
 eventually.**  The compiled fragment crosses into foreign hosts today

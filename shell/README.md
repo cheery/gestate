@@ -14,5 +14,13 @@ blocks.
   instrument in it.  `python -m gestate.export` (not yet written) will
   emit `src/descriptor.rs` and the graph's object file beside it, and
   build with `--features engine`.
+* **`panel/`** — the plugin's own window (`spec/panel.md`): a display
+  list, a software painter and the two panels the descriptor already
+  knows about (knobs, note routing).  It is where the dependencies
+  live, which is what lets the sentence above stay true — `clap/`
+  takes it only under its `gui` feature, and without that feature
+  `cargo tree -p gestate-clap` is still one line.  The pure half
+  builds and tests with no dependencies at all; `--features window`
+  adds `baseview` and `softbuffer`.
 * A `worklet/` for the browser playground belongs here when its day
   comes.

@@ -7,4 +7,4 @@
 # joining the tree moved no artifact anyone reads.
 [workspace]
 resolver = "2"
-members = ["crust", "shell/clap"]
+members = ["crust", "shell/clap", "shell/panel"]

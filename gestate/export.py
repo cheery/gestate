@@ -448,13 +448,21 @@ def beat_slots(graph):
 
 
 def export_clap(source: str, out: Path, *, rate=None, name: str,
-                version: str = "0.1.0", shell: Path = SHELL) -> Path:
+                version: str = "0.1.0", shell: Path = SHELL,
+                gui: bool = False) -> Path:
     """One `.ges` in, one `.clap` out.
 
     `rate` may be one rate or several; the default is both of
     `DEFAULT_RATES`.  Each is a whole compiled graph — `sampleRate` is
     folded through the program — and `activate` picks the case the
     host names, still refusing the rates the plugin would lie at.
+
+    `gui` adds the plugin's own window (`spec/panel.md`) — the knob
+    and note-routing panels drawn from the descriptor this function
+    just wrote.  It is **off by default and stays that way**: without
+    it the shell has no dependencies at all, which is the property
+    `shell/README.md` is built around, and a plugin is perfectly
+    playable through the host's generic parameter view.
     """
     import shutil
     import tempfile
@@ -507,8 +515,9 @@ def export_clap(source: str, out: Path, *, rate=None, name: str,
         # `--target-dir` pins the artifact under the shell whether or
         # not the crate builds inside the workspace — the workspace
         # root's `target/` is where cargo would otherwise put it.
+        features = "engine,gui" if gui else "engine"
         done = subprocess.run(
-            ["cargo", "build", "--release", "--features", "engine",
+            ["cargo", "build", "--release", "--features", features,
              "--target-dir", str(shell / "target")],
             cwd=shell, env=env, capture_output=True, text=True)
         if done.returncode != 0:
@@ -533,6 +542,11 @@ def main(argv=None) -> int:
                          "repeat.  Default: 44100 and 48000.  The "
                          "plugin refuses activation at any rate it "
                          "does not carry")
+    ap.add_argument("--gui", action="store_true",
+                    help="build the plugin's own window as well "
+                         "(spec/panel.md): knobs and the note-routing "
+                         "panels, drawn from this plugin's descriptor. "
+                         "Costs the shell its zero-dependency build")
     args = ap.parse_args(argv)
 
     path = Path(args.file)
@@ -540,7 +554,7 @@ def main(argv=None) -> int:
     out = Path(args.out) if args.out else Path(f"{name}.clap")
     try:
         made = export_clap(path.read_text(), out, rate=args.rate,
-                           name=name)
+                           name=name, gui=args.gui)
     except ExportError as exc:
         print(f"gestate: {exc}")
         return 1

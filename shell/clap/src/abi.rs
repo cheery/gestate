@@ -358,3 +358,106 @@ pub struct clap_process {
     pub in_events: *const clap_input_events,
     pub out_events: *const clap_output_events,
 }
+
+// ── Parameter gestures ──────────────────────────────────────────────────
+//
+// **What makes a drag one edit.**  Without these a host sees four
+// hundred parameter writes and has to guess where the user's gesture
+// began and ended — which is the difference between one undo step and
+// four hundred, and between one automation-write region and a smear.
+// `spec/panel.md` §"Knobs" is why the panel emits them.
+
+pub const CLAP_EVENT_PARAM_GESTURE_BEGIN: u16 = 6;
+pub const CLAP_EVENT_PARAM_GESTURE_END: u16 = 7;
+
+#[repr(C)]
+pub struct clap_event_param_gesture {
+    pub header: clap_event_header,
+    pub param_id: u32,
+}
+
+// ── The host's parameter extension ──────────────────────────────────────
+//
+// The first *host* extension this shell asks for.  `request_flush` is
+// the one that matters: a knob dragged while the plugin is not
+// processing — a stopped transport, which is when people set sounds up —
+// has no `process` call to ride out on, and without this the change sits
+// in the queue until the user presses play.
+
+pub const CLAP_EXT_PARAMS_HOST: &[u8] = b"clap.params\0";
+
+pub const CLAP_PARAM_RESCAN_VALUES: u32 = 1 << 0;
+pub const CLAP_PARAM_RESCAN_TEXT: u32 = 1 << 1;
+pub const CLAP_PARAM_RESCAN_INFO: u32 = 1 << 2;
+pub const CLAP_PARAM_RESCAN_ALL: u32 = 1 << 3;
+
+#[repr(C)]
+pub struct clap_host_params {
+    pub rescan: unsafe extern "C" fn(host: *const clap_host, flags: u32),
+    pub clear: unsafe extern "C" fn(host: *const clap_host,
+                                    param_id: u32, flags: u32),
+    pub request_flush: unsafe extern "C" fn(host: *const clap_host),
+}
+
+// ── The GUI extension ───────────────────────────────────────────────────
+//
+// `spec/panel.md` §"What the ABI has to grow".  The subset below is what
+// an embedded, fixed-size, host-parented panel needs and no more: this
+// shell does not float, does not resize and does not offer an API it
+// cannot draw on.
+
+pub const CLAP_EXT_GUI: &[u8] = b"clap.gui\0";
+
+pub const CLAP_WINDOW_API_X11: &[u8] = b"x11\0";
+pub const CLAP_WINDOW_API_WIN32: &[u8] = b"win32\0";
+pub const CLAP_WINDOW_API_COCOA: &[u8] = b"cocoa\0";
+pub const CLAP_WINDOW_API_WAYLAND: &[u8] = b"wayland\0";
+
+/// The platform's own window id, tagged by `api`.
+///
+/// The C side is a union of a pointer and an `unsigned long`; the
+/// pointer is the wider of the two on every platform this builds for,
+/// so one pointer-sized field reads either — an X11 `Window` arrives in
+/// the low bits and is recovered by casting back.
+#[repr(C)]
+pub struct clap_window {
+    pub api: *const c_char,
+    pub handle: *mut c_void,
+}
+
+#[repr(C)]
+pub struct clap_plugin_gui {
+    pub is_api_supported: unsafe extern "C" fn(plugin: *const clap_plugin,
+                                               api: *const c_char,
+                                               is_floating: bool) -> bool,
+    pub get_preferred_api: unsafe extern "C" fn(plugin: *const clap_plugin,
+                                                api: *mut *const c_char,
+                                                is_floating: *mut bool)
+                                                -> bool,
+    pub create: unsafe extern "C" fn(plugin: *const clap_plugin,
+                                     api: *const c_char,
+                                     is_floating: bool) -> bool,
+    pub destroy: unsafe extern "C" fn(plugin: *const clap_plugin),
+    pub set_scale: unsafe extern "C" fn(plugin: *const clap_plugin,
+                                        scale: f64) -> bool,
+    pub get_size: unsafe extern "C" fn(plugin: *const clap_plugin,
+                                       width: *mut u32,
+                                       height: *mut u32) -> bool,
+    pub can_resize: unsafe extern "C" fn(plugin: *const clap_plugin) -> bool,
+    pub get_resize_hints: unsafe extern "C" fn(plugin: *const clap_plugin,
+                                               hints: *mut c_void) -> bool,
+    pub adjust_size: unsafe extern "C" fn(plugin: *const clap_plugin,
+                                          width: *mut u32,
+                                          height: *mut u32) -> bool,
+    pub set_size: unsafe extern "C" fn(plugin: *const clap_plugin,
+                                       width: u32, height: u32) -> bool,
+    pub set_parent: unsafe extern "C" fn(plugin: *const clap_plugin,
+                                         window: *const clap_window) -> bool,
+    pub set_transient: unsafe extern "C" fn(plugin: *const clap_plugin,
+                                            window: *const clap_window)
+                                            -> bool,
+    pub suggest_title: unsafe extern "C" fn(plugin: *const clap_plugin,
+                                            title: *const c_char),
+    pub show: unsafe extern "C" fn(plugin: *const clap_plugin) -> bool,
+    pub hide: unsafe extern "C" fn(plugin: *const clap_plugin) -> bool,
+}

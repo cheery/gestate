@@ -13,6 +13,8 @@
 
 mod abi;
 mod engine;
+#[cfg(feature = "gui")]
+mod gui;
 mod score;
 
 use std::ffi::c_char;
@@ -59,6 +61,12 @@ struct Instance {
     /// The score cursor — `spec/dynamicscore.md` stage one's Rust
     /// half.  Idle for a plugin whose `SCORE` is empty.
     performer: score::Performer,
+    /// The host, kept from `factory_create` so a panel can ask it to
+    /// flush a change made while the transport is stopped
+    /// (`spec/panel.md` §"What the ABI has to grow").
+    host: *const clap_host,
+    #[cfg(feature = "gui")]
+    gui: gui::Gui,
 }
 
 fn default_routing() -> Vec<u16> {
@@ -82,6 +90,9 @@ impl Instance {
             active: None,
             beat_pos: 0.0,
             performer: score::Performer::new(),
+            host: std::ptr::null(),
+            #[cfg(feature = "gui")]
+            gui: gui::Gui::default(),
         }
     }
 
@@ -223,6 +234,11 @@ impl Instance {
                         if let Some(c) = self.desc.controls.get(id) {
                             if c.knob {
                                 self.control[id] = c.bits_of(ev.value);
+                                // Automation and the host's own generic
+                                // UI reach the faders here, and only
+                                // here — the panel never reads a slot.
+                                #[cfg(feature = "gui")]
+                                self.report_to_gui(ev.param_id, ev.value);
                             }
                         }
                     } else {
@@ -492,6 +508,11 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
         }
     }
     inst.drain(p.in_events);
+    // The panel's own changes join the host's, after them: a drag that
+    // lands in the same block as an automation write is the user's, and
+    // the user is the later authority.
+    #[cfg(feature = "gui")]
+    inst.emit_gui_changes(p.out_events);
     let grace = 10 * inst.active.map_or(48000, |c| c.rate) as i64;
     let keyed = inst.voices.iter().flatten().any(|v| {
         v.key.is_some()
@@ -710,8 +731,16 @@ unsafe extern "C" fn params_text_to_value(plugin: *const clap_plugin,
 
 unsafe extern "C" fn params_flush(plugin: *const clap_plugin,
                                   in_events: *const clap_input_events,
-                                  _out: *const clap_output_events) {
-    instance(plugin).drain(in_events);
+                                  out: *const clap_output_events) {
+    let inst = instance(plugin);
+    inst.drain(in_events);
+    // **The stopped-transport path.**  A knob dragged while nothing is
+    // processing has no `process` call to ride out on; the host calls
+    // `flush` instead, which is why the panel asks for one.
+    #[cfg(feature = "gui")]
+    inst.emit_gui_changes(out);
+    #[cfg(not(feature = "gui"))]
+    let _ = out;
 }
 
 static PARAMS: clap_plugin_params = clap_plugin_params {
@@ -912,6 +941,10 @@ unsafe extern "C" fn plugin_get_extension(_plugin: *const clap_plugin,
         if want.to_bytes_with_nul() == CLAP_EXT_STATE {
             return &STATE as *const _ as *const c_void;
         }
+        #[cfg(feature = "gui")]
+        if want.to_bytes_with_nul() == CLAP_EXT_GUI {
+            return &gui::GUI as *const _ as *const c_void;
+        }
     }
     // A null for the rest is a plugin without those extensions,
     // which hosts accept.
@@ -977,13 +1010,15 @@ unsafe extern "C" fn factory_descriptor(_f: *const clap_plugin_factory,
 }
 
 unsafe extern "C" fn factory_create(_f: *const clap_plugin_factory,
-                                    _host: *const clap_host,
+                                    host: *const clap_host,
                                     _id: *const c_char)
                                     -> *const clap_plugin {
     let Some(desc) = DESCRIPTOR else {
         return std::ptr::null();
     };
-    let data = Box::into_raw(Box::new(Instance::new(desc)));
+    let mut inst = Instance::new(desc);
+    inst.host = host;
+    let data = Box::into_raw(Box::new(inst));
     Box::into_raw(Box::new(clap_plugin {
         desc: clap_descriptor(desc),
         plugin_data: data as *mut c_void,
@@ -1063,6 +1098,93 @@ mod tests {
         unsafe {
             let n = factory_count(&FACTORY);
             assert_eq!(n as usize, DESCRIPTOR.iter().count());
+        }
+    }
+}
+
+// ── The panel's changes, on their way to the host ───────────────────────
+//
+// `spec/panel.md` §"Knobs": a drag is `GESTURE_BEGIN`, values,
+// `GESTURE_END`, and the *host* writes the slot.  The plugin applies
+// the value to its own control buffer at the same time — not because
+// the host's echo is unreliable, but because a knob turned while the
+// transport is stopped must be audible on the next block whether or not
+// the host has answered yet.
+
+#[cfg(feature = "gui")]
+impl Instance {
+    /// Drain the window's queue into the host's event list.
+    ///
+    /// Runs on the audio thread, so the queue is only ever `try_lock`ed
+    /// (`gui::Queue::take_changes`): a panel mid-frame must never stall
+    /// a render, and a change that waits one block is inaudible where a
+    /// missed deadline is not.
+    unsafe fn emit_gui_changes(&mut self, out: *const clap_output_events) {
+        if out.is_null() || !self.gui.is_open() {
+            return;
+        }
+        let changes = self.gui.queue.take_changes();
+        if changes.is_empty() {
+            return;
+        }
+        let push = (*out).try_push;
+        for change in changes {
+            match change {
+                gestate_panel::Change::Begin(id)
+                | gestate_panel::Change::End(id) => {
+                    let kind = match change {
+                        gestate_panel::Change::Begin(_) =>
+                            CLAP_EVENT_PARAM_GESTURE_BEGIN,
+                        _ => CLAP_EVENT_PARAM_GESTURE_END,
+                    };
+                    let ev = clap_event_param_gesture {
+                        header: clap_event_header {
+                            size: std::mem::size_of::
+                                    <clap_event_param_gesture>() as u32,
+                            time: 0,
+                            space_id: CLAP_CORE_EVENT_SPACE_ID,
+                            type_: kind,
+                            flags: 0,
+                        },
+                        param_id: id,
+                    };
+                    push(out, &ev.header as *const clap_event_header);
+                }
+                gestate_panel::Change::Value(id, value) => {
+                    // The slot, at once — see the note above.
+                    if let Some(c) = self.desc.controls.get(id as usize) {
+                        if let Some(slot) = self.control.get_mut(id as usize) {
+                            *slot = c.bits_of(value);
+                        }
+                    }
+                    let ev = clap_event_param_value {
+                        header: clap_event_header {
+                            size: std::mem::size_of::
+                                    <clap_event_param_value>() as u32,
+                            time: 0,
+                            space_id: CLAP_CORE_EVENT_SPACE_ID,
+                            type_: CLAP_EVENT_PARAM_VALUE,
+                            flags: 0,
+                        },
+                        param_id: id,
+                        cookie: std::ptr::null_mut(),
+                        note_id: -1,
+                        port_index: -1,
+                        channel: -1,
+                        key: -1,
+                        value,
+                    };
+                    push(out, &ev.header as *const clap_event_header);
+                }
+            }
+        }
+    }
+
+    /// Tell an open panel what a parameter is now — how automation and
+    /// the host's own generic UI reach the faders.
+    fn report_to_gui(&self, param: u32, value: f64) {
+        if self.gui.is_open() {
+            self.gui.queue.report(param, value);
         }
     }
 }

@@ -4383,3 +4383,249 @@ reachability, which is all "discarded when not needed" ever needed to
 mean.  One measurement corrected a belief: control writes land on
 their *own* block — the one-block lag the tempo test recorded was the
 `:::` initial masking the first write, nothing more.
+
+### The editor is not written in gestate, and the canvas behind it is
+
+The largest item on the post-stage-10 list was **withdrawn** rather than
+built.  `spec/liveaudio.md` §"Why the editor is not written in gestate"
+has the argument, and the decisive fact is small: the language cannot
+measure text, so it cannot lay it out, and an editor written in it would
+ask the host for every position it draws.  `balanced.py`'s rope is already
+an editor's document interface, in Python; moving it into a language whose
+`String` is `List Char` would rebuild it on a worse substrate.
+
+**What replaced it was nothing, deliberately** — not a Python editor as a
+*stage*.  The environment is a scaffold and may stay one until a feature
+wants better.  `Rect`-and-`Dot` proved the reactive half; what a GUI
+vocabulary should be after that is a thing to grow from programs that want
+it, the way `signal.ges` was extracted at the third combinator rather than
+designed at the first.  Specifying it in advance was what the item was
+doing wrong.
+
+**The interface question was what reopened it.**  `tkinter` holds the text
+well and its widgets are clunky; a *timeline* — scrubbing, dragging loop
+points, widgets between lines rather than beside them — is what tk cannot
+do, and is the point at which `balanced.py`'s rope earns its place.
+
+Then a program wanted it, and `spec/substrate.md` is the answer — **which
+does not undo the withdrawal.**  The editor is still Python and the
+language still cannot measure text.  What the spec adds is the *other half
+of the window*: a canvas behind the editor, in the same window, drawn by
+the same program, and composed the way the synth above it is — one
+`substrate : Sig Sub` built from smaller ones with `over`, `moveXY` and
+`still`, lifted over time with `!`.  A leaf attaches a channel
+(`onDrag c (still …)`) and the synth reads **the same signal the canvas
+draws**, which is the whole feature.
+
+Three readings were tried and set aside, each recorded in the spec: a
+registry of `Sub a` declarations (could not say where a dragged position
+lives), a value in the type (gave `over` a question with no good answer),
+and elements as signal functions (unnecessary once `Sub` is data the host
+walks — the transform for hit-testing falls out of the draw).
+
+Three things made it cheap rather than a second system.  **`Workbench`
+imports no toolkit**, so a `pygame` view is a second view against the
+object that already has the instrument, the rebuild thread and the tests —
+the seam was put there for this.  **The engine needed nothing**: a `Sub`
+opens a control channel, and one slot per block is machinery that has been
+there since the knobs were lifted.  And **the rope was already a document
+interface**, which is the half of a text editor nobody wants to write
+twice.
+
+S1 to S4: the assembly (`audio.preludes` decides conditionally, so a synth
+with no canvas carries none of it, and `test/test_substrate.py` holds the
+invariant that adding a canvas changes no samples, no node count and no
+node *origins*); `Sub` with `still`/`over`/`moveXY` and one walk that draws
+it; attachment, where the walk that draws also says what listens and where,
+so a press reaches an element in *its own* coordinates and writes a channel
+the program named; and the window — `gestate/audiopygame.py`, `Workbench`
+untouched, the rope as the document, `Esc` outward through text, command
+and canvas, `--plain` for anyone who wants none of that.
+
+S5 is the reverse direction: `peak : Chan Float` and `position : Chan Int`
+are well-known names a canvas declares to be *told what the instrument is
+doing*, written once a frame from the view and never from the audio thread.
+A peak is **taken** rather than read — a meter shows what has happened
+since it last looked — and it is only tracked, by sampling sixteen points
+of a block, when a file asks for it.
+
+Audio stays compiled and the substrate stays interpreted, meeting at the
+block boundary where the host already stands.  A `Sub` that wanted to
+compute per sample would be asking to be a synth, and the answer is to
+write it as one.
+
+### Four files, and the knob limit they turned up
+
+**Source spans for graph nodes.**  `gestate/audiospans.py` joins a node's
+origin path to the file and line the definition was written on, and
+`python -m gestate.audiospans <file> --source` prints the placement so a
+person can check it against the files.
+
+**Four files, not one**, which is where the work was.  A synth is assembled
+from `prelude.ges`, `signal.ges`, `audio.ges` and the author's source, and
+an editor may want to open any of them — `lowpass` is as editable as
+`sound` is.  The first three are combined two different ways and **only one
+preserves coordinates**: `signal.ges` and `audio.ges` are prepended as
+*text*, so a line range identifies them exactly, while `prelude.ges` is
+merged as a *module* and its spans start again at 1.  A line test alone
+would have placed `floor` in the middle of whatever the author happened to
+be writing, so names decide that one.
+
+Two things it turned up.  **`Node.clock` is not inherited** (`fixme.md`
+F93) — the docstring said it was, no reader consults it off a source, and
+believing it would have offered a knob for a `mapSig` over a knob.  And **a
+synth had at most one control-rate source**, which the next item lifted.
+
+**One knob per synth — lifted.**  The fragment was rejecting a third
+*clock*, conflating two rates with two channels; N control channels tick at
+the same rate and need no third one.  Separate channels rather than a
+record on one, for a live-coding reason: stage 5 migrates by shape, so
+adding a field would reset every knob, where adding a channel leaves the
+others sounding.  `render_block`'s control argument became a pointer to one
+slot per source, and `examples/audio/twoknobs.ges` is bit-identical across
+all three engines.  It turned up `fixme.md` F94 on the way — a former
+nested directly inside another lost its element type, which a step
+function's own type answers.
+
+### The environment, and a controller is a value
+
+**The environment**: knobs placed beside their declarations, `Ctrl-S` to
+save and apply, `Ctrl-Return` to audition without writing the file, and
+right-click MIDI learn on any knob.  Written in Python, which is now the
+design rather than a shortfall.
+
+**MIDI CC**: `gestate/audiomidi.py`, and `--midi` on the player.  A
+controller is a *value*, so sampling it once per block loses nothing
+audible — the same reasoning that lets a note arrive at a block boundary
+and still begin partway through it.
+
+### Stereo, and the ceiling that was `main`
+
+The estimate held: the graph already did n-channel, and what was left was
+the output plumbing.  `sound : Sig Stereo` for a program's own record of
+`Float`s renders to a two-channel `.wav`, extracts unchanged, and comes out
+of the generated engine bit-identical to the oracle —
+`examples/audio/stereo.ges` is the example and its golden is *frames*
+rather than floats.  The count is `Graph.channels`, read off the output
+node's type in one place, and the five it reaches are `audio.py`'s reader
+and writer, `audiollvm`'s output store, `audiolive`'s two drivers and the
+player's `--channels`.
+
+Two things it turned up.  **`main : Sig Float` was the real ceiling** — the
+entry point the renderer appends fixed the channel count where no program
+could argue with it, so a stereo `sound` failed to unify against a line its
+author never wrote.  It carries no signature now and the shape is checked
+where it is read.  And **the count has to come from the type**, because the
+G-machine spells an `Int` and a `Float` with the same `NNum`: read off the
+value, a `Frame Float Int` renders its integer as a sample and nothing says
+otherwise.
+
+Left undone on purpose: **changing the channel count in a running
+instrument.**  The driver's buffer and the player process are fixed when
+playback starts, so an edit from mono to stereo installs a graph the driver
+is still filling one channel at a time.  Stage 5 migrates state by shape
+and has nothing to say about the buffer around it.
+
+### Tuples reach the engine
+
+`fixme.md` F95 is **fixed**, and it was the expensive branch of the fork
+taken rather than the cheap one: the IR grew tuples instead of the grammar
+being tightened to forbid what `is_flat` already admitted.
+
+The entry's own representation objection is what made it look expensive.  A
+tuple is an `NTuple`, which the G-machine deliberately gives *no tag* and
+never matches with `CaseJump` — field access goes through `Proj` — while
+every other flat value in the audio IR is an `NCon` with a tag word, which
+`Graph.layouts`, `audiollvm`'s struct emission and `unpack_state` are all
+written against.  **The objection was answered rather than routed around**:
+a tuple now reaches the engine tagged like any other product (the block
+renderer hands back `(202, (l, r))`), so none of those three needed a
+tagless case, and `sound : Sig (Float, Float)` renders identically through
+the oracle, the block renderer and the generated code.
+
+What it leaves behind is three comments standing on a dead constraint —
+`signal.ges`'s `Both`, a `voices` bank's generated `Part` records, and
+`audio.ges`'s `LowpassIn` ("a zip needs a carrier and a tuple has no layout
+in the fragment").  None is *wrong*, since a named record documents what
+its fields mean and a tuple does not, but the necessity is gone and only
+the taste remains.
+
+### The compiler answers questions
+
+`--query NAME`, `--holes` and `--fits TYPE` on `gestate.typecheck`, with
+`--audio` to put the synth preludes in scope (`doc/manual.md` §"Asking the
+compiler").  Each answers about the program **as compiled** — the type from
+inference, the position from the parser — so an editor showing them cannot
+drift from what the compiler thinks, which is the whole reason to ask the
+compiler rather than to re-parse beside it.
+
+### Ariadne — chance and listening become leaves of the score
+
+`spec/ariadne.md` is the design and `spec/dynscore-constraints.md` is the
+sheet it answers to.  The redesign of the score's reactive surface: chance
+and listening as lawful **zero-width leaves of the score monad** rather
+than boxed constructs beside it, bound with the `do` sugar
+(`spec/monad.md`).
+
+Stages one to three: `draw` and `hear` are leaves, the boxes are gone,
+`sown` and `probe` are retired by name, and the interpreter walks
+self-terminated cue streams (`CueEnd`) so **a decision's width is a fact
+its own stream reports** rather than a number the caller had to know.
+
+**Paths — the machine half.**  The sower stamps each question with the seed
+of the place it stands, the cue carries it, and `Transcript.reader_of`
+answers *by it*, so a rebuild mid-piece lands on the answers the take gave
+rather than on its opening ones.  That closed the defect the stage was
+ordered for, and `test_ariadne.py` holds it with a counter-proof — the same
+rejoin answered in arrival order drifts.
+
+**The label half.**  A section is a *point*, not a wrapper: `Mark` carries
+a `String` and `section name s` is `Mark name ++ s`, so the existing marks
+stream became the piece's map with no second walk.  `marks_of` reads it (a
+prefix, for an endless form), `tick_of_mark` counts occurrences left to
+right, and **naming a part costs no event and no tick.**  It forced a
+language change worth having on the way: **`case` matches string
+literals**, so `case name of "verse" -> …` is writable at last.
+
+**A joint of undeclared width** is now *defined* rather than silent.
+`durOf` of an unanswered question is 0, so `Seq` has nothing to step over;
+`resumeSeq` asks `opaqueHead` and stops at the joint, so the phrase
+restarts there — audible, answered from the thread — instead of the walk
+never advancing and falling quiet.  The cure for wanting the skip is one
+word, `long n`, which is why it is load-bearing.
+
+### `shape`, `fermata` and `tempoShape` — one family, and a channel-id defect
+
+**Designed in `spec/shape.md`, and all three built.**  They turn out to be
+one family distinguished by what they bend: `hear` bends content, `shape`
+bends a value, `tempoShape` bends time, and **`fermata` bends whether time
+runs at all** — Henri's channel-taking fermata, which is `hear`'s twin
+across the table.
+
+`shape` is an annotation over a subtree: across the subtree's own extent a
+named channel follows an envelope, its breakpoints in **fractions of the
+span**.  A crescendo across a verse is a musical fact the score had never
+been able to state — `bpm`/`tempo` are global, dynamics are the DAW's
+automation, and `Envelope` lives in signal land against `elapsed`.
+
+**The laws come from the law** (route a constant through it and the algebra
+must not notice): fractions make it scale with `|*` and reverse with
+`reverse` definitionally; riding the subtree rather than the events makes
+it commute with `>>=`; and a flat envelope is a channel written once,
+indistinguishable from a knob.  **Delivery was solved machinery under a new
+name** — the host clock already drives `beat` sample-smooth by sending a
+*line* `(base, slope, anchor)` that the graph evaluates at `ticks`, and a
+score envelope is that pattern generalised to one line segment per
+breakpoint interval.  No new engine capability, no new wire.
+
+It also **dissolved the `Chan -> Port` bridge rather than building it.**
+`Port` had been introduced on a premise nobody checked — that `Chan` is out
+of scope in `music.ges` — and the premise is false: `Chan` is a builtin and
+`NChan` already carries a unique id, so the signatures take channels
+directly and the bridge stopped being a thing that needed crossing.  Its
+one cost was measured and then paid: **`crust` learned `NewChan`**, the
+smallest widening of the pure core — a counter and an allocation — so
+listening pieces keep the native path.
+
+The migration turned up a real defect: **`_force` minted channel ids from a
+scratch counter**, so separately forced channels all came out `NChan(0)`.

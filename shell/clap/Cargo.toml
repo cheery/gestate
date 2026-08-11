@@ -16,6 +16,11 @@ crate-type = ["cdylib", "rlib"]
 # generated synth needs is small; `src/abi.rs` declares exactly that
 # subset, so the shell builds offline and owns every line it ships.
 [dependencies]
+# Only under `gui` — `spec/panel.md` §"Windowing: baseview" isolates
+# every dependency this design needs in `shell/panel`, so the build a
+# host loads without a face is the zero-dependency shell it always was.
+gestate-panel = { path = "../panel", features = ["window"], optional = true }
+raw-window-handle = { version = "0.6", optional = true }
 
 [features]
 # Off: the factory reports zero plugins — an empty shell that loads
@@ -23,3 +28,7 @@ crate-type = ["cdylib", "rlib"]
 # On: `src/descriptor.rs` (written by `python -m gestate.export`) and the
 # graph's object file (linked via build.rs) turn it into an instrument.
 engine = []
+# The plugin's own window (`spec/panel.md`).  Off by default: a plugin
+# without it is byte-for-byte the one that shipped before, which is
+# acceptance 1.
+gui = ["dep:gestate-panel", "dep:raw-window-handle"]

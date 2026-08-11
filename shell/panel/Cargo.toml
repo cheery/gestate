@@ -1,0 +1,26 @@
+[package]
+name = "gestate-panel"
+version = "0.1.0"
+edition = "2021"
+description = "The plugin's own window: a display list, a painter, and the panels the descriptor already knows."
+license = "MIT"
+
+[lib]
+crate-type = ["rlib"]
+
+# **The pure half has no dependencies, and that is the point of the
+# split** (`spec/panel.md` §"Windowing: baseview").  `shell/clap` keeps
+# its zero-dependency stance because every dependency this design needs
+# lives here, behind `window` — the display list, the painter and the
+# panels build and test with nothing at all.
+[dependencies]
+baseview = { version = "0.3", optional = true }
+softbuffer = { version = "0.4", optional = true }
+raw-window-handle = { version = "0.6", optional = true }
+
+[features]
+default = []
+# A window to put the pixels in.  Off: the crate is pure functions from
+# a descriptor to a display list, and from a display list to a buffer —
+# which is everything the tests check.
+window = ["dep:baseview", "dep:softbuffer", "dep:raw-window-handle"]
