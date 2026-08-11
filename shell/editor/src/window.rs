@@ -322,6 +322,7 @@ fn translate(k: &keyboard_types::KeyboardEvent) -> Option<Key> {
         Kt::Named(n) => Some(match n {
             NamedKey::Enter => Key::Enter,
             NamedKey::Tab => Key::Tab,
+            NamedKey::Escape => Key::Escape,
             NamedKey::Backspace => Key::Backspace,
             NamedKey::Delete => Key::Delete,
             NamedKey::ArrowLeft => Key::Left,

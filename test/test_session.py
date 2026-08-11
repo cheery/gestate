@@ -35,9 +35,9 @@ class Bench:
         self.values = {"cutoff": 40, "drive": 0.5}
         self.ranges = {"cutoff": (0, 100), "drive": (0.0, 1.0)}
         self.on = False
-        self.end_beat = 32.0
         self.keyboard = self
         self.octaves = 0
+        self.ends = 32.0
 
     # what `Session` reaches for
     def apply(self, text, save=True):
@@ -62,8 +62,17 @@ class Bench:
     def clear_loop(self):
         self.log.append(("unloop",))
 
+    #: **The real `Workbench` shape, copied deliberately.**  A stand-in
+    #: written to suit the caller teaches the caller a wrong interface:
+    #: `has_knob` is a property and `end_beat` a method on the model,
+    #: and having them the other way round here is what let `Session`
+    #: call both wrongly until `test_session_live.py` said so.
+    @property
     def has_knob(self):
         return True
+
+    def end_beat(self):
+        return self.ends
 
     def knob_range(self, name):
         return self.ranges[name]
@@ -80,6 +89,15 @@ class Bench:
     def transpose(self, by):
         self.octaves += by
         return self.octaves
+
+    def set_seed(self, value):
+        self.seed = value
+
+    def roll_seed(self):
+        return 4242
+
+    knob_types = {"cutoff": "Int", "drive": "Float"}
+    sites = ()
 
 
 def session(**kw) -> Session:
@@ -113,10 +131,16 @@ def test_the_types_say_what_a_command_wants():
     assert by["apply"].args == ()
     assert by["seek"].args == ("Int",)
     assert by["loop"].args == ("Int", "Int")
-    assert by["set"].args == ("Name", "Float")
-    assert by["listen"].args == ("Name",)
+    # **`Named` and a type variable.**  The checker resolves the `a`
+    # from the name in the first argument — an `Int` knob takes an
+    # `Int` — and the palette cannot and does not need to.
+    assert by["set"].args == ("Named", "a")
+    assert by["listen"].args == ("Named",)
+    assert by["find"].args == ("Text",), "search takes text, not a name"
+    assert by["goto"].args == ("Named",), "and goto takes a name, not text"
     # And it reads as a usage line for free.
     assert str(by["loop"]) == "loop <int> <int>"
+    assert str(by["set"]) == "set <named> <value>"
     assert str(by["apply"]) == "apply"
 
 
@@ -276,7 +300,8 @@ def test_every_command_can_be_run_headless_without_raising():
     only way in.
     """
     s = session()
-    sample = {"Int": 1, "Float": 0.5, "Name": "cutoff"}
+    sample = {"Int": 1, "Float": 0.5, "Text": "sine",
+              "Named": "cutoff", "a": 0.5}
     for verb in vocabulary():
         args = tuple(sample[a] for a in verb.args)
         said = s.run(verb.name, *args)
@@ -304,3 +329,105 @@ def test_the_palette_ranks_a_name_above_a_sentence():
     assert [v.name for v in s.matching("")] == [v.name for v in vocabulary()]
     # And nothing matching is nothing, not everything.
     assert s.matching("zzzz") == []
+
+
+# ── What the vocabulary bought ───────────────────────────────────────────
+
+
+def test_find_takes_text_and_goto_takes_a_name():
+    """**Two commands, not one.**  Search matters most when you are
+    looking for something that is *not* a name yet — a typo you are
+    fixing, half a word, a fragment of a comment — so typing it as a
+    name would remove the tool where it is wanted."""
+    class Window(Detached):
+        def __init__(self):
+            self.went = None
+
+        def find(self, pattern):
+            return 3 if pattern == "sin" else -1
+
+        def goto(self, row):
+            self.went = row
+            return True
+
+    class Sited:
+        pass
+
+    view = Window()
+    s = session(view=view)
+    # A fragment that is nobody's name is still findable.
+    assert s.run("find", "sin") == "found `sin`"
+    # And `goto` answers about declarations, which the workbench knows
+    # from `audiospans` — the same fact that puts a knob in the margin.
+    site = Sited()
+    # `audiospans.Site` counts lines from **one** — "the convention a
+    # text widget wants" — so nothing here adds to it.
+    site.name, site.line = "cutoff", 13
+    s.bench.sites = [site]
+    assert s.run("goto", "cutoff") == "line 13"
+    assert view.went == 13
+    assert s.run("goto", "nowhere") == "no declaration `nowhere`"
+
+
+def test_what_answers_from_the_compiler():
+    """The compiler answering, rather than a documentation lookup."""
+    s = session()
+    assert s.run("what", "cutoff") == "cutoff : Chan Int"
+    assert s.run("what", "drive") == "drive : Chan Float"
+    assert s.run("what", "nobody") == "no declaration `nobody`"
+
+
+def test_performing_says_what_a_played_note_does():
+    """**Not a mode of the editor.**  It changes what happens to a
+    *note*, not what a *key* means — the letters go on typing."""
+    s = session()
+    assert s.performing == "on", "notes sound until told otherwise"
+    assert s.run("performStep") == "notes sound and are written"
+    assert s.performing == "step"
+    assert s.run("performOff") == "notes go nowhere"
+    assert s.run("performOn") == "notes sound"
+    assert s.performing == "on"
+
+
+def test_a_seed_is_typed_and_a_reroll_is_pressed():
+    """Two gestures, not one: rolling is what you press while looking,
+    typing a seed is what you do once you have found one to keep."""
+    s = session()
+    assert s.run("seed", 7) == "seed 7"
+    assert s.bench.seed == 7
+    assert s.run("reroll") == "seed 4242"
+    assert s.bench.seed == 4242
+
+
+def test_skip_is_a_command_like_any_other():
+    """The identity of `++`.  In the palette because hiding it would be
+    a special case: composing is the point, and the thing that composes
+    with everything and changes nothing belongs beside the things that
+    do."""
+    s = session()
+    assert s.run("skip") == "nothing"
+    assert "skip" in {v.name for v in vocabulary()}
+
+
+def test_the_constraint_is_enforced_where_it_matters():
+    """`listen` on a bank whose payload has no `FromMIDI` instance is
+    refused *by the checker*, not by a sentence at run time.
+
+    This is the dividend of the vocabulary being a typed language, and
+    it is checked here because `command.ges` alone cannot show it — the
+    refusal happens where a command is written against a program.
+    """
+    from gestate.pipeline import compile as _compile
+
+    base = ("class Fc a where\n    fc : Int -> a\n"
+            "instance Fc Float where\n    fc v = toFloat v\n"
+            "C := S\n"
+            "N a := TheName (List Char)\n"
+            "use : (Fc a) => N a -> C\nuse n = S\n")
+    _compile(base + "ok : N Float -> C\nok n = use n\n")
+    try:
+        _compile(base + "bad : N Int -> C\nbad n = use n\n")
+    except Exception as e:
+        assert "No instance" in str(e), e
+    else:
+        raise AssertionError("a name of the wrong kind was accepted")

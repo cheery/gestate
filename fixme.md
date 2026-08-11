@@ -2688,3 +2688,35 @@ it was six readers assembling *different* texts and disagreeing; here it is
 six readers assembling the *same* text and each paying for it.  Both follow
 from the same shape: a reader that wants a program says so by building one,
 and nothing between them knows that the last reader just did.
+
+### F100. A constraint naming a class that does not exist is accepted
+
+Found while typing `spec/commands.md`'s vocabulary, where two classes
+say which road a command may be reached by — `FromMIDI` for a bank that
+hears a keyboard, `FromCC` for a knob a controller can drive.
+
+    f : (Nonsuch a) => a -> C          -- accepted
+    f x = S
+
+A signature may name any class at all.  Nothing resolves the name at
+the point it is written, so a typo — `FromMidi`, `FormCC` — is a
+constraint that constrains nothing, silently.
+
+**Use sites are checked, and that is why this is small rather than
+serious.**
+
+    use : (Fc a) => N a -> C
+    bad : N Int -> C
+    bad n = use n
+    -- ConstraintError: No instance for Fc Int
+
+So a *real* class does the work it promises: `listen` on a bank whose
+payload has no `FromMIDI` instance is refused, which is the whole point
+of putting it in the type.  What is missing is the check that the class
+in the signature is a class at all.  A misspelled one degrades to no
+constraint — the signature reads as a promise and keeps none.
+
+The fix is where the other kind checks are: resolve the name against
+the declared classes when a signature is elaborated, and say *why* —
+`no class \`Nonsuch\`; did you mean \`FromCC\`?` — which is the
+`subgrammar.py` shape `spec/liveaudio.md` asks of the fragment check.

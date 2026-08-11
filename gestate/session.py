@@ -53,24 +53,55 @@ class Verb:
         return len(self.args)
 
     def __str__(self) -> str:
-        spec = " ".join(f"<{a.lower()}>" for a in self.args)
+        # A lone type variable is whatever the named thing carries —
+        # `set cutoff 0.42` or `set mode 3` — so the usage line says
+        # `<value>` rather than `<a>`, which would only be readable to
+        # somebody who had the signature open.
+        spec = " ".join(f"<{'value' if len(a) == 1 else a.lower()}>"
+                        for a in self.args)
         return f"{self.name} {spec}".strip()
+
+
+def _type_name(node) -> str:
+    """What to call one argument's type, for the palette.
+
+    `Named a` is the interesting case: the *head* is what the view needs
+    — it says "this argument is a name that exists" — and the phantom
+    parameter is what the checker uses.  So the palette reads `Named`
+    and the type system reads `Named Float`, from one signature.
+    """
+    from .syntax.ast import VApp, VConId, VWord
+
+    if isinstance(node, VConId):
+        return node.value
+    if isinstance(node, VApp):
+        return _type_name(node.fn)
+    if isinstance(node, VWord):
+        # A type *variable* — `set : Named a -> a -> Command`.  The
+        # checker resolves it from the name in the first argument; the
+        # palette cannot, and does not need to.
+        return node.value
+    return "?"
 
 
 def _arrow_parts(node) -> list:
     """A signature's arguments and result, as type names.
 
     Reads the parsed form rather than the text, so `Int -> Int ->
-    Command` and a reformatting of it are the same answer.
+    Command` and a reformatting of it are the same answer — and a
+    constraint (`(FromCC a) => …`) is stepped through rather than
+    parsed a second way.
     """
-    from .syntax.ast import VConId, VOpPhrase
+    from .syntax.ast import VFunc, VOpPhrase
 
+    # `(FromCC a) => Named a -> Command` parses as a function *type*
+    # whose parameters are the constraints.  The palette does not care
+    # which class; the checker does, at the use site.
+    while isinstance(node, VFunc):
+        node = node.body
     if isinstance(node, VOpPhrase):
-        return [a.value if isinstance(a, VConId) else "?"
-                for a in node.atoms if a != "->"]
-    if isinstance(node, VConId):
-        return [node.value]
-    return ["?"]
+        return [_type_name(a) for a in node.atoms if a != "->"]
+    return [_type_name(node)]
 
 
 def vocabulary(path: Path = COMMANDS) -> list:
@@ -180,6 +211,9 @@ class Detached:
     def find(self, _pattern: str) -> int:
         return -1
 
+    def goto(self, _line: int) -> bool:
+        return False
+
     def zoom(self, _by: int) -> bool:
         return False
 
@@ -202,6 +236,8 @@ class Session:
     #: What was said, newest last — the status line's history and what a
     #: test asserts on.
     said: list = field(default_factory=list)
+    #: What a played note does: `"off"`, `"on"` or `"step"`.
+    performing: str = "on"
 
     def commands(self) -> list:
         """The palette.  Derived from `command.ges` every time it is
@@ -319,8 +355,12 @@ class Session:
         return f"looping bars {first}-{last}"
 
     def do_loopAll(self) -> str:
-        end = getattr(self.bench, "end_beat", None)
+        end = self.bench.end_beat()
         if end is None:
+            # An unfolding score has no end, so looping "all" of it
+            # means nothing.  The workbench says `None` rather than
+            # zero, which is the difference between "no answer" and
+            # "the answer is nothing".
             return "nothing to loop"
         self.bench.set_loop(0.0, float(end))
         return "looping the whole piece"
@@ -331,8 +371,12 @@ class Session:
 
     # -- parameters ----------------------------------------------------
 
-    def do_set(self, name: str, value: float) -> str:
-        if not self.bench.has_knob() or name not in self.bench.values:
+    def do_set(self, name: str, value) -> str:
+        # **The clamp survives the type.**  `Named a` stops a `Float`
+        # reaching an `Int` knob, which is what it is for; it says
+        # nothing about a number being inside the knob's *range*, and
+        # 140 is a perfectly good `Int`.
+        if not self.bench.has_knob or name not in self.bench.values:
             return f"no parameter `{name}`"
         low, high = self.bench.knob_range(name)
         held = min(high, max(low, value))
@@ -374,8 +418,38 @@ class Session:
         at = self.view.find(pattern)
         return f"found `{pattern}`" if at >= 0 else f"no `{pattern}`"
 
-    def do_what(self) -> str:
-        return "nothing under the cursor"
+    def do_goto(self, name: str) -> str:
+        where = self._declared(name)
+        if where is None:
+            return f"no declaration `{name}`"
+        return f"line {where}" if self.view.goto(where) \
+            else f"`{name}` is on line {where}"
+
+    def do_what(self, name: str) -> str:
+        kind = self.bench.knob_types.get(name) if hasattr(
+            self.bench, "knob_types") else None
+        if kind:
+            return f"{name} : Chan {kind}"
+        if self._declared(name) is None:
+            return f"no declaration `{name}`"
+        return f"{name} is declared here"
+
+    def _declared(self, name: str):
+        """The line a name was declared on, or `None`.
+
+        `audiospans` already answers this — it is what puts a knob beside
+        its own declaration — so `goto` and `what` are two readings of a
+        fact the workbench keeps for the margin.
+
+        **Lines are 1-based**, which is `audiospans.Site`'s own
+        convention: "the convention a text widget wants, and not the
+        tokenizer's, which counts lines from 0".  So this hands back
+        what a person would say, and nothing adds one to it.
+        """
+        for site in getattr(self.bench, "sites", []):
+            if getattr(site, "name", None) == name:
+                return getattr(site, "line", None)
+        return None
 
     # -- the window ----------------------------------------------------
 
@@ -392,9 +466,49 @@ class Session:
     def do_zoomOut(self) -> str:
         return "smaller" if self.view.zoom(-1) else "as small as it goes"
 
+    # -- performing ----------------------------------------------------
+    #
+    # What a played *note* does — not what a *key* means.  The letters go
+    # on typing, so this is a setting on the input road and not a mode of
+    # the editor; where the keyboard goes is focus.
+
+    def do_performOff(self) -> str:
+        return self._perform("off")
+
+    def do_performOn(self) -> str:
+        return self._perform("on")
+
+    def do_performStep(self) -> str:
+        return self._perform("step")
+
+    def _perform(self, how: str) -> str:
+        self.performing = how
+        return {"off": "notes go nowhere",
+                "on": "notes sound",
+                "step": "notes sound and are written"}[how]
+
+    # -- chance --------------------------------------------------------
+
+    def do_seed(self, value: int) -> str:
+        self.bench.set_seed(value)
+        return f"seed {value}"
+
+    def do_reroll(self) -> str:
+        return self.do_seed(self.bench.roll_seed())
+
     def do_quit(self) -> str:
         self.view.close()
         return "closing"
+
+    def do_skip(self) -> str:
+        """The identity of `++`.
+
+        In the palette because it is a real command and hiding it would
+        be a special case: composing is the point, and the thing that
+        composes with everything and changes nothing belongs beside the
+        things that do.
+        """
+        return "nothing"
 
 
 #: Bars count from one for a person and from zero for a transport.

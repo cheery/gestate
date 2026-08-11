@@ -51,6 +51,15 @@ says what kind of thing may be named; the **name** says which one.
 Neither alone is enough, which is why this is one type rather than a
 string beside a constraint.
 
+**It is a phantom type**, and that is the whole implementation:
+
+    Named a := TheName Text
+
+The value is the name; `a` is what the editor found at the declaration.
+Nothing in `command.ges` constructs one, because only the editor can —
+only it has the program in the window and its inferred types.  A command
+written in the palette names a declaration in the file.
+
 *(Named `Identity a` when it was proposed, and renamed here for one
 reason only: `Identity` is a well-known functor elsewhere and means
 something else.  The project's own sense of the word — "held by
@@ -296,6 +305,24 @@ more natural, and consistency with the language wins: these are
 declarations in a `.ges` file, and a reader who has seen `mkSig` and
 `lowpassSvf` should not have to learn a second convention to read the
 editor's.
+
+---
+
+---
+
+## One gap, found while writing this
+
+A constraint may name a class that does not exist:
+
+    f : (Nonsuch a) => a -> C          -- accepted
+
+Nothing resolves the name where the signature is written, so a typo —
+`FromMidi`, `FormCC` — is a constraint that constrains nothing,
+silently.  **Use sites are checked**, which is why this is small rather
+than serious: `listen` on a bank whose payload has no `FromMIDI`
+instance really is refused, `No instance for FromMIDI Int`, which is the
+whole point of putting it in the type.  What is missing is the check
+that the class in the signature is a class at all.  `fixme.md` F100.
 
 ---
 

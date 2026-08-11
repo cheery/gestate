@@ -24,6 +24,14 @@ pub enum Key {
     Char(char),
     Enter,
     Tab,
+    /// **The only key that means "not this".**
+    ///
+    /// The editor has no modes, so there is nothing to leave — and
+    /// that is exactly why this exists: it closes the palette, which is
+    /// the one thing the window puts *over* the text.  A key that means
+    /// "go back" is unambiguous when there is only one place to go back
+    /// from.
+    Escape,
     Backspace,
     Delete,
     Left,
@@ -169,6 +177,9 @@ pub fn press_with(doc: &mut Document, view: &mut View, font: &Font,
         // that an editor should not make quietly; what a tab *looks*
         // like is `document::TAB` and is a view's business.
         Key::Tab => wrote(doc.insert("\t")),
+        // Nothing to leave, so nothing to do — the palette handles it
+        // before the document ever sees it.
+        Key::Escape => Did::nothing(),
         Key::Backspace => wrote(doc.backspace()),
         Key::Delete => wrote(doc.delete()),
         Key::Left => { doc.left(); Did::moved() }

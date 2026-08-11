@@ -26,56 +26,74 @@
 # that the two arrived from opposite ends and met is the reason to
 # believe the shape is right.
 
-#: A name the program declared — a channel, a bank, a definition.
+#: A name the program declared, and **what that name denotes**.
 #:
-#: **An alias rather than a wrapper**, so writing one is writing a
-#: string and the ergonomics cost nothing.  What it buys is at the
-#: *view*: an argument of this type is a name, so the palette can offer
-#: the names that exist instead of an empty box, and it knows that
-#: without being told.
+#: The parameter is a phantom: the value is the name, and `a` is the
+#: type the editor found at the declaration.  That is what makes
+#: `set cutoff 0.42` typecheck and `set cutoff "loud"` not, and it is
+#: why this is one type rather than a string beside a constraint —
+#: `audio.ges` records that two banks may share a payload and "nothing
+#: in the type could tell them apart", so the type says what *kind* and
+#: the name says *which one*, and neither alone is enough.
 #:
-#: `List Char` rather than `String`, which is the same type under a name
-#: the prelude documents but does not declare — see `prelude.ges`
-#: §Show.  Spelling it out is the honest form and costs a reader
-#: nothing, since the alias is right here.
-type Name = List Char
+#: **Nothing here constructs one.**  Only the editor can, because only
+#: the editor has the program being edited and its inferred types.  A
+#: command written in the palette names a declaration in the window.
+Named a := TheName Text
 
-#: One transition of the editor — **a constructor applied to
-#: literals**, and nothing else.
+#: Plain text — a search, not a name.
+type Text = List Char
+
+#: What a controller's knob can drive.
 #:
-#: The restriction lives in the shape of the value rather than in a
-#: rule beside it: a `Command` cannot inspect another, cannot branch and
-#: cannot recur, because there is nothing in this type to do it with.
-#: That is `[: a :]`'s trick, and it makes the sublanguage's grammar —
-#: *an application spine over literals* — the same one
-#: `spec/editor.md`'s literal rule already picks out for what a widget
-#: may edit.
+#: The counterpart of `FromMIDI`, for the other road in: notes arrive as
+#: `noteOn` and knob turns arrive as a continuous controller, and they
+#: mean different things.  **No `Maybe`**, and the asymmetry is the
+#: point — a key may be outside a bank's range and a bank must be able
+#: to say so, while a controller's 0…127 always means *somewhere* in a
+#: knob's travel, and a knob that could decline a position would be a
+#: knob with holes in it.
+class FromCC a where
+    fromCC : Int -> a
+
+#: A percentage, which is what the examples read an `Int` knob as.
+instance FromCC Int where
+    fromCC v = v * 100 / 127
+
+#: A fraction, which every `Float` a synth takes a knob for already is.
+instance FromCC Float where
+    fromCC v = toFloat v / 127.0
+
+#: One transition of the editor.
 #:
-#: The lowercase wrappers below are what a person writes; the
-#: constructors are what the editor reads.  `gui.ges` does exactly this
-#: with `Sub`, and for the same reason: the documented name and the
-#: representation are different jobs.
-Command := Apply
-         | Audition
-         | Play
-         | Stop
-         | Seek Int
-         | Loop Int Int
-         | LoopAll
-         | LoopOff
-         | Set Name Float
-         | Learn Name
-         | Listen Name Bool
-         | Octave Int
-         | Undo
-         | Redo
-         | Find Name
-         | What
-         | Canvas
-         | Source
-         | Zoom Int
-         | Quit
-         | Then Command Command
+#: **Opaque, and its inhabitants are not the point.**  A command is
+#: never *evaluated* — the editor typechecks the expression and reads
+#: its shape, which the sublanguage restricts to an application spine
+#: over literals.  So the type's job is entirely to say what may be
+#: written: `Command` makes `loop 4 8` a command and `loop 4` an
+#: incomplete one, and the checker refuses what a run time would
+#: otherwise have to.
+#:
+#: The bodies below are inert for that reason.  A declaration needs one,
+#: and this is the honest form of "there is nothing to compute here".
+Command := Stated
+
+#: One command, then another.
+#:
+#: **The only way commands compose**, and deliberately the whole of it:
+#: a macro, a transcript and an undo group are each a fold of these.
+#: `++` because `Command` is a semigroup and that is its operation —
+#: the laws are ones a reader already knows, rather than an ad-hoc pair.
+instance Semigroup Command where
+    (++) a b = Stated
+
+#: Do nothing — the identity of `++`.
+#:
+#: A named value rather than a class method because the prelude has
+#: `Semigroup` and no `Monoid`; one would be worth adding when a second
+#: type wants an identity, and is not worth it for this alone.
+skip : Command
+skip = Stated
 
 # ── The instrument ───────────────────────────────────────────────────────
 
@@ -83,112 +101,147 @@ Command := Apply
 #: plays**, migrating what can be migrated: an oscillator keeps its
 #: phase, a filter its memory.  Saves the file.
 apply : Command
-apply = Apply
+apply = Stated
 
 #: The same, without saving — hear the change before committing to it.
 audition : Command
-audition = Audition
+audition = Stated
 
 #: Start the transport, or stop it if it is running.
 play : Command
-play = Play
+play = Stated
 
 #: Stop it, wherever it is.
 stop : Command
-stop = Stop
+stop = Stated
 
 #: Put the playhead at a bar, counting from one.
 seek : Int -> Command
-seek n = Seek n
+seek n = Stated
 
 # ── The loop ─────────────────────────────────────────────────────────────
 
 #: Loop between two bars, counting from one.
 loop : Int -> Int -> Command
-loop a b = Loop a b
+loop a b = Stated
 
 #: Loop the whole piece.
 loopAll : Command
-loopAll = LoopAll
+loopAll = Stated
 
 #: Stop looping and let it run on.
 loopOff : Command
-loopOff = LoopOff
+loopOff = Stated
 
 # ── Parameters ───────────────────────────────────────────────────────────
 
-#: Turn a knob.  The name is the channel the program declared, and the
-#: value is in the range that channel carries — 0…100 for an `Int`,
-#: 0…1 for a `Float`.
-set : Name -> Float -> Command
-set n v = Set n v
+#: Turn a knob.  **The value's type follows the parameter**, so an `Int`
+#: knob takes an `Int` and asking for the wrong one is a type error
+#: rather than a sentence somebody has to compose at run time.
+set : Named a -> a -> Command
+set n v = Stated
 
 #: Bind the next controller that moves to this parameter.
-learn : Name -> Command
-learn n = Learn n
+#:
+#: `FromCC` and not `FromMIDI`: a continuous controller is a 7-bit
+#: number on the knob road, and a note payload is something else.
+learn : (FromCC a) => Named a -> Command
+learn n = Stated
 
 # ── Notes ────────────────────────────────────────────────────────────────
 
 #: Let a bank hear the keyboard.  A bank the score plays is not the
 #: keyboard's by default — the two-bank law.
-listen : Name -> Command
-listen n = Listen n True
+listen : (FromMIDI a) => Named a -> Command
+listen n = Stated
 
 #: And stop it hearing.
-deafen : Name -> Command
-deafen n = Listen n False
+deafen : (FromMIDI a) => Named a -> Command
+deafen n = Stated
 
 #: Move the played octave.  Negative goes down.
 octave : Int -> Command
-octave n = Octave n
+octave n = Stated
+
+# ── Performing ───────────────────────────────────────────────────────────
+#
+# What a played *note* does — not what a *key* means.  The letters go on
+# typing, so this is a setting on the input road rather than a mode of
+# the editor, and where the keyboard goes is **focus**: click the drawn
+# piano and it has it, click the text and the text does.
+
+#: Played notes go nowhere.
+performOff : Command
+performOff = Stated
+
+#: Played notes sound.
+performOn : Command
+performOn = Stated
+
+#: Played notes sound **and are written at the cursor**.
+#:
+#: A stepped note is an ordinary text edit, so `spec/editor.md`'s rule
+#: holds with no special case: undo is text undo, and there is no second
+#: model recording what was played.
+performStep : Command
+performStep = Stated
+
+# ── Chance ───────────────────────────────────────────────────────────────
+
+#: Play this take of a chancy piece.  One integer replays the night.
+seed : Int -> Command
+seed n = Stated
+
+#: Roll a different one.  What you press while looking; `seed` is what
+#: you type once you have found one worth keeping.
+reroll : Command
+reroll = Stated
 
 # ── The text ─────────────────────────────────────────────────────────────
 
 #: Undo the last change.
 undo : Command
-undo = Undo
+undo = Stated
 
 #: Redo it.
 redo : Command
-redo = Redo
+redo = Stated
 
-#: Find text, and put the cursor on the next match.
-find : Name -> Command
-find pattern = Find pattern
+#: Find text — **anything**, not only a name.  The moment a search
+#: matters most is when you are looking for something that is not a name
+#: yet: a typo you are fixing, half a word, a fragment of a comment.
+find : Text -> Command
+find pattern = Stated
 
-#: Say what the name under the cursor is, and what type it has.
-what : Command
-what = What
+#: Jump to where a name is declared.
+goto : Named a -> Command
+goto n = Stated
+
+#: Say what a name is and what type it has — the compiler answering,
+#: rather than a documentation lookup.  Given nothing, it asks about
+#: whatever the cursor is on.
+what : Named a -> Command
+what n = Stated
 
 # ── The window ───────────────────────────────────────────────────────────
 
 #: Show the program's own picture — its `substrate` — instead of the
 #: text.  `spec/substrate.md`.
 canvas : Command
-canvas = Canvas
+canvas = Stated
 
 #: Show the text again.
 source : Command
-source = Source
+source = Stated
 
 #: Make the letters bigger, one rung of the ladder.
 zoomIn : Command
-zoomIn = Zoom 1
+zoomIn = Stated
 
 #: And smaller.
 zoomOut : Command
-zoomOut = Zoom (0 - 1)
+zoomOut = Stated
 
 #: Close the editor.
 quit : Command
-quit = Quit
-
-# ── Sequence ─────────────────────────────────────────────────────────────
-
-#: One command, then another.
-#:
-#: **The only way commands compose**, and deliberately the whole of it.
-#: A macro, a transcript and an undo group are each a chain of these and
-#: nothing else, which is why one implementation serves all three.
-andThen : Command -> Command -> Command
-andThen a b = Then a b
+quit = Stated

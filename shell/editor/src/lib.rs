@@ -32,6 +32,7 @@
 pub mod document;
 pub mod font;
 pub mod keys;
+pub mod palette;
 pub mod rope;
 pub mod view;
 

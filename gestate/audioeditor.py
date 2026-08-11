@@ -1702,6 +1702,62 @@ class Workbench:
             self.say(f"no piece: {self._first_line(exc)}" if _unwritten(exc)
                      else f"score not loaded: {self._first_line(exc)}")
 
+    # ── What the command list asks for ───────────────────────────────
+    #
+    # `spec/commands.md`.  Three questions the workbench could always
+    # have answered and was never asked, because the old editors reached
+    # into its attributes instead of asking.
+
+    def end_beat(self) -> float | None:
+        """Where the piece ends, in beats, or `None` if it has no end.
+        
+        What `loopAll` needs.  `None` is the honest answer for an
+        unfolding score — a `cycle` has no end and looping "all" of it
+        means nothing — which is why this is a question rather than a
+        number somebody caches.
+        """
+        # `Schedule.horizon` is "one past the last change, so a caller
+        # knows how long to render" — the same number, in the unit the
+        # renderer works in.  A *performer* has no schedule and no
+        # horizon, which is the `None` case: an unfolding score has no
+        # end and looping "all" of it means nothing.
+        if self.schedule is None:
+            return None
+        # **`horizon` is exclusive** — "one past the last change, so a
+        # caller knows how long to render" — so the last thing that
+        # happens is one before it, and that is where a loop wraps.
+        # Without the step back a four-bar piece answers 16.0002, which
+        # is one sample and a number nobody wants to read.
+        return self.samples_to_beats(max(0, int(self.schedule.horizon()) - 1))
+
+    def set_seed(self, value: int) -> None:
+        """Play a different take of a chancy piece.
+
+        **A rebuild, because the seed decides the notes from the first
+        instant.**  There is nothing to patch and no way to fade between
+        two takes, which is exactly what the plugin found: a re-seed and
+        a re-root are one operation there, and here it is a re-load of
+        the score with everything else left alone.
+        """
+        self.seed = int(value)
+        self._load_score(self.source())
+        self.say(f"seed {self.seed}")
+
+    def roll_seed(self) -> int:
+        """Draw a new one, and never the one it is already playing.
+
+        A reroll that can land on the take you are already hearing is
+        one that sometimes looks broken — and at one chance in
+        2**64 it would be a bug nobody could reproduce.
+        """
+        import os
+
+        for _ in range(8):
+            drawn = int.from_bytes(os.urandom(8), "big")
+            if drawn != self.seed:
+                return drawn
+        return drawn
+
     def _rebind_midi(self) -> None:
         """Carry the learned controllers across a rebuild, by name.
 
