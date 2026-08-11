@@ -41,7 +41,7 @@ type Idx = usize;
 /// reference keeps ints and floats in one node and lets the operators
 /// promote; this enum is that fact written down, with the promotions
 /// spelled out below rather than inherited.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum Num {
     I(i128),
     F(f64),
@@ -54,13 +54,16 @@ fn as_f(n: Num) -> f64 {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 enum Node {
     Num(Num),
     /// A channel identity — the score's own name for a place a value
     /// comes from.  Created, never read: the host does the reading.
     Chan(i64),
     Ap(Idx, Idx),
+    /// A reference to a signal cell.  The `SigId` is stable; the cell
+    /// lives in `Machine::sigs`.
+    Sig(SigId),
     Global(usize, usize),        // arity, block id
     Ind(Option<Idx>),
     Con(i64, Vec<Idx>),
@@ -98,6 +101,10 @@ enum Instr {
     FloorFloat,
     MathFloat(MathFn),
     NewChan,
+    /// Allocate a signal cell from a value and a delayed tail.
+    SigCons,
+    /// Read a signal's current value, ✓-checked.
+    SigHead,
     MatchFail,
 }
 
@@ -112,8 +119,52 @@ enum MathFn {
     Sqrt,
 }
 
+/// A signal cell's identity — an index into `Machine::sigs`, and
+/// **stable across collection**, which is the whole reason the cells
+/// do not live in the heap.
+pub type SigId = usize;
+
+/// A live signal cell — `gmachine.NSig`.
+///
+/// `value` is the current value, `tail` the delayed computation that
+/// produces the next one, `ticked` whether it was updated this step,
+/// and `current` the ✓ mark of the paper's `now`/`earlier` heap split:
+/// reading a signal the sweep has not reached yet is a stuck state, and
+/// with in-place update there is no second heap to make the read fail
+/// on its own, so the mark is checked at `SigHead`.
+#[derive(Clone, Debug)]
+pub struct SigCell {
+    pub value: Idx,
+    pub tail: Idx,
+    pub ticked: bool,
+    pub current: bool,
+    /// How many holders outside the heap have pinned this cell.
+    ///
+    /// **Refcount for the host, tracing for the heap** — the two answer
+    /// different questions and the design needs both.  A copying
+    /// collector cannot maintain a true refcount, because dead nodes
+    /// are never visited and so never decrement; but it *can* mark what
+    /// it reaches.  What it cannot see is a cell the reactive driver
+    /// holds between steps and the program has momentarily dropped —
+    /// and that is exactly a signal's life, since the driver keys its
+    /// clocks by cell.  So the host pins what it is holding, the trace
+    /// keeps what the program can still reach, and a cell dies when
+    /// neither wants it.
+    pub rc: u32,
+}
+
 pub struct Machine {
     heap: Vec<Node>,
+    /// The signal arena.  `None` is a free slot.
+    ///
+    /// **Outside the heap on purpose.**  A signal is a *place*: it is
+    /// mutated where it stands and the driver identifies it by where it
+    /// stands, so a semispace copy that relocated it would break every
+    /// table keyed by cell.  Ordinary values are copied and their
+    /// indices rewritten; these are not, and only the fields *inside*
+    /// them are.
+    sigs: Vec<Option<SigCell>>,
+    free_sigs: Vec<SigId>,
     globals: HashMap<String, Idx>,
     blocks: Vec<Vec<Instr>>,
     stack: Vec<Idx>,             // top is the END, where Python's is [0]
@@ -179,6 +230,53 @@ impl Machine {
     fn alloc(&mut self, node: Node) -> Idx {
         self.heap.push(node);
         self.heap.len() - 1
+    }
+
+    /// A fresh signal cell, born on the *now* heap and unticked —
+    /// `gmachine._sigcons`.
+    pub fn sig_alloc(&mut self, value: Idx, tail: Idx) -> SigId {
+        let cell = SigCell { value, tail, ticked: false, current: true,
+                             rc: 0 };
+        match self.free_sigs.pop() {
+            Some(id) => {
+                self.sigs[id] = Some(cell);
+                id
+            }
+            None => {
+                self.sigs.push(Some(cell));
+                self.sigs.len() - 1
+            }
+        }
+    }
+
+    pub fn sig(&self, id: SigId) -> Option<&SigCell> {
+        self.sigs.get(id).and_then(|c| c.as_ref())
+    }
+
+    pub fn sig_mut(&mut self, id: SigId) -> Option<&mut SigCell> {
+        self.sigs.get_mut(id).and_then(|c| c.as_mut())
+    }
+
+    /// Pin a cell: the holder is outside the heap and the trace cannot
+    /// see it.
+    pub fn sig_retain(&mut self, id: SigId) {
+        if let Some(c) = self.sig_mut(id) {
+            c.rc = c.rc.saturating_add(1);
+        }
+    }
+
+    /// Let one go.  **Never frees on its own**: a cell at zero is only
+    /// a cell the *host* has finished with, and the program may still
+    /// reach it — the collector decides, with both facts in hand.
+    pub fn sig_release(&mut self, id: SigId) {
+        if let Some(c) = self.sig_mut(id) {
+            c.rc = c.rc.saturating_sub(1);
+        }
+    }
+
+    /// How many cells are live — what a test asks to see reclamation.
+    pub fn sig_live(&self) -> usize {
+        self.sigs.iter().filter(|c| c.is_some()).count()
     }
 
     fn deref(&self, mut i: Idx) -> Idx {
@@ -252,8 +350,10 @@ impl Machine {
                             walked = true;
                         }
                         Node::Ind(None) => fail("Unwind on null indirection"),
+                        // A signal cell is a value like a channel is:
+                        // `Unwind` stops on it.
                         Node::Num(_) | Node::Con(..)
-                        | Node::Chan(_) => {
+                        | Node::Chan(_) | Node::Sig(_) => {
                             if walked {
                                 self.code.clear();
                                 self.pc = 0;
@@ -504,6 +604,45 @@ impl Machine {
                 };
                 self.prim_result1(Node::Num(Num::F(v)));
             }
+            // ── The reactive pair ──────────────────────────────────
+            //
+            // `spec/crust.md`'s "reactive half", and the two the
+            // substrate needs.  `MkDelayAp` is deliberately absent: its
+            // only interpreter-side caller is the audio *oracle*, and
+            // the oracle is the meaning the compiled engines are checked
+            // against — porting it would delete the thing doing the
+            // checking.
+            Instr::SigCons => {
+                let tail = self.stack.pop()
+                    .unwrap_or_else(|| fail("SigCons without a tail"));
+                let value = self.stack.pop()
+                    .unwrap_or_else(|| fail("SigCons without a value"));
+                let id = self.sig_alloc(value, tail);
+                let node = self.alloc(Node::Sig(id));
+                self.stack.push(node);
+            }
+            Instr::SigHead => {
+                let top = self.stack.pop()
+                    .unwrap_or_else(|| fail("SigHead on an empty stack"));
+                let i = self.deref(top);
+                let Node::Sig(id) = self.heap[i] else {
+                    fail("SigHead on a value that is not a signal");
+                };
+                let Some(cell) = self.sig(id) else {
+                    fail("SigHead on a signal that has been collected");
+                };
+                // **The ✓ frontier, checked here** (Rizzo §4.1).  A
+                // signal may only read signals allocated before it; with
+                // in-place update there is no second heap to make a
+                // premature read fail on its own, so a scheduler
+                // ordering bug would quietly return last step's value.
+                if !cell.current {
+                    fail("head of a signal on the earlier heap: it has \
+                          not been updated yet this step");
+                }
+                let value = cell.value;
+                self.stack.push(value);
+            }
             Instr::NewChan => {
                 let id = self.chans;
                 self.chans += 1;
@@ -708,6 +847,8 @@ impl Machine {
             code: Vec::new(),
             pc: 0,
             chans: 0,
+            sigs: Vec::new(),
+            free_sigs: Vec::new(),
         };
         for (name, arity, block) in globals {
             let i = m.alloc(Node::Global(arity, block));
@@ -826,23 +967,77 @@ impl Machine {
             let j = copy(&self.heap, &mut fwd, &mut to, i);
             self.globals.insert(name, j);
         }
+        // **Signal cells are marked, not moved.**  They are places, so
+        // the trace records which ones the program can still reach and
+        // rewrites the fields *inside* them; the cells themselves keep
+        // their ids, which is what lets the driver key clocks by cell
+        // across a collection.
+        let mut reached: Vec<bool> = vec![false; self.sigs.len()];
         let mut scan = 0;
-        while scan < to.len() {
-            let node = to[scan].clone();
-            let rewritten = match node {
-                Node::Ap(f, a) => Node::Ap(
-                    copy(&self.heap, &mut fwd, &mut to, f),
-                    copy(&self.heap, &mut fwd, &mut to, a)),
-                Node::Ind(Some(t)) => Node::Ind(
-                    Some(copy(&self.heap, &mut fwd, &mut to, t))),
-                Node::Con(tag, args) => Node::Con(
-                    tag,
-                    args.iter().map(|&a| copy(&self.heap, &mut fwd,
-                                              &mut to, a)).collect()),
-                other => other,
-            };
-            to[scan] = rewritten;
-            scan += 1;
+        let mut sig_scan = 0;
+        let mut pending: Vec<SigId> = Vec::new();
+        // A cell the host has pinned is a root: the program may have
+        // dropped it, and the driver has not.
+        for (id, cell) in self.sigs.iter().enumerate() {
+            if cell.as_ref().map_or(false, |c| c.rc > 0) {
+                reached[id] = true;
+                pending.push(id);
+            }
+        }
+        loop {
+            while scan < to.len() {
+                let node = to[scan].clone();
+                let rewritten = match node {
+                    Node::Ap(f, a) => Node::Ap(
+                        copy(&self.heap, &mut fwd, &mut to, f),
+                        copy(&self.heap, &mut fwd, &mut to, a)),
+                    Node::Ind(Some(t)) => Node::Ind(
+                        Some(copy(&self.heap, &mut fwd, &mut to, t))),
+                    Node::Con(tag, args) => Node::Con(
+                        tag,
+                        args.iter().map(|&a| copy(&self.heap, &mut fwd,
+                                                  &mut to, a)).collect()),
+                    Node::Sig(id) => {
+                        if reached.get(id).copied() == Some(false) {
+                            reached[id] = true;
+                            pending.push(id);
+                        }
+                        Node::Sig(id)
+                    }
+                    other => other,
+                };
+                to[scan] = rewritten;
+                scan += 1;
+            }
+            // A reached cell's own fields are roots too, and copying
+            // them can put more work in `to` — hence the outer loop.
+            if sig_scan >= pending.len() {
+                break;
+            }
+            while sig_scan < pending.len() {
+                let id = pending[sig_scan];
+                sig_scan += 1;
+                if let Some(cell) = self.sigs[id].clone() {
+                    let value = copy(&self.heap, &mut fwd, &mut to,
+                                     cell.value);
+                    let tail = copy(&self.heap, &mut fwd, &mut to,
+                                    cell.tail);
+                    if let Some(c) = self.sigs[id].as_mut() {
+                        c.value = value;
+                        c.tail = tail;
+                    }
+                }
+            }
+        }
+        // What neither the program nor the host wants is gone, and its
+        // slot goes back on the free list — the id may be handed out
+        // again, which is safe precisely because nothing that still
+        // referred to it survived.
+        for id in 0..self.sigs.len() {
+            if self.sigs[id].is_some() && !reached[id] {
+                self.sigs[id] = None;
+                self.free_sigs.push(id);
+            }
         }
         self.heap = to;
         self.heap.len()
@@ -1473,5 +1668,111 @@ pub mod ffi {
                 -1
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod sig_tests {
+    use super::*;
+
+    /// The smallest well-formed program: one block, one global, an
+    /// entry naming it.  Nothing here forces anything — these tests are
+    /// about the arena, and the machine is only its landlord.
+    fn machine() -> Machine {
+        let (m, _e) = Machine::from_text(
+            "crust 1\nblock\nI Unwind\nglobal main 0 0\nentry main\n");
+        m
+    }
+
+    #[test]
+    fn a_cell_keeps_its_identity_across_a_collection() {
+        let mut m = machine();
+        let v = m.alloc(Node::Num(Num::I(7)));
+        let t = m.alloc(Node::Num(Num::I(8)));
+        let id = m.sig_alloc(v, t);
+        let mut root = m.alloc(Node::Sig(id));
+        m.sig_retain(id);
+
+        m.collect(&mut [&mut root]);
+
+        // The id is the same — which is the whole point, since the
+        // driver keys its clocks by it.
+        assert_eq!(m.heap[root], Node::Sig(id));
+        // And the fields were rewritten to wherever the copy put them.
+        let cell = m.sig(id).expect("still live");
+        assert_eq!(m.heap[cell.value], Node::Num(Num::I(7)));
+        assert_eq!(m.heap[cell.tail], Node::Num(Num::I(8)));
+    }
+
+    #[test]
+    fn a_cell_the_host_pins_survives_the_program_dropping_it() {
+        let mut m = machine();
+        let v = m.alloc(Node::Num(Num::I(1)));
+        let id = m.sig_alloc(v, v);
+        m.sig_retain(id);
+        // Nothing in the heap refers to it — only the host does.
+        let mut nothing = m.alloc(Node::Num(Num::I(0)));
+        m.collect(&mut [&mut nothing]);
+        assert!(m.sig(id).is_some(), "a pinned cell must not be collected");
+        assert_eq!(m.sig(id).unwrap().rc, 1);
+    }
+
+    #[test]
+    fn a_cell_nobody_wants_is_reclaimed() {
+        let mut m = machine();
+        let v = m.alloc(Node::Num(Num::I(1)));
+        let id = m.sig_alloc(v, v);
+        assert_eq!(m.sig_live(), 1);
+        let mut nothing = m.alloc(Node::Num(Num::I(0)));
+        m.collect(&mut [&mut nothing]);
+        assert_eq!(m.sig_live(), 0, "unreached and unpinned is dead");
+        // And the slot comes back.
+        let again = m.sig_alloc(v, v);
+        assert_eq!(again, id, "the free list hands the slot back");
+    }
+
+    #[test]
+    fn releasing_does_not_free_on_its_own() {
+        let mut m = machine();
+        let v = m.alloc(Node::Num(Num::I(1)));
+        let id = m.sig_alloc(v, v);
+        m.sig_retain(id);
+        m.sig_release(id);
+        // Still there: the collector decides, with both facts in hand,
+        // and the program may still reach it.
+        assert!(m.sig(id).is_some());
+        assert_eq!(m.sig(id).unwrap().rc, 0);
+    }
+
+    #[test]
+    fn a_chain_of_cells_is_traced_through() {
+        let mut m = machine();
+        let leaf = m.alloc(Node::Num(Num::I(42)));
+        let inner = m.sig_alloc(leaf, leaf);
+        let inner_node = m.alloc(Node::Sig(inner));
+        let outer = m.sig_alloc(inner_node, inner_node);
+        let mut root = m.alloc(Node::Sig(outer));
+
+        m.collect(&mut [&mut root]);
+
+        assert_eq!(m.sig_live(), 2, "a cell reached through a cell lives");
+        let o = m.sig(outer).unwrap().clone();
+        assert_eq!(m.heap[o.value], Node::Sig(inner));
+        let i = m.sig(inner).unwrap().clone();
+        assert_eq!(m.heap[i.value], Node::Num(Num::I(42)));
+    }
+
+    #[test]
+    fn reading_an_earlier_heap_signal_refuses() {
+        let mut m = machine();
+        let v = m.alloc(Node::Num(Num::I(5)));
+        let id = m.sig_alloc(v, v);
+        m.sig_mut(id).unwrap().current = false;
+        let node = m.alloc(Node::Sig(id));
+        m.stack = vec![node];
+        let refused = std::panic::catch_unwind(
+            std::panic::AssertUnwindSafe(|| m.step(Instr::SigHead)));
+        assert!(refused.is_err(),
+                "a premature read must refuse, not answer staleness");
     }
 }

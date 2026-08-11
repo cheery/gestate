@@ -163,6 +163,20 @@ pub static BANKS: &[Bank] = linked::BANKS;
 #[cfg(not(feature = "engine"))]
 pub static BANKS: &[Bank] = &[];
 
+/// Per bank, whether the **score** writes it
+/// (`export.scored_banks`).
+///
+/// The routing default reads this: a bank the piece plays is not also
+/// the keyboard's, because MIDI landing in it fills the voices the
+/// piece needs and the piece goes quiet.  That is the two-bank law the
+/// listening pieces are built on, made the default rather than left to
+/// a player to discover.
+#[cfg(feature = "engine")]
+pub static SCORED: &[bool] = linked::SCORED;
+
+#[cfg(not(feature = "engine"))]
+pub static SCORED: &[bool] = &[];
+
 #[cfg(feature = "engine")]
 pub static RATES: &[RateCase] = linked::RATES;
 
@@ -254,10 +268,23 @@ pub struct Program {
     /// `audiodynamic`'s `by_tag`, which the wire's third word is
     /// looked up in.
     pub voice_banks: &'static [(i64, usize)],
+    /// A `holds.<bank>` channel id to the bank it names —
+    /// `audioscore.ports_of`.  This is the world a listening piece
+    /// asks: `hear holds.keys` reaches here, and the answer is the
+    /// keys the player is holding on that bank.
+    pub holds: &'static [(i64, usize)],
 }
 
 impl Program {
     pub fn bank_of(&self, tag: i64) -> Option<usize> {
         self.voice_banks.iter().find(|(t, _)| *t == tag).map(|(_, b)| *b)
+    }
+
+    /// Which bank a question is about, if any.  A channel the program
+    /// never declared as a port reads as silence rather than as an
+    /// error — an unplugged port holds nothing, which is exactly what
+    /// the Python reader answers.
+    pub fn port_bank(&self, chan: i64) -> Option<usize> {
+        self.holds.iter().find(|(c, _)| *c == chan).map(|(_, b)| *b)
     }
 }

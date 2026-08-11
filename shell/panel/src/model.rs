@@ -145,6 +145,18 @@ pub struct BankView {
     /// base rather than recomputing it — one table, not two that have
     /// to agree.
     pub routing_param0: u32,
+    /// Whether the **score** plays this bank.
+    pub plays_score: bool,
+    /// Whether the score writes this bank *at all* — a fact about the
+    /// program, where `plays_score` is a switch about this session.
+    ///
+    /// Switching the score on for a bank it never writes is not an
+    /// error, but it is certainly not what the presser meant: nothing
+    /// will ever come out of it.  The panel says so in colour rather
+    /// than refusing the click.
+    pub score_writes: bool,
+    /// The parameter id of that switch.
+    pub score_param: u32,
 }
 
 impl BankView {

@@ -122,6 +122,14 @@ pub struct Tables<'a> {
     pub events: &'a [ScoreEvent],
     pub banks: &'a [Bank],
     pub controls: &'a [Control],
+    /// Per bank, whether the **score** is allowed to play it.
+    ///
+    /// A bank is a set of voices, and two things can want them: the
+    /// piece and the player's hands.  This is the piece's half of that
+    /// switch — the routing matrix is the hands' half — so a player can
+    /// take a bank over from the score, hand it back, or have both at
+    /// once, without the plugin having to guess which they meant.
+    pub plays: &'a [bool],
     pub tpb: i64,
     pub rate: u32,
 }
@@ -163,6 +171,12 @@ impl Performer {
     fn perform(&self, tb: &Tables, ev: &ScoreEvent, at: i64,
                voices: &mut [Vec<VoiceState>], control: &mut [i64],
                mut touched: Option<&mut [bool]>) {
+        // Switched off: the cursor still *moves* past this event — the
+        // piece keeps its place, so switching the score back on rejoins
+        // where the music is rather than where it was left.
+        if !tb.plays.get(ev.bank).copied().unwrap_or(true) {
+            return;
+        }
         let bank = &tb.banks[ev.bank];
         let mut write = |slot: usize, value: i64, control: &mut [i64]| {
             control[slot] = value;
@@ -315,7 +329,7 @@ mod tests {
     const RATE: u32 = 1000;
 
     fn tables() -> Tables<'static> {
-        Tables { events: &EVENTS, banks: &BANKS, controls: &CONTROLS,
+        Tables { events: &EVENTS, banks: &BANKS, plays: &[true; 8], controls: &CONTROLS,
                  tpb: 96, rate: RATE }
     }
 

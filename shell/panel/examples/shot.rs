@@ -44,11 +44,14 @@ fn main() {
                 },
                 routing: 0b0000_0000_0000_0001,
                 routing_param0: 100,
+                       plays_score: true, score_writes: true,
+                       score_param: 1000,
             },
             BankView { name: "keys".into(), voices: 4,
                        accepts: Accepts::Everything,
                        routing: 0b0000_0000_0000_0010,
-                       routing_param0: 116 },
+                       routing_param0: 116, plays_score: true, score_writes: true,
+                       score_param: 1016 },
         ],
     };
 

@@ -31,6 +31,18 @@ pub const NOTE_NONE: Colour = Colour::rgb(0x2c, 0x30, 0x38);
 pub const CELL_ON: Colour = Colour::rgb(0x5c, 0xa8, 0xd8);
 /// A routing cell that is off.
 pub const CELL_OFF: Colour = Colour::rgb(0x24, 0x28, 0x30);
+/// The same two, muted — **the score owns this bank**.
+///
+/// Not disabled: a channel ticked here still layers the player's hands
+/// over the piece, which is a thing people want.  Muted because the
+/// question "who is playing this bank" has an answer, and a matrix that
+/// looked identical either way made the reader work it out from the
+/// switch beside it.
+pub const CELL_ON_MUTED: Colour = Colour::rgb(0x3c, 0x5c, 0x74);
+pub const CELL_OFF_MUTED: Colour = Colour::rgb(0x1e, 0x21, 0x27);
+/// The score switched on for a bank the score never writes — on, and
+/// pointing at nothing.
+pub const CELL_WRONG: Colour = Colour::rgb(0xc0, 0x4c, 0x48);
 /// The scrollbar's thumb, when there is more than fits.
 pub const BAR: Colour = Colour::rgb(0x6a, 0x74, 0x84);
 
@@ -421,18 +433,54 @@ pub fn view(m: &Model, w: i32, hot: Option<u32>, scale: i32, scroll: i32)
             // player can *change* about notes; which keys a bank
             // accepts stays the program's to say.
             let ry = sy + k.strip_h() + 18 * k.s();
+
+            // **Who plays this bank.**  A bank is a set of voices and
+            // two things can want them — the piece and the hands.  The
+            // cells to the right are the hands' half (which MIDI
+            // channels feed it); this is the piece's half, so a player
+            // can take a bank over from the score, hand it back, or
+            // have both at once.
+            let sw = k.cell_w() * 3;
+            let score_colour = match (bank.plays_score, bank.score_writes) {
+                (true, true) => CELL_ON,
+                // On, and pointing at nothing: this piece never writes
+                // this bank, so the switch can only produce silence.
+                (true, false) => CELL_WRONG,
+                (false, _) => CELL_OFF,
+            };
+            d.rect(sx, ry, sw, k.cell_h(), score_colour);
+            let lw = font::width("SCORE", k.small_scale());
+            d.text(sx + (sw - lw) / 2,
+                   ry + (k.cell_h() - font::height(k.small_scale())) / 2,
+                   "SCORE", if bank.plays_score { BG } else { DIM },
+                   k.small_scale());
+            d.hit(Kind::Toggle, bank.score_param,
+                  (sx, ry, sx + sw, ry + k.cell_h()));
+
+            let sx = sx + sw + k.cell_gap() * 3;
             for c in 0..CELLS {
                 let cx = sx + c * (k.cell_w() + k.cell_gap());
                 let on = bank.listens_on(c as usize);
-                d.rect(cx, ry, k.cell_w(), k.cell_h(),
-                       if on { CELL_ON } else { CELL_OFF });
+                let colour = match (on, bank.plays_score) {
+                    (true, false) => CELL_ON,
+                    (true, true) => CELL_ON_MUTED,
+                    (false, false) => CELL_OFF,
+                    (false, true) => CELL_OFF_MUTED,
+                };
+                d.rect(cx, ry, k.cell_w(), k.cell_h(), colour);
                 // The channel number, 1-based the way every DAW counts
                 // them, centred in its cell.
                 let label = format!("{}", c + 1);
                 let lw = font::width(&label, k.small_scale());
                 d.text(cx + (k.cell_w() - lw) / 2,
                        ry + (k.cell_h() - font::height(k.small_scale())) / 2,
-                       &label, if on { BG } else { DIM }, k.small_scale());
+                       &label,
+                       match (on, bank.plays_score) {
+                           (true, _) => BG,
+                           (false, true) => CELL_OFF,
+                           (false, false) => DIM,
+                       },
+                       k.small_scale());
                 d.hit(Kind::Toggle, bank.routing_param0 + c as u32,
                       (cx, ry, cx + k.cell_w(), ry + k.cell_h()));
             }

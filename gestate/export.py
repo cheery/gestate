@@ -239,6 +239,12 @@ def program_of(source: str, rate: int):
     index = {b.name: i for i, b in enumerate(banks_of(source))}
     voices = [(tag, index[name]) for tag, name in by_tag.items()
               if name in index]
+    # The note ports: `hear holds.keys` asks by channel id, and the
+    # shell answers with what that bank is holding.
+    from .audioscore import ports_of
+    holds = [(chan, index[name])
+             for chan, name in ports_of(source, state).items()
+             if name in index]
     cons = state.cons
     return {
         "text": text,
@@ -250,6 +256,7 @@ def program_of(source: str, rate: int):
         "cue_ask": cons["CueAsk"].tag,
         "cue_end": cons["CueEnd"].tag,
         "voices": sorted(voices),
+        "holds": sorted(holds),
     }
 
 
@@ -261,8 +268,10 @@ def _program_rs(program) -> str:
         # case itself.
         return ""
     voices = ", ".join(f"({t}, {b})" for t, b in program["voices"])
+    holds = ", ".join(f"({c}, {b})" for c, b in program["holds"])
     return (
         f"static VOICE_BANKS: &[(i64, usize)] = &[{voices}];\n"
+        f"static HOLDS: &[(i64, usize)] = &[{holds}];\n"
         "pub static PROGRAM: Option<Program> = Some(Program {\n"
         f"    text: {_rust_str(program['text'])},\n"
         f"    entry: {_rust_str(program['entry'])},\n"
@@ -273,7 +282,32 @@ def _program_rs(program) -> str:
         f"    cue_ask_tag: {program['cue_ask']},\n"
         f"    cue_end_tag: {program['cue_end']},\n"
         "    voice_banks: VOICE_BANKS,\n"
+        "    holds: HOLDS,\n"
         "});\n")
+
+
+def scored_banks(source: str) -> list:
+    """Per bank, whether the **score** writes it.
+
+    `audioscore.assigned_banks` by parsed mention, so it answers for an
+    unfolding piece too — which is the case that needs it, since a
+    dynamic score has no baked schedule to read the answer off.
+
+    What it is for: a bank the piece plays must not also be the
+    keyboard's by default.  That is the **two-bank law** the listening
+    pieces are built on — an arpeggiator cannot listen to the bank it
+    writes — and routing MIDI into a scored bank fills the voices the
+    piece needs, so the piece goes quiet and the player hears their own
+    notes instead.
+    """
+    from .audioscore import assigned_banks
+    from .audiovoices import banks_of
+
+    try:
+        scored = assigned_banks(source)
+    except Exception:
+        return [False] * len(banks_of(source))
+    return [b.name in scored for b in banks_of(source)]
 
 
 def _score_rs(score, bpm: float) -> str:
@@ -335,8 +369,13 @@ def _banks_rs(banks: list) -> str:
     return "".join(out)
 
 
+def _bools(flags) -> str:
+    return "[" + ", ".join("true" if f else "false" for f in flags) + "]"
+
+
 def descriptor_rs(graph, *, id_: str, name: str, version: str,
                   rate: int, knobs: frozenset, bank=None, program=None,
+                  scored=None,
                   graphs=None, beat=None, score=None,
                   bpm: float = 120.0) -> str:
     """The Rust the shell includes — everything only the compiler knows."""
@@ -368,6 +407,7 @@ def descriptor_rs(graph, *, id_: str, name: str, version: str,
             f"{kinds}\n\n"
             f"{_rates_rs(graphs if graphs is not None else {rate: graph})}\n"
             f"{_banks_rs(bank or [])}\n"
+            f"pub static SCORED: &[bool] = &{_bools(scored or [])};\n"
             f"{_score_rs(score, bpm)}\n"
             f"{_program_rs(program)}\n"
             f"pub static BEAT_SLOTS: Option<(usize, usize, usize)> = "
@@ -594,6 +634,7 @@ def export_clap(source: str, out: Path, *, rate=None, name: str,
             graph, id_=f"org.gestate.{name}", name=name,
             version=version, rate=primary, knobs=knobs, bank=bank,
             graphs=graphs, beat=beat, score=score, program=program,
+            scored=scored_banks(source),
             bpm=_bpm_of(source)))
         env = dict(**__import__("os").environ, GESTATE_GRAPH_DIR=d)
         # `--target-dir` pins the artifact under the shell whether or

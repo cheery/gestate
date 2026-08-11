@@ -278,6 +278,10 @@ impl Panel {
             return true;
         }
         for b in model.banks.iter_mut() {
+            if param == b.score_param {
+                b.plays_score = value >= 0.5;
+                return true;
+            }
             let Some(c) = param.checked_sub(b.routing_param0) else {
                 continue;
             };

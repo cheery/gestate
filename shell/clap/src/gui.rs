@@ -27,10 +27,60 @@ use crate::engine::{self, Descriptor};
 /// automation.  The audio side only ever `try_lock`s: a panel that is
 /// mid-frame must never be able to stall a render, and a change that
 /// waits one block is inaudible where a missed deadline is not.
+/// The host, and the one call the panel makes on it.
+///
+/// **`request_flush` is the reason this is here.**  A knob or a routing
+/// cell moved while the transport is stopped has no `process` call to
+/// ride out on; without asking, the change waits in the queue until the
+/// player presses play, which reads as a control that does nothing.
+/// CLAP declares `request_flush` thread-safe, which is what makes it
+/// callable from the window's own thread.
+struct HostFlush {
+    host: *const clap_host,
+    params: *const clap_host_params,
+}
+
+// SAFETY: the two pointers are the host's, valid for the plugin's
+// lifetime, and the only method called through them is one CLAP marks
+// thread-safe.
+unsafe impl Send for HostFlush {}
+unsafe impl Sync for HostFlush {}
+
 #[derive(Default)]
 pub struct Queue {
     changes: Mutex<Vec<Change>>,
     values: Mutex<Vec<(u32, f64)>>,
+    flush: std::sync::OnceLock<HostFlush>,
+}
+
+impl Queue {
+    /// Remember the host, once, on the main thread.
+    ///
+    /// # Safety
+    /// `host` must be the pointer the factory was handed, valid until
+    /// the plugin is destroyed.
+    pub unsafe fn attach(&self, host: *const clap_host) {
+        if host.is_null() {
+            return;
+        }
+        let ext = ((*host).get_extension)(
+            host, CLAP_EXT_PARAMS_HOST.as_ptr() as *const c_char);
+        if ext.is_null() {
+            return;
+        }
+        let _ = self.flush.set(HostFlush {
+            host,
+            params: ext as *const clap_host_params,
+        });
+    }
+
+    fn ask_for_flush(&self) {
+        if let Some(f) = self.flush.get() {
+            // SAFETY: `attach`'s contract, and CLAP's thread-safety
+            // marking on this one call.
+            unsafe { ((*f.params).request_flush)(f.host) };
+        }
+    }
 }
 
 impl Sink for Queue {
@@ -47,6 +97,8 @@ impl Sink for Queue {
             }
             q.push(change);
         }
+        // Outside the lock: the host may call straight back into us.
+        self.ask_for_flush();
     }
 
     fn values(&self) -> Vec<(u32, f64)> {
@@ -108,7 +160,7 @@ impl Gui {
 /// id `params_get_info` hands the host — so the panel and the host name
 /// the same parameter without a second table to keep in step.
 pub fn model_of(desc: &'static Descriptor, control: &[i64],
-                routing: &[u16]) -> Model {
+                routing: &[u16], plays: &[bool]) -> Model {
     let knobs = desc.controls.iter().enumerate()
         .filter(|(_, c)| c.knob)
         .map(|(slot, c)| Knob {
@@ -137,6 +189,9 @@ pub fn model_of(desc: &'static Descriptor, control: &[i64],
         },
         routing: routing.get(i).copied().unwrap_or(0),
         routing_param0: base + (i * 16) as u32,
+        plays_score: plays.get(i).copied().unwrap_or(false),
+        score_writes: engine::SCORED.get(i).copied().unwrap_or(false),
+        score_param: base + (engine::BANKS.len() * 16 + i) as u32,
     }).collect();
 
     Model { title: desc.name.to_string(), knobs, banks }
@@ -219,7 +274,7 @@ unsafe extern "C" fn gui_get_size(plugin: *const clap_plugin,
     let (w, h) = match &inst.gui.size {
         Some((w, h)) => (*w, *h),
         None => panels::size(&model_of(inst.desc, &inst.control,
-                                       &inst.routing),
+                                       &inst.routing, &inst.plays_score),
                              panels::SCALE_DEFAULT),
     };
     *width = w as u32;
@@ -261,7 +316,8 @@ unsafe extern "C" fn gui_get_resize_hints(_p: *const clap_plugin,
 /// The numbers are the panel's own — it knows what its widest row needs
 /// — and a second set here would be a second place to get it wrong.
 fn clamp_size(inst: &crate::Instance, w: u32, h: u32) -> (u32, u32) {
-    let model = model_of(inst.desc, &inst.control, &inst.routing);
+    let model = model_of(inst.desc, &inst.control, &inst.routing,
+                     &inst.plays_score);
     let (mw, mh) = panels::min_size(&model, panels::SCALE_DEFAULT);
     (w.max(mw as u32), h.max(mh as u32))
 }
@@ -308,7 +364,8 @@ unsafe extern "C" fn gui_set_parent(plugin: *const clap_plugin,
     let Some(handle) = raw_parent(w.handle) else {
         return false;
     };
-    let model = model_of(inst.desc, &inst.control, &inst.routing);
+    let model = model_of(inst.desc, &inst.control, &inst.routing,
+                     &inst.plays_score);
     let queue = inst.gui.queue.clone();
     let size = inst.gui.size;
 

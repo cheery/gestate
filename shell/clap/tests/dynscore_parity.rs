@@ -40,6 +40,7 @@ fn fixture() -> (String, Program, Vec<(i64, i64, usize, Vec<i64>)>) {
         cue_ask_tag: head[5].parse().unwrap(),
         cue_end_tag: head[6].parse().unwrap(),
         voice_banks: Box::leak(banks.into_boxed_slice()),
+        holds: &[],
     };
 
     let want = include_str!("moods.events")
@@ -104,7 +105,7 @@ fn a_program_that_is_not_one_refuses_rather_than_panics() {
         text: "not a crust program at all",
         entry: "liveMain", seed: 0, cons_tag: 1, nil_tag: 0,
         cue_ev_tag: 54, cue_ask_tag: 55, cue_end_tag: 56,
-        voice_banks: BANKS,
+        voice_banks: BANKS, holds: &[],
     };
     // A panic here would take a DAW down with it.
     assert!(Piece::open(&bad, 0).is_err());

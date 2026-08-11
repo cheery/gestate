@@ -79,6 +79,9 @@ impl Interaction {
         // leaving a gesture hanging until the mouse comes up somewhere.
         if hit.kind == Kind::Toggle {
             let Some(on) = m.banks.iter().find_map(|b| {
+                if hit.param == b.score_param {
+                    return Some(b.plays_score);
+                }
                 let c = hit.param.checked_sub(b.routing_param0)? as usize;
                 (c < 16).then(|| b.listens_on(c))
             }) else {

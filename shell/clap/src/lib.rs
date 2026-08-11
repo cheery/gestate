@@ -55,6 +55,11 @@ pub(crate) struct Instance {
     /// .by_midi_channel`'s own rule — and every cell is a stepped
     /// parameter, so the DAW's generic UI *is* the checkbox matrix.
     routing: Vec<u16>,
+    /// Per bank, whether the score plays it — the other half of the
+    /// switch whose first half is `routing`.  Defaults to the banks the
+    /// score actually writes, so a piece plays itself and a keyboard
+    /// bank stays the keyboard's.
+    plays_score: Vec<bool>,
     /// The compiled rate `activate` picked — the graph being played.
     active: Option<&'static engine::RateCase>,
     /// The shell's own beat position, for a host with a tempo but no
@@ -66,19 +71,66 @@ pub(crate) struct Instance {
     /// The piece as a program, for a score no event list can hold —
     /// opened on `activate`, when the rate is finally known.
     #[cfg(feature = "dynscore")]
-    piece: Option<dynscore::Piece>,
+    piece: Option<dynscore::Performer>,
     /// The host, kept from `factory_create` so a panel can ask it to
     /// flush a change made while the transport is stopped
     /// (`spec/panel.md` §"What the ABI has to grow").
     host: *const clap_host,
     #[cfg(feature = "gui")]
     gui: gui::Gui,
+    /// Panel changes applied here and still owed to the host.
+    #[cfg(feature = "gui")]
+    gui_outbox: Vec<gestate_panel::Change>,
 }
 
-fn default_routing() -> Vec<u16> {
+/// Whether the score plays each bank, before anyone says otherwise:
+/// the banks it actually writes.
+fn default_plays() -> Vec<bool> {
     (0..engine::BANKS.len())
-        .map(|b| if b < 16 { 1 << b } else { 0 })
+        .map(|b| engine::SCORED.get(b).copied().unwrap_or(false))
         .collect()
+}
+
+/// Which MIDI channel feeds which bank, before anyone says otherwise.
+///
+/// **Scored banks get nothing.**  The old default was the plain
+/// diagonal — channel *n* plays bank *n* — which is right for an
+/// instrument and wrong for a piece: it routes the player's notes into
+/// the voices the score is using, so the score falls silent and the
+/// player hears only themselves.  `moods` writes *both* its banks, and
+/// under the diagonal every key pressed took one away from it.
+///
+/// So the channels go to the banks the piece does **not** write, in
+/// order: the first unscored bank is channel 1, the next is channel 2.
+/// A piece that plays everything accepts no MIDI by default, which is
+/// the honest reading of a self-playing piece — and every cell is still
+/// a parameter, so a player who wants to double a scored bank by hand
+/// can switch it on in the panel.
+fn default_routing() -> Vec<u16> {
+    let any_free = (0..engine::BANKS.len())
+        .any(|b| !engine::SCORED.get(b).copied().unwrap_or(false));
+    if !any_free {
+        // **A plugin must be playable by hand.**  When the piece owns
+        // every bank there is no free one to give the channels to, and
+        // refusing MIDI outright would make the instrument
+        // indistinguishable from a broken one — `fmpoly` is a piano
+        // with a demo score, and a piano you cannot play is not an
+        // improvement.  So the diagonal stands, and the `from score`
+        // switch is how a player hands a bank over instead.
+        return (0..engine::BANKS.len())
+            .map(|b| if b < 16 { 1 << b } else { 0 })
+            .collect();
+    }
+    let mut next = 0u32;
+    engine::BANKS.iter().enumerate().map(|(b, _)| {
+        let scored = engine::SCORED.get(b).copied().unwrap_or(false);
+        if scored || next >= 16 {
+            return 0;
+        }
+        let bit = 1u16 << next;
+        next += 1;
+        bit
+    }).collect()
 }
 
 impl Instance {
@@ -93,6 +145,7 @@ impl Instance {
             voices: engine::BANKS.iter()
                 .map(|b| vec![FRESH_VOICE; b.voices.len()]).collect(),
             routing: default_routing(),
+            plays_score: default_plays(),
             active: None,
             beat_pos: 0.0,
             performer: score::Performer::new(),
@@ -101,6 +154,8 @@ impl Instance {
             piece: None,
             #[cfg(feature = "gui")]
             gui: gui::Gui::default(),
+            #[cfg(feature = "gui")]
+            gui_outbox: Vec::new(),
         }
     }
 
@@ -128,7 +183,41 @@ impl Instance {
     /// plugin that quietly restored defaults on every play would
     /// disagree with its own parameter display from then on.  The
     /// routing matrix is the host's belief too, and survives.
+    /// The transport rewound: the piece starts again from its top.
+    ///
+    /// **The player's hands are not the piece.**  A rewind wipes the
+    /// engine, the cursor and the score's voices — but a key held
+    /// across the moment you press play is still held afterwards, and
+    /// erasing it made a listening score answer an empty world at
+    /// exactly the instant a player had set one up.  So the MIDI voices
+    /// are taken down and put back: their records survive, and their
+    /// gates are re-stamped at the rewound clock so the engine, which
+    /// *is* zeroed, sounds them again from zero.
+    ///
+    /// This is `score::Performer::seek`'s rule — only scored banks are
+    /// touched — applied to the coarser move.
     fn rewind(&mut self) {
+        let held: Vec<(usize, usize, NoteKey, Vec<i64>)> = self.voices
+            .iter().enumerate().flat_map(|(b, bank)| {
+                bank.iter().enumerate().filter_map(move |(i, v)| {
+                    match v.key {
+                        Some(k @ NoteKey::Midi(..)) if v.released.is_none() =>
+                            Some((b, i, k)),
+                        _ => None,
+                    }
+                })
+            })
+            .filter_map(|(b, i, k)| {
+                // Checked, not indexed: this runs on the audio thread
+                // inside a host, where a panic is that host's crash.
+                let slots = engine::BANKS.get(b)?.voices.get(i)?;
+                let payload: Vec<i64> = slots.iter().skip(2)
+                    .filter_map(|s| self.control.get(*s).copied())
+                    .collect();
+                Some((b, i, k, payload))
+            })
+            .collect();
+
         self.state.iter_mut().for_each(|b| *b = 0);
         for (slot, c) in self.control.iter_mut().zip(self.desc.controls) {
             if !c.knob {
@@ -141,6 +230,27 @@ impl Instance {
             .for_each(|bank| bank.iter_mut()
                       .for_each(|v| *v = FRESH_VOICE));
         self.performer.reset();
+
+        for (b, i, key, payload) in held {
+            let Some(slots) = engine::BANKS.get(b)
+                .and_then(|bk| bk.voices.get(i)) else { continue };
+            if let Some(v) = self.voices.get_mut(b)
+                .and_then(|bk| bk.get_mut(i))
+            {
+                *v = VoiceState { key: Some(key), started: 0,
+                                  released: None };
+            }
+            let mut put = |slot: usize, value: i64| {
+                if let Some(c) = self.control.get_mut(slot) {
+                    *c = value;
+                }
+            };
+            if let Some(g) = slots.first() { put(*g, 1); }   // the new zero
+            if let Some(o) = slots.get(1) { put(*o, 0); }
+            for (slot, value) in slots.iter().skip(2).zip(&payload) {
+                put(*slot, *value);
+            }
+        }
     }
 
     /// `Allocator.note_on`, per routed bank: the routing matrix says
@@ -219,6 +329,72 @@ impl Instance {
     /// block's start, not sample-accurately — which is not a corner
     /// cut: control rate in gestate *is* once per block, so this is
     /// the engine's own semantics meeting the host's event list.
+    /// One parameter into this instance — a knob's slot, or a routing
+    /// cell's bit.
+    ///
+    /// **One place, because there are two writers.**  The host writes
+    /// parameters through `drain`; the panel writes them through
+    /// `emit_gui_changes`.  When only `drain` knew how to apply a
+    /// routing cell, a click in the panel changed the picture and
+    /// nothing else until the host happened to echo the value back —
+    /// which is a matrix that looks like it works.
+    fn apply_param(&mut self, param_id: u32, value: f64) {
+        let id = param_id as usize;
+        let n = self.desc.controls.len();
+        if id < n {
+            if let Some(c) = self.desc.controls.get(id) {
+                if c.knob {
+                    self.control[id] = c.bits_of(value);
+                }
+            }
+            return;
+        }
+        // Above the control slots: `n + bank*16 + channel` is a
+        // routing cell, and past the whole matrix comes one score
+        // switch per bank.
+        let cell = id - n;
+        let cells = engine::BANKS.len() * 16;
+        if cell >= cells {
+            if let Some(on) = self.plays_score.get_mut(cell - cells) {
+                *on = value >= 0.5;
+            }
+            return;
+        }
+        let (b, ch) = (cell / 16, cell % 16);
+        if b >= self.routing.len() {
+            return;
+        }
+        if value >= 0.5 {
+            self.routing[b] |= 1 << ch;
+            return;
+        }
+        self.routing[b] &= !(1 << ch);
+        // **And let go of what that channel is holding.**  Routing is
+        // read at note-*on*, so a cell switched off while a key is down
+        // would otherwise leave the note sounding until the player
+        // happened to release it — a control that looks dead, because
+        // the only way to hear it is to stop playing.  A bank that no
+        // longer listens to a channel releases the voices that channel
+        // put there, and nothing else: notes from other channels, and
+        // the score's own notes, are not this cell's business.
+        let at = self.t;
+        let Some(bank) = engine::BANKS.get(b) else { return };
+        for i in 0..self.voices[b].len() {
+            let v = self.voices[b][i];
+            let Some(NoteKey::Midi(vch, _)) = v.key else { continue };
+            if vch as usize != ch || v.released.is_some() {
+                continue;
+            }
+            self.voices[b][i].released = Some(at);
+            self.voices[b][i].key = None;
+            if let Some(off) = bank.voices.get(i).and_then(|c| c.get(1)) {
+                if let Some(slot) = self.control.get_mut(*off) {
+                    *slot = at + 1;
+                }
+            }
+        }
+    }
+
     unsafe fn drain(&mut self, events: *const clap_input_events) {
         if events.is_null() {
             return;
@@ -236,32 +412,15 @@ impl Instance {
             match h.type_ {
                 CLAP_EVENT_PARAM_VALUE => {
                     let ev = &*(header as *const clap_event_param_value);
-                    let id = ev.param_id as usize;
-                    let n = self.desc.controls.len();
-                    if id < n {
-                        if let Some(c) = self.desc.controls.get(id) {
-                            if c.knob {
-                                self.control[id] = c.bits_of(ev.value);
-                                // Automation and the host's own generic
-                                // UI reach the faders here, and only
-                                // here — the panel never reads a slot.
-                                #[cfg(feature = "gui")]
-                                self.report_to_gui(ev.param_id, ev.value);
-                            }
-                        }
-                    } else {
-                        // A routing cell: ids above the control slots
-                        // are `n + bank*16 + channel`.
-                        let cell = id - n;
-                        let (b, ch) = (cell / 16, cell % 16);
-                        if b < self.routing.len() {
-                            if ev.value >= 0.5 {
-                                self.routing[b] |= 1 << ch;
-                            } else {
-                                self.routing[b] &= !(1 << ch);
-                            }
-                        }
-                    }
+                    self.apply_param(ev.param_id, ev.value);
+                    // **Every parameter, not just the knobs.**
+                    // Automation and the host's own generic UI reach
+                    // the panel here and only here, and a routing cell
+                    // switched from the DAW's own view has to move the
+                    // matrix too — otherwise the two disagree and the
+                    // panel is the one that looks broken.
+                    #[cfg(feature = "gui")]
+                    self.report_to_gui(ev.param_id, ev.value);
                 }
                 // Notes are stamped `t + event.time`: the *value*
                 // carries the true onset, so an event late in the
@@ -323,12 +482,83 @@ unsafe fn instance<'a>(plugin: *const clap_plugin) -> &'a mut Instance {
 }
 
 unsafe extern "C" fn plugin_init(_plugin: *const clap_plugin) -> bool {
+    // The host's own extensions are readable from `init` onwards, and
+    // this is the first thing in this shell that wants one: the panel
+    // has to be able to ask for a flush, or a control moved while the
+    // transport is stopped waits for play.
+    #[cfg(feature = "gui")]
+    {
+        let inst = instance(_plugin);
+        inst.gui.queue.attach(inst.host);
+    }
     true
 }
 
 unsafe extern "C" fn plugin_destroy(plugin: *const clap_plugin) {
     drop(Box::from_raw((*plugin).plugin_data as *mut Instance));
     drop(Box::from_raw(plugin as *mut clap_plugin));
+}
+
+/// Whether this plugin carries a piece it must force rather than read.
+#[cfg(feature = "dynscore")]
+fn has_program() -> bool {
+    engine::program().is_some()
+}
+
+#[cfg(not(feature = "dynscore"))]
+fn has_program() -> bool {
+    false
+}
+
+/// The world a listening piece asks about: the keys held on each bank.
+///
+/// **Taken before the performance advances**, and that is not an
+/// implementation detail — a question is answered with the world at its
+/// own instant, and the block boundary is where a host's note events
+/// have all landed.  Sorted, because a chord is a set but a reading is
+/// a value in a transcript and one spelling of it replays.
+#[cfg(feature = "dynscore")]
+fn held_keys(inst: &Instance) -> Vec<Vec<i64>> {
+    inst.voices.iter().map(|bank| {
+        let mut keys: Vec<i64> = bank.iter().filter_map(|v| match v.key {
+            Some(NoteKey::Midi(_ch, note)) if v.released.is_none() =>
+                Some(note as i64),
+            _ => None,
+        }).collect();
+        keys.sort_unstable();
+        keys.dedup();
+        keys
+    }).collect()
+}
+
+/// The forced piece follows the transport's jump.
+#[cfg(feature = "dynscore")]
+unsafe fn seek_piece(inst: &mut Instance, tb: &score::Tables, tempo: f64,
+                     target: i64) {
+    let Some(mut perf) = inst.piece.take() else { return };
+    if let Some(program) = engine::program() {
+        perf.origin = inst.performer.origin;
+        perf.seek(program, tb, tempo, target, inst.t,
+                  &mut inst.voices, &mut inst.control);
+    }
+    inst.piece = Some(perf);
+}
+
+/// Force and perform the program's own notes for this block.
+#[cfg(feature = "dynscore")]
+unsafe fn advance_piece(inst: &mut Instance, tb: &score::Tables,
+                        tempo: f64, end: i64, frames: i64) {
+    let Some(mut perf) = inst.piece.take() else { return };
+    let Some(program) = engine::program() else {
+        inst.piece = Some(perf);
+        return;
+    };
+    let held = held_keys(inst);
+    perf.origin = inst.performer.origin;
+    perf.advance(program, tb, tempo, &mut inst.voices,
+                 &mut inst.control, end, frames.max(1),
+                 &|bank| held.get(bank).cloned().unwrap_or_default());
+    inst.piece = Some(perf);
 }
 
 /// Open the piece, if this plugin carries one.
@@ -339,10 +569,9 @@ unsafe extern "C" fn plugin_destroy(plugin: *const clap_plugin) {
 /// still an instrument you can play with your hands.
 #[cfg(feature = "dynscore")]
 unsafe fn open_piece(inst: &mut Instance) {
-    inst.piece = match engine::program() {
-        Some(p) => dynscore::Piece::open(p, 0).ok(),
-        None => None,
-    };
+    inst.piece = engine::program()
+        .and_then(|p| dynscore::Piece::open(p, 0).ok())
+        .map(dynscore::Performer::new);
 }
 
 unsafe extern "C" fn plugin_activate(plugin: *const clap_plugin,
@@ -415,10 +644,23 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
         fell = !now && inst.playing;
         if rose {
             inst.rewind();
+            // **Two plays are one performance.**  A baked cursor
+            // rewinds by resetting its index; a forced one has to
+            // re-open its stream, or the second play carries on from
+            // wherever the first one stopped.
+            #[cfg(feature = "dynscore")]
+            open_piece(inst);
         }
         inst.playing = now;
         stopped = !now;
     }
+    // **The hands, before the piece asks about them.**  A listening
+    // score's question is answered with the world at its own instant,
+    // and a note that arrived in *this* block is part of that world —
+    // draining after the score advanced answered every question with
+    // the previous block's hands, which is a ladder that plays the
+    // chord it was holding a block ago, or nothing.
+    inst.drain(p.in_events);
     // **The host clock**: `beat` and `beatRate` are the renderer's
     // own, and in a DAW the renderer is the transport.  The three
     // descriptor-declared slots carry a *line* — beat at this block's
@@ -460,11 +702,22 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
     // rather than re-deriving it per block, so the delivery
     // boundaries and the stamped instants keep the bake's exact
     // integers, which is the stage's parity clause.
-    if !engine::SCORE.is_empty() {
+    // **Or a program**: an unfolding piece has an empty `SCORE` — that
+    // is the whole reason it carries an interpreter — so a guard on the
+    // event list alone silences exactly the scores this stage exists
+    // for.  The cursor below does nothing for them; `advance_piece`
+    // does the work.
+    if !engine::SCORE.is_empty() || has_program() {
         let rate = inst.active.map_or(inst.desc.rate, |c| c.rate);
+        // Copied rather than borrowed: `Tables` is read while `voices`
+        // and `control` are written, and a switch cannot change inside
+        // one block anyway — the host's parameter events landed before
+        // this point.
+        let plays = inst.plays_score.clone();
         let tb = score::Tables {
             events: engine::SCORE,
             banks: engine::BANKS,
+            plays: &plays,
             controls: inst.desc.controls,
             tpb: engine::SCORE_TPB,
             rate,
@@ -523,15 +776,31 @@ unsafe extern "C" fn plugin_process(plugin: *const clap_plugin,
                     inst.performer.seek(&tb, tempo, actual, inst.t,
                                         &mut inst.voices,
                                         &mut inst.control);
+                    // The forced piece jumps too, or the playhead moves
+                    // and the music does not.
+                    #[cfg(feature = "dynscore")]
+                    seek_piece(inst, &tb, tempo, actual);
                 }
                 let end = inst.t - inst.performer.origin
                     + p.frames_count as i64;
                 inst.performer.advance(&tb, tempo, &mut inst.voices,
                                        &mut inst.control, end);
+                // **The unfolding half.**  `SCORE` is empty for a piece
+                // no list can hold, so the cursor above delivers
+                // nothing and this forces the program instead.  The two
+                // never both have work: an export bakes or it carries a
+                // program, never both.
+                // **Absolute samples**, where the cursor above takes
+                // score-relative ones: this performer stamps its notes
+                // at engine instants and gates its questions on engine
+                // instants, so it is told where the engine is.
+                #[cfg(feature = "dynscore")]
+                advance_piece(inst, &tb, tempo,
+                              inst.t + p.frames_count as i64,
+                              p.frames_count as i64);
             }
         }
     }
-    inst.drain(p.in_events);
     // The panel's own changes join the host's, after them: a drag that
     // lands in the same block as an automation write is the user's, and
     // the user is the later authority.
@@ -621,7 +890,9 @@ fn write_name(dst: &mut [c_char; CLAP_NAME_SIZE], text: &str) {
 }
 
 unsafe extern "C" fn params_count(plugin: *const clap_plugin) -> u32 {
-    knob_count(plugin) + (engine::BANKS.len() * 16) as u32
+    // Knobs, then the routing matrix, then one "does the score play
+    // this bank" switch per bank.
+    knob_count(plugin) + (engine::BANKS.len() * 17) as u32
 }
 
 unsafe extern "C" fn params_get_info(plugin: *const clap_plugin,
@@ -654,11 +925,39 @@ unsafe extern "C" fn params_get_info(plugin: *const clap_plugin,
     // draws modules draws the matrix as its own panel.  The default is
     // the diagonal: channel *n* plays bank *n*.
     let cell = (index - knobs) as usize;
+    let n = instance(plugin).desc.controls.len();
+    let cells = engine::BANKS.len() * 16;
+    if cell >= cells {
+        // **The score switch.**  Whether the piece plays this bank —
+        // the other half of the routing matrix, and stepped like every
+        // cell in it, so a DAW draws it as a checkbox and can automate
+        // a bank away mid-song.
+        let b = cell - cells;
+        let Some(bank) = engine::BANKS.get(b) else {
+            return false;
+        };
+        out.id = (n + cell) as u32;
+        out.flags = CLAP_PARAM_IS_AUTOMATABLE | CLAP_PARAM_IS_STEPPED;
+        out.cookie = std::ptr::null_mut();
+        write_name(&mut out.name, &format!("{} from score", bank.name));
+        // Its own module: a host that groups by module draws the
+        // matrix and the switches as two panels, which is what they
+        // are — sixteen channels *into* a bank, and one question about
+        // who plays it.
+        out.module = [0; CLAP_PATH_SIZE];
+        for (d, s) in out.module.iter_mut().zip(b"score\0") {
+            *d = *s as c_char;
+        }
+        out.min_value = 0.0;
+        out.max_value = 1.0;
+        out.default_value =
+            engine::SCORED.get(b).copied().unwrap_or(false) as u32 as f64;
+        return true;
+    }
     let (b, ch) = (cell / 16, cell % 16);
     let Some(bank) = engine::BANKS.get(b) else {
         return false;
     };
-    let n = instance(plugin).desc.controls.len();
     out.id = (n + cell) as u32;
     out.flags = CLAP_PARAM_IS_AUTOMATABLE | CLAP_PARAM_IS_STEPPED;
     out.cookie = std::ptr::null_mut();
@@ -692,6 +991,16 @@ unsafe extern "C" fn params_get_value(plugin: *const clap_plugin,
         };
     }
     let cell = id - n;
+    let cells = engine::BANKS.len() * 16;
+    if cell >= cells {
+        return match inst.plays_score.get(cell - cells) {
+            Some(on) => {
+                *out = *on as u32 as f64;
+                true
+            }
+            None => false,
+        };
+    }
     let (b, ch) = (cell / 16, cell % 16);
     match inst.routing.get(b) {
         Some(row) => {
@@ -1144,13 +1453,33 @@ impl Instance {
     /// a render, and a change that waits one block is inaudible where a
     /// missed deadline is not.
     unsafe fn emit_gui_changes(&mut self, out: *const clap_output_events) {
-        if out.is_null() || !self.gui.is_open() {
+        if !self.gui.is_open() {
             return;
         }
-        let changes = self.gui.queue.take_changes();
-        if changes.is_empty() {
+        // **Applied here, emitted below — and the two are separate on
+        // purpose.**  They used to share one early return on a null
+        // `out_events`, so a host that gave us nowhere to send events
+        // (or a block where we simply had none) dropped the change
+        // instead of applying it: every click in the routing matrix
+        // moved the picture and nothing else.  A panel writes the
+        // instance first, because that is what makes the next block
+        // sound right, and tells the host when there is a queue to tell
+        // it through.
+        for change in self.gui.queue.take_changes() {
+            if let gestate_panel::Change::Value(id, value) = change {
+                self.apply_param(id, value);
+            }
+            // Kept until a host gives us somewhere to put it: a
+            // gesture the host never hears leaves its automation lane
+            // and its undo out of step with what is sounding.
+            if self.gui_outbox.len() < 8192 {
+                self.gui_outbox.push(change);
+            }
+        }
+        if out.is_null() || self.gui_outbox.is_empty() {
             return;
         }
+        let changes = std::mem::take(&mut self.gui_outbox);
         let push = (*out).try_push;
         for change in changes {
             match change {
@@ -1175,12 +1504,6 @@ impl Instance {
                     push(out, &ev.header as *const clap_event_header);
                 }
                 gestate_panel::Change::Value(id, value) => {
-                    // The slot, at once — see the note above.
-                    if let Some(c) = self.desc.controls.get(id as usize) {
-                        if let Some(slot) = self.control.get_mut(id as usize) {
-                            *slot = c.bits_of(value);
-                        }
-                    }
                     let ev = clap_event_param_value {
                         header: clap_event_header {
                             size: std::mem::size_of::

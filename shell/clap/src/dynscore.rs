@@ -212,7 +212,7 @@ mod tests {
             text: "", entry: "liveMain", seed: 0,
             cons_tag: 1, nil_tag: 0,
             cue_ev_tag: 54, cue_ask_tag: 55, cue_end_tag: 56,
-            voice_banks: BANKS,
+            voice_banks: BANKS, holds: &[],
         };
         // two events: one on bank 0 with two int fields, one on bank 1
         // with a constructor wrapping one field.
@@ -234,7 +234,7 @@ mod tests {
             text: "", entry: "liveMain", seed: 0,
             cons_tag: 1, nil_tag: 0,
             cue_ev_tag: 54, cue_ask_tag: 55, cue_end_tag: 56,
-            voice_banks: BANKS,
+            voice_banks: BANKS, holds: &[],
         };
         let err = decode(&p, &[1, 0, 96, 77, 0]).unwrap_err();
         assert!(err.contains("77"), "the refusal must name the tag: {err}");
@@ -247,9 +247,364 @@ mod tests {
             text: "", entry: "liveMain", seed: 0,
             cons_tag: 1, nil_tag: 0,
             cue_ev_tag: 54, cue_ask_tag: 55, cue_end_tag: 56,
-            voice_banks: BANKS,
+            voice_banks: BANKS, holds: &[],
         };
         assert!(decode(&p, &[1, 0, 96]).is_err());
         assert!(decode(&p, &[1, 0, 96, 59, 4, 0, 60]).is_err());
+    }
+}
+
+// ── The performer ───────────────────────────────────────────────────────
+//
+// `audiodynamic.LazyPerformer`, retold.  The same two questions the
+// baked cursor answers — advance to a sample, and what changed — plus
+// the two only an unfolding score needs:
+//
+//   * **a stall is absence.**  Rendering never stops; the future waits.
+//   * **a note whose beat has passed when it finally appears is
+//     dropped.**  A section that lost its place rejoins at the current
+//     bar; it does not play the missed bars fast.
+//
+// The pending heap is what absorbs the stream's small local disorder:
+// notes are admitted as they appear but emitted in `(sample,
+// releases-first)` order, and only up to the stream's frontier — the
+// tick below which nothing new can appear — so nothing sounds that a
+// later arrival could contradict.
+
+use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashSet};
+
+use crate::score::{pick_voice, release_voice, score_samples, NoteKey,
+                   VoiceState};
+
+/// One end of a note, waiting for its instant.
+///
+/// The tuple order **is** the ordering: sample, then `order` with 0 for
+/// a release and 1 for an onset, so two things at one instant let the
+/// release go first and free the voice the onset may want.  `seq` is
+/// admission order, which keeps the sort total and therefore
+/// reproducible.
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+struct Entry {
+    sample: i64,
+    order: u8,
+    seq: u64,
+    key: u32,
+    bank: usize,
+    is_off: bool,
+    payload: Vec<i64>,
+}
+
+pub struct Performer {
+    piece: Piece,
+    pending: BinaryHeap<Reverse<Entry>>,
+    /// Keys handed out to notes, and the heap's tie-break.
+    events: u32,
+    seq: u64,
+    /// Keys whose onset was dropped — their release is owed nothing.
+    dropped: HashSet<u32>,
+    /// Keys sounding, whose off is still owed.
+    played: HashSet<u32>,
+    /// The last sample advanced to; `-1` before the first block.
+    position: i64,
+    /// The engine sample the piece's tick zero falls at.
+    ///
+    /// **Samples, not ticks**, and the distinction is load-bearing:
+    /// `audiodynamic.LazyPerformer.origin` is a *tick* offset (it
+    /// rebases a resumed remainder), while `score::Performer.origin` is
+    /// the engine sample score zero stands at.  This is the shell's
+    /// meaning, because this performer lives beside the shell's cursor
+    /// and shares its transport.  Assigning one to the other type-checks
+    /// and is wrong everywhere except at zero — which is exactly where
+    /// a plugin starts, so it looks fine until the transport has run.
+    pub origin: i64,
+    /// How many beats ahead of the clock the stream is forced.
+    pub horizon_beats: f64,
+    /// The last thing that went wrong.
+    pub failed: Option<String>,
+}
+
+impl Performer {
+    pub fn new(piece: Piece) -> Self {
+        Performer {
+            piece,
+            pending: BinaryHeap::new(),
+            events: 0,
+            seq: 0,
+            dropped: HashSet::new(),
+            played: HashSet::new(),
+            position: -1,
+            origin: 0,
+            horizon_beats: 4.0,
+            failed: None,
+        }
+    }
+
+    pub fn stalled(&self) -> bool {
+        self.piece.stalled()
+    }
+
+    /// Admit one forced note: its two ends into the heap.
+    ///
+    /// A note whose onset already lies in a delivered block is dropped
+    /// here rather than played late — the rejoin rule at its first
+    /// gate, the other being in `advance`.
+    fn admit(&mut self, n: &Note, tempo: f64, rate: u32, tpb: i64,
+             block: i64) {
+        let start = self.origin
+            + score_samples(n.onset, tempo, rate, tpb);
+        let end = (self.origin + score_samples(n.offset, tempo, rate, tpb))
+            .max(start);
+        if boundary(start, block) <= self.position {
+            return;                     // its beat has passed
+        }
+        let key = self.events;
+        self.events += 1;
+        self.pending.push(Reverse(Entry {
+            sample: start, order: 1, seq: self.seq, key,
+            bank: n.bank, is_off: false, payload: n.payload.clone(),
+        }));
+        self.pending.push(Reverse(Entry {
+            sample: end, order: 0, seq: self.seq + 1, key,
+            bank: n.bank, is_off: true, payload: Vec::new(),
+        }));
+        self.seq += 2;
+    }
+
+    /// Force the stream to the horizon `t` implies, answering any
+    /// question it stops on.
+    ///
+    /// `held` is what the world holds per bank — the keys the player
+    /// has down — and is what `hear holds.<bank>` reads.
+    fn pull(&mut self, p: &Program, t: i64, tempo: f64, rate: u32,
+            tpb: i64, block: i64, held: &dyn Fn(usize) -> Vec<i64>) {
+        // Where the piece's own clock stands: engine samples since its
+        // tick zero, turned into ticks.
+        let elapsed = (t - self.origin).max(0) as f64;
+        let tick_now =
+            (elapsed / rate as f64) * (tempo / 60.0) * tpb as f64;
+        let horizon = (tick_now
+                       + self.horizon_beats * tpb as f64) as i64 + 1;
+        for _ in 0..64 {
+            let notes = self.piece.pull(p, horizon.max(0), 2_000_000, 4096);
+            for n in &notes {
+                self.admit(n, tempo, rate, tpb, block);
+            }
+            if self.piece.failed.is_some() {
+                self.failed = self.piece.failed.clone();
+                return;
+            }
+            let Some((tick, chan, _key)) = self.piece.asking() else {
+                break;
+            };
+            // **The reading, at the decision instant** — not before.
+            // A question whose downbeat has not arrived stays open: the
+            // world it asks about is the world at *its* instant, and
+            // answering early would answer with a hand that has not
+            // moved yet.
+            let due = self.origin + score_samples(tick, tempo, rate, tpb);
+            if boundary(due, block) > t {
+                break;
+            }
+            let reading = match p.port_bank(chan) {
+                // An unplugged port holds nothing, which is silence and
+                // not an error.
+                None => Vec::new(),
+                Some(bank) => held(bank),
+            };
+            self.piece.answer(&reading);
+            if self.piece.failed.is_some() {
+                self.failed = self.piece.failed.clone();
+                return;
+            }
+        }
+    }
+
+    /// Perform everything due at or before sample `t`.
+    ///
+    /// The mirror of `score::Performer::advance`, and deliberately the
+    /// same shape: the caller cannot tell which kind of score it has.
+    #[allow(clippy::too_many_arguments)]
+    pub fn advance(&mut self, p: &Program, tb: &crate::score::Tables,
+                   tempo: f64, voices: &mut [Vec<VoiceState>],
+                   control: &mut [i64], t: i64, block: i64,
+                   held: &dyn Fn(usize) -> Vec<i64>) {
+        if self.failed.is_some() {
+            return;
+        }
+        self.pull(p, t, tempo, tb.rate, tb.tpb, block, held);
+
+        // Below this sample the heap is the whole truth; above it, a
+        // later arrival could still come first.
+        let covered = if self.piece.done() {
+            None
+        } else {
+            Some(self.origin
+                 + score_samples(self.piece.frontier(), tempo,
+                                 tb.rate, tb.tpb))
+        };
+
+        let mut deferred = Vec::new();
+        while let Some(Reverse(e)) = self.pending.pop() {
+            let at = boundary(e.sample, block);
+            if at > t {
+                self.pending.push(Reverse(e));
+                break;
+            }
+            // Beyond the frontier a later arrival could still precede
+            // it — except a note-off of something already sounding,
+            // which owes order to nobody and must play out however long
+            // the stall.
+            if let Some(c) = covered {
+                if e.sample > c && !(e.is_off && self.played.contains(&e.key)) {
+                    deferred.push(Reverse(e));
+                    continue;
+                }
+            }
+            if e.is_off && self.dropped.contains(&e.key) {
+                self.dropped.remove(&e.key);
+                continue;
+            }
+            if !e.is_off && at <= self.position {
+                // Admitted in time, but gated behind a stall until its
+                // beat had passed: the rejoin rule, at the other gate.
+                self.dropped.insert(e.key);
+                continue;
+            }
+            if e.is_off {
+                self.played.remove(&e.key);
+            } else {
+                self.played.insert(e.key);
+            }
+            perform(tb, &e, self.origin_at(e.sample), voices, control);
+        }
+        for e in deferred {
+            self.pending.push(e);
+        }
+        self.position = t;
+    }
+
+    /// An entry's sample is already the engine's: `admit` added
+    /// `origin` when it turned ticks into samples, so there is one
+    /// place the offset is applied and this is not it.
+    fn origin_at(&self, sample: i64) -> i64 {
+        sample
+    }
+}
+
+fn boundary(at: i64, block: i64) -> i64 {
+    (at / block.max(1)) * block.max(1)
+}
+
+/// One end of a note into the control slots — `score::Performer`'s own
+/// `perform`, over a dynamic entry rather than a tabled one.
+fn perform(tb: &crate::score::Tables, e: &Entry, at: i64,
+           voices: &mut [Vec<VoiceState>], control: &mut [i64]) {
+    // Switched off: the stream still advanced past this note, so
+    // switching the score back on rejoins where the music is rather
+    // than where it was left — the same rule the baked cursor keeps.
+    if !tb.plays.get(e.bank).copied().unwrap_or(true) {
+        return;
+    }
+    // **Every index checked.**  This runs on a host's audio thread, and
+    // the bank came off a wire the program wrote: a descriptor that
+    // disagreed with the graph would otherwise be a crash in someone
+    // else's process rather than a note that does not sound.
+    let Some(bank) = tb.banks.get(e.bank) else { return };
+    let Some(bank_voices) = voices.get_mut(e.bank) else { return };
+    let mut put = |slot: usize, value: i64, control: &mut [i64]| {
+        if let Some(c) = control.get_mut(slot) {
+            *c = value;
+        }
+    };
+    if e.is_off {
+        if let Some(i) = release_voice(bank_voices,
+                                       NoteKey::Score(e.key), at) {
+            if let Some(chans) = bank.voices.get(i) {
+                if let Some(o) = chans.get(1) { put(*o, at + 1, control); }
+            }
+        }
+    } else {
+        let i = pick_voice(bank_voices);
+        let Some(chans) = bank.voices.get(i) else { return };
+        if let Some(v) = bank_voices.get_mut(i) {
+            *v = VoiceState {
+                key: Some(NoteKey::Score(e.key)),
+                started: at,
+                released: None,
+            };
+        }
+        if let Some(g) = chans.first() { put(*g, at + 1, control); }
+        if let Some(o) = chans.get(1) { put(*o, 0, control); }
+        for (slot, value) in chans.iter().skip(2).zip(&e.payload) {
+            put(*slot, *value, control);
+        }
+    }
+}
+
+impl Performer {
+    /// Stand at score sample `target` as if the piece had been played
+    /// from its top, releasing what sounds at engine sample `now`.
+    ///
+    /// **The descent does the work here, where a replay does it at
+    /// home.**  `audiodynamic.LazyPerformer.seek` walks its own history
+    /// and answers questions from the thread; a plugin has no thread —
+    /// it is being played, not replayed — so it re-opens the stream at
+    /// the target tick and lets `liveMain`'s own second argument do the
+    /// skipping.  `resumeAt` descends by *declared* widths, so what
+    /// stood left of the tick is stepped over rather than forced, which
+    /// is why a jump to bar 400 is not a walk through 399 bars.
+    ///
+    /// The consequence worth stating: a piece that answers a channel
+    /// re-asks its questions after a seek rather than replaying the
+    /// answers it once gave.  Live, that is right — the world is the
+    /// player's hands, and they are where they are now.
+    #[allow(clippy::too_many_arguments)]
+    pub fn seek(&mut self, p: &Program, tb: &crate::score::Tables,
+                tempo: f64, target: i64, now: i64,
+                voices: &mut [Vec<VoiceState>], control: &mut [i64]) {
+        // **Only the score's own voices.**  A keyboard-held note
+        // survives a loop seam because the piece never wrote there —
+        // `score::Performer::seek`'s rule, kept.
+        for (b, bank) in tb.banks.iter().enumerate() {
+            if !tb.plays.get(b).copied().unwrap_or(true) {
+                continue;
+            }
+            let Some(vs) = voices.get_mut(b) else { continue };
+            for i in 0..vs.len() {
+                if !matches!(vs[i].key, Some(NoteKey::Score(_))) {
+                    continue;
+                }
+                vs[i].key = None;
+                vs[i].released = Some(now);
+                if let Some(off) = bank.voices.get(i).and_then(|c| c.get(1)) {
+                    if let Some(slot) = control.get_mut(*off) {
+                        *slot = now + 1;
+                    }
+                }
+            }
+        }
+
+        self.pending.clear();
+        self.dropped.clear();
+        self.played.clear();
+        self.position = -1;
+
+        // Ticks the target stands at, and the stream re-rooted there.
+        let ticks = if tempo > 0.0 && tb.rate > 0 {
+            ((target as f64 / tb.rate as f64) * (tempo / 60.0)
+             * tb.tpb as f64) as i64
+        } else {
+            0
+        };
+        match Piece::open(p, ticks.max(0)) {
+            Ok(piece) => {
+                self.piece = piece;
+                self.failed = None;
+            }
+            // A piece that will not re-open goes quiet and says so,
+            // rather than carrying on from the wrong place.
+            Err(e) => self.failed = Some(e),
+        }
     }
 }

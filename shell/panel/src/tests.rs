@@ -34,6 +34,8 @@ fn model() -> Model {
             },
             routing: 0b0000_0000_0000_0001,
             routing_param0: 100,
+                       plays_score: true, score_writes: true,
+                       score_param: 1000,
         }],
     }
 }
@@ -247,7 +249,8 @@ fn a_structural_bank_says_so_in_words() {
         knobs: vec![],
         banks: vec![BankView { name: "keys".into(), voices: 4,
                                accepts: Accepts::Everything, routing: 0b0000_0000_0000_0010,
-                       routing_param0: 100 }],
+                       routing_param0: 100, plays_score: true, score_writes: true,
+                       score_param: 1000 }],
     };
     let d = panels::view(&m, 600, None, 100, 0);
     let said = d.items.iter().any(|i| matches!(i,
@@ -280,11 +283,28 @@ fn cell_point(p: &Panel, param: u32) -> (i32, i32) {
 }
 
 #[test]
-fn every_bank_offers_sixteen_channels() {
+fn every_bank_offers_sixteen_channels_and_a_score_switch() {
     let p = Panel::new(model());
-    let cells = p.display().hits.iter()
+    let toggles = p.display().hits.iter()
         .filter(|h| h.kind == Kind::Toggle).count();
-    assert_eq!(cells, 16, "one cell per MIDI channel, per bank");
+    assert_eq!(toggles, 17, "sixteen channels and one score switch");
+}
+
+#[test]
+fn the_score_switch_toggles_and_is_its_own_parameter() {
+    let mut p = Panel::new(model());
+    let id = p.model.banks[0].score_param;
+    let h = p.display().hits.iter()
+        .find(|h| h.param == id && h.kind == Kind::Toggle)
+        .expect("the score switch is on the panel");
+    let (x0, y0, x1, y1) = h.region;
+    let out = p.press((x0 + x1) / 2, (y0 + y1) / 2);
+    assert!(out.contains(&Change::Value(id, 0.0)),
+            "on must turn off: {out:?}");
+    assert!(!p.model.banks[0].plays_score);
+    // And it is *not* a routing cell — the two must not share an id.
+    assert!(id < p.model.banks[0].routing_param0
+            || id >= p.model.banks[0].routing_param0 + 16);
 }
 
 #[test]
