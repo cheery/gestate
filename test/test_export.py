@@ -1144,8 +1144,12 @@ def test_the_canvas_crosses_with_its_tags_and_its_channels():
     sub = substrate_of(source, 48000, graph, _knobs_of(source, graph))
     assert sub is not None, "substrate.ges declares a `substrate`"
     assert sub["entry"] == "main"
-    assert len(sub["tags"]) == 11, "eleven `Sub` constructors"
-    assert len(set(sub["tags"])) == 11, "and eleven distinct tags"
+    # Twelve `Sub` constructors, then `Cons` and `Nil` — not
+    # constructors of `Sub` at all, and carried because a `Label` holds
+    # a `String` and a `String` is `List Char`.  That is the whole cost
+    # of text crossing: no new node kind, no new instruction, two tags.
+    assert len(sub["tags"]) == 14
+    assert len(set(sub["tags"])) == 14, "and every tag distinct"
     assert sub["chans"] == ["cutoff", "peak"], \
         "the declarations, in the order the file writes them"
 

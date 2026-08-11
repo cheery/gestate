@@ -163,9 +163,11 @@ pub struct Substrate {
     /// file's `substrate`.
     pub entry: &'static str,
     /// The `Sub` constructor tags, in `gestate_panel::substrate
-    /// ::SubTags` order.  A tag is a position in this program's own
-    /// table, so it cannot be derived — only carried.
-    pub tags: [i64; 11],
+    /// ::SubTags` order — and, on the end, `Cons` and `Nil`, which are
+    /// not `Sub` constructors but are what a `Label`'s `String` is made
+    /// of.  A tag is a position in this program's own table, so it
+    /// cannot be derived — only carried.
+    pub tags: [i64; 14],
     /// Every `name : Chan …` the file declares, **in the order
     /// written**.
     ///

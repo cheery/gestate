@@ -167,6 +167,9 @@ night = RGB 32 35 43
 bone : Colour
 bone = RGB 232 236 244
 
+dim : Sig Colour
+dim = colour 122 130 142
+
 #: A fader: a dark track, the part you have pulled through, and a handle
 #: where the value says.
 #:
@@ -189,21 +192,38 @@ faderOf r g b v =
                         (Rect 44 (floor (v * 200.0)) (RGB r g b))))
          (Shift 0 (floor (v * 200.0 - 100.0)) (Rect 52 6 bone))
 
-#: Two of them, and their colours are the only labels a `Sub` can carry:
-#: cool for the filter, warm for the burn.  (`Sub` has no text — see
-#: `spec/panel.md`; the panel draws the names host-side and the canvas
-#: says what it means in colour and position.)
+#: Two of them, told apart by colour *and* by name — cool for the filter,
+#: warm for the burn.
 warmPic : Float -> Sub
 warmPic v = faderOf 92 168 214 v
 
 glowPic : Float -> Sub
 glowPic v = faderOf 226 158 74 v
 
+#: A caption under the thing it names.  **The box is written down and
+#: the letters are fitted into it**, which is the whole of `label`: this
+#: file says how much room to reserve and the host draws glyphs in that
+#: room, so nothing here measures text and no layout depends on what a
+#: font did.
+#:
+#: Which means **the box decides how big the letters come out** —
+#: `min(w / (4n - 1), h / 5)` on a 3×5 cell — so 52 by 14 draws
+#: `WARMTH` at two, and a box a few pixels narrower would draw it at
+#: one.  Sizing a caption *is* setting its type size; the only way to
+#: ask for bigger letters is to reserve more room for them.
+#:
+#: `column` puts it under what it names and lines their centres up, so
+#: the caption sits square with the track whatever it says.
+caption : String -> Sig Sub
+caption s = column (gap 0 8) (label 52 14 s dim)
+
 warmFader : Sig Sub
-warmFader = onTouchY warmthChan (!warmPic warmth)
+warmFader = column (onTouchY warmthChan (!warmPic warmth))
+                   (caption "WARMTH")
 
 glowFader : Sig Sub
-glowFader = onTouchY glowChan (!glowPic glow)
+glowFader = column (onTouchY glowChan (!glowPic glow))
+                   (caption "GLOW")
 
 #: The meter's ladder: green while there is room, amber near the top, red
 #: at the last two.  A segment above the level is drawn dark rather than
@@ -240,7 +260,7 @@ meterOf : Float -> Sub
 meterOf v = Sized 34 200 (ladderOf 7 v)
 
 meter : Sig Sub
-meter = !meterOf loud
+meter = column (!meterOf loud) (caption "PEAK")
 
 #: And the layout, which is the one place that composes things that vary.
 #: `row` puts them side by side and lines their centres up; there is no

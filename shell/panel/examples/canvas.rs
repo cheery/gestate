@@ -16,6 +16,7 @@ use std::io::Write;
 const T: SubTags = SubTags {
     rect: 10, circle: 11, gap: 12, over: 13, row: 14, column: 15,
     shift: 16, sized: 17, pad: 18, touch_x: 19, touch_y: 20,
+    label: 21, cons: 1, nil: 0,
 };
 
 fn int(m: &mut Machine, v: i32) -> usize { m.alloc(Node::Num(Num::I(v as i128))) }

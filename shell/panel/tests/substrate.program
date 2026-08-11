@@ -43,17 +43,17 @@ block
 I PushArg 2
 I PushArg 2
 I PushArg 2
+I PushGlobal 49
+I PushGlobal zipSig
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal 48
+I PushGlobal zipSig
+I Mkap
+I Mkap
+I Mkap
 I PushGlobal 46
-I PushGlobal zipSig
-I Mkap
-I Mkap
-I Mkap
-I PushGlobal 45
-I PushGlobal zipSig
-I Mkap
-I Mkap
-I Mkap
-I PushGlobal 43
 I PushGlobal mapSig
 I Mkap
 I Mkap
@@ -111,7 +111,7 @@ block
 I Push 2
 I Push 1
 I Push 3
-I PushGlobal 44
+I PushGlobal 47
 I Mkap
 I Mkap
 I Mkap
@@ -248,7 +248,7 @@ I Unwind
 block
 I PushGlobal events
 I PushArg 1
-I PushGlobal 90
+I PushGlobal 93
 I Mkap
 I PushGlobal mapSig
 I Mkap
@@ -262,7 +262,7 @@ I Update 2
 I Pop 2
 I Unwind
 block
-I Pack 20 0
+I Pack 21 0
 I Eval
 I PushGlobal input
 I Eval
@@ -323,7 +323,7 @@ I Unwind
 block
 I PushArg 1
 I PushArg 1
-I PushGlobal 36
+I PushGlobal 39
 I PushGlobal zipSig
 I Mkap
 I Mkap
@@ -368,7 +368,7 @@ I Unwind
 block
 I PushArg 1
 I PushArg 1
-I PushGlobal 48
+I PushGlobal 51
 I Mkap
 I PushGlobal __Functor_Sig_map__
 I Mkap
@@ -400,7 +400,7 @@ I Unwind
 block
 I PushArg 1
 I PushArg 1
-I PushGlobal 35
+I PushGlobal 38
 I PushGlobal zipSig
 I Mkap
 I Mkap
@@ -792,30 +792,30 @@ global moveXY 3 2
 global mapSig 0 3
 global 18 3 4
 global 19 2 5
-global 43 1 8
-global 44 3 9
+global 46 1 8
+global 47 3 9
 global zipSig 0 10
 global 20 4 11
 global 21 5 15
-global 45 2 16
-global 46 2 17
+global 48 2 16
+global 49 2 17
 global __Num_Sig_Int_fromInteger__ 1 18
 global constSig 1 19
-global 90 2 20
+global 93 2 20
 global events 0 21
 global mkSig 0 22
 global 8 2 23
 global 9 3 24
 global input 0 25
 global row 2 26
-global 36 2 27
+global 39 2 27
 global fader 0 28
 global onTouchY 2 29
 global __Functor_Sig_map__ 2 30
-global 48 2 31
+global 51 2 31
 global cutoff 0 32
 global over 2 33
-global 35 2 34
+global 38 2 34
 global rect 3 35
 global 29 1 38
 global 30 3 39

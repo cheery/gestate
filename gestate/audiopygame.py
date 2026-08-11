@@ -3207,14 +3207,29 @@ def _wrap(text: str, wide: int) -> list:
 
 
 def _canvas(screen, pygame, layout: Layout, pane: Pane) -> None:
+    """Draw what the program drew.
+
+    **Three shapes, matched by name rather than by arity.**  This used
+    to be `rect` and an `else` that unpacked five fields, so the day a
+    third item joined the display list — `Label`, whose whole point is
+    that a canvas can say what its faders are — the editor stopped
+    opening with a `ValueError` about a tuple.  An `else` that assumes
+    what is left is a defect waiting for the vocabulary to grow, and
+    this vocabulary is *designed* to grow.
+    """
+    from .gui import _blit_label
+
     ox, oy = layout.inner[0], layout.inner[1]
     for shape in pane.picture():
         if shape[0] == "rect":
             _k, x, y, w, h, colour = shape
             pygame.draw.rect(screen, colour, (ox + x, oy + y, w, h))
-        else:
+        elif shape[0] == "dot":
             _k, x, y, r, colour = shape
             pygame.draw.circle(screen, colour, (ox + x, oy + y), r)
+        elif shape[0] == "text":
+            _k, x, y, words, colour, scale = shape
+            _blit_label(screen, ox + x, oy + y, words, colour, scale)
 
 
 def _text(screen, pygame, font, layout: Layout, pane: Pane, edge,

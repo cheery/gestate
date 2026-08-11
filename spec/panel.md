@@ -215,10 +215,22 @@ list** and a **hit list**, and they are very small:
     { axis, chan, region }
 
 That is the entire host-facing drawing vocabulary of the substrate: no
-text, no paths, no gradients, no clipping, no anti-aliasing
-requirement.  Ten `Sub` constructors, of which `Row`, `Column`, `Pad`
-and `Sized` are layout the *language* performs — the host accumulates
-a centre point and nothing else.
+paths, no gradients, no clipping, no anti-aliasing requirement.  Ten
+`Sub` constructors, of which `Row`, `Column`, `Pad` and `Sized` are
+layout the *language* performs — the host accumulates a centre point
+and nothing else.
+
+*(Since written, an eleventh and a third item: `Label w h s c`, and*
+
+    ("text", x, y, string, colour, scale)
+
+*— see §"What the substrate demanded".  The list said "no text" and
+that was true of the substrate rather than of the list, since panel one
+had been drawing its own names through the very same item all along.
+What the canvas gained is the right to say one, in a **box it
+declares**; the scale in the item is fitted from that box by
+arithmetic both hosts perform, so the sentence that still holds is the
+one that matters — nothing here measures a glyph.)*
 
 So the shell grows **a painter against that vocabulary**, and panel
 one emits that vocabulary from the descriptor.  When the canvas
@@ -451,8 +463,8 @@ longer describes is a lie.
 Recorded here because the panel is what turns these from questions
 into requirements.
 
-* **Text.**  *(Still open.)*  `Sub` has no label, and the panels have
-  names to draw.
+* **Text.**  *(Settled, and it was the next thing built.)*  `Sub` has no
+  label, and the panels have names to draw.
   The editor's withdrawal turned on the language being unable to
   measure text — but `gui.ges` states its own rule directly above the
   datatype: *"The extent is declared, never measured."*  A label with
@@ -463,9 +475,9 @@ into requirements.
   it is why `Label String` under `Sized w h` is admissible where an
   editor was not.  Panel one draws its text host-side and does not
   settle this; a canvas that wants a legend does.
-* **`TouchX`/`TouchY` versus the spec's `onDrag`.**  *(Still open, and
-  now overdue: the canvas ships with `TouchX`/`TouchY` and nothing
-  else.)*  The built
+* **`TouchX`/`TouchY` versus the spec's `onDrag`.**  *(Reconciled, in
+  `spec/substrate.md`, when `Label` arrived — which is what this entry
+  said would force it.)*  The built
   vocabulary attaches a `Chan Float` on one axis; `spec/substrate.md`
   §"Attachment" still describes `onDrag : Chan Point -> Sub -> Sub`.
   Panel one's knob rows are horizontal, so they are `TouchX` and the

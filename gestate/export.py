@@ -264,7 +264,12 @@ def program_of(source: str, rate: int):
 #: expects them.  A tag is a *position* in the program's own table, so
 #: the shell cannot derive one — same reasoning as the cue tags above.
 _SUB_CONS = ("Rect", "Circle", "Gap", "Over", "Row", "Column",
-             "Shift", "Sized", "Pad", "TouchX", "TouchY")
+             "Shift", "Sized", "Pad", "TouchX", "TouchY", "Label",
+             # Not `Sub` constructors: a `Label` carries a `String` and
+             # a `String` is `List Char`, so the walk needs the two tags
+             # any list needs.  That is the whole cost of text crossing
+             # — no new node kind and no new instruction.
+             "Cons", "Nil")
 
 
 def substrate_of(source: str, rate: int, graph, knobs: frozenset):

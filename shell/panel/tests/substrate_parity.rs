@@ -44,14 +44,15 @@ fn tags() -> SubTags {
     SubTags {
         rect: raw[0], circle: raw[1], gap: raw[2], over: raw[3],
         row: raw[4], column: raw[5], shift: raw[6], sized: raw[7],
-        pad: raw[8], touch_x: raw[9], touch_y: raw[10],
+        pad: raw[8], touch_x: raw[9], touch_y: raw[10], label: raw[11],
+        cons: raw[12], nil: raw[13],
     }
 }
 
-/// What the reference drew, read back off the fixture.
-fn expected() -> Display {
+/// What the reference drew, read back off a fixture.
+fn drawn(fixture: &str) -> Display {
     let mut d = Display::new();
-    for line in include_str!("substrate.display").lines() {
+    for line in fixture.lines() {
         let f: Vec<&str> = line.split_whitespace().collect();
         if f.is_empty() {
             continue;
@@ -62,6 +63,11 @@ fn expected() -> Display {
                              Colour::rgb(n(5) as u8, n(6) as u8, n(7) as u8)),
             "dot" => d.dot(n(1), n(2), n(3),
                            Colour::rgb(n(4) as u8, n(5) as u8, n(6) as u8)),
+            // `text x y scale r g b WORDS` — the words run to the end of
+            // the line, so a caption may hold spaces.
+            "text" => d.text(n(1), n(2), &f[7..].join(" "),
+                             Colour::rgb(n(4) as u8, n(5) as u8, n(6) as u8),
+                             n(3)),
             "hit" => {
                 let axis = if f[1] == "x" { Axis::X } else { Axis::Y };
                 d.hit(Kind::Chan(axis, f[2].parse().unwrap()),
@@ -72,6 +78,10 @@ fn expected() -> Display {
         }
     }
     d
+}
+
+fn expected() -> Display {
+    drawn(include_str!("substrate.display"))
 }
 
 /// Load the program and force `main` to the signal it is.
@@ -385,6 +395,7 @@ fn lantern() -> CanvasProgram {
             rect: raw[0], circle: raw[1], gap: raw[2], over: raw[3],
             row: raw[4], column: raw[5], shift: raw[6], sized: raw[7],
             pad: raw[8], touch_x: raw[9], touch_y: raw[10],
+            label: raw[11], cons: raw[12], nil: raw[13],
         },
         chans: vec!["warmthChan".into(), "glowChan".into(), "peak".into()],
         // The slots `export.substrate_of` reports for this file.
@@ -494,4 +505,129 @@ fn each_fader_writes_its_own_parameter() {
     }
     params.sort_unstable();
     assert_eq!(params, vec![4, 29], "the knobs `warmth` and `glow`");
+}
+
+/// **The port fits letters into a box exactly as the reference does.**
+///
+/// A label is the first thing in this vocabulary whose *appearance* is
+/// computed rather than declared: the box is the program's, but how big
+/// the glyphs come out is arithmetic, and two hosts with different
+/// fonts have to reach the same answer without either measuring one.
+/// `gui.ges` states the rule beside the constructor; `gui.py::_fit` and
+/// `substrate::fit` are the two implementations, and this is what holds
+/// them equal on a real file.
+#[test]
+fn the_port_fits_a_label_the_way_the_reference_fits_it() {
+    let (mut m, _e) = Machine::from_text(include_str!("lantern.program"));
+    let root = *m.globals_get("main").expect("`main`");
+    let forced = m.force_node(root);
+    let id = match m.heap_at(forced) {
+        Node::Sig(id) => *id,
+        other => panic!("`main` is not a signal: {other:?}"),
+    };
+    let value = m.sig_value(id).expect("a value");
+    let t = lantern_tags();
+    let got = reference(&mut m, &t, value).expect("the walk");
+    let want = drawn(include_str!("lantern.display"));
+
+    assert_eq!(got.items.len(), want.items.len(),
+               "item count: got {:?}", got.items);
+    for (i, (a, b)) in got.items.iter().zip(&want.items).enumerate() {
+        assert_eq!(a, b, "item {i}");
+    }
+    assert_eq!(got.hits, want.hits, "the attachments");
+
+    // And there really are labels in it, or the test above is checking
+    // that two pictures with no text agree about text.
+    let texts: Vec<&Item> = got.items.iter()
+        .filter(|i| matches!(i, Item::Text { .. })).collect();
+    assert_eq!(texts.len(), 3, "WARMTH, GLOW and PEAK");
+}
+
+fn lantern_tags() -> SubTags {
+    let raw: Vec<i64> = include_str!("lantern.tags")
+        .split_whitespace().map(|w| w.parse().unwrap()).collect();
+    SubTags {
+        rect: raw[0], circle: raw[1], gap: raw[2], over: raw[3],
+        row: raw[4], column: raw[5], shift: raw[6], sized: raw[7],
+        pad: raw[8], touch_x: raw[9], touch_y: raw[10], label: raw[11],
+        cons: raw[12], nil: raw[13],
+    }
+}
+
+/// **A label reserves the box it declared, not the box it filled.**
+///
+/// This is the whole reason a label is admissible where a text editor
+/// was not (`spec/editor.md`): the language cannot measure text, so
+/// nothing in a layout may depend on what a font did.  A caption that
+/// grew its own extent when its string got longer would put measuring
+/// back in the middle of layout by the back door — and the neighbour in
+/// the `row` would shuffle when a word changed.
+#[test]
+fn a_labels_extent_is_its_box_whatever_it_says() {
+    use gestate_panel::substrate::{extent, fit};
+    let (mut m, _e) = Machine::from_text(include_str!("lantern.program"));
+    let root = *m.globals_get("main").unwrap();
+    let forced = m.force_node(root);
+    let id = match m.heap_at(forced) { Node::Sig(i) => *i, _ => panic!() };
+    let value = m.sig_value(id).unwrap();
+    let t = lantern_tags();
+    let whole = extent(&mut m, &t, value).expect("an extent");
+
+    // `WARMTH` is six characters and `GLOW` is four, in boxes of the
+    // same declared width — so the picture is the same size either way.
+    assert_eq!(fit(44, 9, 6), fit(44, 9, 4),
+               "a longer caption changed how big the letters came out                 in the same box");
+    assert!(whole.0 > 0 && whole.1 > 0);
+}
+
+/// The failure an author can see: a box too small still draws, at one,
+/// and overflows.  Silence would be the wrong answer — a caption that
+/// vanished when its box was a pixel short is a bug you cannot find.
+#[test]
+fn a_label_too_big_for_its_box_is_drawn_anyway() {
+    use gestate_panel::substrate::fit;
+    assert_eq!(fit(4, 4, 12), 1);
+    assert_eq!(fit(0, 0, 3), 1);
+    assert_eq!(fit(100, 100, 0), 1, "an empty caption has no width to fit");
+}
+
+/// **A caption reaches the window a plugin opens.**
+///
+/// The parity test above compares two walks; this checks the whole
+/// path a DAW takes — the program as the export sends it, opened
+/// through `Canvas`, ticked by the panel, and drawn on the tab.  A
+/// label that crossed but did not survive `CanvasProgram`'s tag
+/// translation would pass every test before this one.
+#[test]
+fn the_panel_shows_the_captions_the_program_wrote() {
+    let p = lantern_panel();
+    let words: Vec<String> = p.canvas().expect("attached").display()
+        .items.iter().filter_map(|i| match i {
+            Item::Text { s, .. } => Some(s.clone()),
+            _ => None,
+        }).collect();
+    assert_eq!(words, vec!["WARMTH", "GLOW", "PEAK"]);
+}
+
+/// And a caption is drawn, not merely listed.
+///
+/// The painter is the one thing a display-list comparison cannot check,
+/// and a `Text` item whose glyphs never reached the buffer would look
+/// identical in every assertion above.
+#[test]
+fn a_caption_puts_ink_on_the_canvas() {
+    let mut p = lantern_panel();
+    let lit = |p: &Panel| -> usize {
+        p.render().px.iter()
+            .filter(|w| **w == gestate_panel::list::Colour::rgb(122, 130, 142)
+                             .word())
+            .count()
+    };
+    let with = lit(&p);
+    assert!(with > 40, "only {with} caption pixels — the words are not drawn");
+    // Nothing else on this canvas uses the caption's grey, so removing
+    // the labels must remove exactly those pixels.
+    p.set_tab(Tab::Controls);
+    assert_eq!(lit(&p), 0, "the caption's ink is on the other tab too");
 }

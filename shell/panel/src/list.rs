@@ -40,12 +40,18 @@ impl Colour {
 
 /// One thing to draw.
 ///
-/// `Text` is **not** part of the substrate's vocabulary and is marked
-/// so: a `Sub` has no label, and panel one draws its own names as
-/// host-side chrome (`spec/panel.md` §"Text").  It rides in this enum
-/// rather than beside it because the painter's ordering is painter's
-/// order — a label drawn after a rect must be able to land on top of
-/// it, and two lists would have to be interleaved by hand.
+/// `Text` began as chrome only — a `Sub` had no label, and panel one
+/// drew its own names host-side.  `Label w h s c` joined the language
+/// (`spec/substrate.md`), so both sources emit this now, which is what
+/// "one painter, two sources" was always going to mean.  It rides in
+/// this enum rather than beside it because the painter's ordering is
+/// painter's order — a label drawn after a rect must be able to land
+/// on top of it, and two lists would have to be interleaved by hand.
+///
+/// `scale` multiplies the 3×5 cell.  For chrome the panel picks it;
+/// for a label the **walk** fits it to the box the program declared, so
+/// by the time an item exists the question is settled either way and a
+/// painter never measures anything.
 #[derive(Clone, PartialEq, Debug)]
 pub enum Item {
     /// Corner, size, colour.

@@ -102,11 +102,26 @@ it.  What must not move is the *oracle* — the Python render that says
 what a graph means — and that is a question of which implementation is
 authoritative, not of which instructions this one knows.
 
-Not yet: a host that drives the two at frame rate — the walk and the
-sweep are joined in a test, not in a window — and the offline CLI's
-dynamic path.  The reference driver's `cl`/`ticked` cross-check is
-deliberately not ported: it checks `reactive.py` against itself, and
-crust is checked against `reactive.py`.*
+**And text crosses on the tags it already had.**  `Label w h s c` puts
+a `String` in a `Sub`, and a `String` is `List Char` with a `Char` its
+code point — so a caption on the wire is a cons list of `Num(I)`, which
+this machine has carried since the score did.  No new node kind, no new
+instruction; the substrate's tag table grew by `Cons` and `Nil`, which
+is the entire cost.  Worth stating because the obvious fear about text
+was a string node, an interning table and a comparison primitive, and
+none of it was needed: the language had already answered what a string
+is.
+
+**And a host drives both at frame rate.**  `shell/panel/src/canvas.rs`
+turns the loop — arrivals, `reactive_step`, `main`'s cell, walk, paint
+— once a frame on the plugin window's own thread, while the score is
+forced on the audio thread.  Two programs on two machines in one
+plugin, neither waiting on the other.
+
+Not yet: the offline CLI's dynamic path.  The reference driver's
+`cl`/`ticked` cross-check is deliberately not ported: it checks
+`reactive.py` against itself, and crust is checked against
+`reactive.py`.*
 
 For now this is a proposal.
 

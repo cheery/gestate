@@ -130,7 +130,7 @@ Running it needs `pygame`.  `gestate.gui.scenes()` does not, which is why
 | `polysaw.ges` | eight-voice subtractive: detuned saws, an envelope-swept resonant ladder |
 | `stereopad.ges` | a bank whose voices are *stereo* — `voices pad 6 padVoice : Sig Stereo` |
 | `substrate.ges` | a synth you can **see and touch**: a fader and a meter on the canvas behind the editor, feeding and fed by the same signals |
-| `lantern.ges` | **all three halves at once** — an unfolding seeded score, a compiled synth, and a canvas with two faders and a meter.  The one to export as a plugin (`--gui`) if you want to see the whole window doing its job |
+| `lantern.ges` | **all three halves at once** — an unfolding seeded score, a compiled synth, and a canvas with two faders, a meter, and `label` captions naming them.  The one to export as a plugin (`--gui`) if you want to see the whole window doing its job |
 
 ```
 python -m gestate.audio examples/audio/blip.ges -o blip.wav

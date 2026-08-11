@@ -4779,3 +4779,75 @@ does have is three ways of not losing your work quietly — a press
 elsewhere commits rather than discards, an empty field commits nothing
 rather than selecting take zero, and `RNG` closes the field rather than
 leaving a caret over a number it no longer describes.
+
+## Words in a declared box
+
+`Sub` can say what its faders are.  `Label Int Int String Colour`, and
+the whole design is in which of those four arguments is not there: **no
+scale.**
+
+The canvas has been able to draw a fader and not able to name it, so
+`lantern.ges` shipped with a comment saying its colours were the only
+labels a picture could carry.  That is a workaround being documented as
+a feature, and `spec/panel.md` had already done the thinking: text
+*layout* is what withdrew the editor — a cursor position, a wrap point,
+a hit between two characters all need to know how wide a glyph came out,
+and that is the host's secret — but a **label needs a box**, which the
+program can simply write down.  `gui.ges`'s law survives intact: the
+extent is declared, never measured.
+
+So the box is on the constructor, exactly as `Rect Int Int Colour`
+declares its own, and every leaf states its extent where it is written.
+An earlier reading had the box borrowed from an enclosing `Sized`, which
+would have made the walk carry "the box I am inside" — state threaded
+through a descent that has managed without any.
+
+**How big the letters come out is then a consequence rather than a
+choice**, and that is the interesting part.  The host fits the largest
+whole cell into the declared box: `min(w / (4n - 1), h / 5)` on a 3×5
+cell with one column between letters.  Arithmetic on numbers the
+*program* wrote — so `gui.py` and the Rust walk reach the same answer
+without either measuring a glyph, and the parity test holds them equal
+item for item on a real file.  Sizing a caption *is* setting its type
+size, which is what the law costs; a box a few pixels narrow draws at
+one and overflows visibly, which is the failure an author can see.
+
+**It crosses without widening the core.**  A `String` is `List Char` and
+a `Char` is its code point, so a label on the wire is a cons list of
+numbers `crust` already has: no new node kind, no new instruction, only
+`Cons` and `Nil` joining the tags a substrate carries — which the
+score's own wire has carried all along.
+
+Two things fell out of the vocabulary growing, both of the same shape —
+*a reader that assumed what it would be handed*:
+
+`audiopygame._canvas` matched `rect` and then had an `else` that
+unpacked five fields, so the editor stopped opening with a `ValueError`
+about a tuple the day a third item existed.  An `else` that assumes what
+is left is a defect waiting for the vocabulary to grow, and this
+vocabulary is *designed* to grow; it matches by name now.
+
+And `gui.run` — the command the module's own docstring advertises, in
+`doc/manual.md` and `examples/README.md` too — had been calling an
+undefined `_shape` over a *list*, from when a program supplied
+`scene : Sig Scene` and a `Scene` was a list of shapes.  That spelling
+was retired with `Scene` and this was not, so the reference host had
+been raising `NameError` for however long: nothing calls `run` from the
+suite, because a window is the one thing the tests deliberately never
+open.  It draws through `_flatten` now, with the same 3×5 cells rather
+than a system font — the cell is part of the vocabulary, so the
+reference draws it.
+
+**And the reconcile that `Label` was predicted to force.**
+`spec/panel.md` said `TouchX`/`TouchY` versus the spec's `onDrag`
+"should be reconciled before a third element arrives and picks one by
+accident"; the third element arrived, so `spec/substrate.md` now shows
+what was built and keeps the drafts beside them with the reason each
+changed — `still` went with `Scene`, a `Chan Point` became one channel
+per axis because a fader is one parameter and a pad is honestly two, an
+`Axis` argument became the name because an argument that is a literal at
+every call site is the caller saying which of two functions it meant,
+and a pixel offset became a fraction of the element's own extent so
+motion is constrained by construction.  `onPress` is in neither the
+built vocabulary nor the bin: open question 1 still holds it, and
+`Label` left it exactly where it was, needing no event at all.

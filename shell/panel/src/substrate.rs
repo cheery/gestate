@@ -43,6 +43,15 @@ pub struct SubTags {
     pub pad: i64,
     pub touch_x: i64,
     pub touch_y: i64,
+    pub label: i64,
+    /// `Cons` and `Nil` — **not `Sub` constructors**, and they are here
+    /// because a `Label` carries a `String` and a `String` is
+    /// `List Char`.  That is the whole cost of text crossing: no new
+    /// node kind and no new instruction, just the two tags any list
+    /// needs, which the score's wire already carries for its own
+    /// reasons.
+    pub cons: i64,
+    pub nil: i64,
 }
 
 /// What the walk could not do.
@@ -71,6 +80,58 @@ fn int_at(m: &mut Machine, node: usize) -> R<i32> {
         Node::Num(Num::I(v)) => Ok(*v as i32),
         other => err(format!("expected a number, got {other:?}")),
     }
+}
+
+/// The font's cell, in the units both hosts agree on.
+const CELL_W: i32 = 3;
+const CELL_H: i32 = 5;
+const CELL_GAP: i32 = 1;
+
+/// The whole scale a label of `n` characters is drawn at in `w`×`h`.
+///
+/// **A function of declared numbers only**, which is what lets two hosts
+/// with different fonts agree without either measuring a glyph: the box
+/// is the program's, the cell is the vocabulary's, and the arithmetic is
+/// stated in `gui.ges` beside the constructor and mirrored in
+/// `gui.py::_fit`.
+///
+/// Never below one — a label too small for its box is drawn at one and
+/// overflows *visibly*, which is the failure an author can see.
+pub fn fit(w: i32, h: i32, n: i32) -> i32 {
+    if n <= 0 {
+        return 1;
+    }
+    let across = w / (n * (CELL_W + CELL_GAP) - CELL_GAP);
+    let down = h / CELL_H;
+    across.min(down).max(1)
+}
+
+/// A `String` off the heap — `List Char`, and a `Char` is its code
+/// point.
+///
+/// Bounded, because a walk that follows a cons spine is following
+/// whatever the program built: an endless string would hang the frame
+/// rather than fail it, and a picture is not the place to discover that
+/// a list does not terminate.
+fn string_at(m: &mut Machine, t: &SubTags, node: usize) -> R<String> {
+    let mut out = String::new();
+    let mut cell = m.force_node(node);
+    for _ in 0..4096 {
+        let (tag, args) = match m.heap_at(cell) {
+            Node::Con(tag, args) => (*tag, args.clone()),
+            other => return err(format!("expected a list cell, got {other:?}")),
+        };
+        if tag == t.nil {
+            return Ok(out);
+        }
+        if tag != t.cons || args.len() != 2 {
+            return err(format!("expected a list cell, got tag {tag}"));
+        }
+        let code = int_at(m, args[0])? as u32;
+        out.push(char::from_u32(code).unwrap_or('?'));
+        cell = m.force_node(args[1]);
+    }
+    err("a label's text did not end within 4096 characters")
 }
 
 fn colour_at(m: &mut Machine, node: usize) -> R<Colour> {
@@ -120,7 +181,11 @@ fn con_at(m: &mut Machine, node: usize) -> R<(i64, Vec<usize>)> {
 /// changed to the background's.
 pub fn extent(m: &mut Machine, t: &SubTags, node: usize) -> R<(i32, i32)> {
     let (tag, args) = con_at(m, node)?;
-    if tag == t.rect || tag == t.gap {
+    if tag == t.rect || tag == t.gap || tag == t.label {
+        // A label's extent is **the box the program declared**, never
+        // what the letters came out as.  That distinction is what makes
+        // a label admissible where a text editor was not: an editor
+        // needs to measure, and this reserves.
         Ok((int_at(m, args[0])?, int_at(m, args[1])?))
     } else if tag == t.circle {
         let r = int_at(m, args[0])?;
@@ -184,6 +249,18 @@ pub fn walk(m: &mut Machine, t: &SubTags, node: usize,
         let r = int_at(m, args[0])?;
         let c = colour_at(m, args[1])?;
         d.dot(cx, cy, r, c);
+    } else if tag == t.label {
+        let (w, h) = (int_at(m, args[0])?, int_at(m, args[1])?);
+        let text = string_at(m, t, args[2])?.to_uppercase();
+        let c = colour_at(m, args[3])?;
+        let n = text.chars().count() as i32;
+        let s = fit(w, h, n);
+        // Placed by its top-left, like a rect, and centred in its own
+        // declared box — so the item says where the glyphs go and a
+        // painter needs no second rule.
+        let tw = if n == 0 { 0 } else { (n * (CELL_W + CELL_GAP) - CELL_GAP) * s };
+        let th = CELL_H * s;
+        d.text(cx - half(tw), cy - half(th), &text, c, s);
     } else if tag == t.gap {
         // Room, and nothing in it.
     } else if tag == t.over {
@@ -266,6 +343,7 @@ mod tests {
     const T: SubTags = SubTags {
         rect: 10, circle: 11, gap: 12, over: 13, row: 14, column: 15,
         shift: 16, sized: 17, pad: 18, touch_x: 19, touch_y: 20,
+        label: 21, cons: 1, nil: 0,
     };
 
     fn machine() -> Machine {

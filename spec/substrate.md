@@ -90,15 +90,26 @@ to be a name rather than a type parameter.
 An element is bound to what it feeds by an ordinary combinator, and what it
 feeds is a **channel the program declared**:
 
-    dragged : Chan Point
-    dragged = chan
+    cutoff : Chan Float
+    cutoff = chan
 
-    fader : Sub
-    fader = onDrag dragged (still (rect 20 40 12 120))
+    fader : Sig Sub
+    fader = onTouchY cutoff (rect 40 200 grey)
 
     #: What the program reads back.  `:::` is hold; `wait` is the event.
-    pos : Sig Point
-    pos = Point 0 0 ::: mkSig (wait dragged)
+    level : Sig Float
+    level = 0.5 ::: mkSig (wait cutoff)
+
+*(This example was written as `onDrag dragged (still …)` over a
+`Chan Point`, and the built vocabulary is the one above — `onTouchX` and
+`onTouchY`, each over a `Chan Float`.  Three things changed and each is
+recorded where it was decided: `still` went with `Scene` (S2 below), a
+`Point` became **one channel per axis** because a fader is one parameter
+and a pad is honestly two (S3, and `gui.ges` beside the combinators), and
+a raw position became a **fraction of the element's own extent** so that
+motion is constrained by construction and the number means something
+without knowing the size.  The mechanism the paragraphs below describe is
+unchanged: the channel travels inside the structure.)*
 
 **The channel travels as a value, inside the structure.**  That is the
 whole mechanism and it exists today: a `Chan a` is first-class, it may sit
@@ -124,11 +135,16 @@ wants.  One type at the leaf, both readings at the use.
 
 ### Composition, and why it stays first-order
 
-    still   : Scene -> Sub
-    onPress : Chan Point -> Sub -> Sub
-    onDrag  : Chan Point -> Sub -> Sub
-    over    : Sub -> Sub -> Sub
-    moveXY  : Int -> Int -> Sub -> Sub
+    onTouchX : Chan Float -> Sub -> Sub
+    onTouchY : Chan Float -> Sub -> Sub
+    over     : Sub -> Sub -> Sub
+    moveXY   : Int -> Int -> Sub -> Sub
+
+*(As drafted this listed `still : Scene -> Sub` and a `Chan Point` pair,
+`onPress`/`onDrag`.  `still` went with `Scene`; the pair became one
+combinator per axis over a `Chan Float`; and press is not in the built
+vocabulary at all — see §"Open questions" 1, which is about exactly this
+and is still open.)*
 
 Ordinary functions, lifted over time with `!` — `!over a b`,
 `!moveXY x y a` — which is Fran's `lift2 over`, and is why today's `!` was
@@ -303,15 +319,25 @@ made a canvas that wanted a constant depend on a synth being present.
 
 **S3 — attachment, and the walk.**  **Done**, editor wiring included.
 
-    onDragSub  : Axis -> Chan Int -> Sub -> Sub
-    onPressSub : Chan Int -> Sub -> Sub
-    onDrag     : Axis -> Chan Int -> Sig Sub -> Sig Sub
-    onPress    : Chan Int -> Sig Sub -> Sig Sub
-    Axis := AxisX | AxisY
+    TouchX   : Chan Float -> Sub -> Sub          # the constructor
+    TouchY   : Chan Float -> Sub -> Sub
+    onTouchX : Chan Float -> Sig Sub -> Sig Sub   # what a program writes
+    onTouchY : Chan Float -> Sig Sub -> Sig Sub
 
-The axis and the channel are not lifted: they are what the element *is*
-rather than anything it shows, and a `Chan` cannot go inside a `Sig` in any
-case — the subgrammar keeps channels out of what signals carry.
+The channel is not lifted: it is what the element *is* rather than
+anything it shows, and a `Chan` cannot go inside a `Sig` in any case —
+the subgrammar keeps channels out of what signals carry.  So only the
+picture is lifted, with `map` rather than `!`, which would lift both.
+
+*(This section was drafted with an `Axis` argument and an `Int` payload —
+`onDrag : Axis -> Chan Int -> …`, `Axis := AxisX | AxisY`.  **The axis
+became the name**, because an argument that is always a literal at every
+call site is a constant the caller carries to say which of two functions
+it meant; `onTouchX` and `onTouchY` say it in the name and one job per
+name is the rule elsewhere in this file.  And the payload became a
+`Float` fraction rather than an `Int` offset — §"Attachment" above says
+why.  `onPress` was drafted here too and is not built: §"Open questions"
+1 holds it.)*
 
 `gui._walk` draws the tree and records what listens in one descent: an
 attachment's **region** is the box of whatever it drew, and its **origin**
@@ -325,7 +351,7 @@ Three decisions worth having on the record.
 **One number per attachment**, because the extractor says so in as many
 words: *a control value is one slot, and `P` is 3.  Several parameters are
 several channels — each keeps its own value across an edit, which fields of
-one record would not.*  So a fader is one `onDrag`, and a pad is two on one
+one record would not.*  So a fader is one `onTouchY`, and a pad is two on one
 element, which is honest: a pad *is* two parameters and would be two knobs.
 
 **A press grabs.**  Hit-testing every drag afresh gives a fader that stops
@@ -503,8 +529,14 @@ nobody agreed to.
 
 1. **Which events a host delivers.**  Press, drag and release are in;
    wheel, key and hover are not, and whether an attachment names the one it
-   wants (`onPress` beside `onDrag`) or takes one channel of a sum should
+   wants (`onPress` beside `onTouchY`) or takes one channel of a sum should
    be settled by a third element rather than in advance.
+
+   *(The third element arrived and it was `Label`, which needed no event
+   at all — so it settled the other pending question instead, about text,
+   and left this one exactly where it was.  That is the discipline
+   working rather than failing: an element gets built when a program
+   wants it, and no program has yet wanted a wheel.)*
 
 2. **A `Chan` in a data structure is interpreted-only.**  It works because
    the substrate runs on the G-machine.  The audio fragment would refuse it
@@ -519,6 +551,23 @@ nobody agreed to.
 4. **Hit-testing is a bounding box.**  A `Dot` answers presses in its
    corners.  Fine for faders and buttons; wrong the first time an element
    is round and next to another.
+
+5. **A label's letters are host-drawn, and the cell is in the
+   vocabulary.**  `Label w h s c` declares a *box*; how big the glyphs
+   come out is `min(w / (4n - 1), h / 5)` on a 3×5 cell with one column
+   between letters — arithmetic on declared numbers, stated in `gui.ges`
+   beside the constructor and implemented twice (`gui.py::_fit`,
+   `substrate::fit`).  Two hosts therefore agree without either
+   measuring a glyph, which is what keeps *"the extent is declared,
+   never measured"* true with text in the vocabulary.
+
+   What is *not* settled is whether the cell should be the vocabulary's
+   business at all.  A host with real fonts could draw better letters in
+   the same box, and the price of letting it is that the two hosts stop
+   agreeing about a picture they are both drawing from one tree.  The
+   cell was chosen because that agreement is what the parity test is
+   for; a canvas that wants typography rather than captions will want
+   this reopened.
 
 Two questions that were here are **gone rather than answered**, both to the
 same insight — the channel travels inside the structure.  *Where does a

@@ -44,6 +44,7 @@ Sub := Rect Int Int Colour
      | Pad Int Sub
      | TouchX (Chan Float) Sub
      | TouchY (Chan Float) Sub
+     | Label Int Int String Colour
 
 # ── What can arrive ──────────────────────────────────────────────────────
 #
@@ -120,6 +121,39 @@ circle r c = !Circle r c
 #: everywhere — `pad` is the everywhere case.
 gap : Sig Int -> Sig Int -> Sig Sub
 gap w h = !Gap w h
+
+#: Words in a declared box, `w` by `h`, centred in it.
+#:
+#: **The extent is the box, and the box is written down** — which is the
+#: whole reason a label is admissible here where a text *editor* was not.
+#: `spec/editor.md` withdrew because the language cannot measure text:
+#: a cursor position, a wrap point and a hit between two characters all
+#: need to know how wide a glyph came out, and that is the host's secret.
+#: A label needs none of it.  The program says how much room to reserve
+#: and the host draws glyphs into that room; nothing is measured and no
+#: layout depends on what a font did.
+#:
+#: **How big the letters come out is therefore a consequence, not a
+#: choice.**  The host picks the largest whole multiple of its cell that
+#: fits `n` characters in `w` by `h` — with a 3×5 cell and one column
+#: between letters, that is `min(w / (4n - 1), h / 5)`, never below one.
+#: Both hosts compute it from these numbers alone, so both agree without
+#: either of them measuring anything; and a label too small for its box
+#: is drawn at one and overflows *visibly*, which is the honest failure.
+#:
+#: The alphabet is small and known — a channel name is an identifier —
+#: so letters are drawn uppercase whatever case they arrive in, and a
+#: character the host does not carry is drawn as a filled block rather
+#: than as a gap that would read as a spacing bug.
+#:
+#: **The text is not lifted, and the box is.**  A caption is a name and
+#: a name does not vary — `"WARMTH"` is as much a part of the picture's
+#: structure as `44` is of its width — while the box and the colour may
+#: perfectly well be signals, and a fader that dims its own label wants
+#: exactly that.  So the string is an ordinary argument, closed over,
+#: and the three that can vary are lifted.
+label : Sig Int -> Sig Int -> String -> Sig Colour -> Sig Sub
+label w h s c = !(labelAt s) w h c
 
 #: Nothing at all, and no room either.  The identity of `over`, `row` and
 #: `column` alike, so a fold that builds a substrate has somewhere to
@@ -253,3 +287,14 @@ instance Num (Sig Int) where
     (+) a b = zipSig (x y => x + y) a b
     (-) a b = zipSig (x y => x - y) a b
     (*) a b = zipSig (x y => x * y) a b
+
+# ════════════════════════════════════════════════════════════════════════
+internal
+# ════════════════════════════════════════════════════════════════════════
+
+# ── What `label` is built out of ─────────────────────────────────────────
+
+#: `Label` with its text first, so `label` can close the text over and
+#: lift the three arguments that may vary.  A program writes `label`.
+labelAt : String -> Int -> Int -> Colour -> Sub
+labelAt s w h c = Label w h s c

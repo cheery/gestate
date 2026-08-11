@@ -55,17 +55,17 @@ block
 I PushArg 2
 I PushArg 2
 I PushArg 2
+I PushGlobal 49
+I PushGlobal zipSig
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal 48
+I PushGlobal zipSig
+I Mkap
+I Mkap
+I Mkap
 I PushGlobal 46
-I PushGlobal zipSig
-I Mkap
-I Mkap
-I Mkap
-I PushGlobal 45
-I PushGlobal zipSig
-I Mkap
-I Mkap
-I Mkap
-I PushGlobal 43
 I PushGlobal mapSig
 I Mkap
 I Mkap
@@ -123,7 +123,7 @@ block
 I Push 2
 I Push 1
 I Push 3
-I PushGlobal 44
+I PushGlobal 47
 I Mkap
 I Mkap
 I Mkap
@@ -260,7 +260,7 @@ I Unwind
 block
 I PushGlobal events
 I PushArg 1
-I PushGlobal 149
+I PushGlobal 152
 I Mkap
 I PushGlobal mapSig
 I Mkap
@@ -274,7 +274,7 @@ I Update 2
 I Pop 2
 I Unwind
 block
-I Pack 20 0
+I Pack 21 0
 I Eval
 I PushGlobal input
 I Eval
@@ -335,7 +335,7 @@ I Unwind
 block
 I PushArg 1
 I PushArg 1
-I PushGlobal 36
+I PushGlobal 39
 I PushGlobal zipSig
 I Mkap
 I Mkap
@@ -351,6 +351,21 @@ I Update 2
 I Pop 2
 I Unwind
 block
+I PushInt 87
+I PushInt 65
+I PushInt 82
+I PushInt 77
+I PushInt 84
+I PushInt 72
+I Pack 0 0
+I Pack 1 2
+I Pack 1 2
+I Pack 1 2
+I Pack 1 2
+I Pack 1 2
+I Pack 1 2
+I PushGlobal caption
+I Mkap
 I PushGlobal warmth
 I PushGlobal warmPic
 I PushGlobal mapSig
@@ -360,13 +375,34 @@ I PushGlobal warmthChan
 I PushGlobal onTouchY
 I Mkap
 I Mkap
+I PushGlobal column
+I Mkap
+I Mkap
 I Update 0
 I Pop 0
 I Unwind
 block
 I PushArg 1
 I PushArg 1
-I PushGlobal 48
+I PushGlobal 40
+I PushGlobal zipSig
+I Mkap
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I Pack 14 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I PushArg 1
+I PushGlobal 51
 I Mkap
 I PushGlobal __Functor_Sig_map__
 I Mkap
@@ -595,6 +631,35 @@ I Update 0
 I Pop 0
 I Unwind
 block
+I PushGlobal dim
+I PushArg 1
+I PushInt 14
+I PushGlobal __Num_Sig_Int_fromInteger__
+I Mkap
+I PushInt 52
+I PushGlobal __Num_Sig_Int_fromInteger__
+I Mkap
+I PushGlobal label
+I Mkap
+I Mkap
+I Mkap
+I Mkap
+I PushInt 8
+I PushGlobal __Num_Sig_Int_fromInteger__
+I Mkap
+I PushInt 0
+I PushGlobal __Num_Sig_Int_fromInteger__
+I Mkap
+I PushGlobal gap
+I Mkap
+I Mkap
+I PushGlobal column
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
 I PushArg 1
 I PushArg 1
 I PushGlobal 34
@@ -613,6 +678,167 @@ I Update 2
 I Pop 2
 I Unwind
 block
+I PushArg 3
+I PushArg 2
+I PushArg 2
+I PushGlobal 37
+I PushGlobal zipSig
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal 36
+I PushGlobal zipSig
+I Mkap
+I Mkap
+I Mkap
+I PushArg 3
+I PushGlobal 35
+I Mkap
+I PushGlobal mapSig
+I Mkap
+I Mkap
+I Update 4
+I Pop 4
+I Unwind
+block
+I Push 2
+I Push 1
+I Push 3
+I PushArg 7
+I PushGlobal labelAt
+I Mkap
+I Mkap
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 1
+I Eval
+I CaseJump 1 6 52
+I Slide 2
+block
+I PushArg 1
+I Eval
+I CaseJump 1 6 53
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I PushArg 3
+I PushArg 2
+I PushArg 6
+I Pack 20 4
+I Update 4
+I Pop 4
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I Pack 6 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I Pack 6 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushInt 142
+I PushGlobal __Num_Sig_Int_fromInteger__
+I Mkap
+I PushInt 130
+I PushGlobal __Num_Sig_Int_fromInteger__
+I Mkap
+I PushInt 122
+I PushGlobal __Num_Sig_Int_fromInteger__
+I Mkap
+I PushGlobal colour
+I Mkap
+I Mkap
+I Mkap
+I Update 0
+I Pop 0
+I Unwind
+block
+I PushArg 2
+I PushArg 2
+I PushArg 2
+I PushGlobal 28
+I PushGlobal zipSig
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal 27
+I PushGlobal zipSig
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal 25
+I PushGlobal mapSig
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I Push 2
+I Push 1
+I Push 3
+I PushGlobal 26
+I Mkap
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 1
+I Eval
+I CaseJump 1 6 60
+I Slide 2
+block
+I PushArg 0
+I Eval
+I CaseJump 1 6 61
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I PushArg 4
+I Pack 8 3
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I Pack 6 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I Pack 6 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushInt 71
+I PushInt 76
+I PushInt 79
+I PushInt 87
+I Pack 0 0
+I Pack 1 2
+I Pack 1 2
+I Pack 1 2
+I Pack 1 2
+I PushGlobal caption
+I Mkap
 I PushGlobal glow
 I PushGlobal glowPic
 I PushGlobal mapSig
@@ -620,6 +846,9 @@ I Mkap
 I Mkap
 I PushGlobal glowChan
 I PushGlobal onTouchY
+I Mkap
+I Mkap
+I PushGlobal column
 I Mkap
 I Mkap
 I Update 0
@@ -665,9 +894,23 @@ I Update 0
 I Pop 0
 I Unwind
 block
+I PushInt 80
+I PushInt 69
+I PushInt 65
+I PushInt 75
+I Pack 0 0
+I Pack 1 2
+I Pack 1 2
+I Pack 1 2
+I Pack 1 2
+I PushGlobal caption
+I Mkap
 I PushGlobal loud
 I PushGlobal meterOf
 I PushGlobal mapSig
+I Mkap
+I Mkap
+I PushGlobal column
 I Mkap
 I Mkap
 I Update 0
@@ -734,7 +977,7 @@ I PushGlobal prim_eq_int
 I Mkap
 I Mkap
 I Eval
-I CaseJump 2 3 54 2 55
+I CaseJump 2 3 72 2 73
 I Update 2
 I Pop 2
 I Unwind
@@ -793,7 +1036,7 @@ I PushGlobal __Ord_Float_>__
 I Mkap
 I Mkap
 I Eval
-I CaseJump 2 3 59 2 60
+I CaseJump 2 3 77 2 78
 I Update 2
 I Pop 2
 I Unwind
@@ -842,7 +1085,7 @@ I PushGlobal __Ord_Int_>__
 I Mkap
 I Mkap
 I Eval
-I CaseJump 2 3 63 2 64
+I CaseJump 2 3 81 2 82
 I Slide 0
 block
 I PushInt 5
@@ -853,7 +1096,7 @@ I PushGlobal __Ord_Int_>__
 I Mkap
 I Mkap
 I Eval
-I CaseJump 2 3 62 2 65
+I CaseJump 2 3 80 2 83
 I Update 1
 I Pop 1
 I Unwind
@@ -933,60 +1176,74 @@ global moveXY 3 2
 global mapSig 0 3
 global 18 3 4
 global 19 2 5
-global 43 1 8
-global 44 3 9
+global 46 1 8
+global 47 3 9
 global zipSig 0 10
 global 20 4 11
 global 21 5 15
-global 45 2 16
-global 46 2 17
+global 48 2 16
+global 49 2 17
 global __Num_Sig_Int_fromInteger__ 1 18
 global constSig 1 19
-global 149 2 20
+global 152 2 20
 global events 0 21
 global mkSig 0 22
 global 8 2 23
 global 9 3 24
 global input 0 25
 global row 2 26
-global 36 2 27
+global 39 2 27
 global warmFader 0 28
-global onTouchY 2 29
-global __Functor_Sig_map__ 2 30
-global 48 2 31
-global warmthChan 0 32
-global warmPic 1 33
-global faderOf 4 34
-global bone 0 35
-global __Num_Int_fromInteger__ 1 36
-global floor 1 37
-global prim_floor_float 1 38
-global __Num_Float_-__ 2 39
-global prim_sub_float 2 40
-global __Num_Float_*__ 2 41
-global prim_mul_float 2 42
-global __Floating_Float_fromFloat__ 1 43
-global night 0 44
-global warmth 0 45
-global gap 2 46
-global 34 2 47
-global glowFader 0 48
-global glowChan 0 49
-global glowPic 1 50
-global glow 0 51
-global meter 0 52
-global meterOf 1 53
-global ladderOf 2 56
-global __Num_Int_-__ 2 57
-global prim_sub_int 2 58
-global segOf 2 61
-global litOf 1 66
-global __Ord_Int_>__ 2 67
-global prim_lt_int 2 68
-global __Ord_Float_>__ 2 69
-global toFloat 1 70
-global prim_to_float 1 71
-global prim_eq_int 2 72
-global loud 0 73
-global peak 0 74
+global column 2 29
+global 40 2 30
+global onTouchY 2 31
+global __Functor_Sig_map__ 2 32
+global 51 2 33
+global warmthChan 0 34
+global warmPic 1 35
+global faderOf 4 36
+global bone 0 37
+global __Num_Int_fromInteger__ 1 38
+global floor 1 39
+global prim_floor_float 1 40
+global __Num_Float_-__ 2 41
+global prim_sub_float 2 42
+global __Num_Float_*__ 2 43
+global prim_mul_float 2 44
+global __Floating_Float_fromFloat__ 1 45
+global night 0 46
+global warmth 0 47
+global caption 1 48
+global gap 2 49
+global 34 2 50
+global label 4 51
+global 35 2 54
+global labelAt 4 55
+global 36 2 56
+global 37 2 57
+global dim 0 58
+global colour 3 59
+global 25 1 62
+global 26 3 63
+global 27 2 64
+global 28 2 65
+global glowFader 0 66
+global glowChan 0 67
+global glowPic 1 68
+global glow 0 69
+global meter 0 70
+global meterOf 1 71
+global ladderOf 2 74
+global __Num_Int_-__ 2 75
+global prim_sub_int 2 76
+global segOf 2 79
+global litOf 1 84
+global __Ord_Int_>__ 2 85
+global prim_lt_int 2 86
+global __Ord_Float_>__ 2 87
+global toFloat 1 88
+global prim_to_float 1 89
+global prim_eq_int 2 90
+global loud 0 91
+global peak 0 92
 entry main

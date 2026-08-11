@@ -239,6 +239,39 @@ def _colour(node, state) -> tuple[int, int, int]:
     return r, g, b
 
 
+#: The font's cell, in the units both hosts agree on — three wide, five
+#: tall, one column between letters (`shell/panel/src/font.rs`).
+_CELL_W, _CELL_H, _CELL_GAP = 3, 5, 1
+
+
+def _fit(w: int, h: int, n: int) -> int:
+    """The whole scale a label of `n` characters is drawn at in `w`×`h`.
+
+    **A function of declared numbers only**, which is what lets two hosts
+    with different fonts agree without either of them measuring a glyph:
+    the box is the program's, the cell is the vocabulary's, and the
+    arithmetic is here and in `gui.ges` beside the constructor.
+
+    Never below one — a label too small for the box it was given is drawn
+    at one and overflows *visibly*, which is the honest failure and the
+    one an author can see.
+    """
+    if n <= 0:
+        return 1
+    across = w // (n * (_CELL_W + _CELL_GAP) - _CELL_GAP)
+    down = h // _CELL_H
+    return max(1, min(across, down))
+
+
+def _string(node, state) -> str:
+    """A `String` — `List Char`, and a `Char` is its code point."""
+    out = []
+    for cell in _list(node, state):
+        code = _int(cell, state)
+        out.append(chr(code) if 0 <= code < 0x110000 else "?")
+    return "".join(out)
+
+
 def _extent(node, state) -> tuple[int, int]:
     """How much room a substrate occupies, in pixels.
 
@@ -265,6 +298,11 @@ def _extent(node, state) -> tuple[int, int]:
         r = _int(args[0], state)
         return 2 * r, 2 * r
     if tag == cons["Gap"].tag:
+        return _int(args[0], state), _int(args[1], state)
+    if tag == cons["Label"].tag:
+        # The box the program declared — **never what the letters came
+        # out as**.  That is the distinction that makes a label
+        # admissible where a text editor was not.
         return _int(args[0], state), _int(args[1], state)
     if tag == cons["Over"].tag:
         aw, ah = _extent(args[0], state)
@@ -334,6 +372,18 @@ def _walk(node, state, cx: int, cy: int, out: list, hits: list) -> None:
     if tag == cons["Circle"].tag:
         out.append(("dot", cx, cy, _int(args[0], state),
                     _colour(args[1], state)))
+        return
+    if tag == cons["Label"].tag:
+        w, h = _int(args[0], state), _int(args[1], state)
+        text = _string(args[2], state).upper()
+        scale = _fit(w, h, len(text))
+        # Placed by its **top-left**, like a rect, and centred in its own
+        # declared box — so the item carries where the glyphs go rather
+        # than where the box is, and a painter needs no second rule.
+        tw = len(text) * (_CELL_W + _CELL_GAP) * scale - _CELL_GAP * scale
+        th = _CELL_H * scale
+        out.append(("text", cx - tw // 2, cy - th // 2, text,
+                    _colour(args[3], state), scale))
         return
     if tag == cons["Gap"].tag:
         return                              # room, and nothing in it
@@ -752,18 +802,117 @@ def run(source: str, size=_DEFAULT_SIZE, fps: int = 60, title="gestate",
         send(("Tick",))
 
         screen.fill((0, 0, 0))
-        for shape in (_shape(s, state) for s in _list(sig.value, state)):
+        # **Through `_flatten`, like every other reader of a substrate.**
+        # This loop used to call a `_shape` over a *list*, from when a
+        # program supplied `scene : Sig Scene` and a `Scene` was a list of
+        # shapes.  That spelling was retired with `Scene` itself and this
+        # was not, so the one command the module's own docstring
+        # advertises had been raising `NameError` on an undefined name
+        # ever since — nothing calls `run` from the test suite, and a
+        # window is the one thing the tests deliberately never open.
+        for shape in _flatten(sig.value, state):
             if shape[0] == "rect":
                 _kind, x, y, w, h, colour = shape
                 pygame.draw.rect(screen, colour, pygame.Rect(x, y, w, h))
-            else:
+            elif shape[0] == "dot":
                 _kind, x, y, radius, colour = shape
                 pygame.draw.circle(screen, colour, (x, y), radius)
+            else:
+                _kind, x, y, text, colour, scale = shape
+                _blit_label(screen, x, y, text, colour, scale)
         pygame.display.flip()
         clock.tick(fps)
 
     pygame.quit()
     return 0
+
+
+def _blit_label(screen, x: int, y: int, text: str, colour, scale: int):
+    """Draw a label with the 3×5 cells the vocabulary is defined in.
+
+    **The bitmap rather than a system font**, and not for want of one:
+    `pygame.font` is right there.  The scale in the item was computed
+    from the declared box and the *cell*, so a proportional font drawn
+    at it would sit in a box measured for something else — and the two
+    hosts would then disagree about a picture they are both supposed to
+    be drawing from the same tree.  The cell is part of the vocabulary,
+    so the reference draws it.
+    """
+    import pygame
+
+    for i, ch in enumerate(text):
+        rows = _GLYPHS.get(ch, (0b111,) * 5)
+        gx = x + i * (_CELL_W + _CELL_GAP) * scale
+        for r, bits in enumerate(rows):
+            for c in range(_CELL_W):
+                if bits >> (_CELL_W - 1 - c) & 1:
+                    pygame.draw.rect(
+                        screen, colour,
+                        pygame.Rect(gx + c * scale, y + r * scale,
+                                    scale, scale))
+
+
+#: The alphabet a substrate may name, in the same 3×5 cells
+#: `shell/panel/src/font.rs` carries — identifiers and numbers, which is
+#: what a channel name and a reading are.  A character not here is drawn
+#: as a filled block, so an unknown one is *visibly* unknown rather than
+#: a gap that would read as a spacing bug.
+_GLYPHS = {
+    " ": (0b000, 0b000, 0b000, 0b000, 0b000),
+    "A": (0b111, 0b101, 0b111, 0b101, 0b101),
+    "B": (0b110, 0b101, 0b110, 0b101, 0b110),
+    "C": (0b111, 0b100, 0b100, 0b100, 0b111),
+    "D": (0b110, 0b101, 0b101, 0b101, 0b110),
+    "E": (0b111, 0b100, 0b110, 0b100, 0b111),
+    "F": (0b111, 0b100, 0b110, 0b100, 0b100),
+    "G": (0b111, 0b100, 0b101, 0b101, 0b111),
+    "H": (0b101, 0b101, 0b111, 0b101, 0b101),
+    "I": (0b111, 0b010, 0b010, 0b010, 0b111),
+    "J": (0b001, 0b001, 0b001, 0b101, 0b111),
+    "K": (0b101, 0b101, 0b110, 0b101, 0b101),
+    "L": (0b100, 0b100, 0b100, 0b100, 0b111),
+    "M": (0b101, 0b111, 0b111, 0b101, 0b101),
+    "N": (0b110, 0b101, 0b101, 0b101, 0b101),
+    "O": (0b111, 0b101, 0b101, 0b101, 0b111),
+    "P": (0b111, 0b101, 0b111, 0b100, 0b100),
+    "Q": (0b111, 0b101, 0b101, 0b111, 0b001),
+    "R": (0b111, 0b101, 0b110, 0b101, 0b101),
+    "S": (0b111, 0b100, 0b111, 0b001, 0b111),
+    "T": (0b111, 0b010, 0b010, 0b010, 0b010),
+    "U": (0b101, 0b101, 0b101, 0b101, 0b111),
+    "V": (0b101, 0b101, 0b101, 0b101, 0b010),
+    "W": (0b101, 0b101, 0b111, 0b111, 0b101),
+    "X": (0b101, 0b101, 0b010, 0b101, 0b101),
+    "Y": (0b101, 0b101, 0b010, 0b010, 0b010),
+    "Z": (0b111, 0b001, 0b010, 0b100, 0b111),
+    "0": (0b111, 0b101, 0b101, 0b101, 0b111),
+    "1": (0b010, 0b110, 0b010, 0b010, 0b111),
+    "2": (0b111, 0b001, 0b111, 0b100, 0b111),
+    "3": (0b111, 0b001, 0b111, 0b001, 0b111),
+    "4": (0b101, 0b101, 0b111, 0b001, 0b001),
+    "5": (0b111, 0b100, 0b111, 0b001, 0b111),
+    "6": (0b111, 0b100, 0b111, 0b101, 0b111),
+    "7": (0b111, 0b001, 0b001, 0b001, 0b001),
+    "8": (0b111, 0b101, 0b111, 0b101, 0b111),
+    "9": (0b111, 0b101, 0b111, 0b001, 0b111),
+    "-": (0b000, 0b000, 0b111, 0b000, 0b000),
+    ".": (0b000, 0b000, 0b000, 0b000, 0b010),
+    ":": (0b000, 0b010, 0b000, 0b010, 0b000),
+    "/": (0b001, 0b001, 0b010, 0b100, 0b100),
+    "_": (0b000, 0b000, 0b000, 0b000, 0b111),
+    "+": (0b000, 0b010, 0b111, 0b010, 0b000),
+    "%": (0b101, 0b001, 0b010, 0b100, 0b101),
+    "(": (0b001, 0b010, 0b010, 0b010, 0b001),
+    ")": (0b100, 0b010, 0b010, 0b010, 0b100),
+    "!": (0b010, 0b010, 0b010, 0b000, 0b010),
+    "?": (0b111, 0b001, 0b011, 0b000, 0b010),
+    "=": (0b000, 0b111, 0b000, 0b111, 0b000),
+    "<": (0b001, 0b010, 0b100, 0b010, 0b001),
+    ">": (0b100, 0b010, 0b001, 0b010, 0b100),
+    "*": (0b101, 0b010, 0b101, 0b000, 0b000),
+    ",": (0b000, 0b000, 0b000, 0b010, 0b100),
+    "#": (0b101, 0b111, 0b101, 0b111, 0b101),
+}
 
 
 # ── CLI ─────────────────────────────────────────────────────────────────────
