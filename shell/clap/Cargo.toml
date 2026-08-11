@@ -20,6 +20,11 @@ crate-type = ["cdylib", "rlib"]
 # every dependency this design needs in `shell/panel`, so the build a
 # host loads without a face is the zero-dependency shell it always was.
 gestate-panel = { path = "../panel", features = ["window"], optional = true }
+# The G-machine, travelling — `spec/crust.md`'s stated purpose for the
+# workspace.  Zero dependencies of its own, so the shell stays
+# offline-buildable; optional because a plugin whose score is a finite
+# list has no interpreter to carry.
+crust = { path = "../../crust", optional = true }
 raw-window-handle = { version = "0.6", optional = true }
 
 [features]
@@ -32,3 +37,7 @@ engine = []
 # without it is byte-for-byte the one that shipped before, which is
 # acceptance 1.
 gui = ["dep:gestate-panel", "dep:raw-window-handle"]
+# The piece, performed rather than baked (`spec/dynamicscore.md` stage
+# two abroad).  An unfolding score has no finite event list to export,
+# so the plugin carries the *program* and forces it as it plays.
+dynscore = ["dep:crust"]

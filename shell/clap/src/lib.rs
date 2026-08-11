@@ -12,7 +12,9 @@
 //! engine's interleaved frames into the host's channel pointers.
 
 mod abi;
-mod engine;
+#[cfg(feature = "dynscore")]
+pub mod dynscore;
+pub mod engine;
 #[cfg(feature = "gui")]
 mod gui;
 mod score;
@@ -61,6 +63,10 @@ pub(crate) struct Instance {
     /// The score cursor — `spec/dynamicscore.md` stage one's Rust
     /// half.  Idle for a plugin whose `SCORE` is empty.
     performer: score::Performer,
+    /// The piece as a program, for a score no event list can hold —
+    /// opened on `activate`, when the rate is finally known.
+    #[cfg(feature = "dynscore")]
+    piece: Option<dynscore::Piece>,
     /// The host, kept from `factory_create` so a panel can ask it to
     /// flush a change made while the transport is stopped
     /// (`spec/panel.md` §"What the ABI has to grow").
@@ -91,6 +97,8 @@ impl Instance {
             beat_pos: 0.0,
             performer: score::Performer::new(),
             host: std::ptr::null(),
+            #[cfg(feature = "dynscore")]
+            piece: None,
             #[cfg(feature = "gui")]
             gui: gui::Gui::default(),
         }
@@ -323,6 +331,20 @@ unsafe extern "C" fn plugin_destroy(plugin: *const clap_plugin) {
     drop(Box::from_raw(plugin as *mut clap_plugin));
 }
 
+/// Open the piece, if this plugin carries one.
+///
+/// **At `activate`, not at `init`** — the program is forced against a
+/// rate, and the rate is what `activate` is for.  A refusal is kept and
+/// reported rather than thrown: a plugin whose piece will not load is
+/// still an instrument you can play with your hands.
+#[cfg(feature = "dynscore")]
+unsafe fn open_piece(inst: &mut Instance) {
+    inst.piece = match engine::program() {
+        Some(p) => dynscore::Piece::open(p, 0).ok(),
+        None => None,
+    };
+}
+
 unsafe extern "C" fn plugin_activate(plugin: *const clap_plugin,
                                      sample_rate: f64,
                                      _min_frames: u32,
@@ -339,6 +361,8 @@ unsafe extern "C" fn plugin_activate(plugin: *const clap_plugin,
     inst.active = Some(case);
     inst.state = vec![0u8; case.state_bytes];
     inst.reset();
+    #[cfg(feature = "dynscore")]
+    open_piece(inst);
     true
 }
 

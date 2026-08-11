@@ -103,7 +103,11 @@ velocities.
 width: each key's edges come from the proportion, so the band ends
 exactly where the pane does — no overflow when a host narrows the
 panel, no gutter when it widens it.  A fresh window opens wide enough
-for about five pixels a key.
+for about five pixels a key, and **that five does not scale with the
+text**: a hundred and twenty-eight keys is a picture, not a label, and
+tying it to the font would double the window's width to make the
+letters bigger, which is not what anyone asking for bigger letters
+means.
 
 **And it is labelled, because it could not otherwise be read.**  Keys
 of the same state merge into one band — the right way to show "this
@@ -250,6 +254,50 @@ solution would cost a font stack to draw sixteen labels.
 At scale 2 a 3×5 glyph is 6×10 pixels, which is legible and is what
 the panel uses; the scale is a parameter, so a host that reports a
 2× display gets 4 and nothing else changes.
+
+## Zoom, and scrolling
+
+Two things a fixed layout cannot do, and one rule that keeps them
+honest.
+
+**Zoom is a percentage, not a multiplier.**  `SCALE_MIN` to
+`SCALE_MAX` in steps of 25, because doubling is too coarse a thing to
+offer as the only step — going from readable to twice-readable skips
+every size a person actually wants.  The layout scales smoothly with
+the percentage; the *font* still lands on whole cells, because it is a
+bitmap and a fractional glyph would blur the one thing this painter
+does exactly.  So text climbs in its own steps inside a continuously
+growing frame.  The panel opens at 150: at 100 the small captions are
+three pixels tall, which is a diagram of text rather than text.
+
+**Every dimension comes from one number** (`Metrics`).  Making the
+text bigger without making the boxes bigger is how a label ends up on
+top of a number; deriving both from the zoom means the only way to get
+it wrong is to write a constant that ignores it.  The one deliberate
+exception is the key width above, and it is commented as one.
+
+**The name column is measured, not declared.**  Everything in it goes
+through the same `font::width` the painter uses, so it is exactly as
+wide as the widest thing in it — a fixed column scaled by the font is
+how a window ends up twice as wide as its content.
+
+**Changing the zoom does not resize the window.**  How big the window
+is belongs to the host and to the person dragging its corner; a panel
+that grew itself every time you enlarged the text would fight both.
+Content that no longer fits **scrolls**.
+
+**Scrolling is an offset on the layout, not a second pass.**  Every
+item and every hit region is placed from the same running `y`, so
+subtracting the scroll once at the top moves the picture and what
+listens by exactly the same amount.  A hit test that forgot the offset
+would write the parameter belonging to whatever *used* to be under the
+pointer — the classic scrolling-UI defect, and unreachable when there
+is only one `y` to be wrong about.
+
+The bar is drawn over the content and outside the display list,
+because it is a fact about the *window* rather than about the model —
+nothing in a `Sub` will ever produce one.  It is draggable and wide
+enough to grab: a four-pixel bar is a decoration you have to aim at.
 
 ## What the ABI has to grow
 

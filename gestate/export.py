@@ -200,6 +200,82 @@ def score_events(source: str, graph, rate: int):
     return out
 
 
+def program_of(source: str, rate: int):
+    """The piece as a **program**, for a score no event list can hold.
+
+    `spec/dynamicscore.md` stage two, abroad.  `score_events` above
+    returns `None` for an unfolding score because there is no finite
+    list to write; this returns what to send instead — the compiled
+    G-machine program, the entry to force it at, and the constructor
+    tags the stream decodes cells with.
+
+    Tags travel because a tag is a *position* in the program's own
+    constructor table.  The shell cannot derive one, and a shell that
+    guessed would decode a cue as whatever happened to share its
+    number.
+
+    `None` when the program cannot cross — a Datafun-shaped or
+    otherwise non-core definition reachable from `liveMain` — which is
+    the same honest refusal `live_native` makes at home, and leaves the
+    export to bake or to discard as before.
+    """
+    from .audioperform import has_score
+    from .audioscore import ScoreError, stream_root, unfolding_names
+    from .audiovoices import banks_of
+    from .crust import CrustError, serialize
+
+    if not has_score(source) or not unfolding_names(source):
+        return None
+
+    try:
+        _tempo, state, _root, by_tag = stream_root(source, "", rate, 0,
+                                                   live=True)
+        text = serialize(state, "liveMain")
+    except (CrustError, ScoreError, KeyError):
+        return None
+
+    # `by_tag` is tag → *bank name*; the shell wants tag → bank index,
+    # because the wire's third word is a tag and `Bank` is positional.
+    index = {b.name: i for i, b in enumerate(banks_of(source))}
+    voices = [(tag, index[name]) for tag, name in by_tag.items()
+              if name in index]
+    cons = state.cons
+    return {
+        "text": text,
+        "entry": "liveMain",
+        "seed": 0,
+        "cons": cons["Cons"].tag,
+        "nil": cons["Nil"].tag,
+        "cue_ev": cons["CueEv"].tag,
+        "cue_ask": cons["CueAsk"].tag,
+        "cue_end": cons["CueEnd"].tag,
+        "voices": sorted(voices),
+    }
+
+
+def _program_rs(program) -> str:
+    """The `PROGRAM` fourth of `descriptor.rs`."""
+    if program is None:
+        # Not even the `None`: without `dynscore` the crate has no
+        # `Program` type to name, and `engine.rs` supplies the empty
+        # case itself.
+        return ""
+    voices = ", ".join(f"({t}, {b})" for t, b in program["voices"])
+    return (
+        f"static VOICE_BANKS: &[(i64, usize)] = &[{voices}];\n"
+        "pub static PROGRAM: Option<Program> = Some(Program {\n"
+        f"    text: {_rust_str(program['text'])},\n"
+        f"    entry: {_rust_str(program['entry'])},\n"
+        f"    seed: {program['seed']},\n"
+        f"    cons_tag: {program['cons']},\n"
+        f"    nil_tag: {program['nil']},\n"
+        f"    cue_ev_tag: {program['cue_ev']},\n"
+        f"    cue_ask_tag: {program['cue_ask']},\n"
+        f"    cue_end_tag: {program['cue_end']},\n"
+        "    voice_banks: VOICE_BANKS,\n"
+        "});\n")
+
+
 def _score_rs(score, bpm: float) -> str:
     """The `SCORE` third of `descriptor.rs`."""
     from .midi import TICKS_PER_BEAT
@@ -260,7 +336,7 @@ def _banks_rs(banks: list) -> str:
 
 
 def descriptor_rs(graph, *, id_: str, name: str, version: str,
-                  rate: int, knobs: frozenset, bank=None,
+                  rate: int, knobs: frozenset, bank=None, program=None,
                   graphs=None, beat=None, score=None,
                   bpm: float = 120.0) -> str:
     """The Rust the shell includes — everything only the compiler knows."""
@@ -280,6 +356,8 @@ def descriptor_rs(graph, *, id_: str, name: str, version: str,
     # `Bank`, `RateCase` and `ScoreEvent` always: the bank-less
     # descriptor still *names* the types in its empty slices.
     used = ["Bank", "Control", "Descriptor", "RateCase", "ScoreEvent"]
+    if program is not None:
+        used.append("Program")
     if controls:
         used.append("Kind")
     if any(table is not None for _n, _v, table in (bank or [])):
@@ -291,6 +369,7 @@ def descriptor_rs(graph, *, id_: str, name: str, version: str,
             f"{_rates_rs(graphs if graphs is not None else {rate: graph})}\n"
             f"{_banks_rs(bank or [])}\n"
             f"{_score_rs(score, bpm)}\n"
+            f"{_program_rs(program)}\n"
             f"pub static BEAT_SLOTS: Option<(usize, usize, usize)> = "
             f"{'Some(' + repr(tuple(beat)) + ')' if beat else 'None'};\n\n"
             f"pub static DESCRIPTOR: Descriptor = Descriptor {{\n"
@@ -504,18 +583,28 @@ def export_clap(source: str, out: Path, *, rate=None, name: str,
     bank = note_banks(source, graph, primary)
     beat = beat_slots(graph)
     score = score_events(source, graph, primary)
+    # **The piece, when no list can hold it.**  `score_events` returns
+    # `None` for an unfolding score; this is what travels instead — the
+    # compiled program, which the shell forces as it plays
+    # (`spec/dynamicscore.md` stage two, abroad).
+    program = program_of(source, primary) if score is None else None
     with tempfile.TemporaryDirectory() as d:
         archive(graphs, d)
         (shell / "src" / "descriptor.rs").write_text(descriptor_rs(
             graph, id_=f"org.gestate.{name}", name=name,
             version=version, rate=primary, knobs=knobs, bank=bank,
-            graphs=graphs, beat=beat, score=score,
+            graphs=graphs, beat=beat, score=score, program=program,
             bpm=_bpm_of(source)))
         env = dict(**__import__("os").environ, GESTATE_GRAPH_DIR=d)
         # `--target-dir` pins the artifact under the shell whether or
         # not the crate builds inside the workspace — the workspace
         # root's `target/` is where cargo would otherwise put it.
-        features = "engine,gui" if gui else "engine"
+        features = ["engine"]
+        if gui:
+            features.append("gui")
+        if program is not None:
+            features.append("dynscore")
+        features = ",".join(features)
         done = subprocess.run(
             ["cargo", "build", "--release", "--features", features,
              "--target-dir", str(shell / "target")],

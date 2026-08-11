@@ -187,6 +187,25 @@ pub static SCORE: &[ScoreEvent] = linked::SCORE;
 #[cfg(not(feature = "engine"))]
 pub static SCORE: &[ScoreEvent] = &[];
 
+/// The piece as a **program**, when no event list can hold it.
+///
+/// `SCORE` above is empty for an unfolding piece; this is what travels
+/// instead.  `None` for every finite score (which bakes) and for every
+/// build without the `dynscore` feature — the interpreter is carried
+/// only by the plugins that need it.
+/// A reference, not a copy: `Program` holds a `&'static str` the size
+/// of the whole interpreter's input, and a static that moved would be
+/// a second one in the binary.
+#[cfg(all(feature = "engine", feature = "dynscore"))]
+pub fn program() -> Option<&'static Program> {
+    linked::PROGRAM.as_ref()
+}
+
+#[cfg(not(all(feature = "engine", feature = "dynscore")))]
+pub fn program() -> Option<&'static Program> {
+    None
+}
+
 /// `midi.TICKS_PER_BEAT`, written by the exporter so the two never
 /// spell it separately.
 #[cfg(feature = "engine")]
@@ -203,3 +222,42 @@ pub static SCORE_BPM: f64 = linked::SCORE_BPM;
 
 #[cfg(not(feature = "engine"))]
 pub static SCORE_BPM: f64 = 120.0;
+
+/// The piece as a **program**, for a score no event list can hold.
+///
+/// `spec/dynamicscore.md` stage two, abroad.  A finite score exports as
+/// `SCORE` — a list of instants, already decided.  An *unfolding* one
+/// (`cycle`, `unfold`, anything that answers a channel) has no such
+/// list, and until now `export.score_events` discarded it and said so:
+/// "the plugin is the instrument without its piece."
+///
+/// This is the piece.  The text is `crust`'s flat program format,
+/// written by `gestate.crust.serialize`; the tags are the compiled
+/// constructor numbers the stream decodes cells with, and they travel
+/// because a tag is a *position* in the program's own constructor
+/// table — the shell cannot derive one.
+pub struct Program {
+    /// The serialized G-machine program.
+    pub text: &'static str,
+    /// The entry to force — `liveMain`, which is resume-aware in its
+    /// own second argument.
+    pub entry: &'static str,
+    /// The piece's seed.  One integer replays the whole night.
+    pub seed: i64,
+    pub cons_tag: i64,
+    pub nil_tag: i64,
+    /// `CueEv`, `CueAsk`, `CueEnd` — ariadne's self-terminated cues.
+    pub cue_ev_tag: i64,
+    pub cue_ask_tag: i64,
+    pub cue_end_tag: i64,
+    /// A voice constructor's tag to the bank it belongs to —
+    /// `audiodynamic`'s `by_tag`, which the wire's third word is
+    /// looked up in.
+    pub voice_banks: &'static [(i64, usize)],
+}
+
+impl Program {
+    pub fn bank_of(&self, tag: i64) -> Option<usize> {
+        self.voice_banks.iter().find(|(t, _)| *t == tag).map(|(_, b)| *b)
+    }
+}
