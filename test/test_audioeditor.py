@@ -1500,3 +1500,52 @@ def test_a_backward_clock_is_a_wrap():
     # The first reading has nothing to compare against and must not look
     # like a wrap; the thread starts `was` below zero for that.
     assert Workbench._wrapped(at=0, was=-1) is False
+
+
+def test_one_rule_decides_what_cannot_be_installed_while_playing():
+    """**Two drivers, one rule.**
+
+    The Python driver installs in `Live.install` and the C host installs
+    in `Workbench._hand_over`, and the channel check was written out
+    twice — so when the control block needed one too it went into one of
+    them and the other went on accepting the edit.  That is the gap this
+    module's own docstring warns about: *a second implementation of
+    anything puts its bugs between them.*
+
+    What went wrong before the rule was shared: adding a `voices` bank to
+    a synth that had none wants three control channels a voice, the host
+    had allocated room for the old count, and the graph was installed
+    anyway.  The apply said *"rebuilt"*, `set_control` then raised
+    `no control slot 1` on another thread, the score never loaded and
+    nothing played — which is the shape of failure the channel check
+    already existed to prevent, one field over.
+    """
+    import inspect
+
+    from gestate.audioeditor import Workbench
+    from gestate.audiolive import Live
+
+    # The rule is asked for, never restated.
+    assert "refuses" in inspect.getsource(Workbench._hand_over)
+    assert "channel(s) to" not in inspect.getsource(Workbench._hand_over), \
+        "the channel check is written out a second time again"
+
+    class Engine:
+        def __init__(self, channels, controls):
+            self.channels = channels
+            self.control_sources = [object()] * controls
+
+    live = Live.__new__(Live)
+    live.engine = Engine(1, 1)
+    live.controls = 1
+
+    assert live.refuses(Engine(1, 1)) is None, "an ordinary edit was refused"
+    assert "channel(s)" in live.refuses(Engine(2, 1))
+    # The one that was unchecked: more control slots than were reserved.
+    said = live.refuses(Engine(1, 16))
+    assert said and "16 control channel(s)" in said and "room for 1" in said
+
+    # **`None` means nobody has said**, which is the Python driver: it
+    # allocates per block and has no fixed room to run out of.
+    live.controls = None
+    assert live.refuses(Engine(1, 16)) is None

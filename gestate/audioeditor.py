@@ -752,6 +752,10 @@ class Workbench:
                 host.close()
                 return None
             host.open(latency_ms=self.latency_ms)
+            # **What the player was started with**, so a later edit that
+            # wants more slots is refused with a sentence rather than
+            # installed and then found unfeedable.
+            self.live.controls = len(host.control)
         except Exception as exc:                        # noqa: BLE001
             self.say(f"no C audio host ({exc}); using the Python driver")
             return None
@@ -2091,12 +2095,17 @@ class Workbench:
         if waiting is None or isinstance(waiting, Exception):
             return
         self.live.pending = None
-        if waiting.channels != self.live.engine.channels:
-            self.live.errors.append(
-                f"this edit changes the output from "
-                f"{self.live.engine.channels} channel(s) to "
-                f"{waiting.channels}, and the card was opened with the old "
-                f"count.  Restart to hear it")
+        # **The same rule the Python driver uses**, asked rather than
+        # written out again: this was a second copy of the channel check,
+        # and when the control block needed one too it went into the
+        # other driver and this one went on accepting the edit.
+        refusal = self.live.refuses(waiting)
+        if refusal is not None:
+            # Said once: `_progress` drains `live.errors` into the status
+            # line already, and a refusal reported twice reads as two
+            # different things having gone wrong.
+            self.live.errors.append(refusal)
+            self.trouble = refusal
             return
         from .audioengine import State, migrate
 

@@ -143,3 +143,37 @@ def test_gestures_are_drained_rather_than_read():
         assert second == [], f"seen twice: {first} then {second}"
         ed.request_close()
         assert _wait(lambda: not ed.is_open)
+
+
+@needs_display
+@needs_cargo
+def test_a_file_is_coloured_before_it_is_edited():
+    """**`None` and empty are different**, and that was the whole bug.
+
+    `changed()` answers *has it moved since I last asked*, which on a
+    freshly opened file is `False` — the text arrived before anyone
+    asked.  Filling the line cache only on a change therefore left it
+    empty until the first keystroke, so nothing was painted and the file
+    was drawn in plain ink: colouring that appeared only once you typed,
+    which reads as colouring that does not work.
+
+    Checked through a real window because that is where it went wrong; a
+    double would have been primed by whatever the test handed it.
+    """
+    from gestate.editor import Editor
+    from gestate.session import Session, furniture
+    from gestate.workbench import Window
+
+    class Bench:
+        sites, banks, values, knob_types = [], [], {}, {}
+
+    with Editor("cutoff = mkKnob 0.4  # hi\n", 400, 300) as ed:
+        assert _wait(lambda: ed.is_open)
+        view = Window(ed)
+        assert view.visible(), "nothing was visible before an edit"
+        said = furniture(Session(bench=Bench(), view=view))
+        painted = [l for l in said.splitlines() if l.startswith("paint\t")]
+        assert painted, f"no colour without typing first: {said!r}"
+        assert "note" in painted[0], "the comment was not coloured"
+        ed.request_close()
+        assert _wait(lambda: not ed.is_open)

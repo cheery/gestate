@@ -60,7 +60,9 @@ class Window:
         #: is visible and must not reach across a thread to ask.
         self.top = 0
         self.rows = 40
-        self._lines: list = []
+        #: `None` until the document has been read once — see
+        #: `lines`, where the difference is load-bearing.
+        self._lines: list | None = None
 
     def text(self) -> str:
         return self.editor.text
@@ -74,7 +76,15 @@ class Window:
         per poll, which at five hundred polls a second is the difference
         between an editor and a fan.
         """
-        if self.editor.changed():
+        # **`None` and empty are different, and that was the bug.**
+        # `changed()` answers *has it moved since I last asked*, which on
+        # a freshly opened file is `False` — the text arrived before
+        # anyone asked.  Filling only on a change therefore left the
+        # cache empty until the first keystroke, so nothing was painted
+        # and the file was drawn in plain ink: colouring that appeared
+        # only once you typed, which reads as colouring that does not
+        # work.
+        if self._lines is None or self.editor.changed():
             self._lines = self.editor.text.splitlines()
         return self._lines
 

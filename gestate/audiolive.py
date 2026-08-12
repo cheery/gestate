@@ -336,6 +336,11 @@ class Live:
         self.pending: object = None
         self.generation = 0
         self.errors: list = []
+        #: How many control slots the *player* was started with, or
+        #: `None` when nobody has said — see `install`.  Told rather
+        #: than read, because it is the host's allocation and this does
+        #: not own one.
+        self.controls: int | None = None
         #: The engine being faded out, and how many samples of it are
         #: left.  `None` and `0` the rest of the time, which is almost all
         #: of it — nothing here costs anything until an edit lands.
@@ -376,6 +381,48 @@ class Live:
             # exceptional one.
             self.pending = LiveError(str(exc))
 
+    def refuses(self, waiting) -> str | None:
+        """Why this edit cannot be installed while playing, or `None`.
+
+        **One rule, because there are two drivers.**  The Python driver
+        installs in `install` below and the C host installs in
+        `audioeditor._publish`, and the channel check was written out
+        twice — so when a second thing needed refusing, it went into one
+        of them and the other went on accepting it.  That is the gap this
+        file's own docstring warns about: *a second implementation of
+        anything puts its bugs between them.*
+
+        Two things are sized when playback starts and cannot be
+        renegotiated between blocks:
+
+        * **The output channels.**  A stereo graph filling a buffer cut
+          for mono writes past the end of it, which is memory corruption
+          rather than a wrong sound.
+        * **The control block.**  `audiohost.Host` allocates it at
+          construction and hands C the pointer there, so a graph wanting
+          more slots than were reserved cannot be fed.  This was the
+          unchecked one: adding a `voices` bank to a synth that had none
+          installed a graph the host could not drive, the apply said
+          *"rebuilt"*, the score never loaded, and nothing played.
+
+        Refused rather than grown.  Growing means a second pointer handed
+        across while the audio thread is reading the first, which is the
+        renegotiation `roadmap.md` still has open — not a thing to do in
+        the middle of a block.
+        """
+        if waiting.channels != self.engine.channels:
+            return (f"this edit changes the output from "
+                    f"{self.engine.channels} channel(s) to "
+                    f"{waiting.channels}, and the player was started with "
+                    f"the old count.  Restart to hear it")
+        want, have = len(waiting.control_sources), self.controls
+        if have is not None and want > have:
+            return (f"this edit wants {want} control channel(s) and the "
+                    f"player was started with room for {have} — adding a "
+                    f"knob or a `voices` bank to a synth that had none "
+                    f"needs a restart to be heard")
+        return None
+
     def install(self) -> bool:
         """Hand the running state to a waiting engine.  Between blocks."""
         from .audioengine import State, migrate
@@ -387,19 +434,9 @@ class Live:
             self.errors.append(str(waiting))
             return False
 
-        # **The one edit that cannot be installed while playing.**  The
-        # driver sized its buffer and told the player how many channels to
-        # expect when playback started, and neither can be renegotiated
-        # between blocks — a stereo graph filling a buffer cut for mono
-        # writes past the end of it, which is memory corruption rather than
-        # a wrong sound.  So it is refused the way a syntax error is: the
-        # instrument that is playing goes on playing, and the message says
-        # what to do about it.
-        if waiting.channels != self.engine.channels:
-            self.errors.append(
-                f"this edit changes the output from {self.engine.channels} "
-                f"channel(s) to {waiting.channels}, and the player was "
-                "started with the old count.  Restart to hear it")
+        refusal = self.refuses(waiting)
+        if refusal is not None:
+            self.errors.append(refusal)
             return False
 
         values, t, lines = self.engine.snapshot()

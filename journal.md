@@ -5101,3 +5101,139 @@ The lesson worth carrying is the cheapest one: **use the thing the naive
 way before calling it done.**  Type the whole line.  Click the obvious
 place.  Every defect above was one honest sentence or one keystroke away
 from obvious, and a person found all of them.
+
+## The editor grows a vocabulary, and gets a colour
+
+A day of Henri asking for one thing after another, and the pattern from
+the last entry held exactly: **every defect in this session was found by
+a person using the editor, and not one by a test.**  The suites went on
+passing through all of them.
+
+`command.ges` went from twenty-nine verbs to forty-five.  `fits` asks
+what could stand where a type is wanted; `template` pastes one of the
+language's ideas; `symbol` opens a lettered grid for the punctuation a
+Finnish layout hides; `fmtAll`/`fmt`, `inferAll`/`infer`, `exportClap`,
+`exportWav`, `exportWavAt`, `midiOn`/`midiOff`, `overwrite`.  Each is a
+declaration with a type and a sentence, so each appeared in the list by
+being written — which is the property that made adding twelve of them
+cost nothing but the work itself.
+
+**Four argument types were added and each earned its place the same
+way.**  `Template`, `Device`, `Symbol` and `Answer` exist so that a list
+can appear: the rule `Named` and `Path` already followed, which is that
+the *type* is what lets the view ask.  A type qualifies when there is a
+small knowable set of its inhabitants and the model is the one that can
+name them.
+
+### What a person found that two thousand tests did not
+
+* **`Tab` was still a tab**, for seven hours.  `gestate/editor.py` built
+  the `cdylib` only `if not so.exists()` — so every Rust edit since the
+  library was last deleted had been invisible, and the binding I had
+  "verified" was verified against source nobody was running.  The worst
+  shape a defect can have: everything works, nothing is reported, and
+  the thing you just changed is not in the room.  `_stale` now compares
+  the library's mtime against every `.rs` and `Cargo.toml` under
+  `shell/editor` and `shell/panel`.
+* **`exportWav` refused to backspace.**  The name proposal fired on
+  every `wants` with an empty query, so backspace emptied the box and
+  the model filled it straight back in — and backspace-on-empty is how
+  you step *out* of a question.  Fixed twice: once by proposing only
+  once per question, and then properly by not typing into the box at
+  all.  A proposal is a row in the list, marked the way `open` marks
+  the file you are in.
+* **`template` pasted twice** on a second Return, because Return on a
+  finished call means *again* — right for `find`, and for a paste it is
+  a second copy under the first.  Commands can now say they are
+  finished, and a cancel of any kind takes the paste back.
+* **The colours did not show.**  `Editor.changed()` answers *has it
+  moved since I last asked*, which on a freshly opened file is `False`:
+  the text arrived before anyone asked.  The line cache filled only on
+  a change, so it stayed empty until the first keystroke and the file
+  drew in plain ink.  Colouring that appears only once you type reads as
+  colouring that is broken.
+* **A knob the sound never reaches was drawn as nothing at all**, which
+  reads as the editor having lost the line rather than the program
+  having ignored it.  Now drawn with a red ✗.
+* **A malformed file could not be saved.**  `apply` raised *before*
+  writing when nothing was playing, so you could fix the syntax error,
+  press Ctrl-S, and watch the fix go nowhere.  An editor that will not
+  save is not an editor, whatever else is wrong.
+
+The first and the last of those are the same lesson from two directions:
+I verified the Tab binding against a stale artifact, and I verified the
+colouring by feeding the painter its own input by hand.  Both times the
+harness was built from the implementation, so it could only find broken
+things and never missing ones.
+
+### Bars count from zero
+
+They counted from one, which is what a score on paper does and is
+defensible in a tool for players.  It is wrong in this one: gestate
+counts ticks, samples, voices and list indices from zero, and an
+interface that alone said *bar 1* for the first bar made the reader do
+arithmetic to cross between the program and the window.  Henri's
+sentence was that he had built the whole program to one rule and found
+the interface breaking it.
+
+Lines stay 1-based and that is not an inconsistency.  They are a *text*
+coordinate, every editor and every compiler message counts them from
+one, and matching the outside world matters more there than matching
+the inside.
+
+### Syntax colouring, and the measurement that paid for it
+
+`spec/workbench.md` deferred it because it "needs the parser to survive
+a broken file".  It needs the **lexer**, and that has always been total:
+`sound = ((` and an unterminated string both tokenize.  The blocker was
+real about the wrong component.
+
+**Colouring here is line-local, and that is checkable rather than
+assumed.**  Tokenising `lantern.ges` whole and line by line gives the
+same 996 tokens; the only cross-line state is `INDENT`/`DEDENT`, and
+layout carries no colour.  So the cache is keyed on a line's own text, a
+keystroke re-lexes one line at 37µs, and a scroll is cache hits.  Only
+the visible rows are painted and only they cross the wire — the same
+argument `view.rs` opens with about the rope.
+
+**One lexer, one truth.**  A lexer in Rust would have been faster and
+would have been a second front end that could disagree with the
+compiler, which is the root cause `spec/comments.md` is written about.
+The model tokenises with `syntax.tokenize` and sends `paint` rows; the
+window reads runs and never decides what anything is.
+
+And measuring it turned up something nine times larger than itself:
+**`vocabulary()` re-parsed `command.ges` on every poll** — 650µs of a
+two-millisecond budget, spent re-deriving a file that cannot change
+while the process runs.  Its docstring said this was cheap.  It is
+keyed on the file's mtime now, so *derived, never maintained* stays
+true — touch the file and the next poll re-reads it — and the steady
+poll went from 781µs before colouring existed to 99µs with it.
+
+### The formatter stopped editing comments
+
+Two defects, both found by using `fmt`.  The tokenizer stripped both
+ends of a comment body, so `# like this` came back as `#like this`: a
+formatter may move a comment, it may not edit one.  And blank lines
+between declarations were dropped entirely, which rewrote every file
+into one wall — the grouping is a decision somebody made about their
+own program and nothing in the tree could reconstruct it.  One blank
+survives wherever one or more was left, measured from source spans, and
+the result is idempotent.
+
+### Documentation rot, and a test for it
+
+`test_manual.py` runs every gestate *snippet* and `test_courses.py`
+builds every *example*, so the language in the prose cannot drift.  The
+shell lines around them had no such check and had drifted badly: seven
+references to `gestate.audiopygame`, a module deleted with the pygame
+editor, three of them the second command of a lesson; two more CLIs
+retired into a message that the guides went on teaching; and `--watch`,
+the working method all four course guides describe, existing on nothing.
+
+`test/test_doc_commands.py` checks every `python -m gestate.X` in
+`doc/` and both READMEs: the module exists, it has a command line that
+is not retired, every long flag it passes is one `--help` lists, and
+every `examples/…` path is really there.  Fifty-five cases in half a
+second, because it imports and asks for help rather than rendering
+anything.

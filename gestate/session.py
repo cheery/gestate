@@ -763,6 +763,8 @@ class Session:
     #: `(question, answer)` — what `choices` last worked out, so a poll
     #: that changed nothing costs a comparison instead of a ranking.
     _answered: object = None
+    #: Every transition this session has made — see `_record`.
+    log: object = None
     #: A template pasted and not yet kept — the name, or `None`.
     #: Return keeps it, `Esc` undoes it, and running anything else
     #: settles it, because by then you have moved on.
@@ -1201,16 +1203,37 @@ class Session:
         except ValueError as e:
             return self._say(str(e))
         try:
-            return self._say(handler(*args))
+            said = self._say(handler(*args))
         except Exception as e:                            # noqa: BLE001
             # The workbench refusing is a thing to read, not a traceback
             # in somebody's terminal: this layer is between a person and
             # a machine that is playing music.
-            return self._say(f"{name}: {e}")
+            said = self._say(f"{name}: {e}")
+        # **Recorded after the fact, refusals included.**  What a command
+        # answered *is* the transcript — a replay that says something
+        # else is the report — and a refusal is as much an answer as a
+        # success, often the more interesting one.
+        self._record(name, args, said)
+        return said
 
     def _say(self, sentence: str) -> str:
         self.said.append(sentence)
         return sentence
+
+    def _record(self, verb: str, args, said: str) -> None:
+        """Keep what was done, in case it turns out to matter.
+
+        **Always on, and in memory.**  A transcript is wanted *after*
+        something has gone wrong — by which time offering to start
+        recording is offering to reproduce it a second time — and a file
+        growing under every keystroke of every session is a thing
+        somebody has to clean up rather than one they reach for.
+        """
+        if self.log is None:
+            from .sessionlog import Log
+
+            self.log = Log(path=str(getattr(self.bench, "path", "") or ""))
+        self.log.add(verb, args, said)
 
     # ── The handlers ─────────────────────────────────────────────────
     #
@@ -1470,7 +1493,11 @@ class Session:
     #: name follows from the source's — an `open` proposing a name would
     #: be proposing you open something you did not ask for.
     PROPOSES = {"exportClap": (0, ".clap"), "exportWav": (0, ".wav"),
-                "exportWavAt": (2, ".wav")}
+                "exportWavAt": (2, ".wav"),
+                # **Not `.ges`**, which would propose the name of the
+                # file being edited and offer to write the session over
+                # the program it recorded.
+                "transcript": (0, "-session.ges")}
 
     def _pinned(self, verb: str, at: int, query: str, rows: list) -> list:
         """The name an export proposes, put at the top of its listing.
@@ -1751,6 +1778,28 @@ class Session:
         self.view.close_list()
         return f"typed {glyph}"
 
+    def do_transcript(self, path: str = "") -> str:
+        """Write down what this session has done so far.
+
+        The recording is always running; this is where it lands.  It
+        replays with `python -m gestate.sessionlog <file>`, which reports
+        every command whose answer has moved — a bug found by playing,
+        kept by having been played.
+        """
+        if self.log is None or not self.log.steps:
+            return "nothing has happened yet"
+        want = self._where(path) if (path or "").strip() \
+            else self._default_out("session")
+        if want.is_dir():
+            self.asking = ("transcript", 0, path.rstrip("/") + "/")
+            return f"{want.name or want}/"
+        try:
+            want.parent.mkdir(parents=True, exist_ok=True)
+            want.write_text(self.log.text())
+        except OSError as exc:
+            return f"transcript: {_first_line(exc)}"
+        return f"wrote {want.name} — {len(self.log.steps)} steps"
+
     def do_template(self, name: str) -> str:
         """Put one of the language's ideas at the cursor.
 
@@ -1803,6 +1852,8 @@ class Session:
         here = Path(getattr(self.bench, "path", "") or "untitled.ges")
         if kind == "clap":
             return Path.home() / ".clap" / f"{here.stem}.clap"
+        if kind == "session":
+            return here.parent / f"{here.stem}-session.ges"
         return here.parent / f"{here.stem}.wav"
 
     def _seconds_of(self, bar: int) -> float:

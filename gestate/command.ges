@@ -318,6 +318,20 @@ type Symbol = Text
 symbol : Symbol -> Command
 symbol which = Stated
 
+#: Write down what this session has done.
+#:
+#: **The recording is always running**, so this is where it lands rather
+#: than when it starts: a transcript is wanted *after* something has
+#: gone wrong, and a command that had to be pressed first would be one
+#: you press after reproducing the fault a second time.
+#:
+#: It replays with `python -m gestate.sessionlog <file>`, which reports
+#: every command whose answer has moved.  That is what makes a bug found
+#: by playing into one that is kept: the reproduction is checked in
+#: beside the fix, the way a `.samples` golden is.
+transcript : Path -> Command
+transcript path = Stated
+
 #: A snippet to paste — one of the language's ideas, ready to have.
 #:
 #: **Its own type, and that is what makes the list appear**, which is the
