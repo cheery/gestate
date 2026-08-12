@@ -115,13 +115,13 @@ play = Stated
 stop : Command
 stop = Stated
 
-#: Put the playhead at a bar, counting from one.
+#: Put the playhead at a bar, counting from zero.
 seek : Int -> Command
 seek n = Stated
 
 # ── The loop ─────────────────────────────────────────────────────────────
 
-#: Loop between two bars, counting from one.
+#: Loop between two bars, counting from zero.
 loop : Int -> Int -> Command
 loop a b = Stated
 
@@ -397,7 +397,7 @@ exportClap path = Stated
 exportWav : Path -> Command
 exportWav path = Stated
 
-#: Render the bars between two numbers, counting from one.
+#: Render the bars between two numbers, counting from zero.
 #:
 #: **Played from the top and cut, never started at the bar.**  A synth's
 #: sound at bar five is what its filters and envelopes have been doing

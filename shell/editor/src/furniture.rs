@@ -241,6 +241,7 @@ impl Furniture {
                             Some(d) => d == "1",
                             None => p.get(4).copied() == Some("0"),
                         },
+                        kind: p.get(7).copied().unwrap_or("").into(),
                     });
                 }
                 // Unknown, or too short to mean anything.  Skipped.

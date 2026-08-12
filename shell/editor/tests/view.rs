@@ -527,15 +527,19 @@ fn foot(f: &gestate_editor::furniture::Furniture) -> Vec<String> {
 
 #[test]
 fn the_transport_is_shown_as_a_bar_and_a_beat() {
-    // Bar and beat, counting from one, because that is what `seek` and
-    // `loop` are *given* — a readout in other units than the command
-    // takes is a second thing to learn.
+    // **Counting from zero**, because that is what `seek` and `loop` are
+    // *given* — a readout in other units than the command takes is a
+    // second thing to learn — and because everything else in this
+    // language counts from zero.  It read from one for a while, which is
+    // what a score on paper does and is wrong in a programmatic editor:
+    // an interface that alone said *bar 1* for the first bar made the
+    // reader do arithmetic to cross between the program and the window.
     let said = foot(&transport(true, 0.0));
-    assert!(said.iter().any(|s| s.contains("1.1")), "{said:?}");
+    assert!(said.iter().any(|s| s.contains("0.0")), "{said:?}");
     let said = foot(&transport(true, 8.0));
-    assert!(said.iter().any(|s| s.contains("3.1")), "bar 3 beat 1: {said:?}");
+    assert!(said.iter().any(|s| s.contains("2.0")), "bar 2 beat 0: {said:?}");
     let said = foot(&transport(true, 9.0));
-    assert!(said.iter().any(|s| s.contains("3.2")), "bar 3 beat 2: {said:?}");
+    assert!(said.iter().any(|s| s.contains("2.1")), "bar 2 beat 1: {said:?}");
 }
 
 /// `loop 2 6` must read back as `2-6`.  The end is exclusive, so the
@@ -545,9 +549,9 @@ fn the_transport_is_shown_as_a_bar_and_a_beat() {
 #[test]
 fn a_loop_is_shown_in_the_bars_it_was_given() {
     let mut f = transport(false, 0.0);
-    f.looping = Some((4.0, 20.0));           // what `loop 2 6` sets
+    f.looping = Some((4.0, 20.0));           // what `loop 1 5` sets
     let said = foot(&f);
-    assert!(said.iter().any(|s| s.contains("2-6")), "{said:?}");
+    assert!(said.iter().any(|s| s.contains("1-5")), "{said:?}");
 }
 
 /// **A model that has said nothing about time has no position.**  A
@@ -555,7 +559,7 @@ fn a_loop_is_shown_in_the_bars_it_was_given() {
 #[test]
 fn nothing_is_shown_when_there_is_no_transport() {
     let said = foot(&gestate_editor::furniture::Furniture::default());
-    assert!(said.iter().all(|s| !s.contains("1.1")), "{said:?}");
+    assert!(said.iter().all(|s| !s.contains("0.0")), "{said:?}");
 }
 
 /// A bank's box is a button; the count beside it is a reading.

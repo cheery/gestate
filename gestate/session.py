@@ -337,6 +337,54 @@ def _export_wav(text: str, want, span=None):
     return want
 
 
+#: The reference index, read once.  493 entries parsed out of five
+#: libraries is not a thing to redo per keystroke, and it cannot change
+#: while the process runs — the libraries ship with it.
+_REFERENCE_ALL: list = []
+
+
+def _builtin_types() -> list:
+    """Type constructors the compiler knows and no library declares.
+
+    **Read from `kindcheck`'s own table**, so a type the compiler learns
+    is a type this offers — a list written out here would be a second
+    place the language's vocabulary lived, which is the thing every other
+    list in this file is derived to avoid.
+
+    The internal spellings are left out: `Tuple2` is what a pair is
+    called inside the checker and `(a, b)` is what anybody writes, so
+    offering the first would be teaching the wrong name for a thing the
+    reader already has one for.
+    """
+    try:
+        from .kindcheck import _BUILTIN_KINDS
+    except Exception:                                    # noqa: BLE001
+        return []
+    return sorted(n for n in _BUILTIN_KINDS if not n.startswith("Tuple"))
+
+
+def _builtin_kind(name: str) -> str | None:
+    """`Type`, or `(Type -> Type)`, for a type the compiler knows."""
+    try:
+        from .kindcheck import _BUILTIN_KINDS
+    except Exception:                                    # noqa: BLE001
+        return None
+    found = _BUILTIN_KINDS.get(name)
+    return None if found is None else repr(found)
+
+
+def _all_reference() -> list:
+    global _REFERENCE_ALL
+    if not _REFERENCE_ALL:
+        try:
+            from .reference import all_entries
+
+            _REFERENCE_ALL = list(all_entries())
+        except Exception:                                # noqa: BLE001
+            _REFERENCE_ALL = []
+    return _REFERENCE_ALL
+
+
 def _declared_names(source: str) -> set:
     """Every name the text defines — the same reading `goto` uses."""
     from .typecheck import _defined_lines
@@ -627,6 +675,9 @@ class Session:
     #: into.  **Once per question, never per empty box** — see
     #: `proposed_name`.
     proposed: object = None
+    #: `(question, answer)` — what `choices` last worked out, so a poll
+    #: that changed nothing costs a comparison instead of a ranking.
+    _answered: object = None
     #: A template pasted and not yet kept — the name, or `None`.
     #: Return keeps it, `Esc` undoes it, and running anything else
     #: settles it, because by then you have moved on.
@@ -637,30 +688,102 @@ class Session:
         asked for, which is cheap and cannot go stale."""
         return vocabulary()
 
-    def names(self) -> list:
+    #: Which commands want which names.  **Not every `Named` is the
+    #: same question**: `set cutoff` only means anything for a knob and
+    #: `listen` only for a bank, while `what` is the compiler answering
+    #: about *anything* — offering a bank to `set` is offering a choice
+    #: that cannot work, which is a list telling you a lie.
+    WANTS = {"set": "knobs", "learn": "knobs",
+             "listen": "banks", "deafen": "banks",
+             "goto": "written", "infer": "written",
+             "what": "everything"}
+
+    def names(self, wants: str = "controls") -> list:
         """Every name a `Named` argument could be, and what it is.
 
-        Knobs and banks, which are the names a person means when a
-        command asks for one — and they are already facts the workbench
-        keeps, so this is a reading rather than a second list.
+        **Grouped, and the group is the note.**  What is in the window
+        comes first — knobs, banks, then whatever else the file declares
+        — and the libraries follow, tagged by which one they are in.
+        That order is the answer to *what did I call it*, which is the
+        question somebody has when they open this list; the alphabet
+        would answer a question nobody asked.
         """
+        if wants == "everything":
+            return self._everything()
+        if wants == "written":
+            return self._declarations()
         out, seen = [], set()
         kinds = getattr(self.bench, "knob_types", {}) or {}
-        for site in getattr(self.bench, "sites", []) or []:
-            name = getattr(site, "name", None)
-            if name is None or name in seen:
-                continue
-            seen.add(name)
-            out.append((name, f"Chan {kinds.get(name, 'Int')}"))
-        for bank in getattr(self.bench, "banks", []) or []:
-            name = _of(bank, "name", "")
-            if not name or name in seen:
-                continue
-            seen.add(name)
-            out.append((name, f"{_of(bank, 'count', 0)} voices"))
+        if wants in ("controls", "knobs"):
+            for site in getattr(self.bench, "sites", []) or []:
+                name = getattr(site, "name", None)
+                if name is None or name in seen:
+                    continue
+                seen.add(name)
+                out.append((name, f"Chan {kinds.get(name, 'Int')}", ""))
+        if wants in ("controls", "banks"):
+            for bank in getattr(self.bench, "banks", []) or []:
+                name = _of(bank, "name", "")
+                if not name or name in seen:
+                    continue
+                seen.add(name)
+                out.append((name, f"{_of(bank, 'count', 0)} voices", ""))
         return out
 
-    def naming(self, query: str) -> list:
+    def _declarations(self) -> list:
+        """What the file itself declares — knobs, banks, and the rest.
+
+        The knobs and banks come first because they are what the window
+        is already drawing; everything else the text defines follows, so
+        `goto` can reach a helper that has no widget.
+        """
+        out = list(self.names("controls"))
+        seen = {row[0] for row in out}
+        for name in _declared_names(self._source()):
+            if name not in seen:
+                seen.add(name)
+                out.append((name, "declared here", ""))
+        return out
+
+    def _everything(self) -> list:
+        """Every name there is — this file's, then every library's.
+
+        **What `what` is for.**  It already answers out of the reference
+        when a name is not in the file — `what wait` reaches the
+        language's own documentation — so a completion that offered only
+        the file's names was offering less than the command could do.
+        Asking a machine that is playing music what a word means, being
+        told nothing, and finding it in the manual it ships with is the
+        sort of answer that teaches somebody the tool does not know
+        things.
+        """
+        out = self._declarations()
+        seen = {row[0] for row in out}
+        # **The builtin types, which are in no `.ges` file.**  `Int` and
+        # `Bool` are the compiler's own, so the reference — which is
+        # generated from the libraries' prose — has never heard of them,
+        # and a completion over "everything" that could not offer `Int`
+        # was offering everything except the words a beginner reaches
+        # for first.  Read from the kind table rather than listed here,
+        # so a type the compiler learns is a type this offers.
+        for name in _builtin_types():
+            if name not in seen:
+                seen.add(name)
+                out.append((name, "built in", "type"))
+        for entry in _all_reference():
+            if entry.name in seen:
+                continue
+            seen.add(entry.name)
+            # **The kind travels with the name.**  A type is a different
+            # sort of answer from a function — you reach for one to say
+            # what something *is* and the other to say what it *does* —
+            # and a list that spelled them the same made the reader open
+            # each to find out which they had.
+            out.append((entry.name, getattr(entry, "library", "") or "library",
+                        entry.kind))
+        return out
+
+    def naming(self, query: str, wants: str = "controls") -> list:
         """The names a typed query means, best first.
 
         **The same rule as `matching`, over names instead of commands**,
@@ -669,7 +792,7 @@ class Session:
         """
         query = query.strip().lower()
         found = []
-        for i, (name, note) in enumerate(self.names()):
+        for i, (name, note, kind) in enumerate(self.names(wants)):
             low = name.lower()
             if not query:
                 rank = 3
@@ -681,8 +804,8 @@ class Session:
                 rank = 2
             else:
                 continue
-            found.append((rank, i, (name, note)))
-        return [pair for _r, _i, pair in sorted(found, key=lambda f: f[:2])]
+            found.append((rank, i, (name, note, kind)))
+        return [row for _r, _i, row in sorted(found, key=lambda f: f[:2])]
 
     def symbols(self, query: str) -> list:
         """The symbol table — `(letter, symbol)` per cell.
@@ -865,9 +988,24 @@ class Session:
         return out
 
     def choices(self) -> list:
-        """What the argument being asked for could be, or nothing."""
+        """What the argument being asked for could be, or nothing.
+
+        **Answered once per question, not once per poll.**  `furniture`
+        is derived every time the loop comes round — every two
+        milliseconds — and it reads this; ranking `what`'s five hundred
+        names there would spend most of a poll on an answer that had not
+        changed since the last one.  The question is the key, so a
+        keystroke recomputes and a redraw does not.
+        """
         if self.asking is None:
             return []
+        if self._answered is not None and self._answered[0] == self.asking:
+            return self._answered[1]
+        found = self._choices()
+        self._answered = (self.asking, found)
+        return found
+
+    def _choices(self) -> list:
         verb, at, query = self.asking
         found = self.find(verb)
         if found is None or at >= found.arity:
@@ -901,7 +1039,7 @@ class Session:
             # knowable set of next steps — what is in this directory —
             # which is exactly what makes it offerable.
             return []
-        return self.naming(query)
+        return self.naming(query, self.WANTS.get(verb, "controls"))
 
     def palette_list(self) -> list:
         """What the command list should be showing right now."""
@@ -1023,8 +1161,8 @@ class Session:
         return "stopped"
 
     def do_seek(self, bar: int) -> str:
-        # Bars count from one where a person is concerned and from zero
-        # where a transport is; the conversion belongs here, once.
+        # Bars, beats and samples all count from zero; the conversion
+        # between them belongs here, once.
         self.bench.seek_beats(_beats_of(bar))
         return f"at bar {bar}"
 
@@ -1033,6 +1171,8 @@ class Session:
     def do_loop(self, first: int, last: int) -> str:
         if last <= first:
             return f"bar {last} is not after bar {first}"
+        if first < 0:
+            return "bars count from zero"
         self.bench.set_loop(_beats_of(first), _beats_of(last))
         return f"looping bars {first}-{last}"
 
@@ -1225,6 +1365,15 @@ class Session:
             return f"{name} : Chan {kind}"
         if self._declared(name) is not None:
             return f"{name} is declared here"
+        # **A builtin type is an answer, not a shrug.**  `Int` and `Bool`
+        # are the compiler's own and appear in no library, so this used
+        # to offer them in the list and then refuse them when picked —
+        # which is the shape every refusal here is meant not to have.
+        # The kind is what there is to say: `Int` is a type, `Sig` is a
+        # type constructor, and knowing which is what the reader wanted.
+        kind = _builtin_kind(name)
+        if kind is not None:
+            return f"{name} : {kind} — built in"
         found = _reference(name)
         if found is not None:
             self.page = _page(name)
@@ -1646,7 +1795,7 @@ class Session:
         return self._export("wav", path)
 
     def do_exportWavAt(self, first: int, last: int, path: str = "") -> str:
-        """Render the bars between two numbers, counting from one.
+        """Render the bars between two numbers, counting from zero.
 
         **Played from the top and cut, never started at the bar.**  A
         synth's sound at bar five is what its filters and envelopes have
@@ -1656,8 +1805,8 @@ class Session:
         is taken off, which is what a bounce does everywhere else.
         """
         first, last = min(first, last), max(first, last)
-        if last < 1:
-            return "exportWavAt: bars count from one"
+        if first < 0:
+            return "exportWavAt: bars count from zero"
         return self._export("wav", path, bars=(first, last))
 
     def do_overwrite(self, answer: str) -> str:
@@ -1845,7 +1994,7 @@ class Session:
         return "nothing"
 
 
-#: Bars count from one for a person and from zero for a transport.
+#: Bars, beats and samples all count from zero.
 BEATS_PER_BAR = 4
 
 
@@ -1879,8 +2028,23 @@ def _typed(verb: "Verb", args: tuple) -> tuple:
 
 
 def _beats_of(bar: int) -> float:
-    """A bar number as the beat it starts on."""
-    return float(max(0, bar - 1) * BEATS_PER_BAR)
+    """A bar number as the beat it starts on.
+
+    **Bars count from zero, like everything else here.**  They used to
+    count from one — the convention a score on paper uses — and that is
+    defensible in a tool for players and wrong in this one: gestate
+    counts ticks, samples, voices and list indices from zero, and an
+    interface that alone said *bar 1* for the first bar made the reader
+    do arithmetic to cross between the program and the window.  A
+    programmatic editor should not have a house style it breaks in its
+    own status line.
+
+    Lines are the deliberate exception and stay 1-based: those are a
+    *text* coordinate, every editor and every compiler message counts
+    them from one, and matching the outside world matters more there
+    than matching the inside.
+    """
+    return float(max(0, bar) * BEATS_PER_BAR)
 
 
 # ── The window, and what passes between them ─────────────────────────────
@@ -2018,6 +2182,11 @@ def furniture(session: "Session", bench=None) -> str:
     # than an edit of the old one.
     for choice in session.choices():
         text, note = choice[0], choice[1]
+        # **A naming row is `(name, note, kind)` and a listing row is
+        # `(text, note, can, step, dim)`.**  Told apart by what the third
+        # element *is*: a kind is a word, and `can` is a boolean.
+        if len(choice) == 3 and not isinstance(choice[2], bool):
+            choice = (choice[0], choice[1], True, "", False, choice[2])
         can = choice[2] if len(choice) > 2 else True
         step = choice[3] if len(choice) > 3 else ""
         # **Drawn faint is not the same question as may be chosen.**  A
@@ -2026,9 +2195,13 @@ def furniture(session: "Session", bench=None) -> str:
         # follows the refusal, which is what every row did before an
         # export needed the two apart.
         dim = choice[4] if len(choice) > 4 else not can
+        # **And what kind of thing it is**, so a type can be drawn as
+        # one.  Empty for a row that is not a name — a path, a symbol, a
+        # yes — because those are not kinds of anything.
+        kind = choice[5] if len(choice) > 5 else ""
         out.append(f"choice\t{text}\t{note}"
                    f"\t{1 if text == here else 0}\t{1 if can else 0}"
-                   f"\t{step}\t{1 if dim else 0}")
+                   f"\t{step}\t{1 if dim else 0}\t{kind}")
 
     # And a page to read, when a command answered with one.
     for line in session.page or []:

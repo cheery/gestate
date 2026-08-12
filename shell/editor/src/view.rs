@@ -429,11 +429,16 @@ fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
     // exactly what it had before.  A command whose only evidence is its
     // own sentence is indistinguishable from one that failed.
     if chrome.has_transport {
+    // **Bars and beats count from zero**, like the ticks, the samples
+    // and the voices — the readout used to add one to each, which is
+    // what a score on paper does and is wrong in a programmatic editor:
+    // an interface that alone said *bar 1* for the first bar made the
+    // reader do arithmetic to cross between the program and the window.
     let beat = chrome.beat.max(0.0);
-    let bar = (beat / 4.0).floor() as i64 + 1;
+    let bar = (beat / 4.0).floor() as i64;
     let mut when = format!("{} {}.{}",
                            if chrome.playing { "\u{25b6}" } else { "\u{25a0}" },
-                           bar, (beat as i64).rem_euclid(4) + 1);
+                           bar, (beat as i64).rem_euclid(4));
     if let Some((from, to)) = chrome.looping {
         // Bars, because that is what `loop` is given and a readout in
         // other units than the command is a second thing to learn.
@@ -443,8 +448,8 @@ fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
         // command that made it disagree by one, which is a puzzle to
         // solve every time rather than a thing to read.
         when.push_str(&format!("  \u{21ba}{}-{}",
-                               (from / 4.0).floor() as i64 + 1,
-                               (to / 4.0).floor() as i64 + 1));
+                               (from / 4.0).floor() as i64,
+                               (to / 4.0).floor() as i64));
     }
     let at = view.w - 4 - width_of(&when) as i32 * cw;
     f.items.push(Item::Run { x: at, y: sy + 2, s: when,

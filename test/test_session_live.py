@@ -78,7 +78,12 @@ def test_every_command_finds_the_method_it_needs(tmp_path):
     # **A name that is certainly not on the disk**, so `open` and `steal`
     # answer about a missing file rather than opening one under a test.
     sample = {"Int": 1, "Float": 0.5, "Text": "sine",
-              "Named": "pitch", "a": 40, "Path": "no-such-file.ges"}
+              "Named": "pitch", "a": 40, "Path": "no-such-file.ges",
+              # A port and a template that certainly are not there, and a
+              # `no` for the overwrite question nobody asked — each is
+              # reached for the refusal rather than the act.
+              "Device": "no-such-controller", "Template": "knob",
+              "Symbol": "a", "Answer": "no"}
     for verb in s.commands():
         said = s.run(verb.name, *(sample[a] for a in verb.args))
         assert "object has no attribute" not in said, \

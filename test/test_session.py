@@ -211,14 +211,25 @@ def test_a_transcript_of_names_reads_as_what_it_did():
     assert s.said == said, "everything said is kept, newest last"
 
 
-def test_bars_count_from_one_where_a_person_is_concerned():
-    """A transport counts beats from zero; a musician counts bars from
-    one.  The conversion lives in one place so nothing else has to know
-    it."""
+def test_bars_count_from_zero_like_everything_else():
+    """**One house style, kept in the window too.**
+
+    Bars used to count from one — what a score on paper does, and
+    defensible in a tool for players.  It is wrong in this one: gestate
+    counts ticks, samples, voices and list indices from zero, and an
+    interface that alone said *bar 1* for the first bar made the reader
+    do arithmetic to cross between the program and the window.
+
+    Lines stay 1-based and that is not an inconsistency: those are a
+    *text* coordinate, every editor and every compiler message counts
+    them from one, and matching the outside world matters more there.
+    """
     s = session()
-    s.run("seek", 1)
-    s.run("loop", 3, 5)
+    s.run("seek", 0)
+    s.run("loop", 2, 4)
     assert s.bench.log == [("seek", 0.0), ("loop", 8.0, 16.0)]
+    assert s.run("seek", 1) == "at bar 1"
+    assert s.bench.log[-1] == ("seek", 4.0), "bar 1 is the second bar"
 
 
 # ── Refusals ─────────────────────────────────────────────────────────────
@@ -1427,18 +1438,115 @@ def test_asking_about_a_named_argument_offers_names():
     it = session()
     it.bench.sites = (_Site("cutoff", 12), _Site("pitch", 30))
     it.bench.knob_types = {"cutoff": "Float", "pitch": "Int"}
-    assert act(it, "wants\tlisten\t0\t") == "2 name(s)"
-    assert [n for n, _note in it.choices()] == ["cutoff", "pitch"]
+    assert act(it, "wants\tset\t0\t") == "2 name(s)"
+    assert [r[0] for r in it.choices()] == ["cutoff", "pitch"]
     lines = [l.split("\t")[:3] for l in furniture(it).splitlines()
              if l.startswith("choice")]
     assert ["choice", "cutoff", "Chan Float"] in lines
+
+
+def test_not_every_named_is_the_same_question():
+    """**Offering a choice that cannot work is a list telling you a lie.**
+
+    `set cutoff` only means anything for a knob and `listen` only for a
+    bank; every `Named` argument used to be handed the same pair of
+    lists, so `listen` offered knobs it would have to refuse.
+    """
+    it = session()
+    it.bench.sites = (_Site("cutoff", 12),)
+    it.bench.knob_types = {"cutoff": "Float"}
+    it.bench.banks = [{"name": "lead", "line": 4, "count": 4}]
+
+    it.asking = ("set", 0, "")
+    assert [r[0] for r in it.choices()] == ["cutoff"]
+    it.asking = ("listen", 0, "")
+    assert [r[0] for r in it.choices()] == ["lead"]
+
+
+def test_what_completes_over_everything_there_is():
+    """**`what` already answered out of the reference; now it offers it.**
+
+    It reaches the language's own documentation when a name is not in
+    the file, so a completion that offered only the file's names was
+    offering less than the command could do.
+
+    Grouped, and the group is the note: what is in the window first,
+    then the libraries, each tagged with which one it is in — that order
+    answers *what did I call it*, which is the question somebody has
+    when they open the list.
+    """
+    it = session()
+    it.bench.sites = (_Site("cutoff", 12),)
+    it.bench.knob_types = {"cutoff": "Float"}
+    it.asking = ("what", 0, "")
+    rows = it.choices()
+    names = [r[0] for r in rows]
+    assert names[0] == "cutoff", "the window's own names do not come first"
+    assert "adsr" in names, "a library name is not offered"
+    assert len(names) > 100, f"only {len(names)} names offered"
+    # The note says which library, so the list reads as groups.
+    note = {r[0]: r[1] for r in rows}["adsr"]
+    assert note and note != "declared here", f"adsr is tagged {note!r}"
+    # And it filters like every other list.
+    it.asking = ("what", 0, "lowpass")
+    assert all("lowpass" in n.lower() for n, _note, _kind in it.choices())
+
+
+def test_the_builtin_types_are_offered_too():
+    """**`Int` and `Bool` are in no `.ges` file.**
+
+    They are the compiler's own, so the reference — generated from the
+    libraries' prose — has never heard of them, and a completion over
+    "everything" that could not offer `Int` was offering everything
+    except the words a beginner reaches for first.
+
+    Read from `kindcheck`'s own table, so a type the compiler learns is
+    a type this offers.  The internal spellings stay out: `Tuple2` is
+    what a pair is called inside the checker and `(a, b)` is what
+    anybody writes.
+    """
+    it = session()
+    for want in ("Int", "Bool", "Float", "Sig", "List"):
+        it.asking = ("what", 0, want)
+        rows = it.choices()
+        assert rows and rows[0][0] == want, f"{want}: {rows[:2]}"
+        assert rows[0][2] == "type", f"{want} is not offered as a type"
+    it.asking = ("what", 0, "Tuple")
+    assert not [n for n, _x, _y in it.choices() if n.startswith("Tuple")], \
+        "the checker's internal spelling for a pair was offered"
+
+
+def test_what_answers_about_a_builtin_it_offered():
+    """**Offering a choice and then refusing it is the shape to avoid.**
+
+    `Int` was in the list and answered `no declaration` when picked.
+    The kind is what there is to say — `Int` is a type, `Sig` is a type
+    constructor — and knowing which is what the reader wanted.
+    """
+    s = session(view=_Editing(""))
+    assert s.run("what", "Int") == "Int : Type — built in"
+    assert s.run("what", "Sig") == "Sig : (Type -> Type) — built in"
+    assert s.run("what", "nobody") == "no declaration `nobody`"
+
+
+def test_a_type_is_marked_as_one_on_the_wire():
+    """A type is a different sort of answer from a function — you reach
+    for one to say what something *is* and the other to say what it
+    *does* — so the row carries which, and the window tints it."""
+    it = session()
+    it.asking = ("what", 0, "Adsr")
+    rows = [l.split("\t") for l in furniture(it).splitlines()
+            if l.startswith("choice\t")]
+    by = {r[1]: r[-1] for r in rows}
+    assert by.get("Adsr") == "type"
+    assert by.get("adsr") == "value", "a function was marked a type"
 
 
 def test_names_are_ranked_the_way_commands_are():
     it = session()
     it.bench.sites = (_Site("cut", 1), _Site("cutoff", 2), _Site("uncut", 3))
     it.bench.knob_types = {}
-    assert [n for n, _ in it.naming("cut")] == ["cut", "cutoff", "uncut"]
+    assert [r[0] for r in it.naming("cut")] == ["cut", "cutoff", "uncut"]
 
 
 def test_a_number_argument_is_typed_not_chosen():

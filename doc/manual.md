@@ -827,7 +827,7 @@ bpm   : Int
 
 then `python -m gestate.midi song.ges`.  Onsets may be negative (`at` can
 place content before the origin); the *renderer* normalises, because a grid
-view might want to show that a fill precedes bar 1 while a MIDI file cannot
+view might want to show that a fill precedes bar 0 while a MIDI file cannot
 hold a negative timestamp.
 
 A synth can perform a score too — `voices` banks stand as instruments, and

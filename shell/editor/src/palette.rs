@@ -87,6 +87,14 @@ pub struct Choice {
     /// first letter you type is a new name rather than an edit of the
     /// old one.
     pub here: bool,
+    /// What sort of thing it is — `type`, `class`, `value`, `operator`.
+    ///
+    /// **A type is a different sort of answer from a function.**  You
+    /// reach for one to say what something *is* and the other to say
+    /// what it *does*, and a list that spelled them the same made the
+    /// reader open each to find out which they had.  Empty for a row
+    /// that is not a name at all — a path, a symbol, a yes.
+    pub kind: String,
 }
 
 /// A command picked, waiting for what it takes.
@@ -137,6 +145,12 @@ pub const EDGE: Colour = Colour::rgb(0x2a, 0x30, 0x3a);
 pub const INK: Colour = Colour::rgb(0xd8, 0xdc, 0xe4);
 pub const FAINT: Colour = Colour::rgb(0x6a, 0x74, 0x84);
 pub const PICKED: Colour = Colour::rgb(0x24, 0x3a, 0x4c);
+/// A type, a class or an alias, among the values.
+///
+/// Warm against the ink's cool grey, and readable at the same weight —
+/// a *tint*, not a highlight: the point is to tell two kinds of answer
+/// apart at a glance, not to say one of them matters more.
+pub const TYPED: Colour = Colour::rgb(0xd8, 0xb0, 0x7c);
 
 /// What the palette wants next.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -794,10 +808,16 @@ impl Palette {
             }
             let room = (((box_w - 8) / cw.max(1)) as usize)
                 .saturating_sub(right.chars().count() + 2).max(4);
+            let tint = self.choices.get(from + i)
+                .map(|c| matches!(c.kind.as_str(),
+                                  "type" | "class" | "alias"))
+                .unwrap_or(false);
             f.items.push(Item::Run {
                 x: x + 4, y: row, s: elide(left, room),
                 c: if dim.get(from + i).copied().unwrap_or(false) {
                     FAINT
+                } else if tint {
+                    TYPED
                 } else {
                     INK
                 } });
@@ -1038,8 +1058,8 @@ mod asking_tests {
         let mut p = listed();
         pick(&mut p, 2);
         p.offer_choices(vec![
-            Choice { text: "cutoff".into(), note: "Chan Float".into(), here: false, can: true, step: String::new(), dim: false },
-            Choice { text: "pitch".into(), note: "Chan Int".into(), here: false, can: true, step: String::new(), dim: false },
+            Choice { text: "cutoff".into(), note: "Chan Float".into(), here: false, can: true, step: String::new(), dim: false, kind: String::new() },
+            Choice { text: "pitch".into(), note: "Chan Int".into(), here: false, can: true, step: String::new(), dim: false, kind: String::new() },
         ]);
         p.at = 1;
         assert_eq!(p.key(Key::Enter),
@@ -1388,11 +1408,11 @@ mod choosing_tests {
         let mut p = naming("open");
         p.offer_choices(vec![
             Choice { text: "..".into(), note: String::new(),
-                     here: false, can: true, step: String::new(), dim: false },
+                     here: false, can: true, step: String::new(), dim: false, kind: String::new() },
             Choice { text: "one.ges".into(), note: "2K".into(),
-                     here: false, can: true, step: String::new(), dim: false },
+                     here: false, can: true, step: String::new(), dim: false, kind: String::new() },
             Choice { text: "two.ges".into(), note: "3K".into(),
-                     here: true, can: true, step: String::new(), dim: false },
+                     here: true, can: true, step: String::new(), dim: false, kind: String::new() },
         ]);
         assert_eq!(p.at, 2);
         assert_eq!(p.query(), "", "and nothing is typed for you");
@@ -1407,7 +1427,7 @@ mod choosing_tests {
         for c in "one".chars() { p.key(Key::Char(c)); }
         p.offer_choices(vec![
             Choice { text: "one.ges".into(), note: "taken".into(),
-                     here: false, can: false, step: String::new(), dim: false },
+                     here: false, can: false, step: String::new(), dim: false, kind: String::new() },
         ]);
         assert_eq!(p.key(Key::Enter), Asks::Nothing);
         assert!(p.asking().is_some_and(|a| !a.done),
@@ -1446,9 +1466,9 @@ mod walking_tests {
         p.key(Key::Enter);
         p.offer_choices(vec![
             Choice { text: "../".into(), note: String::new(), here: false,
-                     can: true, step: "../".into(), dim: false },
+                     can: true, step: "../".into(), dim: false, kind: String::new() },
             Choice { text: "one.ges".into(), note: "2K".into(), here: false,
-                     can: true, step: String::new(), dim: false },
+                     can: true, step: String::new(), dim: false, kind: String::new() },
         ]);
         // Up one: the query becomes the path, and it is still asking.
         assert_eq!(p.key(Key::Enter),
@@ -1459,7 +1479,7 @@ mod walking_tests {
         // And down into another: the steps compose.
         p.offer_choices(vec![
             Choice { text: "audio/".into(), note: "directory".into(),
-                     here: false, can: true, step: "../audio/".into(), dim: false },
+                     here: false, can: true, step: "../audio/".into(), dim: false, kind: String::new() },
         ]);
         assert_eq!(p.key(Key::Enter),
                    Asks::Wants("open".into(), 0, "../audio/".into()));
@@ -1468,7 +1488,7 @@ mod walking_tests {
         // A file is the answer, and ends the question.
         p.offer_choices(vec![
             Choice { text: "two.ges".into(), note: "3K".into(), here: false,
-                     can: true, step: String::new(), dim: false },
+                     can: true, step: String::new(), dim: false, kind: String::new() },
         ]);
         assert_eq!(p.key(Key::Enter),
                    Asks::Run("open".into(), vec!["two.ges".into()]));
