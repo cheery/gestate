@@ -665,8 +665,10 @@ class _Editing:
         #: model only ever mirrors it.
         self.saved = True
 
-    def note_state(self, zoom, rungs, undos, redos, saved=True):
+    def note_state(self, zoom, rungs, undos, redos, saved=True,
+                   top=0, rows=40):
         self.saved = saved
+        self.top, self.rows = top, rows
 
     def mark_saved(self):
         self.saved = True
@@ -1062,6 +1064,48 @@ def test_a_wired_knob_is_never_listed_twice():
     s.bench.loose = [("cutoff", 2, "0.4", True)]
     rows = [l for l in furniture(s).splitlines() if l.startswith("knob\t")]
     assert len(rows) == 1 and rows[0].endswith("\t1")
+
+
+def test_colouring_uses_the_compilers_own_tokenizer():
+    """**One lexer, one truth.**
+
+    A second lexer in the window would be fast and would be a second
+    front end that could disagree with the compiler — the root cause
+    `spec/comments.md` is written about.  So a colour is the tokenizer's
+    own opinion or it is not shown.
+    """
+    from gestate.session import painted
+
+    assert painted("cutoff = mkKnob 0.4  # a comment") == \
+        "7:1:op 16:3:num 21:11:note"
+    # A name gets no run and falls through to the ordinary ink — the
+    # table says what is worth colouring, not what exists.
+    assert "mkKnob" not in painted("x = mkKnob 1.0")
+
+
+def test_a_file_that_does_not_compile_still_colours():
+    """**The lexer is total, which is what the spec's blocker missed.**
+
+    `spec/workbench.md` deferred colouring because it "needs the parser
+    to survive a broken file".  It needs the *lexer*, and that already
+    does: half a line colours as far as it goes.
+    """
+    from gestate.session import painted
+
+    for broken in ("sound = ((", 'x = "unterminated', "f x = ) ) )"):
+        painted(broken)                      # the point is it returns
+    assert painted("sound = ((").startswith("6:1:op")
+
+
+def test_only_the_visible_lines_are_painted():
+    """Colouring a million-line file to draw fifty rows would make the
+    rope decorative, which is the argument `view.rs` opens with."""
+    view = _Editing("")
+    view.visible = lambda: [(3, "x = 1"), (4, "y = Adsr 2")]
+    s = session(view=view)
+    rows = [l for l in furniture(s).splitlines() if l.startswith("paint\t")]
+    assert [r.split("\t")[1] for r in rows] == ["3", "4"]
+    assert "con" in rows[1], "a constructor was not coloured"
 
 
 def test_the_status_line_says_the_file_and_whether_it_is_written():

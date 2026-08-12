@@ -64,6 +64,46 @@ pub const KEY_EDGE: Colour = Colour::rgb(0x14, 0x16, 0x1a);
 
 pub const CHROME: Colour = Colour::rgb(0x1c, 0x1f, 0x25);
 
+// ── Syntax ───────────────────────────────────────────────────────────
+//
+// **Six, and they answer one question**: *which sort of thing is this?*
+// A shade per token kind is a palette nobody can hold in their head, and
+// the eye reads punctuation as punctuation whether it is a bracket or an
+// operator.  All six sit at the ink's weight against the same ground, so
+// none of them reads as more important than the code.
+
+/// A comment — present, and not competing with what it explains.
+pub const S_NOTE: Colour = Colour::rgb(0x5a, 0x64, 0x72);
+/// A string literal.
+pub const S_TEXT: Colour = Colour::rgb(0x9c, 0xc8, 0x8c);
+/// A number.
+pub const S_NUM: Colour = Colour::rgb(0xd8, 0xa0, 0x7c);
+/// A constructor or a type — the same warm gold the palette tints a type
+/// with, because it is the same fact in a different window.
+pub const S_CON: Colour = Colour::rgb(0xd8, 0xb0, 0x7c);
+/// A reserved word.
+pub const S_WORD: Colour = Colour::rgb(0xa8, 0x8c, 0xd8);
+/// Punctuation and operators.
+pub const S_OP: Colour = Colour::rgb(0x8a, 0x94, 0xa4);
+
+/// What colour a column is, or the ordinary ink.
+fn tint(runs: &[crate::furniture::Run], col: usize) -> Colour {
+    for r in runs {
+        if col >= r.at && col < r.at + r.len {
+            return match r.paint.as_str() {
+                "note" => S_NOTE,
+                "text" => S_TEXT,
+                "num" => S_NUM,
+                "con" => S_CON,
+                "word" => S_WORD,
+                "op" => S_OP,
+                _ => INK,
+            };
+        }
+    }
+    INK
+}
+
 /// One thing to draw.
 ///
 /// **Two, deliberately.**  The editor's vocabulary is not the
@@ -534,7 +574,37 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
         let line = doc.line(row);
         let shown: String = visible(&line, view.left, cols);
         if !shown.is_empty() {
-            f.items.push(Item::Run { x: text_x, y, s: shown, c: INK });
+            // **One run per colour, and one run when there is no
+            // colour.**  A line the model has not painted — off screen a
+            // moment ago, or a file that is not gestate — draws exactly
+            // as it did before any of this, which is what keeps
+            // colouring an addition rather than a rewrite.
+            match chrome.paint.get(&(row + 1)) {
+                None => f.items.push(Item::Run { x: text_x, y,
+                                                 s: shown, c: INK }),
+                Some(runs) => {
+                    let mut at = 0usize;              // column in `shown`
+                    let mut piece = String::new();
+                    let mut ink = INK;
+                    for ch in shown.chars() {
+                        let want = tint(runs, view.left + at);
+                        if want != ink && !piece.is_empty() {
+                            f.items.push(Item::Run {
+                                x: text_x + (at - piece.chars().count())
+                                    as i32 * cw,
+                                y, s: std::mem::take(&mut piece), c: ink });
+                        }
+                        ink = want;
+                        piece.push(ch);
+                        at += 1;
+                    }
+                    if !piece.is_empty() {
+                        f.items.push(Item::Run {
+                            x: text_x + (at - piece.chars().count()) as i32 * cw,
+                            y, s: piece, c: ink });
+                    }
+                }
+            }
         }
     }
 

@@ -55,19 +55,52 @@ class Window:
         self.redos = 0
         #: Whether the text is what was last written.
         self.saved = True
+        #: The rows on screen — mirrored from the window, like the undo
+        #: counts and for the same reason: colouring needs to know what
+        #: is visible and must not reach across a thread to ask.
+        self.top = 0
+        self.rows = 40
+        self._lines: list = []
 
     def text(self) -> str:
         return self.editor.text
+
+    def lines(self) -> list:
+        """The document's lines, copied only when it has moved.
+
+        **`changed()` is the whole polling protocol** — an atomic read
+        and a comparison — and `.text` is a copy of the document, so
+        this is the difference between one copy per keystroke and one
+        per poll, which at five hundred polls a second is the difference
+        between an editor and a fan.
+        """
+        if self.editor.changed():
+            self._lines = self.editor.text.splitlines()
+        return self._lines
+
+    def visible(self) -> list:
+        """`(line number, text)` for the rows on screen, 1-based.
+
+        Only these are painted: colouring a million-line file to draw
+        fifty rows would make the rope decorative, which is the same
+        argument `view.rs` opens with.
+        """
+        lines = self.lines()
+        top = max(0, self.top)
+        return [(n + 1, lines[n])
+                for n in range(top, min(len(lines), top + max(1, self.rows)))]
 
     def close(self) -> None:
         self.editor.request_close()
 
     def note_state(self, zoom: int, rungs: int,
-                   undos: int, redos: int, saved: bool = True) -> None:
+                   undos: int, redos: int, saved: bool = True,
+                   top: int = 0, rows: int = 40) -> None:
         """The window saying where its own state stands."""
         self.zoom_at, self.zoom_rungs = zoom, rungs
         self.undos, self.redos = undos, redos
         self.saved = saved
+        self.top, self.rows = top, rows
 
     def mark_saved(self) -> bool:
         """This text is what is on disk now.

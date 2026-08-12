@@ -85,6 +85,21 @@ pub struct Trouble {
     pub message: String,
 }
 
+/// One coloured stretch of a line — `col`, `len`, and what it is.
+///
+/// **Columns, not characters**, the same coordinate the caret and the
+/// horizontal scroll already use, so a tab does not slide a colour off
+/// its token.
+#[derive(Clone, PartialEq, Debug)]
+pub struct Run {
+    pub at: usize,
+    pub len: usize,
+    /// `note`, `text`, `num`, `con`, `word`, `op` — six, because what a
+    /// reader wants from colour is *which sort of thing is this*, and a
+    /// shade per token kind is a palette nobody can hold in their head.
+    pub paint: String,
+}
+
 /// Every `_` on one line, and what each of them wants.
 ///
 /// **One of these per line, not per hole.**  Two holes on a line are two
@@ -110,6 +125,14 @@ pub struct Furniture {
     pub unsaved: bool,
     pub trouble: Vec<Trouble>,
     pub holes: Vec<Hole>,
+    /// What colour each visible line's tokens are, by line number.
+    ///
+    /// **Sent by the model because the tokenizer is the model's**, and a
+    /// second lexer in the window would be a second front end that could
+    /// disagree with the compiler — the root cause `spec/comments.md` is
+    /// written about.  Only the visible rows arrive; a line off screen
+    /// has no colour anybody can see.
+    pub paint: std::collections::HashMap<usize, Vec<Run>>,
     pub knobs: Vec<Knob>,
     pub banks: Vec<Bank>,
     pub playing: bool,
@@ -165,6 +188,20 @@ impl Furniture {
                 "file" if p.len() >= 2 => {
                     f.file = p[1].into();
                     f.unsaved = p.get(2).copied() == Some("1");
+                }
+                "paint" if p.len() >= 3 => {
+                    let line: usize = num(p.get(1));
+                    let runs: Vec<Run> = p[2].split(' ').filter_map(|r| {
+                        let mut bits = r.split(':');
+                        Some(Run {
+                            at: bits.next()?.parse().ok()?,
+                            len: bits.next()?.parse().ok()?,
+                            paint: bits.next()?.into(),
+                        })
+                    }).collect();
+                    if !runs.is_empty() {
+                        f.paint.insert(line, runs);
+                    }
                 }
                 "hole" if p.len() >= 3 => f.holes.push(Hole {
                     line: num(p.get(1)),
@@ -412,7 +449,12 @@ pub enum Gesture {
     /// the model draws `[+]` from it and must not reach across a thread
     /// into the rope to ask.
     State { zoom: usize, rungs: usize, undos: usize, redos: usize,
-            saved: bool },
+            saved: bool,
+            /// The first visible row and how many fit — what the model
+            /// needs to know which lines to colour.  Volunteered with
+            /// the rest of the window's own state, for the same reason:
+            /// the viewport belongs to the window's thread.
+            top: usize, rows: usize },
 }
 
 impl Gesture {
@@ -437,9 +479,11 @@ impl Gesture {
                 format!("struck\t{c}\t{code}\t{}", if *on { 1 } else { 0 })
             }
             Gesture::Edited => "edited".to_string(),
-            Gesture::State { zoom, rungs, undos, redos, saved } => {
-                format!("state\t{zoom}\t{rungs}\t{undos}\t{redos}\t{}",
-                        if *saved { 1 } else { 0 })
+            Gesture::State { zoom, rungs, undos, redos, saved,
+                             top, rows } => {
+                let ok = if *saved { 1 } else { 0 };
+                format!(
+                    "state\t{zoom}\t{rungs}\t{undos}\t{redos}\t{ok}\t{top}\t{rows}")
             }
         }
     }
@@ -472,11 +516,25 @@ mod order_tests {
     #[test]
     fn the_state_gesture_says_all_four_numbers_and_whether_it_is_saved() {
         let g = Gesture::State { zoom: 4, rungs: 9, undos: 2, redos: 0,
-                                 saved: false };
-        assert_eq!(g.line(), "state\t4\t9\t2\t0\t0");
+                                 saved: false, top: 0, rows: 40 };
+        assert_eq!(g.line(), "state\t4\t9\t2\t0\t0\t0\t40");
         let g = Gesture::State { zoom: 4, rungs: 9, undos: 0, redos: 1,
-                                 saved: true };
-        assert_eq!(g.line(), "state\t4\t9\t0\t1\t1");
+                                 saved: true, top: 12, rows: 30 };
+        assert_eq!(g.line(), "state\t4\t9\t0\t1\t1\t12\t30");
+    }
+
+    /// **The tokenizer is the model's**, so the window only reads runs.
+    #[test]
+    fn a_painted_line_is_read_as_coloured_stretches() {
+        let f = Furniture::read("paint\t7\t0:6:word 7:1:op 9:3:num");
+        let runs = f.paint.get(&7).expect("line 7 was not painted");
+        assert_eq!(runs.len(), 3);
+        assert_eq!((runs[0].at, runs[0].len, runs[0].paint.as_str()),
+                   (0, 6, "word"));
+        assert_eq!(runs[2].paint, "num");
+        // A row it cannot make sense of loses that row and not the file.
+        let f = Furniture::read("paint\t3\tnonsense");
+        assert!(f.paint.is_empty());
     }
 
     #[test]

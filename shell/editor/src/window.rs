@@ -195,7 +195,7 @@ struct EditorWindow {
     /// When the oldest unanswered `filter` went out to the model.
     asked: Cell<Option<Instant>>,
     /// The last `State` gesture sent, so it goes out only when it moves.
-    told: Cell<(usize, usize, usize, usize, usize)>,
+    told: Cell<(usize, usize, usize, usize, usize, usize, usize)>,
     /// The note the pointer is holding down, if any.
     playing: Cell<Option<i32>>,
     /// Whether the canvas is what the window is showing.
@@ -369,7 +369,7 @@ impl EditorWindow {
             dirty: Cell::new(true),
             struck: Cell::new(None),
             asked: Cell::new(None),
-            told: Cell::new((usize::MAX, 0, 0, 0, 0)),
+            told: Cell::new((usize::MAX, 0, 0, 0, 0, 0, 0)),
             turning: RefCell::new(None),
             playing: Cell::new(None),
             at_piano: Cell::new(false),
@@ -399,14 +399,18 @@ impl EditorWindow {
     /// nothing did, which is why it can be called that liberally.
     fn tell(&self) {
         let doc = self.doc.borrow();
+        let (top, rows) = {
+            let v = self.view.borrow();
+            (v.top, v.rows(self.font()))
+        };
         let now = (self.zoom.get(), crate::font::LADDER.len(),
                    doc.undo_depth(), doc.redo_depth(),
-                   doc.is_saved() as usize);
+                   doc.is_saved() as usize, top, rows);
         if now != self.told.get() {
             self.told.set(now);
             self.host.gesture(Gesture::State {
                 zoom: now.0, rungs: now.1, undos: now.2, redos: now.3,
-                saved: now.4 == 1,
+                saved: now.4 == 1, top: now.5, rows: now.6,
             }.line());
         }
     }

@@ -159,13 +159,31 @@ def _arrow_parts(node) -> list:
     return [_type_name(node)]
 
 
+#: `(path, mtime) -> the commands it declares`.
+_VOCABULARY: dict = {}
+
+
 def vocabulary(path: Path = COMMANDS) -> list:
     """Every command `command.ges` declares, in the order written.
 
     **Derived, never maintained.**  The order is the file's, so the
     palette reads in the order somebody thought about them rather than
     alphabetically, which is a worse order for learning.
+
+    **Kept between calls, by the file's own timestamp.**  This used to
+    say it was derived every time and that this was cheap; it is 650µs,
+    which is a third of the two-millisecond poll spent re-reading a file
+    that had not changed — measured, once `furniture` grew enough rows
+    to make anybody look.  Keying on the mtime is what lets it stay
+    honest: edit `command.ges` and the next poll re-reads it, so
+    *derived, never maintained* is still true and is now also fast.
     """
+    try:
+        stamp = (str(path), path.stat().st_mtime)
+    except OSError:
+        stamp = (str(path), 0.0)
+    if stamp in _VOCABULARY:
+        return _VOCABULARY[stamp]
     from .audio import _authored
 
     source = path.read_text()
@@ -186,6 +204,9 @@ def vocabulary(path: Path = COMMANDS) -> list:
             continue
         out.append(Verb(name=name, args=tuple(parts[:-1]),
                         summary=docs.get(name, ""), key=KEYS.get(name, "")))
+    # One entry per timestamp, so an edit supersedes rather than adds.
+    _VOCABULARY.clear()
+    _VOCABULARY[stamp] = out
     return out
 
 
@@ -361,6 +382,70 @@ def _builtin_types() -> list:
     except Exception:                                    # noqa: BLE001
         return []
     return sorted(n for n in _BUILTIN_KINDS if not n.startswith("Tuple"))
+
+
+#: A token kind as a colour class.  **Six, not twelve**: what a reader
+#: needs from colour is *which sort of thing is this*, and a palette with
+#: a shade per token kind is a palette nobody can hold in their head.
+#: `SEP` and `SYMBOL` share one because a bracket and an operator are
+#: both punctuation to the eye.
+_PAINT = {
+    "COMMENT": "note", "STRING": "text", "NUMBER": "num",
+    "CONID": "con", "RESERVED": "word", "WORD": "",
+    "SYMBOL": "op", "SEP": "op",
+}
+
+#: Per-line colouring, keyed by the line's own text.
+#:
+#: **Which is exactly right because colouring here is line-local.**
+#: Tokenising `lantern.ges` whole and line by line gives the same 996
+#: tokens: the only cross-line state is `INDENT`/`DEDENT`, and layout
+#: carries no colour.  So a line that has not changed cannot have
+#: changed colour, and an edit costs one line's tokens — 37µs — rather
+#: than a screen's.
+_PAINTED: dict = {}
+
+
+def painted(line: str) -> str:
+    """`col:len:class` for each coloured run in one line, space separated.
+
+    **The real tokenizer, and only ever the real one.**  A second lexer
+    in the window would be fast and would be a second front end that
+    could disagree with the compiler — the root cause `spec/comments.md`
+    is written about.  This is the same `tokenize` the parser reads, so
+    a colour is the compiler's own opinion or it is not shown.
+
+    The lexer is total, which is what makes this safe on a file that
+    does not compile: `sound = ((` and an unterminated string both
+    tokenize.  Anything it cannot make sense of simply gets no run and
+    is drawn in the ordinary ink.
+    """
+    if line in _PAINTED:
+        return _PAINTED[line]
+    from .syntax.tokenize import tokenize
+
+    runs = []
+    try:
+        for token in tokenize(line):
+            paint = _PAINT.get(token.kind.name)
+            if not paint:
+                continue
+            at = token.span.start.col
+            width = max(0, token.span.end.col - at)
+            if width:
+                runs.append(f"{at}:{width}:{paint}")
+    except Exception:                                    # noqa: BLE001
+        # A lexer that has surprised us is not worth a broken window:
+        # no runs is a line in ordinary ink, which is what it was doing
+        # before any of this.
+        runs = []
+    out = " ".join(runs)
+    if len(_PAINTED) > 4000:
+        # Long editing sessions leave a line behind per keystroke; the
+        # cache is a speed-up, not a record.
+        _PAINTED.clear()
+    _PAINTED[line] = out
+    return out
 
 
 def _builtin_kind(name: str) -> str | None:
@@ -2132,6 +2217,19 @@ def furniture(session: "Session", bench=None) -> str:
     # counter — would go on saying modified for the rest of the session.
     out.append(f"file\t{Path(getattr(b, 'path', '') or '').name}"
                f"\t{0 if getattr(session.view, 'saved', True) else 1}")
+    # **What colour each visible line is, and only the visible ones.**
+    # Colouring is line-local here — tokenising a file whole and line by
+    # line gives the same tokens, because the only cross-line state is
+    # layout and layout carries no colour — so a line that has not
+    # changed cannot have changed colour, and `painted` answers from a
+    # cache for every row a keystroke did not touch.
+    seeing = getattr(session.view, "visible", None)
+    if seeing is not None:
+        for line, text in seeing():
+            runs = painted(text)
+            if runs:
+                out.append(f"paint\t{line}\t{runs}")
+
     out.append(f"play\t{1 if _rolling(b) else 0}\t{_beats(b)}")
     # **What a played note would do, and whether anything would hear
     # it.**  The keyboard is drawn from these two: a piano nobody is
@@ -2524,7 +2622,9 @@ def act(session: "Session", line: str) -> str:
                 # having its whole state dropped for the one it does not.
                 noting(int(parts[1]), int(parts[2]),
                        int(parts[3]), int(parts[4]),
-                       parts[5] != "0" if len(parts) > 5 else True)
+                       parts[5] != "0" if len(parts) > 5 else True,
+                       int(parts[6]) if len(parts) > 6 else 0,
+                       int(parts[7]) if len(parts) > 7 else 40)
             except ValueError:
                 return f"state: {line!r} is not four numbers"
         return ""
