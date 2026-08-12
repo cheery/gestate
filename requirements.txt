@@ -41,16 +41,17 @@ pytest>=8.0
 # without it those skip and the rest of the suite is unaffected.
 mido>=1.3
 
-# ── The editors and the canvas ───────────────────────────────────────────
+# ── Not a dependency: pygame ─────────────────────────────────────────────
 #
-# `gestate.audiopygame` (the editor), and `gestate.gui` (the canvas).
-# Verified at 2.6.1.
+# **Gone, with the two things that wanted it.**  `gestate.audiopygame`
+# was retired outright (`spec/workbench.md`), and the canvas is drawn by
+# the editor and by the plugin, both of which are Rust and take nothing
+# from Python to do it.  What is left reaching for it is
+# `gestate/gui.py`, which is obsolete.
 #
-# Four places in `test_audiopygame.py` used to import it *without* a guard,
-# so a machine with no pygame could not run the suite at all — they errored
-# where every other optional backend skips.  They use `importorskip` now.
-# The rest of that file drives the editor's model, which needs no window.
-pygame>=2.5
+# Do not install it on a new machine, and do not add it back for a test:
+# a guard that skips is how every optional backend here behaves, and
+# there is no longer a backend behind this one.
 
 # ── Live audio ───────────────────────────────────────────────────────────
 #
@@ -89,10 +90,15 @@ sounddevice>=0.4
 #   from `PATH` and running — the claim had been made from reading the
 #   files that *did* carry it.
 #
-# * **python3-tk** — `gestate.audioeditor`, the Tk editor.  `tkinter` is in
-#   the standard library but is packaged separately on Debian and Ubuntu.
-#   `test_audioeditor.py` drives the `Workbench`, which needs no window, so
-#   the suite does not require it.
+# * **cargo** — the editor's window and the CLAP export, both Rust.  The
+#   window is a `cdylib` loaded through `ctypes` and builds itself on the
+#   first `python -m gestate.workbench`; without cargo the editor refuses
+#   and says what to run by hand.  `README.md` is the whole install.
+#
+#   *This bullet used to ask for **python3-tk**, for a Tk view inside
+#   `gestate.audioeditor` that no longer exists — `shell/editor`
+#   replaced it and `audioeditor` is the model half now.  `tkinter` is
+#   not needed for anything here.*
 #
 # * **pw-play / paplay / aplay** — how `audiolive` reaches the speakers
 #   when `sounddevice` is absent.  A test machine wants none of them, and

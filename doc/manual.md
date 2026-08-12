@@ -78,8 +78,10 @@ Three kinds of program are shaped differently and have `main` supplied
 for them.  A **music** program defines `score : [: Void :]` and
 `bpm : Int` (§7).  A **synth** defines `sound : Sig Float` and is rendered
 with `python -m gestate.audioperform` or played live (§6).  A **canvas** program
-defines `substrate : Sig Sub` and is run with `python -m gestate.gui`
-(§6).  A backend finds your program by these names — `doc/ref/index.md`
+defines `substrate : Sig Sub` and is run by the editor —
+`python -m gestate.workbench file.ges`, then the `canvas` command, which
+shows the program's own picture where the text was (§6).  A backend
+finds your program by these names — `doc/ref/index.md`
 holds the full table of who looks for what, and what each puts in scope.
 
 ---
@@ -671,10 +673,19 @@ clock.  Ask "what does this hold right now?" — that is `head`.  Never ask
 
 ### Putting it on a screen
 
-`gestate/gui.py` is a driver for the reactive half, built the same way the
-MIDI backend is built for `Score`.  A GUI program supplies
+**The editor draws it.**  A canvas program supplies
 `substrate : Sig Sub`; `gui.ges` is prepended and gives it `Event`, `Sub`
 and the combinators.
+
+```sh
+python -m gestate.workbench examples/gui/bounce.ges
+```
+
+Then the **`canvas`** command — `Ctrl-Tab`, or by name from the `Ctrl-K`
+list — shows the program's own picture where the text was, interpreted
+at frame rate, and `source` shows the text again.  A file that declares
+only a `substrate` has no `sound` for the engine to build, so the status
+line says it is not playing; the canvas draws all the same.
 
 ```
 substrate : Sig Sub

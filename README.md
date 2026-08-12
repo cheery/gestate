@@ -112,17 +112,17 @@ first five minutes.
   of a port name, and naming one that matches nothing prints the
   numbered list of what is plugged in.
 
-* **`pygame`** — only `python -m gestate.gui`, the standalone canvas
-  for a program that declares `substrate : Sig Sub`.  The editor's
-  canvas tab and the plugin's are Rust and want nothing from it.
-
 * **`binutils`** (`ar`, `objcopy`) — used by `gestate.export` to build a
   `.clap`.  `build-essential` pulls it in, and so does almost anything
   else; it is listed because a minimal image genuinely lacks it.
 
-**numpy is not a dependency and should not be carried across.**
-Nothing in `gestate/` or `test/` imports it — the tests that assert a
-filter's slope write their own DFT rather than take it.
+**Neither `numpy` nor `pygame` is a dependency, and neither should be
+carried across.**  Nothing in `gestate/` or `test/` imports numpy — the
+tests that assert a filter's slope write their own DFT rather than take
+it.  `pygame` is reached by one obsolete module and by nothing a new
+installation needs: a program's canvas is drawn by the editor's canvas
+tab and by the plugin's, both of which are Rust and want nothing from
+it.
 
 ### Check that it worked
 
