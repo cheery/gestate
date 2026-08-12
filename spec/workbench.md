@@ -339,6 +339,7 @@ Gestures come back the same way, flat and few:
     asked()                    done asking
     turn(name, value)          a knob was dragged
     note(midi, on)             a key was played
+    touch(kind, x, y)          a hand on the canvas: press, drag or release
     edited()                   the text changed
     state(zoom, rungs, undos, redos)   where the window's own state is
 
@@ -414,6 +415,20 @@ Asking for a canvas that has not compiled yet is the ordinary case, not
 an error — `start` builds it on its own thread — so `canvas` says it is
 opening and opens anyway; the picture fills in when it arrives.  Only a
 file with no `substrate` at all is told it draws nothing.
+
+**And the canvas is an input device**, which no walk over the model's
+furniture will discover: a touch target is declared inside the program
+(`onTouchY cutoff (rect …)`, `spec/substrate.md`), so the view cannot
+know where one is and must not learn to.  It sends every press, drag
+and release on the canvas as `touch(kind, x, y)` in the canvas's own
+pixels — the same coordinates the shapes were painted at — and the
+model's substrate does the hit-testing, the grabbing and the clamping,
+because the element's extent lives there.  A press wins the pointer
+only after the chrome has refused it: a knob painted over the canvas
+is still a knob.  This paragraph exists because the first revision of
+this spec inventoried the boundary from the furniture alone and lost
+canvas input entirely — fixme.md F101, `journal.md` "The canvas lost
+its hands".
 
 A command that is about the window leaves one of these and the window
 obeys it on its next frame.

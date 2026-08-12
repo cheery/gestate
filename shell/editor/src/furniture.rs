@@ -422,6 +422,16 @@ pub enum Gesture {
     Turn(String, f64),
     /// A note was played or released.
     Note(i32, bool),
+    /// A hand on the canvas — `press`, `drag` or `release` — in the
+    /// canvas's own pixels.
+    ///
+    /// **Where, never what.**  A touch target is declared inside the
+    /// program on the canvas (`spec/substrate.md`), so the window
+    /// cannot know one from a rectangle and must not learn to: the
+    /// substrate does the hit-testing, the grabbing and the clamping.
+    /// This is the verb the first revision of `spec/workbench.md`
+    /// lost, and with it every fader on every canvas — fixme.md F101.
+    Touch(&'static str, i32, i32),
     /// A key was struck while the piano had the keyboard — the
     /// character it makes, the physical key it came from, and whether
     /// it went down.
@@ -475,6 +485,7 @@ impl Gesture {
             Gesture::Note(m, on) => {
                 format!("note\t{m}\t{}", if *on { 1 } else { 0 })
             }
+            Gesture::Touch(kind, x, y) => format!("touch\t{kind}\t{x}\t{y}"),
             Gesture::Struck(c, code, on) => {
                 format!("struck\t{c}\t{code}\t{}", if *on { 1 } else { 0 })
             }

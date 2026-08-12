@@ -167,6 +167,13 @@ struct EditorWindow {
     zoom: Cell<usize>,
     /// Whether the left button is down, so motion means drag-select.
     dragging: Cell<bool>,
+    /// Whether the left button went down on the canvas, so motion means
+    /// a hand moving on the picture rather than a selection growing.
+    /// The press grabs — the model's substrate holds the element, this
+    /// only remembers that a touch is in progress — so the drag follows
+    /// even when the pointer leaves the element, which is what a fader
+    /// is.
+    touching: Cell<bool>,
     /// Cut and copy go here.  In-process; see `keys::Clipboard` for why
     /// the system one is somebody else's to provide.
     clip: RefCell<Memory>,
@@ -359,6 +366,7 @@ impl EditorWindow {
             }),
             zoom: Cell::new(crate::font::LADDER_DEFAULT),
             dragging: Cell::new(false),
+            touching: Cell::new(false),
             clip: RefCell::new(Memory::default()),
             chrome: RefCell::new(Furniture::default()),
             furnished: Cell::new(0),
@@ -1202,6 +1210,14 @@ impl WindowHandler for EditorWindow {
                     }
                     return EventStatus::Captured;
                 }
+                // A touch keeps the pointer for the same reason a knob
+                // does: the substrate grabbed an element on the press,
+                // and a fader that lost your hand at its own edge would
+                // not be a fader.
+                if self.touching.get() {
+                    self.host.gesture(Gesture::Touch("drag", x, y).line());
+                    return EventStatus::Captured;
+                }
                 if !self.dragging.get() {
                     return EventStatus::Captured;
                 }
@@ -1277,6 +1293,19 @@ impl WindowHandler for EditorWindow {
                     self.host.gesture(turn);
                     return EventStatus::Captured;
                 }
+                // **The canvas gets the hand the chrome refused.**  In
+                // canvas mode a press that no button, key or knob
+                // claimed is aimed at the picture; which element it
+                // lands on is the model's to say (`spec/workbench.md`:
+                // the canvas is an input device), so the window reports
+                // the place and holds nothing itself.  Without this
+                // branch the press falls through to `keys::click` and
+                // moves a caret behind the picture — fixme.md F101.
+                if self.on_canvas.get() {
+                    self.touching.set(true);
+                    self.host.gesture(Gesture::Touch("press", x, y).line());
+                    return EventStatus::Captured;
+                }
                 self.dragging.set(true);
                 let did = {
                     let mut doc = self.doc.borrow_mut();
@@ -1296,6 +1325,14 @@ impl WindowHandler for EditorWindow {
             }) => {
                 self.dragging.set(false);
                 *self.turning.borrow_mut() = None;
+                if self.touching.take() {
+                    // The release says where the hand was let go, so a
+                    // program watching for it sees the same point the
+                    // last drag reported.
+                    let (x, y) = self.cursor.get();
+                    self.host.gesture(
+                        Gesture::Touch("release", x, y).line());
+                }
                 if let Some(note) = self.playing.take() {
                     self.host.gesture(Gesture::Note(note, false).line());
                 }

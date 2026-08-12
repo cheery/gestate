@@ -2882,4 +2882,14 @@ def act(session: "Session", line: str) -> str:
         return session.play_key(parts[1], parts[2], parts[3] == "1")
     if verb == "note" and len(parts) >= 3:
         return session.play_note(int(parts[1]), parts[2] == "1")
+    if verb == "touch" and len(parts) >= 4:
+        # A hand on the canvas.  The window says where, in the canvas's
+        # own pixels; which element that lands on — and what fraction of
+        # its extent the point means — is the substrate's decision
+        # (`spec/substrate.md`), so nothing here interprets the place.
+        try:
+            session.bench.touch(parts[1], int(parts[2]), int(parts[3]))
+        except ValueError:
+            return f"touch: `{parts[2]} {parts[3]}` is not a place"
+        return ""
     return f"no gesture `{verb}`"

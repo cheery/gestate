@@ -75,6 +75,9 @@ class Bench:
     def clear_loop(self):
         self.log.append(("unloop",))
 
+    def touch(self, kind, x, y):
+        self.log.append(("touch", kind, x, y))
+
     #: **The real `Workbench` shape, copied deliberately.**  A stand-in
     #: written to suit the caller teaches the caller a wrong interface:
     #: `has_knob` is a property and `end_beat` a method on the model,
@@ -1257,6 +1260,31 @@ def test_a_gesture_is_a_verb_and_literals():
     assert act(s, "edited") == ""
     assert act(s, "wobble\t1") == "no gesture `wobble`"
     assert act(s, "turn\tcutoff\tnope") == "turn: `nope` is not a number"
+
+
+def test_a_touch_is_a_verb_like_any_other():
+    """The canvas is an input device, and this seam is where it was lost.
+
+    The wiring from the window to `Workbench.touch` had exactly one
+    implementation and exactly one test, both in the pygame editor, and
+    both were deleted in the same commit — so the suite stayed green for
+    a day while every fader in `examples/audio` was dead (fixme.md F101).
+    This test is at the *verb protocol*, which is the boundary contract,
+    so it survives any rewrite of the view.  What a touch does to a real
+    substrate is `test_audioeditor.py`'s half.
+    """
+    from gestate.session import act
+
+    s = session()
+    assert act(s, "touch\tpress\t150\t60") == ""
+    assert act(s, "touch\tdrag\t150\t90") == ""
+    assert act(s, "touch\trelease\t150\t90") == ""
+    assert s.bench.log == [("touch", "press", 150, 60),
+                           ("touch", "drag", 150, 90),
+                           ("touch", "release", 150, 90)]
+    # The refusal is a sentence, like every refusal on this wire.
+    assert act(s, "touch\tpress\there\tnow") == \
+        "touch: `here now` is not a place"
 
 
 def test_filtering_is_answered_by_the_model():

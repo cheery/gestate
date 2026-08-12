@@ -5237,3 +5237,107 @@ is not retired, every long flag it passes is one `--help` lists, and
 every `examples/…` path is really there.  Fifty-five cases in half a
 second, because it imports and asks for help rather than rendering
 anything.
+
+
+## The canvas lost its hands — a post-mortem
+
+The canvas stopped answering to a drag, and it took a day and a half for
+anyone to notice.  `lantern.ges` draws two faders and promises that
+pulling one opens the filter; pulling one moved the caret in the text
+hidden behind the picture.  The feature had worked since the initial
+commit.  This entry is the archaeology, the five whys, and what the
+answer says about how this project is led — because the interesting
+failure is not in the code.  Registered as fixme.md **F101**; fixed the
+day it was found.
+
+### What happened, mechanically
+
+Commit `71b90af` ("vastly improved editor coming") deleted
+`audiopygame.py`, 3458 lines, and `test_audiopygame.py`, 2305 lines.
+Three lines of the deleted event loop were the entire implementation of
+canvas input: a click in canvas mode became `touch("press", …)`, motion
+with the button down `"drag"`, release `"release"`.  The Rust shell
+that replaced the window was built to `spec/workbench.md` — written in
+the same commit — and implemented its gesture list faithfully:
+`command`, `filter`, `wants`, `asked`, `turn`, `note`, `edited`,
+`state`.  Eight verbs, flat and few, and no `touch`.  Everything below
+the seam survived intact: `Workbench.touch` waited in
+`audioeditor.py`, `Substrate.touch` in `gui.py` still grabbed on press
+and clamped to the element's extent, and thirty-six tests in
+`test_substrate.py` kept passing.  The suite was green the whole time
+the feature was gone.
+
+### Five whys
+
+1. *Why doesn't the canvas respond?*  Nothing translates the shell's
+   mouse events into touch gestures — no canvas branch in the mouse
+   handling, no `Touch` variant, no `touch` verb in `session.act`.
+2. *Why is the wiring missing?*  The only copy of it lived in
+   `audiopygame.py`'s event loop, and the rewrite deleted the file and
+   built to a spec instead.
+3. *Why did the spec omit canvas input?*  Its inventory was drawn from
+   what the model **publishes** — knobs, banks, transport, commands —
+   and each of those got its verb.  A touch target is not published
+   furniture: it is declared *inside the program on the canvas*
+   (`onTouchY cutoff (rect …)`).  Walking the model's surface can never
+   find it.
+4. *Why did nothing object?*  The only tests of the wiring were in
+   `test_audiopygame.py` and died in the same commit as the wiring.
+   The surviving tests exercise the component below the seam.  And
+   nobody dragged a canvas fader for a day — editor development
+   exercises text, commands, knobs, piano, which is why exactly those
+   got their verbs.
+5. *Why could a feature fall out of a rewrite with no artifact
+   objecting?*  **Knowledge of the feature existed in one copy — the
+   implementation being deleted.**  The rewrite's method was: spec the
+   new boundary, build to it, delete the old code with its tests.  No
+   implementation-independent statement of the old view's obligations
+   existed for the deletion to be checked against.
+
+### Where the conventions failed, and where they held
+
+This registry system — `fixme.md` for code against spec, `errata.md`
+for spec against paper — assumes a defect is a *disagreement between
+two artifacts*.  Here the two artifacts agreed: the new spec omitted
+touch and the new code omitted touch, in perfect accord.  **When spec
+and implementation agree in an omission, neither register fires.**  The
+disagreement that did exist was between two specs — `substrate.md`
+promises `onTouchX`/`onTouchY`, `workbench.md`'s boundary could not
+carry a touch — and no register watches that seam.
+
+The journal itself failed more quietly.  The lesson was *already in
+this file*, twice: "the harness was built from the implementation, so
+it could only find broken things and never missing ones", written about
+the Tab binding; "what a person found that two thousand tests did not".
+Recording a lesson as narrative does not change behaviour.  The one
+lesson in this file that stuck is the one that became a test
+(`test_doc_commands.py`).  **A lesson is closed by a mechanism, not a
+paragraph.**
+
+And the project's founding rule — *do not build what nothing needs* —
+has a blind spot at replacement time.  Canvas touch **had** callers:
+every `onTouchY` in `examples/audio`.  But they are programs, not
+call sites in the tree; an inventory shaped like "who calls this?"
+greps past them.  A language feature is a contract on every host that
+runs the language, and the examples are its callers.
+
+### What enforces it now
+
+* `touch(kind, x, y)` is in `spec/workbench.md`'s gesture list, so the
+  contract stopped being wrong.
+* Seam tests at the verb protocol: `test_session.py` proves the verb
+  reaches the bench, `test_audioeditor.py` proves a touch on a real
+  substrate moves the channel it names.  The verb protocol is the
+  boundary contract, so these survive any future rewrite of the view —
+  they are the conformance suite the next frontend must pass.
+* The deletion protocol, stated here as the rule it should have been:
+  **a deleted file's tests are a checklist.**  Each one either moves up
+  to a test at a surviving seam or is retired on purpose, in the commit
+  that deletes it.  `71b90af` retired 2305 lines of tests silently; two
+  of them were the only guard this feature had.
+
+The general form, for the record: the danger of a rewrite is not the
+code you rewrite, it is the obligations recorded nowhere but in the
+code you delete.  Inventory a boundary from *both* sides — what the
+model publishes, and what programs demand of the view — because the
+second list is the one a model-side spec cannot see.

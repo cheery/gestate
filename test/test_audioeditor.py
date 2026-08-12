@@ -1702,3 +1702,68 @@ def test_a_frame_carries_the_instrument_into_the_canvas(tmp_path):
 
     _canvas_frame(Stub())
     assert called == ["observe", "tick", "picture"], called
+
+
+# ── The canvas gets a hand ──────────────────────────────────────────────────
+#
+# The other half of what `71b90af` deleted (fixme.md F101).  The frame tests
+# above prove the canvas is *told* things; these prove it can be *touched* —
+# the verb line the window sends, through `session.act`, to a value on a
+# channel the program declared.  `test_substrate.py` proves the substrate's
+# own hit-testing and `test_session.py` proves the verb reaches a bench;
+# this is the seam between them, against a real substrate, and it is the
+# conformance test any future view has to keep passing.
+
+#: `test_substrate.py`'s fader, deliberately: extent 12x120 centred at
+#: (25, 60), so it spans y 0…120 and the fraction is the y in hundredths
+#: of 1.2.  One program, two suites, one meaning.
+FADER = """
+dragged : Chan Float
+dragged = chan
+
+level : Sig Float
+level = 0.5 ::: mkSig (wait dragged)
+
+handle : Float -> Sub
+handle v = Shift 0 (floor (mix (0.0 - 60.0) 60.0 v)) (Rect 12 8 (RGB 200 200 200))
+
+substrate : Sig Sub
+substrate = moveXY 25 60 (onTouchY dragged
+    (rect 12 120 (colour 40 40 40) `over` !handle level))
+"""
+
+
+def test_a_touch_gesture_moves_the_channel_it_lands_on(tmp_path):
+    """The Python side of the wire, end to end."""
+    from gestate.session import Session, act
+
+    path = tmp_path / "fader.ges"
+    path.write_text(FADER)
+    bench = Workbench(path, rate=8000, block=64)
+    bench._load_substrate(FADER)
+    assert bench.substrate is not None, "the canvas did not build"
+    s = Session(bench=bench)
+
+    # A press a quarter of the way down the travel.
+    assert act(s, "touch\tpress\t25\t30") == ""
+    assert bench.substrate.values["dragged"] == 0.25
+    # A press grabs, so the drag follows even 375 px off the element —
+    # the same claim `test_substrate.py` makes of the substrate alone,
+    # here shown to survive the trip across the wire.
+    assert act(s, "touch\tdrag\t400\t90") == ""
+    assert bench.substrate.values["dragged"] == 0.75
+    # And a release leaves the fader where it was let go.
+    assert act(s, "touch\trelease\t400\t90") == ""
+    assert bench.substrate.values["dragged"] == 0.75
+
+
+def test_a_touch_with_no_canvas_is_nothing(tmp_path):
+    """A gesture into a file with no substrate is silence, not a stack
+    trace — the same courtesy every verb on this wire keeps."""
+    from gestate.session import Session, act
+
+    path = tmp_path / "mute.ges"
+    path.write_text("x : Int\nx = 1\n")
+    bench = Workbench(path, rate=8000, block=64)
+    s = Session(bench=bench)
+    assert act(s, "touch\tpress\t10\t10") == ""

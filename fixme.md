@@ -19,7 +19,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 97 entries, **86 are resolved**.  What is left:
+Of 99 entries, **88 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -2720,3 +2720,58 @@ The fix is where the other kind checks are: resolve the name against
 the declared classes when a signature is elaborated, and say *why* —
 `no class \`Nonsuch\`; did you mean \`FromCC\`?` — which is the
 `subgrammar.py` shape `spec/liveaudio.md` asks of the fragment check.
+
+### F101. **[resolved]** The editor delivered no touches, and both of its specs agreed it was fine
+
+`spec/substrate.md` builds its whole argument on a picture you can
+touch — `onTouchX`/`onTouchY` over a `Chan Float`, press grabs, motion
+clamped to the element's extent — and `gui.py` implements all of it.
+For a day and a half no host delivered a touch: `71b90af` deleted
+`audiopygame.py`, whose event loop was the only mouse-to-touch bridge,
+and `spec/workbench.md`, written in that same commit, listed eight
+gesture verbs and `touch` was not among them.  The Rust shell
+implemented its spec faithfully, so a press on the canvas fell through
+to `keys::click` and moved the caret behind the picture.
+
+**This entry is filed against the register itself as much as the
+code.**  This file catches code disagreeing with spec; `errata.md`
+catches spec disagreeing with paper.  Here two specs disagreed with
+*each other* — `substrate.md` promising what `workbench.md`'s boundary
+could not carry — and code agreed with the nearer spec, so nothing
+fired.  A divergence between two specs is a fixme-class defect and
+gets an F number; this is the first.
+
+Resolved the day it was found: `touch(kind, x, y)` added to
+`workbench.md`'s gesture list, `Gesture::Touch` in the shell with an
+`on_canvas` branch per mouse event, the `touch` verb in `session.act`,
+and seam tests in `test_session.py`/`test_audioeditor.py` that the
+verb moves a real channel.  Post-mortem: `journal.md`, "The canvas
+lost its hands".
+
+### F102. **[resolved]** The canvas export carried the expansion's channels as the author's
+
+Caught by `test/test_panel_fixtures.py` on its first run — the seam
+test written because of F101, finding a second defect of exactly
+F101's shape: two artifacts agreeing while the contract between them
+drifted.
+
+`substrate_of` promises **"every `name : Chan …` the file declares, in
+the order written"**, and `test_export.py` asserts it — against
+`substrate.ges`, which has no `voices` bank.  A file *with* a bank does
+not parse plainly, so `_authored` falls back to the expanded text, and
+`gui._channel_names` inherited the expansion's declarations:
+`lantern.ges`'s canvas crossed with 31 channels, 28 of them
+`lampsChan0f0`-shaped internals the host writes through slots and no
+substrate can name.  Benign at run time — the authored names precede
+the generated ones, so every id lands where it did — which is why
+nothing visible ever went wrong, and why nothing green ever went red:
+`substrate_parity.rs` tests literals frozen before the drift.
+
+Resolved in `_channel_names`: the generated names (`banks_of` ×
+`channels_of`, plus `holds<Bank>`) are subtracted, which is sound
+because `audiovoices._refuse_collisions` already refuses an author
+those spellings.  The freshness suite now pins program text, tags,
+display walk, chans and bridge to the same bytes the Rust suite reads,
+each failure message naming the regeneration step — so the next drift
+on this seam is a red test with instructions rather than a stale
+fixture holding a green light.

@@ -758,8 +758,20 @@ def _channel_names(source: str) -> list:
 
     From the parsed signatures, like every other question about what a
     program declares — `audio._authored` keeps them in the order written.
+
+    **The author's channels, not the expansion's.**  A file with a
+    `voices` bank does not parse plainly, so `_authored` reads the
+    *expanded* text — which declares `lampsChan0f0 : Chan Float` per
+    voice per field, and `holdsLamps` beside them.  Those are the
+    compiled graph's internals: the host writes them through slots, a
+    substrate cannot name them, and a canvas export that carried them
+    shipped twenty-eight needless channels for `lantern.ges` (fixme.md
+    F102 — the first thing `test_panel_fixtures.py` caught).  Safe to
+    subtract by name because `audiovoices._refuse_collisions` already
+    refuses an author the generated spellings.
     """
     from .audio import _authored
+    from .audiovoices import banks_of, channels_of, _cap
     from .syntax.ast import VApp, VConId
 
     def is_chan(t) -> bool:
@@ -767,7 +779,19 @@ def _channel_names(source: str) -> list:
             t = t.fn
         return isinstance(t, VConId) and t.value == "Chan"
 
-    return [n for n, t in _authored(source)[0].items() if is_chan(t)]
+    generated: set = set()
+    try:
+        for bank in banks_of(source):
+            generated.add(f"holds{_cap(bank.name)}")
+            for voice in channels_of(source, bank):
+                generated.update(voice)
+    except Exception:
+        # A file whose banks do not expand is about to be refused by
+        # somebody with more to say; the names are then nobody's.
+        pass
+
+    return [n for n, t in _authored(source)[0].items()
+            if is_chan(t) and n not in generated]
 
 
 # ── The window ──────────────────────────────────────────────────────────────

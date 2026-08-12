@@ -125,6 +125,9 @@ fn a_gesture_is_a_name_and_some_literals() {
                "turn\tcutoff\t0.5");
     assert_eq!(Gesture::Note(60, true).line(), "note\t60\t1");
     assert_eq!(Gesture::Note(60, false).line(), "note\t60\t0");
+    assert_eq!(Gesture::Touch("press", 25, 30).line(), "touch\tpress\t25\t30");
+    assert_eq!(Gesture::Touch("release", 400, 90).line(),
+               "touch\trelease\t400\t90");
     assert_eq!(Gesture::Edited.line(), "edited");
 }
 
