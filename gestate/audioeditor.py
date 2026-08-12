@@ -982,6 +982,45 @@ class Workbench:
         """What the canvas shows now, as shapes a view can draw."""
         return [] if self.substrate is None else self.substrate.picture()
 
+    def restart(self, why: str, seconds: float | None = None) -> None:
+        """Fade out, build the player again, fade back in.
+
+        **The answer to everything that is sized when playback starts.**
+        The host allocates its control block and tells the card how many
+        channels to expect at construction, and neither can be
+        renegotiated between blocks — so adding a knob or a `voices` bank
+        to a synth that had none used to be refused with a sentence
+        telling you to restart it yourself.
+
+        Which is a strange thing for a program to ask.  It knows the edit
+        is good, it knows exactly what is too small, and it has a master
+        fader: `stop` already fades out, joins, insists, and frees only
+        once nothing is using it, and a new `Host` starts with the fader
+        down and fades in.  So the seam is two fades and the program does
+        the restarting.
+
+        **`stop` and `start`, not a third teardown.**  This is the code
+        that produced the one core file this project has had, and the
+        discipline that fixed it — `halt` when the polite stop cannot
+        complete, free only after the thread is really gone — lives in
+        `stop`.  A restart that reimplemented any of that would be the
+        second copy that today already cost a silent failure.
+
+        What does not survive: notes that were down, and the position.
+        A restart is a restart, and saying so is better than a fade that
+        pretends nothing happened.
+        """
+        if self.host is None:
+            return                     # the Python driver sizes nothing
+        self.say(f"{why} — restarting the player")
+        self.stop()
+        # `stop` set it, and `start` is about to be a fresh run.
+        self._stop.clear()
+        try:
+            self.start(seconds)
+        except Exception as exc:                        # noqa: BLE001
+            self.say(f"could not restart: {self._first_line(exc)}")
+
     def stop(self, timeout: float = 2.0) -> None:
         self._stop.set()
         # **The C loop is asked to stop first**, because it is the one that
@@ -2099,13 +2138,23 @@ class Workbench:
         # written out again: this was a second copy of the channel check,
         # and when the control block needed one too it went into the
         # other driver and this one went on accepting the edit.
-        refusal = self.live.refuses(waiting)
-        if refusal is not None:
-            # Said once: `_progress` drains `live.errors` into the status
-            # line already, and a refusal reported twice reads as two
-            # different things having gone wrong.
-            self.live.errors.append(refusal)
-            self.trouble = refusal
+        bigger = self.live.needs_restart(waiting)
+        if bigger is not None:
+            # **Not a refusal any more — a restart.**  The edit is good
+            # and what is too small is known, so asking somebody to quit
+            # and start the program again is asking them to do a thing
+            # the program can do better: fade out, build the player at
+            # the size the new graph wants, fade back in.
+            #
+            # On another thread, because this runs *on the audio thread*
+            # between blocks: `stop` joins that very thread, and a join
+            # on yourself is a hang.
+            # **The waiting engine is dropped, not kept.**  `start`
+            # compiles the file again from scratch and builds a new
+            # `Live`, so handing this one back would only give the engine
+            # being torn down something to install mid-teardown.
+            threading.Thread(target=self.restart, args=(bigger,),
+                             daemon=True).start()
             return
         from .audioengine import State, migrate
 

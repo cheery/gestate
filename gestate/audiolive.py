@@ -381,8 +381,8 @@ class Live:
             # exceptional one.
             self.pending = LiveError(str(exc))
 
-    def refuses(self, waiting) -> str | None:
-        """Why this edit cannot be installed while playing, or `None`.
+    def needs_restart(self, waiting) -> str | None:
+        """Why this edit cannot be installed *in place*, or `None`.
 
         **One rule, because there are two drivers.**  The Python driver
         installs in `install` below and the C host installs in
@@ -405,22 +405,24 @@ class Live:
           installed a graph the host could not drive, the apply said
           *"rebuilt"*, the score never loaded, and nothing played.
 
-        Refused rather than grown.  Growing means a second pointer handed
-        across while the audio thread is reading the first, which is the
-        renegotiation `roadmap.md` still has open — not a thing to do in
-        the middle of a block.
+        **Neither is grown, and neither is refused any more.**  Growing
+        means a second pointer handed across while the audio thread is
+        reading the first, which is a renegotiation not to attempt in the
+        middle of a block.  Refusing meant telling somebody to quit and
+        start the program again — which is asking them to do a thing the
+        program can do better, since it knows the edit is good, knows
+        exactly what is too small, and has a master fader.  So the
+        answer is a sentence saying what is too small, and the caller
+        fades out and builds the player again at the size that fits.
         """
         if waiting.channels != self.engine.channels:
-            return (f"this edit changes the output from "
+            return (f"this edit takes the output from "
                     f"{self.engine.channels} channel(s) to "
-                    f"{waiting.channels}, and the player was started with "
-                    f"the old count.  Restart to hear it")
+                    f"{waiting.channels}")
         want, have = len(waiting.control_sources), self.controls
         if have is not None and want > have:
             return (f"this edit wants {want} control channel(s) and the "
-                    f"player was started with room for {have} — adding a "
-                    f"knob or a `voices` bank to a synth that had none "
-                    f"needs a restart to be heard")
+                    f"player has room for {have}")
         return None
 
     def install(self) -> bool:
@@ -434,9 +436,11 @@ class Live:
             self.errors.append(str(waiting))
             return False
 
-        refusal = self.refuses(waiting)
-        if refusal is not None:
-            self.errors.append(refusal)
+        # The Python driver allocates per block, so it has no
+        # fixed room to run out of and `controls` stays `None`.
+        bigger = self.needs_restart(waiting)
+        if bigger is not None:
+            self.errors.append(bigger)
             return False
 
         values, t, lines = self.engine.snapshot()

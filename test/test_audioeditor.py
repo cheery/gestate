@@ -1526,7 +1526,7 @@ def test_one_rule_decides_what_cannot_be_installed_while_playing():
     from gestate.audiolive import Live
 
     # The rule is asked for, never restated.
-    assert "refuses" in inspect.getsource(Workbench._hand_over)
+    assert "needs_restart" in inspect.getsource(Workbench._hand_over)
     assert "channel(s) to" not in inspect.getsource(Workbench._hand_over), \
         "the channel check is written out a second time again"
 
@@ -1539,13 +1539,81 @@ def test_one_rule_decides_what_cannot_be_installed_while_playing():
     live.engine = Engine(1, 1)
     live.controls = 1
 
-    assert live.refuses(Engine(1, 1)) is None, "an ordinary edit was refused"
-    assert "channel(s)" in live.refuses(Engine(2, 1))
+    assert live.needs_restart(Engine(1, 1)) is None, "an ordinary edit restarted"
+    assert "channel(s)" in live.needs_restart(Engine(2, 1))
     # The one that was unchecked: more control slots than were reserved.
-    said = live.refuses(Engine(1, 16))
+    said = live.needs_restart(Engine(1, 16))
     assert said and "16 control channel(s)" in said and "room for 1" in said
 
     # **`None` means nobody has said**, which is the Python driver: it
     # allocates per block and has no fixed room to run out of.
     live.controls = None
-    assert live.refuses(Engine(1, 16)) is None
+    assert live.needs_restart(Engine(1, 16)) is None
+
+
+def test_an_edit_that_will_not_fit_starts_a_restart(tmp_path):
+    """**The program does the restarting.**
+
+    The host allocates its control block and tells the card how many
+    channels to expect at construction, and neither can be renegotiated
+    between blocks — so adding a `voices` bank (three channels a voice)
+    to a synth that had none cannot be installed in place.
+
+    It used to be installed anyway: the apply said *"rebuilt"*,
+    `set_control` raised `no control slot 1` on another thread, the score
+    never loaded and nothing played.  Then it was refused with a sentence
+    telling you to restart it yourself — which is asking somebody to do a
+    thing the program can do better, since it knows the edit is good and
+    knows exactly what is too small.
+
+    **What is checked here is the decision and the wiring**, because the
+    audio half cannot be reached from this suite at all: `conftest.py`
+    makes `Host.open` and `Host.run_device` refuse, so nothing here ever
+    has a C host, on purpose — a test that needed a sound card would fail
+    on a machine without one for a reason having nothing to do with what
+    it checks.  The fade-out-and-back was verified by hand against a real
+    card: controls 1 → 16, the bank and the piece loaded, still playing.
+    That gap is worth knowing about rather than papering over.
+    """
+    bench = _bench(tmp_path)
+    bench.host = object()                 # as if a card had been opened
+    asked = []
+    bench.restart = lambda why, seconds=None: asked.append(why)
+
+    class Engine:
+        def __init__(self, channels, controls):
+            self.channels = channels
+            self.control_sources = [object()] * controls
+
+    class Live:
+        from gestate.audiolive import Live as _real
+        needs_restart = _real.needs_restart
+
+        def __init__(self):
+            self.engine = Engine(1, 1)
+            self.controls = 1
+            self.pending = Engine(1, 16)
+            self.errors = []
+
+    bench.live = Live()
+    bench._hand_over()
+    # The thread it starts is the point: `_hand_over` runs *on the audio
+    # thread*, and `stop` joins that very thread — a join on yourself is
+    # a hang, so the restart has to happen somewhere else.
+    import time
+    for _ in range(200):
+        if asked:
+            break
+        time.sleep(0.01)
+    assert asked, "an edit that cannot fit did not start a restart"
+    assert "16 control channel(s)" in asked[0]
+    assert bench.live.pending is None, "the stale engine was kept"
+
+
+def test_the_python_driver_never_restarts(tmp_path):
+    """It allocates per block, so it has no fixed room to run out of —
+    and a restart it did not need would be a fade nobody asked for."""
+    bench = _bench(tmp_path)
+    assert bench.host is None
+    bench.restart("whatever")             # returns, says nothing, does nothing
+    assert not any("restarting" in m for m in bench.messages)
