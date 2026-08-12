@@ -200,6 +200,8 @@ class Host:
     def install(self, engine) -> None:
         """Set what is sounding, before anything is playing."""
         self._kept.append(engine)
+        if self._closed:
+            return
         self.lib.gestate_host_install(self._host, *self._slots(engine))
 
     def publish(self, engine) -> None:
@@ -209,6 +211,8 @@ class Host:
         docstring for why that is Python's job and not the render thread's.
         """
         self._kept.append(engine)
+        if self._closed:
+            return
         self.lib.gestate_host_publish(self._host, *self._slots(engine))
 
     def _slots(self, engine) -> tuple:
@@ -278,9 +282,13 @@ class Host:
 
     def set_gain(self, gain: float) -> None:
         """Put the master fader somewhere directly — see `fade_in`."""
+        if self._closed:
+            return
         self.lib.gestate_host_set_gain(self._host, float(gain))
 
     def stop(self) -> None:
+        if self._closed:
+            return
         self.lib.gestate_host_stop(self._host)
 
     def halt(self) -> None:
@@ -293,29 +301,65 @@ class Host:
         that outlives the interpreter reads a freed workspace, which is
         a core file rather than a click.
         """
+        if self._closed:
+            return
         self.lib.gestate_host_halt(self._host)
 
     @property
     def frames(self) -> int:
-        return self.lib.gestate_host_frames(self._host)
+        return 0 if self._closed else self.lib.gestate_host_frames(self._host)
+
+    @property
+    def _closed(self) -> bool:
+        """**Whether calling into C would pass it a null pointer.**
+
+        `close` frees the workspace and sets `_host` to `None`, and every
+        method here went straight on handing that `None` to `ctypes`,
+        which passes `NULL` — so the first call after a close dereferenced
+        it and took the process down.
+
+        Nothing noticed while `close` only ran as the program ended: a
+        closed host had no callers left.  A **restart** closes one in the
+        middle of a session, and the editor's poll loop asks
+        `transport.position` five hundred times a second — so the window
+        segfaulted and the headless tests, which ask nobody anything, did
+        not.
+
+        A closed host answers *nothing is playing*, which is true.
+        """
+        return not getattr(self, "_host", None)
 
     @property
     def fading(self) -> bool:
+        if self._closed:
+            return False
         return bool(self.lib.gestate_host_fading(self._host))
 
     # -- the transport, which C owns now ------------------------------------
 
     @property
     def playing(self) -> bool:
+        if self._closed:
+            return False
+        if self._closed:
+            return False
         return bool(self.lib.gestate_host_is_playing(self._host))
 
     @playing.setter
     def playing(self, on: bool) -> None:
+        if self._closed:
+            return
+        if self._closed:
+            return
         self.lib.gestate_host_playing(self._host, 1 if on else 0)
 
     @property
     def position(self) -> int:
         """Where the engine has reached, in frames."""
+        if self._closed:
+            return 0
+        if self._closed:
+            return 0
         return self.lib.gestate_host_position(self._host)
 
     def seek(self, to: int) -> None:
@@ -323,18 +367,28 @@ class Host:
         not here: writing the instant into a state the render thread is
         halfway through reading is the one race this design exists to
         avoid, and a block is 5 ms to wait."""
+        if self._closed:
+            return
         self.lib.gestate_host_seek(self._host, max(0, int(to)))
 
     def loop(self, start: int | None, end: int | None) -> None:
         """Loop between two samples, or `loop(None, None)` for none."""
+        if self._closed:
+            return
+        if self._closed:
+            return
         self.lib.gestate_host_loop(self._host, int(start or 0),
                                    0 if not end else int(end))
 
     def watch_peak(self, on: bool) -> None:
+        if self._closed:
+            return
         self.lib.gestate_host_watch_peak(self._host, 1 if on else 0)
 
     def peak(self) -> float:
         """The loudest sample since the last look, and clears it."""
+        if self._closed:
+            return 0.0
         return float(self.lib.gestate_host_peak(self._host))
 
     def rms(self) -> float:
@@ -345,6 +399,8 @@ class Host:
         A peak says whether it clipped; an RMS says how loud it sounded.
         Both ride the one walk `watch_peak` switches on.
         """
+        if self._closed:
+            return 0.0
         return float(self.lib.gestate_host_rms(self._host))
 
     # -- the spectrum --------------------------------------------------------
@@ -360,6 +416,8 @@ class Host:
         Off unless a program asks — the same bargain the meter makes, and
         for the same reason: this is the one place with no time to spare.
         """
+        if self._closed:
+            return
         self.lib.gestate_host_watch_bands(self._host, 1 if on else 0,
                                           self.rate)
 
@@ -367,6 +425,8 @@ class Host:
         """One band's level.  **Read, not taken** — unlike the peak, which
         is cleared on reading: a bar falls on its own release, so a look
         that emptied it would show a gap rather than a decay."""
+        if self._closed:
+            return 0.0
         return float(self.lib.gestate_host_band(self._host, k))
 
     # -- the knobs -----------------------------------------------------------

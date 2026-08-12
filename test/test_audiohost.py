@@ -590,3 +590,49 @@ def test_the_editor_watches_the_bands_a_program_declares():
 
     assert Workbench.BANDS == tuple(f"band{k}" for k in range(8))
     assert set(Workbench.BANDS) <= set(Workbench.WATCHED)
+
+
+def test_a_closed_host_answers_instead_of_taking_the_process_down():
+    """**The segfault a restart made reachable.**
+
+    `close` frees the workspace and sets `_host` to `None`, and every
+    method here went straight on handing that `None` to `ctypes`, which
+    passes `NULL` — so the first call after a close dereferenced it.
+
+    Nothing noticed while `close` ran only as the program ended: a closed
+    host had no callers left.  Then a `restart` began closing one in the
+    *middle* of a session, and the editor's poll loop asks
+    `transport.position` five hundred times a second — so the window died
+    with a core file and the headless tests, which ask nobody anything,
+    went on passing.
+
+    A closed host answers *nothing is playing*, which is true.
+    """
+    from gestate.audiohost import Host
+
+    host = Host.__new__(Host)
+    host._host = None
+    host._kept = []
+    host._open = False
+
+    assert host._closed
+    # Everything the editor asks a host while it is drawing a frame.
+    assert host.position == 0
+    assert host.playing is False
+    assert host.frames == 0
+    assert host.fading is False
+    assert host.peak() == 0.0
+    assert host.rms() == 0.0
+    assert host.band(0) == 0.0
+    # And everything it may tell one, none of which reaches C.
+    host.playing = True
+    host.seek(5)
+    host.loop(1, 2)
+    host.set_gain(0.5)
+    host.stop()
+    host.halt()
+    host.watch_peak(True)
+    host.watch_bands(True)
+    host.install(object())
+    host.publish(object())
+    assert host.position == 0, "a setter got through to a freed workspace"

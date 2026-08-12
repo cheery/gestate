@@ -1578,7 +1578,7 @@ def test_an_edit_that_will_not_fit_starts_a_restart(tmp_path):
     bench = _bench(tmp_path)
     bench.host = object()                 # as if a card had been opened
     asked = []
-    bench.restart = lambda why, seconds=None: asked.append(why)
+    bench.restart = lambda why, seconds=None, **kw: asked.append((why, kw))
 
     class Engine:
         def __init__(self, channels, controls):
@@ -1596,6 +1596,7 @@ def test_an_edit_that_will_not_fit_starts_a_restart(tmp_path):
             self.errors = []
 
     bench.live = Live()
+    bench._applying = "sound = the text being auditioned\n"
     bench._hand_over()
     # The thread it starts is the point: `_hand_over` runs *on the audio
     # thread*, and `stop` joins that very thread — a join on yourself is
@@ -1606,8 +1607,17 @@ def test_an_edit_that_will_not_fit_starts_a_restart(tmp_path):
             break
         time.sleep(0.01)
     assert asked, "an edit that cannot fit did not start a restart"
-    assert "16 control channel(s)" in asked[0]
+    assert "16 control channel(s)" in asked[0][0]
     assert bench.live.pending is None, "the stale engine was kept"
+
+    # **And with the text it is restarting *for*.**  `start` reads the
+    # file, and an audition deliberately does not write one — so a
+    # restart without this brings back the program on disk: the audition
+    # never plays, *and* the new player is sized for the old program, so
+    # the next audition asks to restart again.  One omission, both
+    # symptoms, and the parameter existed before it was passed.
+    assert asked[0][1] == {"text": bench._applying}
+    assert bench._applying, "`apply` did not keep what it was installing"
 
 
 def test_the_python_driver_never_restarts(tmp_path):

@@ -1233,7 +1233,30 @@ class Session:
             from .sessionlog import Log
 
             self.log = Log(path=str(getattr(self.bench, "path", "") or ""))
+            # **Seeded with the file as opened**, so the first thing
+            # recorded is typing and not the program somebody started
+            # from.  A transcript that opened by "adding" the whole file
+            # would bury the one line that mattered.
+            self.log.was = tuple(self._lines())
+        # Typing since the last step, before the step it led to — the
+        # order a person did them in.
+        self.log.typed(self._lines())
         self.log.add(verb, args, said)
+
+    def _lines(self) -> list:
+        """The document, as lines, however cheaply the view can say.
+
+        `Window.lines` keeps a copy refreshed on `changed()`; a view
+        without one is asked for its text, which is what the headless
+        sessions and the tests have.
+        """
+        cheap = getattr(self.view, "lines", None)
+        if cheap is not None:
+            try:
+                return list(cheap())
+            except Exception:                            # noqa: BLE001
+                pass
+        return self._source().splitlines()
 
     # ── The handlers ─────────────────────────────────────────────────
     #

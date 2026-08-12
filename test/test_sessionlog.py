@@ -168,3 +168,100 @@ def test_a_line_it_cannot_read_costs_that_line_and_not_the_file():
     steps = read("# a header\ndo\n    play   #= playing\n    \n"
                  "    seek 2  #= at bar 2\n")
     assert [s.verb for s in steps] == ["play", "seek"]
+
+
+# ── Typing ───────────────────────────────────────────────────────────────
+
+
+class Typed(Bench):
+    """A bench whose view holds text, so a session can be typed into."""
+
+
+def _typing(tmp_path, text):
+    from gestate.sessionlog import Typing
+
+    class View(Typing):
+        showing = "source"
+
+    return View(text, under=Detached())
+
+
+def test_the_typing_is_recorded_and_not_only_the_commands(tmp_path):
+    """**The half that had to be written by hand.**
+
+    A transcript that recorded `audition` and not the line just changed
+    was a reproduction you had to annotate before anybody could use it —
+    Henri wrote *"# write to end of line 10: + lead"* into one, which is
+    the report saying what the tool was missing.
+    """
+    view = _typing(tmp_path, "a = 1\nb = 2\n")
+    s = Session(bench=Bench(tmp_path / "demo.ges"), view=view)
+    s.run("seek", 4)
+    view.retype(["a = 1", "b = 2 + lead"])
+    s.run("octave", -1)
+
+    kinds = [step.verb for step in s.log.steps]
+    assert kinds == ["seek", "edit", "octave"], kinds
+    # **Between commands, not per keystroke.**  A step per character
+    # would bury the things somebody did under the ones they did not
+    # think of as doing anything.
+    edit = s.log.steps[1]
+    assert edit.said == "1 line changed"
+    # And it reads as a diff, which is what a person opens it for.
+    shown = "\n".join(edit.shown)
+    assert "-   2 b = 2" in shown and "+   2 b = 2 + lead" in shown
+
+
+def test_the_file_as_opened_is_not_recorded_as_typing(tmp_path):
+    """A transcript that opened by "adding" the whole file would bury the
+    one line that mattered."""
+    view = _typing(tmp_path, "a = 1\nb = 2\n")
+    s = Session(bench=Bench(tmp_path / "demo.ges"), view=view)
+    s.run("seek", 4)
+    assert [step.verb for step in s.log.steps] == ["seek"]
+
+
+def test_a_replay_types_what_was_typed(tmp_path):
+    """Read and not *done* would make a transcript describe a
+    reproduction it could not perform."""
+    from gestate.sessionlog import Typing
+
+    view = _typing(tmp_path, "a = 1\nb = 2\n")
+    s = Session(bench=Bench(tmp_path / "demo.ges"), view=view)
+    s.run("seek", 4)
+    view.retype(["a = 1", "b = 2 + lead", "c = 3"])
+    s.run("octave", -1)
+
+    steps = read(s.log.text())
+    again = _typing(tmp_path, "a = 1\nb = 2\n")
+    drifted = replay(Session(bench=Bench(tmp_path / "demo.ges"), view=again),
+                     steps, again)
+    assert drifted == []
+    assert again.text() == view.text(), "the typing did not come back"
+    assert isinstance(again, Typing)
+
+
+def test_the_edits_survive_the_file(tmp_path):
+    """Exact, not descriptive: the ops reconstruct the text."""
+    from gestate.sessionlog import _apply, _ops
+
+    before = ("a", "b", "c", "d")
+    for after in (("a", "B", "c", "d"), ("a", "d"), ("a", "b", "c", "d", "e"),
+                  ("x",), (), ("a", "b", "c", "d")):
+        assert _apply(before, _ops(before, after)) == after, after
+
+
+def test_a_long_paste_is_shown_short(tmp_path):
+    """A pasted template is thirty lines nobody needs to read back — the
+    ops keep all of it and the reading stops."""
+    view = _typing(tmp_path, "")
+    s = Session(bench=Bench(tmp_path / "demo.ges"), view=view)
+    s.run("seek", 0)
+    view.retype([f"line {i}" for i in range(40)])
+    s.run("seek", 1)
+    edit = next(step for step in s.log.steps if step.verb == "edit")
+    assert len(edit.shown) <= 13, edit.shown
+    assert "more" in edit.shown[-1]
+    # But nothing is lost: it still replays exactly.
+    from gestate.sessionlog import _apply
+    assert _apply((), edit.args) == tuple(f"line {i}" for i in range(40))

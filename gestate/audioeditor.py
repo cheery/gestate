@@ -649,18 +649,31 @@ class Workbench:
         self._want_midi = midi
         self._midi_port = midi_port
         self._audio: threading.Thread | None = None
+        #: The housekeeping thread, so `stop` can wait for it
+        #: before freeing what it reads.
+        self._keeper: threading.Thread | None = None
+        #: The text of the edit being installed, for a restart that
+        #: cannot read it off the disk — see `apply`.
+        self._applying: str | None = None
         self._stop = threading.Event()
         self._directory = None
         self._seen = 0
 
     # -- lifecycle ----------------------------------------------------------
 
-    def start(self, seconds: float | None = None) -> None:
-        """Compile the file and start playing it."""
+    def start(self, seconds: float | None = None,
+              text: str | None = None) -> None:
+        """Compile the file and start playing it.
+
+        `text` overrides what is on disk, which is what a restart for an
+        *audition* needs: an audition deliberately does not save, so
+        reading the file would bring back the program you were trying to
+        hear past.
+        """
         import tempfile
 
         self._directory = tempfile.mkdtemp()
-        text = self.source()
+        text = self.source() if text is None else text
         # The canvas, the score and the `FromMIDI` interpreter need only
         # the text, so they compile on a thread while `Live.start` waits
         # on `clang` — the one stretch of a start that holds no GIL, and
@@ -803,6 +816,16 @@ class Workbench:
                 self._report_confessions()
 
         keeper = threading.Thread(target=housekeeping, daemon=True)
+        # **Kept where `stop` can reach it.**  This thread reads
+        # `self.host.position` and `self.host.frames` every five
+        # milliseconds — straight into the workspace `Host.close` frees.
+        # It was a local, joined here with a one-second timeout, and that
+        # was safe for as long as `stop` only ever ran at quit: a keeper
+        # that outlived its timeout touched freed memory in a process
+        # that was ending anyway.  A **restart** calls `stop` in the
+        # middle of a session and then goes on running, so the same race
+        # is now a segfault in a program somebody is still using.
+        self._keeper = keeper
         keeper.start()
         try:
             self.host.run_device(
@@ -982,7 +1005,8 @@ class Workbench:
         """What the canvas shows now, as shapes a view can draw."""
         return [] if self.substrate is None else self.substrate.picture()
 
-    def restart(self, why: str, seconds: float | None = None) -> None:
+    def restart(self, why: str, seconds: float | None = None,
+                text: str | None = None) -> None:
         """Fade out, build the player again, fade back in.
 
         **The answer to everything that is sized when playback starts.**
@@ -1009,6 +1033,12 @@ class Workbench:
         What does not survive: notes that were down, and the position.
         A restart is a restart, and saying so is better than a fade that
         pretends nothing happened.
+
+        **`text` is what is being restarted *for*, and it matters.**
+        `start` reads the file, and an audition deliberately does not
+        write one — so a restart without this brought back the program
+        on disk, said *"playing demo6.ges"*, and threw away the edit you
+        were listening for.  Silently, which is the worst of it.
         """
         if self.host is None:
             return                     # the Python driver sizes nothing
@@ -1017,7 +1047,7 @@ class Workbench:
         # `stop` set it, and `start` is about to be a fresh run.
         self._stop.clear()
         try:
-            self.start(seconds)
+            self.start(seconds, text=text)
         except Exception as exc:                        # noqa: BLE001
             self.say(f"could not restart: {self._first_line(exc)}")
 
@@ -1053,10 +1083,21 @@ class Workbench:
             # not a risk of a crash but the crash itself.  A host left
             # open leaks until the process ends, and the process is
             # ending; that is the cheaper of the two.
-            if self._audio.is_alive():
+            # **And the housekeeping thread, which nothing waited for.**
+            # It reads the host's workspace on a five-millisecond loop,
+            # so freeing while it is alive is the same use-after-free
+            # the audio thread's own join exists to prevent — the
+            # difference being that nobody had noticed this one because
+            # `stop` used to run only as the process ended.
+            keeper = getattr(self, "_keeper", None)
+            if keeper is not None and keeper.is_alive():
+                keeper.join(timeout)
+            if self._audio.is_alive() or (keeper is not None
+                                          and keeper.is_alive()):
                 self.say("the audio thread did not stop; "
                          "leaving its workspace alone")
             else:
+                self._keeper = None
                 if self.host is not None:
                     self.host.close()
                     self.host = None
@@ -2033,6 +2074,11 @@ class Workbench:
         happened, because an environment where the two are indistinguishable
         is how work gets lost.
         """
+        # **What is being installed, kept for a restart.**  An edit that
+        # does not fit has to be started again *as this text* — the file
+        # is either behind it (an audition never writes) or exactly it (a
+        # save), so remembering it is right either way.
+        self._applying = text
         if save:
             # The first save is what creates a new file — and its parent,
             # so `gestate.workbench sketches/a.ges` works before
@@ -2153,7 +2199,14 @@ class Workbench:
             # compiles the file again from scratch and builds a new
             # `Live`, so handing this one back would only give the engine
             # being torn down something to install mid-teardown.
-            threading.Thread(target=self.restart, args=(bigger,),
+            # **With the text it is restarting *for*.**  `start` reads
+            # the file, and an audition deliberately does not write one —
+            # so a restart without this brought back the program on disk:
+            # the audition never played, and the new player was sized for
+            # the *old* program, so the next audition asked to restart
+            # again.  One omission, both symptoms.
+            threading.Thread(target=self.restart,
+                             args=(bigger,), kwargs={"text": self._applying},
                              daemon=True).start()
             return
         from .audioengine import State, migrate

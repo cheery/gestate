@@ -39,6 +39,7 @@ before this was worth writing.
 
 from __future__ import annotations
 
+import difflib
 from dataclasses import dataclass, field
 
 #: How many transitions a session keeps.  **A recording, not a record**:
@@ -51,6 +52,14 @@ KEEP = 4000
 SAID = "#="
 
 
+#: The step that stands for typing.  **Not a command**, and deliberately
+#: not declared in `command.ges`: nobody picks "edit" out of a palette,
+#: and a verb in the list that cannot be chosen would be the list ceasing
+#: to be the answer to *what can this do*.  The replayer knows it; the
+#: editor never offers it.
+EDIT = "edit"
+
+
 @dataclass
 class Step:
     """One transition: what was asked, and what it answered."""
@@ -58,12 +67,19 @@ class Step:
     verb: str
     args: tuple = ()
     said: str = ""
+    #: For an `edit`, the diff to read — the ops are for replaying and
+    #: this is for the person the recording is *for*.
+    shown: tuple = ()
 
     def line(self) -> str:
         """`    seek 4    #= at bar 4` — one command of a `do` block."""
         spoken = " ".join(_literal(a) for a in self.args)
         call = f"{self.verb} {spoken}".strip()
         return f"    {call:<38} {SAID} {self.said}".rstrip()
+
+    def lines(self) -> list:
+        """The step, with the typing shown above it when there was any."""
+        return [f"    # {line}" for line in self.shown] + [self.line()]
 
 
 @dataclass
@@ -79,6 +95,34 @@ class Log:
     steps: list = field(default_factory=list)
     #: What was being edited when it started, for the header.
     path: str = ""
+
+    #: The text as of the last step recorded, so typing can be a diff.
+    was: tuple = ()
+
+    def typed(self, lines) -> None:
+        """Record the typing since the last step, if there was any.
+
+        **Between commands, not per keystroke.**  A step per character
+        would bury the six things somebody actually did under four
+        hundred they did not think of as doing anything — and the window
+        does not send the text with `edited` anyway, by design: shipping
+        the document on every keystroke is the cost the ABI exists to
+        avoid.  What matters for a reproduction is that the text is right
+        *when a command runs*, and this is that.
+
+        Kept as edit operations rather than as the whole file: a
+        transcript of a long session would otherwise be that session's
+        file over and over, and the thing worth reading — *what changed*
+        — would be the part you had to work out.
+        """
+        after = tuple(lines)
+        if after == self.was:
+            return
+        ops = _ops(self.was, after)
+        if ops:
+            self.steps.append(Step(EDIT, ops, _counted(self.was, after),
+                                   _shown(self.was, after)))
+        self.was = after
 
     def add(self, verb: str, args, said: str) -> None:
         self.steps.append(Step(verb, tuple(args), said))
@@ -102,8 +146,80 @@ class Log:
         head.append("# Each line is a command and what it answered.  The")
         head.append("# answers are the diff: a replay that says something")
         head.append("# else is the report.")
-        body = [s.line() for s in self.steps] or ["    skip"]
+        body = [line for s in self.steps for line in s.lines()] \
+            or ["    skip"]
         return "\n".join(head + ["", "do"] + body) + "\n"
+
+
+def _ops(before, after) -> tuple:
+    """The edits between two files, one `at:removed:added` per argument.
+
+    Exact rather than a unified diff, because the replay has to
+    reconstruct the text and not merely describe it — and because a patch
+    applier is a second thing to get right where `difflib` has already
+    worked out the answer.
+
+    **One op per argument, and newlines escaped.**  The first spelling
+    packed them into a single string with `\x1f` and `\x1e` between,
+    which is invisible in a file whose whole promise is that you can read
+    it, edit it and diff it.  Arguments the reader already knows how to
+    split cost nothing and are legible.
+    """
+    out = []
+    for tag, i1, i2, j1, j2 in _blocks(before, after):
+        if tag == "equal":
+            continue
+        out.append(f"{i1}:{i2 - i1}:" + "\n".join(after[j1:j2]))
+    return tuple(out)
+
+
+def _blocks(before, after) -> list:
+    return difflib.SequenceMatcher(a=list(before), b=list(after),
+                                   autojunk=False).get_opcodes()
+
+
+def _apply(before, ops) -> tuple:
+    """`before` with those edits made — the other half of `_ops`."""
+    lines = list(before)
+    # Back to front, so an earlier edit does not move a later one.
+    for group in reversed([str(g) for g in ops if str(g)]):
+        at, gone, added = group.split(":", 2)
+        at, gone = int(at), int(gone)
+        lines[at:at + gone] = added.split("\n") if added else []
+    return tuple(lines)
+
+
+def _counted(before, after) -> str:
+    """*3 lines changed* — what the step says it did."""
+    changed = sum(max(i2 - i1, j2 - j1)
+                  for tag, i1, i2, j1, j2 in _blocks(before, after)
+                  if tag != "equal")
+    return f"{changed} line{'s' if changed != 1 else ''} changed"
+
+
+#: How many lines of typing a transcript shows before it stops.  A
+#: pasted template is thirty lines nobody needs to read back.
+SHOWN = 12
+
+
+def _shown(before, after) -> tuple:
+    """The typing, to read — `-` what went and `+` what came.
+
+    This is the half Henri had to write by hand: a transcript that
+    recorded `audition` and not the line he had just changed was a
+    reproduction you had to annotate before anybody could use it.
+    """
+    out = []
+    for tag, i1, i2, j1, j2 in _blocks(before, after):
+        if tag == "equal":
+            continue
+        for n, line in enumerate(before[i1:i2], start=i1 + 1):
+            out.append(f"-{n:>4} {line}")
+        for n, line in enumerate(after[j1:j2], start=j1 + 1):
+            out.append(f"+{n:>4} {line}")
+    if len(out) > SHOWN:
+        out = out[:SHOWN] + [f"… and {len(out) - SHOWN} more"]
+    return tuple(out)
 
 
 def _literal(value) -> str:
@@ -118,14 +234,18 @@ def _literal(value) -> str:
     if isinstance(value, (int, float)):
         return repr(value)
     text = str(value)
-    return '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
+    # Newlines are escaped because a transcript is a file of lines: one
+    # inside an argument would end the step half way through it.
+    return ('"' + text.replace("\\", "\\\\").replace('"', '\\"')
+            .replace("\n", "\\n") + '"')
 
 
 def _value(word: str):
     """And back — a quoted word is text, a bare one is a number if it
     looks like one and a name otherwise."""
     if word.startswith('"'):
-        return word[1:-1].replace('\\"', '"').replace("\\\\", "\\")
+        return (word[1:-1].replace("\\n", "\n").replace('\\"', '"')
+                .replace("\\\\", "\\"))
     try:
         return int(word)
     except ValueError:
@@ -196,20 +316,55 @@ def editing(text: str) -> str:
     return ""
 
 
-def replay(session, steps) -> list:
+def replay(session, steps, typing=None) -> list:
     """Run them, and give back what changed.
 
     `(step, what it said this time)` for every step whose answer moved.
     **An empty list is the whole point**: a session that replays to the
     same sentences is one this build still behaves the way it did when
     somebody was sitting in front of it.
+
+    `typing` is a buffer the `edit` steps write into — a view that holds
+    text, so the commands after one see what was typed.  Without it the
+    typing is read and not done, which would make a transcript describe a
+    reproduction it could not perform.
     """
     drifted = []
     for step in steps:
+        if step.verb == EDIT:
+            if typing is not None:
+                typing.retype(_apply(tuple(typing.lines()), step.args))
+            continue
         now = session.run(step.verb, *step.args)
         if step.said and now != step.said:
             drifted.append((step, now))
     return drifted
+
+
+class Typing:
+    """A view that is only a text buffer — what a replay types into.
+
+    **Not a stand-in for the window.**  It answers the one thing the
+    commands need to see change between steps, and refuses everything
+    else the way `Detached` does, so a replayed command that wanted a
+    window says so instead of being quietly satisfied.
+    """
+
+    def __init__(self, text: str = "", under=None):
+        self._lines = tuple(text.splitlines())
+        self._under = under
+
+    def lines(self) -> list:
+        return list(self._lines)
+
+    def retype(self, lines) -> None:
+        self._lines = tuple(lines)
+
+    def text(self) -> str:
+        return "\n".join(self._lines) + ("\n" if self._lines else "")
+
+    def __getattr__(self, name):
+        return getattr(self._under, name)
 
 
 def main(argv=None) -> int:
@@ -255,7 +410,10 @@ def main(argv=None) -> int:
     # No `start()`: the commands answer from the model, and a replay
     # that opened a sound card would be a replay you cannot run twice.
     bench = Workbench(Path(against), rate=args.rate, block=256)
-    drifted = replay(Session(bench=bench, view=Detached()), steps)
+    # The file as it was opened, so the first `edit` types onto the same
+    # thing the recording did.
+    typing = Typing(Path(against).read_text(), under=Detached())
+    drifted = replay(Session(bench=bench, view=typing), steps, typing)
     print(f"{len(steps)} steps replayed against {against}")
     for step, now in drifted:
         print(f"  {step.verb} {' '.join(map(str, step.args))}\n"
