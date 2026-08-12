@@ -332,6 +332,45 @@ def _begin(bench, session):
     return quitting, starter
 
 
+def _canvas_frame(bench) -> list:
+    """One frame of the canvas: readings in, a tick, and the picture out.
+
+    **A seam, because this is where a canvas goes still.**  Both calls
+    belong to the *view* — a reading is once a frame because that is as
+    often as anyone can see it, and `events` is the frame clock itself —
+    and both were lost when `audiopygame.py` went and its loop with them.
+    `observe` was left with no caller at all, so `peak`, `rms`, `position`
+    and the bands sat at their defaults and every meter in
+    `examples/audio` was frozen; and nothing here had *ever* ticked
+    `events`, so a substrate that animates could not, in the editor, no
+    matter what it was written over.
+
+    Called rather than inlined so a test can run a frame without a window,
+    which is the only way this stays wired: the bug was never in a
+    function, it was in the fact that nobody called two.
+    """
+    bench.observe()
+    bench.tick()
+    return bench.picture()
+
+
+#: **At most this share of the loop's time goes to the canvas.**  A frame is
+#: `tick` plus `picture`, and both are the G-machine walking the whole
+#: substrate — 49 ms of it for `examples/audio/lantern.ges`, against the 2 ms
+#: `pace` sleeps while a hand is moving.  Run every pass, that one program
+#: would take the loop from ~500 Hz to ~20 Hz and a drag on the canvas would
+#: stutter, which is the cost of animation landing on the thing animation is
+#: for.  So the next frame is held off by twice the last one's cost: a cheap
+#: canvas still draws every pass, an expensive one drops to a third of the
+#: loop and gestures keep the rest.  Adaptive rather than a fixed fps because
+#: the cost is the *program's*, and no constant here could know it.
+CANVAS_SHARE = 2.0
+
+#: And never further apart than this, however dear the frame — a canvas that
+#: costs a second still moves, visibly, rather than looking hung.
+CANVAS_SLOWEST = 0.25
+
+
 def _shapes(picture) -> str:
     """`gui.py`'s display list, as lines the window can read.
 
@@ -390,7 +429,7 @@ def run(path, rate: int = 44100, block: int = 512,
     quitting, starter = _begin(bench, session)
 
     said, drawn = "", None
-    wait = IDLE
+    wait, next_frame = IDLE, 0.0
     try:
         while editor.is_open:
             # **A file asked for is a whole new instrument.**  The window
@@ -442,8 +481,12 @@ def run(path, rate: int = 44100, block: int = 512,
             # at.**  A substrate is a program that draws every frame, so
             # asking for one nobody is watching is a whole graph forced
             # per tick for a picture behind a page of text.
-            if getattr(session.view, "showing", "source") == "canvas":
-                drawing = _shapes(bench.picture())
+            if (getattr(session.view, "showing", "source") == "canvas"
+                    and time.monotonic() >= next_frame):
+                began = time.monotonic()
+                drawing = _shapes(_canvas_frame(bench))
+                next_frame = began + min(
+                    CANVAS_SLOWEST, (time.monotonic() - began) * CANVAS_SHARE)
                 if drawing != drawn:
                     editor.draw(drawing)
                     drawn = drawing

@@ -628,6 +628,14 @@ class Substrate:
         # an id *and* keeps that id the one the program itself will see.
         self.by_name = {name: self._force(name).chan_id
                         for name in _channel_names(source)}
+        #: **The frame clock**, and the reason `tick` can exist.  `events`
+        #: waits on `input` (`gui.ges`), so a canvas that animates advances
+        #: only when something puts a `Tick` there.  Minted by *name* rather
+        #: than as `min(reactive.chans)` — which is what `scenes` and the
+        #: standalone window take, and is only the right answer because
+        #: neither of them forces the program's own channels first.  Forced
+        #: after `by_name` so no declared channel's id moves.
+        self._input = self._force("input").chan_id
         self.reactive = init_program(self.state)
         self.signal = _entry_signal(self.state)
         #: Channel name → the last value written to it.  What the audio
@@ -657,6 +665,20 @@ class Substrate:
     def picture(self) -> list:
         """The shapes to draw, right now."""
         return _flatten(self.signal.value, self.state)
+
+    def tick(self) -> None:
+        """One frame has passed.
+
+        **The clock a canvas has.**  `elapsed` is the sample clock's and
+        nothing fires it on this side, so a substrate that animates folds
+        over `events` — and `events` advances only here.  Without this the
+        picture changes for a hand on it and for nothing else, which is
+        what a substrate with no attachments looked like: still.
+
+        One `Tick` a frame, the same event `gui.run`'s window sends; the
+        rate is the view's, and a program that wants seconds divides by it.
+        """
+        react(self.reactive, [(self._input, _event_node(self.state, ("Tick",)))])
 
     def write(self, name: str, value) -> bool:
         """Put a number on a channel the program declared, by name.

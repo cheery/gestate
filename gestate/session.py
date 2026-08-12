@@ -766,6 +766,10 @@ class Session:
     #: `(when, token)` — the last look at the world outside the program,
     #: and when it was taken.  See `_outside`.
     _looked: object = None
+    #: The dialog in progress — `(verb, at, kind, query, looks)` — or
+    #: `None`.  Flushed into the log as one `ask` step when the command
+    #: it was collecting for runs.  See `_asked_about`.
+    _episode: object = None
     #: Every transition this session has made — see `_record`.
     log: object = None
     #: A template pasted and not yet kept — the name, or `None`.
@@ -1093,7 +1097,27 @@ class Session:
             return self._answered[1]
         found = self._choices()
         self._answered = (question, found)
+        self._note_look()
         return found
+
+    def _note_look(self) -> None:
+        """Count one working-out of the list, for the transcript.
+
+        **Here and not in the `wants` gesture**, because this is the one
+        place that sees every question actually answered — the window
+        asks, the model re-asks itself when a directory is stepped into,
+        and the world changing re-lists under an untouched query.  All
+        three are looks, and a count taken at the wire would miss two of
+        them.
+
+        A new verb starts a new dialog: the arguments of one command are
+        one episode, however many boxes it takes to fill them.
+        """
+        verb, at, query = self.asking
+        kind = self._asking_kind()
+        looks = self._episode[4] + 1 \
+            if self._episode is not None and self._episode[0] == verb else 1
+        self._episode = (verb, at, kind, query, looks)
 
     #: How often a question may look outside the program again.
     #:
@@ -1351,7 +1375,49 @@ class Session:
         # Typing since the last step, before the step it led to — the
         # order a person did them in.
         self.log.typed(self._lines())
+        self._asked_about(verb)
         self.log.add(verb, args, said)
+
+    def _asked_about(self, verb: str) -> None:
+        """Put the dialog that collected this command into the log.
+
+        **One step for the whole dialog, not one per keystroke.**  A
+        `wants` gesture arrives on every character typed into the
+        palette, and recorded as they come they would be five steps a
+        second — the `KEEP` window is four thousand, so a dialog-heavy
+        sitting would push the run-up to the bug off the top of the very
+        transcript that exists to hold it.  `Log.typed` already refused
+        this bargain for text and the argument is the same one: *a step
+        per character would bury the six things somebody actually did
+        under four hundred they did not think of as doing anything.*
+
+        So what is kept is the question as it stood when the command
+        ran, the digest of what was on offer then, and how many times
+        the list was worked out on the way — which is the shape a
+        reproduction needs and about fifty bytes.
+
+        **The last question, when a command takes several.**  Every
+        `Path` in `command.ges` is its command's last argument, so the
+        question worth keeping is the one still standing; an `Int` box
+        filled before it offers nothing a digest would say anything
+        about.
+        """
+        episode, self._episode = self._episode, None
+        if episode is None or episode[0] != verb or self._answered is None:
+            return
+        from .sessionlog import ASK, Bare, answer
+
+        _verb, at, kind, query, looks = episode
+        # `Bare` for the two that are not text: the command asked about
+        # and the type of the box.  `command.ges` writes `open` and
+        # `Path` unquoted and so does this.
+        self.log.add(ASK, (Bare(verb), at, Bare(kind), query),
+                     answer(self._answered[1]))
+        # The looks ride as a comment: they are for the person reading
+        # the transcript and must stay out of `said`, which is what a
+        # replay is diffed on — a replay does no typing, so a count in
+        # there would drift on every honest run.
+        self.log.steps[-1].shown = (f"{looks} look{'s' if looks != 1 else ''}",)
 
     def _lines(self) -> list:
         """The document, as lines, however cheaply the view can say.

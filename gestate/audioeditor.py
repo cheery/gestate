@@ -1001,6 +1001,17 @@ class Workbench:
         if self.substrate is not None:
             self.substrate.touch(kind, x, y)
 
+    def tick(self) -> None:
+        """A frame has passed, into the canvas.
+
+        **Not gated on the transport, the way `observe` is.**  A reading is
+        the instrument's and there is nothing to report when nothing plays;
+        a frame is the *view's*, and a canvas animates whether or not a
+        sound is running.
+        """
+        if self.substrate is not None:
+            self.substrate.tick()
+
     def picture(self) -> list:
         """What the canvas shows now, as shapes a view can draw."""
         return [] if self.substrate is None else self.substrate.picture()

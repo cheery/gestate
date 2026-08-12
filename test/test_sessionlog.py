@@ -18,8 +18,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from gestate.session import Detached, Session
-from gestate.sessionlog import Step, editing, read, replay
+from gestate.session import Detached, Session, act
+from gestate.sessionlog import (ASK, Step, editing, read, replay,
+                                world_dependent)
 
 
 class Bench:
@@ -265,3 +266,113 @@ def test_a_long_paste_is_shown_short(tmp_path):
     # But nothing is lost: it still replays exactly.
     from gestate.sessionlog import _apply
     assert _apply((), edit.args) == tuple(f"line {i}" for i in range(40))
+
+
+# ── The questions ───────────────────────────────────────────────────────────
+#
+# **`Session.run` was recorded and `Session.choices` was not**, and the
+# questions are where the defects have been: a dialog that offered the
+# wrong rows replayed as a session saying all the right sentences.  The
+# first bug a user of this editor reported lived exactly there — an open
+# dialog whose listing never refreshed — and no transcript could have
+# shown it.
+
+
+def _asked(tmp_path, queries, then=("open", "two.ges")):
+    """A session that opened a dialog, typed, and ran the command."""
+    room = tmp_path / "room"
+    room.mkdir(exist_ok=True)
+    for name in ("one.ges", "two.ges"):
+        (room / name).write_text("sound : Sig Float\n")
+    s = Session(bench=Bench(room / "one.ges"), view=Detached())
+    for query in queries:
+        act(s, f"wants\topen\t0\t{query}")
+        s.choices()
+    s.run(*then)
+    return s, room
+
+
+def test_a_dialog_is_one_step_however_much_was_typed(tmp_path):
+    """**The budget, and the reason the collapse exists.**
+
+    A `wants` gesture arrives on every character, so recorded as they
+    come a dialog is five steps a second — and `KEEP` is four thousand,
+    so a dialog-heavy sitting would push the run-up to the fault off the
+    top of the transcript that exists to hold it.  `Log.typed` refuses
+    the same bargain for text, in the same words.
+    """
+    s, _room = _asked(tmp_path, ("", "t", "tw", "two"))
+    asks = [step for step in s.log.steps if step.verb == ASK]
+    assert len(asks) == 1, "one dialog, one step"
+    assert asks[0].args == ("open", 0, "Path", "two"), "the query as it ended"
+    # How many times the list was worked out rides as a comment: it is
+    # for the reader, and must stay out of `said`, which a replay diffs.
+    assert asks[0].shown == ("4 looks",)
+    assert "look" not in asks[0].said
+
+
+def test_the_answer_is_a_digest_and_not_the_listing(tmp_path):
+    """40× cheaper, measured: `examples/audio` is 1.9 KB of rows against
+    48 bytes for the question and a digest.  The engine half settled
+    this — `spec/verification.md` keeps a hash of every rendered block."""
+    s, _room = _asked(tmp_path, ("",))
+    said = next(x for x in s.log.steps if x.verb == ASK).said
+    assert said.startswith("3 rows "), said       # `../`, one.ges, two.ges
+    assert len(said) < 40, "a listing would be a great deal longer"
+    assert "one.ges" not in said, "the names are hashed, not kept"
+
+
+def test_a_listing_that_moved_is_the_report(tmp_path):
+    """The point of recording the question at all: replay re-asks it,
+    and a different set of rows is a different digest."""
+    s, room = _asked(tmp_path, ("",))
+    steps = read(s.log.text())
+
+    (room / "arrived.ges").write_text("sound : Sig Float\n")
+    drifted = replay(Session(bench=Bench(room / "one.ges"),
+                             view=Detached()), steps)
+    moved = [step for step, _now in drifted if step.verb == ASK]
+    assert moved, "the directory changed and the replay did not notice"
+
+
+def test_the_same_directory_replays_to_the_same_digest(tmp_path):
+    """**And an empty report is the whole point.**  A question re-asked
+    against an unchanged directory must come back identical, or the
+    oracle cries wolf on every run and stops being read."""
+    s, room = _asked(tmp_path, ("",))
+    steps = read(s.log.text())
+    drifted = replay(Session(bench=Bench(room / "one.ges"),
+                             view=Detached()), steps)
+    assert [x for x, _n in drifted if x.verb == ASK] == []
+
+
+def test_a_question_about_the_world_is_marked_as_one(tmp_path):
+    """**The difference between a report somebody reads and one they
+    learn to ignore.**  A `Path` answer is about the filesystem and the
+    filesystem is allowed to move; a template or a symbol is a function
+    of the program and must not.  The kind is recorded so the rule can
+    be applied without a list of verbs kept anywhere."""
+    s, _room = _asked(tmp_path, ("",))
+    ask = next(x for x in s.log.steps if x.verb == ASK)
+    assert world_dependent(ask)
+
+    other = Session(bench=Bench(_room / "one.ges"), view=Detached())
+    act(other, "wants\ttemplate\t0\t")
+    other.choices()
+    other.run("template", "knob")
+    picked = next(x for x in other.log.steps if x.verb == ASK)
+    assert picked.args[2] == "Template"
+    assert not world_dependent(picked), "the program owns this answer"
+
+
+def test_an_abandoned_dialog_leaves_no_step(tmp_path):
+    """A question opened and walked away from is not what anybody is
+    reproducing, and a step for it would be a step spent."""
+    room = tmp_path / "room"
+    room.mkdir(exist_ok=True)
+    (room / "one.ges").write_text("sound : Sig Float\n")
+    s = Session(bench=Bench(room / "one.ges"), view=Detached())
+    act(s, "wants\topen\t0\t")
+    s.choices()
+    s.run("seek", 8)                     # something else entirely
+    assert [x.verb for x in s.log.steps] == ["seek"]

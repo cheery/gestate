@@ -1627,3 +1627,78 @@ def test_the_python_driver_never_restarts(tmp_path):
     assert bench.host is None
     bench.restart("whatever")             # returns, says nothing, does nothing
     assert not any("restarting" in m for m in bench.messages)
+
+
+# ── The canvas gets a frame ─────────────────────────────────────────────────
+#
+# `spec/substrate.md`'s canvas is *interpreted, at frame rate*, and the rate
+# is the view's — so something outside the program has to say a frame passed
+# and say what the instrument is doing.  When `audiopygame.py` was deleted
+# its loop went with it, and the replacement in `workbench.py` picked up
+# neither call: `Workbench.observe` had no caller anywhere in the tree, so
+# `peak`, `rms`, `position` and the bands stayed at their defaults and every
+# meter in `examples/audio` was frozen; and nothing had ever ticked `events`,
+# so a substrate written to animate could not.
+#
+# Neither was a broken function — both functions were fine.  That is why
+# these tests run a *frame* rather than a method: `Substrate.tick` passing
+# while nobody calls it is exactly the hole the editor fell through.
+
+#: A canvas that folds over `events` and nothing else — the animation case,
+#: with no sound, no channel and no hand on it.  If a frame reaches the
+#: program at all, this moves.
+TICKING = """substrate : Sig Sub
+substrate = moveXY (!floor frames) 10 (rect 4 4 (!RGB 200 200 200))
+
+frames : Sig Float
+frames = scan (n e => n + 1.0) 0.0 events
+"""
+
+
+def test_a_frame_reaches_a_canvas_that_folds_over_events(tmp_path):
+    """The loop's canvas branch, without a window.
+
+    Run through `_canvas_frame` — what the loop actually calls — rather
+    than through `Substrate.tick`, because the defect was the call and not
+    the method.
+    """
+    from gestate.workbench import _canvas_frame
+
+    path = tmp_path / "ticking.ges"
+    path.write_text(TICKING)
+    bench = Workbench(path, rate=8000, block=64)
+    bench._load_substrate(TICKING)
+    assert bench.substrate is not None, "the canvas did not build"
+
+    seen = [tuple(_canvas_frame(bench)[0][:3]) for _ in range(4)]
+    assert len(set(seen)) == 4, f"the canvas never moved: {seen}"
+    # Left to right, one step a frame — the fold is counting frames, so a
+    # picture that merely *differs* is not enough.
+    xs = [s[1] for s in seen]
+    assert xs == sorted(xs) and xs[-1] > xs[0], xs
+
+
+def test_a_frame_carries_the_instrument_into_the_canvas(tmp_path):
+    """`observe` is half of a frame, and the half that had no caller.
+
+    A stub, because the readings come from a `transport` that a headless
+    test has no reason to build — what is under test is that a frame asks
+    for them at all, and asks before it draws.
+    """
+    from gestate.workbench import _canvas_frame
+
+    called = []
+
+    class Stub:
+        def observe(self):
+            called.append("observe")
+
+        def tick(self):
+            called.append("tick")
+
+        def picture(self):
+            called.append("picture")
+            return []
+
+    _canvas_frame(Stub())
+    assert called == ["observe", "tick", "picture"], called

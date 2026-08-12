@@ -59,6 +59,80 @@ SAID = "#="
 #: editor never offers it.
 EDIT = "edit"
 
+#: The step that stands for a question the editor asked.
+#:
+#: **The verbs were recorded and the questions were not**, and the
+#: questions are where the defects have been.  `Session.run` is one
+#: choke point and everything through it was kept; `Session.choices` is
+#: the other and nothing through it was, so a dialog that offered the
+#: wrong rows replayed as a session that said all the right sentences.
+#: The first bug a user of this editor reported lived exactly there.
+#:
+#: Same rule as `edit`: not in `command.ges`, because nobody picks
+#: "ask" out of a palette.
+ASK = "ask"
+
+#: The argument types whose answer is about the **world** and not about
+#: the program in the window.
+#:
+#: A directory can change under a dialog and a MIDI socket can be
+#: unplugged, so a replay of one of these is expected to drift — the
+#: world moved, and it moving is not the build misbehaving.  Everything
+#: else — `what`'s names, the templates, the symbols — is a function of
+#: the text being edited and must come back identical.
+#:
+#: **The distinction is the difference between a report somebody reads
+#: and one they learn to ignore.**  Without it a replay returns "these
+#: eleven things drifted" on any machine whose `examples/` has gained a
+#: file, and the eleventh, which mattered, is read as noise like the
+#: other ten.
+OUTSIDE = ("Path", "Device")
+
+
+def digest(rows) -> str:
+    """What was on offer, in sixteen characters.
+
+    **Hashed rather than kept, which is the whole budget.**  A listing
+    of `examples/audio` is 63 rows and about 1.9 KB written out, against
+    48 bytes for the question and this — forty to one, and a transcript
+    is held in memory for the length of a session.  The engine half
+    already settled this argument: `spec/verification.md` records "a
+    hash of every rendered block", and hashing is what makes an oracle
+    total instead of a handful of spot checks.
+
+    **The names, and only the names.**  A row also carries what it is —
+    a size for a file, `listening` for a port — and folding that in
+    would move the digest every time a file being written grew a
+    kilobyte, which is a question nobody asked.  What was offered is the
+    names.
+    """
+    import hashlib
+
+    joined = "|".join(str(row[0]) for row in rows)
+    return hashlib.blake2b(joined.encode("utf-8", "replace"),
+                           digest_size=8).hexdigest()
+
+
+def answer(rows) -> str:
+    """`63 rows 4f2a1b2c3d4e5f60` — an ask step's `said`.
+
+    The count is for the person reading the transcript, who wants to
+    know whether the list was empty without running anything; the digest
+    is for the diff.
+    """
+    n = len(rows)
+    return f"{n} row{'s' if n != 1 else ''} {digest(rows)}"
+
+
+def world_dependent(step) -> bool:
+    """Is this a question whose answer the world can move?
+
+    The recorded kind decides, rather than a list of verbs kept here: a
+    command that grows a `Path` argument tomorrow is classified by the
+    same rule with nothing edited.
+    """
+    return step.verb == ASK and len(step.args) > 2 and step.args[2] in OUTSIDE
+
 
 @dataclass
 class Step:
@@ -222,13 +296,33 @@ def _shown(before, after) -> tuple:
     return tuple(out)
 
 
+class Bare(str):
+    """A word that is written **unquoted**, because it is not text.
+
+    `set "cutoff" 70` quotes its first argument and is right to: a
+    parameter is a `Named a`, and `command.ges` carries a name as
+    `Text`.  But an `ask` step names a *command* and a *type* — `open`
+    is `open : Path -> Command` and `Path` is a type — and gestate
+    writes neither in quotes.  Spelled `ask "open" 0 "Path" "drums"` the
+    line parses, replays, and quietly says the wrong thing about the
+    language it is written in; spelled `ask open 0 Path "drums"` every
+    token means in the transcript what it means in `command.ges`.
+
+    A `str` at every other moment, so nothing downstream has to know:
+    `read` hands back plain strings and the comparisons still hold.
+    """
+
+
 def _literal(value) -> str:
     """One argument, as it would be typed.
 
     Text is quoted and numbers are not, which is the only distinction
     the reader back out has to make — and it makes it the same way,
-    below.
+    below.  `Bare` is the third case and costs the reader nothing: an
+    unquoted word already reads back as itself.
     """
+    if isinstance(value, Bare):
+        return str(value)
     if isinstance(value, bool):
         return "1" if value else "0"
     if isinstance(value, (int, float)):
@@ -335,10 +429,45 @@ def replay(session, steps, typing=None) -> list:
             if typing is not None:
                 typing.retype(_apply(tuple(typing.lines()), step.args))
             continue
+        if step.verb == ASK:
+            now = _reask(session, step)
+            if step.said and now != step.said:
+                drifted.append((step, now))
+            continue
         now = session.run(step.verb, *step.args)
         if step.said and now != step.said:
             drifted.append((step, now))
     return drifted
+
+
+def _reask(session, step) -> str:
+    """Ask the recorded question again and describe what comes back.
+
+    **The question is put back, not the answer.**  A transcript keeps a
+    digest, so the only way to compare is to make the editor work the
+    listing out a second time — which is the same shape as replaying a
+    command and reading its sentence, and is why a question could be
+    recorded as a step at all.
+
+    The dialog is left closed afterwards.  A replay that finished with a
+    question still open would hand the next step an editor mid-sentence,
+    and the steps after a dialog are exactly the ones a reproduction is
+    usually about.
+    """
+    verb, at = step.args[0], step.args[1]
+    query = step.args[3] if len(step.args) > 3 else ""
+    was = session.asking
+    try:
+        session.asking = (str(verb), int(at), str(query))
+        return answer(session.choices())
+    except Exception as exc:                             # noqa: BLE001
+        # A question this build no longer understands is one step lost,
+        # not a refused transcript — `read` keeps that rule and so does
+        # this, for the same reason: what must not happen is losing the
+        # reproduction.
+        return f"could not ask: {exc}"
+    finally:
+        session.asking = was
 
 
 class Typing:
@@ -415,12 +544,30 @@ def main(argv=None) -> int:
     typing = Typing(Path(against).read_text(), under=Detached())
     drifted = replay(Session(bench=bench, view=typing), steps, typing)
     print(f"{len(steps)} steps replayed against {against}")
-    for step, now in drifted:
-        print(f"  {step.verb} {' '.join(map(str, step.args))}\n"
-              f"      was: {step.said}\n      now: {now}")
+
+    # **Two reports, because they are two different pieces of news.**  A
+    # `Path` question re-asked on a machine whose directory has gained a
+    # file *must* drift, and printing that beside a real one teaches the
+    # reader to skim both.  The exit code follows the same split: a
+    # replay whose only movement is the world's is a replay that agreed.
+    def _say(pairs):
+        for step, now in pairs:
+            print(f"  {step.verb} {' '.join(map(str, step.args))}\n"
+                  f"      was: {step.said}\n      now: {now}")
+
+    moved = [p for p in drifted if not world_dependent(p[0])]
+    outside = [p for p in drifted if world_dependent(p[0])]
+    if moved:
+        _say(moved)
+    if outside:
+        print(f"and {len(outside)} question(s) about the world outside "
+              f"the program, which the world is allowed to have moved:")
+        _say(outside)
     if not drifted:
         print("every answer is the one it gave before")
-    return 1 if drifted else 0
+    elif not moved:
+        print("every answer the program owns is the one it gave before")
+    return 1 if moved else 0
 
 
 if __name__ == "__main__":
