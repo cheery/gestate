@@ -11,7 +11,7 @@ Every name the standard library defines, with the signature and the prose the li
 | you are writing | you run | in scope |
 |---|---|---|
 | plain code | `typecheck` | Prelude |
-| a synth | `audioeditor`, `audioperform` | Prelude, Signals, Audio, Synthesis |
+| a synth | `workbench`, `audioperform` | Prelude, Signals, Audio, Synthesis |
 | a synth with a piece | `audioperform` | …and Music |
 | a piece for MIDI | `midi` | Prelude, Music |
 | a canvas | `gui`, the editor's canvas tab | Prelude, Signals, Canvas |
@@ -52,10 +52,12 @@ Optional, and recognised wherever they make sense:
 - **[The language](language.md)** — the forms the compiler provides: `chan`, `wait`, `:::`, `delay`, `gfix`, `!`.  Declared by no library, and so missing from every page below.
 - **[Prelude](prelude.md)** — Always in scope, in every program and every backend.
 - **[Signals](signal.md)** — Any reactive backend — a synth or a canvas.
-- **[Audio](audio.md)** — Synths: `audioperform`, `audioeditor`, `audio`.
+- **[Audio](audio.md)** — Synths: `audioperform` and the `workbench`.
 - **[Synthesis](synth.md)** — Synths, beside `audio.ges`. Oscillators, envelopes, filters, FM.
 - **[Music](music.md)** — Programs with a `score` — the MIDI backend and performances.
 - **[Canvas](gui.md)** — Programs with a `substrate` — `gui`, and the editor's canvas tab.
+
+- **[Commands](commands.md)** — What the editor can be asked to do — the list `Ctrl-K` opens.  Not in scope in a program.  Generated from `gestate/command.ges`, which is the same file the editor's own `Ctrl-K` list is derived from — so the page and the palette cannot disagree.
 
 ## Asking the compiler instead
 

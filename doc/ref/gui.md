@@ -10,7 +10,7 @@ Everything below `gui.ges`'s **`internal`** marker is listed at the end, under [
 
 ## Index
 
-[`blank`](#blank)  [`circle`](#circle)  [`Colour`](#colour)  [`colour`](#colour)  [`column`](#column)  [`Event`](#event)  [`events`](#events)  [`gap`](#gap)  [`input`](#input)  [`label`](#label)  [`moveXY`](#movexy)  [`Num (Sig Int)`](#num-sig-int)  [`onTouchX`](#ontouchx)  [`onTouchY`](#ontouchy)  [`over`](#over)  [`pad`](#pad)  [`rect`](#rect)  [`row`](#row)  [`sized`](#sized)  [`Sub`](#sub)
+[`blank`](#blank)  [`circle`](#circle)  [`Colour`](#colour)  [`colour`](#colour-1)  [`column`](#column)  [`Event`](#event)  [`events`](#events)  [`gap`](#gap)  [`input`](#input)  [`label`](#label)  [`moveXY`](#movexy)  [`Num (Sig Int)`](#num-sig-int)  [`onTouchX`](#ontouchx)  [`onTouchY`](#ontouchy)  [`over`](#over)  [`pad`](#pad)  [`rect`](#rect)  [`row`](#row)  [`sized`](#sized)  [`Sub`](#sub)
 
 
 ## What can be drawn
@@ -98,7 +98,7 @@ a value to show at the first instant.
 ## Colour
 
 
-### `colour`
+### `colour` <a id="colour-1"></a>
 
 ```
 colour : Sig Int -> Sig Int -> Sig Int -> Sig Colour

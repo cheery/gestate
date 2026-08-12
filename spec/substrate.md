@@ -29,17 +29,25 @@ where a dragged object's position lives.
 
 Two windows is two focus rings, two places for the keyboard to go, and a
 running instrument whose picture is somewhere else.  The proposal is a
-tabbed view — the editor on one tab, the substrate behind it, `Esc` between
-them — in `pygame`, because the substrate is drawing and `tkinter` is not
-for drawing.
+tabbed view — the editor on one tab, the substrate behind it, one key
+between them — in a toolkit that draws, because the substrate is drawing
+and `tkinter` is not for drawing.
+
+**This is what was built, and the toolkit named in the drafts below is
+not the one that survived.**  The window is `shell/editor`, in Rust,
+reached by `python -m gestate.workbench`; `canvas` and `source` are two
+commands on `Ctrl-Tab`.  The tabbed view is the part that was right, and
+it outlived two views underneath it — which is the argument of the next
+paragraph, collecting.
 
 **The rewrite is a view, not a rewrite.**  `audioeditor.Workbench` imports
 no toolkit: it owns the instrument, the rebuild thread, the knob values,
-the transport and the keyboard, and it has its own headless tests.
-`Editor` is a thin `tkinter` view over it.  A `pygame` view is a second
-view against the same object, and the two can exist at once while one grows
-up.  This is the reason to do it now rather than later: the seam is already
-there and was put there for this.
+the transport and the keyboard, and it has its own headless tests.  A
+second view is a second view against the same object, and the two can
+exist at once while one grows up.  This is the reason to do it now rather
+than later: the seam is already there and was put there for this.  It has
+since been used twice — once for the `pygame` view of S4, and once for
+`shell/editor`, which replaced both — and cost nothing either time.
 
 **Text editing is not the obstacle it looks like.**  `balanced.py` has a
 rope with `insert`, `erase`, `row` and `rowpos` — a document interface, in
@@ -381,10 +389,27 @@ placement failure does not, and a file with no canvas pays nothing.
 **S4 — the pygame view.**  **Done**, as a second view rather than a
 rewrite: `gestate/audiopygame.py`, with `Workbench` untouched.
 
-    python -m gestate.audiopygame examples/audio/polysine.ges
-    python -m gestate.audiopygame file.ges --plain      # no modes
-    python -m gestate.audiopygame file.ges --midi 1     # and a controller
-    python -m gestate.audiopygame --midi-ls             # what is plugged in
+> **Retired.**  `gestate/audiopygame.py` is gone, and so is the `tkinter`
+> view it argues against below; `shell/editor` replaced both, and
+> `spec/workbench.md` is why.  The section is kept because what it
+> records is *evidence* — a view was built, it was run, and running it
+> found things — and the findings outlived the view: the layout
+> arithmetic that a click and a draw must share, the rope bug, knobs
+> drawn rather than placed, a knob that appears when it is declared, and
+> `--fits` on `Tab`.  All five are in the editor that is here now.  What
+> did **not** survive is the modality: there is one mode, you are typing,
+> and everything else is a named command on a list.  Read what follows as
+> the argument that produced the current editor rather than as a
+> description of it.
+
+    python -m gestate.workbench examples/audio/polysine.ges
+    python -m gestate.workbench file.ges --midi         # and a controller
+
+The `--plain` switch went with the modes.  Nothing lists the MIDI inputs
+any more, because `--midi-ls` was a flag you had to know about to use:
+`resolve_port` takes an index or a substring, and naming one that matches
+nothing or matches twice prints the numbered list in the refusal — at the
+moment you are asking, which is the only moment anyone wanted it.
 
 `Document` is text and a cursor over `balanced.py`'s rope — `insert`,
 `erase`, `row` and `rowpos` were already written and already tested, which

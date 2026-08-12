@@ -8,6 +8,7 @@ behind: that is the whole guarantee, and it is four lines.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from gestate.reference import Entry, entries_of, generate, render, stale
@@ -114,6 +115,96 @@ def test_operators_get_distinct_anchors():
     page = render("M", "w", "m.ges",
                   entries_of("(|*) : Int -> Int\n(|/) : Int -> Int\n"))
     assert "`|*`" in page and "`|/`" in page
+
+
+def test_two_names_differing_only_in_case_do_not_share_an_anchor():
+    """A slug is lowercased, so `Colour` and `colour` wanted the same one.
+
+    Both index links landed on the type, which is the half of the page a
+    reader looking up the *function* is not after.  It was in three
+    library pages before `command.ges` — `Adsr`/`adsr`, `Fm`/`fm`,
+    `Show`/`Show ()` — and nothing here looked, because every earlier
+    test asked whether a name was *on* the page rather than whether the
+    link reached it.
+    """
+    page = render("M", "w", "m.ges",
+                  entries_of("Colour := RGB Int\n\n#: The function.\n"
+                             "colour : Int -> Colour\n"))
+    links = re.findall(r"\]\(#([\w-]+)\)", page)
+    assert len(links) == len(set(links)), links
+    # And the later heading carries the tag that makes its link work.
+    assert '<a id="colour-1"></a>' in page
+
+
+def test_no_generated_page_links_two_names_to_one_place():
+    """The same rule over the real pages, which is where it bit."""
+    for name, text in generate().items():
+        links = re.findall(r"\]\(#([\w-]+)\)", text)
+        duplicated = {a for a in links if links.count(a) > 1}
+        assert not duplicated, f"{name} links to {duplicated} more than once"
+
+
+# ── The commands ────────────────────────────────────────────────────────────
+#
+# `gestate/command.ges` is the editor's vocabulary and is written in the
+# shape a library is written in, so the same reader makes its page.  What
+# these hold is the join: that the page exists, that it is reachable, and
+# that the keys on it are the editor's own rather than a second table.
+
+
+def test_the_commands_get_a_page_of_their_own():
+    pages = generate()
+    assert "commands.md" in pages
+    page = pages["commands.md"]
+    for command in ("apply", "audition", "loop", "exportClap", "quit"):
+        assert f"### `{command}`" in page, command
+    assert "gestate/command.ges" in page
+
+
+def test_a_command_page_carries_the_key_the_editor_binds():
+    """**Not restated here.**  `spec/workbench.md`'s rule is that a key is
+    a shortcut *onto* a command; a page claiming one the editor does not
+    bind would be the second vocabulary the command list exists to
+    prevent.  So the page is checked against `session.KEYS` itself."""
+    from gestate.session import KEYS
+
+    page = generate()["commands.md"]
+    for command, chord in KEYS.items():
+        heading = f"### `{command}`"
+        assert heading in page, f"{command} has a key and no entry"
+        body = page.split(heading, 1)[1]
+        assert f"Key: **`{chord}`**" in body.split("###", 1)[0], command
+
+
+def test_every_command_the_palette_offers_is_on_the_page():
+    """The page is textual and the palette is parsed, and they must agree.
+
+    Two readings of one file is the whole claim — `vocabulary()` runs the
+    front end over `command.ges` and this page runs a regex over it, so a
+    verb the editor offers and the page omits would mean the shapes have
+    drifted apart.
+    """
+    from gestate.session import vocabulary
+
+    page = generate()["commands.md"]
+    for verb in vocabulary():
+        assert f"### `{verb.name}`" in page, verb.name
+
+
+def test_the_index_points_at_the_commands():
+    assert "commands.md" in generate()["index.md"], "nothing points at it"
+
+
+def test_the_commands_are_not_in_the_name_search():
+    """**Deliberately out of `all_entries`.**  That list answers "what does
+    this name in the program mean", and `set`, `loop`, `find` and `open`
+    are all commands *and* plausible declarations — `what` over one should
+    answer about the declaration, not about the editor.
+    """
+    from gestate.reference import all_entries
+
+    libraries = {e.library for e in all_entries()}
+    assert "Commands" not in libraries
 
 
 # ── The real libraries ──────────────────────────────────────────────────────

@@ -10,7 +10,7 @@ Everything below `synth.ges`'s **`internal`** marker is listed at the end, under
 
 ## Index
 
-[`Adsr`](#adsr)  [`adsr`](#adsr)  [`adsrOf`](#adsrof)  [`allpass`](#allpass)  [`bandpassSvf`](#bandpasssvf)  [`bipolar`](#bipolar)  [`blue`](#blue)  [`brickRaw`](#brickraw)  [`brickwall`](#brickwall)  [`brown`](#brown)  [`centsHz`](#centshz)  [`chorus`](#chorus)  [`Clip (Sig Stereo)`](#clip-sig-stereo)  [`Clip Stereo`](#clip-stereo)  [`comb`](#comb)  [`Comp`](#comp)  [`compress`](#compress)  [`damped`](#damped)  [`dbGain`](#dbgain)  [`dcBlock`](#dcblock)  [`drive`](#drive)  [`driveOf`](#driveof)  [`dust`](#dust)  [`echo`](#echo)  [`flanger`](#flanger)  [`Floating (Sig Stereo)`](#floating-sig-stereo)  [`Floating Stereo`](#floating-stereo)  [`fm`](#fm)  [`fmBell`](#fmbell)  [`fmFeedback`](#fmfeedback)  [`fmStack`](#fmstack)  [`follow`](#follow)  [`gateOn`](#gateon)  [`highpassOnePole`](#highpassonepole)  [`highpassSvf`](#highpasssvf)  [`keyHz`](#keyhz)  [`limit`](#limit)  [`lowpassLadder`](#lowpassladder)  [`lowpassOnePole`](#lowpassonepole)  [`lowpassSvf`](#lowpasssvf)  [`Matrix`](#matrix)  [`modulates`](#modulates)  [`monoOf`](#monoof)  [`notchSvf`](#notchsvf)  [`noWiring`](#nowiring)  [`Num (Sig Stereo)`](#num-sig-stereo)  [`Num Stereo`](#num-stereo)  [`nyquist`](#nyquist)  [`onset`](#onset)  [`pair`](#pair)  [`pan`](#pan)  [`panOf`](#panof)  [`Patch`](#patch)  [`perc`](#perc)  [`percOf`](#percof)  [`phase`](#phase)  [`pink`](#pink)  [`pm`](#pm)  [`pmSelf`](#pmself)  [`pulse`](#pulse)  [`pulseOf`](#pulseof)  [`Quad`](#quad)  [`resonate`](#resonate)  [`reverb`](#reverb)  [`saw`](#saw)  [`secondsSince`](#secondssince)  [`Seed`](#seed)  [`sine`](#sine)  [`slew`](#slew)  [`softClip`](#softclip)  [`square`](#square)  [`Stereo`](#stereo)  [`string`](#string)  [`triangle`](#triangle)  [`unipolar`](#unipolar)  [`violet`](#violet)  [`white`](#white)  [`widen`](#widen)  [`widenOf`](#widenof)  [`Wrap (Sig Stereo)`](#wrap-sig-stereo)  [`Wrap Stereo`](#wrap-stereo)  [`wrapFold`](#wrapfold)
+[`Adsr`](#adsr)  [`adsr`](#adsr-1)  [`adsrOf`](#adsrof)  [`allpass`](#allpass)  [`bandpassSvf`](#bandpasssvf)  [`bipolar`](#bipolar)  [`blue`](#blue)  [`brickRaw`](#brickraw)  [`brickwall`](#brickwall)  [`brown`](#brown)  [`centsHz`](#centshz)  [`chorus`](#chorus)  [`Clip (Sig Stereo)`](#clip-sig-stereo)  [`Clip Stereo`](#clip-stereo)  [`comb`](#comb)  [`Comp`](#comp)  [`compress`](#compress)  [`damped`](#damped)  [`dbGain`](#dbgain)  [`dcBlock`](#dcblock)  [`drive`](#drive)  [`driveOf`](#driveof)  [`dust`](#dust)  [`echo`](#echo)  [`flanger`](#flanger)  [`Floating (Sig Stereo)`](#floating-sig-stereo)  [`Floating Stereo`](#floating-stereo)  [`fm`](#fm)  [`fmBell`](#fmbell)  [`fmFeedback`](#fmfeedback)  [`fmStack`](#fmstack)  [`follow`](#follow)  [`gateOn`](#gateon)  [`highpassOnePole`](#highpassonepole)  [`highpassSvf`](#highpasssvf)  [`keyHz`](#keyhz)  [`limit`](#limit)  [`lowpassLadder`](#lowpassladder)  [`lowpassOnePole`](#lowpassonepole)  [`lowpassSvf`](#lowpasssvf)  [`Matrix`](#matrix)  [`modulates`](#modulates)  [`monoOf`](#monoof)  [`notchSvf`](#notchsvf)  [`noWiring`](#nowiring)  [`Num (Sig Stereo)`](#num-sig-stereo)  [`Num Stereo`](#num-stereo)  [`nyquist`](#nyquist)  [`onset`](#onset)  [`pair`](#pair)  [`pan`](#pan)  [`panOf`](#panof)  [`Patch`](#patch)  [`perc`](#perc)  [`percOf`](#percof)  [`phase`](#phase)  [`pink`](#pink)  [`pm`](#pm)  [`pmSelf`](#pmself)  [`pulse`](#pulse)  [`pulseOf`](#pulseof)  [`Quad`](#quad)  [`resonate`](#resonate)  [`reverb`](#reverb)  [`saw`](#saw)  [`secondsSince`](#secondssince)  [`Seed`](#seed)  [`sine`](#sine)  [`slew`](#slew)  [`softClip`](#softclip)  [`square`](#square)  [`Stereo`](#stereo)  [`string`](#string)  [`triangle`](#triangle)  [`unipolar`](#unipolar)  [`violet`](#violet)  [`white`](#white)  [`widen`](#widen)  [`widenOf`](#widenof)  [`Wrap (Sig Stereo)`](#wrap-sig-stereo)  [`Wrap Stereo`](#wrap-stereo)  [`wrapFold`](#wrapfold)
 
 
 ## Small arithmetic
@@ -316,7 +316,7 @@ wants, which does not sustain and does not care when the key came up.
 The rate is how many e-foldings a second.  `perc` is its signal form.
 
 
-### `adsr`
+### `adsr` <a id="adsr-1"></a>
 
 ```
 adsr : Adsr -> Sig Gate -> Sig Float
@@ -1367,7 +1367,7 @@ dustOf : Float -> Rng -> Float
 ### Colouring noise
 
 
-#### `Pink`  <sub>data</sub>
+#### `Pink`  <sub>data</sub> <a id="pink-1"></a>
 
 ```
 Pink := Pink Float Float Float
@@ -1551,7 +1551,7 @@ One instant of `gateOn`'s fold arriving: which sample it is, and
 whether the condition holds there.
 
 
-#### `gateEdge`
+#### `gateEdge` <a id="gateedge-1"></a>
 
 ```
 gateEdge : Gate -> GateEdge -> Gate
@@ -2168,7 +2168,7 @@ panAngle : Float -> Float -> Stereo
 ### FM
 
 
-#### `Drive`  <sub>data</sub>
+#### `Drive`  <sub>data</sub> <a id="drive-1"></a>
 
 ```
 Drive := Drive Float Quad
@@ -2180,7 +2180,7 @@ the flat shape the engine lays out — the same reason `SvfIn` is one, and
 it lives down here for the same reason too.
 
 
-#### `Fm`  <sub>data</sub>
+#### `Fm`  <sub>data</sub> <a id="fm-1"></a>
 
 ```
 Fm := Fm Quad Quad

@@ -1,6 +1,6 @@
 # Audio
 
-*Synths: `audioperform`, `audioeditor`, `audio`.*
+*Synths: `audioperform` and the `workbench`.*
 
 Source: `gestate/audio.ges` — 22 public, 8 internal.
 

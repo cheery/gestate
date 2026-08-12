@@ -61,11 +61,23 @@ Two modes, one format:
   A bug found by playing is *captured by having been played* — the
   transcript is the reproduction, checked in beside the fix the way a
   `.samples` golden is.
-* **Replay**: `python -m gestate.replay session.jsonl` re-drives the
-  same boundary with no UI, no clock and no sound card, and emits the
-  things worth diffing: a hash of every rendered block, the `State`
-  snapshot after every edit, and the graph shape after every
-  assembly.  Committed, those are goldens for the half that had none.
+* **Replay**: re-drive the same boundary with no UI, no clock and no
+  sound card, and emit the things worth diffing: a hash of every
+  rendered block, the `State` snapshot after every edit, and the graph
+  shape after every assembly.  Committed, those are goldens for the
+  half that had none.
+
+  The editor's half of this landed as **`gestate/sessionlog.py`**, and
+  the shape it took is worth the correction: a session is a list of
+  *commands*, so the recording is the names that went in and the
+  sentences that came out, and what a replay diffs is the sentences.
+
+      python -m gestate.sessionlog session.ges [--against file.ges]
+
+  Cheaper than the JSONL sketched above and it needed no instrument —
+  `Session.run` is one choke point and every command already answered
+  in words. The block-hash oracle described here is still the right
+  thing for the *engine* boundary and is still unbuilt there.
 
 Silence was the failure mode, so the replay's output is deliberately
 *total*: every block hashed, not spot checks.  A transport that drops

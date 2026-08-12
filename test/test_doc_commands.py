@@ -42,8 +42,19 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 
 #: Every file that tells somebody what to type.
-DOCS = sorted(ROOT.glob("doc/*.md")) + [ROOT / "README.md",
-                                        ROOT / "examples" / "README.md"]
+#:
+#: **`spec/` is in here, and was not.**  The specs are where a stage
+#: announces itself — "**Built**", then the line you type — and being
+#: read by their author rather than by a beginner is exactly why nobody
+#: notices when the line stops working.  `spec/liveaudio.md` went on
+#: offering `gestate.audioeditor` for two commits after the door became
+#: `gestate.workbench`, and `spec/substrate.md` still taught
+#: `gestate.audiopygame` after that module was deleted outright.  The
+#: retirement note a spec keeps *around* a dead command is prose and is
+#: welcome; the command in it has to be one that runs.
+DOCS = (sorted(ROOT.glob("doc/*.md"))
+        + sorted(ROOT.glob("spec/*.md"))
+        + [ROOT / "README.md", ROOT / "examples" / "README.md"])
 
 #: `python -m gestate.NAME`, and the rest of the line for its arguments.
 _INVOCATION = re.compile(r"python -m (gestate\.[A-Za-z_][A-Za-z0-9_]*)(.*)")

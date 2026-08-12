@@ -12,7 +12,7 @@ possibly the same person, later — does not have to re-derive any of it.
 **All six stages are built. A gestate synth can be heard, and edited while
 it sounds, in a window.**
 
-    python -m gestate.audioeditor examples/audio/knob.ges
+    python -m gestate.workbench examples/audio/knob.ges
 
 The golden buffers, the fragment and its checker, graph extraction, block
 rendering, LLVM code generation, a driver that plays the result out of a
@@ -33,7 +33,9 @@ and what it found.
     gestate/audioengine.py   runs a graph; render_block
     gestate/audiollvm.py     the graph becomes LLVM IR
     gestate/audiolive.py     …reaches a sound card, and reloads on edit
-    gestate/audioeditor.py   a window to edit it in while it plays
+    gestate/audioeditor.py   the instrument, the rebuild, the transport
+    gestate/workbench.py     the door — that model, and a window on it
+    shell/editor             the window itself, in Rust
 
 See `fixme.md` F88, F90 and F91 for how the audio backend came about.
 
@@ -408,9 +410,9 @@ that both sides call the **same** `sin`. See open question 2.)*
 
 **Each file carries the settings it was made at** — rate, duration, count,
 in its own header — so the test re-renders at those and regenerating cannot
-quietly move them. `python -m gestate.audio examples/audio/drums.ges
---golden` reads them back out of the file it is about to overwrite; only the
-numbers can change.
+quietly move them. `python -m gestate.audioperform examples/audio/drums.ges
+--oracle --golden` reads them back out of the file it is about to
+overwrite; only the numbers can change.
 
 **The windows are short and chosen, not arbitrary.** `blip` is 600 samples
 at 2 kHz, which is longer than one note at `speed = 4` and therefore
@@ -711,7 +713,7 @@ narrowing has not bitten and is not checked; that remains the open hazard.
 
 `gestate/audiolive.py`. **A synth written in gestate now plays.**
 
-    python -m gestate.audiolive examples/audio/drums.ges --seconds 5
+    python -m gestate.audioperform examples/audio/drums.ges --seconds 5
 
 **Python is not in the audio path**, which is the architecture's one rule
 made concrete. The driver makes exactly one call per block —
@@ -786,12 +788,17 @@ do matter along with this one.
 **Deliverable.** Recompile a changed source, extract a new graph, hand it to
 the running engine.
 
-    python -m gestate.audiolive examples/audio/blip.ges --watch
+    python -m gestate.workbench examples/audio/blip.ges
 
-Edit the file in any editor, save, and the sound changes without stopping.
+Edit and apply, and the sound changes without stopping.
 `audioengine.migrate` is the state carry, `audiolive.Live` is the running
-instrument, `audiolive.SourceWatcher` notices the save;
+instrument, `audiolive.SourceWatcher` notices a save;
 `test/test_liveupdate.py` is the evidence.
+
+*(The door was `audiolive --watch`, an external editor and a file
+watcher, and stage 6 absorbed it: the editor applies what it just saved
+and knows it saved it, so nothing has to notice. The three pieces named
+above are the same three pieces — only the flag went.)*
 
 Compilation is linear (`fixme.md` F78) and a synth is a small program, so
 this is milliseconds — the loop is genuinely interactive.
@@ -902,63 +909,76 @@ asking the host where the glyphs went.
 Nothing about this stage needs a faster evaluator. It runs at 1,300 fps of
 headroom today.
 
-**Built**: `gestate/audioeditor.py`.
+**Built**: `gestate/audioeditor.py`, and the door is `gestate/workbench.py`.
 
-    python -m gestate.audioeditor examples/audio/knob.ges
+    python -m gestate.workbench examples/audio/knob.ges
 
 A window with the synth in it, playing. Edit, Ctrl-S, and the sound changes
-without stopping; a broken edit is reported in the status line and the
-instrument plays on. The slider drives the control-rate parameter, so
-`examples/audio/knob.ges` is a tone you can bend with the mouse while
-rewriting the code underneath it — which is what this whole document was
-for.
+without stopping; a broken edit is reported and the instrument plays on. A
+knob drives the control-rate parameter, so `examples/audio/knob.ges` is a
+tone you can bend while rewriting the code underneath it — which is what
+this whole document was for.
 
 **Two halves, and the split is the point.** `Workbench` owns the playing
-instrument, the rebuild worker and the knob, imports no toolkit, and is
-what the tests drive. `Editor` is a `tkinter` view: a text widget, a
-line-number gutter, a status line, a slider. Everything that can go quietly
-wrong lives in the tested half.
+instrument, the rebuild worker, the transport and the parameters, imports
+no toolkit, and is what the tests drive. The view is somebody else's
+problem. Everything that can go quietly wrong lives in the tested half.
+
+**The view named here has been replaced once, and the split is why that
+cost nothing.** What this section described was `Editor`, a 640-line
+`tkinter` text widget, gutter, knob column and status line living below
+`Workbench` in the same file; it is gone, and `shell/editor` — a Rust
+window, reached through `gestate/workbench.py` — does all four. Not one
+line of the model changed. `spec/workbench.md` is that rewrite's document
+and records why it was written at all; the paragraphs below are kept as
+the stage-6 argument, and where they describe a *gesture* rather than a
+capability, `spec/workbench.md` is the current answer.
 
 ### What the environment does now
 
-    python -m gestate.audioeditor examples/audio/twoknobs.ges --midi
+    python -m gestate.workbench examples/audio/twoknobs.ges --midi
 
 A window with the source in it, playing, and **a knob beside every line
 that declares one** — placed by `audiospans`, not listed in a panel, which
 is what the placement was built for and what several control channels made
 worth having.
 
-    Ctrl-S       save and apply
+**There is one mode: you are typing.** Everything else is a command with a
+name, and `Ctrl-K` opens the list of them — which is the interface, and is
+`spec/workbench.md`'s answer to the question this stage never asked, namely
+how somebody who has not read the repository finds out what the editor can
+do. Keys are shortcuts *onto* commands, never a second vocabulary:
+
+    Ctrl-S       apply — save and apply
     Ctrl-Return  audition — apply *without* writing the file
-    right-click  MIDI learn on that knob; again to cancel
+    learn        bind the next controller that moves to this parameter
 
 **Audition is not a convenience.** Trying a filter coefficient you may not
 keep is the ordinary act in live coding, and an environment whose only verb
-is "save and apply" makes every experiment a commitment. The status line
-says which of the two happened, because the failure mode of having both is
-not knowing which one you did.
+is "save and apply" makes every experiment a commitment. The editor says
+which of the two happened, because the failure mode of having both is not
+knowing which one you did.
 
-**MIDI learn, because nobody knows their CC numbers.** Right-click a knob,
-move the control you mean, and they are bound; the same gesture cancels,
-which is the only part anyone has to remember. A controller already bound
-elsewhere is *taken*, not shared — one physical knob driving two parameters
-is never meant and is hard to notice afterwards. Bindings follow a
-parameter's **name** across a rebuild, since an edit renumbers nodes and a
-binding held by id would follow whatever node inherited the number.
+**MIDI learn, because nobody knows their CC numbers.** Ask for `learn` on a
+parameter, move the control you mean, and they are bound. A controller
+already bound elsewhere is *taken*, not shared — one physical knob driving
+two parameters is never meant and is hard to notice afterwards. Bindings
+follow a parameter's **name** across a rebuild, since an edit renumbers
+nodes and a binding held by id would follow whatever node inherited the
+number.
 
-The knob column uses `dlineinfo` — the same call the line-number gutter
-uses — and places nothing *into* the document: a widget embedded with
-`window_create` would become part of the text, so editing would move it and
-undo would delete it. A parameter whose declaration is scrolled off screen
-is hidden rather than parked at the edge; a knob that stays put while its
+The knob column places nothing *into* the document: a widget embedded in
+the text would become part of it, so editing would move the knob and undo
+would delete it. A parameter whose declaration is scrolled off screen is
+hidden rather than parked at the edge; a knob that stays put while its
 definition leaves has stopped meaning anything.
 
-**It is a scaffold, and what it is a scaffold *for* changed.** It was
-written as a placeholder for an editor whose document is a `Sig` and whose
-keystrokes are gestate values, driven by `gui.py` like any other GUI
-program. That editor is no longer wanted; see below. What the split still
-buys is the same thing it always did — `Editor` is replaceable without
-touching anything that can go quietly wrong.
+**It was a scaffold, and what it was a scaffold *for* changed twice.** It
+was written as a placeholder for an editor whose document is a `Sig` and
+whose keystrokes are gestate values, driven by `gui.py` like any other GUI
+program. That editor is no longer wanted; see below. What the split bought
+instead is the replacement that did happen — a view swapped out entirely
+without touching anything that can go quietly wrong.
 
 
 ### Why the editor is not written in gestate
@@ -1016,7 +1036,10 @@ that.
 building ahead of the environment: a knob is only useful beside the line
 that declares it, and nothing joined a graph node to a source position.
 
-    python -m gestate.audiospans examples/audio/knob.ges --source
+`audiospans.placed` and `audiospans.in_source` are the join, and they are
+a library: the CLI that printed the table for `examples/audio/knob.ges`
+is retired, because the editor now places every knob from that same table
+while the synth plays, which is what the table was for.
 
 The join is not a lookup, for two reasons. `Node.origin` is a *path* of
 definitions and mostly names code the author did not write — a node

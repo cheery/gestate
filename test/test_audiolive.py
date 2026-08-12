@@ -381,13 +381,29 @@ def test_the_cli_reports_a_program_it_cannot_play(capsys):
     """The retired door refuses by name and points at
     the replacement — the voices-retirement rule for a
     CLI (`spec/crust.md` era consolidation: one door,
-    `gestate.audioperform`, beside the editors)."""
+    `gestate.audioperform`, beside the editor).
+
+    **The names it prints are checked, not spelled.**  This test used
+    to assert the literal `audioeditor`, and went on asserting it after
+    the editor's door became `gestate.workbench` and `audioeditor` lost
+    its `main` — a passing test pointing at a module you cannot run.
+    So: every `python -m gestate.x` the notice offers is imported and
+    asked for its `main`.  A door that moves again fails here."""
+    import importlib
+    import re
+
     from gestate.audiolive import main as retired_main
 
     assert retired_main([]) == 2
     err = capsys.readouterr().err
     assert "retired" in err
-    assert "audioeditor" in err
+
+    offered = re.findall(r"python -m (gestate\.\w+)", err)
+    assert "gestate.workbench" in offered, err
+    assert "gestate.audioperform" in offered, err
+    for name in offered:
+        assert callable(getattr(importlib.import_module(name), "main", None)), \
+            f"{name} is offered as a door but has no main()"
 
 
 # ── The sounddevice path ────────────────────────────────────────────────────

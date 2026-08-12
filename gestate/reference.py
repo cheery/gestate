@@ -52,7 +52,7 @@ LIBRARIES = (
     ("signal.ges", "Signals",
      "Any reactive backend — a synth or a canvas."),
     ("audio.ges", "Audio",
-     "Synths: `audioperform`, `audioeditor`, `audio`."),
+     "Synths: `audioperform` and the `workbench`."),
     ("synth.ges", "Synthesis",
      "Synths, beside `audio.ges`. Oscillators, envelopes, filters, FM."),
     ("music.ges", "Music",
@@ -60,6 +60,24 @@ LIBRARIES = (
     ("gui.ges", "Canvas",
      "Programs with a `substrate` — `gui`, and the editor's canvas tab."),
 )
+
+#: **The editor's vocabulary, and it is not a library.**
+#:
+#: `gestate/command.ges` declares what the workbench can be asked to do,
+#: and it is written in the shape a library is written in — sections,
+#: `#:` prose, one signature per name — so the same reader produces its
+#: page and nothing here had to learn a second format.
+#:
+#: It is kept out of `LIBRARIES` on purpose.  Everything in that tuple
+#: answers "what may I write in a `.ges` file", and the index opens with
+#: two tables about exactly that; a command is not in scope in a program
+#: and never will be.  It is also kept out of `all_entries`, which is
+#: the editor's *name* search: `set`, `loop`, `find` and `open` are all
+#: commands **and** plausible names in somebody's program, and `what`
+#: over a declaration should answer about the declaration.
+COMMAND_PAGE = ("command.ges", "Commands",
+                "What the editor can be asked to do — the list `Ctrl-K` "
+                "opens.  Not in scope in a program.")
 
 #: **The language itself**, which no library declares and so no page could
 #: be generated from.
@@ -225,6 +243,13 @@ class Entry:
     #: files together — the pages know already, the editor's search does
     #: not, since it puts all six in one list.
     library: str = ""
+    #: The keystroke that is a shortcut onto it, for a command — `Ctrl-S`.
+    #: Never parsed: `entries_of` reads a source file and the keys are not
+    #: in one.  `commands_page` fills it from the editor's own table.
+    key: str = ""
+    #: Where the page links to it — filled in by `render`, which is the
+    #: only thing that knows the other headings.  See `_assign_anchors`.
+    anchor: str = ""
 
 
 def doc_above(lines: list, index: int) -> list:
@@ -343,10 +368,36 @@ def _github_slug(name: str) -> str:
     return re.sub(r"[^\w -]", "", name).strip().lower().replace(" ", "-")
 
 
+def _assign_anchors(entries: list) -> None:
+    """Give every heading on one page its own link target, GitHub's way.
+
+    **A slug is lowercased, so two names that differ only in case want
+    the same one.**  No library had such a pair and the reference got
+    away with anchoring on the name alone for a long time;
+    `command.ges` has two — the type `Symbol` beside the command
+    `symbol`, and `Template` beside `template` — and both index entries
+    pointed at the type, which is the wrong half of the page and the
+    half a reader is not looking for.
+
+    GitHub's rule for a repeated heading is to suffix the later ones
+    `-1`, `-2`, in document order, and following it means the anchors
+    this writes are the ones the renderer would have computed anyway.
+    Order is emission order, public then internal, because that is the
+    order a reader's browser sees them in.
+    """
+    seen: dict = {}
+    for entry in entries:
+        base = _anchor(entry.name)
+        n = seen.get(base, 0)
+        seen[base] = n + 1
+        entry.anchor = base if n == 0 else f"{base}-{n}"
+
+
 def render(title: str, when: str, path: str, entries: list) -> str:
     """One library's page."""
     public = [e for e in entries if not e.internal]
     private = [e for e in entries if e.internal]
+    _assign_anchors(public + private)
     out = [f"# {title}", "",
            f"*{when}*", "",
            f"Source: `gestate/{path}` — "
@@ -377,7 +428,7 @@ def _index(entries: list) -> list:
     if not entries:
         return []
     out = ["## Index", ""]
-    line = "  ".join(f"[`{e.name}`](#{_anchor(e.name)})" for e in
+    line = "  ".join(f"[`{e.name}`](#{e.anchor or _anchor(e.name)})" for e in
                      sorted(entries, key=lambda e: e.name.lower()))
     return out + [line, ""]
 
@@ -405,12 +456,21 @@ def _body(entry: Entry, depth: int) -> list:
         head += f"  <sub>{label}</sub>"
     # An all-punctuation name gets an explicit anchor: the slug GitHub
     # computes from the heading text would be empty, and `_anchor` has
-    # spelled it `op-…` for the index to point at.
-    if not _github_slug(entry.name):
-        head += f' <a id="{_anchor(entry.name)}"></a>'
+    # spelled it `op-…` for the index to point at.  A name whose slug was
+    # taken by an earlier heading gets one too — the `-1` GitHub appends
+    # is a rule about *its* rendering, and writing the tag says what this
+    # page means rather than trusting two implementations to agree.
+    anchor = entry.anchor or _anchor(entry.name)
+    if not _github_slug(entry.name) or anchor != _anchor(entry.name):
+        head += f' <a id="{anchor}"></a>'
     out = ["", head, "", "```", entry.signature]
     out += [f"    {alt}" for alt in entry.alternatives[1:]]
     out += ["```", ""]
+    # **Above the prose, not below it.**  A shortcut is the shortest
+    # possible answer to "how do I do this", and a reader who has one
+    # does not need the paragraph.
+    if entry.key:
+        out += [f"Key: **`{entry.key}`**", ""]
     if entry.doc:
         out += ["\n".join(entry.doc), ""]
     return out
@@ -435,7 +495,7 @@ def index_page() -> str:
         "| you are writing | you run | in scope |",
         "|---|---|---|",
         "| plain code | `typecheck` | Prelude |",
-        "| a synth | `audioeditor`, `audioperform` | "
+        "| a synth | `workbench`, `audioperform` | "
         "Prelude, Signals, Audio, Synthesis |",
         "| a synth with a piece | `audioperform` | "
         "…and Music |",
@@ -500,6 +560,16 @@ def index_page() -> str:
          "by no library, and so missing from every page below."] + [
         f"- **[{title}]({name.replace('.ges', '')}.md)** — {when}"
         for name, title, when in LIBRARIES] + [
+        # **Last, and set apart.**  Every page above answers "what may I
+        # write"; this one answers "what may I ask the editor to do", and
+        # running the two together in one list is what would make a
+        # reader look for `apply` in a program.
+        "",
+        f"- **[{COMMAND_PAGE[1]}](commands.md)** — {COMMAND_PAGE[2]}  "
+        "Generated from `gestate/command.ges`, which is the same file the "
+        "editor's own `Ctrl-K` list is derived from — so the page and the "
+        "palette cannot disagree.",
+    ] + [
         "", "## Asking the compiler instead", "",
         "The reference is a document; these are the same questions asked "
         "of the program you are actually writing, which knows things a "
@@ -604,11 +674,60 @@ def language_page() -> str:
     return "\n".join(out) + "\n"
 
 
+def command_keys() -> dict:
+    """`{command: chord}` — the shortcuts, from the editor's own table.
+
+    **Read, never restated.**  A second copy of this table is the thing
+    `spec/workbench.md` forbids outright: keys are shortcuts *onto*
+    commands and a key this page claimed that the editor did not bind
+    would be a second vocabulary, which is what the command list exists
+    to prevent.  `gestate/session.py` imports nothing but the standard
+    library at module level, so asking it costs the generator nothing.
+
+    Empty rather than fatal if it cannot be read, for the same reason
+    the rest of this module is textual: a reference is most wanted on
+    the day something else is broken.
+    """
+    try:
+        from .session import KEYS
+    except Exception:                                    # noqa: BLE001
+        return {}
+    return dict(KEYS)
+
+
+def commands_page() -> str:
+    """`commands.md` — what the editor can be asked to do.
+
+    Generated from `gestate/command.ges` by the same reader the
+    libraries get, because it is written in the same shape.  That is the
+    whole trick and it is worth saying plainly: the editor's palette and
+    this page are two readings of one file, so a command cannot exist
+    without appearing in both, and neither can drift.
+
+    **The keys are the one thing not in the source.**  They live in
+    `session.KEYS` and are attached here, so a command that has one says
+    so beside its own signature.
+    """
+    here = Path(__file__).parent
+    name, title, when = COMMAND_PAGE
+    entries = entries_of((here / name).read_text())
+    keys = command_keys()
+    for entry in entries:
+        entry.key = keys.get(entry.name, "")
+    return render(title, when, name, entries)
+
+
 def generate(root=None) -> dict:
     """`{relative path: text}` for the whole of `doc/ref/`."""
     here = Path(__file__).parent
     root = Path(root) if root is not None else here.parent
-    pages = {"index.md": index_page(), "language.md": language_page()}
+    pages = {"index.md": index_page(), "language.md": language_page(),
+             # **`commands.md`, not `command.md`.**  Every other page
+             # here takes its name from its source file; this one is
+             # named for what a reader scanning the directory is looking
+             # for, which is the list of commands rather than the type
+             # `Command`.
+             "commands.md": commands_page()}
     for name, title, when in LIBRARIES:
         source = (here / name).read_text()
         pages[name.replace(".ges", "") + ".md"] = render(
