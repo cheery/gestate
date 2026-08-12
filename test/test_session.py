@@ -19,6 +19,8 @@ the arguments are the ones the types promised.
 
 from __future__ import annotations
 
+import time
+
 from gestate.session import (KEYS, Detached, Session, Verb, act,
                              furniture, vocabulary)
 
@@ -1774,6 +1776,67 @@ def test_going_up_stacks_rather_than_jumping(tmp_path):
     act(it, "wants\topen\t0\t../")
     label, _note, _can, step, _dim = it.choices()[0]
     assert (label, step) == ("../", "../../"), "and again, and again"
+
+
+def test_a_file_that_arrives_shows_up_without_touching_the_query(tmp_path):
+    """**The first bug a user of this editor reported.**
+
+    `choices` is answered once per *question* — the poll comes round
+    every few milliseconds and re-ranking `what`'s five hundred names on
+    each one would eat the frame.  But two of the answers are not about
+    the program at all: a `Path` question lists a directory, and the
+    directory can change while the query sits untouched.  So a dialog
+    left open showed a listing from whenever it opened, and a file moved
+    in never appeared — not late, *never*, because nothing but a
+    keystroke could re-key the cache.
+
+    It hid because reproducing it means leaving the query alone.  Anyone
+    checking by typing part of the new file's name changes the key,
+    which re-lists, which shows the file.
+    """
+    it, room = _looking(tmp_path)
+    act(it, "wants\topen\t0\t")
+    assert "three.ges" not in [t for t, *_ in it.choices()]
+
+    (room / "three.ges").write_text("sound : Sig Float\n")
+    time.sleep(Session.OUTSIDE_EVERY * 1.5)
+
+    assert "three.ges" in [t for t, *_ in it.choices()], \
+        "the directory changed and the question did not"
+
+
+def test_a_listing_is_not_re_read_on_every_poll(tmp_path):
+    """**And the reason the cache exists is still honoured.**
+
+    The fix must not turn a redraw back into a directory walk: the poll
+    is 2ms after a keystroke, and `furniture` reads this.  Between looks
+    the answer stands, which is what `OUTSIDE_EVERY` buys.
+    """
+    it, room = _looking(tmp_path)
+    act(it, "wants\topen\t0\t")
+    first = it.choices()
+
+    (room / "four.ges").write_text("sound : Sig Float\n")
+    # No sleep: the throttle has not elapsed, so this is the cached
+    # answer and it is the *same object*, not an equal one.
+    assert it.choices() is first
+
+
+def test_the_cache_still_watches_the_directory_the_walk_reached(tmp_path):
+    """`_directory` is shared with `_listing` so the two cannot drift.
+
+    A key that statted the file's own folder while the list showed
+    `deeper/` would be a cache watching the wrong place — the staleness
+    bug again, wearing the fix's clothes.
+    """
+    it, room = _looking(tmp_path)
+    act(it, "wants\topen\t0\tdeeper/")
+    assert [t for t, *_ in it.choices()] == ["../"], "empty but for the way up"
+
+    (room / "deeper" / "inner.ges").write_text("sound : Sig Float\n")
+    time.sleep(Session.OUTSIDE_EVERY * 1.5)
+
+    assert "inner.ges" in [t for t, *_ in it.choices()]
 
 
 def test_a_query_narrows_without_losing_the_way_up(tmp_path):

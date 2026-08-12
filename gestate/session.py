@@ -763,6 +763,9 @@ class Session:
     #: `(question, answer)` — what `choices` last worked out, so a poll
     #: that changed nothing costs a comparison instead of a ranking.
     _answered: object = None
+    #: `(when, token)` — the last look at the world outside the program,
+    #: and when it was taken.  See `_outside`.
+    _looked: object = None
     #: Every transition this session has made — see `_record`.
     log: object = None
     #: A template pasted and not yet kept — the name, or `None`.
@@ -1007,19 +1010,18 @@ class Session:
         what is shown. That is what makes typing `exa/au` walk two
         directories the way a shell does.
         """
-        from pathlib import Path as _Path
-
-        here = _Path(getattr(self.bench, "path", ".")).resolve().parent
+        here = self._here()
         # **Split the text, not the path.**  `Path("../").parent` is
         # `.` — a path object normalises away the trailing separator and
         # then answers about the wrong directory, so `../` listed where
         # you already were and the walk could not leave. Everything up
         # to the last separator says *where*, and only what follows it
-        # narrows what is shown.
+        # narrows what is shown.  `_directory` is that rule, and the
+        # freshness token keys on it so the two cannot watch different
+        # folders.
         head, _sep, stem = query.rpartition("/")
-        where = here / head if head else here
+        where = self._directory(query)
         try:
-            where = where.resolve()
             entries = sorted(where.iterdir(), key=lambda e: e.name.lower())
         except Exception:                                # noqa: BLE001
             return []
@@ -1086,11 +1088,119 @@ class Session:
         """
         if self.asking is None:
             return []
-        if self._answered is not None and self._answered[0] == self.asking:
+        question = (self.asking, self._outside())
+        if self._answered is not None and self._answered[0] == question:
             return self._answered[1]
         found = self._choices()
-        self._answered = (self.asking, found)
+        self._answered = (question, found)
         return found
+
+    #: How often a question may look outside the program again.
+    #:
+    #: The poll is 2ms after a keystroke and backs off to 10ms
+    #: (`workbench.pace`), and neither a directory nor a MIDI socket is
+    #: worth asking about a hundred times a second.  A fifth of a second
+    #: is under the threshold at which a list appearing reads as a
+    #: consequence of what you did rather than as the program noticing
+    #: later, and it bounds the cost on a network mount, where the stat
+    #: below is a round trip rather than a dentry lookup.
+    OUTSIDE_EVERY = 0.2
+
+    def _outside(self) -> object:
+        """What the answer depends on that is **not** the question.
+
+        `choices` used to key on the question alone, and the docstring
+        above says why that is nearly right: a keystroke recomputes and
+        a redraw does not.  What it missed is that two of the answers
+        are not about the program at all.  A `Path` question lists a
+        directory and a `Device` question enumerates MIDI inputs, and
+        either can change while the query sits untouched — so the
+        dialog stayed open showing a file that was no longer the whole
+        story, which is the bug a first user found.
+
+        **A directory says when it last changed and a socket does
+        not.**  So a path is keyed on the directory's own mtime — the
+        same trick `vocabulary` plays on `command.ges`, one `stat`
+        instead of a walk, and no re-listing at all until something
+        really moved.  Devices have nothing to ask, so they are keyed
+        on the clock and re-enumerated a few times a second.
+
+        Everything else — `what`'s five hundred names, the templates,
+        the symbols — is a fact about the program in the window, which
+        cannot change without a keystroke.  Those keep the old
+        behaviour exactly: `None`, and the question alone is the key.
+
+        Note what mtime does *not* answer: a file that is rewritten in
+        place keeps its directory's timestamp, so the size in a row can
+        lag.  Adding, removing and renaming — which is what a dialog is
+        watching for — all bump it.  And a filesystem with a coarse
+        clock (FAT's two seconds) or a client that caches attributes
+        (NFS, SMB) can still hold a listing back; there is no fixing
+        that from here, and it is worth knowing rather than hiding.
+        """
+        import time
+
+        kind = self._asking_kind()
+        if kind not in ("Path", "Device"):
+            return None
+        now = time.monotonic()
+        # **Throttled, and the throttle is the point.**  Between looks
+        # the last token is handed back unchanged, so the cached answer
+        # stands and the poll costs a comparison, exactly as before.
+        if self._looked is not None and now - self._looked[0] < self.OUTSIDE_EVERY:
+            return self._looked[1]
+        if kind == "Device":
+            # Nothing to ask, so the clock is the token: a new one every
+            # `OUTSIDE_EVERY`, which re-enumerates and no oftener.
+            token = now
+        else:
+            try:
+                token = self._directory(self.asking[2]).stat().st_mtime_ns
+            except Exception:                            # noqa: BLE001
+                # A directory that cannot be statted is one `_listing`
+                # is about to fail on too, and it answers `[]`.  Hold
+                # the token steady so a vanished directory does not spin
+                # the listing on every poll.
+                token = "gone"
+        self._looked = (now, token)
+        return token
+
+    def _asking_kind(self) -> str:
+        """The type of the argument being asked for, or `""`."""
+        if self.asking is None:
+            return ""
+        verb, at, _query = self.asking
+        found = self.find(verb)
+        if found is None or at >= found.arity:
+            return ""
+        return found.args[at]
+
+    def _here(self):
+        """The directory the file being edited is in.
+
+        Every query in the dialog is relative to this, and three places
+        worked it out for themselves before one of them needed to agree
+        with another.
+        """
+        from pathlib import Path as _Path
+
+        return _Path(getattr(self.bench, "path", ".")).resolve().parent
+
+    def _directory(self, query: str):
+        """The directory a `Path` query points at — where `_listing` reads.
+
+        **Shared with `_listing`, because there must be one answer.**
+        The head of the query says where to look and the last piece
+        narrows what is shown; a second copy of that rule would be a
+        cache watching a different directory from the one on screen,
+        which is a staleness bug wearing the fix's clothes.
+
+        Not to be confused with `_where`, which answers about the *file*
+        a chosen row names.  This one is about the folder it sits in.
+        """
+        here = self._here()
+        head, _sep, _stem = query.rpartition("/")
+        return (here / head if head else here).resolve()
 
     def _choices(self) -> list:
         verb, at, query = self.asking

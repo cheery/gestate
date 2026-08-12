@@ -192,6 +192,14 @@ pub struct Palette {
     /// drawing knows — so it leaves the number here rather than the keys
     /// guessing at a shape they cannot see.
     wide: std::cell::Cell<i32>,
+    /// The query the choices on hand were answered for.
+    ///
+    /// **So a refresh can be told from a keystroke.**  The two arrive
+    /// at `offer_choices` looking identical — a new list for the same
+    /// palette — and they want opposite things: after a keystroke the
+    /// ranking decides where the cursor goes, while a refresh must not
+    /// move it at all.
+    answered_for: String,
 }
 
 impl Palette {
@@ -282,12 +290,38 @@ impl Palette {
 
     pub fn offer_choices(&mut self, choices: Vec<Choice>) {
         let fresh = self.choices.is_empty() && !choices.is_empty();
+        // **The pick holds its own row when the list changes underneath
+        // it.**  A directory listing refreshes while the dialog sits
+        // open — a file arrives, and every row below it shifts down — and
+        // an index kept through that is a cursor that quietly changes
+        // what it means.  The Return you were about to press would open
+        // the neighbour; for `steal`, it would overwrite it.
+        //
+        // Only when the query is the one these choices were last
+        // answered for.  A keystroke re-ranks, and `requery` has already
+        // put the cursor at the top for it — holding a name through
+        // *that* would fight the filter.
+        let held = if !fresh && self.asking.is_some()
+            && self.query == self.answered_for {
+            self.choices.get(self.at).map(|c| c.text.clone())
+        } else {
+            None
+        };
+        self.answered_for = self.query.clone();
         self.choices = choices;
         // Only on the way in, and only while nothing is typed: once a
         // query narrows the list, where the cursor goes is the
         // ranking's business.
         if fresh && self.query.is_empty() {
             if let Some(at) = self.choices.iter().position(|c| c.here) {
+                self.at = at;
+            }
+        } else if let Some(name) = held {
+            // Gone rather than moved — the file was deleted while you
+            // were looking at it — leaves the index where it was and
+            // `clamp` keeps it in range, which is the same thing every
+            // other list does when its rows go away.
+            if let Some(at) = self.choices.iter().position(|c| c.text == name) {
                 self.at = at;
             }
         }
@@ -1432,6 +1466,60 @@ mod choosing_tests {
         assert_eq!(p.key(Key::Enter), Asks::Nothing);
         assert!(p.asking().is_some_and(|a| !a.done),
                 "still asking, because nothing was given");
+    }
+
+    /// **A list that refreshes must not move the cursor off its row.**
+    ///
+    /// The directory listing re-reads while the dialog sits open, so a
+    /// file arriving above the pick shifts every row below it down.  An
+    /// index carried through that points at the neighbour, and the
+    /// Return you were about to press opens the wrong file — which for
+    /// `steal` is the one it overwrites.
+    #[test]
+    fn a_file_arriving_does_not_move_the_pick_off_its_row() {
+        let row = |name: &str| Choice {
+            text: name.into(), note: "2K".into(), here: false, can: true,
+            step: String::new(), dim: false, kind: String::new(),
+        };
+        let mut p = naming("open");
+        p.offer_choices(vec![row("beta.ges"), row("gamma.ges")]);
+        p.at = 1;                                   // on `gamma.ges`
+
+        // `alpha.ges` is moved into the directory and sorts first.
+        p.offer_choices(vec![row("alpha.ges"), row("beta.ges"),
+                             row("gamma.ges")]);
+        assert_eq!(p.at, 2, "the pick followed its own name");
+    }
+
+    /// And the refresh still *shows* what arrived — holding the pick is
+    /// not holding the list.
+    #[test]
+    fn a_refresh_still_brings_the_new_row_in() {
+        let row = |name: &str| Choice {
+            text: name.into(), note: "2K".into(), here: false, can: true,
+            step: String::new(), dim: false, kind: String::new(),
+        };
+        let mut p = naming("open");
+        p.offer_choices(vec![row("beta.ges")]);
+        p.offer_choices(vec![row("alpha.ges"), row("beta.ges")]);
+        assert_eq!(p.choices.len(), 2);
+    }
+
+    /// **Typing is the other case, and it must keep its old behaviour.**
+    /// A keystroke re-ranks and `requery` puts the cursor at the top for
+    /// it; holding a name through that would fight the filter.
+    #[test]
+    fn typing_still_lets_the_ranking_place_the_cursor() {
+        let row = |name: &str| Choice {
+            text: name.into(), note: "2K".into(), here: false, can: true,
+            step: String::new(), dim: false, kind: String::new(),
+        };
+        let mut p = naming("open");
+        p.offer_choices(vec![row("beta.ges"), row("gamma.ges")]);
+        p.at = 1;
+        p.key(Key::Char('g'));                       // the query changed
+        p.offer_choices(vec![row("gamma.ges")]);
+        assert_eq!(p.at, 0, "the filter decides, as it always did");
     }
 
     /// And a free one can.
