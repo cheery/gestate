@@ -507,20 +507,32 @@ def test_a_letter_reaches_exactly_one_symbol():
     `bar` and half the table, so the one keystroke the table exists to
     make sufficient was not.
     """
-    from gestate.session import SYMBOLS
+    from gestate.session import SYMBOLS, _letter
 
-    assert len(SYMBOLS) <= 26, "a cell past `z` needs two keys to reach"
     glyphs = [g for g, _n in SYMBOLS]
     assert len(set(glyphs)) == len(glyphs), "the same symbol twice"
+    labels = [_letter(i) for i in range(len(SYMBOLS))]
+    assert len(set(labels)) == len(labels), "two cells with one label"
     s = session()
+    # **A label is a prefix, so a query narrows rather than picks.**  `a`
+    # is also the start of `aa`, and returning only the exact match put
+    # every cell past `z` out of reach by name — so the row is kept and
+    # the exact one is first, where the cursor already is.
     s.asking = ("symbol", 0, "a")
-    assert s.choices() == [("a", ">")]
+    rows = s.choices()
+    assert rows[0] == ("a", ">"), "one keystroke and Return missed"
+    assert all(l.startswith("a") for l, _g in rows)
+    # And one more letter reaches past `z`.
+    s.asking = ("symbol", 0, "aa")
+    assert s.choices() == [("aa", "||")]
     # The symbol itself and its name still reach it, for somebody who
     # knows what they want and will not count to `i`.
     s.asking = ("symbol", 0, "`")
     assert s.choices() == [("i", "`")]
+    s.asking = ("symbol", 0, "join")
+    assert s.choices() == [("ad", "\\/")]
     s.asking = ("symbol", 0, "lambda")
-    assert s.choices() == [("q", "=>")]
+    assert s.choices() == [("t", "=>")]
 
 
 def test_a_symbol_goes_in_and_the_table_goes_away():

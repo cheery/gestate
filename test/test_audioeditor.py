@@ -238,10 +238,34 @@ def test_stopping_removes_the_engines_it_built(tmp_path):
     assert not directory.exists(), "the build directory was left behind"
 
 
-def test_applying_before_anything_plays_is_an_error(tmp_path):
+def test_applying_before_anything_plays_still_saves(tmp_path):
+    """**Saving is not conditional on anything playing.**
+
+    This used to raise — and to raise *before writing the file*, which
+    is the shape that made it a trap rather than a refusal: a file that
+    was malformed when the editor opened has no instrument, so you could
+    fix the syntax error, press Ctrl-S, and be told "nothing is playing
+    yet" while your fix went nowhere.  An editor that will not save is
+    not an editor, whatever else is wrong.
+
+    The save is also what makes a retry worth trying, since `start`
+    compiles what is on disk — so it says it is starting rather than
+    saying no.
+    """
     bench = _bench(tmp_path)
-    with pytest.raises(RuntimeError, match="nothing is playing"):
-        bench.apply("sound : Sig Float\nsound = map toFloat ticks\n")
+    text = "sound : Sig Float\nsound = map toFloat ticks\n"
+    bench.apply(text)
+    assert bench.path.read_text() == text, "the save did not land"
+    assert any("saved" in m for m in bench.drain())
+
+    # An *audition* is the other half and still declines: it deliberately
+    # does not write, so with nothing playing there is nothing it could
+    # do — and it says so rather than raising.
+    bench2 = _bench(tmp_path, name="twoknobs.ges")
+    was = bench2.path.read_text()
+    bench2.audition("sound : Sig Float\nsound = map toFloat ticks\n")
+    assert bench2.path.read_text() == was, "an audition wrote the file"
+    assert any("nothing is playing" in m for m in bench2.drain())
 
 
 def test_a_knob_starts_in_the_middle_of_its_range():

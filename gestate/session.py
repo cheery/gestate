@@ -51,41 +51,39 @@ SYMBOLS = [
     (">", "greater"), ("<", "less"), ("|", "bar"), ("\\", "backslash"),
     ("[", "open bracket"), ("]", "close bracket"),
     ("{", "open brace"), ("}", "close brace"),
-    ("`", "backtick"), ("@", "at"), ("$", "dollar"), ("#", "hash"),
-    ("_", "hole"), ("'", "note quote"), ("\"", "string quote"),
-    # And the operators the language is written in, which are the reason
-    # you were reaching for those characters in the first place — typing
-    # `=>` on a layout that hides `>` is two fights, not one.
+    ("`", "backtick"), ("~", "tilde"), ("^", "caret"), ("@", "at"),
+    ("$", "dollar"), ("&", "ampersand"), ("#", "hash"), ("_", "hole"),
+    ("'", "note quote"), ("\"", "string quote"),
+    # Then every operator the language has.
     #
-    # **Only ones the libraries actually declare.**  A picker offering an
-    # operator the language does not have would be teaching a wrong
-    # vocabulary from inside the editor, which is worse than a short
-    # table: these are read off `prelude.ges`, `music.ges`, `audio.ges`
-    # and `signal.ges`.
+    # **Read off the libraries, never remembered.**  A picker offering an
+    # operator gestate does not have would teach a wrong vocabulary from
+    # inside the editor, which is worse than a short table — `/\\` was in
+    # a draft of this list and appears in no `.ges` file anywhere.
     ("->", "arrow"), ("=>", "lambda"), ("<-", "bind"),
     ("==", "equal"), ("/=", "not equal"),
     ("<=", "at most"), (">=", "at least"),
     ("++", "append sequence"), ("||", "overlay or"),
-    (":::", "cons signal"), ("\\/", "join union"),
+    (">>=", "bind then"), (":::", "cons signal"), ("\\/", "join union"),
+    ("[:", "open score"), (":]", "close score"),
+    (">|", "clip"), ("|<", "pan"), ("|*", "scale"), ("|/", "divide by"),
+    ("+", "plus"), ("-", "minus"), ("*", "times"), ("/", "over"),
 ]
-
-#: **Twenty-six, and that is a rule rather than where it happened to
-#: stop.**  One cell is one keystroke, and past `z` a label needs two —
-#: at which point typing `a` matches the single letter exactly and the
-#: cell called `a1` cannot be reached by name at all.  A picker whose
-#: last rows answer only to the arrow keys is two pickers.
-#:
-#: What that cost, so the next person can weigh it rather than guess:
-#: `~`, `^` and `&` are layout-hard and rare in gestate; `[:` and `:]`
-#: are typed from cells already here; `/\`, `>|`, `|<`, `|*` and `|/`
-#: are real operators rare enough to write out; and `>>=` went last,
-#: because `do` notation is how a program spells it now.
-assert len(SYMBOLS) <= 26, "a cell past `z` cannot be reached by its letter"
 
 
 def _letter(i: int) -> str:
-    """The key that reaches the `i`th cell — `a`, `b`, … then `a1`."""
-    return chr(ord("a") + i) if i < 26 else f"{chr(ord('a') + i % 26)}{i // 26}"
+    """The keys that reach the `i`th cell — `a` … `z`, then `aa`, `ab` …
+
+    **A prefix, not a code.**  `a` is also the start of `aa`, so typing
+    it narrows to both and picks the shorter — which is what makes the
+    first twenty-six one keystroke while the rest are still reachable by
+    name.  A scheme where every label was two characters would cost the
+    common ones their whole point.
+    """
+    if i < 26:
+        return chr(ord("a") + i)
+    j = i - 26
+    return chr(ord("a") + j // 26) + chr(ord("a") + j % 26)
 
 
 #: Where the snippets live.  One file, one idea; the directory is the
@@ -705,9 +703,16 @@ class Session:
         # as well as letters made `a` — the first cell — also match
         # `backslash`, `bar` and half the table, so the one keystroke
         # the grid exists to make sufficient was not.
-        exact = [(l, g) for l, g, _n in cells if l == want]
-        if exact:
-            return exact
+        # **A label is a prefix, so a query narrows rather than picks.**
+        # `a` is also the start of `aa`, and returning only the exact
+        # match put every cell past `z` out of reach by name — so the
+        # rest of the row is kept and the exact one is put first, where
+        # the cursor already is.  One keystroke and Return still lands on
+        # `a`; one more letter reaches `aa`.
+        by_label = [(l, g) for l, g, _n in cells if l.startswith(want)]
+        if by_label:
+            by_label.sort(key=lambda c: (len(c[0]) > len(want), c[0]))
+            return by_label
         return [(l, g) for l, g, n in cells
                 if g.startswith(query.strip()) or want in n]
 
