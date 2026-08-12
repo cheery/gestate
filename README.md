@@ -31,13 +31,33 @@ library and language, documented down to the measured decibel.
 ## Hear it
 
 ```sh
-python -m gestate.audioperform examples/super/dubgate.ges      # live, editable
+python -m gestate.audioperform examples/super/dubgate.ges      # play it
 python -m gestate.audioperform examples/super/dubgate.ges -o dub.wav --seconds 16
 python -m pytest                                            # the suite
 ```
 
 Try `examples/audio/violin.ges` for a concert soloist lost in a sound
 system, or anything under `examples/beginner/` beside its lesson.
+
+## Edit it while it sounds
+
+```sh
+python -m gestate.workbench examples/super/dubgate.ges
+```
+
+The workbench is the editor, and it is the room the language was built
+for: the file, its knobs drawn **beside their own declarations**, a
+piano, and the sound — all at once.  `Ctrl-S` applies an edit without
+stopping the note that is ringing, because the graph is exactly what the
+source says and the running state migrates across the change.
+
+There is **one mode, and it is typing**.  `Ctrl-K` opens the command
+list, which is every other thing the editor can do, filterable, each with
+its name and its key; a capability cannot exist without appearing there,
+because the list is derived from `gestate/command.ges` the way the
+reference is derived from the libraries.  A build that fails leaves the
+sound playing and puts the compiler's complaint beside the line that
+caused it.
 
 ## Play it
 

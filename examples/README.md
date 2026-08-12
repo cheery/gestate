@@ -13,7 +13,7 @@ is a failing test rather than a stale file.
 
 Four directories of lesson synths, one per guide in `doc/`, meant to be
 read *with* their guide and edited while they sound
-(`python -m gestate.audiolive <file> --watch`):
+(`python -m gestate.workbench <file>`):
 
 | directory | guide | what it teaches |
 |---|---|---|
@@ -133,8 +133,8 @@ Running it needs `pygame`.  `gestate.gui.scenes()` does not, which is why
 | `lantern.ges` | **all three halves at once** — an unfolding seeded score, a compiled synth, and a canvas with two faders, a meter, and `label` captions naming them.  The one to export as a plugin (`--gui`) if you want to see the whole window doing its job |
 
 ```
-python -m gestate.audio examples/audio/blip.ges -o blip.wav
-python -m gestate.audio examples/audio/blip.ges --seconds 1 --peak   # no file
+python -m gestate.audioperform examples/audio/blip.ges -o blip.wav
+python -m gestate.audioperform examples/audio/blip.ges --seconds 1 --peak  # no file
 ```
 
 A synth program supplies `sound : Sig Float` — samples in -1.0 .. 1.0, one

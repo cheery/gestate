@@ -24,20 +24,22 @@ file uses only what it must.
 $ python -m gestate.audioperform examples/beginner/01-tone.ges --seconds 3
 ```
 
-`audiolive` compiles the synth to machine code and plays it through your
-speakers — this is the fast path, and the one to use.  Two more forms of it
-are worth knowing from day one:
+`audioperform` compiles the synth to machine code and plays it through
+your speakers — this is the fast path, and the one to use.  Two more
+forms of it are worth knowing from day one:
 
 ```
-$ python -m gestate.audioperform examples/beginner/01-tone.ges --watch
+$ python -m gestate.workbench   examples/beginner/01-tone.ges
 $ python -m gestate.audioperform examples/beginner/01-tone.ges -o tone.wav
 ```
 
-`--watch` keeps playing while you edit the file, swapping the sound at each
-save without restarting it — the best way to work through these lessons is
-to leave it running and turn numbers.  `gestate.audio` renders a `.wav`
-instead; it runs the slow reference engine the fast path is checked
-against, so reach for it when you want a file, not when you want to listen.
+`workbench` is the editor: it plays the file and it *is* where you change
+it, and an edit you apply with `Ctrl-S` swaps the sound without
+restarting it — the best way to work through these lessons is to leave it
+open and turn numbers.  There is one mode in it, and it is typing;
+`Ctrl-K` opens the list of everything else it can do.  `-o` renders a
+`.wav` instead of playing, which is what you want when you want a file,
+not when you want to listen.
 
 ---
 
@@ -59,7 +61,7 @@ beyond it, audibly and badly.  A synth that peaks at 1.0 alone has no room
 left to be mixed with anything, so leave **headroom** from the first line.
 This habit is cheap now and every later lesson depends on it.
 
-Things to try with `--watch` running: change the pitch; change the gain;
+Things to try with the workbench open: change the pitch; change the gain;
 write `sine 220.0 + 0.5 * sine 330.0` and hear that a mix is a `+`.
 
 ## Lesson 2 — waveforms are timbre  (`02-waves.ges`)

@@ -4,13 +4,14 @@ No lessons here.  `examples/super/` is six finished sounds, built from
 everything the three courses taught, and the intended use is **theft**:
 run one, find the block the header says to steal, paste it into your own
 file, and bend it until it is yours.  Every patch renders offline and
-plays live; most reward `audiolive --watch` left running while you gut
-them.
+plays live; most reward being gutted in the `workbench` with the sound
+still going.
 
 ```
 $ python -m gestate.audioperform examples/super/hoverdrone.ges
-$ python -m gestate.audio     examples/super/acidline.ges -o acid.wav --seconds 16
+$ python -m gestate.audioperform examples/super/acidline.ges -o acid.wav --seconds 16
 $ python -m gestate.audioperform examples/super/nightdrive.ges --midi
+$ python -m gestate.workbench    examples/super/acidline.ges
 ```
 
 For each patch: what it is, the trick worth taking, and the first numbers

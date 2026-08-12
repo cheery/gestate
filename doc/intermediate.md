@@ -23,14 +23,15 @@ The commands, once:
 ```
 $ python -m gestate.audioperform examples/intermediate/01-instrument.ges -o l1.wav
 $ python -m gestate.audioperform examples/intermediate/01-instrument.ges --midi
-$ python -m gestate.audiopygame  examples/intermediate/01-instrument.ges
+$ python -m gestate.workbench    examples/intermediate/01-instrument.ges
 ```
 
 `audioperform` plays a scored synth (or renders it with `-o`); `--midi`
-hands a bank to your keyboard.  `audiopygame` opens the editor: the file,
+hands a bank to your keyboard.  `workbench` opens the editor: the file,
 its knobs, and the sound, live — edits land without restarting the sound,
-which is what makes the "turn it" layer cheap.  A plain synth (lessons 4)
-still uses `audiolive`/`audio` as before.
+which is what makes the "turn it" layer cheap.  There is one mode in it,
+and it is typing; **`Ctrl-K` opens the command list**, which is every
+other thing the editor can do, with its name and its key beside it.
 
 ---
 
@@ -159,11 +160,13 @@ cutoff = mkKnob 0.4
 ```
 
 `mkKnob v` is a **control-rate** parameter: held constant across a block,
-costing a few instructions per block rather than per sample, drawn as a
-slider beside its own declaration in the editors (`audioeditor`,
-`audiopygame`), and mapped to MIDI CC in declaration order by
-`audiolive --midi`.  A `Float` knob runs 0..1 — the program scales it,
-so the range lives where you can read it:
+costing a few instructions per block rather than per sample, and drawn as
+a slider beside its own declaration in the `workbench`.  With
+`workbench <file> --midi` it can be driven by a controller: the `learn`
+command arms a knob and the next control you wiggle becomes its own,
+because nobody knows which CC number their device sends and everybody can
+wiggle the one they mean.  A `Float` knob runs 0..1 — the program scales
+it, so the range lives where you can read it:
 
 ```
 hzOfKnob x = 150.0 + 4800.0 * unit x * unit x
@@ -176,7 +179,7 @@ compute — the offline renderer sweeps every knob with the sample index
 precisely so that an unguarded parameter shows up as a broken render
 rather than as a surprise on stage.
 
-**Turn it.**  Open it in `audioeditor` and play the two sliders against
+**Turn it.**  Open it in `workbench` and play the two sliders against
 each other.  Then the marked edits: resonance as a third knob; a different
 interval under the blend.
 

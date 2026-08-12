@@ -714,7 +714,7 @@ system's job.
 The other driver of the same half is sound.  A synth defines
 `sound : Sig Float` — one sample per instant — and
 `python -m gestate.audioperform` renders it to a `.wav`, while
-`python -m gestate.audiopygame` plays it and reloads it while you edit.
+`python -m gestate.workbench` plays it and reloads it while you edit.
 The combinators (`sineOf`, `lowpass`, `adsr` and the rest) live in
 `audio.ges` and `synth.ges`, and every one is in `doc/ref/`; how a
 `Sig Float` becomes a flat graph and then machine code is
@@ -877,9 +877,22 @@ gestate/          the compiler
   audioscore.py     a Score, performed by gestate instruments
   audioperform.py   a score on one bank, your hands on another
   audiospans.py     which file and line a graph node was written on
-  audiolive.py      …plays it, and reloads it while it sounds
-  audioeditor.py    a window to edit a synth in while it plays
-  audiopygame.py    the same, in pygame, with the program's canvas beside it
+  audiolive.py      the live engine — the sound card, the rebuild, and
+                    `migrate` carrying the state across an edit
+  audioeditor.py    the editor's model — an instrument, a rebuild worker,
+                    a transport, parameters and a keyboard.  No toolkit
+  command.ges       what the editor can be asked to do.  The palette is
+                    derived from these declarations, so a capability
+                    cannot exist without a name, a type and a sentence
+  session.py        a gesture becomes a transition and a sentence
+  workbench.py      …and the wire to the window.  `python -m
+                    gestate.workbench file.ges` is the editor
+shell/            the foreign-language hosts — none of them opinionated
+  editor/           the window: a persistent rope in Rust, its own loop
+  panel/            a substrate becomes a display list, and one painter
+                    draws it for both the editor and the plugin
+  clap/             the CLAP plugin an exported instrument is
+crust/            the G-machine in Rust — the reference is gmachine.py
 spec/             the design documents — see below
 doc/manual.md     this file
 doc/audit.md      what the synth primitives *measure* as, against their
@@ -887,7 +900,7 @@ doc/audit.md      what the synth primitives *measure* as, against their
 doc/ref/          the generated reference — every library name, with its
                   signature and prose; `python -m gestate.reference` remakes it
 examples/         programs that run, exercised by the test suite
-test/             ~1,900 tests
+test/             ~2,075 tests
 ```
 
 The `spec/` directory is unusually load-bearing, so it is worth knowing
@@ -903,6 +916,8 @@ what each file is *for*:
 | `music.md` | what a score is |
 | `substrate.md` | the canvas behind the editor — what a `Sub` is |
 | `liveaudio.md` | where the project is going: a synth you edit while it sounds |
+| `workbench.md` | the editor: why there are no modes, and what a command is |
+| `verification.md` | how the half without a sample-for-sample oracle is checked |
 | `delaylines.md` | delay lines — the fifth audio node kind |
 | `errata.md` | where the specs disagree with the papers, and what was decided — and, at the top, **which three papers those are**, by title and arXiv number |
 | `supercomb.md` | the G-machine |
@@ -999,9 +1014,12 @@ inside a `_` would be one you had to prepare for.  Names that fit
 everything — `id`, `const`, `(@)` — are left out: they fit by being
 unconstrained rather than by being right.
 
-Inside a `_` it is still the question you want, and `gestate.audiopygame`
-presses `Tab` at a hole to ask it of that hole's **own** type — the same
-search (`typecheck.fits_in_scope`) with nothing retyped in the middle.
+Inside a `_` it is still the question you want, and the search has a half
+with no command line in it — `typecheck.fits_in_scope` takes the type
+rather than a string, so an editor can ask it of a hole's **own** type
+with nothing retyped in the middle.  The retired pygame editor pressed
+`Tab` to do that; **the workbench has not taken it back up**, so today
+the question is asked from the shell, with the type written out.
 
 **`--audio`** puts `signal.ges`, `audio.ges` and `synth.ges` in front, so
 `Sig`, `Adsr` and the rest are in scope, `--query adsr` reaches the

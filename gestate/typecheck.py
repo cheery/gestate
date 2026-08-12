@@ -756,8 +756,13 @@ def fits_in_scope(wanted, program, results, builtins) -> list:
 
     The half of `--fits` that has no command line in it, so an editor can
     ask the same question of a **hole's own type** rather than of a string a
-    person retyped — `audiopygame`'s `Tab` does.  The CLI reads its type out
-    of `argv` and this does not, and that is the whole difference.
+    person retyped.  The CLI reads its type out of `argv` and this does
+    not, and that is the whole difference.
+
+    **Nothing calls it that way today.**  `audiopygame`'s `Tab` did, and
+    went with it; the workbench has no hole command yet.  Kept because
+    the half without an `argv` in it is the reusable one, and taking the
+    affordance back up is a command, not a search.
     """
     from .show import show_type
     from .types import TFun

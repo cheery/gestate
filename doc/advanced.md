@@ -7,9 +7,9 @@ does not have.  The lessons live in `examples/advanced/`, every one
 renders, and the end of this file is a **coverage map** — every public
 name in `doc/ref/`, and where it is taught.
 
-Work the same way as before: run the form, make the `try:` edits with
-`audiolive --watch` running, then take the departure at the end of each
-section.  At this level the departures are the course.
+Work the same way as before: run the form, make the `try:` edits in the
+`workbench` with the sound running, then take the departure at the end of
+each section.  At this level the departures are the course.
 
 ---
 
@@ -205,7 +205,8 @@ that file, and after this lesson it reads as yours.
 sample, `substrate` is interpreted per frame, and they meet on
 **channels** — a picture with a channel attached is a control, and the
 signal it feeds is the same signal the filter reads.  Run it with
-`python -m gestate.audiopygame`.
+`python -m gestate.workbench`, and `Ctrl-K` then `canvas` shows the
+picture beside the source.
 
 The instrument is a **ribbon**: `onTouchX` reports a 0..1 fraction of the
 element's own extent, `pow` makes equal distances equal intervals, and
