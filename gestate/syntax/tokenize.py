@@ -154,7 +154,16 @@ class Tokenizer:
             begin = self._i
             self._skip_line()
             text = self._src[begin:self._i]
-            return T(TT.COMMENT, text.strip(), start, Span(start, self._pos()))
+            # **Only the right-hand side is stripped.**  What follows the
+            # `#` is the comment as its author spaced it, and the
+            # formatter prints it straight back after a `#` — so
+            # stripping the left took the space out of every `# like
+            # this` and wrote `#like this` over somebody's file.  A
+            # formatter is allowed to move a comment; it is not allowed
+            # to edit one.  Trailing space goes, because that is
+            # invisible and nobody meant it.
+            return T(TT.COMMENT, text.rstrip(), start,
+                     Span(start, self._pos()))
 
         # string
         if ch == '"':

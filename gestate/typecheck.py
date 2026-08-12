@@ -732,6 +732,196 @@ def _fits(text: str, program, results, builtins, args) -> int:
     return 0
 
 
+class FitsError(Exception):
+    """`fits_in_source` could not get far enough to answer."""
+
+
+def fits_in_source(text: str, source: str, *, rate: int = 22050,
+                   audio: bool = True) -> tuple:
+    """`(what fits, the type as the checker shows it)` for `text` in `source`.
+
+    **`--fits` with no `argv` around it**, for a caller that has the
+    program as a string rather than as a path — which is what an editor
+    has: the text in the window, unsaved, is the program the question is
+    about, and a version of this that read a file would answer about the
+    last save.
+
+    `audio` prepends `signal.ges`, `audio.ges` and `synth.ges` exactly as
+    `--audio` does, because a synth's vocabulary is where the interesting
+    answers are and a file being edited in the workbench is a synth.
+
+    Raises `FitsError` with the compiler's own words when the program
+    does not get as far as inference — which is the ordinary case while
+    somebody is typing, and is a fact worth reporting rather than an
+    empty answer that reads as *"nothing fits"*.
+    """
+    from .audio import assemble
+    from .audioperform import has_score
+    from .audioscore import assemble_performance
+    from .show import show_type
+
+    if audio:
+        try:
+            source = (assemble_performance(source, "", rate)
+                      if has_score(source) else assemble(source, rate))
+        except Exception as exc:                        # noqa: BLE001
+            raise FitsError(str(exc)) from exc
+    try:
+        wanted = read_type(text)
+    except Exception as exc:                            # noqa: BLE001
+        raise FitsError(f"could not read the type `{text}`: {exc}") from exc
+    try:
+        program = classify(_merge_prelude(source, None))
+        typed = [(n, a, l, s) for (n, a, l, s) in desugar_program(program)]
+        builtins = _build_builtins()
+        _kind_check_program(program, typed)
+        results, _per_sc, _givens = infer_program(
+            typed, builtins, program.cons, program.classes,
+            {sc.name: sc.sig_constraints for sc in program.scs})
+    except (ParseError, CoherenceError, DeclError, DesugarError, KindError,
+            InferError, UnifyError, ConstraintError) as exc:
+        raise FitsError(str(exc)) from exc
+
+    matches = fits_in_scope(wanted, program, results, builtins)
+    return [f"{name} : {type_}{needed(depth)}"
+            for depth, name, type_ in matches], show_type(wanted)
+
+
+def holes_in_source(source: str, *, rate: int = 22050,
+                    audio: bool = True) -> list:
+    """`(line, col, type)` per `_`, 1-based lines and 0-based columns.
+
+    **`--holes` with no `argv` around it**, and for the same reason
+    `fits_in_source` exists: the editor is asking about the text in the
+    window, and the positions have to be the ones the *author's* file
+    has — so the assembly's prelude is measured and taken back off,
+    exactly as the CLI does it.
+
+    Raises `FitsError` when the program does not reach inference, which
+    while typing is the ordinary case and is a fact the caller reports
+    rather than an empty list that reads as *"no holes"*.
+    """
+    from .audio import assemble
+    from .audioperform import has_score
+    from .audioscore import assemble_performance
+    from .expr import EHole
+    from .infer import _all_exprs
+    from .show import show_type
+
+    authored = source
+    if audio:
+        try:
+            source = (assemble_performance(authored, "", rate)
+                      if has_score(authored) else assemble(authored, rate))
+        except Exception as exc:                        # noqa: BLE001
+            raise FitsError(str(exc)) from exc
+    # `audiospans` owns this arithmetic — how many lines the assembly put
+    # in front of the author's first — and asking it here rather than
+    # counting again is what keeps a hole's line the same number the
+    # margin already draws a knob on.
+    from .audiospans import _regions
+
+    offset = _regions(authored)[2] if audio else 0
+    try:
+        program = classify(_merge_prelude(source, None))
+        typed = [(n, a, l, s) for (n, a, l, s) in desugar_program(program)]
+        builtins = _build_builtins()
+        _kind_check_program(program, typed)
+        infer_program(typed, builtins, program.cons, program.classes,
+                      {sc.name: sc.sig_constraints for sc in program.scs})
+    except (ParseError, CoherenceError, DeclError, DesugarError, KindError,
+            InferError, UnifyError, ConstraintError) as exc:
+        raise FitsError(str(exc)) from exc
+
+    out = []
+    for _name, _arity, lam, _sig in typed:
+        for node in _all_exprs(lam):
+            if not isinstance(node, EHole) or node.span is None:
+                continue
+            line = node.span.start.line + 1 - offset
+            if line < 1:
+                # The prelude's own, if it ever had one — not the
+                # author's file and not their business.
+                continue
+            out.append((line, node.span.start.col,
+                        show_type(node.type_) if node.type_ is not None
+                        else "?"))
+    return sorted(set(out))
+
+
+def signatures_in_source(source: str, *, rate: int = 22050,
+                         audio: bool = True) -> dict:
+    """`name -> the signature the checker inferred`, for names without one.
+
+    **Only the ones nobody wrote.**  A declaration that already carries a
+    signature is not offered one: the author's spelling is the
+    authority, and replacing `Sig Float` with an equal type spelled
+    differently would be a diff with no change in it.
+
+    The half of `--sigs` with no `argv` around it, so the editor writes
+    the same answer the command line prints — one door, and the two
+    cannot drift.  Raises `FitsError` with the compiler's words when the
+    program does not reach inference, which while typing is the ordinary
+    case.
+    """
+    from .audio import assemble
+    from .audioperform import has_score
+    from .audioscore import assemble_performance
+
+    authored = source
+    if audio:
+        try:
+            source = (assemble_performance(source, "", rate)
+                      if has_score(source) else assemble(source, rate))
+        except Exception as exc:                        # noqa: BLE001
+            raise FitsError(str(exc)) from exc
+    try:
+        program = classify(_merge_prelude(source, None))
+        typed = [(n, a, l, s) for (n, a, l, s) in desugar_program(program)]
+        builtins = _build_builtins()
+        _kind_check_program(program, typed)
+        results, per_sc, _givens = infer_program(
+            typed, builtins, program.cons, program.classes,
+            {sc.name: sc.sig_constraints for sc in program.scs})
+        sigs, cons, _sc_names, _written = _format_results(
+            program, typed, results, per_sc)
+    except (ParseError, CoherenceError, DeclError, DesugarError, KindError,
+            InferError, UnifyError, ConstraintError) as exc:
+        raise FitsError(str(exc)) from exc
+
+    # **Only what this file declares.**  The assembly puts three
+    # libraries in front, and offering to annotate `synth.ges`'s names in
+    # somebody's synth would be absurd — so the answer is intersected
+    # with the names the author's own text defines.
+    mine = _defined_lines(authored)
+    return {name: _format_sig(name, sigs, cons)
+            for name in sigs if name in mine}
+
+
+def _defined_lines(source: str) -> dict:
+    """`name -> the 1-based line it is defined on`, read from the text.
+
+    Read rather than parsed, and deliberately: `session.py` already
+    reads declarations this way for `goto`, the language's layout rule
+    guarantees a declaration starts at the left margin, and a second
+    front end here could disagree with the real one about a file that
+    the real one accepts.
+    """
+    out = {}
+    for n, line in enumerate(source.splitlines(), start=1):
+        if not line[:1].isalpha():
+            continue
+        head = line.split("=", 1)[0].split(":", 1)[0].split()
+        # **The first word, because a definition may take parameters.**
+        # `double x = x * 2.0` declares `double`; reading the whole left
+        # side gives `double x`, which is not an identifier, so every
+        # function of an argument went unfound — the names most worth
+        # annotating being exactly the ones with arguments.
+        if head and head[0].isidentifier() and ("=" in line or ":" in line):
+            out.setdefault(head[0], n)
+    return out
+
+
 def read_type(text: str):
     """The type an author would write, as the checker's own.
 
@@ -759,10 +949,10 @@ def fits_in_scope(wanted, program, results, builtins) -> list:
     person retyped.  The CLI reads its type out of `argv` and this does
     not, and that is the whole difference.
 
-    **Nothing calls it that way today.**  `audiopygame`'s `Tab` did, and
-    went with it; the workbench has no hole command yet.  Kept because
-    the half without an `argv` in it is the reusable one, and taking the
-    affordance back up is a command, not a search.
+    Two callers, and the split is what lets them share: `_fits` reads its
+    type out of `argv`, and `fits_in_source` is handed one by the editor's
+    `fits` command.  Neither retypes the search, which is the whole point
+    of the half without an `argv` in it.
     """
     from .show import show_type
     from .types import TFun

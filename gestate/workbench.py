@@ -156,6 +156,55 @@ class Window:
         self.editor.order(f"insert\t{text}")
         return True
 
+    def caret(self) -> int:
+        """Where the cursor is, as a character offset.
+
+        **Read across, not mirrored.**  `undo` needs a mirror because it
+        has to answer in the same breath it is asked; this is only ever
+        wanted when a command is already running, and `ged_pos` is an
+        atomic read of a number — the same one `find` has always used to
+        know where to search from.
+        """
+        return self.editor.pos
+
+    def close_list(self) -> bool:
+        """Put the command list away — the model saying it is finished.
+
+        Return on a finished call means *again*, which is right for
+        `find` and wrong for `template`, where again is a second copy of
+        the same code.  So the command that is done says so, rather than
+        the view keeping a table of which ones repeat.
+        """
+        self.editor.order("close")
+        return True
+
+    def fill(self, text: str) -> bool:
+        """Put text in the question the list is asking."""
+        if not text:
+            return False
+        self.editor.order(f"fill\t{text}")
+        return True
+
+    def replace(self, text: str) -> bool:
+        """Put a whole new document in, as one edit.
+
+        **Not an order, and not a second kind of edit either.**  This is
+        the same door a file open goes through — `ged_set_text`, picked
+        up on the window's next frame — and on the far side it is
+        `Document::set_text`, which *commits*: the undo stack gets one
+        entry and the caret is clamped rather than reset.  So laying out
+        a file is one `undo` away from the file you had, which is the
+        only thing that makes a format safe to press.
+
+        An order would have been the other obvious shape and is wrong
+        here: `insert` carries its text through one tab-separated line,
+        and a document with a tab in it would be truncated at it.
+        """
+        if not text:
+            return False
+        self.editor.text = text
+        return True
+
 
 #: How long the loop sleeps while a hand is moving, and while it is not.
 #:

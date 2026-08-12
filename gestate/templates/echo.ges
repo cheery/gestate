@@ -1,0 +1,18 @@
+#: A tape echo you can gate.
+#:
+#: `slide` is a delay line whose read head moves, so modulating it slowly
+#: is tape warble.  The fold is the feedback and the `lowpass` is what
+#: makes each pass duller.  The trick worth stealing is `sendGate`: the
+#: echo's *input* is gated, so it answers the bar instead of smearing it.
+
+sendPat : List Envelope
+sendPat = [ Step 0.0 0.0, Step 1.5 1.0, Step 1.75 0.0 ]
+
+sendGate : Sig Float
+sendGate = map (t => on sendPat (2.0 * wrap (t / 2.0))) elapsed
+
+tapePos : Sig Float
+tapePos = map (x => sampleRate * (0.375 + 0.004 * x)) (sine 0.9)
+
+tape : Sig Float -> Sig Float
+tape s = lowpass 0.35 (slide (seconds 0.45) (y x => x + 0.62 * y) tapePos s)

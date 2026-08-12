@@ -71,6 +71,15 @@ pub struct Choice {
     /// the name is refused is that it is *there*, so it has to be
     /// visible for the refusal to read.
     pub can: bool,
+    /// **Whether it is drawn faint** — which is not the same question.
+    ///
+    /// `steal` refuses a taken name and greys it, so the two moved
+    /// together and one flag served both.  An export overwrites: the
+    /// name being taken is still worth *seeing* — it is the difference
+    /// between writing a new file and replacing one — but it is no
+    /// longer a refusal.  So the look and the refusal are two fields,
+    /// and a row can be one without the other.
+    pub dim: bool,
     /// **The one you are already on**, if any.
     ///
     /// Marked rather than selected: the cursor goes there and the query
@@ -200,6 +209,27 @@ impl Palette {
         self.page.clear();
         self.at = 0;
         Asks::Filter(String::new())
+    }
+
+    /// Put `text` in the question being asked, as if it had been typed.
+    ///
+    /// **Only while something is being asked**, and only into the
+    /// argument still open: filling the *command* filter would move the
+    /// selection under a hand that was choosing, and filling a finished
+    /// call would be answering a question nobody asked.  `Asks::Nothing`
+    /// when there is no question, so the caller can say so.
+    pub fn fill(&mut self, text: &str) -> Asks {
+        let Some(asking) = self.asking.as_ref() else {
+            return Asks::Nothing;
+        };
+        if asking.done {
+            return Asks::Nothing;
+        }
+        let (verb, at) = (asking.verb.clone(), asking.got.len());
+        self.query = text.to_string();
+        self.choices.clear();
+        self.at = 0;
+        Asks::Wants(verb, at, self.query.clone())
     }
 
     pub fn hide(&mut self) -> Asks {
@@ -655,7 +685,7 @@ impl Palette {
         // Which of those rows are only to be read.
         let dim: Vec<bool> = match &self.asking {
             None => vec![false; rows.len()],
-            Some(_) => self.choices.iter().map(|c| !c.can).collect(),
+            Some(_) => self.choices.iter().map(|c| c.dim || !c.can).collect(),
         };
         let from = self.window(most);
         for (i, (left, right)) in
@@ -851,8 +881,8 @@ mod asking_tests {
         let mut p = listed();
         pick(&mut p, 2);
         p.offer_choices(vec![
-            Choice { text: "cutoff".into(), note: "Chan Float".into(), here: false, can: true, step: String::new() },
-            Choice { text: "pitch".into(), note: "Chan Int".into(), here: false, can: true, step: String::new() },
+            Choice { text: "cutoff".into(), note: "Chan Float".into(), here: false, can: true, step: String::new(), dim: false },
+            Choice { text: "pitch".into(), note: "Chan Int".into(), here: false, can: true, step: String::new(), dim: false },
         ]);
         p.at = 1;
         assert_eq!(p.key(Key::Enter),
@@ -1201,11 +1231,11 @@ mod choosing_tests {
         let mut p = naming("open");
         p.offer_choices(vec![
             Choice { text: "..".into(), note: String::new(),
-                     here: false, can: true, step: String::new() },
+                     here: false, can: true, step: String::new(), dim: false },
             Choice { text: "one.ges".into(), note: "2K".into(),
-                     here: false, can: true, step: String::new() },
+                     here: false, can: true, step: String::new(), dim: false },
             Choice { text: "two.ges".into(), note: "3K".into(),
-                     here: true, can: true, step: String::new() },
+                     here: true, can: true, step: String::new(), dim: false },
         ]);
         assert_eq!(p.at, 2);
         assert_eq!(p.query(), "", "and nothing is typed for you");
@@ -1220,7 +1250,7 @@ mod choosing_tests {
         for c in "one".chars() { p.key(Key::Char(c)); }
         p.offer_choices(vec![
             Choice { text: "one.ges".into(), note: "taken".into(),
-                     here: false, can: false, step: String::new() },
+                     here: false, can: false, step: String::new(), dim: false },
         ]);
         assert_eq!(p.key(Key::Enter), Asks::Nothing);
         assert!(p.asking().is_some_and(|a| !a.done),
@@ -1259,9 +1289,9 @@ mod walking_tests {
         p.key(Key::Enter);
         p.offer_choices(vec![
             Choice { text: "../".into(), note: String::new(), here: false,
-                     can: true, step: "../".into() },
+                     can: true, step: "../".into(), dim: false },
             Choice { text: "one.ges".into(), note: "2K".into(), here: false,
-                     can: true, step: String::new() },
+                     can: true, step: String::new(), dim: false },
         ]);
         // Up one: the query becomes the path, and it is still asking.
         assert_eq!(p.key(Key::Enter),
@@ -1272,7 +1302,7 @@ mod walking_tests {
         // And down into another: the steps compose.
         p.offer_choices(vec![
             Choice { text: "audio/".into(), note: "directory".into(),
-                     here: false, can: true, step: "../audio/".into() },
+                     here: false, can: true, step: "../audio/".into(), dim: false },
         ]);
         assert_eq!(p.key(Key::Enter),
                    Asks::Wants("open".into(), 0, "../audio/".into()));
@@ -1281,7 +1311,7 @@ mod walking_tests {
         // A file is the answer, and ends the question.
         p.offer_choices(vec![
             Choice { text: "two.ges".into(), note: "3K".into(), here: false,
-                     can: true, step: String::new() },
+                     can: true, step: String::new(), dim: false },
         ]);
         assert_eq!(p.key(Key::Enter),
                    Asks::Run("open".into(), vec!["two.ges".into()]));

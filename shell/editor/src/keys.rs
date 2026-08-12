@@ -172,11 +172,14 @@ pub fn press_with(doc: &mut Document, view: &mut View, font: &Font,
             wrote(doc.insert(c.encode_utf8(&mut b)))
         }
         Key::Enter => wrote(doc.insert("\n")),
-        // **A tab is a tab**, stored as one character.  Turning it into
-        // spaces on the way in is a decision about somebody else's file
-        // that an editor should not make quietly; what a tab *looks*
-        // like is `document::TAB` and is a view's business.
-        Key::Tab => wrote(doc.insert("\t")),
+        // **`Tab` is a shortcut, not a character** — it asks what fits
+        // where the cursor is, and `window.rs` captures it before the
+        // document sees it.  This arm stays as the answer to "what if
+        // it gets here anyway": nothing, rather than a tab nobody can
+        // see the width of.  The layout rule counts columns and a tab's
+        // width is the view's choice, so a tab-indented file means
+        // something other than it looks; no `.ges` in the tree has one.
+        Key::Tab => Did::nothing(),
         // Nothing to leave, so nothing to do — the palette handles it
         // before the document ever sees it.
         Key::Escape => Did::nothing(),

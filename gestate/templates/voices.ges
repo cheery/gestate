@@ -1,0 +1,28 @@
+#: A polyphonic bank — several notes at once.
+#:
+#: `voices lead 4 sineVoice` makes four copies and binds the name to
+#: their sum.  A voice is an expression over signals: the bank hands it a
+#: `Sig Gate` (when the note began and ended) and a `Sig Key` (your own
+#: payload), and `!` lifts ordinary functions over them.  `FromMIDI` says
+#: the payload *can* come from a keyboard; `listen` says which bank does.
+
+Key := Key Int Int
+
+voices lead 4 sineVoice : Sig Float
+
+instance FromMIDI Key where
+    noteOn ch p v = Just (Key p v)
+
+env : Adsr
+env = Adsr 0.01 0.25 0.6 0.3
+
+hzOfKey : Key -> Float
+hzOfKey q = case q of
+    Key k v -> keyHz k
+
+velOfKey : Key -> Float
+velOfKey q = case q of
+    Key k v -> toFloat v / 127.0
+
+sineVoice : Sig Gate -> Sig Key -> Sig Float
+sineVoice g s = sine (!hzOfKey s) * adsr env g * !velOfKey s

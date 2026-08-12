@@ -1,0 +1,12 @@
+#: A metronome — any condition, played as a note.
+#:
+#: `gateOn` turns a `Sig Bool` into a `Sig Gate`: rising edge presses,
+#: falling edge releases.  So anything is a note source — a comparison on
+#: a ramp, a threshold over an LFO, a threshold over a follower.  Where
+#: the release is, is visible in the condition you wrote.
+
+beat : Sig Gate
+beat = gateOn (!(x => x < 0.5) (phase 2.0))
+
+env : Sig Float
+env = perc 6.0 beat

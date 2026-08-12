@@ -30,16 +30,30 @@ fn typing_says_it_edited_and_moving_says_it_did_not() {
     assert_eq!(d.text(), "xab");
 }
 
-/// **A tab is a tab.**  Turning it into spaces on the way in is a
-/// decision about somebody else's file that an editor should not make
-/// quietly.
+/// **`Tab` types nothing** — it is the `fits` shortcut, and `window.rs`
+/// captures it before the document sees one.  Checked here because this
+/// is where it used to insert a character: an arm that quietly went on
+/// working would put a tab in a file whose layout counts columns.
 #[test]
-fn tab_types_a_tab_and_the_view_expands_it() {
+fn tab_types_nothing_because_it_is_a_shortcut() {
     let (mut d, mut v) = setup("", 10);
-    tap(&mut d, &mut v, Key::Tab);
+    let did = tap(&mut d, &mut v, Key::Tab);
     tap(&mut d, &mut v, Key::Char('x'));
-    assert_eq!(d.text(), "\tx");
-    assert_eq!(d.cursor(), (0, 5), "one character, five columns");
+    assert_eq!(d.text(), "x");
+    assert!(!did.edited, "a shortcut is not an edit");
+}
+
+/// **A tab already in the file still advances to the next stop.**  The
+/// editor no longer types one; somebody else's file may carry one, and
+/// turning it into spaces on the way *in* would be a decision about
+/// their file that an editor should not make quietly.
+#[test]
+fn a_tab_in_the_text_advances_to_the_next_stop() {
+    let (mut d, _v) = setup("\tx", 10);
+    d.seek(1);
+    assert_eq!(d.cursor(), (0, 4), "one character, four columns");
+    d.seek(2);
+    assert_eq!(d.cursor(), (0, 5), "and the `x` is the fifth");
 }
 
 #[test]

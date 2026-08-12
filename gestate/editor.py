@@ -39,6 +39,38 @@ class EditorError(Exception):
 _LIB = None
 
 
+def _stale(so, crate) -> bool:
+    """Has the crate moved since the library was built?
+
+    **The whole window used to be built once and then never again.**  The
+    check was `if not so.exists()`, so an edit to the Rust took effect
+    the next time somebody deleted the `.so` and not before — and the
+    editor that came up was silently the one from whenever that was.
+    That is the worst shape a defect can have here: everything works,
+    nothing is reported, and the thing you just changed is not in the
+    room.  It cost an afternoon of looking for a key binding that was
+    already right.
+
+    Cheap enough to do every start: a few dozen `stat`s against one, and
+    `cargo` is asked to rebuild only when one of them is newer.  Cargo
+    would work this out too, but only if it is run, and the point is that
+    it was not.
+    """
+    try:
+        built = so.stat().st_mtime
+    except OSError:
+        return True
+    watched = [crate / "Cargo.toml"]
+    watched.extend((crate / "src").rglob("*.rs"))
+    # `gestate-panel` is compiled into it — a painter change is a window
+    # change, and the two crates are one artifact by the time it matters.
+    panel = crate.parent / "panel"
+    if panel.is_dir():
+        watched.append(panel / "Cargo.toml")
+        watched.extend((panel / "src").rglob("*.rs"))
+    return any(p.stat().st_mtime > built for p in watched if p.exists())
+
+
 def _library():
     """The cdylib, built at need and loaded once per process."""
     global _LIB
@@ -50,7 +82,7 @@ def _library():
     root = Path(__file__).resolve().parent.parent
     crate = root / "shell" / "editor"
     so = crate / "target" / "release" / "libgestate_editor.so"
-    if not so.exists():
+    if not so.exists() or _stale(so, crate):
         if shutil.which("cargo") is None:
             raise EditorError(
                 "no libgestate_editor.so and no cargo to build it — "

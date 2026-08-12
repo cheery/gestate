@@ -304,13 +304,50 @@ def test_a_declarations_interior_comment_survives():
 
 def test_trivia_is_one_list_on_the_module():
     """Every inside-a-declaration comment, in source order, spans intact
-    — the accessible half of the design in `spec/comments.md`."""
+    — the accessible half of the design in `spec/comments.md`.
+
+    **The text is what follows the `#`, spacing included.**  It used to
+    be stripped both ends, and the formatter — which prints it straight
+    back after a `#` — turned every `# like this` into `#like this`.  A
+    formatter may move a comment; it may not edit one.
+    """
     from gestate.syntax.parse import parse_module
     from gestate.syntax.tokenize import tokenize
 
     m = parse_module(tokenize("x = 5  # gain\ny = 6  # level\n"))
     assert [(c.text, c.span.start.line) for c in m.comments] == \
-        [("gain", 0), ("level", 1)]
+        [(" gain", 0), (" level", 1)]
+
+
+def test_a_comment_keeps_the_space_after_its_hash():
+    """What a person typed is what comes back — the whole point."""
+    for text in ("# a header\n", "#no space\n", "#   wide\n"):
+        assert format(text + "x = 5\n").startswith(text)
+
+
+def test_a_blank_line_between_declarations_survives():
+    """**Blank lines are the author's paragraphing.**
+
+    Dropping them rewrote every file into one wall of declarations. The
+    formatter owns spacing *within* a declaration; between them the
+    grouping is a decision somebody made about their own program, and
+    nothing in the tree could reconstruct it.
+
+    One blank for any gap, not the exact count: two and three mean the
+    same to a reader, and keeping whatever it was handed is what stops a
+    formatter being idempotent.
+    """
+    out = format("a : Int\na = 1\n\nb : Int\nb = 2\n\n\nc : Int\nc = 3\n")
+    assert out == "a : Int\na = 1\n\nb : Int\nb = 2\n\nc : Int\nc = 3\n"
+    assert format(out) == out, "and it settles"
+
+
+def test_a_header_stays_against_its_declaration():
+    """The gap belongs *before* the comment, not between it and what it
+    is about — a comment is a thing on a line too, so the gap after it
+    is measured from it."""
+    out = format("a = 1\n\n# what b is\nb = 2\n")
+    assert out == "a = 1\n\n# what b is\nb = 2\n"
 
 
 # ── Idempotency ──────────────────────────────────────────────────────────────

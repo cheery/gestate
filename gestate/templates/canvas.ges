@@ -1,0 +1,34 @@
+#: A face for the instrument — a fader and a meter you can touch.
+#:
+#: A `substrate : Sig Sub` is the program's picture, interpreted at frame
+#: rate while `sound` runs compiled.  Nothing here is a widget: a fader is
+#: a picture with a channel attached.  `onTouchY` reports a 0..1 fraction
+#: of this element's own extent and counts from the top.  `peak` is
+#: written by the host — the instrument's own loudness.
+
+cutoff : Chan Float
+cutoff = chan
+
+peak : Chan Float
+peak = chan
+
+level : Sig Float
+level = 0.5 ::: mkSig (wait cutoff)
+
+loud : Sig Float
+loud = 0.0 ::: mkSig (wait peak)
+
+grey : Sig Colour
+grey = colour 60 60 70
+
+handle : Float -> Sub
+handle v = Shift 0 (floor (mix (0.0 - 100.0) 100.0 v)) (Rect 40 10 (RGB 220 220 200))
+
+fader : Sig Sub
+fader = onTouchY cutoff (over (rect 40 200 grey) (!handle level))
+
+meter : Float -> Sub
+meter v = Sized 20 200 (Rect 20 (floor (v * 180.0)) (RGB 60 200 90))
+
+substrate : Sig Sub
+substrate = moveXY 120 140 (fader `row` gap 30 0 `row` !meter loud)

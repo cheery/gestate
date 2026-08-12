@@ -1,0 +1,19 @@
+#: A knob — a parameter you can turn while it sounds.
+#:
+#: Control rate: held across a block, drawn as a slider beside this line.
+#: A `Float` knob runs 0..1 and the program scales it, so the range is
+#: where you can read it.  Clamp it — `clamp` is scalar, so `!` lifts it.
+#: One channel each, never a record: a record's type changes when you add
+#: a knob, and live migration carries state by shape.
+
+cutoff : Sig Float
+cutoff = mkKnob 0.4
+
+unit : Float -> Float
+unit x = clamp 0.0 1.0 x
+
+hzOfKnob : Float -> Float
+hzOfKnob x = 150.0 + 4800.0 * unit x * unit x
+
+cutoffHz : Sig Float
+cutoffHz = !hzOfKnob cutoff

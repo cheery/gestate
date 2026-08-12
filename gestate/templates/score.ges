@@ -1,0 +1,18 @@
+#: A piece the file plays itself.
+#:
+#: `++` sequences, `||` overlays, `'` is one note.  `>>= voices.lead`
+#: hands the score to a bank and names it lexically, which is what lets
+#: the checker say this piece fits this instrument.  `[: Void :]` is the
+#: type that means performable.  Needs the `voices` template beside it.
+
+bpm : Int
+bpm = 96
+
+chord : Int -> Int -> Int -> [: Key :]
+chord a b c = '(Key a 96) || '(Key b 84) || '(Key c 78)
+
+tune : [: Key :]
+tune = '(Key 60 100) ++ '(Key 64 100) ++ '(Key 67 100) ++ chord 60 64 67
+
+score : [: Void :]
+score = tune >>= voices.lead

@@ -77,10 +77,25 @@ pub struct Trouble {
     pub message: String,
 }
 
+/// Every `_` on one line, and what each of them wants.
+///
+/// **One of these per line, not per hole.**  Two holes on a line are two
+/// facts about the same row of the margin, and the model joins them
+/// before they get here — `_ : Sig Float, _ : Float` — because which of
+/// several things to say in one row is a decision, and decisions live on
+/// that side.
+#[derive(Clone, PartialEq, Debug)]
+pub struct Hole {
+    pub line: usize,
+    /// Already joined and already ordered by column.
+    pub says: String,
+}
+
 #[derive(Clone, PartialEq, Debug, Default)]
 pub struct Furniture {
     pub status: String,
     pub trouble: Vec<Trouble>,
+    pub holes: Vec<Hole>,
     pub knobs: Vec<Knob>,
     pub banks: Vec<Bank>,
     pub playing: bool,
@@ -132,6 +147,10 @@ impl Furniture {
                 "trouble" => f.trouble.push(Trouble {
                     line: num(p.get(1)),
                     message: p.get(2).copied().unwrap_or("").into(),
+                }),
+                "hole" if p.len() >= 3 => f.holes.push(Hole {
+                    line: num(p.get(1)),
+                    says: p[2].into(),
                 }),
                 "knob" if p.len() >= 7 => f.knobs.push(Knob {
                     name: p[1].into(),
@@ -193,6 +212,14 @@ impl Furniture {
                         // not say must not have its rows refused.
                         can: p.get(4).copied() != Some("0"),
                         step: p.get(5).copied().unwrap_or("").into(),
+                        // **Absent means "however it is refused"**, so a
+                        // model that says nothing keeps the old
+                        // behaviour exactly: `steal`'s greying rode on
+                        // `can` before this field existed.
+                        dim: match p.get(6).copied() {
+                            Some(d) => d == "1",
+                            None => p.get(4).copied() == Some("0"),
+                        },
                     });
                 }
                 // Unknown, or too short to mean anything.  Skipped.
@@ -220,6 +247,11 @@ impl Furniture {
     /// And the complaint about a line, if any.
     pub fn trouble_at(&self, line: usize) -> Option<&Trouble> {
         self.trouble.iter().find(|t| t.line == line)
+    }
+
+    /// And the holes on a line, already joined.
+    pub fn hole_at(&self, line: usize) -> Option<&Hole> {
+        self.holes.iter().find(|h| h.line == line)
     }
 }
 
@@ -252,6 +284,27 @@ pub enum Order {
     Goto(usize),
     /// Type this, as if it had been typed.
     Insert(String),
+    /// Close the list, because the command that was running is finished
+    /// with it.
+    ///
+    /// **The one command that ends its own dialog.**  Return on a
+    /// finished call means *again* — the next match, the next take —
+    /// which is right for `find` and wrong for `template`, where again
+    /// means a second copy of the same code.  So the model says when it
+    /// is done, rather than the view keeping a list of which commands
+    /// repeat.
+    Close,
+    /// Put this in the question the list is asking, as if it had been
+    /// typed there.
+    ///
+    /// **The model answering a question it was asked.**  `fits` at a
+    /// hole knows the type before the person does — inference has it —
+    /// so the box is filled rather than left for them to retype what the
+    /// compiler already said.  It is the same move a directory row makes
+    /// with `step`, from the other direction: there the model computes
+    /// the next query because path arithmetic is its business, here
+    /// because the type is.
+    Fill(String),
     /// Look at the canvas, or at the source.
     Show(String),
 }
@@ -270,6 +323,8 @@ impl Order {
             // inserted is somebody's text, and deciding it is not worth
             // inserting is not this layer's decision to make.
             "insert" => Some(Order::Insert(arg(1).into())),
+            "fill" => Some(Order::Fill(arg(1).into())),
+            "close" => Some(Order::Close),
             "show" => Some(Order::Show(arg(1).into())),
             _ => None,
         }

@@ -47,6 +47,16 @@ class Bench:
     def audition(self, text):
         self.log.append(("audition", text))
 
+    def say(self, message):
+        """What a worker reports when it lands — `Workbench.say`.
+
+        Here because the export commands answer twice: once at once, and
+        once from the thread doing the work.  A double without it turned
+        the second answer into an exception on a daemon thread, which
+        pytest reports as a warning and a person would never see at all.
+        """
+        self.log.append(("say", message))
+
     def toggle(self):
         self.on = not self.on
         return self.on
@@ -312,7 +322,14 @@ def test_every_command_can_be_run_headless_without_raising():
               "Named": "cutoff", "a": 0.5,
               # A name that is certainly not there, so `open` and
               # `steal` answer without touching the disk.
-              "Path": "no-such-file.ges"}
+              "Path": "no-such-file.ges",
+              # A real one, so `template` gets as far as the view and
+              # answers that a detached session has nowhere to put it —
+              # which is the refusal this sweep exists to hear.
+              "Template": "knob",
+              # And a no, so `overwrite` answers without an export
+              # having been asked for.
+              "Answer": "no"}
     for verb in vocabulary():
         args = tuple(sample[a] for a in verb.args)
         said = s.run(verb.name, *args)
@@ -386,6 +403,471 @@ def test_what_answers_from_the_compiler():
     assert s.run("what", "cutoff") == "cutoff : Chan Int"
     assert s.run("what", "drive") == "drive : Chan Float"
     assert s.run("what", "nobody") == "no declaration `nobody`"
+
+
+class _Written:
+    """A view holding source, which is what `fits` asks the compiler about."""
+
+    SYNTH = ("cutoff : Sig Float\n"
+             "cutoff = mkKnob 0.4\n"
+             "\n"
+             "sound : Sig Float\n"
+             "sound = 0.2 * sine 220.0\n")
+
+    def __init__(self, text=None):
+        self._text = self.SYNTH if text is None else text
+        self.showing = "source"
+
+    def text(self):
+        return self._text
+
+
+def test_fits_answers_about_the_text_in_the_window():
+    """**The unsaved program is the one the question is about.**
+
+    `--fits` from the shell reads a file; a person asking in the editor
+    is asking about what is in front of them, including the line they
+    have not saved.  So this drives the real compiler over the view's
+    text, and the answer names the file's *own* declarations — which is
+    the half `--fits` on the saved file could not have known.
+    """
+    s = session(view=_Written())
+    said = s.run("fits", "Sig Float")
+    assert said.endswith("fit Sig Float"), said
+    page = "\n".join(s.page)
+    assert "what fits Sig Float:" in page
+    assert "cutoff : Sig Float" in page, "the file's own names are the point"
+    assert "sound : Sig Float" in page
+
+
+def test_fits_reports_a_file_that_does_not_compile():
+    """Mid-line is the ordinary case, so the complaint *is* the answer.
+
+    Answering "nothing fits" about a file that never got as far as
+    inference would be the `canvas` defect again — a fact about the
+    clock reported as a fact about the program.
+    """
+    s = session(view=_Written("sound : Sig Float\nsound = ((\n"))
+    said = s.run("fits", "Sig Float")
+    assert said == "fits Sig Float: the file does not compile"
+    assert s.page and "what fits Sig Float:" in s.page[0]
+
+
+def test_fits_with_no_type_asks_rather_than_guessing():
+    """A type is typed, not chosen — there is no list of every type."""
+    s = session(view=_Written())
+    assert s.run("fits", "") == "fits: which type?"
+    assert s.run("fits", "   ") == "fits: which type?"
+
+
+class _Inserting:
+    """A view that remembers what was put into it."""
+
+    def __init__(self):
+        self.showing = "source"
+        self.put = []
+
+    def text(self):
+        return ""
+
+    def insert(self, text):
+        self.put.append(text)
+        return True
+
+
+def test_template_inserts_the_program_and_not_the_prose():
+    """**The documentation stays behind**, which is the whole rule.
+
+    A template's header is written to be read in the list — it says what
+    the idea is and why it is spelled that way — and pasting it would put
+    somebody else's explanation into a file where it goes stale the
+    moment the line under it changes.
+    """
+    view = _Inserting()
+    s = session(view=view)
+    assert s.run("template", "knob") == "inserted `knob`"
+    put = view.put[0]
+    assert "mkKnob" in put, "the program is the point"
+    assert "#" not in put, f"a comment was pasted: {put!r}"
+    # And the reasoning is still readable, on the page rather than in the
+    # file — which is where it was worth having in the first place.
+    assert s.page and "knob" in s.page[0]
+    assert any("control rate" in line.lower() for line in s.page)
+
+
+def test_a_second_return_keeps_the_template_instead_of_pasting_it_twice():
+    """**Return again means done, not again.**
+
+    A finished call repeats on Return — the next match, the next take —
+    which is right for `find` and wrong here, where again is a second
+    copy of the same code pasted under the first.
+    """
+    view = _Inserting()
+    view.closed = False
+    view.close_list = lambda: setattr(view, "closed", True) or True
+    s = session(view=view)
+    assert s.run("template", "knob") == "inserted `knob`"
+    assert s.run("template", "knob") == "kept `knob`"
+    assert len(view.put) == 1, "the template was pasted twice"
+    assert view.closed, "the dialog stayed open"
+
+
+def test_escape_takes_a_pasted_template_back():
+    """`Esc` out of a dialog means *never mind*, and for a paste that is
+    taking it back.  One insert is one edit, so one undo is exact."""
+    view = _Inserting()
+    view.undone = 0
+    view.undo = lambda: (setattr(view, "undone", view.undone + 1), True)[1]
+    s = session(view=view)
+    s.run("template", "knob")
+    assert act(s, "shut") == "undid `knob`"
+    assert view.undone == 1
+    # And only once — a second `shut` has nothing standing.
+    assert act(s, "shut") == ""
+    assert view.undone == 1
+
+
+def test_backspacing_out_of_a_template_takes_it_back_too():
+    """**A cancel is a cancel, whichever key it was.**
+
+    The palette steps back an argument and asks again, which is the same
+    *never mind* `Esc` means — and the rule the dialog is built on is
+    that a template you did not keep does not come out.
+    """
+    view = _Inserting()
+    view.undone = 0
+    view.undo = lambda: (setattr(view, "undone", view.undone + 1), True)[1]
+    s = session(view=view)
+    s.run("template", "knob")
+    act(s, "wants\ttemplate\t0\t")
+    assert view.undone == 1, "backing out left the paste behind"
+    assert s.said[-1] == "undid `knob`"
+    # Backing out of some other command's argument is not about this.
+    s.run("template", "knob")
+    act(s, "wants\tfind\t0\t")
+    assert view.undone == 1
+
+
+def test_doing_something_else_settles_a_pasted_template():
+    """Undoable while it is the thing you are looking at, and not after.
+
+    An `Esc` three commands later taking back a paste you had forgotten
+    about would be the editor undoing your work behind you.
+    """
+    view = _Inserting()
+    view.undone = 0
+    view.undo = lambda: (setattr(view, "undone", view.undone + 1), True)[1]
+    s = session(view=view)
+    s.run("template", "knob")
+    s.run("play")
+    act(s, "shut")
+    assert view.undone == 0, "a settled template was undone anyway"
+
+
+def test_template_refuses_by_name():
+    view = _Inserting()
+    s = session(view=view)
+    assert s.run("template", "nosuch") == "no template `nosuch`"
+    assert s.run("template", "") == "template: which one?"
+    assert view.put == [], "a refusal put nothing in the file"
+
+
+def test_a_template_argument_offers_the_directory():
+    """`Template` is its own type so that the list can appear — the rule
+    `Named` and `Path` already follow."""
+    s = session()
+    s.asking = ("template", 0, "")
+    offered = {name for name, _note in s.choices()}
+    assert {"knob", "voices"} <= offered
+    # Ranked, and the summary is searched too: somebody reaching for a
+    # snippet remembers what it does sooner than what it is called.
+    s.asking = ("template", 0, "polyphonic")
+    assert s.choices()[0][0] == "voices"
+
+
+class _Editing:
+    """A view holding text that a command may replace."""
+
+    def __init__(self, text):
+        self._text = text
+        self.showing = "source"
+
+    def text(self):
+        return self._text
+
+    def replace(self, text):
+        self._text = text
+        return True
+
+
+MESSY = "a : Int\na  =   1\n\nb : Int\nb   =    2\n"
+
+
+def test_fmtAll_lays_out_the_whole_file():
+    view = _Editing(MESSY)
+    s = session(view=view)
+    assert s.run("fmtAll") == "laid out the file"
+    # The blank line the author left between them is theirs, and stays.
+    assert view._text == "a : Int\na = 1\n\nb : Int\nb = 2\n"
+    # **Idempotent, and it says so rather than doing nothing quietly.**
+    assert s.run("fmtAll") == "already laid out"
+
+
+def test_fmt_takes_whole_declarations_and_says_which():
+    """A range landing in a body widens to the declaration around it.
+
+    Half a declaration is not something the parser can lay out, so the
+    only honest choices are to widen or to refuse — and widening while
+    *saying* what was taken is the one that does what somebody meant.
+    """
+    view = _Editing(MESSY)
+    s = session(view=view)
+    assert s.run("fmt", 5, 5) == "laid out lines 4-5"
+    assert "a  =   1" in view._text, "the other declaration was not touched"
+    assert "b = 2" in view._text
+
+
+def test_fmt_says_when_a_range_holds_no_declaration():
+    view = _Editing(MESSY)
+    s = session(view=view)
+    assert s.run("fmt", 3, 3) == "fmt: no declaration on lines 3-3"
+    assert view._text == MESSY, "a refusal changed the file"
+
+
+def test_inferAll_writes_the_types_the_compiler_already_knows():
+    """The compiler inferred these to compile the file; this writes them
+    down.  A signature somebody typed is left alone — the author's
+    spelling is the authority."""
+    view = _Editing("cutoff = mkKnob 0.4\n\n"
+                    "sound : Sig Float\nsound = 0.2 * sine 220.0\n")
+    s = session(view=view)
+    assert s.run("inferAll") == "wrote `cutoff`'s signature"
+    assert view._text.startswith("cutoff : ")
+    assert view._text.count("sound : Sig Float") == 1, "an authored one moved"
+    assert s.run("inferAll") == "every declaration already has a signature"
+
+
+def test_infer_tells_a_missing_name_from_an_annotated_one():
+    """`canvas`'s lesson: two different facts need two different answers."""
+    view = _Editing("sound : Sig Float\nsound = 0.2 * sine 220.0\n")
+    s = session(view=view)
+    assert s.run("infer", "sound") == "`sound` already has a signature"
+    assert s.run("infer", "nobody") == "no declaration `nobody`"
+    assert s.run("infer", "") == "infer: which declaration?"
+
+
+def test_an_export_asks_before_it_overwrites(tmp_path):
+    """**Asked, not refused** — which is where this parts from `steal`.
+
+    Writing over the plugin you exported an hour ago is the ordinary
+    thing; refusing it would make the command useless exactly when it is
+    working.  So the question is asked, and the palette shows two rows.
+    """
+    taken = tmp_path / "already.wav"
+    taken.write_text("not really a wav")
+    view = _Editing("sound : Sig Float\nsound = 0.2 * sine 220.0\n")
+    s = session(view=view)
+    s.bench.path = tmp_path / "synth.ges"
+    said = s.run("exportWav", str(taken))
+    assert said == "already.wav exists — you want to overwrite? [y/n]"
+    assert s.asking == ("overwrite", 0, "")
+    # The two rows, and `y`/`n` filter to one — `[y/n]` at the keyboard
+    # without an inline prompt, which would be a second mode.
+    assert [r[0] for r in s.choices()] == ["yes", "no"]
+    s.asking = ("overwrite", 0, "n")
+    assert [r[0] for r in s.choices()] == ["no"]
+    # And a no leaves the file exactly as it was.
+    assert s.run("overwrite", "no") == "left already.wav alone"
+    assert taken.read_text() == "not really a wav"
+
+
+def test_a_yes_does_not_stand_for_the_next_time(tmp_path):
+    """**A confirmation must never become standing consent.**
+
+    The answer is cleared before the export starts, so exporting over the
+    same name again asks again.  Left set, the first yes would answer
+    every later export to that file silently — which is the one thing a
+    question like this must not do.
+    """
+    taken = tmp_path / "again.wav"
+    taken.write_text("x")
+    s = session(view=_Editing("sound : Sig Float\nsound = sine 220.0\n"))
+    s.bench.path = tmp_path / "synth.ges"
+    # **The confirmation is what is under test, not the renderer.**  A
+    # real render here would be eight seconds of audio to check a field
+    # is cleared, and `test_templates.py` already builds what compiles.
+    started = []
+    s._start_export = lambda kind, want: started.append((kind, want)) or "go"
+    s.run("exportWav", str(taken))
+    assert s.confirming is not None
+    s.run("overwrite", "yes")
+    assert s.confirming is None, "the yes was left standing"
+    # And the next one asks, rather than going straight through.
+    assert s.run("exportWav", str(taken)).endswith("[y/n]")
+
+
+class _AtCaret:
+    """A view standing at a character offset, which can be filled."""
+
+    def __init__(self, text, at):
+        self._text, self._at = text, at
+        self.showing = "source"
+        self.filled = None
+
+    def text(self):
+        return self._text
+
+    def caret(self):
+        return self._at
+
+    def fill(self, text):
+        self.filled = text
+        return True
+
+
+HOLED = "sound : Sig Float\nsound = _ * sine 220.0\n"
+_START = len("sound : Sig Float") + 1 + 8          # the `_` itself
+
+
+def test_a_hole_is_found_from_either_end_of_it():
+    """**Both ends, because both are where a hand leaves the caret.**
+
+    You arrow onto a `_` and stop before it, or you delete what was there
+    and stop after it.  Insisting on one would make the affordance work
+    half the times it is reached for, which is worse than not having it.
+    """
+    from gestate.typecheck import holes_in_source
+
+    holes = holes_in_source(HOLED)
+    assert holes == [(2, 8, "Sig Float")]
+    for at, where in ((_START, "on it"), (_START + 1, "just after")):
+        s = session(view=_AtCaret(HOLED, at))
+        s.bench.holes = holes
+        assert s.hole_at_caret() == "Sig Float", where
+    s = session(view=_AtCaret(HOLED, _START - 5))
+    s.bench.holes = holes
+    assert s.hole_at_caret() is None, "a caret nowhere near it"
+
+
+def test_fits_at_a_hole_answers_without_being_told_the_type():
+    """Inference already knows what belongs there; retyping the
+    compiler's own answer is the affordance failing where it is most
+    wanted."""
+    from gestate.typecheck import holes_in_source
+
+    view = _AtCaret(HOLED, _START)
+    s = session(view=view)
+    s.bench.holes = holes_in_source(HOLED)
+    said = s.run("fits", "")
+    assert said.endswith("fit Sig Float"), said
+    assert s.page and "what fits Sig Float:" in s.page[0]
+
+
+def test_the_margin_joins_the_holes_on_one_line():
+    """One row per line, not per hole — the margin has one row to say
+    them in, and which of several things to say there is a decision."""
+    s = session()
+    s.bench.holes = [(5, 17, "Float"), (5, 8, "Sig Float"), (9, 4, "Int")]
+    rows = [l for l in furniture(s).splitlines() if l.startswith("hole\t")]
+    # Ordered by column within the line, because that is the reading order.
+    assert rows == ["hole\t5\t_ : Sig Float, _ : Float", "hole\t9\t_ : Int"]
+
+
+class _Filling:
+    """A view that fills its box the way the window does."""
+
+    def __init__(self, path):
+        self.showing = "source"
+        self.box = ""
+        self.fills = 0
+
+    def text(self):
+        return "sound : Sig Float\nsound = sine 220.0\n"
+
+    def caret(self):
+        return 0
+
+    def fill(self, text):
+        self.box = text
+        self.fills += 1
+        return True
+
+
+def test_an_export_pins_its_name_and_leaves_the_box_empty(tmp_path):
+    """**Marked, not typed** — the rule `open` already follows.
+
+    Filling the box made it impossible to clear: backspace emptied it,
+    the model filled it straight back in, and backspace-on-empty — which
+    is how you step *out* of a question — could never be reached.  A row
+    has no such failure mode: the box stays empty, the row is one Return
+    away, and the first letter typed is a new name.
+    """
+    view = _Filling(tmp_path)
+    s = session(view=view)
+    s.bench.path = tmp_path / "demo.ges"
+    (tmp_path / "other.wav").write_text("x")
+
+    act(s, "wants\texportWav\t0\t")
+    assert view.fills == 0, "nothing should be typed into the box"
+    rows = s.choices()
+    assert rows[0][0] == "demo.wav", "the proposal is not at the top"
+    assert rows[0][1] == "new", "and it says the file is not there yet"
+    assert "other.wav" in [r[0] for r in rows], "the directory is still shown"
+
+    # The cursor opens on it, which is what `here` means on the wire.
+    marked = [l.split("\t")[1] for l in furniture(s).splitlines()
+              if l.startswith("choice\t") and l.split("\t")[3] == "1"]
+    assert marked == ["demo.wav"]
+
+    # And typing narrows normally — the proposal is not in the way.
+    act(s, "wants\texportWav\t0\toth")
+    assert [r[0] for r in s.choices()] == ["other.wav"]
+
+
+def test_a_plain_render_does_not_impose_a_length():
+    """**The piece's own length, not a number this layer picked.**
+
+    `audioperform` works the duration out of the score; passing one over
+    the top of it made every render the same arbitrary size — a long
+    piece cut short and a synth with no piece given seconds of tone that
+    meant nothing.  A bar range is the one case where the caller knows
+    better, because it said so.
+    """
+    from pathlib import Path
+
+    import gestate.audioperform as ap
+    from gestate.session import _export_wav
+
+    seen = []
+
+    def spy(argv):
+        seen.append(list(argv))
+        return 0
+
+    was, ap.main = ap.main, spy
+    try:
+        _export_wav("sound : Sig Float\nsound = sine 220.0\n", Path("/tmp/x.wav"))
+        assert "--seconds" not in seen[-1], \
+            "a plain render imposed a length the score did not ask for"
+        # And a bar range does say, because there it is the caller who knows.
+        _export_wav("sound : Sig Float\nsound = sine 220.0\n",
+                    Path("/tmp/x.wav"), span=(0.0, 4.0))
+        assert seen[-1][seen[-1].index("--seconds") + 1] == "4.0"
+    finally:
+        ap.main = was
+
+
+def test_overwrite_answers_only_a_question_that_was_asked():
+    s = session()
+    assert s.run("overwrite", "yes") == "nothing is waiting to be overwritten"
+
+
+def test_an_export_of_nothing_is_a_refusal_not_a_build():
+    """`clang` on an empty buffer is a long wait for an answer about a
+    program that is not there."""
+    s = session()
+    assert s.run("exportClap", "") == "nothing to export yet"
+    assert s.run("exportWav", "") == "nothing to export yet"
 
 
 def test_performing_says_what_a_played_note_does():
@@ -788,16 +1270,28 @@ def test_playing_means_the_beat_is_moving_not_the_thread_is_alive():
     assert "play\t1\t" in furniture(it)
 
 
-def test_every_shortcut_takes_control():
+def test_every_shortcut_takes_control_except_tab():
     """There is one mode and you are typing in it, so a bare key is text.
 
     `play` was advertised as `Space` for a while, inherited from a window
     where the piano had the focus.  In an editor that is either a
     shortcut that never fires or an editor you cannot type a space into.
+
+    **`Tab` is the one exemption, and it is the language that earns it.**
+    A space is text in every line; a tab is not text here at all — the
+    layout rule counts columns and a tab's width is the *renderer's*
+    choice, so a tab-indented file means something other than it looks,
+    and no `.ges` in the tree contains one.  So the key is spent on the
+    question every other editor spends it on, and `keys.rs` no longer
+    inserts one.
+
+    The exemption is a *list*, checked exactly, so a second bare key
+    cannot arrive by looking like the first.
     """
     bare = {name: key for name, key in KEYS.items()
             if not key.startswith("Ctrl-")}
-    assert bare == {}, f"these could not work in a text editor: {bare}"
+    assert bare == {"fits": "Tab"}, \
+        f"these could not work in a text editor: {bare}"
 
 
 def test_a_shortcut_reaches_the_window_as_the_list_spells_it():
@@ -810,6 +1304,11 @@ def test_a_shortcut_reaches_the_window_as_the_list_spells_it():
     assert advertised["find"] == "Ctrl-F"
     assert advertised["apply"] == "Ctrl-S"
     assert advertised["play"] == "Ctrl-Space"
+    # The exemption is advertised the same way, because the window looks
+    # it up in the same table — a bare key that the list spelled
+    # differently would be the eleven-advertised-two-implemented defect
+    # with one entry instead of nine.
+    assert advertised["fits"] == "Tab"
 
 
 class _Showing:
@@ -865,7 +1364,7 @@ def _looking(tmp_path):
 def test_a_path_argument_offers_what_is_in_the_directory(tmp_path):
     it, _room = _looking(tmp_path)
     act(it, "wants\topen\t0\t")
-    shown = [text for text, _note, _can, _step in it.choices()]
+    shown = [text for text, _note, _can, _step, _dim in it.choices()]
     assert shown[0] == "../", "going up is where the eye already is"
     assert "deeper/" in shown and "one.ges" in shown and "two.ges" in shown
 
@@ -889,18 +1388,18 @@ def test_going_up_stacks_rather_than_jumping(tmp_path):
     """
     it, _room = _looking(tmp_path)
     act(it, "wants\topen\t0\t")
-    label, _note, _can, step = it.choices()[0]
+    label, _note, _can, step, _dim = it.choices()[0]
     assert (label, step) == ("../", "../")
 
     act(it, "wants\topen\t0\t../")
-    label, _note, _can, step = it.choices()[0]
+    label, _note, _can, step, _dim = it.choices()[0]
     assert (label, step) == ("../", "../../"), "and again, and again"
 
 
 def test_a_query_narrows_without_losing_the_way_up(tmp_path):
     it, _room = _looking(tmp_path)
     act(it, "wants\topen\t0\ttwo")
-    assert [t for t, _n, _c, _s in it.choices()] == ["two.ges"]
+    assert [t for t, _n, _c, _s, _d in it.choices()] == ["two.ges"]
 
 
 def test_opening_a_file_asks_the_window_for_it(tmp_path):
@@ -917,7 +1416,7 @@ def test_steal_greys_what_is_taken_and_refuses_it(tmp_path):
     is not something a name box should do by accident."""
     it, _room = _looking(tmp_path)
     act(it, "wants\tsteal\t0\t")
-    rows = {text: can for text, _note, can, _step in it.choices()}
+    rows = {text: can for text, _note, can, _step, _dim in it.choices()}
     assert rows["one.ges"] is False and rows["two.ges"] is False
     assert rows["deeper/"] is True, "a directory is a step, not a name"
     assert rows["../"] is True
@@ -946,7 +1445,7 @@ def test_a_file_is_taken_from_where_the_list_walked_to(tmp_path):
     it.view = win
 
     act(it, "wants\topen\t0\tdeeper/")
-    assert [t for t, _n, _c, _s in it.choices()] == ["../", "two.ges"]
+    assert [t for t, _n, _c, _s, _d in it.choices()] == ["../", "two.ges"]
     it.run("open", "two.ges")
     assert win.wanted == str(room / "deeper" / "two.ges"), \
         "the one in the directory the list had walked to"
@@ -955,7 +1454,7 @@ def test_a_file_is_taken_from_where_the_list_walked_to(tmp_path):
 def test_a_directory_is_a_step_and_a_file_is_the_answer(tmp_path):
     it, _room = _looking(tmp_path)
     act(it, "wants\topen\t0\t")
-    rows = {text: step for text, _note, _can, step in it.choices()}
+    rows = {text: step for text, _note, _can, step, _dim in it.choices()}
     assert rows["deeper/"] == "deeper/", "choosing it walks in"
     assert rows["../"] == "../"
     assert rows["one.ges"] == "", "a file ends the question"
@@ -971,13 +1470,13 @@ def test_reopening_the_list_starts_where_the_file_is(tmp_path):
     """
     it, _room = _looking(tmp_path)
     act(it, "wants\topen\t0\t")
-    home = [t for t, _n, _c, _s in it.choices()]
+    home = [t for t, _n, _c, _s, _d in it.choices()]
     act(it, "wants\topen\t0\tdeeper/")
-    assert [t for t, _n, _c, _s in it.choices()] != home
+    assert [t for t, _n, _c, _s, _d in it.choices()] != home
 
     act(it, "asked")                       # what opening the list sends
     act(it, "filter\t")
     assert it.asking is None
     assert it.choices() == [], "nothing is being asked for"
     act(it, "wants\topen\t0\t")
-    assert [t for t, _n, _c, _s in it.choices()] == home
+    assert [t for t, _n, _c, _s, _d in it.choices()] == home

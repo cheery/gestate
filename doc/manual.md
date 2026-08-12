@@ -884,6 +884,9 @@ gestate/          the compiler
   command.ges       what the editor can be asked to do.  The palette is
                     derived from these declarations, so a capability
                     cannot exist without a name, a type and a sentence
+  templates/        the language's ideas, ready to paste — one file per
+                    idea, its header the description and its body what
+                    you get, comments taken off on the way in
   session.py        a gesture becomes a transition and a sentence
   workbench.py      …and the wire to the window.  `python -m
                     gestate.workbench file.ges` is the editor
@@ -1014,12 +1017,14 @@ inside a `_` would be one you had to prepare for.  Names that fit
 everything — `id`, `const`, `(@)` — are left out: they fit by being
 unconstrained rather than by being right.
 
-Inside a `_` it is still the question you want, and the search has a half
-with no command line in it — `typecheck.fits_in_scope` takes the type
-rather than a string, so an editor can ask it of a hole's **own** type
-with nothing retyped in the middle.  The retired pygame editor pressed
-`Tab` to do that; **the workbench has not taken it back up**, so today
-the question is asked from the shell, with the type written out.
+**And it is in the editor**, because the search has a half with no
+command line in it: `typecheck.fits_in_source` takes the type and the
+program as text, so the workbench answers about **what is in the window,
+unsaved**, rather than about the last save.  `Tab` is the shortcut — the
+one bare key the editor has, spent here because a tab is not text in a
+language whose layout rule counts columns.  A file that has not got as
+far as inference says so, which is the ordinary case while you are still
+typing the line that needs the answer.
 
 **`--audio`** puts `signal.ges`, `audio.ges` and `synth.ges` in front, so
 `Sig`, `Adsr` and the rest are in scope, `--query adsr` reaches the

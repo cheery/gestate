@@ -258,6 +258,122 @@ goto n = Stated
 what : Named a -> Command
 what n = Stated
 
+#: What in scope could stand where a type is wanted — `Sig Float`,
+#: `Int -> Float`, `Adsr`.  The other direction from `what`: that one
+#: takes a name and answers with a type, this one takes a type and
+#: answers with names.
+#:
+#: **`Text` and not `Named`**, because the argument is a type somebody
+#: writes rather than a name that already exists — there is no list to
+#: offer, and a type has a space in it (`Sig Float`), which is the whole
+#: reason it must be the type the space rule already knows about.
+#:
+#: The answer comes from inference over the text in the window, so it is
+#: about the program you have rather than the one you last saved, and a
+#: file that does not compile says so instead of answering "nothing".
+fits : Text -> Command
+fits wanted = Stated
+
+#: A snippet to paste — one of the language's ideas, ready to have.
+#:
+#: **Its own type, and that is what makes the list appear**, which is the
+#: rule `Named` and `Path` already follow: a template has a small,
+#: knowable set of next steps — what is in `gestate/templates/` — so the
+#: view can offer them.
+type Template = Text
+
+#: Put one of the language's ideas at the cursor: a knob, a voice bank, a
+#: metronome, a tape echo, a canvas, a piece.
+#:
+#: **The documentation stays behind.**  A template's header is there to
+#: help you choose, and once you have chosen it is somebody else's prose
+#: in your file — so the list shows it and the paste does not carry it.
+#:
+#: An inserted template is an ordinary text edit, so `spec/editor.md`'s
+#: rule holds with no special case: undo is text undo, and nothing
+#: records what was pasted except the text itself.
+template : Template -> Command
+template name = Stated
+
+# ── Laying it out ────────────────────────────────────────────────────────
+
+#: Lay the whole file out — what `python -m gestate.fmt` would write.
+#:
+#: One edit and therefore one `undo`, and the caret keeps its place: a
+#: format you did not want costs one keystroke to be rid of, which is the
+#: only thing that makes it safe to press.
+fmtAll : Command
+fmtAll = Stated
+
+#: Lay out only the declarations these lines touch, counting from one.
+#:
+#: **Whole declarations, always.**  A range landing in the middle of a
+#: body widens to the declaration around it — half a declaration is not
+#: something the parser can lay out — and the sentence says what it
+#: actually took, so the widening is visible rather than a surprise.
+fmt : Int -> Int -> Command
+fmt first last = Stated
+
+#: Write a signature above every declaration that has none.
+#:
+#: The compiler inferred these types in order to compile the file, so
+#: this writes down an answer it already has rather than computing a new
+#: one.  A signature somebody typed is left alone: the author's spelling
+#: is the authority, and replacing it with the same type spelled
+#: differently would be a diff with no change in it.
+inferAll : Command
+inferAll = Stated
+
+#: The same, for one declaration — the line you are looking at.
+infer : Named a -> Command
+infer n = Stated
+
+# ── Leaving the workshop ─────────────────────────────────────────────────
+
+#: Yes or no.  **Its own type so that the two rows can appear** — the
+#: rule `Named`, `Path` and `Template` already follow.
+#:
+#: `y` and `n` filter it to one row, so it reads as `[y/n]` at the
+#: keyboard while staying an ordinary question in the list.  An inline
+#: prompt that captured the keyboard would be a mode, and there is one
+#: mode here.
+type Answer = Text
+
+#: Build this file as a CLAP plugin.  Given no path: `~/.clap/<name>.clap`,
+#: which is where a host looks.
+#:
+#: **The work is not done here.**  A plugin runs `clang` and `cargo`, so
+#: the command starts it and says so, and the status line says again when
+#: it lands — the same shape `apply` has, and for the same reason: a
+#: window that waits for a build is a frozen window.
+exportClap : Path -> Command
+exportClap path = Stated
+
+#: Render this file to a `.wav`.  Given no path, one beside the source.
+exportWav : Path -> Command
+exportWav path = Stated
+
+#: Render the bars between two numbers, counting from one.
+#:
+#: **Played from the top and cut, never started at the bar.**  A synth's
+#: sound at bar five is what its filters and envelopes have been doing
+#: since bar one, so starting the render there would give you a different
+#: piece that happens to share a score.  The whole thing is played to the
+#: end of the last bar and the front is taken off, which is what a bounce
+#: does everywhere else.
+exportWavAt : Int -> Int -> Path -> Command
+exportWavAt first last path = Stated
+
+#: Answer the question an export asked about a file that is already there.
+#:
+#: **Asked, not refused** — which is where this parts company with
+#: `steal`.  Taking a name that is taken is a delete wearing a friendlier
+#: word; writing over the plugin you exported an hour ago is the ordinary
+#: thing, and refusing it would make the command useless exactly when it
+#: is working.
+overwrite : Answer -> Command
+overwrite yes = Stated
+
 # ── The window ───────────────────────────────────────────────────────────
 
 #: Show the program's own picture — its `substrate` — instead of the

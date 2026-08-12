@@ -109,6 +109,10 @@ class Formatter:
         self._buf: list[str] = []
         self._pending_comments: list[VComment] = []
         self._line_empty = True
+        #: The source line the last thing printed ended on, so a gap the
+        #: author left between two items can be kept.  `None` until
+        #: something has been printed — a file does not open on a blank.
+        self._last_line: int | None = None
 
     # -- low-level output --
 
@@ -140,8 +144,47 @@ class Formatter:
 
     def _flush_comments(self):
         for c in self._pending_comments:
+            self._space_before(c)
             self._ln(f"#{c.text}")
+            # A comment is a thing on a line too, so the gap after it is
+            # measured from *it* — without this, a header immediately
+            # above its declaration was pushed away from it by the gap
+            # that belonged before the header.
+            self._note_line(c)
         self._pending_comments.clear()
+
+    def _space_before(self, item) -> None:
+        """One blank line where the author left one or more.
+
+        **Blank lines are the author's paragraphing, and dropping them
+        rewrote every file into one wall of declarations.**  The
+        formatter owns spacing *within* a declaration; between them, the
+        grouping is a decision somebody made about their own program and
+        there is nothing in the tree that could reconstruct it.
+
+        One blank for any gap, rather than the exact count: two blank
+        lines and three mean the same thing to a reader, and the
+        alternative is a formatter that cannot make a file idempotent
+        because it keeps whatever it was handed.
+        """
+        span = getattr(item, "span", None)
+        if span is None or self._last_line is None:
+            return
+        if span.start.line <= self._last_line + 1:
+            return
+        # **Not `_blank`**, which only ends a line that has something on
+        # it — after `_ln` the line is already empty, so asking for a
+        # blank there did nothing at all.  What is wanted here is an
+        # empty *line*, and the guard is against writing two.
+        if not self._buf or not "".join(self._buf[-2:]).endswith("\n\n"):
+            self._nl()
+
+    def _note_line(self, item) -> None:
+        """Remember where this item ended, for the gap after it."""
+        span = getattr(item, "span", None)
+        if span is not None:
+            self._last_line = max(getattr(self, "_last_line", None) or 0,
+                                  span.end.line)
 
     # -- entry points --
 
@@ -162,7 +205,9 @@ class Formatter:
                 self._pending_comments.append(item)
                 continue
             self._flush_comments()
+            self._space_before(item)
             self._format_top_item(item)
+            self._note_line(item)
             trivia = self._flush_trivia_in(item, trivia)
             if i + 1 < len(items) and not isinstance(items[i + 1], VComment):
                 if self._should_blank_after(item, items, i):

@@ -416,12 +416,6 @@ impl EditorWindow {
     /// second spelling would be a second table to keep in step.
     fn shortcut(&self, k: &keyboard_types::KeyboardEvent) -> Option<Entry> {
         let ctrl = k.modifiers.contains(Modifiers::CONTROL);
-        if !ctrl {
-            // Every shortcut this editor can have takes Control.  A
-            // bare key is text, and an editor that stole one would be
-            // an editor you cannot type in.
-            return None;
-        }
         let tail = match &k.key {
             Kt::Character(s) if s == " " => "Space".to_string(),
             Kt::Character(s) => s.to_uppercase(),
@@ -429,7 +423,19 @@ impl EditorWindow {
             Kt::Named(NamedKey::Tab) => "Tab".to_string(),
             _ => return None,
         };
-        let chord = format!("Ctrl-{tail}");
+        // Every shortcut this editor has takes Control, with **one
+        // exemption, and `Tab` is it.**  A bare key is text and an
+        // editor that stole one would be an editor you cannot type in —
+        // which is what `play` on `Space` was.  A tab is not text here:
+        // the layout rule counts columns and a tab's width is the
+        // *renderer's* choice, so a tab-indented file means something
+        // other than it looks, and no `.ges` in the tree contains one.
+        // So the key is spent on the question every other editor spends
+        // it on, and `keys.rs` no longer inserts one.
+        if !ctrl && tail != "Tab" {
+            return None;
+        }
+        let chord = if ctrl { format!("Ctrl-{tail}") } else { tail };
         let chrome = self.chrome.borrow();
         chrome.commands.iter()
             .find(|e| !e.key.is_empty()
@@ -621,6 +627,25 @@ impl EditorWindow {
                 let want = what == "canvas";
                 if self.on_canvas.get() != want {
                     self.on_canvas.set(want);
+                    self.dirty.set(true);
+                }
+                Did::nothing()
+            }
+            Order::Close => {
+                if self.palette.borrow().is_open() {
+                    let asks = self.palette.borrow_mut().hide();
+                    self.speak(asks);
+                    self.dirty.set(true);
+                }
+                Did::nothing()
+            }
+            Order::Fill(text) => {
+                let asks = self.palette.borrow_mut().fill(&text);
+                if let Asks::Wants(name, at, q) = asks {
+                    // Say it back, so the model's choices are about what
+                    // the box now holds — the same round trip a typed
+                    // letter makes, which is what keeps one path.
+                    self.host.gesture(Gesture::Wants(name, at, q).line());
                     self.dirty.set(true);
                 }
                 Did::nothing()

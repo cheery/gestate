@@ -590,6 +590,9 @@ class Workbench:
         #: Where each parameter was declared — `audiospans.Site`s, in
         #: reading order.  Recomputed on every successful rebuild.
         self.sites: list = []
+        #: `(line, col, type)` per `_`, from the last program that
+        #: reached inference.  Drawn in the margin beside its own line.
+        self.holes: list = []
         #: `voices` banks, and the line each was declared on — what the
         #: view puts a row beside.  Recomputed with the knobs, and for the
         #: same reason: an edit moves them.
@@ -1204,6 +1207,28 @@ class Workbench:
             self.values.setdefault(site.name, self.knob_default(site.name))
         if self.midi is not None:
             self._rebind_midi()
+        self._find_holes(text)
+
+    def _find_holes(self, text: str) -> None:
+        """Where every `_` is, and what type it wants.
+
+        **Here and not in the description.**  `furniture` is derived every
+        time it is asked for, which is right for it — a knob's value is a
+        dictionary lookup — and this is a whole run of inference.  The
+        poll is two milliseconds; a typecheck is not.  So a hole is a fact
+        about the *compiled* program, worked out where the placement is
+        and kept beside it, exactly like `sites`.
+
+        Best-effort for the same reason placement is: a program mid-edit
+        does not reach inference, and the last good answer is a better
+        thing to keep showing than nothing.
+        """
+        from .typecheck import FitsError, holes_in_source
+
+        try:
+            self.holes = holes_in_source(text, rate=self.rate)
+        except (FitsError, Exception):                  # noqa: BLE001
+            pass
 
     def knob_range(self, name: str) -> tuple:
         """`(low, high)` for this parameter's slider.

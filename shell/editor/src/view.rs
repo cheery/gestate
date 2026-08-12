@@ -546,6 +546,28 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
             }
         }
 
+        // **And what every `_` on this line wants**, after the text, the
+        // way the complaint is — a hole is a question about the line it
+        // is on, and the answer belongs beside it rather than in a panel
+        // you read against the code.
+        //
+        // Not where trouble is: a line that does not compile has no
+        // inferred holes to show, so the two do not compete for the
+        // room, and preferring the complaint when they somehow do is the
+        // right way round — one is about the program being wrong, the
+        // other about it being unfinished.
+        if chrome.trouble_at(line_no).is_none() {
+            if let Some(h) = chrome.hole_at(line_no) {
+                let after = text_x
+                    + (width_of(&doc.line(row)).saturating_sub(view.left)
+                       as i32 + 2) * cw;
+                if after < view.w {
+                    f.items.push(Item::Run { x: after, y,
+                                             s: h.says.clone(), c: FAINT });
+                }
+            }
+        }
+
         // **A bank in the margin at the line that declares it**, the
         // same rule the knobs follow — a box saying whether it is
         // listening to the keyboard, and how many of its voices are

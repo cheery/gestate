@@ -35,6 +35,10 @@ from pathlib import Path
 #: Where the vocabulary is declared.
 COMMANDS = Path(__file__).with_name("command.ges")
 
+#: Where the snippets live.  One file, one idea; the directory is the
+#: list, so adding one is adding a file and nothing else.
+TEMPLATES = Path(__file__).with_name("templates")
+
 
 @dataclass(frozen=True)
 class Verb:
@@ -134,6 +138,253 @@ def vocabulary(path: Path = COMMANDS) -> list:
     return out
 
 
+@dataclass(frozen=True)
+class Snippet:
+    """One template: what it is called, what it says, and what you get."""
+
+    name: str
+    #: The header's first sentence — what the palette shows.
+    summary: str
+    #: The whole header, as lines — the page you can read before choosing.
+    doc: tuple
+    #: The body, comments already off.  What `template` inserts.
+    body: str
+
+
+def _uncommented(lines) -> str:
+    """A template's body: full-line comments off, blank runs collapsed.
+
+    **Full lines only, and deliberately.**  Deciding whether a `#` part
+    way along a line is a comment or a character in a string needs the
+    tokenizer, and a snippet is not worth a second front end — so a
+    template that wants a note kept puts it at the end of a line, and
+    `templates/README.md` says so.
+
+    The blank-run collapse is what makes the paste read as written: a
+    header stripped from between two declarations leaves the blank lines
+    that were around it, and three of them in a row is not what anybody
+    wrote.
+    """
+    out, blank = [], False
+    for line in lines:
+        if line.lstrip().startswith("#"):
+            continue
+        if not line.strip():
+            # One blank line between things, never a drift of them — and
+            # none at all until something has been kept, so a stripped
+            # header does not become a gap at the top of the paste.
+            blank = bool(out)
+            continue
+        if blank:
+            out.append("")
+            blank = False
+        out.append(line)
+    return "\n".join(out) + "\n" if out else ""
+
+
+def templates(where: Path = TEMPLATES) -> list:
+    """Every snippet the directory holds, by name.
+
+    **Derived from the files**, the way the palette is derived from
+    `command.ges` and `doc/ref/` from the libraries: a template cannot
+    exist without a name and a sentence, because that is what writing one
+    *is*.  Sorted, because a directory has no order a reader can predict
+    and the list is read by eye.
+    """
+    out = []
+    if not where.is_dir():
+        return out
+    for path in sorted(where.glob("*.ges")):
+        lines = path.read_text().splitlines()
+        doc = [line.strip()[2:].strip() for line in lines
+               if line.strip().startswith("#:")]
+        out.append(Snippet(
+            name=path.stem,
+            summary=_plain(_first_sentence(" ".join(d for d in doc if d))),
+            doc=tuple(_plain(d) for d in doc),
+            body=_uncommented(lines)))
+    return out
+
+
+def _first_line(exc: Exception) -> str:
+    """A compiler's complaint, as much of it as a status line can hold."""
+    text = str(exc).strip()
+    return text.splitlines()[0] if text else type(exc).__name__
+
+
+def _export_clap(text: str, want, bench):
+    """`gestate.export`'s own door, so the plugin is the documented one.
+
+    **`gui` stays off, as the CLI has it.**  `export.py` argues that
+    default rather than picking it — without the window the shell has no
+    dependencies at all, which is the property `shell/README.md` is built
+    around — and a command that quietly disagreed with the flag's own
+    documentation would be the drift this whole list exists to prevent.
+    """
+    from .export import export_clap
+
+    return export_clap(text, want, name=want.stem, gui=False)
+
+
+def _trim_wav(path, start: float) -> None:
+    """Take the first `start` seconds off a `.wav`, in place.
+
+    **Which is why the render began at the top.**  A synth's sound at bar
+    five is what its filters and envelopes have been doing since bar one;
+    rendering from bar five would give a different piece that happens to
+    share a score.  So the piece is played and the front is cut, which is
+    what a bounce does everywhere else.
+    """
+    import wave
+
+    with wave.open(str(path), "rb") as w:
+        params = w.getparams()
+        frames = w.readframes(w.getnframes())
+    drop = int(start * params.framerate) * params.sampwidth * params.nchannels
+    with wave.open(str(path), "wb") as w:
+        w.setparams(params)
+        w.writeframes(frames[drop:])
+
+
+def _export_wav(text: str, want, span=None):
+    """`gestate.audioperform`'s, for the same reason.
+
+    **The CLI, not a private path.**  What the command writes is what
+    `python -m gestate.audioperform file -o out.wav` writes, because a
+    second renderer here would be a second answer to *what does this
+    file sound like* — and the two would disagree the first time either
+    grew a flag.
+    """
+    import contextlib
+    import io
+    import tempfile
+
+    from .audioperform import main as perform_main
+
+    with tempfile.NamedTemporaryFile("w", suffix=".ges", delete=False) as f:
+        f.write(text)
+        source = f.name
+    # **No `--seconds` unless a span asked for one.**  `audioperform`
+    # works the length out of the score itself, and passing a number over
+    # the top of that made every render the same arbitrary length —
+    # a thirty-second piece cut to eight, and a synth with no piece given
+    # eight seconds of tone that meant nothing.  A bar range is the one
+    # case where the caller genuinely knows better, because it *said*.
+    at, to = span if span else (0.0, None)
+    argv = [source, "-o", str(want)]
+    if to is not None:
+        argv += ["--seconds", str(to)]
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = perform_main(argv)
+    finally:
+        Path(source).unlink(missing_ok=True)
+    if code:
+        raise RuntimeError(f"the render refused (exit {code})")
+    if at > 0:
+        _trim_wav(want, at)
+    return want
+
+
+def _declared_names(source: str) -> set:
+    """Every name the text defines — the same reading `goto` uses."""
+    from .typecheck import _defined_lines
+
+    return set(_defined_lines(source))
+
+
+def _formatted(source: str) -> str:
+    """`source`, laid out — the same answer `python -m gestate.fmt` gives.
+
+    One door, so the editor and the command line cannot disagree about
+    what laid out means.
+    """
+    from .fmt.format import format_source
+
+    return format_source(source)
+
+
+#: What a declaration is made of, for the purpose of laying one out: a
+#: signature and its equation are two items and one declaration, and
+#: formatting one without the other would split a pair the reader thinks
+#: of as one thing.
+def _declaration_spans(module) -> list:
+    """`(name, first_line, last_line)` per declaration, 1-based inclusive.
+
+    Items that share a name and stand together — `f : Int` above
+    `f x = …` — are one entry, because that is what a person means by
+    "this declaration" and what `fmt` therefore has to take whole.
+    """
+    from .syntax.ast import VComment
+
+    out = []
+    for item in getattr(module, "items", []):
+        if isinstance(item, VComment):
+            continue
+        span = getattr(item, "span", None)
+        if span is None:
+            continue
+        first, last = span.start.line + 1, span.end.line + 1
+        name = getattr(item, "name", None)
+        if out and name is not None and out[-1][0] == name \
+                and first <= out[-1][2] + 1:
+            out[-1] = (name, out[-1][1], max(out[-1][2], last))
+        else:
+            out.append((name, first, last))
+    return out
+
+
+def _formatted_range(source: str, first: int, last: int) -> tuple:
+    """`(whole source with those lines laid out, from, to)`, 1-based.
+
+    **The whole file is parsed and only part of it is reprinted.**
+    Parsing just the chosen lines would lose the context a fragment
+    needs — and the trivia, which `spec/comments.md` keeps on the module
+    rather than on the item.  So the parse is entire, the *reprint* is
+    the part asked for, and everything outside the widened span is the
+    author's own bytes, untouched.
+
+    `(…, 0, 0)` when no declaration is in range, which the caller reports
+    rather than treating as a formatting that did nothing.
+    """
+    from .syntax import parse
+    from .syntax.ast import VModule
+
+    module = parse(source)
+    touched = [d for d in _declaration_spans(module)
+               if d[1] <= last and d[2] >= first]
+    if not touched:
+        return source, 0, 0
+    at, to = min(d[1] for d in touched), max(d[2] for d in touched)
+
+    from .syntax.ast import VComment
+
+    keep, comments = [], []
+    for item in getattr(module, "items", []):
+        span = getattr(item, "span", None)
+        if span is None or not (at <= span.start.line + 1 <= to):
+            continue
+        (comments if isinstance(item, VComment) else keep).append(item)
+    if not keep:
+        return source, 0, 0
+    # The trivia inside the widened span travels with it, so a trailing
+    # comment on a formatted equation is reattached rather than dropped.
+    inner = [c for c in getattr(module, "comments", [])
+             if getattr(c, "span", None) is not None
+             and at <= c.span.start.line + 1 <= to]
+    piece = _formatted_module(VModule(items=comments + keep,
+                                      comments=inner))
+    lines = source.splitlines()
+    out = lines[:at - 1] + piece.rstrip("\n").splitlines() + lines[to:]
+    return "\n".join(out) + ("\n" if source.endswith("\n") else ""), at, to
+
+
+def _formatted_module(module) -> str:
+    from .fmt.format import format_module
+
+    return format_module(module)
+
+
 def _summaries(source: str) -> dict:
     """`name -> first sentence of its `#:` comment`.
 
@@ -213,6 +464,15 @@ KEYS = {
     "undo": "Ctrl-Z",
     "redo": "Ctrl-Y",
     "find": "Ctrl-F",
+    # **The one bare key**, and the rule it bends is stated in
+    # `window.rs`: every other shortcut takes Control, because a bare key
+    # is text and an editor that stole one would be an editor you cannot
+    # type in.  `Tab` is the exception the language earns — the layout
+    # rule counts columns, a tab's width is the *renderer's* choice, so a
+    # tab-indented file means something other than it looks, and no
+    # `.ges` in the tree contains one.  It is what `audiopygame` pressed
+    # at a hole, and asking what fits is what it is for everywhere else.
+    "fits": "Tab",
     "canvas": "Ctrl-Tab",
     "source": "Ctrl-Tab",
     "zoomIn": "Ctrl-+",
@@ -259,6 +519,18 @@ class Detached:
     def insert(self, _text: str) -> bool:
         return False
 
+    def replace(self, _text: str) -> bool:
+        return False
+
+    def close_list(self) -> bool:
+        return False
+
+    def caret(self) -> int:
+        return 0
+
+    def fill(self, _text: str) -> bool:
+        return False
+
 
 @dataclass
 class Session:
@@ -293,6 +565,16 @@ class Session:
     #: filtered.  **`None` and `[]` are different**: no filter shows
     #: everything, a filter that matched nothing shows nothing.
     filtered: object = None
+    #: An export waiting on a yes — `(kind, target)`, or `None`.
+    confirming: object = None
+    #: The `(verb, argument)` a name or a type has already been filled
+    #: into.  **Once per question, never per empty box** — see
+    #: `proposed_name`.
+    proposed: object = None
+    #: A template pasted and not yet kept — the name, or `None`.
+    #: Return keeps it, `Esc` undoes it, and running anything else
+    #: settles it, because by then you have moved on.
+    inserted: object = None
 
     def commands(self) -> list:
         """The palette.  Derived from `command.ges` every time it is
@@ -346,6 +628,34 @@ class Session:
             found.append((rank, i, (name, note)))
         return [pair for _r, _i, pair in sorted(found, key=lambda f: f[:2])]
 
+    def snippets(self, query: str) -> list:
+        """The templates a typed query means, best first.
+
+        The same rule as `matching` and `naming`, and here for the same
+        reason — which of several things somebody meant is a decision,
+        and a decision belongs in one place.  The *summary* is searched
+        too, because a person reaching for a template is more likely to
+        remember what it does than what it is called.
+        """
+        query = query.strip().lower()
+        found = []
+        for i, snip in enumerate(templates()):
+            low = snip.name.lower()
+            if not query:
+                rank = 3
+            elif low == query:
+                rank = 0
+            elif low.startswith(query):
+                rank = 1
+            elif query in low:
+                rank = 2
+            elif query in snip.summary.lower():
+                rank = 4
+            else:
+                continue
+            found.append((rank, i, (snip.name, snip.summary)))
+        return [pair for _r, _i, pair in sorted(found, key=lambda f: f[:2])]
+
     def _where(self, path: str):
         """The file a chosen path names, from wherever the list had got to.
 
@@ -363,7 +673,8 @@ class Session:
             walked = str(self.asking[2]).rpartition("/")[0]
         return (here / walked / path).resolve()
 
-    def _listing(self, query: str, free: bool = False) -> list:
+    def _listing(self, query: str, free: bool = False,
+                 mark: bool = False) -> list:
         """What is in the directory the query points at, best first.
 
         **Directories first, then files, and `..` above both.**  Going
@@ -408,7 +719,10 @@ class Session:
             import os
 
             up = os.path.relpath(where.parent, here)
-            out.append(("../", str(where.parent), True, up + "/"))
+            # Five wide like every other row: a listing whose shape
+            # depended on which row it was would make every reader of it
+            # carry the exception.
+            out.append(("../", str(where.parent), True, up + "/", False))
         for entry in entries:
             if entry.name.startswith(".") and not stem.startswith("."):
                 continue
@@ -418,7 +732,15 @@ class Session:
             # cannot choose what you cannot have, and hiding it would
             # be worse: the reason the name is refused is that it is
             # there, so it has to be visible for the refusal to read.
+            # **Two questions, not one.**  `free` refuses a name that
+            # is taken; `mark` only *shows* that it is.  They rode on one
+            # flag while `steal` was the only caller, because a name it
+            # refused was also the one it greyed — and then an export
+            # arrived, which overwrites and still wants you to see that
+            # you are about to.  Seeing and being refused are different
+            # facts and now say so separately.
             taken = free and entry.is_file()
+            dim = (free or mark) and entry.is_file()
             # **A directory is a step, not an answer.**  Choosing one
             # moves the query into it and asks again — which is what a
             # file dialog does and what makes walking down and back up
@@ -427,8 +749,9 @@ class Session:
                 if entry.is_dir() else ""
             out.append((entry.name + ("/" if entry.is_dir() else ""),
                         "taken" if taken else
+                        "there" if dim else
                         "directory" if entry.is_dir() else _size(entry),
-                        not taken, step))
+                        not taken, step, dim))
         return out
 
     def choices(self) -> list:
@@ -441,7 +764,22 @@ class Session:
             return []
         kind = found.args[at]
         if kind == "Path":
-            return self._listing(query, free=verb == "steal")
+            # `steal` refuses a taken name; an export only shows you that
+            # it is taken, and asks before it writes.
+            rows = self._listing(query, free=verb == "steal",
+                                 mark=verb in self.PROPOSES)
+            return self._pinned(verb, at, query, rows)
+        if kind == "Template":
+            return self.snippets(query)
+        if kind == "Answer":
+            # **A question with two rows, and `y`/`n` filter to one of
+            # them.**  So it reads as `[y/n]` at the keyboard while
+            # staying an ordinary palette question — an inline prompt
+            # that captured the keys would be a mode, and this editor
+            # has one mode.
+            rows = [("yes", "overwrite it"), ("no", "leave it alone")]
+            q = query.strip().lower()
+            return [r for r in rows if r[0].startswith(q)] if q else rows
         if kind != "Named":
             # **Only names and paths can be offered.**  A number or a
             # piece of text is typed, not chosen; offering a list of
@@ -514,6 +852,13 @@ class Session:
         handler = getattr(self, f"do_{name}", None)
         if handler is None:
             return self._say(f"`{name}` is declared and not implemented")
+        # **Anything else settles a pasted template.**  It is only
+        # undoable while it is the thing you are looking at; once you
+        # have gone and done something else, an `Esc` three commands
+        # later taking back a paste you had forgotten about would be the
+        # editor undoing your work behind you.
+        if name != "template":
+            self.inserted = None
         try:
             args = _typed(verb, args)
         except ValueError as e:
@@ -732,6 +1077,427 @@ class Session:
             self.page = _page(name)
             return found
         return f"no declaration `{name}`"
+
+    #: Which argument of which command gets a name proposed into it.
+    #: The `Path` one, and only for the commands that write a file whose
+    #: name follows from the source's — an `open` proposing a name would
+    #: be proposing you open something you did not ask for.
+    PROPOSES = {"exportClap": (0, ".clap"), "exportWav": (0, ".wav"),
+                "exportWavAt": (2, ".wav")}
+
+    def _pinned(self, verb: str, at: int, query: str, rows: list) -> list:
+        """The name an export proposes, put at the top of its listing.
+
+        **Marked, not typed.**  `open` shows you the file you are in by
+        putting the cursor on its row and leaving the query blank, so the
+        first letter you type is a new name rather than an edit of the
+        old one.  A proposed export name is the same courtesy: a row to
+        press Return on, with the box empty and backspace still meaning
+        what it means everywhere else.
+
+        The row is added when the file does not exist yet — which is the
+        usual case the first time — and merely lifted to the front when
+        it does, so a name that is already there keeps the `taken` note
+        that says so.
+        """
+        want = self.proposed_name(verb, at, query)
+        if not want:
+            return rows
+        found = [r for r in rows if r[0] == want]
+        rest = [r for r in rows if r[0] != want]
+        if found:
+            return found + rest
+        return [(want, "new", True, "", False)] + rest
+
+    def proposed_name(self, verb: str, at: int, query: str) -> str:
+        """What to put in an export's empty name box.
+
+        **`demo.ges` wants `demo.wav`**, which is what you would have
+        typed — the same courtesy as marking the file you are in when
+        `open` lists a directory, one argument along.  Only into an empty
+        box, so it never eats what somebody has started typing.
+
+        **A row, not a fill.**  Typing it into the box made the box
+        impossible to clear — backspace emptied it and the model filled
+        it straight back in, so backspace-on-empty, which is how you step
+        *out* of a question, could never be reached.  Pinning it in the
+        list has no such failure mode: the box stays empty, the row is
+        one Return away, and the first letter typed is a new name.
+        """
+        if query or verb not in self.PROPOSES:
+            return ""
+        which, suffix = self.PROPOSES[verb]
+        if at != which:
+            return ""
+        here = Path(getattr(self.bench, "path", "") or "")
+        return f"{here.stem}{suffix}" if here.stem else ""
+
+    def hole_at_caret(self) -> str | None:
+        """The type of the `_` the cursor is standing on, if it is.
+
+        **At either end of it**, because both are where a hand leaves the
+        caret: you arrow onto a `_` and stop before it, or you delete
+        what was there and stop after it.  Insisting on one would make
+        the affordance work half the times it is reached for, which is
+        worse than not having it — a control that works sometimes is one
+        nobody trusts.
+
+        Read from `holes`, which the workbench computed when the program
+        last compiled, so this costs a lookup rather than a typecheck.
+        """
+        try:
+            at = self.view.caret()
+        except Exception:                                # noqa: BLE001
+            return None
+        text = self._source()
+        if not text:
+            return None
+        lines = text.split("\n")
+        # The caret is a character offset; a hole is a line and a column.
+        row, seen = 0, 0
+        for n, line in enumerate(lines):
+            if seen + len(line) >= at:
+                row = n
+                break
+            seen += len(line) + 1
+        else:
+            return None
+        col = at - seen
+        for line, at_col, type_ in getattr(self.bench, "holes", []) or []:
+            if line == row + 1 and at_col <= col <= at_col + 1:
+                return type_
+        return None
+
+    def do_fits(self, wanted: str) -> str:
+        """What could stand where this type is wanted — the compiler answering.
+
+        **The text in the window, not the file on disk.**  A person asks
+        what fits while writing the thing that needs it, and the answer
+        has to be about the program in front of them; reading the saved
+        file would answer about the program they had before they started.
+
+        A file that does not compile is the ordinary case here, not an
+        error — you are mid-line — so the complaint is the answer, and it
+        goes on the page where it can be read rather than into a status
+        line that truncates it.
+        """
+        from .typecheck import FitsError, fits_in_source
+
+        try:
+            text = self.view.text() or self.bench.source()
+        except Exception:                                # noqa: BLE001
+            text = ""
+        if not (wanted or "").strip():
+            wanted = self.hole_at_caret() or ""
+            if not wanted:
+                return "fits: which type?"
+        try:
+            matches, shown = fits_in_source(wanted, text,
+                                            rate=getattr(self.bench, "rate",
+                                                         22050))
+        except FitsError as exc:
+            self.page = [f"what fits {wanted}:", "",
+                         *str(exc).splitlines()]
+            return f"fits {wanted}: the file does not compile"
+        if not matches:
+            self.page = None
+            return f"nothing in scope fits {shown}"
+        self.page = [f"what fits {shown}:", "", *(f"  {m}" for m in matches)]
+        return (f"{len(matches)} fit {shown}" if len(matches) != 1
+                else f"one thing fits {shown}")
+
+    def _source(self) -> str:
+        """The program as it stands — the window's copy, not the file's."""
+        try:
+            return self.view.text() or self.bench.source()
+        except Exception:                                # noqa: BLE001
+            return ""
+
+    def do_fmtAll(self) -> str:
+        """Lay the whole file out the way `gestate fmt` would.
+
+        **One edit, and therefore one undo.**  The document is replaced
+        rather than rewritten line by line, which the rope does as a
+        single commit — so a format you did not want is one `undo` away,
+        and the caret is clamped rather than reset because losing your
+        place on every format is what makes an editor feel like a form.
+        """
+        text = self._source()
+        try:
+            laid = _formatted(text)
+        except Exception as exc:                         # noqa: BLE001
+            return f"fmtAll: {_first_line(exc)}"
+        if laid == text:
+            return "already laid out"
+        if not self.view.replace(laid):
+            return "fmtAll: nowhere to put it"
+        return "laid out the file"
+
+    def do_fmt(self, first: int, last: int) -> str:
+        """Lay out the declarations these lines touch, and nothing else.
+
+        **Whole declarations, always.**  A range landing in the middle of
+        a body widens to the declaration around it, because half a
+        declaration is not a thing the parser can lay out and a formatter
+        that quietly did something else to the other half would be worse
+        than one that says what it took.  The sentence names what it
+        actually formatted, so the widening is visible rather than
+        surprising.
+        """
+        text = self._source()
+        first, last = min(first, last), max(first, last)
+        try:
+            laid, at, to = _formatted_range(text, first, last)
+        except Exception as exc:                         # noqa: BLE001
+            return f"fmt: {_first_line(exc)}"
+        if at == 0:
+            return f"fmt: no declaration on lines {first}-{last}"
+        if laid == text:
+            return f"lines {at}-{to} are already laid out"
+        if not self.view.replace(laid):
+            return "fmt: nowhere to put it"
+        return (f"laid out line {at}" if at == to
+                else f"laid out lines {at}-{to}")
+
+    def _annotated(self, only: str | None) -> tuple:
+        """`(new source, the names annotated)` — the shared half of `infer`.
+
+        **Written above the definition, never over it.**  A signature the
+        author typed is the authority and is left alone; what is offered
+        is only what nobody wrote, which is also what makes this safe to
+        press twice — the second time there is nothing left to add.
+        """
+        from .typecheck import signatures_in_source
+
+        text = self._source()
+        found = signatures_in_source(text)
+        if only is not None:
+            found = {k: v for k, v in found.items() if k == only}
+        if not found:
+            return text, ()
+        lines = source_lines = text.splitlines()
+        where = {}
+        for n, line in enumerate(source_lines, start=1):
+            if not line[:1].isalpha():
+                continue
+            head = line.split("=", 1)[0].split(":", 1)[0].split()
+            if head and head[0] in found:
+                where.setdefault(head[0], n)
+        # Bottom up, so an insertion never moves a line still to be used.
+        done = []
+        for name in sorted(where, key=lambda k: -where[k]):
+            at = where[name]
+            lines = lines[:at - 1] + [found[name]] + lines[at - 1:]
+            done.append(name)
+        return "\n".join(lines) + ("\n" if text.endswith("\n") else ""), \
+            tuple(sorted(done))
+
+    def do_inferAll(self) -> str:
+        """Write a signature above every declaration that has none.
+
+        The compiler already knows these types — it inferred them to
+        compile the file — so this is the answer being *written down*
+        rather than computed, which is why it cannot disagree with what
+        the program means.
+        """
+        try:
+            laid, done = self._annotated(None)
+        except Exception as exc:                         # noqa: BLE001
+            return f"inferAll: {_first_line(exc)}"
+        if not done:
+            return "every declaration already has a signature"
+        if not self.view.replace(laid):
+            return "inferAll: nowhere to put it"
+        return (f"wrote {len(done)} signatures" if len(done) != 1
+                else f"wrote `{done[0]}`'s signature")
+
+    def do_infer(self, name: str) -> str:
+        """Write the signature of one declaration.
+
+        `inferAll` for the whole file is the sweep; this is for the line
+        you are looking at, which is the ordinary case — a type you want
+        to *read* before you decide whether it is the type you meant.
+        """
+        if not (name or "").strip():
+            return "infer: which declaration?"
+        name = name.strip()
+        try:
+            laid, done = self._annotated(name)
+        except Exception as exc:                         # noqa: BLE001
+            return f"infer: {_first_line(exc)}"
+        if not done:
+            # Two very different facts, and telling them apart is the
+            # whole of `canvas`'s lesson: a name that already says what
+            # it is, against a name that is not there at all.
+            if name in _declared_names(self._source()):
+                return f"`{name}` already has a signature"
+            return f"no declaration `{name}`"
+        if not self.view.replace(laid):
+            return "infer: nowhere to put it"
+        return f"wrote `{name}`'s signature"
+
+    def do_template(self, name: str) -> str:
+        """Put one of the language's ideas at the cursor.
+
+        **The prose stays behind.**  A template's header is written to be
+        read in the list — it says what the idea is and why it is spelled
+        that way — and pasting it would put somebody else's explanation
+        in the middle of your file, where it goes stale the moment you
+        change the line under it.
+
+        The insertion is an ordinary text edit, which is what keeps undo
+        text undo: there is no record of "a template was pasted" for a
+        second model to disagree with the first about.
+        """
+        if not (name or "").strip():
+            return "template: which one?"
+        # **Return again means done, not again.**  A finished call
+        # repeats on Return — the next match, the next take — which is
+        # right for `find` and wrong here, where again is a second copy
+        # of the same code pasted under the first.  So the second press
+        # closes the dialog and keeps what you have.
+        if self.inserted == name.strip():
+            self.inserted = None
+            self.view.close_list()
+            return f"kept `{name}`"
+        found = next((s for s in templates() if s.name == name.strip()), None)
+        if found is None:
+            return f"no template `{name}`"
+        if not found.body:
+            return f"`{name}` is all prose and no program"
+        if not self.view.insert(found.body):
+            return f"`{name}`: nowhere to put it"
+        # The header is worth reading *after* choosing too — it is where
+        # the reasoning is, and the file no longer carries it.
+        self.inserted = found.name
+        self.page = [f"{found.name} — Return keeps it, Esc undoes it", "",
+                     *found.doc]
+        return f"inserted `{name}`"
+
+    #: An export that has been asked for and is waiting on a yes.
+    #: `(kind, target)`, or `None`.
+    def _default_out(self, kind: str):
+        """Where an export goes when nobody says.
+
+        `~/.clap/` for a plugin because that is where a CLAP host looks,
+        so exporting and hearing it in a DAW is one step rather than two.
+        A `.wav` goes beside the source it came from, because a render is
+        a thing you made *of this file* and the file's own directory is
+        where you will look for it.
+        """
+        here = Path(getattr(self.bench, "path", "") or "untitled.ges")
+        if kind == "clap":
+            return Path.home() / ".clap" / f"{here.stem}.clap"
+        return here.parent / f"{here.stem}.wav"
+
+    def _seconds_of(self, bar: int) -> float:
+        """When a bar starts, in seconds, at the tempo now playing."""
+        bpm = getattr(self.bench, "bpm", 120)
+        if not isinstance(bpm, (int, float)) or bpm <= 0:
+            bpm = 120
+        return _beats_of(bar) * 60.0 / float(bpm)
+
+    def _export(self, kind: str, path: str, bars=None) -> str:
+        # **Nothing to export is a refusal, not a build.**  An export
+        # runs `clang` or eight seconds of audio, and starting either on
+        # an empty buffer would be a long wait for an answer about a
+        # program that is not there.
+        if not self._source().strip():
+            return "nothing to export yet"
+        want = self._where(path) if (path or "").strip() \
+            else self._default_out(kind)
+        if want.is_dir():
+            self.asking = (f"export{kind.capitalize()}", 0,
+                           path.rstrip("/") + "/")
+            return f"{want.name or want}/"
+        span = None
+        if bars is not None:
+            span = (self._seconds_of(bars[0]), self._seconds_of(bars[1] + 1))
+            if span[1] <= span[0]:
+                return "exportWavAt: that is no time at all"
+        if want.exists() and self.confirming != (kind, want, span):
+            # **Asked, not refused.**  `steal` refuses a taken name
+            # because taking one is naming what you are writing and
+            # doing that over somebody's file is a delete wearing a
+            # friendlier word.  An export is the opposite case: writing
+            # over the plugin you exported an hour ago is the *ordinary*
+            # thing, and refusing it would make the command useless
+            # exactly when it is working.  So the question is asked.
+            self.confirming = (kind, want, span)
+            self.asking = ("overwrite", 0, "")
+            return f"{want.name} exists — you want to overwrite? [y/n]"
+        self.confirming = None
+        return self._start_export(kind, want, span)
+
+    def _start_export(self, kind: str, want, span=None) -> str:
+        """Off the loop's thread, and it says so when it lands.
+
+        A CLAP export runs `clang` and `cargo`; a render is seconds of
+        audio.  `spec/workbench.md`'s rule — *applying an edit never
+        blocks* — is about exactly this: a GUI callback that waits for a
+        build is a frozen window.  So the work goes to a thread and the
+        answer arrives the way a rebuild's does, as a message the status
+        line picks up.
+        """
+        import threading
+
+        text = self._source()
+        want.parent.mkdir(parents=True, exist_ok=True)
+
+        def work():
+            try:
+                made = (_export_clap(text, want, self.bench)
+                        if kind == "clap" else _export_wav(text, want, span))
+            except Exception as exc:                     # noqa: BLE001
+                self.bench.say(f"{want.name}: {_first_line(exc)}")
+            else:
+                self.bench.say(f"wrote {made}")
+
+        threading.Thread(target=work, daemon=True).start()
+        return f"exporting {want.name}…"
+
+    def do_exportClap(self, path: str = "") -> str:
+        """Build this file as a CLAP plugin."""
+        return self._export("clap", path)
+
+    def do_exportWav(self, path: str = "") -> str:
+        """Render this file to a `.wav`."""
+        return self._export("wav", path)
+
+    def do_exportWavAt(self, first: int, last: int, path: str = "") -> str:
+        """Render the bars between two numbers, counting from one.
+
+        **Played from the top and cut, never started at the bar.**  A
+        synth's sound at bar five is what its filters and envelopes have
+        been doing since bar one — starting the render there would give
+        you a different piece that happens to share a score.  So the
+        whole thing is rendered to the end of the last bar and the front
+        is taken off, which is what a bounce does everywhere else.
+        """
+        first, last = min(first, last), max(first, last)
+        if last < 1:
+            return "exportWavAt: bars count from one"
+        return self._export("wav", path, bars=(first, last))
+
+    def do_overwrite(self, answer: str) -> str:
+        """Answer the question an export asked.
+
+        **It only ever answers a question that was asked.**  Run with
+        nothing pending it says so, rather than doing something to a file
+        nobody named — a command whose meaning depends on what happened
+        before it has to be able to say when nothing did.
+        """
+        if self.confirming is None:
+            return "nothing is waiting to be overwritten"
+        kind, want, span = self.confirming
+        # **Cleared either way, before anything happens.**  Left set, a
+        # yes would answer the *next* export to the same name too — the
+        # question asked once and silently taken as standing, which is
+        # the one thing a confirmation must never do.
+        self.confirming = None
+        if not (answer or "").strip().lower().startswith("y"):
+            return f"left {want.name} alone"
+        return self._start_export(kind, want, span)
 
     def _declared(self, name: str):
         """The line a name was declared on, or `None`.
@@ -977,6 +1743,18 @@ def furniture(session: "Session", bench=None) -> str:
         out.append(f"knob\t{name}\t{getattr(site, 'line', 0)}"
                    f"\t{value}\t{lo}\t{hi}\t{kind}")
 
+    # **One row per line, not per hole.**  Two holes on a line are two
+    # facts about the same row of the margin, and the margin has one row
+    # to say them in — so they are joined here, where the decision
+    # belongs, rather than left for a painter to work out.  Ordered by
+    # column, because that is the order they are read in.
+    holes: dict = {}
+    for line, col, type_ in sorted(getattr(b, "holes", []) or []):
+        holes.setdefault(line, []).append((col, type_))
+    for line, found in sorted(holes.items()):
+        said = ", ".join(f"_ : {t}" for _c, t in sorted(found))
+        out.append(f"hole\t{line}\t{said}")
+
     for bank in getattr(b, "banks", []) or []:
         name = _of(bank, "name", "")
         if not name:
@@ -1015,6 +1793,15 @@ def furniture(session: "Session", bench=None) -> str:
 
     # What the argument being asked for could be, when one is.
     here = Path(getattr(b, "path", "") or "").name
+    # **And when an export is asking, the one it proposes.**  `open`
+    # marks the file you are in; an export marks the file it would
+    # write, which is the same fact one argument along — the row the
+    # cursor should open on.
+    if session.asking is not None:
+        verb, at, query = session.asking
+        proposed = session.proposed_name(verb, at, query)
+        if proposed:
+            here = proposed
     # **The one you are on is marked, not selected.**  The view puts its
     # cursor there and leaves the query blank, so the list opens showing
     # where you are and the first letter you type is a new name rather
@@ -1023,9 +1810,15 @@ def furniture(session: "Session", bench=None) -> str:
         text, note = choice[0], choice[1]
         can = choice[2] if len(choice) > 2 else True
         step = choice[3] if len(choice) > 3 else ""
+        # **Drawn faint is not the same question as may be chosen.**  A
+        # name an export would overwrite is worth seeing and is still
+        # yours to pick; a name `steal` refuses is neither.  Absent, it
+        # follows the refusal, which is what every row did before an
+        # export needed the two apart.
+        dim = choice[4] if len(choice) > 4 else not can
         out.append(f"choice\t{text}\t{note}"
                    f"\t{1 if text == here else 0}\t{1 if can else 0}"
-                   f"\t{step}")
+                   f"\t{step}\t{1 if dim else 0}")
 
     # And a page to read, when a command answered with one.
     for line in session.page or []:
@@ -1272,14 +2065,67 @@ def act(session: "Session", line: str) -> str:
         except ValueError:
             return f"wants: `{parts[2]}` is not an argument number"
         session.asking = (parts[1], at, parts[3])
+        # **Backspacing out of a finished `template` is a cancel too.**
+        # The palette steps back an argument and asks again, which is
+        # the same *never mind* `Esc` means — and the rule the whole
+        # dialog is built on is that a template you did not keep does not
+        # come out.  Only for the command that pasted it: backing out of
+        # anything else is about that command.
+        if parts[1] == "template" and session.inserted is not None:
+            name, session.inserted = session.inserted, None
+            if session.view.undo():
+                session.said.append(f"undid `{name}`")
+        # **`fits` at a hole answers itself.**  Inference already knows
+        # what belongs there, so leaving the box empty for somebody to
+        # retype the compiler's own answer is the affordance failing at
+        # the one moment it is most wanted.  The box is filled, and the
+        # fill comes back as another `wants` — the same round trip a
+        # typed letter makes — so the answer below is about what the box
+        # now holds and there is one path, not two.
+        if (parts[1] == "fits" and at == 0 and not parts[3]
+                and session.proposed != ("fits", at)):
+            found = session.hole_at_caret()
+            if found:
+                filler = getattr(session.view, "fill", None)
+                if filler is not None and filler(found):
+                    session.proposed = ("fits", at)
+                    session.said.append(session.run("fits", found))
+                    return ""
+        # **And an export proposes a name rather than an empty box.**
+        # `demo.ges` wants `demo.wav`, which is what you would have typed;
+        # the row you are in is already marked in the listing, and this is
+        # the same courtesy one argument along.  Typed over, because a
+        # proposal you cannot refuse is a decision.
+        # **An export's name is pinned in the list, not typed into the
+        # box.**  Filling the box made it impossible to backspace out of
+        # the question, and it was the wrong shape besides: `open`
+        # already *marks* the file you are in rather than selecting it,
+        # so the first letter you type is a new name rather than an edit
+        # of the old.  A proposal is the same courtesy — a row to press
+        # Return on, with the box left empty.
         found = session.choices()
         return f"{len(found)} name(s)" if found else ""
     if verb == "asked":
         session.asking = None
+        # **And the proposal is spent with the question.**  Kept, the
+        # next `exportWav` would open on an empty box because this one
+        # had already been offered a name — a courtesy that works once
+        # per session is worse than none.
+        session.proposed = None
         return ""
     if verb == "shut":
         # The list is closed, so the page it was showing is over.
         session.page = None
+        session.proposed = None
+        # **A template still unkept when the list closes was refused.**
+        # Return keeps it and clears this first, so anything still
+        # standing here got here by `Esc` — and `Esc` out of a dialog
+        # means *never mind*, which for a paste means take it back.  One
+        # insert is one edit, so one undo is exact.
+        if session.inserted is not None:
+            name, session.inserted = session.inserted, None
+            if session.view.undo():
+                return f"undid `{name}`"
         return ""
     if verb == "edited":
         return ""

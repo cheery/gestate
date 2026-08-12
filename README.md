@@ -59,6 +59,14 @@ reference is derived from the libraries.  A build that fails leaves the
 sound playing and puts the compiler's complaint beside the line that
 caused it.
 
+Two commands are the language answering about itself.  **`Tab`** asks
+what fits — give it a type and it lists everything in scope that could
+stand there, from inference over the text in the window rather than the
+last save.  **`template`** pastes one of the language's ideas at the
+cursor — a knob, a voice bank, a metronome, a tape echo, a canvas, a
+piece — with its documentation left behind in the list where you read it
+to choose.
+
 ## Play it
 
 A gestate file exports as a **CLAP plugin** — one native graph, its
