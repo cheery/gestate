@@ -39,7 +39,11 @@ pytest>=8.0
 # Gates the MIDI half of `test_examples.py`, `test_music.py` and
 # `test_audiomidi.py`, every one of them behind `pytest.importorskip`, so
 # without it those skip and the rest of the suite is unaffected.
+#
+# `python-rtmidi` is the port backend: mido alone writes files and has no
+# way to open a live keyboard.  Verified at 1.5.8.
 mido>=1.3
+python-rtmidi>=1.5
 
 # ── Not a dependency: pygame ─────────────────────────────────────────────
 #

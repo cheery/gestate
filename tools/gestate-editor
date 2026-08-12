@@ -1,0 +1,15 @@
+#!/bin/sh
+# The desktop icon's half of launching the editor.
+#
+# From the tree, because gestate runs in place; on whatever `python3`
+# the environment offers (a desktop launcher's is the system one, a
+# terminal's may be a venv); opening the file it was handed, or the
+# scratch file when it was handed nothing — a bare click on an icon
+# should open an editor, not print a usage line.
+cd "$(dirname "$0")/.." || exit 1
+# The repo's own venv when there is one — the README's convention, and
+# what gives a desktop launch the same backends a terminal run has.
+if [ -x .venv/bin/python3 ]; then
+    exec .venv/bin/python3 -m gestate.workbench "${1:-untitled.ges}"
+fi
+exec python3 -m gestate.workbench "${1:-untitled.ges}"

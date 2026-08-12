@@ -30,14 +30,8 @@ library and language, documented down to the measured decibel.
 
 ## Install it
 
-Gestate is a source tree you run **in place**.  There is no
-`pip install gestate`, no packaging step and no build before the first
-sound: the language, the type checker, the score layout, the offline
-renderer and the documentation generator are pure Python and import
-only the standard library.  Everything installed below buys a
-*backend*, and each one states what it costs to go without.
-
-### Ubuntu, from nothing
+Gestate is a source tree you run **in place** — no `pip install`, no
+packaging step, no build before the first sound.  On Ubuntu:
 
 ```sh
 sudo apt install git python3 python3-venv python3-pip \
@@ -49,111 +43,18 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh   # then: . "$HOM
 
 git clone <this-repo> gestate && cd gestate
 python3 -m venv .venv && . .venv/bin/activate
-pip install pytest mido python-rtmidi sounddevice
+pip install -r requirements.txt
 
 python -m gestate.audioperform examples/super/dubgate.ges        # it should sound
 ```
 
-**Rust comes from `rustup`, not from `apt`.**  `Cargo.lock` is version
-4, which wants cargo 1.78 or newer, and Ubuntu's own package has been
-older than that for the whole life of a release.  A too-old cargo fails
-on the lock file rather than on anything you wrote, which is a confusing
-first five minutes.
-
-### What each piece buys, and what you lose without it
-
-* **`clang`** — the native engine, and the difference is not
-  subtle.  `audiollvm` emits LLVM IR as text and shells out to `clang`;
-  there is no `llvmlite` and none is wanted.  Without it every render
-  falls back to the reference interpreter, which is *bit-identical* and
-  about a thousand times slower: `examples/audio/quartet.ges` is three
-  minutes of music, under a minute of generated code, and roughly a day
-  and a half of interpreter.  Nothing fails — it simply takes the long
-  way, and real-time playback stops being possible.
-
-* **`libasound2-dev`** — the C audio host, and **this is the one that
-  degrades quietly**.  `gestate/host.c` is compiled at first use and
-  looks for `alsa/asoundlib.h` on disk; finding it, the render loop runs
-  in C with no Python in the audio path.  Missing it, the header is not
-  there to compile against, `Host.has_device` is false, and the editor
-  says *"no C audio host; using the Python driver"* and plays on through
-  a pipe to `pw-play`.  You get sound either way.  You do not get the
-  latency.
-
-* **`libportaudio2`** — the PortAudio callback path, which is the right
-  answer for latency when the host is not driving.  The `sounddevice`
-  wheel does **not** bundle a library on Linux: it dlopens the system
-  `libportaudio.so.2`, so pip alone is not enough.  Without it,
-  `audiolive` falls back to a pipe to `pw-play`, `paplay` or `aplay` —
-  whichever is on `PATH` — where the player's back-pressure is the
-  clock.  That path needs no package at all and is why a bare machine
-  still makes noise.
-
-* **`cargo`** — the editor's window, the CLAP export and `crust`.  The
-  window is Rust (`shell/editor`), loaded through `ctypes` as a
-  `cdylib`, and **it builds itself on first launch**: the first
-  `python -m gestate.workbench` spends a minute or two in `cargo build
-  --release` and every later one starts instantly.  Without cargo the
-  editor refuses with the command to run by hand; the players and the
-  suite do not care.
-
-* **The X11 runtime libraries** — `libx11-6`, `libxcb1`,
-  `libxkbcommon0`, `libxkbcommon-x11-0`, `libgl1`.  These are the
-  `.so`s `baseview` dlopens when the editor opens a window, and an
-  Ubuntu *desktop* already has every one; a server or WSL image has
-  none, which is the machine this list is written for.  No `-dev`
-  packages are needed — they are opened at run time, not linked at
-  build time.
-
-* **`mido` and `python-rtmidi`** — a live MIDI keyboard and `.mid`
-  writing.  `mido` alone has no way to open a port: the backend is
-  `python-rtmidi`, and without it `audiomidi` reports no MIDI on this
-  machine rather than failing.  `--midi` takes an index or a substring
-  of a port name, and naming one that matches nothing prints the
-  numbered list of what is plugged in.
-
-* **`binutils`** (`ar`, `objcopy`) — used by `gestate.export` to build a
-  `.clap`.  `build-essential` pulls it in, and so does almost anything
-  else; it is listed because a minimal image genuinely lacks it.
-
-**Neither `numpy` nor `pygame` is a dependency, and neither should be
-carried across.**  Nothing in `gestate/` or `test/` imports numpy — the
-tests that assert a filter's slope write their own DFT rather than take
-it.  `pygame` is reached by one obsolete module and by nothing a new
-installation needs: a program's canvas is drawn by the editor's canvas
-tab and by the plugin's, both of which are Rust and want nothing from
-it.
-
-### Check that it worked
-
-```sh
-python -m pytest                    # everything: about half an hour
-python -m pytest -m "not golden"    # without the 22 that are about this machine
-```
-
-The suite is around 2,150 tests and takes **about half an hour**.  Note
-what the `golden` marker is and is not: it deselects 22 tests, so it is
-not a way to make the run shorter.  Those 22 re-render a committed
-buffer through the interpreter and compare it sample for sample, which
-makes them the only part of the suite that is a claim about *one
-machine* — bit-exactness through `sin` and `exp` holds where the buffer
-was made, and each `.samples` file records the `libm` it was made
-against.  If they are the only thing red on a new box, that is the
-expected failure and not a broken install.
-
-**Tests never open the sound card**: `test/conftest.py` makes both
-routes to it raise and names the test that tried; `GESTATE_TEST_AUDIO=1`
-opens them again.  Anything whose backend is missing skips rather than
-fails, so a green run on a bare machine is a smaller claim than a green
-run on a full one — if you want the engine checked, install `clang`
-before reading the result.
-
-Two more that ask for nothing at all, as a first proof of life:
-
-```sh
-python -m gestate.typecheck examples/closure.ges
-python -m gestate.audioperform examples/audio/sine.ges --oracle -o sine.wav
-```
+Two notes worth their lines: **Rust comes from `rustup`, not `apt`**
+(Ubuntu's cargo is too old for the lock file, and fails on it rather
+than on anything you wrote), and the core is pure Python — everything
+`apt` installs above buys a *backend*, and missing ones degrade
+politely rather than fail.  What each piece buys, what you lose
+without it, a desktop icon, and what a test run does and does not
+claim: **[doc/install.md](doc/install.md)**.
 
 ## Hear it
 
