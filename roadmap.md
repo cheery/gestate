@@ -525,6 +525,100 @@ Carried from `spec/ariadne.md` so they are not lost between sessions:
 
 ---
 
+## Content boxes — the editor grows a vertical dimension
+
+The margin proved the idea sideways: a knob drawn **beside its own
+declaration** is content anchored to source, and it changed what the
+editor is.  This grows the same idea downward — **content that
+interleaves with the text**, occupying room *between* lines: the
+compiler's complaint under the line it is about, then small
+between-line editors for musical score content, and eventually audio
+visualisation, once sound sample buffers exist for them to show.
+
+It reads tall and is mostly design: the window already draws from a
+display list with one painter, the model already describes furniture
+per row, and `audiospans` already anchors things to declarations.
+There is **one real implementation lump** — rows of varying height —
+and everything after it is decisions.
+
+### The mechanism, once
+
+Today every row is `font.h × scale`, and scrolling, `follow`,
+hit-testing and the caret all assume it.  A box between lines is a
+**per-row extra height**, carried in the furniture the way a knob's
+row is, owned by the view.  The rope, the undo and the caret never
+learn of it — a box is never text — so the one invariant to hold is
+that layout, scroll and hit-testing read the same table.  Built once,
+it serves every box kind below.
+
+### B1 — the complaint moves in
+
+`trouble` already crosses per row; drawing it as a read-only box under
+its line exercises the whole mechanism — anchoring, scroll, follow,
+hit-testing — with content that already exists and cannot argue back.
+**Acceptance**: a two-line error under line 12 pushes line 13 down; the
+caret, a click on line 13, and `goto 13` agree about where it went; the
+box follows its line through edits above it.
+
+### B2 — a box is a picture
+
+A box whose content is a **display list from the model**, version-
+stamped and crossing on its own channel exactly as the canvas does —
+because a box *is* a canvas with a row for an anchor.  Still read-only.
+This is deliberately the substrate machinery re-aimed, not a second
+content system: one painter, one `Sub`, and every future box kind —
+score views, buffer plots — becomes a program that draws.
+
+### B3 — a box can be touched
+
+Input, as a **gesture verb carrying the box's identity**, written into
+`spec/workbench.md`'s gesture list *before* the shell learns it, with
+seam tests at the verb protocol from the first day.  That order is
+F101's lesson stated as law: the canvas lost its hands because the
+input half lived in one host's code and nowhere else; a box's input
+half is born in the contract or it is not born.
+
+### B4 — the score editors, which are the point
+
+The star: a between-lines editor for score content.  The principle is
+already on the wall (`spec/workbench.md`): **a widget is a view over a
+span of source, and dragging it is a text edit** — the knob rewrites
+its declaration byte-exactly, and the score box must keep that same
+faith.  It renders the score expression under it; every gesture on it
+is a rewrite of the span it views; undo stays text undo; the file
+stays the single truth.  A box that kept its own document would be a
+second editor to keep honest, and the answer to it is no.
+
+### Later, and blocked on the language
+
+Visualisation boxes want **sample buffers** — audio-rate arrays, which
+collide with the fragment's "no lists at audio rate" rule and are a
+language decision, not an editor one.  Sequence that on its own merits;
+the boxes will be waiting as B2 canvases the day it lands.
+
+### Open, and to be answered before B4
+
+- **What a chancy score shows.**  A piano-roll view of `draw` is not a
+  list of notes — but a *seed* makes "one take" well-defined, and the
+  plugin already treats the seed as the name of a performance.  A score
+  box that renders the current take, labelled with its seed, may be the
+  honest answer; deciding this decides most of B4.
+- **Whether every musical gesture is a span rewrite.**  Dragging a note
+  up a third is a clean rewrite; gestures that change the *shape* of
+  the expression (splitting a `++`, introducing a `draw`) need a rule
+  for what text they produce and how it is formatted — `fmt` exists and
+  is idempotent, which may be the whole answer.
+- **The third focus.**  Text, piano, and now a box may own the
+  keyboard; the click-to-focus rule extends, but the vocabulary rule
+  must too — a box's capabilities appear in `command.ges` or they do
+  not exist.
+- **Who says how tall.**  The label precedent (the box is written down
+  and the letters fit it) suggests the view grants height and content
+  fits; an accordion editor that grows under your hands suggests the
+  content asks.  One rule, chosen before B1 hard-codes the other.
+
+---
+
 ## What I would deliberately not do
 
 - **Rewrite `Bool` as `{1}`** unless 1.1 concludes otherwise.  It is the
