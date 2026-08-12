@@ -376,3 +376,50 @@ def test_an_abandoned_dialog_leaves_no_step(tmp_path):
     s.choices()
     s.run("seek", 8)                     # something else entirely
     assert [x.verb for x in s.log.steps] == ["seek"]
+
+
+def test_what_the_model_volunteered_is_in_the_transcript():
+    """**The cockpit audio.**  A command's answer was always recorded;
+    a message the model said *unasked* — a rebuild failing, a canvas
+    refusing — crossed the status line and left no mark, so a session
+    whose visible story was "errors everywhere" replayed as a session
+    where nothing happened.  That transcript was reached for during a
+    real canvas defect (untitled.ges, 2026-08-12) and did not contain
+    the one sentence that explained it.
+    """
+    from gestate.sessionlog import NOTE, Log
+
+    log = Log()
+    log.add("canvas", (), "opening the canvas — it will appear when it builds")
+    log.note("the canvas did not build: Unknown global `beat`")
+    text = log.text()
+    assert "#! the canvas did not build: Unknown global `beat`" in text
+
+    # Evidence for the reader, never an instruction for the machine:
+    # reading the transcript back yields only the command.
+    steps = read(text)
+    assert [s.verb for s in steps] == ["canvas"]
+    # And an in-memory replay skips the note rather than demanding
+    # the same weather from a different afternoon.
+    assert NOTE not in [s.verb for s in steps]
+
+
+def test_a_replayed_canvas_answers_for_the_file_not_the_window(tmp_path):
+    """A replay has no window, and used to say so — *"this window shows
+    the source only"* — which reported every recorded `canvas` as
+    drift.  A harness artifact wearing a report, worn on the one day a
+    real canvas defect was being hunted.  The comparison belongs on the
+    answers the program owns: the file's and the clock's.
+    """
+    from gestate.audioeditor import Workbench
+    from gestate.sessionlog import Typing
+
+    src = ("sound : Sig Float\nsound = 0.0\n\n"
+           "substrate : Sig Sub\nsubstrate = rect 4 4 (colour 1 2 3)\n")
+    path = tmp_path / "draws.ges"
+    path.write_text(src)
+    bench = Workbench(path, rate=8000, block=256)
+    typing = Typing(src, under=Detached())
+    s = Session(bench=bench, view=typing)
+    assert s.run("canvas") == \
+        "opening the canvas — it will appear when it builds"

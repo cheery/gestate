@@ -143,7 +143,25 @@ def _entry(source: str, rate: int) -> str:
     entry += "\nmain : Sig Sub\nmain = substrate\n"
     if not has_sound(source):
         return entry
-    return f"\nsampleRate : Float\nsampleRate = {float(rate)}\n" + entry
+    # **And the clock, when the file states a tempo** — the same generated
+    # `beat`/`beatRate` clause `audio.assemble` appends, under the same
+    # conditions, because the three assemblies must make the same promises
+    # about the author's namespace.  Without it, the first file that both
+    # drew and gated its sound on `beat` compiled as an instrument and was
+    # refused as a canvas: `Unknown global 'beat'`, about a name the audio
+    # half had every right to (found by untitled.ges, 2026-08-12; the
+    # `bar` story above is this same defect one vocabulary over).  On the
+    # canvas the clause typechecks against audio.ges's own `ticks`, which
+    # nothing on the drawing side fires — so `beat` holds still here,
+    # exactly as `elapsed` does, and a canvas that wants motion folds over
+    # `events`.  Only with a `sound`, because `ticks` arrives with
+    # audio.ges and a drawing-only file has neither.
+    from .audio import BEAT, BEAT_ENVELOPE, has_bpm, has_tempo
+
+    clock = (BEAT if has_bpm(source)
+             else BEAT_ENVELOPE if has_tempo(source) else "")
+    return (f"\nsampleRate : Float\nsampleRate = {float(rate)}\n"
+            + clock + entry)
 
 
 def assembled(source: str, rate: int = 0) -> str:

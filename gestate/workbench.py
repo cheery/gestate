@@ -468,9 +468,13 @@ def run(path, rate: int = 44100, block: int = 512,
 
             # Whatever the model has been saying to itself — a rebuild
             # finishing, a seed drawn, a score that would not load.
+            # Into the transcript as well as the status line: an error
+            # the user *saw* belongs in the recording they reach for
+            # when something has gone wrong.
             for message in bench.drain():
                 stirred = True
                 session.said.append(message)
+                session.note(message)
 
             now = furniture(session)
             if now != said:

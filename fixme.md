@@ -19,7 +19,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 99 entries, **88 are resolved**.  What is left:
+Of 100 entries, **88 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -34,6 +34,7 @@ Of 99 entries, **88 are resolved**.  What is left:
 | F67 | missing | Nothing enforces the "no variable starting with `d`" rule |
 | F93 | deviates | A graph node's `clock` is set only on sources, not inherited |
 | F95 | fixed | The fragment admits tuples; the extractor now lays them out |
+| F103 | bug, open | The same file's canvas builds or fails typechecking, run to run |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -2775,3 +2776,42 @@ display walk, chans and bridge to the same bytes the Rust suite reads,
 each failure message naming the regeneration step — so the next drift
 on this seam is a red test with instructions rather than a stale
 fixture holding a green light.
+
+### F103. **[bug, open]** The same file's canvas builds or fails typechecking, run to run
+
+Two launches of the editor on the same `untitled.ges`, minutes apart,
+from the same desktop icon.  One: the canvas builds and draws.  The
+other: `the canvas did not build: Signature variable 'c' is rigid: it
+stands for whatever type the caller chooses, so the body may not use it
+as 'b -> c' (at prelude line 7:13–7:19)` — which is `flip`'s own
+signature, in text that does not change between runs.  Evidence:
+`untitled-session.ges` / `untitled-session-2.ges` as recorded
+2026-08-12 evening — the first thing the transcript's new `#!` notes
+ever caught, on their first day.
+
+A type error in fixed text that comes and goes is a race.  **Where it
+is not**: the front half is already serialized — `_FRONT_END` in
+`pipeline.py` is taken by every `compile` and `analyse` — so two
+inferences cannot interleave, and a harness racing the performance
+graph against the canvas compile against a loop-thread tokenizer
+(6×6×N fresh texts, lock additionally neutralized) reproduced nothing.
+An earlier claim of reproduction was a harness bug: `assemble()` on a
+*scored* file misses `music.ges` and fails deterministically with
+`Unknown global '|*'` — that is misuse, not the race.
+
+**Where it therefore likely is**: the assembly layer, which runs
+*outside* `_FRONT_END` and is shared between the editor's loop thread
+(colouring, `_authored`, `vocabulary`) and both build threads —
+`prelude._parsed`'s shared ASTs, `shadow_libraries`/`merge`,
+`syntax._SEAMS`, the `assemble` caches.  A raced assembly that emits a
+corrupted *text* (or hands a mutated shared AST to a consumer) then
+fails honestly under the lock, wearing a typecheck error.
+
+**To catch it next time**: the failure is now recorded with its exact
+sentence in every transcript.  When it recurs, before anything else,
+re-run the canvas build on the same text in the same process — if the
+second build succeeds, hash and keep the assembled text of both, and
+the diff is the corrupting structure's confession.  Until then this
+stays open rather than wearing a plausible lock: `_FRONT_END` already
+covers the part a lock was proposed for, and a fix without a
+reproduction is a mask.

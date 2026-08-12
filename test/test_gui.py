@@ -277,3 +277,33 @@ def test_a_label_reserves_its_box_and_fits_its_letters():
     # Centred in its own declared box: six letters at scale 2 are 46
     # wide and 10 tall.
     assert (x, y) == (100 - 46 // 2, 50 - 10 // 2)
+
+
+def test_a_file_that_sounds_on_the_beat_still_draws():
+    """**The three assemblies make the same promises** — `assembled`'s
+    own rule, applied to the generated names.
+
+    `beat` is not in any prelude file: `audio.assemble` generates it
+    wherever the file declares a `bpm`.  The canvas assembly did not,
+    so the first file that both drew and gated its sound on `beat`
+    compiled as an instrument and was refused as a canvas — `Unknown
+    global 'beat'`, about a line the audio half accepted (untitled.ges,
+    2026-08-12; the `bar`/music.ges collision in `assembled`'s
+    docstring is this same defect one vocabulary over).
+
+    On the canvas the clause typechecks against `ticks`, which nothing
+    on the drawing side fires — `beat` holds still, like `elapsed`.
+    """
+    from gestate.gui import touches
+
+    src = """bpm : Int
+bpm = 125
+
+sound : Sig Float
+sound = sine 220.0 * 0.1 * perc 5 (gateOn (!(x => x % 1 < 0.5) beat))
+
+substrate : Sig Sub
+substrate = rect 40 40 (colour 200 80 80)
+"""
+    frames = touches(src, [])
+    assert frames[0], "the canvas built and drew"

@@ -72,6 +72,11 @@ EDIT = "edit"
 #: "ask" out of a palette.
 ASK = "ask"
 
+#: A message the model volunteered — recorded for the reader, skipped by
+#: the replay.  Spelled as a comment marker so a transcript needs no new
+#: grammar: `read` already ignores it.
+NOTE = "#!"
+
 #: The argument types whose answer is about the **world** and not about
 #: the program in the window.
 #:
@@ -147,6 +152,10 @@ class Step:
 
     def line(self) -> str:
         """`    seek 4    #= at bar 4` — one command of a `do` block."""
+        if self.verb == NOTE:
+            # What the model said unasked, kept as a comment: readable
+            # in place, skipped by `read`, demanded of no replay.
+            return f"    {NOTE} {self.said}".rstrip()
         spoken = " ".join(_literal(a) for a in self.args)
         call = f"{self.verb} {spoken}".strip()
         return f"    {call:<38} {SAID} {self.said}".rstrip()
@@ -200,6 +209,28 @@ class Log:
 
     def add(self, verb: str, args, said: str) -> None:
         self.steps.append(Step(verb, tuple(args), said))
+        if len(self.steps) > KEEP:
+            del self.steps[:len(self.steps) - KEEP]
+
+    def note(self, message: str) -> None:
+        """A sentence the user was shown that no command asked for.
+
+        A rebuild finishing, a canvas refusing, a worker landing — the
+        model says these on its own schedule, they cross the status
+        line, and until now they left no mark here.  So a transcript
+        could hold a session whose visible story was *"errors
+        everywhere"* and read as if nothing happened — which is exactly
+        the transcript that was reached for when untitled.ges's canvas
+        would not build (2026-08-12), and it did not contain the one
+        sentence that explained everything.
+
+        **Written as a comment, deliberately.**  `read` skips `#` lines
+        and `replay` skips `NOTE` steps, so a note is evidence for the
+        person reading, never an instruction for the machine: what the
+        model volunteers depends on threads and clocks, and a replay
+        that demanded the same weather would drift on every run.
+        """
+        self.steps.append(Step(NOTE, (), message))
         if len(self.steps) > KEEP:
             del self.steps[:len(self.steps) - KEEP]
 
@@ -425,6 +456,10 @@ def replay(session, steps, typing=None) -> list:
     """
     drifted = []
     for step in steps:
+        if step.verb == NOTE:
+            # The model's own weather, recorded for the reader; a replay
+            # that demanded it would drift on every thread schedule.
+            continue
         if step.verb == EDIT:
             if typing is not None:
                 typing.retype(_apply(tuple(typing.lines()), step.args))
@@ -491,6 +526,23 @@ class Typing:
 
     def text(self) -> str:
         return "\n".join(self._lines) + ("\n" if self._lines else "")
+
+    def show(self, what: str) -> bool:
+        """The one window question a replay answers as a window would.
+
+        `canvas` gives three answers — about the file, about the clock,
+        about the window — and only the first two are the program's to
+        keep.  A replay has no window, so refusing here made every
+        recorded `canvas` drift to *"this window shows the source
+        only"*: a harness artifact wearing a report, and it wore one on
+        the day a real canvas defect was being hunted (untitled.ges,
+        2026-08-12).  Saying yes keeps the comparison on the answers the
+        program owns.
+        """
+        if what not in ("canvas", "source"):
+            return False
+        self.showing = what
+        return True
 
     def __getattr__(self, name):
         return getattr(self._under, name)

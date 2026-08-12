@@ -1363,6 +1363,15 @@ class Session:
         growing under every keystroke of every session is a thing
         somebody has to clean up rather than one they reach for.
         """
+        self._journal()
+        # Typing since the last step, before the step it led to — the
+        # order a person did them in.
+        self.log.typed(self._lines())
+        self._asked_about(verb)
+        self.log.add(verb, args, said)
+
+    def _journal(self):
+        """The log, started on first use."""
         if self.log is None:
             from .sessionlog import Log
 
@@ -1372,11 +1381,19 @@ class Session:
             # from.  A transcript that opened by "adding" the whole file
             # would bury the one line that mattered.
             self.log.was = tuple(self._lines())
-        # Typing since the last step, before the step it led to — the
-        # order a person did them in.
-        self.log.typed(self._lines())
-        self._asked_about(verb)
-        self.log.add(verb, args, said)
+        return self.log
+
+    def note(self, message: str) -> None:
+        """Record a sentence the user was shown that no command asked for.
+
+        The other half of what the transcript keeps: `run` records what
+        was asked and answered, and this records what the model
+        volunteered — a rebuild finishing, a canvas refusing.  Without
+        it a session full of error messages replayed as a session where
+        nothing happened, which is the difference between a flight
+        recorder and one with the cockpit audio erased.
+        """
+        self._journal().note(message)
 
     def _asked_about(self, verb: str) -> None:
         """Put the dialog that collected this command into the log.
