@@ -329,7 +329,12 @@ def test_every_command_can_be_run_headless_without_raising():
               "Template": "knob",
               # And a no, so `overwrite` answers without an export
               # having been asked for.
-              "Answer": "no"}
+              "Answer": "no",
+              # A port this machine certainly does not have, so `midiOn`
+              # answers about the name rather than opening anything.
+              "Device": "no-such-controller",
+              # A letter that reaches the first cell of the symbol table.
+              "Symbol": "a"}
     for verb in vocabulary():
         args = tuple(sample[a] for a in verb.args)
         said = s.run(verb.name, *args)
@@ -495,6 +500,48 @@ def test_template_inserts_the_program_and_not_the_prose():
     assert any("control rate" in line.lower() for line in s.page)
 
 
+def test_a_letter_reaches_exactly_one_symbol():
+    """**One cell, one keystroke** — which is the whole of the grid.
+
+    Matching names as well as letters made `a` also match `backslash`,
+    `bar` and half the table, so the one keystroke the table exists to
+    make sufficient was not.
+    """
+    from gestate.session import SYMBOLS
+
+    assert len(SYMBOLS) <= 26, "a cell past `z` needs two keys to reach"
+    glyphs = [g for g, _n in SYMBOLS]
+    assert len(set(glyphs)) == len(glyphs), "the same symbol twice"
+    s = session()
+    s.asking = ("symbol", 0, "a")
+    assert s.choices() == [("a", ">")]
+    # The symbol itself and its name still reach it, for somebody who
+    # knows what they want and will not count to `i`.
+    s.asking = ("symbol", 0, "`")
+    assert s.choices() == [("i", "`")]
+    s.asking = ("symbol", 0, "lambda")
+    assert s.choices() == [("q", "=>")]
+
+
+def test_a_symbol_goes_in_and_the_table_goes_away():
+    """Typing a character is finished when it is typed.  Return on a
+    finished call means *again*, which left the table sitting over the
+    line you had just changed — hiding the one thing you opened it to
+    see."""
+    view = _Inserting()
+    view.closed = False
+    view.close_list = lambda: setattr(view, "closed", True) or True
+    s = session(view=view)
+    assert s.run("symbol", "a") == "typed >"
+    assert view.put == [">"]
+    assert view.closed, "the table stayed up"
+    # The symbol itself works as an argument too — a command is a thing
+    # you can type, and `symbol >` refusing while `symbol a` worked
+    # would be a picker that only answers to its own table.
+    assert s.run("symbol", "=>") == "typed =>"
+    assert s.run("symbol", "nope") == "no symbol `nope`"
+
+
 def test_a_second_return_keeps_the_template_instead_of_pasting_it_twice():
     """**Return again means done, not again.**
 
@@ -591,6 +638,16 @@ class _Editing:
     def __init__(self, text):
         self._text = text
         self.showing = "source"
+        #: The window keeps the saved root and volunteers this; the
+        #: model only ever mirrors it.
+        self.saved = True
+
+    def note_state(self, zoom, rungs, undos, redos, saved=True):
+        self.saved = saved
+
+    def mark_saved(self):
+        self.saved = True
+        return True
 
     def text(self):
         return self._text
@@ -870,6 +927,165 @@ def test_an_export_of_nothing_is_a_refusal_not_a_build():
     assert s.run("exportWav", "") == "nothing to export yet"
 
 
+class _WithMidi:
+    """A workbench with controllers plugged in, and one of them open."""
+
+    def __init__(self, ports=("Launchkey", "nanoKONTROL"), open_at=None):
+        self.ports = list(ports)
+        self.opened = open_at
+        self.log = []
+        self.values, self.ranges = {}, {}
+        self.sites, self.banks, self.knob_types, self.holes = [], [], {}, []
+
+    def midi_ports(self):
+        return list(self.ports)
+
+    @property
+    def midi_port(self):
+        return self.opened
+
+    def midi_open(self, port=None):
+        self.opened = port or (self.ports[0] if self.ports else None)
+        self.log.append(("open", port))
+        return self.opened is not None
+
+    def midi_close(self):
+        if self.opened is None:
+            return False
+        self.log.append(("close", self.opened))
+        self.opened = None
+        return True
+
+    def source(self):
+        return ""
+
+
+def test_the_device_list_says_which_one_is_listening():
+    """**Choosing a device and seeing which is live are one act.**
+
+    They are the same question asked half a second apart, and a window
+    that could only tell you afterwards is how an evening goes into
+    deciding whether the keyboard is broken.
+    """
+    s = Session(bench=_WithMidi(open_at="nanoKONTROL"))
+    s.asking = ("midiOn", 0, "")
+    assert s.choices() == [("Launchkey", "idle"),
+                           ("nanoKONTROL", "listening")]
+    # The cursor opens on the live one, which is what `here` means.
+    marked = [l.split("\t")[1] for l in furniture(s).splitlines()
+              if l.startswith("choice\t") and l.split("\t")[3] == "1"]
+    assert marked == ["nanoKONTROL"]
+    # And typing narrows it like any other list.
+    s.asking = ("midiOn", 0, "launch")
+    assert [n for n, _note in s.choices()] == ["Launchkey"]
+
+
+def test_midiOn_tells_three_different_facts_apart():
+    """A machine with no MIDI, a name that is not one of them, and a port
+    that refused are not the same thing — `canvas`'s lesson, again."""
+    none = Session(bench=_WithMidi(ports=()))
+    assert none.run("midiOn", "") == "no MIDI input on this machine"
+
+    s = Session(bench=_WithMidi())
+    assert s.run("midiOn", "nope") == "no MIDI input `nope`"
+    assert s.run("midiOn", "Launchkey") == "listening to Launchkey"
+    # No name means the first there is.
+    s2 = Session(bench=_WithMidi())
+    assert s2.run("midiOn", "") == "listening to Launchkey"
+
+
+def test_opening_a_second_device_closes_the_first():
+    """Two listeners on one machine is two copies of every note, and
+    picking from a list is a change of device far more often than a
+    first one."""
+    bench = _WithMidi(open_at="Launchkey")
+    s = Session(bench=bench)
+    assert s.run("midiOn", "nanoKONTROL") == "listening to nanoKONTROL"
+    assert bench.midi_port == "nanoKONTROL"
+
+
+def test_midiOff_says_when_there_was_nothing_to_stop():
+    bench = _WithMidi(open_at="Launchkey")
+    s = Session(bench=bench)
+    assert s.run("midiOff") == "stopped listening to Launchkey"
+    assert bench.midi_port is None
+    assert s.run("midiOff") == "not listening to any controller"
+
+
+def test_a_knob_the_sound_never_reaches_is_drawn_and_marked():
+    """**A knob with no site is not a knob that does not exist.**
+
+    `audiospans` reports control sources found *in the graph*, so a
+    `mkKnob` nothing downstream of `sound` reads has none — and the
+    margin drew nothing at all, which reads as the editor having missed
+    the line rather than as the program having ignored it.  Declaring a
+    parameter and forgetting to use it is an ordinary mistake, and the
+    window is best placed to point at it.
+    """
+    s = session()
+    s.bench.sites = [_Site("cutoff", 2)]
+    s.bench.loose = [("spare", 5, "0.7", True), ("steps", 9, "40", False)]
+    rows = [l for l in furniture(s).splitlines() if l.startswith("knob\t")]
+    assert rows == ["knob\tcutoff\t2\t40\t0\t100\tInt\t1",
+                    "knob\tspare\t5\t0.7\t0.0\t1.0\tFloat\t0",
+                    "knob\tsteps\t9\t40\t0\t100\tInt\t0"]
+
+
+def test_a_wired_knob_is_never_listed_twice():
+    """The scan reads the text and the sites read the graph, so a name in
+    both must come through once — as the connected one."""
+    s = session()
+    s.bench.sites = [_Site("cutoff", 2)]
+    s.bench.loose = [("cutoff", 2, "0.4", True)]
+    rows = [l for l in furniture(s).splitlines() if l.startswith("knob\t")]
+    assert len(rows) == 1 and rows[0].endswith("\t1")
+
+
+def test_the_status_line_says_the_file_and_whether_it_is_written():
+    """**An edit you have not saved looked exactly like one you had.**
+
+    In a window whose whole premise is that saving is what you press to
+    hear the change, that is the one fact the chrome could not say.  `[+]`
+    is what every editor with a modified flag uses, so it needs no
+    explaining.
+
+    Two events rather than a comparison: `view.text() != bench.source()`
+    is a whole-document copy and a file read, on a description derived
+    every two milliseconds.
+    """
+    view = _Editing("x = 1\n")
+    s = session(view=view)
+    s.bench.path = "demo.ges"
+
+    def row():
+        return next(l for l in furniture(s).splitlines()
+                    if l.startswith("file\t"))
+
+    assert row() == "file\tdemo.ges\t0"
+    act(s, "state\t0\t1\t1\t0\t0")           # the window: not saved
+    assert row() == "file\tdemo.ges\t1", "an edit did not mark it"
+    s.run("apply")
+    assert row() == "file\tdemo.ges\t0", "saving did not clear it"
+    # **And undoing back to the saved text clears it too**, which is the
+    # whole reason this is the window's comparison rather than a flag:
+    # moving twice and arriving back is not modified.
+    act(s, "state\t0\t1\t2\t0\t0")
+    assert row() == "file\tdemo.ges\t1"
+    act(s, "state\t0\t1\t1\t1\t1")           # undone, and equal again
+    assert row() == "file\tdemo.ges\t0", "undo to saved still showed [+]"
+
+
+def test_auditioning_leaves_the_file_unsaved():
+    """`audition` changes the sound and not the file, which is what it is
+    for — so the marker has to stay up."""
+    view = _Editing("x = 1\n")
+    s = session(view=view)
+    s.bench.path = "demo.ges"
+    act(s, "state\t0\t1\t1\t0\t0")
+    s.run("audition")
+    assert "file\tdemo.ges\t1" in furniture(s), "audition cleared the mark"
+
+
 def test_performing_says_what_a_played_note_does():
     """**Not a mode of the editor.**  It changes what happens to a
     *note*, not what a *key* means — the letters go on typing.
@@ -953,8 +1169,8 @@ def test_the_furniture_is_a_reading_of_facts_the_model_already_keeps():
     lines = furniture(s).splitlines()
     assert lines[0] == "status\tplaying"
     assert "trouble\t12\texpected a type, got `sound` (at 12:8-12:11)" in lines
-    assert "knob\tcutoff\t40\t40\t0\t100\tInt" in lines
-    assert "knob\tdrive\t44\t0.5\t0.0\t1.0\tFloat" in lines
+    assert "knob\tcutoff\t40\t40\t0\t100\tInt\t1" in lines
+    assert "knob\tdrive\t44\t0.5\t0.0\t1.0\tFloat\t1" in lines
     assert any(line.startswith("play\t") for line in lines)
     # And every command, so the palette has something to show.
     assert sum(1 for line in lines if line.startswith("command\t")) == \

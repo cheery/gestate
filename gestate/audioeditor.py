@@ -593,6 +593,9 @@ class Workbench:
         #: `(line, col, type)` per `_`, from the last program that
         #: reached inference.  Drawn in the margin beside its own line.
         self.holes: list = []
+        #: `(name, line, literal, is_float)` per `mkKnob` the sound never
+        #: reaches — drawn, and marked as not connected.
+        self.loose: list = []
         #: `voices` banks, and the line each was declared on — what the
         #: view puts a row beside.  Recomputed with the knobs, and for the
         #: same reason: an edit moves them.
@@ -1207,7 +1210,34 @@ class Workbench:
             self.values.setdefault(site.name, self.knob_default(site.name))
         if self.midi is not None:
             self._rebind_midi()
+        self._find_loose_knobs(text)
         self._find_holes(text)
+
+    def _find_loose_knobs(self, text: str) -> None:
+        """Knobs the file declares that the sound never reaches.
+
+        **A knob with no site is not a knob that does not exist.**
+        `audiospans` reports control sources found *in the graph*, so a
+        `mkKnob` nothing downstream of `sound` reads has none — and the
+        margin drew nothing at all, which reads as the editor having
+        missed the line rather than as the program having ignored it.
+        Declaring a parameter and forgetting to use it is an ordinary
+        mistake and one the window is in the best position to point at.
+
+        Read from the text, like `goto`'s declarations, and for the same
+        reason: the graph is precisely what cannot answer this.
+        """
+        import re
+
+        wired = {getattr(s, "name", None) for s in (self.sites or [])}
+        found = []
+        for n, line in enumerate(text.splitlines(), start=1):
+            m = re.match(r"([A-Za-z_]\w*)\s*=\s*mkKnob\s+(-?[\d.]+)\s*$",
+                         line)
+            if m and m.group(1) not in wired:
+                literal = m.group(2)
+                found.append((m.group(1), n, literal, "." in literal))
+        self.loose = found
 
     def _find_holes(self, text: str) -> None:
         """Where every `_` is, and what type it wants.
@@ -1380,6 +1410,49 @@ class Workbench:
         except MidiError as exc:
             self.midi, self.listener = None, None
             self.say(f"no MIDI: {exc}")
+
+    def midi_ports(self) -> list:
+        """Every MIDI input on this machine, or `[]`.
+
+        `[]` is *not* an error — a machine with no controller plugged in,
+        or no `mido`, is a machine without MIDI, and `audiomidi` already
+        makes that distinction so nothing here has to.
+        """
+        from .audiomidi import input_names
+
+        return input_names()
+
+    @property
+    def midi_port(self) -> str | None:
+        """The port that is open, or `None` — **open, not wanted.**
+
+        Asked while a device is being chosen, so it has to be about what
+        is actually listening rather than about what was asked for on the
+        command line: a port that failed to open must not read as active,
+        which is the same rule the piano follows when it is drawn grey.
+        """
+        return self._midi_port if self.listener is not None else None
+
+    def midi_open(self, port: str | None = None) -> bool:
+        """Listen to a controller — this one, or the first there is.
+
+        Closes whatever was open first, because two listeners on one
+        machine is two copies of every note, and a device chosen from a
+        list is a *change* of device far more often than a first one.
+        """
+        self.midi_close()
+        self._midi_port = port or None
+        self._start_midi()
+        return self.listener is not None
+
+    def midi_close(self) -> bool:
+        """Stop listening.  `False` if nothing was."""
+        if self.listener is None:
+            return False
+        self.listener.close()
+        self.listener = None
+        self.midi = None
+        return True
 
     def _rewire_notes(self) -> None:
         """Point `Notes` at the program's `FromMIDI`, if it has one.
@@ -1917,16 +1990,41 @@ class Workbench:
         happened, because an environment where the two are indistinguishable
         is how work gets lost.
         """
-        if self.live is None:
-            raise RuntimeError("nothing is playing yet")
         if save:
             # The first save is what creates a new file — and its parent,
-            # so `gestate.audiopygame sketches/a.ges` works before
+            # so `gestate.workbench sketches/a.ges` works before
             # `sketches` does.
             self.path.parent.mkdir(parents=True, exist_ok=True)
             self.path.write_text(text)
             self.pending = ""
         self.saved = save
+        if self.live is None:
+            # **Saving is not conditional on anything playing.**  A file
+            # that was malformed when the editor opened has no
+            # instrument, and this used to refuse *before* writing —
+            # so you could fix the syntax error, press Ctrl-S, and be
+            # told "nothing is playing yet" while your fix went nowhere.
+            # An editor that will not save is not an editor, whatever
+            # else is wrong.
+            #
+            # And the save is exactly what makes a retry worth trying:
+            # `start` compiles what is on disk, which is now the fixed
+            # text.  Off the caller's thread, because it runs `clang`.
+            if not save:
+                self.say("nothing is playing yet")
+                return
+
+            def begin():
+                try:
+                    self.start()
+                except Exception as exc:                 # noqa: BLE001
+                    self.trouble = str(exc)
+                    self.say(f"saved; still not playing: "
+                             f"{self._first_line(exc)}")
+
+            self.say("saved; starting it")
+            threading.Thread(target=begin, daemon=True).start()
+            return
 
         def build():
             self.live.compile(text)

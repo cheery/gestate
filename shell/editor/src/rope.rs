@@ -63,6 +63,26 @@ struct Node {
 #[derive(Clone, Debug, Default)]
 pub struct Rope(Option<Rc<Node>>);
 
+/// **Same contents, however they were arrived at.**
+///
+/// Written rather than derived, for the fast path: two ropes that share
+/// a root *are* the same text, and that is the common case the caller
+/// cares about — undo restores the very root it took, so asking whether
+/// the document is back where it was saved is one pointer comparison.
+/// Different roots fall back to length and then to contents, which is
+/// the honest answer for text retyped the same.
+impl PartialEq for Rope {
+    fn eq(&self, other: &Rope) -> bool {
+        match (&self.0, &other.0) {
+            (None, None) => true,
+            (Some(a), Some(b)) if Rc::ptr_eq(a, b) => true,
+            _ => self.len() == other.len() && self.text() == other.text(),
+        }
+    }
+}
+
+impl Eq for Rope {}
+
 /// What went wrong, which for a rope is always the same thing.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct OutOfRange;

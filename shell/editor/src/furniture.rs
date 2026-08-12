@@ -43,6 +43,14 @@ pub struct Knob {
     pub hi: f64,
     /// `"Int"` or `"Float"` — what the channel carries.
     pub kind: String,
+    /// **Whether the sound actually reads it.**
+    ///
+    /// A `mkKnob` nothing downstream of `sound` reaches is a real
+    /// declaration with no channel behind it — turning it would do
+    /// nothing.  Drawn anyway, with a mark: a knob that is missing
+    /// entirely reads as the editor having lost the line, and a knob
+    /// that looks exactly like a working one is worse than both.
+    pub wired: bool,
 }
 
 impl Knob {
@@ -94,6 +102,12 @@ pub struct Hole {
 #[derive(Clone, PartialEq, Debug, Default)]
 pub struct Furniture {
     pub status: String,
+    /// The file's own name, for the status line.
+    pub file: String,
+    /// **Whether the text has moved since it was written.**  Drawn as
+    /// `[+]`, which is what every editor with a modified flag uses — an
+    /// edit you have not saved looked exactly like one you had.
+    pub unsaved: bool,
     pub trouble: Vec<Trouble>,
     pub holes: Vec<Hole>,
     pub knobs: Vec<Knob>,
@@ -148,6 +162,10 @@ impl Furniture {
                     line: num(p.get(1)),
                     message: p.get(2).copied().unwrap_or("").into(),
                 }),
+                "file" if p.len() >= 2 => {
+                    f.file = p[1].into();
+                    f.unsaved = p.get(2).copied() == Some("1");
+                }
                 "hole" if p.len() >= 3 => f.holes.push(Hole {
                     line: num(p.get(1)),
                     says: p[2].into(),
@@ -159,6 +177,9 @@ impl Furniture {
                     lo: num(p.get(4)),
                     hi: num(p.get(5)),
                     kind: p[6].into(),
+                    // **Absent means wired**, so a model that says
+                    // nothing keeps every knob it ever drew.
+                    wired: p.get(7).copied() != Some("0"),
                 }),
                 "bank" if p.len() >= 6 => f.banks.push(Bank {
                     name: p[1].into(),
@@ -284,6 +305,9 @@ pub enum Order {
     Goto(usize),
     /// Type this, as if it had been typed.
     Insert(String),
+    /// This text is what is on disk now — what `apply` says after it
+    /// has written the file.
+    Saved,
     /// Close the list, because the command that was running is finished
     /// with it.
     ///
@@ -325,6 +349,7 @@ impl Order {
             "insert" => Some(Order::Insert(arg(1).into())),
             "fill" => Some(Order::Fill(arg(1).into())),
             "close" => Some(Order::Close),
+            "saved" => Some(Order::Saved),
             "show" => Some(Order::Show(arg(1).into())),
             _ => None,
         }
@@ -381,7 +406,12 @@ pub enum Gesture {
     /// answers from its copy.  The alternative is a synchronous call
     /// into the rope from another thread, which is the one thing this
     /// boundary exists to prevent.
-    State { zoom: usize, rungs: usize, undos: usize, redos: usize },
+    /// **And whether the text is what was last written.**  Volunteered
+    /// with the rest of the window's own state, for the same reason:
+    /// the model draws `[+]` from it and must not reach across a thread
+    /// into the rope to ask.
+    State { zoom: usize, rungs: usize, undos: usize, redos: usize,
+            saved: bool },
 }
 
 impl Gesture {
@@ -406,8 +436,9 @@ impl Gesture {
                 format!("struck\t{c}\t{code}\t{}", if *on { 1 } else { 0 })
             }
             Gesture::Edited => "edited".to_string(),
-            Gesture::State { zoom, rungs, undos, redos } => {
-                format!("state\t{zoom}\t{rungs}\t{undos}\t{redos}")
+            Gesture::State { zoom, rungs, undos, redos, saved } => {
+                format!("state\t{zoom}\t{rungs}\t{undos}\t{redos}\t{}",
+                        if *saved { 1 } else { 0 })
             }
         }
     }
@@ -438,8 +469,22 @@ mod order_tests {
     }
 
     #[test]
-    fn the_state_gesture_says_all_four_numbers() {
-        let g = Gesture::State { zoom: 4, rungs: 9, undos: 2, redos: 0 };
-        assert_eq!(g.line(), "state\t4\t9\t2\t0");
+    fn the_state_gesture_says_all_four_numbers_and_whether_it_is_saved() {
+        let g = Gesture::State { zoom: 4, rungs: 9, undos: 2, redos: 0,
+                                 saved: false };
+        assert_eq!(g.line(), "state\t4\t9\t2\t0\t0");
+        let g = Gesture::State { zoom: 4, rungs: 9, undos: 0, redos: 1,
+                                 saved: true };
+        assert_eq!(g.line(), "state\t4\t9\t0\t1\t1");
+    }
+
+    #[test]
+    fn a_knob_is_wired_unless_the_model_says_otherwise() {
+        // **Absent means wired**, so a model that says nothing keeps
+        // every knob it ever drew.
+        let f = Furniture::read("knob\tcutoff\t3\t0.4\t0.0\t1.0\tFloat");
+        assert!(f.knobs[0].wired);
+        let f = Furniture::read("knob\tspare\t7\t0.7\t0.0\t1.0\tFloat\t0");
+        assert!(!f.knobs[0].wired, "a loose knob read as connected");
     }
 }

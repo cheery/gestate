@@ -35,6 +35,59 @@ from pathlib import Path
 #: Where the vocabulary is declared.
 COMMANDS = Path(__file__).with_name("command.ges")
 
+#: The symbols worth a table, in the order they are worth one.
+#:
+#: **Ordered, and the letters follow the order.**  `a` is the first cell
+#: because it is the first thing you reach for, not because `>` starts
+#: with an `a` — a mnemonic would need a second thing to remember and
+#: would run out at the tenth symbol.  Position is the mnemonic, and the
+#: grid is what makes position readable.
+#:
+#: What is in it: the characters gestate's own grammar leans on, sorted
+#: by how hard a European layout makes them.  `=>` and `->` are here as
+#: whole tokens because typing one is two awkward keys, not one.
+SYMBOLS = [
+    # The characters a layout hides — what the table was asked for.
+    (">", "greater"), ("<", "less"), ("|", "bar"), ("\\", "backslash"),
+    ("[", "open bracket"), ("]", "close bracket"),
+    ("{", "open brace"), ("}", "close brace"),
+    ("`", "backtick"), ("@", "at"), ("$", "dollar"), ("#", "hash"),
+    ("_", "hole"), ("'", "note quote"), ("\"", "string quote"),
+    # And the operators the language is written in, which are the reason
+    # you were reaching for those characters in the first place — typing
+    # `=>` on a layout that hides `>` is two fights, not one.
+    #
+    # **Only ones the libraries actually declare.**  A picker offering an
+    # operator the language does not have would be teaching a wrong
+    # vocabulary from inside the editor, which is worse than a short
+    # table: these are read off `prelude.ges`, `music.ges`, `audio.ges`
+    # and `signal.ges`.
+    ("->", "arrow"), ("=>", "lambda"), ("<-", "bind"),
+    ("==", "equal"), ("/=", "not equal"),
+    ("<=", "at most"), (">=", "at least"),
+    ("++", "append sequence"), ("||", "overlay or"),
+    (":::", "cons signal"), ("\\/", "join union"),
+]
+
+#: **Twenty-six, and that is a rule rather than where it happened to
+#: stop.**  One cell is one keystroke, and past `z` a label needs two —
+#: at which point typing `a` matches the single letter exactly and the
+#: cell called `a1` cannot be reached by name at all.  A picker whose
+#: last rows answer only to the arrow keys is two pickers.
+#:
+#: What that cost, so the next person can weigh it rather than guess:
+#: `~`, `^` and `&` are layout-hard and rare in gestate; `[:` and `:]`
+#: are typed from cells already here; `/\`, `>|`, `|<`, `|*` and `|/`
+#: are real operators rare enough to write out; and `>>=` went last,
+#: because `do` notation is how a program spells it now.
+assert len(SYMBOLS) <= 26, "a cell past `z` cannot be reached by its letter"
+
+
+def _letter(i: int) -> str:
+    """The key that reaches the `i`th cell — `a`, `b`, … then `a1`."""
+    return chr(ord("a") + i) if i < 26 else f"{chr(ord('a') + i % 26)}{i // 26}"
+
+
 #: Where the snippets live.  One file, one idea; the directory is the
 #: list, so adding one is adding a file and nothing else.
 TEMPLATES = Path(__file__).with_name("templates")
@@ -464,6 +517,11 @@ KEYS = {
     "undo": "Ctrl-Z",
     "redo": "Ctrl-Y",
     "find": "Ctrl-F",
+    # **A letter, deliberately.**  The symbol table exists because a
+    # layout hides punctuation, so reaching it through punctuation would
+    # be the joke telling itself — `Ctrl-;` is shift-comma on the very
+    # keyboard this is for.
+    "symbol": "Ctrl-E",
     # **The one bare key**, and the rule it bends is stated in
     # `window.rs`: every other shortcut takes Control, because a bare key
     # is text and an editor that stole one would be an editor you cannot
@@ -628,6 +686,53 @@ class Session:
             found.append((rank, i, (name, note)))
         return [pair for _r, _i, pair in sorted(found, key=lambda f: f[:2])]
 
+    def symbols(self, query: str) -> list:
+        """The symbol table — `(letter, symbol)` per cell.
+
+        **The letter is what is sent**, so typing one picks that cell and
+        the ordinary filter machinery does the whole job.  The symbol
+        rides along as the note, which is what the grid draws large.
+
+        The symbol itself also matches, because somebody who knows they
+        want a backtick will type one sooner than count to `i` — and a
+        picker you have to read every time is one you stop opening.
+        """
+        want = query.strip().lower()
+        cells = [(_letter(i), g, n) for i, (g, n) in enumerate(SYMBOLS)]
+        if not want:
+            return [(l, g) for l, g, _n in cells]
+        # **A letter names one cell and nothing else.**  Matching names
+        # as well as letters made `a` — the first cell — also match
+        # `backslash`, `bar` and half the table, so the one keystroke
+        # the grid exists to make sufficient was not.
+        exact = [(l, g) for l, g, _n in cells if l == want]
+        if exact:
+            return exact
+        return [(l, g) for l, g, n in cells
+                if g.startswith(query.strip()) or want in n]
+
+    def devices(self, query: str) -> list:
+        """The MIDI inputs a typed query means, and which is listening.
+
+        **The note is the answer to "is it on".**  Choosing a device and
+        seeing which one is live are the same act here, because they are
+        the same question asked half a second apart — and a window that
+        could only tell you *afterwards* is how an evening goes into
+        deciding whether the keyboard is broken.
+
+        A machine with no MIDI gets an empty list rather than a row
+        saying so: the palette shows what could be chosen, and there is
+        nothing.  `midiOn` is the one that says why.
+        """
+        live = getattr(self.bench, "midi_port", None)
+        query = query.strip().lower()
+        out = []
+        for name in getattr(self.bench, "midi_ports", lambda: [])():
+            if query and query not in name.lower():
+                continue
+            out.append((name, "listening" if name == live else "idle"))
+        return out
+
     def snippets(self, query: str) -> list:
         """The templates a typed query means, best first.
 
@@ -771,6 +876,10 @@ class Session:
             return self._pinned(verb, at, query, rows)
         if kind == "Template":
             return self.snippets(query)
+        if kind == "Symbol":
+            return self.symbols(query)
+        if kind == "Device":
+            return self.devices(query)
         if kind == "Answer":
             # **A question with two rows, and `y`/`n` filter to one of
             # them.**  So it reads as `[y/n]` at the keyboard while
@@ -887,6 +996,14 @@ class Session:
 
     def do_apply(self) -> str:
         self.bench.apply(self.view.text())
+        # **Saved as far as the marker is concerned.**  `apply` writes
+        # the file before it starts the rebuild, so the text on disk is
+        # this text whether or not the build that follows succeeds — and
+        # a `[+]` that stayed up because the program did not compile
+        # would be reporting the wrong fact entirely.
+        marked = getattr(self.view, "mark_saved", None)
+        if marked is not None:
+            marked()
         return "applying"
 
     def do_audition(self) -> str:
@@ -988,6 +1105,37 @@ class Session:
                         f"its voices take no note")
             return f"`{name}` would not switch"
         return f"{name} {'hears' if on else 'ignores'} the keyboard"
+
+    def do_midiOn(self, port: str = "") -> str:
+        """Listen to a controller — this one, or the first there is.
+
+        **Three answers, because there are three different facts.**  A
+        machine with no MIDI at all, a name that is not one of them, and
+        a port that refused to open are not the same thing, and telling
+        them apart is what `canvas` had to learn: a fact about the
+        machine reported as a fact about your choice sends somebody
+        looking in the wrong place.
+        """
+        ports = getattr(self.bench, "midi_ports", lambda: [])()
+        if not ports:
+            return "no MIDI input on this machine"
+        want = (port or "").strip()
+        if want and want not in ports:
+            return f"no MIDI input `{want}`"
+        opener = getattr(self.bench, "midi_open", None)
+        if opener is None:
+            return "nothing to listen with"
+        if not opener(want or None):
+            return f"could not open {want or ports[0]}"
+        return f"listening to {self.bench.midi_port or want or ports[0]}"
+
+    def do_midiOff(self) -> str:
+        """Stop listening.  The typed keyboard is unaffected."""
+        closer = getattr(self.bench, "midi_close", None)
+        was = getattr(self.bench, "midi_port", None)
+        if closer is None or not closer():
+            return "not listening to any controller"
+        return f"stopped listening to {was}" if was else "stopped listening"
 
     def do_octave(self, by: int) -> str:
         where = self.bench.keyboard.transpose(by)
@@ -1335,6 +1483,34 @@ class Session:
         if not self.view.replace(laid):
             return "infer: nowhere to put it"
         return f"wrote `{name}`'s signature"
+
+    def do_symbol(self, which: str = "") -> str:
+        """Put a symbol at the cursor.
+
+        Takes the letter the table shows, or the symbol itself — the
+        second because a command is a thing you can also *type*, and
+        `symbol >` refusing while `symbol a` worked would be a picker
+        that only answers to its own table.
+        """
+        want = (which or "").strip()
+        if not want:
+            return "symbol: which one?"
+        table = {_letter(i): g for i, (g, _n) in enumerate(SYMBOLS)}
+        glyph = table.get(want.lower())
+        if glyph is None:
+            glyph = next((g for g, _n in SYMBOLS if g == want), None)
+        if glyph is None:
+            return f"no symbol `{want}`"
+        if not self.view.insert(glyph):
+            return "symbol: nowhere to put it"
+        # **And it goes away, because typing a character is finished.**
+        # Return on a finished call means *again* — right for `find`,
+        # and here it left the table sitting over the line you had just
+        # put the symbol into, hiding the one thing you opened it to
+        # change.  `template` needed the same say-when-you-are-done, and
+        # this is the same order.
+        self.view.close_list()
+        return f"typed {glyph}"
 
     def do_template(self, name: str) -> str:
         """Put one of the language's ideas at the cursor.
@@ -1741,7 +1917,21 @@ def furniture(session: "Session", bench=None) -> str:
         seen.add(name)
         kind = getattr(b, "knob_types", {}).get(name, "Int")
         out.append(f"knob\t{name}\t{getattr(site, 'line', 0)}"
-                   f"\t{value}\t{lo}\t{hi}\t{kind}")
+                   f"\t{value}\t{lo}\t{hi}\t{kind}\t1")
+
+    # **And the ones the sound never reaches, drawn and marked.**  A
+    # `mkKnob` nothing downstream of `sound` reads has no site, so the
+    # margin drew nothing — which reads as the editor having missed the
+    # line rather than as the program having ignored it.  Declaring a
+    # parameter and forgetting to use it is an ordinary mistake, and the
+    # window is the thing best placed to point at it.
+    for name, line, literal, is_float in getattr(b, "loose", []) or []:
+        if name in seen:
+            continue
+        seen.add(name)
+        lo, hi = (0.0, 1.0) if is_float else (0, 100)
+        out.append(f"knob\t{name}\t{line}\t{literal}\t{lo}\t{hi}"
+                   f"\t{'Float' if is_float else 'Int'}\t0")
 
     # **One row per line, not per hole.**  Two holes on a line are two
     # facts about the same row of the margin, and the margin has one row
@@ -1763,6 +1953,16 @@ def furniture(session: "Session", bench=None) -> str:
                    f"\t{_held(b, name)}\t{_of(bank, 'count', 0)}"
                    f"\t{1 if _listening(b, name) else 0}")
 
+    # **What file this is, and whether it is written down.**  The window
+    # had no way to say either: a name you cannot see is one you have to
+    # remember, and an edit you have not saved looked exactly like one
+    # you had.
+    # **Asked of the window, which keeps the saved root.**  A flag set
+    # by `edited` cannot answer this: undoing back to what you saved has
+    # moved twice and changed nothing, and a flag — or a version
+    # counter — would go on saying modified for the rest of the session.
+    out.append(f"file\t{Path(getattr(b, 'path', '') or '').name}"
+               f"\t{0 if getattr(session.view, 'saved', True) else 1}")
     out.append(f"play\t{1 if _rolling(b) else 0}\t{_beats(b)}")
     # **What a played note would do, and whether anything would hear
     # it.**  The keyboard is drawn from these two: a piano nobody is
@@ -1802,6 +2002,11 @@ def furniture(session: "Session", bench=None) -> str:
         proposed = session.proposed_name(verb, at, query)
         if proposed:
             here = proposed
+        # And when a device is being chosen, the one already listening —
+        # the cursor opens on what is live, which is the answer to the
+        # question you opened the list to ask.
+        elif verb == "midiOn":
+            here = getattr(b, "midi_port", None) or here
     # **The one you are on is marked, not selected.**  The view puts its
     # cursor there and leaves the query blank, so the list opens showing
     # where you are and the first letter you type is a new name rather
@@ -2136,8 +2341,12 @@ def act(session: "Session", line: str) -> str:
         noting = getattr(session.view, "note_state", None)
         if noting is not None:
             try:
+                # **The fifth is optional**, so a window built before it
+                # existed still reports the four it has rather than
+                # having its whole state dropped for the one it does not.
                 noting(int(parts[1]), int(parts[2]),
-                       int(parts[3]), int(parts[4]))
+                       int(parts[3]), int(parts[4]),
+                       parts[5] != "0" if len(parts) > 5 else True)
             except ValueError:
                 return f"state: {line!r} is not four numbers"
         return ""

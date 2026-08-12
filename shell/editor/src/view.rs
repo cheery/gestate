@@ -404,9 +404,22 @@ fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
     let sy = view.h - view.status_h(font);
     f.items.push(Item::Rect { x: 0, y: sy, w: view.w,
                               h: view.status_h(font), c: CHROME });
-    if !chrome.status.is_empty() {
-        f.items.push(Item::Run { x: 4, y: sy + 2, s: chrome.status.clone(),
-                                 c: FAINT });
+    // **The name, and whether it is written down.**  `[+]` is what every
+    // editor with a modified flag uses, so it needs no explaining — and
+    // without it an edit you have not saved looked exactly like one you
+    // had, in a window whose whole premise is that saving is what you
+    // press to hear the change.
+    let mut left = String::new();
+    if !chrome.file.is_empty() {
+        left.push_str(&chrome.file);
+        if chrome.unsaved {
+            left.push_str(" [+]");
+        }
+        left.push_str("  ");
+    }
+    left.push_str(&chrome.status);
+    if !left.is_empty() {
+        f.items.push(Item::Run { x: 4, y: sy + 2, s: left, c: FAINT });
     }
 
     // **Where the music is, at the right of the same line.**  The
@@ -621,6 +634,17 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
                     .clamp(x, x + wide - grip);
                 f.items.push(Item::Rect { x: at, y: top, w: grip, h: tall,
                                           c: HANDLE });
+                // **A cross to its left when the sound never reads it.**
+                // The knob is drawn either way — one that vanished would
+                // read as the editor having lost the line — and the mark
+                // is what stops a control that does nothing looking
+                // exactly like one that works, which is the same rule
+                // that greys a piano nobody is listening to.
+                if !k.wired {
+                    f.items.push(Item::Run { x: x - cw - 2, y,
+                                             s: "\u{2717}".into(),
+                                             c: ANGRY });
+                }
             }
         }
     }

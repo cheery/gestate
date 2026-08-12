@@ -163,6 +163,32 @@ deafen n = Stated
 octave : Int -> Command
 octave n = Stated
 
+#: A MIDI input on this machine.
+#:
+#: **Its own type so that the list can appear** — the rule `Named`,
+#: `Path` and `Template` already follow.  A device qualifies for the same
+#: reason a path does: there is a small, knowable set of them, and the
+#: model is the one that can ask the machine.
+type Device = Text
+
+#: Listen to a controller.  Given no name, the first one there is.
+#:
+#: The list shows every input and marks the one already open, so
+#: *choosing* a device and *seeing which is live* are one act — a window
+#: that could only tell you afterwards is how an evening goes into
+#: deciding whether the keyboard is broken.
+#:
+#: Opening a second closes the first: two listeners on one machine is two
+#: copies of every note, and picking from a list is a change of device far
+#: more often than a first one.
+midiOn : Device -> Command
+midiOn port = Stated
+
+#: Stop listening to it.  The typed keyboard is unaffected — it never had
+#: a path through the port.
+midiOff : Command
+midiOff = Stated
+
 # ── Performing ───────────────────────────────────────────────────────────
 #
 # What a played *note* does — not what a *key* means.  The letters go on
@@ -273,6 +299,24 @@ what n = Stated
 #: file that does not compile says so instead of answering "nothing".
 fits : Text -> Command
 fits wanted = Stated
+
+#: A character that is awkward to type — picked from a table.
+#:
+#: **Its own type so that the table can appear**, which is the rule
+#: `Named`, `Path`, `Template` and `Device` already follow.  Symbols
+#: qualify twice over: there is a small, knowable set of them, and they
+#: are the one thing a *list* is the wrong shape for — a keyboard is a
+#: grid and so is this.
+type Symbol = Text
+
+#: Put a symbol at the cursor, from a lettered table.
+#:
+#: `>` on a Finnish layout, `|` and backtick on several others: a
+#: language whose grammar leans on characters the keyboard hides is a
+#: language you fight to type.  The table is a grid and each cell has a
+#: letter, so reaching one is two keys and no chord to remember.
+symbol : Symbol -> Command
+symbol which = Stated
 
 #: A snippet to paste — one of the language's ideas, ready to have.
 #:

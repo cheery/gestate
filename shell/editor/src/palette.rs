@@ -171,6 +171,13 @@ pub struct Palette {
     /// selection back to the top on every keystroke is how a filter
     /// becomes unusable.
     at: usize,
+    /// How many cells the symbol grid last drew across.
+    ///
+    /// **Set by the layout, read by the arrows.**  `Down` means *a row
+    /// down* and a row is however many cells fitted, which only the
+    /// drawing knows — so it leaves the number here rather than the keys
+    /// guessing at a shape they cannot see.
+    wide: std::cell::Cell<i32>,
 }
 
 impl Palette {
@@ -494,11 +501,29 @@ impl Palette {
                 }
                 self.requery()
             }
+            // **Up and down mean a row, and in a grid a row is wide.**
+            // Stepping one cell would make the arrows agree with the
+            // sequence and disagree with the picture, which is the one
+            // thing a table must not do.
             Key::Up => {
-                self.at = self.at.saturating_sub(1);
+                self.at = self.at.saturating_sub(self.stride());
                 Asks::Nothing
             }
             Key::Down => {
+                let to = self.at + self.stride();
+                if to < self.shown_len() {
+                    self.at = to;
+                }
+                Asks::Nothing
+            }
+            // And left and right are the cells themselves — bound only
+            // where there is a grid, so a list keeps them for whatever
+            // else may want them.
+            Key::Left if self.is_grid() => {
+                self.at = self.at.saturating_sub(1);
+                Asks::Nothing
+            }
+            Key::Right if self.is_grid() => {
                 if self.at + 1 < self.shown_len() {
                     self.at += 1;
                 }
@@ -628,6 +653,59 @@ impl Palette {
     /// appended to the text's frame — the palette is chrome over a
     /// document, and interleaving the two would make the document's
     /// layout depend on whether a list happened to be open.
+    /// The symbol table, as a table.
+    ///
+    /// **Cells across, not rows down.**  Each is `a >` — the key that
+    /// reaches it and the character it types — so reading the grid
+    /// teaches the keys and pressing one teaches the grid.  The
+    /// selection is drawn on the cell rather than the row, which is what
+    /// makes the arrows mean left and right as well as up and down.
+    ///
+    /// Laid out by the width there is: one column per `CELL` characters,
+    /// at least one, so a narrow window degenerates to the column this
+    /// replaced rather than to nothing.
+    /// How many cells fit across — **one rule, two readers.**  The
+    /// layout and the arrow keys have to agree about the shape of the
+    /// grid or `Down` moves somewhere other than down.
+    /// Whether what is being asked for is drawn as a table.
+    fn is_grid(&self) -> bool {
+        self.asking.as_ref().map(|a| a.wants()) == Some("Symbol")
+    }
+
+    /// How far `Down` moves — a whole row in a grid, one row in a list.
+    fn stride(&self) -> usize {
+        if self.is_grid() {
+            self.wide.get().max(1) as usize
+        } else {
+            1
+        }
+    }
+
+    fn columns(box_w: i32, cw: i32) -> i32 {
+        const CELL: i32 = 6;                    // "a >  " and air
+        ((box_w - 8) / (CELL * cw).max(1)).max(1)
+    }
+
+    fn grid(&self, f: &mut Frame, rows: &[(String, String)],
+            x: i32, y: i32, cw: i32, ch: i32, box_w: i32) {
+        const CELL: i32 = 6;
+        let per = Self::columns(box_w, cw);
+        self.wide.set(per);
+        for (i, (letter, glyph)) in rows.iter().enumerate() {
+            let (col, line) = (i as i32 % per, i as i32 / per);
+            let cx = x + 4 + col * CELL * cw;
+            let cy = y + 4 + ch * (line + 1);
+            if i == self.at {
+                f.items.push(Item::Rect { x: cx - 2, y: cy,
+                                          w: CELL * cw, h: ch, c: PICKED });
+            }
+            f.items.push(Item::Run { x: cx, y: cy, s: letter.clone(),
+                                     c: FAINT });
+            f.items.push(Item::Run {
+                x: cx + 2 * cw, y: cy, s: glyph.clone(), c: INK });
+        }
+    }
+
     pub fn frame(&self, w: i32, h: i32, cw: i32, ch: i32) -> Frame {
         let mut f = Frame::default();
         if !self.open {
@@ -643,9 +721,19 @@ impl Palette {
         // own every pixel it writes on, which means counting the
         // summary's row before the box is sized.
         let telling = self.asking.is_none() && self.selected().is_some();
-        let rows = shown as i32 + 1 + i32::from(telling);
-        let box_h = ch * rows + 8;
         let box_w = (w - 2 * cw).max(cw);
+        // **A grid is as tall as its own lines**, not as tall as the
+        // list it replaced: a table of twenty-two symbols four rows deep
+        // in a panel sized for twelve rows is ten rows of nothing over
+        // somebody's file.
+        let grid = self.asking.as_ref().map(|a| a.wants()) == Some("Symbol");
+        let rows = if grid {
+            let per = Self::columns(box_w, cw);
+            (self.choices.len() as i32 + per - 1) / per.max(1) + 1
+        } else {
+            shown as i32 + 1 + i32::from(telling)
+        };
+        let box_h = ch * rows + 8;
         let (x, y) = (cw, ch);
 
         f.items.push(Item::Rect { x: x - 2, y: y - 2, w: box_w + 4,
@@ -687,6 +775,14 @@ impl Palette {
             None => vec![false; rows.len()],
             Some(_) => self.choices.iter().map(|c| c.dim || !c.can).collect(),
         };
+        // **A keyboard is a grid, and so is this.**  A symbol table read
+        // as one column is a column you scroll, which is exactly the
+        // thing a person reaches for it to avoid — and the letters only
+        // pay for themselves when you can see where each one lands.
+        if grid {
+            self.grid(&mut f, &rows, x, y, cw, ch, box_w);
+            return f;
+        }
         let from = self.window(most);
         for (i, (left, right)) in
             rows.iter().skip(from).take(shown).enumerate()
@@ -801,6 +897,67 @@ mod paint_tests {
                          ({top}..{bottom})");
             }
         }
+    }
+
+    /// A palette part-way through asking for a `Symbol`.
+    fn a_grid() -> Palette {
+        let mut p = Palette::default();
+        p.show();
+        p.asking = Some(Asking {
+            verb: "symbol".into(), types: vec!["Symbol".into()],
+            got: vec![], reverse: String::new(), done: false,
+        });
+        p.offer_choices(vec![
+            Choice { text: "a".into(), note: ">".into(), can: true,
+                     ..Default::default() },
+            Choice { text: "b".into(), note: "<".into(), can: true,
+                     ..Default::default() },
+            Choice { text: "c".into(), note: "|".into(), can: true,
+                     ..Default::default() },
+            Choice { text: "d".into(), note: "\\".into(), can: true,
+                     ..Default::default() },
+        ]);
+        p
+    }
+
+    /// **A keyboard is a grid, and so is this.**  Cells go across before
+    /// they go down — a symbol table read as one column is the column
+    /// somebody opened it to avoid.
+    #[test]
+    fn the_symbol_table_is_laid_out_across() {
+        let (cw, ch) = (8, 16);
+        let f = a_grid().frame(800, 600, cw, ch);
+        let glyphs: Vec<(i32, i32, &str)> = f.items.iter().filter_map(|i| {
+            match i {
+                Item::Run { x, y, s, .. } if s.len() <= 2 && s != "a"
+                    && s != "b" && s != "c" && s != "d" =>
+                    Some((*x, *y, s.as_str())),
+                _ => None,
+            }
+        }).collect();
+        assert!(glyphs.len() >= 4, "not every cell drew: {glyphs:?}");
+        // All four on one line, at rising x — across, not down.
+        let row = glyphs[0].1;
+        assert!(glyphs.iter().all(|g| g.1 == row),
+                "cells wrapped when they had room: {glyphs:?}");
+        for pair in glyphs.windows(2) {
+            assert!(pair[1].0 > pair[0].0, "cells not left to right");
+        }
+    }
+
+    /// **Down means a row, and in a grid a row is wide.**  Stepping one
+    /// cell would make the arrows agree with the sequence and disagree
+    /// with the picture, which is the one thing a table must not do.
+    #[test]
+    fn down_in_a_grid_moves_a_whole_row() {
+        let mut p = a_grid();
+        p.frame(800, 600, 8, 16);            // the layout sets the width
+        let wide = p.wide.get() as usize;
+        assert!(wide > 1, "the test window fits only one column");
+        p.key(Key::Right);
+        assert_eq!(p.at, 1, "right did not move a cell");
+        p.key(Key::Left);
+        assert_eq!(p.at, 0);
     }
 
     #[test]

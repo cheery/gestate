@@ -48,6 +48,16 @@ pub struct Document {
     /// Roots this document used to have, newest last.
     undo: Vec<(Rope, usize)>,
     redo: Vec<(Rope, usize)>,
+    /// The text as it was last written to disk.
+    ///
+    /// **A root, not a counter.**  A version number says the document
+    /// has *moved*, which is not the question — undo back to what you
+    /// saved has moved twice and changed nothing, and a counter reports
+    /// it modified for the rest of the session.  The rope is persistent,
+    /// so keeping the saved root costs one `Rc` and undo restores that
+    /// very root, which makes the comparison exact and usually a pointer
+    /// away.
+    saved: Rope,
 }
 
 impl Default for Document {
@@ -58,12 +68,30 @@ impl Default for Document {
 
 impl Document {
     pub fn new(text: &str) -> Document {
-        Document { text: Rope::from_str(text), pos: 0, goal: None,
+        let text = Rope::from_str(text);
+        // Opened from a file, so what is on screen is what is on disk.
+        Document { saved: text.clone(), text, pos: 0, goal: None,
                    anchor: None, undo: Vec::new(), redo: Vec::new() }
     }
 
     pub fn rope(&self) -> &Rope {
         &self.text
+    }
+
+    /// This is what is on disk now.
+    pub fn mark_saved(&mut self) {
+        self.saved = self.text.clone();
+    }
+
+    /// Whether the text is what was last written.
+    ///
+    /// Exact rather than a flag: undo back to the saved text answers
+    /// yes, because undo restores the root that was saved and the
+    /// comparison finds the same `Rc`.  Retyping the same characters
+    /// answers yes too, at the cost of one content comparison, which is
+    /// the honest answer to *is this file modified*.
+    pub fn is_saved(&self) -> bool {
+        self.text == self.saved
     }
 
     pub fn len(&self) -> usize {

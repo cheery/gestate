@@ -53,6 +53,8 @@ class Window:
         self.zoom_rungs = 1
         self.undos = 0
         self.redos = 0
+        #: Whether the text is what was last written.
+        self.saved = True
 
     def text(self) -> str:
         return self.editor.text
@@ -61,10 +63,24 @@ class Window:
         self.editor.request_close()
 
     def note_state(self, zoom: int, rungs: int,
-                   undos: int, redos: int) -> None:
+                   undos: int, redos: int, saved: bool = True) -> None:
         """The window saying where its own state stands."""
         self.zoom_at, self.zoom_rungs = zoom, rungs
         self.undos, self.redos = undos, redos
+        self.saved = saved
+
+    def mark_saved(self) -> bool:
+        """This text is what is on disk now.
+
+        The window keeps the saved *root* and compares against it, so
+        undoing back to what you saved clears the mark — which a flag
+        set by `edited` could never do, and a version counter could not
+        either: both say the document has *moved*, and moving twice and
+        arriving back is not modified.
+        """
+        self.editor.order("saved")
+        self.saved = True
+        return True
 
     def undo(self) -> bool:
         if self.undos <= 0:

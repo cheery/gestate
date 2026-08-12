@@ -51,6 +51,19 @@ piano, and the sound — all at once.  `Ctrl-S` applies an edit without
 stopping the note that is ringing, because the graph is exactly what the
 source says and the running state migrates across the change.
 
+<p align="center">
+  <img src="doc/workbench2.png" width="640"
+       alt="a synth playing: a knob in the margin beside the declaration
+            that makes it, a voice bank showing two of its four voices
+            sounding, and the transport running in the status line">
+</p>
+
+Two things in that picture are facts the text cannot state. The slider
+on line 18 is `volume`'s own channel, at `volume`'s own line — not a
+panel you read against the code. And `2/4` beside the bank is how many
+of its voices are sounding **now**: `voices example 4` is already in the
+source, so a window that only repeated it would be decoration.
+
 There is **one mode, and it is typing**.  `Ctrl-K` opens the command
 list, which is every other thing the editor can do, filterable, each with
 its name and its key; a capability cannot exist without appearing there,
@@ -58,6 +71,19 @@ because the list is derived from `gestate/command.ges` the way the
 reference is derived from the libraries.  A build that fails leaves the
 sound playing and puts the compiler's complaint beside the line that
 caused it.
+
+<p align="center">
+  <img src="doc/workbench.png" width="520"
+       alt="the command list open over the source, each command with its
+            arguments and its key, and a sentence under the selected one">
+</p>
+
+That list is not a menu the window maintains — it is
+`gestate/command.ges` read back, so what you see is the vocabulary
+itself: the argument types are what let it ask (`<int>`, `<path>`,
+`<named>`), the key is the one the command publishes, and the sentence
+under the selection is the declaration's own doc comment.  Adding a
+capability is adding a declaration, and there is nowhere else to put one.
 
 Two commands are the language answering about itself.  **`Tab`** asks
 what fits — give it a type and it lists everything in scope that could
