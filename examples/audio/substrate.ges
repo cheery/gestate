@@ -93,4 +93,4 @@ meter v = Sized 20 200 (Rect 20 (floor (v * 180.0)) (RGB 60 200 90))
 #: that.  Any name in backticks is an operator; `row` is an ordinary
 #: definition either way.
 substrate : Sig Sub
-substrate = moveXY 120 140 (fader `row` gap 30 0 `row` !meter loud)
+substrate = fader `row` gap 30 0 `row` !meter loud

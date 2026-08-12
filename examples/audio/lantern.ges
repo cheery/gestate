@@ -265,7 +265,9 @@ meter = column (!meterOf loud) (caption "PEAK")
 #: And the layout, which is the one place that composes things that vary.
 #: `row` puts them side by side and lines their centres up; there is no
 #: alignment to state because a centre is the only point any of them is
-#: placed by.
+#: placed by.  The whole row lands in the middle of the pane, because
+#: that is where a host puts the origin — a picture is placed by its
+#: centre all the way up, window included.
 substrate : Sig Sub
-substrate = moveXY 150 150
-    (warmFader `row` gap 22 0 `row` glowFader `row` gap 34 0 `row` meter)
+substrate =
+    warmFader `row` gap 22 0 `row` glowFader `row` gap 34 0 `row` meter

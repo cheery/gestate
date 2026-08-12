@@ -92,5 +92,5 @@ meter v = Sized 24 180 (Rect 24 (floor (170.0 * v)) (RGB 90 200 110))
 #: try: `column` the ribbon over a second one tuned an octave down - a
 #: two-string instrument; `pad` and `gap` are the whitespace.
 substrate : Sig Sub
-substrate = moveXY 170 130
+substrate =
     (pad 10 ribbon `column` (fader `row` gap 24 0 `row` !meter loud))

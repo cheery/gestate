@@ -5341,3 +5341,46 @@ code you rewrite, it is the obligations recorded nowhere but in the
 code you delete.  Inventory a boundary from *both* sides — what the
 model publishes, and what programs demand of the view — because the
 second list is the one a model-side spec cannot see.
+
+
+## The canvas found its centre
+
+A substrate's origin now lands **in the middle of the pane**, in both
+hosts.  The walk was always origin-relative — `_flatten` from `cx = cy
+= 0`, every element placed by its centre — and where the origin lands
+was the host's to say; both hosts said *the corner*, so a beginner's
+first `rect 40 40 c` showed its bottom-right quarter and every shipped
+example opened with a compensating `moveXY 150 150`.  The first user
+gestate ever had met that on their first canvas, which is what promoted
+it from wart to defect.
+
+**The move is one decision in five places, taken together**: the
+editor shell offsets the painted shapes by half the window and
+subtracts the same offset from every touch (one number, two
+directions, so the picture and the hand cannot disagree);
+`Panel::canvas_origin` answers the middle of what the toolbar leaves;
+seven examples lost their compensation — five dropped a root `moveXY`,
+and `bounce`/`chain` had their *worlds* recentred, which made them
+shorter (a centred backdrop is a bare `Rect`).  The reference walk and
+`touches` stay at the origin: the fixtures pin the tree's own geometry
+with no host in the room, and now read as what they are — items
+straddling zero, a picture placed by its centre awaiting a host to say
+where the centre is.
+
+Trying this in one place instead of five was already a recorded
+mistake: centring a host over programs that still carried their
+`moveXY` double-counted the move.  What made the coordinated form safe
+is a day old: `test_panel_fixtures.py` regenerates what the Rust suite
+reads, so the fixtures could not stay behind, and the parity tests
+held both hosts to the same reading throughout.  The change never had
+a moment where green lied.
+
+Found while converting `bounce` and `chain`: **their pointer half is
+orphaned.**  They fold over raw `Press`/`Move` events, and nothing in
+the editor injects one — `Substrate.tick` sends `Tick` and a touch
+writes an attachment's channel; the raw-event vocabulary's only living
+callers are `test_gui.py`'s headless `scenes`.  That is F101's shape
+(an affordance whose host was deleted with pygame), and it reopens the
+question of whether the raw-event canvas belongs to the language at
+all now that the built vocabulary is attachments.  Not decided here;
+recorded so it is a decision rather than a discovery.

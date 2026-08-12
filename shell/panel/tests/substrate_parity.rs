@@ -22,14 +22,14 @@ const H: i32 = 300;
 
 /// **The reference's own origin.**
 ///
-/// `gui.py`'s `_flatten` walks from `cx = cy = 0`: a substrate's centre
-/// sits at the window's corner and the program places itself from
-/// there — `substrate.ges` opens with `moveXY 120 140` for exactly
-/// that reason.  The fixture beside this file is that walk, so
-/// comparing against it pins the convention rather than only the
-/// arithmetic.  A host that centred instead would add half a window to
-/// an offset the program had already applied, and every canvas would
-/// come out down and to the right of where its author put it.
+/// `gui.py`'s `_flatten` walks from `cx = cy = 0` — the walk is
+/// origin-relative, and *where the origin lands is the host's to say*
+/// (both hosts say the middle of their pane; `Panel::canvas_origin`
+/// tells that story).  The fixture beside this file is the bare walk,
+/// so comparing against it pins the tree's own geometry with no host
+/// in the room: items straddle the origin, which is what a program
+/// placed by its centre looks like before a host has said where the
+/// centre is.
 fn reference(m: &mut Machine, t: &SubTags, root: usize)
     -> Result<Display, gestate_panel::substrate::SubError>
 {

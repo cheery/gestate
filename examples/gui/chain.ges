@@ -39,8 +39,11 @@ repeatPoint n p = case n == 0 of
     True -> []
     False -> p :: repeatPoint (n - 1) p
 
+#: At the origin, which is the middle of the pane: the canvas origin is
+#: the centre, so the chain coils up exactly in the middle until a
+#: pointer gives it somewhere to go.
 start : Chain
-start = Chain 240.0 180.0 (repeatPoint segments (P 240.0 180.0))
+start = Chain 0.0 0.0 (repeatPoint segments (P 0.0 0.0))
 
 # ── Following ────────────────────────────────────────────────────────────
 
@@ -85,11 +88,11 @@ stepChain c e = case e of
 slate : Colour
 slate = RGB 18 20 30
 
-#: The canvas, drawn from its own centre like everything else — so the
-#: whole picture is built around `width / 2, height / 2` and `Shift`
-#: places each dot at the absolute spot its physics computed.
+#: The world and the pane share a centre, so the backdrop needs no
+#: placing at all — a `Rect` is already centred on the origin, and
+#: `Shift` places each dot at the spot its physics computed.
 backdrop : Sub
-backdrop = Shift (width / 2) (height / 2) (Rect width height slate)
+backdrop = Rect width height slate
 
 #: Thick at the head, thin at the tail.
 radiusAt : Int -> Int

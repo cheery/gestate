@@ -182,7 +182,7 @@ mOf v = floor (toFloat tall * clamp 0.0 1.0 v)
 #: every frame, there is no signal for it to meet, and a marker given no
 #: arguments lifts nothing.
 substrate : Sig Sub
-substrate = moveXY 170 130
+substrate =
     ((!curve
         `over` !dotAt 0 age0 `over` !dotAt 1 age1
         `over` !dotAt 2 age2 `over` !dotAt 3 age3)

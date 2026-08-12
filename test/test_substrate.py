@@ -686,9 +686,10 @@ def test_the_example_is_a_synth_you_can_see_and_touch():
 
     sub = Substrate(source, rate=RATE)
     assert set(sub.by_name) == {"cutoff", "peak"}
-    # The fader's track is 200 tall centred at y=140, so it spans 40…240
-    # and a press at 190 is three quarters of the way down it.
-    sub.touch("press", 100, 190)
+    # The row sits on the origin, as every canvas does now: the fader's
+    # track is 200 tall spanning y -100…100 at x -45…-5, and a press at
+    # 50 is three quarters of the way down it.
+    sub.touch("press", -25, 50)
     sub.write("peak", 0.5)
     assert sub.values["cutoff"] == pytest.approx(0.75)
     meter = next(s for s in sub.picture() if s[-1] == (60, 200, 90))

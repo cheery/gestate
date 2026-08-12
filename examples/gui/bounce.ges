@@ -34,13 +34,16 @@ width = 480
 height : Int
 height = 360
 
+#: Up and left of the middle, because the world is centred on the
+#: origin: the canvas origin is the middle of the pane, so coordinates
+#: here are offsets from it and the walls sit at ±half an extent.
 start : Ball
-start = Ball 240.0 60.0 2.3 1.7
+start = Ball 0.0 (0.0 - 120.0) 2.3 1.7
 
 # ── Stepping it ──────────────────────────────────────────────────────────
 
 inRange : Float -> Float -> Bool
-inRange v limit = case v < 0.0 of
+inRange v limit = case v < negate limit of
     True -> False
     False -> not (v > limit)
 
@@ -57,7 +60,8 @@ advance b = case b of
     Ball x y dx dy -> settle (x + dx) (y + dy) dx dy
 
 settle : Float -> Float -> Float -> Float -> Ball
-settle x y dx dy = Ball x y (reflect x dx (toFloat width)) (reflect y dy (toFloat height))
+settle x y dx dy = Ball x y (reflect x dx (toFloat (width / 2)))
+                            (reflect y dy (toFloat (height / 2)))
 
 #: Throw the ball: put it under the pointer, keeping whatever speed it had.
 throwTo : Ball -> Int -> Int -> Ball
@@ -89,15 +93,15 @@ draw b = case b of
         (Over (floorMark (floor x))
               (Shift (floor x) (floor y) (Circle 14 amber)))
 
-#: Drawn from its own centre like everything else, so the rest of the
-#: picture is placed at the absolute coordinates the physics computed.
+#: The world and the pane share a centre, so the backdrop needs no
+#: placing at all — a `Rect` is already centred on the origin.
 backdrop : Sub
-backdrop = Shift (width / 2) (height / 2) (Rect width height slate)
+backdrop = Rect width height slate
 
 #: A mark on the floor under the ball, so the horizontal motion is legible
-#: even when the ball is high up.
+#: even when the ball is high up.  The floor is half a height down.
 floorMark : Int -> Sub
-floorMark x = Shift x (height - 3) (Rect 28 6 shadow)
+floorMark x = Shift x (height / 2 - 3) (Rect 28 6 shadow)
 
 substrate : Sig Sub
 substrate = map draw (scan stepBall start events)

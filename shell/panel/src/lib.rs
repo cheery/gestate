@@ -178,22 +178,27 @@ impl Panel {
 
     /// The point the canvas's own origin lands on.
     ///
-    /// **The top-left of what the toolbar leaves, not the middle**, and
-    /// that is the reference's convention rather than a choice made
-    /// here: `gui.py`'s `_flatten` walks from `cx = cy = 0`, so a
-    /// program's centre sits at the window's corner and the program
-    /// places itself — `substrate.ges` opens with `moveXY 120 140` for
-    /// exactly that reason.
+    /// **The middle of what the toolbar leaves.**  The reference walk
+    /// is origin-relative — `gui.py`'s `_flatten` starts at `cx = cy =
+    /// 0` and a program offsets itself with `moveXY` — and *where that
+    /// origin lands is the host's to say*.  It lands at the centre, so
+    /// a bare `rect` is a rectangle in the middle of the pane, which is
+    /// what a first program deserves; every shipped example was
+    /// stripped of the `moveXY` that used to compensate for the corner.
     ///
-    /// Centring here instead looked more sensible and was wrong: it
-    /// added half a window to an offset the program had already
-    /// applied, and every existing canvas came out down and to the
-    /// right of where its author put it.  The rule for this module is
-    /// that the two hosts agree tree for tree, and the origin is part
-    /// of the tree's meaning.
+    /// This was tried once before and was wrong then, because the
+    /// programs still carried their compensating offsets and came out
+    /// down and to the right (the scar is in the git history of this
+    /// comment).  The move is safe now for the reason it must stay
+    /// safe: both hosts and the examples changed together, and the
+    /// fixture-freshness suite (`test_panel_fixtures.py`) plus the
+    /// parity tests hold the two hosts to one reading.  The rule
+    /// stands: the two hosts agree tree for tree, and the origin is
+    /// part of the tree's meaning.
     #[cfg(feature = "substrate")]
     fn canvas_origin(&self) -> (i32, i32) {
-        (0, panels::toolbar_h(&self.model, self.scale))
+        let top = panels::toolbar_h(&self.model, self.scale);
+        (self.width / 2, top + (self.height - top) / 2)
     }
 
     /// One instant of the canvas, and the picture that follows it.

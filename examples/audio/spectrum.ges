@@ -144,7 +144,7 @@ bar i v = Sized (wide + 6) tall (Over trough
 #: arithmetic that used to space them — `i * (wide + 6)` — is gone with
 #: the wrappers: a layout combinator is what that arithmetic *was*.
 substrate : Sig Sub
-substrate = moveXY 150 120
+substrate =
     (       !bar 0 level0 `row` !bar 1 level1
       `row` !bar 2 level2 `row` !bar 3 level3
       `row` !bar 4 level4 `row` !bar 5 level5

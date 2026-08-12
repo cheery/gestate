@@ -421,7 +421,8 @@ furniture will discover: a touch target is declared inside the program
 (`onTouchY cutoff (rect …)`, `spec/substrate.md`), so the view cannot
 know where one is and must not learn to.  It sends every press, drag
 and release on the canvas as `touch(kind, x, y)` in the canvas's own
-pixels — the same coordinates the shapes were painted at — and the
+coordinates — origin at the middle of the pane, exactly where the view
+put it when painting, so one offset serves both directions — and the
 model's substrate does the hit-testing, the grabbing and the clamping,
 because the element's extent lives there.  A press wins the pointer
 only after the chrome has refused it: a knob painted over the canvas

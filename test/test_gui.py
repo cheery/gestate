@@ -76,10 +76,11 @@ def test_it_bounces_and_stays_inside():
     out = scenes(_source(), [("Tick",)] * 260)
     xs = [_ball(s)[0] for s in out]
     ys = [_ball(s)[1] for s in out]
-    assert min(xs) >= 0 and min(ys) >= 0
-    # A margin of one step: the reflection happens the frame *after* the
-    # ball has left, which is what stops it sticking to the wall.
-    assert max(xs) <= 480 + 4 and max(ys) <= 360 + 4
+    # The world is centred on the origin, so the walls are at ±half an
+    # extent — with a margin of one step: the reflection happens the
+    # frame *after* the ball has left, which is what stops it sticking.
+    assert min(xs) >= -244 and min(ys) >= -184
+    assert max(xs) <= 244 and max(ys) <= 184
     forward = [xs[i + 1] - xs[i] > 0 for i in range(len(xs) - 1)]
     assert True in forward and False in forward, "never turned around"
 

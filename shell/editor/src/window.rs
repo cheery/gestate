@@ -25,7 +25,7 @@ use baseview::{
     Event, EventStatus, MouseButton, MouseEvent, PlatformHandle,
     WindowContext, WindowHandler, WindowSettings, WindowSize,
 };
-use gestate_panel::list::Colour;
+use gestate_panel::list::{Colour, Item};
 use gestate_panel::paint::Canvas;
 use keyboard_types::{Key as Kt, KeyState, Modifiers, NamedKey};
 use raw_window_handle::{
@@ -540,6 +540,19 @@ impl EditorWindow {
         }
     }
 
+    /// Where the canvas origin sits, in window pixels.
+    ///
+    /// **One number, two directions.**  The paint adds this to every
+    /// shape and the mouse handlers subtract it from every touch, so
+    /// the picture and the hand cannot disagree about where an element
+    /// is.  The middle of the window, because the walk is
+    /// origin-relative and a bare `rect` should draw where a first
+    /// program expects it.
+    fn canvas_centre(&self) -> (i32, i32) {
+        let view = self.view.borrow();
+        (view.w / 2, view.h / 2)
+    }
+
     /// Let go of every key the piano is holding.
     ///
     /// **Called whenever it loses the keyboard.**  A note held while
@@ -970,17 +983,29 @@ impl WindowHandler for EditorWindow {
                 // **The same painter the plugin panel uses.**  A second
                 // one would be a second set of rounding decisions, and
                 // the two windows would disagree about somebody's
-                // artwork.  The canvas is centred because `gui.py`
-                // places a program's shapes around an origin and says
-                // so: *"a program places what it draws with `moveXY`"*.
-                // **From the window's corner, like the plugin panel.**
-                // `gui.py` walks from `cx = cy = 0` and a program places
-                // what it draws with `moveXY`; centring on top of that
-                // double-counts the move, which is a bug this project
-                // has already had once.
+                // artwork.
+                // **The origin lands in the middle of the window, like
+                // the plugin pane.**  `gui.py`'s walk is origin-relative
+                // (`cx = cy = 0`) and where the origin lands is the
+                // host's to say — so a bare `rect` draws centred, and
+                // `moveXY` is an offset *from the centre*.  The offset
+                // added here is the one every canvas pointer coordinate
+                // subtracts below: one number, two directions, or the
+                // picture and the hand disagree.
                 canvas.clear(view::BG);
+                let (dx, dy) = (view.w / 2, view.h / 2);
+                let items = self.picture.borrow().iter()
+                    .map(|i| match i.clone() {
+                        Item::Rect { x, y, w, h, c } =>
+                            Item::Rect { x: x + dx, y: y + dy, w, h, c },
+                        Item::Dot { cx, cy, r, c } =>
+                            Item::Dot { cx: cx + dx, cy: cy + dy, r, c },
+                        Item::Text { x, y, s, c, scale } =>
+                            Item::Text { x: x + dx, y: y + dy, s, c, scale },
+                    })
+                    .collect();
                 let show = gestate_panel::list::Display {
-                    items: self.picture.borrow().clone(),
+                    items,
                     hits: Vec::new(),
                 };
                 gestate_panel::paint::paint(&mut canvas, &show);
@@ -1215,7 +1240,9 @@ impl WindowHandler for EditorWindow {
                 // and a fader that lost your hand at its own edge would
                 // not be a fader.
                 if self.touching.get() {
-                    self.host.gesture(Gesture::Touch("drag", x, y).line());
+                    let (dx, dy) = self.canvas_centre();
+                    self.host.gesture(
+                        Gesture::Touch("drag", x - dx, y - dy).line());
                     return EventStatus::Captured;
                 }
                 if !self.dragging.get() {
@@ -1301,9 +1328,13 @@ impl WindowHandler for EditorWindow {
                 // the place and holds nothing itself.  Without this
                 // branch the press falls through to `keys::click` and
                 // moves a caret behind the picture — fixme.md F101.
+                // The place is in canvas coordinates: origin at the
+                // window's centre, where the paint put it.
                 if self.on_canvas.get() {
                     self.touching.set(true);
-                    self.host.gesture(Gesture::Touch("press", x, y).line());
+                    let (dx, dy) = self.canvas_centre();
+                    self.host.gesture(
+                        Gesture::Touch("press", x - dx, y - dy).line());
                     return EventStatus::Captured;
                 }
                 self.dragging.set(true);
@@ -1330,8 +1361,9 @@ impl WindowHandler for EditorWindow {
                     // program watching for it sees the same point the
                     // last drag reported.
                     let (x, y) = self.cursor.get();
+                    let (dx, dy) = self.canvas_centre();
                     self.host.gesture(
-                        Gesture::Touch("release", x, y).line());
+                        Gesture::Touch("release", x - dx, y - dy).line());
                 }
                 if let Some(note) = self.playing.take() {
                     self.host.gesture(Gesture::Note(note, false).line());

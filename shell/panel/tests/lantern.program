@@ -38,115 +38,19 @@ I Mkap
 I PushGlobal row
 I Mkap
 I Mkap
-I PushInt 150
-I PushGlobal __Num_Sig_Int_fromInteger__
-I Mkap
-I PushInt 150
-I PushGlobal __Num_Sig_Int_fromInteger__
-I Mkap
-I PushGlobal moveXY
-I Mkap
-I Mkap
-I Mkap
 I Update 0
 I Pop 0
 I Unwind
 block
-I PushArg 2
-I PushArg 2
-I PushArg 2
-I PushGlobal 49
+I PushArg 1
+I PushArg 1
+I PushGlobal 39
 I PushGlobal zipSig
 I Mkap
 I Mkap
-I Mkap
-I PushGlobal 48
-I PushGlobal zipSig
-I Mkap
-I Mkap
-I Mkap
-I PushGlobal 46
-I PushGlobal mapSig
-I Mkap
-I Mkap
-I Update 3
-I Pop 3
-I Unwind
-block
-I Alloc 2
-I Push 0
-I Pack 96 1
-I Update 1
-I Push 1
-I PushGlobal 18
-I Mkap
-I Update 0
-I Push 0
-I Slide 2
-I Update 0
-I Pop 0
-I Unwind
-block
-I PushArg 2
-I Eval
-I SigHead
-I PushArg 2
-I Mkap
-I Eval
-I PushArg 2
-I PushGlobal 19
-I Mkap
-I Pack 96 1
-I Eval
-I PushArg 2
-I Eval
-I MkDelayAp
-I Eval
-I PushArg 4
-I Eval
-I Pack 94 1
-I Eval
-I Pack 95 2
-I Eval
-I SigCons
-I Update 3
-I Pop 3
-I Unwind
-block
-I PushArg 0
-I PushArg 2
 I Mkap
 I Update 2
 I Pop 2
-I Unwind
-block
-I Push 2
-I Push 1
-I Push 3
-I PushGlobal 47
-I Mkap
-I Mkap
-I Mkap
-I Slide 2
-block
-I Push 1
-I Eval
-I CaseJump 1 6 6
-I Slide 2
-block
-I PushArg 0
-I Eval
-I CaseJump 1 6 7
-I Update 1
-I Pop 1
-I Unwind
-block
-I PushArg 0
-I PushArg 2
-I PushArg 4
-I Pack 15 3
-I Update 3
-I Pop 3
 I Unwind
 block
 I Alloc 2
@@ -232,116 +136,9 @@ I Slide 2
 block
 I PushArg 4
 I Eval
-I CaseJump 3 82 12 83 13 84 14
+I CaseJump 3 82 5 83 6 84 7
 I Update 5
 I Pop 5
-I Unwind
-block
-I PushArg 0
-I PushArg 2
-I Pack 6 2
-I Update 2
-I Pop 2
-I Unwind
-block
-I PushArg 0
-I PushArg 2
-I Pack 6 2
-I Update 2
-I Pop 2
-I Unwind
-block
-I PushArg 0
-I PushGlobal constSig
-I Mkap
-I Update 1
-I Pop 1
-I Unwind
-block
-I PushGlobal events
-I PushArg 1
-I PushGlobal 152
-I Mkap
-I PushGlobal mapSig
-I Mkap
-I Mkap
-I Update 1
-I Pop 1
-I Unwind
-block
-I PushArg 0
-I Update 2
-I Pop 2
-I Unwind
-block
-I Pack 21 0
-I Eval
-I PushGlobal input
-I Eval
-I Pack 90 1
-I PushGlobal mkSig
-I Mkap
-I Eval
-I SigCons
-I Update 0
-I Pop 0
-I Unwind
-block
-I Alloc 2
-I Push 0
-I Pack 96 1
-I Update 1
-I Push 1
-I PushGlobal 8
-I Mkap
-I Update 0
-I Push 0
-I Slide 2
-I Update 0
-I Pop 0
-I Unwind
-block
-I PushArg 1
-I PushGlobal 9
-I Mkap
-I Pack 96 1
-I Eval
-I PushArg 1
-I Eval
-I MkDelayAp
-I Eval
-I PushArg 2
-I Eval
-I Pack 95 2
-I Update 2
-I Pop 2
-I Unwind
-block
-I PushArg 2
-I Eval
-I PushArg 1
-I PushArg 3
-I Mkap
-I Eval
-I SigCons
-I Update 3
-I Pop 3
-I Unwind
-block
-I NewChan
-I Update 0
-I Pop 0
-I Unwind
-block
-I PushArg 1
-I PushArg 1
-I PushGlobal 39
-I PushGlobal zipSig
-I Mkap
-I Mkap
-I Mkap
-I Update 2
-I Pop 2
 I Unwind
 block
 I PushArg 0
@@ -415,6 +212,53 @@ I PushArg 1
 I PushArg 1
 I PushGlobal mapSig
 I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I Alloc 2
+I Push 0
+I Pack 96 1
+I Update 1
+I Push 1
+I PushGlobal 18
+I Mkap
+I Update 0
+I Push 0
+I Slide 2
+I Update 0
+I Pop 0
+I Unwind
+block
+I PushArg 2
+I Eval
+I SigHead
+I PushArg 2
+I Mkap
+I Eval
+I PushArg 2
+I PushGlobal 19
+I Mkap
+I Pack 96 1
+I Eval
+I PushArg 2
+I Eval
+I MkDelayAp
+I Eval
+I PushArg 4
+I Eval
+I Pack 94 1
+I Eval
+I Pack 95 2
+I Eval
+I SigCons
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 0
+I PushArg 2
 I Mkap
 I Update 2
 I Pop 2
@@ -631,6 +475,47 @@ I Update 0
 I Pop 0
 I Unwind
 block
+I Alloc 2
+I Push 0
+I Pack 96 1
+I Update 1
+I Push 1
+I PushGlobal 8
+I Mkap
+I Update 0
+I Push 0
+I Slide 2
+I Update 0
+I Pop 0
+I Unwind
+block
+I PushArg 1
+I PushGlobal 9
+I Mkap
+I Pack 96 1
+I Eval
+I PushArg 1
+I Eval
+I MkDelayAp
+I Eval
+I PushArg 2
+I Eval
+I Pack 95 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 2
+I Eval
+I PushArg 1
+I PushArg 3
+I Mkap
+I Eval
+I SigCons
+I Update 3
+I Pop 3
+I Unwind
+block
 I PushGlobal dim
 I PushArg 1
 I PushInt 14
@@ -678,6 +563,47 @@ I Update 2
 I Pop 2
 I Unwind
 block
+I PushArg 0
+I PushGlobal constSig
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushGlobal events
+I PushArg 1
+I PushGlobal 152
+I Mkap
+I PushGlobal mapSig
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I Update 2
+I Pop 2
+I Unwind
+block
+I Pack 21 0
+I Eval
+I PushGlobal input
+I Eval
+I Pack 90 1
+I PushGlobal mkSig
+I Mkap
+I Eval
+I SigCons
+I Update 0
+I Pop 0
+I Unwind
+block
+I NewChan
+I Update 0
+I Pop 0
+I Unwind
+block
 I PushArg 3
 I PushArg 2
 I PushArg 2
@@ -714,12 +640,12 @@ I Slide 2
 block
 I Push 1
 I Eval
-I CaseJump 1 6 52
+I CaseJump 1 6 45
 I Slide 2
 block
 I PushArg 1
 I Eval
-I CaseJump 1 6 53
+I CaseJump 1 6 46
 I Update 2
 I Pop 2
 I Unwind
@@ -796,12 +722,12 @@ I Slide 2
 block
 I Push 1
 I Eval
-I CaseJump 1 6 60
+I CaseJump 1 6 53
 I Slide 2
 block
 I PushArg 0
 I Eval
-I CaseJump 1 6 61
+I CaseJump 1 6 54
 I Update 1
 I Pop 1
 I Unwind
@@ -977,7 +903,7 @@ I PushGlobal prim_eq_int
 I Mkap
 I Mkap
 I Eval
-I CaseJump 2 3 72 2 73
+I CaseJump 2 3 65 2 66
 I Update 2
 I Pop 2
 I Unwind
@@ -1036,7 +962,7 @@ I PushGlobal __Ord_Float_>__
 I Mkap
 I Mkap
 I Eval
-I CaseJump 2 3 77 2 78
+I CaseJump 2 3 70 2 71
 I Update 2
 I Pop 2
 I Unwind
@@ -1085,7 +1011,7 @@ I PushGlobal __Ord_Int_>__
 I Mkap
 I Mkap
 I Eval
-I CaseJump 2 3 81 2 82
+I CaseJump 2 3 74 2 75
 I Slide 0
 block
 I PushInt 5
@@ -1096,7 +1022,7 @@ I PushGlobal __Ord_Int_>__
 I Mkap
 I Mkap
 I Eval
-I CaseJump 2 3 80 2 83
+I CaseJump 2 3 73 2 76
 I Update 1
 I Pop 1
 I Unwind
@@ -1172,78 +1098,73 @@ I Pop 0
 I Unwind
 global main 0 0
 global substrate 0 1
-global moveXY 3 2
-global mapSig 0 3
-global 18 3 4
-global 19 2 5
-global 46 1 8
-global 47 3 9
-global zipSig 0 10
-global 20 4 11
-global 21 5 15
-global 48 2 16
-global 49 2 17
-global __Num_Sig_Int_fromInteger__ 1 18
-global constSig 1 19
-global 152 2 20
-global events 0 21
-global mkSig 0 22
-global 8 2 23
-global 9 3 24
-global input 0 25
-global row 2 26
-global 39 2 27
-global warmFader 0 28
-global column 2 29
-global 40 2 30
-global onTouchY 2 31
-global __Functor_Sig_map__ 2 32
-global 51 2 33
-global warmthChan 0 34
-global warmPic 1 35
-global faderOf 4 36
-global bone 0 37
-global __Num_Int_fromInteger__ 1 38
-global floor 1 39
-global prim_floor_float 1 40
-global __Num_Float_-__ 2 41
-global prim_sub_float 2 42
-global __Num_Float_*__ 2 43
-global prim_mul_float 2 44
-global __Floating_Float_fromFloat__ 1 45
-global night 0 46
-global warmth 0 47
-global caption 1 48
-global gap 2 49
-global 34 2 50
-global label 4 51
-global 35 2 54
-global labelAt 4 55
-global 36 2 56
-global 37 2 57
-global dim 0 58
-global colour 3 59
-global 25 1 62
-global 26 3 63
-global 27 2 64
-global 28 2 65
-global glowFader 0 66
-global glowChan 0 67
-global glowPic 1 68
-global glow 0 69
-global meter 0 70
-global meterOf 1 71
-global ladderOf 2 74
-global __Num_Int_-__ 2 75
-global prim_sub_int 2 76
-global segOf 2 79
-global litOf 1 84
-global __Ord_Int_>__ 2 85
-global prim_lt_int 2 86
-global __Ord_Float_>__ 2 87
-global toFloat 1 88
-global prim_to_float 1 89
-global prim_eq_int 2 90
-global loud 0 91
-global peak 0 92
+global row 2 2
+global zipSig 0 3
+global 20 4 4
+global 21 5 8
+global 39 2 9
+global warmFader 0 10
+global column 2 11
+global 40 2 12
+global onTouchY 2 13
+global __Functor_Sig_map__ 2 14
+global mapSig 0 15
+global 18 3 16
+global 19 2 17
+global 51 2 18
+global warmthChan 0 19
+global warmPic 1 20
+global faderOf 4 21
+global bone 0 22
+global __Num_Int_fromInteger__ 1 23
+global floor 1 24
+global prim_floor_float 1 25
+global __Num_Float_-__ 2 26
+global prim_sub_float 2 27
+global __Num_Float_*__ 2 28
+global prim_mul_float 2 29
+global __Floating_Float_fromFloat__ 1 30
+global night 0 31
+global warmth 0 32
+global mkSig 0 33
+global 8 2 34
+global 9 3 35
+global caption 1 36
+global gap 2 37
+global 34 2 38
+global __Num_Sig_Int_fromInteger__ 1 39
+global constSig 1 40
+global 152 2 41
+global events 0 42
+global input 0 43
+global label 4 44
+global 35 2 47
+global labelAt 4 48
+global 36 2 49
+global 37 2 50
+global dim 0 51
+global colour 3 52
+global 25 1 55
+global 26 3 56
+global 27 2 57
+global 28 2 58
+global glowFader 0 59
+global glowChan 0 60
+global glowPic 1 61
+global glow 0 62
+global meter 0 63
+global meterOf 1 64
+global ladderOf 2 67
+global __Num_Int_-__ 2 68
+global prim_sub_int 2 69
+global segOf 2 72
+global litOf 1 77
+global __Ord_Int_>__ 2 78
+global prim_lt_int 2 79
+global __Ord_Float_>__ 2 80
+global toFloat 1 81
+global prim_to_float 1 82
+global prim_eq_int 2 83
+global loud 0 84
+global peak 0 85
 entry main

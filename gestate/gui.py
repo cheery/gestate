@@ -457,8 +457,12 @@ def _flatten(node, state, cx: int = 0, cy: int = 0, out=None) -> list:
     The root's **centre** goes at `cx, cy`, and it defaults to the origin
     rather than to the middle of a window because the host that calls this
     does not know how big the window is — `touches` and `Substrate.picture`
-    are both pure.  A program places what it draws with `moveXY`, which is
-    what `moveXY` is for.
+    are both pure.  **Where the origin lands is the host's to say, and
+    every host says the middle of its pane**: the editor shell offsets
+    these shapes by half the window and the plugin panel hands its walk
+    the pane's centre, so a bare `rect` draws centred and `moveXY` is an
+    offset from the middle.  A host that painted from its corner would
+    put every shipped example three-quarters off screen.
     """
     out = [] if out is None else out
     _walk(node, state, cx, cy, out, [])
