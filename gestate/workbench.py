@@ -209,6 +209,16 @@ class Window:
         self.wanted = path
         return True
 
+    def warn(self, message: str) -> None:
+        """Say `message` in red beside the caret, briefly.
+
+        What a refused `open` does with its reason: a sentence at the
+        foot is easy to miss at the moment your hands are elsewhere, so
+        the window flashes the `[+]` and puts the words where the eye
+        already is — transient, like the piano key's number.
+        """
+        self.editor.order(f"warn\t{message}")
+
     def insert(self, text: str) -> bool:
         if not text:
             return False
@@ -503,7 +513,11 @@ def run(path, rate: int = 44100, block: int = 512,
                 retiring = _retire(bench, starter, quitting)
                 bench = Workbench(Path(wanted), rate=rate, block=block,
                                   midi=midi, seed=seed)
-                editor.text = bench.source()
+                # `load`, not the setter: a different file is a
+                # different past, and the setter commits — undo after a
+                # switch stood the old file's text under the new file's
+                # name, one save from overwriting it (F113).
+                editor.load(bench.source())
                 view = session.view
                 session = Session(bench=bench)
                 session.view = view

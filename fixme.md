@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 117 entries, **101 are resolved**.  What is left:
+Of 117 entries, **102 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -42,7 +42,7 @@ Of 117 entries, **101 are resolved**.  What is left:
 | F116 | resolved | Every click was eaten while the command list was open |
 | F117 | resolved | Tab did not complete paths in the file dialog |
 | F112 | bug, open | The file dialog's listing sometimes lags |
-| F113 | bug, open | Undo and redo cross a file switch — one history for the session |
+| F113 | resolved | Undo and redo cross a file switch — one history for the session |
 | F114 | bug, open | Copy and paste are not commands |
 | F115 | resolved | A bank added by an audition could not be listened to — allocators followed the disk |
 
@@ -3052,7 +3052,7 @@ report exists — `tools/lagcheck.py` drives the real window through
 XTEST and reads the screen — and pointing it at the dialog is how
 "appears to" becomes a number before anything is changed.
 
-### F113. **[bug, open]** Undo and redo cross a file switch
+### F113. **[resolved]** Undo and redo cross a file switch
 
 One undo history for the session, not one per file: open a second
 file, press undo, and the edit that unwinds is the *previous* file's.
@@ -3061,6 +3061,42 @@ Henri's to answer — what is certain is that an undo landing in text
 the window no longer shows cannot be what the key meant.  `spec/
 editor.md` requires text undo and says nothing about file boundaries,
 so the spec needs the sentence too, whichever way it goes.
+
+**Henri answered (2026-08-13): the barrier.**  And the code made the
+stakes plain before the design did — the switch went through
+`set_text`, which *commits*, so the old file's whole content sat on
+the new file's undo stack as one step: open B, press Ctrl-Z, and A's
+text stood under B's name, one Ctrl-S from overwriting B with A.  Not
+odd behaviour but a loaded save.
+
+Resolved as two doors and a warning.  `Document::load`
+(`ged_load_text`) replaces the text and clears both histories — a
+different file is a different past — while `set_text` keeps
+committing, because `fmt` depends on being one undo away.  And since
+the barrier makes discarded edits truly unrecoverable, picking `open`
+while unsaved makes the window flash the `[+]` and say *warning:
+unsaved changes* in red — Henri's own design, refined twice while it
+was built.  **Beside the caret that is active**: the query box's
+while the list is up, the document's otherwise — words beside a caret
+nobody is at are said to an empty chair.  **Held as long as the user
+is there**: the warning stands until the list closes (the flash
+settles after its first moments; a blink that never ends is a blink
+nobody can read past).  And **a warning, not a gate**: a person who
+chooses a file past it has decided, the switch proceeds, and the
+edits go — history and all — which is what they were warned about.
+And `load` marks the text saved — it came off the disk — because
+left at the old file's root, a freshly opened file wore the `[+]`
+from its first frame and warned about edits nobody had made (Henri
+caught it on the first hand-test).
+The `warn` order is in the spec's vocabulary; tests pin the barrier
+(`loading_a_file_clears_the_histories`), both drawings
+(`a_warning_stands_beside_the_caret`,
+`a_warning_stands_beside_the_query_caret`, the `[+]` flash keeping
+the bar's width), the warning firing once at the pick
+(`test_picking_open_says_unsaved_at_once`) and the choice standing
+(`test_open_warns_and_then_lets_the_choice_stand`).  Per-file
+histories (buffers) remain the upgrade path if they ever earn a
+caller; the barrier's contract is a subset of theirs.
 
 ### F114. **[bug, open]** Copy and paste are not commands
 

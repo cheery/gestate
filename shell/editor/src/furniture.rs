@@ -380,6 +380,15 @@ pub enum Order {
     Fill(String),
     /// Look at the canvas, or at the source.
     Show(String),
+    /// Say this in red beside the caret, briefly, and flash the `[+]`.
+    ///
+    /// **A refusal that catches the eye where it already is.**  `open`
+    /// on unsaved changes refuses rather than discarding somebody's
+    /// work, and a sentence at the foot of the window is easy to miss
+    /// at the moment your hands are elsewhere — so the answer appears
+    /// right of the caret and fades, like the piano key's number: only
+    /// when it happens, gone when it is over.
+    Warn(String),
 }
 
 impl Order {
@@ -400,6 +409,7 @@ impl Order {
             "close" => Some(Order::Close),
             "saved" => Some(Order::Saved),
             "show" => Some(Order::Show(arg(1).into())),
+            "warn" => Some(Order::Warn(arg(1).into())),
             _ => None,
         }
     }
@@ -523,6 +533,8 @@ mod order_tests {
         assert_eq!(Order::read("goto\t42"), Some(Order::Goto(42)));
         assert_eq!(Order::read("insert\tC4"),
                    Some(Order::Insert("C4".into())));
+        assert_eq!(Order::read("warn\tunsaved changes"),
+                   Some(Order::Warn("unsaved changes".into())));
     }
 
     /// An order this build does not know is skipped, not refused — the

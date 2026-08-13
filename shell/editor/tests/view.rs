@@ -24,7 +24,7 @@ fn runs(f: &gestate_editor::view::Frame) -> Vec<String> {
 }
 
 fn view(w: i32, h: i32) -> View {
-    View { top: 0, left: 0, w, h, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1 }
+    View { top: 0, left: 0, w, h, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false }
 }
 
 /// A view that fits exactly `rows` rows of text, with the status line
@@ -141,6 +141,29 @@ fn undo_is_a_pointer_and_redo_ends_at_a_new_edit() {
     assert!(!d.can_undo());
 }
 
+/// **A different file is a different past** (fixme.md F113).  `set_text`
+/// commits — a `fmt` is one undo away from the text you had — so a file
+/// switch through it put the old file's whole content on the new file's
+/// undo stack: one Ctrl-Z and A's text stood under B's name, one save
+/// from overwriting B with A.  `load` is the other door.
+#[test]
+fn loading_a_file_clears_the_histories() {
+    let mut d = doc("the old file");
+    d.insert("!").unwrap();
+    assert!(d.can_undo());
+    d.load("the new file");
+    assert_eq!(d.text(), "the new file");
+    assert!(!d.can_undo(), "undo must not resurrect the old file");
+    assert!(!d.can_redo());
+    assert!(d.is_saved(), "what was loaded is what is written down — \
+                           a fresh file must not wear the [+]");
+    // And set_text still commits, because fmt depends on it.
+    d.set_text("formatted");
+    assert!(d.can_undo());
+    assert!(d.undo());
+    assert_eq!(d.text(), "the new file");
+}
+
 // ── The frame ────────────────────────────────────────────────────────────
 
 #[test]
@@ -205,7 +228,7 @@ fn scrolling_follows_the_caret_to_the_edge_and_no_further() {
 
     // Horizontally, the same rule.
     let mut wide = doc(&"x".repeat(500));
-    let mut v = View { top: 0, left: 0, w: 20 * LARGE.w, h: 100, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1 };
+    let mut v = View { top: 0, left: 0, w: 20 * LARGE.w, h: 100, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false };
     wide.seek(300);
     v.follow(&wide, &LARGE);
     assert_eq!(v.left, 300 + 1 - 20);
@@ -214,7 +237,7 @@ fn scrolling_follows_the_caret_to_the_edge_and_no_further() {
 #[test]
 fn a_click_lands_where_it_was_clicked() {
     let d = doc("hello\nworld\nagain");
-    let v = View { top: 1, left: 0, w: 400, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1 };
+    let v = View { top: 1, left: 0, w: 400, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false };
     // Second visible row (row 2), fourth column.
     let (row, col) = v.hit(&d, &LARGE, LARGE.w * 4 + 1, LARGE.h + 3);
     assert_eq!((row, col), (2, 4));
@@ -248,7 +271,7 @@ fn the_caret_is_drawn_on_the_character_it_is_before() {
 #[test]
 fn horizontal_scrolling_cuts_by_columns() {
     let d = doc("\tabcdef\n    abcdef");
-    let v = View { top: 0, left: 4, w: 100 * LARGE.w, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1 };
+    let v = View { top: 0, left: 4, w: 100 * LARGE.w, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false };
     let f = frame(&d, &v, &LARGE);
     let lines = runs(&f);
     assert_eq!(lines[0], lines[1],
@@ -300,7 +323,7 @@ fn the_empty_document_draws() {
 #[test]
 fn a_window_smaller_than_a_line_still_draws_one() {
     let d = doc("one\ntwo");
-    let v = View { top: 0, left: 0, w: 1, h: 1, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1 };
+    let v = View { top: 0, left: 0, w: 1, h: 1, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false };
     assert_eq!(v.rows(&LARGE), 1);
     assert_eq!(v.text_cols(&LARGE, &d), 1);
     let f = frame(&d, &v, &LARGE);
@@ -316,7 +339,7 @@ fn a_window_smaller_than_a_line_still_draws_one() {
 #[test]
 fn zooming_moves_the_layout_and_the_hit_testing_together() {
     let d = doc("hello\nworld\nagain");
-    let one = View { top: 0, left: 0, w: 400, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1 };
+    let one = View { top: 0, left: 0, w: 400, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false };
     let two = View { scale: 2, ..one.clone() };
 
     assert_eq!(two.cw(&LARGE), 2 * one.cw(&LARGE));
@@ -341,7 +364,7 @@ fn zooming_moves_the_layout_and_the_hit_testing_together() {
 #[test]
 fn the_zoomed_frame_says_the_same_thing() {
     let d = doc("one\ntwo\nthree");
-    let one = View { top: 0, left: 0, w: 800, h: 400, gutter: true, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1 };
+    let one = View { top: 0, left: 0, w: 800, h: 400, gutter: true, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false };
     let two = View { scale: 2, ..one.clone() };
     assert_eq!(runs(&frame(&d, &one, &LARGE)), runs(&frame(&d, &two, &LARGE)));
 }
@@ -691,6 +714,47 @@ fn a_held_note_is_drawn_down() {
     let f = frame_with(&d, &v, &LARGE, &performing("on", &["pad"], &[60]));
     assert!(f.items.iter().any(|i| matches!(i, Item::Rect { c, .. }
                                             if *c == KEY_DOWN)));
+}
+
+/// The refused `open`'s warning stands beside the caret in red, where
+/// the eye already is — and an empty warning draws nothing at all.
+#[test]
+fn a_warning_stands_beside_the_caret() {
+    use gestate_editor::view::ANGRY;
+
+    let d = doc("sound : Sig Float\n");
+    let mut v = view(600, 400);
+    v.warning = "warning: unsaved changes".into();
+    let f = frame_with(&d, &v, &LARGE, &Furniture::default());
+    let said = f.items.iter().find_map(|i| match i {
+        Item::Run { s, c, .. } if s == "warning: unsaved changes" =>
+            Some(*c),
+        _ => None,
+    });
+    assert_eq!(said, Some(ANGRY), "red, and present");
+    v.warning.clear();
+    let f = frame_with(&d, &v, &LARGE, &Furniture::default());
+    assert!(!f.items.iter().any(|i| matches!(i, Item::Run { s, .. }
+                                             if s.contains("warning"))));
+}
+
+/// The `[+]`'s flash hides it behind a blank of the same width, so the
+/// bar cannot re-wrap mid-blink — a warning catches the eye without
+/// shaking the furniture.
+#[test]
+fn the_plus_flash_keeps_the_bars_width() {
+    use gestate_editor::view::bar_rows;
+
+    let mut chrome = Furniture::default();
+    chrome.file = "demo.ges".into();
+    chrome.unsaved = true;
+    let shown = bar_rows(&chrome, 60, false);
+    let hidden = bar_rows(&chrome, 60, true);
+    assert!(shown[0].0.contains("[+]"));
+    assert!(!hidden[0].0.contains("[+]"));
+    assert_eq!(shown[0].0.chars().count(), hidden[0].0.chars().count(),
+               "the blank must be the marker's own width");
+    assert_eq!(shown.len(), hidden.len());
 }
 
 /// The note that is sounding is a fact you otherwise reconstruct by

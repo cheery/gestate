@@ -19,7 +19,7 @@
 use gestate_panel::list::Colour;
 
 use crate::keys::Key;
-use crate::view::{Frame, Item};
+use crate::view::{Frame, Item, ANGRY};
 
 /// One command, as the model describes it.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -836,7 +836,8 @@ impl Palette {
         }
     }
 
-    pub fn frame(&self, w: i32, h: i32, cw: i32, ch: i32) -> Frame {
+    pub fn frame(&self, w: i32, h: i32, cw: i32, ch: i32,
+                 warning: &str) -> Frame {
         let mut f = Frame::default();
         if !self.open {
             return f;
@@ -866,14 +867,25 @@ impl Palette {
             None => "> ".to_string(),
             Some(a) => format!("{} ", a.prompt()),
         };
+        let caret_x = x + 4
+            + (lead.chars().count() + self.query.chars().count()) as i32
+                * cw;
         f.items.push(Item::Run { x: x + 4, y: y + 4,
                                  s: format!("{lead}{}", self.query),
                                  c: INK });
         f.items.push(Item::Rect {
-            x: x + 4
-                + (lead.chars().count() + self.query.chars().count()) as i32
-                    * cw,
-            y: y + 4, w: 2.max(cw / 5), h: ch, c: INK });
+            x: caret_x, y: y + 4, w: 2.max(cw / 5), h: ch, c: INK });
+        // **The warning, beside the caret that is active.**  While the
+        // list is up the hand is here, not in the text — so a refusal
+        // said beside the document's caret is a refusal said to an
+        // empty chair.  Same red, same transience; shifted left rather
+        // than clipped when the query runs long.
+        if !warning.is_empty() {
+            let wide = warning.chars().count() as i32 * cw;
+            let wx = (caret_x + 2 * cw).min(x + box_w - wide - 4).max(x);
+            f.items.push(Item::Run { x: wx, y: y + 4,
+                                     s: warning.to_string(), c: ANGRY });
+        }
 
         // One row shape, two lists: a command with its shortcut, or a
         // name with what it is.  Both are "a thing on the left and a
@@ -1004,7 +1016,7 @@ mod paint_tests {
     #[test]
     fn nothing_is_drawn_outside_the_panel() {
         let (cw, ch) = (8, 16);
-        let f = a_palette().frame(800, 600, cw, ch);
+        let f = a_palette().frame(800, 600, cw, ch, "");
         // The shade is the second item; the border is the first.
         let (top, bottom) = match f.items[1] {
             Item::Rect { y, h, .. } => (y, y + h),
@@ -1019,6 +1031,29 @@ mod paint_tests {
         }
     }
 
+    /// The warning belongs to the caret that is active — while the list
+    /// is up, that is the query box's, and a refusal said beside the
+    /// document's caret would be said to an empty chair.
+    #[test]
+    fn a_warning_stands_beside_the_query_caret() {
+        use crate::view::ANGRY;
+
+        let (cw, ch) = (8, 16);
+        let f = a_palette().frame(800, 600, cw, ch,
+                                  "warning: unsaved changes");
+        let warn = f.items.iter().find_map(|i| match i {
+            Item::Run { c, s, y, .. } if *c == ANGRY =>
+                Some((s.clone(), *y)),
+            _ => None,
+        });
+        let (said, wy) = warn.expect("the warning is drawn");
+        assert_eq!(said, "warning: unsaved changes");
+        assert_eq!(wy, ch + 4, "on the query row, beside its caret");
+        let quiet = a_palette().frame(800, 600, cw, ch, "");
+        assert!(!quiet.items.iter().any(|i| matches!(i, Item::Run { c, .. }
+                                                     if *c == ANGRY)));
+    }
+
     /// `covers` and the drawn panel are one box — the drawn shade's own
     /// rectangle answers yes, and one pixel past the border answers no,
     /// which is what lets a click outside the list close it and still
@@ -1027,7 +1062,7 @@ mod paint_tests {
     fn covers_agrees_with_what_is_drawn() {
         let (cw, ch) = (8, 16);
         let p = a_palette();
-        let f = p.frame(800, 600, cw, ch);
+        let f = p.frame(800, 600, cw, ch, "");
         let (x, y, w, h) = match f.items[0] {
             Item::Rect { x, y, w, h, .. } => (x, y, w, h),
             ref other => panic!("expected the panel's border, got {other:?}"),
@@ -1069,7 +1104,7 @@ mod paint_tests {
     #[test]
     fn the_symbol_table_is_laid_out_across() {
         let (cw, ch) = (8, 16);
-        let f = a_grid().frame(800, 600, cw, ch);
+        let f = a_grid().frame(800, 600, cw, ch, "");
         let glyphs: Vec<(i32, i32, &str)> = f.items.iter().filter_map(|i| {
             match i {
                 Item::Run { x, y, s, .. } if s.len() <= 2 && s != "a"
@@ -1094,7 +1129,7 @@ mod paint_tests {
     #[test]
     fn down_in_a_grid_moves_a_whole_row() {
         let mut p = a_grid();
-        p.frame(800, 600, 8, 16);            // the layout sets the width
+        p.frame(800, 600, 8, 16, "");            // the layout sets the width
         let wide = p.wide.get() as usize;
         assert!(wide > 1, "the test window fits only one column");
         p.key(Key::Right);
@@ -1105,7 +1140,7 @@ mod paint_tests {
 
     #[test]
     fn the_summary_of_the_picked_command_is_shown() {
-        let f = a_palette().frame(800, 600, 8, 16);
+        let f = a_palette().frame(800, 600, 8, 16, "");
         let said: Vec<&String> = f.items.iter().filter_map(|i| match i {
             Item::Run { s, .. } => Some(s),
             _ => None,

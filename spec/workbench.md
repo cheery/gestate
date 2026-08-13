@@ -444,7 +444,28 @@ prevent.
 Orders go the other way, for the same reason:
 
     zoom(steps)   undo()   redo()   goto(line)   insert(text)
-    show(canvas | source)
+    show(canvas | source)   warn(text)
+
+**`warn` catches the eye where it already is** — beside the caret
+that is *active*: the query box's while the list is up, the
+document's otherwise, because words said beside a caret nobody is at
+are said to an empty chair.  The window says them in red and flashes
+the `[+]`; one said into the list **stays as long as the user is
+there** — until the list closes — while one said with no list up
+fades after a couple of seconds.  The flash settles either way, since
+a blink that never ends is a blink nobody can read past.  `open` on
+unsaved changes is its caller, the moment it is picked.
+
+**A different file is a different past.**  Opening a file replaces the
+text *and its histories* — undo in the new file must never resurrect
+the old file's content under the new file's name, which is one save
+from overwriting one file with another (F113).  `fmt` keeps the other
+door: a whole-text replacement that commits, so a format stays one
+undo away.  And because the barrier makes discarded edits truly
+unrecoverable, picking `open` while unsaved says so at once and holds
+the words up — **a warning, not a gate**: a person who chooses a file
+past it has decided, and the switch proceeds.  They got their
+warning.
 
 **The canvas has a channel of its own**, beside the description rather
 than inside it.  A substrate animates — anything reading `peak` redraws

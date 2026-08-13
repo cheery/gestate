@@ -139,7 +139,7 @@ fn runs(f: &gestate_editor::view::Frame) -> Vec<String> {
 #[test]
 fn a_closed_palette_draws_nothing() {
     let p = Palette::default();
-    assert!(p.frame(800, 600, 10, 20).items.is_empty());
+    assert!(p.frame(800, 600, 10, 20, "").items.is_empty());
 }
 
 #[test]
@@ -147,7 +147,7 @@ fn it_draws_the_query_the_commands_and_their_keys() {
     let mut p = opened();
     p.key(Key::Char('a'));
     p.offer(some());
-    let said = runs(&p.frame(800, 600, 10, 20));
+    let said = runs(&p.frame(800, 600, 10, 20, ""));
     assert_eq!(said[0], "> a", "what has been typed, with a prompt");
     assert!(said.contains(&"apply".to_string()));
     assert!(said.contains(&"Ctrl-S".to_string()),
@@ -164,11 +164,11 @@ fn a_long_list_follows_the_pick() {
     p.show();
     p.offer((0..40).map(|i| entry(&format!("c{i}"), "")).collect());
     for _ in 0..30 { p.key(Key::Down); }
-    let said = runs(&p.frame(400, 300, 10, 20));
+    let said = runs(&p.frame(400, 300, 10, 20, ""));
     assert!(said.iter().any(|s| s == "c30"),
             "the picked row was not drawn: {said:?}");
     // And the box stays inside the window it was given.
-    for item in &p.frame(400, 300, 10, 20).items {
+    for item in &p.frame(400, 300, 10, 20, "").items {
         if let Item::Rect { y, h, .. } = item {
             assert!(y + h <= 300, "{item:?} is below the window");
         }

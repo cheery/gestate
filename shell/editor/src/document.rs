@@ -342,6 +342,32 @@ impl Document {
         self.commit(Rope::from_str(text), pos);
     }
 
+    /// Replace the whole document *and its past* — what opening a
+    /// different file does, and nothing else may.
+    ///
+    /// **A different file is a different past.**  `set_text` commits,
+    /// which is right for `fmt` — a format is one undo away from the
+    /// file you had — and exactly wrong for a file switch: the old
+    /// file's whole text sat on the new file's undo stack as one step,
+    /// so open B, press undo, and A's content stood under B's name, a
+    /// save away from overwriting B with A (`fixme.md` F113).  The
+    /// caret goes to the top, because a position kept from one file
+    /// means nothing in another.
+    pub fn load(&mut self, text: &str) {
+        self.text = Rope::from_str(text);
+        self.pos = 0;
+        self.undo.clear();
+        self.redo.clear();
+        self.goal = None;
+        self.anchor = None;
+        // **What was loaded is what is written down** — the text came
+        // off the disk.  Left at the old file's root, the new file
+        // compared against text it never held, wore the `[+]` from its
+        // first frame, and warned about unsaved changes nobody had
+        // made.
+        self.mark_saved();
+    }
+
     /// Whether there is anything to undo.
     pub fn can_undo(&self) -> bool {
         !self.undo.is_empty()

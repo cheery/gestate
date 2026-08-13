@@ -52,8 +52,12 @@ pub struct Shared {
     version: AtomicU64,
     pos: AtomicUsize,
     open: AtomicBool,
-    /// Text the host wants loaded, picked up on the next frame.
-    incoming: Mutex<Option<String>>,
+    /// Text the host wants loaded, picked up on the next frame.  The
+    /// flag says whether the histories go with it: `true` is a file
+    /// switch (`ged_load_text` — a different file is a different past),
+    /// `false` is a replacement (`ged_set_text` — what `fmt` uses, one
+    /// undo away from the text you had).
+    incoming: Mutex<Option<(String, bool)>>,
     /// The host has asked the window to shut.
     closing: AtomicBool,
     /// The chrome, as the model last described it.
@@ -111,8 +115,8 @@ impl Shared {
     }
 
     /// Text the host asked to load, if any — the window thread's side
-    /// of `ged_set_text`.
-    pub fn take_incoming(&self) -> Option<String> {
+    /// of `ged_set_text` and `ged_load_text`.
+    pub fn take_incoming(&self) -> Option<(String, bool)> {
         self.incoming.lock().ok().and_then(|mut t| t.take())
     }
 
@@ -160,7 +164,7 @@ impl Host for Shared {
         self.initial.lock().map(|t| t.clone()).unwrap_or_default()
     }
 
-    fn incoming(&self) -> Option<String> {
+    fn incoming(&self) -> Option<(String, bool)> {
         self.take_incoming()
     }
 
@@ -300,7 +304,26 @@ pub unsafe extern "C" fn ged_text(e: *const Editor) -> *mut c_char {
 pub unsafe extern "C" fn ged_set_text(e: *const Editor, text: *const c_char) {
     let ed = editor!(e, ());
     if let Ok(mut slot) = ed.shared.incoming.lock() {
-        *slot = Some(text_of(text));
+        *slot = Some((text_of(text), false));
+    }
+}
+
+/// Load text into the editor *and clear its histories* — what opening
+/// a different file does, and the only thing that may.
+///
+/// **A different file is a different past** (`fixme.md` F113):
+/// `ged_set_text` commits, which keeps `fmt` one undo away from the
+/// text you had, and which put the old file's whole content on the new
+/// file's undo stack at a switch — undo, and A's text stood under B's
+/// name, one save from overwriting B with A.
+///
+/// # Safety
+/// As `ged_is_open`; `text` must be NUL-terminated or null.
+#[no_mangle]
+pub unsafe extern "C" fn ged_load_text(e: *const Editor, text: *const c_char) {
+    let ed = editor!(e, ());
+    if let Ok(mut slot) = ed.shared.incoming.lock() {
+        *slot = Some((text_of(text), true));
     }
 }
 

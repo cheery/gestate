@@ -114,6 +114,8 @@ def _library():
     lib.ged_text.restype = ctypes.c_void_p
     lib.ged_set_text.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
     lib.ged_set_text.restype = None
+    lib.ged_load_text.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+    lib.ged_load_text.restype = None
     lib.ged_free_str.argtypes = [ctypes.c_void_p]
     lib.ged_free_str.restype = None
     lib.ged_set_furniture.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
@@ -177,9 +179,22 @@ class Editor:
 
     @text.setter
     def text(self, value: str) -> None:
-        """Load text.  The window picks it up on its next frame."""
+        """Replace the text, undoably.  The window picks it up on its
+        next frame — and keeps its histories, so a `fmt` through here
+        stays one undo away from the text you had."""
         if self._h:
             self._lib.ged_set_text(self._h, value.encode())
+
+    def load(self, value: str) -> None:
+        """Replace the text *and its past* — what a file switch does.
+
+        **A different file is a different past** (`fixme.md` F113): the
+        setter above commits, so a switch through it left the old
+        file's whole content one undo away under the new file's name —
+        and one save from overwriting the new file with the old one.
+        """
+        if self._h:
+            self._lib.ged_load_text(self._h, value.encode())
 
     def changed(self) -> bool:
         """Whether the text has moved since this last said so.

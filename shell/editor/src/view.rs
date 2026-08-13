@@ -206,13 +206,26 @@ pub struct View {
     /// never text.  Empty until something grants a box a height;
     /// nothing does yet, so a window without boxes pays nothing.
     pub boxes: Vec<(usize, u16)>,
+    /// A word said in red beside the caret, or empty.
+    ///
+    /// **Transient, like the piano key's number**: the window sets it
+    /// when the model sends `warn` (an `open` refused over unsaved
+    /// changes) and clears it a couple of seconds later.  It lives on
+    /// the view because the caret's position does — the drawing and
+    /// the hit-testing read one table, and this reads it too.
+    pub warning: String,
+    /// Whether the `[+]` in the bar is in the hidden half of its
+    /// flash.  Only ever true while `warning` is up; the toggle is the
+    /// window's clock, the same-width blank is `bar_rows`'s, so the
+    /// bar cannot re-wrap mid-blink.
+    pub plus_hidden: bool,
 }
 
 impl Default for View {
     fn default() -> Self {
         View { top: 0, left: 0, w: 800, h: 600, gutter: true, aside: 0,
                piano: 0, focused: false,
-               scale: 1, boxes: Vec::new(), foot_rows: 1 }
+               scale: 1, boxes: Vec::new(), foot_rows: 1, warning: String::new(), plus_hidden: false }
     }
 }
 
@@ -311,7 +324,7 @@ impl View {
         // one gets the bar, and nothing is homeless.  Width-dependent,
         // so the window re-grants on resize and zoom, not only on a
         // description.
-        self.foot_rows = (bar_rows(chrome, self.bar_cols(font)).len() as u16)
+        self.foot_rows = (bar_rows(chrome, self.bar_cols(font), false).len() as u16)
             .clamp(1, BAR_MOST);
     }
 
@@ -676,12 +689,16 @@ fn wrap(text: &str, cols: usize) -> Vec<String> {
 /// `foot` draws them, and being the same list is what keeps the bar's
 /// height and its content from disagreeing, which is the rule the
 /// slots table already keeps for the boxes.
-pub fn bar_rows(chrome: &Furniture, cols: usize) -> Vec<(String, bool)> {
+pub fn bar_rows(chrome: &Furniture, cols: usize,
+                plus_hidden: bool) -> Vec<(String, bool)> {
     let mut head = String::new();
     if !chrome.file.is_empty() {
         head.push_str(&chrome.file);
         if chrome.unsaved {
-            head.push_str(" [+]");
+            // The hidden half of the `[+]`'s flash is the same width,
+            // so the bar cannot re-wrap mid-blink — a warning must
+            // catch the eye, not shake the furniture.
+            head.push_str(if plus_hidden { "    " } else { " [+]" });
         }
         head.push_str("  ");
     }
@@ -728,7 +745,7 @@ fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
     // whole text stays one command away, exactly as the boxes rule.
     let ch = view.ch(font);
     let granted = usize::from(view.foot_rows.max(1));
-    for (i, (line, angry)) in bar_rows(chrome, view.bar_cols(font))
+    for (i, (line, angry)) in bar_rows(chrome, view.bar_cols(font), view.plus_hidden)
         .into_iter().take(granted).enumerate()
     {
         if !line.is_empty() {
@@ -1092,6 +1109,18 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
             if x < view.w {
                 f.items.push(Item::Rect { x, y: slot.y, w: 2.max(cw / 5),
                                           h: ch, c: CARET });
+            }
+            // **The warning, beside the caret** — where the eye already
+            // is, like the piano key's number: only while it happens,
+            // gone when it is over.  Shifted left rather than clipped
+            // when the caret sits near the right edge, because a
+            // warning that reads "warni" warns about nothing.
+            if !view.warning.is_empty() {
+                let wide = view.warning.chars().count() as i32 * cw;
+                let wx = (x + 2 * cw).min(view.w - wide - 2).max(0);
+                f.items.push(Item::Run { x: wx, y: slot.y,
+                                         s: view.warning.clone(),
+                                         c: ANGRY });
             }
         }
     }

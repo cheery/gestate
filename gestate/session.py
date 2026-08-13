@@ -1644,6 +1644,12 @@ class Session:
             # rather than jumping to an absolute one.
             self.asking = ("open", 0, path.rstrip("/") + "/")
             return f"{want.name or want}/"
+        # **Unsaved changes warn, they do not gate** (F113): the moment
+        # `open` was picked, the window said so in red beside the query
+        # caret and holds the words there for as long as the question is
+        # open.  A person who chooses a file past that has decided — the
+        # switch proceeds and the edits go, history and all, which is
+        # exactly what they were warned about.
         if not want.exists():
             # **A name nobody has used is a file being started, not a
             # mistake.**  The workbench has known this shape since the
@@ -2856,6 +2862,18 @@ def act(session: "Session", line: str) -> str:
         except ValueError:
             return f"wants: `{parts[2]}` is not an argument number"
         session.asking = (parts[1], at, parts[3])
+        # **`open` says so the moment it is picked** — the one warning
+        # there is: choosing a file past it proceeds, because a person
+        # who was told and went on has decided (`do_open` says why it
+        # keeps no guard).  Once, on the opening of the question — every
+        # keystroke in the box re-asks, and a warning per letter is a
+        # warning nobody reads; the window holds the words up for as
+        # long as the question is open.
+        if (parts[1] == "open" and at == 0 and not parts[3]
+                and not getattr(session.view, "saved", True)):
+            early = getattr(session.view, "warn", None)
+            if early is not None:
+                early("warning: unsaved changes")
         # **Backspacing out of a finished `template` is a cancel too.**
         # The palette steps back an argument and asks again, which is
         # the same *never mind* `Esc` means — and the rule the whole

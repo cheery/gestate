@@ -1917,6 +1917,45 @@ def test_opening_a_file_asks_the_window_for_it(tmp_path):
     assert win.wanted == str(room / "two.ges")
 
 
+def test_open_warns_and_then_lets_the_choice_stand(tmp_path):
+    """F113's companion: unsaved changes **warn, they do not gate**.
+    The warning fires when `open` is picked and the window holds it up
+    for as long as the question is open — and a person who chooses a
+    file past it has decided, so the switch proceeds.  They got their
+    warning."""
+    it, room = _looking(tmp_path)
+    win, ed = a_window()
+    it.view = win
+    win.note_state(zoom=0, rungs=3, undos=1, redos=0, saved=False)
+    act(it, "wants\topen\t0\t")
+    assert "warn\twarning: unsaved changes" in ed.orders
+    assert it.run("open", "two.ges") == "opened two.ges", \
+        "warned is not forbidden"
+    assert win.wanted == str(room / "two.ges")
+
+
+def test_picking_open_says_unsaved_at_once(tmp_path):
+    """The courtesy half: with unsaved changes the eventual choice will
+    be refused, and learning that after walking three directories is
+    the refusal arriving late — so the warning fires the moment `open`
+    is picked.  Once: every keystroke in the box re-asks, and a warning
+    per letter is a warning nobody reads."""
+    it, _room = _looking(tmp_path)
+    win, ed = a_window()
+    it.view = win
+    win.note_state(zoom=0, rungs=3, undos=1, redos=0, saved=False)
+    act(it, "wants\topen\t0\t")
+    assert ed.orders.count("warn\twarning: unsaved changes") == 1
+    act(it, "wants\topen\t0\ttw")
+    assert ed.orders.count("warn\twarning: unsaved changes") == 1, \
+        "typing in the box must not repeat the warning"
+    # And a saved file picks open without a word.
+    win.note_state(zoom=0, rungs=3, undos=1, redos=0, saved=True)
+    ed.orders.clear()
+    act(it, "wants\topen\t0\t")
+    assert not any(o.startswith("warn") for o in ed.orders)
+
+
 def test_opening_a_name_nobody_has_used_starts_a_fresh_file(tmp_path):
     """`open notpresent.ges` used to answer `no file` — but a name
     nobody has used is a file being started, and the workbench has

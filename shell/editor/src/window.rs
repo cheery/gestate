@@ -87,13 +87,15 @@ pub trait Host: Send + Sync + 'static {
         String::new()
     }
 
-    /// Text the host wants loaded, checked once a frame.
+    /// Text the host wants loaded, checked once a frame — `(text,
+    /// fresh)`, where `fresh` means the histories go too: a file
+    /// switch, rather than a replacement that stays one undo away.
     ///
     /// **A pull rather than a push**, because the document lives on the
     /// window's thread and nothing off it may touch the rope.  The host
     /// leaves the text somewhere; the window collects it when it is
     /// next drawing anyway.
-    fn incoming(&self) -> Option<String> {
+    fn incoming(&self) -> Option<(String, bool)> {
         None
     }
 
@@ -227,6 +229,14 @@ struct EditorWindow {
     /// when it loses the keyboard — a note held while you click away is
     /// held for ever otherwise.
     fingers: RefCell<std::collections::HashSet<String>>,
+    /// A warning being shown: the words, when they arrived, and
+    /// whether the list was up when they did.  One said into the list
+    /// stays **as long as the user is there** — until the list closes
+    /// — because a warning that fades while its question is still open
+    /// is a warning that expects to be read on a deadline; one said
+    /// with no list up keeps a short fade.  The window's clock either
+    /// way, because frames are the window's and the model has none.
+    warned: RefCell<Option<(String, Instant, bool)>>,
     /// The knob being dragged, and the value last sent for it.
     ///
     /// **The value, so the same one is not sent twice.**  A pointer
@@ -400,6 +410,7 @@ impl EditorWindow {
                 top: 0, left: 0, w, h, gutter: true, aside: 0, piano: 0, focused: false,
                 scale: crate::font::LADDER[crate::font::LADDER_DEFAULT].1,
                 boxes: Vec::new(), foot_rows: 1,
+                warning: String::new(), plus_hidden: false,
             }),
             zoom: Cell::new(crate::font::LADDER_DEFAULT),
             dragging: Cell::new(false),
@@ -422,6 +433,7 @@ impl EditorWindow {
             picture: RefCell::new(Vec::new()),
             drawn: Cell::new(0),
             fingers: RefCell::new(std::collections::HashSet::new()),
+            warned: RefCell::new(None),
             // **`GESTATE_EDITOR_STRESS` never goes clean**, so every
             // frame draws and presents.  It is how the *platform's*
             // half of a frame gets measured without a hand on the
@@ -701,6 +713,13 @@ impl EditorWindow {
                 self.doc.borrow_mut().mark_saved();
                 Did::nothing()
             }
+            Order::Warn(text) => {
+                let at_list = self.palette.borrow().is_open();
+                *self.warned.borrow_mut() =
+                    Some((text, Instant::now(), at_list));
+                self.dirty.set(true);
+                Did::nothing()
+            }
             Order::Close => {
                 if self.palette.borrow().is_open() {
                     let asks = self.palette.borrow_mut().hide();
@@ -937,10 +956,62 @@ impl WindowHandler for EditorWindow {
                 self.obey(order);
             }
         }
-        if let Some(text) = self.host.incoming() {
+        // **The warning's clock.**  One said into the list stays as
+        // long as the list does; one said with no list up fades after
+        // 2.4 seconds.  The `[+]` flashes for its first moments and
+        // then holds either way — a blink that never ends is a blink
+        // nobody can read past.  The frame only dirties when a fact
+        // *changes*, so a held warning costs its eight blink-redraws
+        // and then nothing.
+        {
+            let mut over = false;
+            let list_open = self.palette.borrow().is_open();
+            let (text, hide) = match self.warned.borrow().as_ref() {
+                Some((s, since, at_list)) => {
+                    let ms = since.elapsed().as_millis();
+                    let gone = if *at_list { !list_open }
+                               else { ms >= 2400 };
+                    if gone {
+                        over = true;
+                        (String::new(), false)
+                    } else {
+                        (s.clone(), ms < 2400 && (ms / 300) % 2 == 1)
+                    }
+                }
+                None => (String::new(), false),
+            };
+            if over {
+                *self.warned.borrow_mut() = None;
+            }
+            // The words go beside the caret that is *active*: the
+            // palette's query box while the list is up (its frame draws
+            // them), the document's caret otherwise.  The `[+]` flash
+            // is the bar's either way.
+            let text = if self.palette.borrow().is_open() {
+                String::new()
+            } else {
+                text
+            };
+            let mut v = self.view.borrow_mut();
+            if v.warning != text || v.plus_hidden != hide {
+                v.warning = text;
+                v.plus_hidden = hide;
+                self.dirty.set(true);
+            }
+        }
+        if let Some((text, fresh)) = self.host.incoming() {
             let doc = {
                 let mut doc = self.doc.borrow_mut();
-                doc.set_text(&text);
+                if fresh {
+                    // A file switch: the histories go with the text —
+                    // undo must not resurrect the old file under the
+                    // new file's name (fixme.md F113).  A warning still
+                    // up was about the *old* document, and dies with it.
+                    doc.load(&text);
+                    *self.warned.borrow_mut() = None;
+                } else {
+                    doc.set_text(&text);
+                }
                 let mut v = self.view.borrow_mut();
                 v.clamp(&doc, self.font());
                 v.follow(&doc, self.font());
@@ -1086,9 +1157,15 @@ impl WindowHandler for EditorWindow {
         let palette = self.palette.borrow();
         if painting && palette.is_open() {
             let (cw, ch) = (view.cw(font), view.ch(font));
+            // The warning belongs to the caret that is active: while
+            // the list is up, that is the query box's, so the words go
+            // to the palette's frame and `on_frame` keeps them out of
+            // the document's.
+            let warning = self.warned.borrow().as_ref()
+                .map(|(s, _, _)| s.clone()).unwrap_or_default();
             view::paint(&mut canvas,
-                        &palette.frame(view.w, view.h, cw, ch), font,
-                        self.scale());
+                        &palette.frame(view.w, view.h, cw, ch, &warning),
+                        font, self.scale());
         }
         let t_paint = Instant::now();
 
