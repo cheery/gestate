@@ -229,6 +229,10 @@ struct EditorWindow {
     /// when it loses the keyboard — a note held while you click away is
     /// held for ever otherwise.
     fingers: RefCell<std::collections::HashSet<String>>,
+    /// Whether the list was open last frame — the edge that decides
+    /// the panel's half: the equator rule runs at the opening, not per
+    /// keystroke, so the panel does not dance under a typing hand.
+    was_open: Cell<bool>,
     /// A warning being shown: the words, when they arrived, and
     /// whether the list was up when they did.  One said into the list
     /// stays **as long as the user is there** — until the list closes
@@ -446,6 +450,7 @@ impl EditorWindow {
             drawn: Cell::new(0),
             fingers: RefCell::new(std::collections::HashSet::new()),
             warned: RefCell::new(None),
+            was_open: Cell::new(false),
             // **`GESTATE_EDITOR_STRESS` never goes clean**, so every
             // frame draws and presents.  It is how the *platform's*
             // half of a frame gets measured without a hand on the
@@ -700,6 +705,9 @@ impl EditorWindow {
 
     /// One thing the model asked for.
     fn obey(&self, order: Order) {
+        // An ordered insert's span — `(first row, last row)` of what it
+        // put in — for the placement rule below.
+        let mut span: Option<(usize, usize)> = None;
         let did = match order {
             Order::Zoom(0) => {
                 let home = crate::font::LADDER_DEFAULT as i32;
@@ -760,8 +768,15 @@ impl EditorWindow {
             }
             Order::Insert(text) => {
                 let mut doc = self.doc.borrow_mut();
+                let grew = text.matches('\n').count();
                 match doc.insert(&text) {
-                    Ok(true) => Did { drew: true, edited: true },
+                    Ok(true) => {
+                        // The caret ends after what was inserted, so
+                        // the span reaches back over the newlines.
+                        let (end, _) = doc.cursor();
+                        span = Some((end.saturating_sub(grew), end));
+                        Did { drew: true, edited: true }
+                    }
                     _ => Did::nothing(),
                 }
             }
@@ -785,21 +800,45 @@ impl EditorWindow {
         };
         if did.drew {
             self.dirty.set(true);
-            // **Past the panel, while one is up.**  An ordered edit —
-            // a template, an insert — lands at the caret, and a caret
-            // followed to row zero is a caret behind the list; the
-            // shadow is how many rows to scroll past so the person can
-            // see what the command just did (`fixme.md` F121).
-            let clear = {
-                let v = self.view.borrow();
-                let font = self.font();
-                self.palette.borrow()
-                    .shadow_rows(v.w, v.h, v.cw(font), v.ch(font))
-            };
+            // **The span decides the scroll, and the panel takes the
+            // other half** (F121, the rule is Henri's).  An ordered
+            // insert pasted above the equator sends the panel low and
+            // puts the span's *first* line on the screen's first row;
+            // one pasted below keeps the panel high and puts the
+            // span's *last* line on the screen's last row — either
+            // way the person reads what the command just did, on the
+            // half the panel is not.  Everything else drawn by an
+            // order keeps the ordinary follow, past the panel's
+            // shadow so a caret is never parked behind the list.
+            let font = self.font();
+            let list_open = self.palette.borrow().is_open();
             let doc = self.doc.borrow();
             let mut v = self.view.borrow_mut();
-            v.clamp(&doc, self.font());
-            v.follow_past(&doc, self.font(), clear);
+            v.clamp(&doc, font);
+            match span {
+                Some((start, end)) if list_open => {
+                    let above = start < v.top + v.rows(font) / 2;
+                    {
+                        let mut p = self.palette.borrow_mut();
+                        if p.low != above {
+                            p.low = above;
+                        }
+                    }
+                    if above {
+                        v.top = start;
+                    } else {
+                        v.top = v.top_showing(font, end);
+                    }
+                    v.clamp(&doc, font);
+                }
+                _ => {
+                    let clear = {
+                        let p = self.palette.borrow();
+                        p.shadow_rows(v.w, v.h, v.cw(font), v.ch(font))
+                    };
+                    v.follow_past(&doc, font, clear);
+                }
+            }
         }
         if did.edited {
             let doc = self.doc.borrow();
@@ -1014,34 +1053,29 @@ impl WindowHandler for EditorWindow {
                 self.obey(order);
             }
         }
-        // **The panel flips low when the caret stands under it.**  An
-        // ordered edit at the top of the file has nowhere to scroll
-        // past the panel — `follow_past` saturates at row zero — so
-        // when the caret's row falls in the top panel's shadow, the
-        // panel moves instead of the text (F121's second half, from
-        // Henri's template transcript: a template inserted at row
-        // zero was read by nobody).  One flag, read by `panel_box`,
-        // so drawing, hit-testing and the shadow flip together.
+        // **The equator decides the panel, when the list opens.**  A
+        // caret in the window's upper half sends the panel low, and
+        // one in the lower half keeps it high — the panel moves so the
+        // text does not have to (F121; the rule is Henri's).  Decided
+        // at the *opening* and at an ordered insert (see `obey`),
+        // never per keystroke, so the panel does not dance under a
+        // hand that is typing a query.
         {
-            let want = {
-                let p = self.palette.borrow();
-                if !p.is_open() {
-                    false
-                } else {
+            let open = self.palette.borrow().is_open();
+            if open && !self.was_open.get() {
+                let want = {
                     let doc = self.doc.borrow();
                     let v = self.view.borrow();
-                    let font = self.font();
-                    let sh = p.shadow_rows_at_top(v.w, v.h, v.cw(font),
-                                                  v.ch(font));
                     let (row, _) = doc.cursor();
-                    row >= v.top && row < v.top + sh
+                    row < v.top + v.rows(self.font()) / 2
+                };
+                let mut p = self.palette.borrow_mut();
+                if p.low != want {
+                    p.low = want;
+                    self.dirty.set(true);
                 }
-            };
-            let mut p = self.palette.borrow_mut();
-            if p.low != want {
-                p.low = want;
-                self.dirty.set(true);
             }
+            self.was_open.set(open);
         }
         // **The warning's clock.**  One said into the list stays as
         // long as the list does; one said with no list up fades after

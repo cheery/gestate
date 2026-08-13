@@ -3264,13 +3264,25 @@ so an ordered edit lands at the first row a person can actually see.
 template landed at row zero — `edit "0:0:…"` — where there is nothing
 to scroll past and `follow_past` saturates, which the first cut waved
 off with "the panel covers what it covers".  It was his actual usage.
-So **the panel moves instead of the text**: when the caret's row
-falls in the top panel's shadow, the panel flips to the window's
-lower half, IDE-popup style.  One flag read by `panel_box`, which
-drawing, hit-testing (`row_at`, `covers`) and the shadow all read —
-today's one-arithmetic refactor is what made the flip a dozen lines —
-and `shadow_rows` answers zero while low, so `follow_past` and the
-flip cannot fight over the same caret.
+So **the panel moves instead of the text**, and the rule is
+Henri's, refined against the running build: **the equator decides
+the panel, the span decides the scroll.**  When the list opens, a
+caret in the window's upper half sends the panel low.  When an
+ordered insert lands, the span it put in decides both at once —
+pasted above the equator, the panel goes low and the span's *first*
+line stands on the screen's first row; pasted below, the panel stays
+high and the span's *last* line stands on the screen's last row —
+either way the person reads what the command just did, on the half
+the panel is not.  Decided at those two moments and never per
+keystroke, so the panel does not dance under a typing hand.  One
+flag read by `panel_box`, which drawing, hit-testing (`row_at`,
+`covers`) and the shadow all read — the one-arithmetic refactor from
+the click fix is what made the flip a dozen lines — and
+`shadow_rows` answers zero while low, so `follow_past` and the flip
+cannot fight over the same caret.  (The first cut flipped on the
+caret's own row and scrolled only the caret into view — which put
+the template's *end* behind the newly-low panel; the span rule is
+what reads right.)
 
 ### F122. **[resolved]** A typed path was walked twice
 
