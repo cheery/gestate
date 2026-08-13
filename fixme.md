@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 124 entries, **109 are resolved**.  What is left:
+Of 124 entries, **110 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -48,7 +48,7 @@ Of 124 entries, **109 are resolved**.  What is left:
 | F122 | resolved | A typed path was walked twice — `transcript ../../x` landed in `/home/` |
 | F123 | resolved | A finished `open` re-runs from a different directory than its first run |
 | F124 | bug, open | The directory-watch tests flake under machine load |
-| F112 | bug, open | The file dialog's listing sometimes lags |
+| F112 | resolved | The file dialog's listing sometimes lags — measured: a beat only while the model builds |
 | F113 | resolved | Undo and redo cross a file switch — one history for the session |
 | F114 | resolved | Copy and paste are not commands |
 | F115 | resolved | A bank added by an audition could not be listened to — allocators followed the disk |
@@ -3051,13 +3051,27 @@ Space in a `Path` box is now content, the same exemption `Text` has;
 taking the path is Return's, and Tab completes (F117).  Pinned by
 `space_does_not_eat_a_proposed_path`.
 
-### F112. **[bug, open]** The file dialog's listing sometimes lags
+### F112. **[resolved]** The file dialog's listing sometimes lags
 
 Reported from use (2026-08-13), unmeasured: the dialog's listing
 appears a beat late sometimes.  The instrument for this class of
 report exists — `tools/lagcheck.py` drives the real window through
 XTEST and reads the screen — and pointing it at the dialog is how
 "appears to" becomes a number before anything is changed.
+
+**Measured 2026-08-13 (`tools/dialoglag.py`, the window's own
+`GESTATE_EDITOR_TIME` stopwatch): settled, query->list averages
+13 ms with a worst of 29 ms — imperceptible.  Driven mid-compile it
+averages ~71 ms with a worst of 167 ms — a visible beat, and the
+"sometimes".**  The dialog's code is innocent: the beat is the
+gesture loop sharing its thread with a build, which is the starvation
+`spec/performance.md` already documents in the extreme (an expensive
+canvas or a startup compile pushing query->list toward a second).
+The status line says a build is running exactly when the beat
+happens, so the report is answered rather than the code changed —
+the rule wants a caller before loop-pacing work, and a bounded beat
+during a visible build is not yet one.  Reopen with a transcript if
+a listing ever lags past ~200 ms with *no* build in flight.
 
 ### F113. **[resolved]** Undo and redo cross a file switch
 
