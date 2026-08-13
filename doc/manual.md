@@ -1044,7 +1044,41 @@ your own file has.
 
 ---
 
-## 11. Where to go next
+## 11. When something goes wrong — the session transcript
+
+The editor records everything you do, always, in memory.  When something
+misbehaves — a command answers strangely, a bank will not switch, a key
+plays nothing — write the recording down and you have the whole story:
+
+```
+transcript bugreport        (in the editor's palette)
+python -m gestate.sessionlog bugreport-session.ges     (later, anywhere)
+```
+
+The file is readable on its own: one line per command with what it
+answered, the text edits as diffs, and `#!` notes for everything the
+editor said unprompted — including the moment it restarted the player or
+refused a build.  The replay runs the same commands against a fresh
+editor on the same file and **reports every answer that moved**, so "it
+says something different now" is a diff rather than a memory.
+
+This is the way to report a problem — with the transcript, not with a
+description of what you think happened.  A description reconstructs; the
+transcript is what the editor actually saw, and most defects in the
+editor's history were pinned by one.  Two habits make them better:
+
+- **Write the transcript from the session where it happened**, before
+  quitting: the recording lives in memory and dies with the window.
+- **Name the file after the problem** (`transcript midi-silent`), because
+  a directory of `untitled-session-2.ges` is a drawer of unlabeled keys.
+
+The one thing a transcript cannot survive is the program crashing before
+you write it down — rare, and the reason to write one as soon as
+something looks wrong rather than after poking at it.
+
+---
+
+## 12. Where to go next
 
 If sound is what brought you here, there is a four-course path built for
 that: `doc/beginner.md` (synthesis), `doc/intermediate.md` (instruments
