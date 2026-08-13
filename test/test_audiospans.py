@@ -433,3 +433,63 @@ def test_a_program_may_still_call_its_own_parameter_knob():
                                path="knob.ges") if s.is_control]
     assert [s.name for s in found] == ["knob"]
     assert found[0].file == "knob.ges"
+
+
+def test_a_prelude_blamed_error_names_the_authors_declaration():
+    """**The prelude must not take the blame for the author's mistake.**
+
+    A misuse of a prelude combinator collides two types whose spans are
+    both the *prelude's* — a signature donates its own position — so the
+    message named `prelude line 216` and never the file the mistake was
+    typed in.  `infer._blame` appends `while checking `name` (at …)` on
+    its own line, with the position of the first thing in the
+    declaration's body the author actually wrote; `session._line_of`
+    prefers a position in the author's file anywhere in the message, so
+    the content box anchors at the author's line rather than nowhere.
+    """
+    from gestate.audioperform import graph_of
+    from gestate.audiospans import in_source
+    from gestate.session import _line_of as anchor
+
+    source = _source("twoknobs.ges").replace("sound =", 'sound = "text" +', 1)
+    with pytest.raises(Exception) as caught:
+        graph_of(source, rate=RATE)
+    said = in_source(str(caught.value), source, "twoknobs.ges")
+
+    assert "while checking `sound`" in said
+    assert "at twoknobs.ges:" in said, f"no author position in: {said!r}"
+    line = next(i + 1 for i, l in enumerate(source.splitlines())
+                if l.startswith("sound ="))
+    assert anchor(said, "twoknobs.ges") == line
+    # And the breadcrumb is a second line, so a status bar keeps showing
+    # the mismatch itself.
+    assert said.splitlines()[1].startswith("while checking")
+
+
+def test_a_syntax_error_speaks_person_and_lands_in_the_authors_file():
+    """**The parser's voice was the worst and the most beginner-facing.**
+
+    `expected atom, got T(SEP,'=',…)` leaked a token repr and parser
+    jargon, and carried no `(at …)` at all — so a *syntax* error, the
+    commonest mistake a stranger makes, was the one kind the editor
+    could not anchor a box under.  Now: `T.__str__` names the token
+    (`'='`, `end of line`), `ParseError.__str__` appends the position,
+    `audio._assembled` shifts the `(at L:C)` spelling into assembled
+    coordinates the way it always shifted `Pos(L,C)`, and `in_source`
+    lands it in the author's file.
+    """
+    from gestate.audioperform import graph_of
+    from gestate.audiospans import in_source
+    from gestate.session import _line_of as anchor
+
+    source = _source("twoknobs.ges").replace("sound =", "sound = = ", 1)
+    with pytest.raises(Exception) as caught:
+        graph_of(source, rate=RATE)
+    said = in_source(str(caught.value), source, "twoknobs.ges")
+
+    assert said.startswith("expected an expression, got '='"), said
+    assert "T(" not in said, f"a token repr leaked: {said!r}"
+    line = next(i + 1 for i, l in enumerate(source.splitlines())
+                if l.startswith("sound ="))
+    assert f"(at twoknobs.ges:{line}:" in said, said
+    assert anchor(said, "twoknobs.ges") == line

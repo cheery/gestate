@@ -71,6 +71,27 @@ class T:
     def __repr__(self):
         return f"T({self.kind.name},{self.value!r},{self.pos})"
 
+    def __str__(self):
+        """How a person is told about this token.
+
+        An error message reads `got '='`, never `got T(SEP,'=',…)` —
+        the token repr is for a debugger, and it leaked into every
+        `expected …, got {t}` the parser says.  The position is not
+        here on purpose: it travels on the `ParseError`, once, rather
+        than inside the token's own name.
+        """
+        if self.kind is TT.EOF:
+            return "end of file"
+        if self.kind is TT.NEWLINE:
+            return "end of line"
+        if self.kind is TT.INDENT:
+            return "an indented block"
+        if self.kind is TT.DEDENT:
+            return "the end of an indented block"
+        if self.kind is TT.STRING:
+            return f"the string {self.value!r}"
+        return f"'{self.value}'"
+
 
 # ── Tokenizer ────────────────────────────────────────────────────────────────
 

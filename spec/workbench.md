@@ -612,6 +612,21 @@ Where this goes next is B1 above: the message stops trailing the line
 sideways and becomes a content box *under* it, whole rather than
 first-line-only.
 
+### The status bar may grow — to five lines, and no further
+
+*Declared here, not yet built.*  A status bar is one line because most
+answers are one sentence, and one line is why every message had to be
+truncated to its first.  The bar may instead grow downward to fit what
+it is saying, **at most five lines**, taking the room from the
+document the way the piano does.  Five is a cap, not a target: a
+sentence stays one line, a complaint's head and its `while checking`
+breadcrumb are two, and anything longer than five belongs to the
+content box under its line or to the transcript, both of which exist.
+The cap is what keeps a runaway message from being a full-screen
+status bar — the same argument as `BOX_MOST`, one floor down.  The
+view grants the height from the text it was handed, deterministically,
+exactly as boxes are granted; the model does not know the bar exists.
+
 ---
 
 ## What is deliberately not here

@@ -33,6 +33,26 @@ class ParseError(Exception):
         super().__init__(msg)
         self.pos = pos
 
+    def __str__(self):
+        """The message with its position in the standard voice.
+
+        `pos` was carried on the exception and dropped by `str()`, so a
+        syntax error — the commonest error a beginner meets — was the
+        one kind the editor could not anchor a box under.  Appended
+        here, raw and 0-based exactly as `infer.at` writes spans,
+        because `audiospans.in_source` is the one place numbers become
+        the author's file's.  Left alone when the message already
+        carries a position, so a site that formats its own keeps it.
+        """
+        said = str(self.args[0]) if self.args else ""
+        if self.pos is None or "(at " in said:
+            return said
+        line = getattr(self.pos, "line", None)
+        col = getattr(self.pos, "col", None)
+        if line is None or col is None:
+            return said
+        return f"{said} (at {line}:{col})"
+
 
 @dataclass
 class Span:

@@ -1181,6 +1181,54 @@ def _default_ambiguous_vars(s: Subst, per_sc: list[list[Predicate]],
     return s
 
 
+def _blame(exc: Exception, name: str, lam) -> None:
+    """Append `while checking \\`name\\` (at L:C)` to an error, in place.
+
+    In place — mutating `message` and `args` — because the exception may
+    be any `InferError` subclass and rebuilding one through its own
+    constructor is a signature nobody should have to keep compatible.
+    On its own line, so a status bar keeps showing the mismatch and the
+    content box under the line shows both.  Idempotent, in case an
+    inner layer learns to say it first.
+    """
+    said = getattr(exc, "message", None) or (exc.args[0] if exc.args else "")
+    if "while checking" in str(said):
+        return
+    said = f"{said}\nwhile checking `{name}`{_site_of(lam)}"
+    exc.message = said
+    exc.args = (said,)
+
+
+def _site_of(node, depth: int = 0) -> str:
+    """The first written-down position inside a lifted declaration.
+
+    The lifted lambda and the applications the desugaring builds carry
+    no spans; the leaves the author actually typed do.  **Expressions
+    only, never types**: a `set_type` hanging off a node carries the
+    span of wherever that type was *declared* — the prelude, for
+    anything instantiated from its signatures — and blaming the prelude
+    is the exact mistake this walk exists to stop.
+    """
+    from .expr import Expr
+
+    if depth > 24 or not isinstance(node, Expr):
+        return ""
+    said = at(node)
+    if said:
+        return said
+    for child in vars(node).values():
+        if isinstance(child, Expr):
+            said = _site_of(child, depth + 1)
+        elif isinstance(child, (list, tuple)):
+            said = next((s for c in child
+                         if (s := _site_of(c, depth + 1))), "")
+        else:
+            continue
+        if said:
+            return said
+    return ""
+
+
 def infer_program(
     scs: list[tuple[str, int, ELambda, Type | None]],
     builtins: dict[Name, Type] | None = None,
@@ -1270,13 +1318,29 @@ def _infer_program(
     s = Subst.empty()
     for i, (name, _arity, lam, sig) in enumerate(scs):
         before = len(all_constraints)
-        if sig is not None:
-            s = s.compose(check(env, lam, sig, fresh, cons, classes, all_constraints))
-            t = sig
-        else:
-            t, si = infer(env, lam, fresh, cons, classes, all_constraints)
-            s = si.compose(s)
-        s = s.compose(unify(env[name].type_, t))
+        # **An error names the declaration it surfaced in.**  The
+        # positions inside a message are the *types'* — a signature in
+        # the prelude donates its own span, so a misuse of `flip` was
+        # reported "at prelude line 216" with the author's file never
+        # mentioned.  The one fact inference always has and the message
+        # always lacked is which declaration was being checked, so it
+        # is appended on its own line; `session._line_of` prefers a
+        # position in the author's file anywhere in the message, which
+        # is what anchors the complaint's box at *your* definition when
+        # every other position is the prelude's.
+        try:
+            if sig is not None:
+                s = s.compose(check(env, lam, sig, fresh, cons, classes,
+                                    all_constraints))
+                t = sig
+            else:
+                t, si = infer(env, lam, fresh, cons, classes,
+                              all_constraints)
+                s = si.compose(s)
+            s = s.compose(unify(env[name].type_, t))
+        except (UnifyError, InferError) as exc:
+            _blame(exc, name, lam)
+            raise
         # Collect constraints emitted during this SC
         per_sc.append(list(all_constraints[before:]))
         # Update env types with current substitution — except where the

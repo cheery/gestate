@@ -318,10 +318,11 @@ def _entry(rate: int) -> str:
 def _assembled(error, offset: int):
     """A `ParseError` from the author's text, moved into assembled lines.
 
-    The message carries its position textually — `Pos(2,4)` — because that
-    is how a token's `repr` reaches one, so the text is what has to move.
-    `audiospans._POS` is the pattern that reads it back out; the two are a
-    pair, and a change to either is a change to both.
+    The message carries its position textually, in either spelling — a
+    token's `repr` says `Pos(2,4)`, and `ParseError.__str__` says
+    `(at 2:4)` — so the text is what has to move.  `audiospans._POS`
+    and `audiospans._AT` are the patterns that read them back out; the
+    four are a set, and a change to any is a change to all.
     """
     import re
 
@@ -330,6 +331,9 @@ def _assembled(error, offset: int):
     moved = re.sub(r"Pos\((\d+),\s*(\d+)\)",
                    lambda m: f"Pos({int(m.group(1)) + offset},{m.group(2)})",
                    str(error))
+    moved = re.sub(r"\(at (\d+):(\d+)\)",
+                   lambda m: f"(at {int(m.group(1)) + offset}:{m.group(2)})",
+                   moved)
     pos = getattr(error, "pos", None)
     if pos is not None:
         pos = type(pos)(pos.line + offset, pos.col)

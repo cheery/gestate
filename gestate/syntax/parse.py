@@ -47,6 +47,28 @@ _PREFIX_ONLY_OPS = frozenset(DEFAULT_PREFIX) - frozenset(DEFAULT_INFIX)
 ParseError = ParseError
 
 
+#: What to call a token *kind* when asking for one — the other half of
+#: `T.__str__`, which names the token that arrived.  A kind with a
+#: known value is asked for by the value itself.
+_KIND_SAID = {
+    TT.WORD: "a name",
+    TT.CONID: "a constructor name",
+    TT.NUMBER: "a number",
+    TT.STRING: "a string",
+    TT.NEWLINE: "end of line",
+    TT.INDENT: "an indented block",
+    TT.DEDENT: "the end of an indented block",
+    TT.EOF: "end of file",
+}
+
+
+def _wanted(kind: TT, val: str | None) -> str:
+    """`expected …` in a person's words: `')'`, `a name`, never `SEP`."""
+    if val:
+        return f"'{val}'"
+    return _KIND_SAID.get(kind, kind.name.lower())
+
+
 # ── Parser ───────────────────────────────────────────────────────────────────
 
 
@@ -131,10 +153,8 @@ class Parser:
 
     def _eat(self, kind: TT, val: str | None = None) -> T:
         if not self._at(kind, val):
-            expected = f"{kind.name}"
-            if val:
-                expected += f" {val!r}"
-            got = f"{self._cur.kind.name} {self._cur.value!r}" if self._cur else "EOF"
+            expected = _wanted(kind, val)
+            got = str(self._cur) if self._cur else "end of file"
             raise ParseError(
                 f"expected {expected}, got {got}",
                 self._cur.pos if self._cur else None,
@@ -151,7 +171,9 @@ class Parser:
             return self._eat(TT.SEP, val)
         if self._at(TT.SYMBOL, val):
             return self._eat(TT.SYMBOL, val)
-        raise ParseError(f"expected symbol {val!r}, got {self._cur}", self._cur.pos if self._cur else None)
+        raise ParseError(f"expected '{val}', got "
+                         f"{self._cur if self._cur else 'end of file'}",
+                         self._cur.pos if self._cur else None)
 
     # -- layout helpers --
 
@@ -266,7 +288,7 @@ class Parser:
 
         # must be name-led: type-decl, sig, or sc-equation
         if t.kind not in (TT.WORD, TT.CONID):
-            raise ParseError(f"expected declaration, got {t}", t.pos)
+            raise ParseError(f"expected a declaration, got {t}", t.pos)
 
         name = self._adv().value
         start = t.pos
@@ -618,7 +640,7 @@ class Parser:
             tok = self._adv()
             return PVar(tok.value, tok.span)
 
-        raise ParseError(f"expected pattern, got {t}", t.pos)
+        raise ParseError(f"expected a pattern, got {t}", t.pos)
 
     def _parse_pat_paren(self) -> Pat:
         start = self._eat(TT.SEP, "(").pos
@@ -908,7 +930,7 @@ class Parser:
     def _parse_atom(self) -> Val:
         t = self._cur
         if t is None:
-            raise ParseError("expected atom, got EOF")
+            raise ParseError("expected an expression, got end of file")
 
         # A comment is never an atom — `_parse_app_expr` collects it as
         # trivia before this is reached (`spec/comments.md`).
@@ -947,7 +969,7 @@ class Parser:
             tok = self._adv()
             return VStr(tok.value, tok.span)
 
-        raise ParseError(f"expected atom, got {t}", t.pos)
+        raise ParseError(f"expected an expression, got {t}", t.pos)
 
     @staticmethod
     def _parse_number(tok: T) -> int | float:
@@ -1610,7 +1632,7 @@ class Parser:
             ty = self._parse_type()
             end = self._eat(TT.SEP, "]").span.end
             return VApp(VConId("List", Span(start, start)), ty, Span(start, end))
-        raise ParseError(f"expected type, got {t}", t.pos)
+        raise ParseError(f"expected a type, got {t}", t.pos)
 
     def _parse_score_type(self, start: Pos) -> Val:
         self._eat(TT.SEP, ":")
