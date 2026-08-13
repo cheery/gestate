@@ -216,6 +216,19 @@ def test_a_transcript_of_names_reads_as_what_it_did():
     assert s.said == said, "everything said is kept, newest last"
 
 
+def test_a_written_transcript_closes_its_dialog(tmp_path):
+    """The same say-when-you-are-done `open`, `template` and `symbol`
+    use: Return on a finished transcript meant *write it again*, and
+    the keystrokes after saving a recording are aimed at the work."""
+    it, room = _looking(tmp_path)
+    win, ed = a_window()
+    it.view = win
+    it.run("play")                       # something to record
+    said = it.run("transcript", str(room / "t-session.ges"))
+    assert said.startswith("wrote t-session.ges")
+    assert "close" in ed.orders
+
+
 def test_bars_count_from_zero_like_everything_else():
     """**One house style, kept in the window too.**
 

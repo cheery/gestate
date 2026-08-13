@@ -2120,6 +2120,12 @@ class Session:
             want.write_text(self.log.text())
         except OSError as exc:
             return f"transcript: {_first_line(exc)}"
+        # **And the list goes away, because writing it is finished** —
+        # the same say-when-you-are-done `open`, `template` and
+        # `symbol` use.  Return on a finished transcript meant *write
+        # it again*, and the keystrokes after saving a recording are
+        # aimed at the work, not the dialog.
+        self.view.close_list()
         return f"wrote {want.name} — {len(self.log.steps)} steps"
 
     def do_template(self, name: str) -> str:
