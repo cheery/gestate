@@ -1,0 +1,45 @@
+# A gestate editor session — replay it with
+#
+#     python -m gestate.sessionlog <this file>
+#
+#: editing test/sessions/F115-frommidi.ges
+#
+# Each line is a command and what it answered.  The
+# answers are the diff: a replay that says something
+# else is the report.
+
+do
+    #! playing untitled.ges at 44100 Hz — no parameters
+    # +  11 
+    edit "10:0:"                           #= 1 line changed
+    # 3 looks
+    ask template 0 Template "vo"           #= 1 row be4fe74133faf795
+    template "voices"                      #= inserted `voices`
+    # +  12 Key := Key Int Int
+    # +  13 
+    # +  14 voices lead 4 sineVoice : Sig Float
+    # +  15 
+    # +  16 instance FromMIDI Key where
+    # +  17     noteOn ch p v = Just (Key p v)
+    # +  18 
+    # +  19 env : Adsr
+    # +  20 env = Adsr 0.01 0.25 0.6 0.3
+    # +  21 
+    # +  22 hzOfKey : Key -> Float
+    # +  23 hzOfKey q = case q of
+    # … and 8 more
+    edit "11:0:Key := Key Int Int\n\nvoices lead 4 sineVoice : Sig Float\n\ninstance FromMIDI Key where\n    noteOn ch p v = Just (Key p v)\n\nenv : Adsr\nenv = Adsr 0.01 0.25 0.6 0.3\n\nhzOfKey : Key -> Float\nhzOfKey q = case q of\n    Key k v -> keyHz k\n\nvelOfKey : Key -> Float\nvelOfKey q = case q of\n    Key k v -> toFloat v / 127.0\n\nsineVoice : Sig Gate -> Sig Key -> Sig Float\nsineVoice g s = sine (!hzOfKey s) * adsr env g * !velOfKey s" #= 20 lines changed
+    template "voices"                      #= kept `voices`
+    # -  10 sound = 0.2 * sine 220.0
+    # +  10 sound = 0.2 * lead
+    edit "9:1:sound = 0.2 * lead"          #= 1 line changed
+    audition                               #= auditioning
+    #! this edit wants 16 control channel(s) and the player has room for 1 — restarting the player
+    #! auditioning (not saved)
+    #! playing untitled.ges at 44100 Hz — no parameters
+    listen "lead"                          #= `lead` would not switch
+    listen "lead"                          #= `lead` would not switch
+    listen "lead"                          #= `lead` would not switch
+    # 17 looks
+    ask transcript 0 Path "FromMIDI"       #= 0 rows e4a6a0577479b2b4
+    transcript "FromMIDI"                  #= wrote FromMIDI — 14 steps

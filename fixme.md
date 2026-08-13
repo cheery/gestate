@@ -42,6 +42,7 @@ Of 108 entries, **88 are resolved**.  What is left:
 | F109 | bug, open | Opening a file joins the previous start in the gesture loop — no cancel, late switch |
 | F110 | mostly resolved | Zoom wedge: the mirror only synced after input — tell() every poll now |
 | F111 | bug, open | Space in `transcript`'s path box erases the proposed path |
+| F115 | resolved | A bank added by an audition could not be listened to — allocators followed the disk |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -2954,3 +2955,31 @@ filled instead of typing a space.  Whatever the palette does with
 space in an argument query — separator, choice step, or a
 first-keystroke replace of proposed text — it must not eat a path
 somebody was about to accept.
+
+### F115. **[resolved]** A bank added by an audition could not be listened to
+
+Henri's report (2026-08-13, `test/sessions/F115-frommidi.ges` and its
+transcript): start on a bankless synth, audition in a `voices` bank
+with a `FromMIDI` instance, and `listen lead` answers `` `lead` would
+not switch `` — three times in the transcript, because there is
+nothing to learn from trying again.
+
+The allocators followed the **disk**.  `_allocators()` read
+`self.source()` while everything around it deliberately carries the
+text being started — an audition never writes the file, so the
+restart it forces (16 control channels into a player with room for 1)
+rebuilt the engine from the audition and the note plumbing from the
+disk: the engine played the bank, `_load_from_midi` offered it, and
+`Notes` was `None`, so `Workbench.listen` declined silently and the
+session's honest fallback said "would not switch".  The same omission
+`restart` itself documents one layer up, where it once brought back
+the program on disk.
+
+Two fixes, because the Python driver has no fixed control block and
+therefore never restarts: `_start_notes`/`_allocators` now take the
+text they are starting (`_start` passes it), and an apply calls
+`_refresh_notes(text)` — same bank set, keep the allocators and their
+held voices; a changed bank set rebuilds them, which is what puts
+something behind a new bank's switch.  `test_session_live.py::
+test_a_bank_added_by_an_audition_can_be_listened_to` replays the
+report's three facts and fails in 33 s on the old code.

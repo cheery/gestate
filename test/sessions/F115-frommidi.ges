@@ -1,0 +1,26 @@
+# I were not able to press soundbank to MIDI.
+# try whether you can repro it with session file.
+
+sound : Sig Float
+sound = 0.2 * lead
+
+Key := Key Int Int
+
+voices lead 4 sineVoice : Sig Float
+
+instance FromMIDI Key where
+    noteOn ch p v = Just (Key p v)
+
+env : Adsr
+env = Adsr 0.01 0.25 0.6 0.3
+
+hzOfKey : Key -> Float
+hzOfKey q = case q of
+    Key k v -> keyHz k
+
+velOfKey : Key -> Float
+velOfKey q = case q of
+    Key k v -> toFloat v / 127.0
+
+sineVoice : Sig Gate -> Sig Key -> Sig Float
+sineVoice g s = sine (!hzOfKey s) * adsr env g * !velOfKey s

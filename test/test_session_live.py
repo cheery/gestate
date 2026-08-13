@@ -128,6 +128,40 @@ def test_a_finite_score_loops_the_whole_piece(tmp_path):
 
 
 @needs_clang
+def test_a_bank_added_by_an_audition_can_be_listened_to(tmp_path):
+    """fixme.md F115 — Henri's session, replayed as its three facts.
+
+    Start on a bankless synth, audition in a `voices` bank with a
+    `FromMIDI` instance, throw its switch.  The allocators used to
+    follow the *disk* — an audition deliberately never writes one — so
+    the engine played the bank, `takes_midi` said yes, and `listen`
+    said "would not switch" because no `Notes` stood behind the switch.
+    """
+    path = tmp_path / "grow.ges"
+    path.write_text("sound : Sig Float\nsound = 0.2 * sine 220.0\n")
+    bench = Workbench(path, rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+    s = Session(bench=bench)
+    bench.start()
+    try:
+        _settle(bench)
+        grown = (Path(__file__).resolve().parent / "sessions"
+                 / "F115-frommidi.ges").read_text()
+        bench.audition(grown)
+        # The audition compiles on its own thread, and under the C host
+        # the restart it forces runs on a third — so the fact to wait
+        # for is the one the fix is about: an allocator behind the bank.
+        end = time.monotonic() + 30.0
+        while time.monotonic() < end:
+            if bench.notes is not None and "lead" in bench.notes.allocators:
+                break
+            time.sleep(0.1)
+        assert s.run("listen", "lead") == "lead hears the keyboard"
+    finally:
+        bench.stop()
+
+
+@needs_clang
 def test_a_transcript_of_names_moves_a_real_instrument(tmp_path):
     """Names in, sentences out — and the knob really turned.
 

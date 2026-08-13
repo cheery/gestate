@@ -705,7 +705,7 @@ class Workbench:
         side.join()
         # Always, and before the port: the on-screen keyboard needs the
         # allocators whether or not a MIDI device was asked for.
-        self._start_notes()
+        self._start_notes(text)
         if self._want_midi:
             self._start_midi()
         # It compiled and it is playing; whatever it said last time is
@@ -1479,7 +1479,7 @@ class Workbench:
 
     # -- MIDI ---------------------------------------------------------------
 
-    def _start_notes(self) -> None:
+    def _start_notes(self, text: str | None = None) -> None:
         """The note plumbing — allocators and `Notes`, with no port.
 
         **Split out of `_start_midi` because the on-screen keyboard plays
@@ -1488,13 +1488,21 @@ class Workbench:
         an editor started without `--midi`, which is the ordinary case —
         had no allocators, and there was nothing for a key press to reach.
 
+        **`text` is what is being started, and it matters here too.**  An
+        audition deliberately does not write the file, so a restart for
+        one that read the banks off the disk built no allocator for the
+        bank you just added — the engine played the audition, `FromMIDI`
+        loaded from it, and `listen` answered "would not switch" because
+        there was no `Notes` behind the switch.  The same omission
+        `restart` itself documents, one layer down.
+
         Nothing here imports `mido`: `audiomidi` defers that to the two
         functions that open a port, so `Notes` is available on a machine
         with no MIDI stack installed at all.
         """
         from .audiomidi import Notes
 
-        allocators = self._allocators()
+        allocators = self._allocators(text)
         self.notes = Notes(allocators) if allocators else None
         self._rewire_notes()                 # seeds the switches in turn
 
@@ -1566,6 +1574,32 @@ class Workbench:
         self.midi = None
         return True
 
+    def _refresh_notes(self, text: str) -> None:
+        """The note plumbing follows the banks of what is playing.
+
+        **What an apply calls.**  `_rewire_notes` swaps the instances and
+        keeps the allocators, which is right for the ordinary edit — a
+        rebuild must not steal the voices out from under held notes.  But
+        an edit that changes the *bank list* leaves a switch with nothing
+        behind it: the first bank added to a bankless synth found
+        `notes` still `None`, `_rewire_notes` returned at its first
+        line, and `listen` answered "would not switch" about a bank the
+        engine was playing.  Under the C host a first bank forces a
+        player restart and `_start_notes` runs anyway; under the Python
+        driver nothing does, so this is the one place that notices.
+        """
+        try:
+            from .audiovoices import banks_of
+
+            want = {b.name for b in banks_of(text)}
+        except Exception:                               # noqa: BLE001
+            want = None
+        have = set(self.notes.allocators) if self.notes is not None else set()
+        if want is not None and want != have:
+            self._start_notes(text)
+        else:
+            self._rewire_notes()
+
     def _rewire_notes(self) -> None:
         """Point `Notes` at the program's `FromMIDI`, if it has one.
 
@@ -1621,7 +1655,7 @@ class Workbench:
                     owned.update(c for row in bank["channels"] for c in row)
         self._midi_channels = owned
 
-    def _allocators(self) -> dict:
+    def _allocators(self, text: str | None = None) -> dict:
         """One allocator per bank the keyboard may play.
 
         **Every bank, including the ones a score drives.**  Leaving those
@@ -1634,7 +1668,7 @@ class Workbench:
         from .audioalloc import AllocError, Allocator
         from .audiovoices import banks_of, channels_of
 
-        text = self.source()
+        text = self.source() if text is None else text
         out = {}
         for bank in banks_of(text):
             try:
@@ -2152,7 +2186,7 @@ class Workbench:
                 self._place(text)
                 self._load_score(text)
                 self._load_from_midi(text)
-                self._rewire_notes()
+                self._refresh_notes(text)
                 # **The build succeeded, so the complaint is over.**  This
                 # used to be cleared only in `_progress`, which the driver
                 # calls *between blocks* — so an error survived being fixed
