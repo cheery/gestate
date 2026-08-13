@@ -1046,6 +1046,26 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
             f.items.push(Item::Rect { x, y: py, w: kw, h: black_h,
                                       c: if down { KEY_DOWN } else { black } });
         }
+        // **A held key says its number, on the key.**  The note that is
+        // sounding is a fact you otherwise reconstruct by counting
+        // octaves; grey on the pressed colour, and only while down, so
+        // an idle keyboard stays a picture.  After both loops, because
+        // black keys are drawn over white ones and a white key's number
+        // must not go under its neighbour.
+        for (keys, low) in [(view.white_keys(), py + tall - 1),
+                            (view.black_keys(), py + black_h)] {
+            for (midi, x, kw) in keys {
+                let note = base + midi;
+                if !chrome.held.contains(&note) {
+                    continue;
+                }
+                let s = note.to_string();
+                let nx = x + (kw - s.chars().count() as i32 * cw) / 2;
+                f.items.push(Item::Run { x: nx.max(x),
+                                         y: (low - ch - 1).max(py),
+                                         s, c: FAINT });
+            }
+        }
         // What it would do, said in the corner: `on` plays, `step`
         // plays and writes the note into the text, and neither is
         // guessable from a picture of a piano.

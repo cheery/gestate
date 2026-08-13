@@ -693,6 +693,23 @@ fn a_held_note_is_drawn_down() {
                                             if *c == KEY_DOWN)));
 }
 
+/// The note that is sounding is a fact you otherwise reconstruct by
+/// counting octaves — a held key says its number, and only while down.
+#[test]
+fn a_held_key_says_its_midi_number() {
+    let d = doc("x\n");
+    let mut v = view(600, 400);
+    v.piano = LARGE.h * 4;
+    let says = |held: &[i32], n: &str| {
+        frame_with(&d, &v, &LARGE, &performing("on", &["pad"], held))
+            .items.iter().any(|i| matches!(i, Item::Run { s, .. }
+                                           if s == n))
+    };
+    assert!(says(&[60], "60"), "the white key's number, on the key");
+    assert!(says(&[61], "61"), "and a black key's, on its own");
+    assert!(!says(&[], "60"), "an idle keyboard stays a picture");
+}
+
 /// Black keys are asked about first, because they are drawn on top and
 /// half of each overlaps a white one.
 #[test]
