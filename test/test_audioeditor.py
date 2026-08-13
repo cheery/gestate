@@ -1767,3 +1767,49 @@ def test_a_touch_with_no_canvas_is_nothing(tmp_path):
     bench = Workbench(path, rate=8000, block=64)
     s = Session(bench=bench)
     assert act(s, "touch\tpress\t10\t10") == ""
+
+
+def test_a_failed_start_records_its_trouble(tmp_path):
+    """**A file that is broken when it is opened is the first broken
+    file anyone meets**, and its complaint must anchor a content box
+    like any other — `apply` recorded its failures and `start` never
+    did, so the box mechanism worked in every unit test and drew
+    nothing the first time a person opened a broken file.  Found by a
+    screenshot (`spec/workbench.md` §"Content boxes" B1).
+
+    **And the positions are the file's own.**  The raw exception names
+    the assembled program's line — 2649 of a two-line file — which is
+    why the recording goes through `_first_line`/`in_source` rather
+    than `str(e)`."""
+    from gestate.session import Session, furniture
+    from gestate.workbench import _begin
+
+    path = tmp_path / "broken.ges"
+    path.write_text("sound : Sig Float\nsound = nonsense * 2.0\n")
+    bench = Workbench(path, rate=8000, block=64)
+    s = Session(bench=bench)
+    _quitting, starter = _begin(bench, s)
+    starter.join(timeout=60.0)
+    assert not starter.is_alive(), "the start thread did not finish"
+
+    assert "nonsense" in bench.trouble, bench.trouble
+    assert "at broken.ges:2:" in bench.trouble, \
+        f"positions are not the file's own: {bench.trouble!r}"
+    rows = [l for l in furniture(s).splitlines() if l.startswith("trouble\t")]
+    assert rows and rows[0].split("\t")[1] == "2", rows
+    assert s.said and s.said[0].startswith("not playing:")
+
+
+def test_the_line_is_read_from_either_of_the_compiler_voices():
+    """`at 12:8`, `at line 134:8` and `at broken.ges:2:8` all carry the
+    number; `at prelude line 216:29` and a position in *another* file
+    deliberately do not — a complaint about somewhere else must not
+    anchor a box under an unrelated line of this one."""
+    from gestate.session import _line_of
+
+    assert _line_of("expected a type (at 12:8-12:11)") == 12
+    assert _line_of("Unknown global 'x' (at line 134:8)") == 134
+    assert _line_of("Unknown global (at broken.ges:2:8)", "broken.ges") == 2
+    assert _line_of("Type mismatch (at prelude line 216:29)") == 0
+    assert _line_of("bad (at elsewhere.ges:5:1)", "broken.ges") == 0
+    assert _line_of("nothing positional at all") == 0

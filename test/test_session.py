@@ -1249,6 +1249,27 @@ def test_the_furniture_is_a_reading_of_facts_the_model_already_keeps():
         len(s.commands())
 
 
+def test_a_many_line_trouble_is_many_rows_with_one_line_number():
+    """The complaint crosses whole, one `trouble` row per line — the
+    content box under the line draws all of it, and a box one line deep
+    proves nothing (`spec/workbench.md` §"Content boxes" B1).  Tabs
+    become spaces because the wire's fields are tab-separated, and an
+    old window reading only the first row draws what it always drew."""
+    from gestate.session import furniture
+
+    s = session()
+    s.bench.trouble = ("expected a type, got `sound` (at 12:8-12:11)\n"
+                       "because `sound`\tis a signal\n"
+                       "and a signal is not a type")
+    rows = [l for l in furniture(s).splitlines()
+            if l.startswith("trouble\t")]
+    assert rows == [
+        "trouble\t12\texpected a type, got `sound` (at 12:8-12:11)",
+        "trouble\t12\tbecause `sound`    is a signal",
+        "trouble\t12\tand a signal is not a type",
+    ]
+
+
 def test_a_gesture_is_a_verb_and_literals():
     """The other half of the wire, and the same shape.  An unknown verb
     is a sentence rather than an exception."""

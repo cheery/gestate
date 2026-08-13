@@ -455,23 +455,78 @@ fn no_margin_means_no_knobs_and_no_width_lost() {
 /// **The complaint goes beside the line that caused it.**  A status bar
 /// is one line; this is where it belongs.
 #[test]
-fn the_trouble_is_drawn_at_its_own_line() {
+fn the_trouble_is_drawn_in_a_box_under_its_own_line() {
     let d = doc("one\ntwo\nthree");
-    let v = View { aside: 0, ..rows_of(6, 900) };
+    let mut v = View { aside: 0, ..rows_of(6, 900) };
+    v.grant(&chrome());
+    let ch = v.ch(&LARGE);
     let f = frame_with(&d, &v, &LARGE, &chrome());
 
+    // The message sits in the box's row, under line 2's band.
     let said: Vec<(&String, &i32)> = f.items.iter().filter_map(|i| match i {
         Item::Run { s, y, c, .. } if *c == ANGRY => Some((s, y)),
         _ => None,
     }).collect();
     assert_eq!(said.len(), 1);
     assert_eq!(said[0].0, "expected a type");
-    assert_eq!(*said[0].1, v.ch(&LARGE), "line 2 is the second row");
+    assert_eq!(*said[0].1, 2 * ch, "the box's first row, under line 2");
+
+    // Line 3 was pushed down past the box — the acceptance line.
+    let three: Vec<&i32> = f.items.iter().filter_map(|i| match i {
+        Item::Run { s, y, .. } if s == "three" => Some(y),
+        _ => None,
+    }).collect();
+    assert_eq!(three, vec![&(3 * ch)], "line 3 starts after the box");
+    // And a click there agrees with where it was drawn.
+    assert_eq!(v.hit(&d, &LARGE, 0, 3 * ch + 1).0, 2);
 
     // And a mark in the gutter, so a scrolled-away message is still
     // findable by the line it belongs to.
     assert!(f.items.iter().any(|i| matches!(i, Item::Rect { x: 0, y, c, .. }
                                             if *c == ANGRY && *y == v.ch(&LARGE))));
+}
+
+/// **B1's acceptance, whole**: a two-line error under a line pushes the
+/// next line down by two rows, and the view granted exactly what the
+/// description said — capped, so a hundred lines of clang cannot eat
+/// the window.
+#[test]
+fn a_two_line_error_is_a_two_row_box() {
+    use gestate_editor::view::BOX_MOST;
+
+    let d = doc("one\ntwo\nthree\nfour");
+    let two = Furniture::read("trouble\t2\texpected a type\n\
+                               trouble\t2\tbecause of this");
+    let mut v = View { aside: 0, ..rows_of(8, 900) };
+    v.grant(&two);
+    assert_eq!(v.boxes, vec![(2, 2)]);
+    let ch = v.ch(&LARGE);
+    let f = frame_with(&d, &v, &LARGE, &two);
+
+    let said: Vec<(&String, &i32)> = f.items.iter().filter_map(|i| match i {
+        Item::Run { s, y, c, .. } if *c == ANGRY => Some((s, y)),
+        _ => None,
+    }).collect();
+    assert_eq!(said.len(), 2);
+    assert_eq!((said[0].0.as_str(), *said[0].1), ("expected a type", 2 * ch));
+    assert_eq!((said[1].0.as_str(), *said[1].1), ("because of this", 3 * ch));
+    // Line 3 lands two rows further down than it would have.
+    assert_eq!(v.hit(&d, &LARGE, 0, 4 * ch + 1).0, 2);
+
+    // The cap: a flood of rows is granted `BOX_MOST` and no more.
+    let flood = Furniture::read(&(0..20)
+        .map(|i| format!("trouble\t2\trow {i}"))
+        .collect::<Vec<_>>()
+        .join("\n"));
+    let mut v = View { aside: 0, ..rows_of(8, 900) };
+    v.grant(&flood);
+    assert_eq!(v.boxes, vec![(2, BOX_MOST)]);
+
+    // And a complaint about nowhere (line 0) gets no box at all.
+    let nowhere = Furniture::read("trouble\t0\tno file");
+    let mut v = View { aside: 0, ..rows_of(8, 900) };
+    v.grant(&nowhere);
+    assert!(v.boxes.is_empty());
 }
 
 #[test]

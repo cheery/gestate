@@ -2416,8 +2416,16 @@ def furniture(session: "Session", bench=None) -> str:
 
     trouble = getattr(b, "trouble", "")
     if trouble:
-        first = trouble.strip().splitlines()[0]
-        out.append(f"trouble\t{_line_of(trouble)}\t{first}")
+        # **Every line of it, one `trouble` row each, one line number.**
+        # The complaint is drawn as a content box under its line now
+        # (`spec/workbench.md` §"Content boxes" B1), and a box one line
+        # deep proves nothing — a clang failure is many lines.  The wire
+        # is line-oriented and its fields are tab-separated, so newlines
+        # become rows and tabs become spaces; an old window that only
+        # reads the first row draws what it always drew.
+        line = _line_of(trouble, Path(getattr(b, "path", "") or "").name)
+        for said in trouble.strip().splitlines():
+            out.append(f"trouble\t{line}\t{said.replace(chr(9), '    ')}")
 
     seen = set()
     for site in getattr(b, "sites", []):
@@ -2574,17 +2582,27 @@ def furniture(session: "Session", bench=None) -> str:
     return "\n".join(out)
 
 
-def _line_of(trouble: str) -> int:
+def _line_of(trouble: str, name: str = "") -> int:
     """Which line a complaint is about, or `0` for one about nowhere.
 
-    The compiler says `at 12:8-12:11`; a status bar shows one line of
-    that and the margin wants the number.  Read rather than re-derived,
-    because the message is the only place it exists by the time it gets
-    here.
+    The compiler has three voices — `at 12:8-12:11`, `at line 134:8`,
+    and, once `in_source` was handed the path, `at broken.ges:2:8` —
+    and the margin wants the number from any of them.  Read rather
+    than re-derived, because the message is the only place it exists by
+    the time it gets here.
+
+    **A position in another file stays 0 on purpose**: `at prelude
+    line 216:29` and `at somewhere-else.ges:5:1` must not anchor a box
+    under an unrelated line of this one, so the file spelling is
+    matched only against `name` — this file's own.
     """
     import re
 
-    found = re.search(r"\bat (\d+):", trouble)
+    if name:
+        found = re.search(rf"\bat {re.escape(name)}:(\d+):", trouble)
+        if found:
+            return int(found.group(1))
+    found = re.search(r"\bat (?:line )?(\d+):", trouble)
     return int(found.group(1)) if found else 0
 
 

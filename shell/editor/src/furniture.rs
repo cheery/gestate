@@ -308,6 +308,17 @@ impl Furniture {
         self.trouble.iter().find(|t| t.line == line)
     }
 
+    /// Every row of the complaint about a line, in the order sent.
+    ///
+    /// **A multi-line complaint is several `trouble` rows with one
+    /// line number** — a clang failure is many lines and the wire is
+    /// line-oriented, so the model sends one row per line and the view
+    /// stacks them.  An old window that only asks `trouble_at` draws
+    /// the first row and loses nothing but detail.
+    pub fn troubles_at(&self, line: usize) -> Vec<&Trouble> {
+        self.trouble.iter().filter(|t| t.line == line).collect()
+    }
+
     /// And the holes on a line, already joined.
     pub fn hole_at(&self, line: usize) -> Option<&Hole> {
         self.holes.iter().find(|h| h.line == line)

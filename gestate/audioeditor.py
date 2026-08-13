@@ -669,7 +669,24 @@ class Workbench:
         *audition* needs: an audition deliberately does not save, so
         reading the file would bring back the program you were trying to
         hear past.
+
+        **A start that fails records its complaint on the way out**,
+        through the same `_first_line` a failed `apply` uses — so the
+        positions are the file's own, not the assembled program's, and
+        the content box under the line has a fact to draw.  `apply`
+        always recorded its failures and `start` never did; a file that
+        is broken when it is *opened* is the first broken file anyone
+        meets, and its complaint went to the status line raw, naming
+        line 2649 of a 130-line file.
         """
+        try:
+            self._start(seconds, text)
+        except Exception as error:
+            self._first_line(error)
+            raise
+
+    def _start(self, seconds: float | None = None,
+               text: str | None = None) -> None:
         import tempfile
 
         self._directory = tempfile.mkdtemp()

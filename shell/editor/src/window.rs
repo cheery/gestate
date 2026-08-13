@@ -840,6 +840,19 @@ impl WindowHandler for EditorWindow {
                     } else {
                         10
                     };
+                // **The content boxes get their heights here** — the
+                // same moment `aside` and `piano` are set, because it
+                // is the same kind of fact: furniture-derived layout,
+                // owned by the view.  And the caret is followed
+                // through the reflow, so a box appearing above you
+                // cannot push the line you are typing on off screen.
+                {
+                    let doc = self.doc.borrow();
+                    let mut v = self.view.borrow_mut();
+                    v.grant(&f);
+                    v.clamp(&doc, self.font());
+                    v.follow(&doc, self.font());
+                }
                 // **And the keyboard takes its room from the document**,
                 // only while a played note would do something — so a
                 // file you are reading rather than playing keeps every

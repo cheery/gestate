@@ -317,7 +317,15 @@ def _begin(bench, session):
         try:
             bench.start()
         except Exception as e:                           # noqa: BLE001
-            session.said.append(f"not playing: {e}")
+            # **`start` has already recorded the mapped complaint**
+            # (`Workbench.trouble`, positions in the file's own lines)
+            # — the content box under the line draws from that, and the
+            # status line takes the first line of the same fact rather
+            # than a second, raw formatting of it.  Found by a
+            # screenshot: every unit test drove `apply`, which always
+            # recorded, and this path never had.
+            whole = getattr(bench, "trouble", "") or str(e)
+            session.said.append(f"not playing: {whole.splitlines()[0]}")
             return
         if quitting.is_set():
             # The window shut while the instrument was still coming up.

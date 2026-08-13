@@ -131,6 +131,12 @@ pub struct Frame {
 /// read the same walk (`View::slots`), which is the one invariant that
 /// keeps a click, the caret and `goto` agreeing once rows stop being
 /// one height.
+/// The most rows a content box may be granted — a complaint a hundred
+/// lines long gets its first eight beside the code and the whole text
+/// stays one command away, which is the rule the status bar already
+/// kept.
+pub const BOX_MOST: u16 = 8;
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Slot {
     /// The document row, counting from zero.
@@ -251,6 +257,29 @@ impl View {
     /// The text area's height: what the rows and their boxes share.
     fn text_h(&self, font: &Font) -> i32 {
         self.h - self.status_h(font) - self.piano
+    }
+
+    /// **Grant the boxes their heights, from the description.**
+    ///
+    /// The view says how tall, deterministically — the label
+    /// precedent: the box is written down and the content fits it.
+    /// Today's one box kind is the complaint (B1): a line's box is one
+    /// row per `trouble` row sent about it, capped at `BOX_MOST` so a
+    /// hundred lines of clang cannot eat the window.  Called where
+    /// `aside` and `piano` are set, because it is the same kind of
+    /// fact: furniture-derived layout, owned by the view.
+    pub fn grant(&mut self, chrome: &Furniture) {
+        let mut boxes: Vec<(usize, u16)> = Vec::new();
+        for t in &chrome.trouble {
+            if t.line == 0 {
+                continue;                    // a complaint about nowhere
+            }
+            match boxes.iter_mut().find(|(l, _)| *l == t.line) {
+                Some((_, rows)) => *rows = (*rows + 1).min(BOX_MOST),
+                None => boxes.push((t.line, 1)),
+            }
+        }
+        self.boxes = boxes;
     }
 
     /// Extra height under a row (counting from zero), in pixels.
@@ -751,17 +780,31 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
         let (row, y) = (slot.row, slot.y);
         let line_no = row + 1;
 
-        if let Some(t) = chrome.trouble_at(line_no) {
-            // A mark in the gutter, and the message after the text — a
-            // status bar is one line and this is where the complaint
-            // belongs, beside what caused it.
+        if chrome.trouble_at(line_no).is_some() {
+            // A mark in the gutter — still there when the box below is
+            // scrolled half away, and the cheapest thing to scan for.
             f.items.push(Item::Rect { x: 0, y, w: cw / 2, h: ch, c: ANGRY });
-            let after = text_x
-                + (width_of(&doc.line(row)).saturating_sub(view.left) as i32
-                   + 2) * cw;
-            if after < view.w {
-                f.items.push(Item::Run { x: after, y, s: t.message.clone(),
-                                         c: ANGRY });
+        }
+
+        // **The complaint, in the box under its line** (B1).  The rows
+        // were granted by `grant` from the same description, so the
+        // band and its content cannot disagree about the height; a
+        // message longer than the window is cut at the edge, whole
+        // text one command away, exactly as the status bar ruled.
+        if slot.box_h > 0 {
+            f.items.push(Item::Rect { x: 0, y: y + ch, w: view.w,
+                                      h: slot.box_h, c: CHROME });
+            let cols = (((view.w - text_x) / cw).max(1)) as usize;
+            let granted = (slot.box_h / ch) as usize;
+            for (i, t) in chrome.troubles_at(line_no).iter()
+                .take(granted).enumerate()
+            {
+                let said: String = t.message.chars().take(cols).collect();
+                if !said.is_empty() {
+                    f.items.push(Item::Run { x: text_x,
+                                             y: y + ch * (1 + i as i32),
+                                             s: said, c: ANGRY });
+                }
             }
         }
 
