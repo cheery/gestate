@@ -346,6 +346,9 @@ impl EditorWindow {
         let doc = self.doc.borrow();
         let mut v = self.view.borrow_mut();
         v.scale = self.scale();
+        // A zoom changes the bar's columns, so it re-grants like a
+        // resize does.
+        v.grant(&self.chrome.borrow(), self.font());
         v.clamp(&doc, self.font());
         v.follow(&doc, self.font());
         self.dirty.set(true);
@@ -363,7 +366,7 @@ impl EditorWindow {
             view: RefCell::new(View {
                 top: 0, left: 0, w, h, gutter: true, aside: 0, piano: 0, focused: false,
                 scale: crate::font::LADDER[crate::font::LADDER_DEFAULT].1,
-                boxes: Vec::new(),
+                boxes: Vec::new(), foot_rows: 1,
             }),
             zoom: Cell::new(crate::font::LADDER_DEFAULT),
             dragging: Cell::new(false),
@@ -849,7 +852,7 @@ impl WindowHandler for EditorWindow {
                 {
                     let doc = self.doc.borrow();
                     let mut v = self.view.borrow_mut();
-                    v.grant(&f);
+                    v.grant(&f, self.font());
                     v.clamp(&doc, self.font());
                     v.follow(&doc, self.font());
                 }
@@ -1087,6 +1090,9 @@ impl WindowHandler for EditorWindow {
         }
         let doc = self.doc.borrow();
         let mut v = self.view.borrow_mut();
+        // The bar wraps to the width, so a resize re-grants before the
+        // view is clamped against the new geometry.
+        v.grant(&self.chrome.borrow(), self.font());
         v.clamp(&doc, self.font());
         v.follow(&doc, self.font());
         self.dirty.set(true);

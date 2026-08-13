@@ -17,7 +17,7 @@ fn main() {
         { &SMALL } else { &LARGE };
 
     let mut d = Document::new(&text);
-    let mut v = View { top: 0, left: 0, w: 860, h: 520, gutter: true, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![] };
+    let mut v = View { top: 0, left: 0, w: 860, h: 520, gutter: true, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1 };
     d.seek_rowcol(row + 6, 14);
     // A selection to look at, if asked for: three lines and a bit.
     if std::env::var("SHOT_SELECT").is_ok() {

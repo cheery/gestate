@@ -123,6 +123,17 @@ pub struct Frame {
     pub items: Vec<Item>,
 }
 
+/// The most rows the status bar may stand — the spec's five
+/// (`spec/workbench.md` §"The status bar may grow"): a cap, not a
+/// target, and anything longer belongs to a box or the transcript.
+pub const BAR_MOST: u16 = 5;
+
+/// The most rows a content box may be granted — a complaint a hundred
+/// lines long gets its first eight beside the code and the whole text
+/// stays one command away, which is the rule the status bar already
+/// kept.
+pub const BOX_MOST: u16 = 8;
+
 /// One visible row: where its text band sits, and the box under it.
 ///
 /// **The row table `roadmap.md` §"Content boxes" names.**  A row is a
@@ -131,12 +142,6 @@ pub struct Frame {
 /// read the same walk (`View::slots`), which is the one invariant that
 /// keeps a click, the caret and `goto` agreeing once rows stop being
 /// one height.
-/// The most rows a content box may be granted — a complaint a hundred
-/// lines long gets its first eight beside the code and the whole text
-/// stays one command away, which is the rule the status bar already
-/// kept.
-pub const BOX_MOST: u16 = 8;
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Slot {
     /// The document row, counting from zero.
@@ -184,6 +189,12 @@ pub struct View {
     /// (`font::LADDER`): the five native sizes first, then integer
     /// scaling above them.
     pub scale: i32,
+    /// How many rows the status bar stands, 1–5.  Granted by `grant`
+    /// like the boxes are: one row for the status sentence, plus one
+    /// per complaint about line 0 — the complaints with no line to
+    /// anchor a box under, which used to exist only as a truncated
+    /// first line.  `BAR_MOST` caps it; the rest is one command away.
+    pub foot_rows: u16,
     /// Extra height under a line — the content boxes, as
     /// `(line, rows)` with the line counting from **one** like the
     /// furniture, and the height in rows of the current cell so a zoom
@@ -201,7 +212,7 @@ impl Default for View {
     fn default() -> Self {
         View { top: 0, left: 0, w: 800, h: 600, gutter: true, aside: 0,
                piano: 0, focused: false,
-               scale: 1, boxes: Vec::new() }
+               scale: 1, boxes: Vec::new(), foot_rows: 1 }
     }
 }
 
@@ -238,9 +249,15 @@ impl View {
         (((self.w - used) / self.cw(font)).max(1)) as usize
     }
 
-    /// How tall the status line is — one row, plus air.
+    /// How tall the status bar is — its granted rows, plus air.
+    ///
+    /// One row almost always.  It grows (`spec/workbench.md` §"The
+    /// status bar may grow") for what has no line to anchor to: a
+    /// complaint about line 0 has no box to live in, and one truncated
+    /// sentence was all anybody ever saw of it.  `grant` decides the
+    /// count; everything that lays out against the bar reads it here.
     pub fn status_h(&self, font: &Font) -> i32 {
-        self.ch(font) + 4
+        self.ch(font) * i32::from(self.foot_rows.max(1)) + 4
     }
 
     /// Rows of *text* that would fit if none of them had a box —
@@ -268,18 +285,39 @@ impl View {
     /// hundred lines of clang cannot eat the window.  Called where
     /// `aside` and `piano` are set, because it is the same kind of
     /// fact: furniture-derived layout, owned by the view.
-    pub fn grant(&mut self, chrome: &Furniture) {
+    pub fn grant(&mut self, chrome: &Furniture, font: &Font) {
+        // A complaint's rows are its lines *wrapped to the window* —
+        // Henri watched a fragment refusal run off the right edge, cut
+        // mid-word, and a box that cannot say its own content whole is
+        // the status bar's old defect one floor up.
+        let cols = self.bar_cols(font);
         let mut boxes: Vec<(usize, u16)> = Vec::new();
         for t in &chrome.trouble {
-            if t.line == 0 {
-                continue;                    // a complaint about nowhere
+            if t.line == 0 || t.message.is_empty() {
+                continue;                    // the bar's, below
             }
+            let rows = wrap(&t.message, cols).len() as u16;
             match boxes.iter_mut().find(|(l, _)| *l == t.line) {
-                Some((_, rows)) => *rows = (*rows + 1).min(BOX_MOST),
-                None => boxes.push((t.line, 1)),
+                Some((_, had)) => *had = (*had + rows).min(BOX_MOST),
+                None => boxes.push((t.line, rows.min(BOX_MOST))),
             }
         }
         self.boxes = boxes;
+        // **And the bar's rows** — the status wrapped to the window,
+        // then the complaints about line 0: the ones with no line to
+        // anchor a box under, which used to exist as one clipped
+        // sentence.  The same rule in both directions makes the split
+        // complete: an anchored complaint gets a box, an unanchored
+        // one gets the bar, and nothing is homeless.  Width-dependent,
+        // so the window re-grants on resize and zoom, not only on a
+        // description.
+        self.foot_rows = (bar_rows(chrome, self.bar_cols(font)).len() as u16)
+            .clamp(1, BAR_MOST);
+    }
+
+    /// The columns the bar wraps to.
+    fn bar_cols(&self, font: &Font) -> usize {
+        (((self.w - 8) / self.cw(font)).max(1)) as usize
     }
 
     /// Extra height under a row (counting from zero), in pixels.
@@ -597,7 +635,72 @@ pub fn chrome_only(view: &View, font: &Font, chrome: &Furniture) -> Frame {
     f
 }
 
-/// The status line and the transport readout.
+/// Greedy word wrap to a column count, chars being columns — which in
+/// a bitmap font they are.
+fn wrap(text: &str, cols: usize) -> Vec<String> {
+    let cols = cols.max(1);
+    let mut out = Vec::new();
+    let mut line = String::new();
+    for word in text.split(' ') {
+        let need = word.chars().count();
+        let have = line.chars().count();
+        if have > 0 && have + 1 + need > cols {
+            out.push(std::mem::take(&mut line));
+        }
+        if !line.is_empty() {
+            line.push(' ');
+        }
+        // A single word wider than the window is cut, not looped over.
+        if need > cols {
+            line.extend(word.chars().take(cols));
+        } else {
+            line.push_str(word);
+        }
+    }
+    if !line.is_empty() {
+        out.push(line);
+    }
+    if out.is_empty() {
+        out.push(String::new());
+    }
+    out
+}
+
+/// Everything the bar says, wrapped to the window, capped at
+/// `BAR_MOST` rows: the file-and-status line first, then the
+/// complaints about line 0 — the unanchorable ones, minus any row the
+/// status already quotes.  The `bool` is whether a row is a complaint
+/// (drawn in the warning colour).
+///
+/// **One function, two readers** — `grant` counts these rows and
+/// `foot` draws them, and being the same list is what keeps the bar's
+/// height and its content from disagreeing, which is the rule the
+/// slots table already keeps for the boxes.
+pub fn bar_rows(chrome: &Furniture, cols: usize) -> Vec<(String, bool)> {
+    let mut head = String::new();
+    if !chrome.file.is_empty() {
+        head.push_str(&chrome.file);
+        if chrome.unsaved {
+            head.push_str(" [+]");
+        }
+        head.push_str("  ");
+    }
+    head.push_str(&chrome.status);
+    let mut out: Vec<(String, bool)> = wrap(&head, cols).into_iter()
+        .map(|l| (l, false))
+        .collect();
+    for t in &chrome.trouble {
+        if t.line != 0 || t.message.is_empty()
+            || chrome.status.contains(&t.message) {
+            continue;
+        }
+        out.extend(wrap(&t.message, cols).into_iter().map(|l| (l, true)));
+    }
+    out.truncate(usize::from(BAR_MOST));
+    out
+}
+
+/// The status bar and the transport readout.
 ///
 /// **Its own function because both frames want it.**  Looking at the
 /// canvas does not stop a command from answering, and an answer with
@@ -615,17 +718,24 @@ fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
     // without it an edit you have not saved looked exactly like one you
     // had, in a window whose whole premise is that saving is what you
     // press to hear the change.
-    let mut left = String::new();
-    if !chrome.file.is_empty() {
-        left.push_str(&chrome.file);
-        if chrome.unsaved {
-            left.push_str(" [+]");
+
+    // **The bar's rows, wrapped to the window** — the same list
+    // `grant` counted, so height and content cannot disagree.  The
+    // status wraps rather than running off the right edge; under it,
+    // the complaints about nowhere — a complaint that names a line has
+    // a content box, one about line 0 has only this bar, and it used
+    // to get one clipped sentence.  Drawn to the granted rows; the
+    // whole text stays one command away, exactly as the boxes rule.
+    let ch = view.ch(font);
+    let granted = usize::from(view.foot_rows.max(1));
+    for (i, (line, angry)) in bar_rows(chrome, view.bar_cols(font))
+        .into_iter().take(granted).enumerate()
+    {
+        if !line.is_empty() {
+            f.items.push(Item::Run { x: 4, y: sy + 2 + ch * i as i32,
+                                     s: line,
+                                     c: if angry { ANGRY } else { FAINT } });
         }
-        left.push_str("  ");
-    }
-    left.push_str(&chrome.status);
-    if !left.is_empty() {
-        f.items.push(Item::Run { x: 4, y: sy + 2, s: left, c: FAINT });
     }
 
     // **Where the music is, at the right of the same line.**  The
@@ -794,14 +904,19 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
         if slot.box_h > 0 {
             f.items.push(Item::Rect { x: 0, y: y + ch, w: view.w,
                                       h: slot.box_h, c: CHROME });
-            let cols = (((view.w - text_x) / cw).max(1)) as usize;
+            // Wrapped to the same columns `grant` counted with, and
+            // drawn from the window's own left edge rather than the
+            // text's — a complaint is not code, and the full width is
+            // what lets its rows and its granted height be one list.
+            let cols = view.bar_cols(font);
             let granted = (slot.box_h / ch) as usize;
-            for (i, t) in chrome.troubles_at(line_no).iter()
-                .take(granted).enumerate()
-            {
-                let said: String = t.message.chars().take(cols).collect();
+            let found = chrome.troubles_at(line_no);
+            let rows = found.iter()
+                .flat_map(|t| wrap(&t.message, cols))
+                .take(granted);
+            for (i, said) in rows.enumerate() {
                 if !said.is_empty() {
-                    f.items.push(Item::Run { x: text_x,
+                    f.items.push(Item::Run { x: 4,
                                              y: y + ch * (1 + i as i32),
                                              s: said, c: ANGRY });
                 }

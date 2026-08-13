@@ -19,7 +19,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 106 entries, **88 are resolved**.  What is left:
+Of 108 entries, **88 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -41,6 +41,8 @@ Of 106 entries, **88 are resolved**.  What is left:
 | F107 | bug, open | Up/Down inside a palette argument runs the command |
 | F108 | bug, open | `pianoStep` inserts `50` with no trailing separator |
 | F109 | bug, open | Opening a file joins the previous start in the gesture loop — no cancel, late switch |
+| F110 | bug, open | The zoom can wedge at the largest rung (mirror vs window clamp) |
+| F111 | bug, open | Space in `transcript`'s path box erases the proposed path |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -2899,3 +2901,25 @@ whenever its start does return — which is exactly the contract
 loop.  True cancellation of a compile in flight is a bigger question
 (the subprocess could be killed; the Python half cannot), but the
 *felt* bug is the join, not the wasted compile.
+
+### F110. **[bug, open]** The zoom can wedge at the largest rung
+
+Reported 2026-08-13, found with the zoom buttons: mashing zoom in
+lands on the largest size and zooming *out* stops working.  Suspect
+the two mirrors: `session.Window.zoom` moves its own `zoom_at`
+optimistically and then orders the window, while Ctrl+wheel zooms on
+the window's side directly and volunteers a `State` — if either path
+clamps where the other counted, the model's mirror sits past the
+ladder's end and refuses every further step as "already at the end".
+The fix likely wants the model to stop pre-counting and trust the
+volunteered `State` alone (the undo counts have the same optimistic
+shape and may share the hazard).
+
+### F111. **[bug, open]** Space in `transcript`'s path box erases the path
+
+Reported the same session: `transcript` proposes a path in its
+argument box (`Order::Fill`), and pressing space wipes what was
+filled instead of typing a space.  Whatever the palette does with
+space in an argument query — separator, choice step, or a
+first-keystroke replace of proposed text — it must not eat a path
+somebody was about to accept.

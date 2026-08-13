@@ -24,7 +24,7 @@ fn runs(f: &gestate_editor::view::Frame) -> Vec<String> {
 }
 
 fn view(w: i32, h: i32) -> View {
-    View { top: 0, left: 0, w, h, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![] }
+    View { top: 0, left: 0, w, h, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1 }
 }
 
 /// A view that fits exactly `rows` rows of text, with the status line
@@ -205,7 +205,7 @@ fn scrolling_follows_the_caret_to_the_edge_and_no_further() {
 
     // Horizontally, the same rule.
     let mut wide = doc(&"x".repeat(500));
-    let mut v = View { top: 0, left: 0, w: 20 * LARGE.w, h: 100, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![] };
+    let mut v = View { top: 0, left: 0, w: 20 * LARGE.w, h: 100, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1 };
     wide.seek(300);
     v.follow(&wide, &LARGE);
     assert_eq!(v.left, 300 + 1 - 20);
@@ -214,7 +214,7 @@ fn scrolling_follows_the_caret_to_the_edge_and_no_further() {
 #[test]
 fn a_click_lands_where_it_was_clicked() {
     let d = doc("hello\nworld\nagain");
-    let v = View { top: 1, left: 0, w: 400, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![] };
+    let v = View { top: 1, left: 0, w: 400, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1 };
     // Second visible row (row 2), fourth column.
     let (row, col) = v.hit(&d, &LARGE, LARGE.w * 4 + 1, LARGE.h + 3);
     assert_eq!((row, col), (2, 4));
@@ -248,7 +248,7 @@ fn the_caret_is_drawn_on_the_character_it_is_before() {
 #[test]
 fn horizontal_scrolling_cuts_by_columns() {
     let d = doc("\tabcdef\n    abcdef");
-    let v = View { top: 0, left: 4, w: 100 * LARGE.w, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![] };
+    let v = View { top: 0, left: 4, w: 100 * LARGE.w, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1 };
     let f = frame(&d, &v, &LARGE);
     let lines = runs(&f);
     assert_eq!(lines[0], lines[1],
@@ -300,7 +300,7 @@ fn the_empty_document_draws() {
 #[test]
 fn a_window_smaller_than_a_line_still_draws_one() {
     let d = doc("one\ntwo");
-    let v = View { top: 0, left: 0, w: 1, h: 1, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![] };
+    let v = View { top: 0, left: 0, w: 1, h: 1, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1 };
     assert_eq!(v.rows(&LARGE), 1);
     assert_eq!(v.text_cols(&LARGE, &d), 1);
     let f = frame(&d, &v, &LARGE);
@@ -316,7 +316,7 @@ fn a_window_smaller_than_a_line_still_draws_one() {
 #[test]
 fn zooming_moves_the_layout_and_the_hit_testing_together() {
     let d = doc("hello\nworld\nagain");
-    let one = View { top: 0, left: 0, w: 400, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![] };
+    let one = View { top: 0, left: 0, w: 400, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1 };
     let two = View { scale: 2, ..one.clone() };
 
     assert_eq!(two.cw(&LARGE), 2 * one.cw(&LARGE));
@@ -341,7 +341,7 @@ fn zooming_moves_the_layout_and_the_hit_testing_together() {
 #[test]
 fn the_zoomed_frame_says_the_same_thing() {
     let d = doc("one\ntwo\nthree");
-    let one = View { top: 0, left: 0, w: 800, h: 400, gutter: true, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![] };
+    let one = View { top: 0, left: 0, w: 800, h: 400, gutter: true, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1 };
     let two = View { scale: 2, ..one.clone() };
     assert_eq!(runs(&frame(&d, &one, &LARGE)), runs(&frame(&d, &two, &LARGE)));
 }
@@ -458,7 +458,7 @@ fn no_margin_means_no_knobs_and_no_width_lost() {
 fn the_trouble_is_drawn_in_a_box_under_its_own_line() {
     let d = doc("one\ntwo\nthree");
     let mut v = View { aside: 0, ..rows_of(6, 900) };
-    v.grant(&chrome());
+    v.grant(&chrome(), &LARGE);
     let ch = v.ch(&LARGE);
     let f = frame_with(&d, &v, &LARGE, &chrome());
 
@@ -498,7 +498,7 @@ fn a_two_line_error_is_a_two_row_box() {
     let two = Furniture::read("trouble\t2\texpected a type\n\
                                trouble\t2\tbecause of this");
     let mut v = View { aside: 0, ..rows_of(8, 900) };
-    v.grant(&two);
+    v.grant(&two, &LARGE);
     assert_eq!(v.boxes, vec![(2, 2)]);
     let ch = v.ch(&LARGE);
     let f = frame_with(&d, &v, &LARGE, &two);
@@ -519,13 +519,13 @@ fn a_two_line_error_is_a_two_row_box() {
         .collect::<Vec<_>>()
         .join("\n"));
     let mut v = View { aside: 0, ..rows_of(8, 900) };
-    v.grant(&flood);
+    v.grant(&flood, &LARGE);
     assert_eq!(v.boxes, vec![(2, BOX_MOST)]);
 
     // And a complaint about nowhere (line 0) gets no box at all.
     let nowhere = Furniture::read("trouble\t0\tno file");
     let mut v = View { aside: 0, ..rows_of(8, 900) };
-    v.grant(&nowhere);
+    v.grant(&nowhere, &LARGE);
     assert!(v.boxes.is_empty());
 }
 
@@ -837,4 +837,95 @@ fn the_caret_position_counts_the_boxes_above_it() {
     let (_x, y) = caret_at(&d, &v, &LARGE);
     assert_eq!(y, 5 * v.ch(&LARGE),
                "rows one and two, plus three rows of box");
+}
+
+// ── The status bar grows — for complaints about nowhere ──────────────
+
+/// A complaint about line 0 has no box to live in; the bar grows a row
+/// per such complaint and shows it whole, instead of the one truncated
+/// sentence that used to be all anybody saw.
+#[test]
+fn an_unanchored_complaint_grows_the_bar() {
+    use gestate_editor::view::ANGRY;
+
+    let d = doc("one\ntwo\nthree");
+    let chrome = Furniture::read(
+        "status\tnot playing: boom\n\
+         trouble\t0\tthe engine plays a fixed graph\n\
+         trouble\t0\tand this file steps outside it");
+    let mut v = rows_of(8, 900);
+    let one_row = v.status_h(&LARGE);
+    v.grant(&chrome, &LARGE);
+    assert_eq!(v.foot_rows, 3, "a row per unanchored complaint");
+    assert_eq!(v.status_h(&LARGE), one_row + 2 * v.ch(&LARGE));
+
+    let f = frame_with(&d, &v, &LARGE, &chrome);
+    let sy = v.h - v.status_h(&LARGE);
+    let angry: Vec<(&String, &i32)> = f.items.iter().filter_map(|i| match i {
+        Item::Run { s, y, c, .. } if *c == ANGRY && *y >= sy => Some((s, y)),
+        _ => None,
+    }).collect();
+    assert_eq!(angry.len(), 2, "both rows drawn in the bar: {angry:?}");
+    assert_eq!(angry[0].0, "the engine plays a fixed graph");
+    assert!(angry[1].1 > angry[0].1, "stacked downward");
+}
+
+/// The bar does not repeat what the status already says, does not grow
+/// for anchored complaints (they have boxes), and stops at five rows.
+#[test]
+fn the_bar_dedupes_ignores_anchored_and_caps_at_five() {
+    use gestate_editor::view::BAR_MOST;
+
+    // Deduped: the status quotes the complaint's line already.
+    let quoted = Furniture::read(
+        "status\tnot playing: no `sound` here\n\
+         trouble\t0\tno `sound` here");
+    let mut v = rows_of(8, 900);
+    v.grant(&quoted, &LARGE);
+    assert_eq!(v.foot_rows, 1, "growth without information");
+
+    // Anchored complaints belong to their boxes, not the bar.
+    let anchored = Furniture::read("trouble\t2\texpected a type");
+    let mut v = rows_of(8, 900);
+    v.grant(&anchored, &LARGE);
+    assert_eq!(v.foot_rows, 1);
+    assert_eq!(v.boxes, vec![(2, 1)]);
+
+    // And a flood stands five rows, no further.
+    let flood = Furniture::read(&(0..9)
+        .map(|i| format!("trouble\t0\treason number {i}"))
+        .collect::<Vec<_>>()
+        .join("\n"));
+    let mut v = rows_of(8, 900);
+    v.grant(&flood, &LARGE);
+    assert_eq!(v.foot_rows, BAR_MOST);
+}
+
+/// **Henri's report, 2026-08-13**: a long status ran off the right
+/// edge and nothing multilined.  The bar wraps to the window's
+/// columns now, and every run it draws fits.
+#[test]
+fn a_long_status_wraps_instead_of_running_off_the_right() {
+    let words = "not playing: this program cannot be compiled for the \
+                 sound card: the engine plays a fixed graph, so \
+                 everything sound reaches must be decided once";
+    let chrome = Furniture::read(&format!("status\t{words}"));
+    let mut v = rows_of(8, 300);
+    v.grant(&chrome, &LARGE);
+    assert!(v.foot_rows > 1, "a long sentence grows the bar");
+
+    let d = doc("one");
+    let f = frame_with(&d, &v, &LARGE, &chrome);
+    let sy = v.h - v.status_h(&LARGE);
+    let mut in_bar = 0;
+    for item in &f.items {
+        if let Item::Run { x, y, s, .. } = item {
+            if *y >= sy {
+                in_bar += 1;
+                assert!(x + s.chars().count() as i32 * v.cw(&LARGE) <= v.w,
+                        "a bar row runs off the right: {s:?}");
+            }
+        }
+    }
+    assert!(in_bar >= 2, "the sentence is spread over rows");
 }

@@ -614,18 +614,36 @@ first-line-only.
 
 ### The status bar may grow — to five lines, and no further
 
-*Declared here, not yet built.*  A status bar is one line because most
-answers are one sentence, and one line is why every message had to be
-truncated to its first.  The bar may instead grow downward to fit what
-it is saying, **at most five lines**, taking the room from the
-document the way the piano does.  Five is a cap, not a target: a
-sentence stays one line, a complaint's head and its `while checking`
-breadcrumb are two, and anything longer than five belongs to the
-content box under its line or to the transcript, both of which exist.
-The cap is what keeps a runaway message from being a full-screen
-status bar — the same argument as `BOX_MOST`, one floor down.  The
-view grants the height from the text it was handed, deterministically,
-exactly as boxes are granted; the model does not know the bar exists.
+*Built* (`view.rs` `BAR_MOST`, granted in `grant`, drawn in `foot`;
+held by the bar tests in `tests/view.rs`).  A status bar is one line
+because most answers are one sentence, and one line is why every
+message had to be truncated to its first.  The bar grows downward,
+**at most five rows**, taking the room from the document the way the
+piano does.  Five is a cap, not a target, and anything longer belongs
+to the content box under its line or to the transcript — the same
+argument as `BOX_MOST`, one floor down.
+
+What the code decided, writing it:
+
+* **Everything wraps to the window's columns** — the status sentence,
+  the bar's complaints, and the content boxes' rows alike.  The first
+  build stacked pre-split lines and let long ones run off the right
+  edge, and Henri saw it within minutes: *wrapping* is what "may grow"
+  meant.  Width-dependence means the view re-grants on resize and
+  zoom, not only on a description.
+* **What fills the extra rows is the complaints about line 0** — the
+  unanchorable ones (a clang failure with no position, an internal
+  invariant, a refusal with no witness in the file).  An anchored
+  complaint gets a box; an unanchored one gets the bar; the split is
+  complete and nothing is homeless.
+* **The bar does not repeat the status sentence.**  The model's status
+  is often `not playing: <first line>`; a row the sentence already
+  contains is growth without information, and is skipped.
+* **One list, two readers**: `bar_lines` is counted by `grant` and
+  drawn by `foot`, so the bar's height and its content cannot
+  disagree — the boxes' slots-table rule, one floor down.
+* The view grants deterministically from the description; the model
+  still does not know the bar exists.
 
 ---
 
