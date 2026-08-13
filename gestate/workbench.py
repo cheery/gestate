@@ -553,8 +553,15 @@ def run(path, rate: int = 44100, block: int = 512,
                 # `load`, not the setter: a different file is a
                 # different past, and the setter commits — undo after a
                 # switch stood the old file's text under the new file's
-                # name, one save from overwriting it (F113).
-                editor.load(text)
+                # name, one save from overwriting it (F113).  And a
+                # file being *started* loads unsaved — the `[+]` from
+                # birth is the one durable tell that the file under
+                # you is a starter wearing the name you asked for,
+                # not the thing you went looking for.
+                if Path(wanted).exists():
+                    editor.load(text)
+                else:
+                    editor.load_new(text)
                 view = session.view
                 session = Session(bench=bench)
                 session.view = view

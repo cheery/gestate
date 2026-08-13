@@ -116,6 +116,8 @@ def _library():
     lib.ged_set_text.restype = None
     lib.ged_load_text.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
     lib.ged_load_text.restype = None
+    lib.ged_load_new.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+    lib.ged_load_new.restype = None
     lib.ged_free_str.argtypes = [ctypes.c_void_p]
     lib.ged_free_str.restype = None
     lib.ged_set_furniture.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
@@ -195,6 +197,17 @@ class Editor:
         """
         if self._h:
             self._lib.ged_load_text(self._h, value.encode())
+
+    def load_new(self, value: str) -> None:
+        """`load`, for a file that does not exist yet.
+
+        The text loads *unsaved* — "saving creates it" means it is not
+        written down, and a phantom that read as saved gave a person no
+        tell that the file under them was a starter wearing a borrowed
+        name (the lantern that was not the lantern).
+        """
+        if self._h:
+            self._lib.ged_load_new(self._h, value.encode())
 
     def changed(self) -> bool:
         """Whether the text has moved since this last said so.

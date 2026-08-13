@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 124 entries, **110 are resolved**.  What is left:
+Of 125 entries, **111 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -48,6 +48,7 @@ Of 124 entries, **110 are resolved**.  What is left:
 | F122 | resolved | A typed path was walked twice — `transcript ../../x` landed in `/home/` |
 | F123 | resolved | A finished `open` re-runs from a different directory than its first run |
 | F124 | bug, open | The directory-watch tests flake under machine load |
+| F125 | resolved | A phantom new file read as saved — no tell it was a starter wearing a borrowed name |
 | F112 | resolved | The file dialog's listing sometimes lags — measured: a beat only while the model builds |
 | F113 | resolved | Undo and redo cross a file switch — one history for the session |
 | F114 | resolved | Copy and paste are not commands |
@@ -3366,3 +3367,26 @@ a margin that load erodes — but ten observations of *which* tests and
 a bigger number chosen by hope.  Worth one session with the cache's
 clock in hand; until then, a red on either of these two under load is
 this entry, not a regression.
+
+### F125. **[resolved]** A phantom new file read as saved
+
+Henri's exploration transcript
+(`test/sessions/F125-exploration-session.ges`, 2026-08-13): he went
+looking for the lantern, walked to `examples/gui/` — where it is not;
+it lives in `examples/audio/` — and somewhere in the backtracking a
+bare `lantern.ges` resolved against `test/sessions/`, did not exist,
+and the new-file branch started a STARTER synth wearing the name.
+Lawful at every step; bewildering in sum: `canvas` answered "this
+file draws nothing" about a file he believed was the lantern, and
+nothing anywhere said otherwise.
+
+The recording gap hid the walk (the log restarts on a switch — the
+roadmap item this transcript re-evidences), and the *durable* tell
+was missing because of F113's own fix: `load` marks the text saved,
+right for a file that came off the disk and wrong for one that does
+not exist — the phantom read as written-down while "saving creates
+it" was still true.  `load_written(text, false)` — `ged_load_new`,
+`Editor.load_new` — is the second half of that door: a file being
+started loads *unsaved*, so **a phantom wears the `[+]` from birth**,
+and the first save settles it.  The loop picks the door by
+`exists()`.

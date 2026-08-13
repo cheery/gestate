@@ -156,12 +156,19 @@ fn loading_a_file_clears_the_histories() {
     assert!(!d.can_undo(), "undo must not resurrect the old file");
     assert!(!d.can_redo());
     assert!(d.is_saved(), "what was loaded is what is written down — \
-                           a fresh file must not wear the [+]");
+                           a file that exists must not wear the [+]");
+    // And a file being *started* is not written down: the phantom that
+    // wore lantern's name read as saved, and nothing anywhere told the
+    // person the file under them was an empty starter.
+    d.load_written("a starter", false);
+    assert!(!d.is_saved(), "saving creates it — the [+] from birth");
+    d.mark_saved();
+    assert!(d.is_saved(), "and the first save settles it");
     // And set_text still commits, because fmt depends on it.
     d.set_text("formatted");
     assert!(d.can_undo());
     assert!(d.undo());
-    assert_eq!(d.text(), "the new file");
+    assert_eq!(d.text(), "a starter");
 }
 
 // ── The frame ────────────────────────────────────────────────────────────

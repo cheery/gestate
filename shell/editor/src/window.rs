@@ -95,7 +95,7 @@ pub trait Host: Send + Sync + 'static {
     /// window's thread and nothing off it may touch the rope.  The host
     /// leaves the text somewhere; the window collects it when it is
     /// next drawing anyway.
-    fn incoming(&self) -> Option<(String, bool)> {
+    fn incoming(&self) -> Option<(String, bool, bool)> {
         None
     }
 
@@ -1132,7 +1132,7 @@ impl WindowHandler for EditorWindow {
                 self.dirty.set(true);
             }
         }
-        if let Some((text, fresh)) = self.host.incoming() {
+        if let Some((text, fresh, written)) = self.host.incoming() {
             let doc = {
                 let mut doc = self.doc.borrow_mut();
                 if fresh {
@@ -1140,7 +1140,7 @@ impl WindowHandler for EditorWindow {
                     // undo must not resurrect the old file under the
                     // new file's name (fixme.md F113).  A warning still
                     // up was about the *old* document, and dies with it.
-                    doc.load(&text);
+                    doc.load_written(&text, written);
                     *self.warned.borrow_mut() = None;
                 } else {
                     doc.set_text(&text);

@@ -53,11 +53,12 @@ pub struct Shared {
     pos: AtomicUsize,
     open: AtomicBool,
     /// Text the host wants loaded, picked up on the next frame.  The
-    /// flag says whether the histories go with it: `true` is a file
-    /// switch (`ged_load_text` — a different file is a different past),
-    /// `false` is a replacement (`ged_set_text` — what `fmt` uses, one
-    /// undo away from the text you had).
-    incoming: Mutex<Option<(String, bool)>>,
+    /// first flag says whether the histories go with it: `true` is a
+    /// file switch (a different file is a different past), `false` a
+    /// replacement (`fmt`, one undo away).  The second says whether
+    /// the text is on the disk: a file being *started* loads unsaved,
+    /// so a phantom wears the `[+]` from birth.
+    incoming: Mutex<Option<(String, bool, bool)>>,
     /// The host has asked the window to shut.
     closing: AtomicBool,
     /// The chrome, as the model last described it.
@@ -116,7 +117,7 @@ impl Shared {
 
     /// Text the host asked to load, if any — the window thread's side
     /// of `ged_set_text` and `ged_load_text`.
-    pub fn take_incoming(&self) -> Option<(String, bool)> {
+    pub fn take_incoming(&self) -> Option<(String, bool, bool)> {
         self.incoming.lock().ok().and_then(|mut t| t.take())
     }
 
@@ -164,7 +165,7 @@ impl Host for Shared {
         self.initial.lock().map(|t| t.clone()).unwrap_or_default()
     }
 
-    fn incoming(&self) -> Option<(String, bool)> {
+    fn incoming(&self) -> Option<(String, bool, bool)> {
         self.take_incoming()
     }
 
@@ -304,7 +305,7 @@ pub unsafe extern "C" fn ged_text(e: *const Editor) -> *mut c_char {
 pub unsafe extern "C" fn ged_set_text(e: *const Editor, text: *const c_char) {
     let ed = editor!(e, ());
     if let Ok(mut slot) = ed.shared.incoming.lock() {
-        *slot = Some((text_of(text), false));
+        *slot = Some((text_of(text), false, true));
     }
 }
 
@@ -323,7 +324,23 @@ pub unsafe extern "C" fn ged_set_text(e: *const Editor, text: *const c_char) {
 pub unsafe extern "C" fn ged_load_text(e: *const Editor, text: *const c_char) {
     let ed = editor!(e, ());
     if let Ok(mut slot) = ed.shared.incoming.lock() {
-        *slot = Some((text_of(text), true));
+        *slot = Some((text_of(text), true, true));
+    }
+}
+
+/// `ged_load_text` for a file that does not exist yet: the histories
+/// clear, and the text loads *unsaved* — "saving creates it" means it
+/// is not written down, and a phantom that read as saved gave a
+/// person no tell that the file under them was a starter wearing a
+/// borrowed name.
+///
+/// # Safety
+/// As `ged_is_open`; `text` must be NUL-terminated or null.
+#[no_mangle]
+pub unsafe extern "C" fn ged_load_new(e: *const Editor, text: *const c_char) {
+    let ed = editor!(e, ());
+    if let Ok(mut slot) = ed.shared.incoming.lock() {
+        *slot = Some((text_of(text), true, false));
     }
 }
 

@@ -354,18 +354,33 @@ impl Document {
     /// caret goes to the top, because a position kept from one file
     /// means nothing in another.
     pub fn load(&mut self, text: &str) {
+        self.load_written(text, true);
+    }
+
+    /// `load`, saying whether the text is on the disk.
+    ///
+    /// **A file that exists loads saved** — the text came off the
+    /// disk, and left at the old file's root it wore the `[+]` from
+    /// its first frame over edits nobody had made.  **A file being
+    /// started loads unsaved**, because "saving creates it" means it
+    /// is not written down: a phantom that read as saved sat behind
+    /// `canvas` answering "this file draws nothing" while a person
+    /// hunted for the real lantern, with no tell anywhere that the
+    /// file under them was an empty starter wearing a borrowed name.
+    pub fn load_written(&mut self, text: &str, written: bool) {
         self.text = Rope::from_str(text);
         self.pos = 0;
         self.undo.clear();
         self.redo.clear();
         self.goal = None;
         self.anchor = None;
-        // **What was loaded is what is written down** — the text came
-        // off the disk.  Left at the old file's root, the new file
-        // compared against text it never held, wore the `[+]` from its
-        // first frame, and warned about unsaved changes nobody had
-        // made.
-        self.mark_saved();
+        if written {
+            self.mark_saved();
+        } else {
+            // No text this document holds can equal "never written";
+            // one appended sentinel character is that impossibility.
+            self.saved = Rope::from_str("\u{0}unwritten");
+        }
     }
 
     /// Whether there is anything to undo.
