@@ -139,9 +139,9 @@ unnecessary.  The estimate here was *under three hundred lines, and if
 it is not then something below is wrong* — and it is ~2,900 lines
 today, so the estimate deserves an honest accounting rather than
 deletion.  What was wrong was the count of commands, not the shape:
-the vocabulary grew 29 → 46 verbs (`fits`, templates, exports, the
-symbol grid, transcripts…), and a transition per verb with its
-refusals spelled out is exactly what each line buys.  The shape held —
+the vocabulary grew 29 → 49 verbs (`fits`, templates, exports, the
+symbol grid, transcripts, copy/cut/paste…), and a transition per verb
+with its refusals spelled out is exactly what each line buys.  The shape held —
 no toolkit, every command a transition returning a sentence — and the
 line count is the vocabulary's, which is the one part that was always
 going to grow.
@@ -402,29 +402,15 @@ things fall out of it, and each was learned by getting it wrong first:
 * **The file you are in is marked, not selected.**  The cursor opens
   there and the query stays blank, so the list shows where you are and
   the first letter typed is a new name rather than an edit of the old.
-* **A space is content, and Tab completes.**  Space-accepts-the-pick
-  met a listing whose first row is `../` and nobody had picked it — a
-  proposed path one Return from being taken was wiped by the walk
-  (F111).  So in a `Path` box a space types, Tab completes the query to
-  the row the cursor is on — a directory completes to its own walk and
-  re-lists, as every shell taught — and taking the answer is Return's
-  alone (F117).
+* **A space is content, and Tab completes** — the key laws are
+  §"The list, and the laws it keeps" (F111, F117); they were learned
+  in this box first, against a listing whose first row is `../`.
 
 `steal` reuses all of it to take a name, with what is already there
 shown greyed and refused: overwriting is not something a name box should
 do by accident, and a `steal` that could would be a delete wearing a
 friendlier word.  The greying is a courtesy; the check in the command is
 the guarantee.
-
-**A click outside the list closes it, and still lands.**  The panel
-owns the pointer only where it is drawn: a press on a row picks it, a
-press on the panel's padding is the panel's and does nothing, and a
-press the panel does not cover closes the list — through the same door
-Escape takes, so the model's question ends with it — and then falls
-through to the knob, key or line it was aimed at.  The list used to
-capture every press while open, which left the whole window dead to
-the mouse (F116); the hit-test and the drawing read one arithmetic, so
-the panel that is drawn and the panel that is hit cannot disagree.
 
 **Opening the list ends whatever it was asking**, on both sides of the
 wire.  `hide` cleared every scrap of the last question and `show`
@@ -441,34 +427,29 @@ answers from its copy.  The alternative — a synchronous call into the
 rope from another thread — is the one thing this boundary exists to
 prevent.
 
+The mirror carries nine facts, and each is there because a command's
+sentence needs it: the zoom rung and the ladder's length (`zoomIn` at
+the top says so), the undo and redo depths, whether the text is what
+was last written (`[+]`, and the unsaved warning), the first visible
+row and the visible row count (colouring paints exactly the rows on
+screen), and — the two newest, riding at the end so a window built
+before them still lands — whether a selection exists and whether the
+clipboard holds anything, which is what lets `copy` over nothing
+answer "nothing selected" instead of a sentence that lies.
+
 Orders go the other way, for the same reason:
 
     zoom(steps)   undo()   redo()   goto(line)   insert(text)
-    show(canvas | source)   warn(text)
+    show(canvas | source)   warn(text)   copy()   cut()   paste()
 
-**`warn` catches the eye where it already is** — beside the caret
-that is *active*: the query box's while the list is up, the
-document's otherwise, because words said beside a caret nobody is at
-are said to an empty chair.  The window says them in red and flashes
-the `[+]`; one said into the list **stays as long as the user is
-there** — until the list closes — while one said with no list up
-fades after a couple of seconds.  The flash settles either way, since
-a blink that never ends is a blink nobody can read past.  `open` on
-unsaved changes is its caller, the moment it is picked.
-
-**A different file is a different past.**  Opening a file replaces the
-text *and its histories* — undo in the new file must never resurrect
-the old file's content under the new file's name, which is one save
-from overwriting one file with another (F113).  `fmt` keeps the other
-door: a whole-text replacement that commits, so a format stays one
-undo away.  And because the barrier makes discarded edits truly
-unrecoverable, picking `open` while unsaved says so at once and holds
-the words up — **a warning, not a gate**: a person who chooses a file
-past it has decided, and the switch proceeds.  They got their
-warning.  And the list closes when the file opens — Return on a
-finished call means *again*, which is right for `find` and
-meaningless for `open`, and the first keystrokes after opening a file
-are aimed at the file.
+`warn` says its words in red beside the caret that is active and
+flashes the `[+]` — §"The list, and the laws it keeps" owns the full
+contract.  `copy`, `cut` and `paste` go through **the same door the
+chords use** (`keys::press_with` on the same `Key`), because two
+implementations of what copying means is how they come to mean
+different things; their honest refusals — "nothing selected",
+"nothing to paste" — answer from the state mirror, which is why the
+mirror carries those two facts.
 
 **The canvas has a channel of its own**, beside the description rather
 than inside it.  A substrate animates — anything reading `peak` redraws
@@ -508,6 +489,212 @@ nothing needs to be freed by the wrong language.  That is not
 minimalism for its own sake: the boundary is where two runtimes'
 lifetimes meet, and every richer thing offered there is a
 use-after-free waiting for a rebuild.
+
+---
+
+## The list, and the laws it keeps
+
+The palette is the interface's one moving part, and every law below
+was paid for by a defect a person found using it — the F-number in
+parentheses is the receipt.  They are gathered here because a law
+that lives only in the code it fixed is a law the next feature
+breaks.
+
+**The lifecycle.**  `Ctrl-K` opens the list filtering commands;
+picking one that takes arguments turns the list into a question about
+its first (`wants`), whose choices the model ranks; accepting the
+last argument runs the command and the call stands *finished* — still
+open, showing what ran.  Escape leaves from anywhere.  Backspace is
+undo-the-last-keystroke everywhere: it edits the query, and on an
+empty query steps back one argument, and then out of the question
+into the list — picking the wrong command is the ordinary mistake.
+
+**What the keys mean in the box.**  Space picks and moves on, because
+that is how a command line reads — *except* where a space is content:
+in a `Text`, which must search for two words, and in a `Path` (F111),
+where the accept-the-pick semantics met a listing whose first row is
+`../` and nobody had picked it, and a proposed path one Return from
+being taken was wiped by the walk.  Tab completes to the row the
+cursor is on — a plain row becomes the text, a directory completes to
+its own walk and re-lists, as every shell taught — and nothing runs,
+because taking the answer is Return's alone (F117).
+
+**A finished call repeats on Return, and walks on arrows only if it
+declared a walk.**  `find`/`findBack` are a pair, so Down is the next
+match and Up the one before; a call with *no* reverse answers nothing
+to an arrow, because `seek 0` re-firing under a hand reaching for
+history is an accidental Return (F107).  And **a command that is done
+says so**: `open`, `template`, `symbol` and `transcript` send `close`
+when their act is complete, because Return-again is right for a walk
+and wrong for a second copy of the same code, a second file switch, a
+second transcript — and the keystrokes after opening a file are aimed
+at the file (F118).  The model says when it is finished, rather than
+the view keeping a table of which commands repeat.
+
+**A click outside the list closes it, and still lands** (F116).  The
+panel owns the pointer only where it is drawn: a press on a row picks
+it, a press on the padding is the panel's, and a press the panel does
+not cover closes the list through the door Escape takes — the model's
+question ends with it — and then falls through to the knob, key or
+line it was aimed at.
+
+**One arithmetic, four readers.**  `panel_box` says where the panel
+is; drawing (`frame`), click-mapping (`row_at`), the outside test
+(`covers`) and the shadow (`shadow_rows`) all read it.  A menu drawn
+by one arithmetic and clicked by another answers somewhere other than
+where it is, which is the bug that makes it feel haunted — and it is
+what made the flip below a dozen lines.
+
+**The equator decides the panel; the span decides the scroll**
+(F121, and the rule is Henri's, refined against the running build).
+When the list opens, a caret in the window's upper half sends the
+panel to the lower half.  When an ordered insert lands — a template,
+a `fits` fill — the span it put in decides both at once: pasted above
+the equator, the panel goes low and the span's *first* line stands on
+the screen's first row; pasted below, the panel stays high and the
+span's *last* line stands on the screen's last row.  Either way the
+person reads what the command just did, on the half the panel is not.
+Decided at those two moments and never per keystroke, so the panel
+does not dance under a typing hand.  For every other ordered motion,
+`follow_past` scrolls the caret past the top panel's `shadow_rows` —
+which answer zero while the panel is low, so the two mechanisms
+cannot fight over one caret.
+
+**A warning stands beside the caret that is active** — the query
+box's while the list is up, the document's otherwise, because words
+beside a caret nobody is at are said to an empty chair.  The window
+says them in red and flashes the `[+]` behind a same-width blank (the
+bar must not re-wrap mid-blink); one said into the list stays **as
+long as the user is there** — until the list closes — while one said
+with no list up fades in a couple of seconds; the flash settles
+either way, since a blink that never ends is a blink nobody can read
+past.  `open` on unsaved changes is the caller, the moment it is
+picked — see the next section for why it warns rather than gates.
+
+---
+
+## Files — opening, switching, refusing
+
+One window, one file at a time; opening another replaces the
+instrument under the same rope and view, which is what makes `open` a
+command rather than a second program.  The laws, in the order a
+person meets them:
+
+**The dialog walks, and resolution knows how the answer was made**
+(F122).  A picked row is bare — rows carry names relative to the walk
+— so the walk is prepended; a typed query is the whole path already,
+and prepending walked it twice: `transcript ../../x.ges` from
+`examples/audio/` landed in `/home/`.  The tell is exact: an answer
+that *is* the query was typed, one that differs was picked.  (What a
+*finished* call re-runs against is F123, open: the walk it resolved
+under is cleared by then, and Return-again currently re-derives the
+path from wherever the state stands.)
+
+**What refuses, and what starts.**  A file that exists but is not
+text refuses with a sentence — the sniff decodes a chunk with its
+tail dropped, so a UTF-8 character split at the edge cannot fail an
+honest file (F120: a `.wav` used to take the whole editor down, the
+decode raising in the gesture loop).  A name nobody has used is a
+file being started, not a mistake — the first save creates it —
+*except* a missing name wearing one of the binary suffixes this
+toolchain itself produces (`.wav`, `.mid`, `.midi`, `.clap`, `.png`,
+`.so`), which is a miss, not a request: F120's second face started a
+STARTER synth *named* `blip.wav`.  Only those refuse; an editor that
+would not start `notes.txt` would be refusing somebody's notes over
+another file's format.
+
+**Unsaved changes warn; they do not gate** (F113, three refinements
+deep).  The barrier below makes discarded edits truly unrecoverable,
+so picking `open` while unsaved says *warning: unsaved changes* at
+once and holds it up while the question is open — and a person who
+chooses a file past that has decided: the switch proceeds, and the
+warning dies with the old document.  They got their warning.
+
+**A different file is a different past** (F113).  The switch goes
+through the `load` door: text and both histories replaced together,
+marked saved because it came off the disk — undo in the new file must
+never resurrect the old file's content under the new file's name,
+which is one save from overwriting one file with another.  `set_text`
+is the other door and *commits*: `fmt` stays one undo away, which is
+the only thing that makes a format safe to press.  Two doors, because
+one operation with a flag is how the wrong one gets picked.
+
+**The switch is immediate; the teardown is not the loop's** (F109).
+The old `(bench, starter, quitting)` goes to a retirement thread; the
+new instrument is built *before* the old one is retired and inside a
+try, so a file that will not read leaves the old instrument playing
+and the status saying why (F120's belt).  The new instrument's own
+thread waits on the retirement before asking for the sound card —
+the ordering the old in-loop join was really buying — and a start
+overtaken by yet another file while waiting its turn never begins.
+The quit path stays synchronous and joins the retirement first,
+because a daemon thread still inside a teardown when the process ends
+is the segfault `Workbench.stop` carries a comment about.  And the
+note plumbing follows the text being started, not the disk (F115): an
+audition deliberately never writes a file, so allocators built from
+the disk left a freshly added bank with nothing behind its switch.
+
+---
+
+## The window's own conduct
+
+Facts the window owns because they are facts about frames, keys and
+the platform — the model has none of the three.
+
+**Autorepeat is made detectable** (F106).  X11's default synthesizes
+a release+press pair per repeat of a held key, and a fake release
+re-arms every guard — the piano machine-gunned with two guards
+standing.  `XkbSetDetectableAutoRepeat` on the window's own display
+(per-client, so it must be that connection) makes the server send
+press, press, …, release: the stream the guards were written for.
+Held arrows and letters still repeat — repeats still arrive, only the
+fake releases stop.  `GESTATE_EDITOR_KEYS=1` prints what the server
+answered, so a fix on this seam can never again pretend to be in the
+room.
+
+**The window is named, and wears its face.**  `WM_CLASS=gestate` —
+which baseview never sets, and without which a desktop cannot match
+the window to anything — and `_NET_WM_ICON`, drawn rather than
+shipped: one period of a sine in the caret's blue on the editor's
+ground, generated at three sizes from the palette constants in the
+same crate, so the icon and the window cannot drift apart.  `python
+-m gestate.workbench --desktop` writes the `.desktop` entry and the
+same sine as hicolor PNGs, with `StartupWMClass` matching the class
+the window declares; run it again after moving the repository or the
+venv, because `Exec` pins both.
+
+**The caret does not anchor the scroll** (F119).  Descriptions arrive
+whenever the model has news — the transport readout, while a piece
+plays, has news every beat — and following the caret on every arrival
+snapped a wheeled-away view back in time with the music.  `follow`
+runs on a furniture arrival only when the granted *layout* changed (a
+content box, the bar growing): the one case it protects, a box
+reflowing above the caret pushing the line you are typing off screen.
+A scroll is not a request to be returned; only a caret move, an edit,
+or a changed layout is.
+
+---
+
+## The transcript is the recording, and the recording is the report
+
+`gestate/sessionlog.py`.  Recording is always on, in memory; the
+`transcript` command writes it down; `python -m gestate.sessionlog
+<file>` replays it against a fresh editor on the same file and
+reports **every answer that moved** — the answers are the diff, and a
+replay that says something else is the report.
+
+The format earns its keep three ways in one file: each line is a
+command and what it answered (acceptance 2, made durable); text edits
+ride as diffs; and `#!` notes carry everything the editor said
+unprompted — a player restarting, a build refusing — which is how
+F115 was pinned ("restarting the player" two lines above "would not
+switch") and how F103's next occurrence is armed.  One afternoon of
+2026-08-13 caught three defects in two transcripts, one of them in a
+transcript recorded to verify a different fix; the manual (§11) now
+teaches users to reach for it first.  What it cannot yet survive is a
+file that never existed — a session on an unsaved `untitled.ges`
+replays against nothing — and recording the base text in the header
+is queued in the roadmap.
 
 ---
 
@@ -836,3 +1023,10 @@ for.
    an empty one — held by `shell/editor`'s own measurements, and the
    reason the rope is a tree.
 7. Nothing in the boundary is a pointer into the other side's heap.
+8. The scroll runs free while a piece plays; a caret move, an edit or
+   a changed layout re-follows, and nothing else does.
+9. An ordered insert is read where it landed: first line on the first
+   row or last line on the last, by the equator, with the panel on
+   the other half.
+10. A session transcript replays against a fresh editor and reports
+    every answer that moved — and a held piano key sounds once.

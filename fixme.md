@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 122 entries, **108 are resolved**.  What is left:
+Of 123 entries, **108 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -46,6 +46,7 @@ Of 122 entries, **108 are resolved**.  What is left:
 | F120 | resolved | Opening a `.wav` quit the whole editor |
 | F121 | resolved | A template inserted while scrolled away appeared behind the list |
 | F122 | resolved | A typed path was walked twice — `transcript ../../x` landed in `/home/` |
+| F123 | bug, open | A finished `open` re-runs from a different directory than its first run |
 | F112 | bug, open | The file dialog's listing sometimes lags |
 | F113 | resolved | Undo and redo cross a file switch — one history for the session |
 | F114 | resolved | Copy and paste are not commands |
@@ -3299,3 +3300,22 @@ already: the walk in the query and the walk prepended compose, and
 the query was typed, an answer that differs was picked.  `_where` now
 skips the walk for the former, and the transcript's own last step is
 the regression test's shape.
+
+### F123. **[bug, open]** A finished `open` re-runs from a different directory
+
+`blip-session.ges` (2026-08-13): walk to `examples/audio/`, pick
+`blip.wav` — refused rightly ("cannot open blip.wav: not a text
+file") — then Return on the finished call:
+
+    open "blip.wav"    #= cannot open blip.wav: not a text file
+    open "blip.wav"    #= no file blip.wav — and a new .wav would not be text
+
+Two different answers to one call, because the *question's walk* was
+cleared between them: the first resolved `blip.wav` against
+`examples/audio/`, the second against the file's own directory, found
+nothing, and fell into the new-file branch.  Return-again on a
+finished call should mean **the same call** — same resolved path —
+not the same words resolved from wherever the state now stands.  The
+shape of the fix: a finished call keeps the resolved path (or the
+walk it was resolved under), rather than re-deriving it from
+`asking` that has since been shut.
