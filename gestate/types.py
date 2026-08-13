@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import threading
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Optional
@@ -217,7 +218,8 @@ class Subst(_SubstBase):
         `unifying()` scope those are all the *same* destructive store, so
         the composing is already done and the threading costs nothing.
         """
-        return _CURRENT if _CURRENT is not None else Subst._empty
+        current = getattr(_CURRENT, "unifier", None)
+        return current if current is not None else Subst._empty
 
     def extend(self, var_id: int, t: Type) -> Subst:
         # `α ↦ α` carries no information and makes `apply` diverge.
@@ -371,7 +373,15 @@ class Unifier(_SubstBase):
 #: `Subst.empty()` is called from three modules and forty places, none of
 #: which have anywhere to thread a store from; inference is single-threaded
 #: and the scope below saves and restores, so nesting is safe.
-_CURRENT: Optional[Unifier] = None
+# **Per thread, and that is a fix, not a nicety.**  As a module global
+# this poisoned itself: the workbench runs inference on build threads
+# (`audioeditor.apply`, `audiolive`'s watcher) while the loop thread
+# answers `fits`, and when two threads' `unifying()` scopes overlapped,
+# the later exit restored the *other thread's* store — permanently, so
+# every `Subst.empty()` in the process answered with a dead `Unifier`.
+# Reproduced 2026-08-13, and the likely cause of the run-to-run rigid-
+# variable failures a same-text rebuild could never explain (F103).
+_CURRENT = threading.local()
 
 
 @contextmanager
@@ -381,14 +391,16 @@ def unifying():
     Scoped rather than global because metavariable ids restart with each
     `Fresh()`, and there are two inference entry points — `infer_program`
     and `infer_instance_method` — whose variables must not be confused.
+    Scoped *per thread* because inference runs on build threads while the
+    session thread typechecks palette queries, and neither may see — or
+    worse, restore — the other's store.
     """
-    global _CURRENT
-    previous = _CURRENT
-    _CURRENT = Unifier()
+    previous = getattr(_CURRENT, "unifier", None)
+    _CURRENT.unifier = Unifier()
     try:
-        yield _CURRENT
+        yield _CURRENT.unifier
     finally:
-        _CURRENT = previous
+        _CURRENT.unifier = previous
 
 
 # ---------------------------------------------------------------------------

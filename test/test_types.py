@@ -65,3 +65,51 @@ switch (x ::: xs) d = x ::: ((s => case s of
 main : Int
 main = head (switch (1 ::: never) never)
 """) == "1"
+
+
+def test_unifying_scopes_do_not_cross_threads():
+    """Overlapping `unifying()` scopes on two threads stay two stores.
+
+    As a module global the store poisoned itself: when a build thread's
+    scope and this thread's scope overlapped, whichever exited *last*
+    restored the other thread's dead `Unifier` — permanently, so every
+    later `Subst.empty()` in the process answered with it.  That is the
+    2026-08-13 suite failure (this file's self-binding test saw
+    `Unifier(9 bindings)`), and the shape of F103's run-to-run rigid-
+    variable errors: inference runs on daemon threads in the workbench
+    (`audioeditor.apply`, `audiolive`'s watcher) while the session
+    thread typechecks palette queries.
+    """
+    import threading
+
+    from gestate.types import Unifier, unifying
+
+    entered = threading.Event()
+    leave = threading.Event()
+
+    def background():
+        with unifying() as theirs:
+            for k in range(9):
+                theirs.extend(k, TVar(99 + k))
+            entered.set()
+            leave.wait(5.0)
+
+    worker = threading.Thread(target=background, daemon=True)
+    worker.start()
+    assert entered.wait(5.0)
+    try:
+        with unifying() as ours:
+            # Their nine bindings are not in this thread's store.
+            assert isinstance(Subst.empty(), Unifier)
+            assert Subst.empty() is ours
+            assert not Subst.empty().extend(1, TVar(1))
+            # The poisoning order: they exit while this scope is open.
+            leave.set()
+            worker.join(5.0)
+    finally:
+        leave.set()
+
+    # After both scopes close, empty() is the identity again — not
+    # whichever thread's store happened to be restored last.
+    assert Subst.empty() is Subst._empty
+    assert not Subst.empty().extend(1, TVar(1))
