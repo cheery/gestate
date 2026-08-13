@@ -295,3 +295,23 @@ main = case walk of
     Just n -> n
 """
     assert evaluate(prog) == "9"
+
+
+def test_manual_s6_the_lifting_mark_rules():
+    """§6 `!`: the manual's `wobble` runs, a *named* application inside
+    the parentheses folds once into a constant signal, a literal beside
+    a signal lifts by itself — and a named Float does not."""
+    from gestate.audioextract import extract
+    from gestate.unify import UnifyError
+
+    def sound(src, pre=""):
+        return extract(pre + "sound : Sig Float\nsound = " + src + "\n",
+                       rate=8000)
+
+    sound("!(t => t * 0.1) elapsed")
+    sound("!(half 0.25) * elapsed",
+          "half : Float -> Float\nhalf x = x * 0.5\n")
+    sound("!0.5 * elapsed * 2")
+    with pytest.raises(UnifyError):
+        sound("!(t => t) elapsed * pulseHz",
+              "pulseHz : Float\npulseHz = 2.0\n")

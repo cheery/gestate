@@ -67,7 +67,10 @@ manual whether a lambda is an atom `!` accepts.  I took the safe road
 — a top-level `shineOf` — which reads fine, but the uncertainty is
 the friction: I changed my program to avoid finding out.  *Fix shape:
 one sentence and one example in the manual's `!` section stating the
-lambda case, whichever way it is.*
+lambda case, whichever way it is.*  (Answered the same night: a
+lambda **is** an atom `!` accepts — the manual's §6 now has the rule,
+the reference has a `Lifting` entry, and the safe road was never
+needed.)
 
 **`below` is load-bearing and invisible.**  `moods.ges` uses it in
 its one chancy line; it has no `#:` prose in `music.ges`, so the

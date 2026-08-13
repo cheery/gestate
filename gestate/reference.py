@@ -163,6 +163,22 @@ PRIMITIVES = (
     # works in any scored program and appeared nowhere in `doc/ref/` but
     # in prose, so the honest conclusion from reading the reference was
     # that there is no such thing.
+    ("Lifting", (
+        ("!", "a -> Sig a · (a -> b) -> Sig a -> Sig b · …",
+         "**The lifting mark**, and the rule continues to any arity: "
+         "`!x` lifts a value into a constant signal; `!f x` with "
+         "`f : a -> b` and `x : Sig a` is `Sig b`; `!f x y` with "
+         "`f : a -> b -> c`, `x : Sig a`, `y : Sig b` is `Sig c`, and "
+         "so on.  One mark over the whole application — the head may "
+         "be a name or a parenthesized lambda, so "
+         "`!(t => t * 0.1) elapsed` maps the lambda over the signal.  "
+         "Two habits worth knowing: a numeric *literal* beside a "
+         "signal lifts by itself, but a **named** value does not — "
+         "`every (!pulseHz)`, never `every pulseHz` — and lifting "
+         "`!(f x)` with the application *inside* the parentheses is "
+         "the constant signal of the computed value, done once, "
+         "which is usually what a derived constant wants."),
+    )),
     ("The renderer's own", (
         ("ticks", "Sig Int",
          "The instant number, one per sample.  The clock everything at "

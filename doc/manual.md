@@ -622,6 +622,35 @@ That is the entire point of the design.  A stream-based FRP retains every
 value it has ever produced unless you are careful; this one cannot, because
 there is nowhere for old values to live.
 
+### `!` — the lifting mark
+
+Every synth is full of plain functions that need to run over signals,
+and `!` is the one mark that bridges the two worlds.  The rule is
+uniform and continues to any arity:
+
+```
+x : Float                        !x        : Sig Float     (a constant signal)
+f : a -> b        x : Sig a      !f x      : Sig b         (map)
+f : a -> b -> c   x : Sig a      !f x y    : Sig c         (map over both)
+                  y : Sig b
+```
+
+The mark takes **one atom** — a name, or anything parenthesized — and
+lifts the whole application it heads.  So a lambda works in place:
+
+```
+wobble : Sig Float
+wobble = !(t => t * 0.1) elapsed
+```
+
+Two habits, both learned by tripping on them.  A numeric *literal*
+beside a signal lifts by itself (`tone * 2` needs no mark), but a
+**named** value does not: `every (!pulseHz)`, never `every pulseHz`.
+And `!(f x)` — application *inside* the parentheses — is the constant
+signal of the value `f x`, computed once; prefer it for derived
+constants, so the arithmetic happens at the value level rather than
+every sample.
+
 ### The two "later" modalities
 
 Two types describe values that are not available yet:
