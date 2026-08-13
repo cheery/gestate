@@ -123,8 +123,27 @@ pub struct Frame {
     pub items: Vec<Item>,
 }
 
+/// One visible row: where its text band sits, and the box under it.
+///
+/// **The row table `roadmap.md` §"Content boxes" names.**  A row is a
+/// text band and then, sometimes, a content box — extra height the
+/// view granted under the line.  Layout, scrolling and hit-testing all
+/// read the same walk (`View::slots`), which is the one invariant that
+/// keeps a click, the caret and `goto` agreeing once rows stop being
+/// one height.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Slot {
+    /// The document row, counting from zero.
+    pub row: usize,
+    /// The top of the text band, in pixels from the window's top.
+    pub y: i32,
+    /// The content box under the text band, in pixels — zero for most
+    /// rows.  The box spans `y + ch .. y + ch + box_h`.
+    pub box_h: i32,
+}
+
 /// Where the window is looking, and how big it is.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct View {
     /// The first visible row.
     pub top: usize,
@@ -159,13 +178,24 @@ pub struct View {
     /// (`font::LADDER`): the five native sizes first, then integer
     /// scaling above them.
     pub scale: i32,
+    /// Extra height under a line — the content boxes, as
+    /// `(line, rows)` with the line counting from **one** like the
+    /// furniture, and the height in rows of the current cell so a zoom
+    /// scales a box with the text it annotates.
+    ///
+    /// **Owned by the view, set from the description** — the same rule
+    /// `piano` and `aside` follow: a furniture-derived layout fact the
+    /// rope, the undo and the caret never learn of, because a box is
+    /// never text.  Empty until something grants a box a height;
+    /// nothing does yet, so a window without boxes pays nothing.
+    pub boxes: Vec<(usize, u16)>,
 }
 
 impl Default for View {
     fn default() -> Self {
         View { top: 0, left: 0, w: 800, h: 600, gutter: true, aside: 0,
                piano: 0, focused: false,
-               scale: 1 }
+               scale: 1, boxes: Vec::new() }
     }
 }
 
@@ -207,11 +237,99 @@ impl View {
         self.ch(font) + 4
     }
 
-    /// Rows of *text*, which is the window minus the status line and
-    /// whatever the keyboard is taking.
+    /// Rows of *text* that would fit if none of them had a box —
+    /// the view's capacity, not its layout.
+    ///
+    /// **Layout reads `slots`, not this.**  This stays for the places
+    /// that want a size before there is a document to walk — the
+    /// window's initial mirror, a test sizing a view — and it equals
+    /// `slots().len()` exactly when `boxes` is empty.
     pub fn rows(&self, font: &Font) -> usize {
-        (((self.h - self.status_h(font) - self.piano) / self.ch(font)).max(1))
-            as usize
+        ((self.text_h(font) / self.ch(font)).max(1)) as usize
+    }
+
+    /// The text area's height: what the rows and their boxes share.
+    fn text_h(&self, font: &Font) -> i32 {
+        self.h - self.status_h(font) - self.piano
+    }
+
+    /// Extra height under a row (counting from zero), in pixels.
+    pub fn extra(&self, font: &Font, row: usize) -> i32 {
+        let line = row + 1;
+        self.boxes.iter().find(|(l, _)| *l == line)
+            .map(|(_, rows)| *rows as i32 * self.ch(font))
+            .unwrap_or(0)
+    }
+
+    /// **The row table: every visible row and where it sits.**
+    ///
+    /// One walk from `top`, accumulating each row's band — text plus
+    /// its box — until the text area is spent.  `frame_with` draws
+    /// from it, `hit` reads it back, and `follow`/`clamp` agree with it
+    /// through `top_showing`; that they are all this one arithmetic is
+    /// the content-box invariant, and the reason a box under line 12
+    /// cannot make a click on line 13 land anywhere but line 13.
+    ///
+    /// A window shorter than one band still shows one row, as `rows`
+    /// always has.
+    pub fn slots(&self, doc: &Document, font: &Font) -> Vec<Slot> {
+        let ch = self.ch(font);
+        let tall = self.text_h(font);
+        let mut out = Vec::new();
+        let (mut row, mut y) = (self.top, 0);
+        while row < doc.rows() && (y + ch <= tall || out.is_empty()) {
+            let box_h = self.extra(font, row);
+            out.push(Slot { row, y, box_h });
+            y += ch + box_h;
+            row += 1;
+        }
+        out
+    }
+
+    /// The smallest `top` that shows `row`'s text band whole.
+    ///
+    /// The walk `follow` and `clamp` scroll by: from `row` upward,
+    /// taking rows while their bands still fit above it.  The row's
+    /// *own* box may hang below the fold — what following the caret
+    /// promises is the line you are typing on, not everything anchored
+    /// to it.
+    pub fn top_showing(&self, font: &Font, row: usize) -> usize {
+        let ch = self.ch(font);
+        let tall = self.text_h(font);
+        let mut used = ch;
+        let mut top = row;
+        while top > 0 {
+            let need = ch + self.extra(font, top - 1);
+            if used + need > tall {
+                break;
+            }
+            used += need;
+            top -= 1;
+        }
+        top
+    }
+
+    /// The row whose **text band** is at `y`, or `None` inside a box.
+    ///
+    /// For the margin's furniture: a knob answers in the band of the
+    /// line that declares it, and a pointer inside a content box must
+    /// not turn a knob it happens to sit under.  Walks the same
+    /// arithmetic as `slots` without needing the document — rows past
+    /// the file carry no boxes, so the two agree wherever both answer.
+    fn row_at(&self, font: &Font, y: i32) -> Option<usize> {
+        let ch = self.ch(font);
+        let (mut row, mut band_top) = (self.top, 0);
+        loop {
+            let box_h = self.extra(font, row);
+            if y < band_top + ch {
+                return Some(row);
+            }
+            if y < band_top + ch + box_h {
+                return None;                     // inside the box
+            }
+            band_top += ch + box_h;
+            row += 1;
+        }
     }
 
     /// Where the drawn keyboard's band begins — its label's row.
@@ -308,11 +426,16 @@ impl View {
     pub fn follow(&mut self, doc: &Document, font: &Font) -> bool {
         let (row, col) = doc.cursor();
         let was = (self.top, self.left);
-        let rows = self.rows(font);
         if row < self.top {
             self.top = row;
-        } else if row >= self.top + rows {
-            self.top = row + 1 - rows;
+        } else {
+            // Down: the least scroll that fits the caret's band, box
+            // heights and all.  With no boxes this is the old
+            // `row + 1 - rows`, and the equivalence is tested.
+            let fits = self.top_showing(font, row);
+            if fits > self.top {
+                self.top = fits;
+            }
         }
         let cols = self.text_cols(font, doc);
         if col < self.left {
@@ -325,9 +448,8 @@ impl View {
 
     /// Clamp to a document that may have shrunk under us.
     pub fn clamp(&mut self, doc: &Document, font: &Font) {
-        let rows = self.rows(font);
-        let last = doc.rows().saturating_sub(rows.min(doc.rows()));
-        self.top = self.top.min(last);
+        let last = doc.rows().saturating_sub(1);
+        self.top = self.top.min(self.top_showing(font, last));
     }
 
     /// What a click at `(x, y)` means, as a row and a column.
@@ -360,12 +482,11 @@ impl View {
         if self.aside == 0 || y < 0 || y >= self.h - self.status_h(font) {
             return None;
         }
-        let ch = self.ch(font);
         let (bx, side) = self.bank_box(font);
         if x < bx || x > bx + side {
             return None;
         }
-        let line = self.top + (y / ch) as usize + 1;
+        let line = self.row_at(font, y)? + 1;
         let b = chrome.bank_at(line)?;
         Some((b.name.clone(), b.listening))
     }
@@ -387,12 +508,12 @@ impl View {
         if self.aside == 0 || y < 0 || y >= self.h - self.status_h(font) {
             return None;
         }
-        let (cw, ch) = (self.cw(font), self.ch(font));
+        let cw = self.cw(font);
         let left = self.w - self.aside as i32 * cw;
         if x < left {
             return None;
         }
-        let line = self.top + (y / ch) as usize + 1;
+        let line = self.row_at(font, y)? + 1;
         let k = chrome.knob_at(line)?;
         // The trough is one cell narrower than the margin — see the
         // `wide` that draws it.
@@ -404,7 +525,23 @@ impl View {
     pub fn hit(&self, doc: &Document, font: &Font, x: i32, y: i32)
         -> (usize, usize)
     {
-        let row = self.top + (y.max(0) / self.ch(font)) as usize;
+        // Through the same walk the frame drew from.  A click inside a
+        // content box answers the box's own line — the box is anchored
+        // there, and a caret has to land *somewhere* a person can see
+        // the sense of.  Below everything visible, the old behaviour
+        // is kept: rows keep counting past the fold, clamped to the
+        // document's end.
+        let ch = self.ch(font);
+        let (mut row, mut band_top) = (self.top, 0);
+        let y = y.max(0);
+        loop {
+            let band = ch + self.extra(font, row);
+            if y < band_top + band {
+                break;
+            }
+            band_top += band;
+            row += 1;
+        }
         let gx = self.gutter_cols(doc) as i32 * self.cw(font);
         let cw = self.cw(font);
         let col = self.left
@@ -503,7 +640,9 @@ fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
 pub fn frame_with(doc: &Document, view: &View, font: &Font,
                   chrome: &Furniture) -> Frame {
     let mut f = Frame::default();
-    let rows = view.rows(font);
+    // **The one row table** — drawing reads the same walk `hit` and
+    // `follow` answer from, which is the content-box invariant.
+    let slots = view.slots(doc, font);
     let gutter = view.gutter_cols(doc);
     let (cw, ch) = (view.cw(font), view.ch(font));
     let text_x = gutter as i32 * cw;
@@ -512,12 +651,8 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
 
     f.items.push(Item::Rect { x: 0, y: 0, w: view.w, h: view.h, c: BG });
 
-    for i in 0..rows {
-        let row = view.top + i;
-        if row >= doc.rows() {
-            break;
-        }
-        let y = i as i32 * ch;
+    for slot in &slots {
+        let (row, y) = (slot.row, slot.y);
 
         // The caret's line, lit the whole width — a band rather than a
         // box, so it says *where you are* without competing with the
@@ -612,12 +747,8 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
     // trouble at the line that caused it.  Both are drawn from the
     // description rather than from anything this side knows, which is
     // what keeps the model the only place a fact lives.
-    for i in 0..rows {
-        let row = view.top + i;
-        if row >= doc.rows() {
-            break;
-        }
-        let y = i as i32 * ch;
+    for slot in &slots {
+        let (row, y) = (slot.row, slot.y);
         let line_no = row + 1;
 
         if let Some(t) = chrome.trouble_at(line_no) {
@@ -777,12 +908,13 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
     foot(&mut f, view, font, chrome);
 
     // The caret last, so nothing is drawn over it.
-    if crow >= view.top && crow < view.top + rows && ccol >= view.left {
-        let x = text_x + (ccol - view.left) as i32 * cw;
-        let y = (crow - view.top) as i32 * ch;
-        if x < view.w {
-            f.items.push(Item::Rect { x, y, w: 2.max(cw / 5), h: ch,
-                                      c: CARET });
+    if ccol >= view.left {
+        if let Some(slot) = slots.iter().find(|s| s.row == crow) {
+            let x = text_x + (ccol - view.left) as i32 * cw;
+            if x < view.w {
+                f.items.push(Item::Rect { x, y: slot.y, w: 2.max(cw / 5),
+                                          h: ch, c: CARET });
+            }
         }
     }
     f
@@ -829,10 +961,8 @@ pub fn paint(c: &mut Canvas, f: &Frame, font: &Font, scale: i32) {
 /// How wide the widest visible line is, in columns — what a horizontal
 /// scrollbar would need.
 pub fn widest(doc: &Document, view: &View, font: &Font) -> usize {
-    (0..view.rows(font))
-        .map(|i| view.top + i)
-        .take_while(|r| *r < doc.rows())
-        .map(|r| width_of(&doc.line(r)))
+    view.slots(doc, font).iter()
+        .map(|s| width_of(&doc.line(s.row)))
         .max()
         .unwrap_or(0)
 }
@@ -842,6 +972,12 @@ pub fn widest(doc: &Document, view: &View, font: &Font) -> usize {
 pub fn caret_at(doc: &Document, view: &View, font: &Font) -> (i32, i32) {
     let (row, col) = doc.cursor();
     let gx = view.gutter_cols(doc) as i32 * view.cw(font);
-    (gx + (col.saturating_sub(view.left)) as i32 * view.cw(font),
-     (row.saturating_sub(view.top)) as i32 * view.ch(font))
+    // From the row table when the caret is on screen; the old uniform
+    // arithmetic when it is not, so an off-screen answer stays an
+    // extrapolation rather than a panic.
+    let y = view.slots(doc, font).iter()
+        .find(|s| s.row == row)
+        .map(|s| s.y)
+        .unwrap_or((row.saturating_sub(view.top)) as i32 * view.ch(font));
+    (gx + (col.saturating_sub(view.left)) as i32 * view.cw(font), y)
 }

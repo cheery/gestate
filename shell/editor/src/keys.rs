@@ -154,7 +154,9 @@ pub fn press(doc: &mut Document, view: &mut View, font: &Font,
 pub fn press_with(doc: &mut Document, view: &mut View, font: &Font,
                   key: Key, mods: Mods, clip: &mut dyn Clipboard) -> Did
 {
-    let rows = view.rows(font);
+    // Through the row table, so a page is what is *visible* — content
+    // boxes make that fewer rows than the window's raw capacity.
+    let rows = view.slots(doc, font).len();
     // **Before the motion, not after.**  Shift means "keep the end I
     // am not moving", so the anchor has to be put down where the caret
     // *was*; deciding afterwards would anchor it where it arrived and
@@ -281,8 +283,9 @@ pub fn scroll(doc: &Document, view: &mut View, font: &Font, lines: i32)
 {
     let was = view.top;
     let next = view.top as i64 + lines as i64;
-    let rows = view.rows(font) as i64;
-    let last = (doc.rows() as i64 - rows).max(0);
+    // The furthest the view may stand is wherever shows the last row —
+    // the same walk `follow` scrolls by, box heights and all.
+    let last = view.top_showing(font, doc.rows().saturating_sub(1)) as i64;
     view.top = next.clamp(0, last) as usize;
     Did { drew: view.top != was, edited: false }
 }

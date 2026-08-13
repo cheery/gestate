@@ -3,14 +3,21 @@
 *Companion to `spec/editor.md` (widgets derived from types),
 `spec/substrate.md` (the canvas in the same window) and
 `spec/liveaudio.md` (the engine the editing rides on).  What it
-replaces is `gestate/audioeditor.py` and `gestate/audiopygame.py`.*
+replaced is `gestate/audiopygame.py` whole, and `audioeditor.py`'s
+`tkinter` view — `Workbench` and `Keyboard`, the model half of that
+file, stay for good.*
 
-Two editors exist and both work.  `audioeditor` is a `tkinter` view;
-`audiopygame` is a modal pygame view with a canvas tab.  Between them
-they are **6132 lines**, they duplicate every decision, and one of them
-draws text with a system font while the other draws it with pygame's.
+**The rewrite is built.**  `python -m gestate.workbench` is the only
+window now, and the two editors this file argued against are gone
+(`journal.md` §"The editor becomes the editor").  The argument is kept
+because it is the reasoning the built thing answers to.
 
-They are also, both of them, tools built by their author for their
+Two editors existed and both worked.  `audioeditor` was a `tkinter`
+view; `audiopygame` a modal pygame view with a canvas tab.  Between
+them they were **6132 lines**, they duplicated every decision, and one
+drew text with a system font while the other drew it with pygame's.
+
+They were also, both of them, tools built by their author for their
 author.  That is not a criticism of how they were made — it is what a
 tool that grew alongside the thing it edits looks like, and the growing
 is why the good ideas below exist at all.  It is a statement about who
@@ -128,8 +135,16 @@ document — so a keystroke never crosses a language boundary and the
 model is told only that something happened.
 
 `Session` is what `Pane` was, minus everything a command list makes
-unnecessary.  The estimate is under three hundred lines, and if it is not
-then something below is wrong.
+unnecessary.  The estimate here was *under three hundred lines, and if
+it is not then something below is wrong* — and it is ~2,900 lines
+today, so the estimate deserves an honest accounting rather than
+deletion.  What was wrong was the count of commands, not the shape:
+the vocabulary grew 29 → 46 verbs (`fits`, templates, exports, the
+symbol grid, transcripts…), and a transition per verb with its
+refusals spelled out is exactly what each line buys.  The shape held —
+no toolkit, every command a transition returning a sentence — and the
+line count is the vocabulary's, which is the one part that was always
+going to grow.
 
 ---
 
@@ -318,11 +333,20 @@ it:
 
     status   : one sentence — what just happened
     trouble  : the compiler's complaint, and the row it belongs to
-    knobs    : [(name, row, value, min, max, kind)]
-    banks    : [(name, row, voices, listening)]
+    file     : the file's name, and whether it is written down
+    paint    : what colour a visible line's tokens are (the model's lexer)
+    hole     : what every `_` on a line wants, joined and ordered
+    knobs    : [(name, row, value, min, max, kind, wired)]
+    banks    : [(name, row, held, voices, listening)]
+    perform  : what a played note would do, and who would hear it
     transport: playing, position in beats, loop span
-    commands : [(name, summary, key, argument types)]
-    choices  : [(text, note)] — what the argument being asked for could be
+    commands : [(name, usage, key, summary, argument types)]
+    choices  : [(text, note, …)] — what the asked-for argument could be
+    page     : a reference page to read in the window
+
+(The list above is `furniture.rs`'s vocabulary as built; an unknown
+verb is skipped, not refused, so the model may learn a word before the
+window draws it.)
 
 This is `shell/panel`'s pattern exactly — a descriptor in, a display
 list out, one painter — and it is the reason the plugin panel and the
@@ -339,12 +363,16 @@ Gestures come back the same way, flat and few:
     asked()                    done asking
     turn(name, value)          a knob was dragged
     note(midi, on)             a key was played
+    struck(char, code, on)     a key while the piano holds the keyboard
     touch(kind, x, y)          a hand on the canvas: press, drag or release
     edited()                   the text changed
-    state(zoom, rungs, undos, redos)   where the window's own state is
+    state(zoom, rungs, undos, redos, saved, top, rows)
+                               where the window's own state is
 
-**The argument types are what let the view ask.**  Eleven of the
-twenty-nine commands take something, and picking one of those is not
+(`boxtouch` is reserved by §"Content boxes" B3 and not yet spoken.)
+
+**The argument types are what let the view ask.**  Twenty-five of the
+forty-six commands take something, and picking one of those is not
 running it — the list becomes a question about its first argument, and
 the prompt is the usage line with what has been given standing where its
 placeholder was: `loop 4 <int>`.  A `Named` argument gets the names,
@@ -464,11 +492,113 @@ chord rings must not recompile the graph under it.
 
 ---
 
+## Content boxes — the rows grow a height
+
+The margin proved the idea sideways: a knob beside its own declaration
+is content anchored to source.  This is the same idea grown downward —
+content that interleaves with the text, occupying room *between* lines
+(`roadmap.md` §"Content boxes" is the argument; this section is the
+contract).  **The mechanism is built and this section was written from
+it** — `view.rs`'s row table, held by the "Content boxes" tests in
+`tests/view.rs` — which is the reverse of this file's usual order and
+deliberate: the slots table was small enough to design in code, and
+what follows is what the code decided.
+
+### The row table
+
+A row is a **band**: its line of text, then sometimes a content box —
+extra height the view granted under it.  `View::slots` walks the bands
+from `top` and answers where every visible row sits; `top_showing` is
+the same walk run backward for scrolling.
+
+> **One walk, every reader.**  Layout (`frame_with`), hit-testing
+> (`hit`, `knob_hit`, `bank_hit`), scrolling (`follow`, `clamp`, the
+> wheel, the page keys), `caret_at` and the `top`/`rows` mirror the
+> model colours by all read the same table.  That is the whole
+> invariant, and it is why a box under line 12 cannot make a click on
+> line 13 land anywhere but line 13.
+
+This is "layout arithmetic is shared by drawing and hit-testing" —
+already a rule this file keeps — surviving rows that are no longer one
+height.
+
+### The decisions, each with its reason
+
+* **The table lives on the `View`, set from the description** — the
+  `piano`/`aside` precedent: a furniture-derived layout fact.  The
+  rope, the undo and the caret never learn of it, because **a box is
+  never text**.
+* **Heights are in cells**, so a zoom scales a box with the text it
+  annotates.
+* **`top` stays a row index.**  Scrolling is by rows, a box travels
+  with its line, and the wheel never lands half a box.
+* **The view says how tall, deterministically.**  The height of a box
+  is a function of the description and the view's own width — the
+  label precedent: the box is written down and the content fits it.
+  There is no negotiation protocol; content that needs more room asks
+  by *describing* more, which changes the table on the next
+  description.  (This was the roadmap's open question, and it is now
+  decided this way round.)
+* **A click inside a box answers the box's anchor line** — a caret has
+  to land where a person can see the sense of it — until B3 gives
+  boxes hands of their own.
+* **The margin answers only in text bands.**  A pointer inside a box
+  must not turn the knob it happens to sit under.
+* **`follow` guarantees the caret's text band**, not its box: the
+  promise is the line you are typing on.
+* **`View::rows` is capacity, not layout** — equal to `slots().len()`
+  exactly when no boxes exist, and no drawing or hit-testing may read
+  it.
+
+Nothing grants a height yet, so a window without boxes pays nothing
+and behaves byte-identically to before the table existed — the tests
+pin that equivalence explicitly.
+
+### What each stage owes, before it is built
+
+* **B1 — the complaint moves in.**  The `trouble` under its line as a
+  read-only box, exercising anchoring, scroll and follow with content
+  that already crosses.  What the wire owes first: the *whole*
+  complaint — today the model sends only the first line
+  (`session.furniture`), and a one-line box proves nothing.  Several
+  `trouble` rows per line, stacked by the view, keeps an old window
+  drawing the first and losing nothing.  **Acceptance**: a two-line
+  error under line 12 pushes line 13 down; the caret, a click on line
+  13 and `goto 13` agree about where it went; the box follows its line
+  through edits above it.
+* **B2 — a box is a picture.**  A `box <id> <line> <rows>` furniture
+  verb (unknown verbs are skipped, so an old window loses boxes, not
+  the file), and the picture channel grows *sections*: a `box <id>`
+  line switches the target, the unnamed leading section stays the
+  whole-window canvas.  One painter, offset and clipped to the band —
+  a box is a canvas with a row for an anchor, and deliberately not a
+  second content system.
+* **B3 — a box can be touched.**  The gesture is **reserved here
+  before any window learns it** — F101's lesson as law: `boxtouch
+  <id> <kind> <x> <y>`, the box's identity first, coordinates in the
+  box's own pixels the way canvas `touch` already subtracts its
+  origin.  Seam tests at the verb from the first day.
+* **B4 — the score editors.**  Bound by the widget rule above: a box
+  is a view over a span of source, every gesture on it is a text edit,
+  undo is text undo.  The door that exists is whole-document `replace`
+  — one commit, one undo entry — and a finer `patch` order is earned
+  only if caret preservation across a splice turns out to matter in
+  the hand.
+
+Still open, and to be answered before B4: what a chancy score shows (a
+seed-labelled take is the candidate); whether every musical gesture is
+a span rewrite (`fmt` being idempotent may be the whole answer); and
+the third focus — a box that owns the keyboard appears in
+`command.ges` or it does not exist.
+
+---
+
 ## Errors belong at the line
 
-Today the compiler's complaint is one line in a status bar, with the
-rest available if you know to ask (`Workbench.trouble`).  A stranger
-does not know to ask.
+When this was written, the compiler's complaint was one line in a
+status bar, with the rest available if you knew to ask
+(`Workbench.trouble`).  A stranger does not know to ask.  This is now
+built as stated below.
 
 **The complaint is drawn at the row it names**, in the margin, in the
 colour the panel already uses for a warning — and the status line says
@@ -477,6 +607,10 @@ does not stop the sound: `audiolive`'s rule — *a synth that does not
 compile must not stop the one that is playing* — is a promise the editor
 should be visibly keeping, so the transport keeps running and the
 message sits beside the line that caused it.
+
+Where this goes next is B1 above: the message stops trailing the line
+sideways and becomes a content box *under* it, whole rather than
+first-line-only.
 
 ---
 
@@ -498,34 +632,42 @@ message sits beside the line that caused it.
   put the language's own forms first because they are in none of the
   library files and searching `wait` therefore returned nothing, is now
   `reference.all_entries`.  Both had a bug fixed in them once; deleting
-  them would have been deleting the fix.
+  them would have been deleting the fix.  (Since then the `tkinter`
+  `Editor` went too — `audioeditor.py` says where and what it cost —
+  and `Workbench` and `Keyboard` remain, as promised.)
 * **No reference browser.**  It was 10 methods of chrome over a
   generated index, and `doc/ref/index.md` is a better place to read one.
-  Its ranking rule and its index live on (above).  A `reference` command
-  that opens the page is enough until somebody wants more.
-* **No file switching, at first.**  One window, one file.  Two windows
-  is what a window manager is for, and `Pane.switch`/`steal`/`choose` is
-  three modes' worth of machinery for a thing the desktop already does.
-* **No syntax colouring, at first.**  It is genuinely wanted and it is
-  genuinely a separate project: it needs the parser to survive a broken
-  file, which it does not have to today.  Named so it is a decision
-  rather than an oversight.
+  Its ranking rule and its index live on (above).  What `what` finds is
+  now shown *in* the window — the `page` furniture verb — which is a
+  page to read, not a browser to operate; the refusal stands.
+* **No file switching, at first** — and the *at first* has arrived: an
+  `open` command with a `Path` argument, the file list as its choices.
+  Still one window, one file at a time; opening one replaces the
+  instrument under the same rope and view, which is what makes it a
+  command rather than a second program.
+* **No syntax colouring, at first** — arrived too, and on the stated
+  terms: the model tokenises with the real lexer and sends `paint`
+  rows for visible lines, so there is one lexer and one truth
+  (`spec/comments.md` is why that clause was load-bearing).
 * **No vim layer, at first.**  See above: additive, and over the same
-  command list.
+  command list.  Still not built, still additive when wanted.
 
-Each of these is *at first* rather than *never*, and each is a
-deliberate refusal to carry a feature across a rewrite before the thing
-it hangs on works.
+Each of these was *at first* rather than *never*, and each was a
+deliberate refusal to carry a feature across a rewrite before the
+thing it hangs on worked.  Three of the five have since arrived, each
+after the thing it hangs on did — which is the order the refusal was
+for.
 
 ---
 
 ## Costs, stated
 
-* **The ABI grows.**  It carries one string and a version today; it will
-  carry the furniture description and four gestures.  That is more
-  surface to keep in step between two languages, and the mitigation is
-  that all of it is flat data with no lifetimes — plus a test that
-  drives the whole editor through the ABI with no hand on the keyboard.
+* **The ABI grows.**  It carried one string and a version when this
+  was written; it now carries the furniture description, the picture,
+  the orders and a dozen gestures.  That is more surface to keep in
+  step between two languages, and the mitigation held: all of it is
+  flat data with no lifetimes, and `tests/furniture.rs` drives the
+  boundary with no hand on the keyboard.
 * **The command list is a second place a capability is written down.**
   Kept honest by being *the only* place: if the view can invoke it, it
   is in the list, because the view has no other way to invoke anything.

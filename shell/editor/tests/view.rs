@@ -24,7 +24,7 @@ fn runs(f: &gestate_editor::view::Frame) -> Vec<String> {
 }
 
 fn view(w: i32, h: i32) -> View {
-    View { top: 0, left: 0, w, h, gutter: false, aside: 0, piano: 0, focused: false, scale: 1 }
+    View { top: 0, left: 0, w, h, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![] }
 }
 
 /// A view that fits exactly `rows` rows of text, with the status line
@@ -205,7 +205,7 @@ fn scrolling_follows_the_caret_to_the_edge_and_no_further() {
 
     // Horizontally, the same rule.
     let mut wide = doc(&"x".repeat(500));
-    let mut v = View { top: 0, left: 0, w: 20 * LARGE.w, h: 100, gutter: false, aside: 0, piano: 0, focused: false, scale: 1 };
+    let mut v = View { top: 0, left: 0, w: 20 * LARGE.w, h: 100, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![] };
     wide.seek(300);
     v.follow(&wide, &LARGE);
     assert_eq!(v.left, 300 + 1 - 20);
@@ -214,7 +214,7 @@ fn scrolling_follows_the_caret_to_the_edge_and_no_further() {
 #[test]
 fn a_click_lands_where_it_was_clicked() {
     let d = doc("hello\nworld\nagain");
-    let v = View { top: 1, left: 0, w: 400, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1 };
+    let v = View { top: 1, left: 0, w: 400, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![] };
     // Second visible row (row 2), fourth column.
     let (row, col) = v.hit(&d, &LARGE, LARGE.w * 4 + 1, LARGE.h + 3);
     assert_eq!((row, col), (2, 4));
@@ -248,7 +248,7 @@ fn the_caret_is_drawn_on_the_character_it_is_before() {
 #[test]
 fn horizontal_scrolling_cuts_by_columns() {
     let d = doc("\tabcdef\n    abcdef");
-    let v = View { top: 0, left: 4, w: 100 * LARGE.w, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1 };
+    let v = View { top: 0, left: 4, w: 100 * LARGE.w, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![] };
     let f = frame(&d, &v, &LARGE);
     let lines = runs(&f);
     assert_eq!(lines[0], lines[1],
@@ -300,7 +300,7 @@ fn the_empty_document_draws() {
 #[test]
 fn a_window_smaller_than_a_line_still_draws_one() {
     let d = doc("one\ntwo");
-    let v = View { top: 0, left: 0, w: 1, h: 1, gutter: false, aside: 0, piano: 0, focused: false, scale: 1 };
+    let v = View { top: 0, left: 0, w: 1, h: 1, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![] };
     assert_eq!(v.rows(&LARGE), 1);
     assert_eq!(v.text_cols(&LARGE, &d), 1);
     let f = frame(&d, &v, &LARGE);
@@ -316,8 +316,8 @@ fn a_window_smaller_than_a_line_still_draws_one() {
 #[test]
 fn zooming_moves_the_layout_and_the_hit_testing_together() {
     let d = doc("hello\nworld\nagain");
-    let one = View { top: 0, left: 0, w: 400, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1 };
-    let two = View { scale: 2, ..one };
+    let one = View { top: 0, left: 0, w: 400, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![] };
+    let two = View { scale: 2, ..one.clone() };
 
     assert_eq!(two.cw(&LARGE), 2 * one.cw(&LARGE));
     assert_eq!(two.ch(&LARGE), 2 * one.ch(&LARGE));
@@ -341,8 +341,8 @@ fn zooming_moves_the_layout_and_the_hit_testing_together() {
 #[test]
 fn the_zoomed_frame_says_the_same_thing() {
     let d = doc("one\ntwo\nthree");
-    let one = View { top: 0, left: 0, w: 800, h: 400, gutter: true, aside: 0, piano: 0, focused: false, scale: 1 };
-    let two = View { scale: 2, ..one };
+    let one = View { top: 0, left: 0, w: 800, h: 400, gutter: true, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![] };
+    let two = View { scale: 2, ..one.clone() };
     assert_eq!(runs(&frame(&d, &one, &LARGE)), runs(&frame(&d, &two, &LARGE)));
 }
 
@@ -443,7 +443,7 @@ fn a_knob_lands_in_the_margin_at_its_own_line() {
 fn no_margin_means_no_knobs_and_no_width_lost() {
     let d = doc("one\ntwo\nthree");
     let wide = View { aside: 0, ..rows_of(6, 600) };
-    let narrow = View { aside: 8, ..wide };
+    let narrow = View { aside: 8, ..wide.clone() };
     assert!(wide.text_cols(&LARGE, &d) > narrow.text_cols(&LARGE, &d),
             "a margin costs columns");
     let f = frame_with(&d, &wide, &LARGE, &chrome());
@@ -664,4 +664,122 @@ fn there_is_no_keyboard_when_nothing_is_being_performed() {
     let v = view(600, 400);
     assert_eq!(v.piano, 0);
     assert_eq!(v.key_at(&LARGE, 60, 100, 300), None);
+}
+
+// ── Content boxes — the row table ────────────────────────────────────
+//
+// `roadmap.md` §"Content boxes": a box between lines is a per-row
+// extra height, owned by the view, and the one invariant is that
+// layout, scroll and hit-testing read the same table.  These tests
+// are that invariant, mechanically; nothing grants a height in
+// production yet, so they set `View::boxes` by hand.
+
+/// With no boxes, the table is the uniform grid it replaced — the
+/// refactor is invisible until something grants a height.
+#[test]
+fn without_boxes_the_slots_are_the_uniform_grid() {
+    let d = doc(&["line"; 10].join("\n"));
+    let v = rows_of(6, 400);
+    let slots = v.slots(&d, &LARGE);
+    assert_eq!(slots.len(), v.rows(&LARGE));
+    for (i, s) in slots.iter().enumerate() {
+        assert_eq!((s.row, s.y, s.box_h),
+                   (v.top + i, i as i32 * v.ch(&LARGE), 0));
+    }
+}
+
+/// A box under a line pushes every row below it down and costs the
+/// window visible rows.
+#[test]
+fn a_box_pushes_the_rows_below_it_down() {
+    let d = doc("one\ntwo\nthree\nfour\nfive\nsix\nseven\neight");
+    let mut v = rows_of(6, 400);
+    v.boxes = vec![(2, 2)];              // two rows of box under line 2
+    let ch = v.ch(&LARGE);
+    let slots = v.slots(&d, &LARGE);
+    assert_eq!((slots[1].y, slots[1].box_h), (ch, 2 * ch));
+    assert_eq!(slots[2].y, 4 * ch, "the next row starts after the box");
+    assert_eq!(slots.len(), 4, "the box cost two visible rows");
+}
+
+/// A click below a box lands on the line it visibly touches, and a
+/// click *inside* a box answers the line the box is anchored to.
+#[test]
+fn a_click_beside_a_box_lands_on_the_line_it_shows() {
+    let d = doc("one\ntwo\nthree\nfour\nfive\nsix\nseven\neight");
+    let mut v = rows_of(6, 400);
+    v.boxes = vec![(2, 2)];
+    let ch = v.ch(&LARGE);
+    assert_eq!(v.hit(&d, &LARGE, 0, 4 * ch + 1).0, 2,
+               "the row drawn after the box answers as itself");
+    assert_eq!(v.hit(&d, &LARGE, 0, 2 * ch + 3).0, 1,
+               "inside the box answers the line it is anchored to");
+}
+
+/// Following the caret counts box heights, so the caret's band really
+/// is on screen after a motion.
+#[test]
+fn follow_scrolls_past_a_box_to_show_the_caret() {
+    let mut d = doc("one\ntwo\nthree\nfour\nfive\nsix\nseven\neight");
+    let mut v = rows_of(4, 400);
+    v.boxes = vec![(2, 2)];
+    // Row 3 fits a four-row window by the uniform arithmetic; the box
+    // is what makes it not fit, and follow has to know.
+    d.seek_rowcol(3, 0);
+    assert!(v.follow(&d, &LARGE), "the view had to move");
+    let shown: Vec<usize> = v.slots(&d, &LARGE).iter()
+        .map(|s| s.row).collect();
+    assert!(shown.contains(&3), "the caret's row is on screen: {shown:?}");
+}
+
+/// The wheel's clamp reads the same walk, so the last line can always
+/// be reached and never overshot.
+#[test]
+fn scrolling_stops_where_the_last_line_shows() {
+    use gestate_editor::keys::scroll;
+
+    let d = doc("one\ntwo\nthree\nfour\nfive\nsix\nseven\neight");
+    let mut v = rows_of(4, 400);
+    v.boxes = vec![(6, 2)];
+    scroll(&d, &mut v, &LARGE, 999);
+    assert_eq!(v.top, v.top_showing(&LARGE, 7));
+    assert!(v.slots(&d, &LARGE).iter().any(|s| s.row == 7),
+            "the last row is reachable past the box");
+}
+
+/// A knob answers in its line's text band and not in the box below it
+/// — a pointer inside a box must not turn a control it happens to sit
+/// under.
+#[test]
+fn a_box_does_not_take_the_margin_with_it() {
+    let d = doc("one\ntwo\nthree\nfour");
+    let mut v = View { aside: 8, ..rows_of(8, 600) };
+    v.boxes = vec![(3, 2)];              // a box under the knob's line
+    let ch = v.ch(&LARGE);
+    let x = v.w - 2;
+    assert!(v.knob_hit(&LARGE, &chrome(), x, 2 * ch + 1).is_some(),
+            "the knob's own band still answers");
+    assert!(v.knob_hit(&LARGE, &chrome(), x, 3 * ch + 1).is_none(),
+            "the box under line 3 is not the knob");
+    // And the trough is drawn in the band the hit answers in.
+    let f = frame_with(&d, &v, &LARGE, &chrome());
+    let troughs: Vec<&Item> = f.items.iter()
+        .filter(|i| matches!(i, Item::Rect { c, .. } if *c == TROUGH))
+        .collect();
+    assert_eq!(troughs.len(), 1, "one knob, one trough, box or no box");
+    let Item::Rect { y, .. } = troughs[0] else { unreachable!() };
+    assert!(*y >= 2 * ch && *y < 3 * ch, "drawn where the hit answers");
+}
+
+/// `caret_at` answers from the table too — a tooltip placed by it must
+/// not float a box-height away from the caret.
+#[test]
+fn the_caret_position_counts_the_boxes_above_it() {
+    let mut d = doc("one\ntwo\nthree\nfour");
+    let mut v = rows_of(8, 400);
+    v.boxes = vec![(1, 3)];
+    d.seek_rowcol(2, 0);
+    let (_x, y) = caret_at(&d, &v, &LARGE);
+    assert_eq!(y, 5 * v.ch(&LARGE),
+               "rows one and two, plus three rows of box");
 }

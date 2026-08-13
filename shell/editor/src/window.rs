@@ -363,6 +363,7 @@ impl EditorWindow {
             view: RefCell::new(View {
                 top: 0, left: 0, w, h, gutter: true, aside: 0, piano: 0, focused: false,
                 scale: crate::font::LADDER[crate::font::LADDER_DEFAULT].1,
+                boxes: Vec::new(),
             }),
             zoom: Cell::new(crate::font::LADDER_DEFAULT),
             dragging: Cell::new(false),
@@ -409,7 +410,9 @@ impl EditorWindow {
         let doc = self.doc.borrow();
         let (top, rows) = {
             let v = self.view.borrow();
-            (v.top, v.rows(self.font()))
+            // Through the row table: a content box costs visible rows,
+            // and the model colours exactly the lines the window shows.
+            (v.top, v.slots(&doc, self.font()).len())
         };
         let now = (self.zoom.get(), crate::font::LADDER.len(),
                    doc.undo_depth(), doc.redo_depth(),
@@ -949,7 +952,7 @@ impl WindowHandler for EditorWindow {
         // arrears; stop the transport and it is the only thing you can
         // see.
 
-        let view = *self.view.borrow();
+        let view = self.view.borrow().clone();
         let (Some(w), Some(h)) = (NonZeroU32::new(view.w.max(1) as u32),
                                   NonZeroU32::new(view.h.max(1) as u32))
         else {
