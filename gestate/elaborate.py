@@ -29,7 +29,7 @@ from .declarations import InstanceInfo, Program
 from .desugar import desugar_expr
 from .infer import InferError, infer_instance_method
 from .unify import UnifyError
-from .show import show_predicate
+from .show import show_predicate, show_type
 
 
 class ElaborateError(Exception):
@@ -94,18 +94,45 @@ def elaborate(
 
         router = _Router(dicts, by_site, by_name, {}, assumptions)
         params = dict_params + list(lam.params)
-        result.append((name, len(params),
-                       ELambda(params, _rewrite(lam.body, router)), sig))
+        try:
+            body = _rewrite(lam.body, router)
+        except ElaborateError as exc:
+            # The same breadcrumb `infer._blame` writes: whatever went
+            # wrong, the reader is told whose declaration it was in and
+            # where, so an invariant tripping deep in a rewrite never
+            # again reaches `trouble` as a bare sentence about a
+            # mangled name (`fixme.md` F105's second half).
+            from .infer import _blame
+
+            _blame(exc, str(name), lam)
+            raise
+        result.append((name, len(params), ELambda(params, body), sig))
 
     return result + dicts.extra_scs
 
 
 def _group_by_site(preds: list[Predicate]) -> dict[int, list[Predicate]]:
-    """Predicates per occurrence, in emission (i.e. declaration) order."""
+    """Predicates per occurrence, in emission (i.e. declaration) order.
+
+    **Deduplicated within a site.**  A site is one occurrence the author
+    wrote, but inference may visit it many times: the match compiler
+    shares an equation's body across the leaves of its decision tree, so
+    a `'` in an arm behind the string pattern `"question"` is inferred
+    once per leaf — seventeen identical `Monad Score` predicates on one
+    stamp, and the arity check below read the repetition as inference
+    having produced seventeen dictionaries (`fixme.md` F105).  One
+    occurrence has one type, so equal predicates are one predicate; a
+    *different* predicate on the same stamp still comes through, and the
+    mismatch it causes is real.
+    """
     grouped: dict[int, list[Predicate]] = {}
     for p in preds:
-        if p.site is not None:
-            grouped.setdefault(p.site, []).append(p)
+        if p.site is None:
+            continue
+        rows = grouped.setdefault(p.site, [])
+        if not any(q.class_name == p.class_name and q.type_ == p.type_
+                   for q in rows):
+            rows.append(p)
     return grouped
 
 
@@ -136,9 +163,19 @@ class _Router:
                 # A call to a supercombinator with a context: pass one
                 # dictionary per declared constraint, in order.
                 if len(preds) != arity:
+                    # An internal invariant, but it reaches `trouble`
+                    # when it trips, so it is spelled for the reader:
+                    # the name in backticks (`'` used to render as
+                    # `'''`), what was expected against what arrived,
+                    # and the caller below adds whose declaration it
+                    # happened in.
+                    got = ", ".join(sorted({f"{p.class_name} "
+                                            f"{show_type(p.type_)}"
+                                            for p in preds}))
                     raise ElaborateError(
-                        f"'{node.name}' expects {arity} dictionary "
-                        f"argument(s), inference produced {len(preds)}"
+                        f"`{node.name}` expects {arity} dictionary "
+                        f"argument(s), inference produced {len(preds)} "
+                        f"({got})"
                     )
                 call: Expr = EGlobal(node.name)
                 for pred in preds:

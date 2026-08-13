@@ -489,6 +489,14 @@ impl Palette {
             // *Except in `Text`*, where a space is content: `find foo
             // bar` has to be able to look for two words.  A command
             // name never contains one, so nothing is lost in the list.
+            //
+            // *And except in `Path`* (`fixme.md` F111): a directory
+            // listing opens with the cursor on a row nobody chose —
+            // `../` at the top — and accept prefers the pick, so a
+            // space "stepped" into the parent and a proposed path that
+            // was one Return from being taken was wiped by the walk.
+            // A space in a path box is content; taking the path is
+            // Return's, and Tab completes.
             Key::Char(' ') if self.asking.is_none() => {
                 match self.selected().cloned() {
                     Some(e) if !e.args.is_empty() => self.take(&e),
@@ -496,7 +504,8 @@ impl Palette {
                 }
             }
             Key::Char(' ')
-                if self.asking.as_ref().map(|a| a.wants()) != Some("Text")
+                if !matches!(self.asking.as_ref().map(|a| a.wants()),
+                             Some("Text") | Some("Path"))
                     && !self.query.is_empty() =>
             {
                 self.accept()
@@ -590,6 +599,26 @@ impl Palette {
                     Some(e) => self.take(&e),
                 }
             }
+            // **Tab completes to the pick.**  What every shell taught a
+            // hand in a path box: the row the cursor is on becomes the
+            // text, a directory completes to its own walk and re-lists,
+            // and nothing runs — taking the answer is still Return's.
+            // Bound while any argument is asked, because completion is
+            // never wrong; it simply has nothing to do when the model
+            // offered no rows.
+            Key::Tab if self.asking.is_some() => {
+                match self.choices.get(self.at).cloned() {
+                    Some(c) if !c.step.is_empty() => {
+                        self.query = c.step.clone();
+                        self.requery()
+                    }
+                    Some(c) if !c.text.is_empty() && c.can => {
+                        self.query = c.text.clone();
+                        self.requery()
+                    }
+                    _ => Asks::Nothing,
+                }
+            }
             Key::Escape => self.hide(),
             _ => Asks::Nothing,
         }
@@ -607,6 +636,48 @@ impl Palette {
         } else {
             self.at + 1 - most
         }
+    }
+
+    /// The panel's own box — position, width, height.
+    ///
+    /// **One arithmetic for drawing and hit-testing alike**: `frame`
+    /// paints this box and `covers` asks about it, so a click cannot
+    /// land outside what is drawn while the code thinks it is inside.
+    fn panel_box(&self, w: i32, h: i32, cw: i32, ch: i32)
+        -> (i32, i32, i32, i32)
+    {
+        let most = self.rows(h, ch);
+        let shown = self.shown_len().min(most);
+        // **The summary is a row of the panel, not a line beside it**
+        // (it used to be painted straight over the file), so it is
+        // counted before the box is sized.  And **a grid is as tall as
+        // its own lines**, not as tall as the list it replaced.
+        let telling = self.asking.is_none() && self.selected().is_some();
+        let box_w = (w - 2 * cw).max(cw);
+        let grid = self.asking.as_ref().map(|a| a.wants()) == Some("Symbol");
+        let rows = if grid {
+            let per = Self::columns(box_w, cw);
+            (self.choices.len() as i32 + per - 1) / per.max(1) + 1
+        } else {
+            shown as i32 + 1 + i32::from(telling)
+        };
+        (cw, ch, box_w, ch * rows + 8)
+    }
+
+    /// Whether the pointer is over the panel at all — edge included.
+    ///
+    /// What lets a click *outside* the list mean "not this list": a
+    /// press the panel does not cover closes it and then lands on
+    /// whatever it was aimed at, instead of being eaten (a knob, a bank
+    /// box or the text was unreachable while the list was open).
+    pub fn covers(&self, w: i32, h: i32, cw: i32, ch: i32, x: i32, y: i32)
+        -> bool
+    {
+        if !self.open {
+            return false;
+        }
+        let (bx, by, bw, bh) = self.panel_box(w, h, cw, ch);
+        x >= bx - 2 && x <= bx + bw + 2 && y >= by - 2 && y <= by + bh + 2
     }
 
     /// Which row the pointer is over, if it is over one.
@@ -673,11 +744,22 @@ impl Palette {
         let Some(a) = self.asking.as_ref() else {
             return Asks::Nothing;
         };
+        // **Only a call that declared a walk gets one.**  `find` and
+        // `findBack` are a pair, so the arrows mean the next match and
+        // the one before.  A call with *no* reverse used to "simply
+        // repeat", which read well in a comment and badly at the
+        // keyboard: `seek 0`, then Up reaching for history, and the
+        // transport jumps again — an arrow must never be an accidental
+        // Return (`fixme.md` F107).  Repeating a finished call is
+        // Enter's, deliberately.
+        if a.reverse.is_empty() {
+            return Asks::Nothing;
+        }
         // **Chosen, not toggled.**  Swapping the pair would make a
         // second press of the same arrow go the other way, so holding
         // Up would walk back and forth over two matches for ever.  The
         // key names the direction; the pair names the two commands.
-        let verb = if back && !a.reverse.is_empty() {
+        let verb = if back {
             a.reverse.clone()
         } else {
             a.verb.clone()
@@ -761,28 +843,12 @@ impl Palette {
         }
         let most = self.rows(h, ch);
         let shown = self.shown_len().min(most);
-        // **The summary is a row of the panel, not a line beside it.**
-        // It used to be drawn below the box, where there is no
-        // background — so a sentence about the picked command was
-        // painted straight over the file, two texts sharing one set of
-        // pixels and neither readable.  A panel over a document has to
-        // own every pixel it writes on, which means counting the
-        // summary's row before the box is sized.
-        let telling = self.asking.is_none() && self.selected().is_some();
-        let box_w = (w - 2 * cw).max(cw);
-        // **A grid is as tall as its own lines**, not as tall as the
-        // list it replaced: a table of twenty-two symbols four rows deep
-        // in a panel sized for twelve rows is ten rows of nothing over
-        // somebody's file.
+        // The summary row, the grid's own height and the box they add
+        // up to are `panel_box`'s — the one arithmetic `covers` reads
+        // too, so the panel that is drawn and the panel that is hit
+        // cannot disagree.
         let grid = self.asking.as_ref().map(|a| a.wants()) == Some("Symbol");
-        let rows = if grid {
-            let per = Self::columns(box_w, cw);
-            (self.choices.len() as i32 + per - 1) / per.max(1) + 1
-        } else {
-            shown as i32 + 1 + i32::from(telling)
-        };
-        let box_h = ch * rows + 8;
-        let (x, y) = (cw, ch);
+        let (x, y, box_w, box_h) = self.panel_box(w, h, cw, ch);
 
         f.items.push(Item::Rect { x: x - 2, y: y - 2, w: box_w + 4,
                                   h: box_h + 4, c: EDGE });
@@ -951,6 +1017,29 @@ mod paint_tests {
                          ({top}..{bottom})");
             }
         }
+    }
+
+    /// `covers` and the drawn panel are one box — the drawn shade's own
+    /// rectangle answers yes, and one pixel past the border answers no,
+    /// which is what lets a click outside the list close it and still
+    /// land on what it was aimed at.
+    #[test]
+    fn covers_agrees_with_what_is_drawn() {
+        let (cw, ch) = (8, 16);
+        let p = a_palette();
+        let f = p.frame(800, 600, cw, ch);
+        let (x, y, w, h) = match f.items[0] {
+            Item::Rect { x, y, w, h, .. } => (x, y, w, h),
+            ref other => panic!("expected the panel's border, got {other:?}"),
+        };
+        assert!(p.covers(800, 600, cw, ch, x + w / 2, y + h / 2));
+        assert!(p.covers(800, 600, cw, ch, x, y));
+        assert!(!p.covers(800, 600, cw, ch, x + w + 1, y));
+        assert!(!p.covers(800, 600, cw, ch, x, y + h + 1));
+        // And a closed list covers nothing at all.
+        let mut shut = a_palette();
+        shut.hide();
+        assert!(!shut.covers(800, 600, cw, ch, x + w / 2, y + h / 2));
     }
 
     /// A palette part-way through asking for a `Symbol`.
@@ -1341,6 +1430,85 @@ mod again_tests {
                    "chosen by the key, never toggled");
         assert_eq!(p.key(Key::Down),
                    Asks::Run("find".into(), vec!["foo".into()]));
+    }
+
+    /// A finished call with no declared reverse does not run again on
+    /// an arrow — `seek 0`, then Up reaching for history, and the
+    /// transport jumped (fixme.md F107).  The walk is the find pair's;
+    /// repeating is Enter's, deliberately.
+    #[test]
+    fn an_arrow_is_not_an_accidental_return() {
+        let mut p = Palette::default();
+        p.show();
+        p.offer(vec![Entry { usage: "seek <int>".into(),
+                             name: "seek".into(),
+                             summary: String::new(), key: String::new(),
+                             args: vec!["Int".into()],
+                             reverse: String::new() }]);
+        p.at = 0;
+        p.key(Key::Char(' '));
+        p.key(Key::Char('0'));
+        assert_eq!(p.key(Key::Enter),
+                   Asks::Run("seek".into(), vec!["0".into()]));
+        assert_eq!(p.key(Key::Up), Asks::Nothing);
+        assert_eq!(p.key(Key::Down), Asks::Nothing);
+        assert_eq!(p.key(Key::Enter),
+                   Asks::Run("seek".into(), vec!["0".into()]),
+                   "Enter still means again");
+    }
+
+    /// A palette asking `transcript` for a `Path`, with the proposal
+    /// filled and a directory listing whose first row is `../` — the
+    /// exact stage F111 was reported at.
+    fn walking() -> Palette {
+        let mut p = Palette::default();
+        p.show();
+        p.offer(vec![Entry { usage: "transcript <path>".into(),
+                             name: "transcript".into(),
+                             summary: String::new(), key: String::new(),
+                             args: vec!["Path".into()],
+                             reverse: String::new() }]);
+        p.at = 0;
+        p.key(Key::Char(' '));
+        p.fill("demo-session.ges");
+        p.offer_choices(vec![
+            Choice { text: String::new(), note: "../".into(), can: true,
+                     step: "..".into(), ..Default::default() },
+            Choice { text: "demo.ges".into(), note: String::new(),
+                     can: true, ..Default::default() },
+        ]);
+        p
+    }
+
+    /// Space in a path box is content, never a step into the row nobody
+    /// chose — it must not eat a path somebody was about to accept
+    /// (fixme.md F111).
+    #[test]
+    fn space_does_not_eat_a_proposed_path() {
+        let mut p = walking();
+        p.key(Key::Char(' '));
+        assert_eq!(p.query(), "demo-session.ges ",
+                   "the proposal stays, the space is typed");
+        assert!(p.asking().is_some_and(|a| a.got.is_empty()),
+                "nothing was accepted");
+    }
+
+    /// Tab completes to the pick, the way every shell taught: a plain
+    /// row becomes the text, a directory becomes its own walk, and
+    /// nothing runs.
+    #[test]
+    fn tab_completes_the_path_under_the_cursor() {
+        let mut p = walking();
+        p.at = 1;
+        p.key(Key::Tab);
+        assert_eq!(p.query(), "demo.ges");
+        assert!(p.asking().is_some_and(|a| a.got.is_empty()),
+                "completing is not taking");
+        let mut q = walking();
+        q.at = 0;
+        assert!(matches!(q.key(Key::Tab), Asks::Wants(..)),
+                "a directory re-lists");
+        assert_eq!(q.query(), "..", "a directory completes to its walk");
     }
 
     /// And Escape leaves, which is the other way out.

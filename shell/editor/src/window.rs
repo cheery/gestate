@@ -1299,24 +1299,43 @@ impl WindowHandler for EditorWindow {
                 button: MouseButton::Left, modifiers, ..
             }) => {
                 let (x, y) = self.cursor.get();
-                // **The list takes the pointer while it is open.**  It
-                // is a panel over the document, so a click in it is
+                // **The list takes the pointer while it covers it.**
+                // It is a panel over the document, so a click in it is
                 // aimed at it — and a click that fell through to the
-                // text would move a caret you cannot see.
+                // text would move a caret you cannot see.  A click the
+                // panel does *not* cover is the pointer saying "not
+                // this list": the list closes as Escape closes it, and
+                // the press goes on to land on the knob, key or line
+                // it was aimed at — which used to be eaten, leaving
+                // the whole window dead to the mouse while the list
+                // was open.
                 if self.palette.borrow().is_open() {
-                    let picked = {
+                    let (covered, picked) = {
                         let view = self.view.borrow();
                         let font = self.font();
                         let (cw, ch) = (view.cw(font), view.ch(font));
-                        self.palette.borrow()
-                            .row_at(view.w, view.h, cw, ch, x, y)
+                        let p = self.palette.borrow();
+                        (p.covers(view.w, view.h, cw, ch, x, y),
+                         p.row_at(view.w, view.h, cw, ch, x, y))
                     };
                     if let Some(row) = picked {
                         let asks = self.palette.borrow_mut().click(row);
                         self.speak(asks);
+                        self.dirty.set(true);
+                        return EventStatus::Captured;
                     }
+                    if covered {
+                        // The padding or the query row: aimed at the
+                        // panel, answered by nothing.
+                        self.dirty.set(true);
+                        return EventStatus::Captured;
+                    }
+                    let asks = self.palette.borrow_mut().hide();
+                    self.speak(asks);
                     self.dirty.set(true);
-                    return EventStatus::Captured;
+                    // No return: the press falls through to the chrome
+                    // and the text below, exactly as if the list had
+                    // been closed a moment earlier.
                 }
                 // **The margin belongs to the knobs.**  A press there is
                 // a fader being taken hold of, not a caret being placed

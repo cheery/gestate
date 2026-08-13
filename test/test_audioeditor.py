@@ -274,6 +274,14 @@ def test_a_knob_starts_in_the_middle_of_its_range():
     assert KNOB_RANGE[0] < bench.value_of("anything") < KNOB_RANGE[1]
 
 
+def test_a_stepped_note_carries_its_separator():
+    """fixme.md F108: two steps used to write `5050` — one wrong number
+    instead of two right ones.  Everywhere a bare number goes,
+    whitespace separates, so the insert brings its own."""
+    bench = Workbench("x.ges")
+    assert bench.note_text(50) + bench.note_text(60) == "50 60 "
+
+
 # ── A knob's range follows its channel's type ───────────────────────────────
 #
 # `Chan Int` is 0..100 and `Chan Float` is 0.0..1.0.  Every `Float` a synth

@@ -1894,14 +1894,19 @@ class Workbench:
     def note_text(self, note: int) -> str:
         """What a played note looks like written down.
 
-        **The key number and nothing else.**  It once rendered the bank's
+        **The key number and its separator.**  It once rendered the bank's
         whole payload — `'(Key 60 96)` — which is more than a step
         sequencer should decide: a number goes wherever you put the cursor,
         into an argument list, a `chord 45 60 64 67`, or inside a `'(…)` you
         are already writing.  A pre-spelled constructor only fits the one
         place it guessed at, and is in the way everywhere else.
+
+        The trailing space is load-bearing: two steps used to write
+        `5050`, one wrong number instead of two right ones, because the
+        second insert landed hard against the first (`fixme.md` F108).
+        Everywhere a bare number goes, whitespace separates.
         """
-        return str(note)
+        return f"{note} "
 
     def _load_score(self, text: str) -> None:
         """The piece this program plays, if it has one.

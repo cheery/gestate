@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 115 entries, **93 are resolved**.  What is left:
+Of 117 entries, **99 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -33,13 +33,14 @@ Of 115 entries, **93 are resolved**.  What is left:
 | F93 | deviates | A graph node's `clock` is set only on sources, not inherited |
 | F95 | fixed | The fragment admits tuples; the extractor now lays them out |
 | F103 | bug, open | The same file's canvas builds or fails typechecking, run to run |
-| F105 | bug, open | `''' expects 1 dictionary argument(s), inference produced 17` as a user message |
 | F106 | bug, open | The drawn piano retriggers a held key (OS autorepeat) |
-| F107 | bug, open | Up/Down inside a palette argument runs the command |
-| F108 | bug, open | `pianoStep` inserts `50` with no trailing separator |
+| F107 | resolved | Up/Down inside a palette argument runs the command |
+| F108 | resolved | `pianoStep` inserts `50` with no trailing separator |
 | F109 | bug, open | Opening a file joins the previous start in the gesture loop — no cancel, late switch |
 | F110 | mostly resolved | Zoom wedge: the mirror only synced after input — tell() every poll now |
-| F111 | bug, open | Space in `transcript`'s path box erases the proposed path |
+| F111 | resolved | Space in `transcript`'s path box erases the proposed path |
+| F116 | resolved | Every click was eaten while the command list was open |
+| F117 | resolved | Tab did not complete paths in the file dialog |
 | F112 | bug, open | The file dialog's listing sometimes lags |
 | F113 | bug, open | Undo and redo cross a file switch — one history for the session |
 | F114 | bug, open | Copy and paste are not commands |
@@ -2867,7 +2868,7 @@ constrained variable promises a per-use choice nothing downstream can
 deliver.  `test_audiofragment.py` holds the two-line specimen and a
 render parity against the written-out form.
 
-### F105. **[bug, open]** An internal dictionary-count invariant surfaces as the user's error message
+### F105. **[resolved]** An internal dictionary-count invariant surfaces as the user's error message
 
 `test/sessions/F105-hello2.ges` (same day, a `voices` bank +
 `FromMIDI` instance + an `Adsr`): the whole complaint is
@@ -2883,6 +2884,25 @@ bug turns out to be, the *invariant style* must never reach `trouble`
 raw; it should say which declaration it was elaborating, like
 `infer._blame` now does for unification.
 
+**Resolved 2026-08-13, and the seventeen had a face.**  The match
+compiler shares an equation's body across the leaves of its decision
+tree, so the *fallback* of a string pattern is reachable from every
+failure edge of the match — and `"question"` has seventeen of them
+(eight cons-tests, eight character-tests, one nil-test).  Inference
+walks the shared `'` node once per edge and stamps all seventeen
+identical `Monad Score` predicates onto its one site token; the
+router's arity check read the repetition as inference having produced
+seventeen dictionaries.  One occurrence has one type, so
+`_group_by_site` now deduplicates equal predicates within a site —
+`bimix`'s two *distinct* ones still come through as two, which the
+regression test needs exactly.  And the report half: the message
+spells the name in backticks (`` `'` `` rather than `'''`), says what
+arrived, and `elaborate` wraps the rewrite in the same
+`infer._blame` breadcrumb unification gets, so anything that trips
+this seam next names the declaration and its position.  Tests in
+`test_dictionaries.py`; the specimen compiles and renders 15 s of
+score.
+
 ### F106. **[bug, open]** The drawn piano retriggers a held key
 
 `pianoOn`, hold a key: the OS keyboard autorepeat arrives as repeated
@@ -2891,18 +2911,44 @@ released.  The window knows the physical key (`Gesture::Struck`
 carries the keycode precisely so releases match presses); repeats of a
 key already down should be swallowed at that seam.
 
-### F107. **[bug, open]** Up/Down inside a typed argument runs the command
+**Diagnosis, 2026-08-13, while writing the piano's contract into
+`spec/workbench.md`**: that seam already swallows repeats — the
+shell's `fingers` set predates this report by two days — and the
+model's `Keyboard.press` refuses a note already held besides.  Both
+guards standing while the retrigger was heard means the repeats do
+not arrive as repeated presses: X11's default autorepeat is a
+*release+press pair*, which empties the `fingers` set and re-arms
+both guards per repeat.  The fix's shape is detectable autorepeat —
+`keyboard_types`' `repeat` flag if baseview sets it on X11, or
+`XkbSetDetectableAutoRepeat` — and it needs a hand on a real keyboard
+to verify, which is why it is diagnosed here rather than fixed: a
+guard nothing can exercise is a mask (the F103 rule).
+
+### F107. **[resolved]** Up/Down inside a typed argument runs the command
 
 Palette, `seek 0`, then Up or Down (perhaps reaching for history or
 the choice list): the command fires.  Arrow keys inside an argument
 box must never be an accidental Return.
 
-### F108. **[bug, open]** `pianoStep` writes notes with no separator
+**Resolved 2026-08-13.**  The arrows "walk a finished call" — for the
+`find`/`findBack` pair that is the next match and the one before,
+which is right — and a call with *no* declared reverse "simply
+repeated", which is exactly the accidental Return.  `Palette::step`
+now answers nothing for a call without a reverse; repeating a
+finished call is Enter's, deliberately.  The find pair keeps its walk
+in both directions (`the_arrows_walk_forwards_and_back` still
+passes); `an_arrow_is_not_an_accidental_return` pins the fix.
+
+### F108. **[resolved]** `pianoStep` writes notes with no separator
 
 Step mode inserts `50` where it should insert `50 ` — two steps write
 `5050`, which is one wrong number rather than two right ones.  The
 insert should carry the trailing space (or whatever separator the
 surrounding text calls for).
+
+**Resolved 2026-08-13**: `Workbench.note_text` brings its own
+trailing space — everywhere a bare number goes, whitespace separates.
+Pinned by `test_a_stepped_note_carries_its_separator`.
 
 ### F109. **[bug, open]** Opening a file waits for the previous file's start instead of cancelling it
 
@@ -2950,7 +2996,7 @@ earlier build or a `state` field drift since healed.  With the
 per-poll sync it cannot persist, so this stays a note rather than an
 open defect — reopen if a transcript ever shows it again.
 
-### F111. **[bug, open]** Space in `transcript`'s path box erases the path
+### F111. **[resolved]** Space in `transcript`'s path box erases the path
 
 Reported the same session: `transcript` proposes a path in its
 argument box (`Order::Fill`), and pressing space wipes what was
@@ -2958,6 +3004,14 @@ filled instead of typing a space.  Whatever the palette does with
 space in an argument query — separator, choice step, or a
 first-keystroke replace of proposed text — it must not eat a path
 somebody was about to accept.
+
+**Resolved 2026-08-13, and it was the choice step.**  A `Path`
+listing opens with the cursor on a row nobody chose — `../` at the
+top — and space's accept-the-pick semantics "stepped" into it: the
+proposed path, one Return from being taken, was replaced by the walk.
+Space in a `Path` box is now content, the same exemption `Text` has;
+taking the path is Return's, and Tab completes (F117).  Pinned by
+`space_does_not_eat_a_proposed_path`.
 
 ### F112. **[bug, open]** The file dialog's listing sometimes lags
 
@@ -3012,3 +3066,34 @@ held voices; a changed bank set rebuilds them, which is what puts
 something behind a new bank's switch.  `test_session_live.py::
 test_a_bank_added_by_an_audition_can_be_listened_to` replays the
 report's three facts and fails in 33 s on the old code.
+
+### F116. **[resolved]** Every click was eaten while the command list was open
+
+Henri's report (2026-08-13): "I can't click on things while command
+menu is open."  The palette captured every left press while open — a
+click on a row picked it, and a click anywhere else did nothing at
+all, leaving the whole window dead to the mouse.
+
+Resolved the way every menu on earth behaves: a click the panel does
+not cover closes the list — through the same `hide()` Escape takes,
+so the model's question ends too — and then **falls through to land
+on whatever it was aimed at**: a knob, a bank box, a piano key, a
+line.  A click inside the panel but on no row (padding, the query
+row) stays the panel's.  The hit-test is `Palette::covers`, computed
+from `panel_box` — the same arithmetic `frame` draws with, so the
+panel that is drawn and the panel that is hit cannot disagree
+(`covers_agrees_with_what_is_drawn`).
+
+### F117. **[resolved]** Tab did not complete paths in the file dialog
+
+Henri's report (2026-08-13): people expect Tab to complete on a file
+dialog, and it did nothing — the key translated, reached
+`Palette::key`, and fell through the match.
+
+Resolved as every shell taught: Tab completes the query to the row
+the cursor is on — a plain row becomes the text, a directory
+completes to its own walk and re-lists — and nothing runs, because
+taking the answer is still Return's.  Bound for every asked argument,
+not only `Path`: completion is never wrong, and it simply has nothing
+to do when the model offered no rows.  Pinned by
+`tab_completes_the_path_under_the_cursor`.

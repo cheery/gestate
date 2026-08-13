@@ -155,6 +155,71 @@ def _var(name: str):
     return EVar(name)
 
 
+# ── One occurrence, however many times inference walks it ────────────────────
+
+
+def test_a_shared_fallback_arm_is_one_occurrence():
+    """fixme.md F105.  The match compiler shares an equation's body
+    across the leaves of its decision tree, so the fallback of a string
+    pattern is inferred once per failure edge — ten `Num`/`Floating`
+    predicates on `bimix`'s one stamp, and the router's arity check read
+    that as inference having produced ten dictionaries.  Equal
+    predicates on one site are one predicate; `bimix`'s two *distinct*
+    ones must both survive the deduplication, which is what this
+    program checks by needing exactly two.
+    """
+    assert evaluate(
+        'f : String -> Float\n'
+        'f "ab" = 0.0\n'
+        'f _ = bimix 0.1 0.2 0.3\n\n'
+        'main : Float\nmain = f "xy"\n'
+    ) == "0.165"
+
+
+def test_the_f105_specimen_compiles():
+    """The program Henri actually wrote — a scored `voices` bank whose
+    `sections` matches on string literals, with `'` in both arms."""
+    from pathlib import Path
+
+    from gestate import audioperform
+
+    specimen = (Path(__file__).resolve().parent / "sessions"
+                / "F105-hello2.ges")
+    audioperform.graph_of(specimen.read_text(), rate=44100)
+
+
+def test_an_elaboration_error_names_the_declaration():
+    """F105's second half: whatever trips inside the rewrite, the reader
+    is told whose declaration it was in — the invariant style must never
+    reach `trouble` as a bare sentence about a mangled name.
+
+    Built by hand, because the deduplication above makes the mismatch
+    unreachable from source — which is the point of it — while the
+    breadcrumb has to hold for whatever trips this seam next.  Two
+    *different* predicates on one arity-1 stamp is the honest remaining
+    shape: a genuinely changed type at one occurrence.
+    """
+    from gestate.declarations import classify
+    from gestate.elaborate import ElaborateError
+    from gestate.expr import EAp, ELambda, ENum
+    from gestate.types import Predicate
+
+    g_ref = EGlobal("g")
+    g_ref.site_token = 99
+    scs = [("f", 0, ELambda([], EAp(g_ref, ENum(1))), None),
+           ("g", 1, ELambda(["x"], _var("x")), None)]
+    preds = [[Predicate("Num", TCon("Int"), 99),
+              Predicate("Floating", TCon("Float"), 99)],
+             []]
+    givens = [[], [Predicate("Num", TVar(1))]]
+    with pytest.raises(ElaborateError) as caught:
+        elaborate(scs, preds, {}, classify(parse("")),
+                  per_sc_givens=givens)
+    said = str(caught.value)
+    assert "`g` expects 1 dictionary argument(s)" in said
+    assert "while checking `f`" in said
+
+
 # ── Instance-head matching ───────────────────────────────────────────────────
 
 
