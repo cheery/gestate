@@ -522,6 +522,22 @@ def run(path, rate: int = 44100, block: int = 512,
             wanted = getattr(session.view, "wanted", None)
             if wanted:
                 session.view.wanted = None
+                # **Built before the old one is retired**, and inside a
+                # try — a file that will not read (a `.wav`, a
+                # permission) used to raise here, in the gesture loop,
+                # and the whole editor quit over a click.  On failure
+                # the old instrument plays on and the status says why;
+                # `do_open` refuses the obvious cases with a better
+                # sentence before it gets this far.
+                try:
+                    fresh = Workbench(Path(wanted), rate=rate,
+                                      block=block, midi=midi, seed=seed)
+                    text = fresh.source()
+                except Exception as e:              # noqa: BLE001
+                    said_why = str(e).splitlines()[0] if str(e) else "unreadable"
+                    session.said.append(
+                        f"could not open {Path(wanted).name}: {said_why}")
+                    continue
                 said, drawn = "", None
                 # **The switch is immediate; the teardown is not the
                 # loop's.**  This used to join the old start right here
@@ -533,13 +549,12 @@ def run(path, rate: int = 44100, block: int = 512,
                 # waits on it before asking for the sound card, so the
                 # card ordering that join was really buying is kept.
                 retiring = _retire(bench, starter, quitting)
-                bench = Workbench(Path(wanted), rate=rate, block=block,
-                                  midi=midi, seed=seed)
+                bench = fresh
                 # `load`, not the setter: a different file is a
                 # different past, and the setter commits — undo after a
                 # switch stood the old file's text under the new file's
                 # name, one save from overwriting it (F113).
-                editor.load(bench.source())
+                editor.load(text)
                 view = session.view
                 session = Session(bench=bench)
                 session.view = view

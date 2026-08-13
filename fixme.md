@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 120 entries, **106 are resolved**.  What is left:
+Of 121 entries, **107 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -43,6 +43,7 @@ Of 120 entries, **106 are resolved**.  What is left:
 | F117 | resolved | Tab did not complete paths in the file dialog |
 | F118 | resolved | The list sat over a freshly opened file and caught the first keystrokes |
 | F119 | resolved | The caret anchored the scroll — the view snapped back on every model description |
+| F120 | resolved | Opening a `.wav` quit the whole editor |
 | F121 | resolved | A template inserted while scrolled away appeared behind the list |
 | F112 | bug, open | The file dialog's listing sometimes lags |
 | F113 | resolved | Undo and redo cross a file switch — one history for the session |
@@ -3216,6 +3217,35 @@ screen — so it now runs only when the granted layout actually changed
 (`foot_rows` or the box table).  A description that changes only the
 status, the transport or the knob values leaves the scroll where the
 hand put it.
+
+### F120. **[resolved]** Opening a `.wav` quit the whole editor
+
+Henri's report (2026-08-13): open a `.wav` from the dialog and the
+editor exits.  The switch read the file's bytes *in the gesture
+loop*, the UTF-8 decode raised, and the loop's `finally` closed the
+window — a quit over a click.
+
+Two layers, because a crash-shaped hole deserves a belt.  `do_open`
+refuses a file that is not text with a sentence — "cannot open
+take.wav: not a text file" — sniffing a chunk with its tail dropped,
+so a UTF-8 character split at the chunk edge cannot fail an honest
+text file.  And the loop builds the new `Workbench` *before retiring
+the old one*, inside a try: whatever still gets through, the old
+instrument plays on and the status says why, instead of the window
+dying over it.
+
+**The second face, from Henri's transcript**: his `blip.wav`
+"opened" anyway — because it never existed at the path the dialog
+resolved (`/home/cheery/gestate/blip.wav`; the real one lives in
+`examples/audio/`), so the *new-file* branch started a STARTER synth
+named `blip.wav`, sine and all, and the sniff — guarded by
+`exists()` — never ran.  A started file is text, so a name wearing
+one of the binary suffixes this toolchain itself produces (`.wav`,
+`.mid`, `.clap`, `.png`, `.so`) is a miss, not a request — refused
+with "no file blip.wav — and a new .wav would not be text".  Only
+those refuse: an editor that would not start `notes.txt` would be
+refusing somebody's notes over another file's format (Henri's own
+softening of the first cut, which demanded `.ges`).
 
 ### F121. **[resolved]** A template inserted while scrolled away appeared behind the list
 

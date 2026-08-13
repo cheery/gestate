@@ -1684,7 +1684,32 @@ class Session:
         # open.  A person who chooses a file past that has decided — the
         # switch proceeds and the edits go, history and all, which is
         # exactly what they were warned about.
+        if want.exists():
+            # **A file that is not text is refused with a sentence** —
+            # it used to be an editor-shaped hole: the switch read the
+            # bytes in the gesture loop, the decode raised, and the
+            # whole window quit over a `.wav` somebody clicked.  The
+            # sniff drops the last bytes before decoding so a UTF-8
+            # character split at the chunk edge cannot fail an honest
+            # text file.
+            try:
+                want.open("rb").read(4096)[:-4].decode()
+            except (UnicodeDecodeError, OSError):
+                return f"cannot open {want.name}: not a text file"
         if not want.exists():
+            # **A started file is text**, so a name wearing one of the
+            # binary suffixes this toolchain itself produces is a miss,
+            # not a request.  Without this, `open blip.wav` resolved
+            # against the wrong directory, missed the real file, and
+            # quietly started a fresh STARTER synth *named* `blip.wav`
+            # — playing its sine as if the wav had opened (F120's
+            # second face).  Only the known-binary suffixes refuse: an
+            # advanced editor that would not start `notes.txt` would be
+            # refusing somebody's notes over another file's format.
+            if want.suffix.lower() in {".wav", ".mid", ".midi",
+                                       ".clap", ".png", ".so"}:
+                return (f"no file {want.name} — and a new "
+                        f"{want.suffix} would not be text")
             # **A name nobody has used is a file being started, not a
             # mistake.**  The workbench has known this shape since the
             # starter text: a `Workbench` on a missing path opens with

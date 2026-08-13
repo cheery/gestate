@@ -1994,6 +1994,19 @@ def test_picking_open_says_unsaved_at_once(tmp_path):
     assert not any(o.startswith("warn") for o in ed.orders)
 
 
+def test_opening_a_file_that_is_not_text_is_a_sentence(tmp_path):
+    """A `.wav` used to quit the whole editor: the switch read the
+    bytes in the gesture loop and the decode raised.  Refused here,
+    with the file named and the reason said."""
+    it, room = _looking(tmp_path)
+    (room / "take.wav").write_bytes(bytes(range(256)) * 8)
+    win, _ed = a_window()
+    it.view = win
+    assert it.run("open", "take.wav") == \
+        "cannot open take.wav: not a text file"
+    assert win.wanted is None
+
+
 def test_opening_a_name_nobody_has_used_starts_a_fresh_file(tmp_path):
     """`open notpresent.ges` used to answer `no file` — but a name
     nobody has used is a file being started, and the workbench has
@@ -2007,6 +2020,17 @@ def test_opening_a_name_nobody_has_used_starts_a_fresh_file(tmp_path):
     assert it.run("open", "nope.ges") == "new file nope.ges — saving creates it"
     assert win.wanted == str(room / "nope.ges")
     assert not (room / "nope.ges").exists(), "opening must not touch disk"
+    # A started file is text — a name wearing a binary suffix is a
+    # miss, not a request: `open blip.wav` against the wrong directory
+    # used to start a STARTER synth *named* blip.wav, sine and all
+    # (F120's second face).  Anything honestly textual still starts.
+    win.wanted = None
+    assert it.run("open", "blip.wav") == \
+        "no file blip.wav — and a new .wav would not be text"
+    assert win.wanted is None
+    assert it.run("open", "notes.txt") == \
+        "new file notes.txt — saving creates it"
+    assert win.wanted == str(room / "notes.txt")
 
 
 def test_steal_greys_what_is_taken_and_refuses_it(tmp_path):
