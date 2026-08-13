@@ -41,7 +41,7 @@ Of 108 entries, **88 are resolved**.  What is left:
 | F107 | bug, open | Up/Down inside a palette argument runs the command |
 | F108 | bug, open | `pianoStep` inserts `50` with no trailing separator |
 | F109 | bug, open | Opening a file joins the previous start in the gesture loop — no cancel, late switch |
-| F110 | bug, open | The zoom can wedge at the largest rung (mirror vs window clamp) |
+| F110 | mostly resolved | Zoom wedge: the mirror only synced after input — tell() every poll now |
 | F111 | bug, open | Space in `transcript`'s path box erases the proposed path |
 
 Several of these are **closed rather than pending** under
@@ -2902,18 +2902,30 @@ loop.  True cancellation of a compile in flight is a bigger question
 (the subprocess could be killed; the Python half cannot), but the
 *felt* bug is the join, not the wasted compile.
 
-### F110. **[bug, open]** The zoom can wedge at the largest rung
+### F110. **[mostly resolved]** The zoom could wedge — the mirror only synced after input
 
-Reported 2026-08-13, found with the zoom buttons: mashing zoom in
-lands on the largest size and zooming *out* stops working.  Suspect
-the two mirrors: `session.Window.zoom` moves its own `zoom_at`
-optimistically and then orders the window, while Ctrl+wheel zooms on
-the window's side directly and volunteers a `State` — if either path
-clamps where the other counted, the model's mirror sits past the
-ladder's end and refuses every further step as "already at the end".
-The fix likely wants the model to stop pre-counting and trust the
-volunteered `State` alone (the undo counts have the same optimistic
-shape and may share the hazard).
+Reported 2026-08-13, found with the zoom buttons; the transcript
+(`hello-session-zoomOut-stuck.ges`) showed the model's mirror twelve
+rungs up a **nine**-rung ladder, answering `smaller` twelve times
+while the window sat at the largest.
+
+**Root cause found and fixed the same day, one line**: `tell()` — the
+only thing that syncs the model's mirror — fired only from the input
+paths (`after`, the order handler).  A window nobody had touched never
+volunteered its state, so the mirror sat at its `0/1` initials and
+refused every zoom in both directions (reproduced exactly); and a
+mirror corrupted by *anything* stayed corrupted until a keystroke
+happened to heal it.  `on_frame`'s poll now calls `tell()` every pass
+— the `told` guard makes it free when nothing moved — so no mirror
+drift can outlive one frame.  Verified against the real window:
+mirror settles with zero input, full ladder walks both ways, refusals
+only at the true ends.
+
+**Still unexplained**: how the recorded mirror ever reached 12/13+.
+No path in today's source can set it past the rungs; suspect an
+earlier build or a `state` field drift since healed.  With the
+per-poll sync it cannot persist, so this stays a note rather than an
+open defect — reopen if a transcript ever shows it again.
 
 ### F111. **[bug, open]** Space in `transcript`'s path box erases the path
 

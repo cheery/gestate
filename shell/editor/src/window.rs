@@ -889,6 +889,16 @@ impl WindowHandler for EditorWindow {
                 }
             }
         }
+        // **The mirror is re-synced every poll, not only after input.**
+        // `tell` used to fire only from `after` and the order path, so
+        // a window nobody had touched never volunteered its state — the
+        // model's mirror sat at its `0/1` initials and refused every
+        // zoom in both directions at once — and a mirror corrupted by
+        // anything (F110 recorded one twelve rungs up a nine-rung
+        // ladder) stayed corrupted until the next keystroke happened to
+        // heal it.  The `told` guard makes this free when nothing
+        // moved, and it means no drift can outlive one frame.
+        self.tell();
         for line in self.host.orders() {
             if let Some(order) = Order::read(&line) {
                 self.obey(order);
