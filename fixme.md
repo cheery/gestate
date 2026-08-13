@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 127 entries, **112 are resolved**.  What is left:
+Of 128 entries, **113 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -50,6 +50,7 @@ Of 127 entries, **112 are resolved**.  What is left:
 | F124 | bug, open | The directory-watch tests flake under machine load |
 | F126 | resolved | The crossfade resolved the leaving engine's nodes against the live graph |
 | F127 | bug, open | A literal applied to arguments answers with an instance at a function type |
+| F128 | resolved | The text sniff refused `duet.ges` — the tail-drop moved the boundary instead of removing it |
 | F125 | resolved | A phantom new file read as saved — no tell it was a starter wearing a borrowed name |
 | F112 | resolved | The file dialog's listing sometimes lags — measured: a beat only while the model builds |
 | F113 | resolved | Undo and redo cross a file switch — one history for the session |
@@ -3443,3 +3444,21 @@ the fix is F105's report lesson one door down: when a `Num`/`Floating`
 constraint lands on an arrow type and the expression's head is a
 literal, say what happened in the author's terms, with the span of
 the application.
+
+### F128. **[resolved]** The text sniff refused `duet.ges`
+
+Henri, returning after goodnight: "duet.ges doesn't open in
+workbench.  That's... irony" — the flagship example, refused as "not
+a text file" by F120's own fix, hours after a diary entry criticising
+it for other reasons.
+
+The sniff read 4096 bytes and dropped the last four before decoding,
+so a UTF-8 character split at the chunk's edge could not fail an
+honest file — except a fixed drop does not *remove* a boundary, it
+**moves** it, and `duet.ges`'s box-drawing section headers put a `─`
+straddling byte 4092 exactly.  The honest test was always *where*
+the decode fails: a real binary fails in its first bytes, an honest
+text file only at the cut, so a failure inside the final three bytes
+is the chunk's fault and not the file's.  The regression fixture is
+a file with a multibyte character built onto the boundary — and
+`duet.ges` itself, so the irony cannot recur.

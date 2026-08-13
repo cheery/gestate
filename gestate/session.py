@@ -1721,13 +1721,24 @@ class Session:
             # **A file that is not text is refused with a sentence** —
             # it used to be an editor-shaped hole: the switch read the
             # bytes in the gesture loop, the decode raised, and the
-            # whole window quit over a `.wav` somebody clicked.  The
-            # sniff drops the last bytes before decoding so a UTF-8
-            # character split at the chunk edge cannot fail an honest
-            # text file.
+            # whole window quit over a `.wav` somebody clicked.
+            #
+            # **Where the decode fails is the whole test.**  The first
+            # cut dropped four bytes off the chunk's end so a split
+            # UTF-8 character could not fail an honest file — which
+            # only *moves* the boundary, and `duet.ges`'s box-drawing
+            # headers put a `─` straddling exactly the moved edge: the
+            # editor refused its own flagship example as "not a text
+            # file".  A real binary fails in its first bytes; text
+            # fails only at the cut, so a failure inside the final
+            # three bytes is the chunk's fault and not the file's.
             try:
-                want.open("rb").read(4096)[:-4].decode()
-            except (UnicodeDecodeError, OSError):
+                chunk = want.open("rb").read(4096)
+                chunk.decode()
+            except UnicodeDecodeError as e:
+                if e.start < len(chunk) - 3:
+                    return f"cannot open {want.name}: not a text file"
+            except OSError:
                 return f"cannot open {want.name}: not a text file"
         if not want.exists():
             # **A started file is text**, so a name wearing one of the

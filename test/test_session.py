@@ -2074,6 +2074,20 @@ def test_opening_a_file_that_is_not_text_is_a_sentence(tmp_path):
     assert it.run("open", "take.wav") == \
         "cannot open take.wav: not a text file"
     assert win.wanted is None
+    # **Where the decode fails is the whole test.**  A multibyte
+    # character straddling the sniff's chunk edge is the chunk's
+    # fault, not the file's — the first cut refused `duet.ges` itself,
+    # whose box-drawing headers put a `─` on exactly the boundary.
+    edge = ("x" * 4094 + "─" + "plenty of honest text after the edge\n")
+    (room / "edge.ges").write_text(edge)
+    assert it.run("open", "edge.ges") == "opened edge.ges"
+    from pathlib import Path as _P
+
+    duet = (_P(__file__).resolve().parent.parent
+            / "examples" / "audio" / "duet.ges")
+    it.asking = None
+    assert it.run("open", str(duet)) == "opened duet.ges", \
+        "the flagship example must open"
 
 
 def test_opening_a_name_nobody_has_used_starts_a_fresh_file(tmp_path):
