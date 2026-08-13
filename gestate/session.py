@@ -662,6 +662,9 @@ KEYS = {
     # `.ges` in the tree contains one.  It is what `audiopygame` pressed
     # at a hole, and asking what fits is what it is for everywhere else.
     "fits": "Tab",
+    "copy": "Ctrl-C",
+    "cut": "Ctrl-X",
+    "paste": "Ctrl-V",
     "canvas": "Ctrl-Tab",
     "source": "Ctrl-Tab",
     "zoomIn": "Ctrl-+",
@@ -716,6 +719,15 @@ class Detached:
 
     def open(self, _path: str) -> bool:
         return False
+
+    def copy(self) -> None:
+        pass
+
+    def cut(self) -> None:
+        pass
+
+    def paste(self) -> None:
+        pass
 
     def caret(self) -> int:
         return 0
@@ -1629,6 +1641,28 @@ class Session:
 
     def do_redo(self) -> str:
         return "redone" if self.view.redo() else "nothing to redo"
+
+    def do_copy(self) -> str:
+        """Copy the selection — `Ctrl-C`, as a command the list can
+        teach.  The refusals answer from the mirror the way `undo`'s
+        do, because "copied" over nothing selected is a sentence that
+        lies."""
+        if not getattr(self.view, "sel", False):
+            return "nothing selected"
+        self.view.copy()
+        return "copied"
+
+    def do_cut(self) -> str:
+        if not getattr(self.view, "sel", False):
+            return "nothing selected"
+        self.view.cut()
+        return "cut"
+
+    def do_paste(self) -> str:
+        if not getattr(self.view, "clip", False):
+            return "nothing to paste"
+        self.view.paste()
+        return "pasted"
 
     def do_open(self, path: str) -> str:
         """Open a file, or step into a directory.
@@ -2962,7 +2996,9 @@ def act(session: "Session", line: str) -> str:
                        int(parts[3]), int(parts[4]),
                        parts[5] != "0" if len(parts) > 5 else True,
                        int(parts[6]) if len(parts) > 6 else 0,
-                       int(parts[7]) if len(parts) > 7 else 40)
+                       int(parts[7]) if len(parts) > 7 else 40,
+                       parts[8] == "1" if len(parts) > 8 else False,
+                       parts[9] == "1" if len(parts) > 9 else False)
             except ValueError:
                 return f"state: {line!r} is not four numbers"
         return ""

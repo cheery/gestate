@@ -55,6 +55,10 @@ class Window:
         self.redos = 0
         #: Whether the text is what was last written.
         self.saved = True
+        #: Whether a selection exists, and whether the clipboard holds
+        #: anything — what `copy` and `paste` answer from.
+        self.sel = False
+        self.clip = False
         #: The rows on screen — mirrored from the window, like the undo
         #: counts and for the same reason: colouring needs to know what
         #: is visible and must not reach across a thread to ask.
@@ -105,12 +109,20 @@ class Window:
 
     def note_state(self, zoom: int, rungs: int,
                    undos: int, redos: int, saved: bool = True,
-                   top: int = 0, rows: int = 40) -> None:
-        """The window saying where its own state stands."""
+                   top: int = 0, rows: int = 40,
+                   sel: bool = False, clip: bool = False) -> None:
+        """The window saying where its own state stands.
+
+        `sel` and `clip` are what let `copy` and `paste` answer
+        honestly the instant they run — "nothing selected" and
+        "nothing to paste" are the mirror's to say, exactly as
+        "nothing to undo" is.
+        """
         self.zoom_at, self.zoom_rungs = zoom, rungs
         self.undos, self.redos = undos, redos
         self.saved = saved
         self.top, self.rows = top, rows
+        self.sel, self.clip = sel, clip
 
     def mark_saved(self) -> bool:
         """This text is what is on disk now.
@@ -208,6 +220,16 @@ class Window:
         """
         self.wanted = path
         return True
+
+    def copy(self) -> None:
+        """Copy the selection — the same act `Ctrl-C` is."""
+        self.editor.order("copy")
+
+    def cut(self) -> None:
+        self.editor.order("cut")
+
+    def paste(self) -> None:
+        self.editor.order("paste")
 
     def warn(self, message: str) -> None:
         """Say `message` in red beside the caret, briefly.

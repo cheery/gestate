@@ -35,7 +35,7 @@ use raw_window_handle::{
 use crate::document::Document;
 use crate::font::Font;
 use crate::furniture::{Furniture, Gesture, Order};
-use crate::keys::{self, Did, Key, Memory, Mods};
+use crate::keys::{self, Clipboard, Did, Key, Memory, Mods};
 use crate::palette::{Asks, Entry, Palette};
 use crate::view::{self, View};
 
@@ -204,7 +204,7 @@ struct EditorWindow {
     /// When the oldest unanswered `filter` went out to the model.
     asked: Cell<Option<Instant>>,
     /// The last `State` gesture sent, so it goes out only when it moves.
-    told: Cell<(usize, usize, usize, usize, usize, usize, usize)>,
+    told: Cell<(usize, usize, usize, usize, usize, usize, usize, bool, bool)>,
     /// The note the pointer is holding down, if any.
     playing: Cell<Option<i32>>,
     /// Whether the canvas is what the window is showing.
@@ -425,7 +425,7 @@ impl EditorWindow {
             dirty: Cell::new(true),
             struck: Cell::new(None),
             asked: Cell::new(None),
-            told: Cell::new((usize::MAX, 0, 0, 0, 0, 0, 0)),
+            told: Cell::new((usize::MAX, 0, 0, 0, 0, 0, 0, false, false)),
             turning: RefCell::new(None),
             playing: Cell::new(None),
             at_piano: Cell::new(false),
@@ -462,12 +462,19 @@ impl EditorWindow {
             // and the model colours exactly the lines the window shows.
             (v.top, v.slots(&doc, self.font()).len())
         };
+        // Whether a selection and a clipboard exist ride along, so the
+        // model can answer `copy` over nothing with "nothing selected"
+        // instead of a sentence that lies — the same honesty `undo`'s
+        // counts bought.
+        let held = !self.clip.borrow().get().is_empty();
         let now = (self.zoom.get(), crate::font::LADDER.len(),
                    doc.undo_depth(), doc.redo_depth(),
-                   doc.is_saved() as usize, top, rows);
+                   doc.is_saved() as usize, top, rows,
+                   doc.selection().is_some(), held);
         if now != self.told.get() {
             self.told.set(now);
             self.host.gesture(Gesture::State {
+                sel: now.7, clip: now.8,
                 zoom: now.0, rungs: now.1, undos: now.2, redos: now.3,
                 saved: now.4 == 1, top: now.5, rows: now.6,
             }.line());
@@ -746,6 +753,23 @@ impl EditorWindow {
                     _ => Did::nothing(),
                 }
             }
+            // **The same door the chords use.**  A `copy` command and a
+            // `Ctrl-C` must be one act — two implementations of "what
+            // copying means" is how they come to mean different things,
+            // which is the rule the bank boxes already keep.
+            Order::Copy | Order::Cut | Order::Paste => {
+                let key = match order {
+                    Order::Copy => Key::Copy,
+                    Order::Cut => Key::Cut,
+                    _ => Key::Paste,
+                };
+                let mut doc = self.doc.borrow_mut();
+                let mut view = self.view.borrow_mut();
+                let mut clip = self.clip.borrow_mut();
+                keys::press_with(&mut doc, &mut view, self.font(), key,
+                                 Mods { ctrl: false, shift: false },
+                                 &mut *clip)
+            }
         };
         if did.drew {
             self.dirty.set(true);
@@ -899,14 +923,25 @@ impl WindowHandler for EditorWindow {
                 // same moment `aside` and `piano` are set, because it
                 // is the same kind of fact: furniture-derived layout,
                 // owned by the view.  And the caret is followed
-                // through the reflow, so a box appearing above you
-                // cannot push the line you are typing on off screen.
+                // through a *reflow*, so a box appearing above you
+                // cannot push the line you are typing on off screen —
+                // **but only through a reflow** (`fixme.md` F119).
+                // Following on every arrival made the caret an anchor
+                // for the scroll: descriptions arrive whenever the
+                // model has news — the transport readout, while a
+                // piece plays, has news every beat — so a view wheeled
+                // away from the caret snapped back to it mid-read.  A
+                // scroll is not a request to be returned; only a
+                // caret move, an edit or a changed layout is.
                 {
                     let doc = self.doc.borrow();
                     let mut v = self.view.borrow_mut();
+                    let was = (v.foot_rows, v.boxes.clone());
                     v.grant(&f, self.font());
                     v.clamp(&doc, self.font());
-                    v.follow(&doc, self.font());
+                    if (v.foot_rows, &v.boxes) != (was.0, &was.1) {
+                        v.follow(&doc, self.font());
+                    }
                 }
                 // **And the keyboard takes its room from the document**,
                 // only while a played note would do something — so a

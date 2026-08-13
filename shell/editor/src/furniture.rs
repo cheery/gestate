@@ -380,6 +380,14 @@ pub enum Order {
     Fill(String),
     /// Look at the canvas, or at the source.
     Show(String),
+    /// Copy the selection, cut it, or paste over it — the same acts
+    /// `Ctrl-C`/`Ctrl-X`/`Ctrl-V` are, arriving as commands.  The
+    /// vocabulary rule (`command.ges` or it does not exist) is why
+    /// they exist as orders at all: the chords worked and the palette
+    /// could not teach them.
+    Copy,
+    Cut,
+    Paste,
     /// Say this in red beside the caret, briefly, and flash the `[+]`.
     ///
     /// **A refusal that catches the eye where it already is.**  `open`
@@ -410,6 +418,9 @@ impl Order {
             "saved" => Some(Order::Saved),
             "show" => Some(Order::Show(arg(1).into())),
             "warn" => Some(Order::Warn(arg(1).into())),
+            "copy" => Some(Order::Copy),
+            "cut" => Some(Order::Cut),
+            "paste" => Some(Order::Paste),
             _ => None,
         }
     }
@@ -479,7 +490,8 @@ pub enum Gesture {
     /// with the rest of the window's own state, for the same reason:
     /// the model draws `[+]` from it and must not reach across a thread
     /// into the rope to ask.
-    State { zoom: usize, rungs: usize, undos: usize, redos: usize,
+    State { sel: bool, clip: bool,
+            zoom: usize, rungs: usize, undos: usize, redos: usize,
             saved: bool,
             /// The first visible row and how many fit — what the model
             /// needs to know which lines to colour.  Volunteered with
@@ -511,11 +523,15 @@ impl Gesture {
                 format!("struck\t{c}\t{code}\t{}", if *on { 1 } else { 0 })
             }
             Gesture::Edited => "edited".to_string(),
-            Gesture::State { zoom, rungs, undos, redos, saved,
+            Gesture::State { sel, clip, zoom, rungs, undos, redos, saved,
                              top, rows } => {
                 let ok = if *saved { 1 } else { 0 };
+                // The two newest ride at the end, so a model built
+                // before them still reads the seven it knows.
+                let s = if *sel { 1 } else { 0 };
+                let c = if *clip { 1 } else { 0 };
                 format!(
-                    "state\t{zoom}\t{rungs}\t{undos}\t{redos}\t{ok}\t{top}\t{rows}")
+                    "state\t{zoom}\t{rungs}\t{undos}\t{redos}\t{ok}\t{top}\t{rows}\t{s}\t{c}")
             }
         }
     }
@@ -549,12 +565,14 @@ mod order_tests {
 
     #[test]
     fn the_state_gesture_says_all_four_numbers_and_whether_it_is_saved() {
-        let g = Gesture::State { zoom: 4, rungs: 9, undos: 2, redos: 0,
+        let g = Gesture::State { sel: false, clip: false,
+                                 zoom: 4, rungs: 9, undos: 2, redos: 0,
                                  saved: false, top: 0, rows: 40 };
-        assert_eq!(g.line(), "state\t4\t9\t2\t0\t0\t0\t40");
-        let g = Gesture::State { zoom: 4, rungs: 9, undos: 0, redos: 1,
+        assert_eq!(g.line(), "state\t4\t9\t2\t0\t0\t0\t40\t0\t0");
+        let g = Gesture::State { sel: true, clip: true,
+                                 zoom: 4, rungs: 9, undos: 0, redos: 1,
                                  saved: true, top: 12, rows: 30 };
-        assert_eq!(g.line(), "state\t4\t9\t0\t1\t1\t12\t30");
+        assert_eq!(g.line(), "state\t4\t9\t0\t1\t1\t12\t30\t1\t1");
     }
 
     /// **The tokenizer is the model's**, so the window only reads runs.

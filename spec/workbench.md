@@ -372,7 +372,7 @@ Gestures come back the same way, flat and few:
 (`boxtouch` is reserved by §"Content boxes" B3 and not yet spoken.)
 
 **The argument types are what let the view ask.**  Twenty-five of the
-forty-six commands take something, and picking one of those is not
+forty-nine commands take something, and picking one of those is not
 running it — the list becomes a question about its first argument, and
 the prompt is the usage line with what has been given standing where its
 placeholder was: `loop 4 <int>`.  A `Named` argument gets the names,

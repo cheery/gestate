@@ -685,9 +685,10 @@ class _Editing:
         self.saved = True
 
     def note_state(self, zoom, rungs, undos, redos, saved=True,
-                   top=0, rows=40):
+                   top=0, rows=40, sel=False, clip=False):
         self.saved = saved
         self.top, self.rows = top, rows
+        self.sel, self.clip = sel, clip
 
     def mark_saved(self):
         self.saved = True
@@ -1460,6 +1461,38 @@ def test_zoom_orders_the_window_and_stops_at_the_ends():
     assert win.zoom(1) is True
     assert win.zoom(1) is False, "already as big as it goes"
     assert ed.orders == ["zoom\t1", "zoom\t1"]
+
+
+def test_copy_and_paste_answer_from_the_mirror():
+    """fixme.md F114: the chords worked and the palette could not teach
+    them.  As commands they answer from the state mirror the way `undo`
+    does — "copied" over nothing selected is a sentence that lies."""
+    s = session()
+    win, ed = a_window()
+    s.view = win
+    win.note_state(0, 3, 0, 0, True, 0, 40, sel=False, clip=False)
+    assert s.run("copy") == "nothing selected"
+    assert s.run("cut") == "nothing selected"
+    assert s.run("paste") == "nothing to paste"
+    assert ed.orders == [], "a refusal orders nothing"
+    win.note_state(0, 3, 0, 0, True, 0, 40, sel=True, clip=True)
+    assert s.run("copy") == "copied"
+    assert s.run("cut") == "cut"
+    assert s.run("paste") == "pasted"
+    assert ed.orders == ["copy", "cut", "paste"]
+
+
+def test_the_state_gesture_carries_selection_and_clipboard():
+    """Fields eight and nine — and a window built before them still
+    reports the seven it has rather than being dropped for the two it
+    does not."""
+    s = session()
+    win, _ed = a_window()
+    s.view = win
+    act(s, "state\t0\t3\t0\t0\t1\t0\t40\t1\t1")
+    assert win.sel and win.clip
+    act(s, "state\t0\t3\t0\t0\t1\t0\t40")
+    assert not win.sel and not win.clip
 
 
 def test_undo_answers_from_the_mirror():

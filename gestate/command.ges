@@ -236,6 +236,18 @@ undo = Stated
 redo : Command
 redo = Stated
 
+#: Copy the selection.
+copy : Command
+copy = Stated
+
+#: Cut it — copy, and take it out of the text.
+cut : Command
+cut = Stated
+
+#: Paste what was copied, over the selection if one stands.
+paste : Command
+paste = Stated
+
 #: Find text — **anything**, not only a name.  The moment a search
 #: matters most is when you are looking for something that is not a name
 #: yet: a typo you are fixing, half a word, a fragment of a comment.

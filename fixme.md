@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 118 entries, **103 are resolved**.  What is left:
+Of 119 entries, **105 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -42,9 +42,10 @@ Of 118 entries, **103 are resolved**.  What is left:
 | F116 | resolved | Every click was eaten while the command list was open |
 | F117 | resolved | Tab did not complete paths in the file dialog |
 | F118 | resolved | The list sat over a freshly opened file and caught the first keystrokes |
+| F119 | resolved | The caret anchored the scroll — the view snapped back on every model description |
 | F112 | bug, open | The file dialog's listing sometimes lags |
 | F113 | resolved | Undo and redo cross a file switch — one history for the session |
-| F114 | bug, open | Copy and paste are not commands |
+| F114 | resolved | Copy and paste are not commands |
 | F115 | resolved | A bank added by an audition could not be listened to — allocators followed the disk |
 
 Several of these are **closed rather than pending** under
@@ -3099,13 +3100,26 @@ the bar's width), the warning firing once at the pick
 histories (buffers) remain the upgrade path if they ever earn a
 caller; the barrier's contract is a subset of theirs.
 
-### F114. **[bug, open]** Copy and paste are not commands
+### F114. **[resolved]** Copy and paste are not commands
 
 The command list (`gestate/command.ges`) has no copy and no paste —
 forgotten, not declined.  The vocabulary rule makes the fix's shape
 plain: the capability appears in `command.ges` or it does not exist,
 so this is two declarations and their gesture wiring, plus the
 clipboard seam the shell owns.
+
+**Resolved 2026-08-13** in exactly that shape, plus the honesty the
+sentences needed.  `copy`, `cut` and `paste` are `Stated` commands
+with their chords in the key column; each becomes an order the window
+answers with **the same door the chords use** — `keys::press_with` on
+the same `Key::Copy`/`Cut`/`Paste` — because two implementations of
+what copying means is how they come to mean different things.  The
+state mirror grew two fields, whether a selection exists and whether
+the clipboard holds anything, so the refusals answer instantly and
+honestly: "nothing selected", "nothing to paste" — "copied" over
+nothing would be the lying switch `listen` was already cured of.  An
+old window reporting seven fields still lands; the two newest ride at
+the end.
 
 ### F115. **[resolved]** A bank added by an audition could not be listened to
 
@@ -3180,3 +3194,24 @@ Resolved with the say-when-you-are-done the vocabulary already had:
 and `symbol` do — the model says when a command is finished with its
 dialog, rather than the view keeping a table of which commands
 repeat.  The next key you press types into the file you just opened.
+
+### F119. **[resolved]** The caret anchored the scroll
+
+Henri's report (2026-08-13): wheel the view away from the caret and
+the scroll glitches — it keeps snapping back to keep the caret on
+screen.  The wanted behaviour: a scroll runs free and the caret may
+leave the screen; a caret move or an edit re-follows.
+
+The scroll itself was already free — `keys::scroll` moves the top and
+follows nothing.  The anchor was the **furniture handler**: every
+arriving description re-ran `follow`, and descriptions arrive
+whenever the model has news — the transport readout, while a piece
+plays, has news every beat.  So the snap-back ticked with the music,
+which is why it read as glitching rather than as a rule.
+
+The `follow` there exists for one legitimate case — a content box
+reflowing above the caret must not push the line you are typing off
+screen — so it now runs only when the granted layout actually changed
+(`foot_rows` or the box table).  A description that changes only the
+status, the transport or the knob values leaves the scroll where the
+hand put it.
