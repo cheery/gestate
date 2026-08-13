@@ -1854,10 +1854,15 @@ def _looking(tmp_path):
 
 
 def test_a_path_argument_offers_what_is_in_the_directory(tmp_path):
-    it, _room = _looking(tmp_path)
+    it, room = _looking(tmp_path)
     act(it, "wants\topen\t0\t")
     shown = [text for text, _note, _can, _step, _dim in it.choices()]
     assert shown[0] == "../", "going up is where the eye already is"
+    # **The note says where you are, not where up goes** — the parent's
+    # absolute path read as a destination, when the row means a step.
+    notes = {t: n for t, n, *_ in it.choices()}
+    assert notes["../"].startswith("you are here: ")
+    assert notes["../"].endswith(str(room)), notes["../"]
     assert "deeper/" in shown and "one.ges" in shown and "two.ges" in shown
 
 

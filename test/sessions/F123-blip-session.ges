@@ -1,0 +1,16 @@
+# A gestate editor session — replay it with
+#
+#     python -m gestate.sessionlog <this file>
+#
+#: editing untitled.ges
+#
+# Each line is a command and what it answered.  The
+# answers are the diff: a replay that says something
+# else is the report.
+
+do
+    #! playing untitled.ges at 44100 Hz — no parameters
+    # 16 looks
+    ask open 0 Path "examples/audio/bli"   #= 3 rows 701033a72f1fa7ad
+    open "blip.wav"                        #= cannot open blip.wav: not a text file
+    open "blip.wav"                        #= no file blip.wav — and a new .wav would not be text

@@ -543,8 +543,20 @@ impl EditorWindow {
             Asks::Filter(q) => self.host.gesture(Gesture::Filter(q).line()),
             Asks::Run(name, args) => {
                 self.host.gesture(Gesture::Command(name, args).line());
-                self.host.gesture(Gesture::Asked.line());
-                self.host.gesture(Gesture::Filter(String::new()).line());
+                // **The question outlives the run exactly as long as
+                // the list does.**  `Asked` used to fire here
+                // unconditionally, so the model forgot its walk the
+                // moment the command ran — while the palette still
+                // showed the finished call — and Return-again resolved
+                // the same words from a different directory than the
+                // first press (`fixme.md` F123: refused rightly, then
+                // "no file" for the same pick).  Both sides now forget
+                // together, when the list closes; a command that takes
+                // nothing closed it already, and says so here.
+                if self.palette.borrow().asking().is_none() {
+                    self.host.gesture(Gesture::Asked.line());
+                    self.host.gesture(Gesture::Filter(String::new()).line());
+                }
             }
             // A command that takes something turns the list into a
             // question about its first argument.

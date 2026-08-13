@@ -484,14 +484,17 @@ def _reask(session, step) -> str:
     command and reading its sentence, and is why a question could be
     recorded as a step at all.
 
-    The dialog is left closed afterwards.  A replay that finished with a
-    question still open would hand the next step an editor mid-sentence,
-    and the steps after a dialog are exactly the ones a reproduction is
-    usually about.
+    **The question is left standing**, because that is the live state:
+    the palette holds its question until the list closes, and the
+    command recorded after an ask ran *against* that question — its
+    path resolved under the walk the ask had reached (F123 is the
+    receipt: this used to restore `asking = None`, so a replayed `open`
+    resolved from a different directory than the session it was
+    reproducing).  A later ask overwrites; a command of another verb
+    ignores a question that is not its own (`_where`'s verb guard).
     """
     verb, at = step.args[0], step.args[1]
     query = step.args[3] if len(step.args) > 3 else ""
-    was = session.asking
     try:
         session.asking = (str(verb), int(at), str(query))
         return answer(session.choices())
@@ -501,8 +504,6 @@ def _reask(session, step) -> str:
         # this, for the same reason: what must not happen is losing the
         # reproduction.
         return f"could not ask: {exc}"
-    finally:
-        session.asking = was
 
 
 class Typing:

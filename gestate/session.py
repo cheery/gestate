@@ -1007,7 +1007,7 @@ class Session:
             found.append((rank, i, (snip.name, snip.summary)))
         return [pair for _r, _i, pair in sorted(found, key=lambda f: f[:2])]
 
-    def _where(self, path: str):
+    def _where(self, path: str, verb: str | None = None):
         """The file a chosen path names, from wherever the list had got to.
 
         **Relative to the query, not to the file you started in.**  The
@@ -1015,12 +1015,17 @@ class Session:
         one *there*.  Resolving against the open file's directory would
         find a different `two.ges`, or none — a walk that lied about
         where it had arrived.
+
+        `verb` is whose question may lend its walk: a question stands
+        until the list closes (F123), so a command must not inherit a
+        walk that some *other* command's finished question left behind.
         """
         from pathlib import Path as _Path
 
         here = _Path(getattr(self.bench, "path", ".")).resolve().parent
         walked = ""
-        if self.asking and len(self.asking) > 2:
+        if (self.asking and len(self.asking) > 2
+                and (verb is None or str(self.asking[0]) == verb)):
             # **A picked row is bare; a typed query is whole.**  The
             # rows of a listing carry names relative to the walk, so
             # the walk is prepended — but an answer that *is* the query
@@ -1081,7 +1086,15 @@ class Session:
             # Five wide like every other row: a listing whose shape
             # depended on which row it was would make every reader of it
             # carry the exception.
-            out.append(("../", str(where.parent), True, up + "/", False))
+            #
+            # **The note says where you are, not where up goes.**  It
+            # used to show the parent's absolute path, and Henri read
+            # it as where his file would land — a destination, when the
+            # row means a step.  The one absolute path worth printing
+            # in a walk is the place you are standing (his design:
+            # "you are here").
+            out.append(("../", f"you are here: {where}", True,
+                        up + "/", False))
         for entry in entries:
             if entry.name.startswith(".") and not stem.startswith("."):
                 continue
@@ -1680,7 +1693,7 @@ class Session:
         there*, so it answers by re-asking with the query moved along —
         which is what makes typing a path feel like walking one.
         """
-        want = self._where(path)
+        want = self._where(path, "open")
         if want.is_dir():
             # Stay in the question, one step along — and keep the path
             # as it was *given*, so the query reads the way it was typed
@@ -1753,7 +1766,7 @@ class Session:
         the same rule said twice on purpose: the list is a courtesy and
         the check is the guarantee.
         """
-        want = self._where(path)
+        want = self._where(path, "steal")
         if want.is_dir():
             self.asking = ("steal", 0, path.rstrip("/") + "/")
             return f"{want.name or want}/"
@@ -2110,7 +2123,7 @@ class Session:
         """
         if self.log is None or not self.log.steps:
             return "nothing has happened yet"
-        want = self._where(path) if (path or "").strip() \
+        want = self._where(path, "transcript") if (path or "").strip() \
             else self._default_out("session")
         if want.is_dir():
             self.asking = ("transcript", 0, path.rstrip("/") + "/")
@@ -2198,7 +2211,7 @@ class Session:
         # program that is not there.
         if not self._source().strip():
             return "nothing to export yet"
-        want = self._where(path) if (path or "").strip() \
+        want = self._where(path, f"export{kind.capitalize()}") if (path or "").strip() \
             else self._default_out(kind)
         if want.is_dir():
             self.asking = (f"export{kind.capitalize()}", 0,

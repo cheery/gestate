@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 123 entries, **108 are resolved**.  What is left:
+Of 123 entries, **109 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -46,7 +46,7 @@ Of 123 entries, **108 are resolved**.  What is left:
 | F120 | resolved | Opening a `.wav` quit the whole editor |
 | F121 | resolved | A template inserted while scrolled away appeared behind the list |
 | F122 | resolved | A typed path was walked twice — `transcript ../../x` landed in `/home/` |
-| F123 | bug, open | A finished `open` re-runs from a different directory than its first run |
+| F123 | resolved | A finished `open` re-runs from a different directory than its first run |
 | F112 | bug, open | The file dialog's listing sometimes lags |
 | F113 | resolved | Undo and redo cross a file switch — one history for the session |
 | F114 | resolved | Copy and paste are not commands |
@@ -3301,9 +3301,9 @@ the query was typed, an answer that differs was picked.  `_where` now
 skips the walk for the former, and the transcript's own last step is
 the regression test's shape.
 
-### F123. **[bug, open]** A finished `open` re-runs from a different directory
+### F123. **[resolved]** A finished `open` re-runs from a different directory
 
-`blip-session.ges` (2026-08-13): walk to `examples/audio/`, pick
+`test/sessions/F123-blip-session.ges` (2026-08-13): walk to `examples/audio/`, pick
 `blip.wav` — refused rightly ("cannot open blip.wav: not a text
 file") — then Return on the finished call:
 
@@ -3319,3 +3319,18 @@ not the same words resolved from wherever the state now stands.  The
 shape of the fix: a finished call keeps the resolved path (or the
 walk it was resolved under), rather than re-deriving it from
 `asking` that has since been shut.
+
+**Resolved 2026-08-13, verified by hand and by the specimen's own
+replay.**  The window sent `Asked` the moment a command ran, so the
+model forgot its walk while the palette still showed the finished
+call — the two sides of the wire disagreed about whether the question
+stood.  Both now forget together, when the list closes; a command
+that takes nothing closed the list already and says so.  Two
+companions ride along: `_where` takes the verb whose question may
+lend its walk, so a standing question cannot contaminate another
+command's resolution, and the replay's `_reask` leaves the question
+standing — the live state — instead of restoring `None`, which had
+the replay reproducing the very bug the specimen was recorded to
+show.  Replaying `test/sessions/F123-blip-session.ges` now reports
+exactly one moved answer: the second `open`, agreeing with the
+first.
