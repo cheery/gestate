@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 126 entries, **112 are resolved**.  What is left:
+Of 127 entries, **112 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -49,6 +49,7 @@ Of 126 entries, **112 are resolved**.  What is left:
 | F123 | resolved | A finished `open` re-runs from a different directory than its first run |
 | F124 | bug, open | The directory-watch tests flake under machine load |
 | F126 | resolved | The crossfade resolved the leaving engine's nodes against the live graph |
+| F127 | bug, open | A literal applied to arguments answers with an instance at a function type |
 | F125 | resolved | A phantom new file read as saved — no tell it was a starter wearing a borrowed name |
 | F112 | resolved | The file dialog's listing sometimes lags — measured: a beat only while the model builds |
 | F113 | resolved | Undo and redo cross a file switch — one history for the session |
@@ -3423,3 +3424,22 @@ interleaves the toggles with `listen`/`deafen` churn — the corner it
 cast: the switch may be thrown on a disconnected bank, and now the
 sentence says so rather than promising sound ("lead hears the
 keyboard — though it is disconnected").
+
+### F127. **[bug, open]** A literal applied to arguments answers with an instance at a function type
+
+`test/sessions/F127-weird-issues-session.ges` (2026-08-13, the tail):
+the typo `sound = 0.0 sine freq * …` — a number *applied* to two
+arguments — answers
+
+    not applied: No instance for Floating ((Sig Float -> Sig Float) -> Sig Float -> Sig Float)
+
+which is inference telling the truth in its own language: the literal
+wants `Floating` at whatever type the application forces, and that
+type is a function's.  The human fact is one sentence — `0.0` is
+applied to arguments, and a number takes none — and the message
+carries neither it nor a position nor the `while checking` breadcrumb
+on its *first* line, which is all the status bar shows.  The shape of
+the fix is F105's report lesson one door down: when a `Num`/`Floating`
+constraint lands on an arrow type and the expression's head is a
+literal, say what happened in the author's terms, with the span of
+the application.
