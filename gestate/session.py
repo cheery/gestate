@@ -1619,6 +1619,17 @@ class Session:
                 return (f"`{name}` cannot be played from a keyboard: "
                         f"its voices take no note")
             return f"`{name}` would not switch"
+        if on:
+            # **The switch may be thrown on a disconnected bank** — a
+            # person wiring MIDI before wiring the mix is composing in
+            # an honest order — but the sentence must not promise
+            # sound: `lol-session.ges` threw it mid-jog and played keys
+            # into silence with the switch proudly on.
+            row = next((x for x in getattr(self.bench, "banks", []) or []
+                        if _of(x, "name", "") == name), None)
+            if row is not None and not _of(row, "wired", True):
+                return (f"{name} hears the keyboard — though it is "
+                        f"disconnected")
         return f"{name} {'hears' if on else 'ignores'} the keyboard"
 
     def do_midiOn(self, port: str = "") -> str:
@@ -2606,9 +2617,40 @@ def furniture(session: "Session", bench=None) -> str:
         name = _of(bank, "name", "")
         if not name:
             continue
+        # `wired` rides at the end so a window built before it still
+        # reads the five it knows — the knob row's own precedent.
         out.append(f"bank\t{name}\t{_of(bank, 'line', 0)}"
                    f"\t{_held(b, name)}\t{_of(bank, 'count', 0)}"
-                   f"\t{1 if _listening(b, name) else 0}")
+                   f"\t{1 if _listening(b, name) else 0}"
+                   f"\t{1 if _of(bank, 'wired', True) else 0}")
+
+    # **The score's word: layered away.**  A bank whose switch is on is
+    # MIDI's — `listen` says "the score no longer drives it" — so every
+    # score line that writes `voices.<bank>` is silently displaced, and
+    # the margin says so at the line itself: a person reading the score
+    # otherwise watches notes they can see not sound, and decides the
+    # synth is broken.
+    scored = set()
+    try:
+        scored = set(getattr(b, "scored_banks", lambda: set())())
+    except Exception:                                    # noqa: BLE001
+        pass
+    for bank in getattr(b, "banks", []) or []:
+        name = _of(bank, "name", "")
+        if not name:
+            continue
+        # One word each — Henri shortened them from sentences: the line
+        # each stands beside is the context, and a margin is not a
+        # place for prose.  "disconnected" wins over "away", because a
+        # bank the sound does not reach is silent whatever MIDI holds.
+        if not _of(bank, "wired", True):
+            word = "disconnected"
+        elif name in scored and _listening(b, name):
+            word = "away"
+        else:
+            continue
+        for line in _of(bank, "mentions", []) or []:
+            out.append(f"away\t{line}\t{word}")
 
     # **What file this is, and whether it is written down.**  The window
     # had no way to say either: a name you cannot see is one you have to

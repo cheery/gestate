@@ -647,13 +647,61 @@ fn nothing_is_shown_when_there_is_no_transport() {
     assert!(said.iter().all(|s| !s.contains("0.0")), "{said:?}");
 }
 
+/// A bank the sound does not reach says "disconnected" where its
+/// count would be, in the warm colour — the fact that explains keys
+/// played into silence, drawn where the person is already looking.
+#[test]
+fn an_unconnected_bank_says_so() {
+    use gestate_editor::furniture::{Bank, Furniture};
+    use gestate_editor::view::AWAY;
+
+    let d = doc("one\ntwo\n");
+    let mut chrome = Furniture::default();
+    chrome.banks.push(Bank { name: "lead".into(), line: 1, held: 0,
+                             voices: 4, listening: false, wired: false });
+    let v = View { w: 600, h: 300, aside: 10, ..view(600, 300) };
+    let f = frame_with(&d, &v, &LARGE, &chrome);
+    let said = f.items.iter().find_map(|i| match i {
+        Item::Run { s, c, .. } if s == "disconnected" => Some(*c),
+        _ => None,
+    });
+    assert_eq!(said, Some(AWAY), "the words, in the away colour");
+    // And a wired bank keeps its count.
+    chrome.banks[0].wired = true;
+    let f = frame_with(&d, &v, &LARGE, &chrome);
+    assert!(f.items.iter().any(|i| matches!(i, Item::Run { s, .. }
+                                            if s == "0/4")));
+}
+
+/// A score line writing a bank MIDI has taken says "layered away" in
+/// the margin at the line itself — the person can see the note that
+/// is not sounding.
+#[test]
+fn a_layered_away_line_says_so_in_the_margin() {
+    use gestate_editor::furniture::Furniture;
+    use gestate_editor::view::AWAY;
+
+    let d = doc("one\ntwo\nvoices.lead 60\nfour\n");
+    let mut chrome = Furniture::default();
+    chrome.aways.push((3, "away".into()));
+    let v = View { w: 600, h: 300, aside: 10, ..view(600, 300) };
+    let f = frame_with(&d, &v, &LARGE, &chrome);
+    let hit = f.items.iter().find_map(|i| match i {
+        Item::Run { s, c, y, .. } if s == "away" => Some((*c, *y)),
+        _ => None,
+    });
+    let (c, y) = hit.expect("the words are drawn");
+    assert_eq!(c, AWAY);
+    assert_eq!(y, 2 * v.ch(&LARGE), "at the line the score wrote");
+}
+
 /// A bank's box is a button; the count beside it is a reading.
 #[test]
 fn only_the_box_of_a_bank_is_pressable() {
     use gestate_editor::furniture::{Bank, Furniture};
     let mut chrome = Furniture::default();
     chrome.banks.push(Bank { name: "pad".into(), line: 1, held: 4,
-                             voices: 6, listening: false });
+                             voices: 6, listening: false, wired: true });
     let v = View { w: 600, h: 300, aside: 10, ..view(600, 300) };
     let ch = v.ch(&LARGE);
     let (bx, side) = v.bank_box(&LARGE);

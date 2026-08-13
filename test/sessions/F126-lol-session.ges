@@ -1,0 +1,44 @@
+# A gestate editor session — replay it with
+#
+#     python -m gestate.sessionlog <this file>
+#
+#: editing /home/cheery/gestate/test/sessions/F105-hello2.ges
+#
+# Each line is a command and what it answered.  The
+# answers are the diff: a replay that says something
+# else is the report.
+
+do
+    #! playing F105-hello2.ges at 44100 Hz — no parameters
+    # -  15       + lead * 0.1
+    # +  15       #+ lead * 0.1
+    edit "14:1:      #+ lead * 0.1"        #= 1 line changed
+    audition                               #= auditioning
+    #! applied edit 1 (no knob in this synth)
+    # -  15       #+ lead * 0.1
+    # +  15       + lead * 0.1
+    edit "14:1:      + lead * 0.1"         #= 1 line changed
+    audition                               #= auditioning
+    #! applied edit 2 (no knob in this synth)
+    #! auditioning (not saved)
+    # -  15       + lead * 0.1
+    # +  15       #+ lead * 0.1
+    edit "14:1:      #+ lead * 0.1"        #= 1 line changed
+    audition                               #= auditioning
+    #! applied edit 3 (no knob in this synth)
+    listen "lead"                          #= lead hears the keyboard
+    #! lead: MIDI on (the score no longer drives it)
+    #! auditioning (not saved)
+    #! auditioning (not saved)
+    # -  15       #+ lead * 0.1
+    # +  15       + lead * 0.1
+    edit "14:1:      + lead * 0.1"         #= 1 line changed
+    audition                               #= auditioning
+    #! applied edit 4 (no knob in this synth)
+    deafen "lead"                          #= lead ignores the keyboard
+    #! lead: MIDI off
+    #! auditioning (not saved)
+    listen "lead"                          #= lead hears the keyboard
+    #! lead: MIDI on (the score no longer drives it)
+    deafen "lead"                          #= lead ignores the keyboard
+    #! lead: MIDI off

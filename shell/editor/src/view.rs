@@ -50,6 +50,13 @@ pub const HANDLE: Colour = Colour::rgb(0xc8, 0xdc, 0xe8);
 pub const LIVE: Colour = Colour::rgb(0x7c, 0xc8, 0x94);
 /// What the compiler had to say, and where.
 pub const ANGRY: Colour = Colour::rgb(0xc0, 0x4c, 0x48);
+/// A thing deliberately not sounding — a bank the mix dropped
+/// ("disconnected"), a scored line MIDI has displaced ("away").
+/// Warm rather than red, because both are usually a choice being
+/// tried, not a fault; warmer than `FAINT`, because each answers a
+/// question a person is already asking (why is this silent), and an
+/// answer nobody notices is not one.
+pub const AWAY: Colour = Colour::rgb(0xd8, 0xa0, 0x7c);
 /// The status line's ground.
 /// The drawn keyboard.  **Two palettes, and the dead one is the
 /// point**: a bank only takes a note if its payload has a `FromMIDI`
@@ -987,7 +994,17 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
         // are down *now*.
         if view.aside > 0 {
             if let Some(b) = chrome.bank_at(line_no) {
-                let count = format!("{}/{}", b.held, b.voices);
+                // **A bank the sound does not reach says so**, where
+                // the count would be: "disconnected" is the fact that
+                // explains keys played into silence, and the count of
+                // a bank nobody can hear would be the margin telling
+                // a smaller truth than it knows.  Same split as the
+                // knob's cross: the text declares, the graph answers.
+                let count = if b.wired {
+                    format!("{}/{}", b.held, b.voices)
+                } else {
+                    "disconnected".to_string()
+                };
                 let (bx, side) = view.bank_box(font);
                 let top = y + 2;
                 // The reading first, then the button on its right —
@@ -996,7 +1013,9 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
                 f.items.push(Item::Run {
                     x: bx - 4 - width_of(&count) as i32 * cw, y,
                     s: count,
-                    c: if b.held > 0 { LIVE } else { FAINT } });
+                    c: if !b.wired { AWAY }
+                       else if b.held > 0 { LIVE }
+                       else { FAINT } });
                 f.items.push(Item::Rect { x: bx, y: top, w: side, h: side,
                                           c: TROUGH });
                 if b.listening {
@@ -1007,6 +1026,18 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
                                               w: side - 2 * inset,
                                               h: side - 2 * inset, c: FILL });
                 }
+            }
+            // **The score's word, at the line itself.**  A bank whose
+            // switch is on is MIDI's, so a score line writing
+            // `voices.<bank>` is silently displaced — the person can
+            // *see* the note that is not sounding, and "layered away"
+            // beside it is the difference between a choice being tried
+            // and an evening deciding the synth is broken.
+            if let Some(words) = chrome.away_at(line_no) {
+                let (bx, _side) = view.bank_box(font);
+                f.items.push(Item::Run {
+                    x: bx - 4 - width_of(words) as i32 * cw, y,
+                    s: words.to_string(), c: AWAY });
             }
             if let Some(k) = chrome.knob_at(line_no) {
                 let wide = view.aside as i32 * cw - cw;

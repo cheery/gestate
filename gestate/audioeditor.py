@@ -1180,7 +1180,67 @@ class Workbench:
             # `channels_of` parses.
             self.banks.append({"name": bank.name, "count": bank.count,
                                "line": bank.line + 1, "record": bank.record,
-                               "channels": rows})
+                               "channels": rows, "wired": True})
+        # **Whether the sound reaches each bank** — the one question the
+        # text cannot answer and the graph can, the same split as a
+        # knob's cross.  A bank the mix dropped is "layered away": the
+        # score still writes it, the keyboard still feeds it, and
+        # nothing comes out — an evening spent deciding whether the
+        # synth is broken, unless the margin says so.  A graph that is
+        # not there to ask (a build that failed) answers wired, because
+        # a mark that cries wolf teaches people to ignore it.
+        chans = self._graph_channels()
+        if chans is not None:
+            # `None` is "no graph to ask" and keeps the benefit of the
+            # doubt; an *empty set* is an answer — a program whose
+            # graph reads no channels has every bank disconnected,
+            # which is exactly the case that found this distinction:
+            # comment the one bank out of `sound` and the remaining
+            # graph has nothing but its clock.
+            for row in self.banks:
+                row["wired"] = any(c in chans
+                                   for voice in row["channels"]
+                                   for c in voice)
+        # **Where the score writes each bank** — the lines saying
+        # `voices.<name>`, cached for the margin: when a bank's switch
+        # is on, MIDI has it and the score no longer drives it, so
+        # every one of these lines is silently displaced ("layered
+        # away") and the margin should say so at the line itself.
+        # Comments are stripped first — `duet.ges` has one *suggesting*
+        # `voices.lead`, and a suggestion does not play.
+        import re
+
+        mention = re.compile(r"voices\.(\w+)")
+        mentions: dict = {}
+        for n, line in enumerate(text.splitlines(), start=1):
+            for m in mention.finditer(line.split("#", 1)[0]):
+                mentions.setdefault(m.group(1), []).append(n)
+        for row in self.banks:
+            row["mentions"] = mentions.get(row["name"], [])
+
+    def _graph_channels(self) -> set | None:
+        """Every control channel the playing (or arriving) graph reads.
+
+        The *pending* engine when an edit is being installed, because
+        the margin should say what the text in the window wires, not
+        what the crossfade is still fading out.  `None` when there is
+        no graph to ask — which is a different fact from an *empty*
+        answer, and conflating them left a fully disconnected bank
+        wearing its count.
+        """
+        live = getattr(self, "live", None)
+        if live is None:
+            return None
+        engine = getattr(live, "pending", None)
+        if engine is None or isinstance(engine, Exception):
+            engine = getattr(live, "engine", None)
+        if engine is None:
+            return None
+        try:
+            return {getattr(n, "chan", None) or getattr(n, "name", "")
+                    for n in engine.graph.control_sources()}
+        except Exception:                               # noqa: BLE001
+            return None
 
     @staticmethod
     def _bank_channels(text: str) -> set:

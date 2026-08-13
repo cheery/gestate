@@ -75,6 +75,11 @@ pub struct Bank {
     /// How many it has.
     pub voices: usize,
     pub listening: bool,
+    /// Whether the sound reaches it.  A bank the mix dropped is
+    /// "layered away": the score still writes it, the keyboard still
+    /// feeds it, and nothing comes out — the margin says so instead of
+    /// leaving an evening to decide whether the synth is broken.
+    pub wired: bool,
 }
 
 /// What the compiler had to say, and where.
@@ -135,6 +140,10 @@ pub struct Furniture {
     pub paint: std::collections::HashMap<usize, Vec<Run>>,
     pub knobs: Vec<Knob>,
     pub banks: Vec<Bank>,
+    /// Lines the score writes a bank MIDI has taken — `(line, words)`,
+    /// drawn in the margin at the line itself: "layered away" is the
+    /// fact that explains a visible note not sounding.
+    pub aways: Vec<(usize, String)>,
     pub playing: bool,
     pub beat: f64,
     /// What a played note would do — `off`, `on` or `step`.
@@ -224,7 +233,13 @@ impl Furniture {
                     held: num(p.get(3)),
                     voices: num(p.get(4)),
                     listening: p[5] == "1",
+                    // A model built before the field wires everything,
+                    // the same benefit of the doubt the knob row gives.
+                    wired: p.get(6).copied() != Some("0"),
                 }),
+                "away" if p.len() >= 3 => {
+                    f.aways.push((num(p.get(1)), p[2].into()));
+                }
                 "perform" if p.len() >= 2 => {
                     f.performing = p[1].into();
                     f.heard = p.get(2).copied().unwrap_or("")
@@ -296,6 +311,13 @@ impl Furniture {
     /// And the bank declared on a line.
     pub fn bank_at(&self, line: usize) -> Option<&Bank> {
         self.banks.iter().find(|b| b.line == line)
+    }
+
+    /// The layered-away words for a line, if the score wrote a bank
+    /// there that MIDI has taken.
+    pub fn away_at(&self, line: usize) -> Option<&str> {
+        self.aways.iter().find(|(l, _)| *l == line)
+            .map(|(_, s)| s.as_str())
     }
 
     /// Whether a keyboard should be drawn at all.

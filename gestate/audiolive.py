@@ -510,7 +510,32 @@ class Live:
         ctypes.memset(address_of(buffer), 0,
                       frames * self.channels * ctypes.sizeof(ctypes.c_float))
         self.engine.fill_mix(buffer, frames, control, t, a0, a1)
-        self.leaving.fill_mix(buffer, frames, control, t, 1.0 - a0, 1.0 - a1)
+        # **The leaving engine's node ids are its own.**  `control`
+        # answers about the *live* graph — `Workbench.control` resolves
+        # the id through `live.engine.graph` — so handing it the old
+        # graph's ids read the wrong channel when the tables shifted,
+        # and read past the end when the new graph shrank: commenting
+        # a bank out of `sound` took sixteen control sources to one and
+        # the whole audio thread down with an IndexError, mid-fade.
+        # Translated by channel name, which is the identity a control
+        # actually has; a channel the new graph no longer knows reads
+        # zero, because the engine holding it has forty milliseconds
+        # to live and is on its way to silence regardless.
+        new_graph = getattr(self.engine, "graph", None)
+        old_graph = getattr(self.leaving, "graph", None)
+        if new_graph is not None and old_graph is not None:
+            by_chan = new_graph.control_by_chan()
+
+            def leaving_control(nid, at):
+                live = by_chan.get(old_graph.node(nid).chan)
+                return control(live.id, at) if live is not None else 0
+        else:
+            # An engine without a graph is a test's double; the raw
+            # callable is what it was handed before, and what it wants.
+            leaving_control = control
+
+        self.leaving.fill_mix(buffer, frames, leaving_control, t,
+                              1.0 - a0, 1.0 - a1)
 
         self.fading = max(0, self.fading - frames)
         if self.fading == 0:

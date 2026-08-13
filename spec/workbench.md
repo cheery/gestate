@@ -337,7 +337,8 @@ it:
     paint    : what colour a visible line's tokens are (the model's lexer)
     hole     : what every `_` on a line wants, joined and ordered
     knobs    : [(name, row, value, min, max, kind, wired)]
-    banks    : [(name, row, held, voices, listening)]
+    banks    : [(name, row, held, voices, listening, wired)]
+    away     : (row, words) — a score line a listened bank displaced
     perform  : what a played note would do, and who would hear it
     transport: playing, position in beats, loop span
     commands : [(name, usage, key, summary, argument types)]
@@ -354,6 +355,27 @@ editor will look like one application rather than two.  A `knob` at
 `row` is drawn in the margin at that row: the placement rule survives
 the move, because the row is a fact the model already has from
 `audiospans`.
+
+**`wired` is the graph's answer beside the text's declaration**, for
+knobs and banks alike: the text declares, the graph says whether the
+sound reaches it.  A knob the sound never reads wears a cross; a bank
+the mix dropped reads **disconnected** where its count would be — and
+at every score line that writes it — in
+the warm colour rather than the red — a choice being tried, not a
+fault — because keys played into a bank nobody can hear is an evening
+spent deciding whether the synth is broken, unless the margin says
+so.
+
+**Layered away is the score's word.**  A bank whose switch is on is
+MIDI's — `listen` answers "the score no longer drives it" — so every
+score line that writes `voices.<bank>` is silently displaced, and the
+margin says **layered away** at the line itself, in the same warm
+colour: the person can *see* the note that is not sounding, and words
+beside it are the difference between a choice being tried and an
+evening deciding the synth is broken.  Comment mentions do not count
+(`duet.ges` has one *suggesting* `voices.lead`, and a suggestion does
+not play); the lines are cached at rebuild, because the poll is two
+milliseconds and a text scan is not.
 
 Gestures come back the same way, flat and few:
 

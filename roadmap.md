@@ -353,18 +353,18 @@ Noticed by Henri playing the workbench; each is small, none is
 urgent, and they are written here so they survive the session.  The
 *bugs* found the same day are `fixme.md` F104–F114.
 
-- **A `voices` bank that is layered away says so in the margin.**  A
-  score that includes `voices.name` while that layer is currently not
-  sounding leaves a person playing keys and wondering why nothing
-  comes out; the bank's margin row is where the answer belongs —
-  something like a dimmed row or a word saying *layered away*.  The
-  margin already draws per-bank state (`held`, `listening`), so this
-  is a fact crossing the same wire.
 - **A `.txt` file could take the syntax off and not compile** — the
   editor as a plain-text editor when the file is not a program.  Needs
   consideration before building: what says a file is plain, and how a
   person is told why the knobs and the play button went away, so the
   quiet mode never reads as breakage.
+- **Lagcheck the lantern canvas** (Henri, for tomorrow): point the
+  stopwatch at `examples/audio/lantern.ges` with the canvas showing —
+  `GESTATE_EDITOR_TIME=1`, and `tools/dialoglag.py` is the driving
+  pattern.  `spec/performance.md` predicts the canvas is model-bound
+  at ~9.4 ms/frame headless, ~15 Hz in-editor; the measurement says
+  whether that still holds and what a hand on a knob feels like
+  while it draws.
 - **The recording survives a file switch.**  Opening another file
   builds a new `Session`, and the log restarts with it — Henri's
   `its-good-now` transcript answered "nothing has happened yet" one

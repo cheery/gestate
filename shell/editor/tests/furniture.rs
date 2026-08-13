@@ -12,8 +12,8 @@ status\tapplied
 trouble\t12\texpected a type, got `sound`
 knob\tcutoff\t40\t0.42\t0\t1\tFloat
 knob\tmode\t44\t3\t0\t100\tInt
-bank\tlead\t60\t2\t6\t1
-bank\tkeys\t70\t0\t4\t0
+bank\tlead\t60\t2\t6\t1\t1
+bank\tkeys\t70\t0\t4\t0\t0
 play\t1\t8.5
 loop\t4\t12
 command\tapply\tapply\tCtrl-S\tRebuild and swap it in.
@@ -47,7 +47,22 @@ fn a_description_reads_back_as_what_was_said() {
     assert_eq!(f.banks[0].voices, 6);
     assert_eq!(f.banks[1].held, 0);
     assert_eq!(f.banks[1].listening, false);
+    // **Whether the sound reaches it** rides seventh; a bank the mix
+    // dropped is "layered away" in the margin.  A model built before
+    // the field wires everything — the knob row's own benefit of the
+    // doubt — which the fixture's first bank checks by omission in
+    // `an_old_models_bank_still_lands` below.
+    assert!(f.banks[0].wired);
+    assert!(!f.banks[1].wired);
     assert_eq!(f.trouble[0].line, 12);
+    let old = Furniture::read("bank\tlead\t60\t2\t6\t1");
+    assert!(old.banks[0].wired, "an old model's bank still lands wired");
+    // The score's word crosses as `(line, words)` and answers per line.
+    let away = Furniture::read(
+        "away\t12\tlayered away — lead hears the keyboard");
+    assert_eq!(away.away_at(12),
+               Some("layered away — lead hears the keyboard"));
+    assert_eq!(away.away_at(13), None);
     assert!(f.trouble[0].message.starts_with("expected a type"));
 }
 

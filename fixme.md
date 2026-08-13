@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 125 entries, **111 are resolved**.  What is left:
+Of 126 entries, **112 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -48,6 +48,7 @@ Of 125 entries, **111 are resolved**.  What is left:
 | F122 | resolved | A typed path was walked twice — `transcript ../../x` landed in `/home/` |
 | F123 | resolved | A finished `open` re-runs from a different directory than its first run |
 | F124 | bug, open | The directory-watch tests flake under machine load |
+| F126 | resolved | The crossfade resolved the leaving engine's nodes against the live graph |
 | F125 | resolved | A phantom new file read as saved — no tell it was a starter wearing a borrowed name |
 | F112 | resolved | The file dialog's listing sometimes lags — measured: a beat only while the model builds |
 | F113 | resolved | Undo and redo cross a file switch — one history for the session |
@@ -3390,3 +3391,35 @@ it" was still true.  `load_written(text, false)` — `ged_load_new`,
 started loads *unsaved*, so **a phantom wears the `[+]` from birth**,
 and the first save settles it.  The loop picks the door by
 `exists()`.
+
+### F126. **[resolved]** The crossfade resolved the leaving engine's nodes against the live graph
+
+Found by Henri jogging `+ lead * 0.1` in and out of the F105
+specimen's `sound` — "it appears to not build the graph correctly
+now" — and reproduced headless the same hour: commenting the bank
+out shrinks sixteen control sources to one, the install crossfades,
+and the whole audio thread dies with `IndexError: list index out of
+range`.
+
+`Live._blend` handed one `control` callable to both engines, and
+`Workbench.control` resolves a node id through `live.engine.graph` —
+the *live* graph, while the *leaving* engine's ids belong to its own.
+A shrink indexed past the end; worse, a shifted id would have read
+the wrong channel silently.  Pre-existing on every install whose node
+table moved; the shrink was merely the first arrangement dramatic
+enough to crash.  `_blend` now translates the leaving graph's nodes
+to the live graph's ids by channel name — the identity a control
+actually has — and a channel the new graph no longer knows reads
+zero, because the engine holding it has forty milliseconds to live.
+
+A companion rode along: the margin's `wired` treated an *empty*
+channel set as "no graph to ask", so a fully disconnected bank kept
+wearing its count — `_graph_channels` now answers `None` for
+unavailable and an honest empty set for a graph with nothing but its
+clock.  `test_commenting_a_bank_out_of_sound_survives_and_says_so`
+jogs the comment both ways and fails in thirteen seconds on the old
+blend.  Henri's stress jog (`test/sessions/F126-lol-session.ges`)
+interleaves the toggles with `listen`/`deafen` churn — the corner it
+cast: the switch may be thrown on a disconnected bank, and now the
+sentence says so rather than promising sound ("lead hears the
+keyboard — though it is disconnected").

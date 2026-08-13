@@ -1476,6 +1476,39 @@ def test_zoom_orders_the_window_and_stops_at_the_ends():
     assert ed.orders == ["zoom\t1", "zoom\t1"]
 
 
+def test_a_listened_banks_score_lines_are_layered_away():
+    """The score's word: a bank whose switch is on is MIDI's — `listen`
+    says "the score no longer drives it" — so every score line writing
+    `voices.<bank>` crosses as an `away` row, and only then: a bank the
+    score drives, or one not scored at all, floats nothing."""
+    s = session()
+    s.bench.banks = [{"name": "lead", "count": 4, "line": 9,
+                      "channels": [], "wired": True,
+                      "mentions": [12, 20]}]
+    s.bench.scored_banks = lambda: {"lead"}
+    s.bench.takes_midi = lambda name: True
+    listening = {"lead": False}
+    s.bench.listening = lambda name: listening[name]
+    rows = [l for l in furniture(s).splitlines() if l.startswith("away")]
+    assert rows == [], "the score drives it; nothing floats"
+    listening["lead"] = True
+    rows = [l for l in furniture(s).splitlines() if l.startswith("away")]
+    assert rows == ["away\t12\taway", "away\t20\taway"]
+    # A disconnected bank says so at the same lines, and the word wins
+    # over "away": silent is silent, whatever MIDI holds.
+    s.bench.banks[0]["wired"] = False
+    rows = [l for l in furniture(s).splitlines() if l.startswith("away")]
+    assert rows == ["away\t12\tdisconnected", "away\t20\tdisconnected"]
+    # And throwing the switch on a disconnected bank is allowed but the
+    # sentence must not promise sound (lol-session.ges: keys played
+    # into silence with the switch proudly on).
+    def listen(name, on):
+        listening[name] = on
+    s.bench.listen = listen
+    assert s.run("listen", "lead") == \
+        "lead hears the keyboard — though it is disconnected"
+
+
 def test_copy_and_paste_answer_from_the_mirror():
     """fixme.md F114: the chords worked and the palette could not teach
     them.  As commands they answer from the state mirror the way `undo`

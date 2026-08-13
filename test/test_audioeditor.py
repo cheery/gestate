@@ -274,6 +274,44 @@ def test_a_knob_starts_in_the_middle_of_its_range():
     assert KNOB_RANGE[0] < bench.value_of("anything") < KNOB_RANGE[1]
 
 
+def test_commenting_a_bank_out_of_sound_survives_and_says_so(tmp_path):
+    """Henri's jog: comment `+ lead * 0.1` out of `sound`, apply, put
+    it back, apply.  Two facts, each a defect once.  The crossfade
+    used to resolve the *leaving* engine's node ids through the *live*
+    engine's graph, so a shrink from sixteen control sources to one
+    took the whole audio thread down with an IndexError mid-fade.
+    And the margin's `wired` treated an empty channel set as "no graph
+    to ask", so a fully disconnected bank kept wearing its count."""
+    src = (Path(__file__).resolve().parent / "sessions"
+           / "F105-hello2.ges").read_text()
+    path = tmp_path / "jog.ges"
+    path.write_text(src)
+    bench = Workbench(path, rate=8000, block=64,
+                      command=_pacer(tmp_path / "s.raw"))
+    bench.start()
+    try:
+        assert _wait(lambda: any("playing" in m for m in bench.messages),
+                     20.0), bench.messages
+        bench.apply(src.replace("+ lead * 0.1", "#+ lead * 0.1"),
+                    save=False)
+        _settle(bench)
+        assert _wait(lambda: bench.live.generation >= 1), bench.messages
+        time.sleep(2.0)                     # the fade crosses blocks
+        assert not any("audio stopped" in m for m in bench.messages), \
+            bench.messages
+        assert bench.banks[0]["wired"] is False, \
+            "a bank the sound no longer reaches is disconnected"
+        bench.apply(src, save=False)
+        assert _wait(lambda: bench.live.generation >= 2), bench.messages
+        time.sleep(2.0)
+        assert not any("audio stopped" in m for m in bench.messages), \
+            bench.messages
+        assert bench.banks[0]["wired"] is True, \
+            "and restoring the mix reconnects it"
+    finally:
+        bench.stop()
+
+
 def test_a_stepped_note_carries_its_separator():
     """fixme.md F108: two steps used to write `5050` — one wrong number
     instead of two right ones.  Everywhere a bare number goes,
