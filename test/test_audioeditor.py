@@ -1777,6 +1777,53 @@ def test_a_touch_with_no_canvas_is_nothing(tmp_path):
     assert act(s, "touch\tpress\t10\t10") == ""
 
 
+def test_opening_away_does_not_wait_for_the_old_start():
+    """fixme.md F109.  Opening a file mid-compile used to join the old
+    start *in the gesture loop*, so the window answered nothing for as
+    long as a file nobody was looking at took to `clang`.  `_retire`
+    hands the join and the stop to their own thread — and the ordering
+    that join was really buying is kept, because the new instrument's
+    own thread waits on the retirement before asking for the sound
+    card."""
+    from gestate.session import Session
+    from gestate.workbench import _begin, _retire
+
+    log, lock = [], threading.Lock()
+
+    class Slow:
+        trouble = ""
+
+        def __init__(self, name, delay=0.0):
+            self.name, self.delay = name, delay
+
+        def start(self):
+            time.sleep(self.delay)
+            with lock:
+                log.append(f"start {self.name}")
+
+        def stop(self):
+            with lock:
+                log.append(f"stop {self.name}")
+
+    old = Slow("old", delay=0.6)
+    quitting, starter = _begin(old, Session(bench=old))
+    time.sleep(0.05)                    # the old start is mid-"clang"
+
+    began = time.monotonic()
+    retiring = _retire(old, starter, quitting)
+    held = time.monotonic() - began
+    assert held < 0.2, f"the switch held the loop for {held:.2f}s"
+
+    new = Slow("new")
+    _q2, starter2 = _begin(new, Session(bench=new), after=retiring)
+    starter2.join(timeout=10.0)
+    retiring.join(timeout=10.0)
+    with lock:
+        assert "start new" in log, log
+        assert log.index("stop old") < log.index("start new"), \
+            f"the new instrument raced the old for the sound card: {log}"
+
+
 def test_a_failed_start_records_its_trouble(tmp_path):
     """**A file that is broken when it is opened is the first broken
     file anyone meets**, and its complaint must anchor a content box

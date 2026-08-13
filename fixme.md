@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 117 entries, **100 are resolved**.  What is left:
+Of 117 entries, **101 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -36,7 +36,7 @@ Of 117 entries, **100 are resolved**.  What is left:
 | F106 | resolved | The drawn piano retriggers a held key (OS autorepeat) |
 | F107 | resolved | Up/Down inside a palette argument runs the command |
 | F108 | resolved | `pianoStep` inserts `50` with no trailing separator |
-| F109 | bug, open | Opening a file joins the previous start in the gesture loop — no cancel, late switch |
+| F109 | resolved | Opening a file joins the previous start in the gesture loop — no cancel, late switch |
 | F110 | mostly resolved | Zoom wedge: the mirror only synced after input — tell() every poll now |
 | F111 | resolved | Space in `transcript`'s path box erases the proposed path |
 | F116 | resolved | Every click was eaten while the command list was open |
@@ -2965,7 +2965,7 @@ surrounding text calls for).
 trailing space — everywhere a bare number goes, whitespace separates.
 Pinned by `test_a_stepped_note_carries_its_separator`.
 
-### F109. **[bug, open]** Opening a file waits for the previous file's start instead of cancelling it
+### F109. **[resolved]** Opening a file waits for the previous file's start instead of cancelling it
 
 Reported from use, 2026-08-13 (and made likelier the same day: `open`
 on a fresh name now starts a new file, so opening *away* from a big
@@ -2985,6 +2985,22 @@ whenever its start does return — which is exactly the contract
 loop.  True cancellation of a compile in flight is a bigger question
 (the subprocess could be killed; the Python half cannot), but the
 *felt* bug is the join, not the wasted compile.
+
+**Resolved 2026-08-13, in exactly that shape, verified by hand.**
+`_retire` takes the join and the stop onto their own thread the
+moment a file is wanted; the window switches at once.  The ordering
+the old join was really buying — the sound card is not free until
+the old instrument is truly gone — is kept where it belongs: the new
+instrument's `begin` waits on the retirement *on its own thread*
+before starting, and a start overtaken by yet another file while
+waiting its turn never begins at all.  The quit path stays
+synchronous and joins the retirement first, so the process cannot
+exit over a teardown still running (the daemon-thread segfault
+rule).  `test_opening_away_does_not_wait_for_the_old_start` pins
+both facts — the loop is held under 0.2 s, and "stop old" precedes
+"start new" — and fails in 0.65 s on the old loop.  The wasted
+compile still runs to completion, as predicted above; it is now
+merely wasted rather than felt.
 
 ### F110. **[mostly resolved]** The zoom could wedge — the mirror only synced after input
 

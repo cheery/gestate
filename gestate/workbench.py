@@ -296,7 +296,7 @@ def pace(stirred: bool, wait: float) -> float:
     return BUSY if stirred else min(IDLE, wait * 2)
 
 
-def _begin(bench, session):
+def _begin(bench, session, after=None):
     """Start an instrument beside the loop, and say how to stop it.
 
     **Starting must not be able to hold the editor shut.**
@@ -310,10 +310,22 @@ def _begin(bench, session):
     still building those, it stops a device that does not exist yet and
     the one that arrives a moment later is never stopped at all — the
     segfault `Workbench.stop` carries a comment about, earned once.
+
+    `after` is the previous instrument's retirement (`_retire`), and
+    the wait for it belongs *here*, on the new instrument's own thread:
+    the sound card is not free until the old instrument is truly gone,
+    but a join in the gesture loop held the window shut for as long as
+    the old file's `clang` took (`fixme.md` F109).  A start overtaken
+    by yet another file while it waits its turn simply never begins —
+    there is nothing to stop, because nothing started.
     """
     quitting = threading.Event()
 
     def begin():
+        if after is not None:
+            after.join(timeout=15.0)
+        if quitting.is_set():
+            return
         try:
             bench.start()
         except Exception as e:                           # noqa: BLE001
@@ -338,6 +350,33 @@ def _begin(bench, session):
     starter = threading.Thread(target=begin, daemon=True)
     starter.start()
     return quitting, starter
+
+
+def _retire(bench, starter, quitting):
+    """The old instrument's teardown, off the gesture loop — F109.
+
+    `quitting` is set here, so a start still inside its `clang` stops
+    itself the moment it returns; the join and the stop then happen on
+    this thread, because doing them in the gesture loop held the window
+    shut for seconds while a file nobody was looking at finished
+    compiling.  The returned thread is the retirement itself: the next
+    `_begin` waits on it before asking for the sound card, and the quit
+    path joins it so the process never exits over a teardown still
+    running — which is the daemon-thread segfault `Workbench.stop`
+    carries a comment about.
+    """
+    quitting.set()
+
+    def reap():
+        starter.join(timeout=15.0)
+        try:
+            bench.stop()
+        except Exception:                                # noqa: BLE001
+            pass
+
+    reaper = threading.Thread(target=reap, daemon=True)
+    reaper.start()
+    return reaper
 
 
 def _canvas_frame(bench) -> list:
@@ -435,6 +474,9 @@ def run(path, rate: int = 44100, block: int = 512,
     # generated code — which is the segfault `Workbench.stop` already
     # carries a comment about, earned once before.
     quitting, starter = _begin(bench, session)
+    #: The previous instrument's teardown, still running — what the
+    #: quit path must join before the process may end.
+    retiring = None
 
     said, drawn = "", None
     wait, next_frame = IDLE, 0.0
@@ -449,12 +491,16 @@ def run(path, rate: int = 44100, block: int = 512,
             if wanted:
                 session.view.wanted = None
                 said, drawn = "", None
-                quitting.set()
-                starter.join(timeout=15.0)
-                try:
-                    bench.stop()
-                except Exception:                        # noqa: BLE001
-                    pass
+                # **The switch is immediate; the teardown is not the
+                # loop's.**  This used to join the old start right here
+                # — so opening away from a big file mid-compile froze
+                # the window for as long as its `clang` took, and the
+                # compile it was waiting for was for a file nobody was
+                # looking at (`fixme.md` F109).  `_retire` takes the
+                # join and the stop; the new instrument's own thread
+                # waits on it before asking for the sound card, so the
+                # card ordering that join was really buying is kept.
+                retiring = _retire(bench, starter, quitting)
                 bench = Workbench(Path(wanted), rate=rate, block=block,
                                   midi=midi, seed=seed)
                 editor.text = bench.source()
@@ -462,7 +508,7 @@ def run(path, rate: int = 44100, block: int = 512,
                 session = Session(bench=bench)
                 session.view = view
                 session.said.append(f"opened {Path(wanted).name}")
-                quitting, starter = _begin(bench, session)
+                quitting, starter = _begin(bench, session, after=retiring)
             stirred = False
             # **Gestures first, then the description.**  A command run
             # this tick should be visible in the status line this tick,
@@ -510,7 +556,16 @@ def run(path, rate: int = 44100, block: int = 512,
         # finishes and is stopped below, and one that has not reached it
         # stops itself.  Either way something stops the device, and this
         # returns only once that has happened.
+        #
+        # **Synchronously, and the retirement first.**  These waits are
+        # the one place they may not move off-thread: a daemon thread
+        # still inside a teardown when the process ends is the segfault.
+        # The current starter may itself be waiting on the retirement,
+        # so the retirement is joined first and the chain unwinds in
+        # order.
         quitting.set()
+        if retiring is not None:
+            retiring.join(timeout=15.0)
         starter.join(timeout=15.0)
         try:
             bench.stop()
