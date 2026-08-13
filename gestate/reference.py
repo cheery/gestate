@@ -621,15 +621,24 @@ def language_entries() -> list:
     `wait` in the editor found nothing, which is a poor answer about the
     most-used word in the language.
     """
+    # **Whether one is internal is `internals.py`'s fact, read here
+    # rather than restated** — `constSig`'s prose already said it and
+    # the flag did not, so `what`'s completion offered a name every
+    # compile refuses.  Imported at call time: `internals` reads this
+    # module's `LIBRARIES` at its own import.
+    from .internals import RENDERER_PRIVATE
+
     out = []
     for section, entries in PRIMITIVES:
         for name, type_, prose in entries:
+            plain = name.strip("()")
             out.append(Entry(
-                name=name.strip("()"),
+                name=plain,
                 kind="operator" if name.startswith("(") else "value",
                 signature=f"{name} : {type_}",
                 doc=[prose],
                 section=section,
+                internal=plain in RENDERER_PRIVATE,
                 library="Language",
             ))
     return out

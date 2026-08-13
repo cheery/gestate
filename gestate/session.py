@@ -867,6 +867,15 @@ class Session:
         for entry in _all_reference():
             if entry.name in seen:
                 continue
+            # **Not offered, still answered.**  A name a program cannot
+            # say — `constSig`, or anything below a library's `internal`
+            # marker — must not be proposed by a completion, which would
+            # be the list teaching a word the compiler then refuses.
+            # `what constSig` typed in full still answers, because "what
+            # is this thing my editor just showed me" is a fair question
+            # about machinery too (`_reference` keeps every entry).
+            if getattr(entry, "internal", False):
+                continue
             seen.add(entry.name)
             # **The kind travels with the name.**  A type is a different
             # sort of answer from a function — you reach for one to say

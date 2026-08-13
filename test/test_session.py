@@ -384,6 +384,19 @@ def test_the_palette_ranks_a_name_above_a_sentence():
 # ── What the vocabulary bought ───────────────────────────────────────────
 
 
+def test_the_completion_does_not_offer_what_a_program_cannot_say():
+    """`constSig` is `!`'s own node and naming it is refused
+    (`internals.RENDERER_PRIVATE`) — a completion offering it is the
+    list teaching a word the compiler then takes back.  Asked in full
+    it still answers, because *what is this thing my editor showed me*
+    stays a fair question about machinery.
+    """
+    s = session()
+    offered = {row[0] for row in s.names("everything")}
+    assert "constSig" not in offered
+    assert "constSig : a -> Sig a" in s.run("what", "constSig")
+
+
 def test_find_takes_text_and_goto_takes_a_name():
     """**Two commands, not one.**  Search matters most when you are
     looking for something that is *not* a name yet — a typo you are

@@ -81,6 +81,17 @@ def test_internal_marks_the_rest_of_the_file():
     assert not got["public"].internal and not got["Shape"].internal
 
 
+def test_the_renderers_private_names_are_marked_internal():
+    """`language_entries` reads `internals.RENDERER_PRIVATE` rather than
+    restating it — `constSig`'s prose said internal while its flag said
+    public, and the `what` completion believed the flag."""
+    from gestate.reference import language_entries
+
+    got = {e.name: e for e in language_entries()}
+    assert got["constSig"].internal
+    assert not got["ticks"].internal and not got["beat"].internal
+
+
 def test_a_definition_without_a_signature_is_not_a_second_entry():
     """An equation for a name that already has one is the same name, and a
     name the library declined to give a type is not part of what it
