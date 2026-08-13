@@ -1,0 +1,36 @@
+# A gestate editor session — replay it with
+#
+#     python -m gestate.sessionlog <this file>
+#
+#: editing /home/cheery/gestate/examples/audio/bottleneck.ges
+#
+# Each line is a command and what it answered.  The
+# answers are the diff: a replay that says something
+# else is the report.
+
+do
+    #! playing bottleneck.ges at 44100 Hz — no parameters
+    # 6 looks
+    ask template 0 Template "voice"        #= 1 row be4fe74133faf795
+    template "voices"                      #= inserted `voices`
+    # 13 looks
+    ask template 0 Template "voices"       #= 1 row be4fe74133faf795
+    template "voices"                      #= inserted `voices`
+    # +   1 Key := Key Int Int
+    # +   2 
+    # +   3 voices lead 4 sineVoice : Sig Float
+    # +   4 
+    # +   5 instance FromMIDI Key where
+    # +   6     noteOn ch p v = Just (Key p v)
+    # +   7 
+    # +   8 env : Adsr
+    # +   9 env = Adsr 0.01 0.25 0.6 0.3
+    # +  10 
+    # +  11 hzOfKey : Key -> Float
+    # +  12 hzOfKey q = case q of
+    # … and 8 more
+    edit "0:0:Key := Key Int Int\n\nvoices lead 4 sineVoice : Sig Float\n\ninstance FromMIDI Key where\n    noteOn ch p v = Just (Key p v)\n\nenv : Adsr\nenv = Adsr 0.01 0.25 0.6 0.3\n\nhzOfKey : Key -> Float\nhzOfKey q = case q of\n    Key k v -> keyHz k\n\nvelOfKey : Key -> Float\nvelOfKey q = case q of\n    Key k v -> toFloat v / 127.0\n\nsineVoice : Sig Gate -> Sig Key -> Sig Float\nsineVoice g s = sine (!hzOfKey s) * adsr env g * !velOfKey s" #= 20 lines changed
+    template "voices"                      #= kept `voices`
+    # 24 looks
+    ask transcript 0 Path "../../template-session.ges" #= 0 rows e4a6a0577479b2b4
+    transcript "../../template-session.ges" #= transcript: [Errno 13] Permission denied: '/home/template-session.ges'

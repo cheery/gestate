@@ -365,6 +365,12 @@ urgent, and they are written here so they survive the session.  The
   consideration before building: what says a file is plain, and how a
   person is told why the knobs and the play button went away, so the
   quiet mode never reads as breakage.
+- **The recording survives a file switch.**  Opening another file
+  builds a new `Session`, and the log restarts with it — Henri's
+  `its-good-now` transcript answered "nothing has happened yet" one
+  step after a switch, so the story that *led to* the switch is
+  exactly the part a reproduction loses.  The window outlives the
+  instrument; the recording should too.
 - **A transcript records the text it started from.**  A session on an
   unsaved `untitled.ges` replays against nothing — the recording names
   a file that never existed, and F115's transcript had to be replayed

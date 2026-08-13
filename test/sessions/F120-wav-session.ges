@@ -1,0 +1,12 @@
+# A gestate editor session — replay it with
+#
+#     python -m gestate.sessionlog <this file>
+#
+#: editing /home/cheery/gestate/blip.wav
+#
+# Each line is a command and what it answered.  The
+# answers are the diff: a replay that says something
+# else is the report.
+
+do
+    #! playing blip.wav at 44100 Hz — no parameters

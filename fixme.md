@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 123 entries, **109 are resolved**.  What is left:
+Of 124 entries, **109 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -47,6 +47,7 @@ Of 123 entries, **109 are resolved**.  What is left:
 | F121 | resolved | A template inserted while scrolled away appeared behind the list |
 | F122 | resolved | A typed path was walked twice — `transcript ../../x` landed in `/home/` |
 | F123 | resolved | A finished `open` re-runs from a different directory than its first run |
+| F124 | bug, open | The directory-watch tests flake under machine load |
 | F112 | bug, open | The file dialog's listing sometimes lags |
 | F113 | resolved | Undo and redo cross a file switch — one history for the session |
 | F114 | resolved | Copy and paste are not commands |
@@ -3236,7 +3237,8 @@ the old one*, inside a try: whatever still gets through, the old
 instrument plays on and the status says why, instead of the window
 dying over it.
 
-**The second face, from Henri's transcript**: his `blip.wav`
+**The second face, from Henri's transcript**
+(`test/sessions/F120-wav-session.ges`): his `blip.wav`
 "opened" anyway — because it never existed at the path the dialog
 resolved (`/home/cheery/gestate/blip.wav`; the real one lives in
 `examples/audio/`), so the *new-file* branch started a STARTER synth
@@ -3261,7 +3263,8 @@ the list, invisibly.
 the window passes the panel's `shadow_rows` while the list is open,
 so an ordered edit lands at the first row a person can actually see.
 
-**And the second half, from Henri's template transcript**: his
+**And the second half, from Henri's template transcript**
+(`test/sessions/F121-template-session.ges`): his
 template landed at row zero — `edit "0:0:…"` — where there is nothing
 to scroll past and `follow_past` saturates, which the first cut waved
 off with "the panel covers what it covers".  It was his actual usage.
@@ -3287,7 +3290,8 @@ what reads right.)
 
 ### F122. **[resolved]** A typed path was walked twice
 
-From the tail of Henri's template transcript (2026-08-13):
+From the tail of Henri's template transcript
+(`test/sessions/F121-template-session.ges`, 2026-08-13):
 `transcript "../../template-session.ges"` from a file in
 `examples/audio/` answered `[Errno 13] Permission denied:
 '/home/template-session.ges'` — three levels up instead of two.
@@ -3334,3 +3338,17 @@ the replay reproducing the very bug the specimen was recorded to
 show.  Replaying `test/sessions/F123-blip-session.ges` now reports
 exactly one moved answer: the second `open`, agreeing with the
 first.
+
+### F124. **[bug, open]** The directory-watch tests flake under machine load
+
+`test_a_file_that_arrives_shows_up_without_touching_the_query` and
+`test_the_cache_still_watches_the_directory_the_walk_reached` failed
+roughly ten times on 2026-08-13, every occurrence with a compiler or
+test run in parallel, and passed alone every single time.  Both tests
+sleep `Session.OUTSIDE_EVERY * 1.5` of wall-clock and then assert the
+listing noticed the world move, so the suspicion is the obvious one —
+a margin that load erodes — but ten observations of *which* tests and
+*when* is not yet one observation of *why*, and the fix should not be
+a bigger number chosen by hope.  Worth one session with the cache's
+clock in hand; until then, a red on either of these two under load is
+this entry, not a regression.
