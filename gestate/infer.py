@@ -780,8 +780,9 @@ def _apply_subst_env(env: dict[Name, Scheme], s: Subst) -> dict[Name, Scheme]:
 # Let
 # ---------------------------------------------------------------------------
 
-def _generalize_let(env, t: Type) -> Scheme:
-    """Generalize a `let` binding — except at a set type.
+def _generalize_let(env, t: Type, pending=(), s=None) -> Scheme:
+    """Generalize a `let` binding — except at a set type, and except over
+    a variable a class constraint still holds.
 
     Datafun is a monomorphic sublanguage: its operations are generated
     per concrete type, so a `let s = fix … in s` whose element type stays
@@ -789,10 +790,27 @@ def _generalize_let(env, t: Type) -> Scheme:
     lets the use site determine it, which is what the programmer meant.
     `spec/errata.md` D9 records the wider tension between §I.4.3's
     per-type generation and the rest of the language being polymorphic.
+
+    The constrained case is the monomorphism restriction, and here it is
+    a soundness condition rather than a taste: elaboration resolves each
+    method occurrence *once*, by its site, so a binding is only ever
+    handed one dictionary.  Quantifying `freq` in `let freq = 440.0 in
+    sine freq` left `Floating a` pointing at a variable no use site
+    could reach — the uses instantiated fresh copies, the original
+    defaulted to `Float`, and a `Sig Float` position was handed a plain
+    float (`fixme.md` F104).  Held monomorphic, the use site settles the
+    variable and the one dictionary is the right one.
     """
     if has_nontrivial_order(t):
         return scheme_mono(t)
-    return generalize(env, t)
+    constrained: set[int] = set()
+    for p in pending:
+        constrained |= free_vars(s.apply(p.type_) if s is not None
+                                 else p.type_)
+    sch = generalize(env, t)
+    if constrained & sch.vars:
+        return Scheme(frozenset(sch.vars - constrained), t, sch.constraints)
+    return sch
 
 
 def _infer_let(env, e, fresh, cons, classes, constraints_out):
@@ -815,7 +833,8 @@ def _infer_let(env, e, fresh, cons, classes, constraints_out):
         for n, d in e.defs:
             t, si = infer(let_env, d, fresh, cons, classes, constraints_out)
             s = si.compose(s)
-            let_env[n] = _generalize_let(let_env, s.apply(t))
+            let_env[n] = _generalize_let(let_env, s.apply(t),
+                                         constraints_out, s)
         body_t, si = infer(let_env, e.body, fresh, cons, classes, constraints_out)
         total_s = si.compose(s)
         _apply_subst_constraints(constraints_out, total_s)
@@ -841,7 +860,8 @@ def _check_let(env, e, expected, fresh, cons, classes, constraints_out):
         for n, d in e.defs:
             t, si = infer(let_env, d, fresh, cons, classes, constraints_out)
             s = si.compose(s)
-            let_env[n] = _generalize_let(let_env, s.apply(t))
+            let_env[n] = _generalize_let(let_env, s.apply(t),
+                                         constraints_out, s)
         total_s = s.compose(check(let_env, e.body, expected, fresh, cons, classes, constraints_out))
         _apply_subst_constraints(constraints_out, total_s)
         return total_s

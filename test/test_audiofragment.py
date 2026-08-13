@@ -834,3 +834,30 @@ def test_a_recursive_let_over_signals_is_refused():
     report = check("sound : Sig Float\n"
                    "sound = letrec s = 0.5 * s in s\n", rate=8000)
     assert not report
+
+
+def test_a_let_bound_literal_beside_a_signal_lifts_at_its_use(  # F104
+        ):
+    """`let freq = 440.0 in sine freq` — the binding is one expression,
+    elaborated once, so it can only be handed one dictionary.  Quantifying
+    its `Floating` variable handed it the *defaulted* one — `Floating
+    Float` — and a `Sig Float` position got a plain float (`fixme.md`
+    F104, and the reference engine died on it too).  Held monomorphic,
+    the use site settles the variable and the literal lifts as it does
+    written in place.
+    """
+    named = ("sound : Sig Float\n"
+             "sound = let freq = 440.0 "
+             "in sine freq * saw (freq * 1.005) * 0.01\n")
+    plain = ("sound : Sig Float\n"
+             "sound = sine 440.0 * saw (440.0 * 1.005) * 0.01\n")
+    got = _run(named)
+    assert got == _run(plain)
+    assert any(x != 0.0 for x in got), "silent — nothing is proven"
+
+
+def test_the_f104_specimen_is_in_the_fragment():
+    """The two lines Henri actually wrote, kept as they were refused."""
+    specimen = Path(__file__).resolve().parent / "sessions" / "F104-hello.ges"
+    report = check(specimen.read_text())
+    assert report, "\n".join(report.errors)

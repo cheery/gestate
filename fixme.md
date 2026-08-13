@@ -35,7 +35,6 @@ Of 108 entries, **88 are resolved**.  What is left:
 | F93 | deviates | A graph node's `clock` is set only on sources, not inherited |
 | F95 | fixed | The fragment admits tuples; the extractor now lays them out |
 | F103 | bug, open | The same file's canvas builds or fails typechecking, run to run |
-| F104 | bug, open | The fragment refuses `hello.ges`: a flat-instance method classified per name |
 | F105 | bug, open | `''' expects 1 dictionary argument(s), inference produced 17` as a user message |
 | F106 | bug, open | The drawn piano retriggers a held key (OS autorepeat) |
 | F107 | bug, open | Up/Down inside a palette argument runs the command |
@@ -2824,7 +2823,7 @@ stays open rather than wearing a plausible lock: `_FRONT_END` already
 covers the part a lock was proposed for, and a fix without a
 reproduction is a mask.
 
-### F104. **[bug, open]** The fragment classifies a specialised method per name, and refuses a program that uses it both ways
+### F104. **[resolved]** The fragment classifies a specialised method per name, and refuses a program that uses it both ways
 
 `test/sessions/F104-hello.ges` (2026-08-13, Henri's, two lines):
 
@@ -2843,6 +2842,26 @@ for the definitions `specialise.py` shares.  The shape of the fix is
 to admit flat-instance methods the way `PRIMITIVES` are admitted, or
 to classify per use; either way `F104-hello.ges` is a reasonable program
 and must compile.
+
+**Resolved 2026-08-13, and not where this entry pointed.**  The
+classification was the messenger: `__Floating_Float_fromFloat__`
+really was standing in a signal position, because inference had put
+it there.  `let freq = 440.0` generalized the binding over its
+`Floating` variable while the pending predicate kept naming the
+*original* variable — the uses instantiated fresh copies and pinned
+those to `Sig Float`, nothing ever reached the original, defaulting
+made it `Float`, and the one shared binding was elaborated with the
+wrong dictionary.  The reference engine died on the same program
+(`SigHead on non-NSig`), which is what said the defect sat upstream
+of the fragment; `audiograph.py` needed no change at all.  The fix is
+the monomorphism restriction, in `infer._generalize_let`: a variable
+a pending constraint mentions is not quantified, so the use site
+settles it.  Not Haskell nostalgia but a soundness condition of this
+elaborator — a binding is one expression, resolved once by its site,
+so it can only ever be handed one dictionary, and quantifying a
+constrained variable promises a per-use choice nothing downstream can
+deliver.  `test_audiofragment.py` holds the two-line specimen and a
+render parity against the written-out form.
 
 ### F105. **[bug, open]** An internal dictionary-count invariant surfaces as the user's error message
 
