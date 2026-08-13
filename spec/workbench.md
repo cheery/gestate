@@ -470,6 +470,69 @@ use-after-free waiting for a rebuild.
 
 ---
 
+## The piano
+
+The one piece of chrome that is also an instrument, and the seam that
+taught F101's lesson twice — so its contract is written here rather
+than living in one host's code.  `spec/commands.md` §"Performing" owns
+the argument that this is **not a mode**: `pianoOff`/`pianoOn`/
+`pianoStep` say what a played *note* does (goes nowhere; sounds; sounds
+and is written at the caret), and **focus** says where notes come from.
+What is below is the rest of the contract.
+
+**Two roads in, one meaning.**  A typed key crosses as `struck(char,
+code, on)`; a drawn key or a controller crosses as `note(midi, on)`.
+Which letter is which note is **the model's fact** (`Keyboard`'s
+tracker layout — `zsxd…` one octave, `q2w3…` the octave above), because
+a window that knew the mapping would be a second one to keep in step.
+The window sends what was pressed; the model says what it means.  Both
+roads meet at the same door every scheduled note goes through
+(`audiomidi.Notes.feed`): a note is the same thing whether a schedule
+or a hand decided it.
+
+**A release ends the note the press began.**  `struck` carries the
+physical keycode precisely so releases match presses: recompute the
+note from the character and an octave moved mid-hold releases the wrong
+one, and X11 delivers releases with an empty `char` often enough to
+matter.  The same rule is why `octave` lets go of everything it holds —
+the key that would release a carried note has just changed pitch.
+
+**Auto-repeat is not a second press.**  X11 streams presses while a key
+is held, and each one would be another note on a voice already
+sounding.  Each side swallows repeats at its own seam — the shell
+tracks which keycodes are down and the model refuses a `press` of a
+note already held — because either side alone leaves the other's
+callers exposed.  (F106 is the defect against this law.)
+
+**Losing the keyboard lets go of every key.**  Escape, a click into the
+text, and opening the list (`Ctrl-K` reaches past the piano because it
+holds Control) all hand the keyboard back — and each one releases
+whatever the piano was holding, because a release delivered to wherever
+focus went is a voice that is never handed back.
+
+**A stepped note is a text edit.**  It goes through `insert`, the same
+door as typing, so `spec/editor.md`'s rule holds with no special case:
+undo is text undo, the file is the one truth.  The written note ends
+with its separator, so two steps are two notes rather than one number
+growing digits.  (F108 is the defect against that sentence.)
+
+**Drawn honestly, or not at all.**  The band sits above the status line
+and takes its room from the document, never covering it; the label row
+is inside the band.  Two octaves of keys, black drawn over white — and
+hit-tested in drawing order, black first, so the answer agrees with
+what somebody sees.  A piano nobody is listening to is drawn dead, every
+key grey: a bank only takes a note if its payload has a `FromMIDI`
+instance *and* its switch is on, and neither is visible in the text, so
+a live-looking piano that plays nothing is an evening spent deciding
+whether the synth is broken.  A held key is drawn down and **says its
+MIDI number on the key**, grey, only while down — the note that is
+sounding is otherwise a fact you reconstruct by counting octaves.  The
+corner says what a played note would do, and when the piano has the
+keyboard it says so and shows it (`[the keys play]`, a lit strip),
+because a focus is only not a mode while you can see where it is.
+
+---
+
 ## Widgets, and the rule that keeps them honest
 
 `spec/editor.md` is the design and stands unchanged.  Its rule is the

@@ -351,11 +351,8 @@ argued above and none of them changed.
 
 Noticed by Henri playing the workbench; each is small, none is
 urgent, and they are written here so they survive the session.  The
-*bugs* found the same day are `fixme.md` F104–F108.
+*bugs* found the same day are `fixme.md` F104–F114.
 
-- **The pressed piano key's number, shown on the key** — gray text
-  over the key while it is down.  The keyboard already knows `held`;
-  this is a `Run` in the key's rectangle.
 - **A `voices` bank that is layered away says so in the margin.**  A
   score that includes `voices.name` while that layer is currently not
   sounding leaves a person playing keys and wondering why nothing
@@ -363,6 +360,17 @@ urgent, and they are written here so they survive the session.  The
   something like a dimmed row or a word saying *layered away*.  The
   margin already draws per-bank state (`held`, `listening`), so this
   is a fact crossing the same wire.
+- **A `.txt` file could take the syntax off and not compile** — the
+  editor as a plain-text editor when the file is not a program.  Needs
+  consideration before building: what says a file is plain, and how a
+  person is told why the knobs and the play button went away, so the
+  quiet mode never reads as breakage.
+- **A transcript records the text it started from.**  A session on an
+  unsaved `untitled.ges` replays against nothing — the recording names
+  a file that never existed, and F115's transcript had to be replayed
+  against a reconstructed starter.  The base text (or its hash, with
+  the text when the file is unwritten) belongs in the transcript
+  header; `--against` stays for the case where the file moved.
 
 ### A probe on a signal — Henri's, and the one to try in the editor
 

@@ -1,0 +1,50 @@
+notes : Int -> Int
+notes 0 = 65
+notes 1 = 57
+notes 2 = 75
+notes _ = 50
+
+flowFreq : Float -> Float
+flowFreq t = keyHz (notes (floor (t * 5 % 4)))
+
+freq : Sig Float
+freq = !flowFreq elapsed
+
+sound : Sig Float
+sound = sine freq * saw (freq*1.005) * 0.03
+      + lead * 0.1
+
+bpm : Int
+bpm = 48
+
+score : [: Void :]
+score = do
+    x <- '"question" ++ '"answer" ++ '"question"
+    n <- sections x
+    voices.lead (Key n 127)
+
+sections : String -> [: Int :]
+sections "question" = '69 ++ '71 ++ '69 |* 2
+sections _          = '69 ++ '67 ++ '65 |* 2
+
+
+Key := Key Int Int
+
+voices lead 4 sineVoice : Sig Float
+
+instance FromMIDI Key where
+    noteOn ch p v = Just (Key p v)
+
+env : Adsr
+env = Adsr 0.01 0.25 0.6 0.3
+
+hzOfKey : Key -> Float
+hzOfKey q = case q of
+    Key k v -> keyHz k
+
+velOfKey : Key -> Float
+velOfKey q = case q of
+    Key k v -> toFloat v / 127.0
+
+sineVoice : Sig Gate -> Sig Key -> Sig Float
+sineVoice g s = sine (!hzOfKey s) * adsr env g * !velOfKey s

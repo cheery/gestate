@@ -1,0 +1,14 @@
+# A gestate editor session — replay it with
+#
+#     python -m gestate.sessionlog <this file>
+#
+#: editing test/sessions/F103-untitled.ges
+#
+# Each line is a command and what it answered.  The
+# answers are the diff: a replay that says something
+# else is the report.
+
+do
+    canvas                                 #= opening the canvas — it will appear when it builds
+    #! playing untitled.ges at 44100 Hz — no parameters
+    source                                 #= source

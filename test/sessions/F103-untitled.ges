@@ -1,0 +1,59 @@
+# A new synth.
+#
+# `sound : Sig Float` is what the engine plays — samples in -1.0 .. 1.0,
+# one per instant.  Everything else in this file is yours.
+#
+# `doc/ref/index.md` is what is in scope; the [ref] button top right is
+# the same pages in here.
+
+bpm : Int
+bpm = 125
+
+sound : Sig Float
+sound = saw (440.0 + saw 20 * 220) * 0.01
+      * perc 5 (gateOn (!(x => x % 1 < 0.5) beat))
+      + white 0 * 0.05
+      * perc 25 (gateOn (!(x => x % 0.25 < 0.1) beat))
+      + lead * 0.3
+
+score : [: Void :]
+score = cycle ('67 ++ '74 ++ '65 ++ '63) |* 4
+        >>= voices.lead @ flip Key 50
+
+Key := Key Int Int
+
+voices lead 4 sineVoice : Sig Float
+
+instance FromMIDI Key where
+    noteOn ch p v = Just (Key p v)
+
+env : Adsr
+env = Adsr 0.01 0.25 0.6 0.3
+
+hzOfKey : Key -> Float
+hzOfKey q = case q of
+    Key k v -> keyHz k
+
+velOfKey : Key -> Float
+velOfKey q = case q of
+    Key k v -> toFloat v / 127.0
+
+sineVoice : Sig Gate -> Sig Key -> Sig Float
+sineVoice g s = sine (!hzOfKey s) * adsr env g * !velOfKey s
+
+
+# The canvas runs on the *event* clock, not the sample clock, so `elapsed`
+# never moves here — count frames instead.
+frames : Sig Float
+frames = scan (n e => n + 1.0) 0.0 events
+
+move s = moveXY (!(n => floor (sineOf ((n + s) / 120.0) * 200.0)) frames)
+                (!(n => floor (sineOf ((n + s) / 75.0) * 200.0)) frames)
+
+substrate : Sig Sub
+substrate = move  0 (label 500 55 "foo" (!RGB 255 128 128))
+            `over`
+            move 10 (label 500 55 "bar" (!RGB 128 255 128))
+            `over`
+            move 20 (label 500 55 "guux" (!RGB 128 128 255))
+            

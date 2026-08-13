@@ -1,0 +1,14 @@
+# A gestate editor session — replay it with
+#
+#     python -m gestate.sessionlog <this file>
+#
+#: editing test/sessions/F103-untitled.ges
+#
+# Each line is a command and what it answered.  The
+# answers are the diff: a replay that says something
+# else is the report.
+
+do
+    canvas                                 #= opening the canvas — it will appear when it builds
+    #! the canvas did not build: Signature variable 'c' is rigid: it stands for whatever type the caller chooses, so the body may not use it as 'b -> c' (at prelude line 7:13–prelude line 7:19)
+    #! playing untitled.ges at 44100 Hz — no parameters

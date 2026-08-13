@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 108 entries, **88 are resolved**.  What is left:
+Of 115 entries, **93 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -40,6 +40,9 @@ Of 108 entries, **88 are resolved**.  What is left:
 | F109 | bug, open | Opening a file joins the previous start in the gesture loop — no cancel, late switch |
 | F110 | mostly resolved | Zoom wedge: the mirror only synced after input — tell() every poll now |
 | F111 | bug, open | Space in `transcript`'s path box erases the proposed path |
+| F112 | bug, open | The file dialog's listing sometimes lags |
+| F113 | bug, open | Undo and redo cross a file switch — one history for the session |
+| F114 | bug, open | Copy and paste are not commands |
 | F115 | resolved | A bank added by an audition could not be listened to — allocators followed the disk |
 
 Several of these are **closed rather than pending** under
@@ -2785,13 +2788,15 @@ fixture holding a green light.
 
 ### F103. **[bug, open]** The same file's canvas builds or fails typechecking, run to run
 
-Two launches of the editor on the same `untitled.ges`, minutes apart,
+Two launches of the editor on the same `untitled.ges` (kept as
+`test/sessions/F103-untitled.ges`), minutes apart,
 from the same desktop icon.  One: the canvas builds and draws.  The
 other: `the canvas did not build: Signature variable 'c' is rigid: it
 stands for whatever type the caller chooses, so the body may not use it
 as 'b -> c' (at prelude line 7:13–7:19)` — which is `flip`'s own
 signature, in text that does not change between runs.  Evidence:
-`untitled-session.ges` / `untitled-session-2.ges` as recorded
+`test/sessions/F103-untitled-session.ges` /
+`test/sessions/F103-untitled-session-2.ges` as recorded
 2026-08-12 evening — the first thing the transcript's new `#!` notes
 ever caught, on their first day.
 
@@ -2864,8 +2869,8 @@ render parity against the written-out form.
 
 ### F105. **[bug, open]** An internal dictionary-count invariant surfaces as the user's error message
 
-`hello2.ges` (same day, a `voices` bank + `FromMIDI` instance + an
-`Adsr`): the whole complaint is
+`test/sessions/F105-hello2.ges` (same day, a `voices` bank +
+`FromMIDI` instance + an `Adsr`): the whole complaint is
 
     ''' expects 1 dictionary argument(s), inference produced 17
 
@@ -2953,6 +2958,32 @@ filled instead of typing a space.  Whatever the palette does with
 space in an argument query — separator, choice step, or a
 first-keystroke replace of proposed text — it must not eat a path
 somebody was about to accept.
+
+### F112. **[bug, open]** The file dialog's listing sometimes lags
+
+Reported from use (2026-08-13), unmeasured: the dialog's listing
+appears a beat late sometimes.  The instrument for this class of
+report exists — `tools/lagcheck.py` drives the real window through
+XTEST and reads the screen — and pointing it at the dialog is how
+"appears to" becomes a number before anything is changed.
+
+### F113. **[bug, open]** Undo and redo cross a file switch
+
+One undo history for the session, not one per file: open a second
+file, press undo, and the edit that unwinds is the *previous* file's.
+Whether a per-file history is wanted, or crossing is refused, is
+Henri's to answer — what is certain is that an undo landing in text
+the window no longer shows cannot be what the key meant.  `spec/
+editor.md` requires text undo and says nothing about file boundaries,
+so the spec needs the sentence too, whichever way it goes.
+
+### F114. **[bug, open]** Copy and paste are not commands
+
+The command list (`gestate/command.ges`) has no copy and no paste —
+forgotten, not declined.  The vocabulary rule makes the fix's shape
+plain: the capability appears in `command.ges` or it does not exist,
+so this is two declarations and their gesture wiring, plus the
+clipboard seam the shell owns.
 
 ### F115. **[resolved]** A bank added by an audition could not be listened to
 
