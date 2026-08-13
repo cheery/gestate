@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 121 entries, **107 are resolved**.  What is left:
+Of 122 entries, **108 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -45,6 +45,7 @@ Of 121 entries, **107 are resolved**.  What is left:
 | F119 | resolved | The caret anchored the scroll — the view snapped back on every model description |
 | F120 | resolved | Opening a `.wav` quit the whole editor |
 | F121 | resolved | A template inserted while scrolled away appeared behind the list |
+| F122 | resolved | A typed path was walked twice — `transcript ../../x` landed in `/home/` |
 | F112 | bug, open | The file dialog's listing sometimes lags |
 | F113 | resolved | Undo and redo cross a file switch — one history for the session |
 | F114 | resolved | Copy and paste are not commands |
@@ -3270,3 +3271,19 @@ drawing, hit-testing (`row_at`, `covers`) and the shadow all read —
 today's one-arithmetic refactor is what made the flip a dozen lines —
 and `shadow_rows` answers zero while low, so `follow_past` and the
 flip cannot fight over the same caret.
+
+### F122. **[resolved]** A typed path was walked twice
+
+From the tail of Henri's template transcript (2026-08-13):
+`transcript "../../template-session.ges"` from a file in
+`examples/audio/` answered `[Errno 13] Permission denied:
+'/home/template-session.ges'` — three levels up instead of two.
+
+`_where` prepends the question's walked directory to the answer,
+which is right for a **picked row** — rows carry names relative to
+the walk — and wrong for a **typed query**, which is the whole path
+already: the walk in the query and the walk prepended compose, and
+`../..` became `../../../..`.  The tell is exact: an answer that *is*
+the query was typed, an answer that differs was picked.  `_where` now
+skips the walk for the former, and the transcript's own last step is
+the regression test's shape.

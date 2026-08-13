@@ -1994,6 +1994,24 @@ def test_picking_open_says_unsaved_at_once(tmp_path):
     assert not any(o.startswith("warn") for o in ed.orders)
 
 
+def test_a_typed_path_is_not_walked_twice(tmp_path):
+    """fixme.md F122, from Henri's transcript: `transcript
+    ../../x.ges` typed into a box whose question had walked to
+    `examples/audio/` resolved the `../..` twice and landed in
+    `/home/`.  A picked row is bare and needs the walk; a typed query
+    is whole and must not get it."""
+    it, room = _looking(tmp_path)
+    deeper = room / "deeper"
+    it.bench.path = deeper / "d.ges"
+    # The question has walked nowhere; the typed answer carries its
+    # own way up.
+    it.asking = ("transcript", 0, "../up.ges")
+    assert it._where("../up.ges") == (room / "up.ges").resolve()
+    # A picked row is still resolved against the walk.
+    it.asking = ("open", 0, "../")
+    assert it._where("one.ges") == (room / "one.ges").resolve()
+
+
 def test_opening_a_file_that_is_not_text_is_a_sentence(tmp_path):
     """A `.wav` used to quit the whole editor: the switch read the
     bytes in the gesture loop and the decode raised.  Refused here,

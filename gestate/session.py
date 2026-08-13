@@ -1021,7 +1021,16 @@ class Session:
         here = _Path(getattr(self.bench, "path", ".")).resolve().parent
         walked = ""
         if self.asking and len(self.asking) > 2:
-            walked = str(self.asking[2]).rpartition("/")[0]
+            # **A picked row is bare; a typed query is whole.**  The
+            # rows of a listing carry names relative to the walk, so
+            # the walk is prepended — but an answer that *is* the query
+            # (typed, accepted with no row) already carries its own
+            # path, and prepending walked it twice:
+            # `transcript ../../x.ges` from `examples/audio/` resolved
+            # to `/home/x.ges` and died on permissions (F122).
+            q = str(self.asking[2])
+            if path != q:
+                walked = q.rpartition("/")[0]
         return (here / walked / path).resolve()
 
     def _listing(self, query: str, free: bool = False,
