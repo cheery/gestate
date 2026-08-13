@@ -5384,3 +5384,47 @@ callers are `test_gui.py`'s headless `scenes`.  That is F101's shape
 question of whether the raw-event canvas belongs to the language at
 all now that the built vocabulary is attachments.  Not decided here;
 recorded so it is a decision rather than a discovery.
+
+## The day the transcripts earned their keep
+
+2026-08-13, one day, and the longest entry-per-hour stretch this
+project has had: `fixme.md` F104 through F127 were filed and all but
+three resolved, nearly every one found by Henri playing the workbench
+and pinned by a session transcript.  The full stories are in the
+entries; what belongs here is what the day *taught*.
+
+**The transcript is the oracle the host layer was missing** — in
+practice, if not in the spec's sense.  F115 was diagnosed from a `#!`
+note two lines above the failing answer; F122 was caught in the
+margins of a transcript recorded to verify F121; F126 — a real
+crossfade crash in the engine — fell out of a jog session recorded to
+test a margin word.  The pattern held so well that `doc/manual.md`
+grew §11 teaching users to reach for `transcript` first, and the
+replay (`gestate.sessionlog`) became the regression test for two of
+the fixes.  Its known limits are recorded where they bit: the
+recording restarts on a file switch (the steps that *led* to a switch
+are exactly what a reproduction loses), it cannot drive bank switches
+(no live instrument under replay), and it cannot see the margin.
+
+**Channel counts stopped being a restart-shaped hole.**  The F109
+retirement machinery — the switch is immediate, the teardown is a
+reaper thread, the new start waits for the sound card off-loop — is
+also what closed the old roadmap item about changing the channel
+count in a running instrument: the driver restarts when the output
+frame or the control block outgrows the player, and F126 fixed the
+crossfade for the shrinking case (the leaving engine's node ids now
+translate by channel name, the identity a control actually has).
+
+**The margin learned two words for silence**, both Henri's:
+"disconnected" (the graph's answer beside the text's declaration —
+the knob-cross split, applied to banks) and "away" (a scored line
+MIDI has displaced).  The extractor's own pruning is what makes the
+first honest: a bank `sound` does not reach has no channels in the
+graph at all.
+
+**And the editor got its exterior**: `WM_CLASS=gestate`, a drawn
+`_NET_WM_ICON`, and `--desktop` writing the entry GNOME needs —
+plus detectable autorepeat, the undo barrier with the unsaved-changes
+warning, the equator-and-span panel flip, and the say-when-you-are-
+done family.  `spec/workbench.md` was rewritten the same day, every
+law with the defect that paid for it as its receipt.

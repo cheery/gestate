@@ -244,21 +244,18 @@ their own headings.  What is below is what is *not* done.
   obvious oracle for "a key was pressed and a sound came out"; finding one
   is worth more than more care.
 
-  **This got worse before it got better, and there is now a first
-  instrument.**  The workbench's twelve defects were every one of them
+  **This got worse before it got better, and there are now two
+  instruments.**  The workbench's twelve defects were every one of them
   found by a person using it while two thousand tests passed
-  (`journal.md`).  `tools/lagcheck.py` is the beginning of an answer: it
-  drives the real window with real X events through XTEST and reads the
-  result off the screen, which is the only oracle that has ever caught
-  any of this.  Widening it — a played key against the sound that comes
-  out — is the shape of the missing tool, and it is not a feature, which
-  is why it keeps losing to features.
-- **Changing the channel count in a running instrument.**  Stereo output is
-  done; this is the part that is not.  The driver's buffer and the player
-  process are fixed when playback starts, so an edit from mono to stereo
-  installs a graph the driver is still filling one channel at a time.
-  Stage 5 migrates state by shape and has nothing to say about the buffer
-  around it.
+  (`journal.md`).  `tools/lagcheck.py` drives the real window with real
+  X events through XTEST and reads the result off the screen;
+  `tools/dialoglag.py` reads the window's own `GESTATE_EDITOR_TIME`
+  stopwatch the same way.  And **the session transcript became the
+  working oracle in practice**: 2026-08-13's two dozen defects were
+  nearly all pinned by one (`journal.md` §"The day the transcripts
+  earned their keep").  What is still missing is the *audio* half — a
+  played key against the sound that comes out — and it is not a
+  feature, which is why it keeps losing to features.
 - **Three comments standing on a dead constraint.**  F95 is fixed, so
   `signal.ges`'s `Both` (`signal.ges:56`), a `voices` bank's generated
   `Part` records, and `audio.ges`'s `LowpassIn` (`audio.ges:302` — "a zip
@@ -351,7 +348,8 @@ argued above and none of them changed.
 
 Noticed by Henri playing the workbench; each is small, none is
 urgent, and they are written here so they survive the session.  The
-*bugs* found the same day are `fixme.md` F104–F114.
+*bugs* found the same days are `fixme.md` F104–F127, all but three
+resolved the day they were filed.
 
 - **A `.txt` file could take the syntax off and not compile** — the
   editor as a plain-text editor when the file is not a program.  Needs
