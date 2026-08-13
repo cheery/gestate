@@ -2905,7 +2905,7 @@ loop.  True cancellation of a compile in flight is a bigger question
 ### F110. **[mostly resolved]** The zoom could wedge — the mirror only synced after input
 
 Reported 2026-08-13, found with the zoom buttons; the transcript
-(`hello-session-zoomOut-stuck.ges`) showed the model's mirror twelve
+(`test/sessions/F110-zoomOut-stuck.ges`) showed the model's mirror twelve
 rungs up a **nine**-rung ladder, answering `smaller` twelve times
 while the window sat at the largest.
 

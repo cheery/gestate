@@ -1,0 +1,61 @@
+# test/sessions/ — transcripts that convicted a defect.
+#
+# Each file here is evidence, not an assertion: the session as it was
+# recorded, kept under the F-number of the defect it exposed, so the
+# fixme.md citation resolves and the next investigator replays the
+# original rather than reconstructing it from a description.  A
+# replay is EXPECTED to diff once the defect is fixed — the diff is
+# the point.  New friends arrive named `F<number>-<what-happened>.ges`.
+#
+# F110: the zoom wedged.  This transcript shows the model's mirror
+# answering "smaller" twelve times on a NINE-rung ladder while the
+# window sat at the largest — the fact that broke the case open
+# (recorded 2026-08-13; root cause and fix in fixme.md F110).
+#
+# A gestate editor session — replay it with
+#
+#     python -m gestate.sessionlog <this file>
+#
+#: editing /home/cheery/gestate/hello.ges
+#
+# Each line is a command and what it answered.  The
+# answers are the diff: a replay that says something
+# else is the report.
+
+do
+    zoomOut                                #= smaller
+    zoomOut                                #= smaller
+    zoomOut                                #= smaller
+    zoomOut                                #= smaller
+    zoomOut                                #= smaller
+    zoomOut                                #= smaller
+    zoomOut                                #= smaller
+    zoomOut                                #= smaller
+    zoomOut                                #= smaller
+    zoomOut                                #= smaller
+    zoomOut                                #= smaller
+    zoomOut                                #= smaller
+    zoomOut                                #= as small as it goes
+    zoomOut                                #= as small as it goes
+    zoomOut                                #= as small as it goes
+    zoomOut                                #= as small as it goes
+    zoomOut                                #= as small as it goes
+    zoomOut                                #= as small as it goes
+    zoomOut                                #= as small as it goes
+    zoomOut                                #= as small as it goes
+    zoomOut                                #= as small as it goes
+    zoomOut                                #= as small as it goes
+    zoomOut                                #= as small as it goes
+    zoomOut                                #= as small as it goes
+    zoomOut                                #= as small as it goes
+    zoomOut                                #= as small as it goes
+    zoomOut                                #= as small as it goes
+    zoomOut                                #= as small as it goes
+    zoomOut                                #= as small as it goes
+    # 18 looks
+    ask transcript 0 Path "hello-zoomOut"  #= 0 rows e4a6a0577479b2b4
+    transcript "hello-zoomOut"             #= wrote hello-zoomOut — 29 steps
+    # 8 looks
+    ask transcript 0 Path ""               #= 34 rows 6710eba6361c1c6b
+    transcript "hello-session.ges"         #= wrote hello-session.ges — 31 steps
+    transcript "hello-session.ges"         #= wrote hello-session.ges — 33 steps
