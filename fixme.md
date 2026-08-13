@@ -19,7 +19,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 105 entries, **88 are resolved**.  What is left:
+Of 106 entries, **88 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -40,6 +40,7 @@ Of 105 entries, **88 are resolved**.  What is left:
 | F106 | bug, open | The drawn piano retriggers a held key (OS autorepeat) |
 | F107 | bug, open | Up/Down inside a palette argument runs the command |
 | F108 | bug, open | `pianoStep` inserts `50` with no trailing separator |
+| F109 | bug, open | Opening a file joins the previous start in the gesture loop — no cancel, late switch |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -2877,3 +2878,24 @@ Step mode inserts `50` where it should insert `50 ` — two steps write
 `5050`, which is one wrong number rather than two right ones.  The
 insert should carry the trailing space (or whatever separator the
 surrounding text calls for).
+
+### F109. **[bug, open]** Opening a file waits for the previous file's start instead of cancelling it
+
+Reported from use, 2026-08-13 (and made likelier the same day: `open`
+on a fresh name now starts a new file, so opening *away* from a big
+file mid-compile is an ordinary move).  `workbench.run`'s loop, on a
+`wanted` file, does `quitting.set(); starter.join(timeout=15.0)` —
+**a synchronous join in the gesture loop**, so the window answers
+nothing until the previous instrument's `start` finishes its `clang`
+and its sound-card open; the switch that should be immediate arrives
+seconds late.  And `quitting` is only *consulted* after `start`
+returns, so nothing in flight is truly cancelled — the old compile
+runs to completion for a file nobody is looking at.
+
+The fix's shape: switch the window at once, and hand the old
+`(bench, starter, quitting)` to a reaper that stops the instrument
+whenever its start does return — which is exactly the contract
+`_begin`'s `quitting` flag already implements, minus the join in the
+loop.  True cancellation of a compile in flight is a bigger question
+(the subprocess could be killed; the Python half cannot), but the
+*felt* bug is the join, not the wasted compile.

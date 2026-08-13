@@ -284,7 +284,8 @@ def test_without_a_window_the_window_commands_say_so():
     assert s.run("redo") == "nothing to redo"
     assert s.run("find", "sine") == "no `sine`"
     assert s.run("zoomIn") == "as big as it goes"
-    assert s.run("canvas") == "this file draws nothing"
+    assert s.run("canvas") == ("this file draws nothing — a canvas is a "
+            "`substrate : Sig Sub` declaration")
 
 
 def test_the_view_owns_the_text_and_the_undo():
@@ -1765,7 +1766,8 @@ def test_canvas_answers_about_three_different_things():
     it.view = _Showing()
     it.bench.substrate = None
     it.bench.source = lambda: "sound : Sig Float\n"
-    assert it.run("canvas") == "this file draws nothing"
+    assert it.run("canvas") == ("this file draws nothing — a canvas is a "
+            "`substrate : Sig Sub` declaration")
     assert it.view.showing == "source", "and it does not switch to nothing"
 
     # Declared, not built yet — `start` compiles it on its own thread.
@@ -1900,7 +1902,21 @@ def test_opening_a_file_asks_the_window_for_it(tmp_path):
     it.view = win
     assert it.run("open", "two.ges") == "opened two.ges"
     assert win.wanted == str(room / "two.ges")
-    assert "no file" in it.run("open", "nope.ges")
+
+
+def test_opening_a_name_nobody_has_used_starts_a_fresh_file(tmp_path):
+    """`open notpresent.ges` used to answer `no file` — but a name
+    nobody has used is a file being started, and the workbench has
+    known that shape since the starter text: a `Workbench` on a missing
+    path opens with `STARTER` and the first save creates the file.  The
+    sentence says which of the two happened, so a typo of an existing
+    name is at least visible as a fresh file."""
+    it, room = _looking(tmp_path)
+    win, _ed = a_window()
+    it.view = win
+    assert it.run("open", "nope.ges") == "new file nope.ges — saving creates it"
+    assert win.wanted == str(room / "nope.ges")
+    assert not (room / "nope.ges").exists(), "opening must not touch disk"
 
 
 def test_steal_greys_what_is_taken_and_refuses_it(tmp_path):

@@ -1633,7 +1633,17 @@ class Session:
             self.asking = ("open", 0, path.rstrip("/") + "/")
             return f"{want.name or want}/"
         if not want.exists():
-            return f"no file `{path}`"
+            # **A name nobody has used is a file being started, not a
+            # mistake.**  The workbench has known this shape since the
+            # starter text: a `Workbench` on a missing path opens with
+            # `STARTER` and the first save creates the file, parent
+            # directories included — so refusing here was the one place
+            # the editor still treated a new name as an error.  The
+            # sentence says which of the two happened, so a typo of an
+            # existing name is at least *visible* as a fresh file.
+            return (f"new file {want.name} — saving creates it"
+                    if self.view.open(str(want))
+                    else "this window cannot open another file yet")
         return (f"opened {want.name}" if self.view.open(str(want))
                 else "this window cannot open another file yet")
 
@@ -2249,7 +2259,10 @@ class Session:
         to look for a bug in a program that is merely still compiling.
         """
         if not _draws(self.bench):
-            return "this file draws nothing"
+            # And how one would: the declaration is the whole of it
+            # (`spec/substrate.md` — a canvas is a value).
+            return ("this file draws nothing — a canvas is a "
+                    "`substrate : Sig Sub` declaration")
         if not self.view.show("canvas"):
             return "this window shows the source only"
         return ("canvas" if getattr(self.bench, "substrate", None) is not None
