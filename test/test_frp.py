@@ -80,20 +80,20 @@ def test_delay_is_universal_and_a_tail_is_existential():
     the reactive driver had a `ticked` case for `delay` purely to make it
     run.  There is no ⃝∀ → ⃝∃ coercion; `<@>` is the only bridge.
     """
-    with pytest.raises(UnifyError, match="expected 'ExL', got 'FaL'"):
+    with pytest.raises(UnifyError, match=r"expected ExL[\s\S]*got FaL"):
         compile("main : Sig Int\nmain = gfix self => 0 ::: delay self\n")
 
 
 def test_ap_ex_requires_a_universal_function():
     """`5 : ⃝∀(A→B) → ⃝∃A → ⃝∃B` — the function side may not be ⃝∃."""
-    with pytest.raises(UnifyError, match="expected 'FaL', got 'ExL'"):
+    with pytest.raises(UnifyError, match=r"expected FaL[\s\S]*got ExL"):
         compile("c : Chan Int\nc = chan\n"
                 "main : ExL Int\nmain = wait c <@> wait c\n")
 
 
 def test_ap_fa_stays_universal():
     """`⊛` keeps both sides at ⃝∀, so its result is not a tail either."""
-    with pytest.raises(UnifyError, match="expected 'ExL', got 'FaL'"):
+    with pytest.raises(UnifyError, match=r"expected ExL[\s\S]*got FaL"):
         compile("main : Sig Int\n"
                 "main = 0 ::: (delay (x => x) <*> delay (1 ::: never))\n")
 

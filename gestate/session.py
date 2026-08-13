@@ -714,6 +714,9 @@ class Detached:
     def close_list(self) -> bool:
         return False
 
+    def open(self, _path: str) -> bool:
+        return False
+
     def caret(self) -> int:
         return 0
 
