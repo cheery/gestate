@@ -381,10 +381,22 @@ impl EditorWindow {
         // "in".
         #[cfg(target_os = "linux")]
         {
-            use raw_window_handle::{HasDisplayHandle, RawDisplayHandle};
+            use raw_window_handle::{HasDisplayHandle, RawDisplayHandle,
+                                    RawWindowHandle};
             let said = match ctx.display_handle().map(|d| d.as_raw()) {
                 Ok(RawDisplayHandle::Xlib(x)) => match x.display {
                     Some(d) => {
+                        // The icon rides the same display: the window
+                        // id is in the window handle, and a taskbar
+                        // reads `_NET_WM_ICON` off the pair.
+                        if let Ok(wh) = ctx.window_handle() {
+                            if let RawWindowHandle::Xlib(w) = wh.as_raw() {
+                                unsafe {
+                                    window_icon::set(d.as_ptr(),
+                                                     w.window as _);
+                                }
+                            }
+                        }
                         if unsafe { detectable_autorepeat::enable(d.as_ptr()) }
                         {
                             "on"
@@ -1707,6 +1719,93 @@ pub const BACKGROUND: Colour = view::BG;
 /// and why it costs nothing anywhere else: a held arrow in the text
 /// still repeats, because repeats still arrive — only the fake
 /// releases stop.
+/// The window's icon — drawn, not shipped.
+///
+/// A sine in the caret's blue on the editor's own ground, generated at
+/// three sizes and set as `_NET_WM_ICON`, which is what a taskbar and
+/// an alt-tab read.  Drawn in code because an asset is a file that can
+/// go missing and a decoder is a dependency, while a sine is eight
+/// lines — and because the palette constants are right here, so the
+/// icon and the window cannot drift apart.
+#[cfg(target_os = "linux")]
+mod window_icon {
+    use std::os::raw::{c_char, c_int, c_ulong, c_void};
+
+    #[link(name = "X11")]
+    extern "C" {
+        fn XInternAtom(d: *mut c_void, name: *const c_char,
+                       only_if_exists: c_int) -> c_ulong;
+        fn XChangeProperty(d: *mut c_void, w: c_ulong, prop: c_ulong,
+                           kind: c_ulong, format: c_int, mode: c_int,
+                           data: *const u8, n: c_int) -> c_int;
+        fn XFlush(d: *mut c_void) -> c_int;
+    }
+
+    /// One size, as `_NET_WM_ICON` wants it: width, height, then ARGB
+    /// pixels — each packed in a C `long`, because that is what X11's
+    /// format-32 property data means on a 64-bit machine.
+    fn drawn(side: usize) -> Vec<c_ulong> {
+        let s = side as f64;
+        let mut out = Vec::with_capacity(2 + side * side);
+        out.push(side as c_ulong);
+        out.push(side as c_ulong);
+        for y in 0..side {
+            for x in 0..side {
+                let (fx, fy) = (x as f64 + 0.5, y as f64 + 0.5);
+                // Rounded corners: transparent outside the corner
+                // radius, so the icon reads as a tile and not a chip.
+                let r = s * 0.2;
+                let (cx, cy) = (fx.clamp(r, s - r), fy.clamp(r, s - r));
+                if ((fx - cx).powi(2) + (fy - cy).powi(2)).sqrt() > r {
+                    out.push(0);
+                    continue;
+                }
+                // One period of a sine, `CARET` blue on `BG`.
+                let t = (fx / s) * std::f64::consts::TAU;
+                let mid = s * 0.5 - t.sin() * s * 0.26;
+                let argb: u32 = if (fy - mid).abs() < (s * 0.08).max(1.0) {
+                    0xff5c_a8d8
+                } else {
+                    0xff14_161a
+                };
+                out.push(argb as c_ulong);
+            }
+        }
+        out
+    }
+
+    pub unsafe fn set(display: *mut c_void, window: c_ulong) {
+        let mut data: Vec<c_ulong> = Vec::new();
+        for side in [16usize, 32, 48] {
+            data.extend(drawn(side));
+        }
+        let atom = unsafe {
+            XInternAtom(display, b"_NET_WM_ICON\0".as_ptr().cast(), 0)
+        };
+        const XA_CARDINAL: c_ulong = 6;
+        const XA_STRING: c_ulong = 31;
+        const PROP_MODE_REPLACE: c_int = 0;
+        unsafe {
+            XChangeProperty(display, window, atom, XA_CARDINAL, 32,
+                            PROP_MODE_REPLACE, data.as_ptr().cast(),
+                            data.len() as c_int);
+            // **`WM_CLASS`, which baseview never sets.**  It is how a
+            // desktop matches a window to its `.desktop` file — GNOME's
+            // dock ignores `_NET_WM_ICON` and shows a gear for a window
+            // it cannot name — so without this line the icon above is
+            // only ever seen by alt-tab.  `python -m gestate.workbench
+            // --desktop` writes the file this name matches.
+            let class = b"gestate\0gestate\0";
+            let wm_class =
+                XInternAtom(display, b"WM_CLASS\0".as_ptr().cast(), 0);
+            XChangeProperty(display, window, wm_class, XA_STRING, 8,
+                            PROP_MODE_REPLACE, class.as_ptr(),
+                            class.len() as c_int);
+            XFlush(display);
+        }
+    }
+}
+
 #[cfg(target_os = "linux")]
 mod detectable_autorepeat {
     #[link(name = "X11")]
