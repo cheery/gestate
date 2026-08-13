@@ -1,0 +1,126 @@
+# UNDERTOW — a slow tide.  A bass that walks the sea floor, chimes the
+# score rolls dice for, and every strike washed back by a long feedback
+# delay under a filter that breathes out of step with the bars.
+#
+#   python -m gestate.audioperform examples/audio/undertow.ges -o undertow.wav --seconds 32
+#   python -m gestate.workbench examples/audio/undertow.ges
+#
+# As an example this is the *modern* voice kit in one place — `adsr`
+# and `keyHz` where `duet.ges` hand-rolls both — plus a chancy score
+# in the `do` notation and `feedback` with its length written in
+# seconds.  Roll the seed and the chimes tell a different night over
+# the same floor.
+
+Key := Key Int Int                        # key, velocity
+
+voices chimes 5 chime : Sig Float
+
+voices bass 2 pluck : Sig Float
+
+#: Any key can reach either bank; the switch beside each bank's line
+#: decides who is actually listening.
+instance FromMIDI Key where
+    noteOn ch p v = Just (Key p v)
+
+# ── what a voice reads off its payload ────────────────────────────────
+
+pitchOf : Key -> Float
+pitchOf q = case q of
+    Key k v -> keyHz k
+
+#: The chime's second partial, a hair sharp of the octave — the slow
+#: beat between the two is the shimmer.
+shineOf : Key -> Float
+shineOf q = pitchOf q * 2.013
+
+velOf : Key -> Float
+velOf q = case q of
+    Key k v -> toFloat v / 127.0
+
+# ── the chime ─────────────────────────────────────────────────────────
+
+bellEnv : Adsr
+bellEnv = Adsr 0.004 0.4 0.22 1.7
+
+chime : Sig Gate -> Sig Key -> Sig Float
+chime g s = (sine (!pitchOf s) + sine (!shineOf s) * 0.35)
+          * adsr bellEnv g * !velOf s * 0.2
+
+# ── the bass ──────────────────────────────────────────────────────────
+
+bassEnv : Adsr
+bassEnv = Adsr 0.012 0.28 0.5 0.22
+
+pluck : Sig Gate -> Sig Key -> Sig Float
+pluck g s = lowpass 0.16 (saw (!pitchOf s)) * adsr bassEnv g * 0.45
+
+# ── the wash ──────────────────────────────────────────────────────────
+#: A long echo: 0.68 s is a dotted quarter at this tempo, and each
+#: return comes back at just over half strength, so the fourth repeat
+#: is a memory rather than a note.
+
+wash : Sig Float -> Sig Float
+wash s = feedback (seconds 0.68) (y x => x + y * 0.55) s
+
+#: How much of the washed channel reaches the mix — the piece's one
+#: knob.  At zero the chimes still speak dry; turned up, the tide
+#: comes in.
+depth : Sig Float
+depth = mkKnob 0.5
+
+# ── the breath ────────────────────────────────────────────────────────
+#: The filter opens and closes on an eleven-second swell — out of step
+#: with the four-second bars on purpose.  The tide and the music agree
+#: only sometimes, which is what keeps either interesting.
+
+breathe : Sig Float
+breathe = map (t => 0.42 + 0.3 * sineOf (wrap (t / 11.0))) elapsed
+
+sound : Sig Float
+sound = lowpass breathe
+        (bass * 0.7 + chimes * 0.55 + wash chimes * depth * 0.6)
+
+# ── the tide (the score) ──────────────────────────────────────────────
+
+#: E minor pentatonic, as semitone offsets.
+pent : Int -> Int
+pent i = case i of
+    0 -> 0
+    1 -> 3
+    2 -> 5
+    3 -> 7
+    _ -> 10
+
+#: The floor: two bars of root, the fifth, the fourth — one note a
+#: beat, forever.
+groundBar : [: Int :]
+groundBar = '28 ++ '28 ++ '35 ++ '33
+
+groundPart : [: Void :]
+groundPart = do
+    k <- cycle groundBar
+    voices.bass (Key k 96)
+
+chimeNote : Int -> [: Void :]
+chimeNote k = voices.chimes (Key k 88)
+
+#: One bar of chimes, decided by two dice: one for the bar's shape,
+#: one for where in the scale it rings.  Every shape is four beats
+#: wide, which is what lets `long 4` hold the bar to the bar.
+barOf : Int -> Int -> [: Void :]
+barOf d p = case d of
+    0 -> chimeNote (52 + pent p) |* 4
+    1 -> (chimeNote (52 + pent p) |* 2) ++ (chimeNote (59 + pent p) |* 2)
+    _ -> (chimeNote (64 + pent p) ++ chimeNote (52 + pent p)) |* 2
+
+chimeBar : [: Void :]
+chimeBar = do
+    d <- draw
+    p <- draw
+    long 4 (barOf (below 3 d) (below 5 p))
+
+score : [: Void :]
+score = cycle chimeBar || groundPart
+
+bpm : Int
+bpm = 66
