@@ -402,12 +402,29 @@ things fall out of it, and each was learned by getting it wrong first:
 * **The file you are in is marked, not selected.**  The cursor opens
   there and the query stays blank, so the list shows where you are and
   the first letter typed is a new name rather than an edit of the old.
+* **A space is content, and Tab completes.**  Space-accepts-the-pick
+  met a listing whose first row is `../` and nobody had picked it — a
+  proposed path one Return from being taken was wiped by the walk
+  (F111).  So in a `Path` box a space types, Tab completes the query to
+  the row the cursor is on — a directory completes to its own walk and
+  re-lists, as every shell taught — and taking the answer is Return's
+  alone (F117).
 
 `steal` reuses all of it to take a name, with what is already there
 shown greyed and refused: overwriting is not something a name box should
 do by accident, and a `steal` that could would be a delete wearing a
 friendlier word.  The greying is a courtesy; the check in the command is
 the guarantee.
+
+**A click outside the list closes it, and still lands.**  The panel
+owns the pointer only where it is drawn: a press on a row picks it, a
+press on the panel's padding is the panel's and does nothing, and a
+press the panel does not cover closes the list — through the same door
+Escape takes, so the model's question ends with it — and then falls
+through to the knob, key or line it was aimed at.  The list used to
+capture every press while open, which left the whole window dead to
+the mouse (F116); the hit-test and the drawing read one arithmetic, so
+the panel that is drawn and the panel that is hit cannot disagree.
 
 **Opening the list ends whatever it was asking**, on both sides of the
 wire.  `hide` cleared every scrap of the last question and `show`
