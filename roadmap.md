@@ -347,6 +347,23 @@ node-origin map that `audiospans` and the knob column already read.
 definition, then locals in `--fits`, then `--uses NAME`.  All three are
 argued above and none of them changed.
 
+### Small improvements queued from use (2026-08-13)
+
+Noticed by Henri playing the workbench; each is small, none is
+urgent, and they are written here so they survive the session.  The
+*bugs* found the same day are `fixme.md` F104–F108.
+
+- **The pressed piano key's number, shown on the key** — gray text
+  over the key while it is down.  The keyboard already knows `held`;
+  this is a `Run` in the key's rectangle.
+- **A `voices` bank that is layered away says so in the margin.**  A
+  score that includes `voices.name` while that layer is currently not
+  sounding leaves a person playing keys and wondering why nothing
+  comes out; the bank's margin row is where the answer belongs —
+  something like a dimmed row or a word saying *layered away*.  The
+  margin already draws per-bank state (`held`, `listening`), so this
+  is a fact crossing the same wire.
+
 ### A probe on a signal — Henri's, and the one to try in the editor
 
 **Drop a probe on a line and watch that signal**: a scope and a

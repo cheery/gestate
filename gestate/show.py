@@ -69,6 +69,13 @@ def _show(t: Type, prec: int, names: dict[int, str]) -> str:
         s = f"{_show(t.arg, _FUN_ARG, names)} {arrow} {_show(t.ret, _TOP, names)}"
         return f"({s})" if prec >= _FUN_ARG else s
     if isinstance(t, TApp):
+        # `List Char` is written `String`, because the prelude writes it
+        # that way (`show : a -> String`) — a reader who typed a string
+        # literal should be told about the type they spelled, not its
+        # definition.
+        if (isinstance(t.fn, TCon) and t.fn.name == "List"
+                and isinstance(t.arg, TCon) and t.arg.name == "Char"):
+            return "String"
         parts = tuple_parts(t)
         if parts is not None:
             # `Tuple2 A B` is written `(A, B)` — already bracketed, so it

@@ -19,7 +19,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 100 entries, **88 are resolved**.  What is left:
+Of 105 entries, **88 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -35,6 +35,11 @@ Of 100 entries, **88 are resolved**.  What is left:
 | F93 | deviates | A graph node's `clock` is set only on sources, not inherited |
 | F95 | fixed | The fragment admits tuples; the extractor now lays them out |
 | F103 | bug, open | The same file's canvas builds or fails typechecking, run to run |
+| F104 | bug, open | The fragment refuses `hello.ges`: a flat-instance method classified per name |
+| F105 | bug, open | `''' expects 1 dictionary argument(s), inference produced 17` as a user message |
+| F106 | bug, open | The drawn piano retriggers a held key (OS autorepeat) |
+| F107 | bug, open | Up/Down inside a palette argument runs the command |
+| F108 | bug, open | `pianoStep` inserts `50` with no trailing separator |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -2815,3 +2820,60 @@ the diff is the corrupting structure's confession.  Until then this
 stays open rather than wearing a plausible lock: `_FRONT_END` already
 covers the part a lock was proposed for, and a fix without a
 reproduction is a mask.
+
+### F104. **[bug, open]** The fragment classifies a specialised method per name, and refuses a program that uses it both ways
+
+`hello.ges` (2026-08-13, Henri's, two lines):
+
+    sound : Sig Float
+    sound = let freq = 440.0 in sine freq * saw (freq*1.005) * 0.01
+
+Refused: `` `fromFloat` (of `Floating Float`) is used both as a signal
+(via `sound`) and as an ordinary value (via `phase`) ``.  The refusal
+is now *legible* (the provenance and the demangling are 2026-08-13's
+message work) and it is still wrong: `__Floating_Float_fromFloat__` is
+one shared specialised definition, and `audiograph`'s walk gives every
+name one kind globally — but an instance method at a flat type is
+legitimately a scalar wherever it is called, and its "signal" use is a
+literal being lifted.  A per-name classification is too coarse exactly
+for the definitions `specialise.py` shares.  The shape of the fix is
+to admit flat-instance methods the way `PRIMITIVES` are admitted, or
+to classify per use; either way `hello.ges` is a reasonable program
+and must compile.
+
+### F105. **[bug, open]** An internal dictionary-count invariant surfaces as the user's error message
+
+`hello2.ges` (same day, a `voices` bank + `FromMIDI` instance + an
+`Adsr`): the whole complaint is
+
+    ''' expects 1 dictionary argument(s), inference produced 17
+
+Two defects in one line.  The count mismatch itself — something in
+elaboration hands a specialised definition seventeen constraints where
+its arity says one — and the report: an internal invariant wearing a
+mangled name (rendered as `'''`) in the place a user message goes,
+with no position, no author name, and no sentence.  Whatever the count
+bug turns out to be, the *invariant style* must never reach `trouble`
+raw; it should say which declaration it was elaborating, like
+`infer._blame` now does for unification.
+
+### F106. **[bug, open]** The drawn piano retriggers a held key
+
+`pianoOn`, hold a key: the OS keyboard autorepeat arrives as repeated
+presses and each one plays a note — a held key should sound once until
+released.  The window knows the physical key (`Gesture::Struck`
+carries the keycode precisely so releases match presses); repeats of a
+key already down should be swallowed at that seam.
+
+### F107. **[bug, open]** Up/Down inside a typed argument runs the command
+
+Palette, `seek 0`, then Up or Down (perhaps reaching for history or
+the choice list): the command fires.  Arrow keys inside an argument
+box must never be an accidental Return.
+
+### F108. **[bug, open]** `pianoStep` writes notes with no separator
+
+Step mode inserts `50` where it should insert `50 ` — two steps write
+`5050`, which is one wrong number rather than two right ones.  The
+insert should carry the trailing space (or whatever separator the
+surrounding text calls for).

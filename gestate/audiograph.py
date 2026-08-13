@@ -23,6 +23,7 @@ the fragment is what the *engine* can compile, not what the language means.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 
 from .expr import (EAnnot, EAp, EBox, ECase, EChan, ECon, EDelay, EFix, EFor,
@@ -132,6 +133,22 @@ _DATAFUN_PRIMITIVES = frozenset({"empty?"})
 _FLAT_INSTANCE_HEADS = frozenset({"Int", "Float", "Bool", "Char"})
 
 
+#: A specialised instance method's internal name —
+#: `__Floating_Float_fromFloat__` — which is `specialise.py`'s spelling
+#: and nobody else's.  A person is told `fromFloat` (of `Floating
+#: Float`): they never typed the mangled form and cannot search for it.
+_MANGLED = re.compile(r"^__([A-Za-z0-9]+)_([A-Za-z0-9]+)_(\w+?)__$")
+
+
+def _who(name: str) -> str:
+    """A definition's name as the author knows it, backticked."""
+    m = _MANGLED.match(name)
+    if m:
+        cls, ty, method = m.groups()
+        return f"`{method}` (of `{cls} {ty}`)"
+    return f"`{name}`"
+
+
 @dataclass
 class Report:
     """What the check found, whether or not it passed.
@@ -187,6 +204,11 @@ class _Check:
         self.report = Report()
         #: name → "signal" | "scalar", as each is reached.
         self.seen: dict[str, str] = {}
+        #: name → (kind, via): who reached it first, and as what — the
+        #: provenance a both-kinds refusal names its witnesses from.
+        self.first_use: dict[str, tuple] = {}
+        #: Names whose both-kinds collision has already been said.
+        self.conflicted: set[str] = set()
         #: Calls between scalar definitions, for the recursion check.
         self.calls: dict[str, set[str]] = {}
         self.here = ""
@@ -205,16 +227,36 @@ class _Check:
         # Breadth-first from `sound`, so the messages come out in the order
         # a reader would reach them from the definition they started at.
         from collections import deque
-        self.pending: deque = deque([(self.entry, "signal")])
+        self.pending: deque = deque([(self.entry, "signal", None)])
         while self.pending:
-            name, kind = self.pending.popleft()
+            name, kind, via = self.pending.popleft()
             if self.seen.get(name) == kind:
                 continue
             if name in self.seen and self.seen[name] != kind:
-                self._error(name, "is used both as a signal and as an "
-                                  "ordinary value")
+                # **Both users are named, once.**  "Used both as a
+                # signal and as an ordinary value" is true and gives
+                # the reader nothing to open; who used it each way is
+                # the walk's own knowledge, and it is what somebody
+                # staring at their two-line synth needs to find the
+                # collision.  Each witness carries its site, so the
+                # editor can anchor the refusal at a definition the
+                # author actually wrote.  Once, because the walk
+                # re-collides on every later use and the second witness
+                # adds noise, not information.
+                if name in self.conflicted:
+                    continue
+                self.conflicted.add(name)
+                first_kind, first_via = self.first_use.get(name,
+                                                           (kind, None))
+                ways = {first_kind: first_via, kind: via}
+                self._error(name,
+                            "is used both as a signal"
+                            f"{self._witness(ways.get('signal'))} and as "
+                            f"an ordinary value"
+                            f"{self._witness(ways.get('scalar'))}")
                 continue
             self.seen[name] = kind
+            self.first_use[name] = (kind, via)
             self._definition(name, kind)
 
         self._check_recursion()
@@ -227,7 +269,9 @@ class _Check:
         return self.report
 
     def _need(self, name: str, kind: str) -> None:
-        self.pending.append((name, kind))
+        # `here` is the definition whose body is being walked, so it is
+        # the "via" of everything the walk finds there — free provenance.
+        self.pending.append((name, kind, getattr(self, "here", None)))
 
     # -- one definition -----------------------------------------------------
 
@@ -318,7 +362,9 @@ class _Check:
                                   + self._table_hint(a))
         want = _signal_elem(result) if kind == "signal" else result
         if kind == "signal" and want is None:
-            self._error(name, f"is used as a signal but yields "
+            via = self.first_use.get(name, (None, None))[1]
+            self._error(name, f"is used as a signal"
+                              f"{self._witness(via)} but yields "
                               f"{show_type(result)}")
             return
         if want is not None and not is_flat(_settled(want) if free else want,
@@ -644,7 +690,33 @@ class _Check:
     # -- reporting ----------------------------------------------------------
 
     def _error(self, where: str, what: str) -> None:
-        self.report.errors.append(f"{where}: {what}")
+        self.report.errors.append(f"{_who(where)}{self._site(where)} {what}")
+
+    def _witness(self, via) -> str:
+        """` (via \\`name\\` (at L:C))` — who, and where they wrote it.
+
+        The site rides along because the refusal's own subject is often
+        an internal with no position at all, and the witness is then
+        the only line of the message an editor can anchor a box under.
+        """
+        if not via:
+            return ""
+        return f" (via `{via}`{self._site(via)})"
+
+    def _site(self, name: str) -> str:
+        """` (at L:C)` for a definition the author wrote, or nothing.
+
+        The first span inside the definition's body — the same walk
+        `infer._site_of` uses for the `while checking` breadcrumb, and
+        for the same reason: it is what lets the editor anchor the
+        refusal's box at the definition it names.  A specialised
+        internal has prelude spans or none, and either answer is right.
+        """
+        _arity, lam, _sig = self.by_name.get(name, (0, None, None))
+        if lam is None:
+            return ""
+        from .infer import _site_of
+        return _site_of(lam)
 
     def _fail(self, message: str) -> Report:
         self.report.errors.append(message)

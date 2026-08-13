@@ -62,6 +62,28 @@ def unify(actual: Type, expected: Type) -> Subst:
     return _go(actual, expected, Subst.empty())
 
 
+def _pair(a: Type, b: Type) -> tuple[str, str]:
+    """Both types rendered with **one** naming of their variables.
+
+    Lettered together, because `expected` and `got` sit one above the
+    other in the message and a `b` in one line must mean the same
+    variable as a `b` in the other — two independent renderings could
+    hand the same letter to different metavariables and the comparison
+    would lie.
+    """
+    from .show import name_vars, show_type
+
+    names = name_vars([b, a])
+    return show_type(a, names), show_type(b, names)
+
+
+def _head(t: Type) -> Type:
+    """The constructor at the bottom of an application spine."""
+    while isinstance(t, TApp):
+        t = t.fn
+    return t
+
+
 def _go(a: Type, b: Type, s: Subst) -> Subst:
     a = s.apply(a)
     b = s.apply(b)
@@ -82,9 +104,15 @@ def _go(a: Type, b: Type, s: Subst) -> Subst:
     if isinstance(a, TCon) and isinstance(b, TCon):
         if a.name == b.name:
             return s
+        # **`got` on its own line, indented to `expected`'s column**,
+        # here and at every mismatch below: a status bar shows the
+        # first line, and the content box under the line shows
+        # expected, got and the `while checking` breadcrumb as three
+        # rows — with the two types starting one above the other, so
+        # the eye can walk them for the difference.
         raise UnifyError(
-            f"Type mismatch: expected '{b.name}'{_span_str(b)}, "
-            f"got '{a.name}'{_span_str(a)}"
+            f"Type mismatch: expected '{b.name}'{_span_str(b)}\n"
+            f"               got '{a.name}'{_span_str(a)}"
         )
 
     if isinstance(a, TInt) and isinstance(b, TInt):
@@ -94,22 +122,38 @@ def _go(a: Type, b: Type, s: Subst) -> Subst:
 
     if isinstance(a, TFun) and isinstance(b, TFun):
         if a.mono != b.mono:
+            ga, gb = _pair(a, b)
             raise UnifyError(
                 f"Arrow mismatch: expected {'a monotone' if b.mono else 'an ordinary'} "
-                f"function {b}{_span_str(b)}, got "
-                f"{'a monotone' if a.mono else 'an ordinary'} one {a}{_span_str(a)}"
+                f"function {gb}{_span_str(b)}\n"
+                f"                got {'a monotone' if a.mono else 'an ordinary'} "
+                f"one {ga}{_span_str(a)}"
             )
         s = _go(a.arg, b.arg, s)
         return _go(a.ret, b.ret, s)
 
     if isinstance(a, TApp) and isinstance(b, TApp):
+        # **Different constructors are reported as the whole types.**
+        # Descending first meant the collision arrived at the `TCon`
+        # arm with only the heads in hand — "expected 'List', got
+        # 'Sig'" for a string where a signal goes — when the fact the
+        # author can act on is `String` against `Sig Float`.
+        ha, hb = _head(a), _head(b)
+        if (isinstance(ha, TCon) and isinstance(hb, TCon)
+                and ha.name != hb.name):
+            ga, gb = _pair(a, b)
+            raise UnifyError(
+                f"Type mismatch: expected {gb}{_span_str(b)}\n"
+                f"               got {ga}{_span_str(a)}"
+            )
         s = _go(a.fn, b.fn, s)
         return _go(a.arg, b.arg, s)
 
     # Structural mismatch (e.g. TFun vs TCon)
+    ga, gb = _pair(a, b)
     raise UnifyError(
-        f"Type mismatch: expected {b}{_span_str(b)}, "
-        f"got {a}{_span_str(a)}"
+        f"Type mismatch: expected {gb}{_span_str(b)}\n"
+        f"               got {ga}{_span_str(a)}"
     )
 
 
@@ -177,7 +221,13 @@ def _rigid_error(a: Type, b: Type) -> UnifyError:
 
 def _bind(var_id: int, t: Type, s: Subst) -> Subst:
     if occurs(var_id, t, s):
-        raise UnifyError(f"Occurs check: a{var_id} occurs in {t}")
+        # Lettered like every other message — `a3303 occurs in (a3303 ->
+        # a3305)` names nothing the author can search for.
+        from .show import name_vars, show_type
+        names = name_vars([TVar(var_id), t])
+        raise UnifyError(
+            f"Occurs check: `{names.get(var_id, f'a{var_id}')}` would "
+            f"contain itself in {show_type(t, names)} — an infinite type")
     return s.extend(var_id, t)
 
 

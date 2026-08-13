@@ -110,9 +110,18 @@ def extract_analysis(analysis, *, entry: str = "sound",
                      rate: int = 0) -> Graph:
     report = check_analysis(analysis, entry=entry)
     if not report:
+        # **The refusal explains the rule it is applying.**  "Not in
+        # the static signal fragment" is the checker's own vocabulary;
+        # the sentence a person needs is what the fragment *is* and
+        # why being outside it stops the sound.  The itemized reasons
+        # below it each name a definition, its position, and who
+        # reached it (`audiograph._error` and the `via` provenance).
         raise ExtractError(
-            "the program is not in the static signal fragment, so there is "
-            "no static graph to extract:\n" + report.message)
+            "this program cannot be compiled for the sound card: the "
+            "engine plays a fixed graph, so everything `sound` reaches "
+            "must be either a signal or a per-sample value, decided "
+            "once at compile time (the static signal fragment, "
+            "`spec/liveaudio.md`).  What stopped it:\n" + report.message)
     return _Extract(analysis, entry, rate).run()
 
 

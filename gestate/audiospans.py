@@ -213,7 +213,27 @@ def in_source(message: str, source: str = "", path=None) -> str:
         end = where(match.group(3), match.group(4))
         return f"(at {start}–{end})"
 
-    return _AT.sub(at, _POS.sub(pos, message))
+    said = _AT.sub(at, _POS.sub(pos, message))
+
+    # **A missing `sound` is a sentence, not a riddle.**  The entry is
+    # generated (`audio._entry` writes `main = sound`), so a file that
+    # declares no `sound` failed with `Unknown global 'sound' … (at
+    # entry line 8:7)` — a real position in nobody's file, about a name
+    # the author never typed either.  This is the one funnel every
+    # audio message passes through, and "the unknown global's position
+    # is in the entry" is precisely "the author's file lacks the name
+    # the player needs".
+    lost = re.search(r"Unknown global '(\w+)'.*\(at entry line", said,
+                     re.DOTALL)
+    if lost:
+        name = lost.group(1)
+        if name == "sound":
+            return ("this file declares no `sound`, so there is nothing "
+                    "to play — a synth defines `sound : Sig Float`")
+        return (f"this file declares no `{name}`, and the player's "
+                f"generated entry needs it")
+
+    return said
 
 
 def cli_error(exc, path=None) -> str:

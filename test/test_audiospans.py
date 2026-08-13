@@ -461,9 +461,10 @@ def test_a_prelude_blamed_error_names_the_authors_declaration():
     line = next(i + 1 for i, l in enumerate(source.splitlines())
                 if l.startswith("sound ="))
     assert anchor(said, "twoknobs.ges") == line
-    # And the breadcrumb is a second line, so a status bar keeps showing
-    # the mismatch itself.
-    assert said.splitlines()[1].startswith("while checking")
+    # And the breadcrumb is the last line — after `expected`, after
+    # `got` on its own line — so a status bar keeps showing the
+    # mismatch itself and the box shows all three rows.
+    assert said.splitlines()[-1].startswith("while checking")
 
 
 def test_a_syntax_error_speaks_person_and_lands_in_the_authors_file():
@@ -493,3 +494,17 @@ def test_a_syntax_error_speaks_person_and_lands_in_the_authors_file():
                 if l.startswith("sound ="))
     assert f"(at twoknobs.ges:{line}:" in said, said
     assert anchor(said, "twoknobs.ges") == line
+
+
+def test_a_file_with_no_sound_is_told_in_a_sentence():
+    """`Unknown global 'sound' … (at entry line 8:7)` is a riddle about
+    a generated file; what the author needs is the sentence."""
+    from gestate.audioperform import graph_of
+    from gestate.audiospans import in_source
+
+    source = "zound : Sig Float\nzound = 0.0 ::: never\n"
+    with pytest.raises(Exception) as caught:
+        graph_of(source, rate=RATE)
+    said = in_source(str(caught.value), source, "mysynth.ges")
+    assert said == ("this file declares no `sound`, so there is nothing "
+                    "to play — a synth defines `sound : Sig Float`"), said

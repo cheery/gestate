@@ -30,8 +30,9 @@ def type_word(word: str, gap: float = 0.1):
 def main() -> int:
     scenario, path = sys.argv[1], sys.argv[2]
     env = dict(os.environ, GESTATE_EDITOR_TIME="1")
-    SCRATCH = os.path.dirname(os.path.abspath(__file__))
-    err = open(os.path.join(SCRATCH, f"editor-{scenario}.stderr"), "w")
+    # Into the caller's working directory, never beside this file — a
+    # measurement run must not leave droppings in `tools/`.
+    err = open(os.path.abspath(f"editor-{scenario}.stderr"), "w")
     proc = subprocess.Popen(WORKBENCH + [path], env=env,
                             cwd="/home/cheery/gestate",
                             stdout=subprocess.DEVNULL, stderr=err)

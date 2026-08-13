@@ -176,10 +176,12 @@ def test_it_is_rejected_and_the_message_names_the_definition(case):
 
     # A `definition` ending in `#` names a *family*: `specialise.py` puts
     # the dictionaries it was given into the name, and which ones those are
-    # is not what the case is about.
+    # is not what the case is about.  A named definition opens its line
+    # backticked — `` `sound` (at …) is used as … `` — the spelling
+    # `audiograph._error` writes.
     named = [e for e in report.errors
-             if e.startswith(definition if definition.endswith("#")
-                             else f"{definition}:")]
+             if e.startswith(f"`{definition}" if definition.endswith("#")
+                             else f"`{definition}`")]
     assert named, (f"no message names `{definition}`; got:\n"
                    + "\n".join(report.errors))
     assert any(phrase in e for e in named), (

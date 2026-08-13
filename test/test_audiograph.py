@@ -308,7 +308,7 @@ countdown n = case n == 0 of
 sound : Sig Float
 sound = map countdown ticks
 """
-    with pytest.raises(ExtractError, match="not in the static signal fragment"):
+    with pytest.raises(ExtractError, match="the static signal fragment"):
         extract(src, rate=100)
 
 

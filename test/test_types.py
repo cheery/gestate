@@ -113,3 +113,41 @@ def test_unifying_scopes_do_not_cross_threads():
     # whichever thread's store happened to be restored last.
     assert Subst.empty() is Subst._empty
     assert not Subst.empty().extend(1, TVar(1))
+
+
+def test_a_mismatch_names_whole_types_with_shared_letters():
+    """`expected 'List', got 'Sig'` told the author about two
+    constructor heads when the fact they can act on is `String` against
+    `Sig Float` — so a head collision under an application reports the
+    whole types, resugared (`List Char` is written `String`, as the
+    prelude writes it), with `got` indented to `expected`'s column."""
+    import pytest
+
+    from gestate.unify import UnifyError, unify
+
+    with pytest.raises(UnifyError) as caught:
+        unify(TApp(TCon("Sig"), TCon("Float")),
+              TApp(TCon("List"), TCon("Char")))
+    said = str(caught.value)
+    assert "expected String" in said, said
+    assert "got Sig Float" in said, said
+    lines = said.splitlines()
+    assert lines[1].lstrip().startswith("got")
+    assert lines[1].index("got") == lines[0].index("expected"), \
+        "the two types do not start one above the other"
+
+
+def test_metavariables_are_lettered_in_messages():
+    """`got (a3303 -> a3305)` names nothing the author can search for;
+    both sides of a mismatch are rendered with **one** lettering, so a
+    `b` in `expected` is the same variable as a `b` in `got`."""
+    import pytest
+
+    from gestate.unify import UnifyError, unify
+
+    with pytest.raises(UnifyError) as caught:
+        unify(TFun(TVar(3303), TVar(3305)),
+              TApp(TCon("ExL"), TCon("Int")))
+    said = str(caught.value)
+    assert "a3303" not in said and "a3305" not in said, said
+    assert "a -> b" in said, said
