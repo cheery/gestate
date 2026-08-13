@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 117 entries, **102 are resolved**.  What is left:
+Of 118 entries, **103 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -41,6 +41,7 @@ Of 117 entries, **102 are resolved**.  What is left:
 | F111 | resolved | Space in `transcript`'s path box erases the proposed path |
 | F116 | resolved | Every click was eaten while the command list was open |
 | F117 | resolved | Tab did not complete paths in the file dialog |
+| F118 | resolved | The list sat over a freshly opened file and caught the first keystrokes |
 | F112 | bug, open | The file dialog's listing sometimes lags |
 | F113 | resolved | Undo and redo cross a file switch — one history for the session |
 | F114 | bug, open | Copy and paste are not commands |
@@ -3164,3 +3165,18 @@ taking the answer is still Return's.  Bound for every asked argument,
 not only `Path`: completion is never wrong, and it simply has nothing
 to do when the model offered no rows.  Pinned by
 `tab_completes_the_path_under_the_cursor`.
+
+### F118. **[resolved]** The list sat over a freshly opened file and caught the first keystrokes
+
+Henri's report (2026-08-13): after `open bottleneck.ges` runs, the
+finished call reads in the table — backspace steps back into the
+question and Escape leaves, both right — but a plain key or Return
+lands in the *palette*, when what anyone wants after opening a file
+is to type into it.  Return on a finished call means *again*, which
+is right for `find`'s walk and meaningless for `open`.
+
+Resolved with the say-when-you-are-done the vocabulary already had:
+`do_open` sends the `close` order on success, exactly as `template`
+and `symbol` do — the model says when a command is finished with its
+dialog, rather than the view keeping a table of which commands
+repeat.  The next key you press types into the file you just opened.

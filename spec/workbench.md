@@ -465,7 +465,10 @@ undo away.  And because the barrier makes discarded edits truly
 unrecoverable, picking `open` while unsaved says so at once and holds
 the words up — **a warning, not a gate**: a person who chooses a file
 past it has decided, and the switch proceeds.  They got their
-warning.
+warning.  And the list closes when the file opens — Return on a
+finished call means *again*, which is right for `find` and
+meaningless for `open`, and the first keystrokes after opening a file
+are aimed at the file.
 
 **The canvas has a channel of its own**, beside the description rather
 than inside it.  A substrate animates — anything reading `peak` redraws

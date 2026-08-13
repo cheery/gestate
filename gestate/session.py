@@ -1659,11 +1659,21 @@ class Session:
             # the editor still treated a new name as an error.  The
             # sentence says which of the two happened, so a typo of an
             # existing name is at least *visible* as a fresh file.
-            return (f"new file {want.name} — saving creates it"
-                    if self.view.open(str(want))
-                    else "this window cannot open another file yet")
-        return (f"opened {want.name}" if self.view.open(str(want))
-                else "this window cannot open another file yet")
+            if not self.view.open(str(want)):
+                return "this window cannot open another file yet"
+            # **And the list goes away, because opening is finished.**
+            # Return on a finished call means *again* — right for
+            # `find`, meaningless for `open` — so the table sat over
+            # the freshly opened file and caught the first keystrokes
+            # somebody aimed at their code.  The same
+            # say-when-you-are-done `template` and `symbol` use: the
+            # next key you press types into the file you just opened.
+            self.view.close_list()
+            return f"new file {want.name} — saving creates it"
+        if not self.view.open(str(want)):
+            return "this window cannot open another file yet"
+        self.view.close_list()
+        return f"opened {want.name}"
 
     def do_steal(self, path: str) -> str:
         """Take a free name for what you are writing.

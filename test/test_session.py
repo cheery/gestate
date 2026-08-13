@@ -1911,10 +1911,15 @@ def test_a_query_narrows_without_losing_the_way_up(tmp_path):
 
 def test_opening_a_file_asks_the_window_for_it(tmp_path):
     it, room = _looking(tmp_path)
-    win, _ed = a_window()
+    win, ed = a_window()
     it.view = win
     assert it.run("open", "two.ges") == "opened two.ges"
     assert win.wanted == str(room / "two.ges")
+    # **And the list goes away**: Return on a finished call means
+    # *again*, which is meaningless for `open` — the table sat over the
+    # freshly opened file and caught the first keystrokes somebody
+    # aimed at their code.  The next key types into the file.
+    assert "close" in ed.orders
 
 
 def test_open_warns_and_then_lets_the_choice_stand(tmp_path):
