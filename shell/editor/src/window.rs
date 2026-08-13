@@ -358,6 +358,39 @@ impl EditorWindow {
     fn new(ctx: WindowContext, host: std::sync::Arc<dyn Host>, w: i32, h: i32)
         -> Result<Self, softbuffer::SoftBufferError>
     {
+        // See `detectable_autorepeat`: without this, a held piano key
+        // retriggers on every autorepeat, because the server's default
+        // is to fake a release before each repeated press.
+        //
+        // **Asked of the `WindowContext`, not the platform handle.**
+        // baseview answers this question twice on X11 and differently:
+        // the context's display handle is the Xlib `Display*` and the
+        // platform handle's is the XCB connection.  The first draft
+        // asked the platform handle, matched on `Xlib`, and the arm
+        // silently never fired — the piano machine-gunned with the fix
+        // "in".
+        #[cfg(target_os = "linux")]
+        {
+            use raw_window_handle::{HasDisplayHandle, RawDisplayHandle};
+            let said = match ctx.display_handle().map(|d| d.as_raw()) {
+                Ok(RawDisplayHandle::Xlib(x)) => match x.display {
+                    Some(d) => {
+                        if unsafe { detectable_autorepeat::enable(d.as_ptr()) }
+                        {
+                            "on"
+                        } else {
+                            "the server does not support it"
+                        }
+                    }
+                    None => "no Xlib display in the handle",
+                },
+                Ok(_) => "the display handle is not Xlib",
+                Err(_) => "no display handle",
+            };
+            if std::env::var_os("GESTATE_EDITOR_KEYS").is_some() {
+                eprintln!("[keys] detectable autorepeat: {said}");
+            }
+        }
         let handle = ctx.platform_handle();
         let context = softbuffer::Context::new(handle.clone())?;
         let surface = softbuffer::Surface::new(&context, handle)?;
@@ -1508,3 +1541,39 @@ pub unsafe fn open_parented(parent: RawWindowHandle,
 
 /// The background, so a host can match it.
 pub const BACKGROUND: Colour = view::BG;
+
+/// X11's autorepeat, made detectable — `fixme.md` F106.
+///
+/// By default the server synthesizes a *release+press pair* for every
+/// repeat of a held key.  Both autorepeat guards — the window's
+/// `fingers` set and the model's `Keyboard.press` — were standing when
+/// the piano retriggered, because a synthetic release re-arms them
+/// both.  `XkbSetDetectableAutoRepeat` is the per-client flag that
+/// makes the server send press, press, …, release instead, which is
+/// the stream the guards were written for.  Per-client is why this is
+/// called on *baseview's* display rather than a connection of our own,
+/// and why it costs nothing anywhere else: a held arrow in the text
+/// still repeats, because repeats still arrive — only the fake
+/// releases stop.
+#[cfg(target_os = "linux")]
+mod detectable_autorepeat {
+    #[link(name = "X11")]
+    extern "C" {
+        // Display *, Bool detectable, Bool *supported → Bool
+        fn XkbSetDetectableAutoRepeat(
+            display: *mut core::ffi::c_void,
+            detectable: i32,
+            supported: *mut i32,
+        ) -> i32;
+    }
+
+    /// `true` when the server agreed.  A server that cannot is left as
+    /// it was, and the piano keeps F106 there — documented, not masked.
+    pub unsafe fn enable(display: *mut core::ffi::c_void) -> bool {
+        let mut supported = 0;
+        unsafe {
+            XkbSetDetectableAutoRepeat(display, 1, &mut supported) != 0
+                && supported != 0
+        }
+    }
+}

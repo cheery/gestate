@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 117 entries, **99 are resolved**.  What is left:
+Of 117 entries, **100 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -33,7 +33,7 @@ Of 117 entries, **99 are resolved**.  What is left:
 | F93 | deviates | A graph node's `clock` is set only on sources, not inherited |
 | F95 | fixed | The fragment admits tuples; the extractor now lays them out |
 | F103 | bug, open | The same file's canvas builds or fails typechecking, run to run |
-| F106 | bug, open | The drawn piano retriggers a held key (OS autorepeat) |
+| F106 | resolved | The drawn piano retriggers a held key (OS autorepeat) |
 | F107 | resolved | Up/Down inside a palette argument runs the command |
 | F108 | resolved | `pianoStep` inserts `50` with no trailing separator |
 | F109 | bug, open | Opening a file joins the previous start in the gesture loop — no cancel, late switch |
@@ -2903,7 +2903,7 @@ this seam next names the declaration and its position.  Tests in
 `test_dictionaries.py`; the specimen compiles and renders 15 s of
 score.
 
-### F106. **[bug, open]** The drawn piano retriggers a held key
+### F106. **[resolved]** The drawn piano retriggers a held key
 
 `pianoOn`, hold a key: the OS keyboard autorepeat arrives as repeated
 presses and each one plays a note — a held key should sound once until
@@ -2923,6 +2923,21 @@ both guards per repeat.  The fix's shape is detectable autorepeat —
 `XkbSetDetectableAutoRepeat` — and it needs a hand on a real keyboard
 to verify, which is why it is diagnosed here rather than fixed: a
 guard nothing can exercise is a mask (the F103 rule).
+
+**Resolved 2026-08-13, verified by hand, and the verification earned
+its round trip.**  `XkbSetDetectableAutoRepeat` on baseview's own
+display at window creation — per-client, so it must be that
+connection and not one of ours — after which the server sends press,
+press, …, release and the standing guards do exactly what they were
+written for.  The first attempt was loaded and silently did nothing:
+baseview answers the display question twice on X11, the platform
+handle's answer is the XCB connection and the context's is the Xlib
+`Display*`, and matching `Xlib` against the first is an arm that
+never fires.  Henri's machine-gun report is what caught it, and
+`GESTATE_EDITOR_KEYS=1` now prints what detectable autorepeat
+answered so the next such fix cannot pretend to be in the room.
+Held arrows and letters in the text still repeat — repeats still
+arrive, only the fake releases stop.
 
 ### F107. **[resolved]** Up/Down inside a typed argument runs the command
 
