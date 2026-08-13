@@ -716,6 +716,35 @@ fn a_held_note_is_drawn_down() {
                                             if *c == KEY_DOWN)));
 }
 
+/// `follow_past` treats the top rows as covered: a caret above the
+/// view lands below the panel's shadow, not behind it — and at the
+/// very top of the file there is nothing to scroll past.
+#[test]
+fn follow_past_lands_below_the_shadow() {
+    let d = doc(&"x\n".repeat(300));
+    let mut v = view(400, 20 * LARGE.h);
+    let mut d2 = d.clone();
+    d2.seek_rowcol(50, 0);
+    v.top = 200;
+    v.follow_past(&d2, &LARGE, 6);
+    assert_eq!(v.top, 44, "the caret stands at the first row past it");
+    // Visible but covered still scrolls out from under.
+    v.top = 48;
+    v.follow_past(&d2, &LARGE, 6);
+    assert_eq!(v.top, 44);
+    // Row zero cannot go below anything.
+    d2.seek_rowcol(0, 0);
+    v.follow_past(&d2, &LARGE, 6);
+    assert_eq!(v.top, 0);
+    // And clear = 0 is exactly `follow`.
+    let mut w = view(400, 20 * LARGE.h);
+    w.top = 200;
+    let mut d3 = d.clone();
+    d3.seek_rowcol(50, 0);
+    w.follow(&d3, &LARGE);
+    assert_eq!(w.top, 50);
+}
+
 /// The refused `open`'s warning stands beside the caret in red, where
 /// the eye already is — and an empty warning draws nothing at all.
 #[test]

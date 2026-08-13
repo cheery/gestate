@@ -171,6 +171,17 @@ pub enum Asks {
 #[derive(Default)]
 pub struct Palette {
     open: bool,
+    /// Whether the panel sits in the window's lower half.
+    ///
+    /// **The panel moves so the text does not have to.**  A template
+    /// inserted at the top of the file has nowhere to scroll past the
+    /// panel — `follow_past` saturates at row zero — so when the caret
+    /// stands where the top panel would cover it, the panel flips low
+    /// and the edit is read where it landed (F121's second half).
+    /// Set by the window each frame, because the caret is the
+    /// window's; `panel_box` reads it, so drawing, hit-testing and the
+    /// shadow flip together.
+    pub low: bool,
     query: String,
     entries: Vec<Entry>,
     /// The command whose arguments are being collected, if any.
@@ -661,7 +672,39 @@ impl Palette {
         } else {
             shown as i32 + 1 + i32::from(telling)
         };
-        (cw, ch, box_w, ch * rows + 8)
+        let box_h = ch * rows + 8;
+        // Low: bottom-anchored, above where the status bar stands —
+        // the flip that keeps a top-of-file edit readable.
+        let y = if self.low {
+            (h - box_h - 2 * ch).max(ch)
+        } else {
+            ch
+        };
+        (cw, y, box_w, box_h)
+    }
+
+    /// How many text rows the panel covers from the window's top —
+    /// zero when it is closed, and zero when it sits low.  What
+    /// `follow_past` scrolls past, so an ordered edit lands where a
+    /// person can see it rather than behind the list.
+    pub fn shadow_rows(&self, w: i32, h: i32, cw: i32, ch: i32) -> usize {
+        if !self.open || self.low {
+            return 0;
+        }
+        self.shadow_rows_at_top(w, h, cw, ch)
+    }
+
+    /// The same count with the panel imagined at the top — what the
+    /// window asks when deciding whether to *send* it low, which
+    /// cannot read the answer it is about to change.
+    pub fn shadow_rows_at_top(&self, w: i32, h: i32, cw: i32, ch: i32)
+        -> usize
+    {
+        if !self.open {
+            return 0;
+        }
+        let (_, _, _, bh) = self.panel_box(w, h, cw, ch);
+        ((ch + bh + 2 + ch - 1) / ch.max(1)) as usize
     }
 
     /// Whether the pointer is over the panel at all — edge included.
@@ -695,8 +738,9 @@ impl Palette {
         }
         let most = self.rows(h, ch);
         let shown = self.shown_len().min(most);
-        let box_w = (w - 2 * cw).max(cw);
-        let (bx, by) = (cw, ch);
+        // Through `panel_box`, so a panel that flipped low is clicked
+        // where it is drawn.
+        let (bx, by, box_w, _bh) = self.panel_box(w, h, cw, ch);
         if x < bx || x > bx + box_w {
             return None;
         }
@@ -1052,6 +1096,30 @@ mod paint_tests {
         let quiet = a_palette().frame(800, 600, cw, ch, "");
         assert!(!quiet.items.iter().any(|i| matches!(i, Item::Run { c, .. }
                                                      if *c == ANGRY)));
+    }
+
+    /// The panel flips to the lower half when told to, and drawing,
+    /// hit-testing and the shadow move together — one arithmetic.
+    #[test]
+    fn the_panel_flips_low_as_one_piece() {
+        let (cw, ch) = (8, 16);
+        let mut p = a_palette();
+        p.low = true;
+        let f = p.frame(800, 600, cw, ch, "");
+        let (y, h) = match f.items[1] {
+            Item::Rect { y, h, .. } => (y, h),
+            ref other => panic!("expected the shade, got {other:?}"),
+        };
+        assert!(y > 300, "the shade sits in the lower half, got y={y}");
+        assert!(y + h <= 600 - ch, "and above where the status stands");
+        assert_eq!(p.shadow_rows(800, 600, cw, ch), 0,
+                   "a low panel shades nothing at the top");
+        assert!(p.shadow_rows_at_top(800, 600, cw, ch) > 0);
+        // A click on the first row hits where it is drawn.
+        assert!(p.row_at(800, 600, cw, ch, cw + 4, y + 4 + ch + 2)
+                 .is_some());
+        assert!(p.row_at(800, 600, cw, ch, cw + 4, ch + 4 + ch + 2)
+                 .is_none(), "nothing answers at the abandoned top");
     }
 
     /// `covers` and the drawn panel are one box — the drawn shade's own

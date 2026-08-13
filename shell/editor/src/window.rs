@@ -773,10 +773,21 @@ impl EditorWindow {
         };
         if did.drew {
             self.dirty.set(true);
+            // **Past the panel, while one is up.**  An ordered edit —
+            // a template, an insert — lands at the caret, and a caret
+            // followed to row zero is a caret behind the list; the
+            // shadow is how many rows to scroll past so the person can
+            // see what the command just did (`fixme.md` F121).
+            let clear = {
+                let v = self.view.borrow();
+                let font = self.font();
+                self.palette.borrow()
+                    .shadow_rows(v.w, v.h, v.cw(font), v.ch(font))
+            };
             let doc = self.doc.borrow();
             let mut v = self.view.borrow_mut();
             v.clamp(&doc, self.font());
-            v.follow(&doc, self.font());
+            v.follow_past(&doc, self.font(), clear);
         }
         if did.edited {
             let doc = self.doc.borrow();
@@ -989,6 +1000,35 @@ impl WindowHandler for EditorWindow {
         for line in self.host.orders() {
             if let Some(order) = Order::read(&line) {
                 self.obey(order);
+            }
+        }
+        // **The panel flips low when the caret stands under it.**  An
+        // ordered edit at the top of the file has nowhere to scroll
+        // past the panel — `follow_past` saturates at row zero — so
+        // when the caret's row falls in the top panel's shadow, the
+        // panel moves instead of the text (F121's second half, from
+        // Henri's template transcript: a template inserted at row
+        // zero was read by nobody).  One flag, read by `panel_box`,
+        // so drawing, hit-testing and the shadow flip together.
+        {
+            let want = {
+                let p = self.palette.borrow();
+                if !p.is_open() {
+                    false
+                } else {
+                    let doc = self.doc.borrow();
+                    let v = self.view.borrow();
+                    let font = self.font();
+                    let sh = p.shadow_rows_at_top(v.w, v.h, v.cw(font),
+                                                  v.ch(font));
+                    let (row, _) = doc.cursor();
+                    row >= v.top && row < v.top + sh
+                }
+            };
+            let mut p = self.palette.borrow_mut();
+            if p.low != want {
+                p.low = want;
+                self.dirty.set(true);
             }
         }
         // **The warning's clock.**  One said into the list stays as

@@ -504,10 +504,24 @@ impl View {
     /// the caret reaches an edge and then to follow it by a line.
     /// `audiopygame` learned this and the comment is kept.
     pub fn follow(&mut self, doc: &Document, font: &Font) -> bool {
+        self.follow_past(doc, font, 0)
+    }
+
+    /// `follow`, with the top `clear` rows treated as covered.
+    ///
+    /// What an ordered edit uses while the list is open: the panel
+    /// owns the top of the window, so a caret scrolled to row zero is
+    /// a caret *behind* it — a template inserted at a caret above the
+    /// view used to "appear" exactly there, invisibly.  The caret
+    /// lands at the first row the panel does not cover; at the very
+    /// top of the file there is nothing to scroll past, and the panel
+    /// simply covers what it covers.
+    pub fn follow_past(&mut self, doc: &Document, font: &Font,
+                       clear: usize) -> bool {
         let (row, col) = doc.cursor();
         let was = (self.top, self.left);
-        if row < self.top {
-            self.top = row;
+        if row < self.top + clear {
+            self.top = row.saturating_sub(clear);
         } else {
             // Down: the least scroll that fits the caret's band, box
             // heights and all.  With no boxes this is the old

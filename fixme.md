@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 119 entries, **105 are resolved**.  What is left:
+Of 120 entries, **106 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -43,6 +43,7 @@ Of 119 entries, **105 are resolved**.  What is left:
 | F117 | resolved | Tab did not complete paths in the file dialog |
 | F118 | resolved | The list sat over a freshly opened file and caught the first keystrokes |
 | F119 | resolved | The caret anchored the scroll — the view snapped back on every model description |
+| F121 | resolved | A template inserted while scrolled away appeared behind the list |
 | F112 | bug, open | The file dialog's listing sometimes lags |
 | F113 | resolved | Undo and redo cross a file switch — one history for the session |
 | F114 | resolved | Copy and paste are not commands |
@@ -3215,3 +3216,27 @@ screen — so it now runs only when the granted layout actually changed
 (`foot_rows` or the box table).  A description that changes only the
 status, the transport or the knob values leaves the scroll where the
 hand put it.
+
+### F121. **[resolved]** A template inserted while scrolled away appeared behind the list
+
+Henri's report (2026-08-13): leave the caret, scroll away, `template
+voices` — the template is not in the view.  It was: `follow` brought
+the caret's row to the *top* of the window, which is exactly where
+the palette's panel stands, so the inserted text "appeared" behind
+the list, invisibly.
+
+`View::follow_past` is `follow` with the top rows treated as covered:
+the window passes the panel's `shadow_rows` while the list is open,
+so an ordered edit lands at the first row a person can actually see.
+
+**And the second half, from Henri's template transcript**: his
+template landed at row zero — `edit "0:0:…"` — where there is nothing
+to scroll past and `follow_past` saturates, which the first cut waved
+off with "the panel covers what it covers".  It was his actual usage.
+So **the panel moves instead of the text**: when the caret's row
+falls in the top panel's shadow, the panel flips to the window's
+lower half, IDE-popup style.  One flag read by `panel_box`, which
+drawing, hit-testing (`row_at`, `covers`) and the shadow all read —
+today's one-arithmetic refactor is what made the flip a dozen lines —
+and `shadow_rows` answers zero while low, so `follow_past` and the
+flip cannot fight over the same caret.
