@@ -1,0 +1,2 @@
+sound : Sig Float
+sound = let freq = 440.0 in sine freq * saw (freq*1.005) * 0.01

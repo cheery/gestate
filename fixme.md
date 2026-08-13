@@ -2826,7 +2826,7 @@ reproduction is a mask.
 
 ### F104. **[bug, open]** The fragment classifies a specialised method per name, and refuses a program that uses it both ways
 
-`hello.ges` (2026-08-13, Henri's, two lines):
+`test/sessions/F104-hello.ges` (2026-08-13, Henri's, two lines):
 
     sound : Sig Float
     sound = let freq = 440.0 in sine freq * saw (freq*1.005) * 0.01
@@ -2841,7 +2841,7 @@ legitimately a scalar wherever it is called, and its "signal" use is a
 literal being lifted.  A per-name classification is too coarse exactly
 for the definitions `specialise.py` shares.  The shape of the fix is
 to admit flat-instance methods the way `PRIMITIVES` are admitted, or
-to classify per use; either way `hello.ges` is a reasonable program
+to classify per use; either way `F104-hello.ges` is a reasonable program
 and must compile.
 
 ### F105. **[bug, open]** An internal dictionary-count invariant surfaces as the user's error message

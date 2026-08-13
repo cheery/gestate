@@ -16,7 +16,7 @@
 #
 #     python -m gestate.sessionlog <this file>
 #
-#: editing /home/cheery/gestate/hello.ges
+#: editing test/sessions/F104-hello.ges
 #
 # Each line is a command and what it answered.  The
 # answers are the diff: a replay that says something
