@@ -128,6 +128,8 @@ def _library():
     lib.ged_order.restype = None
     lib.ged_set_picture.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
     lib.ged_set_picture.restype = None
+    lib.ged_set_walk.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+    lib.ged_set_walk.restype = None
     lib.ged_request_close.argtypes = [ctypes.c_void_p]
     lib.ged_request_close.restype = None
     lib.ged_close.argtypes = [ctypes.c_void_p]
@@ -262,6 +264,19 @@ class Editor:
         """
         if self._h:
             self._lib.ged_set_picture(self._h, picture.encode())
+
+    def walk(self, payload: str) -> None:
+        """Hand the window a canvas to walk for itself.
+
+        `spec/workbench.md` §"The canvas walks over crust": the
+        serialized program with its entry, tags and channels — the
+        facts a walking window needs and cannot derive.  **On rebuild,
+        not on keystrokes**: it is kilobytes, and it changes when the
+        instrument does.  An empty payload takes the canvas back — a
+        file with nothing to walk leaves nothing walking.
+        """
+        if self._h:
+            self._lib.ged_set_walk(self._h, payload.encode())
 
     def order(self, line: str) -> None:
         """Ask the window to do something — see `furniture::Order`.

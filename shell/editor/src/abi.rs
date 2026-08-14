@@ -83,6 +83,16 @@ pub struct Shared {
     /// rounding already had to be fixed for once.
     picture: Mutex<String>,
     drawn: AtomicU64,
+    /// A canvas to walk for ourselves — the serialized program with
+    /// its entry, tags and channels (`spec/workbench.md` §"The canvas
+    /// walks over crust").
+    ///
+    /// **Its own channel, like the picture, and rarer still**: it is
+    /// kilobytes with newlines in it, and it changes on rebuild, not
+    /// on keystrokes.  Empty means nothing to walk — a switch to a
+    /// file with no canvas takes the old one back.
+    walk: Mutex<String>,
+    walked: AtomicU64,
     /// What the model has asked the window to *do*, oldest first.
     ///
     /// **The other direction, and it needs one.**  The furniture says
@@ -111,6 +121,8 @@ impl Shared {
             orders: Mutex::new(Vec::new()),
             picture: Mutex::new(String::new()),
             drawn: AtomicU64::new(0),
+            walk: Mutex::new(String::new()),
+            walked: AtomicU64::new(0),
             initial: Mutex::new(initial),
         })
     }
@@ -179,6 +191,14 @@ impl Host for Shared {
             return None;
         }
         self.picture.lock().ok().map(|t| (at, t.clone()))
+    }
+
+    fn walk(&self) -> Option<(u64, String)> {
+        let at = self.walked.load(Ordering::Acquire);
+        if at == 0 {
+            return None;
+        }
+        self.walk.lock().ok().map(|t| (at, t.clone()))
     }
 
     fn orders(&self) -> Vec<String> {
@@ -399,6 +419,22 @@ pub unsafe extern "C" fn ged_set_picture(e: *const Editor,
         *held = text_of(text);
     }
     ed.shared.drawn.fetch_add(1, Ordering::Release);
+}
+
+/// A canvas to walk — the serialized program with its entry, tags and
+/// channels (`spec/workbench.md` §"The canvas walks over crust").
+/// Empty takes the canvas back.
+///
+/// # Safety
+/// `e` must be a live editor and `text` a NUL-terminated string.
+#[no_mangle]
+pub unsafe extern "C" fn ged_set_walk(e: *const Editor,
+                                      text: *const c_char) {
+    let ed = editor!(e, ());
+    if let Ok(mut held) = ed.shared.walk.lock() {
+        *held = text_of(text);
+    }
+    ed.shared.walked.fetch_add(1, Ordering::Release);
 }
 
 /// Ask the window to do something — see `furniture::Order`.

@@ -37,6 +37,7 @@ pub mod palette;
 pub mod rope;
 pub mod shapes;
 pub mod view;
+pub mod walk;
 
 #[cfg(feature = "window")]
 pub mod window;

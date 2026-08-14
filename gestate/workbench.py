@@ -609,6 +609,11 @@ def run(path, rate: int = 44100, block: int = 512,
     retiring = None
 
     said, drawn = "", None
+    #: The substrate whose payload the window last got — an identity,
+    #: because a rebuild makes a new `Substrate` and nothing else does.
+    #: Starts as a sentinel no substrate can be, so the first pass
+    #: sends whatever is there, `None` included.
+    walked: object = run
     wait, next_frame = IDLE, 0.0
     clock = _LoopClock() if os.environ.get("GESTATE_LOOP_TIME") else None
     try:
@@ -691,6 +696,19 @@ def run(path, rate: int = 44100, block: int = 512,
             if now != said:
                 editor.describe(now)
                 said = now
+
+            # **The payload, on rebuild and never on keystrokes.**  A
+            # new instrument or an applied edit builds a new
+            # `Substrate`; the identity moving is the one honest tell,
+            # and it moves a handful of times a session.  An empty
+            # payload takes the canvas back — a switch to a file with
+            # nothing to walk must not leave the old file's canvas
+            # walking.
+            sub = getattr(bench, "substrate", None)
+            if sub is not walked:
+                walked = sub
+                load = None if sub is None else sub.payload()
+                editor.walk(load or "")
 
             t2 = time.monotonic()
             # **The canvas, and only while it is what you are looking

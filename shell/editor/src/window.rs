@@ -118,6 +118,16 @@ pub trait Host: Send + Sync + 'static {
         None
     }
 
+    /// A canvas to walk for ourselves, when the model has handed one
+    /// since it was last asked — `(version, payload)`, the payload
+    /// being `spec/workbench.md` §"The canvas walks over crust"'s:
+    /// entry, tags, channels, then the serialized program.  Empty
+    /// means nothing to walk.  A pull, for the reason `picture` is
+    /// one — and rarer: it moves on rebuild, never on keystrokes.
+    fn walk(&self) -> Option<(u64, String)> {
+        None
+    }
+
     /// Things the model has asked the window to do, drained once a
     /// frame — see `furniture::Order`.
     ///

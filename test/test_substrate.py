@@ -807,3 +807,48 @@ def test_a_hole_leaves_the_rest_of_the_file_running(tmp_path):
     bench._find_banks(source)
     bench._load_score(source)
     assert bench.schedule is not None, "the piece has nothing to do with it"
+
+
+# ── The payload: the canvas, packed for a window that walks ─────────────────
+
+
+def test_the_payload_carries_what_a_walking_window_needs():
+    """`spec/workbench.md` §"The canvas walks over crust": entry, the
+    fourteen tags, every channel in declaration order with the value
+    it holds, then the program verbatim — captured at construction,
+    before the program runs, which is the moment `export.substrate_of`
+    serializes at and for the same reason."""
+    from gestate.export import _SUB_CONS
+    from gestate.gui import Substrate
+
+    sub = Substrate(FADER, rate=RATE)
+    text = sub.payload()
+    assert text is not None
+    head, _sep, program = text.partition("\nprogram\n")
+    lines = head.splitlines()
+    assert lines[0] == "entry\tmain"
+    tags = lines[1].split("\t")[1].split()
+    assert len(tags) == len(_SUB_CONS)
+    # The declared channel, no value written yet — the window keeps
+    # the element's own default.
+    assert "chan\tdragged" in lines
+    assert program.startswith("crust 1")
+
+    # A write rides in the next payload, so a rebuild does not snap
+    # the fader back to its default.
+    sub.write("dragged", 0.75)
+    assert "chan\tdragged\t0.75" in sub.payload()
+
+
+@pytest.mark.skipif(shutil.which("cargo") is None,
+                    reason="crust needs cargo")
+def test_the_payload_program_loads_in_crust():
+    """The round trip that makes the door a door: the program half of
+    the payload is exactly what `crust_load` accepts."""
+    from gestate.crust import Native
+    from gestate.gui import Substrate
+
+    text = Substrate(FADER, rate=RATE).payload()
+    program = text.partition("\nprogram\n")[2]
+    with Native(program):
+        pass                     # loading is the assertion

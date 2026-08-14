@@ -650,6 +650,14 @@ class Substrate:
         # an id *and* keeps that id the one the program itself will see.
         self.by_name = {name: self._force(name).chan_id
                         for name in _channel_names(source)}
+        #: The compiled program in crust's flat text with the facts a
+        #: walking window needs, or `None` when the program steps
+        #: outside crust's pure core — such a canvas stays home and the
+        #: reference machine draws it.  **Captured here, before the
+        #: program runs**: `serialize` reads the supercombinators' code,
+        #: and this is the same channels-forced-nothing-else moment
+        #: `export.substrate_of` serializes at, for the same reason.
+        self.crossing = self._crossing()
         #: **The frame clock**, and the reason `tick` can exist.  `events`
         #: waits on `input` (`gui.ges`), so a canvas that animates advances
         #: only when something puts a `Tick` there.  Minted by *name* rather
@@ -687,6 +695,51 @@ class Substrate:
     def picture(self) -> list:
         """The shapes to draw, right now."""
         return _flatten(self.signal.value, self.state)
+
+    def _crossing(self):
+        """The payload's static half — what `export.substrate_of`
+        gathers for a plugin, gathered for the editor's window.
+
+        A tag is a position in this program's own table, so it cannot
+        be derived, only carried; the channel names travel in
+        declaration order because an id depends on what the host
+        forces and in what order (`export.substrate_of` owns the full
+        argument).  The bridge stays behind: the editor routes a
+        `touched` by name, and has no DAW to hand a parameter to.
+        """
+        from .crust import CrustError, serialize
+        from .export import _SUB_CONS
+
+        try:
+            text = serialize(self.state, "main")
+        except CrustError:
+            return None
+        if any(c not in self.state.cons for c in _SUB_CONS):
+            return None
+        return {"text": text, "entry": "main",
+                "tags": [self.state.cons[c].tag for c in _SUB_CONS],
+                "chans": list(self.by_name)}
+
+    def payload(self) -> str | None:
+        """The walking window's copy of this canvas, as one string.
+
+        `spec/workbench.md` §"The canvas walks over crust": a header of
+        `entry`, `tags` and one `chan` per declared channel — carrying
+        its current value when one has been written, so a rebuild does
+        not snap every fader back to its default — then `program` and
+        the serialized text verbatim.  `None` when the canvas cannot
+        cross; the reference machine keeps drawing it here.
+        """
+        if self.crossing is None:
+            return None
+        c = self.crossing
+        head = [f"entry\t{c['entry']}",
+                "tags\t" + " ".join(str(t) for t in c["tags"])]
+        for name in c["chans"]:
+            value = self.values.get(name)
+            head.append(f"chan\t{name}"
+                        + ("" if value is None else f"\t{value}"))
+        return "\n".join(head) + "\nprogram\n" + c["text"]
 
     def tick(self) -> None:
         """One frame has passed.
