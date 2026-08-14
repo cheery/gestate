@@ -210,3 +210,15 @@ too), pacing `BUSY` while the canvas is showing (refused before as
 core-burning — but a showing canvas is bounded time), or moving the
 walk off the gesture loop.  Each is a design change; measured here,
 decided elsewhere.
+
+**Tried the same day: `BUSY` while the canvas shows.**  The loop now
+holds the fast pace whenever the canvas is what is on screen (the
+`pace` call's comment carries the argument).  Measured effect,
+settled: walk 72–83 → **60 ms**, cadence 170–180 → **122–127 ms
+apart** (≈5.8 → ≈8 Hz).  Real, and not the drag's 25 ms: 2 ms naps
+between ~3 ms passes are a ~60 % duty cycle, and this governor wants
+more sustained load than that — the drag's extra heat comes from the
+*window thread* churning motion events in the same process, which the
+loop cannot imitate by pacing alone.  Dragging is unchanged (~28 ms
+walks, 67 ms apart, within run variance).  Cost of the change: ~500
+wakeups/s while — and only while — a canvas is being watched.

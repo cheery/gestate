@@ -688,8 +688,8 @@ def run(path, rate: int = 44100, block: int = 512,
             # asking for one nobody is watching is a whole graph forced
             # per tick for a picture behind a page of text.
             drew = False
-            if (getattr(session.view, "showing", "source") == "canvas"
-                    and time.monotonic() >= next_frame):
+            showing = getattr(session.view, "showing", "source") == "canvas"
+            if showing and time.monotonic() >= next_frame:
                 drew = True
                 began = time.monotonic()
                 drawing = _shapes(_canvas_frame(bench))
@@ -701,7 +701,18 @@ def run(path, rate: int = 44100, block: int = 512,
             if clock is not None:
                 t3 = time.monotonic()
                 clock.lap(t1 - t0, t2 - t1, t3 - t2, drew)
-            wait = pace(stirred, wait)
+            # **A showing canvas keeps the fast pace.**  `pace`'s rule —
+            # a changed description does not count — stands for the
+            # transport readout, where haste would spin a core to keep a
+            # number smooth.  But an animating canvas is the thing being
+            # looked at, and on this governor the slow pace is what made
+            # it slow: the loop napped `IDLE` between cheap passes, the
+            # core fell to 0.7 GHz, and the walk tripled — a settled
+            # lantern drew at ~5.8 Hz while the *same* walk under a
+            # dragging hand ran at ~17.5 (`spec/performance.md` §4).
+            # Watching it is bounded time, and the person is looking at
+            # exactly the pixels the haste buys.
+            wait = pace(stirred or showing, wait)
             time.sleep(wait)
     finally:
         editor.close()
