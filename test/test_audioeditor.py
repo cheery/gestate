@@ -2006,3 +2006,32 @@ def test_observe_says_what_it_wrote(tmp_path):
 
     bench.transport = None
     assert bench.observe() == [], "facts from an instrument not playing"
+
+
+@needs_clang
+def test_a_scope_traces_while_the_instrument_plays(tmp_path):
+    """`spec/scope.md` acceptance 3's engine half: a playing synth with
+    a scope publishes its window, downsampled to the trace points, and
+    the trace is the sound that flowed — not silence, not garbage."""
+    from pathlib import Path as _P
+
+    src = (_P(AUDIO_DIR) / "scoped.ges").read_text()
+    path = tmp_path / "scoped.ges"
+    path.write_text(src)
+    bench = Workbench(path, rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+    try:
+        bench.start()
+        # Started is not yet sounding: wait for frames to flow.
+        engine = bench.live.engine
+        assert _wait(lambda: engine.frames > 8000, 20.0), \
+            "no second of sound arrived"
+        traces = bench.scope_traces()
+        assert [t[0] for t in traces] == ["post"]
+        points = traces[0][1]
+        assert len(points) == Workbench.TRACE_POINTS
+        assert any(abs(p) > 0.01 for p in points), \
+            "a playing sine left no trace"
+        assert all(abs(p) <= 1.0 for p in points)
+    finally:
+        bench.stop()

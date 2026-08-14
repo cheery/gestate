@@ -119,6 +119,13 @@ class Func:
                 "body": _ir_to_dict(self.body)}
 
 
+#: A scope's window, in samples — ~93 ms at 44.1 kHz, a few cycles of
+#: anything audible.  Fixed rather than declared (`spec/scope.md`): a
+#: window is the reader's concern, and the first argument a scope grows
+#: should be earned by somebody needing it.
+SCOPE_LEN = 4096
+
+
 @dataclass
 class Node:
     """One node of the signal graph.
@@ -284,6 +291,16 @@ class Graph:
         """
         return [n for n in self.nodes
                 if n.kind == "source" and n.clock == "control"]
+
+    def scopes(self) -> list:
+        """The scopes, as `(label, length, node)` in node-id order.
+
+        The order is also `read_scope_<i>`'s numbering — one place, so
+        the generated readers and the Python that calls them cannot
+        disagree about which window is whose (`spec/scope.md`).
+        """
+        return [(n.chan, n.length, n) for n in self.nodes
+                if n.kind == "scope"]
 
     def control_by_chan(self) -> dict:
         """Channel name → its control source node.

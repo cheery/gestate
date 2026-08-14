@@ -211,6 +211,19 @@ impl Canvas {
     /// canvas whose faders work and whose animation stands still.
     pub fn step(&mut self, writes: &[(i64, f64)], pulse: Option<i64>,
                 cx: i32, cy: i32) {
+        self.advance(writes, &[], pulse, cx, cy)
+    }
+
+    /// `step`, with whole windows arriving beside the scalars.
+    ///
+    /// A scope's trace is a `List Float` on a channel
+    /// (`spec/scope.md`), built here with the program's own `Cons`
+    /// and `Nil` — the tags ride in `SubTags` because a `Label`'s
+    /// text already needed them, so a list costs the wire nothing
+    /// new.
+    pub fn advance(&mut self, writes: &[(i64, f64)],
+                   lists: &[(i64, Vec<f64>)], pulse: Option<i64>,
+                   cx: i32, cy: i32) {
         if self.failed.is_some() {
             return;
         }
@@ -226,6 +239,16 @@ impl Canvas {
             if let (Some(chan), Some(tag)) = (input, pulse) {
                 let node = machine.alloc(Node::Con(tag, Vec::new()));
                 arrivals.insert(chan, node);
+            }
+            for (chan, points) in lists {
+                let mut node = machine.alloc(
+                    Node::Con(program.tags.nil, Vec::new()));
+                for v in points.iter().rev() {
+                    let head = machine.alloc(Node::Num(Num::F(*v)));
+                    node = machine.alloc(
+                        Node::Con(program.tags.cons, vec![head, node]));
+                }
+                arrivals.insert(*chan, node);
             }
             machine.reactive_step(&arrivals);
             let value = machine.sig_value(root)

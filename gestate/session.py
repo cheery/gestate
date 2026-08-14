@@ -255,18 +255,27 @@ def _uncommented(lines) -> str:
 
 
 def templates(where: Path = TEMPLATES) -> list:
-    """Every snippet the directory holds, by name.
+    """Every snippet the directories hold, by name.
 
     **Derived from the files**, the way the palette is derived from
     `command.ges` and `doc/ref/` from the libraries: a template cannot
     exist without a name and a sentence, because that is what writing one
     *is*.  Sorted, because a directory has no order a reader can predict
     and the list is read by eye.
+
+    `substrates/` rides beside the given directory: the faces that
+    come with gestate (a scope's trace, a fader) are templates like
+    any other — pasted, and then yours — rather than a second kind of
+    thing with its own command.
     """
     out = []
-    if not where.is_dir():
-        return out
-    for path in sorted(where.glob("*.ges")):
+    wheres = [where]
+    stock = where.with_name("substrates")
+    if stock != where:
+        wheres.append(stock)
+    found = [p for w in wheres if w.is_dir()
+             for p in w.glob("*.ges")]
+    for path in sorted(found, key=lambda p: p.stem):
         lines = path.read_text().splitlines()
         doc = [line.strip()[2:].strip() for line in lines
                if line.strip().startswith("#:")]
@@ -2807,6 +2816,13 @@ def furniture(session: "Session", bench=None) -> str:
             continue
         for line in _of(bank, "mentions", []) or []:
             out.append(f"away\t{line}\t{word}")
+
+    # **A scope stands beside its declaration** (`spec/scope.md`): a
+    # content box under the line that wrote it, so the signal is seen
+    # where it is edited — the knob's placement rule, grown a height.
+    # An old window skips the verb and loses the box, not the file.
+    for label, line in (getattr(b, "scope_sites", list)() or []):
+        out.append(f"scope\t{label}\t{line}")
 
     # **What file this is, and whether it is written down.**  The window
     # had no way to say either: a name you cannot see is one you have to

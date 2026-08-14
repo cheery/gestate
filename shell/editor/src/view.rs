@@ -135,6 +135,11 @@ pub struct Frame {
 /// target, and anything longer belongs to a box or the transcript.
 pub const BAR_MOST: u16 = 5;
 
+/// A scope's box, in rows — enough height for a trace the eye can
+/// read levels off, small enough that two scopes leave the code the
+/// screen (`spec/scope.md`).
+pub const SCOPE_ROWS: u16 = 4;
+
 /// The most rows a content box may be granted — a complaint a hundred
 /// lines long gets its first eight beside the code and the whole text
 /// stays one command away, which is the rule the status bar already
@@ -344,6 +349,18 @@ impl View {
             match boxes.iter_mut().find(|(l, _)| *l == t.line) {
                 Some((_, had)) => *had = (*had + rows).min(BOX_MOST),
                 None => boxes.push((t.line, rows.min(BOX_MOST))),
+            }
+        }
+        // **A scope's box** — `spec/scope.md`: the trace beside its
+        // own declaration, the knob's placement rule grown a height.
+        // A fixed grant, because the trace is a picture and not prose:
+        // the rows are the drawing's, not the content's word count.
+        for (_label, line) in &chrome.scopes {
+            if *line == 0 {
+                continue;
+            }
+            if !boxes.iter().any(|(l, _)| l == line) {
+                boxes.push((*line, SCOPE_ROWS));
             }
         }
         self.boxes = boxes;

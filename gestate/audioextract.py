@@ -28,10 +28,11 @@ from __future__ import annotations
 from .audio import AUDIO_CLOCK
 from .audiograph import (FORMERS, PRIMITIVES, check_analysis, _arrow,
                          _signal_elem, let_inlined)
-from .audioir import (Call, Case, Con, Const, Field, Func, Graph, Let, Node,
+from .audioir import (SCOPE_LEN, Call, Case, Con, Const, Field, Func,
+                      Graph, Let, Node,
                       Prim, Var)
-from .expr import (EAnnot, EAp, ECase, ECon, EGlobal, ELambda, ELet, ENum,
-                   EProj, ESigCons, ETuple, EVar, EWait)
+from .expr import (EAnnot, EAp, ECase, EChr, ECon, EGlobal, ELambda, ELet,
+                   ENum, EProj, ESigCons, ETuple, EVar, EWait)
 from .gmachine import is_tuple_tag, tuple_tag
 from .show import show_type
 from .types import TCon, Type, free_vars
@@ -272,7 +273,8 @@ class _Extract:
         # its buffer is `length` samples of state, and dropping it because
         # nothing reads it *this* recompile loses all of it.
         stack += [n.id for n in self.graph.nodes
-                  if n.kind in ("source", "scan", "line", "tap", "loop", "slide")]
+                  if n.kind in ("source", "scan", "line", "tap", "loop",
+                                "slide", "scope")]
         while stack:
             i = stack.pop()
             if i in keep:
@@ -452,6 +454,7 @@ class _Extract:
                 return ""
             return self._layout(params[i])
 
+        scope_label = None
         if kind == "map":
             step_e, sig_e = args
             inputs = [self._signal(sig_e, env, path, of(0))]
@@ -497,6 +500,22 @@ class _Extract:
             inputs = [self._signal(sig_e, env, path, of(2))]
             init = self._constant(init_e, env, path)
             type_ = self._value_type(init)
+        elif kind == "scope":
+            # `scope label s` — identity on the sound, a ring write on
+            # the way past (`spec/scope.md`).  No step: there is
+            # nothing to compute, only a window to keep.  The label is
+            # an assembly-time fact like a `line`'s length, and the
+            # length is the spec's fixed window.
+            label_e, sig_e = args
+            label = self._label_text(label_e, env, path)
+            if not isinstance(label, str) or not label:
+                raise ExtractError(
+                    f"{path}: a scope's label has to be a piece of text "
+                    f"it can be asked for by — `scope \"post\" s`")
+            inputs = [self._signal(sig_e, env, path, "Float")]
+            init, type_ = None, "Float"
+            length = SCOPE_LEN
+            scope_label = label
         elif kind == "slide":
             # `slide n f pos s` — the step folds the interpolated read with
             # the input, `step : Float -> a -> Float`, and the ring holds
@@ -531,14 +550,41 @@ class _Extract:
 
         want = 1 if kind == "map" else 3 if kind == "loop" else 2
         origin = self._origin(path, kind)
-        step = (None if kind == "tap"
+        step = (None if kind in ("tap", "scope")
                 else self._step(step_e, env, origin, want))
         return self._add(Node(id=0, kind=kind, inputs=tuple(inputs),
                               step=step, init=init, type_=type_,
                               length=(length if kind in ("line", "tap",
-                                                         "loop", "slide")
-                                      else 0)),
+                                                         "loop", "slide",
+                                                         "scope")
+                                      else 0),
+                              chan=(scope_label if kind == "scope"
+                                    else None)),
                          path, kind, origin=origin)
+
+    def _label_text(self, e, env: dict, where: str):
+        """A `String` literal's text, read off the expression itself.
+
+        **Not through `_constant`**: the small IR has no characters,
+        because the engine never holds text — a scope's label is
+        consumed here, before any IR exists, and lives on the node
+        (`spec/scope.md`).  A string literal is a cons chain of
+        `EChr`s; anything else refuses with the spelling to use.
+        """
+        out = []
+        while True:
+            while isinstance(e, EAnnot):
+                e = e.expr
+            if isinstance(e, ECon) and len(e.args) == 0:
+                return "".join(out)
+            if isinstance(e, ECon) and len(e.args) == 2:
+                head, e = e.args
+                while isinstance(head, EAnnot):
+                    head = head.expr
+                if isinstance(head, EChr):
+                    out.append(chr(head.n))
+                    continue
+            return None
 
     def _length(self, e, env: dict, where: str) -> int:
         """A delay line's length, in samples — **a constant, or nothing.**

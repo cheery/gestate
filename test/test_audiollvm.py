@@ -446,3 +446,49 @@ def test_no_sample_written_to_a_wav_can_wrap_the_conversion():
     for x in (-1e9, -1.0001, 0.0, 1.0001, 1e9, float("nan")):
         v = int(safe_sample(x) * 32767)
         assert -32767 <= v <= 32767, f"{x} packed as {v}"
+
+
+@needs_clang
+def test_a_scope_publishes_the_window_it_saw(tmp_path):
+    """`spec/scope.md`: identity on the sound, and a ring the host may
+    read — oldest first, holding exactly the samples that flowed
+    through, matching the oracle's own ring to the bit."""
+    import ctypes
+
+    from gestate.audioengine import State, render_block, zero
+    from gestate.audiollvm import build, load
+    from gestate.audioir import SCOPE_LEN
+
+    src = ('sound : Sig Float\n'
+           'sound = scope "post" (0.2 * sine 220.0)\n')
+    g = extract(src, rate=8000)
+    assert [(l, n) for l, n, _ in g.scopes()] == [("post", SCOPE_LEN)]
+
+    # The oracle: the sound, and the ring beside it.
+    bare = extract('sound : Sig Float\nsound = 0.2 * sine 220.0\n',
+                   rate=8000)
+    want = run(bare, 256, block=64)
+    assert run(g, 256, block=64) == want, "a scope changed the sound"
+
+    # The generated code: render, then read the window back.
+    lib = load(build(g, tmp_path))
+    lib.render_block.restype = None
+    lib.render_block.argtypes = [ctypes.c_void_p, ctypes.c_void_p,
+                                 ctypes.c_int64, ctypes.c_void_p]
+    lib.read_scope_0.restype = None
+    lib.read_scope_0.argtypes = [ctypes.c_void_p, ctypes.c_void_p,
+                                 ctypes.c_int64]
+    from gestate.audiollvm import _slots
+    width = 8 * (1 + sum(_slots(g, n) for n in g.nodes))
+    state = ctypes.create_string_buffer(width)
+    buf = (ctypes.c_double * 64)()
+    for _ in range(4):
+        lib.render_block(state, buf, 64, None)
+    window = (ctypes.c_double * SCOPE_LEN)()
+    lib.read_scope_0(state, window, SCOPE_LEN)
+    got = list(window)
+    # Oldest first: after 256 instants the window's tail is exactly
+    # the 256 samples that played, in order, and everything before
+    # them is the silence the ring was born with.
+    assert got[-256:] == want, "the window is not the sound that flowed"
+    assert all(v == 0.0 for v in got[:-256]), "silence before the sound"

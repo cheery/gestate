@@ -81,6 +81,9 @@ FORMERS = {
     #: signal.  Still no cycle in the graph — the loop is inside the node —
     #: and the read is clamped a sample back, so it cannot close empty.
     "slide": "slide",
+    #: A scope on a signal — `spec/scope.md`.  Identity on the sound, a
+    #: ring write on the way past: a delay line the host may read.
+    "scope": "scope",
 }
 
 #: What each former takes, by the *node kind* rather than by the name — two
@@ -103,6 +106,11 @@ SHAPES = {
     # `slide n f pos s` — the length first as its siblings', the step, and
     # then two signals: the position and the input.
     "slide": ("value", "step", "signal", "signal"),
+    # `scope label s` — the label first, an assembly-time fact the way a
+    # `line`'s length is.  `label` rather than `value`: text is a list,
+    # a list has no fixed size, and the engine never sees it — the
+    # label is read when the graph is built and lives on the node.
+    "scope": ("label", "signal"),
 }
 
 #: Machine primitives over flat types.  `chr`/`ord` move between `Int` and
@@ -453,6 +461,13 @@ class _Check:
                 self._signal(arg)
             elif kind == "value":
                 self._scalar(arg)
+            elif kind == "label":
+                # An assembly-time fact, like `voices`' name: read when
+                # the graph is built and never present in it, so the
+                # fragment has nothing to check — text is a list, and
+                # refusing it here would refuse every scope over the
+                # size of a thing the engine never holds.
+                pass
             else:
                 self._step(name, arg)
 

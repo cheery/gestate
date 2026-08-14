@@ -488,7 +488,8 @@ def emit(graph: Graph) -> str:
     def _field(node) -> str:
         cell = e.t.of(node.type_)
         return (f"[{node.length} x {cell}]"
-                if node.kind in ("line", "tap", "loop", "slide") else cell)
+                if node.kind in ("line", "tap", "loop", "slide", "scope")
+                else cell)
 
     state_fields = ", ".join(["i64"] + [_field(n) for n in graph.nodes])
     lines = [
@@ -518,7 +519,50 @@ def emit(graph: Graph) -> str:
     # between them, which is what an audio callback with a deadline needs.
     lines += _render_block(graph, e, "render_block_mix_f32", "float",
                            mix=True)
+    lines += _read_scopes(graph)
     return "\n".join(lines) + "\n"
+
+
+def _read_scopes(graph: Graph) -> list:
+    """`void read_scope_<i>(%State*, double* out, i64 n)` per scope.
+
+    Copies the window **oldest-first** with the same cursor the writes
+    use — slot `t mod length` is the one about to be overwritten, so
+    it is where the window begins.  The generated code owns its layout
+    and the host calls a function; no offsets cross the boundary
+    (`spec/scope.md`).  The read races the audio thread and may seam
+    at a block edge — a diagnostic tolerates what a delay line must
+    not, which is why nothing may feed one back into the sound.
+    """
+    out: list = []
+    for i, (_label, length, node) in enumerate(graph.scopes()):
+        out += [
+            f"define void @read_scope_{i}(ptr %s, ptr %out, i64 %n) {{",
+            "entry:",
+            "  %tptr = getelementptr inbounds %State, ptr %s, i32 0, i32 0",
+            "  %t = load i64, ptr %tptr",
+            "  %some = icmp sgt i64 %n, 0",
+            "  br i1 %some, label %loop, label %done",
+            "loop:",
+            "  %j = phi i64 [ 0, %entry ], [ %jn, %loop ]",
+            "  %shift = add i64 %t, %j",
+            f"  %idx = urem i64 %shift, {length}",
+            "  %ring = getelementptr inbounds %State, ptr %s, i32 0, "
+            f"i32 {node.id + 1}",
+            f"  %sp = getelementptr inbounds [{length} x double], "
+            "ptr %ring, i64 0, i64 %idx",
+            "  %v = load double, ptr %sp",
+            "  %op = getelementptr inbounds double, ptr %out, i64 %j",
+            "  store double %v, ptr %op",
+            "  %jn = add i64 %j, 1",
+            "  %again = icmp slt i64 %jn, %n",
+            "  br i1 %again, label %loop, label %done",
+            "done:",
+            "  ret void",
+            "}",
+            "",
+        ]
+    return out
 
 
 def out_channels(graph: Graph) -> int:
@@ -580,7 +624,7 @@ def _render_block(graph: Graph, e: _Emit, name: str, out_type: str,
     for node in graph.nodes:
         slot = f"%slot{node.id}"
         ty = e.t.of(node.type_)
-        if node.kind == "line":
+        if node.kind in ("line", "scope"):
             # `out[t-n]` lives exactly where `out[t]` is about to go,
             # because `(t - n) mod n` is `t mod n` — so one index serves
             # the read and the write, and no cursor is stored.
@@ -707,6 +751,12 @@ def _render_block(graph: Graph, e: _Emit, name: str, out_type: str,
             out = e.fresh("lpv")
             e.emit(f"{out} = select i1 %first, {ty} {init}, {ty} {stepped}")
             values[node.id] = out
+        elif node.kind == "scope":
+            # Identity on the sound, a ring write on the way past —
+            # `spec/scope.md`.  The pass-through is the value; the
+            # shared store below writes it into the ring slot the
+            # `line` arithmetic picked, which is the whole node.
+            values[node.id] = values[node.inputs[0]]
         elif node.kind == "tap":
             out = _emit_tap(e, node, ty, values[node.inputs[1]], rings[node.id])
             values[node.id] = out
@@ -1155,7 +1205,8 @@ def _slots(graph: Graph, node) -> int:
     """
     words = _words(graph, node.type_)
     return (words * node.length
-            if node.kind in ("line", "tap", "loop", "slide") else words)
+            if node.kind in ("line", "tap", "loop", "slide", "scope")
+            else words)
 
 
 def _words(graph: Graph, type_name: str) -> int:
@@ -1188,7 +1239,7 @@ def pack_state(graph: Graph, values: list, t: int, lines=None) -> bytes:
 
     out = bytearray(struct.pack("<q", t))
     for node, value in zip(graph.nodes, values):
-        if node.kind in ("line", "tap", "loop", "slide"):
+        if node.kind in ("line", "tap", "loop", "slide", "scope"):
             # **A line's slot is its ring, not its sample.**  `values` is
             # one value per node and a line's is the sample downstream
             # read; the ring lives in `State.lines`, and what goes into the
@@ -1213,7 +1264,7 @@ def unpack_state(graph: Graph, data) -> tuple:
     t = struct.unpack_from("<q", raw, 0)[0]
     values, lines, at = [], {}, 8
     for node in graph.nodes:
-        if node.kind in ("line", "tap", "loop", "slide"):
+        if node.kind in ("line", "tap", "loop", "slide", "scope"):
             ring = []
             for _ in range(node.length):
                 held, at = _unpack(graph, node.type_, raw, at)

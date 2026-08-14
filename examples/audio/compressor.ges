@@ -1,0 +1,36 @@
+# compressor.ges — hear the pump, see the dip — `spec/scope.md`'s demo.
+#
+#   python -m gestate.workbench examples/audio/compressor.ges
+#
+# A thump swells twice a second under a steady bright tone, and a
+# compressor pulls the whole mix down whenever the thump gets loud —
+# ducking, the oldest trick on the desk.  The two scopes are the
+# point: `in` swells where `out` dips, at the same moment, beside the
+# lines that made them.  You have always been able to hear this;
+# now the margin shows it while it plays.
+
+#: The pump: a low sine swelling on a slow LFO.
+thump : Sig Float
+thump = sine 55.0 * (0.5 + 0.5 * sine 2.0)
+
+#: A steady tone riding above it, so the ducking has a victim.
+bright : Sig Float
+bright = 0.15 * sine 660.0
+
+#: The mix going *into* the compressor, scoped: watch it swell.
+din : Sig Float
+din = scope "in" (0.5 * thump + bright)
+
+#: A power-envelope follower: rises at once, decays slowly — the
+#: `scan` is the whole of it.
+envelope : Sig Float
+envelope = scan (e x => max (x * x) (e * 0.9993)) 0.0 din
+
+#: Soft compression: the louder the envelope, the smaller the gain.
+#: No threshold and no knee — one division is enough to duck.
+gain : Sig Float
+gain = !(e => 1.0 / (1.0 + 9.0 * e)) envelope
+
+#: And the mix coming *out*, scoped: watch it dip where `in` swells.
+sound : Sig Float
+sound = scope "out" (din * gain)

@@ -163,6 +163,11 @@ pub struct Furniture {
     /// nothing about time has no position to show, and a readout of
     /// `1.1` invented for it would be a fact the window made up.
     pub has_transport: bool,
+    /// The scopes, as `(label, line)` — a signal watched where it is
+    /// written: each grants a content box under its declaration, and
+    /// the trace drawn in it arrives on the readings channel
+    /// (`spec/scope.md`).
+    pub scopes: Vec<(String, usize)>,
     /// The file is not a program — a `.txt` or `.md` being edited
     /// beside the music.  Nothing compiles and nothing plays, and the
     /// window says `[inert]` where the transport would stand, so the
@@ -262,6 +267,11 @@ impl Furniture {
                 }
                 "inert" => {
                     f.inert = p.get(1).copied() == Some("1");
+                }
+                "scope" if p.len() >= 3 => {
+                    if let Ok(line) = p[2].parse() {
+                        f.scopes.push((p[1].into(), line));
+                    }
                 }
                 "loop" if p.len() >= 3 => {
                     f.looping = Some((num(p.get(1)), num(p.get(2))));

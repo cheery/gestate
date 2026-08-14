@@ -155,6 +155,15 @@ slide n f pos s = map slideHead
     (scan (buf i => slideStep f buf i) (lineZero n)
           (zipSig (x d => SlideIn x d) s pos))
 
+#: **A scope on a signal** — `spec/scope.md`.  Identity on the sound:
+#: what flows through is exactly what flowed in, and the label names
+#: the window of recent samples the host keeps on the way past, for a
+#: canvas to draw.  The audio backend knows the name and emits a node
+#: whose ring is a delay line's; this body is the oracle's truth that
+#: a scope changes nothing it touches.
+scope : String -> Sig Float -> Sig Float
+scope label s = s
+
 #: **A delay line with a filter in it** — `feedback`, plus where the step
 #: was an instant ago.
 #:

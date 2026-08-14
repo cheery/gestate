@@ -1,0 +1,22 @@
+#: A scope's trace, drawn — dots at each point's own height over a
+#: dark panel.  Pair it with `scope "post" …` in the sound and a
+#: `post : Chan (List Float)` channel; `spec/scope.md` is the story,
+#: `examples/audio/scoped.ges` the worked example.
+post : Chan (List Float)
+post = chan
+
+traceInk : Colour
+traceInk = RGB 122 200 235
+
+traceDots : Int -> List Float -> Sub
+traceDots i ps = case ps of
+    Nil -> Gap 0 0
+    p :: rest -> Over (Shift (i * 3 - 192) (floor (p * 300.0))
+                             (Rect 2 3 traceInk))
+                      (traceDots (i + 1) rest)
+
+traceFace : List Float -> Sub
+traceFace ps = Over (Rect 400 140 (RGB 32 35 43)) (traceDots 0 ps)
+
+substrate : Sig Sub
+substrate = !traceFace (Nil ::: mkSig (wait post))

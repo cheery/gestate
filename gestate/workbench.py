@@ -728,24 +728,34 @@ def run(path, rate: int = 44100, block: int = 512,
             drew = False
             showing = getattr(session.view, "showing", "source") == "canvas"
             sub = getattr(bench, "substrate", None)
-            if (showing and sub is not None
-                    and getattr(sub, "crossing", None) is not None):
-                # **The window walks this one** (`spec/workbench.md`
-                # §"The canvas walks over crust") — the payload crossed,
-                # so the per-frame tick+picture retires and what is
-                # left of the model's frame is `observe`: the
-                # instrument's facts, forwarded by name as `reading`
-                # lines.  At `READ_EVERY`, because the read rate *is*
-                # the meter's window; only when they moved, because a
-                # meter at rest is not news; and never a touch's echo,
-                # which would snap a fader back under a hand that had
-                # moved on.
+            crossed = (sub is not None
+                       and getattr(sub, "crossing", None) is not None)
+            if (showing and crossed) or (
+                    not (showing and not crossed)
+                    and time.monotonic() >= next_frame):
+                # **The window walks the canvas and draws the boxes**
+                # (`spec/workbench.md` §"The canvas walks over crust",
+                # `spec/scope.md`) — so what the model's frame owes is
+                # facts, not pictures: `reading` lines for a crossed
+                # canvas while it shows, and `trace` lines for the
+                # scopes *whatever shows*, because their boxes stand
+                # in the source view beside the code.  At
+                # `READ_EVERY`, because the read rate is the meter's
+                # window; only when they moved, because a meter at
+                # rest is not news; never a touch's echo, which would
+                # snap a fader under a hand that had moved on.
                 if time.monotonic() >= next_frame:
                     next_frame = time.monotonic() + READ_EVERY
-                    facts = bench.observe()
-                    heard = "\n".join(f"reading\t{n}\t{v}"
-                                      for n, v in facts)
-                    if heard != drawn:
+                    lines_out = []
+                    if showing and crossed:
+                        lines_out += [f"reading\t{n}\t{v}"
+                                      for n, v in bench.observe()]
+                    for label, points in bench.scope_traces():
+                        lines_out.append(
+                            "trace\t" + label + "\t"
+                            + "\t".join(f"{p:.5g}" for p in points))
+                    heard = "\n".join(lines_out)
+                    if lines_out and heard != drawn:
                         editor.readings(heard)
                         drawn = heard
             elif showing and time.monotonic() >= next_frame:

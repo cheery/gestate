@@ -214,8 +214,34 @@ class Engine:
         lib.render_block_f32.restype = None
         lib.render_block_f32.argtypes = [ctypes.c_void_p, ctypes.c_void_p,
                                          ctypes.c_int64, ctypes.c_void_p]
+        # The scopes' readers, declared with the rest — one per scope,
+        # in `Graph.scopes` order, which is also their numbering
+        # (`spec/scope.md`).
+        for i, _ in enumerate(graph.scopes()):
+            reader = getattr(lib, f"read_scope_{i}")
+            reader.restype = None
+            reader.argtypes = [ctypes.c_void_p, ctypes.c_void_p,
+                               ctypes.c_int64]
         width = 8 * (1 + sum(_slots(graph, n) for n in graph.nodes))
         return cls(lib, ctypes.create_string_buffer(width), graph)
+
+    def scope_window(self, label: str) -> list | None:
+        """The window a scope holds, oldest first, or `None`.
+
+        Read while the audio thread runs — the read may seam at a
+        block edge, which a diagnostic tolerates and nothing may feed
+        back into the sound (`spec/scope.md`).
+        """
+        import ctypes as ct
+
+        for i, (name, length, _node) in enumerate(self.graph.scopes()):
+            if name != label:
+                continue
+            out = (ct.c_double * length)()
+            getattr(self.lib, f"read_scope_{i}")(
+                ct.cast(self.state, ct.c_void_p), out, length)
+            return list(out)
+        return None
 
     @property
     def control_sources(self) -> list:

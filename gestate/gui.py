@@ -774,7 +774,17 @@ class Substrate:
         cid = self.by_name.get(name)
         if cid is None:
             return False
-        react(self.reactive, [(cid, NNum(value))])
+        if isinstance(value, list):
+            # A scope's trace: the points as the `List Float` the
+            # channel declared (`spec/scope.md`) — built with the
+            # program's own constructors, the way `_event_node` builds
+            # an event.
+            node = NCon(self.state.cons["Nil"].tag, ())
+            for v in reversed(value):
+                node = NCon(self.state.cons["Cons"].tag, (NNum(v), node))
+            react(self.reactive, [(cid, node)])
+        else:
+            react(self.reactive, [(cid, NNum(value))])
         self.values[name] = value
         return True
 

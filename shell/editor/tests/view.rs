@@ -1187,3 +1187,23 @@ fn an_inert_file_wears_the_word_where_the_transport_stands() {
     assert!(!f.items.iter().any(|i| matches!(i, Item::Run { s, .. }
         if s.contains('\u{25b6}') || s.contains('\u{25a0}'))));
 }
+
+/// A scope grants a box under its declaration — the knob's placement
+/// rule grown a height (`spec/scope.md`) — and the slots walk keeps
+/// every reader agreeing about where the lines below it went.
+#[test]
+fn a_scope_grants_a_box_under_its_line() {
+    use gestate_editor::view::SCOPE_ROWS;
+
+    let d = doc("a\nb\nc\nd");
+    let chrome = Furniture::read("scope\tpost\t2");
+    let mut v = rows_of(10, 900);
+    v.grant(&chrome, &LARGE);
+    assert_eq!(v.boxes, vec![(2, SCOPE_ROWS)]);
+    // A trouble box on the same line wins — a complaint is news and a
+    // trace is scenery.
+    let both = Furniture::read("trouble\t2\tboom\nscope\tpost\t2");
+    v.grant(&both, &LARGE);
+    assert_eq!(v.boxes.len(), 1);
+    assert_eq!(v.boxes[0].0, 2);
+}

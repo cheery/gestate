@@ -1000,6 +1000,60 @@ class Workbench:
                     put(name, ages[k] if k < len(ages) else 0)
         return told
 
+    #: How many points a scope's trace crosses as: the window
+    #: downsampled by **max-absolute per bucket**, because a scope that
+    #: averages away a click is a scope that lies (`spec/scope.md`).
+    TRACE_POINTS = 128
+
+    def scope_traces(self) -> list:
+        """`(label, points)` per scope of the playing instrument.
+
+        Read from the running engine's own rings — the read may seam
+        at a block edge, which a diagnostic tolerates.  Empty when
+        nothing plays or nothing is scoped, which is most programs.
+        """
+        engine = getattr(self.live, "engine", None) if self.live else None
+        if engine is None or not hasattr(engine.graph, "scopes"):
+            return []
+        out = []
+        for label, _length, _node in engine.graph.scopes():
+            window = engine.scope_window(label)
+            if not window:
+                continue
+            size = max(1, len(window) // self.TRACE_POINTS)
+            points = [max(window[b * size:(b + 1) * size], key=abs)
+                      for b in range(self.TRACE_POINTS)
+                      if window[b * size:(b + 1) * size]]
+            out.append((label, points))
+        return out
+
+    def scope_sites(self) -> list:
+        """`(label, line)` per scope, from the text — for the margin.
+
+        Textual like `scored_banks`' mentions, because the declaration
+        *is* textual: the line a `scope "post"` is written on is where
+        its content box belongs, and the graph's own origins name
+        inlining paths, not lines.  First mention wins; a label scoped
+        twice draws at its first writing.
+        """
+        import re
+
+        engine = getattr(self.live, "engine", None) if self.live else None
+        if engine is None or not hasattr(engine.graph, "scopes"):
+            return []
+        out, seen = [], set()
+        text = self.source().splitlines()
+        for label, _length, _node in engine.graph.scopes():
+            if label in seen:
+                continue
+            seen.add(label)
+            pat = re.compile(r'scope\s+"' + re.escape(label) + '"')
+            for i, line in enumerate(text, start=1):
+                if pat.search(line):
+                    out.append((label, i))
+                    break
+        return out
+
     def voices_held(self) -> int:
         """How many voices are sounding, across every bank."""
         return sum(len(self.sounding_on(b["name"]))

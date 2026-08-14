@@ -302,12 +302,12 @@ def migrate(old: Graph, state: State, new: Graph) -> State:
         # 4410` to `4400` while a sound is playing restarts that line and
         # nothing else, which is the same rule a `scan` follows when its
         # type changes.
-        if (kept and node.kind in ("line", "tap", "loop", "slide")
+        if (kept and node.kind in ("line", "tap", "loop", "slide", "scope")
                 and before[0].length != node.length):
             kept = False
         if kept:
             values.append(before[2])
-            if (node.kind in ("line", "tap", "loop", "slide")
+            if (node.kind in ("line", "tap", "loop", "slide", "scope")
                     and before[0].id in state.lines):
                 lines[node.id] = list(state.lines[before[0].id])
         elif node.init is not None:
@@ -383,6 +383,14 @@ def render_block(graph: Graph, state: State, n: int, control=None) -> list:
                 buf = state.ring(graph, node)
                 cur[i] = _tap_read(buf, t, cur[node.inputs[1]])
                 writes.append(node)
+            elif node.kind == "scope":
+                # Identity on the sound, a ring write on the way past —
+                # `spec/scope.md`: the window the host may read.  The
+                # write happens in the pass because nothing reads the
+                # ring from inside the graph; only a window does.
+                buf = state.ring(graph, node)
+                cur[i] = cur[node.inputs[0]]
+                buf[t % len(buf)] = cur[i]
             elif node.kind == "line":
                 # **A `scan` with a longer arm**, and the same asymmetry at
                 # the first instant: silence at `t = 0`, then

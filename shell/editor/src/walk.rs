@@ -119,6 +119,9 @@ pub struct Walker {
     /// next instant, because the picture and the value must move in
     /// the same step.
     pending: Vec<(i64, f64)>,
+    /// Whole windows arriving beside the scalars — a scope's trace as
+    /// the `List Float` its channel declared (`spec/scope.md`).
+    pending_lists: Vec<(i64, Vec<f64>)>,
 }
 
 fn subtags(t: &[i64]) -> SubTags {
@@ -151,7 +154,8 @@ impl Walker {
         let pending = walk.chans.iter()
             .filter_map(|(n, v)| Some((canvas.channel(n)?, (*v)?)))
             .collect();
-        Ok(Walker { canvas, tick: walk.tick, names, pending })
+        Ok(Walker { canvas, tick: walk.tick, names, pending,
+                    pending_lists: Vec::new() })
     }
 
     /// One instant, one picture — everything a hand wrote since the
@@ -160,9 +164,10 @@ impl Walker {
     /// transform.
     pub fn frame(&mut self, cx: i32, cy: i32) -> &Display {
         let writes = std::mem::take(&mut self.pending);
+        let lists = std::mem::take(&mut self.pending_lists);
         // The frame's own Tick rides with the writes — one instant,
         // exactly what `Substrate.tick` mints per frame at home.
-        self.canvas.step(&writes, self.tick, cx, cy);
+        self.canvas.advance(&writes, &lists, self.tick, cx, cy);
         self.canvas.display()
     }
 
@@ -214,6 +219,18 @@ impl Walker {
         }
     }
 
+    /// A whole window arriving by name — `trace post 0.1 0.2 …`, the
+    /// scope's word (`spec/scope.md`).  Consecutive traces on one
+    /// channel coalesce to the newest: a frame draws one window, and
+    /// stacking the missed ones would replay the past at the wrong
+    /// speed.
+    pub fn hear_trace(&mut self, name: &str, points: Vec<f64>) {
+        if let Some((id, _)) = self.names.iter().find(|(_, n)| n == name) {
+            self.pending_lists.retain(|(c, _)| *c != *id);
+            self.pending_lists.push((*id, points));
+        }
+    }
+
     pub fn is_grabbing(&self) -> bool {
         self.canvas.is_grabbing()
     }
@@ -229,6 +246,22 @@ pub fn readings(text: &str) -> Vec<(String, f64)> {
                 return None;
             }
             Some((p.get(1)?.to_string(), p.get(2)?.parse().ok()?))
+        })
+        .collect()
+}
+
+/// `trace` lines to `(name, points)` — the same lenience: a point
+/// that does not parse loses that point, a line that is not a trace
+/// loses that line, never the rest.
+pub fn traces(text: &str) -> Vec<(String, Vec<f64>)> {
+    text.lines()
+        .filter_map(|line| {
+            let p: Vec<&str> = line.split('\t').collect();
+            if p.first() != Some(&"trace") {
+                return None;
+            }
+            Some((p.get(1)?.to_string(),
+                  p[2..].iter().filter_map(|v| v.parse().ok()).collect()))
         })
         .collect()
 }
@@ -426,5 +459,41 @@ mod tick_tests {
         let first = w.frame(100, 100).items.clone();
         let second = w.frame(100, 100).items.clone();
         assert_eq!(first, second, "still is what no clock means");
+    }
+}
+
+#[cfg(test)]
+mod trace_tests {
+    use super::*;
+
+    /// `tests/scoped.walk` — `examples/audio/scoped.ges`'s canvas,
+    /// written by the model like the other fixtures.
+    const SCOPED: &str = include_str!("../tests/scoped.walk");
+
+    #[test]
+    fn a_trace_arrives_as_the_list_its_channel_declared() {
+        let walk = Walk::read(SCOPED).expect("reads");
+        let mut w = Walker::open(&walk).expect("loads");
+        let flat = w.frame(100, 100).items.clone();
+        w.hear_trace("post", vec![0.15; 128]);
+        let drawn = w.frame(100, 100).items.clone();
+        assert_ne!(flat, drawn, "the trace changed nothing on screen");
+        assert!(drawn.len() > flat.len(),
+                "128 points should be 128 more marks, got {} over {}",
+                drawn.len(), flat.len());
+        // The newest window wins when frames fall behind.
+        w.hear_trace("post", vec![0.1; 128]);
+        w.hear_trace("post", vec![0.2; 128]);
+        let last = w.frame(100, 100).items.clone();
+        assert_ne!(drawn, last);
+    }
+
+    #[test]
+    fn trace_lines_read_leniently() {
+        let text = "reading\tpeak\t0.5\n\
+                    trace\tpost\t0.1\t0.2\tnot-a-number\t0.3";
+        assert_eq!(traces(text),
+                   vec![("post".into(), vec![0.1, 0.2, 0.3])]);
+        assert_eq!(readings(text), vec![("peak".into(), 0.5)]);
     }
 }

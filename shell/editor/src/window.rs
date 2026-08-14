@@ -203,6 +203,11 @@ struct EditorWindow {
     walking: Cell<u64>,
     /// The readings version last fed to it.
     heard: Cell<u64>,
+    /// The newest trace per scope label, for the boxes beside their
+    /// declarations — kept by the window because traces arrive at the
+    /// reading cadence and the boxes draw at the frame's
+    /// (`spec/scope.md`).
+    traces: RefCell<std::collections::HashMap<String, Vec<f64>>>,
     /// Cut and copy go here.  In-process; see `keys::Clipboard` for why
     /// the system one is somebody else's to provide.
     clip: RefCell<Memory>,
@@ -472,6 +477,7 @@ impl EditorWindow {
             walker: RefCell::new(None),
             walking: Cell::new(0),
             heard: Cell::new(0),
+            traces: RefCell::new(std::collections::HashMap::new()),
             clip: RefCell::new(Memory::default()),
             chrome: RefCell::new(Furniture::default()),
             furnished: Cell::new(0),
@@ -697,6 +703,60 @@ impl EditorWindow {
     /// is.  The middle of the window, because the walk is
     /// origin-relative and a bare `rect` should draw where a first
     /// program expects it.
+    /// The scopes' boxes: each trace drawn under its own declaration
+    /// — `spec/scope.md`'s margin half.  The band comes from the same
+    /// slots walk everything else reads, so a click beside the trace
+    /// lands on the line that wrote it; the points are the newest
+    /// `trace` the wire carried, and a scope that has not spoken yet
+    /// draws its midline rather than nothing, because an empty box
+    /// reads as a layout bug and a flat line reads as silence.
+    fn paint_scopes(&self, canvas: &mut gestate_panel::paint::Canvas,
+                    doc: &Document, view: &View, font: &Font,
+                    chrome: &crate::furniture::Furniture) {
+        if chrome.scopes.is_empty() {
+            return;
+        }
+        let slots = view.slots(doc, font);
+        let traces = self.traces.borrow();
+        let (cw, ch) = (view.cw(font), view.ch(font));
+        let gutter = view.gutter_cols(doc) as i32 * cw;
+        let wide = view.text_cols(font, doc) as i32 * cw - 4;
+        let mut f = view::Frame::default();
+        for (label, line) in &chrome.scopes {
+            let Some(slot) = slots.iter().find(|s| s.row + 1 == *line)
+            else { continue };
+            if slot.box_h <= 0 {
+                continue;
+            }
+            let (top, high) = (slot.y + ch, slot.box_h - 2);
+            f.items.push(view::Item::Rect {
+                x: gutter + 2, y: top, w: wide, h: high,
+                c: view::CHROME });
+            let mid = top + high / 2;
+            match traces.get(label) {
+                Some(points) if !points.is_empty() => {
+                    let n = points.len() as i32;
+                    for (i, p) in points.iter().enumerate() {
+                        let x = gutter + 2
+                            + (i as i32) * (wide - 4) / n.max(1);
+                        let v = p.clamp(-1.0, 1.0);
+                        let y = mid
+                            - (v * ((high / 2 - 2) as f64)) as i32;
+                        f.items.push(view::Item::Rect {
+                            x, y: y - 1, w: 2, h: 2, c: view::CARET });
+                    }
+                }
+                _ => f.items.push(view::Item::Rect {
+                    x: gutter + 2, y: mid, w: wide, h: 1,
+                    c: view::FAINT }),
+            }
+            f.items.push(view::Item::Run {
+                x: gutter + 6, y: top + 2, s: label.clone(),
+                c: view::FAINT });
+        }
+        view::paint(canvas, &f, font, self.scale());
+    }
+
     fn canvas_centre(&self) -> (i32, i32) {
         let view = self.view.borrow();
         (view.w / 2, view.h / 2)
@@ -1140,6 +1200,23 @@ impl WindowHandler for EditorWindow {
                     // waits for the next look, which is when anyone
                     // could see it.
                 }
+                let arrived = crate::walk::traces(&text);
+                if !arrived.is_empty() {
+                    let mut held = self.traces.borrow_mut();
+                    for (name, points) in arrived {
+                        if let Some(w) = self.walker.borrow_mut().as_mut() {
+                            w.hear_trace(&name, points.clone());
+                        }
+                        held.insert(name, points);
+                    }
+                    // A scope's box redraws at the trace's own cadence
+                    // — the source view has no other reason to.
+                    if !self.on_canvas.get()
+                        && !self.chrome.borrow().scopes.is_empty()
+                    {
+                        self.dirty.set(true);
+                    }
+                }
             }
         }
         // **The mirror is re-synced every poll, not only after input.**
@@ -1403,6 +1480,7 @@ impl WindowHandler for EditorWindow {
                 view::paint(&mut canvas,
                             &view::frame_with(&doc, &view, font, &chrome),
                             font, self.scale());
+                self.paint_scopes(&mut canvas, &doc, &view, font, &chrome);
             }
         }
         // The palette over the text, in its own frame — chrome over a
