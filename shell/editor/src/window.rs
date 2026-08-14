@@ -412,6 +412,16 @@ impl EditorWindow {
         // "in".
         #[cfg(target_os = "linux")]
         {
+            // The clock floor, claimed on the thread that will paint
+            // every frame — see `clock_floor`.  Half the scale asks
+            // for roughly the clock a busy thread earns by burning
+            // for it.
+            let floored = clock_floor::claim(512);
+            if std::env::var_os("GESTATE_EDITOR_TIME").is_some() {
+                eprintln!("[editor] clock floor: {}",
+                          if floored { "claimed (uclamp_min 512)" }
+                          else { "refused — kernel or limit said no" });
+            }
             use raw_window_handle::{HasDisplayHandle, RawDisplayHandle,
                                     RawWindowHandle};
             let said = match ctx.display_handle().map(|d| d.as_raw()) {
@@ -2015,6 +2025,79 @@ mod window_icon {
 }
 
 #[cfg(target_os = "linux")]
+/// The clock floor — `uclamp_min` on the window's own thread.
+///
+/// `spec/performance.md` §4 "The third mask": on a `powersave`
+/// governor, retiring the model's per-frame walk left this process so
+/// light that the cores parked at 500–600 MHz — below the idle
+/// baseline — and the window's 2 ms frame became 7, so a canvas in
+/// continuous motion juddered at ~43 Hz with three cores asleep.
+/// `uclamp_min` names exactly that mechanism: it tells the scheduler
+/// this thread is worth at least mid capacity — per-thread,
+/// unprivileged for one's own threads, and costing nothing when the
+/// machine is genuinely busy, which is everything a governor change
+/// or a spin-to-stay-warm is not.
+///
+/// **What it can and cannot reach** (measured on the m3, same day):
+/// the claim succeeds and the frequency does not move, because
+/// `intel_pstate` in *active* mode lets the hardware pick P-states
+/// guided by EPP and never consults the scheduler's utilisation —
+/// uclamp moves the clock only under `schedutil` (most AMD boxes,
+/// or `intel_pstate=passive`).  On an active-mode Intel machine the
+/// knob is EPP itself (`energy_performance_preference`, root's to
+/// write — this one idled on `balance_power`), which is a system
+/// setting and deliberately not this program's to change.  The claim
+/// stays because it is correct where it works and inert where it
+/// does not.
+#[cfg(target_os = "linux")]
+mod clock_floor {
+    /// `struct sched_attr` through the uclamp generation's fields —
+    /// the syscall carries a size so the struct may grow, and 56 is
+    /// this shape's.
+    #[repr(C)]
+    struct SchedAttr {
+        size: u32,
+        sched_policy: u32,
+        sched_flags: u64,
+        sched_nice: i32,
+        sched_priority: u32,
+        sched_runtime: u64,
+        sched_deadline: u64,
+        sched_period: u64,
+        sched_util_min: u32,
+        sched_util_max: u32,
+    }
+
+    /// Keep the policy and parameters as they stand; only the floor
+    /// moves.
+    const KEEP_ALL: u64 = 0x08 | 0x10;
+    const UTIL_CLAMP_MIN: u64 = 0x20;
+
+    /// Ask for a utilisation floor on the calling thread, 0..=1024.
+    /// `false` when the kernel lacks uclamp or a limit refuses — the
+    /// window then runs exactly as it did before this existed.
+    pub fn claim(util_min: u32) -> bool {
+        let attr = SchedAttr {
+            size: 56,
+            sched_policy: 0,
+            sched_flags: KEEP_ALL | UTIL_CLAMP_MIN,
+            sched_nice: 0,
+            sched_priority: 0,
+            sched_runtime: 0,
+            sched_deadline: 0,
+            sched_period: 0,
+            sched_util_min: util_min,
+            sched_util_max: 1024,
+        };
+        // SAFETY: a syscall over a repr(C) struct of the size it
+        // declares; pid 0 is the calling thread.
+        unsafe {
+            libc::syscall(libc::SYS_sched_setattr,
+                          0i32, &attr as *const SchedAttr, 0u32) == 0
+        }
+    }
+}
+
 mod detectable_autorepeat {
     #[link(name = "X11")]
     extern "C" {

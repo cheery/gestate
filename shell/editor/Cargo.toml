@@ -26,6 +26,9 @@ gestate-panel = { path = "../panel", features = ["substrate"] }
 # same reason: everything above the window is a pure function, so the
 # half worth testing builds and tests with nothing at all.
 baseview = { version = "0.3", optional = true }
+# For the clock floor (`sched_setattr`/uclamp, window.rs::clock_floor)
+# — already in the tree under x11-dl, so this costs nothing.
+libc = { version = "0.2", optional = true }
 softbuffer = { version = "0.4", optional = true }
 raw-window-handle = { version = "0.6", optional = true }
 # `baseview` hands keys through as `keyboard_types` and does not
@@ -35,7 +38,7 @@ keyboard-types = { version = "0.8", default-features = false, optional = true }
 [features]
 default = []
 window = ["dep:baseview", "dep:softbuffer", "dep:raw-window-handle",
-          "dep:keyboard-types", "gestate-panel/window"]
+          "dep:keyboard-types", "dep:libc", "gestate-panel/window"]
 # The C ABI a host drives the editor through.
 capi = ["window"]
 

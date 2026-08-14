@@ -243,8 +243,39 @@ governor, the cost of the work is set by how much other work there
 is.**  The surgical fix, if wanted: `uclamp_min` on the window thread
 (`sched_setattr`, unprivileged for own threads) — it names exactly
 the mechanism, costs nothing when the machine is busy, and is the
-one knob that is per-thread rather than system-wide.  Not done;
-noted for the decision.
+one knob that is per-thread rather than system-wide.
+
+**Tried, same day** (`window.rs::clock_floor`, claimed at window
+birth, `[editor] clock floor:` under the stopwatch): the claim
+succeeds and the clock does not move — this machine runs
+`intel_pstate` in *active* mode, where the hardware picks P-states
+guided by EPP and never consults the scheduler's utilisation; uclamp
+moves frequency only under `schedutil`.  The claim stays, correct
+where it works and inert where it does not.  On this machine the
+knob is EPP itself, found idling on **`balance_power`**; it is
+root's, and the experiment to run by hand is
+
+    echo balance_performance | sudo tee \
+      /sys/devices/system/cpu/cpufreq/policy*/energy_performance_preference
+
+then `canvas-settled` again — paint should fall toward the ~2 ms the
+drag-warmed windows showed.  A system setting, deliberately not this
+program's to change; whether to make it persistent (TLP/tuned) is an
+owner's call.
+
+**Henri flipped it, same day, and the mask came off**: F103 settled
+paints at **2.2–4.4 ms** (was 6.3–6.8) and the window's cadence
+returns to **17.5–19.9 ms** (~52–57 Hz, from ~43).
+
+**Made permanent the supported way**: this machine runs
+`power-profiles-daemon`, which owns EPP and rewrites it on every
+plug/unplug and boot — a bare `echo` into sysfs is overwritten at the
+next power event.  The daemon's profile is now `performance`
+(`powerprofilesctl set performance`, persisted by the daemon; the
+GNOME quick-settings tile is the same switch).  The `balance_power`
+this section began from was the *balanced* profile on battery.  If
+the judder ever returns, check `powerprofilesctl get` first — and
+mind the battery: performance on a fanless machine spends it.
 
 Separately measured on F103: the startup story is unchanged from §2
 — canvas dark until the payload lands (the sound's clang holds the
