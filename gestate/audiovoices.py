@@ -677,6 +677,7 @@ def _sum(bank: Bank, frame: list) -> list:
 
 _SINK = None
 _CANVAS = None
+_NOTES = None
 
 
 def _sinks(source: str) -> str:
@@ -715,17 +716,31 @@ def _sinks(source: str) -> str:
     and `Workbench._load_substrate` by all three scanning the same
     way.
     """
-    global _SINK, _CANVAS
+    global _SINK, _CANVAS, _NOTES
     bare = "\n" + source
-    if "\nsink " not in bare and "\ncanvas" not in bare:
+    if "\nsink " not in bare and "\ncanvas" not in bare \
+            and "\nnotes " not in bare:
         return source
     import re
 
     if _SINK is None:
         _SINK = re.compile(r"^sink\s+(\S.*)$")
         _CANVAS = re.compile(r"^canvas(?:\s+(\S.*))?\s*$")
+    if _NOTES is None:
+        # **The score box's ask** (`spec/scorebox.md`), and it says
+        # *nothing* to the compiler: unlike `canvas <expr>`, whose
+        # expression is a picture the program must build, a `notes`
+        # expression is score the box reads for itself, out of the
+        # author's own text.  So it rewrites to a comment, the bare
+        # `canvas` line's own manner.  What counts as an ask is
+        # `scorebox.ask_of`'s to say — a program is entitled to its
+        # own `notes = …`, and one has one.
+        from .scorebox import ask_of as _NOTES
     out, k, b = [], 0, 0
     for line in source.splitlines():
+        if _NOTES(line) is not None:
+            out.append("# " + line)
+            continue
         m = _SINK.match(line)
         c = _CANVAS.match(line)
         if m:

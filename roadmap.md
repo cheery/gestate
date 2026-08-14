@@ -473,10 +473,18 @@ story, including the three revisions a day of Henri using it forced.
 
 ### B4 — the score editors, which are the point
 
-The read-only first slice is specified — `spec/scorebox.md`: the ask,
-the take a seed names, the two kinds of ink, provenance by syntactic
-descent over the viewed expression's own tree.  What follows is the
-destination it is the first step toward.
+**The read-only first slice is built** (2026-08-14) —
+`spec/scorebox.md` is its contract, revised from the code after: a
+`notes <expr>` line stands a roll of that expression on it, showing
+the take the session's seed names, with span ink and take ink and a
+press that reveals where a note is written.  `gestate/scorebox.py`
+is the box's mind, `Notable` (`audio.ges`) is how a payload is read,
+`spreadTo`/`tagAll` (`music.ges`) are the bounded walk and its
+labels, and `test/test_scorebox.py` holds the acceptance.  It found
+F136 on the way — a tuple-pattern lambda picking the wrong instance,
+silently — which the box is written around.
+
+What follows is the destination the slice is the first step toward.
 
 The star: a between-lines editor for score content.  The principle is
 already on the wall (`spec/workbench.md`): **a widget is a view over a

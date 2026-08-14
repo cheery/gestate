@@ -228,6 +228,21 @@ spreadTo : Int -> Int -> [: a :] -> (Int, List (Int, Int, a))
 spreadTo fuel w s = case spreadOnto fuel w 0 s [] of
     (f, d, es) -> (f, reverse es)
 
+#: **Every payload of a subtree, labelled `k`** — the score box's
+#: other half (`spec/scorebox.md`): the box rebuilds the expression it
+#: views with each leaf wrapped in one of these, so a `spreadTo` of
+#: the rebuild says which written leaf each event came from.
+#:
+#: A pure bind, so it moves no seeds: `Draw`'s continuation is
+#: re-seeded by the sower whatever sits after it, and a take is the
+#: same take labelled or not — which is the whole reason the box may
+#: show what the instrument plays.  It is here rather than written
+#: out by the box because `>>=` and `'` are *class* methods: spelled
+#: into a generated definition with nothing to anchor them, they
+#: leave it carrying dictionaries it has no way to be handed.
+tagAll : Int -> [: a :] -> [: (Int, a) :]
+tagAll k s = s >>= (x => ' ((k, x)))
+
 # ════════════════════════════════════════════════════════════════════════
 # ── Tempo ────────────────────────────────────────────────────────────────
 #

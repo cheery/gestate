@@ -2667,6 +2667,16 @@ class Session:
         transcript can hold and replay.
         """
         value = float(value)
+        # **A press on a note is a jump, not a knob.**  The score box's
+        # channels carry no sound — they exist so the walk has a hand
+        # where each written region is drawn — and what the gesture
+        # means is "show me where this is written"
+        # (`spec/scorebox.md`).  Read-only: the file is not touched.
+        jump = getattr(self.bench, "note_jumps", {}).get(name)
+        if jump is not None:
+            self.view.goto(jump)
+            self._journal().slid("touched", (name, value))
+            return f"line {jump}"
         doing = getattr(self.bench, "touched", None)
         if doing is not None:
             doing(name, value)
@@ -2907,6 +2917,19 @@ def furniture(session: "Session", bench=None) -> str:
                 out.append(f"canvas\t{i}\t{name}")
         elif walkable:
             out.append(f"canvas\t{i}\tsubstrate")
+
+    # **A score box stands on every `notes` line** (`spec/scorebox.md`),
+    # and crosses as a `canvas` row because that is what it is by the
+    # time it is drawn: the roll was built in Python and handed over
+    # as an ordinary substrate, so the window needs no new verb and an
+    # old one draws it without knowing what it is looking at.
+    from . import scorebox
+
+    for k, (i, _expr) in enumerate(
+            scorebox.asks("\n".join(session._lines()))):
+        box = boxes.get(f"__notes_{k}__")
+        if box is not None and getattr(box, "crossing", None) is not None:
+            out.append(f"canvas\t{i}\t__notes_{k}__")
 
     # **What file this is, and whether it is written down.**  The window
     # had no way to say either: a name you cannot see is one you have to

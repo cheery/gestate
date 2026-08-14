@@ -650,6 +650,10 @@ class Workbench:
         #: `__canvas_<k>__` → its own compiled `Substrate` — one per
         #: `canvas <expr>` ask (B2), each walked as its own box.
         self.canvases: dict = {}
+        #: A score box's touch channel → the line it jumps to
+        #: (`spec/scorebox.md`).  The one gesture the read-only box
+        #: owns: a press on a note reveals where it is written.
+        self.note_jumps: dict = {}
         #: The on-screen keyboard.  Built here rather than by the view, so
         #: what it is holding survives a rebuild and so a test can play it
         #: without a window — see `Keyboard`.
@@ -932,6 +936,7 @@ class Workbench:
         both ways is skipped, not fatal: the file's own build already
         typechecked every definition and said why.
         """
+        from . import scorebox
         from .audio import has_substrate
         from .gui import Substrate
 
@@ -967,6 +972,26 @@ class Workbench:
                     break
                 except Exception:                       # noqa: BLE001
                     continue
+        # **And one more per `notes <expr>` ask** — the score box
+        # (`spec/scorebox.md`), which is a canvas like any other by
+        # the time it is drawn: the roll is built here, in Python,
+        # and handed over as an ordinary substrate program, so the
+        # window walks it with nothing new to learn and the payload
+        # path carries it unchanged.  Best-effort, the canvas rule: a
+        # roll that will not build must not stop the instrument, and
+        # what went wrong is said once, in the author's terms.
+        self.note_jumps = {}
+        for k, (line, expr) in enumerate(scorebox.asks(text)):
+            name = f"__notes_{k}__"
+            try:
+                roll = scorebox.build_roll(text, expr, line, self.rate,
+                                           self.seed or 0)
+                program, jumps = scorebox.roll_program(roll, k)
+                boxes[name] = Substrate(program, self.rate)
+                self.note_jumps.update(jumps)
+            except Exception as exc:                    # noqa: BLE001
+                self.say(f"no notes on line {line}: "
+                         f"{self._first_line(exc)}")
         self.canvases = boxes
         # A box may want the readings the main canvas never asked for
         # — a file with no `substrate` at all still breathes if an ask

@@ -63,6 +63,7 @@ Of 130 entries, **113 are resolved**.  What is left:
 | F115 | resolved | A bank added by an audition could not be listened to — allocators followed the disk |
 | F134 | missing | `now : Sig Float` — the current time in seconds, to the substrate |
 | F135 | partly resolved | Long features work in silence; the CLI has progress text, the statusline does not |
+| F136 | missing | A tuple-pattern lambda picks the wrong instance, silently |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -3724,3 +3725,46 @@ workbench should speak the same sentences `_progress` already
 composes, down the same wire — no new machinery, just a second
 consumer for words that exist.  The specimen that motivated all of
 it: `specimens/sauna_specimen.ges`.
+
+### F136. **[missing]** A tuple-pattern lambda picks the wrong instance, silently
+
+Found 2026-08-14 while building the score box (`spec/scorebox.md`),
+which read every note's payload as its own key number and drew a
+picture that was wrong without complaining.  The four-line repro:
+
+```
+readP : (Notable a) => Int -> (Int, a) -> (Int, Int)
+readP b p = case p of
+    (k, x) -> (b, noteKey x)
+
+ps : List (Int, H)
+ps = (7, H 41 1) :: Nil
+
+viaWhole : List (Int, Int)
+viaWhole = map (p => readP 0 p) ps          # (0, 41) — right
+
+viaPattern : List (Int, Int)
+viaPattern = map ((k, x) => readP k (k, x)) ps   # (7, H 41 1) — wrong
+```
+
+Both spell the same program.  The second binds its parameter with a
+**tuple pattern** and rebuilds the tuple, and the constrained call in
+its body resolves against `Notable Int` — the instance for the
+tuple's *first* field — rather than `Notable H`.  `noteKey` is then
+the identity `Notable Int` defines and the payload comes back where a
+number was asked for.
+
+**Silence is the whole severity.**  The types are inferred correctly —
+`__nb_ev__ : List (Int, Int, Int, Int, Int)` is what the checker
+reports, and the value that arrives is a constructor — so nothing
+refuses and nothing warns; only reading the values says so.  Every
+other shape tried dispatches correctly: the direct call, the
+whole-value lambda, `case` on a tuple, and the same helper applied
+outside a `map`.  Which puts the fault in what a tuple *pattern* in a
+lambda binder does to the dictionary a constrained call is handed —
+`infer`/`_discharge`, not the g-machine.
+
+The score box is written around it (`gestate/scorebox.py`,
+`__nb_read__` takes the event whole and opens it with `case`), and
+the comment there names this entry so the workaround dies with the
+bug.
