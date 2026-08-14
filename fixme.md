@@ -49,7 +49,7 @@ Of 128 entries, **113 are resolved**.  What is left:
 | F123 | resolved | A finished `open` re-runs from a different directory than its first run |
 | F124 | resolved | The directory-watch tests flake under machine load — the kernel's coarse clock, not load |
 | F126 | resolved | The crossfade resolved the leaving engine's nodes against the live graph |
-| F127 | bug, open | A literal applied to arguments answers with an instance at a function type |
+| F127 | resolved | A literal applied to arguments answers with an instance at a function type |
 | F128 | resolved | The text sniff refused `duet.ges` — the tail-drop moved the boundary instead of removing it |
 | F129 | resolved | An exactly-named directory loses to a fuzzy file |
 | F130 | resolved | A file you can name is a file the dialog cannot find — and Tab wiped the walk |
@@ -3455,7 +3455,7 @@ cast: the switch may be thrown on a disconnected bank, and now the
 sentence says so rather than promising sound ("lead hears the
 keyboard — though it is disconnected").
 
-### F127. **[bug, open]** A literal applied to arguments answers with an instance at a function type
+### F127. **[resolved]** A literal applied to arguments answers with an instance at a function type
 
 `test/sessions/F127-weird-issues-session.ges` (2026-08-13, the tail):
 the typo `sound = 0.0 sine freq * …` — a number *applied* to two
@@ -3473,6 +3473,23 @@ the fix is F105's report lesson one door down: when a `Num`/`Floating`
 constraint lands on an arrow type and the expression's head is a
 literal, say what happened in the author's terms, with the span of
 the application.
+
+**Resolved 2026-08-14, in that exact shape.**  Two halves.
+`constraint.applied_number`: a `Num`/`Floating` predicate at an arrow
+type can only mean a literal forced to a function's type, so the
+author's sentence — *"a number is applied to 2 arguments, and a
+number takes none — is an operator missing after the literal?"* —
+leads the message, and the instance-speak keeps the second line,
+where the content box shows it and the status bar need not.  And
+`pipeline._discharge` solves constraints **by owner** instead of
+flattened — the flat list had discarded which declaration each
+constraint came from, which is why this one error had no home — so
+`infer._blame` rides every constraint refusal with ``while checking
+`name` (at L:C)``, and the workbench's position mapping turns that
+into the file's own line: the box anchors under the typo itself
+(`typo.ges:5`).  Held by
+`test_a_number_applied_to_arguments_says_so_first`; the examples
+suite passes whole through the regrouped solve.
 
 ### F128. **[resolved]** The text sniff refused `duet.ges`
 

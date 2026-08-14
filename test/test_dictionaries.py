@@ -237,3 +237,36 @@ def test_match_head_still_accepts_unresolved_metavariables():
 
 def test_match_head_rejects_a_different_constructor():
     assert match_head(TApp(TCon("List"), TVar(-2)), TCon("Int")) is None
+
+
+def test_a_number_applied_to_arguments_says_so_first(tmp_path):
+    """fixme.md F127.  `sound = 0.0 sine freq * …` — a missing operator
+    — used to answer only `No instance for Floating ((Sig Float -> Sig
+    Float) -> Sig Float -> Sig Float)`: the truth in inference's own
+    language, with no position, no breadcrumb, and the human fact
+    absent from the one line a status bar shows.  The author's
+    sentence leads now, the owner rides with the file's own position,
+    and the instance-speak keeps the second line for the box."""
+    from pathlib import Path
+
+    from gestate.audioeditor import Workbench
+    from gestate.session import _line_of
+
+    p = tmp_path / "typo.ges"
+    p.write_text("freq : Sig Float\n"
+                 "freq = !220.0\n"
+                 "\n"
+                 "sound : Sig Float\n"
+                 "sound = 0.0 sine freq * 1.0\n")
+    bench = Workbench(p, rate=8000, block=64)
+    try:
+        bench.start()
+    except Exception:                                    # noqa: BLE001
+        pass
+    first = bench.trouble.splitlines()[0]
+    assert "applied to 2 arguments" in first and "takes none" in first, \
+        bench.trouble
+    assert "while checking `sound`" in bench.trouble
+    assert "typo.ges:5" in bench.trouble, "not the file's own position"
+    assert _line_of(bench.trouble, "typo.ges") == 5, \
+        "the content box has no line to anchor under"

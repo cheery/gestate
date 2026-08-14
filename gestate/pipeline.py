@@ -627,7 +627,27 @@ def _discharge(scs, program, results, per_sc_constraints, per_sc_givens):
         if not _is_given(p, givens)
     ]
     if all_constraints or any(per_sc_givens):
-        resolved = solve_constraints(all_constraints, program.instances)
+        # **Solved by owner, so a refusal knows whose it is** (F127).
+        # The flat list discarded which declaration each constraint
+        # came from, so the one error whose type carries no span had
+        # no home at all — no name, no line, nothing for the margin to
+        # anchor a box under.  Solving is per-predicate either way;
+        # grouping costs nothing and `_blame` (idempotent, the same
+        # line every inference error carries) rides the refusal with
+        # `while checking \`name\` (at L:C)`.
+        resolved = {}
+        for (name, _a, lam, _s), preds, givens in zip(
+                scs, per_sc_constraints, per_sc_givens):
+            mine = [p for p in preds if not _is_given(p, givens)]
+            if not mine:
+                continue
+            try:
+                resolved.update(solve_constraints(mine, program.instances))
+            except ConstraintError as e:
+                from .infer import _blame
+
+                _blame(e, name, lam)
+                raise
         givens_by_name = {str(name): givens
                           for (name, _a, _l, _s), givens
                           in zip(scs, per_sc_givens) if givens}

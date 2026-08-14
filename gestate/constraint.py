@@ -262,6 +262,30 @@ def _make_num_instance(base: str, head: Type,
     )
 
 
+def applied_number(pred: Predicate) -> str:
+    """The author's fact when a numeric constraint lands on an arrow.
+
+    `sound = 0.0 sine freq * …` — a missing operator — reaches here as
+    `Floating ((Sig Float -> Sig Float) -> Sig Float -> Sig Float)`,
+    which is inference telling the truth in its own language: the
+    literal wants its class at whatever type the application forced,
+    and that type is a function's.  The human fact is one sentence —
+    a number is applied to arguments, and a number takes none — and it
+    goes on the *first* line, because the status bar shows only that
+    line and the box under the declaration shows the rest (F127).
+    """
+    if pred.class_name not in ("Floating", "Num"):
+        return ""
+    n, t = 0, pred.type_
+    while isinstance(t, TFun):
+        n, t = n + 1, t.ret
+    if n == 0:
+        return ""
+    much = f"{n} argument" + ("s" if n != 1 else "")
+    return (f"a number is applied to {much}, and a number takes none "
+            f"— is an operator missing after the literal?")
+
+
 def literal_hint(pred: Predicate) -> str:
     """Say what an unsatisfiable literal constraint means, in the source.
 
@@ -302,10 +326,15 @@ def solve_constraints(
                         sp = f" (at {s.line}:{s.col})"
                 except Exception:
                     pass
-            raise ConstraintError(
-                f"No instance for {show_predicate(pred)}{sp}"
-                f"{literal_hint(pred)}{rigid_hint(pred)}"
-            )
+            said = (f"No instance for {show_predicate(pred)}{sp}"
+                    f"{literal_hint(pred)}{rigid_hint(pred)}")
+            fact = applied_number(pred)
+            if fact:
+                # The author's sentence first; the instance-speak keeps
+                # the second line, where the content box shows it and
+                # the status bar need not.
+                said = f"{fact}\n{said}"
+            raise ConstraintError(said)
         resolved[pred] = inst
     return resolved
 
