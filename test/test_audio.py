@@ -673,3 +673,41 @@ def test_the_golden_cli_reuses_the_settings_it_finds(tmp_path):
     assert audio_main([str(src), "--golden"]) == 0       # no flags at all
     again, samples_again = parse_golden(out.read_text())
     assert (again, samples_again) == (header, samples)
+
+
+def test_report_speaks_peak_and_per_bar_rms(tmp_path, capsys):
+    """`spec/firstpiece.md`'s missing ears: after an `-o` render,
+    `--report` says the peak and each stretch's RMS — on the piece's
+    own bar grid when the file states a `bpm`, per honest second when
+    it does not.  A constant quarter-amplitude tone is its own oracle:
+    peak and every RMS are exactly 0.250."""
+    from gestate.audioperform import main as audio_main
+
+    src = tmp_path / "tone.ges"
+    src.write_text("bpm : Int\nbpm = 2400\n\n"
+                   "sound : Sig Float\nsound = map (n => 0.25) ticks\n")
+    out = tmp_path / "tone.wav"
+    assert audio_main([str(src), "-o", str(out), "--rate", "200",
+                       "--seconds", "0.3", "--report"]) == 0
+    lines = capsys.readouterr().out.splitlines()
+    assert "report: peak 0.250" in lines
+    # 2400 bpm at 200 Hz is a 20-frame bar; 0.3 s is three of them.
+    assert [l for l in lines if "rms" in l] == \
+        ["bar   1: rms 0.250", "bar   2: rms 0.250", "bar   3: rms 0.250"]
+
+    # No `bpm` in the file: the grid falls back to seconds and says so,
+    # rather than numbering bars of a tempo nothing states.
+    src.write_text("sound : Sig Float\nsound = map (n => 0.25) ticks\n")
+    assert audio_main([str(src), "-o", str(out), "--rate", "200",
+                       "--seconds", "2", "--report"]) == 0
+    lines = capsys.readouterr().out.splitlines()
+    assert [l for l in lines if "rms" in l] == \
+        ["second   1: rms 0.250", "second   2: rms 0.250"]
+
+
+def test_report_without_a_render_is_refused():
+    """The flag measures a render; playing live it would measure
+    nothing, silently."""
+    from gestate.audioperform import main as audio_main
+
+    assert audio_main(["whatever.ges", "--report"]) == 1

@@ -359,8 +359,72 @@ def graph_of(synth: str, piece: str = "", *, rate: int):
     return extract(synth, rate=rate)
 
 
+class _Meter:
+    """Peak and per-stretch RMS, fed as the render streams past.
+
+    The ears a CI has (`spec/firstpiece.md`): every author of a piece
+    rebuilt this same throwaway analyzer to trust a mix — undertow's
+    drowned chimes were numbers before any ear could have said so —
+    and the render already walks every sample, so the meter rides it
+    rather than reopening the wav.  The peak is taken *before*
+    clamping, because a peak of 1.4 is exactly what the report is for
+    hearing about.
+    """
+
+    def __init__(self, channels: int, stretch: int, label: str):
+        self.channels = channels
+        self.stretch = stretch          # frames per stretch
+        self.label = label              # "bar" or "second"
+        self.peak = 0.0
+        self.rms: list = []
+        self._sq = 0.0
+        self._n = 0                     # frames into the current stretch
+
+    def feed(self, doubles) -> None:
+        ch = self.channels
+        for i in range(0, len(doubles), ch):
+            for j in range(i, i + ch):
+                x = doubles[j]
+                a = x if x >= 0.0 else -x
+                if a > self.peak:
+                    self.peak = a
+                self._sq += x * x
+            self._n += 1
+            if self._n == self.stretch:
+                self._cut()
+
+    def _cut(self) -> None:
+        if self._n:
+            from math import sqrt
+
+            self.rms.append(sqrt(self._sq / (self._n * self.channels)))
+        self._sq, self._n = 0.0, 0
+
+    def say(self) -> None:
+        self._cut()
+        print(f"report: peak {self.peak:.3f}")
+        for i, v in enumerate(self.rms, 1):
+            print(f"{self.label} {i:3}: rms {v:.3f}")
+
+
+def _stretch_of(source: str, rate: int) -> tuple:
+    """Frames per report stretch, and the stretch's name.
+
+    Four beats of the piece's own `bpm = N` when the file states one —
+    the textual read `export` already trusts for its free-running
+    default — and an honest second when it does not: a report that
+    assumed 120 would number bars no piece has.
+    """
+    import re
+
+    found = re.search(r"^bpm\s*=\s*(\d+)", source, re.M)
+    if found:
+        return max(1, rate * 240 // int(found.group(1))), "bar"
+    return rate, "second"
+
+
 def render_wav(graph, path: str, seconds: float, rate: int, block: int,
-               control) -> int:
+               control, meter=None) -> int:
     """Render a performance to a `.wav` — written as it renders.
 
     Block by block onto disk, because the piece that is being rendered
@@ -391,6 +455,8 @@ def render_wav(graph, path: str, seconds: float, rate: int, block: int,
             with tempfile.TemporaryDirectory() as d:
                 for got in native_blocks(graph, d, total, block=block,
                                          control=control):
+                    if meter is not None:
+                        meter.feed(got)
                     data = bytearray()
                     for x in got:
                         data += struct.pack("<h",
@@ -404,7 +470,10 @@ def render_wav(graph, path: str, seconds: float, rate: int, block: int,
                                    control=control))
         data = bytearray()
         for frame in samples:
-            for x in (frame if channels > 1 else (frame,)):
+            frame = frame if channels > 1 else (frame,)
+            if meter is not None:
+                meter.feed(frame)
+            for x in frame:
                 data += struct.pack("<h", int(safe_sample(x) * 32767))
         f.writeframes(bytes(data))
         return len(samples)
@@ -510,7 +579,11 @@ def main(argv=None, tell=None) -> int:
                     help="write the dynamic performance's log — seed, "
                          "stalls, drops — after rendering")
     ap.add_argument("-o", "--output", default=None,
-                    help="render to a .wav instead of playing")
+                    help="render to a .wav instead of playing; a knob "
+                         "renders at its resting value")
+    ap.add_argument("--report", action="store_true",
+                    help="after an -o render, say the peak and each "
+                         "bar's RMS — the ears a CI has")
     # ── The oracle's flags, folded in from `gestate.audio`'s retired
     # CLI: one door for every rendering, whichever machine answers.
     # The oracle is the interpreter — slow, pure Python, the reference
@@ -533,6 +606,10 @@ def main(argv=None, tell=None) -> int:
                          "golden is rendered at")
     args = ap.parse_args(argv)
 
+    if args.report and not args.output:
+        print("gestate: --report measures an -o render; give one",
+              file=sys.stderr)
+        return 1
     if args.golden or args.peak or args.oracle:
         return _oracle_main(args)
     if args.rate is None:
@@ -665,10 +742,17 @@ def main(argv=None, tell=None) -> int:
             control = _progress(control, performer,
                                 int((seconds or 2.0) * args.rate),
                                 args.rate, tell=tell)
+            meter = None
+            if args.report:
+                stretch, label = _stretch_of(synth + "\n" + piece,
+                                             args.rate)
+                meter = _Meter(graph.channels(), stretch, label)
             n = render_wav(graph, args.output, seconds or 2.0,
-                           args.rate, args.block, control)
+                           args.rate, args.block, control, meter=meter)
             getattr(control, "finish", lambda: None)()
             print(f"{args.output}: {n} samples at {args.rate} Hz")
+            if meter is not None:
+                meter.say()
             if performer is not None and args.transcript is None:
                 # The take's confessions, said even when nobody asked
                 # for the log — a render that dropped notes or stalled

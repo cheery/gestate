@@ -466,7 +466,8 @@ draw : [: Int :]
 `f` of the seed this position carries, to the tick — the sower
 eliminates every `Draw` before any walk measures, so the algebra
 never notices the draw happened.  N draws are N binds; a walk seeds
-itself with `do s <- draw; unfold (mix64 s) step`.
+itself with `do s <- draw; unfold (mix64 s) step`.  A seed is spent,
+not read: the usual next line is `below`, one bounded pick per draw.
 
 
 ### `hear`
@@ -622,7 +623,13 @@ is the whole price, and identity is what the number is for.
 below : Int -> Int -> Int
 ```
 
-One draw in 0 .. n-1.
+**One draw in `0 .. n-1`** — the standard way a seed becomes a
+bounded choice.  `draw`'s usual companion: `do s <- draw` hands the
+position its seed, and `below n s` spends it on one uniform pick —
+usually an index into a table of figures, which is `moods.ges`'s
+whole chancy line (`long 4 (phraseOf (below 4 s))`).  Two
+*independent* picks want two seeds (`split`, or a second `draw`);
+two `below`s over one seed make correlated choices.
 
 
 ### `roll`

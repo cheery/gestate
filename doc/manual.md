@@ -758,7 +758,9 @@ The other driver of the same half is sound.  A synth defines
 The combinators (`sineOf`, `lowpass`, `adsr` and the rest) live in
 `audio.ges` and `synth.ges`, and every one is in `doc/ref/`; how a
 `Sig Float` becomes a flat graph and then machine code is
-`spec/liveaudio.md`'s story, not this manual's.
+`spec/liveaudio.md`'s story, not this manual's.  Offline — an `-o`
+render — a knob renders at its resting value, the argument `mkKnob` was
+given; nothing turns it, so the render is the sound of the defaults.
 
 ### Why the two halves do not interfere
 

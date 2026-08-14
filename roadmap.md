@@ -255,7 +255,13 @@ their own headings.  What is below is what is *not* done.
   nearly all pinned by one (`journal.md` §"The day the transcripts
   earned their keep").  What is still missing is the *audio* half — a
   played key against the sound that comes out — and it is not a
-  feature, which is why it keeps losing to features.
+  feature, which is why it keeps losing to features.  A piece of it
+  arrived by way of `spec/firstpiece.md` (2026-08-14): `audioperform
+  --report` says the peak and each bar's RMS after an `-o` render —
+  the numbers undertow's mix was iterated against, and ears enough
+  for a CI to hear a render change loudness.  The *live* half, a
+  played key against the sound that comes out, is still the missing
+  piece.
 - **Three comments standing on a dead constraint.**  F95 is fixed, so
   `signal.ges`'s `Both` (`signal.ges:56`), a `voices` bank's generated
   `Part` records, and `audio.ges`'s `LowpassIn` (`audio.ges:302` — "a zip

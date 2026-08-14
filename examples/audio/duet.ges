@@ -16,6 +16,11 @@
 # example: only *when it is decided* differs.  One `Allocator` serves both,
 # and the engine cannot tell which of its channels was written by a
 # scheduler and which by a hand.
+#
+# **Written before `adsr` and `keyHz`**: the envelope below is a chain of
+# small functions and the pitch table climbs from `8.1758` by hand, which
+# is what those two names now save you.  Read this file for the two-bank
+# shape; imitate `undertow.ges` for the short way to write a voice.
 
 # ── What a note carries ──────────────────────────────────────────────────
 #

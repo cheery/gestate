@@ -59,7 +59,9 @@ obvious two-bank neighbour — hand-rolls its envelope as a five-stage
 sixty lines where six now do; I only escaped because I had seen F105's
 specimen the same day.  *Fix shape: modernize `duet.ges`'s voices, or
 put one sentence at its head — "written before `adsr`; see X for the
-short way".*
+short way".*  (Done 2026-08-14, the sentence: the head says what the
+file predates, what to read it for — the two-bank shape — and to
+imitate `undertow.ges` for the voice.)
 
 **`!` under uncertainty.**  I wanted the chime's second partial as
 `sine (!(q => pitchOf q * 2.013) s)` and could not tell from the
@@ -78,7 +80,10 @@ reference has nothing to say about the standard way to turn a seed
 into a bounded choice.  Three greps found it; `what below` in the
 editor would have too, but the file a newcomer reads is the example,
 and the example does not say.  *Fix shape: a doc comment on `below`,
-and `draw`'s page mentioning it as the usual companion.*
+and `draw`'s page mentioning it as the usual companion.*  (Done
+2026-08-14: `below`'s prose names the idiom — one bounded pick per
+draw, `moods.ges`'s chancy line quoted, `split` for independent
+picks — and `draw`'s page says the usual next line is `below`.)
 
 **Offline knob semantics are folklore.**  My `depth = mkKnob 0.5` —
 what does `audioperform -o` render it at?  The default, it turns out,
@@ -86,7 +91,9 @@ but I could not find that written anywhere, and an old note of my own
 warned that *some* offline path sweeps controls with the sample
 index.  I shipped the knob on faith and verified by the absence of an
 explosion.  *Fix shape: one line in `audioperform`'s `--help` and in
-the manual — "offline, a knob renders at its resting value".*
+the manual — "offline, a knob renders at its resting value".*  (Done
+2026-08-14, verified by rendering a bare knob first: the line is on
+`-o`'s own `--help` entry and in the manual's speaker section.)
 
 **Verification is mine to build every time.**  To trust the piece I
 wrote a throwaway analyzer — peak, RMS per stretch, zero-crossings —
@@ -95,7 +102,10 @@ drowned; the numbers said so before any ear could).  Every author of
 an example presumably rebuilds this same scaffold.  *Fix shape: an
 `audioperform --report` printing peak and per-bar RMS after a render;
 it is the ears a CI has, and it is most of the missing played-note
-oracle from the roadmap's host-layer item.*
+oracle from the roadmap's host-layer item.*  (Built 2026-08-14: the
+meter rides the streaming render — peak before clamping, RMS per bar
+on the piece's own `bpm`, per honest second when none is stated —
+and the roadmap's item now cites it.)
 
 ## The one-sentence verdict
 
