@@ -344,68 +344,6 @@ node-origin map that `audiospans` and the knob column already read.
 definition, then locals in `--fits`, then `--uses NAME`.  All three are
 argued above and none of them changed.
 
-### Small improvements queued from use (2026-08-13)
-
-Noticed by Henri playing the workbench; each is small, none is
-urgent, and they are written here so they survive the session.  The
-*bugs* found the same days are `fixme.md` F104–F127, all but three
-resolved the day they were filed.
-
-- **A `.txt` file could take the syntax off and not compile** — built
-  (2026-08-14) and no longer future tense: `spec/workbench.md` §"Files"
-  has the contract.  The two questions answered themselves — the suffix
-  (`.txt`, `.md`) says a file is plain, being the one fact known before
-  the file is read; and the window wears **[inert]** where the
-  transport would stand, in the warm colour, with `play` saying why —
-  which is how the quiet mode never reads as breakage.
-- **Lagcheck the lantern canvas** — measured (2026-08-14),
-  `spec/performance.md` §4: the prediction holds to the second decimal
-  (9.41 ms headless, ≈16 Hz settled), the palette is starved *less*
-  than recorded (worst 64 ms against the recorded 136 ms average), and
-  a hand on the WARMTH fader gets ≈22 Hz — the drag keeps the loop on
-  its fast pace — so the handle trails by ~45–90 ms: a slightly soft
-  fader, not a laggy one.  `measure_editor.py` grew `canvas-palette`
-  and `canvas-drag` to keep the measurement repeatable.
-- **The recording survives a file switch** — built (2026-08-14):
-  `workbench._carry` hands the log to the next session, a `#!` note
-  marks the seam, and the swap rides as one edit step so a replayed
-  command on the far side runs against the right text.
-  `spec/workbench.md` §"The transcript is the recording" has the
-  contract.
-- **A transcript records the text it started from** — built
-  (2026-08-14), same section: `#: began <fingerprint>` always, so a
-  replay against a file that moved on says so instead of drifting
-  mysteriously; and the text itself rides as `#.` rows when the file
-  was never on disk, so the unsaved `untitled.ges` session replays
-  from what it began on.  `--against` stays for the moved-file case.
-
-### The canvas walks over crust — the plugin already shows the way
-
-Where the lagcheck chase ended (2026-08-14, `spec/performance.md` §4).
-The pacing and throttle fixes took the lantern from 5.8 Hz to ~38, and
-that is the ceiling of the *approach*, not of the machine: the editor's
-canvas walks the substrate with the Python reference machine
-(`_canvas_frame` → `gui.Substrate.tick()/picture()`, 18–27 ms a walk in
-situ), while the CLAP panel walks **the same compiled structure over
-`crust`** (`shell/panel/src/substrate.rs`) — natively, with no cost for
-a throttle to price and no clock for a nap to cool.  Henri's
-observation, and the measurement agrees: it is the same code, and there
-it runs.
-
-The move: hand the compiled substrate to the window's side and let the
-canvas animate there, the way the CLAP host already does — the walk,
-the hit-testing and the painter all exist in `gestate-panel`, and the
-dynscore parity fixtures pin that the two machines agree tree for
-tree.  What it buys: the picture channel stops carrying shapes across
-the wire per frame, the canvas runs at the window's own frame rate, and
-the gesture loop stops caring whether a canvas is showing at all
-(query→list under an animating canvas becomes the ordinary number).
-What it costs: the compiled substrate must reach the window (the clap
-engine's compile path exists), and canvas touch handling moves across
-the boundary with it — the seam F101 taught, so the gesture vocabulary
-should be settled before any window learns it.  A session of its own,
-not an evening.
-
 ### A probe on a signal — Henri's, and the one to try in the editor
 
 **Drop a probe on a line and watch that signal**: a scope and a

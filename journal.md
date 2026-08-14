@@ -5428,3 +5428,98 @@ plus detectable autorepeat, the undo barrier with the unsaved-changes
 warning, the equator-and-span panel flip, and the say-when-you-are-
 done family.  `spec/workbench.md` was rewritten the same day, every
 law with the defect that paid for it as its receipt.
+
+## The canvas walks over crust — and the clock wore three masks
+
+2026-08-14, one day, fourteen commits, and the roadmap's "a session of
+its own, not an evening" estimate was wrong in the right direction:
+the whole move landed the same afternoon it was designed.  What
+belongs here is the story the commits tell in pieces, and what the
+day taught.
+
+**The morning was small and deliberate.**  A hamburger — one cell,
+one glyph, half a cell of air, no ground — whose whole job is to be
+the door a stranger can find into the palette, teaching `Ctrl-K` in
+the bar while it holds the list open.  Inert mode: `.txt` and `.md`
+open as notes beside the music, nothing compiles, saving is all
+applying means, and the window wears **[inert]** in the warm colour
+so the quiet reads as a mode rather than as breakage.  And the two
+transcript survivals: the recording now crosses a file switch
+(`_carry` hands the log over, the swap rides as one edit step), and
+the header carries the text it began on — `#: began <fingerprint>`
+always, the full text as `#.` rows when the file was never written.
+Both paid for themselves before dark; see below.
+
+**Then the lagcheck, and the week's one performance sentence.**  The
+lantern canvas measured exactly as predicted headless (9.41 ms
+against the recorded 9.40) and *nothing like it* in the editor — and
+the cause unmasked three times before it stood still.  First mask:
+the gesture loop napped between cheap passes, the core fell to
+0.7 GHz, and every Python cost tripled — `furniture`, unrelated code,
+moved 3.4 → 1.2 ms in the same runs, which was the tell.  Second: the
+canvas throttle's rest after each walk was where the core cooled, so
+the throttle *bought its own cost* — `CANVAS_SHARE` went 2 → 1 and
+the lantern went 5.8 → ~38 Hz.  Third, days of fixes later: with the
+model's walk retired the process was so light the cores parked at
+500–600 MHz, below the idle baseline, and F103's swinging labels
+juddered while lantern looked excellent — same numbers, different
+animation.  The claim `uclamp_min` makes is correct and, on this
+machine, inert: `intel_pstate` in active mode never consults the
+scheduler, and the real owner of the clock turned out to be
+`power-profiles-daemon`'s EPP, idling on `balance_power`.  One
+`powerprofilesctl set performance` later the mask came off for good.
+**On this governor, the cost of the work is set by how much other
+work there is** — three defects, one sentence, and
+`spec/performance.md` §4 holds every number.
+
+**The move itself went in the order F101 demands, and that order paid
+twice.**  The vocabulary first, in the spec, before any window
+learned a verb: coordinates never cross the wire; meanings do.
+`touched <name> <value>` out, `reading <name> <value>` back, and the
+payload — serialized program, entry, the fourteen carried tags, the
+channels with their values — through a door of its own that moves on
+rebuild, never on keystrokes.  The first dividend: `boxtouch`,
+reserved in B3 before any window spoke it, was *retired unspoken* — a
+box under crust is more of the same walk in the same namespace.
+Reserving before speaking made the retirement free.  The second: the
+transcript can finally hold a canvas gesture, because a named write
+replays against the reference machine and a coordinate never could.
+
+**One driver, two windows.**  The Walker is
+`gestate_panel::canvas::Canvas` — the CLAP plugin's own machinery,
+parity-pinned against `gui.py` on lantern itself — wearing the
+workbench's vocabulary.  The window animates at its own frame rate
+(240 drawn, 0 idle, where the loop's best had been 38 Hz), the
+gesture loop's whole canvas frame is now one `observe` and a string
+compare, and Henri's verdict landed the same hour: *faster than the
+plugin*.  Two seams surfaced within minutes of a person using it,
+both foreseen in shape: the walked machine had no frame clock (the
+payload now carries `Tick`'s tag and the Canvas grew `step(pulse)` —
+the CLAP plugin has the same gap, its adoption ready), and `observe`
+run at loop pace made the meter flicker (`READ_EVERY = 1/30`: the
+read rate *is* the meter's window).
+
+**The transcripts earned their keep again, one survival deep.**
+Henri could not open lantern from a fresh untitled — and
+`lantern-session.ges`, recorded on an unwritten file, replayable only
+because of the morning's base-text header, showed the whole failure
+in three steps: `ask open` answering 0 rows, the typed name resolving
+to a phantom, three times.  With his Tab observation ("it spindles
+the path into something that only looks like lantern.ges") the
+diagnosis was complete: completion wrote a row's bare name over the
+walk, and the listing could not see past one directory.  Both fixed
+the same evening — Tab keeps the query's own head, and `_below`
+finds beneath the walk, breadth-first, bounded, build-droppings
+skipped, deep rows wearing their path so what is picked is what is
+shown.  An exactly-named directory now outranks a fuzzy file, which
+was F129.  And the chase flushed a third thing out of the grass:
+F124's "flake under load" fails *deterministically* in a full suite
+run on a quiet machine and passes alone — an order-dependence, not a
+margin, finally a specimen that holds still.
+
+What is deliberately left: the model still compiles the substrate on
+the reference machine (headless runs, tests and canvases outside
+crust's pure core keep the shapes wire); `pace`'s BUSY-while-showing
+is vestigial now that the loop has nothing to warm, undecided; and B2
+content boxes land next on a floor where a picture costs the gesture
+loop nothing.
