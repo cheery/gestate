@@ -148,6 +148,39 @@ def test_the_modern_idiom_is_readable_at_all():
     assert min(keys) < 40 < max(keys), "both banks, high and low"
 
 
+def test_the_demo_shows_the_three_things_it_claims():
+    """`noted.ges` is the box's own example, and its header makes
+    three promises: a written hand, a drawn one, and a box on each
+    plus one on both.  A demo that stopped demonstrating would be
+    worse than none."""
+    source = (AUDIO / "noted.ges").read_text()
+    found = {expr: (line, expr) for line, expr in asks(source)}
+    assert set(found) == {"ground", "tune", "score"}
+
+    rolls = {expr: build_roll(source, expr, line, RATE, 0)
+             for line, expr in asks(source)}
+
+    # The written hand: four notes, D A F A, none of them the dice's.
+    ground = rolls["ground"]
+    assert [e[3] for e in ground.events] == [38, 45, 41, 45]
+    assert not ground.chancy, "the left hand is written down"
+
+    # The drawn one: every note take ink, and another seed moves them.
+    tune = rolls["tune"]
+    assert tune.chancy and tune.events
+    assert all(leaf.chancy for leaf in tune.leaves)
+    other = build_roll(source, "tune", found["tune"][0], RATE, 7)
+    assert [e[3] for e in other.events] != [e[3] for e in tune.events]
+
+    # Both at once: two banks, and the left hand is the same sixteen
+    # notes whatever the dice say.
+    both = rolls["score"]
+    banks = {leaf.bank for leaf in both.leaves}
+    assert banks == {"left", "right"}
+    left = [e[3] for e in both.events if both.leaves[e[2]].bank == "left"]
+    assert left == [38, 45, 41, 45] * 4, "four bars of the written hand"
+
+
 # ── When it cannot ──────────────────────────────────────────────────────────
 
 

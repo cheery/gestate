@@ -148,7 +148,15 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # exactly as the sown pieces above are refused.  Roll the
             # seed and the chimes tell a different night, which is the
             # piece's point and a golden's disproof.
-            "undertow.ges"]
+            "undertow.ges",
+            # The score box's demo (`spec/scorebox.md`): three `notes`
+            # asks over two hands, one written and one drawn.  No
+            # golden for both of the standing reasons at once — the
+            # right hand is a `draw`, so a buffer would pin one take
+            # of a piece whose point is that it has many, and what the
+            # boxes *show* is the example, which no buffer checks.
+            # `test_scorebox.py` builds all three of its rolls.
+            "noted.ges"]
 
 #: The ones with committed golden buffers — all of them, now.  `knob.ges`
 #: had none for as long as the interpreter and the engine disagreed about
