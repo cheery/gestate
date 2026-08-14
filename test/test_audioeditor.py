@@ -2035,3 +2035,33 @@ def test_a_scope_traces_while_the_instrument_plays(tmp_path):
         assert all(abs(p) <= 1.0 for p in points)
     finally:
         bench.stop()
+
+
+@needs_clang
+def test_an_audition_raises_the_scope(tmp_path):
+    """Henri's report: auditioning a scoped edit needed a Ctrl-S
+    before the trace flowed.  An audition installs a whole new engine;
+    the scope rides it, and the trace must flow from the auditioned
+    text — the disk deliberately never learns of it."""
+    from pathlib import Path as _P
+
+    path = tmp_path / "bare.ges"
+    path.write_text("sound : Sig Float\n"
+                    "sound = 0.2 * sine 220.0\n")
+    bench = Workbench(path, rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+    try:
+        bench.start()
+        assert _wait(lambda: bench.live is not None
+                     and bench.live.engine.frames > 800, 20.0)
+        assert bench.scope_traces() == []
+
+        bench.audition("sound : Sig Float\n"
+                       "sound = scope \"post\" (0.2 * sine 220.0)\n")
+        assert _wait(lambda: [t[0] for t in bench.scope_traces()]
+                     == ["post"], 20.0), \
+            "the auditioned scope never raised a trace"
+        assert path.read_text().count("scope") == 0, \
+            "an audition wrote the file"
+    finally:
+        bench.stop()

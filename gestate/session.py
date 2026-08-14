@@ -2817,12 +2817,28 @@ def furniture(session: "Session", bench=None) -> str:
         for line in _of(bank, "mentions", []) or []:
             out.append(f"away\t{line}\t{word}")
 
-    # **A scope stands beside its declaration** (`spec/scope.md`): a
-    # content box under the line that wrote it, so the signal is seen
-    # where it is edited — the knob's placement rule, grown a height.
-    # An old window skips the verb and loses the box, not the file.
-    for label, line in (getattr(b, "scope_sites", list)() or []):
-        out.append(f"scope\t{label}\t{line}")
+    # **A scope stands beside its declaration, and follows it.**  The
+    # sites come from the text being *edited*, not the text that is
+    # sounding: an edit above moves the declaration and the box moves
+    # with it, an erased declaration takes its box away at the
+    # keystroke, and an auditioned scope stands before any save —
+    # Henri's report was exactly that audition failed to raise one and
+    # `Ctrl-S` was needed, because the old scan read the disk, which
+    # an audition deliberately never writes (F115's lesson, relearned).
+    # The *trace* inside still follows the engine: a scope the engine
+    # has not built yet draws its midline, which reads as "not
+    # sounding yet", the piano's dead-keys honesty.  A comment's
+    # mention does not count — the scored-banks rule.
+    import re as _re
+
+    seen_scopes = set()
+    for i, text_line in enumerate(session._lines(), start=1):
+        code = text_line.split("#", 1)[0]
+        for m in _re.finditer(r'scope\s+"([^"]*)"', code):
+            label = m.group(1)
+            if label and label not in seen_scopes:
+                seen_scopes.add(label)
+                out.append(f"scope\t{label}\t{i}")
 
     # **What file this is, and whether it is written down.**  The window
     # had no way to say either: a name you cannot see is one you have to

@@ -53,6 +53,7 @@ Of 128 entries, **113 are resolved**.  What is left:
 | F128 | resolved | The text sniff refused `duet.ges` — the tail-drop moved the boundary instead of removing it |
 | F129 | resolved | An exactly-named directory loses to a fuzzy file |
 | F130 | resolved | A file you can name is a file the dialog cannot find — and Tab wiped the walk |
+| F131 | bug, open | An apply drops the notes it crosses — long holds die audibly, the pad most of all |
 | F125 | resolved | A phantom new file read as saved — no tell it was a starter wearing a borrowed name |
 | F112 | resolved | The file dialog's listing sometimes lags — measured: a beat only while the model builds |
 | F113 | resolved | Undo and redo cross a file switch — one history for the session |
@@ -3566,3 +3567,34 @@ from the walk, so what is picked is exactly what is shown and
 `_where` resolves it like any bare row; a deep directory is a step
 like any other.  F129's ranking rode along: exact, prefix, substring,
 directories first at each rank.
+
+
+### F131. **[bug, open]** An apply drops the notes it crosses
+
+Henri, probing `nightdrive.ges` (2026-08-14, `nightdrive-session.ges`):
+"it loses sound.. particularly the pad. when I'm probing."  The scope
+was the flashlight, not the fault — measured through the pad's own
+scope window on the real C host, every apply behaves the same,
+including a comment-only edit:
+
+    baseline        [0.2583, 0.2814, 0.1408, 0.2868]
+    after trivial   [0.0,    0.3171, 0.145,  0.2624, …]
+    after re-apply  [0.0,    0.0002, 0.2776, 0.2052, …]
+
+The swap drops the notes that are *held* across it: a resumed
+performer replays no onset that lies in the past, so a note sounding
+at the seam comes back gateless and stays silent until its channel's
+next onset.  Bass and lead re-onset within half a beat and nobody
+hears the hole; the pad holds four-beat chords behind a slow attack,
+so it dies audibly and swells back — and probing is applying over and
+over, which made the dying constant.  The scope itself is clean:
+identity verified bit-exact offline (reference and native), and the
+pad breathes through a single audition.
+
+The fix lives in the resume: a note whose onset is before the seam
+and whose off is after it is still *sounding*, and the resumed
+performer (or the migration around it) must re-emit its gate — the
+"answers the take gave" machinery already knows the decisions, so the
+note is reconstructible; what is missing is the re-emission.  Worth
+checking the static-schedule path for the same hole with long notes
+while in there.

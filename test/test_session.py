@@ -2293,3 +2293,31 @@ def test_a_granule_hot_directory_is_not_believed(tmp_path):
     c = it._outside()
     it._looked = None
     assert c == it._outside(), "a settled stamp kept churning"
+
+
+def test_a_scope_box_follows_the_text_not_the_disk():
+    """Henri's pair of reports, one root: the sites read the disk, so
+    an audition (which never writes) could not raise a box, and edits
+    moved lines out from under it.  From the edited text: the box
+    moves with its declaration, dies with it, stands before any save
+    — and a comment's mention does not count."""
+    view = _Editing('sound = scope "post" (x)\n')
+    s = session(view=view)
+
+    def scope_rows():
+        return [l for l in furniture(s).splitlines()
+                if l.startswith("scope\t")]
+
+    assert scope_rows() == ["scope\tpost\t1"]
+
+    # An edit above moves the declaration; the box follows.
+    view.replace('quiet = 0.0\nsound = scope "post" (x)\n')
+    assert scope_rows() == ["scope\tpost\t2"]
+
+    # Erased is gone, at the keystroke and not at the save.
+    view.replace('sound = x\n')
+    assert scope_rows() == []
+
+    # A comment suggesting a scope is not a scope.
+    view.replace('# try: scope "post" here\nsound = x\n')
+    assert scope_rows() == []
