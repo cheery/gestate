@@ -15,9 +15,9 @@
 #   10 Cooling Stones     - emotional finale and real ending
 #
 # Workbench:
-#   python -m gestate.workbench sauna_night_drive_20min.ges
-# Render full 20:00 WAV:
-#   python -m gestate.audioperform sauna_night_drive_20min.ges -o sauna_night_drive_20min.wav --seconds 1200
+#   python -m gestate.workbench examples/long/sauna.ges
+# Render full 20:00 WAV, with the levels reported after it:
+#   python -m gestate.audioperform examples/long/sauna.ges -o sauna.wav --seconds 1200 --report
 #
 # The final bar has no drums. The free-running drum generator is permanently
 # muted from beat 1996 onward so the piece cannot end in an empty drum loop.
@@ -626,9 +626,32 @@ centre = 0.88 * kickDrive
        + 0.30 * chipPump
        + 0.20 * room
 
+#: **Headroom, measured rather than guessed.**  The mix below sums
+#: fifteen sources and peaked at **3.5** before this constant existed
+#: — nearly four times full scale — so `brickwall` was not the safety
+#: net it looks like, it was the mixing desk: a fifth of every chapter
+#: sat pinned exactly at the ceiling, and all ten chapters came out at
+#: the same loudness (RMS 0.44, spread 0.011) however differently they
+#: were written.  That is what a limiter does when it is asked to do
+#: the arranging.
+#:
+#: One number fixes it and changes nothing else: every balance below
+#: is the author's, untouched, and this only decides where the sum
+#: sits under the ceiling.  At 0.30 the peak lands near 1.05, so the
+#: brickwall catches transients — which is its job — and the chapters
+#: are free to differ again.
+#:
+#: For anyone with ears who wants to go further: the bass group
+#: (`sub` + `chip` + `down`) measures peak 1.85 and RMS 0.394 on its
+#: own, against 0.88/0.264 for the pad-arp-lead tops.  Whether the
+#: floor should carry that much of the piece is a judgement no meter
+#: can make, which is why it is written here and not changed.
+master : Float
+master = 0.30
+
 sound : Sig Stereo
 sound = pair
-    (brickwall 0.89
+    (brickwall 0.89 (gain master
         (centre
        + 0.27 * hatDrive
        + 0.12 * hat16Drive
@@ -640,8 +663,8 @@ sound = pair
        + 0.22 * arpEcho
        + 0.42 * leadPump
        + 0.24 * leadEcho
-       + 0.52 * chorus 0.24 0.47 padPump))
-    (brickwall 0.89
+       + 0.52 * chorus 0.24 0.47 padPump)))
+    (brickwall 0.89 (gain master
         (centre
        + 0.23 * hatDrive
        + 0.14 * hat16Drive
@@ -653,4 +676,4 @@ sound = pair
        + 0.35 * arpEcho
        + 0.42 * leadPump
        + 0.40 * leadEcho
-       + 0.52 * chorus 0.37 0.47 padPump))
+       + 0.52 * chorus 0.37 0.47 padPump)))

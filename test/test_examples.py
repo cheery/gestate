@@ -532,3 +532,71 @@ def test_every_long_piece_plays_the_whole_way(name):
 def test_the_long_pieces_are_actually_being_found():
     """The vacuity guard the other sweeps carry, for the same reason."""
     assert "sauna.ges" in _long_names(), _long_names()
+
+
+# ── And keeps some headroom while it plays ──────────────────────────────────
+#
+# **Playing is not mixing**, which is the second thing `sauna.ges` had to
+# teach: it played the whole way, said nothing, and sat with a fifth of
+# every chapter pinned exactly against its own `brickwall` — the limiter
+# doing the arranging, ten deliberately different chapters coming out at
+# one loudness, distortion on every kick.  Nothing above could see it,
+# because everything above asks whether notes arrive.
+#
+# A minute is enough to catch it: a mix with no headroom has none in its
+# first minute either, and a minute costs seconds where the whole piece
+# costs minutes.
+
+#: What fraction of samples may sit against the ceiling before the
+#: ceiling is doing the mixing.  Set where it separates the two states
+#: it has to tell apart: `sauna.ges` measured 3.5% while broken and
+#: under 0.2% once its master trim existed, and a piece that never
+#: limits at all measures 0.
+CEILING_SHARE = 0.01
+
+#: The first minute, and the rate is the reference's own — cheap enough
+#: to run every time, long enough to hold a chapter's worth of groove.
+HEADROOM_SECONDS = 60
+HEADROOM_RATE = 8000
+
+
+@pytest.mark.parametrize("name", _long_names())
+def test_every_long_piece_keeps_headroom(name):
+    """Rendered, not walked — this is the one question in this file
+    that is about the *sound*, so it has to make some."""
+    import tempfile
+
+    from gestate.audiollvm import native_blocks
+    from gestate.audioperform import (Performance, dynamic, from_performer,
+                                      graph_of)
+
+    source = (LONG_DIR / name).read_text()
+    ceiling = re.search(r"brickwall\s+([\d.]+)", source)
+    if ceiling is None:
+        pytest.skip(f"{name} declares no ceiling to sit against")
+    limit = float(ceiling.group(1))
+
+    graph = graph_of(source, "", rate=HEADROOM_RATE)
+    performer, _allocators = dynamic(source, "", rate=HEADROOM_RATE,
+                                     block=LONG_BLOCK, seed=0,
+                                     patience=None)
+    show = Performance(graph)
+    show.sources.append(from_performer(performer))
+
+    at_ceiling, total = 0, 0
+    with tempfile.TemporaryDirectory() as where:
+        for block in native_blocks(graph, where,
+                                   HEADROOM_RATE * HEADROOM_SECONDS,
+                                   block=LONG_BLOCK,
+                                   control=show.control()):
+            for x in block:
+                if (-x if x < 0.0 else x) > limit - 1e-9:
+                    at_ceiling += 1
+            total += len(block)
+
+    assert total, f"{name} rendered nothing"
+    share = at_ceiling / total
+    assert share < CEILING_SHARE, (
+        f"{name} spends {100 * share:.1f}% of its first minute against "
+        f"its own ceiling of {limit}: the limiter is doing the mixing, "
+        f"not catching transients")
