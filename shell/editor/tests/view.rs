@@ -1207,3 +1207,17 @@ fn a_scope_grants_a_box_under_its_line() {
     assert_eq!(v.boxes.len(), 1);
     assert_eq!(v.boxes[0].0, 2);
 }
+
+/// Two scopes written on one line stack — one honest line, two
+/// windows — each adding its rows to the same box, capped as ever.
+#[test]
+fn scopes_sharing_a_line_stack_their_rows() {
+    use gestate_editor::view::{BOX_MOST, SCOPE_ROWS};
+
+    let chrome = Furniture::read(
+        "scope\tspec\t2\tspectro\nscope\tout\t2\tscope");
+    let mut v = rows_of(12, 900);
+    v.grant(&chrome, &LARGE);
+    assert_eq!(v.boxes,
+               vec![(2, (SCOPE_ROWS * 2).min(BOX_MOST))]);
+}

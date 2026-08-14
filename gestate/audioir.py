@@ -300,7 +300,7 @@ class Graph:
         disagree about which window is whose (`spec/scope.md`).
         """
         return [(n.chan, n.length, n) for n in self.nodes
-                if n.kind == "scope"]
+                if n.kind in ("scope", "spectro")]
 
     def control_by_chan(self) -> dict:
         """Channel name → its control source node.

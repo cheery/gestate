@@ -355,12 +355,16 @@ impl View {
         // own declaration, the knob's placement rule grown a height.
         // A fixed grant, because the trace is a picture and not prose:
         // the rows are the drawing's, not the content's word count.
-        for (_label, line) in &chrome.scopes {
+        // Two scopes written on one line stack — `spectro "spec"
+        // (scope "out" …)` is one honest line and two windows — each
+        // adding its rows, capped like everything else.
+        for (_label, line, _flavor) in &chrome.scopes {
             if *line == 0 {
                 continue;
             }
-            if !boxes.iter().any(|(l, _)| l == line) {
-                boxes.push((*line, SCOPE_ROWS));
+            match boxes.iter_mut().find(|(l, _)| l == line) {
+                Some((_, had)) => *had = (*had + SCOPE_ROWS).min(BOX_MOST),
+                None => boxes.push((*line, SCOPE_ROWS)),
             }
         }
         self.boxes = boxes;

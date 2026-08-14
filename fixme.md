@@ -54,6 +54,8 @@ Of 128 entries, **113 are resolved**.  What is left:
 | F129 | resolved | An exactly-named directory loses to a fuzzy file |
 | F130 | resolved | A file you can name is a file the dialog cannot find — and Tab wiped the walk |
 | F131 | bug, open | An apply drops the notes it crosses — long holds die audibly, the pad most of all |
+| F132 | bug, open | A content box near the foot renders over the status bar |
+| F133 | bug, open | `what scope` draws its page outside the window when the panel is low |
 | F125 | resolved | A phantom new file read as saved — no tell it was a starter wearing a borrowed name |
 | F112 | resolved | The file dialog's listing sometimes lags — measured: a beat only while the model builds |
 | F113 | resolved | Undo and redo cross a file switch — one history for the session |
@@ -3598,3 +3600,29 @@ performer (or the migration around it) must re-emit its gate — the
 note is reconstructible; what is missing is the re-emission.  Worth
 checking the static-schedule path for the same hole with long notes
 while in there.
+
+
+### F132. **[bug, open]** A content box near the foot renders over the status bar
+
+Henri, 2026-08-14 (`fixme.incoming.txt`): a scope's box on a line
+near the bottom of the screen paints over the bar.  The slots walk
+hands out bands from `top` downward and nothing clips the last band
+to `text_h` — the box's panel and points are drawn wherever the slot
+says, and past the text area that is the bar's ground.  The fix
+belongs in one place, not two: either `View::slots` stops granting
+band height past `text_h`, or every box painter clips to it — and
+the slots table is the one-walk-every-reader invariant, so the walk
+is where the clip should live.  Check the trouble boxes for the same
+overflow while there; they share the machinery and probably the bug.
+
+### F133. **[bug, open]** `what scope` draws its page outside the window when the panel is low
+
+Henri, 2026-08-14 (`fixme.incoming.txt`): asking `what` for `scope`
+with the caret in the upper half — the panel goes low (the equator
+rule) — draws the reference page past the window's bottom edge.  The
+page rows ride under the list inside the panel's own frame
+(`palette.rs`), and the panel placed in the lower half has less room
+below the query than the page assumes; the rows need clamping to the
+panel's granted box, with "…" or a shortened page rather than pixels
+nobody can see.  The equator placement is right; the page's height
+accounting is what has not heard of it.

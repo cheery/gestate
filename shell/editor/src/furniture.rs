@@ -163,11 +163,14 @@ pub struct Furniture {
     /// nothing about time has no position to show, and a readout of
     /// `1.1` invented for it would be a fact the window made up.
     pub has_transport: bool,
-    /// The scopes, as `(label, line)` — a signal watched where it is
-    /// written: each grants a content box under its declaration, and
-    /// the trace drawn in it arrives on the readings channel
-    /// (`spec/scope.md`).
-    pub scopes: Vec<(String, usize)>,
+    /// The scopes, as `(label, line, flavor)` — a signal watched
+    /// where it is written: each grants a content box under its
+    /// declaration, and the trace drawn in it arrives on the readings
+    /// channel (`spec/scope.md`).  The flavor is `"scope"` (dots by
+    /// time) or `"spectro"` (bars by frequency); anything unknown
+    /// draws as a scope, because a window must not go blank over a
+    /// word the model learned first.
+    pub scopes: Vec<(String, usize, String)>,
     /// The file is not a program — a `.txt` or `.md` being edited
     /// beside the music.  Nothing compiles and nothing plays, and the
     /// window says `[inert]` where the transport would stand, so the
@@ -270,7 +273,9 @@ impl Furniture {
                 }
                 "scope" if p.len() >= 3 => {
                     if let Ok(line) = p[2].parse() {
-                        f.scopes.push((p[1].into(), line));
+                        f.scopes.push((p[1].into(), line,
+                                       p.get(3).copied()
+                                        .unwrap_or("scope").into()));
                     }
                 }
                 "loop" if p.len() >= 3 => {

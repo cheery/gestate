@@ -274,7 +274,7 @@ class _Extract:
         # nothing reads it *this* recompile loses all of it.
         stack += [n.id for n in self.graph.nodes
                   if n.kind in ("source", "scan", "line", "tap", "loop",
-                                "slide", "scope")]
+                                "slide", "scope", "spectro")]
         while stack:
             i = stack.pop()
             if i in keep:
@@ -500,7 +500,7 @@ class _Extract:
             inputs = [self._signal(sig_e, env, path, of(2))]
             init = self._constant(init_e, env, path)
             type_ = self._value_type(init)
-        elif kind == "scope":
+        elif kind in ("scope", "spectro"):
             # `scope label s` — identity on the sound, a ring write on
             # the way past (`spec/scope.md`).  No step: there is
             # nothing to compute, only a window to keep.  The label is
@@ -550,15 +550,17 @@ class _Extract:
 
         want = 1 if kind == "map" else 3 if kind == "loop" else 2
         origin = self._origin(path, kind)
-        step = (None if kind in ("tap", "scope")
+        step = (None if kind in ("tap", "scope", "spectro")
                 else self._step(step_e, env, origin, want))
         return self._add(Node(id=0, kind=kind, inputs=tuple(inputs),
                               step=step, init=init, type_=type_,
                               length=(length if kind in ("line", "tap",
                                                          "loop", "slide",
-                                                         "scope")
+                                                         "scope",
+                                                         "spectro")
                                       else 0),
-                              chan=(scope_label if kind == "scope"
+                              chan=(scope_label
+                                    if kind in ("scope", "spectro")
                                     else None)),
                          path, kind, origin=origin)
 

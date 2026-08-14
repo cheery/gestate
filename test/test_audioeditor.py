@@ -2065,3 +2065,36 @@ def test_an_audition_raises_the_scope(tmp_path):
             "an audition wrote the file"
     finally:
         bench.stop()
+
+
+def test_a_spectrum_puts_the_tone_in_its_bin():
+    """`_spectrum` is a pure function, so a sine is the whole test: the
+    peak lands in the bin its frequency names, everything else stays
+    quiet, and the scale keeps a full-scale tone at the top."""
+    import math
+
+    from gestate.audioeditor import _spectrum
+
+    rate, freq = 8000, 1000.0
+    xs = [0.8 * math.sin(2 * math.pi * freq * i / rate)
+          for i in range(1024)]
+    bins = _spectrum(xs, 64)
+    assert len(bins) == 64
+    peak = bins.index(max(bins))
+    fft_bin = freq * 1024 / rate                 # 128
+    expect = 64 * math.log(fft_bin) / math.log(512)
+    assert abs(peak - expect) <= 2, (peak, expect)
+    assert max(bins) > 0.5, "a strong tone reads weak"
+    loud = sum(1 for b in bins if b > 0.3)
+    assert loud <= 3, "energy where the sine put none"
+
+
+def test_a_spectro_is_a_scope_by_another_reading(tmp_path):
+    """One node kind, two faces (`spec/scope.md`): a `spectro` rings
+    exactly as a `scope` does, and only the trace's reading differs."""
+    from gestate.audioextract import extract
+
+    g = extract('sound : Sig Float\n'
+                'sound = spectro "spec" (0.2 * sine 220.0)\n', rate=8000)
+    kinds = [(l, node.kind) for l, _n, node in g.scopes()]
+    assert kinds == [("spec", "spectro")]

@@ -84,6 +84,8 @@ FORMERS = {
     #: A scope on a signal — `spec/scope.md`.  Identity on the sound, a
     #: ring write on the way past: a delay line the host may read.
     "scope": "scope",
+    #: The scope's second reader: the same ring, shown by frequency.
+    "spectro": "spectro",
 }
 
 #: What each former takes, by the *node kind* rather than by the name — two
@@ -111,6 +113,7 @@ SHAPES = {
     # a list has no fixed size, and the engine never sees it — the
     # label is read when the graph is built and lives on the node.
     "scope": ("label", "signal"),
+    "spectro": ("label", "signal"),
 }
 
 #: Machine primitives over flat types.  `chr`/`ord` move between `Int` and

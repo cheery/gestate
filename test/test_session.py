@@ -2308,11 +2308,11 @@ def test_a_scope_box_follows_the_text_not_the_disk():
         return [l for l in furniture(s).splitlines()
                 if l.startswith("scope\t")]
 
-    assert scope_rows() == ["scope\tpost\t1"]
+    assert scope_rows() == ["scope\tpost\t1\tscope"]
 
     # An edit above moves the declaration; the box follows.
     view.replace('quiet = 0.0\nsound = scope "post" (x)\n')
-    assert scope_rows() == ["scope\tpost\t2"]
+    assert scope_rows() == ["scope\tpost\t2\tscope"]
 
     # Erased is gone, at the keystroke and not at the save.
     view.replace('sound = x\n')
@@ -2321,3 +2321,13 @@ def test_a_scope_box_follows_the_text_not_the_disk():
     # A comment suggesting a scope is not a scope.
     view.replace('# try: scope "post" here\nsound = x\n')
     assert scope_rows() == []
+
+
+def test_a_spectro_wears_its_flavor_on_the_scope_row():
+    """The flavor rides third on the `scope` verb, so an old window
+    reads the two fields it knows and draws every window as a scope."""
+    view = _Editing('a = spectro "spec" x\nb = scope "post" y\n')
+    s = session(view=view)
+    rows = [l for l in furniture(s).splitlines()
+            if l.startswith("scope\t")]
+    assert rows == ["scope\tspec\t1\tspectro", "scope\tpost\t2\tscope"]

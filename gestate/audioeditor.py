@@ -1005,20 +1005,32 @@ class Workbench:
     #: averages away a click is a scope that lies (`spec/scope.md`).
     TRACE_POINTS = 128
 
+    #: And a spectro's: log-spaced magnitude bins over the newest
+    #: `SPECTRO_N` samples of the same window — the scope's second
+    #: reader, by frequency instead of by time.
+    SPECTRO_BINS, SPECTRO_N = 64, 1024
+
     def scope_traces(self) -> list:
         """`(label, points)` per scope of the playing instrument.
 
         Read from the running engine's own rings — the read may seam
-        at a block edge, which a diagnostic tolerates.  Empty when
-        nothing plays or nothing is scoped, which is most programs.
+        at a block edge, which a diagnostic tolerates.  A `scope`
+        downsamples by time, a `spectro` transforms to frequency; the
+        wire and the box do not care which, the flavor rides the
+        furniture.  Empty when nothing plays or nothing is scoped,
+        which is most programs.
         """
         engine = getattr(self.live, "engine", None) if self.live else None
         if engine is None or not hasattr(engine.graph, "scopes"):
             return []
         out = []
-        for label, _length, _node in engine.graph.scopes():
+        for label, _length, node in engine.graph.scopes():
             window = engine.scope_window(label)
             if not window:
+                continue
+            if node.kind == "spectro":
+                out.append((label, _spectrum(window[-self.SPECTRO_N:],
+                                             self.SPECTRO_BINS)))
                 continue
             size = max(1, len(window) // self.TRACE_POINTS)
             points = [max(window[b * size:(b + 1) * size], key=abs)
@@ -2564,6 +2576,61 @@ STARTER = """# A new synth.
 sound : Sig Float
 sound = 0.2 * sine 220.0
 """
+
+
+def _spectrum(samples: list, bins: int) -> list:
+    """Log-spaced magnitude bins of a Hann-windowed FFT, 0…1.
+
+    Pure Python and pure function, which is what makes it testable
+    with a sine and nothing else.  The scale is a full-scale
+    Hann-windowed tone (`n/4` peak magnitude), and the square root on
+    the way out is the eye's dynamic range: a -40 dB partial is real
+    music and a linear scale would draw it as nothing.
+    """
+    import math
+
+    n = 1
+    while n * 2 <= len(samples):
+        n *= 2
+    xs = samples[-n:]
+    re = [xs[i] * (0.5 - 0.5 * math.cos(2.0 * math.pi * i / (n - 1)))
+          for i in range(n)]
+    im = [0.0] * n
+    # Iterative radix-2, bit-reversed — the textbook loop, written out
+    # because a dependency for one transform is not worth its wheel.
+    j = 0
+    for i in range(1, n):
+        bit = n >> 1
+        while j & bit:
+            j ^= bit
+            bit >>= 1
+        j |= bit
+        if i < j:
+            re[i], re[j] = re[j], re[i]
+            im[i], im[j] = im[j], im[i]
+    length = 2
+    while length <= n:
+        ang = -2.0 * math.pi / length
+        wr, wi = math.cos(ang), math.sin(ang)
+        half = length // 2
+        for start in range(0, n, length):
+            cr, ci = 1.0, 0.0
+            for k in range(start, start + half):
+                vr = re[k + half] * cr - im[k + half] * ci
+                vi = re[k + half] * ci + im[k + half] * cr
+                re[k + half], im[k + half] = re[k] - vr, im[k] - vi
+                re[k], im[k] = re[k] + vr, im[k] + vi
+                cr, ci = cr * wr - ci * wi, cr * wi + ci * wr
+        length *= 2
+    mags = [math.hypot(re[i], im[i]) for i in range(n // 2)]
+    lo, hi = 1, n // 2
+    out = []
+    for b in range(bins):
+        a = int(lo * (hi / lo) ** (b / bins))
+        z = max(int(lo * (hi / lo) ** ((b + 1) / bins)), a + 1)
+        out.append(max(mags[a:z]))
+    scale = n / 4.0
+    return [min(1.0, (m / scale) ** 0.5) for m in out]
 
 
 def is_new(path) -> bool:

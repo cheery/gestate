@@ -344,6 +344,32 @@ node-origin map that `audiospans` and the knob column already read.
 definition, then locals in `--fits`, then `--uses NAME`.  All three are
 argued above and none of them changed.
 
+### Dropping a scope in one move — two spellings, one to pick
+
+Henri's question (2026-08-14, from `fixme.incoming.txt`): probing
+should be one gesture, and which of these is the tool?
+
+    cover stab = scope "stab" stab       -- a covering definition
+    sink scope "stab" stab               -- an anonymous observer
+
+**The recommendation is `sink`**, for reasons that are about meaning
+rather than taste.  `cover` is name-shadowing: a second definition
+that rewrites what every existing reader of `stab` sees — powerful
+(any experiment becomes one line: `cover stab = 0.5 * stab`) and
+exactly as dangerous, because "which references see the cover?" has
+no answer that is both useful and unsurprising, and the fragment's
+memoization would have to relearn what a name means.  `sink` adds
+one meaning the graph does not have and needs: *keep this alive,
+beside the sound* — the probed definition's own text is untouched,
+the edit is one appended line and its undo is one line (F131 makes
+minimal edits worth money), and every future observer — `spectro`,
+an analysis feed, a meter — wants the same declaration form.  The
+extraction cost is small and honest: `sink` declarations join
+`sound` as extraction roots, and the scope's prune-root rule already
+holds the rest.  What `cover` offers that `sink` cannot — modifying
+in place — is a different feature, and it should be argued as one if
+somebody wants it.
+
 ### A probe on a signal — Henri's, and the one to try in the editor
 
 **Drop a probe on a line and watch that signal**: a scope and a

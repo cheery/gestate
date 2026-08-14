@@ -2834,11 +2834,13 @@ def furniture(session: "Session", bench=None) -> str:
     seen_scopes = set()
     for i, text_line in enumerate(session._lines(), start=1):
         code = text_line.split("#", 1)[0]
-        for m in _re.finditer(r'scope\s+"([^"]*)"', code):
-            label = m.group(1)
+        for m in _re.finditer(r'(scope|spectro)\s+"([^"]*)"', code):
+            flavor, label = m.group(1), m.group(2)
             if label and label not in seen_scopes:
                 seen_scopes.add(label)
-                out.append(f"scope\t{label}\t{i}")
+                # The flavor rides third, so an old window reads the
+                # two it knows and draws every window as a scope.
+                out.append(f"scope\t{label}\t{i}\t{flavor}")
 
     # **What file this is, and whether it is written down.**  The window
     # had no way to say either: a name you cannot see is one you have to

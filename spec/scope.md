@@ -106,11 +106,18 @@ No new drawing vocabulary: a trace is a fold over the points into
 is for faders.  A `scopeOf` helper belongs in `gui.ges` the day two
 files have written it.
 
-**No spectrogram yet.**  The eight host bands already give a coarse
-spectrum for free; a real spectrogram needs an FFT, which is a
-library-or-host decision this spec deliberately does not smuggle in.
-`spectro` is the natural second reader of the same window, and it
-should arrive as one.
+**The spectrogram arrived as the second reader it was promised to
+be.**  `spectro "spec" s` is the same node wearing another reading:
+identity on the sound, the same ring, and the model transforms the
+window instead of downsampling it — a Hann-windowed radix-2 FFT
+(`audioeditor._spectrum`, pure Python, pure function, ~3 ms) into 64
+log-spaced magnitude bins, square-rooted for the eye's dynamic
+range.  The flavor rides third on the furniture's `scope` verb, so
+an old window draws every window as a scope; the box draws bars from
+the floor in the sound's green, because a magnitude grows up the way
+a meter does.  Two scopes written on one line stack their bands —
+`spectro "spec" (scope "out" …)` is one honest line and two
+windows.
 
 ## Costs, stated
 

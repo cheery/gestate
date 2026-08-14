@@ -488,7 +488,7 @@ def emit(graph: Graph) -> str:
     def _field(node) -> str:
         cell = e.t.of(node.type_)
         return (f"[{node.length} x {cell}]"
-                if node.kind in ("line", "tap", "loop", "slide", "scope")
+                if node.kind in ("line", "tap", "loop", "slide", "scope", "spectro")
                 else cell)
 
     state_fields = ", ".join(["i64"] + [_field(n) for n in graph.nodes])
@@ -624,7 +624,7 @@ def _render_block(graph: Graph, e: _Emit, name: str, out_type: str,
     for node in graph.nodes:
         slot = f"%slot{node.id}"
         ty = e.t.of(node.type_)
-        if node.kind in ("line", "scope"):
+        if node.kind in ("line", "scope", "spectro"):
             # `out[t-n]` lives exactly where `out[t]` is about to go,
             # because `(t - n) mod n` is `t mod n` — so one index serves
             # the read and the write, and no cursor is stored.
@@ -751,7 +751,7 @@ def _render_block(graph: Graph, e: _Emit, name: str, out_type: str,
             out = e.fresh("lpv")
             e.emit(f"{out} = select i1 %first, {ty} {init}, {ty} {stepped}")
             values[node.id] = out
-        elif node.kind == "scope":
+        elif node.kind in ("scope", "spectro"):
             # Identity on the sound, a ring write on the way past —
             # `spec/scope.md`.  The pass-through is the value; the
             # shared store below writes it into the ring slot the
@@ -1205,7 +1205,7 @@ def _slots(graph: Graph, node) -> int:
     """
     words = _words(graph, node.type_)
     return (words * node.length
-            if node.kind in ("line", "tap", "loop", "slide", "scope")
+            if node.kind in ("line", "tap", "loop", "slide", "scope", "spectro")
             else words)
 
 
@@ -1239,7 +1239,7 @@ def pack_state(graph: Graph, values: list, t: int, lines=None) -> bytes:
 
     out = bytearray(struct.pack("<q", t))
     for node, value in zip(graph.nodes, values):
-        if node.kind in ("line", "tap", "loop", "slide", "scope"):
+        if node.kind in ("line", "tap", "loop", "slide", "scope", "spectro"):
             # **A line's slot is its ring, not its sample.**  `values` is
             # one value per node and a line's is the sample downstream
             # read; the ring lives in `State.lines`, and what goes into the
@@ -1264,7 +1264,7 @@ def unpack_state(graph: Graph, data) -> tuple:
     t = struct.unpack_from("<q", raw, 0)[0]
     values, lines, at = [], {}, 8
     for node in graph.nodes:
-        if node.kind in ("line", "tap", "loop", "slide", "scope"):
+        if node.kind in ("line", "tap", "loop", "slide", "scope", "spectro"):
             ring = []
             for _ in range(node.length):
                 held, at = _unpack(graph, node.type_, raw, at)

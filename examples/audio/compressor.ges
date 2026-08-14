@@ -31,6 +31,8 @@ envelope = scan (e x => max (x * x) (e * 0.9993)) 0.0 din
 gain : Sig Float
 gain = !(e => 1.0 / (1.0 + 9.0 * e)) envelope
 
-#: And the mix coming *out*, scoped: watch it dip where `in` swells.
+#: And the mix coming *out*, scoped: watch it dip where `in` swells —
+#: with the spectrum beside it, where the thump and the tone stand as
+#: two ridges and the ducking moves the whole floor.
 sound : Sig Float
-sound = scope "out" (din * gain)
+sound = spectro "spec" (scope "out" (din * gain))

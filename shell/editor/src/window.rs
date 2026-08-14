@@ -722,18 +722,49 @@ impl EditorWindow {
         let gutter = view.gutter_cols(doc) as i32 * cw;
         let wide = view.text_cols(font, doc) as i32 * cw - 4;
         let mut f = view::Frame::default();
-        for (label, line) in &chrome.scopes {
+        for (label, line, flavor) in &chrome.scopes {
             let Some(slot) = slots.iter().find(|s| s.row + 1 == *line)
             else { continue };
             if slot.box_h <= 0 {
                 continue;
             }
-            let (top, high) = (slot.y + ch, slot.box_h - 2);
+            // Scopes sharing a line split the box evenly, each band
+            // its own — the second tenant used to paint its panel
+            // over the first's bars.
+            let mates: Vec<&String> = chrome.scopes.iter()
+                .filter(|(_, l, _)| l == line)
+                .map(|(n, _, _)| n)
+                .collect();
+            let n_mates = mates.len().max(1) as i32;
+            let k = mates.iter().position(|n| *n == label)
+                .unwrap_or(0) as i32;
+            let band = slot.box_h / n_mates;
+            let (top, high) = (slot.y + ch + k * band, band - 2);
             f.items.push(view::Item::Rect {
                 x: gutter + 2, y: top, w: wide, h: high,
                 c: view::CHROME });
             let mid = top + high / 2;
             match traces.get(label) {
+                Some(points) if !points.is_empty()
+                    && flavor == "spectro" =>
+                {
+                    // Bars from the floor, in the sound's green: a
+                    // spectrum is magnitudes, and a magnitude grows
+                    // up the way a meter does.
+                    let n = points.len() as i32;
+                    let bar = ((wide - 4) / n.max(1)).max(2);
+                    for (i, p) in points.iter().enumerate() {
+                        let x = gutter + 2
+                            + (i as i32) * (wide - 4) / n.max(1);
+                        let v = p.clamp(0.0, 1.0);
+                        let h = (v * ((high - 4) as f64)) as i32;
+                        if h > 0 {
+                            f.items.push(view::Item::Rect {
+                                x, y: top + high - 2 - h,
+                                w: bar - 1, h, c: view::LIVE });
+                        }
+                    }
+                }
                 Some(points) if !points.is_empty() => {
                     let n = points.len() as i32;
                     for (i, p) in points.iter().enumerate() {

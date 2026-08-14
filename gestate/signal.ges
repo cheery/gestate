@@ -164,6 +164,14 @@ slide n f pos s = map slideHead
 scope : String -> Sig Float -> Sig Float
 scope label s = s
 
+#: **A spectrogram on a signal** — the scope's second reader
+#: (`spec/scope.md`): the same window, shown by frequency instead of
+#: by time.  Identity on the sound like `scope`; the label names the
+#: window, and the margin draws magnitude bars where a scope draws
+#: its trace.
+spectro : String -> Sig Float -> Sig Float
+spectro label s = s
+
 #: **A delay line with a filter in it** — `feedback`, plus where the step
 #: was an instant ago.
 #:
