@@ -1,0 +1,69 @@
+# A gestate editor session — replay it with
+#
+#     python -m gestate.sessionlog <this file>
+#
+#: editing untitled.ges
+#: began 8aaebb64093c2c93
+#
+# Each line is a command and what it answered.  The
+# answers are the diff: a replay that says something
+# else is the report.
+
+do
+    #! playing untitled.ges at 44100 Hz — no parameters
+    # 6 looks
+    ask open 0 Path "examples/ni"          #= 3 rows f4b4878cac0bd904
+    open "audio/nightdrive.ges"            #= opened nightdrive.ges
+    #! opened nightdrive.ges
+    #! seed 10944259563376886220 — this session's take
+    #! playing nightdrive.ges at 44100 Hz — no parameters
+    # -   1 # A new synth.
+    # +   1 # NIGHTDRIVE — dark synthwave: an octave bass that never stops, chords
+    # +   2 # that arrive rather than strike, drums with the reverb of a room much
+    # +   3 # larger than the one you are in.
+    # -   3 # `sound : Sig Float` is what the engine plays — samples in -1.0 .. 1.0,
+    # -   4 # one per instant.  Everything else in this file is yours.
+    # +   5 #   python -m gestate.audioperform examples/audio/nightdrive.ges --seconds 32 -o nightdrive.wav
+    # +   6 #   python -m gestate.audioperform examples/audio/nightdrive.ges --seconds 32 -o take.wav --seed 7
+    # -   6 # `doc/ref/index.md` is what is in scope; the [ref] button top right is
+    # -   7 # the same pages in here.
+    # +   8 # The score is endless (`cycle`) and chancy (`sown`), so it performs
+    # +   9 # dynamically and a take with no `--seed` draws one and says so.  The
+    # … and 252 more
+    edit "0:1:# NIGHTDRIVE — dark synthwave: an octave bass that never stops, chords\n# that arrive rather than strike, drums with the reverb of a room much\n# larger than the one you are in." "2:2:#   python -m gestate.audioperform examples/audio/nightdrive.ges --seconds 32 -o nightdrive.wav\n#   python -m gestate.audioperform examples/audio/nightdrive.ges --seconds 32 -o take.wav --seed 7" "5:2:# The score is endless (`cycle`) and chancy (`sown`), so it performs\n# dynamically and a take with no `--seed` draws one and says so.  The\n# decision is taken once per four bars: one seed picks the progression\n# the pad, the bass and the lead all read, so however the dice land the\n# band lands together.  Inside the block the lead rolls its own bars —\n# including bar `3`, which is four beats of nothing, because the genre\n# is a groove with a view and the view needs the space.\n#\n# The drums and the sidechain pump are not in the score at all: they are\n# arithmetic on `beat`, the renderer's own clock (`fourfloor.ges` makes\n# the argument), so the pulse survives any decision the seed takes." "8:2:Tone := Tone Float Int" "11:2:hzOf : Tone -> Float\nhzOf t = case t of\n    Tone v k -> keyHz k" "14:0:velOf : Tone -> Float\nvelOf t = case t of\n    Tone v k -> v" "15:0:# ── The harmony: seven chords, four roads through them ───────────────────\n#\n# Everything is written against a chord *index* rather than a pitch, so\n# one table owns the voicing and the three parts cannot drift apart.\n# All of it sits in A minor; the E major in two of the roads is the\n# harmonic-minor dominant, which is the darkest cheap trick there is." "16:0:#: 0 Am, 1 C, 2 Dm, 3 Em, 4 E, 5 F, 6 G — roots around A3, where the\n#: pad wants them; the bass reads two octaves down, the lead one up.\nchordRoot : Int -> Int\nchordRoot c = case c of\n    0 -> 57\n    1 -> 60\n    2 -> 62\n    3 -> 64\n    4 -> 64\n    5 -> 53\n    _ -> 55" "17:0:chordThird : Int -> Int\nchordThird c = case c of\n    0 -> 3\n    1 -> 4\n    2 -> 3\n    3 -> 3\n    4 -> 4\n    5 -> 4\n    _ -> 4" "18:0:#: The four roads: the seed picks one per block.  Every road leaves\n#: from Am, because the tonic is the road surface — what varies is\n#: where the middle leans and whether the turn home is E or G.\nprogAt : Int -> Int -> Int\nprogAt v j = case v of\n    0 -> case j of\n        0 -> 0\n        1 -> 5\n        2 -> 1\n        _ -> 6\n    1 -> case j of\n        0 -> 0\n        1 -> 5\n        2 -> 2\n        _ -> 4\n    2 -> case j of\n        0 -> 0\n        1 -> 6\n        2 -> 5\n        _ -> 4\n    _ -> case j of\n        0 -> 0\n        1 -> 3\n        2 -> 5\n        _ -> 6" "19:0:# ── The voices ───────────────────────────────────────────────────────────" "20:0:voices pad 6 padVoice : Sig Float" "21:0:voices bass 2 bassVoice : Sig Float" "22:0:voices lead 2 leadVoice : Sig Float" "23:0:#: A frequency signal moved by `cents` — `centsHz` lifted, so a detune\n#: can be applied to a pitch that is itself a signal.\ndetuned : Float -> Sig Float -> Sig Float\ndetuned cents hz = map (h => centsHz cents h) hz" "24:0:#: Two saws eight cents apart into a dark lowpass whose envelope opens\n#: slower than the amplitude's: the chord is *there* before it is\n#: bright, which is what \"arrives rather than strikes\" means.\npadCut : Sig Gate -> Sig Float\npadCut g = map (x => clamp 60.0 nyquist (220.0 + 1500.0 * x))\n               (adsr (Adsr 0.9 1.4 0.5 1.4) g)" "25:0:padVoice : Sig Gate -> Sig Tone -> Sig Float\npadVoice g s = lowpassSvf (padCut g) 0.15\n                   (0.5 * saw (detuned (negate 8.0) (!hzOf s))\n                  + 0.5 * saw (detuned 8.0 (!hzOf s)))\n             * adsr (Adsr 0.5 1.0 0.75 1.2) g * (!velOf s)\n\n#: Saw plus a square one octave under it, through the ladder — whose\n#: resonance thinning the bass as it climbs is exactly the snap this\n#: wants — with a fast filter envelope and `drive` after: the classic\n#: rubber pluck every synthwave bassline is made of.\nbassCut : Sig Gate -> Sig Float\nbassCut g = map (x => clamp 40.0 nyquist (80.0 + 2200.0 * x))\n                (adsr (Adsr 0.004 0.16 0.2 0.08) g)\n\nbassVoice : Sig Gate -> Sig Tone -> Sig Float\nbassVoice g s = drive 1.5\n                    (lowpassLadder (bassCut g) 0.2\n                        (saw (!hzOf s) + 0.6 * pulse 0.5 (0.5 * (!hzOf s))))\n              * adsr (Adsr 0.003 0.18 0.55 0.06) g * (!velOf s)\n\n#: A hollow pulse with a saw behind it, darker filter than a lead\n#: usually gets — it should sound like it is remembering the melody,\n#: not announcing it.\nleadVoice : Sig Gate -> Sig Tone -> Sig Float\nleadVoice g s = lowpassSvf 2600.0 0.2\n                    (0.6 * pulse 0.35 (!hzOf s)\n                   + 0.4 * saw (detuned 6.0 (!hzOf s)))\n              * adsr (Adsr 0.012 0.22 0.45 0.3) g * (!velOf s)\n\n# ── The drums: arithmetic on the renderer's clock ────────────────────────\n\nkickEnv : Sig Float\nkickEnv = map (b => exp (negate 17.0 * wrap b)) beat\n\nkick : Sig Float\nkick = sine (44.0 + 110.0 * kickEnv) * kickEnv\n\n#: Beats 2 and 4.  The burst is mostly noise with a little tone at\n#: 180 Hz for the shell; the room it fires into is in the mix below,\n#: because how much snare a canyon gets is a mix decision.\nsnareEnv : Sig Float\nsnareEnv = map (b => exp (negate 11.0 * wrap ((b + 1.0) / 2.0))) beat\n\nsnare : Sig Float\nsnare = (0.6 * highpassSvf 1700.0 0.3 (white 4) + 0.3 * triangle 180.0)\n      * snareEnv\n\nhatEnv : Sig Float\nhatEnv = map (b => exp (negate 60.0 * wrap (b + 0.5))) beat\n\nhats : Sig Float\nhats = highpassSvf 8200.0 0.2 (white 9) * (0.4 * hatEnv)\n\n#: The sidechain, without the chain: dip at every downbeat, recover\n#: across the beat.  The pad and the lead breathe with the kick, which\n#: is most of what makes a synthwave record sound like it is *driving*.\npump : Sig Float\npump = map (b => 0.4 + 0.6 * (1.0 - exp (negate 4.5 * wrap b))) beat\n\n# ── The score: one decision per four bars, taken by everyone ─────────────\n\nnote : Float -> Int -> Int -> [: Tone :]\nnote v c off = '(Tone v (chordRoot c + off))\n\n#: Root, third, fifth, octave — held for the bar, wide enough that the\n#: detune has something to shimmer between.\npadChord : Int -> [: Tone :]\npadChord c = note 0.5 c 0 || note 0.4 c (chordThird c)\n          || note 0.4 c 7 || note 0.35 c 12\n\npadPart : Int -> [: Tone :]\npadPart v = long 16 ((padChord (progAt v 0) |* 4)\n         ++ (padChord (progAt v 1) |* 4)\n         ++ (padChord (progAt v 2) |* 4) ++ (padChord (progAt v 3) |* 4))\n\n#: The engine: root-octave eighths, accents on the floor.  The last\n#: eighth of each bar sometimes leans on the minor seventh instead of\n#: the octave — a passing shadow, and the only luck the bass takes.\nbn : Int -> Int -> Float -> [: Tone :]\nbn c off v = '(Tone v (chordRoot c - 24 + off))\n\n#: **`long 4` because the `roll` is a question.**  A drawn leaf has no\n#: width until it is answered, so `durOf` of this bar is zero and a\n#: resume cannot step over it by arithmetic — it has to force it.  The\n#: bar *is* four beats and always was; saying so costs no event (the\n#: constant law) and is what lets a seek skip whole bars instead of\n#: playing them silently on the way past.\nbassBar : Int -> [: Tone :]\nbassBar c = long 4 ((bn c 0 0.95 ++ bn c 12 0.6 ++ bn c 0 0.8 ++ bn c 12 0.6\n          ++ bn c 0 0.9 ++ bn c 12 0.6 ++ bn c 0 0.8\n          ++ roll (x => case x < 0.3 of\n                 True -> bn c 10 0.85\n                 False -> bn c 12 0.6)) |/ 2)\n\nbassPart : Int -> [: Tone :]\nbassPart v = long 16 (bassBar (progAt v 0) ++ bassBar (progAt v 1)\n          ++ bassBar (progAt v 2) ++ bassBar (progAt v 3))\n\n#: Four bars the lead can roll: an answer low, a run down from the\n#: octave, something high and unresolved, and silence — which is a\n#: bar of music here, not a bar of nothing.\nphraseAt : Int -> Int -> [: Tone :]\nphraseAt n c = case n of\n    0 -> note 0.6 c 12 ++ r ++ note 0.5 c 19 ++ note 0.55 c 22\n    1 -> ((note 0.6 c 24 ++ note 0.5 c 22 ++ note 0.5 c 19\n        ++ note 0.5 c (12 + chordThird c)) |/ 2) ++ (note 0.55 c 12 |* 2)\n    2 -> r ++ note 0.5 c 27 ++ note 0.45 c 24 ++ r\n    _ -> r |* 4\n\nleadBar : Int -> [: Tone :]\nleadBar c = do\n    s <- draw\n    long 4 (phraseAt (below 4 s) c)\n\nleadPart : Int -> [: Tone :]\nleadPart v = long 16 (leadBar (progAt v 0) ++ leadBar (progAt v 1)\n          ++ leadBar (progAt v 2) ++ leadBar (progAt v 3))\n\nblockOf : Int -> [: Void :]\nblockOf v = (padPart v >>= voices.pad)\n         || (bassPart v >>= voices.bass)\n         || (leadPart v >>= voices.lead)\n\n#: A drawn block is sixteen declared beats (`long`) — content bends,\n#: doesn't.  To let one seed govern four bars, the four bars bend:\n#: written `|/ 16` so the whole block fits the decision's beat, then\n#: `|* 16` so the beat is four bars long again.  Each turn of the\n#: `cycle` is a fresh split, so every block draws its own road.\nscore : [: Void :]\nscore = cycle (do\n    s <- draw\n    long 16 (blockOf (below 4 s)))\n\nbpm : Int\nbpm = 104\n\n# ── The mix ──────────────────────────────────────────────────────────────\n#\n# Stereo made honestly from mono parts: the pad goes through two\n# choruses at different rates, one per ear, so the width *moves*; the\n# lead's echo — a dotted eighth at this tempo — leans right; the hats\n# lean left to answer it.  Kick, snare and bass stay centred, because\n# the low end of a record that drives is a single lane.\n\npadDucked : Sig Float\npadDucked = pump * pad\n\nleadDucked : Sig Float\nleadDucked = pump * lead\n\nechoTail : Sig Float\nechoTail = echo 0.433 0.4 (0.6 * leadDucked)\n\n#: One room for everyone — mostly snare, a little pad and lead — so\n#: the parts sound like they were played in the same place.\nroom : Sig Float\nroom = reverb 1.7 0.45 (0.5 * snare + 0.2 * padDucked + 0.2 * leadDucked)\n\ncentre : Sig Float\ncentre = 0.95 * kick + 0.7 * snare + 0.85 * bass + 0.28 * room\n\nsound : Sig Stereo\nsound = pair\n    (brickwall 0.9 (centre + 0.55 * hats + 0.5 * leadDucked\n                  + 0.25 * echoTail + 0.6 * chorus 0.29 0.5 padDucked))\n    (brickwall 0.9 (centre + 0.4 * hats + 0.5 * leadDucked\n                  + 0.45 * echoTail + 0.6 * chorus 0.41 0.5 padDucked))" #= 256 lines changed
+    # 6 looks
+    ask goto 0 Named "sound"               #= 1 row dfee8130fe627f03
+    goto "sound"                           #= line 266
+    # - 250 padDucked = pump * pad
+    # + 250 padDucked = scope "x" (pump * pad)
+    edit "249:1:padDucked = scope \"x\" (pump * pad)" #= 1 line changed
+    apply                                  #= applying
+    #! applied edit 1 (no knob in this synth)
+    #! rebuilt; waiting for the next block
+    # - 250 padDucked = scope "x" (pump * pad)
+    # + 250 padDucked = pump * pad
+    edit "249:1:padDucked = pump * pad"    #= 1 line changed
+    apply                                  #= applying
+    #! applied edit 2 (no knob in this synth)
+    #! rebuilt; waiting for the next block
+    # - 250 padDucked = pump * pad
+    # + 250 padDucked = scope "x" (pump * pad)
+    edit "249:1:padDucked = scope \"x\" (pump * pad)" #= 1 line changed
+    audition                               #= auditioning
+    #! applied edit 3 (no knob in this synth)
+    #! auditioning (not saved)
+    apply                                  #= applying
+    #! applied edit 4 (no knob in this synth)
+    #! rebuilt; waiting for the next block
+    # - 250 padDucked = scope "x" (pump * pad)
+    # + 250 padDucked = (pump * pad)
+    edit "249:1:padDucked = (pump * pad)"  #= 1 line changed
+    apply                                  #= applying
+    #! applied edit 5 (no knob in this synth)
+    #! rebuilt; waiting for the next block
+    # - 250 padDucked = (pump * pad)
+    # + 250 padDucked = pump * pad
+    edit "249:1:padDucked = pump * pad"    #= 1 line changed
+    apply                                  #= applying
+    #! applied edit 6 (no knob in this synth)
+    #! rebuilt; waiting for the next block

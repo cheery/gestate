@@ -3601,7 +3601,8 @@ directories first at each rank.
 
 ### F131. **[resolved]** An apply drops the notes it crosses
 
-Henri, probing `nightdrive.ges` (2026-08-14, `nightdrive-session.ges`):
+Henri, probing `nightdrive.ges` (2026-08-14, kept as
+`test/sessions/F131-nightdrive-session.ges`):
 "it loses sound.. particularly the pad. when I'm probing."  The scope
 was the flashlight, not the fault — measured through the pad's own
 scope window on the real C host, every apply behaves the same,
