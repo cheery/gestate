@@ -327,14 +327,16 @@ def _trim_wav(path, start: float) -> None:
         w.writeframes(frames[drop:])
 
 
-def _export_wav(text: str, want, span=None):
+def _export_wav(text: str, want, span=None, tell=None):
     """`gestate.audioperform`'s, for the same reason.
 
     **The CLI, not a private path.**  What the command writes is what
     `python -m gestate.audioperform file -o out.wav` writes, because a
     second renderer here would be a second answer to *what does this
     file sound like* — and the two would disagree the first time either
-    grew a flag.
+    grew a flag.  `tell` is the render's position on its way to the
+    transient, not a second door: the CLI's own `_progress` composes
+    the sentence and this only carries it.
     """
     import contextlib
     import io
@@ -357,7 +359,7 @@ def _export_wav(text: str, want, span=None):
         argv += ["--seconds", str(to)]
     try:
         with contextlib.redirect_stdout(io.StringIO()):
-            code = perform_main(argv)
+            code = perform_main(argv, tell=tell)
     finally:
         Path(source).unlink(missing_ok=True)
     if code:
@@ -757,6 +759,14 @@ class Session:
     #: What was said, newest last — the status line's history and what a
     #: test asserts on.
     said: list = field(default_factory=list)
+    #: A sentence standing in the status *while long work runs* — and
+    #: **never history**.  A render's ticking position would land in the
+    #: log on every honest run and drift every replay diffed on `said`,
+    #: so it is shown and not recorded: the furniture prefers it while
+    #: it stands, the worker clears it when the work ends, and the
+    #: completion sentence goes through `say` like anything that
+    #: happened.  `spec/workbench.md` §"A position is transient".
+    transient: str = ""
     #: What a played note does: `"off"`, `"on"` or `"step"`.
     #:
     #: **Off to begin with.**  A file is opened to be read at least as
@@ -2422,14 +2432,23 @@ class Session:
         text = self._source()
         want.parent.mkdir(parents=True, exist_ok=True)
 
+        def tell(position: str) -> None:
+            # The ticking position, into the transient — shown while it
+            # stands, never history (`said` is what a replay diffs).
+            self.transient = f"{want.name}: {position}"
+
         def work():
             try:
                 made = (_export_clap(text, want, self.bench)
-                        if kind == "clap" else _export_wav(text, want, span))
+                        if kind == "clap"
+                        else _export_wav(text, want, span, tell=tell))
             except Exception as exc:                     # noqa: BLE001
                 self.bench.say(f"{want.name}: {_first_line(exc)}")
             else:
                 self.bench.say(f"wrote {made}")
+            finally:
+                # However the work ended, the line goes back to history.
+                self.transient = ""
 
         threading.Thread(target=work, daemon=True).start()
         return f"exporting {want.name}…"
@@ -2731,7 +2750,9 @@ def furniture(session: "Session", bench=None) -> str:
     description is a *reading* of those, not a second copy.
     """
     b = bench if bench is not None else session.bench
-    out = [f"status\t{session.said[-1] if session.said else ''}"]
+    # The transient wins while it stands (a render's position, ticking);
+    # history takes the line back the moment the work ends.
+    out = [f"status\t{session.transient or (session.said[-1] if session.said else '')}"]
 
     trouble = getattr(b, "trouble", "")
     if trouble:

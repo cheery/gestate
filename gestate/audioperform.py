@@ -212,7 +212,7 @@ def _confessed(counts: dict) -> str:
     return " — " + ", ".join(parts)
 
 
-def _progress(control, performer, samples: int, rate: int):
+def _progress(control, performer, samples: int, rate: int, tell=None):
     """`control`, with the render saying where it stands.
 
     Offline is the one place a stall is invisible: live, the silence is
@@ -226,13 +226,20 @@ def _progress(control, performer, samples: int, rate: int):
     stall that persists with nothing *ever* forced is also named for
     what it usually is, because "no events and no error" cost a real
     afternoon to read as "the walk cannot terminate".
+
+    `tell`, when given, receives the same position sentence at the same
+    cadence — the workbench's ear (`spec/workbench.md` §"A position is
+    transient"): a caller that embeds this render shows the sentence
+    somewhere a tty line cannot reach.  A position is *told*, never
+    printed, down this path; the confessions stay on stderr, because
+    for the embedding caller they arrive as the render's outcome.
     """
     import sys
     import time
 
     err = sys.stderr
     tty = err.isatty()
-    if performer is None and not tty:
+    if performer is None and not tty and tell is None:
         return control
 
     last_block = -1
@@ -270,11 +277,15 @@ def _progress(control, performer, samples: int, rate: int):
                         "clipped `cycle` with no notes in it (a silent "
                         "section spelled `long n (cycle rests)`) does "
                         "exactly this")
-            if tty and now - last_line >= 1.0:
+            if (tty or tell is not None) and now - last_line >= 1.0:
                 last_line = now
-                err.write(f"\r{t / rate:.1f}s / {samples / rate:.1f}s")
-                err.flush()
-                line = True
+                position = f"{t / rate:.1f}s / {samples / rate:.1f}s"
+                if tty:
+                    err.write("\r" + position)
+                    err.flush()
+                    line = True
+                if tell is not None:
+                    tell(position)
         return control(node, t)
 
     def finish():
@@ -461,7 +472,7 @@ def _oracle_main(args) -> int:
         return 1
 
 
-def main(argv=None) -> int:
+def main(argv=None, tell=None) -> int:
     import argparse
 
     from .audiospans import cli_error
@@ -653,7 +664,7 @@ def main(argv=None) -> int:
         if args.output:
             control = _progress(control, performer,
                                 int((seconds or 2.0) * args.rate),
-                                args.rate)
+                                args.rate, tell=tell)
             n = render_wav(graph, args.output, seconds or 2.0,
                            args.rate, args.block, control)
             getattr(control, "finish", lambda: None)()

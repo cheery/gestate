@@ -349,6 +349,41 @@ it:
 verb is skipped, not refused, so the model may learn a word before the
 window draws it.)
 
+### A position is transient
+
+The status line is history's face: it shows the last thing said, and
+`said` is what the transcript records and what a replay is diffed on.
+A long feature — a render measured in minutes — has a second kind of
+thing to say: **where it stands**, a sentence true for a second and
+then not.  Writing that through `say` would put a clock in the
+history, and a replay does no waiting, so every honest replay would
+drift on sentences nobody meant as events.
+
+So the two kinds are kept apart, by rule:
+
+* **A continuous position is transient.**  `Session.transient` is one
+  sentence, overwritten in place, that the furniture's `status` row
+  prefers while it stands — the window twin of the CLI's tty line that
+  rewrites itself and leaves no scrollback.  It is never appended to
+  `said`, never logged, never replayed.
+* **A confession is history.**  A stall, a dropped note, a finished
+  write — those happened, and they go through `say` once, like
+  anything that happened.
+* **The worker that set a transient clears it**, however its work
+  ends — success, refusal, or a raise — so the line falls back to the
+  last thing said and a stale position can never outlive its work.
+* **The sentence is composed once.**  `audioperform._progress` makes
+  the position sentence for its tty line; an embedding caller passes
+  `tell` and receives the same words (`main(argv, tell=…)`), so the
+  window and the terminal can never disagree about where the render
+  stands.
+
+The first consumer is `exportWav`: while the thread renders, the
+status ticks `name.wav: 4.2s / 1200.0s`; a stream that stalls shows a
+position that stops advancing, which is the stall made visible; when
+the thread lands, `wrote …` arrives through `say` and the transient
+is gone.
+
 This is `shell/panel`'s pattern exactly — a descriptor in, a display
 list out, one painter — and it is the reason the plugin panel and the
 editor will look like one application rather than two.  A `knob` at

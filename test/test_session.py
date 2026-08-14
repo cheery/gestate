@@ -955,7 +955,7 @@ def test_a_plain_render_does_not_impose_a_length():
 
     seen = []
 
-    def spy(argv):
+    def spy(argv, tell=None):
         seen.append(list(argv))
         return 0
 
@@ -2453,3 +2453,59 @@ def test_a_canvas_expression_is_its_own_hidden_definition():
         == "__canvas_0__ = a\nsubstrate = s\n__canvas_1__ = b\n"
     # A trailing comment on a bare ask is not an expression.
     assert _sinks("canvas  # note\n") == "# canvas\n"
+
+
+# ── A position is transient — `spec/workbench.md` ────────────────────────
+
+
+def test_a_transient_stands_in_the_status_and_history_takes_it_back():
+    """The status row prefers the transient while it stands and falls
+    back to the last thing said when it clears — and `said` never saw
+    the position, which is what keeps a replay's diff honest."""
+    s = session()
+    s.said.append("opened x.ges")
+    assert furniture(s).splitlines()[0] == "status\topened x.ges"
+    s.transient = "out.wav: 4.2s / 20.0s"
+    assert furniture(s).splitlines()[0] == "status\tout.wav: 4.2s / 20.0s"
+    assert s.said == ["opened x.ges"]
+    s.transient = ""
+    assert furniture(s).splitlines()[0] == "status\topened x.ges"
+
+
+def test_a_position_is_told_the_words_the_tty_line_would_print():
+    """`_progress` composes the position once; a caller's `tell` gets
+    the same sentence the terminal would, without a terminal — and the
+    wrapped control still answers what the bare one did."""
+    from gestate.audioperform import _progress
+
+    told = []
+    wrapped = _progress(lambda node, t: 7, None, 48000 * 10, 48000,
+                        tell=told.append)
+    assert wrapped(0, 0) == 7
+    assert told == ["0.0s / 10.0s"]
+    # The same boundary again is not a new position.
+    wrapped(1, 0)
+    assert told == ["0.0s / 10.0s"]
+    # A boundary inside the throttle's second passes in silence.
+    wrapped(0, 512)
+    assert told == ["0.0s / 10.0s"]
+
+
+def test_the_worker_clears_the_transient_however_the_work_ends():
+    """A refused render must not leave its position standing: the
+    thread's answer arrives through `say` and the transient is gone —
+    the raise leg of the rule, exercised end to end."""
+    import tempfile
+    from pathlib import Path
+
+    s = session()
+    with tempfile.TemporaryDirectory() as d:
+        s._start_export("wav", Path(d) / "out.wav")
+        deadline = time.time() + 30.0
+        while time.time() < deadline:
+            if any(entry[0] == "say" for entry in s.bench.log):
+                break
+            time.sleep(0.05)
+    said = [entry for entry in s.bench.log if entry[0] == "say"]
+    assert said, "the worker never reported"
+    assert s.transient == ""

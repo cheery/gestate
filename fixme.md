@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 128 entries, **113 are resolved**.  What is left:
+Of 130 entries, **113 are resolved**.  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -61,6 +61,8 @@ Of 128 entries, **113 are resolved**.  What is left:
 | F113 | resolved | Undo and redo cross a file switch — one history for the session |
 | F114 | resolved | Copy and paste are not commands |
 | F115 | resolved | A bank added by an audition could not be listened to — allocators followed the disk |
+| F134 | missing | `now : Sig Float` — the current time in seconds, to the substrate |
+| F135 | partly resolved | Long features work in silence; the CLI has progress text, the statusline does not |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -3690,3 +3692,35 @@ panel when below holds it, above when the equator sent the panel low
 with the last row counting the rest (`… N more`), the full page one
 `doc/ref/` away.  Held by `a_page_stays_inside_the_window`, which
 also pins the counted elision.
+
+### F134. **[missing]** `now : Sig Float` — the current time in seconds, to the substrate
+
+Henri, 2026-08-14 (`fixme.incoming.txt`): a substrate that wants
+clock time has no signal that says it.  `elapsed` is the sample
+clock's (`audio.ges`: `map (n => toFloat n / sampleRate) ticks`) and
+nothing fires it on the canvas side; the canvas's own clock is one
+`Tick` a frame (`gui.py` `tick`), and "a program that wants seconds
+divides by it" — by a rate the program has no name for.  So an
+animating substrate counts frames and guesses.  The ask is one name
+meaning seconds on both sides: on the audio side `now` is `elapsed`
+under the name a reader expects, on the canvas side it is the frame
+count over the view's rate — the wall clock the two substrates
+share, spelled once where both preludes can reach it.
+
+### F135. **[partly resolved]** Long features work in silence — progress belongs in the statusline
+
+Henri, 2026-08-14 (`fixme.incoming.txt`): a friend attempting a
+20-minute piece made it plain — some features need progress bars,
+and the statusline is where one could live.  The CLI half landed the
+same day (commit `streaming with stall detection`): `audioperform
+-o` wraps the control clock in `_progress` — a tty position line
+rewritten in place, a stall said the moment the transcript confesses
+one, a named suspicion when ten seconds of forcing produce nothing.
+What remains is the UI half, and the wire for it already exists:
+`session.said`'s newest sentence rides the furniture string as
+`status\t…` (`session.py`), and the shell draws it every frame
+(`furniture.rs`).  A long render or a stalling performer inside the
+workbench should speak the same sentences `_progress` already
+composes, down the same wire — no new machinery, just a second
+consumer for words that exist.  The specimen that motivated all of
+it: `specimens/sauna_specimen.ges`.
