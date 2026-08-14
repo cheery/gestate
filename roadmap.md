@@ -363,12 +363,19 @@ Three measures, in the order the value falls:
    `test_pipeline.py` holds it two ways: the cached answer equals the
    cold one, and `_analyse` replaced by something that raises leaves
    the scan passing.  `_find_holes` 2.37 s → 0.07 s, `_place` 2.56 →
-   0.28, **the save 12.0 s → 8.0 s**.  `_load_substrate` and
-   `_load_from_midi` are the same shape, smaller, and still to do —
-   as are `fits_in_source` and `signatures_in_source`, which have the
-   identical defect on the `?`/`Tab` path rather than the rebuild one
-   (and which `analyse`'s own docstring already claims are answered
-   from the cache).
+   0.28, **the save 12.0 s → 8.0 s**.
+
+   `fits_in_source` and `signatures_in_source` had the identical defect
+   on the `?`/`Tab` path rather than the rebuild one — a wait when you
+   ask rather than a tax on every save, and both of them things
+   `analyse`'s own docstring already claimed were answered from the
+   cache.  They ask the same door now: 0.86 s → 0.03 s and 0.21 s →
+   0.004 s.  `signatures_in_source` is why `Analysis` grew a field: a
+   signature offered without the context inference put on it is one
+   that would not compile if you accepted it, and the predicates were
+   the one thing the analysis threw away.  `_load_substrate` and
+   `_load_from_midi` are the same shape again, smaller, and still to
+   do.
 2. **Then the front end is the whole of the rest — 4.6 s.**  It is
    already staged: the stack front holds the libraries' parse and
    inference.  What still runs over all 232 k assembled characters

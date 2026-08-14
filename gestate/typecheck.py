@@ -754,10 +754,18 @@ def fits_in_source(text: str, source: str, *, rate: int = 22050,
     does not get as far as inference — which is the ordinary case while
     somebody is typing, and is a fact worth reporting rather than an
     empty answer that reads as *"nothing fits"*.
+
+    **Answered from `pipeline.analysed` when the editor has one**, which
+    while a synth is playing it does: `Tab` on a file that has just been
+    compiled is a dictionary lookup rather than a front end.  The scope
+    is `program` and the types are `results`, and a kept analysis is
+    both — elaboration adds supercombinators but changes no inferred
+    type, which is why what fits is the same either way.
     """
     from .audio import assemble
     from .audioperform import has_score
     from .audioscore import assemble_performance
+    from .pipeline import analysed
     from .show import show_type
 
     if audio:
@@ -770,17 +778,21 @@ def fits_in_source(text: str, source: str, *, rate: int = 22050,
         wanted = read_type(text)
     except Exception as exc:                            # noqa: BLE001
         raise FitsError(f"could not read the type `{text}`: {exc}") from exc
-    try:
-        program = classify(_merge_prelude(source, None))
-        typed = [(n, a, l, s) for (n, a, l, s) in desugar_program(program)]
-        builtins = _build_builtins()
-        _kind_check_program(program, typed)
-        results, _per_sc, _givens = infer_program(
-            typed, builtins, program.cons, program.classes,
-            {sc.name: sc.sig_constraints for sc in program.scs})
-    except (ParseError, CoherenceError, DeclError, DesugarError, KindError,
-            InferError, UnifyError, ConstraintError) as exc:
-        raise FitsError(str(exc)) from exc
+    builtins = _build_builtins()
+    have = analysed(source)
+    if have is not None:
+        program, results = have.program, have.types
+    else:
+        try:
+            program = classify(_merge_prelude(source, None))
+            typed = [(n, a, l, s) for (n, a, l, s) in desugar_program(program)]
+            _kind_check_program(program, typed)
+            results, _per_sc, _givens = infer_program(
+                typed, builtins, program.cons, program.classes,
+                {sc.name: sc.sig_constraints for sc in program.scs})
+        except (ParseError, CoherenceError, DeclError, DesugarError,
+                KindError, InferError, UnifyError, ConstraintError) as exc:
+            raise FitsError(str(exc)) from exc
 
     matches = fits_in_scope(wanted, program, results, builtins)
     return [f"{name} : {type_}{needed(depth)}"
@@ -877,10 +889,18 @@ def signatures_in_source(source: str, *, rate: int = 22050,
     cannot drift.  Raises `FitsError` with the compiler's words when the
     program does not reach inference, which while typing is the ordinary
     case.
+
+    **Answered from `pipeline.analysed` when the editor has one**, like
+    the hole scan and `fits_in_source` beside it.  What it needs beyond
+    the types is the predicates inference left on each declaration —
+    `Analysis.constraints`, kept for this — because a signature offered
+    without its context is a signature that would not compile if you
+    accepted it.
     """
     from .audio import assemble
     from .audioperform import has_score
     from .audioscore import assemble_performance
+    from .pipeline import analysed
 
     authored = source
     if audio:
@@ -889,19 +909,24 @@ def signatures_in_source(source: str, *, rate: int = 22050,
                       if has_score(source) else assemble(source, rate))
         except Exception as exc:                        # noqa: BLE001
             raise FitsError(str(exc)) from exc
-    try:
-        program = classify(_merge_prelude(source, None))
-        typed = [(n, a, l, s) for (n, a, l, s) in desugar_program(program)]
-        builtins = _build_builtins()
-        _kind_check_program(program, typed)
-        results, per_sc, _givens = infer_program(
-            typed, builtins, program.cons, program.classes,
-            {sc.name: sc.sig_constraints for sc in program.scs})
+    have = analysed(source)
+    if have is not None:
         sigs, cons, _sc_names, _written = _format_results(
-            program, typed, results, per_sc)
-    except (ParseError, CoherenceError, DeclError, DesugarError, KindError,
-            InferError, UnifyError, ConstraintError) as exc:
-        raise FitsError(str(exc)) from exc
+            have.program, have.scs, have.types, have.constraints)
+    else:
+        try:
+            program = classify(_merge_prelude(source, None))
+            typed = [(n, a, l, s) for (n, a, l, s) in desugar_program(program)]
+            builtins = _build_builtins()
+            _kind_check_program(program, typed)
+            results, per_sc, _givens = infer_program(
+                typed, builtins, program.cons, program.classes,
+                {sc.name: sc.sig_constraints for sc in program.scs})
+            sigs, cons, _sc_names, _written = _format_results(
+                program, typed, results, per_sc)
+        except (ParseError, CoherenceError, DeclError, DesugarError,
+                KindError, InferError, UnifyError, ConstraintError) as exc:
+            raise FitsError(str(exc)) from exc
 
     # **Only what this file declares.**  The assembly puts three
     # libraries in front, and offering to annotate `synth.ges`'s names in

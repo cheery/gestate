@@ -308,6 +308,15 @@ class Analysis:
     #: as ordinary supercombinators.
     method_scs: set
     main_type: object = None
+    #: The predicates inference left on each SC, **in declaration order** —
+    #: `constraints[i]` belongs to `program.scs[i]`, which is the indexing
+    #: `typecheck._format_results` already does.  Not aligned with `scs`
+    #: above, which elaboration and specialisation have rewritten and
+    #: added to since; this list is what inference said, kept because a
+    #: signature without its context is a wrong signature and the answer
+    #: is otherwise a whole second front end.  Empty when `typecheck` is
+    #: off, for the same reason `types` is.
+    constraints: list = ()
 
 
 #: How many recent analyses to keep, and why keeping any is right.
@@ -617,12 +626,13 @@ def _analyse_staged(source: str):
         raise SubgrammarError('\n'.join(grammar_errors))
     scs = list(sf.scs) + list(scs_prog)
     results = {**sf.results, **results_p}
-    scs = _discharge(scs, program, results,
-                     list(sf.per_sc_constraints) + per_c_p,
+    per_sc_constraints = list(sf.per_sc_constraints) + per_c_p
+    scs = _discharge(scs, program, results, per_sc_constraints,
                      list(sf.per_sc_givens) + per_g_p)
     scs, method_scs = resolve_static_methods(scs)
     scs = expand_envelopes(scs, program.cons)
-    return Analysis(scs, program, results, method_scs, main_type)
+    return Analysis(scs, program, results, method_scs, main_type,
+                    per_sc_constraints)
 
 
 def _discharge(scs, program, results, per_sc_constraints, per_sc_givens):
@@ -690,6 +700,7 @@ def _analyse(source: str, *, typecheck: bool = True,
              prelude: bool = True) -> Analysis:
     main_type = None
     results: dict = {}
+    per_sc_constraints: list = []
     if typecheck and prelude:
         staged = _analyse_staged(source)
         if staged is not None:
@@ -756,7 +767,8 @@ def _analyse(source: str, *, typecheck: bool = True,
     # all and silently changed no program, which is the failure mode a
     # rewrite that declines to fire always has.
     scs = expand_envelopes(scs, program.cons)
-    return Analysis(scs, program, results, method_scs, main_type)
+    return Analysis(scs, program, results, method_scs, main_type,
+                    per_sc_constraints)
 
 
 def _compile(source: str, *, typecheck: bool = True,

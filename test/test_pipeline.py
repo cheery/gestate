@@ -115,14 +115,20 @@ def test_forgetting_is_what_a_measurement_needs():
 
 # ── What the kept analysis is allowed to answer ─────────────────────────────
 #
-# The editor's hole scan ran a second front end of its own — no cache, no
-# staged path, every prelude re-inferred — on every rebuild, whether or not
-# the file contained a single `_`: 2.4 s of a 12 s save on `quartet.ges`.
-# It asks `pipeline.analysed` now, and these two hold the pair of claims
-# that lets it: the cached answer is the *same* answer, and asking costs a
-# front end nothing.
+# Three readers ran a second front end of their own — no cache, no staged
+# path, every prelude re-inferred.  The hole scan ran on every rebuild
+# whether or not the file contained a single `_` (2.4 s of a 12 s save on
+# `quartet.ges`); `--fits` and `--sigs` run when somebody presses `Tab` or
+# asks, which is a wait rather than a tax but the same defect.  All three
+# ask `pipeline.analysed` now, and what these tests hold is the pair of
+# claims that lets them: the kept answer is the *same* answer, and asking
+# costs a front end nothing.
 
 HOLED = SYNTH.replace("sine 220.0", "sine _")
+
+#: A definition nobody wrote a signature for, whose inferred one has a
+#: **context** — the part `Analysis.constraints` is kept for.
+UNSIGNED = "twice x = x + x\n\n" + SYNTH.replace("x * c", "twice (x * c)")
 
 
 def test_a_hole_is_found_the_same_in_a_kept_analysis():
@@ -155,6 +161,52 @@ def test_a_hole_scan_costs_a_kept_analysis_nothing():
     ran, pipeline._analyse = pipeline._analyse, refuse
     try:
         assert holes_in_source(HOLED, rate=RATE) == [(5, 33, "Sig Float")]
+    finally:
+        pipeline._analyse = ran
+
+
+def test_what_fits_is_the_same_from_a_kept_analysis():
+    """Elaboration adds supercombinators and changes no inferred type, so
+    the scope a kept analysis offers is the scope inference saw."""
+    from gestate.typecheck import fits_in_source
+
+    forget_analyses()
+    cold = fits_in_source("Sig Float", SYNTH, rate=RATE)
+    assert "cutoff : Sig Float" in cold[0], cold[0][:4]
+
+    analyse(assemble(SYNTH, RATE))
+    assert fits_in_source("Sig Float", SYNTH, rate=RATE) == cold
+
+
+def test_an_offered_signature_keeps_its_context():
+    """The one thing `Analysis` did not already carry.  A signature shown
+    without its context is one that would not compile if you accepted it,
+    so this asserts the `Num` and not merely that the two agree."""
+    from gestate.typecheck import signatures_in_source
+
+    forget_analyses()
+    cold = signatures_in_source(UNSIGNED, rate=RATE)
+    assert list(cold) == ["twice"], cold
+    assert "(Num " in cold["twice"], cold["twice"]
+
+    analyse(assemble(UNSIGNED, RATE))
+    assert signatures_in_source(UNSIGNED, rate=RATE) == cold
+
+
+def test_neither_answer_costs_a_kept_analysis_a_front_end():
+    import gestate.pipeline as pipeline
+    from gestate.typecheck import fits_in_source, signatures_in_source
+
+    forget_analyses()
+    analyse(assemble(UNSIGNED, RATE))
+
+    def refuse(*_a, **_k):
+        raise AssertionError("it ran a front end of its own")
+
+    ran, pipeline._analyse = pipeline._analyse, refuse
+    try:
+        assert signatures_in_source(UNSIGNED, rate=RATE)
+        assert fits_in_source("Sig Float", UNSIGNED, rate=RATE)[0]
     finally:
         pipeline._analyse = ran
 
