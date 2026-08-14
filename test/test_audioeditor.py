@@ -2142,3 +2142,27 @@ def test_a_sink_keeps_an_observer_alive_beside_the_sound():
     assert swapped.splitlines()[2] == "    sink = 4"
     assert swapped.splitlines()[3] == '__sink_1__ = spectro "b" y'
     assert len(swapped.splitlines()) == len(text.splitlines())
+
+
+def test_one_label_one_window():
+    """A scope inside a definition is inlined at every call, so two
+    calls would watch two signals under one name — and the reader
+    shows whichever came first, the other silently invisible.  Refused
+    with the way out in the sentence; one call, or two calls with the
+    same arguments (one memoized node), stay ordinary."""
+    import pytest
+
+    from gestate.audioextract import ExtractError, extract
+
+    TWICE = ('duck : Sig Float -> Sig Float\n'
+             'duck s = scope "duck" (0.5 * s)\n'
+             '\n'
+             'sound : Sig Float\n'
+             'sound = duck (sine 220.0) + duck (saw 110.0)\n')
+    with pytest.raises(ExtractError) as caught:
+        extract(TWICE, rate=8000)
+    assert "already watching" in str(caught.value)
+    assert "own label" in str(caught.value)
+
+    extract(TWICE.replace(" + duck (saw 110.0)", ""), rate=8000)
+    extract(TWICE.replace("saw 110.0", "sine 220.0"), rate=8000)

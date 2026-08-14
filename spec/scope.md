@@ -57,6 +57,21 @@ the question is where the answer belongs.  A `sink` costs what it
 watches — anything it builds that is not a stateful root prunes as
 usual.
 
+**One label, one window.**  A scope inside a definition is inlined
+at every call, so two calls would watch two different signals under
+one name — and the reader would show whichever was reached first,
+the other silently invisible.  Extraction refuses the second
+instantiation, naming both places and the way out: give each call
+its own label, or watch one use site with `sink`.  Two calls with
+the *same* arguments are one memoized node and one honest window.
+
+**The seam rule.**  A note sounding when an apply lands plays out to
+its own scheduled release, whatever the new text says — measured: a
+held note deleted from the score rings to its off, releases
+naturally, and the new score owns everything after.  The past
+belongs to the performance already given (a chancy score cannot be
+diffed against a take it never played), and an edit is not a stop.
+
 ## The buffer — a delay line's ring, published
 
 A scope keeps the last window of its signal in a ring inside

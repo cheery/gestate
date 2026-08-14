@@ -521,6 +521,23 @@ class _Extract:
                 raise ExtractError(
                     f"{path}: a scope's label has to be a piece of text "
                     f"it can be asked for by — `scope \"post\" s`")
+            # **One label, one window.**  A scope inside a definition
+            # is inlined at every call, so two calls would watch two
+            # different signals under one name — and the reader shows
+            # whichever was reached first, with the other silently
+            # invisible.  (Two calls with the *same* arguments are one
+            # memoized node and one honest window.)
+            twice = next((n for n in self.graph.nodes
+                          if n.kind in ("scope", "spectro")
+                          and n.chan == label), None)
+            if twice is not None:
+                raise ExtractError(
+                    f"{path}: `{kind} \"{label}\"` is already watching "
+                    f"another signal (via {twice.origin}) — a scope "
+                    f"inside a definition is inlined at every call, so "
+                    f"each call watches its own copy.  Give each place "
+                    f"its own label, or watch one use site with `sink "
+                    f"{kind} \"{label}\" …`")
             inputs = [self._signal(sig_e, env, path, "Float")]
             init, type_ = None, "Float"
             length = SCOPE_LEN
