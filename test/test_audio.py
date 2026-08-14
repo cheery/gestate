@@ -123,7 +123,32 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # exercises is `unfold` under `>>=` into two banks at once,
             # pinned in `test_lazyscore.py`, and `test_examples.py`
             # compiles it every run.
-            "spiral.ges"]
+            "spiral.ges",
+            # `spec/scope.md`'s two demos.  `scoped.ges` is a canvas —
+            # the trace *drawn* is the point, and a buffer of the wobbling
+            # sine under it would not check the drawing; `compressor.ges`
+            # is the margin's — `in` swells where `out` dips, beside the
+            # lines that made them, which no buffer of `out` alone shows.
+            # The tap itself is pinned where a tap can be:
+            # `test_audiollvm.py` checks a scope is identity on the sound
+            # and publishes the ring it saw, and `test_audioeditor.py`
+            # runs `scoped.ges`'s own file from playing engine to trace
+            # points.
+            "scoped.ges", "compressor.ges",
+            # A scored piece wearing its instrument's face: the prelude's
+            # ladder through an eight-voice bank, with a probe canvas —
+            # the disc and the hammer lamps — over it.  Scored, so no
+            # golden for the roster's standing reason (a schedule with no
+            # hands is silent voices), and the canvas is the substrate
+            # reason at once.  `test_session.py` replays the session that
+            # wrote it (`chopin-session.ges`), canvas asks included.
+            "chopin.ges",
+            # An endless chancy piece — `cycle` + `draw` in the `do`
+            # notation — so a bake refuses it by name (`unfolding_names`)
+            # exactly as the sown pieces above are refused.  Roll the
+            # seed and the chimes tell a different night, which is the
+            # piece's point and a golden's disproof.
+            "undertow.ges"]
 
 #: The ones with committed golden buffers — all of them, now.  `knob.ges`
 #: had none for as long as the interpreter and the engine disagreed about

@@ -453,3 +453,82 @@ def test_the_canvas_examples_are_actually_being_found():
     and green, which is the failure mode a parametrised sweep has."""
     names = _canvas_example_names()
     assert "substrate.ges" in names and "spectrum.ges" in names, names
+
+
+# ── Every long piece plays the whole way ────────────────────────────────────
+#
+# `examples/long/` holds the pieces too long for anything above to vouch
+# for, and the defeat that named the directory's first resident is
+# invisible to every sweep in this file: `sauna.ges`'s diverging twin
+# (`specimens/sauna_specimen.ges`) compiles cleanly and then sits silent
+# forever, the stream walk stalled on a clipped `cycle` of rests before
+# its first cue.  Compiling is not playing.  So each piece here is
+# *performed*, headless, through the portal `audioperform -o` uses — and
+# the walk runs for exactly the length the file's own header tells a
+# person to render (the `--seconds N` in its run line), because that is
+# the promise the header makes.
+
+LONG_DIR = EXAMPLES / "long"
+
+#: Low and blocky: no audio is rendered, so the rate only paces the
+#: clock, and the walk's work is the score's own size either way —
+#: `sauna.ges`'s twenty minutes cost about ten seconds here.
+LONG_RATE, LONG_BLOCK = 4000, 256
+
+
+def _long_names() -> list:
+    return sorted(p.name for p in LONG_DIR.glob("*.ges"))
+
+
+def _stated_seconds(source: str, name: str) -> int:
+    m = re.search(r"--seconds\s+(\d+)", source)
+    assert m, (f"{name} has no `--seconds N` render line in its header — "
+               f"the sweep plays exactly what the file tells a person to "
+               f"render, so say it")
+    return int(m.group(1))
+
+
+@pytest.mark.parametrize("name", _long_names())
+def test_every_long_piece_plays_the_whole_way(name):
+    from gestate.audioperform import dynamic
+    from gestate.midi import TICKS_PER_BEAT
+
+    source = (LONG_DIR / name).read_text()
+    seconds = _stated_seconds(source, name)
+    performer, _allocators = dynamic(source, rate=LONG_RATE,
+                                     block=LONG_BLOCK)
+
+    samples = LONG_RATE * seconds
+    seen = 0
+    for t in range(0, samples + LONG_BLOCK, LONG_BLOCK):
+        performer.advance(t)
+        # At the *first* confession, not at the end: a stalled walk
+        # burns its whole fuel budget every block from there on, so
+        # riding one to the final bar would take minutes to say what
+        # the first stall already said.
+        if len(performer.transcript) > seen:
+            fresh = performer.transcript[seen:]
+            seen = len(performer.transcript)
+            stall = next((e for e in fresh if e[0] == "stall"), None)
+            assert stall is None, f"{name} stalls at beat {stall[1]:.1f}"
+
+    assert performer.history, f"{name} played no events at all"
+    # The same tally `audioperform -o` speaks after a render: a piece
+    # that dropped notes or ran a bank dry played, but not the piece
+    # its author shipped.
+    assert performer.record.confessions() == {}, \
+        performer.record.confessions()
+
+    # And played *to the end*: a piece that goes quiet halfway is the
+    # stall's defeat wearing a green suit.  The last tenth is grace for
+    # an ending that rings out.
+    final_beat = performer._tick_at(samples) / TICKS_PER_BEAT
+    last_beat = max(e[0] for e in performer.history) / TICKS_PER_BEAT
+    assert last_beat >= final_beat * 0.9, \
+        (f"{name} fell silent at beat {last_beat:.1f} of "
+         f"{final_beat:.1f}")
+
+
+def test_the_long_pieces_are_actually_being_found():
+    """The vacuity guard the other sweeps carry, for the same reason."""
+    assert "sauna.ges" in _long_names(), _long_names()
