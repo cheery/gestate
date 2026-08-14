@@ -129,3 +129,37 @@ After the slots-table refactor and each B-stage, re-run and hold:
 The known soft spots, so they are not rediscovered as regressions:
 palette latency under an expensive canvas or a startup compile (§2),
 and the report's paint/drawn denominator (§2, first note).
+
+## 4. Re-measured 2026-08-14 — the lantern canvas, and a hand on its fader
+
+The roadmap's "lagcheck the lantern canvas": whether §1–2 still hold
+after the week's work (slots table, bar growth, burger, inert mode),
+and the number §2 never had — what a hand on a knob feels like while
+the canvas draws.  Same machine, same harnesses; two scenarios grew in
+`measure_editor.py` for it (`canvas-palette`, `canvas-drag`).
+
+| number | 2026-08-13 | today |
+|---|---|---|
+| lantern headless frame avg | 9.40 ms | **9.41 ms** |
+| lantern in-editor updates, settled | 62–69 / 240 (≈15–17 Hz) | **70–73 / 240 (≈16 Hz)** |
+| paint per drawn frame, settled | 6.0–7.8 ms | **7.5–7.7 ms** |
+| query→list while animating | avg 136 ms, worst 386 ms | **avg ~60 ms, worst 64 ms** |
+
+- **The prediction holds.**  Model-bound at ~9.4 ms/frame headless to
+  the second decimal, ~16 Hz in-editor; nothing this week touched the
+  canvas path's cost.  (Envelope's headless frame read 18.2 ms against
+  13.7–15.7 recorded — its cost is `picture`, the most
+  allocation-heavy walk, and this fanless chip's governor moves such
+  numbers; lantern, the one under test, did not move.)
+- **The palette is starved less than recorded.**  Only 2–6 answers per
+  run land while animating, so the sample is small — but the worst
+  today (64 ms) is under half the recorded *average*.  Not traced to a
+  cause; recorded so the next measurement has both points.
+- **A hand on the fader** (`canvas-drag`: saw the WARMTH fader over
+  XTEST for 10 s while the piece plays): the drag *raises* the update
+  rate to **89–91 / 240 (≈22 Hz)**, paint 3.5–3.8 ms — motion keeps
+  the loop on its fast pace, so the handle trails the finger by one to
+  two picture periods, **~45–90 ms**.  Felt, that is a slightly soft
+  fader, not a laggy one.  The harness screenshots both saw extremes;
+  the handle stands at the finger's stop in each, fill running the
+  right way — the affordance, verified from outside.

@@ -358,13 +358,14 @@ resolved the day they were filed.
   the file is read; and the window wears **[inert]** where the
   transport would stand, in the warm colour, with `play` saying why —
   which is how the quiet mode never reads as breakage.
-- **Lagcheck the lantern canvas** (Henri, for tomorrow): point the
-  stopwatch at `examples/audio/lantern.ges` with the canvas showing —
-  `GESTATE_EDITOR_TIME=1`, and `tools/dialoglag.py` is the driving
-  pattern.  `spec/performance.md` predicts the canvas is model-bound
-  at ~9.4 ms/frame headless, ~15 Hz in-editor; the measurement says
-  whether that still holds and what a hand on a knob feels like
-  while it draws.
+- **Lagcheck the lantern canvas** — measured (2026-08-14),
+  `spec/performance.md` §4: the prediction holds to the second decimal
+  (9.41 ms headless, ≈16 Hz settled), the palette is starved *less*
+  than recorded (worst 64 ms against the recorded 136 ms average), and
+  a hand on the WARMTH fader gets ≈22 Hz — the drag keeps the loop on
+  its fast pace — so the handle trails by ~45–90 ms: a slightly soft
+  fader, not a laggy one.  `measure_editor.py` grew `canvas-palette`
+  and `canvas-drag` to keep the measurement repeatable.
 - **The recording survives a file switch** — built (2026-08-14):
   `workbench._carry` hands the log to the next session, a `#!` note
   marks the seam, and the swap rides as one edit step so a replayed
