@@ -2132,11 +2132,19 @@ class Workbench:
                 with self._performer_lock:
                     # A new score, so every remembered moment is stale.
                     self._seeks.clear()
-                    self.performer = LazyPerformer(
+                    fresh = LazyPerformer(
                         stream if stream is not None else
                         LiveStream(state, root, by_tag, patience=0.02),
                         tempo, self.rate, allocators, block=self.block,
                         origin=tick, reader=reader)
+                    # **What was sounding survives the swap** (F131):
+                    # the resumed stream stands past the leaf it is
+                    # in, so without this a note held across the seam
+                    # fell silent until its next onset — the pad died
+                    # at every apply, and probing was applying.
+                    if self.performer is not None:
+                        fresh.inherit(self.performer)
+                    self.performer = fresh
             else:
                 from .audioscore import perform_voices, schedule_voices
 

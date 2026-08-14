@@ -663,6 +663,57 @@ class LazyPerformer:
                  (end, 0, self._entries + 1, key, bank, None, True))
         self._entries += 2
 
+    def inherit(self, old) -> None:
+        """What was sounding, carried across a rebuild — fixme F131.
+
+        A resumed stream descends past the leaf it stands in, so a
+        note *sounding at the seam* has no onset in the new performer
+        — nothing re-emits its gate, and it falls silent until its
+        channel's next onset.  Short notes re-onset before anyone
+        hears the hole; the pad, holding chords for bars behind a
+        slow attack, died audibly at every apply — the longer the
+        hold, the louder the silence.
+
+        The old performer knows everything needed: its allocators
+        hold each voice's key and true onset, its `values` hold the
+        gates and payloads the engine is reading this instant, and
+        its pending heap holds the releases.  Carried per bank, and
+        only where the new layout still fits (`Allocator.restore`'s
+        own refusal) — an edit that changed a bank's shape starts
+        that bank fresh, honestly.  Key numbers start above the old
+        performer's, so a carried note's release can never name a
+        note this performer minted itself.
+        """
+        self._events = max(self._events, getattr(old, "_events", 0))
+        carried = set()
+        for bank, mine in self.allocators.items():
+            theirs = getattr(old, "allocators", {}).get(bank)
+            # The whole layout must match, not only the voice count —
+            # `restore` checks the count, and a bank reshaped to the
+            # same number of voices with different channels would
+            # carry values onto channels that mean something else.
+            if (theirs is None or mine.channels != theirs.channels
+                    or not mine.restore(theirs.state())):
+                continue
+            carried.add(bank)
+            for voice in mine.channels:
+                for chan in voice:
+                    if chan in old.values:
+                        self.values[chan] = old.values[chan]
+        for entry in list(old.pending):
+            _sample, _order, _seq, key, bank, _payload, is_off = entry
+            if is_off and key in old._played and bank in carried:
+                heappush(self.pending, entry)
+                self._played.add(key)
+        # **And the position, so the first read does not seek.**  A
+        # fresh performer seeks on its first `_performed_value` — and a
+        # seek releases what sounds before silently replaying a past
+        # this resumed stream does not contain.  One block after the
+        # carry landed, the seek wiped it: the dip that survived the
+        # first cut of this fix.  An inherited performer is mid-piece,
+        # and says so.
+        self.position = max(self.position, getattr(old, "position", -1))
+
     def _pull(self, t: int):
         horizon = int(self._tick_at(t) + self.horizon * TICKS_PER_BEAT) + 1
         while True:

@@ -53,7 +53,7 @@ Of 128 entries, **113 are resolved**.  What is left:
 | F128 | resolved | The text sniff refused `duet.ges` — the tail-drop moved the boundary instead of removing it |
 | F129 | resolved | An exactly-named directory loses to a fuzzy file |
 | F130 | resolved | A file you can name is a file the dialog cannot find — and Tab wiped the walk |
-| F131 | bug, open | An apply drops the notes it crosses — long holds die audibly, the pad most of all |
+| F131 | resolved | An apply drops the notes it crosses — long holds die audibly, the pad most of all |
 | F132 | resolved | A content box near the foot renders over the status bar |
 | F133 | resolved | `what scope` draws its page outside the window when the panel is low |
 | F125 | resolved | A phantom new file read as saved — no tell it was a starter wearing a borrowed name |
@@ -3571,7 +3571,7 @@ like any other.  F129's ranking rode along: exact, prefix, substring,
 directories first at each rank.
 
 
-### F131. **[bug, open]** An apply drops the notes it crosses
+### F131. **[resolved]** An apply drops the notes it crosses
 
 Henri, probing `nightdrive.ges` (2026-08-14, `nightdrive-session.ges`):
 "it loses sound.. particularly the pad. when I'm probing."  The scope
@@ -3600,6 +3600,24 @@ performer (or the migration around it) must re-emit its gate — the
 note is reconstructible; what is missing is the re-emission.  Worth
 checking the static-schedule path for the same hole with long notes
 while in there.
+
+**Resolved 2026-08-14, by inheritance rather than re-emission** — the
+old performer already knows everything the reconstruction would have
+recomputed.  `LazyPerformer.inherit(old)` carries, per bank whose
+channel layout still matches exactly: the allocator's voices with
+their true onsets (`state`/`restore`), the gates and payloads the
+engine is reading this instant (`values`), the releases still owed
+(the off entries of `_played` keys), the key counter (so a carried
+release can never name a new note), and — the second act — **the
+position**, because a fresh performer seeks on its first read and a
+seek releases what sounds before silently replaying a past the
+resumed stream does not contain: the first cut of this fix was wiped
+one block after it landed, and the dip in the measurements said so.
+Verified on the diagnosing setup itself: nightdrive on the C host,
+comment-only apply and scope-toggling re-apply, the pad's window
+never reading silence again.  The static-schedule path never had the
+hole — `value_at` is a total function of the schedule, past onsets
+included.  Held by `test_a_rebuild_inherits_what_was_sounding`.
 
 
 ### F132. **[resolved]** A content box near the foot renders over the status bar

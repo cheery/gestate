@@ -289,3 +289,54 @@ def test_loop_replays_the_same_changes():
 
     assert first == second
     assert first, "the loop body was empty"
+
+
+def test_a_rebuild_inherits_what_was_sounding():
+    """fixme F131: a resumed stream stands past the leaf it is in, so
+    a note sounding at the seam had no onset in the new performer and
+    fell silent until its next onset — the pad died at every apply.
+    `inherit` carries the old performer's sounding voices (allocator
+    state and true onsets), the gates the engine is reading, the
+    releases still owed, and the position — so the first read does
+    not seek the carry away.  A bank whose shape changed starts
+    fresh, honestly."""
+    from types import SimpleNamespace
+
+    from gestate.audioalloc import Allocator
+    from gestate.audiodynamic import LazyPerformer
+
+    def performer(allocators):
+        return LazyPerformer(SimpleNamespace(), 120, 8000, allocators,
+                             block=64)
+
+    old_alloc = Allocator([["aChan0f0", "aChan0f1", "aChan0f2"],
+                           ["aChan1f0", "aChan1f1", "aChan1f2"]])
+    old = performer({"a": old_alloc,
+                     "gone": Allocator([["gChan0f0", "gChan0f1"]])})
+    # A note sounding: on emitted, off still pending.
+    old_alloc.note_on(7, (60,), 1000)
+    old.values.update({"aChan0f0": 1000, "aChan0f1": 99999,
+                       "aChan0f2": 60, "gChan0f0": 5})
+    old.pending = [(120000, 0, 1, 7, "a", None, True)]
+    old._played = {7}
+    old._events = 8
+    old.position = 50000
+
+    new_alloc = Allocator([["aChan0f0", "aChan0f1", "aChan0f2"],
+                           ["aChan1f0", "aChan1f1", "aChan1f2"]])
+    fresh = performer({"a": new_alloc,
+                       # the edit reshaped this bank: one voice now
+                       "gone": Allocator([["gChan0f0"]])})
+    fresh.inherit(old)
+
+    assert fresh.values["aChan0f0"] == 1000, "the gate did not carry"
+    assert fresh.values["aChan0f2"] == 60, "the payload did not carry"
+    assert "gChan0f0" not in fresh.values, "a reshaped bank carried"
+    assert new_alloc.voices[0].key == 7, "the voice did not carry"
+    assert new_alloc.voices[0].started == 1000, "the onset moved"
+    assert fresh.pending and fresh.pending[0][3] == 7, \
+        "the release is no longer owed"
+    assert 7 in fresh._played
+    assert fresh._events >= 8, "a carried key could collide"
+    assert fresh.position == 50000, \
+        "the first read would seek the carry away"
