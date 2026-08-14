@@ -212,6 +212,80 @@ def _confessed(counts: dict) -> str:
     return " — " + ", ".join(parts)
 
 
+def _progress(control, performer, samples: int, rate: int):
+    """`control`, with the render saying where it stands.
+
+    Offline is the one place a stall is invisible: live, the silence is
+    audible and the player turns around; offline it is a long wait with
+    the fan on — observed as twenty minutes of it, on a piece whose
+    stream was never going to produce.  The wrapper rides the control
+    clock, the hook every block already passes through, and says two
+    things on stderr: where the render stands (a tty line, rewritten in
+    place, so a log never carries it), and — the moment the transcript
+    confesses one — that the stream is stalling and at which beat.  A
+    stall that persists with nothing *ever* forced is also named for
+    what it usually is, because "no events and no error" cost a real
+    afternoon to read as "the walk cannot terminate".
+    """
+    import sys
+    import time
+
+    err = sys.stderr
+    tty = err.isatty()
+    if performer is None and not tty:
+        return control
+
+    last_block = -1
+    last_line = 0.0
+    begun = time.monotonic()
+    line = False                    # a rewritten line stands unfinished
+    stalls = 0                      # confessions already spoken for
+    named = False                   # the non-termination suspicion, once
+
+    def say(text: str):
+        nonlocal line
+        if line:
+            err.write("\r\x1b[K")
+            line = False
+        err.write(text + "\n")
+        err.flush()
+
+    def wrapped(node: int, t: int):
+        nonlocal last_block, last_line, stalls, named, line
+        if t != last_block:
+            last_block = t
+            now = time.monotonic()
+            if performer is not None:
+                said = [e for e in performer.transcript
+                        if e[0] == "stall"]
+                for _, beat in said[stalls:]:
+                    say(f"score: stalling at beat {beat:.1f} — the "
+                        f"render is waiting on the stream")
+                stalls = len(said)
+                if (not named and stalls and not performer.history
+                        and now - begun > 10.0):
+                    named = True
+                    say("score: ten seconds of forcing and nothing has "
+                        "arrived — this walk may never produce; a "
+                        "clipped `cycle` with no notes in it (a silent "
+                        "section spelled `long n (cycle rests)`) does "
+                        "exactly this")
+            if tty and now - last_line >= 1.0:
+                last_line = now
+                err.write(f"\r{t / rate:.1f}s / {samples / rate:.1f}s")
+                err.flush()
+                line = True
+        return control(node, t)
+
+    def finish():
+        if line:
+            err.write("\r\x1b[K")
+            err.flush()
+
+    wrapped.finish = finish
+    return wrapped
+
+
 def dynamic(synth: str, piece: str = "", *, rate: int, block: int,
             policy="oldest", horizon: float = 4.0, seed: int = 0,
             patience: float | None = None, tick: int = 0, reader=None):
@@ -274,48 +348,55 @@ def graph_of(synth: str, piece: str = "", *, rate: int):
     return extract(synth, rate=rate)
 
 
-def _frames(graph, samples: int, block: int, control) -> list:
-    """`samples` frames of a graph — compiled when there is a compiler.
-
-    `quartet.ges` measured the gap: the interpreter renders its three
-    minutes in about a day and a half, the generated code in under a
-    minute.  The two are bit-identical (`test_audiollvm.py` is that
-    check), so which one ran is not something a listener can tell — a
-    machine with no `clang` simply takes the long way rather than failing.
-    """
-    import shutil
-    import tempfile
-
-    if shutil.which("clang") is not None:
-        from .audiollvm import run_native
-
-        with tempfile.TemporaryDirectory() as d:
-            return run_native(graph, d, samples, block=block, control=control)
-    from .audioengine import run
-
-    return graph.frames(run(graph, samples, block=block, control=control))
-
-
 def render_wav(graph, path: str, seconds: float, rate: int, block: int,
                control) -> int:
-    """Render a performance to a `.wav` — `_frames`, packed and written."""
+    """Render a performance to a `.wav` — written as it renders.
+
+    Block by block onto disk, because the piece that is being rendered
+    does not fit anywhere else: twenty minutes of stereo held whole as
+    Python floats was half the machine's memory, and the writer only
+    ever needed one block of it.  `wave` patches the frame count into
+    the header on close, which is what makes incremental writing free.
+    The interpreter fallback still renders to a list first — a machine
+    with no `clang` measures that render in days, not gigabytes.
+    """
+    import shutil
     import struct
+    import tempfile
     import wave
 
     from .audio import safe_sample
 
-    samples = _frames(graph, int(seconds * rate), block, control)
+    total = int(seconds * rate)
     channels = graph.channels()
-    data = bytearray()
-    for frame in samples:
-        for x in (frame if channels > 1 else (frame,)):
-            data += struct.pack("<h", int(safe_sample(x) * 32767))
     with wave.open(path, "wb") as f:
         f.setnchannels(channels)
         f.setsampwidth(2)
         f.setframerate(rate)
+        if shutil.which("clang") is not None:
+            from .audiollvm import native_blocks
+
+            written = 0
+            with tempfile.TemporaryDirectory() as d:
+                for got in native_blocks(graph, d, total, block=block,
+                                         control=control):
+                    data = bytearray()
+                    for x in got:
+                        data += struct.pack("<h",
+                                            int(safe_sample(x) * 32767))
+                    f.writeframes(bytes(data))
+                    written += len(got) // channels
+            return written
+        from .audioengine import run
+
+        samples = graph.frames(run(graph, total, block=block,
+                                   control=control))
+        data = bytearray()
+        for frame in samples:
+            for x in (frame if channels > 1 else (frame,)):
+                data += struct.pack("<h", int(safe_sample(x) * 32767))
         f.writeframes(bytes(data))
-    return len(samples)
+        return len(samples)
 
 
 # ── CLI ─────────────────────────────────────────────────────────────────────
@@ -570,9 +651,22 @@ def main(argv=None) -> int:
 
         control = performance.control()
         if args.output:
+            control = _progress(control, performer,
+                                int((seconds or 2.0) * args.rate),
+                                args.rate)
             n = render_wav(graph, args.output, seconds or 2.0,
                            args.rate, args.block, control)
+            getattr(control, "finish", lambda: None)()
             print(f"{args.output}: {n} samples at {args.rate} Hz")
+            if performer is not None and args.transcript is None:
+                # The take's confessions, said even when nobody asked
+                # for the log — a render that dropped notes or stalled
+                # is not the render the score describes, and finding
+                # that out by listening costs twenty minutes.
+                said = _confessed(performer.record.confessions())
+                if said:
+                    print("score" + said + "; --transcript writes the "
+                          "log", file=sys.stderr)
             if args.transcript is not None:
                 if performer is None:
                     print("gestate: only a dynamic performance keeps a "

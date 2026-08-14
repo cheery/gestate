@@ -1127,9 +1127,17 @@ def load(so_path):
     return lib
 
 
-def run_native(graph: Graph, directory, samples: int, block: int | None = None,
-               control=None, opt: str = "-O2") -> list:
-    """Render through the generated code — the stage-4 comparison itself."""
+def native_blocks(graph: Graph, directory, samples: int,
+                  block: int | None = None, control=None, opt: str = "-O2"):
+    """Blocks of interleaved doubles, yielded as the generated code fills
+    them.
+
+    The loop behind `run_native`, split out so a long render can be
+    *consumed as it goes*: a twenty-minute piece held whole as Python
+    floats measured in the gigabytes, and the wav writer only ever
+    needed one block of it.  Each yield is a fresh list of
+    `want * channels` doubles, gone as soon as the caller lets go of it.
+    """
     import ctypes
 
     lib = load(build(graph, directory, opt=opt))
@@ -1155,13 +1163,23 @@ def run_native(graph: Graph, directory, samples: int, block: int | None = None,
     control = control or (lambda _node, t: t)
     sources = graph.control_sources()
     slots = (ctypes.c_int64 * max(1, len(sources)))()
-    out: list = []
-    while len(out) < samples:
-        want = min(size, samples - len(out))
-        pack_control(graph, slots, sources, control, len(out))
+    done = 0
+    while done < samples:
+        want = min(size, samples - done)
+        pack_control(graph, slots, sources, control, done)
         lib.render_block(ctypes.cast(state, ctypes.c_void_p), buf, want,
                          ctypes.cast(slots, ctypes.c_void_p))
-        got = list(buf)[:want * channels]
+        yield buf[:want * channels]
+        done += want
+
+
+def run_native(graph: Graph, directory, samples: int, block: int | None = None,
+               control=None, opt: str = "-O2") -> list:
+    """Render through the generated code — the stage-4 comparison itself."""
+    channels = out_channels(graph)
+    out: list = []
+    for got in native_blocks(graph, directory, samples, block=block,
+                             control=control, opt=opt):
         # Floats for a mono graph and frame tuples for the rest, which is
         # what `audio.render`/`render_frames` and `parse_golden` hand back —
         # so the bit-identical comparison stays `native == want`.
