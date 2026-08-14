@@ -1,0 +1,656 @@
+# SAUNA NIGHT DRIVE - TEN ROOMS AFTER MIDNIGHT
+# Original 20-minute Gestate synthwave / outrun suite.
+# 500 bars at 100 BPM = exactly 1200 seconds = 20:00 of score time.
+#
+# Ten 2-minute chapters:
+#   01 Black Steam        - dark slow-burn outrun
+#   02 Neon Arcade        - brighter major-key drive
+#   03 Blue Window        - wistful lead and warm pads
+#   04 Pixel Engine       - 8-bit bass + triplet arps
+#   05 Sauna Groove       - warm rhythmic bounce
+#   06 Midnight Tunnel    - darker down-synth pressure
+#   07 Starlight Road     - uplifting arp flight
+#   08 Lonely Highway     - melancholy lead section
+#   09 Turbo Return       - aggressive outrun drive
+#   10 Cooling Stones     - emotional finale and real ending
+#
+# Workbench:
+#   python -m gestate.workbench sauna_night_drive_20min.ges
+# Render full 20:00 WAV:
+#   python -m gestate.audioperform sauna_night_drive_20min.ges -o sauna_night_drive_20min.wav --seconds 1200
+#
+# The final bar has no drums. The free-running drum generator is permanently
+# muted from beat 1996 onward so the piece cannot end in an empty drum loop.
+
+Key := Key Int Int
+
+voices sub 2 subVoice : Sig Float
+voices chip 3 chipVoice : Sig Float
+voices down 2 downVoice : Sig Float
+voices pad 5 padVoice : Sig Float
+voices arp 4 arpVoice : Sig Float
+voices lead 3 leadVoice : Sig Float
+
+instance FromMIDI Key where
+    noteOn ch p v = Just (Key p v)
+
+hzOf : Key -> Float
+hzOf q = case q of
+    Key k v -> keyHz k
+
+velOf : Key -> Float
+velOf q = case q of
+    Key k v -> toFloat v / 127.0
+
+# ----------------------------------------------------------------------
+# SYNTH ENGINE
+# ----------------------------------------------------------------------
+
+subVoice : Sig Gate -> Sig Key -> Sig Float
+subVoice g s = lowpassSvf 315.0 0.17
+    (0.76 * sine (!hzOf s)
+   + 0.24 * triangle (0.5 * (!hzOf s)))
+    * adsr (Adsr 0.010 0.16 0.78 0.16) g * !velOf s
+
+# 8-bit / console-style bass and melodic pulse voice.
+chipVoice : Sig Gate -> Sig Key -> Sig Float
+chipVoice g s = drive 1.28
+    (lowpassSvf (1650.0 + 2400.0 * perc 12.0 g) 0.24
+        (0.50 * square (!hzOf s)
+       + 0.34 * pulse 0.25 (0.501 * (!hzOf s))
+       + 0.16 * triangle (0.5 * (!hzOf s))))
+    * adsr (Adsr 0.003 0.08 0.50 0.06) g * !velOf s
+
+downVoice : Sig Gate -> Sig Key -> Sig Float
+downVoice g s = drive 1.42
+    (lowpassLadder (150.0 + 2200.0 * perc 7.5 g) 0.48
+        (0.56 * saw (!hzOf s)
+       + 0.28 * square (0.501 * (!hzOf s))
+       + 0.16 * saw (0.994 * (!hzOf s))))
+    * adsr (Adsr 0.006 0.15 0.43 0.09) g * !velOf s
+
+padVoice : Sig Gate -> Sig Key -> Sig Float
+padVoice g s = lowpassSvf 2380.0 0.16
+    (0.36 * saw (!hzOf s)
+   + 0.28 * saw (1.006 * (!hzOf s))
+   + 0.22 * triangle (0.5 * (!hzOf s))
+   + 0.14 * pulse 0.43 (0.998 * (!hzOf s)))
+    * adsr (Adsr 0.46 0.82 0.70 1.38) g * !velOf s * 0.40
+
+arpVoice : Sig Gate -> Sig Key -> Sig Float
+arpVoice g s = lowpassSvf (2450.0 + 2500.0 * perc 13.0 g) 0.19
+    (0.44 * pulse 0.30 (!hzOf s)
+   + 0.30 * square (!hzOf s)
+   + 0.26 * triangle (0.5 * (!hzOf s)))
+    * perc 18.5 g * !velOf s
+
+leadVoice : Sig Gate -> Sig Key -> Sig Float
+leadVoice g s = drive 1.09
+    (lowpassSvf 3650.0 0.18
+        (0.43 * pulse 0.40 (!hzOf s)
+       + 0.31 * saw (1.003 * (!hzOf s))
+       + 0.26 * triangle (0.5 * (!hzOf s))))
+    * adsr (Adsr 0.024 0.25 0.60 0.72) g * !velOf s
+
+# ----------------------------------------------------------------------
+# HARMONIC PALETTE
+# ----------------------------------------------------------------------
+# 0 F#m, 1 D, 2 A, 3 E, 4 Bm, 5 C# major,
+# 6 C#m, 7 G, 8 Em, 9 C.
+
+root : Int -> Int
+root c = case c of
+    0 -> 66
+    1 -> 62
+    2 -> 69
+    3 -> 64
+    4 -> 59
+    5 -> 61
+    6 -> 61
+    7 -> 67
+    8 -> 64
+    _ -> 60
+
+third : Int -> Int
+third c = case c of
+    0 -> 3
+    4 -> 3
+    6 -> 3
+    8 -> 3
+    _ -> 4
+
+kn : Int -> Int -> Int -> [: Key :]
+kn c off v = '(Key (root c + off) v)
+
+bn : Int -> Int -> Int -> [: Key :]
+bn c off v = '(Key (root c - 36 + off) v)
+
+an : Int -> Int -> Int -> [: Key :]
+an c off v = '(Key (root c + 12 + off) v)
+
+ln : Int -> Int -> [: Key :]
+ln k v = '(Key k v)
+
+padDarkBar : Int -> [: Key :]
+padDarkBar c = (kn c 0 62 || kn c (third c) 54 || kn c 7 58 || kn c 12 48) |* 4
+
+padWarmBar : Int -> [: Key :]
+padWarmBar c = (kn c 0 66 || kn c (third c) 60 || kn c 7 64 || kn c 11 48 || kn c 12 54) |* 4
+
+padBrightBar : Int -> [: Key :]
+padBrightBar c = (kn c 0 70 || kn c (third c) 64 || kn c 7 68 || kn c 12 58 || kn c 16 48) |* 4
+
+# ----------------------------------------------------------------------
+# BASS / DOWN-SYNTH PATTERNS
+# ----------------------------------------------------------------------
+
+subHoldBar : Int -> [: Key :]
+subHoldBar c = bn c 0 108 |* 4
+
+subPulseBar : Int -> [: Key :]
+subPulseBar c = bn c 0 116 ++ bn c 0 88 ++ bn c 12 104 ++ bn c 0 96
+
+subOctaveBar : Int -> [: Key :]
+subOctaveBar c = (bn c 0 118 ++ bn c 12 98 ++ bn c 0 108 ++ bn c 7 92
+                ++ bn c 0 116 ++ bn c 12 94 ++ bn c 7 104 ++ bn c 0 90) |/ 2
+
+subGrooveBar : Int -> [: Key :]
+subGrooveBar c = (bn c 0 120 ++ bn c 0 82 ++ bn c 7 100 ++ bn c 12 94
+                ++ bn c 0 116 ++ bn c (third c) 88 ++ bn c 7 106 ++ bn c 0 92) |/ 2
+
+downFallBar : Int -> [: Key :]
+downFallBar c = (bn c 24 108 ++ bn c 19 92 ++ bn c 17 88 ++ bn c 12 112
+               ++ bn c 7 96 ++ bn c 5 86 ++ bn c 0 114 ++ bn c 7 90) |/ 2
+
+downDriveBar : Int -> [: Key :]
+downDriveBar c = (bn c 12 114 ++ bn c 7 98 ++ bn c 0 118 ++ bn c 12 92
+                ++ bn c 10 108 ++ bn c 7 94 ++ bn c 5 102 ++ bn c 0 116) |/ 2
+
+# ----------------------------------------------------------------------
+# 8-BIT / CHIP BASS PATTERNS
+# ----------------------------------------------------------------------
+
+chipSilentBar : Int -> [: Key :]
+chipSilentBar c = r |* 4
+
+chip8Bar : Int -> [: Key :]
+chip8Bar c = (bn c 12 92 ++ bn c 19 78 ++ bn c 24 96 ++ bn c 19 74
+           ++ bn c 12 88 ++ bn c 15 76 ++ bn c 19 92 ++ bn c 24 80
+           ++ bn c 12 94 ++ bn c 19 76 ++ bn c 24 98 ++ bn c 27 82
+           ++ bn c 24 90 ++ bn c 19 74 ++ bn c 15 86 ++ bn c 12 78) |/ 4
+
+chipBounceBar : Int -> [: Key :]
+chipBounceBar c = (bn c 12 88 ++ bn c 24 92 ++ bn c 19 80 ++ bn c 12 84
+                ++ bn c 15 86 ++ bn c 19 94 ++ bn c 24 88 ++ bn c 19 78) |/ 2
+
+# 12 notes /3 = four beats: true triplet motion.
+chipTripletBar : Int -> [: Key :]
+chipTripletBar c = (bn c 12 90 ++ bn c 19 80 ++ bn c 24 96
+                 ++ bn c 15 84 ++ bn c 19 90 ++ bn c 27 98
+                 ++ bn c 12 88 ++ bn c 24 94 ++ bn c 19 82
+                 ++ bn c 15 86 ++ bn c 19 92 ++ bn c 24 100) |/ 3
+
+# ----------------------------------------------------------------------
+# ARPEGGIOS
+# ----------------------------------------------------------------------
+
+arpSoftBar : Int -> [: Key :]
+arpSoftBar c = (an c 0 48 ++ an c (third c) 44 ++ an c 7 50 ++ an c 12 56
+             ++ an c 7 46 ++ an c (third c) 42 ++ an c 14 52 ++ an c 12 46
+             ++ an c 7 50 ++ an c (third c) 44 ++ an c 0 46 ++ an c 7 52
+             ++ an c 12 58 ++ an c 14 48 ++ an c 7 45 ++ an c (third c) 42) |/ 4
+
+arpDriveBar : Int -> [: Key :]
+arpDriveBar c = (an c 0 68 ++ an c 7 60 ++ an c 12 72 ++ an c (third c) 58
+              ++ an c 14 70 ++ an c 7 62 ++ an c 19 76 ++ an c 12 64
+              ++ an c 0 70 ++ an c 7 62 ++ an c 12 74 ++ an c 14 66
+              ++ an c 19 78 ++ an c 14 64 ++ an c 7 60 ++ an c (third c) 58) |/ 4
+
+arpAcheBar : Int -> [: Key :]
+arpAcheBar c = (an c 12 76 ++ an c 7 66 ++ an c (third c) 62 ++ an c 0 68
+             ++ an c 14 74 ++ an c 12 64 ++ an c 7 70 ++ an c (third c) 60
+             ++ an c 12 78 ++ an c 14 68 ++ an c 7 64 ++ an c 0 70
+             ++ an c (third c) 62 ++ an c 7 68 ++ an c 12 74 ++ an c 19 80) |/ 4
+
+arpTripletBar : Int -> [: Key :]
+arpTripletBar c = (an c 0 68 ++ an c 7 62 ++ an c 12 74
+                ++ an c (third c) 60 ++ an c 14 72 ++ an c 19 78
+                ++ an c 7 64 ++ an c 12 72 ++ an c 24 82
+                ++ an c 14 68 ++ an c 19 76 ++ an c 12 66) |/ 3
+
+# ----------------------------------------------------------------------
+# LEAD MELODIES
+# ----------------------------------------------------------------------
+
+leadMournBar : Int -> [: Key :]
+leadMournBar c = (ln (root c + 24) 90 ++ ln (root c + 19) 82
+               ++ ln (root c + 15) 86 ++ ln (root c + 14) 76
+               ++ ln (root c + 19) 88 ++ ln (root c + 15) 80
+               ++ ln (root c + 12) 84 ++ ln (root c + 19) 80) |/ 2
+
+leadLiftBar : Int -> [: Key :]
+leadLiftBar c = (ln (root c + 12) 82 ++ ln (root c + 19) 88
+              ++ ln (root c + 24) 94 ++ ln (root c + 26) 86
+              ++ ln (root c + 24) 92 ++ ln (root c + 19) 82
+              ++ ln (root c + 16) 86 ++ ln (root c + 19) 84) |/ 2
+
+leadFallingBar : Int -> [: Key :]
+leadFallingBar c = ln (root c + 31) 94
+                ++ ln (root c + 26) 88
+                ++ ln (root c + 24) 86
+                ++ ln (root c + 19) 80
+
+leadArcadeBar : Int -> [: Key :]
+leadArcadeBar c = (ln (root c + 19) 88 ++ ln (root c + 24) 94
+                ++ ln (root c + 31) 98 ++ ln (root c + 28) 88
+                ++ ln (root c + 26) 92 ++ ln (root c + 24) 86
+                ++ ln (root c + 19) 90 ++ ln (root c + 24) 94) |/ 2
+
+leadTurboBar : Int -> [: Key :]
+leadTurboBar c = (ln (root c + 24) 98 ++ ln (root c + 31) 102
+               ++ ln (root c + 26) 92 ++ ln (root c + 24) 96
+               ++ ln (root c + 19) 88 ++ ln (root c + 26) 94
+               ++ ln (root c + 31) 104 ++ ln (root c + 36) 100) |/ 2
+
+leadResolveBar : [: Key :]
+leadResolveBar = ln 78 88 ++ ln 73 84 ++ ln 69 82 ++ ln 66 104
+
+# ----------------------------------------------------------------------
+# TEN 10-BAR CELLS; each chapter cycles its cell inside a 200-beat box.
+# `long 200` clips the lazy cycle after exactly 50 bars.
+# ----------------------------------------------------------------------
+
+h1 : [: Int :]
+h1 = '0 ++ '1 ++ '4 ++ '5 ++ '0 ++ '3 ++ '1 ++ '5 ++ '4 ++ '5
+
+h2 : [: Int :]
+h2 = '2 ++ '3 ++ '0 ++ '1 ++ '2 ++ '3 ++ '1 ++ '5 ++ '2 ++ '3
+
+h3 : [: Int :]
+h3 = '0 ++ '3 ++ '1 ++ '2 ++ '4 ++ '1 ++ '5 ++ '0 ++ '3 ++ '5
+
+h4 : [: Int :]
+h4 = '6 ++ '2 ++ '3 ++ '6 ++ '1 ++ '2 ++ '5 ++ '6 ++ '3 ++ '5
+
+h5 : [: Int :]
+h5 = '2 ++ '3 ++ '7 ++ '1 ++ '2 ++ '4 ++ '3 ++ '1 ++ '5 ++ '2
+
+h6 : [: Int :]
+h6 = '8 ++ '9 ++ '7 ++ '4 ++ '8 ++ '1 ++ '5 ++ '0 ++ '4 ++ '5
+
+h7 : [: Int :]
+h7 = '2 ++ '1 ++ '0 ++ '3 ++ '2 ++ '1 ++ '4 ++ '5 ++ '2 ++ '3
+
+h8 : [: Int :]
+h8 = '4 ++ '1 ++ '0 ++ '3 ++ '4 ++ '1 ++ '5 ++ '0 ++ '3 ++ '5
+
+h9 : [: Int :]
+h9 = '0 ++ '5 ++ '1 ++ '3 ++ '0 ++ '4 ++ '1 ++ '5 ++ '0 ++ '5
+
+h10 : [: Int :]
+h10 = '1 ++ '2 ++ '0 ++ '3 ++ '4 ++ '1 ++ '5 ++ '0 ++ '3 ++ '5
+
+# ----------------------------------------------------------------------
+# ARRANGEMENT - 500 bars exactly
+# ----------------------------------------------------------------------
+
+subPart : [: Key :]
+subPart = long 200 (cycle (h1 >>= subHoldBar))
+       ++ long 200 (cycle (h2 >>= subOctaveBar))
+       ++ long 200 (cycle (h3 >>= subHoldBar))
+       ++ long 200 (cycle (h4 >>= subPulseBar))
+       ++ long 200 (cycle (h5 >>= subGrooveBar))
+       ++ long 200 (cycle (h6 >>= subHoldBar))
+       ++ long 200 (cycle (h7 >>= subOctaveBar))
+       ++ long 200 (cycle (h8 >>= subPulseBar))
+       ++ long 200 (cycle (h9 >>= subGrooveBar))
+       ++ long 196 (cycle (h10 >>= subPulseBar))
+       ++ (bn 0 0 124 |* 4)
+
+chipPart : [: Key :]
+chipPart = (r |* 200)
+        ++ long 200 (cycle (h2 >>= chipBounceBar))
+        ++ (r |* 200)
+        ++ long 200 (cycle (h4 >>= chip8Bar))
+        ++ long 200 (cycle (h5 >>= chipBounceBar))
+        ++ (r |* 200)
+        ++ long 200 (cycle (h7 >>= chipTripletBar))
+        ++ (r |* 200)
+        ++ long 200 (cycle (h9 >>= chip8Bar))
+        ++ long 196 (cycle (h10 >>= chipTripletBar))
+        ++ (ln 54 96 |* 4)
+
+downPart : [: Key :]
+downPart = long 200 (cycle (h1 >>= downFallBar))
+        ++ long 200 (cycle (h2 >>= downDriveBar))
+        ++ long 200 (cycle (h3 >>= downFallBar))
+        ++ long 200 (cycle (h4 >>= downDriveBar))
+        ++ long 200 (cycle (h5 >>= downDriveBar))
+        ++ long 200 (cycle (h6 >>= downFallBar))
+        ++ long 200 (cycle (h7 >>= downDriveBar))
+        ++ long 200 (cycle (h8 >>= downFallBar))
+        ++ long 200 (cycle (h9 >>= downDriveBar))
+        ++ long 196 (cycle (h10 >>= downFallBar))
+        ++ (ln 42 108 |* 4)
+
+padPart : [: Key :]
+padPart = long 200 (cycle (h1 >>= padDarkBar))
+       ++ long 200 (cycle (h2 >>= padBrightBar))
+       ++ long 200 (cycle (h3 >>= padWarmBar))
+       ++ long 200 (cycle (h4 >>= padDarkBar))
+       ++ long 200 (cycle (h5 >>= padWarmBar))
+       ++ long 200 (cycle (h6 >>= padDarkBar))
+       ++ long 200 (cycle (h7 >>= padBrightBar))
+       ++ long 200 (cycle (h8 >>= padWarmBar))
+       ++ long 200 (cycle (h9 >>= padDarkBar))
+       ++ long 196 (cycle (h10 >>= padWarmBar))
+       ++ ((kn 0 0 68 || kn 0 3 58 || kn 0 7 62 || kn 0 12 54) |* 4)
+
+arpPart : [: Key :]
+arpPart = long 200 (cycle (h1 >>= arpSoftBar))
+       ++ long 200 (cycle (h2 >>= arpDriveBar))
+       ++ long 200 (cycle (h3 >>= arpAcheBar))
+       ++ long 200 (cycle (h4 >>= arpTripletBar))
+       ++ long 200 (cycle (h5 >>= arpDriveBar))
+       ++ long 200 (cycle (h6 >>= arpSoftBar))
+       ++ long 200 (cycle (h7 >>= arpTripletBar))
+       ++ long 200 (cycle (h8 >>= arpAcheBar))
+       ++ long 200 (cycle (h9 >>= arpDriveBar))
+       ++ long 196 (cycle (h10 >>= arpAcheBar))
+       ++ (an 0 12 84 ++ an 0 7 76 ++ an 0 3 72 ++ an 0 0 88)
+
+leadPart : [: Key :]
+leadPart = long 200 (cycle (h1 >>= leadMournBar))
+        ++ long 200 (cycle (h2 >>= leadArcadeBar))
+        ++ long 200 (cycle (h3 >>= leadFallingBar))
+        ++ long 200 (cycle (h4 >>= leadArcadeBar))
+        ++ long 200 (cycle (h5 >>= leadLiftBar))
+        ++ long 200 (cycle (h6 >>= leadMournBar))
+        ++ long 200 (cycle (h7 >>= leadLiftBar))
+        ++ long 200 (cycle (h8 >>= leadFallingBar))
+        ++ long 200 (cycle (h9 >>= leadTurboBar))
+        ++ long 196 (cycle (h10 >>= leadMournBar))
+        ++ leadResolveBar
+
+# ----------------------------------------------------------------------
+# DRUM MACHINE - section-aware grooves and recurring brakes
+# ----------------------------------------------------------------------
+
+kickEnv : Sig Float
+kickEnv = map (b => exp (negate 18.0 * wrap b)) beat
+
+kick : Sig Float
+kick = (0.88 * sine (44.0 + 135.0 * kickEnv)
+      + 0.12 * triangle (88.0 + 58.0 * kickEnv)) * kickEnv
+
+snareEnv : Sig Float
+snareEnv = map (b => exp (negate 12.5 * wrap ((b + 1.0) / 2.0))) beat
+
+snare : Sig Float
+snare = (0.67 * highpassSvf 1550.0 0.20 (white 201)
+       + 0.23 * triangle 182.0) * snareEnv
+
+hatEnv : Sig Float
+hatEnv = map (b => exp (negate 62.0 * wrap (2.0 * b))) beat
+
+hats : Sig Float
+hats = highpassSvf 7250.0 0.14 (white 203) * hatEnv * 0.22
+
+hat16Env : Sig Float
+hat16Env = map (b => exp (negate 54.0 * wrap (4.0 * b))) beat
+
+hats16 : Sig Float
+hats16 = highpassSvf 7900.0 0.12 (white 205) * hat16Env * 0.10
+
+openHatEnv : Sig Float
+openHatEnv = map (b => exp (negate 9.0 * wrap ((b + 0.5) / 2.0))) beat
+
+openHat : Sig Float
+openHat = highpassSvf 6500.0 0.15 (white 207) * openHatEnv * 0.11
+
+clapEnv : Sig Float
+clapEnv = map (b => exp (negate 18.0 * wrap ((b + 1.0) / 2.0))) beat
+
+clap : Sig Float
+clap = highpassSvf 2100.0 0.18 (white 211) * clapEnv * 0.17
+
+fillEnv : Sig Float
+fillEnv = map (b => exp (negate 31.0 * wrap (4.0 * b))) beat
+
+fillNoise : Sig Float
+fillNoise = (0.60 * highpassSvf 1250.0 0.20 (white 213)
+           + 0.16 * triangle 154.0) * fillEnv
+
+barOfBeat : Float -> Int
+barOfBeat b = floor (b / 4.0)
+
+localBar : Float -> Int
+localBar b = prim_mod_int (barOfBeat b) 50
+
+sectionOfBar : Float -> Int
+sectionOfBar b = floor (toFloat (barOfBeat b) / 50.0)
+
+step16OfBeat : Float -> Int
+step16OfBeat b = prim_mod_int (floor (4.0 * b)) 16
+
+beatOfBar : Float -> Int
+beatOfBar b = prim_mod_int (floor b) 4
+
+firstHalfStep : Int -> Float
+firstHalfStep s = case s of
+    0 -> 1.0
+    1 -> 1.0
+    2 -> 1.0
+    3 -> 1.0
+    4 -> 1.0
+    5 -> 1.0
+    6 -> 1.0
+    7 -> 1.0
+    _ -> 0.0
+
+lastHalfStep : Int -> Float
+lastHalfStep s = case s of
+    8 -> 1.0
+    9 -> 1.0
+    10 -> 1.0
+    11 -> 1.0
+    12 -> 1.0
+    13 -> 1.0
+    14 -> 1.0
+    15 -> 1.0
+    _ -> 0.0
+
+# Three short brake bars in every 50-bar chapter.
+breakGateAt : Float -> Float
+breakGateAt b = case localBar b of
+    15 -> firstHalfStep (step16OfBeat b)
+    31 -> firstHalfStep (step16OfBeat b)
+    47 -> firstHalfStep (step16OfBeat b)
+    _ -> 1.0
+
+fillGateAt : Float -> Float
+fillGateAt b = case localBar b of
+    15 -> lastHalfStep (step16OfBeat b)
+    31 -> lastHalfStep (step16OfBeat b)
+    47 -> lastHalfStep (step16OfBeat b)
+    _ -> 0.0
+
+# Different kick weight per 2-minute chapter creates different grooves.
+kickSectionAt : Float -> Float
+kickSectionAt b = case sectionOfBar b of
+    0 -> case beatOfBar b of
+        0 -> 1.0
+        2 -> 0.92
+        _ -> 0.46
+    1 -> 1.0
+    2 -> case beatOfBar b of
+        0 -> 1.0
+        2 -> 0.90
+        _ -> 0.18
+    3 -> 1.0
+    4 -> case beatOfBar b of
+        0 -> 1.0
+        1 -> 0.68
+        2 -> 0.96
+        _ -> 0.74
+    5 -> case beatOfBar b of
+        0 -> 1.0
+        2 -> 0.94
+        _ -> 0.28
+    6 -> 1.0
+    7 -> case beatOfBar b of
+        0 -> 1.0
+        2 -> 0.88
+        _ -> 0.22
+    8 -> 1.0
+    _ -> case beatOfBar b of
+        0 -> 1.0
+        1 -> 0.76
+        2 -> 1.0
+        _ -> 0.82
+
+hat16SectionAt : Float -> Float
+hat16SectionAt b = case sectionOfBar b of
+    3 -> 1.0
+    6 -> 0.72
+    8 -> 1.0
+    9 -> 0.54
+    _ -> 0.0
+
+openHatSectionAt : Float -> Float
+openHatSectionAt b = case sectionOfBar b of
+    1 -> 1.0
+    4 -> 0.86
+    6 -> 0.92
+    8 -> 1.0
+    9 -> 0.72
+    _ -> 0.30
+
+# Final bar begins at beat 1996. Mute drums permanently there and beyond.
+drumMasterAt : Float -> Float
+drumMasterAt b = case b < 1996.0 of
+    True -> 1.0
+    False -> 0.0
+
+drumMaster : Sig Float
+drumMaster = map (b => drumMasterAt b) beat
+
+kickDrive : Sig Float
+kickDrive = kick * drumMaster * map (b => kickSectionAt b * breakGateAt b) beat
+
+snareDrive : Sig Float
+snareDrive = snare * drumMaster * map (b => breakGateAt b) beat
+
+hatDrive : Sig Float
+hatDrive = hats * drumMaster * map (b => breakGateAt b) beat
+
+hat16Drive : Sig Float
+hat16Drive = hats16 * drumMaster * map (b => hat16SectionAt b * breakGateAt b) beat
+
+openHatDrive : Sig Float
+openHatDrive = openHat * drumMaster * map (b => openHatSectionAt b * breakGateAt b) beat
+
+clapDrive : Sig Float
+clapDrive = clap * drumMaster * map (b => breakGateAt b) beat
+
+fillRoll : Sig Float
+fillRoll = fillNoise * drumMaster * map (b => fillGateAt b) beat
+
+pump : Sig Float
+pump = map (b => 0.36 + 0.64 * (1.0 - exp (negate 4.8 * wrap b))) beat
+
+# ----------------------------------------------------------------------
+# SCORE
+# ----------------------------------------------------------------------
+
+score : [: Void :]
+score = (subPart >>= voices.sub)
+     || (chipPart >>= voices.chip)
+     || (downPart >>= voices.down)
+     || (padPart >>= voices.pad)
+     || (arpPart >>= voices.arp)
+     || (leadPart >>= voices.lead)
+
+bpm : Int
+bpm = 100
+
+# ----------------------------------------------------------------------
+# MIX - warm sauna-night stereo field
+# ----------------------------------------------------------------------
+
+subPump : Sig Float
+subPump = (0.68 + 0.32 * pump) * sub
+
+chipPump : Sig Float
+chipPump = (0.60 + 0.40 * pump) * chip
+
+downPump : Sig Float
+downPump = (0.54 + 0.46 * pump) * down
+
+padPump : Sig Float
+padPump = pump * pad
+
+arpPump : Sig Float
+arpPump = (0.58 + 0.42 * pump) * arp
+
+leadPump : Sig Float
+leadPump = (0.70 + 0.30 * pump) * lead
+
+arpEcho : Sig Float
+arpEcho = echo 0.300 0.42 arpPump
+
+leadEcho : Sig Float
+leadEcho = echo 0.450 0.42 leadPump
+
+chipEcho : Sig Float
+chipEcho = echo 0.150 0.24 chipPump
+
+downEcho : Sig Float
+downEcho = echo 0.200 0.18 downPump
+
+room : Sig Float
+room = reverb 2.35 0.48
+    (0.28 * snareDrive
+   + 0.14 * clapDrive
+   + 0.17 * fillRoll
+   + 0.24 * padPump
+   + 0.15 * arpPump
+   + 0.20 * leadPump)
+
+centre : Sig Float
+centre = 0.88 * kickDrive
+       + 0.56 * snareDrive
+       + 0.11 * clapDrive
+       + 0.76 * subPump
+       + 0.63 * downPump
+       + 0.30 * chipPump
+       + 0.20 * room
+
+sound : Sig Stereo
+sound = pair
+    (brickwall 0.89
+        (centre
+       + 0.27 * hatDrive
+       + 0.12 * hat16Drive
+       + 0.11 * openHatDrive
+       + 0.17 * fillRoll
+       + 0.24 * chipEcho
+       + 0.24 * downEcho
+       + 0.36 * arpPump
+       + 0.22 * arpEcho
+       + 0.42 * leadPump
+       + 0.24 * leadEcho
+       + 0.52 * chorus 0.24 0.47 padPump))
+    (brickwall 0.89
+        (centre
+       + 0.23 * hatDrive
+       + 0.14 * hat16Drive
+       + 0.15 * openHatDrive
+       + 0.17 * fillRoll
+       + 0.16 * chipEcho
+       + 0.16 * downEcho
+       + 0.34 * arpPump
+       + 0.35 * arpEcho
+       + 0.42 * leadPump
+       + 0.40 * leadEcho
+       + 0.52 * chorus 0.37 0.47 padPump))
