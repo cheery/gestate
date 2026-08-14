@@ -32,7 +32,7 @@ Of 128 entries, **113 are resolved**.  What is left:
 | F67 | missing | Nothing enforces the "no variable starting with `d`" rule |
 | F93 | deviates | A graph node's `clock` is set only on sources, not inherited |
 | F95 | fixed | The fragment admits tuples; the extractor now lays them out |
-| F103 | bug, open | The same file's canvas builds or fails typechecking, run to run |
+| F103 | resolved | The same file's canvas builds or fails typechecking, run to run |
 | F106 | resolved | The drawn piano retriggers a held key (OS autorepeat) |
 | F107 | resolved | Up/Down inside a palette argument runs the command |
 | F108 | resolved | `pianoStep` inserts `50` with no trailing separator |
@@ -2803,7 +2803,7 @@ each failure message naming the regeneration step — so the next drift
 on this seam is a red test with instructions rather than a stale
 fixture holding a green light.
 
-### F103. **[bug, open]** The same file's canvas builds or fails typechecking, run to run
+### F103. **[resolved]** The same file's canvas builds or fails typechecking, run to run
 
 Two launches of the editor on the same `untitled.ges` (kept as
 `test/sessions/F103-untitled.ges`), minutes apart,
@@ -2843,6 +2843,34 @@ the diff is the corrupting structure's confession.  Until then this
 stays open rather than wearing a plausible lock: `_FRONT_END` already
 covers the part a lock was proposed for, and a fix without a
 reproduction is a mask.
+
+**Resolved 2026-08-14, with the reproduction this entry demanded —
+and the entry's own serialization argument was the blind spot.**
+"Two inferences cannot interleave" was true of `compile` and
+`analyse`; it was not true of `typecheck._unifies`, the would-these-
+unify probe behind `fits_in_source` and `holes_in_source`, which
+enters `unifying()` directly on the session thread (`do_fits`, and
+`Workbench._find_holes` after every apply) with no `_FRONT_END`
+anywhere in its path.  Under the old module-global `_CURRENT`, a
+probe's scope exit restored *its* saved `previous` over a build
+thread's active store mid-inference — the build finished its walk
+against a stranger's bindings and failed honestly, wearing a
+typecheck error such as `flip`'s rigid `c`.  Whether a launch built
+or failed depended on whether a hole refresh happened to overlap the
+canvas build: a race between two things one keypress starts.
+
+The 2026-08-12 harness raced builds against a *tokenizer* and found
+nothing because the tokenizer never touches the store; today's
+harness raced two cache-busted canvas `Substrate` builds against two
+threads spinning `_unifies` for 50 s.  With `types._CURRENT` reverted
+to a shared object: **7 failures**, among them `Type mismatch:
+expected Float -> Sig Sub -> Sig Sub` and `dictionary changed size
+during iteration` — the run-to-run flip, on demand.  With the shipped
+`threading.local` (the 2026-08-13 fix, made for that day's suite
+poisoning before anyone knew it was also F103): **0 failures**.  The
+deterministic shape is held by
+`test_types.test_unifying_scopes_do_not_cross_threads`; the assembly
+layer this entry suspected was innocent.
 
 ### F104. **[resolved]** The fragment classifies a specialised method per name, and refuses a program that uses it both ways
 

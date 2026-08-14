@@ -75,10 +75,13 @@ def test_unifying_scopes_do_not_cross_threads():
     restored the other thread's dead `Unifier` — permanently, so every
     later `Subst.empty()` in the process answered with it.  That is the
     2026-08-13 suite failure (this file's self-binding test saw
-    `Unifier(9 bindings)`), and the shape of F103's run-to-run rigid-
-    variable errors: inference runs on daemon threads in the workbench
+    `Unifier(9 bindings)`), and — confirmed 2026-08-14 by reverting the
+    store to shared and hammering canvas builds against `_unifies`
+    probes — the root of F103's run-to-run rigid-variable errors:
+    inference runs on daemon threads in the workbench
     (`audioeditor.apply`, `audiolive`'s watcher) while the session
-    thread typechecks palette queries.
+    thread typechecks palette queries through `typecheck._unifies`,
+    which enters `unifying()` outside `_FRONT_END`.
     """
     import threading
 
