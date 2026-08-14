@@ -556,13 +556,22 @@ class Workbench:
                  latency_ms: int = DEFAULT_LATENCY_MS,
                  seed: int | None = None):
         self.path = Path(path)
+        #: **A file that is not a program opens inert** — `.txt` and
+        #: `.md`, by suffix, which is the one fact known before the file
+        #: is read.  Nothing compiles, nothing asks for the sound card,
+        #: and saving is all applying means; the window wears `[inert]`
+        #: so the quiet reads as a mode rather than as breakage
+        #: (`roadmap.md` §"Small improvements queued from use").
+        self.inert = self.path.suffix.lower() in INERT
         #: **A file that is not there yet, held in memory until it is
         #: saved.**  Naming a file that does not exist is how an editor is
         #: asked to start a new one, and every other editor waits for the
         #: first `Ctrl-S` before anything appears on disk — so this does
         #: too.  Empty when the file exists, and then `source()` reads the
-        #: file as it always did.
-        self.pending = "" if Path(path).exists() else STARTER
+        #: file as it always did.  An inert file starts empty either way:
+        #: notes must not be born wearing a synth.
+        self.pending = ("" if Path(path).exists() or self.inert
+                        else STARTER)
         #: **The last compiler complaint, whole.**  A status bar shows one
         #: line of it because a status bar *is* one line; this is where the
         #: other nine live, so that "expected X, got Y, at this position"
@@ -679,6 +688,12 @@ class Workbench:
         meets, and its complaint went to the status line raw, naming
         line 2649 of a 130-line file.
         """
+        if self.inert:
+            # A text file is opened, not started: nothing compiles,
+            # nothing asks for the sound card, and the quiet is a mode
+            # — the description says `inert` and the window wears it.
+            self.say(f"editing {self.path.name} — inert")
+            return
         try:
             self._start(seconds, text)
         except Exception as error:
@@ -2201,6 +2216,20 @@ class Workbench:
         happened, because an environment where the two are indistinguishable
         is how work gets lost.
         """
+        if self.inert:
+            # **Saving is all applying means for a file that is not a
+            # program.**  No rebuild to schedule and nothing to restart
+            # — and an audition, which deliberately never writes, has
+            # nothing at all to do here.
+            if not save:
+                self.say("nothing to audition — the file is inert")
+                return
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            self.path.write_text(text)
+            self.pending = ""
+            self.saved = True
+            self.say(f"saved {self.path.name}")
+            return
         # **What is being installed, kept for a restart.**  An edit that
         # does not fit has to be started again *as this text* — the file
         # is either behind it (an audition never writes) or exactly it (a
@@ -2462,6 +2491,13 @@ class Workbench:
 #: point is that the program is running while you type.  This is the
 #: smallest program that plays, and it shows the one declaration the
 #: engine looks for.
+#: The suffixes that open **inert** — a text file being edited beside
+#: the music, not a program.  The suffix is the one fact known before
+#: the file is read, so it is what answers "what says a file is plain";
+#: everything else is treated as a program, because guessing from
+#: content would refuse somebody's notes over how they happen to start.
+INERT = {".txt", ".md"}
+
 STARTER = """# A new synth.
 #
 # `sound : Sig Float` is what the engine plays — samples in -1.0 .. 1.0,

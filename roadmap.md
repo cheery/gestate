@@ -351,11 +351,13 @@ urgent, and they are written here so they survive the session.  The
 *bugs* found the same days are `fixme.md` F104–F127, all but three
 resolved the day they were filed.
 
-- **A `.txt` file could take the syntax off and not compile** — the
-  editor as a plain-text editor when the file is not a program.  Needs
-  consideration before building: what says a file is plain, and how a
-  person is told why the knobs and the play button went away, so the
-  quiet mode never reads as breakage.
+- **A `.txt` file could take the syntax off and not compile** — built
+  (2026-08-14) and no longer future tense: `spec/workbench.md` §"Files"
+  has the contract.  The two questions answered themselves — the suffix
+  (`.txt`, `.md`) says a file is plain, being the one fact known before
+  the file is read; and the window wears **[inert]** where the
+  transport would stand, in the warm colour, with `play` saying why —
+  which is how the quiet mode never reads as breakage.
 - **Lagcheck the lantern canvas** (Henri, for tomorrow): point the
   stopwatch at `examples/audio/lantern.ges` with the canvas showing —
   `GESTATE_EDITOR_TIME=1`, and `tools/dialoglag.py` is the driving

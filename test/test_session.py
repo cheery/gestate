@@ -1141,6 +1141,29 @@ def test_only_the_visible_lines_are_painted():
     assert "con" in rows[1], "a constructor was not coloured"
 
 
+def test_an_inert_file_takes_the_syntax_off_and_loses_the_transport():
+    """A `.txt` is prose: colouring it with the program's lexer would
+    be wrong twice over, and a stopped transport for a file that cannot
+    play reads as something waiting to be fixed.  The description says
+    `inert` instead, and the window wears `[inert]` in its place."""
+    view = _Editing("")
+    view.visible = lambda: [(1, "y = Adsr 2")]
+    s = session(view=view)
+    s.bench.inert = True
+    said = furniture(s).splitlines()
+    assert "inert\t1" in said
+    assert not [l for l in said if l.startswith("paint\t")], \
+        "prose was coloured as a program"
+    assert not [l for l in said if l.startswith("play\t")], \
+        "an inert file grew a transport"
+
+    # And `apply` answers with the act that happens — a save, with no
+    # rebuild coming that "applying" would promise — while `play` says
+    # why nothing will, instead of a "stopped" that reads as breakage.
+    assert s.run("apply") == "saving"
+    assert s.run("play") == "nothing plays — the file is inert"
+
+
 def test_the_status_line_says_the_file_and_whether_it_is_written():
     """**An edit you have not saved looked exactly like one you had.**
 

@@ -1163,3 +1163,27 @@ fn the_bar_teaches_ctrl_k_while_the_burger_holds_the_list() {
     assert!(!quiet.items.iter().any(|i| matches!(i,
         Item::Run { s, .. } if s == "Ctrl-K")));
 }
+
+/// A `.txt`/`.md` opens inert: the model sends `inert` instead of a
+/// transport, and the window says `[inert]` where the transport would
+/// stand — warm, because it is a mode being stated, not a fault.
+#[test]
+fn an_inert_file_wears_the_word_where_the_transport_stands() {
+    use gestate_editor::view::AWAY;
+
+    let d = doc("shopping list");
+    let chrome = Furniture::read("status\tediting notes.md — inert\ninert\t1");
+    let v = rows_of(8, 900);
+    let f = frame_with(&d, &v, &LARGE, &chrome);
+    let sy = v.h - v.status_h(&LARGE);
+    let (x, c) = f.items.iter().find_map(|i| match i {
+        Item::Run { x, y, s, c } if s == "[inert]" && *y >= sy =>
+            Some((*x, *c)),
+        _ => None,
+    }).expect("the bar says [inert]");
+    assert_eq!(c, AWAY, "warm, not red: a mode, not a fault");
+    assert!(x + 7 * v.cw(&LARGE) <= v.w, "standing inside the window");
+    // No transport was described, so none is drawn for it.
+    assert!(!f.items.iter().any(|i| matches!(i, Item::Run { s, .. }
+        if s.contains('\u{25b6}') || s.contains('\u{25a0}'))));
+}

@@ -1517,13 +1517,21 @@ class Session:
         marked = getattr(self.view, "mark_saved", None)
         if marked is not None:
             marked()
-        return "applying"
+        # An inert file has no rebuild coming, so "applying" would
+        # promise one; the honest sentence is the act that happened.
+        return ("saving" if getattr(self.bench, "inert", False)
+                else "applying")
 
     def do_audition(self) -> str:
         self.bench.audition(self.view.text())
         return "auditioning"
 
     def do_play(self) -> str:
+        # "stopped" for a file that cannot play would be the quiet
+        # reading as breakage — the exact thing inert mode is worded
+        # against.
+        if getattr(self.bench, "inert", False):
+            return "nothing plays — the file is inert"
         return "playing" if self.bench.toggle() else "stopped"
 
     def do_stop(self) -> str:
@@ -2679,14 +2687,25 @@ def furniture(session: "Session", bench=None) -> str:
     # layout and layout carries no colour — so a line that has not
     # changed cannot have changed colour, and `painted` answers from a
     # cache for every row a keystroke did not touch.
+    # **An inert file takes the syntax off and loses the transport.**
+    # `.txt` and `.md` open as text beside the music (`Workbench.inert`):
+    # colouring prose with a program's lexer would be wrong twice over,
+    # and a stopped transport for a file that cannot play would read as
+    # something waiting to be fixed.  The word crosses the wire so the
+    # window can wear `[inert]` where the transport would stand — an
+    # old window skips the unknown verb and loses the word, not the file.
+    inert = bool(getattr(b, "inert", False))
+    if inert:
+        out.append("inert\t1")
     seeing = getattr(session.view, "visible", None)
-    if seeing is not None:
+    if seeing is not None and not inert:
         for line, text in seeing():
             runs = painted(text)
             if runs:
                 out.append(f"paint\t{line}\t{runs}")
 
-    out.append(f"play\t{1 if _rolling(b) else 0}\t{_beats(b)}")
+    if not inert:
+        out.append(f"play\t{1 if _rolling(b) else 0}\t{_beats(b)}")
     # **What a played note would do, and whether anything would hear
     # it.**  The keyboard is drawn from these two: a piano nobody is
     # listening to is drawn grey, because a control that does nothing

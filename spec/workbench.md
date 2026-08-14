@@ -625,6 +625,22 @@ STARTER synth *named* `blip.wav`.  Only those refuse; an editor that
 would not start `notes.txt` would be refusing somebody's notes over
 another file's format.
 
+**A file that is not a program opens inert.**  `.txt` and `.md` — the
+suffix is the one fact known before the file is read, which is what
+answers "what says a file is plain" (`roadmap.md` §"Small improvements
+queued from use") — compile nothing, ask for no sound card, and take
+the syntax off: prose coloured by a program's lexer would be wrong
+twice over.  Saving is all applying means there, and `apply` answers
+*"saving"*, because *"applying"* would promise a rebuild that is not
+coming.  The description says `inert` and the window wears **[inert]**
+where the transport would stand, in the warm colour — a mode being
+stated, not a fault, the same register as "layered away" — and `play`
+says why nothing will: *"nothing plays — the file is inert"*.  The
+knobs and the play button going away must never read as breakage,
+which is the whole reason the mode has a word on screen.  A `.txt`
+being *started* begins empty rather than wearing the STARTER synth:
+notes are not born a program.
+
 **Unsaved changes warn; they do not gate** (F113, three refinements
 deep).  The barrier below makes discarded edits truly unrecoverable,
 so picking `open` while unsaved says *warning: unsaved changes* at

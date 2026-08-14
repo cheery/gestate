@@ -268,6 +268,45 @@ def test_applying_before_anything_plays_still_saves(tmp_path):
     assert any("nothing is playing" in m for m in bench2.drain())
 
 
+def test_a_text_file_opens_inert(tmp_path):
+    """`.txt` and `.md` are notes beside the music, not programs.
+
+    Inert mode is the roadmap's "a `.txt` file could take the syntax
+    off and not compile": nothing compiles, nothing asks for the sound
+    card, and saving is all applying means.  The quiet is a mode the
+    window wears as `[inert]`, not a failure to report.
+    """
+    path = tmp_path / "notes.md"
+    path.write_text("shopping\n- eggs\n")
+    bench = Workbench(path, rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+    assert bench.inert
+    bench.start()                    # returns at once, builds nothing
+    assert bench.live is None and bench.transport is None
+    assert any("inert" in m for m in bench.drain())
+
+    bench.apply("shopping\n- eggs\n- milk\n")
+    assert path.read_text().endswith("- milk\n"), "the save did not land"
+    assert bench.live is None, "saving must not try to start it"
+    assert any("saved" in m for m in bench.drain())
+
+    # An audition deliberately never writes, and an inert file has no
+    # sound to try it on — a sentence, not a surprise.
+    bench.audition("scratch")
+    assert path.read_text().endswith("- milk\n")
+    assert any("inert" in m for m in bench.drain())
+    bench.stop()
+
+
+def test_a_started_text_file_is_empty_not_a_synth(tmp_path):
+    """Naming a `.txt` that does not exist starts an empty note —
+    notes must not be born wearing the STARTER synth."""
+    bench = Workbench(tmp_path / "notes.txt",
+                      command=_pacer(tmp_path / "stream.raw"))
+    assert bench.inert
+    assert bench.source() == ""
+
+
 def test_a_knob_starts_in_the_middle_of_its_range():
     """Mid-travel, so a control does something in either direction."""
     bench = Workbench("x.ges")

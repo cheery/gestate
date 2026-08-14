@@ -859,6 +859,18 @@ fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
     right = at - 2 * cw;
     }
 
+    // **`[inert]` where the transport would stand** — the mode a
+    // `.txt` or `.md` opens in: nothing compiles and nothing plays,
+    // and the word is what keeps the quiet from reading as breakage.
+    // In the warm colour, because it is a choice being stated, not a
+    // fault — the same register as "layered away".
+    if chrome.inert {
+        let s = String::from("[inert]");
+        let at = right - width_of(&s) as i32 * cw;
+        f.items.push(Item::Run { x: at, y: sy + 2, s, c: AWAY });
+        right = at - 2 * cw;
+    }
+
     // **The key, beside the answers** — the bar says `Ctrl-K` while
     // the burger holds the list open, so the button teaches the key
     // that does the same thing, the way the list writes

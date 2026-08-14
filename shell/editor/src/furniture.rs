@@ -163,6 +163,11 @@ pub struct Furniture {
     /// nothing about time has no position to show, and a readout of
     /// `1.1` invented for it would be a fact the window made up.
     pub has_transport: bool,
+    /// The file is not a program — a `.txt` or `.md` being edited
+    /// beside the music.  Nothing compiles and nothing plays, and the
+    /// window says `[inert]` where the transport would stand, so the
+    /// quiet reads as a mode rather than as breakage.
+    pub inert: bool,
     /// The loop, in beats, when there is one.
     pub looping: Option<(f64, f64)>,
     pub commands: Vec<crate::palette::Entry>,
@@ -254,6 +259,9 @@ impl Furniture {
                     f.playing = p.get(1).copied() == Some("1");
                     f.beat = num(p.get(2));
                     f.has_transport = true;
+                }
+                "inert" => {
+                    f.inert = p.get(1).copied() == Some("1");
                 }
                 "loop" if p.len() >= 3 => {
                     f.looping = Some((num(p.get(1)), num(p.get(2))));
