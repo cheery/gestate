@@ -17,7 +17,11 @@ crate-type = ["rlib", "cdylib"]
 # crates arrive behind a feature when it does, the same split
 # `shell/panel` keeps (`spec/panel.md` §"Windowing: baseview").
 [dependencies]
-gestate-panel = { path = "../panel" }
+# `substrate` on always: the window walks the canvas for itself
+# (`spec/workbench.md` §"The canvas walks over crust"), and the walking
+# half — `Walk` to `Walker` — is pure and belongs in the tests that run
+# with nothing at all.
+gestate-panel = { path = "../panel", features = ["substrate"] }
 # Only under `window`, and `shell/panel` keeps the same split for the
 # same reason: everything above the window is a pure function, so the
 # half worth testing builds and tests with nothing at all.

@@ -186,6 +186,13 @@ struct EditorWindow {
     /// even when the pointer leaves the element, which is what a fader
     /// is.
     touching: Cell<bool>,
+    /// The canvas this window walks for itself, when the model has
+    /// handed one — `spec/workbench.md` §"The canvas walks over
+    /// crust".  Empty, the shapes the model sends draw exactly as
+    /// before the door existed.
+    walker: RefCell<Option<crate::walk::Walker>>,
+    /// The payload version the walker was built from.
+    walking: Cell<u64>,
     /// Cut and copy go here.  In-process; see `keys::Clipboard` for why
     /// the system one is somebody else's to provide.
     clip: RefCell<Memory>,
@@ -442,6 +449,8 @@ impl EditorWindow {
             zoom: Cell::new(crate::font::LADDER_DEFAULT),
             dragging: Cell::new(false),
             touching: Cell::new(false),
+            walker: RefCell::new(None),
+            walking: Cell::new(0),
             clip: RefCell::new(Memory::default()),
             chrome: RefCell::new(Furniture::default()),
             furnished: Cell::new(0),
@@ -1082,6 +1091,22 @@ impl WindowHandler for EditorWindow {
                 }
             }
         }
+        if let Some((at, text)) = self.host.walk() {
+            if at != self.walking.get() {
+                self.walking.set(at);
+                // **A refusal leaves the shapes drawing.**  A payload
+                // this build cannot read or a program the machine will
+                // not load leaves `walker` empty, and the picture the
+                // model sends draws exactly as before the door existed
+                // — the canvas is somebody's artwork, and wrong is
+                // worse than slow.
+                *self.walker.borrow_mut() = crate::walk::Walk::read(&text)
+                    .and_then(|w| crate::walk::Walker::open(&w).ok());
+                if self.on_canvas.get() {
+                    self.dirty.set(true);
+                }
+            }
+        }
         // **The mirror is re-synced every poll, not only after input.**
         // `tell` used to fire only from `after` and the order path, so
         // a window nobody had touched never volunteered its state — the
@@ -1284,7 +1309,29 @@ impl WindowHandler for EditorWindow {
         }
         let chrome = self.chrome.borrow();
         if painting {
-            if self.on_canvas.get() {
+            if self.on_canvas.get()
+                && self.walker.borrow().is_some()
+            {
+                // **The window animates its own canvas** — the walk,
+                // the machine and the frame clock all live here now
+                // (`spec/workbench.md` §"The canvas walks over
+                // crust"), so the picture moves at this window's own
+                // frame rate instead of the gesture loop's, and the
+                // wire carries a payload per rebuild instead of a
+                // display list per frame.  Same painter, same origin
+                // rule as the shapes path below — the walk is handed
+                // the centre and produces window coordinates, so a
+                // press needs no second transform.
+                canvas.clear(view::BG);
+                let (dx, dy) = (view.w / 2, view.h / 2);
+                if let Some(w) = self.walker.borrow_mut().as_mut() {
+                    gestate_panel::paint::paint(&mut canvas,
+                                                w.frame(dx, dy));
+                }
+                view::paint(&mut canvas,
+                            &view::chrome_only(&view, font, &chrome), font,
+                            self.scale());
+            } else if self.on_canvas.get() {
                 // **The same painter the plugin panel uses.**  A second
                 // one would be a second set of rounding decisions, and
                 // the two windows would disagree about somebody's
@@ -1357,7 +1404,12 @@ impl WindowHandler for EditorWindow {
         buffer[..n].copy_from_slice(&canvas.px[..n]);
         let t2 = Instant::now();
         let _ = buffer.present();
-        self.dirty.set(self.stress);
+        // **A walked canvas re-dirties itself**: the animation lives on
+        // this thread now, so every presented frame asks for the next
+        // one, at the window's own rate — the `SHARE=1` argument one
+        // floor up: the canvas is the thing being looked at.
+        self.dirty.set(self.stress
+            || (self.on_canvas.get() && self.walker.borrow().is_some()));
         if timing {
             let t3 = Instant::now();
             let mut c = self.clock.borrow_mut();
@@ -1548,6 +1600,16 @@ impl WindowHandler for EditorWindow {
                 // and a fader that lost your hand at its own edge would
                 // not be a fader.
                 if self.touching.get() {
+                    if let Some(w) = self.walker.borrow_mut().as_mut() {
+                        // The grab is the walker's; a drag with no
+                        // grab writes nothing, same as the model's.
+                        for (name, value) in w.motion(x, y) {
+                            self.host.gesture(
+                                Gesture::Touched(name, value).line());
+                        }
+                        self.dirty.set(true);
+                        return EventStatus::Captured;
+                    }
                     let (dx, dy) = self.canvas_centre();
                     self.host.gesture(
                         Gesture::Touch("drag", x - dx, y - dy).line());
@@ -1680,6 +1742,20 @@ impl WindowHandler for EditorWindow {
                 // window's centre, where the paint put it.
                 if self.on_canvas.get() {
                     self.touching.set(true);
+                    // **The walk is here, so the hit-testing is too.**
+                    // What crosses is what the gesture meant: the
+                    // channel's name and the clamped fraction —
+                    // coordinates never do (`spec/workbench.md` §"The
+                    // canvas walks over crust").  A press that lands
+                    // on nothing crosses as nothing.
+                    if let Some(w) = self.walker.borrow_mut().as_mut() {
+                        for (name, value) in w.press(x, y) {
+                            self.host.gesture(
+                                Gesture::Touched(name, value).line());
+                        }
+                        self.dirty.set(true);
+                        return EventStatus::Captured;
+                    }
                     let (dx, dy) = self.canvas_centre();
                     self.host.gesture(
                         Gesture::Touch("press", x - dx, y - dy).line());
@@ -1705,13 +1781,20 @@ impl WindowHandler for EditorWindow {
                 self.dragging.set(false);
                 *self.turning.borrow_mut() = None;
                 if self.touching.take() {
-                    // The release says where the hand was let go, so a
-                    // program watching for it sees the same point the
-                    // last drag reported.
-                    let (x, y) = self.cursor.get();
-                    let (dx, dy) = self.canvas_centre();
-                    self.host.gesture(
-                        Gesture::Touch("release", x - dx, y - dy).line());
+                    if let Some(w) = self.walker.borrow_mut().as_mut() {
+                        // A release writes nothing — a fader stays
+                        // where it was let go — so nothing crosses.
+                        w.release();
+                    } else {
+                        // The release says where the hand was let go,
+                        // so a program watching for it sees the same
+                        // point the last drag reported.
+                        let (x, y) = self.cursor.get();
+                        let (dx, dy) = self.canvas_centre();
+                        self.host.gesture(
+                            Gesture::Touch("release",
+                                           x - dx, y - dy).line());
+                    }
                 }
                 if let Some(note) = self.playing.take() {
                     self.host.gesture(Gesture::Note(note, false).line());

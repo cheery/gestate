@@ -1,0 +1,723 @@
+entry	main
+tags	9 10 11 12 13 14 15 16 17 18 19 20 1 0
+chan	dragged	0.25
+program
+crust 1
+block
+I PushGlobal substrate
+I Update 0
+I Pop 0
+I Unwind
+block
+I PushGlobal level
+I PushGlobal handle
+I PushGlobal mapSig
+I Mkap
+I Mkap
+I PushInt 40
+I PushGlobal __Num_Sig_Int_fromInteger__
+I Mkap
+I PushInt 40
+I PushGlobal __Num_Sig_Int_fromInteger__
+I Mkap
+I PushInt 40
+I PushGlobal __Num_Sig_Int_fromInteger__
+I Mkap
+I PushGlobal colour
+I Mkap
+I Mkap
+I Mkap
+I PushInt 120
+I PushGlobal __Num_Sig_Int_fromInteger__
+I Mkap
+I PushInt 12
+I PushGlobal __Num_Sig_Int_fromInteger__
+I Mkap
+I PushGlobal rect
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal over
+I Mkap
+I Mkap
+I PushGlobal dragged
+I PushGlobal onTouchY
+I Mkap
+I Mkap
+I PushInt 60
+I PushGlobal __Num_Sig_Int_fromInteger__
+I Mkap
+I PushInt 25
+I PushGlobal __Num_Sig_Int_fromInteger__
+I Mkap
+I PushGlobal moveXY
+I Mkap
+I Mkap
+I Mkap
+I Update 0
+I Pop 0
+I Unwind
+block
+I PushArg 2
+I PushArg 2
+I PushArg 2
+I PushGlobal 49
+I PushGlobal zipSig
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal 48
+I PushGlobal zipSig
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal 46
+I PushGlobal mapSig
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I Alloc 2
+I Push 0
+I Pack 96 1
+I Update 1
+I Push 1
+I PushGlobal 18
+I Mkap
+I Update 0
+I Push 0
+I Slide 2
+I Update 0
+I Pop 0
+I Unwind
+block
+I PushArg 2
+I Eval
+I SigHead
+I PushArg 2
+I Mkap
+I Eval
+I PushArg 2
+I PushGlobal 19
+I Mkap
+I Pack 96 1
+I Eval
+I PushArg 2
+I Eval
+I MkDelayAp
+I Eval
+I PushArg 4
+I Eval
+I Pack 94 1
+I Eval
+I Pack 95 2
+I Eval
+I SigCons
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I Push 2
+I Push 1
+I Push 3
+I PushGlobal 47
+I Mkap
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 1
+I Eval
+I CaseJump 1 6 6
+I Slide 2
+block
+I PushArg 0
+I Eval
+I CaseJump 1 6 7
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I PushArg 4
+I Pack 15 3
+I Update 3
+I Pop 3
+I Unwind
+block
+I Alloc 2
+I Push 0
+I Pack 96 1
+I Update 1
+I Push 1
+I PushGlobal 20
+I Mkap
+I Update 0
+I Push 0
+I Slide 2
+I Update 0
+I Pop 0
+I Unwind
+block
+I PushArg 3
+I Eval
+I SigHead
+I PushArg 3
+I Eval
+I SigHead
+I PushArg 3
+I Mkap
+I Mkap
+I Eval
+I PushArg 4
+I PushArg 4
+I PushArg 4
+I PushGlobal 21
+I Mkap
+I Mkap
+I Mkap
+I Pack 96 1
+I Eval
+I PushArg 2
+I Eval
+I MkDelayAp
+I Eval
+I PushArg 4
+I Eval
+I Pack 94 1
+I Eval
+I PushArg 6
+I Eval
+I Pack 94 1
+I Eval
+I Pack 92 2
+I Eval
+I Pack 95 2
+I Eval
+I SigCons
+I Update 4
+I Pop 4
+I Unwind
+block
+I PushArg 3
+I Push 1
+I PushArg 3
+I PushArg 7
+I Mkap
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 0
+I PushArg 3
+I PushArg 3
+I PushArg 7
+I Mkap
+I Mkap
+I Mkap
+I Slide 1
+block
+I Push 0
+I Push 2
+I PushArg 4
+I PushArg 8
+I Mkap
+I Mkap
+I Mkap
+I Slide 2
+block
+I PushArg 4
+I Eval
+I CaseJump 3 82 12 83 13 84 14
+I Update 5
+I Pop 5
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I Pack 6 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I Pack 6 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 0
+I PushGlobal constSig
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushGlobal events
+I PushArg 1
+I PushGlobal 52
+I Mkap
+I PushGlobal mapSig
+I Mkap
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I Update 2
+I Pop 2
+I Unwind
+block
+I Pack 21 0
+I Eval
+I PushGlobal input
+I Eval
+I Pack 90 1
+I PushGlobal mkSig
+I Mkap
+I Eval
+I SigCons
+I Update 0
+I Pop 0
+I Unwind
+block
+I Alloc 2
+I Push 0
+I Pack 96 1
+I Update 1
+I Push 1
+I PushGlobal 8
+I Mkap
+I Update 0
+I Push 0
+I Slide 2
+I Update 0
+I Pop 0
+I Unwind
+block
+I PushArg 1
+I PushGlobal 9
+I Mkap
+I Pack 96 1
+I Eval
+I PushArg 1
+I Eval
+I MkDelayAp
+I Eval
+I PushArg 2
+I Eval
+I Pack 95 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 2
+I Eval
+I PushArg 1
+I PushArg 3
+I Mkap
+I Eval
+I SigCons
+I Update 3
+I Pop 3
+I Unwind
+block
+I NewChan
+I Update 0
+I Pop 0
+I Unwind
+block
+I PushArg 1
+I PushArg 1
+I PushGlobal 51
+I Mkap
+I PushGlobal __Functor_Sig_map__
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I PushArg 1
+I PushGlobal mapSig
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I Pack 19 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I NewChan
+I Update 0
+I Pop 0
+I Unwind
+block
+I PushArg 1
+I PushArg 1
+I PushGlobal 38
+I PushGlobal zipSig
+I Mkap
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I Pack 12 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 2
+I PushArg 2
+I PushArg 2
+I PushGlobal 32
+I PushGlobal zipSig
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal 31
+I PushGlobal zipSig
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal 29
+I PushGlobal mapSig
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I Push 2
+I Push 1
+I Push 3
+I PushGlobal 30
+I Mkap
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 1
+I Eval
+I CaseJump 1 6 33
+I Slide 2
+block
+I PushArg 0
+I Eval
+I CaseJump 1 6 34
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I PushArg 4
+I Pack 9 3
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I Pack 6 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I Pack 6 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 2
+I PushArg 2
+I PushArg 2
+I PushGlobal 28
+I PushGlobal zipSig
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal 27
+I PushGlobal zipSig
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal 25
+I PushGlobal mapSig
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I Push 2
+I Push 1
+I Push 3
+I PushGlobal 26
+I Mkap
+I Mkap
+I Mkap
+I Slide 2
+block
+I Push 1
+I Eval
+I CaseJump 1 6 40
+I Slide 2
+block
+I PushArg 0
+I Eval
+I CaseJump 1 6 41
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I PushArg 4
+I Pack 8 3
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I Pack 6 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I Pack 6 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 1
+I PushFloat 4633641066610819072
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushFloat 4633641066610819072
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushFloat 0
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushGlobal __Num_Float_-__
+I Mkap
+I Mkap
+I PushGlobal mix#Num_Float
+I Mkap
+I Mkap
+I Mkap
+I PushGlobal floor
+I Mkap
+I PushInt 12
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushInt 8
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushInt 200
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushInt 200
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushInt 200
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Pack 8 3
+I Pack 9 3
+I Pack 15 3
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I PushGlobal prim_floor_float
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I Eval
+I FloorFloat
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 2
+I PushArg 1
+I PushArg 3
+I PushGlobal __Num_Float_-__
+I Mkap
+I Mkap
+I PushGlobal __Num_Float_*__
+I Mkap
+I Mkap
+I PushArg 1
+I PushGlobal __Num_Float_+__
+I Mkap
+I Mkap
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 1
+I PushArg 1
+I PushGlobal prim_add_float
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I Eval
+I PushArg 1
+I Eval
+I AddInt
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I PushArg 1
+I PushGlobal prim_mul_float
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I Eval
+I PushArg 1
+I Eval
+I MulInt
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I PushArg 1
+I PushGlobal prim_sub_float
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I Eval
+I PushArg 1
+I Eval
+I SubInt
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 0
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushFloat 4602678819172646912
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I Eval
+I PushGlobal dragged
+I Eval
+I Pack 90 1
+I PushGlobal mkSig
+I Mkap
+I Eval
+I SigCons
+I Update 0
+I Pop 0
+I Unwind
+global main 0 0
+global substrate 0 1
+global moveXY 3 2
+global mapSig 0 3
+global 18 3 4
+global 19 2 5
+global 46 1 8
+global 47 3 9
+global zipSig 0 10
+global 20 4 11
+global 21 5 15
+global 48 2 16
+global 49 2 17
+global __Num_Sig_Int_fromInteger__ 1 18
+global constSig 1 19
+global 52 2 20
+global events 0 21
+global mkSig 0 22
+global 8 2 23
+global 9 3 24
+global input 0 25
+global onTouchY 2 26
+global __Functor_Sig_map__ 2 27
+global 51 2 28
+global dragged 0 29
+global over 2 30
+global 38 2 31
+global rect 3 32
+global 29 1 35
+global 30 3 36
+global 31 2 37
+global 32 2 38
+global colour 3 39
+global 25 1 42
+global 26 3 43
+global 27 2 44
+global 28 2 45
+global handle 1 46
+global __Num_Int_fromInteger__ 1 47
+global floor 1 48
+global prim_floor_float 1 49
+global mix#Num_Float 3 50
+global __Num_Float_+__ 2 51
+global prim_add_float 2 52
+global __Num_Float_*__ 2 53
+global prim_mul_float 2 54
+global __Num_Float_-__ 2 55
+global prim_sub_float 2 56
+global __Floating_Float_fromFloat__ 1 57
+global level 0 58
+entry main

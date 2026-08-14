@@ -494,6 +494,15 @@ pub enum Gesture {
     /// This is the verb the first revision of `spec/workbench.md`
     /// lost, and with it every fader on every canvas — fixme.md F101.
     Touch(&'static str, i32, i32),
+    /// A canvas element wrote its channel — **what, never where.**
+    ///
+    /// `Touch`'s opposite, for the window that walks the substrate
+    /// itself (`spec/workbench.md` §"The canvas walks over crust"):
+    /// the extent lives here now, so the hit-testing, the grab and the
+    /// clamp happened where the picture is, and what crosses is the
+    /// channel's declared name and the fraction its element's own rule
+    /// produced.
+    Touched(String, f64),
     /// A key was struck while the piano had the keyboard — the
     /// character it makes, the physical key it came from, and whether
     /// it went down.
@@ -549,6 +558,9 @@ impl Gesture {
                 format!("note\t{m}\t{}", if *on { 1 } else { 0 })
             }
             Gesture::Touch(kind, x, y) => format!("touch\t{kind}\t{x}\t{y}"),
+            Gesture::Touched(name, value) => {
+                format!("touched\t{name}\t{value}")
+            }
             Gesture::Struck(c, code, on) => {
                 format!("struck\t{c}\t{code}\t{}", if *on { 1 } else { 0 })
             }
