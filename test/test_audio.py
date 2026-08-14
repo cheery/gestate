@@ -156,7 +156,14 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # of a piece whose point is that it has many, and what the
             # boxes *show* is the example, which no buffer checks.
             # `test_scorebox.py` builds all three of its rolls.
-            "noted.ges"]
+            "noted.ges",
+            # The same box on a whole arrangement rather than four
+            # bars: a minute exactly, four parts entering and leaving,
+            # so what the roll shows is *shape*.  No golden for
+            # `noted.ges`'s reasons — a `draw` in the middle eight, and
+            # a picture is what it is for — and `test_scorebox.py`
+            # holds the form its header claims.
+            "minute.ges"]
 
 #: The ones with committed golden buffers — all of them, now.  `knob.ges`
 #: had none for as long as the interpreter and the engine disagreed about

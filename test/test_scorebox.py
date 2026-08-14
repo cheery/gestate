@@ -181,6 +181,34 @@ def test_the_demo_shows_the_three_things_it_claims():
     assert left == [38, 45, 41, 45] * 4, "four bars of the written hand"
 
 
+def test_a_minute_of_music_keeps_the_form_its_header_claims():
+    """`minute.ges` is the box on a whole arrangement, and its header
+    tells you the shape you are looking at: four blocks, the tune in
+    the middle sixteen bars and the dice in the middle eight.  A
+    header that drifted from its piece would be teaching the wrong
+    thing to the one reader who cannot hear it."""
+    source = (AUDIO / "minute.ges").read_text()
+    line, expr = [ask for ask in asks(source) if ask[1] == "score"][0]
+    roll = build_roll(source, expr, line, RATE, 0)
+
+    bar = 4 * 96                                # four beats of ticks
+    assert max(e[1] for e in roll.events) == 24 * bar, "a minute exactly"
+
+    def bars(bank):
+        mine = [e for e in roll.events if roll.leaves[e[2]].bank == bank]
+        return (min(e[0] for e in mine) // bar + 1,
+                max(e[1] for e in mine) // bar)
+
+    assert bars("bass") == (1, 24), "the floor runs the whole way"
+    assert bars("chord") == (1, 24), "and its chords with it"
+    assert bars("top") == (5, 20), "the tune arrives and leaves"
+    assert bars("spark") == (13, 20), "the dice are the middle eight"
+
+    # And only the sparkle is the dice's — everything else is written.
+    drawn = {leaf.bank for leaf in roll.leaves if leaf.chancy}
+    assert drawn == {"spark"}
+
+
 # ── When it cannot ──────────────────────────────────────────────────────────
 
 

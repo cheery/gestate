@@ -1,0 +1,223 @@
+# minute.ges — a minute of music, seen whole — `spec/scorebox.md`.
+#
+#   python -m gestate.workbench examples/audio/minute.ges
+#   python -m gestate.audioperform examples/audio/minute.ges -o minute.wav --report
+#
+# Twenty-four bars at 96 bpm, which is a minute exactly.  `noted.ges`
+# is the score box on four bars, where you can count the notes; this
+# is the same box on a whole arrangement, where you cannot — and that
+# is the point.  What a roll shows at this length is *shape*: which
+# part is playing when, where the tune climbs, where the room empties.
+#
+# The form is four blocks — 4, 8, 8 and 4 bars — and the box on
+# `score` draws every one of them:
+#
+#   bars  1-4    floor and chords, nobody on top
+#   bars  5-12   the tune comes in, low and stepwise
+#   bars 13-20   it lifts an octave, and the dice start sparkling
+#   bars 21-24   the top leaves; the floor and its chords play out
+#
+# You can read all four off the picture without playing a note of it,
+# which is the whole argument for content boxes: the file is the
+# truth, and now the file can be *looked* at.
+#
+# The three asks below read three different things — the floor alone,
+# the tune alone, and the piece — so you can see one part's repetition
+# against another's arc, and then both locked together.
+
+Hit := Hit Int Int                        # key, velocity
+
+voices bass 2 bassVoice : Sig Float
+
+voices chord 4 chordVoice : Sig Float
+
+voices top 2 topVoice : Sig Float
+
+voices spark 3 sparkVoice : Sig Float
+
+instance FromMIDI Hit where
+    noteOn ch p v = Just (Hit p v)
+
+#: What the score box reads a note with — two lines, and every roll
+#: below knows where its notes sit and how hard they are struck.
+instance Notable Hit where
+    noteKey h = case h of
+        Hit k v -> k
+    noteVel h = case h of
+        Hit k v -> v
+
+# ── The instruments ───────────────────────────────────────────────────────
+#
+# **Each voice scales itself by its bank's size.**  A bank is a sum, so
+# four chord voices holding a chord is four times one voice holding a
+# note; scaling here rather than in the mix is what keeps a dense bar
+# from arriving louder than the limiter allows (`examples/long/sauna.ges`
+# is the cautionary tale — its ceiling ended up doing the mixing).
+
+hzOfHit : Hit -> Float
+hzOfHit h = case h of
+    Hit k v -> keyHz k
+
+levelOfHit : Hit -> Float
+levelOfHit h = case h of
+    Hit k v -> toFloat v / 127.0
+
+bassVoice : Sig Gate -> Sig Hit -> Sig Float
+bassVoice g s = 0.45
+    * lowpassSvf 420.0 0.20
+        (0.72 * sine (!hzOfHit s) + 0.28 * triangle (!hzOfHit s))
+    * adsr (Adsr 0.008 0.22 0.62 0.18) g * !levelOfHit s
+
+chordVoice : Sig Gate -> Sig Hit -> Sig Float
+chordVoice g s = 0.22
+    * lowpassSvf 1850.0 0.15
+        (0.55 * saw (!hzOfHit s) + 0.45 * saw (1.004 * !hzOfHit s))
+    * adsr (Adsr 0.35 0.60 0.72 0.90) g * !levelOfHit s
+
+topVoice : Sig Gate -> Sig Hit -> Sig Float
+topVoice g s = 0.40
+    * lowpassSvf 2900.0 0.17
+        (0.50 * pulse 0.35 (!hzOfHit s) + 0.50 * triangle (!hzOfHit s))
+    * adsr (Adsr 0.020 0.28 0.55 0.40) g * !levelOfHit s
+
+sparkVoice : Sig Gate -> Sig Hit -> Sig Float
+sparkVoice g s = 0.26
+    * (0.60 * sine (!hzOfHit s) + 0.40 * sine (2.01 * !hzOfHit s))
+    * perc 14.0 g * !levelOfHit s
+
+# ── The floor, written out ────────────────────────────────────────────────
+#
+# Four bars of root motion — A minor, F, C, G — one note a beat, and
+# the whole minute is six turns of it.  In the box this reads as six
+# identical blocks, which is exactly what an ostinato is: the thing
+# you stop hearing and start standing on.
+
+low : Int -> [: Hit :]
+low k = '(Hit k 78)
+
+#: One bar of one root, four beats of it.
+holdBar : Int -> [: Hit :]
+holdBar k = low k ++ low k ++ low k ++ low k
+
+bassline : [: Hit :]
+bassline = holdBar 45 ++ holdBar 41 ++ holdBar 48 ++ holdBar 43
+
+bassPart : [: Hit :]
+bassPart = bassline ++ bassline ++ bassline
+         ++ bassline ++ bassline ++ bassline
+
+notes bassline
+
+# ── The chords ────────────────────────────────────────────────────────────
+#
+# One chord a bar, three notes at once with `||`, held the whole bar.
+
+soft : Int -> [: Hit :]
+soft k = '(Hit k 52)
+
+#: Three notes on the same downbeat, stretched over the bar.
+chordBar : Int -> Int -> Int -> [: Hit :]
+chordBar a b c = (soft a || soft b || soft c) |* 4
+
+chordLoop : [: Hit :]
+chordLoop = chordBar 57 60 64                # A minor
+         ++ chordBar 53 57 60                # F
+         ++ chordBar 55 60 64                # C over G
+         ++ chordBar 55 59 62                # G
+
+chordPart : [: Hit :]
+chordPart = chordLoop ++ chordLoop ++ chordLoop
+         ++ chordLoop ++ chordLoop ++ chordLoop
+
+# ── The tune ──────────────────────────────────────────────────────────────
+#
+# Silent for four bars, eight bars low, eight bars an octave up, then
+# gone for the last four.  Those four blocks are the piece's whole
+# form, and in the box they are four blocks you can point at.
+
+sings : Int -> [: Hit :]
+sings k = '(Hit k 96)
+
+#: **Eight bars, and the arithmetic is checkable by eye**: fourteen
+#: notes of two beats and one of four is thirty-two, which is what
+#: eight bars of four are.  A phrase that did not add up would slide
+#: the whole form out from under the parts beside it.
+phrase : Int -> [: Hit :]
+phrase n = (sings (n + 0) |* 2) ++ (sings (n + 3) |* 2)
+        ++ (sings (n + 5) |* 2) ++ (sings (n + 3) |* 2)
+        ++ (sings (n + 7) |* 2) ++ (sings (n + 5) |* 2)
+        ++ (sings (n + 8) |* 2) ++ (sings (n + 7) |* 2)
+        ++ (sings (n + 7) |* 2) ++ (sings (n + 5) |* 2)
+        ++ (sings (n + 3) |* 2) ++ (sings (n + 5) |* 2)
+        ++ (sings (n + 3) |* 2) ++ (sings (n + 0) |* 2)
+        ++ (sings (n + 0) |* 4)
+
+tune : [: Hit :]
+tune = (r |* 16) ++ phrase 64 ++ phrase 76 ++ (r |* 16)
+
+notes tune
+
+# ── The sparkle, drawn ────────────────────────────────────────────────────
+#
+# Eight bars in the middle where the dice choose the figure, one roll
+# a bar.  These are the only notes in the piece the file does not
+# spell out, and the box draws them dimmer for it — take ink among
+# span ink, in the one stretch where it belongs.
+
+glint : Int -> [: Hit :]
+glint k = '(Hit k 70)
+
+#: Four figures, each exactly two beats wide.
+figureOf : Int -> [: Hit :]
+figureOf i = case i of
+    0 -> glint 84 ++ glint 88
+    1 -> glint 91 ++ glint 84
+    2 -> (glint 88 |* 2)
+    _ -> glint 84 ++ glint 91
+
+#: One bar: a seed, one bounded pick, and the figure it names held to
+#: the bar.  `below` is `draw`'s usual companion.
+sparkBar : [: Hit :]
+sparkBar = do
+    s <- draw
+    long 4 (figureOf (below 4 s) |* 2)
+
+sparkPart : [: Hit :]
+sparkPart = (r |* 48)
+         ++ sparkBar ++ sparkBar ++ sparkBar ++ sparkBar
+         ++ sparkBar ++ sparkBar ++ sparkBar ++ sparkBar
+         ++ (r |* 16)
+
+# ── The minute ────────────────────────────────────────────────────────────
+#
+# Four parts on four banks, and the box below draws them in four
+# colours: the floor running the whole way, the chords over it, the
+# tune arriving and leaving, the sparkle in the middle eight.
+
+score : [: Void :]
+score = (bassPart >>= voices.bass)
+     || (chordPart >>= voices.chord)
+     || (tune >>= voices.top)
+     || (sparkPart >>= voices.spark)
+
+notes score
+
+bpm : Int
+bpm = 96
+
+# ── The mix ───────────────────────────────────────────────────────────────
+#
+# **Headroom on purpose.**  Every voice is scaled by its bank above, so
+# what arrives here is already close to unity; `brickwall` is a safety
+# net rather than a mixing desk, and `--report` says so — peak 0.53
+# against a ceiling of 0.95, which is never reached.
+#
+# And the report reads the form back to you, which is the other half
+# of seeing a piece without playing it: bars 1-4 sit at RMS 0.078-0.095
+# with nobody on top, bars 5-20 lift to 0.11 when the tune is in, and
+# 21-24 fall back to 0.078.  The picture and the numbers say the same
+# thing about the same minute.
+
+sound : Sig Float
+sound = brickwall 0.95
+    (0.80 * bass + 0.55 * chord + 0.70 * top + 0.50 * spark)
