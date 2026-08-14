@@ -384,6 +384,36 @@ def _begin(bench, session, after=None):
     return quitting, starter
 
 
+def _carry(session, bench):
+    """The next session: a new instrument under the same window — and
+    the same recording.
+
+    **The window outlives the instrument; the recording does too.**  A
+    switch used to build a bare `Session`, so the log restarted with
+    the instrument and the story that *led to* the switch — exactly
+    the part a reproduction loses — was the part it forgot: Henri's
+    `its-good-now` transcript answered "nothing has happened yet" one
+    step after a switch.  The carried log keeps its `path` and its
+    base text, so the replay starts where the recording did and plays
+    the switch as it was played.
+
+    `Log.was` is deliberately left holding the old file's lines: the
+    next command's `typed()` then records the swap as one ordinary
+    edit step, which is what makes the text right when a replayed
+    command runs on the far side of the switch.  The `#!` note marks
+    the seam for the reader, since an edit step alone reads as typing.
+
+    A switch before anything was recorded carries nothing — the log
+    begins on first use, and then it begins on the new file.
+    """
+    fresh = Session(bench=bench)
+    fresh.view = session.view
+    fresh.log = session.log
+    if fresh.log is not None:
+        fresh.log.note(f"opened {Path(bench.path).name}")
+    return fresh
+
+
 def _retire(bench, starter, quitting):
     """The old instrument's teardown, off the gesture loop — F109.
 
@@ -562,9 +592,7 @@ def run(path, rate: int = 44100, block: int = 512,
                     editor.load(text)
                 else:
                     editor.load_new(text)
-                view = session.view
-                session = Session(bench=bench)
-                session.view = view
+                session = _carry(session, bench)
                 session.said.append(f"opened {Path(wanted).name}")
                 quitting, starter = _begin(bench, session, after=retiring)
             stirred = False

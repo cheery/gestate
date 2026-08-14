@@ -129,6 +129,22 @@ def answer(rows) -> str:
     return f"{n} row{'s' if n != 1 else ''} {digest(rows)}"
 
 
+def fingerprint(lines) -> str:
+    """The text a session began on, in sixteen characters.
+
+    The same budget argument as `digest`, one floor up: the header
+    wants to say *which* text the recording started from, and carrying
+    the file would make every transcript that session's file over
+    again.  Over the lines joined, so the trailing-newline question —
+    which editors answer differently — is no part of the identity.
+    """
+    import hashlib
+
+    joined = "\n".join(lines)
+    return hashlib.blake2b(joined.encode("utf-8", "replace"),
+                           digest_size=8).hexdigest()
+
+
 def world_dependent(step) -> bool:
     """Is this a question whose answer the world can move?
 
@@ -181,6 +197,15 @@ class Log:
 
     #: The text as of the last step recorded, so typing can be a diff.
     was: tuple = ()
+
+    #: The text the recording began on — `was` as first seeded — and
+    #: whether it was on disk then.  The header carries the
+    #: fingerprint always, and the text itself when the file was
+    #: unwritten: a session on an unsaved `untitled.ges` used to
+    #: replay against nothing, because the recording named a file that
+    #: never existed.
+    base: tuple | None = None
+    unwritten: bool = False
 
     def typed(self, lines) -> None:
         """Record the typing since the last step, if there was any.
@@ -247,6 +272,22 @@ class Log:
             # is the same starting state, and any other file is a
             # different session wearing these commands.
             head.append(f"#: editing {self.path}")
+            if self.base is not None:
+                # Which *text* that was, not only which name: the file
+                # can move on under the name, and a replay against the
+                # moved file is a different session wearing these
+                # commands — the fingerprint is what lets the replay
+                # say so instead of drifting mysteriously.
+                head.append(f"#: began {fingerprint(self.base)}")
+            head.append("#")
+        if self.base is not None and self.unwritten:
+            # The file was never on disk, so the name above points at
+            # nothing — the text itself rides here and the replay
+            # starts from it.  Only then: an ordinary session's file is
+            # already the better copy of this.
+            head.append("# The file was not written when this began; its")
+            head.append("# text rides below and the replay starts from it.")
+            head.extend(f"#. {line}" for line in self.base)
             head.append("#")
         head.append("# Each line is a command and what it answered.  The")
         head.append("# answers are the diff: a replay that says something")
@@ -441,6 +482,35 @@ def editing(text: str) -> str:
     return ""
 
 
+def began(text: str) -> str:
+    """The fingerprint of the text it began on, or `""` for a
+    transcript from before the header carried one."""
+    for line in text.splitlines():
+        body = line.strip()
+        if body.startswith("#: began "):
+            return body[len("#: began "):].strip()
+        if body and not body.startswith("#"):
+            break
+    return ""
+
+
+def carried(text: str) -> tuple | None:
+    """The base text a transcript carries, or `None` when it carries
+    none — the file was on disk, and the disk is the better copy.
+
+    `#.` rather than `#. ` on the empty line, because editors strip
+    trailing whitespace and a base text must survive being opened.
+    """
+    lines, seen = [], False
+    for line in text.splitlines():
+        if line.startswith("#."):
+            seen = True
+            lines.append(line[3:] if line.startswith("#. ") else "")
+        elif line.strip() and not line.strip().startswith("#"):
+            break
+    return tuple(lines) if seen else None
+
+
 def replay(session, steps, typing=None) -> list:
     """Run them, and give back what changed.
 
@@ -584,7 +654,8 @@ def main(argv=None) -> int:
         print(f"{args.file}: says nothing about what it was recorded "
               f"against; give it with --against", file=sys.stderr)
         return 1
-    if not Path(against).exists():
+    base = carried(text)
+    if not Path(against).exists() and base is None:
         print(f"{against}: not here, so there is nothing to replay "
               f"against (--against names another copy)", file=sys.stderr)
         return 1
@@ -592,9 +663,28 @@ def main(argv=None) -> int:
     # No `start()`: the commands answer from the model, and a replay
     # that opened a sound card would be a replay you cannot run twice.
     bench = Workbench(Path(against), rate=args.rate, block=256)
-    # The file as it was opened, so the first `edit` types onto the same
-    # thing the recording did.
-    typing = Typing(Path(against).read_text(), under=Detached())
+    # The text as it was when the recording began, so the first `edit`
+    # types onto the same thing the recording did.  The carried base
+    # wins when there is one — the file it names was never written, or
+    # has been written *since*, and either way the recording began on
+    # the carried text and its edits diff from exactly that.
+    if base is not None:
+        start = "\n".join(base) + ("\n" if base else "")
+        if not Path(against).exists():
+            print(f"{against} is not here; replaying from the text "
+                  f"the transcript carried")
+    else:
+        start = Path(against).read_text()
+        opened = began(text)
+        if opened and fingerprint(tuple(start.splitlines())) != opened:
+            # A warning and not a refusal: the person holding an old
+            # copy may know exactly what moved — but a drift report
+            # against a moved file is noise wearing a report, and it
+            # must say which it is.
+            print(f"note: {against} is not the text the recording "
+                  f"began on — the file has moved; --against can name "
+                  f"a copy as it was")
+    typing = Typing(start, under=Detached())
     drifted = replay(Session(bench=bench, view=typing), steps, typing)
     print(f"{len(steps)} steps replayed against {against}")
 

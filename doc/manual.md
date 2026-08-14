@@ -1098,6 +1098,8 @@ editor's history were pinned by one.  Two habits make them better:
 
 - **Write the transcript from the session where it happened**, before
   quitting: the recording lives in memory and dies with the window.
+  It survives `open` — switching files continues the same recording,
+  seam marked — so a story that leads *through* a switch is kept whole.
 - **Name the file after the problem** (`transcript midi-silent`), because
   a directory of `untitled-session-2.ges` is a drawer of unlabeled keys.
 

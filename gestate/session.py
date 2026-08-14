@@ -1427,6 +1427,13 @@ class Session:
             # from.  A transcript that opened by "adding" the whole file
             # would bury the one line that mattered.
             self.log.was = tuple(self._lines())
+            # And kept as the text the recording *began* on: the header
+            # carries its fingerprint always, and the text itself when
+            # the file was not on disk — a session on an unsaved
+            # `untitled.ges` used to replay against nothing.
+            self.log.base = self.log.was
+            self.log.unwritten = not (self.log.path
+                                      and Path(self.log.path).exists())
         return self.log
 
     def note(self, message: str) -> None:

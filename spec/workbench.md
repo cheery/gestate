@@ -729,10 +729,29 @@ F115 was pinned ("restarting the player" two lines above "would not
 switch") and how F103's next occurrence is armed.  One afternoon of
 2026-08-13 caught three defects in two transcripts, one of them in a
 transcript recorded to verify a different fix; the manual (§11) now
-teaches users to reach for it first.  What it cannot yet survive is a
-file that never existed — a session on an unsaved `untitled.ges`
-replays against nothing — and recording the base text in the header
-is queued in the roadmap.
+teaches users to reach for it first.
+
+Two survivals it did not have at first, both paid for by a transcript
+that failed to hold its story:
+
+**The recording survives a file switch.**  A switch used to build a
+bare `Session`, so the log restarted with the instrument — Henri's
+`its-good-now` transcript answered "nothing has happened yet" one
+step after a switch, and the story that *led to* the switch is
+exactly the part a reproduction loses.  `_carry` hands the log to the
+next session; a `#!` note marks the seam, and the swap itself rides
+as one ordinary edit step (`Log.was` is deliberately left holding the
+old file's lines), so a replayed command on the far side of the
+switch runs against the right text.  The header keeps naming the file
+the recording *began* on, which is what the replay opens.
+
+**The header says which text it began on.**  `#: began <fingerprint>`
+always — the file can move on under its name, and the replay says
+*"the file has moved"* instead of drifting mysteriously (a warning,
+not a refusal: `--against` still names a copy as it was).  And when
+the file was never on disk — the unsaved `untitled.ges` that used to
+replay against nothing — the text itself rides in the header as `#.`
+rows, and the replay starts from it.
 
 ---
 

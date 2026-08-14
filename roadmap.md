@@ -365,18 +365,18 @@ resolved the day they were filed.
   at ~9.4 ms/frame headless, ~15 Hz in-editor; the measurement says
   whether that still holds and what a hand on a knob feels like
   while it draws.
-- **The recording survives a file switch.**  Opening another file
-  builds a new `Session`, and the log restarts with it — Henri's
-  `its-good-now` transcript answered "nothing has happened yet" one
-  step after a switch, so the story that *led to* the switch is
-  exactly the part a reproduction loses.  The window outlives the
-  instrument; the recording should too.
-- **A transcript records the text it started from.**  A session on an
-  unsaved `untitled.ges` replays against nothing — the recording names
-  a file that never existed, and F115's transcript had to be replayed
-  against a reconstructed starter.  The base text (or its hash, with
-  the text when the file is unwritten) belongs in the transcript
-  header; `--against` stays for the case where the file moved.
+- **The recording survives a file switch** — built (2026-08-14):
+  `workbench._carry` hands the log to the next session, a `#!` note
+  marks the seam, and the swap rides as one edit step so a replayed
+  command on the far side runs against the right text.
+  `spec/workbench.md` §"The transcript is the recording" has the
+  contract.
+- **A transcript records the text it started from** — built
+  (2026-08-14), same section: `#: began <fingerprint>` always, so a
+  replay against a file that moved on says so instead of drifting
+  mysteriously; and the text itself rides as `#.` rows when the file
+  was never on disk, so the unsaved `untitled.ges` session replays
+  from what it began on.  `--against` stays for the moved-file case.
 
 ### A probe on a signal — Henri's, and the one to try in the editor
 

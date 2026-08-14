@@ -423,3 +423,104 @@ def test_a_replayed_canvas_answers_for_the_file_not_the_window(tmp_path):
     s = Session(bench=bench, view=typing)
     assert s.run("canvas") == \
         "opening the canvas — it will appear when it builds"
+
+
+def test_the_header_says_which_text_it_began_on(tmp_path):
+    """The name alone is not the starting state: the file can move on
+    under it, and a replay against the moved file is a different
+    session wearing these commands.  The fingerprint is what lets the
+    replay say so instead of drifting mysteriously."""
+    from gestate.sessionlog import began, carried, fingerprint
+
+    path = tmp_path / "demo.ges"
+    path.write_text("a = 1\n")
+    view = _typing(tmp_path, "a = 1\n")
+    s = Session(bench=Bench(path), view=view)
+    s.run("seek", 4)
+
+    text = s.log.text()
+    assert began(text) == fingerprint(("a = 1",))
+    # The file was on disk, so the disk is the better copy: no text
+    # rides in the header.
+    assert carried(text) is None
+
+
+def test_an_unwritten_file_rides_in_its_own_header(tmp_path):
+    """A session on an unsaved `untitled.ges` used to replay against
+    nothing — the recording named a file that never existed.  The text
+    rides in the header now, and the replay starts from it."""
+    from gestate.sessionlog import carried, main
+
+    path = tmp_path / "never.ges"                # deliberately not written
+    view = _typing(tmp_path, "a = 1\n")
+    s = Session(bench=Bench(path), view=view)
+    s.run("seek", 4)
+    view.retype(("a = 1", "b = 2"))
+    s.run("seek", 8)
+
+    text = s.log.text()
+    assert carried(text) == ("a = 1",)
+
+    written = tmp_path / "took.ges"
+    written.write_text(text)
+    # The whole point: a replay with no --against and no file on disk.
+    assert main([str(written)]) == 0
+
+
+def test_a_file_that_moved_on_is_said_so(tmp_path, capsys):
+    """A warning and not a refusal — but a drift report against a moved
+    file is noise wearing a report, and it must say which it is."""
+    from gestate.sessionlog import main
+
+    path = tmp_path / "demo.ges"
+    path.write_text("a = 1\n")
+    view = _typing(tmp_path, "a = 1\n")
+    s = Session(bench=Bench(path), view=view)
+    s.run("seek", 4)
+    written = tmp_path / "took.ges"
+    written.write_text(s.log.text())
+
+    path.write_text("a = 2\n")                   # the file moves on
+    assert main([str(written)]) == 0
+    assert "the file has moved" in capsys.readouterr().out
+
+
+def test_the_recording_survives_a_file_switch(tmp_path):
+    """**The window outlives the instrument; the recording does too.**
+    Henri's `its-good-now` transcript answered "nothing has happened
+    yet" one step after a switch, because the new `Session` restarted
+    the log — and the story that led to the switch is exactly the part
+    a reproduction loses."""
+    from gestate.sessionlog import _apply
+    from gestate.workbench import _carry
+
+    view = _typing(tmp_path, "a = 1\n")
+    s = Session(bench=Bench(tmp_path / "one.ges"), view=view)
+    s.run("seek", 4)
+
+    switched = _carry(s, Bench(tmp_path / "two.ges"))
+    view.retype(("b = 2",))                      # what the loop's load did
+    switched.run("seek", 8)
+
+    text = switched.log.text()
+    assert "seek 4" in text and "seek 8" in text, "the story broke"
+    assert "#! opened two.ges" in text, "the seam is unmarked"
+    assert editing(text).endswith("one.ges"), \
+        "the header names where the recording began"
+    # The swap rides as one ordinary edit step, so a replayed command
+    # on the far side of the switch runs against the right text.
+    edits = [x for x in read(text) if x.verb == "edit"]
+    assert edits and _apply(("a = 1",), edits[-1].args) == ("b = 2",)
+
+
+def test_a_switch_before_any_recording_carries_nothing(tmp_path):
+    """The log begins on first use, and then it begins on the new file
+    — a switch is not itself a story."""
+    from gestate.workbench import _carry
+
+    s = Session(bench=Bench(tmp_path / "one.ges"),
+                view=_typing(tmp_path, ""))
+    switched = _carry(s, Bench(tmp_path / "two.ges"))
+    assert switched.log is None
+    switched.run("seek", 4)
+    assert switched.log.path.endswith("two.ges")
