@@ -2331,3 +2331,18 @@ def test_a_spectro_wears_its_flavor_on_the_scope_row():
     rows = [l for l in furniture(s).splitlines()
             if l.startswith("scope\t")]
     assert rows == ["scope\tspec\t1\tspectro", "scope\tpost\t2\tscope"]
+
+
+def test_line_takes_the_number_the_margin_speaks():
+    """Henri's ask: navigation from the panel by number — `goto` takes
+    a name, and the margin, the complaints and `goto`'s own answer all
+    speak line numbers.  `line 3` goes there; refusals come back in
+    the caller's terms."""
+    view = _Editing("a = 1\nb = 2\nc = 3\n")
+    went = []
+    view.goto = lambda n: went.append(n) or (n <= 3)
+    s = session(view=view)
+    assert s.run("line", 3) == "line 3"
+    assert went == [3]
+    assert s.run("line", 9) == "line 9 is past the end"
+    assert s.run("line", 0) == "lines count from one"

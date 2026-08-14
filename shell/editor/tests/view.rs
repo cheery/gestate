@@ -1221,3 +1221,30 @@ fn scopes_sharing_a_line_stack_their_rows() {
     assert_eq!(v.boxes,
                vec![(2, (SCOPE_ROWS * 2).min(BOX_MOST))]);
 }
+
+/// A box on the last visible line hangs past the fold in the layout —
+/// the caret's promise — and paints nothing there: past the fold is
+/// the bar's ground (F132).
+#[test]
+fn a_box_at_the_fold_stops_at_the_fold() {
+    use gestate_editor::view::CHROME;
+
+    let d = doc("a\nb\nc\nd\ne\nf\ng\nh");
+    let chrome = Furniture::read(
+        "trouble\t6\tthis complaint is long enough that its wrapped \
+         rows would spill well past the bottom of a six-row window \
+         if nothing clipped the box it was granted");
+    let mut v = rows_of(6, 400);
+    v.grant(&chrome, &LARGE);
+    let tall = v.h - v.status_h(&LARGE);
+    let f = frame_with(&d, &v, &LARGE, &chrome);
+    for item in &f.items {
+        if let Item::Rect { y, h, c, .. } = item {
+            if *c == CHROME {
+                assert!(*y >= tall || y + h <= tall,
+                        "a box painted across the fold: y={y} h={h} \
+                         tall={tall}");
+            }
+        }
+    }
+}

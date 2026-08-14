@@ -1032,23 +1032,34 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
         // message longer than the window is cut at the edge, whole
         // text one command away, exactly as the status bar ruled.
         if slot.box_h > 0 {
-            f.items.push(Item::Rect { x: 0, y: y + ch, w: view.w,
-                                      h: slot.box_h, c: CHROME });
-            // Wrapped to the same columns `grant` counted with, and
-            // drawn from the window's own left edge rather than the
-            // text's — a complaint is not code, and the full width is
-            // what lets its rows and its granted height be one list.
-            let cols = view.bar_cols(font);
-            let granted = (slot.box_h / ch) as usize;
-            let found = chrome.troubles_at(line_no);
-            let rows = found.iter()
-                .flat_map(|t| wrap(&t.message, cols))
-                .take(granted);
-            for (i, said) in rows.enumerate() {
-                if !said.is_empty() {
-                    f.items.push(Item::Run { x: 4,
-                                             y: y + ch * (1 + i as i32),
-                                             s: said, c: ANGRY });
+            // **Clipped to the text area** (F132).  A band near the
+            // foot may hang past the fold by design — the caret's
+            // promise is its own line, and `top_showing` says so —
+            // but the pixels past `text_h` are the bar's ground, and
+            // painting the hang wrote complaints over the status.
+            // The layout keeps the hang; the paint stops at the fold.
+            let tall = view.h - view.status_h(font) - view.piano;
+            let room = slot.box_h.min((tall - (y + ch)).max(0));
+            if room > 0 {
+                f.items.push(Item::Rect { x: 0, y: y + ch, w: view.w,
+                                          h: room, c: CHROME });
+                // Wrapped to the same columns `grant` counted with,
+                // and drawn from the window's own left edge rather
+                // than the text's — a complaint is not code, and the
+                // full width is what lets its rows and its granted
+                // height be one list.
+                let cols = view.bar_cols(font);
+                let granted = (room / ch) as usize;
+                let found = chrome.troubles_at(line_no);
+                let rows = found.iter()
+                    .flat_map(|t| wrap(&t.message, cols))
+                    .take(granted);
+                for (i, said) in rows.enumerate() {
+                    if !said.is_empty() {
+                        f.items.push(Item::Run { x: 4,
+                                                 y: y + ch * (1 + i as i32),
+                                                 s: said, c: ANGRY });
+                    }
                 }
             }
         }

@@ -290,6 +290,11 @@ steal path = Stated
 goto : Named a -> Command
 goto n = Stated
 
+#: Jump to a line by its number — the number the margin, a complaint
+#: and `goto`'s own answer already speak.
+line : Int -> Command
+line n = Stated
+
 #: Say what a name is and what type it has — the compiler answering,
 #: rather than a documentation lookup.  Given nothing, it asks about
 #: whatever the cursor is on.

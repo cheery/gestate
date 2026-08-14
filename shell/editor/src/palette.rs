@@ -998,21 +998,47 @@ impl Palette {
             }
         }
 
-        // The page, under the panel and in its own — as many lines as
-        // it has, which is why it is not the summary's single row.
+        // The page, beside the panel and in its own — as many lines
+        // as it has room for, which is why it is not the summary's
+        // single row.
         if !self.page.is_empty() {
             let room = (((box_w - 8) / cw.max(1)).max(4)) as usize;
-            let tall = ch * self.page.len() as i32 + 8;
-            let py = y + box_h + 6;
+            // **The page goes where the room is** (F133).  It always
+            // hung below the panel, and the equator sends the panel
+            // low when the caret is high — so `what scope` drew its
+            // answer past the bottom of the window, pixels nobody
+            // could see.  Below when below holds it, above when the
+            // panel sits low, and when neither side holds the whole
+            // page, as many lines as fit with the last row counting
+            // the rest — the full page stays one `doc/ref/` away.
+            let want = self.page.len() as i32;
+            let below = ((h - (y + box_h + 6) - 12) / ch).max(0);
+            let above = ((y - 12) / ch).max(0);
+            let (fit, up) = if below >= want {
+                (want, false)
+            } else if above >= want {
+                (want, true)
+            } else if below >= above {
+                (below.max(1), false)
+            } else {
+                (above.max(1), true)
+            };
+            let tall = ch * fit + 8;
+            let py = if up { y - tall - 6 } else { y + box_h + 6 };
             f.items.push(Item::Rect { x: x - 2, y: py - 2, w: box_w + 4,
                                       h: tall + 4, c: EDGE });
             f.items.push(Item::Rect { x, y: py, w: box_w, h: tall,
                                       c: SHADE });
-            for (i, line) in self.page.iter().enumerate() {
+            for i in 0..fit as usize {
+                let cut = fit < want && i as i32 + 1 == fit;
+                let s = if cut {
+                    format!("… {} more", want - fit + 1)
+                } else {
+                    elide(&self.page[i], room)
+                };
                 f.items.push(Item::Run {
-                    x: x + 4, y: py + 4 + ch * i as i32,
-                    s: elide(line, room),
-                    c: if i == 0 { INK } else { FAINT } });
+                    x: x + 4, y: py + 4 + ch * i as i32, s,
+                    c: if i == 0 && !cut { INK } else { FAINT } });
             }
         }
 
@@ -1047,6 +1073,41 @@ fn elide(text: &str, most: usize) -> String {
 mod paint_tests {
     use super::*;
     use crate::view::Item;
+
+        /// **The page goes where the room is** (F133): the equator sends
+    /// the panel low when the caret is high, and the page — which
+    /// always hung below — drew past the window's bottom, pixels
+    /// nobody could see.  Above the low panel, inside the window,
+    /// and counted-elided when neither side holds it whole.
+    #[test]
+    fn a_page_stays_inside_the_window() {
+        let (w, h, cw, ch) = (900, 600, 10, 20);
+        let mut p = Palette::default();
+        p.show();
+        p.low = true;                     // the equator sent it low
+        p.offer_page((0..12).map(|i| format!("line {i}")).collect());
+        let f = p.frame(w, h, cw, ch, "");
+        for item in &f.items {
+            match item {
+                Item::Rect { y, h: ih, .. } =>
+                    assert!(y + ih <= h && *y >= 0,
+                            "a rect left the window: y={y} h={ih}"),
+                Item::Run { y, .. } =>
+                    assert!(*y >= 0 && y + ch <= h,
+                            "a row left the window: y={y}"),
+            }
+        }
+        // And a window too small for the whole page says how much is
+        // missing rather than hiding it.
+        let mut q = Palette::default();
+        q.show();
+        q.low = true;
+        q.offer_page((0..200).map(|i| format!("line {i}")).collect());
+        let g = q.frame(w, 240, cw, ch, "");
+        assert!(g.items.iter().any(|i| matches!(i,
+            Item::Run { s, .. } if s.starts_with("… "))),
+            "a cut page kept quiet about the rest");
+    }
 
     fn a_palette() -> Palette {
         let mut p = Palette::default();

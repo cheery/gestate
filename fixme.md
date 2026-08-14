@@ -54,8 +54,8 @@ Of 128 entries, **113 are resolved**.  What is left:
 | F129 | resolved | An exactly-named directory loses to a fuzzy file |
 | F130 | resolved | A file you can name is a file the dialog cannot find — and Tab wiped the walk |
 | F131 | bug, open | An apply drops the notes it crosses — long holds die audibly, the pad most of all |
-| F132 | bug, open | A content box near the foot renders over the status bar |
-| F133 | bug, open | `what scope` draws its page outside the window when the panel is low |
+| F132 | resolved | A content box near the foot renders over the status bar |
+| F133 | resolved | `what scope` draws its page outside the window when the panel is low |
 | F125 | resolved | A phantom new file read as saved — no tell it was a starter wearing a borrowed name |
 | F112 | resolved | The file dialog's listing sometimes lags — measured: a beat only while the model builds |
 | F113 | resolved | Undo and redo cross a file switch — one history for the session |
@@ -3602,7 +3602,7 @@ checking the static-schedule path for the same hole with long notes
 while in there.
 
 
-### F132. **[bug, open]** A content box near the foot renders over the status bar
+### F132. **[resolved]** A content box near the foot renders over the status bar
 
 Henri, 2026-08-14 (`fixme.incoming.txt`): a scope's box on a line
 near the bottom of the screen paints over the bar.  The slots walk
@@ -3615,7 +3615,16 @@ the slots table is the one-walk-every-reader invariant, so the walk
 is where the clip should live.  Check the trouble boxes for the same
 overflow while there; they share the machinery and probably the bug.
 
-### F133. **[bug, open]** `what scope` draws its page outside the window when the panel is low
+**Resolved 2026-08-14 — and the entry's own fix-shape was half
+wrong.**  The layout's hang past the fold is *deliberate*
+(`top_showing`: the caret's promise is its own line, and clipping
+the walk would break the follow), so the clip lives in the painters:
+the trouble box clamps its panel and rows to `text_h`
+(`view.rs` frame_with), and the scope bands skip or shrink past the
+fold (`window.rs` paint_scopes).  Both trouble and scope boxes had
+the bug, as suspected.  Held by `a_box_at_the_fold_stops_at_the_fold`.
+
+### F133. **[resolved]** `what scope` draws its page outside the window when the panel is low
 
 Henri, 2026-08-14 (`fixme.incoming.txt`): asking `what` for `scope`
 with the caret in the upper half — the panel goes low (the equator
@@ -3626,3 +3635,11 @@ below the query than the page assumes; the rows need clamping to the
 panel's granted box, with "…" or a shortened page rather than pixels
 nobody can see.  The equator placement is right; the page's height
 accounting is what has not heard of it.
+
+**Resolved 2026-08-14: the page goes where the room is.**  Below the
+panel when below holds it, above when the equator sent the panel low
+— the placement rule's other half, which the page had never heard of
+— and when neither side holds the whole page, as many lines as fit
+with the last row counting the rest (`… N more`), the full page one
+`doc/ref/` away.  Held by `a_page_stays_inside_the_window`, which
+also pins the counted elision.

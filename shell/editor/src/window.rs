@@ -719,6 +719,9 @@ impl EditorWindow {
         let slots = view.slots(doc, font);
         let traces = self.traces.borrow();
         let (cw, ch) = (view.cw(font), view.ch(font));
+        // The fold (F132): a band may hang past it in the layout, but
+        // nothing paints there — past it is the bar's ground.
+        let tall = view.h - view.status_h(font) - view.piano;
         let gutter = view.gutter_cols(doc) as i32 * cw;
         let wide = view.text_cols(font, doc) as i32 * cw - 4;
         let mut f = view::Frame::default();
@@ -739,7 +742,14 @@ impl EditorWindow {
             let k = mates.iter().position(|n| *n == label)
                 .unwrap_or(0) as i32;
             let band = slot.box_h / n_mates;
-            let (top, high) = (slot.y + ch + k * band, band - 2);
+            let top = slot.y + ch + k * band;
+            if top >= tall {
+                continue;
+            }
+            let high = (band - 2).min(tall - top - 1);
+            if high <= 2 {
+                continue;
+            }
             f.items.push(view::Item::Rect {
                 x: gutter + 2, y: top, w: wide, h: high,
                 c: view::CHROME });

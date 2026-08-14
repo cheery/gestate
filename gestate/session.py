@@ -1947,6 +1947,21 @@ class Session:
         return f"line {where}" if self.view.goto(where) \
             else f"`{name}` is on line {where}"
 
+    def do_line(self, n: int) -> str:
+        """`goto` for a number — the margin's own coordinate.
+
+        A complaint says "line 250", the gutter says 250, and `goto`
+        answers "line 266"; this is the command that takes the answer
+        back.  Refusals in the caller's terms: lines count from one,
+        and a line past the end names nothing.
+        """
+        n = int(n)
+        if n < 1:
+            return "lines count from one"
+        if not self.view.goto(n):
+            return f"line {n} is past the end"
+        return f"line {n}"
+
     def do_what(self, name: str) -> str:
         """What a name is — this file first, then the reference.
 
