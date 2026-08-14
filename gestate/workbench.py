@@ -770,18 +770,23 @@ def run(path, rate: int = 44100, block: int = 512,
             if clock is not None:
                 t3 = time.monotonic()
                 clock.lap(t1 - t0, t2 - t1, t3 - t2, drew)
-            # **A showing canvas keeps the fast pace.**  `pace`'s rule —
-            # a changed description does not count — stands for the
-            # transport readout, where haste would spin a core to keep a
-            # number smooth.  But an animating canvas is the thing being
-            # looked at, and on this governor the slow pace is what made
-            # it slow: the loop napped `IDLE` between cheap passes, the
-            # core fell to 0.7 GHz, and the walk tripled — a settled
-            # lantern drew at ~5.8 Hz while the *same* walk under a
-            # dragging hand ran at ~17.5 (`spec/performance.md` §4).
-            # Watching it is bounded time, and the person is looking at
-            # exactly the pixels the haste buys.
-            wait = pace(stirred or showing, wait)
+            # **A canvas this loop animates keeps the fast pace.**
+            # `pace`'s rule — a changed description does not count —
+            # stands for the transport readout, where haste would spin a
+            # core to keep a number smooth.  A canvas the loop *draws*
+            # (the uncrossed `_canvas_frame` path) earns haste the same
+            # way a hand does: `IDLE`'s 10 ms granularity would jitter
+            # its frame schedule, and the person is looking at exactly
+            # the pixels the haste buys.  A *walked* canvas earns
+            # nothing: the window animates it natively, the loop's whole
+            # duty to it is `reading`/`trace` lines gated at
+            # `READ_EVERY`, and holding `BUSY` for that was hundreds of
+            # furniture passes a second serving a 30 Hz cadence.  (The
+            # rule once covered walked canvases too, against a governor
+            # that let a napping loop's core collapse to 0.7 GHz —
+            # `spec/performance.md` §4 — but the EPP holds the clock
+            # now, and the walk left the loop besides.)
+            wait = pace(stirred or (showing and not crossed), wait)
             time.sleep(wait)
     finally:
         editor.close()
