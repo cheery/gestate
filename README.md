@@ -92,6 +92,23 @@ panel you read against the code. And `2/4` beside the bank is how many
 of its voices are sounding **now**: `voices example 4` is already in the
 source, so a window that only repeated it would be decoration.
 
+The eye gets the same seat the ear has.  `scope "post" s` passes its
+signal through untouched and keeps the last window of it on screen;
+`spectro` is the same node wearing a spectrum.  Written as `sink`, a
+watch is one appended line that touches nothing it watches, and its
+picture stands on that line:
+
+<p align="center">
+  <img src="doc/workbench3.png" width="640"
+       alt="two sink spectro lines high in a playing score, each with a
+            live spectrogram in a box under its own line — the low end's
+            bars on one, the harmony's on the other">
+</p>
+
+The label is in the file, so the diagnosis you set up on Tuesday is
+still on the screen on Wednesday — and deleting the line takes its
+window with it, because it was never anywhere else.
+
 There is **one mode, and it is typing**.  `Ctrl-K` opens the command
 list, which is every other thing the editor can do, filterable, each with
 its name and its key; a capability cannot exist without appearing there,
