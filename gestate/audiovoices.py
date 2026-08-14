@@ -675,12 +675,51 @@ def _sum(bank: Bank, frame: list) -> list:
                     f"{bank.name} = {expr}", ""]
 
 
+_SINK = None
+
+
+def _sinks(source: str) -> str:
+    """Rewrite every `sink <expr>` into a hidden ordinary definition.
+
+    The scope-dropping tool (roadmap §"Dropping a scope in one move",
+    Henri's pick): `sink scope "stab" stab` keeps an observer alive
+    beside the sound without touching the definition being observed —
+    the edit is one appended line and its undo is one line.  One line
+    becomes one line — `__sink_<k>__ = <expr>` — so positions never
+    move, the promise `_blank` already keeps.  Numbered in reading
+    order: adding a sink above another renumbers the ones below,
+    which resets their scope rings and nothing else, and a
+    diagnostic's state is 93 ms of picture.
+
+    Top level only — an indented `sink` is somebody's own word — and
+    a comment's `sink` is a comment.
+    """
+    global _SINK
+    if "\nsink " not in "\n" + source:
+        return source
+    import re
+
+    if _SINK is None:
+        _SINK = re.compile(r"^sink\s+(\S.*)$")
+    out, k = [], 0
+    for line in source.splitlines():
+        m = _SINK.match(line)
+        if m:
+            out.append(f"__sink_{k}__ = {m.group(1)}")
+            k += 1
+        else:
+            out.append(line)
+    return "\n".join(out) + ("\n" if source.endswith("\n") else "")
+
+
 @lru_cache(maxsize=4)
 def expand(source: str, prelude: str = "") -> str:
     """Rewrite every `voices` declaration into ordinary ones.
 
     A program with no `voices` line is returned unchanged and unparsed, so
-    nothing pays for this that does not use it.
+    nothing pays for this that does not use it.  `sink` lines are
+    rewritten first (`_sinks`), here because every assembly already
+    comes through this door and a second door would drift.
 
     `prelude`, if given, is searched for a bank's *frame* type as well as
     the program — `Stereo` lives in `synth.ges`, and a bank that produces
@@ -694,6 +733,7 @@ def expand(source: str, prelude: str = "") -> str:
     a second of it for `examples/audio/quartet.ges`.  Four, for the reason
     `pipeline._KEEP_ANALYSED` is four.
     """
+    source = _sinks(source)
     lines = source.splitlines()
     banks = _banks(lines)
     if not banks:
@@ -910,6 +950,11 @@ def banks_of(source: str) -> list:
 @lru_cache(maxsize=4)
 def _prepared(source: str) -> tuple:
     """`banks_of`'s answer, kept.  See there for why it is copied out."""
+    # `sink` lines rewritten first, as `expand` rewrites them: this
+    # door takes the author's raw text, and a `sink` reaching the
+    # parser is not gestate syntax — the start refused whole programs
+    # over the line the probing tool exists to make free.
+    source = _sinks(source)
     lines = source.splitlines()
     banks = _banks(lines)
     _prepare(lines, banks)
@@ -923,7 +968,8 @@ def channels_of(source: str, bank: Bank) -> list:
     3's first field, and a `Schedule` keyed by those names drives both the
     interpreter and the engine.
     """
-    fields = _fields(_blank(source.splitlines(), banks_of(source)),
+    fields = _fields(_blank(_sinks(source).splitlines(),
+                            banks_of(source)),
                      bank.record, bank.name)
     return [[f"{bank.name}Chan{i}f{j}"
              for j in range(len(TIMING) + len(fields))]

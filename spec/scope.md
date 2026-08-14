@@ -42,6 +42,21 @@ question reaches the eye.  The sound keeps playing through the
 rebuild, as it does for any edit; a scope is never worth an
 interruption the edit itself would not cost.
 
+**And the one-line drop is `sink`** (Henri's pick between two
+spellings; the roadmap section has the argument against the other):
+
+    sink scope "stab" stab
+
+One meaning the graph did not have and needed — *keep this alive,
+beside the sound* — so the observed definition's own text stays
+untouched, the edit is one appended line and its undo is one line.
+`audiovoices._sinks` rewrites the line 1:1 into a hidden ordinary
+definition, extraction roots every sink beside `sound`, and the
+scope's box stands on the `sink` line itself: where the person wrote
+the question is where the answer belongs.  A `sink` costs what it
+watches — anything it builds that is not a stateful root prunes as
+usual.
+
 ## The buffer — a delay line's ring, published
 
 A scope keeps the last window of its signal in a ring inside

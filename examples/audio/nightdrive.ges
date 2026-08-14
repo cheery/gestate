@@ -17,6 +17,18 @@
 # arithmetic on `beat`, the renderer's own clock (`fourfloor.ges` makes
 # the argument), so the pulse survives any decision the seed takes.
 
+# ── The record, seen ─────────────────────────────────────────────────────
+#
+# Two spectrograms, high in the file so their boxes greet you: the low
+# half — kick, snare, bass, and the room they fire into — and the
+# harmony riding over it.  A `sink` watches without touching
+# (`spec/scope.md`): the definitions below never learn they are being
+# seen, and deleting a line takes its window with it.
+
+sink spectro "low end" centre
+
+sink spectro "harmony" (padDucked + leadDucked)
+
 Tone := Tone Float Int
 
 hzOf : Tone -> Float

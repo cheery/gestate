@@ -5523,3 +5523,66 @@ crust's pure core keep the shapes wire); `pace`'s BUSY-while-showing
 is vestigial now that the loop has nothing to warm, undecided; and B2
 content boxes land next on a floor where a picture costs the gesture
 loop nothing.
+
+## The scope arc — the workbench learns to see
+
+2026-08-14, the day's second act (the first is the entry above), and
+the roadmap's oldest standing wish: *you can hear that a filter is
+wrong and you cannot see where it went wrong.*  By evening you can
+see.
+
+**The buffer was already built, which the design study was for.**  The
+probe section had planned a new block-of-samples slot with three
+callers; the study found the slot living in `spec/delaylines.md` all
+along — a scope is a delay line's ring the host may read.  So the
+vertical reused the line's answer at every stop: the oracle body in
+`signal.ges`, the ring in `%State`, `zero`/`migrate`/pack/unpack, and
+one new thing only — publication, a generated `read_scope_<i>` per
+scope so no offsets cross the boundary.  The native window read back
+bit-exact against the oracle on the first run.
+
+**Two readers, one node.**  `scope` downsamples the window by time,
+max-absolute per bucket, because a scope that averages away a click
+lies; `spectro` transforms it by frequency — a hand-rolled Hann
+radix-2 FFT, ~3 ms, pure function, tested by putting a sine in its
+bin — into 64 log-spaced bars.  The flavor rides third on the
+furniture verb, so an old window draws every window as a scope.
+
+**The display went where Henri pointed: the content box.**  The trace
+stands under its own declaration — the knob's placement rule grown a
+height — through the same slots walk the trouble boxes ride, dots in
+the caret's blue, bars in the sound's green, stacked when two scopes
+share a line.  The box follows the *text* (moves at the keystroke,
+dies at the keystroke, stands before any save) while the trace
+follows the *engine* — each honest about which truth it carries,
+learned the hard way when the first cut read the disk and an
+audition could not raise its own scope.
+
+**And the drop became one word.**  Henri weighed `cover` (a covering
+definition — name-shadowing wearing a convenience) against `sink`
+and picked `sink`: one meaning the graph did not have and needed,
+*keep this alive beside the sound*.  `audiovoices._sinks` rewrites
+the line 1:1 so positions never move — `_blank`'s own promise —
+extraction roots every sink beside `sound`, and the box stands on
+the `sink` line, because where the question was written is where the
+answer belongs.  The probing loop now reads: hear something wrong,
+append `sink scope "x" suspect`, Ctrl-S, look, delete the line.
+
+**What the flashlight found.**  Probing nightdrive, the pad kept
+dying — and the scope was innocent: measured through the pad's own
+window, *every* apply drops the notes it crosses, a comment-only
+edit included.  Long holds die audibly, short notes re-onset before
+anyone hears the hole, and probing is applying over and over.  That
+is F131, the resumed performer re-emitting no gate for a note
+sounding across the seam, and it was invisible until nightdrive —
+written that same morning — became the first piece with bar-long
+holds.  A diagnostic instrument's first catch was the environment
+itself.
+
+Around the arc, the day also swept: the dialog finds what you can
+name (F129/F130, with Tab no longer wiping the walk), F124's
+"flake" caught as the kernel's coarse clock and fixed with the
+racily-clean rule, F127's constraint refusals learning the author's
+language and their own line, boxes clipped at the fold and the
+palette's page going where the room is (F132/F133), and `line 250`
+— the fiftieth verb — taking the margin's own coordinate back.

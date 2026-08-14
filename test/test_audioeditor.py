@@ -2098,3 +2098,47 @@ def test_a_spectro_is_a_scope_by_another_reading(tmp_path):
                 'sound = spectro "spec" (0.2 * sine 220.0)\n', rate=8000)
     kinds = [(l, node.kind) for l, _n, node in g.scopes()]
     assert kinds == [("spec", "spectro")]
+
+
+def test_a_sink_keeps_an_observer_alive_beside_the_sound():
+    """Henri's pick from the two spellings (roadmap §"Dropping a scope
+    in one move"): `sink scope "stab" stab` — one appended line, the
+    observed definition untouched, the scope ringing with no reader.
+    A comment's sink is a comment, an indented sink is somebody's own
+    word, and line numbers never move."""
+    from gestate.audioengine import State, render_block, zero
+    from gestate.audioextract import extract
+    from gestate.audiovoices import _sinks
+
+    SRC = ("stab : Sig Float\n"
+           "stab = 0.3 * saw 110.0\n"
+           "\n"
+           "sound : Sig Float\n"
+           "sound = stab\n"
+           "\n"
+           'sink scope "stab" stab\n')
+    g = extract(SRC, rate=8000)
+    assert [(l, n.kind) for l, _len, n in g.scopes()] \
+        == [("stab", "scope")]
+    s = State([zero(g, n.type_) if n.init is None else n.init
+               for n in g.nodes], 0, {})
+    out = render_block(g, s, 64)
+    bare = extract(SRC.replace('sink scope "stab" stab\n', ""),
+                   rate=8000)
+    s2 = State([zero(bare, n.type_) if n.init is None else n.init
+                for n in bare.nodes], 0, {})
+    assert out == render_block(bare, s2, 64), "a sink touched the mix"
+    sid = [n.id for _, _, n in g.scopes()][0]
+    assert s.lines[sid][:64] == out, "the sink's scope is not ringing"
+
+    # The rewrite is 1:1 and leaves everyone else's words alone.
+    text = ('# sink is discussed here\n'
+            'sink scope "a" x\n'
+            '    sink = 4\n'
+            'sink spectro "b" y\n')
+    swapped = _sinks(text)
+    assert swapped.splitlines()[0] == "# sink is discussed here"
+    assert swapped.splitlines()[1] == '__sink_0__ = scope "a" x'
+    assert swapped.splitlines()[2] == "    sink = 4"
+    assert swapped.splitlines()[3] == '__sink_1__ = spectro "b" y'
+    assert len(swapped.splitlines()) == len(text.splitlines())

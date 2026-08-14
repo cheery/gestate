@@ -2346,3 +2346,14 @@ def test_line_takes_the_number_the_margin_speaks():
     assert went == [3]
     assert s.run("line", 9) == "line 9 is past the end"
     assert s.run("line", 0) == "lines count from one"
+
+
+def test_a_sink_line_wears_its_scope_box():
+    """The dropped scope's box stands on the `sink` line itself —
+    where the person wrote the question, which is where the answer
+    belongs."""
+    view = _Editing('sound = x\nsink scope "stab" stab\n')
+    s = session(view=view)
+    rows = [l for l in furniture(s).splitlines()
+            if l.startswith("scope\t")]
+    assert rows == ["scope\tstab\t2\tscope"]

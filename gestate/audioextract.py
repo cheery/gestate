@@ -151,6 +151,15 @@ class _Extract:
 
     def run(self) -> Graph:
         self.graph.out = self._signal(EGlobal(self.entry), {}, "", "")
+        # **The sinks, beside the sound** — observers kept alive with
+        # no reader (roadmap §"Dropping a scope in one move"): each
+        # `sink` line became a hidden definition in `audiovoices.
+        # _sinks`, and extracting it here is what keeps its scopes
+        # ringing.  Anything a sink builds that is not a stateful
+        # root is pruned as usual, so `sink` costs what it watches.
+        for name in sorted(self.by_name):
+            if name.startswith("__sink_"):
+                self._signal(EGlobal(name), {}, "", "Float")
         # Folding first: it orphans the `constSig` nodes it consumes, and
         # `_prune` is what drops the functions those nodes were the only
         # callers of.  The other order leaves dead code in the table.
