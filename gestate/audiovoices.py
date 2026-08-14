@@ -933,10 +933,19 @@ def blanked(source: str) -> str:
     whole point of expanding it, and a parser meets it first.  Blanked
     rather than removed so line numbers do not move.
 
+    **`sink` and `canvas` lines are rewritten first**, because they are
+    the same kind of word: author text a parser meets before any
+    assembly.  Found the hard way twice in one day — a `canvas` line
+    took lantern's knobs to "no parameters" (the spans placer parses
+    through here), and the probe showed top-level `sink` had been
+    breaking the same placement since it shipped, unnoticed because
+    every sinked example so far had no knobs to lose.
+
     The payload is deliberately *not* resolved here — that reads the parsed
     program, and this is what makes the program parseable.  A caller that
     wants prepared banks asks `banks_of`.
     """
+    source = _sinks(source)
     lines = source.splitlines()
     found = _banks(lines)
     for bank in found:

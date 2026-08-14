@@ -508,3 +508,29 @@ def test_a_file_with_no_sound_is_told_in_a_sentence():
     said = in_source(str(caught.value), source, "mysynth.ges")
     assert said == ("this file declares no `sound`, so there is nothing "
                     "to play — a synth defines `sound : Sig Float`"), said
+
+
+def test_sink_and_canvas_lines_do_not_cost_the_knobs():
+    """The spans placer parses the author's text through `blanked`, and
+    a top-level `sink` or `canvas` line used to blow that parse up —
+    lantern came up "no parameters" with its knobs in plain sight, and
+    the probe showed `sink` had been doing the same since it shipped,
+    unnoticed because every sinked example had no knobs to lose."""
+    from gestate.audiospans import controls_and_graph
+
+    source = """cutoff : Chan Float
+cutoff = chan
+
+deep : Sig Float
+deep = 0.5 ::: mkSig (wait cutoff)
+
+sound : Sig Float
+sound = 0.1 * sine (200.0 + 400.0 * deep)
+
+sink scope "s" sound
+canvas
+"""
+    found, _ = controls_and_graph(source, rate=RATE)
+    # The knob's site wears the *signal* definition's name, as
+    # lantern's wear `warmth` and `glow` rather than their channels'.
+    assert "deep" in [s.name for s in found], [s.name for s in found]

@@ -817,13 +817,20 @@ impl EditorWindow {
     /// frames, and the walk goes still the way an unshown canvas
     /// does.
     /// Where the canvas box's *inner* band sits — the inset the walk
-    /// draws in — as `(x, y, w, h)`, or `None` while no box is on
-    /// screen.  One function, read by the painter and by the press,
-    /// because layout arithmetic shared by drawing and hit-testing is
-    /// the rule this window keeps everywhere else.
+    /// draws in — as `(x, y, w, visible_h, full_h)`, or `None` while
+    /// no box is on screen.  One function, read by the painter and by
+    /// the press, because layout arithmetic shared by drawing and
+    /// hit-testing is the rule this window keeps everywhere else.
+    ///
+    /// **Two heights, deliberately.**  The walk is laid out in
+    /// `full_h` — the box's granted room — and the fold only crops
+    /// what is *blitted* (`visible_h`).  Centring the walk in the
+    /// visible remainder instead moved the whole picture up as the
+    /// fold ate the band: Henri watched chopin's disc slide off its
+    /// place while scrolling.
     fn canvas_box_rect(&self, doc: &Document, view: &View, font: &Font,
                        chrome: &crate::furniture::Furniture)
-                       -> Option<(i32, i32, i32, i32)> {
+                       -> Option<(i32, i32, i32, i32, i32)> {
         let line = chrome.canvas_line?;
         // A scope sharing the ask's line owns the box — the cap
         // already squeezed the two grants together, and the full
@@ -836,16 +843,15 @@ impl EditorWindow {
         if slot.box_h <= 0 {
             return None;
         }
-        let (cw, ch) = (view.cw(font), view.ch(font));
+        let ch = view.ch(font);
         let tall = view.h - view.status_h(font) - view.piano;
-        let gutter = view.gutter_cols(doc) as i32 * cw;
-        let wide = view.text_cols(font, doc) as i32 * cw - 4;
         let top = slot.y + ch;
         if top >= tall {
             return None;
         }
-        let high = (slot.box_h - 2).min(tall - top - 1);
-        if high <= 2 || wide <= 2 {
+        let full = slot.box_h - 2;
+        let high = full.min(tall - top - 1);
+        if high <= 2 {
             return None;
         }
         // **The picture gets air** — Henri's sad_lantern.png: a walk
@@ -855,29 +861,38 @@ impl EditorWindow {
         // edge it takes it at is visibly the box's and not the text's.
         // The scopes stay flush: a trace draws *itself* inside its
         // panel, a walk cannot know it is in one.
+        //
+        // **The full band's width, not the text area's.**  The view
+        // grounds a box band from the window's own left edge — "a
+        // complaint is not code" — and a picture centred in the text
+        // area sat visibly off the centre of the band the eye
+        // actually sees (Henri: "the boundaries of the canvas is
+        // off").  A picture is not code either.
         let pad = (ch / 2).max(4);
-        let (iw, ih) = (wide - 2 * pad, high - 2 * pad);
-        if iw <= 2 || ih <= 2 {
+        let (iw, fh) = (view.w - 2 * pad, full - 2 * pad);
+        let vh = fh.min(high - pad);
+        if iw <= 2 || vh <= 2 {
             return None;
         }
-        Some((gutter + 2 + pad, top + pad, iw, ih))
+        Some((pad, top + pad, iw, vh, fh))
     }
 
     fn paint_canvas_box(&self, canvas: &mut gestate_panel::paint::Canvas,
                         doc: &Document, view: &View, font: &Font,
                         chrome: &crate::furniture::Furniture) -> bool {
-        let Some((ix, iy, iw, ih)) =
+        let Some((ix, iy, iw, vh, fh)) =
             self.canvas_box_rect(doc, view, font, chrome)
         else { return false };
         let mut walker = self.walker.borrow_mut();
         let Some(w) = walker.as_mut() else { return false };
         let pad = (view.ch(font) / 2).max(4);
         let mut band = gestate_panel::paint::Canvas::opaque(
-            iw, ih, view::CHROME);
-        gestate_panel::paint::paint(&mut band, w.frame(iw / 2, ih / 2));
+            iw, fh, view::CHROME);
+        gestate_panel::paint::paint(&mut band, w.frame(iw / 2, fh / 2));
         canvas.fill_rect(ix - pad, iy - pad,
-                         iw + 2 * pad, ih + 2 * pad, view::CHROME);
-        for yy in 0..ih {
+                         iw + 2 * pad, vh + pad + (vh == fh) as i32 * pad,
+                         view::CHROME);
+        for yy in 0..vh {
             for xx in 0..iw {
                 if let Some(px) = band.get(xx, yy) {
                     canvas.put(ix + xx, iy + yy, px);
@@ -2005,9 +2020,9 @@ impl WindowHandler for EditorWindow {
                         self.canvas_box_rect(&doc, &view, self.font(),
                                              &chrome)
                     };
-                    if let Some((ix, iy, iw, ih)) = inner {
+                    if let Some((ix, iy, iw, vh, _fh)) = inner {
                         if x >= ix && x < ix + iw
-                            && y >= iy && y < iy + ih
+                            && y >= iy && y < iy + vh
                         {
                             if let Some(w) =
                                 self.walker.borrow_mut().as_mut()
