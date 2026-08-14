@@ -210,6 +210,24 @@ layout s = snd (lay s)
 layVoices : [: Void :] -> List (Int, Int, Voice)
 layVoices s = reverse (snd (layVoicesOnto 0 s []))
 
+#: **The score box's reading** (`spec/scorebox.md`): every *payload*
+#: with its extent, which neither `layout` nor `layVoices` keeps —
+#: and **bounded**, which `lay` is not.  The first `Int` is fuel — a
+#: step budget the walk spends, so a zero-width `cycle` cannot hang
+#: the window asking — and the second is the window in ticks: nothing
+#: starting at or past it is walked, which is what makes an endless
+#: `cycle` welcome here and a divergence everywhere else.  Returns
+#: the fuel left, so a caller can tell a finished walk from an
+#: exhausted one: `0` left means the cut was the budget's, not the
+#: score's.  Draws and hears are zero-wide here as in every eager
+#: walk — sow first (`sowScore`), or the chancy leaves are silent.
+#: A `Retro` is mirrored inside its own duration, so one whose
+#: content outruns the window is cut approximately; the fuel still
+#: holds it.
+spreadTo : Int -> Int -> [: a :] -> (Int, List (Int, Int, a))
+spreadTo fuel w s = case spreadOnto fuel w 0 s [] of
+    (f, d, es) -> (f, reverse es)
+
 # ════════════════════════════════════════════════════════════════════════
 # ── Tempo ────────────────────────────────────────────────────────────────
 #
@@ -756,6 +774,68 @@ layOnto off s acc = case s of
     # content bends, time doesn't.
     Clip w t -> case layOnto 0 t [] of
         (dt, et) -> (w, placeFrom off (keepBelow w et) ++ acc)
+
+# ── The bounded walk, `spreadTo`'s half ──────────────────────────────────
+#
+# `layOnto`'s shape with three changes: the *payload* is what an event
+# carries, a window in ticks cuts the walk where the picture ends, and
+# a fuel rides every step so a walk the window cannot cut — a cycle of
+# zero-width cells — runs out of patience instead of time.  The events
+# accumulate reversed, `layOnto`'s own manner.
+
+spreadOnto : Int -> Int -> Int -> [: a :] -> List (Int, Int, a) -> (Int, Int, List (Int, Int, a))
+spreadOnto fuel w off s acc = case fuel < 1 of
+    True -> (0, 0, acc)
+    False -> case w < off + 1 of
+        # Past the window nothing is visible, so nothing is walked.
+        # The zero duration is a lie no reader can see: only what lies
+        # below `w` is drawn, and every parent's guard stops before
+        # arithmetic on it matters.
+        True -> (fuel - 1, 0, acc)
+        False -> spreadStep (fuel - 1) w off s acc
+
+spreadStep : Int -> Int -> Int -> [: a :] -> List (Int, Int, a) -> (Int, Int, List (Int, Int, a))
+spreadStep fuel w off s acc = case s of
+    Note x -> (fuel, ticksPerBeat, (off, off + ticksPerBeat, x) :: acc)
+    # A rendered or assigned note has spent its payload; it keeps its
+    # beat and shows nothing here, `layOnto`'s own division of labour.
+    Play e -> (fuel, ticksPerBeat, acc)
+    Assigned v -> (fuel, ticksPerBeat, acc)
+    Rest -> (fuel, ticksPerBeat, acc)
+    Seq a b -> case spreadOnto fuel w off a acc of
+        (f1, da, acc1) -> case off + da < w of
+            True -> case spreadOnto f1 w (off + da) b acc1 of
+                (f2, db, acc2) -> (f2, da + db, acc2)
+            False -> (f1, da, acc1)
+    Par a b -> case spreadOnto fuel w off a acc of
+        (f1, da, acc1) -> case spreadOnto f1 w off b acc1 of
+            (f2, db, acc2) -> (f2, maxInt da db, acc2)
+    At n t -> case spreadOnto fuel w (off + n) t acc of
+        (f1, dt, acc1) -> (f1, n + dt, acc1)
+    Scale t k -> case spreadOnto fuel (prim_div_int (w - off + k - 1) k) 0 t [] of
+        (f1, dt, et) -> (f1, dt * k,
+                         map ((a, b, x) => (off + a * k, off + b * k, x)) et ++ acc)
+    Shrink t k -> case spreadOnto fuel ((w - off) * k) 0 t [] of
+        (f1, dt, et) -> (f1, prim_div_int dt k,
+                         map ((a, b, x) => (off + prim_div_int a k, off + prim_div_int b k, x)) et ++ acc)
+    Retro t -> case spreadOnto fuel w 0 t [] of
+        (f1, dt, et) -> (f1, dt,
+                         map ((a, b, x) => (off + dt - b, off + dt - a, x)) et ++ acc)
+    Sow n t -> spreadOnto fuel w off (sowScore n t) acc
+    Mark n -> (fuel, 0, acc)
+    Draw g -> (fuel, 0, acc)
+    Hear p ky g -> (fuel, 0, acc)
+    TempoShape e u -> spreadOnto fuel w off u acc
+    Shape c e u -> spreadOnto fuel w off u acc
+    Fermata c -> (fuel, 0, acc)
+    Clip w2 t -> case spreadOnto fuel (spreadWin w2 (w - off)) 0 t [] of
+        (f1, dt, et) -> (f1, w2,
+                         map ((a, b, x) => (off + a, off + b, x)) et ++ acc)
+
+spreadWin : Int -> Int -> Int
+spreadWin a b = case a < b of
+    True -> a
+    False -> b
 
 # ── The other backend's half ─────────────────────────────────────────────
 #

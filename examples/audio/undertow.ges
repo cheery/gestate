@@ -22,6 +22,13 @@ voices bass 2 pluck : Sig Float
 instance FromMIDI Key where
     noteOn ch p v = Just (Key p v)
 
+#: The way back out, for the score box's roll (`spec/scorebox.md`).
+instance Notable Key where
+    noteKey q = case q of
+        Key k v -> k
+    noteVel q = case q of
+        Key k v -> v
+
 # ── what a voice reads off its payload ────────────────────────────────
 
 pitchOf : Key -> Float

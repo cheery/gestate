@@ -130,6 +130,13 @@ voices piano 8 hammerVoice : Sig Float
 instance FromMIDI Hammer where
     noteOn ch p v = Just (Hammer p v)
 
+#: The way back out, for the score box's roll (`spec/scorebox.md`).
+instance Notable Hammer where
+    noteKey h = case h of
+        Hammer k v -> k
+    noteVel h = case h of
+        Hammer k v -> v
+
 # ── The instrument ───────────────────────────────────────────────────────
 
 #: Struck, not bowed: the attack is immediate, the body is decay, and

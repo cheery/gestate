@@ -225,6 +225,29 @@ Gate := Gate Int Int
 class FromMIDI a where
     noteOn : Int -> Int -> Int -> Maybe a
 
+#: What a reader needs from a note — `FromMIDI`'s other road, half of
+#: the way back: not the MIDI note again, just where it sits and how
+#: hard it was struck.  The score box reads payloads through this
+#: (`spec/scorebox.md`), because the alternative is trusting that a
+#: record's fields happen to sit in `(key, velocity)` order, which is
+#: a convention the type checker never sees and `Tone (toFloat v /
+#: 127.0) n` breaks silently.
+#:
+#: Not `pitchOf`/`velOf`, which pieces already define as their own
+#: helpers — a class must not collide with the names its authors were
+#: taught to write.
+class Notable a where
+    noteKey : a -> Int
+    noteVel : a -> Int
+
+#: The bare note: a `[: Int :]` melody carries its key number
+#: directly, and the velocity is the 64 that `prog` itself assigns —
+#: so the box agrees with the renderer about how hard an unmarked
+#: note is played.
+instance Notable Int where
+    noteKey k = k
+    noteVel k = 64
+
 #: A one-pole lowpass, as a *signal transformation*.  A coefficient near 0
 #: is very smooth, near 1 lets everything through.  This is the shape the whole
 #: design is for: a signal in, a signal out, state held by `scan`.

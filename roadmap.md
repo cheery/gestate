@@ -473,6 +473,11 @@ story, including the three revisions a day of Henri using it forced.
 
 ### B4 — the score editors, which are the point
 
+The read-only first slice is specified — `spec/scorebox.md`: the ask,
+the take a seed names, the two kinds of ink, provenance by syntactic
+descent over the viewed expression's own tree.  What follows is the
+destination it is the first step toward.
+
 The star: a between-lines editor for score content.  The principle is
 already on the wall (`spec/workbench.md`): **a widget is a view over a
 span of source, and dragging it is a text edit** — the knob rewrites
