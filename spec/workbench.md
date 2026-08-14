@@ -1030,26 +1030,33 @@ pin that equivalence explicitly.
   blitted — one painter, clipped by the band's own edges, no second
   content system and no display list crossing at all.  So the wire
   owes only the anchor: `canvas <line>` (unknown verbs are skipped,
-  so an old window loses the box, not the file), spoken whenever the
-  file declares `substrate` and the build crossed — the declaration
-  is the ask, the scope precedent — and anchored by scanning the
-  text being *edited*, so the box follows its declaration through
-  edits and dies with it at the keystroke.  The anchor is the
-  definition's **last** line: a box on the `=` stood between the
-  declaration and its own continuation body (sad_lantern.png), and a
-  picture that severs the program that draws it annotates nothing.
-  The picture gets air — an inset of half a cell, the band painting
-  its own ground — because a walk designed for a pane, cut flush
-  against text, reads as damage; the scopes stay flush, since a
-  trace draws itself inside its panel and a walk cannot know it is
-  in one.  Readings cross *whatever shows*, the traces' own clause,
-  because the box lives in the source view — gating them on the
-  canvas view left every fader and lamp in the box frozen.  The view
-  says how tall (`CANVAS_ROWS`), per the decided rule; the `canvas`
-  command still gives the full view; a substrate that cannot cross
-  keeps the full view only, because the box *is* the walk and there
-  is nothing to walk.  Still read-only: a click in the box answers
-  the anchor line until B3.
+  so an old window loses the box, not the file), spoken when the
+  build crossed and **the file writes the ask** — a bare `canvas`
+  line at top level, `sink`'s manners exactly (Henri's revision
+  after living with always-on-under-the-declaration for an
+  afternoon): the box stands on the line where the question is
+  written, anywhere in the file; the edit is one appended line and
+  its undo is one line; deleting it takes the box; no line, no box.
+  **And `canvas <expr>` is the picture and the ask in one line**
+  (Henri's `canvas graphic 4 5`): it rewrites to `substrate =
+  <expr>`, so the expression is the file's canvas — full view,
+  plugin pane and box all draw it — and a file that also defines
+  `substrate` earns the ordinary duplicate complaint.  The bare line
+  says nothing to the compiler — `audiovoices._sinks`
+  rewrites it to a comment at the same door every assembly passes —
+  and the editor anchors it off the text being *edited*, so the box
+  follows edits and dies at the keystroke.  First line only: one
+  walk, one honest window.  The picture gets air — an inset of half
+  a cell, the band painting its own ground — because a walk designed
+  for a pane, cut flush against text, reads as damage; the scopes
+  stay flush, since a trace draws itself inside its panel and a walk
+  cannot know it is in one.  Readings cross *whatever shows*, the
+  traces' own clause, because the box lives in the source view —
+  gating them on the canvas view left every fader and lamp in the
+  box frozen.  The view says how tall (`CANVAS_ROWS`), per the
+  decided rule; the `canvas` command still gives the full view; a
+  substrate that cannot cross keeps the full view only, because the
+  box *is* the walk and there is nothing to walk.
 * **B3 — a box can be touched.**  The gesture was reserved here
   before any window learned it — F101's lesson as law: `boxtouch
   <id> <kind> <x> <y>`, coordinates in the box's own pixels.  **Then
@@ -1058,6 +1065,15 @@ pin that equivalence explicitly.
   program's channel namespace, so a touch in a box is a `touched`
   like any other — no id, no coordinates, no second vocabulary.
   Nothing to retire from any window, because no window ever spoke it.
+  **Built the same day as B2**: the walk's hit-boxes live in the
+  band's own coordinates, so the window translates the press in and
+  the grab remembers the translation for the drag
+  (`window.box_grab`); the band's rect is one function read by the
+  painter and the press, the layout-arithmetic rule.  The whole band
+  is the picture's — a press on none of its elements crosses as
+  nothing, the canvas view's own rule — and a drag holds its grab
+  past the band's edge, which is what makes a fader in a box a
+  fader.
 * **B4 — the score editors.**  Bound by the widget rule above: a box
   is a view over a span of source, every gesture on it is a text edit,
   undo is text undo.  The door that exists is whole-document `replace`

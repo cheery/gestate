@@ -194,6 +194,11 @@ struct EditorWindow {
     /// even when the pointer leaves the element, which is what a fader
     /// is.
     touching: Cell<bool>,
+    /// Where the canvas *box*'s grab was taken: the band's inner
+    /// origin at press time, subtracted from every drag so the walk
+    /// hears the coordinates it drew in.  `None` for a grab taken in
+    /// the full canvas view, whose walk draws in window coordinates.
+    box_grab: Cell<Option<(i32, i32)>>,
     /// The canvas this window walks for itself, when the model has
     /// handed one — `spec/workbench.md` §"The canvas walks over
     /// crust".  Empty, the shapes the model sends draw exactly as
@@ -474,6 +479,7 @@ impl EditorWindow {
             zoom: Cell::new(crate::font::LADDER_DEFAULT),
             dragging: Cell::new(false),
             touching: Cell::new(false),
+            box_grab: Cell::new(None),
             walker: RefCell::new(None),
             walking: Cell::new(0),
             heard: Cell::new(0),
@@ -810,24 +816,25 @@ impl EditorWindow {
     /// pump honest: a box scrolled off screen stops asking for
     /// frames, and the walk goes still the way an unshown canvas
     /// does.
-    fn paint_canvas_box(&self, canvas: &mut gestate_panel::paint::Canvas,
-                        doc: &Document, view: &View, font: &Font,
-                        chrome: &crate::furniture::Furniture) -> bool {
-        let Some(line) = chrome.canvas_line else { return false };
-        // A scope sharing the declaration's line owns the box — the
-        // cap already squeezed the two grants together, and the full
+    /// Where the canvas box's *inner* band sits — the inset the walk
+    /// draws in — as `(x, y, w, h)`, or `None` while no box is on
+    /// screen.  One function, read by the painter and by the press,
+    /// because layout arithmetic shared by drawing and hit-testing is
+    /// the rule this window keeps everywhere else.
+    fn canvas_box_rect(&self, doc: &Document, view: &View, font: &Font,
+                       chrome: &crate::furniture::Furniture)
+                       -> Option<(i32, i32, i32, i32)> {
+        let line = chrome.canvas_line?;
+        // A scope sharing the ask's line owns the box — the cap
+        // already squeezed the two grants together, and the full
         // view is one word away.
         if chrome.scopes.iter().any(|(_, l, _)| *l == line) {
-            return false;
+            return None;
         }
-        let mut walker = self.walker.borrow_mut();
-        let Some(w) = walker.as_mut() else { return false };
         let slots = view.slots(doc, font);
-        let Some(slot) = slots.iter().find(|s| s.row + 1 == line) else {
-            return false;
-        };
+        let slot = slots.iter().find(|s| s.row + 1 == line)?;
         if slot.box_h <= 0 {
-            return false;
+            return None;
         }
         let (cw, ch) = (view.cw(font), view.ch(font));
         let tall = view.h - view.status_h(font) - view.piano;
@@ -835,11 +842,11 @@ impl EditorWindow {
         let wide = view.text_cols(font, doc) as i32 * cw - 4;
         let top = slot.y + ch;
         if top >= tall {
-            return false;
+            return None;
         }
         let high = (slot.box_h - 2).min(tall - top - 1);
         if high <= 2 || wide <= 2 {
-            return false;
+            return None;
         }
         // **The picture gets air** — Henri's sad_lantern.png: a walk
         // designed for a pane, cut flush against the text above and
@@ -851,16 +858,29 @@ impl EditorWindow {
         let pad = (ch / 2).max(4);
         let (iw, ih) = (wide - 2 * pad, high - 2 * pad);
         if iw <= 2 || ih <= 2 {
-            return false;
+            return None;
         }
+        Some((gutter + 2 + pad, top + pad, iw, ih))
+    }
+
+    fn paint_canvas_box(&self, canvas: &mut gestate_panel::paint::Canvas,
+                        doc: &Document, view: &View, font: &Font,
+                        chrome: &crate::furniture::Furniture) -> bool {
+        let Some((ix, iy, iw, ih)) =
+            self.canvas_box_rect(doc, view, font, chrome)
+        else { return false };
+        let mut walker = self.walker.borrow_mut();
+        let Some(w) = walker.as_mut() else { return false };
+        let pad = (view.ch(font) / 2).max(4);
         let mut band = gestate_panel::paint::Canvas::opaque(
             iw, ih, view::CHROME);
         gestate_panel::paint::paint(&mut band, w.frame(iw / 2, ih / 2));
-        canvas.fill_rect(gutter + 2, top, wide, high, view::CHROME);
+        canvas.fill_rect(ix - pad, iy - pad,
+                         iw + 2 * pad, ih + 2 * pad, view::CHROME);
         for yy in 0..ih {
             for xx in 0..iw {
                 if let Some(px) = band.get(xx, yy) {
-                    canvas.put(gutter + 2 + pad + xx, top + pad + yy, px);
+                    canvas.put(ix + xx, iy + yy, px);
                 }
             }
         }
@@ -969,7 +989,9 @@ impl EditorWindow {
                 let mut view = self.view.borrow_mut();
                 doc.clear_anchor();
                 doc.seek_rowcol(line.saturating_sub(1), 0);
-                view.follow(&doc, self.font());
+                // A jump reveals, a keystroke follows: the target
+                // lands with air past it, not pinned at the fold.
+                view.reveal(&doc, self.font());
                 Did { drew: true, edited: false }
             }
             Order::Show(what) => {
@@ -1834,7 +1856,12 @@ impl WindowHandler for EditorWindow {
                     if let Some(w) = self.walker.borrow_mut().as_mut() {
                         // The grab is the walker's; a drag with no
                         // grab writes nothing, same as the model's.
-                        for (name, value) in w.motion(x, y) {
+                        // A grab taken in the canvas *box* was made in
+                        // the band's coordinates, and the drag speaks
+                        // the same frame it was grabbed in.
+                        let (ox, oy) = self.box_grab.get()
+                            .unwrap_or((0, 0));
+                        for (name, value) in w.motion(x - ox, y - oy) {
                             self.host.gesture(
                                 Gesture::Touched(name, value).line());
                         }
@@ -1961,6 +1988,45 @@ impl WindowHandler for EditorWindow {
                     self.host.gesture(turn);
                     return EventStatus::Captured;
                 }
+                // **The canvas box gets the hand** (B3 — and the
+                // retired vocabulary earning its keep: a touch in a
+                // box is a `touched` like any other, no id, no second
+                // verb).  The walk's hit-boxes live in the band's own
+                // coordinates, so the press is translated in and the
+                // grab remembers the translation for the drag.  The
+                // whole band is the picture's: a press that lands on
+                // none of its elements crosses as nothing, the canvas
+                // view's own rule.
+                if !self.on_canvas.get() {
+                    let inner = {
+                        let doc = self.doc.borrow();
+                        let view = self.view.borrow();
+                        let chrome = self.chrome.borrow();
+                        self.canvas_box_rect(&doc, &view, self.font(),
+                                             &chrome)
+                    };
+                    if let Some((ix, iy, iw, ih)) = inner {
+                        if x >= ix && x < ix + iw
+                            && y >= iy && y < iy + ih
+                        {
+                            if let Some(w) =
+                                self.walker.borrow_mut().as_mut()
+                            {
+                                self.touching.set(true);
+                                self.box_grab.set(Some((ix, iy)));
+                                for (name, value) in
+                                    w.press(x - ix, y - iy)
+                                {
+                                    self.host.gesture(
+                                        Gesture::Touched(name, value)
+                                            .line());
+                                }
+                                self.dirty.set(true);
+                                return EventStatus::Captured;
+                            }
+                        }
+                    }
+                }
                 // **The canvas gets the hand the chrome refused.**  In
                 // canvas mode a press that no button, key or knob
                 // claimed is aimed at the picture; which element it
@@ -2011,6 +2077,7 @@ impl WindowHandler for EditorWindow {
             }) => {
                 self.dragging.set(false);
                 *self.turning.borrow_mut() = None;
+                self.box_grab.set(None);
                 if self.touching.take() {
                     if let Some(w) = self.walker.borrow_mut().as_mut() {
                         // A release writes nothing — a fader stays

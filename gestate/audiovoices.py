@@ -676,6 +676,7 @@ def _sum(bank: Bank, frame: list) -> list:
 
 
 _SINK = None
+_CANVAS = None
 
 
 def _sinks(source: str) -> str:
@@ -693,20 +694,41 @@ def _sinks(source: str) -> str:
 
     Top level only — an indented `sink` is somebody's own word — and
     a comment's `sink` is a comment.
+
+    **And the `canvas` line, the same shape** (B2, `spec/workbench.md`
+    §"Content boxes"): a bare `canvas` at top level is the ask for the
+    walked canvas's content box, standing where it is written — one
+    appended line, one-line undo, exactly `sink`'s manners.  It says
+    nothing to the compiler, so it rewrites to a comment; the editor
+    reads it off the author's text, never off this rewrite.
+
+    **`canvas <expr>` is the picture and the ask in one line**
+    (Henri's `canvas graphic 4 5`): it rewrites to
+    `substrate = <expr>`, so the expression *is* the file's canvas —
+    the full view, the plugin pane and the box all draw it — and the
+    box stands where the line was written.  A file that also defines
+    `substrate` earns the compiler's ordinary duplicate complaint,
+    which is the honest answer to saying it twice.
     """
-    global _SINK
-    if "\nsink " not in "\n" + source:
+    global _SINK, _CANVAS
+    bare = "\n" + source
+    if "\nsink " not in bare and "\ncanvas" not in bare:
         return source
     import re
 
     if _SINK is None:
         _SINK = re.compile(r"^sink\s+(\S.*)$")
+        _CANVAS = re.compile(r"^canvas(?:\s+(\S.*))?\s*$")
     out, k = [], 0
     for line in source.splitlines():
         m = _SINK.match(line)
+        c = _CANVAS.match(line)
         if m:
             out.append(f"__sink_{k}__ = {m.group(1)}")
             k += 1
+        elif c:
+            expr = c.group(1)
+            out.append(f"substrate = {expr}" if expr else "# canvas")
         else:
             out.append(line)
     return "\n".join(out) + ("\n" if source.endswith("\n") else "")

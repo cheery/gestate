@@ -152,6 +152,11 @@ pub const BOX_MOST: u16 = 8;
 /// view one word away.
 pub const CANVAS_ROWS: u16 = BOX_MOST;
 
+/// How many rows past a jump's target `reveal` scrolls — enough that
+/// the target's own content box and a few lines of consequence are on
+/// screen with it.
+pub const JUMP_AIR: usize = 5;
+
 /// One visible row: where its text band sits, and the box under it.
 ///
 /// **The row table `roadmap.md` §"Content boxes" names.**  A row is a
@@ -594,6 +599,35 @@ impl View {
             // heights and all.  With no boxes this is the old
             // `row + 1 - rows`, and the equivalence is tested.
             let fits = self.top_showing(font, row);
+            if fits > self.top {
+                self.top = fits;
+            }
+        }
+        let cols = self.text_cols(font, doc);
+        if col < self.left {
+            self.left = col;
+        } else if col >= self.left + cols {
+            self.left = col + 1 - cols;
+        }
+        (self.top, self.left) != was
+    }
+
+    /// `follow`, for a *jump* — `goto`, `line`, a find — rather than
+    /// a keystroke: the target lands with `JUMP_AIR` rows of context
+    /// past it in the direction travelled, so what the line is about
+    /// (and any box under it) is on screen instead of pinned at the
+    /// fold.  Henri's ask, after `line 272` kept answering with the
+    /// target's box exactly out of sight.  The keystroke `follow`
+    /// stays minimal for its own stated reason: under a held arrow,
+    /// anything more reads as the page tearing past.
+    pub fn reveal(&mut self, doc: &Document, font: &Font) -> bool {
+        let (row, col) = doc.cursor();
+        let was = (self.top, self.left);
+        if row < self.top + JUMP_AIR {
+            self.top = row.saturating_sub(JUMP_AIR);
+        } else {
+            let past = (row + JUMP_AIR).min(doc.rows().saturating_sub(1));
+            let fits = self.top_showing(font, past);
             if fits > self.top {
                 self.top = fits;
             }

@@ -19,10 +19,15 @@
 
 # ── The piece, seen ──────────────────────────────────────────────────────
 #
-# High in the file so the canvas box greets you on open: the disc is the
-# output's own peak breathing, and the eight lamps are the bank's eight
-# voices — struck bright, cooling as their notes age.  A chord is three
-# lamps at once; the tune is one lamp held across the bar.
+# The bare `canvas` line below is the ask (`spec/workbench.md` §"Content
+# boxes"): the walked canvas stands as a live box right on that line —
+# `sink`'s manners, one line, one-line undo, and the file remembers.
+# The disc is the output's own peak breathing, and the eight lamps are
+# the bank's eight voices — struck bright, cooling as their notes age.
+# A chord is three lamps at once; the tune is one lamp held across the
+# bar.
+
+canvas
 
 dim : Sig Colour
 dim = colour 120 124 134

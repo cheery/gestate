@@ -2359,15 +2359,14 @@ def test_a_sink_line_wears_its_scope_box():
     assert rows == ["scope\tstab\t2\tscope"]
 
 
-def test_the_canvas_stands_under_its_own_declaration():
-    """B2 on the walked floor: the wire owes only the anchor.  Spoken
-    when the file declares `substrate` and the build crossed; the `=`
-    line anchors over the `:` line because the picture belongs under
-    the program that draws it; anchored from the edited text so the
-    box follows edits and dies with its declaration."""
+def test_the_canvas_box_stands_where_the_canvas_line_is_written():
+    """B2, with `sink`'s manners (Henri's revision after living with
+    always-on): a bare `canvas` line is the ask, the box stands on it,
+    deleting it takes the box, and no line means no box.  Spoken only
+    when the build crossed — the box *is* the window's walk."""
     from types import SimpleNamespace
 
-    view = _Editing("substrate : Sig Sub\nsubstrate = rect c\n")
+    view = _Editing("canvas\nsubstrate = rect c\n")
     s = session(view=view)
 
     def canvas_rows():
@@ -2381,24 +2380,50 @@ def test_the_canvas_stands_under_its_own_declaration():
     assert canvas_rows() == []
 
     s.bench.substrate = SimpleNamespace(crossing=object())
-    assert canvas_rows() == ["canvas\t2"]
-
-    # An edit above moves the declaration; the anchor follows.
-    view.replace("quiet = 0.0\nsubstrate = rect c\n")
-    assert canvas_rows() == ["canvas\t2"]
-    view.replace("quiet = 0.0\n\nsubstrate = rect c\n")
-    assert canvas_rows() == ["canvas\t3"]
-
-    # A body on continuation lines carries the box to its *last* line
-    # — a box on the `=` severed the declaration from its own body
-    # (sad_lantern.png).  The next declaration is not a continuation.
-    view.replace("substrate =\n    rect c\n    `row` meter\nx = 1\n")
-    assert canvas_rows() == ["canvas\t3"]
-
-    # Only the signature written: it anchors, rather than nothing.
-    view.replace("substrate : Sig Sub\n")
     assert canvas_rows() == ["canvas\t1"]
 
-    # Erased is gone at the keystroke; a comment does not count.
-    view.replace("# substrate = rect c\nsound = x\n")
+    # The ask stands anywhere, and follows edits above it.
+    view.replace("quiet = 0.0\ncanvas\nsubstrate = rect c\n")
+    assert canvas_rows() == ["canvas\t2"]
+
+    # One walk, one window: the first ask wins.
+    view.replace("canvas\ncanvas\nsubstrate = rect c\n")
+    assert canvas_rows() == ["canvas\t1"]
+
+    # No line, no box; a comment's `canvas` is a comment; an indented
+    # `canvas` is somebody's own word.
+    view.replace("substrate = rect c\n")
     assert canvas_rows() == []
+    view.replace("# canvas\nsubstrate = rect c\n")
+    assert canvas_rows() == []
+    view.replace("  canvas\nsubstrate = rect c\n")
+    assert canvas_rows() == []
+
+    # The expression form anchors the same way — the line is both the
+    # picture and the ask.
+    view.replace("sound = x\ncanvas graphic 4 5\n")
+    assert canvas_rows() == ["canvas\t2"]
+
+
+def test_a_canvas_line_says_nothing_to_the_compiler():
+    """The bare ask rewrites to a comment at the `sink` door, so every
+    assembly sees a program with no stray word in it."""
+    from gestate.audiovoices import _sinks
+
+    assert _sinks("canvas\nsound = x\n") == "# canvas\nsound = x\n"
+    # Line count survives, the `_blank` promise.
+    assert _sinks("a = 1\ncanvas\n") == "a = 1\n# canvas\n"
+    # Not the ask: indented, commented, or another word entirely.
+    for left in ("  canvas\n", "# canvas\n", "canvasOf = 1\n"):
+        assert _sinks(left) == left
+
+
+def test_a_canvas_expression_is_the_substrate_and_the_ask():
+    """Henri's `canvas graphic 4 5`: the expression form rewrites to
+    `substrate = <expr>`, so one line declares the picture and asks to
+    see it — the full view, the plugin pane and the box all draw it."""
+    from gestate.audiovoices import _sinks
+
+    assert _sinks("canvas graphic 4 5\n") == "substrate = graphic 4 5\n"
+    assert _sinks("sound = x\ncanvas rect c\n") \
+        == "sound = x\nsubstrate = rect c\n"

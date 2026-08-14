@@ -952,6 +952,40 @@ fn follow_scrolls_past_a_box_to_show_the_caret() {
     assert!(shown.contains(&3), "the caret's row is on screen: {shown:?}");
 }
 
+/// A jump lands with air past its target — `goto`, `line` and find
+/// all reveal a few rows of consequence (and the target's own box)
+/// instead of pinning the target at the fold.  The keystroke `follow`
+/// stays minimal for its own stated reason.
+#[test]
+fn a_jump_reveals_air_past_its_target() {
+    use gestate_editor::view::JUMP_AIR;
+
+    let text = (1..=60).map(|k| k.to_string())
+        .collect::<Vec<_>>().join("\n");
+    let mut d = doc(&text);
+    let mut v = rows_of(10, 400);
+
+    // Jumping down: the rows past the target came along.
+    d.seek_rowcol(29, 0);
+    assert!(v.reveal(&d, &LARGE));
+    let shown: Vec<usize> = v.slots(&d, &LARGE).iter()
+        .map(|s| s.row).collect();
+    assert!(shown.contains(&29), "the target shows: {shown:?}");
+    assert!(shown.contains(&(29 + JUMP_AIR)),
+            "the air past it shows: {shown:?}");
+
+    // Jumping back up: air above, symmetrically.
+    d.seek_rowcol(10, 0);
+    assert!(v.reveal(&d, &LARGE));
+    assert_eq!(v.top, 10 - JUMP_AIR);
+
+    // Near the end there is less air than asked; the last row is
+    // still never overshot.
+    d.seek_rowcol(58, 0);
+    v.reveal(&d, &LARGE);
+    assert_eq!(v.top, v.top_showing(&LARGE, 59));
+}
+
 /// The wheel's clamp reads the same walk, so the last line can always
 /// be reached and never overshot.
 #[test]

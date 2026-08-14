@@ -2857,40 +2857,25 @@ def furniture(session: "Session", bench=None) -> str:
                 # two it knows and draws every window as a scope.
                 out.append(f"scope\t{label}\t{i}\t{flavor}")
 
-    # **The canvas stands under its own declaration** (B2,
-    # `spec/workbench.md` §"Content boxes").  The declaration is the
-    # ask — the scope precedent — and the anchor comes from the text
-    # being edited for the scopes' own reason: the box follows its
-    # declaration through edits and dies with it at the keystroke.
-    # Only when the build crossed, because the box *is* the window's
-    # walk and an uncrossed substrate has nothing to walk.  The
-    # anchor is the definition's **last** line: `substrate =` often
-    # carries its body on continuation lines, and a box on the `=`
-    # severed the declaration from its own body (Henri's
-    # sad_lantern.png — the picture standing between line 272 and
-    # what line 272 says).
+    # **The canvas box stands where the `canvas` line is written**
+    # (B2, `spec/workbench.md` §"Content boxes") — `sink`'s manners,
+    # Henri's revision after living with always-on for an afternoon:
+    # one appended line asks, standing anywhere in the file; deleting
+    # it takes the box; no line, no box, and the `canvas` command
+    # still gives the full view.  Bare `canvas` reveals the file's
+    # `substrate`; `canvas <expr>` *is* the substrate (rewritten at
+    # the `sink` door) and the box stands on the line either way.
+    # From the edited text for the scopes' reason (follows edits,
+    # dies at the keystroke), and only when the build crossed,
+    # because the box *is* the window's walk.  The first line only:
+    # one walk, one honest window.
     sub = getattr(b, "substrate", None)
     if sub is not None and getattr(sub, "crossing", None) is not None:
-        lines = list(session._lines())
-        signed = defined = 0
-        for i, text_line in enumerate(lines, start=1):
-            code = text_line.split("#", 1)[0]
-            if not defined and _re.match(r"substrate\s*=", code):
-                defined = i
-            elif not signed and _re.match(r"substrate\s*:", code):
-                signed = i
-        anchor = defined or signed
-        if defined:
-            # The body's continuation lines: indented code below the
-            # `=`, ending at the first blank or column-zero line.
-            for j in range(defined, len(lines)):
-                code = lines[j].split("#", 1)[0]
-                if code.strip() and code[:1].isspace():
-                    anchor = j + 1
-                else:
-                    break
-        if anchor:
-            out.append(f"canvas\t{anchor}")
+        for i, text_line in enumerate(session._lines(), start=1):
+            if _re.match(r"canvas(\s+\S.*)?\s*$",
+                         text_line.split("#", 1)[0]):
+                out.append(f"canvas\t{i}")
+                break
 
     # **What file this is, and whether it is written down.**  The window
     # had no way to say either: a name you cannot see is one you have to

@@ -15,6 +15,12 @@
 # halves lit at once — `CANVAS` drawing this file's own picture, `SEED`
 # choosing which of its nights you are hearing.  Every other example
 # has one or the other.
+#
+# The bare `canvas` line asks for the picture as a live content box on
+# that line, faders working (`spec/workbench.md` §"Content boxes") —
+# delete the line and the box goes, `sink`'s manners.
+
+canvas
 
 # ── What you turn ────────────────────────────────────────────────────────
 #
