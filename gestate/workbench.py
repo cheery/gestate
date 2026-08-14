@@ -21,6 +21,8 @@ disappears; the report says which side to look at.
 
 from __future__ import annotations
 
+import os
+import sys
 import threading
 import time
 from pathlib import Path
@@ -328,6 +330,62 @@ def pace(stirred: bool, wait: float) -> float:
     return BUSY if stirred else min(IDLE, wait * 2)
 
 
+class _LoopClock:
+    """`GESTATE_LOOP_TIME=1` — the loop's own stopwatch, `[loop]` lines
+    on stderr every few seconds.
+
+    The window's `GESTATE_EDITOR_TIME` measures the view's half of a
+    frame; this is the model's: what a pass spends answering gestures,
+    deriving the furniture and walking the canvas, and how far apart
+    canvas frames actually *land* — which is the period a hand on a
+    fader feels, and a number no headless measurement can give because
+    it is made of the loop's pacing, the throttle and the GIL together.
+    """
+
+    EVERY = 5.0
+
+    def __init__(self):
+        self.last_frame = None
+        self.reset()
+
+    def reset(self):
+        self.passes = 0
+        self.act_s = self.furn_s = self.canvas_s = 0.0
+        self.canvas_worst = 0.0
+        self.frames = 0
+        self.gap_s = 0.0
+        self.since = time.monotonic()
+
+    def lap(self, acted: float, furnished: float, canvased: float,
+            drew: bool) -> None:
+        self.passes += 1
+        self.act_s += acted
+        self.furn_s += furnished
+        self.canvas_s += canvased
+        if drew:
+            self.frames += 1
+            self.canvas_worst = max(self.canvas_worst, canvased)
+            now = time.monotonic()
+            if self.last_frame is not None:
+                self.gap_s += now - self.last_frame
+            self.last_frame = now
+        now = time.monotonic()
+        if now - self.since < self.EVERY:
+            return
+        n = max(self.passes, 1)
+        line = (f"[loop] {self.passes} passes"
+                f" | act {self.act_s / n * 1000:.2f}ms"
+                f"  furniture {self.furn_s / n * 1000:.2f}ms per pass")
+        if self.frames:
+            line += (f" | canvas {self.canvas_s / self.frames * 1000:.2f}ms"
+                     f" avg {self.canvas_worst * 1000:.2f}ms worst,"
+                     f" {self.frames} frames"
+                     f" {self.gap_s / max(self.frames - 1, 1) * 1000:.2f}ms"
+                     f" apart")
+        print(line, file=sys.stderr)
+        self.reset()
+
+
 def _begin(bench, session, after=None):
     """Start an instrument beside the loop, and say how to stop it.
 
@@ -542,6 +600,7 @@ def run(path, rate: int = 44100, block: int = 512,
 
     said, drawn = "", None
     wait, next_frame = IDLE, 0.0
+    clock = _LoopClock() if os.environ.get("GESTATE_LOOP_TIME") else None
     try:
         while editor.is_open:
             # **A file asked for is a whole new instrument.**  The window
@@ -596,6 +655,7 @@ def run(path, rate: int = 44100, block: int = 512,
                 session.said.append(f"opened {Path(wanted).name}")
                 quitting, starter = _begin(bench, session, after=retiring)
             stirred = False
+            t0 = time.monotonic()
             # **Gestures first, then the description.**  A command run
             # this tick should be visible in the status line this tick,
             # and the other order shows it one frame late — which reads
@@ -616,17 +676,21 @@ def run(path, rate: int = 44100, block: int = 512,
                 session.said.append(message)
                 session.note(message)
 
+            t1 = time.monotonic()
             now = furniture(session)
             if now != said:
                 editor.describe(now)
                 said = now
 
+            t2 = time.monotonic()
             # **The canvas, and only while it is what you are looking
             # at.**  A substrate is a program that draws every frame, so
             # asking for one nobody is watching is a whole graph forced
             # per tick for a picture behind a page of text.
+            drew = False
             if (getattr(session.view, "showing", "source") == "canvas"
                     and time.monotonic() >= next_frame):
+                drew = True
                 began = time.monotonic()
                 drawing = _shapes(_canvas_frame(bench))
                 next_frame = began + min(
@@ -634,6 +698,9 @@ def run(path, rate: int = 44100, block: int = 512,
                 if drawing != drawn:
                     editor.draw(drawing)
                     drawn = drawing
+            if clock is not None:
+                t3 = time.monotonic()
+                clock.lap(t1 - t0, t2 - t1, t3 - t2, drew)
             wait = pace(stirred, wait)
             time.sleep(wait)
     finally:

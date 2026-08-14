@@ -69,7 +69,7 @@ def to_the_canvas():
 
 def main() -> int:
     scenario, path = sys.argv[1], sys.argv[2]
-    env = dict(os.environ, GESTATE_EDITOR_TIME="1")
+    env = dict(os.environ, GESTATE_EDITOR_TIME="1", GESTATE_LOOP_TIME="1")
     # Into the caller's working directory, never beside this file — a
     # measurement run must not leave droppings in `tools/`.
     err = open(os.path.abspath(f"editor-{scenario}.stderr"), "w")
@@ -168,7 +168,7 @@ def main() -> int:
     print(f"--- {scenario} {os.path.basename(path)} ---")
     with open(err.name) as f:
         for line in f:
-            if line.startswith("[editor]"):
+            if line.startswith(("[editor]", "[loop]")):
                 print(line.rstrip())
     return 0
 

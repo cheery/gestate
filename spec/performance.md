@@ -163,3 +163,50 @@ the canvas draws.  Same machine, same harnesses; two scenarios grew in
   fader, not a laggy one.  The harness screenshots both saw extremes;
   the handle stands at the finger's stop in each, fill running the
   right way — the affordance, verified from outside.
+
+### Why the fader is soft — examined (same day)
+
+`GESTATE_LOOP_TIME=1` now gives the loop the stopwatch the window
+already had: `[loop]` lines with per-pass `act`/`furniture` cost, the
+in-situ canvas walk, and — the number a hand feels — how far apart
+canvas frames actually land.  What it showed corrects one §2/§4
+number and explains the rest:
+
+- **The window's `drawn` count is not the picture rate.**  The
+  description carries the beat, so most "drawn" frames are status
+  repaints.  True picture cadence, from `[loop]`: **settled ≈5.8 Hz**
+  (frames 170–180 ms apart), **dragging ≈17.5 Hz** (57 ms apart).
+  §2's "15–17 Hz" and §4's "16 Hz / 22 Hz" carried the same
+  inflation; the `[loop]` gap is the honest number from here on.
+- **The canvas walk in situ is not 9.4 ms.**  Settled it averages
+  **72–83 ms**; during the drag **24–25 ms**.  Same code — and
+  `furniture`, entirely unrelated code on the same loop, moved
+  3.4 → 1.2 ms in the same runs.  One cause moves both:
+- **The CPU governor.**  This fanless m3 under `powersave` idles at
+  **0.7 GHz** and ramps to **~1.9 GHz** under load (read off
+  `scaling_cur_freq`; ratio ≈2.7, matching both workloads).  A
+  settled canvas *naps itself slow*: the loop sleeps `IDLE` between
+  cheap passes, the core drops to 0.7 GHz, and every Python
+  millisecond triples.  A dragging hand streams motion events, the
+  loop holds `BUSY`, the core wakes, and the same walk runs 3× faster
+  — **the drag is soft for two reasons that partly cancel**: the
+  throttle (`CANVAS_SHARE=2` doubles whatever the walk costs →
+  ~50 ms between pictures hot) plus one window frame (~17 ms), on a
+  walk that even hot costs 25 ms in situ against 9.4 headless (the
+  residual is `observe` plus GIL neighbours — housekeeping, notes —
+  not separated by this measurement).
+- The **first touch** of a settled canvas pays the cold clock: worst
+  walks 112–137 ms in the reports, which is the moment a fader feels
+  genuinely laggy rather than soft.
+- This also explains §4's "palette starved less than recorded": a
+  query typed into an animating canvas *stirs the loop itself*, so
+  the walks between answers run at the hot clock.  The 2026-08-13
+  number was likely measured colder, same mechanism, not a code
+  improvement.
+
+Nothing tuned yet.  If the softness is worth chasing: the honest
+knobs are the throttle's floor (it currently doubles the *cold* cost
+too), pacing `BUSY` while the canvas is showing (refused before as
+core-burning — but a showing canvas is bounded time), or moving the
+walk off the gesture loop.  Each is a design change; measured here,
+decided elsewhere.
