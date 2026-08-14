@@ -1,0 +1,297 @@
+entry	main
+tags	9 10 11 12 13 14 15 16 17 18 19 20 1 0
+tick	21
+program
+crust 1
+block
+I PushGlobal substrate
+I Update 0
+I Pop 0
+I Unwind
+block
+I PushGlobal frames
+I PushGlobal 53
+I PushGlobal mapSig
+I Mkap
+I Mkap
+I Update 0
+I Pop 0
+I Unwind
+block
+I Alloc 2
+I Push 0
+I Pack 96 1
+I Update 1
+I Push 1
+I PushGlobal 18
+I Mkap
+I Update 0
+I Push 0
+I Slide 2
+I Update 0
+I Pop 0
+I Unwind
+block
+I PushArg 2
+I Eval
+I SigHead
+I PushArg 2
+I Mkap
+I Eval
+I PushArg 2
+I PushGlobal 19
+I Mkap
+I Pack 96 1
+I Eval
+I PushArg 2
+I Eval
+I MkDelayAp
+I Eval
+I PushArg 4
+I Eval
+I Pack 94 1
+I Eval
+I Pack 95 2
+I Eval
+I SigCons
+I Update 3
+I Pop 3
+I Unwind
+block
+I PushArg 0
+I PushArg 2
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushInt 0
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushArg 1
+I PushGlobal floor
+I Mkap
+I PushInt 10
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushInt 10
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushInt 200
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushInt 200
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I PushInt 200
+I PushGlobal __Num_Int_fromInteger__
+I Mkap
+I Pack 8 3
+I Pack 9 3
+I Pack 15 3
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I PushGlobal prim_floor_float
+I Mkap
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushArg 0
+I Eval
+I FloorFloat
+I Update 1
+I Pop 1
+I Unwind
+block
+I PushGlobal events
+I PushFloat 0
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushGlobal 52
+I PushGlobal scan
+I Mkap
+I Mkap
+I Mkap
+I Update 0
+I Pop 0
+I Unwind
+block
+I Alloc 2
+I Push 0
+I Pack 96 1
+I Update 1
+I Push 1
+I PushGlobal 10
+I Mkap
+I Update 0
+I Push 0
+I Slide 2
+I Update 0
+I Pop 0
+I Unwind
+block
+I PushArg 2
+I Eval
+I PushArg 3
+I PushArg 5
+I PushArg 4
+I PushGlobal 11
+I Mkap
+I Mkap
+I Mkap
+I Pack 96 1
+I Eval
+I PushArg 2
+I Eval
+I MkDelayAp
+I Eval
+I PushArg 5
+I Eval
+I Pack 94 1
+I Eval
+I Pack 95 2
+I Eval
+I SigCons
+I Update 4
+I Pop 4
+I Unwind
+block
+I PushArg 1
+I Eval
+I SigHead
+I PushArg 3
+I PushArg 2
+I Mkap
+I Mkap
+I PushArg 1
+I PushArg 5
+I Mkap
+I Mkap
+I Update 4
+I Pop 4
+I Unwind
+block
+I PushFloat 4607182418800017408
+I PushGlobal __Floating_Float_fromFloat__
+I Mkap
+I PushArg 1
+I PushGlobal __Num_Float_+__
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I PushArg 1
+I PushGlobal prim_add_float
+I Mkap
+I Mkap
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 1
+I Eval
+I PushArg 1
+I Eval
+I AddInt
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 0
+I Update 1
+I Pop 1
+I Unwind
+block
+I Pack 21 0
+I Eval
+I PushGlobal input
+I Eval
+I Pack 90 1
+I PushGlobal mkSig
+I Mkap
+I Eval
+I SigCons
+I Update 0
+I Pop 0
+I Unwind
+block
+I Alloc 2
+I Push 0
+I Pack 96 1
+I Update 1
+I Push 1
+I PushGlobal 8
+I Mkap
+I Update 0
+I Push 0
+I Slide 2
+I Update 0
+I Pop 0
+I Unwind
+block
+I PushArg 1
+I PushGlobal 9
+I Mkap
+I Pack 96 1
+I Eval
+I PushArg 1
+I Eval
+I MkDelayAp
+I Eval
+I PushArg 2
+I Eval
+I Pack 95 2
+I Update 2
+I Pop 2
+I Unwind
+block
+I PushArg 2
+I Eval
+I PushArg 1
+I PushArg 3
+I Mkap
+I Eval
+I SigCons
+I Update 3
+I Pop 3
+I Unwind
+block
+I NewChan
+I Update 0
+I Pop 0
+I Unwind
+global main 0 0
+global substrate 0 1
+global mapSig 0 2
+global 18 3 3
+global 19 2 4
+global 53 1 5
+global __Num_Int_fromInteger__ 1 6
+global floor 1 7
+global prim_floor_float 1 8
+global frames 0 9
+global scan 0 10
+global 10 4 11
+global 11 4 12
+global 52 2 13
+global __Num_Float_+__ 2 14
+global prim_add_float 2 15
+global __Floating_Float_fromFloat__ 1 16
+global events 0 17
+global mkSig 0 18
+global 8 2 19
+global 9 3 20
+global input 0 21
+entry main

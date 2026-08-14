@@ -128,6 +128,14 @@ pub trait Host: Send + Sync + 'static {
         None
     }
 
+    /// The instrument's facts for the walked canvas, when the model
+    /// has read them since this was last asked — `(version, reading
+    /// lines)`.  The other direction from `touched`, and together the
+    /// whole of what still crosses per frame once the window walks.
+    fn readings(&self) -> Option<(u64, String)> {
+        None
+    }
+
     /// Things the model has asked the window to do, drained once a
     /// frame — see `furniture::Order`.
     ///
@@ -193,6 +201,8 @@ struct EditorWindow {
     walker: RefCell<Option<crate::walk::Walker>>,
     /// The payload version the walker was built from.
     walking: Cell<u64>,
+    /// The readings version last fed to it.
+    heard: Cell<u64>,
     /// Cut and copy go here.  In-process; see `keys::Clipboard` for why
     /// the system one is somebody else's to provide.
     clip: RefCell<Memory>,
@@ -451,6 +461,7 @@ impl EditorWindow {
             touching: Cell::new(false),
             walker: RefCell::new(None),
             walking: Cell::new(0),
+            heard: Cell::new(0),
             clip: RefCell::new(Memory::default()),
             chrome: RefCell::new(Furniture::default()),
             furnished: Cell::new(0),
@@ -1104,6 +1115,20 @@ impl WindowHandler for EditorWindow {
                     .and_then(|w| crate::walk::Walker::open(&w).ok());
                 if self.on_canvas.get() {
                     self.dirty.set(true);
+                }
+            }
+        }
+        if let Some((at, text)) = self.host.readings() {
+            if at != self.heard.get() {
+                self.heard.set(at);
+                if let Some(w) = self.walker.borrow_mut().as_mut() {
+                    for (name, value) in crate::walk::readings(&text) {
+                        w.hear(&name, value);
+                    }
+                    // The walked canvas already re-dirties per frame
+                    // while it shows; a reading landing off-canvas
+                    // waits for the next look, which is when anyone
+                    // could see it.
                 }
             }
         }

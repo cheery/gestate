@@ -130,6 +130,8 @@ def _library():
     lib.ged_set_picture.restype = None
     lib.ged_set_walk.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
     lib.ged_set_walk.restype = None
+    lib.ged_set_readings.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+    lib.ged_set_readings.restype = None
     lib.ged_request_close.argtypes = [ctypes.c_void_p]
     lib.ged_request_close.restype = None
     lib.ged_close.argtypes = [ctypes.c_void_p]
@@ -277,6 +279,18 @@ class Editor:
         """
         if self._h:
             self._lib.ged_set_walk(self._h, payload.encode())
+
+    def readings(self, text: str) -> None:
+        """The instrument's facts, for the canvas the window walks.
+
+        `reading <name> <value>` lines — peak, position, the bands —
+        beside the description for the same reason the picture was:
+        they move every frame and the furniture does not.  The other
+        direction from `touched`, and together they are the whole of
+        what still crosses per frame once the window walks.
+        """
+        if self._h:
+            self._lib.ged_set_readings(self._h, text.encode())
 
     def order(self, line: str) -> None:
         """Ask the window to do something — see `furniture::Order`.

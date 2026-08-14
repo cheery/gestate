@@ -547,6 +547,16 @@ CANVAS_SHARE = float(os.environ.get("GESTATE_CANVAS_SHARE", "1.0"))
 #: costs a second still moves, visibly, rather than looking hung.
 CANVAS_SLOWEST = 0.25
 
+#: How often the instrument is read for a walked canvas, in seconds.
+#:
+#: `observe`'s contract is *once a frame* — `take_peak` accumulates
+#: since it was last taken, so the read rate is the meter's window.
+#: The first wiring read it every loop pass: five hundred 2 ms slivers
+#: a second, and the PEAK meter flickered ("it's so fast" — Henri,
+#: 2026-08-14).  Thirty a second is a meter the eye can read, and about
+#: what the old per-frame path gave a cheap canvas.
+READ_EVERY = 1 / 30
+
 
 def _shapes(picture) -> str:
     """`gui.py`'s display list, as lines the window can read.
@@ -717,7 +727,28 @@ def run(path, rate: int = 44100, block: int = 512,
             # per tick for a picture behind a page of text.
             drew = False
             showing = getattr(session.view, "showing", "source") == "canvas"
-            if showing and time.monotonic() >= next_frame:
+            sub = getattr(bench, "substrate", None)
+            if (showing and sub is not None
+                    and getattr(sub, "crossing", None) is not None):
+                # **The window walks this one** (`spec/workbench.md`
+                # §"The canvas walks over crust") — the payload crossed,
+                # so the per-frame tick+picture retires and what is
+                # left of the model's frame is `observe`: the
+                # instrument's facts, forwarded by name as `reading`
+                # lines.  At `READ_EVERY`, because the read rate *is*
+                # the meter's window; only when they moved, because a
+                # meter at rest is not news; and never a touch's echo,
+                # which would snap a fader back under a hand that had
+                # moved on.
+                if time.monotonic() >= next_frame:
+                    next_frame = time.monotonic() + READ_EVERY
+                    facts = bench.observe()
+                    heard = "\n".join(f"reading\t{n}\t{v}"
+                                      for n, v in facts)
+                    if heard != drawn:
+                        editor.readings(heard)
+                        drawn = heard
+            elif showing and time.monotonic() >= next_frame:
                 drew = True
                 began = time.monotonic()
                 drawing = _shapes(_canvas_frame(bench))

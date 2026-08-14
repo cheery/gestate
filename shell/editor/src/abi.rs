@@ -93,6 +93,11 @@ pub struct Shared {
     /// file with no canvas takes the old one back.
     walk: Mutex<String>,
     walked: AtomicU64,
+    /// The instrument's facts for the walked canvas — `reading` lines,
+    /// the other direction from `touched`, and together the whole of
+    /// what still crosses per frame once the window walks.
+    readings: Mutex<String>,
+    heard: AtomicU64,
     /// What the model has asked the window to *do*, oldest first.
     ///
     /// **The other direction, and it needs one.**  The furniture says
@@ -123,6 +128,8 @@ impl Shared {
             drawn: AtomicU64::new(0),
             walk: Mutex::new(String::new()),
             walked: AtomicU64::new(0),
+            readings: Mutex::new(String::new()),
+            heard: AtomicU64::new(0),
             initial: Mutex::new(initial),
         })
     }
@@ -199,6 +206,14 @@ impl Host for Shared {
             return None;
         }
         self.walk.lock().ok().map(|t| (at, t.clone()))
+    }
+
+    fn readings(&self) -> Option<(u64, String)> {
+        let at = self.heard.load(Ordering::Acquire);
+        if at == 0 {
+            return None;
+        }
+        self.readings.lock().ok().map(|t| (at, t.clone()))
     }
 
     fn orders(&self) -> Vec<String> {
@@ -435,6 +450,20 @@ pub unsafe extern "C" fn ged_set_walk(e: *const Editor,
         *held = text_of(text);
     }
     ed.shared.walked.fetch_add(1, Ordering::Release);
+}
+
+/// The instrument's facts for the walked canvas — `reading` lines.
+///
+/// # Safety
+/// `e` must be a live editor and `text` a NUL-terminated string.
+#[no_mangle]
+pub unsafe extern "C" fn ged_set_readings(e: *const Editor,
+                                          text: *const c_char) {
+    let ed = editor!(e, ());
+    if let Ok(mut held) = ed.shared.readings.lock() {
+        *held = text_of(text);
+    }
+    ed.shared.heard.fetch_add(1, Ordering::Release);
 }
 
 /// Ask the window to do something — see `furniture::Order`.

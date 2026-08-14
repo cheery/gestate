@@ -38,6 +38,12 @@ pub struct Walk {
     pub chans: Vec<(String, Option<f64>)>,
     /// The serialized program, verbatim — `crust.serialize`'s text.
     pub program: String,
+    /// `Tick`'s constructor tag, when the program has one — the frame
+    /// clock's own word.  A canvas folding over `events` stands still
+    /// without it (F103-untitled.ges's report), so the walker pulses
+    /// `input` with it once a frame, exactly as `Substrate.tick` does
+    /// on the reference machine.
+    pub tick: Option<i64>,
 }
 
 impl Walk {
@@ -51,6 +57,7 @@ impl Walk {
         let mut entry = String::new();
         let mut tags: Vec<i64> = Vec::new();
         let mut chans: Vec<(String, Option<f64>)> = Vec::new();
+        let mut tick = None;
         let mut lines = text.lines();
         for line in lines.by_ref() {
             let p: Vec<&str> = line.split('\t').collect();
@@ -62,6 +69,7 @@ impl Walk {
                         .filter_map(|t| t.parse().ok())
                         .collect();
                 }
+                "tick" => tick = p.get(1).and_then(|t| t.parse().ok()),
                 "chan" => {
                     let Some(name) = p.get(1) else { continue };
                     if name.is_empty() {
@@ -83,7 +91,7 @@ impl Walk {
         if entry.is_empty() || tags.len() != TAGS || program.is_empty() {
             return None;
         }
-        Some(Walk { entry, tags, chans, program })
+        Some(Walk { entry, tags, chans, program, tick })
     }
 }
 
@@ -103,6 +111,8 @@ use gestate_panel::substrate::SubTags;
 /// (`spec/workbench.md` §"The canvas walks over crust").
 pub struct Walker {
     canvas: Canvas,
+    /// The frame clock's tag, pulsed into `input` once a frame.
+    tick: Option<i64>,
     /// Channel id → declared name, for naming a `touched`.
     names: Vec<(i64, String)>,
     /// What a hand wrote since the last frame — the arrivals for the
@@ -141,7 +151,7 @@ impl Walker {
         let pending = walk.chans.iter()
             .filter_map(|(n, v)| Some((canvas.channel(n)?, (*v)?)))
             .collect();
-        Ok(Walker { canvas, names, pending })
+        Ok(Walker { canvas, tick: walk.tick, names, pending })
     }
 
     /// One instant, one picture — everything a hand wrote since the
@@ -150,7 +160,9 @@ impl Walker {
     /// transform.
     pub fn frame(&mut self, cx: i32, cy: i32) -> &Display {
         let writes = std::mem::take(&mut self.pending);
-        self.canvas.tick(&writes, cx, cy);
+        // The frame's own Tick rides with the writes — one instant,
+        // exactly what `Substrate.tick` mints per frame at home.
+        self.canvas.step(&writes, self.tick, cx, cy);
         self.canvas.display()
     }
 
@@ -192,9 +204,33 @@ impl Walker {
         self.canvas.release();
     }
 
+    /// The instrument's fact arriving by name — `reading peak 0.53`,
+    /// the other direction from a touch.  A name the program never
+    /// declared is not written and not paid for, the same lenience
+    /// `Substrate.write` keeps on the reference side.
+    pub fn hear(&mut self, name: &str, value: f64) {
+        if let Some((id, _)) = self.names.iter().find(|(_, n)| n == name) {
+            self.pending.push((*id, value));
+        }
+    }
+
     pub fn is_grabbing(&self) -> bool {
         self.canvas.is_grabbing()
     }
+}
+
+/// `reading` lines to `(name, value)` pairs — the furniture's
+/// lenience: a line that is not one loses that line, never the rest.
+pub fn readings(text: &str) -> Vec<(String, f64)> {
+    text.lines()
+        .filter_map(|line| {
+            let p: Vec<&str> = line.split('\t').collect();
+            if p.first() != Some(&"reading") {
+                return None;
+            }
+            Some((p.get(1)?.to_string(), p.get(2)?.parse().ok()?))
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -321,5 +357,74 @@ mod walker_tests {
         w.frame(100, 100);
         assert!(w.press(500, 500).is_empty());
         assert!(!w.is_grabbing());
+    }
+}
+
+#[cfg(test)]
+mod reading_tests {
+    use super::*;
+
+    #[test]
+    fn a_reading_moves_the_picture_by_name() {
+        let walk = Walk::read(include_str!("../tests/fader.walk"))
+            .expect("reads");
+        let mut w = Walker::open(&walk).expect("loads");
+        let before = w.frame(100, 100).items.clone();
+        w.hear("dragged", 0.95);
+        let after = w.frame(100, 100).items.clone();
+        assert_ne!(before, after, "the reading changed nothing");
+        // A name the program never declared is not written.
+        w.hear("nosuch", 0.5);
+        let still = w.frame(100, 100).items.clone();
+        assert_eq!(after, still);
+    }
+
+    #[test]
+    fn reading_lines_read_leniently() {
+        let text = "reading\tpeak\t0.53\n\
+                    reading\tbroken\n\
+                    noise\tignored\n\
+                    reading\tposition\t120";
+        assert_eq!(readings(text),
+                   vec![("peak".into(), 0.53),
+                        ("position".into(), 120.0)]);
+    }
+}
+
+#[cfg(test)]
+mod tick_tests {
+    use super::*;
+
+    /// `tests/ticker.walk` — a canvas folding over `events`
+    /// (F103-untitled.ges's shape), written by the model the same way
+    /// `fader.walk` was.
+    const TICKER: &str = include_str!("../tests/ticker.walk");
+
+    #[test]
+    fn the_frame_clock_advances_the_fold() {
+        let walk = Walk::read(TICKER).expect("reads");
+        assert!(walk.tick.is_some(), "the payload lost the Tick tag");
+        let mut w = Walker::open(&walk).expect("loads");
+        let first = w.frame(100, 100).items.clone();
+        let second = w.frame(100, 100).items.clone();
+        assert_ne!(first, second,
+                   "two frames drew the same — the event clock stood \
+                    still, which is a canvas that does not animate");
+    }
+
+    #[test]
+    fn a_payload_without_a_tick_still_walks() {
+        // An old model that never learned the word: the canvas stands
+        // still, and everything else works.
+        let stripped: String = TICKER.lines()
+            .filter(|l| !l.starts_with("tick\t"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let walk = Walk::read(&stripped).expect("reads");
+        assert_eq!(walk.tick, None);
+        let mut w = Walker::open(&walk).expect("loads");
+        let first = w.frame(100, 100).items.clone();
+        let second = w.frame(100, 100).items.clone();
+        assert_eq!(first, second, "still is what no clock means");
     }
 }

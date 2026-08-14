@@ -223,6 +223,34 @@ loop cannot imitate by pacing alone.  Dragging is unchanged (~28 ms
 walks, 67 ms apart, within run variance).  Cost of the change: ~500
 wakeups/s while — and only while — a canvas is being watched.
 
+### The third mask (2026-08-14, after the crust walk landed)
+
+Henri: F103-untitled feels oddly laggy; lantern runs excellent.
+Measured: the walked canvas costs **0.55 ms/frame flat** headless
+(3000 frames, no drift — `examples/walktime.rs` is the tool) and
+0.73–0.79 ms with clear+paint, F103 and lantern near identical.  In
+the window both read 6.3–6.8 ms paint and the frame gap stretches to
+22–23 ms (~43 Hz).  The clock, again: with the model's per-frame walk
+retired the whole process is so light that the governor parks at
+**500–600 MHz** — below even the 700 idle baseline — and every
+millisecond triples.  F103 shows it because its animation is
+continuous label motion, where ~43 Hz reads as judder; lantern hides
+it because its visible motion is a 30 Hz meter and a fader that is
+watched while dragging, and a drag heats the clock.
+
+So the whole week's performance story is one sentence: **on this
+governor, the cost of the work is set by how much other work there
+is.**  The surgical fix, if wanted: `uclamp_min` on the window thread
+(`sched_setattr`, unprivileged for own threads) — it names exactly
+the mechanism, costs nothing when the machine is busy, and is the
+one knob that is per-thread rather than system-wide.  Not done;
+noted for the decision.
+
+Separately measured on F103: the startup story is unchanged from §2
+— canvas dark until the payload lands (the sound's clang holds the
+side thread's fruits back ~10 s) and query→list 302 ms avg/952 worst
+while compiling.  Known behaviour, now with a walked canvas in it.
+
 **And the lever that landed: `CANVAS_SHARE` 2 → 1.**  Still
 noticeably laggy at 8 Hz, and the stopwatch said why: the hold-off
 *rest* after each walk was where the core cooled, so the throttle was

@@ -852,6 +852,18 @@ compiled structure the reference machine walks, `interact.rs` owns the
 grab, and `tests/substrate_parity.rs` pins both against `gui.py` — on
 lantern itself.*
 
+**Built, in the order written** (2026-08-14, the same day): the model
+speaks `touched` first; the payload door (`Substrate.payload()`,
+`ged_set_walk`, `walk::Walk`); the window walking it
+(`walk::Walker` over `gestate_panel::canvas::Canvas` — the CLAP
+plugin's own driver — animating at the window's frame rate, 240
+drawn/0 idle against the loop's best 38 Hz); then `reading`
+(`observe` returns what it wrote, `ged_set_readings`,
+`Walker::hear`), which is what retired the model's per-frame walk:
+while a crossed canvas shows, the gesture loop's whole frame is one
+`observe` and a string compare.  A canvas that cannot cross —
+outside crust's pure core — keeps the shapes wire exactly as it was.
+
 **The principle: coordinates never cross the wire; meanings do.**
 Today the window sends `touch(kind, x, y)` and the model's substrate
 does the hit-testing, because the element's extent lives there.  When

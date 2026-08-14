@@ -1978,3 +1978,31 @@ def test_a_touched_name_reaches_the_reference_and_the_control(tmp_path):
     # And a bench with no canvas swallows the write, as `touch` does.
     bench.substrate = None
     bench.touched("dragged", 0.1)
+
+
+def test_observe_says_what_it_wrote(tmp_path):
+    """The `reading` verb's model half: a window that walks the
+    substrate needs the instrument's facts by the names the program
+    declared, and `observe` returning what it wrote is what keeps two
+    canvases fed from one reading.  A touch never echoes back — that
+    would snap a fader under a hand that had moved on."""
+    from types import SimpleNamespace
+
+    from gestate.gui import Substrate
+
+    bench = Workbench(tmp_path / "x.ges",
+                      command=_pacer(tmp_path / "stream.raw"))
+    bench.substrate = Substrate(
+        TOUCHABLE + "\npeak : Chan Float\npeak = chan\n", rate=8000)
+    bench.transport = SimpleNamespace(
+        take_peak=lambda: 0.5, position=0,
+        take_rms=lambda: 0.0, band=lambda k: 0.0)
+    assert bench.observe() == [("peak", 0.5)]
+    assert bench.substrate.values["peak"] == 0.5
+
+    bench.touched("dragged", 0.3)
+    assert all(n != "dragged" for n, _ in bench.observe()), \
+        "a touch echoed back as a reading"
+
+    bench.transport = None
+    assert bench.observe() == [], "facts from an instrument not playing"

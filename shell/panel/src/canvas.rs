@@ -106,6 +106,9 @@ pub struct Canvas {
     /// reaches it.  That is what a fader is, and doing it any other way
     /// makes one that stops following your hand at its own edge.
     held: Option<(Axis, i64, (i32, i32, i32, i32))>,
+    /// `input`'s channel, when the program has one — where a frame's
+    /// `Tick` arrives, which is the only clock a canvas has.
+    input: Option<i64>,
     failed: Option<Fault>,
 }
 
@@ -116,7 +119,7 @@ impl Canvas {
     /// the way registers its cell on the now heap — which is what the
     /// sweep will afterwards walk.
     pub fn open(program: CanvasProgram) -> Result<Canvas, Fault> {
-        let (machine, root, by_name) = guard(|| {
+        let (machine, root, by_name, input) = guard(|| {
             let (mut m, _e) = Machine::from_text(&program.text);
             // **The declarations first, in the order they were
             // written.**  A channel is allocated when its declaration
@@ -133,6 +136,18 @@ impl Canvas {
                     by_name.insert(name.clone(), *id);
                 }
             }
+            // **The frame clock's own channel**, forced after the
+            // declared ones the way `gui.Substrate.__init__` forces it:
+            // `events` waits on `input` (`gui.ges`), so a canvas that
+            // animates advances only when something puts a `Tick`
+            // there — see `pulse`.
+            let input = m.globals_get("input").copied().and_then(|g| {
+                let forced = m.force_node(g);
+                match m.heap_at(forced) {
+                    Node::Chan(id) => Some(*id),
+                    _ => None,
+                }
+            });
             let g = *m.globals_get(&program.entry)
                 .ok_or_else(|| format!("no global `{}`", program.entry))?;
             let forced = m.force_node(g);
@@ -141,14 +156,14 @@ impl Canvas {
                 other => return Err(format!(
                     "`{}` is not a signal ({other:?})", program.entry)),
             };
-            Ok::<_, Fault>((m, id, by_name))
+            Ok::<_, Fault>((m, id, by_name, input))
         })??;
         // The bridge, resolved against the ids this machine handed out
         // rather than against any the export imagined.
         let bridge = program.bridge.iter()
             .filter_map(|(name, param)| Some((*by_name.get(name)?, *param)))
             .collect();
-        Ok(Canvas { program, machine, root, by_name, bridge,
+        Ok(Canvas { program, machine, root, by_name, bridge, input,
                     display: Display::new(), held: None, failed: None })
     }
 
@@ -183,16 +198,34 @@ impl Canvas {
     /// from it; see `Panel::canvas_origin` for why that rather than
     /// the middle of the pane.
     pub fn tick(&mut self, writes: &[(i64, f64)], cx: i32, cy: i32) {
+        self.step(writes, None, cx, cy)
+    }
+
+    /// `tick`, with the frame's own event.
+    ///
+    /// `pulse` is a constructor tag — `Tick`'s, carried by whoever
+    /// compiled the program, because a tag is a position in that
+    /// program's own table — and it arrives on `input`, which is what
+    /// `events` folds over (`gui.ges`).  `gui.Substrate.tick` mints
+    /// exactly this once a frame; a host that never pulses shows a
+    /// canvas whose faders work and whose animation stands still.
+    pub fn step(&mut self, writes: &[(i64, f64)], pulse: Option<i64>,
+                cx: i32, cy: i32) {
         if self.failed.is_some() {
             return;
         }
-        let Canvas { machine, root, program, display, .. } = self;
+        let Canvas { machine, root, program, display, input, .. } = self;
         let root = *root;
+        let input = *input;
         let outcome = guard(|| {
             let mut arrivals = Arrivals::new();
             for (chan, value) in writes {
                 let node = machine.alloc(Node::Num(Num::F(*value)));
                 arrivals.insert(*chan, node);
+            }
+            if let (Some(chan), Some(tag)) = (input, pulse) {
+                let node = machine.alloc(Node::Con(tag, Vec::new()));
+                arrivals.insert(chan, node);
             }
             machine.reactive_step(&arrivals);
             let value = machine.sig_value(root)

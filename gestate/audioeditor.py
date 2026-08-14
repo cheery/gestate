@@ -958,32 +958,47 @@ class Workbench:
 
     WATCHED = ("peak", "rms", "voices", "position") + BANDS + PROBES
 
-    def observe(self) -> None:
+    def observe(self) -> list:
         """Write what the instrument is doing into the canvas.
 
         Called once a *frame* by the view — not per block, and not from the
         audio thread.  The engine's own clock is far faster than anything
         anyone can watch, so a meter that updated per block would be
         drawing sixty of them a frame and showing the last.
+
+        **And say what was written**, as `(name, value)` pairs — the
+        `reading` verb's half (`spec/workbench.md` §"The canvas walks
+        over crust"): a window that walks the substrate itself needs
+        the same facts by the same names, and returning them here is
+        what keeps the two canvases fed from one reading.  Only the
+        instrument's facts ride out — never a touch's echo, which
+        would snap a fader back under the hand that had moved on.
         """
+        told = []
         if self.substrate is None or self.transport is None:
-            return
+            return told
+
+        def put(name, value):
+            self.substrate.write(name, value)
+            told.append((name, value))
+
         if "peak" in self.substrate.by_name:
-            self.substrate.write("peak", self.transport.take_peak())
+            put("peak", self.transport.take_peak())
         if "position" in self.substrate.by_name:
-            self.substrate.write("position", self.transport.position)
+            put("position", self.transport.position)
         if "rms" in self.substrate.by_name:
-            self.substrate.write("rms", self.transport.take_rms())
+            put("rms", self.transport.take_rms())
         for k, name in enumerate(self.BANDS):
             if name in self.substrate.by_name:
-                self.substrate.write(name, self.transport.band(k))
+                put(name, self.transport.band(k))
         if "voices" in self.substrate.by_name:
-            self.substrate.write("voices", self.voices_held())
+            put("voices", self.voices_held())
         if any(n in self.substrate.by_name for n in self.PROBES):
             ages = self.voice_ages()
             for k, name in enumerate(self.PROBES):
                 if name in self.substrate.by_name:
-                    self.substrate.write(name, ages[k] if k < len(ages) else 0)
+                    put(name, ages[k] if k < len(ages) else 0)
+        return told
 
     def voices_held(self) -> int:
         """How many voices are sounding, across every bank."""

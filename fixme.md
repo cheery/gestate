@@ -3462,3 +3462,46 @@ text file only at the cut, so a failure inside the final three bytes
 is the chunk's fault and not the file's.  The regression fixture is
 a file with a multibyte character built onto the boundary — and
 `duet.ges` itself, so the irony cannot recur.
+
+### F129. An exactly-named directory loses to a fuzzy file
+
+Henri, 2026-08-14, in the file dialog: typing `test` selects
+`pytest.ini` rather than `test/` — a directory whose name **is** the
+query, beaten by a file that merely contains it.  The palette's rule
+already knows better ("a name match beats a prose match"); the path
+listing needs the same law: an exact name — directory or file —
+outranks a substring hit, and a directory named exactly what was
+typed is almost certainly where the person is going.  The fix lives
+where the ranking lives, in the model (`session.py`'s choice ranking
+for `Path`), not in the view.
+
+### F130. A file you can name is a file the dialog cannot find
+
+`lantern-session.ges` (Henri's transcript, 2026-08-14 — the new
+base-text header and `#!` notes pinned it in three steps): from an
+unwritten `untitled.ges`, `open` with the query `lantern.ges`
+answered **0 rows** — the walk lists one directory, and lantern lives
+two down in `examples/audio/` — and Return then resolved the typed
+name against the walk's directory, found nothing, and started a
+phantom.  Three times, because nothing ever said where lantern
+actually was.
+
+F125's half stands (the phantom loads unsaved, `[+]` from birth); the
+missing half is *finding*: a query that matches nothing in this
+directory should be offered matches from below it — a bounded
+recursive walk, ranked by depth then name — so typing a name you know
+reaches the file wherever it sits.  The refusal shape to keep: a
+query with `/` in it stays a path being typed, and the deep matches
+are rows to *pick*, never a silent rewrite of what was typed.
+
+**Henri's follow-up, same day**: the query only *looked* like
+`lantern.ges` — pressing Tab "spindles the path into something else
+that only looks like lantern.ges on the screen".  So the Tab
+completion (F117's) rewrote the query into a spelling that displays
+the same but resolves differently — which is exactly how a session
+transcript records `open "lantern.ges"` and the dialog answers 0
+rows.  To pin: reproduce Tab on a query in the open dialog and diff
+what the box *shows* against what `wants`/resolution actually
+receives; suspect the walk prefix folded into the query (or a row's
+bare name completed against the wrong walk), F122's typed-vs-picked
+seam one key further in.

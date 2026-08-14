@@ -716,8 +716,14 @@ class Substrate:
             return None
         if any(c not in self.state.cons for c in _SUB_CONS):
             return None
+        tick = getattr(self.state.cons.get("Tick"), "tag", None)
         return {"text": text, "entry": "main",
                 "tags": [self.state.cons[c].tag for c in _SUB_CONS],
+                # `Tick`'s own tag, so the walking window can mint the
+                # frame clock `Substrate.tick` mints here — a canvas
+                # folding over `events` stands still otherwise, which
+                # is F103-untitled.ges's report.
+                "tick": tick,
                 "chans": list(self.by_name)}
 
     def payload(self) -> str | None:
@@ -735,6 +741,8 @@ class Substrate:
         c = self.crossing
         head = [f"entry\t{c['entry']}",
                 "tags\t" + " ".join(str(t) for t in c["tags"])]
+        if c.get("tick") is not None:
+            head.append(f"tick\t{c['tick']}")
         for name in c["chans"]:
             value = self.values.get(name)
             head.append(f"chan\t{name}"
