@@ -2857,25 +2857,35 @@ def furniture(session: "Session", bench=None) -> str:
                 # two it knows and draws every window as a scope.
                 out.append(f"scope\t{label}\t{i}\t{flavor}")
 
-    # **The canvas box stands where the `canvas` line is written**
-    # (B2, `spec/workbench.md` §"Content boxes") — `sink`'s manners,
-    # Henri's revision after living with always-on for an afternoon:
-    # one appended line asks, standing anywhere in the file; deleting
-    # it takes the box; no line, no box, and the `canvas` command
-    # still gives the full view.  Bare `canvas` reveals the file's
-    # `substrate`; `canvas <expr>` *is* the substrate (rewritten at
-    # the `sink` door) and the box stands on the line either way.
-    # From the edited text for the scopes' reason (follows edits,
-    # dies at the keystroke), and only when the build crossed,
-    # because the box *is* the window's walk.  The first line only:
-    # one walk, one honest window.
+    # **A canvas box stands on every `canvas` line** (B2, multiple
+    # canvas — `spec/workbench.md` §"Content boxes"), `sink`'s
+    # manners: one appended line asks, deleting it takes the box, no
+    # line no box, and the `canvas` command still gives the full
+    # view.  A bare ask names the file's own `substrate`; an
+    # expression ask names its hidden `__canvas_<k>__`, numbered in
+    # reading order — `audiovoices._sinks`'s own count.  Each row
+    # crosses only when *its* build crossed, because a box is the
+    # window's walk of exactly that program.  From the edited text
+    # for the scopes' reason: the box follows edits and dies at the
+    # keystroke.
     sub = getattr(b, "substrate", None)
-    if sub is not None and getattr(sub, "crossing", None) is not None:
-        for i, text_line in enumerate(session._lines(), start=1):
-            if _re.match(r"canvas(\s+\S.*)?\s*$",
-                         text_line.split("#", 1)[0]):
-                out.append(f"canvas\t{i}")
-                break
+    walkable = sub is not None and getattr(sub, "crossing", None) is not None
+    boxes = getattr(b, "canvases", {}) or {}
+    k = 0
+    for i, text_line in enumerate(session._lines(), start=1):
+        m = _re.match(r"canvas(?:\s+(\S.*))?\s*$",
+                      text_line.split("#", 1)[0])
+        if not m:
+            continue
+        expr = m.group(1)
+        if expr:
+            name = f"__canvas_{k}__"
+            k += 1
+            box = boxes.get(name)
+            if box is not None and getattr(box, "crossing", None) is not None:
+                out.append(f"canvas\t{i}\t{name}")
+        elif walkable:
+            out.append(f"canvas\t{i}\tsubstrate")
 
     # **What file this is, and whether it is written down.**  The window
     # had no way to say either: a name you cannot see is one you have to

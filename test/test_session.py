@@ -2380,15 +2380,11 @@ def test_the_canvas_box_stands_where_the_canvas_line_is_written():
     assert canvas_rows() == []
 
     s.bench.substrate = SimpleNamespace(crossing=object())
-    assert canvas_rows() == ["canvas\t1"]
+    assert canvas_rows() == ["canvas\t1\tsubstrate"]
 
     # The ask stands anywhere, and follows edits above it.
     view.replace("quiet = 0.0\ncanvas\nsubstrate = rect c\n")
-    assert canvas_rows() == ["canvas\t2"]
-
-    # One walk, one window: the first ask wins.
-    view.replace("canvas\ncanvas\nsubstrate = rect c\n")
-    assert canvas_rows() == ["canvas\t1"]
+    assert canvas_rows() == ["canvas\t2\tsubstrate"]
 
     # No line, no box; a comment's `canvas` is a comment; an indented
     # `canvas` is somebody's own word.
@@ -2399,10 +2395,33 @@ def test_the_canvas_box_stands_where_the_canvas_line_is_written():
     view.replace("  canvas\nsubstrate = rect c\n")
     assert canvas_rows() == []
 
-    # The expression form anchors the same way — the line is both the
-    # picture and the ask.
-    view.replace("sound = x\ncanvas graphic 4 5\n")
-    assert canvas_rows() == ["canvas\t2"]
+
+def test_every_canvas_ask_is_its_own_box():
+    """Multiple canvas (chopin-session.ges): an expression ask rows
+    beside the bare one, keyed by its hidden name, and crosses only
+    when *its* build crossed."""
+    from types import SimpleNamespace
+
+    view = _Editing("canvas\nsubstrate = rect c\ncanvas discOf 5.0\n")
+    s = session(view=view)
+    s.bench.substrate = SimpleNamespace(crossing=object())
+
+    def canvas_rows():
+        return [l for l in furniture(s).splitlines()
+                if l.startswith("canvas\t")]
+
+    # The ask's own build has not crossed yet: only the bare row.
+    assert canvas_rows() == ["canvas\t1\tsubstrate"]
+
+    s.bench.canvases = {
+        "__canvas_0__": SimpleNamespace(crossing=object())}
+    assert canvas_rows() == ["canvas\t1\tsubstrate",
+                             "canvas\t3\t__canvas_0__"]
+
+    # An expression box stands without any substrate in the file.
+    s.bench.substrate = None
+    view.replace("canvas discOf 5.0\n")
+    assert canvas_rows() == ["canvas\t1\t__canvas_0__"]
 
 
 def test_a_canvas_line_says_nothing_to_the_compiler():
@@ -2418,12 +2437,19 @@ def test_a_canvas_line_says_nothing_to_the_compiler():
         assert _sinks(left) == left
 
 
-def test_a_canvas_expression_is_the_substrate_and_the_ask():
-    """Henri's `canvas graphic 4 5`: the expression form rewrites to
-    `substrate = <expr>`, so one line declares the picture and asks to
-    see it — the full view, the plugin pane and the box all draw it."""
+def test_a_canvas_expression_is_its_own_hidden_definition():
+    """Henri's `canvas discOf 5.0` beside a standing `substrate`
+    (chopin-session.ges): the expression rewrites to a hidden
+    `__canvas_<k>__`, numbered in reading order, so the file keeps its
+    substrate and watches any expression beside it.  The first design
+    rewrote to `substrate = <expr>` and refused the first real use
+    with a duplicate-declaration complaint about a name the author
+    never wrote twice."""
     from gestate.audiovoices import _sinks
 
-    assert _sinks("canvas graphic 4 5\n") == "substrate = graphic 4 5\n"
-    assert _sinks("sound = x\ncanvas rect c\n") \
-        == "sound = x\nsubstrate = rect c\n"
+    assert _sinks("canvas graphic 4 5\n") \
+        == "__canvas_0__ = graphic 4 5\n"
+    assert _sinks("canvas a\nsubstrate = s\ncanvas b\n") \
+        == "__canvas_0__ = a\nsubstrate = s\n__canvas_1__ = b\n"
+    # A trailing comment on a bare ask is not an expression.
+    assert _sinks("canvas  # note\n") == "# canvas\n"

@@ -702,13 +702,18 @@ def _sinks(source: str) -> str:
     nothing to the compiler, so it rewrites to a comment; the editor
     reads it off the author's text, never off this rewrite.
 
-    **`canvas <expr>` is the picture and the ask in one line**
-    (Henri's `canvas graphic 4 5`): it rewrites to
-    `substrate = <expr>`, so the expression *is* the file's canvas —
-    the full view, the plugin pane and the box all draw it — and the
-    box stands where the line was written.  A file that also defines
-    `substrate` earns the compiler's ordinary duplicate complaint,
-    which is the honest answer to saying it twice.
+    **`canvas <expr>` is its own box** (Henri's `canvas discOf 5.0`,
+    chopin-session.ges): the expression rewrites to a hidden
+    `__canvas_<k>__ = <expr>` and the editor compiles one more
+    substrate per ask, its entry pointed at the hidden name — so a
+    file keeps its `substrate` *and* watches any expression beside
+    it, sink's semantics where several sinks are normal.  The first
+    design rewrote to `substrate = <expr>` and refused the first
+    real use with a duplicate-declaration complaint about a name the
+    author never wrote twice.  Numbered in reading order, the sinks'
+    own rule, and the numbering is shared with `session.furniture`
+    and `Workbench._load_substrate` by all three scanning the same
+    way.
     """
     global _SINK, _CANVAS
     bare = "\n" + source
@@ -719,7 +724,7 @@ def _sinks(source: str) -> str:
     if _SINK is None:
         _SINK = re.compile(r"^sink\s+(\S.*)$")
         _CANVAS = re.compile(r"^canvas(?:\s+(\S.*))?\s*$")
-    out, k = [], 0
+    out, k, b = [], 0, 0
     for line in source.splitlines():
         m = _SINK.match(line)
         c = _CANVAS.match(line)
@@ -728,7 +733,13 @@ def _sinks(source: str) -> str:
             k += 1
         elif c:
             expr = c.group(1)
-            out.append(f"substrate = {expr}" if expr else "# canvas")
+            # An expression that opens with `#` is a trailing comment
+            # on a bare ask, not a picture.
+            if expr and not expr.startswith("#"):
+                out.append(f"__canvas_{b}__ = {expr}")
+                b += 1
+            else:
+                out.append("# canvas")
         else:
             out.append(line)
     return "\n".join(out) + ("\n" if source.endswith("\n") else "")

@@ -58,6 +58,24 @@ KNOB_RANGE_FLOAT = (0.0, 1.0)
 KNOB_STEP_FLOAT = 0.01
 
 
+def _canvas_asks(text: str) -> int:
+    """How many `canvas <expr>` asks the file writes.
+
+    The `_sinks` scan, counted: `audiovoices._sinks` numbers the
+    hidden `__canvas_<k>__` definitions in reading order, and the
+    loader has to agree with it name for name.  A trailing comment on
+    a bare `canvas` is not an expression, there as here.
+    """
+    import re
+
+    n = 0
+    for line in text.splitlines():
+        m = re.match(r"canvas\s+(\S.*)$", line)
+        if m and not m.group(1).startswith("#"):
+            n += 1
+    return n
+
+
 def _unwritten(error) -> bool:
     """Did this fail because a definition has not been written yet?
 
@@ -629,6 +647,9 @@ class Workbench:
         #: The program's canvas, when it has one — `spec/substrate.md`.
         #: Rebuilt with the sound, because a substrate is the same file.
         self.substrate = None
+        #: `__canvas_<k>__` → its own compiled `Substrate` — one per
+        #: `canvas <expr>` ask (B2), each walked as its own box.
+        self.canvases: dict = {}
         #: The on-screen keyboard.  Built here rather than by the view, so
         #: what it is holding survives a rebuild and so a test can play it
         #: without a window — see `Keyboard`.
@@ -902,28 +923,63 @@ class Workbench:
         Best-effort, exactly as `_place` is: a canvas that fails to compile
         must not stop the instrument.  A file with no `substrate` has no
         canvas, and pays nothing for it.
+
+        **And one more substrate per `canvas <expr>` ask** (B2,
+        chopin-session.ges): each compiles with its entry pointed at
+        the hidden `__canvas_<k>__` the rewrite made — as `Sig Sub`
+        first, and once more under `constSig` for a plain `Sub`, so a
+        still picture asks with no lift written.  An ask that fails
+        both ways is skipped, not fatal: the file's own build already
+        typechecked every definition and said why.
         """
         from .audio import has_substrate
         from .gui import Substrate
 
         if not has_substrate(text):
             self.substrate = None
-            return
-        try:
-            self.substrate = Substrate(text, self.rate)
-            # **Both inside the guard.**  `_load_substrate` runs from
-            # `start` *before* there is a transport, so a reading switched
-            # on out here raised on `None` — and the `except` below turned
-            # that into "no canvas", which is how one misplaced line made
-            # every substrate program in the tree draw nothing at all.
-            if self.transport is not None:
-                self.transport.watch_peak = "peak" in self.substrate.by_name
-                self.transport.watch_bands(
-                    any(n in self.substrate.by_name for n in self.BANDS))
-        except Exception as exc:                        # noqa: BLE001
-            self.substrate = None
-            self.say(f"no canvas: {self._first_line(exc)}" if _unwritten(exc)
-                     else f"the canvas did not build: {self._first_line(exc)}")
+        else:
+            try:
+                self.substrate = Substrate(text, self.rate)
+                # **Both inside the guard.**  `_load_substrate` runs from
+                # `start` *before* there is a transport, so a reading
+                # switched on out here raised on `None` — and the `except`
+                # below turned that into "no canvas", which is how one
+                # misplaced line made every substrate program in the tree
+                # draw nothing at all.
+                if self.transport is not None:
+                    self.transport.watch_peak = \
+                        "peak" in self.substrate.by_name
+                    self.transport.watch_bands(
+                        any(n in self.substrate.by_name
+                            for n in self.BANDS))
+            except Exception as exc:                    # noqa: BLE001
+                self.substrate = None
+                self.say(f"no canvas: {self._first_line(exc)}"
+                         if _unwritten(exc)
+                         else "the canvas did not build: "
+                              f"{self._first_line(exc)}")
+        boxes = {}
+        for k in range(_canvas_asks(text)):
+            name = f"__canvas_{k}__"
+            for spelled in (name, f"constSig ({name})"):
+                try:
+                    boxes[name] = Substrate(text, self.rate, entry=spelled)
+                    break
+                except Exception:                       # noqa: BLE001
+                    continue
+        self.canvases = boxes
+        # A box may want the readings the main canvas never asked for
+        # — a file with no `substrate` at all still breathes if an ask
+        # watches `loud`.  Turned on, never off: the main substrate's
+        # settings above stand.
+        if self.transport is not None and boxes:
+            wanted = set()
+            for b in boxes.values():
+                wanted |= set(b.by_name)
+            if "peak" in wanted:
+                self.transport.watch_peak = True
+            if any(n in wanted for n in self.BANDS):
+                self.transport.watch_bands(True)
 
     #: What the host will write into a canvas, if the canvas declares it.
     #:
@@ -975,28 +1031,38 @@ class Workbench:
         would snap a fader back under the hand that had moved on.
         """
         told = []
-        if self.substrate is None or self.transport is None:
+        # **Every canvas in the house** — the file's own and each
+        # `canvas <expr>` box's (B2): one reading, written to all of
+        # them, because they are readings of one instrument.
+        targets = [s for s in (self.substrate,
+                               *getattr(self, "canvases", {}).values())
+                   if s is not None]
+        if not targets or self.transport is None:
             return told
+        wanted = set()
+        for t in targets:
+            wanted |= set(t.by_name)
 
         def put(name, value):
-            self.substrate.write(name, value)
+            for t in targets:
+                t.write(name, value)
             told.append((name, value))
 
-        if "peak" in self.substrate.by_name:
+        if "peak" in wanted:
             put("peak", self.transport.take_peak())
-        if "position" in self.substrate.by_name:
+        if "position" in wanted:
             put("position", self.transport.position)
-        if "rms" in self.substrate.by_name:
+        if "rms" in wanted:
             put("rms", self.transport.take_rms())
         for k, name in enumerate(self.BANDS):
-            if name in self.substrate.by_name:
+            if name in wanted:
                 put(name, self.transport.band(k))
-        if "voices" in self.substrate.by_name:
+        if "voices" in wanted:
             put("voices", self.voices_held())
-        if any(n in self.substrate.by_name for n in self.PROBES):
+        if any(n in wanted for n in self.PROBES):
             ages = self.voice_ages()
             for k, name in enumerate(self.PROBES):
-                if name in self.substrate.by_name:
+                if name in wanted:
                     put(name, ages[k] if k < len(ages) else 0)
         return told
 
@@ -1096,9 +1162,13 @@ class Workbench:
         The reference substrate keeps its picture in step, and the
         value lands where `control` finds it by name so the sound
         follows — the same two halves, from the other side of the wire.
+        Every `canvas <expr>` box's reference copy is kept in step
+        too: they are readings of one program's channels.
         """
         if self.substrate is not None:
             self.substrate.write(name, value)
+        for sub in getattr(self, "canvases", {}).values():
+            sub.write(name, value)
 
     def tick(self) -> None:
         """A frame has passed, into the canvas.

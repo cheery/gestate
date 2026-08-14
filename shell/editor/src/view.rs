@@ -378,13 +378,16 @@ impl View {
                 None => boxes.push((*line, SCOPE_ROWS)),
             }
         }
-        // **The canvas's box** (B2) — the walked picture under the
-        // `substrate` declaration.  The same merge as everything else,
-        // so a scope sharing the line stacks and the cap still holds.
-        if let Some(line) = chrome.canvas_line.filter(|l| *l > 0) {
-            match boxes.iter_mut().find(|(l, _)| *l == line) {
+        // **The canvas boxes** (B2, multiple canvas) — a walked
+        // picture on every ask line.  The same merge as everything
+        // else, so a scope sharing a line stacks and the cap holds.
+        for (line, _key) in &chrome.canvases {
+            if *line == 0 {
+                continue;
+            }
+            match boxes.iter_mut().find(|(l, _)| l == line) {
                 Some((_, had)) => *had = (*had + CANVAS_ROWS).min(BOX_MOST),
-                None => boxes.push((line, CANVAS_ROWS)),
+                None => boxes.push((*line, CANVAS_ROWS)),
             }
         }
         self.boxes = boxes;

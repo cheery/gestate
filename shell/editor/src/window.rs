@@ -198,13 +198,19 @@ struct EditorWindow {
     /// origin at press time, subtracted from every drag so the walk
     /// hears the coordinates it drew in.  `None` for a grab taken in
     /// the full canvas view, whose walk draws in window coordinates.
-    box_grab: Cell<Option<(i32, i32)>>,
+    box_grab: RefCell<Option<(String, i32, i32)>>,
     /// The canvas this window walks for itself, when the model has
     /// handed one — `spec/workbench.md` §"The canvas walks over
     /// crust".  Empty, the shapes the model sends draw exactly as
     /// before the door existed.
-    walker: RefCell<Option<crate::walk::Walker>>,
-    /// The payload version the walker was built from.
+    /// One walker per canvas the model handed over, keyed as the
+    /// payload's `box` sections are (B2, multiple canvas):
+    /// `substrate` for the file's own picture, `__canvas_<k>__` for
+    /// an expression ask's.  The canvas *view* walks `substrate`;
+    /// each content box walks its key.
+    walkers: RefCell<std::collections::HashMap<String,
+                                               crate::walk::Walker>>,
+    /// The payload version the walkers were built from.
     walking: Cell<u64>,
     /// The readings version last fed to it.
     heard: Cell<u64>,
@@ -479,8 +485,8 @@ impl EditorWindow {
             zoom: Cell::new(crate::font::LADDER_DEFAULT),
             dragging: Cell::new(false),
             touching: Cell::new(false),
-            box_grab: Cell::new(None),
-            walker: RefCell::new(None),
+            box_grab: RefCell::new(None),
+            walkers: RefCell::new(std::collections::HashMap::new()),
             walking: Cell::new(0),
             heard: Cell::new(0),
             traces: RefCell::new(std::collections::HashMap::new()),
@@ -816,11 +822,11 @@ impl EditorWindow {
     /// pump honest: a box scrolled off screen stops asking for
     /// frames, and the walk goes still the way an unshown canvas
     /// does.
-    /// Where the canvas box's *inner* band sits — the inset the walk
+    /// Where a canvas box's *inner* band sits — the inset the walk
     /// draws in — as `(x, y, w, visible_h, full_h)`, or `None` while
-    /// no box is on screen.  One function, read by the painter and by
-    /// the press, because layout arithmetic shared by drawing and
-    /// hit-testing is the rule this window keeps everywhere else.
+    /// that box is not on screen.  One function, read by the painter
+    /// and by the press, because layout arithmetic shared by drawing
+    /// and hit-testing is the rule this window keeps everywhere else.
     ///
     /// **Two heights, deliberately.**  The walk is laid out in
     /// `full_h` — the box's granted room — and the fold only crops
@@ -829,9 +835,8 @@ impl EditorWindow {
     /// fold ate the band: Henri watched chopin's disc slide off its
     /// place while scrolling.
     fn canvas_box_rect(&self, doc: &Document, view: &View, font: &Font,
-                       chrome: &crate::furniture::Furniture)
+                       chrome: &crate::furniture::Furniture, line: usize)
                        -> Option<(i32, i32, i32, i32, i32)> {
-        let line = chrome.canvas_line?;
         // A scope sharing the ask's line owns the box — the cap
         // already squeezed the two grants together, and the full
         // view is one word away.
@@ -877,29 +882,35 @@ impl EditorWindow {
         Some((pad, top + pad, iw, vh, fh))
     }
 
-    fn paint_canvas_box(&self, canvas: &mut gestate_panel::paint::Canvas,
-                        doc: &Document, view: &View, font: &Font,
-                        chrome: &crate::furniture::Furniture) -> bool {
-        let Some((ix, iy, iw, vh, fh)) =
-            self.canvas_box_rect(doc, view, font, chrome)
-        else { return false };
-        let mut walker = self.walker.borrow_mut();
-        let Some(w) = walker.as_mut() else { return false };
-        let pad = (view.ch(font) / 2).max(4);
-        let mut band = gestate_panel::paint::Canvas::opaque(
-            iw, fh, view::CHROME);
-        gestate_panel::paint::paint(&mut band, w.frame(iw / 2, fh / 2));
-        canvas.fill_rect(ix - pad, iy - pad,
-                         iw + 2 * pad, vh + pad + (vh == fh) as i32 * pad,
-                         view::CHROME);
-        for yy in 0..vh {
-            for xx in 0..iw {
-                if let Some(px) = band.get(xx, yy) {
-                    canvas.put(ix + xx, iy + yy, px);
+    fn paint_canvas_boxes(&self, canvas: &mut gestate_panel::paint::Canvas,
+                          doc: &Document, view: &View, font: &Font,
+                          chrome: &crate::furniture::Furniture) -> bool {
+        let mut live = false;
+        let mut walkers = self.walkers.borrow_mut();
+        for (line, key) in &chrome.canvases {
+            let Some((ix, iy, iw, vh, fh)) =
+                self.canvas_box_rect(doc, view, font, chrome, *line)
+            else { continue };
+            let Some(w) = walkers.get_mut(key) else { continue };
+            let pad = (view.ch(font) / 2).max(4);
+            let mut band = gestate_panel::paint::Canvas::opaque(
+                iw, fh, view::CHROME);
+            gestate_panel::paint::paint(&mut band,
+                                        w.frame(iw / 2, fh / 2));
+            canvas.fill_rect(ix - pad, iy - pad,
+                             iw + 2 * pad,
+                             vh + pad + (vh == fh) as i32 * pad,
+                             view::CHROME);
+            for yy in 0..vh {
+                for xx in 0..iw {
+                    if let Some(px) = band.get(xx, yy) {
+                        canvas.put(ix + xx, iy + yy, px);
+                    }
                 }
             }
+            live = true;
         }
-        true
+        live
     }
 
     fn canvas_centre(&self) -> (i32, i32) {
@@ -1324,12 +1335,19 @@ impl WindowHandler for EditorWindow {
                 self.walking.set(at);
                 // **A refusal leaves the shapes drawing.**  A payload
                 // this build cannot read or a program the machine will
-                // not load leaves `walker` empty, and the picture the
-                // model sends draws exactly as before the door existed
-                // — the canvas is somebody's artwork, and wrong is
-                // worse than slow.
-                *self.walker.borrow_mut() = crate::walk::Walk::read(&text)
-                    .and_then(|w| crate::walk::Walker::open(&w).ok());
+                // not load leaves that walker unbuilt, and the picture
+                // the model sends draws exactly as before the door
+                // existed — the canvas is somebody's artwork, and
+                // wrong is worse than slow.  One walker per `box`
+                // section; a section that refuses is dropped alone.
+                *self.walkers.borrow_mut() =
+                    crate::walk::Walk::read_all(&text)
+                        .into_iter()
+                        .filter_map(|(key, w)| {
+                            crate::walk::Walker::open(&w).ok()
+                                .map(|walker| (key, walker))
+                        })
+                        .collect();
                 if self.on_canvas.get() {
                     self.dirty.set(true);
                 }
@@ -1338,8 +1356,11 @@ impl WindowHandler for EditorWindow {
         if let Some((at, text)) = self.host.readings() {
             if at != self.heard.get() {
                 self.heard.set(at);
-                if let Some(w) = self.walker.borrow_mut().as_mut() {
-                    for (name, value) in crate::walk::readings(&text) {
+                // A reading is one instrument's fact, broadcast to
+                // every walker — the boxes are readings of one
+                // program's channels.
+                for (name, value) in crate::walk::readings(&text) {
+                    for w in self.walkers.borrow_mut().values_mut() {
                         w.hear(&name, value);
                     }
                     // The walked canvas already re-dirties per frame
@@ -1351,7 +1372,7 @@ impl WindowHandler for EditorWindow {
                 if !arrived.is_empty() {
                     let mut held = self.traces.borrow_mut();
                     for (name, points) in arrived {
-                        if let Some(w) = self.walker.borrow_mut().as_mut() {
+                        for w in self.walkers.borrow_mut().values_mut() {
                             w.hear_trace(&name, points.clone());
                         }
                         held.insert(name, points);
@@ -1572,7 +1593,7 @@ impl WindowHandler for EditorWindow {
         let mut box_live = false;
         if painting {
             if self.on_canvas.get()
-                && self.walker.borrow().is_some()
+                && self.walkers.borrow().contains_key("substrate")
             {
                 // **The window animates its own canvas** — the walk,
                 // the machine and the frame clock all live here now
@@ -1586,7 +1607,9 @@ impl WindowHandler for EditorWindow {
                 // press needs no second transform.
                 canvas.clear(view::BG);
                 let (dx, dy) = (view.w / 2, view.h / 2);
-                if let Some(w) = self.walker.borrow_mut().as_mut() {
+                if let Some(w) =
+                    self.walkers.borrow_mut().get_mut("substrate")
+                {
                     gestate_panel::paint::paint(&mut canvas,
                                                 w.frame(dx, dy));
                 }
@@ -1631,8 +1654,8 @@ impl WindowHandler for EditorWindow {
                             &view::frame_with(&doc, &view, font, &chrome),
                             font, self.scale());
                 self.paint_scopes(&mut canvas, &doc, &view, font, &chrome);
-                box_live = self.paint_canvas_box(&mut canvas, &doc, &view,
-                                                 font, &chrome);
+                box_live = self.paint_canvas_boxes(&mut canvas, &doc,
+                                                   &view, font, &chrome);
             }
         }
         // The palette over the text, in its own frame — chrome over a
@@ -1676,7 +1699,8 @@ impl WindowHandler for EditorWindow {
         // canvas *box* counts the same way, and only while it actually
         // drew — scrolled away, the pump stops and the walk goes still.
         self.dirty.set(self.stress
-            || (self.on_canvas.get() && self.walker.borrow().is_some())
+            || (self.on_canvas.get()
+                && self.walkers.borrow().contains_key("substrate"))
             || box_live);
         if timing {
             let t3 = Instant::now();
@@ -1868,14 +1892,16 @@ impl WindowHandler for EditorWindow {
                 // and a fader that lost your hand at its own edge would
                 // not be a fader.
                 if self.touching.get() {
-                    if let Some(w) = self.walker.borrow_mut().as_mut() {
-                        // The grab is the walker's; a drag with no
-                        // grab writes nothing, same as the model's.
-                        // A grab taken in the canvas *box* was made in
-                        // the band's coordinates, and the drag speaks
-                        // the same frame it was grabbed in.
-                        let (ox, oy) = self.box_grab.get()
-                            .unwrap_or((0, 0));
+                    // The grab is the walker's; a drag with no grab
+                    // writes nothing, same as the model's.  A grab
+                    // taken in a canvas *box* was made in that band's
+                    // coordinates and names its walker, and the drag
+                    // speaks the frame it was grabbed in.
+                    let (key, ox, oy) = self.box_grab.borrow().clone()
+                        .unwrap_or_else(|| ("substrate".into(), 0, 0));
+                    if let Some(w) =
+                        self.walkers.borrow_mut().get_mut(&key)
+                    {
                         for (name, value) in w.motion(x - ox, y - oy) {
                             self.host.gesture(
                                 Gesture::Touched(name, value).line());
@@ -2013,32 +2039,36 @@ impl WindowHandler for EditorWindow {
                 // none of its elements crosses as nothing, the canvas
                 // view's own rule.
                 if !self.on_canvas.get() {
-                    let inner = {
+                    let hit = {
                         let doc = self.doc.borrow();
                         let view = self.view.borrow();
                         let chrome = self.chrome.borrow();
-                        self.canvas_box_rect(&doc, &view, self.font(),
-                                             &chrome)
+                        chrome.canvases.iter().find_map(|(line, key)| {
+                            let (ix, iy, iw, vh, _fh) =
+                                self.canvas_box_rect(&doc, &view,
+                                                     self.font(),
+                                                     &chrome, *line)?;
+                            (x >= ix && x < ix + iw
+                             && y >= iy && y < iy + vh)
+                                .then(|| (key.clone(), ix, iy))
+                        })
                     };
-                    if let Some((ix, iy, iw, vh, _fh)) = inner {
-                        if x >= ix && x < ix + iw
-                            && y >= iy && y < iy + vh
+                    if let Some((key, ix, iy)) = hit {
+                        if let Some(w) =
+                            self.walkers.borrow_mut().get_mut(&key)
                         {
-                            if let Some(w) =
-                                self.walker.borrow_mut().as_mut()
+                            self.touching.set(true);
+                            *self.box_grab.borrow_mut() =
+                                Some((key.clone(), ix, iy));
+                            for (name, value) in
+                                w.press(x - ix, y - iy)
                             {
-                                self.touching.set(true);
-                                self.box_grab.set(Some((ix, iy)));
-                                for (name, value) in
-                                    w.press(x - ix, y - iy)
-                                {
-                                    self.host.gesture(
-                                        Gesture::Touched(name, value)
-                                            .line());
-                                }
-                                self.dirty.set(true);
-                                return EventStatus::Captured;
+                                self.host.gesture(
+                                    Gesture::Touched(name, value)
+                                        .line());
                             }
+                            self.dirty.set(true);
+                            return EventStatus::Captured;
                         }
                     }
                 }
@@ -2060,7 +2090,9 @@ impl WindowHandler for EditorWindow {
                     // coordinates never do (`spec/workbench.md` §"The
                     // canvas walks over crust").  A press that lands
                     // on nothing crosses as nothing.
-                    if let Some(w) = self.walker.borrow_mut().as_mut() {
+                    if let Some(w) =
+                        self.walkers.borrow_mut().get_mut("substrate")
+                    {
                         for (name, value) in w.press(x, y) {
                             self.host.gesture(
                                 Gesture::Touched(name, value).line());
@@ -2092,9 +2124,13 @@ impl WindowHandler for EditorWindow {
             }) => {
                 self.dragging.set(false);
                 *self.turning.borrow_mut() = None;
-                self.box_grab.set(None);
+                let boxed = self.box_grab.borrow_mut().take();
                 if self.touching.take() {
-                    if let Some(w) = self.walker.borrow_mut().as_mut() {
+                    let key = boxed.map(|(k, _, _)| k)
+                        .unwrap_or_else(|| "substrate".into());
+                    if let Some(w) =
+                        self.walkers.borrow_mut().get_mut(&key)
+                    {
                         // A release writes nothing — a fader stays
                         // where it was let go — so nothing crosses.
                         w.release();

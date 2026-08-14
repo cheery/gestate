@@ -93,6 +93,54 @@ impl Walk {
         }
         Some(Walk { entry, tags, chans, program, tick })
     }
+
+    /// Read a `box`-sectioned payload — every canvas the model can
+    /// hand over, keyed (B2, multiple canvas): `box <key>` opens a
+    /// section, `program <lines>` bounds its serialized text so
+    /// sections may follow each other without a sentinel.  A payload
+    /// with no `box` line is the old single format, keyed
+    /// `substrate` — the model may learn the word before this window
+    /// reads it, and the other way round.  A section this build
+    /// cannot walk whole is dropped alone; the rest still walk.
+    pub fn read_all(text: &str) -> Vec<(String, Walk)> {
+        if !text.lines().any(|l| l.starts_with("box\t")) {
+            return Walk::read(text)
+                .map(|w| vec![("substrate".to_string(), w)])
+                .unwrap_or_default();
+        }
+        let mut out = Vec::new();
+        let mut lines = text.lines().peekable();
+        while let Some(line) = lines.next() {
+            let p: Vec<&str> = line.split('\t').collect();
+            if p.first().copied() != Some("box") {
+                continue;
+            }
+            let key: String = p.get(1).copied().unwrap_or("").into();
+            let mut section: Vec<&str> = Vec::new();
+            let mut took = None;
+            for inner in lines.by_ref() {
+                let q: Vec<&str> = inner.split('\t').collect();
+                match q.first().copied().unwrap_or("") {
+                    "program" => {
+                        took = q.get(1).and_then(|n| n.parse::<usize>().ok());
+                        break;
+                    }
+                    _ => section.push(inner),
+                }
+            }
+            let Some(n) = took else { continue };
+            section.push("program");
+            let body: Vec<&str> =
+                lines.by_ref().take(n).collect();
+            let whole = section.join("\n") + "\n" + &body.join("\n");
+            if let Some(w) = Walk::read(&whole) {
+                if !key.is_empty() {
+                    out.push((key, w));
+                }
+            }
+        }
+        out
+    }
 }
 
 use gestate_panel::canvas::{Canvas, CanvasProgram};
@@ -295,6 +343,59 @@ mod tests {
     #[test]
     fn an_empty_payload_is_the_canvas_taken_back() {
         assert_eq!(Walk::read(""), None);
+        assert!(Walk::read_all("").is_empty());
+    }
+
+    #[test]
+    fn box_sections_read_as_their_own_walks() {
+        // Multiple canvas (B2): `box <key>` opens a section and
+        // `program <lines>` bounds its text, so sections follow each
+        // other without a sentinel.
+        let two = "box\tsubstrate\n\
+            entry\tmain\n\
+            tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14\n\
+            chan\tdragged\t0.75\n\
+            program\t2\n\
+            crust 1\n\
+            I PushInt 3\n\
+            box\t__canvas_0__\n\
+            entry\tmain\n\
+            tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14\n\
+            program\t1\n\
+            crust 1";
+        let walks = Walk::read_all(two);
+        assert_eq!(walks.len(), 2);
+        assert_eq!(walks[0].0, "substrate");
+        assert!(walks[0].1.program.ends_with("I PushInt 3"));
+        assert_eq!(walks[1].0, "__canvas_0__");
+        assert_eq!(walks[1].1.program, "crust 1");
+    }
+
+    #[test]
+    fn the_old_single_payload_still_walks_as_the_substrate() {
+        // A model that has not learned `box` hands the old format;
+        // this window keys it `substrate` and walks it as ever.
+        let walks = Walk::read_all(SOME);
+        assert_eq!(walks.len(), 1);
+        assert_eq!(walks[0].0, "substrate");
+        assert_eq!(walks[0].1.entry, "main");
+    }
+
+    #[test]
+    fn a_refusing_section_is_dropped_alone() {
+        let mixed = "box\tsubstrate\n\
+            entry\tmain\n\
+            tags\t1 2 3\n\
+            program\t1\n\
+            crust 1\n\
+            box\t__canvas_0__\n\
+            entry\tmain\n\
+            tags\t1 2 3 4 5 6 7 8 9 10 11 12 13 14\n\
+            program\t1\n\
+            crust 1";
+        let walks = Walk::read_all(mixed);
+        assert_eq!(walks.len(), 1);
+        assert_eq!(walks[0].0, "__canvas_0__");
     }
 
     #[test]

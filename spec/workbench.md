@@ -1037,16 +1037,26 @@ pin that equivalence explicitly.
   afternoon): the box stands on the line where the question is
   written, anywhere in the file; the edit is one appended line and
   its undo is one line; deleting it takes the box; no line, no box.
-  **And `canvas <expr>` is the picture and the ask in one line**
-  (Henri's `canvas graphic 4 5`): it rewrites to `substrate =
-  <expr>`, so the expression is the file's canvas — full view,
-  plugin pane and box all draw it — and a file that also defines
-  `substrate` earns the ordinary duplicate complaint.  The bare line
+  **And `canvas <expr>` is its own box** (Henri's `canvas discOf
+  5.0`, tried within the hour beside a standing `substrate` —
+  `test/sessions/chopin-session.ges`): every expression ask gets its own walked box
+  showing that expression, sink's semantics where several sinks are
+  normal.  The first design rewrote the expression to `substrate =
+  <expr>`, which refused the first real use with a complaint about
+  a name the author never wrote twice; now it rewrites to a hidden
+  `__canvas_<k>__ = <expr>` and the model compiles one more
+  substrate per ask, entry pointed at the hidden name — trying the
+  expression as `Sig Sub` first and once more under `constSig` for
+  a plain `Sub`, so a static picture asks with no lift written.
+  The payload grows sections (`box <key>` opens one, `program
+  <lines>` bounds its text), the window keeps one walker per key,
+  and readings broadcast to all of them.  The bare line
   says nothing to the compiler — `audiovoices._sinks`
   rewrites it to a comment at the same door every assembly passes —
   and the editor anchors it off the text being *edited*, so the box
-  follows edits and dies at the keystroke.  First line only: one
-  walk, one honest window.  The picture gets air — an inset of half
+  follows edits and dies at the keystroke.  One box per ask line;
+  the *bare* ask names the substrate's walk, so writing it twice is
+  two boxes drawing one walk, which is legal and pointless.  The picture gets air — an inset of half
   a cell, the band painting its own ground — because a walk designed
   for a pane, cut flush against text, reads as damage; the scopes
   stay flush, since a trace draws itself inside its panel and a walk

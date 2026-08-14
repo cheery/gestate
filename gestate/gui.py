@@ -116,7 +116,7 @@ def _drawn(source: str) -> str:
     return "substrate"
 
 
-def _entry(source: str, rate: int) -> str:
+def _entry(source: str, rate: int, entry_name: str = "substrate") -> str:
     """`main = substrate`, and the sample rate when the file also sounds.
 
     A program that draws *and* sounds is compiled with `audio.ges` and
@@ -139,8 +139,12 @@ def _entry(source: str, rate: int) -> str:
              "constSig v = mapSig (n => v) events\n")
     # `_drawn` raises on a leftover `scene`; the answer is otherwise always
     # `substrate`, and it is called for the refusal rather than the choice.
+    # **Or a `canvas <expr>` ask's hidden name** (B2): a box's own
+    # substrate compiles with `main` pointed at `__canvas_<k>__` — and
+    # wrapped in `constSig` on the editor's *second* try, so a plain
+    # `Sub` expression asks for a still picture with no lift written.
     _drawn(source)
-    entry += "\nmain : Sig Sub\nmain = substrate\n"
+    entry += f"\nmain : Sig Sub\nmain = {entry_name}\n"
     if not has_sound(source):
         return entry
     # **And the clock, when the file states a tempo** — the same generated
@@ -164,7 +168,8 @@ def _entry(source: str, rate: int) -> str:
             + clock + entry)
 
 
-def assembled(source: str, rate: int = 0) -> str:
+def assembled(source: str, rate: int = 0,
+              entry_name: str = "substrate") -> str:
     """The whole program the canvas compiles — **shadowed like the other
     two halves.**
 
@@ -188,7 +193,7 @@ def assembled(source: str, rate: int = 0) -> str:
 
     head = _preludes(source)
     written = _program(source)
-    tail = _entry(source, rate or DEFAULT_RATE)
+    tail = _entry(source, rate or DEFAULT_RATE, entry_name)
     shadowed = shadow_libraries(head, written)
     out = shadowed + "\n" + written + "\n" + tail
     # Only an unshadowed head can stand alone — see `audio.assemble`.
@@ -640,10 +645,14 @@ class Substrate:
     picture follows, and the control value by name so the sound does.
     """
 
-    def __init__(self, source: str, rate: int = 0):
+    def __init__(self, source: str, rate: int = 0,
+                 entry: str = "substrate"):
         from .audio import DEFAULT_RATE
 
-        self.state = _compile(assembled(source, rate))
+        self.state = _compile(assembled(source, rate, entry))
+        #: Which definition this canvas draws — `substrate` for the
+        #: file's own, a `__canvas_<k>__` for a `canvas <expr>` ask.
+        self.entry = entry
         # **Before the program runs.**  A channel is allocated when its
         # declaration is first forced, so forcing them here — in this
         # state, sharing its counter — is what gives every declared channel

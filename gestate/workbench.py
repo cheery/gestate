@@ -313,6 +313,30 @@ class Window:
 BUSY, IDLE = 0.002, 0.010
 
 
+def _payloads(sub, boxes: dict) -> str:
+    """Every walkable canvas, as one `box`-sectioned payload.
+
+    Each section reuses `Substrate.payload()` whole, with its
+    open-ended `program` line rewritten to carry the text's line
+    count, so sections can follow each other without a sentinel the
+    serialized text would have to promise never to contain.  Empty
+    when nothing crosses — the model taking the canvas back.
+    """
+    parts = []
+    if sub is not None:
+        parts.append(("substrate", sub.payload()))
+    for key, s in sorted(boxes.items()):
+        parts.append((key, s.payload()))
+    out = []
+    for key, p in parts:
+        if not p:
+            continue
+        head, _, prog = p.partition("\nprogram\n")
+        out.append(f"box\t{key}\n{head}\n"
+                   f"program\t{len(prog.splitlines())}\n{prog}")
+    return "\n".join(out)
+
+
 def pace(stirred: bool, wait: float) -> float:
     """How long to sleep, given whether this tick found anything.
 
@@ -713,12 +737,17 @@ def run(path, rate: int = 44100, block: int = 512,
             # and it moves a handful of times a session.  An empty
             # payload takes the canvas back — a switch to a file with
             # nothing to walk must not leave the old file's canvas
-            # walking.
+            # walking.  Every canvas crosses in one payload as `box`
+            # sections (B2, multiple canvas): the file's own keyed
+            # `substrate`, each `canvas <expr>` ask keyed by its
+            # hidden name, `program <lines>` bounding each text.
             sub = getattr(bench, "substrate", None)
-            if sub is not walked:
-                walked = sub
-                load = None if sub is None else sub.payload()
-                editor.walk(load or "")
+            boxes = getattr(bench, "canvases", {})
+            marks = (id(sub) if sub is not None else None,
+                     tuple(sorted((k, id(s)) for k, s in boxes.items())))
+            if marks != walked:
+                walked = marks
+                editor.walk(_payloads(sub, boxes))
 
             t2 = time.monotonic()
             # **The canvas, and only while it is what you are looking
