@@ -5640,3 +5640,96 @@ entry demanded (`_unifies` entering `unifying()` outside
 `_FRONT_END` against the old shared store — 7 failures on demand,
 zero under `threading.local`), narrowed the loop's fast pace to the
 canvas it still animates, and pinned the spectrograms to the README.
+
+## The notes arc — a take, and the line that wrote it
+
+2026-08-14, the day's fourth act, and the first slice of B4.  The
+roadmap's score editor was always "the star", and the star is a
+rewriting instrument: drag a note and the text changes.  What shipped
+is the half before that — a box that only *reads* — and the reason is
+the one the arc kept proving all day: every affordance in this editor
+has been fixed by Henri using it within the hour, and there is nothing
+to use until something draws.  A read-only roll exercises the take,
+the provenance, the height and the focus, and it can be looked at.
+
+**The spec was written first and revised from the code after**, which
+is the reverse of `spec/workbench.md`'s order and was deliberate both
+times: the mechanism was already standing, so what remained were
+decisions, and a decision written down can be argued with before it
+hard-codes anything.  Four passages carry an ***as built*** mark where
+the building disagreed with the design.
+
+**What it decided.**  A chancy score has no notes, it has takes, so
+the box renders the take the session's seed names and says which in
+its label — `seed` and `reroll` already existed and no new vocabulary
+was needed.  A note that traces to bytes is *span ink*: bright,
+clickable, and what a future drag will apply to.  A note that exists
+only in this take is *take ink*: it wears the span of the generator
+that drew it, draws dimmer, and its future drag will be refused with
+a sentence naming the generator's line, because dragging it would be
+asking a gesture to do programming.  A box on a sub-expression is its
+own take — seeds split by position — which is stated plainly rather
+than hidden, and waits on ariadne's paths to become the piece's.
+
+**Provenance lives in the view, and that is the whole design.**  The
+event tuple is the currency of two machines held in parity and only a
+picture wants spans, so nothing was threaded through either engine.
+The box descends the viewed expression's own parse tree, wrapping
+each written leaf in `tagAll`, and one `spreadTo` of the rebuild
+yields every event carrying the leaf that made it.  Both walks are
+new in `music.ges`; `spreadTo` is bounded by fuel and a window, so an
+endless `cycle` is welcome and a zero-width one says it was cut
+instead of hanging the window that asked — the sauna specimen's
+lesson spent as a bound rather than relearned.  `Notable`
+(`noteKey`/`noteVel`, beside `FromMIDI`) is how a payload is read,
+because the field order the obvious reading trusts is a convention
+the type checker never sees.
+
+**Four traps, each found by it failing.**  Slicing a leaf's text out
+between its span's ends looked obvious and swallowed the file: a
+`VPrefix` carries a defaulted span, so `'(H 60 100)` sliced from
+column zero.  The formatter prints a node back and is idempotent, so
+spans were demoted to one job — the *line*, taken from atoms, which
+are the parts whose positions survive fixity resolution.  `>>=`, `'`
+and `++` are class methods, so an unannotated generated definition
+collects dictionaries, becomes arity two, and dies at run time with
+"too few args" — hence a signed `tagAll` and an `at 0` anchor.  An
+assigned part is a `[: Void :]` with no payload left to read, and the
+modern idiom assigns *inside* the part, so the box generates
+unassigned twins (`voices.B e` is `' e`) transitively; refusing that
+would have been refusing the idiom the newest examples teach.  And a
+generated picture is not free-form: no unary minus, so a coordinate
+left of centre is `(0 - 192)`; one `Over` per note is one parenthesis
+per note, so chopin's hundred and forty overflowed the *parser* and
+the notes travel as a list folded by a small recursion, `scoped.ges`'s
+own shape.
+
+**F136 came out of it**, and is the kind this project collects: a
+lambda whose parameter is a tuple pattern dispatches a constrained
+call against the wrong instance, silently.  `noteKey` picked `Notable
+Int` off the tuple's first field and every note drew as its own
+payload while the checker reported the right types throughout.  Four
+lines reproduce it; the box takes the event whole and opens it with
+`case`, and the comment names the entry so the workaround dies with
+the bug.
+
+**Two of the roadmap's four open questions are answered by it.**  What
+a chancy score shows: the take, labelled with its seed — the lean the
+roadmap already had, now built and lived with.  Who says how tall: the
+view grants and the content fits, which `spec/workbench.md` had
+decided when the row table shipped and the roadmap had simply never
+been told.  The other two stay open and belong to the editing half —
+whether every musical gesture is a span rewrite, and what owns the
+keyboard when a box can be typed into.  The read-only box needed no
+answer to either: its one gesture is a press that moves the caret,
+and it writes nothing.
+
+**Two examples show it.**  `noted.ges` is four bars where you can
+count the notes — a written left hand, a right hand that rolls one
+die a bar, and three asks reading each hand and the piece.
+`minute.ges` is the same box on a whole arrangement: twenty-four bars
+at 96 bpm, sixty seconds exactly, four parts entering and leaving, so
+what the roll shows is *shape* — and `--report`, built the same day
+for `spec/firstpiece.md`'s missing ears, reads the same form back as
+numbers.  The picture and the meter agree about the same minute,
+which is a good day's proof that both of them work.
