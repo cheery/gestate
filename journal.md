@@ -5586,3 +5586,57 @@ racily-clean rule, F127's constraint refusals learning the author's
 language and their own line, boxes clipped at the fold and the
 palette's page going where the room is (F132/F133), and `line 250`
 — the fiftieth verb — taking the margin's own coordinate back.
+
+## The box arc — a picture with a row for an anchor
+
+2026-08-14, the day's third act.  B2 stood in the roadmap as a
+display list crossing on its own channel; the crust move had already
+made that design obsolete, and what shipped is simpler than what was
+written: **the box is the window's own walk**, laid out in the box's
+granted height, blitted with the band's edges as the clip, and the
+wire owes one verb — `canvas <line> <key>` — because the picture
+never crosses at all.  B3 followed the same afternoon for the price
+the retired vocabulary predicted: a touch in a box is a `touched`
+like any other, no id, no coordinates, and the grab remembers which
+band took it.
+
+**The ask was revised three times in one day, each time by Henri
+using it within the hour.**  Always-on under the declaration lasted
+until sad_lantern.png showed the picture severing its own
+declaration from its body.  The `canvas` line with `sink`'s manners
+replaced it — the box stands where the question is written, deleting
+the line takes it — and `canvas <expr>` first rewrote to
+`substrate = <expr>`, which chopin-session.ges caught refusing its
+very first real use with a duplicate-declaration complaint about a
+name the author never wrote twice.  Now every expression ask is its
+own hidden `__canvas_<k>__`, compiled as one more substrate with its
+entry pointed at the hidden name (tried as `Sig Sub`, then under
+`constSig`, so a still picture asks with no lift written); the
+payload grew `box` sections, the window keeps a walker per key, and
+readings broadcast to all of them.  Multiple canvas — sink's
+semantics, where several asks are normal, which is the model
+Henri's hands assumed before the code did.
+
+**What the arc taught, in defects.**  Readings gated on the canvas
+view froze every fader in the box — the traces' whatever-shows
+clause was the answer, for the traces' own reason.  Centring the
+walk in the fold-clipped remainder slid chopin's disc as the box
+crossed the fold — the layout is the box's full height, the fold
+crops only the blit.  Centring in the text area sat the picture off
+the full-width band the eye sees — a picture is not code either.
+And the `canvas` line reaching a raw parser cost lantern its knobs
+("no parameters"), which turned out to be `sink`'s bug too, standing
+since it shipped, unnoticed because every sinked example had no
+knobs to lose: `blanked` now rewrites both words first, its stated
+job all along.  Jumps learned to land with air (`JUMP_AIR`) after
+`line 272` twice answered with the target's box exactly out of
+sight.
+
+**examples/audio/chopin.ges is the demo** — the E minor prelude
+simplified, chords sinking a semitone at a time under the sighing
+line, a disc breathing the output's peak and eight hammer lamps on
+the probes.  The same day closed F103 with the reproduction its
+entry demanded (`_unifies` entering `unifying()` outside
+`_FRONT_END` against the old shared store — 7 failures on demand,
+zero under `threading.local`), narrowed the loop's fast pace to the
+canvas it still animates, and pinned the spectrograms to the README.

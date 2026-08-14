@@ -452,42 +452,18 @@ per row, and `audiospans` already anchors things to declarations.
 There is **one real implementation lump** — rows of varying height —
 and everything after it is decisions.
 
-### The mechanism, once
+### The mechanism and B1–B3 — closed out, and moved to `journal.md`
 
-Today every row is `font.h × scale`, and scrolling, `follow`,
-hit-testing and the caret all assume it.  A box between lines is a
-**per-row extra height**, carried in the furniture the way a knob's
-row is, owned by the view.  The rope, the undo and the caret never
-learn of it — a box is never text — so the one invariant to hold is
-that layout, scroll and hit-testing read the same table.  Built once,
-it serves every box kind below.
-
-### B1 — the complaint moves in
-
-`trouble` already crosses per row; drawing it as a read-only box under
-its line exercises the whole mechanism — anchoring, scroll, follow,
-hit-testing — with content that already exists and cannot argue back.
-**Acceptance**: a two-line error under line 12 pushes line 13 down; the
-caret, a click on line 13, and `goto 13` agree about where it went; the
-box follows its line through edits above it.
-
-### B2 — a box is a picture
-
-A box whose content is a **display list from the model**, version-
-stamped and crossing on its own channel exactly as the canvas does —
-because a box *is* a canvas with a row for an anchor.  Still read-only.
-This is deliberately the substrate machinery re-aimed, not a second
-content system: one painter, one `Sub`, and every future box kind —
-score views, buffer plots — becomes a program that draws.
-
-### B3 — a box can be touched
-
-Input, as a **gesture verb carrying the box's identity**, written into
-`spec/workbench.md`'s gesture list *before* the shell learns it, with
-seam tests at the verb protocol from the first day.  That order is
-F101's lesson stated as law: the canvas lost its hands because the
-input half lived in one host's code and nowhere else; a box's input
-half is born in the contract or it is not born.
+The row table, the complaint's box, the picture and its hands all
+shipped — the mechanism and B1 on the days the scopes arrived, B2 and
+B3 together on 2026-08-14, landed on the walked floor and simpler
+than designed here: no display list crosses, because the box is the
+window's own walk clipped to a band, and a touch in a box is a
+`touched` like any other.  The ask is a `canvas` line with `sink`'s
+manners — bare for the substrate, `canvas <expr>` for any
+expression's own box, several at once.  `spec/workbench.md`
+§"Content boxes" is the contract as built; the journal entry has the
+story, including the three revisions a day of Henri using it forced.
 
 ### B4 — the score editors, which are the point
 
