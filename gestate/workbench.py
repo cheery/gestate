@@ -521,17 +521,27 @@ def _canvas_frame(bench) -> list:
     return bench.picture()
 
 
-#: **At most this share of the loop's time goes to the canvas.**  A frame is
-#: `tick` plus `picture`, and both are the G-machine walking the whole
-#: substrate — 49 ms of it for `examples/audio/lantern.ges`, against the 2 ms
-#: `pace` sleeps while a hand is moving.  Run every pass, that one program
-#: would take the loop from ~500 Hz to ~20 Hz and a drag on the canvas would
-#: stutter, which is the cost of animation landing on the thing animation is
-#: for.  So the next frame is held off by twice the last one's cost: a cheap
-#: canvas still draws every pass, an expensive one drops to a third of the
-#: loop and gestures keep the rest.  Adaptive rather than a fixed fps because
-#: the cost is the *program's*, and no constant here could know it.
-CANVAS_SHARE = 2.0
+#: **How long the next canvas frame is held off, as a multiple of the
+#: last one's cost.**  A frame is `tick` plus `picture`, both the
+#: G-machine walking the whole substrate, and the multiple is adaptive
+#: because the cost is the *program's* — no constant here could know it.
+#:
+#: **One, not two, and the reason is the clock** (`spec/performance.md`
+#: §4).  This began at 2.0 — hold the loop back so gestures keep two
+#: thirds of it — but the stopwatch showed the rest was where the
+#: machine cooled: on a `powersave` governor the loop napping between
+#: walks dropped the core to 0.7 GHz and *tripled* the walk it was
+#: resting from, a self-inflicted 5.8 Hz lantern.  Walking back-to-back
+#: keeps the core hot, and the numbers all moved the right way: the
+#: walk 60 → 26 ms, the cadence 8 → 34 Hz settled, and the palette
+#: *faster* while animating (worst 51 ms against 64), because a gesture
+#: always waited for the walk in progress and a hot walk is a shorter
+#: wait.  What 1.0 spends is a core, roughly pegged while — and only
+#: while — a canvas is being watched; the loop still runs one pass
+#: between walks, so gestures are answered every walk-length, the same
+#: bound the hold-off never changed.  `GESTATE_CANVAS_SHARE` overrides
+#: it for measuring.
+CANVAS_SHARE = float(os.environ.get("GESTATE_CANVAS_SHARE", "1.0"))
 
 #: And never further apart than this, however dear the frame — a canvas that
 #: costs a second still moves, visibly, rather than looking hung.

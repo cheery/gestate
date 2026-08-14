@@ -222,3 +222,27 @@ more sustained load than that — the drag's extra heat comes from the
 loop cannot imitate by pacing alone.  Dragging is unchanged (~28 ms
 walks, 67 ms apart, within run variance).  Cost of the change: ~500
 wakeups/s while — and only while — a canvas is being watched.
+
+**And the lever that landed: `CANVAS_SHARE` 2 → 1.**  Still
+noticeably laggy at 8 Hz, and the stopwatch said why: the hold-off
+*rest* after each walk was where the core cooled, so the throttle was
+buying its own cost — resting a walk makes the next walk dearer.
+Walking back-to-back (hold-off = the walk's own length, i.e. the next
+walk starts as the hold-off expires):
+
+| number | SHARE=2 | SHARE=1 |
+|---|---|---|
+| settled walk | 60 ms | **26–27 ms** |
+| settled cadence | 122–127 ms (≈8 Hz) | **29.5 ms (≈34 Hz)** |
+| dragging cadence | 57–67 ms (≈15–17 Hz) | **26–27 ms (≈38 Hz)** |
+| query→list while animating | avg ~60, worst 64 ms | **avg 16–26, worst 51 ms** |
+
+Nothing paid: a gesture always waited for the walk in progress — the
+hold-off never shortened that bound — and a hot walk is a *shorter*
+wait, which is why even the palette got faster.  What SHARE=1 spends
+is one core, roughly pegged while — and only while — a canvas is
+watched; on this fanless chip a long session may eventually thermal-
+throttle, which would show up as the walk creeping back up.  The
+constant keeps a `GESTATE_CANVAS_SHARE` override for measuring, and
+the old worst case is unchanged: a 200 ms walk gave 200 ms gesture
+gaps under either setting.
