@@ -1,0 +1,225 @@
+# After Chopin — the E minor prelude, Op. 28 No. 4, simplified.
+#
+#   python -m gestate.workbench examples/audio/chopin.ges
+#
+# The piece is two ideas: a melody that sighs on one note, and chords
+# under it that sink by semitones — one voice of the chord slipping at a
+# time while the others hold.  That is why it fits this file: the whole
+# harmony is a ladder written note by note, `pachelbel.ges`'s argument
+# in minor.  What stands here is the opening period, not the prelude
+# entire: the descent, the turn through E7 toward A minor, and the close
+# back on B7 into E minor.
+#
+# **The visual is the instrument seen** (`spec/substrate.md`): a disc
+# that breathes with the output's own peak, and eight hammer lamps — one
+# per voice of the bank — that strike bright and cool as their notes
+# age.  Chords land as three lamps at once; the tune holds one lamp lit
+# across the bar.  `envelope.ges` is the probe's teaching example; this
+# is a probe put to a piece.
+
+# ── The piece, seen ──────────────────────────────────────────────────────
+#
+# High in the file so the canvas box greets you on open: the disc is the
+# output's own peak breathing, and the eight lamps are the bank's eight
+# voices — struck bright, cooling as their notes age.  A chord is three
+# lamps at once; the tune is one lamp held across the bar.
+
+dim : Sig Colour
+dim = colour 120 124 134
+
+#: The breath: a disc whose radius is the output's own peak.  `Sized`
+#: reserves the loudest breath's room, so the lamps below do not ride
+#: it — and the radius is clamped to that room, because the extent is
+#: declared and a circle that outgrows its own box is cut by whatever
+#: pane it lands in (it was, by the canvas box's top edge).
+discOf : Float -> Sub
+discOf v = Sized 170 96
+    (Circle (8 + floor (clamp 0.0 40.0 (v * 110.0))) (RGB 214 178 110))
+
+#: A hammer lamp.  Cold is a coal; struck is bright at its own hue and
+#: shrinks as the probe's age grows — about a third of a second a step,
+#: so a chord's afterglow fades over the bar it belongs to.  The age is
+#: one past the truth (`0` is *no voice*), the probe's own convention.
+emberOf : Int -> Float -> Sub
+emberOf i age = case age < 1.0 of
+    True -> Circle 2 (RGB 58 56 66)
+    False -> Circle (11 - floor (clamp 0.0 7.0
+                       ((age - 1.0) / (0.35 * sampleRate))))
+                    (hueOf i)
+
+#: Ivory into amber, one shade per voice, so two lamps lit by one chord
+#: are still two voices.
+hueOf : Int -> Colour
+hueOf i = RGB (236 - 6 * i) (206 - 10 * i) (152 - 8 * i)
+
+lampAt : Int -> Float -> Sub
+lampAt i age = Sized 30 30 (emberOf i age)
+
+lamps : Sig Sub
+lamps = !lampAt 0 age0 `row` !lampAt 1 age1
+ `row` !lampAt 2 age2 `row` !lampAt 3 age3
+ `row` !lampAt 4 age4 `row` !lampAt 5 age5
+ `row` !lampAt 6 age6 `row` !lampAt 7 age7
+
+caption : Sig Sub
+caption = label 150 14 "OP. 28 NO. 4" dim
+
+substrate : Sig Sub
+substrate = gap 0 14 `column` !discOf loud `column` gap 0 12
+            `column` lamps `column` gap 0 10 `column` caption
+
+# ── What the instrument tells you ────────────────────────────────────────
+
+peak : Chan Float
+peak = chan
+
+loud : Sig Float
+loud = 0.0 ::: mkSig (wait peak)
+
+# One probe per voice — the age in samples, `0` when silent
+# (`envelope.ges` is the long explanation).
+
+probe0 : Chan Float
+probe0 = chan
+probe1 : Chan Float
+probe1 = chan
+probe2 : Chan Float
+probe2 = chan
+probe3 : Chan Float
+probe3 = chan
+probe4 : Chan Float
+probe4 = chan
+probe5 : Chan Float
+probe5 = chan
+probe6 : Chan Float
+probe6 = chan
+probe7 : Chan Float
+probe7 = chan
+
+age0 : Sig Float
+age0 = 0.0 ::: mkSig (wait probe0)
+age1 : Sig Float
+age1 = 0.0 ::: mkSig (wait probe1)
+age2 : Sig Float
+age2 = 0.0 ::: mkSig (wait probe2)
+age3 : Sig Float
+age3 = 0.0 ::: mkSig (wait probe3)
+age4 : Sig Float
+age4 = 0.0 ::: mkSig (wait probe4)
+age5 : Sig Float
+age5 = 0.0 ::: mkSig (wait probe5)
+age6 : Sig Float
+age6 = 0.0 ::: mkSig (wait probe6)
+age7 : Sig Float
+age7 = 0.0 ::: mkSig (wait probe7)
+
+# ── What a note carries ──────────────────────────────────────────────────
+
+Hammer := Hammer Int Int                    # key number, velocity
+
+#: Eight, exactly the probes the editor can hand back: at the thickest a
+#: chord's three tails overlap the next stroke's three notes while the
+#: tune holds a note over both, and the eighth is the tune's own tail.
+voices piano 8 hammerVoice : Sig Float
+
+instance FromMIDI Hammer where
+    noteOn ch p v = Just (Hammer p v)
+
+# ── The instrument ───────────────────────────────────────────────────────
+
+#: Struck, not bowed: the attack is immediate, the body is decay, and
+#: what sustain there is stands low — a held key on a piano is a note
+#: getting quieter slowly.
+env : Adsr
+env = Adsr 0.004 1.4 0.25 0.4
+
+hzOf : Hammer -> Float
+hzOf h = case h of
+    Hammer k v -> keyHz k
+
+levelOf : Hammer -> Float
+levelOf h = case h of
+    Hammer k v -> toFloat v / 127.0
+
+#: A fundamental and two overtones, each quieter — enough of a spectrum
+#: to read as felt on string without pretending to be a piano.
+timbre : Sig Float -> Sig Float
+timbre hz = sine hz + 0.4 * sine (hz * 2.0) + 0.15 * sine (hz * 3.0)
+
+hammerVoice : Sig Gate -> Sig Hammer -> Sig Float
+hammerVoice g s = timbre (!hzOf s) * adsr env g * !levelOf s
+
+# ── The piece ────────────────────────────────────────────────────────────
+#
+# Largo, 4/4 here: four chord strokes to the bar where Chopin writes
+# eight quavers, and the melody in the long values it actually has.
+# Every chord below is three notes written side by side with `||`, and
+# the descent is legible in the numbers: one column of the stroke moves
+# down a semitone per bar while the others wait their turn.
+
+bpm : Int
+bpm = 46
+
+#: A chord tone, quiet — there are three at once and they are the floor
+#: the tune stands on, eight strokes a bar in the original and four here.
+quiet : Int -> [: Hammer :]
+quiet k = '(Hammer k 46)
+
+#: The tune, singing clear of the accompaniment.
+sing : Int -> [: Hammer :]
+sing k = '(Hammer k 84)
+
+#: Three notes at the same instant: `||` is the whole mechanism.
+stroke : Int -> Int -> Int -> [: Hammer :]
+stroke a b c = quiet a || quiet b || quiet c
+
+#: One bar of accompaniment: the same chord struck four times.
+barOf : [: Hammer :] -> [: Hammer :]
+barOf s = s ++ s ++ s ++ s
+
+#: The ladder itself, a bar per rung.  Read it as three columns: the top
+#: voice E–E–E–D#–D–D–C#–C, the middle B–A#–A–A–A–G#–G–G, the bass
+#: G–F#–F#–F#–F–E–E–E — never two slipping in the same bar, which is the
+#: prelude's whole method.  Then the cadence: B7 in the old register,
+#: and E minor held to let the room ring out.
+chords : [: Hammer :]
+chords = barOf (stroke 55 59 64)            # E minor
+      ++ barOf (stroke 54 58 64)            # B7 leaning in
+      ++ barOf (stroke 54 57 64)
+      ++ barOf (stroke 54 57 63)            # B7
+      ++ barOf (stroke 53 57 62)            # the chromatic passing bar
+      ++ barOf (stroke 52 56 62)            # E7, turning toward A minor
+      ++ barOf (stroke 52 55 61)
+      ++ barOf (stroke 52 55 60)            # A minor over C
+      ++ barOf (stroke 47 51 57)            # B7, low
+      ++ barOf (stroke 47 51 57)
+      ++ (stroke 52 55 59 |* 4)             # E minor, one stroke, rung out
+
+#: The sigh: B held whole bars, falling to its upper neighbour and back,
+#: then stepping down — A, G, F#, E — and closing on the leading tone
+#: before it settles.  Durations are `|*` of the one-beat note, so the
+#: line is exactly as long as the ladder under it.
+tune : [: Hammer :]
+tune = (sing 71 |* 4)
+    ++ (sing 72 |* 2) ++ (sing 71 |* 2)
+    ++ (sing 71 |* 4)
+    ++ (sing 71 |* 3) ++ sing 69
+    ++ (sing 69 |* 2) ++ (sing 67 |* 2)
+    ++ (sing 67 |* 2) ++ (sing 66 |* 2)
+    ++ (sing 66 |* 4)
+    ++ (sing 66 |* 2) ++ (sing 64 |* 2)
+    ++ (sing 64 |* 2) ++ (sing 63 |* 2)
+    ++ (sing 63 |* 4)
+    ++ (sing 64 |* 4)
+
+score : [: Void :]
+score = (chords || tune) >>= voices.piano
+
+# ── The mix ──────────────────────────────────────────────────────────────
+
+#: Set on the thickest beat — three tails, three strikes and the tune —
+#: and the lowpass is the felt: three overtones on seven voices is more
+#: treble than a Largo wants.
+sound : Sig Float
+sound = gain 0.2 (lowpassOnePole 2800.0 piano)
+

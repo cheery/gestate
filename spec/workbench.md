@@ -1022,13 +1022,34 @@ pin that equivalence explicitly.
   error under line 12 pushes line 13 down; the caret, a click on line
   13 and `goto 13` agree about where it went; the box follows its line
   through edits above it.
-* **B2 — a box is a picture.**  A `box <id> <line> <rows>` furniture
-  verb (unknown verbs are skipped, so an old window loses boxes, not
-  the file), and the picture channel grows *sections*: a `box <id>`
-  line switches the target, the unnamed leading section stays the
-  whole-window canvas.  One painter, offset and clipped to the band —
-  a box is a canvas with a row for an anchor, and deliberately not a
-  second content system.
+* **B2 — a box is a picture.**  Written for the shapes wire as a
+  `box <id> <line> <rows>` verb with picture-channel *sections* —
+  **then the walked floor made both halves simpler than their
+  design.**  The picture is the window's own walk: `Walker::frame`
+  handed the band's centre, painted into a band-sized canvas and
+  blitted — one painter, clipped by the band's own edges, no second
+  content system and no display list crossing at all.  So the wire
+  owes only the anchor: `canvas <line>` (unknown verbs are skipped,
+  so an old window loses the box, not the file), spoken whenever the
+  file declares `substrate` and the build crossed — the declaration
+  is the ask, the scope precedent — and anchored by scanning the
+  text being *edited*, so the box follows its declaration through
+  edits and dies with it at the keystroke.  The anchor is the
+  definition's **last** line: a box on the `=` stood between the
+  declaration and its own continuation body (sad_lantern.png), and a
+  picture that severs the program that draws it annotates nothing.
+  The picture gets air — an inset of half a cell, the band painting
+  its own ground — because a walk designed for a pane, cut flush
+  against text, reads as damage; the scopes stay flush, since a
+  trace draws itself inside its panel and a walk cannot know it is
+  in one.  Readings cross *whatever shows*, the traces' own clause,
+  because the box lives in the source view — gating them on the
+  canvas view left every fader and lamp in the box frozen.  The view
+  says how tall (`CANVAS_ROWS`), per the decided rule; the `canvas`
+  command still gives the full view; a substrate that cannot cross
+  keeps the full view only, because the box *is* the walk and there
+  is nothing to walk.  Still read-only: a click in the box answers
+  the anchor line until B3.
 * **B3 — a box can be touched.**  The gesture was reserved here
   before any window learned it — F101's lesson as law: `boxtouch
   <id> <kind> <x> <y>`, coordinates in the box's own pixels.  **Then

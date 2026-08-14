@@ -737,17 +737,21 @@ def run(path, rate: int = 44100, block: int = 512,
                 # (`spec/workbench.md` §"The canvas walks over crust",
                 # `spec/scope.md`) — so what the model's frame owes is
                 # facts, not pictures: `reading` lines for a crossed
-                # canvas while it shows, and `trace` lines for the
-                # scopes *whatever shows*, because their boxes stand
-                # in the source view beside the code.  At
-                # `READ_EVERY`, because the read rate is the meter's
-                # window; only when they moved, because a meter at
-                # rest is not news; never a touch's echo, which would
-                # snap a fader under a hand that had moved on.
+                # canvas and `trace` lines for the scopes, both
+                # *whatever shows*, for the same reason: the boxes
+                # stand in the source view beside the code — the
+                # scopes' from the start, and the canvas's since B2
+                # ("the substrates stand still" was readings gated on
+                # the canvas *view*, freezing every fader and lamp in
+                # the box).  At `READ_EVERY`, because the read rate is
+                # the meter's window; only when they moved, because a
+                # meter at rest is not news; never a touch's echo,
+                # which would snap a fader under a hand that had moved
+                # on.
                 if time.monotonic() >= next_frame:
                     next_frame = time.monotonic() + READ_EVERY
                     lines_out = []
-                    if showing and crossed:
+                    if crossed:
                         lines_out += [f"reading\t{n}\t{v}"
                                       for n, v in bench.observe()]
                     for label, points in bench.scope_traces():

@@ -2857,6 +2857,41 @@ def furniture(session: "Session", bench=None) -> str:
                 # two it knows and draws every window as a scope.
                 out.append(f"scope\t{label}\t{i}\t{flavor}")
 
+    # **The canvas stands under its own declaration** (B2,
+    # `spec/workbench.md` §"Content boxes").  The declaration is the
+    # ask — the scope precedent — and the anchor comes from the text
+    # being edited for the scopes' own reason: the box follows its
+    # declaration through edits and dies with it at the keystroke.
+    # Only when the build crossed, because the box *is* the window's
+    # walk and an uncrossed substrate has nothing to walk.  The
+    # anchor is the definition's **last** line: `substrate =` often
+    # carries its body on continuation lines, and a box on the `=`
+    # severed the declaration from its own body (Henri's
+    # sad_lantern.png — the picture standing between line 272 and
+    # what line 272 says).
+    sub = getattr(b, "substrate", None)
+    if sub is not None and getattr(sub, "crossing", None) is not None:
+        lines = list(session._lines())
+        signed = defined = 0
+        for i, text_line in enumerate(lines, start=1):
+            code = text_line.split("#", 1)[0]
+            if not defined and _re.match(r"substrate\s*=", code):
+                defined = i
+            elif not signed and _re.match(r"substrate\s*:", code):
+                signed = i
+        anchor = defined or signed
+        if defined:
+            # The body's continuation lines: indented code below the
+            # `=`, ending at the first blank or column-zero line.
+            for j in range(defined, len(lines)):
+                code = lines[j].split("#", 1)[0]
+                if code.strip() and code[:1].isspace():
+                    anchor = j + 1
+                else:
+                    break
+        if anchor:
+            out.append(f"canvas\t{anchor}")
+
     # **What file this is, and whether it is written down.**  The window
     # had no way to say either: a name you cannot see is one you have to
     # remember, and an edit you have not saved looked exactly like one

@@ -798,6 +798,75 @@ impl EditorWindow {
         view::paint(canvas, &f, font, self.scale());
     }
 
+    /// The walked canvas as a content box (B2) — the picture under
+    /// the `substrate` declaration, still animating, clipped by the
+    /// band's own edges.
+    ///
+    /// **The same walk the full view animates**, handed the band's
+    /// centre instead of the window's: painted into a band-sized
+    /// canvas and blitted, so the clip is stated once by the band's
+    /// bounds — the fold (F132) and the window edge included.
+    /// Answers whether it drew a live band, which keeps the frame
+    /// pump honest: a box scrolled off screen stops asking for
+    /// frames, and the walk goes still the way an unshown canvas
+    /// does.
+    fn paint_canvas_box(&self, canvas: &mut gestate_panel::paint::Canvas,
+                        doc: &Document, view: &View, font: &Font,
+                        chrome: &crate::furniture::Furniture) -> bool {
+        let Some(line) = chrome.canvas_line else { return false };
+        // A scope sharing the declaration's line owns the box — the
+        // cap already squeezed the two grants together, and the full
+        // view is one word away.
+        if chrome.scopes.iter().any(|(_, l, _)| *l == line) {
+            return false;
+        }
+        let mut walker = self.walker.borrow_mut();
+        let Some(w) = walker.as_mut() else { return false };
+        let slots = view.slots(doc, font);
+        let Some(slot) = slots.iter().find(|s| s.row + 1 == line) else {
+            return false;
+        };
+        if slot.box_h <= 0 {
+            return false;
+        }
+        let (cw, ch) = (view.cw(font), view.ch(font));
+        let tall = view.h - view.status_h(font) - view.piano;
+        let gutter = view.gutter_cols(doc) as i32 * cw;
+        let wide = view.text_cols(font, doc) as i32 * cw - 4;
+        let top = slot.y + ch;
+        if top >= tall {
+            return false;
+        }
+        let high = (slot.box_h - 2).min(tall - top - 1);
+        if high <= 2 || wide <= 2 {
+            return false;
+        }
+        // **The picture gets air** — Henri's sad_lantern.png: a walk
+        // designed for a pane, cut flush against the text above and
+        // below, read as damage.  The band paints its own ground and
+        // the walk lives in an inset, so whatever the crop takes, the
+        // edge it takes it at is visibly the box's and not the text's.
+        // The scopes stay flush: a trace draws *itself* inside its
+        // panel, a walk cannot know it is in one.
+        let pad = (ch / 2).max(4);
+        let (iw, ih) = (wide - 2 * pad, high - 2 * pad);
+        if iw <= 2 || ih <= 2 {
+            return false;
+        }
+        let mut band = gestate_panel::paint::Canvas::opaque(
+            iw, ih, view::CHROME);
+        gestate_panel::paint::paint(&mut band, w.frame(iw / 2, ih / 2));
+        canvas.fill_rect(gutter + 2, top, wide, high, view::CHROME);
+        for yy in 0..ih {
+            for xx in 0..iw {
+                if let Some(px) = band.get(xx, yy) {
+                    canvas.put(gutter + 2 + pad + xx, top + pad + yy, px);
+                }
+            }
+        }
+        true
+    }
+
     fn canvas_centre(&self) -> (i32, i32) {
         let view = self.view.borrow();
         (view.w / 2, view.h / 2)
@@ -1461,6 +1530,9 @@ impl WindowHandler for EditorWindow {
             *canvas = Canvas::opaque(view.w, view.h, view::BG);
         }
         let chrome = self.chrome.borrow();
+        // Whether a canvas box drew a live band this frame — the
+        // source view's share of the walked animation (B2).
+        let mut box_live = false;
         if painting {
             if self.on_canvas.get()
                 && self.walker.borrow().is_some()
@@ -1522,6 +1594,8 @@ impl WindowHandler for EditorWindow {
                             &view::frame_with(&doc, &view, font, &chrome),
                             font, self.scale());
                 self.paint_scopes(&mut canvas, &doc, &view, font, &chrome);
+                box_live = self.paint_canvas_box(&mut canvas, &doc, &view,
+                                                 font, &chrome);
             }
         }
         // The palette over the text, in its own frame — chrome over a
@@ -1561,9 +1635,12 @@ impl WindowHandler for EditorWindow {
         // **A walked canvas re-dirties itself**: the animation lives on
         // this thread now, so every presented frame asks for the next
         // one, at the window's own rate — the `SHARE=1` argument one
-        // floor up: the canvas is the thing being looked at.
+        // floor up: the canvas is the thing being looked at.  A live
+        // canvas *box* counts the same way, and only while it actually
+        // drew — scrolled away, the pump stops and the walk goes still.
         self.dirty.set(self.stress
-            || (self.on_canvas.get() && self.walker.borrow().is_some()));
+            || (self.on_canvas.get() && self.walker.borrow().is_some())
+            || box_live);
         if timing {
             let t3 = Instant::now();
             let mut c = self.clock.borrow_mut();

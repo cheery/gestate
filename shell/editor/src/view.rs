@@ -146,6 +146,12 @@ pub const SCOPE_ROWS: u16 = 4;
 /// kept.
 pub const BOX_MOST: u16 = 8;
 
+/// The walked canvas's box, in rows (B2) — the cap itself, because a
+/// canvas is a picture sized for a window and the box shows its middle:
+/// taller would eat the code, and the `canvas` command holds the full
+/// view one word away.
+pub const CANVAS_ROWS: u16 = BOX_MOST;
+
 /// One visible row: where its text band sits, and the box under it.
 ///
 /// **The row table `roadmap.md` §"Content boxes" names.**  A row is a
@@ -365,6 +371,15 @@ impl View {
             match boxes.iter_mut().find(|(l, _)| l == line) {
                 Some((_, had)) => *had = (*had + SCOPE_ROWS).min(BOX_MOST),
                 None => boxes.push((*line, SCOPE_ROWS)),
+            }
+        }
+        // **The canvas's box** (B2) — the walked picture under the
+        // `substrate` declaration.  The same merge as everything else,
+        // so a scope sharing the line stacks and the cap still holds.
+        if let Some(line) = chrome.canvas_line.filter(|l| *l > 0) {
+            match boxes.iter_mut().find(|(l, _)| *l == line) {
+                Some((_, had)) => *had = (*had + CANVAS_ROWS).min(BOX_MOST),
+                None => boxes.push((line, CANVAS_ROWS)),
             }
         }
         self.boxes = boxes;

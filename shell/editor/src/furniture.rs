@@ -171,6 +171,12 @@ pub struct Furniture {
     /// draws as a scope, because a window must not go blank over a
     /// word the model learned first.
     pub scopes: Vec<(String, usize, String)>,
+    /// Where the walked canvas stands as a content box — the
+    /// `substrate` declaration's line (`canvas <line>`, B2 in
+    /// `spec/workbench.md` §"Content boxes").  The model speaks it
+    /// only when the build crossed, because the box *is* this
+    /// window's walk; `None` draws no box and costs nothing.
+    pub canvas_line: Option<usize>,
     /// The file is not a program — a `.txt` or `.md` being edited
     /// beside the music.  Nothing compiles and nothing plays, and the
     /// window says `[inert]` where the transport would stand, so the
@@ -270,6 +276,9 @@ impl Furniture {
                 }
                 "inert" => {
                     f.inert = p.get(1).copied() == Some("1");
+                }
+                "canvas" if p.len() >= 2 => {
+                    f.canvas_line = p[1].parse().ok();
                 }
                 "scope" if p.len() >= 3 => {
                     if let Ok(line) = p[2].parse() {

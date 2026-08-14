@@ -2357,3 +2357,48 @@ def test_a_sink_line_wears_its_scope_box():
     rows = [l for l in furniture(s).splitlines()
             if l.startswith("scope\t")]
     assert rows == ["scope\tstab\t2\tscope"]
+
+
+def test_the_canvas_stands_under_its_own_declaration():
+    """B2 on the walked floor: the wire owes only the anchor.  Spoken
+    when the file declares `substrate` and the build crossed; the `=`
+    line anchors over the `:` line because the picture belongs under
+    the program that draws it; anchored from the edited text so the
+    box follows edits and dies with its declaration."""
+    from types import SimpleNamespace
+
+    view = _Editing("substrate : Sig Sub\nsubstrate = rect c\n")
+    s = session(view=view)
+
+    def canvas_rows():
+        return [l for l in furniture(s).splitlines()
+                if l.startswith("canvas\t")]
+
+    # No substrate built, or one that cannot cross: no box — the box
+    # *is* the walk, and there is nothing to walk.
+    assert canvas_rows() == []
+    s.bench.substrate = SimpleNamespace(crossing=None)
+    assert canvas_rows() == []
+
+    s.bench.substrate = SimpleNamespace(crossing=object())
+    assert canvas_rows() == ["canvas\t2"]
+
+    # An edit above moves the declaration; the anchor follows.
+    view.replace("quiet = 0.0\nsubstrate = rect c\n")
+    assert canvas_rows() == ["canvas\t2"]
+    view.replace("quiet = 0.0\n\nsubstrate = rect c\n")
+    assert canvas_rows() == ["canvas\t3"]
+
+    # A body on continuation lines carries the box to its *last* line
+    # — a box on the `=` severed the declaration from its own body
+    # (sad_lantern.png).  The next declaration is not a continuation.
+    view.replace("substrate =\n    rect c\n    `row` meter\nx = 1\n")
+    assert canvas_rows() == ["canvas\t3"]
+
+    # Only the signature written: it anchors, rather than nothing.
+    view.replace("substrate : Sig Sub\n")
+    assert canvas_rows() == ["canvas\t1"]
+
+    # Erased is gone at the keystroke; a comment does not count.
+    view.replace("# substrate = rect c\nsound = x\n")
+    assert canvas_rows() == []

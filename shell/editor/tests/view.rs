@@ -1208,6 +1208,30 @@ fn a_scope_grants_a_box_under_its_line() {
     assert_eq!(v.boxes[0].0, 2);
 }
 
+/// The walked canvas grants its box under the `substrate`
+/// declaration (B2) — `canvas <line>` on the wire, the view saying
+/// how tall, the same merge and cap as every other box kind.
+#[test]
+fn the_canvas_grants_a_box_under_its_declaration() {
+    use gestate_editor::view::{BOX_MOST, CANVAS_ROWS};
+
+    let chrome = Furniture::read("canvas\t3");
+    let mut v = rows_of(12, 900);
+    v.grant(&chrome, &LARGE);
+    assert_eq!(v.boxes, vec![(3, CANVAS_ROWS)]);
+
+    // A malformed or absent line draws no box and costs nothing.
+    let none = Furniture::read("canvas\tnonsense");
+    v.grant(&none, &LARGE);
+    assert_eq!(v.boxes, vec![]);
+
+    // Sharing a line with a scope merges under the one cap.
+    let both = Furniture::read("canvas\t2\nscope\tpost\t2");
+    v.grant(&both, &LARGE);
+    assert_eq!(v.boxes.len(), 1);
+    assert_eq!(v.boxes[0], (2, BOX_MOST));
+}
+
 /// Two scopes written on one line stack — one honest line, two
 /// windows — each adding its rows to the same box, capped as ever.
 #[test]
