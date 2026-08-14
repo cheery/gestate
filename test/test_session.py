@@ -2208,3 +2208,20 @@ def test_reopening_the_list_starts_where_the_file_is(tmp_path):
     assert it.choices() == [], "nothing is being asked for"
     act(it, "wants\topen\t0\t")
     assert [t for t, _n, _c, _s, _d in it.choices()] == home
+
+
+def test_a_touched_channel_is_the_meaning_not_the_place():
+    """`spec/workbench.md` §"The canvas walks over crust": a window
+    that walks the substrate hit-tests and clamps where the picture
+    is, so what crosses is the channel's name and the fraction its
+    element produced — never coordinates."""
+    s = session()
+    s.bench.touched = lambda name, v: s.bench.log.append(("touched", name, v))
+    assert act(s, "touched\twarmthChan\t0.62") == ""
+    assert s.bench.log[-1] == ("touched", "warmthChan", 0.62)
+    # A value that is not one is a sentence, not a traceback.
+    assert act(s, "touched\twarmthChan\tup-a-bit").startswith("touched:")
+    # And a bench from before the verb existed loses a drag, not the
+    # editor — the same lenience every gesture keeps.
+    del s.bench.touched
+    assert act(s, "touched\twarmthChan\t0.5") == ""

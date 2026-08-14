@@ -379,6 +379,33 @@ resolved the day they were filed.
   was never on disk, so the unsaved `untitled.ges` session replays
   from what it began on.  `--against` stays for the moved-file case.
 
+### The canvas walks over crust — the plugin already shows the way
+
+Where the lagcheck chase ended (2026-08-14, `spec/performance.md` §4).
+The pacing and throttle fixes took the lantern from 5.8 Hz to ~38, and
+that is the ceiling of the *approach*, not of the machine: the editor's
+canvas walks the substrate with the Python reference machine
+(`_canvas_frame` → `gui.Substrate.tick()/picture()`, 18–27 ms a walk in
+situ), while the CLAP panel walks **the same compiled structure over
+`crust`** (`shell/panel/src/substrate.rs`) — natively, with no cost for
+a throttle to price and no clock for a nap to cool.  Henri's
+observation, and the measurement agrees: it is the same code, and there
+it runs.
+
+The move: hand the compiled substrate to the window's side and let the
+canvas animate there, the way the CLAP host already does — the walk,
+the hit-testing and the painter all exist in `gestate-panel`, and the
+dynscore parity fixtures pin that the two machines agree tree for
+tree.  What it buys: the picture channel stops carrying shapes across
+the wire per frame, the canvas runs at the window's own frame rate, and
+the gesture loop stops caring whether a canvas is showing at all
+(query→list under an animating canvas becomes the ordinary number).
+What it costs: the compiled substrate must reach the window (the clap
+engine's compile path exists), and canvas touch handling moves across
+the boundary with it — the seam F101 taught, so the gesture vocabulary
+should be settled before any window learns it.  A session of its own,
+not an evening.
+
 ### A probe on a signal — Henri's, and the one to try in the editor
 
 **Drop a probe on a line and watch that signal**: a scope and a

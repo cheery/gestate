@@ -2500,6 +2500,26 @@ class Session:
             self.view.insert(self.bench.note_text(midi))
         return ""
 
+    def touched(self, name: str, value: float) -> str:
+        """A canvas element wrote its channel — the meaning, not the
+        place.
+
+        The window that walks the substrate did the hit-testing, the
+        grab and the clamp where the picture is
+        (`spec/workbench.md` §"The canvas walks over crust"); what
+        crosses is the channel's declared name and the fraction its
+        own rule produced.  Recorded with the slide coalesced —
+        consecutive `touched` on one channel keep where the hand
+        ended — which is what makes this the first canvas gesture a
+        transcript can hold and replay.
+        """
+        value = float(value)
+        doing = getattr(self.bench, "touched", None)
+        if doing is not None:
+            doing(name, value)
+        self._journal().slid("touched", (name, value))
+        return ""
+
     def do_skip(self) -> str:
         """The identity of `++`.
 
@@ -3148,4 +3168,12 @@ def act(session: "Session", line: str) -> str:
         except ValueError:
             return f"touch: `{parts[2]} {parts[3]}` is not a place"
         return ""
+    if verb == "touched" and len(parts) >= 3:
+        # The crust-walking canvas's word: what the gesture *meant*,
+        # already hit-tested and clamped where the picture is —
+        # `spec/workbench.md` §"The canvas walks over crust".
+        try:
+            return session.touched(parts[1], float(parts[2]))
+        except ValueError:
+            return f"touched: `{parts[2]}` is not a value"
     return f"no gesture `{verb}`"

@@ -391,7 +391,9 @@ Gestures come back the same way, flat and few:
     state(zoom, rungs, undos, redos, saved, top, rows)
                                where the window's own state is
 
-(`boxtouch` is reserved by §"Content boxes" B3 and not yet spoken.)
+(`boxtouch` was reserved by §"Content boxes" B3 and is retired
+unspoken — §"The canvas walks over crust" owns the story; `touched`
+and `reading` are reserved there the same way.)
 
 **The argument types are what let the view ask.**  Twenty-five of the
 forty-nine commands take something, and picking one of those is not
@@ -840,6 +842,100 @@ chord rings must not recompile the graph under it.
 
 ---
 
+## The canvas walks over crust — the vocabulary first
+
+*The move is `roadmap.md` §"The canvas walks over crust"; this section
+is its boundary, written before any window learns a verb of it —
+F101's law, applied prospectively for once.  The machinery it names is
+built and tested: `shell/panel/src/substrate.rs` walks the same
+compiled structure the reference machine walks, `interact.rs` owns the
+grab, and `tests/substrate_parity.rs` pins both against `gui.py` — on
+lantern itself.*
+
+**The principle: coordinates never cross the wire; meanings do.**
+Today the window sends `touch(kind, x, y)` and the model's substrate
+does the hit-testing, because the element's extent lives there.  When
+the window walks the substrate, the extent lives *in the window* — so
+the hit-testing, the grab and the clamp happen where the picture is,
+exactly as the plugin panel already does, and what crosses is what the
+gesture *meant*:
+
+    touched <name> <value>       the canvas wrote a channel
+
+`name` is the channel's declared name — the program named it once, and
+nothing is routed by anything else.  `value` is what the attachment's
+own rule produced: the fraction of the element's extent, already
+clamped there, exactly the number `gui._gesture_value` defines.  The
+window never invents a value; it runs the same rule the reference
+machine runs, and the parity fixtures are what keep "the same rule"
+true.
+
+**The model's half of a `touched`** is what `Workbench.touch` already
+does after its walk, minus the walk: the value goes where `control`
+finds it by name, so the sound follows; and the reference substrate is
+kept in step through `Substrate.write`, so the model's picture — the
+one tests and headless runs see — agrees with the one on screen.
+
+**Three dividends, and they are why the verb is shaped this way:**
+
+* **The transcript finally records the canvas.**  `touch(kind, x, y)`
+  never entered the recording, because a coordinate is meaningless
+  without the walk that interprets it — the known replay gap.  A
+  `touched` is a fact about the program (`touched "warmthChan" 0.62`),
+  recordable like any command and replayable against the reference
+  machine by name.
+* **`boxtouch` retires before it was ever spoken.**  B3 reserved
+  `boxtouch <id> <kind> <x> <y>` for the shapes-wire world, where a
+  box's coordinates needed a box to belong to.  A box under crust is
+  more of the same walk, in the same program's channel namespace, so a
+  touch in a box is a `touched` like any other — no id, no
+  coordinates, no second vocabulary.  Reserving before speaking is
+  what made this retirement free, which is F101's law earning its
+  keep twice.
+* **A press that lands on nothing crosses as nothing.**  The window
+  knows, so the wire stops carrying the misses.
+
+**The other direction: readings.**  `observe()` writes the
+instrument's facts — `peak`, `rms`, `position`, the bands — into the
+substrate; the window's walk needs them instead.  They cross as
+
+    reading <name> <value>
+
+on the canvas's own channel, beside the description — the same
+argument that put the picture there: readings move every frame, and
+the furniture does not.
+
+**The payload.**  What the window must be handed to walk at all is
+exactly `gestate-clap`'s `engine::Substrate`, at runtime instead of
+compiled in: the serialized G-machine program (`crust.serialize`
+writes it today), the entry, the `Sub` constructor tags — a tag is a
+position in this program's own table and cannot be derived, only
+carried — and the declared channel names in written order, with the
+values as they currently stand, so a rebuild does not snap every fader
+back to its default.  It crosses on its own channel, not as furniture:
+it is kilobytes with newlines in it, and it changes on rebuild, not on
+keystrokes.
+
+**What stays where it is.**  `show(canvas|source)` and the `canvas`
+command are unchanged — when the canvas exists is still the model's
+answer.  `gui.py` remains the meaning: `touches()` stays the oracle,
+headless runs and `audioperform` still walk the reference machine, and
+the parity fixtures are the bridge's load test.  The Python substrate
+stops ticking per frame while a window walks — that is the point —
+but it does not stop existing, because a machine with no reference is
+a machine whose bugs are definitions.
+
+**Seam tests before the window speaks** — the order F101 demands:
+`touched` handled in `session.act` and exercised by tests before any
+Rust sends it (an unknown gesture already answers "no gesture", so an
+old model meeting a new window loses a fader drag, not the editor);
+`reading` is the model's own word going the other way, and its shape
+is pinned by a test when its channel exists.  In the transcript,
+consecutive `touched` on one channel coalesce to where the slide
+ended — the dialog's rule, for the same reason: a step per motion
+event would push the run-up to the bug off the top of the recording
+that exists to hold it.
+
 ## Content boxes — the rows grow a height
 
 The margin proved the idea sideways: a knob beside its own declaration
@@ -921,11 +1017,14 @@ pin that equivalence explicitly.
   whole-window canvas.  One painter, offset and clipped to the band —
   a box is a canvas with a row for an anchor, and deliberately not a
   second content system.
-* **B3 — a box can be touched.**  The gesture is **reserved here
-  before any window learns it** — F101's lesson as law: `boxtouch
-  <id> <kind> <x> <y>`, the box's identity first, coordinates in the
-  box's own pixels the way canvas `touch` already subtracts its
-  origin.  Seam tests at the verb from the first day.
+* **B3 — a box can be touched.**  The gesture was reserved here
+  before any window learned it — F101's lesson as law: `boxtouch
+  <id> <kind> <x> <y>`, coordinates in the box's own pixels.  **Then
+  the reservation paid off by being cancelled**: under §"The canvas
+  walks over crust" a box is more of the same walk in the same
+  program's channel namespace, so a touch in a box is a `touched`
+  like any other — no id, no coordinates, no second vocabulary.
+  Nothing to retire from any window, because no window ever spoke it.
 * **B4 — the score editors.**  Bound by the widget rule above: a box
   is a view over a span of source, every gesture on it is a text edit,
   undo is text undo.  The door that exists is whole-document `replace`

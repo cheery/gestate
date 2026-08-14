@@ -1033,6 +1033,19 @@ class Workbench:
         if self.substrate is not None:
             self.substrate.touch(kind, x, y)
 
+    def touched(self, name: str, value: float) -> None:
+        """A canvas element wrote its channel, by name.
+
+        `touch` minus the walk: the window walked the substrate,
+        hit-tested, grabbed and clamped, and this is what the gesture
+        *meant* (`spec/workbench.md` §"The canvas walks over crust").
+        The reference substrate keeps its picture in step, and the
+        value lands where `control` finds it by name so the sound
+        follows — the same two halves, from the other side of the wire.
+        """
+        if self.substrate is not None:
+            self.substrate.write(name, value)
+
     def tick(self) -> None:
         """A frame has passed, into the canvas.
 

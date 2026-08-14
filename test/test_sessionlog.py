@@ -524,3 +524,31 @@ def test_a_switch_before_any_recording_carries_nothing(tmp_path):
     assert switched.log is None
     switched.run("seek", 4)
     assert switched.log.path.endswith("two.ges")
+
+
+def test_a_slide_is_one_step_where_the_hand_ended(tmp_path):
+    """The dialog's rule for the fader: thirty motion events a second
+    recorded one by one would push the run-up to the bug off the top
+    of the recording that exists to hold it."""
+    s = Session(bench=Bench(tmp_path / "demo.ges"),
+                view=_typing(tmp_path, ""))
+    for v in (0.1, 0.3, 0.62):
+        act(s, f"touched\twarmthChan\t{v}")
+    act(s, "touched\tglowChan\t0.5")
+    act(s, "touched\twarmthChan\t0.9")
+    slid = [x.args for x in s.log.steps if x.verb == "touched"]
+    assert slid == [("warmthChan", 0.62), ("glowChan", 0.5),
+                    ("warmthChan", 0.9)], \
+        "consecutive slides on one channel did not coalesce"
+
+    # It reads back as itself and replays by name — the first canvas
+    # gesture a transcript can hold (`touch(kind, x, y)` never could:
+    # a coordinate is meaningless without the walk that interprets it).
+    steps = read(s.log.text())
+    bench = Bench(tmp_path / "demo.ges")
+    heard = []
+    bench.touched = lambda name, v: heard.append((name, v))
+    drifted = replay(Session(bench=bench, view=_typing(tmp_path, "")),
+                     steps, _typing(tmp_path, ""))
+    assert drifted == []
+    assert heard == slid, "the replay did not walk the same slides"

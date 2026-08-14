@@ -237,6 +237,23 @@ class Log:
         if len(self.steps) > KEEP:
             del self.steps[:len(self.steps) - KEEP]
 
+    def slid(self, verb: str, args: tuple) -> None:
+        """A continuous gesture's step — consecutive steps of one verb
+        on one target coalesce to where the slide ended.
+
+        The dialog's rule (`Session._asked_about`), for the same
+        reason: a fader ride is thirty motion events a second, and a
+        step per event would push the run-up to the bug off the top of
+        the `KEEP` window the recording exists to hold.  What a
+        reproduction needs is where the hand left it.
+        """
+        args = tuple(args)
+        if self.steps and self.steps[-1].verb == verb \
+                and self.steps[-1].args[:1] == args[:1]:
+            self.steps[-1] = Step(verb, args, "")
+            return
+        self.add(verb, args, "")
+
     def note(self, message: str) -> None:
         """A sentence the user was shown that no command asked for.
 
@@ -538,6 +555,15 @@ def replay(session, steps, typing=None) -> list:
             now = _reask(session, step)
             if step.said and now != step.said:
                 drifted.append((step, now))
+            continue
+        if step.verb == "touched":
+            # A canvas write, by name — replayed against the reference
+            # machine exactly the way the live editor keeps it in step.
+            # Not a command, so not through `run`: the window walked
+            # for the person; the recorded meaning walks for nobody.
+            doing = getattr(session, "touched", None)
+            if doing is not None and len(step.args) >= 2:
+                doing(step.args[0], step.args[1])
             continue
         now = session.run(step.verb, *step.args)
         if step.said and now != step.said:

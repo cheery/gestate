@@ -1945,3 +1945,36 @@ def test_the_line_is_read_from_either_of_the_compiler_voices():
     assert _line_of("Type mismatch (at prelude line 216:29)") == 0
     assert _line_of("bad (at elsewhere.ges:5:1)", "broken.ges") == 0
     assert _line_of("nothing positional at all") == 0
+
+
+#: The smallest touchable canvas: one channel, one fader track.
+TOUCHABLE = """\
+dragged : Chan Float
+dragged = chan
+
+level : Sig Float
+level = 0.5 ::: mkSig (wait dragged)
+
+substrate : Sig Sub
+substrate = onTouchY dragged (rect 12 120 (colour 40 40 40))
+"""
+
+
+def test_a_touched_name_reaches_the_reference_and_the_control(tmp_path):
+    """`Workbench.touched` is `touch` minus the walk: the reference
+    substrate keeps its picture in step and the value lands where
+    `control` finds it by name — the same two halves, written from
+    the far side of the wire."""
+    from gestate.gui import Substrate
+
+    bench = Workbench(tmp_path / "x.ges",
+                      command=_pacer(tmp_path / "stream.raw"))
+    bench.substrate = Substrate(TOUCHABLE, rate=8000)
+    bench.touched("dragged", 0.75)
+    assert bench.substrate.values["dragged"] == 0.75
+    # A name the program never declared is not written and not paid for.
+    bench.touched("nosuch", 0.5)
+    assert "nosuch" not in bench.substrate.values
+    # And a bench with no canvas swallows the write, as `touch` does.
+    bench.substrate = None
+    bench.touched("dragged", 0.1)
