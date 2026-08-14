@@ -13,7 +13,7 @@ fn main() {
         None => "sound : Sig Float\nsound = sine 220.0\n".repeat(4),
     };
     let mut d = Document::new(&text);
-    let mut v = View { top: 0, left: 0, w: 1000, h: 700, gutter: true, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false };
+    let mut v = View { top: 0, left: 0, w: 1000, h: 700, gutter: true, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false, hint: false };
     println!("{} chars, {} rows, {} visible", d.len(), d.rows(), v.rows(&LARGE));
 
     let t = Instant::now();

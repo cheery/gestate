@@ -427,6 +427,7 @@ impl EditorWindow {
                 scale: crate::font::LADDER[crate::font::LADDER_DEFAULT].1,
                 boxes: Vec::new(), foot_rows: 1,
                 warning: String::new(), plus_hidden: false,
+                hint: false,
             }),
             zoom: Cell::new(crate::font::LADDER_DEFAULT),
             dragging: Cell::new(false),
@@ -611,6 +612,27 @@ impl EditorWindow {
         }
         self.host.gesture(Gesture::Struck(c.clone(), code, down).line());
         Some(EventStatus::Captured)
+    }
+
+    /// Open the list — from `Ctrl-K` or from the burger.
+    ///
+    /// **One door**, so the key and the button cannot come to mean
+    /// different things: whichever one is pressed, the same gestures
+    /// cross the wire in the same order.
+    fn summon_list(&self) {
+        self.to_the_list();
+        let asks = self.palette.borrow_mut().show();
+        // **Opening it ends whatever it was asking.**  `hide` clears
+        // every scrap of the last question and `show` cleared none of
+        // it on the model's side — so a list reopened after walking
+        // into a directory was handed that directory's rows, and
+        // `open` did not start where you are.  The same asymmetry the
+        // palette had internally, across the wire.
+        self.host.gesture(Gesture::Asked.line());
+        if let Asks::Filter(q) = asks {
+            self.host.gesture(Gesture::Filter(q).line());
+        }
+        self.dirty.set(true);
     }
 
     /// The list is opening, so it takes the keyboard.
@@ -1215,6 +1237,13 @@ impl WindowHandler for EditorWindow {
         // arrears; stop the transport and it is the only thing you can
         // see.
 
+        // The hint dies with the list, however the list went — Escape,
+        // a click away, a command that closes it.  Read here rather
+        // than at every door out, because every close redirties and
+        // the next frame passes this way.
+        if self.view.borrow().hint && !self.palette.borrow().is_open() {
+            self.view.borrow_mut().hint = false;
+        }
         let view = self.view.borrow().clone();
         let (Some(w), Some(h)) = (NonZeroU32::new(view.w.max(1) as u32),
                                   NonZeroU32::new(view.h.max(1) as u32))
@@ -1298,6 +1327,14 @@ impl WindowHandler for EditorWindow {
                 .map(|(s, _, _)| s.clone()).unwrap_or_default();
             view::paint(&mut canvas,
                         &palette.frame(view.w, view.h, cw, ch, &warning),
+                        font, self.scale());
+        }
+        // **The burger, painted last** — above the palette, because
+        // the press tests it first: what is drawn on top must answer
+        // on top, or the corner is haunted.
+        if painting {
+            view::paint(&mut canvas,
+                        &view::burger_frame(&view, font, palette.is_open()),
                         font, self.scale());
         }
         let t_paint = Instant::now();
@@ -1410,21 +1447,7 @@ impl WindowHandler for EditorWindow {
                 if k.modifiers.contains(Modifiers::CONTROL) {
                     if let Kt::Character(s) = &k.key {
                         if s.eq_ignore_ascii_case("k") {
-                            self.to_the_list();
-                            let asks = self.palette.borrow_mut().show();
-                            // **Opening it ends whatever it was asking.**
-                            // `hide` clears every scrap of the last
-                            // question and `show` cleared none of it on
-                            // the model's side — so a list reopened after
-                            // walking into a directory was handed that
-                            // directory's rows, and `open` did not start
-                            // where you are. The same asymmetry the
-                            // palette had internally, across the wire.
-                            self.host.gesture(Gesture::Asked.line());
-                            if let Asks::Filter(q) = asks {
-                                self.host.gesture(Gesture::Filter(q).line());
-                            }
-                            self.dirty.set(true);
+                            self.summon_list();
                             return EventStatus::Captured;
                         }
                     }
@@ -1542,6 +1565,27 @@ impl WindowHandler for EditorWindow {
                 button: MouseButton::Left, modifiers, ..
             }) => {
                 let (x, y) = self.cursor.get();
+                // **The burger owns its corner, above everything** —
+                // it is painted after the palette, so it answers
+                // before it: the F116 rule, that the pointer belongs
+                // to what is drawn where it is drawn.  A second press
+                // is the same finger changing its mind, so it closes
+                // what the first one opened.
+                let (bx, by, bw, bh) =
+                    self.view.borrow().burger_box(self.font());
+                if x >= bx && x < bx + bw && y >= by && y < by + bh {
+                    if self.palette.borrow().is_open() {
+                        let asks = self.palette.borrow_mut().hide();
+                        self.speak(asks);
+                    } else {
+                        // The bar says `Ctrl-K` while this list is up
+                        // — the button teaching the key it stands for.
+                        self.view.borrow_mut().hint = true;
+                        self.summon_list();
+                    }
+                    self.dirty.set(true);
+                    return EventStatus::Captured;
+                }
                 // **The list takes the pointer while it covers it.**
                 // It is a panel over the document, so a click in it is
                 // aimed at it — and a click that fell through to the

@@ -226,13 +226,20 @@ pub struct View {
     /// window's clock, the same-width blank is `bar_rows`'s, so the
     /// bar cannot re-wrap mid-blink.
     pub plus_hidden: bool,
+    /// Whether the bar says `Ctrl-K` — the burger was pressed, and the
+    /// hint teaches the key the button stands for, the way the list
+    /// writes `apply · Ctrl-S`.  Window-owned like the blink: set by
+    /// the press, cleared when the list closes, and the model never
+    /// learns the bar said it.
+    pub hint: bool,
 }
 
 impl Default for View {
     fn default() -> Self {
         View { top: 0, left: 0, w: 800, h: 600, gutter: true, aside: 0,
                piano: 0, focused: false,
-               scale: 1, boxes: Vec::new(), foot_rows: 1, warning: String::new(), plus_hidden: false }
+               scale: 1, boxes: Vec::new(), foot_rows: 1, warning: String::new(), plus_hidden: false,
+               hint: false }
     }
 }
 
@@ -267,6 +274,23 @@ impl View {
     pub fn text_cols(&self, font: &Font, doc: &Document) -> usize {
         let used = (self.gutter_cols(doc) + self.aside) as i32 * self.cw(font);
         (((self.w - used) / self.cw(font)).max(1)) as usize
+    }
+
+    /// Where the burger stands: a small box in the top-right corner,
+    /// as `(x, y, w, h)`.
+    ///
+    /// The one piece of chrome that exists for somebody who knows no
+    /// keys yet: pressing it opens the command list, pressing it again
+    /// closes it.  **One arithmetic, two readers** — `burger_frame`
+    /// draws this box and the window's press reads it, so the pixel
+    /// that shows the glyph is the pixel that answers to it.  Exactly
+    /// one character cell, flush in the corner, so a zoom scales it
+    /// with everything else and it takes no room the text could use.
+    pub fn burger_box(&self, font: &Font) -> (i32, i32, i32, i32) {
+        let (w, h) = (self.cw(font), self.ch(font));
+        // Half a cell of air on the right, so the glyph does not lean
+        // on the window's edge; in cell units so the zoom keeps it.
+        (self.w - w - w / 2, 0, w, h)
     }
 
     /// How tall the status bar is — its granted rows, plus air.
@@ -669,6 +693,29 @@ pub fn chrome_only(view: &View, font: &Font, chrome: &Furniture) -> Frame {
     f
 }
 
+/// The burger: `≡` in its corner box, above everything else.
+///
+/// **Its own frame because it is painted last** — over the palette,
+/// which is why the press tests it first: the pixel that shows it is
+/// the pixel that answers to it, even while the list is up
+/// (`spec/workbench.md`'s F116 rule, read upward).  It exists for
+/// somebody who knows no keys yet, so it is the one capability the
+/// window offers with no key already learned — and all it does is
+/// open the list where every other capability is written down.
+pub fn burger_frame(view: &View, font: &Font, open: bool) -> Frame {
+    let (x, y, _, _) = view.burger_box(font);
+    let mut f = Frame::default();
+    // The glyph alone, no ground — the corner is the document's, and a
+    // grey box standing on it read as furniture rather than a button.
+    // The box is one cell and the glyph fills it, so nothing to centre.
+    // Lit while the list is up, faint while it is not — a button that
+    // toggles has to say which half of the toggle it is in.
+    f.items.push(Item::Run { x, y,
+                             s: String::from("\u{2261}"),
+                             c: if open { CARET } else { FAINT } });
+    f
+}
+
 /// Greedy word wrap to a column count, chars being columns — which in
 /// a bitmap font they are.
 fn wrap(text: &str, cols: usize) -> Vec<String> {
@@ -782,6 +829,7 @@ fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
     // that did nothing: they answered *"at bar 8"* and the window showed
     // exactly what it had before.  A command whose only evidence is its
     // own sentence is indistinguishable from one that failed.
+    let mut right = view.w - 4;
     if chrome.has_transport {
     // **Bars and beats count from zero**, like the ticks, the samples
     // and the voices — the readout used to add one to each, which is
@@ -808,8 +856,19 @@ fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
     let at = view.w - 4 - width_of(&when) as i32 * cw;
     f.items.push(Item::Run { x: at, y: sy + 2, s: when,
                              c: if chrome.playing { LIVE } else { FAINT } });
+    right = at - 2 * cw;
     }
 
+    // **The key, beside the answers** — the bar says `Ctrl-K` while
+    // the burger holds the list open, so the button teaches the key
+    // that does the same thing, the way the list writes
+    // `apply · Ctrl-S`.  Left of the transport, which keeps the two
+    // right-hand readouts from writing over one another.
+    if view.hint {
+        let s = String::from("Ctrl-K");
+        let at = right - width_of(&s) as i32 * cw;
+        f.items.push(Item::Run { x: at, y: sy + 2, s, c: INK });
+    }
 }
 
 

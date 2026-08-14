@@ -24,7 +24,7 @@ fn runs(f: &gestate_editor::view::Frame) -> Vec<String> {
 }
 
 fn view(w: i32, h: i32) -> View {
-    View { top: 0, left: 0, w, h, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false }
+    View { top: 0, left: 0, w, h, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false, hint: false }
 }
 
 /// A view that fits exactly `rows` rows of text, with the status line
@@ -235,7 +235,7 @@ fn scrolling_follows_the_caret_to_the_edge_and_no_further() {
 
     // Horizontally, the same rule.
     let mut wide = doc(&"x".repeat(500));
-    let mut v = View { top: 0, left: 0, w: 20 * LARGE.w, h: 100, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false };
+    let mut v = View { top: 0, left: 0, w: 20 * LARGE.w, h: 100, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false, hint: false };
     wide.seek(300);
     v.follow(&wide, &LARGE);
     assert_eq!(v.left, 300 + 1 - 20);
@@ -244,7 +244,7 @@ fn scrolling_follows_the_caret_to_the_edge_and_no_further() {
 #[test]
 fn a_click_lands_where_it_was_clicked() {
     let d = doc("hello\nworld\nagain");
-    let v = View { top: 1, left: 0, w: 400, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false };
+    let v = View { top: 1, left: 0, w: 400, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false, hint: false };
     // Second visible row (row 2), fourth column.
     let (row, col) = v.hit(&d, &LARGE, LARGE.w * 4 + 1, LARGE.h + 3);
     assert_eq!((row, col), (2, 4));
@@ -278,7 +278,7 @@ fn the_caret_is_drawn_on_the_character_it_is_before() {
 #[test]
 fn horizontal_scrolling_cuts_by_columns() {
     let d = doc("\tabcdef\n    abcdef");
-    let v = View { top: 0, left: 4, w: 100 * LARGE.w, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false };
+    let v = View { top: 0, left: 4, w: 100 * LARGE.w, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false, hint: false };
     let f = frame(&d, &v, &LARGE);
     let lines = runs(&f);
     assert_eq!(lines[0], lines[1],
@@ -330,7 +330,7 @@ fn the_empty_document_draws() {
 #[test]
 fn a_window_smaller_than_a_line_still_draws_one() {
     let d = doc("one\ntwo");
-    let v = View { top: 0, left: 0, w: 1, h: 1, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false };
+    let v = View { top: 0, left: 0, w: 1, h: 1, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false, hint: false };
     assert_eq!(v.rows(&LARGE), 1);
     assert_eq!(v.text_cols(&LARGE, &d), 1);
     let f = frame(&d, &v, &LARGE);
@@ -346,7 +346,7 @@ fn a_window_smaller_than_a_line_still_draws_one() {
 #[test]
 fn zooming_moves_the_layout_and_the_hit_testing_together() {
     let d = doc("hello\nworld\nagain");
-    let one = View { top: 0, left: 0, w: 400, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false };
+    let one = View { top: 0, left: 0, w: 400, h: 200, gutter: false, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false, hint: false };
     let two = View { scale: 2, ..one.clone() };
 
     assert_eq!(two.cw(&LARGE), 2 * one.cw(&LARGE));
@@ -371,7 +371,7 @@ fn zooming_moves_the_layout_and_the_hit_testing_together() {
 #[test]
 fn the_zoomed_frame_says_the_same_thing() {
     let d = doc("one\ntwo\nthree");
-    let one = View { top: 0, left: 0, w: 800, h: 400, gutter: true, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false };
+    let one = View { top: 0, left: 0, w: 800, h: 400, gutter: true, aside: 0, piano: 0, focused: false, scale: 1, boxes: vec![], foot_rows: 1, warning: String::new(), plus_hidden: false, hint: false };
     let two = View { scale: 2, ..one.clone() };
     assert_eq!(runs(&frame(&d, &one, &LARGE)), runs(&frame(&d, &two, &LARGE)));
 }
@@ -1093,4 +1093,73 @@ fn a_long_status_wraps_instead_of_running_off_the_right() {
         }
     }
     assert!(in_bar >= 2, "the sentence is spread over rows");
+}
+
+// ── The burger ───────────────────────────────────────────────────────
+
+/// The pixel that shows the burger is the pixel that answers to it:
+/// everything `burger_frame` draws lies inside `burger_box`, which is
+/// the same box the window's press reads — the one-arithmetic rule,
+/// kept at the corner.
+#[test]
+fn the_burger_is_drawn_inside_the_box_the_press_reads() {
+    use gestate_editor::view::{burger_frame, FAINT};
+
+    let v = rows_of(8, 900);
+    let (bx, by, bw, bh) = v.burger_box(&LARGE);
+    assert!(bx >= 0 && by >= 0 && bx + bw <= v.w,
+            "the corner stands in the window");
+    let f = burger_frame(&v, &LARGE, false);
+    assert!(!f.items.is_empty());
+    for item in &f.items {
+        match item {
+            Item::Rect { x, y, w, h, .. } => {
+                assert!(*x >= bx && x + w <= bx + bw
+                        && *y >= by && y + h <= by + bh,
+                        "the ground spills out of the box");
+            }
+            Item::Run { x, y, s, c } => {
+                assert_eq!(s, "\u{2261}");
+                assert_eq!(*c, FAINT, "faint while the list is closed");
+                assert!(*x >= bx && x + v.cw(&LARGE) <= bx + bw
+                        && *y >= by && y + v.ch(&LARGE) <= by + bh,
+                        "the glyph spills out of the box");
+            }
+        }
+    }
+    // Lit while the list is up — a button that toggles has to say
+    // which half of the toggle it is in.
+    let open = burger_frame(&v, &LARGE, true);
+    assert!(open.items.iter().any(|i| matches!(i,
+        Item::Run { s, c, .. } if s == "\u{2261}" && *c == CARET)));
+}
+
+/// Pressing the burger writes `Ctrl-K` in the bar — the button
+/// teaching the key it stands for — left of the transport, so the two
+/// right-hand readouts cannot write over one another; and not at all
+/// once the hint is down.
+#[test]
+fn the_bar_teaches_ctrl_k_while_the_burger_holds_the_list() {
+    let d = doc("one");
+    let chrome = Furniture::read("play\t1\t8.0");
+    let mut v = rows_of(8, 900);
+    v.hint = true;
+    let f = frame_with(&d, &v, &LARGE, &chrome);
+    let sy = v.h - v.status_h(&LARGE);
+    let hint = f.items.iter().find_map(|i| match i {
+        Item::Run { x, y, s, .. } if s == "Ctrl-K" && *y >= sy => Some(*x),
+        _ => None,
+    }).expect("the bar says Ctrl-K");
+    let transport = f.items.iter().find_map(|i| match i {
+        Item::Run { x, y, s, .. }
+            if *y >= sy && s.contains('\u{25b6}') => Some(*x),
+        _ => None,
+    }).expect("the transport is drawn");
+    assert!(hint + 6 * v.cw(&LARGE) <= transport,
+            "the hint stands clear of the transport");
+
+    v.hint = false;
+    let quiet = frame_with(&d, &v, &LARGE, &chrome);
+    assert!(!quiet.items.iter().any(|i| matches!(i,
+        Item::Run { s, .. } if s == "Ctrl-K")));
 }
