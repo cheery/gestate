@@ -800,12 +800,22 @@ def holes_in_source(source: str, *, rate: int = 22050,
     Raises `FitsError` when the program does not reach inference, which
     while typing is the ordinary case and is a fact the caller reports
     rather than an empty list that reads as *"no holes"*.
+
+    **The editor asks this about a text it has just compiled**, so the
+    inference below is usually one that has already been run and kept —
+    `pipeline.analysed` hands it over and this pays nothing.  Measured
+    before that door existed: 2.4 s of a 12 s save on `quartet.ges`,
+    every save, for a file with no `_` in it at all.  A hole survives
+    the passes after inference with its type on it, which is what makes
+    the two answers the same answer; `test_typecheck.py` holds that as a
+    test, because it is the whole reason this is allowed to be cheap.
     """
     from .audio import assemble
     from .audioperform import has_score
     from .audioscore import assemble_performance
     from .expr import EHole
     from .infer import _all_exprs
+    from .pipeline import analysed
     from .show import show_type
 
     authored = source
@@ -822,16 +832,20 @@ def holes_in_source(source: str, *, rate: int = 22050,
     from .audiospans import _regions
 
     offset = _regions(authored)[2] if audio else 0
-    try:
-        program = classify(_merge_prelude(source, None))
-        typed = [(n, a, l, s) for (n, a, l, s) in desugar_program(program)]
-        builtins = _build_builtins()
-        _kind_check_program(program, typed)
-        infer_program(typed, builtins, program.cons, program.classes,
-                      {sc.name: sc.sig_constraints for sc in program.scs})
-    except (ParseError, CoherenceError, DeclError, DesugarError, KindError,
-            InferError, UnifyError, ConstraintError) as exc:
-        raise FitsError(str(exc)) from exc
+    have = analysed(source)
+    if have is not None:
+        typed = have.scs
+    else:
+        try:
+            program = classify(_merge_prelude(source, None))
+            typed = [(n, a, l, s) for (n, a, l, s) in desugar_program(program)]
+            builtins = _build_builtins()
+            _kind_check_program(program, typed)
+            infer_program(typed, builtins, program.cons, program.classes,
+                          {sc.name: sc.sig_constraints for sc in program.scs})
+        except (ParseError, CoherenceError, DeclError, DesugarError,
+                KindError, InferError, UnifyError, ConstraintError) as exc:
+            raise FitsError(str(exc)) from exc
 
     out = []
     for _name, _arity, lam, _sig in typed:

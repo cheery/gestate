@@ -314,9 +314,93 @@ their own headings.  What is below is what is *not* done.
 
 ## What to build next
 
-Two, and they are different kinds of thing: one finishes something the
-workbench just made cheap, the other is a new capability Henri wants and
-that most of the parts for already exist.
+Three now, and the first one is not a feature at all: it is the save
+cycle everything else is edited through, measured and found to be
+twelve seconds.  The other two are the pair this section has always
+had — one finishes something the workbench made cheap, the other is a
+new capability Henri wants and that most of the parts for already
+exist.
+
+**The save is twelve seconds, and that is the thing to fix first.**
+
+`journal.md` records a rebuild at 400 ms when 7.5 shipped.  That number
+was `blip.ges`, and it is still about right for it — 1.3 s today.  The
+pieces got fifteen times bigger and nobody measured again.  One save of
+`examples/audio/quartet.ges` in the workbench, every cache warm:
+
+| phase | cost |
+|---|---|
+| `graph_of` → `pipeline.analyse` | **4.6 s** |
+| `graph_of` → assemble and extract | 1.1 s |
+| `_place` → `_find_holes` | **2.4 s** |
+| `_load_substrate` | 0.5 s |
+| `_load_from_midi` | 0.3 s |
+| `clang -O2`, when the IR changed | ~3 s |
+| **one save** | **~12 s** |
+
+The first measure below is built and that is **8 s** now.  The rest of
+this section is what is still true.
+
+Nothing here is scheduled by the rule as a *feature* — it is scheduled
+because a twelve-second save on the piece being written is a defect, and
+a defect is always a caller.  And it is not the thing this file forbids:
+"make the interpreter faster for audio's sake" is about the audio path,
+which the evaluator left at 7.4.  This is the *edit* path.
+
+Three measures, in the order the value falls:
+
+1. **Stop paying for holes nobody wrote — 2.4 s.  Done, 2026-08-15.**
+   `typecheck.holes_in_source` ran its own `_merge_prelude`,
+   `desugar_program` and `infer_program`, so it missed the analysis
+   cache *and* the staged path and re-inferred every prelude from
+   scratch — and `_place` called it on every rebuild whether or not the
+   file contained a single `_`.  It asks `pipeline.analysed` now: a new
+   door beside `analyse` that recalls and **never computes**, for a
+   caller that wants the answer only if it is free and has a cheaper
+   path otherwise.  What lets it read that answer is that a hole
+   survives elaboration and specialisation *carrying its type*, which
+   the old path — stopping at inference — never had to rely on, so
+   `test_pipeline.py` holds it two ways: the cached answer equals the
+   cold one, and `_analyse` replaced by something that raises leaves
+   the scan passing.  `_find_holes` 2.37 s → 0.07 s, `_place` 2.56 →
+   0.28, **the save 12.0 s → 8.0 s**.  `_load_substrate` and
+   `_load_from_midi` are the same shape, smaller, and still to do —
+   as are `fits_in_source` and `signatures_in_source`, which have the
+   identical defect on the `?`/`Tab` path rather than the rebuild one
+   (and which `analyse`'s own docstring already claims are answered
+   from the cache).
+2. **Then the front end is the whole of the rest — 4.6 s.**  It is
+   already staged: the stack front holds the libraries' parse and
+   inference.  What still runs over all 232 k assembled characters
+   every time is everything *after* that seam — `infer_program` 45%,
+   `_discharge` (elaborate and specialise) 15%, `desugar_program` 12%
+   over the whole module, `lower_fields` 9%.  Two different jobs live
+   in that list.  *Tuning*: `expr.subexprs` and `map_children` ask
+   `dataclasses.fields()` 170,000 times per analysis and `is_dataclass`
+   as often, so caching the field tuple per class is ~10% across every
+   pass for a few lines, and `types.apply` runs 843,000 times.
+   *Structural*: desugaring a library item is a pure function of the
+   stack text and could join the pickled front, and elaborate and
+   specialise could skip the SCs no program constraint touches — that
+   is a question about where the seam sits, not tuning, and it is the
+   one to think about rather than measure.
+3. **`GESTATE_BUILD_TIME`, the compile-side twin of
+   `GESTATE_EDITOR_TIME`.**  The frame side has instrumentation and two
+   lag tools and consequently does not rot; the build side has neither,
+   which is exactly how 400 ms became twelve seconds with two thousand
+   tests passing.  The table above, printed per rebuild, is the whole
+   feature.  This project's own sentence: *"it feels slow" is not a
+   measurement.*
+
+**Measured and rejected: `clang -O1` for interactive builds.**  It
+looked like a free 1.3 s of the three, and the objects are *bit
+identical* to `-O2` — verified on `blip` and on `quartet`, and expected,
+since the emitter writes no fast-math flags and LLVM will not
+reassociate without them.  It costs render speed instead: `lead.ges`
+goes 30× realtime → 16×, and `quartet` already renders at under 2×, so
+it would spend most of the remaining headroom to save nothing on
+`lead`, where `-O1` was not even faster to compile.  The content
+addressed `.so` store is already the right answer on that side.
 
 **`--migration OLD NEW` — what survives `Ctrl-S`.**
 
@@ -452,11 +536,13 @@ compiler's complaint under the line it is about, then small
 between-line editors for musical score content, and eventually audio
 visualisation, once sound sample buffers exist for them to show.
 
-It reads tall and is mostly design: the window already draws from a
-display list with one painter, the model already describes furniture
-per row, and `audiospans` already anchors things to declarations.
-There is **one real implementation lump** — rows of varying height —
-and everything after it is decisions.
+It read tall and was mostly design: the window already drew from a
+display list with one painter, the model already described furniture
+per row, and `audiospans` already anchored things to declarations.
+There was **one real implementation lump** — rows of varying height —
+and everything after it decisions.  The lump is built and so are the
+first three stages and B4's reading half; what is left below is the
+editing one, and the decisions it still owes.
 
 ### The mechanism and B1–B3 — closed out, and moved to `journal.md`
 
@@ -471,20 +557,19 @@ expression's own box, several at once.  `spec/workbench.md`
 §"Content boxes" is the contract as built; the journal entry has the
 story, including the three revisions a day of Henri using it forced.
 
-### B4 — the score editors, which are the point
+### B4's read-only half — closed out, and moved to `journal.md`
 
-**The read-only first slice is built** (2026-08-14) —
-`spec/scorebox.md` is its contract, revised from the code after: a
-`notes <expr>` line stands a roll of that expression on it, showing
+A `notes <expr>` line stands a roll of that expression on it, showing
 the take the session's seed names, with span ink and take ink and a
-press that reveals where a note is written.  `gestate/scorebox.py`
-is the box's mind, `Notable` (`audio.ges`) is how a payload is read,
-`spreadTo`/`tagAll` (`music.ges`) are the bounded walk and its
-labels, and `test/test_scorebox.py` holds the acceptance.  It found
-F136 on the way — a tuple-pattern lambda picking the wrong instance,
-silently — which the box is written around.
+press that reveals where a note is written.  `spec/scorebox.md` is
+the contract, `gestate/scorebox.py` the box's mind, `Notable`
+(`audio.ges`) how a payload is read, `spreadTo`/`tagAll`
+(`music.ges`) the bounded walk and its labels, and
+`test/test_scorebox.py` the acceptance; `noted.ges` and `minute.ges`
+show it at four bars and at a minute.  The journal entry has the
+story, including the four traps the building found and F136 with it.
 
-What follows is the destination the slice is the first step toward.
+### B4 — the editing half, which is the point
 
 The star: a between-lines editor for score content.  The principle is
 already on the wall (`spec/workbench.md`): **a widget is a view over a
@@ -502,13 +587,16 @@ collide with the fragment's "no lists at audio rate" rule and are a
 language decision, not an editor one.  Sequence that on its own merits;
 the boxes will be waiting as B2 canvases the day it lands.
 
-### Open, and to be answered before B4
+### Open, and to be answered before the editing half
 
-- **What a chancy score shows.**  A piano-roll view of `draw` is not a
-  list of notes — but a *seed* makes "one take" well-defined, and the
-  plugin already treats the seed as the name of a performance.  A score
-  box that renders the current take, labelled with its seed, may be the
-  honest answer; deciding this decides most of B4.
+**Two of the four are answered and gone** (`journal.md` §"The notes
+arc"): what a chancy score shows — the take, labelled with its seed,
+which is the lean this list already had and is now built and lived
+with — and who says how tall, which `spec/workbench.md` decided when
+the row table shipped and this list was never told.  The two left
+belong to *editing*, and the read-only box needed neither: its one
+gesture is a press that moves the caret, and it writes nothing.
+
 - **Whether every musical gesture is a span rewrite.**  Dragging a note
   up a third is a clean rewrite; gestures that change the *shape* of
   the expression (splitting a `++`, introducing a `draw`) need a rule
@@ -517,11 +605,9 @@ the boxes will be waiting as B2 canvases the day it lands.
 - **The third focus.**  Text, piano, and now a box may own the
   keyboard; the click-to-focus rule extends, but the vocabulary rule
   must too — a box's capabilities appear in `command.ges` or they do
-  not exist.
-- **Who says how tall.**  The label precedent (the box is written down
-  and the letters fit it) suggests the view grants height and content
-  fits; an accordion editor that grows under your hands suggests the
-  content asks.  One rule, chosen before B1 hard-codes the other.
+  not exist.  Worth settling with the transcript in mind: a gesture
+  that desugars to a command *records* as one, which is how nearly
+  every editor defect has actually been pinned.
 
 ---
 

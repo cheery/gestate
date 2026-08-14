@@ -113,6 +113,52 @@ def test_forgetting_is_what_a_measurement_needs():
     assert analyse(src) is not first, "otherwise nothing can time a front end"
 
 
+# ── What the kept analysis is allowed to answer ─────────────────────────────
+#
+# The editor's hole scan ran a second front end of its own — no cache, no
+# staged path, every prelude re-inferred — on every rebuild, whether or not
+# the file contained a single `_`: 2.4 s of a 12 s save on `quartet.ges`.
+# It asks `pipeline.analysed` now, and these two hold the pair of claims
+# that lets it: the cached answer is the *same* answer, and asking costs a
+# front end nothing.
+
+HOLED = SYNTH.replace("sine 220.0", "sine _")
+
+
+def test_a_hole_is_found_the_same_in_a_kept_analysis():
+    """The scan reads SCs that have been through elaboration and
+    specialisation rather than stopping at inference, so this is not
+    obvious: a hole has to survive those passes carrying its type."""
+    from gestate.typecheck import holes_in_source
+
+    forget_analyses()
+    cold = holes_in_source(HOLED, rate=RATE)
+    assert cold == [(5, 33, "Sig Float")], cold
+
+    analyse(assemble(HOLED, RATE))            # what a rebuild leaves behind
+    assert holes_in_source(HOLED, rate=RATE) == cold
+
+
+def test_a_hole_scan_costs_a_kept_analysis_nothing():
+    """Not a timing: `_analyse` is made to fail, so a scan that reaches it
+    at all cannot pass.  The point of the door is that a miss is the
+    caller's own business and a hit runs no front end."""
+    import gestate.pipeline as pipeline
+    from gestate.typecheck import holes_in_source
+
+    forget_analyses()
+    analyse(assemble(HOLED, RATE))
+
+    def refuse(*_a, **_k):
+        raise AssertionError("the hole scan ran a front end of its own")
+
+    ran, pipeline._analyse = pipeline._analyse, refuse
+    try:
+        assert holes_in_source(HOLED, rate=RATE) == [(5, 33, "Sig Float")]
+    finally:
+        pipeline._analyse = ran
+
+
 # ── The staged front end ────────────────────────────────────────────────────
 #
 # `_analyse_staged` answers the library stack from `_stack_front` and

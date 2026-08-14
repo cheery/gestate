@@ -351,6 +351,25 @@ def analyse(source: str, *, typecheck: bool = True,
     return _deep_stack(lambda: _analysed_or_new(key))
 
 
+def analysed(source: str, *, typecheck: bool = True,
+             prelude: bool = True) -> "Analysis | None":
+    """The analysis of this exact text if one is already in hand, or `None`.
+
+    **Never computes.**  `analyse` above is for a caller that needs the
+    answer; this is for one that would like it *if it is free* and has a
+    cheaper thing to do otherwise — the editor's hole scan, which runs
+    on every rebuild right after the same text was compiled, and which
+    used to pay a second whole front end for what was sitting in this
+    dictionary.
+
+    The distinction is worth a separate door rather than a flag: a miss
+    here is not a failure, it is a caller being told to take its own
+    path, and a function that silently spends four seconds on a miss is
+    exactly what this exists to stop.
+    """
+    return _recall((source, typecheck, prelude))
+
+
 def _analysed_or_new(key: tuple) -> Analysis:
     """The cache, for a caller already on the deep stack.
 
