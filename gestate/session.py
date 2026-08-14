@@ -1263,6 +1263,23 @@ class Session:
     #: below is a round trip rather than a dentry lookup.
     OUTSIDE_EVERY = 0.2
 
+    #: How old a directory's stamp must be before it is believed.
+    #:
+    #: The kernel stamps files on its **coarse clock** — a tick of one
+    #: to twenty milliseconds, measured (F124's specimen: 801 writes,
+    #: 37 distinct directory mtimes) — so a write landing in the same
+    #: granule as the directory's last change leaves the mtime exactly
+    #: where it stood, and a cache keyed on it serves the old listing
+    #: for ever.  That was F124 whole: not load, not a margin — the
+    #: test's setup and its arriving file fit inside one granule when
+    #: the suite ran warm, and load *stretched* the granules, which is
+    #: why the flakes arrived with parallel compiles.  While a stamp is
+    #: younger than this, the mtime is treated as unsettled and the
+    #: listing is re-read once per `OUTSIDE_EVERY`; make, git and ninja
+    #: all keep a version of this rule — theirs is called "racily
+    #: clean".
+    MTIME_SETTLES = 0.05
+
     def _outside(self) -> object:
         """What the answer depends on that is **not** the question.
 
@@ -1313,6 +1330,12 @@ class Session:
         else:
             try:
                 token = self._directory(self.asking[2]).stat().st_mtime_ns
+                if time.time_ns() - token < self.MTIME_SETTLES * 1e9:
+                    # **A stamp this young is not a fact yet** — see
+                    # `MTIME_SETTLES`.  The look itself rides the
+                    # token, so the listing keeps being worked out
+                    # until the stamp has safely aged.
+                    token = (token, now)
             except Exception:                            # noqa: BLE001
                 # A directory that cannot be statted is one `_listing`
                 # is about to fail on too, and it answers `[]`.  Hold

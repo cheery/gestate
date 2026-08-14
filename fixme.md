@@ -47,7 +47,7 @@ Of 128 entries, **113 are resolved**.  What is left:
 | F121 | resolved | A template inserted while scrolled away appeared behind the list |
 | F122 | resolved | A typed path was walked twice — `transcript ../../x` landed in `/home/` |
 | F123 | resolved | A finished `open` re-runs from a different directory than its first run |
-| F124 | bug, open | The directory-watch tests flake under machine load |
+| F124 | resolved | The directory-watch tests flake under machine load — the kernel's coarse clock, not load |
 | F126 | resolved | The crossfade resolved the leaving engine's nodes against the live graph |
 | F127 | bug, open | A literal applied to arguments answers with an instance at a function type |
 | F128 | resolved | The text sniff refused `duet.ges` — the tail-drop moved the boundary instead of removing it |
@@ -3359,7 +3359,7 @@ show.  Replaying `test/sessions/F123-blip-session.ges` now reports
 exactly one moved answer: the second `open`, agreeing with the
 first.
 
-### F124. **[bug, open]** The directory-watch tests flake under machine load
+### F124. **[resolved]** The directory-watch tests flake under machine load
 
 `test_a_file_that_arrives_shows_up_without_touching_the_query` and
 `test_the_cache_still_watches_the_directory_the_walk_reached` failed
@@ -3382,6 +3382,23 @@ much better specimen than a flake: something an earlier test leaves
 behind — module state, a shared clock, an mtime the tmp dirs inherit
 — survives into `_outside`'s key.  The session this entry asks for
 now has a reproduction that holds still.
+
+**Resolved the same evening, and it was none of those.**  The token
+log said the second stat returned the *identical* mtime_ns after the
+write — and a directory whose mtime does not move when a file lands
+in it is the kernel's **coarse clock**: file stamps advance a tick at
+a time, measured at 1–20 ms a granule on this machine (801 writes,
+37 distinct directory mtimes).  The test's setup and its arriving
+file fit inside one granule when the suite ran warm; alone, the cold
+start spread them across two.  And the 2026-08-13 correlation with
+parallel compiles inverts into evidence: load *stretches* the
+granules, it was never eroding a margin.  The fix is the rule make,
+git and ninja keep ("racily clean"): a stamp younger than
+`Session.MTIME_SETTLES` is not a fact yet — the look rides the
+token, so the listing is re-read once per `OUTSIDE_EVERY` until the
+stamp has safely aged, and then the cache is a cache again.  Held by
+`test_a_granule_hot_directory_is_not_believed`; the two old flakers
+pass three consecutive full-suite runs.
 
 ### F125. **[resolved]** A phantom new file read as saved
 

@@ -2268,3 +2268,28 @@ def test_a_query_that_matches_nothing_here_is_found_below(tmp_path):
     stepping = s.choices()
     assert stepping[0][0] == "examples/audio/"
     assert stepping[0][3] == "examples/audio/", "a step, not an answer"
+
+
+def test_a_granule_hot_directory_is_not_believed(tmp_path):
+    """F124's root: the kernel stamps directories on a coarse clock —
+    one to twenty milliseconds a tick — so a write in the same granule
+    as the last one leaves the mtime standing, and a cache keyed on it
+    served the old listing for ever.  A stamp younger than
+    `MTIME_SETTLES` is not a fact yet: the look rides the token and
+    the listing keeps being re-read until the stamp has safely aged."""
+    import os
+
+    it, room = _looking(tmp_path)          # just written, so hot
+    act(it, "wants\topen\t0\t")
+    a = it._outside()
+    it._looked = None                      # past the throttle, no sleep
+    b = it._outside()
+    assert a != b, "a granule-hot stamp was believed"
+
+    # An aged stamp settles, and the cache is a cache again.
+    old = time.time_ns() - int(0.5e9)
+    os.utime(room, ns=(old, old))
+    it._looked = None
+    c = it._outside()
+    it._looked = None
+    assert c == it._outside(), "a settled stamp kept churning"
