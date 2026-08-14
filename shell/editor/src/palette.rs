@@ -624,7 +624,18 @@ impl Palette {
                         self.requery()
                     }
                     Some(c) if !c.text.is_empty() && c.can => {
-                        self.query = c.text.clone();
+                        // **Completion keeps the walk** (F130's
+                        // spindle): rows carry names relative to the
+                        // walk, and writing the bare name over
+                        // `examples/audio/lan` left a query that
+                        // *showed* `lantern.ges` and resolved at the
+                        // root — a look-alike, one Return from a
+                        // phantom.  The head is the query's own, the
+                        // same split the model's `_listing` reads.
+                        self.query = match self.query.rsplit_once('/') {
+                            Some((head, _)) => format!("{head}/{}", c.text),
+                            None => c.text.clone(),
+                        };
                         self.requery()
                     }
                     _ => Asks::Nothing,
@@ -1612,6 +1623,26 @@ mod again_tests {
         assert!(matches!(q.key(Key::Tab), Asks::Wants(..)),
                 "a directory re-lists");
         assert_eq!(q.query(), "..", "a directory completes to its walk");
+    }
+
+    /// **Completion keeps the walk** (F130's spindle): after walking
+    /// to `examples/audio/`, Tab on the `lantern.ges` row must leave
+    /// `examples/audio/lantern.ges` in the box.  Writing the bare
+    /// name over the walk left a query that *showed* the right file
+    /// and resolved at the root — a look-alike, one Return from a
+    /// phantom.
+    #[test]
+    fn tab_keeps_the_walk_it_completes_under() {
+        let mut p = walking();
+        p.fill("examples/audio/lan");
+        p.offer_choices(vec![
+            Choice { text: "lantern.ges".into(), note: String::new(),
+                     can: true, ..Default::default() },
+        ]);
+        p.at = 0;
+        p.key(Key::Tab);
+        assert_eq!(p.query(), "examples/audio/lantern.ges",
+                   "the walk was wiped by its own completion");
     }
 
     /// And Escape leaves, which is the other way out.

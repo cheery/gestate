@@ -51,6 +51,8 @@ Of 128 entries, **113 are resolved**.  What is left:
 | F126 | resolved | The crossfade resolved the leaving engine's nodes against the live graph |
 | F127 | bug, open | A literal applied to arguments answers with an instance at a function type |
 | F128 | resolved | The text sniff refused `duet.ges` — the tail-drop moved the boundary instead of removing it |
+| F129 | resolved | An exactly-named directory loses to a fuzzy file |
+| F130 | resolved | A file you can name is a file the dialog cannot find — and Tab wiped the walk |
 | F125 | resolved | A phantom new file read as saved — no tell it was a starter wearing a borrowed name |
 | F112 | resolved | The file dialog's listing sometimes lags — measured: a beat only while the model builds |
 | F113 | resolved | Undo and redo cross a file switch — one history for the session |
@@ -3371,6 +3373,16 @@ a bigger number chosen by hope.  Worth one session with the cache's
 clock in hand; until then, a red on either of these two under load is
 this entry, not a regression.
 
+**2026-08-14: it is not load, or not only** — the arrival test now
+fails *deterministically* in a full `test_session.py` run (three runs
+in a row, machine otherwise quiet, EPP on performance) and passes
+alone every time, on a tree with no dialog changes (verified at
+commit `bce7ecc` via stash).  A deterministic order-dependence is a
+much better specimen than a flake: something an earlier test leaves
+behind — module state, a shared clock, an mtime the tmp dirs inherit
+— survives into `_outside`'s key.  The session this entry asks for
+now has a reproduction that holds still.
+
 ### F125. **[resolved]** A phantom new file read as saved
 
 Henri's exploration transcript
@@ -3463,7 +3475,7 @@ is the chunk's fault and not the file's.  The regression fixture is
 a file with a multibyte character built onto the boundary — and
 `duet.ges` itself, so the irony cannot recur.
 
-### F129. An exactly-named directory loses to a fuzzy file
+### F129. **[resolved]** An exactly-named directory loses to a fuzzy file
 
 Henri, 2026-08-14, in the file dialog: typing `test` selects
 `pytest.ini` rather than `test/` — a directory whose name **is** the
@@ -3475,7 +3487,7 @@ typed is almost certainly where the person is going.  The fix lives
 where the ranking lives, in the model (`session.py`'s choice ranking
 for `Path`), not in the view.
 
-### F130. A file you can name is a file the dialog cannot find
+### F130. **[resolved]** A file you can name is a file the dialog cannot find
 
 `lantern-session.ges` (Henri's transcript, 2026-08-14 — the new
 base-text header and `#!` notes pinned it in three steps): from an
@@ -3505,3 +3517,18 @@ what the box *shows* against what `wants`/resolution actually
 receives; suspect the walk prefix folded into the query (or a row's
 bare name completed against the wrong walk), F122's typed-vs-picked
 seam one key further in.
+
+**Resolved 2026-08-14, all three faces.**  The spindle was
+`palette.rs`'s Tab writing a row's *bare* name over the whole query —
+`examples/audio/lan` + Tab showed `lantern.ges` and resolved at the
+root; completion now keeps the query's own head, the same split
+`_listing` reads (test: `tab_keeps_the_walk_it_completes_under`).
+The finding half is `Session._below`: a query matching nothing in
+the walk's directory is offered matches from beneath it,
+breadth-first so near beats deep, bounded in depth/reads/rows so the
+dialog answers at a keystroke's pace, with what a build writes
+(`target`, `__pycache__`) not descended.  Deep rows wear their path
+from the walk, so what is picked is exactly what is shown and
+`_where` resolves it like any bare row; a deep directory is a step
+like any other.  F129's ranking rode along: exact, prefix, substring,
+directories first at each rank.

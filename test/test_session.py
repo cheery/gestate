@@ -2225,3 +2225,46 @@ def test_a_touched_channel_is_the_meaning_not_the_place():
     # editor — the same lenience every gesture keeps.
     del s.bench.touched
     assert act(s, "touched\twarmthChan\t0.5") == ""
+
+
+def test_an_exactly_named_directory_outranks_a_fuzzy_file(tmp_path):
+    """F129: `test` offered `pytest.ini` above the `test/` that *is*
+    the query.  The palette's law one floor down — a name match beats
+    a prose match: exactness first, prefix next, substring last,
+    directories before files at each rank."""
+    (tmp_path / "test").mkdir()
+    (tmp_path / "pytest.ini").write_text("x")
+    (tmp_path / "testify.ges").write_text("x")
+    s = session()
+    s.bench.path = tmp_path / "demo.ges"
+    s.asking = ("open", 0, "test")
+    rows = [r[0] for r in s.choices()]
+    assert rows == ["test/", "testify.ges", "pytest.ini"], rows
+
+
+def test_a_query_that_matches_nothing_here_is_found_below(tmp_path):
+    """F130: `open lantern.ges` from the root answered 0 rows three
+    times while starting phantoms, because the listing was one
+    directory deep and lantern lives two.  Deep rows wear their path
+    from the walk, so what is picked is exactly what is shown — and
+    what a build writes is not offered."""
+    deep = tmp_path / "examples" / "audio"
+    deep.mkdir(parents=True)
+    (deep / "lantern.ges").write_text("x")
+    junk = tmp_path / "target" / "release"
+    junk.mkdir(parents=True)
+    (junk / "lantern.ges").write_text("x")
+    s = session()
+    s.bench.path = tmp_path / "demo.ges"
+    s.asking = ("open", 0, "lantern.ges")
+    rows = [r[0] for r in s.choices()]
+    assert rows == ["examples/audio/lantern.ges"], rows
+    # And picking the row resolves where it stands, through the same
+    # `_where` every picked row goes through.
+    assert s._where("examples/audio/lantern.ges", "open") \
+        == (deep / "lantern.ges").resolve()
+    # A deep directory is a step like any other.
+    s.asking = ("open", 0, "audio")
+    stepping = s.choices()
+    assert stepping[0][0] == "examples/audio/"
+    assert stepping[0][3] == "examples/audio/", "a step, not an answer"

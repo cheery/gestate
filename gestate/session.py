@@ -1095,11 +1095,26 @@ class Session:
             # "you are here").
             out.append(("../", f"you are here: {where}", True,
                         up + "/", False))
+        matched = []
         for entry in entries:
             if entry.name.startswith(".") and not stem.startswith("."):
                 continue
             if low and low not in entry.name.lower():
                 continue
+            matched.append(entry)
+        # **An exact name outranks a fuzzy one** (F129: `test` offered
+        # `pytest.ini` above the `test/` that *is* the query).  The
+        # palette's own law — a name match beats a prose match — one
+        # floor down: exactness first, a prefix next, a substring
+        # last; directories before files at each rank, because a
+        # directory named what was typed is almost certainly where the
+        # person is going; the alphabet inside.
+        if low:
+            matched.sort(key=lambda e: (
+                0 if e.name.lower() == low else
+                1 if e.name.lower().startswith(low) else 2,
+                e.is_file(), e.name.lower()))
+        for entry in matched:
             # **A name already taken is shown and not offered.**  You
             # cannot choose what you cannot have, and hiding it would
             # be worse: the reason the name is refused is that it is
@@ -1124,7 +1139,79 @@ class Session:
                         "there" if dim else
                         "directory" if entry.is_dir() else _size(entry),
                         not taken, step, dim))
+        # **A file you can name is a file the dialog can find** (F130).
+        # A query that matches nothing here is offered matches from
+        # below, nearest first — `open lantern.ges` from the root used
+        # to answer 0 rows three times while starting phantoms, because
+        # the listing was one directory deep and lantern lives two.
+        # Deep rows wear their path from the walk, so what is picked is
+        # exactly what is shown, and `_where` resolves it like any
+        # bare row.
+        if low and not out:
+            out.extend(self._below(where, head, low, free, mark))
         return out
+
+    #: What a deep search may touch: directories this far down, this
+    #: many directory reads, this many rows.  Bounds rather than
+    #: tuning — a dialog is read at a keystroke's pace whatever the
+    #: tree looks like.
+    BELOW_DEEP, BELOW_READS, BELOW_ROWS = 4, 64, 40
+
+    def _below(self, where, head: str, low: str,
+               free: bool, mark: bool) -> list:
+        """Matches under the walk, nearest first — F130's finding half.
+
+        Breadth-first, so a shallow answer beats a deep one; what a
+        build writes (`target`, `__pycache__`) is not descended,
+        because a file a person can *name* is one they put somewhere;
+        and bounded in depth, reads and rows, because an unbounded
+        walk is a dialog that sometimes hangs.
+        """
+        junk = {"target", "__pycache__", "node_modules"}
+        found = []
+        frontier = [(where, "")]
+        reads = 0
+        while (frontier and reads < self.BELOW_READS
+               and len(found) < self.BELOW_ROWS):
+            below, rel = frontier.pop(0)
+            reads += 1
+            try:
+                entries = sorted(below.iterdir(),
+                                 key=lambda e: e.name.lower())
+            except Exception:                            # noqa: BLE001
+                continue
+            for entry in entries:
+                if entry.name.startswith(".") or entry.name in junk:
+                    continue
+                wearing = rel + entry.name
+                if entry.is_dir():
+                    if (not entry.is_symlink()
+                            and wearing.count("/") < self.BELOW_DEEP):
+                        frontier.append((entry, wearing + "/"))
+                    if low in entry.name.lower():
+                        found.append((wearing + "/", "directory", True,
+                                      (head + "/" if head else "")
+                                      + wearing + "/", False))
+                elif low in entry.name.lower():
+                    taken = free
+                    dim = free or mark
+                    found.append((wearing,
+                                  "taken" if taken else
+                                  "there" if dim else _size(entry),
+                                  not taken, "", dim))
+
+        # Nearest first, then the exactness rank the flat listing
+        # keeps, directories before files, the alphabet inside.
+        def rank(row):
+            text = row[0].rstrip("/")
+            name = text.rpartition("/")[2].lower()
+            return (text.count("/"),
+                    0 if name == low else
+                    1 if name.startswith(low) else 2,
+                    0 if row[3] else 1, text.lower())
+
+        found.sort(key=rank)
+        return found[:self.BELOW_ROWS]
 
     def choices(self) -> list:
         """What the argument being asked for could be, or nothing.
