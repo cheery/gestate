@@ -469,6 +469,23 @@ Three measures, in the order the value falls:
    calling a hand-off concurrency.  The canvas's own cost is 0.24 s;
    what it really pays for is the second front end above.
 
+   **And then it earned its keep twice more, on one line of output.**
+   `noted.ges` reported *eight* front ends for one start, and neither
+   of the reasons was visible any other way.  The eighth re-analysed
+   the text the first had — `_KEEP_ANALYSED` was four, sized for a file
+   with three assemblies, and score boxes had quietly made it eight, so
+   the cache was evicting the file it was caching.  And three of the
+   remaining seven were one per `notes` ask: each roll spliced its own
+   `__nb_*` definitions into the author's file and assembled a fresh
+   200,000-character performance, so three boxes were three front ends
+   and three G-machine compiles to draw three pictures of one file.
+   `scorebox.build_rolls` numbers them into one program the way
+   `canvas <expr>` asks have always been numbered — with the hidden
+   definitions numbered too, because `rebuild` carries the bank in
+   force at the reference and a name reached from two asks is two
+   bodies.  Together: **8 front ends → 5, and a `noted.ges` start
+   13.0 s → 8.5 s.**
+
 **Measured and rejected: `clang -O1` for interactive builds.**  It
 looked like a free 1.3 s of the three, and the objects are *bit
 identical* to `-O2` — verified on `blip` and on `quartet`, and expected,

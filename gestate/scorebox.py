@@ -20,7 +20,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-__all__ = ["asks", "build_roll", "roll_program", "Roll", "RollError"]
+__all__ = ["asks", "build_roll", "build_rolls", "roll_program",
+           "Roll", "RollError"]
 
 
 class RollError(Exception):
@@ -133,7 +134,17 @@ class _Descent:
     by the library, all of its events wearing its span.
     """
 
-    def __init__(self, decls: dict, copies: frozenset = frozenset()):
+    def __init__(self, decls: dict, copies: frozenset = frozenset(),
+                 box: int = 0):
+        #: Which ask this descent is for.  **Its hidden definitions wear
+        #: it**, because every box on a page is now rebuilt into *one*
+        #: program and a name reached from two asks is not the same
+        #: definition twice: `rebuild` carries the bank in force at the
+        #: reference, so `ground` reached under one bank and under
+        #: another are two bodies wanting one name.  Sharing it would
+        #: give a box the other's colours, silently — the failure this
+        #: whole file is written around.
+        self.box = box
         #: Declarations that assign to a bank, and so are reached
         #: through an unassigned twin instead.
         self.copies = copies
@@ -282,7 +293,7 @@ class _Descent:
                 finally:
                     self._bias = saved
                 self._visiting.discard(name)
-            return f"__nbd_{name}__"
+            return f"__nbd_{self.box}_{name}__"
         return self._leaf(v, bank)
 
     def twin_defs(self, assigning: dict) -> str:
@@ -331,7 +342,7 @@ class _Descent:
         # `[: a :]`, which is what anchors an overloaded `||` or `++`
         # in an unannotated definition to the score's own instance
         # rather than leaving the dictionary unresolved.
-        return "".join(f"__nbd_{n}__ = at 0 ({t})\n"
+        return "".join(f"__nbd_{self.box}_{n}__ = at 0 ({t})\n"
                        for n, t in self._defs.items())
 
 
@@ -524,6 +535,46 @@ def build_roll(source: str, expr: str, ask_line: int, rate: int,
     there).  Raises `RollError` with the margin's sentence when the
     program refuses — a missing `Notable` instance arrives here as the
     type checker's own complaint, naming the type and the class.
+
+    One ask, which is what a test and a fallback want.  A page of them
+    goes through `build_rolls` below and costs one program between them
+    rather than one each.
+    """
+    got = build_rolls(source, [(ask_line, expr)], rate, seed,
+                      fuel=fuel, window_beats=window_beats)[0]
+    if isinstance(got, RollError):
+        raise got
+    return got
+
+
+def build_rolls(source: str, asks_: list, rate: int, seed: int, *,
+                fuel: int = FUEL,
+                window_beats: int = WINDOW_BEATS) -> list:
+    """A take per ask, from **one** program.  `Roll` or `RollError` each.
+
+    `asks_` is `asks(source)` or a slice of it: `(line, expr)` pairs.
+
+    **One program, because each of these used to be its own.**  A roll
+    was built by splicing `__nb_*` definitions into the author's file
+    and assembling the result — a 200,000-character performance program
+    with the preludes in front — so `noted.ges`'s three boxes were
+    three front ends and three G-machine compiles to draw three
+    pictures of one file.  `GESTATE_BUILD_TIME` put a number on it:
+    3.7 s of a 10 s start.  This is the shape `canvas <expr>` already
+    had, where `audiovoices` numbers hidden `__canvas_k__` definitions
+    into one assembly and the loader asks for them by name.
+
+    **What has to be numbered with them** is every hidden definition
+    the descent makes, because `rebuild` carries the bank in force at
+    the *reference*: `ground` reached from one ask and from another are
+    two bodies, and sharing `__nbd_ground__` between them would hand a
+    box the other's colours without a word.  Hence `_Descent.box`.
+
+    A refusal stays this ask's own: what will not parse is answered
+    with a `RollError` in its own slot and the others still build, and
+    if the *combined* program will not compile — one bad ask can do
+    that — each is retried alone, so a page never goes blank over one
+    box.
     """
     from .audioscore import ScoreError, assemble_performance
     from .gmachine import GmError, PushGlobal, Unwind, run
@@ -540,21 +591,47 @@ def build_roll(source: str, expr: str, ask_line: int, rate: int,
     # expander appends what it generates — which is all a jump needs.
     # The notes asks are ours to blank first, the same way.
     blanked = expand(_blank_asks(source))
-    wrapper = f"__nb_ask__ = {expr}\n"
+    out: list = [None] * len(asks_)
     try:
         module = parse(blanked)
-        wrapped = parse(wrapper)
     except ParseError as exc:
-        raise RollError(f"the ask does not parse: {exc}") from exc
+        return [RollError(f"the file does not parse: {exc}")] * len(asks_)
 
     assigning = _assigning(module)
-    descent = _Descent(_declarations(module), frozenset(assigning))
-    body = wrapped.items[0].equations[0].body
-    # The twins first: a leaf that calls one takes its bank from the
-    # table they fill in.
-    twins = descent.twin_defs(assigning)
-    root = descent.rebuild_ask(body, ask_line)
+    decls = _declarations(module)
     window = window_beats * TICKS_PER_BEAT
+    twins = None
+    built: list = []                  # (k, descent)
+    parts: list = []
+    for k, (ask_line, expr) in enumerate(asks_):
+        descent = _Descent(decls, frozenset(assigning), box=k)
+        try:
+            wrapped = parse(f"__nb_ask__ = {expr}\n")
+        except ParseError as exc:
+            out[k] = RollError(f"the ask does not parse: {exc}")
+            continue
+        body = wrapped.items[0].equations[0].body
+        # The twins first: a leaf that calls one takes its bank from
+        # the table they fill in.  Every descent fills its own table;
+        # the *text* is the same for all of them — it is read off the
+        # module, not off the ask — so it is written out once.
+        mine = descent.twin_defs(assigning)
+        twins = mine if twins is None else twins
+        root = descent.rebuild_ask(body, ask_line)
+        built.append((k, descent))
+        parts.append(
+            descent.hidden_defs()
+            + f"__nb_root_{k}__ = at 0 ({root})\n"
+            + f"__nb_take_{k}__ = spreadTo {fuel} {window} "
+              f"(sowScore {seed} __nb_root_{k}__)\n"
+            + f"__nb_fuel_{k}__ : Int\n"
+            + f"__nb_fuel_{k}__ = fst __nb_take_{k}__\n"
+            + f"__nb_ev_{k}__ : List (Int, Int, Int, Int, Int)\n"
+            + f"__nb_ev_{k}__ = map (e => __nb_read__ e) "
+              f"(snd __nb_take_{k}__)\n")
+    if not built:
+        return out
+
     # The aux program is the *author's* text plus ours — expanded by
     # `assemble_performance` itself, so the internals check reads the
     # expander's output as the expander's, not as the author's.  The
@@ -562,12 +639,7 @@ def build_roll(source: str, expr: str, ask_line: int, rate: int,
     # rebuilt mentions an expanded name, because the assign-binds are
     # exactly what it drops.
     aux = (_blank_asks(source)
-           + "\n" + twins + descent.hidden_defs()
-           + f"__nb_root__ = at 0 ({root})\n"
-           + f"__nb_take__ = spreadTo {fuel} {window} "
-             f"(sowScore {seed} __nb_root__)\n"
-           + "__nb_fuel__ : Int\n"
-           + "__nb_fuel__ = fst __nb_take__\n"
+           + "\n" + (twins or "") + "".join(parts)
            # **The lambda takes the event whole, and `case` opens it.**
            # Not `map ((a, b, p) => …)`: a lambda whose parameter is a
            # *tuple pattern* resolves a constrained call in its body
@@ -576,11 +648,10 @@ def build_roll(source: str, expr: str, ask_line: int, rate: int,
            # its own payload, silently (F136, with the four-line
            # repro).  Destructuring with `case` is the same program
            # and dispatches correctly.
-           + "__nb_ev__ : List (Int, Int, Int, Int, Int)\n"
-           + "__nb_ev__ = map (e => __nb_read__ e) (snd __nb_take__)\n"
+           #
            # Signed, and the constraint written out, so the payload
            # stays the caller's to determine — which it is: the take's
-           # own element type.
+           # own element type.  One copy serves every box.
            + "__nb_read__ : (Notable a) => (Int, Int, (Int, a)) "
              "-> (Int, Int, Int, Int, Int)\n"
            + "__nb_read__ e = case e of\n"
@@ -589,7 +660,16 @@ def build_roll(source: str, expr: str, ask_line: int, rate: int,
     try:
         state = _compile(assemble_performance(aux, "", rate))
     except (ScoreError, Exception) as exc:            # noqa: BLE001
-        raise RollError(_first_line(exc)) from exc
+        if len(built) == 1:
+            out[built[0][0]] = RollError(_first_line(exc))
+            return out
+        # **One bad ask must not blank the page.**  Which one refused
+        # is not knowable from a whole-program complaint, so each is
+        # asked again on its own and answers for itself.
+        for k, _d in built:
+            out[k] = build_rolls(source, [asks_[k]], rate, seed,
+                                 fuel=fuel, window_beats=window_beats)[0]
+        return out
 
     def _force_global(name):
         saved = (state._code, state._pc, state.stack, state.dump)
@@ -601,20 +681,22 @@ def build_roll(source: str, expr: str, ask_line: int, rate: int,
         finally:
             state._code, state._pc, state.stack, state.dump = saved
 
-    try:
-        fuel_left = _int(_force(_force_global("__nb_fuel__"), state),
-                         state)
-        events = []
-        for e in _list(_force_global("__nb_ev__"), state):
-            t = _force(e, state)
-            events.append(tuple(_int(a, state) for a in t.args))
-    except GmError as exc:
-        raise RollError(_first_line(exc)) from exc
-
-    leaves = descent.leaves
-    return Roll(events=events, leaves=leaves,
-                cut=fuel_left == 0,
-                chancy=any(l.chancy for l in leaves), seed=seed)
+    for k, descent in built:
+        try:
+            fuel_left = _int(_force(_force_global(f"__nb_fuel_{k}__"),
+                                    state), state)
+            events = []
+            for e in _list(_force_global(f"__nb_ev_{k}__"), state):
+                t = _force(e, state)
+                events.append(tuple(_int(a, state) for a in t.args))
+        except GmError as exc:
+            out[k] = RollError(_first_line(exc))
+            continue
+        leaves = descent.leaves
+        out[k] = Roll(events=events, leaves=leaves,
+                      cut=fuel_left == 0,
+                      chancy=any(l.chancy for l in leaves), seed=seed)
+    return out
 
 
 def _first_line(exc) -> str:

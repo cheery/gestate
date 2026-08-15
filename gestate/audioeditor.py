@@ -1011,11 +1011,23 @@ class Workbench:
         # roll that will not build must not stop the instrument, and
         # what went wrong is said once, in the author's terms.
         self.note_jumps = {}
-        for k, (line, expr) in enumerate(scorebox.asks(text)):
+        # **All of them from one program.**  A roll used to be built by
+        # splicing its own definitions into the file and assembling the
+        # result, so three boxes were three 200,000-character front ends
+        # and three G-machine compiles to draw three pictures of one
+        # file — 3.7 s of a `noted.ges` start, which is what
+        # `GESTATE_BUILD_TIME` was switched on and found.  `build_rolls`
+        # numbers them into one assembly the way `canvas <expr>` asks
+        # have always been numbered, and answers per ask: a `RollError`
+        # in one slot leaves the others drawn.
+        page = scorebox.asks(text)
+        for k, ((line, _expr), roll) in enumerate(
+                zip(page, scorebox.build_rolls(text, page, self.rate,
+                                               self.seed or 0))):
             name = f"__notes_{k}__"
             try:
-                roll = scorebox.build_roll(text, expr, line, self.rate,
-                                           self.seed or 0)
+                if isinstance(roll, Exception):
+                    raise roll
                 program, jumps = scorebox.roll_program(roll, k)
                 boxes[name] = Substrate(program, self.rate)
                 self.note_jumps.update(jumps)

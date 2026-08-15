@@ -286,6 +286,51 @@ def test_two_boxes_do_not_share_a_hand():
     assert set(one) & set(two) == set()
 
 
+def test_a_page_of_boxes_is_the_same_page_built_one_at_a_time():
+    """**The acceptance for building them together.**  Three boxes used
+    to be three whole programs; they are one now, and the only thing
+    that makes that safe is that every box still gets the roll it got
+    alone.  `noted.ges` is the file to ask, because its three asks
+    overlap: `score` reaches both hands, and `ground` is reached from
+    `score` under a bank and from its own ask under none — the
+    hidden-definition collision that numbering `_Descent.box` exists to
+    prevent, which would show up here as a hand wearing the other's
+    colour.
+    """
+    from gestate.scorebox import build_rolls
+
+    source = (AUDIO / "noted.ges").read_text()
+    page = asks(source)
+    together = build_rolls(source, page, RATE, 0)
+    alone = [build_roll(source, expr, line, RATE, 0) for line, expr in page]
+
+    assert len(together) == len(alone) == 3
+    for (line, expr), got, want in zip(page, together, alone):
+        assert not isinstance(got, Exception), f"{expr}: {got}"
+        assert got.events == want.events, expr
+        assert [(l.line, l.bank, l.chancy) for l in got.leaves] == \
+               [(l.line, l.bank, l.chancy) for l in want.leaves], expr
+        assert (got.cut, got.chancy, got.seed) == \
+               (want.cut, want.chancy, want.seed), expr
+
+
+def test_one_bad_ask_does_not_blank_the_page():
+    """A page is built as one program, so a refusal in one ask refuses
+    the whole compile — and the answer is to ask each again alone
+    rather than to draw nothing.  The box that is wrong says so in its
+    own slot; the others are unaffected."""
+    from gestate.scorebox import build_rolls
+
+    source = ((AUDIO / "noted.ges").read_text()
+              + "\nnotes noSuchTuneAnywhere\n")
+    page = asks(source)
+    got = build_rolls(source, page, RATE, 0)
+
+    assert isinstance(got[-1], RollError), got[-1]
+    assert all(not isinstance(r, Exception) for r in got[:-1]), got
+    assert got[0].events, "the written hand still drew"
+
+
 def test_every_hand_lands_on_a_line_that_exists():
     roll, source = _roll("chopin.ges")
     _program, jumps = roll_program(roll)
