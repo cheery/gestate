@@ -189,6 +189,13 @@ there is no toolkit in the build.
 * **[The specs](spec/)** — how each part is designed and why, costs
   stated; `journal.md` is the honest running account, `fixme.md` the
   defect ledger.
+* **[The switches](doc/switches.md)** — every `GESTATE_*` the program
+  reads.  Most are not settings: they are how it is asked where its
+  time went, or made to do the slow thing on purpose so a measurement
+  means something.
+* **[The manifesto](manifesto.md)** — how this project is worked.  Two
+  rules: do not build what nothing needs, and what is built must be
+  able to say when it is wrong.
 
 The logo: an egg, and inside it a signal growing to full amplitude —
 carried to term while already sounding.
