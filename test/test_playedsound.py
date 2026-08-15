@@ -32,12 +32,21 @@ mutations, run by hand: a `Keyboard.press` a semitone out is heard as
 it.  Both are the defects this file exists for — the wrong note, and no
 note.
 
-**One seam it does not reach**, and saying so is the point: a fake
-player means `_open_host` finds no card and the *Python* driver renders,
-so the C host's own control push is not on this path.  That half is
-`test_audiohost.py`, which fills blocks straight from a `Host` and
-compares them with the engine's.  Nobody yet plays a key *through the C
-host* — the two halves are each covered and their join is not.
+**And the C host too**, in the last section, which is the seam nobody
+covered: a fake player means `_open_host` finds no card and the
+*Python* driver renders, so the sections above are all about
+`Transport.fill` and the C loop is what a machine with a sound card
+actually runs.  `test_audiohost.py` proves the C host renders what the
+engine renders for a synth with no parameters; a key is the case it
+cannot make, because a key arrives through the **control block**.
+Driven from a press, both drivers now render the same samples to 1e-6 —
+with the C fader up, since a session's fade-in is the one difference
+between them and is deliberate.
+
+Its own mutation: with `_push_controls` made a no-op, the C host plays
+*nothing* and the join fails.  The same mutation against the Python
+sections passes, because there the driver pulls its own controls — one
+line of evidence that this section covers something the others do not.
 
 **The last section is the one worth having.**  `duet.ges` has claimed
 in prose since it was written that *a note is the same thing whether a
@@ -346,3 +355,134 @@ def test_a_note_is_the_same_whether_a_schedule_or_a_hand_decided_it(tmp_path):
     scored_rate = _decay_rate(scheduled, a_at)
     hand_rate = _decay_rate(played, b_at)
     assert abs(scored_rate - hand_rate) < 0.2, (scored_rate, hand_rate)
+
+
+# ── Through the C host ──────────────────────────────────────────────────────
+#
+# The seam the section above names and cannot reach.  A fake player means
+# `_open_host` finds no card and the *Python* driver renders, so every
+# assertion so far is about `Transport.fill` and none is about the C one —
+# and the C host is what a machine with a sound card actually runs.
+#
+# `test_audiohost.py` proves the C host renders what the engine renders,
+# for a synth with no parameters.  A played key is the other half: it
+# reaches the sound through the **control block**, which the C loop reads
+# and never asks anybody for, so `_push_controls` is the whole of the
+# bridge and nothing has ever driven it from a key.
+#
+# What is re-made here rather than driven is the five-line loop inside
+# `_run_host` — a host, and a call per block.  Everything it calls is the
+# workbench's own: `_push_controls`, `Workbench.control`, the same engine.
+# It is also *deterministic*, which the sections above are not: the press
+# lands at a block boundary of this test's choosing rather than whenever a
+# thread got there.
+
+
+def _idle_bench(tmp_path, name: str = "polysaw.ges"):
+    """A workbench with everything built and nothing playing.
+
+    `seconds=0.0` starts the driver and gives it no time to render, so
+    the engine, the allocators and the keyboard are all real and the
+    audio thread is finished with.  What the test drives afterwards is
+    the C host, block by block.
+    """
+    path = tmp_path / name
+    path.write_text((AUDIO_DIR / name).read_text())
+    bench = Workbench(path, rate=RATE, block=64,
+                      command=_pacer(tmp_path / f"idle{next(_TAKE)}.raw"))
+    bench.start(seconds=0.0)
+    assert _wait(lambda: bench.live is not None), bench.messages
+    assert _wait(lambda: not bench.playing), "the driver kept going"
+    return bench
+
+
+def _through_c(bench, blocks: int = 60) -> list:
+    """Fill `blocks` from a C host, pushing controls as `_run_host` does."""
+    import ctypes
+
+    from gestate.audiohost import Host
+
+    engine = bench.live.engine
+    # **`fade_in=False`, and it is the one difference between the two
+    # drivers.**  A session starts with the C fader down so the card does
+    # not pop on the first block; the Python driver has no such ramp.
+    # `test_audiohost.py` turns it off for the same reason — a comparison
+    # against another renderer is not a comparison of session openings.
+    host = Host(channels=engine.channels, rate=RATE,
+                controls=len(engine.control_sources),
+                directory=bench._directory, fade_in=False)
+    host.install(engine)
+    bench.host = host
+    bench.live.controls = len(host.control)
+    got: list = []
+    frames = 64
+    buffer = (ctypes.c_float * (frames * engine.channels))()
+    try:
+        for k in range(blocks):
+            bench._push_controls(k * frames)
+            host.fill(buffer, frames)
+            got.extend(buffer)
+    finally:
+        bench.host = None
+        host.close()
+    return got
+
+
+def test_a_key_played_through_the_c_host_is_heard(tmp_path):
+    """The join: a press, the control block, the C render loop, samples.
+
+    Every piece of this is covered on its own and the seam is not —
+    which is the shape of `fixme.md` F101, two artifacts agreeing in an
+    omission while the wire between them is dead.
+    """
+    bench = _idle_bench(tmp_path)
+    try:
+        bench.listen("poly", True)
+        quiet = _through_c(bench, blocks=20)
+        assert not any(quiet), "the C host made a sound nobody asked for"
+
+        assert bench.keyboard.press(60), "the bank took no note"
+        got = _through_c(bench, blocks=60)
+    finally:
+        bench.stop()
+
+    assert any(got), "a key was pressed and the C host played nothing"
+    assert heard_note(_tail(got), RATE) == 60
+
+
+def test_both_drivers_play_the_same_key(tmp_path):
+    """The C host and the Python one, same press, same samples.
+
+    `test_audiohost.py` makes this comparison for a synth with no
+    parameters, where the control block never moves.  A key is the case
+    it cannot make: the value arrives *through* the block, pushed on one
+    side and pulled on the other, and two drivers that disagreed about
+    when a control lands would differ by exactly one block of envelope —
+    audible as a click on every note, and invisible to both halves
+    tested apart.
+    """
+    import ctypes
+
+    left = _idle_bench(tmp_path)
+    right = _idle_bench(tmp_path)
+    try:
+        for bench in (left, right):
+            bench.listen("poly", True)
+            assert bench.keyboard.press(60)
+
+        through_c = _through_c(left, blocks=40)
+
+        # The Python driver's own loop, the same call per block.
+        frames, engine = 64, right.live.engine
+        buffer = (ctypes.c_float * (frames * engine.channels))()
+        through_python: list = []
+        for k in range(40):
+            right.transport.fill(buffer, frames, right.control, k * frames)
+            through_python.extend(buffer)
+    finally:
+        left.stop()
+        right.stop()
+
+    assert any(through_c) and any(through_python)
+    apart = max(abs(a - b) for a, b in zip(through_c, through_python))
+    assert apart < 1e-6, f"the two drivers disagree by {apart}"
