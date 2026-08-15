@@ -333,6 +333,23 @@ pictures.  `clang -O1` is written up there as measured and rejected.
 
 What is **not** done, in the order the value falls:
 
+- **`examples/long/sauna.ges` spends its start in the score — about six
+  seconds of it**, which is the largest phase of the largest file and
+  the one Henri notices.  It is *not* the front end.  Two things are
+  inside it, and the first is the same shape as everything fixed today:
+  **the same 228,000-character assembly is put through
+  `pipeline.compile` twice** in one rebuild, 0.75 s each, because
+  `compile` has no cache the way `analyse` does — the score's stream
+  and the `FromMIDI` interpreter each ask for it and neither knows
+  about the other.  Sharing it is not free to design: a `GmState` is a
+  *machine*, with a heap that the caller then runs, so what two readers
+  can share is the compiled code and the constructor table, not the
+  state — the same distinction `Substrate.several` just had to make on
+  the canvas side, and the same answer may fit.  The rest of the six
+  seconds is the score walk itself, in the Python machine, on a piece
+  whose root is a `cycle`; that half is unattributed and should be
+  measured before anything is done to it.
+
 - **The whole-module tail — about 0.2 s a front end.**  Everything
   after the seam still runs over all 232 k assembled characters:
   `_discharge` 0.21 (elaborate 0.15, specialise 0.04),
