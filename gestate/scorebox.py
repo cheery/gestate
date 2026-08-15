@@ -21,7 +21,9 @@ import re
 from dataclasses import dataclass, field
 
 __all__ = ["asks", "build_roll", "build_rolls", "page_program",
-           "pitch_atom", "roll_program", "transposed",
+           "hands_of", "key_at", "note_of", "note_under", "pitch_atom",
+           "reach_of", "regions_of", "roll_program", "scale_of",
+           "transposed", "y_of",
            "Roll", "RefusedError", "RollError"]
 
 
@@ -913,13 +915,135 @@ def _n(v: int) -> str:
     return str(v) if v >= 0 else f"(0 - {-v})"
 
 
+#: How many hands a box hands out, and how wide each one is.
+#:
+#: **A column of the picture, not a note and not a written place**, and
+#: the reason is the thing this box is for.  A hand has to give a drag
+#: room for an interval, so it is the full height of the roll — and
+#: full-height regions that *overlap* hide each other, because the
+#: substrate resolves a press to the innermost region written first.
+#: One per written place looked safe on `minute.ges` and `noted.ges`,
+#: which have no two places sounding at once; `chopin.ges` has
+#: seventeen such pairs out of twenty-eight, and the shadowed one
+#: could not be pressed at any height.  Columns tile: no two overlap,
+#: every note is under one wherever it sounds, and *which* note a
+#: press means is read off the height — which is aiming, and is how a
+#: chord's own notes became pressable at all.
+HAND_W = 8
+#: Bounded the way the leaves are, and for the same reason: the hands
+#: are nested `Over`s, and chopin's hundred and forty notes overflowed
+#: the parser the day the *notes* were nested.
+MAX_HANDS = 48
+
+
+def _chan(box: int, hand: int) -> str:
+    """The channel one column's hand writes.
+
+    **Unique across boxes**: two rolls in one file are two walks in one
+    program's channel namespace, and a shared name would make a press
+    in either land on whichever was built last.  Spelled here because
+    two readers need it — the picture that makes the hand, and the
+    editor that looks the hand up when it moves.
+    """
+    return f"__nb_c{box}_{hand}__"
+
+
+def hands_of(roll: Roll) -> list:
+    """`[(first tick, last tick, [note])]` — the roll's columns.
+
+    Every column that has a note under it, left to right.  A note
+    spanning several columns is in each of them, so a long one can be
+    taken hold of anywhere along its length rather than only where it
+    starts.
+    """
+    if not roll.events:
+        return []
+    _lo, _hi, span = scale_of(roll)
+    wide = max(1, min(MAX_HANDS, ROLL_W // HAND_W))
+    step = max(1, -(-span // wide))             # ceiling, so the last
+    out = []                                    # column reaches the end
+    for i in range(wide):
+        t0, t1 = i * step, min(span, (i + 1) * step)
+        if t0 >= t1:
+            break
+        under = [j for j, e in enumerate(roll.events)
+                 if e[0] < t1 and e[1] > t0]
+        if under:
+            out.append((t0, t1, under))
+    return out
+
+
+def regions_of(rolls: list) -> dict:
+    """`{channel: (roll, column index)}` for a page of rolls.
+
+    What a gesture arriving by channel name is *about* — the column,
+    which with the height the hand writes says which note was meant.
+    """
+    out = {}
+    for box, roll in enumerate(rolls):
+        if isinstance(roll, Exception):
+            continue
+        for i, _hand in enumerate(hands_of(roll)):
+            out[_chan(box, i)] = (roll, i)
+    return out
+
+
+def note_under(roll: Roll, hand: int, down: float) -> int:
+    """Which note a hand at this height in this column has hold of.
+
+    **Aim decides, in both directions.**  The column says where along
+    the piece the hand is and the height says which of the notes
+    sounding there it means — so a chord is four notes to press rather
+    than one region, which is what the leaf-shaped hands could not do.
+
+    Ties go to the one that starts first, because that is the one whose
+    onset is nearest the hand when two sound at one pitch.
+    """
+    hands = hands_of(roll)
+    if not 0 <= hand < len(hands):
+        raise RefusedError("that column is not in this box any more")
+    _t0, _t1, under = hands[hand]
+    key = key_at(roll, down)
+    return min(under, key=lambda j: (abs(roll.events[j][3] - key),
+                                     roll.events[j][0]))
+
+
+def note_of(roll: Roll, hand: int, key: int) -> int:
+    """Which note under that column sounds `key` — its index in `events`.
+
+    **A column is a place in the picture, and a place can sound a
+    chord.**  `chord 45 60 64 67` draws four notes an aim apart, so the
+    channel alone does not say which one a gesture had hold of; what it
+    says is the one thing the file and the picture already agree on
+    (`spec/north_star.md` §"The vocabulary").
+
+    Raises `RefusedError` for a column that sounds it twice — the same
+    ambiguity `pitch_atom` refuses, caught one step earlier and in the
+    same words.
+    """
+    hands = hands_of(roll)
+    if not 0 <= hand < len(hands):
+        raise RefusedError("that column is not in this box any more")
+    _t0, _t1, under = hands[hand]
+    found = [j for j in under if roll.events[j][3] == key]
+    if not found:
+        raise RefusedError(f"nothing under that column sounds {key}")
+    if len(found) > 1:
+        raise RefusedError(
+            f"that column sounds {key} {len(found)} times, so which "
+            f"note is meant is not written down anywhere")
+    return found[0]
+
+
 def page_program(rolls: list) -> tuple:
-    """Every box of a page in **one** program, and one jump table.
+    """Every box of a page in **one** program, and where its hands are.
 
     `rolls` is what `build_rolls` returned; a `RollError` in it is a box
     that could not be built and takes no room here.  Returns
-    `(ges_text, jumps, entries)` — `entries[k]` is the definition box
-    `k` draws, or `None` for one that refused.
+    `(ges_text, regions, entries)` — `regions` is `regions_of`'s map
+    from a channel to the roll and column it belongs to, and
+    `entries[k]` is the definition box `k` draws, or `None` for one
+    that refused.
 
     The rolls are built together (`build_rolls`) and now they are
     *drawn* together, which is the second half of the same saving: each
@@ -933,15 +1057,14 @@ def page_program(rolls: list) -> tuple:
     banks and no other's, so sharing the name would paint one box in
     another's colours.
     """
-    texts, jumps, entries = [], {}, []
+    texts, entries = [], []
     for k, roll in enumerate(rolls):
         if isinstance(roll, Exception):
             entries.append(None)
             continue
         entry = f"__notes_{k}__"
-        text, mine = roll_program(roll, k, entry=entry)
+        text, _hands = roll_program(roll, k, entry=entry)
         texts.append(text)
-        jumps.update(mine)
         entries.append(entry)
     drawn = [e for e in entries if e is not None]
     if drawn:
@@ -953,16 +1076,87 @@ def page_program(rolls: list) -> tuple:
         # names in every line.  The first box, because a page is at
         # least one box and any of them is a picture.
         texts.append(f"substrate : Sig Sub\nsubstrate = {drawn[0]}\n")
-    return "\n".join(texts), jumps, entries
+    return "\n".join(texts), regions_of(rolls), entries
+
+
+def scale_of(roll: Roll) -> tuple:
+    """`(lo, hi, span_ticks)` — the roll's own axes.
+
+    **One arithmetic, two readers** (the law the panel box already
+    keeps): the picture is drawn from this and a hand is read back
+    through it, so the two cannot disagree about which pitch a height
+    means.  A semitone of margin above and below, because a note drawn
+    hard against the edge reads as clipped.
+    """
+    span = max((e[1] for e in roll.events), default=0) or TICKS_PER_BEAT
+    keys = [e[3] for e in roll.events] or [60]
+    return (min(keys) - 1, max(keys) + 1, span)
+
+
+#: How far past the drawn music a hand can carry a note, in semitones.
+#:
+#: **The hand is taller than the picture, and that is deliberate.**  A
+#: `TouchY` writes a fraction of *its own element's* extent and is
+#: clamped there — the law that makes every gesture bounded by
+#: construction — so a hand exactly the size of the roll can only ever
+#: say a pitch the piece already plays.  Henri, dragging one: *"the
+#: drag appears to stop to the canvas borders."*  The answer is not to
+#: unclamp it, which would put the bound in the program's hands
+#: everywhere; it is to hand out a taller element.  Two octaves each
+#: way, at the same pixels-per-semitone the roll is drawn with, so the
+#: hand keeps moving at the speed the eye expects and the extra room
+#: is simply off the top and bottom of the band.
+DRAG_REACH = 24
+
+#: The roll's drawing height — the label takes the rest.
+BODY_H = ROLL_H - 20
+
+
+def y_of(roll: Roll, key: int) -> int:
+    """Where a key is drawn, in the box's own coordinates.
+
+    **One arithmetic, several readers** — the law the panel box keeps.
+    The notes are drawn from this, the hand's extent is cut from it,
+    and `key_at` inverts it; three spellings of a straight line is how
+    a picture and a gesture come to disagree about which note is which.
+
+    Linear past the ends as well, which is what gives `DRAG_REACH` its
+    pixels: the keys above and below the music are drawn nowhere but
+    are still *somewhere*.
+    """
+    lo, hi, _span = scale_of(roll)
+    return (ROLL_H // 2 - 14
+            - int((key - lo) * BODY_H / max(1, hi - lo)))
+
+
+def reach_of(roll: Roll) -> tuple:
+    """`(lowest, highest)` key a hand on this box can carry a note to."""
+    lo, hi, _span = scale_of(roll)
+    return (max(0, lo - DRAG_REACH), min(127, hi + DRAG_REACH))
+
+
+def key_at(roll: Roll, down: float) -> int:
+    """Which key a hand at this height means — `y_of` inverted.
+
+    `down` is what a `TouchY` writes: 0 at the top of its element, 1 at
+    the bottom, which is the way pitch does not run — so the fraction
+    is turned over here, once, where the drawing rule is.  Snapped to a
+    semitone, because that is what a key is, and over the *hand's*
+    range rather than the roll's: the element is `DRAG_REACH` further
+    in each direction, and this is the same line read backwards.
+    """
+    low, high = reach_of(roll)
+    return max(low, min(high, round(high - float(down) * (high - low))))
 
 
 def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple:
-    """The box's substrate program, and its jump table.
+    """The box's substrate program, and the hands it hands out.
 
-    Returns `(ges_text, {chan_name: line})`.  The program is ordinary
-    substrate vocabulary — rects in a `Sized` box, one `TouchX` region
-    per leaf — so the window walks it exactly as it walks any canvas
-    ask, and a press writes a channel whose name the editor looks up.
+    Returns `(ges_text, [chan_name])`, in column order.  The program is
+    ordinary substrate vocabulary — rects in a `Sized` box, one
+    full-height `TouchY` column per hand — so the window walks it
+    exactly as it walks any canvas ask, and a press writes a channel
+    whose name the editor looks up, with the height it landed at.
 
     `entry` is what the picture is called, `substrate` for a program
     that stands alone and `__notes_k__` for one line of a page; every
@@ -970,17 +1164,10 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
     concatenated (`page_program`).
     """
     events, leaves = roll.events, roll.leaves
-    if not events:
-        span_ticks = TICKS_PER_BEAT
-    else:
-        span_ticks = max(e[1] for e in events)
-    keys = [e[3] for e in events] or [60]
-    lo, hi = min(keys), max(keys)
-    lo, hi = lo - 1, hi + 1
-    body_h = ROLL_H - 20                       # the label's room
+    lo, hi, span_ticks = scale_of(roll)
+    body_h = BODY_H                            # the label's room
     x_of = lambda t: int(t * ROLL_W / max(1, span_ticks)) - ROLL_W // 2
-    y_of = lambda k: (ROLL_H // 2 - 14
-                      - int((k - lo) * body_h / max(1, hi - lo)))
+    y_of = lambda k: globals()["y_of"](roll, k)
 
     banks = []
     for leaf in leaves:
@@ -1013,34 +1200,43 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
     for i, (r, g, b) in enumerate(_HUES):
         hues.insert(i, f"    {i} -> RGB {r} {g} {b}")
 
-    # One hand per leaf, and these *are* nested `Over`s: there are as
-    # many as the piece has written places, which `MAX_LEAVES` keeps
-    # to a depth a parser is happy with.
-    jumps, regions = {}, []
-    for k, leaf in enumerate(leaves):
-        mine = [e for e in events if e[2] == k]
-        if not mine:
-            continue
-        x0 = x_of(min(e[0] for e in mine))
-        x1 = x_of(max(e[1] for e in mine))
-        ys = [y_of(e[3]) for e in mine]
-        y0, y1 = min(ys) - 4, max(ys) + 4
-        w, h = max(4, x1 - x0), max(8, y1 - y0)
-        # Unique across boxes: two rolls in one file are two walks in
-        # one program's channel namespace, and a shared name would
-        # make a press in either jump to whichever was built last.
-        chan = f"__nb_c{box}_{k}__"
-        jumps[chan] = leaf.line
+    # **One hand per column of the picture** — `hands_of`, and the
+    # reason it is not one per written place is written there.  These
+    # *are* nested `Over`s, which is why they are bounded: chopin's
+    # hundred and forty overflowed the parser the day the notes were
+    # nested, and `MAX_HANDS` is that lesson kept.
+    #
+    # Full height and `TouchY`, because the box has to hold a drag: a
+    # note's own box gives about four pixels to a semitone and would
+    # saturate before the hand had said anything.  The height a press
+    # lands at is which note it meant; the height it is let go at is
+    # where that note goes (`spec/north_star.md`).
+    regions = []
+    for i, (t0, t1, _under) in enumerate(hands_of(roll)):
+        x0, x1 = x_of(t0), x_of(t1)
+        w = max(4, x1 - x0)
+        chan = _chan(box, i)
         # **The `Sized` goes *inside* the touch**, which is the whole
         # difference between a hand and a pixel.  An attachment's
-        # region is the extent of what it wraps, so `Sized w h (TouchX
+        # region is the extent of what it wraps, so `Sized w h (TouchY
         # c (Gap 0 0))` hands the touch a *gap* — zero by zero — and
         # every note in every box could only be hit by a press landing
         # exactly on one point.  `onTouchY cutoff (rect 40 200 grey)`
         # is the idiom `gui.ges` documents and every fader uses: the
         # thing with an extent is what the touch wraps.
-        regions.append(f"Shift {_n(x0 + w // 2)} {_n(y0 + h // 2)} "
-                       f"(TouchX {chan} (Sized {w} {h} (Gap 0 0)))")
+        # **Cut from the same line the notes are drawn on**, and
+        # `DRAG_REACH` taller at each end: the extent is what the
+        # gesture is clamped to, so the room to carry a note is put
+        # here rather than taken out of the rule.  It reaches off the
+        # top and bottom of the band, where nothing is drawn and the
+        # box's own clip hides it — a hand can go there, an eye has
+        # nothing to see there, and a press can only start inside the
+        # band because that is all the window routes to this walk.
+        low, high = reach_of(roll)
+        top, bottom = y_of(high), y_of(low)
+        regions.append(f"Shift {_n(x0 + w // 2)} {_n((top + bottom) // 2)} "
+                       f"(TouchY {chan} (Sized {w} {bottom - top} "
+                       f"(Gap 0 0)))")
     hands = "Gap 0 0"
     for r in regions:
         hands = f"Over ({hands}) ({r})"
@@ -1049,7 +1245,8 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
     if roll.cut:
         caption += " · CUT"
 
-    chans = "".join(f"{c} : Chan Float\n{c} = chan\n" for c in jumps)
+    named = [_chan(box, i) for i, _h in enumerate(hands_of(roll))]
+    chans = "".join(f"{c} : Chan Float\n{c} = chan\n" for c in named)
     rows_g, hue_g = f"__nb_rows_{box}__", f"__nb_hue_{box}__"
     lit_g, dim_g = f"__nb_lit_{box}__", f"__nb_dim_{box}__"
     one_g, all_g = f"__nb_one_{box}__", f"__nb_all_{box}__"
@@ -1090,4 +1287,4 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
             + f"    (Shift 0 {ROLL_H // 2 - 8} (Label 120 12 \"{caption}\" "
               f"(RGB 120 124 134))))\n"
             + f"    ({hands})))\n")
-    return text, jumps
+    return text, named

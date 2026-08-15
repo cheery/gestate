@@ -678,7 +678,11 @@ class Workbench:
         #: A score box's touch channel → the line it jumps to
         #: (`spec/scorebox.md`).  The one gesture the read-only box
         #: owns: a press on a note reveals where it is written.
-        self.note_jumps: dict = {}
+        #: `{channel: (roll, column)}` — what a gesture arriving by
+        #: name is *about*.  With the height the hand writes it says
+        #: which *note* was meant, which is what both a press and an
+        #: edit need (`spec/north_star.md`).
+        self.note_regions: dict = {}
         #: The on-screen keyboard.  Built here rather than by the view, so
         #: what it is holding survives a rebuild and so a test can play it
         #: without a window — see `Keyboard`.
@@ -1045,7 +1049,7 @@ class Workbench:
         # path carries it unchanged.  Best-effort, the canvas rule: a
         # roll that will not build must not stop the instrument, and
         # what went wrong is said once, in the author's terms.
-        self.note_jumps = {}
+        self.note_regions = {}
         # **All of them from one program.**  A roll used to be built by
         # splicing its own definitions into the file and assembling the
         # result, so three boxes were three 200,000-character front ends
@@ -1063,7 +1067,7 @@ class Workbench:
                 if isinstance(roll, Exception):
                     self.say(f"no notes on line {line}: "
                              f"{self._first_line(roll)}")
-            program, jumps, entries = scorebox.page_program(rolls)
+            program, regions, entries = scorebox.page_program(rolls)
             drawn = [e for e in entries if e is not None]
             if drawn:
                 # **One program for the page, drawn as many.**  Each box
@@ -1074,7 +1078,7 @@ class Workbench:
                 try:
                     views = Substrate.several(program, self.rate, drawn)
                     boxes.update(zip(drawn, views))
-                    self.note_jumps.update(jumps)
+                    self.note_regions.update(regions)
                 except Exception as exc:                # noqa: BLE001
                     self.say(f"no notes drawn: {self._first_line(exc)}")
         self.canvases = boxes

@@ -566,6 +566,14 @@ pub enum Gesture {
     /// channel's declared name and the fraction its element's own rule
     /// produced.
     Touched(String, f64),
+    /// That channel's grab let go — the end of a gesture, by name.
+    ///
+    /// **`Touched`'s full stop.**  A slide streams and the transcript
+    /// coalesces it to where the hand ended, which is all a fader
+    /// needs; a gesture that must *commit* — one text edit, one undo
+    /// entry — has to know when the hand came off.  Nothing is
+    /// written by it: a fader stays where it was let go.
+    Released(String),
     /// A key was struck while the piano had the keyboard — the
     /// character it makes, the physical key it came from, and whether
     /// it went down.
@@ -637,6 +645,7 @@ impl Gesture {
             Gesture::Touched(name, value) => {
                 format!("touched\t{name}\t{value}")
             }
+            Gesture::Released(name) => format!("released\t{name}"),
             Gesture::Struck(c, code, on) => {
                 format!("struck\t{c}\t{code}\t{}", if *on { 1 } else { 0 })
             }

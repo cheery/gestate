@@ -190,33 +190,60 @@ variable*, and the numbers it takes are written one definition away, in
 extension and is not this slice; the box says "written elsewhere" and
 declines.
 
-## The hands, and the one open mechanic
+## The hands — settled, and not the way this page guessed
 
-The vocabulary needs nothing new: `gui.ges` has had `TouchY` beside
+The vocabulary needed nothing new: `gui.ges` has had `TouchY` beside
 `TouchX` since the substrate was written, and both painters know it
 (`gui.py`, `panel/src/list.rs`).
 
-What is *not* settled is the shape of the hand, and it wants contact
-rather than argument.  The constraint: `TouchY c s` writes a fraction
+What was open was the shape of the hand, and it wanted contact rather
+than argument.  The constraint stands: `TouchY c s` writes a fraction
 of **the element's own box**, a note's box is `max(8, y1 - y0)` pixels
 tall, and a roll spanning two octaves gives about four pixels to a
 semitone — so a note-sized handle saturates before it has said
-anything.  A drag must have room to express an interval.  Two
-candidates:
+anything.  A drag must have room to express an interval, so a hand is
+the full height of the roll.
 
-- **A full-height column at the note's x.**  The press picks the note
-  by where it lands, and the drag has the whole roll to move in.  Cost:
-  a chord's notes share a column, and `_under` takes the innermost hit
-  written first, so which of them the press picks needs deciding
-  rather than discovering.
-- **One box-wide handle plus the press's own note.**  Clean
-  arithmetic — the roll's y scale is the box's — but the grab belongs
-  to one element, so the press and the drag would be fighting over it.
+**Full-height regions that overlap hide each other**, and that is what
+decided it.  The substrate resolves a press to the innermost region
+written first, so of two overlapping hands only one can ever be
+pressed.  The leading candidate here — one column per *written place*
+— was measured against the tree before it was built:
 
-The first is the leading candidate.  Whichever is built, the criterion
-is written down now: **a drag must have room for an interval, a press
-must still pick the note a person aimed at, and hit-testing stays in
-the window** (`spec/workbench.md` §"The canvas walks over crust").
+| file | written places | pairs sounding at once |
+|---|---|---|
+| `minute.ges` | 4 | 0 |
+| `noted.ges` | 4 | 0 |
+| `chopin.ges` | 28 | **17** |
+
+Seventeen of chopin's twenty-eight would have been unreachable at any
+height, while the two files anybody would have tested it on have no
+overlap at all — a defect that passes every test and fails on the
+piece you care about.
+
+So the hands **tile the picture**: `scorebox.hands_of` cuts the roll
+into equal columns, one hand each, full height, `TouchY`.  No two
+overlap, so every note is under exactly one hand wherever it sounds,
+and a long note can be taken hold of anywhere along its length rather
+than only where it starts.  Bounded by `MAX_HANDS` for the reason the
+leaves are bounded: the hands are nested `Over`s, and chopin's hundred
+and forty overflowed the parser the day the *notes* were nested.
+
+**Which note a gesture means is read off the height** —
+`scorebox.note_under`, the nearest note sounding under that column.
+That is aiming, in both directions at once, and it made the press
+*more* precise than it was: a chord used to be one region that jumped
+to its own line however you aimed at it, and its notes are now four
+places to press.
+
+**And the drag is relative.**  A column is the whole height of the
+roll, so a press lands at some pitch and rarely the note's own; carried
+absolutely, letting go without moving would transpose the note to
+wherever you happened to grab it, and a press that does not become a
+drag has to stay a jump.  So the note moves by the interval the *hand*
+has travelled, from the pitch it took hold at.  `key_at` is `y_of`
+inverted, out of `scale_of`, which the picture is drawn from — one
+arithmetic, two readers, the law the panel box already keeps.
 
 ## Refusals, each with a sentence
 
@@ -239,12 +266,32 @@ A gesture that cannot be honest is refused *by name*, never guessed:
 
 ## The vocabulary
 
-`transpose` is a command in `command.ges` with the touch channel and a
-number of steps, so it appears in the list, carries its own
-documentation, and a drag *records in the transcript as a command* —
-which is how nearly every editor defect in this project has actually
-been pinned.  A gesture with no command behind it is a capability that
-does not exist.
+`transpose` is a command in `command.ges`, so it appears in the list,
+carries its own documentation, and a drag *records in the transcript as
+a command* — which is how nearly every editor defect in this project
+has actually been pinned.  A gesture with no command behind it is a
+capability that does not exist.  It is the shape `set` already has for
+the knob: the window says `turn`, the session runs `set`, and what the
+recording holds is the command.
+
+**It names the region, the key as written, and the key it becomes.**
+
+```
+transpose : Text -> Int -> Int -> Command
+```
+
+The first draft of this line said *"the touch channel and a number of
+steps"*, and building it found that a channel is not enough to name a
+note.  A region is a **leaf** — one written place — and a leaf can
+sound several notes: `chord 45 60 64 67` is one region and four of
+them.  So the note is named by what it *says*, which is the one thing
+about it the file and the picture already agree on, and a leaf with two
+notes at one pitch refuses for the same reason `pitch_atom` does.
+
+Naming both keys rather than a step is what makes the recording
+self-contained, which is the property the whole transcript rests on: a
+step that said `+3` would mean a different note on the second reading,
+and a replay is the one reader that cannot ask.
 
 ## Acceptance
 

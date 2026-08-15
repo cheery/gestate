@@ -265,14 +265,16 @@ def test_the_roll_is_an_ordinary_substrate_that_draws():
     window would have nothing to walk."""
     from gestate.gui import Substrate
 
+    from gestate.scorebox import hands_of
+
     roll, _ = _roll("chopin.ges")
-    program, jumps = roll_program(roll)
+    program, hands = roll_program(roll)
     sub = Substrate(program, RATE)
 
     assert len(sub.picture()) == len(roll.events) + 2, \
         "one rect per note, on a ground, under a caption"
     assert sub.crossing is not None, "the window could not walk it"
-    assert len(jumps) == len(roll.leaves), "a hand per written region"
+    assert len(hands) == len(hands_of(roll)), "a hand per column"
 
 
 def test_two_boxes_do_not_share_a_hand():
@@ -361,17 +363,26 @@ def test_a_page_is_one_program_and_still_three_pictures():
         mine = set(v.crossing["chans"])
         assert mine, "a box with no hands cannot be pressed"
         assert not mine & seen, "two boxes claimed one channel"
-        assert mine <= set(jumps), "a channel with nowhere to jump"
+        assert mine <= set(jumps), "a channel that is nobody's hand"
         seen |= mine
         assert v.payload(), "the box could not cross"
 
 
 def test_every_hand_lands_on_a_line_that_exists():
-    roll, source = _roll("chopin.ges")
-    _program, jumps = roll_program(roll)
-    last = len(source.splitlines())
+    """A press anywhere in any column finds a note, and that note is
+    written on a line of this file."""
+    from gestate.scorebox import hands_of, note_under
 
-    assert jumps and all(1 <= line <= last for line in jumps.values())
+    roll, source = _roll("chopin.ges")
+    last = len(source.splitlines())
+    hands = hands_of(roll)
+    assert hands
+
+    for hand, _h in enumerate(hands):
+        for down in (0.0, 0.25, 0.5, 0.75, 1.0):
+            note = note_under(roll, hand, down)
+            line = roll.leaves[roll.events[note][2]].line
+            assert 1 <= line <= last, (hand, down, line)
 
 
 # ── In the workbench ────────────────────────────────────────────────────────
@@ -398,9 +409,13 @@ def test_the_workbench_stands_a_box_on_the_ask_and_a_press_jumps(tmp_path):
     ask_line = asks(source)[0][0]
     assert f"canvas\t{ask_line}\t__notes_0__" in rows
 
-    # The one gesture it owns: a press is a jump, and the file is not
-    # touched by it.
-    where = bench.note_jumps["__nb_c0_0__"]
+    # The gesture it owns: a press picks the note by where it lands and
+    # says where *that one* is written, and the file is not touched.
+    from gestate.scorebox import note_under
+
+    roll, hand = bench.note_regions["__nb_c0_0__"]
+    note = note_under(roll, hand, 0.5)
+    where = roll.leaves[roll.events[note][2]].line
     assert source.splitlines()[where - 1].strip().startswith("chords =") \
         or "stroke" in source.splitlines()[where - 1]
 
@@ -474,14 +489,18 @@ def test_a_press_moves_the_caret_and_writes_nothing(tmp_path):
         def redo(self):
             return False
 
+    from gestate.scorebox import note_under
+
     seat = session()
     seat.view = _View(source)
     seat.bench = bench
     said = seat.touched("__nb_c0_0__", 0.5)
 
-    assert seat.view.went == bench.note_jumps["__nb_c0_0__"]
+    roll, hand = bench.note_regions["__nb_c0_0__"]
+    note = note_under(roll, hand, 0.5)
+    assert seat.view.went == roll.leaves[roll.events[note][2]].line
     assert said == f"line {seat.view.went}"
-    assert seat.view.text() == source, "a read-only box wrote to the file"
+    assert seat.view.text() == source, "a press alone wrote to the file"
 
 
 def test_a_press_where_a_note_is_drawn_finds_it():
@@ -583,6 +602,199 @@ def test_the_pitch_may_be_the_authors_own_helpers_argument():
     assert "low" in source.splitlines()[line - 1], "the premise: a helper"
     text, _said = transposed(source, roll, 0, 42)
     assert "low 42 ++ low 45" in text
+
+
+def _seated(source: str, roll):
+    """A headless session over that text, with the box's regions on the
+    bench — what the window's gestures arrive into."""
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from test_session import session
+
+    from gestate.scorebox import regions_of
+
+    class _View:
+        saved = True
+
+        def __init__(self, text):
+            self._text, self.went = text, None
+
+        def text(self):
+            return self._text
+
+        def replace(self, text):
+            self._text = text
+            return True
+
+        def goto(self, line):
+            self.went = line
+            return True
+
+    seat = session()
+    seat.view = _View(source)
+    seat.bench.note_regions = regions_of([roll])
+    return seat
+
+
+def test_the_command_writes_the_note_the_region_and_the_key_name():
+    """`transpose` — the first command in this project that a *gesture*
+    will run and the first that writes text from a picture.
+
+    Named as `spec/north_star.md` §"The vocabulary" settles it: the
+    region, the key it says now, the key it is to say.  Both keys
+    rather than a step, because a region can sound a chord and a
+    recording that held `+3` would mean a different note the second
+    time it was read.
+    """
+    source, roll = _rolled("noted.ges", "ground")
+    seat = _seated(source, roll)
+    chan = next(iter(seat.bench.note_regions))
+    was = next(e[3] for e in roll.events if e[2] == 0)
+
+    said = seat.run("transpose", chan, was, was + 2)
+
+    assert "+2 semitone" in said, said
+    before, after = _only_change(source, seat.view.text())
+    assert before.replace(str(was), "", 1) == after.replace(str(was + 2), "",
+                                                            1), \
+        f"more than the number moved:\n  {before}\n  {after}"
+
+
+def test_a_note_dragged_by_hand_is_written_where_it_was_dropped():
+    """**The slice, whole** (`spec/north_star.md`): a vertical drag on
+    span ink, one note, byte-exact — pressed at a *place*, carried, let
+    go, and the file says so.
+
+    Aimed at the picture rather than at a channel, for the reason the
+    press sweep is: a harness built from the implementation cannot find
+    a missing affordance.  What this drives is exactly what the window
+    drives — `press`, `drag`, `release` in canvas coordinates on one
+    side, `touched`/`released` into the session on the other.
+    """
+    from gestate.gui import Substrate
+    from gestate.scorebox import (ROLL_H, ROLL_W, build_rolls, key_at,
+                                  page_program)
+
+    source, roll = _rolled("noted.ges", "ground")
+    page = [a for a in asks(source) if a[1] == "ground"][:1]
+    program, regions, entries = page_program(build_rolls(source, page,
+                                                         RATE, 0))
+    view = Substrate.several(program, RATE, [e for e in entries if e])[0]
+    seat = _seated(source, roll)
+
+    # **Aim at a note that is drawn**, which is what a hand does: the
+    # thin bright rects in the picture are the notes, and the one in
+    # the middle of the roll has room to be carried either way.
+    notes = [it for it in view.picture()
+             if it[0] == "rect" and it[4] == 3][1:]
+    assert notes, "the roll drew no notes to aim at"
+    notes.sort(key=lambda it: abs(it[2]))
+    _kind, nx, ny, nw, _nh, _c = notes[0]
+    x, y = nx + nw // 2, ny + 1
+
+    meant = view.touch("press", x, y)
+    assert meant and meant[0] == "touched" and meant[1] in regions, meant
+    chan, down = meant[1], meant[2]
+    said = seat.touched(chan, down)
+    assert said.startswith("line "), said
+    note = seat.holding[1]
+    was = roll.events[note][3]
+    assert seat.view.text() == source, "the press wrote to the file"
+
+    # Carry it upward until the hand has travelled three semitones.
+    grabbed = key_at(roll, down)
+    up = next((yy for yy in range(y, -ROLL_H, -1)
+               if key_at(roll, view.touch("drag", x, yy)[2]) == grabbed + 3),
+              None)
+    assert up is not None, "the box has no room for a third"
+    moving = seat.touched(chan, view.touch("drag", x, up)[2])
+    assert "+3" in moving, moving
+    assert seat.view.text() == source, "the drag wrote before it was done"
+
+    view.touch("release", x, up)
+    said = seat.released(chan)
+
+    assert "+3 semitone" in said, said
+    before, after = _only_change(source, seat.view.text())
+    assert before.replace(str(was), "", 1) == \
+        after.replace(str(was + 3), "", 1), \
+        f"more than the number moved:\n  {before}\n  {after}"
+    # And it records as the command, which is what a replay reads.
+    assert "transpose" in seat._journal().text()
+
+
+def test_a_hand_reaches_two_octaves_past_the_music():
+    """Henri, dragging one: *"the drag appears to stop to the canvas
+    borders."*
+
+    A `TouchY` writes a fraction of its own element and is clamped
+    there — the law that makes every gesture bounded by construction.
+    A hand exactly the size of the roll could therefore only ever say a
+    pitch the piece already plays, which is the wrong bound for a
+    gesture whose whole point is moving a note somewhere else.  So the
+    element is taller than the picture: same pixels per semitone, two
+    octaves further at each end, off the top and bottom of the band
+    where the box's own clip hides it.
+    """
+    from gestate.scorebox import (DRAG_REACH, key_at, reach_of, scale_of,
+                                  y_of)
+
+    _source, roll = _rolled("noted.ges", "ground")
+    lo, hi, _span = scale_of(roll)
+    low, high = reach_of(roll)
+
+    assert (low, high) == (lo - DRAG_REACH, hi + DRAG_REACH)
+    assert key_at(roll, 0.0) == high, "the top of the hand is out of reach"
+    assert key_at(roll, 1.0) == low
+
+    # And the same line read backwards: a height where a note is
+    # *drawn* still means that note, which is what picking depends on.
+    for _on, _off, _k, key, _vel in roll.events:
+        drawn = y_of(roll, key)
+        top, bottom = y_of(roll, high), y_of(roll, low)
+        assert key_at(roll, (drawn - top) / (bottom - top)) == key
+
+    # The pixels are the roll's own, so the hand moves at the speed the
+    # eye expects rather than a compressed one.
+    tall = y_of(roll, low) - y_of(roll, high)
+    assert abs(tall / (high - low) - (y_of(roll, lo) - y_of(roll, hi))
+               / max(1, hi - lo)) < 0.5
+
+
+def test_a_note_let_go_where_it_began_writes_nothing():
+    """A press that wandered and came home is a press.  Nothing is
+    written, so nothing is undone — and the transcript holds the
+    gesture rather than an edit that did not happen."""
+    source, roll = _rolled("noted.ges", "ground")
+    seat = _seated(source, roll)
+    chan = next(iter(seat.bench.note_regions))
+
+    seat.touched(chan, 0.5)
+    was = roll.events[seat.holding[1]][3]
+    seat.touched(chan, 0.2)
+    seat.touched(chan, 0.5)
+    assert seat.holding[4] == was, seat.holding
+    assert seat.released(chan) == ""
+    assert seat.view.text() == source
+    assert seat.holding is None, "the hand is still held after it let go"
+
+
+def test_the_command_refuses_by_name_and_writes_nothing():
+    """Every refusal is a sentence, and none of them touches the file —
+    which is the property that lets a hand try things."""
+    source, roll = _rolled("noted.ges", "ground")
+    seat = _seated(source, roll)
+    chan = next(iter(seat.bench.note_regions))
+    was = next(e[3] for e in roll.events if e[2] == 0)
+
+    # A region nobody drew.
+    assert "no score box region" in seat.run("transpose", "__nb_c9_9__",
+                                             was, was + 1)
+    # A pitch that region does not sound: the picture and the file
+    # disagree, which is a refusal rather than a guess.
+    assert "sounds" in seat.run("transpose", chan, was + 7, was + 8)
+    assert seat.view.text() == source, "a refusal wrote to the file"
 
 
 def test_a_note_written_once_and_played_many_times_says_so():

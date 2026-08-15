@@ -163,6 +163,28 @@ deafen n = Stated
 octave : Int -> Command
 octave n = Stated
 
+#: Write a note in a score box at a different pitch — the region it is
+#: drawn in, the key it says now, and the key it is to say.
+#:
+#: **The first gesture in this editor that writes text**, and the rule
+#: it keeps is `spec/editor.md`'s: a widget is a view over a span of
+#: source, and dragging it is a text edit.  One atom's characters are
+#: replaced and nothing else in the file moves — no reflow, no
+#: reprint — so the diff of a transposition is one number and text
+#: undo puts it back.
+#:
+#: **Both keys, not a step.**  A region is one written place and a
+#: place can sound a chord, so the note is named by what it says; and
+#: a recording that held `+3` would mean a different note the second
+#: time it was read, which is the one thing a replay cannot ask about.
+#:
+#: It refuses by name rather than guessing: a note the dice drew, a
+#: pitch that is not written as a literal, a region whose text has
+#: moved under the picture.  A note written once and played many times
+#: is *not* refused — it is said: the bytes are one atom, so moving it
+#: moves every voicing, and the answer says how many.
+transpose : Text -> Int -> Int -> Command
+transpose region was key = Stated
 
 #: A MIDI input on this machine.
 #:

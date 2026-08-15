@@ -2194,8 +2194,15 @@ impl WindowHandler for EditorWindow {
                         self.walkers.borrow_mut().get_mut(&key)
                     {
                         // A release writes nothing — a fader stays
-                        // where it was let go — so nothing crosses.
-                        w.release();
+                        // where it was let go — but it *says* so: a
+                        // slide coalesces to where the hand ended, and
+                        // a gesture that has to commit needs the full
+                        // stop (`spec/workbench.md`, and the score
+                        // box's drag is the caller).
+                        if let Some(name) = w.release() {
+                            self.host.gesture(
+                                Gesture::Released(name).line());
+                        }
                     } else {
                         // The release says where the hand was let go,
                         // so a program watching for it sees the same

@@ -108,11 +108,14 @@ _TAKE = __import__("itertools").count()
 
 
 def _played(tmp_path, gesture, seconds: float = 0.6,
-            name: str = "polysaw.ges", hush: str | None = "poly") -> list:
+            name: str = "polysaw.ges", hush: str | None = "poly",
+            source: str | None = None) -> list:
     """Run the instrument, do `gesture` to it, hand back what was heard.
 
     `gesture(bench)` is called once the sound is running.  The capture
     is everything the player received, as floats.
+
+    `source` replaces the example's text, for a piece an edit made.
 
     `hush` is the bank switched over to the keyboard before the gesture,
     because a file that plays itself cannot say whose note was heard —
@@ -122,7 +125,11 @@ def _played(tmp_path, gesture, seconds: float = 0.6,
     """
     out = tmp_path / f"stream{next(_TAKE)}.raw"
     path = tmp_path / name
-    path.write_text((AUDIO_DIR / name).read_text())
+    # `source` is the file to play when it is not the example itself —
+    # a piece some *edit* produced, which is the only way to hear
+    # whether the edit did what it said.
+    path.write_text(source if source is not None
+                    else (AUDIO_DIR / name).read_text())
     bench = Workbench(path, rate=RATE, block=64, command=_pacer(out))
     bench.start(seconds=seconds)
     try:
@@ -534,3 +541,69 @@ def test_the_band_plays_along_and_lays_out(tmp_path):
     laid_out = _played(tmp_path, lambda bench: bench.listen("keys", True),
                        seconds=1.5, name="jazz.ges", hush=None)
     assert not any(laid_out), "the band played with no hands on the keys"
+
+
+# ── The gesture, the text and the sound, as one thing ───────────────────────
+
+
+def test_a_dragged_note_is_heard_where_it_was_dropped(tmp_path):
+    """**The claim the score box makes** (`spec/north_star.md`,
+    acceptance 5), and the reason this file was written before it.
+
+    A hand takes hold of a note in a picture, carries it up a third and
+    lets go; the file differs by one number; the piece plays a third
+    higher.  Every step of that is checked somewhere else — the atom in
+    `test_scorebox.py`, the pitch here — and none of those says the
+    whole thing happened.  This does: press, drag, release, render,
+    listen.
+
+    `duet.ges` because its bass line is a written literal and its first
+    note is 45, which is the note every measurement in this file
+    already knows how to hear.
+    """
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from test_scorebox import _seated
+
+    from gestate.scorebox import asks, build_rolls, key_at
+
+    # The two lines a person adds to see a piece's notes: what a
+    # payload's key and velocity are, and the ask itself.
+    source = ((AUDIO_DIR / "duet.ges").read_text()
+              + "\ninstance Notable Pitched where\n"
+              + "    noteKey p = case p of\n"
+              + "        Pitched k v -> k\n"
+              + "    noteVel p = case p of\n"
+              + "        Pitched k v -> v\n"
+              + "\nnotes score\n")
+    page = asks(source)
+    roll = build_rolls(source, page, 22050, 0)[0]
+    seat = _seated(source, roll)
+
+    # The first note of the walk, taken hold of by name — the *place* a
+    # hand aims at is `test_scorebox.py`'s business, and the two meet
+    # at the channel.
+    chan = next(iter(seat.bench.note_regions))
+    assert seat.touched(chan, 0.5).startswith("line ")
+    was = roll.events[seat.holding[1]][3]
+    assert was == BASS_NOTE, "the first note of the walk moved"
+
+    # Carry it up a third: four semitones from wherever it was grabbed.
+    grabbed = key_at(roll, 0.5)
+    down = next(d / 200 for d in range(200, -1, -1)
+                if key_at(roll, d / 200) == grabbed + 4)
+    seat.touched(chan, down)
+    said = seat.released(chan)
+    assert "+4 semitone" in said, said
+
+    moved = seat.view.text()
+    assert f"Pitched {BASS_NOTE + 4} 90" in moved, "the file did not move"
+
+    got = _played(tmp_path, lambda bench: None, seconds=1.0,
+                  name="duet.ges", hush=None, source=moved)
+    assert any(got), "the moved piece played nothing"
+    heard = heard_note(_voice(got, _onset(got)), RATE)
+
+    assert heard == BASS_NOTE + 4, \
+        f"dragged up a third and heard {heard}, not {BASS_NOTE + 4}"

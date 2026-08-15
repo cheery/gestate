@@ -252,9 +252,22 @@ impl Walker {
     }
 
     /// A release lets go and writes nothing — a fader stays where it
-    /// was let go.
-    pub fn release(&mut self) {
+    /// was let go — and says *what* let go, when the thing it held
+    /// had a name.
+    ///
+    /// **The full stop after a slide** (`spec/workbench.md` §"The
+    /// canvas walks over crust").  A `touched` streams and coalesces
+    /// to where the hand ended, which is everything a fader needs and
+    /// nothing a gesture that must *commit* can use: a score box's
+    /// drag is one text edit, one undo entry, one rebuild, and
+    /// without this it cannot know when to make them.
+    pub fn release(&mut self) -> Option<String> {
+        let held = self.canvas.grabbed().and_then(|c| {
+            self.names.iter().find(|(id, _)| *id == c)
+                .map(|(_, n)| n.clone())
+        });
         self.canvas.release();
+        held
     }
 
     /// The instrument's fact arriving by name — `reading peak 0.53`,
@@ -480,8 +493,11 @@ mod walker_tests {
         assert!(dragged[0].1 > said[0].1, "downward is more");
         let after = w.frame(100, 100).items.clone();
         assert_ne!(before, after, "the handle did not follow the hand");
-        w.release();
+        // And the release says what let go, which is what a gesture
+        // that has to commit waits for.
+        assert_eq!(w.release(), Some("dragged".to_string()));
         assert!(!w.is_grabbing());
+        assert_eq!(w.release(), None, "nothing was held the second time");
     }
 
     #[test]

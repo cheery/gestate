@@ -810,6 +810,12 @@ class Session:
     #: The arguments the box is already holding, in order — the tail of
     #: the window's `wants`.  See `fillers`.
     given: tuple = ()
+    #: The note a hand has hold of in a score box — `(channel, note,
+    #: the key it is written at, the key the hand took hold at, the key
+    #: it has been carried to)`, or `None`.
+    #: A drag lives here between the press and the release, because
+    #: nothing is written until the hand comes off.
+    holding: object = None
     #: `(text, holes)` — the program the hole marks are true for, and
     #: the list that was true for it, so `move_marks` can tell a hole
     #: list it has already carried from one the workbench just made.
@@ -1850,6 +1856,38 @@ class Session:
     def do_octave(self, by: int) -> str:
         where = self.bench.keyboard.transpose(by)
         return f"octave {where}"
+
+    def do_transpose(self, region: str, was: int, key: int) -> str:
+        """Write one note of a score box at a different pitch.
+
+        **The first gesture in this project that writes text**
+        (`spec/north_star.md`), and everything about it is chosen so
+        that it stays one: the descent says where the note is written,
+        the event says which number it is, `transposed` replaces that
+        atom's characters and reads the file back before it does.  The
+        picture is not consulted about *what* to write and the text is
+        not consulted about what to draw; they meet at the atom, and
+        disagreeing is a refusal rather than a write.
+
+        One edit through the same door `fmtAll` and `complete` use, so
+        it is one undo — text undo, because the moment a widget keeps a
+        history of its own there are two models of the document.
+        """
+        from .scorebox import RefusedError, note_of, transposed
+
+        places = getattr(self.bench, "note_regions", None) or {}
+        found = places.get(region)
+        if found is None:
+            return f"transpose: no score box region called `{region}`"
+        roll, hand = found
+        try:
+            note = note_of(roll, hand, int(was))
+            text, said = transposed(self._source(), roll, note, int(key))
+        except RefusedError as exc:
+            return f"transpose: {exc}"
+        if not self.view.replace(text):
+            return "transpose: nowhere to put it"
+        return said
 
     # -- the text ------------------------------------------------------
 
@@ -3011,21 +3049,63 @@ class Session:
         transcript can hold and replay.
         """
         value = float(value)
-        # **A press on a note is a jump, not a knob.**  The score box's
-        # channels carry no sound — they exist so the walk has a hand
-        # where each written region is drawn — and what the gesture
-        # means is "show me where this is written"
-        # (`spec/scorebox.md`).  Read-only: the file is not touched.
-        jump = getattr(self.bench, "note_jumps", {}).get(name)
-        if jump is not None:
-            self.view.goto(jump)
-            self._journal().slid("touched", (name, value))
-            return f"line {jump}"
+        # **A press on a note is a jump, and holding it is a drag.**
+        # The score box's channels carry no sound — they exist so the
+        # walk has a hand over each column of the picture — and the
+        # height the hand writes says which note it means: a press
+        # shows where that one is written (`spec/scorebox.md`), and a
+        # press that *moves* is a transposition waiting for the hand to
+        # come off (`spec/north_star.md`).  Nothing is written while it
+        # moves; `released` commits.
+        held = self._note_touched(name, value)
+        if held is not None:
+            return held
         doing = getattr(self.bench, "touched", None)
         if doing is not None:
             doing(name, value)
         self._journal().slid("touched", (name, value))
         return ""
+
+    def _note_touched(self, name: str, down: float) -> str | None:
+        """A hand on a score box column, or `None` for any other hand.
+
+        The press picks the note by where it lands and says where it is
+        written; every touch after it is the same note being carried,
+        and the answer is the interval so far — read, not written,
+        because a drag that edited per frame would be a hundred undo
+        entries for one gesture.
+        """
+        from .scorebox import RefusedError, key_at, note_under
+
+        found = (getattr(self.bench, "note_regions", None) or {}).get(name)
+        if found is None:
+            return None
+        roll, hand = found
+        self._journal().slid("touched", (name, down))
+        if self.holding is None or self.holding[0] != name:
+            try:
+                note = note_under(roll, hand, down)
+            except RefusedError as exc:
+                return str(exc)
+            was = roll.events[note][3]
+            # **Where the hand took hold, not where the note is.**  A
+            # column is the full height of the roll, so a press lands
+            # at *some* pitch and rarely the note's own — carried
+            # absolutely, letting go without moving would transpose the
+            # note to wherever you happened to grab it, and a press
+            # that does not become a drag has to stay a jump.  So the
+            # note moves by the interval the hand has travelled.
+            self.holding = (name, note, was, key_at(roll, down), was)
+            leaf = roll.leaves[roll.events[note][2]]
+            self.view.goto(leaf.line)
+            return f"line {leaf.line}"
+        _n, note, was, grabbed, _at = self.holding
+        key = was + key_at(roll, down) - grabbed
+        self.holding = (name, note, was, grabbed, key)
+        if key == was:
+            return f"{was} — where it is written"
+        step = key - was
+        return f"{was} → {key} ({'+' if step > 0 else ''}{step})"
 
     def released(self, name: str) -> str:
         """That channel's grab let go — the end of a gesture, by name.
@@ -3049,6 +3129,17 @@ class Session:
         for.  A model that does not know the verb answers "no gesture"
         and loses a commit, not the editor.
         """
+        held, self.holding = self.holding, None
+        if held is not None and held[0] == name:
+            # **The commit, and the only place a drag writes.**  One
+            # text edit, one undo entry, one rebuild — and it goes
+            # through the command, so a drag records in the transcript
+            # as `transpose` and replays as one.
+            _n, _note, was, _grabbed, key = held
+            self._journal().add("released", (name,), "")
+            if key == was:
+                return ""                      # let go where it began
+            return self.run("transpose", name, was, key)
         doing = getattr(self.bench, "released", None)
         said = doing(name) if doing is not None else ""
         self._journal().add("released", (name,), "")
