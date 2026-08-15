@@ -484,6 +484,50 @@ def test_a_press_moves_the_caret_and_writes_nothing(tmp_path):
     assert seat.view.text() == source, "a read-only box wrote to the file"
 
 
+def test_a_press_where_a_note_is_drawn_finds_it():
+    """**Aim at the picture, not at the channel.**
+
+    Henri, 2026-08-15: *"note-regions press-to-jump is not working"* —
+    and every test above passed, because they all press by *name*
+    (`session.touched("__nb_c0_0__", …)`), which is the mapping and not
+    the affordance.  The regions were `Sized w h (TouchX c (Gap 0 0))`:
+    an attachment's extent is the extent of what it *wraps*, so each
+    one was zero by zero and could be hit only by a press landing on a
+    single point.  `onTouchY cutoff (rect 40 200 grey)` is the idiom
+    `gui.ges` documents — the thing with an extent goes inside.
+
+    So this presses at *places*, swept over the box the way a hand
+    would arrive, and asks that every note the jump table names can be
+    reached by aiming at it.  A harness built from the implementation
+    cannot find a missing affordance; this one is built from the
+    gesture.
+    """
+    from gestate.gui import Substrate
+    from gestate.scorebox import ROLL_H, ROLL_W, build_rolls, page_program
+
+    source = (AUDIO / "minute.ges").read_text()
+    page = asks(source)
+    rolls = build_rolls(source, page, RATE, 0)
+    program, jumps, entries = page_program(rolls)
+    views = Substrate.several(program, RATE, [e for e in entries if e])
+
+    reached = set()
+    for view in views:
+        # The reference machine draws from its own origin, so the box
+        # is the rectangle around (0, 0) — swept at four pixels, which
+        # is finer than any note is tall and coarser than aiming.
+        for x in range(-ROLL_W // 2, ROLL_W // 2, 4):
+            for y in range(-ROLL_H // 2, ROLL_H // 2, 4):
+                meant = view.touch("press", x, y)
+                if meant and meant[0] == "touched":
+                    reached.add(meant[1])
+                view.touch("release", x, y)
+
+    assert reached, "no press anywhere in any box landed on a note"
+    missed = set(jumps) - reached
+    assert not missed, f"{len(missed)} notes cannot be pressed: {sorted(missed)[:4]}"
+
+
 # ── Writing back — `spec/north_star.md` ─────────────────────────────────────
 
 

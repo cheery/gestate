@@ -1031,8 +1031,16 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
         # make a press in either jump to whichever was built last.
         chan = f"__nb_c{box}_{k}__"
         jumps[chan] = leaf.line
+        # **The `Sized` goes *inside* the touch**, which is the whole
+        # difference between a hand and a pixel.  An attachment's
+        # region is the extent of what it wraps, so `Sized w h (TouchX
+        # c (Gap 0 0))` hands the touch a *gap* — zero by zero — and
+        # every note in every box could only be hit by a press landing
+        # exactly on one point.  `onTouchY cutoff (rect 40 200 grey)`
+        # is the idiom `gui.ges` documents and every fader uses: the
+        # thing with an extent is what the touch wraps.
         regions.append(f"Shift {_n(x0 + w // 2)} {_n(y0 + h // 2)} "
-                       f"(Sized {w} {h} (TouchX {chan} (Gap 0 0)))")
+                       f"(TouchX {chan} (Sized {w} {h} (Gap 0 0)))")
     hands = "Gap 0 0"
     for r in regions:
         hands = f"Over ({hands}) ({r})"
