@@ -64,6 +64,7 @@ Of 130 entries, **113 are resolved**.  What is left:
 | F134 | missing | `now : Sig Float` — the current time in seconds, to the substrate |
 | F135 | partly resolved | Long features work in silence; the CLI has progress text, the statusline does not |
 | F136 | missing | A tuple-pattern lambda picks the wrong instance, silently |
+| F137 | missing | A zoom scales the band and not the picture in it |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -3768,3 +3769,46 @@ The score box is written around it (`gestate/scorebox.py`,
 `__nb_read__` takes the event whole and opens it with `case`), and
 the comment there names this entry so the workaround dies with the
 bug.
+
+
+### F137. **[missing]** A zoom scales the band and not the picture in it
+
+Henri, 2026-08-15, of the score box: *"they're really small and do not
+respond to zooming the view."*  True of every walked canvas box, not
+only the roll — the substrate box and each `canvas <expr>` box have it
+too, and so does the full canvas view.
+
+**What is actually happening.**  The editor's zoom is a ladder of
+`(font, integer scale)` pairs (`font::LADDER`), and a box's *band*
+grows with it, because its height is rows times the cell:
+`view.slots`'s `box_h` is in rows and `view.ch(font)` is
+`font.h * view.scale`.  The picture inside is not scaled at all —
+`Walker::frame(cx, cy)` is handed the band's centre and the walk draws
+in the program's own pixels, `Sized 384 116`, `Circle 8`, `Rect w 3`.
+So the band gets taller as the text does and the drawing stays the same
+size in it: at the top of the ladder a roll is a postage stamp between
+lines of type three times its own height.
+
+**The shape of the fix, and why it is not one line.**  The honest scale
+is `view.scale` — the same integer the *text* is magnified by, so a
+picture at zoom 2 is 2×2 pixels per pixel, which is exactly what a
+font at `LARGE, 2` already is and will therefore look like it belongs.
+That means:
+
+* the walk is painted into a band of `(iw / scale, fh / scale)` and
+  blitted at an integer factor — the trick the glyphs already use;
+* the centre handed to `frame` is in *program* units, so it is
+  divided too;
+* **the press must divide by the same number.**  `canvas_box_rect` is
+  deliberately the one function the painter and the hit-test share,
+  and the scale has to enter there or a click will land where the
+  picture used to be — the exact class of bug that function exists to
+  prevent;
+* the plugin panel shares the painter and does not zoom, so whatever
+  is added must be a no-op at scale 1.
+
+**Not to be confused with a `Sized` question.**  A program may of
+course draw a bigger roll; `ROLL_W, ROLL_H = 384, 116` is
+`scorebox.py`'s choice and could be another one.  That would make the
+picture bigger at *every* zoom, which is a different complaint from
+the one Henri has: the picture does not answer the zoom.
