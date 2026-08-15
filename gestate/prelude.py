@@ -113,11 +113,27 @@ def shadow_libraries(library: str, program: str) -> str:
     Nothing is renamed unless a name is actually shadowed, which is the
     common case and costs one parse of the program.
     """
-    from .syntax.tokenize import TT, tokenize
-
     renames, _ = _renames(library, program)
     if not renames:
         return library
+    return _renamed(library, tuple(sorted(renames.items())))
+
+
+@functools.lru_cache(maxsize=8)
+def _renamed(library: str, renames: tuple) -> str:
+    """`library` with those names moved aside, remembered.
+
+    **Keyed by the renaming and not by the program**, which is the whole
+    point of it being its own function: the substitution is a token walk
+    over the *library* — 188,000 characters for a piece — and
+    `GESTATE_BUILD_TIME` caught it at 0.54 s of a three-second save on
+    `quartet.ges`, paid again on every keystroke that reached a rebuild.
+    The program changes every save; the set of names it takes over
+    changes about once a session, so keyed this way it is a hit.
+    """
+    from .syntax.tokenize import TT, tokenize
+
+    moved = dict(renames)
     # `Pos` is a line and a column; the splice wants an offset.
     lines = library.split("\n")
     start_of, at = [], 0
@@ -127,10 +143,10 @@ def shadow_libraries(library: str, program: str) -> str:
 
     edits = []
     for token in tokenize(library):
-        if token.kind in (TT.WORD, TT.CONID) and token.value in renames:
+        if token.kind in (TT.WORD, TT.CONID) and token.value in moved:
             begin = start_of[token.pos.line] + token.pos.col
             edits.append((begin, begin + len(token.value),
-                          renames[token.value]))
+                          moved[token.value]))
     # Back to front, so the offsets ahead of each edit stay true.
     out = library
     for begin, end, text in reversed(edits):
