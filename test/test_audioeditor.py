@@ -2213,3 +2213,35 @@ def test_a_slow_build_never_has_the_last_word(tmp_path):
 
     assert not overlapped, f"two builds ran at once: {overlapped}"
     assert built[-1] == "second", built
+
+
+def test_a_string_of_gestures_is_one_audition(tmp_path):
+    """Henri, dragging notes in a playing piece: *"audio stutters when
+    I move the notes."*
+
+    Each drop was a rebuild, and a rebuild is a compile racing the
+    render loop for the machine.  A hand moves notes in strings, so
+    three in two seconds was three of them.  The audition waits a
+    moment for the hand to stop — `AUDITION_WAIT` — and a string of
+    drops becomes one build of the last text.  The *picture* does not
+    wait; it follows the hand through a reading.
+    """
+    from gestate.audioeditor import AUDITION_WAIT, Workbench
+
+    path = tmp_path / "a.ges"
+    path.write_text("sound : Sig Float\nsound = sine 220.0\n")
+    bench = Workbench(path, rate=8000, block=64)
+
+    heard = []
+    bench._auditions._run = heard.append
+    for n in range(5):
+        bench.audition_soon(f"take {n}")
+        time.sleep(0.02)
+    assert heard == [], "it rebuilt before the hand had stopped"
+
+    end = time.time() + 10.0
+    while time.time() < end and (not heard or bench._auditions.busy):
+        time.sleep(0.02)
+
+    assert heard == ["take 4"], heard
+    assert AUDITION_WAIT > 0.1, "a wait too short to cover a gesture"

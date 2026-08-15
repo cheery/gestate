@@ -19,9 +19,11 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from typing import NamedTuple
 
 __all__ = ["asks", "build_roll", "build_rolls", "page_program",
            "hands_of", "key_at", "note_of", "note_under", "pitch_atom",
+           "Region",
            "reach_of", "regions_of", "roll_program", "scale_of",
            "transposed", "y_of",
            "Roll", "RefusedError", "RollError"]
@@ -973,18 +975,37 @@ def hands_of(roll: Roll) -> list:
     return out
 
 
-def regions_of(rolls: list) -> dict:
-    """`{channel: (roll, column index)}` for a page of rolls.
+class Region(NamedTuple):
+    """What a gesture arriving by channel name is *about*.
 
-    What a gesture arriving by channel name is *about* — the column,
-    which with the height the hand writes says which note was meant.
+    The roll and the column — which with the height the hand writes
+    says which note was meant — and the box it belongs to, because the
+    two channels a drag *writes back* are the box's own.
     """
+
+    roll: "Roll"
+    hand: int
+    box: int
+
+    @property
+    def held(self) -> str:
+        """The channel that says which note a hand has hold of."""
+        return f"__nb_held_{self.box}__"
+
+    @property
+    def lift(self) -> str:
+        """The channel that says how far it has carried it, in pixels."""
+        return f"__nb_lift_{self.box}__"
+
+
+def regions_of(rolls: list) -> dict:
+    """`{channel: Region}` for a page of rolls."""
     out = {}
     for box, roll in enumerate(rolls):
         if isinstance(roll, Exception):
             continue
         for i, _hand in enumerate(hands_of(roll)):
-            out[_chan(box, i)] = (roll, i)
+            out[_chan(box, i)] = Region(roll, i, box)
     return out
 
 
@@ -1187,12 +1208,15 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
     # this is the same picture built the same way — the chain stays
     # flat and the depth is a small function's.
     rows = []
-    for on, off, k, key, vel in events:
+    for i, (on, off, k, key, vel) in enumerate(events):
         x0, x1 = x_of(on), x_of(off)
         w = max(2, x1 - x0) - 1
         leaf = leaves[k] if 0 <= k < len(leaves) else leaves[-1]
         tone = banks.index(leaf.bank) % len(_HUES)
-        rows.append(f"({_n(x0 + (w + 1) // 2)}, {_n(y_of(key))}, "
+        # **The note's own number rides with it**, so that one of them
+        # can be moved without the others: which one a hand has hold of
+        # arrives as a reading, and the picture compares it here.
+        rows.append(f"({i}, {_n(x0 + (w + 1) // 2)}, {_n(y_of(key))}, "
                     f"{max(2, w)}, {tone}, {1 if leaf.chancy else 0})")
     listing = " :: ".join(rows + ["Nil"]) if rows else "Nil"
 
@@ -1246,12 +1270,30 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
         caption += " · CUT"
 
     named = [_chan(box, i) for i, _h in enumerate(hands_of(roll))]
-    chans = "".join(f"{c} : Chan Float\n{c} = chan\n" for c in named)
+    # **And two the model writes**: the note a hand has hold of, and how
+    # far it has carried it, in this picture's own pixels.  A drag used
+    # to show nothing at all until the file had been rebuilt — half a
+    # second in which the note stood still under a moving hand and the
+    # status line was the only sign anything was happening, which is a
+    # form rather than a gesture.  Written as *readings*, the same
+    # direction `peak` travels; the roll is the one canvas whose facts
+    # are the editor's rather than the instrument's.
+    held_c, lift_c = f"__nb_held_{box}__", f"__nb_lift_{box}__"
+    chans = "".join(f"{c} : Chan Float\n{c} = chan\n"
+                    for c in [*named, held_c, lift_c])
     rows_g, hue_g = f"__nb_rows_{box}__", f"__nb_hue_{box}__"
     lit_g, dim_g = f"__nb_lit_{box}__", f"__nb_dim_{box}__"
     one_g, all_g = f"__nb_one_{box}__", f"__nb_all_{box}__"
+    held_s, lift_s = f"__nb_h_{box}__", f"__nb_l_{box}__"
+    pic_g = f"__nb_pic_{box}__"
     text = (chans
-            + f"{rows_g} : List (Int, Int, Int, Int, Int)\n"
+            # A channel is read as a signal the way every canvas reads
+            # one; nothing held is `-1`, which is no note's number.
+            + f"{held_s} : Sig Float\n"
+            + f"{held_s} = (0.0 - 1.0) ::: mkSig (wait {held_c})\n\n"
+            + f"{lift_s} : Sig Float\n"
+            + f"{lift_s} = 0.0 ::: mkSig (wait {lift_c})\n\n"
+            + f"{rows_g} : List (Int, Int, Int, Int, Int, Int)\n"
             + f"{rows_g} = {listing}\n\n"
             + f"{hue_g} : Int -> Int -> Colour\n"
             + f"{hue_g} t d = case d of\n"
@@ -1268,23 +1310,31 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
                 + ["    _ -> RGB %d %d %d"
                    % (_DIM * _HUES[0][0] // 255, _DIM * _HUES[0][1] // 255,
                       _DIM * _HUES[0][2] // 255)]) + "\n\n"
-            + f"{one_g} : (Int, Int, Int, Int, Int) -> Sub\n"
-            + f"{one_g} e = case e of\n"
-            + f"    (x, y, w, t, d) -> Shift x y (Rect w 3 ({hue_g} t d))\n\n"
-            + f"{all_g} : List (Int, Int, Int, Int, Int) -> Sub\n"
-            + f"{all_g} es = case es of\n"
+            + f"{one_g} : Int -> Int -> "
+              f"(Int, Int, Int, Int, Int, Int) -> Sub\n"
+            + f"{one_g} h v e = case e of\n"
+            + "    (i, x, y, w, t, d) -> Shift x (y + (case i == h of\n"
+            + "        True -> v\n"
+            + "        False -> 0))"
+              f" (Rect w 3 ({hue_g} t d))\n\n"
+            + f"{all_g} : Int -> Int -> "
+              f"List (Int, Int, Int, Int, Int, Int) -> Sub\n"
+            + f"{all_g} h v es = case es of\n"
             + "    Nil -> Gap 0 0\n"
-            + f"    e :: rest -> Over ({one_g} e) ({all_g} rest)\n\n"
-            # **A constant signal, not a bare `Sub`.**  The roll never
-            # animates — it is a take, and a take does not move — but
-            # the canvas entry is a `Sig Sub`, and `!` of a computed
-            # value is the constant signal of it.
-            + f"{entry} : Sig Sub\n"
-            + f"{entry} = !(Sized {ROLL_W} {ROLL_H} (Over (Over (Over\n"
+            + f"    e :: rest -> Over ({one_g} h v e) "
+              f"({all_g} h v rest)\n\n"
+            + f"{pic_g} : Float -> Float -> Sub\n"
+            + f"{pic_g} h v = Sized {ROLL_W} {ROLL_H} (Over (Over (Over\n"
             + f"    (Rect {ROLL_W} {ROLL_H} (RGB {_NIGHT[0]} {_NIGHT[1]} "
               f"{_NIGHT[2]}))\n"
-            + f"    ({all_g} {rows_g}))\n"
+            + f"    ({all_g} (floor h) (floor v) {rows_g}))\n"
             + f"    (Shift 0 {ROLL_H // 2 - 8} (Label 120 12 \"{caption}\" "
               f"(RGB 120 124 134))))\n"
-            + f"    ({hands})))\n")
+            + f"    ({hands}))\n\n"
+            # **A signal, because one note may be moving.**  The roll
+            # is a take and a take does not animate — but a hand on it
+            # does, and lifting the picture over the two channels above
+            # is what lets the note follow before anything is rebuilt.
+            + f"{entry} : Sig Sub\n"
+            + f"{entry} = !{pic_g} {held_s} {lift_s}\n")
     return text, named

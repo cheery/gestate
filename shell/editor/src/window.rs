@@ -1443,14 +1443,35 @@ impl WindowHandler for EditorWindow {
                 // A reading is one instrument's fact, broadcast to
                 // every walker — the boxes are readings of one
                 // program's channels.
+                let mut mine = false;
                 for (name, value) in crate::walk::readings(&text) {
                     for w in self.walkers.borrow_mut().values_mut() {
-                        w.hear(&name, value);
+                        mine |= w.hear(&name, value);
                     }
                     // The walked canvas already re-dirties per frame
-                    // while it shows; a reading landing off-canvas
-                    // waits for the next look, which is when anyone
-                    // could see it.
+                    // while it shows.
+                }
+                // **A box in the source view draws from readings too.**
+                // The rule above was written when a reading only ever
+                // fed the canvas *view* — a meter, a lamp — and it
+                // stopped being true the day boxes stood in the text:
+                // a meter in a band, and now a note under a hand,
+                // which moves by a reading and by nothing else.  Left
+                // waiting for "the next look", the picture froze the
+                // moment the hand stopped moving, because a motion
+                // event was the only thing still dirtying the frame.
+                //
+                // **Only for a reading a box actually reads.**  `peak`
+                // and `position` move every frame a piece plays, and
+                // dirtying on those repainted the source view
+                // continuously for any file with a box in it — sixty
+                // walks a second of every picture, competing with the
+                // driver for a machine that is also compiling.  A
+                // score box does not know `peak`; it knows the two
+                // channels a hand writes, and those move only while a
+                // hand is moving.
+                if mine && !self.on_canvas.get() {
+                    self.dirty.set(true);
                 }
                 let arrived = crate::walk::traces(&text);
                 if !arrived.is_empty() {

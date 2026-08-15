@@ -600,7 +600,7 @@ def test_a_note_dropped_while_it_plays_changes_the_sound_not_the_file(tmp_path):
         regions = getattr(bench, "note_regions", {})
         assert regions, "the piece was built with no score box to drag"
         chan = sorted(regions)[0]
-        roll, _hand = regions[chan]
+        roll = regions[chan].roll
         seat = session()
         seat.bench, seat.view = bench, _View(source)
         assert seat.touched(chan, 0.5).startswith("line ")
@@ -616,9 +616,14 @@ def test_a_note_dropped_while_it_plays_changes_the_sound_not_the_file(tmp_path):
                      and bench.live.generation > 0,
                      timeout=25.0), bench.messages[-4:]
 
-    # Long enough that there is still music left to render when the
-    # rebuild lands, which is the whole of what is being watched.
-    _played(tmp_path, drag, seconds=20.0, name="duet.ges", hush=None,
+    # **Long, because the harness renders faster than time.**  The
+    # pacer takes samples as fast as the engine makes them — twenty
+    # seconds of music in under one of wall clock — so a piece measured
+    # in seconds is finished before any rebuild could land on it, and
+    # the handover this is about would have nothing left to happen
+    # during.  Four minutes of duet is about four seconds of rendering,
+    # which is room enough.
+    _played(tmp_path, drag, seconds=240.0, name="duet.ges", hush=None,
             source=source)
 
     bench = held["bench"]

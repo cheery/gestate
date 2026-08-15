@@ -274,10 +274,16 @@ impl Walker {
     /// the other direction from a touch.  A name the program never
     /// declared is not written and not paid for, the same lenience
     /// `Substrate.write` keeps on the reference side.
-    pub fn hear(&mut self, name: &str, value: f64) {
+    /// Answers whether this walk *has* that channel — so a caller can
+    /// tell a reading that changes this picture from one that does
+    /// not.  A score box does not know `peak`, and a frame drawn for
+    /// it is a frame nobody asked for.
+    pub fn hear(&mut self, name: &str, value: f64) -> bool {
         if let Some((id, _)) = self.names.iter().find(|(_, n)| n == name) {
             self.pending.push((*id, value));
+            return true;
         }
+        false
     }
 
     /// A whole window arriving by name — `trace post 0.1 0.2 …`, the
@@ -493,6 +499,11 @@ mod walker_tests {
         assert!(dragged[0].1 > said[0].1, "downward is more");
         let after = w.frame(100, 100).items.clone();
         assert_ne!(before, after, "the handle did not follow the hand");
+        // A channel this walk does not have is not this walk's news:
+        // the boxes share one reading stream and a score box has no
+        // `peak`, so `hear` says whether it took it.
+        assert!(w.hear("dragged", 0.25), "it did not take its own channel");
+        assert!(!w.hear("peak", 0.5), "it took a channel it does not have");
         // And the release says what let go, which is what a gesture
         // that has to commit waits for.
         assert_eq!(w.release(), Some("dragged".to_string()));

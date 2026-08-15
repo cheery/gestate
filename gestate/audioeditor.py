@@ -39,6 +39,7 @@ from __future__ import annotations
 import os
 import sys
 import threading
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -586,6 +587,11 @@ def _timing() -> bool:
     return os.environ.get("GESTATE_BUILD_TIME", "") not in ("", "0")
 
 
+#: How long a gesture's audition waits for the next one — see
+#: `Workbench._auditions`.
+AUDITION_WAIT = 0.4
+
+
 class Newest:
     """One worker at a time, always on the newest ask.
 
@@ -604,8 +610,12 @@ class Newest:
     is the property the hazard was about.
     """
 
-    def __init__(self, name: str, run, trouble=None):
+    def __init__(self, name: str, run, trouble=None, after: float = 0.0):
         self._name, self._run, self._trouble = name, run, trouble
+        #: A moment's wait before the work, for the asks that come in
+        #: *streams* rather than bursts — see `AUDITION_WAIT`.  Zero for
+        #: the ones that should happen at once.
+        self._after = after
         self._lock = threading.Lock()
         self._wants: tuple | None = None
         self._at_work = False
@@ -622,6 +632,8 @@ class Newest:
 
     def _work(self) -> None:
         while True:
+            if self._after:
+                time.sleep(self._after)
             with self._lock:
                 want, self._wants = self._wants, None
                 if want is None:
@@ -747,6 +759,25 @@ class Workbench:
         #: A score box's touch channel → the line it jumps to
         #: (`spec/scorebox.md`).  The one gesture the read-only box
         #: owns: a press on a note reveals where it is written.
+        #: `{channel: value}` a *gesture* is showing — the note a hand
+        #: has hold of and how far it has carried it.  Dropped by
+        #: `_load_substrate`, because a picture built from the file
+        #: needs no help to say where the note is.
+        self.previewing: dict = {}
+        #: How long a drag's audition waits for the hand to stop.
+        #:
+        #: **A hand drags in strings of gestures, and each rebuild is a
+        #: compile.**  Three notes moved in two seconds was three
+        #: builds racing the render loop for the machine, which is
+        #: audible: Henri, dragging, *"audio stutters when I move the
+        #: notes"*.  Waiting a moment before the compile turns a burst
+        #: into one rebuild, at the cost of that moment before a single
+        #: drop is heard.  Short enough to feel like an answer, long
+        #: enough to cover the gap between two drags.
+        self._auditions = Newest(
+            "audition", lambda text: self.audition(text),
+            lambda exc: self.say(f"not applied: {self._first_line(exc)}"),
+            after=AUDITION_WAIT)
         #: The two things a hand can ask for in bursts, each with one
         #: worker and the newest ask — see `Newest`.
         self._redraws = Newest(
@@ -1134,6 +1165,11 @@ class Workbench:
         # roll that will not build must not stop the instrument, and
         # what went wrong is said once, in the author's terms.
         self.note_regions = {}
+        # **A rebuilt picture is the file's own answer**, so whatever a
+        # hand was showing over the old one is spent: kept, it would be
+        # applied to the new roll and move a note that had already
+        # moved.
+        self.previewing = {}
         # **All of them from one program.**  A roll used to be built by
         # splicing its own definitions into the file and assembling the
         # result, so three boxes were three 200,000-character front ends
@@ -1235,7 +1271,7 @@ class Workbench:
         targets = [s for s in (self.substrate,
                                *getattr(self, "canvases", {}).values())
                    if s is not None]
-        if not targets or self.transport is None:
+        if not targets:
             return told
         wanted = set()
         for t in targets:
@@ -1245,6 +1281,19 @@ class Workbench:
             for t in targets:
                 t.write(name, value)
             told.append((name, value))
+
+        # **The one reading that is not the instrument's.**  A note
+        # under a hand is a fact about the *session*, and it rides here
+        # because it is the same journey — named, per frame, to whatever
+        # canvas declared the channel.  Before the transport, because a
+        # piece that is not playing still gets dragged, and a picture
+        # that only answered a hand while the sound ran would be the
+        # strangest rule in the editor.
+        for name, value in (self.previewing or {}).items():
+            if name in wanted:
+                put(name, value)
+        if self.transport is None:
+            return told
 
         if "peak" in wanted:
             put("peak", self.transport.take_peak())
@@ -2706,6 +2755,10 @@ class Workbench:
     def audition(self, text: str) -> None:
         """Hear the edit without committing it to the file."""
         self.apply(text, save=False)
+
+    def audition_soon(self, text: str) -> None:
+        """Hear it once the hand has stopped — `AUDITION_WAIT`."""
+        self._auditions.ask(text)
 
     def redraw(self, text: str) -> None:
         """The pictures, from this text, without touching the sound.

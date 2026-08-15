@@ -1883,7 +1883,7 @@ class Session:
         found = places.get(region)
         if found is None:
             return f"transpose: no score box region called `{region}`"
-        roll, hand = found
+        roll, hand = found.roll, found.hand
         try:
             note = note_of(roll, hand, int(was))
             text, said = transposed(self._source(), roll, note, int(key))
@@ -1904,7 +1904,12 @@ class Session:
         # over the top of the one about the note is noise where an
         # answer should be.
         if getattr(self.bench, "playing", False):
-            hear = getattr(self.bench, "audition", None)
+            # **Soon, not now.**  A hand moves notes in strings, and
+            # each rebuild is a compile racing the render loop for the
+            # machine — which is audible.  So the sound waits for the
+            # hand to stop, and the *picture* does not (see `_preview`).
+            hear = (getattr(self.bench, "audition_soon", None)
+                    or getattr(self.bench, "audition", None))
             if hear is not None:
                 hear(text)
         else:
@@ -3138,7 +3143,7 @@ class Session:
         found = (getattr(self.bench, "note_regions", None) or {}).get(name)
         if found is None:
             return None
-        roll, hand = found
+        roll, hand = found.roll, found.hand
         self._journal().slid("touched", (name, down))
         if self.holding is None or self.holding[0] != name:
             try:
@@ -3154,16 +3159,45 @@ class Session:
             # that does not become a drag has to stay a jump.  So the
             # note moves by the interval the hand has travelled.
             self.holding = (name, note, was, key_at(roll, down), was)
+            self._preview(found, note, was)
             leaf = roll.leaves[roll.events[note][2]]
             self.view.goto(leaf.line)
             return f"line {leaf.line}"
         _n, note, was, grabbed, _at = self.holding
         key = was + key_at(roll, down) - grabbed
         self.holding = (name, note, was, grabbed, key)
+        self._preview(found, note, key)
         if key == was:
             return f"{was} — where it is written"
         step = key - was
         return f"{was} → {key} ({'+' if step > 0 else ''}{step})"
+
+    def _preview(self, found, note: int, key: int) -> None:
+        """Show the note under the hand, before anything is rebuilt.
+
+        **The picture follows the hand, not the file.**  A roll is
+        redrawn by a build, and a build is half a second at best — so a
+        drag showed nothing at all until it was over, the note standing
+        still while the hand moved and the status line the only sign
+        anything was happening.  That is a form, not a gesture.
+
+        Two readings say it — which note, and how far in this picture's
+        own pixels — travelling the way `peak` does, and the roll's
+        program moves that one note by them.  Nothing is written and
+        nothing is rebuilt; the file is still the truth, and the
+        picture catches up with it when the rebuild lands, which is
+        when the workbench drops these (`_load_substrate`).
+        """
+        from .scorebox import y_of
+
+        roll = found.roll
+        was = roll.events[note][3]
+        try:
+            self.bench.previewing = {found.held: float(note),
+                                     found.lift: float(y_of(roll, key)
+                                                       - y_of(roll, was))}
+        except Exception:                                # noqa: BLE001
+            pass                       # a bench with no canvas to show
 
     def released(self, name: str) -> str:
         """That channel's grab let go — the end of a gesture, by name.
@@ -3195,13 +3229,37 @@ class Session:
             # as `transpose` and replays as one.
             _n, _note, was, _grabbed, key = held
             self._journal().add("released", (name,), "")
+            found = (getattr(self.bench, "note_regions", None) or {})[name]
             if key == was:
+                self._unpreview(found)
                 return ""                      # let go where it began
-            return self.run("transpose", name, was, key)
+            said = self.run("transpose", name, was, key)
+            if said.startswith("transpose:"):
+                # Refused, so the note did not move and must not look
+                # as though it had.  A *written* one keeps its lift
+                # until the rebuild arrives with it in the picture,
+                # which is what stops it flicking back and forth.
+                self._unpreview(found)
+            return said
         doing = getattr(self.bench, "released", None)
         said = doing(name) if doing is not None else ""
         self._journal().add("released", (name,), "")
         return said or ""
+
+    def _unpreview(self, found) -> None:
+        """Put the picture back where the file says it is.
+
+        **Written, not forgotten.**  A channel holds what it was last
+        given, so dropping the reading would leave the note standing
+        wherever the hand left it; the neutral values have to travel.
+        `-1` is no note's number, which is how the picture knows to
+        move none of them.  (A *rebuilt* box needs none of this: its
+        channels are new and start there.)
+        """
+        try:
+            self.bench.previewing = {found.held: -1.0, found.lift: 0.0}
+        except Exception:                                # noqa: BLE001
+            pass
 
     def do_skip(self) -> str:
         """The identity of `++`.

@@ -363,7 +363,13 @@ def test_a_page_is_one_program_and_still_three_pictures():
         mine = set(v.crossing["chans"])
         assert mine, "a box with no hands cannot be pressed"
         assert not mine & seen, "two boxes claimed one channel"
-        assert mine <= set(jumps), "a channel that is nobody's hand"
+        # Every channel is either a hand or one of the two the *model*
+        # writes to show a note under a hand — and those are the box's
+        # own too, or one roll's drag would move another's note.
+        spare = mine - set(jumps)
+        assert all(c.startswith(("__nb_held_", "__nb_lift_"))
+                   for c in spare), f"a channel that is nobody's: {spare}"
+        assert len(spare) == 2, spare
         seen |= mine
         assert v.payload(), "the box could not cross"
 
@@ -413,8 +419,9 @@ def test_the_workbench_stands_a_box_on_the_ask_and_a_press_jumps(tmp_path):
     # says where *that one* is written, and the file is not touched.
     from gestate.scorebox import note_under
 
-    roll, hand = bench.note_regions["__nb_c0_0__"]
-    note = note_under(roll, hand, 0.5)
+    where = bench.note_regions["__nb_c0_0__"]
+    note = note_under(where.roll, where.hand, 0.5)
+    roll = where.roll
     where = roll.leaves[roll.events[note][2]].line
     assert source.splitlines()[where - 1].strip().startswith("chords =") \
         or "stroke" in source.splitlines()[where - 1]
@@ -496,8 +503,9 @@ def test_a_press_moves_the_caret_and_writes_nothing(tmp_path):
     seat.bench = bench
     said = seat.touched("__nb_c0_0__", 0.5)
 
-    roll, hand = bench.note_regions["__nb_c0_0__"]
-    note = note_under(roll, hand, 0.5)
+    where = bench.note_regions["__nb_c0_0__"]
+    note = note_under(where.roll, where.hand, 0.5)
+    roll = where.roll
     assert seat.view.went == roll.leaves[roll.events[note][2]].line
     assert said == f"line {seat.view.went}"
     assert seat.view.text() == source, "a press alone wrote to the file"
@@ -860,6 +868,78 @@ def test_the_picture_follows_a_drop_with_nothing_playing(tmp_path):
         time.sleep(0.05)
     assert list(bench.canvases["__notes_0__"].picture()) != before, \
         "the note moved in the file and the roll did not"
+
+
+def test_the_note_follows_the_hand_before_anything_is_rebuilt(tmp_path):
+    """Henri, dragging one: *"notes are frozen in their places when
+    dragged.  The message in the bottom is the only sign they're
+    responding."*
+
+    A roll is redrawn by a build and a build is half a second at best,
+    so a drag showed nothing at all until it was over.  That is a form,
+    not a gesture.  Two readings say what a hand is doing — which note,
+    and how far in the picture's own pixels — travelling the way `peak`
+    does, and the roll moves that one note by them.  Nothing is written
+    and nothing is rebuilt.
+    """
+    from gestate.audioeditor import Workbench
+
+    from test_session import session
+
+    source = (AUDIO / "noted.ges").read_text()
+    path = tmp_path / "noted.ges"
+    path.write_text(source)
+    bench = Workbench(path, rate=RATE, block=256)
+    bench._load_substrate(source)
+    box = bench.canvases["__notes_0__"]
+    before = list(box.picture())
+
+    class _View:
+        saved = True
+
+        def __init__(self, text):
+            self._text = text
+
+        def text(self):
+            return self._text
+
+        def replace(self, text):
+            self._text = text
+            return True
+
+        def goto(self, line):
+            return True
+
+    seat = session()
+    seat.bench, seat.view = bench, _View(source)
+    chan = sorted(bench.note_regions)[0]
+
+    seat.touched(chan, 0.5)
+    bench.observe()
+    assert list(box.picture()) == before, "the press alone moved the picture"
+
+    seat.touched(chan, 0.1)              # carried well up the box
+    told = dict(bench.observe())
+    where = bench.note_regions[chan]
+    assert told[where.held] == float(seat.holding[1]), told
+    assert told[where.lift] < 0, "up the picture is a smaller y"
+
+    during = list(box.picture())
+    assert during != before, "the note did not follow the hand"
+    assert seat.view.text() == source, "a drag wrote to the file"
+
+    # Exactly one note moved, and by exactly the lift.
+    moved = [(a, b) for a, b in zip(before, during) if a != b]
+    assert len(moved) == 1, moved
+    was, now = moved[0]
+    assert now[2] - was[2] == told[where.lift], (was, now)
+
+    # And a hand that comes home puts the picture back where the file
+    # says it is, because nothing was written.
+    seat.touched(chan, 0.5)
+    seat.released(chan)
+    bench.observe()
+    assert list(box.picture()) == before, "the picture kept a lift nobody made"
 
 
 def test_a_burst_of_drops_is_one_redraw_and_the_newest_text(tmp_path):
