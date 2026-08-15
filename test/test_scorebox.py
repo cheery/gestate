@@ -879,11 +879,11 @@ def test_a_burst_of_drops_is_one_redraw_and_the_newest_text(tmp_path):
         time.sleep(0.3)
         drew.append(text)
 
-    bench._load_substrate = slowly
+    bench._redraws._run = slowly
     for n in range(5):
         bench.redraw(f"take {n}")
     end = time.time() + 15.0
-    while time.time() < end and (len(drew) < 2 or bench._redraw_at_work):
+    while time.time() < end and (len(drew) < 2 or bench._redraws.busy):
         time.sleep(0.02)
 
     assert len(drew) < 5, f"five drops started {len(drew)} redraws"

@@ -2166,3 +2166,50 @@ def test_one_label_one_window():
 
     extract(TWICE.replace(" + duck (saw 110.0)", ""), rate=8000)
     extract(TWICE.replace("saw 110.0", "sine 220.0"), rate=8000)
+
+
+def test_a_slow_build_never_has_the_last_word(tmp_path):
+    """The stale engine hazard, and the reason builds are serialised.
+
+    Two builds in flight write into **one** `pending` engine slot and
+    the handover installs whatever is there — so an older one finishing
+    last would put the *sound* back an edit while the text stayed
+    right, and nothing would correct it until the next edit.  Quiet
+    wrongness, which is the kind this project files rather than lives
+    with.
+
+    Driven the way it would happen: a first build made slow (a machine
+    with `clang` under contention is the ordinary cause) and a second
+    asked for while it runs.  The assertion is about *order* — the last
+    text built is the last text asked for — and about overlap, because
+    two at once is the state the race needs to exist at all.
+    """
+    from gestate.audioeditor import Workbench
+
+    path = tmp_path / "a.ges"
+    path.write_text("sound : Sig Float\nsound = sine 220.0\n")
+    bench = Workbench(path, rate=8000, block=64)
+    bench.live = object()                  # far enough for `apply` to build
+
+    built, inside, overlapped = [], [], []
+
+    def slowly(text, save):
+        inside.append(text)
+        if len(inside) > 1:
+            overlapped.append(tuple(inside))
+        # The first one is the slow one, which is the whole scenario.
+        time.sleep(0.6 if not built else 0.05)
+        built.append(text)
+        inside.remove(text)
+
+    bench._builds._run = slowly
+    bench.audition("first")
+    time.sleep(0.1)
+    bench.audition("second")
+
+    end = time.time() + 15.0
+    while time.time() < end and (len(built) < 2 or bench._builds.busy):
+        time.sleep(0.02)
+
+    assert not overlapped, f"two builds ran at once: {overlapped}"
+    assert built[-1] == "second", built

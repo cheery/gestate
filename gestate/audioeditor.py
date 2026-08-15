@@ -575,6 +575,64 @@ def _timed(name: str):
     return wrap
 
 
+class Newest:
+    """One worker at a time, always on the newest ask.
+
+    **Because a hand asks in bursts.**  A drag drops three notes in two
+    seconds and each one is half a second of front end; a save pressed
+    twice is two compiles of nearly the same file.  Left to threads,
+    they run at once — wasting the machine, and worse, *racing*: two
+    builds write into one `pending` engine slot, so an older one
+    finishing last puts the sound back an edit while the text stays
+    right.  That is quiet wrongness, and it is the kind this project
+    files rather than lives with.
+
+    So: at most one at work, at most one waiting, and the one waiting is
+    always the newest — a picture or an engine of an edit two edits ago
+    is not worth the second it costs.  Ordering follows for free, which
+    is the property the hazard was about.
+    """
+
+    def __init__(self, name: str, run, trouble=None):
+        self._name, self._run, self._trouble = name, run, trouble
+        self._lock = threading.Lock()
+        self._wants: tuple | None = None
+        self._at_work = False
+
+    def ask(self, *args) -> None:
+        """Do this, when the last one is done."""
+        with self._lock:
+            self._wants = args
+            if self._at_work:
+                return
+            self._at_work = True
+        threading.Thread(target=self._work, daemon=True,
+                         name=self._name).start()
+
+    def _work(self) -> None:
+        while True:
+            with self._lock:
+                want, self._wants = self._wants, None
+                if want is None:
+                    self._at_work = False
+                    return
+            try:
+                self._run(*want)
+            except Exception as exc:                    # noqa: BLE001
+                # **The worker outlives the work.**  An exception that
+                # escaped here would leave `_at_work` true for ever and
+                # the next ask would be queued behind a thread that had
+                # already died — the editor would simply stop rebuilding.
+                if self._trouble is not None:
+                    self._trouble(exc)
+
+    @property
+    def busy(self) -> bool:
+        """Whether anything is at work or waiting to be."""
+        with self._lock:
+            return self._at_work or self._wants is not None
+
+
 class Workbench:
     """A synth that is playing and can be edited.  No toolkit in here.
 
@@ -678,11 +736,14 @@ class Workbench:
         #: A score box's touch channel → the line it jumps to
         #: (`spec/scorebox.md`).  The one gesture the read-only box
         #: owns: a press on a note reveals where it is written.
-        #: The redraw's own state — see `redraw`: one at work, one
-        #: waiting, and the one waiting is always the newest text.
-        self._redrawing = threading.Lock()
-        self._redraw_wants: str | None = None
-        self._redraw_at_work = False
+        #: The two things a hand can ask for in bursts, each with one
+        #: worker and the newest ask — see `Newest`.
+        self._redraws = Newest(
+            "redraw", self._load_substrate,
+            lambda exc: self.say(f"not redrawn: {self._first_line(exc)}"))
+        self._builds = Newest(
+            "build", self._build,
+            lambda exc: self.say(f"not applied: {self._first_line(exc)}"))
         #: `{channel: (roll, column)}` — what a gesture arriving by
         #: name is *about*.  With the height the hand writes it says
         #: which *note* was meant, which is what both a press and an
@@ -2565,21 +2626,28 @@ class Workbench:
             threading.Thread(target=begin, daemon=True).start()
             return
 
-        def build():
-            from .buildtime import building
-
-            with building(f"apply {self.path.name}"):
-                self._build(text, save)
-
-        threading.Thread(target=build, daemon=True).start()
+        # **One build at a time, and the last word wins.**  Two in
+        # flight write into one `pending` engine slot and the handover
+        # installs whatever is there, so an older build finishing last
+        # would put the *sound* back an edit while the text stayed
+        # right — and nothing would correct it until the next edit.
+        # Serialising them is the whole fix: an ask that arrives during
+        # a build waits for it, and a third replaces the second.
+        self._builds.ask(text, save)
 
     def _build(self, text: str, save: bool) -> None:
         """The rebuild itself, off the caller's thread.
 
-        Its own method so that `apply`'s worker is the two lines that
-        say *what* is happening — a named build, and this — rather than
-        a closure that also has to be read for where its seconds go.
+        Its own method so that `apply` is the one line that says *what*
+        is happening rather than a closure that also has to be read for
+        where its seconds go.
         """
+        from .buildtime import building
+
+        with building(f"apply {self.path.name}"):
+            self._built(text, save)
+
+    def _built(self, text: str, save: bool) -> None:
         self.live.compile(text)
         if isinstance(self.live.pending, Exception):
             self.say(f"not applied: {self._first_line(self.live.pending)}")
@@ -2618,31 +2686,11 @@ class Workbench:
 
         Off the caller's thread, because it is four hundred to seven
         hundred milliseconds warm and the poll it would block is two.
-        **Coalesced**, because a hand drags notes in bursts: at most one
-        redraw runs and at most one waits, and the one that waits is
-        always the newest text.
+        Coalesced through `Newest`, because a hand drags notes in
+        bursts — and a picture that will not build must not take
+        anything else down with it, which is the canvas rule.
         """
-        with self._redrawing:
-            self._redraw_wants = text
-            if self._redraw_at_work:
-                return
-            self._redraw_at_work = True
-
-        def work():
-            while True:
-                with self._redrawing:
-                    want, self._redraw_wants = self._redraw_wants, None
-                    if want is None:
-                        self._redraw_at_work = False
-                        return
-                try:
-                    self._load_substrate(want)
-                except Exception as exc:                # noqa: BLE001
-                    # The canvas rule: a picture that will not build
-                    # must not take anything else down with it.
-                    self.say(f"not redrawn: {self._first_line(exc)}")
-
-        threading.Thread(target=work, daemon=True).start()
+        self._redraws.ask(text)
 
     def _progress(self, _written) -> None:
         """Called between blocks, or by the housekeeping thread when the C
