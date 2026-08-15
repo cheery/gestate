@@ -546,6 +546,88 @@ def test_the_band_plays_along_and_lays_out(tmp_path):
 # ── The gesture, the text and the sound, as one thing ───────────────────────
 
 
+def _with_notes(source: str) -> str:
+    """A piece with a score box on it — the two lines a person adds to
+    see its notes: what a payload's key and velocity are, and the ask."""
+    return (source
+            + "\ninstance Notable Pitched where\n"
+            + "    noteKey p = case p of\n"
+            + "        Pitched k v -> k\n"
+            + "    noteVel p = case p of\n"
+            + "        Pitched k v -> v\n"
+            + "\nnotes score\n")
+
+
+def test_a_note_dropped_while_it_plays_changes_the_sound_not_the_file(tmp_path):
+    """The other half of the same line: the drag **auditions**.
+
+    `spec/north_star.md` — the sound follows the hand and the file on
+    disk is untouched until `Ctrl-S`.  A gesture that saved would make
+    an experiment permanent; one that only edited the buffer would be
+    silent until you saved, which is the opposite of the room this
+    editor is.  So this drags a note in a piece that is *sounding* and
+    asks for both halves: the engine was rebuilt and handed over while
+    it played, and the file on disk still says what it said.
+    """
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from test_session import session
+
+    from gestate.scorebox import key_at
+
+    source = _with_notes((AUDIO_DIR / "duet.ges").read_text())
+    held: dict = {}
+
+    class _View:
+        saved = True
+
+        def __init__(self, text):
+            self._text = text
+
+        def text(self):
+            return self._text
+
+        def replace(self, text):
+            self._text = text
+            return True
+
+        def goto(self, line):
+            return True
+
+    def drag(bench):
+        held["bench"] = bench
+        regions = getattr(bench, "note_regions", {})
+        assert regions, "the piece was built with no score box to drag"
+        chan = sorted(regions)[0]
+        roll, _hand = regions[chan]
+        seat = session()
+        seat.bench, seat.view = bench, _View(source)
+        assert seat.touched(chan, 0.5).startswith("line ")
+        grabbed = key_at(roll, 0.5)
+        down = next(d / 200 for d in range(200, -1, -1)
+                    if key_at(roll, d / 200) == grabbed + 4)
+        seat.touched(chan, down)
+        said = seat.released(chan)
+        assert "+4 semitone" in said, said
+        # The engine is replaced *while it sounds* — the handover is
+        # `apply`'s, mid-render, with the phases migrated.
+        assert _wait(lambda: bench.live is not None
+                     and bench.live.generation > 0,
+                     timeout=25.0), bench.messages[-4:]
+
+    # Long enough that there is still music left to render when the
+    # rebuild lands, which is the whole of what is being watched.
+    _played(tmp_path, drag, seconds=20.0, name="duet.ges", hush=None,
+            source=source)
+
+    bench = held["bench"]
+    assert any("applied edit" in m for m in bench.messages), bench.messages
+    # **And the file did not move.**  An audition never writes.
+    assert (tmp_path / "duet.ges").read_text() == source, \
+        "the drag wrote to the disk"
+
+
 def test_a_dragged_note_is_heard_where_it_was_dropped(tmp_path):
     """**The claim the score box makes** (`spec/north_star.md`,
     acceptance 5), and the reason this file was written before it.
@@ -568,15 +650,7 @@ def test_a_dragged_note_is_heard_where_it_was_dropped(tmp_path):
 
     from gestate.scorebox import asks, build_rolls, key_at
 
-    # The two lines a person adds to see a piece's notes: what a
-    # payload's key and velocity are, and the ask itself.
-    source = ((AUDIO_DIR / "duet.ges").read_text()
-              + "\ninstance Notable Pitched where\n"
-              + "    noteKey p = case p of\n"
-              + "        Pitched k v -> k\n"
-              + "    noteVel p = case p of\n"
-              + "        Pitched k v -> v\n"
-              + "\nnotes score\n")
+    source = _with_notes((AUDIO_DIR / "duet.ges").read_text())
     page = asks(source)
     roll = build_rolls(source, page, 22050, 0)[0]
     seat = _seated(source, roll)

@@ -1891,6 +1891,31 @@ class Session:
             return f"transpose: {exc}"
         if not self.view.replace(text):
             return "transpose: nowhere to put it"
+        # **And it sounds where it was dropped** (`spec/north_star.md`):
+        # the same answer `audition` gives, which is the one the whole
+        # environment is built on — the sound changes and the file does
+        # not, until `Ctrl-S`.  A gesture that saved would make an
+        # experiment permanent; one that only edited the buffer would be
+        # silent until you saved, which is the opposite of the room this
+        # editor is.
+        #
+        # Only while something is playing.  Stopped, an audition has
+        # nothing to do but say so, and a sentence about the transport
+        # over the top of the one about the note is noise where an
+        # answer should be.
+        if getattr(self.bench, "playing", False):
+            hear = getattr(self.bench, "audition", None)
+            if hear is not None:
+                hear(text)
+        else:
+            # **And the picture follows either way.**  The roll is
+            # redrawn by a *build*, and with nothing playing there is no
+            # build — so the note moved in the file and went on being
+            # drawn where it used to be, which reads as the drag not
+            # having taken (`spec/north_star.md`, acceptance 2).
+            again = getattr(self.bench, "redraw", None)
+            if again is not None:
+                again(text)
         return said
 
     # -- the text ------------------------------------------------------

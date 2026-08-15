@@ -780,6 +780,116 @@ def test_a_note_let_go_where_it_began_writes_nothing():
     assert seat.holding is None, "the hand is still held after it let go"
 
 
+def test_a_note_dropped_while_it_plays_is_auditioned():
+    """`spec/north_star.md`: the drag rewrites the *buffer* and
+    auditions, so the sound follows the hand and the file on disk is
+    untouched until `Ctrl-S`.
+
+    A gesture that saved would make an experiment permanent; one that
+    only edited the buffer would be silent until you saved, which is
+    the opposite of the room this editor is.  Stopped, it says nothing
+    at all: an audition with no sound running has nothing to do but
+    talk about the transport, over the top of the answer about the
+    note.
+    """
+    source, roll = _rolled("noted.ges", "ground")
+    heard = []
+
+    for playing in (False, True):
+        seat = _seated(source, roll)
+        seat.bench.playing = playing
+        seat.bench.audition = lambda text: heard.append(text)
+        chan = next(iter(seat.bench.note_regions))
+        was = next(e[3] for e in roll.events if e[2] == 0)
+        seat.run("transpose", chan, was, was + 2)
+
+    assert len(heard) == 1, "auditioned while stopped, or not while playing"
+    assert f"low {was + 2}" in heard[0] or str(was + 2) in heard[0]
+    assert heard[0] == seat.view.text(), "it auditioned something else"
+
+
+def test_the_picture_follows_a_drop_with_nothing_playing(tmp_path):
+    """Acceptance 2, and it only half held.
+
+    A canvas is rebuilt by `_load_substrate`, which runs inside a
+    *build* — so with nothing playing there was no build, and a dragged
+    note moved in the file while the roll went on drawing it where it
+    used to be.  For a mark in the margin that is this editor's
+    ordinary rule; for a direct gesture it reads as the drag not having
+    taken, which is the worst answer a gesture can give.
+    """
+    from gestate.audioeditor import Workbench
+
+    from test_session import session
+
+    source = (AUDIO / "noted.ges").read_text()
+    path = tmp_path / "noted.ges"
+    path.write_text(source)
+    bench = Workbench(path, rate=RATE, block=256)
+    bench._load_substrate(source)
+    assert not bench.playing, "the premise: nothing is sounding"
+    before = list(bench.canvases["__notes_0__"].picture())
+
+    class _View:
+        saved = True
+
+        def __init__(self, text):
+            self._text = text
+
+        def text(self):
+            return self._text
+
+        def replace(self, text):
+            self._text = text
+            return True
+
+        def goto(self, line):
+            return True
+
+    seat = session()
+    seat.bench, seat.view = bench, _View(source)
+    chan = sorted(bench.note_regions)[0]
+    seat.touched(chan, 0.5)
+    seat.touched(chan, 0.1)
+    assert "semitone" in seat.released(chan)
+
+    end = time.time() + 30.0
+    while time.time() < end:
+        if list(bench.canvases["__notes_0__"].picture()) != before:
+            break
+        time.sleep(0.05)
+    assert list(bench.canvases["__notes_0__"].picture()) != before, \
+        "the note moved in the file and the roll did not"
+
+
+def test_a_burst_of_drops_is_one_redraw_and_the_newest_text(tmp_path):
+    """A hand drags notes in bursts, and each one costs half a second
+    of front end.  So at most one redraw runs and at most one waits —
+    and the one that waits is the newest text, because a picture of an
+    edit two edits ago is not worth the wait it cost."""
+    from gestate.audioeditor import Workbench
+
+    path = tmp_path / "noted.ges"
+    path.write_text((AUDIO / "noted.ges").read_text())
+    bench = Workbench(path, rate=RATE, block=256)
+
+    drew = []
+
+    def slowly(text):
+        time.sleep(0.3)
+        drew.append(text)
+
+    bench._load_substrate = slowly
+    for n in range(5):
+        bench.redraw(f"take {n}")
+    end = time.time() + 15.0
+    while time.time() < end and (len(drew) < 2 or bench._redraw_at_work):
+        time.sleep(0.02)
+
+    assert len(drew) < 5, f"five drops started {len(drew)} redraws"
+    assert drew[-1] == "take 4", drew
+
+
 def test_the_command_refuses_by_name_and_writes_nothing():
     """Every refusal is a sentence, and none of them touches the file —
     which is the property that lets a hand try things."""

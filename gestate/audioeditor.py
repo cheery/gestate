@@ -678,6 +678,11 @@ class Workbench:
         #: A score box's touch channel → the line it jumps to
         #: (`spec/scorebox.md`).  The one gesture the read-only box
         #: owns: a press on a note reveals where it is written.
+        #: The redraw's own state — see `redraw`: one at work, one
+        #: waiting, and the one waiting is always the newest text.
+        self._redrawing = threading.Lock()
+        self._redraw_wants: str | None = None
+        self._redraw_at_work = False
         #: `{channel: (roll, column)}` — what a gesture arriving by
         #: name is *about*.  With the height the hand writes it says
         #: which *note* was meant, which is what both a press and an
@@ -2598,6 +2603,46 @@ class Workbench:
     def audition(self, text: str) -> None:
         """Hear the edit without committing it to the file."""
         self.apply(text, save=False)
+
+    def redraw(self, text: str) -> None:
+        """The pictures, from this text, without touching the sound.
+
+        **What a gesture needs and an audition cannot give.**  A canvas
+        is rebuilt by `_load_substrate`, which only ever runs inside a
+        *build* — so with nothing playing there is no build, and a
+        dragged note moved in the file while the roll went on drawing
+        where it used to be.  For a mark in the margin that is the
+        ordinary rule of this editor (holes, knobs and complaints all
+        wait for the next build); for a direct gesture it reads as the
+        drag not having taken.
+
+        Off the caller's thread, because it is four hundred to seven
+        hundred milliseconds warm and the poll it would block is two.
+        **Coalesced**, because a hand drags notes in bursts: at most one
+        redraw runs and at most one waits, and the one that waits is
+        always the newest text.
+        """
+        with self._redrawing:
+            self._redraw_wants = text
+            if self._redraw_at_work:
+                return
+            self._redraw_at_work = True
+
+        def work():
+            while True:
+                with self._redrawing:
+                    want, self._redraw_wants = self._redraw_wants, None
+                    if want is None:
+                        self._redraw_at_work = False
+                        return
+                try:
+                    self._load_substrate(want)
+                except Exception as exc:                # noqa: BLE001
+                    # The canvas rule: a picture that will not build
+                    # must not take anything else down with it.
+                    self.say(f"not redrawn: {self._first_line(exc)}")
+
+        threading.Thread(target=work, daemon=True).start()
 
     def _progress(self, _written) -> None:
         """Called between blocks, or by the housekeeping thread when the C
