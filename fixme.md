@@ -3812,3 +3812,43 @@ course draw a bigger roll; `ROLL_W, ROLL_H = 384, 116` is
 `scorebox.py`'s choice and could be another one.  That would make the
 picture bigger at *every* zoom, which is a different complaint from
 the one Henri has: the picture does not answer the zoom.
+
+### F138. **[missing]** A space in a filler runs the completion on half of it
+
+Reported 2026-08-15 by Henri, using `complete` on `minute.ges`: *"there
+are some completion strings where it may dropout such as typing a list.
+I hope to repro that issue."*  Reproduced the same evening, and it is
+worse than a dropout: the half-typed answer is **written into the
+file**.
+
+**The repro**, driving a real window with XTEST (`tools/toolbox.sh`
+installs what it takes): at a hole, `Tab`, then type `[1, 2]`.  What
+crosses is
+
+```
+wants   complete 1 +1,   Float
+command complete Float +1,        ← the space ran it
+wants   complete 1 2     Float    ← what was left began a new query
+```
+
+so `[1,` lands in the hole and the rest of the list is typed into a
+box that is now asking a different question.
+
+**Why.**  Space picks and moves on *except where a space is content*,
+and the exception is spelled by declared type: `Text` and `Path`
+(`palette.rs`, `Key::Char(' ')`).  `Filler` and `Wanted` are `Text`
+**aliases** — `type Filler = Text` in `command.ges` — and the window
+is handed the name a command declared, not what that name aliases to.
+So the exception does not fire, and the space is a Return.
+
+**The fix is not to add `Filler` to the list in `palette.rs`.**  That
+is the window learning the alias table, which is the vocabulary
+learned twice — the next `type Something = Text` breaks it again and
+breaks it silently.  What the window is missing is not the *name* of
+the type but its *kind*, and the model is the one that knows: send
+both, `Filler:Text`, the shown name and the base.  The prompt keeps
+saying `<filler>`, the keys read `Text`, and a furniture line with no
+colon still means what it means today.
+
+Worth doing with F137, since both are the window being told half of
+something the model knows.
