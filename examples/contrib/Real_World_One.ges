@@ -1,0 +1,166 @@
+# REAL WORLD ONE
+# Synthwave for Gestate: a neon pulse in F minor, written as one living graph.
+#
+# Render it:
+#   python -m gestate.audioperform examples/contrib/Real_World_One.ges \
+#       --seconds 64 -o Real_World_One.wav
+
+Key := Key Int Int
+
+voices bass 2 bassVoice : Sig Float
+voices pad 8 padVoice : Sig Float
+voices arp 4 arpVoice : Sig Float
+voices lead 2 leadVoice : Sig Float
+
+instance FromMIDI Key where
+    noteOn ch p v = Just (Key p v)
+
+hzOf : Key -> Float
+hzOf q = case q of
+    Key k v -> keyHz k
+
+velOf : Key -> Float
+velOf q = case q of
+    Key k v -> toFloat v / 127.0
+
+detuned : Float -> Sig Float -> Sig Float
+detuned cents hz = map (h => centsHz cents h) hz
+
+# -- Instruments ----------------------------------------------------------
+
+bassCut : Sig Gate -> Sig Float
+bassCut g = map (x => clamp 55.0 nyquist (95.0 + 2400.0 * x))
+                (adsr (Adsr 0.004 0.18 0.18 0.09) g)
+
+bassVoice : Sig Gate -> Sig Key -> Sig Float
+bassVoice g s = drive 1.35
+                    (lowpassLadder (bassCut g) 0.42
+                        (saw (!hzOf s) + 0.55 * pulse 0.48 (0.5 * (!hzOf s))))
+              * adsr (Adsr 0.003 0.2 0.58 0.08) g * !velOf s
+
+padCut : Sig Gate -> Sig Float
+padCut g = map (x => clamp 80.0 nyquist (260.0 + 3000.0 * x))
+               (adsr (Adsr 0.7 1.1 0.42 1.3) g)
+
+padVoice : Sig Gate -> Sig Key -> Sig Float
+padVoice g s = lowpassSvf (padCut g) 0.28
+                   (0.5 * saw (detuned (negate 9.0) (!hzOf s))
+                  + 0.5 * saw (detuned 9.0 (!hzOf s)))
+             * adsr (Adsr 0.42 0.9 0.7 1.1) g * !velOf s
+
+arpVoice : Sig Gate -> Sig Key -> Sig Float
+arpVoice g s = lowpassSvf 3900.0 0.35
+                   (0.65 * pulse 0.28 (!hzOf s)
+                  + 0.35 * triangle (detuned 5.0 (!hzOf s)))
+             * perc 15.0 g * !velOf s
+
+leadVoice : Sig Gate -> Sig Key -> Sig Float
+leadVoice g s = lowpassSvf 3100.0 0.22
+                    (0.55 * pulse 0.4 (!hzOf s)
+                   + 0.45 * saw (detuned (negate 6.0) (!hzOf s)))
+              * adsr (Adsr 0.015 0.2 0.48 0.32) g * !velOf s
+
+# -- Clock-driven drum machine -------------------------------------------
+
+bpm : Int
+bpm = 116
+
+kickEnv : Sig Float
+kickEnv = map (b => exp (negate 19.0 * wrap b)) beat
+
+kick : Sig Float
+kick = sine (45.0 + 135.0 * kickEnv) * kickEnv
+
+snareEnv : Sig Float
+snareEnv = map (b => exp (negate 13.0 * wrap ((b + 1.0) / 2.0))) beat
+
+snare : Sig Float
+snare = (0.62 * highpassSvf 1500.0 0.25 (white 17)
+       + 0.25 * triangle 190.0) * snareEnv
+
+hatEnv : Sig Float
+hatEnv = map (b => exp (negate 58.0 * wrap (b + 0.5))) beat
+
+openHatEnv : Sig Float
+openHatEnv = map (b => exp (negate 10.0 * wrap ((b + 0.5) / 4.0))) beat
+
+hats : Sig Float
+hats = highpassSvf 7600.0 0.18 (white 23)
+     * (0.34 * hatEnv + 0.16 * openHatEnv)
+
+# Synthetic sidechain: everything luminous ducks under the kick.
+pump : Sig Float
+pump = map (b => 0.34 + 0.66 * (1.0 - exp (negate 4.8 * wrap b))) beat
+
+# -- Composition ----------------------------------------------------------
+
+n : Int -> Int -> [: Key :]
+n velocity key = '(Key key velocity)
+
+# Fm - Db - Ab - Eb. One root per bar, endlessly circling the city.
+roots : [: Key :]
+roots = cycle (n 112 41 |* 4 ++ n 105 37 |* 4
+             ++ n 108 44 |* 4 ++ n 104 39 |* 4)
+
+bassBar : Key -> [: Key :]
+bassBar q = case q of
+    Key k v -> (n 116 k ++ n 72 (k + 12) ++ n 98 k ++ n 76 (k + 12)
+             ++ n 110 k ++ n 74 (k + 12) ++ n 96 k ++ n 82 (k + 7)) |/ 2
+
+padChord : Key -> [: Key :]
+padChord q = case q of
+    Key k v -> n 68 (k + 12) || n 62 (k + 15)
+            || n 60 (k + 19) || n 52 (k + 24)
+
+arpBar : Key -> [: Key :]
+arpBar q = case q of
+    Key k v -> (n 76 (k + 24) ++ n 68 (k + 27)
+             ++ n 72 (k + 31) ++ n 64 (k + 36)
+             ++ n 70 (k + 31) ++ n 66 (k + 27)
+             ++ n 74 (k + 24) ++ n 62 (k + 31)) |/ 2
+
+leadBar : Key -> [: Key :]
+leadBar q = case q of
+    Key k v -> n 88 (k + 24) ++ r
+             ++ n 80 (k + 31) ++ n 76 (k + 27)
+             ++ n 86 (k + 36) |* 2 ++ r |* 2
+
+score : [: Void :]
+score = ((roots >>= bassBar) >>= voices.bass)
+     || ((roots >>= padChord) >>= voices.pad)
+     || ((roots >>= arpBar) >>= voices.arp)
+     || ((roots >>= leadBar) >>= voices.lead)
+
+# -- Stereo mix -----------------------------------------------------------
+
+padPump : Sig Float
+padPump = pump * pad
+
+arpPump : Sig Float
+arpPump = pump * arp
+
+leadPump : Sig Float
+leadPump = pump * lead
+
+arpEcho : Sig Float
+arpEcho = echo 0.388 0.46 arpPump
+
+leadEcho : Sig Float
+leadEcho = echo 0.517 0.38 leadPump
+
+room : Sig Float
+room = reverb 1.9 0.42 (0.55 * snare + 0.18 * padPump + 0.2 * leadPump)
+
+centre : Sig Float
+centre = 0.9 * kick + 0.64 * snare + 0.78 * bass + 0.22 * room
+
+left : Sig Float
+left = centre + 0.34 * hats + 0.56 * chorus 0.27 0.48 padPump
+     + 0.36 * arpPump + 0.2 * arpEcho + 0.42 * leadPump + 0.2 * leadEcho
+
+right : Sig Float
+right = centre + 0.26 * hats + 0.56 * chorus 0.39 0.48 padPump
+      + 0.28 * arpPump + 0.34 * arpEcho + 0.42 * leadPump + 0.34 * leadEcho
+
+sound : Sig Stereo
+sound = pair (brickwall 0.9 left) (brickwall 0.9 right)
