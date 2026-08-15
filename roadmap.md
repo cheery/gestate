@@ -314,177 +314,49 @@ their own headings.  What is below is what is *not* done.
 
 ## What to build next
 
-Three now, and the first one is not a feature at all: it is the save
-cycle everything else is edited through, measured and found to be
-twelve seconds.  The other two are the pair this section has always
-had — one finishes something the workbench made cheap, the other is a
-new capability Henri wants and that most of the parts for already
-exist.
+Two, and they are the pair this section has always had: one finishes
+something the workbench made cheap, the other is a new capability Henri
+wants and that most of the parts for already exist.  **The third — the
+save cycle — is closed out and moved to `journal.md`** §"The day the
+save cycle was measured".
 
-**The save is twelve seconds, and that is the thing to fix first.**
+### The save cycle — closed out, and what is left of it
 
-`journal.md` records a rebuild at 400 ms when 7.5 shipped.  That number
-was `blip.ges`, and it is still about right for it — 1.3 s today.  The
-pieces got fifteen times bigger and nobody measured again.  One save of
-`examples/audio/quartet.ges` in the workbench, every cache warm:
+A save of `examples/audio/quartet.ges` was **twelve seconds** and is
+about three; a start of `noted.ges` was fourteen and is under five.
+The journal has the arc: the hole scan and the sidebar that re-inferred
+every prelude, the seam that one shadowed name turned off for nine of
+the forty-five examples, `GESTATE_BUILD_TIME` and the two ways it was
+itself wrong, the analysis cache that was evicting the file it cached,
+and the two merges — one program for a page of rolls, one for their
+pictures.  `clang -O1` is written up there as measured and rejected.
 
-| phase | cost |
-|---|---|
-| `graph_of` → `pipeline.analyse` | **4.6 s** |
-| `graph_of` → assemble and extract | 1.1 s |
-| `_place` → `_find_holes` | **2.4 s** |
-| `_load_substrate` | 0.5 s |
-| `_load_from_midi` | 0.3 s |
-| `clang -O2`, when the IR changed | ~3 s |
-| **one save** | **~12 s** |
+What is **not** done, in the order the value falls:
 
-The first measure below is built and that is **8 s** now.  The rest of
-this section is what is still true.
-
-Nothing here is scheduled by the rule as a *feature* — it is scheduled
-because a twelve-second save on the piece being written is a defect, and
-a defect is always a caller.  And it is not the thing this file forbids:
-"make the interpreter faster for audio's sake" is about the audio path,
-which the evaluator left at 7.4.  This is the *edit* path.
-
-Three measures, in the order the value falls:
-
-1. **Stop paying for holes nobody wrote — 2.4 s.  Done, 2026-08-15.**
-   `typecheck.holes_in_source` ran its own `_merge_prelude`,
-   `desugar_program` and `infer_program`, so it missed the analysis
-   cache *and* the staged path and re-inferred every prelude from
-   scratch — and `_place` called it on every rebuild whether or not the
-   file contained a single `_`.  It asks `pipeline.analysed` now: a new
-   door beside `analyse` that recalls and **never computes**, for a
-   caller that wants the answer only if it is free and has a cheaper
-   path otherwise.  What lets it read that answer is that a hole
-   survives elaboration and specialisation *carrying its type*, which
-   the old path — stopping at inference — never had to rely on, so
-   `test_pipeline.py` holds it two ways: the cached answer equals the
-   cold one, and `_analyse` replaced by something that raises leaves
-   the scan passing.  `_find_holes` 2.37 s → 0.07 s, `_place` 2.56 →
-   0.28, **the save 12.0 s → 8.0 s**.
-
-   `fits_in_source` and `signatures_in_source` had the identical defect
-   on the `?`/`Tab` path rather than the rebuild one — a wait when you
-   ask rather than a tax on every save, and both of them things
-   `analyse`'s own docstring already claimed were answered from the
-   cache.  They ask the same door now: 0.86 s → 0.03 s and 0.21 s →
-   0.004 s.  `signatures_in_source` is why `Analysis` grew a field: a
-   signature offered without the context inference put on it is one
-   that would not compile if you accepted it, and the predicates were
-   the one thing the analysis threw away.  `_load_substrate` and
-   `_load_from_midi` are the same shape again, smaller, and still to
-   do.
-2. **Then the front end is the whole of the rest — 4.6 s.**  This file
-   said *"it is already staged: the stack front holds the libraries'
-   parse and inference"*, and for the files anybody works on **that was
-   not true**.  `_analyse_staged` returned `None` in thirteen
-   microseconds for `quartet.ges`, `noted.ges` and `blip.ges`: no seam,
-   so every prelude was re-inferred on every save and `infer_program`
-   was handed all 779 supercombinators rather than the hundred the file
-   wrote.
-
-   **One shadowed name turned the whole cache off**, and the three
-   assemblers each spelled the test `if shadowed is prelude`.  Nine of
-   the forty-five examples paid it, over `bar` (four files), `chorus`,
-   the type `Note`, `gain`, `pair`, `envAt` — which is to say over the
-   words a piece is *made of*.  **Fixed, 2026-08-15**: the question is
-   `prelude.stands_alone`, not "was anything renamed".  A library name
-   the program takes over moves on both sides at once and the head
-   refers only to what it defines, so it stands alone as it always did;
-   a `prelude.ges` name leaves it calling `__prelude_envAt__`, which
-   nothing defines until `merge` puts the program in front of it.  Eight
-   of the nine are staged now and `blip.ges` refuses for a stated reason
-   — 2.40 s → 1.24 s on `noted.ges`, 2.35 → 1.27 on `spiral.ges`, 3.36 →
-   2.65 on `quartet.ges`, per save, with the fronts warm as an editor
-   keeps them.  The acceptance is the one the staged path always had
-   (same SC names, same types, same case tags), now also held against a
-   shadowing program; and `lantern.ges`, which shadows `bar` and is
-   therefore newly staged, exports byte-identically to before, which is
-   the "two numberings in one program" hazard checked where it would
-   show.
-
-   **The tail, re-measured once the seam worked**, because the first
-   numbers here were taken with a cold pickle in the staged run and
-   were too pessimistic.  A warm front end on `quartet.ges` is **1.2 s**
-   now, not 2.65, and it divides: `_discharge` 0.21 (elaborate 0.15,
-   specialise 0.04), `infer_program` 0.21, `desugar_program` 0.13,
-   loading the stack front 0.11, exhaustiveness 0.06, kind check 0.03,
-   `expand_envelopes` 0.04, `resolve_static_methods` 0.04.  About half
-   of it is whole-module work over library SCs that cannot have
-   changed.
-
-   *Tuning is spent.*  `expr._field_names` caches the field tuple per
-   node kind, which is worth 5% — not the 10% guessed here, and
-   measured by replacing the cache with the old call rather than by
-   comparing two runs.  What is left of that idea is `types.apply`, at
-   843,000 calls.
-
-   *Structural, and each piece is small and delicate.*  Desugaring a
-   library item is the largest single one at 0.11 s, and the front
-   already holds the answer — `_analyse_staged` desugars the whole
-   module and throws the library half away.  It is not a free deletion:
-   `match.fresh_name` runs off a global counter that `desugar_program`
-   resets, so skipping the library half moves every generated binder,
-   and the fix is a `names_end` in `StackFront` beside `fresh_end`.
-   Exhaustiveness and the kind check are another 0.09 and are already
-   run over the head when the front is built.  Elaborate and specialise
-   cannot skip library SCs at all — a program call site specialises a
-   library body — unless the SCs no constraint touches are identified
-   first.  Worth doing deliberately, worth ~0.2 s a front end and
-   therefore ~0.4 s a save, and *not* worth slipping in at the end of an
-   afternoon: a generated name landing on another one is silent.
-
-   **And a save runs two front ends, not one.**  The sound and the
-   canvas are different assemblies of the same file — different
-   preludes, different entry — so a file with a `substrate` is analysed
-   twice per save: 1.40 s of `chopin.ges`'s 2.24 s apply.  Each is
-   staged and each pays the tail above, which is what doubles the tail's
-   value.  Unifying them is a language question (one prelude for both,
-   or a synth paying for `gui.ges`), not a caching one.
-3. **`GESTATE_BUILD_TIME`, the compile-side twin of
-   `GESTATE_EDITOR_TIME`.  Built, 2026-08-15.**  The frame side had
-   instrumentation and two lag tools and consequently did not rot; the
-   build side had neither, which is exactly how 400 ms became twelve
-   seconds with two thousand tests passing.  `gestate/buildtime.py` is
-   the table above printed to stderr per rebuild, and two things in it
-   are not the obvious thing: a phase reports its **own** time, so the
-   hole scan inside the knob placement is counted once rather than in
-   both; and `‖` — work that overlapped — is a claim about the *clock*
-   rather than about thread identity, because `_deep_stack` hands the
-   front end to a worker and waits for it, which is another thread and
-   is not concurrency.  `clang` shows only when the compiler ran, since
-   a `.so` store hit is meant to cost nothing.  This project's own
-   sentence: *"it feels slow" is not a measurement.*
-
-   **It was wrong the day it was switched on, and that is the argument
-   for it.**  `substrate` read as the largest phase of a start — 7.8 s
-   on `chopin.ges` — and it was not.  Own time is computed off a
-   per-thread stack, and `_deep_stack` hands the front end to a worker,
-   so the analysis `_load_substrate` was *waiting for* got counted
-   twice: on its own line, and inside the phase waiting for it.
-   `buildtime.lending`/`borrowing` carries the open phases across that
-   hand-off now, and the same fact fixed the `‖` mark, which was
-   calling a hand-off concurrency.  The canvas's own cost is 0.24 s;
-   what it really pays for is the second front end above.
-
-   **And then it earned its keep twice more, on one line of output.**
-   `noted.ges` reported *eight* front ends for one start, and neither
-   of the reasons was visible any other way.  The eighth re-analysed
-   the text the first had — `_KEEP_ANALYSED` was four, sized for a file
-   with three assemblies, and score boxes had quietly made it eight, so
-   the cache was evicting the file it was caching.  And three of the
-   remaining seven were one per `notes` ask: each roll spliced its own
-   `__nb_*` definitions into the author's file and assembled a fresh
-   200,000-character performance, so three boxes were three front ends
-   and three G-machine compiles to draw three pictures of one file.
-   `scorebox.build_rolls` numbers them into one program the way
-   `canvas <expr>` asks have always been numbered — with the hidden
-   definitions numbered too, because `rebuild` carries the bank in
-   force at the reference and a name reached from two asks is two
-   bodies.  Together: **8 front ends → 5, and a `noted.ges` start
-   13.0 s → 8.5 s.**
+- **The whole-module tail — about 0.2 s a front end.**  Everything
+  after the seam still runs over all 232 k assembled characters:
+  `_discharge` 0.21 (elaborate 0.15, specialise 0.04),
+  `desugar_program` 0.13, exhaustiveness 0.06, `expand_envelopes` 0.04,
+  `resolve_static_methods` 0.04, kind check 0.03 — over library SCs
+  that cannot have changed.  The largest single piece is desugaring,
+  and the front already holds the answer: `_analyse_staged` desugars
+  the whole module and throws the library half away.  **It is not a
+  free deletion.**  `match.fresh_name` runs off a global counter that
+  `desugar_program` resets, so skipping the library half moves every
+  generated binder; the fix is a `names_end` in `StackFront` beside
+  `fresh_end`.  Exhaustiveness and the kind check are already run over
+  the head when the front is built.  Elaborate and specialise cannot
+  skip library SCs at all — a program call site specialises a library
+  body — unless the SCs no constraint touches are identified first.
+  Worth doing deliberately: every piece of it is silent when wrong.
+- **A file with a canvas is analysed twice a save.**  The sound and the
+  picture are different assemblies of the same file — different
+  preludes, different entry — so both halves pay the tail above.
+  Unifying them is a language question (one prelude for both, or a
+  synth paying for `gui.ges`), not a caching one.
+- **The tuning half is spent.**  `expr._field_names` was worth 5%, not
+  the 10% guessed here; what is left of that idea is `types.apply`, at
+  843,000 calls per analysis.
 
 **Measured and rejected: `clang -O1` for interactive builds.**  It
 looked like a free 1.3 s of the three, and the objects are *bit

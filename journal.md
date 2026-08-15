@@ -5733,3 +5733,146 @@ what the roll shows is *shape* — and `--report`, built the same day
 for `spec/firstpiece.md`'s missing ears, reads the same form back as
 numbers.  The picture and the meter agree about the same minute,
 which is a good day's proof that both of them work.
+
+## The day the save cycle was measured
+
+2026-08-15.  Henri said *"compiling times are taking their toll"* and
+the roadmap had nothing to say about it.  What follows is the whole of
+that day, and its shape is one sentence: **nothing here was broken, and
+nothing was watching.**
+
+**Twelve seconds.**  `journal.md` records a rebuild at 400 ms when
+stage 7.5 shipped — a real number, taken on `blip.ges`, still about
+right for `blip.ges` today.  The pieces then grew fifteen times and
+nobody measured again.  One save of `examples/audio/quartet.ges` in the
+workbench, with every cache warm:
+
+| phase | cost |
+|---|---|
+| `graph_of` → `pipeline.analyse` | 4.6 s |
+| `graph_of` → assemble and extract | 1.1 s |
+| `_place` → `_find_holes` | 2.4 s |
+| `_load_substrate` | 0.5 s |
+| `_load_from_midi` | 0.3 s |
+| `clang -O2`, when the IR changed | ~3 s |
+| **one save** | **~12 s** |
+
+Every entry below came out of that table, or out of the instrument
+built to keep it.
+
+**Holes nobody wrote — 2.4 s.**  `typecheck.holes_in_source` ran its
+own `_merge_prelude`, `desugar_program` and `infer_program`: no
+analysis cache, no staged path, every prelude re-inferred — and
+`_place` called it on every rebuild whether or not the file contained a
+single `_`.  It asks `pipeline.analysed` now, a door beside `analyse`
+that recalls and **never computes**, for a caller that wants the answer
+only if it is free.  What lets it read a kept analysis is that a hole
+survives elaboration and specialisation *carrying its type*, which
+nothing had relied on before, so `test_pipeline.py` holds it two ways:
+the cached answer equals the cold one, and `_analyse` replaced by
+something that raises leaves the scan passing.  `fits_in_source` and
+`signatures_in_source` had the same defect on the `?`/`Tab` path — 0.86
+s → 0.03 and 0.21 → 0.004 — and the second is why `Analysis` grew a
+`constraints` field: a signature offered without the context inference
+put on it is one that would not compile if you accepted it.
+
+**The seam that was never cut.**  The roadmap said the front end was
+staged — the stack front holding the libraries' parse and inference,
+a rebuild inferring only what the author wrote.  For the files anybody
+works on it was not: `_analyse_staged` returned `None` in thirteen
+microseconds for `quartet.ges`, `noted.ges` and `blip.ges`.  One
+shadowed name turned the whole cache off, and all three assemblers
+spelled the test the same wrong way — `if shadowed is prelude`.  Nine
+of the forty-five examples paid it, over `bar` (four of them),
+`chorus`, the type `Note`, `gain`, `pair`, `envAt`.  **The words a
+piece is made of.**
+
+The question is whether the head still *stands alone*, and renaming
+does not decide it: a library name the program takes over moves on both
+sides at once, binding and references together, so the head goes on
+referring only to names it defines.  A `prelude.ges` name does not —
+the head is left calling `__prelude_envAt__`, which nothing defines
+until `merge` puts the program in front of it.  `prelude.stands_alone`
+asks that.  Eight of the nine are staged now and `blip.ges` refuses for
+a reason it can state; with the fronts warm, `noted.ges` 2.40 s → 1.24,
+`spiral.ges` 2.35 → 1.27, `quartet.ges` 3.36 → 2.65.  The acceptance is
+the staged path's own — same SC names, same types, same case tags —
+now also held against a shadowing program, and `lantern.ges`, which
+shadows `bar` and is therefore newly staged, exports byte-identically
+to before.  That last check is the "two numberings in one program"
+hazard asked on the artifact where it would show.
+
+**`GESTATE_BUILD_TIME`, and being wrong in public.**  The frame side
+has a stopwatch and two lag tools and consequently does not rot; the
+build side had neither, which is exactly how 400 ms became twelve
+seconds with two thousand tests passing.  `gestate/buildtime.py` is the
+table above printed per rebuild — and it was wrong the day it was
+switched on, which is the argument for it.  `substrate` read as the
+largest phase of a start, 7.8 s on `chopin.ges`, and it was not: own
+time comes off a per-thread stack, `pipeline._deep_stack` hands the
+front end to a worker and joins it, so the analysis `_load_substrate`
+was *waiting for* was counted twice — on its own line and inside the
+phase waiting for it.  `lending`/`borrowing` carries the open phases
+across the hand-off, and the same fact fixed `‖`, which was reading a
+hand-off as concurrency.  A stopwatch that has never been wrong is a
+stopwatch nobody has read.
+
+**Then it found the rest by itself**, on one line of output:
+`noted.ges` reported **eight** front ends for one start.
+
+* The eighth re-analysed the text the first had.  `_KEEP_ANALYSED` was
+  four — sized when a file had three assemblies — and score boxes had
+  quietly made it eight, so the cache was evicting the file it was
+  caching.  1.06 s to answer a question already answered.  Eight now,
+  with the arithmetic written down and the cost measured rather than
+  guessed: an `Analysis` of `quartet.ges` is 7.7 MB.
+* Three more were one per `notes` ask: each roll spliced its own
+  `__nb_*` definitions into the author's file and assembled a fresh
+  200,000-character performance.  `scorebox.build_rolls` numbers them
+  into one program, which is the shape `canvas <expr>` asks always had.
+* Three more were one gui program per box.  `page_program` merges those
+  too and `Substrate.several` compiles once, giving a view per entry
+  over one machine — `serialize` crosses only what an entry reaches, so
+  a box's payload stays the box's.
+
+Both merges turn on the same hazard and it is worth naming twice: a
+generated name reached from two asks is **not one definition**.
+`_Descent.rebuild` carries the bank in force at the *reference*, so
+`ground` reached from its own ask and from `score` are two bodies
+wanting one `__nbd_ground__`; a box's hue table is its own roll's
+banks.  Every generated name wears its box, and the acceptance is
+equality — every box of `noted.ges` built together is the box built
+alone, event for event and leaf for leaf, on the file whose asks
+overlap.  A page also refuses per box: one ask that will not compile is
+retried alone rather than blanking the page.
+
+**Where it ended.**
+
+| | before | after |
+|---|---|---|
+| a `quartet.ges` save | 12.0 s | ~3.0 s |
+| a `noted.ges` start | 14.1 s | 4.6 s |
+| front ends per `noted.ges` start | 8 | 3 |
+
+**Measured and rejected: `clang -O1`.**  It looked like a free 1.3 s,
+and the objects are bit-identical to `-O2` — no fast-math flags, so
+LLVM will not reassociate.  It costs render speed instead: `lead.ges`
+30× realtime → 16×, and `quartet` already renders at under 2×.  The
+content-addressed `.so` store is the right answer on that side, and
+the payload it compiles is already only what `sound` reaches: 656 nodes
+and 436 functions of a 232,000-character program, emitted on demand
+from the graph's nodes.
+
+**What is left is in the roadmap**, and it is smaller than it looks:
+about 0.2 s a front end of whole-module work that wants the seam moved
+rather than tuned, and the fact that a file with a canvas is analysed
+twice per save because the sound and the picture are different
+assemblies.  The tuning half is spent — `expr._field_names` was worth
+5%, not the 10% guessed, and it was measured by swapping the cache for
+the old call in one process rather than by comparing two runs.
+
+**The method, stated because it was the whole day**: every fix here was
+found by an instrument, not by reading code — and the instrument was
+found to be lying twice before it was believed.  "It feels slow" is not
+a measurement; neither is a number nobody has checked the arithmetic
+of.
