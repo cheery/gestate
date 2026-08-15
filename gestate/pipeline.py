@@ -343,10 +343,25 @@ class Analysis:
 #: it — the transforms downstream build new lists.  `test/test_pipeline.py`
 #: holds both of those as tests, because the whole cache rests on them.
 #:
-#: Four, because an editor has three assemblies of one file live at once —
-#: the sound's, the score's and the canvas's, which differ in their entry
-#: points — and the fourth slot is what survives a keystroke.
-_KEEP_ANALYSED = 4
+#: Four was right when a file had three assemblies — the sound's, the
+#: score's and the canvas's — and a slot to survive a keystroke.  **Score
+#: boxes made that wrong without anybody noticing**, which is what
+#: `GESTATE_BUILD_TIME` was for: one start of `examples/audio/noted.ges`
+#: ran *eight* front ends, and the eighth re-analysed the very text the
+#: first had — 1.06 s spent on an answer that had been in this dictionary
+#: and was evicted by the file's own boxes.  Three `notes` asks are three
+#: more performance assemblies (each splices its own `__nb_*` definitions
+#: in) and three more gui ones, so one file's live set is
+#:
+#:     1 sound  +  1 canvas  +  2 per `notes` ask  +  1 per `canvas` ask
+#:
+#: Eight holds that file with room, and the cost is measured rather than
+#: guessed: an `Analysis` of `quartet.ges` — the largest assembly in the
+#: tree, 232 k characters — is **7.7 MB**, so this is about 30 MB more
+#: than four at the very worst and less than that for anything typical.
+#: A cache too small is not a smaller cache; it is the same work done
+#: twice, which is the thing being paid for here.
+_KEEP_ANALYSED = 8
 
 _analysed: "OrderedDict[tuple, Analysis]" = OrderedDict()
 _analysed_lock = _threading.Lock()

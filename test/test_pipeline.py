@@ -97,12 +97,37 @@ def test_a_datafun_program_survives_its_own_transform():
 
 
 def test_only_a_few_are_kept():
-    """An editor has three assemblies of one file live at once and a fourth
-    slot for what survives a keystroke — not a session's worth of memory."""
+    """Bounded — not a session's worth of memory."""
     forget_analyses()
     for i in range(_KEEP_ANALYSED + 3):
         analyse(f"main : Int\nmain = {i}\n")
     assert len(_analysed) == _KEEP_ANALYSED
+
+
+def test_one_files_own_assemblies_do_not_evict_each_other():
+    """The number has to be read off a real file, not chosen.
+
+    A `notes` ask compiles two more assemblies of the file — a
+    performance with its own `__nb_*` definitions spliced in, and the
+    gui program that draws the result — so a file with three boxes has
+    eight live at once.  At four, starting `noted.ges` re-analysed the
+    text it had started with: 1.06 s to answer a question already
+    answered, found by `GESTATE_BUILD_TIME` and by nothing else.
+    """
+    from pathlib import Path
+
+    from gestate import scorebox
+    from gestate.audio import has_substrate
+
+    src = (Path(__file__).resolve().parents[1]
+           / "examples" / "audio" / "noted.ges").read_text()
+    live = (1                                   # the sound
+            + 2 * len(scorebox.asks(src))       # a roll, and its picture
+            + (1 if has_substrate(src) else 0))
+    assert live >= 7, "noted.ges stopped being the file this is about"
+    assert _KEEP_ANALYSED >= live, (
+        f"one start of noted.ges builds {live} assemblies and the cache "
+        f"holds {_KEEP_ANALYSED} — it will evict its own")
 
 
 def test_forgetting_is_what_a_measurement_needs():
