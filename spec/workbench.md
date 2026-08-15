@@ -803,6 +803,16 @@ old file's lines), so a replayed command on the far side of the
 switch runs against the right text.  The header keeps naming the file
 the recording *began* on, which is what the replay opens.
 
+**And it can be replayed with the sound on** — `--play`, a flag and
+never the default, because a replay that opened a sound card is a
+replay you cannot run twice.  What it is for is the one thing a
+recording has that nothing else here does: a *stutter* has no other
+reproduction.  The same edits and auditions in the same order, and the
+card's own account at the end — how many blocks it ran dry for and the
+longest a render took (`doc/switches.md`).  `--dry-max` turns that into
+an exit code, so `git bisect run` can decide which commit began a
+crackle without anybody listening to twenty builds.
+
 **The header says which text it began on.**  `#: began <fingerprint>`
 always — the file can move on under its name, and the replay says
 *"the file has moved"* instead of drifting mysteriously (a warning,

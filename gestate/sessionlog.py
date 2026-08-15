@@ -645,6 +645,48 @@ class Typing:
         return getattr(self._under, name)
 
 
+def _begin_sound(bench) -> None:
+    """Start the instrument and wait until it is playing.
+
+    A replay with `--play` is a *reproduction*, so it has to be past
+    the first compile before the first recorded step lands; started and
+    not waited for, every audition in the transcript would arrive at a
+    workbench that had nothing to audition yet.
+    """
+    import time
+
+    bench.start()
+    end = time.time() + 120.0
+    while bench.live is None and time.time() < end:
+        time.sleep(0.05)
+    # Whatever a build owes, it owes before the numbers are read.
+    while getattr(bench, "_builds", None) is not None \
+            and bench._builds.busy and time.time() < end:
+        time.sleep(0.05)
+
+
+def _sound_of(bench):
+    """`(dry blocks, worst render ms, the block's own ms)`, or `None`.
+
+    The card's account of the replay — see `audiohost.Host.dry`.  There
+    is no account without a C host, which is a fact about the machine
+    and is said rather than guessed at.
+    """
+    import time
+
+    end = time.time() + 120.0
+    while getattr(bench, "_builds", None) is not None \
+            and bench._builds.busy and time.time() < end:
+        time.sleep(0.05)
+    time.sleep(0.5)                     # the last handover's own blocks
+    host = getattr(bench, "host", None)
+    if host is None:
+        print("no C host on this machine, so the card kept no account")
+        return None
+    return (host.dry, host.worst_us / 1000.0,
+            bench.block / max(1, bench.rate) * 1000.0)
+
+
 def main(argv=None) -> int:
     """Replay a transcript with no window and report what moved."""
     import argparse
@@ -659,6 +701,12 @@ def main(argv=None) -> int:
                     help="the .ges to replay against, if it has moved")
     ap.add_argument("--rate", type=int, default=8000,
                     help="sample rate for the workbench (default 8000)")
+    ap.add_argument("--play", action="store_true",
+                    help="replay it with the sound on, and say what the "
+                         "card made of it")
+    ap.add_argument("--dry-max", type=int, default=None,
+                    help="with --play: fail if the card ran dry more "
+                         "times than this — a verdict for `git bisect run`")
     args = ap.parse_args(argv)
 
     from .audioeditor import Workbench
@@ -686,8 +734,12 @@ def main(argv=None) -> int:
               f"against (--against names another copy)", file=sys.stderr)
         return 1
 
-    # No `start()`: the commands answer from the model, and a replay
-    # that opened a sound card would be a replay you cannot run twice.
+    # No `start()` by default: the commands answer from the model, and
+    # a replay that opened a sound card would be a replay you cannot
+    # run twice.  **`--play` asks for exactly that**, because a
+    # recorded session is the one reproduction of a *stutter* there is
+    # — the same edits, the same auditions, in the same order — and a
+    # crackle cannot be reproduced without the card that made it.
     bench = Workbench(Path(against), rate=args.rate, block=256)
     # The text as it was when the recording began, so the first `edit`
     # types onto the same thing the recording did.  The carried base
@@ -711,8 +763,22 @@ def main(argv=None) -> int:
                   f"began on — the file has moved; --against can name "
                   f"a copy as it was")
     typing = Typing(start, under=Detached())
-    drifted = replay(Session(bench=bench, view=typing), steps, typing)
+    if args.play:
+        _begin_sound(bench)
+    try:
+        drifted = replay(Session(bench=bench, view=typing), steps, typing)
+        heard = _sound_of(bench) if args.play else None
+    finally:
+        if args.play:
+            bench.stop()
     print(f"{len(steps)} steps replayed against {against}")
+    if heard is not None:
+        dry, worst, beat = heard
+        print(f"[audio] the card ran dry {dry}× · worst block "
+              f"{worst:.1f} ms of {beat:.1f} ms")
+        if args.dry_max is not None and dry > args.dry_max:
+            print(f"more than {args.dry_max} — this build stutters")
+            return 1
 
     # **Two reports, because they are two different pieces of news.**  A
     # `Path` question re-asked on a machine whose directory has gained a

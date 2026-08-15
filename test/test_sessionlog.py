@@ -552,3 +552,42 @@ def test_a_slide_is_one_step_where_the_hand_ended(tmp_path):
                      steps, _typing(tmp_path, ""))
     assert drifted == []
     assert heard == slid, "the replay did not walk the same slides"
+
+
+def test_a_replay_is_silent_unless_it_is_asked_to_play():
+    """**A transcript is the one reproduction of a stutter there is** —
+    the same edits and the same auditions in the same order — and a
+    crackle cannot be reproduced without the card that made it.  So
+    `--play` exists, and it is a *flag*: a replay that opened a sound
+    card by default would be a replay you cannot run twice, which is
+    the property the whole recording rests on.
+
+    What the card made of it comes back as numbers, so a bisect can
+    read a verdict instead of a person listening — `--dry-max 0` fails
+    the run where the card ran dry at all.  No C host, no account, and
+    it says so rather than guessing.
+    """
+    from gestate.sessionlog import _sound_of, main
+
+    class _Bare:
+        host = None
+        block, rate = 256, 44100
+
+    assert _sound_of(_Bare()) is None, "an account of a card that is not there"
+
+    class _Held:
+        block, rate = 256, 44100
+
+        class host:
+            dry = 3
+            worst_us = 41200
+
+    dry, worst, beat = _sound_of(_Held())
+    assert (dry, round(worst, 1)) == (3, 41.2)
+    assert round(beat, 1) == 5.8, "the block's own period, to compare with"
+
+    # And the flag is off unless it is given: the default is the silent
+    # replay this file is otherwise entirely about.
+    import inspect
+    assert "--play" in inspect.getsource(main)
+    assert "action=\"store_true\"" in inspect.getsource(main)
