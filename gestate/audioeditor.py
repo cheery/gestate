@@ -587,6 +587,22 @@ def _timing() -> bool:
     return os.environ.get("GESTATE_BUILD_TIME", "") not in ("", "0")
 
 
+#: How far a rebuild stands out of the machine's way.
+#:
+#: **The sound is the deadline and the rebuild is not.**  Four cores in
+#: a fanless laptop, a front end and `clang` on two of them, and the
+#: pops Henri heard were downstream of everything this program can
+#: measure: the card never ran dry, an engine swapped for its twin
+#: renders bit-identically, and the sound still tore — which leaves the
+#: machine itself, and the server that shares it.
+#:
+#: `nice` is per-thread on Linux, so the build worker asks for this and
+#: `clang` inherits it, while the audio loop keeps the priority it had.
+#: Five rather than nineteen: enough that a busy machine hands the
+#: sound its cores first, not so much that a rebuild starves behind a
+#: browser.
+BUILD_NICE = 5
+
 #: How long a gesture's audition waits for the next one — see
 #: `Workbench._auditions`.
 AUDITION_WAIT = 0.4
@@ -610,8 +626,11 @@ class Newest:
     is the property the hazard was about.
     """
 
-    def __init__(self, name: str, run, trouble=None, after: float = 0.0):
+    def __init__(self, name: str, run, trouble=None, after: float = 0.0,
+                 nice: int = 0):
         self._name, self._run, self._trouble = name, run, trouble
+        #: How much politeness this worker asks for — see `_work`.
+        self._nice = nice
         #: A moment's wait before the work, for the asks that come in
         #: *streams* rather than bursts — see `AUDITION_WAIT`.  Zero for
         #: the ones that should happen at once.
@@ -631,6 +650,17 @@ class Newest:
                          name=self._name).start()
 
     def _work(self) -> None:
+        # **A rebuild is a bad neighbour, and this is the apology.**
+        # `nice` on Linux is per *thread*, so asking here lowers this
+        # worker and everything it spawns — `clang` inherits it — while
+        # the audio loop, which is a C thread of its own, keeps what it
+        # had.  A rebuild that stutters is worse than a rebuild that is
+        # slow, which is the whole trade and is why it is not a switch.
+        if self._nice:
+            try:
+                os.nice(self._nice)
+            except OSError:             # a machine that will not have it
+                pass
         while True:
             if self._after:
                 time.sleep(self._after)
@@ -785,10 +815,12 @@ class Workbench:
         #: worker and the newest ask — see `Newest`.
         self._redraws = Newest(
             "redraw", self._load_substrate,
-            lambda exc: self.say(f"not redrawn: {self._first_line(exc)}"))
+            lambda exc: self.say(f"not redrawn: {self._first_line(exc)}"),
+            nice=BUILD_NICE)
         self._builds = Newest(
             "build", self._build,
-            lambda exc: self.say(f"not applied: {self._first_line(exc)}"))
+            lambda exc: self.say(f"not applied: {self._first_line(exc)}"),
+            nice=BUILD_NICE)
         #: `{channel: (roll, column)}` — what a gesture arriving by
         #: name is *about*.  With the height the hand writes it says
         #: which *note* was meant, which is what both a press and an

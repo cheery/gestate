@@ -2296,3 +2296,43 @@ def test_the_editor_says_when_the_card_ran_dry(tmp_path):
     bench.messages.clear()
     bench._progress(0)
     assert not [m for m in bench.messages if "dry" in m]
+
+
+def test_a_rebuild_stands_out_of_the_machines_way(tmp_path):
+    """**The sound is the deadline and the rebuild is not.**
+
+    Four cores in a fanless laptop, a front end and `clang` on two of
+    them, and the pop Henri heard was downstream of everything this
+    program can measure — the card never ran dry, an engine swapped for
+    its twin renders bit-identically, and the sound still tore.  What
+    is left is the machine, and the audio server sharing it.
+
+    `nice` on Linux is per *thread*, so the worker asks for it and
+    everything it spawns inherits it, while the audio loop keeps the
+    priority it had.  Asserted by reading the worker's own priority
+    back: a claim about a thread nobody can hear is worth as much as
+    the thread's word for it.
+    """
+    import os
+
+    from gestate.audioeditor import BUILD_NICE, Newest
+
+    assert BUILD_NICE > 0, "a rebuild that insists on its share"
+
+    seen = []
+
+    def work(_text):
+        seen.append(os.getpriority(os.PRIO_PROCESS, 0))
+
+    mine = os.getpriority(os.PRIO_PROCESS, 0)
+    worker = Newest("test", work, nice=BUILD_NICE)
+    worker.ask("anything")
+    end = time.time() + 5.0
+    while not seen and time.time() < end:
+        time.sleep(0.01)
+
+    assert seen, "the worker never ran"
+    assert seen[0] == mine + BUILD_NICE, (seen, mine)
+    # And the thread that asked kept what it had, which is the point:
+    # only the rebuild steps aside.
+    assert os.getpriority(os.PRIO_PROCESS, 0) == mine
