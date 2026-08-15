@@ -474,3 +474,46 @@ def test_the_live_twin_listens_and_answers(crust_bin):
     assert want[1], "nothing was asked — the test is empty"
     assert any(bank == "lead" for _on, _off, bank, _p in want[2]), \
         "nothing arpeggiated — the test is empty"
+
+
+# ── The library it loads ────────────────────────────────────────────────────
+
+
+def test_a_library_older_than_its_source_is_rebuilt():
+    """**The trap:** the build ran only when `libcrust.so` was *missing*,
+    so editing `crust/src/lib.rs` changed nothing — the editor, the
+    tests and every score went on running whatever was built the last
+    time somebody deleted it.  Found the way it always is: a fix that
+    had no effect, twice, against a four-day-old binary.
+
+    Checked as a pure question about times, so it needs no cargo and
+    builds nothing.
+    """
+    import time
+
+    from gestate.crust import _outdated
+
+    directory = Path(__file__).resolve().parent.parent / "crust"
+    source = directory / "src" / "lib.rs"
+    library = directory / "target" / "release" / "libcrust.so"
+    assert source.exists(), "the premise: crust has a source"
+
+    class _At:
+        """A path that says what it was asked to say about its time."""
+
+        def __init__(self, when, there=True):
+            self._when, self._there = when, there
+
+        def exists(self):
+            return self._there
+
+        def stat(self):
+            return type("st", (), {"st_mtime": self._when})()
+
+    now = time.time()
+    assert _outdated(_At(now - 10), [_At(now)]), "an edit must rebuild"
+    assert not _outdated(_At(now), [_At(now - 10)]), "and nothing else may"
+    assert _outdated(_At(now, there=False), [_At(now - 10)]), \
+        "a library that is not there is the case this always handled"
+    # A source that has been deleted is not a reason to build.
+    assert not _outdated(_At(now), [_At(now + 10, there=False)])

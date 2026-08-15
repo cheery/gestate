@@ -191,6 +191,36 @@ def _stream_abi(lib):
     lib.crust_stream_answer.restype = ctypes.c_int64
 
 
+def _sources(crate) -> list:
+    """What the library is built from, for the staleness check below.
+
+    Every `.rs` under `src/` and the manifest.  Not `Cargo.lock`: crust
+    has no dependencies to bump, and a check that reads files nobody
+    edits is a check that will one day be wrong about why it fired.
+    """
+    return sorted(crate.glob("src/**/*.rs")) + [crate / "Cargo.toml"]
+
+
+def _outdated(so, sources) -> bool:
+    """Is the built library older than what it was built from?
+
+    **The trap this closes.**  The build used to run only when the
+    `.so` was *missing*, so an edit to `crust/src/lib.rs` changed
+    nothing at all: the editor, the tests and every score went on
+    running a library from whenever somebody last deleted it.  Found on
+    2026-08-15 the way it always is — a fix that had no effect, twice,
+    against a four-day-old binary.
+
+    A stat per source file, so the common case costs microseconds and
+    cargo is spawned only when there is something to do.
+    """
+    if not so.exists():
+        return True
+    built = so.stat().st_mtime
+    return any(path.exists() and path.stat().st_mtime > built
+               for path in sources)
+
+
 def _library():
     """The cdylib, built at need and loaded once per process."""
     global _CRUST_DIR, _LIB
@@ -199,18 +229,29 @@ def _library():
     import ctypes
     import shutil
     import subprocess
+    import sys
     from pathlib import Path
 
     _CRUST_DIR = Path(__file__).resolve().parent.parent / "crust"
     so = _CRUST_DIR / "target" / "release" / "libcrust.so"
-    if not so.exists():
+    if _outdated(so, _sources(_CRUST_DIR)):
         if shutil.which("cargo") is None:
-            raise CrustError(
-                "no libcrust.so and no cargo to build it — "
-                "`cargo build --release` in `crust/` makes one")
-        subprocess.run(["cargo", "build", "--release", "--quiet",
-                        "--target-dir", str(_CRUST_DIR / "target")],
-                       cwd=_CRUST_DIR, check=True)
+            if not so.exists():
+                raise CrustError(
+                    "no libcrust.so and no cargo to build it — "
+                    "`cargo build --release` in `crust/` makes one")
+            # **Said, not silently used.**  A machine with no cargo and
+            # a prebuilt library should still play; a machine running a
+            # library older than its own source should hear about it
+            # once, because the alternative is the afternoon this line
+            # was written in.
+            print(f"gestate: {so.name} is older than crust/src and there "
+                  f"is no cargo to rebuild it — running the old one",
+                  file=sys.stderr)
+        else:
+            subprocess.run(["cargo", "build", "--release", "--quiet",
+                            "--target-dir", str(_CRUST_DIR / "target")],
+                           cwd=_CRUST_DIR, check=True)
     lib = ctypes.CDLL(str(so))
     lib.crust_load.argtypes = [ctypes.c_char_p]
     lib.crust_load.restype = ctypes.c_void_p
