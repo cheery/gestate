@@ -972,6 +972,42 @@ stops ticking per frame while a window walks — that is the point —
 but it does not stop existing, because a machine with no reference is
 a machine whose bugs are definitions.
 
+**And the end of a gesture** — `released`, specified 2026-08-15 for
+`spec/north_star.md`, which is the program that wanted it.  The wire
+carried a press and a motion and *nothing at all* for the release: the
+walker's own words are "a release writes nothing — a fader stays where
+it was let go — so nothing crosses".  That is right for a fader, which
+streams, and fatal for any gesture that must **commit**: a score box's
+drag is one text edit, one undo entry, one rebuild, and it cannot know
+when to make them.
+
+    released <name>              the grab on that channel let go
+
+* **The channel's name and nothing else.**  The value is already
+  known — it arrived as the last `touched` — and sending it again
+  would invite two readings of one number.  A release still writes no
+  channel, so a fader still stays where it was let go; this is the
+  *model* being told, not the program.
+* **Only after a `touched` that crossed.**  A press on nothing crosses
+  nothing, so its release crosses nothing either — the wire keeps not
+  carrying the misses.  An anonymous channel has no name to be
+  released by, exactly as it has none to be touched by.
+* **Once.**  One release per grab, whatever the pointer did on the way,
+  so a model counting them is counting gestures.
+* **Both machines say it.**  `gui.Substrate.touch("release", …)` is
+  the reference's half and must produce the same event, or the parity
+  fixtures are comparing two vocabularies.
+* **In the transcript it is a full stop.**  Consecutive `touched`
+  coalesce to where the slide ended; the `released` after them is what
+  makes the run replayable as a *gesture* rather than as a final
+  position, and it is the point at which a replay may assert the file
+  changed.
+
+**What it is not.**  It is not a channel write, not a value, and not a
+second way to know where the hand is.  A program that wants to react
+to a release reacts to the value it already has; the verb exists so
+the *model* can tell a slide from a decision.
+
 **Seam tests before the window speaks** — the order F101 demands:
 `touched` handled in `session.act` and exercised by tests before any
 Rust sends it (an unknown gesture already answers "no gesture", so an
