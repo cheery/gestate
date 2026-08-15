@@ -572,7 +572,7 @@ I Unwind
 block
 I PushGlobal events
 I PushArg 1
-I PushGlobal 153
+I PushGlobal 158
 I Mkap
 I PushGlobal mapSig
 I Mkap
@@ -1134,7 +1134,7 @@ global gap 2 37
 global 34 2 38
 global __Num_Sig_Int_fromInteger__ 1 39
 global constSig 1 40
-global 153 2 41
+global 158 2 41
 global events 0 42
 global input 0 43
 global label 4 44
