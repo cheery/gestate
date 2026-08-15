@@ -13,8 +13,15 @@ followed them — the dynamic score, the CLAP export, and the G-machine's
 Rust port (`crust`) — is recorded in `journal.md`; §"What is left after
 stage 10" keeps only the part of it that is still undone.
 
-**The most recent work is the workbench**, and it is closed out in
-`journal.md` §"The editor becomes the editor".  `python -m
+**The most recent work is the north star** — a note in a score box
+that a hand can drag, byte-exactly, and hear — closed out in
+`journal.md` §"The evening the picture learned to be dragged", with
+`spec/north_star.md` as the contract it was built from.  It is the
+first gesture in this project that writes text, and §"Content boxes"
+below keeps only what waits behind it.
+
+**Before it was the workbench**, closed out in `journal.md` §"The
+editor becomes the editor".  `python -m
 gestate.workbench` is the only window now: a command list derived from
 `gestate/command.ges`, margin knobs and bank boxes, a piano, the
 substrate drawn by `gestate-panel`'s own painter, and a file dialog.
@@ -317,11 +324,15 @@ their own headings.  What is below is what is *not* done.
 
 ## What to build next
 
-Two, and they are the pair this section has always had: one finishes
-something the workbench made cheap, the other is a new capability Henri
-wants and that most of the parts for already exist.  **The third — the
-save cycle — is closed out and moved to `journal.md`** §"The day the
-save cycle was measured".
+**The star is behind us**, so this section is the pair it had before:
+one thing that finishes something the workbench made cheap, and one
+new capability that most of the parts for already exist.  The save
+cycle is closed out and moved to `journal.md` §"The day the save cycle
+was measured"; what is left *of it* is measured and listed below,
+under the heading it kept.
+
+Read `§"Content boxes"` first if the question is what to do with the
+editor — it now carries the shorter list, tier two at its head.
 
 ### The save cycle — closed out, and what is left of it
 
@@ -349,17 +360,16 @@ What is **not** done, in the order the value falls:
     `Substrate.several` makes on the canvas side: a `GmState` is a
     machine with a heap the caller runs, so what two readers can share
     is the compiled code and the constructor table, not the state.
-  * **The start's concurrency is mostly illusory**, and this is the
-    open question rather than a task.  `stream_root` is 1.31 s warm on
-    an idle machine and reads six inside a start, because the canvas,
-    the score and the `FromMIDI` instances run on a side thread while
-    the main one runs the front end and the extraction — three
-    CPU-bound Python threads taking turns, which is why the build
-    report's phases sum to 14.7 s inside an 8.15 s start with every one
-    marked `‖`.  The side thread wins only across `clang`, which
-    releases the GIL.  Serialising the loaders would make the numbers
-    honest and cost only that overlap; it is a smaller change than
-    anything else here and it is a *decision*, not a fix.
+  * **The start's concurrency was mostly illusory, and the decision
+    is made.**  The loaders run inline; `GESTATE_SIDE_THREAD=1` puts
+    the thread back for a machine that answers differently, and
+    `doc/switches.md` carries the measurements both ways.  Asked again
+    for the *rebuild* on 2026-08-15 and answered no: an apply of
+    `Real_World_One.ges` is 3.15 s, of which `clang` is 1.28 s of
+    subprocess holding no GIL and the loaders that could overlap it
+    come to about half a second — a ceiling of a seventh, bought out
+    of the one stretch in which the audio thread has Python to itself.
+    A rebuild that stutters is worse than a rebuild that is slow.
   * **`_bump_env`'s single-bump callers**, still 0.24 s of a
     `stream_root`.  The standard fix is a reference held as an offset
     from a base depth, so bumping is an integer rather than a
@@ -539,9 +549,10 @@ It read tall and was mostly design: the window already drew from a
 display list with one painter, the model already described furniture
 per row, and `audiospans` already anchored things to declarations.
 There was **one real implementation lump** — rows of varying height —
-and everything after it decisions.  The lump is built and so are the
-first three stages and B4's reading half; what is left below is the
-editing one, and the decisions it still owes.
+and everything after it decisions.  All of it is built now: the
+mechanism, B1 through B3, B4's reading half and, on 2026-08-15, its
+editing half.  What is left below is what waits *behind* that, and it
+is a shorter list than the questions this section used to carry.
 
 ### The mechanism and B1–B3 — closed out, and moved to `journal.md`
 
@@ -568,16 +579,36 @@ the contract, `gestate/scorebox.py` the box's mind, `Notable`
 show it at four bars and at a minute.  The journal entry has the
 story, including the four traps the building found and F136 with it.
 
-### B4 — the editing half, which is the point
+### B4's editing half — closed out, and moved to `journal.md`
 
-The star: a between-lines editor for score content.  The principle is
-already on the wall (`spec/workbench.md`): **a widget is a view over a
-span of source, and dragging it is a text edit** — the knob rewrites
-its declaration byte-exactly, and the score box must keep that same
-faith.  It renders the score expression under it; every gesture on it
-is a rewrite of the span it views; undo stays text undo; the file
-stays the single truth.  A box that kept its own document would be a
-second editor to keep honest, and the answer to it is no.
+The star, built on 2026-08-15: a hand takes hold of a note in a score
+box, carries it, lets go, and **one atom's characters change** — no
+reflow, no reprint, one text undo, and the piece plays a third higher.
+`spec/north_star.md` is the contract, refined against the building
+twice: the hands tile the picture in columns rather than sitting on
+written places (measured — seventeen of chopin's twenty-eight regions
+would have been unpressable), and the drag is relative because a
+column is the whole height of the roll.  `transpose` is in
+`command.ges`, so a drag records in a transcript as a command and
+replays as one; the journal entry has the story, including the note
+that follows the hand through a *reading* rather than a rebuild.
+
+### What waits behind it
+
+- **Tier two** — a gesture that changes the *shape* of the expression:
+  splitting a `++`, inserting a rest, moving a note in time.  Gated on
+  the declaration already being formatter-clean (`fmt(decl) == decl`),
+  which turns "is every musical gesture a span rewrite?" from a
+  question of philosophy into a per-declaration predicate the box can
+  answer before it offers the handle.  `spec/north_star.md` §"What is
+  decided" settles the shape; nothing is built.
+- **Typing a pitch** rather than dragging to it, which is the thing
+  that will force the keyboard question the pointer-only rule has been
+  deferring.
+- **Horizontal movement**, which is tier two wearing a costume.
+- **F138**, filed with its repro: a space in a filler field runs the
+  completion on half the answer, because the window is told what an
+  argument's type is *called* and `Filler` is a `Text` alias.
 
 ### Later, and blocked on the language
 
@@ -586,27 +617,23 @@ collide with the fragment's "no lists at audio rate" rule and are a
 language decision, not an editor one.  Sequence that on its own merits;
 the boxes will be waiting as B2 canvases the day it lands.
 
-### Open, and to be answered before the editing half
+### The questions this section carried, all answered
 
-**Two of the four are answered and gone** (`journal.md` §"The notes
-arc"): what a chancy score shows — the take, labelled with its seed,
-which is the lean this list already had and is now built and lived
-with — and who says how tall, which `spec/workbench.md` decided when
-the row table shipped and this list was never told.  The two left
-belong to *editing*, and the read-only box needed neither: its one
-gesture is a press that moves the caret, and it writes nothing.
+Four were open before the editing half and none is now.  What a chancy
+score shows and who says how tall were answered when the read-only box
+shipped (`journal.md` §"The notes arc").  The other two were answered
+by `spec/north_star.md` before a line was written, which is what that
+document was for:
 
-- **Whether every musical gesture is a span rewrite.**  Dragging a note
-  up a third is a clean rewrite; gestures that change the *shape* of
-  the expression (splitting a `++`, introducing a `draw`) need a rule
-  for what text they produce and how it is formatted — `fmt` exists and
-  is idempotent, which may be the whole answer.
-- **The third focus.**  Text, piano, and now a box may own the
-  keyboard; the click-to-focus rule extends, but the vocabulary rule
-  must too — a box's capabilities appear in `command.ges` or they do
-  not exist.  Worth settling with the transcript in mind: a gesture
-  that desugars to a command *records* as one, which is how nearly
-  every editor defect has actually been pinned.
+- **Whether every musical gesture is a span rewrite** — no, and the
+  tiers say which are.  Tier one replaces one atom's byte range with a
+  literal of the same kind and is what shipped; tier two is gated as
+  above; tier three is refused *by name*, with a sentence.
+- **The third focus** — there is none.  Text and the piano own the
+  keyboard; a box is pointer-only, every gesture is a `touched` a
+  transcript can hold, and the vocabulary rule is satisfied by naming
+  the gesture as a command.  The first gesture that genuinely wants
+  typing is the one that should reopen this.
 
 ---
 
