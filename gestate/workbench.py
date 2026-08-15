@@ -199,6 +199,19 @@ class Window:
         self.editor.order(f"goto\t{int(line)}")
         return True
 
+    def col(self, col: int) -> bool:
+        """Put the caret at a column of the line it is already on.
+
+        **Its own order, not a field on `goto`.**  A jump names a line
+        and says nothing about columns; `complete` has just written
+        into the middle of one and wants the hole it made.  Two
+        motions, two verbs — a trailing optional field would be one
+        verb meaning two things depending on how many words it was
+        given, which is how a wire stops being readable.
+        """
+        self.editor.order(f"col\t{max(0, int(col))}")
+        return True
+
     def zoom(self, by: int) -> bool:
         """Step the ladder, or say it is already at the end of it."""
         at = self.zoom_at + by
@@ -280,6 +293,22 @@ class Window:
         if not text:
             return False
         self.editor.order(f"fill\t{text}")
+        return True
+
+    def ask(self, verb: str, *given: str) -> bool:
+        """Ask this command, with these arguments already given.
+
+        **`fill` answers the question; this one asks it.**  A hole's
+        type is known before the person is asked for it, so `complete`
+        arrives with the type *taken* and the caret in the field after
+        it — and a completion that walks to the next hole asks itself
+        again with the new type, which empties the field, re-ranks the
+        list, and stops the box saying `Int` over a `Float` hole.
+        `spec/workbench.md` §"The list" has the law.
+        """
+        if not verb:
+            return False
+        self.editor.order("\t".join(["ask", verb, *given]))
         return True
 
     def replace(self, text: str) -> bool:

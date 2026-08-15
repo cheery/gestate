@@ -177,3 +177,83 @@ def test_a_file_is_coloured_before_it_is_edited():
         assert "note" in painted[0], "the comment was not coloured"
         ed.request_close()
         assert _wait(lambda: not ed.is_open)
+
+
+@needs_display
+@needs_cargo
+def test_a_caret_order_lands_in_the_text_that_came_with_it():
+    """One frame, and the text arrives before the orders about it.
+
+    `complete` fills a hole and then stands on the next one: it
+    replaces the document through `ged_set_text` and moves the caret
+    through `goto` and `col`, all in the same breath, and the window
+    collects both on its next frame.  Collected the other way round the
+    column is measured against the *old* line — `foo = _` is seven
+    characters, so column 14 clamps back to 7 — and the new text then
+    keeps that wrong place, which put the caret inside `(length` rather
+    than on the hole it had just made.  The order is the model's.
+    """
+    from gestate.editor import Editor
+
+    was = "foo : Int\nfoo = _\n"
+    now = "foo : Int\nfoo = (length _)\n"
+    hole = now.index("_)")            # the hole the completion made
+    line = now[:hole].count("\n") + 1
+    col = hole - (now.rindex("\n", 0, hole) + 1)
+
+    with Editor(was, 500, 300) as ed:
+        assert _wait(lambda: ed.is_open)
+        ed.text = now
+        ed.order(f"goto\t{line}")
+        ed.order(f"col\t{col}")
+        assert _wait(lambda: ed.text == now), "the text never landed"
+        assert _wait(lambda: ed.pos == hole), \
+            f"the caret is at {ed.pos}, not on the hole at {hole}"
+
+
+@needs_display
+@needs_cargo
+def test_the_model_may_ask_a_question_of_its_own():
+    """`ask` — the wire word behind `complete`'s walk, through a real
+    window.
+
+    `Tab` at a hole knows the type before the person does, so the
+    question arrives with that argument taken and the caret in the
+    field after it; and a completion that lands on another hole asks
+    itself again with the *new* type, which is what empties the field.
+    Both are this order, and what comes back is the `wants` that says
+    which argument the box is on now — the same round trip a typed
+    letter makes.
+    """
+    from gestate.editor import Editor
+
+    with Editor("foo : Int\nfoo = _\n", 500, 360) as ed:
+        assert _wait(lambda: ed.is_open)
+        ed.describe("status\tready\n"
+                    "command\tcomplete\tcomplete\tTab\tFill a hole."
+                    "\tText,Filler\n"
+                    "command\tplay\tplay\tSpace\tStart or stop.")
+        time.sleep(0.2)
+        ed.gestures()                       # the description's own traffic
+
+        ed.order("ask\tcomplete\tInt")
+        # Argument **one**, empty field, and the type riding after it:
+        # taken, not stood in the box for somebody to press Return on
+        # — and said back, so a list ranked for `Int` can be ranked
+        # for whatever is typed over it instead.
+        assert _wait(lambda: "wants\tcomplete\t1\t\tInt" in ed.gestures()), \
+            "the window never said which argument it is on"
+
+    # A verb the list never advertised cannot be asked for: the
+    # vocabulary rule, from the model's side of the wire.
+    with Editor("foo : Int\n", 400, 300) as ed:
+        assert _wait(lambda: ed.is_open)
+        ed.describe("status\tready\n"
+                    "command\tplay\tplay\tSpace\tStart or stop.")
+        time.sleep(0.2)
+        ed.gestures()
+        ed.order("ask\ttranspose\t3")
+        time.sleep(0.3)
+        said = ed.gestures()
+        assert not any("transpose" in g for g in said), said
+        assert ed.is_open, "and it did not take the window down with it"

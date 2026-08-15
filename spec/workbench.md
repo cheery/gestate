@@ -590,6 +590,23 @@ second transcript — and the keystrokes after opening a file are aimed
 at the file (F118).  The model says when it is finished, rather than
 the view keeping a table of which commands repeat.
 
+**The model may ask a question of its own** (`ask`), naming the
+command and the arguments it can answer itself.  `fill` puts text *in*
+the question being asked; `ask` says *which* question, and which parts
+of it are already settled.  Two things want it and both are one
+gesture seen twice.  `Tab` at a hole knows the type before the person
+does, so it asks `complete` with that type **taken** — the box reads
+`complete Int <filler>` with the caret in the field, rather than
+standing the type in the field for somebody to press Return on
+something the compiler already said.  And a completion that lands on
+another hole re-asks the same command with the *new* hole's type, so
+the field is empty, the prompt says what is wanted now, and the list
+is ranked for it: filling a run of holes is one gesture repeated, not
+one gesture and then a box to clear by hand.  The verb is looked up in
+the same command table the shortcuts read, so a command the list never
+advertised cannot be asked for — the vocabulary rule holds from this
+direction too.
+
 **A click outside the list closes it, and still lands** (F116).  The
 panel owns the pointer only where it is drawn: a press on a row picks
 it, a press on the padding is the panel's, and a press the panel does
@@ -613,8 +630,12 @@ the equator, the panel goes low and the span's *first* line stands on
 the screen's first row; pasted below, the panel stays high and the
 span's *last* line stands on the screen's last row.  Either way the
 person reads what the command just did, on the half the panel is not.
-Decided at those two moments and never per keystroke, so the panel
-does not dance under a typing hand.  For every other ordered motion,
+A caret the *model* moved — a `goto`, a `col` — asks the same
+question again, because a jump crosses the equator as surely as a
+paste does and a panel that keeps the half it chose against where you
+used to be ends up sitting on the line it just sent you to.  Decided
+at those moments and never per keystroke, so the panel does not dance
+under a typing hand.  For every other ordered motion,
 `follow_past` scrolls the caret past the top panel's `shadow_rows` —
 which answer zero while the panel is low, so the two mechanisms
 cannot fight over one caret.

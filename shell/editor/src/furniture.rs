@@ -412,6 +412,8 @@ pub enum Order {
     Redo,
     /// Put the caret at the start of a line, counting from one.
     Goto(usize),
+    /// The caret to a column of the line it is already on.
+    Col(usize),
     /// Type this, as if it had been typed.
     Insert(String),
     /// This text is what is on disk now — what `apply` says after it
@@ -438,6 +440,20 @@ pub enum Order {
     /// the next query because path arithmetic is its business, here
     /// because the type is.
     Fill(String),
+    /// Ask this command, with these arguments already given.
+    ///
+    /// **`fill` puts text in the question; this says which question.**
+    /// `Tab` at a hole knows the type before the person does, so the
+    /// box opens with the type *taken* and the caret in the field
+    /// after it — filling the type in for somebody to press Return on
+    /// is a keystroke spent agreeing with the compiler.  And a
+    /// completion that lands on another hole re-asks itself with the
+    /// new hole's type, which is what makes a run of holes one gesture
+    /// repeated instead of one gesture and a stale box.
+    ///
+    /// The verb is looked up in the command table the shortcuts read,
+    /// so a command the list never advertised cannot be asked for.
+    Ask(String, Vec<String>),
     /// Look at the canvas, or at the source.
     Show(String),
     /// Copy the selection, cut it, or paste over it — the same acts
@@ -469,11 +485,23 @@ impl Order {
             "undo" => Some(Order::Undo),
             "redo" => Some(Order::Redo),
             "goto" => Some(Order::Goto(arg(1).parse().ok()?)),
+            // **Its own word, not a field on `goto`.**  A jump names a
+            // line and says nothing about columns; a completion has
+            // just written into the middle of one and wants the hole
+            // it made.  Two motions, two verbs — an optional trailing
+            // field would have been a verb that means two things
+            // depending on how many words it was given.
+            "col" => Some(Order::Col(arg(1).parse().ok()?)),
             // **Not trimmed and not rejected when empty**: what is being
             // inserted is somebody's text, and deciding it is not worth
             // inserting is not this layer's decision to make.
             "insert" => Some(Order::Insert(arg(1).into())),
             "fill" => Some(Order::Fill(arg(1).into())),
+            // Everything after the verb is an argument, so a command
+            // taking none is `ask\tfmtAll` and reads as itself.
+            "ask" => Some(Order::Ask(
+                arg(1).into(),
+                p.iter().skip(2).map(|s| (*s).to_string()).collect())),
             "close" => Some(Order::Close),
             "saved" => Some(Order::Saved),
             "show" => Some(Order::Show(arg(1).into())),
@@ -496,12 +524,17 @@ pub enum Gesture {
     /// A command was chosen, with the arguments it asked for.
     Command(String, Vec<String>),
     /// The window is asking what a command's `at`th argument could be,
-    /// and showing this much of a query.
+    /// showing this much of a query, and holding these arguments
+    /// already.
     ///
     /// **The types let the view ask, and the model answers** — which of
     /// several names a query means is a decision, and it has the same
-    /// one home the command ranking does.
-    Wants(String, usize, String),
+    /// one home the command ranking does.  The arguments already given
+    /// travel with the question because ranking one can depend on
+    /// them: `complete Int <filler>` lists what fits an `Int`, and a
+    /// type typed over that one has to be able to change the list, or
+    /// the field is a box that does nothing.
+    Wants(String, usize, String, Vec<String>),
     /// Done asking; nothing is being offered now.
     Asked,
     /// The palette is showing this query and wants the entries for it.
@@ -580,7 +613,20 @@ impl Gesture {
                 }
                 line
             }
-            Gesture::Wants(n, at, q) => format!("wants\t{n}\t{at}\t{q}"),
+            // The arguments already given ride after the query, so a
+            // model ranking the *next* one can see what the earlier
+            // ones were — `complete`'s type narrows its filler list,
+            // and without this the box could be told a type it had no
+            // way to act on.  Appended, so a reader of the first four
+            // fields is unaffected.
+            Gesture::Wants(n, at, q, got) => {
+                let mut out = format!("wants\t{n}\t{at}\t{q}");
+                for g in got {
+                    out.push('\t');
+                    out.push_str(g);
+                }
+                out
+            }
             Gesture::Asked => "asked".to_string(),
             Gesture::Filter(q) => format!("filter\t{q}"),
             Gesture::Turn(n, v) => format!("turn\t{n}\t{v}"),
@@ -619,10 +665,17 @@ mod order_tests {
         assert_eq!(Order::read("zoom\t-1"), Some(Order::Zoom(-1)));
         assert_eq!(Order::read("undo"), Some(Order::Undo));
         assert_eq!(Order::read("goto\t42"), Some(Order::Goto(42)));
+        assert_eq!(Order::read("col\t7"), Some(Order::Col(7)));
         assert_eq!(Order::read("insert\tC4"),
                    Some(Order::Insert("C4".into())));
         assert_eq!(Order::read("warn\tunsaved changes"),
                    Some(Order::Warn("unsaved changes".into())));
+        // Everything after the verb is an argument already given.
+        assert_eq!(Order::read("ask\tcomplete\tSig Float"),
+                   Some(Order::Ask("complete".into(),
+                                   vec!["Sig Float".into()])));
+        assert_eq!(Order::read("ask\tfind"),
+                   Some(Order::Ask("find".into(), Vec::new())));
     }
 
     /// An order this build does not know is skipped, not refused — the

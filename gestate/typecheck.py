@@ -726,7 +726,7 @@ def _fits(text: str, program, results, builtins, args) -> int:
         return 0
 
     out = [f"what fits {show_type(wanted)}:"]
-    for depth, name, type_ in matches:
+    for depth, name, type_, _args in matches:
         out.append(f"  {name} : {type_}{needed(depth)}")
     _out("\n".join(out), args)
     return 0
@@ -762,12 +762,26 @@ def fits_in_source(text: str, source: str, *, rate: int = 22050,
     both — elaboration adds supercombinators but changes no inferred
     type, which is why what fits is the same either way.
     """
+    matches, shown = _fits_matches(text, source, rate=rate, audio=audio)
+    return [f"{name} : {type_}{needed(depth)}"
+            for depth, name, type_, _args in matches], shown
+
+
+def _fits_matches(text: str, source: str, *, rate: int = 22050,
+                  audio: bool = True) -> tuple:
+    """`([(depth, name, type)], the type as shown)` — the answer itself.
+
+    One body for `fits_in_source`'s sentences and `fillers_in_source`'s
+    rows, because a completion needs the *arity* the sentence throws
+    away and two bodies would disagree about what is in scope.
+    """
     from .audio import assemble
     from .audioperform import has_score
     from .audioscore import assemble_performance
     from .pipeline import analysed
     from .show import show_type
 
+    authored = source
     if audio:
         try:
             source = (assemble_performance(source, "", rate)
@@ -794,9 +808,60 @@ def fits_in_source(text: str, source: str, *, rate: int = 22050,
                 KindError, InferError, UnifyError, ConstraintError) as exc:
             raise FitsError(str(exc)) from exc
 
-    matches = fits_in_scope(wanted, program, results, builtins)
-    return [f"{name} : {type_}{needed(depth)}"
-            for depth, name, type_ in matches], show_type(wanted)
+    matches = _offerable(fits_in_scope(wanted, program, results, builtins),
+                         authored)
+    return matches, show_type(wanted)
+
+
+def fillers_in_source(wanted: str, source: str, *, rate: int = 22050,
+                      audio: bool = True) -> list:
+    """`(depth, name, type)` per thing that fits — `fits_in_source`'s
+    answer before it is turned into sentences.
+
+    The **arity** is what a completion needs and a sentence has thrown
+    away: picking `sum : t Int -> Int` at a hole should leave
+    `(sum _)`, and knowing to write one hole rather than none is
+    `depth` (`spec/north_star.md`'s neighbour — a gesture that writes
+    text, from the other end).
+    """
+    return _fits_matches(wanted, source, rate=rate, audio=audio)[0]
+
+
+def hidden_names(source: str) -> frozenset:
+    """Every name in scope that this program is forbidden to write.
+
+    A library's internals: `enforce` refuses a file that names one, so
+    they are in scope and are not offerable — and are not *writable*
+    either, which is why a completion asks this before it puts a typed
+    name into a hole.
+    """
+    from .internals import libraries_in_scope, private_names
+
+    try:
+        out: set = set()
+        for library in libraries_in_scope(source):
+            out |= set(private_names(library))
+        return frozenset(out)
+    except Exception:                                   # noqa: BLE001
+        return frozenset()
+
+
+def _offerable(matches, authored: str) -> list:
+    """The matches a program may actually *name*.
+
+    **A library's internals are in scope and are not offerable.**
+    `internals.enforce` refuses a program that names one — "`mapSig` is
+    internal to `signal.ges` and cannot be named from here" — so
+    offering it is offering a compile error.  Measured on `blip.ges`:
+    eight of the sixty-eight things `fits Sig Float` listed were names
+    the file is forbidden to write, `mapSig` and `zipSig` among them.
+
+    Filtered here rather than in `fits_in_scope`, because the question
+    needs the *authored* text — which libraries are in scope is a fact
+    about the program, not about the assembly it was checked in.
+    """
+    hidden = hidden_names(authored)
+    return [m for m in matches if m[1] not in hidden]
 
 
 def holes_in_source(source: str, *, rate: int = 22050,
@@ -1006,11 +1071,11 @@ def fits_in_scope(wanted, program, results, builtins) -> list:
     for name, type_ in results.items():
         known[str(name)] = type_
 
-    matches: list[tuple[int, str, str]] = []
+    matches: list[tuple] = []
     for name, type_ in known.items():
         if name.startswith("__") or not isinstance(type_, object):
             continue
-        rest, depth = type_, 0
+        rest, depth, taken = type_, 0, []
         while depth <= 4:
             # **A bare variable is not an answer.**  `id : a -> a`,
             # `const : a -> b -> a` and `(@)` unify with everything,
@@ -1020,10 +1085,19 @@ def fits_in_scope(wanted, program, results, builtins) -> list:
             # arrows together: if the candidate ends in a variable there,
             # it fits by being unconstrained rather than by being right.
             if _shaped_like(rest, wanted) and _unifies(rest, wanted):
-                matches.append((depth, name, show_type(type_)))
+                # **The argument types travel with it.**  A completion
+                # writes a hole per argument and each of those holes has
+                # a type — `sine : Float -> Sig Float` picked at a
+                # `Sig Float` leaves a hole that wants a `Float`.  Peeled
+                # here, where the arrows are already being counted;
+                # peeling the *rendered* string later would be a second
+                # parser for types, and a worse one.
+                matches.append((depth, name, show_type(type_),
+                                tuple(taken)))
                 break
             if not isinstance(rest, TFun):
                 break
+            taken.append(show_type(rest.arg))
             rest, depth = rest.ret, depth + 1
     return sorted(matches, key=lambda m: (m[0], m[1]))
 

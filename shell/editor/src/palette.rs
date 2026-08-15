@@ -124,6 +124,38 @@ impl Asking {
         self.types.get(self.got.len()).map(String::as_str).unwrap_or("")
     }
 
+    /// The prompt in two halves: what stands *before* what is being
+    /// typed, and the placeholders that still come after it.
+    ///
+    /// **What you type stands where it will go.**  `prompt` shows a
+    /// placeholder for every argument not yet taken, including the one
+    /// under the hand — so drawing the query after the whole prompt
+    /// reads `complete <text> <filler> Int`, three fields for a
+    /// command that takes two, and the thing you typed at the end of
+    /// them.  Split here instead: the query fills its own slot, the
+    /// rest of the placeholders follow it, and the caret sits between
+    /// the two where it belongs.  An empty slot keeps its placeholder,
+    /// because a bare caret does not say what is wanted.
+    pub fn around(&self, query: &str) -> (String, String) {
+        let mut head = self.verb.clone();
+        for got in &self.got {
+            head.push(' ');
+            head.push_str(got);
+        }
+        head.push(' ');
+        // The slot under the hand keeps its placeholder only while
+        // nothing has been typed into it.
+        let from = self.got.len() + usize::from(!query.is_empty());
+        let mut tail = String::new();
+        for t in self.types.iter().skip(from) {
+            if !(tail.is_empty() && query.is_empty()) {
+                tail.push(' ');
+            }
+            tail.push_str(&format!("<{}>", t.to_lowercase()));
+        }
+        (head, tail)
+    }
+
     /// `find <text>` with the part being typed marked.
     pub fn prompt(&self) -> String {
         let mut out = self.verb.clone();
@@ -380,6 +412,36 @@ impl Palette {
         self.choices.clear();
         self.at = 0;
         Asks::Wants(e.name.clone(), 0, String::new())
+    }
+
+    /// Ask this command with these arguments already given.
+    ///
+    /// **The model's own question** (`spec/workbench.md` §"The list").
+    /// `fill` puts text in the question being asked; this says which
+    /// question, and which of its parts are already answered — so a
+    /// hole's type arrives *taken*, with the caret in the field after
+    /// it, and a completion that walks to the next hole re-asks itself
+    /// with the new type instead of leaving the old call standing.
+    ///
+    /// More arguments than the command takes is a model that has
+    /// learned a shape this build has not; the extras are dropped
+    /// rather than obeyed, for the reason an unknown order is skipped.
+    /// Given *all* of them, the call is not run — running is Return's,
+    /// and a question that answered itself would be a command nobody
+    /// pressed.
+    pub fn ask(&mut self, e: &Entry, args: Vec<String>) -> Asks {
+        let mut got = args;
+        got.truncate(e.args.len());
+        let at = got.len();
+        self.open = true;
+        self.asking = Some(Asking { verb: e.name.clone(),
+                                    types: e.args.clone(),
+                                    reverse: e.reverse.clone(),
+                                    got, done: false });
+        self.query.clear();
+        self.choices.clear();
+        self.at = 0;
+        Asks::Wants(e.name.clone(), at, String::new())
     }
 
     /// Take what is typed or picked as the next argument.
@@ -694,6 +756,22 @@ impl Palette {
         (cw, y, box_w, box_h)
     }
 
+    /// Put the panel on the half of the window the caret is *not* on,
+    /// and say whether it had to move.  F121, and the rule is Henri's.
+    ///
+    /// **The panel moves so the text does not have to.**  Asked when
+    /// the list opens, and again whenever the model moves the caret
+    /// itself — a `goto` crosses the equator as surely as a paste
+    /// does, and a panel that picked its half against where you used
+    /// to be ends up sitting on the line it just sent you to.  Not
+    /// asked per keystroke: the panel must not dance under a hand that
+    /// is typing a query.
+    /// Answers where it put itself: `true` for the lower half.
+    pub fn place(&mut self, row: usize, top: usize, rows: usize) -> bool {
+        self.low = row < top + rows / 2;
+        self.low
+    }
+
     /// How many text rows the panel covers from the window's top —
     /// zero when it is closed, and zero when it sits low.  What
     /// `follow_past` scrolls past, so an ordered edit lands where a
@@ -918,9 +996,9 @@ impl Palette {
         // one**, with what has already been given standing where its
         // placeholder was: `loop 4 <int>` is a better question than a
         // bare caret, and it is the same words the list showed.
-        let lead = match &self.asking {
-            None => "> ".to_string(),
-            Some(a) => format!("{} ", a.prompt()),
+        let (lead, rest) = match &self.asking {
+            None => ("> ".to_string(), String::new()),
+            Some(a) => a.around(&self.query),
         };
         let caret_x = x + 4
             + (lead.chars().count() + self.query.chars().count()) as i32
@@ -930,6 +1008,11 @@ impl Palette {
                                  c: INK });
         f.items.push(Item::Rect {
             x: caret_x, y: y + 4, w: 2.max(cw / 5), h: ch, c: INK });
+        // What is still wanted, in the ink of a thing not yet said.
+        if !rest.is_empty() {
+            f.items.push(Item::Run { x: caret_x, y: y + 4,
+                                     s: rest, c: FAINT });
+        }
         // **The warning, beside the caret that is active.**  While the
         // list is up the hand is here, not in the text — so a refusal
         // said beside the document's caret is a refusal said to an
@@ -1406,6 +1489,94 @@ mod asking_tests {
         assert!(p.is_open());
         assert!(p.asking().is_some_and(|a| a.done));
         assert_eq!(p.asking().unwrap().prompt(), "loop 4 8");
+    }
+
+    /// **What is typed stands in the slot it fills.**  The prompt used
+    /// to be drawn whole and the query after it, so a first argument
+    /// being typed read `loop <int> <int> 4` — every placeholder still
+    /// there, and the answer stranded past them.
+    #[test]
+    fn what_is_typed_stands_where_it_will_go() {
+        let mut p = listed();
+        pick(&mut p, 1);
+
+        // Nothing typed: the slot under the hand keeps its placeholder,
+        // and the caret sits at the front of it.
+        let a = p.asking().unwrap().clone();
+        assert_eq!(a.around(""), ("loop ".into(), "<int> <int>".into()));
+
+        // Typed: it fills that slot, and only the rest still waits.
+        assert_eq!(a.around("4"), ("loop ".into(), " <int>".into()));
+
+        // Taken, and the next one is the one in hand.
+        p.key(Key::Char('4'));
+        p.key(Key::Enter);
+        let a = p.asking().unwrap().clone();
+        assert_eq!(a.around(""), ("loop 4 ".into(), "<int>".into()));
+        assert_eq!(a.around("8"), ("loop 4 ".into(), "".into()));
+
+        // Nothing left to want: no placeholders, however it is asked.
+        p.key(Key::Char('8'));
+        p.key(Key::Enter);
+        let a = p.asking().unwrap().clone();
+        assert_eq!(a.around(""), ("loop 4 8 ".into(), "".into()));
+    }
+
+    /// **The model may ask its own question**, with the parts it can
+    /// answer itself already answered.
+    #[test]
+    fn a_question_the_model_asked_arrives_part_answered() {
+        let mut p = listed();
+        let loop_ = p.entries()[1].clone();
+        assert_eq!(loop_.args, vec!["Int".to_string(), "Int".into()]);
+
+        // One of two given: the box is asking for the *second*, with
+        // the first standing in the prompt where it will go.
+        assert_eq!(p.ask(&loop_, vec!["4".into()]),
+                   Asks::Wants("loop".into(), 1, "".into()));
+        assert!(p.is_open());
+        let a = p.asking().unwrap().clone();
+        assert_eq!(a.around(""), ("loop 4 ".into(), "<int>".into()));
+        assert!(!a.done, "asked is not run");
+
+        // Asked again with a different first argument, the box holds
+        // the new one and nothing of the old — which is what makes a
+        // walk from hole to hole one gesture repeated.
+        p.key(Key::Char('9'));
+        assert_eq!(p.ask(&loop_, vec!["7".into()]),
+                   Asks::Wants("loop".into(), 1, "".into()));
+        let a = p.asking().unwrap().clone();
+        assert_eq!(a.around(""), ("loop 7 ".into(), "<int>".into()),
+                   "the field kept what was typed into the last question");
+
+        // Given everything, it is still a question: running is Return's.
+        assert_eq!(p.ask(&loop_, vec!["1".into(), "2".into()]),
+                   Asks::Wants("loop".into(), 2, "".into()));
+        assert!(!p.asking().unwrap().done);
+        // And a model that has learned a longer shape than this build
+        // knows has its extras dropped rather than obeyed.
+        p.ask(&loop_, vec!["1".into(), "2".into(), "3".into()]);
+        assert_eq!(p.asking().unwrap().got.len(), 2);
+    }
+
+    /// **The panel takes the half the caret is not on** — and takes it
+    /// again when the caret moves, not only when the list opens.
+    #[test]
+    fn the_panel_sits_opposite_the_caret() {
+        let mut p = listed();
+        // Twenty rows on screen, so the tenth is the equator.  A caret
+        // above it sends the panel low; one below keeps it high.
+        assert!(p.place(3, 0, 20), "a caret up top sends the panel down");
+        assert!(p.low);
+        assert!(p.place(9, 0, 20), "still above, and it stays down");
+
+        assert!(!p.place(14, 0, 20), "below the equator, so the panel is up");
+        assert!(!p.low);
+
+        // The equator is the *screen's*, not the file's: the same row
+        // is above or below it depending on where the view is scrolled.
+        assert!(p.place(14, 8, 20), "scrolled down, row 14 is high again");
+        assert!(p.low);
     }
 
     /// A name is *picked*, which is the point of offering names at all.

@@ -591,6 +591,13 @@ impl EditorWindow {
             .cloned()
     }
 
+    /// The arguments the box is already holding — what rides with a
+    /// `wants`, so the model can rank one argument against another.
+    fn given(&self) -> Vec<String> {
+        self.palette.borrow().asking()
+            .map(|a| a.got.clone()).unwrap_or_default()
+    }
+
     /// Say out loud what the list just asked for.
     ///
     /// **One place**, because three things reach it now — a key, a
@@ -620,7 +627,8 @@ impl EditorWindow {
             // A command that takes something turns the list into a
             // question about its first argument.
             Asks::Wants(name, at, q) => {
-                self.host.gesture(Gesture::Wants(name, at, q).line())
+                self.host.gesture(
+                    Gesture::Wants(name, at, q, self.given()).line())
             }
             Asks::Closed => {
                 self.host.gesture("shut".to_string());
@@ -993,11 +1001,51 @@ impl EditorWindow {
         Some(Gesture::Turn(name, value).line())
     }
 
+    /// Take the text the model sent, if it sent any.
+    ///
+    /// Its own step so that it can happen *before* the orders — see
+    /// the call site.  Everything else about it is unchanged.
+    fn take_text(&self) {
+        let Some((text, fresh, written)) = self.host.incoming() else {
+            return;
+        };
+        let doc = {
+            let mut doc = self.doc.borrow_mut();
+            if fresh {
+                // A file switch: the histories go with the text —
+                // undo must not resurrect the old file under the
+                // new file's name (fixme.md F113).  A warning still
+                // up was about the *old* document, and dies with it.
+                doc.load_written(&text, written);
+                *self.warned.borrow_mut() = None;
+            } else {
+                doc.set_text(&text);
+            }
+            let mut v = self.view.borrow_mut();
+            v.clamp(&doc, self.font());
+            v.follow(&doc, self.font());
+            self.dirty.set(true);
+            doc.clone()
+        };
+        // **And say so.**  The window is the authority on what the
+        // document holds, so a load is an edit like any other —
+        // without this the host's own copy stays at whatever it was
+        // before, and `ged_text` hands back the text the *caller*
+        // replaced.  Circular-looking (the host is told what it
+        // asked for) and correct: anything else would make the two
+        // sides disagree the moment a load is clamped, rejected, or
+        // arrives while something else is happening.
+        self.host.edited(&doc);
+    }
+
     /// One thing the model asked for.
     fn obey(&self, order: Order) {
         // An ordered insert's span — `(first row, last row)` of what it
         // put in — for the placement rule below.
         let mut span: Option<(usize, usize)> = None;
+        // Whether this order moved the caret without writing anything
+        // — a jump, which the placement rule below answers to.
+        let mut jumped = false;
         let did = match order {
             Order::Zoom(0) => {
                 let home = crate::font::LADDER_DEFAULT as i32;
@@ -1010,7 +1058,18 @@ impl EditorWindow {
             }
             Order::Undo => self.rework(true),
             Order::Redo => self.rework(false),
+            Order::Col(col) => {
+                jumped = true;
+                let mut doc = self.doc.borrow_mut();
+                let mut view = self.view.borrow_mut();
+                let (row, _) = doc.cursor();
+                doc.clear_anchor();
+                doc.seek_rowcol(row, col);
+                view.reveal(&doc, self.font());
+                Did { drew: true, edited: false }
+            }
             Order::Goto(line) => {
+                jumped = true;
                 let mut doc = self.doc.borrow_mut();
                 let mut view = self.view.borrow_mut();
                 doc.clear_anchor();
@@ -1053,7 +1112,22 @@ impl EditorWindow {
                     // Say it back, so the model's choices are about what
                     // the box now holds — the same round trip a typed
                     // letter makes, which is what keeps one path.
-                    self.host.gesture(Gesture::Wants(name, at, q).line());
+                    self.host.gesture(
+                    Gesture::Wants(name, at, q, self.given()).line());
+                    self.dirty.set(true);
+                }
+                Did::nothing()
+            }
+            Order::Ask(verb, args) => {
+                // **Looked up in the table the shortcuts read**, so a
+                // command the list never advertised cannot be asked
+                // for — the vocabulary rule, from the model's side.
+                let found = self.chrome.borrow().commands.iter()
+                    .find(|e| e.name == verb).cloned();
+                if let Some(e) = found {
+                    let asks = self.palette.borrow_mut().ask(&e, args);
+                    self.to_the_list();
+                    self.speak(asks);
                     self.dirty.set(true);
                 }
                 Did::nothing()
@@ -1109,13 +1183,8 @@ impl EditorWindow {
             v.clamp(&doc, font);
             match span {
                 Some((start, end)) if list_open => {
-                    let above = start < v.top + v.rows(font) / 2;
-                    {
-                        let mut p = self.palette.borrow_mut();
-                        if p.low != above {
-                            p.low = above;
-                        }
-                    }
+                    let above = self.palette.borrow_mut()
+                        .place(start, v.top, v.rows(font));
                     if above {
                         v.top = start;
                     } else {
@@ -1124,6 +1193,21 @@ impl EditorWindow {
                     v.clamp(&doc, font);
                 }
                 _ => {
+                    // **A jump moves the panel, the same way an insert
+                    // does** — F121's rule is about the caret and the
+                    // equator, and `goto` crosses the equator as
+                    // surely as a paste does.  Decided at the opening
+                    // and never per keystroke (see the frame), but a
+                    // caret the *model* moved is not a keystroke: the
+                    // panel had picked its half against where you used
+                    // to be, and staying there is how it ends up
+                    // sitting on the line it just sent you to.  The
+                    // panel moves so the text does not have to.
+                    if jumped && list_open {
+                        let (row, _) = doc.cursor();
+                        self.palette.borrow_mut()
+                            .place(row, v.top, v.rows(font));
+                    }
                     let clear = {
                         let p = self.palette.borrow();
                         p.shadow_rows(v.w, v.h, v.cw(font), v.ch(font))
@@ -1397,30 +1481,36 @@ impl WindowHandler for EditorWindow {
         // heal it.  The `told` guard makes this free when nothing
         // moved, and it means no drift can outlive one frame.
         self.tell();
+        // **The text the model sent lands before the orders that talk
+        // about it.**  A command that rewrites the document and then
+        // moves the caret into what it wrote — `complete` filling a
+        // hole and standing on the next one — sends the text through
+        // `ged_set_text` and the caret through an order, and this
+        // frame is where both arrive.  Read the other way round the
+        // caret is placed in the *old* document: a column past the end
+        // of the line it used to be clamps back to the end of it, and
+        // the new text then keeps that wrong place.  The model's own
+        // order is: text first.
+        self.take_text();
         for line in self.host.orders() {
             if let Some(order) = Order::read(&line) {
                 self.obey(order);
             }
         }
-        // **The equator decides the panel, when the list opens.**  A
-        // caret in the window's upper half sends the panel low, and
-        // one in the lower half keeps it high — the panel moves so the
-        // text does not have to (F121; the rule is Henri's).  Decided
-        // at the *opening* and at an ordered insert (see `obey`),
-        // never per keystroke, so the panel does not dance under a
-        // hand that is typing a query.
+        // **The equator decides the panel, when the list opens** —
+        // `Palette::place` holds the rule, and `obey` asks it again for
+        // an ordered insert or a jump.
         {
             let open = self.palette.borrow().is_open();
             if open && !self.was_open.get() {
-                let want = {
+                let (row, top, rows) = {
                     let doc = self.doc.borrow();
                     let v = self.view.borrow();
                     let (row, _) = doc.cursor();
-                    row < v.top + v.rows(self.font()) / 2
+                    (row, v.top, v.rows(self.font()))
                 };
-                let mut p = self.palette.borrow_mut();
-                if p.low != want {
-                    p.low = want;
+                let was = self.palette.borrow().low;
+                if self.palette.borrow_mut().place(row, top, rows) != was {
                     self.dirty.set(true);
                 }
             }
@@ -1468,35 +1558,6 @@ impl WindowHandler for EditorWindow {
                 v.plus_hidden = hide;
                 self.dirty.set(true);
             }
-        }
-        if let Some((text, fresh, written)) = self.host.incoming() {
-            let doc = {
-                let mut doc = self.doc.borrow_mut();
-                if fresh {
-                    // A file switch: the histories go with the text —
-                    // undo must not resurrect the old file under the
-                    // new file's name (fixme.md F113).  A warning still
-                    // up was about the *old* document, and dies with it.
-                    doc.load_written(&text, written);
-                    *self.warned.borrow_mut() = None;
-                } else {
-                    doc.set_text(&text);
-                }
-                let mut v = self.view.borrow_mut();
-                v.clamp(&doc, self.font());
-                v.follow(&doc, self.font());
-                self.dirty.set(true);
-                doc.clone()
-            };
-            // **And say so.**  The window is the authority on what the
-            // document holds, so a load is an edit like any other —
-            // without this the host's own copy stays at whatever it was
-            // before, and `ged_text` hands back the text the *caller*
-            // replaced.  Circular-looking (the host is told what it
-            // asked for) and correct: anything else would make the two
-            // sides disagree the moment a load is clamped, rejected, or
-            // arrives while something else is happening.
-            self.host.edited(&doc);
         }
         let timing = self.clock.borrow().on;
         if timing {
@@ -1789,7 +1850,8 @@ impl WindowHandler for EditorWindow {
                             Asks::Wants(name, at, q) => {
                                 self.dirty.set(true);
                                 self.host.gesture(
-                                    Gesture::Wants(name, at, q).line());
+                                    Gesture::Wants(name, at, q,
+                                                   self.given()).line());
                             }
                             _ => {}
                         }

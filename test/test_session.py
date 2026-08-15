@@ -340,7 +340,7 @@ def test_the_session_imports_no_toolkit():
         assert toolkit not in source, f"session.py reaches for {toolkit}"
 
 
-def test_every_command_can_be_run_headless_without_raising():
+def test_every_command_can_be_run_headless_without_raising(tmp_path):
     """The whole list, once each, with the arguments its types ask for.
 
     A command that could only be reached through a window would be one
@@ -351,8 +351,12 @@ def test_every_command_can_be_run_headless_without_raising():
     sample = {"Int": 1, "Float": 0.5, "Text": "sine",
               "Named": "cutoff", "a": 0.5,
               # A name that is certainly not there, so `open` and
-              # `steal` answer without touching the disk.
-              "Path": "no-such-file.ges",
+              # `steal` answer without touching the disk.  **Under
+              # `tmp_path`**, because the commands that *write* are in
+              # this sweep too: `transcript` wrote its recording to
+              # this name for real, and a pathless bench put it in the
+              # home directory, where Henri kept finding it.
+              "Path": str(tmp_path / "no-such-file.ges"),
               # A real one, so `template` gets as far as the view and
               # answers that a detached session has nowhere to put it —
               # which is the refusal this sweep exists to hear.
@@ -364,7 +368,13 @@ def test_every_command_can_be_run_headless_without_raising():
               # answers about the name rather than opening anything.
               "Device": "no-such-controller",
               # A letter that reaches the first cell of the symbol table.
-              "Symbol": "a"}
+              "Symbol": "a",
+              # A name that fits nothing here, so `complete` answers
+              # about the cursor rather than writing into a document a
+              # detached session does not have.
+              "Filler": "sine",
+              # The type that would have been taken at a hole.
+              "Wanted": "Sig Float"}
     for verb in vocabulary():
         args = tuple(sample[a] for a in verb.args)
         said = s.run(verb.name, *args)
@@ -1837,7 +1847,7 @@ def test_every_shortcut_takes_control_except_tab():
     """
     bare = {name: key for name, key in KEYS.items()
             if not key.startswith("Ctrl-")}
-    assert bare == {"fits": "Tab"}, \
+    assert bare == {"complete": "Tab"}, \
         f"these could not work in a text editor: {bare}"
 
 
@@ -1855,7 +1865,7 @@ def test_a_shortcut_reaches_the_window_as_the_list_spells_it():
     # it up in the same table — a bare key that the list spelled
     # differently would be the eleven-advertised-two-implemented defect
     # with one entry instead of nine.
-    assert advertised["fits"] == "Tab"
+    assert advertised["complete"] == "Tab"
 
 
 class _Showing:
@@ -2301,6 +2311,545 @@ def test_a_slide_coalesces_but_its_release_does_not():
                           ("released", ("pitchChan",))], steps
     assert sum(1 for v, _ in steps if v == "touched") == 1, \
         "the ride should have coalesced to where it ended"
+
+
+class _Holed:
+    """A view over a program with a hole in it, and a caret on the hole."""
+
+    def __init__(self, text: str, at: int):
+        self._text, self._at = text, at
+        self.showing = "source"
+        self.went = None
+        #: The questions the model asked of its own accord, in order.
+        self.asked = []
+        self.shut = 0
+
+    def text(self):
+        return self._text
+
+    def caret(self):
+        return self._at
+
+    def replace(self, text):
+        self._text = text
+        return True
+
+    def goto(self, line):
+        self.went = (line, self.went[1] if self.went else 0)
+        return True
+
+    def col(self, col):
+        self.went = (self.went[0] if self.went else 0, col)
+        return True
+
+    def ask(self, verb, *given):
+        self.asked.append((verb, *given))
+        return True
+
+    def close_list(self):
+        self.shut += 1
+        return True
+
+
+HOLED_SYNTH = ("cutoff : Sig Float\n"
+               "cutoff = mkKnob 0.6\n"
+               "\n"
+               "sound : Sig Float\n"
+               "sound = _\n")
+
+
+def _at_the_hole(text=HOLED_SYNTH, hole=("sound = ", 5, 8, "Sig Float")):
+    """A session standing on the `_`, with the holes the bench found."""
+    prefix, line, col, type_ = hole
+    s = session()
+    at = text.index(prefix) + len(prefix)
+    s.view = _Holed(text, at)
+    s.bench.holes = [(line, col, type_)]
+    s.bench.rate = 8000
+    return s
+
+
+def test_a_column_is_its_own_order():
+    """`goto <line>` names a line and says nothing about columns; `col
+    <int>` moves within the line the caret is on.  Two motions, two
+    verbs — an optional trailing field would be one verb meaning two
+    things depending on how many words it was given."""
+    from gestate.workbench import Window
+
+    class _Ed:
+        text = "a\nb\nc\n"
+        pos = 0
+
+        def __init__(self):
+            self.orders = []
+
+        def order(self, line):
+            self.orders.append(line)
+
+    ed = _Ed()
+    win = Window(ed)
+    assert win.goto(2) is True
+    assert win.col(7) is True
+    assert ed.orders == ["goto\t2", "col\t7"], ed.orders
+
+
+def test_the_filler_list_is_what_fits_the_hole_you_are_on():
+    """The `Filler` argument's list — computed rather than enumerated,
+    which is what makes a hole offerable at all."""
+    s = _at_the_hole()
+    rows = s.fillers("")
+
+    assert rows, "nothing was offered at a hole of a known type"
+    names = [name for name, _note in rows]
+    assert "sine" in names, names[:8]
+    # The note carries the arity, because that is what the edit needs.
+    note = dict(rows)["sine"]
+    assert "after 1 argument" in note, note
+
+
+def test_the_list_offers_nothing_a_program_may_not_name():
+    """**Henri's rule.**  A library's internals are in scope and are not
+    offerable: `enforce` refuses a file that writes `mapSig`, so
+    offering one is offering a compile error.  Measured before it was
+    fixed: eight of the sixty-eight things `fits Sig Float` listed on
+    `blip.ges` were names the file is forbidden to write."""
+    s = _at_the_hole()
+    names = [name for name, _note in s.fillers("")]
+
+    for hidden in ("mapSig", "zipSig", "addSig", "mulSig"):
+        assert hidden not in names, f"`{hidden}` is internal to signal.ges"
+    assert "sine" in names, "and the offerable ones are still offered"
+
+
+def test_completing_writes_the_name_with_holes_for_its_arguments():
+    """`sine : Float -> Sig Float` leaves `sine _`, caret on that `_`.
+
+    The whole gesture in one line: pick, and the next thing to decide
+    is where the cursor already is.
+    """
+    s = _at_the_hole()
+    said = s.run("complete", "Sig Float", "sine")
+
+    assert "sound = sine _" in s.view.text(), s.view.text()
+    assert s.view.went == (5, 13), s.view.went
+    assert said.startswith("sine"), said
+
+
+def test_an_application_written_into_an_argument_wears_brackets():
+    """**Brackets only where they are needed, and needed here.**
+
+    A hole standing as a whole right-hand side takes the application
+    bare — `sound = sine _` is what a person writes, and `(sine _)` is
+    a person's brackets to delete.  A hole standing as somebody else's
+    *argument* is the other case: without them `gain _ 0.5` filled
+    with `sine` would read as two more arguments to `gain`.
+    """
+    s = session()
+    text = ("sound : Sig Float\n"
+            "sound = gain _ 0.5\n")
+    s.view = _Holed(text, text.index("_"))
+    s.bench.holes = [(2, text.split("\n")[1].index("_"), "Sig Float")]
+    s.run("complete", "Sig Float", "sine")
+
+    assert "sound = gain (sine _) 0.5" in s.view.text(), s.view.text()
+    # And the hole it brought is where it was written, not where a
+    # formula about brackets says it should be.
+    assert s.bench.holes == [(2, text.split("\n")[1].index("_") + 6,
+                              "Sig Float")], s.bench.holes
+
+
+def test_completing_with_a_name_that_takes_nothing_writes_the_name():
+    """No arguments, no brackets, no holes — and it says there is
+    nothing left near to fill."""
+    s = _at_the_hole()
+    s.run("complete", "Sig Float", "elapsed")
+
+    assert "sound = elapsed" in s.view.text(), s.view.text()
+    assert s.view.went is None, "there was no next hole to stand on"
+
+
+def test_completing_refuses_a_name_the_file_may_not_write():
+    """The internals rule, one step later than the list.
+
+    A typed answer is written as typed — that is what the field is for
+    — but `mapSig` is `signal.ges`'s own, and a file that names one
+    does not compile.  Refusing now says the same thing `enforce`
+    would say in a moment, at the moment it can still be taken back
+    with a keystroke.  An *unknown* name is not refused: writing the
+    call before the definition is how people work.
+    """
+    s = _at_the_hole()
+    said = s.run("complete", "Sig Float", "mapSig")
+
+    assert "internal" in said, said
+    assert s.view.text() == HOLED_SYNTH, "it wrote something anyway"
+
+    # A name nobody has defined yet is written, and the compiler is
+    # what says so — later, and about the program rather than the box.
+    s.run("complete", "Sig Float", "notYetWritten")
+    assert "sound = notYetWritten" in s.view.text(), s.view.text()
+
+
+def test_the_holes_are_kept_up_as_the_completion_writes_them():
+    """**The hazard Henri named**: `holes` is what the workbench found
+    when the program last *compiled*, and a completion is not a
+    compile — so without maintaining it the second `Tab` lands on a
+    hole the model does not know about and says "the cursor is not on
+    a hole".
+
+    Three things have to be true afterwards: the filled hole is gone,
+    the ones the filler wrote are there **with the types its arguments
+    take**, and any hole further along that line has moved by what the
+    line grew.
+    """
+    text = ("cutoff : Sig Float\n"
+            "cutoff = mkKnob 0.6\n"
+            "\n"
+            "sound : Sig Float\n"
+            "sound = gain _ _\n")
+    s = session()
+    s.view = _Holed(text, text.index("sound = gain ") + len("sound = gain "))
+    s.bench.rate = 8000
+    s.bench.holes = [(5, 13, "Float"), (5, 15, "Sig Float")]
+
+    said = s.run("complete", "Float", "dbGain")
+
+    assert "sound = gain (dbGain _) _" in s.view.text(), s.view.text()
+    holes = s.bench.holes
+    assert (5, 13, "Float") not in holes, "the filled hole stayed"
+    # `dbGain : Float -> Float`, so the hole it wrote wants a `Float`…
+    assert (5, 21, "Float") in holes, holes
+    # …and the one after it moved by what the line grew.
+    assert (5, 24, "Sig Float") in holes, holes
+    # The caret is on the new hole, and the sentence says what it wants.
+    assert s.view.went == (5, 21), s.view.went
+    assert "wants `Float`" in said, said
+
+
+def test_the_holes_follow_the_text_they_are_written_in():
+    """Henri, with the recording: *"the holes won't follow text during
+    line insertions."*
+
+    The workbench finds the holes where the program last *compiled*.
+    Press Return above one and every line number below it is one out,
+    so the margin says `_ : Int` beside a blank row and `complete`
+    answers "the cursor is not on a hole" while the cursor is on one.
+    An edit is one contiguous change, so the marks are carried across
+    it the way an editor carries any marker.
+    """
+    s = session()
+    s.view = _Holed(TWO_HOLES, 0)
+    s.bench.holes = [(2, 6, "Int"), (4, 6, "Float")]
+    #: What the workbench compiled, which is what they are true for —
+    #: so the *first* keystroke after a build counts like every other.
+    s.bench.holes_text = TWO_HOLES
+
+    # A line pressed in above them takes them both down one.
+    s.view._text = TWO_HOLES.replace("foo : Int\n", "foo : Int\n\n")
+    act(s, "edited")
+    assert s.bench.holes == [(3, 6, "Int"), (5, 6, "Float")], s.bench.holes
+
+    # And the caret finds one where the text now says it is.
+    s.view._at = s.view.text().index("bar = ") + 6
+    assert s.hole_at_caret() == "Float", s.bench.holes
+
+    # A hole inside what was deleted is gone rather than guessed at.
+    s.view._text = s.view.text().replace("foo = _\n", "")
+    act(s, "edited")
+    assert s.bench.holes == [(4, 6, "Float")], s.bench.holes
+
+
+def test_a_hole_the_compiler_has_not_seen_yet_is_still_a_hole():
+    """bug3: a `_` typed by hand, and `Tab` said "not on a hole".
+
+    The list of holes is a *compile's* answer, and typing one is
+    exactly the moment before a compile.  The text is what the cursor
+    is standing on, so the text is asked when the list does not know —
+    with no type, because nothing has inferred one yet, which is when
+    the question's first argument stops being rhetorical and is worth
+    typing into.
+    """
+    text = "bar : Float\nbar = cos _\n"
+    s = session()
+    s.view = _Holed(text, text.index("cos _") + 4)
+    s.bench.holes = []                     # nothing compiled since
+
+    assert s._hole_at_caret() == (2, 10, ""), s._hole_at_caret()
+    assert s.hole_at_caret() == ""
+    # And it can be filled, which is the point of noticing.
+    s.run("complete", "", "0.5")
+    assert s.view.text() == "bar : Float\nbar = cos 0.5\n", s.view.text()
+
+
+def test_a_filler_that_is_not_one_atom_wears_brackets():
+    """bug3, and it was silent: `cos` filled with `-5` wrote `cos -5`,
+    which parses — as a subtraction — and compiles.
+
+    The rule is about *grouping*, not about spaces: a name, a number, a
+    string or one bracketed group stands alone, and everything else
+    joins the expression around it unless brackets stop it.  `[4,foo]`
+    is one group and needs none, which is the case a space-counting
+    rule got right by accident and `-5` is the one it got wrong.
+    """
+    text = "bar : Float\nbar = cos _\n"
+
+    def filled(what):
+        s = session()
+        s.view = _Holed(text, text.index("cos _") + 4)
+        s.bench.holes = [(2, 10, "Float")]
+        s.run("complete", "Float", what)
+        return s.view.text().split("\n")[1]
+
+    assert filled("-5") == "bar = cos (-5)"
+    assert filled("[4,foo]") == "bar = cos [4,foo]"
+    assert filled("2.5") == "bar = cos 2.5"
+    assert filled("a + b") == "bar = cos (a + b)"
+
+    # And a whole right-hand side is written as typed, brackets or not:
+    # `bar = -5` is what a person writes.
+    s = session()
+    plain = "bar : Float\nbar = _\n"
+    s.view = _Holed(plain, plain.index("bar = ") + 6)
+    s.bench.holes = [(2, 6, "Float")]
+    s.run("complete", "Float", "-5")
+    assert s.view.text() == "bar : Float\nbar = -5\n", s.view.text()
+
+
+def test_a_type_typed_over_the_offered_one_narrows_the_list():
+    """bug2: the hole said `t a`, Henri typed `List Float`, nothing
+    moved.
+
+    The first argument is the type, and until now it was only ever
+    read back in the transcript — so a box you can type in did nothing
+    with what you typed.  Inference offering `t a` is exactly when a
+    person knows more than the compiler does, and saying so is the
+    affordance the field is for.
+    """
+    text = ("xs : List Float\n"
+            "xs = [1.0, 2.0]\n"
+            "\n"
+            "n : Int\n"
+            "n = length _\n"
+            "\n"
+            "sound : Sig Float\n"
+            "sound = sine 220.0\n")
+    s = session()
+    s.view = _Holed(text, text.index("length _") + 7)
+    s.bench.holes = [(5, 11, "t a")]
+    s.bench.rate = 8000
+
+    # As offered: a type variable fits almost nothing.
+    loose = [name for name, _note in s.fillers("")]
+    assert "xs" not in loose, loose
+
+    # Narrowed by hand, the list is about the type that was typed.
+    act(s, "wants\tcomplete\t1\t\tList Float")
+    assert s.given == ("List Float",), s.given
+    assert "xs" in [n for n, _ in s.fillers("")], s.fillers("")
+
+    # A type half-way typed cannot be read at all, and the list falls
+    # back to the hole's rather than blanking under a moving hand.
+    act(s, "wants\tcomplete\t1\t\tList (")
+    assert [n for n, _ in s.fillers("")] == loose
+
+
+def test_the_type_field_offers_the_type_the_hole_wants():
+    """One row, and it is the answer inference already gave.
+
+    The field is normally arrived at already answered — but a
+    backspace aimed at the filler steps back into it, and losing the
+    type to a keystroke that meant something else, with no way to get
+    it back but retyping, is the shape of a box you learn to avoid.
+    """
+    s = _at_the_hole()
+    s.asking = ("complete", 0, "")
+    assert s.choices()[0][0] == "Sig Float", s.choices()
+
+    # And nothing is offered where nothing is known: a hole typed since
+    # the last compile has no type, and a guess would be worse.
+    text = "bar : Float\nbar = cos _\n"
+    s = session()
+    s.view = _Holed(text, text.index("cos _") + 4)
+    s.bench.holes = []
+    s.asking = ("complete", 0, "")
+    assert s.choices() == []
+
+
+def test_a_completion_walks_on_to_the_next_line():
+    """`NEAR` is five lines, so filling one carries you through a
+    wrapped declaration rather than stopping at the first break —
+    Henri: *"the search range should be maybe 5 lines so it goes
+    comfortably filling."*"""
+    from gestate.session import _next_hole
+
+    lines = ["sound = gain 0.5", "    (lowpass 900.0", "       _)", "", "x = 1"]
+    assert _next_hole(lines, 1, 0) == (3, 7)
+    # And not past the range: nothing within five lines is nothing.
+    assert _next_hole(["a = 1"] * 5 + ["b = _"], 1, 0) is None
+
+
+def test_the_first_argument_arrives_already_taken():
+    """Henri: *"verify that complete gets the first argument filled"*,
+    and then, watching it: *"it'd be better that the tab completion
+    would send to `complete Int <field> |`."*
+
+    The type is what inference already said about the hole, so the
+    question arrives with it **taken** and the caret in the field after
+    it — the argument with a decision in it.  Filled instead of taken,
+    the type stands in the field and Return is a keystroke spent
+    agreeing with the compiler.  The same round trip `fits` makes, and
+    it stops one step earlier: `fits` answers itself because one
+    argument is all it has.
+    """
+    s = _at_the_hole()
+
+    act(s, "wants\tcomplete\t0\t")
+    assert s.view.asked == [("complete", "Sig Float")], s.view.asked
+    # And it does not run the command — there is a second argument to
+    # ask for, which is the whole difference from `fits`.
+    assert s.view.text() == HOLED_SYNTH
+
+
+def test_goto_walks_the_places_a_name_is_written():
+    """Henri: *"`goto` should go to definition, preferably allow walking
+    in type and value declarations there are, a bit like `find`."*
+
+    A name is usually written down twice — `sound : Sig Float` and
+    `sound = …` — and a function matched on patterns has an equation
+    per case.  Landing on the signature for ever answers a question
+    nobody asked twice.  So it walks on `find`'s rule: from the caret,
+    wrapping.
+    """
+    text = ("sound : Sig Float\n"
+            "sound = sine 220.0\n"
+            "\n"
+            "step : Int -> Int\n"
+            "step 0 = 1\n"
+            "step n = n\n")
+    s = session()
+    s.view = _Holed(text, 0)
+
+    # The caret is on line 1, so the *next* place is the body — which
+    # is the whole complaint: you wanted the body and had to scroll.
+    assert s.run("goto", "sound") == "line 2 — 2 places, again for next"
+    s.view._at = text.index("sound = ")          # standing on the body
+    assert s.run("goto", "sound").startswith("line 1"), "it wraps"
+    # And from somewhere else entirely, the first one.
+    s.view._at = len(text)
+    assert s.run("goto", "sound").startswith("line 1")
+    # A signature and two equations are three places.
+    assert "3 places" in s.run("goto", "step")
+
+
+def test_a_column_is_a_command_beside_line():
+    """`line <int>` could only ever answer half of a complaint's `12:8`.
+
+    Counted from one, which is how the compiler prints a column and how
+    a person says it.
+    """
+    s = session()
+    s.view = _Holed("sound = sine 220.0\n", 0)
+
+    assert s.run("col", 9) == "column 9"
+    assert s.view.went == (0, 8), s.view.went       # zero-based on the wire
+    assert s.run("col", 0) == "columns count from one"
+
+
+#: Henri's own scenario, and the specification of the whole gesture:
+#: two holes, filled with an expression and a literal, walking from one
+#: to the next.  Neither answer is a name the list could have offered.
+TWO_HOLES = "foo : Int\nfoo = _\nbar : Float\nbar = _\n"
+TWO_FILLED = "foo : Int\nfoo = length [bar]\nbar : Float\nbar = 2.5\n"
+
+
+def test_two_holes_filled_by_hand_walk_from_one_to_the_next():
+    """**The field is free text, and that is not a mistake to catch.**
+
+    `length [bar]` and `2.5` are answers a person means; a command that
+    refused everything it could not look up would send you to type into
+    the file what you had just typed into the box.  So they are written
+    as typed — and the caret walks to the next hole two lines down,
+    which is what `NEAR` is for.
+
+    Note what this file cannot do: it has no `sound`, so the audio
+    assembly does not compile and there is no list at all.  Mid-hole is
+    exactly when a program is in pieces, so refusing without a list
+    would refuse the ordinary case.
+    """
+    s = session()
+    s.view = _Holed(TWO_HOLES, TWO_HOLES.index("foo = ") + 6)
+    s.bench.rate = 8000
+    s.bench.holes = [(2, 6, "Int"), (4, 6, "Float")]
+
+    assert s.run("complete", "Int", "length [bar]").startswith("length [bar]")
+    assert s.view.went == (4, 6), "the caret did not walk to the next hole"
+    # **And the box walks with the caret.**  It asks itself again about
+    # the hole it landed on, so the field is empty and the prompt says
+    # `Float` — the last thing Henri watched go wrong was a box still
+    # reading `complete Int 5.3` over a `Float` hole.
+    assert s.view.asked == [("complete", "Float")], s.view.asked
+    s.view._at = s.view.text().index("bar = ") + 6
+
+    s.run("complete", "Float", "2.5")
+    assert s.view.text() == TWO_FILLED, s.view.text()
+    # Nothing left near it, so the question is over rather than left
+    # standing as a finished call with nothing to repeat.
+    assert s.view.shut == 1, "the list stayed open on a filled file"
+    assert s.view.asked == [("complete", "Float")], "and it did not re-ask"
+
+
+def test_that_session_replays_to_the_same_file():
+    """The transcript of it, run again — `sessionlog.replay`'s whole
+    claim, on the newest command in the vocabulary.
+
+    A completion is an ordinary recorded command (`complete <type>
+    <id>`), which is why the type is an argument at all: a step that
+    said only the name would not say what was being answered, and a
+    replay is the one reader that cannot ask.
+    """
+    from gestate.sessionlog import replay
+
+    s = session()
+    s.view = _Holed(TWO_HOLES, TWO_HOLES.index("foo = ") + 6)
+    s.bench.rate = 8000
+    s.bench.holes = [(2, 6, "Int"), (4, 6, "Float")]
+    s.run("complete", "Int", "length [bar]")
+    s.view._at = s.view.text().index("bar = ") + 6
+    s.run("complete", "Float", "2.5")
+    steps = [step for step in s._journal().steps if step.verb == "complete"]
+    assert len(steps) == 2, steps
+
+    again = session()
+    again.view = _Holed(TWO_HOLES, TWO_HOLES.index("foo = ") + 6)
+    again.bench.rate = 8000
+    again.bench.holes = [(2, 6, "Int"), (4, 6, "Float")]
+    # The caret is the *hand's*, so a replay moves it the way the hand
+    # did — the transcript records commands, not the fingers between.
+    drifted = []
+    for step in steps:
+        said = again.run(step.verb, *step.args)
+        if said != step.said:
+            drifted.append((step.verb, step.said, said))
+        again.view._at = again.view.text().index("bar = ") + 6
+
+    assert not drifted, drifted
+    assert again.view.text() == TWO_FILLED, again.view.text()
+
+
+def test_a_name_the_list_knows_still_brings_its_holes():
+    """The other half: a *name* is looked up, so its arity is known and
+    the holes it needs are written with it."""
+    s = _at_the_hole()
+    s.run("complete", "Sig Float", "sine")
+    assert "sound = sine _" in s.view.text(), s.view.text()
+    assert s.bench.holes == [(5, 13, "Sig Float")], s.bench.holes
+
+
+def test_completing_away_from_a_hole_says_so():
+    s = session()
+    s.view = _Holed(HOLED_SYNTH, 0)
+    s.bench.holes = [(5, 8, "Sig Float")]
+    assert "not on a hole" in s.run("complete", "Sig Float", "sine")
 
 
 def test_an_exactly_named_directory_outranks_a_fuzzy_file(tmp_path):

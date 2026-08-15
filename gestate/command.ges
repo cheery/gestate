@@ -163,6 +163,7 @@ deafen n = Stated
 octave : Int -> Command
 octave n = Stated
 
+
 #: A MIDI input on this machine.
 #:
 #: **Its own type so that the list can appear** — the rule `Named`,
@@ -286,7 +287,13 @@ steal : Path -> Command
 steal path = Stated
 
 
-#: Jump to where a name is declared.
+#: Jump to where a name is declared — and to the next place it is
+#: written, pressed again.
+#:
+#: **A name is usually written down twice**: a signature and a body,
+#: and a function matched on patterns has an equation per case.  So it
+#: walks them on `find`'s rule — from the caret, wrapping — which is
+#: what makes running it again mean *next*.
 goto : Named a -> Command
 goto n = Stated
 
@@ -294,6 +301,14 @@ goto n = Stated
 #: and `goto`'s own answer already speak.
 line : Int -> Command
 line n = Stated
+
+#: Jump to a column of the line you are on — `line`'s other half.
+#:
+#: A complaint says `12:8` and a hole is a line *and* a column; `line`
+#: could only ever answer the first of those.  Counted from one, which
+#: is how the compiler prints them and how a person says them.
+col : Int -> Command
+col n = Stated
 
 #: Say what a name is and what type it has — the compiler answering,
 #: rather than a documentation lookup.  Given nothing, it asks about
@@ -316,6 +331,48 @@ what n = Stated
 #: file that does not compile says so instead of answering "nothing".
 fits : Text -> Command
 fits wanted = Stated
+
+#: A name that could stand in a hole — picked from what fits it.
+#:
+#: **Its own type so the list can appear**, the rule `Named`, `Path`,
+#: `Template`, `Symbol` and `Device` already follow.  A filler
+#: qualifies for it exactly: at a `_` the set of next steps is small,
+#: knowable and *computed* — it is what inference says fits — which is
+#: the same shape as "what is in this directory".
+type Filler = Text
+
+#: The type a hole wants — the answer inference already gave.
+#:
+#: **Its own type because the field is worth typing into.**  Normally
+#: it arrives taken: `Tab` at a hole knows what belongs there.  But a
+#: hole reached before the program compiled has no inferred type at
+#: all, and one inferred as `t a` says almost nothing — narrowing it by
+#: hand to `List Float` is a person telling the compiler what they are
+#: about to write, and it re-ranks the fillers.  So the one row offered
+#: here is what the hole says it wants, which is also how you get it
+#: back after backspacing over it.
+type Wanted = Text
+
+#: Fill the hole the cursor is on, and stand on the next one.
+#:
+#: `fits` answers a question; this one writes the answer down.  Pick a
+#: name and the hole becomes it — with holes of its own where it takes
+#: arguments, so `sum : t Int -> Int` leaves `(sum _)` and the cursor
+#: on that `_`.  Press it again for the next one, until the line has
+#: none left.
+#:
+#: **The type comes first so the command can be said in full.**  At a
+#: hole it is already known and needs no typing, but a transcript that
+#: recorded only the name would not say what was being answered — and
+#: this is the vocabulary a replay reads back.
+#:
+#: **The list is what the program may name.**  A library's internals
+#: are in scope and are not offerable: `enforce` refuses a file that
+#: writes `mapSig`, so offering it would be offering a compile error
+#: (`spec/editor.md`'s rule, one floor up — a widget may only put back
+#: something the file could have said).
+complete : Wanted -> Filler -> Command
+complete wanted which = Stated
 
 #: A character that is awkward to type — picked from a table.
 #:

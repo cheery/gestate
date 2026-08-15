@@ -132,8 +132,14 @@ fn a_gesture_is_a_name_and_some_literals() {
     assert_eq!(Gesture::Command("loop".into(),
                                 vec!["4".into(), "8".into()]).line(),
                "command\tloop\t4\t8");
-    assert_eq!(Gesture::Wants("listen".into(), 0, "cut".into()).line(),
+    assert_eq!(Gesture::Wants("listen".into(), 0, "cut".into(),
+                              Vec::new()).line(),
                "wants\tlisten\t0\tcut");
+    // What the box already holds rides after the query, so a model
+    // ranking one argument can see the ones before it.
+    assert_eq!(Gesture::Wants("complete".into(), 1, "co".into(),
+                              vec!["Sig Float".into()]).line(),
+               "wants\tcomplete\t1\tco\tSig Float");
     assert_eq!(Gesture::Asked.line(), "asked");
     assert_eq!(Gesture::Filter("lo".into()).line(), "filter\tlo");
     assert_eq!(Gesture::Turn("cutoff".into(), 0.5).line(),
@@ -152,7 +158,8 @@ fn a_gesture_is_a_name_and_some_literals() {
 fn every_gesture_is_one_line_with_a_verb_first() {
     for g in [Gesture::Command("x".into(), vec!["1".into()]),
               Gesture::Filter("".into()),
-              Gesture::Wants("x".into(), 1, "q".into()), Gesture::Asked,
+              Gesture::Wants("x".into(), 1, "q".into(), Vec::new()),
+              Gesture::Asked,
               Gesture::Turn("y".into(), 1.0), Gesture::Note(1, true),
               Gesture::Edited] {
         let line = g.line();

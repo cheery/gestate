@@ -643,6 +643,8 @@ class Workbench:
         #: `(line, col, type)` per `_`, from the last program that
         #: reached inference.  Drawn in the margin beside its own line.
         self.holes: list = []
+        #: The program those holes were found in — see `_find_holes`.
+        self.holes_text: str = ""
         #: `(name, line, literal, is_float)` per `mkKnob` the sound never
         #: reaches — drawn, and marked as not connected.
         self.loose: list = []
@@ -1699,6 +1701,11 @@ class Workbench:
 
         try:
             self.holes = holes_in_source(text, rate=self.rate)
+            # **And the text they are true for.**  A hole is a place in
+            # a document and the document moves under it; the session
+            # carries the marks across each edit (`session.move_marks`)
+            # and needs to know where they started from.
+            self.holes_text = text
         except (FitsError, Exception):                  # noqa: BLE001
             pass
 

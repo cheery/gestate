@@ -29,6 +29,8 @@ beside it that neither list has an entry the other lacks.
 
 from __future__ import annotations
 
+import bisect
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -672,7 +674,12 @@ KEYS = {
     # tab-indented file means something other than it looks, and no
     # `.ges` in the tree contains one.  It is what `audiopygame` pressed
     # at a hole, and asking what fits is what it is for everywhere else.
-    "fits": "Tab",
+    # **Tab completes.**  It was `fits` — the question — and asking
+    # what fits is still what it is for away from a hole; but the
+    # gesture at a hole is *fill it*, and a key that answered a
+    # question you then had to act on by hand was a key doing half its
+    # job.  `fits` keeps its name in the list.
+    "complete": "Tab",
     "copy": "Ctrl-C",
     "cut": "Ctrl-X",
     "paste": "Ctrl-V",
@@ -708,6 +715,12 @@ class Detached:
         return -1
 
     def goto(self, _line: int) -> bool:
+        return False
+
+    def col(self, _col: int) -> bool:
+        return False
+
+    def ask(self, _verb: str, *_given: str) -> bool:
         return False
 
     def zoom(self, _by: int) -> bool:
@@ -794,6 +807,13 @@ class Session:
     #: into.  **Once per question, never per empty box** — see
     #: `proposed_name`.
     proposed: object = None
+    #: The arguments the box is already holding, in order — the tail of
+    #: the window's `wants`.  See `fillers`.
+    given: tuple = ()
+    #: `(text, holes)` — the program the hole marks are true for, and
+    #: the list that was true for it, so `move_marks` can tell a hole
+    #: list it has already carried from one the workbench just made.
+    marked: object = None
     #: `(question, answer)` — what `choices` last worked out, so a poll
     #: that changed nothing costs a comparison instead of a ranking.
     _answered: object = None
@@ -1041,7 +1061,12 @@ class Session:
         """
         from pathlib import Path as _Path
 
-        here = _Path(getattr(self.bench, "path", ".")).resolve().parent
+        # **A bench with no file of its own answers about the working
+        # directory** — not about its *parent*, which is what `.`
+        # resolved to here and is how a headless sweep wrote
+        # `no-such-file.ges` into somebody's home.
+        held = getattr(self.bench, "path", None)
+        here = (_Path(held).resolve().parent if held else _Path.cwd())
         walked = ""
         if (self.asking and len(self.asking) > 2
                 and (verb is None or str(self.asking[0]) == verb)):
@@ -1413,6 +1438,21 @@ class Session:
             rows = self._listing(query, free=verb == "steal",
                                  mark=verb in self.PROPOSES)
             return self._pinned(verb, at, query, rows)
+        if kind == "Filler":
+            # What fits the hole the cursor is on — computed, not
+            # listed, which is what makes it offerable at all.
+            return self.fillers(query)
+        if kind == "Wanted":
+            # **What the hole says it wants, as a row to pick.**  The
+            # field is normally arrived at already answered, so this is
+            # for the two times it is not: nothing compiled yet, and a
+            # type deleted by a backspace that meant to clear the
+            # *filler*.  Nothing known is nothing offered — a guess
+            # about a type is worse than an empty list.
+            found = self.hole_at_caret()
+            return ([(found, "what the hole wants")]
+                    if found and found.lower().startswith(query.strip().lower())
+                    else [])
         if kind == "Template":
             return self.snippets(query)
         if kind == "Symbol":
@@ -1951,11 +1991,73 @@ class Session:
         return f"found `{pattern}`" if at >= 0 else f"no `{pattern}`"
 
     def do_goto(self, name: str) -> str:
-        where = self._declared(name)
-        if where is None:
+        """Jump to where a name is declared — and to the *next* place,
+        pressed again.
+
+        **A name is usually written down twice**: `sound : Sig Float`
+        and `sound = …`, and a function matched on patterns has an
+        equation per case.  Landing on the signature for ever means the
+        command answers a question nobody asked twice; you wanted the
+        body, and you had to scroll for it.
+
+        So it walks, on `find`'s rule and for `find`'s reason: **from
+        the caret, wrapping** — which is what makes running it again
+        mean *next* rather than the same one for ever.
+        """
+        places = self._declared_lines(name)
+        if not places:
             return f"no declaration `{name}`"
-        return f"line {where}" if self.view.goto(where) \
-            else f"`{name}` is on line {where}"
+        here = self._caret_line()
+        after = [n for n in places if n > here] or places
+        where = after[0]
+        if not self.view.goto(where):
+            return f"`{name}` is on line {where}"
+        return (f"line {where}" if len(places) == 1
+                else f"line {where} — {len(places)} places, again for next")
+
+    def do_col(self, n: int) -> str:
+        """Jump to a column of the line you are on — `line`'s other half.
+
+        A complaint says `12:8`, a hole is a line *and* a column, and
+        `line` could only ever answer the first half of that.  Columns
+        count from one where a person reads them, which is the same
+        convention the compiler's own `12:8` uses.
+        """
+        n = int(n)
+        if n < 1:
+            return "columns count from one"
+        self.view.col(n - 1)
+        return f"column {n}"
+
+    def _declared_lines(self, name: str) -> list:
+        """Every line that declares `name`, in reading order.
+
+        The signature, the equations, and — for a knob or a bank — the
+        line the workbench already draws its widget beside.  Read from
+        the text for the same reason `_written` is: a declaration is a
+        name at the left margin followed by `:` or `=`, which the
+        layout rule guarantees, and anything cleverer would be a second
+        front end that could disagree with the real one.
+        """
+        found = []
+        for n, line in enumerate(self._source().splitlines(), start=1):
+            if not line[:1].isalpha():
+                continue
+            head = line.split("=", 1)[0].split(":", 1)[0].strip()
+            if head.split(" ")[0] == name and (":" in line or "=" in line):
+                found.append(n)
+        if found:
+            return found
+        where = self._declared(name)
+        return [where] if where is not None else []
+
+    def _caret_line(self) -> int:
+        """Which line the caret is on, 1-based, or 0 when there is none."""
+        try:
+            at = self.view.caret()
+        except Exception:                                # noqa: BLE001
+            return 0
+        return self._source()[:at].count("\n") + 1
 
     def do_line(self, n: int) -> str:
         """`goto` for a number — the margin's own coordinate.
@@ -2062,18 +2164,20 @@ class Session:
         here = Path(getattr(self.bench, "path", "") or "")
         return f"{here.stem}{suffix}" if here.stem else ""
 
-    def hole_at_caret(self) -> str | None:
-        """The type of the `_` the cursor is standing on, if it is.
+    def _hole_at_caret(self) -> tuple | None:
+        """`(line, col, type)` of the `_` the cursor stands on, or `None`.
 
-        **At either end of it**, because both are where a hand leaves the
-        caret: you arrow onto a `_` and stop before it, or you delete
-        what was there and stop after it.  Insisting on one would make
-        the affordance work half the times it is reached for, which is
-        worse than not having it — a control that works sometimes is one
-        nobody trusts.
+        **At either end of it**, because both are where a hand leaves
+        the caret: you arrow onto a `_` and stop before it, or you
+        delete what was there and stop after it.  Insisting on one
+        would make the affordance work half the times it is reached
+        for, which is worse than not having it — a control that works
+        sometimes is one nobody trusts.
 
-        Read from `holes`, which the workbench computed when the program
-        last compiled, so this costs a lookup rather than a typecheck.
+        Read from `holes`, which the workbench computed when the
+        program last compiled, so this costs a lookup rather than a
+        typecheck.  The *place* is what `complete` writes at; the type
+        alone is `hole_at_caret` below.
         """
         try:
             at = self.view.caret()
@@ -2083,7 +2187,6 @@ class Session:
         if not text:
             return None
         lines = text.split("\n")
-        # The caret is a character offset; a hole is a line and a column.
         row, seen = 0, 0
         for n, line in enumerate(lines):
             if seen + len(line) >= at:
@@ -2095,8 +2198,56 @@ class Session:
         col = at - seen
         for line, at_col, type_ in getattr(self.bench, "holes", []) or []:
             if line == row + 1 and at_col <= col <= at_col + 1:
-                return type_
+                return (line, at_col, type_)
+        # **And the text is a witness too.**  The list is a *compile's*
+        # answer and typing a `_` is exactly the moment before a
+        # compile, so a hole nothing has inferred a type for still
+        # reads as one — with the type left empty, which is the honest
+        # thing to say about it and is what makes the question's first
+        # argument worth typing into (bug3: `bar = cos _` by hand, and
+        # `Tab` answered "the cursor is not on a hole").
+        here = lines[row]
+        for c in (col, col - 1):
+            if 0 <= c < len(here) and _standalone(here, c):
+                return (row + 1, c, "")
         return None
+
+    def move_marks(self) -> None:
+        """Carry the holes across whatever was just typed.
+
+        The text they were found in is remembered beside them; a hole
+        list the workbench has *replaced* since — a rebuild — is true
+        for the text as it stands and is adopted rather than moved,
+        which is what the identity check is for.
+        """
+        holes = getattr(self.bench, "holes", None)
+        text = self._source()
+        if holes is None or not text:
+            self.marked = None
+            return
+        was, mine = self.marked if self.marked else (None, None)
+        if mine is not holes:
+            # A list the workbench has just made: it is true for the
+            # text the *compile* saw, which is not necessarily the text
+            # on screen — the first keystroke after a build has to
+            # count like every other one.
+            was = getattr(self.bench, "holes_text", "") or None
+        if was is None or was == text:
+            self.marked = (text, holes)
+            return
+        moved = _marks_moved(holes, was, text)
+        self.bench.holes = moved
+        self.marked = (text, moved)
+
+    def hole_at_caret(self) -> str | None:
+        """The type of the `_` the cursor is standing on, if it is.
+
+        `_hole_at_caret` above, with the place dropped — which is all a
+        question wants and less than an edit needs.
+        """
+        found = self._hole_at_caret()
+        return found[2] if found is not None else None
+
 
     def do_fits(self, wanted: str) -> str:
         """What could stand where this type is wanted — the compiler answering.
@@ -2135,6 +2286,199 @@ class Session:
         self.page = [f"what fits {shown}:", "", *(f"  {m}" for m in matches)]
         return (f"{len(matches)} fit {shown}" if len(matches) != 1
                 else f"one thing fits {shown}")
+
+    def fillers(self, query: str) -> list:
+        """What could stand in the hole the cursor is on, best first.
+
+        The `Filler` argument's list.  Ranked the way `matching`,
+        `naming` and `snippets` rank — exact name, then prefix, then
+        anywhere, then the *type*, because somebody reaching for a
+        filler is as likely to remember the shape they need as the
+        name of the thing that has it.
+
+        The note says the type and, when the name takes arguments, how
+        many — which is the fact `complete` writes holes with.
+        """
+        from .typecheck import FitsError, fillers_in_source, needed
+
+        hole = self._hole_at_caret()
+        if hole is None:
+            return []
+        _line, _col, wanted = hole
+        # **The type in the box wins over the type in the hole.**  It is
+        # the same type until somebody edits it, and editing it is the
+        # one thing that can help when inference has nothing to say: a
+        # hole typed `t a` lists almost nothing, and narrowing it by
+        # hand to `List Float` is a person telling the compiler what
+        # they are about to write.  It is also the *only* type there is
+        # for a `_` typed since the last compile.  A half-typed type
+        # does not blank the list — it falls back to the hole's, which
+        # is never worse than what it replaces.
+        asked = (self.given[0] if self.given else "").strip()
+        for want in ([asked, wanted] if asked and asked != wanted
+                     else [wanted]):
+            if not want:
+                continue
+            try:
+                rows = fillers_in_source(
+                    want, self._source(),
+                    rate=getattr(self.bench, "rate", 22050))
+                break
+            except FitsError:
+                # Mid-line the file often does not compile, and a list
+                # that vanished with a traceback would be worse than an
+                # empty one.
+                rows = []
+        else:
+            return []
+        query = query.strip().lower()
+        found = []
+        for i, (depth, name, type_, _args) in enumerate(rows):
+            low = name.lower()
+            if not query:
+                rank = 3
+            elif low == query:
+                rank = 0
+            elif low.startswith(query):
+                rank = 1
+            elif query in low:
+                rank = 2
+            elif query in type_.lower():
+                rank = 4
+            else:
+                continue
+            found.append((rank, i, name, f"{type_}{needed(depth)}"))
+        found.sort(key=lambda row: (row[0], row[1]))
+        return [(name, note) for _rank, _i, name, note in found]
+
+    def do_complete(self, wanted: str, which: str) -> str:
+        """Fill the hole the cursor is on, and stand on the next one.
+
+        **`fits` answers a question; this writes the answer down.**  A
+        name that takes arguments arrives with holes of its own — `sum
+        : t Int -> Int` becomes `(sum _)` — so the next thing to decide
+        is where the cursor already is, and the gesture is *pick,
+        pick, pick* rather than pick-and-then-type-the-brackets.
+
+        One edit and therefore one undo, through the same door
+        `fmtAll` uses: the document is replaced whole, which the rope
+        commits as a single entry with the caret clamped rather than
+        reset.
+
+        The type argument is not consulted — the hole under the cursor
+        is the truth about what is wanted — and it is in the command
+        anyway, because a transcript that recorded only the name would
+        not say what was being answered.  It is what `spec/editor.md`'s
+        rule asks of every widget: the edit is a thing the file could
+        have said, and the record says why.
+        """
+        from .typecheck import (FitsError, fillers_in_source,
+                                hidden_names)
+
+        hole = self._hole_at_caret()
+        if hole is None:
+            return "complete: the cursor is not on a hole"
+        line, col, type_ = hole
+        name = (which or "").strip()
+        if not name:
+            return f"complete: what stands in `{type_}`?"
+
+        # **A file that does not compile still gets to be filled in.**
+        # Mid-expression is exactly when holes are filled and exactly
+        # when the program is in pieces, so a refusal here would refuse
+        # the ordinary case.  Without the list there is no arity to
+        # know, so a typed answer is written as typed — which is what
+        # it would have been anyway.
+        try:
+            rows = fillers_in_source(type_, self._source(),
+                                     rate=getattr(self.bench, "rate", 22050))
+        except FitsError:
+            rows = []
+        found = next((r for r in rows if r[1] == name), None)
+        # **A name the file is forbidden to write is refused, typed or
+        # not.**  The list already leaves the libraries' internals out;
+        # putting one in by hand would compile to `enforce`'s refusal a
+        # moment later, and saying so now is the same rule one step
+        # earlier.  Only *this* — an unknown name is not refused, because
+        # writing the call before the definition is how people work.
+        if found is None and name in hidden_names(self._source()):
+            return (f"complete: `{name}` is a library's own — internal, "
+                    f"and a file that names one does not compile")
+
+        text = self._source()
+        lines = text.split("\n")
+        if not 0 < line <= len(lines):
+            return "complete: the hole moved — recompile and try again"
+        row = lines[line - 1]
+        if found is not None:
+            # A name the list offered: its arity says how many holes go
+            # with it.
+            body = " ".join([name] + ["_"] * found[0])
+        else:
+            # **The field is free text, and that is not a mistake to
+            # catch.**  `length [bar]` and `2.5` are answers a person
+            # means, and a command that refused everything it could not
+            # look up would send you to type in the file what you had
+            # already typed in the box.  Written as given, with the
+            # arity unknown and therefore no holes made — the next
+            # compile is what will say whether it was true.
+            body = name
+
+        # **Brackets only where they are needed**, and the same rule for
+        # a name picked off the list as for a phrase typed by hand — one
+        # rule, or the two answers to the same hole are written
+        # differently.  A phrase standing as a whole right-hand side
+        # needs none: `foo = sum _` and `foo = length [bar]` are what a
+        # person would write, and `foo = (sum _)` is a person's brackets
+        # to delete.  One standing as an *argument* needs them unless it
+        # is a single atom, or it joins the expression around it: `gain
+        # _ x` filled with `sum` has to read `gain (sum _) x`, and
+        # `cos _` filled with `-5` has to read `cos (-5)` — written
+        # bare it is a subtraction, and it compiles (bug3).
+        whole = (row[:col].rstrip().endswith("=")
+                 and not row[col + 1:].strip())
+        filler = body if whole or _atomic(body) else f"({body})"
+        if row[col:col + 1] != "_":
+            return "complete: the hole moved — recompile and try again"
+        lines[line - 1] = (lines[line - 1][:col] + filler
+                           + lines[line - 1][col + 1:])
+        self.view.replace("\n".join(lines))
+        self.bench.holes = _holes_after(
+            getattr(self.bench, "holes", []) or [],
+            line, col, filler,
+            found[3] if found is not None else ())
+
+        # **From where the writing began, not from where it ended.**
+        # The holes a filler brings are *inside* it — `(sum _)` — so a
+        # search starting past the text it wrote would step over the
+        # very thing it just made to be filled.
+        after = _next_hole(lines, line, col)
+        if after is None:
+            # **The walk is over, so the box goes away.**  A finished
+            # call left standing says `complete Int 2.5` over a file
+            # with no hole in it, and Return on it would mean *again*.
+            _close = getattr(self.view, "close_list", None)
+            if _close is not None:
+                _close()
+            return f"{name} — no hole left near it"
+        self.view.goto(after[0])
+        self.view.col(after[1])
+        wants = next((t for ln, c, t in self.bench.holes
+                      if (ln, c) == after), "")
+        # **And it asks itself again, about the hole it landed on.**
+        # The field empties, the prompt says the type that is wanted
+        # *now* — `Float` where the last one said `Int` — and the list
+        # is ranked for it, which is what makes filling a run of holes
+        # one gesture repeated instead of one gesture and a box to
+        # clear by hand.  Henri, watching it: *"please clear the
+        # `<field>` when the completion happens, so that I am not
+        # confused why it sticks there."*
+        asker = getattr(self.view, "ask", None)
+        if asker is not None and wants:
+            asker("complete", wants)
+            self.proposed = ("complete", 0)
+        return (f"{name} — next hole wants `{wants}`" if wants
+                else f"{name} — the next hole is on line {after[0]}")
 
     def _source(self) -> str:
         """The program as it stands — the window's copy, not the file's."""
@@ -3189,6 +3533,220 @@ def _held_notes(bench) -> set:
         return set()
 
 
+#: How far a completion looks for the next hole: this line and the
+#: four under it.  **Five, because a declaration is about that tall.**
+#: Two was the first guess and stopped a run at the first line break —
+#: Henri, filling one: *"the search range should be maybe 5 lines so it
+#: goes comfortably filling."*  Far enough to walk a wrapped expression,
+#: near enough that the caret never leaves the thing being written.
+NEAR = 5
+
+
+def _holes_after(holes: list, line: int, col: int, filler: str,
+                 wants: tuple) -> list:
+    """The holes, after a completion wrote `name` over the one at `col`.
+
+    **The list has to be maintained, not waited for.**  `holes` is what
+    the workbench found when the program last *compiled*, and a
+    completion is not a compile — so without this the second `Tab`
+    lands on a hole the model does not know about and answers "the
+    cursor is not on a hole".  Henri, finding it: *"there's a bit of
+    hazard because it should modify the holes, instantiating them from
+    the type it matched."*
+
+    Three things happen, and all three are arithmetic rather than
+    inference:
+
+    * the filled hole goes;
+    * one arrives per argument written, at the column the `_` was put
+      at, wanting the type that argument takes — which is why
+      `fits_in_scope` now carries the argument types out with the match;
+    * every other hole further along *that* line shifts by what the
+      line grew, because a column is a place in a line and the line
+      moved under it.
+
+    The next compile replaces all of this with the truth.  What it buys
+    is the run of completions in between, which is the whole gesture.
+    """
+    grew = len(filler) - 1
+    out = [(ln, c + (grew if ln == line and c > col else 0), t)
+           for ln, c, t in holes if not (ln == line and c == col)]
+    # **Where they are, not where they were spelled.**  The columns come
+    # from reading the text that was written — brackets or none, one
+    # rule about them can change without a second place agreeing to it.
+    made = [i for i, ch in enumerate(filler) if ch == "_"
+            and not (filler[i - 1:i].isalnum() or filler[i - 1:i] == "_")
+            and not (filler[i + 1:i + 2].isalnum()
+                     or filler[i + 1:i + 2] == "_")]
+    for at, wanted in zip(made, wants):
+        out.append((line, col + at, wanted))
+    return sorted(out)
+
+
+def _atomic(text: str) -> bool:
+    """Whether this stands as one argument without brackets around it.
+
+    A name, a number, a string, or one bracketed group — everything
+    else has to wear brackets where an argument is wanted, and getting
+    this wrong is silent: `cos` filled with `-5` wrote `cos -5`, which
+    parses and means subtraction (bug3).  `[4,foo]` is one group and
+    needs none, which is why the rule is about *grouping* rather than
+    about spaces.
+    """
+    text = text.strip()
+    if not text:
+        return True
+    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_']*", text):
+        return True
+    if re.fullmatch(r"\d+(\.\d+)?([eE][-+]?\d+)?", text):
+        return True
+    if len(text) > 1 and text[0] == '"' and text[-1] == '"':
+        return '"' not in text[1:-1]
+    shut = {"(": ")", "[": "]", "{": "}"}
+    if text[0] not in shut:
+        return False
+    # One group, and the whole of it: `[1,2]` is an argument, `[1] ++
+    # [2]` is an expression that happens to start with a bracket.
+    depth = 0
+    for i, ch in enumerate(text):
+        if ch in shut:
+            depth += 1
+        elif ch in shut.values():
+            depth -= 1
+            if depth == 0:
+                return i == len(text) - 1
+    return False
+
+
+def _standalone(row: str, at: int) -> bool:
+    """Whether the character at `at` is a hole and not part of a name.
+
+    `snake_case` and `__nb_c0_0__` are identifiers with underscores in
+    them; the desugarer's rule for a `_` in expression position is that
+    it stands alone, and this is that rule, spelled once for the two
+    readers of it.
+    """
+    def word(ch: str) -> bool:
+        return ch.isalnum() or ch == "_"
+
+    return (row[at:at + 1] == "_"
+            and not (at and word(row[at - 1]))
+            and not word(row[at + 1:at + 2]))
+
+
+def _line_starts(text: str) -> list:
+    """Where each line begins, so a place is arithmetic and not a walk."""
+    starts, at = [0], text.find("\n")
+    while at != -1:
+        starts.append(at + 1)
+        at = text.find("\n", at + 1)
+    return starts
+
+
+def _offset_of(starts: list, text: str, line: int, col: int) -> int | None:
+    """The character offset of a 1-based line and 0-based column."""
+    if not 0 < line <= len(starts):
+        return None
+    at = starts[line - 1] + col
+    ends = starts[line] - 1 if line < len(starts) else len(text)
+    return at if at <= ends else None
+
+
+def _place_of(starts: list, at: int) -> tuple:
+    """`(line, col)` of a character offset — `_offset_of` backwards."""
+    line = bisect.bisect_right(starts, at)
+    return (line, at - starts[line - 1])
+
+
+def _marks_moved(holes: list, was: str, now: str) -> list:
+    """The holes, where the text put them after an edit.
+
+    **A mark is a place in a document, and the document moves.**  The
+    workbench finds the holes when the program *compiles*; press Return
+    above one and the compiled line number is a line the hole is no
+    longer on, so the margin says `_ : Int` beside a blank row and
+    `complete` answers "the cursor is not on a hole" while the cursor
+    is on one.  Henri, with the recording: *"the holes won't follow
+    text during line insertions."*
+
+    One contiguous edit is what a keystroke, a paste and an undo each
+    are, so the change is found the way every editor finds it: the
+    common prefix and the common suffix, and what is between them is
+    what moved.  A mark before it stays, a mark after it shifts by what
+    the text grew, and a mark *inside* it is gone — the characters it
+    named are not there any more, and guessing where they went is how a
+    mark starts lying.
+
+    The next compile replaces all of this with the truth.  What it buys
+    is the minutes in between, which is when the holes are being filled.
+    """
+    if was == now or not holes:
+        return holes
+    # **Found by halving, not by walking.**  This runs on every
+    # keystroke of a file that has holes in it, and a character-at-a-
+    # time scan of a long piece is a keystroke's whole budget spent
+    # here; comparing slices puts the work in `memcmp`.
+    reach = min(len(was), len(now))
+    lo, hi = 0, reach
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        if was[:mid] == now[:mid]:
+            lo = mid
+        else:
+            hi = mid - 1
+    head = lo
+    lo, hi = 0, reach - head
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        if was[len(was) - mid:] == now[len(now) - mid:]:
+            lo = mid
+        else:
+            hi = mid - 1
+    tail = lo
+    grew = len(now) - len(was)
+    ended = len(was) - tail
+    before, after = _line_starts(was), _line_starts(now)
+    out = []
+    for line, col, type_ in holes:
+        at = _offset_of(before, was, line, col)
+        if at is None:
+            continue
+        if at < head:
+            moved = at
+        elif at >= ended:
+            moved = at + grew
+        else:
+            continue                    # inside what changed, and gone
+        row, column = _place_of(after, moved)
+        out.append((row, column, type_))
+    return sorted(out)
+
+
+def _next_hole(lines: list, line: int, col: int) -> tuple | None:
+    """The next `_` at or after `(line, col)`, on that line or the next.
+
+    **Near, and not anywhere** — Henri's rule: a completion walks you
+    along the expression you are writing, and a cursor that leapt to
+    the far end of the file would be a search, not a completion.
+    `NEAR` lines is what a wrapped declaration takes, and filling one
+    should carry you through it without stopping.
+
+    A hole is a `_` standing alone: `snake_case` and `__nb_c0_0__` are
+    identifiers with underscores in them and are not holes, which is
+    the same rule the desugarer applies when it decides that `_` in
+    expression position is one.
+    """
+    for n in range(line, line + NEAR):
+        if not 0 < n <= len(lines):
+            continue
+        row = lines[n - 1]
+        start = col if n == line else 0
+        for i in range(start, len(row)):
+            if _standalone(row, i):
+                return (n, i)
+    return None
+
+
 def _page(name: str) -> list:
     """What the manual says about a name, as lines to read."""
     entry = (_REFERENCE or {}).get(name)
@@ -3318,6 +3876,13 @@ def act(session: "Session", line: str) -> str:
         except ValueError:
             return f"wants: `{parts[2]}` is not an argument number"
         session.asking = (parts[1], at, parts[3])
+        # **And what the box is already holding.**  Ranking one argument
+        # can depend on the ones before it: `complete`'s first is the
+        # type, and a type typed over the one inference offered has to
+        # change the filler list or the field is a box that does
+        # nothing (bug2 — `t a` narrowed by hand to `List Float`, and
+        # nothing moved).
+        session.given = tuple(parts[4:])
         # **`open` says so the moment it is picked** — the one warning
         # there is: choosing a file past it proceeds, because a person
         # who was told and went on has decided (`do_open` says why it
@@ -3356,6 +3921,24 @@ def act(session: "Session", line: str) -> str:
                     session.proposed = ("fits", at)
                     session.said.append(session.run("fits", found))
                     return ""
+        # **And `complete` knows what is wanted before you do.**  Its
+        # first argument is the hole's type, which inference already
+        # said — so the question arrives with that argument *taken* and
+        # the caret in the field after it, which is the one with a
+        # decision in it.  Asked rather than filled: a type standing in
+        # the field is a Return spent agreeing with the compiler, and
+        # Henri, watching it: *"it'd be better that the tab completion
+        # would send to `complete Int <field> |`"*.  `fits` answers
+        # itself because one argument is all it has; this one has a
+        # question left to ask.
+        if (parts[1] == "complete" and at == 0 and not parts[3]
+                and session.proposed != ("complete", at)):
+            found = session.hole_at_caret()
+            if found:
+                asker = getattr(session.view, "ask", None)
+                if asker is not None and asker("complete", found):
+                    session.proposed = ("complete", at)
+                    return ""
         # **And an export proposes a name rather than an empty box.**
         # `demo.ges` wants `demo.wav`, which is what you would have typed;
         # the row you are in is already marked in the listing, and this is
@@ -3372,6 +3955,7 @@ def act(session: "Session", line: str) -> str:
         return f"{len(found)} name(s)" if found else ""
     if verb == "asked":
         session.asking = None
+        session.given = ()
         # **And the proposal is spent with the question.**  Kept, the
         # next `exportWav` would open on an empty box because this one
         # had already been offered a name — a courtesy that works once
@@ -3393,6 +3977,12 @@ def act(session: "Session", line: str) -> str:
                 return f"undid `{name}`"
         return ""
     if verb == "edited":
+        # **The marks follow the text.**  See `_marks_moved`: the holes
+        # were found where the program last compiled, and everything
+        # typed since then has moved them.  Done here rather than in
+        # the window because the marks are the model's, and done on
+        # every edit because that is the only moment both texts exist.
+        session.move_marks()
         return ""
     if verb == "state" and len(parts) >= 5:
         # **The window volunteering its own state**, so commands about
