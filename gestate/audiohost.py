@@ -99,7 +99,9 @@ def library(directory=None):
     lib.gestate_host_run.argtypes = [ctypes.c_void_p, ctypes.c_int,
                                      ctypes.c_void_p, ctypes.c_int64,
                                      ctypes.c_int64]
-    for name in ("gestate_host_frames", "gestate_host_position"):
+    for name in ("gestate_host_frames", "gestate_host_position",
+                 "gestate_host_dry", "gestate_host_worst_us",
+                 "gestate_host_take_worst"):
         fn = getattr(lib, name)
         fn.restype = ctypes.c_int64
         fn.argtypes = [ctypes.c_void_p]
@@ -308,6 +310,40 @@ class Host:
     @property
     def frames(self) -> int:
         return 0 if self._closed else self.lib.gestate_host_frames(self._host)
+
+    @property
+    def dry(self) -> int:
+        """How many times the card ran out of sound to play.
+
+        **The stutter, as a number.**  An underrun is recovered from
+        silently — that is what a player does — but a crackle nobody
+        can count is a crackle two people can disagree about.  Rising
+        while nothing else changed is the sound of the machine being
+        busy elsewhere; `tools/stutter.py` reads it.
+        """
+        return 0 if self._closed else self.lib.gestate_host_dry(self._host)
+
+    @property
+    def worst_us(self) -> int:
+        """The longest a single block took to render, in microseconds.
+
+        The earlier of the two warnings: a render that overruns its
+        block starves the card a moment before the card says so, and a
+        rebuild that steals the machine shows up here first.  Compare
+        it with the block's own period — at 48 kHz and 256 frames that
+        is 5,333 µs.
+        """
+        return (0 if self._closed
+                else self.lib.gestate_host_worst_us(self._host))
+
+    def take_worst(self) -> int:
+        """That, and start again — `take_peak`'s manners.
+
+        The question is nearly always *how bad was it during that*, and
+        a high-water mark that never clears answers a different one.
+        """
+        return (0 if self._closed
+                else self.lib.gestate_host_take_worst(self._host))
 
     @property
     def _closed(self) -> bool:

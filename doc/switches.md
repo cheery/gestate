@@ -42,6 +42,29 @@ all:
 
     GESTATE_BUILD_TIME=1 GESTATE_SO_CACHE=0 python -m gestate.workbench …
 
+### And what the rebuild cost the *sound*
+
+Where there is a C host, a second line follows each build:
+
+    [audio] card ran dry 3× · worst block 41.2 ms of 5.8 ms
+
+* **dry** is how many blocks the card had nothing to play while that
+  build ran.  An underrun is recovered from silently — that is what a
+  player does — and it is *counted*, because a crackle nobody can
+  measure is a crackle two people can disagree about.
+* **worst block** is the longest a single render took, against the
+  period it had to fit in.  It is the earlier of the two warnings: a
+  render that overruns its block starves the card a moment before the
+  card says so.  Cleared per build, so the number belongs to the build
+  it is printed under.
+
+Both are zero on a rebuild that stayed out of the way, which is what
+makes them worth printing: a stutter you can hear and a line that says
+`0× · 1.1 ms of 5.8 ms` means the rebuild is innocent and something
+else on the machine is not.  With no C host — no `alsa/asoundlib.h`,
+or a card somebody else is holding — the line does not appear, because
+the Python driver has no counter yet.
+
 ## Where a frame's time goes
 
     GESTATE_EDITOR_TIME=1 python -m gestate.workbench file.ges
@@ -97,6 +120,32 @@ fanless laptop.  More cores or slower storage may answer differently,
 and re-measuring should not mean re-implementing.  If you try it, do it
 with `GESTATE_SO_CACHE=0` and alternate the runs: without the first,
 `clang` never runs and the comparison measures nothing.
+
+**It is the *start* only, and a rebuild has never had one.**  So a
+`GESTATE_BUILD_TIME` report shows `‖` on the phases of a start and none
+on the phases of an apply, and that is the truth rather than a gap in
+the report: the mark is a claim about *time*, two phases whose recorded
+spans overlap, so it can only appear where something overlapped.
+
+The reason a rebuild does not overlap is worth stating, because the
+opportunity is real.  One apply of `examples/contrib/Real_World_One.ges`
+with the store turned off:
+
+```
+[build] apply piece.ges 3.15s
+    clang 1.28s · front end 1.03s · score 0.29s · extract 0.19s ×2
+    midi 0.15s · assemble 0.03s · holes 0.02s · knobs 0.01s
+```
+
+`clang` is a subprocess and holds no GIL, and the loaders that could
+run beside it — score, midi, substrate — come to about half a second.
+So a side thread here has a ceiling of roughly 15% of a rebuild.
+
+**And it would buy that from the wrong pocket.**  The 1.28 seconds of
+`clang` is the one stretch of a rebuild in which the *audio* thread has
+Python to itself; filling it with a loader is a dropout traded for a
+seventh of a second.  A rebuild that stutters is worse than a rebuild
+that is slow, so the loaders stay where they are.
 
 ## Tests
 

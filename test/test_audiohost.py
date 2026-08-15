@@ -636,3 +636,36 @@ def test_a_closed_host_answers_instead_of_taking_the_process_down():
     host.install(object())
     host.publish(object())
     assert host.position == 0, "a setter got through to a freed workspace"
+
+
+def test_the_card_counts_what_it_could_not_play(scratch):
+    """**A stutter has to be a number, or it is an argument.**
+
+    An underrun is recovered from silently — that is what a player does
+    — and until now it was *only* recovered from, so a crackle heard
+    while a rebuild ran could be discussed and not measured.  Two
+    counters answer it: how many blocks the card ran dry for, and the
+    longest a single render took, which is the earlier warning of the
+    two because a render that overruns its block starves the card a
+    moment before the card says so.
+
+    Nothing runs dry here — there is no device in a test — so what this
+    holds is the shape: they read, they start at nothing, and `take`
+    clears the mark the way `take_peak` does.
+    """
+    host = Host(channels=1, rate=RATE, directory=scratch, fade_in=False)
+    try:
+        assert host.dry == 0
+        assert host.worst_us == 0
+
+        # A fill is timed, so the worst is no longer nothing.
+        host.install(_engine("sine 440.0", RATE, scratch))
+        buffer = (ctypes.c_float * 256)()
+        host.fill(buffer, 256)
+        assert host.worst_us > 0, "a render that took no time at all"
+
+        taken = host.take_worst()
+        assert taken == pytest.approx(host.worst_us + taken, abs=taken)
+        assert host.take_worst() == 0, "the mark was not cleared"
+    finally:
+        host.close()

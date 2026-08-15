@@ -37,6 +37,7 @@ knob, however many parameters a synth wants.
 from __future__ import annotations
 
 import os
+import sys
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -575,6 +576,16 @@ def _timed(name: str):
     return wrap
 
 
+def _timing() -> bool:
+    """Whether the build report is switched on — `GESTATE_BUILD_TIME`.
+
+    Asked here rather than at import for the reason `buildtime` asks it
+    there: a variable set in a shell before the editor starts and one
+    set in a test have to read the same way.
+    """
+    return os.environ.get("GESTATE_BUILD_TIME", "") not in ("", "0")
+
+
 class Newest:
     """One worker at a time, always on the newest ask.
 
@@ -855,7 +866,14 @@ class Workbench:
         # fanless laptop, which is why the switch stays: another machine
         # with more cores and a slower disk may answer differently, and
         # re-measuring should not mean re-implementing.
-        # `GESTATE_SIDE_THREAD=1` puts the thread back.
+        # `GESTATE_SIDE_THREAD=1` puts the thread back — **here, and
+        # nowhere else**: a *rebuild* has never had one, which is why a
+        # build report shows `‖` on a start's phases and none on an
+        # apply's.  Measured for the rebuild too (`doc/switches.md`):
+        # the ceiling is about a seventh of it, and it would be bought
+        # out of `clang`'s subprocess — the one stretch of a rebuild in
+        # which the audio thread has Python to itself.  A rebuild that
+        # stutters is worse than a rebuild that is slow.
         #
         # It also deletes a hazard rather than only seconds.
         # `_load_from_midi` reads `banks_of(text)` rather than
@@ -2644,8 +2662,25 @@ class Workbench:
         """
         from .buildtime import building
 
+        # **What the rebuild cost the sound**, beside what it cost the
+        # clock.  A rebuild is the suspect in every stutter and the card
+        # is the witness: how many blocks it ran dry for while this
+        # build ran, and the longest one render took.  Under
+        # `GESTATE_BUILD_TIME` because it answers the same question the
+        # rest of that report does, and because a number nobody asked
+        # for is a number nobody reads.
+        watch = _timing() and self.host is not None
+        dry = self.host.dry if watch else 0
+        if watch:
+            self.host.take_worst()          # this build's own worst
         with building(f"apply {self.path.name}"):
             self._built(text, save)
+        if watch:
+            worst = self.host.take_worst() / 1000.0
+            beat = self.block / max(1, self.rate) * 1000.0
+            print(f"[audio] card ran dry {self.host.dry - dry}× · "
+                  f"worst block {worst:.1f} ms of {beat:.1f} ms",
+                  file=sys.stderr, flush=True)
 
     def _built(self, text: str, save: bool) -> None:
         self.live.compile(text)

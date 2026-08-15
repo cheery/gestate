@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 /* **The device, when there is one to open.**  Built with `-DGESTATE_ALSA
@@ -102,6 +103,22 @@ typedef struct {
     int64_t loop_end;      /* 0 or less: no loop */
     volatile int64_t seek_to;   /* below zero: nothing pending */
 
+    /* **How many times the card ran dry**, and how long the worst wait
+     * to fill it was, in microseconds.
+     *
+     * An underrun is recoverable and recovering silently is what a
+     * player does — but *counting* it is what a diagnostic does, and
+     * without the count a stutter is an argument about whether anybody
+     * heard one.  A rebuild is the suspect and the machine is the
+     * witness: the numbers say whether a crackle happened, how often,
+     * and whether the block that came late was late by a millisecond
+     * or by fifty.
+     *
+     * Read from another thread and never reset by the loop, so they
+     * are `volatile` and monotonic; the caller subtracts. */
+    volatile int64_t dry;
+    volatile int64_t worst_us;
+
     /* A meter, for a canvas that draws one.  Sampled rather than scanned:
      * sixteen points of a block is enough to see a needle move. */
     volatile int watch_peak;
@@ -150,6 +167,21 @@ typedef struct {
  * it with `getelementptr %State, ptr %s, i32 0, i32 0`, so the instant a
  * graph is at lives at offset zero of its state and a seek is one store.
  * The two are a pair: change the struct's first field and change this. */
+/* **How long a fill took, and the worst so far.**  The render has a
+ * block to finish in — 5.3 ms at 48 kHz — and a rebuild that starves
+ * it shows up here before the card runs dry, which is what makes this
+ * the earlier of the two warnings. */
+static int64_t now_us(void) {
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    return (int64_t)t.tv_sec * 1000000 + t.tv_nsec / 1000;
+}
+
+static void filled_in(host *h, int64_t began) {
+    int64_t took = now_us() - began;
+    if (took > h->worst_us) h->worst_us = took;
+}
+
 static void seek_state(void *state, int64_t to) {
     if (state) *(int64_t *)state = to;
 }
@@ -190,6 +222,20 @@ void gestate_host_publish(host *h, render_fn render, mix_fn mix, void *state) {
 }
 
 int64_t gestate_host_frames(host *h) { return h->frames; }
+/* The card's own account of the trouble: how many blocks it ran dry
+ * for, and the longest a single fill took.  Monotonic — the caller
+ * takes differences, because "since when" is the caller's question. */
+int64_t gestate_host_dry(host *h) { return h ? h->dry : 0; }
+int64_t gestate_host_worst_us(host *h) { return h ? h->worst_us : 0; }
+/* Read it and start again — `peak`'s manners, and for the same reason:
+ * the question is almost always "how bad was it *during that*", and a
+ * high-water mark that never clears answers a different one. */
+int64_t gestate_host_take_worst(host *h) {
+    if (!h) return 0;
+    int64_t worst = h->worst_us;
+    h->worst_us = 0;
+    return worst;
+}
 int64_t gestate_host_position(host *h) { return h->position; }
 void gestate_host_playing(host *h, int on) { h->playing = on ? 1 : 0; }
 int gestate_host_is_playing(host *h) { return h->playing; }
@@ -281,6 +327,11 @@ void gestate_host_set_gain(host *h, double g) {
  * multiplies by a gain going `g0`→`g1` across the block and accumulates,
  * and the two ramps sum to unity. */
 void gestate_host_fill(host *h, float *out, int64_t n) {
+    /* **Timed here, where every caller passes.**  The two driver loops
+     * are not the only ones — the plugin's process callback fills too,
+     * and so does a test — and a mark that only some of them set is a
+     * mark that means different things on different days. */
+    int64_t began = now_us();
     if (h->seek_to >= 0) {
         int64_t to = h->seek_to;
         h->seek_to = -1;
@@ -402,6 +453,7 @@ void gestate_host_fill(host *h, float *out, int64_t n) {
         h->square_sum = sum;
         h->square_n = count;
     }
+    filled_in(h, began);
 }
 
 /* Render into a pipe until told to stop — the player's own back-pressure
@@ -480,7 +532,10 @@ int64_t gestate_host_run_device(host *h, float *scratch, int64_t block,
         if (put < 0) {
             /* An underrun is recoverable and is not news: the machine was
              * busy for a moment.  Recovering silently is what a player
-             * does; failing to is what a crackle used to be. */
+             * does; failing to is what a crackle used to be — but it is
+             * counted, because a stutter nobody can measure is a stutter
+             * two people can disagree about. */
+            h->dry += 1;
             put = snd_pcm_recover((snd_pcm_t *)h->pcm, (int)put, 1);
             if (put < 0) return -1;
             continue;
