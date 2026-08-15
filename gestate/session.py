@@ -823,6 +823,10 @@ class Session:
     #: `(question, answer)` — what `choices` last worked out, so a poll
     #: that changed nothing costs a comparison instead of a ranking.
     _answered: object = None
+    #: `((type, source), rows)` — what fits, from the last file it was
+    #: asked about.  See `_filler_rows`: the query ranks, the file
+    #: decides, and only one of the two changes per keystroke.
+    _fillers: object = None
     #: `(when, token)` — the last look at the world outside the program,
     #: and when it was taken.  See `_outside`.
     _looked: object = None
@@ -2337,7 +2341,7 @@ class Session:
         The note says the type and, when the name takes arguments, how
         many — which is the fact `complete` writes holes with.
         """
-        from .typecheck import FitsError, fillers_in_source, needed
+        from .typecheck import needed
 
         hole = self._hole_at_caret()
         if hole is None:
@@ -2353,21 +2357,17 @@ class Session:
         # does not blank the list — it falls back to the hole's, which
         # is never worse than what it replaces.
         asked = (self.given[0] if self.given else "").strip()
+        rows = None
         for want in ([asked, wanted] if asked and asked != wanted
                      else [wanted]):
             if not want:
                 continue
-            try:
-                rows = fillers_in_source(
-                    want, self._source(),
-                    rate=getattr(self.bench, "rate", 22050))
+            rows = self._filler_rows(want)
+            if rows is not None:
                 break
-            except FitsError:
-                # Mid-line the file often does not compile, and a list
-                # that vanished with a traceback would be worse than an
-                # empty one.
-                rows = []
-        else:
+        if rows is None:
+            # Mid-line the file often does not compile, and a list that
+            # vanished with a traceback would be worse than an empty one.
             return []
         query = query.strip().lower()
         found = []
@@ -2388,6 +2388,36 @@ class Session:
             found.append((rank, i, name, f"{type_}{needed(depth)}"))
         found.sort(key=lambda row: (row[0], row[1]))
         return [(name, note) for _rank, _i, name, note in found]
+
+    def _filler_rows(self, wanted: str):
+        """What fits this type in this file — `None` if it will not say.
+
+        **Worked out once per file, not once per keystroke.**  This is a
+        whole run of inference: on `minute.ges` it is *nine hundred
+        milliseconds*, and it was being paid for every letter typed into
+        the box — so the list you were reading answered the query before
+        the one in front of you, which looked exactly like a filter that
+        does not filter.  The query does not change what fits, only
+        which of it is worth showing first, so the ranking stays per
+        keystroke and this does not.
+
+        The refusal is cached with the answers, and deliberately: a file
+        mid-edit does not compile, and learning that again at a second a
+        letter is the same defect wearing the other face.
+        """
+        from .typecheck import FitsError, fillers_in_source
+
+        source = self._source()
+        held = self._fillers
+        if held is not None and held[0] == (wanted, source):
+            return held[1]
+        try:
+            rows = fillers_in_source(wanted, source,
+                                     rate=getattr(self.bench, "rate", 22050))
+        except FitsError:
+            rows = None
+        self._fillers = ((wanted, source), rows)
+        return rows
 
     def do_complete(self, wanted: str, which: str) -> str:
         """Fill the hole the cursor is on, and stand on the next one.
@@ -2410,8 +2440,7 @@ class Session:
         rule asks of every widget: the edit is a thing the file could
         have said, and the record says why.
         """
-        from .typecheck import (FitsError, fillers_in_source,
-                                hidden_names)
+        from .typecheck import hidden_names
 
         hole = self._hole_at_caret()
         if hole is None:
@@ -2427,11 +2456,7 @@ class Session:
         # the ordinary case.  Without the list there is no arity to
         # know, so a typed answer is written as typed — which is what
         # it would have been anyway.
-        try:
-            rows = fillers_in_source(type_, self._source(),
-                                     rate=getattr(self.bench, "rate", 22050))
-        except FitsError:
-            rows = []
+        rows = self._filler_rows(type_) or []
         found = next((r for r in rows if r[1] == name), None)
         # **A name the file is forbidden to write is refused, typed or
         # not.**  The list already leaves the libraries' internals out;

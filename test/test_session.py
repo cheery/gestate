@@ -2653,6 +2653,51 @@ def test_a_type_typed_over_the_offered_one_narrows_the_list():
     assert [n for n, _ in s.fillers("")] == loose
 
 
+def test_the_list_is_worked_out_once_per_file_not_once_per_letter():
+    """The defect a recording showed: the list answering the letter
+    before the one in front of you.
+
+    `fillers_in_source` is a whole run of inference — nine hundred
+    milliseconds on `minute.ges` — and it was being paid for every
+    keystroke, so the rows on screen were an answer to an older query
+    and looked exactly like a filter that does not filter.  The query
+    does not change *what fits*, only which of it is worth showing
+    first, so the file decides once and the ranking is per keystroke.
+
+    Counted rather than timed: a stopwatch in a test is a test that
+    fails on a busy machine, and the claim is "once", not "fast".
+    """
+    from gestate import typecheck
+
+    s = _at_the_hole()
+    calls = []
+    real = typecheck.fillers_in_source
+
+    def counted(wanted, source, **kw):
+        calls.append(wanted)
+        return real(wanted, source, **kw)
+
+    typecheck.fillers_in_source = counted
+    try:
+        for query in ("", "s", "si", "sin", "sine"):
+            s.fillers(query)
+        assert len(calls) == 1, calls
+
+        # A file that will not compile is remembered too: learning that
+        # again at a second a letter is the same defect's other face.
+        s.view._text = HOLED_SYNTH.replace("sound = _", "sound = ")
+        for query in ("s", "si"):
+            s.fillers(query)
+        assert len(calls) == 2, calls
+
+        # And an edit is a different file, so it is asked again.
+        s.view._text = HOLED_SYNTH + "\nextra : Int\nextra = 1\n"
+        s.fillers("s")
+        assert len(calls) == 3, calls
+    finally:
+        typecheck.fillers_in_source = real
+
+
 def test_the_type_field_offers_the_type_the_hole_wants():
     """One row, and it is the answer inference already gave.
 
