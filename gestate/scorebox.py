@@ -727,13 +727,61 @@ def _n(v: int) -> str:
     return str(v) if v >= 0 else f"(0 - {-v})"
 
 
-def roll_program(roll: Roll, box: int = 0) -> tuple:
-    """The box's standalone substrate program, and its jump table.
+def page_program(rolls: list) -> tuple:
+    """Every box of a page in **one** program, and one jump table.
+
+    `rolls` is what `build_rolls` returned; a `RollError` in it is a box
+    that could not be built and takes no room here.  Returns
+    `(ges_text, jumps, entries)` — `entries[k]` is the definition box
+    `k` draws, or `None` for one that refused.
+
+    The rolls are built together (`build_rolls`) and now they are
+    *drawn* together, which is the second half of the same saving: each
+    box used to be its own gui program, so three boxes were three more
+    front ends and three more compiles of the same 35,000-character
+    assembly.  One program, and `Substrate.several` makes one view per
+    entry over one compiled machine.
+
+    Every generated name wears its box, `roll_program`'s channels
+    having always done so: `__nb_lit_0__`'s hue table is that roll's
+    banks and no other's, so sharing the name would paint one box in
+    another's colours.
+    """
+    texts, jumps, entries = [], {}, []
+    for k, roll in enumerate(rolls):
+        if isinstance(roll, Exception):
+            entries.append(None)
+            continue
+        entry = f"__notes_{k}__"
+        text, mine = roll_program(roll, k, entry=entry)
+        texts.append(text)
+        jumps.update(mine)
+        entries.append(entry)
+    drawn = [e for e in entries if e is not None]
+    if drawn:
+        # **A page still declares a `substrate`**, and it is not
+        # decoration: `audio.preludes` reads that word to decide that
+        # this program is a canvas and puts `gui.ges` in front of it.
+        # Without it the page compiled against the audio vocabulary
+        # alone and refused on `Colour`, which is a type its own text
+        # names in every line.  The first box, because a page is at
+        # least one box and any of them is a picture.
+        texts.append(f"substrate : Sig Sub\nsubstrate = {drawn[0]}\n")
+    return "\n".join(texts), jumps, entries
+
+
+def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple:
+    """The box's substrate program, and its jump table.
 
     Returns `(ges_text, {chan_name: line})`.  The program is ordinary
     substrate vocabulary — rects in a `Sized` box, one `TouchX` region
     per leaf — so the window walks it exactly as it walks any canvas
     ask, and a press writes a channel whose name the editor looks up.
+
+    `entry` is what the picture is called, `substrate` for a program
+    that stands alone and `__notes_k__` for one line of a page; every
+    other name it makes is numbered by `box` so that several may be
+    concatenated (`page_program`).
     """
     events, leaves = roll.events, roll.leaves
     if not events:
@@ -808,40 +856,43 @@ def roll_program(roll: Roll, box: int = 0) -> tuple:
         caption += " · CUT"
 
     chans = "".join(f"{c} : Chan Float\n{c} = chan\n" for c in jumps)
+    rows_g, hue_g = f"__nb_rows_{box}__", f"__nb_hue_{box}__"
+    lit_g, dim_g = f"__nb_lit_{box}__", f"__nb_dim_{box}__"
+    one_g, all_g = f"__nb_one_{box}__", f"__nb_all_{box}__"
     text = (chans
-            + "__nb_rows__ : List (Int, Int, Int, Int, Int)\n"
-            + f"__nb_rows__ = {listing}\n\n"
-            + "__nb_hue__ : Int -> Int -> Colour\n"
-            + "__nb_hue__ t d = case d of\n"
-            + "    0 -> __nb_lit__ t\n"
-            + "    _ -> __nb_dim__ t\n\n"
-            + "__nb_lit__ : Int -> Colour\n"
-            + "__nb_lit__ t = case t of\n"
+            + f"{rows_g} : List (Int, Int, Int, Int, Int)\n"
+            + f"{rows_g} = {listing}\n\n"
+            + f"{hue_g} : Int -> Int -> Colour\n"
+            + f"{hue_g} t d = case d of\n"
+            + f"    0 -> {lit_g} t\n"
+            + f"    _ -> {dim_g} t\n\n"
+            + f"{lit_g} : Int -> Colour\n"
+            + f"{lit_g} t = case t of\n"
             + "\n".join(hues) + "\n\n"
-            + "__nb_dim__ : Int -> Colour\n"
-            + "__nb_dim__ t = case t of\n"
+            + f"{dim_g} : Int -> Colour\n"
+            + f"{dim_g} t = case t of\n"
             + "\n".join(
                 [f"    {i} -> RGB {_DIM * r // 255} {_DIM * g // 255} "
                  f"{_DIM * b // 255}" for i, (r, g, b) in enumerate(_HUES)]
                 + ["    _ -> RGB %d %d %d"
                    % (_DIM * _HUES[0][0] // 255, _DIM * _HUES[0][1] // 255,
                       _DIM * _HUES[0][2] // 255)]) + "\n\n"
-            + "__nb_one__ : (Int, Int, Int, Int, Int) -> Sub\n"
-            + "__nb_one__ e = case e of\n"
-            + "    (x, y, w, t, d) -> Shift x y (Rect w 3 (__nb_hue__ t d))\n\n"
-            + "__nb_all__ : List (Int, Int, Int, Int, Int) -> Sub\n"
-            + "__nb_all__ es = case es of\n"
+            + f"{one_g} : (Int, Int, Int, Int, Int) -> Sub\n"
+            + f"{one_g} e = case e of\n"
+            + f"    (x, y, w, t, d) -> Shift x y (Rect w 3 ({hue_g} t d))\n\n"
+            + f"{all_g} : List (Int, Int, Int, Int, Int) -> Sub\n"
+            + f"{all_g} es = case es of\n"
             + "    Nil -> Gap 0 0\n"
-            + "    e :: rest -> Over (__nb_one__ e) (__nb_all__ rest)\n\n"
+            + f"    e :: rest -> Over ({one_g} e) ({all_g} rest)\n\n"
             # **A constant signal, not a bare `Sub`.**  The roll never
             # animates — it is a take, and a take does not move — but
             # the canvas entry is a `Sig Sub`, and `!` of a computed
             # value is the constant signal of it.
-            + "substrate : Sig Sub\n"
-            + f"substrate = !(Sized {ROLL_W} {ROLL_H} (Over (Over (Over\n"
+            + f"{entry} : Sig Sub\n"
+            + f"{entry} = !(Sized {ROLL_W} {ROLL_H} (Over (Over (Over\n"
             + f"    (Rect {ROLL_W} {ROLL_H} (RGB {_NIGHT[0]} {_NIGHT[1]} "
               f"{_NIGHT[2]}))\n"
-            + "    (__nb_all__ __nb_rows__))\n"
+            + f"    ({all_g} {rows_g}))\n"
             + f"    (Shift 0 {ROLL_H // 2 - 8} (Label 120 12 \"{caption}\" "
               f"(RGB 120 124 134))))\n"
             + f"    ({hands})))\n")

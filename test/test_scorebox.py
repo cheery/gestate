@@ -331,6 +331,41 @@ def test_one_bad_ask_does_not_blank_the_page():
     assert got[0].events, "the written hand still drew"
 
 
+def test_a_page_is_one_program_and_still_three_pictures():
+    """Compiled once, drawn as many — and each box keeps its own.
+
+    The saving is only worth having if a view is still a box: its own
+    picture, its own hands, and a payload naming only the channels its
+    own program has.  A channel from another box in the header is a
+    global the walking window is asked to force and does not have.
+    """
+    from gestate.gui import Substrate
+    from gestate.scorebox import build_rolls, page_program
+
+    source = (AUDIO / "noted.ges").read_text()
+    page = asks(source)
+    rolls = build_rolls(source, page, RATE, 0)
+    program, jumps, entries = page_program(rolls)
+    drawn = [e for e in entries if e is not None]
+    assert drawn == ["__notes_0__", "__notes_1__", "__notes_2__"]
+
+    views = Substrate.several(program, RATE, drawn)
+    assert all(v.state is views[0].state for v in views), "one machine"
+
+    pictures = [v.picture() for v in views]
+    assert all(pictures), "every box drew"
+    assert pictures[0] != pictures[1] != pictures[2]
+
+    seen: set = set()
+    for v in views:
+        mine = set(v.crossing["chans"])
+        assert mine, "a box with no hands cannot be pressed"
+        assert not mine & seen, "two boxes claimed one channel"
+        assert mine <= set(jumps), "a channel with nowhere to jump"
+        seen |= mine
+        assert v.payload(), "the box could not cross"
+
+
 def test_every_hand_lands_on_a_line_that_exists():
     roll, source = _roll("chopin.ges")
     _program, jumps = roll_program(roll)

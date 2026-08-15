@@ -1021,19 +1021,27 @@ class Workbench:
         # have always been numbered, and answers per ask: a `RollError`
         # in one slot leaves the others drawn.
         page = scorebox.asks(text)
-        for k, ((line, _expr), roll) in enumerate(
-                zip(page, scorebox.build_rolls(text, page, self.rate,
-                                               self.seed or 0))):
-            name = f"__notes_{k}__"
-            try:
+        if page:
+            rolls = scorebox.build_rolls(text, page, self.rate,
+                                         self.seed or 0)
+            for (line, _expr), roll in zip(page, rolls):
                 if isinstance(roll, Exception):
-                    raise roll
-                program, jumps = scorebox.roll_program(roll, k)
-                boxes[name] = Substrate(program, self.rate)
-                self.note_jumps.update(jumps)
-            except Exception as exc:                    # noqa: BLE001
-                self.say(f"no notes on line {line}: "
-                         f"{self._first_line(exc)}")
+                    self.say(f"no notes on line {line}: "
+                             f"{self._first_line(roll)}")
+            program, jumps, entries = scorebox.page_program(rolls)
+            drawn = [e for e in entries if e is not None]
+            if drawn:
+                # **One program for the page, drawn as many.**  Each box
+                # used to be its own gui program — another 35,000-character
+                # assembly, another front end, another compile, for a
+                # picture of the same file.  `Substrate.several` compiles
+                # once and gives a view per entry.
+                try:
+                    views = Substrate.several(program, self.rate, drawn)
+                    boxes.update(zip(drawn, views))
+                    self.note_jumps.update(jumps)
+                except Exception as exc:                # noqa: BLE001
+                    self.say(f"no notes drawn: {self._first_line(exc)}")
         self.canvases = boxes
         # A box may want the readings the main canvas never asked for
         # — a file with no `substrate` at all still breathes if an ask

@@ -646,14 +646,66 @@ class Substrate:
     picture follows, and the control value by name so the sound does.
     """
 
+    @classmethod
+    def several(cls, source: str, rate: int = 0,
+                entries: list | None = None) -> list:
+        """Several canvases of **one** program, compiled once.
+
+        A page of score boxes is one generated program with a picture
+        per box (`scorebox.page_program`), and this is what makes that
+        worth doing: the front end and the G-machine compile are paid
+        once between them, and each view then costs a `serialize` from
+        its own entry — which crosses only what that entry reaches, so
+        a box's payload stays the box's.
+
+        The views share the machine, which is the honest reading of
+        what they are: one program, several pictures.  So a channel
+        written on any of them is written once, and the frame `tick`
+        advances all of them, because there is one clock.  What is a
+        *view's* own is its entry, its signal, its crossing, and which
+        channels it names in the payload — a name the box's own program
+        never mentions would be a global the window is asked to force
+        and cannot.
+        """
+        entries = list(entries or ["substrate"])
+        self = cls.__new__(cls)
+        self._build(source, rate, entries[0])
+        out = [self]
+        for entry in entries[1:]:
+            other = cls.__new__(cls)
+            other._share(self, entry)
+            out.append(other)
+        return out
+
     def __init__(self, source: str, rate: int = 0,
                  entry: str = "substrate"):
+        self._build(source, rate, entry)
+
+    def _share(self, first: "Substrate", entry: str) -> None:
+        """Another picture of the program `first` compiled."""
+        self.state = first.state
+        self.entry = entry
+        self.state_entry = first.state_entry
+        self.by_name = first.by_name
+        self._input = first._input
+        self.reactive = first.reactive
+        self.crossing = self._crossing()
+        self.signal = self._signal_of(entry)
+        self.values = {}
+        self._held = None
+
+    def _build(self, source: str, rate: int = 0,
+               entry: str = "substrate") -> None:
         from .audio import DEFAULT_RATE
 
         self.state = _compile(assembled(source, rate, entry))
         #: Which definition this canvas draws — `substrate` for the
         #: file's own, a `__canvas_<k>__` for a `canvas <expr>` ask.
         self.entry = entry
+        #: Which entry the *machine* was assembled for, which is the
+        #: one it calls `main`.  A view sharing this machine draws a
+        #: different picture and serializes under its own name.
+        self.state_entry = entry
         # **Before the program runs.**  A channel is allocated when its
         # declaration is first forced, so forcing them here — in this
         # state, sharing its counter — is what gives every declared channel
@@ -682,6 +734,35 @@ class Substrate:
         #: side reads: `audioeditor.Workbench.control` asks by name.
         self.values: dict[str, int] = {}
         self._held: dict | None = None
+
+    def _signal_of(self, name: str):
+        """The `NSig` cell a named picture evaluated to.
+
+        `_entry_signal` reads what the initial run left on the stack,
+        which is `main`'s and so the first view's.  A second view over
+        the same machine forces its own entry — after `init_program`,
+        deliberately: the cell is registered by `SigCons` as it is
+        built, so a picture forced later reacts exactly as one forced
+        during the run does.
+        """
+        from .gmachine import NSig, PushGlobal, Unwind, run
+
+        state = self.state
+        saved = (state._code, state._pc, state.stack, state.dump)
+        state._code, state._pc = [PushGlobal(name), Unwind()], 0
+        state.stack, state.dump = [], []
+        try:
+            run(state)
+            sig = state.stack[0]
+            while isinstance(sig, NInd):
+                sig = sig.target
+            if not isinstance(sig, NSig):
+                raise GuiError(
+                    f"`{name}` did not evaluate to a signal "
+                    f"(got {type(sig).__name__})")
+            return sig
+        finally:
+            state._code, state._pc, state.stack, state.dump = saved
 
     def _force(self, name: str):
         """Evaluate a global in place, leaving the machine as it was."""
@@ -720,21 +801,31 @@ class Substrate:
         from .crust import CrustError, serialize
         from .export import _SUB_CONS
 
+        # **`main` for the view that was compiled, its own name for a
+        # view sharing that machine.**  `serialize` crosses only what
+        # the entry reaches, which is what keeps a page of boxes N
+        # small programs rather than N copies of one big one.
+        entry = "main" if self.entry == self.state_entry else self.entry
         try:
-            text = serialize(self.state, "main")
+            text = serialize(self.state, entry)
         except CrustError:
             return None
         if any(c not in self.state.cons for c in _SUB_CONS):
             return None
         tick = getattr(self.state.cons.get("Tick"), "tag", None)
-        return {"text": text, "entry": "main",
+        return {"text": text, "entry": entry,
                 "tags": [self.state.cons[c].tag for c in _SUB_CONS],
                 # `Tick`'s own tag, so the walking window can mint the
                 # frame clock `Substrate.tick` mints here — a canvas
                 # folding over `events` stands still otherwise, which
                 # is F103-untitled.ges's report.
                 "tick": tick,
-                "chans": list(self.by_name)}
+                # **Only the channels this picture has.**  The machine
+                # may hold a page's worth; a payload naming one the
+                # box's own program never mentions asks the window to
+                # force a global it does not have.
+                "chans": [n for n in self.by_name
+                          if f"PushGlobal {n}" in text]}
 
     def payload(self) -> str | None:
         """The walking window's copy of this canvas, as one string.
