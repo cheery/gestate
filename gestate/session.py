@@ -2765,7 +2765,8 @@ class Session:
         # it again*, and the keystrokes after saving a recording are
         # aimed at the work, not the dialog.
         self.view.close_list()
-        return f"wrote {want.name} — {len(self.log.steps)} steps"
+        return (f"wrote {want.name} — {len(self.log.steps)} steps, "
+                f"{_weighed(want)}")
 
     def do_template(self, name: str) -> str:
         """Put one of the language's ideas at the cursor.
@@ -2890,7 +2891,10 @@ class Session:
             except Exception as exc:                     # noqa: BLE001
                 self.bench.say(f"{want.name}: {_first_line(exc)}")
             else:
-                self.bench.say(f"wrote {made}")
+                # **What it weighs, at the moment it is made.**  This is
+                # the one moment a person can act on the number — before
+                # it is a file they have forgotten the size of.
+                self.bench.say(f"wrote {made} — {_weighed(made)}")
             finally:
                 # However the work ended, the line goes back to history.
                 self.transient = ""
@@ -3700,17 +3704,84 @@ def _reference(name: str) -> str | None:
     return f"{line}{where}" + (f" — {said}" if said else "")
 
 
+#: What a file of each kind may weigh before it is worth a second look
+#: — `(calm, notable)` in bytes, and past the second one it is heavy.
+#:
+#: **A size means nothing without knowing what the file is.**  Six
+#: megabytes is unremarkable for a rendered piece and absurd for a
+#: picture in a README, and a scale that could not tell them apart
+#: would cry wolf at every export and stay silent at the one that
+#: mattered.  Henri, after committing a 6.5 MB gif of a five-second
+#: recording and finding out days later: *"I am a dummy who uploads a
+#: 6MB gif without a clue of its size."*  He was not; nothing had ever
+#: told him, and the numbers below are what telling him looks like.
+WEIGHTS = {
+    #: Text is read by people: a page is four kilobytes, a long
+    #: source file forty, and a hundred is a file that wants splitting.
+    "text": (64 * 1024, 512 * 1024),
+    #: A minute of stereo at 44.1 kHz is ten megabytes, so half an hour
+    #: of music is the point at which an export is worth noticing.
+    "sound": (32 * 1024 * 1024, 128 * 1024 * 1024),
+    #: A picture in a document: anything past half a megabyte is a
+    #: picture somebody will wait for, and past four is one that was
+    #: encoded by accident.
+    "sight": (512 * 1024, 4 * 1024 * 1024),
+}
+#: Everything else — a plugin, an object, something the editor did not
+#: make and has no opinion about.
+WEIGHT_ELSE = (4 * 1024 * 1024, 32 * 1024 * 1024)
+
+#: Calm, worth knowing, look twice.
+MARKS = ("▪", "◆", "▲")
+
+#: Which weighing a suffix belongs to.
+KINDS = {
+    ".ges": "text", ".md": "text", ".txt": "text", ".py": "text",
+    ".rs": "text", ".c": "text", ".h": "text", ".toml": "text",
+    ".wav": "sound", ".aiff": "sound", ".flac": "sound", ".mid": "sound",
+    ".gif": "sight", ".png": "sight", ".jpg": "sight", ".jpeg": "sight",
+    ".webm": "sight", ".mp4": "sight", ".svg": "sight",
+}
+
+
+def _weight(path, n: int) -> str:
+    """The mark this many bytes earns, for a file of this name.
+
+    One character, because it rides in a listing's note beside the
+    number and in the sentence a write answers with.  The number is
+    the fact; the mark is what a person reads without stopping.
+    """
+    kind = KINDS.get(Path(path).suffix.lower())
+    calm, notable = WEIGHTS.get(kind, WEIGHT_ELSE)
+    return MARKS[0] if n < calm else MARKS[1] if n < notable else MARKS[2]
+
+
+def _weighed(path) -> str:
+    """`"6.5M ▲"` — what a file weighs, and what to make of it."""
+    try:
+        n = Path(path).stat().st_size
+    except Exception:                                    # noqa: BLE001
+        return ""
+    return f"{_bytes(n)} {_weight(path, n)}"
+
+
+def _bytes(n: int) -> str:
+    """A count of bytes, in the units a person reads."""
+    size = float(n)
+    for unit in ("B", "K", "M", "G"):
+        if size < 1024 or unit == "G":
+            return f"{size:.0f}{unit}" if unit == "B" else f"{size:.1f}{unit}"
+        size /= 1024.0
+    return ""
+
+
 def _size(entry) -> str:
-    """A file's size, in the units a person reads."""
+    """A file's size in a listing, with what to make of it."""
     try:
         n = entry.stat().st_size
     except Exception:                                    # noqa: BLE001
         return ""
-    for unit in ("B", "K", "M", "G"):
-        if n < 1024 or unit == "G":
-            return f"{n:.0f}{unit}" if unit == "B" else f"{n:.1f}{unit}"
-        n /= 1024.0
-    return ""
+    return f"{_bytes(n)} {_weight(entry, n)}"
 
 
 def _draws(bench) -> bool:

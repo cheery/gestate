@@ -3187,3 +3187,55 @@ def test_the_worker_clears_the_transient_however_the_work_ends():
     said = [entry for entry in s.bench.log if entry[0] == "say"]
     assert said, "the worker never reported"
     assert s.transient == ""
+
+
+def test_a_file_is_weighed_against_what_it_is(tmp_path):
+    """**A size means nothing without knowing what the file is.**
+
+    Six megabytes is unremarkable for a rendered piece and absurd for a
+    picture in a README, and one scale for both would cry wolf at every
+    export and stay quiet at the one that mattered.  Henri, after
+    committing a 6.5 MB gif of a five-second recording: *"I am a dummy
+    who uploads a 6MB gif without a clue of its size."*  He was not;
+    nothing had ever told him.
+    """
+    from gestate.session import _weighed, _weight
+
+    # The same number, three verdicts.
+    six = 6_800_000
+    assert _weight("doc/a.gif", six) == "▲", "a picture nobody will wait for"
+    assert _weight("dub.wav", six) == "▪", "eleven seconds of stereo"
+    assert _weight("a.clap", six) == "◆", "a plugin, worth knowing"
+
+    # And a source file is judged by the standards of prose.
+    assert _weight("piece.ges", 5_000) == "▪"
+    assert _weight("piece.ges", 900_000) == "▲"
+
+    # The number is the fact and the mark rides beside it.
+    made = tmp_path / "little.gif"
+    made.write_bytes(b"x" * 3000)
+    assert _weighed(made) == "2.9K ▪", _weighed(made)
+    assert _weighed(tmp_path / "not-here.wav") == "", "a guess about nothing"
+
+
+def test_an_export_says_what_it_made(tmp_path):
+    """The one moment a person can act on the number is the moment the
+    file appears — after that it is a file whose size nobody knows."""
+    s = session()
+    s.bench.path = tmp_path / "piece.ges"
+    s.log = None
+    made = tmp_path / "piece-session.ges"
+
+    # `transcript` is the writer a headless session can reach; the
+    # exports say it through the same `_weighed`.
+    from gestate.sessionlog import Log
+
+    s.log = Log()
+    s.log.add("play", (), "playing")
+    said = s.run("transcript", str(made))
+    assert "1 steps" in said and made.exists(), said
+    assert _weighed_in(said), said
+
+
+def _weighed_in(said: str) -> bool:
+    return any(mark in said for mark in ("▪", "◆", "▲"))
