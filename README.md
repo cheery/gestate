@@ -127,6 +127,26 @@ them the way it writes a knob, and `discOf` and `emberOf` are ordinary
 functions of them — twelve lines of `chopin.ges`, above the score they
 are watching.
 
+And a picture can be **played backwards into the file**.  `notes
+<expr>` stands a piano roll of that expression on its own line; take
+hold of a note in it and it follows your hand, and where you let go is
+where the file says it was all along:
+
+ ![dragging a note](doc/editing.gif)
+
+<p align="center"><sub><em>A note dragged in the roll on line 109, and
+`holdBar 45` becoming `holdBar 42` on line 103 as it moves.  One
+number changes — no reflow, no reprint — and the sound follows without
+the file on disk being touched.  The status line says what it did and
+how many voicings share the note.
+(<a href="doc/editing.gif">doc/editing.gif</a>)</em></sub></p>
+
+That is the rule the whole editor is built on and the only one it has
+about widgets: **a widget is a view over a span of source, and dragging
+it is a text edit.**  The knob rewrites its own declaration; the roll
+rewrites one number of the phrase it draws; both are undone by
+`Ctrl-Z`, because there is one document and it is the text.
+
 There is **one mode, and it is typing**.  `Ctrl-K` opens the command
 list, which is every other thing the editor can do, filterable, each with
 its name and its key; a capability cannot exist without appearing there,
