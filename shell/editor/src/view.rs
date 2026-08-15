@@ -791,7 +791,15 @@ pub fn burger_frame(view: &View, font: &Font, open: bool) -> Frame {
 
 /// Greedy word wrap to a column count, chars being columns — which in
 /// a bitmap font they are.
-fn wrap(text: &str, cols: usize) -> Vec<String> {
+/// A paragraph broken to `cols` columns, on spaces.
+///
+/// **Two readers, and the second is why it is `pub`.**  The bar wraps
+/// its sentence here; the palette's *page* — what `what` found in the
+/// reference — used to `elide` instead, so `what !` answered a
+/// 518-character paragraph with sixty characters and an ellipsis
+/// (Henri, 2026-08-15: *"we have good doc but it overflows"*).  One
+/// wrapper for both, because two would disagree about a long word.
+pub fn wrap(text: &str, cols: usize) -> Vec<String> {
     let cols = cols.max(1);
     let mut out = Vec::new();
     let mut line = String::new();

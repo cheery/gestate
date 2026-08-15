@@ -1003,6 +1003,21 @@ impl Palette {
         // single row.
         if !self.page.is_empty() {
             let room = (((box_w - 8) / cw.max(1)).max(4)) as usize;
+            // **Wrapped, not cut.**  The reference gives a paragraph
+            // per line — `!`'s runs to 518 characters — and eliding it
+            // answered a question with sixty characters and an
+            // ellipsis, which is a page that has the documentation and
+            // will not show it.  `view::wrap` is the bar's own
+            // wrapper, so a long word is cut in one place rather than
+            // two, and an empty line stays a blank row because a
+            // paragraph break is part of the reading.
+            let page: Vec<String> = self.page.iter()
+                .flat_map(|line| if line.is_empty() {
+                    vec![String::new()]
+                } else {
+                    crate::view::wrap(line, room)
+                })
+                .collect();
             // **The page goes where the room is** (F133).  It always
             // hung below the panel, and the equator sends the panel
             // low when the caret is high — so `what scope` drew its
@@ -1011,7 +1026,7 @@ impl Palette {
             // panel sits low, and when neither side holds the whole
             // page, as many lines as fit with the last row counting
             // the rest — the full page stays one `doc/ref/` away.
-            let want = self.page.len() as i32;
+            let want = page.len() as i32;
             let below = ((h - (y + box_h + 6) - 12) / ch).max(0);
             let above = ((y - 12) / ch).max(0);
             let (fit, up) = if below >= want {
@@ -1034,7 +1049,7 @@ impl Palette {
                 let s = if cut {
                     format!("… {} more", want - fit + 1)
                 } else {
-                    elide(&self.page[i], room)
+                    elide(&page[i], room)
                 };
                 f.items.push(Item::Run {
                     x: x + 4, y: py + 4 + ch * i as i32, s,
@@ -1107,6 +1122,49 @@ mod paint_tests {
         assert!(g.items.iter().any(|i| matches!(i,
             Item::Run { s, .. } if s.starts_with("… "))),
             "a cut page kept quiet about the rest");
+    }
+
+    /// Henri, 2026-08-15: *"when I open up `what !`, the page
+    /// overflows from the right rather than wraps the text, leaving the
+    /// user to trouble."*  The reference's prose arrives as one
+    /// paragraph per line — `!`'s is 518 characters — and a page row is
+    /// one `Run`.
+    #[test]
+    fn a_long_page_line_does_not_run_off_the_right() {
+        let (w, h, cw, ch) = (900, 600, 10, 20);
+        let mut p = Palette::default();
+        p.show();
+        p.offer_page(vec![
+            "(!) : (a -> … -> z) -> Sig a -> … -> Sig z".into(),
+            "Language — Lifting".into(),
+            String::new(),
+            "Where an ordinary function meets signals.  `!f x y z` pairs \
+             its argument signals and applies `f` at each instant, so a \
+             function written once over ordinary values works over time \
+             without being written again."
+                .into(),
+        ]);
+        let f = p.frame(w, h, cw, ch, "");
+        let rows: Vec<String> = f.items.iter().filter_map(|i| match i {
+            Item::Run { s, .. } => Some(s.clone()),
+            _ => None,
+        }).collect();
+        for (item, s) in f.items.iter().zip(rows.iter()) {
+            if let Item::Run { x, .. } = item {
+                let right = x + s.chars().count() as i32 * cw;
+                assert!(right <= w,
+                        "a page row runs to {right} in a window {w} wide: {s:?}");
+            }
+        }
+        // **Wrapped, not cut**: the sentence is all there, across rows,
+        // and no row ends in the ellipsis that says a line was thrown
+        // away.  A page that holds the documentation and will not show
+        // it is the bug this is about.
+        let page: String = rows.join(" ");
+        assert!(page.contains("pairs its argument signals"), "{page:?}");
+        assert!(page.contains("without being written again"), "{page:?}");
+        assert!(!rows.iter().any(|r| r.ends_with('…')),
+                "a row was elided where there was room to wrap: {rows:?}");
     }
 
     fn a_palette() -> Palette {
