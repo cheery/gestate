@@ -1037,6 +1037,30 @@ _BUILD = __import__("itertools").count()
 _SO_SCHEMA = 1
 
 
+def _flags(opt: str) -> list:
+    """What clang is asked, which is not only the optimisation level.
+
+    **`-fno-slp-vectorize`, because the pass costs a second and buys
+    nothing here.**  `-ftime-report` on `quartet.ges` put 56% of the
+    optimiser inside `SLPVectorizerPass` — 1.0 s of 1.8 — and turning
+    it off makes the object **bit-identical**, which is not luck: this
+    emitter writes no fast-math flags, so nothing may reorder a
+    floating-point sum, and superword parallelism across a graph of
+    scalar step functions finds almost nothing it is allowed to take.
+    Measured over `quartet` (2.7 s → 1.7), `chopin` (0.53 → 0.41),
+    `strings2`, `lead` and `blip`: the saving scales with the file and
+    the samples never move.  Render speed is unchanged within the noise
+    of repeated runs — which is the claim, rather than the 8% one run
+    showed.
+
+    Named here rather than folded into `opt` so the store's key can be
+    the whole command: an object built before this line was written has
+    a different key and is simply not found, which is what a
+    content-addressed cache is for.
+    """
+    return [opt, "-fno-slp-vectorize"]
+
+
 def _so_store():
     """Where compiled objects are remembered, or `None` when off.
 
@@ -1088,7 +1112,8 @@ def build(graph: Graph, directory, opt: str = "-O2"):
     if store is not None:
         import hashlib
 
-        sha = hashlib.sha256(f"{opt}\n{text}".encode()).hexdigest()[:32]
+        sha = hashlib.sha256(
+            (" ".join(_flags(opt)) + "\n" + text).encode()).hexdigest()[:32]
         kept = store / f"so-{_SO_SCHEMA}-{sha}.so"
         if kept.exists():
             try:
@@ -1109,7 +1134,7 @@ def build(graph: Graph, directory, opt: str = "-O2"):
     from .buildtime import phase
 
     with phase("clang"):
-        subprocess.run(["clang", opt, "-shared", "-fPIC", str(ll),
+        subprocess.run(["clang", *_flags(opt), "-shared", "-fPIC", str(ll),
                         "-o", str(so), "-lm"],
                        check=True, capture_output=True)
     if kept is not None:
