@@ -115,11 +115,69 @@ def shadow_libraries(library: str, program: str) -> str:
     """
     from .syntax.tokenize import TT, tokenize
 
+    renames, _ = _renames(library, program)
+    if not renames:
+        return library
+    # `Pos` is a line and a column; the splice wants an offset.
+    lines = library.split("\n")
+    start_of, at = [], 0
+    for line in lines:
+        start_of.append(at)
+        at += len(line) + 1
+
+    edits = []
+    for token in tokenize(library):
+        if token.kind in (TT.WORD, TT.CONID) and token.value in renames:
+            begin = start_of[token.pos.line] + token.pos.col
+            edits.append((begin, begin + len(token.value),
+                          renames[token.value]))
+    # Back to front, so the offsets ahead of each edit stay true.
+    out = library
+    for begin, end, text in reversed(edits):
+        out = out[:begin] + text + out[end:]
+    return out
+
+
+def stands_alone(library: str, program: str) -> bool:
+    """May the head of this assembly be analysed **without** the program?
+
+    What the answer buys is `syntax.note_seam` and with it the staged
+    front end: a head that stands alone is analysed once and kept, and a
+    rebuild infers only the author's part (`pipeline._analyse_staged`).
+
+    An unshadowed head always stands alone, and that used to be the
+    whole of the test — three assemblers each wrote `if shadowed is
+    library`.  It is the wrong question by one word.  A **library**
+    name the program takes over is renamed on both sides at once,
+    binding and references together, so the head goes on referring only
+    to names it defines itself and is as standalone as it ever was.  A
+    name out of `prelude.ges` is not: the head is left calling
+    `__prelude_envAt__`, which nothing defines until `merge` moves the
+    prelude's binding, and that happens only once the program is in
+    front of it.
+
+    The distinction is worth the function because of which names it is
+    about.  `bar`, `chorus`, `Note`, `gain` — the words a piece is made
+    of — are library names, and asking the coarse question cost every
+    file using one its whole staged front end: 2.40 s → 1.24 s on
+    `noted.ges`, 3.36 → 2.65 on `quartet.ges`, per save.
+    """
+    _, from_prelude = _renames(library, program)
+    return not from_prelude
+
+
+def _renames(library: str, program: str) -> tuple[dict, bool]:
+    """`(name → what it becomes in the library, does it reach the prelude)`.
+
+    One computation, because `shadow_libraries` and `stands_alone` are
+    two questions about the same fact and a second implementation of it
+    would put its bugs between them.
+    """
     program_items = _parsed(program).items
     taken = _defined_names(program_items)
     taken_types = _type_names(program_items)
     if not taken and not taken_types:
-        return library
+        return {}, False
     library_items = _parsed(library).items
     defines = _defined_names(library_items)
     shadowed = defines & taken
@@ -155,7 +213,7 @@ def shadow_libraries(library: str, program: str) -> str:
     from_prelude = (_defined_names(_parsed(load()).items) & taken) - defines
 
     if not shadowed and not from_prelude and not shadowed_types:
-        return library
+        return {}, False
 
     # Two prefixes, because they are two libraries and the binding each
     # reference has to reach is in a different one.  A name the library
@@ -166,24 +224,7 @@ def shadow_libraries(library: str, program: str) -> str:
     # Prelude *constructors* a program shadows (`Just`, `Cons`…) are
     # `merge`'s question, one layer down, and are not answered here.
     renames.update({n: library_shadowed_con(n) for n in shadowed_types})
-    # `Pos` is a line and a column; the splice wants an offset.
-    lines = library.split("\n")
-    start_of, at = [], 0
-    for line in lines:
-        start_of.append(at)
-        at += len(line) + 1
-
-    edits = []
-    for token in tokenize(library):
-        if token.kind in (TT.WORD, TT.CONID) and token.value in renames:
-            begin = start_of[token.pos.line] + token.pos.col
-            edits.append((begin, begin + len(token.value),
-                          renames[token.value]))
-    # Back to front, so the offsets ahead of each edit stay true.
-    out = library
-    for begin, end, text in reversed(edits):
-        out = out[:begin] + text + out[end:]
-    return out
+    return renames, bool(from_prelude)
 
 
 @functools.lru_cache(maxsize=16)

@@ -415,15 +415,17 @@ def assemble(source: str, rate: int = DEFAULT_RATE,
     # The libraries are the same text on every compile and most of the
     # tokens; telling the parser where they end lets it keep their tokens
     # across compiles and re-tokenize only the author's part.  **Only when
-    # nothing was shadowed**: a renamed head references `__prelude_…`
-    # names that exist only once the program is merged in, so it cannot be
-    # analysed on its own — no seam, and the whole-text path renames as it
-    # always did.
+    # the head stands alone** — `prelude.stands_alone` is the whole of
+    # that question, and it is not "was anything renamed": a library name
+    # the program takes over moves on both sides at once and the head is
+    # standalone still, while a `__prelude_…` name it is left calling
+    # exists only once the program is merged in.
+    from .prelude import stands_alone
     from .syntax import note_seam
 
     shadowed = shadow_libraries(prelude, program)
     out = shadowed + "\n" + program + "\n" + clock + _entry(rate)
-    if shadowed is prelude:
+    if stands_alone(prelude, program):
         note_seam(out, len(shadowed) + 1)
     return out
 

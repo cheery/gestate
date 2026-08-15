@@ -409,12 +409,15 @@ def assemble_performance(synth: str, piece: str = "", rate: int = 22050,
     # where it matters most: `chorus` is an effect in `synth.ges` and a
     # section of a song in every piece ever written, and the collision that
     # found this was exactly that (`examples/audio/quartet.ges`).
+    from .prelude import stands_alone
     from .syntax import note_seam
 
     shadowed = shadow_libraries(head, written)
     out = shadowed + "\n" + written + "\n" + tail
-    # Only an unshadowed head can stand alone — see `audio.assemble`.
-    if shadowed is head:
+    # Which heads stand alone — see `audio.assemble` and
+    # `prelude.stands_alone`.  A piece calling a section `bar` or
+    # `chorus` is the case this is about.
+    if stands_alone(head, written):
         note_seam(out, len(shadowed) + 1)
     return out
 

@@ -188,7 +188,7 @@ def assembled(source: str, rate: int = 0,
     author's namespace, because they are three readings of one file.
     """
     from .audio import DEFAULT_RATE
-    from .prelude import shadow_libraries
+    from .prelude import shadow_libraries, stands_alone
     from .syntax import note_seam
 
     head = _preludes(source)
@@ -196,8 +196,9 @@ def assembled(source: str, rate: int = 0,
     tail = _entry(source, rate or DEFAULT_RATE, entry_name)
     shadowed = shadow_libraries(head, written)
     out = shadowed + "\n" + written + "\n" + tail
-    # Only an unshadowed head can stand alone — see `audio.assemble`.
-    if shadowed is head:
+    # Which heads stand alone — see `audio.assemble` and
+    # `prelude.stands_alone`.
+    if stands_alone(head, written):
         note_seam(out, len(shadowed) + 1)
     return out
 

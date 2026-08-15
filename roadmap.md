@@ -376,21 +376,49 @@ Three measures, in the order the value falls:
    the one thing the analysis threw away.  `_load_substrate` and
    `_load_from_midi` are the same shape again, smaller, and still to
    do.
-2. **Then the front end is the whole of the rest — 4.6 s.**  It is
-   already staged: the stack front holds the libraries' parse and
-   inference.  What still runs over all 232 k assembled characters
-   every time is everything *after* that seam — `infer_program` 45%,
-   `_discharge` (elaborate and specialise) 15%, `desugar_program` 12%
-   over the whole module, `lower_fields` 9%.  Two different jobs live
-   in that list.  *Tuning*: `expr.subexprs` and `map_children` ask
-   `dataclasses.fields()` 170,000 times per analysis and `is_dataclass`
-   as often, so caching the field tuple per class is ~10% across every
-   pass for a few lines, and `types.apply` runs 843,000 times.
-   *Structural*: desugaring a library item is a pure function of the
-   stack text and could join the pickled front, and elaborate and
-   specialise could skip the SCs no program constraint touches — that
-   is a question about where the seam sits, not tuning, and it is the
-   one to think about rather than measure.
+2. **Then the front end is the whole of the rest — 4.6 s.**  This file
+   said *"it is already staged: the stack front holds the libraries'
+   parse and inference"*, and for the files anybody works on **that was
+   not true**.  `_analyse_staged` returned `None` in thirteen
+   microseconds for `quartet.ges`, `noted.ges` and `blip.ges`: no seam,
+   so every prelude was re-inferred on every save and `infer_program`
+   was handed all 779 supercombinators rather than the hundred the file
+   wrote.
+
+   **One shadowed name turned the whole cache off**, and the three
+   assemblers each spelled the test `if shadowed is prelude`.  Nine of
+   the forty-five examples paid it, over `bar` (four files), `chorus`,
+   the type `Note`, `gain`, `pair`, `envAt` — which is to say over the
+   words a piece is *made of*.  **Fixed, 2026-08-15**: the question is
+   `prelude.stands_alone`, not "was anything renamed".  A library name
+   the program takes over moves on both sides at once and the head
+   refers only to what it defines, so it stands alone as it always did;
+   a `prelude.ges` name leaves it calling `__prelude_envAt__`, which
+   nothing defines until `merge` puts the program in front of it.  Eight
+   of the nine are staged now and `blip.ges` refuses for a stated reason
+   — 2.40 s → 1.24 s on `noted.ges`, 2.35 → 1.27 on `spiral.ges`, 3.36 →
+   2.65 on `quartet.ges`, per save, with the fronts warm as an editor
+   keeps them.  The acceptance is the one the staged path always had
+   (same SC names, same types, same case tags), now also held against a
+   shadowing program; and `lantern.ges`, which shadows `bar` and is
+   therefore newly staged, exports byte-identically to before, which is
+   the "two numberings in one program" hazard checked where it would
+   show.
+
+   What is left is what runs over all 232 k assembled characters *after*
+   the seam: `_discharge` (elaborate and specialise) 0.60 s,
+   `desugar_program` 0.39, `expand_envelopes` 0.13,
+   `resolve_static_methods` 0.11, exhaustiveness 0.10 — about 1.4 s of
+   quartet's remaining 2.65, every save, over library SCs that cannot
+   have changed.  Two different jobs.  *Tuning*: `expr.subexprs` and
+   `map_children` ask `dataclasses.fields()` 170,000 times per analysis
+   and `is_dataclass` as often, so caching the field tuple per class is
+   ~10% across every pass for a few lines, and `types.apply` runs
+   843,000 times.  *Structural*: desugaring a library item is a pure
+   function of the stack text and could join the pickled front, and
+   elaborate and specialise could skip the SCs no program constraint
+   touches — that is a question about where the seam sits, not tuning,
+   and it is the one to think about rather than measure.
 3. **`GESTATE_BUILD_TIME`, the compile-side twin of
    `GESTATE_EDITOR_TIME`.**  The frame side has instrumentation and two
    lag tools and consequently does not rot; the build side has neither,

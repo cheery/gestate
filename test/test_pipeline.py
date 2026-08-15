@@ -240,9 +240,10 @@ def _case_tags(analysis):
     return out
 
 
-def test_staged_analysis_is_the_whole_text_analysis():
-    """Same SC names, same types, same case tags — not merely same sounds.
+def _staged_is_plain(src):
+    """Analyse `src` both ways and assert the two answers are one answer.
 
+    Same SC names, same types, same case tags — not merely same sounds.
     The one defect this family of changes can introduce is *two
     numberings in one program*: the cached stack compiled under one tag
     assignment and the author's part under another, which surfaces as a
@@ -250,7 +251,7 @@ def test_staged_analysis_is_the_whole_text_analysis():
     """
     import gestate.syntax as syn
 
-    src = assemble(SYNTH, RATE)
+    assert syn._SEAMS.get(src) is not None, "no seam — nothing was staged"
     forget_analyses()
     staged = analyse(src)
     seam = syn._SEAMS.pop(src)
@@ -264,6 +265,48 @@ def test_staged_analysis_is_the_whole_text_analysis():
     assert {k: str(v) for k, v in staged.types.items()} == \
         {k: str(v) for k, v in plain.types.items()}
     assert _case_tags(staged) == _case_tags(plain)
+
+
+def test_staged_analysis_is_the_whole_text_analysis():
+    _staged_is_plain(assemble(SYNTH, RATE))
+
+
+#: A synth that takes over a name `synth.ges` defines — `gain`, which
+#: `examples/audio/compressor.ges` really does.  `bar`, `chorus` and the
+#: type `Note` are the same case in four more of the examples.
+SHADOWING = SYNTH.replace("cutoff", "gain")
+
+
+#: And one that takes over a `prelude.ges` name, which is the other case
+#: entirely: `synth.ges` *calls* `clamp` in eight places.
+SHADOWS_PRELUDE = "clamp lo hi x = x\n\n" + SYNTH
+
+
+def test_shadowing_a_library_name_is_still_staged():
+    """The renaming moves the library's binding and its references
+    together, so the head goes on referring only to names it defines —
+    which is what standing alone means.  This used to cost every file
+    with a `bar` or a `chorus` in it the whole staged front end."""
+    src = assemble(SHADOWING, RATE)
+    # Or the test would go on passing while testing nothing, the day
+    # `synth.ges` stops defining a `gain`.
+    assert "__library_gain__" in src, "nothing was shadowed"
+    _staged_is_plain(src)
+
+
+def test_shadowing_a_prelude_name_refuses_the_seam():
+    """The other side of the same rule, and why it is not "was anything
+    renamed": the head is left calling `__prelude_clamp__`, which nothing
+    defines until `merge` moves the prelude's binding — and that happens
+    only once the program is in front of it.  So: no seam, and the
+    whole-text path does what it always did."""
+    import gestate.syntax as syn
+
+    src = assemble(SHADOWS_PRELUDE, RATE)
+    assert "__prelude_clamp__" in src, "nothing was shadowed"
+    assert syn._SEAMS.get(src) is None
+    forget_analyses()
+    assert analyse(src).types, "and it still analyses the long way"
 
 
 def test_stack_front_survives_a_pickle():
