@@ -764,6 +764,9 @@ class Workbench:
         #: `_load_substrate`, because a picture built from the file
         #: needs no help to say where the note is.
         self.previewing: dict = {}
+        #: What the card's dry count was when it was last mentioned, and
+        #: when that was — see `_say_dry`.
+        self._dry_said, self._dry_when = 0, 0.0
         #: How long a drag's audition waits for the hand to stop.
         #:
         #: **A hand drags in strings of gestures, and each rebuild is a
@@ -2784,6 +2787,7 @@ class Workbench:
         """Called between blocks, or by the housekeeping thread when the C
         host is running — never on the render loop either way."""
         self._hand_over()
+        self._say_dry()
         while self.live.errors:
             self.say("error: " + self._first_line(self.live.errors.pop(0)))
         if self.live.generation != self._seen:
@@ -2792,6 +2796,42 @@ class Workbench:
             self.trouble = ""
             self.say(f"applied edit {self._seen}"
                      + ("" if self.has_knob else " (no knob in this synth)"))
+
+    #: How often the status line may mention the card running dry.
+    #:
+    #: A crackle is one event to a listener however many blocks it ate,
+    #: and a line per block would be the status bar stuttering about the
+    #: sound stuttering.
+    DRY_EVERY = 2.0
+
+    def _say_dry(self) -> None:
+        """Say it when the card ran out of sound to play.
+
+        **A crackle is news, and news does not live behind a switch.**
+        The count went in under `GESTATE_BUILD_TIME` first, which
+        attributes it to the *build* that caused it and is the right
+        place for a measurement — and the wrong place for the one
+        person who matters, who was using the editor with no switches
+        on, heard the sound tear, and got no word about it.  A rebuild
+        is only the likeliest suspect; the machine can be busy for
+        reasons this program has never heard of, and either way the
+        editor knows and should say so.
+
+        `manifesto.md`: what is built must be able to say when it is
+        wrong.  This is the sound saying it.
+        """
+        host = getattr(self, "host", None)
+        if host is None:
+            return                      # the Python driver keeps no count
+        dry = host.dry
+        if dry <= self._dry_said:
+            return
+        now = time.time()
+        if now - self._dry_when < self.DRY_EVERY:
+            return                      # one crackle, one sentence
+        self.say(f"the card ran dry {dry - self._dry_said}× — "
+                 f"something took the machine")
+        self._dry_said, self._dry_when = dry, now
 
     def _hand_over(self) -> None:
         """Give a freshly compiled engine to the C host, migrated.

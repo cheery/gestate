@@ -2245,3 +2245,54 @@ def test_a_string_of_gestures_is_one_audition(tmp_path):
 
     assert heard == ["take 4"], heard
     assert AUDITION_WAIT > 0.1, "a wait too short to cover a gesture"
+
+
+def test_the_editor_says_when_the_card_ran_dry(tmp_path):
+    """**A crackle is news, and news does not live behind a switch.**
+
+    The count went in under `GESTATE_BUILD_TIME` first, which
+    attributes it to the build that caused it and is right for a
+    measurement — and wrong for the person using the editor with no
+    switches on, who heard the sound tear and was told nothing.  Henri:
+    *"I did hear stutter but the `[audio]` didn't trigger."*
+
+    Coalesced, because a crackle is one event to a listener however
+    many blocks it ate: a line per block would be the status bar
+    stuttering about the sound stuttering.
+    """
+    from gestate.audioeditor import Workbench
+
+    path = tmp_path / "a.ges"
+    path.write_text("sound : Sig Float\nsound = sine 220.0\n")
+    bench = Workbench(path, rate=8000, block=64)
+
+    class _Card:
+        dry = 0
+
+    class _Live:
+        errors: list = []
+        generation = 0
+
+    bench.host, bench.live = _Card(), _Live()
+    bench._seen = 0
+    bench._hand_over = lambda: None
+
+    bench._progress(0)
+    assert not [m for m in bench.messages if "dry" in m], bench.messages
+
+    _Card.dry = 3
+    bench._progress(0)
+    said = [m for m in bench.messages if "dry" in m]
+    assert said and "3×" in said[0], bench.messages
+
+    # A second crackle inside the same breath does not get its own line.
+    _Card.dry = 5
+    bench._progress(0)
+    assert len([m for m in bench.messages if "dry" in m]) == 1
+
+    # And a machine with no C host has no count and says nothing about
+    # one, rather than guessing.
+    bench.host, bench._dry_said, bench._dry_when = None, 0, 0.0
+    bench.messages.clear()
+    bench._progress(0)
+    assert not [m for m in bench.messages if "dry" in m]
