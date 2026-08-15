@@ -361,6 +361,56 @@ def graph_of(synth: str, piece: str = "", *, rate: int):
     return extract(synth, rate=rate)
 
 
+def tone_power(samples, rate: int, hz: float) -> float:
+    """How much of `samples` is a tone at `hz` — Goertzel, per sample.
+
+    **The ear the live path never had.**  `_Meter` below hears *how
+    loud*, which is what a mix wants and what `--report` gives; a played
+    key needs *which note*, and nothing in this project could say.  The
+    workbench's defects were found by Henri pressing a key and hearing
+    nothing, or the wrong thing, because no test could hear at all —
+    `test_audiokeyboard.py` follows a keystroke as far as the allocator
+    and stops there, one step before sound.
+
+    Goertzel rather than a transform, because the question is not "what
+    is in this signal" but "is *this* note in it", and one bin at a time
+    is ten lines of arithmetic and no dependency.  Divided by the sample
+    count so two captures of different lengths compare.
+    """
+    import math
+
+    w = 2.0 * math.pi * hz / rate
+    coeff = 2.0 * math.cos(w)
+    s1 = s2 = 0.0
+    for x in samples:
+        s0 = x + coeff * s1 - s2
+        s2, s1 = s1, s0
+    power = s1 * s1 + s2 * s2 - coeff * s1 * s2
+    return power / max(1, len(samples))
+
+
+def heard_note(samples, rate: int, among=range(36, 96)) -> int | None:
+    """Which MIDI note `samples` sounds like, or `None` for silence.
+
+    The candidates are notes rather than frequencies, and their
+    frequencies are **equal temperament from A440** — a fact about
+    music rather than about this compiler.  Asking `keyHz` what it
+    thinks 60 is would make the oracle agree with the thing it is
+    supposed to be checking.
+    """
+    if not any(samples):
+        return None
+    best, most = None, 0.0
+    for note in among:
+        hz = 440.0 * 2.0 ** ((note - 69) / 12.0)
+        if hz * 2 >= rate:              # above Nyquist there is nothing
+            continue
+        power = tone_power(samples, rate, hz)
+        if power > most:
+            best, most = note, power
+    return best
+
+
 class _Meter:
     """Peak and per-stretch RMS, fed as the render streams past.
 
