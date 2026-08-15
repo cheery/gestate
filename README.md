@@ -109,6 +109,26 @@ The label is in the file, so the diagnosis you set up on Tuesday is
 still on the screen on Wednesday — and deleting the line takes its
 window with it, because it was never anywhere else.
 
+A canvas is the same idea with no diagnosis in it.  `substrate : Sig
+Sub` is a picture the program builds the way it builds a sound — a
+value, out of ordinary functions — and the window walks it at frame
+rate beside the score it belongs to:
+
+<p align="center">
+  <video src="doc/chopin.webm" width="415" autoplay loop muted playsinline></video>
+</p>
+
+<p align="center"><sub><em>Op. 28 No. 4 on its own canvas.  The disc is
+the output's peak breathing; the eight lamps below are the voice bank's
+hammers, each brightening when its voice is struck and shrinking as the
+note ages.  (<a href="doc/chopin.webm">doc/chopin.webm</a>)</em></sub></p>
+
+Nothing there is a visualiser reading the audio from outside.  `peak`
+and the voice ages are channels the program *declares*, the host writes
+them the way it writes a knob, and `discOf` and `emberOf` are ordinary
+functions of them — twelve lines of `chopin.ges`, above the score they
+are watching.
+
 There is **one mode, and it is typing**.  `Ctrl-K` opens the command
 list, which is every other thing the editor can do, filterable, each with
 its name and its key; a capability cannot exist without appearing there,
