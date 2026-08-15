@@ -236,11 +236,19 @@ def _deep_stack_alone(thunk):
     import sys
     import threading
 
+    from .buildtime import borrowing, lending
+
     box: dict[str, object] = {}
+    # The worker runs *for* this thread, which blocks on it below — so a
+    # phase it opens belongs under the phases open here, not beside
+    # them.  Without this the front end was counted twice over: once as
+    # itself and once inside whatever was waiting for it.
+    waiting = lending()
 
     def worker():
         try:
-            box["value"] = thunk()
+            with borrowing(waiting):
+                box["value"] = thunk()
         except BaseException as exc:      # re-raised on the calling thread
             box["error"] = exc
 

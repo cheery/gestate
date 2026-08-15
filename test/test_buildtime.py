@@ -90,6 +90,28 @@ def test_work_that_really_overlaps_is_marked(capsys, monkeypatch):
     assert "‖ clang" in said, said
 
 
+def test_a_front_end_run_for_a_phase_is_counted_under_it(capsys,
+                                                         monkeypatch):
+    """`pipeline._deep_stack` runs the front end on a worker and joins
+    it, so `_load_substrate`'s analysis happens on a thread the phase
+    stack does not reach.  Counted beside the caller instead of under
+    it, `substrate` read as seconds that were already printed on the
+    front end's own line — the double count this file exists to refuse.
+    """
+    from gestate.pipeline import analyse, forget_analyses
+
+    monkeypatch.setenv("GESTATE_BUILD_TIME", "1")
+    forget_analyses()
+    with building("handed.ges"):
+        with phase("substrate"):
+            analyse("main : Int\nmain = 1 + 2\n")
+    rows = _rows(_report(capsys))
+    assert "front end" in rows
+    # Its own time is what is left after the front end, which is nothing
+    # much: the phase did no other work.
+    assert rows.get("substrate", 0.0) < rows["front end"] / 2, rows
+
+
 def test_the_front_end_reports_itself(capsys, monkeypatch):
     """The wiring, not the mechanism: a real front end run inside a
     build is a phase, and one answered from the cache is not — because

@@ -405,20 +405,44 @@ Three measures, in the order the value falls:
    the "two numberings in one program" hazard checked where it would
    show.
 
-   What is left is what runs over all 232 k assembled characters *after*
-   the seam: `_discharge` (elaborate and specialise) 0.60 s,
-   `desugar_program` 0.39, `expand_envelopes` 0.13,
-   `resolve_static_methods` 0.11, exhaustiveness 0.10 — about 1.4 s of
-   quartet's remaining 2.65, every save, over library SCs that cannot
-   have changed.  Two different jobs.  *Tuning*: `expr.subexprs` and
-   `map_children` ask `dataclasses.fields()` 170,000 times per analysis
-   and `is_dataclass` as often, so caching the field tuple per class is
-   ~10% across every pass for a few lines, and `types.apply` runs
-   843,000 times.  *Structural*: desugaring a library item is a pure
-   function of the stack text and could join the pickled front, and
-   elaborate and specialise could skip the SCs no program constraint
-   touches — that is a question about where the seam sits, not tuning,
-   and it is the one to think about rather than measure.
+   **The tail, re-measured once the seam worked**, because the first
+   numbers here were taken with a cold pickle in the staged run and
+   were too pessimistic.  A warm front end on `quartet.ges` is **1.2 s**
+   now, not 2.65, and it divides: `_discharge` 0.21 (elaborate 0.15,
+   specialise 0.04), `infer_program` 0.21, `desugar_program` 0.13,
+   loading the stack front 0.11, exhaustiveness 0.06, kind check 0.03,
+   `expand_envelopes` 0.04, `resolve_static_methods` 0.04.  About half
+   of it is whole-module work over library SCs that cannot have
+   changed.
+
+   *Tuning is spent.*  `expr._field_names` caches the field tuple per
+   node kind, which is worth 5% — not the 10% guessed here, and
+   measured by replacing the cache with the old call rather than by
+   comparing two runs.  What is left of that idea is `types.apply`, at
+   843,000 calls.
+
+   *Structural, and each piece is small and delicate.*  Desugaring a
+   library item is the largest single one at 0.11 s, and the front
+   already holds the answer — `_analyse_staged` desugars the whole
+   module and throws the library half away.  It is not a free deletion:
+   `match.fresh_name` runs off a global counter that `desugar_program`
+   resets, so skipping the library half moves every generated binder,
+   and the fix is a `names_end` in `StackFront` beside `fresh_end`.
+   Exhaustiveness and the kind check are another 0.09 and are already
+   run over the head when the front is built.  Elaborate and specialise
+   cannot skip library SCs at all — a program call site specialises a
+   library body — unless the SCs no constraint touches are identified
+   first.  Worth doing deliberately, worth ~0.2 s a front end and
+   therefore ~0.4 s a save, and *not* worth slipping in at the end of an
+   afternoon: a generated name landing on another one is silent.
+
+   **And a save runs two front ends, not one.**  The sound and the
+   canvas are different assemblies of the same file — different
+   preludes, different entry — so a file with a `substrate` is analysed
+   twice per save: 1.40 s of `chopin.ges`'s 2.24 s apply.  Each is
+   staged and each pays the tail above, which is what doubles the tail's
+   value.  Unifying them is a language question (one prelude for both,
+   or a synth paying for `gui.ges`), not a caching one.
 3. **`GESTATE_BUILD_TIME`, the compile-side twin of
    `GESTATE_EDITOR_TIME`.  Built, 2026-08-15.**  The frame side had
    instrumentation and two lag tools and consequently did not rot; the
@@ -433,6 +457,17 @@ Three measures, in the order the value falls:
    is not concurrency.  `clang` shows only when the compiler ran, since
    a `.so` store hit is meant to cost nothing.  This project's own
    sentence: *"it feels slow" is not a measurement.*
+
+   **It was wrong the day it was switched on, and that is the argument
+   for it.**  `substrate` read as the largest phase of a start — 7.8 s
+   on `chopin.ges` — and it was not.  Own time is computed off a
+   per-thread stack, and `_deep_stack` hands the front end to a worker,
+   so the analysis `_load_substrate` was *waiting for* got counted
+   twice: on its own line, and inside the phase waiting for it.
+   `buildtime.lending`/`borrowing` carries the open phases across that
+   hand-off now, and the same fact fixed the `‖` mark, which was
+   calling a hand-off concurrency.  The canvas's own cost is 0.24 s;
+   what it really pays for is the second front end above.
 
 **Measured and rejected: `clang -O1` for interactive builds.**  It
 looked like a free 1.3 s of the three, and the objects are *bit

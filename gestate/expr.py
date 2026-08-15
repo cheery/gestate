@@ -33,6 +33,7 @@ SC emitted by the lifter).
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from functools import lru_cache as _lru_cache
 from typing import Union
 
 
@@ -545,6 +546,28 @@ __all__ = [
 ]
 
 
+@_lru_cache(maxsize=None)
+def _field_names(cls) -> tuple:
+    """The field names of a node kind, asked once per kind ever.
+
+    **The two functions below are the front end's floor**, and they used
+    to ask `dataclasses.fields()` — which builds a fresh tuple out of
+    `__dataclass_fields__` on every call — once per node visited.
+    Measured on `quartet.ges`: 170,000 calls in one analysis, `fields`
+    and `is_dataclass` together about a tenth of it.  There are twenty
+    dataclasses in this module and their fields do not change, so the
+    answer is a dictionary lookup.
+
+    Not a dataclass — a `Name`, a span, an `int` — has no fields, and
+    the empty tuple says so without a second predicate.
+    """
+    from dataclasses import fields, is_dataclass
+
+    if not is_dataclass(cls):
+        return ()
+    return tuple(f.name for f in fields(cls))
+
+
 def subexprs(e: Expr) -> list[Expr]:
     """Every immediate sub-expression of ``e``, whatever its node kind.
 
@@ -552,13 +575,9 @@ def subexprs(e: Expr) -> list[Expr]:
     needs to *find* something (rather than rebuild the tree) does not have
     to enumerate all twenty-odd node kinds and go stale when one is added.
     """
-    from dataclasses import fields, is_dataclass
-
-    if not is_dataclass(e):
-        return []
     out: list[Expr] = []
-    for f in fields(e):
-        v = getattr(e, f.name)
+    for name in _field_names(type(e)):
+        v = getattr(e, name)
         if isinstance(v, Expr):
             out.append(v)
         elif isinstance(v, (list, tuple)):
@@ -580,20 +599,18 @@ def map_children(e: Expr, f) -> Expr:
     flavours it leaves on `ELambda`/`Alter`, would not survive a
     hand-written rebuilder that names only the fields it knows about.
     """
-    from dataclasses import fields, is_dataclass, replace
+    from dataclasses import replace
 
-    if not is_dataclass(e):
-        return e
     changes: dict = {}
-    for fld in fields(e):
-        v = getattr(e, fld.name)
+    for name in _field_names(type(e)):
+        v = getattr(e, name)
         if isinstance(v, Expr):
-            changes[fld.name] = f(v)
+            changes[name] = f(v)
         elif isinstance(v, list) and v:
             if all(isinstance(x, Expr) for x in v):
-                changes[fld.name] = [f(x) for x in v]
+                changes[name] = [f(x) for x in v]
             elif all(isinstance(x, Alter) for x in v):
-                changes[fld.name] = [replace(a, body=f(a.body)) for a in v]
+                changes[name] = [replace(a, body=f(a.body)) for a in v]
             elif all(isinstance(x, tuple) and len(x) == 2 for x in v):
-                changes[fld.name] = [(n, f(d)) for n, d in v]
+                changes[name] = [(n, f(d)) for n, d in v]
     return replace(e, **changes) if changes else e
