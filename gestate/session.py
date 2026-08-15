@@ -3706,6 +3706,7 @@ def _reference(name: str) -> str | None:
 
 #: What a file of each kind may weigh before it is worth a second look
 #: — `(calm, notable)` in bytes, and past the second one it is heavy.
+#: `spec/rocks.md` is the contract; this is the table it names.
 #:
 #: **A size means nothing without knowing what the file is.**  Six
 #: megabytes is unremarkable for a rendered piece and absurd for a
