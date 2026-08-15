@@ -114,14 +114,12 @@ Sub` is a picture the program builds the way it builds a sound — a
 value, out of ordinary functions — and the window walks it at frame
 rate beside the score it belongs to:
 
-<p align="center">
-  <video src="doc/chopin.webm" width="415" autoplay loop muted playsinline></video>
-</p>
+ ![Op. 28 No. 4](doc/chopin.gif)
 
 <p align="center"><sub><em>Op. 28 No. 4 on its own canvas.  The disc is
 the output's peak breathing; the eight lamps below are the voice bank's
 hammers, each brightening when its voice is struck and shrinking as the
-note ages.  (<a href="doc/chopin.webm">doc/chopin.webm</a>)</em></sub></p>
+note ages.  (<a href="doc/chopin.gif">doc/chopin.gif</a>)</em></sub></p>
 
 Nothing there is a visualiser reading the audio from outside.  `peak`
 and the voice ages are channels the program *declares*, the host writes
