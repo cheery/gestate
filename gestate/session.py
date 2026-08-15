@@ -2683,6 +2683,33 @@ class Session:
         self._journal().slid("touched", (name, value))
         return ""
 
+    def released(self, name: str) -> str:
+        """That channel's grab let go — the end of a gesture, by name.
+
+        **The full stop after a slide** (`spec/workbench.md` §"The
+        canvas walks over crust").  A `touched` streams: thirty a
+        second while a hand rides a fader, coalesced in the transcript
+        to where it ended.  That is everything a fader needs and
+        nothing a gesture that must *commit* can use — a score box's
+        drag is one text edit, one undo entry, one rebuild
+        (`spec/north_star.md`), and without this it cannot know when to
+        make them.
+
+        Recorded rather than coalesced, because it is what makes the
+        run replay as a gesture rather than as a final position: the
+        `touched`s before it collapse to one and this is the point at
+        which a replay may assert the file changed.
+
+        Nothing is written here yet — the wire's word arrives before
+        the gesture that will use it, which is the order F101 asks
+        for.  A model that does not know the verb answers "no gesture"
+        and loses a commit, not the editor.
+        """
+        doing = getattr(self.bench, "released", None)
+        said = doing(name) if doing is not None else ""
+        self._journal().add("released", (name,), "")
+        return said or ""
+
     def do_skip(self) -> str:
         """The identity of `++`.
 
@@ -3397,9 +3424,20 @@ def act(session: "Session", line: str) -> str:
         # its extent the point means — is the substrate's decision
         # (`spec/substrate.md`), so nothing here interprets the place.
         try:
-            session.bench.touch(parts[1], int(parts[2]), int(parts[3]))
+            meant = session.bench.touch(parts[1], int(parts[2]),
+                                        int(parts[3]))
         except ValueError:
             return f"touch: `{parts[2]} {parts[3]}` is not a place"
+        # **The reference path says the same words the wire does.**  A
+        # window that walks the substrate sends `touched`/`released`
+        # already hit-tested; here the model did the walk itself, and
+        # what it meant goes down the same two doors — or a gesture
+        # would mean one thing on a machine with a walking window and
+        # another on one without (`spec/workbench.md`).
+        if meant and meant[0] == "touched":
+            return session.touched(meant[1], meant[2])
+        if meant and meant[0] == "released":
+            return session.released(meant[1])
         return ""
     if verb == "touched" and len(parts) >= 3:
         # The crust-walking canvas's word: what the gesture *meant*,
@@ -3409,4 +3447,9 @@ def act(session: "Session", line: str) -> str:
             return session.touched(parts[1], float(parts[2]))
         except ValueError:
             return f"touched: `{parts[2]}` is not a value"
+    if verb == "released" and len(parts) >= 2:
+        # The end of a grab, name only — the value already arrived as
+        # the last `touched` and two readings of one number is how
+        # they disagree (`spec/workbench.md`).
+        return session.released(parts[1])
     return f"no gesture `{verb}`"

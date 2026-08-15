@@ -2227,6 +2227,82 @@ def test_a_touched_channel_is_the_meaning_not_the_place():
     assert act(s, "touched\twarmthChan\t0.5") == ""
 
 
+def test_a_release_is_the_end_of_a_gesture_and_carries_no_value():
+    """`spec/workbench.md`: `released <name>` — the grab let go.
+
+    Seam test before the window speaks, which is the order F101 asks
+    for.  The name and nothing else: the value already arrived as the
+    last `touched`, and sending it twice is how two readings of one
+    number begin to disagree.
+    """
+    s = session()
+    s.bench.log = []
+    s.bench.released = lambda name: s.bench.log.append(("released", name))
+
+    assert act(s, "released\twarmthChan") == ""
+    assert s.bench.log[-1] == ("released", "warmthChan")
+
+    # A bench from before the verb loses the *commit*, not the editor —
+    # the lenience every gesture on this wire keeps.
+    del s.bench.released
+    assert act(s, "released\twarmthChan") == ""
+    # And a release with no channel is not a gesture at all.
+    assert act(s, "released").startswith("no gesture")
+
+
+def test_the_reference_path_says_the_same_words_as_the_wire():
+    """A machine with no walking window must mean the same things.
+
+    `touch <kind> <x> <y>` is the model doing its own hit-testing, and
+    what it *meant* now goes down the same two doors the window's
+    `touched`/`released` use.  Otherwise a gesture is one thing on a
+    machine that walks the canvas and another on one that does not, and
+    the parity fixtures are comparing two vocabularies
+    (`spec/workbench.md`).
+    """
+    s = session()
+    said = []
+    s.bench.touched = lambda name, v: said.append(("touched", name, v))
+    s.bench.released = lambda name: said.append(("released", name)) or ""
+
+    class _Sub:
+        """A substrate that has already done the walk, as the real one
+        now answers."""
+
+        def touch(self, kind, x, y):
+            if kind == "release":
+                return ("released", "warmthChan")
+            return ("touched", "warmthChan", 0.5)
+
+    s.bench.substrate = _Sub()
+    s.bench.touch = _Sub().touch
+
+    act(s, "touch\tpress\t10\t20")
+    act(s, "touch\trelease\t10\t20")
+    assert said == [("touched", "warmthChan", 0.5),
+                    ("released", "warmthChan")], said
+
+
+def test_a_slide_coalesces_but_its_release_does_not():
+    """What makes a drag replayable as a *gesture*.  Thirty motion
+    events collapse to where the hand ended — the transcript's rule —
+    and the full stop after them is what a replay can assert against:
+    the file changed *here*, not somewhere in the middle of a ride.
+    """
+    s = session()
+    s.bench.touched = lambda name, v: None
+    s.bench.released = lambda name: ""
+    for value in (0.20, 0.30, 0.40):
+        act(s, f"touched\tpitchChan\t{value}")
+    act(s, "released\tpitchChan")
+
+    steps = [(step.verb, step.args) for step in s._journal().steps]
+    assert steps[-2:] == [("touched", ("pitchChan", 0.40)),
+                          ("released", ("pitchChan",))], steps
+    assert sum(1 for v, _ in steps if v == "touched") == 1, \
+        "the ride should have coalesced to where it ended"
+
+
 def test_an_exactly_named_directory_outranks_a_fuzzy_file(tmp_path):
     """F129: `test` offered `pytest.ini` above the `test/` that *is*
     the query.  The palette's law one floor down — a name match beats

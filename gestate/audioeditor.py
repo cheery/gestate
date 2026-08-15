@@ -1250,16 +1250,24 @@ class Workbench:
             out.append(max(0, at - started) + 1 if sounding else 0)
         return out
 
-    def touch(self, kind: str, x: int, y: int) -> None:
+    def touch(self, kind: str, x: int, y: int) -> tuple | None:
         """A gesture on the canvas — `"press"`, `"drag"` or `"release"`.
 
         **One gesture, both halves.**  The interpreted channel is written
         so the picture follows, and the value is left where `control` will
         find it by name so the sound does.  Neither half knows about the
         other; the program named the channel once.
+
+        Answers what the gesture meant — `("touched", name, value)` or
+        `("released", name)` — so a caller on *this* side of the wire
+        hears what a walking window would have sent
+        (`spec/workbench.md`).  The reference path is what headless
+        runs and tests drive, and a gesture they cannot hear the end of
+        is a gesture they cannot test.
         """
-        if self.substrate is not None:
-            self.substrate.touch(kind, x, y)
+        if self.substrate is None:
+            return None
+        return self.substrate.touch(kind, x, y)
 
     def touched(self, name: str, value: float) -> None:
         """A canvas element wrote its channel, by name.

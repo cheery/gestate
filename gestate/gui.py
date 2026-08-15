@@ -889,11 +889,23 @@ class Substrate:
         self.values[name] = value
         return True
 
-    def touch(self, kind: str, x: int, y: int) -> None:
+    def touch(self, kind: str, x: int, y: int) -> tuple | None:
         """A press, a drag or a release, in canvas coordinates.
 
         A press **grabs**, so a drag that leaves the element still reaches
         it — which is what a fader is.
+
+        Answers what the gesture *meant*, in the wire's own words
+        (`spec/workbench.md` §"The canvas walks over crust"), so the
+        reference machine and a walking window say the same thing:
+        `("touched", name, value)` while a hand moves, and
+        `("released", name)` when the grab lets go.  `None` for a
+        gesture that meant nothing — a press on no element, a drag with
+        nothing held, an element whose channel the program never named.
+
+        **A release still writes no channel.**  A fader stays where it
+        was let go; what changed is that the *model* is now told, which
+        is what a gesture that must commit needs and a fader never did.
         """
         hits = _attachments(self.signal.value, self.state)
         if kind == "press":
@@ -901,15 +913,30 @@ class Substrate:
         target = self._held
         if kind == "release":
             self._held = None
+            if target is None:
+                return None
+            return (("released", self._named(target["chan"]))
+                    if self._named(target["chan"]) else None)
         if target is None:
-            return
+            return None
         value = _gesture_value(target, kind, x, y)
         if value is None:
-            return
+            return None
         react(self.reactive, [(target["chan"], NNum(value))])
+        name = self._named(target["chan"])
+        if name is not None:
+            self.values[name] = value
+            return ("touched", name, value)
+        # An anonymous channel still moves the picture and has no name
+        # to be recorded or heard by — the wire's rule, kept here.
+        return None
+
+    def _named(self, chan: int) -> str | None:
+        """The declared name of a channel id, or `None` for a hidden one."""
         for name, cid in self.by_name.items():
-            if cid == target["chan"]:
-                self.values[name] = value
+            if cid == chan:
+                return name
+        return None
 
 
 def _gesture_value(target: dict, kind: str, x: int, y: int):
