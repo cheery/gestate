@@ -36,6 +36,7 @@ knob, however many parameters a synth wants.
 
 from __future__ import annotations
 
+import os
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -760,18 +761,50 @@ class Workbench:
 
         self._directory = tempfile.mkdtemp()
         text = self.source() if text is None else text
-        # The canvas, the score and the `FromMIDI` interpreter need only
-        # the text, so they compile on a thread while `Live.start` waits
-        # on `clang` — the one stretch of a start that holds no GIL, and
-        # measured at several seconds on `quartet.ges`.  Joined before
-        # anything below reads what they set.
-        side = threading.Thread(target=lambda: (self._load_substrate(text),
-                                                self._load_score(text),
-                                                self._load_from_midi(text)))
-        side.start()
+        # **The canvas, the score and the `FromMIDI` interpreter used to
+        # compile on a side thread here**, to overlap `Live.start`'s
+        # `clang` — the one stretch of a start that holds no GIL.  They
+        # run inline now, because the overlap was measured and it is a
+        # loss: two Python threads cannot run Python at the same time,
+        # `_deep_stack` spawns a third per analysis, and `_FRONT_END`
+        # serialises them anyway, so what the thread actually bought was
+        # a lock traded every five milliseconds.
+        #
+        # With `clang` forced to run, one start per process, alternating:
+        #
+        #     quartet.ges   threaded 8.50 / 9.44 / 11.82 s
+        #                   inline   6.75 / 7.48 /  7.33 s
+        #     chopin.ges    threaded 5.36 / 5.45 s
+        #                   inline   4.81 / 4.79 s
+        #     sauna.ges     threaded 7.04 / 7.82 s
+        #                   inline   7.45 / 7.53 s
+        #
+        # A wash at worst and seconds better at best — on a four-core
+        # fanless laptop, which is why the switch stays: another machine
+        # with more cores and a slower disk may answer differently, and
+        # re-measuring should not mean re-implementing.
+        # `GESTATE_SIDE_THREAD=1` puts the thread back.
+        #
+        # It also deletes a hazard rather than only seconds.
+        # `_load_from_midi` reads `banks_of(text)` rather than
+        # `self.banks` precisely because `_place` fills that on the main
+        # thread — a race that "used to win by being sequential".  It is
+        # sequential again.
+        def loaders():
+            self._load_substrate(text)
+            self._load_score(text)
+            self._load_from_midi(text)
+
+        threaded = os.environ.get("GESTATE_SIDE_THREAD", "") not in ("", "0")
+        side = threading.Thread(target=loaders) if threaded else None
+        if side is not None:
+            side.start()
         self.live = Live.start(text, self.rate, self._directory)
         self._place(text)
-        side.join()
+        if side is not None:
+            side.join()
+        else:
+            loaders()
         # Always, and before the port: the on-screen keyboard needs the
         # allocators whether or not a MIDI device was asked for.
         self._start_notes(text)
