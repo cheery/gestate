@@ -492,3 +492,71 @@ def test_a_scope_publishes_the_window_it_saw(tmp_path):
     # them is the silence the ring was born with.
     assert got[-256:] == want, "the window is not the sound that flowed"
     assert all(v == 0.0 for v in got[:-256]), "silence before the sound"
+
+
+# ── The named hazard, met ───────────────────────────────────────────────────
+
+
+#: A counter that leaves `i64` in forty samples: `n * 3 + 1` from 1.
+#: The output is `n % 1000` rather than the parity, deliberately — mod 2
+#: survives wrapping and would agree by accident, which is exactly the
+#: kind of luck that keeps a hazard unnoticed.
+OVERFLOWING = ("counter : Sig Int\n"
+               "counter = scan (n x => n * 3 + 1) 1 elapsed\n\n"
+               "sound : Sig Float\n"
+               "sound = map (n => toFloat (n % 1000) / 1000.0) counter\n")
+
+
+@needs_clang
+def test_an_integer_too_big_for_the_engine_is_named_not_wrapped():
+    """**The hazard `journal.md` named at stage 7.4 and left open:**
+    *"`Int` becomes `i64` (measured: `drums` reaches 25.7% of its range)
+    … the `i64` narrowing has not bitten and is not checked."*
+
+    It is real, and this shows it: the reference counts in Python, where
+    an integer grows, and the generated code counts in `i64`, where it
+    does not.  The two agree for thirty-nine samples and then say
+    different things about the same program — 0.201 against 0.585 — with
+    nothing anywhere to say why.
+
+    The check is in the *reference* and nowhere else, because the audio
+    path may not pay a branch per integer operation.  What that buys is
+    a sentence at the instant of divergence rather than a golden
+    mismatch nobody can read.
+    """
+    from gestate import audioengine
+
+    graph = extract(OVERFLOWING, rate=8000)
+    with tempfile.TemporaryDirectory() as d:
+        native = run_native(graph, d, 60)
+
+    # The reference, with the check lifted, is what the engine *should*
+    # have said — and the two part company at a definite instant.
+    kept, audioengine._within_i64 = audioengine._within_i64, lambda *a: None
+    try:
+        unchecked = run(graph, 60)
+    finally:
+        audioengine._within_i64 = kept
+    apart = next(i for i, (a, b) in enumerate(zip(unchecked, native))
+                 if a != b)
+    assert apart == 40, "the premise: this is where `i64` runs out"
+
+    # And that is the instant the reference now refuses at, by name.
+    with pytest.raises(audioengine.EngineError) as caught:
+        run(graph, 60)
+    said = str(caught.value)
+    assert "instant 40" in said, said
+    assert "i64" in said and "(scan)" in said, said
+
+
+@needs_clang
+def test_an_ordinary_synth_is_nowhere_near_the_edge():
+    """The other half of a hazard: it must not cry wolf.
+
+    `drums.ges` was measured at 25.7% of `i64` when the backend was
+    written, which is the reason the hazard was named — and 25.7% still
+    has to *pass*.  A check that refused it would be a check nobody
+    could leave switched on.
+    """
+    graph = extract((AUDIO_DIR / "drums.ges").read_text(), rate=8000)
+    assert run(graph, 400), "the reference refused an ordinary synth"

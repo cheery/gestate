@@ -457,9 +457,67 @@ def render_block(graph: Graph, state: State, n: int, control=None) -> list:
             if t:
                 buf[t % len(buf)] = cur[node.inputs[0]]
         out.append(cur[graph.out])
+        _within_i64(graph, cur, t)
         state.values = cur
         state.t += 1
     return out
+
+
+#: What an `Int` is once it has been compiled.  The reference engine
+#: counts in Python, where an integer is as large as it needs to be; the
+#: generated code counts in `i64`, where it is not.
+_I64 = 1 << 63
+
+
+def _within_i64(graph: Graph, cur: list, t: int) -> None:
+    """Refuse an integer the compiled engine could not hold.
+
+    **The hazard named when the LLVM backend was written and never
+    checked** — `journal.md`, stage 7.4: *"`Int` becomes `i64`
+    (measured: `drums` reaches 25.7% of its range) … the `i64`
+    narrowing has not bitten and is not checked; it is the open
+    hazard."*  25.7% is not a comfortable margin, it is one doubling
+    away.
+
+    Checked **here**, in the reference, and nowhere else, which is the
+    whole design of it.  The generated code must not pay a branch per
+    integer operation — the audio path's rule is that nothing per-sample
+    happens that is not the sound.  But the reference already runs at a
+    thousandth of real time and is the *definition* of what a graph
+    means, so a program that overflows it says so by name in every test
+    that renders, instead of diverging from the engine by 2⁶⁴ and being
+    read as a mysterious golden mismatch.
+
+    What it cannot see is a program nobody renders through the
+    reference.  That is a real limit and the honest place for it: the
+    check is an oracle, not a guarantee.
+    """
+    for node in graph.nodes:
+        v = cur[node.id]
+        # Floats first, because almost every slot is one and this runs
+        # per node per sample.
+        if type(v) is float or not _too_big(v):
+            continue
+        raise EngineError(
+            f"integer overflow at instant {t}: node {node.id} "
+            f"({node.kind}) holds {v!r}, which the compiled engine "
+            f"stores as `i64` and cannot — the reference counts in "
+            f"Python, where an integer grows, and the generated code "
+            f"does not (`journal.md`, stage 7.4)")
+
+
+def _too_big(v) -> bool:
+    """Is there an integer in here the compiled state could not hold?
+
+    Records too, and not for completeness: a `Gate` is three `i64`s and
+    a note's `gateAt` is a *sample index*, which is the one integer in
+    this language that grows without anybody writing a big number down.
+    """
+    if type(v) is int:
+        return not (-_I64 <= v < _I64)
+    if type(v) is tuple:
+        return any(_too_big(x) for x in v)
+    return False
 
 
 def run(graph: Graph, samples: int, block: int | None = None,
