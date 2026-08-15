@@ -5909,3 +5909,143 @@ found by an instrument, not by reading code — and the instrument was
 found to be lying twice before it was believed.  "It feels slow" is not
 a measurement; neither is a number nobody has checked the arithmetic
 of.
+
+## The day the oracles arrived
+
+2026-08-15, second half.  The morning was spent making the save cycle
+fast; the afternoon was spent on the thing that made the morning
+possible, which is that **something could measure**.  Four instruments
+came out of it, and every one of them found something on its first use.
+
+### A played key, against the sound that comes out
+
+The roadmap has carried this since stage 10: *"there is no obvious
+oracle for 'a key was pressed and a sound came out'; finding one is
+worth more than more care."*  Every defect in the live half had been
+found by Henri playing a keyboard while two thousand tests passed, and
+the reason was visible in the test files themselves —
+`test_audiokeyboard.py` follows a keystroke as far as the *allocator*
+and stops one step before sound; `test_audioeditor.py` follows the
+bytes as far as the player and never asks what they say.
+
+`test_playedsound.py` joins the two ends.  It drives the real
+`Workbench` with a fake player, reads the float32 the driver wrote, and
+asks the question nothing here could ask: **which note is that?**  The
+ear is `audioperform.heard_note` — a Goertzel per candidate note, ten
+lines and no dependency, beside the `_Meter` that hears *how loud* for
+`--report`.  Its candidates are equal temperament from A440, and that
+is the whole design: asking `keyHz` what it thinks 60 is would make the
+oracle agree with the thing it is checking.  The strongest assertion in
+the file needs no frequency at all — *an octave up is an octave up*.
+
+**Checked against a broken instrument before it was believed**, because
+an oracle that has never failed is a claim, not a test.  A
+`Keyboard.press` a semitone out is heard as 61; a `Workbench.control`
+answering 0.0 makes the capture silent.  Both fail, which are the two
+defects it exists for: the wrong note, and no note.
+
+### The schedule and the hand, and the first bite
+
+`duet.ges` has claimed in its header since it was written that **a note
+is the same thing whether a schedule or a hand decided it** — only
+*when it is decided* differs.  The engine cannot tell; until now
+neither could anything else, because the claim was checked at the
+allocator, where it is nearly a tautology.
+
+Checked as sound it was 0.084 apart and drifting, so the notes were
+measured rather than argued about:
+
+    scheduled  +0ms rms 0.0983 … +350ms rms 0.0294   decay 3.45/s
+    hand       +0ms rms 0.1098 … +350ms rms 0.0621   decay 1.63/s
+
+Same pitch in every window, different decay.  The envelope is
+`exp(-rate·t)` while held and the bass is written at 3.5, which the
+scheduled note reads back as 3.45 — but **1.63 is not a rate that
+envelope can produce, and a sum of two of them is.**  The reed is the
+other voice in that file and its rate is 0.6.  A keyboard plays every
+bank that listens and `listening.get(bank, True)` means a bank nobody
+has spoken about listens by default, so the hand was playing the reed
+as well as the pluck.  With `lead` switched off: **0.000 apart, 3.45
+per second.**
+
+So the file's prose is true and now checked to three decimal places —
+and the oracle's first catch was a wrong assumption in its own setup,
+which is the sort of thing an ear is for.  The decay assertion has its
+own line because the harmonic profile is normalised: the same note
+through the same voice with a stale `gateAt` would sail past a
+comparison of ratios and not past that one.
+
+### The C host, and the seam that was nobody's
+
+Writing the above turned up a gap worth naming: a fake player means
+`_open_host` finds no card, so the *Python* driver renders and the C
+loop — what a machine with a sound card actually runs — was on nobody's
+path.  `test_audiohost.py` proves the C host renders what the engine
+renders for a synth with no parameters; a key is the case it cannot
+make, because a key arrives through the **control block**.
+
+Both drivers now play the same key, sample for sample under 1e-6, with
+`fade_in=False` — a session starting with the fader down so the card
+does not pop is the one difference between them, and it is written down
+now.  The mutation that says this covers new ground: with
+`_push_controls` made a no-op the C host plays *nothing* and the join
+fails, while the same mutation sails past every Python-driver section,
+where the driver pulls its own controls.
+
+### Sauna's six seconds
+
+Henri's own observation — `examples/long/sauna.ges` spends six seconds
+of its start in the score — and it came apart into three answers.
+
+**A quadratic in the G-machine compiler, fixed.**
+`_apply_n_bump_env(i, env)` rebuilt the whole environment i times, and
+its callers bump by the number of arguments pushed so far, so a call of
+k arguments asked for 0 + 1 + … + k rebuilds.  Bumping i times adds i.
+`pipeline.compile` on sauna: **0.49 s → 0.25 s**, and every compile in
+the project pays it.
+
+**The same assembly is compiled twice a rebuild**, because
+`pipeline.compile` has no cache the way `analyse` does — the score's
+stream and the `FromMIDI` interpreter each ask and neither knows about
+the other.  Sharing wants the distinction `Substrate.several` made
+hours earlier: a `GmState` is a machine with a heap the caller runs, so
+what two readers can share is the compiled code, not the state.
+
+**And most of the six seconds is the GIL.**  `stream_root` is 1.31 s
+warm on an idle machine.  Inside a start it reads six, because the
+canvas, the score and the `FromMIDI` instances run on a side thread
+while the main one runs the front end and the extraction — three
+CPU-bound Python threads taking turns.  `GESTATE_BUILD_TIME` had been
+saying so all along and nobody had read it that way: the phases sum to
+14.7 s inside an 8.15 s start, and every one of them is marked `‖`.
+The side thread wins only across `clang`, which releases the GIL.
+
+### The `i64` hazard, met
+
+Open since stage 7.4, with the measurement that made it worrying:
+`drums` reaches 25.7% of the range.  It was real.  A counter of
+`n * 3 + 1` leaves `i64` in forty samples, and the reference and the
+engine then say **0.201 and 0.585** about the same program with nothing
+anywhere to say why.
+
+The check is in the *reference* and nowhere else, and that placement is
+the design: the audio path may not pay a branch per integer operation,
+while the reference is already a thousandth of real time and is the
+definition of what a graph means.  So an overflowing program says so by
+name at the instant it happens, rather than diverging by 2⁶⁴ and
+arriving as a golden mismatch nobody can read.  It costs the reference
+4%, it fires at **exactly the instant the two engines part company**,
+and `drums` at 25.7% still renders — because a check that cried wolf is
+one nobody leaves switched on.  What it cannot see is a program nobody
+renders through the reference, and the docstring says so: an oracle,
+not a guarantee.
+
+### What the day was actually about
+
+Every fix in the morning was found by an instrument rather than by
+reading code, and twice the instrument was itself wrong and had to be
+caught.  Every oracle in the afternoon found something on its first
+use, and one of them found *itself*.  Between them that is the whole
+method this project keeps writing down, arrived at again from both
+ends: **being wrong has to be visible, and the thing that makes it
+visible has to be checked against being wrong.**

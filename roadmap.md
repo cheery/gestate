@@ -235,33 +235,36 @@ up, the environment and MIDI CC, stereo, tuples in the engine, and the
 three compiler queries that are built.  They are Part III's tail, under
 their own headings.  What is below is what is *not* done.
 
-- **The `i64` hazard**, still the named unchecked one, and the FTZ/subnormal
-  choice from 7.0, which `-O2` has not made necessary and which was never
-  recorded as made either way.
-- **The host layer needs a way to be wrong on purpose.**  Stage 10's
-  defects were found by a person playing a keyboard, not by tests, and the
-  audio core's whole method is that being wrong is *visible*.  There is no
-  obvious oracle for "a key was pressed and a sound came out"; finding one
-  is worth more than more care.
+- **The `i64` hazard is met** and is `journal.md` §"The day the oracles
+  arrived".  What is *left* of it: the check lives in the reference, so
+  it is an oracle and not a guarantee — a program nobody renders
+  through `audioengine` is not looked at.
+- **The FTZ/subnormal choice from 7.0**, which `-O2` has not made
+  necessary and which was never recorded as made either way.
+- **The host layer's oracles — the audio half is built**, and the story
+  is `journal.md` §"The day the oracles arrived".  This entry asked for
+  one: *"there is no obvious oracle for 'a key was pressed and a sound
+  came out'; finding one is worth more than more care."*
+  `test_playedsound.py` is it — the real workbench, a fake player, and
+  `audioperform.heard_note` asking which note came out, against equal
+  temperament rather than against `keyHz`.  With it: the schedule and
+  the hand agree as *sound* (`duet.ges`'s own prose, checked), and a key
+  played through the C host renders what the Python driver renders.
+  Beside it stand `tools/lagcheck.py` and `tools/dialoglag.py` for the
+  window, `--report`'s peak and per-bar RMS for a mix, and the session
+  transcript, which is still the working oracle for the editor.
 
-  **This got worse before it got better, and there are now two
-  instruments.**  The workbench's twelve defects were every one of them
-  found by a person using it while two thousand tests passed
-  (`journal.md`).  `tools/lagcheck.py` drives the real window with real
-  X events through XTEST and reads the result off the screen;
-  `tools/dialoglag.py` reads the window's own `GESTATE_EDITOR_TIME`
-  stopwatch the same way.  And **the session transcript became the
-  working oracle in practice**: 2026-08-13's two dozen defects were
-  nearly all pinned by one (`journal.md` §"The day the transcripts
-  earned their keep").  What is still missing is the *audio* half — a
-  played key against the sound that comes out — and it is not a
-  feature, which is why it keeps losing to features.  A piece of it
-  arrived by way of `spec/firstpiece.md` (2026-08-14): `audioperform
-  --report` says the peak and each bar's RMS after an `-o` render —
-  the numbers undertow's mix was iterated against, and ears enough
-  for a CI to hear a render change loudness.  The *live* half, a
-  played key against the sound that comes out, is still the missing
-  piece.
+  **What is left**, in order:
+
+  * The ear hears **pitch**.  Timbre, level and timing are blessed by
+    the goldens and by `--report` and by nothing external — a mix that
+    got quietly duller would pass everything this project has.
+  * The played tests are wall-clock except the C-host section, so none
+    of them can assert *when* a key lands.  A press that arrived a
+    block late would pass.
+  * MIDI in from a real port is still nobody's: the oracle plays the
+    on-screen keyboard, which is the same `Notes.feed`, but a port is
+    another wire.
 - **Three comments standing on a dead constraint.**  F95 is fixed, so
   `signal.ges`'s `Both` (`signal.ges:56`), a `voices` bank's generated
   `Part` records, and `audio.ges`'s `LowpassIn` (`audio.ges:302` — "a zip
@@ -333,22 +336,35 @@ pictures.  `clang -O1` is written up there as measured and rejected.
 
 What is **not** done, in the order the value falls:
 
-- **`examples/long/sauna.ges` spends its start in the score — about six
-  seconds of it**, which is the largest phase of the largest file and
-  the one Henri notices.  It is *not* the front end.  Two things are
-  inside it, and the first is the same shape as everything fixed today:
-  **the same 228,000-character assembly is put through
-  `pipeline.compile` twice** in one rebuild, 0.75 s each, because
-  `compile` has no cache the way `analyse` does — the score's stream
-  and the `FromMIDI` interpreter each ask for it and neither knows
-  about the other.  Sharing it is not free to design: a `GmState` is a
-  *machine*, with a heap that the caller then runs, so what two readers
-  can share is the compiled code and the constructor table, not the
-  state — the same distinction `Substrate.several` just had to make on
-  the canvas side, and the same answer may fit.  The rest of the six
-  seconds is the score walk itself, in the Python machine, on a piece
-  whose root is a `cycle`; that half is unattributed and should be
-  measured before anything is done to it.
+- **`examples/long/sauna.ges`'s start** — Henri's own observation, six
+  seconds of it in the score.  Looked into on 2026-08-15 and it came
+  apart into three; the story is `journal.md` §"The day the oracles
+  arrived", and the quadratic in the G-machine's environment is fixed
+  (`pipeline.compile` on sauna 0.49 s → 0.25).  **What is left:**
+
+  * **The same assembly is compiled twice a rebuild**, because
+    `pipeline.compile` has no cache the way `analyse` does — the
+    score's stream and the `FromMIDI` interpreter each ask and neither
+    knows about the other.  Sharing wants the distinction
+    `Substrate.several` makes on the canvas side: a `GmState` is a
+    machine with a heap the caller runs, so what two readers can share
+    is the compiled code and the constructor table, not the state.
+  * **The start's concurrency is mostly illusory**, and this is the
+    open question rather than a task.  `stream_root` is 1.31 s warm on
+    an idle machine and reads six inside a start, because the canvas,
+    the score and the `FromMIDI` instances run on a side thread while
+    the main one runs the front end and the extraction — three
+    CPU-bound Python threads taking turns, which is why the build
+    report's phases sum to 14.7 s inside an 8.15 s start with every one
+    marked `‖`.  The side thread wins only across `clang`, which
+    releases the GIL.  Serialising the loaders would make the numbers
+    honest and cost only that overlap; it is a smaller change than
+    anything else here and it is a *decision*, not a fix.
+  * **`_bump_env`'s single-bump callers**, still 0.24 s of a
+    `stream_root`.  The standard fix is a reference held as an offset
+    from a base depth, so bumping is an integer rather than a
+    dictionary — a change to how `compile_c` threads its environment,
+    and its own sitting.
 
 - **The whole-module tail — about 0.2 s a front end.**  Everything
   after the seam still runs over all 232 k assembled characters:
