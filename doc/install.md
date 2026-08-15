@@ -145,6 +145,14 @@ was made, and each `.samples` file records the `libm` it was made
 against.  If they are the only thing red on a new box, that is the
 expected failure and not a broken install.
 
+**Tests open real windows**, and on a workstation those windows land
+over whatever you are typing.  `test/test_editor_abi.py` drives the
+editor across its C boundary, which is a claim about a Rust-owned rope
+and a Python orchestrator agreeing — a fake window would only test the
+fake.  `tools/toolbox.sh` says whether this machine has the bench tools
+that keep that out of your way, `--install` fetches them, and none of
+them is needed to build a program or hear one.
+
 **Tests never open the sound card**: `test/conftest.py` makes both
 routes to it raise and names the test that tried; `GESTATE_TEST_AUDIO=1`
 opens them again.  Anything whose backend is missing skips rather than
