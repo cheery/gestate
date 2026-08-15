@@ -486,3 +486,51 @@ def test_both_drivers_play_the_same_key(tmp_path):
     assert any(through_c) and any(through_python)
     apart = max(abs(a - b) for a, b in zip(through_c, through_python))
     assert apart < 1e-6, f"the two drivers disagree by {apart}"
+
+
+# ── The band that waits for you ─────────────────────────────────────────────
+
+
+def test_the_band_plays_along_and_lays_out(tmp_path):
+    """`jazz.ges`'s own claim, checked as sound.
+
+    Its header: *"you comp on `keys` — your hands ARE the comping —
+    while the horn solos over whatever harmony you hold… **Lift your
+    hands and the band lays out** — no idle track, no fallback: a
+    rendered take with no player is an honest silence."*
+
+    It was not true, and nothing could tell.  A `hear holds.keys` is
+    answered by port *id*; an id is `NewChan`'s in forcing order; and
+    the native stream that asks is a different machine from the state
+    the model read the ids off.  So the model believed 0 was `horn`
+    while the stream asked 0 meaning `keys`, every reading came back
+    empty, and the band laid out for ever — a silence indistinguishable
+    from the one the file promises when you lift your hands.
+
+    **Listened for in the band's own register**, which is the only
+    place the two can be told apart: the file says pitch classes travel
+    and registers do not, so the bass answers a chord at 60/64/67 an
+    octave and more below it.  A test that merely asked whether
+    *something* sounded would hear the keyboardist and pass while the
+    band sat out — the first version of this test did exactly that.
+    """
+    def comp(bench):
+        bench.listen("keys", True)
+        for note in (60, 64, 67):
+            assert bench.keyboard.press(note), "the keys bank took no note"
+
+    def power(got, notes):
+        return max(tone_power(got, RATE, 440.0 * 2.0 ** ((n - 69) / 12.0))
+                   for n in notes)
+
+    playing = _played(tmp_path, comp, seconds=1.5, name="jazz.ges", hush=None)
+    assert any(playing), "nobody played at all"
+    hands = power(playing, (60, 64, 67))
+    band = power(playing, range(33, 49))
+    assert band > hands / 10, (
+        f"the hands are heard at {hands:.3f} and the band's own register "
+        f"at {band:.5f} — it laid out while somebody was playing")
+
+    laid_out = _played(tmp_path, lambda bench: bench.listen("keys", True),
+                       seconds=1.5, name="jazz.ges", hush=None)
+    assert not any(laid_out), "the band played with no hands on the keys"

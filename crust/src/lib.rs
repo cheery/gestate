@@ -774,6 +774,13 @@ impl Machine {
                 }
                 out.push(')');
             }
+            // **A channel shows as its id**, which is what a caller
+            // that has to agree with this machine about *ports* needs
+            // (`gestate/audioscore.py`'s `ports_of`).  Ids are handed
+            // out by `NewChan` in forcing order, so they are this
+            // machine's own and cannot be guessed from the other's:
+            // the only honest way to learn them is to ask here.
+            Node::Chan(id) => { write!(out, "chan{id}").unwrap(); }
             other => fail(&format!("show: unexpected node {other:?}")),
         }
     }

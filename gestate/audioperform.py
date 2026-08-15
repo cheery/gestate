@@ -327,7 +327,8 @@ def dynamic(synth: str, piece: str = "", *, rate: int, block: int,
     # reference machine remains the fallback and the meaning.
     from .crust import live_native
 
-    stream = (live_native(state, by_tag, seed, tick)
+    stream = (live_native(state, by_tag, seed, tick,
+                          banks=[b.name for b in banks_of(both)])
               or LiveStream(state, root, by_tag, patience=patience))
     from .audioscore import shape_plan
 

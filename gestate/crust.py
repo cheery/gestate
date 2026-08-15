@@ -278,6 +278,40 @@ class Native:
         self.close()
 
 
+def native_ports(native: Native, banks: list) -> dict:
+    """`{chan id: bank name}` — **asked of the machine that will ask**.
+
+    A channel's id is handed out by `NewChan` when the declaration is
+    first forced, so it is an artefact of *forcing order* and belongs
+    to one machine.  `audioscore.ports_of` reads the ids off the Python
+    state; the native stream is a second machine that allocates its own
+    when the score reaches them, and the two agree only by luck.  They
+    did not for `examples/audio/jazz.ges`: the model believed port 0
+    was `horn` and the stream asked port 0 meaning `keys`, so the band
+    heard an empty hand and laid out — every reading a silence, and
+    nothing anywhere said why.
+
+    Forcing them here does both halves at once: it *learns* the
+    numbering and, because nothing else has forced them yet, it also
+    **pins** it — bank order, deterministically, the same trick
+    `gui.Substrate.__init__` uses on the canvas so a declared channel
+    keeps the id the program will see.  Call it before the stream runs.
+    """
+    out: dict = {}
+    for bank in banks:
+        name = "holds" + bank[0].upper() + bank[1:]
+        try:
+            said = native.force(name)
+        except CrustError:
+            continue                    # a bank nothing hears has no port
+        if said.startswith("chan"):
+            try:
+                out[int(said[4:])] = bank
+            except ValueError:
+                continue
+    return out
+
+
 class NativeStream:
     """`audiodynamic.ScoreStream`'s twin, forced by crust in-process.
 
@@ -424,7 +458,7 @@ class NativeStream:
 
 
 def live_native(state, by_tag: dict, seed: int, tick: int = 0,
-                fuel: int = 200_000):
+                fuel: int = 200_000, banks=()):
     """The live twin over an *already-compiled* state, or `None` where
     the program cannot cross — the caller's cue to use the reference
     machine, which is never wrong, only slower.
@@ -439,7 +473,13 @@ def live_native(state, by_tag: dict, seed: int, tick: int = 0,
 
     try:
         native = Native(serialize(state, "liveMain"))
-        return NativeStream(
+        # **The ports, from the machine that will ask about them, and
+        # before it has run.**  A channel id is `NewChan`'s in forcing
+        # order, so it belongs to one machine — see `native_ports`, and
+        # `examples/audio/jazz.ges`, which laid out because the model
+        # read the ids off the *other* one.
+        ports = native_ports(native, list(banks))
+        stream = NativeStream(
             native, "liveMain", seed, tick=tick,
             cons_tag=state.cons["Cons"].tag,
             nil_tag=state.cons["Nil"].tag,
@@ -448,6 +488,8 @@ def live_native(state, by_tag: dict, seed: int, tick: int = 0,
                        state.cons["CueAsk"].tag,
                        state.cons["CueEnd"].tag),
             fuel=fuel)
+        stream.ports = ports
+        return stream
     except (CrustError, OSError, subprocess.CalledProcessError):
         return None
 

@@ -2308,9 +2308,6 @@ class Workbench:
                 # By channel id, which needs the compiled state:
                 # `holds.<bank>` is a `Chan` now, not an index.
                 ports = ports_of(text, state)
-
-                def reader(port, key=None, _ports=ports):
-                    return holds_reader(self.notes, _ports)(port, key)
                 # **Crust forces the score when the piece can cross**
                 # (`crust.live_native` — the one routing decision,
                 # spelled once beside `audioperform.dynamic`'s use).
@@ -2319,7 +2316,22 @@ class Workbench:
                 from .crust import live_native
 
                 stream = live_native(state, by_tag, self.seed or 0,
-                                     tick, fuel=100_000)
+                                     tick, fuel=100_000,
+                                     banks=[b.name for b in banks_of(text)])
+                # **Ask the machine that will ask you.**  A port is a
+                # channel id, and an id is `NewChan`'s in *forcing
+                # order* — so it belongs to whichever machine handed it
+                # out.  `ports_of` reads the ids off the Python state;
+                # the native stream is a second machine with its own,
+                # and the two agreed only by luck.  They did not for
+                # `jazz.ges`: the model believed 0 was `horn` while the
+                # stream asked 0 meaning `keys`, so the band heard an
+                # empty hand at every beat and laid out — the piece
+                # whose whole point is playing along.
+                ports = getattr(stream, "ports", None) or ports
+
+                def reader(port, key=None, _ports=ports):
+                    return holds_reader(self.notes, _ports)(port, key)
                 with self._performer_lock:
                     # A new score, so every remembered moment is stale.
                     self._seeks.clear()
