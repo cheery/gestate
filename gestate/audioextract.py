@@ -101,14 +101,24 @@ class ExtractError(Exception):
 def extract(source: str, *, rate: int = 22050, entry: str = "sound") -> Graph:
     """Extract the graph of a synth program."""
     from .audio import assemble
+    from .buildtime import phase
     from .pipeline import analyse
 
-    return extract_analysis(analyse(assemble(source, rate)),
-                            entry=entry, rate=rate)
+    with phase("assemble"):
+        assembled = assemble(source, rate)
+    return extract_analysis(analyse(assembled), entry=entry, rate=rate)
 
 
 def extract_analysis(analysis, *, entry: str = "sound",
                      rate: int = 0) -> Graph:
+    from .buildtime import phase
+
+    with phase("extract"):
+        return _extract_analysis(analysis, entry=entry, rate=rate)
+
+
+def _extract_analysis(analysis, *, entry: str = "sound",
+                      rate: int = 0) -> Graph:
     report = check_analysis(analysis, entry=entry)
     if not report:
         # **The refusal explains the rule it is applying.**  "Not in

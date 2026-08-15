@@ -420,12 +420,19 @@ Three measures, in the order the value falls:
    touches — that is a question about where the seam sits, not tuning,
    and it is the one to think about rather than measure.
 3. **`GESTATE_BUILD_TIME`, the compile-side twin of
-   `GESTATE_EDITOR_TIME`.**  The frame side has instrumentation and two
-   lag tools and consequently does not rot; the build side has neither,
-   which is exactly how 400 ms became twelve seconds with two thousand
-   tests passing.  The table above, printed per rebuild, is the whole
-   feature.  This project's own sentence: *"it feels slow" is not a
-   measurement.*
+   `GESTATE_EDITOR_TIME`.  Built, 2026-08-15.**  The frame side had
+   instrumentation and two lag tools and consequently did not rot; the
+   build side had neither, which is exactly how 400 ms became twelve
+   seconds with two thousand tests passing.  `gestate/buildtime.py` is
+   the table above printed to stderr per rebuild, and two things in it
+   are not the obvious thing: a phase reports its **own** time, so the
+   hole scan inside the knob placement is counted once rather than in
+   both; and `‖` — work that overlapped — is a claim about the *clock*
+   rather than about thread identity, because `_deep_stack` hands the
+   front end to a worker and waits for it, which is another thread and
+   is not concurrency.  `clang` shows only when the compiler ran, since
+   a `.so` store hit is meant to cost nothing.  This project's own
+   sentence: *"it feels slow" is not a measurement.*
 
 **Measured and rejected: `clang -O1` for interactive builds.**  It
 looked like a free 1.3 s of the three, and the objects are *bit

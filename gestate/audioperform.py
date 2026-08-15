@@ -351,11 +351,13 @@ def graph_of(synth: str, piece: str = "", *, rate: int):
     """
     from .audioextract import extract, extract_analysis
     from .audioscore import assemble_performance
+    from .buildtime import phase
     from .pipeline import analyse
 
     if has_score(synth + "\n" + piece):
-        return extract_analysis(
-            analyse(assemble_performance(synth, piece, rate)), rate=rate)
+        with phase("assemble"):
+            assembled = assemble_performance(synth, piece, rate)
+        return extract_analysis(analyse(assembled), rate=rate)
     return extract(synth, rate=rate)
 
 

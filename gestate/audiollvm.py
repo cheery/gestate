@@ -1102,8 +1102,16 @@ def build(graph: Graph, directory, opt: str = "-O2"):
     # a shared object that loads cleanly and segfaults the first time a
     # phase is wrapped.  Optimised and unoptimised builds must both work,
     # because comparing them is how the no-fast-math claim is checked.
-    subprocess.run(["clang", opt, "-shared", "-fPIC", str(ll), "-o", str(so),
-                    "-lm"], check=True, capture_output=True)
+    #
+    # Timed below the store, so `GESTATE_BUILD_TIME` shows the compiler
+    # runs and not the copies — a hit is meant to cost nothing and a
+    # phase reading 0.05 s would leave you wondering which it was.
+    from .buildtime import phase
+
+    with phase("clang"):
+        subprocess.run(["clang", opt, "-shared", "-fPIC", str(ll),
+                        "-o", str(so), "-lm"],
+                       check=True, capture_output=True)
     if kept is not None:
         try:
             kept.parent.mkdir(parents=True, exist_ok=True)

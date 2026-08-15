@@ -552,6 +552,28 @@ class _Press:
     velocity: int
 
 
+def _timed(name: str):
+    """Report this method as a phase of the rebuild (`buildtime`).
+
+    A decorator rather than a `with` at each call site, because a
+    rebuild happens two ways — `_start` and `apply` — and a phase named
+    twice is a phase that will one day be named differently in the two
+    places.  Named here, beside what it measures, it cannot be.
+    """
+    def wrap(method):
+        def timed(self, *args, **kw):
+            from .buildtime import phase
+
+            with phase(name):
+                return method(self, *args, **kw)
+
+        timed.__name__ = method.__name__
+        timed.__doc__ = method.__doc__
+        return timed
+
+    return wrap
+
+
 class Workbench:
     """A synth that is playing and can be edited.  No toolkit in here.
 
@@ -719,11 +741,18 @@ class Workbench:
             # — the description says `inert` and the window wears it.
             self.say(f"editing {self.path.name} — inert")
             return
-        try:
-            self._start(seconds, text)
-        except Exception as error:
-            self._first_line(error)
-            raise
+        from .buildtime import building
+
+        # The wall clock a person waits on when a file is opened, and
+        # `apply` below is the one they wait on after `Ctrl-S`.  Both,
+        # because they are different builds: a start pays for the sound
+        # card and the score as well.
+        with building(f"start {self.path.name}"):
+            try:
+                self._start(seconds, text)
+            except Exception as error:
+                self._first_line(error)
+                raise
 
     def _start(self, seconds: float | None = None,
                text: str | None = None) -> None:
@@ -921,6 +950,7 @@ class Workbench:
         for i, node in enumerate(sources):
             self.host.set_control(i, self.control(node.id, at), node.type_)
 
+    @_timed("substrate")
     def _load_substrate(self, text: str) -> None:
         """Start (or restart) the canvas half of this file.
 
@@ -1519,6 +1549,7 @@ class Workbench:
                 out.append(value)
         return out
 
+    @_timed("knobs")
     def _place(self, text: str) -> None:
         """Work out where each control source was declared.
 
@@ -1588,6 +1619,7 @@ class Workbench:
                 found.append((m.group(1), n, literal, "." in literal))
         self.loose = found
 
+    @_timed("holes")
     def _find_holes(self, text: str) -> None:
         """Where every `_` is, and what type it wants.
 
@@ -1716,6 +1748,7 @@ class Workbench:
 
     # -- MIDI ---------------------------------------------------------------
 
+    @_timed("notes")
     def _start_notes(self, text: str | None = None) -> None:
         """The note plumbing — allocators and `Notes`, with no port.
 
@@ -2061,6 +2094,7 @@ class Workbench:
         return self.samples_to_beats(
             self.transport.position if self.transport else 0)
 
+    @_timed("midi")
     def _load_from_midi(self, text: str) -> None:
         """Compile a state that can run this program's `FromMIDI` instances.
 
@@ -2145,6 +2179,7 @@ class Workbench:
         """
         return f"{note} "
 
+    @_timed("score")
     def _load_score(self, text: str) -> None:
         """The piece this program plays, if it has one.
 
@@ -2442,27 +2477,39 @@ class Workbench:
             return
 
         def build():
-            self.live.compile(text)
-            if isinstance(self.live.pending, Exception):
-                self.say(f"not applied: {self._first_line(self.live.pending)}")
-            else:
-                self._load_substrate(text)
-                self._place(text)
-                self._load_score(text)
-                self._load_from_midi(text)
-                self._refresh_notes(text)
-                # **The build succeeded, so the complaint is over.**  This
-                # used to be cleared only in `_progress`, which the driver
-                # calls *between blocks* — so an error survived being fixed
-                # for as long as nothing was playing, and a program that
-                # started clean still showed the error that had stopped it
-                # starting the time before.  Cleared where the good news is
-                # known rather than where it is next heard.
-                self.trouble = ""
-                self.say("rebuilt; waiting for the next block"
-                         if save else "auditioning (not saved)")
+            from .buildtime import building
+
+            with building(f"apply {self.path.name}"):
+                self._build(text, save)
 
         threading.Thread(target=build, daemon=True).start()
+
+    def _build(self, text: str, save: bool) -> None:
+        """The rebuild itself, off the caller's thread.
+
+        Its own method so that `apply`'s worker is the two lines that
+        say *what* is happening — a named build, and this — rather than
+        a closure that also has to be read for where its seconds go.
+        """
+        self.live.compile(text)
+        if isinstance(self.live.pending, Exception):
+            self.say(f"not applied: {self._first_line(self.live.pending)}")
+            return
+        self._load_substrate(text)
+        self._place(text)
+        self._load_score(text)
+        self._load_from_midi(text)
+        self._refresh_notes(text)
+        # **The build succeeded, so the complaint is over.**  This used
+        # to be cleared only in `_progress`, which the driver calls
+        # *between blocks* — so an error survived being fixed for as
+        # long as nothing was playing, and a program that started clean
+        # still showed the error that had stopped it starting the time
+        # before.  Cleared where the good news is known rather than
+        # where it is next heard.
+        self.trouble = ""
+        self.say("rebuilt; waiting for the next block"
+                 if save else "auditioning (not saved)")
 
     def audition(self, text: str) -> None:
         """Hear the edit without committing it to the file."""

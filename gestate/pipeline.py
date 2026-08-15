@@ -390,7 +390,13 @@ def _analysed_or_new(key: tuple) -> Analysis:
     if got is not None:
         return got
     source, typecheck, prelude = key
-    found = _analyse(source, typecheck=typecheck, prelude=prelude)
+    # Timed *here* rather than around `analyse`, so the number is front
+    # ends actually run — a reader answered from the cache is the
+    # design working and should not show up as a phase at all.
+    from .buildtime import phase
+
+    with phase("front end"):
+        found = _analyse(source, typecheck=typecheck, prelude=prelude)
     with _analysed_lock:
         _analysed[key] = found
         _analysed.move_to_end(key)

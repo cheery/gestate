@@ -17,6 +17,10 @@ report where a frame goes and — the number that matters — **key to
 pixels**, from the event that changed something to the `present` that
 showed it. Guessing about lag across two runtimes is how an afternoon
 disappears; the report says which side to look at.
+
+A slow *save* is the other clock, and a different one:
+`GESTATE_BUILD_TIME=1` says where a rebuild's seconds went — the front
+end, `clang`, the canvas, the score (`gestate/buildtime.py`).
 """
 
 from __future__ import annotations
