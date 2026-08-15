@@ -6049,3 +6049,228 @@ use, and one of them found *itself*.  Between them that is the whole
 method this project keeps writing down, arrived at again from both
 ends: **being wrong has to be visible, and the thing that makes it
 visible has to be checked against being wrong.**
+
+## The evening the picture learned to be dragged
+
+2026-08-15, third part.  The morning made the save cycle fast, the
+afternoon recruited oracles, and the evening spent both on the thing
+they were for: **the north star** — `spec/north_star.md`, a vertical
+drag on span ink, one note, byte-exact — with two squirrels chased on
+the way and one still loose at the end.
+
+### The completion, which was meant to be a detour
+
+`Tab` at a hole answered *what fits*.  Henri asked for it to write the
+answer down as well, and to keep going: pick a name, get `sine _` with
+the caret on the next hole, until nothing is near.  Five lines of
+range, which is what a wrapped declaration takes.
+
+The interesting part was not the writing but the four things the
+writing was wrong about, and all four were found by *watching him use
+it* — three recordings, read frame by frame.
+
+**The text landed after the orders that talked about it.**  A
+completion sends the document one way (`ged_set_text`) and the caret
+another (an order), and the window collected the orders first — so
+column 14 was measured against `foo = _`, clamped back to 7, and the
+new text kept the wrong place.  That is the whole of `foo = (|length
+_)` in the screenshot: an off-by-one in *time*, not in arithmetic.  The
+oracle for it drives a real window and reports the caret at 17 instead
+of 24, which is the same defect arrived at from the other side.
+
+**What is typed now stands in the slot it fills.**  The prompt drew a
+placeholder for every argument not yet taken *and* the query after all
+of them: `complete <text> <filler> Int`, three fields for a command
+that takes two.
+
+**A jump moves the panel.**  F121's rule was asked when the list opened
+and never again, so `goto` sent the caret under the equator and the
+panel stayed on top of it.
+
+**And the holes follow the text.**  They are found where the program
+last *compiled*, and nothing carried them across an edit — press Return
+above one and the margin says `_ : Int` beside a blank row while
+`complete` answers "not on a hole" with the cursor on one.  They are
+carried now the way an editor carries any marker, and found by halving:
+1.9 ms on a hundred thousand characters with eighty holes, and it only
+runs when a file has holes at all.
+
+**The one that looked like a wrong filter was a slow one.**
+`fillers_in_source` is a whole run of inference — **930 ms on
+`minute.ges`** — and it was being paid for every keystroke, so the rows
+on screen always answered the letter before the one in front of you.
+On a recording that is indistinguishable from a filter that does not
+filter.  The query does not change *what fits*, only what is worth
+showing first: the file decides once, the ranking is per keystroke, and
+930 ms becomes 0.1.  The refusal is cached with the answers and
+deliberately — mid-line the program is in pieces, which is exactly when
+holes are filled, and learning that again at a second a letter is the
+same defect wearing its other face.
+
+A new wire word came out of it, `ask`: `fill` puts text in the question
+being asked, `ask` says *which* question and which of its parts are
+already answered.  Tab arrives with the hole's type taken; a completion
+that lands on another hole re-asks with the new type, which is what
+empties the field and stops the box saying `Int` over a `Float` hole.
+And `wants` now carries the arguments already given, so a type typed
+over the offered one re-ranks the list — a hole inferred as `t a` says
+almost nothing, and narrowing it by hand is a person telling the
+compiler what they are about to write.
+
+### The star, and the hands that were measured rather than chosen
+
+The model half went in the order the house asks: the verb before the
+window learns it.  `transpose : Text -> Int -> Int -> Command` — the
+region, the key it says now, the key it becomes.  The spec's first
+draft said "the channel and a number of steps", and building it found
+that a channel cannot name a note (a chord is one written place and
+four of them) and that a recorded `+3` means a different note the
+second time it is read.
+
+**The hands are the part the spec got wrong, and measuring said so
+before anything was built.**  A hand must be the full height of the
+roll or a drag saturates — four pixels to a semitone — and full-height
+regions that overlap hide each other, because the substrate resolves a
+press to the innermost region written first.  One hand per *written
+place* was the leading candidate:
+
+| file | written places | pairs sounding at once |
+|---|---|---|
+| `minute.ges` | 4 | 0 |
+| `noted.ges` | 4 | 0 |
+| `chopin.ges` | 28 | **17** |
+
+Seventeen of chopin's would have been unpressable at any height, while
+the two files anybody would have tested on have no overlap at all.  So
+the hands **tile the picture** instead: equal full-height columns, no
+two overlapping, every note under exactly one wherever it sounds — and
+*which* note a gesture means is read off the height, which is aiming in
+both directions and made the press more precise than it was.  A chord
+used to be one region that jumped to its own line however you aimed at
+it; its notes are four places now.
+
+Two more decisions the building forced.  **The drag is relative** — a
+column is the whole height, so a press lands at some pitch and rarely
+the note's own, and carried absolutely, letting go without moving would
+transpose the note to wherever you happened to grab it.  And **the hand
+is taller than the picture**: `TouchY` writes a fraction of its own
+element and is clamped there, the law that makes every gesture bounded
+by construction, so a hand the size of the roll could only ever name a
+pitch the piece already plays.  Henri: *"the drag appears to stop to the
+canvas borders."*  The answer is not to unclamp it — that puts the
+bound in every program's hands — but to hand out a taller element: two
+octaves each way at the roll's own pixels-per-semitone, off the top and
+bottom of the band where the clip hides it.
+
+Acceptance was five things and the fifth is the one that matters: drag
+a note up a third in `duet.ges`, render, and **hear** 49.  Checked at
+two intervals, so the test is not agreeing with itself.
+
+### And then it had to feel like a gesture
+
+Two complaints, both fair, and the first was a regression of my own
+making: *"audio stutters when I move the notes"* and *"notes are frozen
+in their places when dragged — the message in the bottom is the only
+sign they're responding."*
+
+The frozen note was the deeper one.  A roll is redrawn by a build and a
+build is half a second at best, so the whole gesture happened with the
+picture standing still.  **The picture reacts now instead of being
+rebuilt**: the roll's program grew two channels — which note is held,
+how far it has been carried — and became a *signal* over them, so one
+note moves and the others do not.  The model writes them as
+**readings**, the way `peak` travels; the roll is the one canvas whose
+facts are the editor's rather than the instrument's.
+
+That fix contained the next defect.  Boxes in the source view had no
+reason to redraw between keystrokes, so the preview froze the instant
+the hand stopped — a motion event was the only thing still dirtying the
+frame.  Dirtying on *every* reading fixed it and cost far too much:
+`peak` and `position` move thirty times a second whenever anything
+plays, so any file with a box repainted continuously, walking every
+picture, on a machine that was also compiling.  A walk now says whether
+it *has* the channel a reading names: a score box does not know `peak`,
+and a frame drawn for it is a frame nobody asked for.
+
+The sound follows too, and waits for the hand: `audition_soon` turns a
+string of drops into one build of the last text, because each rebuild
+is a compile racing the render loop.  Which surfaced a hazard worth its
+own commit — two builds in flight wrote into **one** `pending` engine
+slot, so an older one finishing last would put the sound back an edit
+while the text stayed right.  `Newest` — one worker, newest ask —
+serialises them, and ordering follows from serialising.
+
+### The instruments, again
+
+Three came out of the evening, and the pattern is the same one the
+afternoon found: *the thing that cannot say when it is wrong is the
+thing to fix first.*
+
+**A bench of tools** — `tools/toolbox.sh`, which reports what a machine
+has and fetches what it lacks.  Xvfb so the window tests stop landing
+on the desk of whoever is typing; `python-xlib` for XTEST and for
+reading a window's pixels back.  It earned itself the same day: the
+"list ignores the query" defect was diagnosed by driving a real window
+and typing `cos` into it, which proved the wire innocent in one run.
+F138 was *reproduced* the same way — a space in a filler field runs the
+command on half the answer and writes `[1,` into the file.
+
+**The card counts what it could not play.**  An underrun was recovered
+from silently — right for a player, and it meant a crackle could be
+argued about and not measured, which is the one thing this project
+lets nothing else get away with.  Two numbers now ride under each build
+report: how many blocks the card ran dry for while that build ran, and
+the longest a single render took against the period it had to fit in.
+
+    [audio] card ran dry 3× · worst block 41.2 ms of 5.8 ms
+
+Most of their value is in reading *zero*: a stutter you can hear beside
+`0× · 1.1 ms of 5.8 ms` says the rebuild is innocent and the search is
+somewhere else.
+
+**And a recording can ask for the card.**  A transcript is the one
+reproduction of a stutter there is — the same edits and auditions in
+the same order — so `--play` starts the instrument for the length of a
+replay and `--dry-max` turns the account into an exit code:
+
+    git bisect start && git bisect bad && git bisect good <commit>
+    git bisect run python -m gestate.sessionlog <session>.ges \
+        --play --rate 44100 --dry-max 0
+
+Three steps and nobody listening to twenty builds.  It stays a *flag*,
+because the comment it is written under still holds: a replay that
+opened a sound card by default would be a replay you cannot run twice.
+
+### What is still open
+
+**The stutter.**  Not found.  The repaint storm was real and was mine,
+and fixing it did not make the sound clean, so something older is in
+there.  What exists now that did not this morning is the means to
+answer it: the counters say whether a rebuild starved the card, and a
+recorded session says it the same way twice.  What is *known*: a
+rebuild of `Real_World_One.ges` is 3.15 s, of which `clang` is 1.28 s
+of subprocess with no GIL held, and the loaders that could overlap it
+come to about half a second — so a side thread there has a ceiling of a
+seventh and would buy it out of the one stretch in which the audio
+thread has Python to itself.  A rebuild that stutters is worse than a
+rebuild that is slow.
+
+**F138**, filed with its repro and not fixed: the window is told what an
+argument's type is *called* and not what it *is*, and `Filler` is a
+`Text` alias.
+
+**Tier two** of the star — structural edits, gated on a declaration
+already being formatter-clean — and typing a pitch instead of dragging
+to it, which is what will finally force the keyboard question.
+
+### What the evening was about
+
+The morning's lesson was that being wrong has to be visible.  The
+evening's is narrower and was learned four times: **a gesture is a
+claim about time.**  The caret landing in the old document, the list
+answering the previous keystroke, the panel deciding once and never
+again, the note standing still while the hand moved — each of those is
+correct code arriving at the wrong moment, and not one of them was
+visible in a test that asked whether the answer was right.  What found
+all four was somebody using the thing and a recording of it, read frame
+by frame.
