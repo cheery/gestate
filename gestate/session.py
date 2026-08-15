@@ -2548,6 +2548,14 @@ class Session:
             _close = getattr(self.view, "close_list", None)
             if _close is not None:
                 _close()
+            # **And the caret lands after what was written**, because
+            # this is the keystroke that puts you back in the text:
+            # left where the hole was, it sits `|2.5` and the next
+            # thing typed goes in front of the answer.  Henri: *"it
+            # should fill `xx|` rather than `|xx` … so that when it
+            # drops you out, the cursor is in position of typing."*
+            self.view.goto(line)
+            self.view.col(col + len(filler))
             return f"{name} — no hole left near it"
         self.view.goto(after[0])
         self.view.col(after[1])

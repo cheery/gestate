@@ -2460,12 +2460,20 @@ def test_an_application_written_into_an_argument_wears_brackets():
 
 def test_completing_with_a_name_that_takes_nothing_writes_the_name():
     """No arguments, no brackets, no holes — and it says there is
-    nothing left near to fill."""
+    nothing left near to fill.
+
+    The caret lands **after** what was written, because this is the
+    keystroke that hands you back to the text: left where the hole
+    was, it would sit in front of the answer and the next thing typed
+    would go there.  Henri: *"it should fill `xx|` rather than
+    `|xx`."*
+    """
     s = _at_the_hole()
     s.run("complete", "Sig Float", "elapsed")
 
     assert "sound = elapsed" in s.view.text(), s.view.text()
-    assert s.view.went is None, "there was no next hole to stand on"
+    assert s.view.went == (5, 8 + len("elapsed")), s.view.went
+    assert s.view.shut == 1, "the question stayed open with nothing to fill"
 
 
 def test_completing_refuses_a_name_the_file_may_not_write():
