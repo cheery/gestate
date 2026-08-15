@@ -5846,13 +5846,46 @@ alone, event for event and leaf for leaf, on the file whose asks
 overlap.  A page also refuses per box: one ask that will not compile is
 retried alone rather than blanking the page.
 
+**Two more, once the question became "what else is doing nothing?"**
+
+* **`SLPVectorizerPass` was 56% of the optimiser** — 1.0 s of 1.8 on
+  `quartet.ges`, by `-ftime-report` — and `-fno-slp-vectorize` gives a
+  **bit-identical** object.  That is not luck: this emitter writes no
+  fast-math flags, so nothing may reorder a floating-point sum, and
+  superword parallelism across a graph of scalar step functions is
+  allowed almost nothing.  It spent a second looking.  quartet 2.7 s →
+  1.7, chopin 0.53 → 0.41, the small files unchanged, render speed
+  unchanged within the noise of repeated runs.
+* **The library was being renamed on every keystroke.**  A program that
+  takes over a library name has that binding moved aside
+  (`shadow_libraries`), which is a token walk over the *library* — 188
+  thousand characters for a piece, 0.54 s — and it ran again on every
+  save.  The program changes every keystroke; the *renaming* changes
+  about once a session, so it is now keyed on `(library, renames)` and
+  hits.  `assemble_performance` on a changed `quartet.ges`: **1.22 s →
+  0.44 s.**
+
+Both are the same shape as everything above, which is why they are in
+this entry rather than a later one: work done again for an answer that
+had not changed, and work done at all for an answer that could not
+change anything.
+
 **Where it ended.**
 
-| | before | after |
+| | start of day | end of day |
 |---|---|---|
-| a `quartet.ges` save | 12.0 s | ~3.0 s |
+| a `quartet.ges` save | 12.0 s | ~2 s |
 | a `noted.ges` start | 14.1 s | 4.6 s |
 | front ends per `noted.ges` start | 8 | 3 |
+| `clang` on `quartet.ges` | 3.0 s | 1.7 s |
+| assembling `quartet.ges` | 1.2 s | 0.44 s |
+| `Tab` — what fits here | 0.86 s | 0.03 s |
+| `?` — the signature nobody wrote | 0.21 s | 0.004 s |
+
+Thirteen commits, and not one of them made anything faster by making
+it cleverer: every line of that table is work that was being done twice,
+or done for a file that had not asked for it, or done again because
+somebody had thrown the answer away.
 
 **Measured and rejected: `clang -O1`.**  It looked like a free 1.3 s,
 and the objects are bit-identical to `-O2` — no fast-math flags, so
