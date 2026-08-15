@@ -808,10 +808,22 @@ def _bump_env(env):
 
 
 def _apply_n_bump_env(i, env):
-    """Apply `_bump_env` to `env`, `i` times."""
-    for _ in range(i):
-        env = _bump_env(env)
-    return env
+    """`_bump_env` i times — in **one** pass, because i is an index.
+
+    The callers below walk an application's arguments and bump by the
+    number pushed so far, so an application of k arguments asked for
+    0 + 1 + … + k rebuilds of the environment: quadratic in the size of
+    a call, and every compiled body pays it.  Bumping i times adds i, so
+    one pass says the same thing.
+
+    Measured on `examples/long/sauna.ges`, whose start `GESTATE_BUILD_TIME`
+    put six seconds in: `_bump_env` was 40% of a G-machine compile, and
+    that compile happens twice a rebuild there.
+    """
+    if i <= 0:
+        return env
+    return {name: (Arg(r.n + i) if isinstance(r, Arg) else Local(r.n + i))
+            for name, r in env.items()}
 
 
 def compile_c(e, env):
