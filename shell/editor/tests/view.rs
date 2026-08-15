@@ -1229,7 +1229,6 @@ fn an_inert_file_wears_the_word_where_the_transport_stands() {
 fn a_scope_grants_a_box_under_its_line() {
     use gestate_editor::view::SCOPE_ROWS;
 
-    let d = doc("a\nb\nc\nd");
     let chrome = Furniture::read("scope\tpost\t2");
     let mut v = rows_of(10, 900);
     v.grant(&chrome, &LARGE);

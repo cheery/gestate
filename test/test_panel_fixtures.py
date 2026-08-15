@@ -18,7 +18,18 @@ So: regenerate every fixture from today's compiler, exporter and
 reference walk, and require equality with what the Rust suite reads.
 When one of these fails, the export moved.  That is not a defect in
 this test — it is the seam saying so.  Regenerate the fixture, run
-`cargo test -p gestate-panel`, and commit the two sides together.
+
+    cargo test -p gestate-panel --features substrate
+
+and commit the two sides together.
+
+**`--features substrate` is load-bearing, and this line used to omit
+it.**  `substrate_parity.rs` opens `#![cfg(feature = "substrate")]` and
+the panel's `default = []`, so a plain `cargo test -p gestate-panel`
+builds that target, runs *zero* tests out of it, and reports success
+without ever reading these bytes.  An instruction that goes green
+without checking anything is the same failure this file was written
+about, one floor up — so the flag is spelled out rather than assumed.
 """
 
 from __future__ import annotations
@@ -105,7 +116,9 @@ def _fixture(name: str) -> str:
 
 
 MOVED = ("the export moved: regenerate shell/panel/tests/%s and run "
-         "`cargo test -p gestate-panel` — the two sides ship together")
+         "`cargo test -p gestate-panel --features substrate` — the two "
+         "sides ship together, and without the flag the Rust half runs "
+         "no tests at all")
 
 
 def test_the_program_fixtures_are_todays_serialization():
