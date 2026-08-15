@@ -1060,3 +1060,49 @@ def test_a_file_that_moved_under_the_picture_is_refused():
     lines[line - 1] = "  " + lines[line - 1]          # two columns adrift
     with pytest.raises(RefusedError, match="moved under the picture"):
         transposed("".join(lines), roll, 0, 42)
+
+
+def test_a_file_with_boxes_and_no_substrate_is_still_told_things():
+    """**The reason a dragged note did not move on the screen.**
+
+    The readings a frame owes were gated on the *file's own* canvas
+    having crossed — `substrate`, the whole-window picture — so a
+    program that has none, which is every piece that only stands
+    `notes` or `canvas <expr>` boxes on its lines, was never sent a
+    single `reading`.  `minute.ges` is exactly that: four score boxes
+    and no `substrate`.  Its boxes drew and then stood still, and the
+    note under a hand could not follow it however well the hand was
+    tracked, because what moves it is a reading and none was crossing.
+
+    The same mistake as the one the loop's own comment records — *"the
+    substrates stand still" was readings gated on the canvas view* —
+    from the other side: gated on the file having a main canvas rather
+    than on the view showing one.
+
+    **And the tests that watch a note follow a hand could not have
+    caught it**, because they call `observe()` themselves; the loop is
+    the seam between the model that answers and the window that draws,
+    and this is that seam's own rule, in a function with a name.
+    """
+    from gestate.workbench import walking, worth_telling
+
+    class _Walked:
+        crossing = {"chans": []}
+
+    class _Drawn:
+        crossing = None
+
+    class _Bench:
+        def __init__(self, sub, boxes):
+            self.substrate, self.canvases = sub, boxes
+
+    assert not walking(None), "nothing is not a canvas"
+    assert not walking(_Drawn()), "a canvas nobody walks is not walked"
+    assert walking(_Walked())
+
+    # **The one that was wrong**: no `substrate`, one walked box.
+    assert worth_telling(_Bench(None, {"__notes_0__": _Walked()}))
+    # And the two it always got right.
+    assert worth_telling(_Bench(_Walked(), {}))
+    assert not worth_telling(_Bench(None, {"__notes_0__": _Drawn()}))
+    assert not worth_telling(_Bench(None, {}))

@@ -332,6 +332,39 @@ class Window:
         return True
 
 
+def walking(canvas) -> bool:
+    """Whether the window is walking this canvas for itself.
+
+    **A file's own `substrate` is not the only thing that walks.**  The
+    readings a frame owes were gated on *this* being true of the file's
+    main canvas — so a program with no `substrate` at all, which is
+    every piece that only stands `notes` or `canvas <expr>` boxes on
+    its lines, was never sent a single `reading`.  Its boxes drew and
+    then stood still: a meter that never moved, and a note that would
+    not follow a hand however hard the hand was tracked, because what
+    moves it is a reading and none was crossing.
+
+    Found on 2026-08-15 with `minute.ges`, which has four score boxes
+    and no `substrate`.  The same mistake as the one the comment below
+    records — *"the substrates stand still" was readings gated on the
+    canvas view* — from the other side: gated on the *file* having a
+    main canvas rather than on the view showing one.  A box is a canvas
+    and asks for what a canvas needs.
+    """
+    return canvas is not None and getattr(canvas, "crossing", None) is not None
+
+
+def worth_telling(bench) -> bool:
+    """Whether this program has anything the window walks.
+
+    The loop's own question, with a name so that it can be asked in a
+    test and answered wrongly only on purpose — see `walking` for the
+    day it was answered wrongly by accident.
+    """
+    return walking(getattr(bench, "substrate", None)) or any(
+        walking(box) for box in getattr(bench, "canvases", {}).values())
+
+
 #: How long the loop sleeps while a hand is moving, and while it is not.
 #:
 #: **The fast one is the answer to a lagging command list.**  What the
@@ -790,11 +823,12 @@ def run(path, rate: int = 44100, block: int = 512,
             drew = False
             showing = getattr(session.view, "showing", "source") == "canvas"
             sub = getattr(bench, "substrate", None)
-            crossed = (sub is not None
-                       and getattr(sub, "crossing", None) is not None)
+            crossed = walking(sub)
+            told = worth_telling(bench)
             if (showing and crossed) or (
                     not (showing and not crossed)
                     and time.monotonic() >= next_frame):
+                # `told`, not `crossed`, below: see `walking`.
                 # **The window walks the canvas and draws the boxes**
                 # (`spec/workbench.md` §"The canvas walks over crust",
                 # `spec/scope.md`) — so what the model's frame owes is
@@ -813,7 +847,7 @@ def run(path, rate: int = 44100, block: int = 512,
                 if time.monotonic() >= next_frame:
                     next_frame = time.monotonic() + READ_EVERY
                     lines_out = []
-                    if crossed:
+                    if told:
                         lines_out += [f"reading\t{n}\t{v}"
                                       for n, v in bench.observe()]
                     for label, points in bench.scope_traces():
