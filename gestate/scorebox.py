@@ -20,8 +20,9 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-__all__ = ["asks", "build_roll", "build_rolls", "roll_program",
-           "Roll", "RollError"]
+__all__ = ["asks", "build_roll", "build_rolls", "page_program",
+           "pitch_atom", "roll_program", "transposed",
+           "Roll", "RefusedError", "RollError"]
 
 
 class RollError(Exception):
@@ -49,6 +50,11 @@ WINDOW_BEATS = 256
 MAX_LEAVES = 48
 
 TICKS_PER_BEAT = 96
+
+#: The one-line wrapper an ask's expression is parsed inside.  Named
+#: because two places need its width: the parse, and the column an atom
+#: written on the ask's own line really sits at (`_col_bias`).
+_WRAPPER = "__nb_ask__ = "
 
 #: The chancy sniff — `audioperform`'s own precedent for deciding
 #: whether a take needs a seed said.
@@ -109,6 +115,20 @@ class Leaf:
     line: int                     # 1-based line of the span's start
     bank: str | None
     chancy: bool
+    #: Every numeric literal the leaf's own text writes down, as
+    #: `(line, col, text)` — 1-based line, 0-based column, the literal
+    #: exactly as the author spelled it.  **Atoms, for the reason `line`
+    #: is taken from atoms**: they are the parts whose positions survive
+    #: fixity resolution, and a phrase's own span may be defaulted
+    #: (`spec/scorebox.md` §"The hazards" — a `VPrefix` sliced from
+    #: column zero once swallowed a file).
+    #:
+    #: This is what an edit points at (`spec/north_star.md`): the note's
+    #: pitch is the one of these whose value is the note's key.
+    atoms: tuple = ()
+    #: The leaf `MAX_LEAVES` folded the tail into.  It still jumps
+    #: somewhere true and no longer names one note, so it does not drag.
+    collapsed: bool = False
 
 
 @dataclass
@@ -156,17 +176,26 @@ class _Descent:
         #: its nodes are walked every leaf wears the ask's own line;
         #: entering a named definition switches back to the file's.
         self._bias = 0
+        #: And the *column*, which only an edit needs.  The wrapper is
+        #: `__nb_ask__ = <expr>` and the file says `notes <expr>`, so an
+        #: atom written on the ask's own line sits at a different column
+        #: in the two — a line's worth of difference that a byte-exact
+        #: rewrite would land in the wrong place with.  Zero inside a
+        #: definition, where the descent is reading the file itself.
+        self._col_bias = 0
         self._decls = decls           # name -> VSCEqn (single, param-less)
         self._visiting: set = set()
         self._defs: dict = {}         # name -> rebuilt hidden text
         self.leaves: list = []
 
-    def rebuild_ask(self, body, ask_line: int) -> str:
+    def rebuild_ask(self, body, ask_line: int, col_bias: int = 0) -> str:
         self._bias = ask_line - 1
+        self._col_bias = col_bias
         try:
             return self.rebuild(body)
         finally:
             self._bias = 0
+            self._col_bias = 0
 
     def _src(self, v) -> str:
         """The node, printed back — **not sliced out of the source.**
@@ -215,6 +244,45 @@ class _Descent:
         visit(v)
         return (min(best) if best else 0) + 1 + self._bias
 
+    def _atoms(self, v) -> tuple:
+        """Every numeric literal in the node, where the author wrote it.
+
+        `_line`'s walk with its answer widened: the same fields, the
+        same depth bound, the same reason — an atom is the only thing
+        here whose position survived fixity resolution.  A `VNum`'s
+        span is exact, start and end, so the literal's own text is what
+        the file has and a rewrite can put back something the same
+        shape.
+        """
+        from .syntax import VConId, VNum, VStr, VWord
+
+        found: list = []
+
+        def visit(node, depth=0):
+            if depth > 64:
+                return
+            if isinstance(node, VNum):
+                span = getattr(node, "span", None)
+                if span is not None and span.end.line == span.start.line:
+                    found.append((span.start.line + 1 + self._bias,
+                                  span.start.col + self._col_bias,
+                                  span.end.col - span.start.col,
+                                  node.value))
+            if isinstance(node, (VWord, VConId, VStr)):
+                return
+            for field_ in ("left", "right", "fn", "arg", "body", "scrut",
+                           "atoms", "alts", "params", "bindings"):
+                child = getattr(node, field_, None)
+                if isinstance(child, list):
+                    for item in child:
+                        if hasattr(item, "span"):
+                            visit(item, depth + 1)
+                elif child is not None and hasattr(child, "span"):
+                    visit(child, depth + 1)
+
+        visit(v)
+        return tuple(found)
+
     def _leaf(self, v, bank) -> str:
         # An assignment buried inside the leaf is undone here, and the
         # bank it named is the leaf's own when the descent above never
@@ -238,9 +306,11 @@ class _Descent:
             # note still draws and still jumps somewhere true, just
             # not as finely as a smaller piece would.
             k = MAX_LEAVES - 1
+            self.leaves[k].collapsed = True
             return f"(tagAll {k} ({text}))"
         self.leaves.append(Leaf(line=self._line(v), bank=bank,
-                                chancy=bool(_CHANCY.search(text))))
+                                chancy=bool(_CHANCY.search(text)),
+                                atoms=self._atoms(v)))
         return f"(tagAll {k} ({text}))"
 
     def rebuild(self, v, bank=None) -> str:
@@ -285,13 +355,15 @@ class _Descent:
                 self._visiting.add(name)
                 self._defs[name] = "PENDING"
                 # A definition's own lines are the file's, whatever
-                # text the reference to it was found in.
-                saved = self._bias
-                self._bias = 0
+                # text the reference to it was found in — and its own
+                # *columns* too, which is what an edit needs: the ask's
+                # bias belongs to the ask's line and nowhere else.
+                saved = (self._bias, self._col_bias)
+                self._bias, self._col_bias = 0, 0
                 try:
                     self._defs[name] = self.rebuild(eqn.body, bank)
                 finally:
-                    self._bias = saved
+                    self._bias, self._col_bias = saved
                 self._visiting.discard(name)
             return f"__nbd_{self.box}_{name}__"
         return self._leaf(v, bank)
@@ -606,18 +678,26 @@ def build_rolls(source: str, asks_: list, rate: int, seed: int, *,
     for k, (ask_line, expr) in enumerate(asks_):
         descent = _Descent(decls, frozenset(assigning), box=k)
         try:
-            wrapped = parse(f"__nb_ask__ = {expr}\n")
+            wrapped = parse(f"{_WRAPPER}{expr}\n")
         except ParseError as exc:
             out[k] = RollError(f"the ask does not parse: {exc}")
             continue
         body = wrapped.items[0].equations[0].body
+        # Where the ask's expression sits in the *file*, against where
+        # it sits in the wrapper — see `_col_bias`.  Read off the line
+        # rather than counted: `notes` may be followed by any run of
+        # spaces, and the expression is everything after them.
+        written = source.splitlines()[ask_line - 1] if 0 < ask_line <= len(
+            source.splitlines()) else ""
+        col_bias = (written.rfind(expr) - len(_WRAPPER)
+                    if expr and written.rfind(expr) >= 0 else 0)
         # The twins first: a leaf that calls one takes its bank from
         # the table they fill in.  Every descent fills its own table;
         # the *text* is the same for all of them — it is read off the
         # module, not off the ask — so it is written out once.
         mine = descent.twin_defs(assigning)
         twins = mine if twins is None else twins
-        root = descent.rebuild_ask(body, ask_line)
+        root = descent.rebuild_ask(body, ask_line, col_bias)
         built.append((k, descent))
         parts.append(
             descent.hidden_defs()
@@ -701,6 +781,112 @@ def build_rolls(source: str, asks_: list, rate: int, seed: int, *,
 
 def _first_line(exc) -> str:
     return str(exc).splitlines()[0] if str(exc) else repr(exc)
+
+
+# ── Writing back — `spec/north_star.md` ─────────────────────────────────────
+
+
+class RefusedError(Exception):
+    """This note does not move, and the sentence says why.
+
+    Separate from `RollError`, which is the box failing to *draw*.  A
+    refusal here is the box working: it drew a note it cannot write
+    back, and saying so is the whole difference between a widget and a
+    guess.
+    """
+
+
+def pitch_atom(roll: Roll, note: int) -> tuple:
+    """Where the note's pitch is written: `(line, col, width, value)`.
+
+    **The rule, measured rather than decided** (`spec/north_star.md`):
+    the atom is the one numeric literal in the leaf's own text whose
+    value *is* the note's key.  The obvious rule — the first number
+    inside `'(Con …)` — refused four real files in five, because the
+    pitch in a piece is nearly always an argument to the author's own
+    helper (`low 38`, `holdBar 45`, `chord 45 60 64 67`) rather than a
+    field of a library constructor.
+
+    Nothing is inferred about the surrounding expression: the descent
+    points at the leaf, the event names the number, and the two must
+    agree or this raises.  Which is also what makes it self-refusing
+    where it should be — `'(Key 60 60)` has two atoms equal to 60, and
+    a doubled note in a chord has two of its own.
+
+    Raises `RefusedError` with the sentence the margin should say.
+    """
+    _on, _off, k, key, _vel = roll.events[note]
+    leaf = roll.leaves[k] if 0 <= k < len(roll.leaves) else None
+    if leaf is None:
+        raise RefusedError("that note has no source region")
+    if leaf.chancy:
+        raise RefusedError(
+            f"that note was drawn, not written — the generator is on "
+            f"line {leaf.line}, and moving it is programming rather "
+            f"than a gesture")
+    if leaf.collapsed:
+        raise RefusedError(
+            f"this piece writes more regions than the box can hand out "
+            f"({MAX_LEAVES}), so the tail shares one — it still jumps "
+            f"to line {leaf.line} and cannot be dragged")
+    hits = [a for a in leaf.atoms if a[3] == key]
+    if not hits:
+        raise RefusedError(
+            f"the pitch is not written on line {leaf.line} — it comes "
+            f"from somewhere the box cannot point at")
+    if len(hits) > 1:
+        raise RefusedError(
+            f"line {leaf.line} writes {key} more than once, so the box "
+            f"cannot tell which one is this note")
+    return hits[0]
+
+
+def transposed(source: str, roll: Roll, note: int, key: int) -> tuple:
+    """`(text, said)` — the file with that note's pitch written as `key`.
+
+    **Byte-exact**: one atom's characters are replaced and nothing else
+    in the file moves — no reflow, no reprint, no reparse-and-print
+    (`spec/north_star.md`, the tier-one invariant).  So the diff of a
+    transposition is one number, and text undo puts it back.
+
+    The file is checked against what the box believed before anything
+    is written: the descent reads the *expanded* text, where
+    `voices.piano` has become `voicesPiano` and columns after it on
+    that line have shifted, so an atom's position can be a character
+    out.  Rather than trust it, the literal is read back at the
+    position and compared — a mismatch is a refusal, never a write.
+
+    `said` counts what moves, because a note written once and played
+    many times is one atom: moving it moves every voicing, and a box
+    that let you move "this one" would be lying about the file.
+    """
+    line, col, width, value = pitch_atom(roll, note)
+    lines = source.splitlines(keepends=True)
+    if not 0 < line <= len(lines):
+        raise RefusedError(f"line {line} is not in this file any more")
+    row = lines[line - 1]
+    if row[col:col + width] != _spelling(value):
+        raise RefusedError(
+            f"line {line} does not say {_spelling(value)} where the box "
+            f"thought — the file has moved under the picture")
+    if not isinstance(value, int):
+        raise RefusedError("that pitch is written as a fraction; a "
+                           "semitone step would round it")
+    key = int(key)
+    lines[line - 1] = row[:col] + str(key) + row[col + width:]
+    _on, _off, k, was, _vel = roll.events[note]
+    voices = sum(1 for e in roll.events if e[2] == k and e[3] == was)
+    step = key - was
+    said = (f"{'+' if step > 0 else ''}{step} semitone"
+            f"{'' if abs(step) == 1 else 's'} on line {line}")
+    if voices > 1:
+        said += f" — written once, played {voices} times"
+    return "".join(lines), said
+
+
+def _spelling(value) -> str:
+    """A literal as the file spells it, for the check above."""
+    return str(value)
 
 
 # ── The picture ─────────────────────────────────────────────────────────────

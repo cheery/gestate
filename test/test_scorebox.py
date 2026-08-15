@@ -482,3 +482,135 @@ def test_a_press_moves_the_caret_and_writes_nothing(tmp_path):
     assert seat.view.went == bench.note_jumps["__nb_c0_0__"]
     assert said == f"line {seat.view.went}"
     assert seat.view.text() == source, "a read-only box wrote to the file"
+
+
+# ── Writing back — `spec/north_star.md` ─────────────────────────────────────
+
+
+def _rolled(name: str, ask: str | None = None):
+    """A file and one roll of it, for the edits below."""
+    source = (AUDIO / name).read_text()
+    if not asks(source):
+        source += "\nnotes score\n"
+    pick = [a for a in asks(source) if ask is None or a[1] == ask][:1]
+    from gestate.scorebox import build_rolls
+
+    return source, build_rolls(source, pick, RATE, 0)[0]
+
+
+def _only_change(before: str, after: str) -> tuple:
+    """The one line that differs, or a failure saying how many did."""
+    a, b = before.splitlines(), after.splitlines()
+    assert len(a) == len(b), "a transposition changed the number of lines"
+    moved = [i for i, (x, y) in enumerate(zip(a, b)) if x != y]
+    assert len(moved) == 1, f"{len(moved)} lines changed, not one"
+    return a[moved[0]], b[moved[0]]
+
+
+def test_a_transposition_is_one_number_and_nothing_else():
+    """**The tier-one promise** (`spec/north_star.md`): one atom's byte
+    range, no reflow, no reprint.  Asserted on the whole text rather
+    than on the parsed tree, because "nothing else moved" is the claim —
+    including the comment at the end of the line."""
+    from gestate.scorebox import transposed
+
+    source, roll = _rolled("chopin.ges")
+    note = next(i for i, e in enumerate(roll.events)
+                if not roll.leaves[e[2]].chancy)
+    text, said = transposed(source, roll, note, roll.events[note][3] + 4)
+
+    was, now = _only_change(source, text)
+    assert was.replace(str(roll.events[note][3]), "", 1) == \
+           now.replace(str(roll.events[note][3] + 4), "", 1), \
+        f"more than the number moved:\n  {was}\n  {now}"
+    assert "+4 semitones" in said
+
+
+def test_the_pitch_may_be_the_authors_own_helpers_argument():
+    """The rule this project measured its way to.  `low 38` is what a
+    real piece writes, not `'(Key 38 …)`, and a box that only knew the
+    library's spelling would refuse four files in five."""
+    from gestate.scorebox import pitch_atom, transposed
+
+    source, roll = _rolled("noted.ges", "ground")
+    line, col, width, value = pitch_atom(roll, 0)
+
+    assert source.splitlines()[line - 1][col:col + width] == str(value)
+    assert "low" in source.splitlines()[line - 1], "the premise: a helper"
+    text, _said = transposed(source, roll, 0, 42)
+    assert "low 42 ++ low 45" in text
+
+
+def test_a_note_written_once_and_played_many_times_says_so():
+    """Not refused — *said*.  The bytes are one atom, so moving it moves
+    every voicing, and a box that offered to move "just this one" would
+    be lying about the file."""
+    from gestate.scorebox import transposed
+
+    source, roll = _rolled("chopin.ges")
+    note = next(i for i, e in enumerate(roll.events)
+                if sum(1 for o in roll.events
+                       if o[2] == e[2] and o[3] == e[3]) > 1)
+    _text, said = transposed(source, roll, note, roll.events[note][3] + 1)
+    assert "played" in said and "times" in said, said
+
+
+def test_take_ink_is_refused_with_the_generators_line():
+    """A note the dice drew.  The edit it would ask for is `below 4 s`,
+    which is programming rather than a gesture."""
+    from gestate.scorebox import RefusedError, transposed
+
+    source, roll = _rolled("noted.ges", "tune")
+    note = next(i for i, e in enumerate(roll.events)
+                if roll.leaves[e[2]].chancy)
+    with pytest.raises(RefusedError) as caught:
+        transposed(source, roll, note, 60)
+    said = str(caught.value)
+    assert "drawn" in said and str(roll.leaves[roll.events[note][2]].line) \
+        in said, said
+
+
+def test_a_pitch_the_box_cannot_point_at_is_refused():
+    """`minute.ges` reaches its pitches through a binder one definition
+    away; the box says where it looked and declines."""
+    from gestate.scorebox import RefusedError, transposed
+
+    source, roll = _rolled("minute.ges", "score")
+    note = next(i for i, e in enumerate(roll.events)
+                if not roll.leaves[e[2]].chancy
+                and not [a for a in roll.leaves[e[2]].atoms if a[3] == e[3]])
+    with pytest.raises(RefusedError, match="not written"):
+        transposed(source, roll, note, 60)
+
+
+def test_a_doubled_note_in_a_chord_is_ambiguous():
+    """Two atoms with one value on a line — an octave doubled at the
+    unison, a pitch that happens to equal a velocity.  Guessing which
+    one the hand meant would be a coin toss the file cannot see."""
+    from gestate.scorebox import RefusedError, build_rolls, transposed
+
+    source = (AUDIO / "chopin.ges").read_text().replace(
+        "stroke 55 59 64", "stroke 55 59 55", 1)
+    assert "stroke 55 59 55" in source, "the premise: a doubled note"
+    source += "\nnotes score\n"
+    roll = build_rolls(source, asks(source), RATE, 0)[0]
+    note = next(i for i, e in enumerate(roll.events)
+                if e[3] == 55 and "stroke 55 59 55"
+                in source.splitlines()[roll.leaves[e[2]].line - 1])
+
+    with pytest.raises(RefusedError, match="more than once"):
+        transposed(source, roll, note, 57)
+
+
+def test_a_file_that_moved_under_the_picture_is_refused():
+    """The descent reads the *expanded* text, so a column can be a
+    character out.  The literal is read back before anything is written
+    — a mismatch refuses rather than corrupting a line."""
+    from gestate.scorebox import RefusedError, transposed
+
+    source, roll = _rolled("noted.ges", "ground")
+    line = roll.leaves[roll.events[0][2]].line
+    lines = source.splitlines(keepends=True)
+    lines[line - 1] = "  " + lines[line - 1]          # two columns adrift
+    with pytest.raises(RefusedError, match="moved under the picture"):
+        transposed("".join(lines), roll, 0, 42)
