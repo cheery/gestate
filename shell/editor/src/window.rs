@@ -730,91 +730,14 @@ impl EditorWindow {
     /// `trace` the wire carried, and a scope that has not spoken yet
     /// draws its midline rather than nothing, because an empty box
     /// reads as a layout bug and a flat line reads as silence.
+    /// The scopes' boxes — `view::scope_frame` does the arithmetic,
+    /// so the fold rule can be tested beside the trouble box's, which
+    /// is the same rule and was fixed once already (F132).
     fn paint_scopes(&self, canvas: &mut gestate_panel::paint::Canvas,
                     doc: &Document, view: &View, font: &Font,
                     chrome: &crate::furniture::Furniture) {
-        if chrome.scopes.is_empty() {
-            return;
-        }
-        let slots = view.slots(doc, font);
         let traces = self.traces.borrow();
-        let (cw, ch) = (view.cw(font), view.ch(font));
-        // The fold (F132): a band may hang past it in the layout, but
-        // nothing paints there — past it is the bar's ground.
-        let tall = view.h - view.status_h(font) - view.piano;
-        let gutter = view.gutter_cols(doc) as i32 * cw;
-        let wide = view.text_cols(font, doc) as i32 * cw - 4;
-        let mut f = view::Frame::default();
-        for (label, line, flavor) in &chrome.scopes {
-            let Some(slot) = slots.iter().find(|s| s.row + 1 == *line)
-            else { continue };
-            if slot.box_h <= 0 {
-                continue;
-            }
-            // Scopes sharing a line split the box evenly, each band
-            // its own — the second tenant used to paint its panel
-            // over the first's bars.
-            let mates: Vec<&String> = chrome.scopes.iter()
-                .filter(|(_, l, _)| l == line)
-                .map(|(n, _, _)| n)
-                .collect();
-            let n_mates = mates.len().max(1) as i32;
-            let k = mates.iter().position(|n| *n == label)
-                .unwrap_or(0) as i32;
-            let band = slot.box_h / n_mates;
-            let top = slot.y + ch + k * band;
-            if top >= tall {
-                continue;
-            }
-            let high = (band - 2).min(tall - top - 1);
-            if high <= 2 {
-                continue;
-            }
-            f.items.push(view::Item::Rect {
-                x: gutter + 2, y: top, w: wide, h: high,
-                c: view::CHROME });
-            let mid = top + high / 2;
-            match traces.get(label) {
-                Some(points) if !points.is_empty()
-                    && flavor == "spectro" =>
-                {
-                    // Bars from the floor, in the sound's green: a
-                    // spectrum is magnitudes, and a magnitude grows
-                    // up the way a meter does.
-                    let n = points.len() as i32;
-                    let bar = ((wide - 4) / n.max(1)).max(2);
-                    for (i, p) in points.iter().enumerate() {
-                        let x = gutter + 2
-                            + (i as i32) * (wide - 4) / n.max(1);
-                        let v = p.clamp(0.0, 1.0);
-                        let h = (v * ((high - 4) as f64)) as i32;
-                        if h > 0 {
-                            f.items.push(view::Item::Rect {
-                                x, y: top + high - 2 - h,
-                                w: bar - 1, h, c: view::LIVE });
-                        }
-                    }
-                }
-                Some(points) if !points.is_empty() => {
-                    let n = points.len() as i32;
-                    for (i, p) in points.iter().enumerate() {
-                        let x = gutter + 2
-                            + (i as i32) * (wide - 4) / n.max(1);
-                        let v = p.clamp(-1.0, 1.0);
-                        let y = mid
-                            - (v * ((high / 2 - 2) as f64)) as i32;
-                        f.items.push(view::Item::Rect {
-                            x, y: y - 1, w: 2, h: 2, c: view::CARET });
-                    }
-                }
-                _ => f.items.push(view::Item::Rect {
-                    x: gutter + 2, y: mid, w: wide, h: 1,
-                    c: view::FAINT }),
-            }
-            f.items.push(view::Item::Run {
-                x: gutter + 6, y: top + 2, s: label.clone(),
-                c: view::FAINT });
-        }
+        let f = view::scope_frame(doc, view, font, chrome, &traces);
         view::paint(canvas, &f, font, self.scale());
     }
 

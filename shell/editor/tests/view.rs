@@ -1305,3 +1305,81 @@ fn a_box_at_the_fold_stops_at_the_fold() {
         }
     }
 }
+
+/// **A scope crops at the fold; it does not squeeze into it.**
+///
+/// The fold rule the trouble box learned in F132, and the half it
+/// never needed: a scope has a *picture* inside it, so shrinking the
+/// drawing to whatever room is left redraws the wave flatter every row
+/// it is scrolled.  Henri, who had seen this shape before: *"the scope
+/// / spectro have the same clipping issue as canvas used to have."*
+/// The canvas answered it by laying out at the band's full height and
+/// blitting only the visible rows; this is that rule, in the other
+/// painter.
+#[test]
+fn a_scope_at_the_fold_is_cropped_and_not_squashed() {
+    use std::collections::HashMap;
+
+    use gestate_editor::view::scope_frame;
+
+    let d = doc("a\nb\nc\nd\ne\nf\ng\nh");
+    let chrome = Furniture::read("scope\tpost\t7\tscope");
+    let mut traces: HashMap<String, Vec<f64>> = HashMap::new();
+    // A square wave at full scale: every point is at one edge of the
+    // box or the other, so a rescaled one lands somewhere new and a
+    // cropped one simply loses half its points.
+    traces.insert("post".into(),
+                  (0..64).map(|i| if i % 2 == 0 { 1.0 } else { -1.0 })
+                      .collect());
+
+    let points = |f: &gestate_editor::view::Frame| -> Vec<i32> {
+        f.items.iter().filter_map(|i| match i {
+            Item::Rect { y, w, .. } if *w == 2 => Some(*y),
+            _ => None,
+        }).collect()
+    };
+    let panel = |f: &gestate_editor::view::Frame| -> (i32, i32) {
+        f.items.iter().find_map(|i| match i {
+            Item::Rect { y, h, w, .. } if *w > 10 => Some((*y, *h)),
+            _ => None,
+        }).unwrap_or((0, 0))
+    };
+
+    let mut roomy = rows_of(30, 400);
+    roomy.grant(&chrome, &LARGE);
+    let whole = scope_frame(&d, &roomy, &LARGE, &chrome, &traces);
+    let (_, full_h) = panel(&whole);
+    assert!(!points(&whole).is_empty(), "nothing was drawn with room");
+
+    for rows in [10usize, 9] {
+        let mut v = rows_of(rows, 400);
+        v.grant(&chrome, &LARGE);
+        let tall = v.h - v.status_h(&LARGE);
+        let f = scope_frame(&d, &v, &LARGE, &chrome, &traces);
+
+        // The fold really bit — otherwise the rest proves nothing.
+        let (_, h) = panel(&f);
+        assert!(h < full_h, "the fold did not crop at {rows} rows");
+
+        // Nothing is painted past it.
+        for item in &f.items {
+            if let Item::Rect { y, h, .. } = item {
+                assert!(y + h <= tall,
+                        "painted across the fold at {rows} rows: \
+                         y={y} h={h} tall={tall}");
+            }
+        }
+
+        // And what survives sits exactly where the roomy frame put it:
+        // cropped, not rescaled.  A scope squeezed into the remaining
+        // room puts its points somewhere new, which is the picture
+        // telling a different story about the same sound.
+        let mine = points(&f);
+        assert!(!mine.is_empty(), "the whole wave was cropped away");
+        for y in &mine {
+            assert!(points(&whole).contains(y),
+                    "at {rows} rows a point moved to {y}: the wave was \
+                     rescaled to fit rather than cropped");
+        }
+    }
+}

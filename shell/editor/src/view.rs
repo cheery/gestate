@@ -965,6 +965,129 @@ fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
 }
 
 
+/// The scopes' boxes, as a frame.
+///
+/// **Beside `frame_with` because it keeps the same law.**  A box may
+/// hang past the fold in the layout — deliberately, so the caret's
+/// promise of its own line survives — and nothing may *paint* there
+/// (F132).  What this adds is the half the trouble box never needed:
+/// a scope has a picture inside it, and a picture cropped is honest
+/// while a picture *squeezed* is a lie about the sound.
+pub fn scope_frame(doc: &Document, view: &View, font: &Font,
+                   chrome: &Furniture,
+                   traces: &std::collections::HashMap<String, Vec<f64>>)
+                   -> Frame {
+    let mut f = Frame::default();
+    if chrome.scopes.is_empty() {
+        return f;
+    }
+    let slots = view.slots(doc, font);
+    let (cw, ch) = (view.cw(font), view.ch(font));
+    // The fold (F132): a band may hang past it in the layout, but
+    // nothing paints there — past it is the bar's ground.
+    let tall = view.h - view.status_h(font) - view.piano;
+    let gutter = view.gutter_cols(doc) as i32 * cw;
+    let wide = view.text_cols(font, doc) as i32 * cw - 4;
+    for (label, line, flavor) in &chrome.scopes {
+        let Some(slot) = slots.iter().find(|s| s.row + 1 == *line)
+        else { continue };
+        if slot.box_h <= 0 {
+            continue;
+        }
+        // Scopes sharing a line split the box evenly, each band
+        // its own — the second tenant used to paint its panel
+        // over the first's bars.
+        let mates: Vec<&String> = chrome.scopes.iter()
+            .filter(|(_, l, _)| l == line)
+            .map(|(n, _, _)| n)
+            .collect();
+        let n_mates = mates.len().max(1) as i32;
+        let k = mates.iter().position(|n| *n == label)
+            .unwrap_or(0) as i32;
+        let band = slot.box_h / n_mates;
+        let top = slot.y + ch + k * band;
+        if top >= tall {
+            continue;
+        }
+        // **Drawn at the band's own height and *cropped* at the
+        // fold — not squeezed into what is left.**  `high` used to
+        // be `min(tall - top - 1)`, so a scope crossing the fold
+        // was redrawn shorter every row it was scrolled: the wave
+        // flattened and the spectrum's bars shrank, which is a
+        // picture telling a lie about the sound.  Henri, who had
+        // seen it before: *"the scope / spectro have the same
+        // clipping issue as canvas used to have."*  The canvas
+        // learned this already — it lays out in the band's full
+        // height and blits only the visible rows
+        // (`paint_canvas_boxes`) — and this is the same rule with
+        // the same reason, arrived at by the other painter.
+        let high = band - 2;
+        if high <= 2 {
+            continue;
+        }
+        let clip = |y: i32, h: i32| -> Option<(i32, i32)> {
+            if y >= tall || h <= 0 {
+                return None;
+            }
+            Some((y, h.min(tall - y)))
+        };
+        if let Some((y, h)) = clip(top, high) {
+            f.items.push(Item::Rect {
+                x: gutter + 2, y, w: wide, h, c: CHROME });
+        }
+        let mid = top + high / 2;
+        match traces.get(label) {
+            Some(points) if !points.is_empty()
+                && flavor == "spectro" =>
+            {
+                // Bars from the floor, in the sound's green: a
+                // spectrum is magnitudes, and a magnitude grows
+                // up the way a meter does.
+                let n = points.len() as i32;
+                let bar = ((wide - 4) / n.max(1)).max(2);
+                for (i, p) in points.iter().enumerate() {
+                    let x = gutter + 2
+                        + (i as i32) * (wide - 4) / n.max(1);
+                    let v = p.clamp(0.0, 1.0);
+                    let h = (v * ((high - 4) as f64)) as i32;
+                    if let Some((y, h)) = clip(top + high - 2 - h, h) {
+                        f.items.push(Item::Rect {
+                            x, y, w: bar - 1, h, c: LIVE });
+                    }
+                }
+            }
+            Some(points) if !points.is_empty() => {
+                let n = points.len() as i32;
+                for (i, p) in points.iter().enumerate() {
+                    let x = gutter + 2
+                        + (i as i32) * (wide - 4) / n.max(1);
+                    let v = p.clamp(-1.0, 1.0);
+                    let y = mid
+                        - (v * ((high / 2 - 2) as f64)) as i32;
+                    if let Some((y, h)) = clip(y - 1, 2) {
+                        f.items.push(Item::Rect {
+                            x, y, w: 2, h, c: CARET });
+                    }
+                }
+            }
+            _ => {
+                if let Some((y, h)) = clip(mid, 1) {
+                    f.items.push(Item::Rect {
+                        x: gutter + 2, y, w: wide, h,
+                        c: FAINT });
+                }
+            }
+        }
+        if clip(top + 2, ch).is_some() {
+            f.items.push(Item::Run {
+                x: gutter + 6, y: top + 2, s: label.clone(),
+                c: FAINT });
+        }
+    }
+f
+}
+
+
 /// The same, with what the model had to say about the chrome.
 pub fn frame_with(doc: &Document, view: &View, font: &Font,
                   chrome: &Furniture) -> Frame {

@@ -3852,3 +3852,29 @@ colon still means what it means today.
 
 Worth doing with F137, since both are the window being told half of
 something the model knows.
+
+### F139. **[resolved]** A scope squeezed itself into the fold instead of cropping
+
+Henri, 2026-08-15 (`fixme.incoming.txt`): *"the scope / spectro have
+the same clipping issue as canvas used to have."*
+
+`paint_scopes` sized its drawing with `high = (band - 2).min(tall - top
+- 1)` — the band's height *or* whatever was left above the fold,
+whichever was smaller.  So a scope scrolled towards the bottom of the
+window was redrawn shorter every row: the wave flattened, the
+spectrum's bars shrank, and the picture told a different story about
+the same sound at every scroll position.  The canvas had the same bug
+and answered it when the boxes arrived — lay the walk out at the band's
+*full* height and blit only the visible rows (`paint_canvas_boxes`,
+and the entry there records Henri watching chopin's disc slide off its
+place) — but the scope painter never heard.
+
+**Resolved the same evening, and moved where it can be tested.**  The
+arithmetic is `view::scope_frame` now, beside `frame_with`, so the fold
+rule for a scope is checked where the trouble box's already is: drawn
+at the band's own height, and every item cropped to the fold as it is
+emitted.  Held by `a_scope_at_the_fold_is_cropped_and_not_squashed`,
+which asserts the distinguishing thing rather than the obvious one —
+the points that survive sit *exactly where the roomy frame put them*,
+because a squeezed picture puts them somewhere new.  Checked against
+the squeeze it replaced.
