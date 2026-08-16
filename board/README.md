@@ -7,6 +7,10 @@ directory is what is actually being worked, in order, one file per task.
 
 Henri fills the board.  A session works down it.
 
+`spec/author.md` is the companion to this one: this file is how a *task*
+is worked, that one is what the author spends attention on when there is
+more work than there is reading time.
+
 ---
 
 ## The order

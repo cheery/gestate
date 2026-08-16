@@ -6,6 +6,11 @@ way it is.  This file is the method those four are written under, and
 it exists because the method has been rediscovered from both ends often
 enough to be worth stating once.
 
+**And `spec/author.md` is its other half** — this file says what the
+*work* must do to be trustworthy; that one says what the **author** must
+spend attention on when the work outruns what a person can read.  It was
+written the day the volume made the question unavoidable.
+
 **Every claim below cites the thing that proves it.**  That is not
 decoration — a manifesto that cannot be checked is a mood.  Where a
 sentence here has no file, test or number after it, treat it as
