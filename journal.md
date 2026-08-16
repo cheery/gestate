@@ -6946,3 +6946,155 @@ window, which is the known replay gap.  The *recorded answers* were the
 evidence — three that said `-2 semitones on line 29` and four that said
 the file had moved.  A log of what was said is worth keeping even where
 the replay cannot follow it.
+
+---
+
+## The day the machines learned to stop themselves
+
+**2026-08-16, the afternoon.**  Sixteen commits, none of them about
+music.  It began with Henri saying he felt strained and overworked, and
+asking for a summary of what had been done and in what time.
+
+**The summary was the finding.**  From the first commit to that morning
+was **seven days and eleven hours** — 272 commits, ~114,500 lines after
+the import, 2,008 tests, 141 filed defects.  Thirty commits a calendar
+day with no day off, and **no hour of the clock without a commit in
+it**: fifteen fall between midnight and five.  The project was nine days
+old and felt like months, which is what an unbroken pace does.  Written
+to `spec/summary.md`, ending on the sentence the rest of the day
+answered:
+
+> The pace itself was never instrumented.  Every other cost in this
+> project has an oracle.  This one did not, until this file.
+
+### Free the people from machines
+
+Henri's phrase, at the end of it, and he is right that it belongs here.
+It is the lean idea underneath *jidoka* — a machine that stops itself
+when something is wrong, so that nobody has to stand and watch it.  The
+worker is freed not by the machine being faster but by it being
+**trustworthy when unattended**.
+
+This project had already written that rule down without the name.
+`manifesto.md` rule 2: *what is built must be able to say when it is
+wrong — and visible to something that is not a person's attention,
+because attention is what runs out.*  That is jidoka, arrived at from
+the other end.
+
+What the afternoon built is that rule applied to the machinery itself.
+`tools/sandbox.sh` fences what executes untrusted code and **proves its
+own fence** with thirteen probes, one of them graded from outside
+because a sandbox cannot grade its own escape.  `tools/leash.sh` answers
+whether the deny-list is actually in force, since a malformed
+`settings.json` disables every rule in it silently.  `tools/fence-hook.sh`
+makes the fencing automatic, because a protection you have to remember
+is one you will forget on the day it matters.  `test/test_safety.py`
+runs all of it as tests, so the suite fails when the fence stops
+fencing.
+
+Henri: *"You freed me today."*  What actually did it was not the
+sandbox.  It was that four things can now say when they are wrong
+without him looking.
+
+### What kept happening, all afternoon
+
+One shape, five times, and it is the reason the day is worth a journal
+entry at all:
+
+| what outlived its reason | how it was found |
+|---|---|
+| `.gitignore`'s "both crates are zero-dependency" — four members now, **133 crates** | reading the comment against the tree |
+| five `ufw` rules for a program removed an hour earlier, four of them `Anywhere` | **Henri** read `ufw status numbered` after I reported the machine clean |
+| an old SSH key still authorised beside its replacement | the rekey |
+| `NEEDS_WINDOW` as a name, once there were two reasons | adding the second |
+| an unencrypted `id_rsa` for the forge | written into `spec/sandbox.md` rather than remembered |
+
+**None of them announced itself.**  `cargo build` succeeded, the
+firewall was up, `ssh -T` said *Hi cheery*.  Every operation that used
+the stale thing kept working perfectly, which is precisely why nobody
+looks.
+
+### And the checks that lied
+
+Three, and they cost more than the bugs did.
+
+`systemctl is-enabled ufw` returns `enabled` — which reports whether the
+**unit starts at boot**, not whether the firewall is up.  `ufw status
+verbose` said `inactive`, and had all along.  A correct finding was
+raised, **withdrawn on the strength of the wrong command**, then
+reinstated.  The withdrawal was the error.
+
+`systemd-run --user` accepted eight hardening directives and applied
+none: the unit started, and `cat ~/.ssh/id_rsa` printed the key inside
+the supposed sandbox.  A probe that asked "does systemd parse this
+flag" returned eight of eight and proved nothing.
+
+`apt remove kdeconnect` closed port 1717.  Port 1716 belonged to
+**GSConnect** — a different program with a similar name.
+
+> A check that answers a neighbouring question is worse than no check,
+> because it carries the confidence of one that answered this one.
+
+### Twice the fence looked guilty and was innocent
+
+86 collection errors under the fence, which the unfenced baseline
+reproduced **identically** — bare `pytest` does not put the repo root on
+`sys.path`; `python -m pytest` does.  Then five failures in
+`test_editor_abi.py` reading *"the window never said which argument it
+is on"* — window tests, and the fence binds no X11 socket by design,
+since a client holding it can read every keystroke of the session.  All
+eight pass unfenced.
+
+Both times the thirty-second comparison against baseline was the whole
+difference between a fix and a fiction.  The suite is green: **2,426
+passed**.
+
+### The tools that could not show their work
+
+`tools/suite.py` buffered its output and printed at the end, so a
+twenty-three-minute run produced zero bytes for twenty-three minutes —
+indistinguishable from a hang, and it cost a real investigation to
+establish that a run at 91% CPU was healthy.  Then a `timeout 900` I
+had invented killed that run at fifteen minutes and the buffering threw
+away everything it had computed.  Thirty-five bytes survived:
+`Päätetty`.
+
+> A tool that cannot show it is working cannot be told from one that
+> has stopped.
+
+### What the leash caught first was its author
+
+`Edit(./.claude/**)` was written so that an agent cannot edit its own
+leash.  Within the hour it refused *me*, correctly, when I tried to
+narrow an over-broad rule of my own making — the first version denied
+reads of all of `~/.claude`, which included the memory directory.  The
+fix had to go to Henri as a `cp`.
+
+The honest limit is recorded with it: permission rules for `Bash` match
+command prefixes, not paths, so nothing stops a shell redirect into that
+file.  **Detection is the achievable control there, not prevention** —
+which is what `tools/leash.sh` is for.
+
+### The laptop that should not be bought
+
+Henri had a permit to take a company-funded machine and had kept work
+and this project separate for years.  As one of three cofounders he
+almost certainly signed the broadest IP assignment in the company, and
+such clauses routinely reach work made using company equipment.  The
+separation was a clean, provable fact; buying the machine would have
+converted it into an argument.  He reversed the decision in one
+exchange.
+
+### Where it ended
+
+Disk encryption waits for the next machine — the one item new hardware
+genuinely buys.  Everything else is closed: an ed25519 key with a
+passphrase, branch protection, `Cargo.lock` tracked and 133 crates
+pinned, the firewall active with no rules and nothing bound outside
+loopback, the fence up and automatic, the leash on and checkable, and
+`tools/secure-init.sh` to give the next project all of it.
+
+And the day's own instrument was asked for before the day ended: a timer
+in gestate for when he has been too long at it.  Recorded in
+`roadmap.md`, with one note — nine days at thirty commits a day was not
+one long session, so the day is the unit, not the sitting.
