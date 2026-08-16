@@ -235,3 +235,20 @@ def test_a_declared_type_is_matched_too_and_not_only_a_builtin():
         evaluate("Colour := Red | Blue\n\n"
                  "pick : colour -> Int\npick c = 1\n\n"
                  "main : Int\nmain = pick Red\n")
+
+
+def test_a_one_letter_variable_is_never_the_typo():
+    """`C := S` and a library signature that says `c`.
+
+    Found by `test_session.py` rather than reasoned out: the check runs
+    over the *assembled* program, so a one-letter type in the file
+    would make every library signature spelling a variable `c` an error
+    in that program's presence — a rule firing on somebody else's
+    correct code, from a distance.  A single letter is how every
+    signature everywhere spells a variable, and is never this mistake.
+    """
+    from gestate.pipeline import compile as _compile
+
+    _compile("C := S\n\n"
+             "pick : c -> C\npick x = S\n\n"
+             "main : C\nmain = pick 1\n")

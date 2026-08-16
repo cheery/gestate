@@ -252,6 +252,19 @@ def _refuse_a_type_in_lowercase(var: TVar, env: dict[str, Kind]) -> None:
     """
     if not var.name or not var.name.islower():
         return
+    if len(var.name) == 1:
+        # **A single letter is never this mistake, and refusing one
+        # would be a bad trade.**  `a`, `m`, `c` and `s` are how every
+        # signature in every library spells a variable, and a program
+        # is free to declare a one-letter *type* — `C := S` in
+        # `test_session.py` does.  The check runs over the assembled
+        # program, so one such declaration would make every library
+        # signature that says `c` an error in that program's presence:
+        # a rule that fires on somebody else's correct code, from a
+        # distance, which is the worst shape a diagnostic can have.
+        # Found by the suite rather than reasoned out, and kept as a
+        # test.
+        return
     meant = next((known for known in env
                   if known != var.name and known.lower() == var.name.lower()),
                  None)
