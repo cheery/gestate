@@ -6569,7 +6569,71 @@ guarantee behind it — which is the drift this was built to prevent,
 wearing a different suffix.  `.gitignore` carries that sentence, where
 somebody would look for it.
 
+### The second sheet, and how deep this goes
+
+Henri, an hour later: *"the atlas is excellent.  Would you like to make
+other A3s that show the next layer deeper in?  How far can we bring
+this?"*  So `language.svg` — the front end, pass by pass — went in the
+same afternoon, and it answers the second question better than an
+argument would.
+
+**The deeper you go, the more there is to derive, not less.**  That was
+the surprise.  The overview's facts were coarse (a module exists, an
+import exists); a sheet about the front end can read things that are
+much closer to the truth of the program:
+
+* **The order of the passes is `pipeline._analyse`'s own.**  The names
+  are declared with a sentence each, and `out_of_order()` reads the
+  calls out of that function's syntax tree and checks the sequence.
+  Move a pass in the compiler and the sheet fails until it is moved
+  here — which is the difference between a diagram of the compiler and
+  a diagram of what somebody remembered about the compiler.
+* **Where each pass lives, through the aliases.**  The front end names
+  its passes for the reader: `check_monotone` is `monotone.check_scs`,
+  and `_merge_prelude` is `prelude.merge` by way of a second alias.
+  Following the renames is what lets a card say which file to open.
+* **What each pass can refuse.**  Read three ways, because a pass says
+  no in three shapes: it raises; or it calls something that raises (the
+  kind check says nothing itself and `check_kind` says `KindError`); or
+  it *returns* a list of complaints the front end turns into one
+  exception on the next line, which is how the monotone and subgrammar
+  checks work.  Filtered to exception classes this package declares, so
+  a card says `SubgrammarError` and not `ValueError`.
+* **The G-machine's instruction set**, read from `_DISPATCH` — the
+  machine's own dispatch table, so an instruction it learns appears on
+  the sheet by itself.
+
+Two of those were wrong before they were right, and both lies were
+fluent:
+
+**The `if typecheck:` block made every refusal belong to the first pass
+in it.**  Reading only the top-level statements of `_analyse` treats
+that whole block as one statement, so the scan for *"what is raised
+after this call"* attributed `SubgrammarError` to the kind check.  A
+diagram states such a thing without hedging, which is exactly why the
+derivation has to be right rather than approximately right.
+
+**And a relative import is relative to its package.**  `syntax/__init__`
+says `from .parse import parse_module`, which is `syntax.parse` and not
+a top-level `parse`; until the resolver knew that, the sheet said the
+parser refuses nothing.
+
+The cost of following calls two hops through fifty files is that the
+same files get parsed a few hundred times — forty seconds to draw one
+page, which is the sort of number that decides whether a command ever
+gets run again.  Cached, it is two and a half.
+
+**Where this stops** is worth writing down, because the ladder does not
+go on for ever.  Everything above is a *fact in the source*: an import,
+a call, a dispatch table, a file that exists.  One rung further —
+the wire between the model and the window, the audio graph's node
+kinds, the score algebra's operators — is still fact, and the wire in
+particular would be the first sheet that *verifies* rather than
+describes, because both ends of it are written twice and nothing checks
+that they agree.  Past that lie the things no reading can recover: why
+a pass exists, which arrow matters, what a lane is *for*.  Those are
+the sentences under the boxes, and they are the part a person has to
+keep writing.
+
 What is left is more sheets, and the rule the rest of this project runs
-on applies: draw the one somebody wants to read.  The generator returns
-a page per name, so the front end pass by pass, the sound path, and the
-window are each an afternoon whenever the overview stops saying enough.
+on applies: draw the one somebody wants to read.

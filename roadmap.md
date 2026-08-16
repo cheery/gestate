@@ -394,12 +394,31 @@ their own headings.  What is below is what is *not* done.
   names something gone, when an arrow has nothing behind it, and when
   the committed sheet is not what today's source renders.
 
-  **What is left** is more sheets, and only when the overview fails to
-  say something: the front end pass by pass, the sound path from score
-  to card, and the window from `command.ges` to the shell.  The
-  generator takes them — `generate()` returns a page per name — and the
-  rule that got this far applies to them too: draw the one somebody
-  wants to read, not the set that would be complete.
+  **The second sheet is built too**: `language.svg`, the front end pass
+  by pass, whose order is not written down but read out of
+  `pipeline._analyse` — with each pass's home resolved through its
+  aliases, the refusals it can make followed two hops through the
+  calls, and the G-machine's instruction set read from its own dispatch
+  table.
+
+  **What is left, in the order the value falls:**
+
+  * **The wire** — `session`'s furniture and the `ged_*` ABI against
+    `shell/editor/src/abi.rs`.  This is the one that would *verify*
+    rather than describe: both ends are written twice, in two
+    languages, and nothing checks that they agree.  A sheet that draws
+    the wire has to read both, which means the drawing fails when they
+    drift — a defect this project has hit twice by hand.
+  * **The sound path**, from `sound : Sig Float` to the card: the
+    extractor's node kinds, the IR's operations, the emitter, the
+    engine and the host's own ABI — all of them dataclasses and
+    `ctypes` prototypes, and all readable.
+  * **The score algebra**, whose operators and types the reference
+    index already holds.
+
+  And the limit, so nobody chases it: everything above is a fact in the
+  source.  Why a pass exists, which arrow matters and what a lane is
+  *for* are not, and stay written by hand under the boxes.
 
 - **Product safety wants a process, not a promise.**  This project can
   now hand a person a full-scale blast in their headphones, overwrite a

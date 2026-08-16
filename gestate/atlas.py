@@ -51,6 +51,7 @@ from __future__ import annotations
 import ast
 import re
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 
 #: The sheet, in millimetres.  A3 landscape, because it is meant to be
@@ -121,6 +122,57 @@ SPINE: list[tuple[str, str, str, object]] = [
      "shell/editor/src/furniture.rs"),
 ]
 
+#: The front end, pass by pass — `(the call, what it does)`.
+#:
+#: **The order is not written here; it is checked against the code.**
+#: `pipeline._analyse` is the front end, in one function, in order, and
+#: `out_of_order()` reads the calls out of its syntax tree: these names
+#: must appear there, in this sequence.  Move a pass in the compiler and
+#: the sheet fails until it is moved here — which is the difference
+#: between a diagram of the compiler and a diagram of what somebody
+#: remembered about the compiler.
+#:
+#: What each pass *is for* is the sentence, and that is ours.
+PASSES: list[tuple[str, str]] = [
+    ("_merge_prelude",
+     "The libraries go in front of your file, and a seam is left where "
+     "yours begins so a rebuild can skip theirs."),
+    ("parse", "Tokens, layout by indentation, a module of declarations."),
+    ("classify",
+     "Declarations sorted into what they are: data, classes, instances, "
+     "signatures, definitions."),
+    ("check_program",
+     "Every `case` covers its type — checked on the surface patterns, "
+     "before the match compiler makes them complete by construction."),
+    ("desugar_program",
+     "Patterns compiled to decision trees, sugar gone: what comes out "
+     "is supercombinators, which is what the machine runs."),
+    ("_kind_check_program",
+     "The types of types: `Maybe Maybe` is refused here, and so is a "
+     "signature variable wearing a type's name in lowercase."),
+    ("infer_program",
+     "Inference, classes and instances, and the signature as a contract "
+     "— its variables are the caller's to choose."),
+    ("lower_fields",
+     "`e.N` resolved from the type of what it selects, before any later "
+     "pass has to know the node exists."),
+    ("check_monotone",
+     "Datafun's discipline: what may vary monotonically and what must be "
+     "discrete, read off the binders inference just annotated."),
+    ("check_subgrammars",
+     "The two fragments — Datafun's, and audio's first-order one — each "
+     "a refusal with the author's own sentence attached."),
+    ("_discharge",
+     "Dictionaries chosen and passed: elaboration rebuilds the lambdas, "
+     "specialisation makes a copy per instance where it pays."),
+    ("resolve_static_methods",
+     "A class method with no dictionary to take it from, answered by "
+     "the type it was used at."),
+    ("expand_envelopes",
+     "The last rewrite before the machine, and the one the audio side "
+     "asked for."),
+]
+
 #: What each lane is, in one sentence.  The editorial half — a lane
 #: title says what a thing is called and this says what it is for.
 LANES: dict[str, tuple[str, str]] = {
@@ -150,6 +202,10 @@ LANES: dict[str, tuple[str, str]] = {
     "window": ("The window",
                "`command.ges` is the command list; the model holds the "
                "text and what is playing, and sends the shell furniture."),
+    "engine": ("Then it runs — the G-machine's instruction set",
+               "What a supercombinator is compiled to, read from the "
+               "machine's own dispatch table, so an instruction the "
+               "machine learns appears here by itself."),
     "native": ("Not Python",
                "The window, the painter, the plugin and the audio "
                "callback.  The G-machine is here twice on purpose: the "
@@ -191,6 +247,7 @@ WRITES: dict[str, str] = {
 # The facts
 # ---------------------------------------------------------------------------
 
+@lru_cache(maxsize=None)
 def modules(root: Path) -> list[str]:
     """Every module in the package, `syntax.` ones spelled with their dot."""
     found = [p.stem for p in (root / "gestate").glob("*.py")
@@ -249,6 +306,279 @@ def unproven(root: Path) -> list[str]:
         elif via[1] not in edges.get(via[0], ()):
             out.append(f"{a} → {b} (claims {via[0]} imports {via[1]})")
     return out
+
+
+def _called_in(root: Path, module: str, function: str) -> list[str]:
+    """The names called inside one function, in source order, once each."""
+    tree = ast.parse((root / "gestate" / f"{module}.py").read_text())
+    fn = next((n for n in tree.body
+               if isinstance(n, ast.FunctionDef) and n.name == function), None)
+    out: list[str] = []
+
+    def walk(node) -> None:
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, ast.Call):
+                f = child.func
+                name = f.id if isinstance(f, ast.Name) else getattr(f, "attr",
+                                                                    None)
+                if name and name not in out:
+                    out.append(name)
+            walk(child)
+
+    if fn is not None:
+        walk(fn)
+    return out
+
+
+def out_of_order(root: Path) -> list[str]:
+    """Passes the sheet draws that the front end does not call, or not
+    in that sequence.  **The claim the language sheet lives on.**"""
+    order = _called_in(root, "pipeline", "_analyse")
+    at = -1
+    out = []
+    for name, _says in PASSES:
+        if name not in order:
+            out.append(f"{name} is drawn and `pipeline._analyse` never "
+                       f"calls it")
+            continue
+        i = order.index(name)
+        if i < at:
+            out.append(f"{name} is drawn after `{order[at]}` and called "
+                       f"before it")
+        at = max(at, i)
+    return out
+
+
+@lru_cache(maxsize=None)
+def _tree(root: Path, module: str):
+    """One module's syntax tree, or `None` when there is no such file.
+
+    **Cached**, because the refusals on the language sheet are found by
+    following calls: thirteen passes, two hops each, and without this
+    the same fifty files are parsed a few hundred times — forty seconds
+    to draw one page, which is the sort of number that decides whether
+    a command gets run.
+
+    A package answers with its `__init__.py`, because `syntax.parse` —
+    the front end's second pass — is defined there and a reader looking
+    for it would open exactly that file.
+    """
+    here = root / "gestate"
+    for path in (here / (module.replace(".", "/") + ".py"),
+                 here / module.replace(".", "/") / "__init__.py"):
+        try:
+            return ast.parse(path.read_text())
+        except (OSError, SyntaxError):                    # noqa: PERF203
+            continue
+    return None
+
+
+def origin(root: Path, name: str) -> tuple[str, str]:
+    """Where a pass really lives — `(module, its name there)`.
+
+    **Through the aliases**, because the front end names its passes for
+    the reader rather than for their authors: `check_monotone` is
+    `monotone.check_scs`, and `_merge_prelude` is `prelude.merge` by way
+    of a second alias.  Following that is what lets the card say which
+    file to open, which is most of what a person wants from a diagram.
+    """
+    tree = _tree(root, "pipeline")
+    if tree is None:
+        return "", name
+    for _ in range(3):                      # a rename of a rename, no more
+        moved = False
+        for node in tree.body:
+            if isinstance(node, ast.Assign) and len(node.targets) == 1 \
+                    and isinstance(node.targets[0], ast.Name) \
+                    and node.targets[0].id == name \
+                    and isinstance(node.value, ast.Name):
+                name, moved = node.value.id, True
+        if not moved:
+            break
+    for node in tree.body:
+        if isinstance(node, ast.ImportFrom) and node.module and node.level:
+            for alias in node.names:
+                if (alias.asname or alias.name) == name:
+                    return node.module, alias.name
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) \
+                and node.name == name:
+            return "pipeline", name
+    return "", name
+
+
+@lru_cache(maxsize=None)
+def _errors_defined(root: Path) -> set:
+    """Every exception class this package declares.
+
+    What a refusal is filtered against, so a card says `SubgrammarError`
+    and not `ValueError`: a complaint the language makes is a fact about
+    the language, and a `TypeError` from a bad call is not.
+    """
+    out: set = set()
+    for module in modules(root):
+        tree = _tree(root, module)
+        for node in getattr(tree, "body", []):
+            if isinstance(node, ast.ClassDef) and any(
+                    getattr(b, "id", "").endswith(("Error", "Exception"))
+                    for b in node.bases):
+                out.add(node.name)
+    return out
+
+
+def _raised_in(node) -> set:
+    """The exception names raised anywhere under a node."""
+    out: set = set()
+    for child in ast.walk(node):
+        if isinstance(child, ast.Raise) and child.exc is not None:
+            exc = child.exc
+            if isinstance(exc, ast.Call):
+                exc = exc.func
+            name = exc.id if isinstance(exc, ast.Name) else \
+                getattr(exc, "attr", None)
+            if name:
+                out.add(name)
+    return out
+
+
+def _statements(node):
+    """The leaf statements under a node, in source order.
+
+    **Flattened, and that matters.**  The front end's typechecking half
+    is one `if typecheck:` block, so reading only the top level makes it
+    a single statement and every refusal inside it looks like it belongs
+    to the first pass in there.  The first version of this said
+    `check_monotone` refuses with `SubgrammarError` — a lie a diagram
+    tells fluently.
+    """
+    for stmt in getattr(node, "body", []) or []:
+        nested = [c for f in ("body", "orelse", "finalbody")
+                  for c in (getattr(stmt, f, []) or [])]
+        if nested:
+            yield from _statements(stmt)
+            for extra in ("orelse", "finalbody"):
+                for child in getattr(stmt, extra, []) or []:
+                    yield from _statements(ast.Module(body=[child],
+                                                      type_ignores=[]))
+        else:
+            yield stmt
+
+
+def _calls_of(node) -> set:
+    """Plain names called under a node."""
+    return {c.func.id for c in ast.walk(node)
+            if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)}
+
+
+def _function(root: Path, module: str, name: str):
+    """`(tree, function node)` for a name defined in a module."""
+    tree = _tree(root, module)
+    fn = next((n for n in getattr(tree, "body", [])
+               if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+               and n.name == name), None)
+    return tree, fn
+
+
+def _reached(root: Path, module: str, name: str) -> tuple:
+    """A name called from `module`, resolved to where it is defined.
+
+    One hop, through that module's own imports — which is how a pass
+    that says nothing itself still has a refusal to show: the front
+    end's kind check raises nothing and `kindcheck.check_kind`, which it
+    calls, raises `KindError`.
+    """
+    tree, fn = _function(root, module, name)
+    if fn is not None:
+        return module, name
+    for node in getattr(tree, "body", []):
+        if isinstance(node, ast.ImportFrom) and node.module and node.level:
+            for alias in node.names:
+                if (alias.asname or alias.name) != name:
+                    continue
+                # **A relative import is relative to its package.**
+                # `syntax/__init__.py` says `from .parse import
+                # parse_module`, and that is `syntax.parse` and not a
+                # top-level `parse` — which is why the front end's own
+                # parser had no refusals to show until this looked in
+                # the right place.
+                for candidate in (f"{module}.{node.module}",
+                                  f"{module.rsplit('.', 1)[0]}.{node.module}",
+                                  node.module):
+                    if _tree(root, candidate) is not None:
+                        return candidate, alias.name
+    return "", name
+
+
+def refusals_for(root: Path, pass_name: str) -> list[str]:
+    """What a pass can refuse with, read from the code three ways.
+
+    A pass says no in one of three shapes and this reads all of them:
+    it raises in its own body; it calls something in its own module that
+    raises (`_kind_check_program` says nothing itself and `check_kind`
+    says `KindError`); or it *returns* a list of complaints that the
+    front end turns into one exception on the next line, which is how
+    `check_monotone` and `check_subgrammars` work.
+
+    Read rather than listed, so a pass that learns a new complaint says
+    so the next time the sheet is drawn.
+    """
+    known = _errors_defined(root)
+    module, real = origin(root, pass_name)
+    found: set = set()
+
+    tree = _tree(root, module) if module else None
+    fn = next((n for n in getattr(tree, "body", [])
+               if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+               and n.name == real), None)
+    if fn is not None:
+        found |= _raised_in(fn)
+        # **Two hops.**  A pass hands off: the front end's kind check
+        # says nothing itself and `check_kind` says `KindError`, and
+        # `infer_program` is three refusals deep before it says any of
+        # them.  Two is where this stops paying — past it the walk
+        # reaches the whole compiler and every card lists everything.
+        seen = {(module, real)}
+        edge = [(module, real, fn)]
+        for _hop in range(2):
+            beyond = []
+            for at, _name, node in edge:
+                for called in sorted(_calls_of(node)):
+                    where, there = _reached(root, at, called)
+                    if not where or (where, there) in seen:
+                        continue
+                    seen.add((where, there))
+                    _t, deeper = _function(root, where, there)
+                    if deeper is not None:
+                        found |= _raised_in(deeper)
+                        beyond.append((where, there, deeper))
+            edge = beyond
+
+    # And the front end's own `if errors: raise` on the line after.
+    front = _tree(root, "pipeline")
+    caller = next((n for n in getattr(front, "body", [])
+                   if isinstance(n, ast.FunctionDef) and n.name == "_analyse"),
+                  None)
+    if caller is not None:
+        after = False
+        for stmt in _statements(caller):
+            calls = {c.func.id for c in ast.walk(stmt)
+                     if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)}
+            if pass_name in calls:
+                after = True
+                found |= _raised_in(stmt)
+                continue
+            if after:
+                if calls & {n for n, _s in PASSES}:
+                    break
+                found |= _raised_in(stmt)
+    return sorted(found & known)
+
+
+def instructions() -> list[str]:
+    """The G-machine's instruction set, from the machine's own dispatch."""
+    from .gmachine import _DISPATCH
+
+    return sorted(k.__name__ for k in _DISPATCH)
 
 
 def missing_files(root: Path) -> list[str]:
@@ -500,21 +830,34 @@ def render(root: Path) -> str:
             body += _arrow([(mid, one.y + one.h + 0.4), (mid, two.y - 1.2)],
                            what, turn=True)
 
+    return _sheet(
+        "gestate — the whole thing on one sheet",
+        "A language that describes music, pictures and sound, and the "
+        "host that performs what it describes.  Generated by `python -m "
+        "gestate.atlas` — every box is a file that exists and every arrow "
+        "an import that is there.",
+        "Lanes and spine are declared in `gestate/atlas.py`; modules, "
+        "libraries and crates are read from the tree.  `test_atlas.py` "
+        "fails when this sheet is not what the source renders — then run "
+        "the command above.",
+        body)
+
+
+def _sheet(title: str, subtitle: str, foot: str, body: list) -> str:
+    """The page every sheet is drawn on: size, ink, and three sentences.
+
+    One frame for all of them, so a second sheet is a body and three
+    strings rather than a second copy of the styling — and so the ink
+    stays the same across the set, which is most of what makes a set of
+    drawings read as one thing.
+    """
     head = [
         f'<text class="title" x="{MARGIN:.2f}" y="{MARGIN + 8:.2f}">'
-        'gestate — the whole thing on one sheet</text>',
+        f'{_esc(title)}</text>',
         f'<text class="subtitle" x="{MARGIN:.2f}" y="{MARGIN + 14.5:.2f}">'
-        + _ticked("A language that describes music, pictures and sound, and "
-                  "the host that performs what it describes.  Generated by "
-                  "`python -m gestate.atlas` — every box is a file that "
-                  "exists and every arrow an import that is there.")
-        + '</text>',
+        + _ticked(subtitle) + '</text>',
         f'<text class="foot" x="{MARGIN:.2f}" y="{PAGE_H - MARGIN + 2:.2f}">'
-        + _ticked("Lanes and spine are declared in `gestate/atlas.py`; "
-                  "modules, libraries and crates are read from the tree.  "
-                  "`test_atlas.py` fails when this sheet is not what the "
-                  "source renders — then run the command above.")
-        + '</text>',
+        + _ticked(foot) + '</text>',
     ]
 
     return "\n".join([
@@ -537,6 +880,10 @@ def render(root: Path) -> str:
         "  .foot { font-size: 2.7px; fill: #6b7982; }",
         "  .lane { stroke: #c9d2d8; stroke-width: 0.35; }",
         "  .lanetitle { font-size: 4.6px; font-weight: 700; }",
+        "  .step { font-size: 3.6px; font-weight: 700; }",
+        "  .stepnum { font-size: 3.2px; fill: #93a2ab; }",
+        "  .home { font-size: 2.6px; fill: #6b7982; text-anchor: end; }",
+        "  .refuses { font-size: 2.6px; fill: #8a5a5a; }",
         "  .note { font-size: 2.9px; fill: #4a5860; }",
         "  .extra { font-size: 2.9px; fill: #3b4a55; }",
         "  .chip { fill: #ffffff; stroke: #b9c4cc; stroke-width: 0.3; }",
@@ -553,14 +900,109 @@ def render(root: Path) -> str:
     ])
 
 
+def _card(x: float, y: float, w: float, h: float, n: int, name: str,
+          home: str, says: str, refuses: list) -> list:
+    """One pass, as a numbered card: what it is called, where it lives,
+    what it does, and what it can refuse."""
+    out = [f'<rect class="lane" x="{x:.2f}" y="{y:.2f}" width="{w:.2f}" '
+           f'height="{h:.2f}" rx="2.2" style="fill:#f4f7f9"/>',
+           f'<text class="stepnum" x="{x + 4:.2f}" y="{y + 6.6:.2f}">'
+           f'{n:02d}</text>',
+           f'<text class="step mono" x="{x + 11:.2f}" y="{y + 6.6:.2f}">'
+           f'{_esc(name)}</text>',
+           f'<text class="home mono" x="{x + w - 4:.2f}" y="{y + 6.6:.2f}">'
+           f'{_esc(home or "?")}</text>']
+    ty = y + 11.6
+    for line in _wrap(says, w - 8, 2.9):
+        out.append(f'<text class="note" x="{x + 4:.2f}" y="{ty:.2f}">'
+                   f'{_ticked(line)}</text>')
+        ty += 3.7
+    if refuses:
+        out.append(f'<text class="refuses" x="{x + 4:.2f}" '
+                   f'y="{y + h - 3.4:.2f}">refuses with '
+                   f'{_esc(", ".join(refuses))}</text>')
+    return out
+
+
+def render_language(root: Path) -> str:
+    """Sheet two: the front end, in the order the front end runs."""
+    cols, w = 4, (PAGE_W - 2 * MARGIN - 3 * 6) / 4
+    top = MARGIN + 21.0
+    high, gap = 42.0, 9.0
+    body: list = []
+    spots: list = []
+    for i, (name, says) in enumerate(PASSES):
+        row, col = divmod(i, cols)
+        if row % 2:                         # a snake, so the return leg
+            col = cols - 1 - col            # is a drop and not a crawl back
+        x = MARGIN + col * (w + 6)
+        y = top + row * (high + gap)
+        module, real = origin(root, name)
+        # **The module, and the name only when it is a different one.**
+        # The front end names its passes for the reader, so half of them
+        # are renames: `check_monotone` is `monotone.check_scs` and is
+        # worth spelling out, while `pipeline._kind_check_program` beside
+        # `_kind_check_program` is the same word twice — and long enough
+        # to collide with it on the card.
+        home = (module if real == name else f"{module}.{real}") or "?"
+        body += _card(x, y, w, high, i + 1, name, home, says,
+                      refusals_for(root, name))
+        spots.append((x, y))
+    for i in range(len(PASSES) - 1):
+        (x1, y1), (x2, y2) = spots[i], spots[i + 1]
+        if abs(y1 - y2) < 0.01:                          # along the row
+            step = 1 if x2 > x1 else -1
+            body += _arrow([(x1 + (w + 0.6 if step > 0 else -0.6),
+                             y1 + high / 2),
+                            (x2 + (0 - 1.2 if step > 0 else w + 1.2),
+                             y2 + high / 2)])
+        else:                                            # down a row
+            body += _arrow([(x1 + w / 2, y1 + high + 0.6),
+                            (x2 + w / 2, y2 - 1.2)])
+
+    # The foot: what the front end hands over, and the machine that takes
+    # it — the instruction set read out of the machine's own dispatch, so
+    # an instruction added to the G-machine appears here by itself.
+    rows = (len(PASSES) + cols - 1) // cols
+    fy = top + rows * (high + gap)
+    foot = Box("engine", MARGIN, fy, PAGE_W - 2 * MARGIN, 0.0, "#eaf1ee",
+               instructions())
+    foot.extra = [
+        "The Rust G-machine (`crust`) runs the same instructions for the "
+        "window; the Python one is the reference it answers to.",
+    ]
+    body += _lane(foot)[0]
+
+    return _sheet(
+        "gestate — from text to a program",
+        "The front end, in the order it runs.  The order is not written "
+        "down here: `pipeline._analyse` is read for it, and the sheet "
+        "fails when the two disagree.  Where each pass lives, and what "
+        "it can refuse, are read the same way.",
+        "Pass order, homes, refusals and the instruction set are all read "
+        "from the source by `gestate/atlas.py`; the sentence under each "
+        "name is the only written part.  `test_atlas.py` fails when the "
+        "sheet and the source disagree — then run `python -m "
+        "gestate.atlas`.",
+        body)
+
+
 # ---------------------------------------------------------------------------
 # Writing it, and saying when it is behind
 # ---------------------------------------------------------------------------
 
 def generate(root=None) -> dict:
-    """Sheet name → its text.  One for now; the shape takes more."""
+    """Sheet name → its text.
+
+    **A sheet per question, not per subsystem.**  `whole.svg` answers
+    *what is this made of*; `language.svg` answers *what happens to my
+    file*.  A third is worth drawing the day a question is asked that
+    neither answers, and not before — the same rule the rest of the
+    project runs on.
+    """
     root = Path(root) if root is not None else Path(__file__).parent.parent
-    return {"whole.svg": render(root)}
+    return {"whole.svg": render(root),
+            "language.svg": render_language(root)}
 
 
 def write(root=None) -> list:

@@ -81,12 +81,65 @@ def test_rendering_twice_says_the_same_thing():
     assert atlas.render(ROOT) == atlas.render(ROOT)
 
 
-def test_the_sheet_is_an_a3_page():
-    """It is meant to be printed and put on a wall, so the size is part
-    of what it is: 420×297 mm, in millimetres rather than pixels."""
-    svg = (ROOT / "doc" / "atlas" / "whole.svg").read_text()
-    assert 'width="420mm"' in svg and 'height="297mm"' in svg
-    assert svg.count("<svg") == 1
+def test_every_sheet_is_an_a3_page():
+    """They are meant to be printed and put on a wall, so the size is
+    part of what they are: 420×297 mm, in millimetres rather than
+    pixels, and one page each."""
+    for name in sorted(atlas.generate(ROOT)):
+        svg = (ROOT / "doc" / "atlas" / name).read_text()
+        assert 'width="420mm"' in svg and 'height="297mm"' in svg, name
+        assert svg.count("<svg") == 1, name
+
+
+# ── The language sheet, which claims to know the order of the passes ────────
+
+
+def test_the_front_end_is_drawn_in_the_order_it_runs():
+    """**The claim `language.svg` lives on.**
+
+    The order is not written in `atlas.py`; `pipeline._analyse` is read
+    for it, and this fails when the two disagree — so moving a pass in
+    the compiler moves it on the sheet or breaks the build, and there
+    is no third possibility where the picture quietly lies.
+    """
+    wrong = atlas.out_of_order(ROOT)
+    assert wrong == [], "; ".join(wrong)
+
+
+def test_every_pass_says_which_file_to_open():
+    """Half the passes are renames — `check_monotone` is
+    `monotone.check_scs` — so the card resolves the alias.  A pass whose
+    home cannot be found would print `?`, which is a diagram admitting
+    it does not know."""
+    lost = [name for name, _says in atlas.PASSES
+            if not atlas.origin(ROOT, name)[0]]
+    assert lost == [], "no home found for: " + ", ".join(lost)
+
+
+def test_a_pass_shows_the_refusals_it_can_actually_make():
+    """Read from the code, not listed: the kind check says nothing
+    itself and `check_kind` says `KindError`, which is two hops the
+    reader should not have to make."""
+    said = dict((name, atlas.refusals_for(ROOT, name))
+                for name, _says in atlas.PASSES)
+    assert "KindError" in said["_kind_check_program"]
+    assert "MonotoneError" in said["check_monotone"]
+    assert "SubgrammarError" in said["check_subgrammars"]
+    assert "ExhaustError" in said["check_program"]
+    # And the filter holds: a `ValueError` from a bad call is not a
+    # refusal the language makes.
+    assert not any("ValueError" in r for r in said.values())
+
+
+def test_the_instruction_set_is_the_machines_own():
+    """Read from `_DISPATCH`, so an instruction the machine learns is on
+    the sheet the next time it is drawn — and one it forgets leaves."""
+    from gestate import gmachine
+
+    assert atlas.instructions() == sorted(k.__name__ for k in
+                                          gmachine._DISPATCH)
+    for known in ("Unwind", "Mkap", "Eval", "PushGlobal"):
+        assert known in atlas.instructions()
 
 
 def test_the_sheet_can_be_made_into_a_picture(tmp_path):

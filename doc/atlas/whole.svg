@@ -13,6 +13,10 @@
   .foot { font-size: 2.7px; fill: #6b7982; }
   .lane { stroke: #c9d2d8; stroke-width: 0.35; }
   .lanetitle { font-size: 4.6px; font-weight: 700; }
+  .step { font-size: 3.6px; font-weight: 700; }
+  .stepnum { font-size: 3.2px; fill: #93a2ab; }
+  .home { font-size: 2.6px; fill: #6b7982; text-anchor: end; }
+  .refuses { font-size: 2.6px; fill: #8a5a5a; }
   .note { font-size: 2.9px; fill: #4a5860; }
   .extra { font-size: 2.9px; fill: #3b4a55; }
   .chip { fill: #ffffff; stroke: #b9c4cc; stroke-width: 0.3; }
