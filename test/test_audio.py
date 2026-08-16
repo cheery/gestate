@@ -163,7 +163,15 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # `noted.ges`'s reasons — a `draw` in the middle eight, and
             # a picture is what it is for — and `test_scorebox.py`
             # holds the form its header claims.
-            "minute.ges"]
+            "minute.ges",
+            # Three parts on three different grids at once — triplets
+            # over whole bars under a dotted tune — which is the
+            # polyphony argument `pachelbel.ges` makes note against
+            # note, made where the parts *disagree* about the beat.
+            # Scored, so no golden for the roster's standing reason
+            # below; the disagreement itself is arithmetic in the score
+            # algebra, and `test_music.py` holds `|/` and `|*` to it.
+            "moon_sonata.ges"]
 
 #: The ones with committed golden buffers — all of them, now.  `knob.ges`
 #: had none for as long as the interpreter and the engine disagreed about

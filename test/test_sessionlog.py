@@ -150,7 +150,11 @@ def test_writing_it_out_is_a_command(tmp_path):
     said = s.run("transcript", "")
     out = tmp_path / "demo-session.ges"
     assert out.exists(), said
-    assert said.endswith("steps")
+    # **How many steps, and what they weigh.**  `spec/rocks.md`'s law is
+    # that every command which writes a file says what it wrote and what
+    # that weighs, so the sentence ends in a mark rather than in "steps".
+    assert "steps" in said, said
+    assert said.rstrip()[-1] in ("▪", "◆", "▲"), said
     # **Not `demo.ges`.**  Proposing the name of the file being edited
     # would offer to write the session over the program it recorded.
     assert out.name != "demo.ges"
