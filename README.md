@@ -99,10 +99,12 @@ watch is one appended line that touches nothing it watches, and its
 picture stands on that line:
 
 <p align="center">
-  <img src="doc/workbench3.png" width="640"
-       alt="two sink spectro lines high in a playing score, each with a
-            live spectrogram in a box under its own line — the low end's
-            bars on one, the harmony's on the other">
+  <img src="doc/workbench4.png" width="640"
+       alt="three sink lines in a playing score — two scopes and a
+            spectro — each with its own picture in a box under its own
+            line: the bass and the chord as waveforms, the top voice as
+            a spectrum, with the bank counters in the margin beside the
+            voices below">
 </p>
 
 The label is in the file, so the diagnosis you set up on Tuesday is

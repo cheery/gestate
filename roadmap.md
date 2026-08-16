@@ -559,6 +559,15 @@ What is left of the spec is its other two omissions: a sound's honest
 measure is its duration, and nothing weighs the repository.  Neither
 has a caller.
 
+### The picture the README does not use yet — done
+
+Swapped 2026-08-16: `README.md`'s watch paragraph now stands on
+`doc/workbench4.png`, which shows two scopes and a spectro, so the
+sentence *"`spectro` is the same node wearing a spectrum"* has a
+picture in which the same line is both.  `workbench3.png` showed two
+spectros and is now referenced by nothing; it is kept, since a picture
+of an older window is 17 KB `▪` and dates the project.
+
 ---
 
 ## Ariadne — what is left of it
