@@ -7098,3 +7098,105 @@ And the day's own instrument was asked for before the day ended: a timer
 in gestate for when he has been too long at it.  Recorded in
 `roadmap.md`, with one note — nine days at thirty commits a day was not
 one long session, so the day is the unit, not the sitting.
+## The evening the caret got a window of its own
+
+**2026-08-16, the evening.**  The first item on Henri's board, taken with
+his answers already written under it: *make a small window that shows
+where the cursor is when it's off-screen.*  Five lines and their numbers,
+the caret among them, placed the way the command palette's page is
+placed, clickable so you can move in it.  *"It's kind of specific to
+north star.  I would have not come up with the idea without it."*
+
+That last sentence is the whole entry, because taking it seriously is
+what turned a small overlay into a defect.
+
+### What the north star was actually doing
+
+A press on a note in a score box is a jump: it says where that note is
+written (`spec/north_star.md`).  The window obeyed that jump the way it
+obeys `goto` — by scrolling to it.  And the note is usually written a
+long way from the box that draws it: `noted.ges` rolls `score` on line
+142 out of an atom on line 94.
+
+So the press scrolled the text, **the box went out from under the finger
+that was pressing it**, and the drag went on against the pixels the grab
+remembered.  A screenshot of the press showed it exactly: the pointer
+was over a comment about the right hand, a *different* box was standing
+where the one being dragged had been, and the status line said `line 94`.
+Every unit test in the crate passed through this.  It is the shape the
+project has met before — the defect lives between the window and the
+model, and only a real window shows it.
+
+The fix is one boolean and belongs where every drawn order passes, not at
+the order that raised it: **nothing scrolls under a hand holding a
+picture.**  `pinned()` is `box_grab.is_some()`, the tail of `obey` skips
+its follow while it is true, and `Order::Goto` skips its reveal.  The
+caret still goes where it was sent — the jump is real and useful — the
+view simply stays where the hand grabbed it.
+
+Which leaves the caret somewhere you cannot see, and that is what the
+peep is for.  The two halves are one feature: without the pin the peep
+would almost never appear during a drag, and without the peep the pin
+would be a jump you could not follow.
+
+### The peep
+
+`view::peep_box` is the geometry, `peep_frame` draws from it and
+`peep_hit` reads it back — the rule `bank_box` keeps and `knob_hit`
+inverts, so a click cannot answer a line other than the one it is drawn
+on.  It appears when the caret's row is not in the view's own row table,
+which is a question only the walk can answer once rows have boxes under
+them.
+
+Two decisions worth writing down:
+
+- **It goes toward the caret**, above the equator at the top and below it
+  at the foot.  That is the *opposite* of the palette panel's rule (F121,
+  F133) and for the opposite reason: the panel dodges the text you are
+  reading, and the peep points at the text you are not.
+- **An edit arriving from the model does not chase a caret that was
+  already off screen.**  Somebody scrolled away on purpose and the peep
+  is holding the place; the drag's own commit is the caller, since
+  following it would tear the picture away at the moment the hand let go.
+  A caret that *was* on screen keeps the old behaviour, which is every
+  ordinary case.  The same sentence F119 already wrote for descriptions,
+  arriving now for text.
+
+It reuses rather than invents: the palette page's two rectangles, its
+edge and shade, `visible()` for the columns, `follow`'s horizontal rule
+for a caret two hundred columns along, and the ink for lines the model
+has not painted — only the visible rows are painted, and these by
+definition are not.
+
+Five tests in `shell/editor/tests/view.rs` pin the layout, and the thing
+the layout cannot say is pinned by `tools/dragcheck.py`: it drives a real
+workbench, photographs a strip of ordinary text, presses a note, and
+photographs it again.  Same pixels, the view stayed; different text, the
+box has gone out from under the hand.  It was written against the fixed
+window and then run against a sabotaged one, because a check that cannot
+fail has said nothing.  The picture it leaves behind is the whole feature
+in one frame: the box under the hand with its note lifted, and at the top
+of the window line 94 with the caret in it, changing from `low 45` to
+`low 58` as the hand lets go.
+
+### And a smaller machine that learned to stop itself
+
+Mid-afternoon the full suite was started as a bare `python -m pytest -x
+-q`.  Henri: *"check up on test/report.md — did you miss it and why?"*
+Yes: `tools/suite.py` is the way the suite is run here, and it is the
+only way that fences the run, runs the two files the fence cannot host
+outside it, and leaves `test/report.md` behind saying what ran, when,
+against which commit, and every failure by name.  A bare run leaves a
+green scrollback, which is the silently-partial report that file exists
+to prevent — and `-x` stops at the first failure rather than naming them
+all.
+
+Then: *"what would be a poka yoke that you don't do this failure
+again?"*  `test/conftest.py` now refuses any run that collects 800 tests
+or more unless `GESTATE_SUITE=1`, which `suite.py` sets in the
+environment — where it survives the hop through `sandbox.sh`, since the
+fence keeps the environment it is given.  Targeted runs, which are what
+anybody reaches for while working, collect a few dozen and never see it.
+The mistake is now loud instead of quiet, which is the same rule as the
+fence, the leash and `--check`: *jidoka* one floor down.
+

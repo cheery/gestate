@@ -932,6 +932,20 @@ impl EditorWindow {
         let Some((text, fresh, written)) = self.host.incoming() else {
             return;
         };
+        // **Was the caret already off screen?**  If it was, somebody
+        // scrolled away on purpose and the peep is holding its place —
+        // and an edit arriving from the model must not undo that by
+        // chasing a caret nobody moved.  The commit at the end of a
+        // score box's drag is the caller: it rewrites an atom fifty
+        // lines from the box, and following it would tear the picture
+        // away at the exact moment the hand let go of it.  A caret that
+        // *was* on screen still gets the old behaviour, which is every
+        // ordinary case — typing, a template, a format.
+        let away = !fresh && {
+            let doc = self.doc.borrow();
+            let view = self.view.borrow();
+            view::peep_box(&doc, &view, self.font()).is_some()
+        };
         let doc = {
             let mut doc = self.doc.borrow_mut();
             if fresh {
@@ -946,7 +960,9 @@ impl EditorWindow {
             }
             let mut v = self.view.borrow_mut();
             v.clamp(&doc, self.font());
-            v.follow(&doc, self.font());
+            if !away {
+                v.follow(&doc, self.font());
+            }
             self.dirty.set(true);
             doc.clone()
         };
@@ -999,7 +1015,13 @@ impl EditorWindow {
                 doc.seek_rowcol(line.saturating_sub(1), 0);
                 // A jump reveals, a keystroke follows: the target
                 // lands with air past it, not pinned at the fold.
-                view.reveal(&doc, self.font());
+                // **Except under a hand holding a picture** — the rule
+                // is `pinned`, argued at the tail of this function,
+                // where every drawn order passes.  Repeated here only
+                // because a reveal happens before anything gets there.
+                if !self.pinned() {
+                    view.reveal(&doc, self.font());
+                }
                 Did { drew: true, edited: false }
             }
             Order::Show(what) => {
@@ -1105,6 +1127,17 @@ impl EditorWindow {
             let mut v = self.view.borrow_mut();
             v.clamp(&doc, font);
             match span {
+                // **Nothing scrolls under a hand holding a picture**
+                // (`pinned`).  Every drawn order ends here, so this is
+                // where the rule belongs rather than at the one order
+                // that happens to have raised it: a press on a note in a
+                // score box sends a `goto` to where that note is
+                // written, `noted.ges` writes the notes of the box on
+                // line 142 up on line 94, and the follow took the box
+                // out from under the finger that was pressing it — the
+                // drag going on against the pixels the grab remembered.
+                // The caret goes; the view stays; the peep shows it.
+                _ if self.pinned() => {}
                 Some((start, end)) if list_open => {
                     let above = self.palette.borrow_mut()
                         .place(start, v.top, v.rows(font));
@@ -1166,6 +1199,20 @@ impl EditorWindow {
             return Did::nothing();
         }
         Did { drew: true, edited: true }
+    }
+
+    /// Whether a hand is holding a picture — a note in a score box, an
+    /// element of a canvas box.
+    ///
+    /// **A pinned view.**  While it is true nothing scrolls the text on
+    /// the model's account: the pixels under the hand stay where the
+    /// hand grabbed them, because a picture that slides out from under
+    /// a finger mid-gesture is the one thing `spec/north_star.md` is
+    /// built not to allow.  The caret still goes wherever it is sent —
+    /// the press on a note *is* a jump, and says where the note is
+    /// written — and the peep is what shows you the place.
+    fn pinned(&self) -> bool {
+        self.box_grab.borrow().is_some()
     }
 
     fn after(&self, did: Did) -> EventStatus {
@@ -1663,6 +1710,17 @@ impl WindowHandler for EditorWindow {
                                                    &view, font, &chrome);
             }
         }
+        // **The peep, over the text and under the list.**  Its own
+        // frame for the reason the palette has one: it is chrome over a
+        // document, and the document's layout must not depend on
+        // whether the caret happens to be off screen.  Nothing to draw
+        // in canvas mode — there is no text under the picture to peep
+        // at, and the caret is not what a hand on a canvas is aiming at.
+        if painting && !self.on_canvas.get() {
+            view::paint(&mut canvas,
+                        &view::peep_frame(&doc, &view, font), font,
+                        self.scale());
+        }
         // The palette over the text, in its own frame — chrome over a
         // document, so the document's layout cannot depend on whether a
         // list happens to be open.
@@ -2000,6 +2058,29 @@ impl WindowHandler for EditorWindow {
                     // No return: the press falls through to the chrome
                     // and the text below, exactly as if the list had
                     // been closed a moment earlier.
+                }
+                // **The peep answers where it is drawn** — over the
+                // text, the margin and the boxes, under the list, which
+                // is the order it is painted in.  A click in it moves
+                // the real caret and *does not scroll*: staying where
+                // you are while the caret goes elsewhere is the whole
+                // point of the thing, and a click that yanked the view
+                // after it would be a `goto` with a smaller target.
+                if !self.on_canvas.get() {
+                    let hit = {
+                        let doc = self.doc.borrow();
+                        let view = self.view.borrow();
+                        view::peep_hit(&doc, &view, self.font(), x, y)
+                    };
+                    if let Some((row, col)) = hit {
+                        let did = {
+                            let mut doc = self.doc.borrow_mut();
+                            doc.clear_anchor();
+                            doc.seek_rowcol(row, col);
+                            Did { drew: true, edited: false }
+                        };
+                        return self.after(did);
+                    }
                 }
                 // **The margin belongs to the knobs.**  A press there is
                 // a fader being taken hold of, not a caret being placed

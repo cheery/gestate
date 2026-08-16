@@ -1383,3 +1383,147 @@ fn a_scope_at_the_fold_is_cropped_and_not_squashed() {
         }
     }
 }
+
+// ── The peep ─────────────────────────────────────────────────────────
+
+use gestate_editor::view::{peep_frame, peep_hit, PEEP_ROWS};
+
+/// A hundred lines, each naming itself, so a row can be recognised by
+/// what it says rather than by counting rectangles.
+fn hundred() -> Document {
+    doc(&(0..100).map(|i| format!("line {i}"))
+        .collect::<Vec<_>>().join("\n"))
+}
+
+/// **Nothing while the caret is on screen**, which is nearly always.
+///
+/// The peep is chrome that appears for a reason; one that stood there
+/// permanently would be a second view of the file, which is the thing
+/// §"Content boxes" says the editor is not.
+#[test]
+fn the_peep_is_absent_while_the_caret_is_visible() {
+    let mut d = hundred();
+    d.seek_rowcol(3, 0);
+    let v = rows_of(10, 400);
+    assert!(peep_frame(&d, &v, &LARGE).items.is_empty(),
+            "a peep over a caret that is perfectly visible");
+    assert_eq!(peep_hit(&d, &v, &LARGE, 20, 20), None);
+}
+
+/// Scroll away and the caret's own lines arrive: five of them, their
+/// numbers, and the caret in the middle one.
+#[test]
+fn the_peep_shows_five_lines_their_numbers_and_the_caret() {
+    let mut d = hundred();
+    d.seek_rowcol(40, 3);
+    let mut v = rows_of(10, 400);
+    v.top = 0;                                 // scrolled far above it
+    let f = peep_frame(&d, &v, &LARGE);
+    let said = runs(&f);
+    for row in 38..=42 {
+        assert!(said.contains(&format!("line {row}")),
+                "line {row} is not in the peep: {said:?}");
+        assert!(said.contains(&format!("{}", row + 1)),
+                "line {}'s number is not in the peep: {said:?}", row + 1);
+    }
+    assert!(!said.contains(&"line 43".to_string()),
+            "the peep showed more than {PEEP_ROWS} lines: {said:?}");
+    // The caret, in the caret's own colour and shape.
+    assert!(f.items.iter().any(|i| matches!(i,
+        Item::Rect { c, w, .. } if *c == CARET && *w <= 4)),
+        "the peep drew no caret");
+}
+
+/// **Toward the caret, not away from it** — Henri's rule, and the
+/// opposite of the palette panel's: the panel dodges the text you are
+/// reading, the peep points at the text you are not.
+#[test]
+fn the_peep_goes_to_the_side_the_caret_is_on() {
+    let ground = |d: &Document, v: &View| -> i32 {
+        peep_frame(d, v, &LARGE).items.iter().find_map(|i| match i {
+            Item::Rect { y, w, .. } if *w > 100 => Some(*y),
+            _ => None,
+        }).expect("no peep at all")
+    };
+    let mut v = rows_of(10, 400);
+    v.top = 50;
+
+    let mut above = hundred();
+    above.seek_rowcol(2, 0);                   // far above the view
+    let mut below = hundred();
+    below.seek_rowcol(95, 0);                  // far below it
+
+    let up = ground(&above, &v);
+    let down = ground(&below, &v);
+    assert!(up < down,
+            "the peep did not follow the caret's side: {up} vs {down}");
+    // And both stay inside the text area — above the status bar, and
+    // above the drawn keyboard when there is one, which is the fold
+    // `frame_with` clips a content box at.
+    v.piano = 4 * LARGE.h;
+    v.foot_rows = 3;
+    let tall = v.h - v.status_h(&LARGE) - v.piano;
+    // **Fewer lines, not none.**  There is no room for five here, and a
+    // band hanging past the fold would write over the status the way
+    // F132's boxes did.  Fewer still answer *where*.
+    let cramped = gestate_editor::view::peep_box(&above, &v, &LARGE)
+        .expect("the peep gave up instead of shrinking");
+    assert!(cramped.rows >= 1 && cramped.rows < PEEP_ROWS,
+            "a cramped window got {} rows", cramped.rows);
+    for (d, name) in [(&above, "above"), (&below, "below")] {
+        for item in peep_frame(d, &v, &LARGE).items {
+            let (y, h) = match item {
+                Item::Rect { y, h, .. } => (y, h),
+                Item::Run { y, .. } => (y, LARGE.h),
+            };
+            assert!(y >= 0 && y + h <= tall,
+                    "the {name} peep left the text area: y={y} h={h}");
+        }
+    }
+}
+
+/// **A click in it moves the real caret**, and answers the line it is
+/// drawn on — `peep_hit` is `peep_frame`'s inverse from the same
+/// numbers, the rule `knob_hit` keeps beside its trough.
+#[test]
+fn a_click_in_the_peep_lands_on_the_line_it_is_drawn_on() {
+    let mut d = hundred();
+    d.seek_rowcol(40, 0);
+    let mut v = rows_of(10, 400);
+    v.top = 0;
+    let f = peep_frame(&d, &v, &LARGE);
+    // Where each line was drawn, by the text it drew.
+    let placed: Vec<(i32, String)> = f.items.iter().filter_map(|i| match i {
+        Item::Run { x, y, s, .. } if s.starts_with("line ") =>
+            Some((*y, s.clone())),
+        _ => None,
+    }).collect();
+    assert_eq!(placed.len(), PEEP_ROWS);
+    for (y, said) in placed {
+        let (row, _col) = peep_hit(&d, &v, &LARGE, 100, y + 2)
+            .expect("a click inside the peep answered nothing");
+        assert_eq!(format!("line {row}"), said,
+                   "a click at y={y} answered row {row}, drawn as {said:?}");
+    }
+    // Outside it, the peep keeps its hands off — the press falls
+    // through to whatever it was aimed at.
+    assert_eq!(peep_hit(&d, &v, &LARGE, 100, v.h - 4), None);
+}
+
+/// A caret past the right edge is still shown, because the peep scrolls
+/// its own columns — `follow`'s horizontal rule, in a smaller window.
+#[test]
+fn the_peep_scrolls_sideways_to_its_caret() {
+    let long = "x".repeat(300);
+    let mut d = doc(&format!("a\nb\n{long}\nd\ne\nf\ng\nh\ni\nj\nk\nl"));
+    d.seek_rowcol(2, 290);
+    let mut v = rows_of(4, 400);
+    v.top = 8;
+    let f = peep_frame(&d, &v, &LARGE);
+    let caret = f.items.iter().find_map(|i| match i {
+        Item::Rect { x, c, w, .. } if *c == CARET && *w <= 4 => Some(*x),
+        _ => None,
+    }).expect("the peep drew no caret for an off-screen column");
+    assert!(caret >= 0 && caret < v.w,
+            "the caret was drawn at {caret} in a window {} wide", v.w);
+}

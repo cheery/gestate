@@ -218,11 +218,21 @@ below; a `voices` piece without one is the refusal case, also checked.
   different night and the label says which.  *Held as: one seed twice
   is one picture, another seed moves the chimes and leaves the bass
   where it was.*
-- Clicking any chord of chopin's bar five reveals its `barOf` line
-  (JUMP_AIR); clicking an undertow chime reveals the do-block that
-  drew it.  *Held as: every leaf's line is a line that writes notes,
-  the first chord's is its own `stroke 55 59 64`, and a press through
-  the session moves the caret and writes nothing.*
+- Clicking any chord of chopin's bar five takes the caret to its
+  `barOf` line; clicking an undertow chime takes it to the do-block
+  that drew it.  *Held as: every leaf's line is a line that writes
+  notes, the first chord's is its own `stroke 55 59 64`, and a press
+  through the session moves the caret and writes nothing.*
+
+  **The view does not travel with it** while the hand is still down
+  (`spec/workbench.md` §"The window's own conduct"): the box would go
+  out from under the finger that was pressing it, which is what
+  happened for as long as this said JUMP_AIR.  The peep shows the
+  place instead.  Strictly this holds because the press's `goto`
+  reaches the window a frame or two after the press and the button is
+  still down — true of every hand there is, and the day something
+  clicks faster than a frame the fix is the model saying *mark* rather
+  than *goto*, not a second rule in the window.
 - The sauna specimen's silent chapter draws as an unmeasured band
   with its complaint, inside the budget, and the editor never hangs.
   *Held as two tests, because the specimen turned out to fail

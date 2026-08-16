@@ -789,6 +789,185 @@ pub fn burger_frame(view: &View, font: &Font, open: bool) -> Frame {
     f
 }
 
+// ── The peep ─────────────────────────────────────────────────────────
+//
+// **What you see when the caret is somewhere else.**  Scrolling does not
+// move the caret (`keys::scroll`: *"looking somewhere else must not lose
+// your place"*), and this environment now moves the caret by itself — a
+// completion walks to the next hole, a press on a note in a score box
+// jumps to where that note is written, an apply lands somewhere.  When
+// the place is off screen there is nothing between "it happened" and
+// scrolling to find out what.
+//
+// The peep is the cheap answer, and it is Henri's: five lines around the
+// caret wherever it actually is, their numbers, the caret itself, and a
+// click that moves the real one — placed the way the palette's page is
+// placed, above when the caret is above the equator and below when it is
+// below.  Toward the caret, that is, where the palette's own panel moves
+// *away* from it: the panel is avoiding the text you are reading, and
+// this is pointing at the text you are not.
+
+/// How many lines the peep shows.
+///
+/// Five, Henri's number: the caret's own line and two either side, which
+/// is enough to say *where* without becoming a second view of the file.
+pub const PEEP_ROWS: usize = 5;
+
+/// Where the peep stands and what it shows.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Peep {
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
+    /// The first document row in it, counting from zero.
+    pub first: usize,
+    /// How many rows it shows — `PEEP_ROWS`, unless the file or the
+    /// room left has fewer.
+    pub rows: usize,
+    /// The first column, so a caret far along a line is in the band.
+    pub left: usize,
+}
+
+/// The peep's box — or `None` when the caret is on screen, which is
+/// nearly always.
+///
+/// **One arithmetic, two readers**, the rule `bank_box` keeps and
+/// `knob_hit` inverts: `peep_frame` draws from this and `peep_hit` reads
+/// it back, so a click cannot answer a line other than the one it is
+/// drawn on.
+pub fn peep_box(doc: &Document, view: &View, font: &Font) -> Option<Peep> {
+    let (crow, ccol) = doc.cursor();
+    let slots = view.slots(doc, font);
+    // **The caret's own row table, not an estimate.**  A row is a text
+    // band and sometimes a box under it, so "is the caret on screen"
+    // is a question only the walk can answer — and asking it here is
+    // what keeps the peep from flickering up over a caret that is
+    // perfectly visible on a page of tall boxes.
+    if slots.iter().any(|s| s.row == crow) {
+        return None;
+    }
+    let (cw, ch) = (view.cw(font), view.ch(font));
+    // **Five, or what there is room for.**  A window whose text area is
+    // three rows tall — a piano up, a bar grown to five — has nowhere to
+    // put a five-line band, and a peep hanging past the fold would write
+    // over the status the way F132's boxes did.  Fewer lines still
+    // answer *where*; none at all does not.
+    let room = ((view.piano_y(font) - 2 * ch - 8) / ch).max(1) as usize;
+    let rows = PEEP_ROWS.min(doc.rows()).min(room);
+    // Centred on the caret, and shifted whole rather than clipped at the
+    // ends of the file: five lines of context that becomes three at the
+    // top of a file would be the window shrinking as you travel.
+    let first = crow.saturating_sub(rows / 2)
+        .min(doc.rows().saturating_sub(rows));
+    let box_w = (view.w - 2 * cw).max(cw);
+    let box_h = ch * rows as i32 + 8;
+    // **Toward the caret.**  Above the equator it goes up, below it goes
+    // down — the peep is a finger pointing at where the caret went, and
+    // one that pointed the other way would have to be read against the
+    // scrollbar to make sense of.
+    let equator = view.top + slots.len() / 2;
+    let up = crow < equator;
+    let y = if up {
+        ch
+    } else {
+        // Inside the text area, so it never stands on the status bar or
+        // the drawn keyboard — the same fold `frame_with` clips a
+        // content box at (F132).
+        (view.piano_y(font) - box_h - ch / 2).max(ch)
+    };
+    // The columns are the peep's own: a caret 200 columns along is the
+    // thing being looked at, and `follow`'s horizontal rule already says
+    // what to do about it — the least scroll that shows it.
+    let g = peep_gutter(doc);
+    let across = (((box_w - 8) / cw.max(1)) as usize).saturating_sub(g).max(1);
+    let left = if ccol < across { 0 } else { ccol + 1 - across };
+    Some(Peep { x: cw, y, w: box_w, h: box_h, first, rows, left })
+}
+
+/// How wide the peep's gutter is, in columns.
+///
+/// **Always drawn**, where the document's own gutter is a setting: the
+/// peep exists to answer *where*, and a band of code with no numbers on
+/// it answers everything except that.
+fn peep_gutter(doc: &Document) -> usize {
+    doc.rows().to_string().len() + 2
+}
+
+/// The peep, drawn — empty when the caret is on screen.
+pub fn peep_frame(doc: &Document, view: &View, font: &Font) -> Frame {
+    let mut f = Frame::default();
+    let Some(Peep { x, y, w: box_w, h: box_h, first, rows, left }) =
+        peep_box(doc, view, font)
+    else {
+        return f;
+    };
+    let (cw, ch) = (view.cw(font), view.ch(font));
+    let (crow, ccol) = doc.cursor();
+    // The palette's own two rectangles, because this is the palette's
+    // page wearing a different content: a second set of edges and
+    // shades would make one window look like two.
+    f.items.push(Item::Rect { x: x - 2, y: y - 2, w: box_w + 4,
+                              h: box_h + 4, c: crate::palette::EDGE });
+    f.items.push(Item::Rect { x, y, w: box_w, h: box_h,
+                              c: crate::palette::SHADE });
+    let g = peep_gutter(doc);
+    let text_x = x + g as i32 * cw;
+    let cols = (((x + box_w - 4 - text_x) / cw.max(1)).max(1)) as usize;
+    for i in 0..rows {
+        let row = first + i;
+        let ry = y + 4 + ch * i as i32;
+        if row == crow {
+            f.items.push(Item::Rect { x, y: ry, w: box_w, h: ch,
+                                      c: CURRENT });
+        }
+        let n = (row + 1).to_string();
+        f.items.push(Item::Run {
+            x: x + (g - 1).saturating_sub(n.chars().count()) as i32 * cw,
+            y: ry, s: n, c: FAINT });
+        // **No colour, and it is not an omission.**  Only the visible
+        // rows are painted by the model (`furniture.rs`), and the peep
+        // is looking at rows that by definition are not — so its lines
+        // draw the way an unpainted line has always drawn, in the ink.
+        let shown = visible(&doc.line(row), left, cols);
+        if !shown.is_empty() {
+            f.items.push(Item::Run { x: text_x, y: ry, s: shown, c: INK });
+        }
+    }
+    // The caret last, so nothing is drawn over it — the document's own
+    // rule, and the same shape, because this is the same caret.
+    if ccol >= left {
+        let cx = text_x + (ccol - left) as i32 * cw;
+        if cx < x + box_w {
+            f.items.push(Item::Rect {
+                x: cx, y: y + 4 + ch * (crow - first) as i32,
+                w: 2.max(cw / 5), h: ch, c: CARET });
+        }
+    }
+    f
+}
+
+/// What a click in the peep means, as a row and a column — `None` when
+/// the pointer is not in it.
+///
+/// The inverse of `peep_frame`, from `peep_box`'s numbers: **the peep is
+/// a way of moving, not only of looking**, and a band you can see your
+/// caret in but not reach would send you scrolling anyway.
+pub fn peep_hit(doc: &Document, view: &View, font: &Font, x: i32, y: i32)
+    -> Option<(usize, usize)>
+{
+    let Peep { x: bx, y: by, w: box_w, h: box_h, first, rows, left } =
+        peep_box(doc, view, font)?;
+    if x < bx - 2 || x > bx + box_w + 2 || y < by - 2 || y > by + box_h + 2 {
+        return None;
+    }
+    let (cw, ch) = (view.cw(font), view.ch(font));
+    let i = ((y - by - 4).max(0) / ch).clamp(0, rows as i32 - 1) as usize;
+    let text_x = bx + peep_gutter(doc) as i32 * cw;
+    let col = left + if x <= text_x { 0 } else { ((x - text_x + cw / 2) / cw) as usize };
+    Some(((first + i).min(doc.rows().saturating_sub(1)), col))
+}
+
 /// Greedy word wrap to a column count, chars being columns — which in
 /// a bitmap font they are.
 /// A paragraph broken to `cols` columns, on spaces.

@@ -685,8 +685,8 @@ another file's format.
 
 **A file that is not a program opens inert.**  `.txt` and `.md` — the
 suffix is the one fact known before the file is read, which is what
-answers "what says a file is plain" (`roadmap.md` §"Small improvements
-queued from use") — compile nothing, ask for no sound card, and take
+answers "what says a file is plain" (asked for from use, and closed
+out in `journal.md` §"The canvas walks over crust") — compile nothing, ask for no sound card, and take
 the syntax off: prose coloured by a program's lexer would be wrong
 twice over.  Saving is all applying means there, and `apply` answers
 *"saving"*, because *"applying"* would promise a rebuild that is not
@@ -768,6 +768,57 @@ content box, the bar growing): the one case it protects, a box
 reflowing above the caret pushing the line you are typing off screen.
 A scroll is not a request to be returned; only a caret move, an edit,
 or a changed layout is.
+
+**Nothing scrolls under a hand holding a picture.**  A press on a note
+in a score box *is* a jump — it says where that note is written
+(`spec/north_star.md`) — and the note is usually written a long way
+from the box that draws it: `noted.ges` rolls `score` on line 142 out
+of an atom on line 94.  Following that jump took the box out from
+under the finger that was pressing it, and the drag went on against
+the pixels the grab remembered, which is the picture and the hand
+disagreeing.  So while a box grab is held the caret goes wherever it
+is sent and the view stays exactly where it was; the rule sits at the
+end of `obey`, where every drawn order passes, rather than at the one
+order that raised it.  The peep below is what shows you the place.
+
+## The peep — where the caret is when it is off screen
+
+Henri's, and *"kind of specific to north star: I would not have come
+up with the idea without it."*  A band of five lines around the caret
+— **their numbers always drawn**, the caret in them, the text of the
+line being rewritten — standing over the document wherever the caret
+actually is.
+
+- **It appears for a reason and only then**: when the caret's row is
+  not in the view's own row table.  A second view of the file that
+  stood there permanently is the thing §"Content boxes" says the
+  editor is not.
+- **It goes toward the caret** — above the equator it stands at the
+  top, below it at the foot — which is the opposite of the command
+  panel's rule (F121, F133) and for the opposite reason: the panel
+  dodges the text you are reading; the peep points at the text you
+  are not.  It is the palette page's placement, its two rectangles and
+  its colours, reused rather than invented.
+- **A click in it moves the real caret and does not scroll.**  Staying
+  where you are while the caret is elsewhere is the whole point of the
+  thing, so a click that yanked the view after it would be a `goto`
+  with a smaller target.
+- **It carries no colour**, because only the visible rows are painted
+  by the model (`furniture.rs`) and these by definition are not.  An
+  unpainted line draws in the ink, exactly as it always has.
+- **An edit arriving from the model does not chase a caret that was
+  already off screen.**  Somebody scrolled away on purpose and the
+  peep is holding the caret's place; the commit at the end of a score
+  box's drag is the caller, since following it would tear the picture
+  away at the moment the hand let go.  A caret that *was* on screen
+  keeps the old behaviour, which is every ordinary case — typing, a
+  template, a format.
+
+What it does **not** do: take the keyboard.  Typing goes where the
+caret is, and the keystroke's own `follow` brings the view with it —
+so the peep shows a place and offers to move you there, and editing
+*through* it is a question for the first gesture that actually wants
+it, the same answer §"Content boxes" gives about the third focus.
 
 ---
 
@@ -910,7 +961,8 @@ chord rings must not recompile the graph under it.
 
 ## The canvas walks over crust — the vocabulary first
 
-*The move is `roadmap.md` §"The canvas walks over crust"; this section
+*The move is closed out in `journal.md` §"The canvas walks over crust
+— and the clock wore three masks"; this section
 is its boundary, written before any window learns a verb of it —
 F101's law, applied prospectively for once.  The machinery it names is
 built and tested: `shell/panel/src/substrate.rs` walks the same

@@ -776,23 +776,24 @@ that follows the hand through a *reading* rather than a rebuild.
 - **F138**, filed with its repro: a space in a filler field runs the
   completion on half the answer, because the window is told what an
   argument's type is *called* and `Filler` is a `Text` alias.
-- **A small window for a cursor that is off screen.**  Henri's note:
-  *make a small window that shows where the cursor is when it is off
-  screen, and edit through it.*  The occasion is that this editor moves
-  the cursor by itself now — a completion walks to the next hole, a
-  drag rewrites an atom, an apply lands somewhere — and the rule the
-  completion keeps (*near, and not anywhere*, `session.py`) is a rule
-  about **where the change is**, not about whether you can see it.  When
-  the place is off screen there is nothing between "it happened" and
-  scrolling to find out what.
+- **A small window for a cursor that is off screen — built**, and the
+  story is `journal.md` §"The evening the caret got a window of its
+  own".  Five lines around the caret wherever it is, their numbers, the
+  caret among them, a click that moves the real one, placed toward the
+  caret the way the palette's page is placed away from it;
+  `spec/workbench.md` §"The peep" is the contract.  It came with the
+  defect it was really about: a press on a note sent a `goto` that
+  scrolled the box out from under the hand, so **nothing scrolls under
+  a hand holding a picture** now, and the peep is what shows the place
+  instead.  `tools/dragcheck.py` is its oracle.
 
-  A peep window is the cheap answer: a band showing the lines around
-  the cursor wherever it actually is, and — this is the part to settle
-  with him — the edit made *in* that window, so the automatic edit and
-  the sight of it are one thing rather than two.  The parts exist: rows
-  of varying height, a walk clipped to a band, and a box whose touches
-  are ordinary `touched` events.  It is a third reading of the same
-  machinery B2 and B4 are built from.
+  **What is left of it** is the half Henri's note asked for and the
+  building did not need: *the edit made in that window*.  Typing goes
+  to the caret and the keystroke's own `follow` brings the view with
+  it, so today the peep shows a place and offers to move you there.
+  Editing through it is the same question §"Content boxes" answers
+  about the third focus — it waits for the first gesture that genuinely
+  wants to type into a band rather than at a caret.
 - **The alias half of F141.**  `foo : int` is caught (the story is
   `journal.md` §"The morning the messages arrived in time"); a
   lowercase name matching a type *alias* is not, because aliases are
