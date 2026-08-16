@@ -881,39 +881,54 @@ def desugar_signature(
         body = body.body
 
     # A lowercase name that is a type alias is not a type variable.
-    names = [n for n in _signature_tyvars(context_pats, body)
-             if not (aliases and n in aliases)]
+    written = {n: span for n, span in
+               _signature_tyvars(context_pats, body).items()
+               if not (aliases and n in aliases)}
+    names = list(written)
     # A signature's variables are *rigid* (`fixme.md` F36): the body is
     # checked against the type the user wrote, and each of its variables
     # stands for a type the caller chooses, so the body may not bind one.
     # A use site instantiates them into fresh metavariables — the scheme
     # quantifies exactly these — so rigidity is confined to the body.
     if fresh_tv is None:
-        tyvars = {n: TVar(-1000 - i, rigid=True, name=n)
+        tyvars = {n: TVar(-1000 - i, written[n], rigid=True, name=n)
                   for i, n in enumerate(names)}
     else:
-        tyvars = {n: _rigid(fresh_tv(n), n) for n in names}
+        tyvars = {n: _rigid(fresh_tv(n), n, written[n]) for n in names}
 
     context = [_pat_predicate(p, tyvars, aliases) for p in context_pats]
     return context, desugar_type(body, tyvars, aliases)
 
 
-def _rigid(v: TVar, name: str) -> TVar:
-    """The same variable, marked rigid and carrying its written name."""
-    return TVar(v.id, v.span, rigid=True, name=name)
+def _rigid(v: TVar, name: str, span=None) -> TVar:
+    """The same variable, marked rigid and carrying its written name.
+
+    And the place it was written, when the caller knows it: a fresh
+    variable from a supply has no span of its own, and the signature
+    that named it does.
+    """
+    return TVar(v.id, span if span is not None else v.span,
+                rigid=True, name=name)
 
 
-def _signature_tyvars(pats: list[Pat], type_val: Val) -> list[str]:
-    """Lowercase names in a signature, in order of first appearance."""
-    names: list[str] = []
+def _signature_tyvars(pats: list[Pat], type_val: Val) -> dict:
+    """Lowercase names in a signature, in order of first appearance.
 
-    def add(n: str) -> None:
+    **Each with the span it was first written at**, which is what lets a
+    complaint about one point at it.  A signature variable is otherwise
+    the one thing in a type with no position at all: it is minted here
+    rather than desugared from a node, so without this its error lands
+    on whatever failed to unify with it, half a file away.
+    """
+    names: dict = {}
+
+    def add(n: str, span=None) -> None:
         if n not in names:
-            names.append(n)
+            names[n] = span
 
     def walk_pat(p: Pat) -> None:
         if isinstance(p, PVar):
-            add(p.name)
+            add(p.name, getattr(p, "span", None))
         elif isinstance(p, PCon):
             for a in p.args:
                 walk_pat(a)
@@ -923,7 +938,7 @@ def _signature_tyvars(pats: list[Pat], type_val: Val) -> list[str]:
 
     def walk_type(v: Val) -> None:
         if isinstance(v, VWord):
-            add(v.value)
+            add(v.value, v.span)
         elif isinstance(v, VApp):
             walk_type(v.fn)
             walk_type(v.arg)

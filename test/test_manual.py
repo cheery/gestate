@@ -48,6 +48,16 @@ def test_a_signature_variable_is_the_callers_choice():
     assert evaluate("f x = x + 1\n\nmain : Int\nmain = f 1\n") == "2"
 
 
+def test_a_type_in_lowercase_is_named_as_the_variable_it_is():
+    """The manual's `foo : int`, which is a real report (`fixme.md` F141)."""
+    from gestate.kindcheck import KindError
+
+    with pytest.raises(KindError, match="not the type `Int`"):
+        evaluate("foo : int\nfoo = 3\n\nmain : Int\nmain = foo\n")
+    # And the silence the manual promises for an ordinary variable.
+    assert evaluate("f : a -> a\nf x = x\n\nmain : Int\nmain = f 1\n") == "1"
+
+
 # ── §5: Datafun ─────────────────────────────────────────────────────────────
 
 

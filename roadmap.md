@@ -751,25 +751,13 @@ that follows the hand through a *reading* rather than a rebuild.
   of varying height, a walk clipped to a band, and a box whose touches
   are ordinary `touched` events.  It is a third reading of the same
   machinery B2 and B4 are built from.
-- **`foo : int` fails silently, and a friend hit it.**  Reported by the
-  friend who wrote `Real_World_One.ges`: they used the completion, wrote
-  `foo : int`, and could not see why nothing worked.  Nothing was wrong
-  with the completion — **a lowercase name in a signature is a type
-  variable**, so `foo : int` is a legal polymorphic signature over a
-  variable that happens to be spelled like a type, and a hole at a type
-  variable has nothing to offer.  Confirmed on a three-line file: it
-  analyses without a word about `int`, and the complaint that does
-  arrive lands on `main` — *"cannot have a class context"* — which names
-  neither the line nor the mistake.
-
-  **The ask is to cut the situation short.**  A signature whose type is
-  a bare lowercase name is almost never what someone meant: the
-  language has the concrete name one letter away and knows both.  The
-  cheapest honest version is the message — *`int` is a type variable;
-  did you mean `Int`?* — said at the signature rather than downstream at
-  whatever failed to unify.  Worth a `fixme.md` entry with the repro
-  above, and worth more than it looks: it is the first thing this
-  project has been told by somebody who did not build it.
+- **The alias half of F141.**  `foo : int` is caught (the story is
+  `journal.md` §"The morning the messages arrived in time"); a
+  lowercase name matching a type *alias* is not, because aliases are
+  expanded before the kind environment exists.  It belongs with the
+  naming pass above — `type Duration = Float` is precisely what would
+  make such a collision likely — and until then the gap is recorded in
+  F141 rather than guessed at.
 
 ### Later, and blocked on the language
 

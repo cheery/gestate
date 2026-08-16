@@ -307,6 +307,25 @@ Without the signature this would infer `Int -> Int` and be accepted.  So a
 signature can turn a working definition into an error — that is the point,
 and it is why signatures are worth writing.
 
+**Which names are variables is decided by their case.**  A type beginning
+with a capital is a type — `Int`, `Float`, `Sig` — and anything beginning
+with a lowercase letter is a variable, wherever it appears:
+
+```
+foo : int          -- not `Int`: a variable that happens to be spelled `int`
+```
+
+That is a legal signature and almost never the intended one, so the
+compiler names it rather than letting it through:
+
+```
+`int` is a type variable, not the type `Int` (at 1:6) — a name in
+lowercase stands for whatever type the caller picks.
+```
+
+It only says this when the name matches a type exactly but for case, so
+`a`, `b` and `m` are ordinary variables and stay silent.
+
 ### Classes
 
 Ordinary single-parameter classes with superclasses, dictionary passing,

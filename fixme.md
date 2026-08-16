@@ -66,6 +66,7 @@ Of 130 entries, **113 are resolved**.  What is left:
 | F136 | missing | A tuple-pattern lambda picks the wrong instance, silently |
 | F137 | missing | A zoom scales the band and not the picture in it |
 | F140 | resolved | A render refused and the reason stayed in the terminal |
+| F141 | resolved | `foo : int` is a legal signature and a certain mistake |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -3935,3 +3936,74 @@ stub would only pin the plumbing under it.
 no end has no `exportWav`, only `exportWavAt` — the editor cannot
 offer *render the whole thing* for a piece whose "whole" is a
 question.  Naming the bars is the honest answer today.
+
+### F141. **[resolved]** `foo : int` is a legal signature and a certain mistake
+
+Henri, 2026-08-16, relaying **gestate's first outside user**: they
+wrote `foo : int`, and could not see why it did not work.
+
+Nothing was broken, which is the whole difficulty.  A name that begins
+with a lowercase letter *is* a type variable, so `foo : int` is a legal
+polymorphic signature over a variable that happens to be spelled like a
+type.  The file analyses without a word about `int`.
+
+**And then the compiler gave advice towards the wrong fix.**  The
+complaint surfaced wherever the variable failed to satisfy a class,
+which for `foo = 3` is a `Num`:
+
+```
+No instance for Num int — 'int' is a signature variable, standing for
+whatever type the caller chooses; write '(Num int) => …' in the
+signature to require it of the caller
+```
+
+Every word of that is true of the program that was written, and taking
+its advice makes the mistake permanent.  Worse, with `main` untyped the
+first thing said was `'main' cannot have a class context`, which names
+neither the line nor the mistake — the reproduction is three lines:
+
+```
+foo : int
+foo = 3
+
+main = foo
+```
+
+**Resolved 2026-08-16** in the kind checker, which is the pass that
+already knows the type vocabulary and already refuses `Intt`.  A
+signature variable whose name matches a known type *exactly but for
+case* is refused where it is written:
+
+```
+`float` is a type variable, not the type `Float` (at typo.ges:1:8) —
+a name in lowercase stands for whatever type the caller picks.  Write
+`Float` if that is the type you meant, or rename the variable if it
+is not.
+```
+
+Two things had to come with it:
+
+* **A signature variable had no position.**  It is minted in
+  `desugar_signature` rather than desugared from a node, so its errors
+  landed on whatever failed to unify with it.  `_signature_tyvars` now
+  carries the span each name was first written at, and every message
+  about a signature variable is the better for it.
+* **The match must be exact but for case.**  `a`, `b`, `m` and `k` name
+  nothing and stay legal; `int` names `Int`.  The vocabulary is the
+  program's own kind environment, so a type the *file* declares
+  protects its own name too.
+
+The price is that a variable genuinely wanted under such a name has to
+be spelled differently.  Measured before choosing it: across every
+`.ges` in this repository, against all 94 type names the project
+declares, there are **no** such variables — and the 92 example programs
+still pass.
+
+Held by five tests in `test/test_skolems.py` under *"The variable that
+was meant to be a type"*.
+
+**Not fixed, and adjacent**: a lowercase name that matches a type
+*alias* (`type Duration = Float`) is not caught, because aliases are
+expanded before the kind environment exists.  Worth revisiting with the
+alias work in `roadmap.md` §"Name the datatypes", which is the change
+that would make such collisions likely in the first place.

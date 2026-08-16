@@ -225,6 +225,53 @@ class KindError(Exception):
     pass
 
 
+def _refuse_a_type_in_lowercase(var: TVar, env: dict[str, Kind]) -> None:
+    """`foo : int` — the type wearing the wrong case.
+
+    **Reported by gestate's first outside user** (`fixme.md` F141), who
+    wrote `foo : int` and could not see why it did not work.  Nothing
+    was broken: a name that begins with a lowercase letter *is* a type
+    variable, so the signature was a legal polymorphic one over a
+    variable that happens to be spelled like a type — and the file
+    analysed without a word about `int`.
+
+    What made it worse than silence is what the compiler said next.
+    The complaint surfaced wherever the variable failed to satisfy a
+    class — *"No instance for Num int — 'int' is a signature variable;
+    write '(Num int) => …' in the signature"* — which is a correct
+    sentence about the program that was written and **advice towards
+    the wrong fix**: taking it makes the mistake permanent.
+
+    So the case is caught at the signature, where the person can still
+    read it as a typo.  It fires only on an exact case-insensitive
+    match with a type this program actually has, which is what makes it
+    a typo rather than a guess: `a`, `m` and `k` name nothing, and
+    `int` names `Int`.  A variable genuinely wanted under such a name
+    has to be spelled differently, and that is the price — paid on the
+    rare side of a trade whose common side is this report.
+    """
+    if not var.name or not var.name.islower():
+        return
+    meant = next((known for known in env
+                  if known != var.name and known.lower() == var.name.lower()),
+                 None)
+    if meant is None:
+        return
+    # The same reading `infer._at` does, and the same spelling: a span is
+    # either a pair or a position, and `(at line:col)` is the form the
+    # assembler re-bases and the editor's margin reads back out.
+    span = getattr(var, "span", None)
+    start = getattr(span, "start", span)
+    line, col = getattr(start, "line", None), getattr(start, "col", None)
+    where = "" if line is None or col is None else f" (at {line}:{col})"
+    raise KindError(
+        f"`{var.name}` is a type variable, not the type `{meant}`{where} — "
+        f"a name in lowercase stands for whatever type the caller picks. "
+        f"Write `{meant}` if that is the type you meant, or rename the "
+        f"variable if it is not."
+    )
+
+
 def check_kind(texpr: Type, env: dict[str, Kind]) -> Kind:
     """Check that ``texpr`` is well-kinded and return its kind.
 
@@ -232,7 +279,10 @@ def check_kind(texpr: Type, env: dict[str, Kind]) -> Kind:
     """
     if isinstance(texpr, (TVar, TInt)):
         # Type variables and type-level integers have default kind
-        return KType() if isinstance(texpr, TVar) else KInt()
+        if isinstance(texpr, TVar):
+            _refuse_a_type_in_lowercase(texpr, env)
+            return KType()
+        return KInt()
     if isinstance(texpr, TCon):
         if texpr.name not in env:
             if _is_int_literal(texpr.name):

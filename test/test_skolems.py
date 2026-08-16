@@ -176,3 +176,62 @@ def test_a_function_type_in_a_signature_stays_polymorphic():
     assert evaluate("apply : (a -> b) -> a -> b\napply f x = f x\n\n"
                     "inc : Int -> Int\ninc n = n + 1\n\n"
                     "main : Int\nmain = apply inc 4\n") == "5"
+
+
+# ── The variable that was meant to be a type (`fixme.md` F141) ───────────────
+
+
+def test_a_type_written_in_lowercase_is_named_as_the_typo_it_is():
+    """`foo : int` — gestate's first outside user, and a fair mistake.
+
+    A lowercase name *is* a type variable, so the signature was a legal
+    polymorphic one over a variable spelled like a type, and the file
+    analysed without a word about `int`.  What the person then got was
+    a complaint about a class, somewhere else, in the vocabulary of a
+    feature they were not using.
+    """
+    from gestate.kindcheck import KindError
+
+    with pytest.raises(KindError, match="not the type `Int`"):
+        evaluate("foo : int\nfoo = 3\n\nmain : Int\nmain = foo\n")
+
+
+def test_it_says_where_the_name_was_written():
+    """A signature variable is minted rather than desugared from a node,
+    so it used to be the one thing in a type with no position at all."""
+    from gestate.kindcheck import KindError
+
+    with pytest.raises(KindError, match=r"\(at 0:8\)"):
+        evaluate("depth : float\ndepth = 0.5\n\n"
+                 "main : Float\nmain = depth\n")
+
+
+def test_it_is_caught_before_the_advice_that_would_make_it_permanent():
+    """The old first complaint was *"No instance for Num int — write
+    '(Num int) => …' in the signature"*: true of the program written,
+    and advice towards the wrong fix."""
+    from gestate.kindcheck import KindError
+
+    with pytest.raises(KindError):
+        evaluate("double : float -> float\ndouble x = x * 2.0\n\n"
+                 "main : Float\nmain = double 2.0\n")
+
+
+def test_an_honest_variable_is_left_alone():
+    """It fires on an exact case-insensitive match with a type this
+    program has, which is what makes it a typo rather than a guess:
+    `a` and `b` name nothing."""
+    assert evaluate("apply : (a -> b) -> a -> b\napply f x = f x\n\n"
+                    "inc : Int -> Int\ninc n = n + 1\n\n"
+                    "main : Int\nmain = apply inc 4\n") == "5"
+
+
+def test_a_declared_type_is_matched_too_and_not_only_a_builtin():
+    """The vocabulary is the program's own kind environment, so a type
+    the file declares protects its own name."""
+    from gestate.kindcheck import KindError
+
+    with pytest.raises(KindError, match="not the type `Colour`"):
+        evaluate("Colour := Red | Blue\n\n"
+                 "pick : colour -> Int\npick c = 1\n\n"
+                 "main : Int\nmain = pick Red\n")
