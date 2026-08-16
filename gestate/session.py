@@ -1475,7 +1475,16 @@ class Session:
             # staying an ordinary palette question — an inline prompt
             # that captured the keys would be a mode, and this editor
             # has one mode.
-            rows = [("yes", "overwrite it"), ("no", "leave it alone")]
+            #: **The rows say what the yes does**, and an export asks
+            #: two different questions: over a file that is there, and
+            #: over a render heavy enough to be worth a second look.
+            #: A row reading "overwrite it" under *about 400M ▲, render
+            #: it?* would answer about a file that does not exist.
+            waiting = self.confirming
+            making = (waiting is not None and not waiting[1].exists())
+            rows = ([("yes", "render it anyway"), ("no", "leave it")]
+                    if making else
+                    [("yes", "overwrite it"), ("no", "leave it alone")])
             q = query.strip().lower()
             return [r for r in rows if r[0].startswith(q)] if q else rows
         if kind != "Named":
@@ -2824,12 +2833,83 @@ class Session:
             return here.parent / f"{here.stem}-session.ges"
         return here.parent / f"{here.stem}.wav"
 
-    def _seconds_of(self, bar: int) -> float:
-        """When a bar starts, in seconds, at the tempo now playing."""
+    def _seconds(self, beats: float) -> float:
+        """That many beats, in seconds, at the tempo now playing."""
         bpm = getattr(self.bench, "bpm", 120)
         if not isinstance(bpm, (int, float)) or bpm <= 0:
             bpm = 120
-        return _beats_of(bar) * 60.0 / float(bpm)
+        return float(beats) * 60.0 / float(bpm)
+
+    def _seconds_of(self, bar: int) -> float:
+        """When a bar starts, in seconds, at the tempo now playing."""
+        return self._seconds(_beats_of(bar))
+
+    def _render_weight(self, kind: str, want, span=None) -> str:
+        """`"about 400M ▲"` — what this export is about to write.
+
+        Empty unless the answer is *look twice*, and empty whenever a
+        fact is missing.  Both halves of that are the point.
+
+        **Only ▲.**  A question at every export is a question nobody
+        reads, which is `spec/rocks.md`'s own argument for three marks
+        rather than a number: what the person needs is not the size of
+        an ordinary render but the one that is about to cost them an
+        hour and a disk.  Under the notable threshold the sentence a
+        render already ends with — *wrote piece.wav — 31.7M ▪* — is
+        the whole of what there is to say.
+
+        **Known, never guessed.**  The length comes from the stated
+        bars or from the score the bench has already laid out, the
+        channel count from the instrument that is playing, and the
+        rate from the renderer that will do the work.  Missing any of
+        them, this says nothing rather than warning about a number it
+        made up — a wolf cried over an estimate is worse than silence,
+        because it teaches the person to answer `y` without reading.
+
+        **A bar range is weighed by what is *written*, not by what
+        survives.**  `exportWavAt 900 901` renders from the top and
+        cuts the front off (`_trim_wav` says why), so a typo in the
+        first number is exactly the mistake this question exists to
+        catch, and the honest number is the one that reaches the disk.
+        """
+        if kind != "wav":
+            # A plugin's size is the compiler's business and nobody
+            # can say it in advance; this weighs audio, which is
+            # arithmetic.
+            return ""
+        if span is not None:
+            seconds = span[1]
+        else:
+            # `end_beat` is `None` for an unfolding score — it has no
+            # end, which is also why `audioperform` refuses to render
+            # one without `--seconds`.
+            end = None
+            try:
+                end = self.bench.end_beat()
+            except Exception:                            # noqa: BLE001
+                return ""
+            if not end:
+                return ""
+            seconds = self._seconds(end)
+        try:
+            # `Live.channels` asks the engine, and there may not be one
+            # yet — a bench with nothing built has no answer, and no
+            # answer is silence rather than a guess.
+            channels = getattr(getattr(self.bench, "live", None),
+                               "channels", 0)
+            from .audiolive import DEFAULT_RATE
+        except Exception:                                # noqa: BLE001
+            return ""
+        if not isinstance(channels, int) or channels < 1:
+            return ""
+        # The rate the *export* will use, which is the renderer's own
+        # default: `_export_wav` passes no `--rate`, and weighing at
+        # the bench's rate instead would answer about a render nobody
+        # asked for.
+        n = _render_bytes(seconds, DEFAULT_RATE, channels)
+        if _weight(want, n) != MARKS[2]:
+            return ""
+        return f"about {_bytes(n)} {MARKS[2]}"
 
     def _export(self, kind: str, path: str, bars=None) -> str:
         # **Nothing to export is a refusal, not a build.**  An export
@@ -2849,7 +2929,8 @@ class Session:
             span = (self._seconds_of(bars[0]), self._seconds_of(bars[1] + 1))
             if span[1] <= span[0]:
                 return "exportWavAt: that is no time at all"
-        if want.exists() and self.confirming != (kind, want, span):
+        weighs = self._render_weight(kind, want, span)
+        if (want.exists() or weighs) and self.confirming != (kind, want, span):
             # **Asked, not refused.**  `steal` refuses a taken name
             # because taking one is naming what you are writing and
             # doing that over somebody's file is a delete wearing a
@@ -2857,9 +2938,19 @@ class Session:
             # over the plugin you exported an hour ago is the *ordinary*
             # thing, and refusing it would make the command useless
             # exactly when it is working.  So the question is asked.
+            #
+            # **Two facts, one question.**  A heavy render over an
+            # existing file has two things worth saying and one
+            # decision to make, and asking twice would train the second
+            # answer to be reflex.  So the sentence carries both and
+            # the `[y/n]` is asked once.
             self.confirming = (kind, want, span)
             self.asking = ("overwrite", 0, "")
-            return f"{want.name} exists — you want to overwrite? [y/n]"
+            if want.exists() and weighs:
+                return f"{want.name} exists, {weighs} — overwrite? [y/n]"
+            if want.exists():
+                return f"{want.name} exists — you want to overwrite? [y/n]"
+            return f"{weighs}, render it? [y/n]"
         self.confirming = None
         return self._start_export(kind, want, span)
 
@@ -2926,7 +3017,8 @@ class Session:
         return self._export("wav", path, bars=(first, last))
 
     def do_overwrite(self, answer: str) -> str:
-        """Answer the question an export asked.
+        """Answer the question an export asked — the file that is there,
+        or the render that is about to be too big.
 
         **It only ever answers a question that was asked.**  Run with
         nothing pending it says so, rather than doing something to a file
@@ -2942,7 +3034,11 @@ class Session:
         # the one thing a confirmation must never do.
         self.confirming = None
         if not (answer or "").strip().lower().startswith("y"):
-            return f"left {want.name} alone"
+            # A file that is there is *left alone*; one that was only
+            # going to be made was never there to leave, and saying so
+            # the other way would have the person looking for it.
+            return (f"left {want.name} alone" if want.exists()
+                    else f"{want.name}: not rendered")
         return self._start_export(kind, want, span)
 
     def _declared(self, name: str):
@@ -3755,6 +3851,23 @@ def _weight(path, n: int) -> str:
     kind = KINDS.get(Path(path).suffix.lower())
     calm, notable = WEIGHTS.get(kind, WEIGHT_ELSE)
     return MARKS[0] if n < calm else MARKS[1] if n < notable else MARKS[2]
+
+
+def _render_bytes(seconds: float, rate: int, channels: int) -> int:
+    """What a render of this length will weigh, before it exists.
+
+    **The one weighing that is arithmetic rather than a `stat`.**  A
+    `.wav` is a header and then frames, and `render_wav` writes
+    16-bit ones — so the size is the span times the rate times the
+    channels times two, and the 44-byte header is not worth the
+    mention at any scale where anybody cares.
+
+    `spec/rocks.md`'s first omission was that the editor weighs what
+    exists and not what is about to: the number below is knowable
+    before a sample of it is made, which is the only moment the person
+    can still say no.
+    """
+    return int(max(0.0, seconds) * max(0, rate) * max(1, channels) * 2)
 
 
 def _weighed(path) -> str:

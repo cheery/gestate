@@ -518,13 +518,19 @@ exportWav path = Stated
 exportWavAt : Int -> Int -> Path -> Command
 exportWavAt first last path = Stated
 
-#: Answer the question an export asked about a file that is already there.
+#: Answer the question an export asked — about a file that is already
+#: there, or about a render heavy enough to be worth a second look.
 #:
 #: **Asked, not refused** — which is where this parts company with
 #: `steal`.  Taking a name that is taken is a delete wearing a friendlier
 #: word; writing over the plugin you exported an hour ago is the ordinary
 #: thing, and refusing it would make the command useless exactly when it
 #: is working.
+#:
+#: **One answer for both questions**, because there is one decision:
+#: whether this export happens.  `about 400M ▲, render it? [y/n]` is the
+#: same yes as `piece.wav exists — overwrite? [y/n]`, and a second verb
+#: for it would be a second word for *go ahead*.
 overwrite : Answer -> Command
 overwrite yes = Stated
 

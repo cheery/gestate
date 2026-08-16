@@ -41,6 +41,9 @@ class Bench:
         self.keyboard = self
         self.octaves = 0
         self.ends = 32.0
+        #: The playing instrument, as much of it as `Session` asks for:
+        #: a render's size is the span times the rate times *this*.
+        self.live = _Live()
 
     # what `Session` reaches for
     def apply(self, text, save=True):
@@ -114,6 +117,18 @@ class Bench:
 
     knob_types = {"cutoff": "Int", "drive": "Float"}
     sites = ()
+
+
+class _Live:
+    """What is playing, as much of it as the model reaches for.
+
+    `Workbench.live.channels` is the instrument's channel count — one
+    for a `Sig Float`, two for a `Sig Stereo` — and it is what a render
+    is weighed by.
+    """
+
+    def __init__(self, channels: int = 2):
+        self.channels = channels
 
 
 class _Site:
@@ -3239,3 +3254,95 @@ def test_an_export_says_what_it_made(tmp_path):
 
 def _weighed_in(said: str) -> bool:
     return any(mark in said for mark in ("▪", "◆", "▲"))
+
+
+def test_a_render_is_weighed_before_it_is_made(tmp_path):
+    """**`spec/rocks.md`'s first omission**: it weighed what existed.
+
+    A forty-minute export is knowable *before* it is rendered — the
+    span, the rate and the channels are all in hand — and a sentence
+    that says so stops the mistake instead of describing it afterwards.
+    The overwrite question already had that shape, so this is a second
+    question at the same seam and the same yes.
+    """
+    from gestate.session import _render_bytes
+
+    # The arithmetic itself: 16-bit frames, and the header is noise.
+    assert _render_bytes(60.0, 48000, 2) == 60 * 48000 * 2 * 2
+
+    made = tmp_path / "piece.wav"
+    s = session(view=_Editing("sound : Sig Float\nsound = sine 220.0\n"))
+    s.bench.path = tmp_path / "synth.ges"
+    started = []
+    s._start_export = lambda kind, want, span=None: (
+        started.append((kind, want, span)) or "exporting")
+
+    # **An ordinary render is not worth a question.**  Thirty-two beats
+    # of stereo at 48 kHz is three megabytes — `▪`, and the sentence a
+    # render already ends with says all there is to say.
+    assert s.run("exportWav", str(made)) == "exporting"
+    assert started and s.confirming is None
+
+    # A piece of half an hour is another matter.
+    started.clear()
+    s.bench.ends = 4400.0                          # beats, at 120 bpm
+    said = s.run("exportWav", str(made))
+    assert said.startswith("about ") and said.endswith("render it? [y/n]")
+    assert "▲" in said, said
+    assert not started, "it rendered before asking"
+    # The rows say what the yes *does* — nothing is being overwritten.
+    assert [r[1] for r in s.choices()] == ["render it anyway", "leave it"]
+    # And a no makes nothing, said as what happened rather than as a
+    # file being left alone: there was no file.
+    assert s.run("overwrite", "no") == "piece.wav: not rendered"
+    assert not started and not made.exists()
+
+    # A yes is the same yes the overwrite question takes.
+    s.run("exportWav", str(made))
+    assert s.run("overwrite", "yes") == "exporting"
+    assert started == [("wav", made, None)]
+
+
+def test_a_heavy_render_over_a_file_asks_once(tmp_path):
+    """Two facts, one decision — so one question.
+
+    A big render over a file that is already there has two things worth
+    saying and a single yes to give.  Asking twice would teach the
+    second answer to be reflex, which is how a confirmation stops
+    working.
+    """
+    taken = tmp_path / "again.wav"
+    taken.write_text("not really a wav")
+    s = session(view=_Editing("sound : Sig Float\nsound = sine 220.0\n"))
+    s.bench.path = tmp_path / "synth.ges"
+    s.bench.ends = 4400.0
+    said = s.run("exportWav", str(taken))
+    assert said.startswith("again.wav exists, about ")
+    assert said.endswith("— overwrite? [y/n]") and "▲" in said, said
+    assert [r[1] for r in s.choices()] == ["overwrite it", "leave it alone"]
+    assert s.run("overwrite", "no") == "left again.wav alone"
+    assert taken.read_text() == "not really a wav"
+
+
+def test_a_bar_range_is_weighed_by_what_it_writes(tmp_path):
+    """**The typo this question exists to catch.**
+
+    `exportWavAt` renders from the top and cuts the front off, so a
+    first bar of 900 is fifteen minutes of audio written to disk for
+    one bar of it kept.  Weighing the bar that survives would say `1M
+    ▪` about a quarter of an hour's work.
+    """
+    made = tmp_path / "bars.wav"
+    s = session(view=_Editing("sound : Sig Float\nsound = sine 220.0\n"))
+    s.bench.path = tmp_path / "synth.ges"
+    started = []
+    s._start_export = lambda kind, want, span=None: (
+        started.append((kind, want, span)) or "exporting")
+
+    # One bar from the top is two seconds and nobody's business.
+    assert s.run("exportWavAt", "0", "1", str(made)) == "exporting"
+
+    started.clear()
+    said = s.run("exportWavAt", "900", "901", str(made))
+    assert said.endswith("render it? [y/n]") and "▲" in said, said
+    assert not started

@@ -83,13 +83,46 @@ unreadable.  If weight is ever to be coloured it needs a field of its
 own beside `kind`, and the shape stays regardless, for the terminal
 and for the eye that cannot use the colour.
 
+## Before it is written, too
+
+The first omission this file recorded is closed (2026-08-16).  **It
+weighed what existed and not what was about to**, and an export of
+forty minutes is knowable before a sample of it is made: the span, the
+rate and the channels are all in hand, and the size is arithmetic
+(`session._render_bytes` — 16-bit frames, and the 44-byte header is not
+worth a mention at any scale where anybody cares).  So the export says
+
+    about 402.8M ▲, render it? [y/n]
+
+and stops the mistake instead of describing it afterwards.
+
+**At `▲` only.**  A question at every export is a question nobody
+reads, which is this file's own argument for three marks rather than a
+number.  Under the notable threshold the sentence a render already ends
+with — *wrote piece.wav — 31.7M ▪* — is the whole of what there is to
+say.
+
+**Known, never guessed.**  The length is the stated bars or the score
+the bench has already laid out, the channels are the instrument that is
+playing, and the rate is the renderer's own default, because that is
+what the export will use.  Missing any of the three it says nothing: a
+wolf cried over an invented number is worse than silence, since it
+teaches the person to answer `y` without reading.
+
+**A bar range is weighed by what is written, not by what survives.**
+`exportWavAt 900 901` renders from the top and cuts the front off, so a
+typo in the first number is a quarter of an hour of audio written for
+one bar kept — exactly the mistake the question exists to catch, and
+weighing the survivor would have said `1M ▪` about it.
+
+**One question, one yes.**  A heavy render over a file that is already
+there has two facts worth saying and a single decision to make, so the
+sentence carries both — `again.wav exists, about 402.8M ▲ — overwrite?
+[y/n]` — and `overwrite` answers both questions, because a second verb
+for *go ahead* would be a second word for the same act.
+
 ## What it does not do, and would be worth doing
 
-* **It weighs what exists, not what is about to.**  An export of
-  forty minutes is knowable *before* it is rendered — the span and the
-  rate are both in hand — and a sentence that said `about 400M ▲,
-  render it? [y/n]` would stop the mistake instead of describing it.
-  The overwrite question already has that shape.
 * **A sound's honest measure is its duration.**  `31.7M` is right and
   `3:00 at 44.1 kHz stereo` is what a person means; the bytes are a
   proxy for a proxy.  The mark hides the difference well enough that
@@ -110,6 +143,13 @@ and for the eye that cannot use the colour.
    than guessing.
 4. The marks are legible with no colour at all, which is the only
    rendering the status line has.
+5. A render heavy enough to earn `▲` is asked about before it is made,
+   an ordinary one is not asked about at all, and a bar range is
+   weighed by the audio it writes rather than by the bars it keeps.
 
-Held by `test_a_file_is_weighed_against_what_it_is` and
-`test_an_export_says_what_it_made` in `test/test_session.py`.
+Held by `test_a_file_is_weighed_against_what_it_is`,
+`test_an_export_says_what_it_made`,
+`test_a_render_is_weighed_before_it_is_made`,
+`test_a_heavy_render_over_a_file_asks_once` and
+`test_a_bar_range_is_weighed_by_what_it_writes` in
+`test/test_session.py`.

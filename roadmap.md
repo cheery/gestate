@@ -443,6 +443,19 @@ node-origin map that `audiospans` and the knob column already read.
 definition, then locals in `--fits`, then `--uses NAME`.  All three are
 argued above and none of them changed.
 
+### Weigh what is about to be written — done
+
+Built 2026-08-16, and written up in `spec/rocks.md` §"Before it is
+written, too".  An export weighs itself before it renders — the stated
+bars or the score's own end, the playing instrument's channels, the
+renderer's rate — and asks `about 402.8M ▲, render it? [y/n]` at `▲`
+and at nothing lighter.  It is one question with the overwrite one when
+both apply, and `overwrite` answers both.
+
+What is left of the spec is its other two omissions: a sound's honest
+measure is its duration, and nothing weighs the repository.  Neither
+has a caller.
+
 ---
 
 ## Ariadne — what is left of it
