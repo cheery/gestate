@@ -66,6 +66,20 @@ ssh -T git@github.com                                  # "Hi cheery!"
 grep -c ENCRYPTED ~/.ssh/id_ed25519                    # must print 1
 ```
 
+**If this is a rekey rather than a first key, delete the old one at
+GitHub.**  A new key does not replace an old one; it sits beside it.
+Until the old public key is removed from
+<https://github.com/settings/keys>, whatever weakness it had — no
+passphrase, an unencrypted disk, years of unknown exposure — is still a
+live path into the repository, and the new key has bought nothing.
+
+    ls ~/.ssh/id_rsa*        # gone from the machine, too
+
+This is the same shape as §2.2b: a credential, like a firewall rule,
+outlives the thing it was issued for, and neither `ssh -T` nor a
+successful push will ever mention it.  **The check is reading the list
+of authorized keys and asking what each one is still for.**
+
 Then `doc/install.md`, plus two packages it does not need but this page
 does:
 
