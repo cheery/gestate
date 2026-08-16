@@ -1,6 +1,6 @@
 """atlas.py — the project drawn from what it is, not from what it was.
 
-Three A3 sheets, generated, and that is the whole point of them:
+Five A3 sheets, generated, and that is the whole point of them:
 
 * **`whole.svg`** — what you write, what reads it, what runs it, the
   three backends, and the live environment around them.
@@ -9,6 +9,18 @@ Three A3 sheets, generated, and that is the whole point of them:
   refuse.
 * **`wire.svg`** — the seam between the Python model and the Rust
   window, read from *both* ends.
+* **`sound.svg`** — a signal to a sound card: the fragment, the graph,
+  the emitter, the score half beside it, and the C host's own seam.
+* **`score.svg`** — the score algebra as a composer meets it, every
+  signature the library's own line.
+
+**Each sheet carries the commit it was drawn at**, because these leave
+the repository: a picture in a chat window has no `--check` to run, and
+what a reader needs is which project and how old.  The stamp is the one
+thing `stale()` ignores — it differs the moment anything else is
+committed, and a check that failed on that would demand a redraw after
+every commit, which is how a generated file becomes one nobody
+regenerates.
 
 **The third one is a test as well as a picture.**  Everything else here
 reads one truth and lays it out; the wire reads two that are supposed
@@ -250,6 +262,37 @@ WIRE_WORDS: list[tuple[str, str, str, str]] = [
      "gestures"),
 ]
 
+#: The score algebra, sorted into what a person is doing when they reach
+#: for it.  **Every public name `music.ges` declares must be here** —
+#: including the ones a composer never types, under `host`, because the
+#: point of the sorting is to say which is which.
+#:
+#: The signatures are not written here: they are the author's own lines,
+#: read out of the library by `reference.entries_of`.
+MUSIC_WORDS: dict[str, str] = {
+    # ── Writing one ─────────────────────────────────────────────────────
+    "r": "notes", "bar": "notes", "prog": "notes", "percussion": "notes",
+    "ticksPerBeat": "notes",
+    # ── Putting them together ───────────────────────────────────────────
+    "||": "together", "at": "together", "|<": "together", ">|": "together",
+    "|*": "together", "|/": "together",
+    # ── Going on ────────────────────────────────────────────────────────
+    "cycle": "forever", "unfold": "forever", "long": "forever",
+    "sow": "forever",
+    # ── Time, and places in it ──────────────────────────────────────────
+    "tempoShape": "intime", "shape": "intime", "fermata": "intime",
+    "mark": "intime", "section": "intime",
+    # ── Chance, and listening ───────────────────────────────────────────
+    "draw": "chance", "hear": "chance", "roll": "chance", "split": "chance",
+    "below": "chance", "keyOf": "chance", "chance": "chance",
+    # ── What the host asks a score, and no composer does ────────────────
+    "lay": "asked", "layout": "asked", "layVoices": "asked",
+    "spreadTo": "asked", "tagAll": "asked", "streamVoices": "asked",
+    "liveVoices": "asked", "tempoSpans": "asked", "shapeSpans": "asked",
+    "streamMarks": "asked", "resumeAt": "asked", "opaqueHead": "asked",
+    "resumeSeq": "asked", "sowScore": "asked",
+}
+
 #: What each lane is, in one sentence.  The editorial half — a lane
 #: title says what a thing is called and this says what it is for.
 LANES: dict[str, tuple[str, str]] = {
@@ -306,7 +349,79 @@ LANES: dict[str, tuple[str, str]] = {
     "checked": ("What this sheet promises",
                 "Both ends of every word above are read out of the "
                 "source, and compared."),
-    "engine": ("Then it runs — the G-machine's instruction set",
+    "notes": ("A note, and a rest",
+              "A note is a quoted value — `'(Key 60 100)` — and the "
+              "score around it is these.  `++` is the prelude's, because "
+              "a score is a semigroup like any other."),
+    "together": ("Putting them together",
+                 "`||` is at the same time, `at` is a beat, and the four "
+                 "brackets shrink, stretch and clip.  Every one of them "
+                 "is arithmetic you can check by hand, which is what a "
+                 "bar adding up to four beats means."),
+    "forever": ("Going on",
+                "A score with no end is a value like any other: `cycle` "
+                "and `unfold` make one, `long` says how much of it to "
+                "take, `sow` gives it a seed."),
+    "intime": ("Time, and places in it",
+               "The tempo is a shape along the path, not a number; a "
+               "`mark` names a place a rehearsal can jump to, and a "
+               "`fermata` waits for a hand."),
+    "chance": ("Chance, and listening",
+               "`draw` is a zero-width leaf that reads the take's seed, "
+               "`hear` one that reads a port — both lawful parts of the "
+               "score monad rather than boxes beside it "
+               "(`spec/ariadne.md`)."),
+    "asked": ("What the host asks a score",
+              "No composer types these.  They are here because the "
+              "point of sorting the words is to say which are yours: a "
+              "performer lays a score out, walks it, resumes it and "
+              "reads its marks through this half."),
+    "algebra": ("The types, and what they can do",
+                "A score is `[: a :]`; the instances say what that means "
+                "— a semigroup, a monad, and reversible."),
+    "signal": ("What you write",
+               "`sound : Sig Float`, built from these and nothing else.  "
+               "**Every one is a fold over time**: an oscillator, an "
+               "envelope, a filter and a noise source are all `scan`, "
+               "written by the programmer rather than wired from a "
+               "fixed set."),
+    "extract": ("The fragment leaves the interpreter",
+                "`audioextract` walks what `sound` reaches and refuses "
+                "what cannot be flat: no lists at audio rate, no "
+                "closures, first order only.  A refusal names the line "
+                "and says why."),
+    "nodes": ("A graph of nodes",
+              "`audiograph` — one node per operation, control channels "
+              "where a knob or a schedule writes, and this arithmetic "
+              "and no more."),
+    "emit": ("C, then machine code",
+             "`audioir` lowers the graph to these eight kinds, "
+             "`audiollvm` writes LLVM IR, `clang` makes a `.so`.  The "
+             "objects are bit-identical at `-O1` and `-O2`; the choice "
+             "is measured in `roadmap.md`."),
+    "walked": ("The score, walked",
+               "`audioscore` performs `score` into notes at ticks — "
+               "baked ahead when the walk can be trusted to end, and "
+               "performed as it plays when it cannot."),
+    "scheduled": ("A step function per channel",
+                  "`audioschedule` turns notes into control changes at "
+                  "sample positions, `audioalloc` decides which voice "
+                  "takes a note and which one is stolen."),
+    "banked": ("Voices",
+               "`audiovoices` — `voices bass 2 bassVoice` is two copies "
+               "of one instrument, each with its own channels, named "
+               "lexically so the checker can say whether the piece fits "
+               "the instrument."),
+    "engine": ("The engine",
+               "`audioengine` fills a buffer from the compiled graph "
+               "and `audiolive` installs an edit under the sound "
+               "without stopping it — the phase of an oscillator "
+               "survives if its node's origin does."),
+    "card": ("The C host, and the second wire",
+             "`host.c` owns the callback and the ring; `audiohost` "
+             "reaches it through `ctypes`.  Both ends read, the same "
+             "way the editor's wire is."),
+    "engine_instrs": ("Then it runs — the G-machine's instruction set",
                "What a supercombinator is compiled to, read from the "
                "machine's own dispatch table, so an instruction the "
                "machine learns appears here by itself."),
@@ -876,6 +991,88 @@ def unspoken(root: Path) -> list[str]:
     return sorted(set(abi_rust(root)) - set(ABI_SAYS))
 
 
+def music_entries(root: Path) -> list:
+    """Every public declaration `music.ges` makes, with its own line.
+
+    Read through `reference.entries_of`, which is the same reader
+    `doc/ref/` is generated by — so the signature on the sheet is the
+    author's, verbatim, and a changed type changes the drawing.
+    """
+    from .reference import entries_of
+
+    text = _read(root, "gestate/music.ges")
+    return [e for e in entries_of(text) if not e.internal] if text else []
+
+
+def unsorted_words(root: Path) -> list[str]:
+    """Score words with no group — what a person has to answer for."""
+    return sorted({e.name for e in music_entries(root)
+                   if e.kind in ("value", "operator")} - set(MUSIC_WORDS))
+
+
+def stale_words(root: Path) -> list[str]:
+    """Groups naming words `music.ges` no longer declares."""
+    return sorted(set(MUSIC_WORDS)
+                  - {e.name for e in music_entries(root)})
+
+
+def formers() -> list[str]:
+    """What a signal can be *made of* — the fragment's own table.
+
+    Twelve, and the argument of `spec/liveaudio.md` is that this is a
+    short list on purpose: an oscillator, an envelope, a filter and a
+    noise source are all `scan`, written by the programmer rather than
+    wired from a fixed set.
+    """
+    from .audiograph import FORMERS
+
+    return sorted(FORMERS)
+
+
+def primitives() -> list[str]:
+    """The arithmetic the emitter can emit, from the graph's own list."""
+    from .audiograph import PRIMITIVES
+
+    return sorted(PRIMITIVES)
+
+
+def ir_kinds(root: Path) -> list[str]:
+    """The IR's node kinds — the frozen dataclasses of `audioir`.
+
+    Frozen ones only, which is what separates the *expression* kinds
+    from the mutable `Func`, `Node` and `Graph` that carry them.
+    """
+    tree = _tree(root, "audioir")
+    return [n.name for n in getattr(tree, "body", [])
+            if isinstance(n, ast.ClassDef)
+            and any("frozen=True" in ast.unparse(d) for d in n.decorator_list)]
+
+
+def host_wire(root: Path) -> tuple[set, set]:
+    """`(what host.c defines, what Python names)` — the second seam.
+
+    The same shape as the editor's wire and the same value, with one
+    asymmetry that is a fact rather than a defect: the C host calls
+    *itself* (`gestate_host_halt` calls `gestate_host_unblock`), so a
+    function it defines and Python never names is an internal, not a
+    dead export.  Python naming one the C does not define is the other
+    thing entirely, and that is what `host_drift` reports.
+    """
+    c = _read(root, "gestate/host.c")
+    py = _read(root, "gestate/audiohost.py")
+    defined = set(re.findall(r'^[A-Za-z_][\w \*]*\b(gestate_host_\w+)\s*\(',
+                             c, re.M))
+    named = set(re.findall(r'\bgestate_host_\w+', py))
+    return defined, named
+
+
+def host_drift(root: Path) -> list[str]:
+    """Names the model reaches for that the C host does not have."""
+    defined, named = host_wire(root)
+    return [f"{name} is called from Python and `host.c` does not define it"
+            for name in sorted(named - defined)]
+
+
 def instructions() -> list[str]:
     """The G-machine's instruction set, from the machine's own dispatch."""
     from .gmachine import _DISPATCH
@@ -925,12 +1122,27 @@ def _esc(text: str) -> str:
 
 
 def _ticked(text: str) -> str:
-    """`code` in a sentence, as a tspan that is drawn in the mono face."""
-    out, mono = [], False
-    for part in _esc(text).split("`"):
-        if part:
-            out.append(f'<tspan class="mono">{part}</tspan>' if mono else part)
-        mono = not mono
+    """A sentence with its marks: `code` in the mono face, **bold** bold.
+
+    The same two marks the prose in this repository uses, so a lane's
+    sentence can be written the way every other sentence here is
+    written — and so that `**this**` is emphasis rather than four
+    asterisks the reader has to ignore.
+    """
+    out = []
+    for i, chunk in enumerate(_esc(text).split("**")):
+        if not chunk:
+            continue
+        strong = i % 2 == 1
+        parts = []
+        for j, part in enumerate(chunk.split("`")):
+            if not part:
+                continue
+            parts.append(f'<tspan class="mono">{part}</tspan>'
+                         if j % 2 else part)
+        said = "".join(parts)
+        out.append(f'<tspan font-weight="700">{said}</tspan>' if strong
+                   else said)
     return "".join(out)
 
 
@@ -963,8 +1175,8 @@ def _wrap(text: str, width: float, size: float) -> list:
     room = max(8, int(width / per))
     lines, line = [], ""
     for word in text.split():
-        bare = re.sub(r"`", "", word)
-        if line and len(re.sub(r"`", "", line)) + 1 + len(bare) > room:
+        bare = re.sub(r"[`*]", "", word)     # marks are ink, not width
+        if line and len(re.sub(r"[`*]", "", line)) + 1 + len(bare) > room:
             lines.append(line)
             line = word
         else:
@@ -1005,10 +1217,11 @@ def _lane(box: Box) -> tuple[list, float]:
         chips, tall = _chips(sorted(box.chips), box.x + 4, y, box.w - 8)
         out += chips
         y += tall + 2.6
-    for line in box.extra:
-        out.append(f'<text class="extra" x="{box.x + 4:.2f}" '
-                   f'y="{y:.2f}">{_ticked(line)}</text>')
-        y += 3.8
+    for said in box.extra:
+        for line in _wrap(said, box.w - 8, 2.9):
+            out.append(f'<text class="extra" x="{box.x + 4:.2f}" '
+                       f'y="{y:.2f}">{_ticked(line)}</text>')
+            y += 3.8
     tall = max(box.h, y - box.y + 1.6)
     frame = (f'<rect class="lane" x="{box.x:.2f}" y="{box.y:.2f}" '
              f'width="{box.w:.2f}" height="{tall:.2f}" rx="2.4" '
@@ -1142,10 +1355,60 @@ def render(root: Path) -> str:
         "libraries and crates are read from the tree.  `test_atlas.py` "
         "fails when this sheet is not what the source renders — then run "
         "the command above.",
-        body)
+        body, provenance(root))
 
 
-def _sheet(title: str, subtitle: str, foot: str, body: list) -> str:
+def provenance(root: Path) -> str:
+    """`"gestate 9d18651 · 2026-08-16"` — where this sheet came from.
+
+    **Because these leave the repository.**  A picture in a chat window
+    or a slide has no `--check` to run and no tree to compare against;
+    what a reader needs is the two facts a shared image normally loses
+    — *which project* and *how old*.  So the sheet says it, from the
+    commit it was drawn at.
+
+    A tree with uncommitted work says so (`+`), because a sheet drawn
+    from work in progress is exactly the one whose age is a lie.
+    Outside a checkout there is no honest answer and it says that too.
+    """
+    import subprocess
+
+    def git(*args) -> str:
+        try:
+            done = subprocess.run(("git", "-C", str(root), *args),
+                                  capture_output=True, text=True, check=False,
+                                  timeout=5)
+        except (OSError, subprocess.SubprocessError):
+            return ""
+        return done.stdout.strip() if done.returncode == 0 else ""
+
+    stamp = git("log", "-1", "--format=%h · %cs")
+    if not stamp:
+        return "gestate · drawn outside a checkout, so undated"
+    dirty = "+" if git("status", "--porcelain") else ""
+    return f"gestate {stamp}{dirty}"
+
+
+#: How the stamp is found in a finished sheet, for the one comparison
+#: that has to ignore it.
+_STAMP = re.compile(r'<text class="stamp".*?</text>\n?', re.S)
+
+
+def _unstamped(svg: str) -> str:
+    """A sheet without its provenance line.
+
+    **What `stale()` compares.**  The stamp names the commit a sheet was
+    drawn at, so it is different the moment anything else is committed —
+    and a check that failed on that would demand a redraw after every
+    commit in the project, which is how a generated file becomes one
+    nobody regenerates.  The *drawing* is checked; the stamp is left to
+    say what it says.
+    """
+    return _STAMP.sub("", svg)
+
+
+def _sheet(title: str, subtitle: str, foot: str, body: list,
+           stamp: str = "") -> str:
     """The page every sheet is drawn on: size, ink, and three sentences.
 
     One frame for all of them, so a second sheet is a body and three
@@ -1167,7 +1430,9 @@ def _sheet(title: str, subtitle: str, foot: str, body: list) -> str:
         sy += 4.0
     head += [
         f'<text class="foot" x="{MARGIN:.2f}" y="{PAGE_H - MARGIN + 2:.2f}">'
-        + _ticked(foot) + '</text>',
+        + _ticked(_wrap(foot, PAGE_W - 2 * MARGIN - 70, 2.7)[0]) + '</text>',
+        f'<text class="stamp" x="{PAGE_W - MARGIN:.2f}" '
+        f'y="{PAGE_H - MARGIN + 2:.2f}">{_esc(stamp)}</text>',
     ]
 
     return "\n".join([
@@ -1188,6 +1453,8 @@ def _sheet(title: str, subtitle: str, foot: str, body: list) -> str:
         "  .title { font-size: 7.4px; font-weight: 700; }",
         "  .subtitle { font-size: 3.1px; fill: #55646e; }",
         "  .foot { font-size: 2.7px; fill: #6b7982; }",
+        "  .stamp { font-size: 2.9px; fill: #8a97a0; text-anchor: end;"
+        " font-family: 'DejaVu Sans Mono', Consolas, monospace; }",
         "  .lane { stroke: #c9d2d8; stroke-width: 0.35; }",
         "  .lanetitle { font-size: 4.6px; font-weight: 700; }",
         "  .step { font-size: 3.6px; font-weight: 700; }",
@@ -1275,8 +1542,8 @@ def render_language(root: Path) -> str:
     # an instruction added to the G-machine appears here by itself.
     rows = (len(PASSES) + cols - 1) // cols
     fy = top + rows * (high + gap)
-    foot = Box("engine", MARGIN, fy, PAGE_W - 2 * MARGIN, 0.0, "#eaf1ee",
-               instructions())
+    foot = Box("engine_instrs", MARGIN, fy, PAGE_W - 2 * MARGIN, 0.0,
+               "#eaf1ee", instructions())
     foot.extra = [
         "The Rust G-machine (`crust`) runs the same instructions for the "
         "window; the Python one is the reference it answers to.",
@@ -1294,7 +1561,7 @@ def render_language(root: Path) -> str:
         "name is the only written part.  `test_atlas.py` fails when the "
         "sheet and the source disagree — then run `python -m "
         "gestate.atlas`.",
-        body)
+        body, provenance(root))
 
 
 def render_wire(root: Path) -> str:
@@ -1362,7 +1629,169 @@ def render_wire(root: Path) -> str:
         "and never read, a call declared with the wrong arity, a type "
         "that means something else on the other side.  This is the one "
         "sheet that is a test as well as a picture.",
-        body)
+        body, provenance(root))
+
+
+def render_score(root: Path) -> str:
+    """Sheet five: the score algebra, as a composer meets it."""
+    inner = PAGE_W - 2 * MARGIN
+    w3 = (inner - 2 * 6) / 3
+    top = MARGIN + 25.0
+    signature = {e.name: e.signature.strip() for e in music_entries(root)}
+
+    def group(key: str) -> list:
+        return [(name, signature.get(name, "")) for name in
+                sorted(MUSIC_WORDS, key=lambda n: (MUSIC_WORDS[n], n))
+                if MUSIC_WORDS[name] == key]
+
+    rows = [[Box(key, MARGIN + i * (w3 + 6), 0, w3, 0, tint,
+                 pairs=group(key))
+             for i, (key, tint) in enumerate(cols)]
+            for cols in (
+                (("notes", "#f6f2ea"), ("together", "#eef3f7"),
+                 ("forever", "#eef3f7")),
+                (("intime", "#f3eef5"), ("chance", "#f3eef5"),
+                 ("asked", "#eeeeee")))]
+
+    types = [e for e in music_entries(root)
+             if e.kind in ("type", "class", "instance", "alias")]
+    foot = Box("algebra", MARGIN, 0, inner, 0, "#eaf1ee",
+               sorted(e.name for e in types))
+
+    tall = []
+    for row in rows:
+        for box in row:
+            box.used = _lane(box)[1]
+        tall.append(max(b.used for b in row))
+    foot.used = _lane(foot)[1]
+    gap = 10.0
+    body: list = []
+    y = top
+    for row, height in zip(rows, tall):
+        for box in row:
+            box.y, box.h = y, height
+            body += _lane(box)[0]
+        y += height + gap
+    foot.y, foot.h = y, foot.used
+    body += _lane(foot)[0]
+
+    return _sheet(
+        "gestate — the score, as a composer meets it",
+        "What `music.ges` gives you for writing a piece, sorted by what "
+        "you are doing when you reach for it.  Every signature here is "
+        "the library's own line, read out of it — and the grey box is "
+        "everything the **host** asks a score, which no composer types.",
+        "Names, signatures and types are read from `gestate/music.ges`; "
+        "which group each belongs to is written in `gestate/atlas.py`, "
+        "and a new score word fails `test_atlas.py` until it is placed.",
+        body, provenance(root))
+
+
+def render_sound(root: Path) -> str:
+    """Sheet four: `sound : Sig Float` to a sound card, both halves."""
+    inner = PAGE_W - 2 * MARGIN
+    w4 = (inner - 3 * 6) / 4
+    w3 = (inner - 2 * 6) / 3
+    w2 = (inner - 6) / 2
+    top = MARGIN + 25.0
+    defined, named = host_wire(root)
+
+    rows = [
+        [Box("signal", MARGIN, 0, w4, 0, "#f6f2ea", formers()),
+         Box("extract", MARGIN + (w4 + 6), 0, w4, 0, "#eef3f7",
+             sorted(refusals_of_module(root, "audioextract"))),
+         Box("nodes", MARGIN + 2 * (w4 + 6), 0, w4, 0, "#eef3f7",
+             primitives()),
+         Box("emit", MARGIN + 3 * (w4 + 6), 0, w4, 0, "#eaf1ee",
+             ir_kinds(root))],
+        [Box("walked", MARGIN, 0, w3, 0, "#f3eef5"),
+         Box("scheduled", MARGIN + (w3 + 6), 0, w3, 0, "#f3eef5"),
+         Box("banked", MARGIN + 2 * (w3 + 6), 0, w3, 0, "#f3eef5")],
+        [Box("engine", MARGIN, 0, w2, 0, "#f7f0ea"),
+         Box("card", MARGIN + (w2 + 6), 0, w2, 0, "#f7f0ea",
+             sorted(named & defined))],
+    ]
+    rows[2][1].extra = [
+        f"{len(defined)} functions in `host.c`, {len(named & defined)} of "
+        f"them named from Python — the rest are its own, called by each "
+        f"other.  Nothing Python names is missing from the C.",
+    ]
+
+    tall = []
+    for row in rows:
+        for box in row:
+            box.used = _lane(box)[1]
+        tall.append(max(b.used for b in row))
+    gap = 11.0
+    over = PAGE_H - MARGIN - 7 - top - sum(tall) - gap * (len(rows) - 1)
+    tall = [h + max(0.0, min(over, 9.0 * len(rows))) / len(rows) for h in tall]
+
+    body: list = []
+    at: dict = {}
+    y = top
+    for row, height in zip(rows, tall):
+        for box in row:
+            box.y, box.h = y, height
+            at[box.key] = box
+            body += _lane(box)[0]
+        y += height + gap
+
+    for a, b, what in (("signal", "extract", "one declaration"),
+                       ("extract", "nodes", "a graph"),
+                       ("nodes", "emit", "flat arithmetic"),
+                       ("walked", "scheduled", "events at ticks"),
+                       ("scheduled", "banked", "a voice each"),
+                       ("engine", "card", "a filled buffer")):
+        one, two = at[a], at[b]
+        line = min(one.y + one.h - 4.0, max(one.used, two.used) + one.y + 7.0)
+        body += _arrow([(one.x + one.w + 0.4, line), (two.x - 1.2, line)],
+                       what, above=line)
+    # The two halves meet at the engine: code from one, control from the
+    # other, which is the whole architecture in one arrow each.
+    # **The two halves meet at the engine**, and the arrows saying so
+    # go round rather than through: the compiled half runs down the
+    # right margin and along the gap between the rows, which is the
+    # only channel on the sheet that crosses nothing.
+    lane_edge = PAGE_W - MARGIN - 1.2
+    channel = at["banked"].y + at["banked"].h + gap / 2
+    body += _arrow([(at["emit"].x + at["emit"].w / 2,
+                     at["emit"].y + at["emit"].h + 0.4),
+                    (at["emit"].x + at["emit"].w / 2, at["emit"].y
+                     + at["emit"].h + gap / 2),
+                    (lane_edge, at["emit"].y + at["emit"].h + gap / 2),
+                    (lane_edge, channel),
+                    (at["engine"].x + at["engine"].w * 0.72, channel),
+                    (at["engine"].x + at["engine"].w * 0.72,
+                     at["engine"].y - 1.2)])
+    body += _arrow([(at["banked"].x + at["banked"].w / 2,
+                     at["banked"].y + at["banked"].h + 0.4),
+                    (at["banked"].x + at["banked"].w / 2, channel),
+                    (at["engine"].x + at["engine"].w * 0.28, channel),
+                    (at["engine"].x + at["engine"].w * 0.28,
+                     at["engine"].y - 1.2)])
+    body += [f'<text class="edgetext" x="{at["engine"].x + at["engine"].w * 0.72:.2f}" '
+             f'y="{channel - 1.6:.2f}">the machine code</text>',
+             f'<text class="edgetext" x="{at["engine"].x + at["engine"].w * 0.28:.2f}" '
+             f'y="{channel - 1.6:.2f}">the control channels</text>']
+
+    return _sheet(
+        "gestate — from a signal to a sound card",
+        "The audio backend, both halves: what the language describes is "
+        "compiled to machine code, and what the score says arrives as "
+        "control values on the same graph.  The vocabularies below are "
+        "read from the compiler's own tables — the formers, the "
+        "primitives, the IR's kinds, and the C host's exports.",
+        "`test_atlas.py` fails when the sheet is not what the source "
+        "renders, and when Python names a `host.c` function that is not "
+        "there.  Redraw with `python -m gestate.atlas`.",
+        body, provenance(root))
+
+
+def refusals_of_module(root: Path, module: str) -> set:
+    """Every refusal a module can make — its own `raise` sites."""
+    tree = _tree(root, module)
+    known = _errors_defined(root)
+    return _raised_in(tree) & known if tree is not None else set()
 
 
 # ---------------------------------------------------------------------------
@@ -1381,7 +1810,9 @@ def generate(root=None) -> dict:
     root = Path(root) if root is not None else Path(__file__).parent.parent
     return {"whole.svg": render(root),
             "language.svg": render_language(root),
-            "wire.svg": render_wire(root)}
+            "wire.svg": render_wire(root),
+            "sound.svg": render_sound(root),
+            "score.svg": render_score(root)}
 
 
 def write(root=None) -> list:
@@ -1392,7 +1823,12 @@ def write(root=None) -> list:
     changed = []
     for name, text in generate(root).items():
         target = out / name
-        if not target.exists() or target.read_text() != text:
+        was = target.read_text() if target.exists() else ""
+        # **Written when the drawing moved, or when the stamp did.**
+        # The stamp is not compared by `stale()` — it would demand a
+        # redraw after every commit — but a redraw that is happening
+        # anyway may as well carry today's provenance out with it.
+        if _unstamped(was) != _unstamped(text) or was != text:
             target.write_text(text)
             changed.append(name)
     return changed
@@ -1403,7 +1839,8 @@ def stale(root=None) -> list:
     root = Path(root) if root is not None else Path(__file__).parent.parent
     out = root / "doc" / "atlas"
     return [name for name, text in generate(root).items()
-            if not (out / name).exists() or (out / name).read_text() != text]
+            if not (out / name).exists()
+            or _unstamped((out / name).read_text()) != _unstamped(text)]
 
 
 #: How a `.svg` becomes a `.png`, best first.  **A picture nobody can

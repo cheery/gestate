@@ -409,16 +409,24 @@ their own headings.  What is below is what is *not* done.
     gestures, each read from *both* ends and compared.  They agree
     today; `test_atlas.py` fails the day they do not, and a second test
     asserts the check itself could still fail.
-  * **The sound path**, from `sound : Sig Float` to the card: the
-    extractor's node kinds, the IR's operations, the emitter, the
-    engine and the host's own ABI — all of them dataclasses and
-    `ctypes` prototypes, and all readable.
-  * **The score algebra**, whose operators and types the reference
-    index already holds.
+  * **The sound path is built** (`sound.svg`) — the formers, the
+    primitives, the IR's kinds, the score half beside the compiled one,
+    and the C host's seam checked the same way the editor's is: Python
+    naming a `host.c` function that is not there fails the test, while
+    the C having its own internals does not.
+  * **The score algebra is built** (`score.svg`) — every signature
+    `music.ges`'s own line, sorted into what a person is doing when
+    they reach for it, with *what the host asks a score* as a group of
+    its own so that "not for you" is an answer.
+
+  **All five carry the commit they were drawn at**, because the sheets
+  are shared outside the repository; the stamp is the one thing the
+  staleness check ignores, or every commit anywhere would demand a
+  redraw.
 
   And the limit, so nobody chases it: everything above is a fact in the
-  source.  Why a pass exists, which arrow matters and what a lane is
-  *for* are not, and stay written by hand under the boxes.
+  source.  Why a pass exists, which arrow matters, what a lane is *for*
+  and which words are yours are not, and stay written by hand.
 
 - **Product safety wants a process, not a promise.**  This project can
   now hand a person a full-scale blast in their headphones, overwrite a

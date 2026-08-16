@@ -6683,5 +6683,44 @@ furniture: `painted` is read and nothing sends it
 A checker that cannot fail is worse than no checker, because it reads
 as a guarantee.
 
+### The last two sheets, and a date on all five
+
+Henri: *"These pictures are shared and I believe they appear elsewhere.
+I want people to be able to tell how stale or old each are."*  Which
+runs straight into the rule the first sheet was built on — **no
+timestamps**, or the file churns and stops being regenerated.
+
+Both are satisfiable at once, because the two are different questions.
+Each sheet now carries the commit it was drawn at and that commit's
+date (`gestate 9d18651 · 2026-08-16`, with a `+` when the tree had
+uncommitted work), and **the stamp is the one thing the staleness check
+ignores**.  A picture that leaves the repository can say how old it is;
+a repository that commits anything at all is not thereby told to redraw
+five sheets.  What is still checked is the drawing.
+
+`sound.svg` and `score.svg` finished the set:
+
+**The sound sheet has the project's second wire on it.**  `host.c`
+defines thirty `gestate_host_*` functions and `audiohost` names
+twenty-nine of them — and the one it does not is *not* a defect:
+`gestate_host_halt` calls `gestate_host_unblock` itself, so a function
+Python never names is an internal.  That asymmetry is the rule: Python
+naming something the C does not define is a crash waiting, and is what
+fails the test; the C having more than Python names is a fact, and is
+what the sheet prints.  The rest of it is read from the compiler's own
+tables — the twelve formers (which is `spec/liveaudio.md`'s argument in
+a box: an oscillator, an envelope, a filter and a noise source are all
+`scan`), the twenty-three primitives, the IR's eight kinds.
+
+**The score sheet is the one where the editorial half earns its
+keep.**  Every signature is `music.ges`'s own line, read through the
+same reader `doc/ref/` uses; what a person writes is which group each
+word belongs to — *writing one*, *putting them together*, *going on*,
+*time and places in it*, *chance and listening* — and a sixth group,
+**what the host asks a score**, which exists so that "not for you" is
+an answer rather than an omission.  Thirteen of the fifty-one public
+names are in it.  A new score operator fails the test until somebody
+says which it is.
+
 What is left is more sheets, and the rule the rest of this project runs
 on applies: draw the one somebody wants to read.
