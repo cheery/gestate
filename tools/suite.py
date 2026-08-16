@@ -63,6 +63,22 @@ def _fence_state():
     return ok, f"{n}/{n} — the fence is up" if ok else "FENCE INCOMPLETE"
 
 
+# **Tests that need a window, which the fence deliberately cannot give them.**
+#
+# `tools/sandbox.sh` binds no X11 socket, and that is not an oversight to
+# fix: X11 has no isolation between clients, so a sandboxed process holding
+# the socket can read every keystroke and every pixel of the whole session.
+# Binding it would undo most of what the fence is for.
+#
+# So these run **outside** the fence, in a second pass, and the report says
+# so.  The alternative — quietly deselecting them — would produce a green
+# page that had not run five tests, which is the exact failure this file
+# exists to prevent.  Discovered by fencing the whole suite and getting five
+# failures reading "the window never said which argument it is on"; all
+# eight pass unfenced.
+NEEDS_WINDOW = ["test/test_editor_abi.py"]
+
+
 # pytest -q prints, at the end, a line like:
 #   3 failed, 2008 passed, 41 skipped, 2 warnings in 251.03s
 TOTALS = re.compile(
@@ -98,8 +114,14 @@ def main():
             print("          run tools/sandbox.sh --check, or pass --unfenced.",
                   file=sys.stderr)
             return 2
-        cmd = [str(ROOT / "tools" / "sandbox.sh"), *pytest_cmd]
+        # Held out of the fenced pass and run separately below.  Only the
+        # ones that actually exist, so this list may name a file a future
+        # project does not have.
+        window_tests = [w for w in NEEDS_WINDOW if (ROOT / w).exists()]
+        cmd = [str(ROOT / "tools" / "sandbox.sh"), *pytest_cmd,
+               *[f"--ignore={w}" for w in window_tests]]
     else:
+        window_tests = []
         cmd = pytest_cmd
 
     started = datetime.now()
@@ -113,24 +135,54 @@ def main():
     # fact healthy.  `os.read` returns as soon as anything is available,
     # so pytest's progress dots arrive as they are printed rather than
     # waiting for a full line.
-    proc = subprocess.Popen(cmd, cwd=ROOT,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    chunks = []
-    while True:
-        data = os.read(proc.stdout.fileno(), 4096)
-        if not data:
-            break
-        text = data.decode("utf-8", errors="replace")
-        sys.stdout.write(text)
-        sys.stdout.flush()
-        chunks.append(text)
-    proc.wait()
-    wall = time.monotonic() - t0
-    out = "".join(chunks)
+    def stream(argv):
+        p = subprocess.Popen(argv, cwd=ROOT,
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        buf = []
+        while True:
+            data = os.read(p.stdout.fileno(), 4096)
+            if not data:
+                break
+            t = data.decode("utf-8", errors="replace")
+            sys.stdout.write(t)
+            sys.stdout.flush()
+            buf.append(t)
+        p.wait()
+        return p.returncode, "".join(buf)
 
-    totals = "(not parsed)"
-    for m in TOTALS.finditer(out):
-        totals = m.group(1).strip().rstrip(",")
+    rc, out = stream(cmd)
+    passes = [out]
+
+    # Second pass, unfenced, for the window tests the fence cannot host.
+    window_note = "none"
+    if fenced and window_tests:
+        print(f"\n--- second pass, OUTSIDE the fence: {' '.join(window_tests)} ---")
+        wrc, wout = stream([*pytest_cmd, *window_tests])
+        out += "\n" + wout
+        passes.append(wout)
+        rc = rc or wrc
+        window_note = " ".join(window_tests) + " — no X11 socket inside the fence"
+
+    wall = time.monotonic() - t0
+
+    # **Totals are summed across passes, not taken from the last one.**
+    # The first version kept only the final match, so a two-pass run
+    # reported the second pass alone — a green page for twenty-six tests
+    # while two thousand went unmentioned.  Exactly the silently-partial
+    # report this file exists to prevent, reintroduced by the fix for it.
+    tally = {}
+    for chunk in passes:
+        last = None
+        for m in TOTALS.finditer(chunk):
+            last = m.group(1)
+        if last:
+            for n, word in re.findall(r"(\d+) (\w+)", last):
+                tally[word] = tally.get(word, 0) + int(n)
+    order = ["failed", "error", "errors", "passed", "skipped",
+             "xfailed", "xpassed", "deselected", "warnings", "warning"]
+    parts = [f"{tally[w]} {w}" for w in order if w in tally]
+    parts += [f"{v} {k}" for k, v in tally.items() if k not in order]
+    totals = ", ".join(parts) if parts else "(not parsed)"
 
     failures = []
     for name, why in FAILNAME.findall(out):
@@ -156,8 +208,9 @@ def main():
         f"| Tree | {_tree()} |",
         f"| Fence | {'`tools/sandbox.sh` — ' + fence_note if fenced else '**unfenced** (--unfenced)'} |",
         f"| Command | `{' '.join(pytest_cmd[1:])}` |",
+        f"| Ran outside the fence | {window_note} |",
         f"| Wall | {mins}m {secs}s |",
-        f"| Exit | {proc.returncode} |",
+        f"| Exit | {rc} |",
         "",
         "## Totals",
         "",
@@ -178,7 +231,7 @@ def main():
     REPORT.parent.mkdir(parents=True, exist_ok=True)
     REPORT.write_text("\n".join(body) + "\n")
     print(f"\nsuite.py: drawn to {REPORT.relative_to(ROOT)}")
-    return proc.returncode
+    return rc
 
 
 if __name__ == "__main__":
