@@ -1188,3 +1188,52 @@ Suggested form: `doc/reading-the-log.md` written against *this
 project's own history*, so every example is a real commit from today,
 followed by a live walkthrough where you drive and I answer.  No
 question — takeable whenever there is an hour.
+
+
+### Answers, 2026-08-16 evening
+
+*Given in one sitting, which is the format working.  Recorded here
+because a decision that lives only in a chat is a decision that will be
+made again.*
+
+**Item 5 — parameter names first, nominal types later.**  Grounded by
+looking at the real signatures, which is what changed the question:
+
+    lowpass        : Sig Float -> Sig Float -> Sig Float               -- k,  s
+    lowpassOnePole : Sig Float -> Sig Float -> Sig Float               -- hz, s
+    lowpassSvf     : Sig Float -> Sig Float -> Sig Float -> Sig Float  -- hz, res, s
+    lowpassLadder  : Sig Float -> Sig Float -> Sig Float -> Sig Float  -- hz, res, s
+
+**The types carry no information at all.**  The names carry every bit of
+it and live only in the source, and the first argument means a
+*coefficient* in `lowpass` and *hertz* in `lowpassOnePole` — the same
+position meaning different things between neighbours.  So the reported
+problem ("I do not figure out quickly enough which argument is which")
+is a visibility problem, not a type problem, and the fix is to show the
+names wherever a signature appears: completion, hover, `--query`.  No
+language change.  Henri's `cast` idea stays on the roadmap as the deeper
+fix, unbuilt until it has its own caller.
+
+**Item 6 — a page, plus one worked example each.**  `using`/`given` and
+the Datafun surface get an audit page (does it typecheck, does it run,
+is it reachable from the workbench, what is the smallest program that
+exercises it) **and a small runnable `.ges` in `examples/` per feature**.
+Which is the interesting part: those features have never had a caller,
+and Henri named that himself when he added the item — *"I contradict
+project's rules there because it had no imminent use."*  An example is
+the caller arriving late.  Nothing is removed.
+
+**Item 9 — the status line, and nothing else.**  A quiet amber in the
+multiline status bar carrying the **day's** total, not the sitting's.
+Ignorable by design.  Escalation was offered and declined, which is the
+right call for a program that would otherwise interrupt its author
+mid-take.
+
+**Item 1 — placed like the palette's page.**  Henri: *"similar to the
+palette's page, a rounded rectangle that pops above if cursor above
+equator, below if below equator."*  This machinery **already exists** —
+`shell/editor/src/palette.rs:1175`, *"The page goes where the room is
+(F133): the equator sends…"*, with the test at 1567 asserting that a
+caret below the equator puts the panel up.  So the peep window is that
+placement plus five lines, their numbers, the caret, and a click that
+moves the real one.  Reuse rather than invent.
