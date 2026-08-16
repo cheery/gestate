@@ -11,6 +11,11 @@ Henri fills the board.  A session works down it.
 is worked, that one is what the author spends attention on when there is
 more work than there is reading time.
 
+And `vision.md` is what any of it is **for** — the author's own document,
+short on purpose, dated because it changes.  A card's `because` should be
+traceable to something in it; when it is not, either the vision is
+incomplete or the card is drift, and both are worth saying out loud.
+
 ---
 
 ## The order

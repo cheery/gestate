@@ -8,8 +8,10 @@
 > unfinished in each part of it.  A card is a task; this is the
 > reasoning around it.  Read a card, then the section here it points at.
 >
-> Then `doc/manual.md` for the language itself, and
-> `spec/liveaudio.md` for where it is going.
+> `vision.md` is what the whole thing is **for** — one page, the
+> author's own, and the thing a card's `because` answers to.  Then
+> `doc/manual.md` for the language itself, and `spec/liveaudio.md` for
+> where it is going.
 
 Companion to `fixme.md` (implementation vs. spec) and `spec/errata.md`
 (spec vs. papers).  Those two say *what* is wrong; this says *when* to fix
