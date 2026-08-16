@@ -112,6 +112,27 @@ gnome-extensions uninstall gsconnect@andyholmes.github.io
 
 Simplest of all: do not install them on the new machine.
 
+### 2.2b Remove the allow rules for anything you removed
+
+A rule opened for a program that is now gone outlives it, and `ufw
+status verbose` is the only place it shows — `ss` cannot see it, because
+nothing is listening.  It costs nothing today and everything the day
+another program binds the same range.
+
+```sh
+sudo ufw status numbered
+sudo ufw delete allow 1714:1764/tcp        # by spec, not by number
+sudo ufw delete allow 1714:1764/udp
+```
+
+**By spec, not by number.**  Deleting rule 3 renumbers everything below
+it, so `delete 3` then `delete 4` removes the wrong rule.  If you must
+use numbers, work from the highest down.
+
+The check that catches this is not `ss` — it is reading `ufw status`
+and asking *what is each of these still for?*  On the old machine the
+answer for two of them was "a program I removed an hour ago".
+
 ### 2.3 Let bubblewrap create user namespaces
 
 Ubuntu 24.04 sets `kernel.apparmor_restrict_unprivileged_userns = 1`,
