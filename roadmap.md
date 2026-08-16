@@ -546,27 +546,14 @@ node-origin map that `audiospans` and the knob column already read.
 definition, then locals in `--fits`, then `--uses NAME`.  All three are
 argued above and none of them changed.
 
-### Weigh what is about to be written — done
+### The pre-flight weighing — closed out, and moved to `journal.md`
 
-Built 2026-08-16, and written up in `spec/rocks.md` §"Before it is
-written, too".  An export weighs itself before it renders — the stated
-bars or the score's own end, the playing instrument's channels, the
-renderer's rate — and asks `about 402.8M ▲, render it? [y/n]` at `▲`
-and at nothing lighter.  It is one question with the overwrite one when
-both apply, and `overwrite` answers both.
-
-What is left of the spec is its other two omissions: a sound's honest
-measure is its duration, and nothing weighs the repository.  Neither
-has a caller.
-
-### The picture the README does not use yet — done
-
-Swapped 2026-08-16: `README.md`'s watch paragraph now stands on
-`doc/workbench4.png`, which shows two scopes and a spectro, so the
-sentence *"`spectro` is the same node wearing a spectrum"* has a
-picture in which the same line is both.  `workbench3.png` showed two
-spectros and is now referenced by nothing; it is kept, since a picture
-of an older window is 17 KB `▪` and dates the project.
+An export weighs itself before it renders, at `▲` and nothing lighter;
+the story is `journal.md` §"The morning the messages arrived in time"
+and the contract is `spec/rocks.md` §"Before it is written, too".
+**What is left of that spec** is its other two omissions — a sound's
+honest measure is its duration, and nothing weighs the repository —
+and neither has a caller.
 
 ---
 

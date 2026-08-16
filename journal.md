@@ -6274,3 +6274,215 @@ correct code arriving at the wrong moment, and not one of them was
 visible in a test that asked whether the answer was right.  What found
 all four was somebody using the thing and a recording of it, read frame
 by frame.
+
+## The morning the messages arrived in time
+
+2026-08-16.  A morning of small things with one shape between them:
+**a machine that knows something says it at the moment a person can
+still act on it.**  A size before the render rather than after it, a
+refusal's reason instead of its exit code, a typo named at the
+signature instead of complained about three definitions later.  None of
+the three is a feature; all three are the difference between a tool
+that works and a tool somebody trusts.
+
+It began with `incoming.txt` — Henri's leftovers from the night before
+and the notes that arrived before sleep — and ended with two defects
+from real use, one of them the first ever reported by somebody who did
+not build this.
+
+### The night's notes, placed
+
+Nine points, two of them in Finnish, none of them a task list.  They
+went into `roadmap.md` where each argues rather than into a heap at the
+end, and the placing was most of the thinking:
+
+* **The grammar of graphics** goes beside the substrate, the way
+  `spec/frp_lesson.md` stands beside the signal half.  `Label` turned up
+  one drawing rule the hard way; reading what somebody else paid for is
+  cheaper than turning them up one element at a time.
+* **Naming the datatypes** — `type Duration = Float`, `type Pitch = Int`
+  — is sequenced *after* F138, because an alias is a name the window is
+  handed instead of what it aliases to, which is that defect exactly.
+  Minting more aliases first would spread the bug rather than the
+  documentation.
+* **`rocks.md` on representing nodes** folded into the cost meter: a
+  node count in a margin is the same *a bare number is noise* problem
+  the marks already answer, and doing it that way tests rocks.md's claim
+  to be a vocabulary rather than a trick that worked once on bytes.
+* **A drawing of the whole project** carries its own hard question —
+  how would it stay true? — and the cheaper of the two honest answers
+  has the shape `test_manual.py` already uses: let the nouns be checked
+  and leave the arrows to taste.
+* **Product safety wants a process, not a promise.**  The guards exist;
+  nobody has written down the list or when it is checked.
+
+`spec/firstpiece.md` said at its head what its parentheses had been
+saying one by one since 2026-08-14: all five fix-shapes are done.  What
+is *not* done is its verdict — closing five frictions does not flatten
+the documentation gradient that produced them, and the next newcomer
+finds the next five.
+
+And the README swapped its picture.  `doc/workbench4.png` had ridden in
+with a song's commit and nothing referenced it; the paragraph it now
+stands under says *"`spectro` is the same node wearing a spectrum"*,
+and the picture that had been there showed two spectros — the one thing
+that sentence needs a picture to contradict.
+
+### Weighing what is about to be written
+
+`spec/rocks.md` shipped the mark the night before and recorded its own
+first omission: **it weighed what existed and not what was about to.**
+A forty-minute render is knowable before a sample of it is made, so the
+export now asks
+
+    about 402.8M ▲, render it? [y/n]
+
+Three rules make it worth having rather than worth muting:
+
+**At `▲` only.**  A question at every export is a question nobody
+reads, which is rocks.md's own argument for three marks rather than a
+number.  Under the threshold, `wrote piece.wav — 31.7M ▪` is the whole
+of what there is to say.
+
+**Known, never guessed.**  The length is the stated bars or the score
+the bench has already laid out, the channels are the instrument that is
+playing, the rate is the renderer's own default because that is what
+the export will use.  Missing any of the three it says nothing: a wolf
+cried over an invented number teaches the person to answer `y` without
+reading, which is worse than never asking.
+
+**A bar range is weighed by what it writes.**  `exportWavAt 900 901`
+renders from the top and cuts the front off, so the honest number is
+the quarter of an hour that reaches the disk and not the one bar that
+survives — and a typo in the first number is exactly the mistake the
+question exists to catch.
+
+One question and one yes: a heavy render over an existing file says
+both facts in one sentence, and `overwrite` answers both, because a
+second verb for *go ahead* would be a second word for the same act.
+
+### A render refused and would not say why
+
+Henri's transcript, four lines long and a complete bug report:
+
+```
+exportWav "sauna.wav"                  #= exporting sauna.wav…
+#! sauna.wav: the render refused (exit 1)
+```
+
+*"I wonder why.  Either there's a bug or the information I get is too
+light."*  The second.  Run by hand, the same export says exactly what
+is wrong — sauna's parts are `long 200 (cycle …)`, so it is performed
+dynamically, and a dynamic performance has no end to render to.  The
+renderer had a whole sentence.  `_export_wav` redirected **stdout** and
+left stderr alone, so the sentence went to the terminal the workbench
+was launched from, which the person in the window never sees.
+
+Fixed by catching stderr too and carrying what the program blamed
+itself for — the last `gestate:` line, since progress is not a
+complaint — with the exit code kept only for a refusal that says
+nothing.
+
+The second half of it was subtler and is the more useful lesson.  The
+sentence named `--seconds`, which is a flag, and the person reading it
+was in a window that cannot pass flags.  **A message read in two places
+must name the door each reader has**, so it now names both:
+`--seconds` from the terminal, `exportWavAt first last` in the
+workbench — checked, because advice towards a door that does not open
+is worse than no advice: five seconds of sauna renders through that
+path.
+
+`fixme.md` F140, with Henri's own transcript kept as the specimen.
+
+### The type that was wearing the wrong case
+
+The other defect came from **gestate's first outside user**, who wrote
+
+```
+foo : int
+```
+
+and could not see why it did not work.  Nothing was broken, which is
+the whole difficulty: a name beginning with a lowercase letter *is* a
+type variable, so that is a legal polymorphic signature over a variable
+spelled like a type, and the file analyses without a word about `int`.
+
+What made it worse than silence is what the compiler said next.  The
+complaint surfaced wherever the variable failed to satisfy a class:
+
+```
+No instance for Num int — 'int' is a signature variable, standing for
+whatever type the caller chooses; write '(Num int) => …' in the
+signature to require it of the caller
+```
+
+Every word true of the program that was written, and **advice towards
+the wrong fix** — take it and the mistake becomes permanent.  With
+`main` untyped it was worse still: `'main' cannot have a class context`,
+naming neither the line nor the mistake.
+
+It is caught now in the kind checker, which is the pass that already
+knows the type vocabulary and already refuses `Intt`:
+
+```
+`float` is a type variable, not the type `Float` (at typo.ges:1:8) —
+a name in lowercase stands for whatever type the caller picks.
+```
+
+Two things came with it.  **A signature variable had no position at
+all** — it is minted in `desugar_signature` rather than desugared from
+a node, so its errors landed on whatever failed to unify with it, half
+a file away; it carries the span it was written at now, and every
+message about one is the better for it.  And **the match is exact but
+for case**, which is what makes this a typo rather than a guess: `a`,
+`m` and `k` name nothing, `int` names `Int`, and the vocabulary is the
+program's own kind environment, so a type the file declares protects
+its own name too.
+
+The price is that a variable genuinely wanted under such a name has to
+be spelled differently.  It was measured before it was chosen: across
+every `.ges` in this repository, against all 94 type names the project
+declares, there are **no** such variables — and the 92 example programs
+still pass.  `doc/manual.md` §4 states the rule now, since the case
+convention was written down nowhere a newcomer would look.
+
+`fixme.md` F141.  What it does *not* catch is a name matching a type
+**alias**, because aliases are expanded before the kind environment
+exists — filed there and in the roadmap beside the naming pass, which
+is the work that would make such collisions likely in the first place.
+
+### Three tests that had fallen behind
+
+Henri ran the full suite — 2,397 passing, three red, all of them the
+suite telling the truth about work that had moved past it:
+
+* `doc/ref/commands.md` was behind by five commands the editor had
+  grown (`transpose`, `complete`, `col`, `Filler`, `Wanted`).  It is
+  generated; regenerating it is the fix, and the test exists precisely
+  so that nobody has to notice by reading.
+* The transcript's sentence was asserted to end in `"steps"`, and since
+  rocks.md it ends in what the file weighs.  The assertion now checks
+  the law rather than the old spelling.
+* `moon_sonata.ges` had arrived without a line in `test_audio.py`'s
+  roster, which is the list that makes *every* audio example accounted
+  for and each absence of a golden argued.  Three parts on three grids
+  at once — the polyphony argument made where the parts disagree about
+  the beat.
+
+None was a defect in the program, and all three were worth failing: a
+suite that only fails on broken code cannot tell you that a document
+has drifted.
+
+### What the morning was about
+
+Every piece of it was a sentence, and every sentence was about *when*.
+The size is a fact the machine has had all along — it just said it
+after the render.  The refusal's reason existed — it went to a terminal
+nobody was reading.  The typo was knowable at the signature — it was
+reported three definitions later, in the vocabulary of a feature the
+person was not using.
+
+Which is the same lesson the star's evening reached from the other
+side: **a message, like a gesture, is a claim about time.**  Being
+right is not enough; it has to arrive where the person can still do
+something about it.
