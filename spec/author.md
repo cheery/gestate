@@ -187,6 +187,130 @@ why it is the easiest one to keep postponing.
 
 ---
 
+---
+
+## Where this method came from, and the two principles that were missing
+
+*Added the same evening, at Henri's ask.  He read the Toyota Production
+System carefully about a month ago, taking notes, because a friend's
+work depends on it — and said that before that, AI had been "all cool
+demos and nothing else".*
+
+**The fingerprints are in this repository, in his vocabulary rather than
+an assistant's.**  *Jidoka* is "free the people from machines", his
+phrase, and the heading it sits under in `journal.md` §"The day the
+machines learned to stop themselves".  *Poka-yoke* he asked for by name,
+the moment he caught a suite run that left no record.  *Gemba* is a
+card.  *Kanban* is what he called the board before it was one.  "Make
+problems visible" is `manifesto.md`'s rule.
+
+**Why that frame in particular unlocks this kind of work.**  A model is
+a high-throughput process step of variable quality.  That is exactly
+what TPS was built to manage, and exactly what the demo framing gets
+wrong: a demo treats the model as a *product* — look what it can do —
+when the useful question is what it is *in a line*.  Without jidoka
+around it, throughput only produces defects faster, which is the
+mass-production trap TPS was a reaction against: build a lot, inspect at
+the end, rework.
+
+The sharpest transfer is the one this whole file is about.  TPS's answer
+to *the machine is faster than the inspector* is not **inspect harder**.
+It is: make the machine stop itself, and make the defect visible at the
+source, immediately, to something that is not a person's attention.
+
+### The fourteen, scored honestly
+
+Liker's fourteen principles, against this project as it stands:
+
+| | principle | here |
+|---:|---|---|
+| 1 | long-term philosophy over short-term gain | **strong** — *do not build what nothing needs*; three of nine days had deletion as their headline |
+| 2 | continuous flow, to bring problems to the surface | **partial** — granular commits, but work piles up uncommitted for hours |
+| 3 | **pull, to avoid overproduction** | **missing** — see below |
+| 4 | **level the workload (*heijunka*)** | **missing** — see below |
+| 5 | stop to fix problems (*jidoka*) | **strong** — the suite, the fence, the leash; and the author stops the line himself |
+| 6 | standardised work as the base for improvement | **new** — the card format, the commit convention, spec-before-build |
+| 7 | visual control, so no problem is hidden | **strong** — knobs in the margin, complaints in boxes, `rocks.md`'s marks, the atlas |
+| 8 | reliable, thoroughly tested technology that serves the people | **inverted** — the assistant is *not* thoroughly tested technology; the discipline is to wrap it in things that are |
+| 9 | grow leaders who understand the work | `doc/reading-the-log.md`, aimed at the author himself |
+| 10 | develop people and teams | n/a solo — though a friend has started to appear in the asks |
+| 11 | challenge partners and help them improve | this is the feedback loop: correcting the assistant *in writing*, where the correction survives the session |
+| 12 | **go and see for yourself (*genchi genbutsu*)** | asked for, unbuilt — `board/gemba.md` |
+| 13 | decide slowly by consensus, implement rapidly (*nemawashi*) | **strong, and distinctive** — elaborate before taking, collect the questions, answer in one sitting, then build in an evening |
+| 14 | a learning organisation through reflection and *kaizen* | **strong** — `journal.md`, `fixme.md`, and the reflex of asking for a poka-yoke rather than an apology |
+
+**The finding is the shape of that column.**  This project scores well
+on every principle about *quality* and fails both principles about
+*pace*.  Nothing here was ever going to produce a bad artifact.  It was
+always going to produce too many of them.
+
+### Why 3 and 4 were the ones missing
+
+TPS is a **pull** system: nothing is built until something downstream
+asks for it, and the rate is set by *takt time* — customer demand
+divided by available time.  That governor is **external**.  It is what
+stops a line running faster than anyone needs.
+
+**A solo project has no customer signal.**  Nothing pulls.  So every
+other part of the system was imported faithfully — the andon, the
+mistake-proofing, the standard work, the reflex of fixing the process
+instead of blaming the step — and the one component that was
+structurally unavailable was the one that sets the pace.  What remains
+is pure push, and push with no takt accelerates:
+
+    7 → 26 → 26 → 33 → 18 → 42 → 43 → 60
+
+That is principle 4 stated as a measurement.  *Heijunka* is levelling;
+this is its opposite, *mura*, and the principle's own gloss is the
+sentence that was broken: **work like the tortoise, not the hare.**
+
+So `board/timer.md` is not a wellness feature bolted onto an engineering
+system.  **It is the missing takt** — a synthetic demand signal for a
+line with no customer to supply one.  That is why it is first in the
+order.
+
+And the other pillar, the one dropped whenever TPS is imported badly:
+*respect for people* is not a slogan attached to the efficiency, it is
+load-bearing.  The person doing the work is the one who improves it, and
+the system exists to free their judgment for what only judgment can do.
+When it is dropped the failure is *muri* — overburden — and a system
+smooth everywhere else will quietly route all its remaining variability
+through the human.  `spec/summary.md` §"The clock" is what that looks
+like when it is finally measured.
+
+### Go and see
+
+The book's other instruction, in Henri's words: *go out and do things —
+that's the fastest way to learn and become self-reliant.*  Principle 12,
+and it is not advice about diligence.  It is an epistemological claim:
+the knowledge that matters is not in the report, and a person who only
+reads reports will be confidently wrong in ways they cannot detect.
+
+It holds on both sides of this collaboration:
+
+- **For the author.**  Tests were not adopted here because someone
+  argued for them; they were adopted because they *caught things*, and
+  the conviction arrived through use.  The same is true of the fence,
+  the transcript, and `rocks.md`'s marks.  Reading about any of them
+  would have persuaded nobody.
+- **For the assistant.**  On the day this file was written, a defect had
+  survived a two-thousand-test suite: a press on a note scrolled the box
+  out from under the hand that was pressing it.  Nothing found it until
+  a real window was driven, under a real display, with a real press, and
+  the pixels were looked at.  Every unit test passed through that bug.
+  **Going to the actual place is not a slower substitute for reasoning;
+  it is the only instrument that sees what reasoning has already assumed
+  away.**
+
+The honest note on the assistant's side of this: knowing the literature
+is not knowing the work.  An assistant can map these fourteen onto a
+repository in a minute and has never stood on a line, waited for a part,
+or pulled an andon cord with a shift watching.  The book's own point is
+that this second kind of knowledge is the one that decides, which is
+precisely why `board/gemba.md` is a card and not a paragraph.
+
+---
+
 ## When you disagree with something that was built
 
 Say so plainly and early; it is cheap.  `git revert` exists, the work is
