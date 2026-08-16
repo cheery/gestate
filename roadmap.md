@@ -1121,18 +1121,45 @@ doing rather than by the file.  The unbuilt part is the **channel**: no
 path exists from a Claude session into a running workbench, and that is
 the real work, not the drawing.
 
-**The syntax support is the harder half, and for a reason that is
-already written down.**  `gestate/session.py:446`: colouring uses *"the
+**The syntax support, resolved 2026-08-16 evening.**  Henri: *"Isn't the
+workbench using tokenizer from python side… I recall it was python-side
+tokenizer."*  He is right, and it settles most of the item.
+
+`furniture.rs:133` says it outright — *"sent by the model because the
+tokenizer is the model's, and a second lexer in the window would be a
+second front end that could disagree with the compiler."*  The window
+receives `Vec<Run>` per visible line and **never tokenizes**;
+`session.py:3665` calls `painted(text)` and ships `col:len:class`.
+
+So:
+
+| language | tokenizer | the rule |
+|---|---|---|
+| `.ges` | the compiler's own, via `painted()` | load-bearing |
+| `.py` | stdlib `tokenize` — also a *real* one | satisfied for free |
+| `.rs` | a small lexer, deliberately coarse | **does not apply** |
+
+**Python needs no Rust change whatsoever.**  Point `painted()` at
+`tokenize` for `.py` and emit the same runs; the window is already
+language-agnostic.
+
+**And the rule was never about foreign files.**  Its stated danger is a
+lexer that *"could disagree with the compiler"* — real for `.ges`,
+because gestate's compiler tokenizes `.ges` and a second lexer can drift
+from it.  There is no gestate compiler for `.rs` to disagree with, and
+nothing downstream reads those colours: they are a reading aid, not a
+claim about the program.  A `.rs` lexer is therefore ~80 lines (strings,
+raw strings, chars, line and block comments, numbers, keywords,
+lifetimes), and its docstring must say *reading aid* so a later session
+does not mistake it for a front end.  Colouring a nested `/* /* */ */`
+wrong is a cosmetic bug, not a correctness one.
+
+**What is actually left is the cache**, and it is unchanged by any of
+the above.  `gestate/session.py:446`: colouring uses *"the
 real tokenizer, and only ever the real one — a second lexer in the
 window would be fast and would be a second front end"*, which is the
 same drift rule as everywhere else here.  Two consequences:
 
-* **Python is nearly free** and consistent with the rule, because
-  Python ships its own real tokenizer (`tokenize`).  Rust does not have
-  one available from here.  Shelling out to `rustc`/`syn` for colour is
-  absurd for a repaint; writing a small Rust lexer is exactly the second
-  front end the rule forbids.  This needs deciding, not assuming, and it
-  is the only genuinely open question in the item.
 * **The line-local assumption breaks.**  `_PAINTED` is keyed by the
   line's own text because in gestate *"a line that has not changed
   cannot have changed colour"* — the only cross-line state is
