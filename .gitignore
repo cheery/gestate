@@ -14,6 +14,15 @@ __pycache__/
 build/
 dist/
 
+# ── The suite's own report ───────────────────────────────────────────────
+#
+# `tools/suite.py` writes this.  Generated, and deliberately not kept:
+# `pytest.ini` says a golden test is bit-exact where the buffer was made
+# and nowhere else, so a report is a claim about one machine at one
+# commit.  Committed, it would be read on a second machine as though it
+# meant something there.
+test/report.md
+
 # Virtualenvs, whatever they are called.
 .venv/
 venv/

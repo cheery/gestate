@@ -173,6 +173,48 @@ job for `tools/sandbox.sh --net cargo fetch`.
 
 ---
 
+## Making the fence automatic
+
+`tools/sandbox.sh` on its own is opt-in, and a protection you have to
+remember is one you will forget on the day it matters.
+`tools/fence-hook.sh` is a `PreToolUse` hook that rewrites builds and
+tests to run inside it.  Add to `.claude/settings.json`:
+
+```json
+"hooks": {
+  "PreToolUse": [
+    {
+      "matcher": "Bash",
+      "hooks": [
+        { "type": "command", "command": "/ABSOLUTE/PATH/TO/tools/fence-hook.sh" }
+      ]
+    }
+  ]
+}
+```
+
+**The path has to be absolute, and it is the one line that differs per
+machine.**  Try `$CLAUDE_PROJECT_DIR/tools/fence-hook.sh` first; if the
+hook does not fire, substitute the real path.  The script finds the
+project from its own location, so nothing else needs changing.
+
+It wraps `pytest`, `python -m pytest`, and `cargo build|test|check|
+clippy|bench`.  It deliberately does **not** wrap anything that opens a
+window (the fence binds no X11 socket, so those do not fail safely, they
+just fail) or `cargo fetch` (which wants the network the fence removes).
+`NOFENCE=1 <command>` opts out for one call.
+
+Check it fires, rather than assuming:
+
+```sh
+echo '{"tool_input":{"command":"pytest -q"}}' | tools/fence-hook.sh
+```
+
+It should print JSON whose `updatedInput.command` begins with
+`tools/sandbox.sh`.  If the hook is installed but nothing changes in a
+real session, open `/hooks` once — the settings watcher only watches
+directories that had a settings file when the session started.
+
 ## What does not need doing again
 
 These live in the repository or at GitHub and arrive with the clone:

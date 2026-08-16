@@ -26,6 +26,7 @@ the fence it ran on would leave the reader to guess.
 """
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -103,11 +104,29 @@ def main():
 
     started = datetime.now()
     t0 = time.monotonic()
-    proc = subprocess.run(cmd, cwd=ROOT, text=True,
-                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    # **Stream, do not capture-then-print.**  The first version used
+    # `subprocess.run(..., stdout=PIPE)` and wrote the output at the end,
+    # which meant a run that takes minutes produced zero bytes for
+    # minutes — indistinguishable from a hang, and it cost a real
+    # investigation to establish that a healthy run at 91% CPU was in
+    # fact healthy.  `os.read` returns as soon as anything is available,
+    # so pytest's progress dots arrive as they are printed rather than
+    # waiting for a full line.
+    proc = subprocess.Popen(cmd, cwd=ROOT,
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    chunks = []
+    while True:
+        data = os.read(proc.stdout.fileno(), 4096)
+        if not data:
+            break
+        text = data.decode("utf-8", errors="replace")
+        sys.stdout.write(text)
+        sys.stdout.flush()
+        chunks.append(text)
+    proc.wait()
     wall = time.monotonic() - t0
-    out = proc.stdout
-    sys.stdout.write(out)
+    out = "".join(chunks)
 
     totals = "(not parsed)"
     for m in TOTALS.finditer(out):

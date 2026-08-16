@@ -51,16 +51,30 @@ if printf '%s' "$cmd" | grep -qE 'gestate\.(workbench|panel|editor)|--window|aud
   exit 0
 fi
 
-# The two that execute dependency code.  Anchored to a command position —
-# start of line, or after a separator — so `grep pytest notes.txt` is not
-# mistaken for a test run.
-FENCED='(^|[;&|]|\n)[[:space:]]*((python3?[[:space:]]+-m[[:space:]]+)?pytest|cargo[[:space:]]+(build|test|check|clippy|bench))\b'
+# The two that execute dependency code, anchored to a command position.
+#
+# **This biases towards NOT wrapping, on purpose.**  A missed wrap is a
+# build running unfenced — bad, but visible, and `tools/sandbox.sh` can
+# always be typed by hand.  A false wrap *breaks a working command*, which
+# is worse and harder to diagnose.  The first version of this line used
+# `[;&|]` as the separator class and wrapped
+#
+#     ps -eo args= | awk '/suite\.py|pytest/ {print}'
+#
+# because the `|` **inside the awk pattern** read as a command position.
+# So: a separator must be followed by whitespace, and `|` is not a
+# separator at all — nothing is ever piped *into* `pytest` or `cargo`.
+FENCED='(^|&&[[:space:]]|;[[:space:]]|\|\|[[:space:]])[[:space:]]*((python3?[[:space:]]+-m[[:space:]]+)?pytest|cargo[[:space:]]+(build|test|check|clippy|bench))\b'
 
 if ! printf '%s' "$cmd" | grep -qE "$FENCED"; then
   exit 0
 fi
 
-wrapped="$PROJECT/tools/sandbox.sh bash -c $(printf '%s' "$cmd" | jq -Rs '@sh' | sed 's/^"//; s/"$//')"
+# `jq -Rsr` — raw in, raw out.  Without `-r` the shell quoting comes back
+# JSON-encoded and the escapes reach bash doubled, which is the second bug
+# the awk command above exposed.
+quoted="$(printf '%s' "$cmd" | jq -Rsr 'rtrimstr("\n") | @sh')"
+wrapped="$PROJECT/tools/sandbox.sh bash -c $quoted"
 
 jq -n --arg w "$wrapped" --argjson orig "$(printf '%s' "$payload" | jq '.tool_input')" '
   {
