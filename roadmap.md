@@ -889,3 +889,159 @@ temptation — the same way the atlas's sixth sheet is recorded above.
 - **Dynamic voice allocation**, until one voice runs.  Several voices in one
   graph is a graph the extractor already handles; allocation is a second
   system.
+
+## Henri fills this section
+
+You take each out from this section once the commit has landed.
+In that way this is a kanban system. Work them in the order given, unless one blocks the other.
+Negotiate at the start and ask questions freely.
+Collect up the questions that appear, wherever they belong, and pass me the info.
+Try to continue the work as far as you can.
+
+These rules may change. I'm trying things out here at first. You are welcome to give me feedback.
+
+It's okay, do these at your own pace. I'm happy to the work you've done so far.
+
+ - [open] Make a small window that shows where the cursor is when it's off-screen.
+          This is intended mainly for situation when workbench user uses
+          the north star's features and moves the notes.
+   [open] Examine grammar of graphics and do specification work of your discoveries.
+          Either write a new or modify existing one.
+   [open] Do product safety process for gestate that ensures the safety measures put in place also work.
+   [open] The thing that comes to mind about incremental compiling are
+          stale object files. See if we can clean them up as they appear, if they do.
+   [open] name datatypes eg. type Duration = Float, type Pitch = Int
+   [open] verify the older language features still work in workbench
+
+   [open] bug: When I type 'open ../../hello.ges' from minute.ges, it throws me into tests/section that has 'hello.ges' in there.
+   
+Once you reach here, let me know what still needs work in the full roadmap.
+
+### Elaboration, 2026-08-16
+
+*Written before any of the seven is taken, because a task whose shape is
+unknown cannot be estimated or ordered.  Each entry says what was found
+by looking, what the work is, and — where one exists — the question that
+has to be answered before it can be finished.  The questions are
+collected at the end so they can be answered in one sitting rather than
+seven interruptions.*
+
+**1 — A window showing where the cursor is when it is off-screen.**
+The editor already scrolls to follow the caret on every key
+(`shell/editor/src/keys.rs:143`, *"always"*), so the off-screen case is
+not typing — it is the **north star drag**, where a note moves under the
+hand and the thing you want to watch is not where the caret is.  The
+window already knows which rows are visible
+(`furniture.rs:606`, *"the first visible row and how many fit"*) and
+that belongs to the window's thread, so the parts exist.  The work is a
+small overlay plus a decision about what it shows: the note's new
+position, the line of text being rewritten, or both.  **Question A.**
+
+**2 — Grammar of graphics.**  This is reading and specification, not
+code, and its output is a `spec/` file argued the way `spec/scorebox.md`
+was.  The reason it is not obvious what to write is that gestate has
+*two* drawing surfaces with different contracts — the **substrate**
+(`substrate : Sig Sub`, a value composed by ordinary functions,
+interpreted at frame rate) and **score boxes** (a picture derived from
+text, which now writes back).  Wilkinson's grammar is about mapping data
+to marks, which is a third thing again.  **Question B.**
+
+**3 — Product safety process.**  The most directly actionable of the
+seven, and today's work is its subject.  There are now four mechanisms
+that can silently stop working — `tools/sandbox.sh` (the fence),
+`tools/leash.sh` (the deny-list), `tools/fence-hook.sh` (automatic
+fencing) and the AppArmor profile — and exactly one of them is checked
+by anything: `--check`, run by hand.  The work is a `test/test_safety.py`
+that runs the checks as tests, so the suite fails when the fence stops
+fencing.  `spec/sandbox.md` is the argument already written; this is the
+oracle for it.  No question — this one is takeable as it stands.
+
+**4 — Stale object files from incremental compiling.**  Looked, and the
+answer is narrower than the item assumes.  Every build path but two uses
+`tempfile.TemporaryDirectory()`, which cleans itself even on an
+exception.  The two that do **not** are `gestate/audioeditor.py:917` and
+`gestate/audiohost.py:67`, both `mkdtemp()`, both leaving a directory
+behind for the process's lifetime and past a crash.  Nothing stale is in
+the tree today — every `.so` found is under a cargo `target/` or
+`.venv`, which is normal.  So the work is: establish whether those two
+leak in practice (a long editor session, then count `/tmp/gestate-host-*`),
+and if so give them the same lifetime the others have.  No question.
+
+**5 — Named datatypes.  Mostly already built, and the interesting part
+is what is not.**  `type Duration = Float` parses and checks today —
+`test/test_type_alias.py` has twenty tests, and `spec/types.md` §6 says
+aliases are expanded eagerly before the unifier.  Confirmed by running
+it:
+
+    type Pitch = Int
+    type Duration = Float
+    bad : Pitch -> Duration
+    bad p = p          -- correctly rejected: Int vs Float
+
+But they are **structural**, so this is *accepted*:
+
+    type Pitch = Int
+    type Steps = Int
+    mix : Pitch -> Steps
+    mix p = p          -- accepted; both expand to Int
+
+A nominal type would reject that, and catch adding a pitch to a
+duration-in-steps.  `spec/types.md` §10.6 already names the pair —
+*"non-recursive type alias expansion **and nominal data types**"* — so
+the second half is specified and unbuilt.  **Question C.**
+
+*Found on the way and not part of this item:* `wait d = d + 1.0` under
+`type Duration = Float` fails with `expected Float, got ExL a`, which
+looks like the defaulting gap (F32, listed unforced under §"What is
+left") rather than anything to do with aliases.  Worth a defect number
+if it reproduces without the alias.
+
+**6 — Verify older language features still work in workbench.**  A
+sweep, and its difficulty is entirely in what "verify" means.  The suite
+already covers the language; what it does not cover is *a person using
+the feature through the window*, which is the gap
+`test-what-a-person-would-do` was written about and how F138 was found.
+`tools/toolbox.sh` and the XTEST harness are the machinery for driving a
+real window. **Question D.**
+
+**7 — `open ../../hello.ges` lands in the wrong directory.**  The
+mechanism is `Session._where` (`gestate/session.py:1083`), and it has
+been the site of this class of bug twice already — F122 (a typed path
+walked twice) and F123 (a command inheriting another command's walk).
+It resolves a typed path against `here / walked / path`, where `walked`
+is borrowed from a standing question only when `path != q`.  A typed
+`../../hello.ges` should take the `path == q` branch and get no walk at
+all, so either the equality is not holding or the standing question is
+not the one assumed.  **I could not reproduce it: there is no
+`hello.ges` anywhere in the tree and no `tests/section` directory.**
+**Question E**, and it is the blocking one — this is the only item of
+the seven I cannot start without an answer.
+
+---
+
+### The questions, collected
+
+* **A (item 1).**  When a note is dragged off-screen, what should the
+  small window show — the note's new position, the line of text being
+  rewritten, or both?  My inclination is the text line, because the
+  drag's whole point is that it writes text and that is the thing you
+  cannot otherwise see.
+* **B (item 2).**  Which surface is the grammar of graphics *for* — the
+  substrate, score boxes, or a data-to-marks layer above both?  A spec
+  that tries to cover all three will cover none.
+* **C (item 5).**  Aliases are built.  Do you want **nominal** types
+  where `Pitch` and `Steps` are distinct despite both being `Int`, or
+  is the alias behaviour what you meant and the item is already done?
+* **D (item 6).**  Which features, and how far?  "Older language
+  features" could mean the twenty in `doc/manual.md`, or the ones with
+  no window test, or a specific list you have in mind.
+* **E (item 7).**  **Blocking.**  Where are `hello.ges` and the
+  `tests/section` directory?  Neither is in the repository, so the
+  reproduction needs your actual layout — the directory you were in, and
+  what is above it.
+
+**Order.**  3 and 4 need nothing and are takeable now.  5 is a
+five-minute close or a real feature depending on C.  1, 2 and 6 want
+their answers but can be started as specification.  7 is blocked on E.
+So the suggested order is **3, 4, then whatever the answers open up** —
+which departs from the written order only because 7 cannot start.
