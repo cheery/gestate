@@ -911,6 +911,12 @@ It's okay, do these at your own pace. I'm happy to the work you've done so far.
    [open] verify the older language features still work in workbench
 
    [open] bug: When I type 'open ../../hello.ges' from minute.ges, it throws me into tests/section that has 'hello.ges' in there.
+
+   [open] gemba: a program in the workspace that lets me walk the factory floor —
+          Claude presents and comments to the editor, I see it through the workspace.
+          Requires python & rust syntax support.
+   [open] timer: see in gestate when I've been too long on it.
+   [open] teach me git, well enough to follow the changes Claude makes.
    
 Once you reach here, let me know what still needs work in the full roadmap.
 
@@ -1090,3 +1096,95 @@ five-minute close or a real feature depending on C.  1, 2 and 6 want
 their answers but can be started as specification.  7 is blocked on E.
 So the suggested order is **3, 4, then whatever the answers open up** —
 which departs from the written order only because 7 cannot start.
+
+
+### Elaboration of the three oversight items, 2026-08-16
+
+*Added by Claude to Henri's board on his dictation; move them if the
+placement is wrong.  He called this "another theme on security", and it
+is a different half of one: today's work stops things going wrong, and
+these three are about **being able to see**.  Gemba is oversight of the
+agent, the timer is oversight of himself, and git is the skill both rest
+on.  None of them is a fence; all three are windows.*
+
+**8 — Gemba.**  *Genba*, 現場, "the actual place" — the lean practice of
+going to where work happens instead of reading a report about it.  The
+inversion is the point: today Henri reads sixteen commit messages I
+wrote.  A gemba walk is him arriving where the work is while it is
+happening, with me narrating.
+
+Most of the machinery exists.  Content boxes already put a live thing in
+the text (`spec/scorebox.md`, `spec/panel.md`) — the notes roll, the
+scope, the spectroscope, the canvas — and a box is already "a picture,
+not code".  A gemba box would be another of those, fed by whatever I am
+doing rather than by the file.  The unbuilt part is the **channel**: no
+path exists from a Claude session into a running workbench, and that is
+the real work, not the drawing.
+
+**The syntax support is the harder half, and for a reason that is
+already written down.**  `gestate/session.py:446`: colouring uses *"the
+real tokenizer, and only ever the real one — a second lexer in the
+window would be fast and would be a second front end"*, which is the
+same drift rule as everywhere else here.  Two consequences:
+
+* **Python is nearly free** and consistent with the rule, because
+  Python ships its own real tokenizer (`tokenize`).  Rust does not have
+  one available from here.  Shelling out to `rustc`/`syn` for colour is
+  absurd for a repaint; writing a small Rust lexer is exactly the second
+  front end the rule forbids.  This needs deciding, not assuming, and it
+  is the only genuinely open question in the item.
+* **The line-local assumption breaks.**  `_PAINTED` is keyed by the
+  line's own text because in gestate *"a line that has not changed
+  cannot have changed colour"* — the only cross-line state is
+  `INDENT`/`DEDENT`, which carries none.  That is false for a Python
+  triple-quoted string and for a Rust `/* */` or raw string, where a
+  line's colour depends on lines above it.  The 37µs-per-line edit cost
+  is bought by an invariant these languages do not have.  Either the
+  cache learns a per-line start state, or it is bypassed for foreign
+  files and the cost measured before anyone calls it slow.
+
+**9 — The timer.**  This one has a caller and it is the person reading
+this.  `spec/summary.md` ends: *"the pace itself was never instrumented;
+every other cost in this project has an oracle, this one did not."*
+This is that oracle, and it is being asked for the same day the sentence
+was written.
+
+The parts are precedented — `GESTATE_EDITOR_TIME` and
+`GESTATE_BUILD_TIME` already measure and report, and the status bar
+already carries multiple lines.  What is not decided is the part that
+matters:
+
+* **What counts as "too long", and what counts as a break?**  Elapsed
+  since the workbench opened is easy and wrong — it counts a lunch
+  break.  Keystroke-active time is closer.
+* **What does it do when it fires?**  A status line that goes amber
+  costs nothing and is ignorable, which is both its virtue and its
+  defect.  Anything stronger is a program interrupting its author, and
+  needs to be wanted before it is built.
+* **Does it persist across sessions?**  Nine days at thirty commits a
+  day is not one long session; it is many, and a per-session timer would
+  have said nothing about it.
+
+My inclination: session-elapsed plus idle detection, shown in the status
+bar, persisted to a small file so the *day's* total is what it reports.
+The day is the unit that went wrong, not the sitting.
+
+**10 — Git, well enough to follow the changes.**  Not a build item, and
+it should not pretend to be one; it is a session plus a page.  It is
+also the one with the most immediate return, because **auto mode is on**
+and the deny-list plus the fence stop me damaging things while doing
+nothing to tell you whether what I did was *right*.  That is review, and
+review is git.
+
+What it would cover, in the order it becomes useful: reading one commit
+(`git show`), reading a range (`git log -p`, `git log --stat`),
+comparing any two points (`git diff A..B`), finding when something
+changed (`git log -S`, `git blame`), and — the part that matters most —
+**undoing**: `git revert` for something already committed, `git restore`
+for something not, and why neither of those is `reset --hard`, which is
+denied to me and should be rare for you.
+
+Suggested form: `doc/reading-the-log.md` written against *this
+project's own history*, so every example is a real commit from today,
+followed by a live walkthrough where you drive and I answer.  No
+question — takeable whenever there is an hour.
