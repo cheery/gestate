@@ -64,8 +64,28 @@ def library(directory=None):
     source = Path(__file__).with_name("host.c")
     if not source.exists():                     # pragma: no cover
         raise HostError(f"{source} is missing")
+    # **Ours to remove, or the caller's to keep.**  A directory we made
+    # with `mkdtemp` leaks one per process otherwise — measured, not
+    # assumed: `/tmp` held none, `library()` was called once, `/tmp` held
+    # one, and nothing in this module ever removed it.  A directory the
+    # caller named is theirs (`audioeditor` passes its own and cleans it
+    # in `_clean_up`, after the audio thread joins), so this must not
+    # reach for that one.
+    #
+    # `atexit` rather than a context manager because `_LIB` is a
+    # process-wide cache with no close: the library is built once and
+    # used until the process ends, so the end of the process is the only
+    # honest lifetime. Unlinking a `dlopen`ed `.so` is safe on Linux —
+    # the mapping outlives the directory entry — and at exit there is
+    # nothing left to outlive anyway.
+    ours = directory is None
     directory = Path(directory or tempfile.mkdtemp(prefix="gestate-host-"))
     directory.mkdir(parents=True, exist_ok=True)
+    if ours:
+        import atexit
+        import shutil
+
+        atexit.register(shutil.rmtree, directory, ignore_errors=True)
     so = directory / "gestatehost.so"
     # **The device is compiled in when the machine has one to open.**
     # `alsa/asoundlib.h` is what `host.c` needs, and a machine without it

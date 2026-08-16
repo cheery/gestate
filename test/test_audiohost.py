@@ -14,7 +14,9 @@ side does what the Python side did, and that Python cannot interrupt it.
 from __future__ import annotations
 
 import ctypes
+import glob
 import os
+import pathlib
 import shutil
 import tempfile
 import threading
@@ -30,6 +32,7 @@ needs_clang = pytest.mark.skipif(shutil.which("clang") is None,
 pytestmark = needs_clang
 
 RATE = 8000
+ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
 def _engine(body: str, rate: int, directory):
@@ -669,3 +672,61 @@ def test_the_card_counts_what_it_could_not_play(scratch):
         assert host.take_worst() == 0, "the mark was not cleared"
     finally:
         host.close()
+
+
+def test_a_directory_we_made_is_removed_at_exit(tmp_path):
+    """One `/tmp/gestate-host-*` per process, or none.
+
+    **Measured before it was fixed**, which is why it is worth a test:
+    `/tmp` held none, `library()` was called once in a fresh process,
+    `/tmp` held one, and nothing in `audiohost` ever removed it.  `_LIB`
+    is a process-wide cache with no close, so the end of the process is
+    the only honest lifetime and `atexit` is what enforces it.
+
+    Run in a subprocess because that is the only place an `atexit`
+    handler can be observed to have fired.
+    """
+    import subprocess
+    import sys
+
+    probe = (
+        "import glob, sys\n"
+        "from gestate.audiohost import library\n"
+        "library()\n"
+        "sys.stdout.write(repr(glob.glob('/tmp/gestate-host-*')))\n"
+    )
+    before = set(glob.glob("/tmp/gestate-host-*"))
+    r = subprocess.run([sys.executable, "-c", probe], capture_output=True,
+                       text=True, cwd=ROOT)
+    if r.returncode != 0:
+        pytest.skip(f"the host would not build here: {r.stderr.strip()[:200]}")
+
+    during = set(eval(r.stdout))
+    after = set(glob.glob("/tmp/gestate-host-*"))
+    assert during - before, "no directory was made, so nothing was proved"
+    assert not (after - before), f"leaked at exit: {sorted(after - before)}"
+
+
+def test_a_directory_the_caller_named_is_left_alone(tmp_path):
+    """The other half, and the one a careless fix would break.
+
+    `audioeditor` passes its own directory and removes it in
+    `_clean_up`, *after* the audio thread joins — deliberately, because
+    unlinking under a thread about to build the next engine would not be
+    safe.  So `library()` must never reach for a directory it did not
+    make.
+    """
+    import subprocess
+    import sys
+
+    mine = tmp_path / "mine"
+    mine.mkdir()
+    r = subprocess.run(
+        [sys.executable, "-c",
+         f"from gestate.audiohost import library; library({str(mine)!r})"],
+        capture_output=True, text=True, cwd=ROOT)
+    if r.returncode != 0:
+        pytest.skip(f"the host would not build here: {r.stderr.strip()[:200]}")
+
+    assert mine.exists(), "library() removed a directory it did not make"
+    assert (mine / "gestatehost.so").exists()

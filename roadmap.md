@@ -907,8 +907,6 @@ It's okay, do these at your own pace. I'm happy to the work you've done so far.
           the north star's features and moves the notes.
    [open] Examine grammar of graphics and do specification work of your discoveries.
           Either write a new or modify existing one.
-   [open] The thing that comes to mind about incremental compiling are
-          stale object files. See if we can clean them up as they appear, if they do.
    [open] name datatypes eg. type Duration = Float, type Pitch = Int
    [open] verify the older language features still work in workbench
 
