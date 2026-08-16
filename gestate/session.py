@@ -3820,7 +3820,15 @@ def _reference(name: str) -> str | None:
         return None
     said = _plain(_first_sentence(" ".join(entry.doc))) if entry.doc else ""
     where = f" ({entry.library})" if entry.library else ""
-    line = entry.signature.strip() or f"{entry.name} : ?"
+    # **With the argument names on it.**  `lowpassSvf hz res s : Sig
+    # Float -> Sig Float -> Sig Float -> Sig Float` answers the question
+    # a person actually has, and the bare signature does not: four
+    # filters carry the same three `Sig Float`s and the first one means
+    # hertz in one and a coefficient in its neighbour.  One reader for
+    # it (`reference.named`), so the page and this line cannot disagree.
+    from .reference import named
+
+    line = named(entry) or f"{entry.name} : ?"
     return f"{line}{where}" + (f" — {said}" if said else "")
 
 
@@ -4165,10 +4173,12 @@ def _next_hole(lines: list, line: int, col: int) -> tuple | None:
 
 def _page(name: str) -> list:
     """What the manual says about a name, as lines to read."""
+    from .reference import named
+
     entry = (_REFERENCE or {}).get(name)
     if entry is None:
         return []
-    out = [entry.signature.strip() or name]
+    out = [named(entry) or name]
     if entry.library:
         out.append(entry.library
                    + (f" — {entry.section}" if entry.section else ""))

@@ -62,7 +62,12 @@ def _run(tmp_path, source: str, *argv) -> tuple[int, str, str]:
 def test_query_answers_with_the_type_the_place_and_the_prose(tmp_path):
     code, out, _ = _run(tmp_path, PROGRAM, "--query", "total")
     assert code == 0
-    assert out.splitlines()[0] == "total : Order -> Int"
+    # **With the name the definition gave its argument.**  The types are
+    # what a compiler knows and the names are what a reader needs; four
+    # filters in `synth.ges` carry the same three `Sig Float`s and the
+    # first means hertz in one and a coefficient in its neighbour
+    # (`board/done/argument-names.md`).
+    assert out.splitlines()[0] == "total o : Order -> Int"
     assert "at: line 8 (declaration)" in out
     assert "What one order comes to." in out
 
@@ -238,7 +243,9 @@ def test_query_reaches_the_prose_in_the_audio_prelude(tmp_path):
     code, out, _ = _run(tmp_path, _synth(tmp_path), "--audio",
                         "--query", "adsr")
     assert code == 0
-    assert out.splitlines()[0] == "adsr : Adsr -> Sig Gate -> Sig Float"
+    # The names come out of the prelude the query reached into, which is
+    # the half a reader cannot see at all from their own file.
+    assert out.splitlines()[0] == "adsr e g : Adsr -> Sig Gate -> Sig Float"
     assert "synth.ges line" in out
     assert "envelope" in out
 

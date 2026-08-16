@@ -19,7 +19,7 @@ Everything below `synth.ges`'s **`internal`** marker is listed at the end, under
 ### `dbGain`
 
 ```
-dbGain : Float -> Float
+dbGain db : Float -> Float
 ```
 
 `clamp lo hi x` — hold a value between a low and a high bound.
@@ -30,7 +30,7 @@ An amount in decibels as a multiplier.  `dbGain 0.0` is 1.0.
 ### `keyHz`
 
 ```
-keyHz : Int -> Float
+keyHz k : Int -> Float
 ```
 
 MIDI key number to hertz.  Key 69 is 440 Hz, and each semitone is the
@@ -40,7 +40,7 @@ twelfth root of two.
 ### `centsHz`
 
 ```
-centsHz : Float -> Float -> Float
+centsHz cents hz : Float -> Float -> Float
 ```
 
 Detune in cents.  A hundred cents is a semitone.
@@ -49,7 +49,7 @@ Detune in cents.  A hundred cents is a semitone.
 ### `secondsSince`
 
 ```
-secondsSince : Int -> Int -> Float
+secondsSince n from : Int -> Int -> Float
 ```
 
 `secondsSince n from` — how long, in seconds, instant `n` is after the
@@ -77,7 +77,7 @@ that arrives from a knob has nothing else stopping it.
 ### `phase`
 
 ```
-phase : Sig Float -> Sig Float
+phase hz : Sig Float -> Sig Float
 ```
 
 The turn number, 0..1, running at a frequency.  For a shape this file
@@ -87,7 +87,7 @@ does not already wrap — otherwise reach for `sine` and the rest.
 ### `sine`
 
 ```
-sine : Sig Float -> Sig Float
+sine hz : Sig Float -> Sig Float
 ```
 
 A sine.  The shortest thing this file can say.
@@ -96,28 +96,28 @@ A sine.  The shortest thing this file can say.
 ### `saw`
 
 ```
-saw : Sig Float -> Sig Float
+saw hz : Sig Float -> Sig Float
 ```
 
 
 ### `square`
 
 ```
-square : Sig Float -> Sig Float
+square hz : Sig Float -> Sig Float
 ```
 
 
 ### `triangle`
 
 ```
-triangle : Sig Float -> Sig Float
+triangle hz : Sig Float -> Sig Float
 ```
 
 
 ### `pulse`
 
 ```
-pulse : Float -> Sig Float -> Sig Float
+pulse width hz : Float -> Sig Float -> Sig Float
 ```
 
 A pulse of the given width — `pulse 0.5` is `square`.  Narrower widths
@@ -128,7 +128,7 @@ which is what makes it worth having separately.
 ### `pulseOf`
 
 ```
-pulseOf : Float -> Float -> Float
+pulseOf width p : Float -> Float -> Float
 ```
 
 A pulse as a *shape* — the one `audio.ges` does not have.
@@ -137,7 +137,7 @@ A pulse as a *shape* — the one `audio.ges` does not have.
 ### `unipolar`
 
 ```
-unipolar : Sig Float -> Sig Float
+unipolar s : Sig Float -> Sig Float
 ```
 
 −1..1 to 0..1.  A modulation depth usually wants this — `mix lo hi
@@ -149,7 +149,7 @@ was its polarity, and worked on one shape when this works on any.
 ### `bipolar`
 
 ```
-bipolar : Sig Float -> Sig Float
+bipolar s : Sig Float -> Sig Float
 ```
 
 0..1 back to −1..1 — `unipolar`'s inverse.
@@ -178,7 +178,7 @@ the name buys is a signature that says *which* integer is wanted —
 ### `white`
 
 ```
-white : Seed -> Sig Float
+white seed : Seed -> Sig Float
 ```
 
 **White noise** — flat, and the source the four colours below filter.
@@ -192,7 +192,7 @@ being noise, now that there are five of those: `white 1` beside
 ### `dust`
 
 ```
-dust : Seed -> Sig Float -> Sig Float
+dust seed density : Seed -> Sig Float -> Sig Float
 ```
 
 **Random impulses at an average rate** — SuperCollider's `Dust`.
@@ -224,7 +224,7 @@ four voices fire together is not a kit.
 ### `pink`
 
 ```
-pink : Sig Float -> Sig Float
+pink s : Sig Float -> Sig Float
 ```
 
 −3 dB/octave.  **The one that sounds even** — equal energy per octave
@@ -241,7 +241,7 @@ needs.  His seven-state version is the one good to a tenth.
 ### `brown`
 
 ```
-brown : Sig Float -> Sig Float
+brown s : Sig Float -> Sig Float
 ```
 
 −6 dB/octave.  White noise integrated — the slope of a river, distant
@@ -257,7 +257,7 @@ filter here has to know what rate it is running at.
 ### `violet`
 
 ```
-violet : Sig Float -> Sig Float
+violet s : Sig Float -> Sig Float
 ```
 
 +6 dB/octave.  The first difference — white noise differentiated, which
@@ -267,7 +267,7 @@ is all treble and the harshest of the four.
 ### `blue`
 
 ```
-blue : Sig Float -> Sig Float
+blue s : Sig Float -> Sig Float
 ```
 
 +3 dB/octave.  `violet (pink s)`, and that is not a trick: differentiating
@@ -292,7 +292,7 @@ sustain is a level in 0.0 .. 1.0.
 ### `adsrOf`
 
 ```
-adsrOf : Adsr -> Int -> Int -> Int -> Float
+adsrOf e n on off : Adsr -> Int -> Int -> Int -> Float
 ```
 
 `adsrOf env n on off` — the envelope's level at instant `n`, for a note
@@ -308,7 +308,7 @@ its own because of it.
 ### `percOf`
 
 ```
-percOf : Float -> Int -> Int -> Float
+percOf rate n on : Float -> Int -> Int -> Float
 ```
 
 A one-shot exponential decay — the envelope a plucked or struck sound
@@ -319,7 +319,7 @@ The rate is how many e-foldings a second.  `perc` is its signal form.
 ### `adsr` <a id="adsr-1"></a>
 
 ```
-adsr : Adsr -> Sig Gate -> Sig Float
+adsr e g : Adsr -> Sig Gate -> Sig Float
 ```
 
 The note's envelope, from its own timing.  **The one that removes the
@@ -330,7 +330,7 @@ counter for, and all three are here.
 ### `perc`
 
 ```
-perc : Float -> Sig Gate -> Sig Float
+perc rate g : Float -> Sig Gate -> Sig Float
 ```
 
 The one-shot decay, the same way — for a struck or plucked voice, which
@@ -340,7 +340,7 @@ does not sustain and does not care when the key came up.
 ### `onset`
 
 ```
-onset : Sig Gate -> Sig Int
+onset g : Sig Gate -> Sig Int
 ```
 
 When the note began, as a signal — for a voice whose own state is a fold
@@ -350,7 +350,7 @@ over the instant rather than a function of it.
 ### `slew`
 
 ```
-slew : Sig Float -> Sig Float -> Sig Float
+slew rate target : Sig Float -> Sig Float -> Sig Float
 ```
 
 `slew rate target` — move toward the target at that rate.  **Both are
@@ -379,7 +379,7 @@ the sustain, or 0 by stage, at that stage's rate.
 ### `gateOn`
 
 ```
-gateOn : Sig Bool -> Sig Gate
+gateOn bs : Sig Bool -> Sig Gate
 ```
 
 Any condition, as a note: a rising edge presses, a falling edge
@@ -396,7 +396,7 @@ holds each press for a quarter of one.
 ### `lowpassOnePole`
 
 ```
-lowpassOnePole : Sig Float -> Sig Float -> Sig Float
+lowpassOnePole hz s : Sig Float -> Sig Float -> Sig Float
 ```
 
 A gentle 6 dB/octave lowpass, by frequency rather than by coefficient.
@@ -410,7 +410,7 @@ name because twenty-one files already spell it that way.
 ### `highpassOnePole`
 
 ```
-highpassOnePole : Sig Float -> Sig Float -> Sig Float
+highpassOnePole hz s : Sig Float -> Sig Float -> Sig Float
 ```
 
 Its complement: what the lowpass took away.
@@ -419,7 +419,7 @@ Its complement: what the lowpass took away.
 ### `dcBlock`
 
 ```
-dcBlock : Sig Float -> Sig Float
+dcBlock s : Sig Float -> Sig Float
 ```
 
 Remove the constant offset a rectified or asymmetric waveshaper leaves.
@@ -430,7 +430,7 @@ so it is loudness thrown away.
 ### `lowpassSvf`
 
 ```
-lowpassSvf : Sig Float -> Sig Float -> Sig Float -> Sig Float
+lowpassSvf hz res s : Sig Float -> Sig Float -> Sig Float -> Sig Float
 ```
 
 A resonant lowpass.  The ordinary way to use the SVF.
@@ -452,7 +452,7 @@ cutoff does: `lowpassSvf hz (!r) voice`.
 ### `bandpassSvf`
 
 ```
-bandpassSvf : Sig Float -> Sig Float -> Sig Float -> Sig Float
+bandpassSvf hz res s : Sig Float -> Sig Float -> Sig Float -> Sig Float
 ```
 
 Only the band around the cutoff — the resonant peak on its own.
@@ -461,7 +461,7 @@ Only the band around the cutoff — the resonant peak on its own.
 ### `highpassSvf`
 
 ```
-highpassSvf : Sig Float -> Sig Float -> Sig Float -> Sig Float
+highpassSvf hz res s : Sig Float -> Sig Float -> Sig Float -> Sig Float
 ```
 
 Everything above the cutoff.
@@ -470,7 +470,7 @@ Everything above the cutoff.
 ### `notchSvf`
 
 ```
-notchSvf : Sig Float -> Sig Float -> Sig Float -> Sig Float
+notchSvf hz res s : Sig Float -> Sig Float -> Sig Float -> Sig Float
 ```
 
 Everything *except* the band around the cutoff — the fourth response the
@@ -480,7 +480,7 @@ one state already computes, and the one a phaser is built from.
 ### `lowpassLadder`
 
 ```
-lowpassLadder : Sig Float -> Sig Float -> Sig Float -> Sig Float
+lowpassLadder hz res s : Sig Float -> Sig Float -> Sig Float -> Sig Float
 ```
 
 A four-pole lowpass — steeper than the SVF, and its resonance thins the
@@ -493,7 +493,7 @@ Cutoff and resonance are signals here for the reason they are on
 ### `resonate`
 
 ```
-resonate : Sig Float -> Sig Float -> Sig Float -> Sig Float
+resonate hz decay s : Sig Float -> Sig Float -> Sig Float -> Sig Float
 ```
 
 **A struck resonance** — a frequency, how long it takes to die away, and
@@ -528,7 +528,7 @@ this with the damper's envelope in the decay position.
 ### `softClip`
 
 ```
-softClip : Float -> Float
+softClip x : Float -> Float
 ```
 
 A soft limiter: linear near zero, curving into ±1 rather than folding.
@@ -541,7 +541,7 @@ flat beyond the point where the cubic would turn back down.
 ### `driveOf`
 
 ```
-driveOf : Float -> Float -> Float
+driveOf amount x : Float -> Float -> Float
 ```
 
 Drive into the soft clipper and back out at a matched level, so turning
@@ -551,7 +551,7 @@ the amount up changes the *tone* rather than only the volume.
 ### `drive`
 
 ```
-drive : Float -> Sig Float -> Sig Float
+drive amount s : Float -> Sig Float -> Sig Float
 ```
 
 The same, as a signal transformation.
@@ -560,7 +560,7 @@ The same, as a signal transformation.
 ### `wrapFold`
 
 ```
-wrapFold : Float -> Float
+wrapFold x : Float -> Float
 ```
 
 Fold the signal back on itself instead of limiting it — harsh, metallic,
@@ -573,7 +573,7 @@ and completely unlike `softClip` at the same input level.
 ### `follow`
 
 ```
-follow : Float -> Float -> Sig Float -> Sig Float
+follow attack release s : Float -> Float -> Sig Float -> Sig Float
 ```
 
 **A peak envelope follower** — how loud the signal has been, lately.
@@ -605,7 +605,7 @@ that way if you prefer) and the ratio the usual n:1 — 4.0 is gentle,
 ### `compress`
 
 ```
-compress : Comp -> Sig Float -> Sig Float
+compress c s : Comp -> Sig Float -> Sig Float
 ```
 
 **Turn down what is loud**, by the ratio, above the threshold.
@@ -622,7 +622,7 @@ see rather than a thing this does behind your back.
 ### `limit`
 
 ```
-limit : Float -> Sig Float -> Sig Float
+limit ceiling s : Float -> Sig Float -> Sig Float
 ```
 
 A limiter: the same compressor with the ratio turned up and the attack
@@ -650,7 +650,7 @@ bound if you want one without the delay.
 ### `brickwall`
 
 ```
-brickwall : Float -> Sig Float -> Sig Float
+brickwall ceiling s : Float -> Sig Float -> Sig Float
 ```
 
 **A brick-wall limiter** — `limit` that sees the peak coming.
@@ -684,7 +684,7 @@ sound it is the difference you can feel.
 ### `brickRaw`
 
 ```
-brickRaw : Float -> Sig Float -> Sig Float
+brickRaw ceiling s : Float -> Sig Float -> Sig Float
 ```
 
 The limiter proper, before the ceiling is made true.
@@ -696,7 +696,7 @@ The limiter proper, before the ceiling is made true.
 ### `echo`
 
 ```
-echo : Float -> Float -> Sig Float -> Sig Float
+echo time feedbackAmount s : Float -> Float -> Sig Float -> Sig Float
 ```
 
 **An echo.**  `echo 0.25 0.5 s` repeats `s` a quarter of a second later
@@ -712,7 +712,7 @@ clamped just below.
 ### `comb`
 
 ```
-comb : Float -> Float -> Sig Float -> Sig Float
+comb hz feedbackAmount s : Float -> Float -> Sig Float -> Sig Float
 ```
 
 **A comb filter** — the same line with the repeats fast enough to be
@@ -732,7 +732,7 @@ yet a string — `string` below is that comb with the filter in it.
 ### `string`
 
 ```
-string : Float -> Float -> Sig Float -> Sig Float
+string hz decay s : Float -> Float -> Sig Float -> Sig Float
 ```
 
 **A plucked string** — Karplus-Strong, which is `comb` with an averaging
@@ -802,7 +802,7 @@ its own few cents, which is a chord that beats against itself.
 ### `allpass`
 
 ```
-allpass : Float -> Float -> Sig Float -> Sig Float
+allpass time g s : Float -> Float -> Sig Float -> Sig Float
 ```
 
 **A Schroeder allpass** — a delay that passes every frequency at full
@@ -828,7 +828,7 @@ a `feedback` step only ever sees one of them.
 ### `damped`
 
 ```
-damped : Float -> Float -> Float -> Sig Float -> Sig Float
+damped time feedbackAmount damp s : Float -> Float -> Float -> Sig Float -> Sig Float
 ```
 
 **A comb with a lowpass in the loop** — `echo` that gets duller each
@@ -851,7 +851,7 @@ trip ago — the two arms, and neither is reachable from `feedback`.
 ### `reverb`
 
 ```
-reverb : Float -> Float -> Sig Float -> Sig Float
+reverb decay damp s : Float -> Float -> Sig Float -> Sig Float
 ```
 
 **A room** — Schroeder's reverb, which is four damped combs in parallel
@@ -885,7 +885,7 @@ not a sound and no caller wants it back.
 ### `flanger`
 
 ```
-flanger : Float -> Float -> Sig Float -> Sig Float
+flanger rate depth s : Float -> Float -> Sig Float -> Sig Float
 ```
 
 **A flanger** — a very short delay whose length is swept by an LFO,
@@ -909,7 +909,7 @@ second voice slightly out of tune.
 ### `chorus`
 
 ```
-chorus : Float -> Float -> Sig Float -> Sig Float
+chorus rate depth s : Float -> Float -> Sig Float -> Sig Float
 ```
 
 **A chorus** — `flanger` with the delay long enough to be heard as a
@@ -1009,7 +1009,7 @@ instance Clip (Sig Stereo) where
 ### `panOf`
 
 ```
-panOf : Float -> Float -> Stereo
+panOf p x : Float -> Float -> Stereo
 ```
 
 Equal-power pan.  The position runs -1.0 (hard left) to 1.0 (hard
@@ -1021,7 +1021,7 @@ dipping in the middle.
 ### `widenOf`
 
 ```
-widenOf : Float -> Stereo
+widenOf x : Float -> Stereo
 ```
 
 One channel into two, unchanged.
@@ -1030,7 +1030,7 @@ One channel into two, unchanged.
 ### `monoOf`
 
 ```
-monoOf : Stereo -> Float
+monoOf s : Stereo -> Float
 ```
 
 Both channels summed back to one — for metering, or a mono send.
@@ -1039,7 +1039,7 @@ Both channels summed back to one — for metering, or a mono send.
 ### `pan`
 
 ```
-pan : Float -> Sig Float -> Sig Stereo
+pan p s : Float -> Sig Float -> Sig Stereo
 ```
 
 Place a mono signal in the field.
@@ -1048,14 +1048,14 @@ Place a mono signal in the field.
 ### `widen`
 
 ```
-widen : Sig Float -> Sig Stereo
+widen s : Sig Float -> Sig Stereo
 ```
 
 
 ### `pair`
 
 ```
-pair : Sig Float -> Sig Float -> Sig Stereo
+pair l r : Sig Float -> Sig Float -> Sig Stereo
 ```
 
 Two mono signals *are* a stereo signal — the cheapest way to get width,
@@ -1068,7 +1068,7 @@ and what `stereo.ges` does with two detuned oscillators.
 ### `pm`
 
 ```
-pm : Sig Float -> Sig Float -> Sig Float
+pm hz mod : Sig Float -> Sig Float -> Sig Float
 ```
 
 **Phase modulation** — a carrier at `hz`, its phase shifted by `mod`.
@@ -1086,7 +1086,7 @@ work: `map sineOf (phase hz + mod)` was always legal and nothing said so.
 ### `pmSelf`
 
 ```
-pmSelf : Sig Float -> Float -> Sig Float
+pmSelf hz amount : Sig Float -> Float -> Sig Float
 ```
 
 **An operator modulating itself** — the diagonal, as one oscillator.
@@ -1166,7 +1166,7 @@ marks an operator as a carrier or a modulator, because nothing needs to
 ### `fm`
 
 ```
-fm : Patch -> Sig Float -> Sig Quad -> Sig Float
+fm pt hz levels : Patch -> Sig Float -> Sig Quad -> Sig Float
 ```
 
 **The bank, as a signal transformation** — a patch, a pitch, four
@@ -1216,7 +1216,7 @@ No wiring at all — four independent sines.  Where a patch starts.
 ### `modulates`
 
 ```
-modulates : Int -> Int -> Float -> Matrix -> Matrix
+modulates src dst amount m : Int -> Int -> Float -> Matrix -> Matrix
 ```
 
 `modulates src dst amount` — operator `src` moves operator `dst`'s
@@ -1283,7 +1283,7 @@ The generator's state — one seed.
 #### `rngNext`
 
 ```
-rngNext : Rng -> Int -> Rng
+rngNext r n : Rng -> Int -> Rng
 ```
 
 `drums.ges`'s constants: a 63-bit LCG whose reach was measured rather
@@ -1293,7 +1293,7 @@ than assumed, because `Int` narrows to `i64` in the engine.
 #### `rngOf`
 
 ```
-rngOf : Rng -> Float
+rngOf r : Rng -> Float
 ```
 
 The seed as a sample in -1.0 .. 1.0.
@@ -1302,7 +1302,7 @@ The seed as a sample in -1.0 .. 1.0.
 #### `rngUnit`
 
 ```
-rngUnit : Rng -> Float
+rngUnit r : Rng -> Float
 ```
 
 The seed as a sample in 0.0 .. 1.0 — the same draw `rngOf` reads
@@ -1336,7 +1336,7 @@ still discards the seven low bits the paragraph above is about.
 #### `rngPer`
 
 ```
-rngPer : Rng -> Float -> Rng
+rngPer r x : Rng -> Float -> Rng
 ```
 
 The generator, advanced once per instant of *whatever signal it is
@@ -1348,7 +1348,7 @@ by `dustAt` in the `zip` beside it.
 #### `dustAt`
 
 ```
-dustAt : Rng -> Float -> Float
+dustAt r density : Rng -> Float -> Float
 ```
 
 One impulse or none, at this instant's density.  The chance per sample
@@ -1360,7 +1360,7 @@ than crowded against a small threshold.
 #### `dustOf`
 
 ```
-dustOf : Float -> Rng -> Float
+dustOf p r : Float -> Rng -> Float
 ```
 
 
@@ -1386,14 +1386,14 @@ pinkZero : Pink
 #### `pinkNext`
 
 ```
-pinkNext : Pink -> Float -> Pink
+pinkNext st x : Pink -> Float -> Pink
 ```
 
 
 #### `pinkOut`
 
 ```
-pinkOut : Pink -> Float
+pinkOut st : Pink -> Float
 ```
 
 The three poles summed, plus a direct term, scaled to sit in the same
@@ -1412,14 +1412,14 @@ One sample of memory, and the difference across it.
 #### `violetNext`
 
 ```
-violetNext : Diff -> Float -> Diff
+violetNext st x : Diff -> Float -> Diff
 ```
 
 
 #### `violetOut`
 
 ```
-violetOut : Diff -> Float
+violetOut st : Diff -> Float
 ```
 
 
@@ -1438,14 +1438,14 @@ Its own record for the reason `OnePoleIn` is — see there.
 #### `slewStep`
 
 ```
-slewStep : Float -> SlewIn -> Float
+slewStep y p : Float -> SlewIn -> Float
 ```
 
 
 #### `phaseStep`
 
 ```
-phaseStep : Float -> Float -> Float
+phaseStep p hz : Float -> Float -> Float
 ```
 
 One sample of a phase, at a frequency in hertz.  `phase` is the fold
@@ -1458,28 +1458,28 @@ every oscillator above is written in terms of, and this is its step.
 #### `adsrStarted`
 
 ```
-adsrStarted : Adsr -> Int -> Int -> Int -> Float
+adsrStarted e n on off : Adsr -> Int -> Int -> Int -> Float
 ```
 
 
 #### `adsrPhase`
 
 ```
-adsrPhase : Adsr -> Int -> Int -> Int -> Float
+adsrPhase e n on off : Adsr -> Int -> Int -> Int -> Float
 ```
 
 
 #### `adsrMaybeReleased`
 
 ```
-adsrMaybeReleased : Adsr -> Int -> Int -> Int -> Float
+adsrMaybeReleased e n on off : Adsr -> Int -> Int -> Int -> Float
 ```
 
 
 #### `adsrAfterOff`
 
 ```
-adsrAfterOff : Adsr -> Int -> Int -> Float -> Float
+adsrAfterOff e on off t : Adsr -> Int -> Int -> Float -> Float
 ```
 
 The level the note had reached when the key came up is what the release
@@ -1490,7 +1490,7 @@ remembered — which is one less field in every voice's state.
 #### `adsrHeld`
 
 ```
-adsrHeld : Adsr -> Float -> Float
+adsrHeld e t : Adsr -> Float -> Float
 ```
 
 Attack, then decay towards the sustain level, then hold there.
@@ -1499,14 +1499,14 @@ Attack, then decay towards the sustain level, then hold there.
 #### `adsrRise`
 
 ```
-adsrRise : Float -> Float -> Float -> Float -> Float
+adsrRise a d s t : Float -> Float -> Float -> Float -> Float
 ```
 
 
 #### `rampUp`
 
 ```
-rampUp : Float -> Float -> Float
+rampUp a t : Float -> Float -> Float
 ```
 
 Zero attack is a step rather than a division by zero — which is the case
@@ -1517,14 +1517,14 @@ error.
 #### `adsrFall`
 
 ```
-adsrFall : Float -> Float -> Float -> Float -> Float
+adsrFall a d s t : Float -> Float -> Float -> Float -> Float
 ```
 
 
 #### `adsrReleased`
 
 ```
-adsrReleased : Adsr -> Float -> Float -> Float
+adsrReleased e level t : Adsr -> Float -> Float -> Float
 ```
 
 Linear to silence over the release time, from whatever level the note
@@ -1534,7 +1534,7 @@ had reached when the key came up.
 #### `percStarted`
 
 ```
-percStarted : Float -> Int -> Int -> Float
+percStarted rate n on : Float -> Int -> Int -> Float
 ```
 
 
@@ -1554,7 +1554,7 @@ whether the condition holds there.
 #### `gateEdge` <a id="gateedge-1"></a>
 
 ```
-gateEdge : Gate -> GateEdge -> Gate
+gateEdge w e : Gate -> GateEdge -> Gate
 ```
 
 The fold: only the *edges* do anything — a press while up, a release
@@ -1564,7 +1564,7 @@ while down — and the other two cases carry the gate unchanged.
 #### `gateHeld`
 
 ```
-gateHeld : Int -> Int -> Bool
+gateHeld on off : Int -> Int -> Bool
 ```
 
 Begun, and not yet released.
@@ -1596,14 +1596,14 @@ the same defect `quartet.ges` records about two `Played`s, and it is why
 #### `onePoleNext`
 
 ```
-onePoleNext : Float -> OnePoleIn -> Float
+onePoleNext y p : Float -> OnePoleIn -> Float
 ```
 
 
 #### `onePoleK`
 
 ```
-onePoleK : Float -> Float
+onePoleK hz : Float -> Float
 ```
 
 
@@ -1658,7 +1658,7 @@ many graphs as it likes — it is one tag with two shapes that collides
 #### `svfNext`
 
 ```
-svfNext : Svf -> SvfIn -> Svf
+svfNext s i : Svf -> SvfIn -> Svf
 ```
 
 One sample.  `scan svfNext svfZero` over a signal of these is the filter.
@@ -1667,7 +1667,7 @@ One sample.  `scan svfNext svfZero` over a signal of these is the filter.
 #### `svfG`
 
 ```
-svfG : Float -> Float
+svfG hz : Float -> Float
 ```
 
 The integrator gain.  `tan` is what makes this the *bilinear* transform
@@ -1678,7 +1678,7 @@ to be right up to Nyquist.
 #### `svfK`
 
 ```
-svfK : Float -> Float
+svfK res : Float -> Float
 ```
 
 Resonance 0.0 .. 1.0 as damping.  1.0 stops just short of oscillating;
@@ -1688,21 +1688,21 @@ the 0.02 floor is what keeps it from doing so on its own.
 #### `svfWith`
 
 ```
-svfWith : Svf -> Float -> Float -> Float -> Svf
+svfWith s x g k : Svf -> Float -> Float -> Float -> Svf
 ```
 
 
 #### `svfSolve`
 
 ```
-svfSolve : Float -> Float -> Float -> Float -> Float -> Float -> Svf
+svfSolve i1 i2 x g k a1 : Float -> Float -> Float -> Float -> Float -> Float -> Svf
 ```
 
 
 #### `svfBands`
 
 ```
-svfBands : Float -> Float -> Float -> Float -> Float -> Float -> Svf
+svfBands i1 i2 x g k v1 : Float -> Float -> Float -> Float -> Float -> Float -> Svf
 ```
 
 The last argument is the bandpass output; the lowpass integrates it and
@@ -1712,35 +1712,35 @@ the highpass is what is left of the input once both are taken out.
 #### `svfStore`
 
 ```
-svfStore : Float -> Float -> Float -> Float -> Float -> Float -> Svf
+svfStore i1 i2 x k v1 v2 : Float -> Float -> Float -> Float -> Float -> Float -> Svf
 ```
 
 
 #### `svfLow`
 
 ```
-svfLow : Svf -> Float
+svfLow s : Svf -> Float
 ```
 
 
 #### `svfBand`
 
 ```
-svfBand : Svf -> Float
+svfBand s : Svf -> Float
 ```
 
 
 #### `svfHigh`
 
 ```
-svfHigh : Svf -> Float
+svfHigh s : Svf -> Float
 ```
 
 
 #### `svfNotch`
 
 ```
-svfNotch : Svf -> Float
+svfNotch s : Svf -> Float
 ```
 
 The band the filter rejects — everything except the peak.
@@ -1772,14 +1772,14 @@ LadderIn := LadderIn Float Float Float
 #### `ladderNext`
 
 ```
-ladderNext : Ladder -> LadderIn -> Ladder
+ladderNext l i : Ladder -> LadderIn -> Ladder
 ```
 
 
 #### `ladderWith`
 
 ```
-ladderWith : Ladder -> Float -> Float -> Float -> Ladder
+ladderWith l x g q : Ladder -> Float -> Float -> Float -> Ladder
 ```
 
 The feedback is saturated rather than clipped, because a ladder's
@@ -1790,35 +1790,35 @@ knob — a hard clip there buzzes instead.
 #### `ladderStages`
 
 ```
-ladderStages : Float -> Float -> Float -> Float -> Float -> Float -> Ladder
+ladderStages g s1 s2 s3 s4 u : Float -> Float -> Float -> Float -> Float -> Float -> Ladder
 ```
 
 
 #### `ladderCascade`
 
 ```
-ladderCascade : Float -> Float -> Float -> Float -> Float -> Ladder
+ladderCascade g n1 s2 s3 s4 : Float -> Float -> Float -> Float -> Float -> Ladder
 ```
 
 
 #### `ladderTail`
 
 ```
-ladderTail : Float -> Float -> Float -> Float -> Float -> Ladder
+ladderTail g n1 n2 s3 s4 : Float -> Float -> Float -> Float -> Float -> Ladder
 ```
 
 
 #### `ladderLast`
 
 ```
-ladderLast : Float -> Float -> Float -> Float -> Ladder
+ladderLast n1 n2 n3 n4 : Float -> Float -> Float -> Float -> Ladder
 ```
 
 
 #### `ladderOut`
 
 ```
-ladderOut : Ladder -> Float
+ladderOut l : Ladder -> Float
 ```
 
 
@@ -1832,7 +1832,7 @@ Ks := Ks Float Float Float Float
 #### `ksNext`
 
 ```
-ksNext : Float -> Float -> Ks -> Ks -> Float -> Ks
+ksNext g a prev old x : Float -> Float -> Ks -> Ks -> Float -> Ks
 ```
 
 The near arm is where the string was an instant ago and holds the *older*
@@ -1845,7 +1845,7 @@ what stops the average from preserving DC for ever.
 #### `ksStep`
 
 ```
-ksStep : Float -> Float -> Float -> Float -> Float -> Float -> Float -> Ks
+ksStep g a x yn avg ax ay : Float -> Float -> Float -> Float -> Float -> Float -> Float -> Ks
 ```
 
 The tuning allpass, `y[n] = a·x[n] + x[n-1] − a·y[n-1]`, then the loop
@@ -1856,21 +1856,21 @@ the allpass output is needed twice — once to go around, once to carry.
 #### `ksMake`
 
 ```
-ksMake : Float -> Float -> Float -> Float -> Float -> Ks
+ksMake g x yn avg ap : Float -> Float -> Float -> Float -> Float -> Ks
 ```
 
 
 #### `ksOut`
 
 ```
-ksOut : Ks -> Float
+ksOut st : Ks -> Float
 ```
 
 
 #### `stringLen`
 
 ```
-stringLen : Float -> Int
+stringLen hz : Float -> Int
 ```
 
 The line's *integer* length: what remains of a round trip at that pitch
@@ -1882,7 +1882,7 @@ a ≈ 1 corner where a first-order allpass stops behaving.
 #### `stringFrac`
 
 ```
-stringFrac : Float -> Float
+stringFrac hz : Float -> Float
 ```
 
 What the allpass must delay: the round trip, less the line, less the
@@ -1892,7 +1892,7 @@ averager's half sample.
 #### `stringTune`
 
 ```
-stringTune : Float -> Float
+stringTune hz : Float -> Float
 ```
 
 The allpass coefficient for that fraction — `(1−d)/(1+d)` is the
@@ -1902,7 +1902,7 @@ standard low-frequency fit, and low frequencies are where pitch lives.
 #### `stringGain`
 
 ```
-stringGain : Float -> Float -> Float
+stringGain hz decay : Float -> Float -> Float
 ```
 
 Loop gain from a decay time.  `ln 1000` is the 60 dB the time is quoted
@@ -1923,7 +1923,7 @@ Ap := Ap Float Float
 #### `apStep`
 
 ```
-apStep : Float -> Ap -> Ap -> Float -> Ap
+apStep g prev old x : Float -> Ap -> Ap -> Float -> Ap
 ```
 
 `v[t] = x + g * v[t-n]` is what circulates and `y = v[t-n] - g * v[t]`
@@ -1935,14 +1935,14 @@ what `loop` can do.
 #### `apMake`
 
 ```
-apMake : Float -> Float -> Float -> Ap
+apMake g v vn : Float -> Float -> Float -> Ap
 ```
 
 
 #### `apOut`
 
 ```
-apOut : Ap -> Float
+apOut st : Ap -> Float
 ```
 
 
@@ -1956,28 +1956,28 @@ Cm := Cm Float Float
 #### `cmStep`
 
 ```
-cmStep : Float -> Float -> Cm -> Cm -> Float -> Cm
+cmStep g d prev old x : Float -> Float -> Cm -> Cm -> Float -> Cm
 ```
 
 
 #### `cmMake`
 
 ```
-cmMake : Float -> Float -> Float -> Cm
+cmMake g x f : Float -> Float -> Float -> Cm
 ```
 
 
 #### `cmOut`
 
 ```
-cmOut : Cm -> Float
+cmOut st : Cm -> Float
 ```
 
 
 #### `reverbGain`
 
 ```
-reverbGain : Float -> Float -> Float
+reverbGain time decay : Float -> Float -> Float
 ```
 
 Feedback for one comb of a reverb, from the tail's decay time.  Each
@@ -1988,7 +1988,7 @@ number means, and four lines reaching it together is the point.
 #### `reverbCombs`
 
 ```
-reverbCombs : Float -> Float -> Sig Float -> Sig Float
+reverbCombs decay damp s : Float -> Float -> Sig Float -> Sig Float
 ```
 
 The room proper, after `reverb` has blocked the input's DC — a separate
@@ -1999,7 +1999,7 @@ be applied once rather than once per comb.
 #### `sweepPos`
 
 ```
-sweepPos : Float -> Float -> Float -> Sig Float
+sweepPos centre swing rate : Float -> Float -> Float -> Sig Float
 ```
 
 An LFO on a delay position, in **samples**, for `flanger` and `chorus`.
@@ -2010,7 +2010,7 @@ is what `tap` clamps for anyway.
 #### `brickGain`
 
 ```
-brickGain : Float -> Sig Float -> Sig Float
+brickGain ceiling s : Float -> Sig Float -> Sig Float
 ```
 
 The gain a brick wall asks for, as its own signal — `compress` builds
@@ -2021,7 +2021,7 @@ the same thing inline, but a lookahead limiter has to apply it to a
 #### `ceilAt`
 
 ```
-ceilAt : Float -> Float -> Float
+ceilAt ceiling x : Float -> Float -> Float
 ```
 
 `clip` bounds at ±1, so a ceiling anywhere else is a scale, a clip and a
@@ -2056,7 +2056,7 @@ resoZero : Reso
 #### `resoR`
 
 ```
-resoR : Float -> Float
+resoR decay : Float -> Float
 ```
 
 Pole radius from a decay time.  `ln 1000` is the −60 dB the time is
@@ -2068,14 +2068,14 @@ for no ring should give.
 #### `resoNext`
 
 ```
-resoNext : Reso -> ResoIn -> Reso
+resoNext st inp : Reso -> ResoIn -> Reso
 ```
 
 
 #### `resoWith`
 
 ```
-resoWith : Reso -> Float -> Float -> Float -> Reso
+resoWith st x r w : Reso -> Float -> Float -> Float -> Reso
 ```
 
 **`sin w` and not `1 - r`**, and the difference is the whole point of
@@ -2090,7 +2090,7 @@ so `0.7 * resonate …` is a mode at 0.7.
 #### `resoOut`
 
 ```
-resoOut : Reso -> Float
+resoOut st : Reso -> Float
 ```
 
 
@@ -2100,7 +2100,7 @@ resoOut : Reso -> Float
 #### `rateCoeff`
 
 ```
-rateCoeff : Float -> Float
+rateCoeff t : Float -> Float
 ```
 
 A one-pole coefficient from a time constant in seconds.  The `+ 1.0`
@@ -2112,7 +2112,7 @@ and that is what asking for zero should give you.
 #### `followStep`
 
 ```
-followStep : Float -> Float -> Float -> Float -> Float
+followStep up down y x : Float -> Float -> Float -> Float -> Float
 ```
 
 One sample of `follow`: rise at `up`, fall at `down`.
@@ -2121,7 +2121,7 @@ One sample of `follow`: rise at `up`, fall at `down`.
 #### `compAttack`
 
 ```
-compAttack : Comp -> Float
+compAttack c : Comp -> Float
 ```
 
 The two times, read out as scalars.  **Not a `case` at signal level** —
@@ -2133,14 +2133,14 @@ folds away rather than inside the expression that uses them.
 #### `compRelease`
 
 ```
-compRelease : Comp -> Float
+compRelease c : Comp -> Float
 ```
 
 
 #### `compGain`
 
 ```
-compGain : Comp -> Float -> Float
+compGain c e : Comp -> Float -> Float
 ```
 
 The gain to apply at this envelope level.  Below the threshold nothing
@@ -2151,7 +2151,7 @@ what that target is over what arrived.
 #### `sign`
 
 ```
-sign : Float -> Float
+sign x : Float -> Float
 ```
 
 
@@ -2161,7 +2161,7 @@ sign : Float -> Float
 #### `panAngle`
 
 ```
-panAngle : Float -> Float -> Stereo
+panAngle x a : Float -> Float -> Stereo
 ```
 
 
@@ -2206,7 +2206,7 @@ fmZero : Fm
 #### `fmNext`
 
 ```
-fmNext : Patch -> Fm -> Drive -> Fm
+fmNext pt st d : Patch -> Fm -> Drive -> Fm
 ```
 
 One sample of the whole bank.  `fm` is what `scan`s this.
@@ -2215,7 +2215,7 @@ One sample of the whole bank.  `fm` is what `scan`s this.
 #### `fmOut`
 
 ```
-fmOut : Patch -> Fm -> Float
+fmOut pt st : Patch -> Fm -> Float
 ```
 
 The bank's sample: each operator's output times its share of the mix.
@@ -2224,91 +2224,91 @@ The bank's sample: each operator's output times its share of the mix.
 #### `setQuad`
 
 ```
-setQuad : Int -> Float -> Quad -> Quad
+setQuad i v q : Int -> Float -> Quad -> Quad
 ```
 
 
 #### `rowOf`
 
 ```
-rowOf : Int -> Matrix -> Quad
+rowOf i m : Int -> Matrix -> Quad
 ```
 
 
 #### `setRow`
 
 ```
-setRow : Int -> Quad -> Matrix -> Matrix
+setRow i q m : Int -> Quad -> Matrix -> Matrix
 ```
 
 
 #### `quadDot`
 
 ```
-quadDot : Quad -> Quad -> Float
+quadDot a b : Quad -> Quad -> Float
 ```
 
 
 #### `quadDotWith`
 
 ```
-quadDotWith : Float -> Float -> Float -> Float -> Quad -> Float
+quadDotWith a1 a2 a3 a4 b : Float -> Float -> Float -> Float -> Quad -> Float
 ```
 
 
 #### `quadMul`
 
 ```
-quadMul : Quad -> Quad -> Quad
+quadMul a b : Quad -> Quad -> Quad
 ```
 
 
 #### `quadMulWith`
 
 ```
-quadMulWith : Float -> Float -> Float -> Float -> Quad -> Quad
+quadMulWith a1 a2 a3 a4 b : Float -> Float -> Float -> Float -> Quad -> Quad
 ```
 
 
 #### `quadScale`
 
 ```
-quadScale : Float -> Quad -> Quad
+quadScale g a : Float -> Quad -> Quad
 ```
 
 
 #### `quadSum`
 
 ```
-quadSum : Quad -> Float
+quadSum a : Quad -> Float
 ```
 
 
 #### `fmRatios`
 
 ```
-fmRatios : Quad -> Matrix -> Fm -> Drive -> Fm
+fmRatios ratios wiring st d : Quad -> Matrix -> Fm -> Drive -> Fm
 ```
 
 
 #### `fmDriven`
 
 ```
-fmDriven : Quad -> Matrix -> Quad -> Quad -> Drive -> Fm
+fmDriven ratios wiring phases outs d : Quad -> Matrix -> Quad -> Quad -> Drive -> Fm
 ```
 
 
 #### `fmStepped`
 
 ```
-fmStepped : Quad -> Matrix -> Quad -> Quad -> Float -> Quad -> Fm
+fmStepped ratios wiring phases outs hz levels : Quad -> Matrix -> Quad -> Quad -> Float -> Quad -> Fm
 ```
 
 
 #### `fmPhases`
 
 ```
-fmPhases : Quad -> Quad -> Quad
+fmPhases phases hzs : Quad -> Quad -> Quad
 ```
 
 Every operator's phase moves by its own ratio of the note's frequency.
@@ -2317,35 +2317,35 @@ Every operator's phase moves by its own ratio of the note's frequency.
 #### `fmPhasesWith`
 
 ```
-fmPhasesWith : Float -> Float -> Float -> Float -> Quad -> Quad
+fmPhasesWith p1 p2 p3 p4 hzs : Float -> Float -> Float -> Float -> Quad -> Quad
 ```
 
 
 #### `fmTurn`
 
 ```
-fmTurn : Float -> Float -> Float
+fmTurn p hz : Float -> Float -> Float
 ```
 
 
 #### `fmAdvanced`
 
 ```
-fmAdvanced : Quad -> Matrix -> Quad -> Quad -> Fm
+fmAdvanced phases wiring outs levels : Quad -> Matrix -> Quad -> Quad -> Fm
 ```
 
 
 #### `fmRows`
 
 ```
-fmRows : Quad -> Quad -> Quad -> Quad -> Quad -> Quad -> Quad -> Fm
+fmRows phases r1 r2 r3 r4 outs levels : Quad -> Quad -> Quad -> Quad -> Quad -> Quad -> Quad -> Fm
 ```
 
 
 #### `fmSines`
 
 ```
-fmSines : Quad -> Quad -> Quad -> Quad -> Quad -> Quad -> Quad
+fmSines phases r1 r2 r3 r4 outs : Quad -> Quad -> Quad -> Quad -> Quad -> Quad -> Quad
 ```
 
 The four sines, each read at its own phase plus whatever the wiring
@@ -2355,7 +2355,7 @@ says the *previous* sample's operators add to it.
 #### `fmOp`
 
 ```
-fmOp : Float -> Quad -> Quad -> Float
+fmOp p row outs : Float -> Quad -> Quad -> Float
 ```
 
 One operator: its own phase, moved by whatever the wiring says the
@@ -2365,5 +2365,5 @@ previous sample's operators add to it.
 #### `fmMix`
 
 ```
-fmMix : Quad -> Fm -> Float
+fmMix amps st : Quad -> Fm -> Float
 ```

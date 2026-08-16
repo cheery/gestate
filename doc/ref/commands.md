@@ -173,7 +173,7 @@ Stop it, wherever it is.
 ### `seek`
 
 ```
-seek : Int -> Command
+seek n : Int -> Command
 ```
 
 Put the playhead at a bar, counting from zero.
@@ -185,7 +185,7 @@ Put the playhead at a bar, counting from zero.
 ### `loop`
 
 ```
-loop : Int -> Int -> Command
+loop a b : Int -> Int -> Command
 ```
 
 Loop between two bars, counting from zero.
@@ -215,7 +215,7 @@ Stop looping and let it run on.
 ### `set`
 
 ```
-set : Named a -> a -> Command
+set n v : Named a -> a -> Command
 ```
 
 Turn a knob.  **The value's type follows the parameter**, so an `Int`
@@ -226,7 +226,7 @@ rather than a sentence somebody has to compose at run time.
 ### `learn`
 
 ```
-learn : (FromCC a) => Named a -> Command
+learn n : (FromCC a) => Named a -> Command
 ```
 
 Bind the next controller that moves to this parameter.
@@ -241,7 +241,7 @@ number on the knob road, and a note payload is something else.
 ### `listen`
 
 ```
-listen : (FromMIDI a) => Named a -> Command
+listen n : (FromMIDI a) => Named a -> Command
 ```
 
 Let a bank hear the keyboard.  A bank the score plays is not the
@@ -251,7 +251,7 @@ keyboard's by default — the two-bank law.
 ### `deafen`
 
 ```
-deafen : (FromMIDI a) => Named a -> Command
+deafen n : (FromMIDI a) => Named a -> Command
 ```
 
 And stop it hearing.
@@ -260,7 +260,7 @@ And stop it hearing.
 ### `octave`
 
 ```
-octave : Int -> Command
+octave n : Int -> Command
 ```
 
 Move the played octave.  Negative goes down.
@@ -269,7 +269,7 @@ Move the played octave.  Negative goes down.
 ### `transpose`
 
 ```
-transpose : Text -> Int -> Int -> Command
+transpose region was key : Text -> Int -> Int -> Command
 ```
 
 Write a note in a score box at a different pitch — the region it is
@@ -311,7 +311,7 @@ model is the one that can ask the machine.
 ### `midiOn`
 
 ```
-midiOn : Device -> Command
+midiOn port : Device -> Command
 ```
 
 Listen to a controller.  Given no name, the first one there is.
@@ -379,7 +379,7 @@ model recording what was played.
 ### `seed`
 
 ```
-seed : Int -> Command
+seed n : Int -> Command
 ```
 
 Play this take of a chancy piece.  One integer replays the night.
@@ -456,7 +456,7 @@ Paste what was copied, over the selection if one stands.
 ### `find`
 
 ```
-find : Text -> Command
+find pattern : Text -> Command
 ```
 
 Key: **`Ctrl-F`**
@@ -469,7 +469,7 @@ yet: a typo you are fixing, half a word, a fragment of a comment.
 ### `findBack`
 
 ```
-findBack : Text -> Command
+findBack pattern : Text -> Command
 ```
 
 The same search, the other way — back toward the top of the file.
@@ -497,7 +497,7 @@ the same one `Named` follows: the *type* is what lets the view ask.
 ### `open`
 
 ```
-open : Path -> Command
+open path : Path -> Command
 ```
 
 Open a file.  A directory steps into it, and `..` steps out.
@@ -506,7 +506,7 @@ Open a file.  A directory steps into it, and `..` steps out.
 ### `steal`
 
 ```
-steal : Path -> Command
+steal path : Path -> Command
 ```
 
 Take a name for what you are writing, and keep it under that.
@@ -521,7 +521,7 @@ friendlier word.
 ### `goto`
 
 ```
-goto : Named a -> Command
+goto n : Named a -> Command
 ```
 
 Jump to where a name is declared — and to the next place it is
@@ -536,7 +536,7 @@ what makes running it again mean *next*.
 ### `line`
 
 ```
-line : Int -> Command
+line n : Int -> Command
 ```
 
 Jump to a line by its number — the number the margin, a complaint
@@ -546,7 +546,7 @@ and `goto`'s own answer already speak.
 ### `col`
 
 ```
-col : Int -> Command
+col n : Int -> Command
 ```
 
 Jump to a column of the line you are on — `line`'s other half.
@@ -559,7 +559,7 @@ is how the compiler prints them and how a person says them.
 ### `what`
 
 ```
-what : Named a -> Command
+what n : Named a -> Command
 ```
 
 Say what a name is and what type it has — the compiler answering,
@@ -570,7 +570,7 @@ whatever the cursor is on.
 ### `fits`
 
 ```
-fits : Text -> Command
+fits wanted : Text -> Command
 ```
 
 What in scope could stand where a type is wanted — `Sig Float`,
@@ -624,7 +624,7 @@ back after backspacing over it.
 ### `complete`
 
 ```
-complete : Wanted -> Filler -> Command
+complete wanted which : Wanted -> Filler -> Command
 ```
 
 Key: **`Tab`**
@@ -667,7 +667,7 @@ grid and so is this.
 ### `symbol` <a id="symbol-1"></a>
 
 ```
-symbol : Symbol -> Command
+symbol which : Symbol -> Command
 ```
 
 Key: **`Ctrl-E`**
@@ -683,7 +683,7 @@ letter, so reaching one is two keys and no chord to remember.
 ### `transcript`
 
 ```
-transcript : Path -> Command
+transcript path : Path -> Command
 ```
 
 Write down what this session has done.
@@ -716,7 +716,7 @@ view can offer them.
 ### `template` <a id="template-1"></a>
 
 ```
-template : Template -> Command
+template name : Template -> Command
 ```
 
 Put one of the language's ideas at the cursor: a knob, a voice bank, a
@@ -750,7 +750,7 @@ only thing that makes it safe to press.
 ### `fmt`
 
 ```
-fmt : Int -> Int -> Command
+fmt first last : Int -> Int -> Command
 ```
 
 Lay out only the declarations these lines touch, counting from one.
@@ -779,7 +779,7 @@ differently would be a diff with no change in it.
 ### `infer`
 
 ```
-infer : Named a -> Command
+infer n : Named a -> Command
 ```
 
 The same, for one declaration — the line you are looking at.
@@ -806,7 +806,7 @@ mode here.
 ### `exportClap`
 
 ```
-exportClap : Path -> Command
+exportClap path : Path -> Command
 ```
 
 Build this file as a CLAP plugin.  Given no path: `~/.clap/<name>.clap`,
@@ -821,7 +821,7 @@ window that waits for a build is a frozen window.
 ### `exportWav`
 
 ```
-exportWav : Path -> Command
+exportWav path : Path -> Command
 ```
 
 Render this file to a `.wav`.  Given no path, one beside the source.
@@ -830,7 +830,7 @@ Render this file to a `.wav`.  Given no path, one beside the source.
 ### `exportWavAt`
 
 ```
-exportWavAt : Int -> Int -> Path -> Command
+exportWavAt first last path : Int -> Int -> Path -> Command
 ```
 
 Render the bars between two numbers, counting from zero.
@@ -846,7 +846,7 @@ does everywhere else.
 ### `overwrite`
 
 ```
-overwrite : Answer -> Command
+overwrite yes : Answer -> Command
 ```
 
 Answer the question an export asked — about a file that is already

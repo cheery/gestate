@@ -91,7 +91,7 @@ the prelude's list append — see `prelude.ges`, where `++` is now
 ### `||`  <sub>operator</sub> <a id="op-124-124"></a>
 
 ```
-(||) : [: a :] -> [: a :] -> [: a :]
+(||) a b : [: a :] -> [: a :] -> [: a :]
 ```
 
 
@@ -120,7 +120,7 @@ list instance.
 ### `at`
 
 ```
-at : Int -> [: a :] -> [: a :]
+at n s : Int -> [: a :] -> [: a :]
 ```
 
 `at` translates a score's *extent* and leaves its *duration* alone, which
@@ -130,28 +130,28 @@ is why `a ++ at (-1) b` overlaps `a` without moving what follows.
 ### `|<`  <sub>operator</sub> <a id="op-124-60"></a>
 
 ```
-(|<) : [: a :] -> [: a :]
+(|<) s : [: a :] -> [: a :]
 ```
 
 
 ### `>|`  <sub>operator</sub> <a id="op-62-124"></a>
 
 ```
-(>|) : [: a :] -> [: a :]
+(>|) s : [: a :] -> [: a :]
 ```
 
 
 ### `|*`  <sub>operator</sub> <a id="op-124-42"></a>
 
 ```
-(|*) : [: a :] -> Int -> [: a :]
+(|*) s k : [: a :] -> Int -> [: a :]
 ```
 
 
 ### `|/`  <sub>operator</sub> <a id="op-124-47"></a>
 
 ```
-(|/) : [: a :] -> Int -> [: a :]
+(|/) s k : [: a :] -> Int -> [: a :]
 ```
 
 
@@ -171,7 +171,7 @@ An *instance*, for the reason `++` above is one.  A score's `pure` is
 ### `prog`
 
 ```
-prog : Int -> Int -> [: b :]
+prog n pitch : Int -> Int -> [: b :]
 ```
 
 **A MIDI program number, as an instrument.**  `melody >>= prog 73`
@@ -193,7 +193,7 @@ the four voices of a quartet.
 ### `percussion`
 
 ```
-percussion : Int -> [: b :]
+percussion key : Int -> [: b :]
 ```
 
 The percussion instrument.  It needs no program number, so it is itself
@@ -203,21 +203,21 @@ the function `>>=` wants: `pattern >>= percussion`.
 ### `lay`
 
 ```
-lay : [: a :] -> (Int, List (Int, Int, Rendered))
+lay s : [: a :] -> (Int, List (Int, Int, Rendered))
 ```
 
 
 ### `layout`
 
 ```
-layout : [: Void :] -> List (Int, Int, Rendered)
+layout s : [: Void :] -> List (Int, Int, Rendered)
 ```
 
 
 ### `layVoices`
 
 ```
-layVoices : [: Void :] -> List (Int, Int, Voice)
+layVoices s : [: Void :] -> List (Int, Int, Voice)
 ```
 
 The audio backend's `layout`: a piece as bank-assigned, timed events.
@@ -226,7 +226,7 @@ The audio backend's `layout`: a piece as bank-assigned, timed events.
 ### `spreadTo`
 
 ```
-spreadTo : Int -> Int -> [: a :] -> (Int, List (Int, Int, a))
+spreadTo fuel w s : Int -> Int -> [: a :] -> (Int, List (Int, Int, a))
 ```
 
 **The score box's reading** (`spec/scorebox.md`): every *payload*
@@ -248,7 +248,7 @@ holds it.
 ### `tagAll`
 
 ```
-tagAll : Int -> [: a :] -> [: (Int, a) :]
+tagAll k s : Int -> [: a :] -> [: (Int, a) :]
 ```
 
 **Every payload of a subtree, labelled `k`** — the score box's
@@ -287,7 +287,7 @@ is the whole program's.
 ### `cycle`
 
 ```
-cycle : [: a :] -> [: a :]
+cycle s : [: a :] -> [: a :]
 ```
 
 `cycle bar` is `bar`, then `cycle bar` — which the lazy machine only
@@ -298,7 +298,7 @@ language; what is new is a performer that stops demanding.
 ### `unfold`
 
 ```
-unfold : b -> (b -> ([: a :], b)) -> [: a :]
+unfold z f : b -> (b -> ([: a :], b)) -> [: a :]
 ```
 
 A generative score: `unfold seed next`, where `next` grows one section
@@ -309,7 +309,7 @@ replayable — the transcript records the seed, not the surprise.
 ### `streamVoices`
 
 ```
-streamVoices : [: Void :] -> List (Int, Int, Voice)
+streamVoices s : [: Void :] -> List (Int, Int, Voice)
 ```
 
 The stream a dynamic performance forces — `layVoices`' twin, an event
@@ -322,7 +322,7 @@ stays above the marker; the walk it fronts is below.
 ### `liveVoices`
 
 ```
-liveVoices : [: Void :] -> List Cue
+liveVoices s : [: Void :] -> List Cue
 ```
 
 The stream a *listening* performance forces — `streamVoices` with one
@@ -339,7 +339,7 @@ walk — the question is the spine, suspended.
 ### `sow`
 
 ```
-sow : Int -> [: a :] -> [: a :]
+sow n s : Int -> [: a :] -> [: a :]
 ```
 
 Re-root a subtree's seed: `sow 7 intro ++ improvisation` is fixed
@@ -349,7 +349,7 @@ art inside an improvisation.
 ### `long`
 
 ```
-long : Int -> [: a :] -> [: a :]
+long n s : Int -> [: a :] -> [: a :]
 ```
 
 **A declared span: this branch is `n` beats long, whatever its
@@ -371,7 +371,7 @@ in — see `opaqueHead`.)
 ### `mark`
 
 ```
-mark : String -> [: a :]
+mark n : String -> [: a :]
 ```
 
 **A bar point** — zero beats wide, so `mark 1 ++ verse` moves
@@ -386,7 +386,7 @@ same place twice.
 ### `section`
 
 ```
-section : String -> [: a :] -> [: a :]
+section name s : String -> [: a :] -> [: a :]
 ```
 
 **A named span** — `section "verse" body` marks where the verse
@@ -413,7 +413,7 @@ rather than decorations, and what lets a transport re-enter by one
 ### `tempoShape`
 
 ```
-tempoShape : List Tempo -> [: a :] -> [: a :]
+tempoShape e s : List Tempo -> [: a :] -> [: a :]
 ```
 
 **A tempo, written where it happens.**  `tempoShape` bends the
@@ -440,7 +440,7 @@ when it chose an envelope over a `Sig Float` in the first place.
 ### `shape`
 
 ```
-shape : Chan Float -> List Envelope -> [: a :] -> [: a :]
+shape c e s : Chan Float -> List Envelope -> [: a :] -> [: a :]
 ```
 
 **A channel written across a span** — a crescendo said where it
@@ -455,7 +455,7 @@ job in signal land.
 ### `fermata`
 
 ```
-fermata : Chan Int -> [: a :]
+fermata c : Chan Int -> [: a :]
 ```
 
 **Wait here until the world says go.**  Zero beats wide, like a
@@ -515,7 +515,7 @@ not read: the usual next line is `below`, one bounded pick per draw.
 ### `hear`
 
 ```
-hear : Chan (List Int) -> [: List Int :]
+hear c : Chan (List Int) -> [: List Int :]
 ```
 
 **The world at this instant** — ariadne's listening leaf.  The
@@ -530,7 +530,7 @@ takes four beats.
 ### `tempoSpans`
 
 ```
-tempoSpans : [: Void :] -> List (Int, Int, List Tempo)
+tempoSpans s : [: Void :] -> List (Int, Int, List Tempo)
 ```
 
 Every mark and where it falls, `(tick, mark)`, beat-ordered and
@@ -546,7 +546,7 @@ prefix.
 ### `shapeSpans`
 
 ```
-shapeSpans : [: Void :] -> List (Int, Int, Chan Float, List Envelope)
+shapeSpans s : [: Void :] -> List (Int, Int, Chan Float, List Envelope)
 ```
 
 Every `shape` and the span it covers, `(from, to, chan, points)` in
@@ -558,14 +558,14 @@ can.
 ### `streamMarks`
 
 ```
-streamMarks : [: Void :] -> List (Int, String)
+streamMarks s : [: Void :] -> List (Int, String)
 ```
 
 
 ### `resumeAt`
 
 ```
-resumeAt : Int -> [: a :] -> [: a :]
+resumeAt t s : Int -> [: a :] -> [: a :]
 ```
 
 **The remainder of a score from tick `t` on** — what a resume plays,
@@ -585,7 +585,7 @@ no remainder that is not also a different piece.
 ### `opaqueHead`
 
 ```
-opaqueHead : [: a :] -> Bool
+opaqueHead s : [: a :] -> Bool
 ```
 
 **Does this subtree's head hold an unanswered question?**  The one
@@ -607,7 +607,7 @@ to reward.
 ### `resumeSeq`
 
 ```
-resumeSeq : Int -> Int -> [: a :] -> [: a :] -> [: a :]
+resumeSeq t da a b : Int -> Int -> [: a :] -> [: a :] -> [: a :]
 ```
 
 
@@ -640,7 +640,7 @@ instance Random Bool where
 ### `split`
 
 ```
-split : Int -> (Int, Int)
+split s : Int -> (Int, Int)
 ```
 
 Two independent seeds from one — how randomness travels *into*
@@ -650,7 +650,7 @@ ordinary code: thread one half, hand on the other.
 ### `keyOf`
 
 ```
-keyOf : Int -> Int
+keyOf s : Int -> Int
 ```
 
 A seed narrowed to a **position key** that fits a signed 64-bit
@@ -662,7 +662,7 @@ is the whole price, and identity is what the number is for.
 ### `below`
 
 ```
-below : Int -> Int -> Int
+below n s : Int -> Int -> Int
 ```
 
 **One draw in `0 .. n-1`** — the standard way a seed becomes a
@@ -677,7 +677,7 @@ two `below`s over one seed make correlated choices.
 ### `roll`
 
 ```
-roll : (Float -> [: a :]) -> [: a :]
+roll f : (Float -> [: a :]) -> [: a :]
 ```
 
 `draw`, with the seed already spent on one uniform draw.  The
@@ -687,7 +687,7 @@ content's time is its own — ariadne has no box to fit.
 ### `chance`
 
 ```
-chance : Float -> [: a :] -> [: a :]
+chance p s : Float -> [: a :] -> [: a :]
 ```
 
 Play `s` with probability `p`, else a beat of rest.  (Under the old
@@ -699,7 +699,7 @@ of whichever arm plays, so give the arms equal width yourself when
 ### `sowScore`
 
 ```
-sowScore : Int -> [: a :] -> [: a :]
+sowScore sd s : Int -> [: a :] -> [: a :]
 ```
 
 **Where the seed enters the tree** — named by the generated entry
@@ -721,14 +721,14 @@ unchanged whatever the seed, which is what keeps fixed art fixed.
 #### `maxInt`
 
 ```
-maxInt : Int -> Int -> Int
+maxInt a b : Int -> Int -> Int
 ```
 
 
 #### `placeScaled`
 
 ```
-placeScaled : Int -> Int -> List (Int, Int, Rendered) -> List (Int, Int, Rendered)
+placeScaled off k es : Int -> Int -> List (Int, Int, Rendered) -> List (Int, Int, Rendered)
 ```
 
 Scaling a subtree's events into place: `placeScaled off k es` puts local
@@ -746,14 +746,14 @@ the error message says to do.
 #### `placeShrunk`
 
 ```
-placeShrunk : Int -> Int -> List (Int, Int, Rendered) -> List (Int, Int, Rendered)
+placeShrunk off k es : Int -> Int -> List (Int, Int, Rendered) -> List (Int, Int, Rendered)
 ```
 
 
 #### `placeRetro`
 
 ```
-placeRetro : Int -> Int -> List (Int, Int, Rendered) -> List (Int, Int, Rendered)
+placeRetro off dt es : Int -> Int -> List (Int, Int, Rendered) -> List (Int, Int, Rendered)
 ```
 
 Mirroring a subtree's events inside its own duration — `Retro`'s half of
@@ -763,7 +763,7 @@ the same idea `placeScaled` is `Scale`'s.
 #### `layOnto`
 
 ```
-layOnto : Int -> [: a :] -> List (Int, Int, Rendered) -> (Int, List (Int, Int, Rendered))
+layOnto off s acc : Int -> [: a :] -> List (Int, Int, Rendered) -> (Int, List (Int, Int, Rendered))
 ```
 
 
@@ -773,21 +773,21 @@ layOnto : Int -> [: a :] -> List (Int, Int, Rendered) -> (Int, List (Int, Int, R
 #### `spreadOnto`
 
 ```
-spreadOnto : Int -> Int -> Int -> [: a :] -> List (Int, Int, a) -> (Int, Int, List (Int, Int, a))
+spreadOnto fuel w off s acc : Int -> Int -> Int -> [: a :] -> List (Int, Int, a) -> (Int, Int, List (Int, Int, a))
 ```
 
 
 #### `spreadStep`
 
 ```
-spreadStep : Int -> Int -> Int -> [: a :] -> List (Int, Int, a) -> (Int, Int, List (Int, Int, a))
+spreadStep fuel w off s acc : Int -> Int -> Int -> [: a :] -> List (Int, Int, a) -> (Int, Int, List (Int, Int, a))
 ```
 
 
 #### `spreadWin`
 
 ```
-spreadWin : Int -> Int -> Int
+spreadWin a b : Int -> Int -> Int
 ```
 
 
@@ -797,28 +797,28 @@ spreadWin : Int -> Int -> Int
 #### `layVoicesOnto`
 
 ```
-layVoicesOnto : Int -> [: a :] -> List (Int, Int, Voice) -> (Int, List (Int, Int, Voice))
+layVoicesOnto off s acc : Int -> [: a :] -> List (Int, Int, Voice) -> (Int, List (Int, Int, Voice))
 ```
 
 
 #### `placeScaledV`
 
 ```
-placeScaledV : Int -> Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
+placeScaledV off k es : Int -> Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
 ```
 
 
 #### `placeShrunkV`
 
 ```
-placeShrunkV : Int -> Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
+placeShrunkV off k es : Int -> Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
 ```
 
 
 #### `placeRetroV`
 
 ```
-placeRetroV : Int -> Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
+placeRetroV off dt es : Int -> Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
 ```
 
 
@@ -828,35 +828,35 @@ placeRetroV : Int -> Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
 #### `placeFrom`
 
 ```
-placeFrom : Int -> List (Int, Int, Rendered) -> List (Int, Int, Rendered)
+placeFrom off es : Int -> List (Int, Int, Rendered) -> List (Int, Int, Rendered)
 ```
 
 
 #### `keepBelow`
 
 ```
-keepBelow : Int -> List (Int, Int, Rendered) -> List (Int, Int, Rendered)
+keepBelow w es : Int -> List (Int, Int, Rendered) -> List (Int, Int, Rendered)
 ```
 
 
 #### `placeFromV`
 
 ```
-placeFromV : Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
+placeFromV off es : Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
 ```
 
 
 #### `keepBelowV`
 
 ```
-keepBelowV : Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
+keepBelowV w es : Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
 ```
 
 
 #### `takeBelowV`
 
 ```
-takeBelowV : Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
+takeBelowV w es : Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
 ```
 
 
@@ -866,35 +866,35 @@ takeBelowV : Int -> List (Int, Int, Voice) -> List (Int, Int, Voice)
 #### `mergeMarks`
 
 ```
-mergeMarks : List (Int, String) -> List (Int, String)
+mergeMarks xs ys : List (Int, String) -> List (Int, String)
 ```
 
 
 #### `placeMarks`
 
 ```
-placeMarks : Int -> List (Int, String) -> List (Int, String)
+placeMarks off ms : Int -> List (Int, String) -> List (Int, String)
 ```
 
 
 #### `minInt`
 
 ```
-minInt : Int -> Int -> Int
+minInt a b : Int -> Int -> Int
 ```
 
 
 #### `tempoSpansAt`
 
 ```
-tempoSpansAt : Int -> [: a :] -> List (Int, Int, List Tempo)
+tempoSpansAt off s : Int -> [: a :] -> List (Int, Int, List Tempo)
 ```
 
 
 #### `flipEnv`
 
 ```
-flipEnv : List Envelope -> List Envelope
+flipEnv ps : List Envelope -> List Envelope
 ```
 
 An envelope read backwards: each point's fraction mirrored and the
@@ -911,14 +911,14 @@ means by it; a step reversed steps at the mirrored place.
 #### `flipPoint`
 
 ```
-flipPoint : Envelope -> Envelope
+flipPoint p : Envelope -> Envelope
 ```
 
 
 #### `shiftFlags`
 
 ```
-shiftFlags : List Envelope -> List Envelope
+shiftFlags ps : List Envelope -> List Envelope
 ```
 
 **The flags move one place along.**  `Step`/`Ramp` is a property of
@@ -931,28 +931,28 @@ flat line: the whole shape went quiet while looking correct.
 #### `shiftGo`
 
 ```
-shiftGo : Bool -> List Envelope -> List Envelope
+shiftGo prev ps : Bool -> List Envelope -> List Envelope
 ```
 
 
 #### `shapeSpansAt`
 
 ```
-shapeSpansAt : Int -> [: a :]
+shapeSpansAt off s : Int -> [: a :]
 ```
 
 
 #### `streamMarksAt`
 
 ```
-streamMarksAt : Int -> [: a :] -> List (Int, String)
+streamMarksAt off s : Int -> [: a :] -> List (Int, String)
 ```
 
 
 #### `streamMarksTo`
 
 ```
-streamMarksTo : Int -> Int -> [: a :] -> List (Int, String)
+streamMarksTo limit off s : Int -> Int -> [: a :] -> List (Int, String)
 ```
 
 The bounded walk a `Clip` needs — and a *filter* cannot be: a markless
@@ -968,7 +968,7 @@ again: the same walk with one more fact in hand.
 #### `durOf`
 
 ```
-durOf : [: a :] -> Int
+durOf s : [: a :] -> Int
 ```
 
 A score's **duration in ticks, from its shape alone** — no events are
@@ -982,7 +982,7 @@ as its longer branch, and every leaf — even a rest — is one beat.
 #### `mergeVoices`
 
 ```
-mergeVoices : List (Int, Int, Voice) -> List (Int, Int, Voice) -> List (Int, Int, Voice)
+mergeVoices xs ys : List (Int, Int, Voice) -> List (Int, Int, Voice) -> List (Int, Int, Voice)
 ```
 
 Two beat-ordered streams as one.  **Left-biased** on a shared onset,
@@ -994,7 +994,7 @@ allocator makes the same choices either way.
 #### `streamVoicesAt`
 
 ```
-streamVoicesAt : Int -> [: a :] -> List (Int, Int, Voice)
+streamVoicesAt off s : Int -> [: a :] -> List (Int, Int, Voice)
 ```
 
 
@@ -1004,14 +1004,14 @@ streamVoicesAt : Int -> [: a :] -> List (Int, Int, Voice)
 #### `wrap64`
 
 ```
-wrap64 : Int -> Int
+wrap64 x : Int -> Int
 ```
 
 
 #### `xorBits`
 
 ```
-xorBits : Int -> Int -> Int
+xorBits a b : Int -> Int -> Int
 ```
 
 The primitive, because the fold below cost 64 case-splits per call
@@ -1025,14 +1025,14 @@ against if they ever disagreed.
 #### `xorGo`
 
 ```
-xorGo : Int -> Int -> Int -> Int -> Int
+xorGo a b bit acc : Int -> Int -> Int -> Int -> Int
 ```
 
 
 #### `mixA`
 
 ```
-mixA : Int -> Int
+mixA z : Int -> Int
 ```
 
 `z ^ (z >> 30)`, and its two siblings — shifts are division, because
@@ -1042,7 +1042,7 @@ the numbers are kept non-negative by `wrap64` at every entry.
 #### `mulWrap`
 
 ```
-mulWrap : Int -> Int -> Int
+mulWrap a b : Int -> Int -> Int
 ```
 
 `(a * b) mod 2^64`, with every intermediate under 2^96.  A full
@@ -1057,42 +1057,42 @@ early: bit-identical mod 2^64, so no draw moves.
 #### `mixB`
 
 ```
-mixB : Int -> Int
+mixB z : Int -> Int
 ```
 
 
 #### `mixC`
 
 ```
-mixC : Int -> Int
+mixC z : Int -> Int
 ```
 
 
 #### `mixD`
 
 ```
-mixD : Int -> Int
+mixD z : Int -> Int
 ```
 
 
 #### `mixE`
 
 ```
-mixE : Int -> Int
+mixE z : Int -> Int
 ```
 
 
 #### `mix64`
 
 ```
-mix64 : Int -> Int
+mix64 z : Int -> Int
 ```
 
 
 #### `unit`
 
 ```
-unit : Int -> Float
+unit s : Int -> Float
 ```
 
 One uniform draw in 0.0 .. 1.0 — the top 53 bits, which is every bit
@@ -1115,7 +1115,7 @@ Cue := CueEv Int Int Voice
 #### `spliceEnd`
 
 ```
-spliceEnd : List Cue -> (Int -> List Cue) -> List Cue
+spliceEnd cs f : List Cue -> (Int -> List Cue) -> List Cue
 ```
 
 Continue a self-terminated stream: walk to its `CueEnd`, hand the
@@ -1129,7 +1129,7 @@ takes (`spec/ariadne.md`, time linearized at the joints).
 #### `raiseEnd`
 
 ```
-raiseEnd : Int -> List Cue -> List Cue
+raiseEnd e cs : Int -> List Cue -> List Cue
 ```
 
 The larger of a finished branch's end and whatever the surviving
@@ -1140,7 +1140,7 @@ overlay be as wide as its widest answered branch.
 #### `endAt`
 
 ```
-endAt : Int -> List Cue -> List Cue
+endAt w cs : Int -> List Cue -> List Cue
 ```
 
 A declared box's own end, whatever the content did — `Clip`'s cap.
@@ -1149,54 +1149,54 @@ A declared box's own end, whatever the content did — `Clip`'s cap.
 #### `mergeCues`
 
 ```
-mergeCues : List Cue -> List Cue -> List Cue
+mergeCues xs ys : List Cue -> List Cue -> List Cue
 ```
 
 
 #### `cueTick`
 
 ```
-cueTick : Cue -> Int
+cueTick c : Cue -> Int
 ```
 
 
 #### `cueBelow`
 
 ```
-cueBelow : Int -> List Cue -> List Cue
+cueBelow w cs : Int -> List Cue -> List Cue
 ```
 
 
 #### `placeCues`
 
 ```
-placeCues : Int -> List Cue -> List Cue
+placeCues off cs : Int -> List Cue -> List Cue
 ```
 
 
 #### `scaleCues`
 
 ```
-scaleCues : Int -> List Cue -> List Cue
+scaleCues k cs : Int -> List Cue -> List Cue
 ```
 
 
 #### `shrinkCues`
 
 ```
-shrinkCues : Int -> List Cue -> List Cue
+shrinkCues k cs : Int -> List Cue -> List Cue
 ```
 
 
 #### `cuesOfEvents`
 
 ```
-cuesOfEvents : List (Int, Int, Voice) -> List Cue -> List Cue
+cuesOfEvents es rest : List (Int, Int, Voice) -> List Cue -> List Cue
 ```
 
 
 #### `liveTo`
 
 ```
-liveTo : Int -> [: a :] -> List Cue
+liveTo off s : Int -> [: a :] -> List Cue
 ```

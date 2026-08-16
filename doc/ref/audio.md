@@ -36,7 +36,7 @@ its own position in time off this rather than counting.
 ### `seconds`
 
 ```
-seconds : Float -> Int
+seconds t : Float -> Int
 ```
 
 Seconds as a number of samples.
@@ -103,7 +103,7 @@ actually writes: `0.5 + wiggle * 0.25` is the shape it looks like.
 ### `mkKnob`
 
 ```
-mkKnob : a -> Sig a
+mkKnob v : a -> Sig a
 ```
 
 A parameter, and what it holds before anything arrives.
@@ -152,7 +152,7 @@ instance Wrap (Sig Float) where
 ### `sawOf`
 
 ```
-sawOf : Float -> Float
+sawOf p : Float -> Float
 ```
 
 A rising ramp 0..1 becomes a sawtooth -1..1.
@@ -161,7 +161,7 @@ A rising ramp 0..1 becomes a sawtooth -1..1.
 ### `squareOf`
 
 ```
-squareOf : Float -> Float
+squareOf p : Float -> Float
 ```
 
 A square, from the same phase.
@@ -170,7 +170,7 @@ A square, from the same phase.
 ### `triangleOf`
 
 ```
-triangleOf : Float -> Float
+triangleOf p : Float -> Float
 ```
 
 A triangle, from the same phase — gentler than either.
@@ -190,7 +190,7 @@ chain rather than needing its own convention.
 ### `sineOf`
 
 ```
-sineOf : Float -> Float
+sineOf p : Float -> Float
 ```
 
 A sine, from the same phase.  The one oscillator that is not arithmetic
@@ -278,7 +278,7 @@ note is played.
 ### `lowpass`
 
 ```
-lowpass : Sig Float -> Sig Float -> Sig Float
+lowpass k s : Sig Float -> Sig Float -> Sig Float
 ```
 
 A one-pole lowpass, as a *signal transformation*.  A coefficient near 0
@@ -326,7 +326,7 @@ instance Clip (Sig Float) where
 ### `beatOf`
 
 ```
-beatOf : List Envelope -> Float -> Float
+beatOf ps t : List Envelope -> Float -> Float
 ```
 
 What beat it is, `t` seconds in.
@@ -355,7 +355,7 @@ carrier and a tuple has no layout in the fragment.
 #### `lowpassNext`
 
 ```
-lowpassNext : Float -> LowpassIn -> Float
+lowpassNext y p : Float -> LowpassIn -> Float
 ```
 
 `lowpass`, one sample: the state chases `x` by `c` of the distance.
@@ -364,7 +364,7 @@ lowpassNext : Float -> LowpassIn -> Float
 #### `beatOpen`
 
 ```
-beatOpen : Float -> Float -> List Envelope -> Float -> Float
+beatOpen b0 y0 rest t : Float -> Float -> List Envelope -> Float -> Float
 ```
 
 Before the first point the tempo is the first tempo, held — so the beat
@@ -374,7 +374,7 @@ clock is linear there, and the first point falls at `60·b₀/y₀`.
 #### `beatWalk`
 
 ```
-beatWalk : Float -> Float -> Float -> List Envelope -> Float -> Float
+beatWalk t0 b0 y0 rest t : Float -> Float -> Float -> List Envelope -> Float -> Float
 ```
 
 One segment at a time, carrying where it starts in *both* coordinates.
@@ -385,26 +385,26 @@ mean tempo would — and `k` is the slope in bpm per second.
 #### `beatSeg`
 
 ```
-beatSeg : Float -> Float -> Float -> Float -> Float -> Bool -> List Envelope
+beatSeg t0 b0 y0 b1 y1 ramps more t : Float -> Float -> Float -> Float -> Float -> Bool -> List Envelope
 ```
 
 
 #### `beatDt`
 
 ```
-beatDt : Float -> Float -> Float -> Float -> Bool -> Float
+beatDt b0 y0 b1 y1 ramps : Float -> Float -> Float -> Float -> Bool -> Float
 ```
 
 
 #### `beatK`
 
 ```
-beatK : Float -> Float -> Float -> Bool -> Float
+beatK y0 y1 dt ramps : Float -> Float -> Float -> Bool -> Float
 ```
 
 
 #### `beatIn`
 
 ```
-beatIn : Float -> Float -> Float -> Float -> Float -> Float -> Float
+beatIn t0 b0 y0 dt k b1 y1 more t : Float -> Float -> Float -> Float -> Float -> Float -> Float
 ```

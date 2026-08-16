@@ -7237,3 +7237,44 @@ Nothing is scheduled.  That is the shape asked for, and writing an idea
 down with the caller it is waiting for is what stops a reading from
 smuggling in work.
 
+## The names were in the source all along
+
+**2026-08-16, the evening.**  The third item on the board read *name
+datatypes eg. `type Duration = Float`, `type Pitch = Int`* — and the
+reason Henri gave for it was the interesting part: *"I only included
+this as today's task, because I do not figure out quickly enough which
+argument in lowpass filters are which."*
+
+The answer was written before the work started, by looking at the real
+signatures:
+
+    lowpass        : Sig Float -> Sig Float -> Sig Float               -- k,  s
+    lowpassOnePole : Sig Float -> Sig Float -> Sig Float               -- hz, s
+    lowpassSvf     : Sig Float -> Sig Float -> Sig Float -> Sig Float  -- hz, res, s
+    lowpassLadder  : Sig Float -> Sig Float -> Sig Float -> Sig Float  -- hz, res, s
+
+**The types carry no information at all.**  The names carry every bit of
+it — and the first argument means a *coefficient* in `lowpass` and
+*hertz* in its immediate neighbour, the same position meaning different
+things between two functions a person picks between.  A nominal type
+would not have helped with that: `Hz` and `Coefficient` are both
+`Sig Float` and the distinction a reader needs is which one *this*
+function wants, which is what the argument is called.
+
+So it is a visibility problem and the fix is three lines of plumbing:
+the argument names are read off the definition's own head — `lowpassSvf
+hz res s = …`, the line the reference parser had been skipping on
+purpose — and put on the signature everywhere one is shown.
+`doc/ref/synth.md` now says `lowpassSvf hz res s : Sig Float -> …`, the
+editor's `what` says it, and `typecheck --query` says it, all three
+through `reference.named` so they cannot come to disagree.  350 of the
+399 library values and operators have names; the 49 without are
+primitives and definitions that take a pattern, and those report **no**
+names rather than half, because half a list read positionally is worse
+than none.
+
+Henri's `cast` idea — semi-structured aliases, where `Duration` and
+`Length` are both `Float` but only convertible on purpose — stays on the
+roadmap unbuilt, which is where an idea with no caller belongs.  It was
+never what today's frustration was about.
+

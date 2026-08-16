@@ -334,3 +334,60 @@ def test_the_language_page_is_written_and_linked():
     assert "language.md" in pages
     assert "wait : Chan a" in pages["language.md"]
     assert "language.md" in pages["index.md"], "nothing points at it"
+
+
+def test_a_signature_carries_the_names_the_definition_gave_its_arguments():
+    """**The types carry no information at all; the names carry every
+    bit of it.**  Henri, 2026-08-16: *"I do not figure out quickly
+    enough which argument in lowpass filters are which?"* — and the four
+    lowpasses read `Sig Float -> Sig Float -> Sig Float`, with the first
+    argument meaning a coefficient in one and hertz in its neighbour.
+    The names were in the source all along and nowhere a reader looks.
+    """
+    from gestate.reference import all_entries, named
+
+    found = {}
+    for entry in all_entries():
+        found.setdefault(entry.name, entry)
+
+    assert found["lowpass"].params == ["k", "s"]
+    assert found["lowpassOnePole"].params == ["hz", "s"]
+    assert (named(found["lowpassSvf"])
+            == "lowpassSvf hz res s : Sig Float -> Sig Float -> Sig Float"
+               " -> Sig Float")
+    # And the page shows it, since the page is what a reader opens.
+    from gestate.reference import generate
+
+    assert "lowpassSvf hz res s :" in generate()["synth.md"]
+    # As does the editor's own `what`, through the same one reader.
+    from gestate.session import _reference
+
+    assert _reference("lowpassSvf").startswith("lowpassSvf hz res s :")
+
+
+def test_a_definition_that_takes_a_pattern_reports_no_names_at_all():
+    """Half a list read positionally is worse than none.
+
+    `velOf (Key key vel) = …` names nothing a reader could put in an
+    argument position, and a signature claiming one name for a
+    three-argument function would be a lie with the shape of help.
+    """
+    from gestate.reference import entries_of, named
+
+    source = "\n".join([
+        "half : Adsr -> Float",
+        "half (Adsr a d s r) = s",
+        "",
+        "twice : Int -> Int -> Int",
+        "twice a b = a + b",
+        "",
+        "thrice : Int -> Int",
+        "thrice = twice 3",
+    ])
+    found = {e.name: e for e in entries_of(source)}
+    assert found["half"].params == []
+    assert named(found["half"]) == "half : Adsr -> Float"
+    assert found["twice"].params == ["a", "b"]
+    assert named(found["twice"]) == "twice a b : Int -> Int -> Int"
+    # Point-free: nothing to name, and the signature stands as written.
+    assert found["thrice"].params == []

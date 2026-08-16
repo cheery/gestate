@@ -299,6 +299,24 @@ their own headings.  What is below is what is *not* done.
   necessity is gone and only the taste remains, so the comments should say
   that.  `Stereo` is the same question with an answer available:
   `sound : Sig (Float, Float)` could now replace it.
+- **Which argument is which — answered, and it was not the types.**
+  The card below asked for named datatypes and the reason given for it
+  was *"I do not figure out quickly enough which argument in lowpass
+  filters are which"*.  Looking at the real signatures answered it
+  differently (`board/done/argument-names.md` has the whole exchange):
+  the four lowpasses read `Sig Float -> Sig Float -> Sig Float`, the
+  first argument means a coefficient in `lowpass` and hertz in
+  `lowpassOnePole`, and **every bit of that information is in the
+  argument names**, which lived only in the source.
+
+  So the names are now on the signature wherever one is shown:
+  `lowpassSvf hz res s : Sig Float -> …` in `doc/ref/`, in the editor's
+  `what` and its page, and in `typecheck --query`.  Read off the
+  definition's own head, plain names only — a clause taking a pattern
+  reports none rather than half — and through one reader
+  (`reference.named`) so the three places cannot disagree.  No language
+  change, which is the point.
+
 - **Name the datatypes** — `type Duration = Float`, `type Pitch = Int`,
   and whatever else the preludes are passing around as bare numbers.
   The machinery is built and already used where it was missed most:

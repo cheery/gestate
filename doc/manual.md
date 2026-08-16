@@ -1060,6 +1060,16 @@ block, because a comment separated from a declaration is about something
 else.  A name with no signature is answered from its definition, and the
 reply says which of the two it read.  Constructors count as names.
 
+**The argument names come with it**, which is most of the answer for
+anything in the library: `lowpassSvf hz res s : Sig Float -> Sig Float
+-> Sig Float -> Sig Float` says which dial is which, and the bare
+signature does not — the four lowpass filters carry the same `Sig
+Float`s and the first argument means hertz in one and a coefficient in
+its neighbour.  The names are the definition's own; a definition that
+takes a pattern rather than a plain name reports none rather than half.
+`what` in the editor and the pages in `doc/ref/` say the same thing,
+from one reader.
+
 **`--holes`** reports every `_`.  A hole takes whatever type its context
 demands, so the program around it type-checks exactly as if it were filled,
 and reading that type back is what says what belongs there.  Positions are

@@ -235,6 +235,15 @@ _ALIAS = re.compile(r"^type\s+([A-Z][\w']*)((?:\s+[a-z][\w']*)*)\s*=\s*(.*)$")
 #: `internal`, alone on its line.
 _INTERNAL = re.compile(r"^internal\s*$")
 
+#: `lowpassSvf hz res s = …` — a definition, and the names it gives its
+#: arguments.  **Plain names only**: a clause that takes a pattern
+#: (`f (Adsr a d s r) = …`) is matched by the `\w` run failing, and no
+#: names are taken rather than half of them, because half a list read
+#: positionally is worse than none.
+_EQUATION = re.compile(r"^([A-Za-z_][\w']*)((?:\s+[a-z_][\w']*)*)\s*=(?!=)")
+#: The same for an operator, which writes its name in brackets.
+_OPEQUATION = re.compile(r"^\((\S+?)\)((?:\s+[a-z_][\w']*)*)\s*=(?!=)")
+
 
 @dataclass
 class Entry:
@@ -255,6 +264,19 @@ class Entry:
     line: int = 0
     #: For a `type`: its constructors, as written.
     alternatives: list = field(default_factory=list)
+    #: The names the definition gives its arguments, in order — `["hz",
+    #: "res", "s"]` for `lowpassSvf`.
+    #:
+    #: **Because the types carry no information at all.**  Henri,
+    #: 2026-08-16: *"I do not figure out quickly enough which argument in
+    #: lowpass filters are which"* — and the four filters read
+    #: `Sig Float -> Sig Float -> Sig Float`, with the first argument
+    #: meaning a *coefficient* in `lowpass` and *hertz* in
+    #: `lowpassOnePole`, the same position meaning different things
+    #: between neighbours.  Every bit of that information is in the names,
+    #: and until now the names lived only in the source.  So this is a
+    #: visibility fix and not a type-system one (`board/done/argument-names.md`).
+    params: list = field(default_factory=list)
     #: Which library it came from.  Filled in by whoever gathers several
     #: files together — the pages know already, the editor's search does
     #: not, since it puts all six in one list.
@@ -356,7 +378,41 @@ def entries_of(source: str) -> list:
         # name that already has a signature is not a second entry.  One with
         # no signature is a definition the library declined to promise a
         # type for, and is left out for that reason rather than missed.
+        #
+        # **It is where the argument names are**, though, and those are the
+        # whole of what a reader wants when four filters all read
+        # `Sig Float -> Sig Float -> Sig Float`.  The first clause wins: a
+        # definition written in several equations names its arguments in
+        # each, and reading the last would report the names of whichever
+        # case happened to be written last.
+        found = _EQUATION.match(line) or _OPEQUATION.match(line)
+        if found:
+            for entry in reversed(out):
+                if entry.name == found.group(1):
+                    if not entry.params:
+                        entry.params = found.group(2).split()
+                    break
     return out
+
+
+def named(entry) -> str:
+    """A signature with the argument names on it.
+
+    `lowpassSvf hz res s : Sig Float -> Sig Float -> Sig Float -> Sig
+    Float` — the definition's own head, and then what it promises.  The
+    plain signature when there are no names to add, which is every type,
+    class and instance and any value defined point-free.
+
+    **One reader per place it is shown**, and this is the one: the page,
+    the editor's `what`, and anything else that wants to say what a name
+    takes read it here rather than each reassembling it from `params`.
+    """
+    if not entry.params or not entry.signature.strip():
+        return entry.signature.strip()
+    head, _, rest = entry.signature.partition(":")
+    if not rest.strip():
+        return entry.signature.strip()
+    return f"{head.strip()} {' '.join(entry.params)} : {rest.strip()}"
 
 
 def _anchor(name: str) -> str:
@@ -479,7 +535,9 @@ def _body(entry: Entry, depth: int) -> list:
     anchor = entry.anchor or _anchor(entry.name)
     if not _github_slug(entry.name) or anchor != _anchor(entry.name):
         head += f' <a id="{anchor}"></a>'
-    out = ["", head, "", "```", entry.signature]
+    # **The argument names on the signature**, because the types on their
+    # own do not say which is which — `named` has the argument.
+    out = ["", head, "", "```", named(entry) or entry.signature]
     out += [f"    {alt}" for alt in entry.alternatives[1:]]
     out += ["```", ""]
     # **Above the prose, not below it.**  A shortcut is the shortest

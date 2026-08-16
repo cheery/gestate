@@ -16,28 +16,28 @@ Everything below `prelude.ges`'s **`internal`** marker is listed at the end, und
 ### `id`
 
 ```
-id : a -> a
+id x : a -> a
 ```
 
 
 ### `const`
 
 ```
-const : a -> b -> a
+const x y : a -> b -> a
 ```
 
 
 ### `flip`
 
 ```
-flip : (a -> b -> c) -> b -> a -> c
+flip f x y : (a -> b -> c) -> b -> a -> c
 ```
 
 
 ### `@`  <sub>operator</sub> <a id="op-64"></a>
 
 ```
-(@) : (b -> c) -> (a -> b) -> a -> c
+(@) f g x : (b -> c) -> (a -> b) -> a -> c
 ```
 
 **Composition** — `(f @ g) x` is `f (g x)`.  It reads right to left,
@@ -215,7 +215,7 @@ instance Monad Maybe where
 ### `'`  <sub>operator</sub> <a id="op-39"></a>
 
 ```
-(') : (Monad m) => a -> m a
+(') x : (Monad m) => a -> m a
 ```
 
 **`pure`, written as syntax.**  `'60` is one note, `'x` is `[x]` at a
@@ -235,7 +235,7 @@ reported — see `journal.md` Part II.
 ### `join`
 
 ```
-join : (Monad m) => m (m a) -> m a
+join xss : (Monad m) => m (m a) -> m a
 ```
 
 One layer off a nested structure — what `concat` was for a list of
@@ -268,7 +268,7 @@ instance Reversible List where
 ### `length`
 
 ```
-length : (Foldable t) => t a -> Int
+length xs : (Foldable t) => t a -> Int
 ```
 
 
@@ -301,7 +301,7 @@ instance Filterable Maybe where
 ### `not`
 
 ```
-not : Bool -> Bool
+not b : Bool -> Bool
 ```
 
 
@@ -404,7 +404,7 @@ instance Guard Bool where
 ### `holds`
 
 ```
-holds : Prop -> Bool
+holds p : Prop -> Bool
 ```
 
 Out of `Prop` and back into `Bool` — "is this one true?", which is how
@@ -470,49 +470,49 @@ instance (Eq a, Eq b) => Eq (a, b) where
 ### `elem`
 
 ```
-elem : (Eq a, Foldable t) => a -> t a -> Bool
+elem y xs : (Eq a, Foldable t) => a -> t a -> Bool
 ```
 
 
 ### `sum`
 
 ```
-sum : (Foldable t) => t Int -> Int
+sum xs : (Foldable t) => t Int -> Int
 ```
 
 
 ### `product`
 
 ```
-product : (Foldable t) => t Int -> Int
+product xs : (Foldable t) => t Int -> Int
 ```
 
 
 ### `null`
 
 ```
-null : (Foldable t) => t a -> Bool
+null xs : (Foldable t) => t a -> Bool
 ```
 
 
 ### `all`
 
 ```
-all : (Foldable t) => (a -> Bool) -> t a -> Bool
+all p xs : (Foldable t) => (a -> Bool) -> t a -> Bool
 ```
 
 
 ### `any`
 
 ```
-any : (Foldable t) => (a -> Bool) -> t a -> Bool
+any p xs : (Foldable t) => (a -> Bool) -> t a -> Bool
 ```
 
 
 ### `sort`
 
 ```
-sort : (Ord a) => List a -> List a
+sort xs : (Ord a) => List a -> List a
 ```
 
 **Sort, ascending** — a merge sort, because the obvious insertion
@@ -561,7 +561,7 @@ instance Show Int where
 ### `showItemsWith`
 
 ```
-showItemsWith : (a -> String) -> List a -> String
+showItemsWith f xs : (a -> String) -> List a -> String
 ```
 
 The helper takes the rendering function rather than a `Show a` context:
@@ -596,7 +596,7 @@ instance (Show a, Show b) => Show (a, b) where
 ### `min`
 
 ```
-min : (Ord a) => a -> a -> a
+min a b : (Ord a) => a -> a -> a
 ```
 
 The smaller of two.
@@ -605,7 +605,7 @@ The smaller of two.
 ### `max`
 
 ```
-max : (Ord a) => a -> a -> a
+max a b : (Ord a) => a -> a -> a
 ```
 
 The larger of two.
@@ -614,7 +614,7 @@ The larger of two.
 ### `clamp`
 
 ```
-clamp : (Ord a) => a -> a -> a -> a
+clamp lo hi x : (Ord a) => a -> a -> a -> a
 ```
 
 `clamp lo hi x` — `x`, held between the two.
@@ -633,7 +633,7 @@ outside.
 ### `mix`
 
 ```
-mix : (Num a) => a -> a -> a -> a
+mix a b t : (Num a) => a -> a -> a -> a
 ```
 
 `mix a b t` — linear interpolation: at `t` of 0 the first, at 1 the
@@ -643,7 +643,7 @@ second.
 ### `bimix`
 
 ```
-bimix : (Num a, Floating a) => a -> a -> a -> a
+bimix a b t : (Num a, Floating a) => a -> a -> a -> a
 ```
 
 `bimix a b t` — the same, driven by a **bipolar** `t`: −1 is the first,
@@ -675,14 +675,14 @@ the types that have one.
 ### `toFloat`
 
 ```
-toFloat : Int -> Float
+toFloat n : Int -> Float
 ```
 
 
 ### `floor`
 
 ```
-floor : Float -> Int
+floor x : Float -> Int
 ```
 
 The greatest integer not above its argument — floor, not truncation,
@@ -692,7 +692,7 @@ so it agrees with `prim_div_int` on negatives.
 ### `ceil`
 
 ```
-ceil : Float -> Int
+ceil x : Float -> Int
 ```
 
 The least integer not below its argument — `floor` the other way.
@@ -706,7 +706,7 @@ in agreement with the interpreter would buy nothing.  Same argument as
 ### `sin`
 
 ```
-sin : Float -> Float
+sin x : Float -> Float
 ```
 
 The transcendentals.  Each is libm's function of the same name, on both
@@ -723,14 +723,14 @@ The angle is in radians.
 ### `cos`
 
 ```
-cos : Float -> Float
+cos x : Float -> Float
 ```
 
 
 ### `sqrt`
 
 ```
-sqrt : Float -> Float
+sqrt x : Float -> Float
 ```
 
 Undefined below zero — the interpreter raises where C returns NaN, so
@@ -740,14 +740,14 @@ this is an error rather than a value the two would disagree about.
 ### `exp`
 
 ```
-exp : Float -> Float
+exp x : Float -> Float
 ```
 
 
 ### `log`
 
 ```
-log : Float -> Float
+log x : Float -> Float
 ```
 
 Natural log.  Undefined at and below zero, for the reason `sqrt` gives.
@@ -756,7 +756,7 @@ Natural log.  Undefined at and below zero, for the reason `sqrt` gives.
 ### `tan`
 
 ```
-tan : Float -> Float
+tan x : Float -> Float
 ```
 
 Not a primitive, and it does not need to be: written here it is the same
@@ -768,7 +768,7 @@ needing LLVM 19 costs nothing.)
 ### `pow`
 
 ```
-pow : Float -> Float -> Float
+pow b e : Float -> Float -> Float
 ```
 
 `pow b e` is `b ** e`, for a positive base.  Same argument as `tan`: an
@@ -796,7 +796,7 @@ Envelope := Step Float Float
 ### `on`
 
 ```
-on : List Envelope -> Float -> Float
+on ps x : List Envelope -> Float -> Float
 ```
 
 What the envelope reads at `x`.
@@ -815,7 +815,7 @@ What the envelope reads at `x`.
 #### `append`
 
 ```
-append : List a -> List a -> List a
+append xs ys : List a -> List a -> List a
 ```
 
 `++` at a list, which is the only thing that calls it.  Here rather
@@ -826,7 +826,7 @@ than above because `++` *is* its public face: `instance Semigroup
 #### `everyOther`
 
 ```
-everyOther : List a -> List a
+everyOther xs : List a -> List a
 ```
 
 Every second element: the evens of a list and the evens of its tail
@@ -836,14 +836,14 @@ are its two halves, interleaved.
 #### `sortMerge`
 
 ```
-sortMerge : (Ord a) => List a -> List a -> List a
+sortMerge xs ys : (Ord a) => List a -> List a -> List a
 ```
 
 
 #### `reverseOnto`
 
 ```
-reverseOnto : List a -> List a -> List a
+reverseOnto xs acc : List a -> List a -> List a
 ```
 
 `reverseOnto xs acc` is `reverse xs ++ acc` without building the
@@ -856,7 +856,7 @@ expensive.
 #### `showNat`
 
 ```
-showNat : Int -> String
+showNat n : Int -> String
 ```
 
 `show` at `Int` is the public face of this; here is its **unsigned**
@@ -866,21 +866,21 @@ half, with the sign peeled off by the instance.
 #### `pad3`
 
 ```
-pad3 : Int -> String
+pad3 n : Int -> String
 ```
 
 
 #### `showFloat`
 
 ```
-showFloat : Float -> String
+showFloat x : Float -> String
 ```
 
 
 #### `onFrom`
 
 ```
-onFrom : Float -> Float -> List Envelope -> Float -> Float
+onFrom b y rest x : Float -> Float -> List Envelope -> Float -> Float
 ```
 
 The walk, once the first point has been opened: `b`/`y` are the point
@@ -890,7 +890,7 @@ behind us and `rest` is what is still ahead.
 #### `onRamp`
 
 ```
-onRamp : Float -> Float -> Float -> Float -> Float -> Float
+onRamp b y c z x : Float -> Float -> Float -> Float -> Float -> Float
 ```
 
 One linear segment, between two points.
@@ -899,19 +899,19 @@ One linear segment, between two points.
 #### `envAt`
 
 ```
-envAt : Envelope -> Float
+envAt p : Envelope -> Float
 ```
 
 
 #### `envVal`
 
 ```
-envVal : Envelope -> Float
+envVal p : Envelope -> Float
 ```
 
 
 #### `envRamps`
 
 ```
-envRamps : Envelope -> Bool
+envRamps p : Envelope -> Bool
 ```

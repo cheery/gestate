@@ -612,6 +612,33 @@ def _con_type(name: str, program) -> str:
     return "" if info is None else f"{name} : {_show_type(info.type_)}"
 
 
+def _named_head(head: str, name: str, texts) -> str:
+    """`head` with the argument names the definition wrote on it.
+
+    `lowpassSvf hz res s : Sig Float -> …`.  **The types carry no
+    information and the names carry all of it** — the same fix
+    `reference.named` makes for the pages and the editor's `what`, made
+    here for the query an editor hovers with (`board/done/argument-names.md`).
+
+    Not shared with the reference's copy, which is walking a file line by
+    line and filling in entries as it goes; this one is handed a name and
+    several texts to look in.  The *rule* is shared and is the thing that
+    matters: plain argument names only, so a clause taking a pattern
+    reports none rather than half.
+    """
+    import re
+
+    equation = re.compile(
+        rf"^\(?{re.escape(name)}\)?((?:\s+[a-z_][\w']*)*)\s*=(?!=)")
+    for text in texts:
+        for line in text.split("\n"):
+            found = equation.match(line)
+            if found and found.group(1).split():
+                return head.replace(name, f"{name} {found.group(1).strip()}",
+                                    1)
+    return head
+
+
 def _query(name: str, source: str, sigs, cons, args, program=None,
            extra=()) -> int:
     """`--query NAME` — what it is, where it says so, and what it says.
@@ -620,7 +647,8 @@ def _query(name: str, source: str, sigs, cons, args, program=None,
     editor can split on the labels without parsing prose.
     """
     if name in sigs:
-        head = _format_sig(name, sigs, cons)
+        head = _named_head(_format_sig(name, sigs, cons), name,
+                           [source, *(text for _label, text in extra)])
     elif program is not None and _con_type(name, program):
         head = _con_type(name, program)
     else:

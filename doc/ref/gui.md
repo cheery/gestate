@@ -101,7 +101,7 @@ a value to show at the first instant.
 ### `colour` <a id="colour-1"></a>
 
 ```
-colour : Sig Int -> Sig Int -> Sig Int -> Sig Colour
+colour r g b : Sig Int -> Sig Int -> Sig Int -> Sig Colour
 ```
 
 A colour, and one that may vary — which is the point.  A meter that
@@ -114,7 +114,7 @@ turns red as it clips is one expression, not a second element.
 ### `rect`
 
 ```
-rect : Sig Int -> Sig Int -> Sig Colour -> Sig Sub
+rect w h c : Sig Int -> Sig Int -> Sig Colour -> Sig Sub
 ```
 
 A filled rectangle, `w` by `h`, **placed by its centre** like everything
@@ -124,7 +124,7 @@ else here.
 ### `circle`
 
 ```
-circle : Sig Int -> Sig Colour -> Sig Sub
+circle r c : Sig Int -> Sig Colour -> Sig Sub
 ```
 
 A filled circle of radius `r`.  Its extent is the `2r` square around it,
@@ -134,7 +134,7 @@ so a circle in a `row` reserves the room it looks like it occupies.
 ### `gap`
 
 ```
-gap : Sig Int -> Sig Int -> Sig Sub
+gap w h : Sig Int -> Sig Int -> Sig Sub
 ```
 
 Room, and nothing drawn in it.  What a layout is padded and spaced with
@@ -145,7 +145,7 @@ everywhere — `pad` is the everywhere case.
 ### `label`
 
 ```
-label : Sig Int -> Sig Int -> String -> Sig Colour -> Sig Sub
+label w h s c : Sig Int -> Sig Int -> String -> Sig Colour -> Sig Sub
 ```
 
 Words in a declared box, `w` by `h`, centred in it.
@@ -197,7 +197,7 @@ start.
 ### `over`
 
 ```
-over : Sig Sub -> Sig Sub -> Sig Sub
+over a b : Sig Sub -> Sig Sub -> Sig Sub
 ```
 
 `over a b` draws `a` and then `b`, so **`b` is on top**.  Painter's
@@ -209,7 +209,7 @@ The extent is the larger of the two, centred.
 ### `row`
 
 ```
-row : Sig Sub -> Sig Sub -> Sig Sub
+row a b : Sig Sub -> Sig Sub -> Sig Sub
 ```
 
 `a` to the left of `b`, centres level.  The extent is the two widths
@@ -219,7 +219,7 @@ added and the taller height.
 ### `column`
 
 ```
-column : Sig Sub -> Sig Sub -> Sig Sub
+column a b : Sig Sub -> Sig Sub -> Sig Sub
 ```
 
 `a` above `b`, centres level.  The extent is the two heights added and
@@ -232,7 +232,7 @@ the wider width.
 ### `sized`
 
 ```
-sized : Sig Int -> Sig Int -> Sig Sub -> Sig Sub
+sized w h s : Sig Int -> Sig Int -> Sig Sub -> Sig Sub
 ```
 
 Declare an extent, whatever the thing inside it happens to be.  The
@@ -244,7 +244,7 @@ child is a margin, room smaller is a deliberate overlap.
 ### `pad`
 
 ```
-pad : Sig Int -> Sig Sub -> Sig Sub
+pad n s : Sig Int -> Sig Sub -> Sig Sub
 ```
 
 Room on all four sides.  `pad 8 x` is `x` with eight pixels of clearance
@@ -255,7 +255,7 @@ move relative to its own centre.
 ### `moveXY`
 
 ```
-moveXY : Sig Int -> Sig Int -> Sig Sub -> Sig Sub
+moveXY x y s : Sig Int -> Sig Int -> Sig Sub -> Sig Sub
 ```
 
 Move a whole substrate, picture, attachments and all — and by an amount
@@ -276,7 +276,7 @@ relayout the window.
 ### `onTouchX`
 
 ```
-onTouchX : Chan Float -> Sig Sub -> Sig Sub
+onTouchX c s : Chan Float -> Sig Sub -> Sig Sub
 ```
 
 Report where a touch is across this element, 0 at the left edge and 1 at
@@ -287,7 +287,7 @@ what it hears along with what it draws.
 ### `onTouchY`
 
 ```
-onTouchY : Chan Float -> Sig Sub -> Sig Sub
+onTouchY c s : Chan Float -> Sig Sub -> Sig Sub
 ```
 
 Report where a touch is down this element, 0 at the top edge and 1 at
@@ -322,7 +322,7 @@ for the type a coordinate has.
 #### `labelAt`
 
 ```
-labelAt : String -> Int -> Int -> Colour -> Sub
+labelAt s w h c : String -> Int -> Int -> Colour -> Sub
 ```
 
 `Label` with its text first, so `label` can close the text over and

@@ -96,7 +96,7 @@ over.
 ### `feedback`
 
 ```
-feedback : Int -> (Float -> Float -> Float) -> Sig Float -> Sig Float
+feedback n f s : Int -> (Float -> Float -> Float) -> Sig Float -> Sig Float
 ```
 
 **A delay line with a fold around it** — `scan` with a longer arm.
@@ -131,7 +131,7 @@ because that is a thing the interpreter can do and the engine cannot.
 ### `tap`
 
 ```
-tap : Int -> Sig Float -> Sig Float -> Sig Float
+tap n pos s : Int -> Sig Float -> Sig Float -> Sig Float
 ```
 
 **A delay line you read at a moving position** — the other half of
@@ -164,7 +164,7 @@ to produce the samples that node is checked against.
 ### `slide`
 
 ```
-slide : Int -> (Float -> Float -> Float) -> Sig Float -> Sig Float
+slide n f pos s : Int -> (Float -> Float -> Float) -> Sig Float -> Sig Float
 ```
 
 **A delay line that bends** — `tap`'s moving, interpolated read, closed
@@ -198,7 +198,7 @@ audio backend recognises the name and emits a node, and this is what
 ### `scope`
 
 ```
-scope : String -> Sig Float -> Sig Float
+scope label s : String -> Sig Float -> Sig Float
 ```
 
 **A scope on a signal** — `spec/scope.md`.  Identity on the sound:
@@ -212,7 +212,7 @@ a scope changes nothing it touches.
 ### `spectro`
 
 ```
-spectro : String -> Sig Float -> Sig Float
+spectro label s : String -> Sig Float -> Sig Float
 ```
 
 **A spectrogram on a signal** — the scope's second reader
@@ -225,7 +225,7 @@ its trace.
 ### `loop`
 
 ```
-loop : Int -> (b -> b -> Float -> b) -> b -> Sig Float -> Sig b
+loop n f z s : Int -> (b -> b -> Float -> b) -> b -> Sig Float -> Sig b
 ```
 
 **A delay line with a filter in it** — `feedback`, plus where the step
@@ -286,7 +286,7 @@ the audio backend recognises the name and emits a node, and this is what
 ### `gain`
 
 ```
-gain : Float -> Sig Float -> Sig Float
+gain g s : Float -> Sig Float -> Sig Float
 ```
 
 Scale a signal by a constant.
@@ -332,7 +332,7 @@ and there is nothing stale to read.
 #### `lineZero`
 
 ```
-lineZero : Int -> List Float
+lineZero n : Int -> List Float
 ```
 
 `n` samples of silence — the line before anything has entered it.
@@ -341,7 +341,7 @@ lineZero : Int -> List Float
 #### `lineOut`
 
 ```
-lineOut : List Float -> Float
+lineOut buf : List Float -> Float
 ```
 
 What left the line `n` samples ago: the last element, or silence while
@@ -351,7 +351,7 @@ the line is still filling.
 #### `lineStep`
 
 ```
-lineStep : (Float -> Float -> Float) -> List Float -> Float -> List Float
+lineStep f buf x : (Float -> Float -> Float) -> List Float -> Float -> List Float
 ```
 
 One sample: read the oldest, fold it with the input, and put the result
@@ -362,14 +362,14 @@ and dropping it is what makes the line a fixed length.
 #### `lineOldest`
 
 ```
-lineOldest : List Float -> Float
+lineOldest buf : List Float -> Float
 ```
 
 
 #### `lineButLast`
 
 ```
-lineButLast : List a -> List a
+lineButLast buf : List a -> List a
 ```
 
 Polymorphic because `loop`'s ring holds whole states rather than
@@ -379,7 +379,7 @@ samples; dropping the far end is the same operation either way.
 #### `tapPush`
 
 ```
-tapPush : List Float -> Float -> List Float
+tapPush buf x : List Float -> Float -> List Float
 ```
 
 The newest sample at the near end, and the far end falls off — so the
@@ -389,7 +389,7 @@ list is `[s[t], s[t-1], …]` and index `d` is `d` samples back.
 #### `tapRead`
 
 ```
-tapRead : List Float -> Float -> Float
+tapRead buf d : List Float -> Float -> Float
 ```
 
 Read at `d` samples back, interpolating between the two either side.
@@ -401,21 +401,21 @@ must not return, and n-1 is as far as the line reaches.
 #### `tapWhere`
 
 ```
-tapWhere : Int -> Float -> Float
+tapWhere n d : Int -> Float -> Float
 ```
 
 
 #### `tapMix`
 
 ```
-tapMix : List Float -> Float -> Float
+tapMix buf d : List Float -> Float -> Float
 ```
 
 
 #### `tapBlend`
 
 ```
-tapBlend : Float -> Float -> Float -> Float
+tapBlend a b f : Float -> Float -> Float -> Float
 ```
 
 
@@ -434,21 +434,21 @@ instantiations in a graph collides in the code generator.
 #### `slideStep`
 
 ```
-slideStep : (Float -> Float -> Float) -> List Float -> SlideIn -> List Float
+slideStep f buf i : (Float -> Float -> Float) -> List Float -> SlideIn -> List Float
 ```
 
 
 #### `slideRead`
 
 ```
-slideRead : List Float -> Float -> Float
+slideRead buf d : List Float -> Float -> Float
 ```
 
 
 #### `slideHead`
 
 ```
-slideHead : List Float -> Float
+slideHead buf : List Float -> Float
 ```
 
 What the step just wrote — the node's output is this instant's sample,
@@ -458,14 +458,14 @@ as `loop`'s is, not the far end of the ring as `feedback`'s is.
 #### `lineAt`
 
 ```
-lineAt : List Float -> Int -> Float
+lineAt buf i : List Float -> Int -> Float
 ```
 
 
 #### `loopZero`
 
 ```
-loopZero : Int -> a -> List a
+loopZero n z : Int -> a -> List a
 ```
 
 `n` copies of the initial state — the ring before anything has run.
@@ -474,7 +474,7 @@ loopZero : Int -> a -> List a
 #### `loopPrev`
 
 ```
-loopPrev : a -> List a -> a
+loopPrev z buf : a -> List a -> a
 ```
 
 Where the step was an instant ago: the near end, or the initial state
@@ -484,7 +484,7 @@ while nothing has been written yet.
 #### `loopOld`
 
 ```
-loopOld : a -> List a -> a
+loopOld z buf : a -> List a -> a
 ```
 
 What left the line `n` instants ago: the far end, or the initial state.
@@ -493,7 +493,7 @@ What left the line `n` instants ago: the far end, or the initial state.
 #### `loopStep`
 
 ```
-loopStep : (a -> a -> Float -> a) -> a -> List a -> Float -> List a
+loopStep f z buf x : (a -> a -> Float -> a) -> a -> List a -> Float -> List a
 ```
 
 One instant.  The step sees both ends and this instant's input, and what
@@ -503,7 +503,7 @@ it returns goes on the near end while the far end falls off.
 #### `addSig`
 
 ```
-addSig : Sig Float -> Sig Float -> Sig Float
+addSig a b : Sig Float -> Sig Float -> Sig Float
 ```
 
 Add two signals — the reason `zipSig` was wanted.  Two oscillators can be
@@ -513,7 +513,7 @@ two signals now, rather than two fields of one state.
 #### `mulSig`
 
 ```
-mulSig : Sig Float -> Sig Float -> Sig Float
+mulSig a b : Sig Float -> Sig Float -> Sig Float
 ```
 
 Multiply two signals — a gain you can *turn*.
@@ -530,7 +530,7 @@ combinator of their own.
 #### `subSig`
 
 ```
-subSig : Sig Float -> Sig Float -> Sig Float
+subSig a b : Sig Float -> Sig Float -> Sig Float
 ```
 
 Subtract one signal from another.  Here for the same reason `addSig` is,
