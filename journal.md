@@ -6740,3 +6740,85 @@ project's own claims are now checked rather than remembered — the pass
 order, the editor's wire, the host's wire, and which score words are
 for a person.  The rest is the sentence under each box, which is the
 part that was always going to be written by hand.
+
+## The rebuild learns to ask what changed
+
+2026-08-16, the same morning, after the atlas.  Henri: *"the compile
+times are seconds and I don't think they should be, if there's only one
+small change at a time."*  He asked it while wondering whether
+`--migration` would help.
+
+**It would not, and saying so was most of the answer.**  `migrate`
+compares node origins to decide which oscillators keep their phase
+across a swap; it runs *after* the seconds have been spent and cannot
+save any of them.  Worth building for what it does say — the roadmap
+argues that — but it is not this.
+
+So: measure first.  One constant changed inside one voice of
+`examples/audio/quartet.ges`, headless, per phase:
+
+    clang        1.53s   the C did change — earned
+    score        1.45s   the score was not touched
+    front end    1.32s   the whole program half, again
+    substrate    0.31s
+    extract      0.20s ×2
+    midi         0.19s
+
+and, more tellingly, **a comment-only edit cost two seconds**.  A
+comment cannot change anything.  The rebuild was not asking what
+changed; it was redoing the file.
+
+### Textual, and every uncertainty answers "changed"
+
+`gestate/unchanged.py` splits a text into blocks — a top-level
+declaration begins in column zero, which a regular expression can find
+— and answers, per phase, *did anything you read move?*
+
+The obvious implementation parses both texts and compares
+declarations.  It was measured and rejected: expanding this file costs
+0.6 s and parsing it 0.16, which is most of what the skipping would
+save, and it needs the program to *parse*, which while somebody is
+typing it often does not.  The textual split is under a millisecond and
+works on half-written text.
+
+What makes it safe is not the split but the refusals:
+
+* a `class`, `instance`, `data`, `type`, `voices` or fixity line that
+  differs by a byte means **everything moved** — every one of them can
+  change what some other declaration *means*, and an instance is chosen
+  by type rather than by a name anything reaches;
+* a declaration appearing or vanishing means everything moved;
+* the reachability walk is over *identifiers* rather than resolved
+  references, so it sees more than the real dependency graph — a bigger
+  reachable set means fewer skips, which is the safe direction;
+* nothing normalises whitespace, because layout is meaning here;
+* and the phase whose inputs cannot be bounded honestly — the `FromMIDI`
+  half — asks the strictest question there is: *did anything at all
+  change?*
+
+The seed is asked about separately, since it is not in the text and
+decides every note a chancy score draws.
+
+**The cost of being wrong is why all of that is written down.**  A
+wrong *yes* is a stale score under a new synth: silently the wrong
+music, which is the worst failure this project can have, and no number
+of saved seconds is worth it.  So the tests are mostly refusals, and
+the one that matters most edits a note and asserts the score was built
+again.
+
+### What it bought
+
+    one constant in a voice body   5.41s → 3.74s
+    a comment                      2.15s → ~1.5s, and clang skipped
+
+What is left is the floor: the front end at 1.2 s, and `clang` at 1.4 s
+when the C really did change.  Both have their own answers and neither
+is this one — the front end's whole-module tail is measured in
+`roadmap.md`, and the compilation *unit* is the next thing to try, one
+object per declaration, with the render-speed measurement attached
+because today's throughput comes from `-O2` over one module.
+
+**And the atlas caught the new module on its first outing.**
+`test_atlas.py` failed with *these modules have no lane — give each one
+a line: unchanged*, which is exactly what it was built to do, four
+hours after it was built.

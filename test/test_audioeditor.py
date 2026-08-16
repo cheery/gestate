@@ -2336,3 +2336,55 @@ def test_a_rebuild_stands_out_of_the_machines_way(tmp_path):
     # And the thread that asked kept what it had, which is the point:
     # only the rebuild steps aside.
     assert os.getpriority(os.PRIO_PROCESS, 0) == mine
+
+
+def test_an_edit_that_misses_the_score_keeps_it(tmp_path):
+    """**A rebuild asks what the edit touched** — `gestate/unchanged.py`.
+
+    Measured on `quartet.ges`: a constant changed inside one voice used
+    to re-walk a score that had not moved, at 1.45 s of a 5.4 s apply.
+    Here the same two edits are made to `duet.ges` and the *identity* of
+    the schedule says which happened — kept, or built again.
+
+    The second half is the one that matters.  A wrong keep is a stale
+    score under a new synth, which is silently the wrong music, so the
+    note edit must rebuild.
+    """
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start()
+    assert _wait(lambda: any("playing" in m for m in bench.messages), 30.0), \
+        bench.messages
+    text = bench.source()
+    kept = bench.schedule
+    assert kept is not None, "duet has a score to keep"
+
+    # A constant inside a voice body: nothing the score reaches.
+    # **Drained first**, because `_settle` reads every message there has
+    # ever been and the last build's would answer for this one.
+    bench.drain()
+    bench.apply(text.replace("lowpass 0.18", "lowpass 0.19"), save=False)
+    _settle(bench)
+    assert bench.schedule is kept, "the score was rebuilt for a synth edit"
+
+    # A note in the walk: the score itself.
+    bench.drain()
+    bench.apply(text.replace("Pitched 52 70", "Pitched 55 70", 1), save=False)
+    _settle(bench)
+    assert bench.schedule is not kept, "a changed note did not reach the score"
+    bench.stop()
+
+
+def test_a_reroll_rebuilds_the_score_however_little_the_text_moved(tmp_path):
+    """The seed is not in the text and decides every note a chancy score
+    draws, so it is asked about separately."""
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start()
+    assert _wait(lambda: any("playing" in m for m in bench.messages), 30.0), \
+        bench.messages
+    kept = bench.schedule
+    bench.seed = (bench.seed or 0) + 1
+    bench.drain()
+    bench.apply(bench.source(), save=False)
+    _settle(bench)
+    assert bench.schedule is not kept, "a reroll kept the old take"
+    bench.stop()

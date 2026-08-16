@@ -764,6 +764,12 @@ class Workbench:
         #: same reason: an edit moves them.
         self.banks: list = []
         #: The piece this program plays, as a `Schedule`, or `None`.
+        #: The text the phases below were last built from, and the seed
+        #: they were built with — what `unchanged.kept` compares against
+        #: to decide whether a phase has to run at all.  `None` until
+        #: something has been built, which reads as "rebuild".
+        self._built_from: str | None = None
+        self._built_seed = None
         self.schedule = None
         #: The piece again, when it *unfolds* (`spec/dynamicscore.md`):
         #: a `LazyPerformer` deciding notes as the transport reaches
@@ -950,6 +956,11 @@ class Workbench:
             self._load_substrate(text)
             self._load_score(text)
             self._load_from_midi(text)
+            # What the *first* edit of the session is compared against.
+            # Without this the first Ctrl-S after opening a file rebuilds
+            # everything — safe, and a wasted second on the one edit
+            # somebody is most likely to be watching.
+            self._built_from, self._built_seed = text, self.seed
 
         threaded = os.environ.get("GESTATE_SIDE_THREAD", "") not in ("", "0")
         side = threading.Thread(target=loaders) if threaded else None
@@ -2766,16 +2777,59 @@ class Workbench:
                   f"worst block {worst:.1f} ms of {beat:.1f} ms",
                   file=sys.stderr, flush=True)
 
+    def _skipped(self, phase: str) -> None:
+        """Say that a phase was kept rather than rebuilt.
+
+        Only under `GESTATE_BUILD_TIME`, beside the numbers it is about:
+        a phase that vanishes from a report is indistinguishable from a
+        phase that got fast, and the difference is the whole point.
+        """
+        import os
+        import sys
+
+        if os.environ.get("GESTATE_BUILD_TIME", "") not in ("", "0"):
+            print(f"[build]   kept {phase} — nothing it reads moved",
+                  file=sys.stderr, flush=True)
+
     def _built(self, text: str, save: bool) -> None:
         self.live.compile(text)
         if isinstance(self.live.pending, Exception):
             self.say(f"not applied: {self._first_line(self.live.pending)}")
             return
-        self._load_substrate(text)
+        # **What did this edit actually touch?**  A rebuild used to redo
+        # the file: a constant changed inside one voice re-walked a
+        # score that had not moved (1.45 s on `quartet.ges`), rebuilt a
+        # canvas that had not moved, and recompiled the MIDI half that
+        # had not moved.  `unchanged.kept` answers per phase, and
+        # answers *no* to anything it cannot prove — a stale score under
+        # a new synth is silently the wrong music, and no number of
+        # saved seconds is worth that.
+        from . import unchanged
+
+        was = self._built_from
+        if unchanged.kept(was, text, ("substrate",)):
+            self._skipped("substrate")
+        else:
+            self._load_substrate(text)
         self._place(text)
-        self._load_score(text)
-        self._load_from_midi(text)
+        # The seed is not in the text and decides every note a chancy
+        # score draws, so a reroll rebuilds however little else moved.
+        if self.seed == self._built_seed \
+                and unchanged.kept(was, text, ("score", "bpm")):
+            self._skipped("score")
+        else:
+            self._load_score(text)
+        # **The strictest question, because its inputs cannot be bounded
+        # honestly.**  A `FromMIDI` instance body reaches whatever it
+        # names, and an instance is chosen by *type* rather than by a
+        # name anything reaches — so this one is kept only when nothing
+        # at all changed.
+        if unchanged.kept(was, text):
+            self._skipped("midi")
+        else:
+            self._load_from_midi(text)
         self._refresh_notes(text)
+        self._built_from, self._built_seed = text, self.seed
         # **The build succeeded, so the complaint is over.**  This used
         # to be cleared only in `_progress`, which the driver calls
         # *between blocks* — so an error survived being fixed for as

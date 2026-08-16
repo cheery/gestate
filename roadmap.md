@@ -379,6 +379,30 @@ their own headings.  What is below is what is *not* done.
     and much further out, unification provenance — *why did it think this
     was `Int`* — which is the expensive one and the one every language
     wishes it had.
+- **A rebuild that asks what changed — built.**  `gestate/unchanged.py`
+  and `journal.md` §"The rebuild learns to ask what changed": the
+  score, substrate and MIDI phases keep what they built when nothing
+  they read moved.  One constant inside one voice went 5.41 s → 3.74 s
+  on `quartet.ges`, and a comment-only edit no longer walks the score.
+
+  **What is left of it**, in the order the value falls:
+
+  * **The compilation unit** — one object file per declaration, cached
+    by content and relinked, so a change to one voice re-compiles one
+    voice.  Henri's idea, and the measurement has to come with it:
+    today's render speed is `-O2` over one whole module, and splitting
+    the unit costs cross-function inlining.  `-O1` was already rejected
+    for costing `lead.ges` 30× realtime → 16×, which is the precedent
+    for how to measure this one.
+  * **The front end's 1.2 s floor** — about 0.6 s of it is passes
+    running over library supercombinators that cannot have changed,
+    measured pass by pass on the staged path.  The `desugar_program`
+    share has a named fix (`names_end` in `StackFront`); `_discharge`
+    is the expensive half and needs the constraint-free SCs identified
+    first.
+  * **`_place` at 0.33 s**, which cannot be skipped for a comment
+    because a comment moves the lines its knobs are drawn beside.
+
 - **A drawing of the whole project — built, and it draws itself.**
   `python -m gestate.atlas` writes `doc/atlas/whole.svg`, one A3 sheet:
   what you write, the surface, the type layer, the core, the three
