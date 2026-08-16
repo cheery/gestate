@@ -6489,7 +6489,7 @@ something about it.
 
 ## The sheet that draws itself
 
-2026-08-16, afternoon.  Henri asked for an A3 or two mapping the
+2026-08-16, still the same morning.  Henri asked for an A3 or two mapping the
 architecture, *"such that it stands time and updates along the
 project"* — which is the whole question, and it had been sitting in
 the roadmap since the morning with two candidate answers.
@@ -6574,7 +6574,7 @@ somebody would look for it.
 Henri, an hour later: *"the atlas is excellent.  Would you like to make
 other A3s that show the next layer deeper in?  How far can we bring
 this?"*  So `language.svg` — the front end, pass by pass — went in the
-same afternoon, and it answers the second question better than an
+same morning, and it answers the second question better than an
 argument would.
 
 **The deeper you go, the more there is to derive, not less.**  That was
@@ -6638,7 +6638,7 @@ keep writing.
 ### The wire, which turned out to be a test
 
 *"Do the wire.  I think that's important to see as well."*  So
-`wire.svg`, the same afternoon, and it is the first sheet here that
+`wire.svg`, the same morning, and it is the first sheet here that
 **verifies** rather than describes.
 
 Between the Python model and the Rust window there are four
@@ -6722,5 +6722,21 @@ an answer rather than an omission.  Thirteen of the fifty-one public
 names are in it.  A new score operator fails the test until somebody
 says which it is.
 
-What is left is more sheets, and the rule the rest of this project runs
-on applies: draw the one somebody wants to read.
+### Where it stops
+
+Henri, having read all five: *"These take quite a lot of time, but save
+it eventually as well.  This is enough and what helps.  The remaining
+could turn out noise."*
+
+So the set is closed at five, and the closing is the same rule that
+governs everything else here — **do not build what nothing needs.**  A
+sixth sheet has no caller, and *the set would be complete* has never
+been one in this project.  The generator returns a page per name and
+will take another the day a question turns up that none of the five
+answers.
+
+What the five cost was a morning; what they buy is that four of the
+project's own claims are now checked rather than remembered — the pass
+order, the editor's wire, the host's wire, and which score words are
+for a person.  The rest is the sentence under each box, which is the
+part that was always going to be written by hand.

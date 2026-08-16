@@ -424,6 +424,13 @@ their own headings.  What is below is what is *not* done.
   staleness check ignores, or every commit anywhere would demand a
   redraw.
 
+  **The set is closed at five** — Henri, 2026-08-16, after reading
+  them: *"This is enough and what helps.  The remaining could turn out
+  noise."*  Which is the project's own rule arriving where it always
+  does: a sixth sheet needs a caller, and "the set would be complete"
+  is not one.  The generator takes another page whenever a question
+  turns up that none of the five answers.
+
   And the limit, so nobody chases it: everything above is a fact in the
   source.  Why a pass exists, which arrow matters, what a lane is *for*
   and which words are yours are not, and stay written by hand.
