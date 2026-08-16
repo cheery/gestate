@@ -325,22 +325,28 @@ their own headings.  What is below is what is *not* done.
   key, hover — remains a vocabulary question to be settled by programs
   wanting them rather than in advance.  This is the same discipline that
   extracted `signal.ges` at the third combinator.
-- **Examine the grammar of graphics** — the reading that stands beside
-  the substrate the way `spec/frp_lesson.md` stands beside the signal
-  half: Wilkinson's grammar, and Wickham's reading of it, set next to
-  what `Sig Sub` actually is.  The question they answer is the one this
-  project is about to meet twice — once for the substrate's own
-  vocabulary and once for the score box's — *what is the smallest set of
-  parts that draws data, and where is the seam between the data, the
-  mapping and the mark?*  `Label` already turned up one such rule (a
-  drawn word is placed by its own box), and turning up rules one element
-  at a time is slower than reading what somebody else paid for.
+- **The grammar of graphics — read, and it is `spec/graphics.md`.**
+  Wilkinson's grammar and Wickham's layered reading of it, set beside
+  what `Sig Sub` and the score box actually are, the way
+  `spec/frp_lesson.md` stands beside the signal half.
 
-  The output is a `spec/` reading, not a feature: what the grammar
-  claims, what it costs, which of its parts this language already has
-  under other names, and which of the four the substrate is missing.
-  Its worth is measured the way `frp_lesson.md`'s was — by the gaps it
-  names.
+  **What it found**, which is the thing worth carrying: the score box
+  already holds the grammar's load-bearing idea *in full* — a scale
+  kept as a value together with its inverse, which is what lets a
+  picture answer a pointer (`y_of`/`key_at`, and the north star's drag
+  is built on it being one function read both ways) — and the
+  substrate, which has *many* pictures, does not have it at all and
+  recomputes it by hand in every example.  Layers and small multiples
+  turn out to be gaps that are already closed: in this language they
+  are function application and `foldr Row`, and a `Layer` type would be
+  a constructor tax for what composition does.
+
+  Six ideas are collected there, each with the caller it waits for, and
+  one refusal on the record with its reason (a `stat` layer: transforming
+  data inside the drawing is a second place data is transformed).
+  **Nothing is scheduled**, which is the shape Henri asked for — *"the
+  spec is implemented when there is a need for the feature.  We collect
+  here the features that might reach implementation some time."*
 - **More tools that ask the compiler.**  Three are built; these are worth
   building next, in the order the value falls:
 

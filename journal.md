@@ -7200,3 +7200,40 @@ anybody reaches for while working, collect a few dozen and never see it.
 The mistake is now loud instead of quiet, which is the same rule as the
 fence, the leash and `--check`: *jidoka* one floor down.
 
+## Reading Wilkinson at the score box
+
+**2026-08-16, later the same evening.**  The second item on the board:
+*examine grammar of graphics and do specification work of your
+discoveries.*  Henri had already set the scope in his answer — collect
+the good ideas, each waiting for its caret; *"the spec is implemented
+when there is a need for the feature."*  So `spec/graphics.md` is a
+reading in `frp_lesson.md`'s tradition, and its worth is the gaps it
+names.
+
+It named one, and it was not where either of us was looking.  The
+question the item asked was what the *substrate* is missing.  The answer
+is that **the score box already has the grammar's load-bearing idea and
+the substrate does not.**  A scale — a map from a data value to a
+drawable quantity, kept as a value *together with its inverse* — is what
+lets a picture answer a pointer, and the north star's drag is built on
+`y_of` and `key_at` being one function read both ways
+(`spec/north_star.md`: *"the same function that drew it, inverted, so
+the picture and the arithmetic cannot disagree"*).  The substrate has
+many pictures and no scale at all: every example in the tree computes a
+fraction-to-pixels by hand, and `TouchX`/`TouchY` carry half an inverse
+written for the hand rather than for the eye.
+
+The other half of the reading is what it refuses.  Layers and small
+multiples, the two parts of ggplot2 anybody would reach for first, turn
+out to be **gaps that are already closed** — a layer is function
+application, a facet grid is `foldr Row` — so proposing types for them
+would be a constructor tax for what composition does.  And a `stat`
+layer is refused outright with its reason on the record: binning and
+smoothing inside the drawing is a second place where data is
+transformed, and this language's whole answer is that transformation is
+what functions are for.
+
+Nothing is scheduled.  That is the shape asked for, and writing an idea
+down with the caller it is waiting for is what stops a reading from
+smuggling in work.
+
