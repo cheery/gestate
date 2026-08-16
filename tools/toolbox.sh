@@ -126,6 +126,26 @@ if ! report pillow "$(have_py PIL)" \
     "$py" -m pip install pillow
 fi
 
+# ── Looking at the atlas ─────────────────────────────────────────────
+#
+# `python -m gestate.atlas` draws the project on an A3 sheet, and an
+# `.svg` is a file many readers cannot open — a terminal, a diff, an
+# assistant reading over your shoulder.  With this, the same command
+# leaves a `.png` beside it in about a second.
+#
+# **The `.svg` is the artefact and this is a convenience**: the atlas
+# is written and checked without it, and `gestate/atlas.py` falls back
+# to `rsvg-convert`, `resvg` or Inkscape if one of those is what this
+# machine has.  Inkscape does the job at two and a half seconds a call,
+# being a whole editor asked to convert a file; `cairosvg` is a pip
+# install into the interpreter the suite already runs under, and
+# renders this sheet identically.
+if ! report cairosvg "$(have_py cairosvg)" \
+        "the atlas as a .png, so it can be looked at anywhere" \
+        "pip install cairosvg" && [ "$install" = 1 ]; then
+    "$py" -m pip install cairosvg
+fi
+
 echo
 if [ "$missing" = 0 ]; then
     echo "the bench is ready."

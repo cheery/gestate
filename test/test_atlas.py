@@ -87,3 +87,19 @@ def test_the_sheet_is_an_a3_page():
     svg = (ROOT / "doc" / "atlas" / "whole.svg").read_text()
     assert 'width="420mm"' in svg and 'height="297mm"' in svg
     assert svg.count("<svg") == 1
+
+
+def test_the_sheet_can_be_made_into_a_picture(tmp_path):
+    """**A picture nobody can look at is not much of a picture.**
+
+    The `.svg` is the artefact and the `.png` is the convenience, so
+    this skips rather than fails without a rasteriser — but where one
+    is installed, the convenience has to actually work.
+    """
+    import pytest
+
+    pytest.importorskip("cairosvg")
+    png = tmp_path / "whole.png"
+    by = atlas.rasterise(ROOT / "doc" / "atlas" / "whole.svg", png)
+    assert by, "a rasteriser was importable and produced nothing"
+    assert png.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"

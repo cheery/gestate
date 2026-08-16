@@ -62,6 +62,21 @@ Cargo.lock
 .DS_Store
 Thumbs.db
 
+# ── The atlas's raster, which the .svg can make again ────────────────────
+#
+# `doc/atlas/whole.svg` is committed — a generated file kept, like
+# `doc/ref/`, because the point of it is to be read without running
+# anything.  The `.png` beside it is not, for one reason: **the test
+# cannot check it.**  `test_atlas.py` fails when the committed sheet is
+# not what the source renders, and that comparison is only honest for
+# text — raster bytes differ between rasterisers, and between versions
+# of one.  A generated file with no such guarantee is the drift the
+# atlas was built to prevent, wearing a different suffix.
+#
+# `python -m gestate.atlas` makes it in about a second whenever anybody
+# wants to look at the sheet in a viewer that cannot open a vector.
+doc/atlas/*.png
+
 # ── Two things that are NOT ignored, deliberately ────────────────────────
 #
 # **`*.samples` — the golden buffers.**  They look like build output and

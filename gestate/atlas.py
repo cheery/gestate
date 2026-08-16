@@ -36,6 +36,14 @@ shape).
 **Deterministic on purpose**: no timestamp, no commit hash, sorted
 everywhere.  A generated file that changes when nothing changed is a
 generated file people stop regenerating.
+
+The run also leaves a `.png` beside the sheet, because an `.svg` is a
+file many readers cannot open.  That one is **not** committed and not
+checked: raster bytes differ between rasterisers and between versions
+of one, so the guarantee above cannot cover it, and a generated file
+with no guarantee is the drift this file exists to prevent wearing a
+different suffix.  `.gitignore` says the same thing where somebody
+would look for it.
 """
 
 from __future__ import annotations
@@ -577,6 +585,54 @@ def stale(root=None) -> list:
             if not (out / name).exists() or (out / name).read_text() != text]
 
 
+#: How a `.svg` becomes a `.png`, best first.  **A picture nobody can
+#: look at is not much of a picture**: the sheet is checked by a test
+#: and read by a person, and the person may be reading it in a terminal,
+#: over a wire, or through an assistant that can open a raster and not a
+#: vector.  So the run makes both.
+#:
+#: `cairosvg` first because it is a `pip install` into the same
+#: interpreter the suite runs under — no root, no application, about a
+#: second — and it renders this sheet identically to Inkscape, CSS
+#: classes and all.  The rest are what a machine might happen to have;
+#: Inkscape is last because it is a whole editor being asked to convert
+#: a file, and it takes two and a half seconds to say so.
+RASTERISERS: list[tuple[str, list]] = [
+    ("rsvg-convert", ["rsvg-convert", "-w", "{w}", "-o", "{png}", "{svg}"]),
+    ("resvg", ["resvg", "--width", "{w}", "{svg}", "{png}"]),
+    ("inkscape", ["inkscape", "--export-type=png", "--export-width={w}",
+                  "--export-filename={png}", "{svg}"]),
+]
+
+
+def rasterise(svg: Path, png: Path, width: int = 1820) -> str:
+    """Write `png` from `svg`, and say which tool did it.
+
+    Returns the empty string when nothing on this machine can — which
+    is not an error: the SVG is the artefact, the PNG is a convenience,
+    and a build that failed because a *convenience* was missing would
+    be the tail wagging the dog.  `tools/toolbox.sh` says what to
+    install.
+    """
+    import shutil
+    import subprocess
+
+    try:
+        import cairosvg
+
+        cairosvg.svg2png(url=str(svg), write_to=str(png), output_width=width)
+        return "cairosvg"
+    except ImportError:
+        pass
+    for name, argv in RASTERISERS:
+        if shutil.which(argv[0]) is None:
+            continue
+        line = [a.format(w=width, png=png, svg=svg) for a in argv]
+        if subprocess.run(line, capture_output=True, check=False).returncode == 0:
+            return name
+    return ""
+
+
 def main(argv=None) -> int:
     import argparse
 
@@ -585,6 +641,11 @@ def main(argv=None) -> int:
         description="Draw the project's architecture from the source.")
     ap.add_argument("--check", action="store_true",
                     help="do not write; exit non-zero if doc/atlas/ is behind")
+    ap.add_argument("--no-png", action="store_true",
+                    help="write only the .svg, not the .png beside it")
+    ap.add_argument("--width", type=int, default=1820,
+                    help="the .png's width in pixels (default 1820, "
+                         "about 110 dpi at A3)")
     args = ap.parse_args(argv)
 
     root = Path(__file__).parent.parent
@@ -605,6 +666,22 @@ def main(argv=None) -> int:
     changed = write(root)
     print(f"wrote {len(changed)} sheet(s)"
           + (": " + ", ".join(changed) if changed else " — nothing to do"))
+    if args.no_png:
+        return 0
+    # **Every sheet, not only the ones that changed.**  A `.png` can be
+    # missing while its `.svg` is current — a fresh clone has neither,
+    # and the raster is not committed — so this is asked of the sheets
+    # rather than of the diff.
+    out = root / "doc" / "atlas"
+    for name in sorted(generate(root)):
+        svg = out / name
+        png = svg.with_suffix(".png")
+        by = rasterise(svg, png, args.width)
+        if by:
+            print(f"  {png.name} — {png.stat().st_size / 1024:.0f}K, by {by}")
+        else:
+            print(f"  {png.name} — no rasteriser; `tools/toolbox.sh` says "
+                  "what to install")
     return 0
 
 

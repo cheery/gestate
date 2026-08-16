@@ -6548,6 +6548,27 @@ and read as a scribble; a bus under the core with three drops off it
 reads as a route.  The sideways arrows moved *below* the text they
 pass, which the lane's own measured height is what makes possible.
 
+**And it leaves a `.png` beside the sheet**, which is Henri's ask an
+hour later: *"so you won't have to reach inkscape every time — would
+there be a lighter tool?"*  There is.  `cairosvg` is a `pip install`
+into the interpreter the suite already runs under, renders this sheet
+identically — CSS classes, mono spans, arrowheads and all — and takes
+a second where Inkscape, being a whole editor asked to convert a file,
+takes two and a half.  `rsvg-convert`, `resvg` and Inkscape are tried
+after it, so a machine with any of them can still look at the picture,
+and a machine with none of them still *writes* it: the `.svg` is the
+artefact and the raster is a convenience, and a build that failed for
+want of a convenience would be the tail wagging the dog.
+
+The raster is **not committed**, and the reason is the same one the
+whole file is built on: `test_atlas.py` can check that a committed
+sheet is what the source renders only because the sheet is text.
+Raster bytes differ between rasterisers and between versions of one, so
+a committed `.png` would be the one generated artefact here with no
+guarantee behind it — which is the drift this was built to prevent,
+wearing a different suffix.  `.gitignore` carries that sentence, where
+somebody would look for it.
+
 What is left is more sheets, and the rule the rest of this project runs
 on applies: draw the one somebody wants to read.  The generator returns
 a page per name, so the front end pass by pass, the sound path, and the
