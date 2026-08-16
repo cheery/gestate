@@ -66,14 +66,26 @@ FENCE=(
   # A home with nothing in it.  ~/.ssh, ~/.claude, ~/.aws, ~/.gnupg and
   # the rest are not denied — they are simply not there.
   --tmpfs "$HOME"
-  --ro-bind "$HOME/.cargo"  "$HOME/.cargo"
-  --ro-bind "$HOME/.rustup" "$HOME/.rustup"
 
   # The one writable thing.
   --bind "$PROJECT" "$PROJECT"
   --chdir "$PROJECT"
 
   --setenv HOME "$HOME"
+)
+
+# **Toolchain homes, bound only if they exist.**  These are the two lines
+# that were project-specific, and binding them unconditionally is what
+# would break this script on a machine with no Rust — `bwrap` fails
+# outright on a missing source, so an absent `~/.rustup` would take the
+# whole fence down rather than degrade.  Add a directory here when a new
+# toolchain needs its cache; nothing else in this file knows what
+# language the project is written in.
+for home in .cargo .rustup .rustup/toolchains .npm .m2 .stack; do
+  [ -e "$HOME/$home" ] && FENCE+=(--ro-bind "$HOME/$home" "$HOME/$home")
+done
+
+FENCE+=(
   # `.venv/bin` first: the suite's `pytest` lives there, and without it
   # the fence resolves the system one or nothing at all.
   --setenv PATH "$PROJECT/.venv/bin:$HOME/.cargo/bin:/usr/local/bin:/usr/bin:/bin"

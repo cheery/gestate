@@ -828,6 +828,45 @@ document was for:
 
 ---
 
+## The workbench as a thing that secures an environment
+
+**Not before a release milestone, and the reason is rule 1.**  Henri,
+2026-08-16, having chosen to keep the safety tooling in this tree rather
+than in a template repo: *"workbench seems like it could become a very
+powerful text editor.  It might be one of its jobs to secure
+environments."*  And then, immediately and correctly: *"it's for the time
+when we're hit a release milestone, it won't be soon because gestate must
+gestate."*
+
+What exists today is the honest half, because it has a caller — the next
+project Henri starts.  `tools/secure-init.sh <dir>` installs the fence,
+the hook, the leash and the AppArmor profile into any project and then
+*verifies* rather than announcing: it runs `sandbox.sh --check` and
+`leash.sh` and prints what it could not do.  The deny-list is read from
+this project's own `.claude/settings.json` and rewritten for the target,
+so there is no second copy of the rules to go stale.  `spec/sandbox.md`
+is the argument for every piece of it.
+
+What would make it a *workbench* job, and what each part still needs:
+
+* **A caller that is not a shell.**  Today `secure-init.sh` is run by a
+  person in a terminal.  The workbench would need a reason to run it —
+  opening a project whose leash is off, most plausibly — and that reason
+  does not exist until the workbench is something people open projects in
+  rather than something Henri opens gestate in.
+* **Somewhere to say it.**  `leash.sh` and `sandbox.sh --check` already
+  answer in text.  A status line that goes red is a content box away, but
+  a box with nothing to warn about is the sixth atlas sheet.
+* **The part that cannot be done from inside.**  Two `sudo` lines
+  (AppArmor) and branch protection at GitHub.  An editor that claimed to
+  have secured an environment while those were undone would be worse than
+  one that never claimed anything — which is the failure mode
+  `spec/sandbox.md` was written against.
+
+So: **the milestone is the caller.**  Until then this stays future tense,
+recorded here so a later session meets the decision rather than the
+temptation — the same way the atlas's sixth sheet is recorded above.
+
 ## What I would deliberately not do
 
 - **Rewrite `Bool` as `{1}`** unless 1.1 concludes otherwise.  It is the

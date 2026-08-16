@@ -34,11 +34,17 @@ REL=".claude/settings.json"
 # The rules whose absence means the leash is off.  Not the whole list —
 # the load-bearing few.  `Edit(./.claude/**)` is first because it is the
 # one that keeps the rest from being edited away.
+#
+# `$HOME` rather than a literal path: permission rules need absolute
+# paths, so a hardcoded `/home/cheery` is the one thing here that cannot
+# travel to another machine or another user.  A rule reads
+# `Read(//home/you/.ssh/**)` — two slashes, then the absolute path — so
+# the leading `/` below is concatenated with `$HOME`, not a typo.
 CRITICAL=(
   "Edit(./.claude/**)"
   "Bash(sudo:*)"
   "Bash(git push:*)"
-  "Read(//home/cheery/.ssh/**)"
+  "Read(/$HOME/.ssh/**)"
 )
 
 restore () {
