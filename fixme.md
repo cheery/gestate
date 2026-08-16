@@ -65,6 +65,7 @@ Of 130 entries, **113 are resolved**.  What is left:
 | F135 | partly resolved | Long features work in silence; the CLI has progress text, the statusline does not |
 | F136 | missing | A tuple-pattern lambda picks the wrong instance, silently |
 | F137 | missing | A zoom scales the band and not the picture in it |
+| F140 | resolved | A render refused and the reason stayed in the terminal |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -3878,3 +3879,59 @@ which asserts the distinguishing thing rather than the obvious one —
 the points that survive sit *exactly where the roomy frame put them*,
 because a squeezed picture puts them somewhere new.  Checked against
 the squeeze it replaced.
+
+### F140. **[resolved]** A render refused and the reason stayed in the terminal
+
+Henri, 2026-08-16, reporting a session on `examples/long/sauna.ges`
+(`test/sessions/F140-sauna-session.ges`, his own transcript): the
+export answered
+
+```
+exportWav "sauna.wav"                  #= exporting sauna.wav…
+#! sauna.wav: the render refused (exit 1)
+```
+
+*"I wonder why.  Either there's a bug or the information I get is too
+light."*  The second, and the transcript is the whole report: those
+two lines are everything the person was told.
+
+**The renderer was right and it said so.**  Run by hand, the same
+export answers
+
+```
+score: unfolds (`cycle`); performing dynamically
+gestate: a dynamic performance cannot know when an unfolding score ends
+```
+
+which is correct — sauna's parts are `long 200 (cycle …)`, so
+`unfolding_names` routes it to the dynamic path, and a dynamic
+performance has no end to render to.  `_export_wav` redirected
+**stdout** into a `StringIO` and left stderr alone, so the sentence
+went to the terminal the workbench was launched from, which the person
+in the window never sees; the exit code was all that crossed.
+
+**Resolved 2026-08-16.**  `_export_wav` catches stderr too and
+`_refusal` carries what the renderer blamed itself for — the last
+`gestate: …` line, since progress is not a complaint — falling back to
+the exit code only when nothing was said.  The person now reads
+
+    sauna.wav: a dynamic performance cannot know when an unfolding
+    score ends; say how long — `--seconds` from the terminal,
+    `exportWavAt first last` in the workbench
+
+**Both doors are named, and that is the other half of the defect.**
+The sentence is read in two places and named only the flag, so a
+person in the window was told to pass an argument the window has no
+way to pass.  `exportWavAt` is the one that works there — checked:
+five seconds of sauna renders through the same path.
+
+Held by `test_a_refusal_carries_what_the_renderer_said` and
+`test_an_unfolding_score_is_refused_with_the_door_it_has` in
+`test/test_session.py`; the second runs the real renderer, since what
+is worth pinning is that this *sentence* reaches the status line and a
+stub would only pin the plumbing under it.
+
+**What this does not fix**, and is worth its own sitting: a score with
+no end has no `exportWav`, only `exportWavAt` — the editor cannot
+offer *render the whole thing* for a piece whose "whole" is a
+question.  Naming the bars is the honest answer today.

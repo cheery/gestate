@@ -713,8 +713,17 @@ def main(argv=None, tell=None) -> int:
                     # An unfolding score does not know when it ends, and
                     # forcing it to find out is exactly what this path is
                     # for not doing.
+                    #
+                    # **Both doors named.**  This sentence is read in two
+                    # places — a terminal, where the answer is a flag,
+                    # and the workbench's status line, where it is a
+                    # command — and naming only the flag left a person in
+                    # the window told to pass an argument they have no
+                    # way to pass (`fixme.md` F140).
                     print("gestate: a dynamic performance cannot know when "
-                          "an unfolding score ends; give --seconds",
+                          "an unfolding score ends; say how long — "
+                          "`--seconds` from the terminal, "
+                          "`exportWavAt first last` in the workbench",
                           file=sys.stderr)
                     return 1
                 # A wall-clock budget only when the clock is a wall's:

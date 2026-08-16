@@ -329,6 +329,22 @@ def _trim_wav(path, start: float) -> None:
         w.writeframes(frames[drop:])
 
 
+def _refusal(said: str, code: int) -> str:
+    """What the renderer said about refusing, or the exit code.
+
+    A CLI's complaints are prefixed with the program's name and its
+    progress is not, so `gestate: …` is the line to carry and the last
+    one is the one that stopped it.  A refusal with nothing said is
+    still a refusal, and then the number is all there is — which is
+    the sentence this used to give for every failure.
+    """
+    lines = [line.strip() for line in said.splitlines() if line.strip()]
+    blamed = [line for line in lines if line.startswith("gestate: ")]
+    if blamed:
+        return blamed[-1][len("gestate: "):]
+    return f"the render refused (exit {code})"
+
+
 def _export_wav(text: str, want, span=None, tell=None):
     """`gestate.audioperform`'s, for the same reason.
 
@@ -359,13 +375,21 @@ def _export_wav(text: str, want, span=None, tell=None):
     argv = [source, "-o", str(want)]
     if to is not None:
         argv += ["--seconds", str(to)]
+    # **The refusal's own sentence is kept.**  A CLI says why it refused
+    # on stderr, and a window has no terminal to say it to: without this
+    # the person is told `the render refused (exit 1)` about a file the
+    # renderer had a whole sentence to say about.  So stderr is caught
+    # too, and the answer is what the renderer said rather than what it
+    # returned (`fixme.md` F140).
+    said = io.StringIO()
     try:
-        with contextlib.redirect_stdout(io.StringIO()):
+        with contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(said):
             code = perform_main(argv, tell=tell)
     finally:
         Path(source).unlink(missing_ok=True)
     if code:
-        raise RuntimeError(f"the render refused (exit {code})")
+        raise RuntimeError(_refusal(said.getvalue(), code))
     if at > 0:
         _trim_wav(want, at)
     return want

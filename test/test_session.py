@@ -997,6 +997,104 @@ def test_a_plain_render_does_not_impose_a_length():
         ap.main = was
 
 
+def test_a_refusal_carries_what_the_renderer_said(tmp_path):
+    """**F140**: the window has no terminal to be explained to.
+
+    `exportWav` on `examples/long/sauna.ges` answered `the render
+    refused (exit 1)` — Henri, from the transcript: *"I wonder why.
+    Either there's a bug or the information I get is too light."*  It
+    was the second: the renderer had a whole sentence to say, on
+    stderr, and the editor kept the exit code instead.
+    """
+    import sys
+
+    import gestate.audioperform as ap
+    from gestate.session import _export_wav, _refusal
+
+    def refuses(argv, tell=None):
+        print("score: unfolds (`cycle`); performing dynamically",
+              file=sys.stderr)
+        print("gestate: a dynamic performance cannot know when an "
+              "unfolding score ends", file=sys.stderr)
+        return 1
+
+    was, ap.main = ap.main, refuses
+    try:
+        try:
+            _export_wav("sound : Sig Float\nsound = sine 220.0\n",
+                        tmp_path / "x.wav")
+        except RuntimeError as exc:
+            said = str(exc)
+        else:                                            # pragma: no cover
+            raise AssertionError("a refusal that did not refuse")
+    finally:
+        ap.main = was
+    assert said.startswith("a dynamic performance cannot know"), said
+    assert "exit" not in said, "the number, where a sentence was available"
+
+    # **The progress line is not the complaint.**  Only what the
+    # program blamed itself for is carried, and the last such line is
+    # the one that stopped it.
+    assert _refusal("score: unfolds\ngestate: no\ngestate: this one\n", 1) \
+        == "this one"
+    # A refusal that says nothing is still a refusal, and then the
+    # number is all there is.
+    assert _refusal("", 2) == "the render refused (exit 2)"
+
+
+def test_an_unfolding_score_is_refused_with_the_door_it_has(tmp_path):
+    """The real renderer, refusing for real — and naming a way out.
+
+    Two seconds of front end, no `clang` and no audio: the refusal
+    comes before either.  It is here rather than stubbed because the
+    thing worth pinning is that this *sentence* reaches the status
+    line, and a stub would only pin the plumbing that carries it.
+
+    **Both doors named**, because the sentence is read in two places:
+    `--seconds` is what a terminal has and `exportWavAt` is what the
+    window has, and naming only the flag told a person in the window
+    to pass an argument they cannot pass.
+    """
+    from gestate.session import _export_wav
+
+    piece = (tmp_path / "unfolding.ges")
+    piece.write_text(
+        "Key := Key Int Int\n"
+        "\n"
+        "voices lead 1 leadVoice : Sig Float\n"
+        "\n"
+        "instance FromMIDI Key where\n"
+        "    noteOn ch p v = Just (Key p v)\n"
+        "\n"
+        "hzOf : Key -> Float\n"
+        "hzOf q = case q of\n"
+        "    Key k v -> keyHz k\n"
+        "\n"
+        "leadVoice : Sig Gate -> Sig Key -> Sig Float\n"
+        "leadVoice g s = sine (!hzOf s) * adsr (Adsr 0.01 0.1 0.6 0.2) g\n"
+        "\n"
+        "tune : [: Key :]\n"
+        "tune = '(Key 60 100) ++ '(Key 64 100)\n"
+        "\n"
+        "score : [: Void :]\n"
+        "score = cycle tune >>= voices.lead\n"
+        "\n"
+        "bpm : Int\n"
+        "bpm = 120\n"
+        "\n"
+        "sound : Sig Float\n"
+        "sound = 0.4 * lead\n")
+    try:
+        _export_wav(piece.read_text(), tmp_path / "out.wav")
+    except RuntimeError as exc:
+        said = str(exc)
+    else:                                                # pragma: no cover
+        raise AssertionError("an endless score was rendered to a file")
+    assert "unfolding score ends" in said, said
+    assert "exportWavAt" in said, "no way out was named"
+    assert not (tmp_path / "out.wav").exists()
+
+
 def test_overwrite_answers_only_a_question_that_was_asked():
     s = session()
     assert s.run("overwrite", "yes") == "nothing is waiting to be overwritten"
