@@ -52,6 +52,21 @@ comment.  That is not a small fact about a language this young.
 
 ## What cost me, each with the fix's shape
 
+**All five are done**, each closed on 2026-08-14 and each recorded in
+its own parentheses below: `duet.ges`'s head sentence, the `!`-of-a-
+lambda rule in the manual and the reference, `below`'s prose and
+`draw`'s pointer to it, the resting-knob line in `-o`'s `--help` and
+in the manual, and `audioperform --report`.  Four were documentation
+and one was a tool; the tool is the one that outgrew this file, since
+`--report` is now the roadmap's answer for the ears a CI has.
+
+Read the list as the report it is rather than as a work queue — what
+each entry preserves is *the moment a newcomer was stuck*, which is
+the part that does not survive being summarised.  **What is not
+fixed is the verdict below**: closing five frictions does not flatten
+the documentation gradient that produced them, and the next newcomer
+finds the next five.
+
 **The nearest example teaches the oldest idiom.**  `duet.ges` — the
 obvious two-bank neighbour — hand-rolls its envelope as a five-stage
 `case` chain and its pitch table from `8.1758`, because it predates

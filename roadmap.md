@@ -272,6 +272,24 @@ their own headings.  What is below is what is *not* done.
   * MIDI in from a real port is still nobody's: the oracle plays the
     on-screen keyboard, which is the same `Notes.feed`, but a port is
     another wire.
+- **Take the older language features through the workbench.**  Datafun's
+  surface, comprehension guards, `fix` at a product, `deriving Ord`,
+  change structures, the typeclass machinery: every one of them has
+  tests, and none of them has been *used* since the environment they
+  were built before became the only way anyone touches this language.
+  A feature that only its own tests exercise is a feature nobody has
+  run in a year, and this project has already learned twice what that
+  hides — the `Guard Bool` bottom that the F64 check found, and the
+  canvas whose callers the editor's withdrawal had quietly orphaned.
+
+  The exercise is to write something small in each of them *in the
+  workbench*, the way a person picking the project up would: through
+  the command list, the save cycle, the completion, a content box.
+  The oracle is the environment itself — anything that cannot be typed
+  there, or that the sidebar cannot infer, or that the fragment refuses
+  in a way no message explains, is the finding.  What it produces is
+  `fixme.md` entries; if it produces none, that is worth knowing too
+  and costs an afternoon.
 - **Three comments standing on a dead constraint.**  F95 is fixed, so
   `signal.ges`'s `Both` (`signal.ges:56`), a `voices` bank's generated
   `Part` records, and `audio.ges`'s `LowpassIn` (`audio.ges:302` — "a zip
@@ -281,6 +299,23 @@ their own headings.  What is below is what is *not* done.
   necessity is gone and only the taste remains, so the comments should say
   that.  `Stereo` is the same question with an answer available:
   `sound : Sig (Float, Float)` could now replace it.
+- **Name the datatypes** — `type Duration = Float`, `type Pitch = Int`,
+  and whatever else the preludes are passing around as bare numbers.
+  The machinery is built and already used where it was missed most:
+  `type Tempo = Envelope` and `type Port = Int` in `music.ges`,
+  `type Seed = Int` in `synth.ges`, eight aliases in `command.ges`.
+  What is missing is the pass over the rest, and the argument for it is
+  the same one those eight make — a signature that reads
+  `Float -> Float -> Sig Float` says nothing, and the same signature
+  spelled in named aliases is documentation the compiler carries.  It is
+  taste with a caller: every one of these is read by a person deciding
+  what to pass.
+
+  **Sequence it with F138.**  An alias is a name the window is handed
+  *instead of* what it aliases to, which is exactly the defect F138
+  names; minting more aliases before that fix spreads the bug rather
+  than the documentation.  After it — the model sending `Pitch:Int`,
+  the shown name and the base — naming things is free.
 - **What a third substrate element turns up.**  The substrate is built
   (S1–S5) and the *second* element has now arrived: `Label`, written up
   in `journal.md` §"Words in a declared box".  It turned up the rule that
@@ -290,6 +325,22 @@ their own headings.  What is below is what is *not* done.
   key, hover — remains a vocabulary question to be settled by programs
   wanting them rather than in advance.  This is the same discipline that
   extracted `signal.ges` at the third combinator.
+- **Examine the grammar of graphics** — the reading that stands beside
+  the substrate the way `spec/frp_lesson.md` stands beside the signal
+  half: Wilkinson's grammar, and Wickham's reading of it, set next to
+  what `Sig Sub` actually is.  The question they answer is the one this
+  project is about to meet twice — once for the substrate's own
+  vocabulary and once for the score box's — *what is the smallest set of
+  parts that draws data, and where is the seam between the data, the
+  mapping and the mark?*  `Label` already turned up one such rule (a
+  drawn word is placed by its own box), and turning up rules one element
+  at a time is slower than reading what somebody else paid for.
+
+  The output is a `spec/` reading, not a feature: what the grammar
+  claims, what it costs, which of its parts this language already has
+  under other names, and which of the four the substrate is missing.
+  Its worth is measured the way `frp_lesson.md`'s was — by the gaps it
+  names.
 - **More tools that ask the compiler.**  Three are built; these are worth
   building next, in the order the value falls:
 
@@ -306,6 +357,18 @@ their own headings.  What is below is what is *not* done.
     is three nodes, one of them a `scan`" makes the fragment's discipline
     visible while you type — and is how you would notice that a `!` over
     four signals cost two `Both` layouts.
+
+    **Spend `spec/rocks.md` on it.**  That spec is already the answer to
+    "a number a person has to read is a number a person will not read":
+    weigh *by kind*, three marks and no more, the ink growing with the
+    quantity.  A node count in a margin is the same problem — every line
+    carries one, so a bare number is noise, and what the eye wants first
+    is *this line is heavy for what it is*.  The thresholds would be by
+    kind again (a voice body is not a `scan` is not a constant), each
+    carrying the sentence that justifies it, exactly as the file weights
+    do.  Doing it this way also tests the claim rocks.md makes: that the
+    mark is a general vocabulary and not a trick that worked once on
+    bytes.
   * **Locals in `--fits`.**  It sees globals only.  At a hole inside
     `sineVoice g s = … _ …` the likely fillers are `g` and `s`, and
     inference has that environment at the hole.  This is the difference
@@ -316,6 +379,46 @@ their own headings.  What is below is what is *not* done.
     and much further out, unification provenance — *why did it think this
     was `Int`* — which is the expensive one and the one every language
     wishes it had.
+- **A drawing of the whole project, in SVG** — one page that says what
+  the parts are and which way the arrows point: front end, G-machine and
+  `crust`, the extractor and the LLVM backend, the score walk, the host
+  and its window.  Nothing in the repository shows this; `journal.md`
+  tells it in order of discovery and `roadmap.md` in order of work, and
+  neither is a picture.
+
+  **The question that comes with it is the whole of it:** how would it
+  stay true?  A drawing made by hand is wrong within a fortnight and
+  worse than nothing after that, because a picture is believed longer
+  than prose is.  Two honest answers, and the choice is a decision to
+  make before drawing anything:
+
+  * **Generate it** from what the compiler already knows — the same
+    node-origin and import facts the three built queries read — so it
+    is derived and cannot drift, at the price of a drawing that says
+    what the machine can see rather than what a person means.
+  * **Draw it by hand and give it an oracle**: a test that fails when a
+    module named on the page no longer exists, or when a module with no
+    box on the page appears.  That catches drift in the *nouns*, which
+    is where drift actually happens, and leaves the arrows to taste.
+
+  The second is cheaper and the one this project's discipline points at
+  — the same shape as `test_manual.py`, which keeps prose honest by
+  running it.
+
+- **Product safety wants a process, not a promise.**  This project can
+  now hand a person a full-scale blast in their headphones, overwrite a
+  file they wanted, or spend an hour rendering something nobody asked
+  for.  Each of those has *a* guard — `--report`'s peak, the overwrite
+  question, rocks.md's marks — and no one has ever written down the list
+  or when it is checked.  A named process (what is verified, and before
+  which act) is the thing that makes the guards a promise rather than a
+  set of habits that happen to hold today.  The newest of them is the
+  pre-flight weighing below, which asks before a heavy render rather
+  than reporting after it; it is also the pattern the rest would follow.
+  **Scope is Henri's to set**: the smallest useful version is a
+  checklist run before a release; the largest is a test suite that
+  asserts each guard fires.
+
 - **A sixth synth, when there is a reason for one.**  Five have now failed
   to find a fragment boundary; the rule says the next one needs a purpose
   of its own rather than a hope of turning something up.
@@ -622,6 +725,42 @@ that follows the hand through a *reading* rather than a rebuild.
 - **F138**, filed with its repro: a space in a filler field runs the
   completion on half the answer, because the window is told what an
   argument's type is *called* and `Filler` is a `Text` alias.
+- **A small window for a cursor that is off screen.**  Henri's note:
+  *make a small window that shows where the cursor is when it is off
+  screen, and edit through it.*  The occasion is that this editor moves
+  the cursor by itself now — a completion walks to the next hole, a
+  drag rewrites an atom, an apply lands somewhere — and the rule the
+  completion keeps (*near, and not anywhere*, `session.py`) is a rule
+  about **where the change is**, not about whether you can see it.  When
+  the place is off screen there is nothing between "it happened" and
+  scrolling to find out what.
+
+  A peep window is the cheap answer: a band showing the lines around
+  the cursor wherever it actually is, and — this is the part to settle
+  with him — the edit made *in* that window, so the automatic edit and
+  the sight of it are one thing rather than two.  The parts exist: rows
+  of varying height, a walk clipped to a band, and a box whose touches
+  are ordinary `touched` events.  It is a third reading of the same
+  machinery B2 and B4 are built from.
+- **`foo : int` fails silently, and a friend hit it.**  Reported by the
+  friend who wrote `Real_World_One.ges`: they used the completion, wrote
+  `foo : int`, and could not see why nothing worked.  Nothing was wrong
+  with the completion — **a lowercase name in a signature is a type
+  variable**, so `foo : int` is a legal polymorphic signature over a
+  variable that happens to be spelled like a type, and a hole at a type
+  variable has nothing to offer.  Confirmed on a three-line file: it
+  analyses without a word about `int`, and the complaint that does
+  arrive lands on `main` — *"cannot have a class context"* — which names
+  neither the line nor the mistake.
+
+  **The ask is to cut the situation short.**  A signature whose type is
+  a bare lowercase name is almost never what someone meant: the
+  language has the concrete name one letter away and knows both.  The
+  cheapest honest version is the message — *`int` is a type variable;
+  did you mean `Int`?* — said at the signature rather than downstream at
+  whatever failed to unify.  Worth a `fixme.md` entry with the repro
+  above, and worth more than it looks: it is the first thing this
+  project has been told by somebody who did not build it.
 
 ### Later, and blocked on the language
 
