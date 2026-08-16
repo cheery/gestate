@@ -403,12 +403,12 @@ their own headings.  What is below is what is *not* done.
 
   **What is left, in the order the value falls:**
 
-  * **The wire** — `session`'s furniture and the `ged_*` ABI against
-    `shell/editor/src/abi.rs`.  This is the one that would *verify*
-    rather than describe: both ends are written twice, in two
-    languages, and nothing checks that they agree.  A sheet that draws
-    the wire has to read both, which means the drawing fails when they
-    drift — a defect this project has hit twice by hand.
+  * **The wire is built** (`wire.svg`), and it verifies rather than
+    describes: the seventeen `ged_*` calls with their arities and
+    types, seventeen furniture rows, fifteen orders and thirteen
+    gestures, each read from *both* ends and compared.  They agree
+    today; `test_atlas.py` fails the day they do not, and a second test
+    asserts the check itself could still fail.
   * **The sound path**, from `sound : Sig Float` to the card: the
     extractor's node kinds, the IR's operations, the emitter, the
     engine and the host's own ABI — all of them dataclasses and

@@ -6635,5 +6635,53 @@ a pass exists, which arrow matters, what a lane is *for*.  Those are
 the sentences under the boxes, and they are the part a person has to
 keep writing.
 
+### The wire, which turned out to be a test
+
+*"Do the wire.  I think that's important to see as well."*  So
+`wire.svg`, the same afternoon, and it is the first sheet here that
+**verifies** rather than describes.
+
+Between the Python model and the Rust window there are four
+vocabularies, and every word in all four is written twice, in two
+languages, with nothing comparing the copies:
+
+* **The ABI** — seventeen `ged_*` calls, exported in `abi.rs` and
+  declared in `editor.py`'s `ctypes` block.  Names, arity *and* types
+  are compared, through a small correspondence table that is the one
+  judgement on the sheet: `*mut c_char` is `c_void_p` on the Python
+  side deliberately, because a `c_char_p` restype makes `ctypes` copy
+  the bytes and lose the pointer `ged_free_str` needs back.
+* **Furniture**, seventeen rows: `session.furniture` builds them,
+  `Furniture::read` takes them apart.
+* **Orders**, fifteen: `Editor.order` sends, `Order::read` reads.
+* **Gestures**, thirteen: `Gesture::line` writes, `session.act` does.
+
+They agree today — 17, 17, 15, 13 — and the sheet says so in the one
+place a reader will look.  It also says what each word *carries*, which
+is read from the readers themselves: the window's parser names the
+fields as it takes them (`Knob { name: p[1], line: num(p.get(2)) … }`)
+and the formatter names them as it writes them (`format!("touch\t{kind}
+\t{x}\t{y}")`), so the sheet can print `knob name line value lo hi
+kind wired` without anybody typing that out.
+
+**The important test is not that they agree — it is that the check
+could fail.**  Every count on the sheet is found by a pattern, and a
+pattern that stops matching returns an empty set, which would make the
+drift report say *nothing disagrees* about a wire it can no longer see.
+So one test asserts the counts are real (at least eight words in every
+vocabulary, at least fifteen calls), and the check was tried against a
+deliberately broken copy of the tree — one export renamed, one
+furniture row renamed — where it said:
+
+```
+ged_set_stroll is exported and the model never declares it
+ged_set_walk is declared by the model and not exported
+furniture: `paint` is sent and nothing reads it
+furniture: `painted` is read and nothing sends it
+```
+
+A checker that cannot fail is worse than no checker, because it reads
+as a guarantee.
+
 What is left is more sheets, and the rule the rest of this project runs
 on applies: draw the one somebody wants to read.

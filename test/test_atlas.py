@@ -156,3 +156,66 @@ def test_the_sheet_can_be_made_into_a_picture(tmp_path):
     by = atlas.rasterise(ROOT / "doc" / "atlas" / "whole.svg", png)
     assert by, "a rasteriser was importable and produced nothing"
     assert png.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+# ── The wire, which is a test as well as a picture ──────────────────────────
+
+
+def test_the_two_ends_of_the_wire_agree():
+    """**The one derivation here that verifies rather than describes.**
+
+    The model is Python and the window is Rust; every word between them
+    is written twice, and nothing else in this project compares the two
+    copies.  A word added at one end and forgotten at the other is a
+    feature that silently does nothing — the shape of defect this has
+    hit by hand more than once.
+    """
+    drift = atlas.wire_drift(ROOT)
+    assert drift == [], "the wire's two ends disagree:\n  " + \
+        "\n  ".join(drift)
+
+
+def test_the_wire_check_could_fail():
+    """**A checker that cannot fail is worse than no checker**, because
+    it reads as a guarantee.
+
+    Every count below is read out of the source by a pattern, and a
+    pattern that stops matching returns an empty set — which would make
+    `wire_drift` say *nothing disagrees* about a wire it can no longer
+    see.  So the counts are asserted to be real, and this test is the
+    reason the numbers on the sheet are worth reading.
+    """
+    rust, python = atlas.abi_rust(ROOT), atlas.abi_python(ROOT)
+    assert len(rust) >= 15 and len(python) >= 15, (len(rust), len(python))
+    words = atlas.wire_words(ROOT)
+    for name, (sent, read) in sorted(words.items()):
+        assert len(sent) >= 8, f"{name}: only {len(sent)} sent — "\
+            "the pattern that reads the sender has probably stopped matching"
+        assert len(read) >= 8, f"{name}: only {len(read)} understood"
+
+
+def test_every_exported_call_has_a_sentence():
+    """The `WHERE` rule, applied to the seam: a call nobody placed is a
+    call missing from the picture."""
+    quiet = atlas.unspoken(ROOT)
+    assert quiet == [], "no sentence for: " + ", ".join(quiet)
+
+
+def test_a_word_that_only_one_end_knows_is_caught():
+    """The check, made to fail on purpose — because the value of it is
+    entirely in whether it *would* say so."""
+    words = atlas.wire_words(ROOT)
+    sent, read = words["gestures"]
+    assert sent == read, "this test assumes today's wire agrees"
+    pretend = (sent | {"waggle"}, read)
+    only_one_end = sorted(pretend[0] - pretend[1])
+    assert only_one_end == ["waggle"]
+
+
+def test_the_wire_says_what_each_word_carries():
+    """Read from the readers: the window's parser names the fields as it
+    takes them, and the formatter names them as it writes them."""
+    shapes = atlas.wire_shapes(ROOT)
+    assert shapes["furniture"]["knob"] == "name line value lo hi kind wired"
+    assert shapes["gestures"]["touch"] == "kind x y"
+    assert shapes["orders"]["goto"] == "1 field"

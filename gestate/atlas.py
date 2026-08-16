@@ -1,9 +1,22 @@
 """atlas.py — the project drawn from what it is, not from what it was.
 
-`doc/atlas/whole.svg` is one A3 sheet of this repository: what you
-write, what reads it, what runs it, the three backends, and the live
-environment around them.  It is **generated**, and that is the whole
-point of it.
+Three A3 sheets, generated, and that is the whole point of them:
+
+* **`whole.svg`** — what you write, what reads it, what runs it, the
+  three backends, and the live environment around them.
+* **`language.svg`** — the front end pass by pass, in the order
+  `pipeline._analyse` actually calls them, with what each pass can
+  refuse.
+* **`wire.svg`** — the seam between the Python model and the Rust
+  window, read from *both* ends.
+
+**The third one is a test as well as a picture.**  Everything else here
+reads one truth and lays it out; the wire reads two that are supposed
+to be the same — `abi.rs` against `editor.py`, `session.furniture`
+against `Furniture::read`, `Gesture::line` against `session.act` — and
+`wire_drift()` is empty or a defect.  Nothing else in this project
+compares those pairs, and a word added at one end and forgotten at the
+other is a feature that silently does nothing.
 
 **A drawing is believed longer than prose is.**  A hand-drawn
 architecture map is wrong within a fortnight of the first refactor and
@@ -173,6 +186,70 @@ PASSES: list[tuple[str, str]] = [
      "asked for."),
 ]
 
+#: The same type, said in two languages.  **The one table on this sheet
+#: that is a judgement about C rather than a reading of it**: `*mut
+#: c_char` is `c_void_p` on the Python side deliberately, because a
+#: `c_char_p` restype makes `ctypes` copy the bytes and lose the pointer
+#: `ged_free_str` needs back — the trap `crust.py` records and
+#: `editor.py` repeats.
+ABI_SAME: dict[str, set] = {
+    "*const c_char": {"c_char_p"},
+    "*mut c_char": {"c_void_p"},
+    "*const Editor": {"c_void_p"},
+    "*mut Editor": {"c_void_p"},
+    "i32": {"c_int32"},
+    "u64": {"c_uint64"},
+    "usize": {"c_size_t"},
+    "bool": {"c_bool"},
+    "()": {"None"},
+}
+
+#: Which way each call goes, and what it is for.  Every exported symbol
+#: must be here — the same rule `WHERE` keeps for modules, and for the
+#: same reason: a call nobody placed is a call missing from the picture.
+#:
+#: `out` is the model telling the window; `in` is the window answering;
+#: `life` is opening and closing.
+ABI_SAYS: dict[str, tuple[str, str]] = {
+    "ged_open": ("life", "start the window on this text, at this size"),
+    "ged_is_open": ("life", "is it still there"),
+    "ged_request_close": ("life", "ask it to close"),
+    "ged_close": ("life", "take it down and free it"),
+    "ged_free_str": ("life", "give back a string it handed over"),
+    "ged_set_text": ("out", "the document, replaced — one undo step"),
+    "ged_load_text": ("out", "a different file, and the histories cleared"),
+    "ged_load_new": ("out", "a file that is not on disk yet"),
+    "ged_set_furniture": ("out", "the chrome: knobs, banks, boxes, the list"),
+    "ged_order": ("out", "do something — undo, goto, ask, insert"),
+    "ged_set_picture": ("out", "a canvas the model drew"),
+    "ged_set_walk": ("out", "a substrate for the window to walk itself"),
+    "ged_set_readings": ("out", "what the walked canvas should read"),
+    "ged_text": ("in", "the document as it stands"),
+    "ged_version": ("in", "has the text moved since last time"),
+    "ged_pos": ("in", "where the caret is"),
+    "ged_gestures": ("in", "everything the hand did, drained"),
+}
+
+#: The three tab-separated vocabularies, and where each end of each one
+#: is written.  `(sent by, understood by, which way, what it is)`.
+WIRE_WORDS: list[tuple[str, str, str, str]] = [
+    ("furniture", "model → window",
+     "`session.furniture` builds it, `Furniture::read` takes it apart.  "
+     "One row per thing the chrome shows.  **A row the window does not "
+     "know is dropped, never refused** — a dropped line loses one knob "
+     "and a refusal loses the editor.",
+     "furniture"),
+    ("orders", "model → window",
+     "`Editor.order` sends them, `Order::read` reads them: the things "
+     "the model asks the window to *do* rather than to show.",
+     "orders"),
+    ("gestures", "window → model",
+     "`Gesture::line` writes them, `session.act` does them.  Everything "
+     "the hand did, drained in a batch — and every one of them is a "
+     "line a transcript can hold and replay.",
+     "gestures"),
+]
+
 #: What each lane is, in one sentence.  The editorial half — a lane
 #: title says what a thing is called and this says what it is for.
 LANES: dict[str, tuple[str, str]] = {
@@ -202,6 +279,33 @@ LANES: dict[str, tuple[str, str]] = {
     "window": ("The window",
                "`command.ges` is the command list; the model holds the "
                "text and what is playing, and sends the shell furniture."),
+    "asks": ("The model asks the window",
+             "Text, chrome, pictures and orders, over a pointer and a "
+             "string.  Nothing is shared: every call hands over bytes."),
+    "answers": ("The window answers",
+                "Three questions and a drain — what the text is, whether "
+                "it moved, where the caret is, and everything the hand "
+                "did since last time."),
+    "lifetime": ("Opening and closing",
+                 "A window is a thread with a handle; the string it hands "
+                 "back is its own to free, which is the one rule a "
+                 "caller here has to keep."),
+    "furniture": ("Furniture — the chrome, as rows",
+                  "`session.furniture` builds it, `Furniture::read` takes "
+                  "it apart.  A row the window does not know is dropped, "
+                  "never refused: a dropped line loses one knob, and a "
+                  "refusal loses the editor."),
+    "orders": ("Orders — do this, rather than show this",
+               "`Editor.order` sends them and `Order::read` reads them; "
+               "an order this build does not know is skipped, for the "
+               "reason the furniture row is."),
+    "gestures": ("Gestures — what the hand did",
+                 "`Gesture::line` writes them and `session.act` does "
+                 "them, drained in a batch.  Every one is a line a "
+                 "transcript can hold, which is why a session replays."),
+    "checked": ("What this sheet promises",
+                "Both ends of every word above are read out of the "
+                "source, and compared."),
     "engine": ("Then it runs — the G-machine's instruction set",
                "What a supercombinator is compiled to, read from the "
                "machine's own dispatch table, so an instruction the "
@@ -574,6 +678,204 @@ def refusals_for(root: Path, pass_name: str) -> list[str]:
     return sorted(found & known)
 
 
+def _read(root: Path, path: str) -> str:
+    """A file of the other language, or empty when it is not there."""
+    try:
+        return (root / path).read_text()
+    except OSError:
+        return ""
+
+
+def abi_rust(root: Path) -> dict:
+    """What the window exports — `name → (argument types, return type)`."""
+    out = {}
+    text = _read(root, "shell/editor/src/abi.rs")
+    for m in re.finditer(
+            r'pub (?:unsafe )?extern "C" fn (ged_\w+)\s*\(([^)]*)\)\s*'
+            r'(?:->\s*([^{]+?))?\s*\{', text, re.S):
+        args = [a.strip() for a in m.group(2).split(",") if a.strip()]
+        out[m.group(1)] = ([a.split(":", 1)[-1].strip() for a in args],
+                           (m.group(3) or "()").strip())
+    return out
+
+
+def abi_python(root: Path) -> dict:
+    """What the model declares it will call, from its `ctypes` block."""
+    out = {}
+    text = _read(root, "gestate/editor.py")
+    for m in re.finditer(
+            r'lib\.(ged_\w+)\.argtypes\s*=\s*\[([^\]]*)\]\s*\n'
+            r'\s*lib\.\1\.restype\s*=\s*(\S+)', text):
+        args = [a.strip().replace("ctypes.", "")
+                for a in m.group(2).split(",") if a.strip()]
+        out[m.group(1)] = (args, m.group(3).strip().replace("ctypes.", ""))
+    return out
+
+
+def wire_words(root: Path) -> dict:
+    """Each vocabulary, as `(what one end says, what the other reads)`.
+
+    **Both ends, every time.**  The point of this sheet is that a word
+    on it is written twice in two languages, and the only way a drawing
+    can promise they agree is to read both.
+    """
+    fur = _read(root, "shell/editor/src/furniture.rs")
+    win = _read(root, "shell/editor/src/window.rs")
+    session = _read(root, "gestate/session.py")
+    bench = _read(root, "gestate/workbench.py")
+
+    # Furniture: what the model appends to its description, and the
+    # arms of the window's reader — guards and all (`"file" if p.len()
+    # >= 2 =>`), which is why the pattern stops at the end of the line
+    # rather than at the first `=`.
+    sent = set(re.findall(r'out\.append\(f?"([a-z]+)\\t', session)) | \
+        set(re.findall(r'out = \[f?"([a-z]+)\\t', session))
+    read = fur[fur.find("pub fn read("):]
+    read = read[:read.find("\n    /// ")] if "\n    /// " in read else read
+    known = set(re.findall(r'^\s+"([a-z]+)"(?: if [^\n]*?)?\s*=>', read, re.M))
+
+    # Orders: every `.order(…)` the model makes, whatever shape the line
+    # is built in — an f-string, a plain word, or a `"\t".join([…])`.
+    made: set = set()
+    for text in (session, bench):
+        try:
+            tree = ast.parse(text)
+        except SyntaxError:                              # noqa: PERF203
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call) and node.args \
+                    and getattr(node.func, "attr", "") == "order":
+                word = _leading(node.args[0])
+                if word:
+                    made.add(word)
+    taken = set(re.findall(r'"([a-z]+)" => Some\(Order::', fur))
+
+    # Gestures: what the window queues — `Gesture::line`'s own
+    # formatting, and the two places a bare word is pushed — against the
+    # verbs `session.act` answers.
+    line = fur[fur.find("pub fn line(&self)"):]
+    queued = set(re.findall(r'format!\(\s*"([a-z]+)', line, re.S)) | \
+        set(re.findall(r'"([a-z]+)"\.to_string\(\)', line)) | \
+        set(re.findall(r'gesture\(\s*"([a-z]+)', win))
+    done: set = set()
+    try:
+        act = next((n for n in ast.walk(ast.parse(session))
+                    if isinstance(n, ast.FunctionDef) and n.name == "act"),
+                   None)
+    except SyntaxError:
+        act = None
+    if act is not None:
+        for node in ast.walk(act):
+            if isinstance(node, ast.Compare) \
+                    and getattr(node.left, "id", "") == "verb" \
+                    and isinstance(node.comparators[0], ast.Constant):
+                done.add(node.comparators[0].value)
+
+    return {"furniture": (sent, known), "orders": (made, taken),
+            "gestures": (queued, done)}
+
+
+def _leading(node):
+    """The literal word a wire line starts with, whatever shape it is."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value.split("\t")[0]
+    if isinstance(node, ast.JoinedStr) and node.values:
+        return _leading(node.values[0])
+    if isinstance(node, ast.Call) and getattr(node.func, "attr", "") == "join" \
+            and node.args and isinstance(node.args[0], (ast.List, ast.Tuple)) \
+            and node.args[0].elts:
+        return _leading(node.args[0].elts[0])
+    return None
+
+
+def wire_shapes(root: Path) -> dict:
+    """What each word on the wire carries — `vocabulary → verb → fields`.
+
+    **Read from the readers.**  The window's furniture parser names the
+    fields as it takes them (`Knob { name: p[1], line: num(p.get(2)) …
+    }`), the gesture formatter names them as it writes them
+    (`format!("touch\\t{kind}\\t{x}\\t{y}")`), and an order's arity is
+    how many `arg(n)` it reaches for.  Where a field has no name in the
+    code, the count is still true, so the sheet says how many rather
+    than pretending to know what.
+    """
+    fur = _read(root, "shell/editor/src/furniture.rs")
+    out: dict = {"furniture": {}, "orders": {}, "gestures": {}}
+
+    read = fur[fur.find("pub fn read("):]
+    read = read[:read.find("\n    /// ")] if "\n    /// " in read else read
+    for arm in re.split(r'\n(?=\s{16}"[a-z]+")', read)[1:]:
+        verb = re.match(r'\s*"([a-z]+)"', arm)
+        if not verb:
+            continue
+        named: dict = {}
+        for name, i in re.findall(r'(\w+):\s*(?:num\()?\s*p(?:\.get\()?\[?(\d+)',
+                                  arm):
+            named.setdefault(int(i), name)
+        wide = [int(i) for i in re.findall(r'p(?:\.get\()?\[?(\d+)', arm)]
+        out["furniture"][verb.group(1)] = (
+            " ".join(named[k] for k in sorted(named)) if named
+            else (f"{max(wide)} field{'s' if max(wide) > 1 else ''}"
+                  if wide else "no fields"))
+
+    for verb, args in re.findall(r'"([a-z]+)" => Some\(Order::(\w+[^\n]*)', fur):
+        n = len(set(re.findall(r'arg\((\d+)\)', args)))
+        out["orders"][verb] = (f"{n} field{'s' if n != 1 else ''}" if n
+                               else "no fields")
+
+    line = fur[fur.find("pub fn line(&self)"):]
+    for m in re.finditer(r'format!\(\s*"([a-z]+)((?:\\t[^"]*)?)"', line, re.S):
+        names = re.findall(r"\{(\w+)", m.group(2))
+        count = m.group(2).count("\\t")
+        out["gestures"][m.group(1)] = (
+            " ".join(names) if len(names) == count
+            else f"{count} field{'s' if count != 1 else ''}")
+    for bare in re.findall(r'"([a-z]+)"\.to_string\(\)', line):
+        out["gestures"].setdefault(bare, "no fields")
+    return out
+
+
+def wire_drift(root: Path) -> list[str]:
+    """Where the two ends of the wire disagree.  **Empty, or a defect.**
+
+    This is the one derivation in this file that is a *test* and not a
+    drawing: everything else here reads one truth and lays it out, and
+    this reads two that are supposed to be the same.  The window and the
+    model are written in different languages and nothing else compares
+    them — a word added to one end and forgotten at the other is a
+    feature that silently does nothing, which is the shape of defect
+    this project has hit by hand more than once.
+    """
+    out = []
+    rust, python = abi_rust(root), abi_python(root)
+    for name in sorted(set(rust) - set(python)):
+        out.append(f"{name} is exported and the model never declares it")
+    for name in sorted(set(python) - set(rust)):
+        out.append(f"{name} is declared by the model and not exported")
+    for name in sorted(set(rust) & set(python)):
+        (ra, rr), (pa, pr) = rust[name], python[name]
+        if len(ra) != len(pa):
+            out.append(f"{name} takes {len(ra)} in Rust and {len(pa)} in "
+                       f"Python")
+            continue
+        for i, (r, p) in enumerate(zip(ra, pa)):
+            if p not in ABI_SAME.get(r, set()):
+                out.append(f"{name} argument {i + 1}: `{r}` against `{p}`")
+        if pr not in ABI_SAME.get(rr, set()):
+            out.append(f"{name} returns `{rr}` and the model reads `{pr}`")
+    for what, (a, b) in sorted(wire_words(root).items()):
+        for word in sorted(a - b):
+            out.append(f"{what}: `{word}` is sent and nothing reads it")
+        for word in sorted(b - a):
+            out.append(f"{what}: `{word}` is read and nothing sends it")
+    return out
+
+
+def unspoken(root: Path) -> list[str]:
+    """Exported calls the sheet has no sentence for."""
+    return sorted(set(abi_rust(root)) - set(ABI_SAYS))
+
+
 def instructions() -> list[str]:
     """The G-machine's instruction set, from the machine's own dispatch."""
     from .gmachine import _DISPATCH
@@ -784,7 +1086,7 @@ def render(root: Path) -> str:
         for box in row:
             box.used = _lane(box)[1]
         tall.append(max(b.used for b in row))
-    top = MARGIN + 21.0
+    top = MARGIN + 25.0
     gap = 13.0
     over = PAGE_H - MARGIN - 7 - top - sum(tall) - gap * (len(rows) - 1)
     # A little of the slack goes into the rows and the rest stays white:
@@ -854,8 +1156,16 @@ def _sheet(title: str, subtitle: str, foot: str, body: list) -> str:
     head = [
         f'<text class="title" x="{MARGIN:.2f}" y="{MARGIN + 8:.2f}">'
         f'{_esc(title)}</text>',
-        f'<text class="subtitle" x="{MARGIN:.2f}" y="{MARGIN + 14.5:.2f}">'
-        + _ticked(subtitle) + '</text>',
+    ]
+    # **Wrapped, because the page has an edge.**  The first version of
+    # the wire sheet said `… from Gesture::line and ses` and stopped
+    # there: a subtitle is one line until it is two.
+    sy = MARGIN + 14.5
+    for said in _wrap(subtitle, PAGE_W - 2 * MARGIN, 3.1)[:2]:
+        head.append(f'<text class="subtitle" x="{MARGIN:.2f}" '
+                    f'y="{sy:.2f}">' + _ticked(said) + '</text>')
+        sy += 4.0
+    head += [
         f'<text class="foot" x="{MARGIN:.2f}" y="{PAGE_H - MARGIN + 2:.2f}">'
         + _ticked(foot) + '</text>',
     ]
@@ -927,7 +1237,7 @@ def _card(x: float, y: float, w: float, h: float, n: int, name: str,
 def render_language(root: Path) -> str:
     """Sheet two: the front end, in the order the front end runs."""
     cols, w = 4, (PAGE_W - 2 * MARGIN - 3 * 6) / 4
-    top = MARGIN + 21.0
+    top = MARGIN + 25.0
     high, gap = 42.0, 9.0
     body: list = []
     spots: list = []
@@ -987,6 +1297,74 @@ def render_language(root: Path) -> str:
         body)
 
 
+def render_wire(root: Path) -> str:
+    """Sheet three: the seam between the two languages, read from both."""
+    rust = abi_rust(root)
+    inner = PAGE_W - 2 * MARGIN
+    w3 = (inner - 2 * 6) / 3
+    top = MARGIN + 25.0
+
+    def calls(way: str) -> list:
+        return [(name, says) for name, (side, says) in sorted(ABI_SAYS.items())
+                if side == way and name in rust]
+
+    row1 = [Box(key, MARGIN + i * (w3 + 6), top, w3, 0.0, tint,
+                pairs=calls(way))
+            for i, (key, way, tint) in enumerate(
+                (("asks", "out", "#eef3f7"), ("answers", "in", "#eaf1ee"),
+                 ("lifetime", "life", "#f6f2ea")))]
+
+    body: list = []
+    tall = max(_lane(b)[1] for b in row1)
+    for box in row1:
+        box.h = tall
+        body += _lane(box)[0]
+
+    # The three vocabularies, each with both ends counted.
+    words = wire_words(root)
+    shapes = wire_shapes(root)
+    row2y = top + tall + 11
+    row2 = []
+    for i, (key, way, says, which) in enumerate(WIRE_WORDS):
+        sent, read = words[which]
+        box = Box(key, MARGIN + i * (w3 + 6), row2y, w3, 0.0, "#f3eef5",
+                  pairs=[(word, shapes[which].get(word, ""))
+                         for word in sorted(sent | read)])
+        box.extra = [f"{len(sent)} sent, {len(read)} understood, "
+                     f"{'they agree' if sent == read else 'THEY DISAGREE'} "
+                     f"— {way}"]
+        row2.append(box)
+    tall2 = max(_lane(b)[1] for b in row2)
+    for box in row2:
+        box.h = tall2
+        body += _lane(box)[0]
+
+    # And the sentence this sheet exists to be able to make.
+    drift = wire_drift(root)
+    foot = Box("checked", MARGIN, row2y + tall2 + 11, inner, 0.0, "#eaf1ee")
+    foot.extra = ([f"Everything above is read from both ends: "
+                   f"{len(rust)} calls, "
+                   + ", ".join(f"{len(words[w][0])} {w}"
+                               for _k, _d, _s, w in WIRE_WORDS)
+                   + " — and today they agree."]
+                  if not drift else
+                  ["THE TWO ENDS DISAGREE:", *drift[:6]])
+    body += _lane(foot)[0]
+
+    return _sheet(
+        "gestate — the wire, and both ends of it",
+        "Where a Python model meets a Rust window.  Every word here is "
+        "written twice, in two languages, and nothing but this compares "
+        "them: the sheet is drawn from `abi.rs` and `editor.py`, from "
+        "`session.furniture` and `Furniture::read`, from `Gesture::line` "
+        "and `session.act`.",
+        "`test_atlas.py` fails when the two ends disagree — a word sent "
+        "and never read, a call declared with the wrong arity, a type "
+        "that means something else on the other side.  This is the one "
+        "sheet that is a test as well as a picture.",
+        body)
+
+
 # ---------------------------------------------------------------------------
 # Writing it, and saying when it is behind
 # ---------------------------------------------------------------------------
@@ -1002,7 +1380,8 @@ def generate(root=None) -> dict:
     """
     root = Path(root) if root is not None else Path(__file__).parent.parent
     return {"whole.svg": render(root),
-            "language.svg": render_language(root)}
+            "language.svg": render_language(root),
+            "wire.svg": render_wire(root)}
 
 
 def write(root=None) -> list:
