@@ -118,12 +118,23 @@ def test_every_card_says_why_it_exists(card: Path):
 @pytest.mark.parametrize("card", cards(), ids=lambda p: p.stem)
 def test_a_finished_card_is_in_done_and_an_open_one_is_not(card: Path):
     """`ls board/*.md` **is** the live board, which is only true if the
-    two halves agree about which is which."""
-    finished = header(card)["status"].startswith("done")
+    two halves agree about which is which.
+
+    **Silent on a card with no header at all**, which the test above is
+    already reporting.  Found the first time Henri wrote a card by hand:
+    one card with no `status` line failed three checks, two of them with
+    a `KeyError` naming a dict.  An andon that lights three times for one
+    cause, and lies about two of them, is worse than one that lights
+    once — the whole point of it is to say what to do next.
+    """
+    fields = header(card)
+    if "status" not in fields:
+        return
+    finished = fields["status"].startswith("done")
     in_done = card.parent.name == "done"
     assert finished == in_done, (
         f"{card.relative_to(ROOT)} says `status "
-        f"{header(card)['status']}` but sits in "
+        f"{fields['status']}` but sits in "
         f"{card.parent.relative_to(ROOT)}/.  A card leaves the board in "
         "the same commit as the work it describes.")
 
@@ -139,7 +150,7 @@ def test_a_blocked_card_names_what_it_waits_on(card: Path):
     session read the flag and skipped the card.
     """
     fields = header(card)
-    if not fields["status"].startswith("blocked"):
+    if not fields.get("status", "").startswith("blocked"):
         return
     waits = fields.get("blocked", "")
     assert waits, (

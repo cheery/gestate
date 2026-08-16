@@ -44,6 +44,15 @@ is what keeps a card's name stable while priorities move.
    command-categories.*
 7. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
    the changes Claude makes.
+8. **[persistent-workbench-state](persistent-workbench-state.md)** — the
+   editor should open where it was left; closing it loses the day.
+   *Arrived unplaced 2026-08-16 and put at the end, which is where a new
+   card lands until its author says otherwise.*
+9. **[stranger-test](stranger-test.md)** — run `vision.md`'s own top
+   claim: can somebody who has never read this repository open a file,
+   hear it, change it, and hear the change?  *Also unplaced; the session
+   would argue for it higher, since it is the only measurement in the
+   vision and everything else defers to it.*
 
 Finished cards are in [done/](done/), newest work last.  `ls board/*.md`
 is the live board; nothing has to be trimmed by hand for that to stay

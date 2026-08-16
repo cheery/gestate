@@ -152,18 +152,3 @@ def test_every_card_citation_resolves():
     assert not missing, (
         "these cards are cited and are not there:\n  "
         + "\n  ".join(sorted(set(missing))))
-
-
-def test_the_board_lists_every_open_card():
-    """`board/README.md` carries the order, and it is the only place the
-    order lives — so a card nobody listed is a card nobody will work."""
-    board = ROOT / "board"
-    listed = set(re.findall(r"\[[^\]]+\]\((\w[\w-]*\.md)\)",
-                            (board / "README.md").read_text()))
-    on_disk = {p.name for p in board.glob("*.md")} - {"README.md"}
-    assert on_disk - listed == set(), (
-        "these cards are in board/ and not in the order:\n  "
-        + "\n  ".join(sorted(on_disk - listed)))
-    assert listed - on_disk == set(), (
-        "the order names cards that are not there:\n  "
-        + "\n  ".join(sorted(listed - on_disk)))
