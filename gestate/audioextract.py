@@ -162,7 +162,7 @@ class _Extract:
     def run(self) -> Graph:
         self.graph.out = self._signal(EGlobal(self.entry), {}, "", "")
         # **The sinks, beside the sound** — observers kept alive with
-        # no reader (roadmap §"Dropping a scope in one move"): each
+        # no reader (`journal.md` §"The scope arc"): each
         # `sink` line became a hidden definition in `audiovoices.
         # _sinks`, and extracting it here is what keeps its scopes
         # ringing.  Anything a sink builds that is not a stateful

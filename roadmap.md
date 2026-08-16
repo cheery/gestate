@@ -1,9 +1,41 @@
 # roadmap.md — what is left, and the order to do it in
 
+> ## Picking the project up? → **[`board/README.md`](board/README.md)**
+>
+> That is the live board — what is actually being worked, in order, one
+> card per task — and how to work it.  **This file is the argument**:
+> why the project is what it is, what it will not do, and what stands
+> unfinished in each part of it.  A card is a task; this is the
+> reasoning around it.  Read a card, then the section here it points at.
+>
+> Then `doc/manual.md` for the language itself, and
+> `spec/liveaudio.md` for where it is going.
+
 Companion to `fixme.md` (implementation vs. spec) and `spec/errata.md`
 (spec vs. papers).  Those two say *what* is wrong; this says *when* to fix
 it and *why then*.  What already happened is `journal.md`, and keeping the
 two apart is the point: **this file is future tense.**
+
+**Where things are in here.**  It is a long file because the arguments
+are long; this is the map.
+
+| | |
+|---|---|
+| §"The rule" | *do not build what nothing needs* — the test every entry must pass |
+| §"The ordering principle" | correctness before expressiveness; what may be reordered freely |
+| §"What I would deliberately not do" | seven things refused, each with its reason |
+| §"Milestone" ×2 | what was reached, and what it means precisely |
+| §"Stages 0–10" | closed out and moved to `journal.md`; the numbers stay because they are addresses |
+| §"What is left after stage 10" | the standing backlog — oracles, datatypes, the substrate's third element, the compiler tools, product safety |
+| §"What to build next" | the save cycle's remainder, and `--migration` |
+| §"Ariadne" | paths, the certificate, and the questions still Henri's |
+| §"Content boxes" | the editor's vertical dimension; what waits behind the north star |
+| §"The workbench as a thing that secures an environment" | future tense, gated on a release milestone |
+
+**A backlog entry in here becomes a card when it is taken up** — that is
+when its elaboration gets written.  Minting a card for everything would
+be ceremony; leaving a taken item as prose is how its state ends up
+scattered.
 
 Stages 0–6 are the language, and they are done.  Stages 7–10 are the live
 audio environment, argued in full in `spec/liveaudio.md`: a synth compiles
@@ -53,9 +85,8 @@ it was exported with.  `spec/frp_lesson.md` is the reading
 that got the language ready for it: Fran set beside this one, and the four
 compiler gaps that were between them.
 
-If you are picking the project up, read `doc/manual.md` first, then
-`spec/liveaudio.md`; the rest of this file is the record of how the language
-got to the point where that became the next thing to build.
+The rest of this file is the record of how the language got to the point
+where that became the next thing to build.
 
 ## Milestone — the language is closed under its own specs
 
@@ -915,377 +946,39 @@ temptation — the same way the atlas's sixth sheet is recorded above.
   graph is a graph the extractor already handles; allocation is a second
   system.
 
-## Henri fills this section
-
-You take each out from this section once the commit has landed.
-In that way this is a kanban system. Work them in the order given, unless one blocks the other.
-Negotiate at the start and ask questions freely.
-Collect up the questions that appear, wherever they belong, and pass me the info.
-Try to continue the work as far as you can.
-
-These rules may change. I'm trying things out here at first. You are welcome to give me feedback.
-
-It's okay, do these at your own pace. I'm happy to the work you've done so far.
-
- - [open] Make a small window that shows where the cursor is when it's off-screen.
-          This is intended mainly for situation when workbench user uses
-          the north star's features and moves the notes.
-   [open] Examine grammar of graphics and do specification work of your discoveries.
-          Either write a new or modify existing one.
-   [open] name datatypes eg. type Duration = Float, type Pitch = Int
-   [open] verify the older language features still work in workbench
-
-   [open] bug: When I type 'open ../../hello.ges' from minute.ges, it throws me into tests/section that has 'hello.ges' in there.
-
-   [open] gemba: a program in the workspace that lets me walk the factory floor —
-          Claude presents and comments to the editor, I see it through the workspace.
-          Requires python & rust syntax support.
-   [open] timer: see in gestate when I've been too long on it.
-   [open] teach me git, well enough to follow the changes Claude makes.
-   
-Once you reach here, let me know what still needs work in the full roadmap.
-
-### Elaboration, 2026-08-16
-
-*Written before any of the seven is taken, because a task whose shape is
-unknown cannot be estimated or ordered.  Each entry says what was found
-by looking, what the work is, and — where one exists — the question that
-has to be answered before it can be finished.  The questions are
-collected at the end so they can be answered in one sitting rather than
-seven interruptions.*
-
-**1 — A window showing where the cursor is when it is off-screen.**
-The editor already scrolls to follow the caret on every key
-(`shell/editor/src/keys.rs:143`, *"always"*), so the off-screen case is
-not typing — it is the **north star drag**, where a note moves under the
-hand and the thing you want to watch is not where the caret is.  The
-window already knows which rows are visible
-(`furniture.rs:606`, *"the first visible row and how many fit"*) and
-that belongs to the window's thread, so the parts exist.  The work is a
-small overlay plus a decision about what it shows: the note's new
-position, the line of text being rewritten, or both.  **Question A.**
-
-**2 — Grammar of graphics.**  This is reading and specification, not
-code, and its output is a `spec/` file argued the way `spec/scorebox.md`
-was.  The reason it is not obvious what to write is that gestate has
-*two* drawing surfaces with different contracts — the **substrate**
-(`substrate : Sig Sub`, a value composed by ordinary functions,
-interpreted at frame rate) and **score boxes** (a picture derived from
-text, which now writes back).  Wilkinson's grammar is about mapping data
-to marks, which is a third thing again.  **Question B.**
-
-**3 — Product safety process.**  The most directly actionable of the
-seven, and today's work is its subject.  There are now four mechanisms
-that can silently stop working — `tools/sandbox.sh` (the fence),
-`tools/leash.sh` (the deny-list), `tools/fence-hook.sh` (automatic
-fencing) and the AppArmor profile — and exactly one of them is checked
-by anything: `--check`, run by hand.  The work is a `test/test_safety.py`
-that runs the checks as tests, so the suite fails when the fence stops
-fencing.  `spec/sandbox.md` is the argument already written; this is the
-oracle for it.  No question — this one is takeable as it stands.
-
-**4 — Stale object files from incremental compiling.**  Looked, and the
-answer is narrower than the item assumes.  Every build path but two uses
-`tempfile.TemporaryDirectory()`, which cleans itself even on an
-exception.  The two that do **not** are `gestate/audioeditor.py:917` and
-`gestate/audiohost.py:67`, both `mkdtemp()`, both leaving a directory
-behind for the process's lifetime and past a crash.  Nothing stale is in
-the tree today — every `.so` found is under a cargo `target/` or
-`.venv`, which is normal.  So the work is: establish whether those two
-leak in practice (a long editor session, then count `/tmp/gestate-host-*`),
-and if so give them the same lifetime the others have.  No question.
-
-**5 — Named datatypes.  Mostly already built, and the interesting part
-is what is not.**  `type Duration = Float` parses and checks today —
-`test/test_type_alias.py` has twenty tests, and `spec/types.md` §6 says
-aliases are expanded eagerly before the unifier.  Confirmed by running
-it:
-
-    type Pitch = Int
-    type Duration = Float
-    bad : Pitch -> Duration
-    bad p = p          -- correctly rejected: Int vs Float
-
-But they are **structural**, so this is *accepted*:
-
-    type Pitch = Int
-    type Steps = Int
-    mix : Pitch -> Steps
-    mix p = p          -- accepted; both expand to Int
-
-A nominal type would reject that, and catch adding a pitch to a
-duration-in-steps.  `spec/types.md` §10.6 already names the pair —
-*"non-recursive type alias expansion **and nominal data types**"* — so
-the second half is specified and unbuilt.  **Question C.**
-
-*Found on the way and not part of this item:* `wait d = d + 1.0` under
-`type Duration = Float` fails with `expected Float, got ExL a`, which
-looks like the defaulting gap (F32, listed unforced under §"What is
-left") rather than anything to do with aliases.  Worth a defect number
-if it reproduces without the alias.
-
-**6 — Verify older language features still work in workbench.**  A
-sweep, and its difficulty is entirely in what "verify" means.  The suite
-already covers the language; what it does not cover is *a person using
-the feature through the window*, which is the gap
-`test-what-a-person-would-do` was written about and how F138 was found.
-`tools/toolbox.sh` and the XTEST harness are the machinery for driving a
-real window. **Question D.**
-
-**7 — `open ../../hello.ges` lands in the wrong directory.**  The
-mechanism is `Session._where` (`gestate/session.py:1083`), and it has
-been the site of this class of bug twice already — F122 (a typed path
-walked twice) and F123 (a command inheriting another command's walk).
-It resolves a typed path against `here / walked / path`, where `walked`
-is borrowed from a standing question only when `path != q`.  A typed
-`../../hello.ges` should take the `path == q` branch and get no walk at
-all, so either the equality is not holding or the standing question is
-not the one assumed.  **I could not reproduce it: there is no
-`hello.ges` anywhere in the tree and no `tests/section` directory.**
-**Question E**, and it is the blocking one — this is the only item of
-the seven I cannot start without an answer.
-
----
-
-### The questions, collected
-
-* **A (item 1).**  When a note is dragged off-screen, what should the
-  small window show — the note's new position, the line of text being
-  rewritten, or both?  My inclination is the text line, because the
-  drag's whole point is that it writes text and that is the thing you
-  cannot otherwise see.
-
-  Henri: It could show 5 lines and their numbers. Your inclination is correct.
-         Cursor should show in that window and line numbers should always show themselves.
-         It could be clickable so that user can move in that window.
-         
-         It's kind of specific to north star. I would have not come up with the idea without it.
-
-
-* **B (item 2).**  Which surface is the grammar of graphics *for* — the
-  substrate, score boxes, or a data-to-marks layer above both?  A spec
-  that tries to cover all three will cover none.
-
-  Henri: I haven't been familiar with score boxes. I may be wrong about this,
-         but some of it probably is implementable in both substrate and score boxes.
-         What I want from it is what we can collect as good ideas.
-         Remember that the spec is implemented when there is a need for the feature.
-         We collect here the features that might reach implementation some time.
-         Those ideas should be included because grammar of graphics imo does something right.
-
-* **C (item 5).**  Aliases are built.  Do you want **nominal** types
-  where `Pitch` and `Steps` are distinct despite both being `Int`, or
-  is the alias behaviour what you meant and the item is already done?
-
-  Henri: I do not know yet. The types should not get on the way. I think that they should be documentation.
-         Hey maybe they could be semi-structured:
-
-         type Duration = Float
-         type Length   = Float
-
-         f : Duration -> Float
-         x : Length
-         f x         <-- error
-         f (cast x)  <-- ok.
-          
-         But I'm not sure, get back to me if this is bad idea due to some reason that you find.
-
-         Honestly the implementation you show looks good though.
-         I only included this as today's task, because I do not figure out quickly enought
-         which argument in lowpass filters are which?
-
-* **D (item 6).**  Which features, and how far?  "Older language
-  features" could mean the twenty in `doc/manual.md`, or the ones with
-  no window test, or a specific list you have in mind.
-
-  I mainly have my concerns about using/given that has not been used anywhere yet!
-  I think it was important when we made it, and I think there's a time for it.
-  Note that I contradict project's rules there because it had no imminent use.
-  Let's allow it to be, but I want to know where it works currently.
-
-  Another one is the whole Datafun implementation. We went to FRP so hard that we forgot about these features!
-  Do not remove them, but analyse where they work right now.
-
-* **E (item 7).**  **Blocking.**  Where are `hello.ges` and the
-  `tests/section` directory?  Neither is in the repository, so the
-  reproduction needs your actual layout — the directory you were in, and
-  what is above it.
-
-  I look for it. I think I mistyped there.
-  I think I removed the session file. Let me know if you need an another one.
-
-  Here it is: ./test/sessions/F104-hello.ges
-
-**Order.**  3 and 4 need nothing and are takeable now.  5 is a
-five-minute close or a real feature depending on C.  1, 2 and 6 want
-their answers but can be started as specification.  7 is blocked on E.
-So the suggested order is **3, 4, then whatever the answers open up** —
-which departs from the written order only because 7 cannot start.
-
-
-### Elaboration of the three oversight items, 2026-08-16
-
-*Added by Claude to Henri's board on his dictation; move them if the
-placement is wrong.  He called this "another theme on security", and it
-is a different half of one: today's work stops things going wrong, and
-these three are about **being able to see**.  Gemba is oversight of the
-agent, the timer is oversight of himself, and git is the skill both rest
-on.  None of them is a fence; all three are windows.*
-
-**8 — Gemba.**  *Genba*, 現場, "the actual place" — the lean practice of
-going to where work happens instead of reading a report about it.  The
-inversion is the point: today Henri reads sixteen commit messages I
-wrote.  A gemba walk is him arriving where the work is while it is
-happening, with me narrating.
-
-Most of the machinery exists.  Content boxes already put a live thing in
-the text (`spec/scorebox.md`, `spec/panel.md`) — the notes roll, the
-scope, the spectroscope, the canvas — and a box is already "a picture,
-not code".  A gemba box would be another of those, fed by whatever I am
-doing rather than by the file.  The unbuilt part is the **channel**: no
-path exists from a Claude session into a running workbench, and that is
-the real work, not the drawing.
-
-**The syntax support, resolved 2026-08-16 evening.**  Henri: *"Isn't the
-workbench using tokenizer from python side… I recall it was python-side
-tokenizer."*  He is right, and it settles most of the item.
-
-`furniture.rs:133` says it outright — *"sent by the model because the
-tokenizer is the model's, and a second lexer in the window would be a
-second front end that could disagree with the compiler."*  The window
-receives `Vec<Run>` per visible line and **never tokenizes**;
-`session.py:3665` calls `painted(text)` and ships `col:len:class`.
-
-So:
-
-| language | tokenizer | the rule |
-|---|---|---|
-| `.ges` | the compiler's own, via `painted()` | load-bearing |
-| `.py` | stdlib `tokenize` — also a *real* one | satisfied for free |
-| `.rs` | a small lexer, deliberately coarse | **does not apply** |
-
-**Python needs no Rust change whatsoever.**  Point `painted()` at
-`tokenize` for `.py` and emit the same runs; the window is already
-language-agnostic.
-
-**And the rule was never about foreign files.**  Its stated danger is a
-lexer that *"could disagree with the compiler"* — real for `.ges`,
-because gestate's compiler tokenizes `.ges` and a second lexer can drift
-from it.  There is no gestate compiler for `.rs` to disagree with, and
-nothing downstream reads those colours: they are a reading aid, not a
-claim about the program.  A `.rs` lexer is therefore ~80 lines (strings,
-raw strings, chars, line and block comments, numbers, keywords,
-lifetimes), and its docstring must say *reading aid* so a later session
-does not mistake it for a front end.  Colouring a nested `/* /* */ */`
-wrong is a cosmetic bug, not a correctness one.
-
-**What is actually left is the cache**, and it is unchanged by any of
-the above.  `gestate/session.py:446`: colouring uses *"the
-real tokenizer, and only ever the real one — a second lexer in the
-window would be fast and would be a second front end"*, which is the
-same drift rule as everywhere else here.  Two consequences:
-
-* **The line-local assumption breaks.**  `_PAINTED` is keyed by the
-  line's own text because in gestate *"a line that has not changed
-  cannot have changed colour"* — the only cross-line state is
-  `INDENT`/`DEDENT`, which carries none.  That is false for a Python
-  triple-quoted string and for a Rust `/* */` or raw string, where a
-  line's colour depends on lines above it.  The 37µs-per-line edit cost
-  is bought by an invariant these languages do not have.  Either the
-  cache learns a per-line start state, or it is bypassed for foreign
-  files and the cost measured before anyone calls it slow.
-
-**9 — The timer.**  This one has a caller and it is the person reading
-this.  `spec/summary.md` ends: *"the pace itself was never instrumented;
-every other cost in this project has an oracle, this one did not."*
-This is that oracle, and it is being asked for the same day the sentence
-was written.
-
-The parts are precedented — `GESTATE_EDITOR_TIME` and
-`GESTATE_BUILD_TIME` already measure and report, and the status bar
-already carries multiple lines.  What is not decided is the part that
-matters:
-
-* **What counts as "too long", and what counts as a break?**  Elapsed
-  since the workbench opened is easy and wrong — it counts a lunch
-  break.  Keystroke-active time is closer.
-* **What does it do when it fires?**  A status line that goes amber
-  costs nothing and is ignorable, which is both its virtue and its
-  defect.  Anything stronger is a program interrupting its author, and
-  needs to be wanted before it is built.
-* **Does it persist across sessions?**  Nine days at thirty commits a
-  day is not one long session; it is many, and a per-session timer would
-  have said nothing about it.
-
-My inclination: session-elapsed plus idle detection, shown in the status
-bar, persisted to a small file so the *day's* total is what it reports.
-The day is the unit that went wrong, not the sitting.
-
-**10 — Git, well enough to follow the changes.**  Not a build item, and
-it should not pretend to be one; it is a session plus a page.  It is
-also the one with the most immediate return, because **auto mode is on**
-and the deny-list plus the fence stop me damaging things while doing
-nothing to tell you whether what I did was *right*.  That is review, and
-review is git.
-
-What it would cover, in the order it becomes useful: reading one commit
-(`git show`), reading a range (`git log -p`, `git log --stat`),
-comparing any two points (`git diff A..B`), finding when something
-changed (`git log -S`, `git blame`), and — the part that matters most —
-**undoing**: `git revert` for something already committed, `git restore`
-for something not, and why neither of those is `reset --hard`, which is
-denied to me and should be rare for you.
-
-Suggested form: `doc/reading-the-log.md` written against *this
-project's own history*, so every example is a real commit from today,
-followed by a live walkthrough where you drive and I answer.  No
-question — takeable whenever there is an hour.
-
-
-### Answers, 2026-08-16 evening
-
-*Given in one sitting, which is the format working.  Recorded here
-because a decision that lives only in a chat is a decision that will be
-made again.*
-
-**Item 5 — parameter names first, nominal types later.**  Grounded by
-looking at the real signatures, which is what changed the question:
-
-    lowpass        : Sig Float -> Sig Float -> Sig Float               -- k,  s
-    lowpassOnePole : Sig Float -> Sig Float -> Sig Float               -- hz, s
-    lowpassSvf     : Sig Float -> Sig Float -> Sig Float -> Sig Float  -- hz, res, s
-    lowpassLadder  : Sig Float -> Sig Float -> Sig Float -> Sig Float  -- hz, res, s
-
-**The types carry no information at all.**  The names carry every bit of
-it and live only in the source, and the first argument means a
-*coefficient* in `lowpass` and *hertz* in `lowpassOnePole` — the same
-position meaning different things between neighbours.  So the reported
-problem ("I do not figure out quickly enough which argument is which")
-is a visibility problem, not a type problem, and the fix is to show the
-names wherever a signature appears: completion, hover, `--query`.  No
-language change.  Henri's `cast` idea stays on the roadmap as the deeper
-fix, unbuilt until it has its own caller.
-
-**Item 6 — a page, plus one worked example each.**  `using`/`given` and
-the Datafun surface get an audit page (does it typecheck, does it run,
-is it reachable from the workbench, what is the smallest program that
-exercises it) **and a small runnable `.ges` in `examples/` per feature**.
-Which is the interesting part: those features have never had a caller,
-and Henri named that himself when he added the item — *"I contradict
-project's rules there because it had no imminent use."*  An example is
-the caller arriving late.  Nothing is removed.
-
-**Item 9 — the status line, and nothing else.**  A quiet amber in the
-multiline status bar carrying the **day's** total, not the sitting's.
-Ignorable by design.  Escalation was offered and declined, which is the
-right call for a program that would otherwise interrupt its author
-mid-take.
-
-**Item 1 — placed like the palette's page.**  Henri: *"similar to the
-palette's page, a rounded rectangle that pops above if cursor above
-equator, below if below equator."*  This machinery **already exists** —
-`shell/editor/src/palette.rs:1175`, *"The page goes where the room is
-(F133): the equator sends…"*, with the test at 1567 asserting that a
-caret below the equator puts the panel up.  So the peep window is that
-placement plus five lines, their numbers, the caret, and a click that
-moves the real one.  Reuse rather than invent.
+## The board — moved to `board/`
+
+**Henri fills the board; a session works down it.**  It used to live in
+this file as a list with two numbering schemes over it, and both went
+stale the moment an item left the middle: an "item 3" meant one thing in
+the list and another in the elaboration under it.  It is now one file per
+task in [`board/`](board/README.md), named rather than numbered, so a
+card can be cited from a comment or a test the way `fixme.md`'s
+F-numbers are and still resolve a year later.
+
+[`board/README.md`](board/README.md) carries the order, the rules, and
+how a card is worked.  What moved there, in full and in Henri's own
+words: the seven open cards, the three closed on 2026-08-16
+([`board/done/`](board/done)), every elaboration written before a card
+was taken, and every question with his answer under it.
+
+**The two rules that came out of using it**, both earned the same day:
+
+- **A card's `because` is a problem, never a fix.**  The card that read
+  *"name datatypes eg. `type Duration = Float`"* named a solution; the
+  need behind it was *"I do not figure out quickly enough which argument
+  in lowpass filters are which"*, and the answer turned out to have
+  nothing to do with types.  A card that names the fix hides the problem,
+  and the problem is the part a reader can solve differently.
+- **Henri creates new cards and edits none.**  Two writers never touch
+  one file, so the board cannot shift under a session that is working
+  down it — which happened on the first day and cost an item.
+
+**Elaborate before taking.**  The practice that paid for itself most:
+before a card is worked, write down what was found by looking — which
+parts already exist and where, what the work actually is, and the
+question that has to be answered first.  A task whose shape is unknown
+cannot be estimated or ordered.  The questions get collected and asked
+in one sitting, and the answers are written *into the cards*, because a
+decision that lives only in a chat is a decision that will be made
+again.

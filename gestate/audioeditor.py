@@ -713,7 +713,8 @@ class Workbench:
         #: is read.  Nothing compiles, nothing asks for the sound card,
         #: and saving is all applying means; the window wears `[inert]`
         #: so the quiet reads as a mode rather than as breakage
-        #: (`roadmap.md` §"Small improvements queued from use").
+        #: (asked for from use; `journal.md` §"The canvas walks over
+        #: crust" is the day it landed).
         self.inert = self.path.suffix.lower() in INERT
         #: **A file that is not there yet, held in memory until it is
         #: saved.**  Naming a file that does not exist is how an editor is

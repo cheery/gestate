@@ -2101,8 +2101,8 @@ def test_a_spectro_is_a_scope_by_another_reading(tmp_path):
 
 
 def test_a_sink_keeps_an_observer_alive_beside_the_sound():
-    """Henri's pick from the two spellings (roadmap §"Dropping a scope
-    in one move"): `sink scope "stab" stab` — one appended line, the
+    """Henri's pick from the two spellings (`journal.md` §"The scope arc
+    — the workbench learns to see"): `sink scope "stab" stab` — one appended line, the
     observed definition untouched, the scope ringing with no reader.
     A comment's sink is a comment, an indented sink is somebody's own
     word, and line numbers never move."""

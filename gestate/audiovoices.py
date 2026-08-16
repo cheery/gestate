@@ -683,7 +683,8 @@ _NOTES = None
 def _sinks(source: str) -> str:
     """Rewrite every `sink <expr>` into a hidden ordinary definition.
 
-    The scope-dropping tool (roadmap §"Dropping a scope in one move",
+    The scope-dropping tool (`journal.md` §"The scope arc — the workbench
+    learns to see",
     Henri's pick): `sink scope "stab" stab` keeps an observer alive
     beside the sound without touching the definition being observed —
     the edit is one appended line and its undo is one line.  One line

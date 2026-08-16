@@ -7098,6 +7098,7 @@ And the day's own instrument was asked for before the day ended: a timer
 in gestate for when he has been too long at it.  Recorded in
 `roadmap.md`, with one note — nine days at thirty commits a day was not
 one long session, so the day is the unit, not the sitting.
+
 ## The evening the caret got a window of its own
 
 **2026-08-16, the evening.**  The first item on Henri's board, taken with
@@ -7278,3 +7279,92 @@ Henri's `cast` idea — semi-structured aliases, where `Duration` and
 roadmap unbuilt, which is where an idea with no caller belongs.  It was
 never what today's frustration was about.
 
+## The board becomes a directory
+
+**2026-08-16, late.**  Three cards done in one evening, and the thing
+that had cost the most was not any of them: it was finding out what each
+one *was*.  Henri, reading the report: *"I think the roadmap needs
+improvement.  Or then the cold start was a problem."*
+
+Both, and they were the same problem.  What a session needs on arrival
+is the **state** of each task; what the file held was a **log** of
+events — an elaboration section written one morning, a questions section
+written at noon, an answers section written that evening, each a
+separate heading in date order.  Item 1's shape was assembled from five
+passages spread over four hundred lines.  Nothing was wrong with any of
+them individually.
+
+The diagnosis, in the order it cost:
+
+1. **Entries named fixes, not problems.**  *"name datatypes eg. `type
+   Duration = Float`"* is a solution; the need behind it was *"I do not
+   figure out quickly enough which argument in lowpass filters are
+   which"*, and it turned out to have nothing to do with types.  A card
+   that names the fix hides the problem, and the problem is the part a
+   reader can solve differently.
+2. **Two numbering schemes, both positional, both stale.**  The board
+   was unnumbered, the elaboration numbered 1–7, the oversight items
+   8–10, and the answers said "item 5".  Two items had been finished
+   that morning and left the list, so positions moved and numbers did
+   not.  "Item 3" meant two different things depending on which section
+   you were reading — which is exactly the mistake made in the report
+   that started this.
+3. **A blocked flag nobody cleared.**  The `open ../../hello.ges` card
+   said *"the one item of the seven I cannot start without an answer"*
+   at line 1021, and Henri answered it at line 1089 with the session
+   file.  The session read the flag and skipped the card.  It cost him
+   an item that was ready to work.
+4. **Five sections answered "what next"**, and the real one was at the
+   bottom of 1,266 lines.
+
+### What replaced it
+
+`board/`, one file per task, named rather than numbered — **the filename
+is the id**, so a card can be cited from a comment or a test the way
+`fixme.md`'s F-numbers are and still resolve a year later.
+`board/README.md` carries the order, the rules and how a card is worked;
+`roadmap.md` keeps the argument and gains a map of itself at the top and
+a pointer at the very top.  A finished card moves to `board/done/`, so
+`ls board/*.md` **is** the live board and nothing has to be trimmed by
+hand.  Ten cards were cut: the seven open, and the three closed that
+evening carrying their questions and Henri's answers with them.
+
+Two rules came out of using it, both his:
+
+- **`because` is mandatory, and it is a problem.**  From lesson 1 above.
+- **Henri creates new cards and edits none.**  His own, offered
+  unprompted — *"I should be allowed only to create new cards and
+  nothing else"* — and it is better than tidiness: **two writers never
+  touch one file.**  The board grew two items that same evening *while a
+  session was working down it*, and the session nearly missed them.  A
+  new card is a new file: it shows up as an addition, collides with
+  nothing, and cannot silently change work in flight.
+
+### And the citations turned out to be rotting
+
+The restructure made citations load-bearing, so it was worth asking
+whether the existing ones resolved.  Three did not — the roadmap
+sections named *"Small improvements queued from use"*, *"Dropping a
+scope in one move"* and *"The canvas walks over crust"*, cited from
+**seven** files between them.  Every one had been consumed when its work
+landed and moved into this file under a different heading.  (Named in
+italics here rather than with a `§`, because the mark means *go and read
+this* and there is nothing left to read.)  Nobody noticed, because a
+citation is prose and prose is not run.
+
+`test/test_citations.py` runs it now — and calibrating it was the
+instructive part.  A first version checked that a citation named a `#`
+heading and failed twenty-eight times, because this tree names passages
+five ways: ATX headings, numbered headings, setext headings, bold
+lead-ins on paragraphs, and bold lead-ins on bullets — and half the
+citations quote a phrase from the middle of one.  Pinning the convention
+would have meant rewriting the tree to suit the checker.  So what it
+checks is the thing that actually rots: **are these words still anywhere
+in that file.**  A renamed section takes its words with it, which is how
+all three were found; a loose citation keeps passing.  It also caught a
+broken link written twenty minutes earlier, in the very file explaining
+that a card's name is its id.
+
+The roadmap said it years-of-project-time ago, about keeping the stage
+numbers as addresses: *"A citation that no longer resolves is worse than
+a long file."*  It is a test now.

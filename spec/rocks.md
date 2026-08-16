@@ -1,9 +1,10 @@
 # rocks.md — what a file weighs, said in one character
 
 *Companion to `spec/workbench.md` §"The list, and the laws it keeps"
-(where the marks are read) and to `manifesto.md` §"make problems
-visible", which this is a small instance of.  The ask is Henri's, on
-the evening of 2026-08-15, and so is the occasion: he had committed a
+(where the marks are read) and to `manifesto.md` §"costs, and where it
+is not paid" — its rule that being wrong has to be visible — which this
+is a small instance of.  The ask is Henri's, on the evening of
+2026-08-15, and so is the occasion: he had committed a
 **6.5 MB gif of a five-second recording** and found out days later,
 from a stranger's clone being slow.  "I am a dummy who uploads a 6MB
 gif without a clue of its size."  He was not.  Nothing had ever told

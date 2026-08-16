@@ -302,7 +302,7 @@ def substrate_of(source: str, rate: int, graph, knobs: frozenset):
     that is also a **knob** is paired with its slot.  A touch on a fader
     then moves the picture *and* the sound, and the shell does it by
     writing the parameter it already owns rather than by reaching into
-    the engine (`spec/panel.md` §"What the substrate will demand").
+    the engine (`spec/panel.md` §"What the substrate demanded, when its turn came").
 
     **A knob, not any control source**, and `envelope.ges` is why: its
     graph reads sixteen `keysChan…` slots, one per voice of a bank, and

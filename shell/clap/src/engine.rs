@@ -187,7 +187,7 @@ pub struct Substrate {
     /// with it — it turns the touch into the *parameter* change the
     /// host already understands, so a substrate drag is undoable,
     /// automatable and visible in the DAW like every other one
-    /// (`spec/panel.md` §"What the substrate will demand").
+    /// (`spec/panel.md` §"What the substrate demanded, when its turn came").
     pub bridge: &'static [(&'static str, usize)],
 }
 
