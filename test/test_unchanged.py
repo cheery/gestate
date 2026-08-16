@@ -140,3 +140,55 @@ def test_an_operator_declaration_is_named_by_its_operator():
     before = SYNTH + "\n(|+|) : Int -> Int -> Int\n(|+|) a b = a + b\n"
     after = before.replace("(|+|) a b = a + b", "(|+|) a b = a + b + 1")
     assert unchanged.changed(before, after) == {"(|+|)"}
+
+
+BOXED = """\
+tune : [: Int :]
+tune = '60 ++ '63 ++ '53 ++ '56
+
+notes tune
+
+score : [: Void :]
+score = do
+    x <- tune
+    voices.lead (Key x 100)
+
+sound : Sig Float
+sound = lead * 0.3
+"""
+
+
+def test_a_score_box_is_drawn_from_what_its_ask_names():
+    """**A phase's roots are what it reads, not what it is called.**
+
+    Henri's `untitled.ges` has no `substrate` in it at all, only a
+    `notes tune` ask.  Asking whether anything reachable from
+    `substrate` had moved is asking about an empty set, so every edit
+    "kept" the pictures — and the score box went on describing the text
+    as it was before the drag that had just rewritten it.  Found within
+    the hour of the skipping being built, by a hand dragging four notes
+    in a row.
+
+    What saved it from being a wrong note rather than a refusal is the
+    box's own guard: *the file has moved under the picture*.
+    """
+    assert unchanged.picture_roots(BOXED) == ("substrate", "tune")
+    after = BOXED.replace("'60 ++ '63", "'58 ++ '63")
+    assert unchanged.changed(BOXED, after) == {"tune"}
+    assert not unchanged.kept(BOXED, after, unchanged.picture_roots(BOXED))
+
+
+def test_a_synth_edit_still_leaves_the_boxes_alone():
+    """The win is kept: a roll of `tune` does not care what `sound`
+    multiplies by."""
+    after = BOXED.replace("lead * 0.3", "lead * 0.35")
+    assert unchanged.changed(BOXED, after) == {"sound"}
+    assert unchanged.kept(BOXED, after, unchanged.picture_roots(BOXED))
+
+
+def test_the_substrate_is_still_a_root():
+    """A file that *does* declare one keeps the original question."""
+    drawn = "substrate : Sig Sub\nsubstrate = disc peak\n\npeak : Sig Float\npeak = 0.5\n"
+    assert unchanged.picture_roots(drawn) == ("substrate",)
+    after = drawn.replace("peak = 0.5", "peak = 0.6")
+    assert not unchanged.kept(drawn, after, unchanged.picture_roots(drawn))

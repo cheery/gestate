@@ -202,7 +202,15 @@ class Engine:
         from .audioperform import graph_of
 
         graph = graph_of(source, rate=rate)
-        lib = load(build(graph, directory))
+        # **The two `f32` loops, and not the `double` one.**  A player
+        # fills a device buffer (`render_block_f32`) and crossfades one
+        # engine into another (`render_block_mix_f32`); the `double`
+        # loop belongs to the offline render, and emitting it here cost
+        # two thirds of a second of `clang` on every Ctrl-S for code
+        # this process never enters (`spec/incremental.md`).
+        lib = load(build(graph, directory,
+                         wants=("render_block_f32",
+                                "render_block_mix_f32")))
         # The crossfade's entry point: the same body, multiplying by a gain
         # that ramps `g0`→`g1` across the block and *adding* into the
         # buffer.  Two calls mix two programs in the engine — see

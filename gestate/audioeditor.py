@@ -2807,7 +2807,13 @@ class Workbench:
         from . import unchanged
 
         was = self._built_from
-        if unchanged.kept(was, text, ("substrate",)):
+        # **The pictures read more than `substrate`.**  A score box is
+        # a roll of whatever its `notes <expr>` ask names, and its
+        # region map — which is what a drag rewrites through — is built
+        # here.  Rolls are drawn at the session's seed, too, so a reroll
+        # redraws them however little the text moved.
+        if self.seed == self._built_seed \
+                and unchanged.kept(was, text, unchanged.picture_roots(text)):
             self._skipped("substrate")
         else:
             self._load_substrate(text)

@@ -387,14 +387,15 @@ their own headings.  What is below is what is *not* done.
 
   **What is left of it**, in the order the value falls:
 
-  * **The compilation unit** — one object file per declaration, cached
-    by content and relinked, so a change to one voice re-compiles one
-    voice.  Henri's idea, and the measurement has to come with it:
-    today's render speed is `-O2` over one whole module, and splitting
-    the unit costs cross-function inlining.  `-O1` was already rejected
-    for costing `lead.ges` 30× realtime → 16×, which is the precedent
-    for how to measure this one.
-  * **The front end's 1.2 s floor** — about 0.6 s of it is passes
+  * **The compilation unit — measured, and answered differently.**
+    Per-declaration object files are refused with a number: the 436
+    declarations of `quartet.ges` are 0.09 s of a 2.14 s compile, and
+    splitting them removes the inlining the audio path is built on
+    (`render_block` calls 357 functions per sample).  What the
+    measurement pointed at instead is built: a build emits only the
+    renderers its caller will enter, and `clang` went 1.46 s → 0.86 s.
+    `spec/incremental.md` has all of it.
+  * **The front end's ~1 s floor** — about 0.6 s of it is passes
     running over library supercombinators that cannot have changed,
     measured pass by pass on the staged path.  The `desugar_program`
     share has a named fix (`names_end` in `StackFront`); `_discharge`

@@ -153,6 +153,31 @@ def reaches(source: str, roots) -> set:
     return seen
 
 
+#: The ask lines whose *expression* is what a picture is drawn from.
+#: `notes tune` draws a roll of `tune`, and `canvas peak` a box of
+#: `peak`; the ask line itself is structural (a change to it rebuilds
+#: everything), and what it names is a root.
+_ASK = re.compile(r"^(?:notes|canvas)\s+(\S.*)$", re.M)
+
+
+def picture_roots(source: str) -> tuple:
+    """What the boxes are drawn from — `substrate`, and every ask.
+
+    **A phase's roots are what it reads, not what it is called.**  The
+    first version of this asked whether anything reachable from
+    `substrate` had moved, which is empty in a file that declares no
+    substrate — so every edit to such a file "kept" the pictures, and
+    a score box went on describing the text as it was before the drag
+    that had just rewritten it.  Henri found it within the hour, and
+    the score box's own guard is what turned it into a refusal rather
+    than a wrong note: *the file has moved under the picture*.
+    """
+    roots = ["substrate"]
+    for expr in _ASK.findall(source):
+        roots.extend(_WORD.findall(expr))
+    return tuple(roots)
+
+
 def kept(before: str, after: str, roots=()) -> bool:
     """Can a phase reading `roots` keep what it built from `before`?
 

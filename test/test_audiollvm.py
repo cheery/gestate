@@ -560,3 +560,70 @@ def test_an_ordinary_synth_is_nowhere_near_the_edge():
     """
     graph = extract((AUDIO_DIR / "drums.ges").read_text(), rate=8000)
     assert run(graph, 400), "the reference refused an ordinary synth"
+
+
+def test_a_build_emits_the_loops_its_caller_will_enter():
+    """**Ninety-six per cent of `clang` is the three renderers.**
+
+    Measured on `quartet.ges`: the whole module is 2.14 s and the 436
+    declarations beside them come to 0.09.  A session in the editor
+    never enters the `double` loop and an offline render never enters
+    the mixing one, so a build emits what its caller will call.
+    `spec/incremental.md` has the measurements and the design this
+    replaced.
+    """
+    from gestate.audiollvm import RENDERERS, emit
+
+    graph = extract("sound : Sig Float\nsound = 0.25 * sine 220.0\n",
+                    rate=8000)
+    whole = emit(graph)
+    for name in RENDERERS:
+        assert f"@{name}(" in whole, name
+
+    live = emit(graph, ("render_block_f32", "render_block_mix_f32"))
+    assert "@render_block(" not in live
+    assert "@render_block_f32(" in live and "@render_block_mix_f32(" in live
+
+    offline = emit(graph, ("render_block",))
+    assert "@render_block(" in offline
+    assert "@render_block_f32(" not in offline
+
+
+def test_the_loops_that_are_kept_are_emitted_unchanged():
+    """**The reason this is not separate compilation.**
+
+    `render_block` is a loop making hundreds of calls per sample, and
+    the render speed is LLVM inlining them at `-O2` in one module.
+    Leaving a loop *out* must not change the code of the ones left in —
+    if it did, this would be a change to the sound and not only to the
+    build.
+    """
+    from gestate.audiollvm import emit
+
+    graph = extract("sound : Sig Float\nsound = 0.25 * sine 220.0\n",
+                    rate=8000)
+
+    def body(text, name):
+        at = text.index(f"@{name}(")
+        return text[at:text.index("\ndefine ", at)]
+
+    whole = emit(graph)
+    live = emit(graph, ("render_block_f32", "render_block_mix_f32"))
+    assert body(live, "render_block_f32") == body(whole, "render_block_f32")
+
+
+def test_a_loop_that_was_not_emitted_is_not_bound():
+    """Naming a symbol through `ctypes` *binds* it, so a prototype for a
+    loop this build did not write is a load error two layers from the
+    decision that left it out."""
+    import tempfile
+    from pathlib import Path
+
+    from gestate.audiollvm import build, load
+
+    graph = extract("sound : Sig Float\nsound = 0.25 * sine 220.0\n",
+                    rate=8000)
+    with tempfile.TemporaryDirectory() as where:
+        lib = load(build(graph, Path(where), wants=("render_block_f32",)))
+        assert hasattr(lib, "render_block_f32")
+        assert not hasattr(lib, "render_block")

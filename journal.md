@@ -6822,3 +6822,127 @@ because today's throughput comes from `-O2` over one module.
 `test_atlas.py` failed with *these modules have no lane — give each one
 a line: unchanged*, which is exactly what it was built to do, four
 hours after it was built.
+
+## Ninety-six per cent of the compile was three functions
+
+2026-08-16, after the phase skipping.  Henri: *"I think that object
+file per declaration would work well enough.  Let's measure how it goes
+before we decide."*
+
+It would not, and the measuring is the story.  `spec/incremental.md` is
+where all of it now lives, including the vocabulary — early cutoff,
+smart recompilation, separate compilation, and *unsound
+incrementality*, which is the enemy the whole design is shaped by.
+
+**The emitted module is not shaped like the program.**  `quartet.ges`
+comes out as 439 functions and 14,295 lines of LLVM IR.  436 of them
+are the program's own declarations — `adsrOf`, `svfNext`, `hzOf` — and
+three of them are `render_block`, `render_block_f32` and
+`render_block_mix_f32`, the graph flattened into a loop, 3,170 lines
+each.
+
+**What a one-line edit changes is tiny**, and that argues *for*
+splitting: a constant inside `bassOsc` changes 3 functions of 439, 15
+lines of 14,295.  A note in the score changes nothing at all in the IR,
+which is why the `.so` store already catches that one.
+
+**Then where the time is.**  The whole module at `-O2` is 2.14 s.  The
+436 declarations, alone, are **0.09 s**.  Ninety-six per cent of
+`clang` is the three renderers, about two thirds of a second each — and
+the declarations, the very things a per-declaration object file would
+let us skip, are four per cent of the bill.
+
+And splitting them would cost the sound.  `render_block` is a loop
+making **563 calls to 357 distinct functions per sample**; at `-O2` in
+one module LLVM inlines them all, and that is where the render speed
+comes from.  In separate objects every one becomes a real call.
+ThinLTO would give the inlining back, but the function that changed is
+inlined *into the renderers*, so the renderers are re-optimised
+anyway — which is the ninety-six per cent again.
+
+### What the numbers pointed at
+
+Three renderers exist for three callers, and no process enters all
+three.  The editor's live engine fills a device buffer and crossfades
+one engine into another — the two `f32` loops.  The offline render and
+the oracle enter the `double` one.  Emitting the others is two thirds
+of a second of every rebuild for code that process will never reach.
+
+So `emit(graph, wants)` writes the subset, and each caller asks for
+what it will call.  **Nothing else changes** — the loops that are kept
+come out byte for byte as before, which is the difference between a
+build decision and a change to the sound, and a test asserts it rather
+than trusting it.  One trap on the way: naming a symbol through
+`ctypes` *binds* it, so `load()` declaring a prototype for a loop this
+build left out was a load error two layers from the decision.
+
+    one constant inside one voice, quartet.ges
+
+    before anything          5.41 s
+    after early cutoff       3.74 s
+    after the subset         2.73 s     clang 1.46 s → 0.86 s
+
+### What this was really about
+
+The instinct — compile a patch rather than the whole program — was
+right about the *goal* and wrong about the *unit*, and only a
+measurement could tell which.  Had the split been built first it would
+have cost an afternoon, saved four per cent, and made the audio slower
+in a way that would have taken a week to attribute.
+
+**A profile before a plan.**  The same lesson the `-O1` experiment
+taught, arrived at from the other end.
+
+### The hour it took to find what the skipping broke
+
+Henri, within the hour of the skipping being built: *"the fast paced
+implementation introduces issues on the notes system.. or reveals
+them."*  Then, when asked which: `untitled.ges` and
+`untitled-session.ges`.
+
+The transcript is the report, and it is four lines of it:
+
+```
+transpose "__nb_c0_7__" 60 58     #= -2 semitones on line 29
+transpose "__nb_c0_15__" 63 56    #= -7 semitones on line 29
+transpose "__nb_c0_29__" 53 61    #= +8 semitones on line 29
+transpose "__nb_c0_30__" 53 59    #= transpose: line 29 does not say 53
+                                  #   where the box thought — the file
+                                  #   has moved under the picture
+```
+
+Three drags land and every one after them is refused.  **It was mine,
+and it was introduced rather than revealed.**
+
+`note_regions` — the map from a hand on the roll to the atom it
+rewrites — is built inside `_load_substrate`, with the canvases, and
+that morning I had gated that phase on `unchanged.kept(was, text,
+("substrate",))`.  `untitled.ges` declares no `substrate` at all; it
+has a `notes tune` ask.  So the reachable set from those roots was
+**empty**, nothing could ever intersect it, and every non-structural
+edit "kept" the pictures — leaving the box describing the text as it
+was before the drag that had just rewritten it.
+
+> **A phase's roots are what it reads, not what it is called.**
+
+`picture_roots` reads them now: `substrate`, plus every identifier in
+every `notes`/`canvas` ask line — and the seed, since a roll is drawn
+at the session's take.  Held by three tests written from Henri's own
+file.
+
+Two things worth keeping from how it was found.
+
+**The score box's guard is why this was a refusal and not a wrong
+note.**  `transposed` reads the file back and checks the atom says what
+the picture thought before it writes; the north star was built that
+way on purpose (*"they meet at the atom, and disagreeing is a refusal
+rather than a write"*).  A design decision made a fortnight earlier
+turned a stale-cache bug into a sentence naming the line.
+
+**And the transcript worked without the replay working.**  Replayed,
+every step answered `no score box region called __nb_c0_7__`: the
+regions come from the window's own walk and a headless replay has no
+window, which is the known replay gap.  The *recorded answers* were the
+evidence — three that said `-2 semitones on line 29` and four that said
+the file had moved.  A log of what was said is worth keeping even where
+the replay cannot follow it.

@@ -455,8 +455,30 @@ class _Emit:
 # ── The whole module ────────────────────────────────────────────────────────
 
 
-def emit(graph: Graph) -> str:
-    """The graph as LLVM IR text."""
+#: The three loops the emitter can write, and who enters each one.
+#: `render_block` is the offline render and the oracle, `_f32` is the
+#: live engine and the C host, `_mix_f32` is the crossfade that installs
+#: an edit under the sound.
+#:
+#: **A build emits the ones its caller will call, and no more.**  They
+#: are 3,170 lines of IR each — the graph flattened into a loop — and
+#: measured on `quartet.ges` they are *ninety-six per cent* of `clang`'s
+#: time: the whole module is 2.14 s and the 436 declarations beside them
+#: come to 0.09.  A session in the editor never enters the `double` one;
+#: an offline render never enters the mixing one.  Emitting them anyway
+#: is two thirds of a second each, every rebuild, for code nothing in
+#: that process will reach.  `spec/incremental.md` has the measurements
+#: and the design this replaced.
+RENDERERS = ("render_block", "render_block_f32", "render_block_mix_f32")
+
+
+def emit(graph: Graph, wants=RENDERERS) -> str:
+    """The graph as LLVM IR text, with the renderers `wants` names.
+
+    Everything else is emitted whatever is asked for: the declarations
+    are cheap, and which of them a renderer needs is the inliner's
+    business rather than this function's.
+    """
     e = _Emit(graph)
 
     # The state struct: `t`, then one field per node, in id order.  Every
@@ -508,17 +530,20 @@ def emit(graph: Graph) -> str:
     ]
     for name in sorted(e.bodies):
         lines += e.bodies[name] + [""]
-    lines += _render_block(graph, e, "render_block", "double")
-    lines += [""]
-    lines += _render_block(graph, e, "render_block_f32", "float")
+    if "render_block" in wants:
+        lines += _render_block(graph, e, "render_block", "double")
+        lines += [""]
+    if "render_block_f32" in wants:
+        lines += _render_block(graph, e, "render_block_f32", "float")
     # **The crossfade, in the engine rather than in the host.**  Same body,
     # two extra arguments and a different last instruction: it multiplies by
     # a gain ramping `g0`→`g1` across the block and *adds* into the buffer
     # instead of storing.  Two calls — the new engine ramping up, the old
     # one ramping down — mix two programs sample for sample with no Python
     # between them, which is what an audio callback with a deadline needs.
-    lines += _render_block(graph, e, "render_block_mix_f32", "float",
-                           mix=True)
+    if "render_block_mix_f32" in wants:
+        lines += _render_block(graph, e, "render_block_mix_f32", "float",
+                               mix=True)
     lines += _read_scopes(graph)
     return "\n".join(lines) + "\n"
 
@@ -1079,7 +1104,7 @@ def _so_store():
     return Path(root) / "gestate"
 
 
-def build(graph: Graph, directory, opt: str = "-O2"):
+def build(graph: Graph, directory, opt: str = "-O2", wants=RENDERERS):
     """Compile the graph to a shared object and return its path.
 
     `-O2` is safe for the comparison and worth stating why: LLVM will not
@@ -1104,7 +1129,7 @@ def build(graph: Graph, directory, opt: str = "-O2"):
     stem = f"synth{next(_BUILD)}"
     ll = directory / f"{stem}.ll"
     so = directory / f"{stem}.so"
-    text = emit(graph)
+    text = emit(graph, wants)
     ll.write_text(text)
 
     store = _so_store()
@@ -1149,14 +1174,24 @@ def build(graph: Graph, directory, opt: str = "-O2"):
 
 
 def load(so_path):
-    """`(render_block, State)` — the generated code, callable from Python."""
+    """The generated code, callable from Python.
+
+    **The prototype is declared only for a loop that is there.**  A
+    build emits the renderers its caller will enter (`RENDERERS`), so a
+    live engine's object has no `render_block` in it at all — and
+    naming a symbol through `ctypes` *binds* it, which raises rather
+    than leaving an attribute unset.  Asking first is the whole
+    difference between "this build did not need that loop" and a load
+    error two layers from the decision.
+    """
     import ctypes
 
     lib = ctypes.CDLL(str(so_path))
-    lib.render_block.restype = None
-    lib.render_block.argtypes = [ctypes.c_void_p,
-                                 ctypes.POINTER(ctypes.c_double),
-                                 ctypes.c_int64, ctypes.c_int64]
+    if hasattr(lib, "render_block"):
+        lib.render_block.restype = None
+        lib.render_block.argtypes = [ctypes.c_void_p,
+                                     ctypes.POINTER(ctypes.c_double),
+                                     ctypes.c_int64, ctypes.c_int64]
     return lib
 
 
@@ -1173,7 +1208,10 @@ def native_blocks(graph: Graph, directory, samples: int,
     """
     import ctypes
 
-    lib = load(build(graph, directory, opt=opt))
+    # **The double loop, and only it.**  This is the offline render and
+    # the oracle; neither ever calls the two `f32` variants, and each of
+    # those is two thirds of a second of `clang` (`RENDERERS`).
+    lib = load(build(graph, directory, opt=opt, wants=("render_block",)))
     # Declared rather than inferred: the fourth argument is a *pointer* to
     # the control slots now, and ctypes left to guess turns a `c_void_p`
     # into "cannot be interpreted as an integer" at the call.
