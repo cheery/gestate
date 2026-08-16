@@ -112,6 +112,14 @@ def main():
     pytest_cmd = [sys.executable, "-m", "pytest", "-q", "-p", "no:randomly",
                   "--tb=line", "-rfE", *passthrough]
 
+    # **The word that unlocks a whole-suite run** — `test/conftest.py`
+    # refuses one that did not come through here, because a full run that
+    # leaves no report behind is the silently-partial page this file
+    # exists to prevent.  Set in the environment rather than passed as an
+    # argument so it survives the hop through `sandbox.sh` into the
+    # fence, which keeps the environment it is given.
+    os.environ["GESTATE_SUITE"] = "1"
+
     fenced = not args.unfenced
     fence_ok, fence_note = (None, "not asked")
     if fenced:

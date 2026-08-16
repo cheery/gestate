@@ -92,3 +92,48 @@ def _no_sound_card(request, monkeypatch):
     monkeypatch.setattr(audiohost.Host, "open", refuse("the C audio host"))
     monkeypatch.setattr(audiohost.Host, "run_device",
                         refuse("the C audio host's device loop"))
+
+
+# ── The whole suite goes through `tools/suite.py` ────────────────────────
+#
+# **A poka-yoke, after the mistake.**  On 2026-08-16 a full run was
+# started as a bare `python -m pytest -x -q`.  Nothing was wrong with the
+# tests; what was wrong is that the run said nothing by the time it
+# finished — no `test/report.md`, no commit, no word on which side of the
+# fence it ran, `-x` stopping at the first failure instead of naming them
+# all, and the two files the fence cannot host (`RUNS_UNFENCED` in
+# `tools/suite.py`) either failing for the wrong reason or not running.
+# A green scrollback is exactly the silently-partial report `suite.py`
+# was written to prevent, so the way to get one is closed rather than
+# discouraged.
+#
+# **Targeted runs are untouched**, and that is the point of counting: a
+# file, a `-k`, a marker — the thing you actually reach for while
+# working — collects a few dozen tests and never sees this.  It fires
+# only on a run big enough to be *the suite*, where the report is the
+# whole value.
+
+#: How many collected tests make a run "the whole suite" rather than a
+#: targeted one.  The suite is about 2,500; the largest single file is
+#: under 200.
+WHOLE_SUITE = 800
+
+
+def pytest_collection_modifyitems(session, config, items):
+    if len(items) < WHOLE_SUITE or os.environ.get("GESTATE_SUITE"):
+        return
+    raise pytest.UsageError(
+        f"this run collected {len(items)} tests, which is the whole suite.\n"
+        "Run it through the thing that records it:\n"
+        "\n"
+        "    python tools/suite.py\n"
+        "\n"
+        "It fences the run, runs the two files the fence cannot host "
+        "outside it,\nand leaves `test/report.md` behind saying what ran, "
+        "when, against which\ncommit, and every failure by name.  A bare "
+        "`pytest` over everything leaves\nnothing behind and stops at the "
+        "first failure.\n"
+        "\n"
+        "Extra arguments pass through: `python tools/suite.py -m \"not "
+        "golden\"`.\n"
+        "If you mean it anyway: `GESTATE_SUITE=1 python -m pytest ...`.")
