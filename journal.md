@@ -6486,3 +6486,69 @@ Which is the same lesson the star's evening reached from the other
 side: **a message, like a gesture, is a claim about time.**  Being
 right is not enough; it has to arrive where the person can still do
 something about it.
+
+## The sheet that draws itself
+
+2026-08-16, afternoon.  Henri asked for an A3 or two mapping the
+architecture, *"such that it stands time and updates along the
+project"* — which is the whole question, and it had been sitting in
+the roadmap since the morning with two candidate answers.
+
+Both turned out to be one answer.
+
+**An architecture drawing is a claim about a tree that keeps moving.**
+The morning's entry had it filed as a choice: generate the picture from
+what the machine can see, or draw it by hand and give it an oracle over
+the nouns.  Writing it made the choice dissolve — the machine has the
+nouns *and* can check the verbs, because an arrow between two parts of
+a Python program is an import, and an import is a fact.  What the
+machine cannot know is which lane a module belongs to and what that
+lane is *for*, and that is exactly what a person should be writing.
+
+So `gestate/atlas.py` has two hand-written tables and everything else is
+read from the tree:
+
+* **`WHERE`** — module → lane.  Every module must be in it.  A new
+  module fails `test_atlas.py` by name rather than quietly going
+  missing from the picture, which is the drift the whole arrangement
+  exists to prevent.
+* **`SPINE`** — the arrows worth drawing, each carrying the import that
+  proves it: `("core", "sound", "the graph", ("audioextract",
+  "gmachine"))`.  One crossing is not a Python call at all — the model
+  sends the window its furniture down a pipe — and that one names a
+  file instead.
+
+Everything else — fifty-nine modules, the seven libraries, the four
+crates and `host.c` — is discovered, and the sheet is `doc/atlas/whole.svg`,
+A3 in millimetres because it is meant to be printed.
+
+**The guarantee is `doc/ref/`'s, and deliberately the same sentence.**
+`test_atlas.py` fails when a module has no lane, when a lane names
+something gone, when an arrow has nothing behind it, when a named
+library or crate is missing, and when the committed sheet is not what
+today's source renders — *run `python -m gestate.atlas`*.  Rendering
+twice must give the same bytes, which is why there is no timestamp and
+no commit hash on the page: a generated file that changes when nothing
+changed is a generated file people stop regenerating, and then the
+picture is a hand-drawn one again with extra steps.
+
+Two things the drawing itself taught, both about time rather than
+architecture:
+
+**A lane is as tall as what is in it.**  The first version fixed the
+heights and the sheet was mostly air with the module names crammed into
+the top of each box.  Sizing a lane by its content means a lane that
+gains a module grows, and the sheet stays legible without anybody
+adjusting a number — the same reason the editor's rows have varying
+height.
+
+**An arrow drawn between rows must go round, not through.**  Straight
+lines from the core lane to the three backends crossed two lane titles
+and read as a scribble; a bus under the core with three drops off it
+reads as a route.  The sideways arrows moved *below* the text they
+pass, which the lane's own measured height is what makes possible.
+
+What is left is more sheets, and the rule the rest of this project runs
+on applies: draw the one somebody wants to read.  The generator returns
+a page per name, so the front end pass by pass, the sound path, and the
+window are each an afternoon whenever the overview stops saying enough.

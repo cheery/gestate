@@ -379,31 +379,27 @@ their own headings.  What is below is what is *not* done.
     and much further out, unification provenance — *why did it think this
     was `Int`* — which is the expensive one and the one every language
     wishes it had.
-- **A drawing of the whole project, in SVG** — one page that says what
-  the parts are and which way the arrows point: front end, G-machine and
-  `crust`, the extractor and the LLVM backend, the score walk, the host
-  and its window.  Nothing in the repository shows this; `journal.md`
-  tells it in order of discovery and `roadmap.md` in order of work, and
-  neither is a picture.
+- **A drawing of the whole project — built, and it draws itself.**
+  `python -m gestate.atlas` writes `doc/atlas/whole.svg`, one A3 sheet:
+  what you write, the surface, the type layer, the core, the three
+  backends, and the live environment around the audio one.  The story is
+  `journal.md` §"The sheet that draws itself".
 
-  **The question that comes with it is the whole of it:** how would it
-  stay true?  A drawing made by hand is wrong within a fortnight and
-  worse than nothing after that, because a picture is believed longer
-  than prose is.  Two honest answers, and the choice is a decision to
-  make before drawing anything:
+  **Both answers this entry weighed turned out to be one answer.**  The
+  modules, libraries and crates are read from the tree and every drawn
+  arrow names the import that proves it, so the machine supplies the
+  nouns *and* checks the verbs; what a person writes is which lane a
+  module is in and what each lane is for, which is the half no machine
+  knows.  `test_atlas.py` fails when a module has no lane, when a lane
+  names something gone, when an arrow has nothing behind it, and when
+  the committed sheet is not what today's source renders.
 
-  * **Generate it** from what the compiler already knows — the same
-    node-origin and import facts the three built queries read — so it
-    is derived and cannot drift, at the price of a drawing that says
-    what the machine can see rather than what a person means.
-  * **Draw it by hand and give it an oracle**: a test that fails when a
-    module named on the page no longer exists, or when a module with no
-    box on the page appears.  That catches drift in the *nouns*, which
-    is where drift actually happens, and leaves the arrows to taste.
-
-  The second is cheaper and the one this project's discipline points at
-  — the same shape as `test_manual.py`, which keeps prose honest by
-  running it.
+  **What is left** is more sheets, and only when the overview fails to
+  say something: the front end pass by pass, the sound path from score
+  to card, and the window from `command.ges` to the shell.  The
+  generator takes them — `generate()` returns a page per name — and the
+  rule that got this far applies to them too: draw the one somebody
+  wants to read, not the set that would be complete.
 
 - **Product safety wants a process, not a promise.**  This project can
   now hand a person a full-scale blast in their headphones, overwrite a
