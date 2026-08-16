@@ -161,6 +161,30 @@ entirely:
 | `ufw` actually running | **open** — see below |
 | Full-disk encryption | **waits on the machine switch** — it wants a fresh install, and retrofitting LUKS is the one item here that a new laptop genuinely buys |
 
+### Open, and deliberately written down rather than remembered
+
+**`~/.ssh/id_rsa` is still on this laptop.**  The rekey to ed25519 is
+done and the old public key has been deleted at GitHub, so *the
+repository* is closed to it.  What is left is that the private key has no
+passphrase, sits on an unencrypted disk, and is still authorised on the
+**forge** — an old machine run occasionally for home projects, which has
+not been rekeyed yet.  So a stolen laptop today is forge access, not repo
+access.
+
+The whole job, when the forge is next up:
+
+1. add the ed25519 public key to the forge's `authorized_keys`;
+2. remove the RSA public key from it;
+3. `rm ~/.ssh/id_rsa*` here.
+
+It is recorded here for one reason.  Three separate things today
+outlived the reason they existed — an expired justification in
+`.gitignore`, five `ufw` rules for a program removed an hour earlier, and
+an SSH key sitting beside its replacement — and **none of them announced
+themselves; every operation that used them kept working perfectly.**  A
+known exposure with a written plan is a different object from a
+forgotten one.  This is the note that keeps it the first kind.
+
 ### One measurement that was made twice, and got it wrong the first time
 
 `systemctl is-enabled ufw` returns `enabled`.  That reports whether the
