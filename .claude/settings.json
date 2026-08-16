@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean:*)",
+      "Bash(git filter-branch:*)",
+      "Bash(git filter-repo:*)",
+      "Bash(git remote:*)",
+      "Bash(git config:*)",
+      "Bash(gh repo delete:*)",
+      "Bash(gh api -X DELETE:*)",
+      "Bash(gh api --method DELETE:*)",
+
+      "Bash(pip install:*)",
+      "Bash(pip3 install:*)",
+      "Bash(python -m pip install:*)",
+      "Bash(python3 -m pip install:*)",
+      "Bash(uv pip install:*)",
+      "Bash(cargo install:*)",
+      "Bash(cargo publish:*)",
+      "Bash(cargo update:*)",
+      "Bash(npm install:*)",
+      "Bash(npm i:*)",
+      "Bash(npx:*)",
+      "Bash(yarn add:*)",
+      "Bash(apt install:*)",
+      "Bash(apt-get install:*)",
+      "Bash(snap install:*)",
+
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(nc:*)",
+      "Bash(ncat:*)",
+      "Bash(socat:*)",
+
+      "Bash(sudo:*)",
+      "Bash(su:*)",
+      "Bash(chmod 777:*)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(ssh-keygen:*)",
+      "Bash(ssh-add:*)",
+
+      "Read(//home/cheery/.ssh/**)",
+      "Read(//home/cheery/.aws/**)",
+      "Read(//home/cheery/.config/gh/**)",
+      "Read(//home/cheery/.gnupg/**)",
+      "Read(//home/cheery/.claude/**)",
+      "Read(//home/cheery/.netrc)",
+
+      "Edit(//home/cheery/.ssh/**)",
+      "Edit(//home/cheery/.claude/**)",
+      "Edit(./.claude/**)",
+      "Edit(./.gitignore)",
+      "Edit(//home/cheery/.bashrc)",
+      "Edit(//home/cheery/.profile)",
+      "Edit(//home/cheery/.config/**)"
+    ]
+  }
+}

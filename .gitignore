@@ -47,12 +47,31 @@ env/
 # ── The Rust workspace ───────────────────────────────────────────────────
 #
 # `crust/` and `shell/clap` each ignore their own `target/`; these two
-# cover a cargo run from the root.  The lock stays unignored nowhere:
-# both crates are zero-dependency by rule, so the lock pins nothing a
-# command cannot make again.
+# cover a cargo run from the root.
+#
+# **`Cargo.lock` is tracked, and the rule that once ignored it expired.**
+# The comment here used to read "both crates are zero-dependency by rule,
+# so the lock pins nothing a command cannot make again."  That was true of
+# a two-member workspace.  It has four members now — `shell/editor` and
+# `shell/panel` joined later and brought `baseview`, `softbuffer`,
+# `raw-window-handle`, `keyboard-types` and `libc`, which resolve
+# transitively to **133 crates**.  Nothing caught the drift because the
+# justification kept reading as authoritative after the thing it asserted
+# had stopped being true.
+#
+# The rule itself is alive and still worth its keep: `crust` and
+# `shell/clap` take nothing that is not `optional`, which is what lets a
+# host load the plugin from an offline build.  What expired was
+# generalising it to the whole tree.
+#
+# Why the lock has to be in the tree now: cargo runs **build scripts and
+# proc-macros as arbitrary code at compile time** — `cc`, `ctor`,
+# `bytemuck_derive`, `drm-sys` and `jni-sys-macros` are all in that set.
+# Unpinned, an ordinary `cargo build` may resolve a fresh patch release of
+# any of the 133 and execute it.  A tracked lock makes the build
+# reproducible and gives `cargo audit` a fixed set to check.
 
 /target/
-Cargo.lock
 
 # ── Editor and OS litter ─────────────────────────────────────────────────
 
