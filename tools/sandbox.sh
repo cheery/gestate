@@ -72,6 +72,13 @@ FENCE=(
   --chdir "$PROJECT"
 
   --setenv HOME "$HOME"
+  # A marker so a program can tell it is already inside.  `test_safety.py`
+  # needs it: the fence cannot nest — a second `bwrap` inside the first
+  # cannot create the namespaces it wants — so those tests skip rather
+  # than fail confusingly when the suite is run fenced.  `tools/suite.py`
+  # runs them in its unfenced pass instead, which is the only place they
+  # mean anything.
+  --setenv GESTATE_FENCED 1
 )
 
 # **Toolchain homes, bound only if they exist.**  These are the two lines

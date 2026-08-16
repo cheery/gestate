@@ -63,20 +63,28 @@ def _fence_state():
     return ok, f"{n}/{n} — the fence is up" if ok else "FENCE INCOMPLETE"
 
 
-# **Tests that need a window, which the fence deliberately cannot give them.**
+# **Tests the fence cannot host, and why each one.**
 #
-# `tools/sandbox.sh` binds no X11 socket, and that is not an oversight to
-# fix: X11 has no isolation between clients, so a sandboxed process holding
-# the socket can read every keystroke and every pixel of the whole session.
-# Binding it would undo most of what the fence is for.
+# These run **outside** the fence, in a second pass, and the report names
+# them.  Quietly deselecting them would produce a green page that had not
+# run them, which is the exact failure this file exists to prevent.
 #
-# So these run **outside** the fence, in a second pass, and the report says
-# so.  The alternative — quietly deselecting them — would produce a green
-# page that had not run five tests, which is the exact failure this file
-# exists to prevent.  Discovered by fencing the whole suite and getting five
-# failures reading "the window never said which argument it is on"; all
-# eight pass unfenced.
-NEEDS_WINDOW = ["test/test_editor_abi.py"]
+# Both reasons are properties of the fence working correctly, not gaps to
+# close later.  Adding a file here needs a reason of that kind; "it fails
+# inside" is not one on its own, because a test failing inside the fence
+# is usually the fence catching something.
+RUNS_UNFENCED = {
+    # X11 has no isolation between clients: a sandboxed process holding
+    # the socket can read every keystroke and pixel of the session, so
+    # binding it would undo most of what the fence is for.  Found by
+    # fencing the whole suite — five failures reading "the window never
+    # said which argument it is on", all eight passing unfenced.
+    "test/test_editor_abi.py": "needs a window; no X11 socket inside the fence",
+    # A bwrap cannot nest, so every probe in here would fail for the
+    # wrong reason.  The file skips itself on GESTATE_FENCED; this entry
+    # is what makes it actually run somewhere.
+    "test/test_safety.py": "checks the fence from outside; a fence cannot nest",
+}
 
 
 # pytest -q prints, at the end, a line like:
@@ -117,7 +125,7 @@ def main():
         # Held out of the fenced pass and run separately below.  Only the
         # ones that actually exist, so this list may name a file a future
         # project does not have.
-        window_tests = [w for w in NEEDS_WINDOW if (ROOT / w).exists()]
+        window_tests = [w for w in RUNS_UNFENCED if (ROOT / w).exists()]
         cmd = [str(ROOT / "tools" / "sandbox.sh"), *pytest_cmd,
                *[f"--ignore={w}" for w in window_tests]]
     else:
@@ -161,7 +169,7 @@ def main():
         out += "\n" + wout
         passes.append(wout)
         rc = rc or wrc
-        window_note = " ".join(window_tests) + " — no X11 socket inside the fence"
+        window_note = "; ".join(f"{w} ({RUNS_UNFENCED[w]})" for w in window_tests)
 
     wall = time.monotonic() - t0
 

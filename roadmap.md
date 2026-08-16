@@ -907,7 +907,6 @@ It's okay, do these at your own pace. I'm happy to the work you've done so far.
           the north star's features and moves the notes.
    [open] Examine grammar of graphics and do specification work of your discoveries.
           Either write a new or modify existing one.
-   [open] Do product safety process for gestate that ensures the safety measures put in place also work.
    [open] The thing that comes to mind about incremental compiling are
           stale object files. See if we can clean them up as they appear, if they do.
    [open] name datatypes eg. type Duration = Float, type Pitch = Int
@@ -1026,19 +1025,67 @@ the seven I cannot start without an answer.
   rewritten, or both?  My inclination is the text line, because the
   drag's whole point is that it writes text and that is the thing you
   cannot otherwise see.
+
+  Henri: It could show 5 lines and their numbers. Your inclination is correct.
+         Cursor should show in that window and line numbers should always show themselves.
+         It could be clickable so that user can move in that window.
+         
+         It's kind of specific to north star. I would have not come up with the idea without it.
+
+
 * **B (item 2).**  Which surface is the grammar of graphics *for* — the
   substrate, score boxes, or a data-to-marks layer above both?  A spec
   that tries to cover all three will cover none.
+
+  Henri: I haven't been familiar with score boxes. I may be wrong about this,
+         but some of it probably is implementable in both substrate and score boxes.
+         What I want from it is what we can collect as good ideas.
+         Remember that the spec is implemented when there is a need for the feature.
+         We collect here the features that might reach implementation some time.
+         Those ideas should be included because grammar of graphics imo does something right.
+
 * **C (item 5).**  Aliases are built.  Do you want **nominal** types
   where `Pitch` and `Steps` are distinct despite both being `Int`, or
   is the alias behaviour what you meant and the item is already done?
+
+  Henri: I do not know yet. The types should not get on the way. I think that they should be documentation.
+         Hey maybe they could be semi-structured:
+
+         type Duration = Float
+         type Length   = Float
+
+         f : Duration -> Float
+         x : Length
+         f x         <-- error
+         f (cast x)  <-- ok.
+          
+         But I'm not sure, get back to me if this is bad idea due to some reason that you find.
+
+         Honestly the implementation you show looks good though.
+         I only included this as today's task, because I do not figure out quickly enought
+         which argument in lowpass filters are which?
+
 * **D (item 6).**  Which features, and how far?  "Older language
   features" could mean the twenty in `doc/manual.md`, or the ones with
   no window test, or a specific list you have in mind.
+
+  I mainly have my concerns about using/given that has not been used anywhere yet!
+  I think it was important when we made it, and I think there's a time for it.
+  Note that I contradict project's rules there because it had no imminent use.
+  Let's allow it to be, but I want to know where it works currently.
+
+  Another one is the whole Datafun implementation. We went to FRP so hard that we forgot about these features!
+  Do not remove them, but analyse where they work right now.
+
 * **E (item 7).**  **Blocking.**  Where are `hello.ges` and the
   `tests/section` directory?  Neither is in the repository, so the
   reproduction needs your actual layout — the directory you were in, and
   what is above it.
+
+  I look for it. I think I mistyped there.
+  I think I removed the session file. Let me know if you need an another one.
+
+  Here it is: ./test/sessions/F104-hello.ges
 
 **Order.**  3 and 4 need nothing and are takeable now.  5 is a
 five-minute close or a real feature depending on C.  1, 2 and 6 want
