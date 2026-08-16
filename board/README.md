@@ -36,23 +36,22 @@ is what keeps a card's name stable while priorities move.
    `minute.ges` lands in the wrong directory.
 4. **[gemba](gemba.md)** — walk the factory floor: Claude presents into
    the workbench while the work is happening.
-5. **[command-categories](command-categories.md)** — the command list
+5. **[stranger-test](stranger-test.md)** — run `vision.md`'s own top
+   claim: can somebody who has never read this repository open a file,
+   hear it, change it, and hear the change?  *Moved up 2026-08-16 at
+   Henri's ask, and deliberately placed **after** gemba: what this test
+   produces is somebody stumbling, live, and watching that is worth more
+   than reading the report of it afterwards.*
+6. **[command-categories](command-categories.md)** — the command list
    is long enough to want categories, and gemba's second idea waits on
    it.
-6. **[git-viewer](git-viewer.md)** — a git viewer in the workbench,
+7. **[git-viewer](git-viewer.md)** — a git viewer in the workbench,
    encoding the workflow the lesson teaches.  *Blocked on
    command-categories.*
-7. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
+8. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
    the changes Claude makes.
-8. **[persistent-workbench-state](persistent-workbench-state.md)** — the
+9. **[persistent-workbench-state](persistent-workbench-state.md)** — the
    editor should open where it was left; closing it loses the day.
-   *Arrived unplaced 2026-08-16 and put at the end, which is where a new
-   card lands until its author says otherwise.*
-9. **[stranger-test](stranger-test.md)** — run `vision.md`'s own top
-   claim: can somebody who has never read this repository open a file,
-   hear it, change it, and hear the change?  *Also unplaced; the session
-   would argue for it higher, since it is the only measurement in the
-   vision and everything else defers to it.*
 
 Finished cards are in [done/](done/), newest work last.  `ls board/*.md`
 is the live board; nothing has to be trimmed by hand for that to stay
