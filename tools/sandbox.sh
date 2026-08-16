@@ -74,7 +74,10 @@ FENCE=(
   --chdir "$PROJECT"
 
   --setenv HOME "$HOME"
-  --setenv PATH "$HOME/.cargo/bin:/usr/local/bin:/usr/bin:/bin"
+  # `.venv/bin` first: the suite's `pytest` lives there, and without it
+  # the fence resolves the system one or nothing at all.
+  --setenv PATH "$PROJECT/.venv/bin:$HOME/.cargo/bin:/usr/local/bin:/usr/bin:/bin"
+  --setenv VIRTUAL_ENV "$PROJECT/.venv"
   --setenv CARGO_NET_OFFLINE true
   --unsetenv SSH_AUTH_SOCK
   --unsetenv GITHUB_TOKEN
