@@ -183,3 +183,67 @@ def test_the_formatter_round_trips_a_declaration():
     from gestate.fmt import format_source
 
     assert format_source("implicit ppq : Int\n") == "implicit ppq : Int\n"
+
+
+# ── Through the audio path ──────────────────────────────────────────────────
+
+
+def test_an_implicit_renders_the_same_as_the_parameter_it_hides():
+    """`doc/manual.md` §4's claim, checked where it had never been run.
+
+    *"The propagation happens once, during compilation, and what runs is
+    an ordinary function with an ordinary extra argument."*  Every other
+    test in this file goes through the interpreter; until 2026-08-17 no
+    `.ges` program in the tree used `using`/`given` at all, so nothing
+    had ever taken one through `audioextract` and the engine.
+
+    **A buffer comparison rather than a golden**, and that is the point:
+    a golden pins one render on one machine, while this pins the claim.
+    Write the same drone twice — once with the reference threaded
+    implicitly, once with it passed by hand — and if the manual is right
+    the two are the same samples, not merely the same sound.
+    `examples/audio/tuning.ges` is the readable version of the first.
+
+    Both renderers, because they are different code: `audio.render` is
+    the pure-Python reference, and `run_native` is the graph through
+    `clang` — which is the one an implicit had never been near.
+    """
+    import shutil
+    import tempfile
+
+    from gestate.audio import render
+    from gestate.audioextract import extract
+    from gestate.audiollvm import run_native
+
+    shared = """
+partial : Float -> Float -> Sig Float
+partial level n = !level * sine (step n)
+
+drone : Sig Float
+drone = partial 0.30 0.0 + partial 0.18 7.0 + partial 0.10 12.0
+"""
+    implicit = ("implicit concert : Sig Float\n"
+                "\nstep : Float -> Sig Float\n"
+                "step (using concert) n = concert * !(pow 2.0 (n / 12.0))\n"
+                + shared +
+                "\nsound : Sig Float\n"
+                "sound = given concert = !415.0 in 0.6 * drone\n")
+    # The same program with the argument written out: `step` takes the
+    # reference first, and every caller in between has to say so.
+    spelt = ("step : Sig Float -> Float -> Sig Float\n"
+             "step concert n = concert * !(pow 2.0 (n / 12.0))\n"
+             + shared.replace("partial level n = !level * sine (step n)",
+                              "partial level n = !level * sine (step !415.0 n)")
+             + "\nsound : Sig Float\nsound = 0.6 * drone\n")
+
+    hidden = render(implicit, 0.25, 8000)
+    shown = render(spelt, 0.25, 8000)
+    assert hidden == shown, "an implicit is an ordinary extra argument"
+    assert max(abs(x) for x in hidden) > 0.1, "and it is not silence"
+
+    if shutil.which("clang") is None:
+        pytest.skip("no clang to build the graph with")
+    with tempfile.TemporaryDirectory() as d:
+        native = run_native(extract(implicit, rate=8000), d, len(hidden))
+    assert native == hidden, \
+        "and the engine agrees with the reference about it"

@@ -961,6 +961,8 @@ spec/             the design documents — see below
 doc/manual.md     this file
 doc/audit.md      what the synth primitives *measure* as, against their
                   docs — the findings, and how to repeat the measurement
+doc/unused.md     the features nobody had called — where `using`/`given`
+                  and the Datafun surface actually work, run rather than read
 doc/ref/          the generated reference — every library name, with its
                   signature and prose; `python -m gestate.reference` remakes it
 examples/         programs that run, exercised by the test suite

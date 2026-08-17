@@ -1,6 +1,6 @@
 # older-features — where do `using`/`given` and Datafun actually work?
 
-    status   open
+    status   done — 2026-08-17
     because  using/given has never been used anywhere, and we went to
              FRP so hard that we forgot about Datafun
     asked    Henri, 2026-08-16
@@ -68,3 +68,35 @@ removed.**
    in a way no message explains, is the finding — and what it produces
    is `fixme.md` entries.  **If it produces none, that is worth knowing
    too**, and costs an afternoon.
+
+## Done
+
+`doc/unused.md` is the audit.  **Both features work**, and nothing was
+removed, which was the ask.
+
+- **`using`/`given` works everywhere it was tried** — interpreter, LLVM
+  audio engine, workbench — and its two error messages are excellent.
+  `examples/audio/tuning.ges` is the caller it never had: a knob
+  threaded implicitly through three levels of a drone, where neither
+  `partial` nor `drone` mentions it and only `sound` supplies it.
+- **Datafun works and had nowhere to be seen.**  `Set` has no `Show`,
+  no CLI runs a `main`, and no workbench command prints a value — so a
+  query could be written and its answer could not be looked at.  The
+  audio fragment refuses it correctly and says why beautifully.  **The
+  canvas takes it**, which is where the caller went:
+  `examples/gui/patchbay.ges` is a transitive closure lighting the
+  modules that reach the output.
+- Three defects: `fixme.md` F142 (a canvas-only file cannot be opened
+  in the workbench at all — both shipped `examples/gui` files are dead,
+  and the manual documents the command that fails), F143 (one error
+  inside `fix` becomes eight under `typecheck --check`, seven of them
+  blaming the prelude), F144 (an implicit shows in a query without its
+  name, contradicting both the file and the manual).
+
+The measurement that opened it, and the reason the card was right:
+
+    grep -rn "(using \|given " examples/ specimens/ gestate/*.ges
+
+Every hit is the English word in prose.  Neither surface appeared in a
+single `.ges` program anywhere in the tree.  `journal.md` §"Two features
+with no callers, and where they turned out to work".

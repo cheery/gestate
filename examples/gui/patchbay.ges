@@ -1,0 +1,101 @@
+# A patch bay that knows what is plugged in — Datafun, on the canvas.
+#
+#   python -m gestate.workbench examples/gui/patchbay.ges
+#   (then `canvas`, or Ctrl-Tab)
+#
+# **Datafun is the half of this language nobody had called.**  Henri,
+# adding the card that produced this file: *"the whole Datafun
+# implementation.  We went to FRP so hard that we forgot about these
+# features!  Do not remove them, but analyse where they work right
+# now."*  `doc/unused.md` is the audit; this is the caller.
+#
+# It could not be in a synth, and the compiler says why in as many
+# words: `sound` is a fixed graph decided once, and a set is a heap
+# structure of unbounded size.  **The canvas is where it belongs** — the
+# picture is interpreted at frame rate, so a query may run behind it.
+#
+# And the question is one a patch bay actually has.  *Which of these
+# modules can I hear?*  is reachability over the cables, which is
+# transitive closure, which is the one query Datalog was invented for.
+# Written out by hand it is a loop with a worklist and a visited set;
+# here it is one `fix`.
+
+type Node = Cyclic 8
+
+# `Cyclic 8` and not `Int`, and the compiler is what insists:
+#
+#     `fix` needs a fixtype and {(Int, Int)} is not one.  (Int, Int) is an
+#     eqtype but not a *finite* one, so {(Int, Int)} has infinite ascending
+#     chains and the iteration need not stabilise.
+#
+# A bounded element type is what makes the fixpoint guaranteed to
+# converge rather than merely likely to.
+
+osc : Node
+osc = 0
+
+filt : Node
+filt = 1
+
+echo : Node
+echo = 2
+
+out : Node
+out = 3
+
+#: Wired to nothing, and the whole point of the picture: it must go dark
+#: without anybody writing a rule that says so.
+spare : Node
+spare = 4
+
+# ── The cables ───────────────────────────────────────────────────────────
+
+#: The patch as it is actually plugged: three cables in a chain.
+patch : Set (Node, Node)
+patch = {(osc, filt), (filt, echo), (echo, out)}
+
+#: Everything each module reaches, however many cables away.
+#:
+#: **This is the whole query.**  `fix` runs it to a fixed point, and the
+#: `for` is the join: if `a` reaches `b` and `b` is cabled to `d`, then
+#: `a` reaches `d`.  It is evaluated semi-naively — each round sees only
+#: what the last round *added* — which is `gestate/seminaive.py` and the
+#: reason this is a language feature rather than a loop.
+reaches : Set (Node, Node)
+reaches = fix r => patch \/ for ((a, b) in r, (c, d) in patch, b == c) {(a, d)}
+
+#: Everything that ends up at the output: the modules that reach it, and
+#: the output itself, which trivially does.
+audible : Set Node
+audible = for ((a, b) in reaches, b == out) {a} \/ {out}
+
+#: Out of a set and back into a `Bool`.  `holds` is the reading a person
+#: wants from a fixpoint once it has converged, and it takes its argument
+#: *discretely* — a still-growing set may not be turned into a `Bool`.
+live : Node -> Bool
+live n = holds (for (m in audible, m == n) {()})
+
+# ── The picture ──────────────────────────────────────────────────────────
+
+lamp : Node -> Sig Colour
+lamp n = case live n of
+    True  -> colour 90 210 140
+    False -> colour 70 70 80
+
+#: One module: a lit block at an offset.  The canvas is centred on zero,
+#: so the row runs from −220 to 220.
+block : Int -> Node -> Sig Sub
+block x n = moveXY (!x) 0 (rect 90 44 (lamp n))
+
+substrate : Sig Sub
+substrate = block (0 - 220) osc `over` block (0 - 110) filt
+     `over` block 0 echo `over` block 110 out `over` block 220 spare
+
+# ── Something to hear ────────────────────────────────────────────────────
+#
+# **Only because a canvas alone will not open** — `fixme.md` F142: the
+# workbench builds the sound before the picture, so a file with no
+# `sound` never reaches its own canvas.  When that is fixed this can go.
+
+sound : Sig Float
+sound = 0.2 * sine (!220.0)

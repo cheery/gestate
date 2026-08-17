@@ -85,6 +85,7 @@ with `python -m gestate.midi`, not `typecheck`.
 |---|---|
 | `bounce.ges` | a ball you can throw with the mouse: state as a fold over events |
 | `chain.ges` | a chain that follows the pointer: a *list* in the state, and why the past has to be carried |
+| `patchbay.ges` | **Datafun on the canvas** — a transitive closure over the cables, lighting the modules whose signal reaches the output |
 
 ```
 python -m gestate.gui examples/gui/bounce.ges              # open a window
@@ -123,6 +124,7 @@ Running it needs `pygame`.  `gestate.gui.scenes()` does not, which is why
 | `fm.ges` | FM — the instrument that needs a real `sin`, and two envelopes, one of them on timbre |
 | `pluck.ges` | additive: three harmonics, each with its own exponential decay |
 | `twoknobs.ges` | two parameters, two channels — one knob each, placed at their declarations |
+| `tuning.ges` | **`using`/`given`** — one knob threaded through three levels of a drone without a single function in between mentioning it |
 | `polysine.ges` | `sine.ges` made an instrument: a `voices` bank, a `FromMIDI` instance and a piece — and a voice that is one expression |
 | `duet.ges` | **one program**: two `voices` banks, its own piece, and a mix — a score plays one bank, your keyboard the other |
 | `stereo.ges` | two *output* channels: `sound : Sig Stereo`, 440 Hz left against 442 Hz right |

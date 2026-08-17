@@ -1,0 +1,74 @@
+# One knob, threaded through a drone without being passed — `using` and
+# `given`, which until today nothing in this tree had ever used.
+#
+#   python -m gestate.workbench examples/audio/tuning.ges
+#   python -m gestate.audioperform examples/audio/tuning.ges -o tuning.wav
+#
+# **The feature had no caller and that was noticed out loud.**  Henri,
+# adding the card that produced this file: *"using/given has never been
+# used anywhere yet!  I think it was important when we made it… Note
+# that I contradict project's rules there because it had no imminent
+# use."*  `doc/unused.md` is the audit; this is the caller arriving late.
+#
+# The problem it solves is the one every tuning table has.  A reference
+# pitch is not a parameter of any *one* function — it is a fact about the
+# whole instrument, wanted at the leaf and known at the root, and the
+# ordinary way to get it there is to thread it through every signature in
+# between.  Do that here and `partial` and `drone` both grow an argument
+# they have no opinion about, and every future function does too.
+#
+# `implicit` says the name exists; `(using …)` says a body reads it;
+# `given … in …` says where it comes from.  Nothing in the middle changes.
+
+implicit concert : Sig Float
+
+# ── What you turn ────────────────────────────────────────────────────────
+#
+# An ordinary knob, declared the way `twoknobs.ges` declares one, so it
+# gets a fader in the margin beside this line.  It is the *only* place in
+# the file that says what the reference pitch is.
+
+concertChan : Chan Int
+concertChan = chan
+
+#: 400 … 460 Hz — the reference the whole drone is tuned to.  415 is
+#: where it rests, which is a baroque A and audibly not 440.
+reference : Sig Float
+reference = map (h => toFloat h) (415 ::: mkSig (wait concertChan))
+
+# ── What reads it ────────────────────────────────────────────────────────
+
+#: `n` semitones above the reference, in equal temperament.
+#:
+#: **This is the only body that mentions `concert`.**  It does not take
+#: it as an argument and its signature does not carry it; the `(using …)`
+#: is the whole declaration, and the compiler threads it here from
+#: wherever it was bound.
+step : Float -> Sig Float
+step (using concert) n = concert * !(pow 2.0 (n / 12.0))
+
+#: One partial, and **notice what is not here**: no reference pitch, no
+#: knob, no extra parameter.  `partial` calls `step`, so it inherits the
+#: requirement without being told about it.
+partial : Float -> Float -> Sig Float
+partial level n = !level * sine (step n)
+
+#: Root, fifth, octave.  Two levels up from `step` now, and still silent
+#: about the thing all three partials depend on.
+drone : Sig Float
+drone = partial 0.30 0.0 + partial 0.18 7.0 + partial 0.10 12.0
+
+# ── Where it comes from ──────────────────────────────────────────────────
+#
+# One `given`, at the root, and the requirement stops travelling.  Take
+# this line away and the program does not compile — the message names the
+# name, who needs it, and what to write:
+#
+#     unfilled implicit: `concert` (required by `step`) reaches `main`,
+#     and nothing supplies it.  Bind it with `given concert = … in …`
+#     somewhere the use is inside
+#
+# There is no default and no runtime failure to find later.
+
+sound : Sig Float
+sound = given concert = reference in 0.6 * drone

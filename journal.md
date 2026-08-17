@@ -7487,3 +7487,99 @@ He answered within the hour, and the file gained a line:
 
 Which is the rule working in the direction nobody designs for: a card
 with nowhere to point turned out to be pointing at a gap.
+
+## Two features with no callers, and where they turned out to work
+
+`board/done/older-features.md` was Henri's, and so was the honesty in
+it: *"using/given has never been used anywhere yet!  I think it was
+important when we made it… Note that I contradict project's rules there
+because it had no imminent use.  Let's allow it to be, but I want to
+know where it works currently."*  And for the other half: *"the whole
+Datafun implementation.  We went to FRP so hard that we forgot about
+these features!  Do not remove them, but analyse where they work right
+now."*
+
+One command sets the scale:
+
+    grep -rn "(using \|given " examples/ specimens/ gestate/*.ges
+
+**Every hit is the English word in prose.**  Across every example,
+specimen and library file in the tree, neither `using` nor `given` nor a
+`Set` appears in a single `.ges` program.  Both surfaces are exercised
+only by `test/*.py` calling `evaluate()` — which is the shape the
+roadmap warned about, and the reason this card existed.
+
+`doc/unused.md` is the audit.  The short version is that **both features
+work**, and that one of them had nowhere to be seen.
+
+### `using`/`given` — nothing wrong with it
+
+It typechecks, it runs through the interpreter, and — the part worth
+checking rather than assuming — **it survives the LLVM audio path**.
+Six lines render at peak 0.200 and RMS 0.141, which is 0.2/√2 exactly,
+so the implicit arrived with the value it was given and not with a
+default.
+
+The two error messages turn out to be excellent, which is not a given
+for a feature nobody has run:
+
+    unfilled implicit: `n` (required by `f`) reaches `main`, and nothing
+    supplies it.  Bind it with `given n = … in …` somewhere the use is inside
+
+`examples/audio/tuning.ges` is the caller arriving late, and it is a
+better example than the manual's because the thing being threaded is
+**a knob**: turn `reference` and every partial of the drone retunes,
+while `partial` and `drone` — the two functions in between — say nothing
+about it at all.  It shows up as a fader in the margin like any other.
+
+### Datafun — worked, and could not be looked at
+
+Transitive closure over a relation runs and gives the right answer.
+What there is no way to do is *see* it:
+
+1. `Set` has no `Show` instance — `show ({1,2} : Set Int)` is
+   *"No instance for Show {Int}"*.
+2. No CLI runs a `main`.  Six exist and not one evaluates one.
+3. No workbench command prints a value: `what`, `infer` and `fits`
+   answer with types; `notes`, `scope` and `canvas` show signals.
+
+The evidence that this is old, and it is a good one:
+`test/test_relations.py` asserts by counting `Pack{1,2}` — the internal
+cons tag — because there has never been a readable form to compare
+against.
+
+The audio fragment refuses Datafun outright, and the refusal is the best
+thing found all day:
+
+    the engine plays a fixed graph, so everything `sound` reaches must be
+    either a signal or a per-sample value, decided once at compile time.
+    What stopped it: `linked` uses `for` in audio-rate code.  Datafun's
+    forms build sets, which allocate
+
+**But the canvas takes it**, and that is where the caller went.  The
+picture is interpreted at frame rate rather than compiled into the
+engine, so a query may run behind it.  `examples/gui/patchbay.ges` is
+five modules, three cables and one `fix`: each module is lit by whether
+its signal reaches the output, and `spare` — plugged into nothing — goes
+dark without any rule saying it should.  A Datalog query drawn on the
+workbench canvas, and as far as this tree goes the first caller Datafun
+has ever had.
+
+### And the audit paid for itself in defects
+
+- **F142** — a canvas-only file cannot be opened in the workbench *at
+  all*.  `audioeditor._start` builds the sound before the canvas, and
+  `workbench._begin` catches the raise and returns, so the loaders never
+  run: both shipped `examples/gui` files are dead, and `doc/manual.md`
+  documents the exact command that fails while promising the opposite.
+  The message misattributes it too — *"this file declares no `ticks`"*
+  names a prelude name no author would ever write.
+- **F143** — one error inside `fix` becomes eight under
+  `typecheck --check`, and seven of them name prelude functions the
+  author has never opened.  The same family as F141: the compiler
+  pointing at the wrong fix.
+- **F144** — an implicit shows in a query as an unnamed leading
+  parameter, contradicting both the file and `doc/manual.md` §9's
+  *"An implicit parameter is invisible in the signature"*.  The name is
+  in hand; `board/done/argument-names.md` exists precisely because it
+  should be shown.

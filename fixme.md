@@ -4007,3 +4007,124 @@ was meant to be a type"*.
 expanded before the kind environment exists.  Worth revisiting with the
 alias work in `roadmap.md` §"Name the datatypes", which is the change
 that would make such collisions likely in the first place.
+
+### F142. **[missing]** A canvas-only file cannot be opened in the workbench
+
+Found 2026-08-17 while auditing the older language features
+(`board/done/older-features.md`), by trying the command the manual
+prints:
+
+```sh
+python -m gestate.workbench examples/gui/bounce.ges
+```
+
+The status line says
+
+    bounce.ges  not playing: this file declares no `ticks`, and the
+    player's generated entry needs it
+
+and `canvas` then shows *"opening the canvas — it will appear when it
+builds"* over an empty frame, for as long as you care to wait.  Both
+shipped canvas examples do it — `bounce.ges` and `chain.ges` — and
+`doc/manual.md` §"Fold the events into a state" documents that exact
+command, promising the opposite: *"A file that declares only a
+`substrate` has no `sound` for the engine to build, so the status line
+says it is not playing; the canvas draws all the same."*
+
+**It is an ordering, not a compile failure.**  `audioeditor._start`
+runs `Live.start(text, …)` — the sound — and only afterwards calls
+`loaders()`, which is where `_load_substrate` lives.  `workbench._begin`
+catches the raise, says `not playing: …` and **returns**, so the loaders
+never run and `self.substrate` stays `None`.  A file with no `sound`
+therefore never reaches its own canvas, though `_load_substrate` is
+written to be independent of it and says so in its docstring.
+
+Not a compiler problem: `python -m gestate.gui examples/gui/bounce.ges`
+renders its frames perfectly well.
+
+**And the message misattributes it.**  `audiospans.in_source` maps
+*"Unknown global `X` at entry line"* to *"this file declares no `X`"*,
+which is exactly right for `sound` — the case it was written for — and
+wrong for `ticks`, which is the audio prelude's own name and not
+anything an author would write.  A person reading that goes looking for
+a `ticks` to declare.
+
+What to check first: whether `loaders()` can run before or beside
+`Live.start`, and whether a file with a `substrate` and no `sound`
+should take the audio entry at all.
+
+### F143. **[missing]** One error inside `fix` becomes eight, and seven blame the prelude
+
+Found the same afternoon, from a typo in a Datafun program.
+
+```
+main : Set Int
+main = fix r => {1} ∪ r          -- `∪` is not the union; `\/` is
+```
+
+```
+$ python -m gestate.typecheck --check that.ges
+error: fix expects a boxed monotone set function …: Unknown global '∪' …
+error: elem: Signature variable 'a' is rigid: …
+error: sort: Signature variable 'a' is rigid: …
+error: showItemsWith: Signature variable 'a' is rigid: …
+error: clamp: Signature variable 'a' is rigid: …
+error: bimix: Signature variable 'a' is rigid: …
+error: showNat: Signature variable 'a' is rigid: …
+error: pad3: Signature variable 'a' is rigid: …
+error: showFloat: Signature variable 'a' is rigid: …
+```
+
+The first line is true and the other seven name **prelude functions the
+author has never opened**, at prelude line numbers, about a mistake
+nobody made there.  Any error inside a `fix` does it; the same error
+outside one is a single clean line.
+
+**The blast radius is `--check` and not the window.**  Opened in the
+workbench the same file reports one complaint, mapped to its own line —
+so this is a defect of the pass that collects *every* error rather than
+of inference itself.  Which is where its cost is, too: `--check` is the
+gate a script or a stranger uses, and this is the same family as F141,
+where the compiler's advice pointed at the wrong fix.
+
+What to check first: whether the `fix` path leaves a substitution or a
+rigid-variable marker behind after it raises, so the definitions checked
+after it inherit it.
+
+### F144. **[missing]** An implicit parameter shows in a query without its name
+
+Found while auditing `using`/`given` (`board/done/older-features.md`).
+
+```
+implicit hz : Float
+
+tone : Sig Float
+tone (using hz) = 0.2 * sine (!hz)
+```
+
+```
+$ python -m gestate.typecheck --audio --query tone
+tone : Float -> Sig Float
+```
+
+Two things are off in one line.  The file says `tone : Sig Float`, and
+`doc/manual.md` §9 says outright that *"An implicit parameter is
+invisible in the signature"* — so the answer contradicts both the source
+and the manual with no word about why the extra `Float` is there.  And
+the parameter is **unnamed**, in the one place where naming parameters
+was the whole point:
+
+```
+$ python -m gestate.typecheck --audio --query lift     -- an ordinary one
+lift x : Float -> Sig Float
+```
+
+`board/done/argument-names.md` exists because *"I do not figure out
+quickly enough which argument in lowpass filters are which"*, and an
+implicit is the argument least likely to be guessed — it is the one the
+signature deliberately does not mention.  The name is in hand:
+`implicit hz : Float` declares it.
+
+Either answer would be defensible; disagreeing with the file in silence
+is not.  `tone (using hz) : Float -> Sig Float` says both facts at once
+and matches how the definition is written.

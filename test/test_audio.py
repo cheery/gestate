@@ -171,7 +171,18 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # Scored, so no golden for the roster's standing reason
             # below; the disagreement itself is arithmetic in the score
             # algebra, and `test_music.py` holds `|/` and `|*` to it.
-            "moon_sonata.ges"]
+            "moon_sonata.ges",
+            # The `using`/`given` showcase — a knob threaded implicitly
+            # through three levels of a drone (`doc/unused.md`).  No
+            # golden, and the reason is that a buffer would be the wrong
+            # oracle for it: what this file exists to prove is that an
+            # implicit *is* an ordinary extra argument, and the way to
+            # prove that is to render the same program with the argument
+            # written out and compare the two sample for sample.  That is
+            # `test_implicits.py`'s
+            # `test_an_implicit_renders_the_same_as_the_parameter_it_hides`,
+            # which pins the claim rather than one buffer of it.
+            "tuning.ges"]
 
 #: The ones with committed golden buffers — all of them, now.  `knob.ges`
 #: had none for as long as the interpreter and the engine disagreed about
