@@ -91,6 +91,20 @@ week = monday ++ tuesday ++ wednesday ++ thursday
 # for as long as the piece lasts.  The project keeps moving whether or
 # not anybody is at the desk — which was the measurement that split the
 # status row in two, and is the one line of this piece that never varies.
+#
+# **It is deliberately below what a laptop can reproduce, and that was
+# checked rather than assumed.**  A2 is 110 Hz and E3 is 165 Hz; a laptop
+# speaker has almost nothing under about 200, so on one the ground is a
+# suggestion and on headphones it is a floor.  Henri, having listened on
+# both, 2026-08-17: *"Lower track is too low to listen at laptop but
+# that's okay.  We leave it like that because headphones pick up the
+# piece."*
+#
+# So do not raise it to make it audible on a laptop.  Doing that would
+# put the ground in the same register as the hand, and the two voices
+# have to occupy different ground for the piece to be about anything —
+# one thins and one does not, and you should be able to hear which is
+# which without being told.
 
 standing : [: Int :]
 standing = ('45 |* 4 ++ '52 |* 4) |* 1
