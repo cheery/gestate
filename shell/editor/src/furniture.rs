@@ -17,6 +17,7 @@
 //!
 //! ```text
 //! status  <sentence>
+//! tally   <how long the day has been>
 //! trouble <line>  <message>
 //! knob    <name>  <line>  <value>  <lo>  <hi>  <kind>
 //! bank    <name>  <line>  <voices>  <listening>
@@ -122,6 +123,17 @@ pub struct Hole {
 #[derive(Clone, PartialEq, Debug, Default)]
 pub struct Furniture {
     pub status: String,
+    /// **How long the day has been** — `spec/timer.md`, the row under
+    /// the status sentence.  Its own field and not part of `status`
+    /// because the two answer different questions and change on
+    /// different clocks: the status is what the last command said, and
+    /// this is what the week has been.  Fusing them would put a timer
+    /// in front of every answer the editor gives.
+    ///
+    /// Empty is the normal state for anything but a live workbench —
+    /// the model sends it only when a record is being kept — and an
+    /// empty tally draws no row at all.
+    pub tally: String,
     /// The file's own name, for the status line.
     pub file: String,
     /// **Whether the text has moved since it was written.**  Drawn as
@@ -211,6 +223,7 @@ impl Furniture {
             let p: Vec<&str> = line.split('\t').collect();
             match p.first().copied().unwrap_or("") {
                 "status" => f.status = p.get(1).copied().unwrap_or("").into(),
+                "tally" => f.tally = p.get(1).copied().unwrap_or("").into(),
                 "trouble" => f.trouble.push(Trouble {
                     line: num(p.get(1)),
                     message: p.get(2).copied().unwrap_or("").into(),

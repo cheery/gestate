@@ -31,6 +31,11 @@ import sys
 import tempfile
 import time
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+#: **A driven window keeps no record of the day** — `lagcheck.driven`
+#: says why, and it is shared so a fifth harness cannot forget.
+from lagcheck import driven  # noqa: E402
+
 X = ctypes.CDLL("libX11.so.6")
 XTEST = ctypes.CDLL("libXtst.so.6")
 X.XOpenDisplay.restype = ctypes.c_void_p
@@ -114,7 +119,7 @@ def main(argv=None) -> int:
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     score = os.path.join(root, "examples", "audio", "noted.ges")
     proc = subprocess.Popen([sys.executable, "-m", "gestate.workbench",
-                             score],
+                             score], env=driven(),
                             stdout=subprocess.DEVNULL,
                             stderr=subprocess.DEVNULL)
     tmp = args.keep or tempfile.mkdtemp(prefix="dragcheck-")

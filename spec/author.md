@@ -264,7 +264,7 @@ That is principle 4 stated as a measurement.  *Heijunka* is levelling;
 this is its opposite, *mura*, and the principle's own gloss is the
 sentence that was broken: **work like the tortoise, not the hare.**
 
-So `board/timer.md` is not a wellness feature bolted onto an engineering
+So `board/done/timer.md` is not a wellness feature bolted onto an engineering
 system.  **It is the missing takt** — a synthetic demand signal for a
 line with no customer to supply one.  That is why it is first in the
 order.

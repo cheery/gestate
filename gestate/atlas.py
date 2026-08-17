@@ -125,6 +125,7 @@ WHERE: dict[str, str] = {
     "session": "window", "sessionlog": "window", "audioeditor": "window",
     "workbench": "window", "audiospans": "window", "scorebox": "window",
     "editor": "window", "buildtime": "window", "unchanged": "window",
+    "presence": "window",
     # ── The tree, describing itself ─────────────────────────────────────
     "reference": "written", "atlas": "written",
 }

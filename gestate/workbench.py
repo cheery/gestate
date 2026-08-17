@@ -677,10 +677,16 @@ def run(path, rate: int = 44100, block: int = 512,
     """Open the file, play it, and hand the window the keyboard."""
     from .audioeditor import Workbench
     from .editor import Editor
+    from .presence import Presence
 
     bench = Workbench(Path(path), rate=rate, block=block, midi=midi,
                       seed=seed)
     session = Session(bench=bench)
+    #: **How long the day has been** — `spec/timer.md`.  Rooted at the
+    #: file's own repository rather than at the process's directory, so
+    #: the project half reads the tree being worked on and not whatever
+    #: shell the window was launched from.
+    presence = Presence(root=Path(path).resolve().parent)
     editor = Editor(bench.source(), 1100, 760)
     session.view = Window(editor)
 
@@ -777,6 +783,12 @@ def run(path, rate: int = 44100, block: int = 512,
             # as the editor lagging your hand.
             for line in editor.gestures():
                 stirred = True
+                # **The hand, and only the hand.**  `bench.drain()` below
+                # stirs the loop too and is the *model* talking to
+                # itself; counting it would have the timer accrue hours
+                # while a rebuild ran in an empty room, which is the
+                # exact lie `presence` exists not to tell.
+                presence.touched()
                 answer = act(session, line)
                 if answer:
                     session.said.append(answer)
@@ -792,7 +804,7 @@ def run(path, rate: int = 44100, block: int = 512,
                 session.note(message)
 
             t1 = time.monotonic()
-            now = furniture(session)
+            now = furniture(session, tally=presence.reading())
             if now != said:
                 editor.describe(now)
                 said = now
@@ -889,6 +901,10 @@ def run(path, rate: int = 44100, block: int = 512,
             wait = pace(stirred or (showing and not crossed), wait)
             time.sleep(wait)
     finally:
+        # **Before anything that can fail.**  The seconds since the last
+        # flush are the ones a crash costs, and the teardown below is the
+        # part of this program most likely to raise.
+        presence.close()
         editor.close()
         # Say so first, *then* wait: a start already past its own check
         # finishes and is stopped below, and one that has not reached it

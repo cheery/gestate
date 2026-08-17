@@ -1,6 +1,6 @@
 # timer — see when the day has been too long
 
-    status   open — first in the order, 2026-08-16
+    status   done — 2026-08-17
     because  nine days at thirty commits a day, and nothing said so
     asked    Henri, 2026-08-16
     see      spec/summary.md §"The clock" — the measurement
@@ -86,12 +86,62 @@ not the sitting's.  Ignorable by design.  Escalation was offered and
 declined, which is the right call for a program that would otherwise
 interrupt its author mid-take.
 
-**Still open, and cheap to decide when the work starts:**
+### Whose hours? — asked and answered 2026-08-17 morning
+
+The elaboration above says the past half is *"arithmetic on data that
+exists"*.  **That was measured on 08-17 and it is only half true.**
+
+    git log --format='%an' -200 | sort | uniq -c
+    → 200  Henri Tuhola
+
+Every commit in this repository is authored by Henri, including the ones
+a session makes while he is not at the desk.  `git log` therefore
+measures **the project's pace and not his**, and it always did — the
+nine-day table in `spec/summary.md` was only ever a reading of him
+because he was the only one there.  From today he is not: he opened the
+day with *"with the new system I don't need to be around all the time."*
+An instrument that keeps reading commits as his hours will start lying
+on exactly the days the new arrangement is working.
+
+**Henri, 2026-08-17:**
+
+> Both, shown apart.  We are about to be able to measure both.  And I
+> probably don't sleep, just rest and occasionally check in, so the timer
+> should count this as well and warn about it.
+
+Three things fall out of that, and the third is the one that would have
+been missed:
+
+1. **Two marks, not one** — his hours, and the project's.  They are
+   different quantities now and a single figure would fuse them.
+2. **The project's half stays `git log`.**  Nothing to build.
+3. **A rest day with check-ins in it is not a rest day, and the timer
+   must say so.**  *"I probably don't sleep, just rest and occasionally
+   check in"* is a description of the failure mode, offered by the person
+   in it.  Six check-ins spread over twelve hours would score as almost
+   no time under any idle threshold, and would be the day that broke him.
+   So presence is not only summed — its **span** counts too: first touch
+   to last touch is what says the day never actually ended, and that is
+   the warning he asked for.
+
+### The line — answered 2026-08-17
+
+The gauge needs a scale and the nine-day history cannot supply one: that
+history *is* the overwork, so a scale fitted to it reads green at noon on
+a twelve-hour day.
+
+**Henri, 2026-08-17: eight hours.**  Ink starts growing past eight.
+Note what that means against the record — several of the last nine days
+would have tripped it before lunch, and 08-11 would have tripped it
+twice.  That is the point of picking the number from outside the data.
+
+### Still open, and cheap to decide when the work starts
 
 - **What counts as a break?**  Elapsed since the workbench opened is
   easy and wrong — it counts a lunch.  Keystroke-active time with an
   idle threshold is closer; the threshold is a number to pick, not a
-  design.
+  design.  It does **not** decide the span question above, which is
+  measured separately and on purpose.
 - **Where the day's total is persisted**, and — given the trend finding
   above — that the file keeps **days**, not just today.  A history of
   one day cannot show a sequence.
@@ -100,6 +150,58 @@ interrupt its author mid-take.
   person will not read"* — weigh by kind, a few marks and no more, the
   ink growing with the quantity.  A rising week wants a mark, not a
   figure.
+
+## Done
+
+One row of the status bar, in a quiet amber under the sentence the last
+command answered with:
+
+    you 6h12m ◆ [▪▪◆▲▲ ◆]   project 31 ◆ [▪▪◆▲▲▲◆]   since 04:52 ▲
+
+- `gestate/presence.py` — the record and the reading.  Two quantities
+  kept apart, seven days of each, the span measured separately from the
+  sum, `$XDG_STATE_HOME/gestate/presence.tsv` for the file.
+- `tally` on the wire; `Furniture::tally` and `view::Ink::Spent` in the
+  window, which is where the "quiet amber" landed.
+- `tools/lagcheck.py::driven` — a driven window keeps no record, since
+  XTEST is indistinguishable from a hand.
+- `spec/timer.md` for the argument, `test/test_presence.py` and three
+  tests in `shell/editor/tests/view.rs` for the contract.
+
+**Two defects the tests could not have found**, both caught by opening
+the window and photographing the bar: a day already eight hours old
+reported `you 0m` until something was typed, and a rest day drawn as `·`
+was a pixel a side away from `▪` and read as a light day on the screen.
+A rest day is now a gap.  `journal.md` §"The screen found the bug that
+mattered".
+
+Henri, reading it: *"I can see this system saving lives.  It's like
+seatbelts in a car."*
+
+### It did not trace to `vision.md`, and now it does
+
+`board/README.md` asks that a card's `because` be traceable to something
+in the vision, and that when it is not, *"either the vision is
+incomplete or the card is drift, and both are worth saying out loud"*.
+
+This one was not drift: Henri moved it to the front himself and called
+the result seatbelts.  But the nearest lines were *"won't demand your
+presence"* — which is about the tool not requiring a machine or an
+account, not about the project consuming its author — and *"Gestate
+won't ever be dangerous to use"*, which reads as being about data and
+sound.  Neither was really this.
+
+So it was raised rather than guessed at, because `vision.md` is his own
+document and its whole value is that every line in it decided something
+he decided.  He answered the same morning, and the line is his, verbatim:
+
+> **2026-08-17: Any project must not consume the person leading it.**
+
+Filed under §"Gestate as a lean vehicle", because that section is about
+how the work runs rather than about what the program does — move it if
+that is the wrong shelf.  **The rule worked**: a card whose `because`
+had nowhere to point turned out to be pointing at a gap in the vision,
+and the way to find that was to check rather than to assume.
 
 ## The honest note
 

@@ -1,0 +1,358 @@
+"""The day's clock — `spec/timer.md`, `board/done/timer.md`.
+
+**What these hold is the arithmetic, not the drawing.**  The row itself
+is four lines of Rust; what can be silently wrong is what counts as
+work, what counts as a break, and whether a week of days survives being
+written down — and every one of those is a decision with a reason
+attached, which is what a test is for.
+"""
+
+from __future__ import annotations
+
+import time
+
+import pytest
+
+from gestate.presence import (CALM, LOUD, NONE, NOTABLE, Day, Presence,
+                              mark, spell, WORKED)
+
+
+HOUR = 3600.0
+
+
+def at(day: str, hour: int, minute: int = 0) -> float:
+    """A local wall-clock stamp on a named day.
+
+    Built through `mktime` rather than from a constant, because the
+    module reads the clock through `localtime` — a test that hard-coded
+    epoch seconds would pass in one timezone and fail in the next.
+    """
+    y, m, d = (int(p) for p in day.split("-"))
+    return time.mktime((y, m, d, hour, minute, 0, 0, 0, -1))
+
+
+class Hand:
+    """A clock a test moves by hand."""
+
+    def __init__(self, now: float):
+        self.now = now
+
+    def __call__(self) -> float:
+        return self.now
+
+
+@pytest.fixture()
+def kept(tmp_path):
+    """A presence with its own file, and a clock the test owns.
+
+    **A fresh file per call**, because the record is real: a second
+    `kept(...)` in one test would otherwise load the first one's day and
+    continue it, which is exactly right for a workbench reopened on the
+    same afternoon and wrong for two independent scenarios.
+    """
+    made = []
+
+    def make(when: float) -> tuple:
+        hand = Hand(when)
+        made.append(hand)
+        path = tmp_path / f"presence-{len(made)}.tsv"
+        return Presence(root=tmp_path, path=path, clock=hand), hand
+    return make
+
+
+# ── what counts, and what does not ───────────────────────────────────
+
+
+def test_a_listen_is_worked_and_a_lunch_is_not(kept):
+    """The threshold is the whole design: gestate is a program you
+    *listen to*, so a piece played through without a keystroke must
+    count, and an hour away must not."""
+    p, hand = kept(at("2026-08-17", 9))
+    p.touched()
+    hand.now += 120.0                        # a two-minute piece
+    p.touched()
+    assert p.today.worked == pytest.approx(120.0)
+
+    hand.now += HOUR                         # lunch
+    p.touched()
+    assert p.today.worked == pytest.approx(120.0), \
+        "an hour away is not an hour worked"
+    assert p.today.touches == 3
+
+
+def test_the_first_touch_of_a_day_costs_nothing(kept):
+    """There is no gap before the first gesture, and counting from
+    midnight — or from whenever the window opened — is the mistake the
+    card names: *elapsed since the workbench opened is easy and
+    wrong*."""
+    p, _hand = kept(at("2026-08-17", 6))
+    p.touched()
+    assert p.today.worked == 0.0
+    assert p.today.first == "06:00"
+
+
+# ── the day that the total cannot see ────────────────────────────────
+
+
+def test_a_day_of_check_ins_shows_its_span(kept):
+    """Henri's own failure mode, asked for by name: *"I probably don't
+    sleep, just rest and occasionally check in, so the timer should
+    count this as well and warn about it."*
+
+    Six check-ins over fourteen hours sum to nothing under any idle
+    threshold.  The span is the only thing that sees it."""
+    p, hand = kept(at("2026-08-17", 6))
+    for _ in range(6):
+        p.touched()
+        hand.now += 2.8 * HOUR
+
+    assert p.today.worked < 60.0, "check-ins are not hours"
+    assert p.today.span >= 14 * HOUR
+    said = p.reading()
+    assert said.startswith("you 0m " + CALM), \
+        "almost none of it was worked, but the day was not a rest day"
+    assert said.rstrip().endswith("since 06:00 " + NOTABLE), said
+
+    # And the day the card is named after — 08-11 ran 00:03 → 23:48.
+    p, hand = kept(at("2026-08-17", 5))
+    for _ in range(8):
+        p.touched()
+        hand.now += 2.3 * HOUR
+    assert p.reading().rstrip().endswith("since 05:00 " + LOUD), \
+        "a day with no night in it is the loudest mark there is"
+
+
+def test_an_ordinary_day_says_nothing_about_its_span(kept):
+    """A row that is always on is a row nobody reads.  On a day with an
+    evening in it the span says nothing the total did not."""
+    p, hand = kept(at("2026-08-17", 9))
+    for _ in range(20):
+        p.touched()
+        hand.now += 60.0
+    assert "since" not in p.reading()
+
+
+# ── the line, picked from outside the data ───────────────────────────
+
+
+def test_the_ink_grows_past_eight_hours():
+    """Henri's number, 2026-08-17.  The nine-day record *is* the
+    overwork, so a scale fitted to it would read calm at noon on a
+    twelve-hour day."""
+    assert mark(7.9 * HOUR, *WORKED) == CALM
+    assert mark(8.1 * HOUR, *WORKED) == NOTABLE
+    assert mark(11 * HOUR, *WORKED) == LOUD
+
+
+def test_the_day_is_spelt_in_hours_and_minutes():
+    """`6.2h` is a number a person has to convert, and this row is read
+    in passing or not at all."""
+    assert spell(0) == "0m"
+    assert spell(48 * 60) == "48m"
+    assert spell(6 * HOUR + 12 * 60) == "6h12m"
+
+
+# ── the sequence, which is why the card was first ────────────────────
+
+
+def test_the_record_keeps_days_not_today(kept, tmp_path):
+    """*A history of one day cannot show a sequence*, and the sequence
+    is the finding: the largest day in the project was the
+    second-to-last one, and it started at 02:49."""
+    p, hand = kept(at("2026-08-17", 9))
+    for back, hours in enumerate([2.0, 5.0, 9.0, 12.0]):
+        date = f"2026-08-{13 + back:02d}"
+        p.days[date] = Day(date, "09:00", "18:00", hours * HOUR, 100)
+    p.save()
+
+    again = Presence(root=tmp_path, path=tmp_path / "presence-1.tsv",
+                     clock=hand)
+    assert set(again.days) == set(p.days)
+    assert again.days["2026-08-16"].worked == pytest.approx(12 * HOUR)
+    # Four worked days ending today, oldest first, and today untouched.
+    assert again.week(at("2026-08-17", 12)) == \
+        f"{NONE}{NONE}{CALM}{CALM}{NOTABLE}{LOUD}{NONE}"
+
+
+def test_a_window_opened_late_reports_the_day_it_opened_into(kept, tmp_path):
+    """**Found by opening the window and looking at it**, which is the
+    only way this one was ever going to be found.
+
+    The reading used to come from the day the first *gesture* made, so a
+    workbench opened onto a day already eight hours old said `you 0m`
+    until something was typed — it reported that nothing had happened on
+    the very day its own record said the most had.  Every unit test
+    passed, because every unit test touched first."""
+    p, hand = kept(at("2026-08-17", 14))
+    today = "2026-08-17"
+    p.days[today] = Day(today, "05:12", "13:55", 8 * HOUR + 42 * 60, 1500)
+    p.save()
+
+    fresh = Presence(root=tmp_path, path=tmp_path / "presence-1.tsv",
+                     clock=hand)
+    assert fresh.today is None, "nothing has been typed yet"
+    assert fresh.reading().startswith("you 8h42m " + NOTABLE), fresh.reading()
+
+
+def test_a_check_in_day_is_written_down_as_it_happens(kept, tmp_path):
+    """**The flush is on the wall clock, not on the seconds earned.**
+
+    Written the other way it works on an ordinary day and fails on the
+    only day the instrument is really for: a day of check-ins earns
+    almost no worked time, so a rule keyed on that never fires, and
+    `first`, `last` and `touches` — the whole record of that day — would
+    go with the process if it died."""
+    p, hand = kept(at("2026-08-17", 6))
+    for _ in range(6):
+        p.touched()
+        hand.now += 2.8 * HOUR
+    assert p.today.worked < 60.0, "nothing to speak of was worked"
+
+    on_disk = Presence(root=tmp_path, path=p.path, clock=hand)
+    kept_day = on_disk.days["2026-08-17"]
+    assert kept_day.first == "06:00" and kept_day.touches == 6, \
+        "the span survived without a close()"
+
+
+def test_a_span_that_runs_backwards_says_nothing(kept):
+    """A hand-edited record is the only way to get one, and the honest
+    answer to a number that cannot be is silence."""
+    p, _hand = kept(at("2026-08-17", 9))
+    p.days["2026-08-17"] = Day("2026-08-17", "22:00", "03:00", 600.0, 12)
+    assert p.days["2026-08-17"].span == 0.0
+    assert "since" not in p.reading()
+
+
+def test_the_figure_and_the_strips_last_cell_never_disagree(kept):
+    """One row must not contradict itself about one day.
+
+    Written as two calculations they did: a day of six check-ins showed
+    no mark beside `you 0m` — nothing had been *worked* — and a `▪` at
+    the end of the strip, because something had been *touched*.  So the
+    figure's mark is now the strip's own last cell, and there is only
+    one calculation left to be wrong."""
+    p, hand = kept(at("2026-08-17", 8))
+    for _ in range(4):
+        p.touched()
+        hand.now += 3 * HOUR
+        p._said = ("", 0.0)
+        said = p.reading()
+        strip = said.split("[")[1].split("]")[0]
+        head = said.split(" [")[0].split(" ")[-1]
+        assert strip[-1] == head or (strip[-1] == NONE and head.endswith("m")), \
+            said
+
+
+def test_a_rest_day_leaves_a_gap_rather_than_a_small_mark(kept):
+    """**The mark this whole file hopes to see**, and it must not be a
+    glyph: `·` and `▪` differ by one pixel a side in the font the bar is
+    drawn in, so a rest day read as a light day on the screen.  No work,
+    no ink."""
+    p, _hand = kept(at("2026-08-17", 9))
+    p.days["2026-08-16"] = Day("2026-08-16", "09:00", "17:00", 6 * HOUR, 90)
+    strip = p.week(at("2026-08-17", 12))
+    assert strip[-2] == CALM
+    assert strip.strip(NONE) == CALM, "one worked day, and six blanks"
+    assert NONE not in (CALM, NOTABLE, LOUD)
+    assert NONE.isspace(), "it draws nothing at all"
+    assert NONE != " ", ("a plain space would let `view.rs::wrap` break "
+                         "the week across two rows")
+
+
+def test_a_rest_day_is_visible_as_itself(kept):
+    """The mark this whole file hopes to see.  A day with nothing in it
+    is not a fourth grade of concern — it is the absence, and a week of
+    them must not read like a week of light days."""
+    p, _hand = kept(at("2026-08-17", 9))
+    p.days["2026-08-15"] = Day("2026-08-15", "09:00", "17:00", 6 * HOUR, 90)
+    strip = p.week(at("2026-08-17", 12))
+    assert strip[-3] == CALM, "the day that was worked"
+    assert strip[-2] == NONE and strip[-1] == NONE, "the two that were not"
+
+
+# ── the two halves, kept apart ───────────────────────────────────────
+
+
+def test_the_hand_and_the_project_are_shown_apart(kept, tmp_path):
+    """Henri, 2026-08-17: *"Both, shown apart.  We are about to be able
+    to measure both."*  Every commit in this repository is authored by
+    him including the ones a session makes while he is elsewhere, so
+    one fused number would be the lie."""
+    p, hand = kept(at("2026-08-17", 9))
+    p.touched()
+    hand.now += 300.0
+    p.touched()
+    p._made = {time.strftime("%Y-%m-%d", time.localtime(hand.now)): 31}
+    p._made_at = hand.now
+    p._said = ("", 0.0)
+
+    said = p.reading()
+    assert said.startswith("you 5m"), said
+    assert "project 31" in said, said
+
+
+def test_a_file_outside_a_repository_says_only_its_half(kept, tmp_path):
+    """The workbench opens files outside any git tree, and a row that
+    guessed a number there would be worse than a row with one half."""
+    p, _hand = kept(at("2026-08-17", 9))
+    p.touched()
+    said = p.reading()
+    assert said.startswith("you "), said
+    assert "project" not in said, said
+
+
+def test_the_project_half_is_read_from_the_commit_log(tmp_path):
+    """Nothing to instrument: the timestamps are already in the
+    repository, already accurate, and unforgeable in the way a
+    self-reported timer is not."""
+    from pathlib import Path
+
+    from gestate.presence import made
+
+    tally = made(Path(__file__).resolve().parent.parent, days=3650)
+    assert tally, "gestate is a git tree and has commits in it"
+    assert all(len(d) == 10 and d.count("-") == 2 for d in tally)
+    assert all(isinstance(n, int) and n > 0 for n in tally.values())
+
+    assert made(tmp_path) == {}, "no git here, and no number invented"
+
+
+# ── being able to switch it off ──────────────────────────────────────
+
+
+def test_a_driven_window_keeps_no_record(tmp_path, monkeypatch):
+    """`tools/toolbox.sh` types with XTEST, and a suite's synthetic
+    keystrokes must not land in a person's week."""
+    monkeypatch.setenv("GESTATE_PRESENCE", "")
+    p = Presence(root=tmp_path, clock=Hand(at("2026-08-17", 9)))
+    p.touched()
+    p.touched()
+    p.close()
+    assert p.reading() == ""
+    assert p.today is None
+    assert not list(tmp_path.iterdir()), "nothing was written anywhere"
+
+
+def test_the_record_can_be_pointed_somewhere_else(tmp_path, monkeypatch):
+    monkeypatch.setenv("GESTATE_PRESENCE", str(tmp_path / "elsewhere.tsv"))
+    p = Presence(root=tmp_path, clock=Hand(at("2026-08-17", 9)))
+    p.touched()
+    p.save()
+    assert (tmp_path / "elsewhere.tsv").exists()
+
+
+# ── midnight ─────────────────────────────────────────────────────────
+
+
+def test_a_day_that_runs_past_midnight_becomes_two(kept):
+    """08-11 ran 00:03 → 23:48.  Rolling the clock over is right rather
+    than a rounding error: the question the strip answers is *did this
+    day have a night in it*, and 00:03 is an answer."""
+    p, hand = kept(at("2026-08-17", 23, 55))
+    p.touched()
+    hand.now += 600.0                        # 00:05
+    p.touched()
+    assert set(p.days) == {"2026-08-17", "2026-08-18"}
+    assert p.days["2026-08-18"].worked == 0.0, \
+        "the new day starts owing nothing"
+    assert p.days["2026-08-18"].first == "00:05"

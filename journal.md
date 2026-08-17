@@ -7368,3 +7368,122 @@ that a card's name is its id.
 The roadmap said it years-of-project-time ago, about keeping the stage
 numbers as addresses: *"A citation that no longer resolves is worse than
 a long file."*  It is a test now.
+
+## The morning the project learned to watch the clock
+
+The arrangement changed first, and the timer followed from it.  Henri
+opened 2026-08-17 with *"I wake up early & I'm going to rest more, but
+with the new system I don't need to be around all the time"*, pointed at
+`board/README.md`, and offered to answer questions before sitting back.
+
+That is a different working model than the board was written for, and
+the first thing it needed was **a way to be reached**.  He named it
+himself and named it correctly: *"There's an andon: You have access to
+the sound card and you can use that to call me."*  So `tools/andon.ges`
+— three rising sine chimes over about two seconds, written in gestate,
+played through gestate — and `tools/andon.sh` to pull the cord.  Its
+whole design is in what it must not be: nothing sharp, nothing fast,
+nothing that rises to a point, because it calls somebody who is resting
+in a room he may be resting *in*.  Rings are capped at three by the
+script, which is a decision and not a limit: if three calls eight
+seconds apart did not reach him he is not in the room, and ringing
+thirty times only arranges for a noise to be waiting when he walks back
+in.  He verified it the minute it was built — *"It works."*
+
+### Whose hours does a timer count?
+
+`board/done/timer.md` had been elaborated the evening before and had three
+questions left in it.  Two were cheap.  The third only existed because
+of the sentence he had opened the day with, and it was worth the ring:
+
+    git log --format=%an -200 | sort | uniq -c   →   200  Henri Tuhola
+
+**Every commit in this repository is authored by Henri, including the
+ones a session makes while he is elsewhere.**  The card's elaboration had
+called the historical half *"arithmetic on data that exists"*, and that
+was only half true: `git log` measures the *project's* pace and always
+did — it read as his because he was the only one there.  From today he is
+not.  An instrument that kept reading commits as his hours would have
+started lying on exactly the days the new arrangement is working.
+
+> **Both, shown apart.  We are about to be able to measure both.  And I
+> probably don't sleep, just rest and occasionally check in, so the timer
+> should count this as well and warn about it.**
+
+The second sentence is the valuable one, and it is a description of a
+failure mode offered by the person in it.  Six check-ins spread over
+twelve hours sum to almost nothing under any idle threshold, and are the
+day that breaks him.  **No amount of idle-trimming can see that.**  What
+sees it is *first touch to last* — so presence is measured twice, once
+as a sum and once as a span, and the span speaks only when it has earned
+a mark:
+
+    you 0m ▪ [      ▪]   since 06:00 ◆
+
+The hours half stays honest and the span says the day never ended.
+
+And the line: **eight hours**, picked from outside the data on purpose.
+The nine-day record *is* the overwork, so a scale fitted to it would read
+calm at noon on a twelve-hour day.  Against the record, several of those
+days trip it before lunch.  That is the instrument working.
+
+### The screen found the bug that mattered
+
+The arithmetic was unit-tested and green, so the row was opened in a real
+window on a virtual display and photographed.  Two things fell out that
+no test had:
+
+**`you 0m` on a day the record said was eight hours old.**  The reading
+came from the day the first *gesture* made, so a workbench opened onto a
+day already underway reported that nothing had happened on the very day
+its own record said the most had.  Every unit test passed, because every
+unit test touched first.
+
+**And the rest day was invisible.**  It was drawn as `·`, and in
+misc-fixed at 10×20 `·` is a 3×3 dot where `▪` is a 4×4 one — a pixel a
+side.  On the screen, at the size it is actually read at, *a day of rest
+looked exactly like a light day of work*: the one mark this whole
+instrument hopes to see was the one that could not be read.  So a rest
+day now draws **nothing at all**, which is `spec/rocks.md`'s own law read
+to its end — the ink grows with the quantity, and the quantity is zero.
+A no-break space rather than a plain one, because the bar wraps by
+splitting on `' '` and a rest day in an ordinary space would let a narrow
+window break the week in half.
+
+`board/done/timer.md`, `spec/timer.md`, `gestate/presence.py`.
+
+### And the first verification run played into the room
+
+It opened `twoknobs.ges` in a real workbench, which takes the real sound
+card — Henri, resting: *"You called?  That was not andon sound :)"*.  The
+fix is a throwaway `$HOME` with `pcm.!default` mapped to ALSA's null
+device, and it belongs in the same family as the record's own switch:
+`tools/lagcheck.py::driven` now sets `GESTATE_PRESENCE=` for every
+harness that opens a window, because XTEST types with the same X events a
+hand does and nothing can tell them apart.  **Without it the one
+instrument that measures the person would have been measuring the test
+suite.**
+
+His reading of the finished row, which is the acceptance test that
+matters: *"I can see this system saving lives.  It's like seatbelts in a
+car."*
+
+### And the board's own rule found a hole in the vision
+
+`board/README.md` asks that a card's `because` trace to something in
+`vision.md`, and that when it does not, *"either the vision is
+incomplete or the card is drift, and both are worth saying out loud"*.
+
+The timer's did not trace.  It was plainly not drift — he moved it to
+the front himself — and the nearest lines were about the *tool* not
+demanding a machine or an account, which is a different thing.  So it
+was said out loud rather than stretched to fit, because `vision.md` is
+the author's own document and its whole value is that every line in it
+decided something he decided.
+
+He answered within the hour, and the file gained a line:
+
+> **2026-08-17: Any project must not consume the person leading it.**
+
+Which is the rule working in the direction nobody designs for: a card
+with nowhere to point turned out to be pointing at a gap.

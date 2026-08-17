@@ -30,7 +30,7 @@
 <text class="subtitle" x="12.00" y="26.50">Where a Python model meets a Rust window. Every word here is written twice, in two languages, and nothing but this compares them: the sheet is drawn from <tspan class="mono">abi.rs</tspan> and <tspan class="mono">editor.py</tspan>, from <tspan class="mono">session.furniture</tspan> and <tspan class="mono">Furniture::read</tspan>, from <tspan class="mono">Gesture::line</tspan> and</text>
 <text class="subtitle" x="12.00" y="30.50"><tspan class="mono">session.act</tspan>.</text>
 <text class="foot" x="12.00" y="287.00"><tspan class="mono">test_atlas.py</tspan> fails when the two ends disagree — a word sent and never read, a call declared with the wrong arity, a type that means something else on the other side. This is the one sheet that is a test as well as a picture.</text>
-<text class="stamp" x="408.00" y="287.00">gestate db44d4f · 2026-08-16+</text>
+<text class="stamp" x="408.00" y="287.00">gestate a55c4dc · 2026-08-16+</text>
 <rect class="lane" x="12.00" y="37.00" width="128.00" height="72.40" rx="2.4" style="fill:#eef3f7"/>
 <text class="lanetitle" x="16.00" y="44.40">The model asks the window</text>
 <text class="note" x="16.00" y="49.20">Text, chrome, pictures and orders, over a pointer and a string. Nothing is</text>
@@ -60,7 +60,7 @@
 <rect class="chip" x="284.00" y="67.20" width="21.28" height="4.6" rx="1.2"/><text class="chiptext" x="294.64" y="70.40">ged_is_open</text><text class="extra" x="307.28" y="70.40">is it still there</text>
 <rect class="chip" x="284.00" y="73.60" width="16.40" height="4.6" rx="1.2"/><text class="chiptext" x="292.20" y="76.80">ged_open</text><text class="extra" x="302.40" y="76.80">start the window on this text, at this size</text>
 <rect class="chip" x="284.00" y="80.00" width="31.03" height="4.6" rx="1.2"/><text class="chiptext" x="299.52" y="83.20">ged_request_close</text><text class="extra" x="317.03" y="83.20">ask it to close</text>
-<rect class="lane" x="12.00" y="120.40" width="128.00" height="137.50" rx="2.4" style="fill:#f3eef5"/>
+<rect class="lane" x="12.00" y="120.40" width="128.00" height="143.90" rx="2.4" style="fill:#f3eef5"/>
 <text class="lanetitle" x="16.00" y="127.80">Furniture — the chrome, as rows</text>
 <text class="note" x="16.00" y="132.60"><tspan class="mono">session.furniture</tspan> builds it, <tspan class="mono">Furniture::read</tspan> takes it apart. A row the window</text>
 <text class="note" x="16.00" y="136.30">does not know is dropped, never refused: a dropped line loses one knob, and a</text>
@@ -81,9 +81,10 @@
 <rect class="chip" x="16.00" y="224.70" width="9.90" height="4.6" rx="1.2"/><text class="chiptext" x="20.95" y="227.90">play</text><text class="extra" x="27.90" y="227.90">2 fields</text>
 <rect class="chip" x="16.00" y="231.10" width="11.53" height="4.6" rx="1.2"/><text class="chiptext" x="21.76" y="234.30">scope</text><text class="extra" x="29.53" y="234.30">3 fields</text>
 <rect class="chip" x="16.00" y="237.50" width="13.15" height="4.6" rx="1.2"/><text class="chiptext" x="22.58" y="240.70">status</text><text class="extra" x="31.15" y="240.70">1 field</text>
-<rect class="chip" x="16.00" y="243.90" width="14.78" height="4.6" rx="1.2"/><text class="chiptext" x="23.39" y="247.10">trouble</text><text class="extra" x="32.78" y="247.10">line message</text>
-<text class="extra" x="16.00" y="252.50">17 sent, 17 understood, they agree — model → window</text>
-<rect class="lane" x="146.00" y="120.40" width="128.00" height="137.50" rx="2.4" style="fill:#f3eef5"/>
+<rect class="chip" x="16.00" y="243.90" width="11.53" height="4.6" rx="1.2"/><text class="chiptext" x="21.76" y="247.10">tally</text><text class="extra" x="29.53" y="247.10">1 field</text>
+<rect class="chip" x="16.00" y="250.30" width="14.78" height="4.6" rx="1.2"/><text class="chiptext" x="23.39" y="253.50">trouble</text><text class="extra" x="32.78" y="253.50">line message</text>
+<text class="extra" x="16.00" y="258.90">18 sent, 18 understood, they agree — model → window</text>
+<rect class="lane" x="146.00" y="120.40" width="128.00" height="143.90" rx="2.4" style="fill:#f3eef5"/>
 <text class="lanetitle" x="150.00" y="127.80">Orders — do this, rather than show this</text>
 <text class="note" x="150.00" y="132.60"><tspan class="mono">Editor.order</tspan> sends them and <tspan class="mono">Order::read</tspan> reads them; an order this build does</text>
 <text class="note" x="150.00" y="136.30">not know is skipped, for the reason the furniture row is.</text>
@@ -103,7 +104,7 @@
 <rect class="chip" x="150.00" y="221.00" width="9.90" height="4.6" rx="1.2"/><text class="chiptext" x="154.95" y="224.20">warn</text><text class="extra" x="161.90" y="224.20">1 field</text>
 <rect class="chip" x="150.00" y="227.40" width="9.90" height="4.6" rx="1.2"/><text class="chiptext" x="154.95" y="230.60">zoom</text><text class="extra" x="161.90" y="230.60">1 field</text>
 <text class="extra" x="150.00" y="236.00">15 sent, 15 understood, they agree — model → window</text>
-<rect class="lane" x="280.00" y="120.40" width="128.00" height="137.50" rx="2.4" style="fill:#f3eef5"/>
+<rect class="lane" x="280.00" y="120.40" width="128.00" height="143.90" rx="2.4" style="fill:#f3eef5"/>
 <text class="lanetitle" x="284.00" y="127.80">Gestures — what the hand did</text>
 <text class="note" x="284.00" y="132.60"><tspan class="mono">Gesture::line</tspan> writes them and <tspan class="mono">session.act</tspan> does them, drained in a batch. Every</text>
 <text class="note" x="284.00" y="136.30">one is a line a transcript can hold, which is why a session replays.</text>
@@ -121,8 +122,8 @@
 <rect class="chip" x="284.00" y="208.20" width="9.90" height="4.6" rx="1.2"/><text class="chiptext" x="288.95" y="211.40">turn</text><text class="extra" x="295.90" y="211.40">n v</text>
 <rect class="chip" x="284.00" y="214.60" width="11.53" height="4.6" rx="1.2"/><text class="chiptext" x="289.76" y="217.80">wants</text><text class="extra" x="297.53" y="217.80">n at q</text>
 <text class="extra" x="284.00" y="223.20">13 sent, 13 understood, they agree — window → model</text>
-<rect class="lane" x="12.00" y="268.90" width="396.00" height="21.30" rx="2.4" style="fill:#eaf1ee"/>
-<text class="lanetitle" x="16.00" y="276.30">What this sheet promises</text>
-<text class="note" x="16.00" y="281.10">Both ends of every word above are read out of the source, and compared.</text>
-<text class="extra" x="16.00" y="284.80">Everything above is read from both ends: 17 calls, 17 furniture, 15 orders, 13 gestures — and today they agree.</text>
+<rect class="lane" x="12.00" y="275.30" width="396.00" height="21.30" rx="2.4" style="fill:#eaf1ee"/>
+<text class="lanetitle" x="16.00" y="282.70">What this sheet promises</text>
+<text class="note" x="16.00" y="287.50">Both ends of every word above are read out of the source, and compared.</text>
+<text class="extra" x="16.00" y="291.20">Everything above is read from both ends: 17 calls, 18 furniture, 15 orders, 13 gestures — and today they agree.</text>
 </svg>

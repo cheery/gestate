@@ -36,6 +36,8 @@ written by AI. Even at 100,000 lines it stays lean, and we pay attention
 to details and structure of the code, because a program nobody can hold
 in their head is one nobody can correct.
 
+2026-08-17: Any project must not consume the person leading it.
+
 ## Gestate as a generic working platform
 
 2026-08-16: The origin may be in music. Music is a human expression.

@@ -24,33 +24,28 @@ Work them in this order unless one blocks another.  **This list is the
 only place the order lives** — a card never says where it stands, which
 is what keeps a card's name stable while priorities move.
 
-1. **[timer](timer.md)** — see in gestate when the day has been too
-   long.  *Moved to the front 2026-08-16, at Henri's ask, after reading
-   `spec/summary.md` through: nine days, no rest day, no hour of the
-   clock without a commit in it — and a daily count that was still
-   **accelerating** when it was measured.*
-2. **[older-features](older-features.md)** — `using`/`given` and the
+1. **[older-features](older-features.md)** — `using`/`given` and the
    Datafun surface have never been used through the window; find out
    where they work.
-3. **[open-path-bug](open-path-bug.md)** — `open ../../hello.ges` from
+2. **[open-path-bug](open-path-bug.md)** — `open ../../hello.ges` from
    `minute.ges` lands in the wrong directory.
-4. **[gemba](gemba.md)** — walk the factory floor: Claude presents into
+3. **[gemba](gemba.md)** — walk the factory floor: Claude presents into
    the workbench while the work is happening.
-5. **[stranger-test](stranger-test.md)** — run `vision.md`'s own top
+4. **[stranger-test](stranger-test.md)** — run `vision.md`'s own top
    claim: can somebody who has never read this repository open a file,
    hear it, change it, and hear the change?  *Moved up 2026-08-16 at
    Henri's ask, and deliberately placed **after** gemba: what this test
    produces is somebody stumbling, live, and watching that is worth more
    than reading the report of it afterwards.*
-6. **[command-categories](command-categories.md)** — the command list
+5. **[command-categories](command-categories.md)** — the command list
    is long enough to want categories, and gemba's second idea waits on
    it.
-7. **[git-viewer](git-viewer.md)** — a git viewer in the workbench,
+6. **[git-viewer](git-viewer.md)** — a git viewer in the workbench,
    encoding the workflow the lesson teaches.  *Blocked on
    command-categories.*
-8. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
+7. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
    the changes Claude makes.
-9. **[persistent-workbench-state](persistent-workbench-state.md)** — the
+8. **[persistent-workbench-state](persistent-workbench-state.md)** — the
    editor should open where it was left; closing it loses the day.
 
 Finished cards are in [done/](done/), newest work last.  `ls board/*.md`

@@ -3452,7 +3452,7 @@ def _beats_of(bar: int) -> float:
 # ── The window, and what passes between them ─────────────────────────────
 
 
-def furniture(session: "Session", bench=None) -> str:
+def furniture(session: "Session", bench=None, tally: str = "") -> str:
     """What the model has to say about the chrome — `furniture.rs`.
 
     **Derived every time it is asked for**, which is cheap and cannot go
@@ -3465,6 +3465,14 @@ def furniture(session: "Session", bench=None) -> str:
     # The transient wins while it stands (a render's position, ticking);
     # history takes the line back the moment the work ends.
     out = [f"status\t{session.transient or (session.said[-1] if session.said else '')}"]
+
+    # **How long the day has been** (`spec/timer.md`).  Passed in rather
+    # than read here, because it is the one thing in the description that
+    # is not a fact about the file: the loop owns the hand's clock, and a
+    # `furniture()` called from a test has no day to report.  Empty when
+    # the record is off, and an empty row is no row.
+    if tally:
+        out.append(f"tally\t{tally}")
 
     trouble = getattr(b, "trouble", "")
     if trouble:

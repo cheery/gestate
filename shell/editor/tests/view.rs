@@ -1527,3 +1527,83 @@ fn the_peep_scrolls_sideways_to_its_caret() {
     assert!(caret >= 0 && caret < v.w,
             "the caret was drawn at {caret} in a window {} wide", v.w);
 }
+
+// ── How long the day has been ────────────────────────────────────────────
+//
+// `spec/timer.md`.  The row itself is small; what it must not do is
+// disappear on the day it exists to name.
+
+/// The tally is a row of the bar, in its own ink — not part of the
+/// status sentence, because the two answer different questions and
+/// change on different clocks.
+#[test]
+fn the_days_tally_stands_in_its_own_ink() {
+    use gestate_editor::view::{bar_rows, Ink, SPENT};
+
+    let chrome = Furniture::read(
+        "status\tapplied\ntally\tyou 6h12m \u{25c6} [\u{25aa}\u{25aa}\u{25c6}]");
+    let rows = bar_rows(&chrome, 60, false);
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0].1, Ink::Faint);
+    assert!(rows[0].0.contains("applied"));
+    assert_eq!(rows[1].1, Ink::Spent);
+    assert!(rows[1].0.starts_with("you 6h12m"));
+
+    let d = doc("x\n");
+    let v = rows_of(6, 600);
+    let f = frame_with(&d, &View { foot_rows: 2, ..v }, &LARGE, &chrome);
+    assert!(f.items.iter().any(|i| matches!(i, Item::Run { s, c, .. }
+                                           if s.starts_with("you 6h12m")
+                                              && *c == SPENT)),
+            "drawn, and in the quiet amber rather than the status grey");
+}
+
+/// **A day with no tally draws no row.**  The model sends it only when
+/// a record is being kept, and every other reader of `Furniture` — the
+/// tests, the panel, a window driven by a harness — has none.
+#[test]
+fn no_tally_is_no_row() {
+    use gestate_editor::view::bar_rows;
+
+    let chrome = Furniture::read("status\tapplied");
+    assert_eq!(bar_rows(&chrome, 60, false).len(), 1);
+}
+
+/// **The complaints give up their last row, not the tally.**  The day
+/// the bar is full of compiler noise is precisely the long day this row
+/// exists to name, and an instrument that goes quiet under load is not
+/// an instrument.
+#[test]
+fn a_full_bar_still_keeps_a_row_for_the_day() {
+    use gestate_editor::view::{bar_rows, Ink, BAR_MOST};
+
+    let mut said = String::from("status\tapplied");
+    for i in 0..8 {
+        said.push_str(&format!("\ntrouble\t0\tsomething is wrong, number {i}"));
+    }
+    said.push_str("\ntally\tyou 11h04m \u{25b2}");
+
+    let rows = bar_rows(&Furniture::read(&said), 60, false);
+    assert_eq!(rows.len(), usize::from(BAR_MOST));
+    assert_eq!(rows.last().unwrap().1, Ink::Spent);
+    assert!(rows.last().unwrap().0.contains("11h04m"));
+    assert!(rows[1..rows.len() - 1].iter().all(|r| r.1 == Ink::Angry));
+}
+
+/// **But the status sentence outranks the tally.**  A bar narrow enough
+/// to wrap what the last command said over the whole bar is not a bar
+/// that should be cutting the answer short to fit a clock.
+#[test]
+fn a_long_answer_is_not_cut_short_to_fit_the_clock() {
+    use gestate_editor::view::{bar_rows, Ink, BAR_MOST};
+
+    let words = "the render was refused because the file it would have \
+                 written is already there and is bigger than the one you \
+                 asked for, so nothing was done and nothing was lost";
+    let chrome = Furniture::read(
+        &format!("status\t{words}\ntally\tyou 11h04m \u{25b2}"));
+    let rows = bar_rows(&chrome, 24, false);
+    assert_eq!(rows.len(), usize::from(BAR_MOST));
+    assert!(rows.iter().all(|r| r.1 == Ink::Faint),
+            "every row is the answer; the tally gave way");
+}

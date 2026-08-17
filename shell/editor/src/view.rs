@@ -50,6 +50,19 @@ pub const HANDLE: Colour = Colour::rgb(0xc8, 0xdc, 0xe8);
 pub const LIVE: Colour = Colour::rgb(0x7c, 0xc8, 0x94);
 /// What the compiler had to say, and where.
 pub const ANGRY: Colour = Colour::rgb(0xc0, 0x4c, 0x48);
+/// **How long the day has been** — `spec/timer.md`'s row.
+///
+/// Warm, so it is not read as chrome, and *dim*, so it is not read as
+/// news: this row is always on, and the only way an always-on row stays
+/// readable is by being quiet enough to ignore. Henri's own word for
+/// what he wanted was "a quiet amber", and the brief was that it must
+/// never interrupt its author mid-take.
+///
+/// Its own constant rather than `AWAY`, which is the same family of
+/// warmth for a different fact — *this is not sounding*. One colour
+/// with two meanings is what `spec/rocks.md` refused when it kept
+/// weight off the palette's `kind` channel.
+pub const SPENT: Colour = Colour::rgb(0xa0, 0x80, 0x64);
 /// A thing deliberately not sounding — a bank the mix dropped
 /// ("disconnected"), a scored line MIDI has displaced ("away").
 /// Warm rather than red, because both are usually a choice being
@@ -1007,18 +1020,34 @@ pub fn wrap(text: &str, cols: usize) -> Vec<String> {
     out
 }
 
+/// Which ink a bar row is drawn in.
+///
+/// **Three, because the bar says three kinds of thing**: what the last
+/// command answered, what the compiler is unhappy about, and how long
+/// the day has been. They are not grades of the same quantity — a
+/// complaint is not a louder tally — so they are a kind and not a
+/// number.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Ink {
+    /// The status sentence.
+    Faint,
+    /// A complaint with no line to anchor a box under.
+    Angry,
+    /// The day's tally — `spec/timer.md`.
+    Spent,
+}
+
 /// Everything the bar says, wrapped to the window, capped at
 /// `BAR_MOST` rows: the file-and-status line first, then the
 /// complaints about line 0 — the unanchorable ones, minus any row the
-/// status already quotes.  The `bool` is whether a row is a complaint
-/// (drawn in the warning colour).
+/// status already quotes — and the day's tally last of all.
 ///
 /// **One function, two readers** — `grant` counts these rows and
 /// `foot` draws them, and being the same list is what keeps the bar's
 /// height and its content from disagreeing, which is the rule the
 /// slots table already keeps for the boxes.
 pub fn bar_rows(chrome: &Furniture, cols: usize,
-                plus_hidden: bool) -> Vec<(String, bool)> {
+                plus_hidden: bool) -> Vec<(String, Ink)> {
     let mut head = String::new();
     if !chrome.file.is_empty() {
         head.push_str(&chrome.file);
@@ -1031,15 +1060,34 @@ pub fn bar_rows(chrome: &Furniture, cols: usize,
         head.push_str("  ");
     }
     head.push_str(&chrome.status);
-    let mut out: Vec<(String, bool)> = wrap(&head, cols).into_iter()
-        .map(|l| (l, false))
+    let mut out: Vec<(String, Ink)> = wrap(&head, cols).into_iter()
+        .map(|l| (l, Ink::Faint))
         .collect();
+    let head_rows = out.len();
     for t in &chrome.trouble {
         if t.line != 0 || t.message.is_empty()
             || chrome.status.contains(&t.message) {
             continue;
         }
-        out.extend(wrap(&t.message, cols).into_iter().map(|l| (l, true)));
+        out.extend(wrap(&t.message, cols).into_iter()
+                   .map(|l| (l, Ink::Angry)));
+    }
+    // **The tally last, and with a row kept for it.**  Last, because a
+    // complaint is the thing to read first and a timer never outranks
+    // one. With a row kept, because the day the bar is full of
+    // complaints is precisely the long day this row exists to name —
+    // an instrument that goes quiet under load is not an instrument.
+    // So the *complaints* give up their last row.
+    //
+    // **Never the status sentence, though**, which is why the floor is
+    // `head_rows`: what the last command answered is the one line the
+    // person is actually waiting for, and a bar narrow enough to wrap it
+    // over four rows is not a bar that should be cutting it short to fit
+    // a clock. There the tally is the thing that goes.
+    if !chrome.tally.is_empty() {
+        out.truncate(usize::from(BAR_MOST).saturating_sub(1).max(head_rows));
+        out.extend(wrap(&chrome.tally, cols).into_iter()
+                   .map(|l| (l, Ink::Spent)));
     }
     out.truncate(usize::from(BAR_MOST));
     out
@@ -1073,13 +1121,17 @@ fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
     // whole text stays one command away, exactly as the boxes rule.
     let ch = view.ch(font);
     let granted = usize::from(view.foot_rows.max(1));
-    for (i, (line, angry)) in bar_rows(chrome, view.bar_cols(font), view.plus_hidden)
+    for (i, (line, ink)) in bar_rows(chrome, view.bar_cols(font), view.plus_hidden)
         .into_iter().take(granted).enumerate()
     {
         if !line.is_empty() {
             f.items.push(Item::Run { x: 4, y: sy + 2 + ch * i as i32,
                                      s: line,
-                                     c: if angry { ANGRY } else { FAINT } });
+                                     c: match ink {
+                                         Ink::Angry => ANGRY,
+                                         Ink::Spent => SPENT,
+                                         Ink::Faint => FAINT,
+                                     } });
         }
     }
 

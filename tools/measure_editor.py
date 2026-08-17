@@ -24,7 +24,7 @@ import sys
 import time
 
 sys.path.insert(0, "/home/cheery/gestate/tools")
-from lagcheck import (tap, chord, find_window, click_into,  # noqa: E402
+from lagcheck import (tap, chord, driven, find_window, click_into,  # noqa: E402
                       shot, DPY, X, XTEST)
 
 WORKBENCH = [sys.executable, "-m", "gestate.workbench"]
@@ -69,7 +69,7 @@ def to_the_canvas():
 
 def main() -> int:
     scenario, path = sys.argv[1], sys.argv[2]
-    env = dict(os.environ, GESTATE_EDITOR_TIME="1", GESTATE_LOOP_TIME="1")
+    env = driven(GESTATE_EDITOR_TIME="1", GESTATE_LOOP_TIME="1")
     # Into the caller's working directory, never beside this file — a
     # measurement run must not leave droppings in `tools/`.
     err = open(os.path.abspath(f"editor-{scenario}.stderr"), "w")

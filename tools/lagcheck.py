@@ -23,6 +23,7 @@ window constantly and drained the connection as a side effect.
 from __future__ import annotations
 
 import ctypes
+import os
 import subprocess
 import sys
 import time
@@ -99,6 +100,22 @@ def click_into(win: int, dx: int = 300, dy: int = 60) -> None:
     time.sleep(1.0)
 
 
+def driven(**extra) -> dict:
+    """The environment a *driven* workbench runs in.
+
+    **XTEST types with the same X events a hand does**, and
+    `gestate.presence` cannot tell them apart — nothing can, which is
+    the point of XTEST.  So a harness left running for an hour would put
+    an hour into somebody's week and the one instrument that measures
+    the person would be measuring the test suite.  `GESTATE_PRESENCE=`
+    (empty) turns the record off for the child.
+
+    Every tool here that opens a window goes through this, so a fifth
+    one cannot forget.
+    """
+    return dict(os.environ, GESTATE_PRESENCE="", **extra)
+
+
 def shot(win: int, path: str) -> None:
     subprocess.run(["import", "-window", str(win), path], capture_output=True)
 
@@ -125,7 +142,7 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     proc = subprocess.Popen([sys.executable, "-m", "gestate.workbench",
-                             args.file],
+                             args.file], env=driven(),
                             stdout=subprocess.DEVNULL,
                             stderr=subprocess.DEVNULL)
     tmp = tempfile.mkdtemp(prefix="lagcheck-")
