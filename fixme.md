@@ -72,6 +72,7 @@ Of 130 entries, **113 are resolved**.  What is left:
 | F150 | resolved | The first screen named a deleted button; the menu opened on `skip` |
 | F151 | resolved | Typing reached nothing, and there was no word for it |
 | F152 | resolved | A complaint with no place to land |
+| F153 | resolved | The window taught the key only to people who no longer needed it |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -4662,3 +4663,28 @@ how the message gets lost.  **`board/error-messages.md` is the card for
 the rest of them**, at his ask: *"we maybe need to arrange a session
 where we examine meticulously every error message and ensure they work.
 We already did that once and it needs to be done again."*
+
+### F153. **[resolved]** The window taught the key only to people who no longer needed it
+
+Found while reading `board/button.md` against the running window,
+2026-08-17, and fixed at Henri's ask the same evening.
+
+`view.hint` puts `Ctrl-K` in the status bar.  It was set **by a burger
+press** and cleared when the list closed — so the window taught the key
+to somebody who had just demonstrated they could find the one control
+without it, and said nothing at all to somebody who could not.  **The
+teaching was downstream of the discovery it exists to make
+unnecessary**, and the discovery is the part a stranger failed (F150,
+and the 24 lit pixels `board/button.md` measures).
+
+Now: **on until the key has been used, and then never again.**  Ctrl-K
+is the one place that can know you have used it, so that is where it is
+retired.  A burger press deliberately does *not* retire it — pressing
+the button is finding the button, not learning the key, and somebody who
+just found it is exactly who has still to learn it; the bar goes on
+saying `Ctrl-K` while that list is up, which is where the old behaviour
+was right and is kept.
+
+One flag, on a mechanism already built and already drawn.  Photographed
+on a window nobody had touched (says it), after one `Ctrl-K` (stops),
+and after the list closed again (stays stopped).

@@ -255,11 +255,21 @@ pub struct View {
     /// window's clock, the same-width blank is `bar_rows`'s, so the
     /// bar cannot re-wrap mid-blink.
     pub plus_hidden: bool,
-    /// Whether the bar says `Ctrl-K` — the burger was pressed, and the
-    /// hint teaches the key the button stands for, the way the list
-    /// writes `apply · Ctrl-S`.  Window-owned like the blink: set by
-    /// the press, cleared when the list closes, and the model never
-    /// learns the bar said it.
+    /// Whether the bar says `Ctrl-K` — **on until the key has been
+    /// used, and then never again** (`fixme.md` F153).
+    ///
+    /// It was the other way round: set by a *burger press* and cleared
+    /// when the list closed, so the window taught the key only to
+    /// somebody who had just proved they could find the button without
+    /// it, and said nothing at all to somebody who could not.  The
+    /// teaching was downstream of the discovery it exists to make
+    /// unnecessary (`board/button.md`).
+    ///
+    /// Pressing the burger does not retire it — that is finding the
+    /// button, not learning the key, and the bar goes on saying it
+    /// while the list is up, which is where the old behaviour was
+    /// right.  Window-owned like the blink: the model never learns the
+    /// bar said it.
     pub hint: bool,
 }
 

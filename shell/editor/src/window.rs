@@ -480,7 +480,7 @@ impl EditorWindow {
                 scale: crate::font::LADDER[crate::font::LADDER_DEFAULT].1,
                 boxes: Vec::new(), foot_rows: 1,
                 warning: String::new(), plus_hidden: false,
-                hint: false,
+                hint: true,
             }),
             zoom: Cell::new(crate::font::LADDER_DEFAULT),
             dragging: Cell::new(false),
@@ -1604,13 +1604,6 @@ impl WindowHandler for EditorWindow {
         // arrears; stop the transport and it is the only thing you can
         // see.
 
-        // The hint dies with the list, however the list went — Escape,
-        // a click away, a command that closes it.  Read here rather
-        // than at every door out, because every close redirties and
-        // the next frame passes this way.
-        if self.view.borrow().hint && !self.palette.borrow().is_open() {
-            self.view.borrow_mut().hint = false;
-        }
         let view = self.view.borrow().clone();
         let (Some(w), Some(h)) = (NonZeroU32::new(view.w.max(1) as u32),
                                   NonZeroU32::new(view.h.max(1) as u32))
@@ -1865,6 +1858,11 @@ impl WindowHandler for EditorWindow {
                 if k.modifiers.contains(Modifiers::CONTROL) {
                     if let Kt::Character(s) = &k.key {
                         if s.eq_ignore_ascii_case("k") {
+                            // **The bar says `Ctrl-K` until you use
+                            // `Ctrl-K`** — F153.  This is the one place
+                            // that can know you have, and the hint is
+                            // for people who have not.
+                            self.view.borrow_mut().hint = false;
                             self.summon_list();
                             return EventStatus::Captured;
                         }
@@ -2013,9 +2011,13 @@ impl WindowHandler for EditorWindow {
                         let asks = self.palette.borrow_mut().hide();
                         self.speak(asks);
                     } else {
-                        // The bar says `Ctrl-K` while this list is up
-                        // — the button teaching the key it stands for.
-                        self.view.borrow_mut().hint = true;
+                        // **The burger does not retire the hint**, and
+                        // that is the point of F153: pressing the button
+                        // is not using the key, and somebody who found
+                        // the button is exactly who has still to learn
+                        // it.  So the bar goes on saying `Ctrl-K` —
+                        // including while this list is up, which is the
+                        // old behaviour and the moment it teaches best.
                         self.summon_list();
                     }
                     self.dirty.set(true);
