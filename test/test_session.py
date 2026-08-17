@@ -3444,3 +3444,86 @@ def test_a_bar_range_is_weighed_by_what_it_writes(tmp_path):
     said = s.run("exportWavAt", "900", "901", str(made))
     assert said.endswith("render it? [y/n]") and "▲" in said, said
     assert not started
+
+
+# ── A typed path is always an answer — F145 ─────────────────────────────────
+
+
+def test_a_typed_path_is_the_first_row_offered(tmp_path):
+    """`fixme.md` F145, from Henri's report: *"When I type `open
+    ../../hello.ges` from `minute.ges`, it throws me into tests/section
+    that has `hello.ges` in there."*
+
+    F130's deep search is right for a bare name and wrong for a spelled
+    path: the query said **where**, nothing there matched, and the search
+    surfaced a file from a directory nobody had mentioned — as the *only*
+    row, so Return could not mean what had just been typed.
+
+    **The pin comes first because the person named the place.**  The deep
+    match keeps its place under it, so F130 keeps its fix.
+    """
+    room = tmp_path / "here" / "deep"
+    room.mkdir(parents=True)
+    (room / "one.ges").write_text("sound : Sig Float\n")
+    elsewhere = tmp_path / "here" / "sessions"
+    elsewhere.mkdir()
+    (elsewhere / "F104-hello.ges").write_text("sound : Sig Float\n")
+
+    it = session()
+    it.bench.path = room / "one.ges"
+    act(it, "wants\topen\t0\t../hello.ges")
+    rows = [(text, note) for text, note, _c, _s, _d in it.choices()]
+
+    assert rows[0] == ("../hello.ges", "new"), rows
+    assert any(t.endswith("F104-hello.ges") for t, _n in rows[1:]), \
+        "and the deep match is still offered, under it"
+
+
+def test_the_typed_path_resolves_where_it_was_typed(tmp_path):
+    """The pin carries the **whole query**, which is what makes
+    `_where` treat it as typed rather than picked — a bare row would
+    have the walk prepended and land somewhere else again (F122)."""
+    room = tmp_path / "here" / "deep"
+    room.mkdir(parents=True)
+    (room / "one.ges").write_text("sound : Sig Float\n")
+
+    it = session()
+    it.bench.path = room / "one.ges"
+    win, _ed = a_window()
+    it.view = win
+    act(it, "wants\topen\t0\t../hello.ges")
+
+    picked = it.choices()[0][0]
+    it.run("open", picked)
+    assert win.wanted == str(tmp_path / "here" / "hello.ges"), win.wanted
+
+
+def test_a_bare_name_still_finds_what_is_below(tmp_path):
+    """**F130 keeps its fix.**  A name with no `/` in it asks *where is
+    this*, and the deep search is the answer; pinning a phantom above it
+    would put `lantern.ges` back to starting a new file at the root."""
+    room = tmp_path / "here"
+    (room / "audio").mkdir(parents=True)
+    (room / "one.ges").write_text("sound : Sig Float\n")
+    (room / "audio" / "lantern.ges").write_text("sound : Sig Float\n")
+
+    it = session()
+    it.bench.path = room / "one.ges"
+    act(it, "wants\topen\t0\tlantern.ges")
+    rows = [t for t, *_ in it.choices()]
+    assert rows and rows[0] == "audio/lantern.ges", rows
+    assert "lantern.ges" not in rows[:1] or rows[0].startswith("audio/"), \
+        "a bare name is a question, not a declaration"
+
+
+def test_a_path_into_a_directory_that_is_not_there_offers_nothing(tmp_path):
+    """You cannot make a file in a directory that does not exist, so the
+    listing says nothing rather than offering to."""
+    room = tmp_path / "here"
+    room.mkdir()
+    (room / "one.ges").write_text("sound : Sig Float\n")
+
+    it = session()
+    it.bench.path = room / "one.ges"
+    act(it, "wants\topen\t0\tnope/hello.ges")
+    assert it.choices() == []

@@ -24,27 +24,25 @@ Work them in this order unless one blocks another.  **This list is the
 only place the order lives** — a card never says where it stands, which
 is what keeps a card's name stable while priorities move.
 
-1. **[open-path-bug](open-path-bug.md)** — `open ../../hello.ges` from
-   `minute.ges` lands in the wrong directory.
-2. **[gemba](gemba.md)** — walk the factory floor: Claude presents into
+1. **[gemba](gemba.md)** — walk the factory floor: Claude presents into
    the workbench while the work is happening.
-3. **[stranger-test](stranger-test.md)** — run `vision.md`'s own top
+2. **[stranger-test](stranger-test.md)** — run `vision.md`'s own top
    claim: can somebody who has never read this repository open a file,
    hear it, change it, and hear the change?  *Moved up 2026-08-16 at
    Henri's ask, and deliberately placed **after** gemba: what this test
    produces is somebody stumbling, live, and watching that is worth more
    than reading the report of it afterwards.*
-4. **[command-categories](command-categories.md)** — the command list
+3. **[command-categories](command-categories.md)** — the command list
    is long enough to want categories, and gemba's second idea waits on
    it.
-5. **[git-viewer](git-viewer.md)** — a git viewer in the workbench,
+4. **[git-viewer](git-viewer.md)** — a git viewer in the workbench,
    encoding the workflow the lesson teaches.  *Blocked on
    command-categories.*
-6. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
+5. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
    the changes Claude makes.
-7. **[persistent-workbench-state](persistent-workbench-state.md)** — the
+6. **[persistent-workbench-state](persistent-workbench-state.md)** — the
    editor should open where it was left; closing it loses the day.
-8. **[reviewing-by-running](reviewing-by-running.md)** — the workbench
+7. **[reviewing-by-running](reviewing-by-running.md)** — the workbench
    opens a session's fresh commits, and it compiles and runs them as you.
    *Placed at the end 2026-08-17, at Henri's ask, having arrived
    unplaced.*
@@ -246,6 +244,62 @@ is *timing* — saying it beside the card as you type, the way a knob is
 drawn beside its own declaration — and that becomes worth building when
 editing cards in the workbench is a thing somebody does.  Today `.md`
 opens inert.
+
+## What the first full day of this taught
+
+*2026-08-17, after two cards were worked start to finish by a session
+with Henri away from the desk.  Each of these cost something real; they
+are here so the next one costs less.*
+
+**An elaboration's mechanism guess is a guess, and should say so.**
+`open-path-bug`'s elaboration named `Session._where` and cited its two
+prior defects — plausible, well argued, and wrong; the bug was in
+`_listing` and `_where` was innocent.  A session nearly went and
+instrumented the wrong function on the strength of it.  **The durable
+half of an elaboration is the located parts and the question.**  The
+mechanism is the part most likely to be wrong and the part a reader
+trusts most, so mark it: *suspected*, not *is*.
+
+**Finishing a card breaks every citation to it.**  The timer card moved
+from `board/` into `board/done/`, and two files that cited it went stale
+the same minute — caught by `test_citations.py`, which is the system
+working, but it means every completion is a small tree-wide rewrite and
+the cost grows with the tree.  The filename is the id and it is stable;
+the *path* is not, so the id is not.  Worth fixing in the checker rather
+than in the prose: **cite the card, not the shelf it is on.**
+
+*And the paragraph you are reading proved it.*  Written with the old
+path spelled out as an example, it failed the check on the first run —
+a sentence explaining that citations rot, rotting a citation.  That is
+how cheap this mistake is to make.
+
+**A card should record what it turned up that was not its job.**  The
+`older-features` audit produced three `fixme.md` entries about things it
+was not looking for.  They went into its `## Done` and that was an
+improvisation — but the right one: an F-number with no link back to the
+work that found it loses the only context that explains why anybody was
+looking there.
+
+**The suite is a serial gate, and a session can invalidate its own
+run.**  A full `tools/suite.py` is about 25 minutes.  Twice in one day a
+session edited the tree *while the run was reading it* and got a red
+that described a moment rather than a defect — which is this file's own
+rule about two writers, with the test run as the second writer.  So:
+
+> **Targeted runs per card while working; one full run per shift; and
+> the tree is frozen while it runs.**
+
+If something must be changed mid-run, kill the run.  Finishing a run
+against a tree that no longer exists proves nothing and costs the same
+25 minutes.
+
+**And the machine is shared.**  A session running the suite, `cargo`,
+two X servers and a dozen polling loops makes the audio crackle for the
+person sitting at the keyboard — which is not a metaphor; it happened,
+and it was diagnosed as hardware before it was diagnosed as the session.
+Nothing in this project accounts for what a session costs the machine
+somebody is listening on.  Say what you are about to start, and stop it
+when it is not needed.
 
 ## What does not go here
 

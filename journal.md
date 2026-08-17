@@ -7583,3 +7583,109 @@ has ever had.
   *"An implicit parameter is invisible in the signature"*.  The name is
   in hand; `board/done/argument-names.md` exists precisely because it
   should be shown.
+
+## What the screen saw that the suite could not
+
+The day ended with three documents changed rather than three features
+built, and the reason is worth stating plainly: **of the four real
+defects found on 2026-08-17, three were invisible to 2,540 passing tests
+and every one of them was caught by photographing a running window.**
+
+`manifesto.md`'s instrument table had said so for weeks without anybody
+noticing.  `tools/lagcheck.py`'s blind spot is written there as
+*"correctness of what is drawn"* — the tree could drive a real window
+and read whether a pixel **changed**, and had nothing that could read
+whether the pixels were **right**.  That column was accurate, and it was
+the whole hole.
+
+- `you 0m` on a day whose own record said eight hours.  Every unit test
+  passed because every unit test typed first; a window opened at two in
+  the afternoon is in the untested state by default.
+- A rest day drawn as `·`, a pixel a side from `▪`.  The string was
+  correct and every assertion about it passed.  **A defect that is not
+  in the string cannot be reached by an assertion about the string.**
+- A comprehension body swallowing its own union, so a query was right
+  whenever anything reached the output and empty when nothing did.
+
+The harness is about fifteen lines, because `lagcheck.py` already owns
+the hard half.  It is written down now in `spec/verification.md`
+§"The screen is an oracle, and it is the one this tree lacked", with the
+two rules it comes with: **mute it** (the first run played `twoknobs.ges`
+into a room somebody was resting in) and **let it keep no record of the
+day** (XTEST is indistinguishable from a hand, so a harness would put its
+hours into a person's week).
+
+### The pattern that forced the fourth one out
+
+The fourth was not found by looking.  It was found because
+`test_gui.py::test_every_gui_example_is_exercised_here` **refuses to let
+an example exist unexamined** — the directory must be exactly a listed
+set, so adding a file fails the suite until somebody writes its test.
+Writing that test is what surfaced the bug, and only because the
+assertion worth writing was not *"the picture is four lit and one dark"*
+— which the bug satisfied — but *"pull a cable and the lamps follow"*,
+which it did not.
+
+**A picture that looks right for the wrong reason still looks right.**
+That is the new instrument's own blind spot, and it is why the roster
+poka-yoke and the screenshot belong together rather than either alone.
+
+### And what a session costs the machine
+
+Henri, mid-afternoon: *"The audio is crackling without running audition
+now.  But I haven't seen the mechanism flare that is supposed to catch
+that.  It's likely in hardware like we predicted."*
+
+It was not hardware.  Between 04:44 and 05:22 this laptop was running a
+full fenced test suite, `cargo`, two X servers and **twelve polling
+shells** — the last of those a bug of its own: `pgrep -f "no:randomly"`
+matches the watcher's *own* command line, so every wait loop was waiting
+for itself and a fresh one accumulated each time the suite was checked
+on.  The `[p]ytest` bracket guard exists for exactly this and had been
+dropped when the match moved from the process name to its flags.
+
+The flare itself is wired and does run — `host.c` counts every underrun
+through `snd_pcm_recover`, a housekeeping thread ticks `_say_dry` every
+five milliseconds, and the C host was present.  **But it says its piece
+into the status line, rate-limited to one per two seconds, and the next
+thing the editor says overwrites it.**  So the count exists and does not
+last, which is the same shape as the finding the timer was built for one
+row below it.  Recorded rather than fixed; it is a card, not a patch.
+
+The recorded first check — `powerprofilesctl get`, from the judder of
+08-14 — was run and came back `performance`, cores at 2.7–2.9 GHz.  Ruled
+out with evidence, which is the only way a suspicion is ever actually
+retired.
+
+`board/README.md` §"What the first full day of this taught" carries the
+process half: a mechanism guess in an elaboration is a guess, finishing a
+card rots the citations to it, a card should record what it turned up
+that was not its job, and **the tree is frozen while the suite runs** —
+which was learned twice in one day, and once again while writing this.
+
+## A typed path is always an answer
+
+`board/done/open-path-bug.md` closed, and the useful half of it is that
+**the card's own elaboration blamed the wrong function.**
+
+It named `Session._where` and cited the two defects that site had
+already produced — a plausible story, well argued, and wrong.  Given the
+literal text `_where` resolves `../../hello.ges` correctly.  A session
+nearly went and instrumented it on the strength of the write-up; what
+saved it was reproducing the report first.
+
+The bug is `_listing`, and it is **F130's own fix firing where it should
+not**.  Nothing at the root matched `hello.ges`, so the deep search ran
+and surfaced `test/sessions/F104-hello.ges` — from a directory nobody
+had mentioned, as the *only* row.  Return takes the row, so there was no
+way left to mean the thing that had just been typed.
+
+F130 was for a *bare* name, where a deep search is exactly right.  A
+query carrying a `/` is a different question: the person said **where**.
+So the typed path is pinned first and the deep matches keep their place
+under it.
+
+The rule that came out of it is in `board/README.md` now: **an
+elaboration's durable half is the located parts and the question.**  The
+mechanism is the part most likely to be wrong and the part a reader
+trusts most, so it should say that it is a guess.

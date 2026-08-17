@@ -4128,3 +4128,37 @@ signature deliberately does not mention.  The name is in hand:
 Either answer would be defensible; disagreeing with the file in silence
 is not.  `tone (using hz) : Float -> Sig Float` says both facts at once
 and matches how the definition is written.
+
+### F145. **[resolved]** A typed path lost to a fuzzy match from somewhere else
+
+Henri, 2026-08-17: *"When I type `open ../../hello.ges` from
+`minute.ges`, it throws me into tests/section that has `hello.ges` in
+there."*
+
+Reproduced exactly.  From `examples/audio/minute.ges`, the query
+`../../hello.ges` offered **one** row — `test/sessions/F104-hello.ges` —
+and Return takes the row, so the typed path could not be chosen at all.
+`Session._where` resolves it correctly given the literal text; the card's
+elaboration had blamed `_where` and its two prior defects (F122, F123)
+and that was wrong.
+
+**It is `_listing`, and it is F130's own fix firing where it should
+not.**  Nothing at the root matched `hello.ges`, so `_below` ran a
+breadth-first search four directories down and surfaced a file from a
+directory nobody had mentioned.  F130 was written for a *bare* name —
+*"`open lantern.ges` from the root used to answer 0 rows three times
+while starting phantoms"* — where the deep search is exactly right.  A
+query carrying a `/` is a different question: the person said **where**.
+
+**Resolved 2026-08-17.**  A typed path is pinned as the first row when
+the query has a `head`, with the deep matches under it.  `do_open`
+already handled a name that is not there (*"new file hello.ges — saving
+creates it"*); the listing simply never offered it, and a dialog where
+Return cannot mean *what I typed* is the whole defect.
+
+Rejected: suppressing `_below` whenever the query contains a `/`.  It
+would fix this and regress `open examples/lantern.ges`, where a
+directory is named and the file really is beneath it.
+
+Tests pin **which row comes first** — F122 and F123 were each fixed at
+this site without one, which is how a third came to exist.
