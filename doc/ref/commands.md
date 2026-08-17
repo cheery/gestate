@@ -110,19 +110,6 @@ a macro, a transcript and an undo group are each a fold of these.
 the laws are ones a reader already knows, rather than an ad-hoc pair.
 
 
-### `skip`
-
-```
-skip : Command
-```
-
-Do nothing — the identity of `++`.
-
-A named value rather than a class method because the prelude has
-`Semigroup` and no `Monoid`; one would be worth adding when a second
-type wants an identity, and is not worth it for this alone.
-
-
 ## The instrument
 
 
@@ -921,3 +908,29 @@ quit : Command
 Key: **`Ctrl-Q`**
 
 Close the editor.
+
+
+## The algebra
+
+
+### `skip`
+
+```
+skip : Command
+```
+
+Do nothing — the identity of `++`.
+
+A named value rather than a class method because the prelude has
+`Semigroup` and no `Monoid`; one would be worth adding when a second
+type wants an identity, and is not worth it for this alone.
+
+**It is written here, away from the `++` it belongs to, because this
+file's order is the palette's order** — `session.vocabulary` says so:
+*"the order somebody thought about them rather than alphabetically,
+which is a worse order for learning"*.  Declared beside its instance
+it was the first line of the first screen a stranger ever saw, with
+the list's one explanatory line reading *"Do nothing — the identity
+of `++`"*: a fact about the algebra, offered as somebody's first
+move.  It is the identity of the monoid and it should be the last of
+the menu (`board/button.md`, `fixme.md` F150).
