@@ -4281,9 +4281,73 @@ narrowing it.
 what the loop *finds*, which stays true however the code is rearranged,
 and needs no sound card, no listener and no ears.
 
-Whether this is the whole of the audible pop is still for a listener to
-say.  The defect it names is real either way, and it was in every knob
-program since the C host landed.
+### But the pop survived it — Henri, 2026-08-17
+
+> The pop is still there.  But the knob fix was good anyway.  It's better
+> if the knob value is what expected of it and I am sure this would have
+> gone up other time.
+
+**So the zero race was real, is fixed, and is not the cause of the
+reported pop.**  Recorded plainly because the paragraph above reads like
+a closed case and is not one: a knob reading zero at the first block was
+a genuine defect in every knob program since the C host landed, and it
+would have surfaced eventually as something else.  It was not this.
+
+What the bisect still says, unchanged: **silence does not pop, a fixed
+415 Hz tone does not pop, and the same tone with a knob in its frequency
+path does.**  The knob's *value* is now provably right when the loop
+begins, so what is left is something else about a control channel being
+in that path at all.
+
+**The next bisect, and it is one variable again:** a program with a knob
+that is *declared and not read by the sound*, and one with a knob on the
+**amplitude** rather than the frequency.  Those separate three
+candidates that are currently fused — the mere presence of a control
+source in the graph, a control-rate signal feeding anything, and a
+control-rate signal feeding a *frequency* specifically.
+
+### Narrowed to one variable, with a positive control — 2026-08-17
+
+Henri ran the amplitude version and then **built the control himself**,
+which is what makes this conclusive rather than suggestive: he took the
+same file, moved the knob from the amplitude to the frequency, restarted,
+and heard the pop return.
+
+| program | knob | heard |
+|---|---|---|
+| silence (`sound = !0.0`) | none | silent |
+| fixed 415 Hz drone | none | silent |
+| the same drone, knob on the **amplitude** | yes | **silent** |
+| the same drone, knob on the **frequency** | yes | **pops** |
+
+Every one of those renders bit-identically at rest.  So it is not the
+device, not the host's start, not the master fader, not the presence of a
+control source in the graph, and not a control-rate signal in the sound
+path.  **It is specifically a control-rate signal feeding a frequency.**
+
+### And the graph is innocent, which is where it stops
+
+`audioextract` on the two knob versions gives the same eighteen nodes in
+the same shape, and the declared initial state is right in both: the
+channel source carries `init: 415`, and all three phase accumulators
+carry `init: 0.0`.  Nothing about the *program* explains it.
+
+**So every hypothesis left is about the first few blocks of live
+execution, and nothing in this tree can look at those.**  That is not a
+figure of speech — it is the same wall the offline render hit, arrived at
+from the other side.
+
+**The oracle this needs, named so it stops being re-derived:** `host.c`
+writes every block to the card through `snd_pcm_writei`.  A tap at that
+call hands back exactly the samples the device received — the one thing
+no offline render produces, and precisely what *did it pop* requires.
+
+Henri's own rule, from the same afternoon: *"when you say 'be my oracle',
+there's actually something implying in that which might require 'is this
+really not possible to delegate to a real oracle?'"*  Here the answer is
+yes and it is not built, so the hunt costs one person's attention per
+iteration and cannot bisect.  **Four listens were spent before this
+entry stopped.**  The next step is the tap, not a fifth.
 
 **The oracle this wants, and it does not exist.**  Henri, the same
 afternoon: *"when you say 'be my oracle', there's actually something
