@@ -123,6 +123,60 @@ so one careful read finds the pattern and thirty skims find nothing.
 
 ---
 
+## Triaging the board — four questions to ask yourself
+
+*Henri, 2026-08-17: "I need to ask questions from myself about these
+board's cards."*  The occasion was measuring the board and finding it
+does not drain: **nineteen cards in two days, six finished, and of the
+nine queued on the first day, none.**
+
+**Size is not the reason, which is the useful part.**  `timer` ran to
+216 lines and was finished; `git-viewer` is 42 and has sat.  What the
+finished three share is that they were *created the same day they were
+done*.  A card is worked while the conversation that made it is still
+warm and essentially never afterwards — a **recency** effect, not a
+backlog one, and it means an arrivals limit alone changes nothing.  The
+queue is not too long; nothing pulls from it.
+
+So the questions are for sorting, and each takes about a minute:
+
+**1. Is this a task, or a question waiting on me?**  `command-categories`
+needs a pick from five options, `gemba` needs a dwell in seconds,
+`portable-package` needs program-or-workshop.  No session can finish
+those, so they will sit forever while looking like work.  A decision
+wearing a card is the most expensive item on a board, because it
+consumes a slot and cannot be worked out of it.
+
+**2. Have I wanted this while working, in the last week?**  `Do not
+build what nothing needs`, turned on the board itself — where it has
+never been applied.  A card written from a good idea rather than a felt
+need is the definition of a `later/`.
+
+**3. What stays broken if this never happens?**  "Nothing, it would
+just be nice" is an answer, and it is a shelf.
+
+**4. Who is it for — me, a stranger, or somebody who does not exist
+yet?**  All three are legitimate; they are not equally urgent, and a
+card rarely says which.
+
+### And the half that is not yours
+
+**The assistant is the main source of arrivals.**  Six of twenty cards
+say *"Claude wrote the card at his ask"* and the true figure is higher.
+Proposing fewer, and proposing a shelf as readily as a card, is a
+throttle that costs the author nothing — and it belongs here rather
+than in `board/README.md` because it is a thing to hold the assistant
+*to*, not a rule a session follows unprompted.
+
+**The pull step is the other half**, and it is principle 3 in the
+scoring below — *missing*.  The evening ritual (`manifesto.md` §"And
+the shape of the end of one") already gives the board a scheduled
+moment, and one question at the end of it is the whole mechanism:
+**which card tomorrow?**  Without it, every day's fresh conversation
+wins by default and last week's card is never in the running.
+
+---
+
 ## The lever the author holds and rarely uses
 
 **The volume is a choice, and by default it is the assistant's.**  Thirty
