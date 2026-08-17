@@ -56,7 +56,7 @@ CITE = re.compile(r"`?([\w./-]+\.md)`?\s*§\"([^\"]+)\"")
 #: `board/older-features.md`, `board/done/peep-window.md` — a card cited
 #: by path, which is the whole point of naming cards rather than
 #: numbering them.
-CARD = re.compile(r"`(board/(?:done/)?[\w-]+\.md)`")
+CARD = re.compile(r"`(board/(?:done/|later/)?[\w-]+\.md)`")
 
 
 def _files():

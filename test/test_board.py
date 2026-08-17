@@ -42,11 +42,13 @@ BOARD = ROOT / "board"
 FIELD = re.compile(r"^ {4}(\w+)\s{2,}(.*)$")
 
 #: What `status` may say.  `done` carries its date; the rest stand alone.
-STATES = ("open", "doing", "blocked", "done")
+STATES = ("open", "doing", "blocked", "done", "shelved")
 
 
 def cards() -> list[Path]:
-    return sorted(BOARD.glob("*.md")) + sorted((BOARD / "done").glob("*.md"))
+    return (sorted(BOARD.glob("*.md"))
+        + sorted((BOARD / "done").glob("*.md"))
+        + sorted((BOARD / "later").glob("*.md")))
 
 
 def header(path: Path) -> dict:
@@ -130,13 +132,19 @@ def test_a_finished_card_is_in_done_and_an_open_one_is_not(card: Path):
     fields = header(card)
     if "status" not in fields:
         return
-    finished = fields["status"].startswith("done")
-    in_done = card.parent.name == "done"
-    assert finished == in_done, (
+    said = fields["status"].split()[0]
+    #: Which directory each state belongs in — `later/` joined on
+    #: 2026-08-17, for cards displaced by the arrivals rule.  A shelved
+    #: card is off the live board and is *not* finished, which is the
+    #: distinction the two directories carry and a status word alone
+    #: could not.
+    belongs = {"done": "done", "shelved": "later"}.get(said, "board")
+    sitting = card.parent.name if card.parent.name != "board" else "board"
+    assert belongs == sitting, (
         f"{card.relative_to(ROOT)} says `status "
         f"{fields['status']}` but sits in "
         f"{card.parent.relative_to(ROOT)}/.  A card leaves the board in "
-        "the same commit as the work it describes.")
+        "the same commit as the work — or the decision — it describes.")
 
 
 @pytest.mark.parametrize("card", cards(), ids=lambda p: p.stem)

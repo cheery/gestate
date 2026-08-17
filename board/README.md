@@ -70,7 +70,12 @@ is what keeps a card's name stable while priorities move.
    complaint and check it works; the sweep was done once and has
    drifted.  *Written by the session at Henri's ask, 2026-08-17, out of
    `fixme.md` F152 — one message that had never had a place to land.*
-13. **[portable-package](portable-package.md)** — the install is
+13. **[interface-oracle](interface-oracle.md)** — nothing checks what
+   the window says: three interface changes shipped in one evening and
+   every claim about them rests on screenshots a session took by hand.
+   *Written by the session at Henri's ask, 2026-08-17.  `view.rs` is
+   the only drawing module in the crate with no tests.*
+14. **[portable-package](portable-package.md)** — the install is
    Ubuntu-shaped and anybody else translates it by hand.  *Written by
    the session at Henri's ask, 2026-08-17.  Placed after
    installation-test deliberately: a package is an install whose
@@ -79,6 +84,27 @@ is what keeps a card's name stable while priorities move.
 Finished cards are in [done/](done/), newest work last.  `ls board/*.md`
 is the live board; nothing has to be trimmed by hand for that to stay
 true.
+
+**And displaced cards are in [later/](later/)** — *adopted 2026-08-17*,
+because the board was arriving faster than it drained: nineteen cards
+in two days, six finished, and **of the nine queued on the first day,
+none**.  Same-day cards got done and queued ones did not, which is not
+a work-in-progress problem — it is a queue nobody pulls from.
+
+A shelved card is **not a finished one**, which is why it gets its own
+directory rather than a word: `done/` says the problem is solved,
+`later/` says it is real and is not being worked.  The filename stays
+the id, so every citation keeps resolving, and the elaboration is kept
+— shelving loses the queue position and nothing else.
+
+```
+status   shelved — <date>
+```
+
+**And the reason it was displaced goes in the card, in Henri's words.**
+Without that it is a graveyard nobody re-reads, which is the failure
+mode of every "later" folder ever made.  A card comes back the same
+way it left: by him saying so.
 
 ---
 
