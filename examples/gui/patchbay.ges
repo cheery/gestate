@@ -66,8 +66,15 @@ reaches = fix r => patch \/ for ((a, b) in r, (c, d) in patch, b == c) {(a, d)}
 
 #: Everything that ends up at the output: the modules that reach it, and
 #: the output itself, which trivially does.
+#:
+#: **The `for` is parenthesised, and it has to be.**  A comprehension's
+#: body runs to the end of the expression, so written bare the `\/ {out}`
+#: lands *inside* the loop — and the answer is then right whenever
+#: anything reaches the output and wrong when nothing does, which is the
+#: worst way for it to be wrong.  `noted.ges` carries the same warning
+#: about `>>=` and `||`, one operator along.
 audible : Set Node
-audible = for ((a, b) in reaches, b == out) {a} \/ {out}
+audible = (for ((a, b) in reaches, b == out) {a}) \/ {out}
 
 #: Out of a set and back into a `Bool`.  `holds` is the reading a person
 #: wants from a fixpoint once it has converged, and it takes its argument

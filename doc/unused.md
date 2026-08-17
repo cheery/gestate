@@ -119,6 +119,26 @@ The evidence that this is old: `test/test_relations.py` counts
 `evaluate(src).count("Pack{1,2}")` — it counts the *internal cons tag*,
 because there has never been a readable form to assert against.
 
+### The trap a fresh reader falls into
+
+Writing the example produced one, and it is worth recording because it
+is the *quiet* kind:
+
+    audible = for ((a, b) in reaches, b == out) {a} \/ {out}
+
+**A comprehension's body runs to the end of the expression**, so the
+`\/ {out}` is inside the loop rather than beside it.  Nothing complains
+— it typechecks, it runs — and the answer is right whenever anything
+reaches the output and empty when nothing does.  A wrong answer that is
+usually right is the hardest sort to see, and the only reason this one
+was seen is that a test changed the cabling and watched the picture
+follow.
+
+`doc/manual.md` writes every comprehension with the braces hard against
+the `for`, so the shape never comes up; `noted.ges` carries the same
+warning one operator along, about `>>=` binding looser than `||`.  The
+rule is the same both times: **parenthesise both halves.**
+
 ### The audio fragment refuses it, and says so beautifully
 
     gestate: this program cannot be compiled for the sound card: the engine

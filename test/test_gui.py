@@ -22,6 +22,7 @@ from gestate.gui import GuiError, scenes
 GUI_DIR = Path(__file__).resolve().parent.parent / "examples" / "gui"
 EXAMPLE = GUI_DIR / "bounce.ges"
 CHAIN = GUI_DIR / "chain.ges"
+PATCHBAY = GUI_DIR / "patchbay.ges"
 
 
 def _source() -> str:
@@ -172,7 +173,48 @@ def _dots(scene):
 
 
 def test_every_gui_example_is_exercised_here():
-    assert {p.name for p in GUI_DIR.glob("*.ges")} == {"bounce.ges", "chain.ges"}
+    assert {p.name for p in GUI_DIR.glob("*.ges")} == {
+        "bounce.ges", "chain.ges", "patchbay.ges"}
+
+
+# ── `patchbay.ges` — a Datafun query behind a picture ───────────────────────
+
+
+def _lamps(scene):
+    """Each block's colour, left to right."""
+    return [s[5] for s in sorted(scene, key=lambda s: s[1]) if s[0] == "rect"]
+
+
+LIT, DARK = (90, 210, 140), (70, 70, 80)
+
+
+def test_the_patch_bay_lights_what_reaches_the_output():
+    """`doc/unused.md`: the canvas is the one place a Datafun query is
+    reachable, because a picture is interpreted at frame rate rather than
+    compiled into the engine.
+
+    Five modules and three cables in a chain, so four reach the output —
+    and `spare`, plugged into nothing, goes dark without any rule saying
+    that it should.
+    """
+    lamps = _lamps(scenes(PATCHBAY.read_text(), [])[0])
+    assert lamps == [LIT, LIT, LIT, LIT, DARK]
+
+
+def test_pulling_a_cable_puts_the_lamps_out():
+    """**The closure is what colours it**, which a fixed picture would
+    also satisfy — so the cabling is changed and the lamps have to
+    follow.  Take the last cable out and only the output itself is left
+    reaching the output.
+
+    Built by editing the example's own text rather than by copying it,
+    so this cannot quietly drift from the file it is about.
+    """
+    source = PATCHBAY.read_text()
+    cut = source.replace("{(osc, filt), (filt, echo), (echo, out)}",
+                         "{(osc, filt), (filt, echo)}")
+    assert cut != source, "the patch is not spelled the way this test thinks"
+    assert _lamps(scenes(cut, [])[0]) == [DARK, DARK, DARK, LIT, DARK]
 
 
 def test_the_chain_keeps_its_length():
