@@ -17,7 +17,7 @@ only the standard library.  Everything installed below buys a
 ```sh
 sudo apt install git python3 python3-venv python3-pip \
                  clang binutils pkg-config \
-                 libasound2-dev libportaudio2 \
+                 libasound2-dev libportaudio2 libx11-dev \
                  libx11-6 libxcb1 libxkbcommon0 libxkbcommon-x11-0 libgl1
 
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh   # then: . "$HOME/.cargo/env"
@@ -81,13 +81,27 @@ first five minutes.
   editor refuses with the command to run by hand; the players and the
   suite do not care.
 
+* **`libx11-dev`, and it is a build dependency.**  The editor calls two
+  X11 functions directly — `XChangeProperty` for the window's icon and
+  name, `XkbSetDetectableAutoRepeat` for the piano (F106) — and
+  `#[link(name = "X11")]` makes the linker want `libX11.so`, the
+  unversioned symlink that only the `-dev` package ships.  Without it
+  `cargo build` fails outright: **no editor at all**, rather than an
+  editor missing something.
+
+  A desktop that has ever built anything against X tends to have it
+  already, which is exactly why this line was missing for four days.
+  Henri hit it on a fresh 26.04 install, 2026-08-17.
+
 * **The X11 runtime libraries** — `libx11-6`, `libxcb1`,
   `libxkbcommon0`, `libxkbcommon-x11-0`, `libgl1`.  These are the
   `.so`s `baseview` dlopens when the editor opens a window, and an
   Ubuntu *desktop* already has every one; a server or WSL image has
-  none, which is the machine this list is written for.  No `-dev`
-  packages are needed — they are opened at run time, not linked at
-  build time.
+  none, which is the machine this list is written for.  These are
+  opened at run time and need no `-dev` package — **which is what this
+  entry used to claim about X11 as a whole**, written 2026-08-12 and
+  true for one day: the window grew its exterior on the 13th and linked
+  against X11 to do it, and nothing re-read the sentence.
 
 * **`mido` and `python-rtmidi`** — a live MIDI keyboard and `.mid`
   writing.  `mido` alone has no way to open a port: the backend is

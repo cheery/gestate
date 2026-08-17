@@ -68,6 +68,7 @@ Of 130 entries, **113 are resolved**.  What is left:
 | F140 | resolved | A render refused and the reason stayed in the terminal |
 | F141 | resolved | `foo : int` is a legal signature and a certain mistake |
 | F148 | resolved | The taskbar wore a sine; the front page wore the egg |
+| F149 | resolved | The desktop icon installed correctly and did nothing when clicked |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -4445,3 +4446,51 @@ signal is pulled in by what that thickening ate, or the shell and the
 wave meet and the icon is a blob.  Three cycles in six pixels is a
 smudge, so a small raster draws fewer of them; the artwork is never
 simplified.
+
+### F149. **[resolved]** The desktop icon installed correctly and did nothing when clicked
+
+Henri, 2026-08-17, on the same fresh Ubuntu 26.04 laptop as F148 — he
+fixed it there before it was fixed here, and sent the diff:
+
+```diff
+-        f"Exec=env PYTHONPATH={root} {sys.executable} "
+-        "-m gestate.workbench %f\n"
++        f"Exec={root}/tools/gestate-editor %f\n"
+```
+
+**A dock click passes no file.**  `%f` expands to nothing, and the
+module with no file is not an editor:
+
+```
+$ env PYTHONPATH=… .venv/bin/python3 -m gestate.workbench
+python -m gestate.workbench: error: a file to edit (or --desktop)
+exit code: 2
+```
+
+`Terminal=false`, so that sentence went into a journal nobody reads.
+Every other part of the entry was right — the icon resolved, the class
+matched, the venv was pinned — and clicking it did nothing at all,
+which is the failure shape with the worst diagnosis-to-symptom ratio
+there is.
+
+**`tools/gestate-editor` already existed for exactly this**, and its
+own comment says so: *"opening the file it was handed, or the scratch
+file when it was handed nothing — a bare click on an icon should open
+an editor, not print a usage line."*  It finds the venv and `cd`s to
+the tree as well.  `install_desktop` simply never pointed at it; the
+wrapper and the installer lived one directory apart, each correct, with
+nothing in the tree that had to agree with both.
+
+**Resolved with the tier of tests the defect argues for**
+(`test/test_desktop.py`, `board/installation-test.md`): the entry is
+installed into a temporary `HOME`, `Exec` must name the wrapper, the
+wrapper must still supply a file — and `main([])` must still exit 2,
+asserted beside them, because that is the fact which makes the others
+matter rather than look like style.  Checked by restoring the old line:
+two of the five fail.  Checked once more the way a person would, with
+`gio launch` on the installed entry under a throwaway `XDG_DATA_HOME`,
+which opened a real editor and left no scratch file behind.
+
+The same install found F148 and the missing `libx11-dev`.  Three
+defects in one day from one fresh machine, in the one part of this
+project that had no test at all.

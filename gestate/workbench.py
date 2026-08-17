@@ -946,9 +946,20 @@ def install_desktop() -> int:
     The scalable copy goes in beside the rasters, because a desktop
     that can use it will render the sizes nobody thought to install —
     and it is the artwork itself, not a rendering of it.
-    """
-    import sys
 
+    **`Exec` is `tools/gestate-editor`, and that is the fix for a
+    launcher that did nothing when clicked.**  It used to be `env
+    PYTHONPATH=… python -m gestate.workbench %f`, which is correct in
+    every way but the one that matters: a dock click passes *no file*,
+    `%f` expands to nothing, `main` answers `a file to edit (or
+    --desktop)` and exits 2 — into a journal nobody reads, because
+    `Terminal=false`.  The wrapper was written for exactly this and
+    says so in its own comment: it opens the file it was handed or the
+    scratch file when it was handed nothing, it finds the venv, and it
+    `cd`s to the tree.  Henri hit this on a fresh 26.04 install and
+    fixed it there before it was fixed here; `board/installation-test.md`
+    is the card about the fact that nothing caught it.
+    """
     from gestate import icon
 
     home = Path.home() / ".local" / "share"
@@ -968,8 +979,7 @@ def install_desktop() -> int:
         "Type=Application\n"
         "Name=gestate\n"
         "Comment=a synth you can hear while you write it\n"
-        f"Exec=env PYTHONPATH={root} {sys.executable} "
-        "-m gestate.workbench %f\n"
+        f"Exec={root}/tools/gestate-editor %f\n"
         "Icon=gestate\n"
         "Terminal=false\n"
         "Categories=AudioVideo;Audio;Development;\n"

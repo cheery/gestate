@@ -24,36 +24,53 @@ Work them in this order unless one blocks another.  **This list is the
 only place the order lives** — a card never says where it stands, which
 is what keeps a card's name stable while priorities move.
 
-1. **[gemba](gemba.md)** — walk the factory floor: Claude presents into
+1. **[button](button.md)** — a friend could not find the one control the
+   window offers somebody who knows no keys, and once shown it could not
+   tell what was behind it.  *Placed first 2026-08-17 at Henri's ask,
+   ahead of the test it is a result of: the stranger test already
+   returned its first finding, by accident, and this is it.*
+2. **[gemba](gemba.md)** — walk the factory floor: Claude presents into
    the workbench while the work is happening.
-2. **[stranger-test](stranger-test.md)** — run `vision.md`'s own top
+3. **[stranger-test](stranger-test.md)** — run `vision.md`'s own top
    claim: can somebody who has never read this repository open a file,
    hear it, change it, and hear the change?  *Moved up 2026-08-16 at
    Henri's ask, and deliberately placed **after** gemba: what this test
    produces is somebody stumbling, live, and watching that is worth more
    than reading the report of it afterwards.*
-3. **[command-categories](command-categories.md)** — the command list
+4. **[command-categories](command-categories.md)** — the command list
    is long enough to want categories, and gemba's second idea waits on
    it.
-4. **[git-viewer](git-viewer.md)** — a git viewer in the workbench,
+5. **[git-viewer](git-viewer.md)** — a git viewer in the workbench,
    encoding the workflow the lesson teaches.  *Blocked on
    command-categories.*
-5. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
+6. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
    the changes Claude makes.
-6. **[persistent-workbench-state](persistent-workbench-state.md)** — the
+7. **[persistent-workbench-state](persistent-workbench-state.md)** — the
    editor should open where it was left; closing it loses the day.
-7. **[reviewing-by-running](reviewing-by-running.md)** — the workbench
+8. **[reviewing-by-running](reviewing-by-running.md)** — the workbench
    opens a session's fresh commits, and it compiles and runs them as you.
    *Placed at the end 2026-08-17, at Henri's ask, having arrived
    unplaced.*
-8. **[unseen-flare](unseen-flare.md)** — the sound stuttered and there
+9. **[unseen-flare](unseen-flare.md)** — the sound stuttered and there
    was no way to find out whether the program had noticed.  *Written by
    the session at Henri's ask, 2026-08-17, and placed at the end by the
    rule.*
-9. **[unheard-output](unheard-output.md)** — nothing but a person can
+10. **[unheard-output](unheard-output.md)** — nothing but a person can
    hear what the sound card was given, so a whole class of defect has no
    oracle at all.  *Written by the session at Henri's ask, 2026-08-17;
    `fixme.md` F147 is blocked on it.*
+11. **[installation-test](installation-test.md)** — the way in is the
+   one thing here nobody checks, and a fresh 26.04 laptop found three
+   defects in it in a day.  *Written by the session at Henri's ask,
+   2026-08-17, and placed at the end by the rule; asked whether it
+   belonged further up, since he had called it "a relatively important
+   task", and he answered **"the ordering is fine"**.  Its first tier
+   landed the same day anyway, with the defect that prompted it.*
+12. **[portable-package](portable-package.md)** — the install is
+   Ubuntu-shaped and anybody else translates it by hand.  *Written by
+   the session at Henri's ask, 2026-08-17.  Placed after
+   installation-test deliberately: a package is an install whose
+   failures happen on a machine nobody can look at.*
 
 Finished cards are in [done/](done/), newest work last.  `ls board/*.md`
 is the live board; nothing has to be trimmed by hand for that to stay

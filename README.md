@@ -36,7 +36,7 @@ packaging step, no build before the first sound.  On Ubuntu:
 ```sh
 sudo apt install git python3 python3-venv python3-pip \
                  clang binutils pkg-config \
-                 libasound2-dev libportaudio2 \
+                 libasound2-dev libportaudio2 libx11-dev \
                  libx11-6 libxcb1 libxkbcommon0 libxkbcommon-x11-0 libgl1
 
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh   # then: . "$HOME/.cargo/env"

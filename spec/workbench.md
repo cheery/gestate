@@ -757,6 +757,16 @@ same egg as hicolor PNGs and a scalable SVG, with `StartupWMClass`
 matching the class the window declares; run it again after moving the
 repository or the venv, because `Exec` pins both.
 
+**`Exec` is the wrapper, and never the module** (F149).  A dock click
+passes no file, `%f` expands to nothing, and `python -m
+gestate.workbench` with no file is not an editor — it is a usage line
+and exit 2, sent to a journal nobody reads because `Terminal=false`.
+So the entry launched and did nothing, on a machine where every other
+part of it was right.  `tools/gestate-editor` is what a launcher points
+at: it opens the file it was handed or the scratch file when it was
+handed nothing, prefers the tree's venv, and `cd`s to the tree.
+`test/test_desktop.py` holds the entry to it.
+
 **One drawing, and the window is handed it** (F148).  This law used to
 read *drawn rather than shipped* — a sine in the caret's blue,
 generated in the crate from the palette constants beside it, on the
