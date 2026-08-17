@@ -552,7 +552,7 @@ zoomOut = Stated
 quit : Command
 quit = Stated
 
-# ── The algebra's identity, last on purpose ──────────────────────────────
+# ── The algebra ──────────────────────────────────────────────────────────
 
 #: Do nothing — the identity of `++`.
 #:

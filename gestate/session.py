@@ -104,6 +104,18 @@ class Verb:
     summary: str
     #: The keystroke that is a shortcut onto it, or `""`.
     key: str = ""
+    #: Which run of the file it was declared in — *The instrument*,
+    #: *Notes*, *The window* — or `""` for the ones before any header.
+    #:
+    #: **Not invented for this.**  `command.ges` has been written in
+    #: labelled sections since it existed, by hand, in the file that
+    #: *is* the command list; nothing read them, so the palette showed
+    #: fifty-three names with the grouping thrown away.  Derived here
+    #: for the same reason the order is (`vocabulary`): the file is the
+    #: source, and a category kept anywhere else would be a second
+    #: place to maintain one.  `board/command-categories.md` is where
+    #: what to *do* with it is being decided; this is only the fact.
+    section: str = ""
 
     @property
     def arity(self) -> int:
@@ -191,6 +203,7 @@ def vocabulary(path: Path = COMMANDS) -> list:
     source = path.read_text()
     sigs, _names = _authored(source)
     docs = _summaries(source)
+    where = _sections(source)
     out = []
     for name, sig in sigs.items():
         parts = _arrow_parts(sig)
@@ -205,7 +218,8 @@ def vocabulary(path: Path = COMMANDS) -> list:
             # needs no edit here.
             continue
         out.append(Verb(name=name, args=tuple(parts[:-1]),
-                        summary=docs.get(name, ""), key=KEYS.get(name, "")))
+                        summary=docs.get(name, ""), key=KEYS.get(name, ""),
+                        section=where.get(name, "")))
     # One entry per timestamp, so an edit supersedes rather than adds.
     _VOCABULARY.clear()
     _VOCABULARY[stamp] = out
@@ -626,6 +640,33 @@ def _summaries(source: str) -> dict:
                 out.setdefault(name, _plain(_first_sentence(text)))
         if not stripped.startswith("#:"):
             held = []
+    return out
+
+
+def _sections(source: str) -> dict:
+    """`name -> the section header it was declared under`.
+
+    The headers are `# ── The instrument ─────` rules, written by hand
+    in `command.ges` since it existed and never read by anything —
+    which is why the palette shows fifty-three names flat.  Read the
+    same way `_summaries` reads the doc comments, and by the same rule:
+    the file is the command list, so anything the list wants is derived
+    from it rather than kept beside it.
+
+    A header's text is what is between the rules, so the file stays
+    readable as a file — nobody writes a category, they write the
+    heading they were already writing (`board/command-categories.md`).
+    """
+    out, under = {}, ""
+    for line in source.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#") and "\u2500" in stripped:
+            under = stripped.lstrip("#").strip().strip("\u2500").strip()
+            continue
+        if stripped and not stripped.startswith("#") and ":" in stripped:
+            name = stripped.split(":", 1)[0].strip()
+            if name.isidentifier():
+                out.setdefault(name, under)
     return out
 
 

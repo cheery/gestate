@@ -1,10 +1,13 @@
 # command-categories — the command list wants categories
 
-    status   open — not yet elaborated
+    status   open — elaborated 2026-08-17, the derivation landed
     because  it's starting to be clear that we need them
     asked    Henri, 2026-08-16
-    see      gestate/command.ges — the command table
+    see      gestate/command.ges — the command table, and its headings
+             gestate/session.py — `vocabulary`, `_sections`, `Verb.section`
+             test/test_command_sections.py — the derivation, held
              spec/workbench.md §"The list, and the laws it keeps"
+             board/button.md — a stranger opened this list and found names
              board/gemba.md — the second idea waits on this
              board/git-viewer.md — blocked by it
 
@@ -15,15 +18,138 @@
 > We probably are starting to need categories for the commands.
 > It's starting to be clear now that we do.
 
-## Not yet elaborated
+## Found by looking
 
-Nothing has been looked at for this card.  Before it is taken, the
-elaboration owes: how many commands there are now and how the list is
-ordered today, whether `command.ges` already carries something that
-could serve as a category (a section header, a type, the reference's own
-`section`), what the palette would do with categories — filter, group,
-or a second level — and what the vocabulary rule (`command.ges` or it
-does not exist) says about a category being a thing with a name.
+**The categories were never missing.**  `command.ges` has been written
+in labelled sections since it existed — eleven of them, by hand, in the
+file that *is* the command list:
 
-**It blocks [git-viewer](git-viewer.md)**, which would add a family of
-commands and is the reason the need became clear.
+| section | commands |
+|---|---:|
+| The instrument | 5 |
+| The loop | 3 |
+| Parameters | 2 |
+| Notes | 6 |
+| Performing | 3 |
+| Chance | 2 |
+| The text | 18 |
+| Laying it out | 4 |
+| Leaving the workshop | 4 |
+| The window | 5 |
+| The algebra | 1 |
+
+Nothing read them.  `_summaries` takes the `#:` doc comments and skips
+plain `#` lines, so fifty-three names arrived at the palette flat, with
+the grouping their author had already done thrown away one function
+earlier.
+
+**This is the third time today the same shape has turned up**: the
+window's own order was already the file's (F150), a complaint's
+position was already on the node (F152), and here the category was
+already the heading.  In each, nothing needed inventing — it needed
+carrying through.  Worth saying out loud as a habit to check for.
+
+### What has landed, and why only this much
+
+`Verb.section` is derived, `test_command_sections.py` holds it, and
+**nothing in the window has changed.**  That split is deliberate: every
+option below needs the fact, and none of them is settled, so by
+`manifesto.md` §"Set-based, not point-based" rule 3 the fact ships and
+the display waits.
+
+It cost one thing immediately, which is the argument for deriving early:
+a heading written that same morning read *"The algebra's identity, last
+on purpose"* — a fine comment and a poor label, invisible as a defect
+until something read it as a name.  A header is a label the moment
+anything reads it, and the test now says so.
+
+### The three answers the card owed
+
+**How many, and how ordered.**  Fifty-three; 16 carry a key, 29 take
+arguments.  The order is `command.ges`'s own, deliberately —
+`vocabulary`: *"the order somebody thought about them rather than
+alphabetically, which is a worse order for learning."*
+
+**What the palette would do.**  The ranking is entirely model-side
+(`Session.filtered`: exact 0, prefix 1, substring 2, no query 3,
+summary 4, file order as tiebreak) and `palette.rs` opens by saying it
+*"does not rank… it is handed its entries and shows them in the order it
+was given."*  So any option here is a change to `session.py` plus, at
+most, one to how a row is drawn — the window's law is untouched either
+way.
+
+**What the vocabulary rule says.**  *"A capability cannot exist without
+a name, a type and a sentence — because that is what declaring one
+is."*  A section has a name and a sentence's worth of meaning, and no
+type.  Leaving the headings as comments and *reading* them keeps the
+rule where it bites (a **command** is a declaration) without inventing a
+second declared thing to maintain.
+
+## The options, and what would eliminate each
+
+**A. Group the rows under their headings.**  Same fifty-three, same
+order, a dim heading before each run.  *Eliminated if* eleven extra rows
+make the list worse to scroll than it is to read, or if a heading reads
+as something choosable — which is the same mistake `skip` was.
+
+**B. Let a category be something the query matches.**  Typing `notes`
+ranks the six in *Notes* together.  One line in `Session.filtered`.
+*Eliminated if* the words collide: `text`, `window` and `loop` are all
+plausible queries **and** section names, and a query that means two
+things is worse than one that means none.
+
+**C. Two levels — pick a category, then a command.**  The `Step`
+machinery already exists (a directory is a step, not an answer).
+*Eliminated by* the cost falling on everybody who knows the name, which
+is the common case: one extra keystroke on every command to help the
+first week.
+
+**D. A category shown per row** — a word or a mark in the margin of each
+entry.  *Eliminated if* it is the same information as A in a weaker
+channel, which is the suspicion: position groups better than a repeated
+label.
+
+**E. Nothing; the order is enough.**  The null, and it is not empty —
+the order is already curated and already teaches.  *Eliminated by*
+`git-viewer` landing a family of commands, which is what made the need
+clear and is the card this one blocks.
+
+**Nothing here is decided.**  What would decide it is a person opening
+the list and looking for something, which is `board/stranger-test.md`'s
+instrument and its rules about spending one.
+
+## On icons — asked, and the honest answer is *not yet*
+
+*Henri, 2026-08-17: "We could maybe also create small icons for
+categories or commands. whichever appears better, or neither."*
+
+**Neither, and here is what would change that.**
+
+* The window is a **text grid** drawn from a 3×5 bitmap font.  An icon
+  is a glyph, and a glyph in that grid is one character cell — the same
+  budget as the burger, which is the one control in this window and
+  which a stranger could not see at all (`button.md`: 24 lit pixels,
+  2.3:1).  **The evidence that this window's symbol channel is weak is
+  today's, and it is strong.**
+* Per-*command* icons are fifty-three decisions and a maintenance
+  surface, for rows that already carry a name and a sentence.
+* Per-*category* icons only pay once categories are **visible as
+  groups** — which is option A, undecided.  An icon for a category
+  nobody can see is decoration.
+* And the cheaper channel is untried: these rows have a name, a
+  summary, and for sixteen of them a key, all in one weight of ink.
+  Grouping, dimming, and column position are all free and all unspent.
+
+So: **not neither-forever, but not first.**  What would make icons the
+right answer is A landing and *something still being hard to find* —
+which is a finding a person produces, not a design that can be argued
+into existence.
+
+## What the work is
+
+1. ~~Derive the section from the file.~~  Done, 2026-08-17.
+2. Choose between A–E, and choose it against somebody looking for a
+   command they cannot name — not against a screenshot.
+3. Whatever is chosen, `git-viewer`'s family is the test of it: the
+   card exists because a group of new commands is coming.
+4. Icons, only if 2 lands and the list is still hard to read.
