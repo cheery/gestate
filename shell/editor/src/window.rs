@@ -2332,27 +2332,21 @@ pub unsafe fn open_parented(parent: RawWindowHandle,
 /// The background, so a host can match it.
 pub const BACKGROUND: Colour = view::BG;
 
-/// X11's autorepeat, made detectable — `fixme.md` F106.
+/// The window's icon — the egg, compiled in.
 ///
-/// By default the server synthesizes a *release+press pair* for every
-/// repeat of a held key.  Both autorepeat guards — the window's
-/// `fingers` set and the model's `Keyboard.press` — were standing when
-/// the piano retriggered, because a synthetic release re-arms them
-/// both.  `XkbSetDetectableAutoRepeat` is the per-client flag that
-/// makes the server send press, press, …, release instead, which is
-/// the stream the guards were written for.  Per-client is why this is
-/// called on *baseview's* display rather than a connection of our own,
-/// and why it costs nothing anywhere else: a held arrow in the text
-/// still repeats, because repeats still arrive — only the fake
-/// releases stop.
-/// The window's icon — drawn, not shipped.
+/// `doc/gestate.argb` is `_NET_WM_ICON`'s own layout already: width,
+/// height, then straight-alpha ARGB rows, little-endian, once per size.
+/// So there is nothing here to decode and nothing to read off disk at
+/// run time — `include_bytes!` puts the pixels in the binary, and this
+/// widens each `u32` to the `c_ulong` X11's format-32 property data
+/// means on a 64-bit machine.
 ///
-/// A sine in the caret's blue on the editor's own ground, generated at
-/// three sizes and set as `_NET_WM_ICON`, which is what a taskbar and
-/// an alt-tab read.  Drawn in code because an asset is a file that can
-/// go missing and a decoder is a dependency, while a sine is eight
-/// lines — and because the palette constants are right here, so the
-/// icon and the window cannot drift apart.
+/// **It used to draw its own, and that was the bug.**  A sine, eight
+/// lines, no asset — a good rule that produced the wrong picture: the
+/// front page had an egg and the taskbar had a sine for a week, because
+/// two drawings of one icon never appear on the same screen and nothing
+/// catches the drift.  `gestate/icon.py` is the one rasteriser now, and
+/// `test_icon.py` fails if these bytes are not what it renders.
 #[cfg(target_os = "linux")]
 mod window_icon {
     use std::os::raw::{c_char, c_int, c_ulong, c_void};
@@ -2367,44 +2361,17 @@ mod window_icon {
         fn XFlush(d: *mut c_void) -> c_int;
     }
 
-    /// One size, as `_NET_WM_ICON` wants it: width, height, then ARGB
-    /// pixels — each packed in a C `long`, because that is what X11's
-    /// format-32 property data means on a 64-bit machine.
-    fn drawn(side: usize) -> Vec<c_ulong> {
-        let s = side as f64;
-        let mut out = Vec::with_capacity(2 + side * side);
-        out.push(side as c_ulong);
-        out.push(side as c_ulong);
-        for y in 0..side {
-            for x in 0..side {
-                let (fx, fy) = (x as f64 + 0.5, y as f64 + 0.5);
-                // Rounded corners: transparent outside the corner
-                // radius, so the icon reads as a tile and not a chip.
-                let r = s * 0.2;
-                let (cx, cy) = (fx.clamp(r, s - r), fy.clamp(r, s - r));
-                if ((fx - cx).powi(2) + (fy - cy).powi(2)).sqrt() > r {
-                    out.push(0);
-                    continue;
-                }
-                // One period of a sine, `CARET` blue on `BG`.
-                let t = (fx / s) * std::f64::consts::TAU;
-                let mid = s * 0.5 - t.sin() * s * 0.26;
-                let argb: u32 = if (fy - mid).abs() < (s * 0.08).max(1.0) {
-                    0xff5c_a8d8
-                } else {
-                    0xff14_161a
-                };
-                out.push(argb as c_ulong);
-            }
-        }
-        out
+    /// The egg at 16, 32, 48 and 64 px — `python -m gestate.icon`.
+    static FACE: &[u8] = include_bytes!("../../../doc/gestate.argb");
+
+    fn property() -> Vec<c_ulong> {
+        FACE.chunks_exact(4)
+            .map(|w| u32::from_le_bytes([w[0], w[1], w[2], w[3]]) as c_ulong)
+            .collect()
     }
 
     pub unsafe fn set(display: *mut c_void, window: c_ulong) {
-        let mut data: Vec<c_ulong> = Vec::new();
-        for side in [16usize, 32, 48] {
-            data.extend(drawn(side));
-        }
+        let data = property();
         let atom = unsafe {
             XInternAtom(display, b"_NET_WM_ICON\0".as_ptr().cast(), 0)
         };
@@ -2506,6 +2473,19 @@ mod clock_floor {
     }
 }
 
+/// X11's autorepeat, made detectable — `fixme.md` F106.
+///
+/// By default the server synthesizes a *release+press pair* for every
+/// repeat of a held key.  Both autorepeat guards — the window's
+/// `fingers` set and the model's `Keyboard.press` — were standing when
+/// the piano retriggered, because a synthetic release re-arms them
+/// both.  `XkbSetDetectableAutoRepeat` is the per-client flag that
+/// makes the server send press, press, …, release instead, which is
+/// the stream the guards were written for.  Per-client is why this is
+/// called on *baseview's* display rather than a connection of our own,
+/// and why it costs nothing anywhere else: a held arrow in the text
+/// still repeats, because repeats still arrive — only the fake
+/// releases stop.
 mod detectable_autorepeat {
     #[link(name = "X11")]
     extern "C" {

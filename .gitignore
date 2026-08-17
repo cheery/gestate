@@ -105,7 +105,17 @@ Thumbs.db
 # wants to look at the sheet in a viewer that cannot open a vector.
 doc/atlas/*.png
 
-# ── Two things that are NOT ignored, deliberately ────────────────────────
+# ── Three things that are NOT ignored, deliberately ──────────────────────
+#
+# **`doc/gestate.argb` — the icon's pixels.**  Generated, by `python -m
+# gestate.icon`, and kept for a reason the atlas's `.png` above does not
+# have: **`shell/editor` compiles it in.**  `include_bytes!` means an
+# ignored copy is a fresh clone that does not build, which is a worse
+# failure than a stale drawing.  And the objection that keeps the
+# atlas's raster out does not apply here — those bytes come from a
+# rasteriser nobody in this tree controls, these come from
+# `gestate/icon.py`, so `test_icon.py` can and does check them against
+# what the source renders today.
 #
 # **`*.samples` — the golden buffers.**  They look like build output and
 # are the opposite: each one is `render()` pinned, and it is the *oracle*

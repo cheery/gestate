@@ -750,14 +750,28 @@ room.
 
 **The window is named, and wears its face.**  `WM_CLASS=gestate` —
 which baseview never sets, and without which a desktop cannot match
-the window to anything — and `_NET_WM_ICON`, drawn rather than
-shipped: one period of a sine in the caret's blue on the editor's
-ground, generated at three sizes from the palette constants in the
-same crate, so the icon and the window cannot drift apart.  `python
+the window to anything — and `_NET_WM_ICON`, which is the egg: the
+same drawing the front page shows, at 16, 32, 48 and 64 px.  `python
 -m gestate.workbench --desktop` writes the `.desktop` entry and the
-same sine as hicolor PNGs, with `StartupWMClass` matching the class
-the window declares; run it again after moving the repository or the
-venv, because `Exec` pins both.
+same egg as hicolor PNGs and a scalable SVG, with `StartupWMClass`
+matching the class the window declares; run it again after moving the
+repository or the venv, because `Exec` pins both.
+
+**One drawing, and the window is handed it** (F148).  This law used to
+read *drawn rather than shipped* — a sine in the caret's blue,
+generated in the crate from the palette constants beside it, on the
+grounds that an asset is a file that can go missing and a decoder is a
+dependency.  It was a good rule that produced the wrong picture for as
+long as it stood: the front page had an egg, the taskbar had a sine,
+and a fresh install on a second laptop is what finally put the two on
+one desk.  **Two drawings of one icon cannot be tested against each
+other when they never appear on the same screen.**  So `gestate/icon.py`
+is the only rasteriser now, and it writes `doc/gestate.argb` —
+`_NET_WM_ICON`'s own layout, width, height and straight-alpha ARGB —
+which `shell/editor` compiles in with `include_bytes!`.  The half of
+the old rule that was load-bearing survives untouched: nothing is
+decoded and nothing is read from disk at run time.  What is gone is
+the second drawing.
 
 **The caret does not anchor the scroll** (F119).  Descriptions arrive
 whenever the model has news — the transport readout, while a piece

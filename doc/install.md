@@ -110,9 +110,23 @@ it.
 
 ## A desktop icon
 
-`tools/gestate-editor` opens the editor from the tree — the file it is
-handed, or `untitled.ges` when it is handed nothing — so a launcher is
-three lines pointed at it:
+One command writes the launcher and the icons a desktop looks for:
+
+```sh
+python -m gestate.workbench --desktop
+```
+
+That puts `gestate.desktop` in `~/.local/share/applications` with
+`StartupWMClass=gestate` — which is how GNOME's dock matches a running
+window to its entry, and without which it shows a gear — and the egg
+under `~/.local/share/icons/hicolor`, as PNGs at 16, 32, 48, 128 and
+256 px and as the SVG itself.  **Run it again after moving the
+repository or the venv**, because `Exec` pins both.
+
+By hand is three lines, if you would rather point at the tree than
+copy out of it.  `tools/gestate-editor` opens the editor from the
+tree — the file it is handed, or `untitled.ges` when it is handed
+nothing:
 
 ```
 [Desktop Entry]
@@ -122,11 +136,17 @@ Exec=/path/to/gestate/tools/gestate-editor %f
 Icon=/path/to/gestate/doc/gestate.svg
 Terminal=false
 Categories=AudioVideo;
+StartupWMClass=gestate
 ```
 
 Save it as `~/.local/share/applications/gestate.desktop`; for an icon
 on the desktop itself, copy it there, `chmod +x` it, and mark it
 trusted (`gio set <file> metadata::trusted true` on GNOME).
+
+Either way you get the same egg, and so does the window itself: it
+carries the icon in `_NET_WM_ICON` for the taskbar and alt-tab of a
+desktop that never read a `.desktop` file at all.  All three come from
+`gestate/icon.py` — see `fixme.md` F148 for the week they did not.
 
 ## Check that it worked
 

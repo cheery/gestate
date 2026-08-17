@@ -932,67 +932,33 @@ def run(path, rate: int = 44100, block: int = 512,
     return 0
 
 
-def _icon_png(side: int) -> bytes:
-    """The window's icon, at `side` pixels, as a PNG — stdlib only.
-
-    **The same sine the Rust shell draws** into `_NET_WM_ICON`
-    (`window_icon::drawn`): one period in the caret's blue on the
-    editor's ground, rounded corners.  Two drawings of one icon,
-    because the window sets its property at runtime and a desktop
-    wants a file on disk — the constants are the contract.
-    """
-    import math
-    import struct
-    import zlib
-
-    s = float(side)
-    r = s * 0.2
-    raw = bytearray()
-    for y in range(side):
-        raw.append(0)                            # filter: none
-        for x in range(side):
-            fx, fy = x + 0.5, y + 0.5
-            cx = min(max(fx, r), s - r)
-            cy = min(max(fy, r), s - r)
-            if math.hypot(fx - cx, fy - cy) > r:
-                raw += b"\x00\x00\x00\x00"
-                continue
-            mid = s * 0.5 - math.sin(fx / s * math.tau) * s * 0.26
-            if abs(fy - mid) < max(s * 0.08, 1.0):
-                raw += b"\x5c\xa8\xd8\xff"
-            else:
-                raw += b"\x14\x16\x1a\xff"
-
-    def chunk(tag: bytes, data: bytes) -> bytes:
-        body = tag + data
-        return (struct.pack(">I", len(data)) + body
-                + struct.pack(">I", zlib.crc32(body)))
-
-    return (b"\x89PNG\r\n\x1a\n"
-            + chunk(b"IHDR", struct.pack(">IIBBBBB", side, side,
-                                         8, 6, 0, 0, 0))
-            + chunk(b"IDAT", zlib.compress(bytes(raw)))
-            + chunk(b"IEND", b""))
-
-
 def install_desktop() -> int:
     """Write the `.desktop` entry and icons a desktop needs.
 
-    **What makes the taskbar show a sine instead of a gear.**  The
+    **What makes the taskbar show the egg instead of a gear.**  The
     window sets `_NET_WM_ICON` and `WM_CLASS=gestate` itself, but
     GNOME's dock only names a window it can match to a `.desktop`
     file — so this writes one under `~/.local/share`, with
     `StartupWMClass` equal to the class the window declares, and the
     icon at the sizes `hicolor` looks for.  Run once; run again after
     moving the repository or the venv, because `Exec` pins both.
+
+    The scalable copy goes in beside the rasters, because a desktop
+    that can use it will render the sizes nobody thought to install —
+    and it is the artwork itself, not a rendering of it.
     """
     import sys
 
+    from gestate import icon
+
     home = Path.home() / ".local" / "share"
-    for side in (16, 32, 48, 128, 256):
+    for side in icon.HICOLOR:
         where = home / "icons" / "hicolor" / f"{side}x{side}" / "apps"
         where.mkdir(parents=True, exist_ok=True)
-        (where / "gestate.png").write_bytes(_icon_png(side))
+        (where / "gestate.png").write_bytes(icon.png(side))
+    scalable = home / "icons" / "hicolor" / "scalable" / "apps"
+    scalable.mkdir(parents=True, exist_ok=True)
+    (scalable / "gestate.svg").write_text(icon.svg())
     root = Path(__file__).resolve().parent.parent
     apps = home / "applications"
     apps.mkdir(parents=True, exist_ok=True)
@@ -1009,7 +975,8 @@ def install_desktop() -> int:
         "Categories=AudioVideo;Audio;Development;\n"
         "StartupWMClass=gestate\n")
     print(f"wrote {entry}")
-    print("wrote gestate.png at 16, 32, 48, 128 and 256 px under "
+    sizes = ", ".join(str(s) for s in icon.HICOLOR)
+    print(f"wrote gestate.png at {sizes} px, and gestate.svg, under "
           f"{home / 'icons' / 'hicolor'}")
     print("the dock reads these on its next look; log out and in if "
           "it does not")

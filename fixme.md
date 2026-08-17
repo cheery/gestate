@@ -67,6 +67,7 @@ Of 130 entries, **113 are resolved**.  What is left:
 | F137 | missing | A zoom scales the band and not the picture in it |
 | F140 | resolved | A render refused and the reason stayed in the terminal |
 | F141 | resolved | `foo : int` is a legal signature and a certain mistake |
+| F148 | resolved | The taskbar wore a sine; the front page wore the egg |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -4395,3 +4396,52 @@ not gain: three pure sines have no harmonic content, and a small speaker
 with no low end reproduces almost nothing else.  Raising it further eats
 headroom the knob needs; the honest fixes are a different timbre or a
 different example, and both change what the file is for.
+
+### F148. **[resolved]** The taskbar wore a sine; the front page wore the egg
+
+Henri, 2026-08-17, from a fresh install of Ubuntu 26.04 LTS on the work
+laptop: *"it drew an icon of blue sine on black background instead of
+the egg with sine in it. Why no egg on the transparent background? I
+thought the icon was always going to be an egg."*
+
+**It was always going to be an egg, and only ever was on one machine.**
+There were two icons in the tree and nothing that could tell they
+disagreed:
+
+* `doc/gestate.svg` — the artwork, teal shell, amber signal, no
+  background at all.  Read by the README and by the launcher
+  `doc/install.md` teaches you to write by hand.
+* the sine — one period in the caret's blue on the editor's ground,
+  drawn twice in code (`window_icon::drawn` into `_NET_WM_ICON`, and
+  `workbench._icon_png` into `hicolor`), both from `b23ef2e`.
+
+Henri's home machine had the hand-written `.desktop` file from
+`install.md` and therefore the egg.  The work laptop had neither, so it
+got what the code draws.  Same commit, same tree, different picture —
+and no test could catch it, because **the two drawings never appear on
+the same screen**: one is read in a browser, the other in a dock.
+
+The rule that produced the sine was a good one — *an asset is a file
+that can go missing and a decoder is a dependency, while a sine is
+eight lines* — and it is what made the drawing local, and local is what
+let it drift.
+
+**Resolved by making one drawing and giving it to everybody.**
+`gestate/icon.py` holds the shape, rasterises it, and writes two
+committed files: `doc/gestate.svg`, which it now renders *exactly* —
+the original generator was never committed and has been fitted back out
+of the 121 points it left behind — and `doc/gestate.argb`, which is
+`_NET_WM_ICON`'s own layout, `include_bytes!`-ed into `shell/editor`.
+So the window has no drawing of its own to drift with, and the good
+half of the old rule survives: nothing to decode, and nothing to go
+missing at run time.  `test_icon.py` fails when the committed files are
+not what the source renders, when the crate stops compiling them in,
+and — the check that would have caught this one in the first week —
+when a rendered size is not a transparent egg with a signal inside it.
+
+Two things the small sizes needed, both because a 16 px icon is not a
+scaled 256 px one: the strokes are hinted up to stay visible, and the
+signal is pulled in by what that thickening ate, or the shell and the
+wave meet and the icon is a blob.  Three cycles in six pixels is a
+smudge, so a small raster draws fewer of them; the artwork is never
+simplified.

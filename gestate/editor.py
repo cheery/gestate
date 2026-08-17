@@ -39,6 +39,29 @@ class EditorError(Exception):
 _LIB = None
 
 
+def _watched(crate):
+    """Every file the library is built out of.
+
+    A list rather than a walk inside `_stale`, because *what counts as a
+    source* is the part that goes wrong: the icon below is one, and it
+    is not a `.rs` file.
+    """
+    watched = [crate / "Cargo.toml"]
+    watched.extend((crate / "src").rglob("*.rs"))
+    # `gestate-panel` is compiled into it — a painter change is a window
+    # change, and the two crates are one artifact by the time it matters.
+    panel = crate.parent / "panel"
+    if panel.is_dir():
+        watched.append(panel / "Cargo.toml")
+        watched.extend((panel / "src").rglob("*.rs"))
+    # The icon, which is `include_bytes!`-ed rather than compiled — a
+    # source of this library that is not source code.  Without it here,
+    # `python -m gestate.icon` changes the front page and leaves the
+    # window wearing the old face (`fixme.md` F148).
+    watched.append(crate.parent.parent / "doc" / "gestate.argb")
+    return watched
+
+
 def _stale(so, crate) -> bool:
     """Has the crate moved since the library was built?
 
@@ -60,15 +83,8 @@ def _stale(so, crate) -> bool:
         built = so.stat().st_mtime
     except OSError:
         return True
-    watched = [crate / "Cargo.toml"]
-    watched.extend((crate / "src").rglob("*.rs"))
-    # `gestate-panel` is compiled into it — a painter change is a window
-    # change, and the two crates are one artifact by the time it matters.
-    panel = crate.parent / "panel"
-    if panel.is_dir():
-        watched.append(panel / "Cargo.toml")
-        watched.extend((panel / "src").rglob("*.rs"))
-    return any(p.stat().st_mtime > built for p in watched if p.exists())
+    return any(p.stat().st_mtime > built
+               for p in _watched(crate) if p.exists())
 
 
 def _library():
