@@ -208,6 +208,41 @@ Three rules, and the third is the one that pays today:
    command that does nothing.  Both were fixed the same day the set was
    written, and neither commits the corner to anything.
 
+### Henri's name for it, which is better than the practice's
+
+*Watching it work, the same evening: "It appears that these different
+voices are shaping our choices and we work a bit like logic
+programmers. through unification of obviously correct choices."*
+
+**That is the mechanism, and it is a sharper description than
+"set-based".**  Each alternative is a set of constraints on what the
+answer may be; what gets built now is their **unifier** — the
+substitution every one of them admits.  Rule 3 above is not a
+compromise or a stopgap, it is the most general thing derivable from
+what is currently known, and that is why it can be shipped without
+anybody having decided the open question.
+
+The correspondence goes further than the analogy usually does, and it
+is worth spelling out because it explains the *paradox* in the paper's
+title:
+
+* **Point-based design is chronological backtracking.**  Guess a
+  binding, run to failure, unwind, guess again.  The rework is the
+  unwinding, and it is why picking early is slower.
+* **Set-based design is propagation.**  Narrow every variable by what
+  the evidence rules out, and only bind when a single value remains.
+  Nothing has to be undone because nothing was assumed.
+* **A failed alternative is a failed unification** — it eliminates,
+  which is *progress*, and it does not cost the work done for the
+  others.
+* And the discipline against premature convergence is exactly the
+  occurs check: **do not bind a variable to a term that has not been
+  derived**, however plausible it reads.
+
+Which also says what a badly-run set looks like: a store of constraints
+nobody ever propagates is not patience, it is an unsolved goal.  Rules
+1 and 2 are the propagation; without them this degrades into a list.
+
 **The demonstration this practice owes** (the rule above): the button
 card, 2026-08-17.  Asked to explore rather than fix, the session went
 and photographed the running window, and found three things the framing

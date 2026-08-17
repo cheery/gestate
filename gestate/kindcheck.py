@@ -225,6 +225,29 @@ class KindError(Exception):
     pass
 
 
+def _where(node) -> str:
+    """` (at line:col)` for a type node, or nothing — `fixme.md` F152.
+
+    **The editor draws a complaint under the line it names**, and a
+    complaint that names no line has no box to live in: it falls back
+    to the status bar, one sentence, where a type error of the same
+    seriousness gets three lines interleaved into the code.  So a
+    position is not decoration here, it is the difference between a
+    message that lands where you are looking and one you have to go and
+    find.
+
+    Every node in `types.py` carries a `span`; this file had the
+    arithmetic already, written for the lowercase-type-variable message
+    (F141) and used only there, because that is the one somebody hit.
+    `audiospans.in_source` rewrites the raw `line:col` into the
+    author's own file, the same way it does for a type error.
+    """
+    span = getattr(node, "span", None)
+    start = getattr(span, "start", span)
+    line, col = getattr(start, "line", None), getattr(start, "col", None)
+    return "" if line is None or col is None else f" (at {line}:{col})"
+
+
 def _refuse_a_type_in_lowercase(var: TVar, env: dict[str, Kind]) -> None:
     """`foo : int` — the type wearing the wrong case.
 
@@ -300,7 +323,8 @@ def check_kind(texpr: Type, env: dict[str, Kind]) -> Kind:
         if texpr.name not in env:
             if _is_int_literal(texpr.name):
                 return KInt()
-            raise KindError(f"Unknown type constructor: {texpr.name}")
+            raise KindError(f"Unknown type constructor: {texpr.name}"
+                            + _where(texpr))
         return env[texpr.name]
     if isinstance(texpr, TApp):
         # **A type *variable* in function position is a constructor
@@ -335,11 +359,13 @@ def check_kind(texpr: Type, env: dict[str, Kind]) -> Kind:
             raise KindError(
                 f"Type {texpr.fn} has kind {fn_k} "
                 f"(expected a type-constructor kind like Type -> Type)"
+                + _where(texpr.fn)
             )
         if fn_k.arg != arg_k:
             raise KindError(
                 f"Kind mismatch in {texpr}: "
                 f"expected argument of kind {fn_k.arg}, got {arg_k}"
+                + _where(texpr.arg or texpr)
             )
         return fn_k.ret
     if isinstance(texpr, TFun):
@@ -347,11 +373,13 @@ def check_kind(texpr: Type, env: dict[str, Kind]) -> Kind:
         rk = check_kind(texpr.ret, env)
         if ak != KType():
             raise KindError(
-                f"Function argument type must have kind Type, got {ak} in {texpr}"
+                f"Function argument type must have kind Type, got {ak} "
+                f"in {texpr}" + _where(texpr.arg)
             )
         if rk != KType():
             raise KindError(
-                f"Function return type must have kind Type, got {rk} in {texpr}"
+                f"Function return type must have kind Type, got {rk} "
+                f"in {texpr}" + _where(texpr.ret)
             )
         return KType()
     raise KindError(f"Unknown type expression: {type(texpr).__name__}")

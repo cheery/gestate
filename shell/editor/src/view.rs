@@ -1197,6 +1197,25 @@ fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
         let s = String::from("Ctrl-K");
         let at = right - width_of(&s) as i32 * cw;
         f.items.push(Item::Run { x: at, y: sy + 2, s, c: INK });
+        right = at - 2 * cw;
+    }
+
+    // **The sound is behind the text, and here is the word for it** —
+    // `AWAY`, which already means *a thing deliberately not sounding*
+    // and is warm rather than red for exactly this reason: it is
+    // usually a choice being tried, not a fault (`fixme.md` F151).
+    //
+    // Dropped rather than clipped when the bar is narrow, because half
+    // of `audition Ctrl-Ret…` teaches a key that does not exist — and
+    // the state it reports is recoverable by pressing the thing it
+    // could not finish naming.
+    if !chrome.behind.is_empty() {
+        let wanted = width_of(&chrome.behind) as i32 * cw;
+        let at = right - wanted;
+        if at > 4 {
+            f.items.push(Item::Run { x: at, y: sy + 2,
+                                     s: chrome.behind.clone(), c: AWAY });
+        }
     }
 }
 

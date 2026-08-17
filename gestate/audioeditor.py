@@ -607,6 +607,43 @@ BUILD_NICE = 5
 #: `Workbench._auditions`.
 AUDITION_WAIT = 0.4
 
+#: An audition this cheap is worth doing unasked — Henri, 2026-08-17:
+#: *"If audition takes less than half a second after a change, then I
+#: think it should be automatic.  That's the case with the intro's
+#: example function, but not the case with every program."*
+#:
+#: **Measured, never predicted.**  The cost does not follow the size of
+#: the program and nothing static tells you which side of this line a
+#: file is on: `lead.ges` is 432 lines and auditions in 1.39 s,
+#: `lantern.ges` is 279 and takes 3.06 s.  So the gate is the *last
+#: audition of this file*, which is a number the workbench already has
+#: by the time it matters — the first one is always asked for, and what
+#: it cost decides whether the next is offered for free.
+#:
+#: The corpus, 2026-08-17 (`board/button.md` has the table): the starter
+#: 0.26 s, `compressor` 0.36, `bell` 0.32, `twoknobs` 0.51, `bar` 0.55,
+#: `lead` 1.39, `lantern` 3.06, `nightdrive` 3.31, `quartet` 4.63.
+AUTO_AUDITION = 0.5
+
+#: A file that *opened* in less than this may have its first automatic
+#: audition attempted on trust, before any audition of it has been timed.
+#:
+#: **Without this the feature never reaches the person it is for.**  The
+#: gate above wants the last audition, and a stranger never applies
+#: anything — so nothing would ever be measured, and typing would stay
+#: silent for exactly the people who do not know the key.  A start is
+#: the one measurement that exists by then.
+#:
+#: It cannot be *scaled* into an audition estimate: the ratio runs from
+#: 0.37 to 1.24 across the corpus (`twoknobs` auditions slower than it
+#: starts).  So it is used only as a veto — cheap to open means *try one
+#: and find out*, and what that one costs decides everything after.  Two
+#: seconds splits the corpus where it should: the starter (0.71 s),
+#: `compressor` (0.62), `bell` (0.43), `twoknobs` (0.41) and `bar`
+#: (0.76) try; `lead` (3.47), `nightdrive` (6.29), `lantern` (8.06) and
+#: `quartet` (9.69) never do.
+COLD_ENOUGH = 2.0
+
 
 class Newest:
     """One worker at a time, always on the newest ask.
@@ -815,9 +852,18 @@ class Workbench:
         #: drop is heard.  Short enough to feel like an answer, long
         #: enough to cover the gap between two drags.
         self._auditions = Newest(
-            "audition", lambda text: self.audition(text),
+            "audition", lambda text, quiet=False: self.audition(text, quiet),
             lambda exc: self.say(f"not applied: {self._first_line(exc)}"),
             after=AUDITION_WAIT)
+        #: What the last audition cost, in seconds — the gate on the
+        #: automatic ones (`AUTO_AUDITION`).  `None` until one has been
+        #: timed, which is why the first is always asked for by hand.
+        self.last_audition: float | None = None
+        #: What opening this file cost, once it has been opened — the
+        #: only measurement that exists before anything has been
+        #: applied, and so the one that decides whether the first
+        #: automatic audition is attempted at all (`COLD_ENOUGH`).
+        self.last_start: float | None = None
         #: The two things a hand can ask for in bursts, each with one
         #: worker and the newest ask — see `Newest`.
         self._redraws = Newest(
@@ -904,12 +950,20 @@ class Workbench:
         # `apply` below is the one they wait on after `Ctrl-S`.  Both,
         # because they are different builds: a start pays for the sound
         # card and the score as well.
-        with building(f"start {self.path.name}"):
-            try:
-                self._start(seconds, text)
-            except Exception as error:
-                self._first_line(error)
-                raise
+        began = time.monotonic()
+        try:
+            with building(f"start {self.path.name}"):
+                try:
+                    self._start(seconds, text)
+                except Exception as error:
+                    self._first_line(error)
+                    raise
+        finally:
+            #: What opening this file cost — the only measurement that
+            #: exists before anybody has applied anything, and therefore
+            #: the one that decides whether the *first* automatic
+            #: audition is even attempted (`typed`, `COLD_ENOUGH`).
+            self.last_start = time.monotonic() - began
 
     def _start(self, seconds: float | None = None,
                text: str | None = None) -> None:
@@ -2696,7 +2750,8 @@ class Workbench:
 
     # -- editing ------------------------------------------------------------
 
-    def apply(self, text: str, save: bool = True) -> None:
+    def apply(self, text: str, save: bool = True,
+              quiet: bool = False) -> None:
         """Rebuild from `text`, without blocking the caller.
 
         `save` writes the file first, so what is playing and what is on disk
@@ -2768,9 +2823,9 @@ class Workbench:
         # right — and nothing would correct it until the next edit.
         # Serialising them is the whole fix: an ask that arrives during
         # a build waits for it, and a third replaces the second.
-        self._builds.ask(text, save)
+        self._builds.ask(text, save, quiet)
 
-    def _build(self, text: str, save: bool) -> None:
+    def _build(self, text: str, save: bool, quiet: bool = False) -> None:
         """The rebuild itself, off the caller's thread.
 
         Its own method so that `apply` is the one line that says *what*
@@ -2778,6 +2833,17 @@ class Workbench:
         where its seconds go.
         """
         from .buildtime import building
+
+        #: **What this one costs is what decides whether the next is
+        #: free** — `typed`, `AUTO_AUDITION`.  Timed here rather than in
+        #: `_built` so it covers everything an audition makes somebody
+        #: wait for, and timed always rather than under
+        #: `GESTATE_BUILD_TIME`, because a gate that only works when a
+        #: developer is watching is not a gate.
+        began = time.monotonic()
+        #: What was already waiting to be complained about, so `_hush`
+        #: can tell this build's noise from what it inherited.
+        errors = len(self.live.errors) if self.live is not None else 0
 
         # **What the rebuild cost the sound**, beside what it cost the
         # clock.  A rebuild is the suspect in every stutter and the card
@@ -2790,8 +2856,25 @@ class Workbench:
         dry = self.host.dry if watch else 0
         if watch:
             self.host.take_worst()          # this build's own worst
-        with building(f"apply {self.path.name}"):
-            self._built(text, save)
+        try:
+            with building(f"apply {self.path.name}"):
+                self._built(text, save, quiet)
+        except Exception:                                    # noqa: BLE001
+            # **The may-not-complain rule, all the way out.**  A
+            # compile that will not compile is caught inside `_built`,
+            # but a substrate or a score can raise from anywhere below
+            # here — and `_builds`' own trouble callback would answer
+            # that with `not applied: …`, which is exactly the sentence
+            # an unasked-for audition is forbidden from writing.
+            if not quiet:
+                raise
+            if self.live is not None:
+                self._hush(errors)
+        finally:
+            # In a `finally` because a build that *failed* still tells
+            # you what this file costs — and a file that fails slowly is
+            # exactly one whose next audition must not be automatic.
+            self.last_audition = time.monotonic() - began
         if watch:
             worst = self.host.take_worst() / 1000.0
             beat = self.block / max(1, self.rate) * 1000.0
@@ -2813,9 +2896,41 @@ class Workbench:
             print(f"[build]   kept {phase} — nothing it reads moved",
                   file=sys.stderr, flush=True)
 
-    def _built(self, text: str, save: bool) -> None:
+    def _hush(self, errors: int) -> None:
+        """Leave nothing behind that would speak for a quiet audition.
+
+        **The may-not-complain rule is not one branch, it is a path.**
+        Returning quietly from `_built` is not enough: a failed compile
+        leaves the exception in `live.pending`, the driver's `install`
+        turns that into a line in `live.errors` between two blocks, and
+        `_progress` announces every line it finds there.  So the message
+        arrived a moment later, from a thread that had never heard of
+        the flag — the complaint the rule forbids, wearing a delay.
+
+        There is no audition, so there is nothing waiting: the pending
+        exception goes, and so does anything appended to `errors` while
+        this build ran.  Builds are serialised by `_builds`, so the only
+        producer of those is this one.
+        """
+        self.live.pending = None
+        del self.live.errors[errors:]
+
+    def _built(self, text: str, save: bool, quiet: bool = False) -> None:
+        errors = len(self.live.errors)
         self.live.compile(text)
         if isinstance(self.live.pending, Exception):
+            # **A quiet audition may not complain** (F151).  It was
+            # nobody's request: half of what a person types is, for a
+            # moment, not a program, and an editor that answered every
+            # pause with a compiler error would be unusable to think in.
+            # The sound stays where it was, the last complaint stays
+            # whatever it was, and the bar's `behind` mark — which is
+            # true either way — is the whole of what gets said.  An
+            # `apply` or an asked-for `audition` still reports
+            # everything it ever did.
+            if quiet:
+                self._hush(errors)
+                return
             self.say(f"not applied: {self._first_line(self.live.pending)}")
             return
         # **What did this edit actually touch?**  A rebuild used to redo
@@ -2866,16 +2981,81 @@ class Workbench:
         # before.  Cleared where the good news is known rather than
         # where it is next heard.
         self.trouble = ""
+        # **And a quiet one does not chatter either.**  It succeeded,
+        # the sound is now the text, and the bar stops saying `behind`
+        # — which is the answer.  A sentence per pause in typing would
+        # bury the one the last real command left there.
+        if quiet:
+            return
         self.say("rebuilt; waiting for the next block"
                  if save else "auditioning (not saved)")
 
-    def audition(self, text: str) -> None:
+    def audition(self, text: str, quiet: bool = False) -> None:
         """Hear the edit without committing it to the file."""
-        self.apply(text, save=False)
+        self.apply(text, save=False, quiet=quiet)
 
-    def audition_soon(self, text: str) -> None:
+    def audition_soon(self, text: str, quiet: bool = False) -> None:
         """Hear it once the hand has stopped — `AUDITION_WAIT`."""
-        self._auditions.ask(text)
+        self._auditions.ask(text, quiet)
+
+    def typed(self, text: str) -> None:
+        """The text moved under somebody's hands.  Hear it if that is
+        cheap, and say nothing at all if it is not.
+
+        **The automatic half of `audition`** (F151), and the answer to
+        the thing a stranger was stuck on: he could type, and nothing he
+        typed reached the sound, because the step that puts it there is
+        a key nobody told him about.
+
+        Three conditions, and each is load-bearing:
+
+        * **Something is playing.**  Stopped, an audition has nothing to
+          do but say so, which is the rule the dragged note already
+          keeps.
+        * **The last audition of this file was cheap** — under
+          `AUTO_AUDITION`.  Measured rather than guessed, because the
+          cost does not follow the size of the program.  Until one has
+          been timed there is no automatic one: the first is always
+          asked for, which is also what makes the gate honest on a file
+          nobody has built yet.
+        * **Quietly.**  See `_built`: it may change the sound and it may
+          not complain.
+
+        Coalesced through `_auditions`, so a burst of keystrokes is one
+        rebuild after the hand stops — the same machinery, and the same
+        reason, as a hand dragging notes.
+        """
+        if self.inert or not self.playing or self.live is None:
+            return
+        if text == self._built_from:
+            return
+        cost = self.last_audition
+        if cost is None:
+            # **Nothing has been timed, so try exactly one and find
+            # out** — unless opening the file was already slow.  A
+            # stranger never applies anything, so a gate that waited for
+            # an audition to measure would never open for the one person
+            # it exists for (`COLD_ENOUGH`).
+            if self.last_start is None or self.last_start > COLD_ENOUGH:
+                return
+        elif cost >= AUTO_AUDITION:
+            return
+        self.audition_soon(text, quiet=True)
+
+    def behind(self, text: str) -> bool:
+        """Whether what is sounding is no longer what is written.
+
+        **The fact the bar reports** — not an error, and deliberately
+        not phrased as one: an edit that has not reached the sound yet
+        is the ordinary state of an editor whose whole premise is that
+        you press something to hear the change.  What makes it worth
+        saying is that nothing said it before, and a person who does not
+        know the step exists cannot tell this state from a program that
+        ignores them.
+        """
+        if self.inert or not self.playing or self._built_from is None:
+            return False
+        return text != self._built_from
 
     def redraw(self, text: str) -> None:
         """The pictures, from this text, without touching the sound.

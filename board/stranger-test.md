@@ -83,3 +83,74 @@ conflict with the ease of use.  Then the ease of use is preferred."*
 
 A preference that has never been measured cannot be preferred in
 practice.  This is what makes that sentence enforceable.
+
+## The instrument is consumed by use
+
+*Henri, 2026-08-17, after the first run happened by accident: "The
+second run with a stranger is possible, I have plenty of friends.  What
+we need to do is to examine and think on this because they're precious
+moments to show this to a stranger and it's like they run out
+eventually."*
+
+**This is the only measurement in the project that cannot be repeated.**
+Every other instrument here can be re-run: the suite, the golden
+buffers, the photographed window, `GESTATE_BUILD_TIME`.  A stranger can
+be used once, and using one destroys it — there is no way to un-show
+somebody a program.  The supply is finite and social, and it is spent
+whether or not the run was designed.
+
+So the discipline is design-of-experiments, and it is the same
+discipline as `manifesto.md` §"Set-based, not point-based" pointed at a
+scarce test.  Five rules, in the order they bite:
+
+**1. The unit is not a friend.  It is a friend × one first contact.**
+The first run is not fully spent.  He was stopped at *find the control*
+and never reached what is behind it, so **everything past the door is
+still virgin for him** — he can be asked, later, to do the thing he
+never got to, and only the discovery question is gone forever.  Count
+the resource honestly and there is more of it than "one friend, one
+run" suggests.
+
+**2. Never spend one on something already believed.**  If every
+alternative in the set predicts the same outcome, the run carries no
+information.  The run is worth its cost only where the theories
+*disagree* — which is why the set has to be written down first, and why
+the two defects fixed on 08-17 were fixed rather than tested: nobody
+needed a person to establish that a sentence naming a deleted button is
+wrong.
+
+**3. Fix what is known-wrong first, for free; vary only the uncertain
+thing.**  A run against a window with known defects in it spends the
+person on rediscovering them.  But the opposite error is worse: change
+five things, watch the next stranger succeed, and you have learned that
+the bundle works and not which part.  **Free-and-certain changes are
+unlimited; uncertain ones should be varied one at a time**, and that
+constraint is what actually rations the supply.
+
+**4. Pre-register what each theory predicts.**  Before the run, write
+down what would be seen if the problem is the corner, and what would be
+seen if it is what is behind the door, and what would be seen if it is
+neither.  Without that, the result is explained afterwards and confirms
+whatever was already thought — which spends a person to learn nothing.
+This is the single highest-value habit for an instrument that cannot be
+re-run.
+
+**5. Record the whole trajectory, not the verdict.**  The first run
+produced two sentences and they were enough to find three defects — but
+only because the window could be photographed afterwards to reconstruct
+what he must have been looking at.  What is wanted is what this card
+already asks for (told, read, guessed, gave up), captured *as it
+happens*.  **The cheapest available improvement to run two is recording
+it better**, and it costs nothing but deciding how beforehand.
+
+### What run two should be asked, on today's evidence
+
+Not "is it better now".  The theories that survive 08-17 disagree about
+exactly one thing a person can settle: **whether the corner is findable
+at all**, once the first screen no longer lies about it.  So the run is
+worth spending if and only if the corner has been changed in one
+identifiable way and nothing else has — otherwise it answers a bundle.
+
+And there is a second question that costs *no* new stranger, per rule 1:
+hand the same friend the window with the list open and watch what he
+does with `apply`.  He never saw it.

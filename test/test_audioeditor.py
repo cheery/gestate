@@ -2193,7 +2193,9 @@ def test_a_slow_build_never_has_the_last_word(tmp_path):
 
     built, inside, overlapped = [], [], []
 
-    def slowly(text, save):
+    # `quiet` since F151 — an unasked-for audition carries the flag that
+    # forbids it to complain, and the worker's payload is what carries it.
+    def slowly(text, save, quiet=False):
         inside.append(text)
         if len(inside) > 1:
             overlapped.append(tuple(inside))
@@ -2233,7 +2235,9 @@ def test_a_string_of_gestures_is_one_audition(tmp_path):
     bench = Workbench(path, rate=8000, block=64)
 
     heard = []
-    bench._auditions._run = heard.append
+    # The payload is `(text, quiet)` since F151; this test is about the
+    # coalescing, so it keeps only the half it was always about.
+    bench._auditions._run = lambda text, quiet=False: heard.append(text)
     for n in range(5):
         bench.audition_soon(f"take {n}")
         time.sleep(0.02)

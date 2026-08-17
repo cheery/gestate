@@ -3739,6 +3739,24 @@ def furniture(session: "Session", bench=None, tally: str = "",
 
     if not inert:
         out.append(f"play\t{1 if _rolling(b) else 0}\t{_beats(b)}")
+        # **What you are hearing is not what you are looking at**
+        # (`fixme.md` F151).  Not a complaint and deliberately not
+        # written like one: an edit that has not reached the sound is
+        # the ordinary state of an editor you press something to be
+        # heard in.  What was missing is that *nothing said so* — a
+        # person who does not know the step exists cannot tell this
+        # from a program ignoring them, and that is exactly where a
+        # stranger stopped (`board/button.md`).
+        #
+        # **The words are the model's**, like every other sentence that
+        # crosses here: the window places and colours it and does not
+        # compose it, so the key this names cannot drift from the key
+        # `KEYS` binds.  An old window skips the verb and loses the
+        # mark, not the file.
+        held = getattr(session.view, "held", None)
+        behind = getattr(b, "behind", None)
+        if held is not None and behind is not None and behind(held()):
+            out.append(f"behind\tsound behind · audition {KEYS['audition']}")
     # **What a played note would do, and whether anything would hear
     # it.**  The keyboard is drawn from these two: a piano nobody is
     # listening to is drawn grey, because a control that does nothing

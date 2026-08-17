@@ -66,7 +66,11 @@ is what keeps a card's name stable while priorities move.
    belonged further up, since he had called it "a relatively important
    task", and he answered **"the ordering is fine"**.  Its first tier
    landed the same day anyway, with the defect that prompted it.*
-12. **[portable-package](portable-package.md)** — the install is
+12. **[error-messages](error-messages.md)** — go through every
+   complaint and check it works; the sweep was done once and has
+   drifted.  *Written by the session at Henri's ask, 2026-08-17, out of
+   `fixme.md` F152 — one message that had never had a place to land.*
+13. **[portable-package](portable-package.md)** — the install is
    Ubuntu-shaped and anybody else translates it by hand.  *Written by
    the session at Henri's ask, 2026-08-17.  Placed after
    installation-test deliberately: a package is an install whose

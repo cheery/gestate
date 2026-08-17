@@ -188,6 +188,16 @@ pub struct Furniture {
     /// nothing about time has no position to show, and a readout of
     /// `1.1` invented for it would be a fact the window made up.
     pub has_transport: bool,
+    /// **What is sounding is not what is written**, and how to fix it —
+    /// the model's own sentence, empty when the two agree.
+    ///
+    /// Not a complaint: an edit that has not reached the sound is the
+    /// ordinary state of an editor you press something to be heard in.
+    /// It is here because nothing said so, and a stranger who did not
+    /// know the step existed could not tell it from a program ignoring
+    /// him (`board/button.md`, `fixme.md` F151).  The words are the
+    /// model's so the key it names cannot drift from the key bound.
+    pub behind: String,
     /// The scopes, as `(label, line, flavor)` — a signal watched
     /// where it is written: each grants a content box under its
     /// declaration, and the trace drawn in it arrives on the readings
@@ -307,6 +317,9 @@ impl Furniture {
                 }
                 "inert" => {
                     f.inert = p.get(1).copied() == Some("1");
+                }
+                "behind" => {
+                    f.behind = p.get(1).copied().unwrap_or("").into();
                 }
                 "canvas" if p.len() >= 2 => {
                     if let Ok(line) = p[1].parse() {

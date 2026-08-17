@@ -70,6 +70,8 @@ Of 130 entries, **113 are resolved**.  What is left:
 | F148 | resolved | The taskbar wore a sine; the front page wore the egg |
 | F149 | resolved | The desktop icon installed correctly and did nothing when clicked |
 | F150 | resolved | The first screen named a deleted button; the menu opened on `skip` |
+| F151 | resolved | Typing reached nothing, and there was no word for it |
+| F152 | resolved | A complaint with no place to land |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -4563,3 +4565,89 @@ Held by `test_starter_and_first_command.py`.  Neither fix commits the
 corner to anything, which is why they could be made while the question
 of what the button should look like stays open — `manifesto.md`
 §"Set-based, not point-based", written the same day and at his ask.
+
+### F151. **[resolved]** Typing reached nothing, and there was no word for it
+
+Henri, 2026-08-17, having measured what an audition costs: *"If audition
+takes less than half a second after a change, then I think it should be
+automatic.  That's the case with the intro's example function, but not
+the case with every program."*  And then, on what the window owes while
+it is not: *"we need some mechanism that shows the command to audition
+and tells the audio is off sync, but still doesn't complain when user
+types away."*
+
+**The defect this closes belongs to a person.**  A stranger on the
+starter screen could open the editor and hear it — both happen by
+themselves — and could type.  Nothing he typed reached the sound,
+because the step that puts it there is a key nobody told him about, and
+**nothing on screen said the sound and the text had parted**
+(`board/button.md`).
+
+Three parts, and the measurements are in the card:
+
+**Cheap, and measured rather than predicted.**  The cost does not
+follow the size of the program — `lead.ges` is 432 lines and auditions
+in 1.39 s, `lantern.ges` is 279 and takes 3.06 s — so nothing static
+can decide this.  The gate is the last audition *of this file*
+(`AUTO_AUDITION`, 0.5 s).  The first cut gated on that alone and was
+wrong in a way every test passed: a file nobody has applied has no
+measurement, **and a stranger never applies anything**, so the feature
+was switched off for exactly the person it was built for.  `COLD_ENOUGH`
+is the answer — a file that *opened* in under two seconds gets one
+audition on trust, and what that one costs decides the rest.  Opening
+time is a veto and never an estimate; the ratio between them runs from
+0.37 to 1.24 across the corpus.
+
+**Quiet.**  A dragged note always produces text that compiles; typing
+does not, and half of what anybody types is briefly not a program.  So
+an unasked-for audition may change the sound and **may not complain** —
+one flag through `_built`.  That turned out to be a path rather than a
+branch: returning quietly still left the exception in `live.pending`,
+which `install` turns into a line in `live.errors` between two blocks,
+which `_progress` announces — the forbidden complaint, arriving a moment
+later from a thread that had never heard of the flag.  `_hush` is the
+whole of the rule: no pending, and nothing appended to `errors` while
+this build ran.  An `apply` or an asked-for `audition` still reports
+everything it ever did.
+
+**And it says so.**  `sound behind · audition Ctrl-Return`, in `AWAY` —
+the colour that already means *a thing deliberately not sounding*, warm
+rather than red because it is usually a choice being tried and not a
+fault.  The words are the model's, so the key cannot drift from the one
+`KEYS` binds; the window places and colours it and does not compose it.
+
+Held by `test/test_autoaudition.py`, one section per rule.
+
+### F152. **[resolved]** A complaint with no place to land
+
+Henri, 2026-08-17, typing into the new automatic audition: *"The error
+messages no longer interleave into their places.  Just try take `Sig
+Floa` and see how the message doesn't land."*
+
+**It had never landed, and the "no longer" was the audition making him
+break things on purpose.**  Checked before anything was changed, by
+driving the same keys against the editor twice — once with the automatic
+audition and once with it disabled — and photographing both: a *type*
+error interleaves as a red box under its line in each, identically.  So
+the new code was not the cause and the report was still right.
+
+`Unknown type constructor: Floa` carried **no position**.  A complaint
+that names a line gets a content box under it; one that names none falls
+back to a single sentence in the status bar.  Same seriousness,
+different treatment, and nothing in the source said so —
+`kindcheck.py` *had* the position arithmetic, written for `foo : int`
+(F141) and used only there, because that was the one message somebody
+had hit.
+
+Five kind errors given their place, through one `_where` helper: the
+unknown constructor, the two kind mismatches and the two function-type
+ones.  Every node in `types.py` already carried a `span`;
+`audiospans.in_source` already rewrote raw `line:col` into the author's
+file.  Nothing needed inventing — it needed noticing.
+
+Held by `test/test_error_places.py`, which asserts the place *and* that
+the sentence still says what is wrong, since appending a span is exactly
+how the message gets lost.  **`board/error-messages.md` is the card for
+the rest of them**, at his ask: *"we maybe need to arrange a session
+where we examine meticulously every error message and ensure they work.
+We already did that once and it needs to be done again."*

@@ -293,3 +293,75 @@ on four of its six when either defect is put back.
 default (C), categories (D), and whether an edit should be audible
 without applying at all (E).  None of those should be decided on one
 stranger — which is question 3, and the cheapest thing on this card.
+
+## E, measured: what an audition actually costs
+
+*Henri, 2026-08-17: "If audition takes less than half a second after a
+change, then I think it should be automatic.  That's the case with the
+intro's example function, but not the case with every program."*
+
+Measured headlessly on the tests' own harness — a real `Workbench` with
+a paced player, one character changed, timed from `audition(text)` to
+the workbench saying "auditioning", which is the last thing `_built`
+does and therefore the moment the sound is swapped:
+
+| program | lines | cold start | audition |
+|---|---:|---:|---:|
+| the starter | 11 | 0.71s | **0.26s** |
+| `compressor.ges` | 38 | 0.62s | **0.36s** |
+| `bell.ges` | 70 | 0.43s | **0.32s** |
+| `twoknobs.ges` | 134 | 0.41s | **0.51s** |
+| `bar.ges` | 92 | 0.76s | **0.55s** |
+| `lead.ges` | 432 | 3.47s | 1.39s |
+| `lantern.ges` | 279 | 8.06s | 3.06s |
+| `nightdrive.ges` | 283 | 6.29s | 3.31s |
+| `quartet.ges` | 665 | 9.69s | 4.63s |
+
+**His half-second lands almost exactly on the seam.**  The first screen
+a stranger meets is 0.26s; the pieces somebody works on for an evening
+are three to five seconds.
+
+### Three things the table says that the idea did not
+
+**1. Cost cannot be predicted from the program.**  `lead.ges` is 432
+lines and auditions in 1.39s; `lantern.ges` is 279 and takes 3.06s.
+So a rule that guesses from size, or from anything static, will be
+wrong in both directions.  **The threshold has to be measured, not
+predicted** — which points at the self-tuning form: audition
+automatically while *the last measured audition of this file* came in
+under the threshold, and stop when it does not.  No prediction, no
+configuration, and it degrades exactly where he said it should.
+
+**2. Most of the machinery is already built, and already wired — to the
+other kind of change.**  `Workbench.audition_soon` exists, and
+`Newest(after=AUDITION_WAIT)` is a 0.4s debounce with newest-wins
+coalescing and the racing-builds hazard already solved.  A *dragged
+note* auditions itself today (`session.py`, the north-star gesture);
+typing does not.  So this is not a new feature so much as an
+inconsistency: the editor already believes in automatic auditions.
+
+**3. And here is the difference between the two, which is the real
+design question.**  A dragged note always produces text that compiles.
+**Typing does not** — half of what a person types is, for a moment,
+not a program.  Auto-auditioning on a pause therefore means the
+complaint machinery firing continuously while somebody thinks with
+their fingers.
+
+The rule that seems to follow: **an automatic audition may not
+complain.**  It changes the sound when it can and says nothing when it
+cannot; an explicit `apply` or `audition` still reports everything it
+always did.  That keeps the promise (the sound follows the text)
+without turning the margin into a stream of transient errors, and it is
+one flag through `_built` rather than a new path.
+
+### Why this is worth doing beside the corner rather than instead of it
+
+If it works, **the fourth step needs no affordance at all** for the
+programs a stranger meets — which is where the corner's whole burden
+came from.  It does not make the button findable, and it does not
+excuse the corner: `apply` also *saves*, and that decision stays a
+person's.  But it moves the thing a stranger was stuck on out of the
+menu entirely, on exactly the programs where it is cheap.
+
+**Not built.**  It changes what the editor does unbidden, and the "may
+not complain" rule changes what it says, so it wants his word first.

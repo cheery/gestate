@@ -73,6 +73,16 @@ class Window:
         #: `None` until the document has been read once — see
         #: `lines`, where the difference is load-bearing.
         self._lines: list | None = None
+        #: The text those lines came from, kept so the model can be
+        #: asked about it without a second copy crossing the ABI.
+        #: **`.text` is a copy of the document** and the poll runs five
+        #: hundred times a second; comparing two strings already in hand
+        #: is a `memcmp`, and fetching one is not.
+        self._held: str = ""
+        #: Whether the document moved since anybody asked — read and
+        #: cleared by the loop, which is what turns typing into an
+        #: audition (`audioeditor.Workbench.typed`).
+        self.moved = False
 
     def text(self) -> str:
         return self.editor.text
@@ -95,8 +105,20 @@ class Window:
         # only once you typed, which reads as colouring that does not
         # work.
         if self._lines is None or self.editor.changed():
-            self._lines = self.editor.text.splitlines()
+            # **One copy, three readers.**  The lines are for painting,
+            # `_held` is what the model is asked about (`behind`) and
+            # what an automatic audition is built from — all from the
+            # same fetch, because `changed()` is consumed here and a
+            # second caller asking it would get `False` and be wrong.
+            got = self.editor.text
+            self._held = got
+            self._lines = got.splitlines()
+            self.moved = True
         return self._lines
+
+    def held(self) -> str:
+        """The text the last read saw, without reading again."""
+        return self._held
 
     def visible(self) -> list:
         """`(line number, text)` for the rows on screen, 1-based.
@@ -812,6 +834,19 @@ def run(path, rate: int = 44100, block: int = 512,
             if now != said:
                 editor.describe(now)
                 said = now
+
+            # **Typing is an audition, when an audition is cheap** —
+            # `Workbench.typed`, `fixme.md` F151.  Asked here rather
+            # than anywhere closer to the keys because `furniture` has
+            # just read the document (the flag is set by `Window.lines`)
+            # and this is the one place that knows both the text and the
+            # instrument.  `typed` decides whether to do anything at
+            # all; every condition is its, so the loop stays a wire.
+            if session.view.moved:
+                session.view.moved = False
+                heard = getattr(bench, "typed", None)
+                if heard is not None:
+                    heard(session.view.held())
 
             # **The payload, on rebuild and never on keystrokes.**  A
             # new instrument or an applied edit builds a new
