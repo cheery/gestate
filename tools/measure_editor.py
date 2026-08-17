@@ -24,7 +24,8 @@ import sys
 import time
 
 sys.path.insert(0, "/home/cheery/gestate/tools")
-from lagcheck import (tap, chord, driven, find_window, click_into,  # noqa: E402
+from lagcheck import (a_copy_of, tap, chord, driven,  # noqa: E402
+                      find_window, click_into,
                       shot, DPY, X, XTEST)
 
 WORKBENCH = [sys.executable, "-m", "gestate.workbench"]
@@ -73,7 +74,7 @@ def main() -> int:
     # Into the caller's working directory, never beside this file — a
     # measurement run must not leave droppings in `tools/`.
     err = open(os.path.abspath(f"editor-{scenario}.stderr"), "w")
-    proc = subprocess.Popen(WORKBENCH + [path], env=env,
+    proc = subprocess.Popen(WORKBENCH + [a_copy_of(path)], env=env,
                             cwd="/home/cheery/gestate",
                             stdout=subprocess.DEVNULL, stderr=err)
     try:

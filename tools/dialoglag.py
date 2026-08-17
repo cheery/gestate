@@ -13,13 +13,14 @@ import time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 REPO = "/home/cheery/gestate"
 sys.path.insert(0, os.path.join(REPO, "tools"))
-from lagcheck import chord, click_into, driven, find_window, tap  # noqa: E402
+from lagcheck import (a_copy_of, chord, click_into, driven,  # noqa: E402
+                      find_window, tap)
 
 
 def drive(file: str, settle: float, cycles: int, label: str) -> None:
     env = driven(GESTATE_EDITOR_TIME="1")
     proc = subprocess.Popen(
-        [sys.executable, "-m", "gestate.workbench", file],
+        [sys.executable, "-m", "gestate.workbench", a_copy_of(file)],
         cwd=REPO, env=env,
         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
     try:

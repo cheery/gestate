@@ -116,6 +116,41 @@ def driven(**extra) -> dict:
     return dict(os.environ, GESTATE_PRESENCE="", **extra)
 
 
+def a_copy_of(path=None) -> str:
+    """The file a driven window opens — **a copy, never the original.**
+
+    **A harness that types is a harness that can save.**  XTEST sends
+    the events a hand sends, so `Ctrl-S` in a scenario means what it
+    means under a finger: the file on disk is rewritten.  Every tool
+    here names a *committed example*, so one scenario reaching for that
+    chord would edit the repository — and a harness that names no file
+    at all opens `untitled.ges` in the working directory and leaves it
+    there, which is how this was learned (2026-08-17: a driven
+    reproduction saved a deliberately broken starter into the tree, and
+    the *next* run opened it and measured the wrong thing).
+
+    A fence does not help: the write is inside the project and is the
+    program working correctly.  What helps is that the file handed over
+    was never the one you care about.  Same basename, so anything that
+    reads the name — a status bar, a complaint's `(at file:line)` —
+    still reads the right one; `None` yields a path that does not
+    exist, which is what a bare launch opens on and where its first
+    save now lands.
+
+    Goes with `driven` for the same reason it is written here: one
+    funnel, so a sixth tool cannot forget.
+    """
+    import shutil
+    import tempfile
+
+    where = tempfile.mkdtemp(prefix="gestate-driven-")
+    if path is None:
+        return os.path.join(where, "untitled.ges")
+    copy = os.path.join(where, os.path.basename(path))
+    shutil.copyfile(path, copy)
+    return copy
+
+
 def shot(win: int, path: str) -> None:
     subprocess.run(["import", "-window", str(win), path], capture_output=True)
 
@@ -142,7 +177,7 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     proc = subprocess.Popen([sys.executable, "-m", "gestate.workbench",
-                             args.file], env=driven(),
+                             a_copy_of(args.file)], env=driven(),
                             stdout=subprocess.DEVNULL,
                             stderr=subprocess.DEVNULL)
     tmp = tempfile.mkdtemp(prefix="lagcheck-")

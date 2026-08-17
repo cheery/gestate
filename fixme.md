@@ -73,6 +73,7 @@ Of 130 entries, **113 are resolved**.  What is left:
 | F151 | resolved | Typing reached nothing, and there was no word for it |
 | F152 | resolved | A complaint with no place to land |
 | F153 | resolved | The window taught the key only to people who no longer needed it |
+| F154 | resolved | A driven harness saved into the repository |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -4688,3 +4689,29 @@ was right and is kept.
 One flag, on a mechanism already built and already drawn.  Photographed
 on a window nobody had touched (says it), after one `Ctrl-K` (stops),
 and after the list closed again (stays stopped).
+
+### F154. **[resolved]** A driven harness saved into the repository
+
+2026-08-17, mine.  A reproduction harness launched `tools/gestate-editor`
+with no argument — which opens `untitled.ges` **in the working
+directory** — typed a deliberately broken program and pressed `Ctrl-S`.
+The file landed in the tree, and the *next* run opened it and measured
+the wrong thing for a while before the confusion was noticed.
+
+Henri: *"Mistakes happen and that's one reason to have a fence."*  The
+fence does not reach this one, and that is the part worth writing down:
+the write was **inside the project** and was the editor doing exactly
+what `Ctrl-S` means.  `tools/sandbox.sh` fences the tree from the
+machine; nothing fences the tree from itself, and nothing should.
+
+So the poka-yoke is upstream of the write.  `lagcheck.a_copy_of` sits
+beside `driven` and states the same rule — *one funnel, so a sixth tool
+cannot forget*: every harness opens a **copy** in a temporary
+directory, same basename so a status bar or an `(at file:line)` still
+reads right, and `None` yields a path that does not exist, which is
+what a bare launch opens on and where its first save now goes.
+
+**And the exposure was larger than the accident.**  All four committed
+tools name *committed examples*, so any scenario that reached for
+`Ctrl-S` would have edited `examples/audio/twoknobs.ges` rather than an
+untracked scratch file.  Nothing had, which is luck rather than design.
