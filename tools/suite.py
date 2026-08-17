@@ -51,6 +51,15 @@ REPORT = ROOT / "test" / "report.md"
 #: Nothing here tests behaviour; they test that the tree still agrees
 #: with itself, which is exactly the property editing the tree breaks.
 #:
+#: **The rule for what belongs here is the defect class, not the file.**
+#: `doc/ref/` joined on 2026-08-17 for exactly that reason: it is a
+#: *generated file behind its source*, the same class as the atlas, and
+#: the two sat at different depths for no reason anybody had chosen —
+#: the sheet failed six seconds in and the reference page twenty-four
+#: minutes in, on the same evening, from the same edit to
+#: `command.ges`.  The second cost a whole re-run.  The check itself is
+#: a directory comparison and takes 0.17 s.
+#:
 #: They are not re-listed for the long pass — it runs them again as part
 #: of its own collection, which is where their five seconds are counted.
 GATES = {
@@ -60,6 +69,8 @@ GATES = {
         "every §\"…\" and card citation in the tree",
     "test/test_atlas.py":
         "the generated sheets against the source they describe",
+    "test/test_reference.py::test_doc_ref_is_not_behind_the_libraries":
+        "doc/ref/ against the libraries it is derived from",
     "test/test_audio.py::test_every_audio_example_is_exercised_here":
         "the audio example roster",
     "test/test_gui.py::test_every_gui_example_is_exercised_here":
