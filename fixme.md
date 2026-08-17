@@ -4162,3 +4162,45 @@ directory is named and the file really is beneath it.
 
 Tests pin **which row comes first** — F122 and F123 were each fixed at
 this site without one, which is how a third came to exist.
+
+### F146. **[missing]** `Ctrl-Tab` goes to the canvas and will not come back
+
+Henri, 2026-08-17: *"Ctrl+Tab goes to canvas.  Ctrl+Tab appears also in
+source command, but it doesn't go back to source."*
+
+**Both commands really do claim the key**, and that is the intent —
+`session.KEYS` has `"canvas": "Ctrl-Tab"` and `"source": "Ctrl-Tab"` on
+consecutive lines, which is a toggle written as two halves.
+
+**What breaks it is that nothing chooses between them.**
+`window.rs::shortcut` resolves a chord against the command list with
+
+```rust
+chrome.commands.iter().find(|e| e.key.eq_ignore_ascii_case(&chord))
+```
+
+and `find` takes the **first** match.  `canvas` is declared before
+`source` in `command.ges` and ranked before it in the list, so `Ctrl-Tab`
+runs `canvas` every time — including while the canvas is already showing,
+where it is a no-op.  `source` advertises a key it can never receive.
+
+So there are two defects and the smaller one is worse: the command list
+**tells the reader something untrue**.  It says `Ctrl-Tab` beside
+`source`, and pressing it there does nothing.  A key that is drawn and
+does not work is the same class of fault as a knob with no channel behind
+it, which this editor already refuses to ship (`Knob.wired`).
+
+**The fix shape, and it needs no window change.**  The chrome is a
+description and the model owns it, so let the model send the key on the
+command that would actually do something: while the source is showing,
+`canvas` carries `Ctrl-Tab` and `source` carries none; while the canvas
+is showing, the reverse.  `find` then finds the right one unchanged, the
+list never advertises a dead key, and both commands keep their names for
+anybody who types them in full.  `session.furniture` already emits
+`command\t<name>\t<usage>\t<key>\t<summary>` per verb and
+`session.view.showing` already says which frame is up.
+
+Rejected before it is proposed: making the window pick by its own view
+state.  That is a second place deciding what a key means, and the two
+could disagree — the rule this editor keeps everywhere else is that the
+model decides and the window draws.

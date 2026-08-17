@@ -707,6 +707,12 @@ KEYS = {
     "copy": "Ctrl-C",
     "cut": "Ctrl-X",
     "paste": "Ctrl-V",
+    # **One key, two halves of a toggle** — and which half holds it is
+    # decided per description by `_toggle_key`, not here.  Written flat
+    # like this and sent flat, `window.rs::shortcut` resolved the chord
+    # with `find`, which takes the *first* match: `Ctrl-Tab` ran `canvas`
+    # every time, including while the canvas was already up, and `source`
+    # advertised a key it could never receive (`fixme.md` F146).
     "canvas": "Ctrl-Tab",
     "source": "Ctrl-Tab",
     "zoomIn": "Ctrl-+",
@@ -3474,6 +3480,36 @@ def _beats_of(bar: int) -> float:
 # ── The window, and what passes between them ─────────────────────────────
 
 
+#: The two halves of the view toggle, and the key they share.
+_TOGGLE = ("canvas", "source")
+
+
+def _toggle_key(session, verb) -> str:
+    """`verb.key`, except that only the half which would *do* something
+    carries the shared chord.
+
+    **The chrome is a description and the model owns it** (`fixme.md`
+    F146).  `canvas` and `source` both claim `Ctrl-Tab` because they are
+    one toggle written as two commands — but the window resolves a chord
+    by taking the first match in the list, so the first of them won
+    always and the second advertised a key that did nothing.
+
+    A drawn key that does not work is the same fault as a knob with no
+    channel behind it, and this editor already refuses to ship those
+    (`Knob.wired`).  So the key travels with whichever half is *not* the
+    view you are looking at, and the list can only ever say the truth.
+
+    Decided here rather than in the window on purpose: two places
+    deciding what a key means is two places that can disagree, which is
+    the rule every other part of this wire keeps.
+    """
+    if verb.name not in _TOGGLE:
+        return verb.key
+    showing = getattr(getattr(session, "view", None), "showing", "source")
+    wanted = "source" if showing == "canvas" else "canvas"
+    return verb.key if verb.name == wanted else ""
+
+
 def furniture(session: "Session", bench=None, tally: str = "",
               warm: bool = False) -> str:
     """What the model has to say about the chrome — `furniture.rs`.
@@ -3726,7 +3762,7 @@ def furniture(session: "Session", bench=None, tally: str = "",
         # are what let the view *ask*: a list that only said `loop <int>
         # <int>` would leave the window parsing a usage string to learn
         # how many boxes to open, and a usage string is prose.
-        out.append(f"command\t{verb.name}\t{verb}\t{verb.key}"
+        out.append(f"command\t{verb.name}\t{verb}\t{_toggle_key(session, verb)}"
                    f"\t{verb.summary}\t{','.join(verb.args)}"
                    f"\t{REVERSE.get(verb.name, '')}")
 

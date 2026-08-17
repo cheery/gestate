@@ -3527,3 +3527,54 @@ def test_a_path_into_a_directory_that_is_not_there_offers_nothing(tmp_path):
     it.bench.path = room / "one.ges"
     act(it, "wants\topen\t0\tnope/hello.ges")
     assert it.choices() == []
+
+
+# ── The view toggle's one key — F146 ────────────────────────────────────────
+
+
+def _command_keys(it) -> dict:
+    return {l.split("\t")[1]: l.split("\t")[3]
+            for l in furniture(it).splitlines() if l.startswith("command")}
+
+
+def test_the_shared_key_travels_with_the_half_that_would_do_something():
+    """`fixme.md` F146, from Henri: *"Ctrl+Tab goes to canvas.  Ctrl+Tab
+    appears also in source command, but it doesn't go back to source."*
+
+    Both halves really do claim the chord — they are one toggle written
+    as two commands.  What broke it is that `window.rs::shortcut`
+    resolves a chord with `find`, which takes the **first** match, so
+    `canvas` won always and `source` advertised a key it could never
+    receive.
+
+    **A drawn key that does nothing is the same fault as a knob with no
+    channel behind it**, which this editor already refuses to ship
+    (`Knob.wired`) — so the list may only ever say the truth, and the
+    truth is decided here rather than in the window, because two places
+    deciding what a key means is two places that can disagree.
+    """
+    it = session()
+
+    it.view = _Showing()                     # points at the source
+    keys = _command_keys(it)
+    assert keys["canvas"] == "Ctrl-Tab"
+    assert keys["source"] == "", "there is nowhere to go back to"
+
+    it.view.show("canvas")
+    keys = _command_keys(it)
+    assert keys["source"] == "Ctrl-Tab", "and now it comes back"
+    assert keys["canvas"] == ""
+
+
+def test_only_one_command_ever_holds_a_given_chord():
+    """The general rule the toggle broke, stated where a third command
+    claiming an existing chord would trip over it: the window picks the
+    first match, so two live claims on one chord means the second is a
+    lie told to the reader."""
+    for showing in ("source", "canvas"):
+        it = session()
+        it.view = _Showing()
+        it.view.show(showing)
+        claimed = [k for k in _command_keys(it).values() if k]
+        assert len(claimed) == len(set(claimed)), \
+            f"showing {showing}: two commands claim {sorted(claimed)}"
