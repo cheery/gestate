@@ -320,3 +320,29 @@ That is the whole method:
 
 > **Being wrong has to be visible, and the thing that makes it visible
 > has to be checked against being wrong.**
+
+### And the shape of the end of one
+
+*Henri, 2026-08-17: "I think this will become a ritual.  Every evening,
+we will run the test and talk."*
+
+**Two things at once, and the pairing is the point.**  The suite takes
+about half an hour and nothing can be done to the tree while it runs —
+which makes it the one reliable window in a day for the conversation
+that has no other slot: what today's work turned out to be about, what
+the next card is really asking, what a finding generalises to.  Neither
+half is filler for the other.  The run needs no attention and the talk
+needs no keyboard.
+
+It also fixes something that was drifting.  A session that commits and
+stops leaves its findings in commit bodies, which is `board/gemba.md`'s
+whole complaint — *"today I read sixteen commit messages Claude
+wrote"*.  A ritual with a fixed end puts the summary in front of the
+person while he can still argue with it.
+
+**And the first one earned its keep before the conversation started.**
+The gates caught `doc/atlas/wire.svg` a commit behind its source — the
+`behind` row had crossed the furniture wire that afternoon (F151) and
+the sheet still showed the old crossing.  Committed and pushed without
+the run, it would have been read as current by whoever looked next,
+which is exactly the drift the atlas exists to prevent.

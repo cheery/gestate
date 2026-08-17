@@ -186,3 +186,58 @@ a few hours earlier.
 3. Python colouring, which is `painted()` plus the stdlib.
 4. Rust colouring, which is ~80 lines and marked *reading aid*.
 5. The cache's per-line start state, or a measured bypass.
+
+## Found on the way, 2026-08-17 evening — what a session actually presented
+
+**The channel is specified as flat text, and today's most effective
+presentations were pictures.**  Worth knowing before the box is built,
+because it is cheap to allow and expensive to retrofit.
+
+Everything that moved a decision today was an image the session made
+and described:
+
+* the first screen a stranger meets, photographed and then *measured* —
+  the burger's 24 lit pixels, `#4a5260` on `#14161a`, counted off the
+  capture (F150);
+* the command list open, showing `skip` selected over *"Do nothing —
+  the identity of `++`"*;
+* five status bars stacked, one per pause in typing, which is what
+  finally made "chatter" mean something — *"so you mean that chatter"*;
+* an **A/B pair**, the same keys driven with a change on and off, which
+  is what cleared the auto-audition of causing F152.
+
+None of that is a sentence, and prose describing any of it failed first:
+the chatter was explained twice in text before a strip of five bars made
+it obvious in a second.
+
+**What this suggests, without deciding it:** the queue carries typed
+lines — the house format is verb-first, so `say`, `shot <path>`,
+`ask` cost nothing to distinguish — and the box already knows how to
+draw a picture, because every other content box is one.  The dwell
+rule then applies per item whatever its kind.
+
+**And the tools are already here**, used ad hoc all day and worth
+gathering: `lagcheck.shot` for the capture, `a_copy_of` so driving is
+safe (F154), ImageMagick for crop/magnify/stack, and pixel counting in
+twelve lines of stdlib.  The gap is not capability; it is that nothing
+routes them to a window Henri is looking at.
+
+**And it already goes the other way.**  Henri, the same evening: *"yes!
+pictures are very important in the tool.  We've solved many problems
+that way.  Sometimes I've even shown you video."*  So the picture
+channel is not a new idea being proposed for this box — it is the
+established medium of this collaboration, and the box is where it stops
+being ad hoc.
+
+Which splits the medium usefully:
+
+* **A picture shows state** — the burger's contrast, a list open on the
+  wrong entry, a box that did not land.  One frame answers it.
+* **A sequence shows behaviour** — the chatter needed five bars in a
+  row; nothing about any single one of them is wrong.
+
+**The second is where the dwell rule and the pictures meet**, and the
+house may already own the answer: `gestate.sessionlog` records and
+replays a session, and a replay is what a video is for without being a
+codec.  Worth asking whether a gemba item can be *"replay this"* before
+anyone reaches for frames.
