@@ -4204,3 +4204,71 @@ Rejected before it is proposed: making the window pick by its own view
 state.  That is a second place deciding what a key means, and the two
 could disagree — the rule this editor keeps everywhere else is that the
 model decides and the window draws.
+
+### F147. **[missing]** A pop at start, a scratchy knob, and a drone under the laptop's floor
+
+Henri, 2026-08-17, playing `examples/audio/tuning.ges` — three
+observations in one sitting, kept together because two of them may share
+a cause:
+
+> the knob sounds scratchy when dragged and I think the sound is too low
+> for laptop speakers. But now it is clearly there. Also there's a bit
+> strong "POP" or "CHOP" when the program starts. Almost like analog pop
+> when a live plug is connected.
+
+**None of the three is diagnosed.**  What follows is what was ruled out,
+so the next reader does not spend the same half hour.
+
+#### The pop
+
+Ruled out:
+
+- **It is not in the program.**  `render(tuning.ges, 0.05, 48000)` starts
+  at exactly `0.0` and the largest sample-to-sample step in the first
+  10 ms equals the steady-state one — the waveform is continuous from the
+  first sample.
+- **It is not the master fader.**  `Host.__init__` starts the fader down
+  on purpose (*"the first block is the same step in the waveform as any
+  other and pops the same way"*) and `host.c` ramps it by `n / mute_len`
+  per block, with `mute_len = fade_len / 4`.  At `fade_ms = 40` and
+  44100 Hz that is a **10 ms** ramp, four cycles at 415 Hz.
+
+**And a limit on the oracle, which is the useful part.**  A clean offline
+render does *not* clear the live path: `audioperform -o` renders a knob
+**at its resting value** and never exercises the control channel.  So
+anything that goes wrong in the first blocks of the *live* control path
+is invisible to the tool that was reached for first.  `--control-every`
+does not help — it deliberately *sweeps* a knob across its range to make
+a control clock observable, so the bigger steps it produces are the
+sweep, not a click.  That was mistaken for evidence once already.
+
+**The experiment that decides it, and it takes ten seconds:** open a file
+that makes no sound — `python -m gestate.workbench README.md` opens
+inert.  If it still pops, the pop is the sound card's amplifier unmuting
+when ALSA opens the device, which is his own first guess (*"almost like
+analog pop when a live plug is connected"*) and is outside gestate.  If
+it is silent, the pop is ours.
+
+#### The scratchy knob
+
+Undiagnosed, but the mechanism is not mysterious: `reference` is a
+stepped control signal read straight into a frequency
+(`415 ::: mkSig (wait concertChan)`), with no smoothing anywhere between
+the channel and `sine`.  A frequency that jumps once per control block is
+a phase discontinuity per block — textbook zipper noise, and a defect of
+the **example** rather than the engine.
+
+`synth.ges` has the tool: `slew : Sig Float -> Sig Float -> Sig Float`,
+a one-pole toward a target.  **It needs care rather than dropping in**,
+because `slew` is `scan slewStep 0.0` — it starts at zero, so a naive
+application would glide the drone up from 0 Hz on every start, which
+would *add* a noise at exactly the moment this entry is also about.
+
+#### The level
+
+`0.6 * drone` was raised to `0.95` the same morning (peak 0.317 → 0.502)
+and he still reports it low for laptop speakers.  Half of what is left is
+not gain: three pure sines have no harmonic content, and a small speaker
+with no low end reproduces almost nothing else.  Raising it further eats
+headroom the knob needs; the honest fixes are a different timbre or a
+different example, and both change what the file is for.
