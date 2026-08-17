@@ -2388,3 +2388,73 @@ def test_a_reroll_rebuilds_the_score_however_little_the_text_moved(tmp_path):
     _settle(bench)
     assert bench.schedule is not kept, "a reroll kept the old take"
     bench.stop()
+
+
+class _LoopHost(_StubHost):
+    """A host that remembers its control block **as the loop found it**.
+
+    The whole test is in `run_device`: whatever has been written by the
+    time the render loop begins is what the first block of sound is made
+    from, so that is the moment worth photographing.
+    """
+
+    def __init__(self, controls: int):
+        super().__init__(position=0)
+        self.control = [0] * controls
+        self.frames = 0
+        self.at_start = None
+
+    def set_control(self, index, value, type_):
+        super().set_control(index, value, type_)
+        self.control[index] = value
+
+    def run_device(self, block, total):
+        self.at_start = list(self.control)
+
+
+def test_no_knob_still_reads_zero_when_the_render_loop_begins(tmp_path):
+    """`fixme.md` F147, and the invariant is Henri's own sentence about
+    it: **zero is a zero.**
+
+    `Host.__init__` allocates the control block as
+    `(ctypes.c_int64 * controls)()`, which is zeroed, and the only thing
+    that ever fills it is `_push_controls` on the housekeeping thread.
+    That thread was started one line before `run_device`, so the first
+    blocks the device rendered could read **zero for every knob** — a
+    race won or lost by a few milliseconds of scheduling.
+
+    Inaudible for most parameters and unmistakable for one kind: it was
+    reported as a *"strong POP or CHOP"* on the first program in this
+    tree to wire a knob straight to a **frequency**, where zero means
+    0 Hz.  A filter cutoff doing the same would have gone unnoticed for
+    another year.
+
+    **Asserted about the state, not the call order.**  A test that
+    checked `_push_controls` runs before `run_device` would be reading
+    the fix back to itself; what matters is what the loop *finds*, which
+    is a fact about the world and stays true however the code is
+    rearranged.  And it needs no sound card, no listener and no ears —
+    which was the point of the sentence.
+    """
+    path = tmp_path / "twoknobs.ges"
+    path.write_text((AUDIO_DIR / "twoknobs.ges").read_text())
+    bench = Workbench(path, rate=8000, block=64,
+                      command=_pacer(tmp_path / "stream.raw"))
+    bench.start(seconds=0.0)
+    try:
+        sources = bench.live.engine.control_sources
+        assert sources, "twoknobs.ges declares knobs"
+
+        host = _LoopHost(len(sources))
+        was, bench.host = bench.host, host
+        try:
+            bench._run_host(0.0)
+        finally:
+            bench.host = was
+
+        assert host.at_start is not None, "the loop never started"
+        assert all(v != 0 for v in host.at_start), (
+            f"a knob still read zero when the render loop began: "
+            f"{host.at_start}")
+    finally:
+        bench.stop()

@@ -124,6 +124,41 @@ every mapping decision the compiler could make.
 
 ---
 
+## How a practice gets adopted
+
+**A good practice is adopted before it is believed.**  There is a stretch
+where it is overhead carried on somebody else's say-so, and it has to
+survive that stretch to ever be owned.
+
+The test suite is this project's own case, in Henri's words
+(2026-08-17): *"this whole thing runs because we have professional test
+suite, that was started by certain claude who saw it was needed.  Then I
+realised it myself, after tolerating the tests for a while."*  Imposed,
+tolerated, owned — and the middle step is the one that is usually
+skipped in the telling and never in the living.
+
+Two things follow, and both are load-bearing:
+
+**A practice must be cheap enough to tolerate while it is unproven.**  A
+thing that is expensive *and* unbelieved is abandoned before its evidence
+arrives, however right it was.
+
+**And whoever introduces it owes the demonstration.**  Not the mechanism
+— the mechanism is the easy half — but the thing that converts tolerance
+into ownership: *this is what it caught, that you would have shipped.*
+Three practices arrived on 2026-08-17 and each came with one: the gates
+(**8 seconds to a named failure against 25 minutes**, measured on a
+deliberately broken tree), the photographed window (**three defects the
+suite could not see**), and the example rosters (**a bug in a file that
+had already been looked at in a real window**).  That is not manners; on
+this evidence it is the mechanism by which any of it survives.
+
+The corollary is uncomfortable and worth keeping: **a practice you cannot
+demonstrate is one you are asking to be trusted on**, and the honest move
+is then to say so rather than to argue harder for it.
+
+---
+
 ## What follows in practice
 
 **"It feels slow" is not a measurement.**  Three separate things were

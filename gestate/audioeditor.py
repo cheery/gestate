@@ -1113,6 +1113,27 @@ class Workbench:
         # middle of a session and then goes on running, so the same race
         # is now a segfault in a program somebody is still using.
         self._keeper = keeper
+        # **The knobs before the first block, not a few milliseconds
+        # after it** (`fixme.md` F147).  `Host.__init__` allocates the
+        # control block as `(c_int64 * controls)()`, which is zeroed, and
+        # the only thing that ever fills it is `_push_controls` on the
+        # housekeeping thread below.  That thread starts here and the
+        # render loop starts on the next line, so the first blocks the
+        # device rendered could read **zero for every knob** — a race,
+        # won or lost by a few milliseconds of thread scheduling.
+        #
+        # Inaudible for most parameters and unmistakable for one kind:
+        # Henri heard it as a *"strong POP or CHOP"* on the first program
+        # in this tree to wire a knob straight to a **frequency**, where
+        # zero means 0 Hz and the drone is silent until the push lands.
+        # A filter cutoff doing the same thing would have gone unnoticed
+        # for another year.
+        #
+        # `at=0` is right here and only here: the engine has rendered
+        # nothing, so instant zero is where it actually is — which is the
+        # opposite of the mistake `_push_controls`' own docstring records,
+        # where a constant 0 was passed from a loop that had moved on.
+        self._push_controls(0)
         keeper.start()
         try:
             self.host.run_device(

@@ -7689,3 +7689,103 @@ The rule that came out of it is in `board/README.md` now: **an
 elaboration's durable half is the located parts and the question.**  The
 mechanism is the part most likely to be wrong and the part a reader
 trusts most, so it should say that it is a guess.
+
+## "Be my oracle" is a smell
+
+Henri, at the end of the shift, on being asked to listen for a pop:
+
+> When you say "be my oracle", there's actually something implying in
+> that which might require "is this really not possible to delegate to a
+> real oracle?"
+
+**It is a rule and it should have a name.**  Asking the person to be the
+instrument is a request to do a machine's job with a body, and the moment
+it is made it should provoke the question rather than the favour.
+
+The cost is not politeness.  A human oracle **cannot be re-run**:
+
+- it cannot bisect — thirty runs is thirty interruptions;
+- it cannot be put in a suite, so nothing it establishes is ever checked
+  again;
+- it does not say *how much*, only *yes* — "a bit strong POP" is a real
+  and useful report and it is not a number;
+- and every use of it spends attention, which is the scarce thing
+  `board/done/timer.md` was built the same morning to protect.
+
+`manifesto.md` already lists what each instrument cannot see.  A person
+is an instrument too, and those four lines are the right-hand column.
+
+### It happened twice in one day, and was caught once by each of us
+
+**Caught by the machine side**: three defects that morning were invisible
+to 2,540 tests, and the reach was *not* "Henri, does this look right" but
+a virtual display and a screenshot — fifteen lines, repeatable, in a
+suite.  `spec/verification.md` §"The screen is an oracle, and it is the
+one this tree lacked".
+
+**Caught by Henri**: the pop.  The offline render could not see it, so a
+session asked him to listen — twice, on two badly designed experiments —
+and he ran both honestly, which is the only reason the third one closed
+the bisect.  Then he said the thing that ended it:
+
+> zero is a zero.
+
+Which it is.  The invariant behind the pop is not *does it sound wrong*;
+it is **no knob may still read zero when the render loop begins**, and
+that needs no ears, no sound card and no listener.  The acoustic question
+had a mechanical answer sitting underneath it the whole time, and the
+session had stopped looking for one as soon as a willing human was in the
+room.
+
+### And the harder half: what a *live* oracle would have been
+
+The excuse was that `audioperform -o` renders a knob at its resting value
+and never exercises the live control path — true, and the reason the
+offline oracle was useless here.  **But "the offline oracle cannot see
+it" is not "no oracle can."**
+
+`host.c` writes every block to the card through `snd_pcm_writei`.  A tap
+at that call hands back exactly the samples the device received, which is
+the one thing no offline render produces and precisely what *did it pop*
+requires.  It is not built, and it is the honest answer to his question:
+yes, this was delegable, and the session stopped one step short of asking
+what the instrument would look like.
+
+**The rule, then:** when a session finds itself asking a person to listen,
+look, or judge — write down what the mechanical version would be, even if
+it is not built.  Sometimes it is fifteen lines and you build it.
+Sometimes it is a card.  What it is never is nothing, because the
+alternative is a project whose only oracle for a whole class of defect is
+one person's attention, spent one report at a time.
+
+## The suite catches what you break; it does not find what was never right
+
+Henri, at the end of the same day: *"this whole thing runs because we
+have professional test suite, that was started by certain claude who saw
+it was needed.  Then I realised it myself, after tolerating the tests for
+a while."*
+
+**Imposed, tolerated, owned** — and today he stopped merely keeping it
+and started improving it, twice, unprompted: *"put the obviously easy to
+fail tests first"* became `tools/suite.py`'s gates, and *"zero is a
+zero"* became `test_no_knob_still_reads_zero_when_the_render_loop_begins`.
+Neither came from the session.  `manifesto.md` §"How a practice gets
+adopted" is the rule that came out of it.
+
+And the day is unusually good evidence for what the suite is actually
+*for*, because the defects sort cleanly into two piles.
+
+**The suite caught** the stale atlas, the gui roster, the audio roster,
+the rotted citations, and a `_Showing` name collision in a test file.
+Every one of those is *something the session broke*.
+
+**The suite caught none of** `you 0m`, the rest-day glyph, the patch
+bay's comprehension bug, the pop, the `Ctrl-Tab` toggle, or the
+open-path bug.  Every one of those is *something that was never right*.
+
+So it is not primarily what finds defects here.  **It is what makes the
+tree safe to change** — which is why eleven commits landed from a session
+working while its author was away, and none of them broke anything he was
+using.  That is not the smaller job.  It is the one that made the whole
+arrangement possible: he could leave, and the tree would still be
+standing when he came back.

@@ -4205,7 +4205,7 @@ state.  That is a second place deciding what a key means, and the two
 could disagree — the rule this editor keeps everywhere else is that the
 model decides and the window draws.
 
-### F147. **[missing]** A pop at start, a scratchy knob, and a drone under the laptop's floor
+### F147. **[partly resolved]** A pop at start, a scratchy knob, and a drone under the laptop's floor
 
 Henri, 2026-08-17, playing `examples/audio/tuning.ges` — three
 observations in one sitting, kept together because two of them may share
@@ -4219,35 +4219,87 @@ a cause:
 **None of the three is diagnosed.**  What follows is what was ruled out,
 so the next reader does not spend the same half hour.
 
-#### The pop
+#### The pop — bisected to the live control path, 2026-08-17
 
-Ruled out:
+**Three experiments, and the first two were badly designed.**  Both are
+kept here, because a reader will reach for them for the same reasons.
 
-- **It is not in the program.**  `render(tuning.ges, 0.05, 48000)` starts
-  at exactly `0.0` and the largest sample-to-sample step in the first
-  10 ms equals the steady-state one — the waveform is continuous from the
-  first sample.
-- **It is not the master fader.**  `Host.__init__` starts the fader down
-  on purpose (*"the first block is the same step in the waveform as any
+| what was run | heard | what it actually proved |
+|---|---|---|
+| `workbench README.md` (inert) | no pop | **nothing.**  An inert file returns from `start` before `_open_host` is reached, so the card is never opened.  A device that is not opened does not pop. |
+| a program whose every sample is `0.0` | no pop | the device opens clean and the host's start is clean.  **The pop is in the waveform.** |
+| `tuning.ges` with the knob replaced by a fixed `415.0` | no pop | and this one carried it, because it changes **exactly one thing** and was proven bit-identical to the original at rest (`render(...) == render(...)`, worst difference 0.0). |
+
+`tuning.ges` itself pops.  So: **the pop is the live control path's first
+blocks, and nothing else.**
+
+Two things were also ruled out along the way:
+
+- **Not the waveform as written.**  The offline render starts at exactly
+  `0.0` and its largest step in the first 10 ms equals the steady-state
+  one.
+- **Not the master fader.**  `Host.__init__` starts the fader down on
+  purpose (*"the first block is the same step in the waveform as any
   other and pops the same way"*) and `host.c` ramps it by `n / mute_len`
-  per block, with `mute_len = fade_len / 4`.  At `fade_ms = 40` and
-  44100 Hz that is a **10 ms** ramp, four cycles at 415 Hz.
+  per block, `mute_len = fade_len / 4` — a **10 ms** ramp at `fade_ms =
+  40` and 44100 Hz, four cycles at 415 Hz.
 
-**And a limit on the oracle, which is the useful part.**  A clean offline
-render does *not* clear the live path: `audioperform -o` renders a knob
-**at its resting value** and never exercises the control channel.  So
-anything that goes wrong in the first blocks of the *live* control path
-is invisible to the tool that was reached for first.  `--control-every`
-does not help — it deliberately *sweeps* a knob across its range to make
-a control clock observable, so the bigger steps it produces are the
-sweep, not a click.  That was mistaken for evidence once already.
+**A limit on the oracle, which is the durable half of this entry.**  A
+clean offline render does not clear the live path: `audioperform -o`
+renders a knob **at its resting value** and never exercises the control
+channel at all.  `--control-every` does not rescue it either — it
+deliberately *sweeps* a knob across its range to make a control clock
+observable, so the larger sample-to-sample steps it produces are the
+sweep, not a click.  Both of those were mistaken for evidence here before
+the bisect was run.
 
-**The experiment that decides it, and it takes ten seconds:** open a file
-that makes no sound — `python -m gestate.workbench README.md` opens
-inert.  If it still pops, the pop is the sound card's amplifier unmuting
-when ALSA opens the device, which is his own first guess (*"almost like
-analog pop when a live plug is connected"*) and is outside gestate.  If
-it is silent, the pop is ours.
+### Established, and fixed — 2026-08-17
+
+The control block is zero-initialised — `(ctypes.c_int64 * controls)()`
+in `audiohost.Host.__init__` — and `415 ::: mkSig (wait concertChan)`
+covers only the very first *instant*.  If the host has not yet written
+the knob's resting value, `concert` reads **0** for some number of
+blocks, the frequency is 0 Hz, and the drone is silent while the 10 ms
+master fade spends itself on nothing; the tone then arrives with the
+fader already part of the way up.
+
+**Confirmed by instrument rather than by argument.**
+`test_no_knob_still_reads_zero_when_the_render_loop_begins` stands a stub
+in for the host and photographs its control block at the instant
+`run_device` is entered.  Without the fix it reads **`[0, 0]`** — both of
+`twoknobs.ges`'s knobs at zero when the first block was made.  With it,
+neither.  The oracle has failed once, which is the only way to know it
+can (`manifesto.md` §"The three ways an instrument fails").
+
+**Fixed**: `_run_host` pushes the controls once, synchronously, before
+the render loop starts.  One line, and it removes the race rather than
+narrowing it.
+
+**Asserted about the state, not the call order** — Henri's own framing,
+*"zero is a zero"*.  A test that checked `_push_controls` runs before
+`run_device` would be reading the fix back to itself; what matters is
+what the loop *finds*, which stays true however the code is rearranged,
+and needs no sound card, no listener and no ears.
+
+Whether this is the whole of the audible pop is still for a listener to
+say.  The defect it names is real either way, and it was in every knob
+program since the C host landed.
+
+**The oracle this wants, and it does not exist.**  Henri, the same
+afternoon: *"when you say 'be my oracle', there's actually something
+implying in that which might require 'is this really not possible to
+delegate to a real oracle?'"*  Here it is delegable and was not
+delegated: `host.c` writes every block to the card through
+`snd_pcm_writei`, and a tap at that call hands back exactly the samples
+the device received — the one thing no offline render produces, and
+precisely what *did it pop* requires.  Not built.  The excuse was that
+the offline oracle could not see it, which is true and is not the same
+as *no oracle can*.
+
+**And if it is that, it is not this example's bug.**  Every program with
+a knob in a signal path has the same first blocks, and this one is only
+audible because the knob is a *frequency* — where the ear hears a
+discontinuity that it would forgive in a filter cutoff.
 
 #### The scratchy knob
 
