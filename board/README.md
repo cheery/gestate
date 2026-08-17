@@ -156,6 +156,37 @@ in a chat is a decision that will be made again.
 - Work it as far as it goes.  Finish the whole task; if part of it is
   blocked, finish the rest and say plainly what was left and why.
 
+## Working while he rests
+
+From 2026-08-17 the board is worked with Henri away from the desk —
+*"with the new system I don't need to be around all the time"* — and
+available rather than present: *"I am here for you in need.  Available
+but just relax as much as I can."*
+
+That only works if a session can reach him, so there is a cord:
+
+    tools/andon.sh          ring once
+    tools/andon.sh 3        ring three times, eight seconds apart
+
+It plays `tools/andon.ges` through the sound card — three rising sine
+chimes, about two seconds, and the file's own prose says why it sounds
+the way it does.  Verified working on 2026-08-17, the morning it was
+built.  **Ringing is capped at three by the script itself**, and that is
+a design decision, not a limitation: if three calls did not reach him he
+is not in the room, and a session that rings thirty times has only
+arranged for a noise to be waiting when he walks back in.
+
+**Pull it for a decision that would be expensive to get wrong and cheap
+to ask about** — the ones that change what gets built, not the ones a
+careful session should just make.  The board's own rule already says
+which those are: a card's questions are collected and asked *in one
+sitting*, so the cord is for the sitting, not for each question.
+
+And the default when he is away is still to keep going.  *"Try to
+continue the work as far as you can."*  A blocked card is written up as
+blocked and the next one is taken; that is cheaper than a ring, and it
+is what the `blocked` field is for.
+
 ## Finishing one
 
 1. The `## Done` section says what landed, in a few lines, with a
@@ -163,8 +194,16 @@ in a chat is a decision that will be made again.
    paragraphs belong to the journal, not to the card.**
 2. `status` becomes `done — <date>`.
 3. Move the card to `board/done/` and take it out of the order above.
-4. The commit title is Henri's to give.  Ask for it; never commit
-   unprompted.
+4. Write the commit title yourself.  **Henri's, 2026-08-17:** *"From now
+   on I allow you to select titles yourself."*  Until that morning the
+   title was his to give and a session asked for it — which worked while
+   he was at the desk and became the thing a card waited on once he was
+   not.  He still gives one whenever he wants to; the change is only that
+   the absence of one is no longer a stop.
+
+   What has not changed is that a commit is the *end* of a card and not a
+   punctuation mark inside one: one card, one commit, with the card's
+   move riding in it.
 
 **Steps 1–3 ride in the same commit as the work**, which is Henri's own
 rule read forward: *"You take each out from this section once the commit

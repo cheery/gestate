@@ -1,0 +1,70 @@
+# andon.ges — the cord a session pulls when it needs Henri.
+#
+#   tools/andon.sh                    ring it
+#   python -m gestate.audioperform tools/andon.ges --seconds 6
+#
+# An *andon* is the cord over a production line: pull it and the line
+# stops and somebody comes.  This is that cord, and the sound card is
+# the wire — Henri noticed it himself when a headless test run played
+# `noted.ges` into the room: *"if I hear sounds, I can respond."*
+#
+# **The whole design of this file is in what it must not be.**  It calls
+# somebody who is resting, in a room he may be resting *in*, and it may
+# be the only thing he hears from the project for an hour.  So:
+#
+#   * **No alarm.**  Nothing sharp, nothing fast, nothing that rises to a
+#     point.  A rising major triad, three notes, and then it stops.
+#   * **Quiet, and long.**  It carries by its tail rather than by its
+#     attack — audible from the next room, startling in neither.
+#   * **Sine partials only.**  There is no harshness available in this
+#     synth to get wrong; the brightest thing in it is a third harmonic
+#     at a sixteenth of the fundamental.
+#
+# If a later session wants an andon that means something *else* — a
+# question rather than a call — give it its own phrase and its own file.
+# One cord, one meaning, is the whole value of a cord.
+
+# ── The voice ─────────────────────────────────────────────────────────────
+#
+# A struck chime, without a strike: the attack is 40 ms, which is slow
+# enough that there is no click in it at all.  What makes it read as
+# metal rather than as a flute is the decay — 1.8 s to a sustain of
+# nothing, so the note is dying from the moment it arrives.
+
+soft : Adsr
+soft = Adsr 0.040 1.80 0.00 1.40
+
+#: Fundamental, octave, twelfth — the first three partials of a struck
+#: bar, at levels that fall off fast.  A bell's inharmonic ratios
+#: (`examples/audio/bell.ges`) would be the truer instrument and the
+#: wrong one here: inharmonicity is what makes a bell *insistent*.
+
+chime : Sig Gate -> Sig Int -> Sig Float
+chime g s = (0.50 * sine (!keyHz s)
+           + 0.16 * sine (2.0 * !keyHz s)
+           + 0.06 * sine (3.0 * !keyHz s))
+          * adsr soft g
+
+voices bell 4 chime : Sig Float
+
+# ── The phrase ────────────────────────────────────────────────────────────
+#
+# A, C#, E — a major triad rising, three beats at 96, and then four
+# beats of nothing while it rings out.  Four voices for three notes,
+# because they overlap: the first is still sounding when the third
+# arrives, which is what makes it one chord and not three pips.
+#
+# Rising and major, deliberately.  A falling minor third is a doorbell
+# and means *somebody is at the door*; this means *come when you can*.
+
+melody : [: Int :]
+melody = '69 ++ '73 ++ '76
+
+score : [: Void :]
+score = melody >>= voices.bell
+
+bpm : Int
+bpm = 96
+
+sound : Sig Float
+sound = brickwall 0.9 (gain 0.40 bell)
