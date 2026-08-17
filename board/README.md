@@ -44,6 +44,10 @@ is what keeps a card's name stable while priorities move.
    the changes Claude makes.
 7. **[persistent-workbench-state](persistent-workbench-state.md)** — the
    editor should open where it was left; closing it loses the day.
+8. **[reviewing-by-running](reviewing-by-running.md)** — the workbench
+   opens a session's fresh commits, and it compiles and runs them as you.
+   *Placed at the end 2026-08-17, at Henri's ask, having arrived
+   unplaced.*
 
 Finished cards are in [done/](done/), newest work last.  `ls board/*.md`
 is the live board; nothing has to be trimmed by hand for that to stay
