@@ -182,7 +182,16 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # `test_implicits.py`'s
             # `test_an_implicit_renders_the_same_as_the_parameter_it_hides`,
             # which pins the claim rather than one buffer of it.
-            "tuning.ges"]
+            "tuning.ges",
+            # Seven phrases losing a little more of themselves each pass.
+            # No golden, and for a better reason than the roster's usual
+            # one: what this file claims is a *shape* — that the week
+            # thins and ends in silence — and a golden would pin the
+            # samples while saying nothing about the claim.  The shape is
+            # asserted directly instead, in
+            # `test_the_week_thins_until_it_is_silence` below, which is
+            # the assertion the file's own header prints.
+            "week.ges"]
 
 #: The ones with committed golden buffers — all of them, now.  `knob.ges`
 #: had none for as long as the interpreter and the engine disagreed about
@@ -770,3 +779,57 @@ def test_report_without_a_render_is_refused():
     from gestate.audioperform import main as audio_main
 
     assert audio_main(["whatever.ges", "--report"]) == 1
+
+
+# ── `week.ges` — the rests are the piece ────────────────────────────────────
+
+
+def test_the_week_thins_until_it_is_silence(tmp_path):
+    """**The claim in the file's header, asserted rather than admired.**
+
+    `examples/audio/week.ges` is one phrase played seven times, losing a
+    little more of itself each pass — Monday is eight notes, Sunday is
+    one note and seven rests.  Under it a second voice keeps its beat
+    unchanged for all seven days: `spec/timer.md`'s two strips as music,
+    the hand thinning and the project standing.
+
+    A golden would pin the samples and say nothing about any of that.
+    What the piece claims is a **shape**, so the shape is what is
+    checked: the sound gets quieter across the week and ends in silence.
+
+    Loosely, on purpose.  Bar to bar it is not monotone — a phrase that
+    keeps its first and last note can be louder than the one before it,
+    which is the piece working and not a fault — so what is asserted is
+    the arc: the end is well under the beginning, and the last stretch is
+    nothing at all.
+
+    Rendered through `audioperform` rather than `render`, because a
+    scored program needs `gestate/music.ges` prepended and only the
+    performer does that.
+    """
+    from gestate.audioperform import main as audio_main
+
+    out = tmp_path / "week.wav"
+    assert audio_main([str(AUDIO_DIR / "week.ges"), "-o", str(out),
+                       "--rate", "8000", "--seconds", "56"]) == 0
+
+    with wave.open(str(out), "rb") as w:
+        frames = w.readframes(w.getnframes())
+    xs = struct.unpack(f"<{len(frames) // 2}h", frames)
+
+    # **Four-second windows, not bars**, and placed by where the score
+    # actually is: the piece is 50.9 s long, so the window that has to be
+    # silent is the one *after* it — Sunday's single note is allowed all
+    # the tail its release asks for.
+    rate = 8000
+
+    def rms(a: int, b: int) -> float:
+        chunk = xs[a * rate:b * rate]
+        return (sum(float(x) * x for x in chunk) / max(1, len(chunk))) ** 0.5
+
+    monday, sunday, after = rms(0, 4), rms(48, 52), rms(52, 56)
+    assert monday > 5000.0, f"Monday is a full phrase, got {monday:.0f}"
+    assert sunday < monday / 2, (
+        f"the week does not thin: {monday:.0f} on Monday, "
+        f"{sunday:.0f} on Sunday")
+    assert after == 0.0, f"and then nothing at all, got {after:.1f}"

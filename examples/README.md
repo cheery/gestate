@@ -125,6 +125,7 @@ Running it needs `pygame`.  `gestate.gui.scenes()` does not, which is why
 | `pluck.ges` | additive: three harmonics, each with its own exponential decay |
 | `twoknobs.ges` | two parameters, two channels — one knob each, placed at their declarations |
 | `tuning.ges` | **`using`/`given`** — one knob threaded through three levels of a drone without a single function in between mentioning it |
+| `week.ges` | seven phrases, each the same phrase with more of it taken away — **the rests are the piece**, and a second voice that never thins |
 | `polysine.ges` | `sine.ges` made an instrument: a `voices` bank, a `FromMIDI` instance and a piece — and a voice that is one expression |
 | `duet.ges` | **one program**: two `voices` banks, its own piece, and a mix — a score plays one bank, your keyboard the other |
 | `stereo.ges` | two *output* channels: `sound : Sig Stereo`, 440 Hz left against 442 Hz right |

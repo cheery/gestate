@@ -144,3 +144,29 @@ The risk is two files, not the wrong order.
    answerable, because there will be a number to compare across a quiet
    machine and a busy one.  Today there was not, and that is why the
    answer was a guess.
+
+## Seen once, 2026-08-17 evening — and that is the card
+
+While the full suite had the machine, the flare fired and Henri caught
+it:
+
+> the card ran dry flared. And I didn't notice except on that message.
+
+**Observed rather than reasoned, and it confirms both halves at once.**
+The mechanism works — `host.c` counted the underruns, `_say_dry` said so,
+and the sentence reached the status line.  And it lasted exactly as long
+as the next thing the editor had to say, so the only reason it was seen
+is that he happened to be looking at the bar in that second.
+
+He was not hunting it.  He had been told an hour earlier that a suite run
+would take the machine, so he knew what the crackle was — and the
+instrument that was supposed to tell him told him once, by luck.
+
+With the fix this card asks for — a mark in the tally row, surviving a
+restart — it would simply have been there when he looked.  That is the
+whole difference between an instrument you must be watching and one you
+can interrogate.
+
+**And the cause was a session's own footprint**, for the third time that
+day: a full `tools/suite.py` run, on the machine he was listening on.
+`journal.md` §"And what a session costs the machine".
