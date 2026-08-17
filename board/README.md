@@ -24,62 +24,53 @@ Work them in this order unless one blocks another.  **This list is the
 only place the order lives** — a card never says where it stands, which
 is what keeps a card's name stable while priorities move.
 
-1. **[button](button.md)** — a friend could not find the one control the
-   window offers somebody who knows no keys, and once shown it could not
-   tell what was behind it.  *Placed first 2026-08-17 at Henri's ask,
-   ahead of the test it is a result of: the stranger test already
-   returned its first finding, by accident, and this is it.*
-2. **[gemba](gemba.md)** — walk the factory floor: Claude presents into
-   the workbench while the work is happening.
-3. **[stranger-test](stranger-test.md)** — run `vision.md`'s own top
-   claim: can somebody who has never read this repository open a file,
-   hear it, change it, and hear the change?  *Moved up 2026-08-16 at
-   Henri's ask, and deliberately placed **after** gemba: what this test
-   produces is somebody stumbling, live, and watching that is worth more
-   than reading the report of it afterwards.*
-4. **[command-categories](command-categories.md)** — the command list
-   is long enough to want categories, and gemba's second idea waits on
-   it.
-5. **[git-viewer](git-viewer.md)** — a git viewer in the workbench,
-   encoding the workflow the lesson teaches.  *Blocked on
-   command-categories.*
-6. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
-   the changes Claude makes.
-7. **[persistent-workbench-state](persistent-workbench-state.md)** — the
-   editor should open where it was left; closing it loses the day.
-8. **[reviewing-by-running](reviewing-by-running.md)** — the workbench
-   opens a session's fresh commits, and it compiles and runs them as you.
-   *Placed at the end 2026-08-17, at Henri's ask, having arrived
-   unplaced.*
-9. **[unseen-flare](unseen-flare.md)** — the sound stuttered and there
-   was no way to find out whether the program had noticed.  *Written by
-   the session at Henri's ask, 2026-08-17, and placed at the end by the
-   rule.*
-10. **[unheard-output](unheard-output.md)** — nothing but a person can
-   hear what the sound card was given, so a whole class of defect has no
-   oracle at all.  *Written by the session at Henri's ask, 2026-08-17;
-   `fixme.md` F147 is blocked on it.*
-11. **[installation-test](installation-test.md)** — the way in is the
-   one thing here nobody checks, and a fresh 26.04 laptop found three
-   defects in it in a day.  *Written by the session at Henri's ask,
-   2026-08-17, and placed at the end by the rule; asked whether it
-   belonged further up, since he had called it "a relatively important
-   task", and he answered **"the ordering is fine"**.  Its first tier
-   landed the same day anyway, with the defect that prompted it.*
-12. **[error-messages](error-messages.md)** — go through every
-   complaint and check it works; the sweep was done once and has
-   drifted.  *Written by the session at Henri's ask, 2026-08-17, out of
-   `fixme.md` F152 — one message that had never had a place to land.*
-13. **[interface-oracle](interface-oracle.md)** — nothing checks what
-   the window says: three interface changes shipped in one evening and
-   every claim about them rests on screenshots a session took by hand.
-   *Written by the session at Henri's ask, 2026-08-17.  `view.rs` is
-   the only drawing module in the crate with no tests.*
-14. **[portable-package](portable-package.md)** — the install is
-   Ubuntu-shaped and anybody else translates it by hand.  *Written by
-   the session at Henri's ask, 2026-08-17.  Placed after
-   installation-test deliberately: a package is an install whose
-   failures happen on a machine nobody can look at.*
+1. **[error-messages](error-messages.md)** — every user meets errors
+   constantly, and one of them was invisible for a week while another
+   landed nowhere.  The broadest surface on the board.
+2. **[persistent-workbench-state](persistent-workbench-state.md)** —
+   *"closing it loses the day."*  Felt every session, and probably the
+   cheapest large win here.
+3. **[command-categories](command-categories.md)** — the other half of
+   the stranger's failure: he got the door open and found fifty-three
+   names.  *Waiting on a pick from the card's five options; the
+   sections are derived already.*
+4. **[installation-test](installation-test.md)** — somebody who cannot
+   install has none of the above.  Three defects in one day from one
+   fresh machine.
+5. **[unheard-output](unheard-output.md)** — a whole class of audio
+   defect has no oracle at all, and `fixme.md` F147 is blocked on it.
+   Plumbing on the card, audible to the person.
+6. **[stranger-test](stranger-test.md)** — fixes nothing; it is what
+   *finds* 1–4.  Ranked here only because each run spends a scarce,
+   non-renewable person.
+7. **[interface-oracle](interface-oracle.md)** — stops 1–4 regressing
+   silently.  A multiplier rather than a feature, and `view.rs` now has
+   its first three tests to build on.
+8. **[unseen-flare](unseen-flare.md)** — narrower than
+   `unheard-output`, and overlapping it.
+9. **[gemba](gemba.md)** — changes the working day more than anything
+   else here, and changes a *user's* not at all.  *Waiting on a dwell
+   in seconds.*
+10. **[reviewing-by-running](reviewing-by-running.md)** — the review
+   loop `spec/author.md` says is the scarce resource.
+11. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
+   the changes a session makes.
+12. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
+   *Blocked on command-categories.*
+13. **[portable-package](portable-package.md)** — for people who do not
+   exist yet, by his own answer.  *Waiting on program-or-workshop.*
+
+**Ordered by impact on somebody using gestate** — 2026-08-17, at
+Henri's ask: *"order them by some quality, such as, what is the impact
+of it for me or others who would use it… It's the proper order to do
+these tasks."*  The criterion is deliberate and demotes good cards:
+`gemba`, `reviewing-by-running` and the git pair change how the work is
+*made* rather than what a person meets, and they sit below things that
+a user feels directly.
+
+Three of these are **decisions wearing a card** and are marked so.  No
+session can finish one, so their position is academic until they are
+answered or shelved (`spec/author.md` §"Triaging the board").
 
 Finished cards are in [done/](done/), newest work last.  `ls board/*.md`
 is the live board; nothing has to be trimmed by hand for that to stay

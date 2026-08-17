@@ -1,6 +1,6 @@
 # button — the one affordance, and nobody found it
 
-    status   open
+    status   done — 2026-08-17
     because  The program would not currently pass the stranger test.
     asked    Henri, 2026-08-17
     see      board/stranger-test.md — this is that test's first real result
@@ -365,3 +365,35 @@ menu entirely, on exactly the programs where it is cheap.
 
 **Not built.**  It changes what the editor does unbidden, and the "may
 not complain" rule changes what it says, so it wants his word first.
+
+## Done — 2026-08-17
+
+**Every one of the six answers either shipped or has its own card**,
+which is what finishes this rather than any one of them.
+
+| | answer | what happened |
+|---|---|---|
+| A | the corner must be findable | **shipped** — F155: `[command]`, at the ink's weight, in place of a 24-pixel `≡` at 2.3:1 |
+| B | the document should teach | **shipped** — F150: the starter no longer names a control deleted in `71b90af` |
+| C | the bar should say the key first | **shipped** — F153: `Ctrl-K` until you use `Ctrl-K` |
+| D | what is behind it must explain itself | **carded** — `board/command-categories.md`, with the sections now derived |
+| E | the change should be audible without asking | **shipped** — F151: typing is an audition when an audition is cheap |
+| F | one stranger is one stranger | **carded** — `board/stranger-test.md`, and its rules for spending the next one |
+
+Henri closed it in three words: *"burger is thrown out, [command] is put
+in its place."*
+
+**What this card actually produced** was not a fix but a method.  The
+findings came from *photographing the running window* — the pixel count,
+the list opening on `skip`, the hint that taught the key only to people
+who no longer needed it — none of which is visible in the source, and
+all of which had been sitting in front of everybody.  That is now a row
+in `manifesto.md`'s instrument table, and `board/interface-oracle.md`
+exists to keep the results from rotting.
+
+**And what it leaves open, honestly**: nobody has watched a second
+person try. Every answer above is reasoned from one failure, and the
+card's own theory F says that is one stranger's worth of evidence.
+`stranger-test` holds the rules for spending the next one — the sharpest
+being that the run is only worth its cost if *one* uncertain thing has
+changed, and today four did.

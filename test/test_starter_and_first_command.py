@@ -1,6 +1,6 @@
 """The first screen, and the first thing behind the one button.
 
-`fixme.md` F150, `board/button.md`.  Both facts here were true for a
+`fixme.md` F150, `board/done/button.md`.  Both facts here were true for a
 week, in front of everybody, and neither was caught by a test because
 neither is a behaviour — they are **what the window says**, and what it
 said was a sentence naming a control deleted in `71b90af` and a menu

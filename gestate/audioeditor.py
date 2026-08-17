@@ -620,7 +620,7 @@ AUDITION_WAIT = 0.4
 #: by the time it matters — the first one is always asked for, and what
 #: it cost decides whether the next is offered for free.
 #:
-#: The corpus, 2026-08-17 (`board/button.md` has the table): the starter
+#: The corpus, 2026-08-17 (`board/done/button.md` has the table): the starter
 #: 0.26 s, `compressor` 0.36, `bell` 0.32, `twoknobs` 0.51, `bar` 0.55,
 #: `lead` 1.39, `lantern` 3.06, `nightdrive` 3.31, `quartet` 4.63.
 AUTO_AUDITION = 0.5
@@ -3333,7 +3333,7 @@ INERT = {".txt", ".md"}
 #: button, which belonged to the pygame editor and went with it in
 #: `71b90af`: the only instruction on the first screen pointed at a
 #: control that had not existed for a week, in the exact corner where a
-#: *different* control now stands (`board/button.md`, `fixme.md` F150).
+#: *different* control now stands (`board/done/button.md`, `fixme.md` F150).
 #: `what` and `fits` are what replaced it, and they answer from the
 #: compiler rather than from a page.
 STARTER = """# A new synth.

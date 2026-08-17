@@ -933,4 +933,4 @@ it was the first line of the first screen a stranger ever saw, with
 the list's one explanatory line reading *"Do nothing — the identity
 of `++`"*: a fact about the algebra, offered as somebody's first
 move.  It is the identity of the monoid and it should be the last of
-the menu (`board/button.md`, `fixme.md` F150).
+the menu (`board/done/button.md`, `fixme.md` F150).

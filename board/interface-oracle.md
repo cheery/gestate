@@ -88,5 +88,5 @@ because the glyph *was* being emitted, in the colour it was asked for.
 3. A line in `manifesto.md`'s instrument table for the display list,
    **with its blind spot**: it sees what was emitted, never what it
    looked like.
-4. Say in `board/button.md` that the corner is now held, once it is —
+4. Say in `board/done/button.md` that the corner is now held, once it is —
    that card's remaining answers all change what `view.rs` draws.

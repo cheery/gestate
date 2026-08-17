@@ -84,6 +84,11 @@ pub const KEY_EDGE: Colour = Colour::rgb(0x14, 0x16, 0x1a);
 
 pub const CHROME: Colour = Colour::rgb(0x1c, 0x1f, 0x25);
 
+/// The corner's control, as a word — see `View::burger_box` for why it
+/// is not a glyph any more.  Named once, because its *length* is the
+/// box's width and the two must not be able to disagree.
+pub const BURGER: &str = "[command]";
+
 // ── Syntax ───────────────────────────────────────────────────────────
 //
 // **Six, and they answer one question**: *which sort of thing is this?*
@@ -263,7 +268,7 @@ pub struct View {
     /// somebody who had just proved they could find the button without
     /// it, and said nothing at all to somebody who could not.  The
     /// teaching was downstream of the discovery it exists to make
-    /// unnecessary (`board/button.md`).
+    /// unnecessary (`board/done/button.md`).
     ///
     /// Pressing the burger does not retire it — that is finding the
     /// button, not learning the key, and the bar goes on saying it
@@ -315,21 +320,34 @@ impl View {
         (((self.w - used) / self.cw(font)).max(1)) as usize
     }
 
-    /// Where the burger stands: a small box in the top-right corner,
-    /// as `(x, y, w, h)`.
+    /// The word that stands in the top-right corner, as `(x, y, w, h)`.
     ///
     /// The one piece of chrome that exists for somebody who knows no
     /// keys yet: pressing it opens the command list, pressing it again
     /// closes it.  **One arithmetic, two readers** — `burger_frame`
-    /// draws this box and the window's press reads it, so the pixel
-    /// that shows the glyph is the pixel that answers to it.  Exactly
-    /// one character cell, flush in the corner, so a zoom scales it
-    /// with everything else and it takes no room the text could use.
+    /// draws this box and the window's press reads it, so the pixels
+    /// that show the word are the pixels that answer to it.
+    ///
+    /// **It was a `≡` in one cell, and a stranger could not find it**
+    /// (`fixme.md` F155, `board/done/button.md`).  Measured off a capture:
+    /// twenty-four lit pixels, `FAINT` on `BG`, 2.3:1 — under the floor
+    /// any interface guidance puts on a control, painted in the colour
+    /// this window uses for *there, but not for you*, and standing in
+    /// the document's own first row where everything else is text.  The
+    /// screen even said "top right" at the time, in the starter, and he
+    /// still missed it.
+    ///
+    /// So it is a word now: `[command]`, in brackets because that is
+    /// already how this window says *chrome, not content* (`[inert]`),
+    /// and at the ink's own weight because a control drawn in the
+    /// gutter's colour is a control nobody is being offered.  Still
+    /// measured in cells, so a zoom carries it.
     pub fn burger_box(&self, font: &Font) -> (i32, i32, i32, i32) {
         let (w, h) = (self.cw(font), self.ch(font));
-        // Half a cell of air on the right, so the glyph does not lean
+        let wide = BURGER.chars().count() as i32 * w;
+        // Half a cell of air on the right, so the word does not lean
         // on the window's edge; in cell units so the zoom keeps it.
-        (self.w - w - w / 2, 0, w, h)
+        (self.w - wide - w / 2, 0, wide, h)
     }
 
     /// How tall the status bar is — its granted rows, plus air.
@@ -801,14 +819,18 @@ pub fn chrome_only(view: &View, font: &Font, chrome: &Furniture) -> Frame {
 pub fn burger_frame(view: &View, font: &Font, open: bool) -> Frame {
     let (x, y, _, _) = view.burger_box(font);
     let mut f = Frame::default();
-    // The glyph alone, no ground — the corner is the document's, and a
-    // grey box standing on it read as furniture rather than a button.
-    // The box is one cell and the glyph fills it, so nothing to centre.
-    // Lit while the list is up, faint while it is not — a button that
-    // toggles has to say which half of the toggle it is in.
+    // No ground, still — the corner is the document's, and a grey box
+    // standing on it read as furniture rather than a button.  What
+    // changed is the mark: a word carries what a glyph could not, and
+    // it is legible without a box to sit in.
+    //
+    // Lit while the list is up, ink while it is not — a button that
+    // toggles has to say which half of the toggle it is in, and both
+    // halves are now readable.  `FAINT` was the old resting colour and
+    // is what F155 is about.
     f.items.push(Item::Run { x, y,
-                             s: String::from("\u{2261}"),
-                             c: if open { CARET } else { FAINT } });
+                             s: String::from(BURGER),
+                             c: if open { CARET } else { INK } });
     f
 }
 
@@ -1783,4 +1805,67 @@ pub fn caret_at(doc: &Document, view: &View, font: &Font) -> (i32, i32) {
         .map(|s| s.y)
         .unwrap_or((row.saturating_sub(view.top)) as i32 * view.ch(font));
     (gx + (col.saturating_sub(view.left)) as i32 * view.cw(font), y)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::font;
+
+    /// **The first test in this file, and the reason there is a card
+    /// about that** — `board/interface-oracle.md`.  Three interface
+    /// changes shipped on 2026-08-17 held up by nothing but screenshots
+    /// somebody took by hand, in the one drawing module of this crate
+    /// with no tests.  A frame is a display list built by a pure
+    /// function, so what the window says is an ordinary assertion.
+    ///
+    /// Its blind spot is the whole of F155 and must stay written down:
+    /// this sees what was *emitted*, never what it looked like.  The
+    /// `≡` it replaced passed every check anybody would have written —
+    /// it was emitted, in the colour it was asked for, and unreadable.
+    #[test]
+    fn the_corner_offers_a_word_and_not_a_glyph() {
+        let view = View::default();
+        let font = &font::LARGE;
+        let frame = burger_frame(&view, font, false);
+        let said: Vec<&str> = frame.items.iter().filter_map(|i| match i {
+            Item::Run { s, .. } => Some(s.as_str()),
+            _ => None,
+        }).collect();
+        assert_eq!(said, vec![BURGER]);
+        assert!(BURGER.chars().count() > 1,
+                "a one-cell mark is what a stranger could not find (F155)");
+    }
+
+    /// **Not the colour the gutter is drawn in.**  The measured defect
+    /// was 24 lit pixels of `FAINT` on `BG` — 2.3:1, the lowest
+    /// contrast this window paints anything at, and this window's word
+    /// for *there, but not for you*.
+    #[test]
+    fn the_corner_is_not_painted_in_the_colour_that_means_ignore_me() {
+        let view = View::default();
+        for open in [false, true] {
+            let frame = burger_frame(&view, &font::LARGE, open);
+            for item in &frame.items {
+                if let Item::Run { c, .. } = item {
+                    assert_ne!(*c, FAINT,
+                               "the one control is drawn in the gutter's \
+                                colour again (F155)");
+                }
+            }
+        }
+    }
+
+    /// **One arithmetic, two readers.**  `window.rs` hit-tests the box
+    /// this returns, so a word wider than its box is a control with a
+    /// dead half — and nothing else would notice.
+    #[test]
+    fn the_box_is_exactly_as_wide_as_the_word_in_it() {
+        let view = View::default();
+        let font = &font::LARGE;
+        let (x, _y, w, h) = view.burger_box(font);
+        assert_eq!(w, BURGER.chars().count() as i32 * font.w);
+        assert_eq!(h, view.ch(font));
+        assert!(x + w < view.w, "the word leans on the window's edge");
+    }
 }

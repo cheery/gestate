@@ -195,7 +195,7 @@ pub struct Furniture {
     /// ordinary state of an editor you press something to be heard in.
     /// It is here because nothing said so, and a stranger who did not
     /// know the step existed could not tell it from a program ignoring
-    /// him (`board/button.md`, `fixme.md` F151).  The words are the
+    /// him (`board/done/button.md`, `fixme.md` F151).  The words are the
     /// model's so the key it names cannot drift from the key bound.
     pub behind: String,
     /// The scopes, as `(label, line, flavor)` — a signal watched

@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 155 entries, **133 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 156 entries, **134 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -76,6 +76,7 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F152 | resolved | A complaint with no place to land |
 | F153 | resolved | The window taught the key only to people who no longer needed it |
 | F154 | resolved | A driven harness saved into the repository |
+| F155 | resolved | The one control was a glyph nobody could find |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -4510,7 +4511,7 @@ the program.  Once I helped he got the button open, he had very little
 idea what is behind it."*  And, when asked which screen: *"My friend
 was on the starter screen.  The basic sine function giving a tone."*
 
-`board/button.md` is the card, and it holds the whole account.  Two of
+`board/done/button.md` is the card, and it holds the whole account.  Two of
 what it found are defects rather than design questions, and this entry
 is those two.  **Both were found by photographing the running window
 rather than by reading the source** — the icon's own launcher, opened
@@ -4585,7 +4586,7 @@ starter screen could open the editor and hear it — both happen by
 themselves — and could type.  Nothing he typed reached the sound,
 because the step that puts it there is a key nobody told him about, and
 **nothing on screen said the sound and the text had parted**
-(`board/button.md`).
+(`board/done/button.md`).
 
 Three parts, and the measurements are in the card:
 
@@ -4669,7 +4670,7 @@ We already did that once and it needs to be done again."*
 
 ### F153. **[resolved]** The window taught the key only to people who no longer needed it
 
-Found while reading `board/button.md` against the running window,
+Found while reading `board/done/button.md` against the running window,
 2026-08-17, and fixed at Henri's ask the same evening.
 
 `view.hint` puts `Ctrl-K` in the status bar.  It was set **by a burger
@@ -4678,7 +4679,7 @@ to somebody who had just demonstrated they could find the one control
 without it, and said nothing at all to somebody who could not.  **The
 teaching was downstream of the discovery it exists to make
 unnecessary**, and the discovery is the part a stranger failed (F150,
-and the 24 lit pixels `board/button.md` measures).
+and the 24 lit pixels `board/done/button.md` measures).
 
 Now: **on until the key has been used, and then never again.**  Ctrl-K
 is the one place that can know you have used it, so that is where it is
@@ -4717,3 +4718,41 @@ what a bare launch opens on and where its first save now goes.
 tools name *committed examples*, so any scenario that reached for
 `Ctrl-S` would have edited `examples/audio/twoknobs.ges` rather than an
 untracked scratch file.  Nothing had, which is luck rather than design.
+
+### F155. **[resolved]** The one control was a glyph nobody could find
+
+Henri, 2026-08-17, after a friend was given the editor with no
+explanation: *"He was unable to find the small gray-tinted button from
+the program."*  And, once the corner had been measured and the set of
+answers written out: *"burger is thrown out, [command] is put in its
+place."*
+
+**The measurement is the entry.**  Photographed and counted off the
+capture: the `≡` lit **24 pixels** in an 8 × 7 box, `FAINT` `#4a5260`
+on `BG` `#14161a` — **2.3:1**, under the floor any interface guidance
+puts on a control, the lowest contrast this window paints anything at,
+and `FAINT` is this window's word for *there, but not for you*.  It
+also stood at `y = 0` of the **text area**, in line 1's own row, where
+everything else is text.
+
+And the screen had *told* him where to look: the starter's own text
+said the button was top right (F150), and he still missed it.  Which is
+the strongest available argument that the drawing was under the floor
+of findable, and the strongest that finding it was not the whole
+problem — both were true, and `board/done/button.md` holds the six
+answers that came out of that.
+
+Now the corner reads `[command]`, at the ink's own weight, brackets
+because that is already how this window says *chrome, not content*
+(`[inert]`).  The box follows the word's length through one constant,
+so `window.rs`'s hit test widened with it — one arithmetic, two
+readers, which is why the press needed no change at all.
+
+**Held by the first tests `view.rs` has ever carried.**  A frame is a
+display list built by a pure function, so *the corner offers a word and
+not a glyph*, *it is not painted in the colour that means ignore me*,
+and *the box is exactly as wide as the word in it* are ordinary
+assertions with no window in them.  Their blind spot is written beside
+them and is the whole of this defect: **they see what was emitted,
+never what it looked like.**  The `≡` would have passed all three.
+`board/interface-oracle.md` is the card for the rest of it.

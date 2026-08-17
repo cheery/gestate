@@ -3787,7 +3787,7 @@ def furniture(session: "Session", bench=None, tally: str = "",
         # heard in.  What was missing is that *nothing said so* — a
         # person who does not know the step exists cannot tell this
         # from a program ignoring them, and that is exactly where a
-        # stranger stopped (`board/button.md`).
+        # stranger stopped (`board/done/button.md`).
         #
         # **The words are the model's**, like every other sentence that
         # crosses here: the window places and colours it and does not
