@@ -70,5 +70,12 @@ drone = partial 0.30 0.0 + partial 0.18 7.0 + partial 0.10 12.0
 #
 # There is no default and no runtime failure to find later.
 
+#: **0.95, for peak 0.502.**  It sat at 0.6 and Henri's first word on
+#: hearing it was that the drone was very quiet — measured, peak 0.317
+#: against a ceiling near 0.9, so half the headroom was going unused for
+#: no reason.  Three pure sines also *sound* quieter than anything with
+#: harmonics in it at the same peak, and that half is not fixable by
+#: gain; making the timbre richer would bury this file's actual subject
+#: under synthesis it does not need.
 sound : Sig Float
-sound = given concert = reference in 0.6 * drone
+sound = given concert = reference in 0.95 * drone
