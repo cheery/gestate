@@ -82,10 +82,105 @@ said *"if I hear sounds, I can respond… you can use that for your
 advantage."*  Not the channel this card needs, but worth knowing it
 exists: unattended work can already say something audibly.
 
+## Elaborated further, 2026-08-17 — the channel, and the rate
+
+### The transport is nearly decided, and the fence decides it
+
+**Nothing reaches a running workbench from outside today.**  Measured:
+no socket, no fifo, no signal handler, no watcher anywhere in
+`workbench.py`, `session.py` or `audioeditor.py`.
+
+But the loop already watches the filesystem, and carefully.
+`Session._outside()` keys a `Path` question on its directory's **mtime**
+— one `stat`, no re-listing until something really moved — polled at
+`OUTSIDE_EVERY` (0.2 s) with `MTIME_SETTLES` (0.05 s) for the kernel's
+coarse clock, which is F124's whole finding.  The instinct is built and
+tested.
+
+And the house has one wire shape, now four times over: `crust`'s program
+format, the furniture description, the session trace, and the presence
+record — **flat lines, tab-separated, verb first**, readable in a
+terminal when something is wrong.
+
+So: **a file the session writes and the loop reads.**  Four reasons, and
+only the last is decisive:
+
+1. No new thread and no socket lifetime — and lifetimes at this seam
+   have a history (`Workbench.stop`, the daemon-thread segfault).
+2. It survives either side dying.  A session can crash and the last
+   thing it said is still on the screen.
+3. It is the fifth thing wearing the house's own format, so it is
+   debuggable with `cat`.
+4. **It is the only transport that crosses the fence for free.**
+   `board/reviewing-by-running.md` puts the workbench inside
+   `tools/sandbox.sh`, where *the project directory is the one writable
+   thing* — so a file under it needs no new bind, while a socket or a
+   fifo anywhere else needs the fence widened to admit it.  Two cards
+   that compose rather than fight is worth more than a millisecond of
+   latency.
+
+A fifo wants a blocking read on a thread and drops what it cannot
+deliver; a socket wants an accept loop and a bind.  Both are streams,
+and what is being sent is closer to a document.
+
+### Where it stands — answered
+
+**Q (Claude).**  A content box stands on a *line*.  Should a gemba box
+stand on the line being changed, be an ask-line you place yourself, or
+be window chrome?
+
+**Henri, 2026-08-17: one box, wherever you put it.**  So it is a
+`gemba` ask-line, the same shape as `canvas` and `notes` — the machinery
+is built, the manners are known (the box stands on the line, deleting the
+line takes the box, no line no box), and it keeps working when the file
+on screen is not the file being worked on.
+
+### And the finding that is the real design — the rate
+
+**Q (Claude).**  Does the box hold what is happening now, a scrollable
+log, or now-plus-a-tail?
+
+**Henri, 2026-08-17:**
+
+> This is a hard question.  In one hand "what is happening now" would be
+> great, but you're much faster than me.  I think the design should
+> account for that.  Give me room that I need.
+
+**That is not a fourth option, it is the constraint the other three were
+hiding.**  A narration paced by the writer is unreadable when the writer
+is faster than the reader; a log paced by the reader is a report, which
+is the thing this card exists to replace.  Neither end can own the pace.
+
+So the box is **paced to the reader**:
+
+- Claude writes into a queue; the box shows **one** thing at a time.
+- Each stands for a **minimum dwell**, so nothing can be replaced before
+  it has been readable.
+- When the queue backs up, **the depth is itself the reading**: the box
+  says how far behind it is running.
+
+That last line is the valuable one.  The rate mismatch stops being a
+defect to be engineered away and becomes **the instrument's most useful
+signal** — *he is going faster than you are following*, which is
+`spec/author.md`'s standing problem (*"the volume outrunning review"*)
+made visible while it is happening rather than discovered in a commit log
+afterwards.  It is `board/done/timer.md`'s own idea one floor over: a
+mark that grows with a quantity, applied to attention instead of hours.
+
+**Still to pick, and cheap:** the dwell (seconds), and whether a deep
+backlog is drawn as a count, a mark, or both.  `spec/rocks.md` is the
+precedent and would say a mark — *a number a person has to read is a
+number a person will not read*.
+
+**And one rule falls out of it for the writer, not the window.**  If the
+box can only carry so much, a session has to choose what is worth saying
+— which is the same discipline the commit body already asks for, arriving
+a few hours earlier.
 ## What the work is
 
-1. **The channel** — a path from a Claude session into a running
-   workbench.  This is the card.
+1. **The channel** — a file the session writes and the loop reads,
+   flat tab-separated lines, under the project so it crosses the fence
+   for free.  Decided above.
 2. The box that shows it, which is a fourth reading of machinery that
    already exists.
 3. Python colouring, which is `painted()` plus the stdlib.

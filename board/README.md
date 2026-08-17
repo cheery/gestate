@@ -46,6 +46,10 @@ is what keeps a card's name stable while priorities move.
    opens a session's fresh commits, and it compiles and runs them as you.
    *Placed at the end 2026-08-17, at Henri's ask, having arrived
    unplaced.*
+8. **[unseen-flare](unseen-flare.md)** — the sound stuttered and there
+   was no way to find out whether the program had noticed.  *Written by
+   the session at Henri's ask, 2026-08-17, and placed at the end by the
+   rule.*
 
 Finished cards are in [done/](done/), newest work last.  `ls board/*.md`
 is the live board; nothing has to be trimmed by hand for that to stay

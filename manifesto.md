@@ -75,9 +75,24 @@ reference is not looked at, and the docstring says so.
 | native against the reference | that the two engines agree | a program neither runs |
 | the session transcript | what a person actually did | what they meant |
 | `test_panel_fixtures.py` | that the plugin's bytes are today's export | a fixture nobody regenerates |
+| a photographed window (Xvfb + `import`) | **whether what is drawn is right** | anything it is not pointed at, and anything that looks right for the wrong reason |
 
 The right-hand column is the load-bearing one.  An instrument whose
 blind spot is unwritten will be trusted past it.
+
+The last row was added on 2026-08-17, and it was added because the row
+above `lagcheck` had said *"cannot see: correctness of what is drawn"*
+since this table was written, and nothing filled it.  Three defects
+landed that day that 2,540 passing tests could not see and a screenshot
+could — including a mark that was correct in the string and unreadable
+on the screen, which is a defect no assertion about the string can
+reach.  `spec/verification.md` §"The screen is an oracle, and it is the
+one this tree lacked" is the argument and the fifteen-line harness.
+
+**Its own blind spot is the honest half**: a picture that looks right
+for the wrong reason still looks right.  The same day, a patch bay drew
+exactly the correct lamps from a query that was wrong — and what caught
+*that* was changing the input and demanding the picture follow.
 
 ---
 

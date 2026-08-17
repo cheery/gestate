@@ -186,6 +186,87 @@ exist and are not yet held together:
   replayed session must reproduce the transcript.  The harness is in
   the loop too; this is the check on the check.
 
+## The screen is an oracle, and it is the one this tree lacked
+
+*2026-08-17.  Four real defects landed that day.  **Three were invisible
+to 2,540 passing tests and every one of them was found by photographing
+a running window.***
+
+`manifesto.md` §"The instruments, and what each cannot see" gives
+`tools/lagcheck.py` the blind spot *"correctness of what is drawn"*.
+That column was accurate and it was the whole problem: the tree could
+drive a real window and read whether a pixel *changed*, and had nothing
+that could read whether the pixels were **right**.
+
+The three:
+
+- **`you 0m` on a day the record said was eight hours old.**  The status
+  row took its figure from the day the first *gesture* made, so a
+  workbench opened onto a day already underway reported that nothing had
+  happened on the very day its own file said the most had.  Every unit
+  test passed, because every unit test typed first.  A test cannot reach
+  for a state it never thought to be in; a window opened at two in the
+  afternoon is in it by default.
+- **A rest day drawn as `·`, one pixel a side from `▪`.**  The string was
+  correct and every assertion about it passed.  On the screen, at the
+  size it is actually read at, *a day of rest looked exactly like a light
+  day of work* — the one mark the instrument existed to show was the one
+  that could not be read.  No assertion about a string can catch this,
+  because the defect is not in the string.
+- **A comprehension body swallowing its own union.**  `for (C) {a} \/ {b}`
+  puts the `\/` *inside* the loop, so the answer was right whenever the
+  generator was non-empty and empty when it was not.  It typechecked, it
+  ran, and it was looked at in a real window and looked fine — because
+  the picture it produced was the correct one for the data it had.
+
+### The harness, which is small
+
+A virtual display, the program, and a photograph:
+
+```sh
+Xvfb :77 -screen 0 1200x800x24 &
+DISPLAY=:77 python -m gestate.workbench <file> &
+import -window <id> shot.png          # ImageMagick
+```
+
+`tools/lagcheck.py` already owns the difficult half — `find_window`,
+`click_into`, `shot`, and XTEST typing — so the whole of a new visual
+check is those four calls and a crop.  **It costs about fifteen lines
+and it out-found the suite on the day it was written.**
+
+### Two rules it comes with
+
+**A verification run must mute itself.**  The first one opened
+`twoknobs.ges` in a real workbench, which takes the real sound card, and
+played into a room somebody was resting in.  A throwaway `$HOME` holding
+an `.asoundrc` that maps `pcm.!default` to ALSA's null device fixes it —
+and note that the same throwaway `$HOME` hides `~/.rustup`, so the
+editor's own `_stale` rebuild then fails with *"rustup could not choose
+a version of cargo"*; symlink `.rustup` and `.cargo` into it.
+
+**And it must keep no record of the day.**  XTEST types with the same X
+events a hand does and nothing can tell them apart, so
+`tools/lagcheck.py::driven` sets `GESTATE_PRESENCE=` for every harness
+that opens a window — otherwise the one instrument that measures the
+person would be measuring the test suite.
+
+### The pattern that forced the fourth one out
+
+The fourth defect was not found by looking; it was found because the
+suite **refused to let the example exist unexamined**.
+`test_audio.py::test_every_audio_example_is_exercised_here` and
+`test_gui.py::test_every_gui_example_is_exercised_here` each assert that
+their example directory is *exactly* a listed set.  Adding a file makes
+the suite fail until somebody writes the test for it — and writing that
+test is what surfaced the comprehension bug, because the assertion worth
+writing was not *"the picture is four lit and one dark"* (which the bug
+satisfied) but *"pull a cable and the lamps follow"* (which it did not).
+
+**A directory that is a contract should say so with a roster.**  Two of
+these exist.  The pattern generalises to anywhere the tree's shape is
+part of its meaning, and its value is not the assertion — it is that it
+makes a person write the test they were about to skip.
+
 ## What this is not
 
 * Not a UI test.  The transcript starts below pygame: what the editor
