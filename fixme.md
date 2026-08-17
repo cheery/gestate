@@ -4347,7 +4347,14 @@ there's actually something implying in that which might require 'is this
 really not possible to delegate to a real oracle?'"*  Here the answer is
 yes and it is not built, so the hunt costs one person's attention per
 iteration and cannot bisect.  **Four listens were spent before this
-entry stopped.**  The next step is the tap, not a fifth.
+entry stopped.**  The next step is the tap, not a fifth —
+`board/unheard-output.md`.
+
+**The bisect is checked in**, so it does not have to be rebuilt by the
+next person: `test/sessions/F147-ampknob.ges` (silent) and
+`test/sessions/F147-freqknob.ges` (pops), one variable apart and
+bit-identical at rest.  The second is Henri's own — given the first to
+try, he moved the knob himself and heard it come back.
 
 **The oracle this wants, and it does not exist.**  Henri, the same
 afternoon: *"when you say 'be my oracle', there's actually something

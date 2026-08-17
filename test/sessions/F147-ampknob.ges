@@ -1,0 +1,31 @@
+# F147's control: a knob in the sound path that does **not** pop.
+#
+#   python -m gestate.workbench test/sessions/F147-ampknob.ges
+#
+# The frequency is a fixed 415 Hz and the knob is on the **amplitude**.
+# Heard by Henri, 2026-08-17: silent at start.  Its twin
+# `F147-freqknob.ges` differs in one thing — the knob moves to the
+# frequency — and pops.
+#
+# Both render **bit-identically at rest** to a version with no knob at
+# all, which is what makes the pair a bisect rather than two programs
+# that sound different.
+
+levelChan : Chan Int
+levelChan = chan
+
+#: 0 .. 100, resting at 95 — so at rest this is the knobless sound exactly.
+level : Sig Float
+level = map (h => toFloat h / 100.0) (95 ::: mkSig (wait levelChan))
+
+step : Float -> Sig Float
+step n = !(415.0 * pow 2.0 (n / 12.0))
+
+partial : Float -> Float -> Sig Float
+partial lvl n = !lvl * sine (step n)
+
+drone : Sig Float
+drone = partial 0.30 0.0 + partial 0.18 7.0 + partial 0.10 12.0
+
+sound : Sig Float
+sound = level * drone

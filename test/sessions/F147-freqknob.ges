@@ -1,0 +1,40 @@
+# F147's reproduction: the same sound, and it pops.
+#
+#   python -m gestate.workbench test/sessions/F147-freqknob.ges
+#
+# **Henri's own experiment**, 2026-08-17.  Given `F147-ampknob.ges` to
+# try, he took it, moved the knob from the amplitude to the frequency,
+# restarted the workbench and heard the pop return — which is the
+# positive control that made the bisect conclusive rather than
+# suggestive.
+#
+# One variable against its twin, and both render bit-identically at rest
+# to a version with no knob at all.  So the pop is not the device, not
+# the host's start, not the master fader, not the presence of a control
+# source, and not a control-rate signal in the sound path.  It is
+# **specifically a control-rate signal feeding a frequency**.
+#
+# The graph is innocent too: `audioextract` gives this and its twin the
+# same eighteen nodes, the channel source at `init: 415` and every phase
+# accumulator at `init: 0.0`.  What is left is the first few blocks of
+# *live* execution, which nothing in this tree can look at —
+# `board/unheard-output.md` is the instrument that would.
+
+levelChan : Chan Int
+levelChan = chan
+
+#: The reference pitch, resting at 415 — a baroque A.
+level : Sig Float
+level = map (h => toFloat h) (415 ::: mkSig (wait levelChan))
+
+step : Float -> Sig Float
+step n = level * !(pow 2.0 (n / 12.0))
+
+partial : Float -> Float -> Sig Float
+partial lvl n = !lvl * sine (step n)
+
+drone : Sig Float
+drone = partial 0.30 0.0 + partial 0.18 7.0 + partial 0.10 12.0
+
+sound : Sig Float
+sound = 0.95 * drone

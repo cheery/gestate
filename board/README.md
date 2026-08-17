@@ -50,6 +50,10 @@ is what keeps a card's name stable while priorities move.
    was no way to find out whether the program had noticed.  *Written by
    the session at Henri's ask, 2026-08-17, and placed at the end by the
    rule.*
+9. **[unheard-output](unheard-output.md)** — nothing but a person can
+   hear what the sound card was given, so a whole class of defect has no
+   oracle at all.  *Written by the session at Henri's ask, 2026-08-17;
+   `fixme.md` F147 is blocked on it.*
 
 Finished cards are in [done/](done/), newest work last.  `ls board/*.md`
 is the live board; nothing has to be trimmed by hand for that to stay
