@@ -173,11 +173,51 @@ in a chat is a decision that will be made again.
 - Read the card, then `roadmap.md` for the argument around it — a card
   is a task, not a rationale.
 - Say at the start what you take it to mean, and negotiate.  Ask freely.
+- **Before building, state the postcondition in one sentence, derived
+  from the card's `because` and naming no function.**  See below.
 - Set `status doing` if it will take a while and someone else might look.
 - If it turns out to be blocked, say so in `status` **and** in
   `blocked`, and move on to the next card rather than stalling.
 - Work it as far as it goes.  Finish the whole task; if part of it is
   blocked, finish the rest and say plainly what was left and why.
+
+## The postcondition, before anything is built
+
+**One sentence, derived from the `because`, naming no function.**  Then
+Henri corrects it in a line, or does not, and the work has a definition
+of done that was not written by the code.
+
+*Adopted 2026-08-17.*  The occasion: an automatic audition shipped with
+**thirteen passing tests** and was switched off for the only person it
+existed for — a stranger, who never applies anything, so a gate keyed on
+"the last audition of this file" never opened.  Every test agreed with
+the implementation because every test was written from it, which is
+`manifesto.md`'s third way an instrument fails, arriving on schedule.
+
+**The raw material is already on every card and nothing used it.**  A
+`because` is a falsifiable claim about a person, written before the code
+exists — which is exactly the property the manifesto asks assertions to
+have, *"stated in a vocabulary the implementation does not own"*.
+`button.md`'s reads *"The program would not currently pass the stranger
+test."*  That is a test, and nothing tests it.
+
+So the sentence is the session's to write and Henri's to correct — one
+line of his attention, spent where his knowledge actually is, which is
+what *done* means for a person.  He was explicit that the burden must
+not move to him: *"Do you mean that I should start writing
+postconditions?"* — no.
+
+Two rules that make it useful rather than ceremony:
+
+* **If it cannot be written without naming a function, the change is
+  probably not user-facing** and owes no such test.  That is the
+  signal, not a failure.
+* **Write it before the implementation**, because one written after is
+  a description of what was built.  The auto-audition's sentence —
+  *"somebody who has never pressed anything still hears their edit"* —
+  fails against the first version and passes against the second, and it
+  only has that power because the first version had not been written
+  when the sentence was.
 
 ## Working while he rests
 

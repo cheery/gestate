@@ -17,7 +17,8 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 130 entries, **113 are resolved**.  What is left:
+Of 155 entries, **133 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
 |---|---|---|
@@ -31,6 +32,7 @@ Of 130 entries, **113 are resolved**.  What is left:
 | F38 | partly resolved | No monotone/discrete discipline and no eqtype/semilattice/fixtype checks |
 | F67 | missing | Nothing enforces the "no variable starting with `d`" rule |
 | F93 | deviates | A graph node's `clock` is set only on sources, not inherited |
+| F100 | bug | A constraint naming a class that does not exist is accepted |
 | F95 | fixed | The fragment admits tuples; the extractor now lays them out |
 | F103 | resolved | The same file's canvas builds or fails typechecking, run to run |
 | F106 | resolved | The drawn piano retriggers a held key (OS autorepeat) |
@@ -2729,7 +2731,7 @@ six readers assembling the *same* text and each paying for it.  Both follow
 from the same shape: a reader that wants a program says so by building one,
 and nothing between them knows that the last reader just did.
 
-### F100. A constraint naming a class that does not exist is accepted
+### F100. **[bug]** A constraint naming a class that does not exist is accepted
 
 Found while typing `spec/commands.md`'s vocabulary, where two classes
 say which road a command may be reached by — `FromMIDI` for a bank that

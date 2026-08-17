@@ -152,3 +152,30 @@ def test_every_card_citation_resolves():
     assert not missing, (
         "these cards are cited and are not there:\n  "
         + "\n  ".join(sorted(set(missing))))
+
+
+def test_the_register_says_how_many_it_holds() -> None:
+    """`fixme.md`'s own header counts its entries, and it had rotted.
+
+    **The file whose discipline is that a claim does not go stale said
+    "Of 130 entries, 113 are resolved" when it held 155 and 133** —
+    read by everyone who opens it, wrong by twenty-five, for as long as
+    nobody counted.  A number in prose is a claim like any other, so it
+    gets the same treatment: something runs it.
+
+    Finding it also turned up F100, which carried no `**[state]**` at
+    all and appeared in no table — invisible since it was written,
+    because every reader's eye and every count went past it.
+    """
+    text = (ROOT / "fixme.md").read_text(encoding="utf-8")
+    heads = re.findall(r"^### F(\d+)\.\s+\*\*\[([^\]]+)\]\*\*", text, re.M)
+    all_heads = re.findall(r"^### F\d+\.", text, re.M)
+    assert len(heads) == len(all_heads), (
+        "an entry carries no **[state]** — the counts below cannot see it")
+
+    said = re.search(r"Of (\d+) entries, \*\*(\d+) are resolved\*\*", text)
+    assert said, "fixme.md no longer says how many entries it holds"
+    resolved = sum(1 for _n, state in heads if state in ("resolved", "fixed"))
+    assert (int(said.group(1)), int(said.group(2))) == (len(heads), resolved), (
+        f"fixme.md says {said.group(1)} entries and {said.group(2)} resolved; "
+        f"it holds {len(heads)} and {resolved}")
