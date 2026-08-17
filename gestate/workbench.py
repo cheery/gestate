@@ -804,7 +804,11 @@ def run(path, rate: int = 44100, block: int = 512,
                 session.note(message)
 
             t1 = time.monotonic()
-            now = furniture(session, tally=presence.reading())
+            # Two statements, not one: `warm` describes the reading
+            # that was just taken, so the order they are asked in is the
+            # whole of their agreement.
+            tally = presence.reading()
+            now = furniture(session, tally=tally, warm=presence.warm)
             if now != said:
                 editor.describe(now)
                 said = now

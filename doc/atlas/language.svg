@@ -29,7 +29,7 @@
 <text class="title" x="12.00" y="20.00">gestate — from text to a program</text>
 <text class="subtitle" x="12.00" y="26.50">The front end, in the order it runs. The order is not written down here: <tspan class="mono">pipeline._analyse</tspan> is read for it, and the sheet fails when the two disagree. Where each pass lives, and what it can refuse, are read the same way.</text>
 <text class="foot" x="12.00" y="287.00">Pass order, homes, refusals and the instruction set are all read from the source by <tspan class="mono">gestate/atlas.py</tspan>; the sentence under each name is the only written part. <tspan class="mono">test_atlas.py</tspan> fails when the sheet and the source disagree — then run</text>
-<text class="stamp" x="408.00" y="287.00">gestate a55c4dc · 2026-08-16+</text>
+<text class="stamp" x="408.00" y="287.00">gestate 545d0fd · 2026-08-17+</text>
 <rect class="lane" x="12.00" y="37.00" width="94.50" height="42.00" rx="2.2" style="fill:#f4f7f9"/>
 <text class="stepnum" x="16.00" y="43.60">01</text>
 <text class="step mono" x="23.00" y="43.60">_merge_prelude</text>

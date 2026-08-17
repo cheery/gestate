@@ -356,3 +356,74 @@ def test_a_day_that_runs_past_midnight_becomes_two(kept):
     assert p.days["2026-08-18"].worked == 0.0, \
         "the new day starts owing nothing"
     assert p.days["2026-08-18"].first == "00:05"
+
+
+# ── the colour the row draws in ──────────────────────────────────────
+
+
+def test_a_calm_week_does_not_earn_the_amber(kept):
+    """Henri, 2026-08-17, having lived with the always-amber version for
+    an hour: *"do the grey-when-calm colour change, I think it's a reward
+    for not rushing or going breakneck speed."*
+
+    The row is always on, and `spec/rocks.md`'s law is that a mark which
+    is always on is a mark nobody reads.  So the *colour* obeys the same
+    rule as the glyphs: nothing above `▪` in the week, nothing warm.
+    """
+    p, hand = kept(at("2026-08-17", 9))
+    p.touched()
+    assert p.reading()
+    assert p.warm is False, "one keystroke is not a hard week"
+
+    hand.now += 4 * HOUR
+    p.touched()
+    p._said = ("", 0.0)
+    assert p.reading()
+    assert p.warm is False, "and neither is a break"
+
+
+def test_a_hard_day_earns_it(kept):
+    p, _hand = kept(at("2026-08-17", 17))
+    today = "2026-08-17"
+    p.days[today] = Day(today, "05:00", "16:30", 9 * HOUR, 900)
+    assert p.reading().startswith("you 9h00m " + NOTABLE)
+    assert p.warm is True
+
+
+def test_a_hard_day_last_week_still_earns_it(kept):
+    """**The week, not today.**  The finding this whole instrument exists
+    for is a *sequence*, so a light day after four heavy ones must not
+    put the colour out — that is precisely the day the reading would be
+    justified and the run would not."""
+    p, _hand = kept(at("2026-08-17", 10))
+    p.days["2026-08-15"] = Day("2026-08-15", "06:00", "23:00", 11 * HOUR, 2000)
+    p.touched()
+    assert p.warm is True, "a ▲ two days ago is still a ▲"
+
+
+def test_the_project_alone_never_warms_the_row(kept):
+    """**His half only.**  The commit log holds four `▲` from before this
+    instrument existed; a row that warmed for those would be amber
+    whatever he did, and the reward would never arrive."""
+    p, hand = kept(at("2026-08-17", 9))
+    p.touched()
+    p._made = {time.strftime("%Y-%m-%d", time.localtime(hand.now)): 60}
+    p._made_at = hand.now
+    p._said = ("", 0.0)
+
+    said = p.reading()
+    assert "project 60 " + LOUD in said, said
+    assert p.warm is False, "the project's week is not his week"
+
+
+def test_a_day_with_no_end_in_it_is_never_calm(kept):
+    """The span is the half the total cannot see, so it has to be able to
+    warm the row on its own — a check-in day sums to nothing and is the
+    day the colour is for."""
+    p, hand = kept(at("2026-08-17", 6))
+    for _ in range(6):
+        p.touched()
+        hand.now += 2.8 * HOUR
+    said = p.reading()
+    assert said.startswith("you 0m " + CALM), said
+    assert p.warm is True, "0m worked, fourteen hours of day"

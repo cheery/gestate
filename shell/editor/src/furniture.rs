@@ -17,7 +17,7 @@
 //!
 //! ```text
 //! status  <sentence>
-//! tally   <how long the day has been>
+//! tally   <how long the day has been>  <1 if it earned its colour>
 //! trouble <line>  <message>
 //! knob    <name>  <line>  <value>  <lo>  <hi>  <kind>
 //! bank    <name>  <line>  <voices>  <listening>
@@ -134,6 +134,19 @@ pub struct Furniture {
     /// the model sends it only when a record is being kept — and an
     /// empty tally draws no row at all.
     pub tally: String,
+    /// **Whether that row has earned the warm ink.**
+    ///
+    /// The model's decision, not the window's: reading it off the
+    /// sentence here would be a second front end deciding what the
+    /// sentence *means*, which is the rule the whole colouring wire
+    /// already keeps. A build that predates the field draws every tally
+    /// the way it always did.
+    ///
+    /// Why it is not always warm: the row is always on, and a colour
+    /// that is always on is one nobody reads — `spec/rocks.md` — so a
+    /// calm week draws in the chrome's own grey and the amber means
+    /// something when it arrives.
+    pub tally_warm: bool,
     /// The file's own name, for the status line.
     pub file: String,
     /// **Whether the text has moved since it was written.**  Drawn as
@@ -223,7 +236,10 @@ impl Furniture {
             let p: Vec<&str> = line.split('\t').collect();
             match p.first().copied().unwrap_or("") {
                 "status" => f.status = p.get(1).copied().unwrap_or("").into(),
-                "tally" => f.tally = p.get(1).copied().unwrap_or("").into(),
+                "tally" => {
+                    f.tally = p.get(1).copied().unwrap_or("").into();
+                    f.tally_warm = p.get(2).copied() == Some("1");
+                }
                 "trouble" => f.trouble.push(Trouble {
                     line: num(p.get(1)),
                     message: p.get(2).copied().unwrap_or("").into(),

@@ -1226,7 +1226,29 @@ class Session:
         # exactly what is shown, and `_where` resolves it like any
         # bare row.
         if low and not out:
-            out.extend(self._below(where, head, low, free, mark))
+            deep = self._below(where, head, low, free, mark)
+            # **A path you spelled out is always an answer** (F145).
+            #
+            # F130's deep search is right for a *bare* name — `open
+            # lantern.ges` from the root should find it two directories
+            # down rather than answer nothing three times.  It is wrong
+            # the moment the query carries a `/`, because then the person
+            # has said **where**, and a match from somewhere else is not
+            # a better answer to that question.
+            #
+            # What made it a defect rather than a ranking quibble:
+            # `open ../../hello.ges` from `examples/audio/` matched
+            # nothing at the root, so the deep row was the *only* row —
+            # and Return takes the row.  There was no way left to mean
+            # the thing that had just been typed.  `do_open` already
+            # knows what to do with it (*"new file hello.ges — saving
+            # creates it"*); it was the listing that never offered it.
+            #
+            # First, because the person named this place.  The deep
+            # matches keep their place under it, so F130 keeps its fix.
+            if head:
+                out.append((query, "new", True, "", False))
+            out.extend(deep)
         return out
 
     #: What a deep search may touch: directories this far down, this
@@ -3452,7 +3474,8 @@ def _beats_of(bar: int) -> float:
 # ── The window, and what passes between them ─────────────────────────────
 
 
-def furniture(session: "Session", bench=None, tally: str = "") -> str:
+def furniture(session: "Session", bench=None, tally: str = "",
+              warm: bool = False) -> str:
     """What the model has to say about the chrome — `furniture.rs`.
 
     **Derived every time it is asked for**, which is cheap and cannot go
@@ -3471,8 +3494,12 @@ def furniture(session: "Session", bench=None, tally: str = "") -> str:
     # is not a fact about the file: the loop owns the hand's clock, and a
     # `furniture()` called from a test has no day to report.  Empty when
     # the record is off, and an empty row is no row.
+    # The second field is **whether the row has earned its colour**, and
+    # it is the model's to decide: the window never reads meaning out of
+    # a sentence.  A build that does not know the field draws the row as
+    # it always did, which is the rule every verb here keeps.
     if tally:
-        out.append(f"tally\t{tally}")
+        out.append(f"tally\t{tally}\t{1 if warm else 0}")
 
     trouble = getattr(b, "trouble", "")
     if trouble:

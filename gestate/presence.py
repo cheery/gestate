@@ -298,6 +298,7 @@ class Presence:
         self._dirty = False         # something not yet on disk
         self._saved = 0.0           # when the file was last written
         self._said = ("", 0.0)      # the cached reading, and its minute
+        self._warm = False          # whether that reading earned its colour
         self._made: dict = {}
         self._made_at = 0.0
         self._load()
@@ -423,6 +424,13 @@ class Presence:
         day = self.days.get(_day(now))
         worked = day.worked if day is not None else 0.0
         strip = self.week(now)
+        # **Whether the row has earned its colour**, decided here rather
+        # than in the window, which never reads meaning out of a sentence
+        # (`furniture.rs`: the model's is the only tokenizer).  **His half
+        # only**: the project's week holds four `▲` from before this
+        # instrument existed, and a row that stayed amber for them would
+        # be amber whatever he did — the reward would never arrive.
+        warm = any(c in (NOTABLE, LOUD) for c in strip)
         parts = [f"you {spell(worked)}{_today(strip)} [{strip}]"]
         project = self._project(now)
         if project:
@@ -437,9 +445,37 @@ class Presence:
             span = day.span
             if span >= SPAN[0]:
                 parts.append(f"since {day.first} {mark(span, *SPAN)}")
+                warm = True          # a day with no end in it is not calm
         said = "   ".join(parts)
         self._said = (said, minute)
+        self._warm = warm
         return said
+
+    @property
+    def warm(self) -> bool:
+        """Whether the last `reading()` earned the amber.
+
+        **A reward for not rushing**, which is Henri's own reading of it
+        (2026-08-17): a week with nothing above `▪` in it draws in the
+        chrome's own grey, and the row warms only once something has been
+        worth knowing.  The glyphs carry the whole meaning either way —
+        the colour is a second telling of the same fact, for the eye that
+        has not read the row yet — so nothing is lost to a terminal with
+        no colour or to a reader who cannot use it.
+
+        `spec/rocks.md`'s law one channel over: the ink grows with the
+        quantity, and an always-on colour is a mark nobody reads.
+
+        **Asks for the reading itself rather than trusting that somebody
+        already did.**  Written the other way this was a trap and the
+        first caller after the author fell straight into it: `warm` read
+        `False` for a hard week because nothing had called `reading()`
+        yet, which is a silently wrong answer rather than an error.
+        `reading()` is cached to the minute, so asking costs a
+        comparison.
+        """
+        self.reading()
+        return self._warm
 
     def close(self) -> None:
         """The window is going.  Write what has not been written."""

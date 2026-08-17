@@ -1086,8 +1086,13 @@ pub fn bar_rows(chrome: &Furniture, cols: usize,
     // a clock. There the tally is the thing that goes.
     if !chrome.tally.is_empty() {
         out.truncate(usize::from(BAR_MOST).saturating_sub(1).max(head_rows));
+        // **Warm only when it was earned** — `Presence::warm` decides,
+        // and a calm week draws at the chrome's own weight. Henri, who
+        // asked for it on 2026-08-17: *"a reward for not rushing or
+        // going breakneck speed."*
+        let ink = if chrome.tally_warm { Ink::Spent } else { Ink::Faint };
         out.extend(wrap(&chrome.tally, cols).into_iter()
-                   .map(|l| (l, Ink::Spent)));
+                   .map(|l| (l, ink)));
     }
     out.truncate(usize::from(BAR_MOST));
     out

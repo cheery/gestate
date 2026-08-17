@@ -1541,7 +1541,7 @@ fn the_days_tally_stands_in_its_own_ink() {
     use gestate_editor::view::{bar_rows, Ink, SPENT};
 
     let chrome = Furniture::read(
-        "status\tapplied\ntally\tyou 6h12m \u{25c6} [\u{25aa}\u{25aa}\u{25c6}]");
+        "status\tapplied\ntally\tyou 6h12m \u{25c6} [\u{25aa}\u{25aa}\u{25c6}]\t1");
     let rows = bar_rows(&chrome, 60, false);
     assert_eq!(rows.len(), 2);
     assert_eq!(rows[0].1, Ink::Faint);
@@ -1581,7 +1581,7 @@ fn a_full_bar_still_keeps_a_row_for_the_day() {
     for i in 0..8 {
         said.push_str(&format!("\ntrouble\t0\tsomething is wrong, number {i}"));
     }
-    said.push_str("\ntally\tyou 11h04m \u{25b2}");
+    said.push_str("\ntally\tyou 11h04m \u{25b2}\t1");
 
     let rows = bar_rows(&Furniture::read(&said), 60, false);
     assert_eq!(rows.len(), usize::from(BAR_MOST));
@@ -1601,9 +1601,33 @@ fn a_long_answer_is_not_cut_short_to_fit_the_clock() {
                  written is already there and is bigger than the one you \
                  asked for, so nothing was done and nothing was lost";
     let chrome = Furniture::read(
-        &format!("status\t{words}\ntally\tyou 11h04m \u{25b2}"));
+        &format!("status\t{words}\ntally\tyou 11h04m \u{25b2}\t1"));
     let rows = bar_rows(&chrome, 24, false);
     assert_eq!(rows.len(), usize::from(BAR_MOST));
     assert!(rows.iter().all(|r| r.1 == Ink::Faint),
             "every row is the answer; the tally gave way");
+}
+
+
+/// **A calm week draws at the chrome's own weight.**  The row is always
+/// on, and a colour that is always on is one nobody reads
+/// (`spec/rocks.md`) — so the amber is kept for a week that earned it.
+/// Henri, who asked for this after living with the other version:
+/// *"a reward for not rushing or going breakneck speed."*
+#[test]
+fn a_calm_week_is_not_drawn_in_the_warning_colour() {
+    use gestate_editor::view::{bar_rows, Ink};
+
+    let calm = Furniture::read("status\tapplied\ntally\tyou 12m \u{25aa}\t0");
+    let rows = bar_rows(&calm, 60, false);
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[1].1, Ink::Faint, "quiet, and the glyphs still say it");
+
+    // The same row, one hard week later.
+    let hard = Furniture::read("status\tapplied\ntally\tyou 12m \u{25aa}\t1");
+    assert_eq!(bar_rows(&hard, 60, false)[1].1, Ink::Spent);
+
+    // **A build that predates the field draws it as it always did.**
+    let old = Furniture::read("status\tapplied\ntally\tyou 12m \u{25aa}");
+    assert!(!old.tally_warm, "no field is not a warm field");
 }
