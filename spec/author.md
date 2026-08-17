@@ -236,7 +236,7 @@ Liker's fourteen principles, against this project as it stands:
 | 10 | develop people and teams | n/a solo — though a friend has started to appear in the asks |
 | 11 | challenge partners and help them improve | this is the feedback loop: correcting the assistant *in writing*, where the correction survives the session |
 | 12 | **go and see for yourself (*genchi genbutsu*)** | asked for, unbuilt — `board/gemba.md` |
-| 13 | decide slowly by consensus, implement rapidly (*nemawashi*) | **strong, and distinctive** — elaborate before taking, collect the questions, answer in one sitting, then build in an evening |
+| 13 | decide slowly by consensus, implement rapidly (*nemawashi*) | **strong, and distinctive** — elaborate before taking, collect the questions, answer in one sitting, then build in an evening.  Its other half, **set-based design**, was named and written down on 08-17: `manifesto.md` §"Set-based, not point-based" |
 | 14 | a learning organisation through reflection and *kaizen* | **strong** — `journal.md`, `fixme.md`, and the reflex of asking for a poka-yoke rather than an apology |
 
 **The finding is the shape of that column.**  This project scores well

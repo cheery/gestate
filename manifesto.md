@@ -159,6 +159,67 @@ is then to say so rather than to argue harder for it.
 
 ---
 
+## Set-based, not point-based
+
+*Henri, 2026-08-17, on the button card: "I intentionally didn't say
+directly that the button should be made bigger, because it's not
+necessarily the whole answer to it, or correct answer."  Then: "'set
+based thinking' should be written down somewhere."*
+
+**Point-based design picks one answer early and iterates on it.**
+Set-based design keeps several alive, states what would kill each, and
+converges last.  It is Toyota's, and it is the practice behind the
+paper title that names the whole surprise — Ward, Liker, Cristiano and
+Sobek, *The Second Toyota Paradox: How Delaying Decisions Can Make
+Better Cars Faster*.  `spec/author.md` scores this project against
+Liker's fourteen principles; this is the sibling of number 13, and the
+half that was not written down.
+
+**Why it matters more here than it would on a team of people.**  A
+model produces one fluent, well-argued answer in seconds, and the
+answer arrives already defended.  That is a point-based machine by
+construction: the fluency *is* the convergence, and it happens before
+anybody has seen the alternatives.  The author then reviews the answer
+rather than the space — and **a review cannot see what was never
+offered.**  This is the specific failure the practice guards, and it is
+not a failure of correctness: the single answer is usually good.  It is
+a failure of *what got considered*.
+
+The board already had the local instance of this and did not know it
+was general: **a card's `because` is a problem, never a fix.**  Naming
+the fix collapses the set before anybody has looked at it, and the
+board's most expensive lesson is exactly that — the card that read
+"name datatypes" hid a need that had nothing to do with types.
+
+Three rules, and the third is the one that pays today:
+
+1. **Keep the alternatives with what would eliminate each.**  A set is
+   not a brainstorm.  Six answers with no discriminating evidence is
+   worse than one, because it launders indecision as rigour.
+2. **Eliminate by evidence, not by preference.**  The button's own
+   first screen already says *"top right"* and the stranger missed it
+   anyway, which weakens "make it bigger" as a whole answer without
+   anybody having to argue about taste.
+3. **Act now on what every alternative agrees about.**  This is what
+   makes the practice cheap enough to tolerate — the rule above.
+   Delaying the *decision* does not mean delaying the *work*: whatever
+   happens to that corner, the starter file should not name a button
+   deleted in `71b90af`, and the command list should not open on the
+   command that does nothing.  Both were fixed the same day the set was
+   written, and neither commits the corner to anything.
+
+**The demonstration this practice owes** (the rule above): the button
+card, 2026-08-17.  Asked to explore rather than fix, the session went
+and photographed the running window, and found three things the framing
+"the button is too small" would never have reached — a sentence on the
+first screen naming a control that had been deleted, a status-bar hint
+that teaches the key only *after* the button has been pressed, and a
+command list that opens on `skip`.  None of those is a size.  Two of
+them were shipped that afternoon, while the size question stayed open
+for the only oracle that can settle it.
+
+---
+
 ## What follows in practice
 
 **"It feels slow" is not a measurement.**  Three separate things were

@@ -87,13 +87,8 @@ Command := Stated
 instance Semigroup Command where
     (++) a b = Stated
 
-#: Do nothing — the identity of `++`.
-#:
-#: A named value rather than a class method because the prelude has
-#: `Semigroup` and no `Monoid`; one would be worth adding when a second
-#: type wants an identity, and is not worth it for this alone.
-skip : Command
-skip = Stated
+#: Its identity is `skip`, which is declared at the foot of this file
+#: rather than here beside it — see the note there.
 
 # ── The instrument ───────────────────────────────────────────────────────
 
@@ -556,3 +551,23 @@ zoomOut = Stated
 #: Close the editor.
 quit : Command
 quit = Stated
+
+# ── The algebra's identity, last on purpose ──────────────────────────────
+
+#: Do nothing — the identity of `++`.
+#:
+#: A named value rather than a class method because the prelude has
+#: `Semigroup` and no `Monoid`; one would be worth adding when a second
+#: type wants an identity, and is not worth it for this alone.
+#:
+#: **It is written here, away from the `++` it belongs to, because this
+#: file's order is the palette's order** — `session.vocabulary` says so:
+#: *"the order somebody thought about them rather than alphabetically,
+#: which is a worse order for learning"*.  Declared beside its instance
+#: it was the first line of the first screen a stranger ever saw, with
+#: the list's one explanatory line reading *"Do nothing — the identity
+#: of `++`"*: a fact about the algebra, offered as somebody's first
+#: move.  It is the identity of the monoid and it should be the last of
+#: the menu (`board/button.md`, `fixme.md` F150).
+skip : Command
+skip = Stated

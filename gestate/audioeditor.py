@@ -3134,13 +3134,23 @@ class Workbench:
 #: content would refuse somebody's notes over how they happen to start.
 INERT = {".txt", ".md"}
 
+#: The first screen anybody ever sees — a bare click on the desktop icon
+#: opens the editor on this, sounding.  **So every sentence in it is an
+#: interface**, and the one that used to sit here named the `[ref]`
+#: button, which belonged to the pygame editor and went with it in
+#: `71b90af`: the only instruction on the first screen pointed at a
+#: control that had not existed for a week, in the exact corner where a
+#: *different* control now stands (`board/button.md`, `fixme.md` F150).
+#: `what` and `fits` are what replaced it, and they answer from the
+#: compiler rather than from a page.
 STARTER = """# A new synth.
 #
 # `sound : Sig Float` is what the engine plays — samples in -1.0 .. 1.0,
 # one per instant.  Everything else in this file is yours.
 #
-# `doc/ref/index.md` is what is in scope; the [ref] button top right is
-# the same pages in here.
+# `doc/ref/index.md` is what is in scope.  In here, `what` says what a
+# name is and `fits` says what could stand where a type is wanted —
+# the compiler answering, rather than a page.
 
 sound : Sig Float
 sound = 0.2 * sine 220.0

@@ -69,6 +69,7 @@ Of 130 entries, **113 are resolved**.  What is left:
 | F141 | resolved | `foo : int` is a legal signature and a certain mistake |
 | F148 | resolved | The taskbar wore a sine; the front page wore the egg |
 | F149 | resolved | The desktop icon installed correctly and did nothing when clicked |
+| F150 | resolved | The first screen named a deleted button; the menu opened on `skip` |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -4494,3 +4495,71 @@ which opened a real editor and left no scratch file behind.
 The same install found F148 and the missing `libx11-dev`.  Three
 defects in one day from one fresh machine, in the one part of this
 project that had no test at all.
+
+### F150. **[resolved]** The first screen named a deleted button, and the menu opened on the command that does nothing
+
+Henri, 2026-08-17, after trying the editor on a friend with no
+explanation: *"He was unable to find the small gray-tinted button from
+the program.  Once I helped he got the button open, he had very little
+idea what is behind it."*  And, when asked which screen: *"My friend
+was on the starter screen.  The basic sine function giving a tone."*
+
+`board/button.md` is the card, and it holds the whole account.  Two of
+what it found are defects rather than design questions, and this entry
+is those two.  **Both were found by photographing the running window
+rather than by reading the source** — the icon's own launcher, opened
+and captured with `tools/lagcheck.py`'s `find_window` and `shot`.
+
+#### The only instruction on the first screen pointed at a deleted control
+
+With no file the editor opens on `audioeditor.STARTER`, sounding.  Its
+one piece of guidance read:
+
+> `doc/ref/index.md` is what is in scope; the **[ref] button top right**
+> is the same pages in here.
+
+**`[ref]` belonged to `gestate/audiopygame.py`** and went with it in
+`71b90af` *"vastly improved editor coming"*.  The sentence survived the
+UI it described — the same shape as the canvas losing its callers in
+that deletion — and what stands in that corner now is `≡`, which opens
+the command list and is not the reference.  So the first screen named
+the wrong control in the right place, which `board/stranger-test.md`
+already has the rule for: *a wrong guess that worked is worse than a
+stumble; it means the window taught something false.*
+
+**And it sharpens the report rather than excusing it.**  The screen said
+*top right*.  He was told where to look and still did not see 24 pixels
+of `FAINT` on `BG` — measured off the capture: an 8 × 7 box, 2.3:1,
+drawn at `y = 0` of the *text area*, in line 1's own row rather than in
+any bar or margin of its own.
+
+Now the sentence says what is true and reachable: `what` says what a
+name is, `fits` says what could stand where a type is wanted, and both
+answer from the compiler rather than from a page.
+
+#### The command list opened on `skip`
+
+`session.vocabulary` derives the palette from `command.ges` **in the
+order written**, and says why in its own docstring: *"the order somebody
+thought about them rather than alphabetically, which is a worse order
+for learning"*.  That is a good rule, and it means the file's order
+**is** the menu — which nobody had read in the other direction.
+`skip` was declared first, beside the `Semigroup Command` instance it is
+the identity of.
+
+So every stranger who ever found the button was met by `skip`,
+selected, with the list's single explanatory line reading *"Do nothing —
+the identity of `++`."*  A fact about the algebra, offered as somebody's
+first move.
+
+`skip` now sits at the foot of the file under a heading that says why it
+is there, with a pointer from the instance it belongs to.  The list
+opens on **`apply`** — *"Rebuild the instrument from the text and swap it
+in while it plays"* — which is exactly the move the card found missing:
+he was not stuck at *open* or *hear it*, both of which had already
+happened by themselves, but at **hear the change**.
+
+Held by `test_starter_and_first_command.py`.  Neither fix commits the
+corner to anything, which is why they could be made while the question
+of what the button should look like stays open — `manifesto.md`
+§"Set-based, not point-based", written the same day and at his ask.
