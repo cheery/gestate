@@ -4618,6 +4618,17 @@ fault.  The words are the model's, so the key cannot drift from the one
 
 Held by `test/test_autoaudition.py`, one section per rule.
 
+**And the second sentence, found by photographing it.**  Silencing
+`_built` was not the whole of *quiet*: `_progress` announces every
+generation change — *applied edit 4 (no knob in this synth)* — so a
+landing audition still wrote a line, once per pause in typing.  Shown
+five of them stacked, Henri: *"typing doesn't need that."*  The flag
+rides on the `Engine` rather than on the workbench, because the thing
+that announces an installation runs between blocks on another thread
+and a flag on the side would silence whichever build happened to land
+next; carried by the engine it cannot name the wrong edit, because it
+*is* the edit.  A `Ctrl-S` still announces itself.
+
 ### F152. **[resolved]** A complaint with no place to land
 
 Henri, 2026-08-17, typing into the new automatic audition: *"The error

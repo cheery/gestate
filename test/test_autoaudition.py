@@ -205,7 +205,14 @@ def test_an_asked_for_audition_still_complains(bench):
 def test_a_quiet_success_does_not_chatter(bench):
     """It succeeded, the sound is the text, and the bar stops saying
     `behind` — which is the answer.  A sentence per pause in typing
-    would bury the one the last real command left there."""
+    would bury the one the last real command left there.
+
+    **Both sentences, and the second was the one that shipped.**  The
+    first version silenced `_built` and left `_progress` announcing
+    *applied edit 4 (no knob in this synth)* on every generation change
+    — one per pause, photographed five deep before Henri saw what was
+    meant: *"typing doesn't need that."*
+    """
     bench.audition(_edit(bench, "\t"))
     assert _wait(lambda: bench.last_audition is not None)
     if bench.last_audition >= AUTO_AUDITION:
@@ -214,8 +221,22 @@ def test_a_quiet_success_does_not_chatter(bench):
     seen = len(bench.messages)
     bench.typed(text)
     assert _wait(lambda: bench._built_from == text)
+    time.sleep(1.0)                       # let `_progress` see it land
     said = " ".join(bench.messages[seen:])
     assert "auditioning" not in said, f"the quiet path spoke: {said}"
+    assert "applied edit" not in said, \
+        f"the driver announced an edit nobody asked for: {said}"
+
+
+def test_an_asked_for_apply_still_announces_itself(bench):
+    """The other side of it: pressing `Ctrl-S` is a question, and
+    *applied edit N* is its answer.  Losing that to silence the typing
+    would be a worse trade than the noise it removed."""
+    seen = len(bench.messages)
+    bench.apply(_edit(bench, "\t\t\t"), save=True)
+    assert _wait(lambda: any("applied edit" in m or "rebuilt" in m
+                             for m in bench.messages[seen:])), \
+        "an asked-for apply went silent"
 
 
 # ── and it says so ─────────────────────────────────────────────────────────

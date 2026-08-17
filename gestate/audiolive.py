@@ -191,6 +191,15 @@ class Engine:
     state: object
     graph: object
     frames: int = 0
+    #: Whether anybody asked for this one — `fixme.md` F151.
+    #:
+    #: **A fact about how the engine came to exist, carried by the
+    #: engine**, because the thing that announces an installation
+    #: (`audioeditor._progress`) runs between blocks on another thread
+    #: and has no other way to know.  A flag on the workbench would
+    #: announce whichever build happened to land next; this one cannot
+    #: name the wrong edit, because it *is* the edit.
+    unasked: bool = False
 
     @classmethod
     def compile(cls, source: str, rate: int, directory) -> "Engine":

@@ -2933,6 +2933,15 @@ class Workbench:
                 return
             self.say(f"not applied: {self._first_line(self.live.pending)}")
             return
+        if quiet:
+            # **Nobody asked, so nothing is announced when it lands.**
+            # The sentence `_progress` writes on a generation change —
+            # *applied edit 4 (no knob in this synth)* — is right for a
+            # `Ctrl-S` and is noise once per pause in typing: Henri,
+            # shown five of them in a row, *"typing doesn't need that."*
+            # Carried on the engine rather than on the workbench so it
+            # cannot suppress the message belonging to some other build.
+            self.live.pending.unasked = True
         # **What did this edit actually touch?**  A rebuild used to redo
         # the file: a constant changed inside one voice re-walked a
         # score that had not moved (1.45 s on `quartet.ges`), rebuilt a
@@ -3086,10 +3095,14 @@ class Workbench:
             self.say("error: " + self._first_line(self.live.errors.pop(0)))
         if self.live.generation != self._seen:
             self._seen = self.live.generation
-            # An edit that ran is an error that no longer applies.
+            # An edit that ran is an error that no longer applies —
+            # true however the edit got here, so this is cleared for an
+            # unasked-for build as well as an asked-for one.
             self.trouble = ""
-            self.say(f"applied edit {self._seen}"
-                     + ("" if self.has_knob else " (no knob in this synth)"))
+            if not getattr(self.live.engine, "unasked", False):
+                self.say(f"applied edit {self._seen}"
+                         + ("" if self.has_knob
+                            else " (no knob in this synth)"))
 
     #: How often the status line may mention the card running dry.
     #:
