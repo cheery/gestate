@@ -37,6 +37,35 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 REPORT = ROOT / "test" / "report.md"
 
+#: **The gates: seconds-long checks that a working session breaks.**
+#:
+#: Henri's ask, 2026-08-17: *"Put the obviously easy to fail tests first,
+#: so that we catch early up."*  The occasion was three failures in one
+#: day, each of them a structural check costing under five seconds and
+#: each of them sitting behind twenty minutes of audio renders — the
+#: atlas four minutes in, the gui roster thirteen, the citation check
+#: after the full twenty-five.  Every one was a session doing ordinary
+#: work: renaming a card, adding an example, changing a struct.
+#:
+#: These run **first and alone**, and a failure stops the run there.
+#: Nothing here tests behaviour; they test that the tree still agrees
+#: with itself, which is exactly the property editing the tree breaks.
+#:
+#: They are not re-listed for the long pass — it runs them again as part
+#: of its own collection, which is where their five seconds are counted.
+GATES = {
+    "test/test_board.py":
+        "the board's own contract, which a session edits every card",
+    "test/test_citations.py":
+        "every §\"…\" and card citation in the tree",
+    "test/test_atlas.py":
+        "the generated sheets against the source they describe",
+    "test/test_audio.py::test_every_audio_example_is_exercised_here":
+        "the audio example roster",
+    "test/test_gui.py::test_every_gui_example_is_exercised_here":
+        "the gui example roster",
+}
+
 
 def _run(cmd, **kw):
     return subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT, **kw)
@@ -166,12 +195,38 @@ def main():
         p.wait()
         return p.returncode, "".join(buf)
 
-    rc, out = stream(cmd)
-    passes = [out]
+    # **The gates first.**  A structural check that fails is nearly always
+    # a session having edited the tree, and finding that out in eight
+    # seconds rather than in thirteen minutes is the whole of this.  A
+    # failure stops the run: the long pass would be testing a tree
+    # somebody is about to change anyway.
+    gates = [g for g in GATES if (ROOT / g.split("::")[0]).exists()]
+    print(f"--- the gates ({len(gates)}), before anything slow ---")
+    gate_cmd = ([str(ROOT / "tools" / "sandbox.sh"), *pytest_cmd, *gates]
+                if fenced else [*pytest_cmd, *gates])
+    grc, out = stream(gate_cmd)
+
+    stopped = ""
+    if grc:
+        # **Counted here, because nothing else ran.**  On the happy path
+        # the gates are left out of `passes` — the long pass collects
+        # them again and would count them twice.
+        passes = [out]
+        rc = grc
+        stopped = ("a gate failed, so the long pass never started; "
+                   "fix it and run again")
+        print("\nsuite.py: " + stopped)
+        window_note = "none — stopped at the gates"
+        window_tests = []
+    else:
+        rc, main_out = stream(cmd)
+        out += "\n" + main_out
+        passes = [main_out]
 
     # Second pass, unfenced, for the window tests the fence cannot host.
-    window_note = "none"
-    if fenced and window_tests:
+    if not stopped:
+        window_note = "none"
+    if not stopped and fenced and window_tests:
         print(f"\n--- second pass, OUTSIDE the fence: {' '.join(window_tests)} ---")
         wrc, wout = stream([*pytest_cmd, *window_tests])
         out += "\n" + wout
@@ -227,6 +282,7 @@ def main():
         f"| Ran outside the fence | {window_note} |",
         f"| Wall | {mins}m {secs}s |",
         f"| Exit | {rc} |",
+        *([f"| Stopped | {stopped} |"] if stopped else []),
         "",
         "## Totals",
         "",
