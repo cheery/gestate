@@ -548,6 +548,21 @@ zoomIn = Stated
 zoomOut : Command
 zoomOut = Stated
 
+#: Watch what a session is doing, in a box in this file.
+#:
+#: Writes a `gemba` line where the caret is, and a box stands under it
+#: showing one thing at a time — held for as long as it takes to read,
+#: with a mark that grows when the session is running ahead of you.
+#: `board/done/gemba.md`.
+#:
+#: **A command because the line was not findable.**  The box has been an
+#: ask-line since it was built and the only way to raise one was to know
+#: to type the word: *"I don't know how to subscribe to the gemba walk
+#: with my workbench"* (Henri, the first walk).  A capability nobody can
+#: reach is the door the stranger could not find, one floor up.
+gemba : Command
+gemba = Stated
+
 #: Close the editor.
 quit : Command
 quit = Stated

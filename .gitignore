@@ -137,3 +137,20 @@ doc/atlas/*.png
 # Four of the twelve are therefore irreplaceable, and a pattern cannot tell
 # which four.  So none of them are ignored; a genuinely disposable render
 # is better deleted than pattern-matched.
+
+# ── The factory floor's channel ──────────────────────────────────────────
+#
+# `gemba.tsv` is a *live wire*, not a document: a session appends what it
+# is doing and a workbench reads it (`board/done/gemba.md`).  It is made
+# again by the next thing said, it is about a moment rather than about
+# the tree, and committing one would be committing somebody's afternoon.
+gemba.tsv
+
+# **And `*.desk` is deliberately not here**, which is the neighbouring
+# decision and the opposite one.  `<piece>.desk` is where the workbench
+# was in that piece — the caret, the zoom, the seed, the loop, the knob
+# values — and it belongs to the *piece*: it travels with it, and being
+# committable is the whole reason it lives beside the `.ges` rather than
+# in a dot-directory (`board/done/persistent-workbench-state.md`).  What
+# is *yours* rather than the piece's is in `~/.config/gestate/desk`,
+# which is outside this tree and needs no rule.

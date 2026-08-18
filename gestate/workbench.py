@@ -735,13 +735,18 @@ def run(path, rate: int = 44100, block: int = 512,
     #: the project half reads the tree being worked on and not whatever
     #: shell the window was launched from.
     presence = Presence(root=Path(path).resolve().parent)
-    #: **The factory floor** (`board/done/gemba.md`).  Rooted where the
-    #: presence record is, and for the same reason: the tree being
-    #: worked on rather than whatever shell the window was launched
-    #: from.  Costs one `stat` a pass when nobody is narrating.
+    #: **The factory floor** (`board/done/gemba.md`).  Rooted at the
+    #: file's *project* — `gemba.project` walks up to the repository —
+    #: because both ends have to answer *under the project* the same
+    #: way, and the first version did not: this rooted at the file's own
+    #: directory while a session wrote to its working directory, so the
+    #: two met only when the file happened to sit at the top of the
+    #: tree.  Which is why the first walk reached nobody.
+    #:
+    #: Costs one `stat` a pass when nobody is narrating.
     from .gemba import Walk
 
-    session.walk = Walk(root=Path(path).resolve().parent)
+    session.walk = Walk(root=path)
     editor = Editor(bench.source(), 1100, 760)
     session.view = Window(editor)
 

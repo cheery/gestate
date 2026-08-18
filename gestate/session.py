@@ -3221,6 +3221,33 @@ class Session:
         self.view.show("source")
         return "source"
 
+    def do_gemba(self) -> str:
+        """Raise the box that watches what a session is doing.
+
+        **The line is written for you, which is the whole point of the
+        command.**  The box has been an ask-line since it was built and
+        the only way to raise one was to know to type the word — so the
+        first person to have a session narrating at him could not see
+        any of it: *"I don't know how to subscribe to the gemba walk
+        with my workbench."*  A capability nobody can reach is
+        `fixme.md` F150 one floor up, and the answer is the same one:
+        put it in the list.
+
+        Says where the channel is, because the second half of not being
+        able to subscribe is not knowing whether anybody is talking.
+        """
+        from .gemba import path_for, project
+
+        lines = self._lines()
+        if any(l.split("#", 1)[0].strip() == "gemba" for l in lines):
+            return "the gemba box is already in this file"
+        self.view.insert("\ngemba\n")
+        where = path_for(getattr(self.bench, "path", None))
+        walking = getattr(self, "walk", None)
+        if walking is not None and walking.showing() is not None:
+            return f"watching {project(where.parent).name} — a session is talking"
+        return f"watching {where} — nothing said yet"
+
     def do_zoomIn(self) -> str:
         return "bigger" if self.view.zoom(1) else "as big as it goes"
 

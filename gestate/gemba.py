@@ -87,6 +87,33 @@ WORDS_A_SECOND = 3.0
 LEAST, MOST = 3.0, 20.0
 
 
+def project(start=None) -> Path:
+    """The project a path belongs to — the directory its repository is in.
+
+    **Both ends have to answer this the same way, and the first version
+    did not.**  The workbench rooted the walk at *the file's own
+    directory* and a session's `python -m gestate.gemba` wrote to *its
+    working directory*, so the two only met when the file being edited
+    happened to sit at the top of the tree.  Henri, 2026-08-18, on the
+    first walk: **"I don't know how to subscribe to the gemba walk with
+    my workbench."**  He could not, and no amount of knowing how would
+    have helped.
+
+    So *under the project* is made to mean one thing: the nearest
+    ancestor holding a `.git`, or the starting directory when there is
+    none.  `presence.py` roots itself the same way and for the same
+    reason — the tree being worked on, not the shell it was launched
+    from.
+    """
+    here = Path(start if start is not None else Path.cwd()).resolve()
+    if here.is_file():
+        here = here.parent
+    for at in (here, *here.parents):
+        if (at / ".git").exists():
+            return at
+    return here
+
+
 def path_for(root=None) -> Path:
     """Where the file is.
 
@@ -97,7 +124,7 @@ def path_for(root=None) -> Path:
     told = os.environ.get("GESTATE_GEMBA")
     if told:
         return Path(told)
-    return Path(root if root is not None else Path.cwd()) / NAME
+    return project(root) / NAME
 
 
 def dwell(text: str) -> float:

@@ -251,10 +251,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 67 | `HostError` | `world` | — | '{source} is missing' |
 | 103 | `HostError` | `world` | — | 'no `clang` to build the audio host with' |
 | 105 | `HostError` | `world` | — | exc.stderr.decode('utf-8', 'replace') |
-| 208 | `HostError` | `world` | — | 'could not make an audio host' |
-| 283 | `HostError` | `world` | — | 'this host was built without a device backend; install `libasound2-dev` and let it rebuild, or … |
-| 289 | `HostError` | `world` | — | 'could not open `{device}` ' + ('(no such device)' if code == -1 else '(it would not take float… |
-| 506 | `HostError` | `machine` | — | 'no control slot {index}' |
+| 211 | `HostError` | `world` | — | 'could not make an audio host' |
+| 286 | `HostError` | `world` | — | 'this host was built without a device backend; install `libasound2-dev` and let it rebuild, or … |
+| 292 | `HostError` | `world` | — | 'could not open `{device}` ' + ('(no such device)' if code == -1 else '(it would not take float… |
+| 541 | `HostError` | `machine` | — | 'no control slot {index}' |
 
 ### `audioir.py`
 

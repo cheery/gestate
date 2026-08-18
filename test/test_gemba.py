@@ -215,11 +215,18 @@ def _a_session(lines):
     class View:
         showing = "source"
 
+        def __init__(self):
+            self.typed = []
+
         def lines(self):
             return list(lines)
 
         def caret(self):
             return 0
+
+        def insert(self, text):
+            self.typed.append(text)
+            return True
 
     it = session()
     it.view = View()
@@ -325,3 +332,91 @@ def test_a_program_may_still_have_its_own_gemba(tmp_path):
 
     src = "gemba : Float\ngemba = 3.0\n"
     assert "# gemba : Float" not in expand(src)
+
+
+# ── What the first real walk found ────────────────────────────────────────
+#
+# Henri, 2026-08-18, the first time a session narrated at him:
+#
+#   > the first gemba walk didn't succeed.  I don't know how to subscribe
+#   > to the gemba walk with my workbench.  But I can see the tool would
+#   > work well.
+#
+# **Two defects, and neither was reachable from the source.**  Every test
+# above passed while both were true, because every one of them set
+# `GESTATE_GEMBA` and so never asked the question a person asks: *where
+# is the file, and how do I get the box?*
+
+
+def test_both_ends_find_the_same_file_from_anywhere_in_the_tree(monkeypatch,
+                                                                tmp_path):
+    """**The first defect, and it made the feature useless in silence.**
+
+    The workbench rooted the walk at the *file's own directory* and a
+    session's command line wrote to its *working directory*, so the two
+    met only when the file being edited happened to sit at the top of
+    the tree.  Nothing failed; nothing appeared either.
+    """
+    monkeypatch.delenv("GESTATE_GEMBA", raising=False)
+    (tmp_path / ".git").mkdir()
+    deep = tmp_path / "examples" / "audio"
+    deep.mkdir(parents=True)
+    piece = deep / "tuning.ges"
+    piece.write_text("sound : Sig Float\n")
+
+    assert gemba.path_for(tmp_path) == tmp_path / "gemba.tsv"
+    assert gemba.path_for(deep) == tmp_path / "gemba.tsv"
+    assert gemba.path_for(piece) == tmp_path / "gemba.tsv"
+
+
+def test_a_tree_with_no_repository_still_answers(monkeypatch, tmp_path):
+    """Walking up has to stop somewhere, and the honest stop is *here*."""
+    monkeypatch.delenv("GESTATE_GEMBA", raising=False)
+    loose = tmp_path / "loose"
+    loose.mkdir()
+    assert gemba.path_for(loose) == loose / "gemba.tsv"
+
+
+def test_the_command_writes_the_line_for_you(tmp_path):
+    """**The second defect: the box was not findable.**
+
+    It had been an ask-line since it was built, and the only way to
+    raise one was to know to type the word — so the first person a
+    session narrated at could not see any of it.  A capability nobody
+    can reach is `fixme.md` F150 one floor up, and the answer is the
+    same: put it in the list.
+    """
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from test_session import Editor, session
+    from gestate.workbench import Window
+
+    ed = Editor("sound : Sig Float\n")
+    it = session()
+    it.view = Window(ed)
+    said = it.run("gemba")
+    assert "insert\t\ngemba\n" in ed.orders, "it writes the line"
+    assert "watching" in said, "and says where the channel is"
+
+
+def test_the_command_does_not_raise_a_second_box(tmp_path):
+    """One box, because the pace is the point — and a person who runs it
+    twice should be told, not given a second thing to read."""
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from test_session import session
+
+    it = _a_session(["sound : Sig Float", "gemba", ""])
+    assert "already" in it.run("gemba")
+
+
+def test_the_command_says_whether_anybody_is_talking(tmp_path):
+    """The other half of not being able to subscribe is not knowing
+    whether there is anything to subscribe *to*."""
+    it = _a_session(["sound : Sig Float", ""])
+    it.walk = Walk(clock=Clock())
+    say("a session is here")
+    it.walk.read()
+    assert "a session is talking" in it.run("gemba")
