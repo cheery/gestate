@@ -786,6 +786,10 @@ class Workbench:
         #: or `"Float"`.  What `knob_range` reads; recomputed with the
         #: sites, because an edit can change a channel's type.
         self.knob_types: dict = {}
+        #: What each channel's declaration says it *is* until somebody
+        #: turns the knob — `415 ::: mkSig (wait concertChan)` says 415.
+        #: `fixme.md` F147: taking mid-travel instead was the pop.
+        self.knob_inits: dict = {}
         #: Where each parameter was declared — `audiospans.Site`s, in
         #: reading order.  Recomputed on every successful rebuild.
         self.sites: list = []
@@ -1909,6 +1913,12 @@ class Workbench:
         # `value_of` is asked by the view long before either is.
         for site in self.sites:
             self.knob_types[site.name] = graph.node(site.node).type_
+            # **And what the program said it starts at** — `fixme.md`
+            # F147.  Recorded beside the type, in the one place the
+            # graph is in hand, because `knob_default` is asked by the
+            # view long before it is.
+            self.knob_inits[site.name] = getattr(graph.node(site.node),
+                                                 "init", None)
             self.values.setdefault(site.name, self.knob_default(site.name))
         if self.midi is not None:
             self._rebind_midi()
@@ -1978,14 +1988,50 @@ class Workbench:
         to divide by a hundred in the one place the language cannot check
         that they did.  An `Int` knob is a note number or a percentage, so
         it keeps the range the examples expect.
+
+        **And it is stretched to hold what the program declared**
+        (`fixme.md` F147).  `tuning.ges` writes `415 ::: mkSig (wait
+        concertChan)` and means 415 Hz; a slider that ran 0 .. 100 could
+        not show that value at all, so it would sit pinned at the top
+        telling a person their knob was at maximum when it was at an
+        eighth of its travel.  The declared value is a fact about the
+        program and the range is a guess about it, so the guess gives
+        way.
         """
-        return (KNOB_RANGE_FLOAT if self.is_float_knob(name) else KNOB_RANGE)
+        low, high = (KNOB_RANGE_FLOAT if self.is_float_knob(name)
+                     else KNOB_RANGE)
+        init = self.knob_inits.get(name)
+        if isinstance(init, (int, float)):
+            low, high = min(low, init), max(high, init)
+        return (low, high)
 
     def is_float_knob(self, name: str) -> bool:
         return self.knob_types.get(name) == "Float"
 
     def knob_default(self, name: str):
-        """Mid-travel, so a control does something in either direction."""
+        """**What the program said**, and mid-travel only when it said
+        nothing.
+
+        `fixme.md` F147, and it is the whole of that defect.  A channel
+        is written `415 ::: mkSig (wait concertChan)` — the `:::` is the
+        author stating what the value *is* until something changes it,
+        and the graph's first block duly renders at 415.  Then the
+        editor pushed mid-travel of a range it had inferred, the
+        frequency dropped from 415 Hz to 50, and the step between them
+        was the click Henri heard on every start.
+
+        **Measured, not argued**: the tap read the editor's own card and
+        found the first ten milliseconds running seven times faster than
+        the settled tone, and a harness pushing `init` and then 50 at
+        block one reproduced the settled step to three figures.
+
+        Mid-travel survives for the case it was written for — a channel
+        with no stated value, where *something in either direction* is
+        the only sensible guess.
+        """
+        init = self.knob_inits.get(name)
+        if isinstance(init, (int, float)):
+            return float(init) if self.is_float_knob(name) else int(init)
         low, high = self.knob_range(name)
         return (low + high) / 2.0 if self.is_float_knob(name) else \
             (low + high) // 2

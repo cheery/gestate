@@ -2462,3 +2462,50 @@ def test_no_knob_still_reads_zero_when_the_render_loop_begins(tmp_path):
             f"{host.at_start}")
     finally:
         bench.stop()
+
+
+# ── The knob starts where the program said — `fixme.md` F147 ──────────────
+
+
+def test_a_knob_starts_at_what_the_program_declared(tmp_path):
+    """**The pop, as an assertion about a number.**
+
+    `415 ::: mkSig (wait concertChan)` is the author saying what the
+    value *is* until something changes it, and the graph's first block
+    duly renders at 415.  The editor then pushed mid-travel of a range
+    it had inferred — 50 for an `Int` — the frequency dropped by a
+    factor of eight, and the step between them was the click on every
+    start.
+
+    Asserted about the value rather than about the call order, which is
+    Henri's own framing from the last time this file was here: *"zero is
+    a zero"*.
+    """
+    from gestate.audioeditor import Workbench
+
+    piece = tmp_path / "tuning.ges"
+    piece.write_text(
+        "concertChan : Chan Int\nconcertChan = chan\n\n"
+        "concert : Sig Float\nconcert = map (h => toFloat h) "
+        "(415 ::: mkSig (wait concertChan))\n\n"
+        "sound : Sig Float\nsound = 0.3 * sine concert\n")
+    bench = Workbench(piece, rate=8000, block=64)
+    bench.knob_types["concert"] = "Int"
+    bench.knob_inits["concert"] = 415
+    assert bench.knob_default("concert") == 415
+    #: And the slider can show it, rather than sitting pinned at a
+    #: maximum that is an eighth of the real value.
+    low, high = bench.knob_range("concert")
+    assert low <= 415 <= high
+
+
+def test_a_knob_with_nothing_declared_still_takes_mid_travel(tmp_path):
+    """The case mid-travel was written for survives: with no stated
+    value, *something in either direction* is the only sensible guess."""
+    from gestate.audioeditor import Workbench
+
+    piece = tmp_path / "plain.ges"
+    piece.write_text("sound : Sig Float\nsound = mkSig 0.1\n")
+    bench = Workbench(piece, rate=8000, block=64)
+    bench.knob_types["cutoff"] = "Float"
+    assert bench.knob_default("cutoff") == 0.5

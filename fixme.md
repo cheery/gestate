@@ -4516,13 +4516,61 @@ step eleven times the settled one.
 `audioeditor.control` returns for that node on each of the first ten
 blocks.  If it is not 415 for some of them, this is finished.
 
-**Still open, and the wall has moved rather than fallen.**  Everything
-the *pipe* path reaches is now machine-checkable and none of it pops.
-What is left is what the pipe does not reproduce — real-time pacing, the
-card's own start, the first buffer — which is the **device** path.  The
-tap is in that loop too; running it makes noise in a room, which is the
-one thing this instrument was built to stop needing and the one place it
-still does.
+### The pop, found and fixed — 2026-08-18
+
+**The editor was overriding the value the program declared.**
+
+`tuning.ges` writes `415 ::: mkSig (wait concertChan)`.  The `:::` is
+the author saying what the value *is* until something changes it, and
+the graph carries `init: 415` — so the first block renders at 415 Hz.
+Then `_push_controls` wrote `value_of(name)`, which fell through to
+`knob_default`: **mid-travel of an inferred range**, and an `Int`
+channel's range is `0 .. 100`, so **50**.  The frequency dropped by a
+factor of eight between the first block and the second, and the step
+between them is the click.
+
+That is why it was *specifically* a control-rate signal feeding a
+frequency: a step in frequency is a step in the phase slope, mid-
+waveform, at whatever amplitude the tone had reached — and it had
+reached 0.41 of 0.50, because `mute_len` is 441 frames and a block is
+512, so the master fade is spent inside the first block.
+
+**Measured at every step, with nobody listening.**
+
+| | worst step | at frame | settled |
+|---|---|---|---|
+| the editor's own card, before | 0.03592 | 425 | 0.00504 |
+| a harness pushing `init` then 50 at block 1 | 0.04155 | 494 | 0.00509 |
+| the editor's own card, after | 0.04322 | 31135 | 0.04322 |
+
+The middle row is the reproduction — the same settled step to three
+figures, at the same place — and the last row is the fix: worst *equals*
+settled, so there is no transient at all, and the tone is at 415 Hz
+throughout instead of dropping to 50.
+
+**The fix.**  `knob_default` answers what the program declared, and
+mid-travel only when it declared nothing — which is the case mid-travel
+was written for.  `knob_range` stretches to hold the declared value,
+because a slider that ran `0 .. 100` beside a value of 415 would sit
+pinned at its maximum telling somebody their knob was at full travel
+when it was at an eighth of it.  The declared value is a fact about the
+program; the range is a guess about it, so the guess gives way.
+
+Held by `test_a_knob_starts_at_what_the_program_declared`, asserted
+about the *value* rather than the call order — Henri's own framing from
+the last time this entry was worked: *"zero is a zero"*.
+
+**And this is what `board/done/unheard-output.md` was for.**  Four
+listens got as far as *a control-rate signal feeding a frequency, in the
+first blocks*, and stopped.  The tap found the rest in one run, and the
+fix was confirmed by a second — no ears at either end.
+
+### The other two observations stand
+
+The pop is closed; the scratchy knob and the level on laptop speakers
+are not, and Henri's own reading of `tuning.ges` on 2026-08-18 is that
+it *"is not finished yet, more bug squishing needed"*.  This entry stays
+**partly resolved** until those are answered.
 
 **The oracle this needs, named so it stops being re-derived:** `host.c`
 writes every block to the card through `snd_pcm_writei`.  A tap at that
