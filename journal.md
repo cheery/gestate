@@ -8494,3 +8494,36 @@ table: **it records what was emitted, never what it looked like.**  The
 glyph it replaced passed every assertion anybody would have written —
 emitted, in the colour it was asked for, and unreadable at 24 lit
 pixels.
+
+## The crackle gets a column
+
+*2026-08-18.  `card:unseen-flare.md`, steps one and two.*
+
+The mechanism always worked: `host.c` counted every underrun, the editor
+said *the card ran dry N×*, and the sentence reached the status bar.  It
+lasted until the next thing the editor had to say.  So *"I haven't seen
+it flare"* could not tell **it did not happen** from **it happened and
+was overwritten**, and that gap is the whole defect — an instrument you
+must be watching at the instant is one nobody is watching, because the
+instant is when you are reading code.
+
+The count is a column on `presence.tsv` now and the tally row carries
+it: `you 6h12m … project 5 … dry 43`.  Three answerers to one question —
+the person, the project, and the machine.
+
+Two things that had to be right and would have failed quietly:
+
+**Two watermarks, not one.**  The sentence is rationed to one mention
+every two seconds, deliberately; the record must miss nothing.  Sharing
+a watermark would have lost every underrun the sentence declined to
+mention.
+
+**A count that goes down is a new host, not a lost count.**  `host.dry`
+dies with the C host, so a rebuild starts it at zero — which is the
+original complaint in miniature.  Read naively, the first rebuild would
+have swallowed everything after it.
+
+**No mark beside the number yet, on purpose.**  The threshold comes from
+outside the data and nobody has measured a quiet day; today the machine
+carried a thirty-minute fenced suite while its owner sat listening to
+it.  A scale fitted to today would call a healthy machine loud.

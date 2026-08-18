@@ -845,6 +845,12 @@ class Workbench:
         #: What the card's dry count was when it was last mentioned, and
         #: when that was — see `_say_dry`.
         self._dry_said, self._dry_when = 0, 0.0
+        #: A **second** watermark, for the day's record rather than for
+        #: the sentence.  Two readers of one running total need two, and
+        #: they move at different times: the sentence is rationed to one
+        #: every `DRY_EVERY` seconds and the record must miss nothing
+        #: (`card:unseen-flare.md`).
+        self._dry_kept = 0
         #: How long a drag's audition waits for the hand to stop.
         #:
         #: **A hand drags in strings of gestures, and each rebuild is a
@@ -3156,6 +3162,26 @@ class Workbench:
     #: and a line per block would be the status bar stuttering about the
     #: sound stuttering.
     DRY_EVERY = 2.0
+
+    def dry_since_kept(self) -> int:
+        """How many underruns since this was last asked.
+
+        **The count lives on the C host and dies with it**, so a rebuild
+        starts it again from zero — which is the whole reason the flare
+        could not be interrogated an hour later.  A total that went
+        *down* is therefore a new host and not a lost count, and the
+        watermark follows it rather than swallowing everything the new
+        host goes on to report.
+        """
+        host = getattr(self, "host", None)
+        if host is None:
+            return 0                    # the Python driver keeps no count
+        total = host.dry
+        if total < self._dry_kept:
+            self._dry_kept = 0
+        n = total - self._dry_kept
+        self._dry_kept = total
+        return n
 
     def _say_dry(self) -> None:
         """Say it when the card ran out of sound to play.

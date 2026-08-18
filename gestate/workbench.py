@@ -941,6 +941,11 @@ def run(path, rate: int = 44100, block: int = 512,
             # Two statements, not one: `warm` describes the reading
             # that was just taken, so the order they are asked in is the
             # whole of their agreement.
+            # **The machine's half of the row.**  Asked every pass and
+            # not only when something is said about it: the sentence is
+            # rationed and the record must not be
+            # (`card:unseen-flare.md`).
+            presence.ran_dry(bench.dry_since_kept())
             tally = presence.reading()
             now = furniture(session, tally=tally, warm=presence.warm)
             if now != said:

@@ -122,7 +122,7 @@ MADE_EVERY = 300.0
 FLUSH_EVERY = 30.0
 
 _HEAD = ("# gestate presence — one line a day, written by the workbench.\n"
-         "# date\tfirst\tlast\tworked(s)\ttouches\n")
+         "# date\tfirst\tlast\tworked(s)\ttouches\tdry\n")
 
 
 def state_path() -> Path:
@@ -187,15 +187,24 @@ class Day:
     """One day's presence: when it began, when it last moved, and how
     much of the span between them was actually worked."""
 
-    __slots__ = ("date", "first", "last", "worked", "touches")
+    __slots__ = ("date", "first", "last", "worked", "touches", "dry")
 
     def __init__(self, date: str, first: str = "", last: str = "",
-                 worked: float = 0.0, touches: int = 0):
+                 worked: float = 0.0, touches: int = 0, dry: int = 0):
         self.date = date
         self.first = first
         self.last = last
         self.worked = worked
         self.touches = touches
+        #: **How often the sound card ran out of sound to play**, all
+        #: day, across every window and every rebuild
+        #: (`card:unseen-flare.md`).  The count itself lives on the C
+        #: host and dies with it, so a rebuild used to erase the answer
+        #: to *has this been happening all morning* — which is the whole
+        #: reason the flare could not be seen.  A third party to the
+        #: question this row already asks: the person, the project, and
+        #: now the machine.
+        self.dry = dry
 
     @property
     def span(self) -> float:
@@ -222,7 +231,7 @@ class Day:
 
     def line(self) -> str:
         return (f"{self.date}\t{self.first}\t{self.last}"
-                f"\t{int(self.worked)}\t{self.touches}")
+                f"\t{int(self.worked)}\t{self.touches}\t{self.dry}")
 
     @staticmethod
     def read(line: str) -> "Day | None":
@@ -230,8 +239,15 @@ class Day:
         if len(parts) < 5 or parts[0].startswith("#"):
             return None
         try:
+            # **Five fields is a record from before the dry count**, and
+            # it loads unharmed with a zero — which is the manners this
+            # file already keeps for a line it cannot parse, applied to
+            # one it can only half parse.  A record that refused to open
+            # an older copy of itself would lose the week it exists to
+            # show.
             return Day(parts[0], parts[1], parts[2],
-                       float(parts[3]), int(parts[4]))
+                       float(parts[3]), int(parts[4]),
+                       int(parts[5]) if len(parts) > 5 else 0)
         except ValueError:
             return None
 
@@ -338,6 +354,32 @@ class Presence:
 
     # ── the hand ─────────────────────────────────────────────────────
 
+    def ran_dry(self, times: int = 1) -> None:
+        """The card ran out of sound to play, `times` over.
+
+        **Recorded even when nothing is said about it.**  The status
+        line holds one sentence and mentions a crackle at most once
+        every two seconds, so the telling is lossy by design — a line
+        per dropped block would be the bar stuttering about the sound
+        stuttering.  The *count* must not be, or the record answers a
+        question nobody asked and stays silent on the one they did.
+
+        Unlike `touched`, this does not move the hand: the machine
+        tearing is not the person working, and adding it to `worked`
+        would credit somebody for a bad afternoon
+        (`card:unseen-flare.md`).
+        """
+        if self.path is None or times <= 0:
+            return
+        date = _day(self.clock())
+        day = self.days.get(date)
+        if day is None:
+            day = self.days.setdefault(date, Day(date))
+        day.dry += times
+        self._dirty = True
+        # The cached reading is a minute old and now wrong.
+        self._said = ("", 0.0)
+
     def touched(self) -> None:
         """A gesture arrived.  Count the gap since the last one, unless
         the hand had stopped."""
@@ -435,6 +477,20 @@ class Presence:
         project = self._project(now)
         if project:
             parts.append(project)
+        # **The machine's half, and only once it has something to say.**
+        # A `dry 0` every day is the always-on mark `spec/rocks.md`
+        # refuses; a count that appears is a fact that was invisible
+        # before, because the sentence that used to carry it lasted
+        # until the next sentence (`card:unseen-flare.md`).
+        #
+        # **No mark beside it yet, deliberately.**  The card's third
+        # step is to pick the threshold from outside the data, and
+        # nobody knows what an ordinary number of underruns in a day is
+        # — a scale fitted to a day when a test suite had the machine
+        # would call a healthy one loud.  The number stands bare until
+        # a quiet day has been measured.
+        if day is not None and day.dry:
+            parts.append(f"dry {day.dry}")
         # **The span, and only when it has earned a word.**  A row that
         # is always on is a row nobody reads (`spec/rocks.md`), and on an
         # ordinary day the span says nothing the total did not.  It is

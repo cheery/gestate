@@ -427,3 +427,68 @@ def test_a_day_with_no_end_in_it_is_never_calm(kept):
     said = p.reading()
     assert said.startswith("you 0m " + CALM), said
     assert p.warm is True, "0m worked, fourteen hours of day"
+
+
+# ── The machine's half of the row ────────────────────────────────────────
+#
+# **`card:unseen-flare.md`.**  Henri: *"The audio is crackling without
+# running audition now.  But I haven't seen the mechanism flare that is
+# supposed to catch that."*  It did flare.  The status line holds one
+# sentence, so it lasted until the next thing the editor had to say —
+# and the observation *I haven't seen it* could not tell **it did not
+# happen** from **it happened and was overwritten**.
+#
+# The count is durable now, and the row carries it.
+
+
+def test_a_day_that_ran_dry_says_so(kept):
+    """The whole point: the fact outlives the sentence that reported it."""
+    p, _hand = kept(at("2026-08-18", 10))
+    p.touched()
+    p.ran_dry(3)
+    p.ran_dry()
+    assert "dry 4" in p.reading()
+
+
+def test_a_quiet_day_says_nothing_about_it(kept):
+    """`spec/rocks.md`: a row that is always on is a row nobody reads.
+    `dry 0` every day would be exactly that mark."""
+    p, _hand = kept(at("2026-08-18", 10))
+    p.touched()
+    assert "dry" not in p.reading()
+
+
+def test_the_count_survives_the_window(kept):
+    """Henri, asked whether it should outlive a restart: **yes.**  The
+    count lives on the C host and dies with it, so *has this been
+    happening all morning* was unanswerable — which is the half of the
+    defect a sentence could never have fixed."""
+    p, hand = kept(at("2026-08-18", 10))
+    p.touched()
+    p.ran_dry(7)
+    p.save()
+
+    again = Presence(root=p.path.parent, path=p.path, clock=hand)
+    assert "dry 7" in again.reading()
+
+
+def test_an_older_record_opens_unharmed(kept, tmp_path):
+    """A five-field line predates the column.  A record that refused to
+    read an older copy of itself would lose the week it exists to show."""
+    p, hand = kept(at("2026-08-18", 10))
+    p.path.write_text("# older\n2026-08-01\t09:00\t17:00\t3600\t42\n",
+                      encoding="utf-8")
+    again = Presence(root=tmp_path, path=p.path, clock=hand)
+    day = again.days["2026-08-01"]
+    assert (day.touches, day.dry) == (42, 0)
+
+
+def test_the_tearing_machine_is_not_the_working_person(kept):
+    """`worked` is what the hand did.  Crediting somebody for an
+    afternoon the sound spent stuttering would be the exact lie this
+    instrument exists not to tell."""
+    p, _hand = kept(at("2026-08-18", 10))
+    p.touched()
+    before = p.days[sorted(p.days)[0]].worked
+    p.ran_dry(50)
+    assert p.days[sorted(p.days)[0]].worked == before

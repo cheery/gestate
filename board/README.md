@@ -357,6 +357,28 @@ Then the body, in whatever depth the task needs:
 ## Done               — what landed, and the journal entry
 ```
 
+### One sheet, then depth
+
+*Henri, 2026-08-18:* **"the main stuff should fit into A3, but more is
+ok… if you can say it with few words, use those few rather than say it
+in 300 words."*
+
+So it is a **front**, not a limit: the header, the ask, the questions
+and what is left to do fit one sheet, and whatever needs saying at
+length follows below it.  A reader who stops after the first sheet still
+has what they need to act.
+
+The line that decides what goes below is already here — *the paragraphs
+belong to the journal, not to the card.*  A card says what to do; the
+journal says what happened.  `card:stranger-test.md` reached 900 lines
+by ignoring that, and its story belongs beside the entry it already has.
+
+**And the rule cuts both ways.**  His own note, same day: *"briefness is
+my failure mode, I wouldn't want it to get onto you."*  F150 is what
+under-saying costs — a first screen so spare it named a control that no
+longer existed, and a stranger who could not get in.  Few words where
+few will do; not fewer than the reader needs.
+
 ## Elaborate before taking
 
 **The practice that has paid for itself most.**  Before a card is

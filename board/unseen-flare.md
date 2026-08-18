@@ -170,3 +170,44 @@ can interrogate.
 **And the cause was a session's own footprint**, for the third time that
 day: a full `tools/suite.py` run, on the machine he was listening on.
 `journal.md` §"And what a session costs the machine".
+
+## What landed, 2026-08-18 — steps 1 and 2
+
+**The count is durable and the row carries it.**
+
+* `Day` has a `dry` column; `presence.tsv` gains a sixth field, and a
+  five-field line from before it loads unharmed with a zero.
+* `Presence.ran_dry()` records it **every pass**, not only when
+  something is said — the sentence is rationed to one every
+  `DRY_EVERY` seconds and the record must not be.  It deliberately does
+  not move the hand: crediting somebody's `worked` for an afternoon the
+  sound spent tearing is the lie this instrument exists not to tell.
+* The row says `dry 43` once the count is non-zero and says nothing on a
+  quiet day.
+* `Workbench.dry_since_kept()` keeps a **second watermark**, because one
+  running total now has two readers moving at different times.  A total
+  that goes *down* is a rebuilt host and not a count going backwards —
+  the case that would otherwise have lost every underrun after the first
+  rebuild, silently.
+
+Tested in `test/test_presence.py` §"The machine's half of the row" and
+`test/test_audioeditor.py` — including the rebuild, which is the half a
+sentence could never have fixed.
+
+## What is left, and what it waits on
+
+**No mark beside the number yet, and that is step 3 unchanged**: the
+threshold is picked from outside the data, and nobody knows what an
+ordinary number of underruns in a day is.  **A quiet day has to be
+measured first** — today was not one; the machine carried a thirty-minute
+fenced suite while its owner sat listening to it.  A scale fitted to
+today would call a healthy machine loud.
+
+So the number stands bare until there is a quiet day to compare it
+against, and step 4 — *is it hardware?* — becomes answerable only then,
+because it needs two numbers and today there is one.
+
+**And the first thing it will measure is a session.**  Three times in
+this card the cause was a session's own footprint.  That does not make
+the instrument less worth having: it turns *what a session costs the
+person listening* from an anecdote into a column.

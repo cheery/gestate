@@ -2509,3 +2509,49 @@ def test_a_knob_with_nothing_declared_still_takes_mid_travel(tmp_path):
     bench = Workbench(piece, rate=8000, block=64)
     bench.knob_types["cutoff"] = "Float"
     assert bench.knob_default("cutoff") == 0.5
+
+
+# ── The two watermarks on one running count ──────────────────────────────
+
+
+def test_the_record_and_the_sentence_keep_separate_watermarks(tmp_path):
+    """**`card:unseen-flare.md`.**  `host.dry` is one running total with
+    two readers: the status line, which is rationed to one mention every
+    `DRY_EVERY` seconds, and the day's record, which must miss nothing.
+    One watermark shared between them would lose every underrun the
+    sentence declined to mention.
+
+    And the count **dies with the C host**, so a rebuild starts it at
+    zero again — the reason the flare could not be interrogated an hour
+    later.  A total that went *down* is a new host, not a lost count,
+    and the watermark has to follow it down rather than swallowing
+    everything the new host goes on to report.
+    """
+    class Card:
+        dry = 0
+
+    bench = Workbench(tmp_path / "x.ges")
+    bench.host = Card()
+
+    assert bench.dry_since_kept() == 0, "a quiet card owes nothing"
+
+    bench.host.dry = 5
+    assert bench.dry_since_kept() == 5
+    assert bench.dry_since_kept() == 0, "asked twice, counted once"
+
+    # The engine was rebuilt: a fresh host, counting from zero, which
+    # then tears three times.
+    bench.host = Card()
+    bench.host.dry = 3
+    assert bench.dry_since_kept() == 3, (
+        "a rebuilt host must not be read as a count going backwards, or "
+        "every underrun after the first rebuild is lost")
+
+
+def test_a_python_driver_keeps_no_count(tmp_path):
+    """There is no C host under the pure-Python driver, and asking must
+    answer *nothing* rather than raise — the record is optional and the
+    editor is not."""
+    bench = Workbench(tmp_path / "x.ges")
+    bench.host = None
+    assert bench.dry_since_kept() == 0
