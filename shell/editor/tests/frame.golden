@@ -1,0 +1,13 @@
+rect      0     0    600x240    BG
+rect      0     0    600x20     CURRENT
+run      10     0  FAINT         "1"
+run      30     0  INK           "volume = 0.4"
+run      10    20  FAINT         "2"
+run      30    20  INK           "stab = lowpassSvf 800 0.7"
+run      10    40  FAINT         "3"
+rect      0   216    600x24     CHROME
+run       4   218  FAINT         "dubgate.ges [+]  applied"
+run     546   218  LIVE          "▶ 2.0"
+run     466   218  INK           "Ctrl-K"
+run     246   218  AWAY          "audition Ctrl-Return"
+rect     30     0      2x20     CARET

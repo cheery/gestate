@@ -475,13 +475,8 @@ impl EditorWindow {
         let surface = softbuffer::Surface::new(&context, handle)?;
         Ok(EditorWindow {
             doc: RefCell::new(Document::new(&host.initial())),
-            view: RefCell::new(View {
-                top: 0, left: 0, w, h, gutter: true, aside: 0, piano: 0, focused: false,
-                scale: crate::font::LADDER[crate::font::LADDER_DEFAULT].1,
-                boxes: Vec::new(), foot_rows: 1,
-                warning: String::new(), plus_hidden: false,
-                hint: true,
-            }),
+            view: RefCell::new(View::fresh(
+                w, h, crate::font::LADDER[crate::font::LADDER_DEFAULT].1)),
             zoom: Cell::new(crate::font::LADDER_DEFAULT),
             dragging: Cell::new(false),
             touching: Cell::new(false),

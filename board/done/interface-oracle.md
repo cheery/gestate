@@ -1,6 +1,6 @@
 # interface-oracle — nothing checks what the window says
 
-    status   doing — 2026-08-18
+    status   done — 2026-08-18
     because  "So interface needs an oracle" — three interface changes
              shipped in one evening and nothing in the tree records what
              the window used to do, so every claim about it rests on
@@ -108,3 +108,60 @@ says [command]` commit.  What is still true is that nothing runs it.*
    looked like.
 4. Say in `board/done/button.md` that the corner is now held, once it is —
    that card's remaining answers all change what `view.rs` draws.
+
+## Done — 2026-08-18
+
+**The card's own elaboration was the biggest thing wrong here**, and
+that is the finding worth keeping.  It said `view.rs` was *"the largest
+drawing file in the crate and the only untested one"* and that the three
+changes of 2026-08-17 were held by nothing.  Both were stale within a
+day, and a session believed them:
+
+* `shell/editor/tests/view.rs` already held **81 assertions**, headed
+  *"What a frame promises, checked without a window"* — including the
+  bar teaching `Ctrl-K` and dropping it, in both directions.
+* `view.rs` had gained three inline tests with the `[command]` corner.
+* F151's `AWAY` readout had two.
+
+The board already warns that an elaboration's mechanism guess is a guess
+and should say so.  This adds the other half: **an elaboration goes
+stale**, and the cheapest defence is to re-measure before believing it.
+The session that took this card nearly wrote three tests that existed,
+and reached that conclusion twice from **truncated greps** — `| head`
+cutting the output, and absence read as evidence.
+
+### What actually landed
+
+1. **`tools/suite.py` runs the Rust workspace** — 344 tests, four
+   crates, eighteen binaries, in under a second, between the gates and
+   the long pass.  Nothing ran them before, so every green this crate
+   ever showed was luck rather than evidence.  This was the card's real
+   defect and it was not in the card.
+2. **The one assertion that was genuinely missing**: which direction the
+   `hint` flag starts in.  It was a literal inside a constructor that
+   needs a display, so nothing could reach it — and it is exactly the
+   flag a later session flips while tidying, because `false` is what a
+   default usually looks like.  Lifted into `View::fresh`, asserted, and
+   both it and the bar were mutated to confirm the tests fail when they
+   should.
+3. **The golden frame, in the tree** (Q2, Henri: *"where else it could
+   fit other than this tree?"*).  `shell/editor/tests/frame.golden` —
+   thirteen lines, every run and rectangle with its place and its
+   colour by name, for one window with all four bar readouts standing.
+   Blessed with `GESTATE_BLESS=1`.
+4. **`manifesto.md`'s instrument table** gained the display list, with
+   its blind spot in the right-hand column: it records what was
+   *emitted*, never what it looked like.
+5. **`board/done/button.md`** says the corner is held now, and says
+   which half still is not.
+
+### What is deliberately not here
+
+**Whether a stranger finds the corner.**  The display list cannot see
+it and the photograph cannot either — F155 passed every assertion
+anybody would have written, in the colour it was asked for, at 24 lit
+pixels.  `board/stranger-test.md` run three is the instrument, and it is
+booked for next week.
+
+The journal entry is `journal.md` §"Eighty-one tests nobody ran, and one
+that did not exist".

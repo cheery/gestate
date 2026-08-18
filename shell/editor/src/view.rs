@@ -288,6 +288,27 @@ impl Default for View {
 }
 
 impl View {
+    /// **What a window opens as** — as against `Default`, which is a
+    /// blank one for tests and for filling a field in.
+    ///
+    /// The difference that matters is `hint`.  A fresh window **teaches
+    /// `Ctrl-K`** and stops the moment the key is used (F153): the
+    /// status bar is the only place that can know you have, and the
+    /// teaching is for people who have not.  `Default` says `false`
+    /// because a test constructing a view is not somebody opening one,
+    /// and a test that silently opted into the teaching would make the
+    /// bar's contents depend on which constructor a caller happened to
+    /// reach for.
+    ///
+    /// It lives here rather than as a literal in `window.rs` for one
+    /// reason: a literal inside a constructor that needs a display
+    /// cannot be asserted on, and this is the flag most likely to be
+    /// flipped back by somebody tidying — it looks like a default and
+    /// it is a decision (`board/done/interface-oracle.md`).
+    pub fn fresh(w: i32, h: i32, scale: i32) -> View {
+        View { w, h, scale, hint: true, ..View::default() }
+    }
+
     /// The cell this view draws in — the font's, scaled.
     ///
     /// Everything about layout goes through these two, so a zoom is one
@@ -1880,7 +1901,7 @@ mod tests {
     use crate::font;
 
     /// **The first test in this file, and the reason there is a card
-    /// about that** — `board/interface-oracle.md`.  Three interface
+    /// about that** — `board/done/interface-oracle.md`.  Three interface
     /// changes shipped on 2026-08-17 held up by nothing but screenshots
     /// somebody took by hand, in the one drawing module of this crate
     /// with no tests.  A frame is a display list built by a pure

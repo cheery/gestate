@@ -388,7 +388,7 @@ findings came from *photographing the running window* — the pixel count,
 the list opening on `skip`, the hint that taught the key only to people
 who no longer needed it — none of which is visible in the source, and
 all of which had been sitting in front of everybody.  That is now a row
-in `manifesto.md`'s instrument table, and `board/interface-oracle.md`
+in `manifesto.md`'s instrument table, and `board/done/interface-oracle.md`
 exists to keep the results from rotting.
 
 **And what it leaves open, honestly**: nobody has watched a second
@@ -397,3 +397,25 @@ card's own theory F says that is one stranger's worth of evidence.
 `stranger-test` holds the rules for spending the next one — the sharpest
 being that the run is only worth its cost if *one* uncertain thing has
 changed, and today four did.
+
+## The corner is held now — 2026-08-18
+
+`board/done/interface-oracle.md`'s work landed, and this card's replacement
+corner is no longer resting on a screenshot somebody took by hand:
+
+* **`[command]` is a word and not a glyph**, it is not drawn in the ink
+  that means *ignore me*, and its box is exactly as wide as the word —
+  three assertions inside `shell/editor/src/view.rs`.
+* **The bar teaches `Ctrl-K` until the key is used** and not after, and
+  a window **opens** teaching it — the last of those had no test at all,
+  because the flag was a literal inside a constructor needing a display.
+* And `tools/suite.py` runs all of it now.  It did not before: 344 Rust
+  tests across four crates were run by nothing, so this crate being
+  green was luck rather than evidence.
+
+What is still not held is the half that cannot be: **whether a stranger
+finds it.**  The person who failed to find the old glyph looked at the
+new corner and said *"nyt tuo [command] oikeassa yläkulmassa näkyy
+hyvin"* — which is legibility, judged by exactly the right person, and
+is not findability.  `board/stranger-test.md` run three is the
+instrument for that, and it is booked.

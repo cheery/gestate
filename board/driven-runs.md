@@ -13,7 +13,7 @@
     see      tools/lagcheck.py — `driven`, `find_window`, `tap`, `chord`,
              `click_into`, `shot`, `a_copy_of`
              doc/instruments.md — where the driven window is written up
-             board/interface-oracle.md — what to assert once you trust the run
+             board/done/interface-oracle.md — what to assert once you trust the run
              board/reviewing-by-running.md — the loop this sits inside
 
 ## The ask

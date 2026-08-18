@@ -14,7 +14,7 @@
              doc/instruments.md — what a session already has to work with
              manifesto.md — how an instrument fails
              vision.md — what any of it is for
-             board/interface-oracle.md, board/carried-state.md,
+             board/done/interface-oracle.md, board/carried-state.md,
              board/driven-runs.md, board/cheap-gates.md — the four
              workflow cards; the raw material, not absorbed
 

@@ -1811,3 +1811,33 @@ fn a_window_not_being_walked_says_nothing() {
     assert!(!f.items.iter().any(|i| matches!(i, Item::Run { s, .. }
                                             if s == "[gemba]")));
 }
+
+// ── The flag that looks like a default and is a decision ────────────
+//
+// **F153's `hint`, and a correction worth keeping.**  The card asking
+// for this work (`board/done/interface-oracle.md`) said the hint was one of
+// three interface changes held by nothing.  It was wrong, and so was
+// the session that believed it: `the_bar_teaches_ctrl_k_while_the_
+// burger_holds_the_list` above already covers the bar in both
+// directions, and it was missed because a grep was truncated and the
+// absence was read as evidence.
+//
+// One thing genuinely had no assertion, and it is the fragile one: the
+// **direction the flag starts in**.  It was a literal inside a
+// constructor that needs a display, so nothing could reach it — and it
+// is precisely the sort of flag a later session flips while tidying,
+// because `false` is what a default usually looks like.
+
+/// **A window opens teaching the key.**  F153: the bar says `Ctrl-K`
+/// until `Ctrl-K` is used, because that is the one place that can know
+/// you have used it, and the teaching is for people who have not.
+#[test]
+fn a_window_opens_teaching_the_key() {
+    assert!(View::fresh(1000, 700, 1).hint,
+            "somebody opening the editor has not used Ctrl-K yet, and \
+             the bar is the only place that can tell them");
+    assert!(!View::default().hint,
+            "and a blank view is not somebody opening one — a test that \
+             opted into the teaching would make the bar depend on which \
+             constructor its caller reached for");
+}

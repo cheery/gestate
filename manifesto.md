@@ -78,6 +78,7 @@ reference is not looked at, and the docstring says so.
 | a photographed window (Xvfb + `import`) | **whether what is drawn is right** | anything it is not pointed at, and anything that looks right for the wrong reason |
 | `GESTATE_HOST_TAP` (`host.c`) | **the samples the device was actually given** | what the speaker did with them |
 | `gestate.pops` | a step a program's own motion cannot account for | whether that step is *wrong* |
+| the editor's display list (`shell/editor/tests/view.rs`) | **what the window said** — every run, its colour and its place, with no window open | whether it was *legible*: F155's glyph was emitted, in the colour it was asked for, and unreadable |
 
 The right-hand column is the load-bearing one.  An instrument whose
 blind spot is unwritten will be trusted past it.

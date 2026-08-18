@@ -7988,7 +7988,7 @@ either side fails on the other.
 `afba696` made the corner say `[command]` instead of `≡` and at the
 ink's own weight instead of `FAINT`, and `tests/view.rs` still asked for
 both of the old answers.  **The test failed on exactly the change it
-exists to protect** — which is the shape `board/interface-oracle.md` is
+exists to protect** — which is the shape `board/done/interface-oracle.md` is
 about, and it is worth noticing that a suite nobody ran between two
 sessions is a suite that stops being an instrument.
 
@@ -8428,3 +8428,69 @@ neither about music, the language, or the window.  The way in cost half
 the run.  Both halves are fixed and gated in `test/test_way_in.py`, a
 new file whose whole reason for existing is that **every check in it was
 written because a person stopped at the thing it checks**.
+
+## Eighty-one tests nobody ran, and one that did not exist
+
+*2026-08-18.  `board/done/interface-oracle.md`, taken and finished — and
+the card was wrong about almost everything it asked for.*
+
+It said `shell/editor/src/view.rs` was *"the largest drawing file in the
+crate and the only untested one"*, and that the three interface changes
+of 2026-08-17 were held by nothing but screenshots somebody took by
+hand.  A day later both were false and a session believed them anyway.
+
+`shell/editor/tests/view.rs` already held **81 assertions**, under the
+heading *"What a frame promises, checked without a window"* — including
+the bar teaching `Ctrl-K` and dropping it, in both directions.  `view.rs`
+had gained three inline tests with the `[command]` corner.  F151's
+`AWAY` readout had two.
+
+**And the session reached its wrong conclusion twice from truncated
+greps** — `| head -20` cutting the output, absence read as evidence.
+The same mistake had already cost a wrong measurement earlier the same
+afternoon.  It is the cheapest possible error and it produces confident
+wrong findings, which is the expensive kind.
+
+### The real defect was not in the card
+
+`tools/suite.py` had no `cargo` in it anywhere.  Four crates, eighteen
+binaries, **344 tests**, run by nothing — so this crate being green was
+luck rather than evidence, and the observation that started the card
+(*"view.rs's own tests went red and stayed red for a session"*) was that
+fact wearing a different face.  Henri, when it was measured: *"I had no
+idea rust tests weren't there in the suite."*
+
+They cost **under a second warm**, so they sit between the gates and the
+long pass: a broken crate is known in the first minute rather than the
+twenty-fifth.  Inside the fence, which is what `tools/sandbox.sh` was
+written for — cargo runs build scripts and proc-macros as arbitrary
+code.
+
+### One assertion was genuinely missing, and it was the fragile one
+
+Not what the bar draws — which direction the `hint` flag **starts** in.
+It was a literal inside a constructor that needs a display, so no test
+could reach it, and it is exactly the flag a later session flips while
+tidying, because `false` is what a default usually looks like.  Lifted
+into `View::fresh` and asserted.
+
+**Both new assertions were then mutated to check they fail.**  Flipping
+the default failed the default test; disabling the hint's run failed
+two.  A test that has never been seen to fail is a claim about nothing.
+
+### And a frame, written down
+
+Henri, asked whether a golden display list belongs in the tree:
+*"golden frame, where else it could fit other than this tree?"*  So
+`shell/editor/tests/frame.golden` — thirteen lines, every run and
+rectangle with its place and its colour by name, one window with all
+four bar readouts standing at once.  The atlas's argument against
+committed renderings does not carry: a raster is opaque and differs
+between rasterisers; this is text this crate alone produces, and a
+change to it reads as a diff.
+
+Its blind spot goes in the same breath, in `manifesto.md`'s instrument
+table: **it records what was emitted, never what it looked like.**  The
+glyph it replaced passed every assertion anybody would have written —
+emitted, in the colour it was asked for, and unreadable at 24 lit
+pixels.

@@ -9,7 +9,7 @@
     asked    Henri, 2026-08-18 (Claude wrote the card, from his own
              statement of the problem, and measured it)
     see      fixme.md — the 161 entries, 141 of them marked resolved
-             board/interface-oracle.md — the same gap, one domain deep
+             board/done/interface-oracle.md — the same gap, one domain deep
              test/test_citations.py — already counts `fixme.md`'s entries
              manifesto.md — the three ways an instrument fails
              vision.md — "Gestate won't ever be untested"
@@ -92,7 +92,7 @@ for an unbuilt feature is a different argument.  The card is about
 **closure**: what has to be true before an entry may be marked
 `[resolved]`.
 
-### The overlap with `board/interface-oracle.md`, stated exactly
+### The overlap with `board/done/interface-oracle.md`, stated exactly
 
 They are neighbours and not duplicates.  The oracle covers one module —
 `shell/editor/src/view.rs`, the largest drawing file in the crate and
@@ -119,7 +119,7 @@ function.  Henri corrects it in a line, or does not.*
 
 **1. What counts as a gate?**  A test is the obvious answer and it is
 too narrow: F153 and F155 were closed on photographs, and
-`board/interface-oracle.md` argues the photograph catches things the
+`board/done/interface-oracle.md` argues the photograph catches things the
 display list cannot.  Golden `.samples`, transcripts and example rosters
 are all gates already.  Is the rule *every closure names a test*, or
 *every closure names an instrument that runs unattended*?

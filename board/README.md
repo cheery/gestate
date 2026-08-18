@@ -32,35 +32,30 @@ Work them in this order unless one blocks another.  **This list is the
 only place the order lives** — a card never says where it stands, which
 is what keeps a card's name stable while priorities move.
 
-1. **[interface-oracle](interface-oracle.md)** — stops the finished
-   four regressing silently.  A multiplier rather than a feature, and
-   the argument got sharper on 2026-08-18: `view.rs`'s own tests went
-   red on the commit that changed the corner and stayed red across a
-   whole session, because nothing runs them.
-2. **[ungated-fixes](ungated-fixes.md)** — 79 of `fixme.md`'s 161
+1. **[ungated-fixes](ungated-fixes.md)** — 79 of `fixme.md`'s 161
    entries are named by no test, so a defect closed on a photograph can
    come back without anybody being told.  Directly under the oracle
    because they are the same family and the oracle is what makes the
    interface-shaped ones closable at all.
-3. **[unseen-flare](unseen-flare.md)** — narrower than
+2. **[unseen-flare](unseen-flare.md)** — narrower than
    `unheard-output`, and overlapping it.
-4. **[reviewing-by-running](reviewing-by-running.md)** — the review
+3. **[reviewing-by-running](reviewing-by-running.md)** — the review
    loop `spec/author.md` says is the scarce resource.
-5. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
+4. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
    the changes a session makes.
-6. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
+5. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
    *A proof of concept landed 2026-08-18 — three of its four views walk
    in the real window.  What is left is the fourth, paging, and a
    stranger.*
-7. **[portable-package](portable-package.md)** — for people who do not
+6. **[portable-package](portable-package.md)** — for people who do not
    exist yet, by his own answer.  *Waiting on program-or-workshop.*
-8. **[carried-state](carried-state.md)** — the seam that dropped three
+7. **[carried-state](carried-state.md)** — the seam that dropped three
    fields in one day and crashed the editor twice in Henri's hands.
-9. **[driven-runs](driven-runs.md)** — the instrument that finds nearly
+8. **[driven-runs](driven-runs.md)** — the instrument that finds nearly
    everything, and cannot say what it ran.
-10. **[cheap-gates](cheap-gates.md)** — seventeen seconds of checks
+9. **[cheap-gates](cheap-gates.md)** — seventeen seconds of checks
     that only run when somebody has twenty-five minutes.
-11. **[stranger-test](stranger-test.md)** — **moved here from first on
+10. **[stranger-test](stranger-test.md)** — **moved here from first on
     2026-08-18**, the day it produced its largest result: *"I think that
     we need another stranger.  move the card to the last."*  It is not
     demoted for being less valuable — run two carried the vision's whole
@@ -71,7 +66,7 @@ is what keeps a card's name stable while priorities move.
     answered by any session, at any position in this list.  A card that
     cannot be worked does not belong above cards that can.
 
-**Eight through ten arrived unplaced on 2026-08-18** and are at the end
+**Seven through nine arrived unplaced on 2026-08-18** and are at the end
 because that is where a new card lands, not because that is where they
 belong.  They are the day's kaizen written down at Henri's ask —
 *"Write cards for fixing these issues in your workflow"* — and the
@@ -247,7 +242,7 @@ session should be able to say which it used:
    cheaper for them than defending a single proposal, and it is how
    `working-standard`'s scope was settled in one line.
 4. **Check it does not already exist.**  `board/ungated-fixes.md` was
-   nearly a duplicate of `board/interface-oracle.md` and turned out to
+   nearly a duplicate of `board/done/interface-oracle.md` and turned out to
    be its superset; that had to be read to be known.  The overlap goes
    in both cards.
 5. **Ask what a session does on day one.**  If the answer needs a

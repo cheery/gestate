@@ -6,7 +6,7 @@ comments carry both cases: a two-pass run whose totals came from the
 second pass alone, and a version that captured output instead of
 streaming it so a healthy run looked like a hang.
 
-The Rust workspace joined it on 2026-08-18 (`board/interface-oracle.md`,
+The Rust workspace joined it on 2026-08-18 (`board/done/interface-oracle.md`,
 Henri: *"we have to add the command to run rust tests from suite… I had
 no idea rust tests weren't there in the suite"*).  344 tests across
 eighteen binaries had been running nowhere.  The risk a new pass brings

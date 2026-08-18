@@ -4980,7 +4980,7 @@ and *the box is exactly as wide as the word in it* are ordinary
 assertions with no window in them.  Their blind spot is written beside
 them and is the whole of this defect: **they see what was emitted,
 never what it looked like.**  The `≡` would have passed all three.
-`board/interface-oracle.md` is the card for the rest of it.
+`board/done/interface-oracle.md` is the card for the rest of it.
 
 ### F156. **[open]** The audio backend says which definition, never which line
 
