@@ -272,6 +272,48 @@ for the only oracle that can settle it.
 
 ---
 
+## Go and do it
+
+*Taiichi Ohno, the Toyota Production System.  Henri quoted it on
+2026-08-18, from the Finnish edition, and asked for it in English —
+because it is a rule this project keeps and that day had just broken.*
+
+> There are many things one does not understand, and therefore we ask:
+> why not just go ahead and take action?  **Do something.**  You will
+> come to realise, in the doing, how little you knew — you will see your
+> own failures, and you can correct those mistakes; and try again, and
+> at the second trial find another mistake, or another thing you do not
+> like, and correct that, and try once more.
+
+**The occasion was a session stopping one step short.**  A walk was
+supposed to open a file and stand a box under a line; it opened the file
+and did not land.  The session had a hypothesis, wrote it down, and
+declined to run the window again — *"I stopped rather than run another
+blind three-minute window cycle"* — which sounds like judgement and is
+the mistake this passage is about.  One more run answered it in ninety
+seconds, and answered it differently than the hypothesis did.
+
+It is the same idea as *genba* one floor down.  Going to the actual
+place is worth nothing if you arrive and reason instead of touching
+anything, and a hypothesis you did not test is a hypothesis that gets
+written into a commit message as though it were a finding.
+
+**And the second half is the part that is easy to skip.**  Ohno does not
+say *act and you will succeed*; he says act and you will *see your own
+failures* — that the value of doing is the mistake it shows you, and
+that the mistake is followed by another one, and that this is the method
+rather than a sign of doing it badly.  A day of this project on
+2026-08-18 went: build it, watch it break the file it was narrating
+about, fix that, watch it reach nobody, fix that, watch it crash the
+editor, fix that, watch it refuse to travel because subscribing had
+dirtied the file, fix that.  Every step was a run of the real thing, and
+none of the five was visible from the source.
+
+`spec/verification.md` §"The defect is in the seam, and the test is in
+the module" is the same finding stated as a rule; `doc/instruments.md`'s
+first section — *build the missing instrument the moment the need
+arises* — is what it asks of a session that finds itself unable to look.
+
 ## What follows in practice
 
 **"It feels slow" is not a measurement.**  Three separate things were

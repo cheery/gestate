@@ -43,6 +43,12 @@ The cost of a missing instrument is never the instrument.  It is the
 work done blind in its absence, and that work looks like progress while
 it is happening — which is why waiting for a better moment does not work.
 
+And when the instrument *is* there, the rule is Ohno's, in
+`manifesto.md` §"Go and do it": **do something.**  A session that has a
+hypothesis and declines to run the window has swapped an answer for an
+opinion, and the opinion goes into a commit message looking like a
+finding.
+
 ---
 
 ## Saying what you are doing, while you do it
