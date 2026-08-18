@@ -496,9 +496,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 104 | `EditorError` | `world` | — | 'no libgestate_editor.so and no cargo to build it — `cargo build --release --features capi` in … |
-| 113 | `EditorError` | `world` | — | 'the editor did not build:\n' + done.stderr |
-| 173 | `EditorError` | `world` | — | 'the editor window would not open' |
+| 111 | `EditorError` | `world` | — | 'the editor needs building, and `cargo` is not on PATH.\n rust installed already: . "$HOME/.car… |
+| 133 | `EditorError` | `world` | — | 'the editor did not build:\n' + done.stderr |
+| 193 | `EditorError` | `world` | — | 'the editor window would not open' |
 
 ### `elaborate.py`
 

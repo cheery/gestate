@@ -39,9 +39,10 @@ sudo apt install git python3 python3-venv python3-pip \
                  libasound2-dev libportaudio2 libx11-dev \
                  libx11-6 libxcb1 libxkbcommon0 libxkbcommon-x11-0 libgl1
 
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh   # then: . "$HOME/.cargo/env"
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+. "$HOME/.cargo/env"        # or open a new terminal; without this there is no cargo
 
-git clone <this-repo> gestate && cd gestate
+git clone https://github.com/cheery/gestate.git gestate && cd gestate
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
 
@@ -72,6 +73,11 @@ system, or anything under `examples/beginner/` beside its lesson.
 ```sh
 python -m gestate.workbench examples/super/dubgate.ges
 ```
+
+**The first run of this builds the editor** — `cargo build --release`,
+ten seconds to a couple of minutes depending on the machine — and every
+later one starts instantly.  It says so while it works, and it needs
+`cargo` on the `PATH` (see the install block above).
 
 The workbench is the editor, and it is the room the language was built
 for: the file, its knobs drawn **beside their own declarations**, a

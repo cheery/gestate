@@ -101,10 +101,30 @@ def _library():
     so = crate / "target" / "release" / "libgestate_editor.so"
     if not so.exists() or _stale(so, crate):
         if shutil.which("cargo") is None:
+            # **Never advise the command that is missing.**  This said
+            # "no cargo to build it — `cargo build …` makes one", which
+            # is an instruction a reader cannot carry out by definition:
+            # F163, found by a stranger who stopped here.  rustup puts
+            # `cargo` on the PATH by editing a shell profile, so the
+            # overwhelmingly likely cause is a shell that has not read
+            # one yet — which is a sourcing line, not an install.
             raise EditorError(
-                "no libgestate_editor.so and no cargo to build it — "
-                "`cargo build --release --features capi` in `shell/editor/` "
-                "makes one")
+                "the editor needs building, and `cargo` is not on PATH.\n"
+                "  rust installed already:  . \"$HOME/.cargo/env\"  "
+                "(or open a new terminal)\n"
+                "  rust not installed yet:  https://rustup.rs\n"
+                "then run the same command again — the build happens by "
+                "itself, and takes a few minutes the first time.")
+        # **The silence is the defect, not the length.**  Measured on
+        # a stranger's machine on 2026-08-18 it was 10–15 seconds, and
+        # he still volunteered it as *melko pitkä viive* — a fairly long
+        # delay — because nothing said anything was happening.  F163.
+        # `--quiet` keeps cargo's own progress off the terminal, which
+        # is what left the gap; one line before it costs nothing and
+        # `capture_output` means cargo cannot fill it itself.
+        import sys
+        print("building the editor — first run only…",
+              file=sys.stderr, flush=True)
         done = subprocess.run(
             ["cargo", "build", "--release", "--quiet", "--features", "capi",
              "--target-dir", str(crate / "target")],

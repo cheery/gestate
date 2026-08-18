@@ -179,3 +179,31 @@ def test_the_register_says_how_many_it_holds() -> None:
     assert (int(said.group(1)), int(said.group(2))) == (len(heads), resolved), (
         f"fixme.md says {said.group(1)} entries and {said.group(2)} resolved; "
         f"it holds {len(heads)} and {resolved}")
+
+
+def test_the_way_in_has_nothing_left_to_fill_in() -> None:
+    """A command a stranger is told to run must be runnable as written.
+
+    **F162**, found by a person: `README.md` and `doc/install.md` both
+    opened the install with `git clone <this-repo>`, and the first
+    instruction in the project's front door could not be carried out by
+    the one reader it was written for.  He asked what he was supposed to
+    put there, which is the whole defect — a placeholder in prose is a
+    note to the author, and a placeholder inside a shell block is a
+    question asked of somebody who cannot answer it.
+
+    Scoped to fenced `sh` blocks in the two files that are the way in,
+    deliberately: `<date>` and `<expr>` are honest placeholders in prose
+    all over this tree, and a check that fired on those would be an
+    andon nobody could read.
+    """
+    bad = []
+    for name in ("README.md", "doc/install.md"):
+        text = (ROOT / name).read_text(encoding="utf-8")
+        for block in re.findall(r"```sh\n(.*?)```", text, re.S):
+            for token in re.findall(r"<[^>\s]+>", block):
+                bad.append(f"{name}: {token}")
+    assert not bad, (
+        "a shell block in the way in still has something to fill in, and "
+        "the reader it is written for cannot fill it:\n  "
+        + "\n  ".join(bad))

@@ -32,41 +32,46 @@ Work them in this order unless one blocks another.  **This list is the
 only place the order lives** — a card never says where it stands, which
 is what keeps a card's name stable while priorities move.
 
-1. **[stranger-test](stranger-test.md)** — fixes nothing; it is what
-   *found* the four that are now done, and what would settle
-   `command-categories`' pick against a person rather than an argument.
-   Ranked here only because each run spends a scarce, non-renewable
-   person.
-2. **[interface-oracle](interface-oracle.md)** — stops the finished
+1. **[interface-oracle](interface-oracle.md)** — stops the finished
    four regressing silently.  A multiplier rather than a feature, and
    the argument got sharper on 2026-08-18: `view.rs`'s own tests went
    red on the commit that changed the corner and stayed red across a
    whole session, because nothing runs them.
-3. **[ungated-fixes](ungated-fixes.md)** — 79 of `fixme.md`'s 161
+2. **[ungated-fixes](ungated-fixes.md)** — 79 of `fixme.md`'s 161
    entries are named by no test, so a defect closed on a photograph can
    come back without anybody being told.  Directly under the oracle
    because they are the same family and the oracle is what makes the
    interface-shaped ones closable at all.
-4. **[unseen-flare](unseen-flare.md)** — narrower than
+3. **[unseen-flare](unseen-flare.md)** — narrower than
    `unheard-output`, and overlapping it.
-5. **[reviewing-by-running](reviewing-by-running.md)** — the review
+4. **[reviewing-by-running](reviewing-by-running.md)** — the review
    loop `spec/author.md` says is the scarce resource.
-6. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
+5. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
    the changes a session makes.
-7. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
+6. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
    *A proof of concept landed 2026-08-18 — three of its four views walk
    in the real window.  What is left is the fourth, paging, and a
    stranger.*
-8. **[portable-package](portable-package.md)** — for people who do not
+7. **[portable-package](portable-package.md)** — for people who do not
    exist yet, by his own answer.  *Waiting on program-or-workshop.*
-9. **[carried-state](carried-state.md)** — the seam that dropped three
+8. **[carried-state](carried-state.md)** — the seam that dropped three
    fields in one day and crashed the editor twice in Henri's hands.
-10. **[driven-runs](driven-runs.md)** — the instrument that finds nearly
+9. **[driven-runs](driven-runs.md)** — the instrument that finds nearly
    everything, and cannot say what it ran.
-11. **[cheap-gates](cheap-gates.md)** — seventeen seconds of checks
+10. **[cheap-gates](cheap-gates.md)** — seventeen seconds of checks
     that only run when somebody has twenty-five minutes.
+11. **[stranger-test](stranger-test.md)** — **moved here from first on
+    2026-08-18**, the day it produced its largest result: *"I think that
+    we need another stranger.  move the card to the last."*  It is not
+    demoted for being less valuable — run two carried the vision's whole
+    opening claim to a person, found F162 and F163, and cost half its
+    thirty minutes to the way in.  It is last because **it waits on a
+    person nobody has**, and the one question it still owes — whether
+    the corner is findable by somebody who has never seen it — cannot be
+    answered by any session, at any position in this list.  A card that
+    cannot be worked does not belong above cards that can.
 
-**Nine through eleven arrived unplaced on 2026-08-18** and are at the end
+**Eight through ten arrived unplaced on 2026-08-18** and are at the end
 because that is where a new card lands, not because that is where they
 belong.  They are the day's kaizen written down at Henri's ask —
 *"Write cards for fixing these issues in your workflow"* — and the

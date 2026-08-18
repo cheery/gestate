@@ -8323,3 +8323,108 @@ defects in new code.
 **Worth writing down as an instrument's own blind spot**: a driven
 window is only evidence about the binary it is running, and nothing in
 the harness says which binary that is.
+
+## Thirty minutes, and the way in took half of them
+
+*2026-08-18.  The second stranger run, over chat, start to finish in
+thirty minutes.*  `board/stranger-test.md` carries the log with times;
+this is what it came to.
+
+Janne cloned the tree at about 13:22 and heard his own edit at 13:52.
+In between he was told four things — the clone URL, *open a new terminal
+and run `cargo`*, *gestate compiles itself the first time*, and *keep
+telling me what happens* — and **every one of the first three was a
+defect in the way in, not an explanation of the program.**
+
+### The claim was run against a person, and it held
+
+`vision.md` opens with the only falsifiable sentence in it: *somebody
+who has never read this repository should be able to open a file, hear
+it, change it, and hear the change without being told anything first.*
+Nine days old, never run.  All four verbs happened, and the fourth
+arrived in his own words — *"löytyi arvo, joka vaikuttaa merkittävästi
+soundiin: stab = lowpassSvf"* — which is a thing you can only say if you
+heard it.
+
+**In its documented form, not its pure one**, and the difference is kept
+because it is the whole difference between a measurement and a
+celebration.  He read `README.md` in order, and reading is being told.
+He had seen the window once before, on 2026-08-17, which spent the
+corner-discovery question permanently.  What was measured is that **the
+way in works as a path** — which is worth having, and is not the same
+sentence.
+
+### F162 and F163: the two the author could not have found
+
+**`git clone <this-repo>`.**  The first instruction in the front door,
+in both `README.md` and `doc/install.md`, and it could not be carried
+out by the one reader it was written for.  He asked what he was supposed
+to put there.
+
+The way in *had* been walked from nothing the day before, on a fresh
+26.04 laptop, and that walk found three defects and missed this one —
+**because the person walking it was the author, and the author knows
+what goes in the blank.**  Not inattention: the missing information was
+in his head, so his own reading could not be the instrument.  That is
+`stranger-test`'s whole argument, arriving as a measurement.
+
+**And then `cargo`.**  The sourcing step lived as a *trailing comment*
+on the end of a long `curl … | sh` line — the weakest position a
+required step can occupy — so a reader who stayed in the same shell had
+rustup installed and cargo invisible.  It failed **several steps later**,
+in a different tool, as a Python traceback, by which point he had done
+six things correctly and had no reason to look back at step two.
+
+The error he reached told him to run `cargo build`. **An instruction
+that cannot be carried out by definition, since the reason it prints is
+that cargo does not exist** — worse than saying nothing, because he
+spends his time obeying it.
+
+### What pre-registration bought, twice in fifteen minutes
+
+Which of the three `EditorError`s it would be was written down **before
+the picture arrived**, with the reasoning: the sourcing step is a
+trailing comment, so a reader in the same shell has no cargo.  It was
+that one.  The diagnosis cost one look instead of a conversation.
+
+Then the better one.  Asked how long the build had taken, he said
+**ten to fifteen seconds** — and had already volunteered it, unasked, as
+*melko pitkä viive*, a fairly long delay.  Ten seconds is nothing by
+build standards.
+
+**So the defect was never the duration.  The wait said nothing.**
+Without that one neutral question at the one moment the answer still
+existed, the finding written down would have been *the first build is
+too slow* — expensive, plausible, and useless.  What landed instead was
+one line printed before `cargo build`, and a documented *minute or two*
+corrected to what somebody has actually seen.
+
+Four faces of one defect in fifteen minutes, each found by a different
+instrument: predicted from the source, needed as something a person had
+to be told, reported by the person as what he noticed most, and measured
+when he was asked.
+
+### Two things seen that nobody was looking for
+
+**The first command he chose was `stop`.**  Out of the whole list, what
+he wanted was to make it be quiet.  The workbench opens *sounding*, and
+a person meeting it has an immediate need the interface has never been
+designed around.  One observation, and it is not a conclusion — but it
+is not a fact the author can ever observe, because he has never needed
+to stop a sound he did not intend to start.
+
+**And the corner passed, judged by the person who failed the old one.**
+*"Nyt tuo [command] oikeassa yläkulmassa näkyy hyvin"* — unprompted,
+about a control he was not asked about.  F155 replaced 24 lit pixels of
+`FAINT` on `BG` with a word, and the exact person it was made for
+remarked on it without being asked.  **That is legibility, and it is not
+findability**: he recognised a control he already knew about.  The
+discovery question stays unmeasured and needs a friend nobody has spent.
+
+### The clock, and what it says about where to look
+
+Thirty minutes, of which roughly **fourteen were F162 and F163** —
+neither about music, the language, or the window.  The way in cost half
+the run.  Both halves are fixed and gated in `test/test_way_in.py`, a
+new file whose whole reason for existing is that **every check in it was
+written because a person stopped at the thing it checks**.

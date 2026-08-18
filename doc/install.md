@@ -20,9 +20,10 @@ sudo apt install git python3 python3-venv python3-pip \
                  libasound2-dev libportaudio2 libx11-dev \
                  libx11-6 libxcb1 libxkbcommon0 libxkbcommon-x11-0 libgl1
 
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh   # then: . "$HOME/.cargo/env"
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+. "$HOME/.cargo/env"        # or open a new terminal; without this there is no cargo
 
-git clone <this-repo> gestate && cd gestate
+git clone https://github.com/cheery/gestate.git gestate && cd gestate
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
 
@@ -76,10 +77,14 @@ first five minutes.
 * **`cargo`** — the editor's window, the CLAP export and `crust`.  The
   window is Rust (`shell/editor`), loaded through `ctypes` as a
   `cdylib`, and **it builds itself on first launch**: the first
-  `python -m gestate.workbench` spends a minute or two in `cargo build
-  --release` and every later one starts instantly.  Without cargo the
-  editor refuses with the command to run by hand; the players and the
-  suite do not care.
+  `python -m gestate.workbench` spends anywhere from ten seconds to a
+  couple of minutes in `cargo build --release`, says so while it does,
+  and every later one starts instantly.  *Ten to fifteen seconds is the
+  only figure anybody has measured on a machine that is not the
+  author's* — F163, 2026-08-18.  Without cargo the
+  editor refuses and says how to get it — sourcing `$HOME/.cargo/env`
+  in a shell that has not read it yet, which is F163 and what a
+  stranger actually stopped at; the players and the suite do not care.
 
 * **`libx11-dev`, and it is a build dependency.**  The editor calls two
   X11 functions directly — `XChangeProperty` for the window's icon and

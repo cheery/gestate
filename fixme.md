@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 162 entries, **139 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 164 entries, **141 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -5110,3 +5110,155 @@ nothing exercises *and then the instrument changed underneath it*.  A
 rule was written into `spec/verification.md` after the first, and the
 second and third came anyway; a rule in prose is not a control.
 `board/carried-state.md` is the card for the control.
+
+### F162. **[resolved]** The first instruction in the way in could not be carried out
+
+**Janne, 2026-08-18, over chat, minutes into the run
+`board/stranger-test.md` was pre-registered for** — relayed by Henri:
+*"Janne is confused about `<this-repo>`, he wonders what you're supposed
+to insert there?"*
+
+`README.md` §Ubuntu, from nothing and `doc/install.md` §Ubuntu, from
+nothing both opened with:
+
+```sh
+git clone <this-repo> gestate && cd gestate
+```
+
+**A placeholder in prose is a note to the author.  A placeholder inside
+a shell block is a question asked of the one person who cannot answer
+it.**  It is the first command in the project's front door, it stands
+above every other step, and nobody who reads it has the information it
+asks for.
+
+Now the real address, over **HTTPS and not SSH**: the repository's own
+remote is `git@github.com:…`, which is the author's push path and needs
+a key a reader does not have.
+
+### Why it survived a fresh-machine install
+
+This is the part worth more than the fix.  The way in *was* walked from
+nothing on 2026-08-17, on a fresh Ubuntu 26.04 laptop, and that walk
+found three defects including F148 and F149.  It did not find this one,
+because **the person walking it was the author**, and the author knows
+what goes in the blank.  He cannot see this class of defect at all —
+not through inattention, but because the missing information is in his
+head and the instrument is his own reading.
+
+That is `board/stranger-test.md`'s entire argument, arriving as a
+measurement rather than a claim, eleven minutes into the run.
+
+### The gate
+
+`test/test_citations.py::test_the_way_in_has_nothing_left_to_fill_in` —
+no `<…>` token inside a fenced `sh` block in `README.md` or
+`doc/install.md`.
+
+**This is the first closure made under the rule adopted the same day**
+(`board/ungated-fixes.md`, and Henri's *"From now here on I think"*):
+an entry does not close until it names the instrument that fires if the
+defect returns.  The scope is deliberately narrow — `<date>` and
+`<expr>` are honest placeholders in prose throughout this tree, and a
+check that fired on those would be an andon nobody could read.
+
+### The credential question, asked and closed
+
+Whether the address is reachable **without credentials** — because if
+the repository were private the fix would only move where a stranger
+stops, from a placeholder he cannot fill to a password prompt he cannot
+answer.  *Henri, 2026-08-18:* **"https://github.com/cheery/gestate is
+enough to clone the repo.  cheery/gestate is public."**  So the way in
+is open.
+
+### F163. **[resolved]** The way in installs rust, and the next shell cannot find it — then says to run the thing that is missing
+
+**Janne, 2026-08-18, 13:28, six minutes after cloning**, in the run
+`board/stranger-test.md` pre-registered.  He reached the editor on his
+own — `../README.md` §"Edit it while it sounds" is the section after the
+one that named the file he was listening to — and got a Python
+traceback.  The picture is `doc/stranger-two-no-cargo.png`.
+
+```
+gestate.editor.EditorError: no libgestate_editor.so and no cargo to
+build it — `cargo build --release --features capi` in `shell/editor/`
+makes one
+```
+
+**Which of the three `EditorError`s it would be was written down before
+the picture arrived** (`board/stranger-test.md` §"13:28"), and it was
+the predicted one.  That is the whole value of pre-registering: the
+diagnosis cost one look instead of a conversation.
+
+### Two defects, and the second is the worse one
+
+**The sourcing step was a trailing comment.**  The install block read:
+
+```sh
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh   # then: . "$HOME/.cargo/env"
+```
+
+`rustup` puts `cargo` on the `PATH` by editing a shell profile that the
+running shell has already read, so sourcing it is **required**, not a
+nicety — and it sat at the end of a long line, in a comment, which is
+the weakest position a required step can occupy.  It is now a line of
+its own in both `README.md` and `doc/install.md`.
+
+**And the error advised the impossible.**  A reader with no `cargo` was
+told to run `cargo build`.  That is an instruction which cannot be
+carried out by definition, and it is worse than saying nothing, because
+he spends his time obeying it.  It now names the sourcing step and
+`https://rustup.rs`, and says the build takes a few minutes the first
+time — which nothing anywhere said before.
+
+### The failure is delayed, which is why nobody caught it
+
+Missing the sourcing line does not fail at the install.  It fails
+**several steps later**, in a different tool, as a traceback from
+`gestate/editor.py` — by which point the reader has done six things
+correctly and has no reason to look back at step two.  The author never
+meets it because his shell has read the profile long ago.
+
+*Also visible in the picture and worth a line: his prompt is rendering
+its escape sequences literally, `\[\e]0;\u@\h…`, so the shell he is
+in is not the one `.venv/bin/activate` was written for.  Not pursued —
+it is his environment, and nothing here depends on it — but it is the
+kind of thing only a photograph of somebody else's terminal ever shows.*
+
+### The gate
+
+`test/test_way_in.py`, new, and it is where the way in's checks live
+from now on:
+
+- `test_the_shell_that_installs_can_find_cargo` — parametrised over
+  both files, because they carry the same block and a fix to one that
+  misses the other is the likely regression.
+- `test_the_missing_cargo_is_not_told_to_run_cargo`.
+
+Second closure under the rule adopted today, and the first one to need
+a new file for its instrument.
+
+### 13:44 — the fourth face, and the one that changes the fix
+
+Asked how long the build had taken, he answered **"oisko jotain 10-15
+sekuntia"** — maybe ten to fifteen seconds.
+
+That falsifies the documentation twice over.  Both ways in said *a
+minute or two*, which is the author's impression and was never measured
+on anybody else's machine; they now say ten seconds to a couple of
+minutes, and `doc/install.md` marks which end of that anybody has
+actually seen.
+
+**And it moves the defect.**  Ten to fifteen seconds is nothing by build
+standards, and he volunteered it as *melko pitkä viive* — a fairly long
+delay — without being asked about speed at all.  So making it faster
+would have fixed nothing: **the silence was the defect, not the
+duration.**  `gestate/editor.py` now prints one line before the build,
+which is all it ever needed; `--quiet` and `capture_output=True` mean
+cargo cannot speak for itself there, and that is correct, because its
+output is wanted only when the build fails.
+
+Gated by `test_the_first_build_says_it_is_working`.
+
+*One caveat kept honestly: 10–15 seconds is a person's estimate of a
+wait, not a timer, on one machine, and it is the only figure this
+project has from a machine that is not the author's.*
