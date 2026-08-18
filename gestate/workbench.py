@@ -562,6 +562,29 @@ def _begin(bench, session, after=None):
     return quitting, starter
 
 
+def _walk_for(walk, path):
+    """The walk that watches `path` — the one in hand, or a new one.
+
+    The channel is a file under the project, so opening a piece in a
+    *different* project is a different channel: keeping the old one
+    would leave the box quietly showing another tree's work, which is
+    worse than showing none.  Same project, same walk — and the queue
+    it has already read is kept, because a switch of file is not a
+    reason to say everything twice.
+    """
+    from .gemba import Walk, project
+
+    if path is None:
+        return walk
+    try:
+        want = project(path)
+    except Exception:                                    # noqa: BLE001
+        return walk
+    if walk is not None and walk.path.parent == want:
+        return walk
+    return Walk(root=path)
+
+
 def _carry(session, bench):
     """The next session: a new instrument under the same window — and
     the same recording.
@@ -587,6 +610,19 @@ def _carry(session, bench):
     fresh = Session(bench=bench)
     fresh.view = session.view
     fresh.log = session.log
+    # **And the walk, which belongs to the window and not to the
+    # instrument** — the same argument this function is named for, one
+    # field along.  Dropping it crashed the editor on the next pass of
+    # the loop, because the loop asks the walk what has been said and a
+    # fresh `Session` has none: *"AttributeError: 'NoneType' object has
+    # no attribute 'read'"*, reported by Henri opening a file from the
+    # starter screen.
+    #
+    # A file in another project is another walk, though — the channel is
+    # *under the project*, so following the file is what keeps that
+    # sentence true.
+    fresh.walk = _walk_for(getattr(session, "walk", None),
+                           getattr(bench, "path", None))
     if fresh.log is not None:
         fresh.log.note(f"opened {Path(bench.path).name}")
     return fresh
@@ -851,7 +887,12 @@ def run(path, rate: int = 44100, block: int = 512,
             # `Session._outside`'s own instinct — and no cost at all to
             # anybody who is not being walked past, because the file
             # does not exist.
-            session.walk.read()
+            # **Never fatal.**  A narration is a diagnostic, and a
+            # diagnostic that can take the editor down with it is worse
+            # than no diagnostic: this crashed the whole window once
+            # already, over a box nobody had even asked for.
+            if session.walk is not None:
+                session.walk.read()
             stirred = False
             t0 = time.monotonic()
             # **Gestures first, then the description.**  A command run

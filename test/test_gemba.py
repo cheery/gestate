@@ -420,3 +420,58 @@ def test_the_command_says_whether_anybody_is_talking(tmp_path):
     say("a session is here")
     it.walk.read()
     assert "a session is talking" in it.run("gemba")
+
+
+# ── Opening another file ──────────────────────────────────────────────────
+#
+# Henri, minutes after the walk started working:
+#
+#   AttributeError: 'NoneType' object has no attribute 'read'
+#
+# **A field was added to `Session` and nothing asked what happens when a
+# `Session` is replaced.**  It is replaced on every `open`, by `_carry`,
+# which builds a fresh one and hands it the things that belong to the
+# *window* rather than to the instrument — the view, the log — and the
+# walk was not among them.  So the first file anybody opened took the
+# whole editor down, over a box nobody had asked for.
+
+
+def test_opening_another_file_keeps_the_walk(tmp_path, monkeypatch):
+    """It belongs to the window, like the view and the log."""
+    monkeypatch.delenv("GESTATE_GEMBA", raising=False)
+    from gestate.workbench import _walk_for
+
+    (tmp_path / ".git").mkdir()
+    one, two = tmp_path / "a.ges", tmp_path / "deep" / "b.ges"
+    two.parent.mkdir()
+    for f in (one, two):
+        f.write_text("sound : Sig Float\n")
+
+    walk = Walk(root=one)
+    assert _walk_for(walk, two) is walk, "same project, same walk"
+
+
+def test_a_file_in_another_project_is_another_walk(tmp_path, monkeypatch):
+    """The channel is *under the project*, so following the file is what
+    keeps that sentence true — a box quietly showing another tree's work
+    is worse than a box showing none."""
+    monkeypatch.delenv("GESTATE_GEMBA", raising=False)
+    from gestate.workbench import _walk_for
+
+    here, there = tmp_path / "here", tmp_path / "there"
+    for d in (here, there):
+        (d / ".git").mkdir(parents=True)
+        (d / "p.ges").write_text("sound : Sig Float\n")
+
+    walk = Walk(root=here / "p.ges")
+    other = _walk_for(walk, there / "p.ges")
+    assert other is not walk
+    assert other.path == there / "gemba.tsv"
+
+
+def test_a_session_with_no_walk_is_not_a_crash(tmp_path):
+    """**A narration is a diagnostic, and a diagnostic that can take the
+    editor down with it is worse than no diagnostic.**"""
+    from gestate.workbench import _walk_for
+
+    assert _walk_for(None, None) is None
