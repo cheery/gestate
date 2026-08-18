@@ -352,6 +352,10 @@ impl Furniture {
                         args: args.split(',').filter(|a| !a.is_empty())
                             .map(str::to_string).collect(),
                         reverse: p.get(6).copied().unwrap_or("").into(),
+                        // **Which run of `command.ges` it was declared
+                        // in.**  Absent means none, which is the flat
+                        // list this drew before there were headings.
+                        section: p.get(7).copied().unwrap_or("").into(),
                     });
                 }
                 "page" => f.page.push(p.get(1).copied().unwrap_or("").into()),

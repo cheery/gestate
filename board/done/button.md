@@ -6,7 +6,7 @@
     see      board/stranger-test.md — this is that test's first real result
              vision.md §"Ease of use and efficiency"
              shell/editor/src/view.rs — `burger_box`, `burger_frame`
-             board/command-categories.md — the second half of the report
+             board/done/command-categories.md — the second half of the report
 
 ## The ask
 
@@ -376,7 +376,7 @@ which is what finishes this rather than any one of them.
 | A | the corner must be findable | **shipped** — F155: `[command]`, at the ink's weight, in place of a 24-pixel `≡` at 2.3:1 |
 | B | the document should teach | **shipped** — F150: the starter no longer names a control deleted in `71b90af` |
 | C | the bar should say the key first | **shipped** — F153: `Ctrl-K` until you use `Ctrl-K` |
-| D | what is behind it must explain itself | **carded** — `board/command-categories.md`, with the sections now derived |
+| D | what is behind it must explain itself | **carded** — `board/done/command-categories.md`, with the sections now derived |
 | E | the change should be audible without asking | **shipped** — F151: typing is an audition when an audition is cheap |
 | F | one stranger is one stranger | **carded** — `board/stranger-test.md`, and its rules for spending the next one |
 

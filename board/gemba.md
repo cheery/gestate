@@ -8,7 +8,7 @@
              drawing half, already built
              gestate/session.py:446 — the colouring cache
              board/git-viewer.md — the second idea, which waits on
-             board/command-categories.md
+             board/done/command-categories.md
 
 ## The ask
 

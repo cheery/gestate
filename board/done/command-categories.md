@@ -1,6 +1,6 @@
 # command-categories — the command list wants categories
 
-    status   open — A picked 2026-08-18; the display is what is left
+    status   done — 2026-08-18
     because  it's starting to be clear that we need them
     asked    Henri, 2026-08-16
     see      gestate/command.ges — the command table, and its headings
@@ -175,3 +175,50 @@ into existence.
 3. Whatever is chosen, `git-viewer`'s family is the test of it: the
    card exists because a group of new commands is coming.
 4. Icons, only if 2 lands and the list is still hard to read.
+
+## Done
+
+*2026-08-18.  `journal.md` §"The heading was already the heading" tells
+the story.*
+
+**A section per row, not heading rows on the wire.**  The card's own
+sketch said `Session.filtered` would emit heading rows and the window
+would draw them dim and unpickable.  What landed is better and smaller:
+each `command` row carries the run of `command.ges` it was declared in,
+and `palette.rs` draws a heading wherever that changes.  Nothing has to
+agree about where a heading *goes*, the model sends the same commands in
+the same order it always sent, and **a window that does not know the
+field shows exactly the flat list it showed before** — which is the
+degradation this wire keeps asking for and rarely gets for free.
+
+**Empty while a query is up.**  Filtering re-ranks, so the runs break
+into ones and twos and eleven headings become noise over a list somebody
+has already narrowed.  A person who has typed something is looking for a
+match, not for a taxonomy.  The model decides it, because the model is
+what knows whether a filter is on.
+
+**Two index spaces, kept apart.**  `at` is an *entry*, because that is
+what a person picks and what `selected` returns; the drawn list is
+longer.  So **a heading is unpickable by construction rather than by a
+rule** — there is no value of `at` that names one, and nothing has to
+refuse anything.  What that cost is one honest separation: every bound
+on the cursor is against `pickable_len`, every bound on the scroll is
+against `shown_len`, and a click arrives as a drawn row and is
+translated.  Getting it backwards walked the pick off the end of the
+entries by one step per heading above it — **caught by the test written
+before the fix**, which is the only reason it is a paragraph here rather
+than a defect later.
+
+**Held by** six tests in `shell/editor/tests/palette.rs` (a heading
+where the section changes, one per run and not per row, unpickable, dim,
+a sectionless list drawing what it always drew, and the pick staying in
+the window with headings above it) and three in
+`test/test_command_sections.py` (every row carries its section, the
+sections cross as contiguous runs, and a query sends none).
+
+**Turned up and not this card's job:** `test_doc_commands.py` reads
+every `python -m …` in `doc/*.md` and takes the words after it as flags,
+so `doc/complaints.md`'s generated marker read `-->` as a flag nobody
+has.  The marker closes on its own line now.  Worth knowing:
+`doc/ref/index.md` has the same comment and escapes the check only
+because it lives one directory further down.

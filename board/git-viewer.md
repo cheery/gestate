@@ -1,7 +1,7 @@
 # git-viewer — a git viewer in the workbench
 
     status   blocked
-    blocked  board/command-categories.md — it would add a family of
+    blocked  board/done/command-categories.md — it would add a family of
              commands, and that is what made the categories necessary
     because  a gemba walk through the log should be ergonomic, and my
              friend could use it as well

@@ -1,6 +1,6 @@
 """The command list knows which run of the file each verb is in.
 
-`board/command-categories.md`.  The categories were never missing —
+`board/done/command-categories.md`.  The categories were never missing —
 `command.ges` has been written in labelled sections since it existed,
 and nothing read them, so the palette showed fifty-three names flat.
 This holds the *derivation*; what the window does with it is still open
@@ -72,3 +72,63 @@ def test_the_first_command_is_still_the_first_thing_in_its_section():
     palette grows, `apply` is what a stranger meets first."""
     first = vocabulary()[0]
     assert (first.name, first.section) == ("apply", "The instrument")
+
+
+# ── And what crosses to the window ──────────────────────────────────────────
+#
+# `board/done/command-categories.md` option A landed on 2026-08-18.  The
+# section rides on each command row rather than as heading rows of its
+# own, so nothing has to agree about where a heading *goes* — the window
+# draws one wherever the section changes, and one that does not know the
+# field shows the flat list it always showed.
+
+
+def _rows(session):
+    from gestate.session import furniture
+
+    return [line.split("\t") for line in furniture(session).splitlines()
+            if line.startswith("command\t")]
+
+
+def _a_session():
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from test_session import session
+
+    return session()
+
+
+def test_every_command_row_carries_its_section():
+    rows = _rows(_a_session())
+    assert rows, "no commands crossed at all"
+    for row in rows:
+        assert len(row) >= 8, f"the section is missing from {row[1]!r}"
+    named = {row[1]: row[7] for row in rows}
+    assert named["apply"] == "The instrument"
+    assert named["loop"] == "The loop"
+
+
+def test_the_sections_cross_as_contiguous_runs():
+    """What makes one heading per group possible at the far end: the
+    window draws a heading when the field changes, so a section that
+    came back twice would be drawn twice."""
+    seen = [row[7] for row in _rows(_a_session())]
+    runs = []
+    for s in seen:
+        if not runs or runs[-1] != s:
+            runs.append(s)
+    assert len(runs) == len(set(runs)), runs
+
+
+def test_a_query_sends_no_sections_at_all():
+    """**The decision about when grouping helps.**  Filtering re-ranks,
+    so the runs break into ones and twos and eleven headings become
+    noise over a list somebody has already narrowed.  A person who has
+    typed something is looking for a match, not for a taxonomy."""
+    it = _a_session()
+    it.filtered = it.matching("loop")
+    rows = _rows(it)
+    assert rows, "the query matched nothing, so this tests nothing"
+    assert all(row[7] == "" for row in rows), rows

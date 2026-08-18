@@ -39,6 +39,21 @@ pub struct Entry {
     /// would be a second vocabulary, which is the thing the list exists
     /// to prevent.
     pub reverse: String,
+    /// The run of `command.ges` this was declared in — *The
+    /// instrument*, *Notes* — or empty.
+    ///
+    /// **A fact per row, not heading rows on the wire.**  The list is
+    /// drawn with a heading wherever this changes, which means nothing
+    /// has to agree about where a heading *goes*: the model sends the
+    /// commands it always sent, in the order it always sent them, and a
+    /// window that does not know the field shows exactly the flat list
+    /// it showed before.  `board/done/command-categories.md` option A.
+    ///
+    /// Empty while a query is up — the model's decision, and the right
+    /// one: filtering re-ranks, so the runs break into ones and twos
+    /// and the headings become noise over a list somebody has already
+    /// narrowed.
+    pub section: String,
     /// What it takes, as declared — `["Int", "Int"]` for `loop`.
     ///
     /// **The types are how the view knows to ask.**  A command with
@@ -46,6 +61,15 @@ pub struct Entry {
     /// collect them first, and how many and of what kind is a fact
     /// about the signature, not something to read out of a usage line.
     pub args: Vec<String>,
+}
+
+/// One line of the list as it is drawn.
+///
+/// A heading is a *line* and never an entry, which is what makes it
+/// unpickable without anything having to refuse it.
+enum Line {
+    Head(String),
+    Row(usize),
 }
 
 /// One thing an argument could be, as the model offers it.
@@ -381,7 +405,7 @@ impl Palette {
     /// was a list you could not move down: every arrow key was undone
     /// before the next frame.
     fn clamp(&mut self) {
-        let n = self.shown_len();
+        let n = self.pickable_len();
         self.at = if n == 0 { 0 } else { self.at.min(n - 1) };
     }
 
@@ -532,8 +556,53 @@ impl Palette {
         if self.asking.is_some() {
             self.choices.len()
         } else {
+            self.lines().len()
+        }
+    }
+
+    /// How many things there are to *pick*, which is not how many
+    /// there are to *draw*.
+    ///
+    /// Every bound on the cursor is against this and every bound on the
+    /// scroll is against `shown_len`.  Getting that backwards walks the
+    /// pick off the end of the entries by one step per heading above
+    /// it, and `selected()` then answers `None` on a row that is
+    /// plainly on the screen.
+    fn pickable_len(&self) -> usize {
+        if self.asking.is_some() {
+            self.choices.len()
+        } else {
             self.entries.len()
         }
+    }
+
+    /// The list as it is *drawn* — the entries, with a heading before
+    /// each run of them.
+    ///
+    /// **Two index spaces, and keeping them apart is the whole trick.**
+    /// `at` is an *entry*, because that is what a person picks and what
+    /// `selected` has to return; this is what the panel paints, and it
+    /// is longer.  A heading is therefore unpickable by construction
+    /// rather than by a rule somebody has to remember: there is no
+    /// value of `at` that names one.
+    fn lines(&self) -> Vec<Line> {
+        let mut out = Vec::new();
+        let mut last = "";
+        for (i, e) in self.entries.iter().enumerate() {
+            if !e.section.is_empty() && e.section != last {
+                out.push(Line::Head(e.section.clone()));
+            }
+            last = &e.section;
+            out.push(Line::Row(i));
+        }
+        out
+    }
+
+    /// Which drawn line the pick is on.
+    fn at_line(&self) -> usize {
+        self.lines().iter()
+            .position(|l| matches!(l, Line::Row(i) if *i == self.at))
+            .unwrap_or(self.at)
     }
 
     /// What a changed query means, in whichever mode.
@@ -641,7 +710,7 @@ impl Palette {
             }
             Key::Down => {
                 let to = self.at + self.stride();
-                if to < self.shown_len() {
+                if to < self.pickable_len() {
                     self.at = to;
                 }
                 Asks::Nothing
@@ -654,7 +723,7 @@ impl Palette {
                 Asks::Nothing
             }
             Key::Right if self.is_grid() => {
-                if self.at + 1 < self.shown_len() {
+                if self.at + 1 < self.pickable_len() {
                     self.at += 1;
                 }
                 Asks::Nothing
@@ -714,11 +783,16 @@ impl Palette {
     }
 
     /// The window the list is scrolled to, so the pick is always in it.
+    ///
+    /// In *drawn* lines, because that is what scrolls — a heading takes
+    /// a row like anything else, and counting in entries would scroll
+    /// the pick off the bottom by one row per group above it.
     fn window(&self, most: usize) -> usize {
-        if self.at < most {
+        let at = if self.asking.is_some() { self.at } else { self.at_line() };
+        if at < most {
             0
         } else {
-            self.at + 1 - most
+            at + 1 - most
         }
     }
 
@@ -857,7 +931,18 @@ impl Palette {
         if at >= self.shown_len() {
             return Asks::Nothing;
         }
-        self.at = at;
+        // **A click arrives as a drawn row and the pick is an entry.**
+        // A heading is a drawn row that is no entry, so a click on one
+        // does nothing — which is the same refusal `Enter` gets for
+        // free by never being able to land there.
+        if self.asking.is_none() {
+            match self.lines().get(at) {
+                Some(Line::Row(i)) => self.at = *i,
+                _ => return Asks::Nothing,
+            }
+        } else {
+            self.at = at;
+        }
         if self.asking.is_some() {
             return self.accept();
         }
@@ -902,7 +987,7 @@ impl Palette {
 
     /// Scroll the list by whole rows.
     pub fn scroll(&mut self, by: i32) {
-        let n = self.shown_len();
+        let n = self.pickable_len();
         if n == 0 {
             return;
         }
@@ -1028,17 +1113,26 @@ impl Palette {
         // One row shape, two lists: a command with its shortcut, or a
         // name with what it is.  Both are "a thing on the left and a
         // note on the right", so they are drawn by the same code.
+        let drawn = if self.asking.is_some() { Vec::new() } else { self.lines() };
         let rows: Vec<(String, String)> = match &self.asking {
-            None => self.entries.iter()
-                .map(|e| (e.usage.clone(), e.key.clone())).collect(),
+            None => drawn.iter().map(|l| match l {
+                // A heading carries no note: the right-hand column is
+                // for a shortcut, and a group has none.
+                Line::Head(s) => (s.clone(), String::new()),
+                Line::Row(i) => (self.entries[*i].usage.clone(),
+                                 self.entries[*i].key.clone()),
+            }).collect(),
             Some(_) => self.choices.iter()
                 .map(|c| (c.text.clone(), c.note.clone())).collect(),
         };
         // Which of those rows are only to be read.
         let dim: Vec<bool> = match &self.asking {
-            None => vec![false; rows.len()],
+            None => drawn.iter()
+                .map(|l| matches!(l, Line::Head(_))).collect(),
             Some(_) => self.choices.iter().map(|c| c.dim || !c.can).collect(),
         };
+        // Where the pick is, in drawn lines.
+        let picked = if self.asking.is_some() { self.at } else { self.at_line() };
         // **A keyboard is a grid, and so is this.**  A symbol table read
         // as one column is a column you scroll, which is exactly the
         // thing a person reaches for it to avoid — and the letters only
@@ -1052,7 +1146,7 @@ impl Palette {
             rows.iter().skip(from).take(shown).enumerate()
         {
             let row = y + 4 + ch * (i as i32 + 1);
-            if from + i == self.at {
+            if from + i == picked {
                 f.items.push(Item::Rect { x, y: row, w: box_w, h: ch,
                                           c: PICKED });
             }
@@ -1257,10 +1351,10 @@ mod paint_tests {
             Entry { usage: "loop <int> <int>".into(), name: "loop".into(),
                     summary: "Play a stretch of bars over and over.".into(),
                     key: String::new(),
-                    args: vec!["Int".into(), "Int".into()], reverse: String::new() },
+                    args: vec!["Int".into(), "Int".into()], reverse: String::new(), section: String::new() },
             Entry { usage: "stop".into(), name: "stop".into(),
                     summary: "Stop the transport where it is.".into(),
-                    key: "^.".into(), args: Vec::new(), reverse: String::new() },
+                    key: "^.".into(), args: Vec::new(), reverse: String::new(), section: String::new() },
         ]);
         p
     }
@@ -1441,13 +1535,13 @@ mod asking_tests {
         p.offer(vec![
             Entry { usage: "stop".into(), name: "stop".into(),
                     summary: "Stop.".into(), key: String::new(),
-                    args: Vec::new(), reverse: String::new() },
+                    args: Vec::new(), reverse: String::new(), section: String::new() },
             Entry { usage: "loop <int> <int>".into(), name: "loop".into(),
                     summary: "Loop.".into(), key: String::new(),
-                    args: vec!["Int".into(), "Int".into()], reverse: String::new() },
+                    args: vec!["Int".into(), "Int".into()], reverse: String::new(), section: String::new() },
             Entry { usage: "listen <named>".into(), name: "listen".into(),
                     summary: "Listen.".into(), key: String::new(),
-                    args: vec!["Named".into()], reverse: String::new() },
+                    args: vec!["Named".into()], reverse: String::new(), section: String::new() },
         ]);
         p
     }
@@ -1642,13 +1736,13 @@ mod space_tests {
         p.offer(vec![
             Entry { usage: "find <text>".into(), name: "find".into(),
                     summary: "Find.".into(), key: String::new(),
-                    args: vec!["Text".into()], reverse: String::new() },
+                    args: vec!["Text".into()], reverse: String::new(), section: String::new() },
             Entry { usage: "loop <int> <int>".into(), name: "loop".into(),
                     summary: "Loop.".into(), key: String::new(),
-                    args: vec!["Int".into(), "Int".into()], reverse: String::new() },
+                    args: vec!["Int".into(), "Int".into()], reverse: String::new(), section: String::new() },
             Entry { usage: "stop".into(), name: "stop".into(),
                     summary: "Stop.".into(), key: String::new(),
-                    args: Vec::new(), reverse: String::new() },
+                    args: Vec::new(), reverse: String::new(), section: String::new() },
         ]);
         p
     }
@@ -1718,13 +1812,13 @@ mod picking_tests {
         p.offer(vec![
             Entry { usage: "one".into(), name: "one".into(),
                     summary: String::new(), key: String::new(),
-                    args: Vec::new(), reverse: String::new() },
+                    args: Vec::new(), reverse: String::new(), section: String::new() },
             Entry { usage: "two".into(), name: "two".into(),
                     summary: String::new(), key: String::new(),
-                    args: Vec::new(), reverse: String::new() },
+                    args: Vec::new(), reverse: String::new(), section: String::new() },
             Entry { usage: "three".into(), name: "three".into(),
                     summary: String::new(), key: String::new(),
-                    args: Vec::new(), reverse: String::new() },
+                    args: Vec::new(), reverse: String::new(), section: String::new() },
         ]);
         p
     }
@@ -1752,7 +1846,7 @@ mod picking_tests {
         p.key(Key::Down);
         p.offer(vec![Entry { usage: "one".into(), name: "one".into(),
                              summary: String::new(), key: String::new(),
-                             args: Vec::new(), reverse: String::new() }]);
+                             args: Vec::new(), reverse: String::new(), section: String::new() }]);
         assert_eq!(p.at, 0);
     }
 }
@@ -1768,7 +1862,7 @@ mod again_tests {
             Entry { usage: "find <text>".into(), name: "find".into(),
                     summary: "Find.".into(), key: "Ctrl-F".into(),
                     args: vec!["Text".into()],
-                    reverse: "findBack".into() },
+                    reverse: "findBack".into(), section: String::new() },
         ]);
         p.at = 0;
         p.key(Key::Char(' '));                 // into the argument
@@ -1848,7 +1942,7 @@ mod again_tests {
                              name: "seek".into(),
                              summary: String::new(), key: String::new(),
                              args: vec!["Int".into()],
-                             reverse: String::new() }]);
+                             reverse: String::new(), section: String::new() }]);
         p.at = 0;
         p.key(Key::Char(' '));
         p.key(Key::Char('0'));
@@ -1871,7 +1965,7 @@ mod again_tests {
                              name: "transcript".into(),
                              summary: String::new(), key: String::new(),
                              args: vec!["Path".into()],
-                             reverse: String::new() }]);
+                             reverse: String::new(), section: String::new() }]);
         p.at = 0;
         p.key(Key::Char(' '));
         p.fill("demo-session.ges");
@@ -1953,7 +2047,7 @@ mod again_tests {
         p.show();
         p.offer(vec![Entry { usage: "stop".into(), name: "stop".into(),
                              summary: String::new(), key: String::new(),
-                             args: Vec::new(), reverse: String::new() }]);
+                             args: Vec::new(), reverse: String::new(), section: String::new() }]);
         assert_eq!(p.key(Key::Enter), Asks::Run("stop".into(), Vec::new()));
         assert!(!p.is_open());
     }
@@ -1974,7 +2068,8 @@ mod reopening_tests {
         p.offer(vec![
             Entry { usage: "find <text>".into(), name: "find".into(),
                     summary: String::new(), key: String::new(),
-                    args: vec!["Text".into()], reverse: "findBack".into() },
+                    args: vec!["Text".into()], reverse: "findBack".into(),
+                    section: String::new() },
         ]);
         p.at = 0;
         p.key(Key::Char(' '));
@@ -1999,7 +2094,7 @@ mod reopening_tests {
         p.offer(vec![
             Entry { usage: "loop".into(), name: "loop".into(),
                     summary: String::new(), key: String::new(),
-                    args: Vec::new(), reverse: String::new() },
+                    args: Vec::new(), reverse: String::new(), section: String::new() },
         ]);
         for c in "loop".chars() { p.key(Key::Char(c)); }
         assert_eq!(p.key(Key::Backspace), Asks::Filter("loo".into()));
@@ -2018,7 +2113,7 @@ mod choosing_tests {
         p.offer(vec![
             Entry { usage: format!("{verb} <path>"), name: verb.into(),
                     summary: String::new(), key: String::new(),
-                    args: vec!["Path".into()], reverse: String::new() },
+                    args: vec!["Path".into()], reverse: String::new(), section: String::new() },
         ]);
         p.at = 0;
         p.key(Key::Enter);
@@ -2140,7 +2235,7 @@ mod walking_tests {
         p.offer(vec![
             Entry { usage: "open <path>".into(), name: "open".into(),
                     summary: String::new(), key: String::new(),
-                    args: vec!["Path".into()], reverse: String::new() },
+                    args: vec!["Path".into()], reverse: String::new(), section: String::new() },
         ]);
         p.at = 0;
         p.key(Key::Enter);

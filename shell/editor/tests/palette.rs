@@ -15,6 +15,7 @@ use gestate_editor::view::Item;
 fn entry(name: &str, key: &str) -> Entry {
     Entry { usage: name.into(), name: name.into(), args: Vec::new(),
             reverse: String::new(),
+            section: String::new(),
             summary: format!("what {name} does."), key: key.into() }
 }
 
@@ -215,4 +216,103 @@ fn the_query_line_and_the_page_are_not_rows() {
 fn a_closed_list_has_no_rows() {
     let p = Palette::default();
     assert_eq!(p.row_at(600, 400, 9, 15, 100, 40), None);
+}
+
+// ── The groups their author already wrote ────────────────────────────────
+//
+// `board/done/command-categories.md` option A.  `command.ges` has been
+// written in labelled sections since it existed, and nothing read them,
+// so fifty-three names arrived here flat.  What the model sends is a
+// *section per row*; the heading is this file's to draw, wherever the
+// section changes.
+
+fn grouped() -> Vec<Entry> {
+    let mut out = some();
+    out[0].section = "The instrument".into();
+    out[1].section = "The instrument".into();
+    out[2].section = "The instrument".into();
+    out[3].section = "The loop".into();
+    out
+}
+
+#[test]
+fn a_heading_is_drawn_where_the_section_changes() {
+    let mut p = Palette::default();
+    p.show();
+    p.offer(grouped());
+    let drawn = runs(&p.frame(800, 600, 10, 20, ""));
+    let head = drawn.iter().position(|s| s == "The instrument");
+    let loop_ = drawn.iter().position(|s| s == "The loop");
+    assert!(head.is_some() && loop_.is_some(), "{drawn:?}");
+    // One heading per run, not one per row.
+    assert_eq!(drawn.iter().filter(|s| *s == "The instrument").count(), 1);
+    assert!(head < drawn.iter().position(|s| s == "apply"),
+            "the heading stands above the run it names");
+    assert!(loop_ > drawn.iter().position(|s| s == "play"),
+            "and the next one below the run before it");
+}
+
+#[test]
+fn a_heading_cannot_be_picked() {
+    // **Unpickable by construction rather than by a rule.**  `at` is an
+    // entry and a heading is a line, so there is no value of `at` that
+    // names one — which is why nothing here has to refuse anything.
+    let mut p = Palette::default();
+    p.show();
+    p.offer(grouped());
+    let mut seen = Vec::new();
+    for _ in 0..8 {
+        seen.push(p.selected().map(|e| e.name.clone()));
+        p.key(Key::Down);
+    }
+    assert!(seen.iter().all(|s| s.is_some()), "{seen:?}");
+    assert!(!seen.iter().any(|s| s.as_deref() == Some("The instrument")));
+}
+
+#[test]
+fn a_heading_is_drawn_to_be_read_and_not_taken() {
+    // **The palette has its own `FAINT`**, dimmer than the
+    // document's — `view::FAINT` is the gutter's.
+    use gestate_editor::palette::{FAINT, INK};
+
+    let mut p = Palette::default();
+    p.show();
+    p.offer(grouped());
+    let f = p.frame(800, 600, 10, 20, "");
+    let colour = |want: &str| f.items.iter().find_map(|i| match i {
+        Item::Run { s, c, .. } if s == want => Some(*c),
+        _ => None,
+    });
+    assert_eq!(colour("The instrument"), Some(FAINT), "a heading is dim");
+    assert_eq!(colour("apply"), Some(INK), "a command is not");
+}
+
+#[test]
+fn a_list_with_no_sections_draws_exactly_what_it_always_drew() {
+    // The degradation that matters: a model that does not send the
+    // field, or sends it empty under a query, gets the flat list.
+    let mut plain = Palette::default();
+    plain.show();
+    plain.offer(some());
+    let flat = runs(&plain.frame(800, 600, 10, 20, ""));
+    assert!(flat.contains(&"apply".to_string()));
+    assert!(!flat.iter().any(|s| s == "The instrument"));
+}
+
+#[test]
+fn the_pick_stays_in_the_window_with_headings_above_it() {
+    // **The scroll counts drawn lines, not entries.**  Counting
+    // entries would push the pick off the bottom by one row for every
+    // group standing above it.
+    let mut p = Palette::default();
+    p.show();
+    let many: Vec<Entry> = (0..30).map(|i| {
+        let mut e = entry(&format!("c{i}"), "");
+        e.section = format!("s{}", i / 3);
+        e
+    }).collect();
+    p.offer(many);
+    for _ in 0..29 { p.key(Key::Down); }
+    let drawn = runs(&p.frame(800, 600, 10, 20, ""));
+    assert!(drawn.iter().any(|s| s == "c29"), "the pick scrolled away");
 }

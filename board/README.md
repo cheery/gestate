@@ -28,34 +28,30 @@ is what keeps a card's name stable while priorities move.
    *"closing it loses the day."*  Felt every session, and probably the
    cheapest large win here.  *Its four decisions were answered
    2026-08-18, so it is ready to take.*
-2. **[command-categories](command-categories.md)** — the other half of
-   the stranger's failure: he got the door open and found fifty-three
-   names.  *A picked 2026-08-18; the sections are derived already, so
-   what is left is the display.*
-3. **[installation-test](installation-test.md)** — somebody who cannot
+2. **[installation-test](installation-test.md)** — somebody who cannot
    install has none of the above.  Three defects in one day from one
    fresh machine.
-4. **[unheard-output](unheard-output.md)** — a whole class of audio
+3. **[unheard-output](unheard-output.md)** — a whole class of audio
    defect has no oracle at all, and `fixme.md` F147 is blocked on it.
    Plumbing on the card, audible to the person.
-5. **[stranger-test](stranger-test.md)** — fixes nothing; it is what
+4. **[stranger-test](stranger-test.md)** — fixes nothing; it is what
    *finds* 1–4.  Ranked here only because each run spends a scarce,
    non-renewable person.
-6. **[interface-oracle](interface-oracle.md)** — stops 1–4 regressing
+5. **[interface-oracle](interface-oracle.md)** — stops 1–4 regressing
    silently.  A multiplier rather than a feature, and `view.rs` now has
    its first three tests to build on.
-7. **[unseen-flare](unseen-flare.md)** — narrower than
+6. **[unseen-flare](unseen-flare.md)** — narrower than
    `unheard-output`, and overlapping it.
-8. **[gemba](gemba.md)** — changes the working day more than anything
+7. **[gemba](gemba.md)** — changes the working day more than anything
    else here, and changes a *user's* not at all.  *Waiting on a dwell
    in seconds.*
-9. **[reviewing-by-running](reviewing-by-running.md)** — the review
+8. **[reviewing-by-running](reviewing-by-running.md)** — the review
    loop `spec/author.md` says is the scarce resource.
-10. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
+9. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
    the changes a session makes.
-11. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
+10. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
    *Blocked on command-categories.*
-12. **[portable-package](portable-package.md)** — for people who do not
+11. **[portable-package](portable-package.md)** — for people who do not
    exist yet, by his own answer.  *Waiting on program-or-workshop.*
 
 **Ordered by impact on somebody using gestate** — 2026-08-17, at
@@ -69,9 +65,9 @@ a user feels directly.
 Two of these are **decisions wearing a card** and are marked so.  No
 session can finish one, so their position is academic until they are
 answered or shelved (`spec/author.md` §"Triaging the board").
-`command-categories` was the third and stopped being one on 2026-08-18,
-which is what a decision card looks like when it is answered rather than
-shelved: the answer took a minute and the card became work.
+`command-categories` was the third, and on 2026-08-18 it was answered,
+built and finished in one sitting — which is what a decision card is
+worth when somebody answers it rather than shelves it.
 
 Finished cards are in [done/](done/), newest work last.  `ls board/*.md`
 is the live board; nothing has to be trimmed by hand for that to stay

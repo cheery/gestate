@@ -7991,3 +7991,66 @@ both of the old answers.  **The test failed on exactly the change it
 exists to protect** — which is the shape `board/interface-oracle.md` is
 about, and it is worth noticing that a suite nobody ran between two
 sessions is a suite that stops being an instrument.
+
+## The heading was already the heading
+
+*2026-08-18.  `board/done/command-categories.md`, option A, picked and
+built in one sitting.*
+
+**Nothing was missing.**  `command.ges` has been written in eleven
+labelled sections since it existed, by hand, in the file that *is* the
+command list — and `_summaries` read the `#:` doc comments and skipped
+the plain `#` rules, so fifty-three names arrived at the palette flat
+with their author's own grouping thrown away one function earlier.  The
+derivation landed yesterday; today it is drawn.
+
+### What changed against what the card sketched
+
+The card said the model would emit heading rows and the window would
+draw them dim and unpickable.  **What landed is a section per row**, and
+it is smaller in every direction: nothing has to agree about where a
+heading goes, the model sends the commands it always sent in the order
+it always sent them, and the window draws a heading wherever the field
+changes.
+
+The property that made it obviously right is the one this wire keeps
+asking for: **a window that does not know the field shows exactly the
+flat list it showed before.**  No version negotiation, no extra verb, no
+rows that mean something new.
+
+And the field is empty while a query is up — the model's decision,
+because the model is what knows a filter is on.  Filtering re-ranks, so
+the runs break into ones and twos, and eleven headings over a list
+somebody has already narrowed is noise.  Typing something means you are
+looking for a match, not for a taxonomy.
+
+### Two index spaces, and the bug that lives between them
+
+`at` is an **entry**, because that is what a person picks and what
+`selected` returns.  The drawn list is **longer**.  Keeping those apart
+is the whole implementation, and it buys the property worth having:
+**a heading is unpickable by construction rather than by a rule** —
+there is no value of `at` that names one, so nothing anywhere has to
+refuse anything.
+
+What it costs is one separation that has to be right everywhere: every
+bound on the cursor is against `pickable_len`, every bound on the scroll
+against `shown_len`, and a click arrives as a drawn row and is
+translated into an entry.  I got it backwards on the first pass — the
+pick walked off the end of the entries by one step per heading standing
+above it, and `selected()` answered `None` on a row plainly on screen.
+
+**The test was written before the fix and is the only reason that is a
+paragraph here instead of a defect later.**  It is also the second time
+today that the useful failure came from a test asserting what a person
+would see rather than what a function returns.
+
+### The third time this shape has turned up
+
+The card said it and it is worth repeating, because it is now four:
+the window's own order was already the file's (F150); a complaint's
+position was already on the node (F152); a category was already the
+heading; and — from this morning's sweep — a `voices` bank already knew
+which line it was declared on.  **In each, nothing needed inventing and
+something needed carrying through.**  It is cheap to check for and it
+has paid four times.

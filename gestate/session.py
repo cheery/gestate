@@ -113,7 +113,7 @@ class Verb:
     #: fifty-three names with the grouping thrown away.  Derived here
     #: for the same reason the order is (`vocabulary`): the file is the
     #: source, and a category kept anywhere else would be a second
-    #: place to maintain one.  `board/command-categories.md` is where
+    #: place to maintain one.  `board/done/command-categories.md` is where
     #: what to *do* with it is being decided; this is only the fact.
     section: str = ""
 
@@ -655,7 +655,7 @@ def _sections(source: str) -> dict:
 
     A header's text is what is between the rules, so the file stays
     readable as a file — nobody writes a category, they write the
-    heading they were already writing (`board/command-categories.md`).
+    heading they were already writing (`board/done/command-categories.md`).
     """
     out, under = {}, ""
     for line in source.splitlines():
@@ -3821,9 +3821,24 @@ def furniture(session: "Session", bench=None, tally: str = "",
         # are what let the view *ask*: a list that only said `loop <int>
         # <int>` would leave the window parsing a usage string to learn
         # how many boxes to open, and a usage string is prose.
+        # **And which run of the file it was declared in**, so the list
+        # can be read in the groups its author already wrote
+        # (`board/done/command-categories.md`, option A).  A *fact per row*
+        # rather than heading rows on the wire: the window draws a
+        # heading when this changes, an older one ignores the field and
+        # shows the flat list it always showed, and nothing has to agree
+        # about where a heading goes.
+        #
+        # **Empty while a query is up**, which is the whole of the
+        # decision about when grouping helps.  Filtering re-ranks, so
+        # the runs break into ones and twos and eleven headings become
+        # noise over a list somebody has already narrowed — and a person
+        # who has typed something is looking for a match, not for a
+        # taxonomy.  The unfiltered list is the one that teaches.
+        section = verb.section if session.filtered is None else ""
         out.append(f"command\t{verb.name}\t{verb}\t{_toggle_key(session, verb)}"
                    f"\t{verb.summary}\t{','.join(verb.args)}"
-                   f"\t{REVERSE.get(verb.name, '')}")
+                   f"\t{REVERSE.get(verb.name, '')}\t{section}")
 
     # What the argument being asked for could be, when one is.
     here = Path(getattr(b, "path", "") or "").name
