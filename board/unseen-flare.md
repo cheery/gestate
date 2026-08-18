@@ -118,7 +118,7 @@ He added: *"I think this is blocked by the persistent-workbench-state.md"*
 reloaded, already tolerant of a line it cannot parse.  A dry count is one
 more column on a line that already exists.
 
-`board/persistent-workbench-state.md` is a different question — *editor*
+`board/done/persistent-workbench-state.md` is a different question — *editor*
 state, the caret and the zoom and the transport — and its own open
 decision is where that goes, *"beside the `.ges` file, in the project, or
 in the user's home"*.  Nothing here waits on that answer.

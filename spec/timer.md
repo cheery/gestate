@@ -169,7 +169,7 @@ clock.  There the tally is what gives way.
 **Not in the repository.**  The record lives in
 `$XDG_STATE_HOME/gestate/presence.tsv`: it is personal, it would stand
 in `git status` all day, and a clone of gestate is not a clone of
-anybody's week.  `board/persistent-workbench-state.md` wants the same
+anybody's week.  `board/done/persistent-workbench-state.md` wants the same
 directory and should take `presence.state_path()` rather than inventing
 a second home.
 

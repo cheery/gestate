@@ -24,34 +24,30 @@ Work them in this order unless one blocks another.  **This list is the
 only place the order lives** — a card never says where it stands, which
 is what keeps a card's name stable while priorities move.
 
-1. **[persistent-workbench-state](persistent-workbench-state.md)** —
-   *"closing it loses the day."*  Felt every session, and probably the
-   cheapest large win here.  *Its four decisions were answered
-   2026-08-18, so it is ready to take.*
-2. **[installation-test](installation-test.md)** — somebody who cannot
+1. **[installation-test](installation-test.md)** — somebody who cannot
    install has none of the above.  Three defects in one day from one
    fresh machine.
-3. **[unheard-output](unheard-output.md)** — a whole class of audio
+2. **[unheard-output](unheard-output.md)** — a whole class of audio
    defect has no oracle at all, and `fixme.md` F147 is blocked on it.
    Plumbing on the card, audible to the person.
-4. **[stranger-test](stranger-test.md)** — fixes nothing; it is what
+3. **[stranger-test](stranger-test.md)** — fixes nothing; it is what
    *finds* 1–4.  Ranked here only because each run spends a scarce,
    non-renewable person.
-5. **[interface-oracle](interface-oracle.md)** — stops 1–4 regressing
+4. **[interface-oracle](interface-oracle.md)** — stops 1–4 regressing
    silently.  A multiplier rather than a feature, and `view.rs` now has
    its first three tests to build on.
-6. **[unseen-flare](unseen-flare.md)** — narrower than
+5. **[unseen-flare](unseen-flare.md)** — narrower than
    `unheard-output`, and overlapping it.
-7. **[gemba](gemba.md)** — changes the working day more than anything
+6. **[gemba](gemba.md)** — changes the working day more than anything
    else here, and changes a *user's* not at all.  *Waiting on a dwell
    in seconds.*
-8. **[reviewing-by-running](reviewing-by-running.md)** — the review
+7. **[reviewing-by-running](reviewing-by-running.md)** — the review
    loop `spec/author.md` says is the scarce resource.
-9. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
+8. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
    the changes a session makes.
-10. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
+9. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
    *Blocked on command-categories.*
-11. **[portable-package](portable-package.md)** — for people who do not
+10. **[portable-package](portable-package.md)** — for people who do not
    exist yet, by his own answer.  *Waiting on program-or-workshop.*
 
 **Ordered by impact on somebody using gestate** — 2026-08-17, at

@@ -709,6 +709,24 @@ def run(path, rate: int = 44100, block: int = 512,
     from .editor import Editor
     from .presence import Presence
 
+    #: **Where this window was last time** — `board/done/persistent-workbench-state.md`.
+    #: Read before the workbench is built, because the seed is one of
+    #: the things it remembers and a seed chosen after the instrument
+    #: has been built is a different take of the piece.
+    #:
+    #: An argument still wins: `--seed` is somebody saying which take
+    #: they want *now*, and a document about yesterday does not get to
+    #: argue with that.
+    from . import desk as desks
+
+    remembered = desks.read(path)
+    nth = desks.opened(path)
+    #: What the piece's document said when this window opened, so that
+    #: closing can tell whether somebody else has written it since.
+    was = desks.stamp(path)
+    if remembered is not None and seed is None and remembered.seed is not None:
+        seed = remembered.seed
+
     bench = Workbench(Path(path), rate=rate, block=block, midi=midi,
                       seed=seed)
     session = Session(bench=bench)
@@ -752,8 +770,19 @@ def run(path, rate: int = 44100, block: int = 512,
     walked: object = run
     wait, next_frame = IDLE, 0.0
     clock = _LoopClock() if os.environ.get("GESTATE_LOOP_TIME") else None
+    #: **Waiting for the window to say where it is**, before putting it
+    #: back where it was.  The zoom is stepped from the mirror and the
+    #: mirror is empty until the window has told its state once — so a
+    #: restore on the way in would step from a rung nobody is on.
+    #: `None` once it has been done, or when there was nothing to do.
+    putting = remembered
     try:
         while editor.is_open:
+            if putting is not None and getattr(session.view, "zoom_rungs", 1) > 1:
+                putting, said_back = None, _put_back(
+                    remembered, session, path, nth)
+                if said_back:
+                    session.said.append(said_back)
             # **A file asked for is a whole new instrument.**  The window
             # outlives it — the same rope, the same view, the same
             # command list — and everything below it is replaced, which
@@ -948,6 +977,13 @@ def run(path, rate: int = 44100, block: int = 512,
             wait = pace(stirred or (showing and not crossed), wait)
             time.sleep(wait)
     finally:
+        # **Where the window was, read before it is shut.**  The caret is
+        # the *editor's* and `caret()` reads it across the ABI, so asking
+        # a closed one answers zero — which would file "you were at the
+        # top of the file" over wherever you actually were, every time.
+        # Written after the teardown, further down; taken here, which is
+        # the last moment it is true.
+        place = _place(session)
         # **Before anything that can fail.**  The seconds since the last
         # flush are the ones a crash costs, and the teardown below is the
         # part of this program most likely to raise.
@@ -972,7 +1008,81 @@ def run(path, rate: int = 44100, block: int = 512,
             bench.stop()
         except Exception:                                # noqa: BLE001
             pass
+    _remember(path, place, was, nth)
     return 0
+
+
+def _place(session):
+    """Where the window is, right now — or `None` if it will not say.
+
+    Its own function so that the *reading* can happen while the window
+    is open and the *writing* after it is shut, which is the order those
+    two want and not the order they read in.
+    """
+    from . import desk as desks
+
+    try:
+        return desks.of(session.bench, session.view)
+    except Exception:                                    # noqa: BLE001
+        return None
+
+
+def _put_back(remembered, session, path, nth: int) -> str:
+    """Put the window back where it was, and say so — or say nothing.
+
+    **Said out loud**, because a window that silently moved your caret
+    forty lines down is a window that did something you cannot account
+    for.  One sentence in the status line is what turns *that is odd*
+    into *oh, it remembered*, and it is the difference between a feature
+    and a haunting.
+
+    A second window on the same piece takes its own place from the desk
+    record instead: the piece's document holds one position and the rest
+    are kept beside it, which is what makes refusing to clobber safe.
+    """
+    from . import desk as desks
+
+    try:
+        if nth > 0:
+            kept = desks.kept(path, nth)
+            if kept is not None:
+                remembered.line, remembered.column = kept
+        put = desks.restore(remembered, session.bench, session.view)
+    except Exception:                                    # noqa: BLE001
+        return ""
+    if not put:
+        return ""
+    if len(put) == 1:
+        return f"put {put[0]} back where you left it"
+    return "put back where you left it: " + ", ".join(put)
+
+
+def _remember(path, place, was: str, nth: int) -> None:
+    """Write down where this window was, on the way out.
+
+    **On close, and it refuses to clobber.**  If `<piece>.desk` has
+    changed since this window opened, another window has closed on the
+    same piece and written where *it* was; this one does not overwrite
+    it, and keeps its own place in the desk record instead — which is
+    what makes the refusal safe rather than lossy, and what lets a
+    second view of a long piece come back where it was
+    (`board/done/persistent-workbench-state.md`).
+
+    Nothing here may raise.  A window that failed to write down where it
+    was is a window that lost your place; a window that *crashed on the
+    way out* because it could not is a window that lost your work, and
+    the two are not the same size of problem.
+    """
+    from . import desk as desks
+
+    try:
+        desks.closed(path)
+        if place is None:
+            return
+        if not desks.write(path, place, was):
+            desks.keep(path, place, nth)
+    except Exception:                                    # noqa: BLE001
+        pass
 
 
 def install_desktop() -> int:
@@ -1054,6 +1164,20 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     if args.desktop:
         return install_desktop()
+    if args.file is None:
+        # **A bare launch reopens the piece you were last in** — Henri,
+        # 2026-08-18: *"the workbench `filename.ges` should land to that
+        # file, but without arguments workbench should restore the file
+        # it last worked on."*  Naming a file always means that file, so
+        # this is only ever consulted when nothing was named.
+        #
+        # And somebody who has never opened one has no last file, so
+        # `tools/gestate-editor`'s `${1:-untitled.ges}` still hands them
+        # the starter — the screen `board/done/button.md` and F150 are
+        # the account of.  It survives on exactly the person it is for.
+        from .desk import last_file
+
+        args.file = last_file()
     if args.file is None:
         ap.error("a file to edit (or --desktop)")
     return run(args.file, rate=args.rate, block=args.block,

@@ -8054,3 +8054,73 @@ heading; and — from this morning's sweep — a `voices` bank already knew
 which line it was declared on.  **In each, nothing needed inventing and
 something needed carrying through.**  It is cheap to check for and it
 has paid four times.
+
+## Where you were, as a document
+
+*2026-08-18.  `board/done/persistent-workbench-state.md`, from four
+decisions in the morning to a window that comes back by the evening.*
+
+Henri's ask had a phrase in it that decided most of the design: *"as if
+that state was a document in itself."*  A document has a name, so this
+is not a dot-directory; it can be read, so the format is plain; and it
+can be committed and handed to somebody else, so it lives beside the
+piece.
+
+### The finding was that there are two kinds of state
+
+Answering *where does it go* turned out to require answering *whose is
+it*, and the two split cleanly:
+
+* **The piece's** — the caret, the zoom, the seed, the loop span, the
+  knob values.  All of it means the same thing to anybody who opens that
+  piece, so it goes beside the `.ges` and travels with it.
+* **The desk's** — which pieces were open, which you were last in.  A
+  fact about *the set*, so it can live beside no one of them; and your
+  window layout is not the project's, so it is not committed.
+
+The split was not visible until Henri pushed on hazard 3: *"then you
+close and open them all again, I'd believe that needs some mechanism."*
+Refusing to clobber protects a *document*; it does not put your windows
+back, and the gap was in the answer rather than in his question.
+
+### What is not written down is part of the design
+
+There is no `playing` field and no build.  A window that reopened
+playing would be a program making noise nobody asked for — and **having
+nowhere to say it was is stronger than remembering not to apply it**.
+The test asserts the *absence*, which is an odd-looking test and the
+right one.
+
+### The bug that would have been invisible
+
+`caret()` reads across the ABI, so asking a *closed* editor answers zero
+— and the first version read the place inside the same teardown that
+shut the window.  Every close would have filed *you were at the top of
+the file* over wherever you actually were, and it would have looked like
+the feature working: there would be a document, with a number in it, and
+the number would always be 1.
+
+Splitting it into `_place` (while open) and `_remember` (after shut) is
+four lines.  Finding it was a matter of asking what `caret()` reads and
+when, which nothing forced — and it is the same shape as this morning's
+`internals.py` defect: a number that exists, is wrong, and is believed.
+
+### And then running it
+
+Twenty-six tests hold the parts.  What holds the *claim* is a driven
+window under Xvfb: click in, arrow down five lines, `Ctrl-K`, `quit`,
+Return — and `piece.desk` said `line 6, column 5, zoom 4`.  Then launch
+again **with no argument at all**, focus without clicking, quit the same
+way: it opened the right piece and wrote back the line it had been told.
+
+The first attempt at that second half clicked into the window to focus
+it, which moved the caret — so the file said where the click was, and
+proved nothing either way.  **A harness that touches the thing it
+measures is measuring itself**, and the failure was silent: the run
+looked fine and the number was plausible.
+
+*(Two other things the machine taught today: `pkill` does not run a
+`finally`, so no existing driven tool has ever exercised a graceful
+close; and one `test_autoaudition` timing test failed once while an X
+server and a full suite were running together — the board's own warning
+about a shared machine, arriving on schedule.)*

@@ -1,6 +1,6 @@
 # persistent-workbench-state — the editor opens where you left it
 
-    status   open — four decisions answered 2026-08-18
+    status   done — 2026-08-18
     because  when the window is closed the data is lost; it causes
              possible data loss, and leads to forgetting where one was
              yesterday
@@ -205,3 +205,57 @@ all again" — written before anything was built, derived from the
 `because` (*"it causes possible data loss, and leads to forgetting where
 one was yesterday"*), and already corrected once by the person it is
 for, which is the whole reason the rule asks for it early.
+
+## Done
+
+*2026-08-18.  `journal.md` §"Where you were, as a document" tells the
+story; `gestate/desk.py` is the module and its own docstring is the
+design.*
+
+**Two documents, because there are two kinds of state.**  `<piece>.desk`
+beside the `.ges` — the caret, the zoom, the seed, the loop, the octave,
+the knob values — readable, committable, and the piece's.  And
+`~/.config/gestate/desk`, which holds which piece you were last in and
+which windows are open: a fact about the *set*, so it belongs to nobody's
+piece and is not committed.
+
+**What is never written down** is as much of the design as what is: there
+is no `playing` field and no build.  A window that reopened playing would
+be a program making noise nobody asked for, and having nowhere to say it
+was is a stronger guarantee than remembering not to apply it —
+`test_nothing_about_the_transport_or_the_build_is_written_down` asserts
+the *absence*.
+
+**Nothing supervises the set**, so a window adds itself to the record
+when it opens and takes itself out when it closes, and a row is believed
+only while its process is alive.  A crash therefore costs a stale row and
+nothing else.
+
+**Read while open, written after shut.**  `caret()` reads across the ABI,
+so asking a closed editor answers zero — which would have filed *you were
+at the top of the file* over wherever you actually were, every single
+time.  `_place` and `_remember` are two functions for that reason and no
+other.
+
+**Verified on the real program, by doing what a person does.**  A driven
+window under Xvfb: click in, arrow down five lines, `Ctrl-K`, `quit`,
+Return — and `piece.desk` came back saying `line 6, column 5, zoom 4`.
+Then launched again **with no argument**, focused without clicking (a
+click would have moved the caret and told us nothing), quit the same way:
+it opened the right piece and wrote back the same line it had been told.
+Had the restore not happened it would have written line 1.  Twenty-six
+tests hold the parts; that run is what holds the claim.
+
+**Left for a later card, and named rather than implied:**
+
+* **The scroll is not restored.**  Putting the caret back makes the view
+  follow it, which is what *where you were* means to somebody looking at
+  the screen — but a person who had scrolled *away* from their caret to
+  read something else does not get that back.
+* **Which boxes stand** is in the card's own list of what state is and is
+  not in the document.  A `canvas <expr>` box is a thing you opened, and
+  reopening it is a command with arguments rather than a number.
+* **A second window's place is kept but not yet claimed.**  `keep`/`kept`
+  hold it and are tested; what does not exist is a window *knowing* it is
+  the second one at the moment it needs the answer — `opened` counts
+  live rows, and two windows starting together can both read zero.
