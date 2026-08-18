@@ -1,6 +1,6 @@
 # command-categories — the command list wants categories
 
-    status   open — elaborated 2026-08-17, the derivation landed
+    status   open — A picked 2026-08-18; the display is what is left
     because  it's starting to be clear that we need them
     asked    Henri, 2026-08-16
     see      gestate/command.ges — the command table, and its headings
@@ -114,9 +114,28 @@ the order is already curated and already teaches.  *Eliminated by*
 `git-viewer` landing a family of commands, which is what made the need
 clear and is the card this one blocks.
 
-**Nothing here is decided.**  What would decide it is a person opening
-the list and looking for something, which is `board/stranger-test.md`'s
-instrument and its rules about spending one.
+**Decided 2026-08-18: A.**  *Henri, picking from the five.*
+
+The argument that carried it is the one the options were written to
+expose: **A is the only one that spends position**, which is the
+strongest channel this list has and the one nothing uses — and that is
+also what eliminates D, since a repeated label in a margin is the same
+information through a weaker channel.  B stays out because `text`,
+`window` and `loop` are section names *and* plausible queries, and a
+query that means two things is worse than one that means none.  C taxes
+everybody who already knows the name, forever, to help the first week.
+E was defensible until `git-viewer` — a family of new commands arriving
+is what made the need clear in the first place.
+
+**And the caveat is kept rather than dropped**, because it is still
+true: what *would* decide this is a person opening the list and looking
+for something they cannot name, which is `board/stranger-test.md`'s
+instrument.  A pick made from the armchair is a judgement, not
+evidence.  The reason it is safe to make anyway is that **A is the
+cheapest of the five to reverse** — eleven dim rows and no change to
+what a command is, what it is called, or how it ranks.  If a stranger
+finds the list no easier, nothing has to be unwound to try something
+else.
 
 ## On icons — asked, and the honest answer is *not yet*
 
@@ -148,8 +167,11 @@ into existence.
 ## What the work is
 
 1. ~~Derive the section from the file.~~  Done, 2026-08-17.
-2. Choose between A–E, and choose it against somebody looking for a
-   command they cannot name — not against a screenshot.
+2. ~~Choose between A–E.~~  **A**, 2026-08-18 — see above.  What is
+   left is the display: `Session.filtered` emits the heading rows in
+   file order, and `palette.rs` draws a row it is told is a heading
+   *dim and unpickable*.  The window's law is untouched — it is still
+   handed entries and shows them in the order it was given.
 3. Whatever is chosen, `git-viewer`'s family is the test of it: the
    card exists because a group of new commands is coming.
 4. Icons, only if 2 lands and the list is still hard to read.

@@ -26,11 +26,12 @@ is what keeps a card's name stable while priorities move.
 
 1. **[persistent-workbench-state](persistent-workbench-state.md)** —
    *"closing it loses the day."*  Felt every session, and probably the
-   cheapest large win here.
+   cheapest large win here.  *Its four decisions were answered
+   2026-08-18, so it is ready to take.*
 2. **[command-categories](command-categories.md)** — the other half of
    the stranger's failure: he got the door open and found fifty-three
-   names.  *Waiting on a pick from the card's five options; the
-   sections are derived already.*
+   names.  *A picked 2026-08-18; the sections are derived already, so
+   what is left is the display.*
 3. **[installation-test](installation-test.md)** — somebody who cannot
    install has none of the above.  Three defects in one day from one
    fresh machine.
@@ -65,9 +66,12 @@ these tasks."*  The criterion is deliberate and demotes good cards:
 *made* rather than what a person meets, and they sit below things that
 a user feels directly.
 
-Three of these are **decisions wearing a card** and are marked so.  No
+Two of these are **decisions wearing a card** and are marked so.  No
 session can finish one, so their position is academic until they are
 answered or shelved (`spec/author.md` §"Triaging the board").
+`command-categories` was the third and stopped being one on 2026-08-18,
+which is what a decision card looks like when it is answered rather than
+shelved: the answer took a minute and the card became work.
 
 Finished cards are in [done/](done/), newest work last.  `ls board/*.md`
 is the live board; nothing has to be trimmed by hand for that to stay
