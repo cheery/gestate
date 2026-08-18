@@ -1545,6 +1545,37 @@ class Session:
         head, _sep, _stem = query.rpartition("/")
         return (here / head if head else here).resolve()
 
+    def commits(self, query: str) -> list:
+        """The history, as rows to pick — `board/git-viewer.md`.
+
+        **`open`'s shape, over commits instead of directories.**  A bare
+        query lists the commits; a query that names one lists the files
+        that commit touched, as steps; and a file is the answer.  *A
+        directory is not a refusal* was the rule that made typing a path
+        feel like walking one, and reading a log is the same walk.
+        """
+        from . import history
+
+        where = getattr(self.bench, "path", None)
+        query = query.strip()
+        try:
+            if "/" in query:
+                sha, want = query.split("/", 1)
+                return [(f"{sha}/{name}", note, "")
+                        for name, note in history.touched(where, sha)
+                        if want.lower() in name.lower()]
+            #: **A commit is a step, not an answer** — `(text, note,
+            #: can, step, dim)`, the listing row's own shape.  Stepping
+            #: is the *palette's* mechanism, and hand-rolling it in the
+            #: model was what made Return do nothing in the real window
+            #: while working perfectly headlessly.
+            return [(sha, said, True, f"{sha}/", False)
+                    for sha, said in history.commits(where)
+                    if not query or query.lower() in said.lower()
+                    or sha.startswith(query)]
+        except Exception:                                # noqa: BLE001
+            return []
+
     def _choices(self) -> list:
         verb, at, query = self.asking
         found = self.find(verb)
@@ -1572,6 +1603,8 @@ class Session:
             return ([(found, "what the hole wants")]
                     if found and found.lower().startswith(query.strip().lower())
                     else [])
+        if kind == "Commit":
+            return self.commits(query)
         if kind == "Template":
             return self.snippets(query)
         if kind == "Symbol":
@@ -3283,6 +3316,47 @@ class Session:
         return ("canvas" if getattr(self.bench, "substrate", None) is not None
                 else "opening the canvas — it will appear when it builds")
 
+    def do_log(self, what: str) -> str:
+        """Read the history — `board/git-viewer.md`, the first of its
+        four views.
+
+        **`open`'s shape.**  A commit is a *step*, not an answer: taking
+        one shows its message and what it touched, and leaves the
+        question open on its files, so the next Return goes one level in
+        rather than out.  That is what made typing a path feel like
+        walking one, and reading a log is the same walk.
+
+        **And the page is why the question stays open.**  A page is
+        drawn beside the list, so a command that closes the list has
+        nowhere to put one — the first version of this answered *"200
+        commits"* into the status bar and showed nothing, which is what
+        one run in the real window said before anything else was built.
+        """
+        from . import history
+
+        where = getattr(self.bench, "path", None)
+        what = (what or "").strip()
+        if not what:
+            self.asking = ("log", 0, "")
+            return "the log"
+        try:
+            if "/" in what:
+                sha, name = what.split("/", 1)
+                self.page = history.diff(where, sha, name)
+                self.asking = ("log", 0, f"{sha}/")
+                return f"{name} in {sha}"
+            #: A bare commit still answers, for somebody who typed a sha
+            #: rather than picking one — the list is not the only road.
+            self.page = history.show(where, what)
+            self.asking = ("log", 0, f"{what}/")
+            return f"{what} — its files"
+        except Exception as exc:                         # noqa: BLE001
+            #: `git`'s own first line, kept — it explains itself better
+            #: than a paraphrase would, and `_first_line` belongs to the
+            #: workbench rather than to a session.
+            said = str(exc).splitlines()
+            return f"no such commit: {said[0] if said else what}"
+
     def do_source(self) -> str:
         self.view.show("source")
         return "source"
@@ -4690,6 +4764,20 @@ def act(session: "Session", line: str) -> str:
         except ValueError:
             return f"wants: `{parts[2]}` is not an argument number"
         session.asking = (parts[1], at, parts[3])
+        # **Stepping into a commit is where its message appears.**  The
+        # palette moves the question along itself, so the command never
+        # runs — and the page is the model's.  This is the one hook that
+        # sees a step happen, which is why the reading lives here rather
+        # than in `do_log`.
+        if parts[1] == "log" and parts[3].endswith("/"):
+            from . import history
+
+            try:
+                session.page = history.show(
+                    getattr(session.bench, "path", None),
+                    parts[3].rstrip("/"))
+            except Exception:                            # noqa: BLE001
+                session.page = None
         # **And what the box is already holding.**  Ranking one argument
         # can depend on the ones before it: `complete`'s first is the
         # type, and a type typed over the one inference offered has to

@@ -1,8 +1,6 @@
 # git-viewer — a git viewer in the workbench
 
-    status   blocked
-    blocked  board/done/command-categories.md — it would add a family of
-             commands, and that is what made the categories necessary
+    status   open — a proof of concept landed 2026-08-18
     because  a gemba walk through the log should be ergonomic, and my
              friend could use it as well
     asked    Henri, 2026-08-16
@@ -40,3 +38,48 @@ opinion about.
 **"My friend could use it as well" is the part to keep in view.**  It is
 the first ask in this project aimed at somebody who is not Henri, and
 that changes what "ergonomic" has to mean.
+
+## The proof of concept, 2026-08-18
+
+*Henri: "we take git-viewer to our teeth because it's similar to gemba,
+very important for working together.  This time we commit to the
+try-something approach.  Implement the smallest viable proof-of-concept
+program."*
+
+**Three of the four views, walked in the real window.**  `log` opens the
+question; a commit is a *step* into its message and `--stat`; a file
+inside it is the answer, and its diff is the page.
+
+`gestate/history.py` is the whole reader — `git` as a subprocess,
+because the workflow being encoded was taught in `git`'s own output and
+a library would be a second opinion about what a log looks like.
+
+### What the running window said that reading did not
+
+**A page is drawn beside the list, so a command that closes the list has
+nowhere to put one.**  The first version answered *"200 commits"* into
+the status bar and showed nothing at all.  One run.
+
+**And stepping is the palette's own mechanism.**  The second version
+hand-rolled it in the model — set the page, re-ask — which worked
+*perfectly headlessly* and did nothing in the window, because the
+palette had already finished its call.  A commit row carries a `step`
+now, and the model hears it as `wants`, which is the one hook that sees
+a step happen and is therefore where the message is read.
+
+**The bar is a note on a row and the row has a name on it.**
+`--stat=200` drew eighty-odd plus signs and elided the filename it
+belonged to — the one thing you were reading the row for.
+
+### What is left
+
+* **"Show the whole file"** — the fourth view, and the one that needs a
+  decision rather than a line: opening a file *at a commit* is a
+  different thing from opening the file, and this window has one idea of
+  what is open.
+* **A repository with forty thousand commits.**  `MOST` is 200 and
+  paging past it is unbuilt; `spec/rocks.md` is the argument for doing
+  something rather than nothing.
+* **"My friend could use it as well"** is still the part to keep in
+  view, and is still untested — the card's own note, and it wants
+  `board/stranger-test.md`'s instrument rather than another run of mine.

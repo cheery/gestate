@@ -389,7 +389,11 @@ def test_every_command_can_be_run_headless_without_raising(tmp_path):
               # detached session does not have.
               "Filler": "sine",
               # The type that would have been taken at a hole.
-              "Wanted": "Sig Float"}
+              "Wanted": "Sig Float",
+              # Nothing, which is how `log` opens its own question —
+              # a sha this repository certainly does not have would
+              # answer about the commit instead, which is also fine.
+              "Commit": ""}
     for verb in vocabulary():
         args = tuple(sample[a] for a in verb.args)
         said = s.run(verb.name, *args)

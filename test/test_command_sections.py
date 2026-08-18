@@ -37,7 +37,7 @@ def test_the_sections_are_the_file_s_own_headings():
     assert seen == [
         "The instrument", "The loop", "Parameters", "Notes",
         "Performing", "Chance", "The text", "Laying it out",
-        "Leaving the workshop", "The window", "The algebra",
+        "Leaving the workshop", "The history", "The window", "The algebra",
     ], seen
 
 

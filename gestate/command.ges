@@ -529,6 +529,28 @@ exportWavAt first last path = Stated
 overwrite : Answer -> Command
 overwrite yes = Stated
 
+# ── The history ──────────────────────────────────────────────────────────
+#
+# **The smallest thing that puts the log on the screen**, and no more —
+# `board/git-viewer.md` asks for four views and this is the first of
+# them.  Built as a proof of concept on purpose (Henri: *"we commit to
+# the try-something approach.  Implement the smallest viable
+# proof-of-concept program"*), so that what it is missing is discovered
+# by reading a log in it rather than by designing one.
+
+#: What names a commit, or a file inside one — `<sha>` and `<sha>/<path>`.
+#:
+#: A `Text` with its own name, exactly as `Path` is, and for `Path`'s
+#: stated reason: **the type is what lets the view ask.**  A commit has
+#: a small, knowable set of next steps — the files it touched — so the
+#: list can offer them, and picking one steps in rather than answering.
+type Commit = Text
+
+#: Read the history.  A commit steps into the files it touched, and a
+#: file inside one shows its diff.
+log : Commit -> Command
+log = Stated
+
 # ── The window ───────────────────────────────────────────────────────────
 
 #: Show the program's own picture — its `substrate` — instead of the

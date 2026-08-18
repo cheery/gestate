@@ -49,8 +49,9 @@ is what keeps a card's name stable while priorities move.
 5. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
    the changes a session makes.
 6. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
-   *Unblocked 2026-08-18: `command-categories` landed, so a family of
-   new commands now arrives into a list that groups them.*
+   *A proof of concept landed 2026-08-18 — three of its four views walk
+   in the real window.  What is left is the fourth, paging, and a
+   stranger.*
 7. **[portable-package](portable-package.md)** — for people who do not
    exist yet, by his own answer.  *Waiting on program-or-workshop.*
 
