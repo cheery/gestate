@@ -127,3 +127,17 @@ def diff(near=None, sha: str = "HEAD", name: str = "") -> list:
     where = root(near)
     return _git(where, "show", "--format=", sha, "--", name) or \
         [f"{name}: no change in {sha}"]
+
+
+def whole(near=None, sha: str = "HEAD", name: str = "") -> list:
+    """A file as it *was*, at one commit — the fourth view.
+
+    **Shown, not opened.**  Opening it would be the decision the card
+    warned about: this window has one idea of what is open, and putting
+    a historical file into it means either losing what you were editing
+    or growing a second notion of *the file*.  A page costs neither, and
+    reading is what the view is for — `doc/reading-the-log.md` teaches
+    the log as something you read, not something you check out.
+    """
+    return _git(root(near), "show", f"{sha}:{name}") or \
+        [f"{name}: empty at {sha}"]

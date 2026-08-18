@@ -551,6 +551,14 @@ type Commit = Text
 log : Commit -> Command
 log = Stated
 
+#: The file the log is showing, whole, as it was at that commit.
+#:
+#: **Shown, not opened** — this window has one idea of what is open, and
+#: putting a historical file into it would either lose what you were
+#: editing or grow a second notion of *the file*.
+whole : Command
+whole = Stated
+
 # ── The window ───────────────────────────────────────────────────────────
 
 #: Show the program's own picture — its `substrate` — instead of the

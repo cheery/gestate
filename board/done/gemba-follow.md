@@ -103,3 +103,36 @@ puts the caret back where the walk had it.
 *None of the three was visible from the source, and all three passed a
 green suite.*  `spec/verification.md` §"The defect is in the seam, and
 the test is in the module" is the rule they belong to.
+
+## And then it cut off — 2026-08-18, an hour later
+
+*Henri, watching one walk for two minutes: "the gemba walk cuts off.
+I'd like you to check it on real editor.  Insert command `[gemba]`, wait
+for 2 minutes and watch where it is."*
+
+It did.  The first stop arrived and nothing after it.  **Three causes,
+stacked**, and the first two were found by reading and the third only by
+asking the running window.
+
+1. **The step-off did not check which file you were in.**  A walk that
+   moves to another file leaves the caret at line 1 of the new one while
+   the walk still names the old place — so the next pass read a
+   mismatch and called it you moving.
+2. **The walk's own step looked like typing.**  Loading a document makes
+   the window report an `edited`, which was in the interrupt set, so
+   every move interrupted the walk that made it.
+3. **And the caret had not arrived yet.**  An order is obeyed on the
+   window's *next* frame, so the check read the caret before the walk's
+   own `goto` had landed.  `GESTATE_WALK_WHY=1` said it in one line —
+   `[walk] ended by the caret: 2 != 132` — after three careful readings
+   of the source had found the first two and missed this.
+
+Arrival is witnessed before departure can mean anything now.  The
+two-minute walk holds: stop after stop, `[gemba]` lit, box under the
+line.
+
+**The lesson is the one this file already carries, sharpened**: the
+model and the window do not share a clock.  Everything the model *asks*
+for lands a frame later, and any check that compares what it asked for
+against what it sees will be wrong exactly once per request — which is
+often enough to break a feature and rare enough to survive a suite.

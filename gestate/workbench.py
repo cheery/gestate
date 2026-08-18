@@ -632,6 +632,8 @@ def _carry(session, bench):
     # mind.
     fresh.walking = getattr(session, "walking", False)
     fresh._walked = getattr(session, "_walked", None)
+    fresh._moving = getattr(session, "_moving", False)
+    fresh._arrived = getattr(session, "_arrived", False)
     if fresh.log is not None:
         fresh.log.note(f"opened {Path(bench.path).name}")
     return fresh
@@ -1106,11 +1108,40 @@ def _stepped_off(session) -> None:
     went = getattr(session, "_walked", None)
     if not went:
         return
+    # **Only in the file the walk put you in** — `board/done/gemba-follow.md`,
+    # and this is what made the walk *cut off* (Henri, watching one run
+    # for two minutes).  A walk that moves to another file leaves the
+    # caret at line 1 of the new one while `_walked` still names the old
+    # place, so the very next pass read a mismatch and called it *you*
+    # having moved.  Every step to a different file ended the walk that
+    # took it.
+    here = Path(getattr(session.bench, "path", "") or "")
+    if not here.name or str(here) != str(went[0]):
+        return
     try:
         line = session._caret_line()
     except Exception:                                    # noqa: BLE001
         return
-    if line and line != went[1]:
+    # **Not until the caret has arrived.**  An order is obeyed on the
+    # window's *next* frame, so this read the caret before the walk's own
+    # `goto` had landed, saw the old position and called it the person
+    # moving — which is what *cut off* was: `[walk] ended by the caret:
+    # 2 != 132`, one frame after the walk asked to be at 132.
+    #
+    # So arrival is witnessed before departure can be: the walk has to
+    # have been seen *at* its line once, and only then does leaving it
+    # mean anything.
+    if line == went[1]:
+        session._arrived = True
+        return
+    if line and getattr(session, "_arrived", False):
+        #: `GESTATE_WALK_WHY=1` says why a walk ended, on stderr.  Left
+        #: in because it is what found this: one line from the running
+        #: window said `2 != 132` and three careful readings of the
+        #: source had not.
+        if os.environ.get("GESTATE_WALK_WHY"):
+            print(f"[walk] ended by the caret: {line} != {went[1]}",
+                  file=sys.stderr, flush=True)
         session.walking = False
         session.said.append("stepped off the walk — `gemba` to pick it up")
 

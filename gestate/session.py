@@ -890,6 +890,25 @@ class Session:
     #: The last place the walk took the caret, so it is taken once per
     #: stop rather than on every pass of the loop.
     _walked: object = None
+    #: `(sha, path)` — which file at which commit the log last showed,
+    #: so `whole` needs no argument.
+    _reading: object = None
+    #: **The walk is opening a file right now.**
+    #:
+    #: Loading a document makes the window report an `edited` — so the
+    #: walk's own step looked exactly like the person typing, and every
+    #: move to another file interrupted the walk that made it.  That is
+    #: what *cut off* was: the first stop arrived and nothing after it.
+    #:
+    #: Set when the open is asked for and cleared when the file has
+    #: arrived, so it covers the switch and nothing else.
+    _moving: bool = False
+    #: Whether the caret has been *seen* at the walk's line yet.
+    #:
+    #: An order is obeyed on the window's next frame, so leaving a place
+    #: cannot be judged until arriving at it has been witnessed — see
+    #: `workbench._stepped_off`.
+    _arrived: bool = False
     #: The `(verb, argument)` a name or a type has already been filled
     #: into.  **Once per question, never per empty box** — see
     #: `proposed_name`.
@@ -1849,6 +1868,9 @@ class Session:
             return 0
         here = Path(getattr(self.bench, "path", "") or "")
         if here.resolve() != want.resolve():
+            #: **Marked as ours**, so the `edited` this provokes is not
+            #: read as somebody typing — see `_moving`.
+            self._moving = True
             #: The same road `open` takes — the loop owns the switch,
             #: and so does its rule about unsaved work: **warn, do not
             #: gate** (`fixme.md` F113).  The first version refused to
@@ -1861,6 +1883,7 @@ class Session:
             #: decision is, and the walk then does what it was asked to.
             self.view.open(str(want))
             return 0                    # the box lands once it is showing
+        self._moving = False               # the file has arrived
         line = min(item.line, max(1, len(self._lines())))
         # **And go to it, once.**  Arriving at the file is not arriving
         # at the place: the window opens at the top, so a walk that
@@ -1869,6 +1892,7 @@ class Session:
         # caret each frame would be a walk you could not read around.
         if self._walked != (str(want), line):
             self._walked = (str(want), line)
+            self._arrived = False          # not until it has landed
             try:
                 self.view.goto(line)
             except Exception:                            # noqa: BLE001
@@ -3344,6 +3368,12 @@ class Session:
                 sha, name = what.split("/", 1)
                 self.page = history.diff(where, sha, name)
                 self.asking = ("log", 0, f"{sha}/")
+                #: **What `whole` reads.**  Kept so the fourth view needs
+                #: no argument: you are already looking at the file, and
+                #: making somebody retype a sha and a path to see the
+                #: rest of what is on their screen is the opposite of
+                #: the ergonomics this card is about.
+                self._reading = (sha, name)
                 return f"{name} in {sha}"
             #: A bare commit still answers, for somebody who typed a sha
             #: rather than picking one — the list is not the only road.
@@ -3356,6 +3386,45 @@ class Session:
             #: workbench rather than to a session.
             said = str(exc).splitlines()
             return f"no such commit: {said[0] if said else what}"
+
+    def do_whole(self) -> str:
+        """The file the page is showing a diff of, whole — the fourth
+        view of `board/git-viewer.md`.
+
+        **No argument, because you are already looking at it.**  The
+        walk has just told this session which file at which commit, and
+        asking somebody to retype a sha and a path to see the rest of
+        what is on their screen is the opposite of the ergonomics the
+        card is about.
+        """
+        from . import history
+
+        if not self._reading:
+            return "no file from the log is open — walk to one with `log`"
+        sha, name = self._reading
+        try:
+            self.page = history.whole(getattr(self.bench, "path", None),
+                                      sha, name)
+        except Exception as exc:                         # noqa: BLE001
+            said = str(exc).splitlines()
+            return f"cannot read it: {said[0] if said else name}"
+        #: **And the question is re-opened, or there is nowhere to draw
+        #: it.**  A page is beside the list; a command that closes the
+        #: list answers into the status bar and shows nothing.  `log`
+        #: learned that an hour before `whole` was written and `whole`
+        #: was written without it — the same screenshot, twice.
+        #:
+        #: **`view.ask` and not `self.asking`**, which is the part that
+        #: took three runs to see: `asking` is what the *model* computes
+        #: rows from, and the window's dialog has already finished by
+        #: then.  Asking is an order, in the direction the model already
+        #: talks.
+        #:
+        #: Staying on the commit's files is also the right place to be:
+        #: having read one whole, the next thing you want is another
+        #: from the same commit.
+        self.view.ask("log", f"{sha}/")
+        return f"{name}, whole, at {sha}"
 
     def do_source(self) -> str:
         self.view.show("source")
@@ -4732,7 +4801,12 @@ def act(session: "Session", line: str) -> str:
     # not anybody has touched it, so treating that as an action would
     # end every walk in the same frame it began.  Nor is `gemba` itself.
     if verb in _INTERRUPTS and getattr(session, "walking", False):
-        if not (verb == "command" and parts[1:2] == ["gemba"]):
+        if not (verb == "command" and parts[1:2] == ["gemba"]) \
+                and not getattr(session, "_moving", False):
+            import os as _os
+            if _os.environ.get("GESTATE_WALK_WHY"):
+                import sys as _sys
+                print(f"[walk] ended by {verb!r}", file=_sys.stderr, flush=True)
             session.walking = False
     if verb == "command":
         return session.run(*(p for p in parts[1:] if p))

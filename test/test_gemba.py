@@ -889,3 +889,92 @@ def test_following_the_file_does_not_end_the_walk(tmp_path):
     assert it.view.went[-1] == 20, "it did not put the caret back"
     _stepped_off(it)
     assert it.walking is True, "following the file ended the walk"
+
+
+def test_stepping_to_another_file_does_not_end_the_walk(tmp_path):
+    """**What made the walk cut off.**  Henri, watching one run for two
+    minutes: *"the gemba walk cuts off."*
+
+    A walk that moves to another file leaves the caret at line 1 of the
+    new one while `_walked` still names the old place — so the very next
+    pass read a mismatch and called it *you* having moved.  Every step
+    to a different file ended the walk that took it.
+    """
+    from gestate.workbench import _stepped_off
+
+    one = tmp_path / "one.ges"
+    two = tmp_path / "two.ges"
+    for f in (one, two):
+        f.write_text("\n".join(str(i) for i in range(30)))
+
+    it = _walking(tmp_path, [str(i) for i in range(30)], here="two.ges")
+    it.walking = True
+    it._walked = (str(one), 12)          # where the walk *was*
+    it.view.caret_line = 1               # and the new file opens at the top
+
+    _stepped_off(it)
+    assert it.walking is True, "it ended itself on the way to the next file"
+
+
+def test_the_walks_own_step_is_not_the_person_typing(tmp_path):
+    """**The other half of *cut off*.**
+
+    Loading a document makes the window report an `edited` — so the
+    walk's own step looked exactly like somebody typing, and every move
+    to another file interrupted the walk that made it.  The first stop
+    arrived and nothing after it, which is what Henri watched for two
+    minutes.
+    """
+    from gestate.session import act
+
+    other = tmp_path / "other.ges"
+    other.write_text("x\n")
+    (tmp_path / "piece.ges").write_text("here\n")
+    it = _walking(tmp_path, ["here"])
+    it.walking = True
+
+    gemba.at(str(other), 1, "over there")
+    it.walk.read()
+    _rows(it)                                  # asks for the open
+    assert it._moving is True and it.view.wanted == str(other)
+
+    act(it, "edited")                          # which the load provokes
+    assert it.walking is True, "its own step ended it"
+
+    #: And once the file has arrived, typing interrupts again.
+    it._moving = False
+    act(it, "edited")
+    assert it.walking is False
+
+
+def test_it_does_not_judge_a_caret_that_has_not_arrived_yet(tmp_path):
+    """**The real cause of *cut off*.**
+
+    An order is obeyed on the window's *next* frame, so the step-off
+    read the caret before the walk's own `goto` had landed, saw the old
+    position and called it the person moving.  The instrumented window
+    said it in one line: `[walk] ended by the caret: 2 != 132`, one
+    frame after the walk had asked to be at 132.
+
+    So arrival is witnessed before departure can be.
+    """
+    from gestate.workbench import _stepped_off
+
+    piece = tmp_path / "piece.ges"
+    piece.write_text("\n".join(str(i) for i in range(30)))
+    it = _walking(tmp_path, [str(i) for i in range(30)])
+    it.walking = True
+    it._walked = (str(piece), 20)
+    it._arrived = False
+    it.view.caret_line = 2                 # the goto has not landed yet
+
+    _stepped_off(it)
+    assert it.walking is True, "it judged a caret still in flight"
+
+    it.view.caret_line = 20                # it lands
+    _stepped_off(it)
+    assert it.walking is True and it._arrived is True
+
+    it.view.caret_line = 3                 # and now the person moves
+    _stepped_off(it)
+    assert it.walking is False

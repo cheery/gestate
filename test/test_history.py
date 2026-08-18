@@ -163,3 +163,51 @@ def test_taking_a_file_shows_its_diff():
 def test_a_commit_that_is_not_there_is_a_sentence():
     it = _a_session()
     assert "no such commit" in it.run("log", "notacommit")
+
+
+# ── The whole file, which is the fourth view ───────────────────────────────
+
+
+def test_the_whole_file_needs_no_argument():
+    """**You are already looking at it.**  The walk has just told this
+    session which file at which commit, and asking somebody to retype a
+    sha and a path to see the rest of what is on their screen is the
+    opposite of the ergonomics this card is about."""
+    it = _a_session()
+    sha = history.commits(ROOT)[0][0]
+    name = history.touched(ROOT, sha)[0][0]
+    it.run("log", f"{sha}/{name}")
+    said = it.run("whole")
+    assert name in said and sha in said
+    assert not any(l.startswith("diff --git") for l in it.page)
+
+
+def test_it_says_so_when_nothing_has_been_walked_to():
+    it = _a_session()
+    assert "walk to one with `log`" in it.run("whole")
+
+
+def test_it_re_opens_the_question_or_the_page_has_nowhere_to_go():
+    """**A page is drawn beside the list**, so a command that closes the
+    list answers into the status bar and shows nothing — which `log`
+    learned an hour before `whole` was written, and `whole` was written
+    without it.
+
+    And it must be `view.ask`, not `session.asking`: the first is an
+    order to the window, the second is only what the model computes rows
+    from, and the window's dialog has already finished by then.  That
+    distinction took three runs to see.
+    """
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from test_session import Editor, session
+    from gestate.workbench import Window
+
+    ed = Editor("x\n")
+    it = session()
+    it.view = Window(ed)
+    it.bench.path = ROOT / "gestate" / "session.py"
+    it._reading = ("HEAD", history.touched(ROOT, "HEAD")[0][0])
+    it.run("whole")
+    assert any(o.startswith("ask\tlog\t") for o in ed.orders), ed.orders
