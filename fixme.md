@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 160 entries, **136 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 160 entries, **137 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -63,7 +63,7 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F113 | resolved | Undo and redo cross a file switch — one history for the session |
 | F114 | resolved | Copy and paste are not commands |
 | F115 | resolved | A bank added by an audition could not be listened to — allocators followed the disk |
-| F134 | missing | `now : Sig Float` — the current time in seconds, to the substrate |
+| F134 | resolved | `now : Sig Float` — the current time in seconds, to the substrate |
 | F135 | partly resolved | Long features work in silence; the CLI has progress text, the statusline does not |
 | F136 | missing | A tuple-pattern lambda picks the wrong instance, silently |
 | F137 | missing | A zoom scales the band and not the picture in it |
@@ -3757,7 +3757,7 @@ with the last row counting the rest (`… N more`), the full page one
 `doc/ref/` away.  Held by `a_page_stays_inside_the_window`, which
 also pins the counted elision.
 
-### F134. **[missing]** `now : Sig Float` — the current time in seconds, to the substrate
+### F134. **[resolved]** `now : Sig Float` — the current time in seconds, to the substrate
 
 Henri, 2026-08-14 (`fixme.incoming.txt`): a substrate that wants
 clock time has no signal that says it.  `elapsed` is the sample
@@ -3770,6 +3770,44 @@ meaning seconds on both sides: on the audio side `now` is `elapsed`
 under the name a reader expects, on the canvas side it is the frame
 count over the view's rate — the wall clock the two substrates
 share, spelled once where both preludes can reach it.
+
+**Resolved 2026-08-18.**  `now : Sig Float` in both vocabularies,
+written by the renderer beside `sampleRate` and `constSig` — which is
+where it belongs for their reason: what *how long has this been
+running* counts in depends on who is running it.
+
+**One correction to the ask, and it is the whole design.**  The canvas
+half is **real seconds written per frame**, not a frame count over a
+rate.  The rate the ask meant is `gui.run`'s fixed 60, and that window
+does have one — but the workbench's canvas does not: its hold-off is
+adaptive, because the cost of a frame is the *program's*
+(`workbench.CANVAS_SHARE`, measured settling between 8 and 34 Hz on one
+machine).  Dividing by a nominal 60 there would have moved the guess out
+of the program and into the library rather than removing it, and the
+picture would have run at a speed that depended on how expensive it was
+to draw.  So the host writes the seconds it already knows: a
+`wallclock : Chan Float` the renderer declares, read with the
+`0.0 ::: mkSig (wait …)` idiom `gui.ges` already documents for channels.
+
+Three things drive frames and all three now write it: `Substrate.tick`
+(the workbench canvas), `gui.run` (the standalone window), and
+`walk.rs`'s `Walker::frame` — **the last one because a `canvas <expr>`
+box is walked in Rust and mints its own frame**, so leaving it out would
+have made that box the one canvas where `now` stood still, which is this
+defect again one window over.
+
+`scenes` gets a nominal frame instead, and stays a pure function of its
+event list: a `Tick` is worth 1/60 s and nothing else moves the clock.
+Without that the one feature this adds would be untestable by the one
+tool that tests canvases.
+
+**And a renderer-written name has no manners unless it is given some.**
+A library name a program also uses is renamed aside by
+`prelude.shadow_libraries`; the entry's names come *after* the author's
+text and get none of that, so adding `now` took the name from every
+program that already had one — found immediately, by a test whose canvas
+called its transport position `now`.  Both entries ask `audio.defines`
+first now, and a program that spells the name itself keeps it.
 
 ### F135. **[partly resolved]** Long features work in silence — progress belongs in the statusline
 

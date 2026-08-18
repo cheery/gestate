@@ -7906,3 +7906,88 @@ the workbench reads it — `test_error_places.py`, the whole path rather
 than the message.  That is a different claim from *the message contains
 a position*, and the difference is where all three `line 4:` defects
 were hiding.
+
+## `now`, and the rate that was not there
+
+*2026-08-18.  `fixme.md` F134, and F100 and F110 alongside it.*
+
+Henri's ask was one name: *"a substrate that wants clock time has no
+signal that says it"* — and his own answer for the canvas half was **the
+frame count over the view's rate**.
+
+That answer is right for the window he was thinking of.  `gui.run` runs
+at a fixed 60 and dividing by 60 is exact there.  **The workbench's
+canvas has no such number.**  Its hold-off is adaptive on purpose —
+`CANVAS_SHARE`, one frame's worth of the last frame's cost, because the
+cost is the *program's* and no constant could know it — and the same
+paragraph records it settling between 8 and 34 Hz on one machine.  A
+nominal divisor there does not remove the guess the defect complains
+about; it moves the guess out of the program and into the library, where
+it is harder to see and impossible to argue with.  The picture would
+have run at a speed that depended on how expensive it was to draw.
+
+So the host writes the seconds it already has, on a channel the renderer
+declares, read with the `0.0 ::: mkSig (wait …)` idiom `gui.ges` already
+documents for a fader.  **Three things drive canvas frames and all three
+write it** — and the third is the one worth naming: a `canvas <expr>`
+box is walked in *Rust*, minting its own frame, so `walk.rs` had to
+write the clock too.  Leaving it out would have shipped a `now` that
+advanced in one canvas and stood still in the other, which is the defect
+being fixed, one window over, and it would have been found by somebody
+using it rather than by anybody reading this.
+
+### The name took a name
+
+`now` broke a test within a minute of existing, and the failure was the
+useful kind: a canvas whose own transport position was called `now`
+stopped compiling — *"Duplicate type signature for 'now'"*, about a name
+the author had every right to.
+
+**A library name gets shadowing; a renderer-written name gets none.**
+`prelude.shadow_libraries` renames a library's copy aside when the
+program defines the same name, and that is why a piece may call
+something `chorus`.  But `sampleRate`, `constSig` and now `now` are
+appended *after* the author's text by the entry, so nothing stands
+between them and a collision.  The entry asks first now (`audio.defines`
+— parsed, not matched, like every other question of that shape here),
+and a program that spells the name itself keeps it.
+
+It is the same lesson `gui.assembled` learned from `lantern.ges`'s `bar`
+— *the three assemblies have to make the same promises about the
+author's namespace* — arriving from the other end: not from a library
+this time but from the renderer, which had never had to make the promise
+because it had never added a name a person would want.
+
+### And two defects that were waiting on somebody to look
+
+**F100** — a constraint naming a class that does not exist was accepted,
+and surfaced at the *use* site as `No instance for Nonsuch Int`.  A true
+sentence and the wrong advice, because writing that instance makes the
+typo permanent.  It is refused where it is written now, with the
+constraint's own span.  The suggestion is deliberately narrow: a wrong
+one is worse than none here for exactly the reason the old message was
+bad.  `FromMidi` → `FromMIDI` is a case fold, not an edit distance —
+difflib rates it 0.62, below any threshold that would not also propose
+`Monad` for `Monoid`.
+
+**F110**'s remaining half could not be explained and did not need to be.
+Nothing in today's source sets the zoom mirror past the ladder, and the
+transcript recorded it twelve rungs up a nine-rung one.  **Twelve is
+what an undo count looks like** — the `state` gesture is nine positional
+numbers on a tab-separated wire and `undos` is two fields along from
+`zoom`, so a field-order slip is the one mechanism that fits, and it
+would have been silent in both directions.  The mirror clamps into the
+ladder now, and both ends of that wire are pinned against each other:
+`furniture.rs` already asserted the exact line for a known state, and
+the Python parser is now tested against the same line.  A reorder on
+either side fails on the other.
+
+### A red the last session left
+
+`cargo test -p gestate-editor` was failing before any of this started:
+`afba696` made the corner say `[command]` instead of `≡` and at the
+ink's own weight instead of `FAINT`, and `tests/view.rs` still asked for
+both of the old answers.  **The test failed on exactly the change it
+exists to protect** — which is the shape `board/interface-oracle.md` is
+about, and it is worth noticing that a suite nobody ran between two
+sessions is a suite that stops being an instrument.

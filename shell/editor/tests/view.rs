@@ -1137,7 +1137,7 @@ fn a_long_status_wraps_instead_of_running_off_the_right() {
 /// kept at the corner.
 #[test]
 fn the_burger_is_drawn_inside_the_box_the_press_reads() {
-    use gestate_editor::view::{burger_frame, FAINT};
+    use gestate_editor::view::{burger_frame, BURGER, INK};
 
     let v = rows_of(8, 900);
     let (bx, by, bw, bh) = v.burger_box(&LARGE);
@@ -1153,11 +1153,24 @@ fn the_burger_is_drawn_inside_the_box_the_press_reads() {
                         "the ground spills out of the box");
             }
             Item::Run { x, y, s, c } => {
-                assert_eq!(s, "\u{2261}");
-                assert_eq!(*c, FAINT, "faint while the list is closed");
-                assert!(*x >= bx && x + v.cw(&LARGE) <= bx + bw
+                // **The word, not the glyph.**  `afba696` made the
+                // corner say `[command]` (F155) and this still asked
+                // for the `≡` it replaced — so the test failed on
+                // exactly the change it exists to protect.  Read from
+                // `view::BURGER` now, which is the one place the word
+                // lives and what `burger_box` sizes itself from.
+                assert_eq!(s, BURGER);
+                // **Ink, not `FAINT`** — and that is the whole of F155:
+                // the resting colour *was* `FAINT`, measured at 2.3:1
+                // against the ground, and a control painted in the
+                // colour this window uses for *there, but not for you*
+                // is a control nobody is being offered.
+                assert_eq!(*c, INK, "at the ink's own weight when resting");
+                assert!(*x >= bx
+                        && x + BURGER.chars().count() as i32 * v.cw(&LARGE)
+                           <= bx + bw
                         && *y >= by && y + v.ch(&LARGE) <= by + bh,
-                        "the glyph spills out of the box");
+                        "the word spills out of the box");
             }
         }
     }
@@ -1165,7 +1178,7 @@ fn the_burger_is_drawn_inside_the_box_the_press_reads() {
     // which half of the toggle it is in.
     let open = burger_frame(&v, &LARGE, true);
     assert!(open.items.iter().any(|i| matches!(i,
-        Item::Run { s, c, .. } if s == "\u{2261}" && *c == CARET)));
+        Item::Run { s, c, .. } if s == BURGER && *c == CARET)));
 }
 
 /// Pressing the burger writes `Ctrl-K` in the bar — the button

@@ -37,13 +37,18 @@ Optional, and recognised wherever they make sense:
 
 ## Names no page lists
 
-**Three names are written by the renderer, not by a library**, so they appear in no `.ges` file and therefore on no page below.  They are in scope all the same.
+**Four names are written by the renderer, not by a library**, so they appear in no `.ges` file and therefore on no page below.  They are in scope all the same.
 
 | name | type | in scope when |
 |---|---|---|
 | `sampleRate` | `Float` | any audio or canvas program |
+| `now` | `Sig Float` | any audio or canvas program |
 | `constSig` | `a -> Sig a` | **internal** — write `!x`, or `!(f x)` for a computed value |
 | `beat` | `Sig Float` | a **scored** synth only |
+
+`now` is **how long the program has been running, in seconds**, and it means that on both sides.  In a synth it is the sample clock — the same number `elapsed` gives, under the name a reader expects.  On a canvas it is real time, written once a frame by whatever is drawing: a substrate that animates says `now` instead of counting frames and dividing by a rate it has no name for.  The editor's canvas has no fixed frame rate to divide by, so that division could not have been honest.
+
+Each renderer writes it, so **a program that defines its own `now` keeps it** and nothing is shadowed out from under it.
 
 `beat` is what time it is in beats, at audio rate — `sine (5.0 + beat)` rises a hertz a beat.  It is the renderer's because it reads the piece's own `bpm`, and a synth with no piece has no tempo to answer with: naming it there is `Unknown global 'beat'`, which is the truth.  `music.ges`'s `ticksPerBeat` is the layout resolution and a different thing.
 

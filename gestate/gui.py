@@ -21,6 +21,7 @@ a pygame event loop wrapped around it.
 from __future__ import annotations
 
 import sys
+import time
 from pathlib import Path
 
 from .gmachine import NChan, NCon, NInd, NNum
@@ -117,6 +118,31 @@ def _drawn(source: str) -> str:
     return "substrate"
 
 
+#: **The wall clock, in seconds** — `fixme.md` F134, the canvas half.
+#:
+#: Written by the renderer for the reason `constSig` is: a constant is
+#: constant over whatever is asking, and *how long this has been running*
+#: is answered by whoever is running it.  On the audio side that is the
+#: sample clock (`audio.NOW`); here it is a channel, and the thing
+#: driving the frames writes real seconds to it beside the `Tick` it is
+#: already minting.
+#:
+#: **Real seconds, not frames over a rate**, which is what the ask
+#: proposed and what a fixed-rate window would make true.  The workbench
+#: canvas has no fixed rate: its hold-off is adaptive because the cost of
+#: a frame is the *program's* (`workbench.CANVAS_SHARE`, measured at 8 to
+#: 34 Hz on one machine), so a nominal divisor would have moved the guess
+#: out of the program and into the library rather than removing it.  The
+#: host knows the time; nothing else has to.
+#:
+#: `0.0 ::: mkSig (wait …)` is the idiom `gui.ges` §"Attachment"
+#: documents for reading a channel as a behaviour — it holds its last
+#: value through instants the channel does not arrive in, which is every
+#: instant a hand writes without a frame passing.
+WALL = "\nwallclock : Chan Float\nwallclock = chan\n"
+NOW = "\nnow : Sig Float\nnow = 0.0 ::: mkSig (wait wallclock)\n"
+
+
 def _entry(source: str, rate: int, entry_name: str = "substrate") -> str:
     """`main = substrate`, and the sample rate when the file also sounds.
 
@@ -136,8 +162,17 @@ def _entry(source: str, rate: int, entry_name: str = "substrate") -> str:
 
     # `constSig` over *this* clock — see `audio._entry`, which gives one
     # over `ticks`.  A constant is constant over whatever is asking.
+    from .audio import defines
+
     entry = ("\nconstSig : a -> Sig a\n"
              "constSig v = mapSig (n => v) events\n")
+    # **Unless the program has a `now` of its own** — see `audio.defines`.
+    # A renderer-written name comes after the author's text and so gets
+    # no shadowing; asking first is what gives it the same manners.
+    if not defines(source, "wallclock"):
+        entry += WALL
+    if not defines(source, "now"):
+        entry += NOW
     # `_drawn` raises on a leftover `scene`; the answer is otherwise always
     # `substrate`, and it is called for the refusal rather than the choice.
     # **Or a `canvas <expr>` ask's hidden name** (B2): a box's own
@@ -557,6 +592,47 @@ def _event_node(state, event) -> NCon:
     return NCon(info.tag, tuple(NNum(a) for a in args))
 
 
+def _channel(state, name: str) -> int:
+    """The id of a channel this program declares, by name.
+
+    **By name, not by `min(reactive.chans)`.**  The enumerators took the
+    lowest id and called it `input`, which was only ever true because
+    nothing else had been forced first; the renderer now writes a second
+    channel of its own (`NOW`), and a guess between two is a guess.
+    """
+    from .gmachine import PushGlobal, Unwind, run
+
+    saved = (state._code, state._pc, state.stack, state.dump)
+    state._code, state._pc = [PushGlobal(name), Unwind()], 0
+    state.stack, state.dump = [], []
+    try:
+        run(state)
+        node = state.stack[0]
+        while isinstance(node, NInd):
+            node = node.target
+        if not isinstance(node, NChan):
+            raise GuiError(f"`{name}` is declared `Chan` and is not one")
+        return node.chan_id
+    finally:
+        state._code, state._pc, state.stack, state.dump = saved
+
+
+#: **What one frame is worth to a pure enumerator** — `fixme.md` F134.
+#:
+#: `scenes` and `touches` have no clock and are not going to get one:
+#: their whole value is that the same events give the same pictures, in
+#: a test, with no window.  But a substrate that animates over `now`
+#: would show one picture forever if the clock never moved, which would
+#: make the one feature this defect added untestable by the one tool
+#: that tests canvases.
+#:
+#: So a `Tick` is worth a frame at the nominal rate — sixty a second,
+#: `gui.run`'s own default — and the enumerator stays a pure function of
+#: its event list.  A *host* writes real seconds, because a host knows
+#: them; this says how long a frame is worth pretending to be.
+FRAME = 1.0 / 60.0
+
+
 def scenes(source: str, events, rate: int = 0) -> list[list[tuple]]:
     """Every picture the program shows, one per event plus the first.
 
@@ -578,9 +654,18 @@ def scenes(source: str, events, rate: int = 0) -> list[list[tuple]]:
         # is nothing to send it — the picture simply never changes.
         return out + [list(out[0]) for _ in events]
 
-    channel = min(reactive.chans)
+    channel, wall = _channel(state, "input"), _channel(state, "wallclock")
+    #: **A `Tick` moves the clock and nothing else does**, which is what
+    #: makes this a function of the event list: a press between two
+    #: frames happens at the same instant the frame before it did, the
+    #: way it does in a window that has not repainted yet.
+    at, frames = 0.0, 0
     for event in events:
-        react(reactive, [(channel, _event_node(state, event))])
+        if event and event[0] == "Tick":
+            frames += 1
+            at = frames * FRAME
+        react(reactive, [(channel, _event_node(state, event)),
+                         (wall, NNum(at))])
         out.append(_flatten(sig.value, state))
     return out
 
@@ -693,6 +778,7 @@ class Substrate:
         self.state_entry = first.state_entry
         self.by_name = first.by_name
         self._input = first._input
+        self._wall, self._began = first._wall, first._began
         self.reactive = first.reactive
         self.crossing = self._crossing()
         self.signal = self._signal_of(entry)
@@ -733,6 +819,23 @@ class Substrate:
         #: neither of them forces the program's own channels first.  Forced
         #: after `by_name` so no declared channel's id moves.
         self._input = self._force("input").chan_id
+        #: **Where `now` arrives** — `fixme.md` F134.  Forced by name
+        #: beside `input` and *after* it, so no declared channel's id and
+        #: no crossing already captured moves.  The renderer wrote the
+        #: declaration (`NOW`), so it is always there.
+        try:
+            self._wall = self._force("wallclock").chan_id
+        except GuiError:
+            # A program with a `wallclock` of its own that is not a
+            # channel.  Its name, its meaning — the frame clock goes
+            # unwritten and `now` holds, which is what a program that
+            # took the name has asked for.
+            self._wall = None
+        #: When this program started, for the clock it is written with.
+        #: `time.monotonic` because it is the one that cannot go
+        #: backwards, and a picture that jumps because somebody's clock
+        #: was corrected is a defect nobody would ever reproduce.
+        self._began = time.monotonic()
         self.reactive = init_program(self.state)
         self.signal = _entry_signal(self.state)
         #: Channel name → the last value written to it.  What the audio
@@ -832,7 +935,14 @@ class Substrate:
                 # box's own program never mentions asks the window to
                 # force a global it does not have.
                 "chans": [n for n in self.by_name
-                          if f"PushGlobal {n}" in text]}
+                          if f"PushGlobal {n}" in text]
+                         # **And the frame clock's own channel**, which
+                         # is the renderer's rather than the author's and
+                         # so is not in `by_name` — but has to cross, or
+                         # a `canvas <expr>` box would be the one canvas
+                         # where `now` stood still (`fixme.md` F134).
+                         + (["wallclock"]
+                            if "PushGlobal wallclock" in text else [])}
 
     def payload(self) -> str | None:
         """The walking window's copy of this canvas, as one string.
@@ -866,10 +976,21 @@ class Substrate:
         picture changes for a hand on it and for nothing else, which is
         what a substrate with no attachments looked like: still.
 
-        One `Tick` a frame, the same event `gui.run`'s window sends; the
-        rate is the view's, and a program that wants seconds divides by it.
+        One `Tick` a frame, the same event `gui.run`'s window sends —
+        **and the wall clock beside it**, which is what `now` reads
+        (`fixme.md` F134).  A program no longer divides a frame count by
+        a rate it has no name for, and could not have divided honestly
+        anyway: this loop's cadence is adaptive (`workbench.CANVAS_SHARE`
+        — measured between 8 and 34 Hz), so the frames are not evenly
+        spaced in the time the picture is meant to move through.
+
+        One instant, two arrivals, which is what an instant is for.
         """
-        react(self.reactive, [(self._input, _event_node(self.state, ("Tick",)))])
+        arrivals = [(self._input, _event_node(self.state, ("Tick",)))]
+        if self._wall is not None:
+            arrivals.append((self._wall,
+                             NNum(time.monotonic() - self._began)))
+        react(self.reactive, arrivals)
 
     def write(self, name: str, value) -> bool:
         """Put a number on a channel the program declared, by name.
@@ -1044,16 +1165,23 @@ def run(source: str, size=_DEFAULT_SIZE, fps: int = 60, title="gestate",
     state = _compile(assembled(source, rate))
     reactive = init_program(state)
     sig = _entry_signal(state)
-    channel = min(reactive.chans) if reactive.chans else None
+    channel = _channel(state, "input") if reactive.chans else None
+    wall = _channel(state, "wallclock") if reactive.chans else None
 
     pygame.init()
     screen = pygame.display.set_mode(size)
     pygame.display.set_caption(title)
     clock = pygame.time.Clock()
+    #: What `now` counts from — real seconds, because this window has
+    #: them and a program should not have to count frames to guess at
+    #: them (`fixme.md` F134).
+    began = time.monotonic()
 
     def send(event):
         if channel is not None:
-            react(reactive, [(channel, _event_node(state, event))])
+            react(reactive,
+                  [(channel, _event_node(state, event)),
+                   (wall, NNum(time.monotonic() - began))])
 
     running = True
     while running:

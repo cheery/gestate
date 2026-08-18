@@ -1315,3 +1315,25 @@ def test_the_new_effects_agree_across_all_three_engines():
         assert oracle == list(run(graph, n)), body
         with tempfile.TemporaryDirectory() as directory:
             assert oracle == list(run_native(graph, directory, n, block=64)), body
+
+
+# ── `now` — the same name, the audio side (`fixme.md` F134) ────────────────
+
+
+def test_now_is_the_sample_clock():
+    """**`elapsed` under the name a reader expects.**  It is the same
+    signal, exactly: a synth that reads one and a synth that reads the
+    other are the same program, and this is what says so rather than a
+    docstring claiming it."""
+    a = list(render("sound : Sig Float\nsound = elapsed\n", 200 / RATE, RATE))
+    b = list(render("sound : Sig Float\nsound = now\n", 200 / RATE, RATE))
+    assert a == b
+    assert b[0] == 0.0 and b[1] == 1.0 / RATE, "seconds, from zero"
+
+
+def test_a_synth_with_its_own_now_keeps_it():
+    """The renderer writes `now` after the author's text, where nothing
+    shadows it — so it asks first.  See `audio.defines`."""
+    source = ("now : Sig Float\nnow = !0.5\n\n"
+              "sound : Sig Float\nsound = now\n")
+    assert list(render(source, 3 / RATE, RATE)) == [0.5, 0.5, 0.5]

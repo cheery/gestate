@@ -349,3 +349,96 @@ substrate = rect 40 40 (colour 200 80 80)
 """
     frames = touches(src, [])
     assert frames[0], "the canvas built and drew"
+
+
+# ── `now` — the wall clock, on both sides (`fixme.md` F134) ────────────────
+#
+# **One name meaning seconds in both vocabularies.**  A synth had
+# `elapsed`, the sample clock's; a canvas had nothing, so a substrate
+# that animated counted frames and divided by a rate it had no name for.
+#
+# The canvas's is *real* seconds rather than frames over a nominal rate,
+# and that is not a refinement of the ask but a correction to it: the
+# workbench's canvas cadence is adaptive (`workbench.CANVAS_SHARE`), so
+# the frames are not evenly spaced in the time the picture moves through
+# and no divisor could have made them so.
+
+MOVING = """
+substrate : Sig Sub
+substrate = rect (map (t => 40 + floor (t * 600.0)) now) !40
+                 (colour !255 !0 !0)
+"""
+
+
+def test_a_substrate_can_read_the_clock():
+    """It compiles, and it is a `Sig Float` — the same type as a synth's."""
+    from gestate.gui import scenes
+
+    assert scenes(MOVING, [])
+
+
+def test_a_tick_moves_the_clock_a_frame():
+    """`scenes` is pure and has no clock, so a `Tick` is worth one frame
+    at the nominal rate — which keeps an animation *testable* by the one
+    tool that tests canvases, and keeps the enumerator a function of its
+    event list."""
+    from gestate.gui import FRAME, scenes
+
+    pics = scenes(MOVING, [("Tick",)] * 3)
+    widths = [p[0][3] for p in pics]
+    step = int(600.0 * FRAME)
+    assert widths == [40, 40 + step, 40 + 2 * step, 40 + 3 * step]
+
+
+def test_only_a_tick_moves_it():
+    """A press between two frames happens at the instant the frame before
+    it did — the way it does in a window that has not repainted yet."""
+    from gestate.gui import scenes
+
+    pics = scenes(MOVING, [("Press", 0, 0), ("Press", 1, 1)])
+    assert {p[0][3] for p in pics} == {40}
+
+
+def test_the_editors_canvas_reads_real_seconds():
+    """A host knows the time, so the host writes it — `Substrate.tick`."""
+    import time
+
+    from gestate.gui import Substrate
+
+    sub = Substrate(MOVING)
+    first = sub.picture()[0][3]
+    time.sleep(0.05)
+    sub.tick()
+    assert sub.picture()[0][3] > first, "the clock did not move"
+
+
+def test_the_clock_crosses_to_a_walking_window():
+    """**A `canvas <expr>` box is walked in Rust, which mints its own
+    frames** — so the channel `now` reads has to be in the payload, or
+    that box would be the one canvas where the clock stood still.  Which
+    is this defect, one window over."""
+    from gestate.gui import Substrate
+
+    assert "wallclock" in Substrate(MOVING)._crossing()["chans"]
+    assert "chan\twallclock" in Substrate(MOVING).payload()
+
+
+def test_a_program_with_its_own_now_keeps_it():
+    """**A renderer-written name comes after the author's text**, so it
+    gets none of the shadowing a library name gets.  The first file with
+    a `now` of its own — a test's, holding a transport position — stopped
+    compiling on the day this was added, which is how the rule was
+    found: the entry asks first."""
+    from gestate.gui import scenes
+
+    mine = """
+position : Chan Int
+position = chan
+
+now : Sig Int
+now = 0 ::: mkSig (wait position)
+
+substrate : Sig Sub
+substrate = rect (map (t => 40 + t) now) !40 (colour !255 !0 !0)
+"""
+    assert scenes(mine, [("Tick",)])

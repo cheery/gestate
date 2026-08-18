@@ -177,6 +177,26 @@ def has_bpm(source: str) -> bool:
     return "bpm" in _authored(source)[1]
 
 
+def defines(source: str, name: str) -> bool:
+    """Does the author's own file define `name`?
+
+    **What lets a renderer-written name step aside.**  A library name a
+    program also uses is renamed out of the way by
+    `prelude.shadow_libraries`; the names the *renderer* writes come
+    after the author's text and get no such treatment, so adding one to
+    the entry takes it from every program that already had it.  `now`
+    did exactly that on the day it was added (`fixme.md` F134): the
+    first file with its own `now` — a test's, holding a transport
+    position — stopped compiling.
+
+    So the entry asks first, and a program that spells the name itself
+    keeps its own.  Parsed rather than matched, like every other
+    question here.
+    """
+    types, names = _authored(source)
+    return name in names or name in types
+
+
 def _is_envelope_list(type_) -> bool:
     """Is this the type of a tempo envelope, however it was spelled?
 
@@ -294,7 +314,28 @@ class AudioError(Exception):
     pass
 
 
-def _entry(rate: int) -> str:
+#: **The wall clock, in seconds** — `fixme.md` F134.
+#:
+#: Written by the renderer, like `sampleRate` and `constSig`, and for
+#: exactly their reason: what "how long has this been running" counts in
+#: depends on who is running it.  Here it is the sample clock, which is
+#: what `elapsed` already says; on the canvas it is real time written per
+#: frame (`gui._entry`).  **One name on both sides** was the ask — a
+#: substrate that animates had to count frames and divide by a rate it
+#: had no name for.
+#:
+#: `elapsed` stays, and stays the sample clock's: it is the honest name
+#: for *that* clock and a synth reading it means the samples.  `now` is
+#: the name that means the same thing in both vocabularies.
+NOW = "\nnow : Sig Float\nnow = elapsed\n"
+
+
+def now_clause(source: str) -> str:
+    """`NOW`, unless the program has a `now` of its own."""
+    return "" if defines(source, "now") else NOW
+
+
+def _entry(rate: int, source: str = "") -> str:
     """`sampleRate` is the renderer's business, so the renderer defines it.
 
     A synth reads it — directly, or through `seconds` — but never
@@ -313,7 +354,7 @@ def _entry(rate: int) -> str:
     return (f"\nsampleRate : Float\nsampleRate = {float(rate)}\n"
             f"\nconstSig : a -> Sig a\n"
             f"constSig v = mapSig (n => v) ticks\n"
-            f"\nmain = sound\n")
+            + now_clause(source) + f"\nmain = sound\n")
 
 
 def _assembled(error, offset: int):
@@ -425,7 +466,7 @@ def assemble(source: str, rate: int = DEFAULT_RATE,
     from .syntax import note_seam
 
     shadowed = shadow_libraries(prelude, program)
-    out = shadowed + "\n" + program + "\n" + clock + _entry(rate)
+    out = shadowed + "\n" + program + "\n" + clock + _entry(rate, source)
     if stands_alone(prelude, program):
         note_seam(out, len(shadowed) + 1)
     return out

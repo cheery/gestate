@@ -161,6 +161,17 @@ pub struct Walker {
     canvas: Canvas,
     /// The frame clock's tag, pulsed into `input` once a frame.
     tick: Option<i64>,
+    /// Where the wall clock is written, and when this canvas opened —
+    /// `fixme.md` F134.  `now` reads real seconds off a channel the
+    /// renderer declares, and a canvas walked *here* mints its own
+    /// frames, so it has to write them here too: otherwise `now` would
+    /// advance at home and stand still in a `canvas <expr>` box, which
+    /// is the same defect one window over.
+    ///
+    /// `None` for a program that never mentions `now` — the payload
+    /// carries the channel only when the program reaches it.
+    wall: Option<i64>,
+    began: std::time::Instant,
     /// Channel id → declared name, for naming a `touched`.
     names: Vec<(i64, String)>,
     /// What a hand wrote since the last frame — the arrivals for the
@@ -202,8 +213,10 @@ impl Walker {
         let pending = walk.chans.iter()
             .filter_map(|(n, v)| Some((canvas.channel(n)?, (*v)?)))
             .collect();
-        Ok(Walker { canvas, tick: walk.tick, names, pending,
-                    pending_lists: Vec::new() })
+        let wall = canvas.channel("wallclock");
+        Ok(Walker { canvas, tick: walk.tick, wall,
+                    began: std::time::Instant::now(),
+                    names, pending, pending_lists: Vec::new() })
     }
 
     /// One instant, one picture — everything a hand wrote since the
@@ -211,8 +224,13 @@ impl Walker {
     /// `(cx, cy)` in window coordinates, so a press needs no second
     /// transform.
     pub fn frame(&mut self, cx: i32, cy: i32) -> &Display {
-        let writes = std::mem::take(&mut self.pending);
+        let mut writes = std::mem::take(&mut self.pending);
         let lists = std::mem::take(&mut self.pending_lists);
+        // The wall clock rides with them, so `now` counts the seconds
+        // this box has been open rather than the frames it has drawn.
+        if let Some(ch) = self.wall {
+            writes.push((ch, self.began.elapsed().as_secs_f64()));
+        }
         // The frame's own Tick rides with the writes — one instant,
         // exactly what `Substrate.tick` mints per frame at home.
         self.canvas.advance(&writes, &lists, self.tick, cx, cy);

@@ -71,6 +71,14 @@ input = chan
 #: a value to show at the first instant.
 events : Sig Event
 events = Tick ::: mkSig (wait input)
+
+# **And `now` is the clock**, in seconds — written by the renderer, so it
+# is in no library and on no page but `doc/ref/index.md` § "Names no page
+# lists".  A substrate that animates reads it rather than folding a count
+# over `events` and dividing by a rate: there is no rate to divide by
+# here, because the workbench draws a canvas as often as that canvas is
+# cheap to draw.  It means the same thing in a synth, where it is the
+# sample clock (`fixme.md` F134).
 # ── The substrate ────────────────────────────────────────────────────────
 #
 # **A substrate is a value, built from smaller ones by ordinary functions**

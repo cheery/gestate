@@ -17,14 +17,14 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**391 complaints**, in 41 files.
+**392 complaints**, in 41 files.
 
 | | |
 |---|---|
 | `author` | 191 |
 | `command` | 32 |
 | `world` | 22 |
-| `machine` | 146 |
+| `machine` | 147 |
 | say where | 112 |
 | say `nowhere`, on purpose | 34 |
 | `unplaced`, with a defect that owns it | 58 |
@@ -75,8 +75,8 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `gmachine.py:1395` | `GmError` | fixme.md F159 |
 | `gmachine.py:1403` | `GmError` | fixme.md F159 |
 | `gmachine.py:1435` | `GmError` | fixme.md F159: a primitive overflowed at the value it was given |
-| `gui.py:552` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
-| `gui.py:555` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
+| `gui.py:587` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
+| `gui.py:590` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
 | `helpers.py:434` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `helpers.py:569` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `pipeline.py:1099` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
@@ -95,13 +95,13 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | where | error | why |
 |---|---|---|
-| `audio.py:446` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:530` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:536` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:542` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:552` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:758` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
-| `audio.py:778` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:487` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:571` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:577` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:583` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:593` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:799` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
+| `audio.py:819` | `AudioError` | what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line |
 | `audioalloc.py:103` | `AllocError` | a bank with no voices is a count in a declaration; the declaration places it before this is reached |
 | `audioalloc.py:172` | `AllocError` | the piece's notes and the bank's payload disagree, which is about two declarations and not one line |
 | `audiodynamic.py:80` | `ScoreError` | the piece names a bank that was given no allocator, which is about two declarations and not one line |
@@ -120,10 +120,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `desugar.py:379` | `DesugarError` | an implicit nothing supplies is an absence, and an absence is not written anywhere |
 | `export.py:752` | `ExportError` | two rates ordering their channels differently is a property of the pair, not of a line |
 | `gmachine.py:1523` | `StepLimit` | a budget running out is about a whole evaluation, not a line of it |
-| `gui.py:111` | `GuiError` | the canvas program declares the retired name; the mistake is which name, and the retired one is searched for rather than placed |
-| `gui.py:536` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
-| `gui.py:766` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
-| `gui.py:788` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
+| `gui.py:112` | `GuiError` | the canvas program declares the retired name; the mistake is which name, and the retired one is searched for rather than placed |
+| `gui.py:571` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
+| `gui.py:869` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
+| `gui.py:891` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
 | `midi.py:124` | `MidiError` | a music program declaring the wrong names; the mistake is an absence |
 | `midi.py:172` | `MidiError` | how many instruments the whole piece uses |
 | `midi.py:191` | `MidiError` | a piece with no notes in it at all |
@@ -138,19 +138,19 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 446 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` did not evaluate to a signal (got {type(sig).__name__})" |
-| 530 | `AudioError` | `author` | *nowhere, on purpose* | "an output frame's components must all be `Float`, and " + ', '.join((f'component {i} is a `{pa… |
-| 536 | `AudioError` | `author` | *nowhere, on purpose* | "`sound` is a `Sig {payload}`, and a signal's payload must be `Float` for one channel or a reco… |
-| 542 | `AudioError` | `author` | *nowhere, on purpose* | '`{payload}` has {len(cons)} constructors, so it cannot be an output frame — a frame type is on… |
-| 552 | `AudioError` | `author` | *nowhere, on purpose* | '`{con.name}` cannot be an output frame: {which}. A multi-channel `sound` is a signal of a reco… |
-| 582 | `AudioError` | `machine` | — | 'null indirection while reading a sample' |
-| 622 | `AudioError` | `machine` | — | "a frame's fields must all be numbers, and field {bad} is a {type(fields[bad]).__name__} — a mu… |
-| 627 | `AudioError` | `machine` | — | 'a sample must be a number, or a record of numbers for more than one channel, got {type(node)._… |
-| 636 | `AudioError` | `command` | — | "this program's `sound` carries {len(frame)} channels; `render` is the mono view of the rendere… |
-| 736 | `AudioError` | `command` | — | "this program's `sound` carries {len(frames[0])} channels; `render` is the mono view of the ren… |
-| 758 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` never reads `ticks`, so it has no clock and cannot advance — a synth is … |
-| 770 | `AudioError` | `command` | — | 'the schedule names channels this program does not declare as control channels: ' + ', '.join(s… |
-| 778 | `AudioError` | `author` | *nowhere, on purpose* | '`sound` is typed for {declared} channel(s) and its first value has {len(first)}' |
+| 487 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` did not evaluate to a signal (got {type(sig).__name__})" |
+| 571 | `AudioError` | `author` | *nowhere, on purpose* | "an output frame's components must all be `Float`, and " + ', '.join((f'component {i} is a `{pa… |
+| 577 | `AudioError` | `author` | *nowhere, on purpose* | "`sound` is a `Sig {payload}`, and a signal's payload must be `Float` for one channel or a reco… |
+| 583 | `AudioError` | `author` | *nowhere, on purpose* | '`{payload}` has {len(cons)} constructors, so it cannot be an output frame — a frame type is on… |
+| 593 | `AudioError` | `author` | *nowhere, on purpose* | '`{con.name}` cannot be an output frame: {which}. A multi-channel `sound` is a signal of a reco… |
+| 623 | `AudioError` | `machine` | — | 'null indirection while reading a sample' |
+| 663 | `AudioError` | `machine` | — | "a frame's fields must all be numbers, and field {bad} is a {type(fields[bad]).__name__} — a mu… |
+| 668 | `AudioError` | `machine` | — | 'a sample must be a number, or a record of numbers for more than one channel, got {type(node)._… |
+| 677 | `AudioError` | `command` | — | "this program's `sound` carries {len(frame)} channels; `render` is the mono view of the rendere… |
+| 777 | `AudioError` | `command` | — | "this program's `sound` carries {len(frames[0])} channels; `render` is the mono view of the ren… |
+| 799 | `AudioError` | `author` | *nowhere, on purpose* | "the program's `sound` never reads `ticks`, so it has no clock and cannot advance — a synth is … |
+| 811 | `AudioError` | `command` | — | 'the schedule names channels this program does not declare as control channels: ' + ', '.join(s… |
+| 819 | `AudioError` | `author` | *nowhere, on purpose* | '`sound` is typed for {declared} channel(s) and its first value has {len(first)}' |
 
 ### `audioalloc.py`
 
@@ -584,23 +584,24 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 111 | `GuiError` | `author` | *nowhere, on purpose* | 'this program declares a `scene`, which the canvas no longer draws. Rename it `substrate` and b… |
-| 221 | `GuiError` | `machine` | — | 'null indirection while reading a scene' |
-| 239 | `GuiError` | `machine` | — | 'expected a number, got {type(node).__name__}' |
-| 251 | `GuiError` | `machine` | — | 'expected a list cell, got {type(node).__name__}' |
-| 255 | `GuiError` | `machine` | — | 'expected a list cell, got tag {node.tag}' |
-| 263 | `GuiError` | `machine` | — | 'expected an RGB colour' |
-| 317 | `GuiError` | `machine` | — | 'expected a substrate, got {type(node).__name__}' |
-| 360 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
-| 388 | `GuiError` | `machine` | — | 'expected a substrate, got {type(node).__name__}' |
-| 464 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
-| 476 | `GuiError` | `machine` | — | 'expected a channel, got {type(node).__name__}' |
-| 536 | `GuiError` | `author` | *nowhere, on purpose* | "the program's `scene` did not evaluate to a signal (got {type(sig).__name__})" |
-| 552 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | 'unknown event {name!r} (the program knows: {known})' |
-| 555 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | '{name} takes {info.arity} argument(s), got {len(args)}' |
-| 766 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` did not evaluate to a signal (got {type(sig).__name__})' |
-| 788 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` is declared `Chan` and is not one' |
-| 1037 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
+| 112 | `GuiError` | `author` | *nowhere, on purpose* | 'this program declares a `scene`, which the canvas no longer draws. Rename it `substrate` and b… |
+| 256 | `GuiError` | `machine` | — | 'null indirection while reading a scene' |
+| 274 | `GuiError` | `machine` | — | 'expected a number, got {type(node).__name__}' |
+| 286 | `GuiError` | `machine` | — | 'expected a list cell, got {type(node).__name__}' |
+| 290 | `GuiError` | `machine` | — | 'expected a list cell, got tag {node.tag}' |
+| 298 | `GuiError` | `machine` | — | 'expected an RGB colour' |
+| 352 | `GuiError` | `machine` | — | 'expected a substrate, got {type(node).__name__}' |
+| 395 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
+| 423 | `GuiError` | `machine` | — | 'expected a substrate, got {type(node).__name__}' |
+| 499 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
+| 511 | `GuiError` | `machine` | — | 'expected a channel, got {type(node).__name__}' |
+| 571 | `GuiError` | `author` | *nowhere, on purpose* | "the program's `scene` did not evaluate to a signal (got {type(sig).__name__})" |
+| 587 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | 'unknown event {name!r} (the program knows: {known})' |
+| 590 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | '{name} takes {info.arity} argument(s), got {len(args)}' |
+| 614 | `GuiError` | `machine` | — | '`{name}` is declared `Chan` and is not one' |
+| 869 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` did not evaluate to a signal (got {type(sig).__name__})' |
+| 891 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` is declared `Chan` and is not one' |
+| 1158 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
 
 ### `helpers.py`
 
