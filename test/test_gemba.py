@@ -377,14 +377,18 @@ def test_a_tree_with_no_repository_still_answers(monkeypatch, tmp_path):
     assert gemba.path_for(loose) == loose / "gemba.tsv"
 
 
-def test_the_command_writes_the_line_for_you(tmp_path):
-    """**The second defect: the box was not findable.**
+def test_the_command_subscribes_without_touching_the_file(tmp_path):
+    """**The second defect: the box was not findable** — and the first
+    fix for it created a third.
 
-    It had been an ask-line since it was built, and the only way to
-    raise one was to know to type the word — so the first person a
-    session narrated at could not see any of it.  A capability nobody
-    can reach is `fixme.md` F150 one floor up, and the answer is the
-    same: put it in the list.
+    Writing a `gemba` line for you made the file *unsaved*, which
+    tripped the walk's own refusal to take a file away from unsaved
+    work — so subscribing was exactly what stopped it travelling.  Found
+    by watching the real window sit still with a `[+]` in its corner.
+
+    The better design was inside the collision: **the box's home is
+    wherever the session is pointing**, not a line you had to remember
+    to write.
     """
     import sys
 
@@ -396,20 +400,9 @@ def test_the_command_writes_the_line_for_you(tmp_path):
     it = session()
     it.view = Window(ed)
     said = it.run("gemba")
-    assert "insert\t\ngemba\n" in ed.orders, "it writes the line"
-    assert "watching" in said, "and says where the channel is"
-
-
-def test_the_command_does_not_raise_a_second_box(tmp_path):
-    """One box, because the pace is the point — and a person who runs it
-    twice should be told, not given a second thing to read."""
-    import sys
-
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from test_session import session
-
-    it = _a_session(["sound : Sig Float", "gemba", ""])
-    assert "already" in it.run("gemba")
+    assert ed.orders == [], "it types nothing"
+    assert it.walking is True
+    assert "following the walk" in said, "and says where the channel is"
 
 
 def test_the_command_says_whether_anybody_is_talking(tmp_path):
@@ -475,3 +468,220 @@ def test_a_session_with_no_walk_is_not_a_crash(tmp_path):
     from gestate.workbench import _walk_for
 
     assert _walk_for(None, None) is None
+
+
+# ── Travelling in the code ────────────────────────────────────────────────
+#
+# Henri, on the first version: *"'not travelling in code' means that the
+# editor itself doesn't open a location, eg. `gestate/workbench.py`, and
+# plant the box after a line you want to show.  That is, it's not
+# travelling in the code."*  And afterwards: *"that's the point of the
+# whole thing!  But this was a proof of concept that you built first.
+# And it refined what I was requesting."*
+#
+# A `say` narrates from wherever the box stands.  An **`at`** takes you
+# to the place — which is what *genba* means, and what the first version
+# had only the report half of.
+
+
+class _View:
+    """A window that remembers what it was asked to open."""
+
+    showing = "source"
+    saved = True
+
+    def __init__(self, lines):
+        self._lines = list(lines)
+        self.wanted = None
+        self.typed = []
+        self.went = []
+
+    def lines(self):
+        return list(self._lines)
+
+    def caret(self):
+        return 0
+
+    def insert(self, text):
+        self.typed.append(text)
+        return True
+
+    def open(self, path):
+        self.wanted = path
+        return True
+
+    def goto(self, line):
+        self.went.append(line)
+        return True
+
+
+def _walking(tmp_path, lines, here="piece.ges"):
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from test_session import session
+
+    it = session()
+    it.view = _View(lines)
+    it.bench.path = tmp_path / here
+    it.walk = Walk(clock=Clock())
+    return it
+
+
+def test_a_place_in_this_file_puts_the_box_on_that_line(tmp_path):
+    piece = tmp_path / "piece.ges"
+    piece.write_text("one\ntwo\nthree\nfour\n")
+    it = _walking(tmp_path, ["one", "two", "three", "four"])
+    it.walking = True
+    gemba.at(str(piece), 3, "look at this line")
+    it.walk.read()
+    assert _rows(it) == [["gemba", "3", "look at this line", "0"]]
+
+
+def test_a_place_in_another_file_asks_the_window_to_open_it(tmp_path):
+    """**The walk walking.**  The session says *look at workbench.py 854*
+    and the window goes there — `open`'s own road, because opening a file
+    is the loop's business and not a view port's."""
+    other = tmp_path / "other.ges"
+    other.write_text("\n".join(str(i) for i in range(20)))
+    (tmp_path / "piece.ges").write_text("here\n")
+    it = _walking(tmp_path, ["here"])
+    it.walking = True
+    gemba.at(str(other), 5, "over here")
+    it.walk.read()
+    _rows(it)
+    assert it.view.wanted == str(other)
+
+
+def test_unsaved_work_is_warned_about_and_not_gated(tmp_path):
+    """**F113's own rule, and the first version broke it.**
+
+    Refusing to move while anything was unsaved is stricter than what a
+    person gets from `open`, and it stalled the walk *silently*.  Henri:
+    *"when somebody wants to gemba, they discard the file's contents.
+    That could be warned in the gemba command, just like how it's being
+    warned in open command."*  So the warning is where the decision is —
+    at subscribing — and the walk then does what it was asked to do.
+    """
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from test_session import Editor, session
+    from gestate.workbench import Window
+
+    ed = Editor("sound : Sig Float\n")
+    it = session()
+    it.view = Window(ed)
+    it.view.saved = False
+    it.run("gemba")
+    assert any("unsaved changes" in o for o in ed.orders), \
+        "it says so, in red, where the eye already is"
+
+    #: And having been told, the walk travels.
+    other = tmp_path / "other.ges"
+    other.write_text("x\n")
+    (tmp_path / "piece.ges").write_text("here\n")
+    go = _walking(tmp_path, ["here"])
+    go.walking = True
+    go.view.saved = False
+    gemba.at(str(other), 1, "over here")
+    go.walk.read()
+    _rows(go)
+    assert go.view.wanted == str(other)
+
+
+def test_a_place_that_is_not_there_moves_nothing(tmp_path):
+    (tmp_path / "piece.ges").write_text("here\ngemba\n")
+    it = _walking(tmp_path, ["here", "gemba"])
+    gemba.at(str(tmp_path / "gone.ges"), 3, "nowhere")
+    it.walk.read()
+    #: It waits on its own line, which is what a walk between stops
+    #: looks like.
+    assert _rows(it) == [["gemba", "2", "nowhere", "0"]]
+
+
+def test_a_line_past_the_end_lands_in_the_file_it_names(tmp_path):
+    piece = tmp_path / "piece.ges"
+    piece.write_text("one\ntwo\n")
+    it = _walking(tmp_path, ["one", "two"])
+    it.walking = True
+    gemba.at(str(piece), 900, "past the end")
+    it.walk.read()
+    assert _rows(it)[0][1] == "2"
+
+
+def test_it_travels_only_for_somebody_who_asked(tmp_path):
+    """**A session that can open files under your hands can take the
+    file you were typing in away from you.**  So a window nobody
+    subscribed shows nothing and opens nothing."""
+    other = tmp_path / "other.ges"
+    other.write_text("x\n")
+    (tmp_path / "piece.ges").write_text("here\n")
+    it = _walking(tmp_path, ["here"])          # no `gemba` line, no command
+    gemba.at(str(other), 1, "over here")
+    it.walk.read()
+    assert _rows(it) == []
+    assert it.view.wanted is None
+
+
+def test_the_command_subscribes_this_window(tmp_path):
+    (tmp_path / "piece.ges").write_text("here\n")
+    it = _walking(tmp_path, ["here"])
+    assert it.walking is False
+    it.run("gemba")
+    assert it.walking is True
+
+
+def test_the_channel_carries_a_place(tmp_path):
+    gemba.at("gestate/workbench.py", 854, "this is where it crashed")
+    assert (tmp_path / "gemba.tsv").read_text() == (
+        "at\tgestate/workbench.py\t854\tthis is where it crashed\n")
+
+
+def test_a_session_walks_with_one_command(tmp_path):
+    assert gemba.main(["at", "gestate/workbench.py", "854", "look", "here"]) == 0
+    assert (tmp_path / "gemba.tsv").read_text().startswith(
+        "at\tgestate/workbench.py\t854\t")
+
+
+def test_a_switch_does_not_unsubscribe_the_window(tmp_path, monkeypatch):
+    """**The same seam, twice in one day.**  `_carry` was taught to
+    carry the walk in the morning and dropped `walking` in the
+    afternoon — so a walk that opened a file un-subscribed the window it
+    had just moved, opened at line 1 and stood still.
+
+    Subscription belongs to the *window*: it is a person's decision
+    about this window, and switching the instrument underneath is not
+    them changing their mind.
+    """
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from test_session import Bench, session
+    from gestate.workbench import _carry
+
+    it = _walking(tmp_path, ["here"])
+    it.walking = True
+    it._walked = ("somewhere", 3)
+    after = _carry(it, Bench())
+    assert after.walking is True
+    assert after._walked == ("somewhere", 3)
+
+
+def test_arriving_at_the_file_is_not_arriving_at_the_place(tmp_path):
+    """**The window opens at the top.**  A walk that pointed at line 854
+    showed line 1 and a box nobody could see, so arriving takes the
+    caret to the line — once per stop, never every pass, or the walk
+    would be one you could not read around.
+    """
+    piece = tmp_path / "piece.ges"
+    piece.write_text("\n".join(str(i) for i in range(60)))
+    it = _walking(tmp_path, [str(i) for i in range(60)])
+    it.walking = True
+    gemba.at(str(piece), 40, "down here")
+    it.walk.read()
+    _rows(it)
+    assert it.view.went == [40], "it went to the line"
+    _rows(it)
+    _rows(it)
+    assert it.view.went == [40], "and only once"

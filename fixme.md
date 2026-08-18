@@ -4435,6 +4435,40 @@ execution, and nothing in this tree can look at those.**  That is not a
 figure of speech — it is the same wall the offline render hit, arrived at
 from the other side.
 
+### The oracle was built, and it moved the wall — 2026-08-18
+
+`board/done/unheard-output.md` landed, so the thing named below now
+exists: `GESTATE_HOST_TAP=<frames>` and `Host.tap()` hand back what the
+sink was actually given.  What it said in its first hour:
+
+* **The pair is bit-identical at rest**, confirmed in one run instead of
+  one listen each.
+* **The late-knob hypothesis is refuted for this symptom.**  Driving the
+  control to arrive *late* — which `audioeditor.control` can still do,
+  since it answers `0` for a knob with no site yet and sites are placed
+  on a thread — produces a step four times the settled one, exactly at a
+  block boundary, in the **amplitude** version.  The **frequency**
+  version stays clean.  That is the opposite way round from what was
+  heard, so a late knob is not the pop.
+
+  | program | knob from block 0 | knob late by 3 blocks |
+  |---|---|---|
+  | `F147-freqknob.ges` | clean | clean |
+  | `F147-ampknob.ges` | clean | **step 0.165 against a settled 0.043, at frame 511** |
+
+* **And a latent click nobody has reported**: the amplitude row above is
+  a real defect, in a program nobody has complained about, found by an
+  instrument twenty minutes old.  It is not this entry's pop and it is
+  worth its own look.
+
+**Still open, and the wall has moved rather than fallen.**  Everything
+the *pipe* path reaches is now machine-checkable and none of it pops.
+What is left is what the pipe does not reproduce — real-time pacing, the
+card's own start, the first buffer — which is the **device** path.  The
+tap is in that loop too; running it makes noise in a room, which is the
+one thing this instrument was built to stop needing and the one place it
+still does.
+
 **The oracle this needs, named so it stops being re-derived:** `host.c`
 writes every block to the card through `snd_pcm_writei`.  A tap at that
 call hands back exactly the samples the device received — the one thing
@@ -4446,7 +4480,7 @@ really not possible to delegate to a real oracle?'"*  Here the answer is
 yes and it is not built, so the hunt costs one person's attention per
 iteration and cannot bisect.  **Four listens were spent before this
 entry stopped.**  The next step is the tap, not a fifth —
-`board/unheard-output.md`.
+`board/done/unheard-output.md`.
 
 **The bisect is checked in**, so it does not have to be rebuilt by the
 next person: `test/sessions/F147-ampknob.ges` (silent) and

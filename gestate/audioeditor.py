@@ -3325,7 +3325,17 @@ class Workbench:
 #: the file is read, so it is what answers "what says a file is plain";
 #: everything else is treated as a program, because guessing from
 #: content would refuse somebody's notes over how they happen to start.
-INERT = {".txt", ".md"}
+#: Files the workbench opens to *read* rather than to run.
+#:
+#: **`.py` and `.rs` joined on 2026-08-18**, when the gemba walk started
+#: taking a reader to the file the work is happening in
+#: (`board/done/gemba.md`).  Arriving at `gestate/gemba.py` and being
+#: told *"not playing: 66:0: this backtick is not closed"* is the
+#: compiler answering a question nobody asked, about a file that is not
+#: a synth and was never going to be one — and the complaint is worse
+#: than useless here, because it is *true of gestate* and false of the
+#: file, so a reader has to know the whole design to dismiss it.
+INERT = {".txt", ".md", ".py", ".rs", ".c", ".h", ".toml", ".json"}
 
 #: The first screen anybody ever sees — a bare click on the desktop icon
 #: opens the editor on this, sounding.  **So every sentence in it is an

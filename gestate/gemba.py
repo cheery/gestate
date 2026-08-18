@@ -58,12 +58,32 @@ person will not read.
 ## What a session writes
 
     say<TAB>one thing that just happened
+    at<TAB>gestate/workbench.py<TAB>854<TAB>this is the line that crashed
 
-Verb first, so the kinds this does not yet carry cost nothing to add —
-`shot <path>` for a picture is the one the card most wants next, and the
-box already knows how to draw pictures because every other content box
-is one.  A line whose verb this version does not know is skipped, not
-refused: the writer may be newer than the window.
+**`at` is the walk actually walking**, and it is what the card is named
+for.  *Henri, 2026-08-18, on the first version: "'not travelling in
+code' means that the editor itself doesn't open a location, eg.
+`gestate/workbench.py`, and plant the box after a line you want to
+show."*  A `say` narrates from wherever the box happens to stand; an
+`at` **takes you to the place** — the window opens that file and the box
+stands under that line.  Going to where the work is instead of reading a
+report about it is the whole of *genba*, and the first version had the
+report half.
+
+Verb first, so a kind this version does not carry costs nothing to add —
+`shot <path>` for a picture is the next one, and the box already knows
+how to draw pictures because every other content box is one.  A line
+whose verb this version does not know is skipped, not refused: the
+writer may be newer than the window.
+
+## And it only travels for somebody who asked
+
+**A session that can open files under your hands is a session that can
+take the file you were typing in away from you.**  So travelling is
+gated on being *subscribed* — the `gemba` command, or a `gemba` line in
+the file you are looking at — and a window nobody has subscribed still
+shows nothing and opens nothing.  `spec/rocks.md`'s instinct, one floor
+over: a thing that acts on your behalf must be something you asked for.
 """
 
 from __future__ import annotations
@@ -139,6 +159,26 @@ def dwell(text: str) -> float:
     return min(MOST, max(LEAST, words / WORDS_A_SECOND))
 
 
+def at(path, line: int, text: str, root=None) -> None:
+    """Say something **about a place**, and take the reader to it.
+
+    `path` is written as it is given — a path relative to the project is
+    what a session naturally types, and what reads well in the file.
+    """
+    line = max(1, int(line))
+    said = " ".join(str(text).split())
+    where = str(path).strip()
+    if not said or not where:
+        return
+    target = path_for(root)
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with open(target, "a", encoding="utf-8") as f:
+            f.write(f"at\t{where}\t{line}\t{said}\n")
+    except OSError:
+        pass
+
+
 def say(text: str, root=None) -> None:
     """Append one thing that just happened.
 
@@ -165,10 +205,21 @@ class Item:
 
     kind: str
     text: str
+    #: Where it is about — a path and a 1-based line — or `None`.
+    #: **This is what makes it a walk rather than a feed.**
+    where: tuple | None = None
 
     @property
     def dwell(self) -> float:
         return dwell(self.text)
+
+    @property
+    def path(self):
+        return self.where[0] if self.where else None
+
+    @property
+    def line(self) -> int:
+        return self.where[1] if self.where else 0
 
 
 class Walk:
@@ -230,6 +281,13 @@ class Walk:
             if len(parts) >= 2 and parts[0] == "say" and parts[1].strip():
                 self.queue.append(Item("say", parts[1].strip()))
                 got += 1
+            elif len(parts) >= 4 and parts[0] == "at" and parts[3].strip():
+                try:
+                    where = (parts[1].strip(), max(1, int(parts[2])))
+                except ValueError:
+                    continue
+                self.queue.append(Item("at", parts[3].strip(), where))
+                got += 1
             # Any other verb is skipped rather than refused: the writer
             # may be newer than the window.
         return got
@@ -272,9 +330,10 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         prog="python -m gestate.gemba",
         description="say what you are doing, into a workbench's gemba box")
-    ap.add_argument("verb", choices=("say", "clear"),
-                    help="`say` one thing, or `clear` the walk")
-    ap.add_argument("words", nargs="*", help="what to say")
+    ap.add_argument("verb", choices=("say", "at", "clear"),
+                    help="`say` one thing, `at` a place, or `clear` the walk")
+    ap.add_argument("words", nargs="*",
+                    help="what to say — for `at`, `<path> <line> <words…>`")
     ap.add_argument("--root", default=None,
                     help="the project the box is watching (default: here)")
     args = ap.parse_args(argv)
@@ -290,6 +349,15 @@ def main(argv=None) -> int:
         return 0
     if not args.words:
         ap.error("say what?")
+    if args.verb == "at":
+        if len(args.words) < 3:
+            ap.error("at <path> <line> <what to say>")
+        try:
+            line = int(args.words[1])
+        except ValueError:
+            ap.error(f"`{args.words[1]}` is not a line number")
+        at(args.words[0], line, " ".join(args.words[2:]), root=args.root)
+        return 0
     say(" ".join(args.words), root=args.root)
     return 0
 

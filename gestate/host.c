@@ -161,7 +161,48 @@ typedef struct {
      * Python side lays out no part of this, but a struct that changed with
      * a build flag is a trap waiting for the day something does. */
     void *pcm;
+
+    /* **The tap: what the device was actually given.**
+     * `board/done/unheard-output.md`, and the whole of its argument is that
+     * nothing in this tree could read this.  Every audio oracle here
+     * reads an *offline render* or a *counter*, and an offline render
+     * renders a knob at its resting value — so a defect in the first
+     * blocks, in a control channel, or in a handover is invisible to all
+     * of them, and the only instrument left is a person listening.
+     *
+     * **Null unless armed**, which is a comparison beside a syscall.
+     * The budget this file guards is `gestate_host_fill`'s — *"no
+     * arithmetic at all"* in the **per-sample** loop — and this is not
+     * there: it is one branch per *block*, next to `snd_pcm_writei`.
+     *
+     * Bounded and pre-allocated, so the loop never allocates and the
+     * instrument can never grow into a memory leak wearing a
+     * diagnostic's name.  It fills once and stops: the first N frames
+     * are what a *test* can assert on, and a ring that kept the last N
+     * would answer a different question ("the pop I just heard") that
+     * cannot be asserted on reproducibly. */
+    float *tap;
+    int64_t tap_cap;         /* frames it can hold */
+    volatile int64_t tap_n;  /* frames it holds */
 } host;
+
+/* Keep what the writer just handed over — `frames` of it, interleaved.
+ *
+ * **Called with what the sink accepted, never with what was filled.**
+ * `snd_pcm_writei` answers with how many frames the card *took*, and
+ * capturing the offered count instead would be a different claim wearing
+ * this one's name: *what we meant to send* rather than *what the device
+ * received*.  The second is the only one worth an instrument.
+ */
+static void tapped(host *h, const float *from, int64_t frames) {
+    if (!h->tap || frames <= 0) return;
+    int64_t room = h->tap_cap - h->tap_n;
+    if (room <= 0) return;
+    if (frames > room) frames = room;
+    memcpy(h->tap + h->tap_n * h->channels, from,
+           (size_t)frames * (size_t)h->channels * sizeof *h->tap);
+    h->tap_n += frames;
+}
 
 /* **`t` is the first field of `%State`.**  `audiollvm._render_block` reads
  * it with `getelementptr %State, ptr %s, i32 0, i32 0`, so the instant a
@@ -199,10 +240,52 @@ host *gestate_host_new(int channels, int64_t fade_len, void *control) {
     h->gain = 0.0;
     h->halt = 0;
     h->mute_len = fade_len / 4 > 1 ? fade_len / 4 : 1;
+    /* **Armed from the environment, at the one moment nothing is
+     * playing** — `board/done/unheard-output.md`.  A variable rather than a
+     * rebuild, because the defect this exists for is the kind somebody
+     * meets once and cannot reproduce on demand: an instrument you have
+     * to recompile for is an instrument that is not there when you need
+     * it.  `GESTATE_EDITOR_TIME` is the spelling precedent.
+     *
+     * The value is how many *frames* to keep.  Zero, absent or
+     * unparseable means no tap at all, and then the loops below never
+     * touch it. */
+    const char *want = getenv("GESTATE_HOST_TAP");
+    if (want && *want) {
+        long long frames = atoll(want);
+        if (frames > 0) {
+            h->tap = calloc((size_t)frames * (size_t)h->channels,
+                            sizeof *h->tap);
+            /* A tap that could not be allocated is simply not armed:
+             * failing to make a *diagnostic* must never stop the sound
+             * it was going to be a diagnostic about. */
+            h->tap_cap = h->tap ? (int64_t)frames : 0;
+        }
+    }
     return h;
 }
 
-void gestate_host_free(host *h) { free(h); }
+void gestate_host_free(host *h) {
+    if (h) free(h->tap);
+    free(h);
+}
+
+/* How many frames the tap holds, and a copy of them.
+ *
+ * **Copied out rather than pointed at**, because the reader is Python on
+ * another thread and the writer is the render loop: handing over a
+ * pointer would be handing over a race.  `frames` is what the caller has
+ * room for; the answer is how many were given. */
+int64_t gestate_host_tap_frames(host *h) { return h ? h->tap_n : 0; }
+
+int64_t gestate_host_tap_read(host *h, float *out, int64_t frames) {
+    if (!h || !h->tap || frames <= 0) return 0;
+    int64_t have = h->tap_n;
+    if (frames > have) frames = have;
+    memcpy(out, h->tap,
+           (size_t)frames * (size_t)h->channels * sizeof *out);
+    return frames;
+}
 
 /* The engine that is sounding now, set once before the thread starts. */
 void gestate_host_install(host *h, render_fn render, mix_fn mix, void *state) {
@@ -484,6 +567,12 @@ int64_t gestate_host_run(host *h, int fd, float *scratch, int64_t block,
             left -= (size_t)put;
             at += put;
         }
+        /* The whole block went, or this loop returned — so what the sink
+         * received is `want`.  **The tap is in this loop as well as the
+         * device's**, and that is what makes it testable: a machine with
+         * no sound card can still hold the instrument to what it claims,
+         * which is most machines and every one the suite runs on. */
+        tapped(h, scratch, want);
         written += want;
         (void)bytes;
     }
@@ -540,6 +629,9 @@ int64_t gestate_host_run_device(host *h, float *scratch, int64_t block,
             if (put < 0) return -1;
             continue;
         }
+        /* **`put`, not `want`** — what the card took.  A short write is
+         * rare and is exactly the moment the difference matters. */
+        tapped(h, scratch, put);
         written += put;
     }
     /* **Drain only if draining can finish.**  `snd_pcm_drain` waits for

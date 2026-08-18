@@ -8197,3 +8197,71 @@ about what it wants next: `shot <path>`.  The evening of 2026-08-17 is
 the argument — every finding that moved a decision that day was an
 image, and prose describing it had failed first.  Verb-first costs
 nothing to extend, and every other content box is already a picture.
+
+## The samples nobody could read
+
+*2026-08-18.  `board/done/unheard-output.md`, from a card that begins
+with a question about delegation.*
+
+Henri's `because` is the general rule and this card is the first place it
+bit: *"when you say 'be my oracle', there's actually something implying
+in that which might require 'is this really not possible to delegate to a
+real oracle?'"*
+
+The gap turned out to be exact and small.  `manifesto.md` lists nine
+instruments; every audio one of them reads an **offline render** or a
+**counter**.  Nothing read what the sound card was handed.  And the
+offline render cannot stand in, because it renders a knob *at its resting
+value* — so the entire live control path, the first blocks, and every
+handover between engines are invisible to all of them.  Chasing F147 that
+way cost four listens and stopped.
+
+### The worry was aimed one floor too low
+
+The card's own question was how to arm a tap on the one code path where
+an allocation is a defect, and it offered a `#ifdef`, an always-present
+branch, and a function swap.  Reading `host.c` answered it: *"no
+arithmetic at all"* is `gestate_host_fill`'s budget — the **per-sample**
+loop — and the tap does not go there.  It goes beside `snd_pcm_writei`,
+which is a **syscall**.  One comparison per five hundred and twelve
+frames, next to a system call, is not a cost anybody can measure, so the
+safest option and the cheapest option turned out to be the same one and
+neither of the clever ones was needed.
+
+**The tap point is after the write, not before it.**  `snd_pcm_writei`
+answers with how many frames the card *took*.  Capturing what was filled
+would be a different claim wearing this one's name — *what we meant to
+send* rather than *what the device received* — and the second is the only
+one worth an instrument.
+
+**And it went in both loops.**  `host.c` has a device loop and a pipe
+loop; the pipe one needs no sound card, so the suite can hold the
+instrument to what it claims on a machine with no audio at all.  That is
+the difference between an oracle that is checked and one that is
+asserted.
+
+### Shown failing, which is the only way to know
+
+Five tests, all green — which proves nothing.  So the tap was sabotaged
+to write silence instead of samples: three of the five went red, and
+green again when it was restored.  `manifesto.md` §"The three ways an
+instrument fails" is the rule and this is what discharging it looks like.
+
+### What it said in its first hour
+
+It confirmed in one run what had cost a listen each — that F147's pair is
+bit-identical at rest.  Then it **refuted the standing hypothesis**: a
+knob arriving late produces a step four times the settled one, exactly at
+a block boundary, in the **amplitude** version, and leaves the frequency
+version clean.  That is the opposite way round from what Henri heard.
+
+And it found a click nobody has ever reported, in that amplitude case, in
+a program nobody has complained about, using an instrument twenty minutes
+old.
+
+**F147 does not close.**  What is left is what the pipe path cannot
+reproduce — real-time pacing, the card's own start, the first buffer —
+and that is the device path, where running the tap makes noise in
+somebody's room.  Which is the one thing this instrument was built to
+stop needing, and the one place it still does.  Worth saying plainly:
+the wall moved, it did not fall.

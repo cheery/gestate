@@ -880,6 +880,16 @@ class Session:
     #: session and not about the window: a window redrawn twice as often
     #: must not advance the queue twice as fast.
     walk: object = None
+    #: **Whether this window has subscribed to the walk.**  A session
+    #: that can open files under your hands can take the file you were
+    #: typing in away from you, so travelling is something you asked
+    #: for: the `gemba` command sets this, and a `gemba` line in the
+    #: file you are looking at means the same thing.  A window nobody
+    #: subscribed shows nothing and opens nothing.
+    walking: bool = False
+    #: The last place the walk took the caret, so it is taken once per
+    #: stop rather than on every pass of the loop.
+    _walked: object = None
     #: The `(verb, argument)` a name or a type has already been filled
     #: into.  **Once per question, never per empty box** — see
     #: `proposed_name`.
@@ -1775,6 +1785,62 @@ class Session:
         # replay is diffed on — a replay does no typing, so a count in
         # there would drift on every honest run.
         self.log.steps[-1].shown = (f"{looks} look{'s' if looks != 1 else ''}",)
+
+    def _travel(self, item) -> int:
+        """Go where the walk is pointing, and say which line to stand on.
+
+        **This is the walk walking**, and it is what `board/done/gemba.md`
+        is named for: the session says *look at `workbench.py` line 854*
+        and the window goes there, rather than narrating about it from
+        wherever the reader happens to be standing.
+
+        Answers `0` when the box should not move — a file that is not
+        there, a place in a file this window is not showing *yet*, or a
+        line past its end.  The box then waits on its `gemba` line,
+        which is what a walk between stops looks like.
+
+        **It will not take a file away from unsaved work.**  `do_open`
+        warns a *person* and lets them decide; nobody is deciding here,
+        so a window with edits in it is left alone and the walk stands
+        still until they are saved.  Losing somebody's typing to a
+        narration would be the worst trade this program could make.
+        """
+        from pathlib import Path
+
+        want = Path(item.path)
+        if not want.is_absolute():
+            from .gemba import project
+
+            want = project(getattr(self.bench, "path", None)) / want
+        if not want.exists() or not want.is_file():
+            return 0
+        here = Path(getattr(self.bench, "path", "") or "")
+        if here.resolve() != want.resolve():
+            #: The same road `open` takes — the loop owns the switch,
+            #: and so does its rule about unsaved work: **warn, do not
+            #: gate** (`fixme.md` F113).  The first version refused to
+            #: move while anything was unsaved, which is stricter than
+            #: what a person gets from `open` and *silently* stalled the
+            #: walk — Henri: *"when somebody wants to gemba, they
+            #: discard the file's contents.  That could be warned in the
+            #: gemba command, just like how it's being warned in open."*
+            #: So the warning is at the moment of subscribing, where the
+            #: decision is, and the walk then does what it was asked to.
+            self.view.open(str(want))
+            return 0                    # the box lands once it is showing
+        line = min(item.line, max(1, len(self._lines())))
+        # **And go to it, once.**  Arriving at the file is not arriving
+        # at the place: the window opens at the top, so a walk that
+        # pointed at line 854 showed line 1 and a box nobody could see.
+        # Once per stop, never every pass — a walk that re-took the
+        # caret each frame would be a walk you could not read around.
+        if self._walked != (str(want), line):
+            self._walked = (str(want), line)
+            try:
+                self.view.goto(line)
+            except Exception:                            # noqa: BLE001
+                pass
+        return line
 
     def _lines(self) -> list:
         """The document, as lines, however cheaply the view can say.
@@ -3236,17 +3302,36 @@ class Session:
         Says where the channel is, because the second half of not being
         able to subscribe is not knowing whether anybody is talking.
         """
-        from .gemba import path_for, project
+        from .gemba import path_for
 
-        lines = self._lines()
-        if any(l.split("#", 1)[0].strip() == "gemba" for l in lines):
-            return "the gemba box is already in this file"
-        self.view.insert("\ngemba\n")
+        #: **It subscribes; it does not type.**  The first version wrote
+        #: a `gemba` line for you, and that made the file *unsaved* —
+        #: which tripped the walk's own refusal to take a file away from
+        #: unsaved work, so subscribing was exactly what stopped it
+        #: travelling.  Found by watching the window sit still with a
+        #: `[+]` in the corner.
+        #:
+        #: And it is the better design for the reason the collision
+        #: exposed: **the box's home is wherever the session is
+        #: pointing**, not a line you had to remember to write.  A bare
+        #: `gemba` line still works and still pins a box, for a walk you
+        #: want to watch from one place.
+        self.walking = True
+        #: **And the warning `open` gives, given here** — because this
+        #: is where the decision is.  Following a walk hands the window
+        #: over: the session opens the files it is working in, and an
+        #: open discards what was not written down.  Henri asked for it
+        #: in exactly those terms, and it is the same red sentence
+        #: beside the caret that `open` puts there.
+        if not getattr(self.view, "saved", True):
+            early = getattr(self.view, "warn", None)
+            if early is not None:
+                early("warning: unsaved changes — a walk opens files")
         where = path_for(getattr(self.bench, "path", None))
-        walking = getattr(self, "walk", None)
-        if walking is not None and walking.showing() is not None:
-            return f"watching {project(where.parent).name} — a session is talking"
-        return f"watching {where} — nothing said yet"
+        walk = getattr(self, "walk", None)
+        if walk is not None and walk.showing() is not None:
+            return "following the walk — a session is talking"
+        return f"following the walk — {where}, nothing said yet"
 
     def do_zoomIn(self) -> str:
         return "bigger" if self.view.zoom(1) else "as big as it goes"
@@ -3780,16 +3865,34 @@ def furniture(session: "Session", bench=None, tally: str = "",
     walk = getattr(session, "walk", None)
     if walk is not None:
         item = walk.showing()
-        for i, text_line in enumerate(session._lines(), start=1):
-            if _re.match(r"gemba\s*$", text_line.split("#", 1)[0]):
-                said = item.text if item is not None else "nothing said yet"
-                # **The depth is a mark, not a count** (`spec/rocks.md`:
-                # a number a person has to read is a number a person
-                # will not read).  It rides as its own field so the
-                # window decides how to draw it and the model only says
-                # how far behind it is.
-                out.append(f"gemba\t{i}\t{said}\t{walk.behind}")
-                break
+        asked = next((i for i, l in enumerate(session._lines(), start=1)
+                      if _re.match(r"gemba\s*$", l.split("#", 1)[0])), 0)
+        if asked:
+            session.walking = True
+        # **Where the box goes, and it is the whole of "travelling in
+        # the code"** (`board/done/gemba.md`).  Henri, on the first
+        # version: *"'not travelling in code' means that the editor
+        # itself doesn't open a location, eg. `gestate/workbench.py`,
+        # and plant the box after a line you want to show."*
+        #
+        # An `at` item names a place, so the box stands under *that*
+        # line of *that* file — and if the window is showing another
+        # file, `_travel` asks for it.  A `say` has no place and stands
+        # on the `gemba` line, which is where a walk waits between
+        # stops.
+        line = asked
+        if item is not None and item.path and session.walking:
+            here = session._travel(item)
+            if here:
+                line = here
+        if line and (session.walking or asked):
+            said = item.text if item is not None else "nothing said yet"
+            # **The depth is a mark, not a count** (`spec/rocks.md`:
+            # a number a person has to read is a number a person
+            # will not read).  It rides as its own field so the
+            # window decides how to draw it and the model only says
+            # how far behind it is.
+            out.append(f"gemba\t{line}\t{said}\t{walk.behind}")
 
     # **A score box stands on every `notes` line** (`spec/scorebox.md`),
     # and crosses as a `canvas` row because that is what it is by the

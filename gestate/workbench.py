@@ -623,6 +623,15 @@ def _carry(session, bench):
     # sentence true.
     fresh.walk = _walk_for(getattr(session, "walk", None),
                            getattr(bench, "path", None))
+    # **And whether this window is following it**, which is the same
+    # mistake one field along and made the same day: a walk that opens a
+    # file un-subscribed the window it had just moved, so it opened
+    # `gemba.py` at line 1 and then stood still.  Subscription belongs
+    # to the window — it is a person's decision about *this* window, and
+    # switching the instrument underneath is not them changing their
+    # mind.
+    fresh.walking = getattr(session, "walking", False)
+    fresh._walked = getattr(session, "_walked", None)
     if fresh.log is not None:
         fresh.log.note(f"opened {Path(bench.path).name}")
     return fresh

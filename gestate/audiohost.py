@@ -122,10 +122,13 @@ def library(directory=None):
                                      ctypes.c_int64]
     for name in ("gestate_host_frames", "gestate_host_position",
                  "gestate_host_dry", "gestate_host_worst_us",
-                 "gestate_host_take_worst"):
+                 "gestate_host_take_worst", "gestate_host_tap_frames"):
         fn = getattr(lib, name)
         fn.restype = ctypes.c_int64
         fn.argtypes = [ctypes.c_void_p]
+    lib.gestate_host_tap_read.restype = ctypes.c_int64
+    lib.gestate_host_tap_read.argtypes = [ctypes.c_void_p, ctypes.c_void_p,
+                                          ctypes.c_int64]
     for name in ("gestate_host_fading", "gestate_host_is_playing"):
         fn = getattr(lib, name)
         fn.restype = ctypes.c_int
@@ -343,6 +346,38 @@ class Host:
         busy elsewhere; `tools/stutter.py` reads it.
         """
         return 0 if self._closed else self.lib.gestate_host_dry(self._host)
+
+    def tap(self) -> list:
+        """**What the device was actually given** — the frames the sink
+        took, interleaved, oldest first.
+
+        `board/done/unheard-output.md`.  Empty unless `GESTATE_HOST_TAP`
+        named a number of frames before this host was made: arming is an
+        environment variable rather than a rebuild, because the defects
+        this exists for are the kind somebody meets once and cannot
+        reproduce on demand.
+
+        **This is the only oracle here that reads audio that was
+        played.**  Every other one reads an offline render or a counter,
+        and an offline render renders a knob at its resting value — so
+        anything in the first blocks, anything about a control channel
+        and anything about a handover between engines is invisible to
+        all of them, and the instrument of last resort is a person
+        listening (`fixme.md` F147, four listens and still blocked).
+
+        **What it cannot see** is what the speaker did with it.  Room,
+        driver, resampler and ear are past this point, and they stay a
+        person's job — which is the honest half of the row this earns in
+        `manifesto.md`'s table.
+        """
+        if self._closed:
+            return []
+        frames = self.lib.gestate_host_tap_frames(self._host)
+        if frames <= 0:
+            return []
+        out = (ctypes.c_float * (frames * self.channels))()
+        got = self.lib.gestate_host_tap_read(self._host, out, frames)
+        return list(out[:got * self.channels])
 
     @property
     def worst_us(self) -> int:

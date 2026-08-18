@@ -730,3 +730,107 @@ def test_a_directory_the_caller_named_is_left_alone(tmp_path):
 
     assert mine.exists(), "library() removed a directory it did not make"
     assert (mine / "gestatehost.so").exists()
+
+
+# ── The tap: what the device was actually given ───────────────────────────
+#
+# `board/done/unheard-output.md`.  Every other audio oracle in this tree
+# reads an *offline render* or a *counter*, and an offline render renders
+# a knob at its resting value — so anything in the first blocks, anything
+# about a control channel and anything about a handover is invisible to
+# all of them.  Chasing `fixme.md` F147 cost four listens and ended
+# blocked for exactly that reason.
+#
+# **An oracle that has only ever passed is a claim**
+# (`manifesto.md` §"The three ways an instrument fails"), so the first
+# thing asserted here is that it can be *wrong* — that it reports what
+# actually went out, and reports something different when something
+# different goes out.
+
+
+def _ran(body: str, frames: int, directory, block: int = 64,
+         total: int = 256) -> Host:
+    """Render `body` into a pipe with the tap armed for `frames` frames."""
+    host = Host(channels=1, rate=RATE, fade_ms=40, directory=directory)
+    host.install(_engine(body, RATE, directory))
+    read_fd, write_fd = os.pipe()
+
+    def drain():
+        while os.read(read_fd, 65536):
+            pass
+
+    reader = threading.Thread(target=drain, daemon=True)
+    reader.start()
+    host.run(write_fd, block, total)
+    os.close(write_fd)
+    reader.join(timeout=2)
+    os.close(read_fd)
+    return host
+
+
+def test_the_tap_is_not_there_unless_it_is_asked_for(scratch):
+    """**Null unless armed.**  The loop's own budget is the reason: a
+    comparison beside a syscall is free, and an instrument that is always
+    collecting is a memory leak wearing a diagnostic's name."""
+    host = _ran("sine 220.0 * 0.5", 0, scratch)
+    assert host.tap() == []
+    host.close()
+
+
+def test_it_hands_back_what_the_sink_was_given(scratch, monkeypatch):
+    monkeypatch.setenv("GESTATE_HOST_TAP", "128")
+    host = _ran("sine 220.0 * 0.5", 128, scratch)
+    got = host.tap()
+    assert len(got) == 128, "the frames it was armed for"
+    #: Not silence — the host fades up from zero, so the opening frames
+    #: are quiet and the later ones are not.  That is the fade this
+    #: instrument exists to be able to *see*.
+    assert any(abs(v) > 1e-6 for v in got)
+    host.close()
+
+
+def test_it_stops_when_it_is_full_and_never_grows(scratch, monkeypatch):
+    """Bounded and pre-allocated: the loop never allocates, and a long
+    session cannot turn the instrument into a leak."""
+    monkeypatch.setenv("GESTATE_HOST_TAP", "32")
+    host = _ran("sine 220.0 * 0.5", 32, scratch, total=4096)
+    assert len(host.tap()) == 32
+    host.close()
+
+
+def test_it_can_tell_two_programs_apart(scratch, monkeypatch):
+    """**Shown failing, which is the whole point of the file it is in.**
+
+    An oracle that agrees with everything is not an oracle.  Two
+    different synths must give two different readings — otherwise this
+    would pass just as happily against a tap that returned zeros, which
+    is precisely the instrument F147 needed and did not have.
+    """
+    monkeypatch.setenv("GESTATE_HOST_TAP", "128")
+    quiet = _ran("sine 220.0 * 0.01", 128, scratch)
+    loud = _ran("sine 220.0 * 0.9", 128, scratch)
+    a, b = quiet.tap(), loud.tap()
+    quiet.close()
+    loud.close()
+    assert len(a) == len(b) == 128
+    assert a != b, "the tap cannot tell a whisper from a shout"
+    assert max(abs(v) for v in b) > max(abs(v) for v in a)
+
+
+def test_it_reads_the_fade_the_offline_render_cannot_show(scratch, monkeypatch):
+    """The class of defect this card is about, made concrete.
+
+    `host.c` fades up from silence — *"the first block of a session is
+    the same step as any other and pops the same way"* — and **no
+    offline render contains that fade at all**, because it belongs to
+    the host and not to the program.  So this reads something no golden
+    `.samples` file can hold, which is the argument for the whole
+    instrument in one assertion.
+    """
+    monkeypatch.setenv("GESTATE_HOST_TAP", "512")
+    host = _ran("sine 110.0 * 0.8", 512, scratch, total=1024)
+    got = host.tap()
+    host.close()
+    opening = max(abs(v) for v in got[:16])
+    later = max(abs(v) for v in got[-64:])
+    assert opening < later, "the opening frames are not quieter than the rest"

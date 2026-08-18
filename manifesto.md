@@ -76,6 +76,7 @@ reference is not looked at, and the docstring says so.
 | the session transcript | what a person actually did | what they meant |
 | `test_panel_fixtures.py` | that the plugin's bytes are today's export | a fixture nobody regenerates |
 | a photographed window (Xvfb + `import`) | **whether what is drawn is right** | anything it is not pointed at, and anything that looks right for the wrong reason |
+| `GESTATE_HOST_TAP` (`host.c`) | **the samples the device was actually given** | what the speaker did with them |
 
 The right-hand column is the load-bearing one.  An instrument whose
 blind spot is unwritten will be trusted past it.
@@ -93,6 +94,22 @@ one this tree lacked" is the argument and the fifteen-line harness.
 for the wrong reason still looks right.  The same day, a patch bay drew
 exactly the correct lamps from a query that was wrong — and what caught
 *that* was changing the input and demanding the picture follow.
+
+The `GESTATE_HOST_TAP` row was added on 2026-08-18, and it was added for
+the same reason: every other audio row above reads an **offline render**
+or a **counter**, and the right-hand column had never said what that
+costs.  An offline render renders a knob *at its resting value* and never
+exercises the live control path at all — so a defect in the first blocks,
+in a control channel, or in a handover between engines is invisible to
+every one of them, and the instrument of last resort was a person
+listening.  Chasing `fixme.md` F147 that way cost four listens and ended
+blocked.  `board/done/unheard-output.md` is the argument.
+
+**And its blind spot is where the person's job actually starts.**  The
+tap reads what was handed to the sound card; the driver, the mixer, the
+room and the ear are all past that point.  *"It sounds thin on laptop
+speakers"* is not a question this can be asked, and saying so in the
+table is what stops somebody trusting it past where it sees.
 
 ---
 
