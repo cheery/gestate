@@ -62,6 +62,18 @@ because the glyph *was* being emitted, in the colour it was asked for.
 
 ## Questions
 
+**A to 1 and to the card's whole premise (Henri, 2026-08-18):** *"we
+have to add the command to run rust tests from suite… I had no idea rust
+tests weren't there in the suite."*  Measured the same hour: **81 Rust
+tests, green, in 0.04 seconds, run by nothing.**  So the assertions live
+in **Rust**, the "two homes" worry was answered by the tree — Rust is
+already the home and was simply unwired — and wiring `cargo test` into
+`tools/suite.py` comes before writing a single new assertion.
+
+*And this card's elaboration below is stale where it says `view.rs`
+carries no tests: it got its first one on 2026-08-17 in the `the corner
+says [command]` commit.  What is still true is that nothing runs it.*
+
 1. **Where do the assertions live — Rust or Python?**  The display list
    is Rust's, so `#[cfg(test)]` in `view.rs` is the direct route and
    needs no window.  But every *other* interface claim in this tree is
@@ -75,6 +87,12 @@ because the glyph *was* being emitted, in the colour it was asked for.
    than one assertion at a time — and `doc/atlas/*.png` is the standing
    argument against committed renderings.  A display list is text, so
    the argument may not carry; that is the question.
+
+   **A (Henri, 2026-08-18).**  *"golden frame, where else it could fit
+   other than this tree?"*  **In the tree.**  The atlas argument does
+   not carry: a `.png` is opaque and a display list is text a person
+   can read in a diff, which is the property that made the golden
+   `.samples` acceptable too.
 
 3. **What is the first thing it should hold?**  Suggested: the three
    from tonight, because they are fresh, they are small, and one of

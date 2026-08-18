@@ -154,3 +154,88 @@ identifiable way and nothing else has — otherwise it answers a bundle.
 And there is a second question that costs *no* new stranger, per rule 1:
 hand the same friend the window with the list open and watch what he
 does with `apply`.  He never saw it.
+
+## Run two — Janne, 2026-08-18, pre-registered before the run
+
+*Written before he touched anything, because rule 4 is the only thing
+standing between this and a result that explains itself afterwards.*
+
+*Henri, 13:xx:* **"Janne is available.  Are the install instructions in
+line?  We soon see that."**
+
+### Two measurements, in this order, not blended
+
+1. **The install**, from `doc/install.md`, on a machine that is not this
+   one.
+2. **First contact** with the window: open a file, hear it, change it,
+   hear the change.
+
+The order matters and so does the separation.  **The install is not the
+perishable half** — it can be redone on another machine, in a VM, next
+month.  First contact cannot.  So if the afternoon runs short, the
+install is the part to sacrifice, and under no circumstances is the
+first contact spent while somebody is still fixing an install problem
+beside him.
+
+### What is known-wrong, and therefore must not be spent on him
+
+Rule 3 — a run against a window with known defects rediscovers them.
+Checked before the run: **F148** (taskbar icon), **F149** (desktop entry
+that did nothing), **F150** (first screen naming a deleted button) and
+**F155** (the unfindable glyph) are all resolved.  **F159 is open** — a
+runtime complaint carries no position — and it bites only if he writes a
+program that fails at run time.  If he does, that is a known defect and
+**not a finding**.
+
+### The one uncertain thing being varied
+
+**The corner.**  It became `[command]` on 2026-08-17 (F155) and no
+stranger has met the new one.  Nothing else in the first-contact path
+has changed since the first friend, so this run answers one question
+rather than a bundle.
+
+### Predictions
+
+*If any of these is written after the run, it is worthless.  They are
+here first.*
+
+- **The corner is now findable.**  He reaches the control without being
+  told, in the first minute or two, and the stumble moves *past the
+  door* — to what the list contains, or what `apply` means.
+- **The corner is still the problem.**  He stalls on the first screen
+  the way the first friend did and has to be told the control exists.
+  That falsifies the fix and not the direction; the corner would then be
+  the wrong lever entirely.
+- **Neither.**  He finds the control and stalls somewhere nobody has
+  looked — the list's vocabulary, choosing a file, or the sound simply
+  not arriving.  **This is the outcome no theory predicts and therefore
+  the one worth the most**, and it is the reason the trajectory is
+  recorded rather than the verdict.
+- **On the install.**  If it is in line he reaches a running window
+  without asking anything.  Every question he has to ask is one line of
+  `doc/install.md` that assumed something, and it is recorded verbatim
+  as the finding rather than answered and forgotten.
+
+### How it is recorded, decided beforehand
+
+Rule 5: *the cheapest available improvement to run two is recording it
+better, and it costs nothing but deciding how beforehand.*  So:
+
+- **what he was told**, in order, verbatim — including the first time
+  somebody helps, which ends the measurement
+- **what he read**, and how much of it
+- **where he guessed**, and whether the guess was right — a wrong guess
+  that worked is the worst finding available, because the window taught
+  something false
+- **where he gave up**
+- **times**, because *the first five minutes* is the claim under test
+
+### The hazard, restated for a human
+
+**Henri must not help**, and the moment he does, the run is over and the
+help is the result.  The first friend's run ended exactly there.  A
+person who knows he is being measured performs, so what is wanted is the
+trajectory as it happens, not his account of it afterwards.
+
+*Rule 1 applies in his favour: Janne is one friend × one first contact,
+and his first contact is virgin for all of it.*

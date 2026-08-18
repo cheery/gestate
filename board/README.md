@@ -42,26 +42,31 @@ is what keeps a card's name stable while priorities move.
    the argument got sharper on 2026-08-18: `view.rs`'s own tests went
    red on the commit that changed the corner and stayed red across a
    whole session, because nothing runs them.
-3. **[unseen-flare](unseen-flare.md)** — narrower than
+3. **[ungated-fixes](ungated-fixes.md)** — 79 of `fixme.md`'s 161
+   entries are named by no test, so a defect closed on a photograph can
+   come back without anybody being told.  Directly under the oracle
+   because they are the same family and the oracle is what makes the
+   interface-shaped ones closable at all.
+4. **[unseen-flare](unseen-flare.md)** — narrower than
    `unheard-output`, and overlapping it.
-4. **[reviewing-by-running](reviewing-by-running.md)** — the review
+5. **[reviewing-by-running](reviewing-by-running.md)** — the review
    loop `spec/author.md` says is the scarce resource.
-5. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
+6. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
    the changes a session makes.
-6. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
+7. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
    *A proof of concept landed 2026-08-18 — three of its four views walk
    in the real window.  What is left is the fourth, paging, and a
    stranger.*
-7. **[portable-package](portable-package.md)** — for people who do not
+8. **[portable-package](portable-package.md)** — for people who do not
    exist yet, by his own answer.  *Waiting on program-or-workshop.*
-8. **[carried-state](carried-state.md)** — the seam that dropped three
+9. **[carried-state](carried-state.md)** — the seam that dropped three
    fields in one day and crashed the editor twice in Henri's hands.
-9. **[driven-runs](driven-runs.md)** — the instrument that finds nearly
+10. **[driven-runs](driven-runs.md)** — the instrument that finds nearly
    everything, and cannot say what it ran.
-10. **[cheap-gates](cheap-gates.md)** — seventeen seconds of checks
+11. **[cheap-gates](cheap-gates.md)** — seventeen seconds of checks
     that only run when somebody has twenty-five minutes.
 
-**Eight through ten arrived unplaced on 2026-08-18** and are at the end
+**Nine through eleven arrived unplaced on 2026-08-18** and are at the end
 because that is where a new card lands, not because that is where they
 belong.  They are the day's kaizen written down at Henri's ask —
 *"Write cards for fixing these issues in your workflow"* — and the
@@ -107,6 +112,17 @@ the id, so every citation keeps resolving, and the elaboration is kept
 ```
 status   shelved — <date>
 ```
+
+**A card may also arrive shelved**, without ever standing in the order
+— *2026-08-18*, when `board/later/working-standard.md` and
+`board/later/project-seed.md` were written for a project that has not
+started.  Henri: *"I want the cards made for this to go directly into
+the board/later/ because they aren't current."*  This is the honest
+place for work that is real, wanted, and waiting on an event rather than
+on a queue — and it costs the live board nothing, which is how two cards
+were written on a day whose goal was **four fewer and none new** without
+the goal being touched.  A card that arrives shelved says in its
+`## Shelved` section what it waits on, the same as a displaced one.
 
 **And the reason it was displaced goes in the card, in Henri's words.**
 Without that it is a graveyard nobody re-reads, which is the failure
@@ -177,6 +193,96 @@ sentence — he does not have to edit this file to move it.
 His answers arrive in conversation and the session writes them into the
 card, dated, in his words.  That transcription is not bookkeeping: an
 answer that lives only in a chat is a decision that will be made again.
+
+## Question it into existence
+
+**Every card added to this board is questioned before it is written —
+every one, without exception.**  *Henri's ask, 2026-08-18:* **"Question
+me until you're convinced that the need is real."**  And when the first
+run of it was done: *"This is accepted.  It is far much better designed
+setup than I was thinking of."*
+
+The thing being protected is the rule two sections down — a `because` is
+a problem and never a fix — and that rule has no defence otherwise.  An
+ask arrives naming a solution, because that is how people think and
+there is nothing wrong with it.  The problem behind it is recoverable
+only by asking, and **a session that writes the card immediately has
+destroyed the evidence**: the fix is now on the board in the author's
+own name, and the reader a year later cannot tell it from a need.
+
+The run that produced this section is the argument for it.  What was
+asked for was *"standardization effort of our work here, and a template
+for new projects"* — two cards, both naming fixes.  What came out was
+three cards, one of them on the live board about **security**, whose
+`because` neither party had said out loud when the conversation
+started.  No amount of careful writing gets from the first to the second.
+Only asking does.
+
+### What the questioning has to do
+
+Not a fixed script.  These are the moves that earned their place, and a
+session should be able to say which it used:
+
+1. **Go and look first.**  Read the board, `vision.md`, and the cards
+   that already neighbour the ask *before* asking anything.  Half of a
+   first round of questions is usually answered in the tree, and asking
+   those spends the author's attention on what a session could have read.
+   Henri writes short on purpose; that is an instruction to go and look,
+   not an invitation to interrogate.
+2. **Measure the claim against this tree.**  The step that matters most
+   and the one most likely to be skipped.  A stated need is a claim about
+   *here*, so check it: the ratchet card exists because 79 of
+   `fixme.md`'s 161 entries turned out to be named by no test, and that
+   number — not the sentence that prompted it — is what made the card
+   workable.  A need that cannot be measured at all is not disqualified,
+   but say so out loud.
+3. **Offer readings, each with what would kill it.**  Two to four ways
+   of taking the ask, and for each, the thing that would make it wrong.
+   The author picks one, or names the one nobody wrote.  This is much
+   cheaper for them than defending a single proposal, and it is how
+   `working-standard`'s scope was settled in one line.
+4. **Check it does not already exist.**  `board/ungated-fixes.md` was
+   nearly a duplicate of `board/interface-oracle.md` and turned out to
+   be its superset; that had to be read to be known.  The overlap goes
+   in both cards.
+5. **Ask what a session does on day one.**  If the answer needs a
+   decision only the author can make, it is a decision wearing a card
+   and should be marked so, not queued.  If it cannot be answered at
+   all, the card is not ready.
+6. **Take the `because` in their words, and mark what is yours.**
+   Transcribed from the conversation, dated.  A measurement a session
+   made is labelled as the session's, and labelled *suspected* where it
+   is a proxy — the elaboration lesson further down applies before the
+   card exists, not only after.
+7. **Then say where it lands**: the live board, or shelved on arrival.
+
+### Two things this is not
+
+It is **not a gate on the author.**  He may write a one-line card and
+walk away; the questioning is the session's work and it happens when the
+card is elaborated, not while he waits.  What is forbidden is the
+session writing a polished card *out of an unquestioned ask* — that
+launders a guess into the record.
+
+And it is **not a licence to stall.**  Questions are collected and asked
+in one sitting, the same rule the rest of this file gives, and a card
+whose questioning cannot finish today is written with its questions open
+and dated rather than held back.
+
+### What the suite can hold, and what it cannot
+
+Nothing here is executable today, and it is worth being exact about why
+rather than adding a test that feels like one.  **No check can tell
+whether a question was asked.**  The nearest proxy — a `because`
+carrying a quotation from the asker — fails on **15 of the 27 cards on
+this board** *(counted 2026-08-18)*, which would be an andon lighting fifteen times for one
+cause, exactly what `test/test_board.py` was written not to do.
+
+What could be held, when somebody wants it: the rule applied **only to
+cards created after the day it lands**, with today's board as an
+accepted baseline that may shrink and never grow.  That is the same
+shape `board/ungated-fixes.md` proposes for its own retroactive
+question, and neither should be built before the other is answered.
 
 ## What a card is
 
