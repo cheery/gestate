@@ -291,6 +291,7 @@ def _gen_for(suffix: str, nil_tag: int, cons_tag: int) -> tuple[str, int, ELambd
 # generate_helpers — updated entry point
 # ---------------------------------------------------------------------------
 
+#: complaint  author, unplaced — fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked
 class HelperError(Exception):
     pass
 
@@ -314,6 +315,7 @@ class HelperError(Exception):
 _INT_LIKE = frozenset({"Int", "Float", "Char", "Cyclic", "Bounded"})
 
 
+#: complaint  author, unplaced — fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked
 class ComparatorError(Exception):
     pass
 

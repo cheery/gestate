@@ -58,6 +58,7 @@ RENDERER_PRIVATE: dict = {
 }
 
 
+#: complaint  author — a name reached for across a library boundary, placed at the reference
 class InternalError(Exception):
     """A program named something a library keeps to itself."""
 
@@ -78,7 +79,15 @@ class Use:
     instead: tuple
 
     def __str__(self) -> str:
-        where = f"line {self.line}"
+        # **`at line N:C`, and the spelling is load-bearing.**  This read
+        # `line N:` — a position that existed and was never used, because
+        # `session._line_of` looks for `at`, so the workbench had no line
+        # to draw the box under (`board/done/error-messages.md`).  The `at
+        # line` form is also the one `audiospans.in_source` leaves alone,
+        # which matters here and nowhere else: every other complaint
+        # counts from the top of the assembled program and this one
+        # already counts from the top of the author's file.
+        where = f"at line {self.line}:{self.column}"
         out = (f"{where}: `{self.name}` is internal to `{self.library}` "
                f"and cannot be named from here")
         if self.instead:

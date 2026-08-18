@@ -39,6 +39,7 @@ from dataclasses import dataclass, field
 GATE_AT, OFF_AT, PAYLOAD = 0, 1, 2
 
 
+#: complaint  machine — the allocator's arithmetic, after the bank and the note have both been checked
 class AllocError(Exception):
     pass
 
@@ -92,11 +93,13 @@ class Allocator:
     def __post_init__(self):
         if isinstance(self.policy, str):
             if self.policy not in POLICIES:
+                #: complaint  command — which stealing policy to use, given on the way in
                 raise AllocError(
                     f"no voice-stealing policy `{self.policy}`; there is "
                     + " and ".join(sorted(POLICIES)))
             self.policy = POLICIES[self.policy]
         if not self.channels:
+            #: complaint  author, nowhere — a bank with no voices is a count in a declaration; the declaration places it before this is reached
             raise AllocError("a bank with no voices cannot play anything")
         self.voices = [Voice(i) for i in range(len(self.channels))]
 
@@ -165,6 +168,7 @@ class Allocator:
         payload = tuple(payload)
         want = self.fields - PAYLOAD
         if len(payload) != want:
+            #: complaint  author, nowhere — the piece's notes and the bank's payload disagree, which is about two declarations and not one line
             raise AllocError(
                 f"this bank's voices take {want} payload value(s) and this "
                 f"note carries {len(payload)}")

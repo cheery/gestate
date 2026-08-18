@@ -22,6 +22,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
+#: complaint  command — what was asked for on the command line
 class PerformError(Exception):
     pass
 

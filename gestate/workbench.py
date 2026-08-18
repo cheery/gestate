@@ -146,7 +146,15 @@ class Window:
         "nothing to paste" are the mirror's to say, exactly as
         "nothing to undo" is.
         """
-        self.zoom_at, self.zoom_rungs = zoom, rungs
+        # **A rung the ladder does not have is not stored** —
+        # `fixme.md` F110, whose recorded transcript answered `smaller`
+        # twelve times on a nine-rung ladder.  The per-frame `tell()`
+        # fixed how the mirror got out of step; this is what keeps an
+        # impossible reading out of it in the first place, whatever put
+        # it on the wire.  The window owns the ladder, so `rungs` is
+        # taken as given and the position is clamped into it.
+        self.zoom_rungs = max(1, int(rungs))
+        self.zoom_at = min(max(0, int(zoom)), self.zoom_rungs - 1)
         self.undos, self.redos = undos, redos
         self.saved = saved
         self.top, self.rows = top, rows

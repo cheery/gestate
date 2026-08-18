@@ -46,6 +46,7 @@ from dataclasses import dataclass
 from .midi import TICKS_PER_BEAT
 
 
+#: complaint  author, unplaced — fixme.md F158: a tempo or an envelope named by its numbers, never by its line
 class TempoError(Exception):
     pass
 

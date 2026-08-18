@@ -24,40 +24,37 @@ Work them in this order unless one blocks another.  **This list is the
 only place the order lives** — a card never says where it stands, which
 is what keeps a card's name stable while priorities move.
 
-1. **[error-messages](error-messages.md)** — every user meets errors
-   constantly, and one of them was invisible for a week while another
-   landed nowhere.  The broadest surface on the board.
-2. **[persistent-workbench-state](persistent-workbench-state.md)** —
+1. **[persistent-workbench-state](persistent-workbench-state.md)** —
    *"closing it loses the day."*  Felt every session, and probably the
    cheapest large win here.
-3. **[command-categories](command-categories.md)** — the other half of
+2. **[command-categories](command-categories.md)** — the other half of
    the stranger's failure: he got the door open and found fifty-three
    names.  *Waiting on a pick from the card's five options; the
    sections are derived already.*
-4. **[installation-test](installation-test.md)** — somebody who cannot
+3. **[installation-test](installation-test.md)** — somebody who cannot
    install has none of the above.  Three defects in one day from one
    fresh machine.
-5. **[unheard-output](unheard-output.md)** — a whole class of audio
+4. **[unheard-output](unheard-output.md)** — a whole class of audio
    defect has no oracle at all, and `fixme.md` F147 is blocked on it.
    Plumbing on the card, audible to the person.
-6. **[stranger-test](stranger-test.md)** — fixes nothing; it is what
+5. **[stranger-test](stranger-test.md)** — fixes nothing; it is what
    *finds* 1–4.  Ranked here only because each run spends a scarce,
    non-renewable person.
-7. **[interface-oracle](interface-oracle.md)** — stops 1–4 regressing
+6. **[interface-oracle](interface-oracle.md)** — stops 1–4 regressing
    silently.  A multiplier rather than a feature, and `view.rs` now has
    its first three tests to build on.
-8. **[unseen-flare](unseen-flare.md)** — narrower than
+7. **[unseen-flare](unseen-flare.md)** — narrower than
    `unheard-output`, and overlapping it.
-9. **[gemba](gemba.md)** — changes the working day more than anything
+8. **[gemba](gemba.md)** — changes the working day more than anything
    else here, and changes a *user's* not at all.  *Waiting on a dwell
    in seconds.*
-10. **[reviewing-by-running](reviewing-by-running.md)** — the review
+9. **[reviewing-by-running](reviewing-by-running.md)** — the review
    loop `spec/author.md` says is the scarce resource.
-11. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
+10. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
    the changes a session makes.
-12. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
+11. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
    *Blocked on command-categories.*
-13. **[portable-package](portable-package.md)** — for people who do not
+12. **[portable-package](portable-package.md)** — for people who do not
    exist yet, by his own answer.  *Waiting on program-or-workshop.*
 
 **Ordered by impact on somebody using gestate** — 2026-08-17, at

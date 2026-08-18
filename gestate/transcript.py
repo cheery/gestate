@@ -23,6 +23,7 @@ import json
 from dataclasses import dataclass, field
 
 
+#: complaint  world — a transcript file written by another version of this program
 class TranscriptError(Exception):
     pass
 

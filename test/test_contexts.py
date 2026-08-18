@@ -167,3 +167,67 @@ def test_main_with_an_inferred_constraint_still_works():
     # `main = 5` infers `Num a`; that resolves to an instance rather than
     # becoming a parameter.
     assert evaluate("main : Int\nmain = 5\n") == "5"
+
+
+# ── A class that does not exist — `fixme.md` F100 ───────────────────────────
+#
+# **A constraint on a name that is not a class constrains nothing.**  The
+# signature reads as a promise and keeps none, and what the person met
+# was the *use* site saying `No instance for Nonsuch Int` — a correct
+# sentence about the program they wrote, and advice towards the wrong
+# fix, because writing that instance makes the typo permanent.  Same
+# shape as F141, and the same answer: check it where it was written.
+
+
+def test_a_signature_may_not_name_a_class_that_does_not_exist():
+    from gestate.kindcheck import KindError
+
+    with pytest.raises(KindError, match="no class `Nonsuch`"):
+        evaluate("f : (Nonsuch a) => a -> Int\nf x = 1\n\n"
+                 "main : Int\nmain = f 3\n")
+
+
+def test_it_says_where_the_constraint_was_written():
+    """The place is the point: this is drawn under the signature."""
+    from gestate.kindcheck import KindError
+
+    with pytest.raises(KindError, match=r"\(at \d+:\d+"):
+        evaluate("f : (Nonsuch a) => a -> Int\nf x = 1\n\n"
+                 "main : Int\nmain = f 3\n")
+
+
+def test_a_near_miss_is_named_and_a_far_one_is_not():
+    """A wrong suggestion is worse than none — taking it makes the
+    mistake permanent, which is the whole reason for the check."""
+    from gestate.kindcheck import KindError
+
+    with pytest.raises(KindError, match="did you mean `Show`"):
+        evaluate("f : (Shwo a) => a -> Int\nf x = 1\n\n"
+                 "main : Int\nmain = f 3\n")
+    with pytest.raises(KindError) as far:
+        evaluate("f : (Nonsuch a) => a -> Int\nf x = 1\n\n"
+                 "main : Int\nmain = f 3\n")
+    assert "did you mean" not in str(far.value)
+
+
+def test_a_case_slip_is_an_exact_match():
+    """`FromMidi` for `FromMIDI` is F100's own example, and edit distance
+    rates it 0.62 — below any threshold that would not also suggest
+    `Monad` for `Monoid`.  So case is folded first and measured second."""
+    from gestate.kindcheck import _nearest
+
+    assert _nearest("FromMidi", {"FromMIDI", "FromCC"}) == "FromMIDI"
+    assert _nearest("Monoid", {"Monad", "Show"}) is None
+
+
+def test_a_superclass_that_does_not_exist_is_refused_too():
+    from gestate.kindcheck import KindError
+
+    with pytest.raises(KindError, match="names it as a superclass"):
+        evaluate("class Nonsuch a => Fooable a where\n  foo : a -> Int\n\n"
+                 "main : Int\nmain = 1\n")
+
+
+def test_a_real_class_is_untouched():
+    assert evaluate("f : (Show a) => a -> [Char]\nf x = show x\n\n"
+                    "main : [Char]\nmain = f 3\n") == "3"

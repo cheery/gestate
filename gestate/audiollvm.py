@@ -60,6 +60,7 @@ INT = "i64"
 FLOAT = "double"
 
 
+#: complaint  machine — the native backend's own invariants
 class LLVMError(Exception):
     pass
 
@@ -427,6 +428,7 @@ class _Emit:
         if name in self.signatures:
             params, result = self.signatures[name]
             if params != args:
+                #: complaint  author, unplaced — fixme.md F157: a definition used at two types inside one fragment is the author's, and the name is carried where the line is not
                 raise LLVMError(
                     f"`{name}` is called at two types ({params} and "
                     f"{args}); the fragment is monomorphic")

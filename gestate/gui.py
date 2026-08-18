@@ -107,6 +107,7 @@ def _drawn(source: str) -> str:
     if "substrate" in names:
         return "substrate"
     if "scene" in names:
+        #: complaint  author, nowhere — the canvas program declares the retired name; the mistake is which name, and the retired one is searched for rather than placed
         raise GuiError(
             "this program declares a `scene`, which the canvas no longer "
             "draws.  Rename it `substrate` and build it from `rect`, "
@@ -203,6 +204,7 @@ def assembled(source: str, rate: int = 0,
     return out
 
 
+#: complaint  machine — the value a canvas program produced, checked as the walker takes it apart
 class GuiError(Exception):
     pass
 
@@ -530,6 +532,7 @@ def _entry_signal(state):
     while isinstance(sig, NInd):
         sig = sig.target
     if not isinstance(sig, NSig):
+        #: complaint  author, nowhere — what `scene` evaluated to, which is about the declaration as a whole
         raise GuiError(
             "the program's `scene` did not evaluate to a signal "
             f"(got {type(sig).__name__})"
@@ -545,8 +548,10 @@ def _event_node(state, event) -> NCon:
         known = ", ".join(sorted(
             n for n in ("Tick", "Move", "Press", "Release", "Key")
             if n in state.cons))
+        #: complaint  author, unplaced — fixme.md F157: an event named in the program, carried here without its line
         raise GuiError(f"unknown event {name!r} (the program knows: {known})")
     if len(args) != info.arity:
+        #: complaint  author, unplaced — fixme.md F157: an event named in the program, carried here without its line
         raise GuiError(
             f"{name} takes {info.arity} argument(s), got {len(args)}")
     return NCon(info.tag, tuple(NNum(a) for a in args))
@@ -757,6 +762,7 @@ class Substrate:
             while isinstance(sig, NInd):
                 sig = sig.target
             if not isinstance(sig, NSig):
+                #: complaint  author, nowhere — what a declaration evaluated to, which is about the declaration as a whole
                 raise GuiError(
                     f"`{name}` did not evaluate to a signal "
                     f"(got {type(sig).__name__})")
@@ -778,6 +784,7 @@ class Substrate:
             while isinstance(node, NInd):
                 node = node.target
             if not isinstance(node, NChan):
+                #: complaint  author, nowhere — what a declaration evaluated to, which is about the declaration as a whole
                 raise GuiError(f"`{name}` is declared `Chan` and is not one")
             return node
         finally:
@@ -1026,6 +1033,7 @@ def run(source: str, size=_DEFAULT_SIZE, fps: int = 60, title="gestate",
     try:
         import pygame
     except ImportError:
+        #: complaint  world — pygame is not installed on this machine
         raise GuiError(
             "running a GUI program needs pygame (`pip install pygame`); "
             "`scenes()` works without it"

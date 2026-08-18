@@ -48,6 +48,7 @@ TICKS_PER_BEAT = 96
 _PERCUSSION_CHANNEL = 9
 
 
+#: complaint  machine — the score stream's shape, as the MIDI renderer walks it
 class MidiError(Exception):
     pass
 
@@ -119,6 +120,7 @@ def perform(source: str) -> tuple[int, list[tuple[int, int, int, int, int]]]:
     from .audio import _authored
 
     if "main" in _authored(source)[1]:
+        #: complaint  author, nowhere — a music program declaring the wrong names; the mistake is an absence
         raise MidiError(
             "a music program defines `score` and `bpm`, not `main` — "
             "`main` is supplied by the renderer"
@@ -166,6 +168,7 @@ def _channels(events) -> dict[int | None, int]:
         while nxt == _PERCUSSION_CHANNEL or nxt in out.values():
             nxt += 1
         if nxt > 15:
+            #: complaint  author, nowhere — how many instruments the whole piece uses
             raise MidiError(
                 "more than 15 distinct instruments; MIDI has 16 channels "
                 "and one of them is percussion"
@@ -184,6 +187,7 @@ def write(source: str, path: str) -> tuple[int, int]:
 
     bpm, events = perform(source)
     if not events:
+        #: complaint  author, nowhere — a piece with no notes in it at all
         raise MidiError("the score is silent — no notes to write")
 
     origin = min(on for on, _off, _p, _k, _v in events)

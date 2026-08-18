@@ -28,10 +28,12 @@ from dataclasses import dataclass, fields, is_dataclass
 from .declarations import ConInfo, Program
 from .match import MatchError, normalize, siblings
 from .syntax.ast import (
+    at,
     Pat, PBox, PCon, PLit, PSigCons, PTuple, PVar, Val, VCase,
 )
 
 
+#: complaint  author — a definition that does not cover every value, placed at its first equation
 class ExhaustError(Exception):
     pass
 
@@ -252,18 +254,22 @@ def _show_row(row: list) -> str:
 # ---------------------------------------------------------------------------
 
 def check_matrix(rows: list[list[Pat]], cons: dict[str, ConInfo],
-                 what: str, where: str) -> list[str]:
+                 what: str, where: str, place: str = "") -> list[str]:
     """Check one pattern matrix.
 
     ``what`` names the construct ("case", "definition") and ``where`` the
-    enclosing supercombinator, for the message.
+    enclosing supercombinator, for the message.  ``place`` is ` (at L:C)`
+    for the equation or ``case`` this matrix came from — **a definition
+    that does not cover every value is a mistake with a line**, and
+    naming the definition alone left the workbench nothing to draw a box
+    under (`board/done/error-messages.md`).
     """
     prefix = f"{where}: " if where else ""
     errors: list[str] = []
     try:
         matrix = [[_to_pattern(normalize(p)) for p in pats] for pats in rows]
         if not matrix:
-            return [f"{prefix}{what}: no alternatives"]
+            return [f"{prefix}{what}: no alternatives{place}"]
         width = len(matrix[0])
         if any(len(r) != width for r in matrix):
             return []        # arity mismatch — the desugarer reports it
@@ -276,7 +282,7 @@ def check_matrix(rows: list[list[Pat]], cons: dict[str, ConInfo],
             if _useful(seen, row, cons) is None:
                 errors.append(
                     f"{prefix}{what}: unreachable alternative — "
-                    f"`{_show_row(row)}` is already covered"
+                    f"`{_show_row(row)}` is already covered{place}"
                 )
             seen.append(row)
 
@@ -284,7 +290,7 @@ def check_matrix(rows: list[list[Pat]], cons: dict[str, ConInfo],
         if witness is not None:
             errors.append(
                 f"{prefix}{what}: non-exhaustive — no alternative matches "
-                f"`{_show_row(witness)}`"
+                f"`{_show_row(witness)}`{place}"
             )
     except MatchError:
         # A malformed pattern — unknown constructor, wrong arity.  The
@@ -342,12 +348,12 @@ def _check_equations(eqs: list, cons: dict[str, ConInfo], name: str) -> list[str
     errors: list[str] = []
     if eqs and eqs[0].params:
         errors.extend(check_matrix([list(eq.params) for eq in eqs],
-                                   cons, "definition", name))
+                                   cons, "definition", name, at(eqs[0])))
     for eq in eqs:
         for v in _all_vals(eq.body):
             if isinstance(v, VCase):
                 errors.extend(check_matrix([[a.pat] for a in v.alts],
-                                           cons, "case", name))
+                                           cons, "case", name, at(v)))
     return errors
 
 

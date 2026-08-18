@@ -90,6 +90,7 @@ def _substitute(e, name: str, value):
     return e
 
 
+#: complaint  author, unplaced — fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other
 class ExtractError(Exception):
     """The program is in the fragment and something else went wrong.
 
@@ -395,6 +396,7 @@ class _Extract:
         tail = _strip(e.tail)
         if not (isinstance(tail, EAp) and _is(tail.fn, "mkSig")
                 and isinstance(_strip(tail.arg), EWait)):
+            #: complaint  machine — the signal check refuses this before extraction; reaching here means the check let it through
             raise ExtractError(f"{path}: a signal built by hand reached "
                                f"extraction, which the check should have "
                                f"refused")
@@ -438,6 +440,7 @@ class _Extract:
                 elem: str) -> int:
         kind = FORMERS[name]
         if kind == "source":
+            #: complaint  machine — a bare `mkSig` is refused by the signal check first
             raise ExtractError(f"{path}: a bare `mkSig` is not a node")
 
         # **A step function's type says what its signal's elements are.**
@@ -690,6 +693,7 @@ class _Extract:
         """
         arity, lam, _sig = self.by_name.get(name, (None, None, None))
         if lam is None:
+            #: complaint  machine — inference refuses a name with no definition long before extraction
             raise ExtractError(f"{path}: `{name}` has no definition")
 
         t = self._type_of(name)
@@ -805,6 +809,7 @@ class _Extract:
 
         head, args = _spine(t)
         if not isinstance(head, TCon):
+            #: complaint  machine — the layout table is this program's own
             raise ExtractError(f"no layout for {name}")
 
         constructors: list = []
@@ -824,6 +829,7 @@ class _Extract:
         constructors.sort(key=lambda c: c["tag"])
         if not constructors:
             del self.graph.layouts[name]
+            #: complaint  machine — the layout table is this program's own
             raise ExtractError(f"`{name}` is not a data type gestate knows")
         return name
 
@@ -836,6 +842,7 @@ class _Extract:
             return self._func(str(e.name))
         if isinstance(e, ELambda):
             if len(e.params) != want:
+                #: complaint  machine — lambda lifting produces the step function this reads
                 raise ExtractError(
                     f"{origin}: its step function takes {len(e.params)} "
                     f"argument(s), and this node calls it with {want}")
@@ -847,6 +854,7 @@ class _Extract:
             self.graph.funcs[name] = Func(
                 name, tuple(e.params), self._translate(e.body, inner, name))
             return name
+        #: complaint  machine — lambda lifting produces the step function this reads
         raise ExtractError(f"{origin}: a step function that is not a "
                            f"definition or a lambda reached extraction")
 
@@ -856,6 +864,7 @@ class _Extract:
             return name
         arity, lam, _sig = self.by_name.get(name, (None, None, None))
         if lam is None:
+            #: complaint  machine — inference refuses a name with no definition long before extraction
             raise ExtractError(f"`{name}` has no definition")
         env = {p: ("val", Var(p)) for p in lam.params}
         # Registered before translating: the fragment forbids recursion, so
@@ -878,8 +887,10 @@ class _Extract:
         if isinstance(e, EVar):
             what = env.get(e.name)
             if what is None:
+                #: complaint  machine — inference refuses a name out of scope long before extraction
                 raise ExtractError(f"{where}: `{e.name}` is not in scope")
             if what[0] != "val":
+                #: complaint  machine — inference refuses a signal used as a value long before extraction
                 raise ExtractError(f"{where}: `{e.name}` is a signal, used "
                                    f"as a value")
             return what[1]
@@ -917,6 +928,7 @@ class _Extract:
 
         if isinstance(e, ELet):
             if e.is_rec:
+                #: complaint  machine — the signal check refuses a recursive `let` before extraction
                 raise ExtractError(f"{where}: a recursive `let` reached "
                                    f"extraction")
             inner = dict(env)
@@ -935,8 +947,10 @@ class _Extract:
                 return self._global(str(head.name), args, env, where)
             if isinstance(head, EProj) and len(args) == 1:
                 return Field(self._translate(args[0], env, where), head.i)
+            #: complaint  machine — an application the IR cannot express, after inference accepted it
             raise ExtractError(f"{where}: cannot apply {head!r}")
 
+        #: complaint  machine — an expression form the IR has no node for
         raise ExtractError(f"{where}: no IR for {type(e).__name__}")
 
     def _global(self, name: str, args: list, env: dict, where: str):
@@ -947,6 +961,7 @@ class _Extract:
 
         arity, lam, _sig = self.by_name.get(name, (None, None, None))
         if lam is None:
+            #: complaint  machine — inference refuses a name with no definition long before extraction
             raise ExtractError(f"{where}: `{name}` has no definition")
 
         if arity == 0 and not args:

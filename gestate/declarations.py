@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 
 from .syntax.ast import (
+    at,
     Pat,
     PCon,
     PTuple,
@@ -44,6 +45,7 @@ from .coherence import check_instances
 from .deriving import DeriveError, derive, instance_head
 
 
+#: complaint  author — a declaration as written
 class DeclError(Exception):
     pass
 
@@ -81,6 +83,10 @@ class ClassInfo:
     #: `Eq`.  Single-parameter classes only, so a superclass is always a
     #: predicate on this class's own parameter and the name alone says it.
     superclasses: list[str] = field(default_factory=list)
+    #: Where the class was declared, so a complaint about it has a line
+    #: to be drawn under (`fixme.md` F100).  `None` for the built-in
+    #: classes, which are written by this file and are in nobody's.
+    span: object = None
 
 
 @dataclass
@@ -229,7 +235,7 @@ def classify(module: VModule) -> Program:
         elif isinstance(item, VSig):
             if item.name in sigs:
                 raise DeclError(
-                    f"Duplicate type signature for '{item.name}'"
+                    f"Duplicate type signature for '{item.name}'{at(item)}"
                 )
             sig_contexts[item.name], sigs[item.name] = desugar_signature(
                 item.type_, aliases, adt_param_tv)
@@ -238,6 +244,7 @@ def classify(module: VModule) -> Program:
             if item.name in implicits:
                 raise DeclError(
                     f"Duplicate `implicit` declaration for '{item.name}'"
+                    f"{at(item)}"
                 )
             context, ty = desugar_signature(item.type_, aliases, adt_param_tv)
             if context:
@@ -245,7 +252,8 @@ def classify(module: VModule) -> Program:
                 # value, not a dictionary; there is nowhere for a predicate
                 # on it to be discharged.
                 raise DeclError(
-                    f"`implicit {item.name}` may not carry a class context"
+                    f"`implicit {item.name}` may not carry a class "
+                    f"context{at(item)}"
                 )
             implicits[item.name] = ty
 
@@ -259,7 +267,7 @@ def classify(module: VModule) -> Program:
             if item.name in scs_by_name:
                 raise DeclError(
                     f"Multiple declarations of '{item.name}' — its equations "
-                    f"must be adjacent"
+                    f"must be adjacent{at(item)}"
                 )
             scs_by_name[item.name] = []
             sc_order.append(item.name)
@@ -282,7 +290,7 @@ def classify(module: VModule) -> Program:
             if item.name in _RESERVED_ADT_NAMES:
                 raise DeclError(
                     f"'{item.name}' is a built-in data type of the FRP "
-                    f"interface and cannot be redeclared"
+                    f"interface and cannot be redeclared{at(item)}"
                 )
             param_tvs = [adt_param_tv(p) for p in item.params]
             param_map = dict(zip(item.params, param_tvs))
@@ -307,7 +315,7 @@ def classify(module: VModule) -> Program:
                     ctx, methods = derive(cls, item.name, item.params,
                                           item.constructors)
                 except DeriveError as e:
-                    raise DeclError(str(e)) from None
+                    raise DeclError(f"{e}{at(item)}") from None
                 derived.append(VInstance(
                     name=cls, params=instance_head(item.name, item.params),
                     members=list(methods.values()), context=ctx,
@@ -352,7 +360,7 @@ def classify(module: VModule) -> Program:
                     raise DeclError(
                         f"Superclass '{pred.class_name}' of class "
                         f"'{item.name}' must constrain the class's own type "
-                        f"parameter"
+                        f"parameter{at(item)}"
                     )
                 if pred.class_name not in supers:
                     supers.append(pred.class_name)
@@ -360,6 +368,7 @@ def classify(module: VModule) -> Program:
                 name=item.name, params=item.params,
                 methods=methods, assoc_types=assoc_types,
                 param_tvs=param_tvs, superclasses=supers,
+                span=item.span,
             )
 
         elif isinstance(item, VInstance):
@@ -369,7 +378,8 @@ def classify(module: VModule) -> Program:
             head_params = [desugar_type(p, inst_map, aliases) for p in item.params]
             if len(head_params) != 1:
                 raise DeclError(
-                    f"Multi-parameter instance not supported yet: {item.name}"
+                    f"Multi-parameter instance not supported yet: "
+                    f"{item.name}{at(item)}"
                 )
             methods: dict[str, VSCEqn] = {}
             assoc_types: dict[str, Type] = {}
@@ -750,11 +760,12 @@ def desugar_type(val: Val, param_map: dict[str, TVar] | None = None,
             return TApp(TApp(TCon("Bounded"),
                              desugar_type(val.left, param_map, aliases)),
                         desugar_type(val.right, param_map, aliases), span=val.span)
-        raise DeclError(f"Unexpected infix operator in type: {val.op}")
+        raise DeclError(
+            f"Unexpected infix operator in type: {val.op}{at(val)}")
     if isinstance(val, VFunc):
         raise DeclError(
-            "A class context (`(C a) => ...`) is only supported on a "
-            "top-level signature, not here"
+            f"A class context (`(C a) => ...`) is only supported on a "
+            f"top-level signature, not here{at(val)}"
         )
     if isinstance(val, VAnnot):
         return desugar_type(val.expr, param_map, aliases)
@@ -763,7 +774,9 @@ def desugar_type(val: Val, param_map: dict[str, TVar] | None = None,
             return TApp(TCon("Set"),
                         desugar_type(val.items[0], param_map, aliases),
                         span=val.span)
-        raise DeclError("Set type with multiple items: use {A} for the type of sets of A")
+        raise DeclError(
+            f"Set type with multiple items: use {{A}} for the type of "
+            f"sets of A{at(val)}")
     if isinstance(val, VBox):
         return TApp(TCon("Box"), desugar_type(val.body, param_map, aliases),
                     span=val.span)
@@ -775,19 +788,22 @@ def desugar_type(val: Val, param_map: dict[str, TVar] | None = None,
         # (`fixme.md` F62).
         if val.tail is not None or len(val.items) != 1:
             raise DeclError(
-                "A list type is written `[a]` — one element type, no tail"
+                f"A list type is written `[a]` — one element type, "
+                f"no tail{at(val)}"
             )
         return TApp(TCon("List"),
                     desugar_type(val.items[0], param_map, aliases),
                     span=val.span)
     if isinstance(val, VTuple):
         if len(val.items) == 1:
-            raise DeclError("A one-component tuple type is just its component")
+            raise DeclError(
+                f"A one-component tuple type is just its component{at(val)}")
         # `()` is fig. 2.1's `1`.  It is a type in its own right, and it is
         # the element type of `Prop = {()}` (`errata.md` D5).
         return mk_tuple([desugar_type(i, param_map, aliases)
                          for i in val.items])
-    raise DeclError(f"Unsupported type expression: {type(val).__name__}")
+    raise DeclError(
+        f"Unsupported type expression: {type(val).__name__}{at(val)}")
 
 
 # ---------------------------------------------------------------------------
@@ -968,11 +984,12 @@ def _pat_predicate(pat: Pat, tyvars: dict[str, TVar],
                    aliases: dict[str, AliasInfo] | None) -> Predicate:
     """Convert one constraint pattern, ``Show a``, into a ``Predicate``."""
     if not isinstance(pat, PCon):
-        raise DeclError(f"Malformed constraint in signature: {pat}")
+        raise DeclError(
+            f"Malformed constraint in signature: {pat}{at(pat)}")
     if len(pat.args) != 1:
         raise DeclError(
             f"Constraint '{pat.name}' must have exactly one type argument "
-            f"(multi-parameter classes are not supported yet)"
+            f"(multi-parameter classes are not supported yet){at(pat)}"
         )
     return Predicate(pat.name, _pat_type(pat.args[0], tyvars, aliases))
 
@@ -990,7 +1007,7 @@ def _pat_type(pat: Pat, tyvars: dict[str, TVar],
         for a in pat.args:
             head = TApp(head, _pat_type(a, tyvars, aliases), span=pat.span)
         return head
-    raise DeclError(f"Unsupported type in constraint: {pat}")
+    raise DeclError(f"Unsupported type in constraint: {pat}{at(pat)}")
 
 
 def _desugar_predicate(val: Val, param_map: dict[str, TVar],
@@ -998,11 +1015,11 @@ def _desugar_predicate(val: Val, param_map: dict[str, TVar],
     """Convert a surface constraint ``C t`` into a ``Predicate``."""
     head, args = _type_spine(val)
     if not isinstance(head, (VConId, VWord)) or head.value in param_map:
-        raise DeclError(f"Malformed constraint: {val}")
+        raise DeclError(f"Malformed constraint: {val}{at(val)}")
     if len(args) != 1:
         raise DeclError(
             f"Constraint '{head.value}' must have exactly one type argument "
-            f"(multi-parameter classes are not supported yet)"
+            f"(multi-parameter classes are not supported yet){at(val)}"
         )
     return Predicate(head.value, desugar_type(args[0], param_map, aliases))
 
@@ -1027,18 +1044,21 @@ def _collect_aliases(module: VModule) -> dict[str, VTypeAlias]:
         if not isinstance(item, VTypeAlias):
             continue
         if item.name in decls:
-            raise DeclError(f"Duplicate type alias: {item.name}")
+            raise DeclError(f"Duplicate type alias: {item.name}{at(item)}")
         if item.name in adt_names:
             raise DeclError(
-                f"Type alias '{item.name}' clashes with a data type of the same name"
+                f"Type alias '{item.name}' clashes with a data type of "
+                f"the same name{at(item)}"
             )
         if item.name in BUILTIN_TYPE_NAMES:
             raise DeclError(
-                f"Type alias '{item.name}' clashes with a built-in type"
+                f"Type alias '{item.name}' clashes with a built-in "
+                f"type{at(item)}"
             )
         if len(set(item.params)) != len(item.params):
             raise DeclError(
-                f"Type alias '{item.name}' has duplicate type parameters"
+                f"Type alias '{item.name}' has duplicate type "
+                f"parameters{at(item)}"
             )
         decls[item.name] = item
     return decls
@@ -1062,7 +1082,7 @@ def _resolve_aliases(decls: dict[str, VTypeAlias],
             return
         if name in stack:
             cycle = " → ".join(stack[stack.index(name):] + [name])
-            raise DeclError(f"Recursive type alias: {cycle}")
+            raise DeclError(f"Recursive type alias: {cycle}{at(decls[name])}")
         decl = decls[name]
         stack.append(name)
         for dep in _alias_deps(decl.body, set(decl.params), decls.keys()):
@@ -1114,6 +1134,21 @@ def _type_spine(val: Val) -> tuple[Val, list[Val]]:
     return val, args
 
 
+class _Spanned:
+    """A bare span, wearing the one attribute `syntax.ast.at` reads.
+
+    `_expand_alias` is handed the span itself rather than the node it
+    came from — the only place in this file where that is true — and a
+    placer that took two shapes would be a placer with a case analysis
+    in it.
+    """
+
+    __slots__ = ("span",)
+
+    def __init__(self, span):
+        self.span = span
+
+
 def _expand_alias(info: AliasInfo, args: list[Type], span) -> Type:
     """Substitute ``args`` for the alias parameters in its body.
 
@@ -1126,7 +1161,8 @@ def _expand_alias(info: AliasInfo, args: list[Type], span) -> Type:
     if len(args) < arity:
         raise DeclError(
             f"Type alias '{info.name}' expects {arity} argument(s) "
-            f"but got {len(args)}; type aliases must be fully applied"
+            f"but got {len(args)}; type aliases must be fully "
+            f"applied{at(_Spanned(span))}"
         )
     subst = {tv.id: a for tv, a in zip(info.param_tvs, args)}
     expanded = _respan(_subst_params(info.body, subst), span)

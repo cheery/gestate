@@ -29,6 +29,7 @@ __all__ = ["asks", "build_roll", "build_rolls", "page_program",
            "Roll", "RefusedError", "RollError"]
 
 
+#: complaint  command — the note roll answering what it could not build
 class RollError(Exception):
     """The box could not be built, in a sentence for the margin."""
 
@@ -790,6 +791,7 @@ def _first_line(exc) -> str:
 # ── Writing back — `spec/north_star.md` ─────────────────────────────────────
 
 
+#: complaint  command — the box refusing an edit, said back to the hand that asked for it
 class RefusedError(Exception):
     """This note does not move, and the sentence says why.
 

@@ -56,6 +56,7 @@ from .match import (
     reset_names, subst_var,
 )
 from .syntax.ast import (
+    at,
     Pat,
     PAnnot,
     PBox,
@@ -94,6 +95,17 @@ from .syntax.rename import pat_names
 from .types import TFun
 
 
+def _of(sc) -> str:
+    """` (at L:C)` for a whole definition — its first equation.
+
+    An `SCInfo` is a name and a list of equations and carries no span of
+    its own; the equations do.  A complaint about a *definition* wants
+    the line the definition starts on, which is the first one.
+    """
+    return at(sc.equations[0]) if getattr(sc, "equations", None) else ""
+
+
+#: complaint  author — the program as written, before it is typed
 class DesugarError(Exception):
     pass
 
@@ -164,6 +176,7 @@ def _desugar_lift(lifted, locals_, cons, using_map, aliases) -> Expr:
         return EAp(EAp(EAp(EGlobal("zipSig"), fn), of(args[0])), of(args[1]))
 
     if "Both" not in cons:
+        #: complaint  author, nowhere — which libraries the program was assembled with, which is a fact about the assembly and not about a line of it
         raise DesugarError(
             "`!` over three or more signals needs `Both` from "
             "`signal.ges`, which this program was not assembled with")
@@ -325,6 +338,7 @@ def _implicit_needs(program: Program) -> dict[str, list[str]]:
                 raise DesugarError(
                     f"`{sc.name}` uses an undeclared implicit `{n}`.  "
                     f"Declare its type at the top level: `implicit {n} : …`"
+                    f"{_of(sc)}"
                 )
 
     if not any(own.values()):
@@ -361,6 +375,7 @@ def _implicit_needs(program: Program) -> dict[str, list[str]]:
         detail = ", ".join(
             f"`{n}`" + (f" (required by `{source[n]}`)" if n in source else "")
             for n in wanted)
+        #: complaint  author, nowhere — an implicit nothing supplies is an absence, and an absence is not written anywhere
         raise DesugarError(
             f"unfilled implicit: {detail} reaches `main`, and nothing "
             f"supplies it.  Bind it with `given {wanted[0]} = … in …` "
@@ -378,6 +393,7 @@ def desugar_program(program: Program) -> list[tuple[str, int, ELambda, object]]:
 
     for sc in program.scs:
         if not sc.equations:
+            #: complaint  machine — a definition with no equations cannot be parsed; this guards the desugarer's own input
             raise DesugarError(f"SC '{sc.name}' has no equations")
 
         eqs = sc.equations
@@ -459,7 +475,7 @@ def _guard_recursion(name: str, arity: int, lam: ELambda) -> tuple[int, ELambda]
         raise DesugarError(
             f"SC '{name}': some recursive calls are guarded by `delay` and "
             f"some are not.  A guarded definition must have every recursive "
-            f"call under a `delay`, or it is not productive"
+            f"call under a `delay`, or it is not productive{at(lam)}"
         )
 
     # `fix r` goes *outside* the parameters, so the SC itself takes none.
@@ -501,12 +517,14 @@ def _desugar_pattern_sc(
     a single-argument dispatch.
     """
     if not eqs:
+        #: complaint  machine — a definition with no equations cannot be parsed; this guards the desugarer's own input
         raise DesugarError(f"SC '{name}' has no equations")
 
     arity = len(eqs[0].params)
     if any(len(eq.params) != arity for eq in eqs):
         raise DesugarError(
-            f"SC '{name}': all equations must have the same number of parameters"
+            f"SC '{name}': all equations must have the same number of "
+            f"parameters{at(eqs[0])}"
         )
 
     arg_names = [f"_{name}_arg{i}" for i in range(arity)]
@@ -715,7 +733,7 @@ def desugar_expr(val: Val, locals_: frozenset[str],
             else:
                 raise DesugarError(
                     f"Constructor {con_name} applied to {len(con_args)} args, "
-                    f"but arity is {con_info.arity}"
+                    f"but arity is {con_info.arity}{at(val)}"
                 )
         return EAp(
             desugar_expr(val.fn, locals_, cons, using_map, aliases),
@@ -780,9 +798,10 @@ def desugar_expr(val: Val, locals_: frozenset[str],
                 continue
             if not _irrefutable(p):
                 raise DesugarError(
-                    "a lambda's parameter must be irrefutable — a variable "
-                    "or a tuple of them — because there is nowhere for a "
-                    "failed match to go.  Use `case` to match a constructor"
+                    f"a lambda's parameter must be irrefutable — a variable "
+                    f"or a tuple of them — because there is nowhere for a "
+                    f"failed match to go.  Use `case` to match a "
+                    f"constructor{at(p)}"
                 )
             name = fresh_name("lam")
             params.append(name)
@@ -877,6 +896,7 @@ def desugar_expr(val: Val, locals_: frozenset[str],
                     "pattern that can fail has no value to take when it "
                     "does.  Bind the element and filter with a guard "
                     "clause instead: `{e | x in s, <test>}`"
+                    f"{at(pat)}"
                 )
             name = fresh_name("elem")
             body = VCase(VWord(name, pat.span), [VAlt(pat, body, pat.span)],
@@ -896,7 +916,8 @@ def desugar_expr(val: Val, locals_: frozenset[str],
 
     if isinstance(val, VUnbox):
         if not isinstance(val.pat, PVar):
-            raise DesugarError("unbox pattern must be a variable")
+            raise DesugarError(
+                f"unbox pattern must be a variable{at(val.pat)}")
         new_locals = locals_ | frozenset([val.pat.name])
         return EUnbox(val.pat.name,
                       desugar_expr(val.binding, locals_, cons, using_map, aliases),
@@ -936,7 +957,8 @@ def desugar_expr(val: Val, locals_: frozenset[str],
             rest = ECon(cons_tag, [item, rest])
         return rest
 
-    raise DesugarError(f"Unsupported expression form: {type(val).__name__}")
+    raise DesugarError(
+        f"Unsupported expression form: {type(val).__name__}{at(val)}")
 
 
 # ---------------------------------------------------------------------------
@@ -978,6 +1000,7 @@ def lower_fields(scs: list) -> list:
         if not isinstance(e, EField):
             return e
         if e.lowering is None:                  # pragma: no cover - defensive
+            #: complaint  machine — inference resolves every projection or refuses it, so reaching codegen unresolved is this program's own doing
             raise DesugarError(
                 f"internal: a projection reached codegen unresolved; "
                 f"inference should have rejected it"

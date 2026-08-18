@@ -26,36 +26,21 @@ from .types import (
 from .unify import unify, UnifyError
 from .declarations import ConInfo, ClassInfo
 from .match import MATCH_FAIL
+from .syntax.ast import at as _at
 
 
+#: complaint  author — an expression as written
 class InferError(Exception):
     pass
 
 
-def at(node) -> str:
-    """` (at L:C)` for a node that carries a span, and `""` for one that does
-    not.
+#: ` (at L:C)`, the one spelling `audiospans.in_source` reads back.
+#: Re-exported rather than re-implemented — it was three copies until
+#: `syntax.ast.at` became the one, and the copies were what made a
+#: placer a property of whichever checker somebody had complained about.
+at = _at
 
-    **The shape is not arbitrary**: `audiospans._AT` reads exactly this
-    back, and is what moves the number out of assembled coordinates and
-    into the author's file — which is what lets an editor put the message
-    on the line it is about instead of at the top of the window.  Measured
-    before this existed, six of ten kinds of error carried no position at
-    all, and `Unknown global 'sinewave'` — a typo, the commonest mistake
-    there is — was among them.
-
-    Silent when there is no span, because there are nodes the desugaring
-    builds that were never written down, and inventing a position for one
-    would be worse than admitting there is none.
-    """
-    span = getattr(node, "span", None)
-    if span is None:
-        return ""
-    start = getattr(span, "start", span)
-    line, col = getattr(start, "line", None), getattr(start, "col", None)
-    return "" if line is None or col is None else f" (at {line}:{col})"
-
-
+#: complaint  author — a name with no definition, placed at the use
 class UnresolvedName(InferError):
     """A name with no definition — the one failure that stops the rest meaning
     anything.
@@ -460,7 +445,8 @@ def infer(env: dict[Name, Scheme], expr: Expr, fresh: Fresh,
         t_base, s = infer(env, expr.base, fresh, cons, classes, constraints_out)
         t_base = s.apply(t_base)
         expr.base_type = t_base
-        field_t, lowering = _resolve_field(t_base, expr.index, cons)
+        field_t, lowering = _resolve_field(t_base, expr.index, cons,
+                                           at(expr))
         expr.lowering = lowering
         _apply_subst_constraints(constraints_out, s)
         return s.apply(field_t), s
@@ -628,7 +614,7 @@ def infer(env: dict[Name, Scheme], expr: Expr, fresh: Fresh,
         except (UnifyError, InferError) as exc:
             raise InferError(
                 f"fix expects a boxed monotone set function {want}: {exc}; "
-                f"write `fix Box (x => ...)`"
+                f"write `fix Box (x => ...)`{at(expr)}"
             )
         _apply_subst_constraints(constraints_out, s)
         expr.set_type = s.apply(fix_t)
@@ -691,6 +677,7 @@ def infer(env: dict[Name, Scheme], expr: Expr, fresh: Fresh,
         expr.set_type = s.apply(TApp(TCon("Set"), elt_t))
         return expr.set_type, s
 
+    #: complaint  machine — every expression form the desugarer emits is handled above
     raise InferError(f"Unknown expression: {type(expr).__name__}")
 
 
@@ -876,7 +863,8 @@ def _infer_case(env, e, fresh, cons, classes, constraints_out):
     ret_t = fresh.tv()
     for alt in e.alts:
         con = _con_by_tag(alt.tag, cons)
-        if con is None: raise InferError(f"Unknown constructor tag: {alt.tag}")
+        if con is None:
+            raise InferError(f"Unknown constructor tag: {alt.tag}{at(e)}")
         ctor_type, _ = _instantiate_adt(con.type_, fresh)
         field_types = _extract_field_types(ctor_type)
         ctor_ret = ctor_type
@@ -897,7 +885,8 @@ def _check_case(env, e, expected, fresh, cons, classes, constraints_out):
     scrut_t, s = infer(env, e.scrut, fresh, cons, classes, constraints_out)
     for alt in e.alts:
         con = _con_by_tag(alt.tag, cons)
-        if con is None: raise InferError(f"Unknown constructor tag: {alt.tag}")
+        if con is None:
+            raise InferError(f"Unknown constructor tag: {alt.tag}{at(e)}")
         ctor_type, _ = _instantiate_adt(con.type_, fresh)
         field_types = _extract_field_types(ctor_type)
         ctor_ret = ctor_type
@@ -957,7 +946,8 @@ def _attach_sc_constraints(env: dict[Name, Scheme], name: str,
         env[name] = Scheme(frozenset(quant), env_type, tuple(filtered))
 
 
-def _resolve_field(t: Type, index, cons: dict) -> tuple[Type, tuple]:
+def _resolve_field(t: Type, index, cons: dict,
+                   place: str = "") -> tuple[Type, tuple]:
     """The type of `e.index`, and how to lower it, from `e`'s type.
 
     Both shapes are selected the same way in the surface and differently at
@@ -968,7 +958,7 @@ def _resolve_field(t: Type, index, cons: dict) -> tuple[Type, tuple]:
     if not isinstance(index, int):
         raise InferError(
             f"'.{index}' is not a projection: fields are selected by "
-            f"position, and a record declares no field names"
+            f"position, and a record declares no field names{place}"
         )
 
     parts = tuple_parts(t)
@@ -976,7 +966,7 @@ def _resolve_field(t: Type, index, cons: dict) -> tuple[Type, tuple]:
         if index >= len(parts):
             raise InferError(
                 f"'.{index}' on a {len(parts)}-tuple — the components are "
-                f"0 to {len(parts) - 1}"
+                f"0 to {len(parts) - 1}{place}"
             )
         return parts[index], ("tuple", index, len(parts))
 
@@ -987,6 +977,7 @@ def _resolve_field(t: Type, index, cons: dict) -> tuple[Type, tuple]:
             f"not known here.  Projection is resolved from the type rather "
             f"than through a class, so give the value a signature — or "
             f"destructure it with a pattern, which needs no annotation"
+            f"{place}"
         )
     if isinstance(head, TCon) and cons:
         owned = [ci for ci in cons.values()
@@ -1000,7 +991,7 @@ def _resolve_field(t: Type, index, cons: dict) -> tuple[Type, tuple]:
             if index >= len(fields):
                 raise InferError(
                     f"'.{index}' on '{head.name}', which has "
-                    f"{len(fields)} field(s)"
+                    f"{len(fields)} field(s){place}"
                 )
             _rh, params = _spine(ret)
             subst = {p.id: a for p, a in zip(params, args)
@@ -1011,12 +1002,12 @@ def _resolve_field(t: Type, index, cons: dict) -> tuple[Type, tuple]:
             raise InferError(
                 f"'.{index}' on '{head.name}', which has {len(owned)} "
                 f"constructors — only a record (one constructor) can be "
-                f"projected; use a `case`"
+                f"projected; use a `case`{place}"
             )
 
     from .show import show_type
     raise InferError(f"'.{index}' on {show_type(t)}, which is not a "
-                     f"tuple or a record")
+                     f"tuple or a record{place}")
 
 
 def _con_owner(ci) -> str | None:

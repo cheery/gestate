@@ -7789,3 +7789,120 @@ working while its author was away, and none of them broke anything he was
 using.  That is not the smaller job.  It is the one that made the whole
 arrangement possible: he could leave, and the tree would still be
 standing when he came back.
+
+## Every complaint, and who is standing in front of it
+
+*2026-08-18.  `board/done/error-messages.md`, at Henri's ask: "we maybe need
+to arrange a session where we examine meticulously every error message
+and ensure they work.  We already did that once and it needs to be done
+again."*
+
+**The card's own best evidence was the receipt for the last sweep.**
+`journal.md` Part I item 13 records it — *"(implemented) Better error
+messages — source spans in type errors"* — and the last line of that
+entry is the one to remember: *the data is available from the parser, it
+just needs to be carried through inference.*  It was carried through
+inference and stopped there.  Nothing was written down about where it
+stopped, so `kindcheck.py` could be given the same arithmetic by hand,
+for one message, years later, and a type constructor one letter wrong
+could land nowhere at all (F152) in a checker written after the sweep
+that was supposed to cover it.
+
+So the deliverable this time is **the list**, not the fixes.
+`doc/complaints.md`: 390 complaints, generated from a verdict written
+beside each `raise`, and a suite gate that fails when a new one arrives
+without one.
+
+### Four words, and the one that had to be invented
+
+Henri chose the shape in three answers.  Scope: *everything a person's
+own file can reach, in full; the rest recorded in one line each* — the
+alternative, auditing the front end only, *is the same narrowing that
+made the last sweep leave a gap nobody recorded*.  Position: *a default,
+with the exceptions recorded*, because forcing one everywhere gives
+exhaustiveness a line number that means nothing, and adding them as
+people stumble *is the status quo, and it is what produced F152*.  And
+the list: *generated and gated*, because a hand-written audit *goes
+stale the first time somebody adds a raise, exactly like the last one
+did*.
+
+The vocabulary is who is standing in front of the message — `author`,
+`command`, `world`, `machine` — and only `author` owes a place.  What
+the card did not foresee is that **two very different things want to say
+"no line"**, and calling them the same word would have buried the whole
+point of the exercise:
+
+* `nowhere` — the mistake is an *absence* or a property of a whole
+  program.  A synth with no `sound` in it, a piece that declares both a
+  `bpm` and a `tempo`, an implicit nothing supplies.  There is no line
+  because there is nothing written.  **A decision.**
+* `unplaced` — a place is possible, the data is at hand, and nobody
+  carried it through.  **A debt**, and it must name the `fixme.md`
+  F-number that owns it, or the gate refuses it.
+
+Without the second, every debt would have been filed as a design and the
+list would have been a graveyard on the day it was written.  56 rows are
+debts; four defects own them (F156–F159), and each of those entries says
+how many rows it owns, so closing one is visible as this list getting
+shorter.
+
+### What the sweep actually fixed
+
+The cheap half, taken while sweeping, as the card said to:
+
+**The placer existed three times.**  `infer.at`, `kindcheck._where` and
+`coherence._where` were the same six lines, each living in the one
+checker whose messages somebody had already complained about — which is
+precisely how a fourth checker comes to have none.  It is
+`syntax.ast.at` now, at the bottom where every stage can reach it, and
+the three names are kept as aliases because six call sites read better
+with them.
+
+**Places carried through, where the span was already in the room:** all
+25 declaration complaints, eight in the desugarer, the whole projection
+family in inference, both of `unify`'s placeless mismatches, the kind
+expressions, and — the one worth having — **exhaustiveness**, which now
+says which line the definition starts on instead of only its name.  111
+of 390 complaints say where now; 20 did when the card was taken.
+
+**And two files were counting in the other coordinate system.**
+`internals.py` and `audiovoices.py` read the author's own text *before*
+anything is prepended to it, and both said `line 4:` — a position that
+existed and was never read, because `session._line_of` looks for `at`.
+They say `at line 4:0` now, which is the one spelling
+`audiospans.in_source` leaves alone and the margin still reads.  The
+same defect, a third time, in `audioscore._refuse_retired`.  **Three
+sites, one mistake, and it is a mistake about a regular expression
+nobody was looking at** — which is the argument for the tool rather than
+for the reading.
+
+### The bug in the tool that was the bug in the tree
+
+`MidiError` is declared twice — in `midi.py`, about the shape of a score
+stream, and in `audiomidi.py`, about which keyboard to listen to.  The
+first reader keyed its table by class name alone, so one file's verdict
+silently answered for the other's raises: `machine` and `command`, as
+wrong as it gets without being noticed.  Which is the same shape as the
+thing being audited — *a decision made once, applied somewhere nobody
+checked* — and it took two minutes to find only because the page prints
+the verdict beside the message and the two did not read like each other.
+
+### What it does not check, and why that is the point
+
+Whether the sentence is any good.  Four of the card's six properties —
+says what, survives formatting, speaks in the vocabulary of what you
+were doing, does not fire when nobody asked — are judgements about prose
+and timing, and a tool claiming to check them would be the second source
+of truth this project keeps refusing to build.  The sweep is for those.
+The tool is only for stopping the sweep's result from rotting, which is
+the single thing the last sweep did not do.
+
+### And the postcondition, tested the way it was written
+
+*"A mistake a person makes in their own file is answered under the line
+they wrote it on."*  Seven mistakes somebody actually makes, written into
+a file, compiled the way the workbench compiles it and read back the way
+the workbench reads it — `test_error_places.py`, the whole path rather
+than the message.  That is a different claim from *the message contains
+a position*, and the difference is where all three `line 4:` defects
+were hiding.

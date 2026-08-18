@@ -26,6 +26,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
+#: complaint  author, nowhere — what a synth declares its output to be; the mistake is a shape, and shapes have no line
 class IRError(Exception):
     """A graph that cannot mean anything — the IR's own complaint.
 

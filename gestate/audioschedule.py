@@ -43,6 +43,7 @@ from bisect import bisect_right
 from dataclasses import dataclass, field
 
 
+#: complaint  machine — a schedule this program built for itself
 class ScheduleError(Exception):
     pass
 
@@ -120,6 +121,7 @@ class Schedule:
             by_node[node.id] = (chan, node.init)
         unknown = set(self.changes) - set(graph.control_by_chan())
         if unknown:
+            #: complaint  command — the schedule came from the caller and names channels this graph does not have
             raise ScheduleError(
                 "this schedule names channels the graph does not have: "
                 + ", ".join(sorted(unknown)) + ".  It has "

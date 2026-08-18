@@ -18,6 +18,7 @@ from __future__ import annotations
 from . import gmachine as gm
 
 
+#: complaint  machine — the pure core's own invariants, and whatever the Rust side reported back
 class CrustError(Exception):
     pass
 
@@ -107,6 +108,7 @@ def serialize(state, entry: str = "main") -> str:
                 rows.append("I CaseJump " + str(len(pairs)) + " "
                             + " ".join(f"{t} {b}" for t, b in pairs))
             else:
+                #: complaint  author, unplaced — fixme.md F157: a program outside the pure core, named by the node kind and not by the line
                 raise CrustError(
                     f"`{t.__name__}` is outside crust's pure core — this "
                     f"program needs the reference machine")
@@ -237,6 +239,7 @@ def _library():
     if _outdated(so, _sources(_CRUST_DIR)):
         if shutil.which("cargo") is None:
             if not so.exists():
+                #: complaint  world — no built library and no toolchain to build one
                 raise CrustError(
                     "no libcrust.so and no cargo to build it — "
                     "`cargo build --release` in `crust/` makes one")
@@ -482,6 +485,7 @@ class NativeStream:
                 fields.append(value)
             bank = self.by_tag.get(tag)
             if bank is None:
+                #: complaint  author, nowhere — a note names a bank the piece does not declare, which is about two declarations
                 raise CrustError(
                     f"a note assigned to a voice bank this program does "
                     f"not declare (constructor tag {tag})")

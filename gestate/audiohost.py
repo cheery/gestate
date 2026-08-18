@@ -41,6 +41,7 @@ MIX = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_void_p,
                        ctypes.c_double, ctypes.c_double)
 
 
+#: complaint  world — the sound card, and the toolchain the host is built with
 class HostError(Exception):
     pass
 
@@ -501,6 +502,7 @@ class Host:
         import struct
 
         if not 0 <= index < len(self.control):
+            #: complaint  machine — the host's own slot table
             raise HostError(f"no control slot {index}")
         if kind == "Float":
             self.control[index] = struct.unpack(

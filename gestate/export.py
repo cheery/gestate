@@ -28,6 +28,7 @@ import subprocess
 from pathlib import Path
 
 
+#: complaint  world — the toolchain a plugin is built with
 class ExportError(Exception):
     pass
 
@@ -737,6 +738,7 @@ def export_clap(source: str, out: Path, *, rate=None, name: str,
             # A slot is one i64 and the shell reinterprets it the way
             # `Host.set_control` does; a channel of any other shape is
             # a fact this generator would silently mangle.
+            #: complaint  author, unplaced — fixme.md F156: a control channel the author declared, named by the channel and not by the line
             raise ExportError(
                 f"channel `{node.chan}` carries `{node.type_}`, which "
                 f"does not fit a control slot")
@@ -746,6 +748,7 @@ def export_clap(source: str, out: Path, *, rate=None, name: str,
     order = [n.chan for n in graph.control_sources()]
     for r, g in graphs.items():
         if [n.chan for n in g.control_sources()] != order:
+            #: complaint  author, nowhere — two rates ordering their channels differently is a property of the pair, not of a line
             raise ExportError(f"the graph at {r} Hz orders its channels "
                               f"differently — export cannot share slots")
 

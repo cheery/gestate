@@ -63,6 +63,38 @@ class Span:
         return f"Span({self.start},{self.end})"
 
 
+def at(node) -> str:
+    """` (at L:C)` for anything that carries a span, and `""` for anything
+    that does not.
+
+    **The shape is not arbitrary**: `audiospans.in_source` reads exactly
+    this back, and is what moves the number out of assembled coordinates
+    and into the author's own file — which is what lets the workbench put
+    a complaint on the line it is about instead of at the top of the
+    window.  `session._line_of` reads the same spelling for the same
+    reason.
+
+    Silent when there is no span, because there are nodes the desugaring
+    builds that were never written down, and inventing a position for one
+    would be worse than admitting there is none.
+
+    **Here, at the bottom, because it had been written three times.**
+    `infer.at`, `kindcheck._where` and `coherence._where` were the same
+    six lines, each in the one checker whose messages somebody had
+    already complained about — which is how `kindcheck` came to have the
+    arithmetic and use it for a single message (`fixme.md` F141), and how
+    a type constructor's name could be one letter wrong and land nowhere
+    a year later (F152).  A placer that lives in one checker is a placer
+    the next checker will not have.
+    """
+    span = getattr(node, "span", None)
+    if span is None:
+        return ""
+    start = getattr(span, "start", span)
+    line, col = getattr(start, "line", None), getattr(start, "col", None)
+    return "" if line is None or col is None else f" (at {line}:{col})"
+
+
 # ── Values ──────────────────────────────────────────────────────────────────
 
 class Val:

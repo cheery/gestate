@@ -88,6 +88,7 @@ from .expr import (
 __all__ = ["lift", "LiftError"]
 
 
+#: complaint  machine — lambda lifting's own invariants
 class LiftError(Exception):
     pass
 

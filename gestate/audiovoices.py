@@ -88,6 +88,26 @@ _DECL = re.compile(
 _FIELD_DEFAULT = {"Int": "0", "Float": "0.0"}
 
 
+def _at(bank) -> str:
+    """` (at line N:0)` for a `voices` declaration — the line it is on.
+
+    **The spelling is not the usual one, and that is the point.**  Every
+    other complaint in this program counts from the top of the
+    *assembled* text and is translated on the way out by
+    `audiospans.in_source`; this file reads the author's own source
+    before anything is prepended to it, so a `(at N:C)` here would be
+    translated a second time and land in a prelude.  `at line N:C` is
+    the form `in_source` leaves alone and `session._line_of` still
+    reads, which is what puts the box under the declaration.
+
+    `Bank.line` is 0-based, because it is also what blanks the line;
+    a reader counts from one.
+    """
+    line = getattr(bank, "line", None)
+    return "" if line is None else f" (at line {line + 1}:0)"
+
+
+#: complaint  author — a `voices` declaration, placed by the line it is written on
 class VoicesError(Exception):
     pass
 
@@ -168,7 +188,8 @@ def _banks(lines: list) -> list:
                 f"retired two-part spelling.  Name the voice in the "
                 f"declaration — `voices {name} {count} <voice> : {result}` "
                 f"— and drop the `{name} = <voice>` line: the payload type "
-                f"now comes from the voice's own signature")
+                f"now comes from the voice's own signature (at line "
+                f"{i + 1}:0)")
         match = _DECL_INLINE.match(stripped)
         if match is None:
             continue
@@ -178,7 +199,8 @@ def _banks(lines: list) -> list:
         record_known = ""
         if int(count) < 1:
             raise VoicesError(
-                f"`voices {name} {count}` — a bank needs at least one voice")
+                f"`voices {name} {count}` — a bank needs at least one "
+                f"voice (at line {i + 1}:0)")
         out.append(Bank(name=name, count=int(count), record=record_known,
                         result=result, line=i, voice=voice,
                         voice_line=-1))
@@ -228,9 +250,11 @@ def _payload_of(source: str, bank: Bank) -> str:
                 if isinstance(i, VSig) and i.name == head), None)
     if sig is None:
         raise VoicesError(
-            f"`{bank.declaration}` — `{head}` has no type signature, and "
-            f"the bank reads what its notes carry off one.  Give it "
-            f"`{head} : Sig Gate -> Sig <Payload> -> Sig {bank.result}`")
+            f"`{bank.declaration}`{_at(bank)} — `{head}` has no type "
+            f"signature, and the bank reads what its notes carry off one.  "
+            f"Give it "
+            f"`{head} : Sig Gate -> Sig <Payload> -> Sig "
+            f"{bank.result}`{_at(bank)}")
 
     params = _arrow_parts(sig.type_)[supplied:]
     gate = params[0] if params else None
@@ -241,7 +265,7 @@ def _payload_of(source: str, bank: Bank) -> str:
             f"handed two signals: `{head} : Sig Gate -> Sig <Payload> -> "
             f"Sig {bank.result}`, where `Gate` says when the note began "
             f"and when it was released, and the payload is this program's "
-            f"own")
+            f"own{_at(bank)}")
     return _names_sig_of(payload)
 
 
@@ -293,7 +317,7 @@ def _find_voice(bank: Bank, lines: list) -> None:
     raise VoicesError(
         f"`voices {bank.name} {bank.count} : {bank.record} -> Sig "
         f"{bank.result}` has no `{bank.name} = <voice>` to say what a "
-        f"voice is")
+        f"voice is{_at(bank)}")
 
 
 def _prepare(lines: list, banks: list) -> str:
@@ -380,11 +404,11 @@ def _field_types(source: str, record: str, bank: str) -> tuple:
         allowed = " or ".join(sorted(_FIELD_DEFAULT))
         raise VoicesError(
             f"the bank `{bank}` plays `{record}`, which is neither "
-            f"{allowed} nor a data type declared here")
+            f"{allowed} nor a data type declared here{_at(bank)}")
     if len(decl.constructors) != 1:
         raise VoicesError(
             f"`{record}` has {len(decl.constructors)} constructors; a voice's "
-            f"parameters are one record, so it needs exactly one")
+            f"parameters are one record, so it needs exactly one{_at(bank)}")
 
     fields = []
     for field in decl.constructors[0].fields:
@@ -393,11 +417,12 @@ def _field_types(source: str, record: str, bank: str) -> tuple:
             raise VoicesError(
                 f"`{record}` has a field this bank cannot supply: every field "
                 f"becomes a control channel, and a control value is one slot, "
-                f"so each must be {allowed}")
+                f"so each must be {allowed}{_at(bank)}")
         fields.append(field.value)
     if not fields:
         raise VoicesError(
-            f"`{record}` has no fields, so a voice would have nothing to play")
+            f"`{record}` has no fields, so a voice would have nothing to "
+            f"play{_at(bank)}")
     return tuple(fields)
 
 
@@ -439,17 +464,17 @@ def _frame(source: str, bank: Bank, prelude: str = "") -> list:
         raise VoicesError(
             f"`voices {bank.name} … -> Sig {bank.result}` names no data "
             f"type in this program or the prelude; a voice produces "
-            f"`Float`, or a record of `Float`s for a frame")
+            f"`Float`, or a record of `Float`s for a frame{_at(bank)}")
     if len(decl.constructors) != 1:
         raise VoicesError(
             f"`{bank.result}` has {len(decl.constructors)} constructors; a "
-            f"frame is one record")
+            f"frame is one record{_at(bank)}")
     fields = decl.constructors[0].fields
     if not fields or any(not isinstance(f, VConId) or f.value != "Float"
                          for f in fields):
         raise VoicesError(
             f"`{bank.result}` is not a frame: every field must be `Float`, "
-            f"because each one is an output channel")
+            f"because each one is an output channel{_at(bank)}")
     return [f.value for f in fields]
 
 
@@ -795,7 +820,8 @@ def expand(source: str, prelude: str = "") -> str:
     seen = set()
     for bank in banks:
         if bank.name in seen:
-            raise VoicesError(f"two banks are both called `{bank.name}`")
+            raise VoicesError(
+                f"two banks are both called `{bank.name}`{_at(bank)}")
         seen.add(bank.name)
 
     # Blanked, not removed: every line below a bank would otherwise shift,
@@ -869,6 +895,7 @@ def _refuse_collisions(source: str, generated: list, banks: list) -> None:
             name = found.group(1)
             whose = next((b.name for b in banks
                           if name.startswith(b.name)), banks[0].name)
+            #: complaint  author, unplaced — fixme.md F158: the clash is between a declaration and a definition, and neither line is carried here
             raise VoicesError(
                 f"`{name}` is defined in this program and is also generated "
                 f"by the `voices {whose}` declaration.\n"
@@ -892,6 +919,7 @@ def _rewrite_holds(source: str, banks: list) -> str:
     def one(match):
         name = match.group(1)
         if name not in known:
+            #: complaint  author, unplaced — fixme.md F158: `holds.NAME` is written in the source and its line is not carried to here
             raise VoicesError(
                 f"`holds.{name}` names no bank; this program declares "
                 + (", ".join(f"`{b}`" for b in sorted(known)) or "none"))
@@ -944,6 +972,7 @@ def _rewrite_dots(source: str, banks: list) -> str:
     def one(match):
         name = match.group(1)
         if name not in known:
+            #: complaint  author, unplaced — fixme.md F158: `voices.NAME` is written in the source and its line is not carried to here
             raise VoicesError(
                 f"`voices.{name}` names no bank; this program declares "
                 + (", ".join(f"`{b}`" for b in sorted(known)) or "none"))

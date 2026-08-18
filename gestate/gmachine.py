@@ -98,10 +98,12 @@ __all__ = [
 ]
 
 
+#: complaint  machine — the evaluator's own invariants, reached only by a program this compiler built wrong
 class GmError(Exception):
     pass
 
 
+#: complaint  author, nowhere — a budget running out is about a whole evaluation, not a line of it
 class StepLimit(GmError):
     """`run` spent its whole budget without finishing.
 
@@ -1242,6 +1244,7 @@ def _sighead(_: SigHead, s: GmState):
     if not isinstance(node, NSig):
         raise GmError("SigHead on non-NSig")
     if not node.current:
+        #: complaint  author, unplaced — fixme.md F159: a signal read out of turn is the program's mistake, and the instruction that reads it carries no span the way `Hole` does
         raise GmError(
             "head of a signal on the earlier heap: it has not been updated "
             "yet this step.  A signal may only read signals allocated "
@@ -1339,13 +1342,15 @@ def _deref(node: Node) -> Node:
 
 
 def _matchfail(_: MatchFail, s: GmState):
+    #: complaint  author, unplaced — fixme.md F159: a match that covers nothing is the program's mistake; exhaustiveness catches most of them and this is what catches the rest
     raise GmError("pattern match failure: no alternative matched")
 
 
 def _hole(i: Hole, s: GmState):
     """Said by name, because the author knows exactly what is missing."""
-    where = f" (at {i.line}:{i.col})" if (i.line or i.col) else ""
-    raise GmError(f"a hole (`_`){where} has no value: it is a question "
+    place = f" (at {i.line}:{i.col})" if (i.line or i.col) else ""
+    #: complaint  author — the one runtime complaint a person is expecting, and the one instruction that carries its own span
+    raise GmError(f"a hole (`_`){place} has no value: it is a question "
                   f"the type checker answers and the evaluator cannot")
 
 
@@ -1362,6 +1367,7 @@ def _ltint(i: LtInt, s: GmState):
 def _divint(_: DivInt, s: GmState):
     a, b = _prim_operands(s, "DivInt")
     if b.n == 0:
+        #: complaint  author, unplaced — fixme.md F159: dividing by zero is a program's own doing and the instruction carries no span
         raise GmError("DivInt: division by zero")
     _prim_result(s, NNum(a.n // b.n))
 
@@ -1369,6 +1375,7 @@ def _divint(_: DivInt, s: GmState):
 def _xorint(_: XorInt, s: GmState):
     a, b = _prim_operands(s, "XorInt")
     if a.n < 0 or b.n < 0:
+        #: complaint  author, unplaced — fixme.md F159
         raise GmError("XorInt on a negative number")
     _prim_result(s, NNum(a.n ^ b.n))
 
@@ -1376,6 +1383,7 @@ def _xorint(_: XorInt, s: GmState):
 def _modint(_: ModInt, s: GmState):
     a, b = _prim_operands(s, "ModInt")
     if b.n == 0:
+        #: complaint  author, unplaced — fixme.md F159
         raise GmError("ModInt: division by zero")
     _prim_result(s, NNum(a.n % b.n))
 
@@ -1383,6 +1391,7 @@ def _modint(_: ModInt, s: GmState):
 def _divfloat(_: DivFloat, s: GmState):
     a, b = _prim_operands(s, "DivFloat")
     if b.n == 0:
+        #: complaint  author, unplaced — fixme.md F159
         raise GmError("DivFloat: division by zero")
     _prim_result(s, NNum(a.n / b.n))
 
@@ -1390,6 +1399,7 @@ def _divfloat(_: DivFloat, s: GmState):
 def _modfloat(_: ModFloat, s: GmState):
     a, b = _prim_operands(s, "ModFloat")
     if b.n == 0:
+        #: complaint  author, unplaced — fixme.md F159
         raise GmError("ModFloat: division by zero")
     _prim_result(s, NNum(a.n % b.n))
 
@@ -1418,8 +1428,10 @@ def _mathfloat(op: MathFloat, s: GmState):
         # `log` of a negative, `sqrt` of a negative.  Python raises where C
         # returns NaN, so the two would diverge here rather than agree on a
         # value; saying so is better than either.
+        #: complaint  author, unplaced — fixme.md F159: a primitive undefined at the value it was given
         raise GmError(f"{op.fn} is undefined at {a.n!r}: {exc}") from None
     except OverflowError:
+        #: complaint  author, unplaced — fixme.md F159: a primitive overflowed at the value it was given
         raise GmError(
             f"{op.fn} overflowed at {a.n!r}: the result is larger than a "
             f"double can hold") from None

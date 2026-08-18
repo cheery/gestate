@@ -24,7 +24,8 @@ from .elaborate import (
 )
 from .specialise import specialise
 from .envexpand import expand as expand_envelopes
-from .kindcheck import build_kind_env, check_kind, KindError
+from .kindcheck import (build_kind_env, check_class_names, check_kind,
+                        KindError)
 from .helpers import generate_all_helpers, _type_suffix
 from .seminaive import transform as seminaive_transform, make_semifix_helpers
 from .bottoms import propagate_scs as propagate_bottoms
@@ -35,14 +36,17 @@ from .monotone import check_scs as check_monotone
 from .subgrammar import check_scs as check_subgrammars
 
 
+#: complaint  author, nowhere — the program as a whole was too deep to compile, which is a property of the whole
 class PipelineError(Exception):
     pass
 
 
+#: complaint  author — a use that is not monotone, in the words the checker refused it with
 class MonotoneError(Exception):
     """A box closed over a monotone variable (see `monotone.py`)."""
 
 
+#: complaint  author — a program outside the signal subgrammar, in the words the checker refused it with
 class SubgrammarError(Exception):
     """A type escaped its subgrammar (see `subgrammar.py`)."""
 
@@ -90,6 +94,7 @@ def _build_builtins() -> dict:
 
 
 def _kind_check_program(program, sigs, assume: dict | None = None):
+    check_class_names(program)
     kind_env = build_kind_env(program.cons, program.kind_decls)
     if assume:
         for name, kind in assume.items():
@@ -1036,6 +1041,7 @@ def _uses_datafun(scs: list) -> bool:
     return False
 
 
+#: complaint  author, unplaced — fixme.md F157: the set type is named and the expression that needs it is not
 class MonomorphizationError(Exception):
     """A Datafun operation landed at a type helpers were not generated for."""
 

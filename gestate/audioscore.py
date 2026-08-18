@@ -39,6 +39,7 @@ from .audio import BEAT, BEAT_ENVELOPE, has_bpm, has_tempo
 from .midi import TICKS_PER_BEAT
 
 
+#: complaint  author, unplaced — fixme.md F158: a piece's complaints name a beat or a bank, never the line the note is written on
 class ScoreError(Exception):
     pass
 
@@ -109,6 +110,7 @@ def _bank_for(program, banks: list) -> BankRef:
     known = ", ".join(
         f"{b.name}({', '.join(str(p) for p in b.programs) or 'default'})"
         for b in banks)
+    #: complaint  author, nowhere — the piece names an instrument no bank plays, which is about two declarations
     raise ScoreError(
         f"this score uses instrument {program!r} and no bank plays it; "
         f"there is {known}.  Give a bank that program, or mark one default")
@@ -132,6 +134,7 @@ def schedule_of(events: list, bpm: int, rate: int, banks: list, *,
     from .audioschedule import Schedule
 
     if not banks:
+        #: complaint  author, nowhere — a piece with no bank to play it through at all
         raise ScoreError("no banks to play a score through")
     schedule = Schedule() if schedule is None else schedule
 
@@ -274,7 +277,14 @@ def _refuse_retired(authored: str) -> None:
         found = re.search(rf"\b{name}\b", bare)
         if found:
             line = bare[:found.start()].count("\n") + 1
-            raise ScoreError(f"line {line}: {hint}")
+            # **`at line N`, not `line N`.**  The number was here all
+            # along and nothing read it: the workbench looks for `at`,
+            # so a retired name was reported without a box under it
+            # (`board/done/error-messages.md`).  `at line` is also the form
+            # `audiospans.in_source` leaves alone, which is what this one
+            # needs — the count is of the author's own text, not of the
+            # assembly.
+            raise ScoreError(f"at line {line}:0: {hint}")
 
 
 def _tempo_of(source: str) -> str:
@@ -290,6 +300,7 @@ def _tempo_of(source: str) -> str:
     """
     if has_tempo(source):
         if has_bpm(source):
+            #: complaint  author, nowhere — the piece declares two ways of saying how fast it goes; the mistake is the pair
             raise ScoreError(
                 "this piece declares both a `bpm` and a `tempo`, and only "
                 "one of them says how fast it goes.  A `bpm` is a `tempo` "
@@ -447,6 +458,7 @@ def perform_voices(synth: str, piece: str = "", rate: int = 22050,
     # score's end, and these names say there may not be one.
     unfolding = unfolding_names(synth + "\n" + piece)
     if unfolding:
+        #: complaint  author, nowhere — a score that unfolds forever, which is a property of the piece
         raise ScoreError(
             "this score unfolds — "
             + ", ".join(f"`{n}`" for n in unfolding)
@@ -479,6 +491,7 @@ def perform_voices(synth: str, piece: str = "", rate: int = 22050,
     run(state)
     top = _force(state.stack[0], state)
     if not is_tuple(top, 2):
+        #: complaint  machine — the entry point is written by the renderer, not by the author
         raise ScoreError("internal: the entry point did not produce a pair")
     bpm = (_int(top.args[0], state) if spelling == "bpm"
            else _tempo_envelope(top.args[0], state))
@@ -502,13 +515,16 @@ def perform_voices(synth: str, piece: str = "", rate: int = 22050,
     for cell in _list(top.args[1], state):
         node = _force(cell, state)
         if not is_tuple(node, 3):
+            #: complaint  machine — the score stream's shape as the layout walks it
             raise ScoreError("expected an (onset, offset, voice) triple")
         onset, offset, voice = node.args
         v = _force(voice, state)
         if not isinstance(v, NCon):
+            #: complaint  machine — the score stream's shape as the layout walks it
             raise ScoreError("expected a `Voice` value")
         bank = by_tag.get(v.tag)
         if bank is None:
+            #: complaint  author, nowhere — a note names a bank the piece does not declare
             raise ScoreError(
                 f"a note assigned to a voice bank this program does not "
                 f"declare (constructor tag {v.tag})")
@@ -733,6 +749,7 @@ def stream_root(synth: str, piece: str = "", rate: int = 22050,
     run(state)
     top = _force(state.stack[0], state)
     if not is_tuple(top, 2):
+        #: complaint  machine — the entry point is written by the renderer, not by the author
         raise ScoreError("internal: the entry point did not produce a pair")
     tempo = (_int(top.args[0], state) if spelling == "bpm"
              else _tempo_envelope(top.args[0], state))
@@ -844,11 +861,13 @@ def _shape_spans(state, seed: int, limit: int = 64,
     out: list = []
     while len(out) < limit:
         if not isinstance(node, NCon) or node.tag not in (cons, nil):
+            #: complaint  machine — the spans stream's shape
             raise ScoreError("internal: the spans stream is not a list")
         if node.tag == nil:
             break
         entry = _force(node.args[0], state)
         if not is_tuple(entry, 3):
+            #: complaint  machine — the spans stream's shape
             raise ScoreError("internal: a span is not (from, to, points)")
         points = []
         for cell in _list(entry.args[2], state):
@@ -973,14 +992,18 @@ def shape_plan(state, seed: int, source: str, limit: int = 64) -> list:
     out: list = []
     while len(out) < limit:
         if not isinstance(node, NCon) or node.tag not in (cons, nil):
+            #: complaint  machine — the shapes stream's shape
             raise ScoreError("internal: the shapes stream is not a list")
         if node.tag == nil:
             break
         entry = _force(node.args[0], state)
         if not is_tuple(entry, 4):
+            #: complaint  machine — the shapes stream's shape
             raise ScoreError("internal: a shape span has four parts")
         chan = _force(entry.args[2], state)
         if not isinstance(chan, NChan):
+            #: complaint  machine — the shapes stream's shape
+            #: complaint  author, unplaced — fixme.md F158: a `shape` written in the piece, named by its channel and not by its line
             raise ScoreError("a shape must name a channel")
         points = []
         for cell in _list(entry.args[3], state):
@@ -996,6 +1019,7 @@ def shape_plan(state, seed: int, source: str, limit: int = 64) -> list:
             # so a shape wrapped round a `hear` has no width to be a
             # fraction of.  Refused by name with the cure in it, the
             # way a resume's own limit is (`spec/shape.md`).
+            #: complaint  author, unplaced — fixme.md F158: a `shape` written in the piece, named by its beat and not by its line
             raise ScoreError(
                 f"a `shape` at beat {start / TICKS_PER_BEAT:g} has no "
                 f"width to spread its envelope over — the span holds a "
@@ -1075,11 +1099,13 @@ def marks_of(synth: str, piece: str = "", rate: int = 22050,
     out: list = []
     while len(out) < limit:
         if not isinstance(node, NCon) or node.tag not in (cons, nil):
+            #: complaint  machine — the marks stream's shape
             raise ScoreError("internal: the marks stream is not a list")
         if node.tag == nil:
             break
         entry = _force(node.args[0], state)
         if not is_tuple(entry, 2):
+            #: complaint  machine — the marks stream's shape
             raise ScoreError("internal: a mark is not a (tick, name)")
         name = "".join(chr(_int(c, state))
                        for c in _list(entry.args[1], state))
@@ -1151,6 +1177,7 @@ def _tempo_envelope(node, state):
     for cell in _list(node, state):
         item = _force(cell, state)
         if not isinstance(item, NCon) or item.tag not in (step, ramp):
+            #: complaint  machine — the tempo stream's shape
             raise ScoreError("expected a `Step` or a `Ramp` in `tempo`")
         at, value = (_force(a, state).n for a in item.args)
         points.append((float(at), item.tag == ramp, float(value)))
@@ -1176,6 +1203,7 @@ def _read_flat(node, state):
         return node.n
     if isinstance(node, NCon):
         return tuple(_read_flat(a, state) for a in node.args)
+    #: complaint  machine — a payload field the evaluator produced
     raise ScoreError(f"a payload field that is not a value: {type(node).__name__}")
 
 
@@ -1223,6 +1251,7 @@ def schedule_voices(events: list, bpm: int, rate: int, allocators: dict, *,
                                                                rate):
         allocator = allocators.get(bank)
         if allocator is None:
+            #: complaint  author, nowhere — the piece names a bank that was given no allocator
             raise ScoreError(
                 f"this piece assigns notes to `{bank}` and no allocator was "
                 f"given for it; there is "

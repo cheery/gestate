@@ -71,6 +71,8 @@ GATES = {
         "the generated sheets against the source they describe",
     "test/test_reference.py::test_doc_ref_is_not_behind_the_libraries":
         "doc/ref/ against the libraries it is derived from",
+    "test/test_complaints.py":
+        "every complaint's verdict, and doc/complaints.md against it",
     "test/test_audio.py::test_every_audio_example_is_exercised_here":
         "the audio example roster",
     "test/test_gui.py::test_every_gui_example_is_exercised_here":

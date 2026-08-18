@@ -32,6 +32,7 @@ import ctypes
 from pathlib import Path
 
 
+#: complaint  world — the editor's window, and the toolchain that builds it
 class EditorError(Exception):
     pass
 

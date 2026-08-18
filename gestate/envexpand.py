@@ -40,6 +40,7 @@ from .expr import Alter, EAp, ECase, ECon, EGlobal, ELambda, ELet, ENum, EVar
 from .expr import Expr, map_children
 
 
+#: complaint  author, unplaced — fixme.md F158: an envelope in the piece, named by its points and not its line
 class EnvelopeError(Exception):
     pass
 

@@ -1726,6 +1726,58 @@ def test_the_state_gesture_reaches_the_view():
     assert (win.zoom_at, win.zoom_rungs, win.undos, win.redos) == (4, 9, 3, 1)
 
 
+def test_the_mirror_cannot_hold_a_rung_the_ladder_does_not_have():
+    """`fixme.md` F110's other half.
+
+    The recorded transcript answered `smaller` **twelve times on a
+    nine-rung ladder**, and how the mirror ever got there was never
+    explained: no path in the source can set it past the rungs, and the
+    per-frame `tell()` means no drift outlives a frame.  So the mirror
+    is made unable to hold the reading instead — whatever put it on the
+    wire — and this is what says so.
+
+    Twelve is not an arbitrary number, which is the reason to keep this
+    test rather than only the clamp: it is exactly what an *undo count*
+    looks like, and the state gesture is nine positional fields on a
+    text wire, with `undos` two along from `zoom`.  A field-order slip
+    between the two ends is the one mechanism that fits the evidence,
+    and `test_the_state_gestures_field_order_is_the_one_rust_writes`
+    below is what would catch it.
+    """
+    win, _ed = a_window()
+    it = session()
+    it.view = win
+    act(it, "state\t12\t9\t12\t0")
+    assert (win.zoom_at, win.zoom_rungs) == (8, 9)
+    #: And it still refuses to go further up, which is the symptom.
+    act(it, "state\t-3\t9\t0\t0")
+    assert win.zoom_at == 0
+
+
+def test_the_state_gestures_field_order_is_the_one_rust_writes():
+    """Both ends of a positional wire, pinned against each other.
+
+    `furniture.rs` has `the_state_gesture_says_all_four_numbers_and_
+    whether_it_is_saved`, asserting the exact line for a known state.
+    That line is repeated here and read by the parser, so a field
+    reordered on either side fails on the other — which is the only
+    protection a tab-separated wire of nine numbers can have.
+    """
+    win, _ed = a_window()
+    it = session()
+    it.view = win
+    #: Verbatim from `furniture.rs`: zoom 4, 9 rungs, 2 undos, 0 redos,
+    #: not saved, top 0, 40 rows, no selection, empty clipboard.
+    act(it, "state\t4\t9\t2\t0\t0\t0\t40\t0\t0")
+    assert (win.zoom_at, win.zoom_rungs, win.undos, win.redos) == (4, 9, 2, 0)
+    assert (win.saved, win.top, win.rows, win.sel, win.clip) == (
+        False, 0, 40, False, False)
+    #: And the second line it asserts — saved, scrolled, both flags set.
+    act(it, "state\t4\t9\t0\t1\t1\t12\t30\t1\t1")
+    assert (win.undos, win.redos, win.saved) == (0, 1, True)
+    assert (win.top, win.rows, win.sel, win.clip) == (12, 30, True, True)
+
+
 def test_zoom_commands_run_end_to_end():
     """What the palette does when `zoomIn` is picked."""
     win, ed = a_window()

@@ -44,6 +44,7 @@ DEFAULT_BLOCK = 256
 DEFAULT_RATE = 48000
 
 
+#: complaint  world — the sound card, the players installed, and the switches given on the way in
 class LiveError(Exception):
     pass
 

@@ -18,6 +18,7 @@ from .types import (
 )
 
 
+#: complaint  author — two types that do not fit, said at both of their spans
 class UnifyError(Exception):
     def __init__(self, message: str):
         super().__init__(message)
@@ -118,7 +119,8 @@ def _go(a: Type, b: Type, s: Subst) -> Subst:
     if isinstance(a, TInt) and isinstance(b, TInt):
         if a.n == b.n:
             return s
-        raise UnifyError(f"Type mismatch: {a.n} vs {b.n}")
+        raise UnifyError(
+            f"Type mismatch: {a.n}{_span_str(a)} vs {b.n}{_span_str(b)}")
 
     if isinstance(a, TFun) and isinstance(b, TFun):
         if a.mono != b.mono:
@@ -227,7 +229,8 @@ def _bind(var_id: int, t: Type, s: Subst) -> Subst:
         names = name_vars([TVar(var_id), t])
         raise UnifyError(
             f"Occurs check: `{names.get(var_id, f'a{var_id}')}` would "
-            f"contain itself in {show_type(t, names)} — an infinite type")
+            f"contain itself in {show_type(t, names)} — an infinite "
+            f"type{_span_str(t)}")
     return s.extend(var_id, t)
 
 

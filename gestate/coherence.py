@@ -20,12 +20,14 @@ from typing import TYPE_CHECKING
 
 from .show import name_vars, show_predicate
 from .types import Predicate, TApp, TCon, TFun, TInt, TVar, Type
+from .syntax.ast import at as _at
 from .unify import UnifyError, unify
 
 if TYPE_CHECKING:  # `declarations` imports this module — annotations only
     from .declarations import ClassInfo, InstanceInfo
 
 
+#: complaint  author — an instance as written, placed at its head
 class CoherenceError(Exception):
     pass
 
@@ -184,9 +186,7 @@ def _describe(inst: InstanceInfo) -> str:
     return f"'{inst}'" + (" (built-in)" if inst.builtin else "")
 
 
-def _where(inst: InstanceInfo) -> str:
-    span = inst.span
-    start = getattr(span, "start", None)
-    if start is None:
-        return ""
-    return f" (at {start.line}:{start.col})"
+#: ` (at line:col)` for an instance — the third copy of six lines that
+#: are now `syntax.ast.at`, and kept under this name because six call
+#: sites in this file read better with it.
+_where = _at

@@ -12,6 +12,7 @@ from .declarations import InstanceInfo, ClassInfo
 from .show import show_predicate
 
 
+#: complaint  author, unplaced — fixme.md F157: constraint solving knows the predicate and has let go of the expression that wanted it
 class ConstraintError(Exception):
     pass
 

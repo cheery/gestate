@@ -32,6 +32,7 @@ from .gmachine import (
 )
 
 
+#: complaint  machine — the reactive machine's own invariants, and the host's use of its instants
 class ReactiveError(Exception):
     pass
 
@@ -141,6 +142,7 @@ def _require_current(sig: NSig, what: str) -> None:
     well-typed program — see `_sighead` for the same check on `head`.
     """
     if not sig.current:
+        #: complaint  author, unplaced — fixme.md F159: reading a signal out of turn is the program's mistake, and the machine has the node but not its span
         raise ReactiveError(
             f"{what} of a signal on the earlier heap: it has not been "
             f"updated yet this step.  Signals are swept in allocation "

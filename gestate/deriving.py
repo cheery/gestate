@@ -22,6 +22,7 @@ from .syntax.ast import (
 )
 
 
+#: complaint  author, nowhere — caught and re-raised by the `declarations.py` that reads the `deriving` clause, which is what places it
 class DeriveError(Exception):
     pass
 

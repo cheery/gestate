@@ -32,6 +32,7 @@ from .unify import UnifyError
 from .show import show_predicate, show_type
 
 
+#: complaint  author, unplaced — fixme.md F157: elaboration knows the class and the definition, not the line
 class ElaborateError(Exception):
     pass
 

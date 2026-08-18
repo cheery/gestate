@@ -29,6 +29,13 @@ from .audioalloc import Allocator
 from .audioscore import ScoreError, _flatten, samples_of, timed_events
 from .midi import TICKS_PER_BEAT
 
+#: complaint  machine — the score stream's shape, as the performer walks it
+#:
+#: A file-wide verdict, because almost every `ScoreError` raised here is
+#: about a value the *evaluator* handed this module — a cell that is not
+#: a list, a cue with no instant — and none of those is anything a person
+#: wrote.  The handful that are the author's say so on the spot.
+
 
 class Performer:
     """A cursor over a score's events, performed as the clock reaches them.
@@ -69,6 +76,7 @@ class Performer:
         at, _order, key, bank, payload, is_off = entry
         allocator = self.allocators.get(bank)
         if allocator is None:
+            #: complaint  author, nowhere — the piece names a bank that was given no allocator, which is about two declarations and not one line
             raise ScoreError(
                 f"this piece assigns notes to `{bank}` and no allocator was "
                 f"given for it; there is "
@@ -787,6 +795,7 @@ class LazyPerformer:
     def _perform(self, key, bank, payload, at, is_off):
         allocator = self.allocators.get(bank)
         if allocator is None:
+            #: complaint  author, nowhere — the piece names a bank that was given no allocator, which is about two declarations and not one line
             raise ScoreError(
                 f"this piece assigns notes to `{bank}` and no allocator was "
                 f"given for it; there is "

@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 156 entries, **134 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 160 entries, **136 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -32,14 +32,14 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F38 | partly resolved | No monotone/discrete discipline and no eqtype/semilattice/fixtype checks |
 | F67 | missing | Nothing enforces the "no variable starting with `d`" rule |
 | F93 | deviates | A graph node's `clock` is set only on sources, not inherited |
-| F100 | bug | A constraint naming a class that does not exist is accepted |
+| F100 | resolved | A constraint naming a class that does not exist is accepted |
 | F95 | fixed | The fragment admits tuples; the extractor now lays them out |
 | F103 | resolved | The same file's canvas builds or fails typechecking, run to run |
 | F106 | resolved | The drawn piano retriggers a held key (OS autorepeat) |
 | F107 | resolved | Up/Down inside a palette argument runs the command |
 | F108 | resolved | `pianoStep` inserts `50` with no trailing separator |
 | F109 | resolved | Opening a file joins the previous start in the gesture loop — no cancel, late switch |
-| F110 | mostly resolved | Zoom wedge: the mirror only synced after input — tell() every poll now |
+| F110 | resolved | Zoom wedge: the mirror only synced after input — tell() every poll now |
 | F111 | resolved | Space in `transcript`'s path box erases the proposed path |
 | F116 | resolved | Every click was eaten while the command list was open |
 | F117 | resolved | Tab did not complete paths in the file dialog |
@@ -77,6 +77,10 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F153 | resolved | The window taught the key only to people who no longer needed it |
 | F154 | resolved | A driven harness saved into the repository |
 | F155 | resolved | The one control was a glyph nobody could find |
+| F156 | open | The audio backend says which definition, never which line |
+| F157 | open | The type machinery's later stages let go of the span |
+| F158 | open | A piece's complaints name a beat, never a line |
+| F159 | open | The evaluator's runtime complaints carry no position |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -2732,7 +2736,7 @@ six readers assembling the *same* text and each paying for it.  Both follow
 from the same shape: a reader that wants a program says so by building one,
 and nothing between them knows that the last reader just did.
 
-### F100. **[bug]** A constraint naming a class that does not exist is accepted
+### F100. **[resolved]** A constraint naming a class that does not exist is accepted
 
 Found while typing `spec/commands.md`'s vocabulary, where two classes
 say which road a command may be reached by — `FromMIDI` for a bank that
@@ -2763,6 +2767,30 @@ The fix is where the other kind checks are: resolve the name against
 the declared classes when a signature is elaborated, and say *why* —
 `no class \`Nonsuch\`; did you mean \`FromCC\`?` — which is the
 `subgrammar.py` shape `spec/liveaudio.md` asks of the fragment check.
+
+**Resolved 2026-08-18**, and that is what it says, with the span of the
+constraint so the workbench draws it under the signature.
+`kindcheck.check_class_names` runs from `_kind_check_program`, which is
+the first point where every class is known — a signature is desugared
+while the program is still being built, and the class table is not
+finished until it is.
+
+**And the suggestion is narrow on purpose.**  A wrong one is worse than
+none here, because taking it makes the typo permanent — which is this
+defect's whole complaint about the old message.  Two rules: a case slip
+is an *exact* match (`FromMidi` → `FromMIDI`, which edit distance rates
+0.62 and no usable threshold would ever catch), and otherwise a cutoff
+that admits `Shwo` → `Show` at 0.75 and refuses `Monoid` → `Monad` at
+0.73.  The line is drawn where the examples are.
+
+Signatures and superclasses only: **instances were already checked**,
+by `coherence`, which says *"Instance for unknown class 'Shwo'"* with
+the head's span for both the head and its context.  A second opinion
+would be a second message about one mistake, and which fired would
+depend on which pass ran first.
+
+`ClassInfo` gained a `span` so the superclass complaint has a line too.
+Six tests in `test/test_contexts.py`.
 
 ### F101. **[resolved]** The editor delivered no touches, and both of its specs agreed it was fine
 
@@ -3062,7 +3090,7 @@ both facts — the loop is held under 0.2 s, and "stop old" precedes
 compile still runs to completion, as predicted above; it is now
 merely wasted rather than felt.
 
-### F110. **[mostly resolved]** The zoom could wedge — the mirror only synced after input
+### F110. **[resolved]** The zoom could wedge — the mirror only synced after input
 
 Reported 2026-08-13, found with the zoom buttons; the transcript
 (`test/sessions/F110-zoomOut-stuck.ges`) showed the model's mirror twelve
@@ -3081,11 +3109,33 @@ drift can outlive one frame.  Verified against the real window:
 mirror settles with zero input, full ladder walks both ways, refusals
 only at the true ends.
 
-**Still unexplained**: how the recorded mirror ever reached 12/13+.
-No path in today's source can set it past the rungs; suspect an
-earlier build or a `state` field drift since healed.  With the
-per-poll sync it cannot persist, so this stays a note rather than an
-open defect — reopen if a transcript ever shows it again.
+**The other half, closed 2026-08-18** — not by explaining the 12, which
+is not recoverable, but by making the mirror unable to hold it.
+
+*What could not be found:* no path in today's source sets the rung past
+the ladder.  `font.rs`'s `LADDER` is a nine-entry static, `zoom_by`
+clamps into it, and `Workbench.zoom` refuses `at >= zoom_rungs`.  The
+suspicion stands and is worth writing down properly: **twelve is what
+an undo count looks like.**  The `state` gesture is nine positional
+numbers on a tab-separated wire, and `undos` is two fields along from
+`zoom` — a field-order slip between the two ends is the one mechanism
+that fits a mirror twelve rungs up a nine-rung ladder, and it would
+have been silent.
+
+*What was done about it:*
+
+* `Workbench.note_state` clamps — the window owns the ladder, so
+  `rungs` is taken as given and the position is put inside it.  An
+  impossible reading is not stored, whatever put it on the wire.
+* **Both ends of the wire are pinned against each other.**
+  `furniture.rs` already asserted the exact line for a known state;
+  `test_the_state_gestures_field_order_is_the_one_rust_writes` reads
+  that same line with the Python parser and checks every field lands
+  where it belongs.  A reorder on either side now fails on the other,
+  which is the only protection nine positional numbers can have.
+
+Reopen if a transcript shows it again — but it can no longer persist,
+and if the cause is the field order, it can no longer arrive.
 
 ### F111. **[resolved]** Space in `transcript`'s path box erases the path
 
@@ -4663,7 +4713,7 @@ file.  Nothing needed inventing — it needed noticing.
 
 Held by `test/test_error_places.py`, which asserts the place *and* that
 the sentence still says what is wrong, since appending a span is exactly
-how the message gets lost.  **`board/error-messages.md` is the card for
+how the message gets lost.  **`board/done/error-messages.md` is the card for
 the rest of them**, at his ask: *"we maybe need to arrange a session
 where we examine meticulously every error message and ensure they work.
 We already did that once and it needs to be done again."*
@@ -4756,3 +4806,68 @@ assertions with no window in them.  Their blind spot is written beside
 them and is the whole of this defect: **they see what was emitted,
 never what it looked like.**  The `≡` would have passed all three.
 `board/interface-oracle.md` is the card for the rest of it.
+
+### F156. **[open]** The audio backend says which definition, never which line
+
+Found by the sweep `board/done/error-messages.md` asked for, 2026-08-18, and
+filed rather than fixed because the fix is not a line of arithmetic.
+
+`audioextract` reports against an **origin** — `sound/raw/phase/driven`
+— which is the path of definitions a node was inlined through.  It is
+deliberately not a position (`audiospans.py`'s own opening paragraph
+says why: stage 5 migrates state by comparing origins across a
+recompile, and a position moves whenever anybody adds a line above it).
+So a synth that cannot be compiled for the sound card is told *which
+definition* and never which line, and the workbench has nothing to draw
+a box under.
+
+**The join already exists.**  `audiospans` is a module whose whole job
+is to turn an origin into a `Site` with a file and a line in it, for the
+knobs.  Nothing calls it from a complaint.
+
+`doc/complaints.md` lists the fourteen rows this owns, and closing it is
+visible there as the section getting shorter.
+
+### F157. **[open]** The type machinery's later stages let go of the span
+
+The same sweep, the same day.  Inference places its complaints — `at`
+has been threaded through `infer.py` since the last sweep — but the
+stages *after* it have not: `constraint.py` knows the predicate it could
+not solve and no longer knows the expression that wanted it,
+`elaborate.py` knows the class and the definition, `helpers.py` knows
+the type a generated comparator cannot be built for.  A person who
+writes `Set (Int -> Int)` is told exactly what is wrong, in a sentence
+with nowhere to be drawn.
+
+Sixteen rows in `doc/complaints.md`.  The shape of the fix is the one
+`journal.md` Part I item 13 described for type errors and stopped short
+of: *the data is available from the parser, it just needs to be carried
+through*.
+
+### F158. **[open]** A piece's complaints name a beat, never a line
+
+The same sweep.  A score is written in the author's file and a
+`ScoreError` says *"a `shape` at beat 12 has no width"* — a position in
+the *music*, which is the right thing to say and not a thing the editor
+can put a box under.  `audiovoices` was half of this and is fixed: a
+`Bank` carries the line it was declared on, so ten of its complaints now
+say `at line N:0`.  What is left is the score itself, where the parsed
+events do not carry spans at all.
+
+Twelve rows in `doc/complaints.md`.
+
+### F159. **[open]** The evaluator's runtime complaints carry no position
+
+The same sweep.  Dividing by zero is the author's mistake, arrives at
+run time, and says `DivInt: division by zero` — no line, no definition,
+nothing.  So do a pattern match that covers nothing, a primitive that
+overflowed, and a signal read out of turn.
+
+**And the pattern for fixing it is already in the same file.**
+`gmachine.Hole` carries `line` and `col` on the instruction, put there
+so that `_` — the one error a person is *expecting* — says where it is.
+Every other instruction could carry the same, and the compiler that
+emits them is looking at an expression with a span at the time.
+
+Eleven rows in `doc/complaints.md`, across `gmachine.py`,
+`audioengine.py` and `reactive.py`.

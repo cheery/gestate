@@ -49,6 +49,7 @@ from .declarations import ConInfo
 # Context — tracks which names are in scope and their change-parameter names
 # ---------------------------------------------------------------------------
 
+#: complaint  machine — the ϕ/δ transform's own invariants
 class SeminaiveError(Exception):
     pass
 

@@ -760,6 +760,7 @@ def _fits(text: str, program, results, builtins, args) -> int:
     return 0
 
 
+#: complaint  command — the workbench asking whether a type fits, and being told why not
 class FitsError(Exception):
     """`fits_in_source` could not get far enough to answer."""
 
@@ -1169,6 +1170,7 @@ def _unifies(a, b) -> bool:
         return False
 
 
+#: complaint  world — a file that would not open
 class SourceError(Exception):
     """A file the tool could not read — reported, not raised at the user."""
 

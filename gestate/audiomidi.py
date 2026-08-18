@@ -32,6 +32,7 @@ import threading
 from dataclasses import dataclass, field
 
 
+#: complaint  command — which MIDI input to listen to, and whether this machine has one
 class MidiError(Exception):
     pass
 

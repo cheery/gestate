@@ -289,6 +289,7 @@ _GUI_ONLY = (_SIGNAL + "\n"
 DEFAULT_RATE = 22050
 
 
+#: complaint  author, nowhere — what a synth declares and what `sound` carries; the mistake is an absence or a shape, and neither has a line
 class AudioError(Exception):
     pass
 
@@ -577,6 +578,7 @@ def _result_con(t):
 def _whnf(node):
     while isinstance(node, NInd):
         if node.target is None:
+            #: complaint  machine — a null indirection is the evaluator's own
             raise AudioError("null indirection while reading a sample")
         node = node.target
     return node
@@ -616,10 +618,12 @@ def _frame(node, state=None) -> tuple[float, ...]:
         if all(isinstance(f, NNum) for f in fields):
             return tuple(float(f.n) for f in fields)
         bad = next(i for i, f in enumerate(fields) if not isinstance(f, NNum))
+        #: complaint  machine — the frame has already been type-checked; this guards the reader
         raise AudioError(
             f"a frame's fields must all be numbers, and field {bad} is a "
             f"{type(fields[bad]).__name__} — a multi-channel `sound` is a "
             "signal of a record of `Float`s and nothing else")
+    #: complaint  machine — the sample has already been type-checked; this guards the reader
     raise AudioError(
         f"a sample must be a number, or a record of numbers for more than "
         f"one channel, got {type(node).__name__}")
@@ -628,6 +632,7 @@ def _frame(node, state=None) -> tuple[float, ...]:
 def _sample(node, state=None) -> float:
     frame = _frame(node, state)
     if len(frame) != 1:
+        #: complaint  command — `render` is the mono view, and this says the call was the wrong one
         raise AudioError(
             f"this program's `sound` carries {len(frame)} channels; "
             "`render` is the mono view of the renderer, so read it with "
@@ -727,6 +732,7 @@ def render_assembled(program: str, seconds: float = 1.0,
     frames = render_frames_assembled(program, seconds, rate, progress,
                                      control_every, schedule)
     if frames and len(frames[0]) != 1:
+        #: complaint  command — `render` is the mono view, and this says the call was the wrong one
         raise AudioError(
             f"this program's `sound` carries {len(frames[0])} channels; "
             "`render` is the mono view of the renderer, so read it with "
@@ -760,6 +766,7 @@ def render_frames_assembled(program: str, seconds: float = 1.0,
                      if cid in controls}
         unknown = set(schedule.channels()) - set(scheduled)
         if unknown:
+            #: complaint  command — the schedule came from the caller, not from the file
             raise AudioError(
                 "the schedule names channels this program does not declare "
                 "as control channels: " + ", ".join(sorted(unknown))

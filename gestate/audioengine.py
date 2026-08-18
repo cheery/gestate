@@ -39,6 +39,7 @@ from .audioir import Call, Case, Con, Const, Field, Graph, Let, Prim, Var
 from .gmachine import MATH_FLOAT
 
 
+#: complaint  machine — the reference interpreter's own invariants
 class EngineError(Exception):
     pass
 
@@ -121,6 +122,7 @@ def _bool(b: bool, graph: Graph):
 def _checked(name, f):
     def go(args, _graph):
         if args[1] == 0:
+            #: complaint  author, unplaced — fixme.md F159: dividing by zero is a program's own doing, and a graph node has an origin but no span
             raise EngineError(f"{name}: division by zero")
         return f(args[0], args[1])
     return go
@@ -498,6 +500,7 @@ def _within_i64(graph: Graph, cur: list, t: int) -> None:
         # per node per sample.
         if type(v) is float or not _too_big(v):
             continue
+        #: complaint  author, unplaced — fixme.md F159: the value overflowed at run time, and a graph node has an origin but no span
         raise EngineError(
             f"integer overflow at instant {t}: node {node.id} "
             f"({node.kind}) holds {v!r}, which the compiled engine "

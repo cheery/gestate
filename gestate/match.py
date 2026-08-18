@@ -52,6 +52,7 @@ from .syntax.ast import (
 from .syntax.rename import rename_free
 
 
+#: complaint  machine — a pattern shape the desugarer has already refused, in the words it refused it with
 class MatchError(Exception):
     """A pattern that cannot be compiled (bad arity, unknown constructor)."""
 

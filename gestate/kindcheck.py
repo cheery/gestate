@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .syntax.ast import Val, VConId, VInfix, VKind
+from .syntax.ast import Val, VConId, VInfix, VKind, at as _at
 from .types import TApp, TCon, TFun, TInt, TVar, Type
 from .declarations import ConInfo, DeclError
 
@@ -66,12 +66,14 @@ def desugar_kind(val: Val) -> Kind:
             return KType()
         if val.value == "Int":
             return KInt()
-        raise DeclError(f"Unknown kind atom: {val.value}")
+        raise DeclError(f"Unknown kind atom: {val.value}{_at(val)}")
     if isinstance(val, VInfix):
         if val.op == "->":
             return KFun(desugar_kind(val.left), desugar_kind(val.right))
-        raise DeclError(f"Unexpected infix operator in kind: {val.op}")
-    raise DeclError(f"Unsupported kind expression: {type(val).__name__}")
+        raise DeclError(
+            f"Unexpected infix operator in kind: {val.op}{_at(val)}")
+    raise DeclError(
+        f"Unsupported kind expression: {type(val).__name__}{_at(val)}")
 
 
 _BUILTIN_KINDS: dict[str, Kind] = {
@@ -221,31 +223,26 @@ def _make_adt_kind(arity: int) -> Kind:
 # Kind checking
 # ---------------------------------------------------------------------------
 
+#: complaint  author — a type as written
 class KindError(Exception):
     pass
 
 
-def _where(node) -> str:
-    """` (at line:col)` for a type node, or nothing — `fixme.md` F152.
-
-    **The editor draws a complaint under the line it names**, and a
-    complaint that names no line has no box to live in: it falls back
-    to the status bar, one sentence, where a type error of the same
-    seriousness gets three lines interleaved into the code.  So a
-    position is not decoration here, it is the difference between a
-    message that lands where you are looking and one you have to go and
-    find.
-
-    Every node in `types.py` carries a `span`; this file had the
-    arithmetic already, written for the lowercase-type-variable message
-    (F141) and used only there, because that is the one somebody hit.
-    `audiospans.in_source` rewrites the raw `line:col` into the
-    author's own file, the same way it does for a type error.
-    """
-    span = getattr(node, "span", None)
-    start = getattr(span, "start", span)
-    line, col = getattr(start, "line", None), getattr(start, "col", None)
-    return "" if line is None or col is None else f" (at {line}:{col})"
+#: ` (at line:col)` for a type node, or nothing — `fixme.md` F152.
+#:
+#: **The editor draws a complaint under the line it names**, and a
+#: complaint that names no line has no box to live in: it falls back to
+#: the status bar, one sentence, where a type error of the same
+#: seriousness gets three lines interleaved into the code.  So a
+#: position is not decoration here, it is the difference between a
+#: message that lands where you are looking and one you have to go and
+#: find.
+#:
+#: This file had the arithmetic written out by hand, for the
+#: lowercase-type-variable message (F141) and used only there, because
+#: that is the one somebody had hit.  It is `syntax.ast.at` now, which
+#: is where every checker can reach it.
+_where = _at
 
 
 def _refuse_a_type_in_lowercase(var: TVar, env: dict[str, Kind]) -> None:
@@ -293,15 +290,9 @@ def _refuse_a_type_in_lowercase(var: TVar, env: dict[str, Kind]) -> None:
                  None)
     if meant is None:
         return
-    # The same reading `infer._at` does, and the same spelling: a span is
-    # either a pair or a position, and `(at line:col)` is the form the
-    # assembler re-bases and the editor's margin reads back out.
-    span = getattr(var, "span", None)
-    start = getattr(span, "start", span)
-    line, col = getattr(start, "line", None), getattr(start, "col", None)
-    where = "" if line is None or col is None else f" (at {line}:{col})"
+    place = _at(var)
     raise KindError(
-        f"`{var.name}` is a type variable, not the type `{meant}`{where} — "
+        f"`{var.name}` is a type variable, not the type `{meant}`{place} — "
         f"a name in lowercase stands for whatever type the caller picks. "
         f"Write `{meant}` if that is the type you meant, or rename the "
         f"variable if it is not."
@@ -382,4 +373,82 @@ def check_kind(texpr: Type, env: dict[str, Kind]) -> Kind:
                 f"in {texpr}" + _where(texpr.ret)
             )
         return KType()
-    raise KindError(f"Unknown type expression: {type(texpr).__name__}")
+    raise KindError(
+        f"Unknown type expression: {type(texpr).__name__}{_at(texpr)}")
+
+
+def check_class_names(program) -> None:
+    """Every class a signature names is a class — `fixme.md` F100.
+
+    **A constraint on a class that does not exist constrains nothing.**
+    Nothing resolved the name where it was written, so
+
+        f : (Nonsuch a) => a -> Int
+
+    was accepted whole, and the signature read as a promise it could not
+    keep.  What the person met instead was the *use* site, and what it
+    said was the worst possible sentence:
+
+        No instance for Nonsuch Int
+
+    — a correct statement about the program that was written and
+    **advice towards the wrong fix**, because writing that instance
+    makes the typo permanent.  That is F141's shape exactly (a lowercase
+    signature complaining about a class), and it is why this is checked
+    where the name is written rather than where it fails.
+
+    Checked here because here is where the classes are all known: a
+    signature is desugared while the program is still being built, and
+    the class table is not finished until it is.
+
+    A signature's context and a class's own superclasses.  **Instances
+    are already checked** and by a better-placed checker: `coherence`
+    says *"Instance for unknown class 'Shwo'"* with the instance head's
+    span, for both the head and its context.  A second opinion here
+    would be a second message about the same mistake, and the first one
+    to fire would be whichever pass happened to run first.
+    """
+    known = set(program.classes)
+    if not known:                     # a program with no classes at all
+        return
+
+    def refuse(name: str, where, saying: str) -> None:
+        if name in known:
+            return
+        near = _nearest(name, known)
+        hint = f"; did you mean `{near}`?" if near else ""
+        raise KindError(f"no class `{name}`{hint} — {saying}{_at(where)}")
+
+    for sc in program.scs:
+        for pred in sc.sig_constraints:
+            refuse(pred.class_name, pred.type_,
+                   f"`{sc.name}`'s signature constrains it")
+    for info in program.classes.values():
+        for name in info.superclasses:
+            refuse(name, info,
+                   f"class `{info.name}` names it as a superclass")
+
+
+def _nearest(name: str, known) -> str | None:
+    """The declared class a misspelling most likely meant, or nothing.
+
+    **Only a near miss**, because a wrong suggestion is worse than none:
+    taking one makes the mistake permanent, which is the whole reason
+    this check exists rather than the use site's.
+
+    Two rules, and the first is not decoration.  **A case slip is an
+    exact match** — `FromMidi` for `FromMIDI` is F100's own example, and
+    edit distance rates it 0.62, below anything that could be used as a
+    threshold without also suggesting `Monad` for `Monoid`.  So case is
+    folded first and measured second.  The cutoff then admits `Shwo` for
+    `Show` (0.75) and refuses `Monoid` for `Monad` (0.73), which is the
+    line drawn where the examples are.
+    """
+    import difflib
+
+    folded = {k.lower(): k for k in known}
+    if name.lower() in folded:
+        return folded[name.lower()]
+    hits = difflib.get_close_matches(name.lower(), sorted(folded), n=1,
+                                     cutoff=0.75)
+    return folded[hits[0]] if hits else None
