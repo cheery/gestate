@@ -18,7 +18,7 @@
 # same eighteen nodes, the channel source at `init: 415` and every phase
 # accumulator at `init: 0.0`.  What is left is the first few blocks of
 # *live* execution, which nothing in this tree can look at —
-# `board/done/unheard-output.md` is the instrument that would.
+# `card:unheard-output.md` is the instrument that would.
 
 levelChan : Chan Int
 levelChan = chan

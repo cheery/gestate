@@ -1,4 +1,4 @@
-"""Did it click, and where — `fixme.md` F147, `board/done/unheard-output.md`.
+"""Did it click, and where — `fixme.md` F147, `card:unheard-output.md`.
 
 *Henri, 2026-08-18, after the pop was found and fixed by measuring it:
 "The tool detecting pops may be very useful in future."*  It had been a

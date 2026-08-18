@@ -4,8 +4,8 @@
     because  a gemba walk through the log should be ergonomic, and my
              friend could use it as well
     asked    Henri, 2026-08-16
-    see      board/done/gemba.md — this is gemba's second idea
-             board/git-lesson.md — the workflow it would encode
+    see      card:gemba.md — this is gemba's second idea
+             card:git-lesson.md — the workflow it would encode
              doc/reading-the-log.md — that workflow, written down
 
 ## The ask
@@ -82,4 +82,4 @@ belonged to — the one thing you were reading the row for.
   something rather than nothing.
 * **"My friend could use it as well"** is still the part to keep in
   view, and is still untested — the card's own note, and it wants
-  `board/stranger-test.md`'s instrument rather than another run of mine.
+  `card:stranger-test.md`'s instrument rather than another run of mine.

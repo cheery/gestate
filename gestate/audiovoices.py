@@ -754,7 +754,7 @@ def _sinks(source: str) -> str:
         _SINK = re.compile(r"^sink\s+(\S.*)$")
         _CANVAS = re.compile(r"^canvas(?:\s+(\S.*))?\s*$")
     if _GEMBA is None:
-        # **The factory floor's ask** (`board/done/gemba.md`), and it is the
+        # **The factory floor's ask** (`card:gemba.md`), and it is the
         # bare `canvas` line's manners exactly: it says *nothing* to the
         # compiler, so it rewrites to a comment.
         #

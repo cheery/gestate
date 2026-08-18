@@ -7,10 +7,10 @@
              again it'd resume to whatever you shown last time.  When
              gemba is online, it should show [gemba] on the screen."
     asked    Henri, 2026-08-18, after using the first walk
-    see      board/done/gemba.md — the walk itself
+    see      card:gemba.md — the walk itself
              gestate/gemba.py, gestate/session.py `_travel`
              gestate/session.py `_outside` — the mtime instinct already built
-             board/done/command-categories.md — `[command]` is the precedent
+             card:command-categories.md — `[command]` is the precedent
                for a word in the corner
 
 ## The ask

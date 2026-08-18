@@ -1,4 +1,4 @@
-"""Where the workbench was — `board/done/persistent-workbench-state.md`.
+"""Where the workbench was — `card:persistent-workbench-state.md`.
 
 *"I'd like that when the editor closes, it could open to about the same
 state where it was.  As if that state was a document in itself."*  And
@@ -353,7 +353,7 @@ def last_file() -> str | None:
 
     **Somebody who has never opened a file has no last file**, and so
     still meets `untitled.ges` — which is the starter, and the screen
-    `board/done/button.md` and `fixme.md` F150 are the account of.  The
+    `card:button.md` and `fixme.md` F150 are the account of.  The
     first screen survives on exactly the person it was built for.
 
     A piece that has since been deleted or moved is not offered, because

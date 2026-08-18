@@ -336,7 +336,7 @@ their own headings.  What is below is what is *not* done.
   The card below asked for named datatypes and the reason given for it
   was *"I do not figure out quickly enough which argument in lowpass
   filters are which"*.  Looking at the real signatures answered it
-  differently (`board/done/argument-names.md` has the whole exchange):
+  differently (`card:argument-names.md` has the whole exchange):
   the four lowpasses read `Sig Float -> Sig Float -> Sig Float`, the
   first argument means a coefficient in `lowpass` and hertz in
   `lowpassOnePole`, and **every bit of that information is in the

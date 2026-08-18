@@ -8,14 +8,14 @@
              project would re-derive it by hand or copy this repository
              and delete the parts that do not apply
     asked    Henri, 2026-08-18 (Claude wrote the card at his ask)
-    see      board/later/project-seed.md — what this exists for
+    see      card:project-seed.md — what this exists for
              board/README.md — the largest single piece of the method
              spec/author.md — what the author spends attention on
              doc/instruments.md — what a session already has to work with
              manifesto.md — how an instrument fails
              vision.md — what any of it is for
-             board/done/interface-oracle.md, board/carried-state.md,
-             board/driven-runs.md, board/cheap-gates.md — the four
+             card:interface-oracle.md, card:carried-state.md,
+             card:driven-runs.md, card:cheap-gates.md — the four
              workflow cards; the raw material, not absorbed
 
 ## The ask
@@ -44,7 +44,7 @@ draft, and a standard is expensive to change precisely because other
 things start depending on it.
 
 It comes back when the method stops changing, or when
-`board/later/project-seed.md` forces the question — whichever happens
+`card:project-seed.md` forces the question — whichever happens
 first.
 
 ## Found by looking
@@ -114,7 +114,7 @@ ends up covering, **the test of it is that the suite can fail on it.**
 once and drifts.  A directory a new project copies — a `board/` skeleton,
 a `test_board.py`, an empty `fixme.md` with its legend, a `vision.md`
 with nothing but its own instructions — is a thing that starts working
-on day one.  This is the question `board/later/project-seed.md` is
+on day one.  This is the question `card:project-seed.md` is
 really about, which is why the two cards are one decision.
 
 **2. Does it absorb the four workflow cards?**  Written as *no*, above.
@@ -133,3 +133,111 @@ music, obviously.  But also, probably, the F-number scheme's history,
 the specific instruments in `doc/instruments.md`, and the parts of the
 manifesto that argue about audio oracles.  Separating those is most of
 the work, and it cannot be done by a session guessing.
+
+## What the standard has to carry, collected as it arrives
+
+*Written into this card as Henri says them, so that unshelving it does
+not start from a blank page.  None of these is being worked.*
+
+### `fixme.md` wants the treatment `roadmap.md` got — 2026-08-18
+
+> *"I'm reading the ungated-fixes and thinking the fixme is really good
+> practice although it started as a list I had to fix remaining things
+> and I were just lazy and did forget it on the disk.  It tells us
+> immediately information that we otherwise would not know, such as, how
+> many were fixed without a test checking that it never comes back.
+> Though, it might need same treatment as the roadmap.md got and change
+> into a directory.  I refrain from doing that though.  it belongs into
+> a standard practice as a directory."*
+
+**And the origin is worth keeping rather than tidying into a design.**
+It began as a list of leftovers on the disk and became the instrument
+that told this project how much of its own repair work leaves nothing
+behind.  That is the same shape as `card:gemba.md` and the andon: the
+practice arrived before the reason for it.
+
+The concrete argument, from the day it was said: the 79-of-161
+measurement in `card:ungated-fixes.md` had to be made by **parsing
+prose**, and it is a proxy the card had to label *suspected* rather than
+shown.  One file per entry with a `gate:` field turns it into a lookup —
+and turns that card's third question, *does the suite enforce it*, from
+an open design problem into a test that reads a field.  A `[resolved]`
+entry with an empty `gate:` would fail the way a card with no `because`
+fails now.
+
+What the single file gives that a directory would not is the thing that
+prompted this: **somebody read it end to end and noticed something.**
+Nobody reads a board that way.  Worth answering rather than assuming
+away.
+
+### And the board's own shape was questioned the same afternoon
+
+Answered rather than deferred — `card:` notation, above — but the
+question generalises and belongs here: *which of these records wants to
+be a directory, which wants to be a file, and what decides it?*  Three
+have been through it now (`roadmap.md` → `board/`, and `fixme.md`
+proposed), and nobody has written down the rule they were each following.
+
+## The questions, answered — 2026-08-18
+
+*Henri read the card while it was being written and answered all four.
+Kept in his words; the card stays shelved, and he said how long for.*
+
+**1. A document, or a directory?**
+
+> *"it must be a directory.  I used the spec/ for a long time.  see at it
+> now.  It's a mess but it's full of critical information.  We would
+> perish without it."*
+
+**And the evidence he points at is the strong form of the argument.**
+`spec/` is twenty-odd files, unevenly maintained, and indispensable — a
+directory *tolerates* mess without losing its value, because nobody has
+to read it end to end to use one file of it.  A single document with the
+same mess in it becomes unreadable, which is precisely what happened to
+the old `roadmap.md` and what `board/` was carved out of.
+
+So the standard is a directory, and that answers the shape of
+`card:project-seed.md`'s first question too: what a new project inherits
+is **something it copies**, not something it reads.
+
+**2. Does it absorb the four workflow cards?**
+
+> *"Nope.  And it will take time until we can done/ this card."*
+
+Which the card already assumed, and now has behind it.  The second
+sentence is the more useful one: **this is not a card that gets
+finished soon**, so anything urgent inside it does not belong to it.
+That is the test to apply to every note collected above — if it cannot
+wait, it is not part of this card.
+
+**3. Does the questioning survive the move?**
+
+> *"Question into existence is critical if if prevents us to accumulate
+> cards like crazy."*
+
+**Note the condition — he did not say it is critical, he said it is
+critical *if* it works.**  So the rule travels with a measurement
+attached rather than as doctrine, and the measurement is the arrivals
+rate: nineteen cards in two days is what made `later/` necessary; three
+cards in a day where two arrived shelved is what it looks like when the
+filter holds.  A seeded project should carry the number, not just the
+practice.
+
+**4. What is gestate-shaped and must not travel?**
+
+> *"music, the F-number scheme is good.  Some specific instruments that
+> belong to this project are not transferable, but they can be
+> examples."*
+
+Three separations in one line:
+
+* **The music does not travel.**  Which is the whole domain half —
+  `spec/` on scores, the audio oracles, the golden `.samples`.
+* **The F-number scheme does.**  Numbering-as-addresses, entries that
+  are never renumbered and never deleted, `[resolved]` as what closing
+  looks like — that is a mechanism with nothing musical in it.
+* **The instruments travel as examples, not as code.**  `tools/andon.sh`
+  rings a sound card because this project has one; a project without
+  audio needs a cord, not that cord.  What transfers is *that a session
+  must be able to reach the author*, and this one is the worked example
+  of it.

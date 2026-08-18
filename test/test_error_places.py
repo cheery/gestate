@@ -11,7 +11,7 @@ except for the one message somebody had already hit (`foo : int`, F141,
 `test_skolems.py`) — so the arithmetic was in the file and used once.
 
 This file is where that gets held, and where
-`board/done/error-messages.md`'s audit will land as it goes: one test per
+`card:error-messages.md`'s audit will land as it goes: one test per
 message that must name a place.  The assertion is deliberately about
 *a position being there at all* rather than about the exact line, since
 the line moves with the prelude offset and `audiospans.in_source` is
@@ -68,7 +68,7 @@ def test_a_lowercase_type_variable_still_says_where(  # F141, kept in sight
 #
 # **The tests above assert that a message contains a position.  These
 # assert that a person sees it under the line they typed**, which is the
-# postcondition `board/done/error-messages.md` was written against and is not
+# postcondition `card:error-messages.md` was written against and is not
 # the same claim: between the raise and the box are two coordinate
 # systems (`audiospans.in_source` re-bases assembled positions and leaves
 # the author's alone) and one regular expression (`session._line_of`, the

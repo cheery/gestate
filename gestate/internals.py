@@ -82,7 +82,7 @@ class Use:
         # **`at line N:C`, and the spelling is load-bearing.**  This read
         # `line N:` — a position that existed and was never used, because
         # `session._line_of` looks for `at`, so the workbench had no line
-        # to draw the box under (`board/done/error-messages.md`).  The `at
+        # to draw the box under (`card:error-messages.md`).  The `at
         # line` form is also the one `audiospans.in_source` leaves alone,
         # which matters here and nowhere else: every other complaint
         # counts from the top of the assembled program and this one

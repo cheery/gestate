@@ -180,7 +180,7 @@ pub struct Furniture {
     ///
     /// **One, because the pace is the point.**  A second box would be a
     /// second thing to read at once, which is the failure this whole
-    /// design is arranged against (`board/done/gemba.md` §"paced to the
+    /// design is arranged against (`card:gemba.md` §"paced to the
     /// reader").  The model sends the first `gemba` line's box and no
     /// others.
     pub gemba: Option<Gemba>,
@@ -225,7 +225,7 @@ pub struct Furniture {
     /// ordinary state of an editor you press something to be heard in.
     /// It is here because nothing said so, and a stranger who did not
     /// know the step existed could not tell it from a program ignoring
-    /// him (`board/done/button.md`, `fixme.md` F151).  The words are the
+    /// him (`card:button.md`, `fixme.md` F151).  The words are the
     /// model's so the key it names cannot drift from the key bound.
     pub behind: String,
     /// The scopes, as `(label, line, flavor)` — a signal watched
@@ -284,7 +284,7 @@ impl Furniture {
                     line: num(p.get(1)),
                     message: p.get(2).copied().unwrap_or("").into(),
                 }),
-                // **The factory floor** — `board/done/gemba.md`.  One box,
+                // **The factory floor** — `card:gemba.md`.  One box,
                 // on the line that asked for it, holding one thing at a
                 // time; `behind` is how many are waiting, and it is
                 // drawn as a mark rather than read as a number.

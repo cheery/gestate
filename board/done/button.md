@@ -3,10 +3,10 @@
     status   done — 2026-08-17
     because  The program would not currently pass the stranger test.
     asked    Henri, 2026-08-17
-    see      board/stranger-test.md — this is that test's first real result
+    see      card:stranger-test.md — this is that test's first real result
              vision.md §"Ease of use and efficiency"
              shell/editor/src/view.rs — `burger_box`, `burger_frame`
-             board/done/command-categories.md — the second half of the report
+             card:command-categories.md — the second half of the report
 
 ## The ask
 
@@ -376,9 +376,9 @@ which is what finishes this rather than any one of them.
 | A | the corner must be findable | **shipped** — F155: `[command]`, at the ink's weight, in place of a 24-pixel `≡` at 2.3:1 |
 | B | the document should teach | **shipped** — F150: the starter no longer names a control deleted in `71b90af` |
 | C | the bar should say the key first | **shipped** — F153: `Ctrl-K` until you use `Ctrl-K` |
-| D | what is behind it must explain itself | **carded** — `board/done/command-categories.md`, with the sections now derived |
+| D | what is behind it must explain itself | **carded** — `card:command-categories.md`, with the sections now derived |
 | E | the change should be audible without asking | **shipped** — F151: typing is an audition when an audition is cheap |
-| F | one stranger is one stranger | **carded** — `board/stranger-test.md`, and its rules for spending the next one |
+| F | one stranger is one stranger | **carded** — `card:stranger-test.md`, and its rules for spending the next one |
 
 Henri closed it in three words: *"burger is thrown out, [command] is put
 in its place."*
@@ -388,7 +388,7 @@ findings came from *photographing the running window* — the pixel count,
 the list opening on `skip`, the hint that taught the key only to people
 who no longer needed it — none of which is visible in the source, and
 all of which had been sitting in front of everybody.  That is now a row
-in `manifesto.md`'s instrument table, and `board/done/interface-oracle.md`
+in `manifesto.md`'s instrument table, and `card:interface-oracle.md`
 exists to keep the results from rotting.
 
 **And what it leaves open, honestly**: nobody has watched a second
@@ -400,7 +400,7 @@ changed, and today four did.
 
 ## The corner is held now — 2026-08-18
 
-`board/done/interface-oracle.md`'s work landed, and this card's replacement
+`card:interface-oracle.md`'s work landed, and this card's replacement
 corner is no longer resting on a screenshot somebody took by hand:
 
 * **`[command]` is a word and not a glyph**, it is not drawn in the ink
@@ -417,5 +417,5 @@ What is still not held is the half that cannot be: **whether a stranger
 finds it.**  The person who failed to find the old glyph looked at the
 new corner and said *"nyt tuo [command] oikeassa yläkulmassa näkyy
 hyvin"* — which is legibility, judged by exactly the right person, and
-is not findability.  `board/stranger-test.md` run three is the
+is not findability.  `card:stranger-test.md` run three is the
 instrument for that, and it is booked.

@@ -618,7 +618,7 @@ def _named_head(head: str, name: str, texts) -> str:
     `lowpassSvf hz res s : Sig Float -> …`.  **The types carry no
     information and the names carry all of it** — the same fix
     `reference.named` makes for the pages and the editor's `what`, made
-    here for the query an editor hovers with (`board/done/argument-names.md`).
+    here for the query an editor hovers with (`card:argument-names.md`).
 
     Not shared with the reference's copy, which is walking a file line by
     line and filling in entries as it goes; this one is handed a name and

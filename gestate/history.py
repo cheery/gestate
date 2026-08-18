@@ -1,4 +1,4 @@
-"""The repository, read — `board/git-viewer.md`.
+"""The repository, read — `card:git-viewer.md`.
 
 *Henri's ask: "I think we could design a git-viewer into gestate
 workbench.  The viewer would encode the workflow that you taught me…

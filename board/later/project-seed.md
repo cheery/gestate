@@ -9,8 +9,8 @@
              that a card states a problem would all be re-derived by
              hand or copied and pruned
     asked    Henri, 2026-08-18 (Claude wrote the card at his ask)
-    see      board/later/working-standard.md — the half that has to exist first
-             board/portable-package.md — the neighbouring card about
+    see      card:working-standard.md — the half that has to exist first
+             card:portable-package.md — the neighbouring card about
              people who do not exist yet, and why this one is different
              vision.md — "a lean vehicle to find out how to utilise AI well"
 
@@ -45,14 +45,14 @@ there is — nothing about it rots while it sits.
 
 ## Found by looking
 
-**This card is not the `board/portable-package.md` shape, and the
+**This card is not the `card:portable-package.md` shape, and the
 difference is worth writing down**, because the board's order demotes
 that one explicitly for being *"for people who do not exist yet."*
 
 Here the user exists, is named, and is the person who fills this board.
 The second project is his, it has a start condition he stated, and its
 subject — security, and a system that hardens under attack — is the same
-problem that put `board/ungated-fixes.md` on the live board today.  A
+problem that put `card:ungated-fixes.md` on the live board today.  A
 method that has only ever worked in the repository it grew in has not
 been shown to be a method; carrying it to a second project is the test
 of it.
@@ -63,7 +63,7 @@ Asked directly during elaboration: does the template fall out of
 standardizing, or is the template the forcing function that reveals what
 is general?
 
-Both, and the order is: **`board/later/working-standard.md` first, this
+Both, and the order is: **`card:working-standard.md` first, this
 second** — but the second is what makes the first falsifiable.  A
 consolidated standard that nobody has tried to start a project with is
 a guess about which parts were essential.

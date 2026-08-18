@@ -7392,7 +7392,7 @@ in.  He verified it the minute it was built — *"It works."*
 
 ### Whose hours does a timer count?
 
-`board/done/timer.md` had been elaborated the evening before and had three
+`card:timer.md` had been elaborated the evening before and had three
 questions left in it.  Two were cheap.  The third only existed because
 of the sentence he had opened the day with, and it was worth the ring:
 
@@ -7450,7 +7450,7 @@ A no-break space rather than a plain one, because the bar wraps by
 splitting on `' '` and a rest day in an ordinary space would let a narrow
 window break the week in half.
 
-`board/done/timer.md`, `spec/timer.md`, `gestate/presence.py`.
+`card:timer.md`, `spec/timer.md`, `gestate/presence.py`.
 
 ### And the first verification run played into the room
 
@@ -7490,7 +7490,7 @@ with nowhere to point turned out to be pointing at a gap.
 
 ## Two features with no callers, and where they turned out to work
 
-`board/done/older-features.md` was Henri's, and so was the honesty in
+`card:older-features.md` was Henri's, and so was the honesty in
 it: *"using/given has never been used anywhere yet!  I think it was
 important when we made it… Note that I contradict project's rules there
 because it had no imminent use.  Let's allow it to be, but I want to
@@ -7581,7 +7581,7 @@ has ever had.
 - **F144** — an implicit shows in a query as an unnamed leading
   parameter, contradicting both the file and `doc/manual.md` §9's
   *"An implicit parameter is invisible in the signature"*.  The name is
-  in hand; `board/done/argument-names.md` exists precisely because it
+  in hand; `card:argument-names.md` exists precisely because it
   should be shown.
 
 ## What the screen saw that the suite could not
@@ -7665,7 +7665,7 @@ which was learned twice in one day, and once again while writing this.
 
 ## A typed path is always an answer
 
-`board/done/open-path-bug.md` closed, and the useful half of it is that
+`card:open-path-bug.md` closed, and the useful half of it is that
 **the card's own elaboration blamed the wrong function.**
 
 It named `Session._where` and cited the two defects that site had
@@ -7710,7 +7710,7 @@ The cost is not politeness.  A human oracle **cannot be re-run**:
 - it does not say *how much*, only *yes* — "a bit strong POP" is a real
   and useful report and it is not a number;
 - and every use of it spends attention, which is the scarce thing
-  `board/done/timer.md` was built the same morning to protect.
+  `card:timer.md` was built the same morning to protect.
 
 `manifesto.md` already lists what each instrument cannot see.  A person
 is an instrument too, and those four lines are the right-hand column.
@@ -7792,7 +7792,7 @@ standing when he came back.
 
 ## Every complaint, and who is standing in front of it
 
-*2026-08-18.  `board/done/error-messages.md`, at Henri's ask: "we maybe need
+*2026-08-18.  `card:error-messages.md`, at Henri's ask: "we maybe need
 to arrange a session where we examine meticulously every error message
 and ensure they work.  We already did that once and it needs to be done
 again."*
@@ -7988,13 +7988,13 @@ either side fails on the other.
 `afba696` made the corner say `[command]` instead of `≡` and at the
 ink's own weight instead of `FAINT`, and `tests/view.rs` still asked for
 both of the old answers.  **The test failed on exactly the change it
-exists to protect** — which is the shape `board/done/interface-oracle.md` is
+exists to protect** — which is the shape `card:interface-oracle.md` is
 about, and it is worth noticing that a suite nobody ran between two
 sessions is a suite that stops being an instrument.
 
 ## The heading was already the heading
 
-*2026-08-18.  `board/done/command-categories.md`, option A, picked and
+*2026-08-18.  `card:command-categories.md`, option A, picked and
 built in one sitting.*
 
 **Nothing was missing.**  `command.ges` has been written in eleven
@@ -8057,7 +8057,7 @@ has paid four times.
 
 ## Where you were, as a document
 
-*2026-08-18.  `board/done/persistent-workbench-state.md`, from four
+*2026-08-18.  `card:persistent-workbench-state.md`, from four
 decisions in the morning to a window that comes back by the evening.*
 
 Henri's ask had a phrase in it that decided most of the design: *"as if
@@ -8127,7 +8127,7 @@ about a shared machine, arriving on schedule.)*
 
 ## The factory floor, and the pace nobody owns
 
-*2026-08-18.  `board/done/gemba.md`, items 1 and 2, taken out of order
+*2026-08-18.  `card:gemba.md`, items 1 and 2, taken out of order
 at Henri's ask: "it's not in front of the line anymore, but it helps
 with the workload here if we make it right."*
 
@@ -8186,7 +8186,7 @@ written without asking what the compiler would make of it.
 
 **All the tests passed while that was true, because none of them
 compiled anything.**  What found it was one screenshot of the running
-window — `board/reviewing-by-running.md`'s whole argument, arriving
+window — `card:reviewing-by-running.md`'s whole argument, arriving
 unprompted for the second time today.  The test that would have caught
 it is four lines and now exists.
 
@@ -8200,7 +8200,7 @@ nothing to extend, and every other content box is already a picture.
 
 ## The samples nobody could read
 
-*2026-08-18.  `board/done/unheard-output.md`, from a card that begins
+*2026-08-18.  `card:unheard-output.md`, from a card that begins
 with a question about delegation.*
 
 Henri's `because` is the general rule and this card is the first place it
@@ -8268,7 +8268,7 @@ the wall moved, it did not fall.
 
 ## Four things the first walk asked for
 
-*2026-08-18.  `board/done/gemba-follow.md` — Henri, after using the walk
+*2026-08-18.  `card:gemba-follow.md` — Henri, after using the walk
 for an afternoon.*
 
 The card was four sentences of his and each turned out to be a different
@@ -8327,7 +8327,7 @@ the harness says which binary that is.
 ## Thirty minutes, and the way in took half of them
 
 *2026-08-18.  The second stranger run, over chat, start to finish in
-thirty minutes.*  `board/stranger-test.md` carries the log with times;
+thirty minutes.*  `card:stranger-test.md` carries the log with times;
 this is what it came to.
 
 Janne cloned the tree at about 13:22 and heard his own edit at 13:52.
@@ -8431,7 +8431,7 @@ written because a person stopped at the thing it checks**.
 
 ## Eighty-one tests nobody ran, and one that did not exist
 
-*2026-08-18.  `board/done/interface-oracle.md`, taken and finished — and
+*2026-08-18.  `card:interface-oracle.md`, taken and finished — and
 the card was wrong about almost everything it asked for.*
 
 It said `shell/editor/src/view.rs` was *"the largest drawing file in the

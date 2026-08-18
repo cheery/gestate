@@ -351,7 +351,7 @@ class Host:
         """**What the device was actually given** — the frames the sink
         took, interleaved, oldest first.
 
-        `board/done/unheard-output.md`.  Empty unless `GESTATE_HOST_TAP`
+        `card:unheard-output.md`.  Empty unless `GESTATE_HOST_TAP`
         named a number of frames before this host was made: arming is an
         environment variable rather than a rebuild, because the defects
         this exists for are the kind somebody meets once and cannot

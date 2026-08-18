@@ -1,4 +1,4 @@
-"""Walking the factory floor — `board/done/gemba.md`.
+"""Walking the factory floor — `card:gemba.md`.
 
 Henri's ask: *"a program in the workspace that lets me walk the factory
 floor — Claude presents and comments to the editor, I see it through the
@@ -698,7 +698,7 @@ def test_arriving_at_the_file_is_not_arriving_at_the_place(tmp_path):
     assert it.view.went == [40], "and only once"
 
 
-# ── What the first real use asked for — `board/done/gemba-follow.md` ───────────
+# ── What the first real use asked for — `card:gemba-follow.md` ───────────
 
 
 def test_the_walk_stands_still_while_nobody_is_following(tmp_path):

@@ -7,9 +7,9 @@
              gestate/session.py — `vocabulary`, `_sections`, `Verb.section`
              test/test_command_sections.py — the derivation, held
              spec/workbench.md §"The list, and the laws it keeps"
-             board/button.md — a stranger opened this list and found names
-             board/done/gemba.md — the second idea waits on this
-             board/git-viewer.md — blocked by it
+             card:button.md — a stranger opened this list and found names
+             card:gemba.md — the second idea waits on this
+             card:git-viewer.md — blocked by it
 
 ## The ask
 
@@ -129,7 +129,7 @@ is what made the need clear in the first place.
 
 **And the caveat is kept rather than dropped**, because it is still
 true: what *would* decide this is a person opening the list and looking
-for something they cannot name, which is `board/stranger-test.md`'s
+for something they cannot name, which is `card:stranger-test.md`'s
 instrument.  A pick made from the armchair is a judgement, not
 evidence.  The reason it is safe to make anyway is that **A is the
 cheapest of the five to reverse** — eleven dim rows and no change to

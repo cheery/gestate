@@ -1,6 +1,6 @@
 """The launcher — `workbench.install_desktop`, checked into a fake home.
 
-**The first tier of `board/later/installation-test.md`**, and it exists
+**The first tier of `card:installation-test.md`**, and it exists
 because the way in is the part of this project nothing checked.  A
 fresh Ubuntu 26.04 laptop found three defects in it in one day, two of
 which are pinned here: an `Exec` line that did nothing when the icon
@@ -103,7 +103,7 @@ def test_the_entry_is_valid_by_the_specification(installed):
     """An oracle written by somebody else, which is the kind worth
     having.  Hints are allowed through: the live one says the three
     categories put gestate in more than one menu, and whether that is
-    wanted is a decision, not a defect (`board/later/installation-test.md`)."""
+    wanted is a decision, not a defect (`card:installation-test.md`)."""
     done = subprocess.run(
         ["desktop-file-validate",
          str(installed / "applications" / "gestate.desktop")],

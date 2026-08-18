@@ -105,7 +105,7 @@ exercises the live control path at all — so a defect in the first blocks,
 in a control channel, or in a handover between engines is invisible to
 every one of them, and the instrument of last resort was a person
 listening.  Chasing `fixme.md` F147 that way cost four listens and ended
-blocked.  `board/done/unheard-output.md` is the argument.
+blocked.  `card:unheard-output.md` is the argument.
 
 **And its blind spot is where the person's job actually starts.**  The
 tap reads what was handed to the sound card; the driver, the mixer, the
@@ -396,7 +396,7 @@ half is filler for the other.  The run needs no attention and the talk
 needs no keyboard.
 
 It also fixes something that was drifting.  A session that commits and
-stops leaves its findings in commit bodies, which is `board/done/gemba.md`'s
+stops leaves its findings in commit bodies, which is `card:gemba.md`'s
 whole complaint — *"today I read sixteen commit messages Claude
 wrote"*.  A ritual with a fixed end puts the summary in front of the
 person while he can still argue with it.

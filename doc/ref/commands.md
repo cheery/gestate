@@ -951,7 +951,7 @@ and stands a box under the line.
 One thing at a time, held for as long as it takes to read, with a
 mark that grows when the session is running ahead of you.  A bare
 `gemba` line pins the box to one place instead, for a walk you would
-rather watch than be led on.  `board/done/gemba.md`.
+rather watch than be led on.  `card:gemba.md`.
 
 **A command because the line was not findable.**  The box has been an
 ask-line since it was built and the only way to raise one was to know
@@ -994,4 +994,4 @@ it was the first line of the first screen a stranger ever saw, with
 the list's one explanatory line reading *"Do nothing — the identity
 of `++`"*: a fact about the algebra, offered as somebody's first
 move.  It is the identity of the monoid and it should be the last of
-the menu (`board/done/button.md`, `fixme.md` F150).
+the menu (`card:button.md`, `fixme.md` F150).

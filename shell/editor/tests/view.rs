@@ -1648,7 +1648,7 @@ fn a_calm_week_is_not_drawn_in_the_warning_colour() {
 
 // ── The factory floor ────────────────────────────────────────────────
 //
-// `board/done/gemba.md`.  A session narrates and a box shows one thing at a
+// `card:gemba.md`.  A session narrates and a box shows one thing at a
 // time; the window's whole job is to draw the thing it is handed and
 // the mark for what is waiting.  **What is not the window's job** is
 // deciding when to move on: the pace is the model's, because how long
@@ -1773,7 +1773,7 @@ fn a_window_that_is_told_nothing_draws_no_box() {
 #[test]
 fn the_corner_says_gemba_while_a_session_is_leading_you() {
     // **A mode you cannot see is a mode you will be surprised by**, and
-    // this one opens files.  `board/done/gemba-follow.md`.
+    // this one opens files.  `card:gemba-follow.md`.
     let d = doc("one\ntwo\nthree");
     let following = Furniture::read("gemba\t0\t\t0");
     let mut v = View { aside: 0, ..rows_of(6, 900) };
@@ -1815,7 +1815,7 @@ fn a_window_not_being_walked_says_nothing() {
 // ── The flag that looks like a default and is a decision ────────────
 //
 // **F153's `hint`, and a correction worth keeping.**  The card asking
-// for this work (`board/done/interface-oracle.md`) said the hint was one of
+// for this work (`card:interface-oracle.md`) said the hint was one of
 // three interface changes held by nothing.  It was wrong, and so was
 // the session that believed it: `the_bar_teaches_ctrl_k_while_the_
 // burger_holds_the_list` above already covers the bar in both

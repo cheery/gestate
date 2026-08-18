@@ -1,4 +1,4 @@
-"""The factory floor, walked — `board/done/gemba.md`.
+"""The factory floor, walked — `card:gemba.md`.
 
 *Genba*, 現場, "the actual place": the practice of going to where work
 happens instead of reading a report about it.  Henri's ask, and the
@@ -22,7 +22,7 @@ is a file and not a socket, and only the last decided it:
    thing it said is still on the screen.
 3. `cat` debugs it.
 4. **It is the only transport that crosses the fence for free.**
-   `board/reviewing-by-running.md` puts the workbench inside
+   `card:reviewing-by-running.md` puts the workbench inside
    `tools/sandbox.sh`, where the project directory is the one writable
    thing — so a file under it needs no new bind, while a socket or a
    fifo needs the fence widened to admit it.
@@ -311,7 +311,7 @@ class Walk:
         queue stands still and the last thing shown stays shown, so
         coming back lands you where you left rather than at the end of
         everything that happened while you were reading
-        (`board/done/gemba-follow.md`).
+        (`card:gemba-follow.md`).
         """
         return self.now
 

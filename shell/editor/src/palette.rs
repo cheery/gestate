@@ -47,7 +47,7 @@ pub struct Entry {
     /// has to agree about where a heading *goes*: the model sends the
     /// commands it always sent, in the order it always sent them, and a
     /// window that does not know the field shows exactly the flat list
-    /// it showed before.  `board/done/command-categories.md` option A.
+    /// it showed before.  `card:command-categories.md` option A.
     ///
     /// Empty while a query is up — the model's decision, and the right
     /// one: filtering re-ranks, so the runs break into ones and twos

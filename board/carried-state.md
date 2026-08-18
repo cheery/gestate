@@ -14,7 +14,7 @@
              gestate/session.py — the fields it has to carry
              test/test_atlas.py — the roster shape this should copy
              fixme.md F161 — the crash Henri hit, and why it is filed a day late
-             board/done/interface-oracle.md — the same argument for the window
+             card:interface-oracle.md — the same argument for the window
 
 ## The ask
 
@@ -101,7 +101,7 @@ from another and the copy list is written by hand:
 - the furniture line in `session.py` and its parser in
   `shell/editor/src/furniture.rs` — a field added on one side and not
   the other, which is the *window's* version of this and is what
-  `board/done/interface-oracle.md` is for
+  `card:interface-oracle.md` is for
 - `Session.__init__` ↔ whatever `test/` builds by hand
 
 ## The postcondition

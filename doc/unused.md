@@ -1,6 +1,6 @@
 # Language audit — the features nobody has called
 
-*2026-08-17.  `board/done/older-features.md` is the ask, and it is
+*2026-08-17.  `card:older-features.md` is the ask, and it is
 Henri's: "using/given has never been used anywhere yet… Note that I
 contradict project's rules there because it had no imminent use.  Let's
 allow it to be, but I want to know where it works currently."  And:

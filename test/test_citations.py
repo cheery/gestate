@@ -53,10 +53,29 @@ SKIP = {"target", ".venv", "__pycache__", ".git", "node_modules"}
 #: worse than no checker.
 CITE = re.compile(r"`?([\w./-]+\.md)`?\s*§\"([^\"]+)\"")
 
-#: `board/older-features.md`, `board/done/peep-window.md` — a card cited
-#: by path, which is the whole point of naming cards rather than
-#: numbering them.
-CARD = re.compile(r"`(board/(?:done/|later/)?[\w-]+\.md)`")
+#: `card:peep-window.md` — a card cited **by its id**, which is its
+#: filename and nothing else.
+#:
+#: **Adopted 2026-08-18, and it replaced a path.**  Henri: *"we would
+#: come with some notation to refer to a card?  We already have F0,
+#: F100 … card:button.md is good notation."*  A card's name never
+#: changes and its *shelf* does — `board/`, `board/done/`,
+#: `board/later/` — so a citation spelled as a path broke every time a
+#: card was finished or shelved.  Sixteen cards had moved in ten days,
+#: and each move was a tree-wide rewrite.
+#:
+#: **Backticks are optional here, unlike the path form**, and that is
+#: the second half of the fix: the old regex only saw citations inside
+#: backticks, so the `see` lines at the head of every card — which are
+#: written bare — were never checked at all.  Two of them had already
+#: rotted in that blind spot — `card:gemba.md` and `card:button.md`,
+#: both finished and moved to `done/` long before anybody noticed, both
+#: still cited at their old shelf.  F166.
+CARD = re.compile(r"`?card:([\w-]+\.md)`?")
+
+#: Where a card may sit.  The shelf is not part of the id, which is the
+#: whole point: finishing a card must not break a citation to it.
+SHELVES = ("board", "board/done", "board/later")
 
 
 def _files():
@@ -135,10 +154,11 @@ def test_every_section_citation_resolves():
 
 
 def test_every_card_citation_resolves():
-    """A card is cited by filename, so a renamed card is a broken link.
+    """A card is cited by its id, so a renamed card is a broken link —
+    and a *moved* one is not, which is the point of the notation.
 
-    The board's own rule: the filename is the id, and it never
-    renumbers — which is only worth anything if something checks.
+    The board's own rule: the filename is the id and it never
+    renumbers, which is only worth anything if something checks.
     """
     missing = []
     for path in _files():
@@ -147,11 +167,46 @@ def test_every_card_citation_resolves():
         except UnicodeDecodeError:                        # pragma: no cover
             continue
         for card in CARD.findall(text):
-            if not (ROOT / card).exists():
-                missing.append(f"{path.relative_to(ROOT)}: {card}")
+            if not any((ROOT / shelf / card).exists() for shelf in SHELVES):
+                missing.append(f"{path.relative_to(ROOT)}: card:{card}")
     assert not missing, (
-        "these cards are cited and are not there:\n  "
+        "these cards are cited and are on no shelf:\n  "
         + "\n  ".join(sorted(set(missing))))
+
+
+#: A card written as a path, which is the spelling this replaced.
+#: `board/README.md` is exempt: it is a real file that never moves, so
+#: it is a path and not a card.
+AS_PATH = re.compile(r"board/(?:done/|later/)?(?!README)[a-z][\w-]*\.md")
+
+
+def test_no_card_is_cited_as_a_path():
+    """**Two spellings of one id is how the churn comes back.**
+
+    The `card:` notation only pays if the old form cannot return — and
+    it would, because a path *looks* right and a reader who finds one
+    pointing at the wrong shelf will helpfully correct it rather than
+    delete it.  So the old spelling is refused outright.
+
+    The exception is the markdown link list in `board/README.md`, which
+    holds the order: those are relative links to files in the same
+    directory, they resolve for a person clicking one, and they are
+    checked by `test_board.py` against what is actually on the board.
+    """
+    stray = []
+    for path in _files():
+        if path.name == "README.md" and path.parent.name == "board":
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:                        # pragma: no cover
+            continue
+        for hit in AS_PATH.findall(text):
+            stray.append(f"{path.relative_to(ROOT)}: {hit}")
+    assert not stray, (
+        "a card is cited by path, and a path is the thing that rots "
+        "when the card is finished — write `card:<name>.md`:\n  "
+        + "\n  ".join(sorted(set(stray))))
 
 
 def test_the_register_says_how_many_it_holds() -> None:

@@ -150,7 +150,7 @@ is the one hazard 3 is about.
 **A bare launch is the first screen a stranger ever sees.**
 `tools/gestate-editor` runs `gestate.workbench "${1:-untitled.ges}"`, so
 opening gestate with no argument opens `untitled.ges` — the starter, and
-`board/done/button.md` and `fixme.md` F150 are the account of how hard
+`card:button.md` and `fixme.md` F150 are the account of how hard
 that screen was to get right.
 
 Put as a choice between *asked for* and *automatic*, and **Henri gave a

@@ -532,7 +532,7 @@ overwrite yes = Stated
 # ── The history ──────────────────────────────────────────────────────────
 #
 # **The smallest thing that puts the log on the screen**, and no more —
-# `board/git-viewer.md` asks for four views and this is the first of
+# `card:git-viewer.md` asks for four views and this is the first of
 # them.  Built as a proof of concept on purpose (Henri: *"we commit to
 # the try-something approach.  Implement the smallest viable
 # proof-of-concept program"*), so that what it is missing is discovered
@@ -584,7 +584,7 @@ zoomOut = Stated
 #: One thing at a time, held for as long as it takes to read, with a
 #: mark that grows when the session is running ahead of you.  A bare
 #: `gemba` line pins the box to one place instead, for a walk you would
-#: rather watch than be led on.  `board/done/gemba.md`.
+#: rather watch than be led on.  `card:gemba.md`.
 #:
 #: **A command because the line was not findable.**  The box has been an
 #: ask-line since it was built and the only way to raise one was to know
@@ -614,6 +614,6 @@ quit = Stated
 #: the list's one explanatory line reading *"Do nothing — the identity
 #: of `++`"*: a fact about the algebra, offered as somebody's first
 #: move.  It is the identity of the monoid and it should be the last of
-#: the menu (`board/done/button.md`, `fixme.md` F150).
+#: the menu (`card:button.md`, `fixme.md` F150).
 skip : Command
 skip = Stated

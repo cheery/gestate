@@ -1,4 +1,4 @@
-//! **One frame, written down.**  `board/done/interface-oracle.md`'s second
+//! **One frame, written down.**  `card:interface-oracle.md`'s second
 //! question, answered by Henri on 2026-08-18: *"golden frame, where
 //! else it could fit other than this tree?"*
 //!

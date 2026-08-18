@@ -10,7 +10,7 @@
              fixme.md F141 — the same defect, one message, found by a person
              gestate/audiospans.py — `in_source`, what turns a raw span
                into the author's own file and line
-             board/button.md — the neighbouring lesson: a first screen is
+             card:button.md — the neighbouring lesson: a first screen is
                an interface, and so is a complaint
 
 ## The ask
@@ -126,7 +126,7 @@ that never raise.  The known homes:
    accident — F141 from a friend's signature, F152 from Henri breaking
    a type on purpose to see what happened.  A sweep by reading may be
    the wrong instrument for the same reason reading the window was:
-   `board/stranger-test.md`'s rules apply, and a stranger's mistakes
+   `card:stranger-test.md`'s rules apply, and a stranger's mistakes
    are a *free* source of real messages nobody would think to write.
 
    **Left standing on purpose, and it belongs to the other card.**  The

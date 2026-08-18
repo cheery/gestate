@@ -262,7 +262,7 @@ def check_matrix(rows: list[list[Pat]], cons: dict[str, ConInfo],
     for the equation or ``case`` this matrix came from — **a definition
     that does not cover every value is a mistake with a line**, and
     naming the definition alone left the workbench nothing to draw a box
-    under (`board/done/error-messages.md`).
+    under (`card:error-messages.md`).
     """
     prefix = f"{where}: " if where else ""
     errors: list[str] = []

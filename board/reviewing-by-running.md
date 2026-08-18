@@ -11,7 +11,7 @@
     see      tools/sandbox.sh — the fence, and `--check`
              spec/sandbox.md, doc/hardening.md — the argument
              gestate/editor.py `_stale` — the editor rebuilds itself
-             board/done/timer.md — whose record the fence would erase
+             card:timer.md — whose record the fence would erase
 
 ## The ask
 
@@ -65,7 +65,7 @@ turns on**, and it is asked below rather than guessed at.
 fence, so `~/.local/state/gestate/presence.tsv` is written into nothing
 and gone at exit — the strip would reset every session, silently.  Needs
 the state directory bound, or `GESTATE_PRESENCE` pointed somewhere that
-survives.  A concrete regression of `board/done/timer.md`, found before
+survives.  A concrete regression of `card:timer.md`, found before
 it happened.
 
 **X access narrows the fence, and Wayland bounds how far.**  His session

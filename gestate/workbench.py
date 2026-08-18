@@ -756,7 +756,7 @@ def run(path, rate: int = 44100, block: int = 512,
     from .editor import Editor
     from .presence import Presence
 
-    #: **Where this window was last time** — `board/done/persistent-workbench-state.md`.
+    #: **Where this window was last time** — `card:persistent-workbench-state.md`.
     #: Read before the workbench is built, because the seed is one of
     #: the things it remembers and a seed chosen after the instrument
     #: has been built is a different take of the piece.
@@ -782,7 +782,7 @@ def run(path, rate: int = 44100, block: int = 512,
     #: the project half reads the tree being worked on and not whatever
     #: shell the window was launched from.
     presence = Presence(root=Path(path).resolve().parent)
-    #: **The factory floor** (`board/done/gemba.md`).  Rooted at the
+    #: **The factory floor** (`card:gemba.md`).  Rooted at the
     #: file's *project* — `gemba.project` walks up to the repository —
     #: because both ends have to answer *under the project* the same
     #: way, and the first version did not: this rooted at the file's own
@@ -1108,7 +1108,7 @@ def _stepped_off(session) -> None:
     went = getattr(session, "_walked", None)
     if not went:
         return
-    # **Only in the file the walk put you in** — `board/done/gemba-follow.md`,
+    # **Only in the file the walk put you in** — `card:gemba-follow.md`,
     # and this is what made the walk *cut off* (Henri, watching one run
     # for two minutes).  A walk that moves to another file leaves the
     # caret at line 1 of the new one while `_walked` still names the old
@@ -1150,7 +1150,7 @@ def _refollow(session, editor, watched):
     """Re-read the file being walked when a session has changed it.
 
     **A walk is watching work happen, and work changes the file**
-    (`board/done/gemba-follow.md`).  A window showing the version it arrived
+    (`card:gemba-follow.md`).  A window showing the version it arrived
     at would be showing a report again, which is the thing the walk
     exists to replace.
 
@@ -1246,7 +1246,7 @@ def _remember(path, place, was: str, nth: int) -> None:
     it, and keeps its own place in the desk record instead — which is
     what makes the refusal safe rather than lossy, and what lets a
     second view of a long piece come back where it was
-    (`board/done/persistent-workbench-state.md`).
+    (`card:persistent-workbench-state.md`).
 
     Nothing here may raise.  A window that failed to write down where it
     was is a window that lost your place; a window that *crashed on the
@@ -1295,7 +1295,7 @@ def install_desktop() -> int:
     says so in its own comment: it opens the file it was handed or the
     scratch file when it was handed nothing, it finds the venv, and it
     `cd`s to the tree.  Henri hit this on a fresh 26.04 install and
-    fixed it there before it was fixed here; `board/later/installation-test.md`
+    fixed it there before it was fixed here; `card:installation-test.md`
     is the card about the fact that nothing caught it.
     """
     from gestate import icon
@@ -1358,7 +1358,7 @@ def main(argv=None) -> int:
         #
         # And somebody who has never opened one has no last file, so
         # `tools/gestate-editor`'s `${1:-untitled.ges}` still hands them
-        # the starter — the screen `board/done/button.md` and F150 are
+        # the starter — the screen `card:button.md` and F150 are
         # the account of.  It survives on exactly the person it is for.
         from .desk import last_file
 

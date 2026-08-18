@@ -1,4 +1,4 @@
-"""Where the workbench was — `board/done/persistent-workbench-state.md`.
+"""Where the workbench was — `card:persistent-workbench-state.md`.
 
 The `because` this is held against is Henri's: *"when the window is
 closed the data is lost; it causes possible data loss, and leads to
@@ -110,7 +110,7 @@ def test_the_last_piece_is_what_a_bare_launch_gets(tmp_path):
 
 def test_somebody_who_has_never_opened_a_file_still_meets_the_starter(tmp_path):
     """**The first screen survives on exactly the person it is for.**
-    `board/done/button.md` and `fixme.md` F150 are the account of how
+    `card:button.md` and `fixme.md` F150 are the account of how
     hard that screen was to get right, and a convenience feature must
     not take it from a stranger."""
     assert desks.last_file() is None

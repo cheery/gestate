@@ -10,7 +10,7 @@
              gestate/audioeditor.py — `_say_dry`, `DRY_EVERY`
              tools/stutter.py — the only thing that reads the counters
              journal.md §"And what a session costs the machine"
-             board/done/timer.md — the same shape, one row down
+             card:timer.md — the same shape, one row down
 
 ## The ask
 
@@ -112,13 +112,13 @@ record.  **Henri, 2026-08-17: yes, it should survive.**
 He added: *"I think this is blocked by the persistent-workbench-state.md"*
 — and it is not, which is worth writing down rather than agreeing to.
 
-`board/done/timer.md` built the durable home this morning:
+`card:timer.md` built the durable home this morning:
 `presence.state_path()` (`$XDG_STATE_HOME/gestate/`) and `presence.tsv`,
 **already a per-day record of how the day went**, already written and
 reloaded, already tolerant of a line it cannot parse.  A dry count is one
 more column on a line that already exists.
 
-`board/done/persistent-workbench-state.md` is a different question — *editor*
+`card:persistent-workbench-state.md` is a different question — *editor*
 state, the caret and the zoom and the transport — and its own open
 decision is where that goes, *"beside the `.ges` file, in the project, or
 in the user's home"*.  Nothing here waits on that answer.

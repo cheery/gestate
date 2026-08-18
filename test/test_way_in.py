@@ -1,7 +1,7 @@
 """The way in, held to what a stranger can actually carry out.
 
 **Every test here was written because a person stopped at the thing it
-checks.**  `board/stranger-test.md`'s run two, 2026-08-18: Janne cloned
+checks.**  `card:stranger-test.md`'s run two, 2026-08-18: Janne cloned
 the tree over chat and reached a Python traceback in six minutes, and
 each stop he made is a check below.
 
@@ -104,7 +104,7 @@ def test_the_first_run_says_it_is_about_to_compile(name: str):
     both ways in have to carry it, so both are checked.
 
     Janne had to be told out loud, by the author, at 13:37
-    (`board/stranger-test.md`).  A reader whose build *fails* now meets
+    (`card:stranger-test.md`).  A reader whose build *fails* now meets
     it in the error text; a reader whose build succeeds meets only the
     silence, and that is the commoner case.
     """

@@ -292,7 +292,7 @@ vocabulary, and so is `apply`.
 
 **The one question that changes the design, asked of Henri and not of
 Janne: is he the same friend as 2026-08-17** (F150, F155,
-`board/done/button.md`)?
+`card:button.md`)?
 
 - **If yes**, this is precisely the run this card already planned —
   *hand the same friend the window with the list open and watch what he
@@ -534,7 +534,7 @@ hyvin."* — now that `[command]` in the top right corner shows up well.
 had to answer.**  It is a comparison, so he is comparing it to something
 he saw before: he is the friend of 2026-08-17, the one who could not
 find the small gray-tinted button (F150, F155,
-`board/done/button.md`).
+`card:button.md`).
 
 ### What this is evidence for, and what it is not
 
@@ -559,7 +559,7 @@ only instrument for it.
 
 ### What it does close
 
-`board/done/button.md`'s remaining doubt about whether the replacement
+`card:button.md`'s remaining doubt about whether the replacement
 reads at a glance, on somebody else's screen, at somebody else's DPI, in
 somebody else's window size.  One person, one screen, one look, and he
 volunteered it.  That is worth an entry in the record even though it is
@@ -591,7 +591,7 @@ stop it*.
 simply have picked the entry he understood the word for.  The set it
 belongs to — is `stop` first because it is urgent, because it is legible,
 or because it is short — is not settled by one observation, and
-`board/done/command-categories.md`'s ordering is what it bears on.
+`card:command-categories.md`'s ordering is what it bears on.
 
 ### "Ctrl-K on kätevä" — and one question worth asking
 
@@ -693,7 +693,7 @@ such — is that the same person meeting today's tree would have reached
 ### One question, and it is worth asking before he moves on
 
 He named `lowpassSvf` specifically.  That function is the origin of
-`board/done/argument-names.md`, which exists because *"I do not figure
+`card:argument-names.md`, which exists because *"I do not figure
 out quickly enough which argument in lowpass filters are which"* — the
 author's own complaint, about this exact function.
 
@@ -718,7 +718,7 @@ Thirty minutes, clone to fourth verb.  The story is in `journal.md`
 - **Not spent:** every specific question that can be asked cold.  He can
   still be asked *which value did you change in `lowpassSvf`, and did
   you know what it would do before you changed it* — the question
-  `board/done/argument-names.md` exists to answer, aimed at the one
+  `card:argument-names.md` exists to answer, aimed at the one
   function that motivated it.  Asking it tomorrow costs nothing that
   asking it today would have saved.
 - **Never available from him again:** whether the corner is findable by

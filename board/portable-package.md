@@ -9,7 +9,7 @@
     blocked  not formally — but see "What it needs first" below; there
              is no oracle for an install today, and a package is an
              install that cannot be inspected afterwards
-    see      board/later/installation-test.md — the sibling, and the one to do first
+    see      card:installation-test.md — the sibling, and the one to do first
              doc/install.md — what a package would have to replace
              vision.md — what "accessibility" is being measured against
              README.md §Ubuntu, from nothing

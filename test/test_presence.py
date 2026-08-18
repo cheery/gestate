@@ -1,4 +1,4 @@
-"""The day's clock — `spec/timer.md`, `board/done/timer.md`.
+"""The day's clock — `spec/timer.md`, `card:timer.md`.
 
 **What these hold is the arithmetic, not the drawing.**  The row itself
 is four lines of Rust; what can be silently wrong is what counts as

@@ -1,6 +1,6 @@
 """The command list knows which run of the file each verb is in.
 
-`board/done/command-categories.md`.  The categories were never missing —
+`card:command-categories.md`.  The categories were never missing —
 `command.ges` has been written in labelled sections since it existed,
 and nothing read them, so the palette showed fifty-three names flat.
 This holds the *derivation*; what the window does with it is still open
@@ -76,7 +76,7 @@ def test_the_first_command_is_still_the_first_thing_in_its_section():
 
 # ── And what crosses to the window ──────────────────────────────────────────
 #
-# `board/done/command-categories.md` option A landed on 2026-08-18.  The
+# `card:command-categories.md` option A landed on 2026-08-18.  The
 # section rides on each command row rather than as heading rows of its
 # own, so nothing has to agree about where a heading *goes* — the window
 # draws one wherever the section changes, and one that does not know the

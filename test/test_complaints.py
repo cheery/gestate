@@ -1,4 +1,4 @@
-"""The sweep, held to itself — `board/done/error-messages.md`.
+"""The sweep, held to itself — `card:error-messages.md`.
 
 **The last sweep left no receipt, and that is the defect this file is
 for.**  `journal.md` Part I item 13 records an "every error message"

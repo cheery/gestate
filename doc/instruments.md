@@ -55,7 +55,7 @@ finding.
 
 ### `gemba` — narrate into a running workbench
 
-    python -m gestate.gemba say "reading board/gemba.md"
+    python -m gestate.gemba say "reading card:gemba.md"
     python -m gestate.gemba clear
 
 Put a bare `gemba` line anywhere in the file open in the workbench and a
@@ -64,7 +64,7 @@ as that item takes to read; when the queue backs up, a mark under the
 sentence grows with the depth — *he is going faster than you are
 following*, which is the signal the box mostly exists for.
 
-`board/done/gemba.md` is the card, `gestate/gemba.py` the module.
+`card:gemba.md` is the card, `gestate/gemba.py` the module.
 **Use it whenever Henri is at the desk while a session works.**  The
 alternative is him reading commit messages afterwards, which is the
 thing it was built to replace.
@@ -152,7 +152,7 @@ written beside it saying **who is standing in front of it** — `author`,
 class with no verdict fails the suite gate.
 
 Regenerate it after any edit that moves line numbers, which is most of
-them.  `board/done/error-messages.md` is the card.
+them.  `card:error-messages.md` is the card.
 
 ### `python -m gestate.reference` — `doc/ref/`
 
@@ -204,7 +204,7 @@ get built when the need next arises rather than queued:
   `GESTATE_HOST_TAP` above.  The day it was named as missing is
   `journal.md` §"And the harder half: what a *live* oracle would have
   been"; the day it closed F147's pop was the next one.
-* **Python and Rust colouring in the workbench** — `board/done/gemba.md`
+* **Python and Rust colouring in the workbench** — `card:gemba.md`
   items 3–5, so that walking a `.py` or `.rs` file is readable.
 * **A graceful-close driver** — no tool here has ever exercised one,
   because they all `terminate()`.

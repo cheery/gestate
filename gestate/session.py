@@ -113,7 +113,7 @@ class Verb:
     #: fifty-three names with the grouping thrown away.  Derived here
     #: for the same reason the order is (`vocabulary`): the file is the
     #: source, and a category kept anywhere else would be a second
-    #: place to maintain one.  `board/done/command-categories.md` is where
+    #: place to maintain one.  `card:command-categories.md` is where
     #: what to *do* with it is being decided; this is only the fact.
     section: str = ""
 
@@ -655,7 +655,7 @@ def _sections(source: str) -> dict:
 
     A header's text is what is between the rules, so the file stays
     readable as a file — nobody writes a category, they write the
-    heading they were already writing (`board/done/command-categories.md`).
+    heading they were already writing (`card:command-categories.md`).
     """
     out, under = {}, ""
     for line in source.splitlines():
@@ -1565,7 +1565,7 @@ class Session:
         return (here / head if head else here).resolve()
 
     def commits(self, query: str) -> list:
-        """The history, as rows to pick — `board/git-viewer.md`.
+        """The history, as rows to pick — `card:git-viewer.md`.
 
         **`open`'s shape, over commits instead of directories.**  A bare
         query lists the commits; a query that names one lists the files
@@ -1841,7 +1841,7 @@ class Session:
     def _travel(self, item) -> int:
         """Go where the walk is pointing, and say which line to stand on.
 
-        **This is the walk walking**, and it is what `board/done/gemba.md`
+        **This is the walk walking**, and it is what `card:gemba.md`
         is named for: the session says *look at `workbench.py` line 854*
         and the window goes there, rather than narrating about it from
         wherever the reader happens to be standing.
@@ -3341,7 +3341,7 @@ class Session:
                 else "opening the canvas — it will appear when it builds")
 
     def do_log(self, what: str) -> str:
-        """Read the history — `board/git-viewer.md`, the first of its
+        """Read the history — `card:git-viewer.md`, the first of its
         four views.
 
         **`open`'s shape.**  A commit is a *step*, not an answer: taking
@@ -3389,7 +3389,7 @@ class Session:
 
     def do_whole(self) -> str:
         """The file the page is showing a diff of, whole — the fourth
-        view of `board/git-viewer.md`.
+        view of `card:git-viewer.md`.
 
         **No argument, because you are already looking at it.**  The
         walk has just told this session which file at which commit, and
@@ -4001,7 +4001,7 @@ def furniture(session: "Session", bench=None, tally: str = "",
         elif walkable:
             out.append(f"canvas\t{i}\tsubstrate")
 
-    # **A gemba box stands on every `gemba` line** (`board/done/gemba.md`) —
+    # **A gemba box stands on every `gemba` line** (`card:gemba.md`) —
     # `canvas`'s manners, a fourth reading of machinery already built:
     # one appended line asks, deleting it takes the box, no line no box.
     #
@@ -4019,7 +4019,7 @@ def furniture(session: "Session", bench=None, tally: str = "",
         # They were the same switch, and that made interrupting
         # impossible: the line re-subscribed on every pass of the loop,
         # so a walk you had stepped off resumed a frame later and no
-        # keystroke could stop it (`board/done/gemba-follow.md`).
+        # keystroke could stop it (`card:gemba-follow.md`).
         #
         # Separated, each says what it is for.  The line means *show me,
         # here*; following means *take me to it*.  Somebody who wants a
@@ -4027,7 +4027,7 @@ def furniture(session: "Session", bench=None, tally: str = "",
         asked = next((i for i, l in enumerate(session._lines(), start=1)
                       if _re.match(r"gemba\s*$", l.split("#", 1)[0])), 0)
         # **The queue advances while it is being shown, and not
-        # otherwise** (`board/done/gemba-follow.md`).  A pinned box is on the
+        # otherwise** (`card:gemba-follow.md`).  A pinned box is on the
         # screen, so it moves; a walk you stepped off has nowhere to be
         # read, so it stands still and keeps your place.
         #
@@ -4038,7 +4038,7 @@ def furniture(session: "Session", bench=None, tally: str = "",
         item = (walk.showing() if (session.walking or asked)
                 else walk.held)
         # **Where the box goes, and it is the whole of "travelling in
-        # the code"** (`board/done/gemba.md`).  Henri, on the first
+        # the code"** (`card:gemba.md`).  Henri, on the first
         # version: *"'not travelling in code' means that the editor
         # itself doesn't open a location, eg. `gestate/workbench.py`,
         # and plant the box after a line you want to show."*
@@ -4135,7 +4135,7 @@ def furniture(session: "Session", bench=None, tally: str = "",
         # heard in.  What was missing is that *nothing said so* — a
         # person who does not know the step exists cannot tell this
         # from a program ignoring them, and that is exactly where a
-        # stranger stopped (`board/done/button.md`).
+        # stranger stopped (`card:button.md`).
         #
         # **The words are the model's**, like every other sentence that
         # crosses here: the window places and colours it and does not
@@ -4171,7 +4171,7 @@ def furniture(session: "Session", bench=None, tally: str = "",
         # how many boxes to open, and a usage string is prose.
         # **And which run of the file it was declared in**, so the list
         # can be read in the groups its author already wrote
-        # (`board/done/command-categories.md`, option A).  A *fact per row*
+        # (`card:command-categories.md`, option A).  A *fact per row*
         # rather than heading rows on the wire: the window draws a
         # heading when this changes, an older one ignores the field and
         # shows the flat list it always showed, and nothing has to agree
@@ -4790,7 +4790,7 @@ def act(session: "Session", line: str) -> str:
     parts = line.split("\t")
     verb = parts[0] if parts else ""
     # **Anything you do stops the walk following you around**
-    # (`board/done/gemba-follow.md`).  Being led somewhere is only tolerable
+    # (`card:gemba-follow.md`).  Being led somewhere is only tolerable
     # if stepping off is free, and *free* means not having to know a
     # command for it: a keystroke, a click, an edit — whatever you do
     # next, the walk stands still and keeps the place, and `gemba` picks

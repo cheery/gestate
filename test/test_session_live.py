@@ -90,8 +90,20 @@ def test_every_command_finds_the_method_it_needs(tmp_path):
               "Symbol": "a", "Answer": "no",
               # A hole's type and something to put in it — neither is
               # at the cursor here, so `complete` answers about that.
-              "Wanted": "Sig Float", "Filler": "sine"}
+              "Wanted": "Sig Float", "Filler": "sine",
+              # **A revision that is certainly not in any history.**
+              # `log : Commit -> Command` arrived with the git viewer
+              # and this table did not learn it, so the sweep died on a
+              # `KeyError` for a whole suite run — the andon lighting
+              # for the right reason and saying the wrong thing.
+              "Commit": "0000000"}
     for verb in s.commands():
+        missing = [a for a in verb.args if a not in sample]
+        assert not missing, (
+            f"{verb.name} takes {', '.join(missing)} and this sweep does "
+            "not know what to hand it.  Add one to `sample` above — "
+            "something certainly not on the disk, so the command answers "
+            "about a refusal rather than doing the thing.")
         said = s.run(verb.name, *(sample[a] for a in verb.args))
         assert "object has no attribute" not in said, \
             f"{verb.name}: {said}"

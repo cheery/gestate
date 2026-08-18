@@ -275,7 +275,7 @@ class Entry:
     #: `lowpassOnePole`, the same position meaning different things
     #: between neighbours.  Every bit of that information is in the names,
     #: and until now the names lived only in the source.  So this is a
-    #: visibility fix and not a type-system one (`board/done/argument-names.md`).
+    #: visibility fix and not a type-system one (`card:argument-names.md`).
     params: list = field(default_factory=list)
     #: Which library it came from.  Filled in by whoever gathers several
     #: files together — the pages know already, the editor's search does

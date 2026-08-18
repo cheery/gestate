@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 166 entries, **142 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 167 entries, **143 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -4109,7 +4109,7 @@ that would make such collisions likely in the first place.
 ### F142. **[missing]** A canvas-only file cannot be opened in the workbench
 
 Found 2026-08-17 while auditing the older language features
-(`board/done/older-features.md`), by trying the command the manual
+(`card:older-features.md`), by trying the command the manual
 prints:
 
 ```sh
@@ -4191,7 +4191,7 @@ after it inherit it.
 
 ### F144. **[missing]** An implicit parameter shows in a query without its name
 
-Found while auditing `using`/`given` (`board/done/older-features.md`).
+Found while auditing `using`/`given` (`card:older-features.md`).
 
 ```
 implicit hz : Float
@@ -4217,7 +4217,7 @@ $ python -m gestate.typecheck --audio --query lift     -- an ordinary one
 lift x : Float -> Sig Float
 ```
 
-`board/done/argument-names.md` exists because *"I do not figure out
+`card:argument-names.md` exists because *"I do not figure out
 quickly enough which argument in lowpass filters are which"*, and an
 implicit is the argument least likely to be guessed — it is the one the
 signature deliberately does not mention.  The name is in hand:
@@ -4437,7 +4437,7 @@ from the other side.
 
 ### The oracle was built, and it moved the wall — 2026-08-18
 
-`board/done/unheard-output.md` landed, so the thing named below now
+`card:unheard-output.md` landed, so the thing named below now
 exists: `GESTATE_HOST_TAP=<frames>` and `Host.tap()` hand back what the
 sink was actually given.  What it said in its first hour:
 
@@ -4560,7 +4560,7 @@ Held by `test_a_knob_starts_at_what_the_program_declared`, asserted
 about the *value* rather than the call order — Henri's own framing from
 the last time this entry was worked: *"zero is a zero"*.
 
-**And this is what `board/done/unheard-output.md` was for.**  Four
+**And this is what `card:unheard-output.md` was for.**  Four
 listens got as far as *a control-rate signal feeding a frequency, in the
 first blocks*, and stopped.  The tap found the rest in one run, and the
 fix was confirmed by a second — no ears at either end.
@@ -4583,7 +4583,7 @@ really not possible to delegate to a real oracle?'"*  Here the answer is
 yes and it is not built, so the hunt costs one person's attention per
 iteration and cannot bisect.  **Four listens were spent before this
 entry stopped.**  The next step is the tap, not a fifth —
-`board/done/unheard-output.md`.
+`card:unheard-output.md`.
 
 **The bisect is checked in**, so it does not have to be rebuilt by the
 next person: `test/sessions/F147-ampknob.ges` (silent) and
@@ -4715,7 +4715,7 @@ wrapper and the installer lived one directory apart, each correct, with
 nothing in the tree that had to agree with both.
 
 **Resolved with the tier of tests the defect argues for**
-(`test/test_desktop.py`, `board/later/installation-test.md`): the entry is
+(`test/test_desktop.py`, `card:installation-test.md`): the entry is
 installed into a temporary `HOME`, `Exec` must name the wrapper, the
 wrapper must still supply a file — and `main([])` must still exit 2,
 asserted beside them, because that is the fact which makes the others
@@ -4736,7 +4736,7 @@ the program.  Once I helped he got the button open, he had very little
 idea what is behind it."*  And, when asked which screen: *"My friend
 was on the starter screen.  The basic sine function giving a tone."*
 
-`board/done/button.md` is the card, and it holds the whole account.  Two of
+`card:button.md` is the card, and it holds the whole account.  Two of
 what it found are defects rather than design questions, and this entry
 is those two.  **Both were found by photographing the running window
 rather than by reading the source** — the icon's own launcher, opened
@@ -4755,7 +4755,7 @@ one piece of guidance read:
 UI it described — the same shape as the canvas losing its callers in
 that deletion — and what stands in that corner now is `≡`, which opens
 the command list and is not the reference.  So the first screen named
-the wrong control in the right place, which `board/stranger-test.md`
+the wrong control in the right place, which `card:stranger-test.md`
 already has the rule for: *a wrong guess that worked is worse than a
 stumble; it means the window taught something false.*
 
@@ -4811,7 +4811,7 @@ starter screen could open the editor and hear it — both happen by
 themselves — and could type.  Nothing he typed reached the sound,
 because the step that puts it there is a key nobody told him about, and
 **nothing on screen said the sound and the text had parted**
-(`board/done/button.md`).
+(`card:button.md`).
 
 Three parts, and the measurements are in the card:
 
@@ -4888,14 +4888,14 @@ file.  Nothing needed inventing — it needed noticing.
 
 Held by `test/test_error_places.py`, which asserts the place *and* that
 the sentence still says what is wrong, since appending a span is exactly
-how the message gets lost.  **`board/done/error-messages.md` is the card for
+how the message gets lost.  **`card:error-messages.md` is the card for
 the rest of them**, at his ask: *"we maybe need to arrange a session
 where we examine meticulously every error message and ensure they work.
 We already did that once and it needs to be done again."*
 
 ### F153. **[resolved]** The window taught the key only to people who no longer needed it
 
-Found while reading `board/done/button.md` against the running window,
+Found while reading `card:button.md` against the running window,
 2026-08-17, and fixed at Henri's ask the same evening.
 
 `view.hint` puts `Ctrl-K` in the status bar.  It was set **by a burger
@@ -4904,7 +4904,7 @@ to somebody who had just demonstrated they could find the one control
 without it, and said nothing at all to somebody who could not.  **The
 teaching was downstream of the discovery it exists to make
 unnecessary**, and the discovery is the part a stranger failed (F150,
-and the 24 lit pixels `board/done/button.md` measures).
+and the 24 lit pixels `card:button.md` measures).
 
 Now: **on until the key has been used, and then never again.**  Ctrl-K
 is the one place that can know you have used it, so that is where it is
@@ -4964,7 +4964,7 @@ And the screen had *told* him where to look: the starter's own text
 said the button was top right (F150), and he still missed it.  Which is
 the strongest available argument that the drawing was under the floor
 of findable, and the strongest that finding it was not the whole
-problem — both were true, and `board/done/button.md` holds the six
+problem — both were true, and `card:button.md` holds the six
 answers that came out of that.
 
 Now the corner reads `[command]`, at the ink's own weight, brackets
@@ -4980,11 +4980,11 @@ and *the box is exactly as wide as the word in it* are ordinary
 assertions with no window in them.  Their blind spot is written beside
 them and is the whole of this defect: **they see what was emitted,
 never what it looked like.**  The `≡` would have passed all three.
-`board/done/interface-oracle.md` is the card for the rest of it.
+`card:interface-oracle.md` is the card for the rest of it.
 
 ### F156. **[open]** The audio backend says which definition, never which line
 
-Found by the sweep `board/done/error-messages.md` asked for, 2026-08-18, and
+Found by the sweep `card:error-messages.md` asked for, 2026-08-18, and
 filed rather than fixed because the fix is not a line of arithmetic.
 
 `audioextract` reports against an **origin** — `sound/raw/phase/driven`
@@ -5079,7 +5079,7 @@ of a shift, blocking the only verification pass of that shift, on a
 tree with six subsystems' worth of changes in it, and handed to Henri
 with half an hour left in his day — *"the suite cannot run yet.  I
 need to go in 30 minutes."*  Run at the commit that made it, it is a
-seven-second failure naming the file.  `board/cheap-gates.md` is the
+seven-second failure naming the file.  `card:cheap-gates.md` is the
 card for that, and this entry is its receipt.
 
 ### F161. **[resolved]** Opening a file from the starter screen took the editor down
@@ -5109,12 +5109,12 @@ them, because every `Session` test builds a `Session` directly and
 nothing exercises *and then the instrument changed underneath it*.  A
 rule was written into `spec/verification.md` after the first, and the
 second and third came anyway; a rule in prose is not a control.
-`board/carried-state.md` is the card for the control.
+`card:carried-state.md` is the card for the control.
 
 ### F162. **[resolved]** The first instruction in the way in could not be carried out
 
 **Janne, 2026-08-18, over chat, minutes into the run
-`board/stranger-test.md` was pre-registered for** — relayed by Henri:
+`card:stranger-test.md` was pre-registered for** — relayed by Henri:
 *"Janne is confused about `<this-repo>`, he wonders what you're supposed
 to insert there?"*
 
@@ -5145,7 +5145,7 @@ what goes in the blank.  He cannot see this class of defect at all —
 not through inattention, but because the missing information is in his
 head and the instrument is his own reading.
 
-That is `board/stranger-test.md`'s entire argument, arriving as a
+That is `card:stranger-test.md`'s entire argument, arriving as a
 measurement rather than a claim, eleven minutes into the run.
 
 ### The gate
@@ -5155,7 +5155,7 @@ no `<…>` token inside a fenced `sh` block in `README.md` or
 `doc/install.md`.
 
 **This is the first closure made under the rule adopted the same day**
-(`board/ungated-fixes.md`, and Henri's *"From now here on I think"*):
+(`card:ungated-fixes.md`, and Henri's *"From now here on I think"*):
 an entry does not close until it names the instrument that fires if the
 defect returns.  The scope is deliberately narrow — `<date>` and
 `<expr>` are honest placeholders in prose throughout this tree, and a
@@ -5173,7 +5173,7 @@ is open.
 ### F163. **[resolved]** The way in installs rust, and the next shell cannot find it — then says to run the thing that is missing
 
 **Janne, 2026-08-18, 13:28, six minutes after cloning**, in the run
-`board/stranger-test.md` pre-registered.  He reached the editor on his
+`card:stranger-test.md` pre-registered.  He reached the editor on his
 own — `../README.md` §"Edit it while it sounds" is the section after the
 one that named the file he was listening to — and got a Python
 traceback.  The picture is `doc/stranger-two-no-cargo.png`.
@@ -5185,7 +5185,7 @@ makes one
 ```
 
 **Which of the three `EditorError`s it would be was written down before
-the picture arrived** (`board/stranger-test.md` §"13:28"), and it was
+the picture arrived** (`card:stranger-test.md` §"13:28"), and it was
 the predicted one.  That is the whole value of pre-registering: the
 diagnosis cost one look instead of a conversation.
 
@@ -5280,7 +5280,7 @@ catching a person.
 
 The ask named `*.desk`, and `.gitignore` **deliberately refuses** that
 pattern, at length, for a decision out of
-`board/done/persistent-workbench-state.md`: a `<piece>.desk` belongs to
+`card:persistent-workbench-state.md`: a `<piece>.desk` belongs to
 the *piece*, travels with it, and being committable is the whole reason
 it lives beside the `.ges` rather than in a dot-directory.  Ignoring all
 of them would undo that quietly, in a file nobody re-reads.
@@ -5342,7 +5342,7 @@ describes the reader rather than the reading.
 
 ### Not fixed before run three, and that is a decision
 
-`board/stranger-test.md` run three is on a laptop next week, and rule 3
+`card:stranger-test.md` run three is on a laptop next week, and rule 3
 says fix what is known-wrong for free first.  This is known-wrong and it
 is not free: the first half changes what every newcomer's first frame
 looks like, and the corner's legibility is the one thing that run
@@ -5378,6 +5378,59 @@ nothing worse than the default.
 **Still open: the first half.**  `Editor(bench.source(), 1100, 760)`
 still knows nothing about the display, and a person who has never zoomed
 still meets scale 1 on a dense panel.  Deliberately not fixed before
-`board/stranger-test.md` run three, because it changes what every
+`card:stranger-test.md` run three, because it changes what every
 newcomer's first frame looks like and the corner's legibility is what
 that run measures.
+
+### F166. **[resolved]** Two card citations rotted where the checker could not look
+
+Found while pricing a notation change, 2026-08-18: `card:gemba.md` and
+`card:button.md` were both still cited at the board's **root**, long
+after each was finished and moved down into `board/done/`.  Neither
+citation had ever been checked, and one sat in `doc/instruments.md`,
+which is the first thing a session is told to read.
+
+*(The dead spellings are described here rather than written out: the
+gate this entry closes refuses them, and an entry that quoted them would
+fail the suite — which is the poka-yoke working on its own author, ten
+minutes after it was built.)*
+
+### The blind spot was exact
+
+`test_citations.py`'s card pattern required **backticks**:
+
+    CARD = re.compile(r"`(board/(?:done/|later/)?[\w-]+\.md)`")
+
+Every `see` line at the head of every card is written bare, without
+them.  So the citations most likely to exist — the ones a card carries
+to its neighbours — were the ones nothing looked at, and the checker
+reported green over them for as long as it has existed.
+
+**This is `manifesto.md`'s instrument problem, not a typo.**  A checker
+with a blind spot is worse than no checker in one specific way: it is
+*believed*.  Every card that moved shelf since the board began was
+verified by something that could not see half the citations to it.
+
+### The fix was a notation, not a pattern
+
+Henri, the same afternoon: *"how about.. we would come with some
+notation to refer to a card?  We already have F0, F100, F110, etc.
+they're references to fixme entries… card:button.md is good notation."*
+
+So a card is cited `card:<name>.md` now, backticks optional, resolved
+across all three shelves — the id without the shelf, which is what the
+board always said a card's filename was.  201 citations in 65 files were
+rewritten in one pass.
+
+**And the old spelling is refused**, by
+`test_citations.py::test_no_card_is_cited_as_a_path`: two spellings of
+one id is how the churn comes back, and a path that points at the wrong
+shelf looks like a typo somebody will helpfully *correct* rather than
+delete.
+
+### The gate
+
+`test_no_card_is_cited_as_a_path`, and the widened
+`test_every_card_citation_resolves`.  Both were checked by reintroducing
+a path citation into `doc/instruments.md` and watching the suite refuse
+it.  Fourth closure under the day's rule.

@@ -1,4 +1,4 @@
-"""How long the day has been — `spec/timer.md`, `board/done/timer.md`.
+"""How long the day has been — `spec/timer.md`, `card:timer.md`.
 
 **The one thing this project never instrumented was the person doing
 it.**  In nine days it built an oracle before touching anything it meant
@@ -135,7 +135,7 @@ def state_path() -> Path:
     `git status` all day, and a clone of gestate is not a clone of
     anybody's week.
 
-    First user of this directory; `board/done/persistent-workbench-state.md`
+    First user of this directory; `card:persistent-workbench-state.md`
     wants the same one, and should take this function rather than
     inventing a second home.
     """

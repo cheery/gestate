@@ -734,7 +734,7 @@ def test_a_directory_the_caller_named_is_left_alone(tmp_path):
 
 # ── The tap: what the device was actually given ───────────────────────────
 #
-# `board/done/unheard-output.md`.  Every other audio oracle in this tree
+# `card:unheard-output.md`.  Every other audio oracle in this tree
 # reads an *offline render* or a *counter*, and an offline render renders
 # a knob at its resting value — so anything in the first blocks, anything
 # about a control channel and anything about a handover is invisible to

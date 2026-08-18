@@ -66,7 +66,7 @@ def test_query_answers_with_the_type_the_place_and_the_prose(tmp_path):
     # what a compiler knows and the names are what a reader needs; four
     # filters in `synth.ges` carry the same three `Sig Float`s and the
     # first means hertz in one and a coefficient in its neighbour
-    # (`board/done/argument-names.md`).
+    # (`card:argument-names.md`).
     assert out.splitlines()[0] == "total o : Order -> Int"
     assert "at: line 8 (declaration)" in out
     assert "What one order comes to." in out

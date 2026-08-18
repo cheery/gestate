@@ -114,8 +114,8 @@ status   shelved — <date>
 ```
 
 **A card may also arrive shelved**, without ever standing in the order
-— *2026-08-18*, when `board/later/working-standard.md` and
-`board/later/project-seed.md` were written for a project that has not
+— *2026-08-18*, when `card:working-standard.md` and
+`card:project-seed.md` were written for a project that has not
 started.  Henri: *"I want the cards made for this to go directly into
 the board/later/ because they aren't current."*  This is the honest
 place for work that is real, wanted, and waiting on an event rather than
@@ -241,8 +241,8 @@ session should be able to say which it used:
    The author picks one, or names the one nobody wrote.  This is much
    cheaper for them than defending a single proposal, and it is how
    `working-standard`'s scope was settled in one line.
-4. **Check it does not already exist.**  `board/ungated-fixes.md` was
-   nearly a duplicate of `board/done/interface-oracle.md` and turned out to
+4. **Check it does not already exist.**  `card:ungated-fixes.md` was
+   nearly a duplicate of `card:interface-oracle.md` and turned out to
    be its superset; that had to be read to be known.  The overlap goes
    in both cards.
 5. **Ask what a session does on day one.**  If the answer needs a
@@ -281,14 +281,14 @@ cause, exactly what `test/test_board.py` was written not to do.
 What could be held, when somebody wants it: the rule applied **only to
 cards created after the day it lands**, with today's board as an
 accepted baseline that may shrink and never grow.  That is the same
-shape `board/ungated-fixes.md` proposes for its own retroactive
+shape `card:ungated-fixes.md` proposes for its own retroactive
 question, and neither should be built before the other is answered.
 
 ## What a card is
 
 One file, named for the task.  **The filename is the id**: it never
 renumbers, so a comment in the source or a test may cite
-`board/done/peep-window.md` the way they cite `fixme.md`'s F-numbers, and the
+`card:peep-window.md` the way they cite `fixme.md`'s F-numbers, and the
 citation still resolves a year later.  Positional numbering is what this
 replaced — the old board had two numbering schemes and both went stale
 the moment an item left the middle of the list.
@@ -312,6 +312,41 @@ with types — the argument **names** were what carried the information,
 and they were missing from every place a signature was shown.  A card
 that names the fix hides the problem, and the problem is the part a
 reader can solve differently.
+
+### How a card is cited: `card:<name>.md`
+
+**Adopted 2026-08-18.**  Henri: *"we would come with some notation to
+refer to a card?  We already have F0, F100, F110, etc. they're
+references to fixme entries… card:button.md is good notation."*
+
+    card:stranger-test.md          in prose, in a comment, in a `see` line
+    `card:stranger-test.md`        backticks optional
+
+**The shelf is not part of the citation.**  A card's name never changes
+and its shelf does — it starts in `board/`, and ends in `done/` or
+`later/` — so a citation spelled as a path broke every time a card was
+finished.  Sixteen cards moved in the ten days this board existed, and
+every one of those moves was a tree-wide rewrite that the suite caught
+*after* the fact.  The lesson had already been written down here and
+acted on by nobody: *cite the card, not the shelf it is on.*
+
+Two things the notation buys beyond the churn:
+
+* **It cannot be helpfully corrected.**  A path that points at the wrong
+  shelf looks like a typo, and a reader who finds one fixes it — which
+  is the same churn arriving from the other direction.  `card:` is
+  visibly an id, so there is nothing to correct.  `test_citations.py`
+  refuses the path spelling outright, because two spellings of one id is
+  how it comes back.
+* **Bare citations are checked now.**  The old regex only saw citations
+  inside backticks, so every `see` line at the head of every card — all
+  written bare — went unchecked.  Two had already rotted in that blind
+  spot (F166).
+
+What is **not** cited this way: `board/README.md`, which is a real file
+that never moves, and the markdown links in the order above, which are
+relative links a person can click and which `test_board.py` checks
+against the live board.
 
 Then the body, in whatever depth the task needs:
 

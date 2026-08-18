@@ -220,7 +220,7 @@ fn a_closed_list_has_no_rows() {
 
 // ── The groups their author already wrote ────────────────────────────────
 //
-// `board/done/command-categories.md` option A.  `command.ges` has been
+// `card:command-categories.md` option A.  `command.ges` has been
 // written in labelled sections since it existed, and nothing read them,
 // so fifty-three names arrived here flat.  What the model sends is a
 // *section per row*; the heading is this file's to draw, wherever the

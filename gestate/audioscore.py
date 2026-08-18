@@ -280,7 +280,7 @@ def _refuse_retired(authored: str) -> None:
             # **`at line N`, not `line N`.**  The number was here all
             # along and nothing read it: the workbench looks for `at`,
             # so a retired name was reported without a box under it
-            # (`board/done/error-messages.md`).  `at line` is also the form
+            # (`card:error-messages.md`).  `at line` is also the form
             # `audiospans.in_source` leaves alone, which is what this one
             # needs — the count is of the author's own text, not of the
             # assembly.

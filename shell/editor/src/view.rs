@@ -268,7 +268,7 @@ pub struct View {
     /// somebody who had just proved they could find the button without
     /// it, and said nothing at all to somebody who could not.  The
     /// teaching was downstream of the discovery it exists to make
-    /// unnecessary (`board/done/button.md`).
+    /// unnecessary (`card:button.md`).
     ///
     /// Pressing the burger does not retire it — that is finding the
     /// button, not learning the key, and the bar goes on saying it
@@ -304,7 +304,7 @@ impl View {
     /// reason: a literal inside a constructor that needs a display
     /// cannot be asserted on, and this is the flag most likely to be
     /// flipped back by somebody tidying — it looks like a default and
-    /// it is a decision (`board/done/interface-oracle.md`).
+    /// it is a decision (`card:interface-oracle.md`).
     pub fn fresh(w: i32, h: i32, scale: i32) -> View {
         View { w, h, scale, hint: true, ..View::default() }
     }
@@ -350,7 +350,7 @@ impl View {
     /// that show the word are the pixels that answer to it.
     ///
     /// **It was a `≡` in one cell, and a stranger could not find it**
-    /// (`fixme.md` F155, `board/done/button.md`).  Measured off a capture:
+    /// (`fixme.md` F155, `card:button.md`).  Measured off a capture:
     /// twenty-four lit pixels, `FAINT` on `BG`, 2.3:1 — under the floor
     /// any interface guidance puts on a control, painted in the colour
     /// this window uses for *there, but not for you*, and standing in
@@ -424,7 +424,7 @@ impl View {
                 None => boxes.push((t.line, rows.min(BOX_MOST))),
             }
         }
-        // **The gemba box** — `board/done/gemba.md`.  Its rows are its
+        // **The gemba box** — `card:gemba.md`.  Its rows are its
         // text's, wrapped, exactly as a complaint's are: what is in it
         // is prose, and prose that does not fit is prose you cannot
         // read.  One extra row for the mark, so the depth never eats
@@ -1257,7 +1257,7 @@ fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
     }
 
     // **`[gemba]` while a session is leading you around**
-    // (`board/done/gemba-follow.md`).  A mode you cannot see is a mode you
+    // (`card:gemba-follow.md`).  A mode you cannot see is a mode you
     // will be surprised by, and this one *opens files* — so it says so,
     // in the brackets this window already uses for chrome, beside the
     // other word for a state the file is in.
@@ -1901,7 +1901,7 @@ mod tests {
     use crate::font;
 
     /// **The first test in this file, and the reason there is a card
-    /// about that** — `board/done/interface-oracle.md`.  Three interface
+    /// about that** — `card:interface-oracle.md`.  Three interface
     /// changes shipped on 2026-08-17 held up by nothing but screenshots
     /// somebody took by hand, in the one drawing module of this crate
     /// with no tests.  A frame is a display list built by a pure

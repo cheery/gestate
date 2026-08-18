@@ -9,7 +9,7 @@
     asked    Henri, 2026-08-17 (Claude wrote the card at his ask)
     see      manifesto.md §"The instruments, and what each cannot see"
              shell/editor/src/view.rs — the frame builders, and the gap
-             board/button.md — where the need was found
+             card:button.md — where the need was found
              fixme.md F150, F151, F153 — the three that shipped unheld
              spec/verification.md §"The screen is an oracle"
 
@@ -106,7 +106,7 @@ says [command]` commit.  What is still true is that nothing runs it.*
 3. A line in `manifesto.md`'s instrument table for the display list,
    **with its blind spot**: it sees what was emitted, never what it
    looked like.
-4. Say in `board/done/button.md` that the corner is now held, once it is —
+4. Say in `card:button.md` that the corner is now held, once it is —
    that card's remaining answers all change what `view.rs` draws.
 
 ## Done — 2026-08-18
@@ -152,7 +152,7 @@ cutting the output, and absence read as evidence.
 4. **`manifesto.md`'s instrument table** gained the display list, with
    its blind spot in the right-hand column: it records what was
    *emitted*, never what it looked like.
-5. **`board/done/button.md`** says the corner is held now, and says
+5. **`card:button.md`** says the corner is held now, and says
    which half still is not.
 
 ### What is deliberately not here
@@ -160,7 +160,7 @@ cutting the output, and absence read as evidence.
 **Whether a stranger finds the corner.**  The display list cannot see
 it and the photograph cannot either — F155 passed every assertion
 anybody would have written, in the colour it was asked for, at 24 lit
-pixels.  `board/stranger-test.md` run three is the instrument, and it is
+pixels.  `card:stranger-test.md` run three is the instrument, and it is
 booked for next week.
 
 The journal entry is `journal.md` §"Eighty-one tests nobody ran, and one

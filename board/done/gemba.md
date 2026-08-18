@@ -7,8 +7,8 @@
     see      spec/scorebox.md, spec/panel.md — content boxes are the
              drawing half, already built
              gestate/session.py:446 — the colouring cache
-             board/git-viewer.md — the second idea, which waits on
-             board/done/command-categories.md
+             card:git-viewer.md — the second idea, which waits on
+             card:command-categories.md
 
 ## The ask
 
@@ -112,7 +112,7 @@ only the last is decisive:
 3. It is the fifth thing wearing the house's own format, so it is
    debuggable with `cat`.
 4. **It is the only transport that crosses the fence for free.**
-   `board/reviewing-by-running.md` puts the workbench inside
+   `card:reviewing-by-running.md` puts the workbench inside
    `tools/sandbox.sh`, where *the project directory is the one writable
    thing* — so a file under it needs no new bind, while a socket or a
    fifo anywhere else needs the fence widened to admit it.  Two cards
@@ -164,7 +164,7 @@ defect to be engineered away and becomes **the instrument's most useful
 signal** — *he is going faster than you are following*, which is
 `spec/author.md`'s standing problem (*"the volume outrunning review"*)
 made visible while it is happening rather than discovered in a commit log
-afterwards.  It is `board/done/timer.md`'s own idea one floor over: a
+afterwards.  It is `card:timer.md`'s own idea one floor over: a
 mark that grows with a quantity, applied to attention instead of hours.
 
 **Picked 2026-08-18.**
@@ -300,7 +300,7 @@ asking what the compiler would make of it.
 
 **All twenty-three tests passed while that was true**, because none of
 them compiled anything.  It took one screenshot of the real window,
-which is `board/reviewing-by-running.md`'s whole argument arriving
+which is `card:reviewing-by-running.md`'s whole argument arriving
 unprompted.
 
 ### Left, and named

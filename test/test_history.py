@@ -1,4 +1,4 @@
-"""Reading the log in the workbench — `board/git-viewer.md`.
+"""Reading the log in the workbench — `card:git-viewer.md`.
 
 Henri's ask: *"I think we could design a git-viewer into gestate
 workbench… It'd have `git log --oneline` view.  It'd be able to go into
