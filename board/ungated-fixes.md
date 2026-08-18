@@ -150,3 +150,142 @@ the window.  The equivalent here refuses an entry marked `[resolved]`
 that no test names.  It would fail 79 times on the day it was written,
 so it needs an accepted baseline, and a baseline that only shrinks is
 the usual shape.
+
+## The schedule — heijunka, adopted 2026-08-18
+
+*Henri:* **"so it's a question of heijunka.  We need to balance the
+load.  This fixme is not this week's only problem and focusing on it
+would causes tremendous context rot issues… I propose, that we cut the
+fixme.md list in manageable chunks over three weeks and set a fixed
+schedule.  You may have noticed I bound things, eg. no more than 5 lines
+shown."*
+
+### The number, corrected first
+
+**62, not 79.**  The `because` above counts every entry with no test
+naming it, which is true and is not the working set: it includes the
+spec divergences — F5, F26, F32, F34, F35, F38 and their neighbours —
+which are features nobody built, not repairs that left no gate.
+
+Counted the way the work is actually shaped: **143 repairs, 62 of them
+named by no test.**  The card's headline stands as a measurement of the
+file; the schedule below runs on the smaller, honest set.
+
+### The bound
+
+**Five entries a session, and five is a cap rather than a target.**
+
+Sixty-two at five is **thirteen sessions**, which is four or five a week
+across three weeks with room to miss days.  The cap is the whole
+mechanism: this is not the week's only work, and a burst is what
+produces the failure this card is most exposed to — *not* fatigue, but
+**judgement degrading across a long uniform task while confidence stays
+flat.**  The last forty entries of a single-pass sweep would be audited
+worse than the first forty and nothing in the output would show where
+the line fell.
+
+**Zero is a legitimate session.**  A floor turns the cap into a quota,
+and a quota is answered by inventing tests that pass rather than tests
+that would have caught the defect — which is `manifesto.md`'s third
+failure mode, and the exact way the auto-audition shipped green and
+switched off.
+
+### The order
+
+**Newest first, and human-found before compiler-found.**  The recent
+tail is where the defects a person met live — F153 closed on
+photographs, F155 on 24 lit pixels — and those are the ones no compiler
+will ever find again.  Today's two closures, F162 and F163, both came
+from that end of the file.
+
+### What one entry produces
+
+One line, added to the entry: **`gate:`** — either the instrument that
+fires if the defect returns, or `none`, with the reason.
+
+Legitimate verdicts, all four:
+
+* a test, named
+* another instrument — a golden `.sample`, a transcript, an example
+  roster, a photographed window: Henri, 2026-08-18, *"I think I agree,
+  those count as a gate"*
+* **`none — nothing can`**, with why
+* **`none — not a repair`**, for an entry that turns out to be a
+  divergence rather than a fix
+
+The third and fourth have to be honourable, or the sweep pressures the
+session into writing a guard it does not believe in.
+
+And the field is the one `fixme.md`-as-a-directory would formalise
+(`card:working-standard.md`), so doing it this way now makes that
+migration mechanical rather than a re-reading.
+
+### The trip-wire
+
+**Two uncertain verdicts in a row ends the session.**  Not the day, not
+the card — the session.  Uncertainty arriving twice is the andon for the
+degradation described above, and the only cheap moment to catch it is
+before the third one is written down confidently.
+
+### And Henri's half, which is also bounded
+
+*His own point, the same afternoon:* **"I see you've gained agency…
+But it's better that I reflect on them.  Just like it's with humans.
+Nobody does good decisions alone."**
+
+So: **once a week, three verdicts picked at random, and disagree with
+them.**  Three, not thirty — the load is levelled for the reviewer too,
+or the review becomes the bottleneck this schedule exists to avoid.
+
+That sample is the only measurement either party gets of whether the
+other fifty-nine are worth anything.  It earned its place today: three
+of this session's confident claims were wrong — two from truncated
+greps, one from a stale card — and **every one of them was caught by
+him reading, not by me checking.**
+
+### The plan, fixed — 62 entries, 13 batches, 19 Aug → 4 Sep
+
+| # | day | entries |
+|---|---|---|
+| 1 | Wed 2026-08-19 | F161 F160 F155 F153 F149 |
+| 2 | Thu 2026-08-20 | F139 F133 F132 F128 F126 |
+| 3 | Fri 2026-08-21 | F125 F123 F121 F119 F118 |
+| 4 | Mon 2026-08-24 | F117 F116 F112 F111 F107 |
+| 5 | Tue 2026-08-25 | F106 F102 F94 F89 F88 |
+| 6 | Wed 2026-08-26 | F81 F80 F77 F74 F73 |
+| 7 | Thu 2026-08-27 | F68 F65 F63 F56 F55 |
+| 8 | Fri 2026-08-28 | F54 F52 F51 F49 F48 |
+| 9 | Mon 2026-08-31 | F47 F46 F44 F43 F41 |
+| 10 | Tue 2026-09-01 | F40 F39 F31 F25 F23 |
+| 11 | Wed 2026-09-02 | F21 F20 F19 F18 F17 |
+| 12 | Thu 2026-09-03 | F15 F13 F12 F10 F8 |
+| 13 | Fri 2026-09-04 | F6 F1 |
+
+**Weekdays only, and three weeks runs to 2026-09-08** — so there are
+five weekdays of slack built in.  They are not spare capacity: the
+platform 6 visit is next week and will take one, and a batch that turns
+out to need real work will take another.  A schedule with no slack is
+one that gets abandoned on its first bad day.
+
+**A missed day is not made up by doubling.** The batch moves down and
+the last one moves out.  Doubling is the burst this whole arrangement
+exists to prevent, arriving with a good excuse.
+
+**The batches get older as they go, and probably easier.**  The newest
+are the ones a person met — photographs, screenshots, a stranger — and
+they are both the most valuable and the most work.  The tail is early
+compiler-era entries, where *`none` — not a repair* and *nothing can*
+are likely to be the honest answers for many.  If the rate rises there,
+that is the shape of the file and not a session cutting corners; the
+weekly sample is what tells the difference.
+
+**Henri's review lands on the Fridays**: 2026-08-21, 2026-08-28,
+2026-09-04.  Three verdicts, picked at random by him, disagreed with.
+
+### Where the verdicts go
+
+Into the entry itself, as a `gate:` line.  **Committed per batch**, one
+commit each, so the progress is visible in `git log` and a session
+picking this up cold can see exactly where the last one stopped — which
+is the property the schedule needs most, since thirteen sessions is more
+than any one context will hold.
