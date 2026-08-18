@@ -8265,3 +8265,61 @@ and that is the device path, where running the tap makes noise in
 somebody's room.  Which is the one thing this instrument was built to
 stop needing, and the one place it still does.  Worth saying plainly:
 the wall moved, it did not fall.
+
+## Four things the first walk asked for
+
+*2026-08-18.  `board/done/gemba-follow.md` — Henri, after using the walk
+for an afternoon.*
+
+The card was four sentences of his and each turned out to be a different
+kind of thing: one plumbing, one design, one about attention, one about
+a word on a screen.
+
+### The interesting one is that most actions never reach the model
+
+*"Gemba should be possible to interrupt by any action."*  Straightforward
+until you look: `act` hears about text edits, commands and played notes,
+and hears **nothing** about an arrow key.  A caret move is the window's
+own state and never crosses the wire — so the first version went on
+leading somebody who was plainly reading something else, and there was
+no gesture to hang the rule on.
+
+So the model **looks** instead of waiting to be told: one atomic read of
+`caret()` a pass, against the line the walk put you on.  Anywhere else
+and you have moved.  That is a small function and a genuinely different
+posture — the wire is not the only thing a model may know.
+
+### The rest of the rule came from the driven window
+
+Three defects, none visible from the source, all under a green suite.
+
+**Using the list is not an action.**  Picking `gemba` sends `filter`
+while you type it, `command gemba` when you take it, and `shut` when the
+list closes.  Treating the list as an interruption ended the walk in the
+same breath it began — and `[gemba]` never appeared in the corner at
+all, which is how it was noticed.  The rule that replaced *any gesture*
+is better: an interrupt is something you do to the **document or the
+instrument**, and the list is how you reach the walk.
+
+**The ask-line and the command were the same switch.**  A `gemba` line
+in the file re-subscribed on every pass of the loop, so no keystroke
+could stop anything.  Separating them gave each a meaning worth having:
+the line says *show me, here*; following says *take me to it*.
+
+**And following the file ended the walk that was following it.**  A
+reload moves the caret to the top, and the step-off reads a moved caret
+as the person moving.  The screenshot meant to show the reload showed
+the file *unreloaded*, because the step-off had already fired one frame
+earlier.  It now puts the caret back where the walk had it.
+
+### And a stale library, which cost two runs
+
+`[gemba]` did not appear the first two times it was driven, and the
+reason was neither of the above: `cargo build --release -p
+gestate-editor` does not build the thing the editor loads.  It wants
+`--features capi`.  Two photographs of an old window read as two
+defects in new code.
+
+**Worth writing down as an instrument's own blind spot**: a driven
+window is only evidence about the binary it is running, and nothing in
+the harness says which binary that is.

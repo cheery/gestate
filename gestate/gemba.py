@@ -292,6 +292,29 @@ class Walk:
             # may be newer than the window.
         return got
 
+    def resume(self) -> None:
+        """Come back to the walk, on the item you left.
+
+        **And give it its dwell again from now.**  Without this,
+        stepping away for a minute and coming back replaces what you
+        left with the next thing in the same breath — the queue's clock
+        had run on while nobody was reading it, so *resume* would show
+        you the item you meant to look at for exactly one frame.
+        """
+        self.since = self.clock()
+
+    @property
+    def held(self) -> Item | None:
+        """What is on screen, without advancing anything.
+
+        **What a walk looks like while nobody is following it.**  The
+        queue stands still and the last thing shown stays shown, so
+        coming back lands you where you left rather than at the end of
+        everything that happened while you were reading
+        (`board/done/gemba-follow.md`).
+        """
+        return self.now
+
     def showing(self) -> Item | None:
         """What belongs on the screen now.
 

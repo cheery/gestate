@@ -1767,3 +1767,47 @@ fn a_window_that_is_told_nothing_draws_no_box() {
     }).collect();
     assert_eq!(three, vec![&(2 * ch)], "line 3 was not pushed down");
 }
+
+// ── `[gemba]`, and a box only once there is something to say ─────────
+
+#[test]
+fn the_corner_says_gemba_while_a_session_is_leading_you() {
+    // **A mode you cannot see is a mode you will be surprised by**, and
+    // this one opens files.  `board/done/gemba-follow.md`.
+    let d = doc("one\ntwo\nthree");
+    let following = Furniture::read("gemba\t0\t\t0");
+    let mut v = View { aside: 0, ..rows_of(6, 900) };
+    v.grant(&following, &LARGE);
+    let f = frame_with(&d, &v, &LARGE, &following);
+    assert!(f.items.iter().any(|i| matches!(i, Item::Run { s, .. }
+                                           if s == "[gemba]")),
+            "the corner does not say it");
+}
+
+#[test]
+fn a_walk_with_nothing_said_yet_draws_no_box() {
+    // The word is true from the moment you subscribe; the box only
+    // exists once something has been said.
+    let d = doc("one\ntwo\nthree");
+    let following = Furniture::read("gemba\t0\t\t0");
+    let mut v = View { aside: 0, ..rows_of(6, 900) };
+    v.grant(&following, &LARGE);
+    let ch = v.ch(&LARGE);
+    let f = frame_with(&d, &v, &LARGE, &following);
+    let three: Vec<&i32> = f.items.iter().filter_map(|i| match i {
+        Item::Run { s, y, .. } if s == "three" => Some(y),
+        _ => None,
+    }).collect();
+    assert_eq!(three, vec![&(2 * ch)], "line 3 was pushed down by nothing");
+}
+
+#[test]
+fn a_window_not_being_walked_says_nothing() {
+    let d = doc("one\ntwo\nthree");
+    let quiet = Furniture::read("status\tready");
+    let mut v = View { aside: 0, ..rows_of(6, 900) };
+    v.grant(&quiet, &LARGE);
+    let f = frame_with(&d, &v, &LARGE, &quiet);
+    assert!(!f.items.iter().any(|i| matches!(i, Item::Run { s, .. }
+                                            if s == "[gemba]")));
+}

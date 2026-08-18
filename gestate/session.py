@@ -3316,7 +3316,16 @@ class Session:
         #: pointing**, not a line you had to remember to write.  A bare
         #: `gemba` line still works and still pins a box, for a walk you
         #: want to watch from one place.
+        #: **Running it again resumes**, which is what makes stepping
+        #: off cheap rather than a decision: the walk stood still while
+        #: you were reading, so this puts you back on the item you left
+        #: — and clears `_walked`, so it travels to that item's place
+        #: again rather than assuming you are still standing there.
         self.walking = True
+        self._walked = None
+        walk = getattr(self, "walk", None)
+        if walk is not None:
+            walk.resume()
         #: **And the warning `open` gives, given here** — because this
         #: is where the decision is.  Following a walk hands the window
         #: over: the session opens the files it is working in, and an
@@ -3328,7 +3337,6 @@ class Session:
             if early is not None:
                 early("warning: unsaved changes — a walk opens files")
         where = path_for(getattr(self.bench, "path", None))
-        walk = getattr(self, "walk", None)
         if walk is not None and walk.showing() is not None:
             return "following the walk — a session is talking"
         return f"following the walk — {where}, nothing said yet"
@@ -3864,11 +3872,28 @@ def furniture(session: "Session", bench=None, tally: str = "",
     # window that draws every box red would be saying so.
     walk = getattr(session, "walk", None)
     if walk is not None:
-        item = walk.showing()
+        # **A `gemba` line pins a box; the command leads you around.**
+        # They were the same switch, and that made interrupting
+        # impossible: the line re-subscribed on every pass of the loop,
+        # so a walk you had stepped off resumed a frame later and no
+        # keystroke could stop it (`board/done/gemba-follow.md`).
+        #
+        # Separated, each says what it is for.  The line means *show me,
+        # here*; following means *take me to it*.  Somebody who wants a
+        # box they can watch without being moved now has one.
         asked = next((i for i, l in enumerate(session._lines(), start=1)
                       if _re.match(r"gemba\s*$", l.split("#", 1)[0])), 0)
-        if asked:
-            session.walking = True
+        # **The queue advances while it is being shown, and not
+        # otherwise** (`board/done/gemba-follow.md`).  A pinned box is on the
+        # screen, so it moves; a walk you stepped off has nowhere to be
+        # read, so it stands still and keeps your place.
+        #
+        # That is what makes interrupting a shrug rather than a
+        # decision: come back and the thing you left is still there,
+        # instead of the end of everything that happened while you were
+        # reading something else.
+        item = (walk.showing() if (session.walking or asked)
+                else walk.held)
         # **Where the box goes, and it is the whole of "travelling in
         # the code"** (`board/done/gemba.md`).  Henri, on the first
         # version: *"'not travelling in code' means that the editor
@@ -3885,7 +3910,25 @@ def furniture(session: "Session", bench=None, tally: str = "",
             here = session._travel(item)
             if here:
                 line = here
-        if line and (session.walking or asked):
+        elif item is not None and session.walking and not asked:
+            # **A placeless `say` stands where the walk last stood.**
+            # An `at` names a place; a `say` between two of them is
+            # narration about the place you were taken to, so it belongs
+            # there — and before the walk has moved you anywhere, beside
+            # the caret, which is the only line anybody is looking at.
+            went = getattr(session, "_walked", None)
+            if went and str(went[0]) == str(getattr(session.bench, "path", "")):
+                line = went[1]
+            else:
+                line = session._caret_line()
+        # **And the word for the mode, whether or not there is a box.**
+        # A mode you cannot see is a mode you will be surprised by, and
+        # the box is only there once something has been said — so
+        # `line 0` says *following, nothing to show*, which is what
+        # draws `[gemba]` and no box.
+        if session.walking and not line:
+            out.append(f"gemba\t0\t\t{walk.behind}")
+        elif line and (session.walking or asked):
             said = item.text if item is not None else "nothing said yet"
             # **The depth is a mark, not a count** (`spec/rocks.md`:
             # a number a person has to read is a number a person
@@ -4569,6 +4612,30 @@ def _beats(bench) -> float:
         return 0.0
 
 
+#: The gestures that mean *a person did something*.
+#:
+#: Deliberately a list rather than "everything except `state`": a new
+#: verb should have to be looked at and decided about, and defaulting a
+#: verb nobody has considered into *this ends the walk* is how a walk
+#: comes to end for reasons nobody can explain.
+_INTERRUPTS = frozenset({
+    "command", "edited", "struck", "note", "touch", "touched",
+    "released", "turn",
+})
+
+#: **And the list is not one of them.**  Picking `gemba` out of the
+#: command list sends `filter` while you type it, `command gemba` when
+#: you take it, and `shut` when the list closes — so treating the list
+#: as an action meant the walk ended in the same breath it began, and
+#: `[gemba]` never appeared in the corner at all.  Found by driving the
+#: real window and photographing it.
+#:
+#: The rule that came out of it is better than "any gesture": an
+#: interrupt is something you do to the *document or the instrument*.
+#: The list is how you reach the walk, so using it cannot be what ends
+#: it — and running some *other* command still does, through `command`.
+
+
 def act(session: "Session", line: str) -> str:
     """One gesture from the window, done.
 
@@ -4579,6 +4646,20 @@ def act(session: "Session", line: str) -> str:
     """
     parts = line.split("\t")
     verb = parts[0] if parts else ""
+    # **Anything you do stops the walk following you around**
+    # (`board/done/gemba-follow.md`).  Being led somewhere is only tolerable
+    # if stepping off is free, and *free* means not having to know a
+    # command for it: a keystroke, a click, an edit — whatever you do
+    # next, the walk stands still and keeps the place, and `gemba` picks
+    # it up again.
+    #
+    # **`state` is not one of them**, and that is the whole of the list:
+    # the window volunteers its own state many times a second whether or
+    # not anybody has touched it, so treating that as an action would
+    # end every walk in the same frame it began.  Nor is `gemba` itself.
+    if verb in _INTERRUPTS and getattr(session, "walking", False):
+        if not (verb == "command" and parts[1:2] == ["gemba"]):
+            session.walking = False
     if verb == "command":
         return session.run(*(p for p in parts[1:] if p))
     if verb == "filter":

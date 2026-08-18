@@ -409,7 +409,7 @@ impl View {
         // read.  One extra row for the mark, so the depth never eats
         // the sentence.
         if let Some(g) = &chrome.gemba {
-            if g.line != 0 {
+            if g.line != 0 && !g.said.is_empty() {
                 let rows = (wrap(&g.said, cols).len() as u16 + 1)
                     .min(BOX_MOST);
                 match boxes.iter_mut().find(|(l, _)| *l == g.line) {
@@ -1235,6 +1235,23 @@ fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
         right = at - 2 * cw;
     }
 
+    // **`[gemba]` while a session is leading you around**
+    // (`board/done/gemba-follow.md`).  A mode you cannot see is a mode you
+    // will be surprised by, and this one *opens files* — so it says so,
+    // in the brackets this window already uses for chrome, beside the
+    // other word for a state the file is in.
+    //
+    // Shown whenever the model says a walk is being followed, box or no
+    // box: the box only exists once something has been said, and *"a
+    // session may move this window"* is true from the moment you
+    // subscribe.
+    if chrome.gemba.is_some() {
+        let s = String::from("[gemba]");
+        let at = right - width_of(&s) as i32 * cw;
+        f.items.push(Item::Run { x: at, y: sy + 2, s, c: LIVE });
+        right = at - 2 * cw;
+    }
+
     // **The key, beside the answers** — the bar says `Ctrl-K` while
     // the burger holds the list open, so the button teaches the key
     // that does the same thing, the way the list writes
@@ -1517,8 +1534,9 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
         // message longer than the window is cut at the edge, whole
         // text one command away, exactly as the status bar ruled.
         if slot.box_h > 0 && (chrome.trouble_at(line_no).is_some()
-                              || chrome.gemba.as_ref()
-                                  .is_some_and(|g| g.line == line_no)) {
+                              || chrome.gemba.as_ref().is_some_and(
+                                  |g| g.line == line_no
+                                      && !g.said.is_empty())) {
             // **Clipped to the text area** (F132).  A band near the
             // foot may hang past the fold by design — the caret's
             // promise is its own line, and `top_showing` says so —
@@ -1552,7 +1570,7 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
                 // said, in ink because it is not a complaint, and the
                 // depth as a bar under it.
                 if let Some(g) = chrome.gemba.as_ref()
-                    .filter(|g| g.line == line_no)
+                    .filter(|g| g.line == line_no && !g.said.is_empty())
                 {
                     let used = chrome.troubles_at(line_no).iter()
                         .flat_map(|t| wrap(&t.message, cols)).count();

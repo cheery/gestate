@@ -499,6 +499,9 @@ class _View:
     def lines(self):
         return list(self._lines)
 
+    def text(self):
+        return "\n".join(self._lines) + "\n"
+
     def caret(self):
         return 0
 
@@ -512,7 +515,15 @@ class _View:
 
     def goto(self, line):
         self.went.append(line)
+        self.caret_line = line
         return True
+
+    def caret(self):
+        #: A character offset, the way the window answers — computed
+        #: from this view's own lines so it converts back to the line
+        #: the test meant.
+        want = max(1, getattr(self, "caret_line", 1))
+        return sum(len(l) + 1 for l in self._lines[:want - 1])
 
 
 def _walking(tmp_path, lines, here="piece.ges"):
@@ -685,3 +696,196 @@ def test_arriving_at_the_file_is_not_arriving_at_the_place(tmp_path):
     _rows(it)
     _rows(it)
     assert it.view.went == [40], "and only once"
+
+
+# ── What the first real use asked for — `board/done/gemba-follow.md` ───────────
+
+
+def test_the_walk_stands_still_while_nobody_is_following(tmp_path):
+    """**Stepping off has to be free**, and free means what you were
+    looking at is still there when you come back.  A walk that ran on
+    while you read something else would make interrupting a decision
+    rather than a shrug."""
+    #: No pinned box, so stepping off leaves nothing on screen —
+    #: which is the case that has to keep your place.
+    it = _walking(tmp_path, ["here"])
+    it.run("gemba")
+    say("the first thing")
+    say("the second thing")
+    it.walk.read()
+    assert _rows(it)[0][2] == "the first thing"
+    it.walking = False
+    it.walk.clock.at = 1000.0            # long past the first item's dwell
+    _rows(it)
+    it.run("gemba")                      # coming back the way a person does
+    assert _rows(it)[0][2] == "the first thing", "it moved on without me"
+    #: And it keeps its dwell from *now*, so the thing you came back for
+    #: is not replaced in the same breath.
+    it.walk.clock.at = 1000.0 + gemba.LEAST - 0.1
+    assert _rows(it)[0][2] == "the first thing"
+
+
+def test_any_action_stops_it_following(tmp_path):
+    from gestate.session import act
+
+    it = _walking(tmp_path, ["here"])
+    for gesture in ("edited", "struck\ta\t38\t1", "touch\t1\t2\t3",
+                    "command\tplay"):
+        it.walking = True
+        act(it, gesture)
+        assert it.walking is False, gesture
+
+
+def test_the_window_volunteering_its_state_is_not_an_action(tmp_path):
+    """**The whole of the list.**  A window says where it is many times
+    a second whether or not anybody has touched it, so treating that as
+    an action would end every walk in the frame it began."""
+    from gestate.session import act
+
+    it = _walking(tmp_path, ["here"])
+    it.walking = True
+    act(it, "state\t4\t9\t0\t0")
+    assert it.walking is True
+
+
+def test_gemba_again_resumes_rather_than_ending(tmp_path):
+    from gestate.session import act
+
+    it = _walking(tmp_path, ["here"])
+    it.walking = True
+    act(it, "command\tgemba")
+    assert it.walking is True, "running it again is not an interruption"
+
+
+def test_resuming_travels_to_the_place_again(tmp_path):
+    """Because you may have walked off somewhere else in the meantime,
+    and the walk should not assume you are still standing where it left
+    you."""
+    piece = tmp_path / "piece.ges"
+    piece.write_text("\n".join(str(i) for i in range(30)))
+    it = _walking(tmp_path, [str(i) for i in range(30)])
+    it.walking = True
+    gemba.at(str(piece), 12, "down here")
+    it.walk.read()
+    _rows(it)
+    assert it.view.went == [12]
+    it.walking = False
+    it.run("gemba")
+    _rows(it)
+    assert it.view.went == [12, 12], "it did not take me back"
+
+
+def test_the_mode_is_said_even_with_nothing_to_show(tmp_path):
+    """`[gemba]` is true from the moment you subscribe; the box only
+    exists once something has been said."""
+    it = _walking(tmp_path, ["here"])
+    it.walking = True
+    assert _rows(it) == [["gemba", "0", "", "0"]]
+
+
+def test_the_line_pins_a_box_and_the_command_leads_you(tmp_path):
+    """**They were the same switch, and that made interrupting
+    impossible**: the ask-line re-subscribed on every pass of the loop,
+    so a walk you had stepped off resumed a frame later and no keystroke
+    could stop it.
+
+    Separated, each says what it is for — the line means *show me,
+    here*, and following means *take me to it*.
+    """
+    it = _walking(tmp_path, ["here", "gemba"])
+    say("something happened")
+    it.walk.read()
+    #: The box is there without following…
+    assert it.walking is False
+    assert _rows(it) == [["gemba", "2", "something happened", "0"]]
+    #: …and a place does not move the window until you are.
+    other = tmp_path / "other.ges"
+    other.write_text("x\n")
+    gemba.at(str(other), 1, "over there")
+    it.walk.clock.at = 100.0
+    it.walk.read()
+    _rows(it)
+    assert it.view.wanted is None
+
+
+def test_using_the_list_is_not_an_interruption(tmp_path):
+    """**The list is how you reach the walk**, so using it cannot be
+    what ends it.
+
+    Picking `gemba` sends `filter` while you type, `command gemba` when
+    you take it, and `shut` when the list closes — and treating those as
+    actions meant the walk ended in the same breath it began, with
+    `[gemba]` never appearing at all.  Found by driving the real window
+    and photographing the corner.
+    """
+    from gestate.session import act
+
+    it = _walking(tmp_path, ["here"])
+    it.walking = True
+    for gesture in ("filter\tgem", "asked\t1\tgemba\t0\t", "shut"):
+        act(it, gesture)
+        assert it.walking is True, gesture
+
+
+def test_moving_the_caret_steps_off_even_though_nothing_told_the_model(tmp_path):
+    """**Most actions never reach the model at all.**
+
+    `act` hears about text edits, commands and played notes, and hears
+    *nothing* about an arrow key — a caret move is the window's own
+    state and never crosses the wire.  So the first version went on
+    leading somebody who was plainly reading something else, and the
+    driven window showed it.  The model looks instead of waiting to be
+    told.
+    """
+    from gestate.workbench import _stepped_off
+
+    piece = tmp_path / "piece.ges"
+    piece.write_text("\n".join(str(i) for i in range(30)))
+    it = _walking(tmp_path, [str(i) for i in range(30)])
+    it.walking = True
+    it._walked = (str(piece), 12)
+
+    it.view.caret_line = 12                 # where the walk put them
+    _stepped_off(it)
+    assert it.walking is True
+
+    it.view.caret_line = 3                  # and where they went
+    _stepped_off(it)
+    assert it.walking is False
+    assert any("stepped off" in s for s in it.said)
+
+
+def test_following_the_file_does_not_end_the_walk(tmp_path):
+    """**The reload moved the caret, and the model reads a moved caret
+    as you moving** — so following the file ended the walk that was
+    following it, and the window showed both in the same frame.
+
+    Caught by driving it: the shot meant to show the reload showed the
+    file unreloaded, because the step-off had already fired.
+    """
+    from gestate.workbench import _refollow, _stepped_off
+
+    piece = tmp_path / "piece.ges"
+    piece.write_text("\n".join(f"# line {i}" for i in range(1, 30)))
+    it = _walking(tmp_path, [f"# line {i}" for i in range(1, 30)])
+    it.walking = True
+    it._walked = (str(piece), 20)
+    it.view.caret_line = 20
+
+    class Ed:
+        def __init__(self):
+            self.loaded = []
+
+        def load(self, text):
+            self.loaded.append(text)
+
+    ed = Ed()
+    watched = _refollow(it, ed, None)
+    piece.write_text("\n".join(f"# EDITED {i}" for i in range(1, 30)))
+    import os
+    os.utime(piece, (watched[1] + 10, watched[1] + 10))
+    _refollow(it, ed, watched)
+    assert ed.loaded, "it did not reload"
+    assert it.view.went[-1] == 20, "it did not put the caret back"
+    _stepped_off(it)
+    assert it.walking is True, "following the file ended the walk"

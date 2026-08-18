@@ -103,6 +103,13 @@ Modifier names are X keysyms — `Control_L`, not `ctrl`.  And **`pkill`
 does not run a `finally`**: to exercise a graceful close, quit through
 the palette (`Ctrl-K`, `quit`, Return).
 
+**And build what the editor actually loads.**  `cargo build --release -p
+gestate-editor` is not enough — the window is `libgestate_editor.so` and
+it wants `--features capi`.  Two photographs of a stale binary read as
+two defects in new code on 2026-08-18 before anybody checked.  A driven
+window is only evidence about the binary it is running, and nothing in
+the harness says which one that is.
+
 ### `python -m gestate.pops <dump>` — did it click, and where
 
     GESTATE_HOST_TAP=88200 GESTATE_HOST_TAP_TO=/tmp/x.f32  python -m gestate.workbench piece.ges

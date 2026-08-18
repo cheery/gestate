@@ -819,6 +819,9 @@ def run(path, rate: int = 44100, block: int = 512,
     #: quit path must join before the process may end.
     retiring = None
 
+    #: When the watched file was last read from disk, so a session
+    #: editing it under a walk can be followed — `(path, mtime)`.
+    watched = None
     said, drawn = "", None
     #: The substrate whose payload the window last got — an identity,
     #: because a rebuild makes a new `Substrate` and nothing else does.
@@ -902,6 +905,8 @@ def run(path, rate: int = 44100, block: int = 512,
             # already, over a box nobody had even asked for.
             if session.walk is not None:
                 session.walk.read()
+            watched = _refollow(session, editor, watched)
+            _stepped_off(session)
             stirred = False
             t0 = time.monotonic()
             # **Gestures first, then the description.**  A command run
@@ -1078,6 +1083,82 @@ def run(path, rate: int = 44100, block: int = 512,
             pass
     _remember(path, place, was, nth)
     return 0
+
+
+def _stepped_off(session) -> None:
+    """Has the person moved, since the walk put them somewhere?
+
+    **Most actions never reach the model at all**, which is what the
+    first version of this got wrong: `act` hears about text edits,
+    commands and played notes, and hears *nothing* about an arrow key —
+    a caret move is the window's own state and never crosses the wire.
+    So a walk went on leading somebody who was plainly reading something
+    else, and the driven window showed it.
+
+    So the model looks instead of waiting to be told.  `caret()` is an
+    atomic read of one number across the ABI — `find` has always used it
+    — and the walk knows which line it put you on, so a caret anywhere
+    else is you having moved.  One read a pass, and only while a walk is
+    being followed.
+    """
+    if not getattr(session, "walking", False):
+        return
+    went = getattr(session, "_walked", None)
+    if not went:
+        return
+    try:
+        line = session._caret_line()
+    except Exception:                                    # noqa: BLE001
+        return
+    if line and line != went[1]:
+        session.walking = False
+        session.said.append("stepped off the walk — `gemba` to pick it up")
+
+
+def _refollow(session, editor, watched):
+    """Re-read the file being walked when a session has changed it.
+
+    **A walk is watching work happen, and work changes the file**
+    (`board/done/gemba-follow.md`).  A window showing the version it arrived
+    at would be showing a report again, which is the thing the walk
+    exists to replace.
+
+    Three conditions, and each is a way this could go wrong:
+
+    * **Only while following.**  Nobody who is not on a walk asked for
+      their file to change under them, and an editor that reloaded on
+      its own is one you could not trust to hold still.
+    * **Only when the buffer is saved.**  Reloading over unsaved edits
+      would destroy typing to show somebody else's — the trade `open`
+      refuses to make silently, and this one could not even warn.
+    * **Only when the mtime actually moved**, which is one `stat` a
+      pass — `Session._outside`'s own instinct.
+    """
+    here = Path(getattr(session.bench, "path", "") or "")
+    if not getattr(session, "walking", False) or not here.name:
+        return None
+    try:
+        when = here.stat().st_mtime
+    except OSError:
+        return watched
+    if watched is not None and watched[0] == str(here):
+        if when == watched[1]:
+            return watched
+        if getattr(session.view, "saved", True):
+            try:
+                editor.load(here.read_text())
+                session.said.append(f"{here.name} changed under the walk")
+                # **And put the caret back where the walk had it.**
+                # A reload moves it to the top, and `_stepped_off` reads
+                # a moved caret as *you* moving — so following the file
+                # ended the walk that was following it, and the window
+                # showed the reload and the step-off in the same frame.
+                went = getattr(session, "_walked", None)
+                if went and went[0] == str(here):
+                    session.view.goto(went[1])
+            except OSError:
+                pass
+    return (str(here), when)
 
 
 def _place(session):
