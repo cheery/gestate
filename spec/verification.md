@@ -267,6 +267,50 @@ these exist.  The pattern generalises to anywhere the tree's shape is
 part of its meaning, and its value is not the assertion — it is that it
 makes a person write the test they were about to skip.
 
+## The defect is in the seam, and the test is in the module
+
+*Added 2026-08-18, after four defects in one day, none of which a green
+suite could see and all of which a driven window found in seconds.*
+
+| what broke | which seam |
+|---|---|
+| the workbench filed *line 1* over wherever you were | `desk` read the caret **after** the teardown shut the editor |
+| a `gemba` ask-line stopped the file compiling | an ask-line meets `audiovoices._rewrite_asks`, which turns bare words into comments |
+| a session narrated into a file no workbench read | the channel's two ends rooted themselves differently |
+| opening a file crashed the editor | a new `Session` field met `_carry`, which builds a fresh one |
+
+**Every one of them passed every test that had been written for it**,
+because the tests were written *from the module*, and the module was
+right.  What was wrong was where it joined something else — and the
+suite has no place where two modules meet, only files named after each
+of them.
+
+**The rule that would have caught all four**, and it costs a minute:
+
+> When you add a **kind of thing** — a field on a long-lived object, a
+> file the tree now contains, a word that may appear in a source line —
+> go and find what already has an opinion about that kind of thing, and
+> read it.
+
+There is usually exactly one place, and it usually says so out loud.
+`_carry`'s own docstring is three paragraphs about which state belongs
+to the window and survives an instrument swap; the walk was added to
+`Session` without reading it.  `audiovoices._rewrite_asks` explains why
+a bare `canvas` becomes a comment; the `gemba` line was written without
+asking what the compiler would make of it.
+
+**And the tests that hid it are worth naming, because they were good
+tests.**  Every gemba test set `GESTATE_GEMBA` to a temporary file — which
+is right, since a test that wrote into somebody's open workbench would be
+typing on their screen — and *that* is what stopped any of them from ever
+asking where the file goes when nobody says.  A fixture that makes a test
+hermetic can also make it blind, and the blindness is invisible from
+inside the file.
+
+So: the seam is where the driven window earns its keep, and it is what
+`§"The screen is an oracle"` above is for.  A photographed window has no
+modules in it.
+
 ## What this is not
 
 * Not a UI test.  The transcript starts below pygame: what the editor
