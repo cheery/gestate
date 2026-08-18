@@ -735,6 +735,13 @@ def run(path, rate: int = 44100, block: int = 512,
     #: the project half reads the tree being worked on and not whatever
     #: shell the window was launched from.
     presence = Presence(root=Path(path).resolve().parent)
+    #: **The factory floor** (`board/done/gemba.md`).  Rooted where the
+    #: presence record is, and for the same reason: the tree being
+    #: worked on rather than whatever shell the window was launched
+    #: from.  Costs one `stat` a pass when nobody is narrating.
+    from .gemba import Walk
+
+    session.walk = Walk(root=Path(path).resolve().parent)
     editor = Editor(bench.source(), 1100, 760)
     session.view = Window(editor)
 
@@ -834,6 +841,12 @@ def run(path, rate: int = 44100, block: int = 512,
                 session = _carry(session, bench)
                 session.said.append(f"opened {Path(wanted).name}")
                 quitting, starter = _begin(bench, session, after=retiring)
+            # **What a session has said since the last pass.**  One
+            # `stat` when the file has not grown, which is
+            # `Session._outside`'s own instinct — and no cost at all to
+            # anybody who is not being walked past, because the file
+            # does not exist.
+            session.walk.read()
             stirred = False
             t0 = time.monotonic()
             # **Gestures first, then the description.**  A command run
@@ -1110,7 +1123,7 @@ def install_desktop() -> int:
     says so in its own comment: it opens the file it was handed or the
     scratch file when it was handed nothing, it finds the venv, and it
     `cd`s to the tree.  Henri hit this on a fresh 26.04 install and
-    fixed it there before it was fixed here; `board/installation-test.md`
+    fixed it there before it was fixed here; `board/later/installation-test.md`
     is the card about the fact that nothing caught it.
     """
     from gestate import icon

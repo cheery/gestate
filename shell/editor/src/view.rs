@@ -403,6 +403,21 @@ impl View {
                 None => boxes.push((t.line, rows.min(BOX_MOST))),
             }
         }
+        // **The gemba box** — `board/done/gemba.md`.  Its rows are its
+        // text's, wrapped, exactly as a complaint's are: what is in it
+        // is prose, and prose that does not fit is prose you cannot
+        // read.  One extra row for the mark, so the depth never eats
+        // the sentence.
+        if let Some(g) = &chrome.gemba {
+            if g.line != 0 {
+                let rows = (wrap(&g.said, cols).len() as u16 + 1)
+                    .min(BOX_MOST);
+                match boxes.iter_mut().find(|(l, _)| *l == g.line) {
+                    Some((_, had)) => *had = (*had + rows).min(BOX_MOST),
+                    None => boxes.push((g.line, rows)),
+                }
+            }
+        }
         // **A scope's box** — `spec/scope.md`: the trace beside its
         // own declaration, the knob's placement rule grown a height.
         // A fixed grant, because the trace is a picture and not prose:
@@ -1501,7 +1516,9 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
         // band and its content cannot disagree about the height; a
         // message longer than the window is cut at the edge, whole
         // text one command away, exactly as the status bar ruled.
-        if slot.box_h > 0 {
+        if slot.box_h > 0 && (chrome.trouble_at(line_no).is_some()
+                              || chrome.gemba.as_ref()
+                                  .is_some_and(|g| g.line == line_no)) {
             // **Clipped to the text area** (F132).  A band near the
             // foot may hang past the fold by design — the caret's
             // promise is its own line, and `top_showing` says so —
@@ -1529,6 +1546,38 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
                         f.items.push(Item::Run { x: 4,
                                                  y: y + ch * (1 + i as i32),
                                                  s: said, c: ANGRY });
+                    }
+                }
+                // **And the walk, in the same box** — one thing being
+                // said, in ink because it is not a complaint, and the
+                // depth as a bar under it.
+                if let Some(g) = chrome.gemba.as_ref()
+                    .filter(|g| g.line == line_no)
+                {
+                    let used = chrome.troubles_at(line_no).iter()
+                        .flat_map(|t| wrap(&t.message, cols)).count();
+                    let granted = (room / ch) as usize;
+                    let mut at = used;
+                    for said in wrap(&g.said, cols) {
+                        if at + 1 >= granted {
+                            break;              // the mark keeps its row
+                        }
+                        f.items.push(Item::Run {
+                            x: 4, y: y + ch * (1 + at as i32),
+                            s: said, c: INK });
+                        at += 1;
+                    }
+                    if at < granted && g.behind > 0 {
+                        // **A mark, not a count** (`spec/rocks.md`).
+                        // One cell per item waiting, so the bar grows
+                        // with the backlog and is read without being
+                        // looked at — which is the whole reason the
+                        // rate mismatch is drawn at all.
+                        let wide = (g.behind as i32 * cw)
+                            .min(view.w - 8);
+                        f.items.push(Item::Rect {
+                            x: 4, y: y + ch * (1 + at as i32) + ch / 4,
+                            w: wide, h: ch / 2, c: FAINT });
                     }
                 }
             }

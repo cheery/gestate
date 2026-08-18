@@ -1,6 +1,6 @@
 # gemba — walk the factory floor
 
-    status   open
+    status   done — 2026-08-18 (items 1–2; 3–5 named below)
     because  today I read sixteen commit messages Claude wrote; I want
              to be where the work is while it happens
     asked    Henri, 2026-08-16
@@ -167,10 +167,24 @@ made visible while it is happening rather than discovered in a commit log
 afterwards.  It is `board/done/timer.md`'s own idea one floor over: a
 mark that grows with a quantity, applied to attention instead of hours.
 
-**Still to pick, and cheap:** the dwell (seconds), and whether a deep
-backlog is drawn as a count, a mark, or both.  `spec/rocks.md` is the
-precedent and would say a mark — *a number a person has to read is a
-number a person will not read*.
+**Picked 2026-08-18.**
+
+**The dwell is the item's own length, not a constant.**  *Henri: "as
+long as it takes to read it."*  About a word every third of a second,
+with a floor so a three-word note is still catchable and a ceiling so
+nothing can hold the box hostage.  The constant nobody could pick was
+the wrong question: a paragraph and a word do not want the same room,
+and the text already says which it is.
+
+**A deep backlog is a mark, not a count.**  `spec/rocks.md`'s own rule,
+applied: *a number a person has to read is a number a person will not
+read*.  The depth is something you take in without looking at it, which
+is the whole point of putting it there — it is meant to be felt at a
+glance while you are reading something else.
+
+**And this session takes the channel and the box** (items 1 and 2).
+That is the part that does not exist; 3–5 are colouring for files you
+can already open.
 
 **And one rule falls out of it for the writer, not the window.**  If the
 box can only carry so much, a session has to choose what is worth saying
@@ -241,3 +255,63 @@ house may already own the answer: `gestate.sessionlog` records and
 replays a session, and a replay is what a video is for without being a
 codec.  Worth asking whether a gemba item can be *"replay this"* before
 anyone reaches for frames.
+
+## Done
+
+*2026-08-18.  `journal.md` §"The factory floor, and the pace nobody
+owns" tells the story.  Items 1 and 2 — the channel and the box — at
+Henri's ask: "it's not in front of the line anymore, but it helps with
+the workload here if we make it right."*
+
+**The channel** is `gestate/gemba.py`: `gemba.tsv` under the project,
+flat tab-separated lines, verb first — the fifth thing in this house
+wearing that shape.  A session says one thing with
+`python -m gestate.gemba say "…"`, which is a command line rather than
+an import because the thing narrating is usually running `git`,
+`pytest` and `cargo` and the cheapest thing to reach for between two of
+those is one more command.
+
+**The box** stands on a `gemba` ask-line, `canvas`'s manners exactly.
+It shows **one** item, held for **as long as that item takes to read** —
+about a word every third of a second, floored at 3s so a glance catches
+a short note and capped at 20s so nothing holds the box hostage.
+
+**And the backlog is a mark.**  When the queue backs up the box grows a
+bar under the sentence, one cell an item.  That is the design's most
+valuable line and it is Henri's: neither end can own the pace, so the
+rate mismatch stops being a defect to engineer away and becomes the
+instrument's most useful signal — *he is going faster than you are
+following*, which is `spec/author.md`'s standing problem made visible
+while it is happening rather than found in a commit log afterwards.
+
+**The clock lives in the model**, because how long a thing has stood is
+a fact about the session and not about the window: a window redrawn
+twice as often must not advance the queue twice as fast, and there is a
+test that says so.
+
+### What the running window found that reading did not
+
+**The first version broke the program it was narrating about.**  The box
+drew perfectly on the first try, and the file under it did not compile —
+*expected '=', got end of line* — because a bare `gemba` line is not
+`.ges`.  Every other ask-line already knew to rewrite itself to a
+comment (`audiovoices._rewrite_asks`); this one was written without
+asking what the compiler would make of it.
+
+**All twenty-three tests passed while that was true**, because none of
+them compiled anything.  It took one screenshot of the real window,
+which is `board/reviewing-by-running.md`'s whole argument arriving
+unprompted.
+
+### Left, and named
+
+3. **Python colouring** — point `painted()` at the stdlib tokenizer for
+   `.py`.  No Rust change at all.
+4. **Rust colouring** — ~80 lines, marked *reading aid*.
+5. **The colouring cache's per-line start state**, or a measured bypass.
+
+And the one the card most wants next: **`shot <path>`**.  The verb-first
+format costs nothing to extend, the box already knows how to draw a
+picture because every other content box is one, and the evening of
+2026-08-17 is the argument — every finding that moved a decision that
+day was an image, and prose describing it had failed first.

@@ -8,7 +8,8 @@
 
 use gestate_editor::document::{char_of_column, column_of, width_of, Document};
 use gestate_editor::font::LARGE;
-use gestate_editor::view::{caret_at, frame, paint, Item, View, CARET};
+use gestate_editor::view::{caret_at, frame, paint, Item, View, CARET,
+                          FAINT, INK};
 use gestate_panel::list::Colour;
 use gestate_panel::paint::Canvas;
 
@@ -1643,4 +1644,126 @@ fn a_calm_week_is_not_drawn_in_the_warning_colour() {
     // **A build that predates the field draws it as it always did.**
     let old = Furniture::read("status\tapplied\ntally\tyou 12m \u{25aa}");
     assert!(!old.tally_warm, "no field is not a warm field");
+}
+
+// ── The factory floor ────────────────────────────────────────────────
+//
+// `board/done/gemba.md`.  A session narrates and a box shows one thing at a
+// time; the window's whole job is to draw the thing it is handed and
+// the mark for what is waiting.  **What is not the window's job** is
+// deciding when to move on: the pace is the model's, because how long
+// something has stood is a fact about the session and not about how
+// often this happens to repaint.
+
+fn walking(said: &str, behind: usize) -> Furniture {
+    Furniture::read(&format!("gemba\t2\t{said}\t{behind}"))
+}
+
+#[test]
+fn the_walk_is_drawn_in_a_box_under_the_line_that_asked() {
+    let d = doc("one\ngemba\nthree");
+    let chrome = walking("reading the card", 0);
+    let mut v = View { aside: 0, ..rows_of(6, 900) };
+    v.grant(&chrome, &LARGE);
+    let ch = v.ch(&LARGE);
+    let f = frame_with(&d, &v, &LARGE, &chrome);
+
+    let said: Vec<(&String, &i32)> = f.items.iter().filter_map(|i| match i {
+        Item::Run { s, y, c, .. } if s == "reading the card" => Some((s, y)),
+        _ => None,
+    }).collect();
+    assert_eq!(said.len(), 1, "the narration is drawn once");
+    assert_eq!(*said[0].1, 2 * ch, "in the box's first row, under line 2");
+}
+
+#[test]
+fn a_narration_is_not_a_complaint() {
+    // **The colour is the claim.**  A box drawn in the colour that
+    // means *your program is wrong* would be saying something untrue
+    // about work going perfectly well.
+    let d = doc("one\ngemba\nthree");
+    let chrome = walking("building the thing", 0);
+    let mut v = View { aside: 0, ..rows_of(6, 900) };
+    v.grant(&chrome, &LARGE);
+    let f = frame_with(&d, &v, &LARGE, &chrome);
+    let colour = f.items.iter().find_map(|i| match i {
+        Item::Run { s, c, .. } if s == "building the thing" => Some(*c),
+        _ => None,
+    });
+    assert_eq!(colour, Some(INK));
+    assert!(!f.items.iter().any(|i| matches!(i, Item::Rect { x: 0, c, .. }
+                                            if *c == ANGRY)),
+            "and no complaint mark in the gutter");
+}
+
+#[test]
+fn the_backlog_is_a_mark_and_not_a_number() {
+    // `spec/rocks.md`: a number a person has to read is a number a
+    // person will not read.  The depth is meant to be felt at a glance
+    // while reading something else.
+    let d = doc("one\ngemba\nthree");
+    let deep = walking("one thing", 6);
+    let mut v = View { aside: 0, ..rows_of(8, 900) };
+    v.grant(&deep, &LARGE);
+    let f = frame_with(&d, &v, &LARGE, &deep);
+    assert!(!f.items.iter().any(|i| matches!(i, Item::Run { s, .. }
+                                            if s.contains('6'))),
+            "nothing says six");
+    let bar = f.items.iter().find_map(|i| match i {
+        Item::Rect { x: 4, w, c, .. } if *c == FAINT => Some(*w),
+        _ => None,
+    });
+    assert!(bar.is_some(), "there is a mark");
+    // And it grows with the backlog, which is the whole of its meaning.
+    let shallow = walking("one thing", 2);
+    let mut v2 = View { aside: 0, ..rows_of(8, 900) };
+    v2.grant(&shallow, &LARGE);
+    let f2 = frame_with(&d, &v2, &LARGE, &shallow);
+    let small = f2.items.iter().find_map(|i| match i {
+        Item::Rect { x: 4, w, c, .. } if *c == FAINT => Some(*w),
+        _ => None,
+    });
+    assert!(small < bar, "a deeper backlog is a longer mark");
+}
+
+#[test]
+fn nothing_waiting_draws_no_mark() {
+    let d = doc("one\ngemba\nthree");
+    let chrome = walking("all caught up", 0);
+    let mut v = View { aside: 0, ..rows_of(6, 900) };
+    v.grant(&chrome, &LARGE);
+    let f = frame_with(&d, &v, &LARGE, &chrome);
+    assert!(!f.items.iter().any(|i| matches!(i, Item::Rect { x: 4, c, .. }
+                                            if *c == FAINT)));
+}
+
+#[test]
+fn a_long_narration_is_wrapped_and_keeps_the_marks_row() {
+    let d = doc("one\ngemba\nthree");
+    let long: String = std::iter::repeat("word ").take(60).collect();
+    let chrome = walking(long.trim(), 3);
+    let mut v = View { aside: 0, ..rows_of(12, 900) };
+    v.grant(&chrome, &LARGE);
+    let f = frame_with(&d, &v, &LARGE, &chrome);
+    let rows = f.items.iter().filter(|i| matches!(i, Item::Run { c, .. }
+                                                 if *c == INK)).count();
+    assert!(rows > 1, "wrapped rather than cut");
+    assert!(f.items.iter().any(|i| matches!(i, Item::Rect { x: 4, c, .. }
+                                           if *c == FAINT)),
+            "and the mark still has its row");
+}
+
+#[test]
+fn a_window_that_is_told_nothing_draws_no_box() {
+    let d = doc("one\ngemba\nthree");
+    let quiet = Furniture::read("status\tready");
+    let mut v = View { aside: 0, ..rows_of(6, 900) };
+    v.grant(&quiet, &LARGE);
+    let ch = v.ch(&LARGE);
+    let f = frame_with(&d, &v, &LARGE, &quiet);
+    let three: Vec<&i32> = f.items.iter().filter_map(|i| match i {
+        Item::Run { s, y, .. } if s == "three" => Some(y),
+        _ => None,
+    }).collect();
+    assert_eq!(three, vec![&(2 * ch)], "line 3 was not pushed down");
 }

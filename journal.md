@@ -8124,3 +8124,76 @@ looked fine and the number was plausible.
 close; and one `test_autoaudition` timing test failed once while an X
 server and a full suite were running together — the board's own warning
 about a shared machine, arriving on schedule.)*
+
+## The factory floor, and the pace nobody owns
+
+*2026-08-18.  `board/done/gemba.md`, items 1 and 2, taken out of order
+at Henri's ask: "it's not in front of the line anymore, but it helps
+with the workload here if we make it right."*
+
+*Genba*, 現場, the actual place.  Today he reads sixteen commit messages
+a session wrote; this is being where the work is while it is happening.
+
+### The hard part was never the drawing
+
+Content boxes already put a live thing in the text, and a `gemba` box is
+a fourth reading of machinery that exists.  What did not exist was a
+path from a session into a running workbench — and the shape of that
+path was decided by the *fence*: a file under the project crosses
+`tools/sandbox.sh` for free, where a socket or a fifo needs the fence
+widened to admit it.  Two cards composing rather than fighting is worth
+more than a millisecond of latency.
+
+### The finding is Henri's, and it inverts the problem
+
+> In one hand "what is happening now" would be great, but you're much
+> faster than me.  I think the design should account for that.  Give me
+> room that I need.
+
+That is not a fourth option among *now*, *a log*, and *now-plus-a-tail*
+— it is the constraint the other three were hiding.  **Neither end can
+own the pace**: a narration paced by the writer is unreadable when the
+writer is faster, and a log paced by the reader is a report, which is
+the thing being replaced.
+
+So the session appends whenever it likes, the box shows one item held
+for as long as *that item* takes to read, and — the valuable part —
+**when the queue backs up, the depth is itself the reading.**  The rate
+mismatch stops being a defect to engineer away and becomes the
+instrument's most useful signal: *he is going faster than you are
+following*, which is `spec/author.md`'s standing problem made visible
+while it is happening instead of discovered afterwards.
+
+Drawn as a mark and not a number, which is `spec/rocks.md`'s own rule.
+And the dwell is the item's own length rather than a constant, which was
+Henri's answer to a question I had posed as *how many seconds* — a
+paragraph and a three-word note do not want the same room, and the text
+already knows which it is.  **The constant nobody could pick was the
+wrong question.**
+
+### Twenty-three passing tests and a broken program
+
+The box drew correctly the first time.  The file underneath it did not
+compile: a bare `gemba` line is not `.ges`, so the first thing the
+feature did was break the program it was narrating about — *expected
+'=', got end of line*, in the status bar, under a box saying everything
+was fine.
+
+Every other ask-line already knew this.  `audiovoices._rewrite_asks`
+turns a bare `canvas` into a comment for exactly this reason, and the
+paragraph explaining why is right there in the file.  This one was
+written without asking what the compiler would make of it.
+
+**All the tests passed while that was true, because none of them
+compiled anything.**  What found it was one screenshot of the running
+window — `board/reviewing-by-running.md`'s whole argument, arriving
+unprompted for the second time today.  The test that would have caught
+it is four lines and now exists.
+
+### And the medium the card is still waiting for
+
+The channel carries `say` and nothing else yet, and the card is explicit
+about what it wants next: `shot <path>`.  The evening of 2026-08-17 is
+the argument — every finding that moved a decision that day was an
+image, and prose describing it had failed first.  Verb-first costs
+nothing to extend, and every other content box is already a picture.

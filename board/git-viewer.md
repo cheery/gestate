@@ -6,7 +6,7 @@
     because  a gemba walk through the log should be ergonomic, and my
              friend could use it as well
     asked    Henri, 2026-08-16
-    see      board/gemba.md — this is gemba's second idea
+    see      board/done/gemba.md — this is gemba's second idea
              board/git-lesson.md — the workflow it would encode
              doc/reading-the-log.md — that workflow, written down
 

@@ -1,6 +1,6 @@
 # installation-test — the way in is the one thing here nobody checks
 
-    status   open
+    status   shelved — 2026-08-18
     because  "the installation should be tested like how everything else
              here is" — a fresh 26.04 machine found three defects in a
              day, and every one of them was in the part a new person
@@ -12,6 +12,26 @@
              tools/toolbox.sh — the bench's own "what is here, what is not"
              gestate/workbench.py — `install_desktop`
              fixme.md F148 — the icon, found by the same install
+
+## Shelved, 2026-08-18
+
+*Henri:* **"I find the installation test depend on podman, and I'm not
+ready to install it."**
+
+Which is the right call and worth reading as a finding rather than a
+delay.  The card's own design argued `podman` in — rootless, no daemon,
+and *"messing up the system is one `podman rmi` away"*, which answers
+his original question.  What it did not weigh is that **the instrument
+asks the machine under test to install something first**, and a card
+about whether a fresh machine can run gestate that begins *"first,
+install a container runtime"* has moved the problem rather than solved
+it.
+
+Nothing here is wrong and nothing is thrown away: the three defects one
+fresh machine found in a day are still the argument, and the elaboration
+below still holds.  It comes back the way it left — by him saying so —
+and if it comes back wanting a lighter instrument than a container, that
+is a real question this shelving has surfaced rather than buried.
 
 ## The ask
 

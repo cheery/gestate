@@ -4578,7 +4578,7 @@ wrapper and the installer lived one directory apart, each correct, with
 nothing in the tree that had to agree with both.
 
 **Resolved with the tier of tests the defect argues for**
-(`test/test_desktop.py`, `board/installation-test.md`): the entry is
+(`test/test_desktop.py`, `board/later/installation-test.md`): the entry is
 installed into a temporary `HOME`, `Exec` must name the wrapper, the
 wrapper must still supply a file — and `main([])` must still exit 2,
 asserted beside them, because that is the fact which makes the others

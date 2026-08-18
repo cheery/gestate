@@ -874,6 +874,12 @@ class Session:
     filtered: object = None
     #: An export waiting on a yes — `(kind, target)`, or `None`.
     confirming: object = None
+    #: The factory-floor walk — `gestate.gemba.Walk`, or `None` when
+    #: nobody is narrating.  **The reader's clock lives here**, in the
+    #: model, because how long a thing has stood is a fact about the
+    #: session and not about the window: a window redrawn twice as often
+    #: must not advance the queue twice as fast.
+    walk: object = None
     #: The `(verb, argument)` a name or a type has already been filled
     #: into.  **Once per question, never per empty box** — see
     #: `proposed_name`.
@@ -3731,6 +3737,32 @@ def furniture(session: "Session", bench=None, tally: str = "",
                 out.append(f"canvas\t{i}\t{name}")
         elif walkable:
             out.append(f"canvas\t{i}\tsubstrate")
+
+    # **A gemba box stands on every `gemba` line** (`board/done/gemba.md`) —
+    # `canvas`'s manners, a fourth reading of machinery already built:
+    # one appended line asks, deleting it takes the box, no line no box.
+    #
+    # **One box, wherever you put it** (Henri, 2026-08-17), which is why
+    # it is an ask-line and not chrome: it keeps working when the file
+    # on screen is not the file being worked on, which is the ordinary
+    # case for a walk past somebody else's bench.
+    #
+    # The rows are `gemba` rather than `trouble` because they mean a
+    # different thing — a narration is not a complaint, and an old
+    # window that draws every box red would be saying so.
+    walk = getattr(session, "walk", None)
+    if walk is not None:
+        item = walk.showing()
+        for i, text_line in enumerate(session._lines(), start=1):
+            if _re.match(r"gemba\s*$", text_line.split("#", 1)[0]):
+                said = item.text if item is not None else "nothing said yet"
+                # **The depth is a mark, not a count** (`spec/rocks.md`:
+                # a number a person has to read is a number a person
+                # will not read).  It rides as its own field so the
+                # window decides how to draw it and the model only says
+                # how far behind it is.
+                out.append(f"gemba\t{i}\t{said}\t{walk.behind}")
+                break
 
     # **A score box stands on every `notes` line** (`spec/scorebox.md`),
     # and crosses as a `canvas` row because that is what it is by the

@@ -91,6 +91,28 @@ pub struct Trouble {
     pub message: String,
 }
 
+/// What a session is saying, and how far behind the box is running.
+///
+/// **A narration is not a complaint**, which is why this is its own
+/// kind and not a `trouble` row wearing a different colour: a box drawn
+/// in the colour that means *your program is wrong* would be saying
+/// something untrue about work going perfectly well.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct Gemba {
+    /// The `gemba` line the box stands under.
+    pub line: usize,
+    /// The one thing being said now.
+    pub said: String,
+    /// How many are waiting behind it.
+    ///
+    /// **Drawn as a mark, never as a number** — `spec/rocks.md`: a
+    /// number a person has to read is a number a person will not read.
+    /// The point of it is to be felt at a glance while reading
+    /// something else, which a numeral is bad at and a growing bar is
+    /// good at.
+    pub behind: usize,
+}
+
 /// One coloured stretch of a line — `col`, `len`, and what it is.
 ///
 /// **Columns, not characters**, the same coordinate the caret and the
@@ -154,6 +176,14 @@ pub struct Furniture {
     /// edit you have not saved looked exactly like one you had.
     pub unsaved: bool,
     pub trouble: Vec<Trouble>,
+    /// What a session is narrating, and where the box stands.
+    ///
+    /// **One, because the pace is the point.**  A second box would be a
+    /// second thing to read at once, which is the failure this whole
+    /// design is arranged against (`board/done/gemba.md` §"paced to the
+    /// reader").  The model sends the first `gemba` line's box and no
+    /// others.
+    pub gemba: Option<Gemba>,
     pub holes: Vec<Hole>,
     /// What colour each visible line's tokens are, by line number.
     ///
@@ -254,6 +284,18 @@ impl Furniture {
                     line: num(p.get(1)),
                     message: p.get(2).copied().unwrap_or("").into(),
                 }),
+                // **The factory floor** — `board/done/gemba.md`.  One box,
+                // on the line that asked for it, holding one thing at a
+                // time; `behind` is how many are waiting, and it is
+                // drawn as a mark rather than read as a number.
+                "gemba" if p.len() >= 3 => {
+                    f.gemba = Some(Gemba {
+                        line: num(p.get(1)),
+                        said: p[2].into(),
+                        behind: p.get(3).and_then(|n| n.parse().ok())
+                            .unwrap_or(0),
+                    });
+                }
                 "file" if p.len() >= 2 => {
                     f.file = p[1].into();
                     f.unsaved = p.get(2).copied() == Some("1");

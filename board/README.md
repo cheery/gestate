@@ -24,30 +24,29 @@ Work them in this order unless one blocks another.  **This list is the
 only place the order lives** — a card never says where it stands, which
 is what keeps a card's name stable while priorities move.
 
-1. **[installation-test](installation-test.md)** — somebody who cannot
-   install has none of the above.  Three defects in one day from one
-   fresh machine.
-2. **[unheard-output](unheard-output.md)** — a whole class of audio
+1. **[unheard-output](unheard-output.md)** — a whole class of audio
    defect has no oracle at all, and `fixme.md` F147 is blocked on it.
    Plumbing on the card, audible to the person.
-3. **[stranger-test](stranger-test.md)** — fixes nothing; it is what
-   *finds* 1–4.  Ranked here only because each run spends a scarce,
-   non-renewable person.
-4. **[interface-oracle](interface-oracle.md)** — stops 1–4 regressing
-   silently.  A multiplier rather than a feature, and `view.rs` now has
-   its first three tests to build on.
-5. **[unseen-flare](unseen-flare.md)** — narrower than
+2. **[stranger-test](stranger-test.md)** — fixes nothing; it is what
+   *found* the four that are now done, and what would settle
+   `command-categories`' pick against a person rather than an argument.
+   Ranked here only because each run spends a scarce, non-renewable
+   person.
+3. **[interface-oracle](interface-oracle.md)** — stops the finished
+   four regressing silently.  A multiplier rather than a feature, and
+   the argument got sharper on 2026-08-18: `view.rs`'s own tests went
+   red on the commit that changed the corner and stayed red across a
+   whole session, because nothing runs them.
+4. **[unseen-flare](unseen-flare.md)** — narrower than
    `unheard-output`, and overlapping it.
-6. **[gemba](gemba.md)** — changes the working day more than anything
-   else here, and changes a *user's* not at all.  *Waiting on a dwell
-   in seconds.*
-7. **[reviewing-by-running](reviewing-by-running.md)** — the review
+5. **[reviewing-by-running](reviewing-by-running.md)** — the review
    loop `spec/author.md` says is the scarce resource.
-8. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
+6. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
    the changes a session makes.
-9. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
-   *Blocked on command-categories.*
-10. **[portable-package](portable-package.md)** — for people who do not
+7. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
+   *Unblocked 2026-08-18: `command-categories` landed, so a family of
+   new commands now arrives into a list that groups them.*
+8. **[portable-package](portable-package.md)** — for people who do not
    exist yet, by his own answer.  *Waiting on program-or-workshop.*
 
 **Ordered by impact on somebody using gestate** — 2026-08-17, at

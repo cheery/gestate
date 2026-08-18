@@ -8,7 +8,7 @@
              test/test_command_sections.py — the derivation, held
              spec/workbench.md §"The list, and the laws it keeps"
              board/button.md — a stranger opened this list and found names
-             board/gemba.md — the second idea waits on this
+             board/done/gemba.md — the second idea waits on this
              board/git-viewer.md — blocked by it
 
 ## The ask

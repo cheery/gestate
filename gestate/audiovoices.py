@@ -703,6 +703,7 @@ def _sum(bank: Bank, frame: list) -> list:
 _SINK = None
 _CANVAS = None
 _NOTES = None
+_GEMBA = None
 
 
 def _sinks(source: str) -> str:
@@ -742,16 +743,28 @@ def _sinks(source: str) -> str:
     and `Workbench._load_substrate` by all three scanning the same
     way.
     """
-    global _SINK, _CANVAS, _NOTES
+    global _SINK, _CANVAS, _NOTES, _GEMBA
     bare = "\n" + source
     if "\nsink " not in bare and "\ncanvas" not in bare \
-            and "\nnotes " not in bare:
+            and "\nnotes " not in bare and "\ngemba" not in bare:
         return source
     import re
 
     if _SINK is None:
         _SINK = re.compile(r"^sink\s+(\S.*)$")
         _CANVAS = re.compile(r"^canvas(?:\s+(\S.*))?\s*$")
+    if _GEMBA is None:
+        # **The factory floor's ask** (`board/done/gemba.md`), and it is the
+        # bare `canvas` line's manners exactly: it says *nothing* to the
+        # compiler, so it rewrites to a comment.
+        #
+        # **Found by looking at the running window.**  The box drew
+        # perfectly and the file underneath it did not compile —
+        # *expected '=', got end of line* — so the first thing the
+        # feature did was break the program it was narrating about.
+        # Every other ask-line already knew this; this one was written
+        # without asking what the compiler would make of it.
+        _GEMBA = re.compile(r"^gemba\s*(#.*)?$")
     if _NOTES is None:
         # **The score box's ask** (`spec/scorebox.md`), and it says
         # *nothing* to the compiler: unlike `canvas <expr>`, whose
@@ -764,7 +777,7 @@ def _sinks(source: str) -> str:
         from .scorebox import ask_of as _NOTES
     out, k, b = [], 0, 0
     for line in source.splitlines():
-        if _NOTES(line) is not None:
+        if _NOTES(line) is not None or _GEMBA.match(line) is not None:
             out.append("# " + line)
             continue
         m = _SINK.match(line)
