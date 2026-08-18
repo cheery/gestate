@@ -28,6 +28,7 @@ the fence it ran on would leave the reader to guess.
 import argparse
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -141,6 +142,42 @@ FAILLINE = re.compile(r"^(/\S+?\.py):(\d+):\s*(.*)$", re.M)
 FAILNAME = re.compile(r"^(?:FAILED|ERROR)\s+(\S+)(?:\s+-\s+(.*))?$", re.M)
 
 
+def _rust(stream, fenced, root):
+    """The Rust workspace — four crates, eighteen binaries, 344 tests.
+
+    **Nothing ran these until 2026-08-18.**  It was found by asking why
+    `view.rs`'s own tests had gone red on one commit and stayed red for
+    a whole session: nothing runs them, so green was luck rather than
+    evidence.  They cost **under a second** warm.
+
+    Between the gates and the long pass, because that is what its speed
+    buys: a broken crate is known in the first minute rather than the
+    twenty-fifth.  Inside the fence, which is what `tools/sandbox.sh`
+    was written for in the first place — `cargo` runs build scripts and
+    proc-macros as arbitrary code.
+    """
+    if shutil.which("cargo") is None:
+        # A machine with no cargo still has a Python suite worth
+        # running, and says so rather than failing.  The posture
+        # `doc/install.md` takes with every backend: missing ones
+        # degrade politely.
+        print("\nsuite.py: no cargo; the Rust crates went unchecked.")
+        return 0, "", "skipped — no cargo on PATH"
+    print("\n--- the Rust workspace, before the long pass ---")
+    cmd = ["cargo", "test", "--workspace", "--quiet"]
+    if fenced:
+        cmd = [str(root / "tools" / "sandbox.sh"), *cmd]
+    rc, out = stream(cmd)
+    ran = sum(int(n) for n in
+              re.findall(r"^test result: ok\. (\d+) passed", out, re.M))
+    if rc:
+        # **Not a stop.**  A red crate must not erase the page that says
+        # what else is true — the Python pass is twenty-five minutes of
+        # evidence and it is still worth having.
+        return rc, out, "**failed**"
+    return 0, out, f"{ran} passed"
+
+
 def main():
     ap = argparse.ArgumentParser(add_help=False)
     ap.add_argument("--unfenced", action="store_true")
@@ -230,11 +267,15 @@ def main():
                    "fix it and run again")
         print("\nsuite.py: " + stopped)
         window_note = "none — stopped at the gates"
+        rust_note = "not run — stopped at the gates"
         window_tests = []
     else:
+        rrc, rout, rust_note = _rust(stream, fenced, ROOT)
+        out += "\n" + rout
         rc, main_out = stream(cmd)
         out += "\n" + main_out
         passes = [main_out]
+        rc = rc or rrc
 
     # Second pass, unfenced, for the window tests the fence cannot host.
     if not stopped:
@@ -293,6 +334,7 @@ def main():
         f"| Fence | {'`tools/sandbox.sh` — ' + fence_note if fenced else '**unfenced** (--unfenced)'} |",
         f"| Command | `{' '.join(pytest_cmd[1:])}` |",
         f"| Ran outside the fence | {window_note} |",
+        f"| Rust workspace | {rust_note} |",
         f"| Wall | {mins}m {secs}s |",
         f"| Exit | {rc} |",
         *([f"| Stopped | {stopped} |"] if stopped else []),
