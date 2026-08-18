@@ -4461,6 +4461,61 @@ sink was actually given.  What it said in its first hour:
   instrument twenty minutes old.  It is not this entry's pop and it is
   worth its own look.
 
+### Caught in the real editor — 2026-08-18
+
+`GESTATE_HOST_TAP_TO` was added so the tap could be read out of a
+process nobody is inside, and the first thing it was pointed at was the
+editor playing `F147-freqknob.ges`.  **The pop is in the samples the
+card received, and it is in the first ten milliseconds.**
+
+| frames | worst step | mean step |
+|---|---|---|
+| 0–441 (the 10 ms master fade) | **0.03592** | 0.00619 |
+| 441–882 | 0.02589 | 0.00221 |
+| 882 → 88 200 | 0.00521 | ~0.0016 |
+
+Peak amplitude in the first 441 frames: **0.41**, against 0.50 settled.
+
+Two readings, and both are the point:
+
+* **The opening oscillates about seven times faster than the settled
+  tone.**  Same amplitude, seven times the sample-to-sample step, means
+  seven times the frequency — so *the frequency is wrong for the first
+  ten milliseconds and then settles*, which is the missing half of
+  "a control-rate signal feeding a frequency, in the first blocks".
+* **And the master fade is not covering it.**  0.41 of 0.50 inside the
+  ramp that is supposed to start at silence.  `mute_len` is
+  `fade_len / 4` — 441 frames at `fade_ms = 40` — and a *block* is 512,
+  so the whole fade is shorter than one block of the loop that applies
+  it.  Whatever the ramp is worth, it is spent before the first block
+  ends.
+
+**What is shown and what is inferred**, kept apart on purpose.  Shown:
+those numbers, from the card, in one run, with nobody listening.  Also
+shown: the same program with its control pushed *before* the loop is
+clean through the pipe **and** through the device, at 0, 3 and 12 blocks
+of lateness.  Inferred: that the editor supplies a different value for
+the first blocks than the file's own `init`, and that this is the step.
+
+**And the late-knob hypothesis is dead**, conclusively rather than
+suggestively:
+
+| | knob from block 0 | late 3 blocks | late 12 blocks |
+|---|---|---|---|
+| `F147-freqknob.ges` | clean | clean | clean |
+| `F147-ampknob.ges` | clean | **POP 0.484** | **POP 0.173** |
+
+A frequency knob arriving late *cannot* pop: at 0 Hz the phase is frozen
+at zero, so the tone begins at zero and moves continuously.  An
+amplitude knob arriving late steps from silence to full mid-waveform.
+Henri heard the **frequency** one pop, so this is not the mechanism —
+and the amplitude row is a latent defect nobody has reported, with a
+step eleven times the settled one.
+
+**The next question is one line of instrument**: print what
+`audioeditor.control` returns for that node on each of the first ten
+blocks.  If it is not 415 for some of them, this is finished.
+
 **Still open, and the wall has moved rather than fallen.**  Everything
 the *pipe* path reaches is now machine-checkable and none of it pops.
 What is left is what the pipe does not reproduce — real-time pacing, the

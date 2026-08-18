@@ -27,6 +27,7 @@
 
 #include <math.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -265,8 +266,13 @@ host *gestate_host_new(int channels, int64_t fade_len, void *control) {
     return h;
 }
 
+static void tap_out(host *h);
+
 void gestate_host_free(host *h) {
-    if (h) free(h->tap);
+    if (h) {
+        tap_out(h);
+        free(h->tap);
+    }
     free(h);
 }
 
@@ -285,6 +291,32 @@ int64_t gestate_host_tap_read(host *h, float *out, int64_t frames) {
     memcpy(out, h->tap,
            (size_t)frames * (size_t)h->channels * sizeof *out);
     return frames;
+}
+
+/* Write what was tapped where somebody outside this process can read it.
+ *
+ * **Because the interesting host is one you are not inside.**  The tap
+ * answers `Host.tap()` to whoever holds the pointer, which is fine for a
+ * test and useless for the case it was built for: `fixme.md` F147 is a
+ * pop in the *editor*, and the editor is another process with its own
+ * sound card.  `GESTATE_HOST_TAP_TO` names a file, and the frames land
+ * in it when the host is freed — raw little-endian floats, interleaved,
+ * exactly as they went to the card, so `numpy.fromfile` or twelve lines
+ * of `struct` reads them.
+ *
+ * Raw rather than a `.wav`: a header is a decision about rate and
+ * channel order that this file would then be asserting, and the reader
+ * already knows both.  `audioperform -o` is where a listenable file
+ * comes from.
+ */
+static void tap_out(host *h) {
+    const char *where = getenv("GESTATE_HOST_TAP_TO");
+    if (!h || !h->tap || h->tap_n <= 0 || !where || !*where) return;
+    FILE *f = fopen(where, "wb");
+    if (!f) return;
+    fwrite(h->tap, sizeof *h->tap,
+           (size_t)h->tap_n * (size_t)h->channels, f);
+    fclose(f);
 }
 
 /* The engine that is sounding now, set once before the thread starts. */
