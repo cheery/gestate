@@ -103,6 +103,24 @@ Modifier names are X keysyms — `Control_L`, not `ctrl`.  And **`pkill`
 does not run a `finally`**: to exercise a graceful close, quit through
 the palette (`Ctrl-K`, `quit`, Return).
 
+### `python -m gestate.pops <dump>` — did it click, and where
+
+    GESTATE_HOST_TAP=88200 GESTATE_HOST_TAP_TO=/tmp/x.f32  python -m gestate.workbench piece.ges
+    python -m gestate.pops /tmp/x.f32 --opening 10
+
+A click is a **discontinuity**, so the reading is a ratio — this step
+against the steps this program normally takes — which is what lets it
+work on a drone and a snare without being told which it is.  And it
+weighs the *opening* separately, because every defect it was built for
+is at the start and a whole-file maximum says nothing about those.
+
+**It found F147 and confirmed the fix**, both without a listener: the
+first ten milliseconds running seven times faster than the settled tone,
+and then worst equal to settled.  Its blind spot is that it cannot tell
+you whether a click is *wrong* — a square wave is a discontinuity forty
+times a second and is fine — so point it at a program that has no
+business clicking.
+
 ### `tools/measure_editor.py`, `tools/dragcheck.py`, `tools/lagcheck.py --check`
 
 Latency and gesture measurement, with `GESTATE_EDITOR_TIME` and
@@ -175,10 +193,10 @@ get built when the need next arises rather than queued:
   is already a picture; the argument is that every finding that moved a
   decision on 2026-08-17 was an image, and prose describing it had
   failed first.  This is the next one to build.
-* **A tap at `snd_pcm_writei`** — the samples the device actually
-  received, which is the one oracle no offline render can be.
-  `journal.md` §"And the harder half: what a *live* oracle would have been"
-  is the account of the day it was needed and not built.
+* ~~**A tap at `snd_pcm_writei`**~~ — **built 2026-08-18**, and it is
+  `GESTATE_HOST_TAP` above.  The day it was named as missing is
+  `journal.md` §"And the harder half: what a *live* oracle would have
+  been"; the day it closed F147's pop was the next one.
 * **Python and Rust colouring in the workbench** — `board/done/gemba.md`
   items 3–5, so that walking a `.py` or `.rs` file is readable.
 * **A graceful-close driver** — no tool here has ever exercised one,

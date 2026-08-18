@@ -77,6 +77,7 @@ reference is not looked at, and the docstring says so.
 | `test_panel_fixtures.py` | that the plugin's bytes are today's export | a fixture nobody regenerates |
 | a photographed window (Xvfb + `import`) | **whether what is drawn is right** | anything it is not pointed at, and anything that looks right for the wrong reason |
 | `GESTATE_HOST_TAP` (`host.c`) | **the samples the device was actually given** | what the speaker did with them |
+| `gestate.pops` | a step a program's own motion cannot account for | whether that step is *wrong* |
 
 The right-hand column is the load-bearing one.  An instrument whose
 blind spot is unwritten will be trusted past it.
