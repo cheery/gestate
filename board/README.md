@@ -54,6 +54,24 @@ is what keeps a card's name stable while priorities move.
    stranger.*
 7. **[portable-package](portable-package.md)** — for people who do not
    exist yet, by his own answer.  *Waiting on program-or-workshop.*
+8. **[carried-state](carried-state.md)** — the seam that dropped three
+   fields in one day and crashed the editor twice in Henri's hands.
+9. **[driven-runs](driven-runs.md)** — the instrument that finds nearly
+   everything, and cannot say what it ran.
+10. **[cheap-gates](cheap-gates.md)** — seventeen seconds of checks
+    that only run when somebody has twenty-five minutes.
+
+**Eight through ten arrived unplaced on 2026-08-18** and are at the end
+because that is where a new card lands, not because that is where they
+belong.  They are the day's kaizen written down at Henri's ask —
+*"Write cards for fixing these issues in your workflow"* — and the
+criterion above demotes all three on principle, since none of them is
+something a person using gestate ever meets.  Worth one line of his
+opinion, though, because the argument cuts the other way too:
+`carried-state` is the only card on this board whose absence has
+already crashed the program in his hands, twice, in one day.  Ordering
+by *impact on somebody using gestate* and ranking a crash last is the
+kind of answer a rule gives when nobody checks it.
 
 **Ordered by impact on somebody using gestate** — 2026-08-17, at
 Henri's ask: *"order them by some quality, such as, what is the impact
@@ -112,7 +130,40 @@ So:
 | | writes |
 |---|---|
 | **Henri** | new cards, and nothing else |
-| **the session** | everything in an existing card — the elaboration, the questions, *his answers transcribed into them*, `status`, `## Done` — and this file's order |
+| **the session** | everything in an existing card — the elaboration, the questions, *his answers transcribed into them*, `status`, `## Done` — and this file's order; **and a new card, when what it records is the session's own work** |
+
+**A session may mint a card, and should.**  *Amended 2026-08-18.*  The
+rule above reads as *only Henri creates cards*, and twice in two days a
+session wrote one anyway — `gemba-follow`, from four improvements he
+asked for out loud, and then the three workflow cards at the end of the
+order.  His answer both times:
+
+> I liked that you created a new card.  It was necessary.
+
+So the rule is narrower than it looked, and the narrow version is the
+useful one.  What it was protecting against is **two writers on one
+file**, and a new card is a new file — it collides with nothing and
+shows up in `git status` as an addition, which is the whole argument
+the original rule gives for itself.  Nothing about that changes when
+the writer is a session.
+
+Two things it does not license.  A session does not create a card to
+**park work it has been given** — that is a queue nobody pulls from,
+which is what `later/` was invented to stop, and the standing rule from
+`doc/instruments.md` still holds above it: *a missing capability is
+built the moment the need arises*, not filed.  And a session does not
+create a card that **proposes a feature**; that is Henri's, and on
+2026-08-18 he said so in as many words — *stop proposing cards*, the
+board goal being four fewer and none new.
+
+What a session *should* write is the card for **its own broken
+workflow**: the seam it keeps forgetting, the instrument it cannot
+trust, the check it did not run.  Nobody else can see those, because
+nobody else is in the loop where they happen.  Henri asked for exactly
+that, and asked for them long: *"Describe them in good detail so that
+next time you can fix them."*  A card like this one is a message to the
+next session, and the next session is the only reader who will ever act
+on it.
 
 A card Henri writes may be one line.  A title and the ask are enough;
 the session normalises the header, and **asks for the `because` if it

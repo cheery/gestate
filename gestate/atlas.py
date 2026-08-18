@@ -121,13 +121,22 @@ WHERE: dict[str, str] = {
     # ── Playing it, and shipping it ─────────────────────────────────────
     "audioengine": "play", "audiolive": "play", "audiohost": "play",
     "audioperform": "play", "export": "play",
+    # `pops` reads back what actually left the machine, which is why it
+    # is here and not with the compiler: it measures a rendered buffer,
+    # not a graph (`fixme.md` F147, where it was built to find a click).
+    "pops": "play",
     # ── The window ──────────────────────────────────────────────────────
     "session": "window", "sessionlog": "window", "audioeditor": "window",
     "workbench": "window", "audiospans": "window", "scorebox": "window",
     "editor": "window", "buildtime": "window", "unchanged": "window",
     "presence": "window", "icon": "window",
+    # The three that arrived on 2026-08-18, all of them state the
+    # *window* owns rather than the instrument under it: where the desk
+    # was left, where a session is standing, and what the repository
+    # remembers.
+    "desk": "window", "gemba": "window", "history": "window",
     # ── The tree, describing itself ─────────────────────────────────────
-    "reference": "written", "atlas": "written",
+    "reference": "written", "atlas": "written", "complaints": "written",
 }
 
 #: The arrows worth drawing, each with what proves it.

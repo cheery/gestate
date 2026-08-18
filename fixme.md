@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 160 entries, **137 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 162 entries, **139 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -5046,3 +5046,67 @@ emits them is looking at an expression with a span at the time.
 
 Eleven rows in `doc/complaints.md`, across `gmachine.py`,
 `audioengine.py` and `reactive.py`.
+
+### F160. **[resolved]** Five modules were drawn out of the atlas for a day
+
+Found by the day's only full-suite attempt, 2026-08-18, seventeen
+seconds into it — and that is the whole of the defect, because the five
+modules had been in the tree since morning.
+
+`complaints`, `desk`, `gemba`, `history` and `pops` landed across one
+session and none was given a lane in `gestate/atlas.py`'s `WHERE`.  The
+atlas's own rule is that a module without a lane fails the test rather
+than going quietly missing from the picture, *"because a lane is a
+claim about what a module is for, and there is no deriving that"* — so
+the check worked exactly as designed and nobody ran it.  Meanwhile the
+generated sheets carried a claim about this tree that had been false
+since the first of the five was committed: five modules the atlas said
+were not there.
+
+Resolved by writing the five claims: `pops` into **playing it**, since
+it reads back what actually left the machine rather than anything a
+compiler built; `desk`, `gemba` and `history` into **the window**,
+which is the thing that owns all three — where the desk was left, where
+a session is standing, and what the repository remembers; `complaints`
+into **what you write**, beside `reference` and `atlas`, that lane's
+sentence already being *the ones that read this tree and write it back
+out*.  Then `python -m gestate.atlas`, which is what the failure
+message says to run.
+
+**The interesting half is the day, not the five lines.**  This cost
+nothing to fix and was found at the worst possible moment: at the end
+of a shift, blocking the only verification pass of that shift, on a
+tree with six subsystems' worth of changes in it, and handed to Henri
+with half an hour left in his day — *"the suite cannot run yet.  I
+need to go in 30 minutes."*  Run at the commit that made it, it is a
+seven-second failure naming the file.  `board/cheap-gates.md` is the
+card for that, and this entry is its receipt.
+
+### F161. **[resolved]** Opening a file from the starter screen took the editor down
+
+Henri, 2026-08-18, at the keyboard, on a build that had been green all
+morning:
+
+    AttributeError: 'NoneType' object has no attribute 'read'
+
+Opening any file from the starter screen crashed the workbench.  The
+walk — the channel a session narrates through — belongs to the
+**window**, and switching the instrument underneath a window rebuilds
+the `Session` around it (`gestate/workbench.py:588`, `_carry`).  That
+rebuild copies across, by hand, the fields that outlive the switch.
+The walk was not on the list, so the fresh session had none, and the
+next pass of the loop asked it what had been said.
+
+Fixed in `60cc9cd` by carrying it — and by never letting the walk be
+fatal in the loop, since a narration channel taking the editor down is
+the wrong order of importance whatever the cause.
+
+**Filed a day late and on purpose**, because the entry is not really
+about one field.  Three fields were forgotten at this one seam in a
+single day — the walk here, then `walking`, then the trio the walk's
+own movement is tracked by — and the suite agreed with every one of
+them, because every `Session` test builds a `Session` directly and
+nothing exercises *and then the instrument changed underneath it*.  A
+rule was written into `spec/verification.md` after the first, and the
+second and third came anyway; a rule in prose is not a control.
+`board/carried-state.md` is the card for the control.
