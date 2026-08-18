@@ -11,6 +11,14 @@ Henri fills the board.  A session works down it.
 is worked, that one is what the author spends attention on when there is
 more work than there is reading time.
 
+And **`doc/instruments.md` is what a session already has to work with** —
+gemba, the andon, driving and photographing the real window, the
+generated pages that are suite gates.  Worth reading before deciding
+something has to be done the hard way, because a session that does not
+know an instrument exists does the work it was built to make
+unnecessary.  Its first rule is the one Henri gave on 2026-08-18: **a
+missing capability is built the moment the need arises**, not filed.
+
 And `vision.md` is what any of it is **for** — the author's own document,
 short on purpose, dated because it changes.  A card's `because` should be
 traceable to something in it; when it is not, either the vision is
