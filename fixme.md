@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 164 entries, **141 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 166 entries, **142 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -5262,3 +5262,122 @@ Gated by `test_the_first_build_says_it_is_working`.
 *One caveat kept honestly: 10–15 seconds is a person's estimate of a
 wait, not a timer, on one machine, and it is the only figure this
 project has from a machine that is not the author's.*
+
+### F164. **[resolved]** The starter's desk was committed, and it is the only one that ever was
+
+Henri, 2026-08-18: *"I messed the untitled.desk we need gitignore for
+those files by default."*
+
+`untitled.desk` entered the tree in `6f2e721` *"the walk travels in the
+code"* and sat in the repository root until it was noticed.  It is the
+saved workbench state — caret, zoom, seed, loop, knob values — of
+`untitled.ges`, which is what a bare `tools/gestate-editor` opens **in
+the working directory**, and for anybody working here that directory is
+this tree.  F154 is the same trap catching a driven harness; this is it
+catching a person.
+
+### The blanket rule was asked for and is not what landed
+
+The ask named `*.desk`, and `.gitignore` **deliberately refuses** that
+pattern, at length, for a decision out of
+`board/done/persistent-workbench-state.md`: a `<piece>.desk` belongs to
+the *piece*, travels with it, and being committable is the whole reason
+it lives beside the `.ges` rather than in a dot-directory.  Ignoring all
+of them would undo that quietly, in a file nobody re-reads.
+
+So what is ignored is `untitled.ges` and `untitled.desk` by name.  The
+starter is not a piece and never becomes one — the moment it is worth
+keeping it gets a name — so nothing about the piece rule is touched.
+
+**And one thing worth reading twice**: `untitled.desk` was the *only*
+`.desk` this repository has ever tracked.  The rule says a desk travels
+with its piece; in the whole of this repository's history not one
+piece's desk has travelled, and the single one that did belonged to no
+piece at all.  That is not an
+argument for the blanket rule — it is an argument that the piece rule
+has never been exercised, and nobody should conclude anything from a
+decision that has never been tested.
+
+### The gate
+
+`test/test_way_in.py::test_the_starter_never_rides_in_the_tree`, checked
+against **git's index** and not the filesystem: the file being *present*
+is ordinary and expected, and it is being *tracked* that is the defect.
+Third closure under the day's rule.
+
+### F165. **[partly resolved]** The first window is unreadable on a laptop, and the cure is stored against the wrong thing
+
+Henri, 2026-08-18, recalling the fresh install on the work laptop:
+*"the screen was small at first.  It's an usability concern… The text
+was too small to read was my first reaction.  Zoom ladder worked."*
+
+Two defects, and the second is the one worth the entry.
+
+### The window is a fixed size that knows nothing about the screen
+
+`gestate/workbench.py:797` opens it as `Editor(bench.source(), 1100,
+760)`.  No query of the display, no DPI, no scale — 1100×760 at scale 1
+is comfortable on the desktop it was written on and too small to read on
+a high-density laptop panel.  **The first thing a person does on a
+laptop is fail to read the screen**, and every question after that is
+asked of somebody squinting.
+
+### And the cure does not travel with the person
+
+The zoom ladder fixes it — he found it, it worked.  Where the result is
+kept is the defect: `zoom` is a field of `Desk` (`gestate/desk.py`), and
+a `Desk` is **`<piece>.desk`, beside the `.ges`**.  So the setting is
+remembered *per piece*.
+
+Open a second file and the text is small again.  **Eyesight and screens
+belong to the person; the piece is what they are stored against.**  The
+module already names the distinction and puts the person's own record in
+`~/.config/gestate/desk` — that record is the registry of open windows,
+and carries no preference of any kind.
+
+`.gitignore` states the rule this collides with, deliberately and at
+length: a `<piece>.desk` *travels with the piece*, which is right for a
+caret, a seed, a loop and knob values, and wrong for the one field that
+describes the reader rather than the reading.
+
+### Not fixed before run three, and that is a decision
+
+`board/stranger-test.md` run three is on a laptop next week, and rule 3
+says fix what is known-wrong for free first.  This is known-wrong and it
+is not free: the first half changes what every newcomer's first frame
+looks like, and the corner's legibility is the one thing that run
+exists to measure.
+
+**The half that is safe is the second one** — a person-level zoom that a
+new piece inherits changes nothing at all for somebody with no stored
+zoom, which is exactly what a true first contact is.  What it buys is
+that the machine can be made readable *before* the friend sits down and
+stay readable when he opens something else.
+
+### The second half, built 2026-08-18
+
+At Henri's word — *"okay.  I think you're right.  build the half."*
+
+`~/.config/gestate/zoom` holds the rung, beside the desk record and
+outside every tree, so it needs no `.gitignore` rule and travels with
+nobody's project.  `desk.opening()` fills it in **only where the piece
+is silent**: a `.desk` that names a rung was written by somebody looking
+at that piece — a dense score read close in, a sketch read far out — and
+this does not overrule them.  It is written on the way out, *before* the
+piece's own document, because a refusal to clobber is about where that
+piece was and says nothing about the size somebody reads at.
+
+Somebody who has never zoomed still gets nothing invented for them,
+which is the same fix overshooting into what it was meant to stop.
+
+**Gate:** five tests in `test/test_desk.py` under §"The zoom belongs to
+the reader" — the silence filled, the piece winning where it speaks, no
+preference invented, where the file lives, and a corrupt rung costing
+nothing worse than the default.
+
+**Still open: the first half.**  `Editor(bench.source(), 1100, 760)`
+still knows nothing about the display, and a person who has never zoomed
+still meets scale 1 on a dense panel.  Deliberately not fixed before
+`board/stranger-test.md` run three, because it changes what every
+newcomer's first frame looks like and the corner's legibility is what
+that run measures.

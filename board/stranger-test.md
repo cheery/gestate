@@ -863,3 +863,38 @@ The first time Henri explains something, or ten minutes, whichever
 comes first — decided now rather than in the room.  **Then the
 presentation, at length, with everything he wants to know.**  Nothing
 about the measurement stops that from being a good afternoon.
+
+### `=command=` — held, deliberately, and turned into a question instead
+
+*Henri, 2026-08-18:* **"On the burger menu.  It might be that
+[command] should be decorated like =command= so that is is distinguished
+shape compared to our signs such as [gemba] or [inert] and so on."**
+
+**The observation is real and the change must not be made before the
+visit.**  The corner is the single uncertain thing run three varies
+(rule 3).  Changing its shape this week means the friend meets a corner
+no stranger has ever met, and whatever he does answers a question about
+*that* corner — leaving the one this card has been holding since
+2026-08-17 still unanswered, with the friend spent.
+
+**And the idea is better as a prediction than as a patch**, because it
+is exactly the kind of claim a stranger can settle and nobody else can:
+
+> `[command]` wears the same brackets as `[gemba]` and `[inert]`, which
+> are *readouts*.  A control shaped like a status sign may read as
+> something the program is telling you rather than something you can
+> press.
+
+So it goes into the pre-registration:
+
+- **If the bracket shape is the problem**, he reads the corner, does not
+  try it, and looks elsewhere for a way in — the tell is that he *sees*
+  it and does not *press* it.  That is a different failure from not
+  finding it at all, and the notebook has to distinguish them: **what he
+  looked at is as much a finding as what he did.**
+- **If it is not the problem**, he presses it, and `=command=` is a
+  change with no evidence behind it — which is where it stays.
+
+One run answers both, and building it first answers neither.  If the
+brackets do turn out to be the problem, the fix is then a change with a
+person behind it rather than a taste.

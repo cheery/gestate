@@ -137,3 +137,28 @@ def test_the_first_build_says_it_is_working():
         "nothing is printed before the first `cargo build`, so a "
         "newcomer's first run of the workbench is a silent wait with no "
         "explanation (fixme.md F163)")
+
+
+def test_the_starter_never_rides_in_the_tree():
+    """**F164** — `untitled.desk` was committed by accident and lived in
+    the repository root until somebody noticed.
+
+    `untitled.ges` is what a bare `tools/gestate-editor` opens, in the
+    **working directory**, which for anybody working here is this tree
+    (F154 is the same trap catching a harness).  Neither it nor its
+    `.desk` is a piece; the moment either is worth keeping, it gets a
+    name.
+
+    Checked against **git's index** rather than the filesystem, because
+    the file being *present* is normal and expected — it is being
+    *tracked* that is the defect.
+    """
+    import subprocess
+    listed = subprocess.run(["git", "ls-files"], cwd=ROOT,
+                            capture_output=True, text=True, check=True)
+    stray = [f for f in listed.stdout.split()
+             if Path(f).name in ("untitled.ges", "untitled.desk")]
+    assert not stray, (
+        "the starter's own files are tracked, and they belong to no "
+        f"piece: {', '.join(stray)}.  `git rm --cached` them; "
+        ".gitignore already refuses them (fixme.md F164)")

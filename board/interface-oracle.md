@@ -1,6 +1,6 @@
 # interface-oracle — nothing checks what the window says
 
-    status   open
+    status   doing — 2026-08-18
     because  "So interface needs an oracle" — three interface changes
              shipped in one evening and nothing in the tree records what
              the window used to do, so every claim about it rests on

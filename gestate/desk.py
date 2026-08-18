@@ -27,6 +27,17 @@ module.
     a file with a name, not a hidden dot-directory, which is why this
     one is readable and why the format below is plain.
 
+`~/.config/gestate/zoom`, the rung you read at
+    **The one exception, and F165 is why it is here.**  The zoom looks
+    like the others and is not: a caret, a seed and a loop describe the
+    *piece*, while a zoom describes the reader's screen and the reader's
+    eyes.  Kept only against the piece, it meant somebody who fixed
+    unreadable text on a laptop met it again on the next file they
+    opened — which happened, on a first install, to the author.
+
+    So the piece still wins wherever it names a rung, and this fills the
+    **silence** that used to mean *scale 1*.
+
 `~/.config/gestate/desk`, the desk record
     Which piece you were last working on, and which windows are open.
     **This is about nobody's piece.**  It cannot live beside any one of
@@ -77,6 +88,74 @@ from pathlib import Path
 
 #: What a piece's document is called.  `sauna.ges` → `sauna.desk`.
 SUFFIX = ".desk"
+
+
+def zoom_path() -> Path:
+    """Where **your** zoom lives — beside the desk record, not beside a
+    piece.
+
+    **F165, and it is a question of what a field describes.**  Every
+    other field of a `Desk` is a place *in the piece*: a caret, a seed,
+    a loop, the knobs the piece declares.  The zoom is not.  It
+    describes **the reader's screen and the reader's eyes**, and storing
+    it against the file meant a person who fixed unreadable text on one
+    piece met it again on the next one — which is what happened on a
+    laptop, on the first install, to the author.
+
+    So it goes where the module already says a person's own things go:
+    `~/.config/gestate/desk`'s directory, outside any tree, needing no
+    `.gitignore` rule and travelling with nobody's project.
+    """
+    return record_path().parent / "zoom"
+
+
+def mine() -> int | None:
+    """The rung this person reads at, or `None` if they never said.
+
+    Silent about every failure on purpose: a missing file is the
+    ordinary case, and a corrupt one must not stop a window opening.
+    """
+    try:
+        return int(zoom_path().read_text().split()[0])
+    except (OSError, ValueError, IndexError):
+        return None
+
+
+def remember(zoom: int | None) -> None:
+    """Write down the rung this person reads at.
+
+    Called on the way out, beside the piece's own document.  **Nothing
+    here may raise** for the reason `_remember` gives: a window that
+    could not write down a preference must still close.
+    """
+    if zoom is None:
+        return
+    try:
+        where = zoom_path()
+        where.parent.mkdir(parents=True, exist_ok=True)
+        where.write_text(f"{zoom}\n")
+    except OSError:
+        pass
+
+
+def opening(path) -> "Desk | None":
+    """The piece's desk as a window should open it — **with your own
+    zoom filled in when the piece does not name one.**
+
+    The piece always wins where it speaks: a `.desk` that names a rung
+    was written by somebody looking at *that* piece, and this is not
+    second-guessing it.  What this fixes is the silence, which used to
+    mean *scale 1* and now means *the size you read at*.
+    """
+    desk = read(path)
+    rung = mine()
+    if rung is None:
+        return desk
+    if desk is None:
+        return Desk(zoom=rung)
+    if desk.zoom is None:
+        desk.zoom = rung
+    return desk
 
 
 def beside(path) -> Path:

@@ -766,7 +766,7 @@ def run(path, rate: int = 44100, block: int = 512,
     #: argue with that.
     from . import desk as desks
 
-    remembered = desks.read(path)
+    remembered = desks.opening(path)
     nth = desks.opened(path)
     #: What the piece's document said when this window opened, so that
     #: closing can tell whether somebody else has written it since.
@@ -1259,6 +1259,11 @@ def _remember(path, place, was: str, nth: int) -> None:
         desks.closed(path)
         if place is None:
             return
+        # **The zoom is the reader's, not the piece's** (F165), so it is
+        # written whether or not the piece's own document can be — a
+        # refusal to clobber is about where *that piece* was, and says
+        # nothing about the size somebody reads at.
+        desks.remember(place.zoom)
         if not desks.write(path, place, was):
             desks.keep(path, place, nth)
     except Exception:                                    # noqa: BLE001

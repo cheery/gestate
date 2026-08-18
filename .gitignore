@@ -146,6 +146,22 @@ doc/atlas/*.png
 # the tree, and committing one would be committing somebody's afternoon.
 gemba.tsv
 
+# ── The starter's leavings, which belong to nobody ───────────────────────
+#
+# `untitled.ges` is what a bare `tools/gestate-editor` opens — in the
+# **working directory**, which is usually this tree (F154).  It is not a
+# piece and never becomes one: it is the starter, and the moment it is
+# worth keeping it gets a name.  Its `.desk` is the same, one step
+# removed.
+#
+# **`untitled.desk` was committed by accident** in `6f2e721` and sat in
+# the tree until 2026-08-18 — the only `.desk` this repository has ever
+# tracked, which is worth reading twice: the rule below says a desk
+# travels with its piece, and the only one that ever travelled belonged
+# to no piece at all.  F164.
+untitled.ges
+untitled.desk
+
 # **And `*.desk` is deliberately not here**, which is the neighbouring
 # decision and the opposite one.  `<piece>.desk` is where the workbench
 # was in that piece — the caret, the zoom, the seed, the loop, the knob

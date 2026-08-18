@@ -370,3 +370,94 @@ def test_the_place_is_read_while_the_window_is_still_open(tmp_path):
     it.bench, (it.view, ed) = _Bench(), _a_view()
     ed.pos = 8
     assert _place(it).line == 3
+
+
+# ── The zoom belongs to the reader ───────────────────────────────────────
+#
+# **F165.**  Henri, on the fresh laptop install: *"The text was too small
+# to read was my first reaction.  Zoom ladder worked."*  It worked, and
+# then it stopped working — because the rung it fixed was written into
+# `<piece>.desk`, so the next piece opened small again.
+#
+# Every other field of a `Desk` is a place in the piece.  This one
+# describes the person's screen and the person's eyes, and it now lives
+# where the module already says a person's own things live.
+
+
+def test_a_piece_with_no_desk_opens_at_the_rung_you_read_at(tmp_path):
+    """The whole of the defect, in one assertion: a piece nobody has
+    ever opened should not be the size the developer's monitor liked.
+    """
+    desks.remember(3)
+    got = desks.opening(a_piece(tmp_path))
+    assert got is not None, "a stored rung is enough to open a desk"
+    assert got.zoom == 3
+
+
+def test_the_piece_wins_wherever_it_speaks(tmp_path):
+    """**Not second-guessing the document.**  A `.desk` naming a rung
+    was written by somebody looking at *that* piece — a dense score read
+    close in, a sketch read far out — and the person's default is for
+    the silence, not for overruling them.
+    """
+    path = a_piece(tmp_path)
+    desks.write(path, Desk(line=4, zoom=7))
+    desks.remember(3)
+    got = desks.opening(path)
+    assert got.zoom == 7
+    assert got.line == 4, "and the rest of the document is untouched"
+
+
+def test_saying_nothing_still_means_nothing(tmp_path):
+    """A person who has never zoomed has no preference, and inventing
+    one for them would be this fix overshooting into the thing it was
+    meant to stop.
+    """
+    got = desks.opening(a_piece(tmp_path))
+    assert got is None, "no desk and no rung is still nothing to restore"
+
+
+def test_closing_writes_the_rung_down(tmp_path):
+    """It is written on the way out, beside the piece's own document —
+    and `gestate/workbench.py` writes it **before** the piece's, because
+    a refusal to clobber is about where that piece was and says nothing
+    about the size somebody reads at.
+    """
+    desks.remember(5)
+    assert desks.mine() == 5
+    assert desks.zoom_path().parent == desks.record_path().parent, (
+        "it lives beside the desk record, outside any tree")
+
+
+def test_a_rung_nobody_can_read_does_not_stop_a_window_opening(tmp_path):
+    """Same manners the desk document keeps: *unknown names ignored*.
+    A file a person edited by hand, or half-written by a crash, must
+    cost them nothing worse than the default.
+    """
+    desks.zoom_path().parent.mkdir(parents=True, exist_ok=True)
+    desks.zoom_path().write_text("banana\n")
+    assert desks.mine() is None
+    assert desks.opening(a_piece(tmp_path)) is None
+
+
+def test_the_way_out_writes_the_rung_and_the_piece_separately(tmp_path):
+    """The real `_remember`, not `desks.remember` — because the wiring
+    is the half that can be wrong while every unit passes.
+
+    **The rung is written even when the piece's document is refused.**
+    A refusal to clobber means another window already said where *that
+    piece* was; it says nothing about the size this person reads at, and
+    losing the rung to somebody else's caret would be the same defect
+    F165 is about, arriving from the other side.
+    """
+    from gestate.workbench import _remember
+
+    piece = a_piece(tmp_path)
+    # Another window got there first and wrote a different document, so
+    # `was` no longer matches and the write is refused.
+    desks.write(piece, Desk(line=99, zoom=8))
+    _remember(piece, Desk(line=2, zoom=6), was="something else entirely",
+              nth=1)
+
+    assert desks.mine() == 6, "the reader's rung survived the refusal"
+    assert desks.read(piece).line == 99, "and the other window kept its place"
