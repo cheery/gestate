@@ -9105,3 +9105,55 @@ Thirty minutes, clone to fourth verb.  The story is in `journal.md`
 - **Never available from him again:** whether the corner is findable by
   somebody who has never seen it.  That needs a friend nobody has spent,
   and it is the one thing worth designing a whole run around.
+
+## Kaizen, 2026-08-18 — the first one written down
+
+*The practice is `spec/author.md` §"Five practices", 5.  It had gone
+missing for a week before either party noticed, which is the first
+finding of the evening it came back.*
+
+### What we learned
+
+**Measurement is what actually filters work, not argument.**  Three
+things were held or reshaped today and none of them by reasoning: the
+`=command=` change was held because a stranger can settle it and nobody
+else can; the blanket `*.desk` ignore was narrowed because `.gitignore`
+argued against it in its own words; three cards took their shape from
+counting 79 of 161.  Where the questioning bought a measurement it was
+worth its cost, and where it did not it was ceremony.
+
+**The author cannot measure the way in.**  `git clone <this-repo>` had
+survived a fresh-machine install by its own author the day before,
+because the missing information was in his head.  Fourteen of a
+stranger's thirty minutes went to that and to a shell that could not
+find `cargo`.
+
+**A defect can arrive four times by four instruments in fifteen
+minutes** — predicted from the source, needed as something a person had
+to be told, volunteered by that person as what he noticed most, and then
+measured when he was asked.  The fourth arrival moved the fix: ten
+seconds is not too long, and *the wait said nothing* is a different
+defect with a different cure.
+
+### What we got wrong
+
+**Three confident claims, all mine, all caught by Henri reading rather
+than by me checking.**  Two came from greps truncated by `| head`, one
+from believing a card's own elaboration a day after it went stale.  The
+pattern is the same each time: **absence read as evidence.**
+
+**And a card was written where a journal belonged.**
+`card:stranger-test.md` reached 900 lines because the run was logged into
+the card as it happened — the rule against it was already written in
+`board/README.md`.
+
+### What changed because of it
+
+Levelling for the sweep (five a session, capped, thirteen batches); one
+sheet then depth; `card:` as a notation; questioning a card into
+existence before writing it; and *briefness is my failure mode*, which
+is a caution against the correction rather than for it.
+
+### Tomorrow's first thing
+
+Batch one — F161, F160, F155, F153, F149.

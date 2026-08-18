@@ -89,7 +89,7 @@ distribution that is anything but uniform.
 
 ---
 
-## Four practices
+## Five practices
 
 **1. Make the seams report themselves.**  A tool over a commit range
 that lists only what touched something load-bearing — the vocabulary,
@@ -120,6 +120,37 @@ report.  This works because an assistant's failure mode is
 **systematic, not random**: if a habit is wrong, it is wrong everywhere,
 so one careful read finds the pattern and thirty skims find nothing.
 `doc/reading-the-log.md` §"Reviewing *my* commits specifically" is how.
+
+**5. Stop the day with a kaizen, and bound it.**  *Henri's practice,
+which went missing for a week before either party noticed —
+2026-08-18: "I totally forget that we are supposed to discuss every
+evening… The practice was to kaizen, and discuss what happened over the
+day."*
+
+**Bounded, because the unbounded version is the one that gets skipped on
+the day it is most needed** — and it was, silently, which is the
+evidence rather than the theory.  Fifteen minutes and three questions:
+
+    what did we learn · what did we get wrong · what is tomorrow's first thing
+
+**And it must land in `journal.md`**, or it does not survive the
+session.  This is the gap it exists to close: a day's *findings* are
+committed as they happen — an F-number, a card, a gate — and a day's
+*reflections* live only in the conversation that produced them.  On
+2026-08-18 five process changes came out of one afternoon (levelling the
+sweep, one sheet then depth, the `card:` notation, questioning a card
+into existence, and *briefness is my failure mode*), and not one of them
+had a home until it was written into a document deliberately.  A session's
+context is summarised as it fills, and **verbatim fidelity is what
+degrades first** — which is precisely what this project runs on.
+
+**One open question, worth answering rather than assuming.**  Everything
+that changed on 08-18 was triggered by something going wrong in front of
+us, not by a scheduled review — which is *jidoka*, stopping the line at
+the fault, and not a retrospective.  So it may be that the practice is
+**stop and write it down when something breaks**, and the evening is
+only for what a whole day makes visible that no single fault does: the
+pace, the load, the drift.
 
 ---
 
