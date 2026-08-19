@@ -189,6 +189,7 @@ class Run:
         self.library = library()
         self.strays = strays()
         self.handed: dict | None = None
+        self.was_open: list[int] = []
 
     # -- refusing -------------------------------------------------------
     def _refuse_if_the_run_cannot_happen(self):
@@ -201,10 +202,35 @@ class Run:
                 + "\n  without them the search finds no window, waits out "
                   "its patience and returns None,\n  which reads as *the "
                   "editor never opened a window* and is not.")
-        if not os.environ.get("DISPLAY"):
+        display = os.environ.get("DISPLAY")
+        if not display:
             raise Refused("no DISPLAY — a driven run needs a real or "
                           "virtual X server (`Xvfb :99` and DISPLAY=:99 "
                           "will do).")
+        # **Somebody else's editor is on this display.**  XTEST does not
+        # aim at a window: it sends the key to whatever holds X focus,
+        # and `click_into` is what gives focus away.  A run started
+        # beside an open editor can therefore click into *that* window,
+        # open its command box and type — and with a scenario that
+        # presses Return, run a command in it.  `a_copy_of` protects the
+        # file the run opens and does nothing for the file somebody was
+        # already editing.
+        #
+        # Henri, 2026-08-19, asking the question that found this: *"How
+        # do I engage the driven-run now?  I have the user's version on
+        # my desktop that is not protected."*
+        theirs = windows()
+        if theirs:
+            raise Refused(
+                f"a gestate window is already open on DISPLAY={display} "
+                f"({len(theirs)} of them).\n"
+                "  A driven run types with XTEST, which goes to whatever "
+                "has focus — it would type into that window,\n"
+                "  and the file open in it is not a copy.\n"
+                "  Either close it, or drive somewhere else:\n"
+                "      Xvfb :99 -screen 0 1600x1000x24 &\n"
+                "      DISPLAY=:99 python tools/lagcheck.py <file>")
+        self.was_open = theirs
 
     def _refuse_if_the_result_would_not_be_about_this_code(self):
         lib = self.library
@@ -254,6 +280,10 @@ class Run:
         """
         self.handed = driven(**{**self.extra_env, **extra})
         return self.handed
+
+    def find_window(self, title: str = "gestate", patience: float = 30.0):
+        """The window *this run* started, never one that was already there."""
+        return find_window(title, patience, exclude=self.was_open)
 
     def shot(self, win: int, label: str) -> Path:
         path = self.dir / f"{len(self.shots):02d}-{label}.png"
@@ -390,15 +420,33 @@ def chord(modifier: str, name: str) -> None:
     time.sleep(0.15)
 
 
-def find_window(title: str = "gestate", patience: float = 30.0):
-    """The window id, once the window exists.  `None` if it never does."""
+def windows(title: str = "gestate") -> list[int]:
+    """Every window whose name matches, now.  `[]` when there is no
+    `xdotool`, which `Run` refuses on separately rather than reading as
+    an empty desktop."""
+    out = subprocess.run(["xdotool", "search", "--name", title],
+                         capture_output=True, text=True)
+    return [int(l) for l in out.stdout.split() if l.strip()]
+
+
+def find_window(title: str = "gestate", patience: float = 30.0, exclude=()):
+    """The window id, once the window exists.  `None` if it never does.
+
+    **`exclude` is the window that was already yours.**  This used to
+    return `ids[-1]` — *a* gestate window, not necessarily the one the
+    scenario started — and XTEST does not aim at a window id at all: it
+    sends the key to whatever holds X focus.  So on a display where
+    somebody already has the editor open, a run could click into their
+    window and type into their file.  `Run` refuses that case outright;
+    this argument covers the narrower one where a second window arrives
+    mid-run.
+    """
+    skip = set(exclude)
     until = time.time() + patience
     while time.time() < until:
-        out = subprocess.run(["xdotool", "search", "--name", title],
-                             capture_output=True, text=True)
-        ids = [l for l in out.stdout.split() if l.strip()]
+        ids = [w for w in windows(title) if w not in skip]
         if ids:
-            return int(ids[-1])
+            return ids[-1]
         time.sleep(0.5)
     return None
 

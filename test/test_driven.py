@@ -223,3 +223,44 @@ def test_a_run_that_started_no_child_says_so(tmp_path, monkeypatch):
     page = (run.dir / "report.md").read_text()
     assert "no child was started" in page
     assert "GESTATE_SO_CACHE" not in page, "the parent's environment is not the run's"
+
+
+def test_a_run_refuses_beside_somebody_elses_editor(tmp_path, monkeypatch):
+    """**The file that is not a copy is the one already open.**
+
+    Henri, 2026-08-19: *"How do I engage the driven-run now?  I have the
+    user's version on my desktop that is not protected."*  Which found
+    it: `find_window` returned `ids[-1]` — *a* gestate window — and XTEST
+    does not aim at a window id at all, it sends the key to whatever has
+    X focus.  `click_into` is what hands focus over.  So a run started
+    beside an open editor could click into that window, open its command
+    box and type into it; a scenario that presses Return would run a
+    command there.  `a_copy_of` protects the file the run opens and does
+    nothing at all for the file somebody was already editing.
+    """
+    run = a_run(tmp_path, monkeypatch)
+    monkeypatch.setattr(driven, "windows", lambda title="gestate": [12345678])
+    with pytest.raises(driven.Refused) as caught:
+        with run:
+            pass
+    said = str(caught.value)
+    assert "already open" in said
+    assert "Xvfb" in said, "refusing has to say where to drive instead"
+    assert not (tmp_path / "driven").exists()
+
+
+def test_an_empty_display_is_fine(tmp_path, monkeypatch):
+    """Refuse precisely: driving on :0 to *watch* is the instrument."""
+    run = a_run(tmp_path, monkeypatch)
+    monkeypatch.setattr(driven, "windows", lambda title="gestate": [])
+    with run:
+        pass
+    assert run.dir.exists()
+
+
+def test_find_window_skips_the_ones_that_were_already_there(monkeypatch):
+    """The narrower case the refusal does not cover: a second window
+    arriving mid-run.  `ids[-1]` is not the same as *ours*."""
+    monkeypatch.setattr(driven, "windows", lambda title="gestate": [111, 222])
+    assert driven.find_window(patience=0.1, exclude=[222]) == 111
+    assert driven.find_window(patience=0.1, exclude=[111, 222]) is None

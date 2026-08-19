@@ -75,7 +75,7 @@ def main(argv=None) -> int:
                             stderr=subprocess.DEVNULL)
     rc = 1
     try:
-        win = find_window()
+        win = run.find_window()          # never a window that was already open
         if win is None:
             run.observe("did a window appear at all?", "no")
             print("no window appeared")

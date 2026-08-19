@@ -9426,12 +9426,43 @@ child now says *no child was started*.  Its test failed on my own
 fallback before I noticed, which is the argument for writing the test
 first in one line.
 
+### And a usage question found the worst defect of the three
+
+Henri, after the card was closed: *"How I engage the driven-run now?  I
+have the user's version on my desktop that is not protected."*
+
+He was asking how to run it.  The answer is that he could not have, not
+safely: `find_window` returned `ids[-1]` — *a* gestate window — and XTEST
+does not aim at a window id at all, it delivers to whatever holds X
+focus, which `click_into` is the call that hands over.  A run started
+beside his open editor would have clicked into it, opened its command
+box and typed; `lagcheck --stop` presses Return, so it would have run a
+command in his window.
+
+`a_copy_of` is no help and the reason is worth keeping: it protects the
+file *the run opens*.  The file at risk was the one already open, which
+nothing on the run's side can reach.
+
+F171, fixed by refusing — no run starts while a gestate window is open
+on the display, and the refusal names `Xvfb` as where to go instead.
+Proved against a real standing workbench on `:99`, then again with it
+closed.
+
+**Every other guard in this harness protects the result of a run**: the
+right binary, a fresh directory, an honest stamp.  This is the first
+that protects the *person*, and it was invisible from inside the tooling
+because the tooling had only ever run where nothing else was running.
+Three defects in this harness were found by using it and one by testing
+it, which is about the ratio `test-what-a-person-would-do` predicts.
+
 ### The day
 
 Three cards finished — `cheap-gates`, `carried-state`, `driven-runs` —
 all three from the bottom of the list, all three of them the kaizen
 cards written on 2026-08-18 about the session's own broken workflow.
-Two new instruments (`--gates`, the pre-commit hook, `tools/driven.py`),
-two defects filed and fixed (F169, F170), and one proposal questioned
-into a journal entry instead of a card.  The board is at seven open,
-none of them added today.
+Two new instruments (`--gates` with the pre-commit hook, and
+`tools/driven.py`), three defects filed and fixed — F169 the clock
+understating, F170 the undeclared `xdotool`, F171 a driven run able to
+type into somebody's open editor — and one proposal questioned into a
+journal entry instead of a card.  The board is at seven open, none of
+them added today.

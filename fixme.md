@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 171 entries, **145 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 172 entries, **146 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -5639,3 +5639,44 @@ where it landed: in the **instrument**, so the wrong thing it pointed at
 was the program under test.  An unlabelled instrument comes back
 confidently green; an undeclared dependency makes one come back
 confidently red.
+
+### F171. **[fixed]** a driven run could type into the editor you were using
+
+Found 2026-08-19, by Henri asking a usage question: *"How I engage the
+driven-run now?  I have the user's version on my desktop that is not
+protected."*
+
+Two facts that are each fine and together are not:
+
+* `driven.find_window` returned `ids[-1]` from `xdotool search --name
+  gestate` — **a** gestate window, not necessarily the one the scenario
+  started.
+* **XTEST does not aim at a window id at all.**  `XTestFakeKeyEvent`
+  delivers to whatever holds X focus, and `click_into` is precisely the
+  call that hands focus over.
+
+So a driven run started on a display where somebody already had the
+editor open could click into *their* window, open its command box with
+`Ctrl-K`, and type.  `lagcheck --stop` then presses Return, which runs a
+command in it.
+
+**`a_copy_of` does not help, and it is worth being exact about why.**
+That funnel exists because *a harness that types is a harness that can
+save*, and it hands the driven window a copy so a stray `Ctrl-S` cannot
+rewrite a committed example.  It protects the file the run opens.  The
+file at risk here is the one that was **already open** — which no funnel
+on the run's side can reach.
+
+**Fixed** by refusing: a `Run` does not start when any gestate window is
+already open on the target display, and the refusal names `Xvfb` as
+where to drive instead.  It refuses precisely — driving on `:0` to
+*watch* is the instrument, and an empty display is fine.
+`Run.find_window()` additionally skips whatever was already there, for
+the narrower case of a second window arriving mid-run.  Proved on `:99`
+against a real standing workbench, then again with it closed.
+
+**The class.**  Every other guard in this harness protects the *result*
+of a run — the right binary, a fresh directory, a stamp.  This is the
+first that protects the *person*, and it was invisible from inside the
+tooling because the tooling only ever ran where nothing else was
+running.  It took a usage question to find it.

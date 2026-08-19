@@ -221,4 +221,31 @@ for running the thing rather than testing around it:
   neighbouring truth reported confidently, so now a run with no child
   says *no child was started*.  Both have tests.
 
-Twelve tests in `test/test_driven.py`, none needing a display.
+**And then Henri asked how to engage one, which found the last defect
+and the worst.**  *"I have the user's version on my desktop that is not
+protected."*
+
+`find_window` returned `ids[-1]` — *a* gestate window, not necessarily
+the one the scenario started — and **XTEST does not aim at a window id
+at all**: it sends the key to whatever holds X focus, and `click_into`
+is what hands focus over.  So a run started beside an open editor could
+click into *that* window, open its command box and type into it; a
+scenario that presses Return (`lagcheck --stop` does) would run a
+command there.  `a_copy_of` protects the file the run opens and does
+nothing whatever for the file somebody was already editing.
+
+So a run **refuses to start when any gestate window is already open on
+the display**, and says where to drive instead.  Proved on `:99` with a
+workbench standing open:
+
+    a gestate window is already open on DISPLAY=:99 (1 of them).
+      A driven run types with XTEST, which goes to whatever has focus —
+      it would type into that window,
+      and the file open in it is not a copy.
+
+Closed the window, ran again, `ok`.  It refuses precisely: driving on
+`:0` to *watch* is the instrument, and an empty display is fine.
+`Run.find_window()` also skips whatever was already there, which covers
+the narrower case of a second window arriving mid-run.
+
+Fifteen tests in `test/test_driven.py`, none needing a display.

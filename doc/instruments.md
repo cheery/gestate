@@ -304,6 +304,27 @@ full run is ~25 minutes and the tree must be frozen while it runs** —
 editing under a run produces a red that describes a moment rather than a
 defect, which has cost two runs already.
 
+### `tools/driven.py` — driving a window, with a stamp
+
+    Xvfb :99 -screen 0 1600x1000x24 &
+    DISPLAY=:99 python tools/lagcheck.py examples/audio/twoknobs.ges
+
+    python tools/driven.py          # which library a run would be about
+
+**Close your own editor first, or drive on `Xvfb`.**  XTEST sends keys
+to whatever holds X focus, so a run beside an open window types into
+*that* window and the file in it is not a copy.  A run refuses to start
+when a gestate window is already open on the display, and says so —
+`card:driven-runs.md`, found by Henri asking how to engage one.
+
+A run refuses if a *different* `libgestate_editor.so` is newer than the
+one the editor loads (`cargo build` from the workspace root writes
+`target/release/`; the editor loads `shell/editor/target/release/`), and
+leaves `test/driven/<stamp>/` behind: the shots, the commit, the
+library's md5, the environment the child was handed, and the questions
+with their answers.  `tools/toolbox.sh` says whether this machine has
+what a run shells out to.
+
 ### `tools/suite.py --gates` — the eight, and stop
 
     python tools/suite.py --gates      # ~12s, fenced, writes test/gates.md
