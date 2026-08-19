@@ -40,7 +40,15 @@ MARKER = re.compile(r"^\s*(?:#:|#|///|//|>)\s?")
 #: Where to look for citations.  The tree's own text, not its inputs:
 #: `target/`, `.venv/` and the caches hold copies of things.
 SEARCHED = ("*.py", "*.rs", "*.md", "*.ges")
-SKIP = {"target", ".venv", "__pycache__", ".git", "node_modules"}
+#: **`.claude` is here because an agent worktree lives inside it.**  A
+#: worktree made for a subagent is a second checkout *under* `ROOT`, so
+#: this walker found its copy of every document and checked citations
+#: that belong to another branch — including this file's own docstring,
+#: whose dead examples are exempt by identity and stop being identical
+#: the moment there are two of them.  Found 2026-08-19 the first evening
+#: a worktree existed: the gates went red, and with the pre-commit hook
+#: installed that refuses every commit until the worktree is removed.
+SKIP = {"target", ".venv", "__pycache__", ".git", "node_modules", ".claude"}
 
 #: ``· `roadmap.md` §"The rule"`` — the file, then the section.  The
 #: backticks are optional because the older comments do not use them, and

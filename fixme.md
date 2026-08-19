@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 174 entries, **148 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 175 entries, **149 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -5753,3 +5753,39 @@ window never opened*) and as the `--gates` page having to disown the
 suite three times: **an absence that satisfies a test written for
 presence.**  The check asked *do the arms match* when the question was
 *did the arms answer*.
+
+### F175. **[fixed]** an agent's worktree turned the project's own gates red
+
+Found 2026-08-19, the first evening a subagent worktree existed, by the
+gates going red on a tree whose working copy was clean.
+
+`isolation: "worktree"` puts the agent's checkout at
+`.claude/worktrees/agent-<id>/` — **inside `ROOT`**.  Two gates walk the
+whole tree by `rglob` and skipped only `.git`, `target`, `__pycache__`
+and `.venv`, so both read that second checkout's documents as this one's:
+
+* `test_citations.py` checked a citation belonging to another branch and
+  failed on it.  Its own docstring names three dead citations on purpose
+  and is exempt *by identity* (`path.resolve() == here`) — which stops
+  being true the moment there are two copies of the file.
+* `test_consent.py` passed only because the worktree happened to be
+  consent-clean.  A branch that quoted somebody unregistered would have
+  failed the register on `main`, for something written elsewhere.
+
+**With the pre-commit hook installed this refuses every commit** until
+the worktree is deleted — so the day's own new control and the day's own
+new isolation mode disagreed with each other the first time both were
+used.
+
+**Fixed** by naming `.claude` as not-this-checkout's-text in both
+walkers, and by giving `test_consent.py` a single `NOT_OURS` tuple
+rather than three repeated `not in p.parts` clauses.  `test_board.py`
+globs `board/` only and was never exposed.
+
+**The class.**  Not the absence-satisfying-a-presence-test shape of the
+day's others — this one is *a tool's own scratch space inside the tree
+it measures*, which is the same family as `gemba.tsv` and
+`untitled.desk` being gitignored, and the same family as
+`card:driven-runs.md`'s stale screenshots.  A checkout under a checkout
+is two writers on one namespace, which `board/README.md` already has a
+rule about for people.

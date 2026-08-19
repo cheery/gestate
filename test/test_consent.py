@@ -62,10 +62,18 @@ CITED = frozenset("Ohno Karplus Rizzo Strong Toyota Deming Shingo".split())
 TEXT_SUFFIXES = (".md", ".py", ".rs", ".ges", ".toml")
 
 
+#: Directories that are not this checkout's own text.  **`.claude` is
+#: here because an agent worktree lives inside it** — a second checkout
+#: under `ROOT`, whose documents would be read as this tree's and could
+#: fail a gate on the main branch for something written on another one
+#: (F175).  Found in `test_citations.py` first; the same walk is here.
+NOT_OURS = (".git", "target", "__pycache__", ".claude", ".venv")
+
+
 def documents() -> list[Path]:
     return sorted(
         p for p in ROOT.rglob("*.md")
-        if ".git" not in p.parts and "target" not in p.parts
+        if not any(part in NOT_OURS for part in p.parts)
     )
 
 
@@ -74,9 +82,7 @@ def sources() -> list[Path]:
         p for p in ROOT.rglob("*")
         if p.suffix in TEXT_SUFFIXES
         and p.is_file()
-        and ".git" not in p.parts
-        and "target" not in p.parts
-        and "__pycache__" not in p.parts
+        and not any(part in NOT_OURS for part in p.parts)
     )
 
 

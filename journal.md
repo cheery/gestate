@@ -9583,3 +9583,101 @@ And after the batch, not before: **question 4 on that card** — whether
 there is a fifth verdict.  Batch 1 pushed on it at F161 and F153; batch
 2 is the second push, which is the moment the card itself named as
 honest.
+
+## The channel gets used — 2026-08-19, evening
+
+Henri, ending the day: *"It'd be perhaps nice to see the subagents
+working well.  I'd be maybe wanting to see already today that thing
+really works and they can ask questions and get answers to them."*
+
+So one agent, one real task — the loose end from `card:driven-runs.md`
+that I had named and left: `dialoglag.py`, `dragcheck.py` and
+`measure_editor.py` still drove a window without F171's guard, so three
+tools could still type into his open editor.  The prompt carried all
+three parts of `doc/instruments.md` §"Spawning one", with a genuine
+ambiguity left unresolved on purpose: the minimal fix is to call the
+guard, the fuller one puts them through `Run` and changes three tools'
+output contracts.
+
+**It asked.**  It did the half that is right under either reading,
+stopped on the consequential half, and reported the question with three
+concrete reasons why the answer is not obvious — `dialoglag` runs two
+scenarios in one process, `measure_editor` writes stderr files into the
+caller's cwd by design, `dragcheck` has `--keep DIR`.  That is the
+behaviour the morning's three arms had no way to produce; the only move
+available to them was to force an answer into a vocabulary that would
+not hold it, and one invented `partial` on the spot.
+
+I answered with a third option — lift the *library* refusal into the
+shared preflight too, and leave the bookkeeping out — and sent it back.
+It took it, and returned with something I had not seen.
+
+### What it found that I had not
+
+**A dead guard of mine, an hour old.**  `Run.was_open` can only ever be
+`[]`, because the refusal raises whenever `windows()` is non-empty — so
+`find_window(exclude=…)` excluded nothing, and my test passed because it
+exercised the function directly with a list nothing in the tree can
+produce.  *An absence that satisfies a test written for presence*, the
+third time today after F170 and F173, this time inside a guard.  It
+removed the pretence rather than softening it and wrote **F174** for the
+real fix, deliberately not implementing it because it cannot be watched
+working without a display.
+
+**And an argument for the ordering I had asked for and could not have
+supplied.**  Four refusals — binaries, display, whose display, library —
+and the library goes *last* because it is the only one whose remedy is
+*start the editor once*, which opens a window, which check three would
+then refuse.  Told in that order the two instructions compose.  I asked
+for its reading rather than assuming; it was worth asking.
+
+### What the run says about the arrangement
+
+**Executable rules onboarded a colleague who never read the manual.**
+It opened three files — `doc/instruments.md`, `fixme.md`,
+`test/test_driven.py` — and never `board/README.md`, `spec/author.md` or
+`manifesto.md`.  It then edited `fixme.md` and `doc/instruments.md` and
+got their conventions right: the F-number format, the entry counter,
+`card:<name>.md` rather than a path, the consent register.  All of that
+is checked by the gates in twelve seconds, and it ran them.
+
+`board/README.md` argues for executable rules as *anti-drift* — a rule
+that lives in the window holds only for people using the window.  It
+turns out they are also **anti-ignorance**, which is the condition every
+subagent starts in.
+
+**And the limitation is exactly where the rules are not executable** —
+which that file already names in §"What the suite can hold, and what it
+cannot".  Questioning a card into existence, one sheet then depth,
+paragraphs belonging to the journal, not proposing cards: it could not
+have known any of them.  It tripped none, partly by luck of the task.
+The fault is mine and it is precise: **the prompt named what to read
+from what the agent would *fix*, when it should have come from what the
+agent would *edit*.**  It edited two governed documents and was never
+pointed at the document that governs them.
+
+### Two things about the run itself
+
+**It wrote into the shared checkout by accident, caught it, repaired it,
+and said so unprompted.**  A bash call landed with its working directory
+outside the worktree.  It stripped exactly the block it had appended and
+compared byte-for-byte against `git show HEAD:test/test_driven.py`
+before writing back.  Verified here independently: the tree is clean,
+the file is byte-identical to HEAD, no other tracked file was touched,
+and the suite's own tests still pass.  Reporting it was the right
+call and it cost the run nothing.
+
+**Its "the gates are green" was true and not reproducible as stated.**
+`python tools/suite.py --gates` cannot launch in a worktree at all —
+`bwrap: execvp .../.venv/bin/python: No such file or directory`, because
+the fence binds `$PROJECT` and a worktree has no `.venv`.  Run
+`--unfenced` there, the 137 do pass.  So the claim was right and the
+method was not the one reported.
+
+**Which is tomorrow's setup finding, and worth more than the rest.**  A
+blind arm works in a *clone*, and a fresh clone has no `.venv` either.
+So in an arm: `pytest` fails outright (F168 — only `python -m pytest`
+puts the tree on `sys.path`), and `tools/suite.py` dies at the fence.
+An arm told to verify its work will spend its run discovering that, and
+three arms will discover it three times.  The batch 2 prompt has to say
+which command works, or make a venv, before anything else in it matters.
