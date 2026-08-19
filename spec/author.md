@@ -318,9 +318,9 @@ Liker's fourteen principles, against this project as it stands:
 | 7 | visual control, so no problem is hidden | **strong** — knobs in the margin, complaints in boxes, `rocks.md`'s marks, the atlas |
 | 8 | reliable, thoroughly tested technology that serves the people | **inverted** — the assistant is *not* thoroughly tested technology; the discipline is to wrap it in things that are |
 | 9 | grow leaders who understand the work | `doc/reading-the-log.md`, aimed at the author himself |
-| 10 | develop people and teams | n/a solo — though a friend has started to appear in the asks |
+| 10 | develop people and teams | three people along, Janne, Henri, Mikko |
 | 11 | challenge partners and help them improve | this is the feedback loop: correcting the assistant *in writing*, where the correction survives the session |
-| 12 | **go and see for yourself (*genchi genbutsu*)** | asked for, unbuilt — `card:gemba.md` |
+| 12 | **go and see for yourself (*genchi genbutsu*)** | **strong** — `card:gemba.md`, and the driven window. |
 | 13 | decide slowly by consensus, implement rapidly (*nemawashi*) | **strong, and distinctive** — elaborate before taking, collect the questions, answer in one sitting, then build in an evening.  Its other half, **set-based design**, was named and written down on 08-17: `manifesto.md` §"Set-based, not point-based" |
 | 14 | a learning organisation through reflection and *kaizen* | **strong** — `journal.md`, `fixme.md`, and the reflex of asking for a poka-yoke rather than an apology |
 
