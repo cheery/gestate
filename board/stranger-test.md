@@ -348,7 +348,8 @@ visit.**  The corner is the single uncertain thing run three varies
 (rule 3).  Changing its shape this week means Janne meets a corner
 no stranger has ever met, and whatever he does answers a question about
 *that* corner — leaving the one this card has been holding since
-2026-08-17 still unanswered, with Janne spent.
+2026-08-17 still unanswered, and his first contact spent on the
+wrong corner.
 
 **And the idea is better as a prediction than as a patch**, because it
 is exactly the kind of claim a stranger can settle and nobody else can:

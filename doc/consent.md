@@ -21,7 +21,7 @@ question at the moment it is cheap to ask, rather than after the push.
 
 | name | named | words quoted | training | asked |
 |---|---|---|---|---|
-| Henri | yes | yes | yes | author |
+| Henri | yes | yes | yes | 2026-08-19 — see below |
 | Mikko | yes | yes | **asked, deferred** | 2026-08-19 |
 | Janne | yes | yes | **asked, deferred** | 2026-08-19 |
 | Claude | yes | yes | — | see below |
@@ -46,6 +46,21 @@ Production System to a friend *whose work depends on it*, and that is
 Janne.  Naming him there publishes something about his **job**, not his
 name, so it is a separate ask and it has not been made.  The line stays
 as it is until it has.
+
+### Henri
+
+The author, and **the most exposed person in this tree** — his sleep in
+his own words, his working hours as data, an instrument built to measure
+his presence and warn about it, and `vision.md`'s *"any project must not
+consume the person leading it."*  *Author* was a default in this table,
+not a consent, until it was put to him.
+
+**His answer, 2026-08-19:** *"I think that I allow my overstraining to
+be seen.  And my failures.  They're part of the story and important."*
+
+So it stays, deliberately.  Nothing here is to be softened, trimmed or
+tidied on his behalf — the straining and the failures are load-bearing,
+and a session removing them to be kind would be removing the evidence.
 
 ### Claude
 
