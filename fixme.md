@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 167 entries, **143 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 169 entries, **143 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -5447,3 +5447,64 @@ delete.
 `test_every_card_citation_resolves`.  Both were checked by reintroducing
 a path citation into `doc/instruments.md` and watching the suite refuse
 it.  Fourth closure under the day's rule.
+
+### F167. **[bug]** The fence follows the tree it was installed from, not the one you are in
+
+Found 2026-08-19, while running three sessions against three separate
+clones of this repository to compare how each worked the same batch of
+`card:ungated-fixes.md`.
+
+`.claude/settings.json` registers the `PreToolUse` hook by **absolute
+path** — `/home/cheery/gestate/tools/fence-hook.sh` — and the hook then
+computes `PROJECT` from its own location, so `PROJECT` is the original
+tree whatever tree the session is actually working in.  `tools/sandbox.sh`
+binds only `$PROJECT` and `--chdir`s there.  The result, for a session
+working anywhere else:
+
+- every command matching `pytest` or `cargo build|test|check` is silently
+  rewritten to run inside **a different checkout**;
+- the working tree's own path does not exist inside that fence, so the
+  command dies with `cd: No such file or directory` — a message that
+  names nothing to do with the fence, and that appears **only** when the
+  matched word is in the command, which is what makes it baffling;
+- and `$PROJECT` is bound **read-write**, so a wrapped command from an
+  unrelated checkout can write into the original tree.
+
+Two of the three sessions concluded from this that they could not run
+tests at all and reached every verdict by reading.  The third read
+`tools/fence-hook.sh`, found the documented `NOFENCE=1` hatch and ran its
+mutations unfenced — so the fence's effect on that day's work was to
+decide, invisibly, which sessions had evidence and which had only
+argument.
+
+**The fence is not wrong to exist here and the hook is not wrong to be
+absolute** — `doc/hardening.md` installs it that way on purpose.  What is
+wrong is that it fails silently and in the wrong direction: a session in
+a foreign tree should be told, and the write-through to `$PROJECT` should
+not be reachable from one.
+
+### F168. **[bug]** `pytest` and `python -m pytest` are not the same command in this tree
+
+Found 2026-08-19, immediately after F167 and independently of it.
+
+Nothing is installed into `.venv` for this project — no `pyproject.toml`,
+no editable install, no `.pth`, and `PYTHONPATH` is unset.  Imports work
+because `python -m pytest` puts the working directory on `sys.path` and
+the console script `pytest` does not.  `tools/suite.py` uses the first
+form (`[sys.executable, "-m", "pytest", …]`) and is therefore correct and
+silent about why.
+
+So the obvious command fails:
+
+```
+$ pytest test/test_board.py
+E   ModuleNotFoundError: No module named 'gestate'
+91 errors in 0.48s
+```
+
+**Ninety-one errors that look like a broken checkout and are a wrong
+invocation.**  It is the same shape as F148 and F149 — the project works
+for the person who already knows the incantation, and hands everybody
+else a failure that points at the wrong thing.  A session hit it on this
+machine while running a card's own targeted gate, and read it as the
+fence's doing before checking.
