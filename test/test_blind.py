@@ -118,8 +118,8 @@ def test_agreement_is_computed_before_the_reader_arrives(tmp_path, monkeypatch):
     same = [arm(tmp_path, f"a{i}", "`test/test_carry.py` holds it.") for i in range(3)]
     blind.main(["--batch", "9", *[str(a) for a in same]])
     page = next((tmp_path / "blind").glob("*/sheet.html")).read_text()
-    assert ">0</b><span>need you<" in page, "the strip leads with what is left"
-    assert "all three agreed everywhere" in page
+    assert ">0</b><span>contradiction<" in page
+    assert ">1</b><span>agreed<" in page
 
 
 def test_the_batch_comes_from_the_card_and_is_not_retyped(tmp_path):
@@ -133,7 +133,7 @@ def test_the_batch_comes_from_the_card_and_is_not_retyped(tmp_path):
         blind.batch_of(card, 99)
 
 
-def test_an_arm_that_produced_nothing_is_a_result_and_not_a_crash(tmp_path, monkeypatch):
+def test_an_arm_that_produced_nothing_is_a_result_and_not_a_crash(tmp_path, monkeypatch, capsys):
     """A run that died is one of the things a comparison exists to
     notice.  A traceback here would lose the other two arms' work with
     it."""
@@ -145,4 +145,33 @@ def test_an_arm_that_produced_nothing_is_a_result_and_not_a_crash(tmp_path, monk
     blind.main(["--batch", "9", str(good[0]), str(good[1]), str(dead)])
     page = next((tmp_path / "blind").glob("*/sheet.html")).read_text()
     assert "no gate: line" in page
-    assert "needs you" in page, "two arms agreeing and one silent is not agreement"
+    assert "contradiction" in page, \
+        "two arms agreeing and one silent is not agreement"
+    assert "wrote no fixme.md at all" in capsys.readouterr().out, \
+        "and the run says so"
+
+
+def test_the_two_kinds_of_disagreement_are_not_the_same_work():
+    """Henri, 2026-08-19: *"they're not in agreement and I need to check
+    the Fix and consider whether the record holds."*  True half the
+    time — a **contradiction** has a wrong answer in it, and two arms
+    naming **different gates** may both be right (F155 in this tree is
+    cited by two).  Lumping them made a five-minute check look like the
+    other kind.
+    """
+    assert blind._state({("gated", ("a.py",))}) == "agreed"
+    assert blind._state({("gated", ("a.py",)), ("gated", ("b.py",))}) \
+        == "different gate"
+    assert blind._state({("gated", ("a.py",)), ("none — nothing can", ())}) \
+        == "contradiction"
+
+
+def test_three_silent_arms_are_never_reported_as_agreement():
+    """**The defect this tool exists to prevent, found in itself.**  Run
+    against three checkouts whose files had been cleaned up underneath
+    it, every entry came back `missing` from every arm, the states all
+    matched, and the sheet said *5 agreed* about a comparison that had
+    not happened.
+    """
+    assert blind._state({("missing", ())}) == "no verdicts"
+    assert blind._state({("missing", ()), ("gated", ("a.py",))}) == "contradiction"

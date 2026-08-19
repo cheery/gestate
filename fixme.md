@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 173 entries, **147 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 174 entries, **148 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -5723,3 +5723,33 @@ a **failure with no entry**.  It was seen, understood well enough to
 write a sentence about, and filed nowhere — so the second occurrence
 arrived as news.  A defect observed in a journal parenthesis is a defect
 nobody is told about twice.
+
+### F173. **[fixed]** the judging sheet called three silent arms unanimous
+
+Found 2026-08-19, minutes after `tools/blind.py` was written, by running
+it against three checkouts whose scratch files had been cleaned up
+underneath it.
+
+Every entry came back `missing` from every arm.  Every arm's state
+therefore matched every other arm's, and the agreement test —
+`len(kinds) == 1` — was satisfied.  The sheet said:
+
+    0 contradiction, 0 different gate, 5 agreed
+
+**A comparison that had not happened, reported as unanimous.**  Which is
+the single failure this tool exists to prevent: it was built because the
+first sheet made accuracy invisible, and its first bug made a *run*
+invisible.
+
+**Fixed** with `no verdicts` as its own state — never folded into
+agreement, given its own section that says *this is not agreement*, and
+a warning printed for any arm that wrote no `fixme.md` at all.  A mixed
+case (two arms answering, one silent) is a contradiction, because two
+arms agreeing while a third says nothing is not three arms agreeing.
+
+**The class, which this project keeps meeting.**  *Silence read as
+consensus* is the same shape as F170 (a missing binary read as *the
+window never opened*) and as the `--gates` page having to disown the
+suite three times: **an absence that satisfies a test written for
+presence.**  The check asked *do the arms match* when the question was
+*did the arms answer*.

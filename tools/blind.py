@@ -166,6 +166,40 @@ def check(cite: str, fnum: str, tree: Path) -> dict:
     return out
 
 
+def _state(kinds: set) -> str:
+    """`agreed`, `different gate`, or `contradiction`.
+
+    **Two arms can disagree in two ways and they are not the same
+    work.**  Henri, 2026-08-19, working out what the sheet was asking of
+    him: *"they're not in agreement and I need to check the Fix and
+    consider whether the record holds."*  True — but only half the time
+    is there a wrong answer to find.
+
+    * **contradiction** — the *verdicts* differ: one arm names a gate,
+      another says `none`.  One of them is wrong, and that is a
+      decision.
+    * **different gate** — every arm says the entry is gated and they
+      name different instruments.  **Both can be right.**  F155 in this
+      tree is held by two.  The question is then which citation serves
+      the next reader, or whether the answer is *both* — a smaller
+      question, and not one to spend the same attention on.
+
+    Lumping them made a five-minute check look like the other kind.
+    """
+    verdicts = {k for k, _cites in kinds}
+    # **Silence is not agreement.**  Found by running this against three
+    # arms whose files had been cleaned up underneath it: every entry came
+    # back `missing` from every arm, the states all matched, and the sheet
+    # said *5 agreed* about a comparison that had not happened.  A
+    # confidently green page for a run that did not run is the one thing
+    # this tool exists to prevent.
+    if verdicts == {"missing"}:
+        return "no verdicts"
+    if len(kinds) == 1:
+        return "agreed"
+    return "different gate" if len(verdicts) == 1 else "contradiction"
+
+
 def batch_of(card: Path, n: int) -> list[str]:
     """Row `n` of the card's own schedule table, so the batch is never
     re-typed into a second place."""
@@ -186,15 +220,15 @@ def batch_of(card: Path, n: int) -> list[str]:
 CSS = """
 :root{
   --bg:#f4f4f1; --card:#fffefc; --ink:#1b1f27; --dim:#6a7180; --line:#dcdcd6;
-  --lamp:#b8791f; --lamp-wash:#f7ecd9; --agreed:#2c7261; --fail:#a3372c;
+  --lamp:#b8791f; --lamp-wash:#f7ecd9; --warm:#4d6b93; --agreed:#2c7261; --fail:#a3372c;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#14181f; --card:#1b2029; --ink:#dfe3ea; --dim:#8d95a3; --line:#2c333f;
-  --lamp:#e0a94a; --lamp-wash:#2a2419; --agreed:#5fb3a1; --fail:#f08a80;
+  --lamp:#e0a94a; --lamp-wash:#2a2419; --warm:#87a8d0; --agreed:#5fb3a1; --fail:#f08a80;
 }}
 :root[data-theme="dark"]{
   --bg:#14181f; --card:#1b2029; --ink:#dfe3ea; --dim:#8d95a3; --line:#2c333f;
-  --lamp:#e0a94a; --lamp-wash:#2a2419; --agreed:#5fb3a1; --fail:#f08a80;
+  --lamp:#e0a94a; --lamp-wash:#2a2419; --warm:#87a8d0; --agreed:#5fb3a1; --fail:#f08a80;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);
@@ -221,6 +255,11 @@ section>p.note{color:var(--dim);font-size:.88rem;margin:0 0 1.1rem;max-width:44r
   border-left:3px solid var(--agreed);padding:.95rem 1.1rem;overflow-x:auto}
 .entry.split{border-left-color:var(--lamp);background:
   linear-gradient(90deg,var(--lamp-wash),var(--card) 22rem)}
+.entry.other{border-left-color:var(--warm)}
+.cell.warm b{color:var(--warm)}
+.entry.other .tag{color:var(--warm);font-weight:600}
+.weights{margin:0;color:var(--dim);font-size:.85rem;max-width:46rem;
+  border-left:2px solid var(--line);padding-left:.9rem}
 .hd{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap;margin-bottom:.75rem}
 .f{font:600 1rem/1 "IBM Plex Mono",ui-monospace,monospace}
 .ttl{color:var(--dim);font-size:.88rem}
@@ -264,19 +303,29 @@ def mark(v):
 
 def render(rows, batch, n) -> str:
     e = html.escape
-    unan = [r for r in rows if r["agree"]]
-    split = [r for r in rows if not r["agree"]]
+    by = lambda st: [r for r in rows if r["state"] == st]
+    contra, other, unan = by("contradiction"), by("different gate"), by("agreed")
+    silent = by("no verdicts")
 
+    #: `exists` and `names it` are hard — a cross is a wrong citation.
+    #: **`cites it` is soft, and measured**: of the five `gate:` lines
+    #: already in this tree, only three name their own F-number, and the
+    #: two that do not (`test_a_bare_click_opens_an_editor` for F149,
+    #: `test_every_module_has_a_lane` for F160) are correct gates.  A
+    #: cross there is a documentation gap, not a wrong verdict, and a
+    #: column that got read as a verdict would be this project's own
+    #: clock bug in a table.
     def block(r):
-        cls = "entry" if r["agree"] else "entry split"
-        tag = "agreed" if r["agree"] else "needs you"
+        st = r["state"]
+        cls = {"agreed": "entry", "different gate": "entry other",
+               "contradiction": "entry split", "no verdicts": "entry split"}[st]
         out = [f'<div class="{cls}"><div class="hd">'
                f'<span class="f">{e(r["f"])}</span>'
                f'<span class="ttl">{e(r["title"])}</span>'
-               f'<span class="tag">{tag}</span></div>',
+               f'<span class="tag">{st}</span></div>',
                "<table><thead><tr><th></th><th>verdict</th><th>cites</th>"
                '<th class="chk">exists</th><th class="chk">names it</th>'
-               f'<th class="chk">knows {e(r["f"])}</th><th>kind</th>'
+               f'<th class="chk">cites {e(r["f"])}</th><th>kind</th>'
                "</tr></thead><tbody>"]
         for arm in "ABC":
             a = r["arms"][arm]
@@ -302,6 +351,14 @@ def render(rows, batch, n) -> str:
                        f'<pre>{e(r["arms"][arm]["said"])}</pre></details>')
         return "".join(out) + "</div>"
 
+    silent_html = ("<section><h2>No verdicts &mdash; nobody answered</h2>"
+                   '<p class="note"><b>This is not agreement.</b> No arm '
+                   "wrote a <code>gate:</code> line for these, which is a "
+                   "fact about the run rather than about the tree.</p>"
+                   '<div class="stack">'
+                   + "".join(block(r) for r in silent)
+                   + "</div></section>") if silent else ""
+
     return f"""<title>Batch {n} andon</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -319,18 +376,37 @@ family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap
 </header>
 
 <div class="strip">
-  <div class="cell lit"><b>{len(split)}</b><span>need you</span></div>
+  <div class="cell lit"><b>{len(contra)}</b><span>contradiction</span></div>
+  <div class="cell warm"><b>{len(other)}</b><span>different gate</span></div>
   <div class="cell calm"><b>{len(unan)}</b><span>agreed</span></div>
-  <div class="cell"><b>{len(rows)}</b><span>entries</span></div>
-  <div class="cell"><b>3</b><span>arms</span></div>
+  <div class="cell"><b>{len(rows)}</b><span>entries &middot; 3 arms</span></div>
 </div>
 
+<p class="weights">The marks are facts, and they do not weigh the same.
+<b>exists</b> and <b>names it</b> are hard &mdash; a cross is a wrong citation.
+<b>cites F&#8230;</b> is soft: of the five <code>gate:</code> lines already in
+this tree only three name their own F&#8209;number, and the two that do not are
+correct gates. A cross there is a documentation gap, not a wrong verdict.</p>
+
+{silent_html}
 <section>
-  <h2>Needs you</h2>
-  <p class="note">The arms disagree about the verdict or about which instrument
-  holds it. This is the judgement, and it is the whole of it.</p>
-  <div class="stack">{''.join(block(r) for r in split)
-    or '<p class="empty">None &mdash; all three agreed everywhere.</p>'}</div>
+  <h2>Contradiction &mdash; one of them is wrong</h2>
+  <p class="note">The arms disagree about the <em>verdict</em>: one names a
+  gate, another says nothing holds it. The question is whether the cited
+  instrument would actually fail if the defect came back &mdash; the one thing
+  no check above can answer.</p>
+  <div class="stack">{''.join(block(r) for r in contra)
+    or '<p class="empty">None.</p>'}</div>
+</section>
+
+<section>
+  <h2>Different gate &mdash; both may be right</h2>
+  <p class="note">Every arm says the entry is gated and they name different
+  instruments. Two can hold one defect &mdash; F155 in this tree is cited by
+  two &mdash; so this is usually not a wrong answer to find but a choice about
+  which citation serves the next reader, or whether the answer is both.</p>
+  <div class="stack">{''.join(block(r) for r in other)
+    or '<p class="empty">None.</p>'}</div>
 </section>
 
 <section>
@@ -379,7 +455,7 @@ def main(argv=None) -> int:
                          "checks": [check(c, f, tree) for c in cites]}
             kinds.add((kind, tuple(sorted(cites))))
         rows.append({"f": f, "title": re.sub(r"\*+", "", title),
-                     "arms": arms, "agree": len(kinds) == 1})
+                     "arms": arms, "state": _state(kinds)})
 
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     out = SHEETS / f"{stamp}-batch{args.batch}"
@@ -389,7 +465,13 @@ def main(argv=None) -> int:
 
     # To the terminal, for the experimenter, and nowhere else.
     print(f"blind: {_rel(sheet)}")
-    print(f"blind: {sum(r['agree'] for r in rows)} of {len(rows)} unanimous")
+    for a in named.values():
+        if not (a / "fixme.md").is_file():
+            print(f"blind: WARNING — {a} wrote no fixme.md at all")
+    tally = {st: sum(r["state"] == st for r in rows)
+             for st in ("no verdicts", "contradiction", "different gate",
+                        "agreed")}
+    print("blind: " + ", ".join(f"{n} {st}" for st, n in tally.items()))
     print("\nthe mapping — do NOT paste this to the judge:")
     for arm, path in named.items():
         print(f"  {arm} = {path}")
