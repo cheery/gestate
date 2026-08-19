@@ -26,6 +26,23 @@ set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$root"
 
+# **Never a bare unit, and never rounded down to one.**  F169: this
+# printed `1h` for one hour and fifty-eight minutes, and Henri read it
+# and retracted a true statement — he had said "2 hours or so" and was
+# right to within two minutes.  Integer division on the larger unit
+# discards up to fifty-nine minutes and it discards them *one way*, so
+# the instrument built to stop a session guessing was itself
+# understating, silently, by up to an hour.  A clock that is read
+# instead of guessed at has to be right at the boundary, because the
+# boundary is where somebody checks it against what they remember.
+elapsed () {
+    d=$1
+    if   [ "$d" -lt 3600 ];   then printf '%dm' "$((d / 60))"
+    elif [ "$d" -lt 172800 ]; then printf '%dh%02dm' "$((d / 3600))" "$(((d % 3600) / 60))"
+    else                           printf '%dd%dh' "$((d / 86400))" "$(((d % 86400) / 3600))"
+    fi
+}
+
 now=$(date +%s)
 printf 'now        %s\n' "$(date '+%Y-%m-%d %H:%M %A')"
 
@@ -34,10 +51,7 @@ printf 'now        %s\n' "$(date '+%Y-%m-%d %H:%M %A')"
 last=$(git log -1 --format=%ct 2>/dev/null || echo '')
 [ -n "$last" ] && printf 'last commit %s   (%s ago)\n' \
     "$(git log -1 --format='%h %ad' --date=format:'%Y-%m-%d %H:%M')" \
-    "$(d=$((now - last)); \
-       if   [ $d -lt 3600 ];   then echo "$((d / 60))m"; \
-       elif [ $d -lt 172800 ]; then echo "$((d / 3600))h"; \
-       else                         echo "$((d / 86400))d"; fi)"
+    "$(elapsed $((now - last)))"
 
 # Today's own span, if the workbench has been open.  `presence.tsv` is
 # the only record of a day that is not a commit, and a day with no

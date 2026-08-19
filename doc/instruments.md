@@ -107,6 +107,16 @@ So: **an elapsed time in this tree is computed, never remembered.**  And
 prefer writing the *date* over the duration wherever both would do — a
 date can be checked by the next reader and a duration cannot.
 
+**And the number it gives has to be right at the boundary** (F169).  For
+two and a half hours this script rendered `1h58m` as `1h`, truncating
+downwards by up to fifty-nine minutes — and Henri, who had said "about
+two hours" and was right to within two, read the clock and retracted a
+true statement.  An instrument gets consulted precisely where somebody
+means to check it against what they remember, so a truncating unit
+conversion in a reporting path is not a rounding preference: it is a
+biased estimator dressed as a measurement, and it spends its credibility
+in the one place the tool was built for.
+
 ### `tools/andon.sh` — ring the sound card
 
     tools/andon.sh          # once

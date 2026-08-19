@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 169 entries, **143 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 170 entries, **144 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -5557,3 +5557,38 @@ for the person who already knows the incantation, and hands everybody
 else a failure that points at the wrong thing.  A session hit it on this
 machine while running a card's own targeted gate, and read it as the
 fence's doing before checking.
+
+### F169. **[fixed]** the wrist clock understated by up to an hour, always downwards
+
+Found 2026-08-19, **two and a half hours after the clock was built**, and
+found by the failure it was built to prevent happening to the wrong
+person.
+
+`tools/clock.sh` rendered any gap over an hour as `$((d / 3600))h`.
+Integer division, so 1h58m printed as `1h` — fifty-eight minutes
+discarded, and discarded *one way*: the reading is never too large.
+
+**How it surfaced.**  Henri opened the session saying he had rested
+about two hours.  A session ran the clock for an unrelated reason and it
+printed `(1h ago)` against the last commit.  He read that and retracted:
+*"I see I said something that's not true.  You noted that it's only 1h
+that I rested."*  The real figure was **1h58m** — he had been right to
+within two minutes, and the instrument talked him out of it.
+
+That is the worst available failure for this particular tool.  It exists
+because *an elapsed time is computed, never remembered* — the whole claim
+being that the computed number beats the recalled one.  Here the recalled
+number was accurate and the computed one was not, which does not just
+give a wrong answer, it inverts the reason to consult it at all.
+
+**Fixed** the same hour: an `elapsed` function, two units always
+(`1h58m`, `2d7h`), checked at every boundary — `3599s → 59m`,
+`3600s → 1h00m`, `86399s → 23h59m`, `172799s → 47h59m`,
+`172800s → 2d0h`.
+
+**The class, which is worth more than the bug.**  A truncating unit
+conversion in a *reporting* path is not a rounding preference, it is a
+biased estimator wearing the clothes of a measurement.  `doc/instruments.md`
+now carries the rule beside the tool: an instrument's number is checked
+against what somebody remembers, so it has to be right at the boundary —
+that is exactly where the check happens.
