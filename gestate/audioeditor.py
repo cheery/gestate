@@ -851,6 +851,10 @@ class Workbench:
         #: every `DRY_EVERY` seconds and the record must miss nothing
         #: (`card:unseen-flare.md`).
         self._dry_kept = 0
+        #: When `played_since_kept` last answered, on the monotonic
+        #: clock.  Zero until the first call, whose gap is unknowable
+        #: and is therefore not credited (`card:unseen-flare.md`).
+        self._played_when = 0.0
         #: How long a drag's audition waits for the hand to stop.
         #:
         #: **A hand drags in strings of gestures, and each rebuild is a
@@ -3179,9 +3183,40 @@ class Workbench:
         total = host.dry
         if total < self._dry_kept:
             self._dry_kept = 0
+        #: When `played_since_kept` last answered, on the monotonic
+        #: clock.  Zero until the first call, whose gap is unknowable
+        #: and is therefore not credited (`card:unseen-flare.md`).
+        self._played_when = 0.0
         n = total - self._dry_kept
         self._dry_kept = total
         return n
+
+    def played_since_kept(self) -> float:
+        """Wall seconds since this was last asked during which an
+        underrun **could** have been counted.
+
+        **The denominator, and the whole reason a `dry 0` means
+        anything.**  `dry_since_kept` answers 0 with no host at all, and
+        the host exists only while sound plays — so on its own the count
+        says the same thing about a card that played all afternoon
+        without tearing and a card nobody ever started.  Three days of
+        `presence.tsv` read that way on 2026-08-19: three zeros, and no
+        way to tell which kind.
+
+        Time is credited only when the host is up *and* playing, because
+        that is when `snd_pcm_writei` can underrun; a paused host cannot
+        run dry and crediting it would deflate the rate it exists to
+        measure.  The gap is charged whole to the state found at the end
+        of it, which is wrong by at most one pass of a loop that runs
+        many times a second and right about a number reported in hours.
+        """
+        now = time.monotonic()
+        was, self._played_when = self._played_when, now
+        host = getattr(self, "host", None)
+        if host is None or not getattr(host, "playing", False):
+            return 0.0
+        # The first call has no gap to measure, only a start.
+        return 0.0 if was == 0.0 else now - was
 
     def _say_dry(self) -> None:
         """Say it when the card ran out of sound to play.

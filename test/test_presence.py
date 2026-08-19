@@ -483,6 +483,115 @@ def test_an_older_record_opens_unharmed(kept, tmp_path):
     assert (day.touches, day.dry) == (42, 0)
 
 
+def test_a_zero_and_an_unmeasured_day_are_not_the_same_record(kept):
+    """**The defect that reopened this card.**  Three days of the real
+    file read `dry 0` on 2026-08-19 and not one of them could be told
+    from the others: the count answers zero when there is no host, and
+    the host exists only while sound plays, so a card that played six
+    hours cleanly and a card that never opened printed the same glyph.
+
+    `played` is the denominator that separates them.  Nothing about the
+    row changes — Henri, 2026-08-19: *"keep it off the row"* — because
+    the file answers *was it measured* and the row answers *how was the
+    day*.
+    """
+    quiet, _h = kept(at("2026-08-18", 10))
+    quiet.touched()
+    quiet.played(3 * HOUR)
+
+    silent, _h2 = kept(at("2026-08-18", 10))
+    silent.touched()
+
+    assert quiet.days["2026-08-18"].dry == silent.days["2026-08-18"].dry == 0
+    assert quiet.days["2026-08-18"].played == 3 * HOUR
+    assert silent.days["2026-08-18"].played == 0, (
+        "a day nothing played must not look like a day nothing went wrong")
+    # And neither of them says a word about it on the row.
+    assert "played" not in quiet.reading() and "dry" not in quiet.reading()
+
+
+def test_the_denominator_survives_the_window(kept):
+    """Worth no less than the count it divides: a threshold fitted from
+    a file that forgets its playing time is fitted to noise."""
+    p, hand = kept(at("2026-08-18", 10))
+    p.touched()
+    p.played(90.0)
+    p.ran_dry(7)
+    p.save()
+
+    again = Presence(root=p.path.parent, path=p.path, clock=hand)
+    day = again.days["2026-08-18"]
+    assert (day.dry, int(day.played)) == (7, 90)
+
+
+def test_a_record_from_before_the_denominator_opens_unharmed(kept, tmp_path):
+    """Six fields predates `played`, the way five predated `dry`.  Its
+    zero is the honest answer rather than a hole: that day genuinely has
+    no measured playing time."""
+    p, hand = kept(at("2026-08-18", 10))
+    p.path.write_text(
+        "# older\n2026-08-18\t05:07\t15:46\t2866\t1675\t0\n", encoding="utf-8")
+    again = Presence(root=tmp_path, path=p.path, clock=hand)
+    day = again.days["2026-08-18"]
+    assert (day.touches, day.dry, day.played) == (1675, 0, 0.0)
+
+
+def test_sound_in_an_empty_room_is_not_somebody_working(kept):
+    """`played` is the machine's, like `ran_dry` and unlike `touched`.
+    A piece left looping over lunch must not buy anybody an hour."""
+    p, _hand = kept(at("2026-08-18", 10))
+    p.touched()
+    before = p.days[sorted(p.days)[0]].worked
+    p.played(HOUR)
+    assert p.days[sorted(p.days)[0]].worked == before
+
+
+# ── the seam, which is where this family actually breaks ─────────────
+#
+# `Presence.ran_dry` was tested here and `Workbench.dry_since_kept` in
+# `test_audioeditor.py`, and until 2026-08-19 **nothing covered the
+# join** — both halves green, the fit between them unwatched, in the
+# same tick loop that dropped three fields in one day.
+# `card:carried-state.md`: the defect is in the seam and the test is in
+# the module.
+
+
+def test_the_tick_records_both_halves_of_the_machine(kept):
+    """The real function the loop calls, driven with a bench that has
+    torn and played."""
+    from gestate.workbench import _machine
+
+    p, _hand = kept(at("2026-08-18", 10))
+    p.touched()
+
+    class Bench:
+        def dry_since_kept(self): return 4
+        def played_since_kept(self): return 120.0
+
+    _machine(p, Bench())
+    day = p.days["2026-08-18"]
+    assert (day.dry, int(day.played)) == (4, 120)
+
+
+def test_a_count_cannot_be_recorded_without_its_denominator(kept):
+    """**Both numbers or neither.**  A count taken at a call site that
+    forgot the denominator is the defect this card was reopened for,
+    reintroduced one edit at a time — so the seam takes them together
+    and a bench that can only answer half of it fails loudly here
+    rather than quietly in the file.
+    """
+    from gestate.workbench import _machine
+
+    p, _hand = kept(at("2026-08-18", 10))
+    p.touched()
+
+    class HalfABench:
+        def dry_since_kept(self): return 4
+
+    with pytest.raises(AttributeError):
+        _machine(p, HalfABench())
+
+
 def test_the_tearing_machine_is_not_the_working_person(kept):
     """`worked` is what the hand did.  Crediting somebody for an
     afternoon the sound spent stuttering would be the exact lie this

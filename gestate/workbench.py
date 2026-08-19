@@ -749,6 +749,31 @@ def _shapes(picture) -> str:
     return "\n".join(out)
 
 
+def _machine(presence, bench) -> None:
+    """The machine's half of the row, recorded every pass.
+
+    **A named seam, because this one was two lines in a loop and
+    neither of them was tested.**  `Presence.ran_dry` is covered in
+    `test_presence.py`, `Workbench.dry_since_kept` in
+    `test_audioeditor.py`, and until 2026-08-19 nothing at all covered
+    the join — both halves green, the fit between them unwatched.  That
+    is `card:carried-state.md`'s lesson arriving in the same tick loop
+    that dropped three fields in one day: *the defect is in the seam and
+    the test is in the module.*
+
+    **Asked every pass and not only when something is said.**  The
+    sentence is rationed to one every `DRY_EVERY` seconds and the record
+    must miss nothing.
+
+    **Both numbers or neither.**  A count without its denominator is the
+    thing `card:unseen-flare.md` was reopened for, so they are taken
+    together, from one place, and cannot drift apart by somebody
+    remembering one of them at a new call site.
+    """
+    presence.ran_dry(bench.dry_since_kept())
+    presence.played(bench.played_since_kept())
+
+
 def run(path, rate: int = 44100, block: int = 512,
         midi: bool = False, seed: int | None = None) -> int:
     """Open the file, play it, and hand the window the keyboard."""
@@ -945,7 +970,7 @@ def run(path, rate: int = 44100, block: int = 512,
             # not only when something is said about it: the sentence is
             # rationed and the record must not be
             # (`card:unseen-flare.md`).
-            presence.ran_dry(bench.dry_since_kept())
+            _machine(presence, bench)
             tally = presence.reading()
             now = furniture(session, tally=tally, warm=presence.warm)
             if now != said:

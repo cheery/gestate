@@ -2548,6 +2548,38 @@ def test_the_record_and_the_sentence_keep_separate_watermarks(tmp_path):
         "every underrun after the first rebuild is lost")
 
 
+def test_the_denominator_counts_only_time_that_could_have_torn(tmp_path):
+    """`played_since_kept` is what makes a `dry 0` mean anything.
+
+    Only a host that exists **and is playing** can underrun, so only
+    that time is credited; a paused host cannot run dry and counting it
+    would deflate the very rate the column exists to support
+    (`card:unseen-flare.md`).
+    """
+    class Card:
+        dry = 0
+        playing = False
+
+    bench = Workbench(tmp_path / "x.ges")
+
+    bench.host = None
+    assert bench.played_since_kept() == 0.0, "no host, nothing could tear"
+
+    bench.host = Card()
+    assert bench.played_since_kept() == 0.0, "a paused card cannot run dry"
+
+    bench.host.playing = True
+    # The first call after a silence has a start and no gap; the second
+    # is the first one that can honestly measure anything.
+    bench.played_since_kept()
+    time.sleep(0.02)
+    lap = bench.played_since_kept()
+    assert 0.01 < lap < 1.0, lap
+
+    bench.host.playing = False
+    assert bench.played_since_kept() == 0.0, "stopped mid-gap, nothing owed"
+
+
 def test_a_python_driver_keeps_no_count(tmp_path):
     """There is no C host under the pure-Python driver, and asking must
     answer *nothing* rather than raise — the record is optional and the

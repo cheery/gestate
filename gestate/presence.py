@@ -122,7 +122,7 @@ MADE_EVERY = 300.0
 FLUSH_EVERY = 30.0
 
 _HEAD = ("# gestate presence — one line a day, written by the workbench.\n"
-         "# date\tfirst\tlast\tworked(s)\ttouches\tdry\n")
+         "# date\tfirst\tlast\tworked(s)\ttouches\tdry\tplayed(s)\n")
 
 
 def state_path() -> Path:
@@ -187,10 +187,12 @@ class Day:
     """One day's presence: when it began, when it last moved, and how
     much of the span between them was actually worked."""
 
-    __slots__ = ("date", "first", "last", "worked", "touches", "dry")
+    __slots__ = ("date", "first", "last", "worked", "touches", "dry",
+                 "played")
 
     def __init__(self, date: str, first: str = "", last: str = "",
-                 worked: float = 0.0, touches: int = 0, dry: int = 0):
+                 worked: float = 0.0, touches: int = 0, dry: int = 0,
+                 played: float = 0.0):
         self.date = date
         self.first = first
         self.last = last
@@ -205,6 +207,24 @@ class Day:
         #: question this row already asks: the person, the project, and
         #: now the machine.
         self.dry = dry
+        #: **The denominator `dry` was missing** — wall seconds this day
+        #: during which an underrun could have been counted at all, which
+        #: is time the C host existed *and* was playing.
+        #:
+        #: `dry_since_kept()` answers 0 when there is no host, and the
+        #: host only exists while sound plays.  So a bare `dry 0` printed
+        #: the same glyph for a card that played six hours without a
+        #: tear and for a card that never opened — the card's own defect,
+        #: one level in: **an instrument that reads fine whether or not
+        #: it is fine.**  Found 2026-08-19, reading three days of this
+        #: file and finding three zeros that could not be told apart.
+        #:
+        #: Kept out of the tally row on purpose (Henri, 2026-08-19:
+        #: *"keep it off the row"*).  The file answers *was it measured*;
+        #: the row answers *how was the day*.  Two questions, two
+        #: readers, and `spec/rocks.md` is the reason not to spend a
+        #: fourth mark on the second one.
+        self.played = played
 
     @property
     def span(self) -> float:
@@ -231,7 +251,8 @@ class Day:
 
     def line(self) -> str:
         return (f"{self.date}\t{self.first}\t{self.last}"
-                f"\t{int(self.worked)}\t{self.touches}\t{self.dry}")
+                f"\t{int(self.worked)}\t{self.touches}\t{self.dry}"
+                f"\t{int(self.played)}")
 
     @staticmethod
     def read(line: str) -> "Day | None":
@@ -245,9 +266,15 @@ class Day:
             # one it can only half parse.  A record that refused to open
             # an older copy of itself would lose the week it exists to
             # show.
+            # **Six fields is a record from before `played`**, and it
+            # loads with a zero for the same reason five did — except
+            # that this zero is honest in a way the `dry` one was not:
+            # the day genuinely has no measured playing time, and that
+            # is exactly what an unmeasured day should say.
             return Day(parts[0], parts[1], parts[2],
                        float(parts[3]), int(parts[4]),
-                       int(parts[5]) if len(parts) > 5 else 0)
+                       int(parts[5]) if len(parts) > 5 else 0,
+                       float(parts[6]) if len(parts) > 6 else 0.0)
         except ValueError:
             return None
 
@@ -379,6 +406,27 @@ class Presence:
         self._dirty = True
         # The cached reading is a minute old and now wrong.
         self._said = ("", 0.0)
+
+    def played(self, seconds: float) -> None:
+        """Sound was playing for `seconds`, so an underrun could have
+        been counted.
+
+        **`dry`'s denominator, and the reason a zero can be believed.**
+        Without it the column cannot distinguish *nothing went wrong*
+        from *nothing was listening*, and a threshold fitted to that
+        column would be fitted to whichever of the two happened to be
+        true on the days it was fitted from (`card:unseen-flare.md`
+        step 3).
+
+        Like `ran_dry` and unlike `touched`, this does not move the
+        hand: sound playing in an empty room is not somebody working.
+        """
+        if self.path is None or seconds <= 0:
+            return
+        date = _day(self.clock())
+        day = self.days.setdefault(date, Day(date))
+        day.played += seconds
+        self._dirty = True
 
     def touched(self) -> None:
         """A gesture arrived.  Count the gap since the last one, unless
