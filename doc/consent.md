@@ -34,9 +34,14 @@ question at the moment it is cheap to ask, rather than after the push.
 
 He is in this tree the most of anyone but the author — `journal.md`,
 `fixme.md`, `card:stranger-test.md` — with verbatim chat messages from
-2026-08-18.  **He was named for a week before he was asked**, and said
-yes on 2026-08-19.  That is the right answer and it was still the wrong
-order; the register exists so the next one happens the other way round.
+2026-08-18.  **He was named a day before he was asked**, and said yes on
+2026-08-19.  That is the right answer and it was still the wrong order;
+the register exists so the next one happens the other way round.
+
+*Corrected 2026-08-19: this said "for a week", which was wrong by six
+days.  The measurement is `git log -S"Janne" -- journal.md` and it takes
+one command, which is the point — nobody should be estimating an elapsed
+time that the repository already knows.*
 
 He is also the *"a friend"* of the earlier material — F150, F155,
 `card:button.md` — and those places now carry his name.

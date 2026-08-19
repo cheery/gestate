@@ -144,8 +144,8 @@ def test_nobody_who_said_no_is_here():
 
 
 #: Published before being asked.  **May shrink, never grow.**  It stood
-#: at 1 for a few hours on 2026-08-19 — Janne, named for a week before
-#: anyone asked him — and he said yes the same day.  **Zero is now a
+#: at 1 for a few hours on 2026-08-19 — Janne, named on 2026-08-18 and
+#: asked the next day — and he said yes the same day it was put to him.  **Zero is now a
 #: hard floor**: nobody else gets into this public tree unasked, and
 #: raising this number is not the way to make the suite green.
 PENDING_BASELINE = 0
