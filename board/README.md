@@ -79,10 +79,7 @@ still the tiebreak between two workable cards, and it is still his.
    stranger.*
 6. **[portable-package](portable-package.md)** — for people who do not
    exist yet, by his own answer.  *Waiting on program-or-workshop.*
-7. **[driven-runs](driven-runs.md)** — the instrument that finds nearly
-   everything, and cannot say what it ran.  *The harness landed
-   2026-08-19; one real driven run is left, and it waits on `xdotool`.*
-8. **[stranger-test](stranger-test.md)** — **moved here from first on
+7. **[stranger-test](stranger-test.md)** — **moved here from first on
     2026-08-18**, the day it produced its largest result: *"I think that
     we need another stranger.  move the card to the last."*  It is not
     demoted for being less valuable — run two carried the vision's whole
@@ -93,16 +90,15 @@ still the tiebreak between two workable cards, and it is still his.
     answered by any session, at any position in this list.  A card that
     cannot be worked does not belong above cards that can.
 
-**Seven is the last of three that arrived unplaced on 2026-08-18** — the
-day's kaizen, written down at Henri's ask, *"Write cards for fixing
-these issues in your workflow"*.  They landed at the end because that is
-where a new card lands, and the criterion below demotes them on
-principle, since none of the three is something a person using gestate
-ever meets.
+**Three cards arrived unplaced on 2026-08-18** — the day's kaizen,
+written down at Henri's ask, *"Write cards for fixing these issues in
+your workflow"*.  They landed at the end because that is where a new
+card lands, and the criterion below demotes them on principle, since
+none of the three is something a person using gestate ever meets.
 
-**All three were worked from the bottom on 2026-08-19**, in one
-afternoon: `cheap-gates` finished, `carried-state` finished,
-`driven-runs` built but for one real run.  That is the strongest
+**All three were finished from the bottom on 2026-08-19**, in one
+afternoon: `cheap-gates`, `carried-state` and `driven-runs`.  That is
+the strongest
 evidence this board has about its own criterion, and it cuts against it
 twice over — they were worked because they were cheap and because he
 asked, not because they had risen; and `carried-state`, ranked seventh

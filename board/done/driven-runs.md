@@ -1,6 +1,6 @@
 # driven-runs — a driven run does not say what it ran, and I believed it four times
 
-    status   open — the harness is built; one real driven run is left
+    status   done — 2026-08-19
     because  "I read stale screenshots four times and told you wrong
              things twice" — a driven window leaves photographs with no
              record of which binary made them, and `cargo build -p
@@ -174,10 +174,51 @@ deliberately, because the bookkeeping is the part that was missing and a
 harness whose bookkeeping cannot be tested is the same problem as the
 runs it labels.
 
-## What is left
+## The first real run, and what it found — 2026-08-19
 
-**One real driven run**, once `xdotool` is installed — the whole point
-of `test_what_a_person_would_do`, and until it happens this card has
-built a harness that has never driven a window.  The bookkeeping is
-tested; the driving is not, and the card does not close on the half that
-was already working.
+`xdotool` installed through `tools/toolbox.sh --install`, and then
+`tools/lagcheck.py`'s own scenario rewritten to go through `Run` —
+because the honest proof is an existing tool leaving a real stamp, not
+a demonstration written to pass.
+
+    DISPLAY=:99 python tools/lagcheck.py examples/audio/twoknobs.ges
+    ok — the last keystroke is on screen
+    driven: test/driven/20260819-164316-lagcheck
+
+On `Xvfb :99`, so it did not land on the screen Henri was reading.  Six
+seconds.  The directory holds two shots and the stamp: commit, tree,
+the loaded library's path, build time and md5, *"other copies: 6 — none
+newer"*, the environment the child was handed, and the two questions
+with their answers.  The shot was **looked at**, not counted: the window
+shows `twoknobs.ges` with the command box open on `loop` and its
+completion list — so the fourth keystroke really is on screen, which is
+the claim the scenario makes.
+
+**And the refusal, proved on the real path.**  `touch
+target/release/libgestate_editor.so` — the copy `cargo build` from the
+workspace root writes — and the next run did not start:
+
+    a *different* copy of libgestate_editor.so is newer than the one the
+    editor loads:
+        target/release/libgestate_editor.so       16:43  4da17b9ef5b8
+        target/release/deps/libgestate_editor.so  16:43  4da17b9ef5b8
+      loaded: shell/editor/target/release/…       11:49  adf683535be8
+
+Two different md5s, named, with the command that builds the right one.
+That is the exact condition that produced two of the three wrong
+readings this card is about, and it now costs nothing to notice.
+
+**The run found two defects in the stamp**, which is the whole argument
+for running the thing rather than testing around it:
+
+* `Built` printed microseconds.
+* **`Environment` reported the *parent's* environment.**  It said
+  *nothing GESTATE_\* set* while `driven()` had handed the child
+  `GESTATE_PRESENCE=""` — a stamp describing the wrong process, which is
+  the same defect as a photograph of the wrong binary, one layer along.
+  Fixed by remembering what `env()` handed over; and the first fix fell
+  back to `os.environ` when no child had started, which is a
+  neighbouring truth reported confidently, so now a run with no child
+  says *no child was started*.  Both have tests.
+
+Twelve tests in `test/test_driven.py`, none needing a display.

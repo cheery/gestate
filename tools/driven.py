@@ -188,6 +188,7 @@ class Run:
         self.observations: list[tuple[str, str]] = []
         self.library = library()
         self.strays = strays()
+        self.handed: dict | None = None
 
     # -- refusing -------------------------------------------------------
     def _refuse_if_the_run_cannot_happen(self):
@@ -242,8 +243,17 @@ class Run:
         return self
 
     def env(self, **extra) -> dict:
-        """The environment for the child, with the run's own on top."""
-        return driven(**{**self.extra_env, **extra})
+        """The environment for the child, with the run's own on top.
+
+        **Remembered, because the stamp used to report the parent's.**
+        The first real run said *nothing GESTATE\\_\\* set* while the child
+        was handed `GESTATE_PRESENCE=""` by `driven()` — a stamp
+        describing the wrong process, which is the same defect as a
+        photograph of the wrong binary.  What the report has to carry is
+        what the run *was*, so a trace can be reproduced.
+        """
+        self.handed = driven(**{**self.extra_env, **extra})
+        return self.handed
 
     def shot(self, win: int, label: str) -> Path:
         path = self.dir / f"{len(self.shots):02d}-{label}.png"
@@ -280,9 +290,12 @@ class Run:
         git = lambda *a: subprocess.run(["git", *a], cwd=ROOT, text=True,
                                         capture_output=True).stdout.strip()
         dirty = [l for l in git("status", "--porcelain").splitlines() if l.strip()]
-        seen = {k: v for k, v in sorted(os.environ.items())
+        # **What the child was handed, and nothing else.**  The first
+        # version fell back to `os.environ` when no child had started,
+        # which is a neighbouring truth reported confidently — the exact
+        # move this whole file exists to stop.  No child, no environment.
+        seen = {k: v for k, v in sorted((self.handed or {}).items())
                 if k.startswith("GESTATE_")}
-        seen.update({k: str(v) for k, v in self.extra_env.items()})
         body = [
             f"# {self.name} — a driven run",
             "",
@@ -294,10 +307,14 @@ class Run:
             f"| Commit | `{git('log', '-1', '--format=%h %s') or '(none)'}` |",
             f"| Tree | {'clean' if not dirty else f'{len(dirty)} file(s) modified or untracked'} |",
             f"| Library | `{_rel(LOADED)}` |",
-            f"| Built | {lib.get('mtime', '—')} |",
+            f"| Built | {lib['mtime']:%Y-%m-%d %H:%M:%S} |" if lib.get("mtime")
+            else "| Built | — |",
             f"| md5 | `{lib.get('md5', '—')}` |",
             f"| Other copies | {len(self.strays)}{' — none newer' if self.strays else ''} |",
-            f"| Environment | {', '.join(f'{k}={v!r}' for k, v in seen.items()) or 'nothing GESTATE_* set'} |",
+            "| Environment | " + (", ".join(f"`{k}={v}`" for k, v in seen.items())
+                                  or ("nothing `GESTATE_*` set"
+                                      if self.handed is not None
+                                      else "*no child was started*")) + " |",
             f"| Wall | {int((datetime.now() - self.started).total_seconds())}s |",
             "",
         ]

@@ -193,3 +193,33 @@ def test_this_machine_can_actually_drive_a_window_or_says_why_not():
     if gone:
         pytest.skip("cannot drive here: " + ", ".join(gone))
     assert True
+
+
+def test_the_stamp_reports_the_environment_the_child_was_handed(tmp_path, monkeypatch):
+    """Found by the first real run, which is the only way it could be.
+
+    The stamp read `os.environ` — this process — and printed *nothing
+    GESTATE_* set* while `driven()` had handed the child
+    `GESTATE_PRESENCE=""`.  A stamp describing the wrong process is the
+    same defect as a photograph of the wrong binary, one layer along.
+    """
+    monkeypatch.delenv("GESTATE_WALK_WHY", raising=False)
+    run = a_run(tmp_path, monkeypatch)
+    with run:
+        run.env(GESTATE_WALK_WHY="1")
+    page = (run.dir / "report.md").read_text()
+    assert "GESTATE_PRESENCE=" in page, "driven() sets it and the stamp must say so"
+    assert "GESTATE_WALK_WHY=1" in page, "and what the scenario added"
+
+
+def test_a_run_that_started_no_child_says_so(tmp_path, monkeypatch):
+    """Rather than reporting the parent's environment, which would be a
+    neighbouring truth — the shape `dont-conclude-from-a-shallow-check`
+    warns about, in a report."""
+    monkeypatch.setenv("GESTATE_SO_CACHE", "0")
+    run = a_run(tmp_path, monkeypatch)
+    with run:
+        pass
+    page = (run.dir / "report.md").read_text()
+    assert "no child was started" in page
+    assert "GESTATE_SO_CACHE" not in page, "the parent's environment is not the run's"

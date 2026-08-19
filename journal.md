@@ -9381,3 +9381,57 @@ ordered by *impact on somebody using gestate*, and `carried-state` sat
 seventh under a criterion that had ranked a crash in his hands below
 six other things.  §"The priority" was rewritten this afternoon for the
 neighbouring reason; this is the second half of the same finding.
+
+## The harness drives, and the first real run finds two defects in it — 2026-08-19
+
+`card:driven-runs.md`, closed.  `xdotool` arrived through
+`tools/toolbox.sh --install` — it had been missing all along (F170), and
+missing in the way that matters: `find_window` searched, found nothing,
+waited out thirty seconds and returned `None`, which every caller reads
+as *the editor never opened a window*.  A sentence about the program,
+produced by an absent package.
+
+**The proof had to be an existing tool, not a demonstration.**  So
+`tools/lagcheck.py`'s own scenario was rewritten to go through `Run`,
+and driven on `Xvfb :99` so it did not land on the screen Henri was
+reading.  Six seconds; two shots and a stamp.
+
+**And the shot was looked at.**  `twoknobs.ges` open, the command box on
+`loop` with its completion list under it — so the fourth keystroke
+really is on screen, which is the claim the scenario has been making for
+weeks with nothing behind it but an exit code.
+
+**Then the refusal, on the real path.**  `touch
+target/release/libgestate_editor.so` and the next run did not start: two
+copies named, two different md5s, and the command that builds the one
+the editor actually loads.  That is the condition behind two of the
+three wrong readings this card was written for, and noticing it now
+costs nothing.
+
+### What running it found that testing around it did not
+
+Two defects in the stamp, in the first six seconds:
+
+* `Built` printed microseconds.
+* **`Environment` reported the parent's environment.**  It said *nothing
+  GESTATE_\* set* while `driven()` had handed the child
+  `GESTATE_PRESENCE=""`.  A stamp describing the wrong process is the
+  same defect as a photograph of the wrong binary, one layer along — in
+  the very instrument built to stop that.
+
+And the fix for the second was wrong first: it fell back to `os.environ`
+when no child had started, which is a **neighbouring truth reported
+confidently**, the shape this project keeps meeting.  A run with no
+child now says *no child was started*.  Its test failed on my own
+fallback before I noticed, which is the argument for writing the test
+first in one line.
+
+### The day
+
+Three cards finished — `cheap-gates`, `carried-state`, `driven-runs` —
+all three from the bottom of the list, all three of them the kaizen
+cards written on 2026-08-18 about the session's own broken workflow.
+Two new instruments (`--gates`, the pre-commit hook, `tools/driven.py`),
+two defects filed and fixed (F169, F170), and one proposal questioned
+into a journal entry instead of a card.  The board is at seven open,
+none of them added today.
