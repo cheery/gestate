@@ -9288,3 +9288,96 @@ entry is searchable and nobody searches it at the moment it matters, and
 the moment it matters is when somebody is about to build the next thing
 that volunteers a number unasked.  That person is reading the
 instruments page.
+
+## The seam gets a roster, and the roster reproduces the crash — 2026-08-19
+
+`card:carried-state.md`, worked from position seven, at Henri's ask
+after he read the card through and said what he did not believe:
+
+> do the roster first.  I'm not convinced that the carried state itself
+> is bad.  Lets try it and see what happens to the problem.
+
+Which is an experiment with a result, and the card's `## Done` says what
+would end it.
+
+**What the confusion was, and it was a fair one.**  He asked whether
+this was about `-session.ges` files.  Two things in this tree wear the
+word *session*: `test/sessions/*-session.ges` are transcripts, written
+by `sessionlog.Log` and replayed with `python -m gestate.sessionlog`;
+`Session` in `gestate/session.py` is a Python object that lives while
+the window is open and never becomes a file.  They are connected —
+`Session.log` **is** the `Log` that writes those files, and the card's
+`because` begins with a transcript saying *"nothing has happened yet"*
+one step after a switch, because the log had been thrown away with the
+old session.
+
+**The number nobody had.**  `Session` has **25 fields**; `_carry` copies
+**seven**; `bench` is the switch itself; the other seventeen reset.  Not
+one line anywhere said which of those seventeen were decisions and which
+were oversights, and the three tests that existed each named one field —
+written after one crash each, and unable to fail for the twenty-fifth.
+
+**So: a roster**, the shape this tree already uses three times.  It reads
+`dataclasses.fields(Session)` off the class and the assignments out of
+`_carry`'s own source with `inspect.getsource`, so nothing is declared
+twice and the check cannot agree with a list that has itself gone stale.
+Every field must be carried, or named with a **reason**, or be `bench`.
+
+**Writing the seventeen reasons was the work, and the value.**
+`confirming` is *an export waiting on a yes, for a piece no longer
+open — carrying this would export the wrong thing on a keypress*.
+`holding` is *a note a hand has hold of, and there is no hand on the new
+file*.  A field whose reason cannot be written is a field somebody has
+to look at, which is the point of being made to write one.
+
+**And two behavioural tests, because a roster cannot see a wrong carry.**
+`fresh.walk = session.walking` satisfies any roster. The second of them
+checks the opposite direction — that a deliberately-fresh field really
+does reset — which catches a field quietly *starting* to survive, a
+defect nothing would have reported.
+
+**Proved by breaking it twice.**  A twenty-sixth field on `Session`
+fails it by name.  And deleting `fresh.walking = …` from `_carry` — *the
+actual afternoon bug that crashed the editor* — fails it by name too.
+The roster reproduces a real defect that the three tests written after
+it could not.
+
+It is a **gate** now, at 0.19 s: the first entry in `GATES` about code
+rather than documents, which is right, because the rule for that list
+was always the defect class and not the file.
+
+### The card could not be read by the person it was written for
+
+Henri, partway through: *"I have to say I do not understand and I need
+to get more context.  We are talking about the `-session.ges` files,
+correct?"*
+
+He was not.  The card had been elaborated at length, every section
+accurate, and it opened on *"the seam is `Session` ↔ `workbench._carry`"*
+— which assumes the reader knows that `Session` is an object and not one
+of the twelve `test/sessions/*-session.ges` files sitting in the tree
+wearing the same word.
+
+Then: *"card:carried-state.md can maybe use clarification, also you
+could try A3 on it."*  So the card was rebuilt to
+`board/README.md` §"One sheet, then depth" — header, what it is about,
+the ask, the questions, what landed, then a rule and the depth below.
+
+**And the format gained a fifth thing because of it.**  The A3 front was
+supposed to hold the header, the ask, the questions and what is left.
+It was missing the one section that would have let him in: *what the
+card is about* — the nouns, what they are not, and when the thing runs.
+A card is written by somebody at the end of the looking, and the words
+that were expensive to learn are the ones that read as obvious by then.
+Rearranging alone would not have fixed this; the missing paragraph was
+never anywhere in the card.
+
+### And what the day says about the board
+
+All three of 2026-08-18's kaizen cards were worked today, from the
+bottom of the list, in one afternoon — `cheap-gates` and `carried-state`
+finished, `driven-runs` built but for one real run.  The board is
+ordered by *impact on somebody using gestate*, and `carried-state` sat
+seventh under a criterion that had ranked a crash in his hands below
+six other things.  §"The priority" was rewritten this afternoon for the
+neighbouring reason; this is the second half of the same finding.

@@ -75,6 +75,14 @@ GATES_PAGE = ROOT / "test" / "gates.md"
 #: `command.ges`.  The second cost a whole re-run.  The check itself is
 #: a directory comparison and takes 0.17 s.
 #:
+#: **`test_carry.py` joined on 2026-08-19**, and it is the first entry
+#: here that is about code rather than about documents — which is right,
+#: because the rule is the defect class.  A `Session` field added
+#: without a matching line in `workbench._carry` is a list falling
+#: behind its source, exactly like the atlas behind its modules; it
+#: costs 0.19 s to check and it crashed the editor in Henri's hands
+#: twice in one day before anything checked it (`card:carried-state.md`).
+#:
 #: They are not re-listed for the long pass — it runs them again as part
 #: of its own collection, which is where their five seconds are counted.
 GATES = {
@@ -94,6 +102,8 @@ GATES = {
         "the audio example roster",
     "test/test_gui.py::test_every_gui_example_is_exercised_here":
         "the gui example roster",
+    "test/test_carry.py::test_every_field_is_carried_or_deliberately_fresh":
+        "every Session field, carried across a switch or knowingly not",
 }
 
 

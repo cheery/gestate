@@ -1,6 +1,6 @@
 # carried-state — a rule in prose did not hold the seam it was written for
 
-    status   open
+    status   done — 2026-08-19
     because  "I wrote the seam rule into spec/verification.md at midday
              and then broke it three more times the same day" — the same
              function, `workbench._carry`, dropped a new field twice and
@@ -16,6 +16,33 @@
              fixme.md F161 — the crash Henri hit, and why it is filed a day late
              card:interface-oracle.md — the same argument for the window
 
+## What this is about
+
+**`Session` is not a file.**  Two things in this tree wear the word
+*session*, and this card assumed the reader already knew which:
+
+* `test/sessions/*-session.ges` are **transcripts** — written by
+  `sessionlog.Log`, replayed with `python -m gestate.sessionlog`.  A
+  recording of what somebody did, kept so a bug can be reproduced.
+* `Session`, in `gestate/session.py`, is **a Python object that lives
+  while the window is open**: *"a workbench, a view, and the commands
+  that move them."*  It never becomes a file.
+
+This card is about the second.  They touch at exactly one point —
+`Session.log` *is* the `Log` that writes the first — which is why the
+`because` above opens with a transcript.
+
+**`_carry` runs when you open a different file in the same window**
+(`gestate/workbench.py:921`).  The window survives.  The instrument
+under it is rebuilt for the new file and so is the `Session`, and
+`_carry` copies across, by hand, the fields that belong to the *window*
+rather than to the instrument.
+
+**Twenty-five fields: seven carried, one is the switch itself, and
+seventeen deliberately reset.**  Every field it forgets is a silent
+reset that surfaces somewhere far away — twice on 2026-08-18 as a crash
+in Henri's hands.
+
 ## The ask
 
 From the day's kaizen, in my own words:
@@ -29,6 +56,47 @@ From the day's kaizen, in my own words:
 Henri had asked for the cards after the verdict, and named this one
 worth having: *"I liked that you created a new card.  It was
 necessary."*
+
+## Questions — answered 2026-08-19
+
+**Henri, choosing the roster and leaving the design alone:**
+
+> do the roster first.  I'm not convinced that the carried state itself
+> is bad.  Lets try it and see what happens to the problem.
+
+Which settles both questions in the card and settles the second one the
+way it leaned — cheap first.
+
+**The design question is deferred, not closed.**  `_carry` exists only
+because a switch builds a new `Session`; a window that kept one and
+swapped the instrument inside it would have no seam to forget.  What
+would reopen it: a field turning out to be on the wrong list, or the
+seam biting again in a way the roster did not catch — either would be
+evidence that the roster made the current design *safe* without making
+it *right*.  The roster is also what makes that rewrite attemptable,
+since it would say at once if the new design dropped a field.
+
+## Done — 2026-08-19
+
+`test/test_carry.py`, four tests, 0.19 s, and **a gate**.  It reads the
+field names off `Session` and the assignments out of `_carry`'s own
+source, so neither list is written down twice: every field must be
+carried, or named in `DELIBERATELY_FRESH` **with a reason**, or be
+`bench`.  Two further tests check that what is carried actually arrives
+and what is not carried actually resets — a roster alone cannot see a
+wrong carry.
+
+**Proved by breaking it twice.**  A twenty-sixth field on `Session`
+fails it by name; deleting `fresh.walking = …` from `_carry` — *the
+real afternoon bug that crashed the editor* — fails it by name too.
+
+Writing the seventeen reasons was the work and the value.  The detail is
+below the line; the story is in `journal.md` §"The seam gets a roster".
+
+---
+
+*Everything above is the sheet.  What follows is the depth —
+`board/README.md` §"One sheet, then depth".*
 
 ## Found by looking, before it was taken
 
@@ -119,7 +187,7 @@ is not user-facing.  It is not — it is a control on the people who
 build, and its user-facing claim is only the negative one: *the editor
 does not crash when you open a file from the starter screen.*
 
-## Questions
+## The questions as they stood
 
 **Is a roster test the right instrument here, or is the real fix to
 stop rebuilding the session at all?**  `_carry` exists because a switch
@@ -135,3 +203,55 @@ tests?**  The tempting version is a decorator or a registry that makes
 forgetting impossible by construction.  The cheap version is three
 roster tests in three files.  Cheap first, on the evidence: the rosters
 that already exist earn their keep and cost nothing to read.
+
+## What was built, in detail
+
+**`test/test_carry.py`, and it is a gate.**  Four tests, 0.19 s, added
+to `tools/suite.py`'s `GATES` — the first entry there about code rather
+than documents, which is right because the rule for that list is the
+defect class: a `Session` field added without a line in `_carry` is a
+list falling behind its source, exactly like the atlas behind its
+modules.
+
+**The roster, in both directions.**  `dataclasses.fields(Session)` is
+read from the class and the assignments are read out of `_carry`'s own
+source with `inspect.getsource` — declared nowhere, so the check cannot
+agree with a list that has itself gone stale.  Every field must be
+carried, or named in `DELIBERATELY_FRESH` **with a reason**, or be
+`bench`, which is the switch itself.  A field on both lists fails too.
+
+**Seventeen reasons written once.**  That was the real work and the real
+value: `confirming` is *an export waiting on a yes, for a piece no
+longer open — carrying this would export the wrong thing on a keypress*;
+`holding` is *a note a hand has hold of, and there is no hand on the new
+file*.  Every one is taken from the field's own comment in
+`session.py`.  Before today nothing anywhere said which of the
+twenty-five fields were decisions and which were oversights.
+
+**And two behavioural tests, because a roster cannot see a wrong
+carry.**  `fresh.walk = session.walking` satisfies any roster; so every
+carried field is given a value nothing else would produce and looked for
+on the far side, and every deliberately-fresh field is set stale and
+checked to have reset.  That second direction catches the opposite
+defect — a field that quietly *starts* surviving — which nothing would
+have reported.
+
+**Proved by breaking it, twice.**
+
+* A twenty-sixth field added to `Session` → `assert not {'probe_field'}`.
+* The `fresh.walking = …` line deleted from `_carry` — *the actual
+  afternoon bug that crashed the editor* → `assert not {'walking'}`.
+
+The second is the one that matters: the roster reproduces the real
+2026-08-18 defect, which the three tests written after it could not,
+because each of those names one field and none of them knows how many
+there are.
+
+**What would reopen the design question.**  Henri's *"lets try it and
+see what happens to the problem"* is an experiment with a result, so:
+if a field turns out to be on the wrong list, or if the seam bites again
+in a way the roster did not catch, that is the evidence that the roster
+made the current design *safe* without making it *right* — and the
+larger change (one `Session`, the instrument swapped inside it) comes
+back.  The roster is also what would make that rewrite attemptable: it
+would say at once if the new design dropped a field.

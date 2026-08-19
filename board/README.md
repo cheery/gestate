@@ -79,11 +79,10 @@ still the tiebreak between two workable cards, and it is still his.
    stranger.*
 6. **[portable-package](portable-package.md)** — for people who do not
    exist yet, by his own answer.  *Waiting on program-or-workshop.*
-7. **[carried-state](carried-state.md)** — the seam that dropped three
-   fields in one day and crashed the editor twice in Henri's hands.
-8. **[driven-runs](driven-runs.md)** — the instrument that finds nearly
-   everything, and cannot say what it ran.
-9. **[stranger-test](stranger-test.md)** — **moved here from first on
+7. **[driven-runs](driven-runs.md)** — the instrument that finds nearly
+   everything, and cannot say what it ran.  *The harness landed
+   2026-08-19; one real driven run is left, and it waits on `xdotool`.*
+8. **[stranger-test](stranger-test.md)** — **moved here from first on
     2026-08-18**, the day it produced its largest result: *"I think that
     we need another stranger.  move the card to the last."*  It is not
     demoted for being less valuable — run two carried the vision's whole
@@ -94,21 +93,23 @@ still the tiebreak between two workable cards, and it is still his.
     answered by any session, at any position in this list.  A card that
     cannot be worked does not belong above cards that can.
 
-**Seven and eight arrived unplaced on 2026-08-18** and are at the end
-because that is where a new card lands, not because that is where they
-belong.  They are the day's kaizen written down at Henri's ask —
-*"Write cards for fixing these issues in your workflow"* — and the
-criterion above demotes them on principle, since neither is something a
-person using gestate ever meets.  **`cheap-gates` was the third of them
-and was finished on 2026-08-19**, from the bottom of the list, in a
-sitting — which is one data point against the criterion rather than for
-it: it was worked because it was cheap and because he asked, not
-because it had risen.  Worth one line of his
-opinion, though, because the argument cuts the other way too:
-`carried-state` is the only card on this board whose absence has
-already crashed the program in his hands, twice, in one day.  Ordering
-by *impact on somebody using gestate* and ranking a crash last is the
-kind of answer a rule gives when nobody checks it.
+**Seven is the last of three that arrived unplaced on 2026-08-18** — the
+day's kaizen, written down at Henri's ask, *"Write cards for fixing
+these issues in your workflow"*.  They landed at the end because that is
+where a new card lands, and the criterion below demotes them on
+principle, since none of the three is something a person using gestate
+ever meets.
+
+**All three were worked from the bottom on 2026-08-19**, in one
+afternoon: `cheap-gates` finished, `carried-state` finished,
+`driven-runs` built but for one real run.  That is the strongest
+evidence this board has about its own criterion, and it cuts against it
+twice over — they were worked because they were cheap and because he
+asked, not because they had risen; and `carried-state`, ranked seventh
+by *impact on somebody using gestate*, was the only card here whose
+absence had already crashed the program in his hands, twice, in one day.
+Ordering by impact and ranking a crash seventh is the kind of answer a
+rule gives when nobody checks it.
 
 **Ordered by impact on somebody using gestate** — 2026-08-17, at
 Henri's ask: *"order them by some quality, such as, what is the impact
@@ -399,6 +400,22 @@ So it is a **front**, not a limit: the header, the ask, the questions
 and what is left to do fit one sheet, and whatever needs saying at
 length follows below it.  A reader who stops after the first sheet still
 has what they need to act.
+
+**And a fifth thing belongs on the front, found 2026-08-19: what the
+card is *about*.**  `card:carried-state.md` was elaborated carefully and
+still could not be read by the person it was written for — *"I have to
+say I do not understand and I need to get more context.  We are talking
+about the `-session.ges` files, correct?"*  It was not: two things in
+the tree wear the word *session*, and the card had assumed which.  Every
+section was accurate and the reader could not get in.
+
+The failure is not length and rearranging alone would not have fixed it.
+A card is written by somebody at the end of the looking, and the words
+that were expensive to learn are exactly the ones that read as obvious
+by then.  So the front opens with the nouns — *what this is, what it is
+not, and when the thing runs* — before it opens with what went wrong.
+Cheap to write, and the only part a stranger cannot supply for
+themselves.
 
 The line that decides what goes below is already here — *the paragraphs
 belong to the journal, not to the card.*  A card says what to do; the
