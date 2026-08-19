@@ -128,6 +128,87 @@ a thing the editor's own startup depends on.  That belongs in the work:
 a failing fence must degrade to a named refusal, not to a window that
 does not appear.
 
+## The measurement he asked for — made 2026-08-19
+
+*Henri, 2026-08-17: "I do not know.  This should be probably measured.
+How much attack surface there is between 'the directory you started
+with' and 'gestate only'."  This section is the session's measurement,
+on his machine, and every number in it is a count rather than a
+judgement.*
+
+**Option A, "gestate only" — today's fence.**  Its surface is not zero
+and it is knowable:
+
+| bound | files | size |
+|---|---|---|
+| `$PROJECT` (writable) | the tree | — |
+| `~/.rustup` (ro) | 65,697 | 1.5G |
+| `~/.cargo` (ro) | 10,943 | 259M |
+| `~/.stack` (ro) | 1,085 | 1.9G |
+| `~/.npm` (ro) | 232 | 85M |
+| `/usr`, `/etc` (ro), `/tmp` and `$HOME` (tmpfs) | | |
+
+Nothing else in `$HOME` is denied — it is **not there**.  No credential
+store, no browser profile, no document.
+
+**Option B, "the directory the window was started in."**  The reachable
+set is a function of `$PWD` at launch.  Started from `$HOME`, which is
+the case that decides it, that set is:
+
+* **948,553 files, 157 GB** outside the tree
+* `~/.ssh` (6 files), `~/.aws` (5), `~/.gnupg` (2),
+  `~/.local/share/keyrings` (2)
+* `~/.config/google-chrome` — **16,951 files**, which is the cookie jar
+  and the saved-password store
+* `~/.claude` — **4,454 files**, including this session's own
+  credentials and every transcript
+* **1,417 files whose name alone says secret** (`*.pem`, `*.key`,
+  `id_*`, `.env`, `*credential*`, `*token*`), excluding `node_modules`.
+  1,092 of them are in `Asiakirjat`, 39 in `svs.local`, 82 in `software`
+* the company directories — `fairbusiness*`, `svs*`, `chatapi`,
+  `mentor_dataset` — which are **not only his to expose**
+  (`doc/consent.md`'s question, one layer down)
+
+**Option C, "a named list of roots."**  The surface is whatever is in
+the list.  The number is not the point: it is **declared, reviewable,
+and it does not move.**
+
+### What the numbers actually decide, which is not their size
+
+**The set under A and C is a property of the configuration.  Under B it
+is a property of where somebody happened to be standing.**  That is the
+difference, and it is not a difference of degree.  A fence whose
+boundary moves with `cd` cannot be written into `spec/sandbox.md`, and
+this project's own rule is that *a fence that has not proved its own
+fence is a mood* — B cannot be proved, because there is no fixed thing
+to prove.
+
+**And B is not even one behaviour.**  `tools/gestate-editor` runs
+`cd "$(dirname "$0")/.."` before launching — every desktop-icon start is
+already *in the project* whatever directory the click came from.  So
+option B would be identical to option A for the launcher and different
+for a shell invocation of `python -m gestate.workbench`, silently, with
+no way for the person in the window to tell which fence they are inside.
+Two surfaces behind one option is the poka-yoke failure this tree
+designs against everywhere else.
+
+**The thing that makes B tempting is real and C serves it.**  What he
+wants is to open a file that is not in the tree.  A `--bind` of one named
+directory does that (§"Q (Claude), and it decides the shape" already
+establishes the mechanism), and it does it without making the boundary a
+function of the shell's history.
+
+**So the measurement recommends option C, and it recommends it on the
+knowability rather than on the counts.**  The counts only say what B
+would cost when it went wrong: 157 GB, four credential stores, a browser
+profile, and material belonging to a company he does not solely own.
+
+**One thing the measurement does not settle**, and it is his: whether
+the named list lives in `~/.config/gestate/`, in the desk file, or is
+given per-invocation.  That is a design question about who may widen the
+fence and when, and it is worth one line from him before anything is
+built.
+
 ## Where it stands
 
 Placed **at the end of the order**, at his ask on 2026-08-17, having
