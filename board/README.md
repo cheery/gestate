@@ -53,9 +53,7 @@ is what keeps a card's name stable while priorities move.
    fields in one day and crashed the editor twice in Henri's hands.
 8. **[driven-runs](driven-runs.md)** — the instrument that finds nearly
    everything, and cannot say what it ran.
-9. **[cheap-gates](cheap-gates.md)** — seventeen seconds of checks
-    that only run when somebody has twenty-five minutes.
-10. **[stranger-test](stranger-test.md)** — **moved here from first on
+9. **[stranger-test](stranger-test.md)** — **moved here from first on
     2026-08-18**, the day it produced its largest result: *"I think that
     we need another stranger.  move the card to the last."*  It is not
     demoted for being less valuable — run two carried the vision's whole
@@ -66,12 +64,16 @@ is what keeps a card's name stable while priorities move.
     answered by any session, at any position in this list.  A card that
     cannot be worked does not belong above cards that can.
 
-**Seven through nine arrived unplaced on 2026-08-18** and are at the end
+**Seven and eight arrived unplaced on 2026-08-18** and are at the end
 because that is where a new card lands, not because that is where they
 belong.  They are the day's kaizen written down at Henri's ask —
 *"Write cards for fixing these issues in your workflow"* — and the
-criterion above demotes all three on principle, since none of them is
-something a person using gestate ever meets.  Worth one line of his
+criterion above demotes them on principle, since neither is something a
+person using gestate ever meets.  **`cheap-gates` was the third of them
+and was finished on 2026-08-19**, from the bottom of the list, in a
+sitting — which is one data point against the criterion rather than for
+it: it was worked because it was cheap and because he asked, not
+because it had risen.  Worth one line of his
 opinion, though, because the argument cuts the other way too:
 `carried-state` is the only card on this board whose absence has
 already crashed the program in his hands, twice, in one day.  Ordering
@@ -486,7 +488,17 @@ is what the `blocked` field is for.
    paragraphs belong to the journal, not to the card.**
 2. `status` becomes `done — <date>`.
 3. Move the card to `board/done/` and take it out of the order above.
-4. Write the commit title yourself.  **Henri's, 2026-08-17:** *"From now
+4. **Run the gates** — `python tools/suite.py --gates`, about twelve
+   seconds.  They are the checks a card's own edits break: the board's
+   contract, the citations, the consent file, the atlas, `doc/ref/`, the
+   complaints page, the two example rosters.  Steps 1–3 above have just
+   edited three of those.
+
+   `tools/pre-commit.sh --install` makes this automatic and is installed
+   in this checkout — the commit will run them whether or not you did.
+   Running it first only means finding out before you have written the
+   message.
+5. Write the commit title yourself.  **Henri's, 2026-08-17:** *"From now
    on I allow you to select titles yourself."*  Until that morning the
    title was his to give and a session asked for it — which worked while
    he was at the desk and became the thing a card waited on once he was
@@ -586,6 +598,17 @@ rule about two writers, with the test run as the second writer.  So:
 
 > **Targeted runs per card while working; one full run per shift; and
 > the tree is frozen while it runs.**
+
+**And the gates at every commit, which is a third cadence and not a
+weakening of the second.**  *Added 2026-08-19, `card:cheap-gates.md`.*
+The eight structural gates cost twelve seconds and are about the tree
+agreeing with itself rather than about behaviour, so they belong beside
+the edit that breaks them — `tools/pre-commit.sh --install` puts them
+there.  The full pass is still the only thing that says gestate works,
+and `test/gates.md` says so on its own face.  What changed is that the
+full run stopped being the *first* time anything was checked: before
+this, a whole shift's work could reach the evening before one seventeen
+second check ran, and on 2026-08-18 it did.
 
 If something must be changed mid-run, kill the run.  Finishing a run
 against a tree that no longer exists proves nothing and costs the same

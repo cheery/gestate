@@ -74,3 +74,128 @@ def test_no_cargo_is_a_note_and_not_a_failure(monkeypatch):
     rc, _out, note = suite._rust(fake_stream(0, GREEN), False, ROOT)
     assert rc == 0
     assert "no cargo" in note
+
+
+# ── `--gates`, and the page it must not be mistaken for ──────────────────
+#
+# `card:cheap-gates.md`: the eight structural checks cost seventeen
+# seconds and ran once a shift, because the only way to reach them was to
+# start a twenty-five-minute pass.  `--gates` is the mode that stops
+# after them.  **Its whole risk is that a cheap check reads like an
+# expensive one** — eight green document checks are a true page and an
+# untrue impression — so what is tested here is the labelling, not the
+# checks.
+
+GATE_OUT = "........\n8 passed in 11.31s\n"
+
+
+def test_the_gate_page_says_it_is_not_a_suite_run(tmp_path, monkeypatch):
+    """Three times over, and a reader must not be able to skim past it.
+
+    The failure being designed against is somebody opening the tree
+    cold, finding a green page written by `tools/suite.py`, and taking
+    it for evidence that gestate works.  It is evidence that the tree's
+    documents agree with each other and nothing more.
+    """
+    monkeypatch.setattr(suite, "ROOT", tmp_path)
+    monkeypatch.setattr(suite, "GATES_PAGE", tmp_path / "gates.md")
+    from datetime import datetime
+    rc = suite._draw_gates(0, GATE_OUT, datetime(2026, 8, 19, 15, 0), 12.0,
+                           "unfenced", ["test/test_board.py"])
+    page = (tmp_path / "gates.md").read_text()
+    assert rc == 0
+    assert "not a suite run" in page, "the header has to disown the suite"
+    assert "the suite did not run" in page.lower(), \
+        "the totals line is what a skimmer reads; it has to say so too"
+    assert "8 passed" in page
+
+
+def test_a_gate_run_does_not_overwrite_the_suite_report(tmp_path, monkeypatch):
+    """Two writers, one file — this board's own rule, in miniature.
+
+    A gate run happens per commit and a full run per shift, so sharing
+    `test/report.md` would mean the shift's evidence is destroyed by the
+    next commit and the reader cannot tell which run wrote the page.
+    """
+    monkeypatch.setattr(suite, "ROOT", tmp_path)
+    monkeypatch.setattr(suite, "GATES_PAGE", tmp_path / "gates.md")
+    monkeypatch.setattr(suite, "REPORT", tmp_path / "report.md")
+    from datetime import datetime
+    suite._draw_gates(0, GATE_OUT, datetime(2026, 8, 19, 15, 0), 12.0,
+                      "unfenced", ["test/test_board.py"])
+    assert not (tmp_path / "report.md").exists(), \
+        "the gate page must not stand in for the suite's"
+
+
+def test_a_red_gate_survives_into_the_page_and_the_exit_code():
+    """The reason the hook exists: a failure has to *stop* something."""
+    out = "FAILED test/test_atlas.py::test_every_module_has_a_lane - no lane\n" \
+          "1 failed, 135 passed in 11.51s\n"
+    assert suite._failures(out) == \
+        [("test/test_atlas.py::test_every_module_has_a_lane", "no lane")]
+    assert "1 failed" in suite._tally([out])
+
+
+def test_the_gates_are_read_from_the_one_list():
+    """No second copy of the eight paths anywhere.
+
+    The card records a session hand-copying them out of this file into a
+    `pytest` command on the days it could not spare the full pass —
+    which works until the list grows, and then silently runs the old
+    set.  `--gates` exists so that the list has exactly one home.
+    """
+    src = (ROOT / "tools" / "suite.py").read_text()  # the test file's ROOT
+    assert src.count("GATES = {") == 1
+    for path in suite.GATES:
+        assert (ROOT / path.split("::")[0]).exists(), f"{path} named but absent"
+
+
+# ── the hook that runs them ──────────────────────────────────────────────
+
+
+def test_the_hook_installs_and_uninstalls_in_a_fresh_repository(tmp_path):
+    """It lands in somebody else's working directory, so it has to leave.
+
+    `card:cheap-gates.md` weighed a hook against a line in
+    `board/README.md` and named this as the cost: it fires on Henri's
+    commits too.  The answer given was that removing it is one command,
+    which is only true if that command works.
+    """
+    import subprocess
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    (repo / "tools").mkdir()
+    hook_src = ROOT / "tools" / "pre-commit.sh"
+    (repo / "tools" / "pre-commit.sh").write_bytes(hook_src.read_bytes())
+    (repo / "tools" / "pre-commit.sh").chmod(0o755)
+
+    def run(*args):
+        return subprocess.run([str(repo / "tools" / "pre-commit.sh"), *args],
+                              cwd=repo, capture_output=True, text=True)
+
+    assert run("--check").returncode == 1, "a fresh clone has no hook"
+    assert run("--install").returncode == 0
+    assert run("--check").returncode == 0
+    assert run("--uninstall").returncode == 0
+    assert not (repo / ".git" / "hooks" / "pre-commit").exists()
+    assert run("--check").returncode == 1
+
+
+def test_the_hook_refuses_to_overwrite_a_hook_it_did_not_write(tmp_path):
+    """Somebody else's pre-commit is somebody else's work."""
+    import subprocess
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    (repo / "tools").mkdir()
+    (repo / "tools" / "pre-commit.sh").write_bytes(
+        (ROOT / "tools" / "pre-commit.sh").read_bytes())
+    (repo / "tools" / "pre-commit.sh").chmod(0o755)
+    theirs = repo / ".git" / "hooks" / "pre-commit"
+    theirs.write_text("#!/bin/sh\necho mine\n")
+
+    r = subprocess.run([str(repo / "tools" / "pre-commit.sh"), "--install"],
+                       cwd=repo, capture_output=True, text=True)
+    assert r.returncode == 3
+    assert theirs.read_text() == "#!/bin/sh\necho mine\n", "it was overwritten"

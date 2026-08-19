@@ -9157,3 +9157,55 @@ is a caution against the correction rather than for it.
 ### Tomorrow's first thing
 
 Batch one — F161, F160, F155, F153, F149.
+
+## Twelve seconds, moved from the shift to the commit — 2026-08-19
+
+`card:cheap-gates.md`, from the bottom of the order, because Henri asked
+for it: *"lets start and implement the cheap-gates.  It could be a git
+hook."*
+
+The eight structural gates — the board's contract, the citations, the
+consent register, the atlas, `doc/ref/`, the complaints page, the two
+example rosters — had been reachable only by starting the twenty-five
+minute pass.  So they ran once a shift, at the end, and on the day
+before the card was written they ran once and died in seventeen seconds
+on a breakage hours old, with half an hour left in his day.  The whole
+of the fix is `--gates`: the same fence proof, the same `GATES` dict,
+the same streaming, and then stop.  Twelve seconds measured.
+
+**The card's leaning was wrong, and it was wrong about the arithmetic
+rather than about the design.**  It proposed building `--gates` first,
+putting it in §"Finishing one", and waiting for evidence that a hook was
+needed — reasoning that a hook fires on Henri's commits too and that
+twelve seconds is a cost imposed on somebody who did not cause the
+breakage.  He answered the question directly, and then, once it was
+running, answered the arithmetic:
+
+> as a git hook it also gives some time to think before committing.  I
+> think it's a quality assurance.
+
+The same twelve seconds, read as the benefit.  A commit is the *end of a
+card* on this board and there had been nothing between deciding to make
+one and having made it.  A session weighing a pause against the work it
+interrupts will always price it as loss; that is worth remembering next
+time one of these is designed.
+
+**The gate page had to disown the suite three times.**  A green sheet of
+eight document checks is a true page and an untrue impression, so
+`test/gates.md` says *this is not a suite run* in its title, its opening
+paragraph and its totals line — the last of those because the bold
+number at the bottom is what a skimmer reads.  It is a separate file
+from `test/report.md` for this board's own two-writers reason: a gate
+run happens per commit and a full run per shift, so one filename means
+the shift's evidence is destroyed by the next commit.
+
+**The hook was proved by breaking something.**  A deliberate bad card
+citation appended to `fixme.md`, then `.git/hooks/pre-commit` — refused,
+gate named, twelve seconds.  Which is the standing rule from
+`spec/author.md`: the check that has never failed has not been tested.
+
+And the first real run of the new gate found a real thing, immediately:
+the word *Until* in front of a date in `doc/instruments.md` read as a
+person quoted without consent.  A false positive, and the honest fix was
+to reword the sentence rather than widen `NOT_A_PERSON` — that list is
+the door out of the check.

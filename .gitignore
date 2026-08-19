@@ -23,6 +23,11 @@ dist/
 # meant something there.
 test/report.md
 
+# And the gate page, for the same reason plus one: `--gates` runs per
+# commit, so this file changes several times a shift and would put a
+# machine-local diff into every one of them.
+test/gates.md
+
 # Virtualenvs, whatever they are called.
 .venv/
 venv/

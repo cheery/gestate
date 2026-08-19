@@ -252,11 +252,50 @@ drift.
 ### `tools/suite.py` — the whole suite, gates first
 
 The gates are seconds-long structural checks that a working session
-breaks: the board's contract, the citations, the atlas, `doc/ref/`, the
-complaints page, the example rosters.  **A full run is ~25 minutes and
-the tree must be frozen while it runs** — editing under a run produces a
-red that describes a moment rather than a defect, which has cost two
-runs already.
+breaks: the board's contract, the citations, the consent file, the
+atlas, `doc/ref/`, the complaints page, the two example rosters.  **A
+full run is ~25 minutes and the tree must be frozen while it runs** —
+editing under a run produces a red that describes a moment rather than a
+defect, which has cost two runs already.
+
+### `tools/suite.py --gates` — the eight, and stop
+
+    python tools/suite.py --gates      # ~12s, fenced, writes test/gates.md
+
+**The cadence is the commit, not the shift.**  The gates are about
+whether the tree's documents still agree with the tree, which is exactly
+the property that editing the tree breaks — so they belong next to the
+edit.  The only way to reach them was to start the twenty-five-minute
+pass, until 2026-08-19, and `card:cheap-gates.md` is the day that cost
+came due: the single full run of a shift died at a gate in seventeen
+seconds, on a breakage hours old, with half an hour left in Henri's day.
+
+It writes `test/gates.md` and never `test/report.md`, and the page says
+in three places that the suite did not run — a green sheet of eight
+document checks is a true page and an untrue impression.
+
+**It is not a substitute for the full run.** Nothing here tests
+behaviour. One full pass per shift, tree frozen, is unchanged.
+
+### `tools/pre-commit.sh --install` — the gates, at every commit
+
+    tools/pre-commit.sh --install     # once per checkout; hooks are untracked
+    tools/pre-commit.sh --check
+    tools/pre-commit.sh --uninstall
+
+Henri, 2026-08-19, answering the card's open question: *"lets start and
+implement the cheap-gates.  It could be a git hook."*  And, once it was
+running, the reading that turns its one cost into a second reason for
+it: *"as a git hook it also gives some time to think before committing.
+I think it's a quality assurance."*
+
+Twelve seconds between deciding to commit and having committed, on a
+board where **a commit is the end of a card and not a punctuation mark
+inside one**.
+
+`git commit --no-verify` skips it; if you use that, say in the commit
+body which gate you skipped, because a skipped gate nobody wrote down is
+the state the hook was built to end.
 
 ---
 

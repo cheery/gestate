@@ -1,6 +1,6 @@
 # cheap-gates — the seventeen-second checks only ran when somebody had twenty-five minutes
 
-    status   open
+    status   done — 2026-08-19
     because  "no full suite run happened until just now" — a whole day
              of work went unverified because the only way to run the
              gates is to start a 25-minute pass, and when the pass
@@ -95,7 +95,40 @@ this was a gate run and nothing else happened.
 **A breakage that takes seconds to detect is never discovered by the
 author of the project on the following morning.**
 
-## Questions
+## Questions — answered 2026-08-19
+
+**A git hook, or a rule in the board?**  *Both, and the hook first.*
+Henri, opening the session: *"lets start and implement the cheap-gates.
+It could be a git hook."*  The card's leaning was the other way — build
+`--gates`, put it in §"Finishing one", and wait for evidence that the
+hook was needed — and it was wrong for a reason it had not seen.  It had
+counted the twelve seconds as the hook's cost.  Henri, once it was
+running:
+
+> as a git hook it also gives some time to think before committing.  I
+> think it's a quality assurance.
+
+Which is the same twelve seconds read as the benefit.  A commit is the
+*end of a card* on this board and there was nothing at all between
+deciding to make one and having made it.
+
+The objection the card raised — that it fires on his commits too — is
+answered by `tools/pre-commit.sh --uninstall`, named in the failure
+message itself, rather than by making the hook clever about who is
+committing.  It cannot know.
+
+**Should `--gates` write `test/report.md` at all?**  *No: a separate
+`test/gates.md`.*  The card offered three options and the separate file
+is the one that survives the board's own two-writers rule — a gate run
+happens per commit and a full run per shift, so sharing one filename
+means the shift's evidence is destroyed by the next commit and the
+reader cannot tell which run wrote the page.  Both the labelled-totals
+option and the separate file were taken, in the end: `test/gates.md`
+says *this is not a suite run* in its title, its first paragraph and its
+totals line.  Three times, because the risk of a cheap check is that a
+green page reads like an expensive one.
+
+## The questions as they stood
 
 **A git hook, or a rule in the board?**  A hook is a real control and
 holds for a session that forgets; it also fires on Henri's own commits,
@@ -111,3 +144,44 @@ in his working directory too.
 full run competing for one file is a small version of this board's own
 two-writers rule.  Options: a separate `test/gates.md`, a clearly
 labelled totals line, or nothing on disk at all.
+
+## Done — 2026-08-19
+
+**`python tools/suite.py --gates`.**  The eight gates, fenced, then
+stop: **12 seconds** measured, against the 25-minute pass they were
+trapped behind.  It shares every line above the stop with a full run —
+the same fence proof, the same `GATES` dict, the same streaming — so the
+list of gates has exactly one home and cannot drift from the
+hand-copied one this card records a session running from memory.
+
+**`test/gates.md`, and never `test/report.md`.**  Gitignored, like the
+report, plus one reason of its own: a per-commit page would put a
+machine-local diff into every commit.
+
+**The totals fix the card asked for, in both places.**  A full run that
+stops at the gates now reads `2 failed, 109 passed — the gates alone;
+the suite never started`, and the gate page says the same on its own
+face.
+
+**`tools/pre-commit.sh`** — `--install`, `--check`, `--uninstall`, and
+bare to run the gates now.  It writes a shim into `.git/hooks/`
+(untracked, so once per checkout) rather than a symlink, so it survives
+the tree being moved and works from a worktree; it refuses to overwrite
+a `pre-commit` it did not write. **Installed in this checkout on
+2026-08-19.**  Proved by breaking a citation deliberately and watching
+the commit be refused with the gate named.
+
+**Six tests in `test/test_suite_runner.py`** — the labelling of the
+page, that a gate run does not touch the suite's report, that a red gate
+reaches both the page and the exit code, that the eight paths have one
+home, and an install/uninstall round trip in a throwaway repository plus
+the refusal to clobber somebody else's hook.
+
+**Written into `doc/instruments.md`** beside the suite, and into
+`board/README.md` — §"Finishing one" gains the gates as step 4, and the
+serial-gate section gains the third cadence: *targeted runs per card,
+the gates per commit, one full pass per shift with the tree frozen.*
+
+**What this does not change.**  Nothing in the gate set tests behaviour.
+The full run is still the only thing that says gestate works, and it is
+still one per shift against a frozen tree.
