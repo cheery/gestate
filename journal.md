@@ -9466,3 +9466,120 @@ understating, F170 the undeclared `xdotool`, F171 a driven run able to
 type into somebody's open editor — and one proposal questioned into a
 journal entry instead of a card.  The board is at seven open, none of
 them added today.
+
+## Kaizen, 2026-08-19 — the instruments found everything and the tests found none of it
+
+*`spec/author.md` §"Five practices", 5.  Bounded: three questions.
+Twenty-two commits today, eleven of them after 15:14; three cards
+finished; four defects filed and fixed; the board at seven open with
+none added.*
+
+### What did we learn
+
+**Four defects today, and not one came from a test.**  F169 came from
+Henri reading a line of my output and retracting a true statement.  F170
+came from asking what the machine actually had installed.  F171 came
+from him asking *how do I use this*.  F172 came from the shift's suite —
+the only one from a test, and even that one had been seen on 2026-08-18,
+written into a journal parenthesis, and filed nowhere.
+
+**And all four were in the instruments, not the program.**  `gestate/`
+was untouched from 12:56 onward.  So: **an instrument is least
+trustworthy on the day it is built, and gets trusted immediately because
+you have just written it.**  The clock was two and a half hours old when
+it talked its author out of a true statement.  The driven harness had
+four defects and three surfaced in the first twenty minutes of use.
+
+**Arguing lost; the tree won.**  The gadget proposal got a long
+questioning and the prose was genuinely inconclusive — four readings,
+because I could not settle it.  What settled it was F169 *happening* in
+the middle of the argument: a number arriving unasked, wrong, and
+believed.  **When questioning stalls, stop reasoning and find a way to
+make the thing happen.**
+
+**A usage question is a stranger test, free.**  *"How I engage the
+driven-run now?  I have the user's version on my desktop that is not
+protected"* found the worst defect of the day — invisible from inside
+the tooling, because the tooling had only ever run where nothing else
+was running.  `card:stranger-test.md` sits at the bottom of the board
+waiting on a person nobody has; the author is a stranger to the tooling,
+cheaply and repeatedly, and that channel is open every day.
+
+**Three of the four fixes protect a result; one protects a person.**
+The right binary, a fresh directory, an honest stamp — and then F171,
+which is about somebody's open file.  That asymmetry was invisible until
+it was named.
+
+### What did we get wrong
+
+**Twice I ran a destructive step and did not read its output.**  Backing
+up `clock.sh` to a scratchpad directory that did not exist: `cp` printed
+an error, I read past it, and the loss surfaced only when the restore
+failed and the fix was gone.  Then the same shape on
+`tools/measure_editor.py` — a careless multi-replace corrupted the file,
+`git checkout` and redo.  Both cost minutes; both were avoidable by
+reading the step I had just taken.
+
+**The stamp's environment fix was wrong in exactly the way its own
+commit was about.**  It fell back to `os.environ` when no child had
+started — a neighbouring truth reported confidently, inside the change
+whose subject was a stamp describing the wrong process.  Caught only
+because I happened to write the test.
+
+**I launched the suite through `| tail -60`**, so the completion notice
+reported `tail`'s exit status: **exit 0 while the suite had exited 1.**
+I nearly reported a green suite.  `test/report.md` caught it, which is
+the whole argument for that page — a run that lives only in a
+notification has said nothing.
+
+**And `card:cheap-gates.md` leaned the wrong way**, because it had
+priced twelve seconds purely as interruption.  *"As a git hook it also
+gives some time to think before committing"* inverted the argument in
+one sentence.  More analysis would not have got there: that is a
+judgement about the author's own working rhythm and it was his to
+supply.
+
+### The ruleset, measured because he asked
+
+He asked what to propose about ruleset size, and said he felt no new
+rules were needed.  **He is right, and the measurement says it more
+strongly than the instinct did.**  The rule corpus is four files —
+`board/README.md` 700, `spec/author.md` 410, `doc/instruments.md` 402,
+`manifesto.md` 409 — **1,921 lines against an 85,179-line program, 2.2%.**
+`spec/author.md` and `manifesto.md` have been flat for two days.  An
+earlier figure of "7,000 lines of process" was mine and wrong: it
+counted `board/` cards, and a card is a task, not a rule.
+
+Today added two genuinely new rules; the rest of the growth was three
+tools being catalogued and two existing rules being *corrected*.
+
+**The one asymmetry: rules here have a birth mechanism and no death
+mechanism.**  Every one was earned by a named incident, which is the
+best property this corpus has.  Nothing has ever removed one — every
+commit touching `board/README.md` is a rewrite, never a deletion.  No
+check for it, deliberately: the corpus is five days old and nothing has
+had time to expire.  The cheap version needs no machinery — **when a
+rule gets in the way, delete it rather than carve an exception**, since
+exceptions are how rulesets grow without anyone deciding to.
+
+And the change is behavioural rather than another rule: today I wrote
+two rules and three corrections *while finishing three cards*, and
+nobody, including me, decided to.  The board demands a card be
+questioned into existence; **rules get written with no such bar at
+all.**  From here a rule gets the same treatment a card would — said out
+loud, incident named, and he can say no.
+
+### What is tomorrow's first thing
+
+**Batch 2 of `card:ungated-fixes.md`** — F139, F133, F132, F128, F126,
+due Thursday by the card's own schedule, and **as a repeat of the blind
+three-model comparison** at his ask: *"We learned a lot about running
+subagents, but didn't really learn about capabilities of different
+agents.  Would sonnet or haiku be able to determine what tests jog the
+fix?"*  `tools/blind.py` and the setup rules are in place for it; his
+verdict on the sheet is the one thing still outstanding.
+
+And after the batch, not before: **question 4 on that card** — whether
+there is a fifth verdict.  Batch 1 pushed on it at F161 and F153; batch
+2 is the second push, which is the moment the card itself named as
+honest.
