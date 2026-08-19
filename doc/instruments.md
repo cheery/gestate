@@ -49,6 +49,42 @@ hypothesis and declines to run the window has swapped an answer for an
 opinion, and the opinion goes into a commit message looking like a
 finding.
 
+## The other standing rule: a number nobody asked for is a number nobody checks
+
+*From F169, learned 2026-08-19, and it applies to every instrument on
+this page rather than to any one of them.*
+
+An instrument's answer is checked when somebody asked the question.  An
+answer read as an answer invites a check, because the reader wanted it
+and knows roughly what shape it should be.  **The same number arriving
+as a by-product is not read as a claim at all** — it is read as the
+background, and the background is not audited by anybody.
+
+F169 is the whole argument in one afternoon.  `tools/clock.sh` was run
+for an unrelated reason, printed `(1h ago)` for one hour and fifty-eight
+minutes, and the line simply sat there.  Henri had said he rested about
+two hours — right to within two minutes — and he retracted it against
+the clock.  Nobody in the room noticed that anything had been asserted.
+
+Two things follow, and the second is the one that costs something:
+
+* **A number an instrument volunteers has to be right at the boundary
+  and has to name its source.**  It will be spent where somebody checks
+  it against what they remember, which is the only place the error shows
+  and the only place it matters.
+* **More push is more unexamined surface, not less.**  The obvious
+  improvement to a pull instrument is to make it arrive on its own —
+  every turn, every session start, a status line.  That is exactly the
+  register in which the number stops being checked, so it is worth
+  building only for a number that is already correct at the boundary and
+  is already carrying its source.  On the day the clock was built, it
+  was neither.
+
+And it is **not a session's failing.**  A session defers to instruments
+because it has no felt duration to defer to instead; the author has one,
+overrode it, and was the one who got it wrong.  Whatever this page
+builds is load-bearing for both people reading it.
+
 ---
 
 ## Saying what you are doing, while you do it

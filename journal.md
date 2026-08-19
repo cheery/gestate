@@ -9209,3 +9209,82 @@ the word *Until* in front of a date in `doc/instruments.md` read as a
 person quoted without consent.  A false positive, and the honest fix was
 to reword the sentence rather than widen `NOT_A_PERSON` — that list is
 the door out of the check.
+
+## The proposal that questioning turned inside out — 2026-08-19
+
+Henri, opening the afternoon, alongside the ask that became
+`card:cheap-gates.md`:
+
+> I have a proposal we could argue about: I would like to have some
+> gadget that inserts the board/README.md and current&previous clock
+> time, and last commit right into your context.  Rationale is to
+> increase accuracy of how long we spend time in a day.  The same number
+> could be then reported in the commit.  What do you think?  Worth the
+> work?
+
+And then, before any answer:
+
+> Hmm.  I think my proposal should go through questioning, and stripped
+> from it's decision, turned into a problem statement.
+
+Which is `board/README.md` §"Question it into existence" applied by its
+author to his own ask, three weeks after the section that says a card
+must never be written out of an unquestioned one.
+
+### What the measuring found
+
+**The data already exists three ways** — `presence.tsv`, the commit log,
+and `tools/clock.sh` — and it is **already pushed to him**, by
+`card:timer.md`'s status bar.  The narrow real gap: a push to him,
+a pull for a session.
+
+**The record is accurate; the narration is not.**  Commit spans bracket
+a day within about fifty minutes of `presence.tsv`'s own span (08-17,
+`04:26→20:22` against `05:18→20:27`; 08-18, `06:01→16:09` against
+`05:07→15:46`).  What cannot be recovered afterwards is what somebody
+believed at the moment they wrote a sentence.
+
+**The board half fails on this project's own grounds.**  33KB, ~8,400
+tokens a session, and the file changed twice while this session was
+running — once by the session, an hour in.  A pushed copy is a second
+source of truth that goes stale as you read it, which the window and the
+suite have both been designed against.
+
+**The commit half runs into a rule adopted the same morning**: prefer
+the date over the duration, because a date can be checked and a duration
+cannot.  Fifty-two commit bodies already carry a duration claim and one
+needed a correcting commit (`fd70425`).
+
+### And then the thing itself happened
+
+Mid-questioning, a session ran `tools/clock.sh` for an unrelated reason.
+It printed `(1h ago)` — for **one hour and fifty-eight minutes**, F169.
+Henri read it and retracted a true statement: he had said he rested
+about two hours and was right to within two minutes.
+
+Nobody noticed a claim had been made.  The number was not an answer to
+anything; it arrived as a by-product and was read as the background.
+
+**That is the reading the questioning was reaching for, delivered as an
+event rather than an argument** — and it inverts the proposal.  Pushing
+the clock into every turn would have put an understating number in front
+of both parties continuously, in precisely the register where nothing is
+checked.  The gadget was not wrong about the gap.  It was wrong about
+the direction, and only a defect could show that.
+
+**And it happened to him, not to the session.**  Henri: *"It's funny
+because this time it's me."*  The clock was built that morning on the
+premise that a session has no felt duration and must defer to the
+instrument.  It took four hours to demonstrate that the author defers to
+it too — harder, in fact, because he had a correct memory and overrode
+it, and a session would have had nothing to override.
+
+### Where it landed
+
+Not a card.  Henri: *"It is not workable, in kaizen it is lost.  In
+journal it is searchable detail. …board/later is for tasks."*  So: this
+entry, plus one section in `doc/instruments.md` — because a journal
+entry is searchable and nobody searches it at the moment it matters, and
+the moment it matters is when somebody is about to build the next thing
+that volunteers a number unasked.  That person is reading the
+instruments page.
