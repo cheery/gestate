@@ -218,6 +218,16 @@ def test_a_quiet_success_does_not_chatter(bench):
     if bench.last_audition >= AUTO_AUDITION:
         pytest.skip("too slow on this machine for the automatic path")
     text = _edit(bench, "  \t")
+    # **Wait for the setup's own announcement, not merely its timing**
+    # (F172).  `last_audition` is set when the audition is *measured*;
+    # `applied edit 1` is said later, by `_progress`, on the
+    # housekeeping thread between blocks.  Taking the barrier between
+    # those two moments lets the asked-for audition's sentence land
+    # inside the window this test attributes to typing — which is what
+    # failed, twice, both times under a loaded machine, announcing
+    # edit *1* when the typed edit is 2.
+    assert _wait(lambda: any("applied edit" in m for m in bench.messages)), \
+        "the asked-for audition never announced itself"
     seen = len(bench.messages)
     bench.typed(text)
     assert _wait(lambda: bench._built_from == text)

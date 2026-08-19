@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 172 entries, **146 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 173 entries, **147 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -5680,3 +5680,46 @@ of a run — the right binary, a fresh directory, a stamp.  This is the
 first that protects the *person*, and it was invisible from inside the
 tooling because the tooling only ever ran where nothing else was
 running.  It took a usage question to find it.
+
+### F172. **[fixed]** a timing test raced its own setup, twice, both times under load — *and the mechanism is inferred, not reproduced*
+
+Found 2026-08-19 by the shift's full suite —
+`test_autoaudition.py::test_a_quiet_success_does_not_chatter`, one
+failure in **2880 passed**.  It passes alone in 4 s and the whole file
+passes in 25 s, fenced or not.
+
+**It had happened before and was never filed.**  `journal.md`, 2026-08-18:
+*"one `test_autoaudition` timing test failed once while an X server and
+a full suite were running together — the board's own warning about a
+shared machine, arriving on schedule."*  A parenthesis in a journal
+entry, no F-number, nothing to fire when it recurred.  It recurred.
+
+**What is proven.**  The message was `applied edit 1`.  The generation
+counter belongs to the test's own `bench` fixture and starts at zero, so
+edit 1 is *this test's* explicitly-asked-for setup audition and the
+typed edit would be 2.  That rules out cross-test pollution and rules
+out the automatic path having wrongly announced — the sentence the test
+caught is its own setup's, arriving late.
+
+**What is inferred and was not reproduced.**  `_progress` says `applied
+edit N` from the housekeeping thread, between blocks; `last_audition` is
+set when the audition is *measured*.  Those are two different moments,
+and the test took its `seen` barrier after the second and before the
+first.  Sixteen runs across two load levels did not reproduce it — at
+heavy load the test takes its own `pytest.skip("too slow on this
+machine")` branch instead, and at moderate load the announcement still
+won every time.  So the mechanism is supported by the message number and
+by the threading, and it is **not demonstrated**.
+
+**Fixed** by waiting for the setup's own announcement before taking the
+barrier, rather than only for its timing.  Chosen partly because it is
+correct whether or not the diagnosis is: a barrier that waits for the
+event it means to exclude costs one predicate and cannot be wrong in the
+other direction.
+
+**And the class, which is the part worth keeping.**  This is the
+`card:ungated-fixes.md` disease inside out: not a fix with no gate, but
+a **failure with no entry**.  It was seen, understood well enough to
+write a sentence about, and filed nowhere — so the second occurrence
+arrived as news.  A defect observed in a journal parenthesis is a defect
+nobody is told about twice.
