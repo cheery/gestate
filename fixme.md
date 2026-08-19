@@ -4728,6 +4728,8 @@ The same install found F148 and the missing `libx11-dev`.  Three
 defects in one day from one fresh machine, in the one part of this
 project that had no test at all.
 
+gate: `test/test_desktop.py::test_a_bare_click_opens_an_editor`
+
 ### F150. **[resolved]** The first screen named a deleted button, and the menu opened on the command that does nothing
 
 Henri, 2026-08-17, after trying the editor on a friend with no
@@ -4918,6 +4920,11 @@ One flag, on a mechanism already built and already drawn.  Photographed
 on a window nobody had touched (says it), after one `Ctrl-K` (stops),
 and after the list closed again (stays stopped).
 
+gate: none — `shell/editor/tests/view.rs` holds the bar (it sets `hint` by
+hand and checks the bar follows), and the retiring is the fix: `hint = false`
+on `Ctrl-K` and untouched by a burger press is `shell/editor/src/window.rs:1860`,
+the one file in the crate with no `#[cfg(test)]` block.  card:interface-oracle.md
+
 ### F154. **[resolved]** A driven harness saved into the repository
 
 2026-08-17, mine.  A reproduction harness launched `tools/gestate-editor`
@@ -4981,6 +4988,8 @@ assertions with no window in them.  Their blind spot is written beside
 them and is the whole of this defect: **they see what was emitted,
 never what it looked like.**  The `≡` would have passed all three.
 `card:interface-oracle.md` is the card for the rest of it.
+
+gate: `shell/editor/tests/view.rs::the_burger_is_drawn_inside_the_box_the_press_reads`
 
 ### F156. **[open]** The audio backend says which definition, never which line
 
@@ -5082,6 +5091,8 @@ need to go in 30 minutes."*  Run at the commit that made it, it is a
 seven-second failure naming the file.  `card:cheap-gates.md` is the
 card for that, and this entry is its receipt.
 
+gate: `test/test_atlas.py::test_every_module_has_a_lane`
+
 ### F161. **[resolved]** Opening a file from the starter screen took the editor down
 
 Henri, 2026-08-18, at the keyboard, on a build that had been green all
@@ -5110,6 +5121,8 @@ nothing exercises *and then the instrument changed underneath it*.  A
 rule was written into `spec/verification.md` after the first, and the
 second and third came anyway; a rule in prose is not a control.
 `card:carried-state.md` is the card for the control.
+
+gate: `none — not yet built` (a roster test is proposed in `card:carried-state.md`)
 
 ### F162. **[resolved]** The first instruction in the way in could not be carried out
 

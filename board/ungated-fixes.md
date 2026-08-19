@@ -151,6 +151,34 @@ that no test names.  It would fail 79 times on the day it was written,
 so it needs an accepted baseline, and a baseline that only shrinks is
 the usual shape.
 
+**4. Is there a fifth verdict — *nothing does, but something could*?**
+*Open, 2026-08-19, left open at Henri's ask.*
+
+The first batch reached F161 and **none of the three readings of it could
+be spelled with the four.**  The entry is a repair, so *not a repair* is
+out; and *nothing can* is false — deleting `fresh.walk = _walk_for(…)`
+from `workbench._carry` and running the Python suite `-m "not golden"`
+gives **2817 of 2818 passing**, so a test would catch it and none exists.
+The three spellings offered were `none — not yet built`, `none — nothing
+can` (wrong, by the measurement above) and `none — and nothing in the
+tree would say so`.
+
+So the four verdicts distinguish *gated* from *ungateable*, and this
+file's most common case is neither: **ungated, gateable, and cheap.**
+That is a different fact about the tree than *nothing can*, and it is the
+one that tells somebody where to spend an afternoon.
+
+**And the same gap arrives from the other side at F153**, where the
+rendering is held by `view.rs` and the decision that feeds it is not
+(`window.rs:1860`, in the one file in the crate with no `#[cfg(test)]`
+block).  One reading invented `partial` for it on the spot.  Whether that
+is the same fifth verdict or a sixth is part of the question.
+
+**Not answered here on purpose.**  A verdict vocabulary that grows
+whenever a batch finds it awkward is one that stops meaning anything, and
+the honest moment to widen it is after more than one batch has pushed on
+it.
+
 ## The schedule — heijunka, adopted 2026-08-18
 
 *Henri:* **"so it's a question of heijunka.  We need to balance the
