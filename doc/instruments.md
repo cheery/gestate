@@ -212,6 +212,61 @@ And the standing rule around it is older: **no subagent or fork is
 spawned in this project unless Henri says so in that session** — propose
 one, say what it costs, and wait.
 
+**And the reason under all of it, in his words, 2026-08-19:** *"I see you
+as colleagues, so I want that you're deployed properly if deployed."*
+Which is the *why* the three parts above were missing — they read as
+courtesies without it, and courtesies are what get dropped when a run is
+in a hurry.
+
+### Running a blind comparison — the parts that are not the ethics
+
+*Written 2026-08-19, because the morning's lessons were split between
+this page and one session's notes along an arbitrary line: the part that
+sounded like a principle got written down and the parts that sounded
+like logistics did not.  A session reading this page could learn how to
+treat an agent and nothing about how to run one.*
+
+**The setup, each rule paid for once:**
+
+* **Local `git clone`, not worktrees.**  Worktrees share one `.git`, so
+  `git worktree list` names the siblings and the blind breaks on the
+  first command that asks.  A clone of this repo is about 64 MB.
+* **The model mapping goes nowhere near the clones' shared parent.**  It
+  was, once; an arm read `map.txt`, looked into both siblings, and had
+  to be discarded — *after volunteering the contamination itself.*
+* **Each clone gets a parent directory holding nothing else.**
+* **Wall-clock and token cost leak the model**, so they are not shown.
+  `tools/blind.py` does not collect them at all: a number that must not
+  be shown is safest never gathered.
+* **Henri is the blind judge and the session is the unblinded
+  experimenter.**  Warn him off reading the spawn calls, which name the
+  models.
+
+### `tools/blind.py` — the judging sheet
+
+    python tools/blind.py --batch 2 ../arm-1 ../arm-2 ../arm-3
+
+**The sheet is what failed the first time, not the experiment.**  It
+rendered each arm's raw markdown, so *one line versus paragraphs* was
+the loudest thing on the page and accuracy was invisible — checking it
+needed five test bodies read.  Henri: *"this judgement was hard for me.
+next time, if we repeat this test, I'd like more visual indication and
+some aid in judgement."*  He judged what was visible, form and accuracy
+came apart, and the arm he would have committed had a wrong verdict.
+
+**Most of "is this verdict right?" is machine-checkable**, which is the
+whole idea: an arm names a gate, and whether that file exists, contains
+the name cited, and mentions the F-number are *facts*.  Asking a person
+to establish them by eye across three arms is the work that made judging
+hard, and it is not judgement at all.  So the tool computes them, marks
+agreement before he reads, shuffles the arms to A/B/C with the mapping
+printed only to the terminal, and puts each arm's prose behind a
+disclosure so length cannot shout again.
+
+**It never marks which arm the experimenter thinks is right.**  That
+would destroy the independent read the review exists to provide —
+`card:ungated-fixes.md` §"And Henri's half, which is also bounded".
+
 ---
 
 ## Seeing what the program actually did

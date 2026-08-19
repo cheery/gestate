@@ -35,6 +35,11 @@ test/gates.md
 # time a scenario is driven.
 test/driven/
 
+# And the blind judging sheets.  `tools/blind.py` writes one per run
+# from three arms' checkouts — a page about one comparison at one
+# moment, and the arms it reads are outside this tree anyway.
+test/blind/
+
 # Virtualenvs, whatever they are called.
 .venv/
 venv/
