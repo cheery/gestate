@@ -26,11 +26,41 @@ incomplete or the card is drift, and both are worth saying out loud.
 
 ---
 
-## The order
+## The priority
 
-Work them in this order unless one blocks another.  **This list is the
-only place the order lives** — a card never says where it stands, which
-is what keeps a card's name stable while priorities move.
+**This list is priority, not order.**  A card never says where it
+stands, which is what keeps a card's name stable while priorities move —
+but this list does not say what to work on next either, and calling it
+"the order" claimed that it did.
+
+*Corrected 2026-08-19, at Henri's ask, after the claim was measured
+against a single day.*  It used to read *"this list is the only place
+the order lives"*, and on the day that was checked it was false three
+times over: `cheap-gates` was worked from position nine because he asked
+for it; the two cards above everything else were both unworkable that
+day — one had already had its batch, one needs a quiet machine to
+measure against; and **six of the nine open cards were waiting on
+something.**  The real order came from three inputs this list does not
+hold — what he asked for, what was blocked, and what was cheap.
+
+**And the filter was in his rules from the first day.**  §"The rules, as
+Henri wrote them" opens *"Work them in the order given, unless one
+blocks the other"* — the clause survived into every version of this
+section.  What narrowed was the word **blocks**, which came to be read
+as *card A blocks card B*, the one case the suite can check.  Of the six
+open cards waiting on 2026-08-19, exactly one was blocked by another
+card.  The rest waited on a person, on a decision only he can make, on a
+schedule the card set itself, and on a machine quiet enough to measure.
+None of those is a card, so none of them was visible here.
+
+So the order is **priority filtered by what can actually be worked
+today**, and the filter is not written down anywhere because it changes
+daily.  Read the list, then read the card: a card that waits on a
+person, on a decision, on another card or on a condition says so, and it
+drops out of today regardless of where it stands here.
+
+That is not a licence to skip down the list on preference.  Priority is
+still the tiebreak between two workable cards, and it is still his.
 
 1. **[ungated-fixes](ungated-fixes.md)** — 79 of `fixme.md`'s 161
    entries are named by no test, so a defect closed on a photograph can
@@ -115,7 +145,7 @@ the id, so every citation keeps resolving, and the elaboration is kept
 status   shelved — <date>
 ```
 
-**A card may also arrive shelved**, without ever standing in the order
+**A card may also arrive shelved**, without ever standing in the priority
 — *2026-08-18*, when `card:working-standard.md` and
 `card:project-seed.md` were written for a project that has not
 started.  Henri: *"I want the cards made for this to go directly into
@@ -346,7 +376,7 @@ Two things the notation buys beyond the churn:
   spot (F166).
 
 What is **not** cited this way: `board/README.md`, which is a real file
-that never moves, and the markdown links in the order above, which are
+that never moves, and the markdown links in the priority above, which are
 relative links a person can click and which `test_board.py` checks
 against the live board.
 
@@ -487,7 +517,7 @@ is what the `blocked` field is for.
    pointer to the `journal.md` entry that tells the story.  **The
    paragraphs belong to the journal, not to the card.**
 2. `status` becomes `done — <date>`.
-3. Move the card to `board/done/` and take it out of the order above.
+3. Move the card to `board/done/` and take it out of the priority above.
 4. **Run the gates** — `python tools/suite.py --gates`, about twelve
    seconds.  They are the checks a card's own edits break: the board's
    contract, the citations, the consent file, the atlas, `doc/ref/`, the
@@ -539,7 +569,7 @@ references.  Between them:
   case this is for really happened: a card sat marked *"the one item I
   cannot start without an answer"* for the rest of a day, sixty lines
   above the answer.)
-- Every open card is in the order above — which is where a card Henri
+- Every open card is in the priority above — which is where a card Henri
   creates lands, since it arrives unplaced.
 - Every `board/…md` cited anywhere in the tree exists, and every `§"…"`
   citation's words are still in the file they name.
@@ -647,6 +677,10 @@ when it is not needed.
 > welcome to give me feedback.
 >
 > It's okay, do these at your own pace.
+
+*"Unless one blocks the other" is doing more work than it looks like* —
+see §"The priority".  Most of what blocks a card here is not another
+card.
 
 And the one that became this directory: *"You take each out from this
 section once the commit has landed.  In that way this is a kanban

@@ -170,8 +170,14 @@ def test_a_blocked_card_names_what_it_waits_on(card: Path):
 
 
 def test_the_board_lists_every_open_card_in_order():
-    """`board/README.md` carries the order, and it is the only place the
-    order lives — so a card nobody listed is a card nobody will work.
+    """`board/README.md` carries the priority, and it is the only place
+    that lives — so a card nobody listed is a card nobody will work.
+
+    It is priority and not order (§"The priority", corrected
+    2026-08-19): what to work on next is priority filtered by what can
+    be worked today, and that filter changes daily.  What is checked
+    here is only that every open card appears, which is the part a test
+    can hold.
 
     Which is the case a new card falls into by default: Henri creates
     cards and edits nothing, so a card arrives **unplaced** and the
@@ -181,9 +187,9 @@ def test_the_board_lists_every_open_card_in_order():
                             (BOARD / "README.md").read_text()))
     on_disk = {p.name for p in BOARD.glob("*.md")} - {"README.md"}
     assert on_disk - listed == set(), (
-        "these cards are on the board and not in the order — a new card "
+        "these cards are on the board and not in the priority — a new card "
         "arrives unplaced, and this is where it gets placed:\n  "
         + "\n  ".join(sorted(on_disk - listed)))
     assert listed - on_disk == set(), (
-        "the order names cards that are not there (moved to done/?):\n  "
+        "the priority names cards that are not there (moved to done/?):\n  "
         + "\n  ".join(sorted(listed - on_disk)))
