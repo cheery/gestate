@@ -69,6 +69,33 @@ following*, which is the signal the box mostly exists for.
 alternative is him reading commit messages afterwards, which is the
 thing it was built to replace.
 
+### `tools/clock.sh` — the wrist clock
+
+    tools/clock.sh              now, and how long since the last commit
+    tools/clock.sh 219eead      ...and how long since that commit
+    tools/clock.sh fixme.md     ...and how long since that file changed
+    tools/clock.sh 2026-08-14   ...and how long since that date
+
+**Read it before reporting any time.**  Henri, 2026-08-19: *"it's a
+clock in the wrist that shows the time.  that might be helpful to review
+before you report any time."*
+
+**A session has no clock and does not know it.**  There is no felt
+duration between messages and no gradient across a conversation — the
+whole of it is present at once, undecayed — so an elapsed time is never
+*recalled*.  It is inferred from how much happened, and that inference
+runs one way: **a dense day reads as a long one.**
+
+The day this was built, `doc/consent.md` said a friend had been named
+*for a week* before he was asked.  It was one day.  `tools/clock.sh
+219eead` says *22 hours* and takes no thought at all — which is the only
+property that matters, because the instrument that gets used is the one
+that costs less than the guess.
+
+So: **an elapsed time in this tree is computed, never remembered.**  And
+prefer writing the *date* over the duration wherever both would do — a
+date can be checked by the next reader and a duration cannot.
+
 ### `tools/andon.sh` — ring the sound card
 
     tools/andon.sh          # once
