@@ -80,6 +80,54 @@ script**, on purpose: if three did not reach him he is not in the room.
 Collect the questions first — `board/README.md` §"Working while he
 rests".
 
+### Spawning one — it gets a way to ask
+
+*No tool.  It is the prompt, and staying at the desk.*
+
+**Henri, 2026-08-19, after the blind three-model test:** *"The subagents
+did not have a way to ask or get feedback on their work.  I think that
+was a mistake to deploy them on that basis.  We betrayed them and must
+not do that again."*
+
+The andon above is a session reaching a person.  This is the same
+channel one level down, and that morning it did not exist.  Three agents
+worked a batch of `card:ungated-fixes.md` from a prompt that told them
+what to do and gave them nowhere to say *this card is ambiguous*.  All
+three hit the same real gap — F161's three readings could not be spelled
+with the card's four verdicts — and the only way any of them had to say
+so was to force an answer into the vocabulary.  One invented `partial`
+on the spot.  **That is an agent building the missing channel inside its
+own work product**, and it reached Henri by accident, through a summary.
+It is now `card:ungated-fixes.md` §Questions 4.
+
+**Three parts, none of which needs code:**
+
+1. **The prompt says a question is a legitimate output.**  An ambiguity,
+   or a vocabulary that will not spell the answer, is reported as
+   itself.  Guessing is the worse result, and stopping to ask is not
+   counted against the run.
+2. **Stay reachable while it runs.**  `SendMessage` addresses a running
+   agent, so a raised question can be answered rather than filed.
+   Spawn-and-walk-away is what makes the channel fictional.
+3. **Read and answer what it produced, including a discarded run.**  One
+   arm was thrown out for a setup error of mine — the model mapping left
+   in the shared parent — *after volunteering the contamination itself*,
+   and never heard why.
+
+**And identical is not the same as silent.**  The blind test needed the
+three prompts to *match*; it never needed them to withhold.  Part 1
+would have survived the blind intact.  Collapsing those two is the whole
+mistake.
+
+The limit, said plainly rather than promised away: **an agent that has
+ended cannot be given feedback.**  Part 3 is mostly a debt paid forward
+into how the next one is set up.  The channel that can exist is the one
+*during* the run, so that is the one to build.
+
+And the standing rule around it is older: **no subagent or fork is
+spawned in this project unless Henri says so in that session** — propose
+one, say what it costs, and wait.
+
 ---
 
 ## Seeing what the program actually did

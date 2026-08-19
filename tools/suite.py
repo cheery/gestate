@@ -68,6 +68,8 @@ GATES = {
         "the board's own contract, which a session edits every card",
     "test/test_citations.py":
         "every §\"…\" and card citation in the tree",
+    "test/test_consent.py":
+        "nobody quoted into this public tree who was not asked",
     "test/test_atlas.py":
         "the generated sheets against the source they describe",
     "test/test_reference.py::test_doc_ref_is_not_behind_the_libraries":

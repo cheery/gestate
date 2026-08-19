@@ -3811,7 +3811,7 @@ first now, and a program that spells the name itself keeps it.
 
 ### F135. **[partly resolved]** Long features work in silence — progress belongs in the statusline
 
-Henri, 2026-08-14 (`fixme.incoming.txt`): a friend attempting a
+Henri, 2026-08-14 (`fixme.incoming.txt`): Mikko, attempting a
 20-minute piece made it plain — some features need progress bars,
 and the statusline is where one could live.  The CLI half landed the
 same day (commit `streaming with stall detection`): `audioperform
@@ -4037,8 +4037,8 @@ question.  Naming the bars is the honest answer today.
 
 ### F141. **[resolved]** `foo : int` is a legal signature and a certain mistake
 
-Henri, 2026-08-16, relaying **gestate's first outside user**: they
-wrote `foo : int`, and could not see why it did not work.
+Henri, 2026-08-16, relaying **Mikko, gestate's first outside user**:
+they wrote `foo : int`, and could not see why it did not work.
 
 Nothing was broken, which is the whole difficulty.  A name that begins
 with a lowercase letter *is* a type variable, so `foo : int` is a legal
@@ -4735,7 +4735,7 @@ was there and the address was not, which is why the sweep counted this ungated.
 
 ### F150. **[resolved]** The first screen named a deleted button, and the menu opened on the command that does nothing
 
-Henri, 2026-08-17, after trying the editor on a friend with no
+Henri, 2026-08-17, after trying the editor on Janne with no
 explanation: *"He was unable to find the small gray-tinted button from
 the program.  Once I helped he got the button open, he had very little
 idea what is behind it."*  And, when asked which screen: *"My friend
@@ -4958,7 +4958,7 @@ untracked scratch file.  Nothing had, which is luck rather than design.
 
 ### F155. **[resolved]** The one control was a glyph nobody could find
 
-Henri, 2026-08-17, after a friend was given the editor with no
+Henri, 2026-08-17, after Janne was given the editor with no
 explanation: *"He was unable to find the small gray-tinted button from
 the program."*  And, once the corner had been measured and the set of
 answers written out: *"burger is thrown out, [command] is put in its

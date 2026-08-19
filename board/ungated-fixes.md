@@ -67,7 +67,7 @@ They are also the ones found by **people rather than by the compiler**:
   already found the control.  Closed on photographs of a window nobody
   had touched, then after one keypress, then after the list closed.
 - **F155** — the one control was a glyph nobody could find.  Closed on
-  **24 lit pixels counted off a screenshot**, after a friend was handed
+  **24 lit pixels counted off a screenshot**, after Janne was handed
   the editor and failed to find it.
 
 Both closures are good evidence and neither is repeatable.  Change

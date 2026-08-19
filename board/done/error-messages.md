@@ -123,7 +123,7 @@ that never raise.  The known homes:
 
 3. **Does the audit want a person in front of it?**  Every finding on
    this card so far arrived because somebody typed something wrong by
-   accident — F141 from a friend's signature, F152 from Henri breaking
+   accident — F141 from Mikko's signature, F152 from Henri breaking
    a type on purpose to see what happened.  A sweep by reading may be
    the wrong instrument for the same reason reading the window was:
    `card:stranger-test.md`'s rules apply, and a stranger's mistakes

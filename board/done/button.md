@@ -152,7 +152,7 @@ The status bar says `playing untitled.ges at 44100 Hz — no parameters`
 with a running clock.  From the icon, **open** and **hear it** are
 free — the program is sounding before anybody does anything.
 
-So the friend was not stuck before step one.  He was stuck at **hear
+So Janne was not stuck before step one.  He was stuck at **hear
 the change**: typing needs no affordance at all, and what has no
 affordance is the *apply* that makes an edit audible (`apply · Ctrl-S`,
 second in the list).  That reframes the card: the button is not the
@@ -197,7 +197,7 @@ blocking; the work can start on the contrast alone.*
    thing in this project that would talk to you unbidden, so it is a
    line to cross deliberately or not at all.
 
-3. **Is the friend available for a second run?**  A fix to this is
+3. **Is Janne available for a second run?**  A fix to this is
    testable in about a minute by the only oracle that counts, and the
    value of a second run drops the more he learns about the program.
 
@@ -283,7 +283,7 @@ F150.
   says why, with a pointer from the `Semigroup Command` instance it is
   the identity of.  The list now opens on **`apply · Ctrl-S`**, whose
   sentence is *"Rebuild the instrument from the text and swap it in while
-  it plays"* — the exact move the friend was stuck at.
+  it plays"* — the exact move Janne was stuck at.
 
 Both confirmed in the running window, photographed again after the
 change.  Held by `test/test_starter_and_first_command.py`, which fails

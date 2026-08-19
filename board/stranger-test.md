@@ -158,7 +158,7 @@ worth spending if and only if the corner has been changed in one
 identifiable way and nothing else has — otherwise it answers a bundle.
 
 And there is a second question that costs *no* new stranger, per rule 1:
-hand the same friend the window with the list open and watch what he
+hand Janne the window with the list open and watch what he
 does with `apply`.  He never saw it.
 
 ## What run two established — 2026-08-18
@@ -345,10 +345,10 @@ shape compared to our signs such as [gemba] or [inert] and so on."**
 
 **The observation is real and the change must not be made before the
 visit.**  The corner is the single uncertain thing run three varies
-(rule 3).  Changing its shape this week means the friend meets a corner
+(rule 3).  Changing its shape this week means Janne meets a corner
 no stranger has ever met, and whatever he does answers a question about
 *that* corner — leaving the one this card has been holding since
-2026-08-17 still unanswered, with the friend spent.
+2026-08-17 still unanswered, with Janne spent.
 
 **And the idea is better as a prediction than as a patch**, because it
 is exactly the kind of claim a stranger can settle and nobody else can:
