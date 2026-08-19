@@ -64,10 +64,21 @@ as that item takes to read; when the queue backs up, a mark under the
 sentence grows with the depth — *he is going faster than you are
 following*, which is the signal the box mostly exists for.
 
-`card:gemba.md` is the card, `gestate/gemba.py` the module.
-**Use it whenever Henri is at the desk while a session works.**  The
-alternative is him reading commit messages afterwards, which is the
-thing it was built to replace.
+`card:gemba.md` is the card, `gestate/gemba.py` the module, and
+`gemba` is a **workbench command** as well as a module — he opens the
+walk from inside the editor (`gestate/session.py`).
+
+**It is opt-in, and narrating unasked is waste.**  Henri, 2026-08-19,
+correcting the line that stood here before: *"Sessions do not use it by
+default because that would be waste, you have to tell that you're
+wanting to gemba walk."*  So it is not *narrate whenever he is at the
+desk* — that was this page's own guess and it was wrong. **He says he
+wants a gemba walk, and then a session narrates.**
+
+Which is the standing shape of everything on this page: an instrument
+answers a question somebody asked. A box filling with sentences nobody
+requested is the muda this project spends its time removing, arriving
+dressed as attentiveness.
 
 ### `tools/clock.sh` — the wrist clock
 
