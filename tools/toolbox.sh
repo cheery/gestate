@@ -113,6 +113,39 @@ if ! report python-xlib "$(have_py Xlib)" \
     "$py" -m pip install python-xlib
 fi
 
+# ── Finding the window, and reading where it is ──────────────────────
+#
+# **The one whose absence is silent, which is why it is here** — F170.
+# `tools/driven.py::find_window` runs `xdotool search --name gestate`
+# with the output captured.  Without `xdotool` the search finds nothing,
+# waits out its thirty seconds of patience and returns `None` — and
+# every caller reads that as *the editor never opened a window*.  A
+# sentence about the program, produced by a missing package.
+#
+# It went unnoticed until 2026-08-19 because `xdotool` appeared nowhere
+# in this tree except the two lines that call it: not here, not in
+# `doc/install.md`, not in any list.  A bench tool nobody records is one
+# that fails as a defect report.
+if ! report xdotool "$(have_bin xdotool)" \
+        "finding the driven window and reading its geometry" \
+        "apt install xdotool" && [ "$install" = 1 ]; then
+    as_root apt-get install -y xdotool
+fi
+
+# ── Photographing a window, and diffing two photographs ──────────────
+#
+# `import` and `compare` are ImageMagick's, and they are what makes a
+# driven run's claim checkable at all: `driven.shot` captures one window
+# and `driven.differs` answers whether two of them show anything
+# different.  Same omission as `xdotool` above, found the same minute —
+# both were being shelled out to by a harness whose whole subject is
+# runs that do not say what they ran.
+if ! report imagemagick "$(have_bin import)" \
+        "photographing a window (import) and diffing two shots (compare)" \
+        "apt install imagemagick" && [ "$install" = 1 ]; then
+    as_root apt-get install -y imagemagick
+fi
+
 # ── Holding an image still ───────────────────────────────────────────
 #
 # What a capture is saved and compared as.  Nothing in `gestate/` or

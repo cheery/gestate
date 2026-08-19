@@ -23,10 +23,10 @@ import subprocess
 import sys
 import time
 
-sys.path.insert(0, "/home/cheery/gestate/tools")
-from lagcheck import (a_copy_of, tap, chord, driven,  # noqa: E402
-                      find_window, click_into,
-                      shot, DPY, X, XTEST)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from driven import (a_copy_of, tap, chord, driven,  # noqa: E402
+                    find_window, click_into, shot,
+                    move as _move, press as _button)
 
 WORKBENCH = [sys.executable, "-m", "gestate.workbench"]
 
@@ -52,14 +52,6 @@ def geometry(win: int):
         elif line.strip().startswith("Height:"):
             at["h"] = int(words[-1])
     return at
-
-def _move(x: int, y: int):
-    XTEST.XTestFakeMotionEvent(DPY, -1, x, y, 0)
-    X.XFlush(DPY)
-
-def _button(down: bool):
-    XTEST.XTestFakeButtonEvent(DPY, 1, 1 if down else 0, 0)
-    X.XFlush(DPY)
 
 def to_the_canvas():
     chord("Control_L", "k")

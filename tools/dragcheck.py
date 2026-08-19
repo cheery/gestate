@@ -24,7 +24,6 @@ screenshot is there to be looked at.
 
 from __future__ import annotations
 
-import ctypes
 import os
 import subprocess
 import sys
@@ -34,19 +33,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 #: **A driven window keeps no record of the day** — `lagcheck.driven`
 #: says why, and it is shared so a fifth harness cannot forget.
-from lagcheck import a_copy_of, driven  # noqa: E402
-
-X = ctypes.CDLL("libX11.so.6")
-XTEST = ctypes.CDLL("libXtst.so.6")
-X.XOpenDisplay.restype = ctypes.c_void_p
-X.XOpenDisplay.argtypes = [ctypes.c_char_p]
-X.XFlush.argtypes = [ctypes.c_void_p]
-XTEST.XTestFakeMotionEvent.argtypes = ([ctypes.c_void_p] + [ctypes.c_int] * 3
-                                       + [ctypes.c_ulong])
-XTEST.XTestFakeButtonEvent.argtypes = [ctypes.c_void_p, ctypes.c_uint,
-                                       ctypes.c_int, ctypes.c_ulong]
-
-DPY = X.XOpenDisplay(None)
+from driven import a_copy_of, driven, move, press  # noqa: E402
 
 #: Where the `notes score` box's notes sit in `noted.ges`, in the
 #: window's own coordinates, once the file is scrolled to its foot.
@@ -60,16 +47,7 @@ NOTE = (622, 710)
 STRIP = (0, 300, 900, 200)                     # x, y, w, h
 
 
-def move(x: int, y: int) -> None:
-    XTEST.XTestFakeMotionEvent(DPY, -1, x, y, 0)
-    X.XFlush(DPY)
-
-
-def press(down: bool, button: int = 1) -> None:
-    XTEST.XTestFakeButtonEvent(DPY, button, 1 if down else 0, 0)
-    X.XFlush(DPY)
-
-
+from driven import a_copy_of, driven, move, press  # noqa: E402
 def wheel(times: int) -> None:
     for _ in range(times):
         press(True, 5)

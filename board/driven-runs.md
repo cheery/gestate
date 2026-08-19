@@ -1,6 +1,6 @@
 # driven-runs — a driven run does not say what it ran, and I believed it four times
 
-    status   open
+    status   open — the harness is built; one real driven run is left
     because  "I read stale screenshots four times and told you wrong
              things twice" — a driven window leaves photographs with no
              record of which binary made them, and `cargo build -p
@@ -122,3 +122,62 @@ keyboard during a driven run, and the reader of the result is the one
 who gets misled.  Leaning refuse: the person this protects is a session
 reading its own output an hour later, and that reader never sees a
 warning it printed at the start.
+
+## Built — 2026-08-19
+
+**`tools/driven.py`**, and the split the card offered.  `lagcheck.py`
+was named for one latency scenario while holding the vocabulary every
+driven tool imported, so the vocabulary moved and `lagcheck` re-exports
+it — *"splitting it would be honest"*, and on the day the board's own
+§"The order" was renamed §"The priority" for the same reason, honest won.
+`dialoglag.py`, `dragcheck.py` and `measure_editor.py` now import from
+`driven`; `dragcheck` lost a duplicated `ctypes` block and
+`measure_editor` two duplicated pointer helpers, so the display is
+opened in one place instead of three.
+
+**Refuse, not warn** — the card's second question, answered as it leaned.
+
+* **The stale-library check is not the one the card predicted.**
+  `gestate/editor.py::_stale` already rebuilds when the crate moves, so
+  a stale load heals itself and has since 2026-08-17 — *before* the
+  morning this card is about.  What does not heal is that there are
+  **two** places the library can live: the editor loads
+  `shell/editor/target/release/`, and `cargo build -p gestate-editor
+  --features capi` run from the workspace root writes `target/release/`.
+  Measured on 2026-08-19: both existed, different md5s, five days apart.
+  So `Run` refuses when *a different copy is newer than the loaded one*,
+  and prints the command that builds the right one.
+* **A run owns a fresh directory** under `test/driven/`, named for
+  itself, never reused, gitignored.
+* **The stamp** — commit, tree, the loaded library's mtime and md5, the
+  `GESTATE_*` environment actually set, wall time — written beside the
+  shots, and written **even when the scenario raises**, since a run that
+  died is exactly the one somebody reads later.
+* **Observations are a list.**  `run.observe(question, answer)` is a
+  line, so a second question costs a line rather than another two
+  minutes of the machine Henri is listening on.
+* **And `run.note()` for a trace**, because the finding that cracked the
+  gemba walk was `[walk] ended by the caret: 2 != 132` — a print
+  statement, not a screenshot.
+
+**F170, found by building it.**  `find_window` shells out to `xdotool`,
+which is not installed here and appeared nowhere in the tree except the
+two lines calling it — so the search returned `None` after thirty
+seconds and every caller reads that as *the editor never opened a
+window*.  An undeclared dependency makes an instrument come back
+confidently **red**, which is the mirror of this card's own subject.
+`Run` now refuses by name, and `tools/toolbox.sh` gained `xdotool` and
+`imagemagick` rows.
+
+**Ten tests in `test/test_driven.py`**, none of which needs a display —
+deliberately, because the bookkeeping is the part that was missing and a
+harness whose bookkeeping cannot be tested is the same problem as the
+runs it labels.
+
+## What is left
+
+**One real driven run**, once `xdotool` is installed — the whole point
+of `test_what_a_person_would_do`, and until it happens this card has
+built a harness that has never driven a window.  The bookkeeping is
+tested; the driving is not, and the card does not close on the half that
+was already working.

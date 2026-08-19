@@ -28,6 +28,13 @@ test/report.md
 # machine-local diff into every one of them.
 test/gates.md
 
+# And what a driven run leaves behind.  `tools/driven.py` gives every
+# run its own directory — shots, traces and the stamp — precisely so a
+# stale image cannot be picked up by the next reader.  They are about
+# one window on one machine at one minute, and there is a new one every
+# time a scenario is driven.
+test/driven/
+
 # Virtualenvs, whatever they are called.
 .venv/
 venv/

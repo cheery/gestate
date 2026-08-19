@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 170 entries, **144 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 171 entries, **145 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -5592,3 +5592,50 @@ biased estimator wearing the clothes of a measurement.  `doc/instruments.md`
 now carries the rule beside the tool: an instrument's number is checked
 against what somebody remembers, so it has to be right at the boundary —
 that is exactly where the check happens.
+
+### F170. **[fixed]** a driven run could not find a window, and said the editor never opened one
+
+Found 2026-08-19 while building `card:driven-runs.md`'s harness, by
+asking what the machine actually had rather than what the code assumed.
+
+`tools/driven.py::find_window` (then `lagcheck.find_window`) runs
+
+```
+xdotool search --name gestate
+```
+
+with `capture_output=True`, retrying for thirty seconds.  **`xdotool` is
+not installed on this machine.**  `subprocess.run` on a missing binary
+raises `FileNotFoundError`… except it does not here, because the search
+is the only thing that would raise and the loop swallows nothing — the
+command simply never runs, no ids come back, the patience runs out, and
+the function returns `None`.
+
+Every caller reads `None` as *the window never appeared*.  That is a
+sentence about the editor, produced by a missing package.
+
+**It went unnoticed because nothing recorded the dependency.**
+`xdotool` appeared nowhere in this tree except the two lines that call
+it: not in `doc/install.md`, not in `tools/toolbox.sh` — which exists
+precisely to say *what is here and what is missing* — and not in any
+list.  `import` and `compare` (ImageMagick) were in the same position
+and happened to be installed.
+
+**Fixed** three ways, because one would have been the wrong lesson:
+
+* `driven.BINARIES` names what a driven run shells out to and why, and
+  `Run` **refuses** before the scenario starts, naming the binary, the
+  apt package, and what the silent failure would have looked like.
+* `tools/toolbox.sh` gained `xdotool` and `imagemagick` rows, so the
+  bench tool that reports what is missing now reports these.
+* `test_driven.py` carries a roster test that asks *this machine*
+  whether it can drive, and skips with the reason rather than passing
+  quietly.
+
+**The class.**  This is the same shape as F148, F149 and F168 — the
+project works for the person who already has the incantation and hands
+everybody else a failure pointing at the wrong thing.  What is new is
+where it landed: in the **instrument**, so the wrong thing it pointed at
+was the program under test.  An unlabelled instrument comes back
+confidently green; an undeclared dependency makes one come back
+confidently red.

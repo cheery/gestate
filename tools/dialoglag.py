@@ -13,7 +13,7 @@ import time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 REPO = "/home/cheery/gestate"
 sys.path.insert(0, os.path.join(REPO, "tools"))
-from lagcheck import (a_copy_of, chord, click_into, driven,  # noqa: E402
+from driven import (a_copy_of, chord, click_into, driven,  # noqa: E402
                       find_window, tap)
 
 
