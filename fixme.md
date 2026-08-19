@@ -5504,6 +5504,28 @@ mutations unfenced — so the fence's effect on that day's work was to
 decide, invisibly, which sessions had evidence and which had only
 argument.
 
+**And it wraps the whole command, not the clause that matched.**  Found
+the same morning, by walking into it.  A compound command whose *first*
+clause is a test run is rewritten in its entirety, so everything after
+the `&&` also runs inside the fence — where `$HOME` is a tmpfs:
+
+    $ python3 -m pytest test/test_citations.py && git add fixme.md && git commit …
+    5 passed
+    *** Please tell me who you are.
+    fatal: unable to auto-detect email address
+
+The tests pass, the commit fails, and the error is about **git identity**
+— which has nothing to do with tests, with the fence, or with this
+repository, whose identity is fine.  `~/.gitconfig` is simply not there
+any more.  Run on its own, the same commit succeeds.
+
+**Three masks on one face.**  A `cd` error naming nothing; ninety-one
+import errors that read as a broken checkout (F168); and now a git
+identity error in a repository whose identity is correct.  The fence is
+invisible until something it does not bind is reached, and then it
+misdescribes what went wrong — which is the property that makes it
+expensive, not the wrapping itself.
+
 **The fence is not wrong to exist here and the hook is not wrong to be
 absolute** — `doc/hardening.md` installs it that way on purpose.  What is
 wrong is that it fails silently and in the wrong direction: a session in
