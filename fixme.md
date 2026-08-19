@@ -4728,7 +4728,10 @@ The same install found F148 and the missing `libx11-dev`.  Three
 defects in one day from one fresh machine, in the one part of this
 project that had no test at all.
 
-gate: `test/test_desktop.py::test_a_bare_click_opens_an_editor`
+gate: `test/test_desktop.py::test_a_bare_click_opens_an_editor` and
+`::test_the_wrapper_supplies_the_file_a_click_does_not`.  Checked 2026-08-19 by
+putting the old `Exec` line back: 2 of the 5 fail.  Neither names F149 — the gate
+was there and the address was not, which is why the sweep counted this ungated.
 
 ### F150. **[resolved]** The first screen named a deleted button, and the menu opened on the command that does nothing
 
@@ -4923,7 +4926,9 @@ and after the list closed again (stays stopped).
 gate: none — `shell/editor/tests/view.rs` holds the bar (it sets `hint` by
 hand and checks the bar follows), and the retiring is the fix: `hint = false`
 on `Ctrl-K` and untouched by a burger press is `shell/editor/src/window.rs:1860`,
-the one file in the crate with no `#[cfg(test)]` block.  card:interface-oracle.md
+the one file in the crate with no `#[cfg(test)]` block.  **Measured 2026-08-19:**
+delete that line and `cargo test --workspace --no-fail-fast` still passes all 346.
+card:interface-oracle.md
 
 ### F154. **[resolved]** A driven harness saved into the repository
 
@@ -4989,7 +4994,24 @@ them and is the whole of this defect: **they see what was emitted,
 never what it looked like.**  The `≡` would have passed all three.
 `card:interface-oracle.md` is the card for the rest of it.
 
-gate: `shell/editor/tests/view.rs::the_burger_is_drawn_inside_the_box_the_press_reads`
+gate: `shell/editor/src/view.rs::the_corner_offers_a_word_and_not_a_glyph` for the
+word, `::the_corner_is_not_painted_in_the_colour_that_means_ignore_me` and
+`shell/editor/tests/view.rs::the_burger_is_drawn_inside_the_box_the_press_reads`
+for the colour.
+
+**Both halves need naming, and this was got wrong once already.**  Measured
+2026-08-19 by mutation, with `--no-fail-fast` because `cargo test` stops at the
+first failing binary and a fail-fast count reads like a coverage result:
+
+    BURGER = "≡"      → only `the_corner_offers_a_word_and_not_a_glyph` goes red
+    INK    → FAINT    → the other two go red
+
+`the_burger_is_drawn_inside_the_box_the_press_reads` asserts `assert_eq!(s, BURGER)`
+— **against the constant under test**, so it holds the colour and pins nothing about
+the word.  Put the glyph back and it passes.  A first reading of this entry cited it
+alone and called the defect gated; the assertion looks like it names the word and is
+a tautology.  This is the card's own failure arriving inside the card's own work:
+**an assertion read is not an assertion run.**
 
 ### F156. **[open]** The audio backend says which definition, never which line
 
@@ -5091,7 +5113,9 @@ need to go in 30 minutes."*  Run at the commit that made it, it is a
 seven-second failure naming the file.  `card:cheap-gates.md` is the
 card for that, and this entry is its receipt.
 
-gate: `test/test_atlas.py::test_every_module_has_a_lane`
+gate: `test/test_atlas.py::test_every_module_has_a_lane`.  Checked 2026-08-19 by
+taking `pops` back out of `atlas.WHERE`: it goes red, and
+`test_the_sheet_is_not_behind_the_source` with it.  Neither names F160.
 
 ### F161. **[resolved]** Opening a file from the starter screen took the editor down
 
@@ -5122,7 +5146,10 @@ rule was written into `spec/verification.md` after the first, and the
 second and third came anyway; a rule in prose is not a control.
 `card:carried-state.md` is the card for the control.
 
-gate: `none — not yet built` (a roster test is proposed in `card:carried-state.md`)
+gate: `none — not yet built` (a roster test is proposed in `card:carried-state.md`).
+The supporting measurement — delete `fresh.walk = _walk_for(…)` from `_carry` and
+2817 of 2818 still pass — is **reported by the session that made it and not
+reproduced here**, so it is evidence and not yet a fact of this file.
 
 ### F162. **[resolved]** The first instruction in the way in could not be carried out
 
