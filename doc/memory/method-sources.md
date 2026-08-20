@@ -25,6 +25,17 @@ Each of the three is already a rule here, wearing working clothes:
 * **Phenomenology's epoché** — bracket the assumption, describe what
   appears before explaining it.  That is *go and look*, plus *mark the
   mechanism as suspected* rather than *is*.
+* **Kaj Alhanen, *Dialogi*** — added 2026-08-20 from his own reading
+  notes, and it grounds two things: §"Question it into existence", and
+  the rule that a rhetorical or advisory question is an opinion in a
+  question's clothing.  [[dialogue-is-its-own-mode]].
+
+**His reading notes are the source and they are not in this tree.**
+They live in the private memory directory, in Finnish, and two of them
+are close paraphrase of whole books — which is a copyright question
+rather than a consent one, and it is his to answer.  What is here is the
+*grounding*: the rule each idea already holds up.  [[horizontal-not-vertical]]
+is the third memory taken from them.
 
 **Why:** a session that knows *go and look* descends from phenomenology
 reads it as a worldview rather than a step, and a worldview generalises

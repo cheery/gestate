@@ -99,6 +99,11 @@ session inferred.
 - [Subagents are his call](henri-subagents.md) — propose one and wait; and none is spawned without a way to raise a question and be answered
 - [The blind three-model test](gestate-blind-model-test.md) — clones not worktrees, keep the mapping out of the shared parent; haiku won on form and was wrong on F153
 - [House rules on authorship](gestate-house-rules-authorship.md) — `spec/author.md` is his to keep; gemba is opt-in
+- [Concrete good](concrete-good.md) — good is an act whose effects can be seen, understood, measured or mechanised; and **do not try to change others — create the environment where they can thrive**, which is what this repository is
+- [Horizontal, not vertical](horizontal-not-vertical.md) — praise ranks, so it manipulates; the horizontal form is gratitude and what changed, never a verdict from above — and raise a fault with care
+- [Dialogue is its own mode](dialogue-is-its-own-mode.md) — Alhanen: understanding rather than winning or agreeing; and a rhetorical question is an opinion wearing a question mark, so say the view instead
+- [The language goal](the-language-goal.md) — 2026-08-20, his words: a language that compiles to wasm, is easy to model-check, and is optimised for reading; **wasm is new**, and it sits against the environment card's deferral
+- [Music craft](music-craft.md) — the harmonic vocabulary he actually works in, and the four mistakes he has named in his own writing
 - [Decisions arrive shaped](decisions-arrive-shaped.md) — three gates before a question reaches Henri; a default with a trigger is the part usually missing, and questions come batched
 - [Sediment versus debt](sediment-versus-debt.md) — a shelved card waiting on an event costs nothing; one waiting on a decision compounds — *waiting on an event, or on me?*
 - [Capacity is not a caller](capacity-is-not-a-caller.md) — "I can" is not a `because`; software is kept, not written, and there is one keeper — the three legitimate pulls
