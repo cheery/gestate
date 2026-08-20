@@ -30,8 +30,9 @@ the tree, is [[the-evaluation-loop]]'s failure mode arriving as work.
    test passing, instruments editable while they sound, the friend using
    it.  That demand already exists, which is what makes it a pull.
 2. **The vessel.**  The environment that lets others, future selves or
-   smaller models make software safely inside it.  Making software is
-   linear; making the thing that makes software safe compounds —
+   smaller models make software safely inside it —
+   `card:work-environment-ai.md`.  Making software is linear; making the
+   thing that makes software safe compounds —
    [[mechanism-not-instructions]], [[smaller-models-and-the-tree]].
 3. **Experiments, budgeted.**  Cheap, reversible, timeboxed, deleted
    without ceremony.  Exploration is a pull too, and the puller is a
