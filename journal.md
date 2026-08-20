@@ -9681,3 +9681,100 @@ puts the tree on `sys.path`), and `tools/suite.py` dies at the fence.
 An arm told to verify its work will spend its run discovering that, and
 three arms will discover it three times.  The batch 2 prompt has to say
 which command works, or make a venv, before anything else in it matters.
+
+## The rules get a ceiling — 2026-08-20, five in the morning
+
+Henri woke at 04:52 and said so: *"I think I could use some help on
+sleeping well.  I tend to wake up, and then I like to look at something.
+now I'm looking at this tree and a session."*  He wanted a short talk and
+then to go back to sleep.  He had spent some minutes with another model
+first — *"they told me incredible things.  There's too much at once, so
+I pace them"* — and brought one thing back.
+
+> **"We need a cap for rules here.  2000 lines, for now, and rules must
+> be still written cleanly, and marked by dates, no cheating there.
+> without this, the context needed grows too large for context window to
+> hold it."**
+
+### The count made the rule urgent instead of prudent
+
+Before answering, the five method documents were counted.  **2,050
+lines** — fifty over the cap in the minute it was proposed.
+
+`card:working-standard.md` had counted the same corpus on 2026-08-18 and
+got 1,554 across four files.  Those four today: 1,976.  **+422 lines in
+two days**, `doc/instruments.md` alone 210 → 457.
+
+That is the whole finding.  A cap set as a guardrail landed as a debt,
+and nobody in the two days that produced the 422 lines noticed they were
+producing them — including this project's own sessions, which is the
+point.  Growth of a rules corpus has no local signal: every individual
+paragraph is defensible at the moment it is written, and the cost is
+paid by a different session on a different day.
+
+### What the fat is, in his words
+
+> *"The rules have gotten narration from sessions that belongs into the
+> journal."*
+
+A session that arrives at a rule writes down how it got there, because
+the arriving felt like the achievement.  It is worth keeping — this file
+is where it goes — but it is charged to every future shift at full
+price.  The test written into `spec/rules.md`: a stranger who never saw
+the incident, does he need the sentence to **follow** the rule, or only
+to **believe** it?  The second is journal.
+
+*This entry is that rule applied to itself: the conversation is narration
+and it lives here, and `spec/rules.md` says the rule in about a page.*
+
+### Three cheats, two of them his
+
+**A sixth document** — *"Agreed, sixth document is chet [sic]."*
+Splitting `board/README.md` in two moves every per-file number and moves
+nothing a session has to read.  The cap is on the set; the set is closed
+at five; a sixth needs a caller, the same rule the atlas closed at five
+sheets under.
+
+**Dropping dates** — *"Dates are not the fat, agreed."*  A rule without
+its date cannot be taken back by the person who set it, and being able
+to take a rule back is what makes this method survivable.  Cheapest
+lines in the corpus, last to go.
+
+**Moving text between rules**, found while writing it up rather than
+said: it changes no total.  Honest destinations are `journal.md`, a
+card, or deletion.
+
+### Where it was written down, and why not in the rules
+
+His call: *"spec/ is ok.  I think… it tells about contracts written in
+software.  This thing should be specced as well."*
+
+So the cap is `spec/rules.md`, not a sixth rule — which is the first cheat
+avoided by the document that names it.  And it is the right shelf on the
+argument, not just on the accounting: `spec/` is 16,000 lines and costs
+nothing until you touch the part it describes.  That is exactly the
+property the rules lack, and exactly why they are the ones with a
+ceiling.
+
+`tools/rulecount.py` prints the five, the total and the room, and exits
+non-zero over the cap.  It is deliberately **not** in `GATES` yet — a
+gate that is red the day it arrives blocks every commit for work that
+has nothing to do with it.  It joins the moment the count first comes in
+under 2000.
+
+### And the card came back
+
+> *"we have to take the working-standard into WIP.  Now it's time."*
+
+`card:working-standard.md` moves out of `later/` and onto the board,
+`status doing`.  It was shelved on 2026-08-18 because *the method is still
+moving*, and that reason has been overtaken rather than refuted: the
+method may keep moving, it may not keep growing, and only the second is
+now measured.
+
+Its own 2026-08-18 measurement is what unshelved it, two days later,
+without anybody re-deriving it.  Worth noticing about the practice: the
+card was shelved with its evidence attached, and the evidence is what
+woke it up.
+
+*Nothing committed.  He logged out after saying to write it down.*
