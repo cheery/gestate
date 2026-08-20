@@ -99,4 +99,7 @@ session inferred.
 - [Subagents are his call](henri-subagents.md) — propose one and wait; and none is spawned without a way to raise a question and be answered
 - [The blind three-model test](gestate-blind-model-test.md) — clones not worktrees, keep the mapping out of the shared parent; haiku won on form and was wrong on F153
 - [House rules on authorship](gestate-house-rules-authorship.md) — `spec/author.md` is his to keep; gemba is opt-in
+- [Where the method comes from](method-sources.md) — Adler's separation of tasks, Socratic dialogue and the epoché are already rules here, uncredited; crediting them is `spec/author.md` and Henri's to write
+- [The keeper's evening](the-keepers-evening.md) — **proposed, not adopted**: one evening a week, measure one rule, compact one file, refresh one date; and it must never become a demand
+- [Why models hallucinate](why-models-hallucinate.md) — five layers, and why this tree's verification rules are the fix at the right layer; fluency is no evidence, including your own
 - [The 2000-line cap on the rules](gestate-rules-cap.md) — five documents, closed set, `spec/rules.md`; the fat is session narration

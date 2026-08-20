@@ -47,7 +47,7 @@ QUOTED = re.compile(
 #: list is short enough to read in one look.
 NOT_A_PERSON = frozenset("""
     Added Adopted Agreed Amended Answered Argued Asked Built Checked
-    Corrected Costs Established Open Picked Reproduced Started
+    Corrected Costs Established Open Picked Proposed Reproduced Started
     Buys Decided Diagnosis Done Filed Fixed Found Generated Imposed
     Kaizen Known Measured Mon Tue Wed Thu Fri Sat Sun Noted Offered
     Opened Predicted Recommendation Reported Resolution Resolved
