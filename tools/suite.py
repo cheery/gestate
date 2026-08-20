@@ -104,6 +104,8 @@ GATES = {
         "the gui example roster",
     "test/test_carry.py::test_every_field_is_carried_or_deliberately_fresh":
         "every Session field, carried across a switch or knowingly not",
+    "test/test_rules.py":
+        "the five method documents against their 2000-line cap",
 }
 
 
