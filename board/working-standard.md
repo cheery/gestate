@@ -300,7 +300,13 @@ Two of them are Henri's words from tonight.
    deletion — `journal.md` §"The morning that lived in nobody's file".
 2. ~~**Wire `tools/rulecount.py` into `tools/suite.py`'s `GATES`**~~ —
    **done the same morning**, as `test/test_rules.py`.  Eleven gates,
-   twelve seconds.
+   twelve seconds.  **And then made an andon rather than a refusal**, at
+   his ruling: *"make it light the andon."*  Going over the cap is now a
+   red section on `test/gates.md` and a banner at every commit, and it
+   fails nothing.  The suite still refuses the *loss* of one of the five.
+   The reason is in `spec/rules.md` §"The proof": a gate that blocks a
+   genuine amendment teaches the next session to make the method worse
+   in smaller words.
 2b. **And the memory corpus came into the tree** the same morning, at
    his ask — `doc/memory/`, split by kind, gated by
    `test/test_memory.py`.  It is question 1 of this card answered by

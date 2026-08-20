@@ -107,7 +107,7 @@ GATES = {
     "test/test_memory.py":
         "doc/memory/, and that nothing about the person is published there",
     "test/test_rules.py":
-        "the five method documents against their 2000-line cap",
+        "the five method documents are all there, and the cap's lamp works",
 }
 
 
@@ -254,6 +254,59 @@ def _failure_section(failures):
     return body + ["", "Full output is above in the terminal; this page keeps the names."]
 
 
+def _rules_total():
+    """The five method documents, and their cap — `spec/rules.md`."""
+    import rulecount
+    rows = rulecount.counts()
+    return sum(n for _, n in rows if n >= 0), rulecount.CAP
+
+
+def _rules_row():
+    total, cap = _rules_total()
+    if total > cap:
+        return f"**{total:,} of {cap:,} — over by {total - cap:,}**"
+    return f"{total:,} of {cap:,}, {cap - total:,} to spare"
+
+
+def _rules_andon():
+    """**Andon, not refusal** — Henri, 2026-08-20: *"make it light the
+    andon."*
+
+    The rules set has a size and the size is charged to every shift, so
+    growth has to be *seen*.  It must not be *blocked*: a genuine
+    amendment to the method is exactly the kind of change that arrives
+    with a good reason and no room, and a gate that refuses it teaches
+    the next session to make the method worse in smaller words.
+
+    So this is a lamp.  It is lit where somebody is already standing —
+    the commit, by way of `tools/pre-commit.sh` — and it never changes
+    the exit code.  What the suite still refuses is the loss of one of
+    the five, which is not growth but the cap being abandoned;
+    `test/test_rules.py` holds that half.
+    """
+    total, cap = _rules_total()
+    if total <= cap:
+        return []
+    return [
+        "",
+        "## 🔴 The rules are over their cap",
+        "",
+        f"**{total:,} lines against {cap:,}** — over by {total - cap:,}.",
+        "",
+        "This does not fail anything.  It is the andon: the method grew,",
+        "and growth is a visible event rather than a forbidden one.",
+        "",
+        "The fat is session narration, and the honest destinations are",
+        "`journal.md`, `doc/memory/`, or deletion — not the dates, not a",
+        "sixth document, and not moving text from one rule into another.",
+        "`spec/rules.md` names all three as cheats.  `python",
+        "tools/rulecount.py` says where the lines are.",
+        "",
+        "If the growth is right and the cap is wrong, the cap moves —",
+        "by Henri, in writing, with the date.",
+    ]
+
+
 def _draw_gates(rc, out, started, wall, fence_row, gates):
     """`test/gates.md` — and it says what it is not.
 
@@ -281,6 +334,7 @@ def _draw_gates(rc, out, started, wall, fence_row, gates):
         f"| Tree | {_tree()} |",
         f"| Fence | {fence_row} |",
         f"| Gates | {len(gates)} of them |",
+        f"| Rules | {_rules_row()} |",
         f"| Wall | {int(wall)}s |",
         f"| Exit | {rc} |",
         "",
@@ -289,10 +343,13 @@ def _draw_gates(rc, out, started, wall, fence_row, gates):
         f"**{_tally([out])}** — *the gates alone; the suite did not run.*",
         "",
         *_failure_section(_failures(out)),
+        *_rules_andon(),
     ]
     GATES_PAGE.parent.mkdir(parents=True, exist_ok=True)
     GATES_PAGE.write_text("\n".join(body) + "\n")
     print(f"\nsuite.py: the gates only — drawn to {GATES_PAGE.relative_to(ROOT)}")
+    for line in _rules_andon():
+        print(line)
     return rc
 
 

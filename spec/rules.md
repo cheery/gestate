@@ -102,16 +102,26 @@ one `spec/sandbox.md` applies to the fence.
 
     python tools/rulecount.py
 
-prints the five files, the total, and the room left, and exits non-zero
-over the cap.  It was held out of `tools/suite.py`'s `GATES` at first,
-because a gate that is red the day it arrives blocks every commit for
-work that has nothing to do with it — **it joined the first time the
-count came in under 2000**, which was the same morning, at 1,983.
+prints the five files, the total, and the room left.  It is the pull
+version, for when somebody wants to know where the lines are.
 
-It is now `test/test_rules.py`, and from here it is the ordinary defect
-class that set lives on: a structural check that a session doing
-ordinary work breaks.  The script stays alongside it, because it prints
-the **room left** and a green gate does not.
+**Over the cap is an andon, not a refusal.**  Henri, 2026-08-20: *"make
+it light the andon."*  `tools/suite.py` puts the count on
+`test/gates.md` — as a row when there is room, as a red section when
+there is not — and prints it at every commit through the hook.  **The
+exit code does not change.**
+
+The reason is not leniency.  A genuine amendment to the method is
+exactly the change that arrives with a good argument and no room, and a
+gate that refuses it does not prevent the growth — it teaches the next
+session to make the method *worse in smaller words*, which is the one
+outcome this cap exists to avoid.  Growth has to be **seen**.  It does
+not have to be **stopped**.
+
+What the suite still refuses is the **loss of one of the five**, which
+is not the method growing but the cap being abandoned; `test/test_rules.py`
+holds that half, and tests that the lamp itself can light — a signal
+that cannot fire is indistinguishable from a tree that is fine.
 
 ## What the count does not cover
 

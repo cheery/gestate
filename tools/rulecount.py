@@ -5,10 +5,14 @@ on*.  They are charged to every shift at full size, out of the same
 window the work has to fit in, which is why they have a ceiling and
 `spec/` does not.
 
-In `tools/suite.py`'s `GATES` as `test/test_rules.py` since 2026-08-20,
-the morning the count first came in under the cap — which was the
-condition `spec/rules.md` §"The proof" set for it.  This script stays
-because it prints the *room left*, which a green gate does not.
+**Over the cap is an andon, not a refusal** — Henri, 2026-08-20: *"make
+it light the andon."*  `tools/suite.py` lights it on `test/gates.md` and
+at every commit; nothing fails.  What `test/test_rules.py` still refuses
+is the *loss* of one of the five, which is the cap being abandoned
+rather than the method growing.
+
+This script is the pull version: run it to see where the lines are, and
+how much room is left, which a lamp that is not lit does not tell you.
 """
 
 from __future__ import annotations

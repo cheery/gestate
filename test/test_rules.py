@@ -45,14 +45,40 @@ def test_the_five_are_all_there():
         f"cap, it abandons it — spec/rules.md.")
 
 
-def test_the_rules_are_under_their_cap():
-    rows = rulecount.counts()
-    total = sum(n for _, n in rows if n >= 0)
-    assert total <= rulecount.CAP, (
-        f"the rules set is {total} lines against a cap of {rulecount.CAP} "
-        f"— over by {total - rulecount.CAP}.\n"
-        + "\n".join(f"    {name:<20} {n:>5}" for name, n in rows)
-        + "\n\nThe fat is session narration, and the honest destinations "
-        "are journal.md, a card, or deletion.  Not the dates, not a sixth "
-        "document, and not moving text from one rule into another — "
-        "spec/rules.md names all three as cheats.")
+def test_the_lamp_works():
+    """**The cap is an andon, not a refusal** — Henri, 2026-08-20:
+    *"make it light the andon."*
+
+    Growth in the method is a visible event, not a forbidden one: a
+    genuine amendment arrives with a good reason and no room, and a gate
+    that refuses it teaches the next session to make the method worse in
+    smaller words.  The lamp is `tools/suite.py`'s, lit on `test/gates.md`
+    and at every commit through the hook.
+
+    So what is left to test here is the lamp itself, and it is worth
+    testing for the reason `manifesto.md` gives about every instrument:
+    a signal that cannot fire is indistinguishable from a system that is
+    fine.  A cap nobody can see reached is a mood again.
+    """
+    import sys
+    sys.path.insert(0, str(ROOT / "tools"))
+    import suite
+
+    total, cap = suite._rules_total()
+    assert total > 0 and cap > 0, "the counter reported nothing to count"
+
+    assert bool(suite._rules_andon()) == (total > cap), (
+        f"the rules are {total} against a cap of {cap}, and the andon "
+        f"{'did not light' if total > cap else 'lit anyway'}.  "
+        f"tools/suite.py §_rules_andon.")
+
+    real = rulecount.CAP
+    try:
+        rulecount.CAP = 1
+        lit = suite._rules_andon()
+    finally:
+        rulecount.CAP = real
+    assert lit and any("over their cap" in line for line in lit), (
+        "the andon does not light even when the rules are over by "
+        "everything.  A lamp that cannot come on is worse than no lamp: "
+        "it reads as a tree that is fine.")

@@ -29,12 +29,14 @@ session provably meets it, which is the leak's cause addressed rather
 than its symptom.  Plus the 2000-line cap ([[gestate-rules-cap]]) and a
 compaction pass that moved narration to `journal.md`.
 
-**Still open, and worth Henri's ruling:** the source of this argued for
-a growth budget that **lights the andon rather than refusing** — a
-genuine amendment should not be blocked, it should be *seen*.  What was
-built instead **refuses**: `test/test_rules.py` fails the commit.  That
-is a stricter reading than the one argued for, and it was not a decision
-anybody made out loud.
+**Ruled 2026-08-20:** the growth budget **lights the andon rather than
+refusing** — *"make it light the andon."*  It was built as a refusal
+first, which was a stricter reading than the one argued for and was
+nobody's decision out loud; it is now a red section on `test/gates.md`
+and a banner at every commit, failing nothing.  The suite still refuses
+the loss of one of the five.  The argument, worth keeping: a gate that
+blocks a genuine amendment does not prevent growth, it teaches the next
+session to make the method **worse in smaller words**.
 
 **How to apply:** when you have a lesson worth leaving behind, write it
 to `doc/memory/` with its date, and leave the rule file alone unless the
