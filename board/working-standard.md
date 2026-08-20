@@ -176,6 +176,38 @@ prompted this: **somebody read it end to end and noticed something.**
 Nobody reads a board that way.  Worth answering rather than assuming
 away.
 
+### The recipe is four documents, found by running it — 2026-08-20
+
+> *"if I take doc/author.md, manifesto.md vision.md board/README.md they
+> form the basic recipe that reproduces something in a claude chat. (the
+> talk with fable happened that way)"*
+
+**Those four are the five capped documents minus `doc/instruments.md`** —
+the one document he had already ruled untransferable on 2026-08-18
+(*"some specific instruments that belong to this project are not
+transferable, but they can be examples"*).  He dropped it by experiment,
+without consulting that answer.  A replication rather than a
+coincidence, and it is the first evidence this card has about its own
+scope that was not an argument.
+
+**And it is a measurement of the seed, not of the standard.**  What it
+shows is that four documents are enough to reproduce the method *inside
+one conversation*.  His own doubt is the whole open question: *"I'm not
+sure I have all the pieces for long living version yet.  Maybe we should
+research this."*
+
+The gap is nameable already, and it is this card's §"The word doing the
+most work": a chat can carry the rules and **cannot fail on them.**  No
+board that persists, no suite, no `doc/memory/`, no hook at the commit.
+Four documents transmit the method; nothing in them enforces it once the
+window closes.  So the research question is *what survives the end of a
+conversation*, and the candidates are all in this tree and all younger
+than the documents: `board/` as files, the gates, `doc/memory/` (which
+arrived 2026-08-20), `tools/pre-commit.sh`.
+
+*Not being worked.  Recorded here because it arrived, per this section's
+own rule.*
+
 ### And the board's own shape was questioned the same afternoon
 
 Answered rather than deferred — `card:` notation, above — but the
