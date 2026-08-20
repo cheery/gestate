@@ -170,6 +170,12 @@ the andon.
   months, which the board's impact ordering demotes; and the governed
   party would be building its own cage — **the enforcement boundary must
   live outside the session's write access or it is decoration.**
+  *Partly answered already, 2026-08-20:* `tools/sandbox.sh`'s deny-list
+  blocks a session's own `sudo` and its own leash, and `.claude/` is
+  outside a session's write access — enforcement outside the governed
+  party's reach, working on this machine today (`spec/sandbox.md`).  So
+  the cage-builder problem is not unsolved here; it is unsolved *at this
+  granularity*.
 
 **Programs first** — the broker mediates gestate nodes: an instrument
 gets audio-out and its own state file, nothing else.  Sessions stay
@@ -184,15 +190,65 @@ ungoverned.
   being too small for sessions, forcing a redo; and the actual risk, an
   ungoverned agent with the whole tree writable, continues meanwhile.
 
-**The session's read, marked as the session's and suspected:** sessions
-first, on the board's own rules — every defect in evidence is
-session-shaped, and a defect is always a caller.  The one argument that
-flips it: if the cage-builder problem has no trusted answer yet, start
-with programs to settle the vocabulary on neutral ground and accept the
-redo.
+### It is open, and it is to be decided by evidence
 
-**Day one, once decided**, so that this is not a decision wearing a card
-forever: build the supervised, budgeted runner for the session's own
-tool invocations — the suite, cargo, the polling loops — visible in the
-andon.  Smallest slice, real caller; capabilities, nodes and pull bolt
-onto it later.
+*Henri, 2026-08-20: the order is an open question and should be settled
+by measurement, not by argument.*
+
+A session did recommend sessions-first here, on the board's rule that a
+defect is always a caller.  **That recommendation is withdrawn as a
+basis for deciding**, for a reason worth keeping rather than tidying
+away: the session making it **is the governed party**.  A session's read
+on how far it should be trusted is not neutral in either direction — it
+can be self-serving, and it can as easily be self-flagellating, which
+reads as humility and is exactly as useless as evidence.  The argument
+stays on the card because it is a real argument; it is no longer the
+answer.
+
+And when the question was put plainly — *is this for my safety?* — the
+three things bundled under "sessions first" came apart, which is itself
+the finding:
+
+* **the machine is shared** — the audio-crackle incident, measured;
+* **you cannot see what happened** — 270 commits in nine days outrunning
+  review, measured;
+* **containment** — scoped capability, and **no incident behind it.**
+
+The first two are the callers.  Containment rides along on their
+justification, and an argument for it made *as safety* would be an
+argument from nothing having gone wrong yet, which this tree distrusts
+everywhere else.
+
+### What would decide it
+
+Cheap, in roughly this order, and none of it needs the broker built:
+
+**1. Count the incidents, both kinds.**  `fixme.md` and `journal.md`
+already hold them.  How many measured incidents were session-shaped, and
+how many program-shaped?  **And the caveat is half the measurement:** if
+nothing in this tree would have *seen* a program misbehaving, a zero is
+a fact about the instruments and not about the programs — see
+`journal.md` §"Kaizen, 2026-08-19 — the instruments found everything and
+the tests found none of it".  A count with no observer behind it decides
+nothing.
+
+**2. Try the program vocabulary on the session's needs, on paper.**
+Write the grants a real gestate node wants — audio out, its own state
+file — and then the grants a real session wants: spawn `cargo`, write
+the tree, open an X display, ring the sound card.  If the node
+vocabulary cannot spell the session's list, programs-first forces the
+redo its *Against* column names, and that is established in an afternoon
+with no code.
+
+**3. Then it may not be a decision at all.**  The day-one slice below is
+reversible and measurable, and by `doc/memory/decisions-arrive-shaped.md`
+that makes it an **experiment**, not a decision: build it for one
+principal, see whether it catches the case that already happened, keep
+or revert.  A reversible choice with a cheap measurement should never
+cost the author a decision.
+
+**Day one, whichever way it goes**, so that this is not a decision
+wearing a card forever: build the supervised, budgeted runner for one
+principal's invocations — for a session, that is the suite, `cargo` and
+the polling loops — visible in the andon.  Smallest slice, real caller;
+capabilities, nodes and pull bolt onto it later.
