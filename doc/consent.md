@@ -46,11 +46,29 @@ time that the repository already knows.*
 He is also the *"a friend"* of the earlier material — F150, F155,
 `card:button.md` — and those places now carry his name.
 
-**Still not his to give twice.**  `spec/author.md` attributes the Toyota
-Production System to a friend *whose work depends on it*, and that is
-Janne.  Naming him there publishes something about his **job**, not his
-name, so it is a separate ask and it has not been made.  The line stays
-as it is until it has.
+**The second ask — made 2026-08-20, and answered.**  `spec/author.md`
+attributes the Toyota Production System to a friend *whose work depends
+on it*, and that is Janne.  Naming him there publishes something about
+his **job**, not his name, so it was held back on 2026-08-19 as a
+separate ask and the line was left unchanged.
+
+It was put to him on 2026-08-20, at this terminal, with the disclosure
+named plainly and three options offered: leave the line as *"a friend"*,
+name him with the clause about his work removed, or name him with it.
+**He chose the middle one** — *"kohta 2 on OK"*, relayed by Henri.
+
+So: **his name may stand on that line, the claim about his work may
+not.**  And a euphemism does not survive either — a reason clause
+sitting beside his name reconstitutes the same disclosure while
+appearing not to.  That is §"What the check cannot see" below in its
+hardest form, and no test catches it.  The clause is removed, not
+reworded.
+
+**The line now carries his name**, written 2026-08-20 — *"Janne is the
+reason it is in this project at all"*.  `spec/author.md` is the author's
+own document and a session does not edit it; this one edit was made on
+Henri's explicit permission, with the wording read and approved by him
+first.
 
 ### Henri
 
@@ -85,6 +103,17 @@ neighbouring rule, and it came from the same morning.
 Gestate's first outside user.  `foo : int` (F141), the 20-minute piece
 that wanted a progress bar (F135), and *Real World One*.  **He asked to
 be named** — Henri, 2026-08-19.
+
+**He talked with a session on 2026-08-20**, at the terminal, and that is
+a third thing to consent to — not naming, not training, but *this*: what
+he types enters a context window, and what he says can be written into a
+public repository.  He was told all three before he wrote, the third
+being **that he could stop at any time**.  He was then asked, after the
+fact and specifically, whether the sentences about how he uses gestate
+could go into the tree, told what that means and that *no* costs
+nothing.  **He agreed, and asked for his own account to be quoted
+alongside.**  It is in `journal.md` §"The first outside user turns out
+not to be the user".
 
 ---
 

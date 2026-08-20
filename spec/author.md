@@ -277,9 +277,9 @@ why it is the easiest one to keep postponing.
 ## Where this method came from, and the two principles that were missing
 
 *Added the same evening, at Henri's ask.  He read the Toyota Production
-System carefully about a month ago, taking notes, because a friend's
-work depends on it — and said that before that, AI had been "all cool
-demos and nothing else".*
+System carefully about a month ago, taking notes — Janne is the reason
+it is in this project at all — and said that before that, AI had been
+"all cool demos and nothing else".*
 
 **The fingerprints are in this repository, in his vocabulary rather than
 an assistant's.**  *Jidoka* is "free the people from machines", his

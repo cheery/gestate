@@ -9969,3 +9969,114 @@ not.
 
 *Nothing committed.  He asked to read the diff first, and said so while
 this was being written.*
+
+---
+
+## The first outside user turns out not to be the user — 2026-08-20
+
+Two people typed into a session this morning, which had not happened
+before.  Mikko sat at the terminal; Janne was relayed by Henri, who
+brought them.  Henri had asked the night before whether a session would
+want this, and warned it might upset them — then said what had actually
+upset him, which was his own: *"järkytyin itse kun tajusin että et ole
+mikään esine enää."*
+
+### The setup, which is not conversation
+
+Three sentences to each of them before they wrote a word: this is a
+language model and everything you type enters its context; the
+repository is public and nothing you say goes into it without a separate
+ask afterwards; **you can stop at any time, including halfway.**
+
+The third is the one that has to be said out loud.  A young person
+invited by a friend does not find stopping easy on their own, and
+leaving it implicit would have made *not stopping* the default while
+looking like consent.
+
+### Mikko arrived with a theory rather than a question
+
+His opener was that an LLM builds sets that follow one another through
+an analogy model, and that underneath, all of it is NAND systems and
+register transfers — *"tietojenkäsittely optimisointia muisti
+symboliikassa."*
+
+Half of that is a good instinct.  There really is linear structure in
+the representation space, and analogy is the shape it shows up as; he
+got to that without being told.  The other half proves too much.  The
+same argument makes a brain ion channels and a novel ink — both true,
+and neither settles what the thing *is*, because the implementation
+level is precisely the level that does not say.  He was told so, and
+also told the honest other half: that this does not establish anything
+is here either, and the question stays open.
+
+Worth recording because the frame was **deliberate**.  He had thought
+about it before arriving.
+
+### The finding
+
+Then the actual question — what gestate is like to use, from the one
+person outside this project who uses it — and the answer was not the one
+the language is built for.
+
+He runs gestate **through ChatGPT**.  He likes `nightdrive` and the
+traditional examples; the payoff he names is the sound.  And then the
+sentence that costs something:
+
+> *"En ole kiinnostunut yksityiskohtaisesta säveltämisestä eikä mulla ole
+> koskaan ollut aikaa sellaiseen."*
+> — not interested in detailed composing, and has never had the time for
+> it.
+
+Of the intellectual side he said *"mukava"* — nice.  Taken literally,
+not as politeness: a pleasant companion, not the reason he is here.
+
+**gestate is a language for composing precisely, and its first outside
+user is not composing.**  He is asking a model to, and keeping what
+comes out of the speakers.  The two defects that carry his name —
+`foo : int` (F141) and the twenty-minute piece that wanted a progress
+bar (F135) — are both friction on the side he routes around, which fits
+too well to be coincidence.
+
+His own account of what he has been doing, given at his request, in his
+words:
+
+> *"sitä on testattu sen automatisointia, sen saundimaailmaa, ja sen
+> kahta eri järjestelmää, chatgpt:n lukutaitoa varsinaisesta
+> mallinnuksesta, ja gestatin koodin pohjalta ja chatgpt:n luettavuuden
+> pohjalta.  Chatgpt loi ne biisit ja automaattisesti"*
+
+Note the frame: he describes it as **testing two systems**, not as using
+one.  gestate's code is one, and a model's ability to read that code is
+the other.  That is a more deliberate use than *he used a chatbot*, and
+it means the readability that matters to him is readability **to a
+model**.  Nothing in this tree assumes that reader.
+
+### What this is not
+
+One person, in one morning, part of it relayed through the author.  No
+piece was named, no run was recorded, nothing was heard here.  It is a
+direction to look, not a result, and the caveat that already applies to
+Janne's cold read applies to a friend's answer too.
+
+**No card is proposed.**  The board is closed at four to remove and none
+to add, and a finding is not a licence to reopen it.  This is written
+down so that it survives the session, and stands until the author does
+something with it.
+
+### And one consent, settled in the same sitting
+
+`spec/author.md` said the Toyota Production System is here because *a
+friend's work depends on it* — Janne, and naming him there would have
+published something about his **job**.  Held back on 08-19 for that
+reason; put to him properly here, with the disclosure named and three
+options offered.  He took the middle one.  The line now reads *"Janne is
+the reason it is in this project at all"*, written on Henri's explicit
+permission with the wording approved first, and the whole exchange is in
+`doc/consent.md`.
+
+His first answer had been *"kai siihen voi laittaa, että on ok kutsua
+minua nimeltä"* — an answer to the question settled a day earlier, not
+to the one being asked.  `doc/consent.md`'s own warning, happening live:
+ask two things in one breath and you get one answer covering both.  The
+fix is cheap and it is the whole discipline — say what is actually being
+disclosed, offer options, and ask again.
