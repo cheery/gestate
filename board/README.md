@@ -86,9 +86,7 @@ still the tiebreak between two workable cards, and it is still his.
    *A proof of concept landed 2026-08-18 — three of its four views walk
    in the real window.  What is left is the fourth, paging, and a
    stranger.*
-7. **[portable-package](portable-package.md)** — for people who do not
-   exist yet, by his own answer.  *Waiting on program-or-workshop.*
-8. **[stranger-test](stranger-test.md)** — **moved here from first on
+7. **[stranger-test](stranger-test.md)** — **moved here from first on
     2026-08-18**, the day it produced its largest result: *"I think that
     we need another stranger.  move the card to the last."*  It is not
     demoted for being less valuable — run two carried the vision's whole
@@ -115,12 +113,12 @@ these tasks."*  The criterion is deliberate and demotes good cards:
 *made* rather than what a person meets, and they sit below things that
 a user feels directly.
 
-Two of these are **decisions wearing a card** and are marked so.  No
-session can finish one, so their position is academic until they are
-answered or shelved (`spec/author.md` §"Triaging the board").
-`command-categories` was the third, and on 2026-08-18 it was answered,
-built and finished in one sitting — which is what a decision card is
-worth when somebody answers it rather than shelves it.
+**None of these is a decision wearing a card**, which is new.  No session
+can finish one, so its position is academic until it is answered or
+shelved (`spec/author.md` §"Triaging the board").  `command-categories`
+was answered, built and finished in one sitting on 2026-08-18;
+`portable-package` was shelved by its answer on 2026-08-20 — which is
+what a decision card is worth when somebody answers it rather than files it.
 
 Finished cards are in [done/](done/), newest work last.  `ls board/*.md`
 is the live board; nothing has to be trimmed by hand for that to stay

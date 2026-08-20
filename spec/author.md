@@ -172,11 +172,11 @@ queue is not too long; nothing pulls from it.
 So the questions are for sorting, and each takes about a minute:
 
 **1. Is this a task, or a question waiting on me?**  `command-categories`
-needs a pick from five options, `gemba` needs a dwell in seconds,
-`portable-package` needs program-or-workshop.  No session can finish
-those, so they will sit forever while looking like work.  A decision
-wearing a card is the most expensive item on a board, because it
-consumes a slot and cannot be worked out of it.
+needed a pick from five options, `gemba` a dwell in seconds,
+`portable-package` program-or-workshop.  No session can finish those, so
+they sit forever while looking like work — the most expensive item on a
+board, consuming a slot it cannot be worked out of.  All three were
+cleared by him answering in a sentence, the last on 2026-08-20.
 
 **2. Have I wanted this while working, in the last week?**  `Do not
 build what nothing needs`, turned on the board itself — where it has

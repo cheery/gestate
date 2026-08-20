@@ -1,6 +1,6 @@
 # portable-package — the way in is Ubuntu-shaped, and other distros translate it by hand
 
-    status   open
+    status   shelved — 2026-08-20
     because  "The installation on ubuntu is fine, but I think we need to
              think that there are other distros as well" — the way in is
              written for one distro's package names, and anybody else
@@ -13,6 +13,42 @@
              doc/install.md — what a package would have to replace
              vision.md — what "accessibility" is being measured against
              README.md §Ubuntu, from nothing
+
+## Shelved, 2026-08-20 — and it is the answer to program-or-workshop
+
+*Henri, asked the open question the card had been holding since
+2026-08-17:*
+
+> I was going to ask whether it'd change anything, but I realised.  It
+> would just bring users, if they aren't scared by AI, and why should I
+> do it for that reason?  I'd say.  shelve the portable-package, lets be
+> the tortoise fox.
+
+*And the phrase, glossed by him when asked rather than left to a
+reader's guess:* **"lets be slow and clever, and not rush so that we
+have time to figure things out."**
+
+**It waits on a reason, not on an event** — which makes it the rarer of
+the two kinds `board/README.md` distinguishes.  The card's own §"What
+the work is" says *program-or-workshop is the open one, and it is the
+question to bring him next*.  Brought, and answered by dissolving it:
+neither, because the thing a package buys is **users**, and users are
+not what this project is short of.
+
+**And that is not a small answer.**  The card was argued for two days
+on formats, sandboxes and the audio path out of a Flatpak — all of it
+downstream of a value nobody had priced.  `spec/author.md`'s triage
+question 3 asks *what stays broken if this never happens*, and the
+honest answer here is: somebody not on Ubuntu translates package names
+by hand, and that person does not exist yet.  Question 4 —
+*me, a stranger, or somebody who does not exist yet* — was already
+answered *the third* on the live board, and the third is the one that
+never becomes urgent on its own.
+
+It comes back the way any shelved card does: by him saying so.  The
+event that would do it is a real person, not on Ubuntu, who wants in —
+`card:stranger-test.md`'s supply, spent on somebody the install turns
+away.
 
 ## The ask
 
