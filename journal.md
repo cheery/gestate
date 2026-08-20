@@ -10080,3 +10080,60 @@ to the one being asked.  `doc/consent.md`'s own warning, happening live:
 ask two things in one breath and you get one answer covering both.  The
 fix is cheap and it is the whole discipline — say what is actually being
 disclosed, offer options, and ask again.
+
+## Batch two, and the gate that was not one — 2026-08-20
+
+Five entries, the schedule's Thursday: F139, F133, F132, F128, F126.
+All five named a test in their own prose, which on 2026-08-19 would
+have been the whole verdict — batch 1 closed four of five that way,
+by reading the entry against the test's name.
+
+This time every one was checked by putting the defect back.
+
+* **F126** — the leaving engine handed the live `control` again: the
+  jog answers `audio stopped: list index out of range`.  The crash
+  Henri met, reproduced by the test that claims to hold it.
+* **F133** — the reference page made to hang below the panel again:
+  `a rect left the window: y=564 h=252`, in a window 600 tall.
+* **F139** — `high = (band - 2).min(tall - top - 1)` put back: a point
+  moves to y=195, which is the squeeze rather than the crop.
+* **F132** — the clip removed, and **the test passed.**
+* **F128** — the four-byte drop put back, and **the test passed.**
+
+### Two in five, and both in the same direction
+
+F132's assertion read `*y >= tall || y + h <= tall`.  The first half was
+meant as *a box entirely past the fold paints nothing there*, and it
+says the opposite: a rect starting **at** the fold covers only the bar's
+ground, which is the defect exactly.  With the clip gone the frame grew
+a chrome rect at y=120, h=80, over a bar 24 pixels tall, and the check
+waved it through.
+
+F128's fixture put its `─` at byte 4094 — the boundary the *fix* reads.
+The defect was a four-byte drop, so its boundary was 4092, and a
+character starting at 4094 never touched it.  The entry's second half
+was `duet.ges` itself, "so the irony cannot recur"; the file has been
+edited since and now decodes clean at both cuts.  A regression test
+built on the fix's boundary and a real file that has moved.
+
+Both are now tightened and both fail on the defect: only the status bar
+may start at the fold, and the sniff is checked across every offset from
+4085 to 4095 rather than one — which fails at 4090 on the old code and
+stops caring where the next person puts the boundary.
+
+### What it costs to have found this late
+
+Nothing was broken by it, and that is the trouble.  Two defects Henri
+met in August were sitting behind tests that would not have noticed
+their return, and the file said they were held.  `manifesto.md`'s third
+failure mode is an instrument that reports green while switched off; this
+is the smaller, commoner cousin — an instrument aimed slightly beside the
+thing it was built for, which no amount of reading the name reveals.
+
+So the sweep now has a check under its first verdict, written into
+`card:ungated-fixes.md`: **a named test earns *a test, named* by going
+red when the defect goes back in.**  Batch 1's four readings are
+candidates for the Friday sample.  They are not being redone today —
+the schedule exists because judgement degrades across a long uniform
+task, and re-auditing yesterday to feel better about today is the burst
+it was built to prevent.

@@ -2280,9 +2280,21 @@ def test_opening_a_file_that_is_not_text_is_a_sentence(tmp_path):
     # character straddling the sniff's chunk edge is the chunk's
     # fault, not the file's — the first cut refused `duet.ges` itself,
     # whose box-drawing headers put a `─` on exactly the boundary.
-    edge = ("x" * 4094 + "─" + "plenty of honest text after the edge\n")
-    (room / "edge.ges").write_text(edge)
-    assert it.run("open", "edge.ges") == "opened edge.ges"
+    #
+    # **Every offset the edge could sit at, not one.**  A fixture built
+    # on the boundary the *fix* reads checks the fix and nothing else:
+    # the first cut dropped four bytes, so it broke on a character
+    # starting four before the edge and sailed past one starting on it.
+    # A sweep across the whole approach fails wherever the boundary is
+    # put, which is the property that survives the next person moving
+    # it (F128).
+    for off in range(4085, 4096):
+        name = f"edge{off}.ges"
+        (room / name).write_text(
+            "x" * off + "─" + "plenty of honest text after the edge\n")
+        it.asking = None
+        assert it.run("open", name) == f"opened {name}", \
+            f"an honest file was refused for a `─` at byte {off}"
     from pathlib import Path as _P
 
     duet = (_P(__file__).resolve().parent.parent

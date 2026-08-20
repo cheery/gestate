@@ -1305,18 +1305,35 @@ fn a_box_at_the_fold_stops_at_the_fold() {
         "trouble\t6\tthis complaint is long enough that its wrapped \
          rows would spill well past the bottom of a six-row window \
          if nothing clipped the box it was granted");
+    // The box is really drawn when there is room for it — otherwise
+    // the check below passes on a frame that never had a box in it.
+    let mut roomy = rows_of(20, 400);
+    roomy.grant(&chrome, &LARGE);
+    let bar_h = roomy.status_h(&LARGE);
+    let painted = |v: &View| -> Vec<(i32, i32)> {
+        frame_with(&d, v, &LARGE, &chrome).items.iter().filter_map(|i| {
+            match i {
+                Item::Rect { y, h, c, .. } if *c == CHROME => Some((*y, *h)),
+                _ => None,
+            }
+        }).collect()
+    };
+    let tall = roomy.h - bar_h;
+    assert!(painted(&roomy).iter().any(|(y, h)| *y < tall && *h > bar_h),
+            "no complaint box was drawn even with room: {:?}",
+            painted(&roomy));
+
     let mut v = rows_of(6, 400);
     v.grant(&chrome, &LARGE);
     let tall = v.h - v.status_h(&LARGE);
-    let f = frame_with(&d, &v, &LARGE, &chrome);
-    for item in &f.items {
-        if let Item::Rect { y, h, c, .. } = item {
-            if *c == CHROME {
-                assert!(*y >= tall || y + h <= tall,
-                        "a box painted across the fold: y={y} h={h} \
-                         tall={tall}");
-            }
-        }
+    // **`y >= tall` is not an excuse.**  A box whose top lands exactly
+    // on the fold paints *entirely* on the bar's ground, which is the
+    // defect and not an exemption from it — the only chrome allowed to
+    // start at the fold is the bar itself.
+    for (y, h) in painted(&v) {
+        let is_bar = y == tall && h == v.status_h(&LARGE);
+        assert!(is_bar || y + h <= tall,
+                "chrome painted past the fold: y={y} h={h} tall={tall}");
     }
 }
 

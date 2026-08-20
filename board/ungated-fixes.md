@@ -179,6 +179,28 @@ whenever a batch finds it awkward is one that stops meaning anything, and
 the honest moment to widen it is after more than one batch has pushed on
 it.
 
+### And a named test is not yet a gate — 2026-08-20, batch 2
+
+**Two of that batch's five named a test that passed with the defect put
+back.**  F132's assertion excused any rect starting at `y >= tall`, which
+is precisely a box painting entirely on the status bar's ground; F128's
+fixture was built on the boundary the *fix* reads, and `duet.ges`, its
+other half, has been edited since and no longer straddles anything.  Both
+were tightened the same morning and both now fail on the defect.
+
+So the verdict *a test, named* has a check under it, and the check is a
+**mutation**: put the defect back, watch the test go red, put it away
+again.  Reading the entry against the test's name gets this wrong two
+times in five, and gets it wrong in the direction that costs most — a
+gate believed to exist is worse than a gap known about, because nobody
+looks at it again.
+
+**This is retroactive.**  Batch 1's four *gated all along* verdicts were
+made by reading; only the F149 line records a mutation.  They are candidates
+for the Friday sample rather than something to redo now — the whole point
+of the schedule is that a burst is what degrades judgement — but the rate
+found here is the reason to look.
+
 ## The schedule — heijunka, adopted 2026-08-18
 
 *Henri:* **"so it's a question of heijunka.  We need to balance the

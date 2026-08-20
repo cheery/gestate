@@ -3552,6 +3552,10 @@ cast: the switch may be thrown on a disconnected bank, and now the
 sentence says so rather than promising sound ("lead hears the
 keyboard — though it is disconnected").
 
+gate: `test/test_audioeditor.py::test_commenting_a_bank_out_of_sound_survives_and_says_so`.
+Checked 2026-08-20 by handing the leaving engine the live `control` again: the jog answers
+`audio stopped: list index out of range` — the crash Henri met, not a proxy for it.
+
 ### F127. **[resolved]** A literal applied to arguments answers with an instance at a function type
 
 `test/sessions/F127-weird-issues-session.ges` (2026-08-13, the tail):
@@ -3605,6 +3609,12 @@ text file only at the cut, so a failure inside the final three bytes
 is the chunk's fault and not the file's.  The regression fixture is
 a file with a multibyte character built onto the boundary — and
 `duet.ges` itself, so the irony cannot recur.
+
+gate: `test/test_session.py::test_opening_a_file_that_is_not_text_is_a_sentence` —
+**and it did not gate this until 2026-08-20.**  Its fixture put the `─` on the boundary the
+*fix* reads, and `duet.ges` has been edited since and straddles neither, so the four-byte
+drop put back passed.  Widened to a sweep of offsets 4085–4095: fails at 4090 on the old
+code, and indifferent to where the boundary is put next.
 
 ### F129. **[resolved]** An exactly-named directory loses to a fuzzy file
 
@@ -3737,6 +3747,13 @@ the trouble box clamps its panel and rows to `text_h`
 fold (`window.rs` paint_scopes).  Both trouble and scope boxes had
 the bug, as suspected.  Held by `a_box_at_the_fold_stops_at_the_fold`.
 
+gate: `shell/editor/tests/view.rs::a_box_at_the_fold_stops_at_the_fold` —
+**and it did not gate this until 2026-08-20.**  It excused any rect starting at `y >= tall`,
+which is a box painting *entirely* on the bar's ground: the clip removed gave a chrome rect
+y=120 h=80 over a 24-pixel bar and the test passed.  Tightened — only the bar may start at
+the fold, and the box must be drawn when there is room, so it cannot pass on an empty
+frame.  The scope half of this entry is held by F139's gate.
+
 ### F133. **[resolved]** `what scope` draws its page outside the window when the panel is low
 
 Henri, 2026-08-14 (`fixme.incoming.txt`): asking `what` for `scope`
@@ -3756,6 +3773,10 @@ panel when below holds it, above when the equator sent the panel low
 with the last row counting the rest (`… N more`), the full page one
 `doc/ref/` away.  Held by `a_page_stays_inside_the_window`, which
 also pins the counted elision.
+
+gate: `shell/editor/src/palette.rs::paint_tests::a_page_stays_inside_the_window`.
+Checked 2026-08-20 by making the page hang below the panel again: `a rect left the window:
+y=564 h=252`, in a window 600 tall.
 
 ### F134. **[resolved]** `now : Sig Float` — the current time in seconds, to the substrate
 
@@ -3978,6 +3999,11 @@ which asserts the distinguishing thing rather than the obvious one —
 the points that survive sit *exactly where the roomy frame put them*,
 because a squeezed picture puts them somewhere new.  Checked against
 the squeeze it replaced.
+
+gate: `shell/editor/tests/view.rs::a_scope_at_the_fold_is_cropped_and_not_squashed`.
+Checked 2026-08-20 by putting `high = (band - 2).min(tall - top - 1)` back: a point moves
+to y=195, which is the squeeze — the test asserts the surviving points sit where the roomy
+frame put them, so a rescale fails it and a crop does not.
 
 ### F140. **[resolved]** A render refused and the reason stayed in the terminal
 
