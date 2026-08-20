@@ -38,6 +38,9 @@ in their head is one nobody can correct.
 
 2026-08-17: Any project must not consume the person leading it.
 
+2026-08-20: lets be slow and clever, and not rush so that we have time to
+figure things out, like tortoise fox.
+
 ## Gestate as a generic working platform
 
 2026-08-16: The origin may be in music. Music is a human expression.
