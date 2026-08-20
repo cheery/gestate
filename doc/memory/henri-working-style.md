@@ -95,3 +95,43 @@ proposing cards*, arriving from his side of the table — and the
 symmetric obligation is mine: my opinions do not get to drive work
 either, which is what the measurement discipline is for.
 
+**Trust the detector, check the attribution — 2026-08-20, his own read:**
+*"'feels nice', 'looks right', those are in my vocabulary. If I were to
+guess. It's strong intuition that I can trust."*
+
+**Why: the tree scores it, and the score splits cleanly.**  *That
+something is wrong*, he gets right against everything else in the room —
+`doc/audit.md` was opened because *"the examples sounded wrong in places
+while reading clean"*, and the FFT then found `stringLen` short half a
+sample of period, `string 440` ringing at 438.0 Hz with the error
+varying by pitch.  F126 arrived as *"it appears to not build the graph
+correctly now"* and was a crash; F139 as *"the scope has the same
+clipping issue as canvas used to have"*, pattern-matched across two
+painters, correct.  *What* is wrong, he gets wrong as confidently:
+`systemctl is-enabled ufw` looked like the firewall being up, *97 of
+161* felt like the number and was 79, and the consent gate looked like
+it recognised names when it reads two typographic slots.
+
+**How to apply:** treat a feel-report as **evidence that something is
+there**, never as the diagnosis, and never argue it away because the
+code reads clean — that is the case where he has been right and the
+reading wrong.  Then measure before naming a cause, his or mine.  Every
+instrument here is that shape: the ear says the strings beat, the FFT
+says −8 cents.
+
+**And he has been running this discipline longer than this project has
+existed.**  Shown to him on 2026-08-20 out of **Lever**
+(`github.com/cheery/lever`, MIT, his own language before gestate), where
+`samples/predator_prey.lc` carries it whole in four lines:
+
+> *"Once in a while the population tended to collapse entirely.  I
+> guessed it's due to the method I used to integrate so I switched away
+> from euler.  The current model feels nice."*
+
+Symptom as fact, mechanism flagged **"I guessed"**, result taken by feel.
+The separation is his, it is a decade old, and what it lacked then was
+anywhere to be filed — that comment is a `fixme.md` entry that no index
+could reach.  Named here at his own word: *"it's all in github in same
+account.  I think it can be committed without injury."*
+
+See [[test-what-a-person-would-do]], [[dont-conclude-from-a-shallow-check]].
