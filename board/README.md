@@ -67,24 +67,28 @@ drops out of today regardless of where it stands here.
 That is not a licence to skip down the list on preference.  Priority is
 still the tiebreak between two workable cards, and it is still his.
 
-1. **[ungated-fixes](ungated-fixes.md)** — 79 of `fixme.md`'s 161
+1. **[working-standard](working-standard.md)** — `doing`.  The five
+   method documents are over their 2000-line cap (`spec/rules.md`), and
+   grew 422 lines in the two days before it was set.  First job is the
+   trim, then the counter becomes a gate.
+2. **[ungated-fixes](ungated-fixes.md)** — 79 of `fixme.md`'s 161
    entries are named by no test, so a defect closed on a photograph can
    come back without anybody being told.  Directly under the oracle
    because they are the same family and the oracle is what makes the
    interface-shaped ones closable at all.
-2. **[unseen-flare](unseen-flare.md)** — narrower than
+3. **[unseen-flare](unseen-flare.md)** — narrower than
    `unheard-output`, and overlapping it.
-3. **[reviewing-by-running](reviewing-by-running.md)** — the review
+4. **[reviewing-by-running](reviewing-by-running.md)** — the review
    loop `spec/author.md` says is the scarce resource.
-4. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
+5. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
    the changes a session makes.
-5. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
+6. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
    *A proof of concept landed 2026-08-18 — three of its four views walk
    in the real window.  What is left is the fourth, paging, and a
    stranger.*
-6. **[portable-package](portable-package.md)** — for people who do not
+7. **[portable-package](portable-package.md)** — for people who do not
    exist yet, by his own answer.  *Waiting on program-or-workshop.*
-7. **[stranger-test](stranger-test.md)** — **moved here from first on
+8. **[stranger-test](stranger-test.md)** — **moved here from first on
     2026-08-18**, the day it produced its largest result: *"I think that
     we need another stranger.  move the card to the last."*  It is not
     demoted for being less valuable — run two carried the vision's whole

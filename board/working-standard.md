@@ -1,6 +1,6 @@
 # working-standard — the way we work exists only as prose that grew around a music program
 
-    status   shelved — 2026-08-18
+    status   doing — 2026-08-20
     because  "standardization effort of our work here" — the method that
              runs this project is spread over five documents and some
              1,550 lines, with one rule stated three times inside a single
@@ -17,6 +17,12 @@
              card:interface-oracle.md, card:carried-state.md,
              card:driven-runs.md, card:cheap-gates.md — the four
              workflow cards; the raw material, not absorbed
+             spec/rules.md — the cap, and what may not be done to meet it
+             tools/rulecount.py — the number, and test/test_rules.py the gate
+
+**Picking this up?  §"Back on the board, 2026-08-20 — the cap" is the live
+half**; everything above it is how the card was argued into shape while
+it was shelved, and none of it has changed.
 
 ## The ask
 
@@ -241,3 +247,68 @@ Three separations in one line:
   audio needs a cord, not that cord.  What transfers is *that a session
   must be able to reach the author*, and this one is the worked example
   of it.
+
+## Back on the board, 2026-08-20 — the cap
+
+*Henri, 04:52, after a few minutes with another model:* **"We need a cap
+for rules here.  2000 lines, for now, and rules must be still written
+cleanly, and marked by dates, no cheating there.  without this, the
+context needed grows too large for context window to hold it."**
+
+And, once the count was on the table: **"we have to take the
+working-standard into WIP.  Now it's time."**
+
+So this card is `doing`.  The contract is `spec/rules.md`; it is a spec
+rather than a sixth rule document, at his call — *"spec/ is ok.  I
+think… it tells about contracts written in software.  This thing should
+be specced as well."*
+
+**What unshelved it is a number.**  The card's own measurement on
+2026-08-18 was 1,554 lines across four documents.  Measured the night
+the cap was set, the same four are 1,976 and the five are **2,050** —
+**+422 lines in two days**, with `doc/instruments.md` more than doubled,
+210 → 457.  The cap was breached before it was written.
+
+The shelving reason on 2026-08-18 was that *the method is still moving*,
+and it still is.  That argument has been overtaken rather than refuted:
+the method may keep moving, but it may not keep **growing**, and the
+second is now measured while the first is not.
+
+### What the trim is
+
+**Session narration** — Henri, 2026-08-20: *"The rules have gotten
+narration from sessions that belongs into the journal."*
+
+Which names the fat precisely, and it is fat this card had already found
+from the other end: a rule stated three times in one file, the andon
+explained in five documents.  The test for a line is whether a stranger
+who never saw the incident needs it in order to **follow** the rule; if
+they need it only to **believe** the rule, it is `journal.md`.
+
+The three cheats are settled and written into `spec/rules.md`: a sixth
+document, dropping dates, and moving text from one rule into another.
+Two of them are Henri's words from tonight.
+
+### First steps, in order
+
+1. ~~**Get under 2000**~~ — **done 2026-08-20, at 1,983**, 17 lines of
+   room.  `doc/instruments.md` 457 → 404, `board/README.md` 704 → 686.
+   What the trim found first is that it was not only a trim: the blind
+   three-model test of 2026-08-19 had **no journal entry**, so the
+   instruments page was carrying an entire morning as the price of
+   stating four rules about spawning agents.  A transfer, not a
+   deletion — `journal.md` §"The morning that lived in nobody's file".
+2. ~~**Wire `tools/rulecount.py` into `tools/suite.py`'s `GATES`**~~ —
+   **done the same morning**, as `test/test_rules.py`.  Eleven gates,
+   twelve seconds.
+2b. **And the memory corpus came into the tree** the same morning, at
+   his ask — `doc/memory/`, split by kind, gated by
+   `test/test_memory.py`.  It is question 1 of this card answered by
+   example: the standard is a directory, and this is the first piece of
+   it that a second project would copy.
+3. Then the card's original scope — reading 2, consolidate and fix the
+   method's known defects — resumes, now with a ceiling it has to work
+   under rather than an argument about size.
+
+*Nothing here is committed.  Written at five in the morning, at his ask,
+so that it was not his to carry back to bed.*
