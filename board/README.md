@@ -99,22 +99,13 @@ still the tiebreak between two workable cards, and it is still his.
     answered by any session, at any position in this list.  A card that
     cannot be worked does not belong above cards that can.
 
-**Three cards arrived unplaced on 2026-08-18** — the day's kaizen,
-written down at Henri's ask, *"Write cards for fixing these issues in
-your workflow"*.  They landed at the end because that is where a new
-card lands, and the criterion below demotes them on principle, since
-none of the three is something a person using gestate ever meets.
-
-**All three were finished from the bottom on 2026-08-19**, in one
-afternoon: `cheap-gates`, `carried-state` and `driven-runs`.  That is
-the strongest
-evidence this board has about its own criterion, and it cuts against it
-twice over — they were worked because they were cheap and because he
-asked, not because they had risen; and `carried-state`, ranked seventh
-by *impact on somebody using gestate*, was the only card here whose
-absence had already crashed the program in his hands, twice, in one day.
-Ordering by impact and ranking a crash seventh is the kind of answer a
-rule gives when nobody checks it.
+**And the criterion has been checked once, on 2026-08-19, and it lost.**
+Three cards were finished from the bottom because they were cheap and
+because he asked; `carried-state`, ranked seventh by impact, was the
+only card whose absence had already crashed the program in his hands,
+twice in one day.  Ordering by impact and ranking a crash seventh is the
+kind of answer a rule gives when nobody checks it — `journal.md` §"And
+what the day says about the board".
 
 **Ordered by impact on somebody using gestate** — 2026-08-17, at
 Henri's ask: *"order them by some quality, such as, what is the impact
@@ -161,6 +152,17 @@ on a queue — and it costs the live board nothing, which is how two cards
 were written on a day whose goal was **four fewer and none new** without
 the goal being touched.  A card that arrives shelved says in its
 `## Shelved` section what it waits on, the same as a displaced one.
+
+**Sediment or debt, and it is one question.**  A shelved card waiting on
+an **event** — a milestone, a person, a measurement, another card —
+costs nothing while it waits and wakes on its own when the event
+arrives.  A card waiting because **nobody dares decide it** costs
+attention every time it is read past, and it gets dearer the longer it
+sits.  So when `later/` is read, ask of each card: *is this waiting on
+an event, or on me?*  A debt card is not shelved, it is **blocked on a
+decision**, and it belongs in the next batch of those.  A deep `later/`
+is a rich board when it is sediment and a stalled one when it is debt,
+and the directory looks identical either way.
 
 **And the reason it was displaced goes in the card, in Henri's words.**
 Without that it is a graveyard nobody re-reads, which is the failure

@@ -9382,6 +9382,27 @@ seventh under a criterion that had ranked a crash in his hands below
 six other things.  §"The priority" was rewritten this afternoon for the
 neighbouring reason; this is the second half of the same finding.
 
+*Kept here from `board/README.md`, 2026-08-20, when the sediment/debt
+rule needed the room and this was the narration paying for it.  The
+board keeps the finding in one sentence; the account of the two days is
+this.*
+
+**How the three came to be at the bottom.**  They arrived unplaced on
+2026-08-18 — the day's kaizen, written down at Henri's ask, *"Write
+cards for fixing these issues in your workflow"*.  They landed at the
+end because that is where a new card lands, and the board's criterion
+demotes them on principle, since none of the three is something a person
+using gestate ever meets.
+
+**And finishing all three from the bottom in one afternoon is the
+strongest evidence this board has about its own criterion — which it
+cuts against twice over.**  They were worked because they were cheap and
+because he asked, not because they had risen.  And `carried-state`,
+ranked seventh by *impact on somebody using gestate*, was the only card
+on the board whose absence had already crashed the program in his hands,
+twice, in one day.  Ordering by impact and ranking a crash seventh is
+the kind of answer a rule gives when nobody checks it.
+
 ## The harness drives, and the first real run finds two defects in it — 2026-08-19
 
 `card:driven-runs.md`, closed.  `xdotool` arrived through
