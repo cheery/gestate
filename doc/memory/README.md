@@ -99,6 +99,11 @@ session inferred.
 - [Subagents are his call](henri-subagents.md) — propose one and wait; and none is spawned without a way to raise a question and be answered
 - [The blind three-model test](gestate-blind-model-test.md) — clones not worktrees, keep the mapping out of the shared parent; haiku won on form and was wrong on F153
 - [House rules on authorship](gestate-house-rules-authorship.md) — `spec/author.md` is his to keep; gemba is opt-in
+- [Weights, context, suite](weights-context-suite.md) — weights for what the model must know, context for what it must currently obey, suite for what must be guaranteed; the rules never go into weights
+- [Smaller models and the tree](smaller-models-and-the-tree.md) — structural rules survive, judgment norms go first, initiative goes furthest; the afternoon experiment, and the distilled front
+- [Sessions write where readers read](sessions-write-where-readers-read.md) — why memories leak into rule files, and that editing one is unreviewed authorship the seam list does not name
+- [The evaluation loop](the-evaluation-loop.md) — a session judging this method is a product of it; say the loop out loud, and route the real check to a stranger
+- [Mechanism, not instructions](mechanism-not-instructions.md) — the idea is widely converged on; rules held by a suite are what is uncommon, so a copy takes the mechanisms and not the prose
 - [Where the method comes from](method-sources.md) — Adler's separation of tasks, Socratic dialogue and the epoché are already rules here, uncredited; crediting them is `spec/author.md` and Henri's to write
 - [The keeper's evening](the-keepers-evening.md) — **proposed, not adopted**: one evening a week, measure one rule, compact one file, refresh one date; and it must never become a demand
 - [Why models hallucinate](why-models-hallucinate.md) — five layers, and why this tree's verification rules are the fix at the right layer; fluency is no evidence, including your own

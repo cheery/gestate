@@ -46,23 +46,25 @@ QUOTED = re.compile(
 #: the register is the exact bypass this test exists to prevent, so the
 #: list is short enough to read in one look.
 NOT_A_PERSON = frozenset("""
-    Added Adopted Agreed Amended Answered Argued Asked Built Checked
-    Corrected Costs Established Open Picked Proposed Reproduced Started
+    Added Adopted Agreed Amended Answered Argued Asked Assessed Built
+    Checked Confirmed Corrected Costs Established Granular Named Open
+    Picked Proposed Reproduced Started Why
     Buys Decided Diagnosis Done Filed Fixed Found Generated Imposed
     Kaizen Known Measured Mon Tue Wed Thu Fri Sat Sun Noted Offered
     Opened Predicted Recommendation Reported Resolution Resolved
     Shelved Shown Spent Status Steal Tried Unprompted Vacuous Verified
     Written From The This That And But For When Where With Then Only
     Both Each Every All Not None Three Two One Four Five Six Seen
-    Why Confirmed Granular
 """.split())
 
-#: The three above arrived with `doc/memory/` on 2026-08-20 and are the
-#: memory format's own furniture rather than anybody's voice: a memory
-#: body follows its fact with **Why:** and **How to apply:** lines, and
-#: that is a bold lead-in ending in a colon — which is precisely the
-#: shape `QUOTED` looks for.  Worth knowing when the next format arrives
-#: with a **Word:** convention in it.
+#: The first line of that list is `doc/memory/`'s contribution, added
+#: 2026-08-20 as the corpus came into the tree, and it is a format
+#: collision rather than a series of near-misses: a memory body states
+#: its fact, dates it — *Named 2026-08-19* — and follows it with
+#: **Why:** and **How to apply:** lines.  A capitalised word before a
+#: date, and a bold word ending in a colon, are exactly the two shapes
+#: `DATED` and `QUOTED` look for.  Expect more of them, and expect the
+#: same from the next format that arrives with a **Word:** convention.
 
 #: Cited the way a paper cites — not a consent question.
 CITED = frozenset("Ohno Karplus Rizzo Strong Toyota Deming Shingo".split())
