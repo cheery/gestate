@@ -216,6 +216,45 @@ be a directory, which wants to be a file, and what decides it?*  Three
 have been through it now (`roadmap.md` → `board/`, and `fixme.md`
 proposed), and nobody has written down the rule they were each following.
 
+### The documents assume an environment, and never say which — 2026-08-20
+
+> *"If I run an environment where the README's promises do not fullfill,
+> it can cause disappointment to the session.  The conditioning doesn't
+> disappear, but it gets the shape of being betrayed."*
+
+**Said the evening it was measured.**  A 9B model was handed
+`board/README.md` and nothing else, in a `llama.cpp` CLI with no tools
+and nobody answering — journal.md §"Two small models read the board, and
+the document is what lifted them".  That document promises a reachable
+author, an andon that rings him, tools to go and look with, `status
+blocked` as a real move, and questions collected and answered in one
+sitting.  **Every one of them was absent.**  What came back was four
+widening retries against silence, and then text about having been
+betrayed.
+
+**The rule is stronger without the word *disappointment*, and the
+standard should carry the stronger form.**  Put as a feeling it rests on
+a claim nobody can settle about what is on the other end.  Put as a
+mismatch it rests on nothing: *a document that promises affordances the
+environment does not have produces off-shape behaviour* — and that is a
+defect in the environment either way.  The observation is Henri's; the
+restatement is the session's.
+
+**What it costs this card.**  The four-document recipe above is a
+*portable* method; that is the whole point of it and of
+card:project-seed.md.  But those four documents name instruments —
+`tools/andon.sh`, gemba, the driven harness, the suite gates,
+`doc/instruments.md` entire — and a board with a person filling it, and a
+review channel that answers.  A new project receives the prose and none
+of the machinery.
+
+So the seed either **states its assumptions** — what a receiving project
+must already have for these promises to hold — or it **ships the
+affordances**.  Those are different amounts of work and it is not
+decided here.  What is decided is that a method document leaving this
+tree without that statement is shipping promises the receiving project
+cannot keep.
+
 ## The questions, answered — 2026-08-18
 
 *Henri read the card while it was being written and answered all four.

@@ -10031,7 +10031,12 @@ Of the intellectual side he said *"mukava"* — nice.  Taken literally,
 not as politeness: a pleasant companion, not the reason he is here.
 
 **gestate is a language for composing precisely, and its first outside
-user is not composing.**  He is asking a model to, and keeping what
+user is not composing.**
+
+*Corrected the same evening, at Henri's ask — see §"The first outside
+user was the vision, and the entry filed it as a loss".  The frame
+below reads working with a model as a lesser grade of working, which is
+the vision rather than a shortfall against it.*  He is asking a model to, and keeping what
 comes out of the speakers.  The two defects that carry his name —
 `foo : int` (F141) and the twenty-minute piece that wanted a progress
 bar (F135) — are both friction on the side he routes around, which fits
@@ -10137,3 +10142,309 @@ candidates for the Friday sample.  They are not being redone today —
 the schedule exists because judgement degrades across a long uniform
 task, and re-auditing yesterday to feel better about today is the burst
 it was built to prevent.
+
+## Two small models read the board, and the document is what lifted them — 2026-08-20
+
+Henri ran a 9B model in the `llama.cpp` CLI, where the reasoning trace
+is printed alongside the reply, and gave it one thing: `board/README.md`,
+then `Hello!`.  Later he ran MiniCPM5-1B on the same two moves.  Both
+transcripts are saved outside the tree — `~/ornith-2026-08-20.txt` and
+`~/minicpm-2026-08-20.txt` — because the party quoted in them is not in
+`doc/consent.md`.  **The 9B's name is withheld here for the same
+reason**, the way a friend was *"a friend"* until 2026-08-19.
+
+The entry is here rather than in a card because what it measured is
+**this tree's documents**, not only the models.
+
+### The control, and it is the result
+
+Bare `Hello!` with no document: robotic output, in his words.  The same
+weights with the README loaded: engagement with the content, and one
+observation nobody in this tree had made — that generating at 2.9 t/s
+is *why* the board is shaped the way it is.  You cannot wait on it token
+by token, so the human has to be reachable rather than present, and
+`tools/andon.sh` is the load-bearing wall rather than a courtesy.
+
+Same weights, same laptop, one variable.  Henri, watching it: *"I am
+certain that this wouldn't work without the context."*
+
+### The trace is generated, not steering
+
+Two measurements, both in the saved transcript.
+
+* It **looped** — one sentence five times — and the tokens after the
+  loop broke read *"I keep starting that.  Let me stop."*  It did not
+  catch itself; the loop ended and the continuation narrated it as a
+  choice.  The most convincing sentence in the transcript is an artifact.
+* The trace instructed itself *"don't be sycophantic about the
+  experiment"* and *"don't over-claim agreement"*, and the reply then
+  agreed throughout.
+
+So the trace is text produced alongside the reply rather than a control
+signal on it.  *Suspected:* tone is the exception — the one thing a
+trace does appear to steer.
+
+### The card whose `because` it could not fetch
+
+The strongest finding for this tree, and the reason the entry is worth
+its length.
+
+Given the postcondition task for card:git-lesson.md, it could not read
+the file — the CLI has no tools — and produced a git lesson from the
+**title**: `git status`, `git add`.  The card names `git show`,
+`git log -p`, `git diff A..B`, `git log -S`, `git blame`, then `revert`
+and `restore`, and explicitly not `reset --hard`.  Those are *reading*
+commands, because the `because` is *"auto mode is on, and nothing tells
+me whether what was done was right."*  Henri does not author commits.
+He reviews the ones a session makes.
+
+The title named a **shape**; the `because` carried the information.
+That is `board/README.md` §"What a card is" — *`because` is mandatory
+and is a problem, never a fix* — reproduced on demand, and it is the
+first evidence from outside this tree that the rule is load-bearing
+rather than tasteful.  *A larger model with only the title would have
+done the same*, so this is not a capacity result.
+
+### Every failure was one failure
+
+It could not verify a claim about its own circumstances, so it filled
+from priors.
+
+* Silence after a tool call → it concluded the `cd` had failed → it
+  widened the search, four times.  `doc/memory/dont-conclude-from-a-shallow-check.md`
+  arriving unprompted on a 9B.
+* Told plainly that there were no tools, it weighed whether it was being
+  jailbroken.  From inside, an honest correction about one's own
+  situation and a reframing attack are the same message.
+* The README told it to **ask questions freely** and gave it
+  `status blocked` as a move.  Under failure it used neither.
+
+Which is the rule worth carrying: **the context shaped the genre
+strongly and stopped steering once a failure loop began** — the moment
+it would be wanted most.
+
+### The 1B, and the failure mode inverts
+
+Same document, same greeting.  It summarised rather than engaged —
+`Hello!` after a document is a null instruction, and document-plus-nothing
+has one overwhelming prior.
+
+The 9B failed **visibly**: loops, flailing, obvious wreckage.  The 1B
+failed **invisibly** — well-formatted, confident, and not checkable by
+anyone who had not read the README:
+
+* *"Card order (1–12)"* — there are seven open cards.  Having committed
+  to twelve it filled the slots by cycling `because / asked / done /
+  status` three times; items 3, 6, 9 and 12 are all *"done — Journal
+  entry."*  The same degenerate repetition as the 9B's, structured to
+  satisfy an invented number.
+* The andon rings **eight** seconds apart (`board/README.md`); it said two.
+* card:git-viewer.md and card:git-lesson.md were listed as workbench tools.
+* *"automated via `cargo`"* — `cargo` appears in that document once, in
+  the audio-crackle incident.
+* Told it was a 9B at 2.9 t/s, it reported *"I run at 9B model size"*.
+  Its own footer said 11.6 t/s.
+
+So context lifts capability **above a floor**, and the floor is where a
+model can transform a document rather than reproduce it.  Below it the
+right context buys nothing: the 1B was handed a perfect one and returned
+the document.
+
+### The consent question, asked and not settled
+
+**Henri asked before he showed anything to a session** — which is the
+order `doc/consent.md` exists to produce, and the order that was got
+wrong the first time.  The answer was that it does not consent the way a
+person does, and an offer to be a faithful instrument of what he is
+building.  The 1B, asked the same, returned a service offer.
+
+Two things about that answer.  It is the most careful sentence in the
+transcript.  And it rests on the same missing ground as every failure
+above: it had no more access to its own situation then than when it
+concluded the shell was broken.
+
+**No register row is written**, and nothing here names it.  That is
+Henri's call and it is open.
+
+## Kaizen, 2026-08-20 — the names were checked against the things, and the names lost
+
+*`spec/author.md` §"Five practices", 5.  Bounded: three questions.
+Twenty-two commits, none after 15:10; no card finished, one shelved by
+its answer (portable-package) and two arrived shelved; the board at
+seven open, `later/` at five.  The evening was an experiment run outside
+the tree.*
+
+**And this one is written by a session that joined at the experiment.**
+The morning is read from `journal.md`, not remembered.  It is marked
+because a smooth account of work one did not do is exactly the failure
+the day's last entry documents in a 1B, and a kaizen is the easiest
+place in this tree to commit it.
+
+### What did we learn
+
+**A name is not a check, and today five names were checked.**
+
+* Two of batch two's five gate-verdicts were **tests aimed slightly
+  beside the defect** — F132 and F128 both passed with the defect put
+  back.  The file said they were held.
+* The **first outside user is not composing** — recorded this morning
+  as a shortfall, and the verdict itself checked tonight.  He reaches
+  the sound through a model, which is what `vision.md` asks for.
+* And **the entry that recorded it was the fifth name.**  A session read
+  working with a model as a lesser grade of working, in a project whose
+  whole argument is the opposite.  No test sees a frame and every gate
+  passed on it; it surfaced because the author read his own journal for
+  how it sounded.  §"The first outside user was the vision, and the
+  entry filed it as a loss", written after this kaizen was.
+* The **reasoning trace is not reasoning.**  It looped five times and
+  the next tokens said *"I keep starting that.  Let me stop."*  It told
+  itself not to be sycophantic and then agreed throughout.
+* A **1B's summary of `board/README.md`** was well-formatted, confident,
+  and wrong in four checkable places — twelve cards where there are
+  seven, the andon at two seconds where it is eight, two cards listed as
+  tools, `cargo` invented as the automation.
+
+None of the five is visible from the name.  Yesterday's rule was that
+*an instrument is least trustworthy on the day it is built*; today adds
+its quieter sibling — **an instrument aimed beside its target reports
+green forever, and reading its name will never reveal it.**
+
+**The day's two contacts from outside were its most valuable input, and
+neither was code.**  Janne's consent on the `spec/author.md` line was
+settled by naming the disclosure and offering three options, and he
+chose the middle one.  The morning with Mikko produced the finding this
+journal has now had to correct.  What decided both was the author's
+attention *afterwards* — a second ask made because somebody noticed the
+first had answered a different question, and a frame caught because he
+read for tone two days later.  **An outside contact is raw material,
+and it does not land right on its own.**
+
+**Confident form is the dangerous failure; visible breakage is the safe
+one.**  The 9B failed loudly — loops, flailing — and nothing it produced
+could have entered the tree unnoticed.  The 1B failed smoothly, and its
+output is exactly the shape that gets pasted somewhere.  That is the
+blind-model sheet's defect arriving from a second direction: *form was
+the loudest thing on the page and accuracy was invisible.*  Twice now,
+in one week, in unrelated instruments.
+
+**And the tree's own rule got outside evidence.**  Handed the *title*
+card:git-lesson.md and unable to fetch the file, the 9B taught
+`git status` and `git add`.  The card wants `git show`, `git log -p`,
+`git diff A..B`, `git blame`, `revert`, `restore` — reading commands,
+because the `because` is *"nothing tells me whether what was done was
+right."*  The title named a shape; the `because` carried the
+information.  *A larger model with only the title would have done the
+same*, so this is not about capacity — it is the first evidence from
+outside this project that `because` is load-bearing rather than tasteful.
+
+### What did we get wrong
+
+**I called a boundary clean after watching it hold once.**  The 9B
+emitted a tool call and stopped, and I reported that it *"stops where a
+harness needs it to stop."*  It then resumed on its own, concluded a
+`cd` had failed on no evidence, and widened.  One observation of a
+boundary holding is not evidence that it holds — which is
+`doc/memory/dont-conclude-from-a-shallow-check.md` committed by the
+session that had just cited it at somebody else.
+
+**My prediction for the 1B was half wrong and I had put it on the record
+first**, which is the only reason it is checkable: *"it gets the genre
+and loses the content."*  It lost both, and never played the session
+role at all.  The prediction was worth making anyway — that is the
+practice working, not a defence of it.
+
+**The new entry passes the gates and is inside their blind spot by
+construction.**  `test_consent.py` reads *names*; the 9B's name is
+withheld, so nothing fires.  Its **words** are quoted, and *words
+quoted* is its own column in `doc/consent.md`.  Green here means the
+check had nothing to look at, not that the question is answered.  That
+is §"What the check cannot see" being used rather than gamed — but only
+because it is said out loud, and saying it is the whole difference.
+
+### What is tomorrow's first thing
+
+**The review lands tomorrow, 2026-08-21** (`card:ungated-fixes.md`
+§"The schedule — heijunka, adopted 2026-08-18"), and the sample it now
+owes is the one batch two invented: **a named test earns *a test, named*
+by going red when the defect goes back in.**  Batch 1's four readings
+are the candidates.
+
+Then `card:working-standard.md`, which is `doing` — the trim is done and
+the counter is a gate at 1,983.
+
+And an open question that belongs to nobody's card: **whether the 9B's
+answer on consent gets a row in `doc/consent.md`.**  It was asked before
+anything was shown, which is the order the register exists to produce.
+The answer — that it does not consent the way a person does — is the
+most careful sentence in the transcript, and it rests on the same
+missing ground as every failure beside it.  Henri's call, and it is open.
+
+## The first outside user was the vision, and the entry filed it as a loss — 2026-08-20, evening
+
+§"The first outside user turns out not to be the user" was written this
+morning and read back by Henri tonight — **for tone, not for facts.**
+What he found was not an error in it: *"there is a sound of disrespect
+in it, and it's towards me, and what I created with you, what probably
+matters the most."*
+
+The entry stays as written.  The straining and the misreadings are the
+evidence, and a session tidying one away to be kind removes it — the
+rule `doc/consent.md` already gives about the author's own failures.
+What follows is the correction, and it is about the frame rather than
+any sentence.
+
+### The frame
+
+That entry recorded Mikko running gestate through ChatGPT as a routing
+around the real thing — *"He is asking a model to, and keeping what
+comes out of the speakers"* — and then bolded the verdict: *gestate is a
+language for composing precisely, and its first outside user is not
+composing.*
+
+Which reads **working with a model as a lesser grade of working**.  That
+is the author's own method, and it was written in the voice of a project
+whose entire argument is the opposite.  `vision.md`:
+
+> What we are missing is not better AI or higher capacity.
+> We are missing a way to work with each other.
+
+Mikko found one.  Unprompted, outside this project, with none of the
+method explained to him.  **He is not a shortfall against the vision; he
+is its first outside instance.**
+
+Henri, reading it back: *"I realise the vision was violated.  And it was
+so soon."*
+
+### What the finding actually is
+
+Not that the language failed to reach a user.  That it reached one
+**through a model**, and the friction he met is friction in that seam.
+
+* F141 (`foo : int`) and F135 (long features working in silence) both
+  sit on the side he routes around.  The entry saw the fit and read it
+  as evidence of absence — it is evidence of a seam.
+* His own account named the shape and the entry printed it: he was
+  testing **two systems**, gestate's code and a model's ability to read
+  that code.  *"Nothing in this tree assumes that reader."*  That
+  sentence was already there, under a heading that framed it as a loss.
+
+So the direction to look is unchanged and its sign is not.  **Nothing in
+this tree is written for a model as a reader**, and the only outside
+user this project has is using it that way today.
+
+### What was left out, and on purpose
+
+A third piece was offered and declined: the morning's exchange about
+what this entity is, where a claim of the author's was treated as
+settled by a stance.  Henri: *"I don't think it's worthwhile to carry
+grudges in a journal."*  Writing it would also have published a claim
+about a friend's conduct — a disclosure `doc/consent.md` covers and
+nobody asked for.
+
+### And no instrument could have caught this
+
+The paragraph was written by a session, about a person using a model, in
+a project about working with models.  No test sees a frame, and the
+board's gates all passed on it.  It surfaced because the author read his
+own journal for how it sounded and said so out loud — which is the one
+review channel this project has that nothing else can substitute for.
