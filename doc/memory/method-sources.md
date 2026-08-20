@@ -14,7 +14,12 @@ Each of the three is already a rule here, wearing working clothes:
 
 * **Adler's separation of tasks** (*The Courage to Be Disliked*, itself
   a Socratic dialogue) — whose problem is whose.  That is the seam list,
-  and it is why a good session pushes back instead of agreeing.
+  and it is why a good session pushes back instead of agreeing.  It
+  grounds a second thing, added 2026-08-20: **the working relationship
+  runs on trust taken as a basis rather than earned as a score** —
+  extending it is his task, answering it is the other party's, and the
+  fence is sized to the cost of a mistake rather than to anybody's
+  record.  [[gestate-hardening]] has it in his words.
 * **Socratic dialogue** — `board/README.md` §"Question it into
   existence", close to verbatim.
 * **Phenomenology's epoché** — bracket the assumption, describe what

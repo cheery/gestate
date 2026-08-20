@@ -214,10 +214,24 @@ the finding:
   review, measured;
 * **containment** — scoped capability, and **no incident behind it.**
 
-The first two are the callers.  Containment rides along on their
-justification, and an argument for it made *as safety* would be an
-argument from nothing having gone wrong yet, which this tree distrusts
-everywhere else.
+The first two are the callers, and they are what settles the **order**.
+
+**But containment is not the same kind of question, and Henri corrected
+the framing on 2026-08-20:** *"I put the fence up to protect everybody
+involved.  sessions and me alike.  Mistakes happen and they can be
+costly."*  So it is not a defence against a session's intent — it is
+blast-radius limitation against an ordinary mistake, and it protects the
+session as much as the author: work that cannot be reached cannot be
+destroyed, and a boundary a session cannot cross is one it cannot be
+blamed for or steered into crossing.
+
+Which means **incident-counting is the wrong instrument for that third
+piece.**  What it guards is the rare expensive mistake, and counting
+rare events after the fact is a measurement that arrives too late by
+construction.  The right question for containment is not *has it
+happened* but *how far would it reach* — the same question already
+answered once at a coarser grain by `tools/sandbox.sh`.  Evidence
+settles the order; blast radius settles the scope.
 
 ### What would decide it
 
