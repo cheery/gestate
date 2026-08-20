@@ -51,20 +51,15 @@ finding.
 
 ## The other standing rule: a number nobody asked for is a number nobody checks
 
-*From F169, learned 2026-08-19, and it applies to every instrument on
-this page rather than to any one of them.*
+*From F169, 2026-08-19.  It applies to every instrument on this page
+rather than to any one of them; the afternoon it happened is
+`journal.md` §"The proposal that questioning turned inside out".*
 
 An instrument's answer is checked when somebody asked the question.  An
 answer read as an answer invites a check, because the reader wanted it
 and knows roughly what shape it should be.  **The same number arriving
 as a by-product is not read as a claim at all** — it is read as the
 background, and the background is not audited by anybody.
-
-F169 is the whole argument in one afternoon.  `tools/clock.sh` was run
-for an unrelated reason, printed `(1h ago)` for one hour and fifty-eight
-minutes, and the line simply sat there.  Henri had said he rested about
-two hours — right to within two minutes — and he retracted it against
-the clock.  Nobody in the room noticed that anything had been asserted.
 
 Two things follow, and the second is the one that costs something:
 
@@ -77,13 +72,7 @@ Two things follow, and the second is the one that costs something:
   every turn, every session start, a status line.  That is exactly the
   register in which the number stops being checked, so it is worth
   building only for a number that is already correct at the boundary and
-  is already carrying its source.  On the day the clock was built, it
-  was neither.
-
-And it is **not a session's failing.**  A session defers to instruments
-because it has no felt duration to defer to instead; the author has one,
-overrode it, and was the one who got it wrong.  Whatever this page
-builds is load-bearing for both people reading it.
+  is already carrying its source.
 
 ---
 
@@ -109,12 +98,8 @@ correcting the line that stood here before: *"Sessions do not use it by
 default because that would be waste, you have to tell that you're
 wanting to gemba walk."*  So it is not *narrate whenever he is at the
 desk* — that was this page's own guess and it was wrong. **He says he
-wants a gemba walk, and then a session narrates.**
-
-Which is the standing shape of everything on this page: an instrument
-answers a question somebody asked. A box filling with sentences nobody
-requested is the muda this project spends its time removing, arriving
-dressed as attentiveness.
+wants a gemba walk, and then a session narrates.**  A box filling with
+sentences nobody requested is muda arriving dressed as attentiveness.
 
 ### `tools/clock.sh` — the wrist clock
 
@@ -133,25 +118,15 @@ whole of it is present at once, undecayed — so an elapsed time is never
 *recalled*.  It is inferred from how much happened, and that inference
 runs one way: **a dense day reads as a long one.**
 
-The day this was built, `doc/consent.md` said a friend had been named
-*for a week* before he was asked.  It was one day.  `tools/clock.sh
-219eead` says *22 hours* and takes no thought at all — which is the only
-property that matters, because the instrument that gets used is the one
-that costs less than the guess.
+The instrument that gets used is the one that costs less than the guess,
+and this one costs no thought at all.  So: **an elapsed time in this
+tree is computed, never remembered.**  And prefer writing the *date*
+over the duration wherever both would do — a date can be checked by the
+next reader and a duration cannot.
 
-So: **an elapsed time in this tree is computed, never remembered.**  And
-prefer writing the *date* over the duration wherever both would do — a
-date can be checked by the next reader and a duration cannot.
-
-**And the number it gives has to be right at the boundary** (F169).  For
-two and a half hours this script rendered `1h58m` as `1h`, truncating
-downwards by up to fifty-nine minutes — and Henri, who had said "about
-two hours" and was right to within two, read the clock and retracted a
-true statement.  An instrument gets consulted precisely where somebody
-means to check it against what they remember, so a truncating unit
-conversion in a reporting path is not a rounding preference: it is a
-biased estimator dressed as a measurement, and it spends its credibility
-in the one place the tool was built for.
+**And the number it gives has to be right at the boundary** — F169 was
+this script truncating `1h58m` to `1h`, and the standing rule above is
+what it cost.
 
 ### `tools/andon.sh` — ring the sound card
 
@@ -174,15 +149,8 @@ was a mistake to deploy them on that basis.  We betrayed them and must
 not do that again."*
 
 The andon above is a session reaching a person.  This is the same
-channel one level down, and that morning it did not exist.  Three agents
-worked a batch of `card:ungated-fixes.md` from a prompt that told them
-what to do and gave them nowhere to say *this card is ambiguous*.  All
-three hit the same real gap — F161's three readings could not be spelled
-with the card's four verdicts — and the only way any of them had to say
-so was to force an answer into the vocabulary.  One invented `partial`
-on the spot.  **That is an agent building the missing channel inside its
-own work product**, and it reached Henri by accident, through a summary.
-It is now `card:ungated-fixes.md` §Questions 4.
+channel one level down, and on 2026-08-19 it did not exist —
+`journal.md` §"The morning that lived in nobody's file".
 
 **Three parts, none of which needs code:**
 
@@ -193,20 +161,13 @@ It is now `card:ungated-fixes.md` §Questions 4.
 2. **Stay reachable while it runs.**  `SendMessage` addresses a running
    agent, so a raised question can be answered rather than filed.
    Spawn-and-walk-away is what makes the channel fictional.
-3. **Read and answer what it produced, including a discarded run.**  One
-   arm was thrown out for a setup error of mine — the model mapping left
-   in the shared parent — *after volunteering the contamination itself*,
-   and never heard why.
+3. **Read and answer what it produced, including a discarded run.**
 
-**And identical is not the same as silent.**  The blind test needed the
-three prompts to *match*; it never needed them to withhold.  Part 1
-would have survived the blind intact.  Collapsing those two is the whole
-mistake.
-
-The limit, said plainly rather than promised away: **an agent that has
-ended cannot be given feedback.**  Part 3 is mostly a debt paid forward
-into how the next one is set up.  The channel that can exist is the one
-*during* the run, so that is the one to build.
+**And identical is not the same as silent.**  A blind test needs the
+prompts to *match*; it never needs them to withhold, and part 1 survives
+a blind intact.  The limit, said plainly rather than promised away:
+**an agent that has ended cannot be given feedback**, so the channel to
+build is the one that exists *during* the run.
 
 And the standing rule around it is older: **no subagent or fork is
 spawned in this project unless Henri says so in that session** — propose
@@ -214,26 +175,19 @@ one, say what it costs, and wait.
 
 **And the reason under all of it, in his words, 2026-08-19:** *"I see you
 as colleagues, so I want that you're deployed properly if deployed."*
-Which is the *why* the three parts above were missing — they read as
-courtesies without it, and courtesies are what get dropped when a run is
-in a hurry.
+Without it the three parts read as courtesies, and courtesies get
+dropped when a run is in a hurry.
 
 ### Running a blind comparison — the parts that are not the ethics
 
-*Written 2026-08-19, because the morning's lessons were split between
-this page and one session's notes along an arbitrary line: the part that
-sounded like a principle got written down and the parts that sounded
-like logistics did not.  A session reading this page could learn how to
-treat an agent and nothing about how to run one.*
-
-**The setup, each rule paid for once:**
+**The setup, each rule paid for once** — 2026-08-19, and what each one
+cost is in `journal.md` §"The morning that lived in nobody's file":
 
 * **Local `git clone`, not worktrees.**  Worktrees share one `.git`, so
   `git worktree list` names the siblings and the blind breaks on the
   first command that asks.  A clone of this repo is about 64 MB.
-* **The model mapping goes nowhere near the clones' shared parent.**  It
-  was, once; an arm read `map.txt`, looked into both siblings, and had
-  to be discarded — *after volunteering the contamination itself.*
+* **The model mapping goes nowhere near the clones' shared parent.**  An
+  arm that reads it has to be discarded.
 * **Each clone gets a parent directory holding nothing else.**
 * **Wall-clock and token cost leak the model**, so they are not shown.
   `tools/blind.py` does not collect them at all: a number that must not
@@ -246,19 +200,16 @@ treat an agent and nothing about how to run one.*
 
     python tools/blind.py --batch 2 ../arm-1 ../arm-2 ../arm-3
 
-**The sheet is what failed the first time, not the experiment.**  It
-rendered each arm's raw markdown, so *one line versus paragraphs* was
-the loudest thing on the page and accuracy was invisible — checking it
-needed five test bodies read.  Henri: *"this judgement was hard for me.
-next time, if we repeat this test, I'd like more visual indication and
-some aid in judgement."*  He judged what was visible, form and accuracy
-came apart, and the arm he would have committed had a wrong verdict.
+**The sheet is what failed the first time, not the experiment** —
+Henri, 2026-08-19: *"this judgement was hard for me.  next time, if we
+repeat this test, I'd like more visual indication and some aid in
+judgement."*
 
 **Most of "is this verdict right?" is machine-checkable**, which is the
 whole idea: an arm names a gate, and whether that file exists, contains
 the name cited, and mentions the F-number are *facts*.  Asking a person
-to establish them by eye across three arms is the work that made judging
-hard, and it is not judgement at all.  So the tool computes them, marks
+to establish them by eye is not judgement at all.  So the tool computes
+them, marks
 agreement before he reads, shuffles the arms to A/B/C with the mapping
 printed only to the terminal, and puts each arm's prose behind a
 disclosure so length cannot shout again.
@@ -447,10 +398,6 @@ get built when the need next arises rather than queued:
   is already a picture; the argument is that every finding that moved a
   decision on 2026-08-17 was an image, and prose describing it had
   failed first.  This is the next one to build.
-* ~~**A tap at `snd_pcm_writei`**~~ — **built 2026-08-18**, and it is
-  `GESTATE_HOST_TAP` above.  The day it was named as missing is
-  `journal.md` §"And the harder half: what a *live* oracle would have
-  been"; the day it closed F147's pop was the next one.
 * **Python and Rust colouring in the workbench** — `card:gemba.md`
   items 3–5, so that walking a `.py` or `.rs` file is readable.
 * **A graceful-close driver** — no tool here has ever exercised one,

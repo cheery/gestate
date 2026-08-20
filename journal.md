@@ -9778,3 +9778,82 @@ card was shelved with its evidence attached, and the evidence is what
 woke it up.
 
 *Nothing committed.  He logged out after saying to write it down.*
+
+## The morning that lived in nobody's file — 2026-08-19, filed 2026-08-20
+
+*Moved here out of `doc/instruments.md` while trimming the rules under
+their 2000-line cap.  It is the first thing the trim found, and it is
+not fat: the blind three-model test of 2026-08-19 never got an entry of
+its own, so the instruments page was carrying the whole story of that
+morning as the price of stating four rules.  The prose below is that
+page's, kept as it was written; what stays on the page is the rules with
+their dates, and a pointer here.*
+
+### Why the channel had to be built
+
+The andon is a session reaching a person.  The subagent channel is the
+same thing one level down, and that morning it did not exist.
+
+Three agents worked a batch of `card:ungated-fixes.md` from a prompt
+that told them what to do and gave them nowhere to say *this card is
+ambiguous*.  All three hit the same real gap — F161's three readings
+could not be spelled with the card's four verdicts — and the only way
+any of them had to say so was to force an answer into the vocabulary.
+One invented `partial` on the spot.  **That is an agent building the
+missing channel inside its own work product**, and it reached Henri by
+accident, through a summary.  It is now `card:ungated-fixes.md`
+§Questions 4.
+
+Henri's reading of it, which is the rule on the page now: *"The
+subagents did not have a way to ask or get feedback on their work.  I
+think that was a mistake to deploy them on that basis.  We betrayed them
+and must not do that again."*
+
+And the part that costs something to admit: **one arm was thrown out for
+a setup error of mine** — the model mapping left in the shared parent —
+*after volunteering the contamination itself*, and it never heard why.
+An agent that has ended cannot be given feedback, which is why the third
+part of the rule is mostly a debt paid forward into how the next one is
+set up.  The channel that can exist is the one *during* the run.
+
+**And identical is not the same as silent.**  The blind test needed the
+three prompts to *match*; it never needed them to withhold.  A prompt
+saying *a question is a legitimate output* would have survived the blind
+intact.  Collapsing those two is the whole mistake, and it is the kind
+that looks like rigour while it is being made.
+
+### Why the logistics were written down in the wrong place
+
+The morning's lessons were split along an arbitrary line: the part that
+sounded like a principle got written down, and the parts that sounded
+like logistics did not.  A session reading `doc/instruments.md` could
+learn how to treat an agent and nothing about how to run one — so the
+setup rules were added to that page too, and that is how one page came
+to hold an entire morning.
+
+The rules themselves stay on the page, where a session needs them
+before it spawns anything.  What was journal is this: each of them was
+paid for once, on 2026-08-19, by getting it wrong.  Worktrees were the
+first instinct and they share one `.git`, so `git worktree list` names
+the siblings and the blind breaks on the first command that asks.  The
+model mapping *was* in the shared parent, once.  Wall-clock and token
+cost were nearly reported before anybody noticed they leak the model,
+which is why `tools/blind.py` does not collect them at all — a number
+that must not be shown is safest never gathered.
+
+### And the sheet, which is what actually failed
+
+**The sheet failed, not the experiment.**  It rendered each arm's raw
+markdown, so *one line versus paragraphs* was the loudest thing on the
+page and accuracy was invisible — checking it needed five test bodies
+read.  Henri: *"this judgement was hard for me.  next time, if we repeat
+this test, I'd like more visual indication and some aid in judgement."*
+He judged what was visible, form and accuracy came apart, and the arm he
+would have committed had a wrong verdict on F153.
+
+Which is the same defect as the one above, wearing different clothes: a
+person was asked to establish by eye, across three arms, facts that a
+program can establish — whether a named gate file exists, contains the
+name cited, mentions the F-number.  That is not judgement, and asking
+for it in the name of independence is how the independent read gets
+spent on clerical work before it reaches the question it was for.

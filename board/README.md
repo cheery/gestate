@@ -601,69 +601,46 @@ opens inert.
 ## What the first full day of this taught
 
 *2026-08-17, after two cards were worked start to finish by a session
-with Henri away from the desk.  Each of these cost something real; they
-are here so the next one costs less.*
+with Henri away from the desk.  Each cost something real; what it cost
+is `journal.md`, and the rule is here so the next one costs less.*
 
-**An elaboration's mechanism guess is a guess, and should say so.**
-`open-path-bug`'s elaboration named `Session._where` and cited its two
-prior defects — plausible, well argued, and wrong; the bug was in
-`_listing` and `_where` was innocent.  A session nearly went and
-instrumented the wrong function on the strength of it.  **The durable
-half of an elaboration is the located parts and the question.**  The
-mechanism is the part most likely to be wrong and the part a reader
-trusts most, so mark it: *suspected*, not *is*.
+**An elaboration's mechanism guess is a guess, and should say so.**  It
+is the part most likely to be wrong and the part a reader trusts most,
+so mark it: *suspected*, not *is*.  **The durable half of an elaboration
+is the located parts and the question.**
 
-**Finishing a card breaks every citation to it.**  The timer card moved
-from `board/` into `board/done/`, and two files that cited it went stale
-the same minute — caught by `test_citations.py`, which is the system
-working, but it means every completion is a small tree-wide rewrite and
-the cost grows with the tree.  The filename is the id and it is stable;
-the *path* is not, so the id is not.  Worth fixing in the checker rather
-than in the prose: **cite the card, not the shelf it is on.**
+**Finishing a card breaks every citation to it**, because the filename
+is the id and it is stable while the *path* is not.  So: **cite the
+card, not the shelf it is on**, and `test_citations.py` will say when
+you did not.
 
-*And the paragraph you are reading proved it.*  Written with the old
-path spelled out as an example, it failed the check on the first run —
-a sentence explaining that citations rot, rotting a citation.  That is
-how cheap this mistake is to make.
-
-**A card should record what it turned up that was not its job.**  The
-`older-features` audit produced three `fixme.md` entries about things it
-was not looking for.  They went into its `## Done` and that was an
-improvisation — but the right one: an F-number with no link back to the
-work that found it loses the only context that explains why anybody was
-looking there.
+**A card should record what it turned up that was not its job.**  An
+F-number with no link back to the work that found it loses the only
+context that explains why anybody was looking there.
 
 **The suite is a serial gate, and a session can invalidate its own
-run.**  A full `tools/suite.py` is about 25 minutes.  Twice in one day a
-session edited the tree *while the run was reading it* and got a red
-that described a moment rather than a defect — which is this file's own
-rule about two writers, with the test run as the second writer.  So:
+run** — a tree edited under a 25-minute pass returns a red that
+describes a moment rather than a defect, which is this file's own rule
+about two writers with the test run as the second writer.  So:
 
 > **Targeted runs per card while working; one full run per shift; and
 > the tree is frozen while it runs.**
-
-**And the gates at every commit, which is a third cadence and not a
-weakening of the second.**  *Added 2026-08-19, `card:cheap-gates.md`.*
-The eight structural gates cost twelve seconds and are about the tree
-agreeing with itself rather than about behaviour, so they belong beside
-the edit that breaks them — `tools/pre-commit.sh --install` puts them
-there.  The full pass is still the only thing that says gestate works,
-and `test/gates.md` says so on its own face.  What changed is that the
-full run stopped being the *first* time anything was checked: before
-this, a whole shift's work could reach the evening before one seventeen
-second check ran, and on 2026-08-18 it did.
 
 If something must be changed mid-run, kill the run.  Finishing a run
 against a tree that no longer exists proves nothing and costs the same
 25 minutes.
 
+**And the gates at every commit, which is a third cadence and not a
+weakening of the second.**  *Added 2026-08-19, `card:cheap-gates.md`.*
+Twelve seconds, structural rather than behavioural, so they belong
+beside the edit that breaks them — `tools/pre-commit.sh --install`.  The
+full pass is still the only thing that says gestate works.
+
 **And the machine is shared.**  A session running the suite, `cargo`,
 two X servers and a dozen polling loops makes the audio crackle for the
-person sitting at the keyboard — which is not a metaphor; it happened,
-and it was diagnosed as hardware before it was diagnosed as the session.
-Nothing in this project accounts for what a session costs the machine
-somebody is listening on.  Say what you are about to start, and stop it
-when it is not needed.
+person sitting at the keyboard — it happened, and it was diagnosed as
+hardware before it was diagnosed as the session.  Say what you are about
+to start, and stop it when it is not needed.
 
 ## What does not go here
 
