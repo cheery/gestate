@@ -54,7 +54,15 @@ NOT_A_PERSON = frozenset("""
     Shelved Shown Spent Status Steal Tried Unprompted Vacuous Verified
     Written From The This That And But For When Where With Then Only
     Both Each Every All Not None Three Two One Four Five Six Seen
+    Why Confirmed Granular
 """.split())
+
+#: The three above arrived with `doc/memory/` on 2026-08-20 and are the
+#: memory format's own furniture rather than anybody's voice: a memory
+#: body follows its fact with **Why:** and **How to apply:** lines, and
+#: that is a bold lead-in ending in a colon — which is precisely the
+#: shape `QUOTED` looks for.  Worth knowing when the next format arrives
+#: with a **Word:** convention in it.
 
 #: Cited the way a paper cites — not a consent question.
 CITED = frozenset("Ohno Karplus Rizzo Strong Toyota Deming Shingo".split())

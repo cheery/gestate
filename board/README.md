@@ -19,6 +19,11 @@ know an instrument exists does the work it was built to make
 unnecessary.  Its first rule is the one Henri gave on 2026-08-18: **a
 missing capability is built the moment the need arises**, not filed.
 
+And **`doc/memory/` is what earlier sessions carried across** — one fact
+per file, indexed, and in the tree since 2026-08-20 so that Henri can
+read and write it too.  A session's private index holds the hooks and
+points there.
+
 And `vision.md` is what any of it is **for** — the author's own document,
 short on purpose, dated because it changes.  A card's `because` should be
 traceable to something in it; when it is not, either the vision is

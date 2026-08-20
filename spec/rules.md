@@ -112,3 +112,18 @@ It is now `test/test_rules.py`, and from here it is the ordinary defect
 class that set lives on: a structural check that a session doing
 ordinary work breaks.  The script stays alongside it, because it prints
 the **room left** and a green gate does not.
+
+## What the count does not cover
+
+*Added 2026-08-20, found while moving the memory corpus into the tree.*
+
+A session also reads a private `MEMORY.md` index every time, before it
+knows what it is working on — 29 lines that morning, holding the hooks
+for a corpus whose bodies now live in `doc/memory/`.  The bodies are
+`spec/`-shaped and cost nothing until one is opened; the index is
+rules-shaped, and it is not counted here.
+
+The corpus behind it was **2,386 lines**, larger than this whole capped
+set, and until 2026-08-20 it was outside the tree where nobody could
+weigh it at all.  Whether the index joins the five is Henri's call, in
+writing, with the date — the same as moving the number.

@@ -9857,3 +9857,94 @@ program can establish — whether a named gate file exists, contains the
 name cited, mentions the F-number.  That is not judgement, and asking
 for it in the name of independence is how the independent read gets
 spent on clerical work before it reaches the question it was for.
+
+## The memory comes into the tree — 2026-08-20
+
+*Second half of the morning that started with the cap.  He asked the
+question himself: "I wonder about memories.  Should we make a directory
+for our memories?"  The answer took a measurement first, and the
+measurement is the whole argument.*
+
+### What the measurement said
+
+A session's memory lived in
+`~/.claude/projects/-home-cheery-gestate/memory/`: **28 files, 2,386
+lines.** Larger than the five capped method documents put together,
+unversioned, on one machine, and Henri had never read a line of it.
+
+And its index, `MEMORY.md`, is loaded into **every** session before it
+knows what it is working on — which is exactly the cost property that
+made the rules worth capping an hour earlier, and `tools/rulecount.py`
+does not count it.
+
+So the corpus that grew fastest and least observed was the one nobody
+could see, and the file with rules-shaped cost was outside the rule that
+was written that morning to bound rules-shaped cost.
+
+### Three shapes, and what would kill each
+
+Put to him set-based.  **Leave it private** — killed by the paragraph
+above.  **Symlink the private directory in** — killed by consent: some
+of those files are about *him*, how he rests and what he is paid for,
+and a symlink publishes them into every clone, including the blind-test
+clones.  **`doc/memory/`, split by kind** — his call: *"go with 2, split
+by kind.  It's important to do now because I also have memories to
+share."*
+
+That last clause is the part worth keeping.  The directory is not a
+session's filing cabinet moved somewhere brighter; it is a shared one,
+and it had to exist before he could write into it.
+
+### The split, and the one copy
+
+`project`, `feedback` and `reference` are about the work and are in the
+tree.  `user` is about the person and stays private.  Twenty-four files
+moved; three were held back and are **named in `doc/memory/README.md`**,
+so that holding them back is a decision somebody can argue with rather
+than an omission nobody can see:
+
+* `henri-cofounder-separation.md` — `user`, by the rule.
+* `gestate-janne-and-mikko.md` — two people consented to being named and
+  not to this.  `doc/consent.md` is the register and it is his call.
+* `gestate-next-session.md` — **747 lines, a third of the whole
+  corpus**, a running log rather than a fact.  It comes in when it is
+  split into memories.
+
+**The bodies moved and the hooks did not**, which is the piece that took
+the most thought.  The index is loaded every session; the bodies are
+not.  Moving both would have made recall deliberate instead of
+automatic — a session would have to think to open the directory, and the
+memories that matter most are the ones you do not know you need.  So the
+index keeps its one-line hooks and points into the tree, and the tree
+holds exactly one copy of each fact.  Two copies with a sync gate was
+the other option, and one copy is better than any gate.
+
+### The tree read them before anybody asked it to
+
+The gates were run and **two of them failed on the imported files** —
+which is the best argument for the move that could have been made, and
+nobody designed it:
+
+* `test_citations.py` found three memories citing cards **by path**
+  rather than by `card:` id — the exact rot `board/README.md` warns
+  about, sitting unread outside the tree for weeks.
+* `test_consent.py` flagged `Why`, `Confirmed` and `Granular` as people.
+  Those are false, and interesting: the memory format follows its fact
+  with **Why:** and **How to apply:** lines, and a bold word ending in a
+  colon is precisely the shape that gate looks for.  Added to
+  `NOT_A_PERSON` with the reason written beside them, because the next
+  format to arrive with a `**Word:**` convention will do it again.
+
+`test/test_memory.py` is the new gate: frontmatter present, `name`
+matching the filename, and **no `user` memory in a public tree**.  Eleven
+gates now, still twelve seconds.
+
+### And the cap's own gate went in the same morning
+
+`test/test_rules.py`, the condition `spec/rules.md` set for it having
+been met at 1,983 — under, with 17 lines of room.  `tools/rulecount.py`
+stays beside it, because it prints the room left and a green gate does
+not.
+
+*Nothing committed.  He asked to read the diff first, and said so while
+this was being written.*
