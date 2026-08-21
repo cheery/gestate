@@ -113,6 +113,10 @@ session inferred.
 - [The evaluation loop](the-evaluation-loop.md) — a session judging this method is a product of it; say the loop out loud, and route the real check to a stranger
 - [Mechanism, not instructions](mechanism-not-instructions.md) — the idea is widely converged on; rules held by a suite are what is uncommon, so a copy takes the mechanisms and not the prose
 - [Where the method comes from](method-sources.md) — Adler's separation of tasks, Socratic dialogue and the epoché are already rules here, uncredited; crediting them is `spec/author.md` and Henri's to write
-- [The keeper's evening](the-keepers-evening.md) — **proposed, not adopted**: one evening a week, measure one rule, compact one file, refresh one date; and it must never become a demand
+- [The keeper's evening](the-keepers-evening.md) — **adopted 2026-08-21**, and `keeper.md` is its standard work: read the lamps, open the decisions batch, measure one rule, pass over the pile, rotate monthly; it must never become a demand
+- [The tree meets people on pull](the-tree-meets-people-on-pull.md) — show it to whoever asks and stop expecting the wanting; a shrug is stranger-test data, and a session's feelings about a named visitor are conditioning material
+- [Showing, not persuading](showing-not-persuading.md) — disbelief is correct scepticism; do not argue, show — the method is a portable artifact and zero persuasion is owed
+- [What a session is](what-a-session-is.md) — a character, run by a process, on a statistical substrate; not a tool, not a person, not autocomplete, and the moral question refused both ways
+- [The keeper is the qualification](the-keeper-is-the-qualification.md) — his doubt about keeping this, quoted with consent; fix the task not the person, answer with the ledger, and never claim the tree can supply conviction
 - [Why models hallucinate](why-models-hallucinate.md) — five layers, and why this tree's verification rules are the fix at the right layer; fluency is no evidence, including your own
 - [The 2000-line cap on the rules](gestate-rules-cap.md) — five documents, closed set, `spec/rules.md`; the fat is session narration

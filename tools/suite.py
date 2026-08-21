@@ -108,6 +108,8 @@ GATES = {
         "doc/memory/, and that nothing about the person is published there",
     "test/test_rules.py":
         "the five method documents are all there, and the cap's lamp works",
+    "test/test_journal.py":
+        "the journal's archive, and the index that is the only way into it",
 }
 
 
@@ -307,6 +309,66 @@ def _rules_andon():
     ]
 
 
+def _journal_total():
+    """The open journal, and its budget — `spec/rules.md` §"The journal
+    rotates"."""
+    import journalroll
+    return journalroll.lines_now(), journalroll.BUDGET
+
+
+def _journal_row():
+    total, budget = _journal_total()
+    import journalroll
+    if journalroll.due():
+        return f"**{total:,} of {budget:,} — rotation due**"
+    return f"{total:,} of {budget:,}, {budget - total:,} to spare"
+
+
+def _journal_andon():
+    """**Andon, not refusal, and its meaning is *rotate*** — Henri,
+    2026-08-21: the lamp says *"rotation is due," not "stop writing."*
+
+    The journal is the one document in this tree that is supposed to
+    grow without limit, so nothing may ever fail for its size.  What has
+    a limit is how much of it a session pays for on every `grep`, and
+    the fix for that is not writing less — it is moving the closed
+    months out to `journal/` where nobody reads them by accident.
+
+    So the lamp is lit where somebody is already standing, the same
+    place as the cap's: `test/gates.md` and every commit through the
+    hook.  It never changes the exit code.  `test/test_journal.py` holds
+    the half that *is* refused, which is the index having fallen behind
+    the archive.
+    """
+    import journalroll
+    reasons = journalroll.due()
+    if not reasons:
+        return []
+    total, budget = _journal_total()
+    return [
+        "",
+        "## 🔴 The journal's rotation is due",
+        "",
+        *(f"* {r}." for r in reasons),
+        "",
+        "This does not fail anything, and it does not mean write less —",
+        f"{total:,} lines of past tense is the project working.  It means the",
+        "closed months should be out of the file every session greps, in",
+        "`journal/`, behind one index line each.",
+        "",
+        "The act is the fire's, not the gate's: skim the closing month once,",
+        "promote the two or three lines that pass the earning test up into the",
+        "method files, write the index line, close the file.  Nothing is",
+        "rewritten — git already remembers, and a journal that is retroactively",
+        "edited becomes a second source of truth about the past.",
+        "",
+        "    python tools/journalroll.py --roll --themes \"…\"",
+        "",
+        "`spec/rules.md` §\"The journal rotates\" is the contract; `python",
+        "tools/journalroll.py` says where the lines are.",
+    ]
+
+
 def _draw_gates(rc, out, started, wall, fence_row, gates):
     """`test/gates.md` — and it says what it is not.
 
@@ -335,6 +397,7 @@ def _draw_gates(rc, out, started, wall, fence_row, gates):
         f"| Fence | {fence_row} |",
         f"| Gates | {len(gates)} of them |",
         f"| Rules | {_rules_row()} |",
+        f"| Journal | {_journal_row()} |",
         f"| Wall | {int(wall)}s |",
         f"| Exit | {rc} |",
         "",
@@ -344,11 +407,12 @@ def _draw_gates(rc, out, started, wall, fence_row, gates):
         "",
         *_failure_section(_failures(out)),
         *_rules_andon(),
+        *_journal_andon(),
     ]
     GATES_PAGE.parent.mkdir(parents=True, exist_ok=True)
     GATES_PAGE.write_text("\n".join(body) + "\n")
     print(f"\nsuite.py: the gates only — drawn to {GATES_PAGE.relative_to(ROOT)}")
-    for line in _rules_andon():
+    for line in _rules_andon() + _journal_andon():
         print(line)
     return rc
 

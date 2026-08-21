@@ -242,6 +242,13 @@ there is no toolkit in the build.
 * **[The manifesto](manifesto.md)** — how this project is worked.  Two
   rules: do not build what nothing needs, and what is built must be
   able to say when it is wrong.
+* **[The method](doc/method.md)** — one page, for a visitor who was
+  shown this tree and wants to know what they are looking at: how the
+  project is run, one lesson it paid for, and where the depth lives.
+  Read that and stop, without guilt.
+* **[The keeper's standard work](keeper.md)** — the five acts that keep
+  the method's own metabolism running, written down so the job stays
+  visibly small.
 
 The logo: an egg, and inside it a signal growing to full amplitude —
 carried to term while already sounding.

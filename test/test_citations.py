@@ -133,6 +133,25 @@ def _named(path: Path) -> str:
     return _flat(path.read_text(encoding="utf-8")).lower()
 
 
+#: **`journal.md` names the journal, not one file of it.**  Closed
+#: months move to `journal/YYYY-MM.md` and are never edited again
+#: (`spec/rules.md` §"The journal rotates"), so a citation written in
+#: June would break in July for no reason but the calendar — which is
+#: exactly the rot this file was written to stop, and exactly the
+#: separation the `card:` notation already makes between a card's id
+#: and its shelf.  So the journal is searched as one corpus: the open
+#: month plus every closed one.
+#:
+#: Rewriting the citations at each rotation was the alternative, and it
+#: is the spelling that rots: a tree-wide edit every month, twenty-eight
+#: of them at the first count, each one a chance to point at the wrong
+#: month.
+def _corpus(where: Path) -> list[Path]:
+    if where == ROOT / "journal.md":
+        return [where, *sorted((ROOT / "journal").glob("*.md"))]
+    return [where]
+
+
 def test_every_section_citation_resolves():
     known: dict[str, str] = {}
     missing = []
@@ -151,7 +170,7 @@ def test_every_section_citation_resolves():
             else:
                 continue                    # the file itself is elsewhere
             if str(where) not in known:
-                known[str(where)] = _named(where)
+                known[str(where)] = " ".join(_named(f) for f in _corpus(where))
             want = _flat(section).rstrip(".,;:").lower()
             if want not in known[str(where)]:
                 missing.append(

@@ -301,6 +301,14 @@ drift.
 
 `board/done/…`; the set is closed at five and a sixth needs a caller.
 
+### `tools/journalroll.py` — the journal's budget, and the rotation
+
+Says whether the rotation is due, and cuts the open month into
+`journal/YYYY-MM.md` — append-only, behind one index line naming its
+themes, so a search costs the open month rather than all of them.  The
+lamp means *rotate*, never *write less*.  `keeper.md` act 5 is the
+ritual; steps 1, 3 and 4 a session may draft, step 2 is Henri's.
+
 ### `tools/suite.py` — the whole suite, gates first
 
 The gates are seconds-long structural checks that a working session

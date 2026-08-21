@@ -1,37 +1,50 @@
 ---
 name: the-keepers-evening
-description: "Proposed, not adopted — one evening a week at the fire: measure one rule, compact one file, refresh one date; the metabolism has no keeper and forgetting is not fixed by remembering"
+description: "Adopted 2026-08-21 — the fire is one evening's standard work in keeper.md: read the lamps, open the decisions batch, measure one rule, pass over the pile, and monthly rotate the journal; it must never become a demand"
 metadata:
   type: project
 ---
 
-**Proposed 2026-08-20, not adopted.**  Henri has not said yes to this;
-it is written down so that it is not re-derived from scratch.
+**Adopted 2026-08-21, and the rotation is what carried it.**  It was
+proposed 2026-08-20 and declined a yes for a day; what changed is that
+the journal rotation needed a place to happen — a monthly skim that no
+gate can hold — and Henri said *"fold the rotation into the fire."*  The
+ritual now has a page: `keeper.md`, five acts, thirty to sixty minutes.
 
 The tree has a metabolism — budgets, the rules cap, weekly measurement,
-compaction — and **no keeper**.  Every part of it is a thing somebody
-has to *do*, and nothing in the suite can notice that nobody did it.
+compaction — and **it had no keeper**.  Every part of it is a thing
+somebody has to *do*, and nothing in the suite can notice that nobody
+did it.  The five acts are the answer: read the lamps
+(`tools/suite.py --gates`), open the blocked-on-decisions batch, measure
+one rule against the week that happened, one pass over `board/later/`
+asking *event or me*, and — when the Journal lamp says so — rotate.
 
-The proposal is a ritual rather than a mechanism: **one evening a week,
-three small acts.  Measure one rule.  Compact one file.  Refresh one
-date.**
-
-**Why:** the honest answer to forgetting is not remembering — it is an
+**Why:** the honest answer to forgetting is not remembering, it is an
 appointment.  This method works *because* its operator knows he forgets;
 dated lines, citations to defects, past-tense journals and rules held by
 a suite are all forgetting-compensators, and the tree is the prosthetic
-for both readers, the sessions having no memory between conversations
-and the author having leaky memory between weeks.  A metabolism with no
-scheduled keeper decays into a set of good intentions with a test suite
-attached.
+for both readers — the sessions having no memory between conversations,
+the author having leaky memory between weeks.  Until this page existed
+only one of the two had been given one.
 
-**And it must not become a demand.**  `vision.md`: *gestate won't demand
-your presence.*  The point of a tree that carries the author's values is
-that it survives his absences, including the ordinary ones — so a missed
-evening is not a red gate, and building one would break the vision line
-that makes the whole thing safe to own.
+The second why is the one he raised himself: *"I am really uncertain
+that I am up for this task."*  Written down, the job is visibly small —
+which is the cure, because doubt inflates a task held in the head.  Fix
+the task, not the person.
 
-**How to apply:** if he takes it up, it wants a card rather than a rule,
-because it is a practice with a cadence and no test can hold it.  Until
-then, do not schedule it, do not remind him of it unprompted, and do not
-add a gate for it.  Related: [[gestate-rules-cap]], [[method-sources]].
+**And it must not become a demand.**  `vision.md`: *won't demand your
+presence.*  A missed evening is not a red gate, nothing in `keeper.md`
+can fail a commit, and there is no streak.  The tree that carries the
+author's values has to survive his absences, including the ordinary
+ones, or the line that makes it safe to own is broken.  Do not remind
+him of the fire unprompted; the lamps do that when there is something to
+say, and they say it where he is already standing.
+
+**How to apply:** a session may draft acts 1, 3 and 4 and the rotation's
+skim and index line.  **Act 2 arrives shaped or not at all**
+([[decisions-arrive-shaped]]), and the promotion pass in act 5 is
+Henri's, because it edits the five documents and `spec/author.md` is his
+([[gestate-house-rules-authorship]]).  Related: [[gestate-rules-cap]],
+[[sediment-versus-debt]], [[the-tree-meets-people-on-pull]].
+
+The conversation this came from is `journal.md` §"Five questions at the fire".
