@@ -1,10 +1,11 @@
 # manifesto.md — how this project is worked
 
 `README.md` says what gestate is.  `roadmap.md` is future tense,
-`journal.md` is what happened, `spec/` is why each piece is shaped the
-way it is.  This file is the method those four are written under, and
-it exists because the method has been rediscovered from both ends often
-enough to be worth stating once.
+`journal.md` (with its closed months in `journal/`) is what happened,
+`spec/` is why each piece is shaped the way it is, and `keeper.md` is
+the author's own standard work.  This file is the method they are
+written under, and it exists because the method has been rediscovered
+from both ends often enough to be worth stating once.
 
 **And `spec/author.md` is its other half** — this file says what the
 *work* must do to be trustworthy; that one says what the **author** must
@@ -83,35 +84,21 @@ reference is not looked at, and the docstring says so.
 The right-hand column is the load-bearing one.  An instrument whose
 blind spot is unwritten will be trusted past it.
 
-The last row was added on 2026-08-17, and it was added because the row
-above `lagcheck` had said *"cannot see: correctness of what is drawn"*
-since this table was written, and nothing filled it.  Three defects
-landed that day that 2,540 passing tests could not see and a screenshot
-could — including a mark that was correct in the string and unreadable
-on the screen, which is a defect no assertion about the string can
-reach.  `spec/verification.md` §"The screen is an oracle, and it is the
-one this tree lacked" is the argument and the fifteen-line harness.
+**The last two rows were each added because the column above them was
+blank and nothing filled it** — the screen on 2026-08-17
+(`journal.md` §"What the screen saw that the suite could not";
+`spec/verification.md` §"The screen is an oracle, and it is the one this
+tree lacked" is the harness), and the host tap on 2026-08-18
+(`journal.md` §"The samples nobody could read", `card:unheard-output.md`).
+Every audio row above the tap reads an offline render or a counter, and
+an offline render never exercises the live control path at all.
 
-**Its own blind spot is the honest half**: a picture that looks right
-for the wrong reason still looks right.  The same day, a patch bay drew
-exactly the correct lamps from a query that was wrong — and what caught
-*that* was changing the input and demanding the picture follow.
-
-The `GESTATE_HOST_TAP` row was added on 2026-08-18, and it was added for
-the same reason: every other audio row above reads an **offline render**
-or a **counter**, and the right-hand column had never said what that
-costs.  An offline render renders a knob *at its resting value* and never
-exercises the live control path at all — so a defect in the first blocks,
-in a control channel, or in a handover between engines is invisible to
-every one of them, and the instrument of last resort was a person
-listening.  Chasing `fixme.md` F147 that way cost four listens and ended
-blocked.  `card:unheard-output.md` is the argument.
-
-**And its blind spot is where the person's job actually starts.**  The
-tap reads what was handed to the sound card; the driver, the mixer, the
-room and the ear are all past that point.  *"It sounds thin on laptop
-speakers"* is not a question this can be asked, and saying so in the
-table is what stops somebody trusting it past where it sees.
+**And each one's own blind spot is the honest half.**  A picture that
+looks right for the wrong reason still looks right — what catches that
+is changing the input and demanding the picture follow.  The tap reads
+what was handed to the sound card, so *"it sounds thin on laptop
+speakers"* is not a question it can be asked, and saying so is what
+stops somebody trusting it past where it sees.
 
 ---
 
@@ -262,15 +249,11 @@ Which also says what a badly-run set looks like: a store of constraints
 nobody ever propagates is not patience, it is an unsolved goal.  Rules
 1 and 2 are the propagation; without them this degrades into a list.
 
-**The demonstration this practice owes** (the rule above): the button
-card, 2026-08-17.  Asked to explore rather than fix, the session went
-and photographed the running window, and found three things the framing
-"the button is too small" would never have reached — a sentence on the
-first screen naming a control that had been deleted, a status-bar hint
-that teaches the key only *after* the button has been pressed, and a
-command list that opens on `skip`.  None of those is a size.  Two of
-them were shipped that afternoon, while the size question stayed open
-for the only oracle that can settle it.
+**The demonstration this practice owes** (the rule above) is
+`card:button.md`, 2026-08-17: asked to explore rather than fix, the
+session photographed the window and found three things the framing *"the
+button is too small"* would never have reached.  **None of them was a
+size.**
 
 ---
 
@@ -287,29 +270,17 @@ because it is a rule this project keeps and that day had just broken.*
 > at the second trial find another mistake, or another thing you do not
 > like, and correct that, and try once more.
 
-**The occasion was a session stopping one step short.**  A walk was
-supposed to open a file and stand a box under a line; it opened the file
-and did not land.  The session had a hypothesis, wrote it down, and
-declined to run the window again — *"I stopped rather than run another
-blind three-minute window cycle"* — which sounds like judgement and is
-the mistake this passage is about.  One more run answered it in ninety
-seconds, and answered it differently than the hypothesis did.
-
 It is the same idea as *genba* one floor down.  Going to the actual
 place is worth nothing if you arrive and reason instead of touching
-anything, and a hypothesis you did not test is a hypothesis that gets
-written into a commit message as though it were a finding.
+anything, and **a hypothesis you did not test is a hypothesis that gets
+written into a commit message as though it were a finding.**
 
 **And the second half is the part that is easy to skip.**  Ohno does not
 say *act and you will succeed*; he says act and you will *see your own
-failures* — that the value of doing is the mistake it shows you, and
-that the mistake is followed by another one, and that this is the method
-rather than a sign of doing it badly.  A day of this project on
-2026-08-18 went: build it, watch it break the file it was narrating
-about, fix that, watch it reach nobody, fix that, watch it crash the
-editor, fix that, watch it refuse to travel because subscribing had
-dirtied the file, fix that.  Every step was a run of the real thing, and
-none of the five was visible from the source.
+failures*, and that the next mistake follows, and that this is the
+method rather than a sign of doing it badly.  Both occasions are
+`journal.md` §"The session that had a hypothesis and would not run the
+window".
 
 `spec/verification.md` §"The defect is in the seam, and the test is in
 the module" is the same finding stated as a rule; `doc/instruments.md`'s
@@ -366,16 +337,13 @@ is the same failure the file was written about, one floor up.
 
 ## The shape of a good day
 
-2026-08-15 is the example, and it went in one direction the whole way:
-a save of `quartet.ges` fell from 12.0 s to about 2, a start of
-`noted.ges` from 14.1 s to 4.6, front ends per start from eight to
-three — and **not one of those came from making something cleverer.**
-Every one was work being done twice, or done for a file that had not
-asked for it, or done again because somebody had thrown the answer
-away.  All of it was found by an instrument rather than by reading
-code, and twice the instrument had to be caught lying first
-(`journal.md` §"The day the save cycle was measured", §"The day the
-oracles arrived").
+2026-08-15 is the example — a save of `quartet.ges` from 12.0 s to
+about 2, and **not one second of it came from making something
+cleverer.**  Every one was work being done twice, or for a file that had
+not asked for it, or again because somebody had thrown the answer away;
+all of it found by an instrument rather than by reading code, and twice
+the instrument had to be caught lying first (`journal.md` §"The day the
+save cycle was measured").
 
 That is the whole method:
 
@@ -388,7 +356,8 @@ That is the whole method:
 we will run the test and talk."*
 
 **Two things at once, and the pairing is the point.**  The suite takes
-about half an hour and nothing can be done to the tree while it runs —
+about twenty-five minutes and nothing can be done to the tree while it
+runs —
 which makes it the one reliable window in a day for the conversation
 that has no other slot: what today's work turned out to be about, what
 the next card is really asking, what a finding generalises to.  Neither
@@ -401,9 +370,6 @@ whole complaint — *"today I read sixteen commit messages Claude
 wrote"*.  A ritual with a fixed end puts the summary in front of the
 person while he can still argue with it.
 
-**And the first one earned its keep before the conversation started.**
-The gates caught `doc/atlas/wire.svg` a commit behind its source — the
-`behind` row had crossed the furniture wire that afternoon (F151) and
-the sheet still showed the old crossing.  Committed and pushed without
-the run, it would have been read as current by whoever looked next,
-which is exactly the drift the atlas exists to prevent.
+**And the first one earned its keep before the conversation started**,
+on a generated sheet a commit behind its source — `journal.md` §"The
+sheet that draws itself" is what that page is for.

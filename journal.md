@@ -496,3 +496,59 @@ It fires at the second it happens rather than a month later, it needs
 nothing remembered, and the tell is physical: you are writing a *message*
 instead of a *file*.  **Proposed by the session, not adopted** — it is a
 practice about the author's own work, and `spec/author.md` is his.
+
+## Two occasions that lived only in a rule — 2026-08-21
+
+*Found while trimming the five method documents under their cap
+(`card:working-standard.md`).  Both are the reason a rule exists, both
+were written into the rule document rather than here, and **neither is
+anywhere else in the tree** — so this is a transfer and not a deletion.
+It is the second time the trim has turned one up: 2026-08-20's found the
+blind three-model test had no entry at all.*
+
+### The automatic audition that shipped green and was switched off
+
+`board/README.md` §"The postcondition, before anything is built" is
+adopted from this, 2026-08-17.  An automatic audition shipped with
+**thirteen passing tests** and was switched off for the only person it
+existed for — a stranger, who never applies anything, so a gate keyed on
+*"the last audition of this file"* never opened.  Every test agreed with
+the implementation because every test was written from it, which is
+`manifesto.md`'s third way an instrument fails arriving on schedule.
+
+The fix that became a rule was not a test.  It was the sentence written
+*before* the code: **somebody who has never pressed anything still hears
+their edit** — which fails against the first version and passes against
+the second, and only has that power because the first version did not
+exist when the sentence was written.  The raw material was already on
+every card and nothing had used it: a `because` is a falsifiable claim
+about a person, written before the code, which is exactly the property
+`manifesto.md` asks assertions to have.
+
+Henri, when it was proposed, drawing the line about whose work it is:
+*"Do you mean that I should start writing postconditions?"*  No — the
+sentence is the session's to write and his to correct in one line.
+
+### The session that had a hypothesis and would not run the window
+
+`manifesto.md` §"Go and do it" carries Ohno's passage because of this,
+2026-08-18.  A walk was supposed to open a file and stand a box under a
+line; it opened the file and did not land.  The session had a
+hypothesis, wrote it down, and declined to run the window again —
+*"I stopped rather than run another blind three-minute window cycle"* —
+which sounds like judgement and is the mistake the passage is about.
+
+**One more run answered it in ninety seconds, and answered it
+differently than the hypothesis did.**  That is the whole finding: the
+cost of the run was three minutes and the cost of not running it was a
+hypothesis written into a commit message looking like a finding.
+
+And the same day went: build it, watch it break the file it was
+narrating about, fix that, watch it reach nobody, fix that, watch it
+crash the editor, fix that, watch it refuse to travel because
+subscribing had dirtied the file, fix that.  Five steps, every one a run
+of the real thing, and **none of the five was visible from the source**
+— which is Ohno's second half, the one that is easy to skip: he does not
+say *act and you will succeed*, he says act and you will see your own
+failures, and then another, and that this is the method rather than a
+sign of doing it badly.

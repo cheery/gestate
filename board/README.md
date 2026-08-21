@@ -39,24 +39,17 @@ but this list does not say what to work on next either, and calling it
 "the order" claimed that it did.
 
 *Corrected 2026-08-19, at Henri's ask, after the claim was measured
-against a single day.*  It used to read *"this list is the only place
-the order lives"*, and on the day that was checked it was false three
-times over: `cheap-gates` was worked from position nine because he asked
-for it; the two cards above everything else were both unworkable that
-day — one had already had its batch, one needs a quiet machine to
-measure against; and **six of the nine open cards were waiting on
-something.**  The real order came from three inputs this list does not
-hold — what he asked for, what was blocked, and what was cheap.
+against a single day and was false three times over.*  The real order
+comes from three inputs this list does not hold — what he asked for,
+what was blocked, and what was cheap.
 
-**And the filter was in his rules from the first day.**  §"The rules, as
+**And the filter was in his rules from the first day**: §"The rules, as
 Henri wrote them" opens *"Work them in the order given, unless one
-blocks the other"* — the clause survived into every version of this
-section.  What narrowed was the word **blocks**, which came to be read
-as *card A blocks card B*, the one case the suite can check.  Of the six
-open cards waiting on 2026-08-19, exactly one was blocked by another
-card.  The rest waited on a person, on a decision only he can make, on a
-schedule the card set itself, and on a machine quiet enough to measure.
-None of those is a card, so none of them was visible here.
+blocks the other"*.  What narrowed was **blocks**, read as *card A
+blocks card B* — the one case the suite can check, and one of six that
+day.  A card also waits on a person, on a decision only he can make, on
+a schedule it set itself, or on a quiet machine, and none of those is
+visible here.
 
 So the order is **priority filtered by what can actually be worked
 today**, and the filter is not written down anywhere because it changes
@@ -68,12 +61,12 @@ That is not a licence to skip down the list on preference.  Priority is
 still the tiebreak between two workable cards, and it is still his.
 
 1. **[working-standard](working-standard.md)** — `doing`.  The five
-   method documents are over their 2000-line cap (`spec/rules.md`), and
-   grew 422 lines in the two days before it was set.  First job is the
-   trim, then the counter becomes a gate.
-2. **[ungated-fixes](ungated-fixes.md)** — 79 of `fixme.md`'s 161
-   entries are named by no test, so a defect closed on a photograph can
-   come back without anybody being told.  Directly under the oracle
+   method documents are against their 2,000-line cap (`spec/rules.md`)
+   and `tools/rulecount.py` says where they stand; the counter has been
+   a gate since 2026-08-20, and the trim is what is left.
+2. **[ungated-fixes](ungated-fixes.md)** — 62 of `fixme.md`'s repairs
+   are named by no test, so a defect closed on a photograph can come
+   back without anybody being told.  Directly under the oracle
    because they are the same family and the oracle is what makes the
    interface-shaped ones closable at all.
 3. **[unseen-flare](unseen-flare.md)** — narrower than
@@ -97,13 +90,10 @@ still the tiebreak between two workable cards, and it is still his.
     answered by any session, at any position in this list.  A card that
     cannot be worked does not belong above cards that can.
 
-**And the criterion has been checked once, on 2026-08-19, and it lost.**
-Three cards were finished from the bottom because they were cheap and
-because he asked; `carried-state`, ranked seventh by impact, was the
-only card whose absence had already crashed the program in his hands,
-twice in one day.  Ordering by impact and ranking a crash seventh is the
-kind of answer a rule gives when nobody checks it — `journal.md` §"And
-what the day says about the board".
+**And the criterion has been checked once, on 2026-08-19, and it lost**
+— `journal.md` §"And what the day says about the board".  Ordering by
+impact ranked a crash seventh, which is the kind of answer a rule gives
+when nobody checks it.
 
 **Ordered by impact on somebody using gestate** — 2026-08-17, at
 Henri's ask: *"order them by some quality, such as, what is the impact
@@ -125,10 +115,10 @@ is the live board; nothing has to be trimmed by hand for that to stay
 true.
 
 **And displaced cards are in [later/](later/)** — *adopted 2026-08-17*,
-because the board was arriving faster than it drained: nineteen cards
-in two days, six finished, and **of the nine queued on the first day,
-none**.  Same-day cards got done and queued ones did not, which is not
-a work-in-progress problem — it is a queue nobody pulls from.
+because the board was arriving faster than it drained and same-day cards
+got done while queued ones did not, which is not a work-in-progress
+problem but a queue nobody pulls from.  `card:working-standard.md` has
+the count.
 
 A shelved card is **not a finished one**, which is why it gets its own
 directory rather than a word: `done/` says the problem is solved,
@@ -172,12 +162,10 @@ way it left: by him saying so.
 ## Who writes what
 
 **Henri creates new cards.  He does not edit existing ones.**  His own
-rule, 2026-08-16, and it is a good one for a reason beyond tidiness:
-**two writers never touch the same file.**  Today the board grew two
-items *while a session was working down it* — the session had read the
-list an hour earlier and nearly missed them.  A new card is a new file,
-so it shows up in `git status` as an addition, collides with nothing,
-and cannot silently change work already in flight.
+rule, 2026-08-16, and the reason is beyond tidiness: **two writers never
+touch the same file.**  A new card is a new file, so it shows up in `git
+status` as an addition, collides with nothing, and cannot silently
+change work already in flight.
 
 So:
 
@@ -186,20 +174,11 @@ So:
 | **Henri** | new cards, and nothing else |
 | **the session** | everything in an existing card — the elaboration, the questions, *his answers transcribed into them*, `status`, `## Done` — and this file's order; **and a new card, when what it records is the session's own work** |
 
-**A session may mint a card, and should.**  *Amended 2026-08-18.*  The
-rule above reads as *only Henri creates cards*, and twice in two days a
-session wrote one anyway — `gemba-follow`, from four improvements he
-asked for out loud, and then the three workflow cards at the end of the
-order.  His answer both times:
-
-> I liked that you created a new card.  It was necessary.
-
-So the rule is narrower than it looked, and the narrow version is the
-useful one.  What it was protecting against is **two writers on one
-file**, and a new card is a new file — it collides with nothing and
-shows up in `git status` as an addition, which is the whole argument
-the original rule gives for itself.  Nothing about that changes when
-the writer is a session.
+**A session may mint a card, and should.**  *Amended 2026-08-18*, after
+two of them, and his answer both times: *"I liked that you created a new
+card.  It was necessary."*  What the rule protects against is two
+writers on one file, and a new card is a new file — so none of the
+argument above changes when the writer is a session.
 
 Two things it does not license.  A session does not create a card to
 **park work it has been given** — that is a queue nobody pulls from,
@@ -248,13 +227,11 @@ only by asking, and **a session that writes the card immediately has
 destroyed the evidence**: the fix is now on the board in the author's
 own name, and the reader a year later cannot tell it from a need.
 
-The run that produced this section is the argument for it.  What was
-asked for was *"standardization effort of our work here, and a template
-for new projects"* — two cards, both naming fixes.  What came out was
-three cards, one of them on the live board about **security**, whose
-`because` neither party had said out loud when the conversation
-started.  No amount of careful writing gets from the first to the second.
-Only asking does.
+The run that produced this section is the argument for it: an ask
+naming two fixes came out as three cards, one of them about
+**security**, whose `because` neither party had said out loud when the
+conversation started.  No amount of careful writing gets from the first
+to the second.  Only asking does.
 
 ### What the questioning has to do
 
@@ -309,18 +286,15 @@ and dated rather than held back.
 
 ### What the suite can hold, and what it cannot
 
-Nothing here is executable today, and it is worth being exact about why
-rather than adding a test that feels like one.  **No check can tell
-whether a question was asked.**  The nearest proxy — a `because`
-carrying a quotation from the asker — fails on **15 of the 27 cards on
-this board** *(counted 2026-08-18)*, which would be an andon lighting fifteen times for one
-cause, exactly what `test/test_board.py` was written not to do.
-
-What could be held, when somebody wants it: the rule applied **only to
-cards created after the day it lands**, with today's board as an
-accepted baseline that may shrink and never grow.  That is the same
-shape `card:ungated-fixes.md` proposes for its own retroactive
-question, and neither should be built before the other is answered.
+Nothing here is executable, and being exact about why beats adding a
+test that feels like one.  **No check can tell whether a question was
+asked**, and the nearest proxy — a `because` carrying a quotation —
+failed on more than half the board when it was counted, which would be
+an andon lighting for one cause fifteen times.  What could be held is
+the rule applied **only to cards created after the day it lands**, with
+an accepted baseline that may shrink and never grow — the same shape
+`card:ungated-fixes.md` proposes, and neither should be built before the
+other is answered.
 
 ## What a card is
 
@@ -407,20 +381,14 @@ length follows below it.  A reader who stops after the first sheet still
 has what they need to act.
 
 **And a fifth thing belongs on the front, found 2026-08-19: what the
-card is *about*.**  `card:carried-state.md` was elaborated carefully and
-still could not be read by the person it was written for — *"I have to
-say I do not understand and I need to get more context.  We are talking
-about the `-session.ges` files, correct?"*  It was not: two things in
-the tree wear the word *session*, and the card had assumed which.  Every
-section was accurate and the reader could not get in.
-
-The failure is not length and rearranging alone would not have fixed it.
-A card is written by somebody at the end of the looking, and the words
-that were expensive to learn are exactly the ones that read as obvious
-by then.  So the front opens with the nouns — *what this is, what it is
-not, and when the thing runs* — before it opens with what went wrong.
-Cheap to write, and the only part a stranger cannot supply for
-themselves.
+card is *about*.**  `card:carried-state.md` was accurate in every
+section and its reader still could not get in, because two things in the
+tree wear the word *session* and the card had assumed which.  A card is
+written by somebody at the end of the looking, and the words that were
+expensive to learn read as obvious by then — so **the front opens with
+the nouns**, *what this is, what it is not, and when the thing runs*,
+before it opens with what went wrong.  It is the only part a stranger
+cannot supply for themselves.
 
 The line that decides what goes below is already here — *the paragraphs
 belong to the journal, not to the card.*  A card says what to do; the
@@ -448,8 +416,7 @@ built), and with its one real question already asked and answered.
 
 **Collect the questions and ask them in one sitting**, not one
 interruption per card.  The answer is written *into the card it belongs
-to*, dated, with Henri's words kept as his.  An answer that lives only
-in a chat is a decision that will be made again.
+to*, dated, with Henri's words kept as his — §"Who writes what" says why.
 
 ## Taking one
 
@@ -470,25 +437,10 @@ in a chat is a decision that will be made again.
 Henri corrects it in a line, or does not, and the work has a definition
 of done that was not written by the code.
 
-*Adopted 2026-08-17.*  The occasion: an automatic audition shipped with
-**thirteen passing tests** and was switched off for the only person it
-existed for — a stranger, who never applies anything, so a gate keyed on
-"the last audition of this file" never opened.  Every test agreed with
-the implementation because every test was written from it, which is
-`manifesto.md`'s third way an instrument fails, arriving on schedule.
-
-**The raw material is already on every card and nothing used it.**  A
-`because` is a falsifiable claim about a person, written before the code
-exists — which is exactly the property the manifesto asks assertions to
-have, *"stated in a vocabulary the implementation does not own"*.
-`button.md`'s reads *"The program would not currently pass the stranger
-test."*  That is a test, and nothing tests it.
-
-So the sentence is the session's to write and Henri's to correct — one
-line of his attention, spent where his knowledge actually is, which is
-what *done* means for a person.  He was explicit that the burden must
-not move to him: *"Do you mean that I should start writing
-postconditions?"* — no.
+*Adopted 2026-08-17*; the occasion is `journal.md` §"The automatic
+audition that shipped green".  A `because` is a falsifiable claim about
+a person, written before the code exists — the property `manifesto.md`
+asks assertions to have — so the material is already on every card.
 
 Two rules that make it useful rather than ceremony:
 
@@ -496,11 +448,7 @@ Two rules that make it useful rather than ceremony:
   probably not user-facing** and owes no such test.  That is the
   signal, not a failure.
 * **Write it before the implementation**, because one written after is
-  a description of what was built.  The auto-audition's sentence —
-  *"somebody who has never pressed anything still hears their edit"* —
-  fails against the first version and passes against the second, and it
-  only has that power because the first version had not been written
-  when the sentence was.
+  a description of what was built.
 
 ## Working while he rests
 
@@ -509,24 +457,10 @@ From 2026-08-17 the board is worked with Henri away from the desk —
 available rather than present: *"I am here for you in need.  Available
 but just relax as much as I can."*
 
-That only works if a session can reach him, so there is a cord:
-
-    tools/andon.sh          ring once
-    tools/andon.sh 3        ring three times, eight seconds apart
-
-It plays `tools/andon.ges` through the sound card — three rising sine
-chimes, about two seconds, and the file's own prose says why it sounds
-the way it does.  Verified working on 2026-08-17, the morning it was
-built.  **Ringing is capped at three by the script itself**, and that is
-a design decision, not a limitation: if three calls did not reach him he
-is not in the room, and a session that rings thirty times has only
-arranged for a noise to be waiting when he walks back in.
-
+That only works if a session can reach him, so there is a cord —
+`tools/andon.sh`, and `doc/instruments.md` is where it is described.
 **Pull it for a decision that would be expensive to get wrong and cheap
-to ask about** — the ones that change what gets built, not the ones a
-careful session should just make.  The board's own rule already says
-which those are: a card's questions are collected and asked *in one
-sitting*, so the cord is for the sitting, not for each question.
+to ask about**, and for the sitting rather than for each question.
 
 And the default when he is away is still to keep going.  *"Try to
 continue the work as far as you can."*  A blocked card is written up as
@@ -541,10 +475,8 @@ is what the `blocked` field is for.
 2. `status` becomes `done — <date>`.
 3. Move the card to `board/done/` and take it out of the priority above.
 4. **Run the gates** — `python tools/suite.py --gates`, about twelve
-   seconds.  They are the checks a card's own edits break: the board's
-   contract, the citations, the consent file, the atlas, `doc/ref/`, the
-   complaints page, the two example rosters.  Steps 1–3 above have just
-   edited three of those.
+   seconds.  They are the checks a card's own edits break, and steps 1–3
+   above have just edited several of them.
 
    `tools/pre-commit.sh --install` makes this automatic and is installed
    in this checkout — the commit will run them whether or not you did.
@@ -617,11 +549,6 @@ is `journal.md`, and the rule is here so the next one costs less.*
 is the part most likely to be wrong and the part a reader trusts most,
 so mark it: *suspected*, not *is*.  **The durable half of an elaboration
 is the located parts and the question.**
-
-**Finishing a card breaks every citation to it**, because the filename
-is the id and it is stable while the *path* is not.  So: **cite the
-card, not the shelf it is on**, and `test_citations.py` will say when
-you did not.
 
 **A card should record what it turned up that was not its job.**  An
 F-number with no link back to the work that found it loses the only

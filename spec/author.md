@@ -316,8 +316,8 @@ Liker's fourteen principles, against this project as it stands:
 |---:|---|---|
 | 1 | long-term philosophy over short-term gain | **strong** — *do not build what nothing needs*; three of nine days had deletion as their headline |
 | 2 | continuous flow, to bring problems to the surface | **partial** — granular commits, but work piles up uncommitted for hours |
-| 3 | **pull, to avoid overproduction** | **missing** — see below |
-| 4 | **level the workload (*heijunka*)** | **missing** — see below |
+| 3 | **pull, to avoid overproduction** | **new** — but slowly coming to use, see below |
+| 4 | **level the workload (*heijunka*)** | **new** — see below |
 | 5 | stop to fix problems (*jidoka*) | **strong** — the suite, the fence, the leash; and the author stops the line himself |
 | 6 | standardised work as the base for improvement | **new** — the card format, the commit convention, spec-before-build |
 | 7 | visual control, so no problem is hidden | **strong** — knobs in the margin, complaints in boxes, `rocks.md`'s marks, the atlas |
@@ -329,10 +329,19 @@ Liker's fourteen principles, against this project as it stands:
 | 13 | decide slowly by consensus, implement rapidly (*nemawashi*) | **strong, and distinctive** — elaborate before taking, collect the questions, answer in one sitting, then build in an evening.  Its other half, **set-based design**, was named and written down on 08-17: `manifesto.md` §"Set-based, not point-based" |
 | 14 | a learning organisation through reflection and *kaizen* | **strong** — `journal.md`, `fixme.md`, and the reflex of asking for a poka-yoke rather than an apology |
 
-**The finding is the shape of that column.**  This project scores well
-on every principle about *quality* and fails both principles about
-*pace*.  Nothing here was ever going to produce a bad artifact.  It was
-always going to produce too many of them.
+**The principles of *pace* are more important than *quality*.**
+`vision.md`: *any project must not consume the person leading it.*
+
+**And the finding was that pace was the missing half.**  This project
+scores well on every principle about *quality*.  Nothing here was ever
+going to produce a bad artifact.  It was always going to produce too
+many of them.
+
+*Neither is missing any more — corrected 2026-08-21.*  `card:timer.md`
+was built on 2026-08-17, which is the takt the section below calls
+structurally unavailable, and the sweep adopted *heijunka* on
+2026-08-18 (`card:ungated-fixes.md`).  What follows describes the state
+that made them necessary rather than the state today.
 
 ### Why 3 and 4 were the ones missing
 
@@ -345,8 +354,8 @@ stops a line running faster than anyone needs.
 other part of the system was imported faithfully — the andon, the
 mistake-proofing, the standard work, the reflex of fixing the process
 instead of blaming the step — and the one component that was
-structurally unavailable was the one that sets the pace.  What remains
-is pure push, and push with no takt accelerates:
+structurally unavailable was the one that sets the pace.  What remained
+was pure push, and push with no takt accelerates:
 
     7 → 26 → 26 → 33 → 18 → 42 → 43 → 60
 
@@ -354,10 +363,10 @@ That is principle 4 stated as a measurement.  *Heijunka* is levelling;
 this is its opposite, *mura*, and the principle's own gloss is the
 sentence that was broken: **work like the tortoise, not the hare.**
 
-So `card:timer.md` is not a wellness feature bolted onto an engineering
-system.  **It is the missing takt** — a synthetic demand signal for a
-line with no customer to supply one.  That is why it is first in the
-order.
+So `card:timer.md` was not a wellness feature bolted onto an engineering
+system.  **It was the missing takt** — a synthetic demand signal for a
+line with no customer to supply one.  It was built on 2026-08-17 and is
+in `board/done/`, which is why this heading is past tense.
 
 And the other pillar, the one dropped whenever TPS is imported badly:
 *respect for people* is not a slogan attached to the efficiency, it is

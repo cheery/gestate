@@ -201,18 +201,16 @@ cost is in `journal.md` §"The morning that lived in nobody's file":
     python tools/blind.py --batch 2 ../arm-1 ../arm-2 ../arm-3
 
 **The sheet is what failed the first time, not the experiment** —
-Henri, 2026-08-19: *"this judgement was hard for me.  next time, if we
-repeat this test, I'd like more visual indication and some aid in
-judgement."*
+Henri, 2026-08-19: *"this judgement was hard for me… I'd like more
+visual indication and some aid in judgement."*
 
-**Most of "is this verdict right?" is machine-checkable**, which is the
-whole idea: an arm names a gate, and whether that file exists, contains
-the name cited, and mentions the F-number are *facts*.  Asking a person
-to establish them by eye is not judgement at all.  So the tool computes
-them, marks
-agreement before he reads, shuffles the arms to A/B/C with the mapping
-printed only to the terminal, and puts each arm's prose behind a
-disclosure so length cannot shout again.
+**Most of "is this verdict right?" is machine-checkable**: whether a
+named gate exists, contains the name cited, and mentions the F-number
+are *facts*, and asking a person to establish them by eye is not
+judgement at all.  So the tool computes them, marks agreement before he
+reads, shuffles the arms to A/B/C with the mapping printed only to the
+terminal, and puts each arm's prose behind a disclosure so length cannot
+shout again.
 
 **It never marks which arm the experimenter thinks is right.**  That
 would destroy the independent read the review exists to provide —
@@ -231,11 +229,8 @@ the presence record off, so synthetic keystrokes do not land in
 somebody's week.  `a_copy_of(path)` opens a *copy*, never the original
 (F154).  `shot(win, path)` captures the window.
 
-**This is the instrument that keeps finding what tests do not.**  Twice
-on 2026-08-18: a caret read from a closed editor that would have filed
-*line 1* forever, and a `gemba` ask-line that broke the program it was
-narrating about while twenty-three tests passed.  Neither is visible
-from the source.
+**This is the instrument that keeps finding what tests do not** — twice
+on 2026-08-18, and neither finding was visible from the source.
 
 Modifier names are X keysyms — `Control_L`, not `ctrl`.  And **`pkill`
 does not run a `finally`**: to exercise a graceful close, quit through
@@ -243,10 +238,10 @@ the palette (`Ctrl-K`, `quit`, Return).
 
 **And build what the editor actually loads.**  `cargo build --release -p
 gestate-editor` is not enough — the window is `libgestate_editor.so` and
-it wants `--features capi`.  Two photographs of a stale binary read as
-two defects in new code on 2026-08-18 before anybody checked.  A driven
-window is only evidence about the binary it is running, and nothing in
-the harness says which one that is.
+it wants `--features capi`.  **A driven window is only evidence about
+the binary it is running**, and nothing in the harness says which one
+that is; two photographs of a stale binary already read as two defects
+in new code.
 
 ### `python -m gestate.pops <dump>` — did it click, and where
 
@@ -275,8 +270,9 @@ Latency and gesture measurement, with `GESTATE_EDITOR_TIME` and
 
 Every session is recorded in memory, always; `transcript` writes it
 down.  `test/sessions/` holds the ones that convicted a defect, named
-for its F-number — a replay is *expected* to diff once the defect is
-fixed, and the diff is the point.  `spec/verification.md` is the design.
+for its F-number.  **Nothing replays them** — 11 of the 12 recorded
+transcripts are named by no test (counted 2026-08-21), so they are
+evidence and not instruments.  `spec/verification.md` is the design.
 
 ---
 
@@ -312,9 +308,9 @@ ritual; steps 1, 3 and 4 a session may draft, step 2 is Henri's.
 ### `tools/suite.py` — the whole suite, gates first
 
 The gates are seconds-long structural checks that a working session
-breaks: the board's contract, the citations, the consent file, the
-atlas, `doc/ref/`, the complaints page, the two example rosters.  **A
-full run is ~25 minutes and the tree must be frozen while it runs** —
+breaks: whether the tree's documents still agree with the tree.
+`suite.GATES` is the list, and the only place it is right.  **A full run
+is ~25 minutes and the tree must be frozen while it runs** —
 editing under a run produces a red that describes a moment rather than a
 defect, which has cost two runs already.
 
@@ -339,7 +335,7 @@ library's md5, the environment the child was handed, and the questions
 with their answers.  `tools/toolbox.sh` says whether this machine has
 what a run shells out to.
 
-### `tools/suite.py --gates` — the eight, and stop
+### `tools/suite.py --gates` — the gates, and stop
 
     python tools/suite.py --gates      # ~12s, fenced, writes test/gates.md
 
@@ -352,8 +348,8 @@ came due: the single full run of a shift died at a gate in seventeen
 seconds, on a breakage hours old, with half an hour left in Henri's day.
 
 It writes `test/gates.md` and never `test/report.md`, and the page says
-in three places that the suite did not run — a green sheet of eight
-document checks is a true page and an untrue impression.
+in three places that the suite did not run — a green sheet of document
+checks is a true page and an untrue impression.
 
 **It is not a substitute for the full run.** Nothing here tests
 behaviour. One full pass per shift, tree frozen, is unchanged.
