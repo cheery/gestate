@@ -164,7 +164,7 @@ Memories migrate into rules from correct incentive pointed at the
 wrong file; a fix that ignores the incentive teaches sessions to
 smuggle better.
 
-What is at stake, carried over from the file about the workers, which was not kept: the tree
+What is at stake, carried over from `notes-on-sessions.md`: the tree
 is the session's memory, so **a session writing into the rules is
 programming its successors, unreviewed** — the cage-builder problem
 arriving as quiet authorship rather than escape.  `spec/author.md` already

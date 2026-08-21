@@ -33,9 +33,13 @@ The model was **Fable**, over two evenings in August; the transcription
 and the distillation into memories were done afterwards by a different
 model.  Two of the four say so in their own text.
 
-**A fifth file existed and was not kept** — the one about the workers,
-cited by the others.  Its content survives only in
-`doc/memory/what-a-session-is.md`.
+**Two files of the set are not here.**  `notes-on-sessions.md` — the
+one about the workers, cited by all four — and `notes-on-the-trial.md`,
+which came later.  Both exist outside the tree and both are the author's
+to bring in.  A session claimed on 2026-08-21 that the first had been
+lost; it had not, and the claim came from looking in one directory.
+`doc/memory/what-a-session-is.md` and
+`doc/memory/deriving-strips-the-payment.md` are distilled from them.
 
 **The standing caveat applies to all four, and hardest here.**  A
 session assessing this method is a product of it, and several of these
