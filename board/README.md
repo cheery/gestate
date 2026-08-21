@@ -90,6 +90,13 @@ still the tiebreak between two workable cards, and it is still his.
     answered by any session, at any position in this list.  A card that
     cannot be worked does not belong above cards that can.
 
+8. **[memory-atrophy](memory-atrophy.md)** — the author's own
+   observation, 2026-08-21: the tree reduces his memory pressure, and
+   what is not exercised weakens.  **Last because the criterion above
+   cannot rank it** — its reader is the author, not somebody using
+   gestate.  Four moves taken one at a time over months, three of them
+   a two-line edit each, so it does not compete for a day's work.
+
 **And the criterion has been checked once, on 2026-08-19, and it lost**
 — `journal.md` §"And what the day says about the board".  Ordering by
 impact ranked a crash seventh, which is the kind of answer a rule gives
