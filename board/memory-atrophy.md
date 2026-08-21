@@ -183,6 +183,17 @@ it.  Not to prove the need; you have already stated it and it is yours
 to state.  It would tell us **which layer** is going, and that changes
 which moves are worth taking.  *Open, 2026-08-21.*
 
+> **Answered 2026-08-21 — no instance, and no jogging yet.**  Henri:
+> *"No idea.  I feel like I need to still pace down rather than jog my
+> memory.  So I made a card about the worry instead of going to deploy
+> it now."*
+>
+> So the card is **sediment and not debt** — it waits on an instance
+> turning up, which is an event, and not on a decision he owes
+> (`keeper.md` §"One pass over the pile").  It costs nothing while it
+> waits.  Move 1 is the only one that does not depend on this answer;
+> the others should not be taken until it changes.
+
 **2. Move 2 — do you want it, and how wide?**  It is the only one with a
 running cost to you, and the cost is that a session sometimes answers
 your question with a question.  Three readings, and the middle one is
