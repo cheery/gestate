@@ -269,3 +269,266 @@ below this section under `## The five, checked` with the date.
 Ask it.  Henri is at another console and is the channel — a session
 working this without a way to raise a question and be answered is the
 arrangement this project has already ruled out.
+
+## The five, checked — 2026-08-21
+
+*Checked by a second session, from the work order above and the files it
+names.  **Disclosure:** the work order asked the checker to read only its
+own section; this session read the whole card before reaching that
+instruction.  It is recorded because the point of a fresh reader is that
+it has no stake in the detector, and a reader who has seen the detector's
+argument is a weaker instrument than the one asked for.  Nothing below is
+fixed, decided or aggregated.*
+
+**One thing has to be said before the five, because it changes how they
+read.**  The work order's site list is **incomplete for three of the
+five**, and the four missing sites all existed at `5f42f68` when the
+census ran.  See §"A third measurement bug" below.
+
+---
+
+### 1. `placement rule` — **genuine**, and the name covers two different rules
+
+**What I found first.**  The three listed sites are not talking about one
+rule.
+
+*Sense A — a knob sits in the margin at the row of its own declaration:*
+
+- `spec/workbench.md:390` — "A `knob` at `row` is drawn in the margin at
+  that row: the placement rule survives the move".
+- `journal/2026-08.md:5535` — "the knob's placement rule grown a height"
+  (**not in the work order's list**).
+
+*Sense B — the palette panel and its reference page go where the room is,
+decided by the equator:*
+
+- `board/README.md:433` — "`palette.rs:1175` had the placement rule
+  built".  `palette.rs:1175` is the page-beside-the-panel code, and
+  `card:peep-window.md` names the same address at line 50, as *"that
+  placement"* — the F133 rule, not the knob's.
+- `fixme.md:3825` — inside **F133**, which is about the palette panel:
+  "the placement rule's other half, which the page had never heard of".
+
+**No sentence anywhere says what "the placement rule" is.**  Both senses
+*are* asserted — each under a different name:
+
+- Sense A, `spec/liveaudio.md:941`: "**a knob beside every line that
+  declares one** — placed by `audiospans`, not listed in a panel, which is
+  what the placement was built for".  Also `spec/substrate.md:502`
+  ("**Knobs are drawn rather than placed.**") and `spec/editor.md:91`
+  ("the editor lays the widget in the margin beside the declaration").
+- Sense B, `spec/workbench.md:624`: "**The equator decides the panel; the
+  span decides the scroll**" — asserted, bolded, and named **the
+  equator**.  `fixme.md:3814` and `:3820` call it *the equator rule* and
+  *the equator placement* in the same entry that calls it *the placement
+  rule* five lines later.
+
+**Verdict: genuine.**  The name has no home; two homes exist under other
+words.  This is the A3 signature exactly — a second vocabulary grown over
+an existing rule — and here it has gone one step further, because the
+second vocabulary is now covering **two** rules with one name.
+
+---
+
+### 2. `fixtype rule` — **not a term**
+
+**What I found first.**  The two sites are one sentence written twice.
+
+- `fixme.md:789` (F49) — "That matters beyond arithmetic: the fixtype rule
+  takes `Cyclic n` for a finite type, and a `Cyclic 4` holding 6 would
+  make `fix` promise a termination it could not deliver."
+- `journal/2026-08.md:887` (the F49 entry) — "That is not just wrong
+  arithmetic: the fixtype rule takes `Cyclic n` for a finite type, so a
+  `Cyclic 4` holding 6 would make `fix` promise a termination it could not
+  deliver."
+
+Same clause, one connective changed.  **The work order's confound holds
+here**: the name never crossed a document boundary.  A third instance of
+the same phrase sits in code — `gestate/elaborate.py:627`, "would not be
+the finite type the fixtype rule takes it for."
+
+**And it is not a name.**  `fixtype` is a defined formal term with a
+grammar and a checker; *"the fixtype rule"* is ordinary technical English
+for the subgrammar rule at `fix`, the way `journal/2026-08.md:104` writes
+it in the plural — "eqtype/semilattice/fixtype rules" — as one row of a
+pipeline diagram.  The thing it leans on is asserted in five places:
+
+> `spec/syntax.md:647` — "`fix` takes a `Box (L ~> L)` where `L` is a
+> **fixtype**: a set of *finite* eqtypes"
+
+> `gestate/subgrammar.py:102` — "A fixtype is a set of finite eqtypes, or
+> a tuple of those."
+
+Also `spec/errata.md:80` (the grammar), `spec/errata.md:97`, and
+`doc/manual.md:550` ("**The type must be a *fixtype*** — a semilattice
+with no infinite…").
+
+**Verdict: not a term.**  The harvester collected an adjective, and the
+one boundary it crossed was a quotation of itself.
+
+---
+
+### 3. `application rule` — **not a term**
+
+**What I found first.**  Same confound, same shape.
+
+- `fixme.md:883` (F30) — "`unify` is symmetric, but its message is not —
+  it says "expected `b`, got `a`" — and the application rule in `infer.py`
+  called it `(expected, actual)`."
+- `journal/2026-08.md:3697` (the F30 entry) — "`unify` is symmetric but its
+  message is not, and the application rule called it `(expected,
+  actual)`."
+
+One sentence, twice, minus the `in infer.py`.  **The confound holds.**
+
+**And there are two more sites the list does not have, for a *different*
+rule** — the ϕ/δ transform's row for `e f`:
+
+- `fixme.md:154` — "the application rule in the same table settles it"
+- `spec/data.md:175` — "Both halves are the ordinary application rule"
+
+That one is **asserted, with an address given in the citation itself**:
+
+> `spec/data.md:171` — "| `e f` | `ϕe ϕf` | `δe [ϕf] δf` | ϕ is ordinary
+> `EAp`. δ is `EAp(EAp(δe, box(ϕf)), δf)` …"
+
+`fixme.md:154`'s *"in the same table"* points straight at §I.4's codegen
+table.  So the corpus has two unrelated "application rules" — the typing
+rule at `gestate/infer.py:422`, and §I.4's transform row — and both are
+ordinary English for *the rule for applications*, of the same kind as *the
+lambda rule* or *the case rule*.
+
+**Verdict: not a term.**
+
+---
+
+### 4. `drop rule` — **genuine**, and the definition is 90 lines above one of its own citations
+
+**What I found first.**  The two sites are, again, one sentence:
+
+- `spec/sown.md:21` — "Content beyond the declared span is clipped, and
+  said so, in the drop rule's own vocabulary: a section that outruns its
+  box rejoins nothing."
+- `spec/dynamicscore.md:284` — "Content a decision produces beyond its
+  declared span is clipped, and said so, in the drop rule's own
+  vocabulary: a section that outruns its box rejoins nothing."
+
+Three words inserted, otherwise identical.  Both landed 2026-08-10
+(`89e325a`/`9aa8dce` into `dynamicscore.md`, `82d8fde` into `sown.md`).
+**This is the confound in a form the work order did not anticipate** — not
+a journal quoting a spec, but one spec file copying a sentence into
+another.  The name still only ever occurs inside that one sentence.
+
+**The rule is stated, unnamed, in the same file as one of the citations**,
+ninety lines above it:
+
+> `spec/dynamicscore.md:193` — "if production resumes, events whose beats
+> have passed are **dropped, and said so** — a section that lost its place
+> rejoins at the current bar, it does not play the missed bars fast."
+
+The shared word *rejoins* is what ties the citation to it.  And the same
+file names that mechanism **twice more, differently**:
+`spec/dynamicscore.md:14` calls it **drop-and-report**;
+`spec/dynamicscore.md:47` calls it **the stall-and-drop rules**.
+
+**Verdict: genuine** — three names for one mechanism, and the definition
+carries none of them.
+
+**Where this verdict is contestable, stated rather than hidden.**  The
+work order's `asserted` reads *"a sentence does say what this rule is"*,
+and `:193` does.  Its `genuine` reads *"no sentence anywhere says what
+this rule is"*, and that is false here.  I have called it genuine because
+the A3 precedent turns on the **name**, not the content: the A3 rule was
+written on 2026-08-18 and still flagged, and the fix was to attach the
+name to the existing sentence, not to write a new one.  If the criterion
+is the content, this is `asserted` and the sentence above is the quote.
+**The two readings disagree on this name and on `placement rule`, and the
+work order does not say which one it means.**
+
+---
+
+### 5. `transport rule` — **asserted**
+
+**What I found first.**  The listed sites are both citations —
+
+- `spec/dynamicscore.md:172` — "the allocator exists, the Rust allocator
+  exists, the transport rule exists"
+
+— but a **third site the work order does not list** is a definition, and
+it names the rule in the same sentence:
+
+> `spec/export.md:22` — "Self-playing synths export today
+> (`dubgate.clap`, `violin.clap`), under one transport rule for every
+> plugin: **it plays while the transport runs, or while a note does.**"
+
+Present at `5f42f68`, at that same line number.  The three sentences after
+it give the rest — silence while the timeline is stopped, the rising edge
+rewinding to the top, knobs surviving the rewind, a ringing voice keeping
+the render alive.
+
+**And the second listed site asserts it too**, in a parenthesis:
+
+> `journal/2026-08.md:4309` — "*rewind is free*, which became the
+> transport rule (stop is silence, play is the piece from its top, two
+> plays are one performance)."
+
+**Verdict: asserted.**  The detector missed it twice.  In `export.md` the
+determiner is **"one transport rule"**, not *"the"*, and the assertion
+follows the name rather than carrying it; in the journal the assertion is
+in round brackets, not bold.
+
+---
+
+### A third measurement bug — the site list undercounts documents
+
+Four sites are missing from the work order's list, all present at
+`5f42f68`:
+
+    placement rule     journal/2026-08.md:5535   "the knob's placement rule"
+    application rule   spec/data.md:175          "the ordinary application rule"
+    application rule   fixme.md:154              "the application rule in the same table"
+    transport rule     spec/export.md:22         "one transport rule for every plugin"
+
+Three of the four share one shape: **something stands between the article
+and the name** — a possessive (`the knob's …`), an adjective (`the
+ordinary …`), or a different determiner (`one …`).  A harvester matching
+roughly *"the ⟨word⟩ rule"* sees none of them.  `fixme.md:154` is the
+exception and would be a plain match; I do not know why it is absent.
+
+**Why this is the bug that matters.**  The two bugs already recorded on
+this card cost the census a name and a run.  This one attacks the
+**criterion**.  "Cited from more than one document" is the proposed
+narrowing for B and the trigger for D — and it is computed from a site
+list that cannot see a name with an adjective in front of it.
+`transport rule` was scored on two documents and has three; the third is
+the one holding the definition, which is why it was flagged at all.  A
+census that misses the defining site systematically over-reports
+`EPÄILTY`.
+
+I did not fix the harvester, and I have not re-run any census; this is
+what four hand-checked names showed, found the same way the first two bugs
+were — by checking against cases whose answers were already known.
+
+### Tally, for reading, not for scoring
+
+    placement rule     genuine       (two rules under one name; both asserted elsewhere, unnamed)
+    fixtype rule       not a term    (+ confound: one sentence, twice)
+    application rule   not a term    (+ confound: one sentence, twice)
+    drop rule          genuine       (+ confound: one sentence copied between two specs)
+    transport rule     asserted      (spec/export.md:22, and again in the journal)
+
+**Three of the five confirm the work order's confound**, and a fourth
+found it in a form it did not predict.  Of the five names the detector
+flagged, **one** — `placement rule` — is the A3 case again without
+qualification.
+
+### Two questions back
+
+1. **Does a verdict turn on the name or on the content?**  `drop rule` and
+   `placement rule` land differently under the two readings, and the A3
+   precedent says the name.  Worth writing into the verdict table before
+   this is run again.
+2. **Should `not a term` be a verdict at all, or a harvester bug?**
+   `fixtype rule` and `application rule` are the same defect — a real
+   defined noun with *rule* after it — and a harvester that knew the
+   corpus's own defined terms would not have collected either.
