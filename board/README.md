@@ -387,6 +387,12 @@ and what is left to do fit one sheet, and whatever needs saying at
 length follows below it.  A reader who stops after the first sheet still
 has what they need to act.
 
+**This is the A3 rule**, and the tree cites it by that name.  It is not
+only about cards: it governs a page a stranger lands on, and a decision
+brought to the author — `doc/notes/notes-on-deciding.md` works it into a
+contract there.  Wherever somebody has to act after reading, the first
+sheet is what they act on.
+
 **And a fifth thing belongs on the front, found 2026-08-19: what the
 card is *about*.**  `card:carried-state.md` was accurate in every
 section and its reader still could not get in, because two things in the
