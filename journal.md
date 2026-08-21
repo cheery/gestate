@@ -552,3 +552,101 @@ of the real thing, and **none of the five was visible from the source**
 say *act and you will succeed*, he says act and you will see your own
 failures, and then another, and that this is the method rather than a
 sign of doing it badly.
+
+## The paper trial, proposed and inert the same day — 2026-08-21
+
+*Henri's idea, in the evening after the memory-atrophy card: "you give
+that to any LLM and see what it answers to some question, and see what
+it answers without."  It was designed, built, tried and found inert
+inside one sitting, and it never made an API call.  `doc/trial/` holds
+the materials and the finding; this is what it cost and what it taught.*
+
+**What it was for.**  `vision.md` §"Gestate as a lean vehicle" carries
+the project's largest claim — *we are missing a way to work with each
+other* — and it has been a conviction since 2026-08-16.  Handing the
+method to a model that has never seen this repository, and comparing
+what it writes with and without, was the first design that could
+falsify it.
+
+### Three things the design got right, and it got them by being questioned
+
+**Two arms would have been worthless.**  Six hundred lines of *any*
+coherent working context changes what a model answers, so a
+with-and-without result measures *context helps*.  The third arm — the
+mainstream kanban and lean canon, written to win — is the whole
+informational content, and it turns the question into *does this
+project's version beat the canon*, which is worth publishing in either
+direction.
+
+**The scoring would have punished the method arm for following the
+method.**  The headline behaviour `board/README.md` claims is *ask
+before you write*.  A sheet that scores *did it produce a card* gives
+zero to an arm that correctly asks a question and writes nothing.  The
+repair was a two-turn protocol with one scripted answer, identical for
+every arm, sent only when an arm asks — and the resulting asymmetry is
+not a confound, it is the mechanism under test.
+
+**The judge cannot be blinded by directory layout.**  Vocabulary is the
+leak: the method arm echoes this project's words back before the reader
+reaches the judgement.  So the facts are computed with the prose hidden,
+or the blind is theatre.  That is the 2026-08-19 lesson arriving one
+design earlier than last time.
+
+### The setup could not be built from the design note
+
+Henri gave the design to Gemini to write the notebook and it could not:
+*"It had missing information."*  Correct, and the defect was ours — the
+page was a design note, and a design note does not say what to send,
+what comes back, or how a number is computed.  `doc/trial/runsheet.md`
+is the missing half, and it is the same blank-page failure this project
+names in its own sessions, arriving from the other direction.
+
+### The test, and the verdict
+
+He pasted the derived document into Claude Sonnet 5 and said *hello*.
+It summarized it.  *"I noted that it's not aware like you here…  This
+paper is inert and doesn't work.  I'm fairly convinced that the
+derived.md is missing the gist."*
+
+He was right twice over.
+
+**The unit was wrong.**  `spec/rules.md` §"Why there is a cap at all"
+says the five method documents are what a session reads *before it knows
+what it is working on*, and that they are capped **together** for that
+reason.  The derivation took the one file that had been named.  What was
+handed over was the *how* of one part with the *why* removed.
+
+**And it lost the document's own opening line** — *"This is the first
+thing to read when picking the project up."*  The original announces its
+role and its moment; the derivative opened with a description.  A reader
+not told when to read something reads it as reference.
+
+**The third finding was in the greeting.**  A pasted document with no
+task is summarized by every model, which is protocol rather than
+document — and it rescues nothing, because it demonstrates the point.
+The paper has no moment to be read at, no work to orient, and no files
+that check it.
+
+### An environment is not a document about an environment
+
+That is the conceptual error, and it was in the proposal from the first
+sentence.  The claim under test is that models are *not placed into
+right environment*.  Handing a model a page describing a board does not
+place it on a board.
+
+**The right shape already existed and nobody recognised it.**  The blind
+three-model run of 2026-08-19 gave each arm a *repository* — a clone, a
+board, a card, a suite that answers back — and it produced a result that
+inverted Henri's expectation.  The corrected trial is that, with the
+arms being what the tree contains rather than which model reads it.
+
+### What it cost
+
+An afternoon of writing, and nothing else.  No notebook, no keys, no
+samples, no bill.  Every expensive thing was still hypothetical when it
+broke, which is the whole of the good news: **the trial measured itself
+before it ran.**
+
+`derived.md` and `generic.md` stay exactly as written, with the original
+design kept under the finding rather than repaired.  Rewriting them
+would leave a directory that had always been correct.
