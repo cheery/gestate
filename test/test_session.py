@@ -2092,13 +2092,36 @@ def test_a_path_argument_offers_what_is_in_the_directory(tmp_path):
     it, room = _looking(tmp_path)
     act(it, "wants\topen\t0\t")
     shown = [text for text, _note, _can, _step, _dim in it.choices()]
-    assert shown[0] == "../", "going up is where the eye already is"
+    assert shown[0] == "[up]", "going up is where the eye already is"
     # **The note says where you are, not where up goes** — the parent's
     # absolute path read as a destination, when the row means a step.
     notes = {t: n for t, n, *_ in it.choices()}
-    assert notes["../"].startswith("you are here: ")
-    assert notes["../"].endswith(str(room)), notes["../"]
+    assert notes["[up]"].startswith("you are here: ")
+    assert notes["[up]"].endswith(str(room)), notes["[up]"]
     assert "deeper/" in shown and "one.ges" in shown and "two.ges" in shown
+
+
+def test_the_build_cache_is_not_offered_as_a_place_to_go(tmp_path):
+    """F176.  Generated directories are not destinations.
+
+    `card:stranger-test.md` run three: the first stranger who does not
+    program was shown a repository root and read its rows as offers —
+    he picked the one whose name sounded like it held something.
+    `__pycache__` sat second in that list, above every directory a
+    person would want, on nothing but the alphabet.
+
+    Hidden on a dotfile's terms, not a dotfile's rule: **typed for, it
+    is there**, because a listing that refuses to show what you named
+    is worse than one that shows too much.
+    """
+    it, room = _looking(tmp_path)
+    (room / "__pycache__").mkdir()
+    act(it, "wants\topen\t0\t")
+    shown = [text for text, _note, _can, _step, _dim in it.choices()]
+    assert "__pycache__/" not in shown, shown
+
+    act(it, "wants\topen\t0\t__")
+    assert "__pycache__/" in [t for t, *_ in it.choices()]
 
 
 def test_the_file_you_are_in_is_marked(tmp_path):
@@ -2115,17 +2138,18 @@ def test_going_up_stacks_rather_than_jumping(tmp_path):
     read from — a row that put an absolute path there would end the walk
     you were in the middle of.
 
-    The *row* stays `../`, which is what it means at every depth; the
-    query it makes is what stacks.
+    The *row* stays `[up]`, which is what it means at every depth; the
+    query it makes is what stacks — and the two differ on purpose, F177:
+    the label is read, the query is typed.
     """
     it, _room = _looking(tmp_path)
     act(it, "wants\topen\t0\t")
     label, _note, _can, step, _dim = it.choices()[0]
-    assert (label, step) == ("../", "../")
+    assert (label, step) == ("[up]", "../")
 
     act(it, "wants\topen\t0\t../")
     label, _note, _can, step, _dim = it.choices()[0]
-    assert (label, step) == ("../", "../../"), "and again, and again"
+    assert (label, step) == ("[up]", "../../"), "and again, and again"
 
 
 def test_a_file_that_arrives_shows_up_without_touching_the_query(tmp_path):
@@ -2181,7 +2205,7 @@ def test_the_cache_still_watches_the_directory_the_walk_reached(tmp_path):
     """
     it, room = _looking(tmp_path)
     act(it, "wants\topen\t0\tdeeper/")
-    assert [t for t, *_ in it.choices()] == ["../"], "empty but for the way up"
+    assert [t for t, *_ in it.choices()] == ["[up]"], "empty but for the way up"
 
     (room / "deeper" / "inner.ges").write_text("sound : Sig Float\n")
     time.sleep(Session.OUTSIDE_EVERY * 1.5)
@@ -2350,7 +2374,7 @@ def test_steal_greys_what_is_taken_and_refuses_it(tmp_path):
     rows = {text: can for text, _note, can, _step, _dim in it.choices()}
     assert rows["one.ges"] is False and rows["two.ges"] is False
     assert rows["deeper/"] is True, "a directory is a step, not a name"
-    assert rows["../"] is True
+    assert rows["[up]"] is True
     assert "is taken" in it.run("steal", "two.ges")
 
 
@@ -2376,7 +2400,7 @@ def test_a_file_is_taken_from_where_the_list_walked_to(tmp_path):
     it.view = win
 
     act(it, "wants\topen\t0\tdeeper/")
-    assert [t for t, _n, _c, _s, _d in it.choices()] == ["../", "two.ges"]
+    assert [t for t, _n, _c, _s, _d in it.choices()] == ["[up]", "two.ges"]
     it.run("open", "two.ges")
     assert win.wanted == str(room / "deeper" / "two.ges"), \
         "the one in the directory the list had walked to"
@@ -2387,7 +2411,7 @@ def test_a_directory_is_a_step_and_a_file_is_the_answer(tmp_path):
     act(it, "wants\topen\t0\t")
     rows = {text: step for text, _note, _can, step, _dim in it.choices()}
     assert rows["deeper/"] == "deeper/", "choosing it walks in"
-    assert rows["../"] == "../"
+    assert rows["[up]"] == "../", "read as a word, typed as a path"
     assert rows["one.ges"] == "", "a file ends the question"
 
 

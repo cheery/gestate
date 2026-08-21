@@ -1239,6 +1239,24 @@ class Session:
         # the query is what the next listing is read from, and a row
         # that put an absolute path there would end the walk you were
         # in the middle of.
+        # **The row is read as a word and typed as a path** — F177.
+        # `card:stranger-test.md` run three, 2026-08-21: a stranger who
+        # does not program looked straight at this row, first in the
+        # list, and asked out loud *"miten mennään takaisin?"*  The way
+        # back was on his screen, spelled in a notation he had never
+        # learned; `..` is a programmer's word for a parent directory.
+        #
+        # **The label changes and nothing else does.**  Henri chose
+        # `[up]` over his own `[back]` on 2026-08-21 — *"[up] kuulostaa
+        # paljon paremmalta"* — because *back* promises a history this
+        # row does not have and *up* is exactly what it does.  Brackets
+        # because the same run proved a bracketed thing gets pressed:
+        # `[command]` opened unaided, which is what retired `=command=`.
+        #
+        # The **query** stays `..`, and so does the filter below: a
+        # label that matched on the word would leave this row selected
+        # while somebody narrowed towards `backup/`, and Enter would
+        # step out of the directory they were in.
         if where.parent != where and (not low or "..".startswith(low)):
             import os
 
@@ -1253,11 +1271,39 @@ class Session:
             # row means a step.  The one absolute path worth printing
             # in a walk is the place you are standing (his design:
             # "you are here").
-            out.append(("../", f"you are here: {where}", True,
+            #
+            # **And the words are load-bearing, not decoration.**  Three
+            # steps, Henri 2026-08-21: it showed where `..` went; it was
+            # changed to show the folder you are in; and only then was
+            # the label added, because *"se ei enää tarkoittanut samaa
+            # kuin muut rivit"*.  Every other row's note describes **that
+            # row** — `directory`, `1.4K`.  After the change this one
+            # described where the *reader* is standing, so one column
+            # meant two things and needed a word saying which.  Read it
+            # as clutter, delete the prefix, and the column goes back to
+            # silently meaning something it does not mean.
+            #
+            # `[up]` made it more coherent than it had been, which was
+            # not the point of that change: the row used to carry `../`
+            # and a path side by side — one where you would go, one
+            # where you are, which is the confusion that made it read as
+            # a destination in the first place.  Now the name is the
+            # act and the note is the place, and nothing else on the row
+            # looks like a path.
+            out.append(("[up]", f"you are here: {where}", True,
                         up + "/", False))
         matched = []
         for entry in entries:
             if entry.name.startswith(".") and not stem.startswith("."):
+                continue
+            # **`__pycache__` is not a place anybody is going.**  It is
+            # generated, it sorts high enough to sit near the top of a
+            # tree's root, and `card:stranger-test.md` run three showed
+            # what that costs: the first stranger who does not program
+            # was handed the repository as a menu and read the rows as
+            # offers.  Hidden on the same terms as a dotfile — typed
+            # for, it appears; unasked for, it does not.
+            if entry.name == "__pycache__" and not stem.startswith("__"):
                 continue
             if low and low not in entry.name.lower():
                 continue

@@ -24,6 +24,7 @@ question at the moment it is cheap to ask, rather than after the push.
 | Henri | yes | yes | yes | 2026-08-19 — see below |
 | Mikko | yes | yes | **asked, deferred** | 2026-08-19 |
 | Janne | yes | yes | **asked, deferred** | 2026-08-19 |
+| run three's stranger | **held** | yes | **held** | 2026-08-21 |
 | Claude | yes | yes | — | see below |
 
 **named** — may their name appear here.
@@ -98,6 +99,39 @@ verdict.
 `doc/instruments.md` §"Spawning one — it gets a way to ask" is the
 neighbouring rule, and it came from the same morning.
 
+### Run three's stranger
+
+`card:stranger-test.md`'s run three, 2026-08-21 — somebody who does not
+program and does not use computers much, which is the person
+`vision.md`'s opening sentence has always been about and the first of
+them to meet this window.
+
+**He said yes to all three, in the room, and the name is held anyway.**
+That is §"A consent given in a hurry is stashed, not spent" below,
+adopted the same evening it was earned.  He had a busy day, other things
+on his mind, and had just spent ten minutes not understanding a program;
+a yes given in that minute is a yes about the minute.
+
+So the tree carries **what the measurement needs and nothing that
+identifies him**: that he does not program, and does not use computers
+much.  Both are load-bearing — they are why a pass is conclusive and a
+stall ambiguous — and neither points at a person.
+
+**His words stand, unattributed.**  They are the measurement, they are
+quoted in `journal.md` and `fixme.md`, and without a name they carry no
+more than the sentences say.  When the name comes, they get it.
+
+**Training: held on this session's account, not his.**  The ask this
+session put to him did not say that weights do not un-train, or that a
+yes today is agreement to a blank.  §"Naming and training are two
+consents, not one" requires those words.  Nothing of his may be used for
+training under this row.
+
+**What it takes to fill the row in:** a second ask, unhurried, on a day
+he is not being measured, with what naming actually means said plainly —
+a public repository, cloned and mirrored, where removal is a promise
+about this copy only.
+
 ### Mikko
 
 Gestate's first outside user.  `foo : int` (F141), the 20-minute piece
@@ -122,7 +156,16 @@ not to be the user".
 They differ in weight, and asking for both in one breath gets one answer
 covering two questions.
 
-**Naming is reversible.**  A commit removes it.
+**Naming is reversible only until it is published.**  A commit removes
+it from this copy.  It does not remove it from a clone, a fork, a mirror
+or an archive, and this repository is public — so past the first push,
+*reversible* is a promise about the working tree and not about the
+world.
+
+*Corrected 2026-08-21, Henri: "ottaen huomioon että se on
+peruuttamatonta."*  The line used to read **"Naming is reversible.  A
+commit removes it."** and it was the half-truth this whole file exists
+to not tell.
 
 **Training is not.**  Weights do not un-train.  A promise that they may
 withdraw later is a promise about *future datasets only*, and it has to
@@ -138,6 +181,38 @@ would be published — so a yes today would be agreement to a blank.
 `deferred` means *asked once, answerable only when there is something
 concrete to answer about*, and it is not a yes.  **Nothing here may be
 used for training until a row says so with a date.**
+
+## A consent given in a hurry is stashed, not spent
+
+*Henri's convention, 2026-08-21, adopted the evening run three was run:
+"we could stash the naming until person has time to think.  Tämä olisi
+vain ystävällistä ja huomaavaista kiireiselle.  Ottaen huomioon että se
+on peruuttamatonta."*
+
+**The default is to hold the name, even when the answer was yes.**
+
+The ask happens where the person is — in a room, mid-visit, often
+minutes either side of something else they came for.  That is the right
+place to *ask*, because it is the only place they are; it is a poor
+place to *decide* something a public repository will keep.  A busy
+person says yes to be agreeable, and a person who has just been measured
+says yes while still inside the measurement.
+
+So the two are separated: **ask on the day, write it down on another
+one.**  The row goes in immediately with the name held, because a
+register that waits is a register that forgets; the tree meanwhile
+carries what the work needs and nothing that identifies anybody.  When
+the person has had a week and nothing to be polite about, they are asked
+again, unhurried, and the row is filled in or it is not.
+
+**What this costs is nothing, and that is the argument.**  A name added
+later reads exactly as it would have read on the day.  A name published
+early and regretted cannot be taken back past the first clone, which is
+the correction above.
+
+**And it is not a rule about caution.**  It is about who the delay is
+for: the person, who is busy, and who should get to think about this the
+way they would think about anything else that does not expire.
 
 ## What the check cannot see
 

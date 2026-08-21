@@ -162,3 +162,32 @@ def test_the_starter_never_rides_in_the_tree():
         "the starter's own files are tracked, and they belong to no "
         f"piece: {', '.join(stray)}.  `git rm --cached` them; "
         ".gitignore already refuses them (fixme.md F164)")
+
+
+def test_a_bare_click_opens_something_that_sounds(tmp_path):
+    """F179.  The icon's fallback file need not exist, but must sound.
+
+    `gestate.desktop` runs `tools/gestate-editor %f`, and a dock click
+    passes no file — so the launcher falls back to a name this tree does
+    not contain and nothing creates.  **That is not a defect, and this
+    test is here because it was written up as one.**  A workbench handed
+    a path that is not there opens the starter, which carries a `sound`
+    declaration, so the second of `vision.md`'s four verbs is reachable
+    from a click.
+
+    What the gate protects is the pair, not either half: a launcher that
+    starts naming a *different* absent file, or a starter that stops
+    carrying a sound, each breaks the click without touching the other.
+    """
+    from gestate.audioeditor import Workbench
+
+    launcher = (ROOT / "tools" / "gestate-editor").read_text(encoding="utf-8")
+    fallback = re.search(r'\$\{1:-([^}]+)\}', launcher)
+    assert fallback, "the launcher no longer names a fallback file"
+    name = fallback.group(1)
+
+    absent = tmp_path / name
+    assert not absent.exists()
+    source = Workbench(absent).source()
+    assert "sound" in source, source
+    assert source.strip(), "a click would open an empty editor"

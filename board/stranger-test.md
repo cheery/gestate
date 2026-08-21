@@ -8,10 +8,11 @@
              fixme.md — where the findings go
              journal.md §"Run two, minute by minute" — the log
 
-**Preparing the next run?  §"Run three — booked" is the whole of what to
-do**, and the two ways to waste it are both free to avoid.  Everything
-above it is why the test exists and what two runs have already taught;
-everything below it is what to carry into the room.
+**Preparing the next run?  §"What run three established" is the whole of
+what to do** — it is last in the file, it supersedes the run-three
+preparation above it, and the protocol notes it carries cost a person to
+learn.  Everything before it is why the test exists and what three runs
+have taught.
 
 ## The ask
 
@@ -372,3 +373,116 @@ So it goes into the pre-registration:
 One run answers both, and building it first answers neither.  If the
 brackets do turn out to be the problem, the fix is then a change with a
 person behind it rather than a taste.
+
+
+## What run three established — 2026-08-21
+
+*Run three's stranger, at this machine, in the room — somebody who does
+not program and does not use computers much, which is the person
+`vision.md`'s sentence has always been about.  The whole trajectory is
+in `journal.md` §"Run three — the first stranger who was not a
+programmer"; this is what the next run needs.*
+
+**The corner is findable.  The question this card held since 2026-08-17
+is closed.**  *"Kun hän lopulta kokeili, hän sai [command] menun
+vaivatta auki!"* — unaided, unhinted, first sight.  `=command=` is
+answered *against* and stays unbuilt, now on evidence rather than on a
+deferral.  That is what an instrument that cannot be re-run is for, and
+it is the whole return on his first contact.
+
+**Three defects were behind the door nobody had opened**, all new, all
+his: the command list dead-ends once opened (F178), the file chooser
+opens on the source tree and is read as a menu of what to hear (F176),
+and its way back up was spelled `../` and was not recognised (F177,
+fixed the same evening — the row reads `[up]`).  A
+fourth, F179, was raised while making the machine ready and **was not a
+defect** — the entry is kept, corrected and gated, because it was
+concluded without running the thing it was about.
+
+**He never heard a sound.**  The run stalled at the first verb, with
+help.
+
+**He was a hard case, and it decides which results are strong** — *"[Hän]
+oli dynamiittia ja testi tavallista vaikeampi, koska hän ei käytä paljon
+tietokoneita."*  A floor test makes a pass conclusive and a stall
+ambiguous: the corner held against the least computer-comfortable person
+who will ever meet it, which is as firm as this project gets, while the
+initial waiting is confounded with his own unfamiliarity and must not be
+read as a defect in the first frame.  The four `fixme` entries are not
+confounded — each is wrong in itself.  `journal.md` carries the full
+argument, including the question it puts to `vision.md`'s scope.
+
+### The framing sentence failed, and the word that broke it was *test*
+
+This card's protocol says one sentence before the silence — *it is the
+program being tested, not you*.  It was said.  **He still understood
+himself to be the thing under test**, and waited to be asked questions:
+*"odotin että tulee kysymyksiä"*, *"en ymmärtänyt missään vaiheessa
+mitä piti tehdä"*, with the four verbs written down in front of him.
+
+A sentence said in the room cannot undo how the thing was *sold* a day
+earlier.  He had agreed to do a **test**, and a test is a thing that
+asks you questions.  So the repair is in the invitation, not the room:
+
+> *Tulisitko kokeilemaan yhtä ohjelmaa jota olen tehnyt?  Ei tarvitse
+> osata mitään — minä katson vieressä ja kirjaan ylös mihin se
+> kompastuu.*
+
+And the four verbs are a **list**, which is a thing you read.  Run four
+should be handed one imperative it can start on — *get it to make a
+sound* — with the rest offered only after the first one lands.
+
+### Decide the recorder before the day, not the resolution
+
+The card asked for verbatim words and named memory as the thing that
+does not work.  What run three produced was *"en ihan sanatarkasti osaa
+sanoa.  mutta muistan pääkohdat"* — a reconstruction written within the
+hour, better than nothing and less than the measurement.  A phone
+recording audio costs nothing and was decided against by not being
+decided.
+
+### What preparing the machine bought, and it should be repeated
+
+Run two spent fourteen of thirty minutes on the way in.  Run three spent
+none: the render path, the sound card and the workbench were all walked
+in advance, and the whole run went to the window.  **That is the single
+change with the best return so far**, and it is free every time.
+
+### What is still spendable of him
+
+Gone: his first contact, and the corner-discovery question — which he
+answered, so it was spent on the thing it was saved for.
+
+**Not gone: three of the four verbs.**  *Hear it*, *change it*, *hear
+the change* are untouched in him.  They can be asked cold, from an
+already-open sounding file, without costing a new stranger — a larger
+remainder than run two left, and it is the natural second half of the
+same claim.
+
+### What run four is now free to ask
+
+The corner question is closed, so the visit to platform 6 no longer has
+to spend an unspent friend on it.  The open question is the second half
+of the sentence: **given a file that is already open and already
+sounding, does a stranger change it and hear the change?**  That is what
+`card:argument-names.md` exists to answer, and it has never been put to
+anybody.
+
+### Rule 3 for the next run — which of the four are free
+
+- **Nothing here was as free as it looked, and two are now done.**  F179
+  was not a defect at all.  F177 was a wording change to a row whose
+  two columns were already asserted by a gate Henri set, so it went to
+  him and came back the same evening: the row reads `[up]`.  And
+  `__pycache__` is no longer offered as a place to go — F176's least
+  interesting half and its only certain one.
+- **F176's real half is still open**, and it is the uncertain one: the
+  chooser reads the *edited file's* directory, and a click on the icon
+  edits the starter in the repository root — so a stranger is handed
+  the source tree as a menu.  Where it should open instead is a design
+  question with evidence for the problem and none for the answer.
+- **F176 is not free.**  Changing where the chooser opens changes what
+  every newcomer meets, and *which* fix — a different starting
+  directory, a shortcut, a named place for hearable files — is a design
+  question with evidence for the problem and none for the answer.  Make
+  it knowingly, after run four's question is decided, or pre-register it.

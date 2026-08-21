@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 175 entries, **149 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 179 entries, **151 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -81,6 +81,10 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F157 | open | The type machinery's later stages let go of the span |
 | F158 | open | A piece's complaints name a beat, never a line |
 | F159 | open | The evaluator's runtime complaints carry no position |
+| F176 | bug | The file chooser opens on the source tree, and a stranger reads it as a menu |
+| F177 | fixed | The way back up is the top row; it is `[up]` now |
+| F178 | bug | `[command]` opens unaided, then the list gives a newcomer nothing to do |
+| F179 | resolved | The desktop icon's absent file opens the starter, which sounds |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -5864,3 +5868,143 @@ it measures*, which is the same family as `gemba.tsv` and
 `card:driven-runs.md`'s stale screenshots.  A checkout under a checkout
 is two writers on one namespace, which `board/README.md` already has a
 rule about for people.
+
+### F176. **[bug]** the file chooser opens on the project's own tree, and a stranger reads it as a menu of what to hear
+
+Found 2026-08-21, `card:stranger-test.md` run three — the first person to
+meet this window who does not read code for a living.
+
+Told how to run `open`, he was shown the working directory, which for
+anybody running gestate in place is the **source tree**: `board/`,
+`doc/`, `spec/`, `crust/`, `shell/`, `test/`, `tools/`, `README.md`,
+`examples/`.  He read those names as offers and picked the one that
+sounded like it held something — *"board kai sisältää jotakin
+mielenkiintoista"* — then moved to open `README.md`.  He was helped into
+`examples/`; he did not get there.
+
+**Exactly one entry in that list contains anything you can hear, and
+nothing in the chooser says which.**  The guess was wrong and it was not
+a foolish guess: the dialog presented a menu, and he chose the entry
+whose name promised content over the ones that sounded like machinery.
+That is this card's §3 category — *where it guessed* — and the window
+invited the guess.
+
+**The class.**  Not a missing feature.  A **default that is correct for
+the author and wrong for everybody else**, which is F164's family: the
+tree's own working state is what a newcomer is handed.  The author opens
+gestate in the directory he is working in and the default is exactly
+right; a stranger opens it in a repository and the default is a filing
+cabinet.
+
+### F177. **[fixed]** the way back up is the first row in the list, and it was spelled `../`
+
+Found 2026-08-21, run three, in his own words: **"miten mennään
+takaisin?"** — asked about the folder navigation, after he had been
+helped down into `examples/`.
+
+**Written up first as a missing affordance, which was wrong.**  It is
+not missing.  `Session._listing` puts `../` at the top of every listing
+below the root — *"going up is the move you make when you opened the
+wrong place, so it is where the eye already is"* — and it was the first
+row on his screen, with the note `you are here: …/examples` beside it.
+
+So the finding is not that there is no way back.  **It is that the way
+back is spelled in a notation he had never learned.**  `..` is a
+programmer's word for a parent directory.  He does not program, and he
+read the top row of the list without recognising that it was the answer
+to the question he then had to ask out loud.
+
+It is the only question of the run he asked rather than abandoning,
+which puts it above the others in one respect: he expected this one to
+have an answer, and it was on the screen.
+
+**Fixed by relabelling the row `[up]`, and by changing nothing else.**
+Both of its columns were already specified by
+`test_a_path_argument_offers_what_is_in_the_directory` — the name
+asserted to be exactly `"../"`, the note asserted to start with `"you
+are here: "`, which is Henri's own design after he once read the row as
+a destination rather than a step.  So the wording was his to set, and he
+set it the same evening.
+
+He proposed `[back]` — the stranger's own word — and then chose against
+it: *"[up] kuulostaa paljon paremmalta."*  It is the better one.  **Back
+promises a history this row does not have**; the row goes to the parent
+whether or not you came from there, and a person who typed a path
+directly came from nowhere.  *Up* is exactly what it does, and it is the
+word every file manager already uses.
+
+**The brackets are not decoration.**  They inherit the one thing this
+run proved: a bracketed thing gets pressed.  `[command]` opened unaided
+in the same ten minutes, which is what retired `=command=` — so the
+shape that was suspected of reading as a readout is now the shape used
+for the one row in a file list that is not a file.
+
+**Read as a word, typed as a path.**  The label changed; the query it
+leaves did not.  The filter still matches on `..` alone, deliberately:
+a label matching on its word would keep this row selected while
+somebody narrowed towards a `backup/`, and Enter would step them out of
+the directory they were in — which is the bug that made `..` filterable
+in the first place.
+
+**The class.**  Not a missing control — **a control labelled in the
+vocabulary of the people who did not need it.**  F153's family: *the
+window taught the key only to people who no longer needed it.*
+
+### F178. **[bug]** `[command]` opens effortlessly and then dead-ends
+
+Found 2026-08-21, run three, and the good half of it is genuinely good.
+
+**The corner was found unaided.**  Henri, the same evening: *"Kun hän
+lopulta kokeili, hän sai [command] menun vaivatta auki!"*  No pointing,
+no hint, no hesitation — by somebody who had never seen the window and
+does not program.
+
+**Then he stopped.**  The list opened and gave him nothing to do with
+it, and he had to be told how to run `open`.
+
+So two defects that had been read as one are now separated: **the corner
+is findable, and the list is not actionable.**  Run three's
+pre-registration named three outcomes — the brackets, the corner not
+being found, or *a stall somewhere nobody has looked* — and this is the
+third.
+
+**What it retires.**  `=command=`, held unbuilt since 2026-08-18 on the
+theory that `[command]`'s brackets read like `[gemba]` and `[inert]` —
+a readout rather than a control — is **answered, and answered against**.
+He pressed it without hesitating.  The proposal stays unbuilt, now on
+evidence instead of on a deferral, and the question the card had held
+since 2026-08-17 is closed.
+
+### F179. **[resolved]** the desktop icon opens a file that does not exist — and that is not a defect
+
+Written 2026-08-21 as a defect, **before** run three, from reading
+`tools/gestate-editor` while making the machine ready for a stranger.
+The launcher falls back to `"${1:-untitled.ges}"`, this tree contains no
+`untitled.ges`, and nothing creates one — from which this entry
+concluded that a click gives an empty editor and silence, and that
+`vision.md`'s second verb is unreachable from the icon.
+
+**It is wrong.**  A workbench handed a path that is not there opens the
+**starter**, which is 380 characters of comment and:
+
+    sound : Sig Float
+    sound = 0.2 * sine 220.0
+
+A click gives an editor with a program in it that sounds.  The entry was
+written from the launcher and the filesystem, and never from the thing
+they lead to — one call to `Workbench(Path("untitled.ges")).source()`
+would have answered it, and it was not made until the fix was about to
+be written.
+
+**Kept as an entry rather than deleted**, which is this file's contract,
+because the mistake is the useful part: *the absent file was checked and
+the program it opens was not*.  A conclusion from two of the three
+things in a chain, drawn confidently enough to be scheduled for repair.
+
+**Gated anyway**, and the gate is worth its line —
+`test_a_bare_click_opens_something_that_sounds` holds the launcher's
+fallback name and the starter's `sound` declaration *together*, because
+either one can change without the other and the click breaks silently
+either way.  A defect that was never real now has a check that would
+catch it if it became real.
+

@@ -650,3 +650,150 @@ before it ran.**
 `derived.md` and `generic.md` stay exactly as written, with the original
 design kept under the finding rather than repaired.  Rewriting them
 would leave a directory that had always been correct.
+
+## Run three — the first stranger who was not a programmer
+
+*2026-08-21.  `card:stranger-test.md`, the third run of `vision.md`'s
+opening claim, against a stranger who does not program and does not use
+computers much, in the room, at this machine.  Every earlier run was against somebody who reads code for
+a living.*
+
+**The consent came first, and that is new.**  Named, words quoted, both
+asked before his name was written anywhere — the order `doc/consent.md`
+exists to produce and the first time it has happened this way round.
+Janne was named a day before he was asked; the register was written so
+the next one would not be, and it worked.
+
+**The machine was ready before he sat down.**  Run two spent fourteen of
+its thirty minutes on the way in, and the way in is the *repeatable*
+half of this test — so it was walked in advance instead: the render path
+at 1.7 s, the sound card listed, the workbench launched clean.  Making
+it ready is what raised **F179** — the desktop icon falls back to an
+`untitled.ges` this tree does not contain — which was written up as a
+defect, left unfixed because the icon is the first five minutes, and
+**turned out not to be one**: a workbench handed an absent path opens
+the starter, and the starter sounds.  The entry is kept and gated
+anyway.  It was concluded from the launcher and the filesystem without
+ever running the thing they lead to.
+
+### What happened, in order
+
+**He waited.**  Told that a program was being tested and that the room
+would be quiet, he did not touch it.  His own account afterwards, three
+times over: *"En ymmärtänyt mitä siinä pitää tehdä"*, *"odotin että
+tulee kysymyksiä"*, *"en ymmärtänyt missään vaiheessa mitä piti
+tehdä"* — and the instructions had been written down and given to him.
+
+**He understood himself to be the thing under test.**  That is what the
+second sentence turns out to mean.  The framing sentence this card
+specifies — *it is the program being tested, not you* — was said, and it
+did not carry: he was waiting to be asked questions, the way a person
+waits in an interview.
+
+**Then he tried, and the corner opened at once.**  Henri, the same
+evening: *"Kun hän lopulta kokeili, hän sai [command] menun vaivatta
+auki!"*  Unaided, unhinted, by somebody who had never seen the window.
+
+**And there he stopped.**  The list gave him nothing to do with itself,
+and he had to be told how to run `open`.
+
+**The chooser showed him the repository.**  He read the directory names
+as offers and picked `board` — *"kai sisältää jotakin mielenkiintoista"*
+— then moved to open `README.md`.  He was helped into `examples/`; he
+did not find it.
+
+**His only question out loud was how to leave.**  *"Miten mennään
+takaisin?"* — back up a level in the folder navigation.
+
+The run stalled at the first of the four verbs, with help.  **He never
+heard a sound.**
+
+### What it answered
+
+The one question this card had held since 2026-08-17: **the corner is
+findable**.  `=command=` — held unbuilt on the theory that `[command]`'s
+brackets read like `[gemba]` and `[inert]`, a readout rather than a
+control — is answered against, on evidence, by the single kind of person
+who could answer it.  It stays unbuilt, and now for a reason instead of
+a deferral.  **F178**.
+
+Three defects behind it, none of which anyone had looked at: the command
+list dead-ends (F178), the file chooser opens on the source tree and
+reads as a menu of what to hear (F176), and it has no way back up
+(F177) — though that last one turned out to be a defect of *wording*
+rather than of absence: `../` was the first row on his screen, and the
+row reads `[up]` now.
+
+### The fix that was nearly aimed at the wrong thing
+
+*"Odotin että tulee kysymyksiä"* read, at first, as a finding about the
+first frame — that the window says nothing about what to do, and should.
+It is not.  He did act, and when he acted the window answered him
+immediately.  What failed was **the framing of the run**, not the screen:
+he had agreed to *a test*, and a test is a thing that asks you
+questions.
+
+That is the same shape as run two's correction, where *"the first build
+is long"* turned out to be *"the first build is silent"* and saved a fix
+aimed at duration.  **Both times the person's own sentence was the thing
+that moved the defect**, and both times the first reading of it would
+have produced work on the wrong object.
+
+### What the run did not produce, and it was specified
+
+**A transcript.**  Henri, afterwards: *"en ihan sanatarkasti osaa sanoa.
+mutta muistan pääkohdat."*  The card asks for verbatim words in a
+notebook because *what he was told, in order* is the measurement, and it
+names memory as the thing that does not work.  What exists is a
+reconstruction written within the hour — better than the card feared and
+less than it asked for.  The next run needs a recorder decided in
+advance, not a resolution.
+
+### What is still spendable of him
+
+Rule 1 counts the unit as *friend × one first contact*.  Gone: his first
+contact, and the corner-discovery question, which he answered.
+
+**Not gone: the sound.**  He never reached *hear it*, *change it* or
+*hear the change* — three of the four verbs are untouched in him, and
+they can be asked cold, from an already-open sounding file, without
+another stranger.  That is a larger remainder than run two left.
+
+### The stranger was a hard case, and that decides which of his results are strong
+
+*Henri, the same evening: "[Hän] oli dynamiittia ja testi tavallista
+vaikeampi, koska hän ei käytä paljon tietokoneita."*
+
+Both halves are true and they pull opposite ways, so the reading has to
+separate them.
+
+**A hard case makes a pass conclusive and a stall ambiguous.**  He found
+the corner at first sight, unaided, and he is the least
+computer-comfortable person who is ever likely to sit in front of this
+window.  No more fluent user could strengthen that result — it is a
+floor, and the floor held.  `=command=` is answered about as firmly as
+this project can answer anything.
+
+The stall is the other way round.  He did not touch the program at
+first — and **not touching an unfamiliar program is a thing that
+computer-unfamiliar people do**, independently of anything gestate put
+on the screen.  That result is confounded with him and must not be read
+as *the first frame says nothing about what to do*.
+
+**The four defects are not confounded.**  A door with no way back is
+wrong whoever meets it.  An icon pointing at a file that does not exist
+is wrong before anybody clicks it.  A chooser offering `board/` and
+`spec/` to somebody looking for a sound is wrong for everyone who is not
+the author.  Each is wrong *in itself*; who tripped on it decides only
+how soon it would have been found, not whether it is real.
+
+**And it puts a question to `vision.md`, which is the author's to
+answer.**  The sentence says *somebody who has never read this
+repository*.  It does not say *somebody who uses computers*.  Run three
+is the first time that difference has cost anything, and the claim can
+only mean one of two things: either it means **anybody**, in which case
+this run is squarely in scope and the claim mostly failed — or it means
+anybody already at ease with a computer, in which case **the sentence
+should say so**, and this run measured a population it was never promising
+anything to.  Leaving it unstated lets every future run be scored
+against whichever reading is convenient afterwards.
