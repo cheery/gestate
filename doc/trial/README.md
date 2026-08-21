@@ -192,6 +192,27 @@ what this trial can measure.  A method whose value is in its gates and
 its instruments cannot be tested by handing somebody a document, and
 this trial will say nothing about that half.
 
+## The repair — `derived-2.md`
+
+**Written after the finding, by the model that diagnosed it**, and it
+answers the two faults a file can answer alone.  It opens by declaring
+the **kit of four** it belongs to and saying plainly that handed alone
+it can inform a worker and cannot condition one; it adds a **seed, not a
+tree** section — the origin's lessons are provenance on loan, and *a
+lesson with no date or pointer is scaffolding awaiting yours, and says
+so by that absence*; it adds a **relationship** section written in
+second person, with what each party owes and explicit permission to
+disagree with a measurement in hand; a **day-one bootstrap**; restored
+provenance dates where they are known; and the requirement that the
+checks *travel executable*, because a described check holds nothing.
+
+The body below those additions is unchanged from `derived.md`.
+
+**What it still cannot fix**: three of the five faults were missing
+*companions*, not missing sentences — no edit to one page supplies an
+argument, a journal, or a running suite.  The file says this about
+itself, which is the honest version.
+
 ## Freeze
 
 `derived.md` was made from `board/README.md` at **540b999**, 620 lines.
