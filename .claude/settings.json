@@ -69,6 +69,16 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/cheery/gestate/tools/limit.sh --hook"
+          }
+        ]
+      }
     ]
   }
 }

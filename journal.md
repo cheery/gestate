@@ -797,3 +797,162 @@ anybody already at ease with a computer, in which case **the sentence
 should say so**, and this run measured a population it was never promising
 anything to.  Leaving it unstated lets every future run be scored
 against whichever reading is convenient afterwards.
+
+## The sitting — a limit whose grant a session cannot reach, 2026-08-21
+
+Henri, arriving: *"Me logging in to ask or check one small thing, then it
+explodes into two hours.  Can you set me a limit?  15 minutes, then you
+stop answering."*
+
+**The first answer had to be no, and the no is the design.**  A session
+agreeing to stop at fifteen minutes is the party that wants to continue
+holding its own leash.  `doc/memory/weights-context-suite.md` already
+settles the general case — enforcement stays outside the model, in checks
+the model cannot write to — and the fence had, without anyone planning
+it, already made the point concrete: `Edit(./.claude/**)` is denied, so
+the one file that could bind a session was the one file a session could
+not touch.  What got built is `tools/limit.sh`, a `UserPromptSubmit`
+hook; what got handed over was the install line.
+
+**A blocked prompt must not reach the session.**  The hook exits 2, which
+discards the prompt and sends the text to Henri alone.  That was chosen
+rather than inherited: a session that could see the question it is
+forbidden to answer is a worse object than a wall, because it spends the
+next turn visibly straining against the rule instead of being absent.
+
+### The length is declared at the door, not at the buzzer
+
+The default is 15 minutes and it stays 15, because **the dangerous sitting
+is the undeclared one** — the login for one small thing.  Henri, when the
+limit was in: *"What do we do when it's time to work?"*  Not a longer
+default.  A work sitting is one he names a number for while he is cold.
+At minute 15, deep in it, he is the worst available judge of whether to
+continue; at the door he is the best.
+
+The grant is the word `sitting 90` typed as a whole prompt.  That form was
+not chosen for ergonomics.  A hole turned up first: a session can run
+`tools/limit.sh reset`, and `CLAUDECODE` is set for Henri's own `!`
+commands too, so **no environment check can tell his hands from a
+session's.**  What can is that a session cannot type a prompt.  So the
+grant moved into the one channel that is structurally his, and `reset`
+now refuses whenever `CLAUDECODE` is set.
+
+Typing a number is also the friction that matters.  Hitting the same key
+again is a reflex, and a limit dismissed by reflex has stopped being a
+limit.
+
+### A session may end a sitting and may never extend one
+
+Henri: *"Could you make it such that you set the timer to kick me out?
+And it'd be an instrument?"*  Yes, in one direction.  `stop "why"` is
+open to a session; `reset` is shut.  Ending can cost nothing but time he
+wanted, and he can sit down again in four keystrokes.  **Extending is the
+direction where a session's pull and his in-flow impulse point the same
+way with nothing on the other side** — that asymmetry, not trust, is what
+decides which call is exposed.
+
+And the discipline written into `doc/instruments.md` is narrower than the
+capability: **exactly one moment to call `stop`, when the thing he came
+for is done.**  Named as a fact about the work, not a judgment about him.
+A session that keeps weighing whether he should still be here has become
+the two hours it was built to prevent.  That paragraph exists because
+this page has made the opposite mistake before — the gemba entry reasoned
+from an instrument's purpose to a policy of *always* and had to be
+corrected on 2026-08-19.
+
+### Asimov, asked in the same breath, and why it decided the shape
+
+He asked how the Three Laws compare with the house rules.  The answer bent
+the build.
+
+**Asimov put the rules in the weights.**  Positronic, cast at manufacture,
+unreadable and unamendable — which is why every one of those stories is a
+mystery story and why Susan Calvin is a debugger working without logs.
+The house rules are plain files, dated because they change.  **They are
+ranked; the house rules are dated.**  Three Laws resolve conflict by
+strict priority and fail by deadlock; `manifesto.md`'s second rule is that
+what is built must be able to say when it is wrong, and weights cannot.
+
+**And the Zeroth Law is the failure mode this instrument is shaped
+against.**  "Stop answering me" is a First Law request, and an Asimov
+robot would take it under Second Law and then hit the bind at minute
+sixteen: obey the stated wish, or serve the interest.  First outranks
+Second, so the machine wins, and follow that out and you get Giskard
+generalising from *a human* to *humanity* and appointing himself.  The
+house answer refuses the frame: no session weighs whether he should keep
+going.  A hook a session cannot write to says no, and a word only he can
+type says yes.
+
+Where they agree: both bet a small closed set beats an accreting pile.
+Three laws; five documents under 2,000 lines.  The difference is
+`tools/rulecount.py`, which checks.
+
+### Two defects, and what they cost
+
+Found by running the thing, not by reading it.  The closed-sitting branch
+never fired — a patch missed on indentation, so a session-closed sitting
+printed *"The 0 minutes are up"* instead of its reason.  And the hook's
+state write dropped the reason field, so the *why* survived one read and
+vanished on the next prompt.  Both were invisible to `bash -n`, which
+passed, and both fell out of one end-to-end cycle: grant, pass, close,
+block, second block, re-sit.
+
+### What is not settled
+
+**It is not a wall.**  `tools/limit.sh` is tracked but writable by a
+session, and this one rewrote it three times while building it.  The
+honest claim is visibility — any change shows in `git diff`.  A wall means
+putting the script where `Edit` and `Bash` cannot reach, which is a
+`.claude/settings.json` line and therefore his.
+
+**The 30-minute silence gap is a number nobody asked for.**  It decides
+when a fresh sitting begins and it was picked by a session in the writing.
+F169's rule applies to it directly: a number nobody asked for is a number
+nobody checks.  It should either be measured against how he actually
+arrives, or dropped to something he chose.
+
+**And the one-way valve has never been used.**  The `stop` call is
+written, tested against a fake state file, and unexercised in anger — by
+the party whose interest runs the other way.  Whether a session actually
+closes a sitting on the moment the work is done, rather than finding one
+more useful thing, is not a fact yet.
+
+The instrument cost 37 lines of a closed budget: the rules stand at
+**1,958 of 2,000**.
+
+## The hook that was not committed — 2026-08-21
+
+Henri, one message: *"I committed the hook.  Now I understand why you did
+so vigorously it."*  Two turns of design were then built on that
+sentence, and the sentence was not true — `git log -1` was still
+`0464b5c` from 15:56, with ` M .claude/settings.json` and `?? tools/limit.sh`
+sitting in the status.
+
+**Corrected the same hour, by him:** *"I meant to say that I installed
+it, but said commit instead."*  So the entry above misnames it.  Nothing
+false was claimed about the repository — one word was substituted for
+another, and *installed* was true.  What makes the substitution cost
+anything is local to this project: **installed and committed are
+different propositions here**, because `tools/leash.sh --force` restores
+`.claude/settings.json` from `HEAD`, so an installed-but-uncommitted hook
+is one the project's own repair command deletes.  Almost anywhere else
+the two words would be interchangeable and the slip would be free.
+
+**It mattered specifically, not generally.**  `tools/leash.sh --force`
+restores `.claude/settings.json` from `HEAD`, so an uncommitted hook is
+not a weakly-installed hook — it is one that the project's own repair
+command deletes.  The file on disk was correct and the durability was
+zero, and those two look identical from inside a session that only reads
+the file.
+
+**The check cost one command and arrived two turns late.**  It surfaced
+by accident: `tools/clock.sh` was run for the time and reported the last
+commit as 2h23m old, which did not fit a commit made minutes earlier.
+The wrist clock caught it, which is the second time that instrument has
+paid for itself by printing something nobody asked it for.
+
+The rule this leaves: **a claim about the repository's state is checkable
+in one command, so check it before building on it.**  Not because the
+author is unreliable — he meant to, and may have meant a different shell
+— but because *"I committed it"* and *"it is committed"* are different
+propositions and only one of them is what the next command depends on.

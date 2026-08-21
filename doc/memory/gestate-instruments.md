@@ -50,6 +50,12 @@ The ones easiest to forget you have:
 - **`tools/blind.py`** — the judging sheet for a blind multi-arm run
   (`--batch N arm1 arm2 arm3`).  Built 2026-08-19 because the *sheet* is
   what failed the first comparison, not the experiment.
+- **`tools/limit.sh`** — the sitting: a `UserPromptSubmit` hook that blocks
+  prompts past the limit, default 15m, longer only when Henri types
+  `sitting 90` himself.  **A session may end a sitting and may never extend
+  one** — `stop "why"` is open, `reset` refuses under `CLAUDECODE`, and the
+  one moment to call `stop` is when the thing he came for is done, never
+  when a session judges he has had enough.  Built 2026-08-21 at his ask.
 - **`tools/clock.sh`** — the wrist clock ([[gestate-editor-latency]] neighbours
   it in spirit).  Read it before stating any elapsed time.
 

@@ -128,6 +128,43 @@ next reader and a duration cannot.
 this script truncating `1h58m` to `1h`, and the standing rule above is
 what it cost.
 
+### `tools/limit.sh` — the sitting
+
+    tools/limit.sh                    how long this sitting has run, what is left
+    tools/limit.sh stop "why"         close it now — the one call a session may make
+    sitting 90                        typed by Henri as a whole prompt: a 90-minute sitting
+
+A `UserPromptSubmit` hook.  It sees each prompt before a session does and
+blocks the ones past the limit, so an expired question never arrives.
+The default is **15 minutes**, which is the length of the sitting nobody
+declared — Henri, 2026-08-21: *"Me logging in to ask or check one small
+thing, then it explodes into two hours.  Can you set me a limit?"*
+
+**The length is declared at the door, not at the buzzer.**  A work sitting
+is one he names a number for while he is cold.  At minute 15, deep in it,
+he is the worst available judge of whether to continue.  Typing a number
+is a decision; hitting the same key again is a reflex, and a limit
+dismissed by reflex has stopped being a limit.
+
+**A session may end a sitting and may never extend one.**  `stop` is open;
+`reset` refuses while `CLAUDECODE` is set, and the only grant is a word
+typed as a prompt, which a session cannot produce.  Ending costs nothing
+but time he wanted and he can sit down again in four keystrokes.
+Extending is the direction where a session's pull and his own in-flow
+impulse point the same way with nothing on the other side.
+
+**And there is exactly one moment to call `stop`: when the thing he came
+for is done.**  Not when a session judges he has had enough — that is the
+machine appointing itself arbiter of his good, and it is the failure this
+whole instrument is shaped against.  Close it on a fact about the work,
+say which fact, and leave.  A session that keeps weighing whether he
+should still be here has become the two hours it was built to prevent.
+
+**Not a wall.**  `tools/limit.sh` is tracked but writable by a session, so
+the honest claim is visibility: any change to it shows in `git diff`.  A
+wall would mean putting it where `Edit` and `Bash` cannot reach, which is
+a `.claude/settings.json` line and therefore Henri's.
+
 ### `tools/andon.sh` — ring the sound card
 
     tools/andon.sh          # once
