@@ -33,7 +33,8 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 #: **A driven window keeps no record of the day** — `lagcheck.driven`
 #: says why, and it is shared so a fifth harness cannot forget.
-from driven import a_copy_of, driven, move, press  # noqa: E402
+from driven import (CORE, Refused, a_copy_of, driven,  # noqa: E402
+                    move, press, refuse_if_the_run_cannot_happen)
 
 #: Where the `notes score` box's notes sit in `noted.ges`, in the
 #: window's own coordinates, once the file is scrolled to its foot.
@@ -47,7 +48,6 @@ NOTE = (622, 710)
 STRIP = (0, 300, 900, 200)                     # x, y, w, h
 
 
-from driven import a_copy_of, driven, move, press  # noqa: E402
 def wheel(times: int) -> None:
     for _ in range(times):
         press(True, 5)
@@ -71,6 +71,17 @@ def same(a: str, b: str) -> bool:
 
 
 def find_window(title: str = "gestate", patience: float = 60.0):
+    """A second search, and the place a guard gets fixed in only one of them.
+
+    `driven.find_window` grew an `exclude` argument with F171 and this
+    copy did not; neither can actually tell this run's window from one
+    that arrived mid-run (F174), so nothing is lost today — but a
+    duplicated search is how that stays true of only one of them.  Left
+    duplicated rather than unified because it reads `xwininfo` where
+    `driven` reads `xdotool` and waits sixty seconds where `driven`
+    waits thirty, and neither difference can be checked without a
+    display.
+    """
     until = time.time() + patience
     while time.time() < until:
         time.sleep(0.5)
@@ -93,6 +104,24 @@ def main(argv=None) -> int:
     ap.add_argument("--wheel", type=int, default=40,
                     help="wheel clicks down to the box (default 40)")
     args = ap.parse_args(argv)
+
+    # **Before the window opens** — F171.  This scenario presses and
+    # drags with XTEST, which aims at root coordinates and at whatever
+    # holds focus, not at a window id: run beside somebody's open editor
+    # it grabs *their* text and drags it, and `a_copy_of` protects only
+    # the file this run opens.  `lagcheck.py` has refused since the day
+    # it was found, through `Run`; this file drives just as hard.
+    try:
+        refuse_if_the_run_cannot_happen(
+            "python tools/dragcheck.py",
+            # The search below reads the window tree with `xwininfo`;
+            # without it this waits out sixty seconds and reports *no
+            # window appeared*, which is a sentence about the editor
+            # produced by a missing package (F170).
+            needs=(*CORE, "xwininfo"))
+    except Refused as why:
+        print(f"dragcheck: the run did not start.\n{why}", file=sys.stderr)
+        return 2
 
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     score = os.path.join(root, "examples", "audio", "noted.ges")

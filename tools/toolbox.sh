@@ -132,6 +132,27 @@ if ! report xdotool "$(have_bin xdotool)" \
     as_root apt-get install -y xdotool
 fi
 
+# ── Reading a window's own geometry ──────────────────────────────────
+#
+# **The third silent one, and it was missing from every list until
+# 2026-08-19.**  `dragcheck.py` searches the window tree with `xwininfo`
+# and `measure_editor.py` reads a window's absolute corner with it.
+# Without it `dragcheck` waits out sixty seconds and reports *no window
+# appeared* — F170's sentence word for word, from a different package —
+# and `measure_editor`'s `geometry()` returns `{}` and dies on a
+# `KeyError` in the middle of a scenario.
+#
+# It is deliberately not in `driven.CORE`, which refuses every run:
+# `lagcheck.py` never calls it, and a gate that cries wolf is a gate
+# that gets turned off.  The two tools that do call it name it
+# themselves — `needs=(*CORE, "xwininfo")` — and this line is so that a
+# machine can be asked before a scenario asks for it.
+if ! report xwininfo "$(have_bin xwininfo)" \
+        "reading a driven window's geometry (dragcheck, measure_editor)" \
+        "apt install x11-utils" && [ "$install" = 1 ]; then
+    as_root apt-get install -y x11-utils
+fi
+
 # ── Photographing a window, and diffing two photographs ──────────────
 #
 # `import` and `compare` are ImageMagick's, and they are what makes a

@@ -13,8 +13,9 @@ import time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 REPO = "/home/cheery/gestate"
 sys.path.insert(0, os.path.join(REPO, "tools"))
-from driven import (a_copy_of, chord, click_into, driven,  # noqa: E402
-                      find_window, tap)
+from driven import (Refused, a_copy_of, chord, click_into,  # noqa: E402
+                      driven, find_window,
+                      refuse_if_the_run_cannot_happen, tap)
 
 
 def drive(file: str, settle: float, cycles: int, label: str) -> None:
@@ -65,6 +66,22 @@ def drive(file: str, settle: float, cycles: int, label: str) -> None:
 
 
 if __name__ == "__main__":
+    # **Not beside somebody's open editor** — F171.  XTEST sends keys to
+    # whatever holds X focus and `click_into` is what hands focus over,
+    # so this scenario, which opens a command box and types, would type
+    # into a window whose file is not a copy.  `lagcheck.py` has had the
+    # refusal since the day it was found because it goes through `Run`;
+    # this file drives just as hard and had nothing.
+    #
+    # **Once, here, and not inside `drive()`**, which runs twice: the
+    # second call would be weighing our own first window on its way out
+    # and refuse the run for the wrong reason.  The question is whether
+    # the display was somebody else's before we touched it.
+    try:
+        refuse_if_the_run_cannot_happen("python tools/dialoglag.py")
+    except Refused as why:
+        print(f"dialoglag: the run did not start.\n{why}", file=sys.stderr)
+        raise SystemExit(2)
     # Settled: a small synth, ten seconds to come up and go quiet.
     drive(f"{REPO}/examples/audio/twoknobs.ges", 10.0, 15, "settled")
     time.sleep(2.0)

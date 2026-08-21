@@ -147,15 +147,174 @@ BINARIES = {
     "xdotool": "find the window and read its geometry (apt: xdotool)",
     "import": "photograph a window (apt: imagemagick)",
     "compare": "say whether two shots differ (apt: imagemagick)",
+    # **Listed here and deliberately not in `CORE`** — F170 one binary
+    # along.  `dragcheck.py` searches the window tree with it and
+    # `measure_editor.py` reads a window's absolute corner with it, and
+    # neither said so anywhere in the tree: without it `dragcheck` waits
+    # out sixty seconds and reports *no window appeared* — a sentence
+    # about the editor produced by a missing package — and
+    # `measure_editor`'s `geometry()` returns `{}` and dies on a
+    # `KeyError` in the middle of a scenario.  `lagcheck.py` never
+    # touches it, and a `lagcheck` run refused for a binary it does not
+    # call would be a gate crying wolf, which is how gates get skipped.
+    "xwininfo": "read a window's absolute geometry (apt: x11-utils)",
 }
 
+#: What a driven run needs whatever it is doing.  A tool that shells out
+#: to more says so at the call — `needs=(*CORE, "xwininfo")` — rather
+#: than this tuple growing, because a name in here refuses *every* tool,
+#: including the ones that never call it.
+CORE = ("xdotool", "import", "compare")
 
-def missing_binaries() -> dict[str, str]:
-    return {b: why for b, why in BINARIES.items() if shutil.which(b) is None}
+
+def missing_binaries(needs=CORE) -> dict[str, str]:
+    """Which of `needs` this machine has not got, and what each is for."""
+    return {b: BINARIES[b] for b in needs if shutil.which(b) is None}
 
 
 class Refused(RuntimeError):
     """The run did not happen, and why — never a run that half-happened."""
+
+
+def _refuse_if_the_result_would_not_be_about_this_code(lib: dict,
+                                                      other: list[dict]):
+    """The second half of the preflight: is this run about this code?
+
+    **Private, and reached only through the whole preflight**, because
+    the failure it exists for is a tool calling half a guard and
+    believing it is protected — which is what the three unstamped tools
+    did with the *first* half for a day.  It is separate at all only so
+    the ordering above can be read in one place.
+
+    The four wrong readings of 2026-08-18 came from here: `cargo build`
+    from the workspace root writes `target/release/` and the editor
+    loads `shell/editor/target/release/`, both existed with different
+    md5s five days apart, and a driven run photographed code that was
+    never in the process.  A number measured against that library is
+    exactly as false as a photograph of it, which is why this is not
+    `Run`'s to keep.
+    """
+    if not lib["exists"]:
+        raise Refused(
+            f"no library at {_rel(LOADED)} — the editor has "
+            "never been built here.\n  start it once "
+            "(`tools/gestate-editor`) and it builds itself.")
+    if lib["stale"]:
+        raise Refused(
+            "the crate has moved since the library was built, so this "
+            "run would photograph old code.\n  start the editor once — "
+            "it rebuilds itself — then run again.")
+    newer = [s for s in other if s["mtime"] > lib["mtime"]]
+    if newer:
+        lines = "\n    ".join(
+            f"{s['path']}  {s['mtime']:%Y-%m-%d %H:%M}  {s['md5']}"
+            for s in newer)
+        raise Refused(
+            "a *different* copy of libgestate_editor.so is newer than "
+            "the one the editor loads:\n    "
+            f"{lines}\n  loaded: {_rel(LOADED)}  "
+            f"{lib['mtime']:%Y-%m-%d %H:%M}  {lib['md5']}\n"
+            "  `cargo build` from the workspace root writes the first "
+            "one and the editor never reads it.\n"
+            "  build the one that is loaded:  cargo build --release "
+            "--features capi \\\n"
+            "      --manifest-path shell/editor/Cargo.toml "
+            "--target-dir shell/editor/target")
+
+
+def refuse_if_the_run_cannot_happen(
+        invocation: str = "python tools/lagcheck.py <file>",
+        needs=CORE, lib: dict | None = None,
+        other: list[dict] | None = None) -> None:
+    """The preflight, and it is every driven tool's, not `Run`'s.
+
+    **Module-level, and not a method, because three tools that drive a
+    window have no `Run`.**  `dialoglag.py`, `dragcheck.py` and
+    `measure_editor.py` open the workbench through `driven()` and type
+    at it with XTEST exactly as `lagcheck.py` does; until this was
+    lifted out, both refusals lived on the one path that also keeps a
+    stamp — so the guards covered the tool that happened to be rewritten
+    the day F171 was found, and not the shape of either hazard.  Typing
+    with XTEST *is* the first hazard and photographing the wrong binary
+    *is* the second; neither is a property of keeping a directory.
+    **Guards shared, bookkeeping not**: what stayed in `Run` is the
+    stamp, which is a contract about a tool's output and belongs to
+    whoever owns the tool.
+
+    **The order is four checks and every one of them is placed.**
+
+    1. *The binaries*, first, because `windows()` returns `[]` when
+       there is no `xdotool` — a tool that looked for windows first
+       would read an empty desktop off a search that never ran, and be
+       green on the one question where being wrong types into somebody
+       else's file.
+    2. *The display*, before the search, for the same reason: an
+       `xdotool` with nowhere to look answers nothing, confidently.
+    3. *Whose display it is* — F171, below.
+    4. *The library*, last, because it is the only one of the four that
+       is about the **result** rather than about the person or about
+       whether the run can honestly happen at all.  It is also the only
+       one whose remedy is *start the editor once* — which opens a
+       gestate window, and would then be refused by 3.  Told in this
+       order, the two instructions compose: clear the display, then
+       build.
+
+    `invocation` is how the caller is started, so the refusal can print
+    the line to type on the other display; `needs` is the binaries this
+    caller shells out to; `lib` and `other` let `Run` pass the reading
+    it already took for its stamp (and a test supply one).
+
+    It returns nothing, and that is deliberate.  It used to hand back
+    the windows that were already open, for `find_window(exclude=...)`
+    — but the refusal above means that list is empty whenever the
+    function returns at all, so what came back was a guarantee dressed
+    as data.  F174 is what covers a window arriving mid-run.
+    """
+    gone = missing_binaries(needs)
+    if gone:
+        raise Refused(
+            "a driven run needs these and this machine has none of "
+            "them:\n    "
+            + "\n    ".join(f"{b} — {why}" for b, why in gone.items())
+            + "\n  without them the search finds no window, waits out "
+              "its patience and returns None,\n  which reads as *the "
+              "editor never opened a window* and is not.")
+    display = os.environ.get("DISPLAY")
+    if not display:
+        raise Refused("no DISPLAY — a driven run needs a real or "
+                      "virtual X server (`Xvfb :99` and DISPLAY=:99 "
+                      "will do).")
+    # **Somebody else's editor is on this display.**  XTEST does not
+    # aim at a window: it sends the key to whatever holds X focus, and
+    # `click_into` is what gives focus away.  A run started beside an
+    # open editor can therefore click into *that* window, open its
+    # command box and type — and with a scenario that presses Return,
+    # run a command in it.  `a_copy_of` protects the file the run opens
+    # and does nothing for the file somebody was already editing.
+    #
+    # Henri, 2026-08-19, asking the question that found this: *"How do
+    # I engage the driven-run now?  I have the user's version on my
+    # desktop that is not protected."*
+    #
+    # **The binaries above are checked first, and that ordering is the
+    # guard and not tidiness**: `windows()` returns `[]` when there is
+    # no `xdotool`, so a tool that only looked here would read an empty
+    # desktop off a search that never ran — green from a shallow check,
+    # on the one question where being wrong types into somebody's file.
+    theirs = windows()
+    if theirs:
+        raise Refused(
+            f"a gestate window is already open on DISPLAY={display} "
+            f"({len(theirs)} of them).\n"
+            "  A driven run types with XTEST, which goes to whatever "
+            "has focus — it would type into that window,\n"
+            "  and the file open in it is not a copy.\n"
+            "  Either close it, or drive somewhere else:\n"
+            "      Xvfb :99 -screen 0 1600x1000x24 &\n"
+            f"      DISPLAY=:99 {invocation}")
+    _refuse_if_the_result_would_not_be_about_this_code(
+        library() if lib is None else lib,
+        strays() if other is None else other)
 
 
 # ── the run ──────────────────────────────────────────────────────────────
@@ -189,82 +348,17 @@ class Run:
         self.library = library()
         self.strays = strays()
         self.handed: dict | None = None
-        self.was_open: list[int] = []
-
-    # -- refusing -------------------------------------------------------
-    def _refuse_if_the_run_cannot_happen(self):
-        gone = missing_binaries()
-        if gone:
-            raise Refused(
-                "a driven run needs these and this machine has none of "
-                "them:\n    "
-                + "\n    ".join(f"{b} — {why}" for b, why in gone.items())
-                + "\n  without them the search finds no window, waits out "
-                  "its patience and returns None,\n  which reads as *the "
-                  "editor never opened a window* and is not.")
-        display = os.environ.get("DISPLAY")
-        if not display:
-            raise Refused("no DISPLAY — a driven run needs a real or "
-                          "virtual X server (`Xvfb :99` and DISPLAY=:99 "
-                          "will do).")
-        # **Somebody else's editor is on this display.**  XTEST does not
-        # aim at a window: it sends the key to whatever holds X focus,
-        # and `click_into` is what gives focus away.  A run started
-        # beside an open editor can therefore click into *that* window,
-        # open its command box and type — and with a scenario that
-        # presses Return, run a command in it.  `a_copy_of` protects the
-        # file the run opens and does nothing for the file somebody was
-        # already editing.
-        #
-        # Henri, 2026-08-19, asking the question that found this: *"How
-        # do I engage the driven-run now?  I have the user's version on
-        # my desktop that is not protected."*
-        theirs = windows()
-        if theirs:
-            raise Refused(
-                f"a gestate window is already open on DISPLAY={display} "
-                f"({len(theirs)} of them).\n"
-                "  A driven run types with XTEST, which goes to whatever "
-                "has focus — it would type into that window,\n"
-                "  and the file open in it is not a copy.\n"
-                "  Either close it, or drive somewhere else:\n"
-                "      Xvfb :99 -screen 0 1600x1000x24 &\n"
-                "      DISPLAY=:99 python tools/lagcheck.py <file>")
-        self.was_open = theirs
-
-    def _refuse_if_the_result_would_not_be_about_this_code(self):
-        lib = self.library
-        if not lib["exists"]:
-            raise Refused(
-                f"no library at {_rel(LOADED)} — the editor has "
-                "never been built here.\n  start it once "
-                "(`tools/gestate-editor`) and it builds itself.")
-        if lib["stale"]:
-            raise Refused(
-                "the crate has moved since the library was built, so this "
-                "run would photograph old code.\n  start the editor once — "
-                "it rebuilds itself — then run again.")
-        newer = [s for s in self.strays if s["mtime"] > lib["mtime"]]
-        if newer:
-            lines = "\n    ".join(
-                f"{s['path']}  {s['mtime']:%Y-%m-%d %H:%M}  {s['md5']}"
-                for s in newer)
-            raise Refused(
-                "a *different* copy of libgestate_editor.so is newer than "
-                "the one the editor loads:\n    "
-                f"{lines}\n  loaded: {_rel(LOADED)}  "
-                f"{lib['mtime']:%Y-%m-%d %H:%M}  {lib['md5']}\n"
-                "  `cargo build` from the workspace root writes the first "
-                "one and the editor never reads it.\n"
-                "  build the one that is loaded:  cargo build --release "
-                "--features capi \\\n"
-                "      --manifest-path shell/editor/Cargo.toml "
-                "--target-dir shell/editor/target")
 
     # -- the run --------------------------------------------------------
     def __enter__(self):
-        self._refuse_if_the_run_cannot_happen()
-        self._refuse_if_the_result_would_not_be_about_this_code()
+        # **The shared preflight, with this run's own reading of the
+        # library** — measured in `__init__` because the stamp quotes it
+        # too, and passed in rather than re-measured so the page and the
+        # refusal cannot disagree about which file was there.  `Run` has
+        # no guards of its own any more: three tools that type have no
+        # `Run`, and a guard only the stamped path runs is a guard for
+        # the wrong thing (F171).
+        refuse_if_the_run_cannot_happen(lib=self.library, other=self.strays)
         self.dir.mkdir(parents=True, exist_ok=False)
         return self
 
@@ -282,8 +376,17 @@ class Run:
         return self.handed
 
     def find_window(self, title: str = "gestate", patience: float = 30.0):
-        """The window *this run* started, never one that was already there."""
-        return find_window(title, patience, exclude=self.was_open)
+        """The window this run started — **as far as anything can tell.**
+
+        This used to pass `exclude=self.was_open`, and that was theatre:
+        the preflight refuses whenever `windows()` is non-empty, so the
+        list it filled could only ever be empty and the exclusion
+        excluded nothing.  Dead protection that reads as protection is
+        worse than none, so it is gone rather than kept as reassurance.
+        A window that arrives *mid*-run is still taken as ours; F174 is
+        the real fix, and it needs a display to be checked on.
+        """
+        return find_window(title, patience)
 
     def shot(self, win: int, label: str) -> Path:
         path = self.dir / f"{len(self.shots):02d}-{label}.png"
@@ -432,14 +535,14 @@ def windows(title: str = "gestate") -> list[int]:
 def find_window(title: str = "gestate", patience: float = 30.0, exclude=()):
     """The window id, once the window exists.  `None` if it never does.
 
-    **`exclude` is the window that was already yours.**  This used to
-    return `ids[-1]` — *a* gestate window, not necessarily the one the
-    scenario started — and XTEST does not aim at a window id at all: it
-    sends the key to whatever holds X focus.  So on a display where
-    somebody already has the editor open, a run could click into their
-    window and type into their file.  `Run` refuses that case outright;
-    this argument covers the narrower one where a second window arrives
-    mid-run.
+    **`exclude` is sound and nothing fills it.**  It was added with the
+    F171 refusal, for the narrower case that refusal does not cover — a
+    second window arriving mid-run — but the only list anybody had to
+    give it comes from the preflight, which returns only when that list
+    is empty.  So every caller passes nothing and this still answers
+    `ids[-1]`: *a* gestate window, not necessarily ours.  The parameter
+    stays because it is right and tested; F174 is the missing half,
+    which is matching the window to the child's pid.
     """
     skip = set(exclude)
     until = time.time() + patience
@@ -548,7 +651,10 @@ def differs(a: str, b: str) -> bool:
 
 def main(argv=None) -> int:
     """`python tools/driven.py` — say what a run would be about."""
-    for b, why in missing_binaries().items():
+    # Every binary any tool here shells out to, `xwininfo` included —
+    # this prints and does not refuse, and the roster is the one place
+    # where naming a thing two tools need cannot cry wolf at a third.
+    for b, why in missing_binaries(BINARIES).items():
         print(f"MISSING   {b} — {why}")
     lib = library()
     print(f"library   {_rel(LOADED)}")

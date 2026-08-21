@@ -24,8 +24,9 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from driven import (a_copy_of, tap, chord, driven,  # noqa: E402
-                    find_window, click_into, shot,
+from driven import (CORE, Refused, a_copy_of, tap, chord,  # noqa: E402
+                    driven, find_window, click_into, shot,
+                    refuse_if_the_run_cannot_happen,
                     move as _move, press as _button)
 
 WORKBENCH = [sys.executable, "-m", "gestate.workbench"]
@@ -62,6 +63,25 @@ def to_the_canvas():
 
 def main() -> int:
     scenario, path = sys.argv[1], sys.argv[2]
+    # **Before the window and before the file** — F171.  Every scenario
+    # below types with XTEST, which goes to whatever holds X focus, and
+    # `canvas-drag` presses and drags the mouse besides; started beside
+    # an open editor this measures somebody's own window and edits the
+    # file in it, which `a_copy_of` cannot protect because that file was
+    # open before we arrived.  `lagcheck.py` got the refusal on the day
+    # it was found, through `Run`; this file drives just as hard.
+    try:
+        refuse_if_the_run_cannot_happen(
+            "python tools/measure_editor.py <scenario> <file.ges>",
+            # `geometry()` reads the window's corner with `xwininfo`,
+            # and without it returns `{}` and dies on a `KeyError` in
+            # the middle of `canvas-drag` — a missing package wearing a
+            # defect's costume, which is F170's whole subject.
+            needs=(*CORE, "xwininfo"))
+    except Refused as why:
+        print(f"measure_editor: the run did not start.\n{why}",
+              file=sys.stderr)
+        return 2
     env = driven(GESTATE_EDITOR_TIME="1", GESTATE_LOOP_TIME="1")
     # Into the caller's working directory, never beside this file — a
     # measurement run must not leave droppings in `tools/`.

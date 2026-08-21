@@ -323,14 +323,19 @@ defect, which has cost two runs already.
 
 **Close your own editor first, or drive on `Xvfb`.**  XTEST sends keys
 to whatever holds X focus, so a run beside an open window types into
-*that* window and the file in it is not a copy.  A run refuses to start
-when a gestate window is already open on the display, and says so —
+*that* window and the file in it is not a copy.  **Every tool here that
+types refuses to start** when a gestate window is already open on the
+display, and says so — `lagcheck.py`, `dialoglag.py`, `dragcheck.py`,
+`measure_editor.py`, through `driven.refuse_if_the_run_cannot_happen`.
 `card:driven-runs.md`, found by Henri asking how to engage one.
 
-A run refuses if a *different* `libgestate_editor.so` is newer than the
-one the editor loads (`cargo build` from the workspace root writes
-`target/release/`; the editor loads `shell/editor/target/release/`), and
-leaves `test/driven/<stamp>/` behind: the shots, the commit, the
+They all refuse, too, if a *different* `libgestate_editor.so` is newer
+than the one the editor loads (`cargo build` from the workspace root
+writes `target/release/`; the editor loads
+`shell/editor/target/release/`) — a *number* measured against a library
+that was never in the process is as false as a photograph of one.
+**Guards shared, bookkeeping not:** only `lagcheck.py` keeps a stamp,
+and `Run` leaves `test/driven/<stamp>/` behind: the shots, the commit, the
 library's md5, the environment the child was handed, and the questions
 with their answers.  `tools/toolbox.sh` says whether this machine has
 what a run shells out to.

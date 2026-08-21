@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 179 entries, **151 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 180 entries, **151 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -84,6 +84,7 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F176 | bug | The file chooser opens on the source tree, and a stranger reads it as a menu |
 | F177 | fixed | The way back up is the top row; it is `[up]` now |
 | F178 | bug | `[command]` opens unaided, then the list gives a newcomer nothing to do |
+| F174 | bug | A driven run cannot tell its own window from one beside it |
 | F179 | resolved | The desktop icon's absent file opens the starter, which sounds |
 
 Several of these are **closed rather than pending** under
@@ -5754,6 +5755,21 @@ where to drive instead.  It refuses precisely — driving on `:0` to
 the narrower case of a second window arriving mid-run.  Proved on `:99`
 against a real standing workbench, then again with it closed.
 
+**And the fix was narrower than the defect, for a day.**  It went into
+`Run`, which is `lagcheck.py`'s path and nothing else's; `dialoglag.py`,
+`dragcheck.py` and `measure_editor.py` type with the same XTEST calls
+and had no `Run` to refuse for them.  Typing with XTEST *is* the hazard,
+not keeping a stamp, so the whole preflight is now
+`driven.refuse_if_the_run_cannot_happen` and all four call it:
+**guards shared, bookkeeping not.**  The library refusal travelled with
+it, because a *number* measured against a library that was never in the
+process is as false as a photograph of one, and that is what the three
+unstamped tools produce.  The stamp stayed in `Run` — it is a contract
+about a tool's output and belongs to whoever owns the tool.
+`test_driven.py::test_every_tool_that_types_refuses_beside_an_open_editor`
+reads the sources so a fifth cannot forget.  Widening it also found
+F174, which is that this entry's own second half never worked.
+
 **The class.**  Every other guard in this harness protects the *result*
 of a run — the right binary, a fresh directory, a stamp.  This is the
 first that protects the *person*, and it was invisible from inside the
@@ -5832,6 +5848,42 @@ window never opened*) and as the `--gates` page having to disown the
 suite three times: **an absence that satisfies a test written for
 presence.**  The check asked *do the arms match* when the question was
 *did the arms answer*.
+
+### F174. **[bug]** a driven run cannot tell its own window from one that opened beside it
+
+Found 2026-08-19, an hour after F171 was closed, while widening its
+refusal to the three tools that had none.
+
+F171 was fixed in two halves.  The first is the refusal: a run does not
+start when a gestate window is already open on the display.  The second
+was meant to cover what the refusal cannot — **a window arriving after
+the run has started** — and it was `find_window(exclude=...)`, given the
+ids that were open before the child launched.
+
+**The second half never did anything.**  The refusal raises whenever
+`windows()` is non-empty, so the list handed to `exclude` is empty
+whenever it exists at all, and the search still answers `ids[-1]`: *a*
+gestate window, not necessarily ours.  The test written for it exercised
+`find_window` directly with a list nothing in the tree can produce, so
+it passed while the wiring was dead — the exact shape of F173 and F170,
+**an absence that satisfies a test written for presence**, this time in
+a guard.
+
+The pretence has been removed rather than left standing: nothing threads
+`exclude` any more, and `Run.find_window` and `driven.find_window` both
+say plainly that nothing fills it.  Dead protection that reads as
+protection is worse than none, because the next reader stops looking.
+
+**The fix is not an exclusion list.**  Ours is the window belonging to
+the child we started, and the only thing that says so is its pid —
+`xdotool search --pid <pid> --name gestate`, or `_NET_WM_PID` off the
+tree.  Then a second window can arrive whenever it likes and the run
+still photographs its own.
+
+**Not written yet, deliberately.**  It cannot be checked without a
+display, and this harness's own rule is that a guard nobody has watched
+work is a mood.  `spec/` has nothing to say here; the address is for the
+comments in `tools/driven.py` that now point at it.
 
 ### F175. **[fixed]** an agent's worktree turned the project's own gates red
 

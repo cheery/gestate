@@ -16,6 +16,7 @@ what `test_editor_abi.py` and the driven tools themselves are for.
 from __future__ import annotations
 
 import importlib.util
+import re
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -264,3 +265,133 @@ def test_find_window_skips_the_ones_that_were_already_there(monkeypatch):
     monkeypatch.setattr(driven, "windows", lambda title="gestate": [111, 222])
     assert driven.find_window(patience=0.1, exclude=[222]) == 111
     assert driven.find_window(patience=0.1, exclude=[111, 222]) is None
+
+
+def test_every_tool_that_types_refuses_beside_an_open_editor():
+    """**F171 was fixed in `Run`, and three tools that type have no `Run`.**
+
+    `dialoglag.py`, `dragcheck.py` and `measure_editor.py` drive the
+    real window with the same XTEST calls `lagcheck.py` uses, and until
+    2026-08-19 the refusal lived only on the path that also kept a
+    stamp — so the guard covered the tool that happened to be rewritten
+    the day the defect was found, and not the shape of the hazard.
+    Typing with XTEST *is* the hazard: the keystroke goes to whatever
+    holds X focus, and a press aims at root coordinates.
+
+    Checked by reading the sources rather than by driving, because
+    driving is the one thing that cannot be done in a suite — and the
+    hazard is at the *start* of a run, where a test that could reach it
+    would already be typing into somebody's window.
+    """
+    types = ("tap(", "chord(", "click_into(", "press(", "_button(", "move(")
+    unguarded = []
+    for path in sorted((ROOT / "tools").glob("*.py")):
+        if path.name == "driven.py":
+            continue                        # it is the guard
+        src = path.read_text()
+        if "driven import" not in src and "import driven" not in src:
+            continue
+        if not any(call in src for call in types):
+            continue
+        if "refuse_if_the_run_cannot_happen" in src or "Run(" in src:
+            continue
+        unguarded.append(path.name)
+    assert not unguarded, (
+        "these drive a window with XTEST and would start beside somebody's "
+        f"open editor: {', '.join(unguarded)} — F171")
+
+
+def test_the_refusal_names_the_tool_that_was_refused(monkeypatch):
+    """Because the sentence a person reads has to be one they can act on.
+
+    The message ends in the line to type on the other display, and that
+    line used to be `lagcheck.py`'s because `lagcheck.py` was the only
+    caller.  Four tools share it now, and *"drive somewhere else: …
+    lagcheck.py"* printed by `dragcheck` is an instruction to run the
+    wrong scenario.
+    """
+    monkeypatch.setattr(driven.shutil, "which", lambda b: f"/usr/bin/{b}")
+    monkeypatch.setenv("DISPLAY", ":0")
+    monkeypatch.setattr(driven, "windows", lambda title="gestate": [12345678])
+    with pytest.raises(driven.Refused) as caught:
+        driven.refuse_if_the_run_cannot_happen("python tools/dragcheck.py")
+    assert "tools/dragcheck.py" in str(caught.value)
+    assert "Xvfb" in str(caught.value), "and where to drive instead"
+
+
+def _facts(stale=False):
+    """A library reading, supplied rather than measured — `a_run`'s
+    trick, for the callers that have no `Run` to hang it on."""
+    return {"path": driven.LOADED, "exists": True, "mtime": NOW,
+            "md5": "aaaaaaaaaaaa", "stale": stale}
+
+
+def _a_free_display(monkeypatch):
+    monkeypatch.setattr(driven.shutil, "which", lambda b: f"/usr/bin/{b}")
+    monkeypatch.setenv("DISPLAY", ":0")
+    monkeypatch.setattr(driven, "windows", lambda title="gestate": [])
+
+
+def test_a_tool_with_no_run_is_still_refused_a_stale_library(monkeypatch):
+    """**Guards shared, bookkeeping not.**
+
+    The stamp is a contract about a tool's output and belongs to
+    whoever owns the tool; the library refusal is not.  A
+    `measure_editor` number taken against a `libgestate_editor.so` that
+    was never in the process is the 2026-08-18 failure itself — four
+    wrong readings — and it is closed by the guard, not by keeping a
+    directory.  So the preflight the three unstamped tools call runs
+    this check too.
+    """
+    _a_free_display(monkeypatch)
+    with pytest.raises(driven.Refused, match="old code"):
+        driven.refuse_if_the_run_cannot_happen(
+            "python tools/measure_editor.py <scenario> <file.ges>",
+            lib=_facts(stale=True), other=[])
+
+
+def test_the_preflight_refuses_for_the_callers_binaries_and_no_others(monkeypatch):
+    """**Refuse precisely** — the reason `needs` is a parameter.
+
+    `xwininfo` is F170 one binary along: `dragcheck.py` searches the
+    window tree with it and `measure_editor.py` reads a corner with it,
+    and without it the first waits out sixty seconds and says *no
+    window appeared* while the second dies on a `KeyError` mid-scenario.
+    Putting it in the shared roster would refuse `lagcheck.py`, which
+    never calls it — and a gate that cries wolf is a gate that gets
+    turned off.
+    """
+    _a_free_display(monkeypatch)
+    monkeypatch.setattr(driven.shutil, "which",
+                        lambda b: None if b == "xwininfo" else f"/usr/bin/{b}")
+    driven.refuse_if_the_run_cannot_happen(lib=_facts(), other=[])
+    with pytest.raises(driven.Refused) as caught:
+        driven.refuse_if_the_run_cannot_happen(
+            needs=(*driven.CORE, "xwininfo"), lib=_facts(), other=[])
+    assert "xwininfo" in str(caught.value)
+    assert "x11-utils" in str(caught.value), "name the package, not the binary"
+
+
+def test_a_tool_that_shells_out_to_a_binary_declares_it():
+    """The other half of `needs`: naming it at the call is only honest
+    if the tools that call it do.
+
+    Checked for the binaries outside `CORE` — exactly the ones nothing
+    refuses on by default, so a tool that grows a dependency and says
+    nothing fails here rather than thirty seconds into a scenario,
+    sounding like a defect in the editor (F170).
+    """
+    optional = sorted(set(driven.BINARIES) - set(driven.CORE))
+    undeclared = []
+    for path in sorted((ROOT / "tools").glob("*.py")):
+        if path.name == "driven.py":
+            continue                        # it is the roster
+        src = path.read_text()
+        declared = re.findall(r"needs=\([^)]*\)", src)
+        for binary in optional:
+            if (f'"{binary}"' in src
+                    and not any(f'"{binary}"' in d for d in declared)):
+                undeclared.append(f"{path.name}: {binary}")
+    assert not undeclared, (
+        "shells out to a binary the preflight was not told about: "
+        + ", ".join(undeclared))
