@@ -131,7 +131,7 @@ decline honestly:
 
 | | lines | who it is for |
 |---|---|---|
-| [`README.md`](../README.md) | 247 | you, if you want to hear it |
+| [`README.md`](../README.md) | 254 | you, if you want to hear it |
 | [`vision.md`](../vision.md) | 77 | what any of this is for; the author's own, dated |
 | [`manifesto.md`](../manifesto.md) | 409 | how an instrument fails, and the two standing rules |
 | [`board/README.md`](../board/README.md) | 686 | how a task is worked — written for sessions |
@@ -139,7 +139,7 @@ decline honestly:
 | [`fixme.md`](../fixme.md) | 175 entries, 149 resolved | where the implementation disagrees with the specs |
 | [`journal.md`](../journal.md) + `journal/` | the current month, plus one line per closed month | what happened, past tense |
 | [`doc/memory/`](memory/) | one fact per file | what a session that forgets everything carries across |
-| [`keeper.md`](../keeper.md) | 189 | standard work for the one person who keeps all of the above |
+| [`keeper.md`](../keeper.md) | 190 | standard work for the one person who keeps all of the above |
 
 Two of those are worth a word. `fixme.md` is a **register, not a
 backlog**: an entry is closed by being marked resolved, never by being
@@ -148,9 +148,9 @@ journal is long — 10,433 lines for its first month — which is why it
 rotates into `journal/YYYY-MM.md` behind an index. Read the index line,
 open the one month you wanted.
 
-**The journal has people in it.** Three people are quoted by name, two
-of them not the author, and each was asked before a word of theirs
-entered the tree —
+**The journal has people in it.** People other than the author are
+quoted by name, and each was asked before a word of theirs entered the
+tree —
 [`consent.md`](consent.md) is the register, with what each person agreed
 to and what they declined. If you find yourself in this tree and would
 rather not be, that register is where it gets fixed.

@@ -289,3 +289,128 @@ def test_the_way_in_has_nothing_left_to_fill_in() -> None:
         "a shell block in the way in still has something to fill in, and "
         "the reader it is written for cannot fill it:\n  "
         + "\n  ".join(bad))
+
+
+#: `doc/method.md`'s table gives a size for each document so that a
+#: visitor can decline to read one honestly.  A size is a claim, and
+#: this file already holds the precedent for what happens to an
+#: unchecked one — §"The register says how many it holds", where the
+#: defect ledger advertised 130 entries while holding 155.
+#:
+#: **The page was out of date before it was a day old.**  Adding two
+#: bullets to `README.md` in the same commit that wrote the table left
+#: the table saying 247 for a 250-line file — which is the whole
+#: argument for this check, arriving immediately and by accident.
+METHOD = ROOT / "doc" / "method.md"
+
+#: A row of that table: the linked document, then its size.
+SIZE_ROW = re.compile(r"^\| \[`([^`]+)`\]\([^)]+\) \| ([\d,~]+) \|", re.M)
+
+#: Numbers in this tree's prose are spelled, because prose is for
+#: reading.  Only the words actually used are here, and a word that is
+#: not is a readable failure rather than a `ValueError` — which this
+#: table earned the hard way: the first version of `_said` fell through
+#: to `int("forty")` and reported the checker's own stack trace to
+#: somebody who had simply written a number out in words.  That is F162's
+#: class exactly, in the file that holds the check for it.
+WORDS = {
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
+    "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11,
+    "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15,
+    "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19,
+    "twenty": 20, "twenty-one": 21, "twenty-two": 22, "twenty-three": 23,
+    "twenty-four": 24, "twenty-five": 25, "twenty-six": 26,
+    "twenty-seven": 27, "twenty-eight": 28, "twenty-nine": 29, "thirty": 30,
+}
+
+
+def _said(text: str, pattern: str) -> int:
+    """The number the page claims, written either way."""
+    m = re.search(pattern, text, re.I)
+    assert m, f"doc/method.md no longer says anything matching /{pattern}/"
+    word = m.group(1)
+    if word.lower() in WORDS:
+        return WORDS[word.lower()]
+    digits = word.replace(",", "")
+    assert digits.isdigit(), (
+        f"doc/method.md writes {word!r} where /{pattern}/ wants a number, "
+        f"and this checker cannot read it.  Either spell it in digits or "
+        f"add {word.lower()!r} to WORDS above — do not leave it, because "
+        f"an unreadable claim is an unchecked one.")
+    return int(digits)
+
+
+def _lines(rel: str) -> int:
+    path = ROOT / rel
+    if path.is_dir():
+        return sum(len(f.read_text(encoding="utf-8").splitlines())
+                   for f in sorted(path.glob("*.md")))
+    return len(path.read_text(encoding="utf-8").splitlines())
+
+
+def test_the_method_pages_sizes_are_the_sizes():
+    """Every exact figure in the depth table, against the file.
+
+    **Approximate figures are checked approximately**, and that is not
+    a loophole: `~16,000` for `spec/` is an honest order of magnitude
+    for sixteen files nobody reads in one sitting, and pinning it to
+    the line would make the page churn on every spec edit for no
+    reader's benefit.  Five per cent is where "about" stops being true.
+    """
+    text = METHOD.read_text(encoding="utf-8")
+    rows = SIZE_ROW.findall(text)
+    assert len(rows) >= 5, (
+        "doc/method.md's depth table no longer parses — the check that "
+        "keeps its sizes honest is now checking nothing.")
+
+    wrong = []
+    for name, claim in rows:
+        real = _lines(name.rstrip("/"))
+        if claim.startswith("~"):
+            want = int(claim[1:].replace(",", ""))
+            if abs(real - want) > 0.05 * real:
+                wrong.append(f"{name}: page says ~{want:,}, it is {real:,}")
+        elif int(claim.replace(",", "")) != real:
+            wrong.append(f"{name}: page says {claim}, it is {real:,}")
+    assert not wrong, (
+        "doc/method.md's sizes are behind the files they describe, and "
+        "that page is what a visitor is handed instead of the tree:\n  "
+        + "\n  ".join(wrong))
+
+
+def test_the_method_page_counts_what_the_tree_counts():
+    """The four figures in its prose that something else already knows.
+
+    Each of these is a number the tree measures somewhere — the gate
+    list, the cap, the defect ledger, the archive — quoted into a page
+    written for somebody with no way to check it.  That asymmetry is
+    the reason this is a gate and not a habit.
+    """
+    import sys
+    sys.path.insert(0, str(ROOT / "tools"))
+    import rulecount
+    import suite
+
+    text = METHOD.read_text(encoding="utf-8")
+    fixme = (ROOT / "fixme.md").read_text(encoding="utf-8")
+    heads = re.findall(r"^### F\d+\.\s+\*\*\[([^\]]+)\]\*\*", fixme, re.M)
+    resolved = sum(1 for state in heads if state in ("resolved", "fixed"))
+
+    checks = [
+        ("the gates", _said(text, r"([A-Za-z-]+|\d+) structural checks"),
+         len(suite.GATES)),
+        ("the rules cap", _said(text, r"growing past ([\d,]+) lines"),
+         rulecount.CAP),
+        ("fixme's entries", _said(text, r"\| ([\d,]+) entries,"), len(heads)),
+        ("fixme's resolved", _said(text, r"entries, ([\d,]+) resolved"),
+         resolved),
+        ("fixme's open", _said(text, r"so the ([\w-]+) open ones"),
+         len(heads) - resolved),
+        ("the archived month", _said(text, r"([\d,]+) lines for its first"),
+         _lines("journal/2026-08.md")),
+    ]
+    wrong = [f"{what}: page says {said:,}, it is {real:,}"
+             for what, said, real in checks if said != real]
+    assert not wrong, (
+        "doc/method.md quotes numbers the tree already measures, and they "
+        "have drifted:\n  " + "\n  ".join(wrong))
