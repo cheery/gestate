@@ -90,7 +90,13 @@ still the tiebreak between two workable cards, and it is still his.
     answered by any session, at any position in this list.  A card that
     cannot be worked does not belong above cards that can.
 
-8. **[memory-atrophy](memory-atrophy.md)** — the author's own
+8. **[dangling-names](dangling-names.md)** — `blocked` on a decision.
+   The A3 rule was cited by name four times and defined nowhere, and
+   no check here could have found it; the shape of the fix is Henri's
+   call.  Placed low for `card:stranger-test.md`'s reason: a card that
+   cannot be worked sits below cards that can.
+
+9. **[memory-atrophy](memory-atrophy.md)** — the author's own
    observation, 2026-08-21: the tree reduces his memory pressure, and
    what is not exercised weakens.  **Last because the criterion above
    cannot rank it** — its reader is the author, not somebody using
