@@ -133,6 +133,11 @@ evidence rather than the theory.  Fifteen minutes and three questions:
 
     what did we learn · what did we get wrong · what is tomorrow's first thing
 
+**Both halves, and his first.**  The three are put to the author and
+answered by him *before* the session offers its own; answers delivered
+first become the frame.  *Henri, 2026-08-21: "molemmat opimme
+virheistämme."*
+
 **And it must land in `journal.md`**, or it does not survive the
 session.  This is the gap it exists to close: a day's *findings* are
 committed as they happen — an F-number, a card, a gate — and a day's

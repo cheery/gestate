@@ -80,6 +80,8 @@ session inferred.
 - [Gestate verify workflow](gestate-verify-workflow.md) — fast LLVM render path, `audioperform -o`, headless LazyPerformer harness for dynamic scores, control-sweep clamping
 - [Gestate language pitfalls](gestate-language-pitfalls.md) — sown clips to ONE beat, `!` binding, fragment rules; OPEN: clipped cycle-of-rests diverges the stream walk
 - [Test what a person would do](test-what-a-person-would-do.md) — try the naive thing before declaring it done; a harness built from the implementation cannot find a missing affordance
+- [The kaizen is asked, not answered](the-kaizen-is-asked-not-answered.md) — put the three questions to Henri first and wait; a kaizen with one participant is a session grading itself, and both parties are supposed to learn from their mistakes
+- [Finnish in the room, English in the tree](finnish-in-the-room.md) — talk in whichever language he opens in; the artefact is English, and his own sentences are quoted verbatim in Finnish where the wording carries something
 - [Henri's working style](henri-working-style.md) — explorative docs, reuse existing machinery, targeted tests; he writes short on purpose, so go and look before asking; and work set-based
 - [The work laptop](gestate-work-laptop.md) — gestate on Ubuntu 26.04 since 2026-08-17; a fresh install is the only honest read of `doc/install.md`
 - [The board goal, and the shelved-on-arrival exception](gestate-board-goal.md) — four fewer, zero new, stop proposing cards; a card Henri owns may arrive straight into `board/later/`

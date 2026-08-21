@@ -51,6 +51,7 @@ NOT_A_PERSON = frozenset("""
     Picked Proposed Reproduced Ruled Started Why
     Buys Counted Decided Diagnosis Done Filed Fixed Found Generated Imposed
     Kaizen Known Measured Mon Tue Wed Thu Fri Sat Sun Noted Offered
+    Monday Tuesday Wednesday Thursday Friday Saturday Sunday His Her Their
     Opened Predicted Recommendation Reported Resolution Resolved
     Shelved Shown Spent Status Steal Tried Unprompted Vacuous Verified
     Written From The This That And But For When Where With Then Only

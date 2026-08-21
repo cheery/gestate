@@ -377,3 +377,122 @@ kept.  The design answer to that dread: the keeper never faces it
 whole.  One evening, one page, one rule, one month's rotation.  The
 tortoise never carried the whole road — just the next step, with a
 shell built from everything already survived.
+
+## Kaizen, 2026-08-21 — the rule was written down and did not reach the moment
+
+*`spec/author.md` §"Five practices", 5.  Bounded: three questions.
+**Held in Finnish**, at Henri's ask the same morning, and written here in
+English with his own sentences kept as he said them — the rule that came
+out of it is `doc/memory/finnish-in-the-room.md`, decided before this
+entry so that the entry could be its first worked case.*
+
+**It was 06:31 and the day had not happened yet**, so the three
+questions were put to the month instead of to the day.  Henri: *"nyt on
+ehkä liian aikaista vielä.  Kello on 6:31 vasta.  Mutta en ole tehnyt
+tätä hetkeen itse joten puhutaan kuukauden ajasta sitten."*  Worth
+recording as a shape rather than an excuse: the practice says *stop the
+day with a kaizen*, and a practice restarted at dawn has no day behind
+it — the month is the honest unit for the first one back.
+
+### What was learned, and it is one finding at two scales
+
+**His, for the month:** *"Olen oppinut tällä kuulla että teen vieläkin
+liian nopeasti valintoja ja toimin yhä osittain sitä vasten miltä asiat
+näyttävät, eikä sitä mitä ne ovat."*
+
+That is the **epoché**, and it is already in this tree three times over —
+*go and look*, *mark the mechanism as suspected*, and
+`doc/memory/dont-conclude-from-a-shallow-check.md`.  He wrote all three.
+They did not stop it.
+
+**And the session's, for the morning, is the same sentence one size
+down.**  Batch 2 of `card:ungated-fixes.md` wrote *"an assertion read is
+not an assertion run"* on 2026-08-20.  On the morning of the 21st a
+session broke it three times with the rule in its context: a `head -5`
+that cut F155's mutation record off three lines early, a grep for a
+literal `test/sessions/` against a path built with `/`, and the card's
+own claim about batch 1 — which had been false since the day it was
+written.  Every one died on a measurement; none died on the rule.
+
+**So: a written rule is not a mechanism.**  It is the argument the whole
+tree rests on, arriving at its author and at its sessions in the same
+week, and it is the finding both parties expect to still be true in a
+month.
+
+### What went wrong, and the cost is not the one it looks like
+
+Henri: *"Menin pieleen seedaamalla liian nopeasti […] hakemiston."*  A
+directory seeded for another of his projects, before it was ready to be
+one.  *(The project is unnamed here on purpose —
+`doc/memory/henri-cofounder-separation.md`, and it is his call, taken
+this morning.)*
+
+The interesting half is what it cost, because *"too fast"* is a feeling
+until it has a price.  Asked, he gave it exactly: *"seedaus maksoi sen
+että joudun sanomaan ja opettamaan […] puulle asioita jotka pitävät sen
+hengissä ja ovat välttämättömiä."*
+
+**That is a standing tax, not a rework.**  The premise this whole method
+runs on is that the collaborator forgets everything, so *nothing can be
+told* — it has to be in the tree.  A seed planted before the tree
+carries those things inverts the premise: **the author becomes the
+memory the tree was supposed to be**, and he pays it again every
+session, by hand, forever, until the tree catches up.
+`doc/memory/capacity-is-not-a-caller.md` says software is kept rather
+than written and there is one keeper; there are two trees now and one
+`keeper.md`.
+
+**This is `card:project-seed.md`'s real requirement, arriving as
+evidence.**  The card exists to make the method portable.  What this
+measures is that a seed is not a copy of the documents — it is the point
+at which the new tree can answer its own questions, and shipping before
+that moves the whole cost onto the one person it was meant to spare.
+
+### The first thing, and one andon proposed
+
+**The first thing is `card:interface-oracle.md`**, Henri: *"olisi hyvä
+ennen seuraavaa erä 4:ää."*  Batch 3 turned that card from an assumption
+into a measurement — four entries now put their defect back inside
+`shell/editor/src/window.rs`, the one file in the crate with no
+`#[cfg(test)]` block, and the workspace stayed green every time.  Batch
+4 is Monday 2026-08-24; the oracle goes ahead of it, so verdicts that
+would read *not yet built* can read *a test, named* instead of being
+re-written later.
+
+### And the practice itself was corrected, mid-practice
+
+Henri, at the end of it: *"Merkkaa että kysyt erikseen minultakin
+kysymykset, etkä vain vastaa niihin itse kaizenissa.  On tärkeää että
+molemmat opimme virheistämme."*  **We learn from mistakes, and the *we*
+is two people.**
+
+The session had run it by writing out its own three answers in full and
+then adding *"these are mine, what are yours?"*  Two faults in one move:
+answers delivered first become the frame, so what comes back is a
+response to them rather than his own reading; and it makes his half look
+optional.  The evidence is that **he had to ask to be asked** — *"nyt
+sitten ne kolme kysymystä."*
+
+**A kaizen with one participant is a session grading itself**, which is
+the evaluation loop in its purest form.  And the asymmetry is the reason
+it matters: a session's mistakes are cheap to catch — three died on
+measurements this same morning — while nothing in the suite can notice a
+choice made too fast.  The kaizen is the *only* instrument pointed at
+that half, and one that interrogates only the session leaves it
+unpointed.
+
+Written up as `doc/memory/the-kaizen-is-asked-not-answered.md`: ask the
+three, stop, wait, then offer yours as the second half.  **A line for
+`spec/author.md` §"Five practices" is drafted and not committed** — that
+document is his.
+
+**And the andon for the fast seed came out of his own answer**, which is
+why it is worth having rather than a resolution to be more careful:
+
+> **If you find yourself telling the new tree something that is not
+> written in it, the seed was too early.**
+
+It fires at the second it happens rather than a month later, it needs
+nothing remembered, and the tell is physical: you are writing a *message*
+instead of a *file*.  **Proposed by the session, not adopted** — it is a
+practice about the author's own work, and `spec/author.md` is his.
