@@ -2207,6 +2207,18 @@ def test_opening_a_file_asks_the_window_for_it(tmp_path):
     # aimed at their code.  The next key types into the file.
     assert "close" in ed.orders
 
+    # **Both branches, and this only held one of them until 2026-08-21.**
+    # `do_open` closes the list in two places — the file that exists and
+    # the name being started — and taking the order out of the *new
+    # file* path left every test in the tree green (measured in batch 3
+    # of `card:ungated-fixes.md`).  That is the branch F125 walks into:
+    # somebody who mistyped a name gets a starter wearing it, and the
+    # keystrokes they aim at their code go into the table instead.
+    ed.orders.clear()
+    assert it.run("open", "nope.ges") == "new file nope.ges — saving creates it"
+    assert "close" in ed.orders, \
+        "a started file is opened too, and the list has to get out of the way"
+
 
 def test_open_warns_and_then_lets_the_choice_stand(tmp_path):
     """F113's companion: unsaved changes **warn, they do not gate**.

@@ -3317,6 +3317,14 @@ and `symbol` do — the model says when a command is finished with its
 dialog, rather than the view keeping a table of which commands
 repeat.  The next key you press types into the file you just opened.
 
+gate: `test/test_session.py::test_opening_a_file_asks_the_window_for_it` —
+**and it held only half of this until 2026-08-21.**  `do_open` closes the list in two
+places, the file that exists and the name being started, and the test asserted `"close"
+in ed.orders` for the first only: taking `close_list()` out of the **new-file** branch
+passed 170 of 170.  That is the branch F125 walks into — a mistyped name gets a starter
+wearing it, and the keystrokes aimed at the code go into the table.  Widened the same
+day to run both branches; each one now goes red on its own.
+
 ### F119. **[resolved]** The caret anchored the scroll
 
 Henri's report (2026-08-13): wheel the view away from the caret and
@@ -3337,6 +3345,13 @@ screen — so it now runs only when the granted layout actually changed
 (`foot_rows` or the box table).  A description that changes only the
 status, the transport or the knob values leaves the scroll where the
 hand put it.
+
+gate: `none — not yet built`.  **Measured 2026-08-21** by dropping the guard at
+`window.rs:1344` so every arriving description follows the caret again — the whole of
+the defect, since the snap-back ticked with the transport: **346 of 346** pass.  Nothing
+in the crate can see a scroll that will not stay put.  Cheap only if the furniture
+handler becomes reachable from a test; `window.rs` is the blocker and
+`card:interface-oracle.md` is where that lives.
 
 ### F120. **[resolved]** Opening a `.wav` quit the whole editor
 
@@ -3405,6 +3420,14 @@ caret's own row and scrolled only the caret into view — which put
 the template's *end* behind the newly-low panel; the span rule is
 what reads right.)
 
+gate: `partial` — the tool is held and the decision is bare.
+`shell/editor/tests/view.rs::follow_past_lands_below_the_shadow` holds `follow_past`
+itself and `shell/editor/src/palette.rs::paint_tests::the_panel_flips_low_as_one_piece`
+holds the flip, so the defect cannot return *through those*.  **The call site is
+unheld:** `window.rs:1166` decides to use `follow_past` at all, and swapping it back to
+`v.follow(&doc, font)` — **measured 2026-08-21** — passes **346 of 346**.  The one file
+in the crate with no `#[cfg(test)]` block, again.
+
 ### F122. **[resolved]** A typed path was walked twice
 
 From the tail of Henri's template transcript
@@ -3455,6 +3478,26 @@ the replay reproducing the very bug the specimen was recorded to
 show.  Replaying `test/sessions/F123-blip-session.ges` now reports
 exactly one moved answer: the second `open`, agreeing with the
 first.
+
+gate: `none — not yet built`.  **Measured 2026-08-21**, all three halves put back
+separately and nothing anywhere noticed:
+
+    _where's verb guard removed       → 2977 of 2977 pass (`-m "not golden"`)
+    _reask restores `asking = None`   → 256 of 256 pass in the three files that could see it
+    Asked fires unconditionally again → 346 of 346 pass (`cargo test --workspace`)
+
+The third lives at `window.rs:608`, the file with no `#[cfg(test)]` block, which is
+F153's finding arriving at a second entry.
+
+`test/sessions/F123-blip-session.ges` is the recorded reproduction and **nothing in the
+tree names it.**  Counted 2026-08-21: of 19 specimens, 5 are named by a test and 14 by
+nothing, and of the 12 recorded `-session.ges` transcripts only `chopin-session.ges` is
+replayed.  The four that are used are used as *source text* — a `.ges` program handed to
+the compiler — not as sessions played back.  So the transcripts a person's walk was
+recorded into are evidence and not instruments, which is the same shape as this whole
+card one level up.  *(An earlier draft of this line said no file reads `test/sessions/`
+at all.  Wrong: the tests build the path as `parent / "sessions" / …`, which the grep
+that produced the claim could not match.)*
 
 ### F124. **[resolved]** The directory-watch tests flake under machine load
 
@@ -3519,6 +3562,12 @@ it" was still true.  `load_written(text, false)` — `ged_load_new`,
 started loads *unsaved*, so **a phantom wears the `[+]` from birth**,
 and the first save settles it.  The loop picks the door by
 `exists()`.
+
+gate: `none — not yet built`.  **Measured 2026-08-21** by putting the defect back —
+`editor.load(text)` for a name that does not exist, in `workbench.py`, so the phantom
+reads as saved again: the Python suite `-m "not golden"` passes **2977 of 2977**.  The
+`[+]`-from-birth tell is the entry's whole fix and nothing anywhere asserts it.  Cheap:
+a `Workbench` on a missing path and one read of the saved flag.
 
 ### F126. **[resolved]** The crossfade resolved the leaving engine's nodes against the live graph
 

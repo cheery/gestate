@@ -49,7 +49,7 @@ NOT_A_PERSON = frozenset("""
     Added Adopted Agreed Amended Answered Argued Asked Assessed Built
     Checked Confirmed Corrected Costs Established Granular Named Open
     Picked Proposed Reproduced Ruled Started Why
-    Buys Decided Diagnosis Done Filed Fixed Found Generated Imposed
+    Buys Counted Decided Diagnosis Done Filed Fixed Found Generated Imposed
     Kaizen Known Measured Mon Tue Wed Thu Fri Sat Sun Noted Offered
     Opened Predicted Recommendation Reported Resolution Resolved
     Shelved Shown Spent Status Steal Tried Unprompted Vacuous Verified

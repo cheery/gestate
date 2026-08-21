@@ -179,6 +179,29 @@ whenever a batch finds it awkward is one that stops meaning anything, and
 the honest moment to widen it is after more than one batch has pushed on
 it.
 
+**A (Henri, 2026-08-21): "add them."**  The condition set above is met.
+Three batches have pushed on it — F161 in batch 1, F132 and F128 in batch
+2, and three of batch 3's five — so the vocabulary goes to **five**, not
+six, and the difference is worth stating because the first draft of this
+answer got it wrong:
+
+* **`none — not yet built` is a ratification, not an addition.**  F161
+  wrote it on 2026-08-19, before there was a rule permitting it.  It is
+  the spelling the file already reached for when the four ran out, and
+  writing it into the list records what happened.
+* **`partial` is the one genuine addition**, and it is the class with the
+  worst failure mode: a gate that holds one branch of a two-branch fix
+  reads, from its name, as though it holds both.  Batch 2 found two of
+  them; batch 3 found a third at F118, where `do_open` closes the list in
+  two places and the test held one.  **A gate believed to exist is worse
+  than a gap known about, because nobody looks at it again.**
+
+*And the number was the right question to ask.*  Six verdicts would have
+been a fifty per cent widening on a **16 per cent sample** — ten entries
+of sixty-two — which is exactly the growth this section warned about,
+arriving with a good argument.  Five survives that objection only because
+one of the two was already in use.
+
 ### And a named test is not yet a gate — 2026-08-20, batch 2
 
 **Two of that batch's five named a test that passed with the defect put
@@ -195,11 +218,81 @@ times in five, and gets it wrong in the direction that costs most — a
 gate believed to exist is worse than a gap known about, because nobody
 looks at it again.
 
-**This is retroactive.**  Batch 1's four *gated all along* verdicts were
-made by reading; only the F149 line records a mutation.  They are candidates
+**This is retroactive.**  Batch 1's *gated all along* verdicts were
+made by reading; only the F149 line records a mutation.
+
+*Corrected 2026-08-21, in the first Friday review, and the correction is
+the review's first finding.*  **That sentence was already false when it
+was written.**  F155, F160 and F153 each carry a dated 2026-08-19
+measurement, and F155's landed in `2b2aef1` — *"the gates get measured,
+and one of them turns out to be half a gate"* — the day **before** batch
+2 wrote this.  F161 is the only one that flags its own measurement as
+reported-and-not-reproduced.  So the line has stood since as a to-do
+pointing at work already done, and a session reading the card cold would
+have redone it.  They are candidates
 for the Friday sample rather than something to redo now — the whole point
 of the schedule is that a burst is what degrades judgement — but the rate
 found here is the reason to look.
+
+### Batch 3, and the first Friday — 2026-08-21
+
+**F125 F123 F121 F119 F118.**  Four of the five are ungated and the fifth
+was half-gated, which is the highest rate any batch has returned — and
+it is not a worse batch, it is the first one made entirely of entries
+whose fix lives in `shell/editor/src/window.rs` or in the walk that feeds
+it.  Every verdict below was made by **mutation**, none by reading.
+
+| | verdict | put back | result |
+|---|---|---|---|
+| F125 | `none — not yet built` | `editor.load` for a missing name | 2977 of 2977 pass |
+| F123 | `none — not yet built` | three halves, separately | 2977, 256, and 346 pass |
+| F121 | `partial` | `follow_past` → `follow` at the call site | 346 of 346 pass |
+| F119 | `none — not yet built` | the reflow guard dropped | 346 of 346 pass |
+| F118 | a test, named | `close_list()` out of each branch | **red on both, after widening** |
+
+**`window.rs` is the finding, not the entries.**  Three of the five put
+their defect back inside the one file in the crate with no `#[cfg(test)]`
+block, and in every case the whole workspace stayed green.  F153 named
+that file in batch 1 as a one-off; it is now four entries, and it is the
+reason `card:interface-oracle.md` sits above this card in the order
+rather than beside it.
+
+**F118 is the third half-gate**, after F132 and F128, and the first found
+in a *branch* rather than in an assertion: `do_open` closes the list in
+two places and the test held one.  The bare branch is the one F125 walks
+into.  Widened the same morning, both branches now red on their own —
+batch 2's precedent, and the reason `partial` was worth a word.
+
+**The specimens are evidence, not instruments.**  Chasing F123's recorded
+reproduction turned up that of `test/sessions/`'s 19 files, 14 are named
+by nothing, and of the 12 recorded `-session.ges` transcripts only
+`chopin-session.ges` is replayed.  A person's walk, recorded so the
+defect could be reproduced, and nothing runs it again.  **Not filed as a
+card** — the board is four-fewer-zero-new — but it is the largest
+unclaimed instrument in the tree and it belongs in whatever
+`card:interface-oracle.md` becomes.
+
+### The first Friday review — F155, and it holds
+
+Henri picked F155 from batch 1.  Re-run 2026-08-21 with
+`cargo test --workspace --no-fail-fast`, against the two claims the entry
+records:
+
+    BURGER = "≡"    → 1 failed, 345 passed — the_corner_offers_a_word_and_not_a_glyph
+    INK → FAINT     → 2 failed, 344 passed — the other two
+
+**Exactly as written, a day and a half later, by a session that did not
+write it.**  The verdict stands and it is the best-evidenced line in the
+file — it is also the only one that records catching its own tautology.
+
+*Two claims were corrected in getting there, both made by reading and
+both this session's:* that F155 carried no mutation (a `head -5` that cut
+the record off three lines early), and that nothing in the tree reads
+`test/sessions/` (a grep for a literal slash against a path built with
+`/`).  The card's own sentence about batch 1 was corrected too — see
+§"And a named test is not yet a gate".  **Three reading errors in one
+morning, none of which survived a measurement**, which is the argument
+for the Friday sample and for the mutation rule in the same breath.
 
 ## The schedule — heijunka, adopted 2026-08-18
 
@@ -253,18 +346,31 @@ from that end of the file.
 One line, added to the entry: **`gate:`** — either the instrument that
 fires if the defect returns, or `none`, with the reason.
 
-Legitimate verdicts, all four:
+Legitimate verdicts, all five — *four from 2026-08-18, the fifth added
+and one spelling ratified 2026-08-21, at Henri's "add them"; see question
+4 above:*
 
 * a test, named
 * another instrument — a golden `.sample`, a transcript, an example
   roster, a photographed window: Henri, 2026-08-18, *"I think I agree,
   those count as a gate"*
+* **`partial — <what is held, what is not>`**, for a fix with more than
+  one branch where the gate holds some of them.  Name the held part and
+  the bare one, both, or the entry reads as gated.
+* **`none — not yet built`**, for *ungated, gateable, and cheap* — the
+  file's most common case, and a different fact about the tree than
+  *nothing can*: it is the one that tells somebody where to spend an
+  afternoon.  **It wants the measurement that makes it true**, the way
+  F161 and batch 3's entries carry one, or it is a guess.
 * **`none — nothing can`**, with why
 * **`none — not a repair`**, for an entry that turns out to be a
   divergence rather than a fix
 
-The third and fourth have to be honourable, or the sweep pressures the
-session into writing a guard it does not believe in.
+The last three have to be honourable, or the sweep pressures the
+session into writing a guard it does not believe in.  **And `partial` is
+not a softer *a test, named*** — an entry may only wear it when the gap
+is stated; a `partial` with no named bare branch is the half-gate wearing
+a new word.
 
 And the field is the one `fixme.md`-as-a-directory would formalise
 (`card:working-standard.md`), so doing it this way now makes that
