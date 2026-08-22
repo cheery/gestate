@@ -159,6 +159,31 @@ answer, and only Henri can supply that half.**  He also expects the log
 to show strain; it will not, on its own — a two-minute gap is a person
 mid-thought or a person who cannot leave.
 
+**The increments are decisions, and they are made at the wrong end of
+the sitting.**  On the morning after it was built — 2026-08-22 — Henri
+worked through three short grants in a row rather than one long
+one — *"extending session time a bit, and by small increments at time"*
+— and agreed when it was named: **"Agreed on the micro-decisions on
+`sitting`."**
+
+It is not the reflex case the design is shaped against.  Each increment
+is a number typed by hand, which is the friction the grant channel
+exists to impose, and it survives intact.  What it is not is the
+decision the design *trusts*: §"The length is declared at the door" rests
+on him being cold when he names the number, and at minute 10 of minute
+10 he is not.  A short grant renewed five times and a fifty-minute grant
+are the same fifty minutes, arrived at by the judgment the instrument
+says is the worse one.
+
+**Nothing should be built to stop it, and this is the paragraph that
+says why.**  A cap on grants per sitting would be the machine deciding
+he has had enough, which §"Questions, C" rules out for a session and
+which is no better wired into a script.  The honest handling is that the
+pattern is now **visible**: every grant is a `grant` line in the arrival
+log with the gap that preceded it, so `tools/gapcheck.py` can show a run
+of short grants as what it is.  A person who can see his own pattern is
+the only party entitled to change it.
+
 **It binds this desk and nothing else.**  The hook sees prompts typed to
 Claude Code in this repo.  The evening it was committed — 18:27 on
 2026-08-21 — ran on until at least 20:30 in a different window, with a
