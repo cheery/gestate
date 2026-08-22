@@ -192,9 +192,10 @@ exist only because a person is on the other end** are present and have a
 test behind them, and that every path the capped documents name actually
 exists here, which is the 9B mismatch made runnable by a stranger.
 
-**Unbacked is reported, not failed** — a check nobody can leave green
-gets switched off.  Run it for the current count; the pieces it found
-bare on the day it was built were the two most about people.
+**An unbacked piece fails the run**, and could not until the day it was
+built: the two it found bare were the andon and the sitting limit, and
+the ratchet was pulled once they had tests, never as a way of announcing
+that they should.
 
 **Not a wall.**  `tools/limit.sh` is tracked but writable by a session, so
 the honest claim is visibility: any change to it shows in `git diff`.  A

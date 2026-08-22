@@ -1132,3 +1132,59 @@ arrived at, which is the rule working as designed.  One line was cut for
 a better reason than space: it quoted the day's audit numbers, and a
 number that rots inside a capped document is worse than no number.  Run
 the tool.
+
+### The two bare pieces got tests, and then the ratchet — 2026-08-22
+
+Henri, an hour later: **"write missing texts"** — the tests, for the two
+pieces the audit had just found bare.
+
+`test/test_andon.py` and `test/test_limit.py`, 19 tests.  Neither rings
+anything or waits for a clock: the andon runs with `python` and `sleep`
+stubbed on `PATH`, and the limit runs against a temporary
+`XDG_RUNTIME_DIR`, so the live sitting is untouched.
+
+**What the andon's tests pin** is the part that can be wrong silently.
+The cap of three was stated in a comment and is now checked.  A typo —
+`tools/andon.sh oops` — refuses out loud instead of ringing zero times
+and exiting clean, which the script's own comment calls *the one failure
+a cord may not have*, and which nothing enforced.  A count of zero
+clamps up to one for the same reason.  And a ring that never reaches the
+sound card exits non-zero: the worst available failure for a cord is
+that a session pulls it, nothing sounds, and the status says fine.
+
+**What the limit's tests pin** is the asymmetry, in the direction that
+matters: `reset` is refused inside a session.  Then one that had not
+been thought of until it was written down — **a question that merely
+mentions `sitting 90` is not a grant.**  The regex was already anchored,
+so the behaviour was right; what was missing was the reason, and the
+reason is that a session can otherwise put those words in his mouth by
+quoting them back to him.  And both defects the previous session found
+by running it: the closed-sitting branch that printed *"The 0 minutes
+are up"* instead of its reason, and the state write that dropped the
+reason so it survived one read and vanished on the next.  `bash -n`
+passed on both.
+
+One of them checks a claim rather than a behaviour: the arrival log
+records events and **never** the prompt text.  That was a promise made
+in a docstring this morning, and a promise in a docstring is the thing
+this whole audit is about.
+
+### The ratchet was pulled after the tree was clean, not before
+
+With both pieces backed, `tools/seedaudit.py` reads **9 of 9 present, 0
+unbacked, 0 unkept promises** — so unbacked was moved from *reported* to
+*fails the run*, and from here a piece added to the list without a test
+fails the suite.
+
+**The order is the whole of it, and it belongs in the seed as a rule.**
+An hour earlier the same change would have made the tree red on its own
+audit, and a check nobody can leave green gets switched off — which is
+`manifesto.md`'s argument about how an instrument fails, arriving in a
+new place.  A gate is turned on *after* the tree is clean, never as a
+way of announcing that it should be.
+
+And the canary earned its keep twice in one morning.  It was written to
+assert which two pieces were bare, specifically so that it would fail
+when they stopped being bare; it caught the audit's third harvester bug
+on the way through; and it is now the gate itself.  A test that fails on
+good news is easy to argue away.

@@ -377,10 +377,29 @@ one that lets a session reach a person and the one that protects the
 person's hours: the two most about people are the two least checked.
 That was said from reading before the tool existed, and the tool agrees.
 
-**Unbacked is reported and does not fail the run.**  This tree would go
-red on its own audit today, and a check nobody can leave green gets
-switched off — `manifesto.md`'s own argument about how an instrument
-fails.  Absent pieces and unkept promises do fail.
+**Unbacked failed nothing for the first hour, and now it does.**  On the
+morning it was built the tree would have gone red on its own audit, and
+a check nobody can leave green gets switched off — `manifesto.md`'s
+argument about how an instrument fails.  So the two bare pieces got
+tests: `test/test_andon.py` and `test/test_limit.py`, written the same
+morning at Henri's ask, and then the ratchet was pulled.  **9 of 9
+present, 0 unbacked, 0 unkept promises**, and from here a piece added
+without a test fails the suite.
+
+**The order is the point and it is worth stating as a rule for the
+seed.**  A gate is turned on after the tree is clean, never as a way of
+announcing that it should be.  A red check that everyone learns to
+ignore has done more damage than the missing check it replaced.
+
+*What the two new tests actually pin.*  The andon: the cap of three is
+checked instead of asserted in a comment, a typo refuses out loud rather
+than ringing zero times and exiting clean, and a ring that never reaches
+the sound card exits non-zero — the worst available failure for a cord
+being that a session pulls it, nothing sounds, and the status says fine.
+The limit: that `reset` is refused inside a session, that a question
+merely *mentioning* `sitting 90` is not a grant — otherwise a session
+could put the words in his mouth by quoting them — and both defects the
+previous session found by running it, which `bash -n` had passed.
 
 **And the audit's harvester was wrong three times before it was right**,
 each time in the direction that made the tree look good: it searched

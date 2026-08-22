@@ -208,12 +208,13 @@ def main():
         if unbacked:
             print()
             print("  An unbacked piece is a rule with no gate — the second of the")
-            print("  two failures this audit exists for, found in its own tree.")
-            print("  It is reported and does not fail the run: this tree would go")
-            print("  red on its own audit today, and a check nobody can leave green")
-            print("  gets switched off.  Absent pieces and unkept promises do fail.")
+            print("  two failures this audit exists for.  It fails the run.")
 
-    return 1 if (absent or broken) else 0
+    # Unbacked joined this list on 2026-08-22, once the andon and the
+    # sitting limit had tests.  It could not before: a check nobody can
+    # leave green gets switched off, so the ratchet is pulled after the
+    # tree is clean, never as a way of announcing that it should be.
+    return 1 if (absent or broken or unbacked) else 0
 
 
 if __name__ == "__main__":

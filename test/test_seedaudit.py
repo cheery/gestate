@@ -86,9 +86,19 @@ def test_this_tree_has_every_piece_present():
     assert [r["name"] for r in rows if r["missing"]] == []
 
 
-def test_the_two_unbacked_pieces_are_the_known_ones():
-    """A canary, not a requirement.  If this fails because something
-    gained a test, that is good news and the list moves."""
+def test_nothing_is_unbacked():
+    """This was a canary and is now a gate.
+
+    It was written on 2026-08-22 asserting the two pieces that had no
+    test — the andon and the sitting limit — precisely so it would fail
+    when they gained one.  It did, the same morning, and this is the
+    other side of that: from here a piece added to `PIECES` without a
+    test fails the suite, which is the ratchet the audit's second half
+    is about.
+
+    It also caught the audit's third harvester bug on the way through.
+    A test that fails on good news is easy to argue away; this is the
+    case for keeping one."""
     rows = seedaudit.audit_pieces(ROOT)
     unbacked = sorted(r["name"] for r in rows if not r["missing"] and not r["backing"])
-    assert unbacked == ["the andon", "the sitting limit"], unbacked
+    assert unbacked == [], unbacked
