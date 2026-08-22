@@ -1034,3 +1034,101 @@ read as a guarantee about the day, and it is not one.  The same honesty
 `doc/consent.md` §"What the check cannot see" applies to a register:
 **state a check's range next to the check**, or the range gets assumed
 to be everything.
+
+## The audit, and a harvester that was wrong three times — 2026-08-22
+
+Henri, having found the practice being re-derived elsewhere: *"We aren't
+smart or super.  We just have good processes.  The unsafe part about
+what I saw, was that nothing in the ruleset it had, did not encode
+respect toward people and others.  Also, it relied on unchecked
+processes."*  Then: **"audit this tree."**
+
+**The design turns on what an outsider can check without reading the
+prose.**  No test finds respect in a document, and a check that claimed
+to would be the unchecked process the complaint is about.  What is
+checkable is that the **pieces which exist only because a person is on
+the other end** are present and have a test behind them — the fence, the
+gates, the consent register, the andon, `status blocked`, the rules cap,
+the memory split, the sitting limit, the author's own document.  Take
+the people out of this project and every one of those is dead weight.
+That is the auditable form of the missing thing: not a sentiment in a
+document, an affordance on disk.
+
+The second check is the promises — every path the five capped documents
+name, resolved against the directory.  **That is the 9B mismatch made
+runnable by a stranger**, and it was already in the tree as a
+measurement taken for another reason.
+
+**The result: 9 of 9 present, 0 unkept promises, 2 unbacked.**  The two
+pieces with no test behind them are the andon and the sitting limit —
+the one that lets a session reach a person, and the one that protects
+the person's hours.  **The two most about people are the two least
+checked.**
+
+Unbacked is reported and does not fail the run.  This tree would go red
+on its own audit today, and a check nobody can leave green gets switched
+off.
+
+### The harvester was wrong three times, and every error flattered the tree
+
+Worth the space, because the pattern is now four for four in this
+project and it has never once erred in the unflattering direction.
+
+1. **It searched `tools/` for backing.**  Every tool contains its own
+   name, so all nine pieces scored `ok` and the audit reported zero
+   unbacked — the exact opposite of its own finding.
+2. **It called thirteen present files unkept promises.**  The documents
+   write `test_board.py` and `dialoglag.py` without their directories,
+   and a bare basename resolved against nothing looks missing.
+3. **Its own test file backed the paths it names.**  `test_seedaudit.py`
+   mentions `tools/andon.sh` in order to test the audit, so the andon
+   went green **by being discussed** — a test *about* a check counting
+   as a gate *on* the thing checked.
+
+The first two were caught by reading the output against what was already
+known from reading the tree.  **The third was caught only by a canary**
+— a test asserting which pieces are currently bare, which fails when a
+piece gains a test, which is good news.  A test that fails on good news
+is easy to argue away; this is the case for keeping one.
+
+`card:dangling-names.md` said it first and said it about a different
+detector: *the experiment did not test the detector, it tested the
+harvester, and the harvester failed.*  Three more in one morning.
+
+### What the ask did to the two standard cards
+
+His sentence — *"the exact mechanism you condition with is not as
+important as getting an auditable version with necessary pieces filled
+into the directory"* — answers `card:working-standard.md`'s first
+question, document or directory, on grounds the card never considered.
+It had argued the directory because it *starts working on day one*; he
+argues it because it can be **audited**, and an empty slot is visible
+from outside to somebody who never read the prose.
+
+**It also demotes the card's expensive half.**  Question 4 — what is
+gestate-shaped and must not travel — was written as *"most of the work,
+and it cannot be done by a session guessing."*  If the deliverable is
+auditability, that stops blocking: the conditioning content can be wrong
+and the directory still audits, while perfect content with no audit
+cannot be checked by anyone.  **An auditable wrong version is
+repairable.  An unauditable right version is a claim.**
+
+And it is a third answer to §"The documents assume an environment",
+which had left the seed choosing between *stating its assumptions* and
+*shipping the affordances*.  The third is **ship the slots and the
+check** — which is what closes the gap his own four-document experiment
+found, that a chat can carry the rules and cannot fail on them.
+
+`card:project-seed.md` is not unshelved; its start condition is still
+his milestone.  What changed there is narrower: the copy may drift,
+**what must not be a copy is the check.**
+
+### The cap is nearly spent
+
+`doc/instruments.md` gained two instruments today and the rules stand at
+**1,994 of 2,000 — six lines of room.**  Paying for the second entry
+meant trimming the first one back to what it says rather than how it was
+arrived at, which is the rule working as designed.  One line was cut for
+a better reason than space: it quoted the day's audit numbers, and a
+number that rots inside a capped document is worse than no number.  Run
+the tool.

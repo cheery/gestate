@@ -47,7 +47,16 @@
 # GESTATE_LIMIT_GAP minutes since the last prompt, starts a new one — which
 # is the shape of the actual problem: logging in for one small thing.
 #
-# Env: GESTATE_LIMIT_MIN (default 15), GESTATE_LIMIT_GAP (default 30).
+# **The arrival log.**  Every hook call appends one line to
+# `~/.local/state/gestate/sittings.log` — epoch, event, detail, and
+# **never the prompt text**.  It is there to settle GAP_MIN, which is a
+# number a session picked in the writing and nobody has checked
+# (card:sitting-limit.md, "a number nobody asked for").  It lives outside
+# the repo because when Henri is at the desk is his, not the tree's.
+# `tools/gapcheck.py` reads it.
+#
+# Env: GESTATE_LIMIT_MIN (default 15), GESTATE_LIMIT_GAP (default 30),
+# GESTATE_LIMIT_LOG (default ~/.local/state/gestate/sittings.log).
 #
 # Install: add to .claude/settings.json —
 #
@@ -59,6 +68,13 @@ set -euo pipefail
 LIMIT_MIN="${GESTATE_LIMIT_MIN:-15}"
 GAP_MIN="${GESTATE_LIMIT_GAP:-30}"
 STATE="${XDG_RUNTIME_DIR:-/tmp}/gestate-sitting-$(id -u)"
+LOG="${GESTATE_LIMIT_LOG:-$HOME/.local/state/gestate/sittings.log}"
+
+# Never fatal.  A hook that dies on a full disk takes the desk with it.
+note() {
+  { mkdir -p "$(dirname "$LOG")" &&
+    printf '%s\t%s\t%s\n' "$now" "$1" "${2:-}" >> "$LOG"; } 2>/dev/null || true
+}
 
 now=$(date +%s)
 started=0
@@ -68,10 +84,15 @@ closed=""
 [ -f "$STATE" ] && read -r started last limit closed < "$STATE" || true
 [ -n "$limit" ] || limit="$LIMIT_MIN"
 
+# Minutes since the previous prompt.  -1 means there was no previous one
+# on record — a cold state file, which a reboot also produces.
+if [ "$last" -gt 0 ]; then gap=$(( (now - last) / 60 )); else gap=-1; fi
+
 case "${1:-}" in
   stop)
     [ "$started" -eq 0 ] && started=$now
     printf '%s %s %s %s\n' "$started" "$now" 0 "${2:-the thing you came for is done}" > "$STATE"
+    note close "${2:-the thing you came for is done}"
     echo "sitting closed at $(date +%H:%M)."
     exit 0 ;;
   reset)
@@ -86,7 +107,9 @@ case "${1:-}" in
 esac
 
 # A fresh sitting: nothing stamped, or the desk was empty long enough.
-if [ "$started" -eq 0 ] || [ $(( (now - last) / 60 )) -ge "$GAP_MIN" ]; then
+fresh=0
+if [ "$started" -eq 0 ] || [ "$gap" -ge "$GAP_MIN" ]; then
+  fresh=1
   started=$now
   limit="$LIMIT_MIN"
 fi
@@ -97,6 +120,7 @@ if [ "${1:-}" = "--hook" ]; then
   if [[ "$prompt" =~ ^[[:space:]]*sitting([[:space:]]+([0-9]+))?[[:space:]]*$ ]]; then
     limit="${BASH_REMATCH[2]:-$LIMIT_MIN}"
     printf '%s %s %s\n' "$now" "$now" "$limit" > "$STATE"
+    note grant "min=$limit gap=$gap"
     echo "Sitting of $limit minutes, from $(date +%H:%M).  Ends $(date -d "@$((now + limit*60))" +%H:%M)." >&2
     exit 2
   fi
@@ -107,7 +131,9 @@ left=$(( limit - elapsed ))
 
 if [ "${1:-}" = "--hook" ]; then
   printf '%s %s %s %s\n' "$started" "$now" "$limit" "$closed" > "$STATE"
+  if [ "$fresh" -eq 1 ]; then note open "gap=$gap"; fi
   if [ "$elapsed" -ge "$limit" ]; then
+    note block "gap=$gap elapsed=$elapsed limit=$limit"
     # exit 2 on UserPromptSubmit: the prompt is blocked, this text goes to Henri.
     if [ "$limit" -eq 0 ]; then
       echo "Sitting closed — $closed." >&2
@@ -119,6 +145,7 @@ if [ "${1:-}" = "--hook" ]; then
     echo "To sit down again on purpose, type: sitting 45   (or any number of minutes)" >&2
     exit 2
   fi
+  note prompt "gap=$gap elapsed=$elapsed limit=$limit"
   exit 0
 fi
 

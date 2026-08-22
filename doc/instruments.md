@@ -160,6 +160,42 @@ whole instrument is shaped against.  Close it on a fact about the work,
 say which fact, and leave.  A session that keeps weighing whether he
 should still be here has become the two hours it was built to prevent.
 
+### `tools/gapcheck.py` — is 30 minutes the right silence?
+
+    tools/gapcheck.py              the arrivals so far, and what each
+                                   candidate threshold would have done
+    tools/gapcheck.py --days 7     only the last week
+
+**Nobody chose the 30** that cuts one sitting from the next — a session
+picked it while writing the script, which is F169 exactly.  So the hook
+logs one line per arrival to `~/.local/state/gestate/sittings.log` —
+epoch, event, gap, **never the prompt text**, and outside the repo — and
+this reads it.  Its useful output is the last table: how many sittings
+each candidate threshold makes of the same days.  Rows that agree mean
+the number does not matter; rows that disagree are the evidence, and only
+Henri can say which row matches how the days felt.
+
+**It measures arrivals, not strain.**  A two-minute gap is a person
+mid-thought or a person who cannot leave, and a timestamp cannot tell
+them apart.
+
+### `tools/seedaudit.py` — the pieces, and whether anything is behind them
+
+    tools/seedaudit.py         audit this tree
+    tools/seedaudit.py PATH    audit a directory that copied the standard
+
+Two checks, from the two failures Henri named on 2026-08-22 in a ruleset
+he found elsewhere: *nothing in it encoded respect toward people*, and it
+*relied on unchecked processes*.  It does not read prose and judge it —
+no test finds respect in a document.  It checks that the **pieces that
+exist only because a person is on the other end** are present and have a
+test behind them, and that every path the capped documents name actually
+exists here, which is the 9B mismatch made runnable by a stranger.
+
+**Unbacked is reported, not failed** — a check nobody can leave green
+gets switched off.  Run it for the current count; the pieces it found
+bare on the day it was built were the two most about people.
+
 **Not a wall.**  `tools/limit.sh` is tracked but writable by a session, so
 the honest claim is visibility: any change to it shows in `git diff`.  A
 wall would mean putting it where `Edit` and `Bash` cannot reach, which is

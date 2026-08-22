@@ -255,6 +255,144 @@ decided here.  What is decided is that a method document leaving this
 tree without that statement is shipping promises the receiving project
 cannot keep.
 
+### The standard is a directory, and the point of it is the audit — 2026-08-22
+
+> *"I did find out yesterday evening that these methods of summoning
+> sessions are being reinvented by other people, and in much less safe
+> way.  We may need to look at the card:working-standard.md and then
+> card:project-seed.md.  I feel that the exact mechanism you condition
+> with is not as important as getting an auditable version with
+> necessary pieces filled into the directory."*
+
+**This answers Question 1 — document or directory — and it answers it
+for a reason the question never considered.**  The card argued the
+directory on the grounds that it *starts working on day one*.  He is
+arguing it on the grounds that a directory can be **audited**: the
+pieces are slots, a slot is filled or it is empty, and an empty one can
+be seen from outside by somebody who never read the prose.
+
+**And it demotes the expensive half of this card.**  Question 4 —
+*what is deliberately gestate-shaped and must not travel* — was written
+as "most of the work, and it cannot be done by a session guessing."  If
+the deliverable is auditability, that work stops blocking: **the content
+of the conditioning can be wrong and the directory still audits, while a
+directory with perfect content and no audit cannot be checked by anyone
+at all.**  An auditable wrong version is repairable.  An unauditable
+right version is a claim.
+
+**It is also a third answer to §"The documents assume an environment"**,
+which left the seed choosing between *stating its assumptions* and
+*shipping the affordances* and called them different amounts of work.
+The third is: **ship the slots and the check.**  A seeded project has a
+place for a fence, a gate, a register, a reachable author — and a test
+that says which of them are empty.  Then the four-document recipe stops
+being a method that transmits and cannot fail, because the failure moves
+into the directory's own suite.
+
+**What is not decided, and it is the whole design.**  *Which* pieces are
+necessary.  The tree has candidates and they are not the same list as
+the failures he saw:
+
+| the piece here | what it is for | already checked by |
+|---|---|---|
+| the fence — `.claude/**` denied to a session | the model cannot edit its own restraints | `tools/sandbox.sh --check` |
+| the gates, and the commit hook | enforcement outside the model | `tools/suite.py --gates` |
+| `doc/consent.md` | a named third party agreed | `test_consent.py` |
+| the andon, and a board `status blocked` | a session can raise a question and be answered | nothing |
+| `spec/rules.md`'s cap | the rules stay readable | `tools/rulecount.py` |
+| `doc/memory/`, split | what carries across, and what stays private | `test_memory.py` |
+| `tools/limit.sh` | the person's own hours | nothing |
+
+**Answered the same morning, and it is not this tree's list.**
+
+> *"We aren't smart or super.  We just have good processes.  The unsafe
+> part about what I saw, was that nothing in the ruleset it had, did not
+> encode respect toward people and others.  Also, it relied on unchecked
+> processes."*
+
+Two failures, and they are the two halves of what the audit has to look
+for.
+
+**One: a ruleset with no obligation toward people in it.**  Operationally
+complete, and nothing in it is there because somebody is on the other
+end.  This cannot be audited as a sentiment — no test reads a document
+and finds respect.  **It can be audited as affordances**, because in this
+tree every piece of it is a file that exists for no other reason:
+`doc/consent.md` because a third party has to agree; the andon and
+`status blocked` because a session must be able to raise a question and
+be answered; `doc/memory/`'s split because some of what is known about a
+person is not the tree's; `tools/limit.sh` because his hours are his;
+`spec/author.md` staying his to keep.  Take away the people and every one
+of those is dead weight.  **That is the auditable form of the thing he
+says was missing: not "does the ruleset say respect", but "which of these
+pieces does the directory have, and is anything behind them."**
+
+**Two: unchecked processes.**  The ratchet, stated from the other side —
+a rule with no gate is a wish, and a directory of wishes reads exactly
+like a directory of rules.  So the second half of the audit is per-rule:
+*what fails if this is violated, and can it be named.*  This project can
+already answer it for some rules and not others; the table below is
+honest about which.
+
+**And the two failures are one failure in this tree's own record.**
+§"The documents assume an environment, and never say which", above, is a
+respect-failure that was found as a mismatch: `board/README.md` promised
+a reachable author, an andon, tools, and answers, and a 9B was placed
+where none of them existed.  Nobody had to judge the promises — the check
+is *does the affordance exist*, which is exactly the check his two
+failures need and the one thing an outsider can run without reading the
+prose.  **That measurement is now the strongest argument this card has
+for the directory-plus-audit shape, and it was taken for another
+reason.**
+
+**One line of his belongs on the front of whatever ships:** *"We aren't
+smart or super.  We just have good processes."*  A seed that travels as a
+conditioning recipe invites the reading he is warning about; a seed that
+travels as processes with checks does not.
+
+**The list above is this project's pieces, and it is still the wrong way
+to build the check.**  A seed audit assembled from what this tree happens
+to have would encode gestate's accidents as requirements.  His two
+failures are the criterion; the table is the raw material to be filtered
+through them, and the column that matters is the third — five of the
+seven pieces have something that fails, and the two with nothing are the
+andon and the limit, which are the two most about people.
+
+**Built and run, 2026-08-22, at his ask.**  `tools/seedaudit.py`, against
+this tree, because there is no seed directory yet and a check written for
+one would be a guess about a thing that does not exist.  It takes a path,
+so it can be pointed at a copy the day there is one.
+
+Two checks, one per failure:
+
+* **The pieces that exist only because a person is on the other end** —
+  present, and does a test name them.
+* **The promises** — every path the five capped documents name, resolved
+  against this directory.  That is the 9B mismatch made runnable by
+  somebody who never read the prose.
+
+**The result: 9 of 9 present, 0 unkept promises, 2 unbacked — the andon
+and the sitting limit.**  The two pieces with no test behind them are the
+one that lets a session reach a person and the one that protects the
+person's hours: the two most about people are the two least checked.
+That was said from reading before the tool existed, and the tool agrees.
+
+**Unbacked is reported and does not fail the run.**  This tree would go
+red on its own audit today, and a check nobody can leave green gets
+switched off — `manifesto.md`'s own argument about how an instrument
+fails.  Absent pieces and unkept promises do fail.
+
+**And the audit's harvester was wrong three times before it was right**,
+each time in the direction that made the tree look good: it searched
+`tools/`, so every tool named itself and all nine passed; it called
+thirteen present files unkept promises because the documents write
+`test_board.py` without its directory; and then its own test file backed
+the paths it names, so the andon went green by being discussed.
+`card:dangling-names.md` in one morning, three times — *the experiment
+did not test the detector, it tested the harvester.*  The third was
+caught only by a canary test asserting which pieces are bare, which is
+the argument for keeping such a test even though it fails on good news.
+
 ## The questions, answered — 2026-08-18
 
 *Henri read the card while it was being written and answered all four.

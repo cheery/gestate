@@ -139,11 +139,25 @@ honest claim is visibility: any change shows in `git diff`.  A wall
 means putting the script where `Edit` and `Bash` cannot reach, which is
 a `.claude/settings.json` line and therefore Henri's.
 
-**The 30-minute silence gap is a number nobody asked for.**  It decides
-when a fresh sitting begins, and a session picked it in the writing.
-F169 applies directly: *a number nobody asked for is a number nobody
-checks.*  Measure it against how he actually arrives, or drop it to
-something he chose.
+**The 30-minute silence gap is a number nobody asked for — now being
+measured.**  It decides when a fresh sitting begins, and a session picked
+it in the writing.  F169 applies directly: *a number nobody asked for is
+a number nobody checks.*
+
+*Henri, 2026-08-22:* **"let's measure the gap number over the next few
+days."**  So the hook now logs one line per arrival to
+`~/.local/state/gestate/sittings.log` — timestamps and event names, never
+prompt text, outside the repo — and `tools/gapcheck.py` reads it.  The
+log started empty on 2026-08-22; **there is no history to look at, so the
+earliest this says anything is around 2026-08-25.**
+
+The answer is not in the gaps.  It is in the last table `gapcheck.py`
+prints: how many sittings each candidate threshold makes of the same
+days.  If the rows agree, 30 stays because nothing turns on it.  If they
+disagree, **the row that matches how the days actually felt is the
+answer, and only Henri can supply that half.**  He also expects the log
+to show strain; it will not, on its own — a two-minute gap is a person
+mid-thought or a person who cannot leave.
 
 **It binds this desk and nothing else.**  The hook sees prompts typed to
 Claude Code in this repo.  The evening it was committed — 18:27 on

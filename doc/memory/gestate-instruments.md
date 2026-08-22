@@ -56,6 +56,17 @@ The ones easiest to forget you have:
   one** — `stop "why"` is open, `reset` refuses under `CLAUDECODE`, and the
   one moment to call `stop` is when the thing he came for is done, never
   when a session judges he has had enough.  Built 2026-08-21 at his ask.
+- **`tools/gapcheck.py`** — the reader for the sitting log: how many
+  sittings each candidate silence-gap would have cut the same days into.
+  Built 2026-08-22 at his ask, because `GESTATE_LIMIT_GAP=30` is a number
+  a session picked.  **It measures arrivals, not strain** — a short gap is
+  mid-thought or cannot-leave, and a timestamp cannot tell them apart.
+- **`tools/seedaudit.py`** — the standard's audit, built 2026-08-22 at his
+  ask: are the pieces that exist only because a person is on the other end
+  present, does a **test** name them, and does every path the capped
+  documents promise actually exist.  Takes a directory, so it can be aimed
+  at a seeded project later.  **Its harvester was wrong three times before
+  it was right, always flattering the tree** — see the card.
 - **`tools/clock.sh`** — the wrist clock ([[gestate-editor-latency]] neighbours
   it in spirit).  Read it before stating any elapsed time.
 

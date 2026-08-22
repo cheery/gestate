@@ -43,6 +43,28 @@ next milestone in this project.*  So this card waits on an event rather
 than on a queue position, which is the cleanest kind of shelved card
 there is — nothing about it rots while it sits.
 
+## The shelf condition may have been overtaken — 2026-08-22
+
+*Henri:* **"these methods of summoning sessions are being reinvented by
+other people, and in much less safe way."**
+
+This card waits on an event of his own — *when I complete a next
+milestone in this project* — and that is still the cleanest kind of
+shelved card.  But the event that makes the seed urgent was never
+required to be his, and one has arrived from outside: the practice is
+being re-derived elsewhere without the parts that make it checkable.
+
+**It does not unshelve the card, and it changes what the card is for.**
+Question 2 above asks *is it copied, or is it a tool*, and his answer
+narrows it: the copy is fine and drift is fine — **what must not be a
+copy is the check.**  A directory somebody copied and filled in wrongly
+is a repairable thing if a test can say which slots are empty.  See
+card:working-standard.md §"The standard is a directory, and the point of
+it is the audit — 2026-08-22", where the argument is kept, since that
+card is the live half.
+
+*Still shelved.  Recorded because it arrived.*
+
 ## Found by looking
 
 **This card is not the `card:portable-package.md` shape, and the
