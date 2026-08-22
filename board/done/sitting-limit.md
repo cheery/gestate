@@ -133,11 +133,25 @@ command deletes.
 
 ## What is still not settled
 
-**It is not a wall.**  `tools/limit.sh` is tracked but writable by a
-session, and the session that built it rewrote it three times.  The
-honest claim is visibility: any change shows in `git diff`.  A wall
-means putting the script where `Edit` and `Bash` cannot reach, which is
-a `.claude/settings.json` line and therefore Henri's.
+**It is not a wall, and the reason that is acceptable is not technical.**
+`tools/limit.sh` is tracked but writable by a session, and the session
+that built it rewrote it three times.  The honest claim is visibility:
+any change shows in `git diff`.  A wall means putting the script where
+`Edit` and `Bash` cannot reach, which is a `.claude/settings.json` line
+and therefore Henri's.
+
+*Henri, 2026-08-22, after the increments were named:* **"sitting is a
+safety belt, and it won't work if I do not respect it."**
+
+That is the missing half of the paragraph above, and it is the better
+half.  A belt is not a wall either — it is trivially defeated by the
+person it protects, and it has never been thought defective for that.
+What makes it work is that it is **worn**, and what makes it wearable is
+that it is easy, visible and honest about what it does not do.  So the
+design target for anything in this family is not *unbreakable*; it is
+*worth keeping on*.  A limiter a person has to fight is one they
+eventually remove, and the removal will be silent.  This one asks four
+keystrokes and shows every grant in a log.
 
 **The 30-minute silence gap is a number nobody asked for — now being
 measured.**  It decides when a fresh sitting begins, and a session picked
