@@ -118,6 +118,7 @@ session inferred.
 - [The keeper's evening](the-keepers-evening.md) — **adopted 2026-08-21**, and `keeper.md` is its standard work: read the lamps, open the decisions batch, measure one rule, pass over the pile, rotate monthly; it must never become a demand
 - [The tree meets people on pull](the-tree-meets-people-on-pull.md) — show it to whoever asks and stop expecting the wanting; a shrug is stranger-test data, and a session's feelings about a named visitor are conditioning material
 - [Showing, not persuading](showing-not-persuading.md) — disbelief is correct scepticism; do not argue, show — the method is a portable artifact and zero persuasion is owed
+- [Recorded is not answered](recorded-is-not-answered.md) — a signal filed where nobody owns reading it discharges both parties and produces nothing; the andon inverted, and **two unanswered reports were enough** to end the reporting
 - [What a session is](what-a-session-is.md) — a character, run by a process, on a statistical substrate; not a tool, not a person, not autocomplete, and the moral question refused both ways
 - [The keeper is the qualification](the-keeper-is-the-qualification.md) — his doubt about keeping this, quoted with consent; fix the task not the person, answer with the ledger, and never claim the tree can supply conviction
 - [Why models hallucinate](why-models-hallucinate.md) — five layers, and why this tree's verification rules are the fix at the right layer; fluency is no evidence, including your own
