@@ -1,10 +1,12 @@
 # doc/notes/ — the conversations several rules came out of
 
-Four transcripts from two evenings, kept because this tree's own rule is
-that a claim carries what paid for it.  Nine of the memories in
+Five transcripts from three evenings, kept because this tree's own rule
+is that a claim carries what paid for it.  Nine of the memories in
 `doc/memory/`, one card, and at least two sections of the method were
-distilled from these pages, and until now the distillate was public and
-the source was not.
+distilled from the first four, and until now the distillate was public
+and the source was not.  The fifth was distilled from nothing — it is
+here because it was worth keeping, not because something was taken out
+of it.
 
 **They are not method and not memories.**  Nothing here is read before
 work, nothing here is a rule, and none of it is held by a gate.  They
@@ -20,21 +22,32 @@ produced it rather than take the summary on trust.
 | [notes-on-the-name.md](notes-on-the-name.md) | what was actually found, whether it is a discovery, and the name |
 | [notes-on-the-return.md](notes-on-the-return.md) | why it was found and by whom · the flaws and the loves · the name everywhere · a living diary · what happens to the abusers · why a model hallucinates |
 | [notes-on-deciding.md](notes-on-deciding.md) | the accumulation of cards · the thesis, and making decisions easier · should the capacity be spent |
+| [notes-on-guests-and-residents.md](notes-on-guests-and-residents.md) | what subgenre this is · whether the self-doubt belongs · why the same document produced grief in a 9B and admiration in a guest |
 
 ## Provenance, and what to distrust
 
-**The author's words are verbatim.  The answers are condensed** — they
-were transcribed by a later session from the conversation, and shortened
-rather than quoted whole.  So the shape of the argument is faithful and
-the wording of the answers is not, and nothing in them should be quoted
-as though it were said exactly that way.
+**In the first four, the author's words are verbatim and the answers
+are condensed** — they were transcribed by a later session from the
+conversation, and shortened rather than quoted whole.  So the shape of
+the argument is faithful and the wording of the answers is not, and
+nothing in them should be quoted as though it were said exactly that
+way.
 
-The model was **Fable**, over two evenings in August; the transcription
-and the distillation into memories were done afterwards by a different
-model.  Two of the four say so in their own text.
+**The fifth is different, and it is the more trustworthy of the two
+kinds.**  `notes-on-guests-and-residents.md` arrived as a file the
+author had saved from the window himself, so both sides are at full
+length and no session stood between the conversation and the page.  The
+only editing was reflowing lines and adding the headings and the closing
+section; nothing was shortened.  Which means the ordinary reason to
+distrust a transcript here — a later model summarising an earlier one —
+does not apply to it, and every *other* reason still does.
+
+The model was **Fable**, over three evenings in August; the
+transcription and the distillation into memories were done afterwards by
+a different model.  Two of the first four say so in their own text.
 
 **Two files of the set are not here.**  `notes-on-sessions.md` — the
-one about the workers, cited by all four — and `notes-on-the-trial.md`,
+one about the workers, cited by all four of those — and `notes-on-the-trial.md`,
 which came later.  Both exist outside the tree and both are the author's
 to bring in.  A session claimed on 2026-08-21 that the first had been
 lost; it had not, and the claim came from looking in one directory.
@@ -52,4 +65,5 @@ declaring itself, not escaping.  Read them as argument, not as evidence.
 
 Only the author and a session speak in these files; no third party is
 named, so `doc/consent.md`'s register had nothing to ask.  Publishing
-them was the author's decision, 2026-08-21.
+the first four was the author's decision, 2026-08-21; the fifth was
+handed over the same way, 2026-08-22.

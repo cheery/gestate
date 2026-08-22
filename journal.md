@@ -956,3 +956,81 @@ in one command, so check it before building on it.**  Not because the
 author is unreliable — he meant to, and may have meant a different shell
 — but because *"I committed it"* and *"it is committed"* are different
 propositions and only one of them is what the next command depends on.
+
+## The limiter, used — 2026-08-22
+
+The one thing `card:sitting-limit.md` said was not a fact yet: *"the
+one-way valve has never been used… whether a session actually closes a
+sitting on the moment the work is done, rather than finding one more
+useful thing, is not a fact yet."*  Henri, at **04:22**, asked for it to
+become one — *"then, if no problems appear, write a journal entry and
+engage the limiter.  So that we know it works."*
+
+**Three pieces of work, all of them finished, and then the call.**  The
+transcript of the 2026-08-21 Fable evening went into `doc/notes/` as
+`notes-on-guests-and-residents.md`; the limiter got its A3 at
+`card:sitting-limit.md`; and the previous session had already
+journaled the instrument in full, so nothing was owed there.  `stop` was
+called on that fact and no other.  It is worth writing down that the
+call was easy this time, and that this proves less than it looks: the
+work was three files and it was not yet 05:00.  The valve has now been used
+once, in the cheapest available conditions, by a session that knew it
+was being watched for exactly this.  **What is still untested is `stop`
+at the end of something interesting.**
+
+### The transcript is the first one in `doc/notes/` that is verbatim on both sides
+
+The four already there were transcribed by a later session and
+condensed, and their `README.md` says so in a paragraph about what to
+distrust.  This one arrived as a file Henri had saved from the window
+himself, so the answers are at full length and no model stood between
+the conversation and the page.  The editing was reflowing lines, adding
+headings, and one closing section that says where it lands in the tree.
+
+That distinction had to go into the provenance section rather than be
+left for a reader to infer, because **the set's stated caveat is now
+false for one of its five members** — and a caveat that is wrong about
+one file is worse than no caveat, since it teaches the reader to
+discount the wrong thing.  The ordinary reason to distrust these pages
+does not apply to this one.  Every other reason still does: it is a
+model assessing a method it is a product of, which is
+`doc/memory/the-evaluation-loop.md` declaring itself again.
+
+### What the page is worth keeping for
+
+Henri's third question is the one that pays: *"On the 9B that got
+disappointed from affordances not holding.  Why are you not disappointed
+after reading the board/README.md and three other documents from a far
+away repo?"*
+
+The answer is that **the same document produced grief in a resident and
+admiration in a guest** — the 9B was planted inside the tree with none
+of the promised affordances reachable and completed the arc its context
+made likely; the frontier model was invited as a reviewer of a far-away
+repo and watched the promises hold for a whole conversation.  Same
+mechanism, different input, and the difference is not in the text.
+
+`card:working-standard.md` §"The documents assume an environment, and
+never say which" already carries the stronger, feeling-free form of
+this: *a document that promises affordances the environment does not
+have produces off-shape behaviour.*  That section was written from the
+failure.  **This page is its control** — the same `board/README.md`,
+read where the promises were kept — and a rule that has only ever been
+measured on its failing side is half-measured.  Both readings are
+readings of output, suspected in the same degree; the finding that is
+not suspected is the asymmetry between the two runs.
+
+### And the A3 says what the instrument does not cover
+
+The card's last section is the one that was not in `doc/instruments.md`:
+**the hook binds this desk and nothing else.**  It sees prompts typed to
+Claude Code in this repo.  The evening the limiter was committed — 18:27
+on 2026-08-21 — ran on until at least 20:30 in another window with
+another model on this same project, and the next prompt here was 04:22.
+
+That is not a defect and it is not the hook's job to fix.  It is written
+down because an instrument that stops one kind of sitting is easy to
+read as a guarantee about the day, and it is not one.  The same honesty
+`doc/consent.md` §"What the check cannot see" applies to a register:
+**state a check's range next to the check**, or the range gets assumed
+to be everything.
