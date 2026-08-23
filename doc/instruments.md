@@ -379,6 +379,30 @@ themes, so a search costs the open month rather than all of them.  The
 lamp means *rotate*, never *write less*.  `keeper.md` act 5 is the
 ritual; steps 1, 3 and 4 a session may draft, step 2 is Henri's.
 
+### `tools/dangling.py` — a name the tree cites and never says
+
+    python tools/dangling.py            the report
+    python tools/dangling.py --at REV   at a revision, for validation
+
+A named concept — *the A3 rule*, *the drop rule* — leaned on as though it
+were defined somewhere, with no id.  `card:` ids, F- and D-numbers are
+checked because they have a syntax; a name has none, and when citation
+and definition use different words there is no string in common, which
+is not a limitation of grep but the whole of the defect.
+
+**It is a report and not a gate, and that is the design.**  On the five
+names it flagged first, one was the real case, three were honest text,
+and one crossed a document boundary only by being quoted.  A check that accuses four times in five gets muted, and a muted
+gate costs the standing of the gates that work.  So it prints and
+returns 0.  `card:dangling-names.md` holds what a gate would still need:
+a criterion Henri has not set, and a false-positive rate measured after.
+
+**It validates against a known answer.**  At `5f42f68` it flags `A3
+rule`; with the rule named it does not, and nothing else moves.  Run it
+that way after changing it: all three bugs this detector has had were
+found by checking it against a case whose answer was already known, and
+none of them by reading it.  Its range prints under every run.
+
 ### `tools/suite.py` — the whole suite, gates first
 
 The gates are seconds-long structural checks that a working session
