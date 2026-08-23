@@ -110,3 +110,79 @@ def test_the_files_that_shell_out_are_found_by_reading_them():
     blind = covercount.shells_out()
     assert blind, "no test file reads as shelling out; the detection broke"
     assert all(b.startswith("test/") for b in blind)
+
+
+def test_it_finds_the_one_function_nothing_called(tmp_path):
+    """**The whole tool, end to end, against an answer known in advance.**
+
+    Every test above takes a piece of `covercount.py` and asks whether
+    that piece is right.  None of them runs the monitor, and a coverage
+    tool whose parts are each correct can still report the wrong lines —
+    which is the failure mode this file exists to prevent and the one it
+    was blind to until Henri asked, on the day it was written, whether
+    the test had itself been verified.
+
+    So: a package with a function that is called and a function that is
+    not, a test that calls one of them, and the tool run over it in a
+    child interpreter.  The answer is known by reading six lines.  A
+    `def` executes at import and its *body* does not, so the expected
+    reach is the module's assignment, both `def` statements and the body
+    of `used` — and the body of `never`, alone, must come back unreached.
+    """
+    pkg = tmp_path / "pkg"
+    pkg.mkdir()
+    (pkg / "mod.py").write_text(
+        "CONST = 1\n"                   # 1  reached: module level runs
+        "\n"
+        "\n"
+        "def used(n):\n"                # 4  reached: the def executes
+        "    doubled = n * 2\n"         # 5  reached: the test calls it
+        "    return doubled\n"          # 6  reached
+        "\n"
+        "\n"
+        "def never(n):\n"               # 9  reached: the def executes
+        "    raise AssertionError\n"    # 10 NOT reached: nothing calls it
+    )
+    (tmp_path / "test_touch.py").write_text(
+        "import pkg.mod\n"
+        "\n"
+        "def test_calls_used_only():\n"
+        "    assert pkg.mod.used(2) == 4\n"
+    )
+    # `ROOT` as well as `PACKAGE`: the report names each module relative
+    # to the root, and a package outside it is not a case the tool has.
+    (tmp_path / "drive.py").write_text(
+        "import importlib.util, pathlib, sys\n"
+        f"sys.path.insert(0, {str(ROOT)!r})\n"
+        "here = pathlib.Path(__file__).parent\n"
+        "sys.path.insert(0, str(here))\n"
+        "spec = importlib.util.spec_from_file_location(\n"
+        f"    'covercount', {str(ROOT / 'tools' / 'covercount.py')!r})\n"
+        "cc = importlib.util.module_from_spec(spec)\n"
+        "spec.loader.exec_module(cc)\n"
+        "cc.ROOT = here\n"
+        "cc.PACKAGE = here / 'pkg'\n"
+        "cc.PAGE = here / 'page.md'\n"
+        "sys.argv = ['covercount', '-q', '-p', 'no:randomly',\n"
+        "            str(here / 'test_touch.py')]\n"
+        "cc.main()\n"
+        "mod = str(here / 'pkg' / 'mod.py')\n"
+        "print('EXECUTABLE', sorted(cc.executable(pathlib.Path(mod))))\n"
+        "print('REACHED', sorted(cc.SEEN.get(mod, set())))\n"
+    )
+
+    import subprocess
+    import sys
+    done = subprocess.run([sys.executable, str(tmp_path / "drive.py")],
+                          cwd=tmp_path, capture_output=True, text=True,
+                          timeout=120)
+    assert done.returncode == 0, done.stderr
+    said = dict(line.split(" ", 1) for line in done.stdout.splitlines()
+                if line.startswith(("EXECUTABLE", "REACHED")))
+
+    assert said["EXECUTABLE"] == "[1, 4, 5, 6, 9, 10]", (
+        "the denominator is not the lines the interpreter would report: "
+        + said["EXECUTABLE"])
+    assert said["REACHED"] == "[1, 4, 5, 6, 9]", (
+        "the one uncalled body is what must come back unreached: "
+        + said["REACHED"])
