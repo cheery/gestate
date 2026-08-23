@@ -18,6 +18,8 @@
              card:driven-runs.md, card:cheap-gates.md — the four
              workflow cards; the raw material, not absorbed
              spec/rules.md — the cap, and what may not be done to meet it
+             card:who-asked.md — one instruments.md entry is queued
+             behind this trim; §"What it waits on" holds it written
              tools/rulecount.py — the number, and test/test_rules.py the gate
 
 **Picking this up?  §"Back on the board, 2026-08-20 — the cap" is the live

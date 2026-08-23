@@ -99,3 +99,34 @@ It does not catch the next stranger's question.  Nothing can.  What it
 does is make the *provenance of capability* a checked property instead
 of a thing a session happens to mention — so that a bench where nobody
 asked for anything is visible as such, on a command, in one screen.
+
+## What it waits on: eight lines under the cap
+
+**`doc/instruments.md` has no entry for `tools/asked.py`, and that is a
+debt, not an oversight.**  That page is what a session reads *before it
+knows what it is working on*, and its own opening says why this matters:
+a session that does not know an instrument exists does the work it was
+built to make unnecessary.  A gate nobody knows about is a gate that
+only ever fires as a surprise.
+
+It is not written because the page is one of the five under
+`spec/rules.md`'s 2,000-line cap, and the cap has **one line of room**.
+`card:working-standard.md` is the trim.  When it lands, this is the
+entry — written now, while the reasons are in hand, so that spending the
+space is a paste and not a fresh argument:
+
+    ### `tools/asked.py` — who asked for each tool on this bench
+
+        python tools/asked.py       # the register; test_provenance.py is the gate
+
+    **A tool nobody asked for is a tool nobody runs** — F169's rule
+    moved from numbers to instruments.  Every file in `tools/` carries
+    one `#: asked-by:` line from a closed set, `unrecorded` is legal and
+    ratcheted, and a person's ask quotes their words or cites the card
+    that does.  `card:who-asked.md` is why.
+
+*`tools/covercount.py` did get its entry, in the same afternoon and
+before the cap was this tight — §"`tools/covercount.py` — which lines
+the suite has never run".  The two instruments are not in the same state
+and the difference is eight lines of budget, which is worth saying
+plainly rather than leaving a reader to notice one is missing.*
