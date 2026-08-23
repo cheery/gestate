@@ -532,3 +532,141 @@ qualification.
    `fixtype rule` and `application rule` are the same defect — a real
    defined noun with *rule* after it — and a harvester that knew the
    corpus's own defined terms would not have collected either.
+
+---
+
+## The two new suspects, checked — 2026-08-23
+
+*`tools/dangling.py` — the rewritten detector, `card:` above — flags
+three names at HEAD.  `placement rule` is the one already checked and
+still genuine.  `layout rule` and `number rule` are new, and this is
+them.*
+
+**Disclosure, and it is the same weakness the 2026-08-21 checker
+recorded.**  The work order asks for a reader with no stake in the
+detector.  This session wrote the detector, so it is the weaker
+instrument on purpose-of-design grounds, and the verdicts below should
+be read as a first pass rather than the independent check the work order
+asks for.  Nothing here is fixed.
+
+---
+
+### 6. `layout rule` — **asserted**, and it is not the A3 case
+
+**What I found first.**  The two sites lean on *different properties* of
+one rule, and neither states it.
+
+- `gestate/typecheck.py:1038` — *"`session.py` already reads
+  declarations this way for `goto`, the language's layout rule
+  guarantees a declaration starts at the left margin"*.  The property
+  leaned on: **a toplevel declaration begins at column 0.**
+- `shell/editor/src/window.rs:573` — *"the layout rule counts columns
+  and a tab's width is the renderer's choice, so a tab-indented file
+  means something other than it looks"*.  The property leaned on:
+  **layout is measured in columns**, and tabs are therefore unsafe.
+
+**The rule is asserted**, in `spec/syntax.md:756`, under the heading
+`### Layout`:
+
+> The offside rule: a block of declarations introduced continue as long
+> as subsequent lines (ignoring blank lines) are indented at least as
+> far as the first declaration's column.
+
+**Verdict: asserted.**  The detector missed it because the phrase in the
+heading is `Layout` and the phrase in the citations is `layout rule` —
+one word apart.
+
+**And that is the finding worth more than the verdict.**  The A3 case
+turned on citation and definition having **not one word in common**.
+Here they share *layout*, and any reader who greps the citation lands on
+the definition in one hop.  So `layout rule` is not the defect this card
+exists for, and a criterion that flags it is flagging the wrong shape.
+See §"What the two new names say about the criterion".
+
+**Two things found while checking it, recorded and not fixed.**  Both
+are about the *content*, not the name, and neither belongs to this card:
+
+1. **`spec/syntax.md` §"Layout" never says a toplevel declaration
+   starts at column 0.**  It says continuation lines must be indented
+   strictly farther than the beginning line, and every example begins at
+   the margin — but `gestate/typecheck.py:1029`'s `_defined_lines`
+   depends on the margin literally, testing `line[:1].isalpha()`.  The
+   property it calls a guarantee is implied by examples.
+2. **Tabs are not mentioned in `spec/syntax.md` at all** outside a
+   string-escape example at `:78`, and not in `gestate/syntax/tokenize.py`.
+   `window.rs:573` argues from a language property the spec does not
+   state, and supplies its own evidence for it — *"no `.ges` in the tree
+   contains one"*.
+
+---
+
+### 7. `number rule` — **not a term**, and the confound again
+
+**What I found first.**  The two sites are one sentence written twice.
+
+- `fixme.md:724` (F43) — *"Recorded rather than fixed: stopping the
+  number rule after a `.`-projection is a lexical change nothing yet
+  needs."*
+- `test/test_projection.py:91` — *"the alternative would be to stop the
+  number rule at a digit that follows a `.`-projection, which is a
+  lexical change nothing yet needs."*
+
+The register entry and the test docstring for the same finding, one
+derived from the other.  **Same confound as `fixtype rule` and
+`application rule`** — the name never crossed a document boundary.
+
+**And it is not a name.**  It is ordinary technical English for the
+lexer's rule for numbers, the same shape as `fixtype rule` and
+`application rule` before it.  The thing it leans on is asserted in
+`spec/syntax.md:48`, under `### Lexical format`:
+
+> Numbers are grouped together, may contain underscore for clarity …
+> and may be followed by decimals and exponential notation … So 2e-2 is
+> one number, while 2e - 2 is the number 2e minus 2.
+
+`gestate/syntax/tokenize.py:253`'s `_read_number` is the implementation.
+
+**Verdict: not a term.**
+
+**A fourth measurement bug, and it is in the new detector.**  The
+confound fold did not catch this pair.  `tools/dangling.py`'s `_dedup`
+compares a ±150-character window at similarity ≥ 0.70, and these two
+sentences agree on their tail — *"a lexical change nothing yet needs"* —
+while their lead-ins differ enough to drop under the threshold.  So the
+fold has false negatives, and this is one, found the same way the first
+three bugs were: by checking against a case whose answer was already
+known.  **It is not fixed**, because moving the threshold to catch this
+pair is exactly the move that would start folding independent uses, and
+choosing that trade needs the criterion below settled first.
+
+---
+
+### What the two new names say about the criterion
+
+Question 1 on this card asks whether a verdict turns on **the name** or
+**the content**.  Both new names land the same way under both readings —
+asserted, not a term — so neither settles it.  But together with
+`layout rule` they suggest the question is framed one notch too coarsely.
+
+**The A3 case was not *content missing* and it was not *name missing*.
+It was that citation and definition had no word in common**, so no
+search starting from the citation could reach the definition.  That is a
+property of the *pair*, not of either half:
+
+| | citation says | definition says | shares a word | reachable by grep |
+|---|---|---|---|---|
+| `A3 rule` (before the fix) | *the A3 rule* | §"One sheet, then depth" | no | **no** |
+| `layout rule` | *the layout rule* | §"Layout" | yes | yes |
+| `number rule` | *the number rule* | *"Numbers are grouped together"* | yes | yes |
+| `drop rule` | *the drop rule* | *"dropped, and said so"* | yes | yes |
+| `placement rule` | *the placement rule* | §"…the equator decides the panel" | **no** | **no** |
+
+Read that way the corpus has produced **two** instances of the defect —
+`A3 rule`, fixed, and `placement rule`, open — and every other name the
+detector has ever flagged is reachable in one hop.
+
+**This is a proposal and not an answer.**  It is a third reading, it was
+written by the session that wrote the detector, and adopting it would
+narrow the gate's job from *is this asserted* to *can a reader get from
+the citation to the definition*.  That second question is harder to
+compute and much closer to the thing that actually went wrong.
