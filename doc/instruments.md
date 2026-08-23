@@ -74,6 +74,28 @@ Two things follow, and the second is the one that costs something:
   building only for a number that is already correct at the boundary and
   is already carrying its source.
 
+## The third standing rule, provisional: a paper for a person is A4, and page one carries it
+
+*Henri's, 2026-08-23, adopted to be tried rather than to be believed:
+"Me voitaisiin alustavasti käyttää A4-sääntöä tästä lähtien... Mutta en
+ole varma onko se järkevää."  **His doubt is part of the rule**, and the
+session that finds it wrong should say so rather than obey it quietly.*
+
+**When a session makes a document for a person to read — a summary, a
+report, a handout — it is A4 at normal reading size, and the part that
+matters most fits on page one.**  Later pages are for the reader who
+wants more; page one has to stand alone, because most readers stop
+there and that is not a failure of theirs.
+
+* **Normal type, never photographically shrunk.**  A page made to fit by
+  reduction is not shorter, only harder to read.  If it does not fit,
+  cut it or move it back a page.
+* **What goes on page one is the author's decision, not the layout's.**
+  When the material ahead of the important part is longer than a page,
+  the order is wrong, not the paper.
+* **Not for drawings.**  `doc/atlas/` is five A3 sheets and stays that
+  way; a diagram that has to be read at A4 is a diagram nobody reads.
+
 ---
 
 ## Saying what you are doing, while you do it

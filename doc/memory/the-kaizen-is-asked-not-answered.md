@@ -40,9 +40,10 @@ pointed at the half that has none.
 
 **How to apply:**
 
-1. **Ask the three first** — *what did we learn · what did we get wrong ·
-   what is tomorrow's first thing* (`spec/author.md` §"Five practices",
-   5) — and **stop.**  Give each a concrete hook from the day so it is
+1. **Ask the four first** — *what did we learn · what did we get wrong ·
+   what mechanism does that earn · what is tomorrow's first thing*
+   (`spec/author.md` §"Five practices", 5; the third was added
+   2026-08-23) — and **stop.**  Give each a concrete hook from the day so it is
    not a blank page, and nothing more.
 2. **Wait for his answers.**  Then offer yours, as the second half.
 3. **Push on his the way you would push on your own.**  *"Too fast"* is

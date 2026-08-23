@@ -131,7 +131,15 @@ day."*
 the day it is most needed** — and it was, silently, which is the
 evidence rather than the theory.  Fifteen minutes and three questions:
 
-    what did we learn · what did we get wrong · what is tomorrow's first thing
+    what did we learn · what did we get wrong · what mechanism does
+    that earn · what is tomorrow's first thing
+
+**The third is new, 2026-08-23, and it is the poka-yoke.**  A kaizen is
+where the *process* defects surface, and they are the only class this
+project leaves without a gate — a test finds a code defect, nothing
+finds a day run in the wrong order.  *A defect is a caller* applies here
+or it applies nowhere, so the answer is a mechanism or a stated reason
+there is none, and the next kaizen opens by reading it back.
 
 **Both halves, and his first.**  The three are put to the author and
 answered by him *before* the session offers its own; answers delivered

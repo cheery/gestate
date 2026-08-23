@@ -1526,3 +1526,126 @@ One thing, twice in one day: `doc/method.md`'s line-count row for
 `test_citations.py::test_the_method_pages_sizes_are_the_sizes` caught it
 both times, in sixteen seconds.  Everything else found today was found by
 a person reading, or by a check somebody chose to run.
+
+## Kaizen, illalla 2026-08-23 — the sheet decided what its first reader would say
+
+*Both halves, his first — `doc/memory/the-kaizen-is-asked-not-answered.md`,
+and the first one run with four questions: the third was added to
+`spec/author.md` §"Five practices" this evening, at his ask, after he
+asked whether three were the whole of kaizen.  No commits; the day's
+work was a summary sheet for a person, outside the tree, and three
+method files left modified.*
+
+### What he learned
+
+> **Henri:** *"Opin sen että minulla on onni myötä."*
+
+The day does not read as luck from here, and the difference matters
+because luck leaves nothing behind.  Two things happened that were
+decisions: the light sheet went to a different reader than the one it
+first reached, after he named the risk himself; and the first draft's
+damage became visible at all only because he reported what that reader
+had concluded.  Both are repeatable.  What was luck is that the reader
+who got the wrong version was one who could absorb it.
+
+### Where they went wrong
+
+> **Henri:** *"Tein virheen että en ajatellut että hän tyrmäisi koko
+> jutun."*
+
+*The rest of his answer concerns that reader's health and is held back —
+it is a third party's, and `doc/consent.md`'s rule is that nobody's
+words or identity enter this tree before they have been asked.*
+
+> **Henri, after the first three answers:** *"Minulla kävi tuntemus että
+> olin tekemässä asiat väärin päin.  Minun olisi pitänyt pysähtyä ja
+> miettiä sitä tuntemusta."*
+
+**That is the most useful sentence in his half**, because it names a
+signal that arrived *before* the cost and was available to act on.  The
+feeling was correct — the paper was being written before its reader was
+chosen — and the standard the project already runs on says what to do
+with a feeling: give it a price.  Its price is the rest of this entry.
+
+The price is one reader holding a wrong frame — *a bought product* —
+and what came back followed from the frame rather than from the work:
+whether it sells is the only sensible question a product invites, and a
+product is what the first draft supplied.  Paper cannot take that
+back.
+
+The session's three, in the order they happened:
+
+* **The A4 request was read backwards.**  His message had two sentences
+  — *make the most important fit on the first sheet*, and *the A4 rule
+  is the A3 shrunk*.  The first was the intent; the second was his
+  attempt to help with the implementation.  The implementation hint was
+  taken as the goal, and an hour went into a photographic reduction that
+  made 10 pt into 7,1 pt and answered nothing he had asked for.
+* **The first draft left the house with no reader but its author.**
+  F162 is exactly this defect — *the way in to a program is the part its
+  author cannot read* — it was in the session's memory, and it was not
+  applied to the session's own paper.
+* **A marker bug emptied a heading in silence.**  A `[T]` on a list's
+  first item was read as the whole list's marker, so *Mitä ei kannata*
+  printed its heading with nothing under it.  Nothing failed; the sheet
+  looked correct.  It was found by rendering the page and looking at it,
+  which was the third time in one session that a valid-looking output
+  was wrong.
+
+### What mechanism it earns
+
+> **Henri:** *"Mikähän mekanismi sen korjaisi?  En tiedä."*
+
+Two were built during the day, both against the *looks-correct* class:
+the build now compares the A3 and A4 renderings as word multisets and
+refuses a pair that is not the same sheet — it fired once, correctly, on
+a running head — and the `[K]`/`[T]` markers put the audience split in
+the source where it can be read instead of in two diverging files.
+
+The one the day actually earned is not built: **a sheet does not compile
+without a declared reader.**  A `lukija:` line at the top of the source,
+and the typesetter refuses to lay out a paper that does not say who it
+is for.  It is the same shape as the `<placeholder>` test that will not
+let the front door ask a stranger to fill in a blank: it forces the
+question *for whom* to be answered before the writing rather than after
+the reading.  It would have caught this day at its first step.
+
+**And the day found one the tree does not have.**  A session can stop
+the person: `tools/andon.sh` rings the sound card, and it is named,
+capped and documented.  The person has no equally cheap gesture in the
+other direction — not because he cannot type, but because the action has
+no name, and an action with no name is one nobody performs at the moment
+it would cost the least.  The candidate is one word, *väärin päin*, with
+a fixed meaning: put the current thing down, do not finish the sentence
+in flight, and say what feels reversed before anything else is built.
+That would have cost nothing today and was available before the paper
+left.
+
+**The register protects names, and a relationship is not a name.**  This
+entry was written with a third party in it — identified by his relation
+to the author, his judgement reported, no name anywhere — and
+`test_consent.py` passed, because it checks attribution positions
+against the table, and a relation is not a name.  Henri caught it by
+reading, before the commit, and his objection is the rule in one line: a
+relation with exactly one possible referent identifies as surely as a
+name does.  His own wording is held back for the same reason it was
+raised.  The entry above is the rewritten one.
+Whether the gate can be taught to see a relationship is a real question
+and not answered tonight; what is certain is that the twelve gates did
+not, and a person did.
+
+And one has no mechanism, stated rather than invented: nothing checks
+that a paper was read by somebody other than its author before it left.
+Inside the tree that is a gate; outside it, there is only a person to
+ask, and on some days there is no such person.
+
+### Tomorrow's first thing
+
+> **Henri:** *"working-standard on yhä pöydällä, mutta ehkä se tulee
+> seuraavaksi tänä iltana vielä."*
+
+Three files are modified and uncommitted — `spec/author.md`,
+`doc/instruments.md` and the kaizen memory — and the standard changed in
+two of them tonight.  They want to be in history before the card moves
+the same documents.  Rules count 1,974 of 2,000, 26 lines of room, down
+from 56 this morning: the A4 rule cost 22 and the fourth question 8.
