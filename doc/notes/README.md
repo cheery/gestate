@@ -1,10 +1,10 @@
 # doc/notes/ — the conversations several rules came out of
 
-Six transcripts from three evenings and one day, kept because this
+Seven transcripts from four evenings and two days, kept because this
 tree's own rule is that a claim carries what paid for it.  Nine of the memories in
 `doc/memory/`, one card, and at least two sections of the method were
 distilled from the first four, and until now the distillate was public
-and the source was not.  The fifth and sixth were distilled from nothing —
+and the source was not.  The last three were distilled from nothing —
 they are here because they were worth keeping, not because something
 was taken out of them.
 
@@ -24,6 +24,7 @@ produced it rather than take the summary on trust.
 | [notes-on-deciding.md](notes-on-deciding.md) | the accumulation of cards · the thesis, and making decisions easier · should the capacity be spent |
 | [notes-on-guests-and-residents.md](notes-on-guests-and-residents.md) | what subgenre this is · whether the self-doubt belongs · why the same document produced grief in a 9B and admiration in a guest |
 | [notes-on-corrections.md](notes-on-corrections.md) | an andon for the keeper, and who supervises him · *first they ignore you*, banned as comfort · a claim deflated, and the same conclusion re-derived from ground that does not move · who audits the auditor between fires |
+| [notes-on-drift.md](notes-on-drift.md) | four ways to spread the method, and why none of them is next · whether the music is camouflage · what keeps a keeper in check and honest |
 
 ## Provenance, and what to distrust
 
@@ -34,19 +35,27 @@ the argument is faithful and the wording of the answers is not, and
 nothing in them should be quoted as though it were said exactly that
 way.
 
-**The fifth and sixth are different, and they are the more trustworthy
-of the two kinds.**  `notes-on-guests-and-residents.md` and
-`notes-on-corrections.md` arrived as files the author had saved from the
-window himself, so both sides are at full length and no session stood
-between the conversation and the page.  The only editing was reflowing
-lines and adding the headings and the closing section — and, in the
-sixth, repairing one place where the saved text had duplicated a
-fragment of a sentence; nothing was shortened.  Which means the ordinary
-reason to distrust a transcript here — a later model summarising an
-earlier one — does not apply to those two, and every *other* reason
-still does.
+**The last three are different, and they are the more trustworthy of
+the two kinds.**  `notes-on-guests-and-residents.md`,
+`notes-on-corrections.md` and `notes-on-drift.md` arrived as files the
+author had saved from the window himself, so both sides are at full
+length and no session stood between the conversation and the page.  The
+only editing was reflowing lines and adding the headings and the closing
+section — and, in the sixth, repairing one place where the saved text
+had duplicated a fragment of a sentence; nothing was shortened.  Which
+means the ordinary reason to distrust a transcript here — a later model
+summarising an earlier one — does not apply to those three, and every
+*other* reason still does.
 
-The model was **Fable**, over three evenings and one day in August; the
+**`notes-on-drift.md` carries two redactions and they are the only words
+changed in it.**  Two people are referred to in the original and neither
+has been asked, so both appear as descriptions — *a friend* and *the
+other builder*.  One was the author's own instruction when he handed the
+file over; the other is `doc/consent.md`'s rule applied by a session.
+The page says so in its own opening, because a silent redaction is worse
+than none.
+
+The model was **Fable**, over four evenings and two days in August; the
 transcription and the distillation into memories were done afterwards by
 a different model.  Two of the first four say so in their own text.
 
@@ -58,7 +67,7 @@ lost; it had not, and the claim came from looking in one directory.
 `doc/memory/what-a-session-is.md` and
 `doc/memory/deriving-strips-the-payment.md` are distilled from them.
 
-**The standing caveat applies to all four, and hardest here.**  A
+**The standing caveat applies to all seven, and hardest here.**  A
 session assessing this method is a product of it, and several of these
 pages are exactly that: an assessment of the tree, written by something
 the tree conditioned.  `doc/memory/the-evaluation-loop.md` is the rule
@@ -67,7 +76,11 @@ declaring itself, not escaping.  Read them as argument, not as evidence.
 
 ## Consent
 
-Only the author and a session speak in these files; no third party is
-named, so `doc/consent.md`'s register had nothing to ask.  Publishing
+Only the author and a session **speak** in these files, and no third
+party is **named** — two are referred to in `notes-on-drift.md` and both
+are redacted to descriptions, for the reason and in the manner the
+section above records.  So `doc/consent.md`'s register still has nobody
+to ask, and it would have if either name had been left in.  Publishing
 the first four was the author's decision, 2026-08-21; the fifth and
-sixth were handed over the same way, 2026-08-22.
+sixth were handed over the same way, 2026-08-22, and the seventh on
+2026-08-23.
