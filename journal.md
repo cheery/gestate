@@ -1863,3 +1863,62 @@ a verdict.
 **The question that would settle it is one sentence and he is
 reachable**: did the page change what he did, or would he have tried
 anyway?  It has not been asked, so nothing here answers it.
+
+### He was asked, and answered something else worth more
+
+*Relayed by Henri.  The substance is recorded; his own sentences are
+**not quoted here**, because `doc/consent.md` covers his name and the
+one comment he was asked about, and these are new words.  One more yes
+and they can go in — they are better than this paraphrase.*
+
+**Several sessions, not one.**  And the part that is a measurement: in
+the **first**, `board/README.md` visibly affected what the model did; in
+the later ones, much less.
+
+That file's opening line is *"This is the first thing to read when
+picking the project up."*  It is a designed affordance, and this is the
+first report from outside this tree that it landed — and the first that
+it stopped landing.
+
+**The flat reading is the wrong one.**  Decay is the exciting
+explanation and relevance is the boring one, and the boring one is what
+the document itself predicts: `board/README.md` is about *how a task is
+worked*.  In session one there was no work yet, so the method was the
+only thing to act on.  By session three there was a running program with
+a real defect in it, and a running program displaces a method document
+because it should.  A file that stops mattering once the work exists is
+not decaying; it is a starter, and it says so.
+
+**What would separate them** is whether the *dispositions* survived
+after the document stopped being consulted — go and look before
+explaining, a claim carrying a file or a number, a guess marked as a
+guess.  That is in his code, which was not part of what he was asked
+for, and not in anybody's recollection.
+
+**And it is a different document from the one the seeded trial's arms
+took.**  Those took the testing standard — the external oracle, the
+roster, *don't report done on tests you wrote from your own
+implementation*.  This one took the board.  Same tree, different reader,
+different task, and what transferred was what the reader was about to
+need.  Two data points is not a pattern, and the shape of it is worth
+watching: **the tree may not have a payload so much as a shelf.**
+
+### How he steered, which is the other half
+
+He drove the model with **symptoms, not instructions** — what the
+program did on screen, in plain speech, with no diagnosis, no file and
+no line number.  It worked.
+
+That is the human end of a doctrine this tree already argues from the
+machine end: *go and look*, *describe what it actually did before
+explaining why*, a complaint that says **where**.  The tree spends its
+effort making the program report honestly to a person.  This is the
+reverse direction measured for the first time — **a person reporting
+honestly to a program**, and it is the cheaper half, because the
+observation is the part only the person has.
+
+Worth stating plainly against the temptation to read it as charming: he
+supplied the observable and the model supplied the diagnosis, which is
+the division of labour every instrument in `doc/instruments.md` is
+built for.  A person who cannot read the code is not a limitation in
+that arrangement; they are the sensor.
