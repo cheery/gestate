@@ -1,6 +1,6 @@
 ---
 name: gestate-board-goal
-description: "2026-08-18 goal — four cards fewer, zero new; and the shelved-on-arrival exception Henri accepted"
+description: "The zero-new-cards goal is RETIRED (Henri, 2026-08-23); what survives it is the burden of proof, and the shelved-on-arrival exception"
 metadata: 
   node_type: memory
   type: project
@@ -20,7 +20,8 @@ Of the 13 cards, four are polish a user would feel
 `installation-test`); the other nine are for us, and a session wrote
 most of them.
 
-**How to apply:** **do not propose cards.** A session is the arrivals
+**How to apply:** *(superseded 2026-08-23 — see the foot of this file.)*
+**do not propose cards.** A session is the arrivals
 problem, and the remedy is not a limit but silence — a defect goes in
 `fixme.md`, and anything else goes nowhere unless he asks. Three of the
 open cards are decisions he can answer in a sentence, which converts
@@ -65,3 +66,22 @@ of the list, all three the kaizen cards about the session's own broken
 workflow.  Which is the board's own criterion (*impact on somebody using
 gestate*) pointing away from the work three times in one day; §"The
 priority" was rewritten because of it.
+
+**2026-08-23 — the goal is retired, by Henri.**  Asked whether a
+mechanism for the day's finding should be a card, and told that the
+board goal said no, he answered: *"tätä varten voi tehdä kortin.  Tuo
+tavoite on jo aika vanha."*  `who-asked` was written and placed the same
+afternoon, ninth in the priority.
+
+**So `do not propose cards` no longer holds, and the sentence above it
+does.**  What retires is the blanket silence from 2026-08-17, dated to a
+board of 13 that stood at 8 when he lifted it.  What survives untouched
+is the rule the amendment already extracted: **a card needs a problem he
+owns, measured against the tree, and the burden of proof is on the
+session** — *"Question me until you're convinced that the need is
+real"*, now `board/README.md` §"Question it into existence".
+
+**How to apply now:** propose when the need is measured, expect to be
+questioned, and keep preferring a finished card to a new one — the
+arrivals problem was real and only the remedy changed.  A proposal that
+cannot survive the questioning is still a `fixme.md` entry or nothing.
