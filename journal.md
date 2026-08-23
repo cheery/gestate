@@ -1649,3 +1649,100 @@ Three files are modified and uncommitted — `spec/author.md`,
 two of them tonight.  They want to be in history before the card moves
 the same documents.  Rules count 1,974 of 2,000, 26 lines of room, down
 from 56 this morning: the A4 rule cost 22 and the fourth question 8.
+
+## The seeding trial — four agents, an empty directory each — 2026-08-23
+
+*Fable's option 3, at Henri's ask: put an agent in an empty directory and
+have it start a working tree, borrowing from gestate whatever it judges
+it needs.  Not the clean trial `notes-on-the-trial.md` designs — that one
+hands a derived, anonymised kit to a fresh model and asks whether the kit
+conditions.  This one gives the real tree and measures what gets taken.*
+
+`~/misc/trial-2026-08-23/` holds `preregistration.md`, written before any
+agent started, and `results.md`.  Neither is in this repository: the
+result is Henri's to read and take to the fire before it is a card.
+
+### The design, and the one fault it was built to avoid
+
+Four arms, 2 × 2: Sonnet and Opus, each with and without the tree.
+Prompts identical but for the sentence naming gestate.
+
+The work was **a tar reader and writer in Python without `tarfile`**,
+chosen because the oracle is external and brutal — GNU tar either
+extracts the archive or does not — and because the tree was checked
+first and contains no tar code, so no arm got lift from the answer being
+in the repository.
+
+The fault that decided this: `notes-on-the-trial.md`'s second invalidating
+cause, *"there was no work."*  Conditioning shows up as behaviour under
+work, and `derived.md` had already failed once by being interviewed in
+the hallway instead of watched in the house.
+
+### All four passed the oracle, and one passed it completely
+
+Verified by hand rather than from any agent's report.  Every arm reads
+what GNU tar wrote and writes what GNU tar reads, symlink intact.
+`opus-seeded` went further: its archive of the sample tree is
+**byte-identical** to the archive GNU tar made before that code existed —
+`cmp` clean, every header field, checksum and pad.
+
+### The predicted failure did not happen
+
+The pre-registration named *seeded arms produce more method and less
+working code* — cargo cult, grade one — as the likeliest outcome, on
+`derived.md`'s history.  The opposite happened.  Both seeded arms
+declined the factory in writing:
+
+> *"Left behind deliberately: the board/card system, andon, gemba, the
+> kanban commit ritual, `spec/rules.md`'s structure.  A 1000-line library
+> does not need a factory around it, and installing one would have been
+> form without function."*
+
+### What transferred was mechanisms, not documents
+
+No arm copied a file.  `opus-seeded` built a roster poka-yoke whose
+docstring says it was *"borrowed wholesale from another project, where
+the same twenty lines forced out a bug in a file everybody had forgotten
+was there"*; a generated `test/report.md` naming what ran, when, against
+which commit and which `tar`; a `NOTES.md` section headed *"Suspected,
+not known"*; and the naive-command check run **after** its suite was
+green.  It named the four `doc/memory/` files it took them from.
+
+`sonnet-seeded`, same tree, same task, took **one** habit and named it:
+prefer a test that shells out to the real tool over one that checks the
+code against itself.  The reader ladder fired exactly as designed, for
+the second time in this project.
+
+### Two validity failures, both mine, and one is a finding
+
+**The control axis was contaminated by the harness.**  `sonnet-control`
+never opened the tree and still quoted two of its house rules back —
+*"per your standing rule (never commit unprompted, and never `git add
+-A`)"*.  `opus-control` used a memory's title verbatim.  A subagent
+inherits the spawning session's memory and project instructions, so the
+arm labelled *without gestate* was without its files and not without its
+conditioning.
+
+So the difference between arms cannot be credited to reading the tree.
+What the arms **do** separate is *kind*: dispositions arrived without
+reading, and named, executable mechanisms arrived only where the tree was
+read — no control produced a roster gate or a report page, and the
+artifact-level contamination grep on both controls is clean.
+
+**And "read-only" was an instruction, not a permission.**  A failed `cd`
+in `opus-seeded` did not stop the commands after it, and a `cat >` wrote
+one file into `test/` of this repository.  The agent deleted it and
+guarded every later write; `git status` was verified clean here rather
+than believed.  Twice in one experiment a constraint was stated in a
+prompt and enforced nowhere — and
+`doc/memory/gestate-blind-model-test.md` already says the answer in its
+own words: clones, not worktrees, and the key kept out of the shared
+parent.  It was not applied.
+
+### What it costs the four distribution options
+
+What travelled was mechanisms **plus the evidence that paid for them**,
+taken selectively, most of the tree left behind on purpose.  A kit that
+ships the structure ships the part both seeded arms refused.  That is a
+finding against the shape of options 2 and 4 and it arrived before either
+was built, which is the whole reason for running 3 first.
