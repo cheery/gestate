@@ -1188,3 +1188,179 @@ assert which two pieces were bare, specifically so that it would fail
 when they stopped being bare; it caught the audit's third harvester bug
 on the way through; and it is now the gate itself.  A test that fails on
 good news is easy to argue away.
+
+## The fourteen, moved out of the rules — 2026-08-23
+
+*`spec/author.md` §"Where this method came from" carried a scorecard of
+this project against Liker's fourteen principles, and under it the
+argument about which two were missing and why.  Sixty-nine lines, moved
+here whole at Henri's ask.*
+
+**Why it moved, in the rules' own words.**  `spec/rules.md` §"What the
+fat is" gives the test: *does a stranger who never saw the incident need
+this sentence in order to **follow** the rule, or only in order to
+**believe** it?*  A scorecard is belief.  Nothing in the sixty-nine lines
+is an instruction — it is the evidence that the method was imported from
+somewhere real rather than assembled from taste, and that evidence is
+worth keeping and is not worth the window it cost every session that
+opened the rules.
+
+**And it had already told on itself.**  Its own correction line, added
+2026-08-21: *"Neither is missing any more … What follows describes the
+state that made them necessary rather than the state today."*  A section
+that says it describes a past state is a journal entry that has not been
+moved yet.
+
+**No citation broke.**  Nothing in the tree named either heading — the
+one loose end is `manifesto.md`'s prose *"`spec/author.md` scores this
+project against Liker's fourteen principles"*, which no gate can see and
+which now points here.
+
+The cut left `spec/author.md` at 363 lines and the rules set at **1,934
+of 2,000** — 66 lines of room, where there had been five.  Sixty-nine
+lines came out and an eight-line pointer went back in, which is the
+honest arithmetic: a section that is cited from where it used to be
+costs something to remove, and the something is worth paying.  It is the
+first real room the cap has had since it was set on 2026-08-20, and it
+came from one edit that removed no rule.
+
+---
+
+### The fourteen, scored honestly
+
+Liker's fourteen principles, against this project as it stands:
+
+| | principle | here |
+|---:|---|---|
+| 1 | long-term philosophy over short-term gain | **strong** — *do not build what nothing needs*; three of nine days had deletion as their headline |
+| 2 | continuous flow, to bring problems to the surface | **partial** — granular commits, but work piles up uncommitted for hours |
+| 3 | **pull, to avoid overproduction** | **new** — but slowly coming to use, see below |
+| 4 | **level the workload (*heijunka*)** | **new** — see below |
+| 5 | stop to fix problems (*jidoka*) | **strong** — the suite, the fence, the leash; and the author stops the line himself |
+| 6 | standardised work as the base for improvement | **new** — the card format, the commit convention, spec-before-build |
+| 7 | visual control, so no problem is hidden | **strong** — knobs in the margin, complaints in boxes, `rocks.md`'s marks, the atlas |
+| 8 | reliable, thoroughly tested technology that serves the people | **inverted** — the assistant is *not* thoroughly tested technology; the discipline is to wrap it in things that are |
+| 9 | grow leaders who understand the work | `doc/reading-the-log.md`, aimed at the author himself |
+| 10 | develop people and teams | three people along, Janne, Henri, Mikko |
+| 11 | challenge partners and help them improve | this is the feedback loop: correcting the assistant *in writing*, where the correction survives the session |
+| 12 | **go and see for yourself (*genchi genbutsu*)** | **strong** — `card:gemba.md`, and the driven window. |
+| 13 | decide slowly by consensus, implement rapidly (*nemawashi*) | **strong, and distinctive** — elaborate before taking, collect the questions, answer in one sitting, then build in an evening.  Its other half, **set-based design**, was named and written down on 08-17: `manifesto.md` §"Set-based, not point-based" |
+| 14 | a learning organisation through reflection and *kaizen* | **strong** — `journal.md`, `fixme.md`, and the reflex of asking for a poka-yoke rather than an apology |
+
+**The principles of *pace* are more important than *quality*.**
+`vision.md`: *any project must not consume the person leading it.*
+
+**And the finding was that pace was the missing half.**  This project
+scores well on every principle about *quality*.  Nothing here was ever
+going to produce a bad artifact.  It was always going to produce too
+many of them.
+
+*Neither is missing any more — corrected 2026-08-21.*  `card:timer.md`
+was built on 2026-08-17, which is the takt the section below calls
+structurally unavailable, and the sweep adopted *heijunka* on
+2026-08-18 (`card:ungated-fixes.md`).  What follows describes the state
+that made them necessary rather than the state today.
+
+### Why 3 and 4 were the ones missing
+
+TPS is a **pull** system: nothing is built until something downstream
+asks for it, and the rate is set by *takt time* — customer demand
+divided by available time.  That governor is **external**.  It is what
+stops a line running faster than anyone needs.
+
+**A solo project has no customer signal.**  Nothing pulls.  So every
+other part of the system was imported faithfully — the andon, the
+mistake-proofing, the standard work, the reflex of fixing the process
+instead of blaming the step — and the one component that was
+structurally unavailable was the one that sets the pace.  What remained
+was pure push, and push with no takt accelerates:
+
+    7 → 26 → 26 → 33 → 18 → 42 → 43 → 60
+
+That is principle 4 stated as a measurement.  *Heijunka* is levelling;
+this is its opposite, *mura*, and the principle's own gloss is the
+sentence that was broken: **work like the tortoise, not the hare.**
+
+So `card:timer.md` was not a wellness feature bolted onto an engineering
+system.  **It was the missing takt** — a synthetic demand signal for a
+line with no customer to supply one.  It was built on 2026-08-17 and is
+in `board/done/`, which is why this heading is past tense.
+
+And the other pillar, the one dropped whenever TPS is imported badly:
+*respect for people* is not a slogan attached to the efficiency, it is
+load-bearing.  The person doing the work is the one who improves it, and
+the system exists to free their judgment for what only judgment can do.
+When it is dropped the failure is *muri* — overburden — and a system
+smooth everywhere else will quietly route all its remaining variability
+through the human.  `spec/summary.md` §"The clock" is what that looks
+like when it is finally measured.
+
+## Two lists of what a card waits on, and they had drifted — 2026-08-23
+
+*Eight lines out of `board/README.md` §"The priority", the second trim of
+the day.  Small, and kept for the reason it was found rather than for
+its size.*
+
+**What came out** — the paragraph that derived the priority rule from
+Henri's original wording:
+
+> **And the filter was in his rules from the first day**: §"The rules, as
+> Henri wrote them" opens *"Work them in the order given, unless one
+> blocks the other"*.  What narrowed was **blocks**, read as *card A
+> blocks card B* — the one case the suite can check, and one of six that
+> day.  A card also waits on a person, on a decision only he can make, on
+> a schedule it set itself, or on a quiet machine, and none of those is
+> visible here.
+
+**Why it went.** Half of it is provenance: a stranger needs his original
+sentence to *believe* the 2026-08-19 correction, not to *follow* it, and
+`spec/rules.md` §"What the fat is" sends that half here.
+
+**And the other half was a second copy of a list that already existed
+eight lines below it.**  Both enumerated what makes a card drop out of
+today, and by the time they were read side by side they no longer said
+the same thing:
+
+| | what a card waits on |
+|---|---|
+| the paragraph above | a person · a decision only he can make · a schedule it set itself · a quiet machine |
+| §"The priority", still there | a person · a decision · another card · a condition |
+
+Two of four differ.  `card:working-standard.md` predicted exactly this —
+*"a rule stated three times is three things that can drift apart, and
+nothing in the suite compares them"* — and this is the smallest possible
+instance of it: one rule, one section, two spellings, drifted inside
+twenty lines of each other.
+
+**The one left standing is the better one.**  *Another card* and *a
+condition* are the general forms; *a schedule it set itself* and *a quiet
+machine* are two instances of *a condition*, written on the day two such
+cards happened to exist.  So the cut removed the narrower list, which is
+the direction that would not have been obvious if the section had been
+trimmed for length alone.
+
+**What no instrument would have caught.**  Not `tools/dangling.py`,
+written this morning — it looks for a *name* cited and never asserted,
+and neither list is named.  Not `test_citations.py`, which checks that
+references resolve, and both of these were prose.  Not `rulecount.py`,
+which counts lines and cannot see that eight of them are a duplicate.
+It was found by reading twenty lines with the question *is anything here
+said twice* — which is `card:working-standard.md`'s actual job and does
+not automate.
+
+**But an instrument did catch what the cut broke.**
+`test_citations.py::test_the_method_pages_sizes_are_the_sizes` went red:
+`doc/method.md` — the page a visitor is handed instead of the tree —
+carries a table of the method documents with their line counts, and it
+still said `board/README.md` was 632.  Eight lines came out of one file
+and a number went stale in another, which is the ordinary shape of this
+kind of edit and is exactly why that gate exists.  Fixed in the same
+sitting; the check took sixteen seconds to say so.
+
+Worth separating the two, because they are different claims: **no gate
+can find a paragraph said twice**, and that is what the reading was
+for.  **A gate can find a number that stopped being true**, and it did,
+without being asked.
+
+`board/README.md` is 624 lines; the rules set is 1,926 of 2,000, with 74
+lines of room.

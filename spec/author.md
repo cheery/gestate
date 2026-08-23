@@ -279,7 +279,7 @@ why it is the easiest one to keep postponing.
 
 ---
 
-## Where this method came from, and the two principles that were missing
+## Where this method came from
 
 *Added the same evening, at Henri's ask.  He read the Toyota Production
 System carefully about a month ago, taking notes — Janne is the reason
@@ -308,74 +308,13 @@ to *the machine is faster than the inspector* is not **inspect harder**.
 It is: make the machine stop itself, and make the defect visible at the
 source, immediately, to something that is not a person's attention.
 
-### The fourteen, scored honestly
-
-Liker's fourteen principles, against this project as it stands:
-
-| | principle | here |
-|---:|---|---|
-| 1 | long-term philosophy over short-term gain | **strong** — *do not build what nothing needs*; three of nine days had deletion as their headline |
-| 2 | continuous flow, to bring problems to the surface | **partial** — granular commits, but work piles up uncommitted for hours |
-| 3 | **pull, to avoid overproduction** | **new** — but slowly coming to use, see below |
-| 4 | **level the workload (*heijunka*)** | **new** — see below |
-| 5 | stop to fix problems (*jidoka*) | **strong** — the suite, the fence, the leash; and the author stops the line himself |
-| 6 | standardised work as the base for improvement | **new** — the card format, the commit convention, spec-before-build |
-| 7 | visual control, so no problem is hidden | **strong** — knobs in the margin, complaints in boxes, `rocks.md`'s marks, the atlas |
-| 8 | reliable, thoroughly tested technology that serves the people | **inverted** — the assistant is *not* thoroughly tested technology; the discipline is to wrap it in things that are |
-| 9 | grow leaders who understand the work | `doc/reading-the-log.md`, aimed at the author himself |
-| 10 | develop people and teams | three people along, Janne, Henri, Mikko |
-| 11 | challenge partners and help them improve | this is the feedback loop: correcting the assistant *in writing*, where the correction survives the session |
-| 12 | **go and see for yourself (*genchi genbutsu*)** | **strong** — `card:gemba.md`, and the driven window. |
-| 13 | decide slowly by consensus, implement rapidly (*nemawashi*) | **strong, and distinctive** — elaborate before taking, collect the questions, answer in one sitting, then build in an evening.  Its other half, **set-based design**, was named and written down on 08-17: `manifesto.md` §"Set-based, not point-based" |
-| 14 | a learning organisation through reflection and *kaizen* | **strong** — `journal.md`, `fixme.md`, and the reflex of asking for a poka-yoke rather than an apology |
-
-**The principles of *pace* are more important than *quality*.**
-`vision.md`: *any project must not consume the person leading it.*
-
-**And the finding was that pace was the missing half.**  This project
-scores well on every principle about *quality*.  Nothing here was ever
-going to produce a bad artifact.  It was always going to produce too
-many of them.
-
-*Neither is missing any more — corrected 2026-08-21.*  `card:timer.md`
-was built on 2026-08-17, which is the takt the section below calls
-structurally unavailable, and the sweep adopted *heijunka* on
-2026-08-18 (`card:ungated-fixes.md`).  What follows describes the state
-that made them necessary rather than the state today.
-
-### Why 3 and 4 were the ones missing
-
-TPS is a **pull** system: nothing is built until something downstream
-asks for it, and the rate is set by *takt time* — customer demand
-divided by available time.  That governor is **external**.  It is what
-stops a line running faster than anyone needs.
-
-**A solo project has no customer signal.**  Nothing pulls.  So every
-other part of the system was imported faithfully — the andon, the
-mistake-proofing, the standard work, the reflex of fixing the process
-instead of blaming the step — and the one component that was
-structurally unavailable was the one that sets the pace.  What remained
-was pure push, and push with no takt accelerates:
-
-    7 → 26 → 26 → 33 → 18 → 42 → 43 → 60
-
-That is principle 4 stated as a measurement.  *Heijunka* is levelling;
-this is its opposite, *mura*, and the principle's own gloss is the
-sentence that was broken: **work like the tortoise, not the hare.**
-
-So `card:timer.md` was not a wellness feature bolted onto an engineering
-system.  **It was the missing takt** — a synthetic demand signal for a
-line with no customer to supply one.  It was built on 2026-08-17 and is
-in `board/done/`, which is why this heading is past tense.
-
-And the other pillar, the one dropped whenever TPS is imported badly:
-*respect for people* is not a slogan attached to the efficiency, it is
-load-bearing.  The person doing the work is the one who improves it, and
-the system exists to free their judgment for what only judgment can do.
-When it is dropped the failure is *muri* — overburden — and a system
-smooth everywhere else will quietly route all its remaining variability
-through the human.  `spec/summary.md` §"The clock" is what that looks
-like when it is finally measured.
+**The scorecard is in the journal.**  This project was scored against
+Liker's fourteen, and the two principles it was missing — *pull* and
+*heijunka* — were argued out at length; both were closed by
+`card:timer.md` and `card:ungated-fixes.md`, and the argument is
+`journal.md` §"The fourteen, moved out of the rules".  It is kept
+because it is why anybody should believe the frame, and it is not here
+because believing the frame is not how you follow a rule.
 
 ### Go and see
 

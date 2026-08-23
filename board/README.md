@@ -43,14 +43,6 @@ against a single day and was false three times over.*  The real order
 comes from three inputs this list does not hold — what he asked for,
 what was blocked, and what was cheap.
 
-**And the filter was in his rules from the first day**: §"The rules, as
-Henri wrote them" opens *"Work them in the order given, unless one
-blocks the other"*.  What narrowed was **blocks**, read as *card A
-blocks card B* — the one case the suite can check, and one of six that
-day.  A card also waits on a person, on a decision only he can make, on
-a schedule it set itself, or on a quiet machine, and none of those is
-visible here.
-
 So the order is **priority filtered by what can actually be worked
 today**, and the filter is not written down anywhere because it changes
 daily.  Read the list, then read the card: a card that waits on a

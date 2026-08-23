@@ -177,9 +177,9 @@ Set-based design keeps several alive, states what would kill each, and
 converges last.  It is Toyota's, and it is the practice behind the
 paper title that names the whole surprise — Ward, Liker, Cristiano and
 Sobek, *The Second Toyota Paradox: How Delaying Decisions Can Make
-Better Cars Faster*.  `spec/author.md` scores this project against
-Liker's fourteen principles; this is the sibling of number 13, and the
-half that was not written down.
+Better Cars Faster*.  `journal.md` §"The fourteen, moved out of
+the rules" scores this project against Liker's fourteen; this is the
+sibling of number 13, and the half that was not written down.
 
 **Why it matters more here than it would on a team of people.**  A
 model produces one fluent, well-argued answer in seconds, and the
