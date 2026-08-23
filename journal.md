@@ -1753,6 +1753,12 @@ was built, which is the whole reason for running 3 first.
 before anything reached this tree — `doc/consent.md` records what that
 covers and what it does not.*
 
+**He read a page first, and this entry said otherwise for an hour.**
+*Corrected 2026-08-23, when Henri said so: before any of it, Tuomas read
+`gestate-kevyt-a4.pdf` — the light sheet this same day's evening kaizen
+is about, §"the sheet decided what its first reader would say".  He was
+not cold, and the sentence below was written as though he were.*
+
 He tried gestate and came back with **a step sequencer built around it**:
 a terminal groovebox running `technomachine.ges` at 48 kHz, twelve named
 parameters as knobs, peak and RMS meters, an eight-band spectrum, a
@@ -1828,3 +1834,32 @@ this one.
 
 **His code was not part of what he was asked**, so it is not here and
 was not read.
+
+### What the sheet can and cannot be credited with
+
+`gestate-kevyt-a4.pdf` is **not a manual for gestate**.  It is one page
+titled *"Mikä minä olen ja mitä kanssani voi tehdä"* — what an assistant
+is, and what Henri builds around it: memory in files, a work list in
+files, gates, rules that bind, somebody who says no in time.  It carries
+no API, no commands, and neither `controls()` nor `audiohost` appears on
+it.  **So it cannot account for how the reader found either**; that was
+still source.
+
+What it plausibly did is earlier and cruder: it is why he tried at all,
+and the frame he brought.  The evening kaizen's price was *one reader
+holding a wrong frame — a bought product* — and the sheet was redirected
+afterwards.  This is that redirection's reader, and what he did with it
+was work with a model rather than evaluate a product, which is the
+sheet's own closing line: *"Meiltä ei puutu parempi tekoäly eikä
+suurempi kapasiteetti.  Meiltä puuttuu tapa tehdä työtä yhdessä."*
+
+**And that reading is the flattering one, so it is marked suspected.**
+One reader, no control, at a code clinic with the project in front of
+him and every reason to be curious anyway.  The sheet may have
+contributed nothing.  `doc/instruments.md`'s A4 rule is provisional and
+says its own doubt is part of it; this is one data point for it and not
+a verdict.
+
+**The question that would settle it is one sentence and he is
+reachable**: did the page change what he did, or would he have tried
+anyway?  It has not been asked, so nothing here answers it.

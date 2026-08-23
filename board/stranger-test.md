@@ -501,6 +501,13 @@ anywhere in `doc/`.
 **But he did not read it and did not write it:** *"emmä oikeesti tiedä
 mitä mä teknisesti teen tässä projektissa mutta annan geminin laulaa."*
 
+**He did read one page before any of it** — `gestate-kevyt-a4.pdf`, the
+light sheet, which is about the method and the collaborator and carries
+no gestate API at all.  So he was **not cold**, and this run measures
+nothing about a first frame arriving unaided.  It is also the A4 rule's
+first outside reader who then acted, which the rule wanted and does not
+prove.
+
 ### The table needs a third row
 
 | | reads | tests |
