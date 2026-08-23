@@ -199,3 +199,66 @@ def test_reading_the_clock_grants_nothing(tmp_path):
     assert r.returncode == 0
     assert "20" in r.stdout
     assert desk.state.read_text().split()[:3] == before.split()[:3]
+
+
+def test_a_finished_background_task_is_not_an_arrival(tmp_path):
+    """**The defect of 2026-08-23, and the direction it ran in.**
+
+    A background agent's completion is delivered to the session as a
+    prompt, so it arrived at this hook as though Henri had typed it.  At
+    17:34 that day the limit blocked one — *withholding a result he had
+    already asked for* — and every other notification that afternoon
+    wrote a `prompt` row, which is a ledger claiming somebody was at the
+    desk when nobody was.  Three of the last five rows were machines.
+
+    His call, given two options: log it under its own name and never
+    block.  So a wake passes (exit 0), leaves one `wake` line, and —
+    the part that matters for the meter — **does not touch the state**:
+    it may not open a sitting, extend one, or move `last`, or a
+    notification landing in a silence starts a sitting nobody sat for.
+    """
+    desk = Desk(tmp_path)
+    desk.prompt("sitting 45")
+    before = desk.state.read_text()
+
+    out = desk.prompt("<task-notification>\n<task-id>abc</task-id>\n"
+                      "<status>completed</status>\n</task-notification>")
+
+    assert out.returncode == 0, f"a wake must never block: {out.stderr}"
+    assert desk.state.read_text() == before, \
+        "a wake moved the sitting's state; it must be transparent to it"
+    assert [l[1] for l in desk.lines()][-1] == "wake"
+
+
+def test_a_wake_does_not_block_even_past_the_limit(tmp_path):
+    """The whole point of the fix, at the moment it bit.
+
+    Past the limit a typed prompt is refused and that is correct.  A
+    finished task is not a person sitting down again, and refusing it
+    does not protect anybody's evening — it only hides work that is
+    already done.
+    """
+    desk = Desk(tmp_path)
+    desk.prompt("sitting 15")
+    desk.rewind(20)
+
+    out = desk.prompt("<task-notification><status>completed</status>"
+                      "</task-notification>")
+    assert out.returncode == 0, "the limit held back a finished task"
+    assert "minutes are up" not in out.stderr
+
+    typed = desk.prompt("what did it say?")
+    assert typed.returncode == 2, "a typed prompt past the limit must stop"
+
+
+def test_a_prompt_that_merely_mentions_the_word_is_still_an_arrival(tmp_path):
+    """The twin of `test_a_question_that_merely_mentions_it_is_not_a_grant`.
+
+    Henri asking *"why did the task-notification get blocked?"* is a
+    person at the desk, and must count as one.  The match is on the
+    literal tag the harness wraps a notification in, not on the word.
+    """
+    desk = Desk(tmp_path)
+    desk.prompt("sitting 45")
+    desk.prompt("why did the task-notification thing get blocked?")
+    assert [l[1] for l in desk.lines()][-1] == "prompt"

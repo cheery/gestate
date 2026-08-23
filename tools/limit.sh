@@ -125,6 +125,28 @@ if [ "${1:-}" = "--hook" ]; then
     echo "Sitting of $limit minutes, from $(date +%H:%M).  Ends $(date -d "@$((now + limit*60))" +%H:%M)." >&2
     exit 2
   fi
+
+  # **A background task's completion is not an arrival.**  A finished
+  # agent or a finished background command is delivered as a prompt, so
+  # it reached this hook as though Henri had typed it — and on
+  # 2026-08-23 at 17:34 the limit blocked one, *withholding a result he
+  # had already asked for* and writing a `block` he did not cause.  It
+  # also wrote `prompt` rows for every other notification, which is a
+  # ledger saying somebody was at the desk when nobody was.
+  #
+  # Henri's call the same evening, given two options: **log it under its
+  # own name and never block.**  The record survives, `tools/sittings.py`
+  # filters it out, and nothing a session started is ever held back by a
+  # limit that is about a person's time.
+  #
+  # Deliberately before the state write: a wake must not open a sitting,
+  # must not extend one, and must not move `last` — otherwise a
+  # notification arriving in a silence starts a sitting nobody sat down
+  # for, and the next real prompt reads a gap that never happened.
+  if [ "${prompt#*<task-notification>}" != "$prompt" ]; then
+    note wake "gap=$gap"
+    exit 0
+  fi
 fi
 
 elapsed=$(( (now - started) / 60 ))

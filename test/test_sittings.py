@@ -164,3 +164,57 @@ def test_the_totals_can_never_say_more_agains_than_blocks(tmp_path, capsys):
     assert "reached 2 time(s)" in said
     assert "straight after 2 of them" in said
     assert "question for the fire" in said
+
+
+def test_a_wake_is_not_a_person_and_never_touches_a_sitting(tmp_path):
+    """**The other half of the 2026-08-23 defect.**
+
+    `limit.sh` now logs a finished background task as `wake` instead of
+    blocking it.  If the meter merely stopped *counting* those it would
+    still be wrong: a wake landing after the last prompt would extend
+    the sitting's end, and the machine's working hours would be read as
+    a person's time at the desk.  So it is skipped outright — it starts
+    nothing, ends nothing, and is invisible to the override test.
+    """
+    p = log(tmp_path, [
+        (NINE, "grant", "min=45 gap=0"),
+        (NINE + 600, "prompt", "gap=10 elapsed=10 limit=45"),
+        (NINE + 5400, "wake", "gap=80"),          # an agent finished an hour later
+    ])
+    got = sittings.sittings(sittings.read(p))
+    assert len(got) == 1, "a wake opened a sitting nobody sat down for"
+    assert got[0]["end"] - got[0]["start"] == 600, \
+        "a wake extended time at the desk; the machine's hour became his"
+
+
+def test_a_wake_between_a_block_and_a_grant_hides_nothing(tmp_path):
+    """The override test looks at the *previous event*, so a machine
+    landing between the two must not break the pairing — otherwise the
+    one column this meter exists for silently under-reports on exactly
+    the busy days when agents are running."""
+    p = log(tmp_path, [
+        (NINE, "grant", "min=15 gap=0"),
+        (NINE + 900, "block", "elapsed=15 limit=15"),
+        (NINE + 930, "wake", "gap=0"),
+        (NINE + 960, "grant", "min=45 gap=0"),
+    ])
+    got = sittings.sittings(sittings.read(p))
+    assert [s["override"] for s in got] == [False, True]
+
+
+def test_the_days_that_cannot_be_repaired_say_so(tmp_path, capsys):
+    """A number known to be wrong must not print as though it were not.
+
+    Before 2026-08-23 a notification wrote `prompt`, `open` or `block`
+    and the log kept no source — so those days cannot be cleaned, only
+    labelled.  `a number nobody asked for is a number nobody checks` has
+    a twin: a number nobody flagged is a number somebody quotes.
+    """
+    p = log(tmp_path, [
+        (NINE, "grant", "min=45 gap=0"),
+        (NINE + 600, "prompt", "gap=10 elapsed=10 limit=45"),
+    ])
+    sittings.main(["--log", str(p)])
+    said = capsys.readouterr().out
+    assert "cannot be told from a person" in said
+    assert "upper bound" in said

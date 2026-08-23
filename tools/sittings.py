@@ -61,6 +61,21 @@ DEFAULT_LOG = pathlib.Path(
 #: the arrival the limit tool was built for.
 STARTS = ("grant", "open")
 
+#: **Not a person.**  A finished background agent or command is
+#: delivered to the session as a prompt, so `limit.sh` saw it as an
+#: arrival until 2026-08-23.  It is logged under its own name now and
+#: skipped here entirely — not merely excluded from the count, because a
+#: wake that extended a sitting's end would put the machine's working
+#: hours into a person's day.
+IGNORED = ("wake",)
+
+#: **The day the ledger stopped counting machines.**  Rows before this
+#: cannot be repaired: a notification then wrote `prompt`, `open` or
+#: `block` and the log kept no source, so there is no way to tell them
+#: from Henri afterwards.  Every day at or before this date is reported
+#: with that said out loud rather than quietly averaged in.
+WAKES_NAMED = "2026-08-23"
+
 
 def read(path):
     """Every row, oldest first, as `(epoch, event, detail)`.
@@ -106,6 +121,8 @@ def sittings(rows):
     out = []
     previous = None
     for when, event, detail in rows:
+        if event in IGNORED:
+            continue
         if event in STARTS:
             out.append({"start": when, "end": when, "declared": field(detail, "min"),
                         "blocks": 0, "override": previous == "block",
@@ -206,6 +223,11 @@ def main(argv=None):
     else:
         print("  The limit was never reached.")
     print("  Time at the desk is a floor: walking away leaves no event.")
+    stale = [d for d in days if d <= WAKES_NAMED]
+    if stale:
+        print(f"  {len(stale)} day(s) at or before {WAKES_NAMED} counted "
+              "finished background tasks as arrivals; those rows cannot be "
+              "told from a person now.  Read them as an upper bound.")
     return 0
 
 
