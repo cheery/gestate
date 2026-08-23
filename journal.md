@@ -1966,6 +1966,15 @@ It does not repair the ranking above; it makes the cap's premise true.
 618 lines now arrive at every session that honours it, which is the tax
 this whole budget exists to hold — deliberately spent, at his word.
 
+*Narrowed the same evening, by measurement.*  A probe agent was asked
+what its context held before reading anything and answered *"Nothing.
+No file named `AGENTS.md` or `CLAUDE.md`… appear anywhere in my
+context"* — and then quoted all 34 lines of the memory index exactly.
+**So the pointer does not reach a subagent at all**, and the sentence
+above holds at most for a top-level session.  Whether it holds there is
+unknown from here: the file was made mid-session and loads at start, so
+the next session's start is the check.
+
 **One line is the discipline, and it is gated.**  `test_rules.py`
 refuses a longer one: a pointer that starts explaining is a sixth method
 document arriving through a side door, charged to every session at
@@ -1983,3 +1992,83 @@ from the same afternoon is a ready harness: same model, same prompt,
 measured the effect of a document rather than assuming it — and Henri's
 hypothesis, restated against the file that actually loads, is exactly
 what such a run would test.
+
+## The pointer, measured the evening it was built — 2026-08-23
+
+*At Henri's ask, an hour after `AGENTS.md` landed: run the tar task with
+the pointer and without.  `~/misc/trial-2026-08-23/` holds
+`preregistration-pointer.md`, written before either arm started and
+before the probe that decided the design, and the arms in `pointer-on/`
+and `pointer-off/`.*
+
+### The instrument was measured before it was used
+
+A probe agent was asked what its context already held, reading nothing:
+no instruction to read the board, no `AGENTS.md`, no `CLAUDE.md` — and
+then it quoted the memory index whole, all 34 lines, exactly.
+
+So the run could not test the file's *delivery*.  The arms differ by one
+sentence in the prompt, which reproduces the pointer's causal content
+and not the way it arrives.  **That is the more interesting half and it
+is untouched.**
+
+### Against the pre-registered marks: no difference
+
+Both arms pass the oracle both ways.  Neither produced a card, a
+`because` naming a problem, or a citation of `doc/memory/` in its
+artifacts.  Both left a `QUESTIONS.md` of scope calls.
+
+| | pointer-on | pointer-off | `sonnet-seeded`, no pointer |
+|---|---|---|---|
+| Python lines | 942 | 599 | **990** |
+
+The arm with no pointer at all, run hours earlier, wrote the most.  The
+pointer did not produce more, and reading the board first produced no
+mark the list was watching for.
+
+**The verdict is the fourth pre-registered branch — better tar, no
+method marks.**  `pointer-on` found three interoperability defects
+against GNU tar to `pointer-off`'s one, and shipped a CLI, hard links,
+PAX on read and a traversal guard.  It also ran twice as long on nearly
+twice the tokens, and **one run per arm cannot separate that from
+variance**, which the pre-registration said before either started.
+
+### The refusal, now three for three
+
+`pointer-on` read `board/README.md` because it was told to, and wrote:
+*"Nothing gestate-specific (board, `fixme.md`, cards) applies to this
+isolated trial directory."*
+
+That is the third arm today to read this tree's structure and decline it
+in writing.  **Handing an agent the board first did not make it build a
+board**, and the cargo-cult failure this project has feared since
+`derived.md` did not appear in five attempts to provoke it.
+
+### The sharpest thing the pair actually supports
+
+`pointer-off` closed with *"per the standing rule not to commit
+unprompted"* and left the repository uncommitted.  `pointer-on` made a
+commit.
+
+**Same memory index in both, same 34 lines, opposite behaviour on the
+rule that index states most plainly.**  So the conditioning that arrives
+without being read is real — five arms today quoted rules they never
+opened — and it is **not deterministic**.  That is a narrower claim than
+either *it conditions* or *it does not*, and it is the one with evidence
+under it.
+
+### What is now known about the hypothesis, and what is not
+
+Henri's was: break the contracts in the rule books and sessions change
+immediately.  What today can say:
+
+* **The five capped documents reach nothing on their own.**  Measured.
+* **The memory index reaches everything, unasked, and is outside the
+  cap.**  Measured twice — once by inference from a quoted house rule,
+  once by asking an agent directly.
+* **Reading the board first changed nothing on a list drawn from the
+  board's own subjects.**  One pair, and it cannot rule out a change the
+  list cannot see.
+* **Whether an ambiently loaded document differs from an instructed
+  read** is untested, and it is the form the hypothesis is actually
+  about.
