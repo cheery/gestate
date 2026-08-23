@@ -113,6 +113,22 @@ anything?**  Three honest outcomes, and two of them are findings:
 version of this act.  Doing it to one rule a week is what keeps it from
 being a resolution to be more careful.
 
+**One rule already has its meter**, so it is the cheapest week to pick:
+
+```sh
+python3 tools/sittings.py --days 7
+```
+
+The sitting limit you set on 2026-08-21, against the week that actually
+happened — how many sittings, how long, how often the limit was reached,
+and **how many of those were followed straight by sitting down again**.
+That last column is the act's three outcomes already sorted: kept means
+it held, and reached-then-granted every time means either the number is
+wrong or the rule is prose.  A meter and not a nagger — it says nothing
+unless you run it, which is the only register a number about a person
+survives in.  *`tools/gapcheck.py` reads the same ledger for the other
+open number, the 30-minute silence nobody chose.*
+
 ## 4. One pass over the pile
 
 `board/later/`, one question per card, and it is the only question:
