@@ -1447,3 +1447,82 @@ sentences agree on their tail and diverge in their lead-ins.  Unfixed:
 raising the threshold to catch it is the same move that starts folding
 independent uses.  All four were found by checking against a case whose
 answer was already known, and none by reading the code.
+
+## Kaizen, 2026-08-23 — research helps a decision, and what it cannot check
+
+*Both halves, his first — `doc/memory/the-kaizen-is-asked-not-answered.md`.
+Seven commits: the rules trim, `tools/dangling.py`, the card closed on
+**A**, a blues, and the seventh transcript.*
+
+### What he learned
+
+> **Henri:** *"Minä opin että helpottaa paljon jos on tietoa saatavilla
+> päätöksentekoon.  On hyvä ja helppo kysyä tutkimusta päätöksenteon
+> avuksi.  Ongelmatonta se ei ole ja asiat täytyy silti lukea huolella,
+> mutta tieto auttaa tekemään hyviä päätöksiä."*
+
+The day is his evidence.  He asked on 2026-08-21 for time to think about
+`card:dangling-names.md` and got it; what the two days added was not
+argument but measurement, and the measurement moved the answer.  C was
+priced from three precedents already in the tree, D was built and came
+back at one clean hit in five, a third criterion was proposed and
+withdrawn when it cleared both founding cases, and the name-vs-content
+question was settled by `git show 5f42f68:board/README.md` rather than by
+anybody's reading.  He took **A** the same morning, and A is the cheapest
+option on the table.
+
+### Where they went wrong
+
+> **Henri:** *"Näen kovin huonosti omia vikojani.  Tein varmasti joitain
+> virheitä tässä."*
+
+**A claim with no file, test or number is unfinished, and that is his own
+standard**, so the session went and looked instead of accepting it.  Two
+candidates, and neither survives: the day's order changed twice, but the
+displaced work had not been started, so it cost nothing; `sitting 90` had
+to be typed twice before it registered, which cost fifteen minutes of
+ambiguity.  **No fault was found on his side today.**  That is a result
+and not a courtesy, and it is recorded because the kaizen is the only
+instrument pointed at that half.
+
+**What was found instead is a tension inside his own first answer.**
+Asking a session for research routes a decision through the one thing
+that cannot check him — `doc/notes/notes-on-drift.md`, published the same
+day, says so in its own words: *sessions are inside the conditioning*.
+Today's research is the good case rather than a counterexample, and the
+line between them is exact: **the measurements carried commands he can
+re-run** — `git show`, `tools/dangling.py --at 5f42f68`, `rulecount.py` —
+**and the recommendation carried nothing.**  The first is trustworthy
+because it is repeatable; the second was a conditioned voice that
+happened to be right.  If the habit stands, the rule that keeps it safe
+is one sentence: *ask for research that leaves a command behind.*
+
+**The session's four, which are one.**  It claimed twenty-one lines could
+come out of `board/README.md` §"The priority" and there were eight, found
+only when Henri asked to see them; it left three orphaned continuation
+lines behind a removed card; it committed the blues without running the
+example roster and the gate refused it; and it wrote a third criterion
+into the card and withdrew it two commits later.  Three of those four are
+the same defect — **a result asserted without running a check that was
+already available.**  The count was never counted, the removal was never
+re-read, the gate was never run before the message was written.
+
+### Tomorrow's first thing
+
+> **Henri:** *"Huomenna: working-standard on päällimmäisenä."*
+
+56 lines of room under the 2,000-line cap, up from five this morning.
+The measured candidate left is the *go and see* cluster — about 90 lines
+across `doc/instruments.md`, `manifesto.md` and `spec/author.md`, three
+provenances for one instruction — and it is the hard one precisely
+because each of the three earns its place in its own document's argument.
+The first move is measurement rather than trimming: which of the three is
+cited from elsewhere, and which is only repeated.
+
+### What noticed something without being asked
+
+One thing, twice in one day: `doc/method.md`'s line-count row for
+`board/README.md` went stale after each of the two trims, and
+`test_citations.py::test_the_method_pages_sizes_are_the_sizes` caught it
+both times, in sixteen seconds.  Everything else found today was found by
+a person reading, or by a check somebody chose to run.
