@@ -3,8 +3,10 @@
     status   blocked
     blocked  on a decision that is Henri's — which of three shapes, or
              none.  Asked 2026-08-21, and he asked for time to think.
-    because  the A3 rule was cited by name four times and defined
-             nowhere, and no check in this tree could have found it
+    because  the A3 rule was written on 2026-08-18 and cited three days
+             later under a name it did not carry; citation and
+             definition shared no word, so grep could not join them and
+             no check in this tree could have found it
     asked    Henri, 2026-08-21
     see      board/README.md §"One sheet, then depth" — where the A3
              rule actually lives, and now says so
@@ -670,3 +672,80 @@ written by the session that wrote the detector, and adopting it would
 narrow the gate's job from *is this asserted* to *can a reader get from
 the citation to the definition*.  That second question is harder to
 compute and much closer to the thing that actually went wrong.
+
+---
+
+## The third reading, measured and withdrawn — 2026-08-23
+
+*The section above proposes reachability — *can a reader get from the
+citation to the definition* — as a better criterion than either name or
+content.  Henri asked whether there was a good argument for either.
+Measuring it withdrew the proposal and strengthened the case for **A**.*
+
+### Reachability does not survive its own test
+
+Operationalised the obvious way — **does the name's distinctive word
+appear in any heading or bold lead in the corpus** — and run at
+`5f42f68`, the revision where the answer is known:
+
+    a3           reachable (3)
+         doc/instruments.md:296   `python -m gestate.atlas` — the five A3 sheets
+    placement    reachable (6)
+         gestate/audioeditor.py:1899  losing them to a placement error would take
+
+**Both founding cases come back clean.**  `A3` resolves — to paper size,
+from the atlas.  `placement` resolves — to audio placement.  The word is
+there and the sense is wrong, and a reader following it lands in another
+document entirely.
+
+**And that collision is probably the cause rather than a coincidence.**
+`A3` already meant something here before the lean sense arrived, so the
+new name was laid over an occupied word.  Any cheap version of this
+criterion has to tell two senses of one word apart, which is the thing
+regexes cannot do; the expensive version needs to know which sentence is
+the definition, which is the thing that is not known.  **Withdrawn.**
+
+### The argument for the *name* reading, which does hold
+
+1. **The founding case only exists under it.**  At `5f42f68`
+   `board/README.md` §"One sheet, then depth" carried the rule in full,
+   in Henri's words, dated 2026-08-18.  Under the content reading there
+   was **no defect on 2026-08-21**.  A criterion that clears the case
+   this card was made for is not this card's criterion.
+2. **This card already said so**, in §"What this is about", written
+   before the question was asked: *"when the citation and the definition
+   use different words … there is no string in common."*  The
+   name/content question drifted away from the card's own scope during
+   the checking.
+3. **The remedy is a session's to make.**  Attaching a name to an
+   existing sentence is an edit; writing a rule that does not exist is a
+   design decision, and the work order above already assigns that to
+   Henri.  A check whose remedy always needs the author is a check that
+   sits red.
+
+### And the content question is real, but it is already registered
+
+Two content gaps turned up while checking `layout rule` — the unstated
+column-0 guarantee and the unmentioned tabs.  Genuine, and no name-based
+check would find either.  But `spec/errata.md` opens by recording *"what
+the spec says (**or fails to say**)"*, and `fixme.md` already holds this
+exact shape: `fixme.md:3191`, *"`spec/editor.md` requires text undo and
+says nothing about file boundaries, so the spec needs the sentence too,
+whichever way it goes"* — which Henri answered on 2026-08-13.
+
+**Content-missing has two registers and a working precedent for reaching
+him.  Name-missing has none, which is why this card exists.**  That
+asymmetry is the argument, and it argues for keeping the two apart
+rather than for merging them into one criterion.
+
+### What that leaves
+
+Knowing which question to ask does not make the heuristic better at
+asking it: the only computable proxy is still *asserted nowhere*, at one
+clean hit in five.  Two instances in the corpus's whole history — `A3
+rule`, fixed, and `placement rule`, open.
+
+**Suspected, and it is Henri's call:** that is an argument for **A**,
+with `tools/dangling.py` standing where option A had nothing — a sweep
+that can be run on purpose rather than a gate that runs itself.  B's
+glossary would carry fourteen entries against two historical defects.
