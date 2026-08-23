@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+#: asked-by: unrecorded, 2026-08-22
 """tools/gapcheck.py — is 30 minutes the right silence gap?
 
     tools/gapcheck.py                    the arrivals so far, and what

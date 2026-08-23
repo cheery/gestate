@@ -1,3 +1,4 @@
+#: asked-by: unrecorded, 2026-08-13
 """Drive the open dialog and read the editor's own stopwatch.
 
 F112 wants a number: `GESTATE_EDITOR_TIME=1` makes the window count

@@ -1,3 +1,4 @@
+#: asked-by: unrecorded, 2026-08-11
 """Does the editor show the letter you just typed?
 
     python tools/lagcheck.py examples/audio/twoknobs.ges

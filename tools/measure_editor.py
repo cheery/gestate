@@ -1,3 +1,4 @@
+#: asked-by: unrecorded, 2026-08-13
 """Drive the real editor window and collect GESTATE_EDITOR_TIME reports.
 
 One scenario per process, so each run's [editor] lines mean one thing:

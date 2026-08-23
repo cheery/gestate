@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#: asked-by: Henri, 2026-08-16 — "There is no protection in place, in case there's injection attack or bad luck with dependencies." — the fence, made the default
 #
 # tools/fence-hook.sh — put builds and tests inside the fence by default.
 #

@@ -1,3 +1,4 @@
+#: asked-by: unrecorded, 2026-08-16
 """Does the picture stay under the hand while a note is dragged?
 
     python tools/dragcheck.py

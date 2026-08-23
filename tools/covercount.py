@@ -1,3 +1,4 @@
+#: asked-by: outside, 2026-08-23 — "ihan mielenkiinnosta, miten verifioit että kaikki koodi on testattua?" — asked of Henri, who could not answer
 """Which lines of `gestate/` the suite actually ran — and which it never did.
 
     python tools/covercount.py test/test_arith.py     # one file, seconds

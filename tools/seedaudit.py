@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+#: asked-by: Henri, 2026-08-22 — "We aren't smart or super.  We just have good processes."
 """tools/seedaudit.py — does this directory have the pieces, and is anything behind them?
 
     tools/seedaudit.py              audit this tree

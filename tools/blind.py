@@ -1,3 +1,4 @@
+#: asked-by: Henri, 2026-08-19 — "I think I'd want to repeat the comparison… We learned a lot about running subagents, but didn't really learn about capabilities of different agents."
 """The judging sheet for a blind multi-arm run — facts first, prose last.
 
     python tools/blind.py --batch 2 ../arm-1 ../arm-2 ../arm-3

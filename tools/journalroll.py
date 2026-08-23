@@ -1,3 +1,4 @@
+#: asked-by: Henri, 2026-08-21 — "if small models ever join the loop, unrotated is unusable."
 """The journal against its budget, and the rotation that meets it —
 `spec/rules.md` §"The journal rotates" is the contract.
 

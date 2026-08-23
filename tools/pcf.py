@@ -1,3 +1,4 @@
+#: asked-by: unrecorded, 2026-08-11
 """Read an X11 PCF bitmap font — enough of it to lift the glyphs out.
 
 `shell/editor` blits a bitmap font because that is what makes a

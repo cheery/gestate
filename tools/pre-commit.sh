@@ -1,4 +1,5 @@
 #!/bin/sh
+#: asked-by: Henri, 2026-08-19 — "lets start and implement the cheap-gates.  It could be a git hook."
 #
 # tools/pre-commit.sh — the gates, at the commit that breaks them.
 #

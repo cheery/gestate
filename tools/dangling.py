@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+#: asked-by: Henri, 2026-08-21 — card:dangling-names.md — he asked whether option D was safe enough to try
 """tools/dangling.py — names the tree leans on and never says.
 
     python tools/dangling.py                 the report, against the working tree

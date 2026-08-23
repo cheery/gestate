@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#: asked-by: unrecorded, 2026-08-15
 #
 # toolbox.sh — the bench tools: what is here, and what is missing.
 #

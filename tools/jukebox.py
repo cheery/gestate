@@ -1,3 +1,4 @@
+#: asked-by: unrecorded, 2026-08-15
 """Play every example, ten seconds each, and say what is playing.
 
     python tools/jukebox.py                    # the whole tree

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#: asked-by: Henri, 2026-08-21 — "Me logging in to ask or check one small thing, then it explodes into two hours.  Can you set me a limit?"
 #
 # tools/limit.sh — a sitting has a length, and the length is not a session's to judge.
 #

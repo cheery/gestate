@@ -1,4 +1,5 @@
 #!/bin/sh
+#: asked-by: Henri, 2026-08-19 — "it's a clock in the wrist that shows the time.  that might be helpful to review before you report any time."
 # clock.sh — the wrist clock.  Read it before reporting any time.
 #
 #   tools/clock.sh              now, and how long since the last commit

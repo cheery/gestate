@@ -1,3 +1,4 @@
+#: asked-by: unrecorded, 2026-08-13
 """Measure the substrate/canvas half, headless.
 
 Per canvas example:

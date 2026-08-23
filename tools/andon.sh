@@ -1,4 +1,5 @@
 #!/bin/sh
+#: asked-by: Henri, 2026-08-17 — "I am here for you in need." — available rather than present, which only works if a session can reach him
 # andon.sh — pull the cord.  A session needs Henri.
 #
 #   tools/andon.sh              ring once

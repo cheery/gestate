@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+#: asked-by: unrecorded, 2026-08-15
 """Play a piece, rebuild it a few times, and say what that cost.
 
     python tools/stutter.py examples/audio/minute.ges --rate 44100

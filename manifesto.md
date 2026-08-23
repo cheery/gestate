@@ -81,6 +81,7 @@ reference is not looked at, and the docstring says so.
 | `gestate.pops` | a step a program's own motion cannot account for | whether that step is *wrong* |
 | the editor's display list (`shell/editor/tests/view.rs`) | **what the window said** — every run, its colour and its place, with no window open | whether it was *legible*: F155's glyph was emitted, in the colour it was asked for, and unreadable |
 | `tools/covercount.py` | which lines of `gestate/` the suite has **never run** | whether a line it did run was ever *checked*, and a child interpreter's lines at all |
+| `tools/asked.py` | who wanted each tool on the bench, and which nobody wrote down | whether the want was *real* — a stamp records who asked, never whether it was worth building |
 
 The right-hand column is the load-bearing one.  An instrument whose
 blind spot is unwritten will be trusted past it.

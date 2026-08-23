@@ -1,3 +1,4 @@
+#: asked-by: Henri, 2026-08-16 — "Let give the test a place where it can draw itself."
 """Run the suite and let it draw itself.
 
     python tools/suite.py                 # fenced, the whole suite

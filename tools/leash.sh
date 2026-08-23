@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#: asked-by: unrecorded, 2026-08-16
 #
 # tools/leash.sh — is the deny-list actually in force?
 #

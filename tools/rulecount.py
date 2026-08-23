@@ -1,3 +1,4 @@
+#: asked-by: Henri, 2026-08-20 — "We need a cap for rules here.  2000 lines, for now, and rules must be still written cleanly, and marked by dates, no cheating there."
 """The rules set against its cap — `spec/rules.md` is the contract.
 
 The five documents a session reads *before it knows what it is working
