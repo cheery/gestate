@@ -1922,3 +1922,64 @@ supplied the observable and the model supplied the diagnosis, which is
 the division of labour every instrument in `doc/instruments.md` is
 built for.  A person who cannot read the code is not a limitation in
 that arrangement; they are the sensor.
+
+## Nothing was loading the rules — 2026-08-23
+
+*Found while answering Henri's hypothesis: that breaking the contracts in
+the five capped documents affects sessions immediately.  The mechanism
+is right and it was pointed at the wrong files.*
+
+**The 1,999 lines were not loaded by anything.**  No `CLAUDE.md`, no
+`AGENTS.md`, and `.claude/settings.json` holds two hooks — the fence and
+the sitting limit — neither of which injects a document.  A session met
+those five only by going to read them.  This one read `board/README.md`
+first because Henri named it in his opening message, not by default.
+
+**What did arrive at every boot was the memory index: 57 lines, and it
+is outside the cap.**  The afternoon's trial had already proved it
+without anybody noticing: both control agents, told not to read the
+tree and demonstrably not reading it, quoted *never commit unprompted*
+and *never `git add -A`* — two rules that live **only** in
+`doc/memory/`, in none of the five.
+
+So the conditioning surface ranked by how fast a broken rule bites:
+
+| | lines | capped | paid |
+|---|---|---|---|
+| the memory index | 57 | no | every boot |
+| `doc/memory/` | 3,193 | no | on recall |
+| the five | 1,999 | **yes** | only when read |
+
+**The cap was insuring a cost nobody was paying**, and `rulecount.py`
+said so in its own justification — *"charged to every shift at full
+size"* — which was true of nothing.  That docstring is corrected and
+dated rather than quietly fixed, because the number it defends has been
+quoted all week.
+
+### `AGENTS.md`, one line
+
+Henri's call the same evening, and the wording is his:
+
+> `please read board/README.md before you begin`
+
+It does not repair the ranking above; it makes the cap's premise true.
+618 lines now arrive at every session that honours it, which is the tax
+this whole budget exists to hold — deliberately spent, at his word.
+
+**One line is the discipline, and it is gated.**  `test_rules.py`
+refuses a longer one: a pointer that starts explaining is a sixth method
+document arriving through a side door, charged to every session at
+whatever size it drifts to.  It is deliberately **not** in `RULES` —
+that set is closed at five and changing it wants him in writing — on the
+grounds that a file whose whole content is a path is a signpost rather
+than a document.  If that is wrong, the test's docstring is where it is
+written down.
+
+### What is now measurable, and was not
+
+Whether loading one document changes what a session does.  The tar task
+from the same afternoon is a ready harness: same model, same prompt,
+`AGENTS.md` present and absent.  It would be the first time this project
+measured the effect of a document rather than assuming it — and Henri's
+hypothesis, restated against the file that actually loads, is exactly
+what such a run would test.

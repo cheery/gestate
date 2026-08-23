@@ -6,6 +6,18 @@ on*.  They are charged to every shift at full size, out of the same
 window the work has to fit in, which is why they have a ceiling and
 `spec/` does not.
 
+**That sentence was aspirational until 2026-08-23 and is now true.**
+Nothing loaded them: there was no `CLAUDE.md`, no `AGENTS.md`, and
+neither hook in `.claude/settings.json` injects a document — so the cap
+was insuring a cost nobody paid, and a session met these five only by
+choosing to go and read.  What *did* arrive at every boot was the memory
+index, 57 lines, outside this cap; and two agents that read nothing at
+all quoted house rules living only in `doc/memory/`.  Henri's call that
+evening was one line — `AGENTS.md`, *"please read board/README.md before
+you begin"* — which makes the premise above hold.  `test_rules.py` keeps
+it at one line, because a pointer that starts explaining is a sixth
+document arriving through a side door.
+
 **Over the cap is an andon, not a refusal** — Henri, 2026-08-20: *"make
 it light the andon."*  `tools/suite.py` lights it on `test/gates.md` and
 at every commit; nothing fails.  What `test/test_rules.py` still refuses

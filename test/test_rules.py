@@ -82,3 +82,47 @@ def test_the_lamp_works():
         "the andon does not light even when the rules are over by "
         "everything.  A lamp that cannot come on is worse than no lamp: "
         "it reads as a tree that is fine.")
+
+
+def test_the_pointer_is_one_line_and_points_at_the_board():
+    """`AGENTS.md`, capped at one line by the same hand that capped the five.
+
+    **Why it exists.**  Until 2026-08-23 nothing loaded the five
+    documents.  There was no `CLAUDE.md`, no `AGENTS.md`, and neither
+    hook in `.claude/settings.json` injects anything — so a session met
+    them only by choosing to go and read, and `rulecount.py`'s own
+    justification for the cap (*"charged to every shift at full size"*)
+    was describing a cost nobody was paying.  What did arrive at every
+    boot was the memory index: 57 lines, outside the cap, and on
+    2026-08-23 two agents that read nothing at all quoted house rules
+    that live only in `doc/memory/`.
+
+    Henri's call the same evening: **one line, and the line is the
+    pointer.**  It makes the cap's premise true rather than aspirational.
+
+    **One line is the whole discipline.**  A pointer that starts
+    explaining is a sixth method document arriving through a side door,
+    and it would be charged to every session at whatever size it drifted
+    to, which is the tax the cap exists to hold.  So the size is checked
+    rather than intended.
+
+    **It is deliberately not in `RULES`.**  That set is closed at five
+    and `rulecount.py` says changing it wants Henri in writing with a
+    date.  A file whose entire content is a path is a signpost and not a
+    document — but the call is his, and if it should be counted, this
+    docstring is the place that was wrong.
+    """
+    pointer = ROOT / "AGENTS.md"
+    assert pointer.exists(), (
+        "AGENTS.md is gone, and with it the only thing that makes a "
+        "session read the board before it knows what it is working on.")
+
+    lines = pointer.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) == 1, (
+        f"AGENTS.md is {len(lines)} lines and may be one.  Henri, "
+        "2026-08-23: it is a pointer, not a document — anything worth "
+        "saying goes in board/README.md, which is what it points at.")
+    assert "board/README.md" in lines[0], (
+        f"AGENTS.md says {lines[0]!r} and must name board/README.md; "
+        "a pointer that points somewhere else is a redirect nobody voted "
+        "for.")
