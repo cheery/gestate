@@ -191,7 +191,16 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # asserted directly instead, in
             # `test_the_week_thins_until_it_is_silence` below, which is
             # the assertion the file's own header prints.
-            "week.ges"]
+            "week.ges",
+            # A written twelve-bar blues, and the first file here that is
+            # a *score* and a `beat`-driven kit at once — the band plays
+            # notes, the drummer plays time.  No golden for the roster's
+            # standing scored reason, and its own claims are asserted
+            # directly instead, the way `week.ges`'s are just above: the
+            # form is one phrase written once and played twice, and the
+            # shuffle is arithmetic.  See
+            # `test_the_blues_writes_its_phrase_once` below.
+            "blues.ges"]
 
 #: The ones with committed golden buffers — all of them, now.  `knob.ges`
 #: had none for as long as the interpreter and the engine disagreed about
@@ -833,3 +842,69 @@ def test_the_week_thins_until_it_is_silence(tmp_path):
         f"the week does not thin: {monday:.0f} on Monday, "
         f"{sunday:.0f} on Sunday")
     assert after == 0.0, f"and then nothing at all, got {after:.1f}"
+
+
+# ── `blues.ges` — a form, and a shuffle that is arithmetic ──────────────────
+
+
+#: `music.ges`'s `ticksPerBeat`, and four beats to the bar.  Spelled here
+#: rather than imported because what these assertions are *for* is that
+#: the piece's own arithmetic lands on whole ticks: a swung eighth is a
+#: third of a beat, and a third of 96 is 32.
+BLUES_BEAT = 96
+BLUES_BAR = 4 * BLUES_BEAT
+
+
+def test_the_blues_writes_its_phrase_once():
+    """**The claim in the file's header, asserted rather than admired.**
+
+    `examples/audio/blues.ges` says two things about itself that are not
+    matters of taste, and a golden of the samples would check neither.
+
+    **One: the form is written once.**  A twelve-bar blues is AAB — a
+    phrase, the same phrase again over a different chord, then the
+    answer — and the file spells that `phrase ++ phrase ++ answer`
+    rather than writing the lick out twice.  So bars 1–4 and bars 5–8 of
+    the lead must be the *same notes at the same offsets*, and if
+    somebody ever edits one statement of the phrase into a copy of
+    itself this fails and says so.  That is the whole argument the
+    example exists to make: a repeat is a function of a score, not a
+    length kept in step by hand.
+
+    **Two: the shuffle is arithmetic.**  `swung a b = ((a |* 2) ++ b) |/
+    3` — stretch the pair to three beats, give the first note two of
+    them, shrink back by three.  A swung eighth is therefore exactly two
+    thirds and one third of a beat, on whole ticks, and nothing in the
+    renderer knows what swing is.
+
+    The note counts are checked too, per bank, because each part's
+    length is independent: the piece's duration is the *longest* part,
+    so a lead one bar short would not move it and nothing else here
+    would notice.
+    """
+    from collections import Counter
+
+    from gestate.audioscore import perform_voices
+
+    bpm, events = perform_voices((AUDIO_DIR / "blues.ges").read_text(),
+                                 "", 4000, 0)
+    assert bpm == 104
+
+    # Three choruses of twelve bars: the bass walks four notes a bar, the
+    # comp is four dyads a bar, and the lead is 12 + 12 + 13 — the answer
+    # has one phrase-length more than the call because it lands.
+    assert Counter(e[2] for e in events) == \
+        {"bass": 4 * 36, "comp": 8 * 36, "lead": (12 + 12 + 13) * 3}
+
+    lead = [e for e in events if e[2] == "lead"]
+    call = [(a, b, ns) for a, b, _, ns in lead if a < 4 * BLUES_BAR]
+    again = [(a - 4 * BLUES_BAR, b - 4 * BLUES_BAR, ns)
+             for a, b, _, ns in lead
+             if 4 * BLUES_BAR <= a < 8 * BLUES_BAR]
+    assert call and call == again
+
+    # The first two notes of the piece's first swung pair: two thirds of
+    # a beat, then one third, back to back and on whole ticks.
+    (a0, b0, _), (a1, b1, _) = call[0], call[1]
+    assert (b0 - a0, b1 - a1) == (64, 32)
+    assert a0 == 0 and a1 == b0 and b1 == BLUES_BEAT

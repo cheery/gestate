@@ -1,0 +1,230 @@
+# blues.ges — twelve bars in A, shuffled.
+#
+#   python -m gestate.audioperform examples/audio/blues.ges --seconds 60 -o blues.wav
+#   python -m gestate.audioeditor examples/audio/blues.ges
+#   python -m gestate.audioperform examples/audio/blues.ges --midi --midi-bank lead
+#
+# **The form is the example.**  A twelve-bar blues is AAB: a phrase, the
+# same phrase again over a different chord, then the answer.  That is
+# three lines of score and it is written here as three lines of score —
+# `phrase ++ phrase ++ answer` — because a repeat is a function of a
+# score and not a length to keep in step with anything.  Change the lead
+# and the second chorus changes with it; there is no second copy to
+# forget.
+#
+# **And the shuffle is arithmetic, not a feature.**  A swung pair is two
+# thirds of the beat and then one third: stretch the pair to three
+# beats, give the first note two of them, shrink the whole thing back by
+# three.  That is `swung` below, four lines down, and every eighth note
+# in the piece goes through it.  Nothing in the renderer knows what
+# swing is.
+#
+# **Three parts are a score and the drummer is a clock.**  The bass, the
+# comp and the lead are `voices` banks fed by `[: Blue :]` scores.  The
+# kit is `beat` arithmetic in the style of `fourfloor.ges` — envelopes
+# that are functions of the renderer's own clock — so it needs no notes
+# and follows whoever conducts.  Both idioms in one file, doing the jobs
+# each is better at: the band plays *notes*, the drummer plays *time*.
+
+Blue := Blue Int Int                       # key number, velocity
+
+#: Play along on any bank — the lead is the one to try.
+instance FromMIDI Blue where
+    noteOn c n v = Just (Blue n v)
+
+# ── The band ─────────────────────────────────────────────────────────────
+
+voices bass 2 bassVoice : Sig Float
+
+voices comp 6 compVoice : Sig Float
+
+voices lead 3 leadVoice : Sig Float
+
+hzOf : Blue -> Float
+hzOf b = case b of
+    Blue k v -> keyHz k
+
+velOf : Blue -> Float
+velOf b = case b of
+    Blue k v -> toFloat v / 127.0
+
+#: The bass: round, short, and mostly fundamental.  A walking line wants
+#: to be heard as *pitch* rather than as attack, so the edge is a little
+#: triangle and nothing else.
+bassVoice : Sig Gate -> Sig Blue -> Sig Float
+bassVoice g s = (0.9 * sine (!hzOf s) + 0.22 * triangle (!hzOf s)) * (!velOf s) * adsr (Adsr 0.008 0.4 0.3 0.09) g
+
+#: The comp: a driven saw under a fixed lowpass — the boogie figure is
+#: two notes at once and the grit is what keeps the pair from sounding
+#: like an organ.  Staccato on purpose: the gaps are the shuffle.
+compVoice : Sig Gate -> Sig Blue -> Sig Float
+compVoice g s = drive 2.2 (lowpassSvf 2400.0 0.4 (saw (!hzOf s))) * 0.35 * (!velOf s) * adsr (Adsr 0.004 0.16 0.0 0.06) g
+
+#: The lead: a filter that opens with the note, and a slow vibrato, so a
+#: held note keeps moving.  Blues is mostly long notes and space.
+leadVoice : Sig Gate -> Sig Blue -> Sig Float
+leadVoice g s = lowpassSvf (600.0 + 2600.0 * adsr (Adsr 0.03 0.45 0.5 0.25) g) 0.42 (saw ((!hzOf s) * (1.0 + 0.007 * sine 5.4))) * 0.55 * (!velOf s) * adsr (Adsr 0.02 0.3 0.65 0.25) g
+
+# ── The drummer, who is a function of the clock ──────────────────────────
+
+#: Kick on one and three: `b / 2` crosses a whole number exactly there.
+kickEnv : Sig Float
+kickEnv = map (b => exp (negate 18.0 * wrap (b / 2.0))) beat
+
+kick : Sig Float
+kick = sine (44.0 + 120.0 * kickEnv) * kickEnv
+
+#: Snare on two and four — the backbeat, and in a blues it is the loudest
+#: thing in the room after the singer.
+snareEnv : Sig Float
+snareEnv = map (b => exp (negate 13.0 * wrap ((b + 1.0) / 2.0))) beat
+
+snare : Sig Float
+snare = (0.6 * white 2 + 0.35 * triangle 190.0) * snareEnv
+
+#: The ride, swung: one hit on the beat and one two thirds of the way
+#: through it.  `wrap (b + 1/3)` reaches zero exactly at two thirds, so
+#: the second hit needs no second clock — it is the same line read from
+#: a third of a beat earlier.
+rideEnv : Sig Float
+rideEnv = map (b => exp (negate 26.0 * wrap b)) beat
+
+swingEnv : Sig Float
+swingEnv = map (b => exp (negate 30.0 * wrap (b + 0.33333))) beat
+
+ride : Sig Float
+ride = highpassSvf 6000.0 0.25 (white 3) * (0.42 * rideEnv + 0.3 * swingEnv)
+
+kit : Sig Float
+kit = 0.85 * kick + 0.5 * snare + ride
+
+# ── The mix ──────────────────────────────────────────────────────────────
+#
+# `brickwall` and not `limit`: `limit` overshoots on transients, and an
+# over-range sample is not loud, it is wrong.  The lead gets a short room
+# and the rest stays dry, which is roughly where a blues band stands.
+
+sound : Sig Float
+sound = brickwall 0.92 (0.5 * bass + 0.3 * comp + 0.42 * lead + 0.16 * reverb 0.3 0.014 lead + 0.5 * kit)
+
+# ── Swing, by arithmetic ─────────────────────────────────────────────────
+
+swung : [: a :] -> [: a :] -> [: a :]
+swung a b = ((a |* 2) ++ b) |/ 3
+
+# ── Writing notes ────────────────────────────────────────────────────────
+
+#: One beat, on the bass.
+bn : Int -> [: Blue :]
+bn k = '(Blue k 96)
+
+#: One beat, in the comp.
+cn : Int -> [: Blue :]
+cn k = '(Blue k 78)
+
+#: One beat, on the lead.
+ln : Int -> [: Blue :]
+ln k = '(Blue k 92)
+
+#: A swung pair on the lead — the eighth notes of the whole piece.
+sw : Int -> Int -> [: Blue :]
+sw a b = swung (ln a) (ln b)
+
+#: Two beats of nothing, which a blues needs as much as it needs notes.
+rest2 : [: Blue :]
+rest2 = r |* 2
+
+# ── The changes ──────────────────────────────────────────────────────────
+#
+# A, D and E as key numbers — the three chords, and every bar below names
+# one of them.  A2 is 45, so the bass walks from there and the comp sits
+# an octave above it.
+
+chordA : Int
+chordA = 45
+
+chordD : Int
+chordD = 50
+
+chordE : Int
+chordE = 52
+
+# ── The bass: a walking bar, and it walks both ways ──────────────────────
+#
+# One, three, five, six — the oldest walk there is — and the bar after it
+# comes back down the same four notes.  Alternating is what keeps twelve
+# bars of quarter notes from turning into a scale exercise.
+
+walkUp : Int -> [: Blue :]
+walkUp k = bn k ++ bn (k + 4) ++ bn (k + 7) ++ bn (k + 9)
+
+walkDown : Int -> [: Blue :]
+walkDown k = bn (k + 9) ++ bn (k + 7) ++ bn (k + 4) ++ bn k
+
+# ── The comp: the boogie figure ──────────────────────────────────────────
+#
+# Two notes at once — the root and one moving voice above it — walking
+# fifth, sixth, flat seventh, sixth across the bar.  It is the sound
+# everybody means by "a blues", and it is four dyads and a `||`.
+
+dyad : Int -> Int -> [: Blue :]
+dyad k x = cn (k + 12) || cn (k + 12 + x)
+
+boogie : Int -> [: Blue :]
+boogie k = dyad k 7 ++ dyad k 9 ++ dyad k 10 ++ dyad k 9
+
+# ── The lead: call, call again, answer ───────────────────────────────────
+#
+# The blues scale on A: A C D Eb E G, and the Eb is the whole reason the
+# scale has a name.  Four bars of call — two of line and two of room —
+# then the same four bars again while the chord moves under them, then
+# four bars that answer and land on the tonic.
+#
+# **The second chorus of the lead is not written down**, because it is
+# the first one: `phrase ++ phrase ++ answer` below.
+
+phrase : [: Blue :]
+phrase = sw 69 72 ++ sw 74 75 ++ ln 76 |* 2
+      ++ sw 76 74 ++ ln 72 ++ ln 69 |* 2
+      ++ r |* 4
+      ++ rest2 ++ sw 67 69 ++ ln 72
+
+answer : [: Blue :]
+answer = sw 76 79 ++ sw 81 79 ++ ln 76 |* 2
+      ++ sw 75 74 ++ ln 72 ++ ln 69 |* 2
+      ++ ln 69 |* 2 ++ rest2
+      ++ rest2 ++ sw 74 72 ++ ln 76
+
+# ── Twelve bars ──────────────────────────────────────────────────────────
+#
+#     A A A A  D D A A  E D A E
+#
+# Written once, as the three lines it is.  Every part below is twelve
+# bars long and they are laid side by side with `||`, which starts what
+# is inside it together.
+
+bassLine : [: Blue :]
+bassLine = walkUp chordA ++ walkDown chordA ++ walkUp chordA ++ walkDown chordA
+        ++ walkUp chordD ++ walkDown chordD ++ walkUp chordA ++ walkDown chordA
+        ++ walkUp chordE ++ walkDown chordD ++ walkUp chordA ++ walkDown chordE
+
+compLine : [: Blue :]
+compLine = boogie chordA ++ boogie chordA ++ boogie chordA ++ boogie chordA
+        ++ boogie chordD ++ boogie chordD ++ boogie chordA ++ boogie chordA
+        ++ boogie chordE ++ boogie chordD ++ boogie chordA ++ boogie chordE
+
+leadLine : [: Blue :]
+leadLine = phrase ++ phrase ++ answer
+
+chorus : [: Void :]
+chorus = (bassLine >>= voices.bass)
+      || (compLine >>= voices.comp)
+      || (leadLine >>= voices.lead)
+
+#: Three times round, which is what a blues is: the form is short and
+#: the point is that it comes back.
+score : [: Void :]
+score = chorus ++ chorus ++ chorus
+
+bpm : Int
+bpm = 104
