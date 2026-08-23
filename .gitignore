@@ -28,6 +28,12 @@ test/report.md
 # machine-local diff into every one of them.
 test/gates.md
 
+# And the coverage page.  Which lines a run reached depends on what was
+# installed on the machine — no clang and the engine's half never
+# executes — so this is the same kind of local claim, and `covercount.py`
+# redraws it in the time the run takes.
+test/coverage.md
+
 # And what a driven run leaves behind.  `tools/driven.py` gives every
 # run its own directory — shots, traces and the stamp — precisely so a
 # stale image cannot be picked up by the next reader.  They are about

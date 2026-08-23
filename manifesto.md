@@ -80,12 +80,13 @@ reference is not looked at, and the docstring says so.
 | `GESTATE_HOST_TAP` (`host.c`) | **the samples the device was actually given** | what the speaker did with them |
 | `gestate.pops` | a step a program's own motion cannot account for | whether that step is *wrong* |
 | the editor's display list (`shell/editor/tests/view.rs`) | **what the window said** — every run, its colour and its place, with no window open | whether it was *legible*: F155's glyph was emitted, in the colour it was asked for, and unreadable |
+| `tools/covercount.py` | which lines of `gestate/` the suite has **never run** | whether a line it did run was ever *checked*, and a child interpreter's lines at all |
 
 The right-hand column is the load-bearing one.  An instrument whose
 blind spot is unwritten will be trusted past it.
 
-**The last two rows were each added because the column above them was
-blank and nothing filled it** — the screen on 2026-08-17
+**The screen and host-tap rows were each added because the column above
+them was blank and nothing filled it** — the screen on 2026-08-17
 (`journal.md` §"What the screen saw that the suite could not";
 `spec/verification.md` §"The screen is an oracle, and it is the one this
 tree lacked" is the harness), and the host tap on 2026-08-18

@@ -434,6 +434,24 @@ is ~25 minutes and the tree must be frozen while it runs** —
 editing under a run produces a red that describes a moment rather than a
 defect, which has cost two runs already.
 
+### `tools/covercount.py` — which lines the suite has never run
+
+    python tools/covercount.py test/test_arith.py     # one file, seconds
+    python tools/covercount.py -m "not golden"        # the fast half
+
+**Built 2026-08-23, the hour somebody outside asked how this tree
+verifies that all of the code is tested.**  There was no answer: the
+roster poka-yokes refuse an untested *file*, and nothing could name a
+*line* no test has ever run.  Stdlib only — PEP 669 `sys.monitoring`,
+its callback returning `DISABLE` every time, one callback per line.
+
+**A floor, not a verdict.**  A test that shells out runs in a child this
+monitor never enters, and its lines read uncovered though they ran;
+`test/coverage.md` names them, coldest module first.  And a line that
+ran is not a line that was *checked* — every defect this project has
+shipped was in a covered one, which is why `spec/verification.md`
+§"Coverage, and the question it cannot answer" is the larger half.
+
 ### `tools/driven.py` — driving a window, with a stamp
 
     Xvfb :99 -screen 0 1600x1000x24 &

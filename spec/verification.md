@@ -339,3 +339,73 @@ modules in it.
   (events, not state), they rot slowly, and the diff names the event
   kind that no longer replays — a rotted transcript is itself a
   report that the boundary moved.
+
+## Coverage, and the question it cannot answer
+
+*2026-08-23.  Somebody outside the project asked Henri **"miten
+verifioit että kaikki koodi on testattua?"** and he could not answer.
+The honest answer was that nobody here had ever measured it.*
+
+The tree had four things and not one of them was coverage: 54 roster
+poka-yokes that refuse an untested **file**, the differential oracles
+above, committed goldens, and `test/report.md` saying what ran.  Between
+them they answer *"is every artifact tested"* and *"did the two engines
+agree"* — good questions, and neither of them the one that was asked.
+None could name a **line** no test has ever run, and the gap had gone
+unnoticed for the reason worth writing down: all four answers *sound*
+like an answer to it.
+
+`tools/covercount.py` is the instrument, deliberately small.
+`sys.monitoring` from the standard library, a callback returning
+`DISABLE` so a line costs one event for the whole run, and
+`test/coverage.md` as the page.  `requirements.txt` opens by saying the
+compiler needs nothing, and a measurement was not going to be the first
+thing to break that.
+
+**The first figure: 22,076 of 24,964 lines — 88.4%**, fenced, over
+`-m "not golden"`, 17 minutes.  Coldest: `editor.py` 30%,
+`workbench.py` 52%, `audioperform.py` 70%.
+
+*The figure before that one was 88.5%, and it was wrong.*  A module's
+code object reports its `RESUME` at **line zero**, which is not a line
+and can never be covered; left in the denominator it charged every
+module one uncoverable line.  `test_covercount.py` found it within a
+minute of existing — which is the argument of this whole document
+arriving on time for once: the number had already been measured, and
+was not yet checked.
+
+### Why the number is a floor
+
+This tree shells out.  Sixteen test files start `python -m gestate...`
+in a child interpreter the monitor never enters, and every line those
+runs execute is reported uncovered — `audioperform.py` at 70% is mostly
+that, since half the suite drives it from a subprocess.  The page names
+the files so the reader knows which way the error points: the true
+figure is above the printed one, never below it.  `-m "not golden"`
+understates further, the goldens being the deepest renders in the suite,
+and a machine without clang would understate more still.
+
+`editor.py` at 30% and `workbench.py` at 52% are the other kind of
+floor, and a sharper one: `test_editor_abi.py` opens a real window, so
+`tools/suite.py` runs it *outside* the fence — and a fenced coverage run
+must deselect it or take five reds that describe the fence rather than
+the tree.  Deselected, those lines go uncounted.  **The number is only
+as fenced as the run, and the editor is the half a fence cannot see** —
+which is exactly where the defects of 2026-08-17 and 08-18 lived.
+
+### Why a high number would still not be the answer
+
+**Every defect this project has shipped was in a covered line.**  Nine
+in stage 10, four of them silent; twelve in the editor session; six the
+session after.  Each was found by Henri using the program, none by a
+test, with the suite green throughout — and those lines were executing
+the whole time, with the wrong thing believed about them.  Coverage
+answers *was this line ever run*.  This entire document is about *was it
+ever checked*, and between the two lies exactly the gap the four defects
+of 2026-08-18 fell through.
+
+So the instrument's use is narrow, and saying so is the point.  A cold
+module is a **question** — dead, reached only through a subprocess, or
+genuinely unexercised?  A warm one is not a defence.  Quoting 88.4% as
+the answer to what was actually asked would repeat, with a number
+attached, the mistake this section exists to record.
