@@ -25,11 +25,30 @@ question at the moment it is cheap to ask, rather than after the push.
 | Mikko | yes | yes | **asked, deferred** | 2026-08-19 |
 | Janne | yes | yes | **asked, deferred** | 2026-08-19 |
 | run three's stranger | **held** | yes | **held** | 2026-08-21 |
+| Tuomas | yes | yes | **not asked** | 2026-08-23 |
 | Claude | yes | yes | — | see below |
 
 **named** — may their name appear here.
 **words quoted** — do their own sentences appear, verbatim.
 **training** — may their messages be used to train a model.
+
+### Tuomas
+
+**The first one asked before he was written down.**  He tried gestate at
+a code clinic and had an AI build a step sequencer around it —
+`audiospans.controls()` for the parameters, `audiohost`'s meters and
+band analyser for the display.  Henri put the question to him before any
+of it reached this file, and relayed the answer: *"haha joo anna
+palaa."*
+
+**What that covers, stated narrowly.**  His name, and the comment Henri
+quoted.  It does **not** cover his code or the screenshot of his
+program: those are his work rather than his words, they were not part of
+the ask, and nothing in this tree reproduces them.  The `training`
+column says *not asked* for the same reason — it is a separate question
+and it was not put to him.
+
+If he wants any of it out, this is the file where that gets fixed.
 
 ### Janne
 

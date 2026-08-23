@@ -486,3 +486,54 @@ anybody.
   directory, a shortcut, a named place for hearable files — is a design
   question with evidence for the problem and none for the answer.  Make
   it knowingly, after run four's question is decided, or pre-register it.
+
+## An unplanned run, and a third kind of stranger — 2026-08-23
+
+*Tuomas, at a code clinic, named and quoted with his consent.
+`journal.md` §"A stranger's AI built a host around it" is the whole of
+it; this is what the card needs.*
+
+He came back with a working step sequencer built around gestate —
+`audiospans.controls()` for the knobs, `audiohost`'s meters and band
+analyser for the display, neither documented as a host interface
+anywhere in `doc/`.
+
+**But he did not read it and did not write it:** *"emmä oikeesti tiedä
+mitä mä teknisesti teen tässä projektissa mutta annan geminin laulaa."*
+
+### The table needs a third row
+
+| | reads | tests |
+|---|---|---|
+| the AI stranger | everything | is the **language** learnable |
+| the human stranger | nothing | is the **tool** approachable |
+| **a person driving a reader** | **nothing — the reader reads** | **is the engine boundary usable by somebody who never sees it** |
+
+The third row is the one this run belongs in, and it is the row this
+card has been missing.  It is a real category rather than a hybrid: the
+person's experience is entirely of *asking*, so nothing about the
+window, the corner, the starter or the first five minutes is under test
+— and none of that was touched.  What was under test is the part
+`vision.md` deferred: gestate as something to build on.
+
+**It costs no stranger.**  That is the property worth noticing against
+rule 1.  A person driving a reader can be asked again tomorrow, on a
+different task, without spending anything — because his first contact
+was never with the program.  Three runs of this kind cost what one of
+run three cost, and they answer a different question.
+
+**What it does not touch.**  The four verbs are untouched in him, and so
+is every question this card has been holding.  He is not spent, and he
+is not the instrument this card wanted.
+
+### What run four should now ask, and what it should not
+
+Nothing here changes the open question — *given a file already open and
+already sounding, does a stranger change it and hear the change?*  That
+still needs a person, and this was not one.
+
+What it adds is a second question the board has no card for: **the
+engine boundary is reachable and undocumented.**  It was found by
+reading source, by a model, on the first attempt — which is evidence it
+is legible, and evidence that nothing would have helped a person who
+tried the same thing with `doc/` alone.

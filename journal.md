@@ -1746,3 +1746,85 @@ taken selectively, most of the tree left behind on purpose.  A kit that
 ships the structure ships the part both seeded arms refused.  That is a
 finding against the shape of options 2 and 4 and it arrived before either
 was built, which is the whole reason for running 3 first.
+
+## A stranger's AI built a host around it — 2026-08-23
+
+*Tuomas, at a code clinic.  Named and quoted with his consent, asked
+before anything reached this tree — `doc/consent.md` records what that
+covers and what it does not.*
+
+He tried gestate and came back with **a step sequencer built around it**:
+a terminal groovebox running `technomachine.ges` at 48 kHz, twelve named
+parameters as knobs, peak and RMS meters, an eight-band spectrum, a
+16-step grid over seven layers, and a file browser.
+
+### What he used, and what it says about the boundary
+
+The knobs are `audiospans.controls()`, whose docstring says what it is
+for in exactly these words: *"This is the one an environment calls: each
+is a parameter the running graph will accept a value for between
+blocks."*  **It was written for a host and this is the first time anybody
+outside this tree has called it.**  The meters and the eight bands are
+`audiohost`'s `watch_peak`, `rms`, `bands` and `watch_bands` — both off
+unless a program asks, so they were found and switched on.  `--report`
+could not have been the source; it refuses without `-o` and measures a
+render, not a live stream.
+
+**And none of that is documented as a host interface.**  `audiohost`
+appears on no `doc/` page except in passing.  It was reached by reading
+the source.
+
+### Who the reader was, which changes the claim
+
+**Not him.**  His own account, and it settles the reading:
+
+> *"emmä oikeesti tiedä mitä mä teknisesti teen tässä projektissa mutta
+> annan geminin laulaa ja se osaa yllättävän hyvin toteuttaa asiat mitä
+> pyydän"*
+
+So this is `card:stranger-test.md`'s first row — the AI stranger that
+reads everything — and not its second.  It is evidence that the **engine
+boundary is legible to a strong reader**, and no evidence at all about
+whether the tool is approachable to a person.  The card's own table has
+said so since Henri corrected it on 2026-08-16, and this session read
+the picture the other way for one message before he said who was
+driving.
+
+**The model was Gemini**, which matters twice.  Every arm of the seeding
+trial run the same afternoon was Claude — the family that wrote much of
+this tree, a limitation that trial's pre-registration names.  Gemini is
+an outside reader, and it is the same family as the one prior transfer
+experiment, which **failed**: `notes-on-the-trial.md` records an
+isolated `derived.md` handed to Gemini Flash in Colab, with no work
+attached, producing nothing.  Its three stacked causes were *the file
+travelled alone*, *there was no work*, and *a Flash-class reader*.
+
+This run reversed the first two by accident — the whole tree, and a real
+thing somebody wanted — and got a working host.  **The third is still
+open**: nobody knows which Gemini, and that was precisely the variable
+that explained the earlier negative.
+
+### The category the card does not have
+
+Its table knows two strangers: an AI that reads everything, and a person
+who reads nothing.  Tuomas is neither.  He is a **non-technical person
+driving a strong reader** — he did not read the tree and did not write
+the sequencer; he asked for it.
+
+That is likely the most common way anybody meets this project from here,
+and `vision.md`'s opening claim does not describe it: *open a file, hear
+it, change it, hear the change* is about somebody who opens a file.  He
+never did.  The claim is not wrong; it is **incomplete**, and the
+document is the author's, so this entry names the gap and stops there.
+
+### What is not settled, and the one thing that would settle it
+
+Whether the method conditioned him — or rather his reader — or whether
+only the API was legible.  The two look identical in a screenshot and
+differ in the code: tests that drive the real tool, a generated report
+page, guesses marked as guesses, a roster that refuses an unclaimed
+module.  The same grep that graded four arms this afternoon would grade
+this one.
+
+**His code was not part of what he was asked**, so it is not here and
+was not read.
