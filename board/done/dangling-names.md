@@ -1,8 +1,9 @@
 # dangling-names — a name the tree cites and nothing defines
 
-    status   blocked
-    blocked  on a decision that is Henri's — which of three shapes, or
-             none.  Asked 2026-08-21, and he asked for time to think.
+    status   done — 2026-08-23
+    decided  A, by Henri, 2026-08-23.  Asked 2026-08-21; he took the
+             two days he asked for and answered after the arguments for
+             each shape had been measured rather than argued.
     because  the A3 rule was written on 2026-08-18 and cited three days
              later under a name it did not carry; citation and
              definition shared no word, so grep could not join them and
@@ -74,6 +75,7 @@ the author's attention.*
 | | what | cost | what it buys |
 |---|---|---|---|
 | **A** | nothing; name it in the body when somebody notices | zero | 2026-08-21's fix, repeated by accident |
+| **A′** | A, plus the sweep — `tools/dangling.py`, run on purpose | already built | **chosen 2026-08-23.**  The noticing no longer has to wait for somebody to trip over it |
 | **B** | `doc/terms.md` and a gate: one line per name → where it is defined | one page, one test | a cited name cannot rot silently |
 | **C** | an id of its own, `rule:a3`, like `card:` and the F-numbers | a notation, a checker, and every existing citation edited | the machinery that already keeps cards honest |
 | **D** | a gate that flags a name **cited in two or more documents and asserted in none** | one test, no notation, no list to maintain | it caught the real case, and stopped flagging it once fixed — see below |
@@ -99,8 +101,13 @@ consent was obtained; it cannot check that it was.*
 
 ## Questions
 
-**Which shape — A, B or C?**  Henri, 2026-08-21: *"palataan asiaan kun
-olen miettinyt sitä rauhassa."*  Open.
+**Which shape — A, B or C?**  **Answered: A**, Henri, 2026-08-23 —
+*"make A."*  Asked 2026-08-21 with *"palataan asiaan kun olen miettinyt
+sitä rauhassa"*, and the two days in between are what the rest of this
+card is: C priced from three precedents already in the tree, D built and
+measured, a third reading proposed and withdrawn, and seven names
+hand-checked.  The answer is the cheapest option on the table and it is
+the one the evidence got to, not the one deferring got to.
 
 **If B: what counts as a name?**  The narrowing above says *cited from
 more than one document*, which is checkable but is a proposal, not an
@@ -109,6 +116,27 @@ answer.
 **Does the same hole exist for things that are not rules?**  *The
 corner*, *the way in*, *the earning test* are all cited across documents
 in exactly this way, and none of them was looked at while writing this.
+
+## Done
+
+**A, chosen 2026-08-23.**  No glossary, no notation, no gate.  A name is
+attached to its definition when somebody notices it is not — and
+`tools/dangling.py` is what does the noticing, run on purpose rather
+than on every commit.  `doc/instruments.md` carries it.
+
+**Two instances in the corpus's whole history**, which is the number the
+decision turned on.  `A3 rule` — fixed 2026-08-21.  `placement rule` —
+**open, and deliberately left open**: one name over two different rules,
+both asserted elsewhere under other words, and naming them is a design
+call.  The report flags it on every run, so under A it stays visible
+without a card holding it.
+
+**What was built on the way**, and it outlives the card: the detector,
+the three measurement bugs it inherited and the fourth it made, seven
+names hand-checked, and the criterion settled as **the name** rather
+than the content — because at `5f42f68` the content was already there.
+
+`journal.md` §"Two names, and the criterion that had drifted".
 
 
 ---

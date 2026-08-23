@@ -1364,3 +1364,86 @@ without being asked.
 
 `board/README.md` is 624 lines; the rules set is 1,926 of 2,000, with 74
 lines of room.
+
+## Two names, and the criterion that had drifted — 2026-08-23
+
+*`card:dangling-names.md` closed on **A**.  Henri asked on 2026-08-21
+for time to think and got it; what the two days added was not more
+argument but measurement, and the measurement moved the answer.*
+
+**The card's question.**  How is a named concept — *the A3 rule*, *the
+drop rule* — made findable, when `card:` ids and F-numbers are checkable
+because they have a syntax and a name has none.  Four shapes were on the
+table: do nothing, a glossary, a notation of its own, or a gate.
+
+**What was actually built.**  `tools/dangling.py`, the gate shape, built
+as a **report** instead: on the five names the first detector raised, one
+was the real case, three were honest text, and one crossed a document
+boundary only by being quoted.  A check that accuses four times in five
+gets muted, and a muted gate costs the standing of the gates that work.
+It validates the way its predecessor did — at `5f42f68` it flags `A3
+rule`, with the rule named it does not, nothing else moves — and it
+reproduces all five 2026-08-21 hand-check verdicts, including the
+`spec/export.md:22` definition the original missed twice.
+
+**Two new names checked.**  `layout rule` — asserted, `spec/syntax.md`
+§"Layout", missed because the heading says *Layout* and the citations say
+*layout rule*.  `number rule` — not a term, and the confound again: a
+register entry and the test docstring derived from it, one sentence
+written twice.
+
+**The criterion, and it had drifted.**  A checker on 2026-08-21 asked
+whether a verdict turns on the *name* or the *content*, and the two
+readings disagree on `drop rule` and `placement rule`.  The question was
+answerable from the history: at `5f42f68` the A3 rule's content was
+already there in full — Henri's words, dated 2026-08-18 — so **under the
+content reading there was no defect on the day Henri found one.**  A
+criterion that clears the founding case is not the criterion.  And this
+card's own opening had said so before anybody asked: *"when the citation
+and the definition use different words … there is no string in common."*
+
+**A third reading was proposed and withdrawn in three commits.**
+Reachability — *can a reader get from the citation to the definition* —
+described the defect better than either and was measured at `5f42f68`:
+`A3` resolves, to the atlas's paper sheets; `placement` resolves, to
+audio placement.  The word is present and the sense is wrong, which is
+probably why the drift happened at all — the new name landed on an
+occupied word.  Cheap versions cannot tell two senses apart; exact
+versions need to know which sentence is the definition, which is the
+unknown.
+
+**Why A and not the others.**  Two instances in the corpus's whole
+history — `A3 rule`, fixed, and `placement rule`, open.  B's glossary
+would carry fourteen entries against those two.  C's price is on the card
+from three precedents already in the tree: sixteen card moves in ten
+days, each a tree-wide rewrite the suite caught after the fact.  D cannot
+compute what it wants to check.  And knowing which question to ask does
+not make the heuristic better at asking it — the only computable proxy
+is still *asserted nowhere*, at one clean hit in five.
+
+**The content question is real and it already has somewhere to go.**
+Two genuine gaps turned up while checking `layout rule`: `spec/syntax.md`
+never states that a toplevel declaration begins at column 0 though
+`typecheck.py:1029` tests `line[:1].isalpha()` and depends on the margin
+literally, and tabs are unmentioned in the syntax spec and the tokenizer
+while `shell/editor/src/window.rs:573` argues from a tab property the
+spec does not state.  `spec/errata.md` records *"what the spec says (or
+fails to say)"* and `fixme.md:3191` already holds this exact shape —
+*"`spec/editor.md` requires text undo and says nothing about file
+boundaries"* — which Henri answered on 2026-08-13.  Content-missing has
+two registers and a precedent that reached him.  Name-missing had none,
+which was the card.
+
+**Left open on purpose.**  `placement rule` — one name over two different
+rules, both asserted elsewhere under other words.  Naming them is a
+design call, so under A it waits for somebody to make it, and the report
+flags it every run so the waiting is visible without a card to hold it.
+
+**Four measurement bugs, and the fourth is mine.**  The census excluded
+`A3` from its own motivating case; `**` crossed newlines; the site list
+could not see a name with an adjective in front of it.  And the new
+detector's confound fold misses the `number rule` pair, because the two
+sentences agree on their tail and diverge in their lead-ins.  Unfixed:
+raising the threshold to catch it is the same move that starts folding
+independent uses.  All four were found by checking against a case whose
+answer was already known, and none by reading the code.
