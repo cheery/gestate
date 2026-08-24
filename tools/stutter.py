@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#: asked-by: unrecorded, 2026-08-15
+#: asked-by: Henri, 2026-08-15 — "audio stutters when I move the notes" — journal.md §"And then it had to feel like a gesture"
 """Play a piece, rebuild it a few times, and say what that cost.
 
     python tools/stutter.py examples/audio/minute.ges --rate 44100

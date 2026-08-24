@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#: asked-by: unrecorded, 2026-08-22
+#: asked-by: the tree, 2026-08-22 — F169: GESTATE_LIMIT_GAP=30 was a session's own number, and a number nobody asked for is a number nobody checks
 """tools/gapcheck.py — is 30 minutes the right silence gap?
 
     tools/gapcheck.py                    the arrivals so far, and what

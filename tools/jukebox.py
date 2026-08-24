@@ -1,4 +1,4 @@
-#: asked-by: unrecorded, 2026-08-15
+#: asked-by: a session, 2026-08-15 — "nothing else here listens to the library"; the commit body is the whole record
 """Play every example, ten seconds each, and say what is playing.
 
     python tools/jukebox.py                    # the whole tree

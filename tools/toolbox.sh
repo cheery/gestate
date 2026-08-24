@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#: asked-by: unrecorded, 2026-08-15
+#: asked-by: a session, 2026-08-15 — built from the evening's defects, not asked for; journal.md §"The instruments, again"
 #
 # toolbox.sh — the bench tools: what is here, and what is missing.
 #

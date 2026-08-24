@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#: asked-by: unrecorded, 2026-08-16
+#: asked-by: Henri, 2026-08-16 — "Can you do something that ensures it is set up back if it ever is missing?"
 #
 # tools/leash.sh — is the deny-list actually in force?
 #

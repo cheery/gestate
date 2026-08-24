@@ -201,6 +201,16 @@ Henri can say which row matches how the days felt.
 mid-thought or a person who cannot leave, and a timestamp cannot tell
 them apart.
 
+### `tools/asked.py` — who asked for each tool on this bench
+
+    python tools/asked.py       # the register; test_provenance.py is the gate
+
+**A tool nobody asked for is a tool nobody runs** — F169's rule moved
+from numbers to instruments.  Every file in `tools/` carries one
+`#: asked-by:` line from a closed set, `unrecorded` is legal and
+ratcheted, and a person's ask quotes their words or cites the card that
+does.  `card:who-asked.md` is why.
+
 ### `tools/seedaudit.py` — the pieces, and whether anything is behind them
 
     tools/seedaudit.py         audit this tree
@@ -213,11 +223,6 @@ no test finds respect in a document.  It checks that the **pieces that
 exist only because a person is on the other end** are present and have a
 test behind them, and that every path the capped documents name actually
 exists here, which is the 9B mismatch made runnable by a stranger.
-
-**An unbacked piece fails the run**, and could not until the day it was
-built: the two it found bare were the andon and the sitting limit, and
-the ratchet was pulled once they had tests, never as a way of announcing
-that they should.
 
 **Not a wall.**  `tools/limit.sh` is tracked but writable by a session, so
 the honest claim is visibility: any change to it shows in `git diff`.  A

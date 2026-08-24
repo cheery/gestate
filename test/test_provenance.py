@@ -37,7 +37,7 @@ spec.loader.exec_module(asked)
 #: count is written down, exactly as `fixme.md`'s header writes down how
 #: many of its entries are resolved, and moving it costs an edit
 #: somebody has to justify.  It may fall.  It may not rise.
-UNRECORDED = 11
+UNRECORDED = 5  # 11 on 2026-08-23; six dug out of the record on 2026-08-24
 
 
 @pytest.mark.parametrize("path", asked.tools(), ids=lambda p: p.name)

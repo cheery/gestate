@@ -152,7 +152,7 @@ decline honestly:
 | [`README.md`](../README.md) | 254 | you, if you want to hear it |
 | [`vision.md`](../vision.md) | 77 | what any of this is for; the author's own, dated |
 | [`manifesto.md`](../manifesto.md) | 377 | how an instrument fails, and the two standing rules |
-| [`board/README.md`](../board/README.md) | 619 | how a task is worked — written for sessions |
+| [`board/README.md`](../board/README.md) | 614 | how a task is worked — written for sessions |
 | [`spec/`](../spec/) | ~16,000 | how each part is designed, and what it cost |
 | [`fixme.md`](../fixme.md) | 181 entries, 152 resolved | where the implementation disagrees with the specs |
 | [`journal.md`](../journal.md) + `journal/` | the current month, plus one line per closed month | what happened, past tense |

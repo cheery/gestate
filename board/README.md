@@ -85,11 +85,6 @@ still the tiebreak between two workable cards, and it is still his.
    gestate.  Four moves taken one at a time over months, three of them
    a two-line edit each, so it does not compete for a day's work.
 
-8. **[who-asked](who-asked.md)** — every tool says who wanted it, and
-   the suite refuses one that does not.  **The mechanism is built**; what
-   is left is eleven journal reads, one edit each, so it never competes
-   for a day's work.
-
 **And the criterion has been checked once, on 2026-08-19, and it lost**
 — `journal.md` §"And what the day says about the board".  Ordering by
 impact ranked a crash seventh, which is the kind of answer a rule gives

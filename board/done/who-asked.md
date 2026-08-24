@@ -1,6 +1,6 @@
 # who-asked — every tool says who wanted it, and the suite refuses one that does not
 
-    status   open
+    status   done — 2026-08-24
     because  a stranger's one-line question produced an instrument the
              same afternoon, and nothing in the tree would have caught
              the next one — the register that would is impossible to
@@ -100,7 +100,7 @@ does is make the *provenance of capability* a checked property instead
 of a thing a session happens to mention — so that a bench where nobody
 asked for anything is visible as such, on a command, in one screen.
 
-## What it waits on: eight lines under the cap
+## What it waited on: eight lines under the cap — paid 2026-08-24
 
 **`doc/instruments.md` has no entry for `tools/asked.py`, and that is a
 debt, not an oversight.**  That page is what a session reads *before it
@@ -130,3 +130,27 @@ before the cap was this tight — §"`tools/covercount.py` — which lines
 the suite has never run".  The two instruments are not in the same state
 and the difference is eight lines of budget, which is worth saying
 plainly rather than leaving a reader to notice one is missing.*
+
+## Done
+
+*2026-08-24, the evening `card:working-standard.md` closed.*
+
+* **The entry is in `doc/instruments.md`**, pasted as written above.
+  The room came from four lines of narration in the `seedaudit.py`
+  section that `journal.md` already held — and from the day's finding
+  that the cap measures growth, not a reading cost, so eight lines for
+  a gate a session must know about is the kind of growth it exists to
+  make visible rather than prevent.
+* **Six of the eleven dug out of the record**: `leash.sh` and
+  `stutter.py` quote Henri, `dragcheck.py` cites the peep card,
+  `gapcheck.py` is the tree's (F169), `toolbox.sh` and `jukebox.py` are
+  a session's own and the record says so.  `UNRECORDED = 5`; the ratchet
+  came down six.  The five left — `lagcheck.py`, `pcf.py`,
+  `dialoglag.py`, `measure_canvas.py`, `measure_editor.py` — are from
+  the first week, and F112's *"reported from use"* does not quote him,
+  so they stay honest rather than guessed.
+* What the card does not claim still holds: nothing catches the next
+  stranger's question.  What is checked is that a bench where nobody
+  asked for anything is visible as such, in one command.
+
+`journal.md` §"Memories of green — the evening the standard was examined and the memory was found unhooked — 2026-08-24" is the day.

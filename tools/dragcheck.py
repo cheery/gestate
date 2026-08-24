@@ -1,4 +1,4 @@
-#: asked-by: unrecorded, 2026-08-16
+#: asked-by: Henri, 2026-08-16 — card:peep-window.md — the driver that found the note scrolling out from under the finger
 """Does the picture stay under the hand while a note is dragged?
 
     python tools/dragcheck.py
