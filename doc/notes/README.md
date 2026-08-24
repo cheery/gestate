@@ -1,10 +1,10 @@
 # doc/notes/ — the conversations several rules came out of
 
-Eight transcripts from four evenings and three days, kept because this
+Nine transcripts from four evenings and four days, kept because this
 tree's own rule is that a claim carries what paid for it.  Nine of the memories in
 `doc/memory/`, one card, and at least two sections of the method were
 distilled from the first four, and until now the distillate was public
-and the source was not.  The last four were distilled from nothing —
+and the source was not.  The last five were distilled from nothing —
 they are here because they were worth keeping, not because something
 was taken out of them.
 
@@ -26,6 +26,7 @@ produced it rather than take the summary on trust.
 | [notes-on-corrections.md](notes-on-corrections.md) | an andon for the keeper, and who supervises him · *first they ignore you*, banned as comfort · a claim deflated, and the same conclusion re-derived from ground that does not move · who audits the auditor between fires |
 | [notes-on-drift.md](notes-on-drift.md) | four ways to spread the method, and why none of them is next · whether the music is camouflage · what keeps a keeper in check and honest |
 | [notes-on-secretion.md](notes-on-secretion.md) | what the tree's excretion is for, and how it is done well · budget over mood · relocation rather than deletion · why the evidence is the part never removed |
+| [notes-on-the-offspring.md](notes-on-the-offspring.md) | tend, read on its first morning · the provenance convention and the enforcement boundary · what to call the documents — trees in the house, *tended documents* at the door |
 
 ## Provenance, and what to distrust
 
@@ -36,15 +37,16 @@ the argument is faithful and the wording of the answers is not, and
 nothing in them should be quoted as though it were said exactly that
 way.
 
-**The last four are different, and they are the more trustworthy of
+**The last five are different, and they are the more trustworthy of
 the two kinds.**  `notes-on-guests-and-residents.md`,
-`notes-on-corrections.md`, `notes-on-drift.md` and
-`notes-on-secretion.md` arrived as files the author had saved from the
-window himself, so both sides are at full length and no session stood
-between the conversation and the page.  The only editing was reflowing
-lines and adding the headings and the closing section — and, in
-`notes-on-corrections.md`, repairing one place where the saved text had
-duplicated a fragment of a sentence; nothing was shortened.  Which means
+`notes-on-corrections.md`, `notes-on-drift.md`,
+`notes-on-secretion.md` and `notes-on-the-offspring.md` arrived as
+files the author had saved from the window himself, so both sides are
+at full length and no session stood between the conversation and the
+page.  The only editing was reflowing lines and adding the headings
+and the closing section — and, in `notes-on-corrections.md`, repairing
+one place where the saved text had duplicated a fragment of a
+sentence; nothing was shortened.  Which means
 the ordinary reason to distrust a transcript here — a later model
 summarising an earlier one — does not apply to those four, and every
 *other* reason still does.
@@ -57,7 +59,7 @@ file over; the other is `doc/consent.md`'s rule applied by a session.
 The page says so in its own opening, because a silent redaction is worse
 than none.
 
-The model was **Fable**, over four evenings and three days in August; the
+The model was **Fable**, over four evenings and four days in August; the
 transcription and the distillation into memories were done afterwards by
 a different model.  Two of the first four say so in their own text.
 
@@ -88,4 +90,8 @@ sixth were handed over the same way, 2026-08-22, and the seventh on
 2026-08-23.  The eighth, `notes-on-secretion.md`, was published later
 the same day at his ask — the only one whose source file a session had
 read before it was published, having leaned on two of its rules in
-ordinary work that afternoon.
+ordinary work that afternoon.  The ninth,
+`notes-on-the-offspring.md`, was handed over the same way on
+2026-08-24, the day of the conversation itself; the author's LinkedIn
+bio is mentioned in it, which is his own to mention, and nobody else
+is referred to.
