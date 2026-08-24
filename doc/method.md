@@ -115,6 +115,33 @@ The audit has been run against a copy of this tree and against
 nothing else yet.  Its author's line for the front of it: *"We aren't
 smart or super.  We just have good processes."*
 
+## The tree withers if it is not treated well
+
+The author, 2026-08-24, the evening the sentence below was measured:
+*"The tree must be treated well or it withers."*
+
+That is not a mood.  What conditions a session here is not the method
+documents — it is the record of one person's corrections, dated, in his
+own words, kept in files that reach the next session before it asks
+anything.  Files rot in specific, quiet ways: a hook never added, an
+index that drifts from its directory, a page behind the source it
+describes, a rule stated twice, a number nobody checks.  None of them
+fails loudly.  Each one is a slightly different session.
+
+Every one of those was found in this tree in one week.  The worst was
+found last: the index every session reads first had lost **19 of its
+53 hooks**, and because it lived outside the repository nobody could say
+when.  The fix was not to add the nineteen back.  It was a generator
+that writes the index from the tree and a hook that refuses a commit
+when the two differ — the same move as the atlas, the piece table above,
+and every other generated page here.
+
+So *treated well* means something you can check: **a living document has
+a source and a check, or it is a document that was alive once.**  The
+month's evening work ([`keeper.md`](../keeper.md)) is that rule on a
+cadence, and it is deliberately never a demand — a tree that punishes an
+absence is being treated badly from the other side.
+
 ## Where the depth lives
 
 Nothing here is required reading, and the sizes are given so you can
