@@ -24,6 +24,12 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
+# F180: `suite.py` imports `rulecount`, `journalroll` and `arrivals` by
+# bare name, so this file only passed when an earlier test had put
+# `tools/` on the path.  A test that passes only in company has a
+# verdict that depends on collection order.
+import sys
+sys.path.insert(0, str(ROOT / "tools"))
 
 spec = importlib.util.spec_from_file_location("suite", ROOT / "tools" / "suite.py")
 suite = importlib.util.module_from_spec(spec)
