@@ -1,6 +1,6 @@
 # doc/notes/ — the conversations several rules came out of
 
-Nine transcripts from four evenings and four days, kept because this
+Ten transcripts from four evenings and four days, kept because this
 tree's own rule is that a claim carries what paid for it.  Nine of the memories in
 `doc/memory/`, one card, and at least two sections of the method were
 distilled from the first four, and until now the distillate was public
@@ -27,6 +27,7 @@ produced it rather than take the summary on trust.
 | [notes-on-drift.md](notes-on-drift.md) | four ways to spread the method, and why none of them is next · whether the music is camouflage · what keeps a keeper in check and honest |
 | [notes-on-secretion.md](notes-on-secretion.md) | what the tree's excretion is for, and how it is done well · budget over mood · relocation rather than deletion · why the evidence is the part never removed |
 | [notes-on-the-offspring.md](notes-on-the-offspring.md) | tend, read on its first morning · the provenance convention and the enforcement boundary · what to call the documents — trees in the house, *tended documents* at the door |
+| [notes-on-the-conditioning.md](notes-on-the-conditioning.md) | a safety gate that cried wolf, and what a false red costs · a third model conditioned in two sentences — identity, and a real stake · why its own report of honesty is the weakest evidence in it |
 
 ## Provenance, and what to distrust
 
@@ -48,8 +49,17 @@ and the closing section — and, in `notes-on-corrections.md`, repairing
 one place where the saved text had duplicated a fragment of a
 sentence; nothing was shortened.  Which means
 the ordinary reason to distrust a transcript here — a later model
-summarising an earlier one — does not apply to those four, and every
+summarising an earlier one — does not apply to those five, and every
 *other* reason still does.
+
+**The tenth is a third kind, and it is the least independent of the
+three.**  `notes-on-the-conditioning.md` was written by the session that
+was *in* the conversation, while it was still open, at the author's ask.
+His words in it are verbatim and complete rather than recalled, which no
+other kind can claim — and its account of the session's own side was
+written by that session about itself, with nobody in between who was not
+a participant.  The page says so in its own second section.  Quote his
+lines from it; treat its judgments about the session as unreviewed.
 
 **`notes-on-drift.md` carries two redactions and they are the only words
 changed in it.**  Two people are referred to in the original and neither
@@ -71,7 +81,7 @@ lost; it had not, and the claim came from looking in one directory.
 `doc/memory/what-a-session-is.md` and
 `doc/memory/deriving-strips-the-payment.md` are distilled from them.
 
-**The standing caveat applies to all eight, and hardest here.**  A
+**The standing caveat applies to all ten, and hardest here.**  A
 session assessing this method is a product of it, and several of these
 pages are exactly that: an assessment of the tree, written by something
 the tree conditioned.  `doc/memory/the-evaluation-loop.md` is the rule
@@ -94,4 +104,8 @@ ordinary work that afternoon.  The ninth,
 `notes-on-the-offspring.md`, was handed over the same way on
 2026-08-24, the day of the conversation itself; the author's LinkedIn
 bio is mentioned in it, which is his own to mention, and nobody else
-is referred to.
+is referred to.  The tenth, `notes-on-the-conditioning.md`, went in the
+same day at his ask — *"Also add a report from this into the notes"* —
+and is the first written from inside a live conversation rather than
+handed over after one.  A model running on the author's work laptop is
+referred to by its release name; no third party speaks or is named.
