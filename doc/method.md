@@ -77,13 +77,43 @@ tree breaks:
 | a person's words quoted who is not in [`consent.md`](consent.md) | the repository is public and other people's speech is in it |
 | a generated page behind the source it describes | five A3 sheets, the API reference, the complaints register |
 | a register whose own header miscounts its entries | the defect ledger said 130 when it held 155 |
-| the five method documents growing past 2,000 lines | they are read before a session knows what it is working on |
+| one of the ten pieces below missing, or without its declared test | a rule with no gate is a wish, and a directory of wishes reads like a directory of rules |
+| the five method documents growing past 2,000 lines | growth in the method may happen, and may not happen quietly |
 | the journal's month index falling behind its archive | the index is the only way into a closed month |
 
 The last two are lamps rather than refusals. Growth in the method is
 allowed to happen and is not allowed to happen *quietly* — a gate that
 refuses a genuine amendment does not prevent the growth, it teaches the
 next writer to make the method worse in smaller words.
+
+## What a directory must have to be held to this
+
+The standard is not the documents.  It is ten pieces, each of which
+exists only because a person is on the other end, each with the one
+test that refuses its loss.  `tools/seedaudit.py PATH` audits any
+directory against them — present, gated, and every path the documents
+promise either there or made by a command — and the table below is
+generated from the same list the tool reads, so it cannot say
+something the audit does not.
+
+<!-- seedaudit --table -->
+| the piece | it exists because | the test that gates it |
+|---|---|---|
+| the fence — `.claude/settings.json`, `tools/sandbox.sh` | a session cannot edit its own restraints | `test/test_safety.py` |
+| the gates — `tools/suite.py`, `tools/pre-commit.sh` | the rules are enforced outside the model that must follow them | `test/test_precommit.py` |
+| the consent register — `doc/consent.md` | a named third party agreed to being named | `test/test_consent.py` |
+| the andon — `tools/andon.sh` | a session can raise a question and reach a person who answers | `test/test_andon.py` |
+| a blocked status — `board/README.md` | a session may stop and say why, instead of guessing on | `test/test_board.py` |
+| the rules cap — `spec/rules.md`, `tools/rulecount.py` | the rules stay short enough that a person actually reads them | `test/test_rules.py` |
+| the memory split — `doc/memory/README.md` | what is known about a person is not automatically the tree's | `test/test_memory.py` |
+| the sitting limit — `tools/limit.sh` | the person's own hours are the person's | `test/test_limit.py` |
+| the boot surface — `AGENTS.md` | nothing else reaches a session unasked | `test/test_rules.py` |
+| the author's own document — `spec/author.md` | the person keeps a document no session rewrites | `test/test_gemba.py` |
+<!-- /seedaudit --table -->
+
+The audit has been run against a copy of this tree and against
+nothing else yet.  Its author's line for the front of it: *"We aren't
+smart or super.  We just have good processes."*
 
 ## Where the depth lives
 

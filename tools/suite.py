@@ -372,6 +372,14 @@ def _journal_andon():
     ]
 
 
+def _arrivals_row():
+    """The number *question it into existence* is measured by —
+    `tools/arrivals.py`.  A row, never a refusal: the rule is critical
+    *if it works*, Henri 2026-08-18, and this is where it shows."""
+    import arrivals
+    return f"{arrivals.week()} in the last seven days"
+
+
 def _draw_gates(rc, out, started, wall, fence_row, gates):
     """`test/gates.md` — and it says what it is not.
 
@@ -401,6 +409,7 @@ def _draw_gates(rc, out, started, wall, fence_row, gates):
         f"| Gates | {len(gates)} of them |",
         f"| Rules | {_rules_row()} |",
         f"| Journal | {_journal_row()} |",
+        f"| Cards minted | {_arrivals_row()} |",
         f"| Wall | {int(wall)}s |",
         f"| Exit | {rc} |",
         "",

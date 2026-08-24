@@ -414,3 +414,19 @@ def test_the_method_page_counts_what_the_tree_counts():
     assert not wrong, (
         "doc/method.md quotes numbers the tree already measures, and they "
         "have drifted:\n  " + "\n  ".join(wrong))
+
+
+def test_the_method_page_carries_the_pieces_as_the_audit_has_them():
+    """The standard is stated for a person on `doc/method.md`, and for
+    the suite in `tools/seedaudit.py`; this is the rule that they are
+    the same list.  Regenerate with `python tools/seedaudit.py --table`."""
+    import sys
+    sys.path.insert(0, str(ROOT / "tools"))
+    import seedaudit
+    text = METHOD.read_text(encoding="utf-8")
+    block = re.search(r"<!-- seedaudit --table -->\n(.*?)\n<!-- /seedaudit --table -->",
+                      text, re.S)
+    assert block, "doc/method.md has no seedaudit table block"
+    assert block.group(1) == seedaudit.method_table(), (
+        "doc/method.md's piece table is behind tools/seedaudit.py — "
+        "run: python tools/seedaudit.py --table")

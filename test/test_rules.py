@@ -126,3 +126,39 @@ def test_the_pointer_is_one_line_and_points_at_the_board():
         f"AGENTS.md says {lines[0]!r} and must name board/README.md; "
         "a pointer that points somewhere else is a redirect nobody voted "
         "for.")
+
+
+def _five():
+    return {name: (ROOT / name).read_text(encoding="utf-8") for name in rulecount.RULES}
+
+
+def test_no_rule_is_stated_twice_across_the_five():
+    """One rule, one place, the others citing it.
+
+    `card:working-standard.md` found on 2026-08-18 that the two-writers
+    rule was stated three times in one file and the andon explained in
+    five documents; the 2026-08-20 trim consolidated both, and until
+    2026-08-24 nothing would have noticed them coming back.  A bold run
+    of thirty characters or more is how a rule is stated in these
+    documents, and the same one in two of them is a duplicate."""
+    import re
+    seen = {}
+    for name, text in _five().items():
+        for rule in set(re.findall(r"\*\*([^*\n]{30,})\*\*", text)):
+            seen.setdefault(rule.strip().rstrip(".").lower(), set()).add(name)
+    twice = {r: sorted(d) for r, d in seen.items() if len(d) > 1}
+    assert not twice, "stated in more than one of the five:\n  " + "\n  ".join(
+        f"{r!r}: {', '.join(d)}" for r, d in sorted(twice.items()))
+
+
+def test_each_tool_is_explained_in_one_document():
+    """A `### \`tools/…\`` heading is where a tool is explained.  Two
+    documents explaining the same tool is the andon-in-five-places
+    defect, which is what `doc/instruments.md` exists to end."""
+    import re
+    where = {}
+    for name, text in _five().items():
+        for tool in re.findall(r"^### `(tools/[\w./-]+)", text, re.M):
+            where.setdefault(tool, set()).add(name)
+    twice = {t: sorted(d) for t, d in where.items() if len(d) > 1}
+    assert not twice, twice

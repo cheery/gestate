@@ -5,6 +5,7 @@
     tools/seedaudit.py              audit this tree
     tools/seedaudit.py PATH         audit a directory that copied the standard
     tools/seedaudit.py --quiet      exit status only
+    tools/seedaudit.py --table      the pieces as a markdown table, for doc/method.md
 
 **What this is for.**  Henri, 2026-08-22, on finding the same practice
 being re-derived elsewhere:
@@ -241,12 +242,33 @@ def audit_promises(root):
     return broken, unbuilt
 
 
+def method_table():
+    """The standard, stated for a person: one row per piece.
+
+    `doc/method.md` carries this block verbatim and `test_citations.py`
+    refuses the page when it differs — the same rule as the atlas: a
+    generated page behind its source is the defect class the gates
+    exist for.  Until 2026-08-24 the pieces were stated only here, in a
+    Python list, and a stranger asking what the standard was had to
+    read a tool."""
+    lines = ["| the piece | it exists because | the test that gates it |",
+             "|---|---|---|"]
+    for piece in PIECES:
+        paths = ", ".join(f"`{p}`" for p in piece["paths"])
+        lines.append(f"| {piece['name']} — {paths} | {piece['why']} | `{piece['gate']}` |")
+    return "\n".join(lines)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("path", nargs="?", default=".", type=pathlib.Path)
     ap.add_argument("--quiet", action="store_true")
+    ap.add_argument("--table", action="store_true")
     args = ap.parse_args()
     root = args.path.resolve()
+    if args.table:
+        print(method_table())
+        return 0
 
     rows = audit_pieces(root)
     broken, unbuilt = audit_promises(root)
