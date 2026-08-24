@@ -669,5 +669,34 @@ gate; the thirteenth.
    0 unbacked, 0 unkept, 5 unbuilt**, and `tools/seedmutate.sh` sweeps
    that archive rather than the working tree, which is what a clone
    actually gets.
-3. The four workflow cards stay as they are; reading 2 of the scope is
-   unchanged, only the cap stops being the work.
+3. ~~The four workflow cards stay as they are; reading 2 of the scope is
+   unchanged~~ — **measured done, 2026-08-24, after the commit.**  Both
+   halves of reading 2 were already finished and the card had not been
+   told.  *Fix the method's known defects:* all four cards are in
+   `board/done/` — `interface-oracle` 2026-08-18, `carried-state`,
+   `driven-runs`, `cheap-gates` 2026-08-19.  *Consolidate — one rule,
+   one place, the others citing it:* the two targets §"Found by
+   looking" named on 2026-08-18 were consolidated by the 2026-08-20
+   trim without being marked.  The two-writers rule is stated once
+   (`board/README.md` §"Who writes what") and applied once, by
+   citation, in §"The suite is a serial gate"; the andon is explained
+   once (`doc/instruments.md` §"`tools/andon.sh` — ring the sound
+   card") and the other four documents name it in one line each or not
+   at all — `grep -ci andon`: 3, 1, 1, 5, 0.
+
+### What is left, and whose call it is
+
+Nothing on this card is being worked.  What it set out to do on
+2026-08-18 — a standard that lives with the work, that the suite can
+fail on — is `tools/seedaudit.py`, ten pieces with declared gates,
+tested by mutation, a suite gate, reading the tree's own rule for what
+is built by a command.  The cap is measured and its meaning corrected.
+The defects are closed.  The duplication is gone.
+
+Henri, 2026-08-18: *"it will take time until we can done/ this card."*
+It did — six days.  Whether it goes to `board/done/` now is his line
+to write, and the one thing that would argue against it is
+`card:project-seed.md`: the audit has never been pointed at a copy
+that is not this tree, which its own docstring keeps saying until it
+is false.  That is the seed's first day, not this card's last.
+
