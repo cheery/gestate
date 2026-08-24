@@ -52,26 +52,22 @@ drops out of today regardless of where it stands here.
 That is not a licence to skip down the list on preference.  Priority is
 still the tiebreak between two workable cards, and it is still his.
 
-1. **[working-standard](working-standard.md)** — `doing`.  The five
-   method documents are against their 2,000-line cap (`spec/rules.md`)
-   and `tools/rulecount.py` says where they stand; the counter has been
-   a gate since 2026-08-20, and the trim is what is left.
-2. **[ungated-fixes](ungated-fixes.md)** — 62 of `fixme.md`'s repairs
+1. **[ungated-fixes](ungated-fixes.md)** — 62 of `fixme.md`'s repairs
    are named by no test, so a defect closed on a photograph can come
    back without anybody being told.  Directly under the oracle
    because they are the same family and the oracle is what makes the
    interface-shaped ones closable at all.
-3. **[unseen-flare](unseen-flare.md)** — narrower than
+2. **[unseen-flare](unseen-flare.md)** — narrower than
    `unheard-output`, and overlapping it.
-4. **[reviewing-by-running](reviewing-by-running.md)** — the review
+3. **[reviewing-by-running](reviewing-by-running.md)** — the review
    loop `spec/author.md` says is the scarce resource.
-5. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
+4. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
    the changes a session makes.
-6. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
+5. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
    *A proof of concept landed 2026-08-18 — three of its four views walk
    in the real window.  What is left is the fourth, paging, and a
    stranger.*
-7. **[stranger-test](stranger-test.md)** — **moved here from first on
+6. **[stranger-test](stranger-test.md)** — **moved here from first on
     2026-08-18**, the day it produced its largest result: *"I think that
     we need another stranger.  move the card to the last."*  It is not
     demoted for being less valuable — run two carried the vision's whole
@@ -82,14 +78,14 @@ still the tiebreak between two workable cards, and it is still his.
     answered by any session, at any position in this list.  A card that
     cannot be worked does not belong above cards that can.
 
-8. **[memory-atrophy](memory-atrophy.md)** — the author's own
+7. **[memory-atrophy](memory-atrophy.md)** — the author's own
    observation, 2026-08-21: the tree reduces his memory pressure, and
    what is not exercised weakens.  **Last because the criterion above
    cannot rank it** — its reader is the author, not somebody using
    gestate.  Four moves taken one at a time over months, three of them
    a two-line edit each, so it does not compete for a day's work.
 
-9. **[who-asked](who-asked.md)** — every tool says who wanted it, and
+8. **[who-asked](who-asked.md)** — every tool says who wanted it, and
    the suite refuses one that does not.  **The mechanism is built**; what
    is left is eleven journal reads, one edit each, so it never competes
    for a day's work.

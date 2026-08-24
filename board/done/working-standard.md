@@ -1,6 +1,6 @@
 # working-standard — the way we work exists only as prose that grew around a music program
 
-    status   doing — 2026-08-20
+    status   done — 2026-08-24
     because  "standardization effort of our work here" — the method that
              runs this project is spread over five documents and some
              1,550 lines, with one rule stated three times inside a single
@@ -22,10 +22,10 @@
              behind this trim; §"What it waits on" holds it written
              tools/rulecount.py — the number, and test/test_rules.py the gate
 
-**Picking this up?  §"Back on the board, 2026-08-24 — the deliverable is
-the audit" is the live half**, and it overtakes the cap section before
-it; everything above those two is how the card was argued into shape
-while it was shelved, and none of it has changed.
+**Done 2026-08-24.**  §"Done" at the foot is what landed; §"Back on the
+board, 2026-08-24 — the deliverable is the audit" is how, and it
+overtakes the cap section before it.  Everything above those two is how
+the card was argued into shape while it was shelved.
 
 ## The ask
 
@@ -715,3 +715,22 @@ to write, and the one thing that would argue against it is
 that is not this tree, which its own docstring keeps saying until it
 is false.  That is the seed's first day, not this card's last.
 
+## Done
+
+*2026-08-24, six days after it was written and four after it was
+unshelved for a number.*
+
+* **The standard is `tools/seedaudit.py`'s ten pieces**, each with a
+  `why` that is a person on the other end and a declared gate; stated
+  for a person on `doc/method.md` from the same list; tested by
+  taking pieces away (`tools/seedmutate.sh`, 0 survived); a suite gate.
+* **The cap is measured and means growth**, not reading cost —
+  `spec/rules.md` reworded, the false premise kept as a dated quote.
+* **The four workflow cards were already done; the duplication was
+  already trimmed** — and both are gated now.
+* **Not done, and not this card's:** the audit has never been pointed
+  at a directory that is not this tree.  `card:project-seed.md`.
+
+`journal.md` §"Kaizen, 2026-08-24 — nothing stopped the run" is the
+story; the card was closed by examining it against its own definitions,
+not by declaring it.
