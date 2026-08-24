@@ -94,6 +94,7 @@ session inferred.
 - [Kanban commits](henri-kanban-commits.md) — Henri gives the title when he wants a commit; Claude writes the body and co-authors; never commit unprompted
 - [B4 score box, built](gestate-scorebox-design.md) — `notes <expr>` roll shipped 2026-08-14; never slice by span, class-method dicts, F136
 - [Salvage week](gestate-salvage-week.md) — Henri's earlier music projects, read for what survives translation
+- [A trial is refused until its sheet can decide](a-trial-is-refused-until-its-sheet-can-decide.md) — run `tools/prereg.sh` before spawning any arm; a blank decision, control or n is a stop, not a licence, and *told not to look* is not a control; kaizen 2026-08-24
 - [Ask for research that leaves a command](research-that-leaves-a-command.md) — a measurement carries a command you can re-run and a recommendation carries nothing; his rule 2026-08-23, and distrust a clean investigation hardest when it agrees with whoever ran it
 - [Don't conclude from a shallow check](dont-conclude-from-a-shallow-check.md) — an empty result from a guessed-at search is evidence about the search, not the world
 - [The andon](gestate-andon.md) — `tools/andon.sh` rings the sound card to reach Henri while he rests; capped at three, batch the questions first

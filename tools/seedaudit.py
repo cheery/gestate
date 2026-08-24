@@ -164,9 +164,65 @@ def audit_pieces(root):
     return rows
 
 
+def ignore_rules(root):
+    """Every `.gitignore` under root, as (directory, pattern) pairs.
+
+    The tree's own rule for that file — *ignore what a command can make
+    again, keep what it cannot* — is exactly the distinction a promise
+    check needs and could not make until 2026-08-24: a fresh clone was
+    red on `test/gates.md` and `target/release/`, five promises that
+    were not broken but unbuilt.  Read here rather than asked of `git`,
+    because a copy of the standard need not be a repository."""
+    rules = []
+    for f in sorted(root.rglob(".gitignore")):
+        if any(part in (".git", ".venv", "node_modules") for part in f.parts):
+            continue
+        base = f.parent.relative_to(root)
+        for line in f.read_text(encoding="utf-8", errors="ignore").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or line.startswith("!"):
+                continue
+            rules.append((base, line))
+    return rules
+
+
+def is_ignored(root, rel, rules=None):
+    """Would git ignore `rel`?  The common cases of the syntax, no more:
+    an anchored pattern (`/target/`, `test/gates.md`) matches under its
+    own directory; a bare one (`*.wav`, `target/`) matches any level."""
+    import fnmatch
+    rules = ignore_rules(root) if rules is None else rules
+    rel = rel.rstrip("/")
+    parts = pathlib.PurePosixPath(rel).parts
+    for base, pat in rules:
+        try:
+            sub = pathlib.PurePosixPath(rel).relative_to(base) if str(base) != "." else pathlib.PurePosixPath(rel)
+        except ValueError:
+            continue
+        pat = pat.rstrip("/")  # a cited `x/` is a directory promise either way
+        anchored = pat.startswith("/") or "/" in pat
+        pat = pat.lstrip("/")
+        sp = sub.parts
+        for i in range(len(sp)):
+            head = "/".join(sp[: i + 1])
+            if anchored:
+                if fnmatch.fnmatchcase(head, pat):
+                    return True
+            elif fnmatch.fnmatchcase(sp[i], pat):
+                return True
+    return False
+
+
 def audit_promises(root):
-    """Paths the method documents name, that this directory does not have."""
-    broken = {}
+    """Paths the method documents name, that this directory does not have.
+
+    Returns (broken, unbuilt): the second is every missing promise the
+    tree's own `.gitignore` says a command makes again.  Reported, never
+    failed on — the audit cannot run the command, and a clone that has
+    not built yet is not a clone that copied the prose and left the
+    machinery."""
+    broken, unbuilt = {}, {}
+    rules = ignore_rules(root)
     for doc in CAPPED:
         f = root / doc
         if not f.is_file():
@@ -178,8 +234,11 @@ def audit_promises(root):
                 continue
             if any((root / where / cited).exists() for where in LOOKIN):
                 continue
-            broken.setdefault(cited, []).append(doc)
-    return broken
+            if is_ignored(root, cited, rules):
+                unbuilt.setdefault(cited, []).append(doc)
+            else:
+                broken.setdefault(cited, []).append(doc)
+    return broken, unbuilt
 
 
 def main():
@@ -190,7 +249,7 @@ def main():
     root = args.path.resolve()
 
     rows = audit_pieces(root)
-    broken = audit_promises(root)
+    broken, unbuilt = audit_promises(root)
 
     absent = [r for r in rows if r["missing"]]
     unbacked = [r for r in rows if not r["missing"] and not r["backing"]]
@@ -216,12 +275,15 @@ def main():
         if broken:
             for cited, docs in sorted(broken.items()):
                 print(f"    MISSING   {cited:<26}  named in {', '.join(sorted(set(docs)))}")
-        else:
+        elif not unbuilt:
             print("    none — every path the documents name exists here")
+        for cited, docs in sorted(unbuilt.items()):
+            print(f"    unbuilt   {cited:<26}  a command makes it; named in {', '.join(sorted(set(docs)))}")
         print()
         print(f"  {len(rows) - len(absent)} of {len(rows)} pieces present,"
               f"  {len(unbacked)} unbacked,"
-              f"  {len(broken)} unkept promise(s)")
+              f"  {len(broken)} unkept promise(s),"
+              f"  {len(unbuilt)} unbuilt")
         if unbacked:
             print()
             print("  An unbacked piece is a rule with no gate — the second of the")

@@ -658,8 +658,16 @@ gate; the thirteenth.
 2. ~~`backed_by` tightened until `tools/seedmutate.sh` reports 0
    survived, and then the sweep joins the gates~~ — done the same day,
    above.
-2b. The audit's *promise* half still cannot tell an unbuilt promise
-   from a broken one (finding one, above): a seed is a clone and a
-   clone is red.  Open.
+2b. ~~The audit's *promise* half still cannot tell an unbuilt promise
+   from a broken one~~ — done the same afternoon.  `.gitignore`'s
+   own first line, *ignore what a command can make again*, is the
+   distinction, and all five were already under it with their reasons
+   written beside them.  The audit reads every `.gitignore` in the
+   copy (a seed need not be a repository, so not `git check-ignore`)
+   and reports a missing, ignored promise as **unbuilt** — printed,
+   never failed on.  A `git archive` of HEAD now audits **10 of 10,
+   0 unbacked, 0 unkept, 5 unbuilt**, and `tools/seedmutate.sh` sweeps
+   that archive rather than the working tree, which is what a clone
+   actually gets.
 3. The four workflow cards stay as they are; reading 2 of the scope is
    unchanged, only the cap stops being the work.

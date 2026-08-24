@@ -10,15 +10,14 @@
 # audit's verdict on the copy.  A mutation that leaves the audit green
 # is a piece the audit cannot see going.
 #
-# The copy is the working tree, not `git archive` — a clone is red on its
-# own for five *generated* promises (test/gates.md, target/release/ …),
-# which is a finding recorded in card:working-standard.md, not something
-# this sweep should re-find every run.
+# The copy is `git archive HEAD`: what a clone gets, and nothing that is
+# only on this machine.  On 2026-08-24 that copy was red on five
+# *generated* promises before any mutation, which is why the audit now
+# reads `.gitignore` and calls those unbuilt.
 set -u
 SRC=$(cd "$(dirname "$0")/.." && pwd)
 T=$(mktemp -d "${TMPDIR:-/tmp}/seedmutate.XXXXXX"); trap 'rm -rf "$T"' EXIT
-fresh() { rm -rf "$T/t"; rsync -rlt --exclude .git --exclude .venv --exclude __pycache__ --exclude target --exclude shell/editor/target "$SRC/" "$T/t/"
-          mkdir -p "$T/t/target/release" "$T/t/shell/editor/target/release"; }
+fresh() { rm -rf "$T/t"; mkdir -p "$T/t"; git -C "$SRC" archive HEAD | tar -x -C "$T/t"; }
 verdict() { if python3 "$SRC/tools/seedaudit.py" "$T/t" --quiet; then echo GREEN; else echo red; fi; }
 
 fresh; base=$(verdict); printf '  %-8s %s\n' "$base" "intact copy"

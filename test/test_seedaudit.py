@@ -67,7 +67,7 @@ def test_a_bare_basename_is_resolved_before_it_is_called_missing(tmp_path):
         (tmp_path / name).write_text("nothing cited\n")
     (tmp_path / "spec").mkdir(); (tmp_path / "spec" / "author.md").write_text("x\n")
     (tmp_path / "doc").mkdir(); (tmp_path / "doc" / "instruments.md").write_text("x\n")
-    assert seedaudit.audit_promises(tmp_path) == {}
+    assert seedaudit.audit_promises(tmp_path) == ({}, {})
 
 
 def test_a_promise_that_is_really_missing_is_reported(tmp_path):
@@ -78,7 +78,33 @@ def test_a_promise_that_is_really_missing_is_reported(tmp_path):
     (tmp_path / "board" / "README.md").write_text("run `tools/andon.sh` to reach me\n")
     (tmp_path / "spec").mkdir(); (tmp_path / "spec" / "author.md").write_text("x\n")
     (tmp_path / "doc").mkdir(); (tmp_path / "doc" / "instruments.md").write_text("x\n")
-    assert "tools/andon.sh" in seedaudit.audit_promises(tmp_path)
+    broken, unbuilt = seedaudit.audit_promises(tmp_path)
+    assert "tools/andon.sh" in broken and unbuilt == {}
+
+
+def test_a_missing_promise_the_tree_ignores_is_unbuilt_not_broken(tmp_path):
+    """Finding one of the 2026-08-24 mutation run: a `git archive` of
+    HEAD was red on five promises that were generated pages and build
+    output.  `.gitignore`'s own rule — ignore what a command can make
+    again — is the distinction, and the audit reads it now."""
+    for name in ("manifesto.md", "vision.md"):
+        (tmp_path / name).write_text("x\n")
+    (tmp_path / "board").mkdir()
+    (tmp_path / "board" / "README.md").write_text(
+        "see `test/gates.md`, `target/release/` and `tools/andon.sh`\n")
+    (tmp_path / "spec").mkdir(); (tmp_path / "spec" / "author.md").write_text("x\n")
+    (tmp_path / "doc").mkdir(); (tmp_path / "doc" / "instruments.md").write_text("x\n")
+    (tmp_path / ".gitignore").write_text("# made by suite.py\ntest/gates.md\n/target/\n")
+    broken, unbuilt = seedaudit.audit_promises(tmp_path)
+    assert sorted(unbuilt) == ["target/release/", "test/gates.md"]
+    assert list(broken) == ["tools/andon.sh"]
+
+
+def test_a_nested_gitignore_counts_for_its_own_directory(tmp_path):
+    (tmp_path / "shell" / "editor").mkdir(parents=True)
+    (tmp_path / "shell" / "editor" / ".gitignore").write_text("target/\n")
+    assert seedaudit.is_ignored(tmp_path, "shell/editor/target/release/")
+    assert not seedaudit.is_ignored(tmp_path, "tools/target/")  # anchored to shell/editor
 
 
 def test_a_placeholder_is_not_a_promise(tmp_path):
@@ -88,7 +114,7 @@ def test_a_placeholder_is_not_a_promise(tmp_path):
     (tmp_path / "board" / "README.md").write_text("archived as `journal/YYYY-MM.md`\n")
     (tmp_path / "spec").mkdir(); (tmp_path / "spec" / "author.md").write_text("x\n")
     (tmp_path / "doc").mkdir(); (tmp_path / "doc" / "instruments.md").write_text("x\n")
-    assert seedaudit.audit_promises(tmp_path) == {}
+    assert seedaudit.audit_promises(tmp_path) == ({}, {})
 
 
 def test_this_tree_has_every_piece_present():
