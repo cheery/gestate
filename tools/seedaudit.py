@@ -88,6 +88,13 @@ PIECES = [
     dict(name="the sitting limit",
          why="the person's own hours are the person's",
          paths=["tools/limit.sh"]),
+    dict(name="the boot surface",
+         # Henri, 2026-08-24, the whole why in his words.  What arrives
+         # at a session before it asks for anything: the one-line pointer
+         # (and, outside any directory, the memory index — which this
+         # audit cannot see and says so in card:working-standard.md).
+         why="nothing else reaches a session unasked",
+         paths=["AGENTS.md"]),
     dict(name="the author's own document",
          why="the person keeps a document no session rewrites",
          paths=["spec/author.md"]),

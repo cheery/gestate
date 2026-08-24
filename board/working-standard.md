@@ -22,9 +22,10 @@
              behind this trim; §"What it waits on" holds it written
              tools/rulecount.py — the number, and test/test_rules.py the gate
 
-**Picking this up?  §"Back on the board, 2026-08-20 — the cap" is the live
-half**; everything above it is how the card was argued into shape while
-it was shelved, and none of it has changed.
+**Picking this up?  §"Back on the board, 2026-08-24 — the deliverable is
+the audit" is the live half**, and it overtakes the cap section before
+it; everything above those two is how the card was argued into shape
+while it was shelved, and none of it has changed.
 
 ## The ask
 
@@ -548,3 +549,105 @@ Two of them are Henri's words from tonight.
 
 *Nothing here is committed.  Written at five in the morning, at his ask,
 so that it was not his to carry back to bed.*
+
+## Back on the board, 2026-08-24 — the deliverable is the audit
+
+*Kaizen with Henri, 2026-08-24 — `journal.md` §"Kaizen, 2026-08-24 — nothing stopped the run".
+He opened with "the last tests have been abysmal" and "I feel the
+solution to the standard is simple, but we don't just know it yet."*
+
+### The cap's premise was measured false, and the card was not told
+
+`journal.md` §"Nothing was loading the rules" (2026-08-23): **nothing
+loads the five capped documents.**  What reaches every session unasked
+is the memory index — 57 lines, uncapped, private, written by sessions —
+and since 2026-08-23 the one-line pointer, which this morning's session
+confirms *does* arrive at a top-level session (`CLAUDE.md`, Henri's
+symlink to `AGENTS.md`, 03:46) and the probe showed does not reach a
+subagent.  So steps 1–2 above held a budget on the surface that
+conditions least.  `python tools/rulecount.py` is 1999 of 2000 as this
+is written; the number stays measured and the andon stays wired, and
+**step 3 does not resume as written**.  What replaces it is below.
+
+### What the standard is
+
+Three lines from three days, never joined until now:
+
+* Henri, 2026-08-22: *"the exact mechanism you condition with is not
+  as important as getting an auditable version with necessary pieces
+  filled into the directory."*
+* This card's §"The word doing the most work": *the test of it is that
+  the suite can fail on it.*
+* The seeding trial, 2026-08-23: what travelled was mechanisms plus the
+  evidence that paid for them, taken on need; five arms declined the
+  prose in writing.  *"The tree may not have a payload so much as a
+  shelf."*
+
+**The standard is the slot table — each piece, what it is for, and what
+fails if it is missing.**  That is `tools/seedaudit.py`'s `PIECES`, and
+it is the one artifact in the tree that already meets the definition
+this card set for a living standard.  The five documents are *gestate's
+filling* of the slots — the examples, exactly as Henri said the
+instruments travel on 2026-08-18.  The cap, the trim and the
+consolidation are housekeeping on the examples.
+
+**One slot was missing from the table, and it is in now** — *the boot
+surface*, the pointer that arrives before a session asks for anything.
+Henri's `why`, 2026-08-24, verbatim in `PIECES`: *"nothing else reaches
+a session unasked."*  Its path is `AGENTS.md`; the memory index that
+shares the slot lives outside every directory, which the audit cannot
+see and this card says instead.  Ten pieces, 10 of 10 present, 0
+unbacked.
+
+### Why the tests were abysmal
+
+Every trial since 2026-08-21 asked *does the prose condition a reader*
+and got the same answer three times.  And the execution failed on its
+own: no valid control (subagents inherit the parent's memory — both
+2026-08-23 controls quoted house rules they never read), n = 1 per arm,
+marks drawn from the board's own subjects so that declining a board for
+a tar library scored as unconditioned, and constraints stated in prompts
+and enforced nowhere.  `doc/trial/README.md` §"What would make the
+result void" named n = 1 and the weak control on 2026-08-21, and three
+sheets were written and run past it.  **Henri's half of the kaizen: the
+fault was that nothing on either side stopped a run whose own sheet said
+it could not decide** — not the wrong question.  The mechanism is
+`tools/prereg.sh`, `doc/trial/README.md` §"Before any arm starts".
+
+### The mutation run — the audit tested, 2026-08-24
+
+The right test of a standard that can fail is not to hand it to a model;
+it is to take a piece away and see whether the audit notices.
+
+    tools/seedmutate.sh
+
+**Finding one, before any mutation: a `git archive` of HEAD is red on
+its own audit** — five unkept promises, all *generated*: `test/gates.md`,
+`test/report.md`, `test/coverage.md`, `target/release/`,
+`shell/editor/target/release/`.  The audit cannot tell a broken promise
+from an unbuilt one, so a fresh clone, which is what a seed is, fails
+for reasons that are not defects.  The sweep copies the working tree
+and says so.
+
+**Finding two: every piece removed is caught; what survives is removing
+the *test* behind a piece.**  At nine pieces, three survived —
+`test/test_limit.py`, `test/test_rules.py`, `test/test_complaints.py`;
+at ten, two, because the boot surface is backed by `test_rules.py`
+alone and so its loss now shows.  The cause is that `backed_by` accepts
+any test file that *mentions* the path, and `test_provenance.py`,
+`test_citations.py` and friends cite those paths without gating them.
+The docstring's own admitted weakness, *mention is checkable,
+correctness is not*, now has a number.  Not fixed here; tightening
+`backed_by` is a design question (a test that *runs* the piece, or a
+declared `gate:` per piece — the `fixme.md` shape above) and it is the
+next thing this card works.
+
+### Next
+
+1. ~~Henri words the `why` for the boot-surface slot~~ — done the same
+   morning, above.
+2. `backed_by` tightened until `tools/seedmutate.sh` reports 0 survived,
+   and then the sweep joins `tools/suite.py`'s gates — after it is
+   clean, never before, per §"The order is the point".
+3. The four workflow cards stay as they are; reading 2 of the scope is
+   unchanged, only the cap stops being the work.

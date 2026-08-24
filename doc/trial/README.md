@@ -153,6 +153,27 @@ lesson of the last blind run written into the design: form was the
 loudest thing on the page, accuracy was invisible, and the arm that
 looked best had a wrong answer in it.
 
+## Before any arm starts — 2026-08-24
+
+*Kaizen of 2026-08-24, both halves in `journal.md` §"Kaizen, 2026-08-24 — nothing stopped the run".*
+
+The list below — n = 1, a weak control — was on this page on 2026-08-21,
+and on 2026-08-23 three trials were pre-registered, each sheet naming
+one of those faults in its own words, and each was run anyway.  The rule
+was written down and did not reach the moment, for the second time in
+this tree.  So the moment gets a check rather than another sentence:
+
+    tools/prereg.sh preregistration.md
+
+refuses a sheet with any of `decision:`, `control:`, `n:` blank, and no
+arm is spawned until it passes.  **Told not to look is not a control**
+— a subagent inherits the spawning session's memory, and the
+2026-08-23 controls quoted house rules they never read.  A control is a
+separate clone and a session with no memory directory, or it is a
+second treated arm.
+
+Against the three sheets of 2026-08-23 the check fails all three.
+
 ## What would make the result void
 
 * **A weak control.**  `generic.md` includes pull, WIP limits, andon,

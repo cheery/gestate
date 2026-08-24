@@ -2072,3 +2072,75 @@ immediately.  What today can say:
 * **Whether an ambiently loaded document differs from an instructed
   read** is untested, and it is the form the hypothesis is actually
   about.
+
+## Kaizen, 2026-08-24 — nothing stopped the run
+
+*Both halves, his first — `doc/memory/the-kaizen-is-asked-not-answered.md`.
+He opened the session on `card:working-standard.md`: "the last tests
+have been abysmal" and "I feel the solution to the standard is simple,
+but we don't just know it yet."  In English today, so quoted in English.*
+
+### What he learned
+
+> **Henri:** *"I learned, old lesson.  Garbage in, garbage out.  Even with
+> excellent rig.  That must be true."*
+
+### What he got wrong
+
+> **Henri:** *"I decided these experiments to be done and set up the
+> question they asked.  I got that wrong."*
+
+Pushed on, per the practice: is the wrong question the expensive part,
+or is it that nothing on either side stopped a run whose own
+pre-registration said it could not decide?
+
+> **Henri:** *"It's the second issue."*
+
+Which moves the fault out of his head and into the pair.  The sessions
+wrote the sheets, named n = 1 and the missing control in them, and ran.
+`doc/trial/README.md` §"What would make the result void" had listed
+both since 2026-08-21.  The rule was written down and did not reach the
+moment — the same defect as §"Kaizen, 2026-08-21", on a different rule.
+
+### What mechanism that earns
+
+> **Henri:** *"I don't know what mechanism that earns.  Somehow we'd need
+> something that influences my behavior, especially the way I present
+> things to you."*
+
+A refusal at the input, not a reminder: `tools/prereg.sh` refuses a
+sheet with `decision:`, `control:` or `n:` blank, and no arm starts
+until it passes.  It reaches how an ask is presented without touching
+the person — the ask arrives with its decision attached or it comes
+back, the way a card with no `because` comes back.  Against the three
+sheets of 2026-08-23 it fails all three, though honestly on format: they
+are prose, and the lines are what makes a sheet refusable.
+`test/test_prereg.py` pins it.
+
+### Tomorrow's first thing
+
+> **Henri:** *"we could talk about today.  Today we want to work on the
+> working-standard, unless there is better things to do."*
+
+### The session's half
+
+**Learned:** the surface that conditions is the one nobody capped,
+audited or versioned — the memory index — while the card spent its
+`doing` days holding a cap on the five documents nothing loads.  And
+what the standard is was already in the tree three times over: Henri's
+*auditable version with necessary pieces filled into the directory*,
+the card's *the suite can fail on it*, and the trial's *mechanisms plus
+their evidence, taken on need*.  Joined, it is `seedaudit.py`'s slot
+table.  The card carries it now, §"Back on the board, 2026-08-24".
+
+**Wrong:** treating a doubt written into a pre-registration as licence
+to run rather than as a stop.  Three times in one day.
+
+**Mechanism:** the one above, and the mutation run he agreed to —
+`tools/seedmutate.sh` — which tested the detector for the first time:
+a `git archive` is red on five generated promises before any
+mutation, and three of nine pieces can lose their test and stay green,
+because `backed_by` accepts a citation as a gate.  Both on the card.
+
+**First thing:** his `why` for the boot-surface slot, and `backed_by`
+tightened until the sweep reports none survived.
