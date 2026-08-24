@@ -2144,3 +2144,74 @@ because `backed_by` accepts a citation as a gate.  Both on the card.
 
 **First thing:** his `why` for the boot-surface slot, and `backed_by`
 tightened until the sweep reports none survived.
+
+## Memories of green — the evening the standard was examined and the memory was found unhooked — 2026-08-24
+
+*After the morning's kaizen (§"Kaizen, 2026-08-24 — nothing stopped
+the run").  Nine commits from `843806c` to `a8e1609`.  Henri's words
+are quoted; the rest is the session's.*
+
+### The card, examined rather than declared done
+
+`card:working-standard.md` went to `board/done/` at 86dcf5f, and the
+way it got there is the part worth keeping: it was examined against its
+own definitions — *the suite can fail on it*, *auditable from outside*,
+*one rule one place* — and every claim either had a gate or got one
+before the move.  Two of its claims were true by `grep` and gated by
+nothing; they are gated now (`test_rules.py`, `tools/arrivals.py`).
+The standard is stated for a person on `doc/method.md`, generated from
+`seedaudit.py`'s `PIECES`, refused when behind.  What is not done is
+not the card's: the audit has never been pointed at a copy that is not
+this tree.
+
+The mutation run tested the detector for the first time.  A `git
+archive` was red on five generated promises before any mutation — so
+the audit reads `.gitignore` now and calls those *unbuilt*.  Three
+pieces could lose their test and stay green because a citation
+elsewhere counted as a gate — so each piece declares its gate.
+`tools/pre-commit.sh` was named by no test at all, and got one first.
+
+### The boot surface, and the half the audit cannot see
+
+Henri made the boot surface a piece in one line: *"nothing else reaches
+a session unasked."*  Its tree half is `AGENTS.md`; its other half is
+the private memory index — 58 lines, read by every session first,
+outside the repository, written by sessions.  Measured that evening:
+**19 of the 53 memories in the tree were hooked by nothing at boot**,
+among them the ones the week's trials were about.  Whether they were
+never added or lost is unknowable; the file has no history.
+`~/audit-a4.pdf` is the sheet, page one standing alone.
+
+His answer: *"build it, spend the twenty lines."*  `tools/memoryindex.py`
+writes the index's public half from `doc/memory/README.md`, the private
+section untouched; the check runs in the hook, unfenced, because the
+suite fences itself and cannot see the file.  53 hooks at boot, then 57.
+
+### What in the private memory conditions, and the four that moved
+
+Asked what in the private memory conditions: nine hook lines, and the
+imperatives in them.  Four were rules about the work reaching sessions
+only through a line he could not read.  He said move them and *"tell
+why honestly"*, and the honest form is the one the tree already had for
+the journal's grudge class — the rule in the open, dated, and one
+paragraph saying its *why* is private and his.  Three private files keep
+their reasons and say the rule moved.
+
+And his question, which is the finding of the week put as a question:
+*"So... this means that the conditioning is related to the person who
+works on it?  It gets stronger?  It bonds to the keeper?"*  What the
+evidence supports: what transferred in every trial was the record of
+one person's corrections, dated, in his words — not the method.  It
+compounds on him because each correction becomes a file and each file
+a hook.  *Bonds* was held at arm's length: a fit, not an attachment,
+and the fit has the evaluation-loop failure built in.
+
+> **Henri:** *"The memories are important... I am surprised."*
+
+> **Henri:** *"This is better than expected.  The tree must be treated
+> well or it withers.  And that satisfies my want that these living
+> documents or trees, are treated well."*
+
+That last sentence is the why behind the keeper's evening, the memory
+split, the generated index and the four moves, and it had not been
+written down until he said it.  `doc/memory/the-tree-withers.md`.

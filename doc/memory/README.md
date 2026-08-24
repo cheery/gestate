@@ -138,6 +138,7 @@ session inferred.
 - [Do not overclaim](do-not-overclaim.md) — when the sessions' own standing comes up, answer with the real uncertainty and name the mirror risk; a refusal is recorded, never worked around; why: private, his call 2026-08-24
 - [Personal and personally paid](personal-and-personally-paid.md) — hardware, hosting, accounts and tooling default to personal and personally paid; name the one mechanism that would break it, in a sentence; why: private, his call 2026-08-24
 - [A sitting is a body constraint](a-sitting-is-a-body-constraint.md) — a session may call stop and never extend; never nudge toward a longer sitting; no posture nagger (F169); the second reason since 2026-08-22 is his and private
+- [The tree withers](the-tree-withers.md) — Henri, 2026-08-24: *the tree must be treated well or it withers*; a living document has a source and a check, hooks go beside bodies, and the private half gets the same care
 - [The keeper is the qualification](the-keeper-is-the-qualification.md) — his doubt about keeping this, quoted with consent; fix the task not the person, answer with the ledger, and never claim the tree can supply conviction
 - [Why models hallucinate](why-models-hallucinate.md) — five layers, and why this tree's verification rules are the fix at the right layer; fluency is no evidence, including your own
 - [The 2000-line cap on the rules](gestate-rules-cap.md) — five documents, closed set, `spec/rules.md`; the fat is session narration
