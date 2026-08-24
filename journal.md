@@ -2215,3 +2215,34 @@ and the fit has the evaluation-loop failure built in.
 That last sentence is the why behind the keeper's evening, the memory
 split, the generated index and the four moves, and it had not been
 written down until he said it.  `doc/memory/the-tree-withers.md`.
+
+## Kaizen, 2026-08-24 — the deck day, and review as a notes file
+
+*The four questions, his half first, in English because the room was.
+The day: `doc/teaching/keepers-first-week.md` questioned into
+existence, reviewed by notes file, released and rendered, all in one
+sitting — commit `b6110dc`.*
+
+**His half.**  Learned: *"I learned how to make these slides with
+you."*  His one candidate mistake — an extra line supplied mid-work,
+the safety rule — was priced and dropped: one insert and a renumber on
+the session's side, nothing measurable on his, and the batched notes
+file it fell out of was the discipline working, not failing.  Verdict
+kept: **teaching-material review keeps this form** — terse notes in a
+file, batched, each note landing as one concrete slide change.  No
+mechanism yet, his call.  Tomorrow: **he demos the slides** — which is
+the deck's own first open question, demo-first against slides-first,
+going to a measurement instead of an opinion.  And one ask, done below:
+a `later/` card for week two.
+
+**The session's half.**  Learned: draft 1 survived to release in one
+round *because* it was drafted after reading `doc/trial/` — the deck's
+design bet (screen terse, the paying carried in the Speak notes) is
+`derived.md`'s measured failure inverted, not an invention.  Got
+wrong, twice and small: a stray token written into `tools/slides.py`'s
+CSS, and a stale slide-number reference left after renumbering — both
+caught by re-reading, neither by an instrument.  The class is real and
+gets a name here so a second deck can find it: **hand-maintained
+cross-numbers rot the way citations did** before the citation gate.
+No mechanism yet, same call as his: one deck, one file, and the
+screenshot check already stands where a viewer would look.

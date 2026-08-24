@@ -147,3 +147,4 @@ session inferred.
 - [Deriving strips the payment](deriving-strips-the-payment.md) — the anonymized copy failed its first transfer trial; five faults, and the root one is that **nothing compresses the paying**
 - [Conditioning shows under work](conditioning-shows-under-work.md) — never by interview; the first trial stacked three causes and decided nothing, and the clean design has a control and a reader ladder
 - [Commit what you wrote](commit-what-you-wrote.md) — never `git add -A`; a file dropped in the tree for reading is not work, and a blind add publishes it
+- [Teaching material keeps the notes-file review form](teaching-material-review-form.md) — Henri, 2026-08-24: terse batched notes in a file, each landing as one concrete change, released on his verify; slides via `tools/slides.py`, the paying stays in the Speak notes
