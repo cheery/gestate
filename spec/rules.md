@@ -60,6 +60,13 @@ cannot be found in it is a rule that does not reach the moment.  The
 cap is a lamp on that — one number, measured at every commit, that
 says the set is getting fatter.
 
+**And the cap's second reason is the keeper's, not a stranger's** —
+`card:memory-atrophy.md`, move 3, 2026-08-24: *a method he could recite
+is worth more than a longer one he can search.*  The 2,000 lines and
+`vision.md`'s deliberate shortness are atrophy controls for the person
+who has to hold the shape of this in his head, and whoever is tempted
+to raise the number should know it is holding both things.
+
 **And two of the five are pieces, not documents.**  `board/README.md`
 is where `status blocked` is real, and `spec/author.md` is the
 author's own; `tools/seedaudit.py` names both and refuses their loss.

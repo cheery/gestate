@@ -97,7 +97,13 @@ a gate.
 One rule.  Not an audit — the tree is 16,000 lines of spec and the point
 of picking one is that picking one is finishable.
 
-Read it, then ask of the week you actually had: **did this rule decide
+**Closed book first.**  Before opening it, write what the rule says from
+memory, in a sentence — then open it.  The gap is a reading on your
+recall *and* on the rule: one you cannot approximate from memory is one
+nobody could have followed, which is the third outcome below arriving
+early.  (`card:memory-atrophy.md`, move 1 — 2026-08-24.)
+
+Then ask of the week you actually had: **did this rule decide
 anything?**  Three honest outcomes, and two of them are findings:
 
 * **It held** — it was followed and it changed an outcome.  Nothing to
@@ -107,7 +113,7 @@ anything?**  Three honest outcomes, and two of them are findings:
   caller.
 * **Nobody could have followed it** — it was unclear, unreachable, or
   contradicted by another rule.  Then it is fat or it is wrong, and
-  either way it is one of the six lines of room the cap has left.
+  either way it is a line the cap gets back — `python tools/rulecount.py` says how many are left.
 
 *A number nobody asked for is a number nobody checks* is the standing
 version of this act.  Doing it to one rule a week is what keeps it from

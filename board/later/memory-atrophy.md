@@ -1,6 +1,6 @@
 # memory-atrophy — the tree carries what he used to hold, and the holding was the exercise
 
-    status   open
+    status   shelved — 2026-08-24
     because  "I'm realising this project reduces memory pressure and it
              means the memory of mine atrophies if not exercised.  We
              need solutions to this." — the tree was built as a
@@ -202,6 +202,20 @@ or the five method documents; *(b)* that, plus any decision recorded in
 a card or the journal; *(c)* anything in layer (2), session's judgement.
 *Open, 2026-08-21.*
 
+> **Answered 2026-08-24 — shelved, after moves 1 and 3 landed.**  Henri:
+> *"try shelve the card … but before that, check whether it belongs
+> there, or whether you find it important."*  It belongs there by the
+> card's own answer to question 1: it waits on an instance, which is an
+> event, and on his consent for move 2, which is a decision he has
+> declined to make yet — *"pace down rather than jog my memory."*  The
+> objection that `later/` would be a graveyard was met by taking the
+> two moves that need nobody's consent first, so the card waits with
+> its cheap half already running at the fire.  And it is important, for
+> a reason the day supplied: what conditions a session was measured
+> this week to be the record of *his* corrections — layer (2) taken
+> from him is layer (2) taken from the sessions too.  The tree withers
+> if not treated well; this card is the same sentence about the keeper.
+
 **3. Where does this card belong?**  It arrived unplaced and the session
 put it **last** in the priority — but the criterion there is *impact on
 somebody using gestate*, and this card's reader is the author, so the
@@ -212,7 +226,12 @@ all.  *Open, 2026-08-21.*
 
 ## Done
 
-*Nothing yet.  This card finishes when all four moves have been taken or
+* **Move 1 — 2026-08-24.**  `keeper.md` act 3 opens closed-book: write
+  the rule from memory, then open it.
+* **Move 3 — 2026-08-24.**  `spec/rules.md` §"Why there is a cap at all"
+  carries the second reason, in the card's words.
+
+*Moves 2 and 4 are not taken.*  This card finishes when all four moves have been taken or
 explicitly declined — and it may sit open for months by design, which is
 what "slowly into use over time" was asked for.  A move landed gets one
 line here with its date; the story goes in `journal.md`.*

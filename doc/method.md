@@ -152,12 +152,12 @@ decline honestly:
 | [`README.md`](../README.md) | 254 | you, if you want to hear it |
 | [`vision.md`](../vision.md) | 77 | what any of this is for; the author's own, dated |
 | [`manifesto.md`](../manifesto.md) | 377 | how an instrument fails, and the two standing rules |
-| [`board/README.md`](../board/README.md) | 614 | how a task is worked — written for sessions |
+| [`board/README.md`](../board/README.md) | 607 | how a task is worked — written for sessions |
 | [`spec/`](../spec/) | ~16,000 | how each part is designed, and what it cost |
 | [`fixme.md`](../fixme.md) | 181 entries, 152 resolved | where the implementation disagrees with the specs |
 | [`journal.md`](../journal.md) + `journal/` | the current month, plus one line per closed month | what happened, past tense |
 | [`doc/memory/`](memory/) | one fact per file | what a session that forgets everything carries across |
-| [`keeper.md`](../keeper.md) | 206 | standard work for the one person who keeps all of the above |
+| [`keeper.md`](../keeper.md) | 212 | standard work for the one person who keeps all of the above |
 
 Two of those are worth a word. `fixme.md` is a **register, not a
 backlog**: an entry is closed by being marked resolved, never by being
