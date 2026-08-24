@@ -1,5 +1,14 @@
 # work-environment-ai — sessions and programs run on this machine with no budget, no grant and no lifecycle
 
+**Worked in `~/tend` since 2026-08-24.**  Henri: *"lets try it, and let
+me decide whether to keep it."*  The card's own "against" — *the
+enforcement boundary must live outside the session's write access or
+it is decoration* — is why it could not be worked here: a workspace
+built inside gestate is inside the write access of every gestate
+session.  This copy stays shelved so that `card:work-environment-ai.md`
+keeps resolving from the tree; the live card is `~/tend/board/`.  The
+open decision was taken on the week's evidence — sessions first.
+
     status   shelved — 2026-08-19
     because  "we are missing a way to work with each other" (vision.md,
              2026-08-16) — sessions and programs run on this machine

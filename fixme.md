@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 181 entries, **152 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 182 entries, **152 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -87,6 +87,7 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F174 | bug | A driven run cannot tell its own window from one beside it |
 | F179 | resolved | The desktop icon's absent file opens the starter, which sounds |
 | F180 | resolved | `test_suite_runner.py` fails alone and passes in the full run — its own `sys.path` line now |
+| F181 | bug | `seedaudit.py`'s piece paths are gestate's own, and a seed cannot say where its pieces are — the first instance was a slip the audit caught |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -6105,3 +6106,24 @@ another card.
 `sys.path` itself, and `python3 -m pytest test/test_suite_runner.py`
 alone is green.
 
+### F181. **[bug]** `tools/seedaudit.py` looks for the pieces at gestate's paths, and a seed has no way to say where its own are
+
+Found 2026-08-24, the evening `~/tend` was started — the first
+directory the audit was ever pointed at that is not this tree.  The
+author's document landed at `doc/author.md` and the audit said *ABSENT
+the author's own document*.  **That instance was a slip, and the audit
+caught it** — Henri: *"did I do a mistake and said doc/author.md?"* —
+so the file moved to `spec/author.md` and the piece went green, which
+is the check working, not failing.
+
+What stands is the design point `card:working-standard.md` made on
+2026-08-22: *a seed audit assembled from what this tree happens to
+have would encode gestate's accidents as requirements.*  The `why`
+column is the requirement; the `paths` column is the accident, and a
+seed that keeps its author's document somewhere else on purpose has no
+way to tell the audit so.  Fix is a design choice: a seeded tree
+carries a small manifest naming where its pieces live and the audit
+reads that first — which makes the seed say what it has, which is what
+an audit from outside should be reading anyway.  Not urgent: the first
+seed matched the paths, and the slip was worth more than the manifest
+would have been.
