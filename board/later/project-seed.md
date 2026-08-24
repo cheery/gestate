@@ -65,6 +65,33 @@ card is the live half.
 
 *Still shelved.  Recorded because it arrived.*
 
+## Two things hide in "the seed", and only one waits on his milestone — 2026-08-24
+
+*Written the evening `card:working-standard.md` went to `done/` with the
+line "the audit has never been pointed at a copy that is not this
+tree", at Henri's ask, after he asked whether this card could be
+unshelved now or "when somebody asks".*
+
+**Still shelved, and the answer is the tree's own rule: when somebody
+asks.**  But the Done line above names two different things:
+
+1. **Proving the audit off this tree.**  This does not need the next
+   project.  It needs a *second directory with a different keeper and
+   different work* — a copy of gestate audited against gestate's own
+   list proves nothing, which is the mirror `doc/memory/the-evaluation-loop.md`
+   describes.  Its receiver condition is not stated anywhere on this
+   card, and it is this: a project with a person in it who wants to be
+   held to the standard.  `doc/memory/the-tree-meets-people-on-pull.md`
+   — stop expecting the wanting.
+2. **The template for his next project**, which is this card, and
+   waits on the milestone he named.
+
+Unshelving now would be a session pulling a card because it can
+(`doc/memory/capacity-is-not-a-caller.md`).  By
+`doc/memory/sediment-versus-debt.md` this costs nothing while it waits:
+there is no decision he owes here, only an event, and it may be
+somebody else's.
+
 ## Found by looking
 
 **This card is not the `card:portable-package.md` shape, and the
