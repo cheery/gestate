@@ -39,23 +39,23 @@
       "Bash(scp:*)",
       "Bash(ssh-keygen:*)",
       "Bash(ssh-add:*)",
-      "Read(//home/cheery/.ssh/**)",
-      "Read(//home/cheery/.aws/**)",
-      "Read(//home/cheery/.config/gh/**)",
-      "Read(//home/cheery/.gnupg/**)",
-      "Read(//home/cheery/.claude/.credentials.json)",
-      "Read(//home/cheery/.claude/sessions/**)",
-      "Read(//home/cheery/.claude/history.jsonl)",
-      "Read(//home/cheery/.claude/session-env/**)",
-      "Read(//home/cheery/.claude/shell-snapshots/**)",
-      "Read(//home/cheery/.netrc)",
-      "Edit(//home/cheery/.ssh/**)",
-      "Edit(//home/cheery/.claude/settings.json)",
-      "Edit(//home/cheery/.claude/plugins/**)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.config/gh/**)",
+      "Read(~/.gnupg/**)",
+      "Read(~/.claude/.credentials.json)",
+      "Read(~/.claude/sessions/**)",
+      "Read(~/.claude/history.jsonl)",
+      "Read(~/.claude/session-env/**)",
+      "Read(~/.claude/shell-snapshots/**)",
+      "Read(~/.netrc)",
+      "Edit(~/.ssh/**)",
+      "Edit(~/.claude/settings.json)",
+      "Edit(~/.claude/plugins/**)",
       "Edit(./.claude/**)",
-      "Edit(//home/cheery/.bashrc)",
-      "Edit(//home/cheery/.profile)",
-      "Edit(//home/cheery/.config/**)"
+      "Edit(~/.bashrc)",
+      "Edit(~/.profile)",
+      "Edit(~/.config/**)"
     ]
   },
   "hooks": {
@@ -65,7 +65,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/cheery/gestate/tools/fence-hook.sh"
+            "command": "~/gestate/tools/fence-hook.sh"
           }
         ]
       }
@@ -75,7 +75,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/cheery/gestate/tools/limit.sh --hook"
+            "command": "~/gestate/tools/limit.sh --hook"
           }
         ]
       }

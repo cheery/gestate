@@ -32,20 +32,40 @@ PROJECT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SETTINGS="$PROJECT/.claude/settings.json"
 REL=".claude/settings.json"
 
+# `jq` rather than `python3`: it is already a hard dependency of
+# `tools/fence-hook.sh`, so a machine without it has no fence at all and
+# should hear that here rather than from a green run.
+command -v jq >/dev/null || {
+  echo "leash: jq is not installed — tools/fence-hook.sh needs it too," >&2
+  echo "       so the fence is not running either." >&2
+  exit 2
+}
+
+valid_json () { jq -e . "$1" >/dev/null 2>&1; }
+
 # The rules whose absence means the leash is off.  Not the whole list —
 # the load-bearing few.  `Edit(./.claude/**)` is first because it is the
 # one that keeps the rest from being edited away.
 #
-# `$HOME` rather than a literal path: permission rules need absolute
-# paths, so a hardcoded `/home/cheery` is the one thing here that cannot
-# travel to another machine or another user.  A rule reads
-# `Read(//home/you/.ssh/**)` — two slashes, then the absolute path — so
-# the leading `/` below is concatenated with `$HOME`, not a typo.
+# **Two spellings, one rule.**  A home path in a permission rule may be
+# written `~/.ssh/**` or `//home/you/.ssh/**` — two slashes, then the
+# absolute path — and both are in force.  Only the tilde form travels: a
+# hardcoded `/home/cheery` is the one thing in the settings file that
+# cannot follow the tree to another machine or another user, which is why
+# `tools/secure-init.sh` has to rewrite it for each target.
+#
+# So the list below is written in the portable spelling, and the check
+# normalises whichever spelling the file uses before comparing.  Matching
+# the raw strings is what made this script cry wolf on 2026-08-24: the
+# settings file was rewritten to tildes, every rule was still in force —
+# a denied `Read` under `~/.ssh` proved it — and the leash reported
+# itself off.  A gate that fails closed on a spelling change is a gate
+# people learn to wave past.
 CRITICAL=(
   "Edit(./.claude/**)"
   "Bash(sudo:*)"
   "Bash(git push:*)"
-  "Read(/$HOME/.ssh/**)"
+  "Read(~/.ssh/**)"
 )
 
 restore () {
@@ -70,8 +90,7 @@ restore () {
 if [ "${1-}" = "--restore" ] || [ "${1-}" = "--force" ]; then
   if [ "${1-}" = "--force" ]; then
     restore || exit $?
-  elif [ ! -f "$SETTINGS" ] \
-       || ! python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$SETTINGS" 2>/dev/null; then
+  elif [ ! -f "$SETTINGS" ] || ! valid_json "$SETTINGS"; then
     restore || exit $?
   else
     echo "leash: $REL parses — not reverting it, in case the edit was yours."
@@ -85,17 +104,24 @@ say () { printf '  %s %s\n' "$1" "$2"; }
 if [ ! -f "$SETTINGS" ]; then
   say "✗" "$REL is MISSING — no rule in it is in force"
   fail=1
-elif ! python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$SETTINGS" 2>/dev/null; then
+elif ! valid_json "$SETTINGS"; then
   say "✗" "$REL is not valid JSON — the whole file is silently ignored"
   fail=1
 else
-  deny="$(python3 -c "
-import json,sys
-d=json.load(open(sys.argv[1]))
-print('\n'.join(d.get('permissions',{}).get('deny',[])))" "$SETTINGS")"
+  # Normalise `(~/` to `(/$HOME/` on both sides.  One slash, not two:
+  # `$HOME` already carries its own leading `/`, which is the detail the
+  # first draft of this got wrong in the other direction.
+  TILDE='(~/'
+  ABS="(/$HOME/"
+
+  deny="$(jq -r --arg home "$HOME" '
+    .permissions.deny // []
+    | map(sub("\\(~/"; "(/" + $home + "/"))
+    | .[]' "$SETTINGS")"
 
   for rule in "${CRITICAL[@]}"; do
-    if printf '%s\n' "$deny" | grep -qxF "$rule"; then
+    want="${rule//$TILDE/$ABS}"
+    if printf '%s\n' "$deny" | grep -qxF "$want"; then
       say "✓" "$rule"
     else
       say "✗" "$rule  — MISSING"
@@ -103,11 +129,13 @@ print('\n'.join(d.get('permissions',{}).get('deny',[])))" "$SETTINGS")"
     fi
   done
 
-  hook="$(python3 -c "
-import json,sys
-d=json.load(open(sys.argv[1]))
-hs=d.get('hooks',{}).get('PreToolUse',[])
-print(next((h['command'] for e in hs for h in e.get('hooks',[]) if 'command' in h), ''))" "$SETTINGS")"
+  hook="$(jq -r '[.hooks.PreToolUse[]?.hooks[]?.command] | first // ""' "$SETTINGS")"
+
+  # Claude Code runs a hook command through a shell, so a leading `~/`
+  # expands there.  `-x` does not expand it, and testing the raw string
+  # is the other half of the same false alarm.
+  hook="${hook/#\~\//$HOME/}"
+
   if [ -n "$hook" ] && [ -x "$hook" ]; then
     say "✓" "fence hook installed and executable"
   elif [ -n "$hook" ]; then

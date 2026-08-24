@@ -5641,6 +5641,18 @@ wrong is that it fails silently and in the wrong direction: a session in
 a foreign tree should be told, and the write-through to `$PROJECT` should
 not be reachable from one.
 
+**Amended 2026-08-24 — the page no longer says that, and this entry still
+stands.**  `.claude/settings.json` was rewritten to `~/…` so that it
+travels between machines and users, and `doc/hardening.md` now installs
+the hook that way and prefers it: a leading `~/` expands, because Claude
+Code runs a hook command through a shell.  So the sentence above is
+right about the defect and stale about the page.  **The tilde fixes
+nothing here.**  `~/gestate/tools/fence-hook.sh` resolves to the tree the
+hook was installed from exactly as the absolute path did, so a session in
+a second clone still gets its builds fenced into the first one, with
+`$PROJECT` bound read-write.  Which machine and which user, not which
+clone.
+
 ### F168. **[bug]** `pytest` and `python -m pytest` are not the same command in this tree
 
 Found 2026-08-19, immediately after F167 and independently of it.

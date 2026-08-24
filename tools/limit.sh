@@ -62,7 +62,7 @@
 # Install: add to .claude/settings.json —
 #
 #     "UserPromptSubmit": [ { "hooks": [ { "type": "command",
-#       "command": "/home/cheery/gestate/tools/limit.sh --hook" } ] } ]
+#       "command": "~/gestate/tools/limit.sh --hook" } ] } ]
 
 set -euo pipefail
 

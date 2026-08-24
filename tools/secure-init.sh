@@ -65,9 +65,13 @@ for f in sandbox.sh fence-hook.sh leash.sh apparmor-bwrap.profile; do
 done
 [ $DRY -eq 0 ] && chmod +x "$TARGET"/tools/*.sh
 
-# The deny-list, rewritten for the target: absolute home paths normalised
-# to whoever is running this, and the fence hook repointed at the target's
-# own copy.  Everything else carries over untouched.
+# The deny-list, carried to the target with the fence hook repointed at
+# the target's own copy.  Absolute home paths are normalised to whoever is
+# running this; a rule written `~/…` needs no rewriting at all, which is
+# the point of that spelling — `doc/hardening.md` prefers it now, and
+# since 2026-08-24 this tree's own rules use it.  So the substitution
+# below is a no-op for this source and stays for settings files that
+# still carry absolute paths.  Everything else carries over untouched.
 if [ -e "$TARGET/.claude/settings.json" ] && [ $DRY -eq 0 ]; then
   say "kept:    .claude/settings.json (already there — not overwritten)"
 else

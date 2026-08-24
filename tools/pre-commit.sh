@@ -100,15 +100,26 @@ SHIM
 esac
 
 cd "$root"
-if python3 tools/suite.py --gates; then
+
+# **The venv, if there is one.**  `python3` on `PATH` is whatever the
+# caller's shell has.  With the venv activated that is the right
+# interpreter and this changes nothing; without it — git runs hooks with
+# the environment it was given, and a session's shell activates nothing —
+# it is `/usr/bin/python3`, which has no `pytest`, so every gate dies as
+# "No module named pytest" and the commit is refused for a reason that
+# has nothing to do with the commit.  Found 2026-08-24, refusing one.
+PY=python3
+[ -x "$root/.venv/bin/python" ] && PY="$root/.venv/bin/python"
+
+if "$PY" tools/suite.py --gates; then
     # The one check the fenced gates cannot make: the private memory
     # index lives outside the repository, and the suite binds only the
     # repository.  This hook is run by git, unfenced, so it can look.
     # Exits 0 where there is no index (another machine, a seed).
-    python3 tools/memoryindex.py --check || {
+    "$PY" tools/memoryindex.py --check || {
         echo >&2 ""
         echo >&2 "pre-commit: the boot index is behind doc/memory/README.md; run:"
-        echo >&2 "            python3 tools/memoryindex.py"
+        echo >&2 "            $PY tools/memoryindex.py"
         exit 1
     }
     exit 0

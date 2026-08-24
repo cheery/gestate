@@ -200,17 +200,37 @@ tests to run inside it.  Add to `.claude/settings.json`:
     {
       "matcher": "Bash",
       "hooks": [
-        { "type": "command", "command": "/ABSOLUTE/PATH/TO/tools/fence-hook.sh" }
+        { "type": "command", "command": "~/gestate/tools/fence-hook.sh" }
       ]
     }
   ]
 }
 ```
 
-**The path has to be absolute, and it is the one line that differs per
-machine.**  Try `$CLAUDE_PROJECT_DIR/tools/fence-hook.sh` first; if the
-hook does not fire, substitute the real path.  The script finds the
-project from its own location, so nothing else needs changing.
+**Prefer the `~/` spelling.**  Claude Code runs a hook command through a
+shell, so a leading `~/` expands and the hook fires.  An absolute path
+works too and is what older checkouts carry — `tools/leash.sh` accepts
+either — but it is the one line that then differs per machine and per
+username, and it is the reason `tools/secure-init.sh` has to rewrite the
+settings file for each target.  A path relative to the project does not
+work.
+
+**The same spelling holds for the deny-list**, and there it matters more:
+`Read(~/.ssh/**)` and `Read(//home/you/.ssh/**)` are both in force, and
+only the first travels.
+
+**But `~/` still names one checkout, and that is F167.**  The hook
+computes the project from its own location, so `~/gestate/…` resolves to
+the tree it was *installed from* whatever tree the session is working
+in — a session in a second clone gets its builds fenced into the first
+one, with `$PROJECT` bound read-write.  The tilde fixes which machine and
+which user; it does not fix which clone.
+
+`$CLAUDE_PROJECT_DIR/tools/fence-hook.sh` is the form that would follow
+the opened tree, since each clone carries its own copy of the script.
+Whether the variable expands here has not been checked — it is not set in
+a Bash tool call, which says nothing about a hook — so try it, confirm
+with the probe below, and fall back to `~/` if nothing fires.
 
 It wraps `pytest`, `python -m pytest`, and `cargo build|test|check|
 clippy|bench`.  It deliberately does **not** wrap anything that opens a
