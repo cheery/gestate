@@ -190,3 +190,54 @@ def test_a_script_with_a_shebang_can_still_be_run(path):
         f"{path.relative_to(ROOT)} starts with a shebang and is not "
         "executable — `chmod +x` it.  A rewrite through a temporary file "
         "drops the mode; `git diff --summary` is where that shows.")
+
+
+def test_needed_by_is_computed_from_who_names_the_tool(tmp_path):
+    """Henri, 2026-08-24: who-asked and needed-by, so that we get a
+    graph.  The second axis is derived, never stamped."""
+    (tmp_path / "tools").mkdir(); (tmp_path / "test").mkdir()
+    (tmp_path / "doc").mkdir(); (tmp_path / "board").mkdir()
+    (tmp_path / "tools" / "x.py").write_text("# tools/x.py names itself\n")
+    (tmp_path / "tools" / "y.py").write_text("# calls x.py\n")
+    (tmp_path / "test" / "test_x.py").write_text("run('tools/x.py')\n")
+    (tmp_path / "test" / "test_provenance.py").write_text("x.py y.py\n")
+    (tmp_path / "board" / "c.md").write_text("`x.py` was wanted here\n")
+    needs = asked.needed_by("tools/x.py", tmp_path)
+    assert needs["test"] == ["test/test_x.py"], "the provenance test does not count"
+    assert needs["tools"] == ["tools/y.py"], "a tool never names itself"
+    assert needs["cards"] == [str(pathlib.PurePosixPath("board") / "c.md")]
+    assert needs["doc"] == []
+
+
+def test_the_four_quadrants():
+    none = {"test": [], "doc": [], "tools": [], "cards": [str(pathlib.PurePosixPath("board") / "c.md")]}
+    some = {"test": ["test/test_x.py"], "doc": [], "tools": [], "cards": []}
+    henri = ("Henri", "2026-08-24", "words")
+    sess = ("a session", "2026-08-24", "")
+    assert asked.quadrant(henri, some) == "asked, needed"
+    assert asked.quadrant(henri, none) == "asked, not needed"
+    assert asked.quadrant(sess, some) == "not asked, needed"
+    assert asked.quadrant(("unrecorded", "2026-08-11", ""), none) == "neither"
+    assert asked.quadrant(None, none) == "neither"
+    assert asked.quadrant(henri, none) != "asked, needed", "a card alone is wanting, not need"
+
+
+def test_the_graph_is_a_command_and_a_picture(capsys):
+    assert asked.main(["--graph"]) == 0
+    out = capsys.readouterr().out
+    assert "asked, needed" in out and "asked:" in out
+    assert asked.main(["--dot"]) == 0
+    d = capsys.readouterr().out
+    assert d.startswith("digraph") and d.rstrip().endswith("}")
+    assert '"tools/asked.py"' in d
+
+
+def test_the_svg_is_laid_out_by_dot(tmp_path):
+    import shutil
+    if shutil.which("dot") is None:
+        pytest.skip("no graphviz on this machine — --svg refuses out loud instead")
+    out = tmp_path / "asked.svg"
+    assert asked.main(["--svg", str(out)]) == 0
+    text = out.read_text()
+    assert "<svg" in text and "tools/asked.py" in text
+    assert text.count("<g id=\"node") >= 32, "every tool is a node"

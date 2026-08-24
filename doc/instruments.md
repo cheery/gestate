@@ -204,6 +204,7 @@ them apart.
 ### `tools/asked.py` — who asked for each tool on this bench
 
     python tools/asked.py       # the register; test_provenance.py is the gate
+    python tools/asked.py --graph   # × needed-by, computed: four quadrants, the dead named
 
 **A tool nobody asked for is a tool nobody runs** — F169's rule moved
 from numbers to instruments.  Every file in `tools/` carries one
