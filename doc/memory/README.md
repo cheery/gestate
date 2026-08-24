@@ -45,8 +45,19 @@ not: they are read when something makes them relevant.
 So the index keeps its one-line hooks and points here, and the bodies
 live in the tree.  That is `spec/`'s property, deliberately: **a
 directory costs nothing until you open the file you needed.**  It also
-means there is exactly one copy of each memory, which is the only
-version of this that cannot drift.
+means there is exactly one copy of each memory's *body*.
+
+**The hooks drifted anyway, and now they are generated.**  Measured
+2026-08-24: 19 of the 53 memories here were hooked by nothing in the
+private index — added to this README and never to the file that
+loads, or added and lost; the index has no history, so nobody can say
+which.  Since that evening `tools/memoryindex.py` writes the index's
+public half *from* §"The index" below, between two markers, and
+`test/test_memoryindex.py` refuses the run on this machine when the
+two differ.  **A hook goes here, beside its body, and nowhere else**;
+one written into the generated block by hand is gone at the next run.
+The private section of the index is kept by hand and the tool never
+reads it.
 
 ## Writing one
 

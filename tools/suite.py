@@ -113,6 +113,8 @@ GATES = {
         "the journal's archive, and the index that is the only way into it",
     "test/test_seedaudit.py":
         "the ten people-pieces, each present, each behind its declared gate",
+    "test/test_memoryindex.py":
+        "the boot index's public half against doc/memory/README.md it is generated from",
 }
 
 

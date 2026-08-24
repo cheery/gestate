@@ -101,6 +101,16 @@ esac
 
 cd "$root"
 if python3 tools/suite.py --gates; then
+    # The one check the fenced gates cannot make: the private memory
+    # index lives outside the repository, and the suite binds only the
+    # repository.  This hook is run by git, unfenced, so it can look.
+    # Exits 0 where there is no index (another machine, a seed).
+    python3 tools/memoryindex.py --check || {
+        echo >&2 ""
+        echo >&2 "pre-commit: the boot index is behind doc/memory/README.md; run:"
+        echo >&2 "            python3 tools/memoryindex.py"
+        exit 1
+    }
     exit 0
 fi
 
