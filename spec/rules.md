@@ -32,13 +32,39 @@ session found it inconvenient on a Tuesday.
 
 ## Why there is a cap at all
 
-Because a session reads **all five, every time**, before it knows what
-it is working on.  That is what makes them rules rather than reference.
-`spec/` is 16,000 lines and costs nothing until you touch the part it
-describes; the rules cost their full size on every single shift, and
-they come out of the same window the work has to fit in.  Past some
-size the method stops being what makes a session effective and starts
-being what crowds out the thing it was supposed to help with.
+*At Henri's ask, reworded on 2026-08-24.  The paragraph it replaces is
+quoted below, because it was the premise of this whole spec and it was
+measured false.*
+
+> Because a session reads **all five, every time**, before it knows what
+> it is working on.  That is what makes them rules rather than
+> reference.  `spec/` is 16,000 lines and costs nothing until you touch
+> the part it describes; the rules cost their full size on every single
+> shift, and they come out of the same window the work has to fit in.
+
+**Nothing loads the five.**  Measured 2026-08-23, `journal.md`
+§"Nothing was loading the rules": no `CLAUDE.md`, no `AGENTS.md`, no
+hook that injects a document.  What a session reads unasked is the
+memory index and, since that evening, the one-line pointer to
+`board/README.md`.  So the five are reference in the sense the old
+paragraph reserved for `spec/` — they cost nothing until opened — and
+`doc/notes/`' name for them, *the method files*, carried the same
+false assumption and is retired with it.
+
+**What the cap measured all along was growth**, and that is what it
+is for.  Session narration accretes into a rule document because the
+session that arrived at the rule was proud of the arriving, and the
+document stays true while getting longer and harder to *find a rule
+in*.  A pointer sends a stranger to `board/README.md`; a rule that
+cannot be found in it is a rule that does not reach the moment.  The
+cap is a lamp on that — one number, measured at every commit, that
+says the set is getting fatter.
+
+**And two of the five are pieces, not documents.**  `board/README.md`
+is where `status blocked` is real, and `spec/author.md` is the
+author's own; `tools/seedaudit.py` names both and refuses their loss.
+The other three — `manifesto.md`, `doc/instruments.md`, `vision.md` —
+are cited from the tree more than any `spec/` file and read on pull.
 
 Growth is not hypothetical.  Measured the night the cap was set:
 
