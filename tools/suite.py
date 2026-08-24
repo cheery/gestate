@@ -111,6 +111,8 @@ GATES = {
         "the five method documents are all there, and the cap's lamp works",
     "test/test_journal.py":
         "the journal's archive, and the index that is the only way into it",
+    "test/test_seedaudit.py":
+        "the ten people-pieces, each present, each behind its declared gate",
 }
 
 

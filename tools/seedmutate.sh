@@ -29,21 +29,15 @@ mutations=$(python3 - "$SRC" <<'PY'
 import sys, importlib.util, pathlib
 spec = importlib.util.spec_from_file_location("sa", pathlib.Path(sys.argv[1]) / "tools/seedaudit.py")
 m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+# the pieces, then the declared gate of each — read from PIECES, never
+# typed here: a list typed by hand forgets the file just added, and the
+# first version of this sweep reported a survivor that was only its own
+# stale list naming a test no piece declared any more.
 for p in m.PIECES:
     for path in p["paths"]: print(f"rm {path}")
+for g in sorted({p["gate"] for p in m.PIECES}): print(f"rm {g}")
 PY
 )
-# the pieces, then the test that backs each piece — the second is the weak half
-mutations="$mutations
-rm test/test_consent.py
-rm test/test_andon.py
-rm test/test_limit.py
-rm test/test_memory.py
-rm test/test_rules.py
-rm test/test_board.py
-rm test/test_complaints.py
-rm test/test_gemba.py
-rm test/test_citations.py"
 while IFS= read -r m; do
   [ -z "$m" ] && continue
   fresh; rm -f "$T/t/${m#rm }"; v=$(verdict)

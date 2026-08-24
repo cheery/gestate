@@ -22,7 +22,7 @@ def test_a_tool_does_not_back_itself(tmp_path):
     (tmp_path / "tools").mkdir()
     (tmp_path / "tools" / "andon.sh").write_text("# tools/andon.sh\n")
     (tmp_path / "test").mkdir()
-    assert seedaudit.backed_by(tmp_path, "tools/andon.sh") is None
+    assert seedaudit.backed_by(tmp_path, "tools/andon.sh", "tools/andon.sh") is None
 
 
 def test_a_test_does_back_it(tmp_path):
@@ -30,7 +30,19 @@ def test_a_test_does_back_it(tmp_path):
     (tmp_path / "tools" / "andon.sh").write_text("x")
     (tmp_path / "test").mkdir()
     (tmp_path / "test" / "test_andon.py").write_text("run('tools/andon.sh')\n")
-    assert seedaudit.backed_by(tmp_path, "tools/andon.sh") == "test/test_andon.py"
+    assert seedaudit.backed_by(tmp_path, "tools/andon.sh", "test/test_andon.py") == "test/test_andon.py"
+
+
+def test_a_mention_in_some_other_test_is_not_a_gate(tmp_path):
+    """The fourth harvester bug, found by `tools/seedmutate.sh` on
+    2026-08-24: `backed_by` searched every test file, so deleting the
+    test behind a piece left it green whenever another test cited the
+    path.  Only the declared gate counts now."""
+    (tmp_path / "tools").mkdir()
+    (tmp_path / "tools" / "limit.sh").write_text("x")
+    (tmp_path / "test").mkdir()
+    (tmp_path / "test" / "test_provenance.py").write_text("# see tools/limit.sh\n")
+    assert seedaudit.backed_by(tmp_path, "tools/limit.sh", "test/test_limit.py") is None
 
 
 def test_only_files_named_test_are_searched(tmp_path):
@@ -39,7 +51,7 @@ def test_only_files_named_test_are_searched(tmp_path):
     (tmp_path / "tools" / "andon.sh").write_text("x")
     (tmp_path / "test").mkdir()
     (tmp_path / "test" / "conftest.py").write_text("tools/andon.sh\n")
-    assert seedaudit.backed_by(tmp_path, "tools/andon.sh") is None
+    assert seedaudit.backed_by(tmp_path, "tools/andon.sh", "test/conftest.py") is None
 
 
 def test_a_bare_basename_is_resolved_before_it_is_called_missing(tmp_path):
@@ -102,3 +114,39 @@ def test_nothing_is_unbacked():
     rows = seedaudit.audit_pieces(ROOT)
     unbacked = sorted(r["name"] for r in rows if not r["missing"] and not r["backing"])
     assert unbacked == [], unbacked
+
+
+def _copy_pieces(tmp_path):
+    """A directory holding exactly the pieces and their gates."""
+    for piece in seedaudit.PIECES:
+        for rel in list(piece["paths"]) + [piece["gate"]]:
+            src, dst = ROOT / rel, tmp_path / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            if src.is_dir():
+                dst.mkdir(exist_ok=True)
+            elif not dst.exists():
+                dst.write_bytes(src.read_bytes())
+
+
+def test_taking_any_piece_away_is_seen(tmp_path):
+    """The mutation run as a gate — the in-process half of
+    `tools/seedmutate.sh`.  Each piece in turn: remove one of its paths
+    and it must be ABSENT; remove its gate and it must be UNBACKED.
+    The sweep of 2026-08-24 found two pieces that could lose their
+    gate and stay green; from here that fails the suite."""
+    _copy_pieces(tmp_path)
+    survived = []
+    for piece in seedaudit.PIECES:
+        for rel in piece["paths"]:
+            saved = (tmp_path / rel).read_bytes(); (tmp_path / rel).unlink()
+            row = next(r for r in seedaudit.audit_pieces(tmp_path) if r["name"] == piece["name"])
+            if not row["missing"]:
+                survived.append(f"rm {rel}")
+            (tmp_path / rel).write_bytes(saved)
+        g = tmp_path / piece["gate"]
+        saved = g.read_bytes(); g.unlink()
+        row = next(r for r in seedaudit.audit_pieces(tmp_path) if r["name"] == piece["name"])
+        if row["backing"]:
+            survived.append(f"rm {piece['gate']}")
+        g.write_bytes(saved)
+    assert survived == [], survived

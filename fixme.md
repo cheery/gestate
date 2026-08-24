@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 180 entries, **151 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 181 entries, **151 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -86,6 +86,7 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F178 | bug | `[command]` opens unaided, then the list gives a newcomer nothing to do |
 | F174 | bug | A driven run cannot tell its own window from one beside it |
 | F179 | resolved | The desktop icon's absent file opens the starter, which sounds |
+| F180 | bug | `test_suite_runner.py` fails alone and passes in the full run — `rulecount` import rides on another test's `sys.path` |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -6059,4 +6060,17 @@ fallback name and the starter's `sound` declaration *together*, because
 either one can change without the other and the click breaks silently
 either way.  A defect that was never real now has a check that would
 catch it if it became real.
+
+### F180. **[bug]** `test/test_suite_runner.py` passes in the full run and fails on its own
+
+Found 2026-08-24 while adding the thirteenth gate.  `python3 -m pytest
+test/test_suite_runner.py` alone: two failures, `No module named
+'rulecount'`; inside `tools/suite.py --gates` or the full suite: green.
+Same on the commit before, so not introduced that day.  Some earlier
+test file puts `tools/` on `sys.path` and this one rides on it.  A
+test that only passes in company is a test whose verdict depends on
+collection order, which is the class `card:dangling-names.md` is about,
+in a test rather than a name.  Fix is one line — the file's own
+`sys.path.insert` — and it is not written here because the day was on
+another card.
 

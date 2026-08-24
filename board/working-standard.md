@@ -637,17 +637,29 @@ alone and so its loss now shows.  The cause is that `backed_by` accepts
 any test file that *mentions* the path, and `test_provenance.py`,
 `test_citations.py` and friends cite those paths without gating them.
 The docstring's own admitted weakness, *mention is checkable,
-correctness is not*, now has a number.  Not fixed here; tightening
-`backed_by` is a design question (a test that *runs* the piece, or a
-declared `gate:` per piece — the `fixme.md` shape above) and it is the
-next thing this card works.
+correctness is not*, now has a number.
+
+**Fixed the same day, the `gate:` way.**  Each piece in `PIECES` now
+declares the one test file that gates it, and `backed_by` reads that
+file alone.  What that turned up on the way: `tools/pre-commit.sh` was
+named by **no** test — "the gates" had passed on a mention of
+`suite.py` — so `test/test_precommit.py` came first, per §"The order is
+the point", and only then the tightening.  `tools/seedmutate.sh`: **0
+survived**, and the sweep's own first version reported one survivor
+that was its hand-typed list naming a gate no piece declared any more
+— the list is read from `PIECES` now.  The in-process half,
+`test_seedaudit.py::test_taking_any_piece_away_is_seen`, is a suite
+gate; the thirteenth.
 
 ### Next
 
 1. ~~Henri words the `why` for the boot-surface slot~~ — done the same
    morning, above.
-2. `backed_by` tightened until `tools/seedmutate.sh` reports 0 survived,
-   and then the sweep joins `tools/suite.py`'s gates — after it is
-   clean, never before, per §"The order is the point".
+2. ~~`backed_by` tightened until `tools/seedmutate.sh` reports 0
+   survived, and then the sweep joins the gates~~ — done the same day,
+   above.
+2b. The audit's *promise* half still cannot tell an unbuilt promise
+   from a broken one (finding one, above): a seed is a clone and a
+   clone is red.  Open.
 3. The four workflow cards stay as they are; reading 2 of the scope is
    unchanged, only the cap stops being the work.

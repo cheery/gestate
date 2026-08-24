@@ -49,6 +49,13 @@ That is `card:dangling-names.md` arriving three times in one morning:
 the harvester failed.*  The third one was caught only by the canary at
 the bottom of that test file, which is the argument for keeping it.
 
+**Tested by taking pieces away, 2026-08-24.**  `tools/seedmutate.sh`
+removes one piece or one gate at a time from a copy and audits it; the
+first sweep found three pieces whose gate could vanish unseen, because
+`backed_by` searched every test for a mention.  Now each piece declares
+its `gate` and only that file is read.  The in-process half is
+`test_seedaudit.py::test_taking_any_piece_away_is_seen`, a suite gate.
+
 **It has only ever been run against this tree.**  There is no seeded
 project yet, so the `PATH` argument is untested against a real copy —
 which is itself a finding this file should keep printing until it is
@@ -64,38 +71,38 @@ import sys
 # somebody on the other end is a person.  `why` is that reason, in one
 # line, and it is the column that decides whether an entry belongs.
 PIECES = [
-    dict(name="the fence",
+    dict(name="the fence", gate="test/test_safety.py",
          why="a session cannot edit its own restraints",
          paths=[".claude/settings.json", "tools/sandbox.sh"]),
-    dict(name="the gates",
+    dict(name="the gates", gate="test/test_precommit.py",
          why="the rules are enforced outside the model that must follow them",
          paths=["tools/suite.py", "tools/pre-commit.sh"]),
-    dict(name="the consent register",
+    dict(name="the consent register", gate="test/test_consent.py",
          why="a named third party agreed to being named",
          paths=["doc/consent.md"]),
-    dict(name="the andon",
+    dict(name="the andon", gate="test/test_andon.py",
          why="a session can raise a question and reach a person who answers",
          paths=["tools/andon.sh"]),
-    dict(name="a blocked status",
+    dict(name="a blocked status", gate="test/test_board.py",
          why="a session may stop and say why, instead of guessing on",
          paths=["board/README.md"]),
-    dict(name="the rules cap",
+    dict(name="the rules cap", gate="test/test_rules.py",
          why="the rules stay short enough that a person actually reads them",
          paths=["spec/rules.md", "tools/rulecount.py"]),
-    dict(name="the memory split",
+    dict(name="the memory split", gate="test/test_memory.py",
          why="what is known about a person is not automatically the tree's",
          paths=["doc/memory/README.md"]),
-    dict(name="the sitting limit",
+    dict(name="the sitting limit", gate="test/test_limit.py",
          why="the person's own hours are the person's",
          paths=["tools/limit.sh"]),
-    dict(name="the boot surface",
+    dict(name="the boot surface", gate="test/test_rules.py",
          # Henri, 2026-08-24, the whole why in his words.  What arrives
          # at a session before it asks for anything: the one-line pointer
          # (and, outside any directory, the memory index — which this
          # audit cannot see and says so in card:working-standard.md).
          why="nothing else reaches a session unasked",
          paths=["AGENTS.md"]),
-    dict(name="the author's own document",
+    dict(name="the author's own document", gate="test/test_gemba.py",
          why="the person keeps a document no session rewrites",
          paths=["spec/author.md"]),
 ]
@@ -118,29 +125,30 @@ LOOKIN = ["", "tools/", "test/", "board/", "doc/", "spec/", "journal/",
 PLACEHOLDER = re.compile(r"YYYY|MM|<|>|\{|\.\.\.|\*|N\.md")
 
 
-def backed_by(root, path):
-    """Which test names this path?
+def backed_by(root, path, gate):
+    """Does the piece's declared gate exist, and name this path?
 
-    Tests only, and never the artifact itself.  Searching `tools/` too
-    was the first version's bug: a tool always contains its own name, so
-    every piece passed.  Weak on purpose beyond that — see the module
-    docstring."""
-    needle = path.rstrip("/")
-    base = root / "test"
-    if not base.is_dir():
+    One file per piece, declared in `PIECES`, and only that file is
+    read.  Until 2026-08-24 this searched every `test_*.py` for a
+    mention, and `tools/seedmutate.sh` showed what that bought: the
+    test behind a piece could be deleted and a citation of the path in
+    some other test kept the piece green — three of nine, then two of
+    ten.  A gate somebody named is a claim somebody can be wrong about;
+    a mention found by search is not a claim at all.
+
+    Still weak on purpose beyond that — mention inside the gate is
+    checkable from outside, correctness is not; see the module
+    docstring.  `test_seedaudit.py` is refused as a gate because it
+    names every path in order to test this audit."""
+    if gate.endswith("test_seedaudit.py") or not gate.startswith("test/test_"):
         return None
-    for f in sorted(base.rglob("test_*.py")):
-        # A test *about* this audit is not a gate on the pieces it names.
-        if f.name == "test_seedaudit.py":
-            continue
-        if f.samefile(root / path) if (root / path).is_file() else False:
-            continue
-        try:
-            if needle in f.read_text(encoding="utf-8", errors="ignore"):
-                return f"test/{f.relative_to(base)}"
-        except OSError:
-            continue
-    return None
+    f = root / gate
+    if not f.is_file():
+        return None
+    try:
+        return gate if path.rstrip("/") in f.read_text(encoding="utf-8", errors="ignore") else None
+    except OSError:
+        return None
 
 
 def audit_pieces(root):
@@ -149,8 +157,9 @@ def audit_pieces(root):
         missing = [p for p in piece["paths"] if not (root / p).exists()]
         backing = None
         if not missing:
-            for p in piece["paths"]:
-                backing = backing or backed_by(root, p)
+            # Every path of the piece, in the one declared gate.
+            hits = [backed_by(root, p, piece["gate"]) for p in piece["paths"]]
+            backing = piece["gate"] if all(hits) else None
         rows.append(dict(piece, missing=missing, backing=backing))
     return rows
 

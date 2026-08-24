@@ -65,7 +65,7 @@ Three habits follow, and they are most of it:
 
 ## What is actually enforced
 
-Twelve structural checks run at every commit, through a git hook, in
+Thirteen structural checks run at every commit, through a git hook, in
 about fourteen seconds. They test nothing about whether the program
 works — that is a separate twenty-five-minute suite. They test that the
 tree still agrees with itself, which is the property that editing the
@@ -97,14 +97,14 @@ decline honestly:
 | [`manifesto.md`](../manifesto.md) | 377 | how an instrument fails, and the two standing rules |
 | [`board/README.md`](../board/README.md) | 623 | how a task is worked — written for sessions |
 | [`spec/`](../spec/) | ~16,000 | how each part is designed, and what it cost |
-| [`fixme.md`](../fixme.md) | 180 entries, 151 resolved | where the implementation disagrees with the specs |
+| [`fixme.md`](../fixme.md) | 181 entries, 151 resolved | where the implementation disagrees with the specs |
 | [`journal.md`](../journal.md) + `journal/` | the current month, plus one line per closed month | what happened, past tense |
 | [`doc/memory/`](memory/) | one fact per file | what a session that forgets everything carries across |
 | [`keeper.md`](../keeper.md) | 206 | standard work for the one person who keeps all of the above |
 
 Two of those are worth a word. `fixme.md` is a **register, not a
 backlog**: an entry is closed by being marked resolved, never by being
-deleted, so the twenty-nine open ones are visible on purpose. And the
+deleted, so the thirty open ones are visible on purpose. And the
 journal is long — 10,433 lines for its first month — which is why it
 rotates into `journal/YYYY-MM.md` behind an index. Read the index line,
 open the one month you wanted.
