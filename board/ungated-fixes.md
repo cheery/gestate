@@ -294,6 +294,17 @@ the record off three lines early), and that nothing in the tree reads
 morning, none of which survived a measurement**, which is the argument
 for the Friday sample and for the mutation rule in the same breath.
 
+### Batch 4 — 2026-08-24, the Monday it was due
+
+Five verdicts, four measured by mutation the way batch 2 taught, the
+fifth not a repair.  F117, F111, F107: a Rust test each in
+`palette.rs`, red with the defect put back, green with it away.  F116:
+**`partial`** — `covers` is held, and the click fall-through in
+`window.rs` is not: eaten again, the whole workspace stayed green at 81.
+That is the defect as Henri reported it, and it is the batch's one *not
+yet built*.  F112: `none — not a repair`; a measurement answered it.
+No uncertain verdict; the session went on.
+
 ## The schedule — heijunka, adopted 2026-08-18
 
 *Henri:* **"so it's a question of heijunka.  We need to balance the

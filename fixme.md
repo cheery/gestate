@@ -3048,6 +3048,10 @@ finished call is Enter's, deliberately.  The find pair keeps its walk
 in both directions (`the_arrows_walk_forwards_and_back` still
 passes); `an_arrow_is_not_an_accidental_return` pins the fix.
 
+gate: `shell/editor/src/palette.rs::an_arrow_is_not_an_accidental_return`.
+**Measured 2026-08-24**: the `reverse.is_empty()` guard in `step`
+removed → red; restored → green.
+
 ### F108. **[resolved]** `pianoStep` writes notes with no separator
 
 Step mode inserts `50` where it should insert `50 ` — two steps write
@@ -3160,6 +3164,10 @@ Space in a `Path` box is now content, the same exemption `Text` has;
 taking the path is Return's, and Tab completes (F117).  Pinned by
 `space_does_not_eat_a_proposed_path`.
 
+gate: `shell/editor/src/palette.rs::space_does_not_eat_a_proposed_path`.
+**Measured 2026-08-24**: `"Path"` dropped from the space exemption → red;
+restored → green.
+
 ### F112. **[resolved]** The file dialog's listing sometimes lags
 
 Reported from use (2026-08-13), unmeasured: the dialog's listing
@@ -3181,6 +3189,12 @@ happens, so the report is answered rather than the code changed —
 the rule wants a caller before loop-pacing work, and a bounded beat
 during a visible build is not yet one.  Reopen with a transcript if
 a listing ever lags past ~200 ms with *no* build in flight.
+
+gate: `none — not a repair`.  The report was answered by a measurement
+(`tools/dialoglag.py`, 13 ms settled, ~71 ms mid-compile) and no code
+changed; what fires if the beat returns is the status line saying a
+build is running, which is a reading, not a gate.  A bounded beat during
+a visible build wants a caller first, as the entry says.
 
 ### F113. **[resolved]** Undo and redo cross a file switch
 
@@ -3294,6 +3308,15 @@ from `panel_box` — the same arithmetic `frame` draws with, so the
 panel that is drawn and the panel that is hit cannot disagree
 (`covers_agrees_with_what_is_drawn`).
 
+gate: `partial` — the hit-test is held, the fall-through is bare.
+**Measured 2026-08-24**: `covers` made to say an open panel covers
+everything → `covers_agrees_with_what_is_drawn` red.  Then the other
+half — `window.rs` given back its `return Captured` after `hide()`, so
+the click is eaten again — and **the whole workspace stayed green, 81
+tests**.  The defect as reported was the eaten click, and nothing pins
+it: a window test that presses outside the open list and sees the knob
+under it answer is the gate not yet built.
+
 ### F117. **[resolved]** Tab did not complete paths in the file dialog
 
 Henri's report (2026-08-13): people expect Tab to complete on a file
@@ -3307,6 +3330,10 @@ taking the answer is still Return's.  Bound for every asked argument,
 not only `Path`: completion is never wrong, and it simply has nothing
 to do when the model offered no rows.  Pinned by
 `tab_completes_the_path_under_the_cursor`.
+
+gate: `shell/editor/src/palette.rs::tab_completes_the_path_under_the_cursor`.
+**Measured 2026-08-24** by putting the defect back — the `Key::Tab` arm
+disabled — and the test went red; put away, green.
 
 ### F118. **[resolved]** The list sat over a freshly opened file and caught the first keystrokes
 
