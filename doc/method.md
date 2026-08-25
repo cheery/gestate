@@ -65,8 +65,8 @@ Three habits follow, and they are most of it:
 
 ## What is actually enforced
 
-Fifteen structural checks run at every commit, through a git hook, in
-about twenty seconds. They test nothing about whether the program
+Eighteen structural checks run at every commit, through a git hook, in
+about fourteen seconds. They test nothing about whether the program
 works — that is a separate twenty-five-minute suite. They test that the
 tree still agrees with itself, which is the property that editing the
 tree breaks:

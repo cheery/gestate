@@ -127,6 +127,26 @@ GATES = {
     #: from this tree's own post-mortem.
     "test/test_selfmatch.py":
         "no pattern kill in the tree matches its own command line",
+    #: **Joined 2026-08-25**, both of them found by the long pass being red
+    #: for a day with nobody told: `tools/slides.py` landed on 08-24 with
+    #: no `asked-by:` stamp, and `test_precommit.py` went red in the same
+    #: commit that taught the hook to say `"$PY"` instead of `python3`.
+    #: Two sub-second structural checks that reported twenty-five minutes
+    #: late, which is `card:cheap-gates.md`'s argument arriving a second
+    #: time.  Henri, 2026-08-25: *"they join the GATES."*
+    #:
+    #: **The two node ids rather than the file** — `test_provenance.py`
+    #: costs 4.2 s, and 3.8 of those are `test_the_graph_is_a_command_and_a_picture`
+    #: and `test_the_svg_is_laid_out_by_dot`, which render a picture with
+    #: `dot`.  Those are not of this class: they are slow, and a session
+    #: doing ordinary work does not break them.  The stamp check and the
+    #: register command are 0.12 s together.
+    "test/test_provenance.py::test_every_tool_says_who_asked_for_it":
+        "every tool in tools/ says who asked for it",
+    "test/test_provenance.py::test_the_register_is_a_command_somebody_can_run":
+        "the who-asked register, against the tools it registers",
+    "test/test_precommit.py":
+        "the hook is installed here, parses, and runs the gates and nothing else",
 }
 
 
