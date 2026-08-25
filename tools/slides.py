@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+#: asked-by: a session, 2026-08-24 — built because the deck needed
+#: presenting (commit b6110dc, "for the future keepers"); the deck
+#: itself is Henri's, doc/teaching/keepers-first-week.md
 """slides.py — render a slide-deck markdown file into one self-contained HTML page.
 
     python3 tools/slides.py doc/teaching/keepers-first-week.md
