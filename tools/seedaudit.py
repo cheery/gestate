@@ -57,10 +57,16 @@ first sweep found three pieces whose gate could vanish unseen, because
 its `gate` and only that file is read.  The in-process half is
 `test_seedaudit.py::test_taking_any_piece_away_is_seen`, a suite gate.
 
-**It has only ever been run against this tree.**  There is no seeded
-project yet, so the `PATH` argument is untested against a real copy —
-which is itself a finding this file should keep printing until it is
-false.
+**First run against a real copy on 2026-08-24** — `~/tend`, the first
+directory this audit was pointed at that is not its own.  It found the
+tree it was aimed at (2 of 10 pieces at its first commit, 6 by the end
+of that day), and it found one thing about itself: `CAPPED` is this
+tree's own list of documents, so a tree that never promised
+`doc/instruments.md` is reported as unable to keep a promise it never
+made.  Encoding this project's accidents as another project's
+requirements is the failure `card:working-standard.md` warned about,
+and the `PATH` argument now has the evidence for it rather than the
+warning alone.
 """
 
 import argparse

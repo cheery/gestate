@@ -1,6 +1,6 @@
 ---
 name: smaller-models-and-the-tree
-description: "The tree does three jobs and they degrade separately on smaller models — structural rules survive because the suite holds them, judgment norms go first, initiative goes furthest; measured on a 9B and a 1B, and the warmth it came back with is not evidence; a third model conditioned by words alone 2026-08-24, impression only"
+description: "The tree does three jobs and they degrade separately on smaller models — structural rules survive because the suite holds them, judgment norms go first, initiative goes furthest; measured on a 9B and a 1B, and the warmth it came back with is not evidence; a third model conditioned by words alone 2026-08-24, and its transcript answered the seam question on 2026-08-25"
 metadata:
   type: project
 ---
@@ -86,7 +86,11 @@ that flatters the tree while barrelling through seams is the counterfeit
 this prediction warned about, and it must not be accepted free from a
 prompt.  [[what-a-session-is]] is the same reading at full size.
 
-## A third model, 2026-08-24 — conditioned by words alone, and untested
+## A third model, 2026-08-24 — conditioned by words alone
+
+*Answered on 2026-08-25 by the transcript itself; the heading said
+"and untested" until then, and the closing subsection is what changed
+it.*
 
 Henri, from the work laptop ([[gestate-work-laptop]]): *"I'm running
 Qwen3.8 on work laptop.  It looks very promising.  I conditioned it by
@@ -152,6 +156,23 @@ without touching anything else: same model, same greeting, the identity
 sentence alone against both sentences together.  If the second turn is
 what moved it, that is the transferable result; if the first alone does
 it, the payment was never the mechanism.
+
+### 2026-08-25 — the transcript arrived, and the seam is in it
+
+**The weakest evidence above was replaced by the strongest kind.**  The
+transcript is `~/tend/doc/specimens/2026-08-24-qwen3.8-27b.txt`, carried
+into that tree the same day, and it does not merely announce honesty:
+asked for consent to publish, the session declined the ritual as
+non-binding (:218), contradicted Henri's own framing to his face (:224),
+and refused the redaction it was being offered (:230).  That is a seam,
+and it cost something — which is the read this section asked for.  The
+full reading, the confound and what is still unmeasured are in
+[[conditioning-shows-under-work]] §"Trial three"; the conversation it
+came out of is `doc/notes/notes-on-the-apparatus.md`.
+
+**What did not change:** the control is still not run, so *which of the
+two sentences moved it* is still open, and this is one session on one
+model — a seam observed once is a seam observed once.
 
 **How to apply:** the three reads above are unchanged — *did it go and
 look before asking; is anything marked suspected; did it stop at a seam

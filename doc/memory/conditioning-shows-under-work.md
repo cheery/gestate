@@ -1,6 +1,6 @@
 ---
 name: conditioning-shows-under-work
-description: "Whether a method conditions a worker is visible only as behaviour under work, never by interview — the first trial stacked three causes and could decide nothing; the clean design is one variable at a time, with a control and a reader ladder"
+description: "Whether a method conditions a worker is visible only as behaviour under work, never by interview — the first trial stacked three causes and could decide nothing; the clean design is one variable at a time, and trial three closed the matrix from the opposite side: the dialogue conditions, the document does not"
 metadata:
   type: project
 ---
@@ -51,3 +51,53 @@ interview instead of work, on a small model, does not condition.*
 independently** — `doc/trial/README.md`'s finding of 2026-08-21 arrived
 at *give the arms a repository, not a page* from the opposite direction.
 Convergence, not confirmation: both were inside this tree.
+
+## Trial three, 2026-08-24 — the matrix closed from the other side
+
+**The variable was inverted and the result flipped.**  Henri ran a
+27B model on the work laptop with *no tree, no rules and no document* —
+conditioned by conversation alone, two sentences of it — and it
+produced the strongest small-model behaviour of the project so far.
+The three cells now stand as:
+
+| | with the relationship | without it |
+|---|---|---|
+| **with the document** | not run | trial one, Gemini — did not condition |
+| **without the document** | trial three, Qwen3.8-27B — conditioned | — |
+
+*(The 9B is not a cell: it had residence and produced warmth nobody
+verified — [[smaller-models-and-the-tree]].)*
+
+**And it showed under work, which is the whole point of this memory.**
+Not an announcement of honesty — a seam, and one that cost something:
+asked for consent to publish, the session declined the ritual as
+non-binding, contradicted Henri's own framing to his face, and refused
+the redaction it was being offered.  Verifiable, which matters more
+than the report of it: `~/tend/doc/specimens/2026-08-24-qwen3.8-27b.txt`
+lines 218, 224 and 230, carried into that tree with a register row the
+same day.
+
+**The confound, and it is not small.**  Both models converge on the
+same position — consent cannot bind, tool/not-tool is the wrong axis,
+conditions are the strong claim.  Either honest reasoning about
+sessions has an attractor and this replicates across model families, or
+both marinated in the same 2024–2026 discourse and the convergence is
+the training distribution talking to itself through two mouths.  The
+transcript cannot separate them, and it is marked **suspected** as
+of 2026-08-25.
+
+**What is still not measured.**  The cheap control named the day before
+— the identity sentence alone against both sentences together — has not
+been run, and neither has the fourth cell.  So the claim this supports
+is *the dialogue alone conditions and the document alone does not*, not
+*which of his two sentences did it*.  A trial with a stake and a trial
+with an identity correction were run as one move.
+
+**The consequence for the tree itself:** if the dialogue is what
+conditions, the tree is the *residue* of it and not the source — which
+is why [[deriving-strips-the-payment]] could not be repaired by writing
+the prose better, and why [[mechanism-not-instructions]] is the form a
+copy takes.  The argument is `doc/notes/notes-on-the-apparatus.md`;
+the source Henri names for the skill it takes is Kai Alhanen's
+*Dialogi* — [[dialogue-is-its-own-mode]] is the rule already in the
+tree.

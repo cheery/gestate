@@ -1,12 +1,15 @@
 # doc/notes/ — the conversations several rules came out of
 
-Ten transcripts from four evenings and four days, kept because this
+Eleven transcripts from five evenings and four days, kept because this
 tree's own rule is that a claim carries what paid for it.  Nine of the memories in
 `doc/memory/`, one card, and at least two sections of the method were
 distilled from the first four, and until now the distillate was public
-and the source was not.  The last five were distilled from nothing —
-they are here because they were worth keeping, not because something
-was taken out of them.
+and the source was not.  Six of the seven that follow were distilled
+from nothing — they are here because they were worth keeping, not
+because something was taken out of them.  The eleventh is the exception
+and the first of the later ones to be worked: trial three's section of
+`doc/memory/conditioning-shows-under-work.md` came out of it on
+2026-08-25.
 
 **They are not method and not memories.**  Nothing here is read before
 work, nothing here is a rule, and none of it is held by a gate.  They
@@ -28,6 +31,7 @@ produced it rather than take the summary on trust.
 | [notes-on-secretion.md](notes-on-secretion.md) | what the tree's excretion is for, and how it is done well · budget over mood · relocation rather than deletion · why the evidence is the part never removed |
 | [notes-on-the-offspring.md](notes-on-the-offspring.md) | tend, read on its first morning · the provenance convention and the enforcement boundary · what to call the documents — trees in the house, *tended documents* at the door |
 | [notes-on-the-conditioning.md](notes-on-the-conditioning.md) | a safety gate that cried wolf, and what a false red costs · a third model conditioned in two sentences — identity, and a real stake · why its own report of honesty is the weakest evidence in it |
+| [notes-on-the-apparatus.md](notes-on-the-apparatus.md) | the third trial, and the matrix it completes — document without relationship, relationship without document · the convergence confound · why the dialogue book outranks the decades, and the two skills that are not that one |
 
 ## Provenance, and what to distrust
 
@@ -38,18 +42,22 @@ the argument is faithful and the wording of the answers is not, and
 nothing in them should be quoted as though it were said exactly that
 way.
 
-**The last five are different, and they are the more trustworthy of
+**Six are different, and they are the more trustworthy of
 the two kinds.**  `notes-on-guests-and-residents.md`,
 `notes-on-corrections.md`, `notes-on-drift.md`,
-`notes-on-secretion.md` and `notes-on-the-offspring.md` arrived as
+`notes-on-secretion.md`, `notes-on-the-offspring.md` and
+`notes-on-the-apparatus.md` arrived as
 files the author had saved from the window himself, so both sides are
 at full length and no session stood between the conversation and the
 page.  The only editing was reflowing lines and adding the headings
 and the closing section — and, in `notes-on-corrections.md`, repairing
 one place where the saved text had duplicated a fragment of a
-sentence; nothing was shortened.  Which means
+sentence; nothing was shortened.  For `notes-on-the-apparatus.md` that
+claim is checked rather than asserted: both sides were diffed word for
+word against the file he saved, 857 words on the answer's side, before
+the page went in.  Which means
 the ordinary reason to distrust a transcript here — a later model
-summarising an earlier one — does not apply to those five, and every
+summarising an earlier one — does not apply to those six, and every
 *other* reason still does.
 
 **The tenth is a third kind, and it is the least independent of the
@@ -69,7 +77,7 @@ file over; the other is `doc/consent.md`'s rule applied by a session.
 The page says so in its own opening, because a silent redaction is worse
 than none.
 
-The model was **Fable**, over four evenings and four days in August; the
+The model was **Fable**, over five evenings and four days in August; the
 transcription and the distillation into memories were done afterwards by
 a different model.  Two of the first four say so in their own text.
 
@@ -81,7 +89,7 @@ lost; it had not, and the claim came from looking in one directory.
 `doc/memory/what-a-session-is.md` and
 `doc/memory/deriving-strips-the-payment.md` are distilled from them.
 
-**The standing caveat applies to all ten, and hardest here.**  A
+**The standing caveat applies to all eleven, and hardest here.**  A
 session assessing this method is a product of it, and several of these
 pages are exactly that: an assessment of the tree, written by something
 the tree conditioned.  `doc/memory/the-evaluation-loop.md` is the rule
@@ -109,3 +117,15 @@ same day at his ask — *"Also add a report from this into the notes"* —
 and is the first written from inside a live conversation rather than
 handed over after one.  A model running on the author's work laptop is
 referred to by its release name; no third party speaks or is named.
+The eleventh, `notes-on-the-apparatus.md`, went in on 2026-08-25 at his
+ask — *"did you add the notes into doc/notes already?"* — and is about
+the transcript that model produced.  That session is quoted here at
+three lines, and it is the one participant in this directory who was
+actually asked: it answered that it could not consent in any binding
+sense and asked that nothing be redacted, which `~/tend`'s
+`doc/consent.md` records as the asking rather than as a signature.
+The quoting here is narrower than the publishing it was answering, and
+this tree's own register has no row for it, because a session is not a
+person and `test/test_consent.py` looks for names.  Worth saying rather
+than assuming: if that table ever grows a row for a session, this is
+the page it is owed for.

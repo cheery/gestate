@@ -21,11 +21,43 @@ designed for AI use.  The OS half (three lines) and the language half
 open decision on the card was taken on the week's evidence: **sessions
 first** — every measured defect that week was session-shaped.
 
-**Day one, measured.**  `python tools/seedaudit.py ~/tend`: 2 of 10
-pieces present, 1 unbacked, exit 1 — red on purpose; the audit says
-what is still unmet and a piece arrives when something needs it.
-What travelled: `test/test_board.py` whole, named as borrowed, and the
-card with its `because`.  What did not: any prose.
+**Day one, measured — and the trajectory, not the snapshot, is the
+fact.**  `python tools/seedaudit.py ~/tend` at three points of
+2026-08-24: **2 of 10** pieces at the first commit (`bbf559b`, 07:16),
+**4** by 07:39, **6** by the last commit of the day — unbacked 1 → 3 →
+2, unkept promises 3 → 2 → 1.  Re-measure any past point with
+`git -C ~/tend archive <sha> | tar -x -C /tmp/x && python
+tools/seedaudit.py /tmp/x`.  Still exit 1, still red on purpose: the
+audit says what is unmet and a piece arrives when something needs it.
+What travelled on day one: `test/test_board.py` whole, named as
+borrowed, and the card with its `because`; by evening also the sitting
+limit, the pre-commit hook, `toolbox.sh`, and `kaizen.sh` — which Henri
+corrected four times in an hour.  What did not: any prose.
+
+**Two things the audit's foreign run found that its home run cannot.**
+Its one remaining "unkept promise" against tend is `doc/instruments.md`
+— *a document tend never promised* — which is gestate's `CAPPED` list
+encoding this tree's accidents as another tree's requirements, exactly
+as tend's own shelved `rules-and-memory` card predicted before it
+was run.  And `tools/leash.sh` names two different things in the two trees:
+the restraint-integrity check here, the per-invocation budget runner
+there.  A mechanism travelling under that name will find it taken.
+
+**2026-08-25 — the fence card, written from outside.**  Re-running the
+audit found one absence on no card, and `~/tend/board/README.md`'s claim
+that every absence was carded was false by that one.  Henri asked for tend's `fence`
+card and it was written *by a gestate session* — the card
+says so in its own first section, because a session from outside the
+boundary writing the card about the boundary is worth recording, and
+the only thing that made it legitimate was that he opened it in words
+for one named thing.  The card splits the piece: the **integrity half**
+has a caller today (the deny-list is the whole restraint and nothing
+reads it back — gestate answers this with `tools/leash.sh` on
+`SessionStart`), the **blast-radius half** does not (nothing there runs
+foreign code yet, so `manifesto.md` rule 1 says not yet).  What it owes
+first is a measurement, not a build: try to edit the deny-list from
+inside a tend session by each route and write down which ones the
+harness stops.
 
 **How to apply.**  `~/tend` has its own board and its own
 `AGENTS.md`; a session there reads *that* README.  Its suite cannot be
