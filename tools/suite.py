@@ -115,6 +115,18 @@ GATES = {
         "the ten people-pieces, each present, each behind its declared gate",
     "test/test_memoryindex.py":
         "the boot index's public half against doc/memory/README.md it is generated from",
+    #: **Joined 2026-08-25**, and it is the second entry here about code
+    #: rather than documents — same reasoning as `test_carry.py`: the rule
+    #: is the defect class.  A `pgrep -f` that matches its own command
+    #: line is a check that waits for itself, and this tree paid for it
+    #: once already — twelve polling shells on the machine being listened
+    #: on, and the crackle they caused diagnosed as hardware first
+    #: (2026-08-18).  It costs 0.8 s, it has no bearing on behaviour, and
+    #: a session writing a wait loop is exactly the ordinary work that
+    #: breaks it.  The gate itself came back from `~/tend`, which built it
+    #: from this tree's own post-mortem.
+    "test/test_selfmatch.py":
+        "no pattern kill in the tree matches its own command line",
 }
 
 

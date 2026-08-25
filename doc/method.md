@@ -65,8 +65,8 @@ Three habits follow, and they are most of it:
 
 ## What is actually enforced
 
-Fourteen structural checks run at every commit, through a git hook, in
-about fourteen seconds. They test nothing about whether the program
+Fifteen structural checks run at every commit, through a git hook, in
+about twenty seconds. They test nothing about whether the program
 works — that is a separate twenty-five-minute suite. They test that the
 tree still agrees with itself, which is the property that editing the
 tree breaks:
@@ -111,8 +111,12 @@ something the audit does not.
 | the author's own document — `spec/author.md` | the person keeps a document no session rewrites | `test/test_gemba.py` |
 <!-- /seedaudit --table -->
 
-The audit has been run against a copy of this tree and against
-nothing else yet.  Its author's line for the front of it: *"We aren't
+The audit was first run against a directory that is not its own on
+2026-08-24 — `~/tend`, a second project started under this method —
+where it found six of the ten pieces present and one thing about
+itself: the promises it checks are *this* tree's documents, so a
+directory that never promised `doc/instruments.md` was reported as
+unable to keep a promise it never made.  Its author's line for the front of it: *"We aren't
 smart or super.  We just have good processes."*
 
 ## The tree withers if it is not treated well
