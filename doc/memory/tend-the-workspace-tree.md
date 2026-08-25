@@ -106,11 +106,39 @@ written into a document as a correction.  When `grant` is worked the
 first run is a gestate build under the leash, and that ledger line is
 the demonstration owed.*
 
-**One defect in it, reported and open:** the ledger's `cpu=` column read
-**1.3 s** for a 1504-second CPU-bound suite.  Wall, exit and budget in
-that line are trustworthy; that column is not — most likely counting
-the wrapper rather than the `bwrap` children inside the scope.  Do not
-quote a `cpu=` figure from that log until tend says it is fixed.
+**One defect in it, found and then confirmed from here.**  The ledger's
+`cpu=` column read **1.3 s** for a 1504-second CPU-bound suite.  Tend
+fixed the first cause the same day (`367c531`, scope mode reads the
+cgroup's own `CPUUsageNSec` instead of `times`) and asked gestate for
+the confirming run, because a scope cannot be made inside `bwrap` and a
+fenced tend session always degrades to plain.
+
+**It still reads `?`, deterministically** — three runs of a known load,
+two children burning 12 s of CPU each under `-c 200`: wall 12, 13, 12 s,
+exit 0, budget applied, `cpu=?s` every time.  Re-run it with
+`~/tend/tools/leash.sh -t 120 -c 200 -- sh burn.sh`.
+
+**And the cause is not the one the fix assumed.**  Measured on systemd
+255 (255.4-1ubuntu8.17): `systemctl --user show <unit> -p CPUUsageNSec
+--value` gives `[not set]` once the payload has exited — for a scope
+*and* for a `--wait` service, while the unit still exists.  Reading
+before the stop is not the missing piece; the counter is gone by then.
+
+**What does carry it is the journal, and only for a service.**  A
+`--wait` service's resources record has `CPU_USAGE_NSEC = 24034252000`
+— 24.03 s for 12 s of wall on two cores, the arithmetic exactly — plus
+the memory peak, and it is a structured field under a stable
+`MESSAGE_ID=ae8f7b866b0347b9af31fe1c80b127c0`, so nothing has to parse
+`"24.034s"`.  A **scope**, stopped and then read, has no resources
+record at all.  So moving from `--scope` to a `--wait` service is right,
+for a different reason than the race that was suspected — and the
+orphan-reaping the scope was chosen for survives, because a service is a
+cgroup too.  *Trap, paid for: `--wait` with `RemainAfterExit=yes` never
+returns.*
+
+**Until tend lands it: do not quote a `cpu=` figure from a `scope` line
+in the shared log.**  A `plain` line's figure is `times` and is correct
+there.
 
 **How to apply.**  `~/tend` has its own board and its own
 `AGENTS.md`; a session there reads *that* README.  Its suite cannot be
