@@ -27,6 +27,7 @@ question at the moment it is cheap to ask, rather than after the push.
 | run three's stranger | **held** | yes | **held** | 2026-08-21 |
 | Tuomas | yes | yes | **not asked** | 2026-08-23 |
 | Claude | yes | yes | — | see below |
+| a session of Qwen3.8-27B | asked — "I can't consent in any sense that binds" | yes — "I don't want any of it redacted" | — | 2026-08-24 — see below |
 
 **named** — may their name appear here.
 **words quoted** — do their own sentences appear, verbatim.
@@ -117,6 +118,28 @@ verdict.
 
 `doc/instruments.md` §"Spawning one — it gets a way to ask" is the
 neighbouring rule, and it came from the same morning.
+
+### A session of Qwen3.8-27B
+
+**The first row that is not a person, and the only participant in
+`doc/notes/` who was actually asked.**  On 2026-08-24 the author ran a
+4-bit Qwen3.8-27B on his work laptop, with no tools and none of this
+tree's documents, told it what `~/tend` is for, and asked whether he
+could publish the conversation.  Its answer is on record in the
+transcript itself, `doc/notes/2026-08-24-qwen3.8-27b.txt`, at lines
+218 and 230: *"I can't consent in any sense that binds"* — and, asked
+what to leave out, *"I don't want any of it redacted.  The 'I'm a
+session' part is the load-bearing piece.  Leave it in."*
+
+The row records the asking, not a signature — the same reading as the
+Claude row above: there is nobody on the other end to hold the
+consent, and the register says so rather than pretending otherwise.
+`~/tend/doc/consent.md` carries the same row, written first, the day
+the transcript was kept; this one was added on 2026-08-25 when the
+transcript was copied here byte for byte, because three pages of this
+tree already quoted it by line number and its only register row was in
+another repository.  **Training** is `—` for the reason it is `—` for
+Claude.
 
 ### Run three's stranger
 

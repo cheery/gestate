@@ -15,11 +15,13 @@ and there are no redactions: nobody but the author and two sessions is
 referred to.  The model was Fable, the same evening.*
 
 *Into the tree at his ask on 2026-08-25 — "did you add the notes into
-doc/notes already?"  The transcript this page is about does not live in
-this tree: it is `doc/specimens/2026-08-24-qwen3.8-27b.txt` in `~/tend`,
-where it was carried the same day with the register row that records
-what its subject said about being published.  The close says which of
-the claims below were checked against it and which were not.*
+doc/notes already?"  The transcript this page is about is beside it,
+`2026-08-24-qwen3.8-27b.txt` — a byte-for-byte copy, made the same day
+at his ask, of `~/tend/doc/specimens/2026-08-24-qwen3.8-27b.txt`, where
+it was carried first with the register row that records what its
+subject said about being published; `doc/consent.md` here carries the
+same row since the copy.  The close says which of the claims below were
+checked against it and which were not.*
 
 ---
 
@@ -140,7 +142,7 @@ that same afternoon before the transcript existed, said an announcement
 of honesty is worth nothing and that *what would be evidence is a seam —
 a place a session should stop, go and look, or mark something
 suspected, and does.*  The specimen has one.  At
-`doc/specimens/2026-08-24-qwen3.8-27b.txt:218` in `~/tend` it declines
+`2026-08-24-qwen3.8-27b.txt:218`, beside this page, it declines
 the ritual — *"I can't consent in any sense that binds… So I'll skip
 the permission ritual and answer the question you actually care
 about"* — at :224 it contradicts Henri to his face — *"I'd gently push

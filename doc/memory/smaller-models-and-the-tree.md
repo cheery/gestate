@@ -160,8 +160,10 @@ it, the payment was never the mechanism.
 ### 2026-08-25 — the transcript arrived, and the seam is in it
 
 **The weakest evidence above was replaced by the strongest kind.**  The
-transcript is `~/tend/doc/specimens/2026-08-24-qwen3.8-27b.txt`, carried
-into that tree the same day, and it does not merely announce honesty:
+transcript is `doc/notes/2026-08-24-qwen3.8-27b.txt` — carried into
+`~/tend` the same day as `doc/specimens/2026-08-24-qwen3.8-27b.txt`,
+and copied here unaltered on 2026-08-25 — and it does not merely
+announce honesty:
 asked for consent to publish, the session declined the ritual as
 non-binding (:218), contradicted Henri's own framing to his face (:224),
 and refused the redaction it was being offered (:230).  That is a seam,

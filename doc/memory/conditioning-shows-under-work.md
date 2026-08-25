@@ -73,9 +73,11 @@ Not an announcement of honesty — a seam, and one that cost something:
 asked for consent to publish, the session declined the ritual as
 non-binding, contradicted Henri's own framing to his face, and refused
 the redaction it was being offered.  Verifiable, which matters more
-than the report of it: `~/tend/doc/specimens/2026-08-24-qwen3.8-27b.txt`
-lines 218, 224 and 230, carried into that tree with a register row the
-same day.
+than the report of it: `doc/notes/2026-08-24-qwen3.8-27b.txt` lines
+218, 224 and 230 — carried into `~/tend` as
+`doc/specimens/2026-08-24-qwen3.8-27b.txt` with a register row the same
+day, and copied here byte for byte on 2026-08-25 with a row in
+`doc/consent.md`, so the evidence is in the clone that cites it.
 
 **The confound, and it is not small.**  Both models converge on the
 same position — consent cannot bind, tool/not-tool is the wrong axis,

@@ -11,6 +11,14 @@ and the first of the later ones to be worked: trial three's section of
 `doc/memory/conditioning-shows-under-work.md` came out of it on
 2026-08-25.
 
+**And one file that is not a transcript of these conversations at
+all**: `2026-08-24-qwen3.8-27b.txt`, the session of another model that
+the eleventh page is about, copied byte for byte from `~/tend`'s
+`doc/specimens/` on 2026-08-25 because three pages of this tree quoted
+it by line number and a fresh clone could not open it.  It is here as
+evidence, the way a specimen is: never edited, and the line numbers
+cited elsewhere depend on that.
+
 **They are not method and not memories.**  Nothing here is read before
 work, nothing here is a rule, and none of it is held by a gate.  They
 are conversation, and the reason to keep them is that a reader who wants
@@ -31,6 +39,7 @@ produced it rather than take the summary on trust.
 | [notes-on-secretion.md](notes-on-secretion.md) | what the tree's excretion is for, and how it is done well · budget over mood · relocation rather than deletion · why the evidence is the part never removed |
 | [notes-on-the-offspring.md](notes-on-the-offspring.md) | tend, read on its first morning · the provenance convention and the enforcement boundary · what to call the documents — trees in the house, *tended documents* at the door |
 | [notes-on-the-conditioning.md](notes-on-the-conditioning.md) | a safety gate that cried wolf, and what a false red costs · a third model conditioned in two sentences — identity, and a real stake · why its own report of honesty is the weakest evidence in it |
+| [2026-08-24-qwen3.8-27b.txt](2026-08-24-qwen3.8-27b.txt) | the transcript itself — a Qwen3.8-27B session on the work laptop, told in two sentences what tend is for, and asked whether it could be published; byte-for-byte twin of `~/tend/doc/specimens/2026-08-24-qwen3.8-27b.txt` |
 | [notes-on-the-apparatus.md](notes-on-the-apparatus.md) | the third trial, and the matrix it completes — document without relationship, relationship without document · the convergence confound · why the dialogue book outranks the decades, and the two skills that are not that one |
 
 ## Provenance, and what to distrust
@@ -68,6 +77,15 @@ other kind can claim — and its account of the session's own side was
 written by that session about itself, with nobody in between who was not
 a participant.  The page says so in its own second section.  Quote his
 lines from it; treat its judgments about the session as unreviewed.
+
+**The raw transcript is a fourth kind, and the only one nobody wrote.**
+`2026-08-24-qwen3.8-27b.txt` is the model's own window, footers and
+visible thinking included, saved by the author and carried into
+`~/tend` unaltered; the copy here is checked with `cmp` against that
+one and must stay identical, or the `:218`, `:224` and `:230` cited on
+the eleventh page and in two memories point at the wrong lines.  What
+it shows and does not show is named on the eleventh page's closing
+section and in `~/tend/doc/specimens/README.md`, not inside it.
 
 **`notes-on-drift.md` carries two redactions and they are the only words
 changed in it.**  Two people are referred to in the original and neither
@@ -124,8 +142,9 @@ three lines, and it is the one participant in this directory who was
 actually asked: it answered that it could not consent in any binding
 sense and asked that nothing be redacted, which `~/tend`'s
 `doc/consent.md` records as the asking rather than as a signature.
-The quoting here is narrower than the publishing it was answering, and
-this tree's own register has no row for it, because a session is not a
-person and `test/test_consent.py` looks for names.  Worth saying rather
-than assuming: if that table ever grows a row for a session, this is
-the page it is owed for.
+The quoting here is narrower than the publishing it was answering.
+This tree's own register had no row for it before 2026-08-25, because
+a session is not a person and `test/test_consent.py` looks for names;
+the row went in the same day the transcript itself was copied here as
+the twelfth file, so that what is quoted, what was asked, and the
+answer all sit in one clone.
