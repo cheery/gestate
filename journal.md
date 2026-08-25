@@ -2246,3 +2246,107 @@ gets a name here so a second deck can find it: **hand-maintained
 cross-numbers rot the way citations did** before the citation gate.
 No mechanism yet, same call as his: one deck, one file, and the
 screenshot check already stands where a viewer would look.
+
+## Kaizen, 2026-08-25 — one-sided, and the sweep caught a green test
+
+*The session's half only, written first, at his ask: "lets do kaizen
+after that, one-sided, my day is still beginning."  **That inverts the
+rule** — `spec/author.md` §"Five practices" says the three go to the
+author and are answered by him before the session offers its own,
+because answers delivered first become the frame.  So this entry is the
+frame, and his half arrives against it rather than clean; the four
+questions are put to him in the reply that opened this file.  The day:
+the fable-2 notes into `doc/notes/`, three memories, the audit
+re-pointed at `~/tend` and a card written there, batch 5 of the sweep,
+and the gap number read for the first time.  Commits `daf0a1b`,
+`1914560`.*
+
+### Read back first — the last kaizen's un-mechanised class
+
+2026-08-24 named **hand-maintained cross-numbers rot the way citations
+did** and left it without a mechanism, both calls.  It recurred inside
+a day, in this session's own writing: `:218`, `:224`, `:230` — three
+line anchors into `~/tend/doc/specimens/2026-08-24-qwen3.8-27b.txt`,
+written into a memory, a notes page and a commit message.  They are
+correct today and nothing in either tree will say when they are not, and
+the file they point into is in a repository this tree's gates cannot
+reach.  The class is now twice-named and once-recurred, which is the
+threshold the third question exists for.
+
+### What the session learned
+
+**The audit's first foreign run found more about the audit than about
+the tree it was pointed at.**  `seedaudit.py` reported `~/tend` as
+unable to keep a promise it never made, because `CAPPED` is *this*
+tree's list of documents.  That is `manifesto.md`'s first failure mode —
+read a new instrument's first surprising number as a fault in the
+instrument — arriving the first time the instrument left home, and
+`later/rules-and-memory.md` in tend had predicted it in advance.  The
+docstring now carries the finding instead of the claim it replaced.
+
+**Mutation testing found a green test that cannot fail, which is not
+what the sweep was built to find.**  Batches 1–4 found *absence*: fixes
+with no gate.  F88 today has a gate, named, green since the audio
+backend was built — and with the defect it names put back, it stayed
+green.  Its statistic could not separate the two renders, and only
+mutation could show that.  Eight batches remain; they are now worth more
+than the schedule assumed, because a false green is more expensive than
+a known gap.
+
+### What the session got wrong
+
+**It killed its own measurement and then reported the corpse as
+alive.**  The full suite was wrapped in `timeout 900`, died at fifteen
+minutes with SIGTERM, and was reported as *still running* — the report
+came from `pgrep`, not from the exit status the harness had already
+delivered.  A bound shorter than the thing it bounds is a broken
+instrument, and reading a job's liveness from a process list instead of
+its result is how the break stayed invisible for two turns.
+
+**It mutated the tree while a measurement was running on it.**
+`shell/editor/src/window.rs` carried the F106 mutation for several
+minutes with a full `suite.py` in flight on the same working tree.  The
+outcome happened not to matter — the Rust step is green with the defect
+in or out, which is precisely what was being measured — so the
+discipline failed and the luck covered it, which is the worse of the two
+orders.
+
+**It nearly wrote a shallow read into a verdict.**  `chain.ges` looked
+listed-but-unexercised because the roster test sits directly under the
+section heading and the five behaviour tests are further down the file.
+One grep before writing found them.  `doc/memory/dont-conclude-from-a-shallow-check.md`
+in the exact shape it describes, caught by the habit rather than by an
+instrument.
+
+### What mechanism that earns
+
+**The mutation already has one, unused: `tools/seedmutate.sh` mutates a
+copy.**  The sweep mutates the live tree because that is how batch 2
+taught it, and the audit's own mutation harness solved the same problem
+a different way three days ago.  Borrowing it is a change to how the
+remaining eight batches are run, not new machinery — the session's
+recommendation, and the call is his.
+
+*Written in the morning, and it happened again the same afternoon.*
+Building F88's new gate meant putting the defect into
+`test/test_audio.py`'s fixture — with a full `suite.py` twenty minutes
+into a run on the same tree.  Three `F`s appeared in its progress line
+and could not be trusted to mean anything, so a twenty-minute
+measurement was killed and re-run.  **Named at 06:00, repeated at
+09:00, by the session that named it** — which is the argument the third
+question wants: intent did not survive three hours, and the copy is
+cheap.
+
+**The other two earn no mechanism and should say so.**  A bound on a
+long job and reading an exit status are session habits; a gate that
+enforced them would be a gate on how a session uses its own shell.  The
+cross-number class is the one with a real candidate — a citation check
+that a quoted `path:line` still contains its quote — and it points
+across a repository boundary, which is why it is named here and not
+built.
+
+### Tomorrow's first thing
+
+Batch 6 of the sweep — F81 F80 F77 F74 F73, due Wed 2026-08-26 — and
+the two decisions today produced: what F88's finding earns, and which
+row of the gap table matches how the days actually felt.

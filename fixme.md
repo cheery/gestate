@@ -2282,21 +2282,46 @@ missing combinator and nothing has needed it yet.  Transcendentals (`sin`,
 `sqrt`) are likewise still absent; the oscillators here are saw, square and
 triangle, which need only arithmetic.
 
-gate: `partial` — the backend is held, the phase claim is not.
-`test/test_audio.py` pins the third backend broadly: the sample count,
-the range, the sample rate being the renderer's business, the roster of
-audio examples, stereo, and clamping rather than normalising.  What it
-does **not** hold is the property this entry singles out.  **Measured
-2026-08-25**: `stepVoice` in `examples/audio/blip.ges` changed to compute
-the phase from `n` — `wrap (toFloat n * noteAt n / sampleRate)`, the
-exact defect the entry describes — and
-`test_the_phase_is_continuous_across_a_note_change` **passed**.  The
-largest step between neighbouring samples is 0.2226 either way, because
-it is the sawtooth's own wrap at index 18 and not the click; the two
-renders do differ (max |diff| 0.49, mean 0.034), so the signal changed
-and the statistic could not see it.  A gate for this wants the note
-boundary specifically, or the two renders compared — the filtered
-whole-file maximum cannot separate them.
+gate: `partial` — `test/test_audio.py::test_the_phase_carries_across_a_frequency_change`
+holds the property, and `examples/audio/blip.ges` is not what it holds
+it on.  The backend itself is pinned broadly by the same file: the
+sample count, the range, the sample rate being the renderer's business,
+the roster of audio examples, stereo, and clamping rather than
+normalising.
+
+**The gate this entry carried until 2026-08-25 did not fire, and the
+finding is worth more than the repair.**
+`test_the_phase_is_continuous_across_a_note_change` named the property
+and had been green since the backend was built.  **Measured**:
+`stepVoice` changed to compute the phase from `n` — the exact defect —
+and the test passed.  Its statistic is 0.2226 either way, because the
+largest neighbouring step in that program is the **sawtooth's own
+wrap**, not the seam; the two renders do differ (max |diff| 0.49).  And
+the example could never have gated it: `envAt` is a *cubed* decay, so
+the level just before a note boundary is 0.0000 and the phase change
+happens where there is nothing to hear.  *A first attempt at this line
+proposed measuring the note boundary instead, which the measurement
+refuted — the wrong version is quoted in `journal.md`'s kaizen of the
+day rather than quietly dropped.*
+
+**The repair, the same day, at Henri's ask** — *"make the test
+discriminate with an inline sustained fixture"*: a sine at a constant
+level changing 233 Hz → 317 Hz once, rendered inline the way
+`test_synthlib.py` renders its sources.  The oracle is the sine's own
+arithmetic rather than a chosen number — neighbouring samples cannot
+differ by more than `2*pi*f/rate` — and it was broken on purpose before
+it was trusted: the defect put into the fixture measures **1.8159**
+against a ceiling of **0.3735**, and correct it measures **0.2483**,
+which is `2*pi*317/8000` to four figures.  The fixture's parameters are
+load-bearing and the test says why: a saw's wrap swamps the seam, an
+envelope hides it, and a boundary landing on whole cycles of both
+frequencies makes the defect genuinely invisible — the first draft did
+exactly that and measured 0.1175 broken against 0.1177 correct.
+
+**Still `partial`, and this is the bare half**: the new test pins the
+*technique*.  `blip.ges` could be changed to compute its phase from `n`
+and nothing would go red, because the example silences its own note
+ends.
 
 ### F89. **[resolved]** One example each is not enough to know a backend works
 

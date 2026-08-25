@@ -173,6 +173,45 @@ answer, and only Henri can supply that half.**  He also expects the log
 to show strain; it will not, on its own — a two-minute gap is a person
 mid-thought or a person who cannot leave.
 
+### 2026-08-25 — read for the first time, and answered
+
+**249 arrivals over 3.0 days** (2026-08-22 04:57 → 2026-08-25 05:55),
+median gap 4m, 13 of 248 at or over 30m.  **The rows disagree**, so the
+number does turn on something:
+
+| gap | sittings | median length | longest |
+|---|---|---|---|
+| 10m | 34 | 16m | 1h34m |
+| 15m | 23 | 26m | 2h22m |
+| 20m | 17 | 33m | 3h50m |
+| 30m | 14 | 50m | 3h50m |
+| 45m | 14 | 50m | 3h50m |
+| 60m | 13 | 47m | 3h50m |
+| 90m | 11 | 50m | 6h44m |
+
+**Henri supplied the half only he could**, the same morning:
+
+> *"That 14 sittings is about 5 in a day."*
+
+Which is the 30m row — five sittings a day of median 50 minutes, against
+eleven a day at 10m and under four at 90m.  **30 stays**, and it stays
+*measured* rather than picked in the writing, which is what F169 asked
+of it.  Nothing turns on 30 against 45: the two rows are identical, so
+the number is insensitive exactly where a person would have argued about
+it.
+
+*A session's reading, marked as one: his sentence is arithmetic on the
+table rather than an explicit verdict, and it is taken here as the
+felt-day answer because it picks that row out of seven.  If it was not,
+this section is what gets corrected.*
+
+**And the strain half came back the way the card predicted — not from
+the log.**  He said the same morning that the standing desk has made the
+difference and he no longer feels strained.  That is the person
+reporting, which is the only channel this instrument was ever going to
+have; the log cannot see it, and this card said so before the log
+existed.
+
 **The increments are decisions, and they are made at the wrong end of
 the sitting.**  On the morning after it was built — 2026-08-22 — Henri
 worked through three short grants in a row rather than one long

@@ -59,6 +59,18 @@ first is a measurement, not a build: try to edit the deny-list from
 inside a tend session by each route and write down which ones the
 harness stops.
 
+**2026-08-25 — the first mechanism to travel the other way.**  Tend
+built `test/test_selfmatch.py` from *this* tree's 2026-08-18 post-mortem
+— a `pgrep -f` matching its own command line — and at Henri's ask it came
+back as gestate's `test/test_selfmatch.py`, gate fifteen.  So the traffic
+is not one-way: a defect here paid for a mechanism there, and the
+mechanism returned once it existed.  What travelled was the file, named
+as borrowed; the prose stayed put, the same rule as the other direction.
+The occasion was a third instance of the same bug, in a session's own
+shell that morning, which is also why the gate's own docstring says what
+it cannot reach: a pattern typed into a shell rather than written into
+the tree.
+
 **How to apply.**  `~/tend` has its own board and its own
 `AGENTS.md`; a session there reads *that* README.  Its suite cannot be
 run from a gestate session — the fence binds only this repository —

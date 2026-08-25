@@ -275,16 +275,102 @@ def test_the_envelope_decays_across_a_note():
 
 
 def test_the_phase_is_continuous_across_a_note_change():
-    """Accumulated, not computed from `n`.
+    """`blip.ges` has no large single-sample step anywhere.  **A smoke
+    check, and not the phase property it used to claim.**
 
-    `wrap (p + f/rate)` carries the phase over a frequency change; `n*f/rate`
-    would jump and click.  A click is a large single-sample step, so the
-    largest difference between neighbouring samples stays modest.
+    It was written as the gate for `fixme.md` F88's *"the phase is
+    accumulated rather than computed from the sample number"*, and it does
+    not hold it.  Measured 2026-08-25 by putting the defect back —
+    `stepVoice` computing `wrap (toFloat n * noteAt n / sampleRate)` — and
+    this test passed: 0.2226 either way, because the largest neighbouring
+    step in this program is the **sawtooth's own wrap** and not the seam.
+    And it could not have been otherwise: `envAt` is a cubed decay, so the
+    level just before a note boundary is 0.0000 and the phase change
+    happens where there is nothing to hear.  The example cannot exhibit
+    the defect, so no threshold over it can gate the property.
+
+    What holds the property is the test below, on a fixture that can show
+    it.  What this one still holds is worth keeping: whatever the example
+    is changed to, it does not click.
     """
     rate = 4000
     samples = render(_source(), 0.3, rate)         # spans a note boundary
     jumps = [abs(samples[i + 1] - samples[i]) for i in range(len(samples) - 1)]
     assert max(jumps) < 0.5, f"largest step {max(jumps):.3f}"
+
+
+#: A sine that changes frequency once, at a level that does not fade — the
+#: fixture `blip.ges` cannot be.  Three choices in it are load-bearing and
+#: each was measured:
+#:
+#: * **`sineOf`, not `sawOf`.**  A saw steps a whole amplitude at every
+#:   wrap, which swamps the seam; a sine's largest honest step is
+#:   `2*pi*f/rate` and anything above that came from somewhere else.
+#: * **No envelope.**  A percussive envelope silences the note end, which
+#:   is exactly how the seam hid in the example.
+#: * **233 Hz to 317 Hz, and the change at `sampleRate/24`.**  The boundary
+#:   must not land on a whole number of cycles of *either* frequency.  When
+#:   it does the defect is genuinely invisible — the first draft of this
+#:   fixture used 100 Hz to 150 Hz at `sampleRate/25`, where `320*100/8000`
+#:   and `320*150/8000` are both whole, both phases are 0.0 at the seam,
+#:   and the broken program measured 0.1175 against the correct one's
+#:   0.1177.  Two primes and an odd boundary are not decoration.
+_SUSTAINED = """
+half : Int
+half = floor (sampleRate / 24.0)
+
+noteAt : Int -> Float
+noteAt n = case prim_div_int n half of
+    0 -> 233.0
+    _ -> 317.0
+
+Phase := Phase Float
+
+stepPhase : Phase -> Int -> Phase
+stepPhase v n = case v of
+    Phase p -> Phase (wrap (p + noteAt n / sampleRate))
+
+heard : Phase -> Float
+heard v = case v of
+    Phase p -> sineOf p
+
+sound : Sig Float
+sound = map heard (scan stepPhase (Phase 0.0) ticks)
+"""
+
+
+def test_the_phase_carries_across_a_frequency_change():
+    """**Accumulated, not computed from `n` — `fixme.md` F88, gated.**
+
+    `wrap (p + f/rate)` carries the phase over a frequency change;
+    `wrap (n*f/rate)` restarts it wherever the new frequency happens to
+    put it, and the seam is a step of up to two amplitudes in one sample.
+
+    The oracle is the sine's own arithmetic rather than a number somebody
+    picked: neighbouring samples of a sine at `f` cannot differ by more
+    than `2*pi*f/rate`, so anything half again as large is a discontinuity
+    and nothing else.  **Measured 2026-08-25**, with the step function
+    changed to `wrap (toFloat n * noteAt n / sampleRate)`: 1.8159 against
+    this test's ceiling of 0.3735, and 0.8926 at the least favourable
+    boundary tried.  Correct, it measures 0.2483 — which is the ceiling's
+    own `2*pi*317/8000`, to four figures, and that agreement is the
+    evidence that the bound is the right one.
+
+    **What this does not hold**, said out loud because the entry it gates
+    is `partial` for exactly this reason: it pins the *technique*, not
+    `examples/audio/blip.ges`.  The example could be changed to compute
+    its phase from `n` and this test would stay green.
+    """
+    import math
+
+    rate = 8000
+    samples = render(_SUSTAINED, 0.08, rate)       # spans the frequency change
+    jumps = [abs(samples[i + 1] - samples[i]) for i in range(len(samples) - 1)]
+    ceiling = 1.5 * 2.0 * math.pi * 317.0 / rate
+    assert max(jumps) < ceiling, (
+        f"largest step {max(jumps):.4f}, ceiling {ceiling:.4f} — a sine at "
+        f"317 Hz cannot step that far in one sample, so the phase restarted "
+        f"at the frequency change instead of carrying")
 
 
 def test_the_filter_smooths_it():
