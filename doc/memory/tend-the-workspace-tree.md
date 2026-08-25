@@ -21,6 +21,14 @@ designed for AI use.  The OS half (three lines) and the language half
 open decision on the card was taken on the week's evidence: **sessions
 first** — every measured defect that week was session-shaped.
 
+**Corrected by Henri on 2026-08-25:** *"They is working on both sessions
+and programs first -approach in parallel until we find out which one is
+working solution."*  So it is no longer a decision that was taken; it is
+**two arms running at once**, and the choice waits on evidence from
+both.  Which is set-based rather than point-based — `manifesto.md`
+§"Set-based, not point-based" — and it means a session here must not
+quote *sessions first* as settled, or write it into a card's `because`.
+
 **Day one, measured — and the trajectory, not the snapshot, is the
 fact.**  `python tools/seedaudit.py ~/tend` at three points of
 2026-08-24: **2 of 10** pieces at the first commit (`bbf559b`, 07:16),
@@ -70,6 +78,39 @@ The occasion was a third instance of the same bug, in a session's own
 shell that morning, which is also why the gate's own docstring says what
 it cannot reach: a pattern typed into a shell rather than written into
 the tree.
+
+**2026-08-25 — the leash is usable, and the ledger is one desk.**
+`~/tend/tools/leash.sh` runs one invocation under a wall and CPU budget
+and appends a line to `~/.local/state/tend/leash.log`.  A gestate
+session's first outside use of it was the full suite beside a working
+tend session: `-t 3600 -c 200`, two of the four cores, 3464 passed and
+27 skipped.  **The log is shared** — the same one-desk arrangement the
+sitting limit's twins already have on this machine, so *when* the
+machine was busy and *what* asked for it is answerable from one file
+whichever tree asked.
+
+*How to use it from here, confirmed by tend the same day:* **shell
+discipline, not a `tools/` import** — nothing in gestate may depend on
+`~/tend`, or a fresh clone on another machine is broken (`vision.md`);
+**a copy with a header if it earns one**, the way `tools/limit.sh`
+travelled, with the twin-maintenance debt written on it; and **the hook
+is Henri's**, because hook config is enforcement.  A leash a session
+chooses to invoke is an instrument and not a fence, and what makes it
+worth invoking is the ledger rather than the restraint.
+
+*Tend has a card for the enforcing half — `grant`, opened 2026-08-25 —
+and this session's three incidents of that morning are its caller: a
+`timeout` shorter than the job it bounded, a killed suite whose fenced
+`pytest` survived as an orphan, and readings taken under that load and
+written into a document as a correction.  When `grant` is worked the
+first run is a gestate build under the leash, and that ledger line is
+the demonstration owed.*
+
+**One defect in it, reported and open:** the ledger's `cpu=` column read
+**1.3 s** for a 1504-second CPU-bound suite.  Wall, exit and budget in
+that line are trustworthy; that column is not — most likely counting
+the wrapper rather than the `bwrap` children inside the scope.  Do not
+quote a `cpu=` figure from that log until tend says it is fixed.
 
 **How to apply.**  `~/tend` has its own board and its own
 `AGENTS.md`; a session there reads *that* README.  Its suite cannot be
