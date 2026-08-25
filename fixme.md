@@ -2282,6 +2282,22 @@ missing combinator and nothing has needed it yet.  Transcendentals (`sin`,
 `sqrt`) are likewise still absent; the oscillators here are saw, square and
 triangle, which need only arithmetic.
 
+gate: `partial` — the backend is held, the phase claim is not.
+`test/test_audio.py` pins the third backend broadly: the sample count,
+the range, the sample rate being the renderer's business, the roster of
+audio examples, stereo, and clamping rather than normalising.  What it
+does **not** hold is the property this entry singles out.  **Measured
+2026-08-25**: `stepVoice` in `examples/audio/blip.ges` changed to compute
+the phase from `n` — `wrap (toFloat n * noteAt n / sampleRate)`, the
+exact defect the entry describes — and
+`test_the_phase_is_continuous_across_a_note_change` **passed**.  The
+largest step between neighbouring samples is 0.2226 either way, because
+it is the sawtooth's own wrap at index 18 and not the click; the two
+renders do differ (max |diff| 0.49, mean 0.034), so the signal changed
+and the statistic could not see it.  A gate for this wants the note
+boundary specifically, or the two renders compared — the filtered
+whole-file maximum cannot separate them.
+
 ### F89. **[resolved]** One example each is not enough to know a backend works
 
 `bounce.ges` and `blip.ges` each exercised one shape of program.  A second
@@ -2309,6 +2325,15 @@ signals**, so three voices are not three signals added together but three
 readings of one `Kit` state, summed as it becomes a sample.  Two examples
 have now wanted `zipSig`.  That is the argument for building it; it was not
 built today.
+
+gate: the example roster, and the behaviour tests behind it.
+`test/test_gui.py::test_every_gui_example_is_exercised_here` refuses a
+GUI example that is not in the file, and five tests actually run
+`chain.ges` — its length, its head following, its tail lagging, its
+taper, and a pointer that moves without a tick.  `drums.ges` is
+extracted by `test/test_audiograph.py` and performed by
+`test/test_examples.py`.  **Measured 2026-08-25**: `examples/gui/chain.ges`
+moved out of the tree → 6 red in `test_gui.py`; restored → green.
 
 ### F90. **[resolved]** `zipSig` — two signals could not be combined
 
@@ -2477,6 +2502,13 @@ back end with an empty string.
 Found while writing `examples/audio/twoknobs.ges`, where `zipSig pairUp
 pitch cutoff` inside another `zipSig` is the obvious way to combine two
 knobs.  Unrelated to control channels, and reproducible on one clock.
+
+gate: `test/test_audiofragment.py::test_a_polymorphic_parameter_settles_before_the_graph`.
+**Measured 2026-08-25**: `_former`'s `of()` made to return `""` again —
+the threading this entry replaced — → red with this entry's own error,
+*"the element type of this `__Functor_Sig_map__` could not be
+determined"*; restored → green.  `test_a_nested_former_with_a_lambda_step_is_typed`
+pins the other half, the case that must still raise.
 
 ### F95. **[fixed]** The fragment admits tuples; the extractor now lays them out
 
@@ -2854,6 +2886,12 @@ each failure message naming the regeneration step — so the next drift
 on this seam is a red test with instructions rather than a stale
 fixture holding a green light.
 
+gate: `test/test_panel_fixtures.py::test_the_channels_and_bridge_the_rust_suite_carries_are_todays`.
+**Measured 2026-08-25**: the `n not in generated` subtraction dropped
+from `gui._channel_names` → red, and the failure names the defect
+exactly — *"Left contains 28 more items, first extra item:
+'lampsChan0f0'"*; restored → green.
+
 ### F103. **[resolved]** The same file's canvas builds or fails typechecking, run to run
 
 Two launches of the editor on the same `untitled.ges` (kept as
@@ -3033,6 +3071,22 @@ never fires.  Henri's machine-gun report is what caught it, and
 answered so the next such fix cannot pretend to be in the room.
 Held arrows and letters in the text still repeat — repeats still
 arrive, only the fake releases stop.
+
+gate: `none — not yet built`.  The repair is the
+`XkbSetDetectableAutoRepeat` call on **baseview's own display**
+(`shell/editor/src/window.rs`), and nothing exercises it: **measured
+2026-08-25**, the call disabled with `if false` → `cargo test
+--workspace` stayed green at 82.  The two guards this entry names *are*
+gated — `test/test_audiokeyboard.py::test_auto_repeat_does_not_retrigger_a_held_key`
+holds the model's refusal of a repeat — but both were already standing
+when the piano retriggered, so they gate the part that was never broken.
+What exists for the repair itself is `GESTATE_EDITOR_KEYS=1` printing
+`[keys] detectable autorepeat: on`, and that is a **reading, not a
+gate** (the F112 distinction).  It is cheap to close and the machinery
+is there: the editor driven under a real X server with that variable
+set, asserting the line, goes red the moment the call stops firing or
+lands on the wrong connection — which is exactly how the first attempt
+failed.
 
 ### F107. **[resolved]** Up/Down inside a typed argument runs the command
 

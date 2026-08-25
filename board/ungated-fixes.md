@@ -305,6 +305,40 @@ That is the defect as Henri reported it, and it is the batch's one *not
 yet built*.  F112: `none — not a repair`; a measurement answered it.
 No uncertain verdict; the session went on.
 
+### Batch 5 — 2026-08-25, the Tuesday it was due
+
+Five verdicts, all five measured by mutation, and the batch's yield is
+one **gate that does not gate**.
+
+F102 and F94 are gates that hold: the channel-name subtraction removed
+→ `test_panel_fixtures.py` red naming `lampsChan0f0`; `_former`'s `of()`
+returned to `""` → `test_audiofragment.py` red with this entry's own
+error.  F89 is the **example roster** verdict — `chain.ges` moved out of
+the tree took six tests down with it, so the second example of each
+backend is held by more than a listing.
+
+F106 is `none — not yet built`, and the honest part is *which* half is
+bare: the two guards the entry names are gated, and both were standing
+when the piano retriggered.  The repair — `XkbSetDetectableAutoRepeat`
+on baseview's own display — is not: disabled, `cargo test --workspace`
+stayed green at 82.  What exists is a print behind `GESTATE_EDITOR_KEYS`,
+which is a reading and not a gate, and the F112 distinction is what
+keeps that from being written down as gated.
+
+**F88 is the one to read.**  `test_audio.py::test_the_phase_is_continuous_across_a_note_change`
+names the property and does not hold it: with `stepVoice` changed to
+compute the phase from `n` — the exact defect — **the test passed**.
+Its statistic, the largest step between neighbouring samples of the
+filtered output, is 0.2226 either way, because that maximum is the
+sawtooth's own wrap and not the click.  The renders do differ (max
+|diff| 0.49).  This is `manifesto.md`'s second failure mode — *an
+oracle that has only ever passed is a claim* — found on a test that has
+been green since the backend was built, and it is the first time this
+sweep has caught one by mutation rather than by absence.  The entry
+carries `partial` and says what a gate for it would have to measure.
+
+No uncertain verdict; the trip-wire did not fire.
+
 ## The schedule — heijunka, adopted 2026-08-18
 
 *Henri:* **"so it's a question of heijunka.  We need to balance the
