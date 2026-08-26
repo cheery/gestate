@@ -3577,6 +3577,43 @@ class Session:
         return (f"against {against}: {added} added, {gone} gone — "
                 f"`diff {against}` again clears it")
 
+    def do_change(self) -> str:
+        """Jump to the next change the diff shows — `diff`'s sibling.
+
+        Henri, 2026-08-26: *"the diff could use a sibling command that
+        allows to jump into the next/previous change."*  A change is a
+        hunk: the caret lands on the first line of a run that came, or
+        on the line a run went from — the line the box hangs under.
+        From the caret and wrapping, on `goto`'s rule and for its
+        reason: running it again means *next*, not the same one for
+        ever.
+        """
+        return self._change(back=False)
+
+    def do_changeBack(self) -> str:
+        """The same jump, back toward the top — `findBack`'s shape."""
+        return self._change(back=True)
+
+    def _change(self, back: bool) -> str:
+        against = self._diffing
+        if not against:
+            return "no diff stands — `diff <commit>` first"
+        _diff_rows(self)
+        hunks = self._diff_last[2] if self._diff_last else []
+        if not hunks:
+            return f"no changes against {against}"
+        here = self._caret_line()
+        if back:
+            before = [n for n in hunks if n < here]
+            where = (before or hunks)[-1]
+        else:
+            after = [n for n in hunks if n > here]
+            where = (after or hunks)[0]
+        if not self.view.goto(where):
+            return f"the change is on line {where}"
+        at = hunks.index(where) + 1
+        return f"line {where} — change {at} of {len(hunks)}"
+
     def do_source(self) -> str:
         self.view.show("source")
         return "source"
@@ -3999,6 +4036,9 @@ def _diff_rows(session) -> list:
     import difflib
 
     rows = [("diff", 0, against)]
+    #: **One change is one hunk** — where `change` lands: the first line
+    #: of a run that came, or the line a run went from.
+    hunks = []
     matcher = difflib.SequenceMatcher(None, base, now, autojunk=False)
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag == "equal":
@@ -4010,7 +4050,8 @@ def _diff_rows(session) -> list:
         if tag in ("insert", "replace"):
             for line in range(j1 + 1, j2 + 1):
                 rows.append(("added", line, ""))
-    session._diff_last = (key, rows)
+        hunks.append(j1 + 1 if tag != "delete" else max(j1, 1))
+    session._diff_last = (key, rows, hunks)
     return rows
 
 

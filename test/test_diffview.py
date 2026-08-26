@@ -36,6 +36,9 @@ def _session(lines, path=FILE):
 
     class View:
         showing = "source"
+        #: Where the caret is, as an offset — `goto` moves it to a line.
+        at = 0
+        went: list = []
 
         def lines(self):
             return list(lines)
@@ -44,7 +47,12 @@ def _session(lines, path=FILE):
             return "\n".join(lines) + "\n"
 
         def caret(self):
-            return 0
+            return self.at
+
+        def goto(self, line):
+            self.went.append(line)
+            self.at = len("\n".join(lines[:line - 1])) + (1 if line > 1 else 0)
+            return True
 
     it = session()
     it.bench.path = path
@@ -204,3 +212,55 @@ def test_the_commit_question_offers_commits_as_answers_not_steps():
     assert rows and all(r[3] == "" for r in rows if r[0] not in ("older", "newer"))
     it.asking = ("log", 0, "")
     assert it.choices()[0][3].endswith("/")
+
+
+# ── change and changeBack — the sibling, 2026-08-26 ─────────────────────────
+
+
+def _three_changes():
+    """Line 3 cut, line 6 replaced, a line added after 9 — three hunks,
+    landing on lines 2, 6 and 10 of what is left."""
+    base = _at_head()
+    assert len(base) > 10
+    lines = list(base)
+    del lines[2]                 # gone, boxed under line 2
+    lines[5] = "# changed"       # line 6 came, and the old one went under it
+    lines.insert(9, "# new")     # line 10 came
+    it = _session(lines)
+    it.run("diff", "HEAD")
+    return it
+
+
+def test_change_walks_the_hunks_from_the_caret_wrapping():
+    """**One change is one hunk**: a run that came, or the place a run
+    went from — never one stop per line.  From the caret, wrapping, so
+    running it again means *next* (`goto`'s rule)."""
+    it = _three_changes()
+    assert it.run("change") == "line 2 — change 1 of 3"
+    assert it.run("change") == "line 6 — change 2 of 3"
+    assert it.run("change") == "line 10 — change 3 of 3"
+    assert it.run("change") == "line 2 — change 1 of 3", "and round again"
+    assert it.view.went == [2, 6, 10, 2]
+
+
+def test_changeBack_walks_the_other_way():
+    it = _three_changes()
+    assert it.run("changeBack") == "line 10 — change 3 of 3", "wraps from the top"
+    assert it.run("changeBack") == "line 6 — change 2 of 3"
+    assert it.run("changeBack") == "line 2 — change 1 of 3"
+
+
+def test_change_lands_on_the_first_line_of_a_run_that_came():
+    base = _at_head()
+    lines = base[:4] + ["# one", "# two", "# three"] + base[4:]
+    it = _session(lines)
+    it.run("diff", "HEAD")
+    assert it.run("change") == "line 5 — change 1 of 1"
+    assert it.run("change") == "line 5 — change 1 of 1", "one hunk, not three"
+
+
+def test_change_wants_a_diff_first():
+    it = _session(_at_head())
+    assert it.run("change") == "no diff stands — `diff <commit>` first"
+    it.run("diff", "HEAD")
+    assert it.run("change") == "no changes against HEAD"

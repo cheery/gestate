@@ -572,6 +572,20 @@ whole = Stated
 diff : Commit -> Command
 diff = Stated
 
+#: Jump to the next change the diff shows — the first line of a run that
+#: came, or the line a run went from — from the caret, wrapping, so
+#: running it again means *next* (`goto`'s rule).  Henri, 2026-08-26:
+#: *"the diff could use a sibling command that allows to jump into the
+#: next/previous change."*
+change : Command
+change = Stated
+
+#: The same jump, the other way — back toward the top.  A separate
+#: command for `findBack`'s reason: a capability not in this list is one
+#: nobody can find.
+changeBack : Command
+changeBack = Stated
+
 # ── The window ───────────────────────────────────────────────────────────
 
 #: Show the program's own picture — its `substrate` — instead of the

@@ -173,6 +173,15 @@ an added one is marked.
   with three lines cut and one added:
   `test/driven/20260826-063711-diff-view/`, four shots — the three
   stand under line 6, where they left.
+* **`change` and `changeBack` — the same afternoon.**  Henri, on
+  seeing the diff: *"the diff could use a sibling command that allows
+  to jump into the next/previous change."*  `find`/`findBack`'s pair,
+  on `goto`'s rule — from the caret, wrapping, so again means *next* —
+  and **one change is one hunk**: the caret lands on the first line of
+  a run that came, or on the line a run went from, never once per line.
+  The sentence counts them: *line 6 — change 2 of 3*.  Held in
+  `test/test_diffview.py`; not driven, because the jump is the `goto`
+  order the window already obeys and nothing new is drawn.
 
 * **"Show the whole file"** — `whole`, in `6f5197d` (2026-08-19),
   *shown, not opened*: a page, so the window keeps its one idea of what
