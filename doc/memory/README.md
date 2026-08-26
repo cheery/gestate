@@ -97,6 +97,7 @@ session inferred.
 - [The work laptop](gestate-work-laptop.md) — gestate on Ubuntu 26.04 since 2026-08-17; a fresh install is the only honest read of `doc/install.md`
 - [The board goal, and the shelved-on-arrival exception](gestate-board-goal.md) — four fewer, zero new, stop proposing cards; a card Henri owns may arrive straight into `board/later/`
 - [The atlas: five generated A3 sheets](gestate-atlas.md) — `python -m gestate.atlas`; two wire poka-yokes, the stamp rule, and the set is CLOSED at five
+- [Findability](gestate-findability.md) — 2026-08-26, a search engine could not find the repo by name; description and topics set by Henri's hand, no `llms.txt`, no card; re-ask the same engine a week later, unsteered, and a session never runs `gh repo edit`
 - [Segfault on quit: the two-stop audio teardown](gestate-audio-teardown.md) — a held sound card blocks the fade, so `halt` + `snd_pcm_drop`; never free the host while its thread lives
 - [Editor lag: the one-behind bug and how to measure it](gestate-editor-latency.md) — idle frames must still present; `GESTATE_EDITOR_TIME`, `tools/lagcheck.py`, XTEST via ctypes
 - [The canvas lost its callers](gestate-canvas-unwired.md) — `observe`/`touch` orphaned by the pygame deletion; `elapsed` is dead on the canvas
