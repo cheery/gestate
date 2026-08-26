@@ -1634,10 +1634,45 @@ class Session:
             #: is the *palette's* mechanism, and hand-rolling it in the
             #: model was what made Return do nothing in the real window
             #: while working perfectly headlessly.
-            return [(sha, said, True, f"{sha}/", False)
-                    for sha, said in history.commits(where)
-                    if not query or query.lower() in said.lower()
-                    or sha.startswith(query)]
+            skip, text = _page_of(query)
+            if text:
+                #: **A word searches the whole log, not the page.**
+                #: Filtering the 200 on screen answered *nothing* for a
+                #: commit that was there — 496 in this repository on
+                #: 2026-08-26 — and nothing is the answer that cannot be
+                #: told from a search that found none.  A typed sha is
+                #: looked up as itself first; `git` resolves the prefix.
+                rows = []
+                if _hexish(text):
+                    try:
+                        rows = history.commits(where, most=1, ref=text)
+                    except Exception:                    # noqa: BLE001
+                        rows = []
+                seen = {sha for sha, _ in rows}
+                rows += [(sha, said)
+                         for sha, said in history.commits(where, grep=text)
+                         if sha not in seen]
+                return [(sha, said, True, f"{sha}/", False)
+                        for sha, said in rows]
+            rows = history.commits(where, skip=skip)
+            out = [(sha, said, True, f"{sha}/", False) for sha, said in rows]
+            #: **The page says what lies past it, as a step.**  `older`
+            #: at the foot and `newer` at the head are rows like the
+            #: commits — Return moves the question to the next page the
+            #: way it moves into a commit — so paging costs the palette
+            #: nothing it did not have.  The note carries the count,
+            #: because *200 of 496* is a fact and a list that stops is
+            #: not (`spec/rocks.md`).
+            total = history.count(where)
+            if skip > 0:
+                out.insert(0, ("newer", f"back toward the top of {total}",
+                               True, f"@{max(0, skip - history.MOST)}",
+                               False))
+            left = total - skip - len(rows)
+            if left > 0:
+                out.append(("older", f"{left} more of {total}", True,
+                            f"@{skip + len(rows)}", False))
+            return out
         except Exception:                                # noqa: BLE001
             return []
 
@@ -3421,6 +3456,13 @@ class Session:
                 #: the ergonomics this card is about.
                 self._reading = (sha, name)
                 return f"{name} in {sha}"
+            skip, text = _page_of(what)
+            if not text:
+                #: A page typed by hand — `@200` — is where the list is,
+                #: not a commit to show; the question stays open there.
+                total = history.count(where)
+                self.asking = ("log", 0, f"@{skip}")
+                return f"commits {skip + 1}–{min(skip + history.MOST, total)} of {total}"
             #: A bare commit still answers, for somebody who typed a sha
             #: rather than picking one — the list is not the only road.
             self.page = history.show(where, what)
@@ -3837,6 +3879,27 @@ def _beats_of(bar: int) -> float:
 
 
 #: The two halves of the view toggle, and the key they share.
+def _page_of(query: str) -> tuple:
+    """`@200 word` → `(200, "word")`; `word` → `(0, "word")`.
+
+    The page is a prefix on the query so that the step rows of
+    `Session.commits` are ordinary re-asks of the same question — the
+    palette carries the string and the model reads the page off it.
+    """
+    query = query.strip()
+    if query.startswith("@"):
+        head, _, rest = query[1:].partition(" ")
+        if head.isdigit():
+            return int(head), rest.strip()
+    return 0, query
+
+
+def _hexish(text: str) -> bool:
+    """Could this be a sha prefix?  Four hex digits is `git`'s own floor."""
+    return 4 <= len(text) <= 40 and all(c in "0123456789abcdef"
+                                        for c in text.lower())
+
+
 _TOGGLE = ("canvas", "source")
 
 

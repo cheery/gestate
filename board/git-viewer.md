@@ -1,6 +1,6 @@
 # git-viewer — a git viewer in the workbench
 
-    status   open — a proof of concept landed 2026-08-18
+    status   open — three views 2026-08-18, the fourth 2026-08-19, paging 2026-08-26; the diff over the file is what is left
     because  a gemba walk through the log should be ergonomic, and my
              friend could use it as well
     asked    Henri, 2026-08-16
@@ -135,13 +135,36 @@ against.  Worth carrying past this card.
 
 ### What is left
 
-* **"Show the whole file"** — the fourth view, and the one that needs a
-  decision rather than a line: opening a file *at a commit* is a
-  different thing from opening the file, and this window has one idea of
-  what is open.
-* **A repository with forty thousand commits.**  `MOST` is 200 and
-  paging past it is unbuilt; `spec/rocks.md` is the argument for doing
-  something rather than nothing.
+* **The diff over the file** — his pull of 2026-08-20, above, and the
+  one piece of this card still unbuilt.  `history.diff` is text on a
+  page; what he asked for is the removed lines boxed under the place
+  they left and the added ones marked, in the file itself.  The
+  mechanism guessed above is still a guess.
 * **"My friend could use it as well"** is still the part to keep in
   view, and is still untested — the card's own note, and it wants
   `card:stranger-test.md`'s instrument rather than another run of mine.
+
+### Landed since, and the list above had not been told
+
+* **"Show the whole file"** — `whole`, in `6f5197d` (2026-08-19),
+  *shown, not opened*: a page, so the window keeps its one idea of what
+  is open.  The decision this list said it needed was taken there.
+* **Paging — 2026-08-26.**  The want was measured before it was built:
+  this repository had **496 commits** and `MOST` is 200, so the viewer
+  showed the newest 200 with nothing at the foot to say so, and a word
+  typed into the box searched those 200 and answered *nothing* for a
+  commit that was there — the silent kind of nothing `vision.md`
+  refuses.  Now the first page ends in an `older` row and every later
+  page opens with a `newer` one, both **steps** — Return turns the page
+  the way it steps into a commit, so the palette learned nothing new —
+  and the note carries the count, *50 more of 250*, because a list that
+  stops is not a fact and *200 of 496* is.  A word searches the whole
+  log through `git`'s own `--grep`, and a typed sha is looked up as
+  itself first.  `test/test_history.py` §"Paging" holds it, and it was
+  walked in the real window on Xvfb against a scratch log of 250:
+  `test/driven/20260826-062028-log-paging/`, four shots.  **Two things
+  the photographs said that the tests did not:** the bar counts the step
+  rows among the names (*201 name(s)* for 200 commits), which is the
+  same count `open` gives with its directories and is left alone; and
+  the box reads `@0` after coming back to the top, because the page is
+  the query — honest, and a person can clear it.

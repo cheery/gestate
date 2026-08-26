@@ -89,6 +89,44 @@ def test_a_repository_that_is_not_there_is_a_sentence(tmp_path):
         history.commits(tmp_path)
 
 
+# ── Paging, because this repository passed MOST ────────────────────────────
+
+
+def test_this_repository_is_longer_than_a_page():
+    """**The honest fixture, again.**  On 2026-08-26 this log was 496
+    commits and `MOST` was 200, and nothing in the viewer said so: the
+    newest 200 and a list that happened to stop.  A test on a one-commit
+    repository would have agreed with that."""
+    assert history.count(ROOT) > history.MOST
+
+
+def test_the_log_is_read_a_page_at_a_time():
+    ten = history.commits(ROOT, most=10)
+    assert history.commits(ROOT, most=5, skip=5) == ten[5:]
+    assert history.commits(ROOT, most=5) == ten[:5]
+
+
+def _deep():
+    """A commit past the first page, and a word from its subject that
+    `git log --grep` will find — the longest, so it is not `the`."""
+    (sha, said), = history.commits(ROOT, most=1, skip=history.MOST + 5)
+    word = max((w for w in said.split() if w.isalpha()), key=len)
+    return sha, word
+
+
+def test_a_query_searches_the_whole_log_and_not_the_page():
+    sha, word = _deep()
+    assert sha in {s for s, _ in history.commits(ROOT, grep=word)}
+
+
+def test_a_sha_prefix_is_read_back_from_itself():
+    sha, _ = _deep()
+    assert history.commits(ROOT, most=1, ref=sha[:7]) == \
+        history.commits(ROOT, most=1, ref=sha)
+    with pytest.raises(OSError):
+        history.commits(ROOT, most=1, ref="ffffffffffff")
+
+
 # ── Walking it, which is `open`'s shape ────────────────────────────────────
 
 
@@ -163,6 +201,55 @@ def test_taking_a_file_shows_its_diff():
 def test_a_commit_that_is_not_there_is_a_sentence():
     it = _a_session()
     assert "no such commit" in it.run("log", "notacommit")
+
+
+def test_the_first_page_ends_in_a_step_to_the_older_commits():
+    """**The page says what lies past it, as a step.**  A row like the
+    commits, so Return turns the page the way it steps into a commit —
+    and the note carries the count, because *200 of 496* is a fact and a
+    list that stops is not."""
+    it = _a_session()
+    it.asking = ("log", 0, "")
+    rows = it.choices()
+    assert len(rows) == history.MOST + 1
+    text, note, can, step, _dim = rows[-1]
+    assert text == "older" and can and step == f"@{history.MOST}"
+    assert f"of {history.count(ROOT)}" in note
+    assert rows[0][0] != "newer", "nothing is newer than the first page"
+
+
+def test_stepping_older_turns_the_page_and_offers_the_way_back():
+    from gestate.session import act
+
+    it = _a_session()
+    act(it, f"wants\tlog\t0\t@{history.MOST}")
+    rows = it.choices()
+    assert rows[0][0] == "newer" and rows[0][3] == "@0"
+    (sha, _said), = history.commits(ROOT, most=1, skip=history.MOST)
+    assert rows[1][0] == sha
+
+
+def test_a_word_typed_into_the_box_finds_a_commit_past_the_page():
+    sha, word = _deep()
+    it = _a_session()
+    it.asking = ("log", 0, word)
+    assert sha in {r[0] for r in it.choices()}
+    assert not any(r[0] in ("older", "newer") for r in it.choices())
+
+
+def test_a_typed_sha_prefix_is_offered_first():
+    sha, _ = _deep()
+    it = _a_session()
+    it.asking = ("log", 0, sha[:7])
+    rows = it.choices()
+    assert rows and rows[0][0] == sha
+
+
+def test_a_page_typed_by_hand_says_where_it_is():
+    it = _a_session()
+    said = it.run("log", f"@{history.MOST}")
+    assert said.startswith(f"commits {history.MOST + 1}–")
+    assert it.asking == ("log", 0, f"@{history.MOST}")
 
 
 # ── The whole file, which is the fourth view ───────────────────────────────

@@ -207,6 +207,14 @@ So the number stands bare until there is a quiet day to compare it
 against, and step 4 — *is it hardware?* — becomes answerable only then,
 because it needs two numbers and today there is one.
 
+*Looked for that quiet day on 2026-08-26:* `presence.tsv` holds
+seven days, 08-17 to 08-23, and `played(s)` is **0 on every one** — the
+denominator the `dry` column was given has never moved, so no recorded
+day counts as measured, quiet or loud (08-23 shows `dry 25` over zero
+seconds played, which is the reading the denominator exists to refuse).
+Waiting on an event — a day with sound through the workbench — and not
+on a decision.
+
 **And the first thing it will measure is a session.**  Three times in
 this card the cause was a session's own footprint.  That does not make
 the instrument less worth having: it turns *what a session costs the
