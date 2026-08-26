@@ -559,6 +559,19 @@ log = Stated
 whole : Command
 whole = Stated
 
+#: The lines a commit had that the open file has not, boxed where they
+#: were removed from, and the lines it has that the commit had not,
+#: marked in the gutter — a review read in the file itself rather than
+#: on a page.  `HEAD` when no commit is named; the same again clears it.
+#:
+#: Henri, 2026-08-20: *"I'd like to see which lines go away which come
+#: in, within the editor."*  And which side of the window it lives on
+#: was his too: *"these are extensive, not particularly in the lifeblood
+#: of the editor itself"* — furniture hung on the document, changing
+#: nothing about what typing does.  `card:git-viewer.md`.
+diff : Commit -> Command
+diff = Stated
+
 # ── The window ───────────────────────────────────────────────────────────
 
 #: Show the program's own picture — its `substrate` — instead of the

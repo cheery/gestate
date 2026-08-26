@@ -467,6 +467,19 @@ impl View {
                 None => boxes.push((*line, CANVAS_ROWS)),
             }
         }
+        // **The lines a diff took away** — `card:git-viewer.md`.  One
+        // row per removed line, under the line it was removed from, so
+        // *what went* is read where it went from; the box grows with
+        // the lines and the cap holds, as everywhere else.
+        for (line, _text) in &chrome.gone {
+            if *line == 0 {
+                continue;
+            }
+            match boxes.iter_mut().find(|(l, _)| l == line) {
+                Some((_, had)) => *had = (*had + 1).min(BOX_MOST),
+                None => boxes.push((*line, 1)),
+            }
+        }
         self.boxes = boxes;
         // **And the bar's rows** — the status wrapped to the window,
         // then the complaints about line 0: the ones with no line to
@@ -1273,6 +1286,18 @@ fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
         right = at - 2 * cw;
     }
 
+    // **`[diff HEAD]` while removed lines are boxed into the text**
+    // (`card:git-viewer.md`).  Furniture hung on the file is a state
+    // the file is in, and the rule `[gemba]` set is that a state must
+    // announce itself; the word carries what the reading is against,
+    // because *against what* is the one thing a diff can mislead about.
+    if let Some(against) = &chrome.diff {
+        let s = format!("[diff {against}]");
+        let at = right - width_of(&s) as i32 * cw;
+        f.items.push(Item::Run { x: at, y: sy + 2, s, c: LIVE });
+        right = at - 2 * cw;
+    }
+
     // **The key, beside the answers** — the bar says `Ctrl-K` while
     // the burger holds the list open, so the button teaches the key
     // that does the same thing, the way the list writes
@@ -1548,6 +1573,13 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
             // scrolled half away, and the cheapest thing to scan for.
             f.items.push(Item::Rect { x: 0, y, w: cw / 2, h: ch, c: ANGRY });
         }
+        // **A line the commit did not have** — `card:git-viewer.md`.
+        // The same mark in the colour that means live: an added line
+        // is in the text and wants pointing at, not boxing.  A complaint
+        // on the same line keeps its red; being wrong outranks being new.
+        else if chrome.added.contains(&line_no) {
+            f.items.push(Item::Rect { x: 0, y, w: cw / 2, h: ch, c: LIVE });
+        }
 
         // **The complaint, in the box under its line** (B1).  The rows
         // were granted by `grant` from the same description, so the
@@ -1555,6 +1587,7 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
         // message longer than the window is cut at the edge, whole
         // text one command away, exactly as the status bar ruled.
         if slot.box_h > 0 && (chrome.trouble_at(line_no).is_some()
+                              || !chrome.gone_at(line_no).is_empty()
                               || chrome.gemba.as_ref().is_some_and(
                                   |g| g.line == line_no
                                       && !g.said.is_empty())) {
@@ -1587,6 +1620,28 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
                                                  s: said, c: ANGRY });
                     }
                 }
+                // **The lines a diff took away, in the same box** —
+                // `card:git-viewer.md`.  A row each, at the text's own
+                // left edge so old code lines up under the code it
+                // left, and in `AWAY`, which already means *a thing
+                // deliberately not here* — never the complaint's red,
+                // because nothing is wrong with a line that went.  A
+                // line wider than the window is cut at the edge, as a
+                // complaint's is; `whole` has the file.
+                {
+                    let used = chrome.troubles_at(line_no).iter()
+                        .flat_map(|t| wrap(&t.message, cols)).count();
+                    let granted = (room / ch) as usize;
+                    for (i, text) in chrome.gone_at(line_no).iter().enumerate() {
+                        let at = used + i;
+                        if at >= granted {
+                            break;
+                        }
+                        f.items.push(Item::Run {
+                            x: text_x, y: y + ch * (1 + at as i32),
+                            s: text.to_string(), c: AWAY });
+                    }
+                }
                 // **And the walk, in the same box** — one thing being
                 // said, in ink because it is not a complaint, and the
                 // depth as a bar under it.
@@ -1594,7 +1649,8 @@ pub fn frame_with(doc: &Document, view: &View, font: &Font,
                     .filter(|g| g.line == line_no && !g.said.is_empty())
                 {
                     let used = chrome.troubles_at(line_no).iter()
-                        .flat_map(|t| wrap(&t.message, cols)).count();
+                        .flat_map(|t| wrap(&t.message, cols)).count()
+                        + chrome.gone_at(line_no).len();
                     let granted = (room / ch) as usize;
                     let mut at = used;
                     for said in wrap(&g.said, cols) {

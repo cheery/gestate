@@ -634,6 +634,13 @@ def _carry(session, bench):
     fresh._walked = getattr(session, "_walked", None)
     fresh._moving = getattr(session, "_moving", False)
     fresh._arrived = getattr(session, "_arrived", False)
+    # **The diff stands across a switch** — `card:git-viewer.md`.  It is
+    # a mode over whichever file is open, not over the file it was
+    # entered in: reading a session's commits is a walk through several
+    # files with one thing under review, and the commit is that thing.
+    # Its two caches are keyed by path and are read fresh on the first
+    # poll of the new file (`test_carry.py` says so).
+    fresh._diffing = getattr(session, "_diffing", None)
     if fresh.log is not None:
         fresh.log.note(f"opened {Path(bench.path).name}")
     return fresh

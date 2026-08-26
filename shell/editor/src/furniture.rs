@@ -256,6 +256,20 @@ pub struct Furniture {
     pub choices: Vec<crate::palette::Choice>,
     /// A page to read — what `what` found in the reference.
     pub page: Vec<String>,
+    /// **What a diff took away, and where** — `card:git-viewer.md`.
+    /// `(line, text)` per line the commit had and the open file has
+    /// not, standing under the line it was removed from; several on
+    /// one line are one box, a row each.  Its own kind and never a
+    /// `trouble`: nothing is wrong with a line that went.
+    pub gone: Vec<(usize, String)>,
+    /// The lines the open file has that the commit had not — a mark
+    /// in the gutter, because a line that *is* there wants a mark and
+    /// not a box.
+    pub added: Vec<usize>,
+    /// What the diff is against while one stands — `[diff HEAD]` in
+    /// the bar, since a file with furniture hung on it is in a state
+    /// and `[gemba]`'s rule is that a state says so.
+    pub diff: Option<String>,
 }
 
 fn num<T: std::str::FromStr + Default>(s: Option<&&str>) -> T {
@@ -400,6 +414,18 @@ impl Furniture {
                         section: p.get(7).copied().unwrap_or("").into(),
                     });
                 }
+                // **The diff over the file** — `card:git-viewer.md`.
+                // Three verbs for three drawings, so a window that
+                // knows none of them draws the file it always drew.
+                "diff" if p.len() >= 2 => f.diff = Some(p[1].into()),
+                "gone" if p.len() >= 3 => {
+                    f.gone.push((num(p.get(1)), p[2].into()));
+                }
+                "added" if p.len() >= 2 => {
+                    if let Ok(line) = p[1].parse() {
+                        f.added.push(line);
+                    }
+                }
                 "page" => f.page.push(p.get(1).copied().unwrap_or("").into()),
                 "choice" if p.len() >= 2 => {
                     f.choices.push(crate::palette::Choice {
@@ -470,6 +496,12 @@ impl Furniture {
     /// And the holes on a line, already joined.
     pub fn hole_at(&self, line: usize) -> Option<&Hole> {
         self.holes.iter().find(|h| h.line == line)
+    }
+
+    /// The lines a diff removed from under this one, in the order sent.
+    pub fn gone_at(&self, line: usize) -> Vec<&str> {
+        self.gone.iter().filter(|(l, _)| *l == line)
+            .map(|(_, t)| t.as_str()).collect()
     }
 }
 
@@ -783,6 +815,20 @@ mod order_tests {
         assert_eq!(Order::read("teleport\t3"), None);
         assert_eq!(Order::read(""), None);
         assert_eq!(Order::read("zoom\tsideways"), None);
+    }
+
+    /// **The diff over the file reads as three drawings** —
+    /// `card:git-viewer.md`: the word for the bar, the lines that went
+    /// and where, the lines that came.
+    #[test]
+    fn a_diff_reads_as_what_went_where_and_what_came() {
+        let f = Furniture::read(
+            "diff\tHEAD\ngone\t4\tlet x = 1\ngone\t4\tlet y = 2\nadded\t7\nadded\t8");
+        assert_eq!(f.diff.as_deref(), Some("HEAD"));
+        assert_eq!(f.gone_at(4), vec!["let x = 1", "let y = 2"]);
+        assert!(f.gone_at(5).is_empty());
+        assert_eq!(f.added, vec![7, 8]);
+        assert!(f.trouble.is_empty(), "a line that went is not a complaint");
     }
 
     #[test]

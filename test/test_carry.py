@@ -70,6 +70,10 @@ DELIBERATELY_FRESH = {
     "confirming": "an export waiting on a yes, for a piece no longer open — "
                   "carrying this would export the wrong thing on a keypress",
     "_reading": "`(sha, path)` of the file the log last showed",
+    "_diff_base": "the old file's lines at the commit the diff is against — "
+                  "keyed by path, and the new file's are read on its first "
+                  "poll; `_diffing` itself is carried",
+    "_diff_last": "the last diff made, of the old text",
     "proposed": "the `(verb, argument)` a name was already filled into",
     "given": "the arguments the old box was holding",
     "holding": "a note a hand has hold of in a score box, between press and "

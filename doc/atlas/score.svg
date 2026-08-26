@@ -29,7 +29,7 @@
 <text class="title" x="12.00" y="20.00">gestate — the score, as a composer meets it</text>
 <text class="subtitle" x="12.00" y="26.50">What <tspan class="mono">music.ges</tspan> gives you for writing a piece, sorted by what you are doing when you reach for it. Every signature here is the library's own line, read out of it — and the grey box is everything the <tspan font-weight="700">host</tspan> asks a score, which no composer types.</text>
 <text class="foot" x="12.00" y="287.00">Names, signatures and types are read from <tspan class="mono">gestate/music.ges</tspan>; which group each belongs to is written in <tspan class="mono">gestate/atlas.py</tspan>, and a new score word fails <tspan class="mono">test_atlas.py</tspan> until it is placed.</text>
-<text class="stamp" x="408.00" y="287.00">gestate 6f5197d · 2026-08-18+</text>
+<text class="stamp" x="408.00" y="287.00">gestate f5200b5 · 2026-08-26+</text>
 <rect class="lane" x="12.00" y="37.00" width="128.00" height="63.30" rx="2.4" style="fill:#f6f2ea"/>
 <text class="lanetitle" x="16.00" y="44.40">A note, and a rest</text>
 <text class="note" x="16.00" y="49.20">A note is a quoted value — <tspan class="mono">'(Key 60 100)</tspan> — and the score around it is these. <tspan class="mono">++</tspan></text>

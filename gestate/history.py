@@ -160,6 +160,18 @@ def diff(near=None, sha: str = "HEAD", name: str = "") -> list:
         [f"{name}: no change in {sha}"]
 
 
+def at(near=None, sha: str = "HEAD", name: str = "") -> list:
+    """A file's lines at one commit, bare — `[]` when it is empty there.
+
+    `whole` is the page and says so when there is nothing to show; this
+    is the reading the diff over the file compares against
+    (`card:git-viewer.md`), where a sentence standing in for an empty
+    file would be one removed line that never existed.  `git`'s own
+    refusal for a commit or a path that is not there, as everywhere here.
+    """
+    return _git(root(near), "show", f"{sha}:{name}")
+
+
 def whole(near=None, sha: str = "HEAD", name: str = "") -> list:
     """A file as it *was*, at one commit — the fourth view.
 

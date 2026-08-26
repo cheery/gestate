@@ -1,6 +1,6 @@
 # git-viewer — a git viewer in the workbench
 
-    status   open — three views 2026-08-18, the fourth 2026-08-19, paging 2026-08-26; the diff over the file is what is left
+    status   open — three views 2026-08-18, the fourth 2026-08-19, paging and the diff over the file 2026-08-26; a stranger is what is left
     because  a gemba walk through the log should be ergonomic, and my
              friend could use it as well
     asked    Henri, 2026-08-16
@@ -135,16 +135,44 @@ against.  Worth carrying past this card.
 
 ### What is left
 
-* **The diff over the file** — his pull of 2026-08-20, above, and the
-  one piece of this card still unbuilt.  `history.diff` is text on a
-  page; what he asked for is the removed lines boxed under the place
-  they left and the added ones marked, in the file itself.  The
-  mechanism guessed above is still a guess.
 * **"My friend could use it as well"** is still the part to keep in
   view, and is still untested — the card's own note, and it wants
   `card:stranger-test.md`'s instrument rather than another run of mine.
+* **The diff in the `log` walk.**  `diff <commit>` reads whichever file
+  is open against that commit; it does not yet hang off a commit's file
+  row in the walk, which is where reading a session's commits would
+  want it.  Not asked for yet — the card's own rule about wants that
+  arrive from work.
+
+**Shaped and answered, 2026-08-26.**  Three choices were put to him with
+defaults; his line back: *"open file versus HEAD, first that.  I think it
+could be entered by 'diff commit-to-compare-with'.  removed lines just
+like you describe.  Removed lines should appear where they were removed
+from."*  So: the open file against a commit, `HEAD` when none is named;
+`diff <commit>` enters it; a removed line is boxed at the place it left,
+an added one is marked.
 
 ### Landed since, and the list above had not been told
+
+* **The diff over the file — 2026-08-26**, the same day the shape was
+  answered.  `diff <commit>` (`HEAD` when none is named) reads the
+  *buffer* against `git show <commit>:<path>`; each line the commit had
+  and the text has not crosses as a `gone` row and is **boxed under the
+  line it was removed from** — a run deleted between two lines under
+  the line before the gap, a run replaced under the last of the lines
+  that took its place, a run cut from the top under line one — one row
+  each, in `AWAY`, at the text's own left edge; each line the commit
+  had not crosses as `added` and gets the gutter's mark in `LIVE`; and
+  the bar says `[diff HEAD]` while it stands, because furniture hung on
+  the file is a state and `[gemba]`'s rule is that a state says so.
+  The same command again clears it.  The guess above held: it cost a
+  `difflib` reading on the model side, three verbs on the wire, and the
+  box machinery already there — nothing about typing changed.
+  `test/test_diffview.py` holds the rows, `tests/view.rs` the drawing,
+  and it was walked in the real window on Xvfb against a scratch commit
+  with three lines cut and one added:
+  `test/driven/20260826-063711-diff-view/`, four shots — the three
+  stand under line 6, where they left.
 
 * **"Show the whole file"** — `whole`, in `6f5197d` (2026-08-19),
   *shown, not opened*: a page, so the window keeps its one idea of what

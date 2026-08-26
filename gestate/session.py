@@ -893,6 +893,18 @@ class Session:
     #: `(sha, path)` — which file at which commit the log last showed,
     #: so `whole` needs no argument.
     _reading: object = None
+    #: What the open file is being diffed against — a commit, or `None`
+    #: when nothing stands (`card:git-viewer.md`'s last piece).  A mode
+    #: over whichever file is open, not over the file it was entered in:
+    #: reading a session's commits is a walk through several files, and
+    #: the thing being reviewed is the commit.
+    _diffing: object = None
+    #: `(against, path) → the file's lines at that commit`, so the poll
+    #: never asks `git` twice; and `(key, rows)` of the last diff made,
+    #: so unchanged text is never diffed twice — `furniture` is read
+    #: five hundred times a second and `difflib` is not free.
+    _diff_base: object = None
+    _diff_last: object = None
     #: **The walk is opening a file right now.**
     #:
     #: Loading a document makes the window report an `edited` — so the
@@ -1652,10 +1664,16 @@ class Session:
                 rows += [(sha, said)
                          for sha, said in history.commits(where, grep=text)
                          if sha not in seen]
-                return [(sha, said, True, f"{sha}/", False)
+                into = self.asking[0] == "log" if self.asking else True
+                return [(sha, said, True, f"{sha}/" if into else "", False)
                         for sha, said in rows]
             rows = history.commits(where, skip=skip)
-            out = [(sha, said, True, f"{sha}/", False) for sha, said in rows]
+            #: **A commit is a step for `log` and an answer for anything
+            #: else** — `diff` wants the commit itself, and stepping into
+            #: its files would be walking away from the question.
+            into = self.asking[0] == "log" if self.asking else True
+            out = [(sha, said, True, f"{sha}/" if into else "", False)
+                   for sha, said in rows]
             #: **The page says what lies past it, as a step.**  `older`
             #: at the foot and `newer` at the head are rows like the
             #: commits — Return moves the question to the next page the
@@ -3514,6 +3532,51 @@ class Session:
         self.view.ask("log", f"{sha}/")
         return f"{name}, whole, at {sha}"
 
+    def do_diff(self, against: str) -> str:
+        """The diff over the open file — `card:git-viewer.md`'s last piece.
+
+        **In the file, not on a page.**  Henri, 2026-08-20: *"I'd like to
+        see which lines go away which come in, within the editor."*  A
+        removed line has no home in the document any more, which is
+        exactly the shape a content box exists for: it is boxed under
+        the line it was removed from, one row each.  An added line *is*
+        in the text and wants a mark, not a box — the gutter, in the
+        colour that means live.
+
+        **Against a commit, `HEAD` when none is named**, and the buffer
+        rather than the file on disk, so an edit you have not saved is
+        already in the reading.  The same command again clears it.
+        Refusals are `git`'s own words, as everywhere in `history`.
+        """
+        from . import history
+
+        against = (against or "").strip() or "HEAD"
+        if self._diffing == against:
+            self._diffing = None
+            self._diff_base = None
+            self._diff_last = None
+            return f"diff against {against} cleared"
+        path = getattr(self.bench, "path", None)
+        if not path:
+            return "no file is open to diff"
+        try:
+            name = Path(path).resolve().relative_to(
+                history.root(path)).as_posix()
+            base = history.at(path, against, name)
+        except ValueError:
+            return f"{Path(path).name} is not inside a repository"
+        except Exception as exc:                         # noqa: BLE001
+            said = str(exc).splitlines()
+            return f"cannot read it at {against}: {said[0] if said else against}"
+        self._diffing = against
+        self._diff_base = {(against, str(path)): base}
+        self._diff_last = None
+        rows = _diff_rows(self)
+        gone = sum(1 for r in rows if r[0] == "gone")
+        added = sum(1 for r in rows if r[0] == "added")
+        return (f"against {against}: {added} added, {gone} gone — "
+                f"`diff {against}` again clears it")
+
     def do_source(self) -> str:
         self.view.show("source")
         return "source"
@@ -3900,6 +3963,57 @@ def _hexish(text: str) -> bool:
                                         for c in text.lower())
 
 
+def _diff_rows(session) -> list:
+    """`("diff", 0, against)`, then a `("gone", line, text)` per removed
+    line and an `("added", line, "")` per new one — `card:git-viewer.md`.
+
+    **Where a removed line stands is the one decision here**, and it is
+    Henri's: *"removed lines should appear where they were removed
+    from."*  A run deleted between two lines is boxed under the line
+    before the gap; a run replaced by new lines is boxed under the last
+    of the new ones, so the old text is read right after what stands
+    in its place; and a run removed from the very top stands under line
+    one, because a box has no line to hang from above the first.
+    """
+    against = getattr(session, "_diffing", None)
+    if not against:
+        return []
+    path = str(getattr(session.bench, "path", "") or "")
+    base = (session._diff_base or {}).get((against, path))
+    if base is None:
+        # Another file is open now: read it at the same commit, once.
+        from . import history
+        try:
+            name = Path(path).resolve().relative_to(
+                history.root(path)).as_posix()
+            base = history.at(path, against, name)
+        except Exception:                                # noqa: BLE001
+            base = []
+        session._diff_base = {**(session._diff_base or {}),
+                              (against, path): base}
+    now = session._lines()
+    key = (against, path, hash("\n".join(now)))
+    last = session._diff_last
+    if last is not None and last[0] == key:
+        return last[1]
+    import difflib
+
+    rows = [("diff", 0, against)]
+    matcher = difflib.SequenceMatcher(None, base, now, autojunk=False)
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == "equal":
+            continue
+        if tag in ("delete", "replace"):
+            under = j2 if tag == "replace" else max(j1, 1)
+            for text in base[i1:i2]:
+                rows.append(("gone", under, text.replace(chr(9), "    ")))
+        if tag in ("insert", "replace"):
+            for line in range(j1 + 1, j2 + 1):
+                rows.append(("added", line, ""))
+    session._diff_last = (key, rows)
+    return rows
+
+
 _TOGGLE = ("canvas", "source")
 
 
@@ -4188,6 +4302,21 @@ def furniture(session: "Session", bench=None, tally: str = "",
             # window decides how to draw it and the model only says
             # how far behind it is.
             out.append(f"gemba\t{line}\t{said}\t{walk.behind}")
+
+    # **The diff over the file** (`card:git-viewer.md`): the mode word,
+    # a row per line the commit had and this text has not, standing under
+    # the line it left, and a row per line this text has that the commit
+    # had not.  Three verbs rather than one, because the window draws
+    # three different things — a word in the bar, a box, a mark — and a
+    # verb per drawing is what lets an older window skip the ones it
+    # does not know and still draw the rest.
+    for kind, line, text in _diff_rows(session):
+        if kind == "diff":
+            out.append(f"diff\t{text}")
+        elif kind == "gone":
+            out.append(f"gone\t{line}\t{text}")
+        else:
+            out.append(f"added\t{line}")
 
     # **A score box stands on every `notes` line** (`spec/scorebox.md`),
     # and crosses as a `canvas` row because that is what it is by the

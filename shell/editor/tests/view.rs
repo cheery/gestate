@@ -1337,6 +1337,40 @@ fn a_box_at_the_fold_stops_at_the_fold() {
     }
 }
 
+/// **A removed line is boxed where it left; an added one is marked.**
+/// `card:git-viewer.md` — Henri: *"removed lines should appear where
+/// they were removed from."*  Two rows under line 2, in the colour of
+/// a thing deliberately not here; one live mark in the gutter at line
+/// 4; and the word for the state in the bar.
+#[test]
+fn a_diff_boxes_what_went_under_the_line_it_left_and_marks_what_came() {
+    use gestate_editor::view::{AWAY, LIVE};
+
+    let d = doc("a\nb\nc\nd\ne\nf");
+    let chrome = Furniture::read(
+        "diff\tHEAD\ngone\t2\twas here\ngone\t2\tand this\nadded\t4");
+    let mut v = rows_of(20, 400);
+    v.grant(&chrome, &LARGE);
+    let mut one = rows_of(20, 400);
+    one.grant(&Furniture::read("gone\t2\twas here"), &LARGE);
+    assert!(one.extra(&LARGE, 1) > 0, "no box granted under line 2");
+    assert_eq!(v.extra(&LARGE, 1), 2 * one.extra(&LARGE, 1),
+               "the box grows a row per removed line");
+    assert_eq!(v.extra(&LARGE, 3), 0, "an added line gets a mark, not a box");
+
+    let f = frame_with(&d, &v, &LARGE, &chrome);
+    let away: Vec<&str> = f.items.iter().filter_map(|i| match i {
+        Item::Run { s, c, .. } if *c == AWAY => Some(s.as_str()),
+        _ => None,
+    }).collect();
+    assert_eq!(away, vec!["was here", "and this"]);
+    let marks = f.items.iter().filter(|i| matches!(
+        i, Item::Rect { x: 0, c, .. } if *c == LIVE)).count();
+    assert_eq!(marks, 1, "one live mark, on the added line");
+    assert!(runs(&f).iter().any(|s| s == "[diff HEAD]"),
+            "the bar does not say what state the file is in");
+}
+
 /// **A scope crops at the fold; it does not squeeze into it.**
 ///
 /// The fold rule the trouble box learned in F132, and the half it
