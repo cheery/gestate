@@ -528,7 +528,9 @@ batch session reads:
   on one tree is the board's own rule, and the 08-25 afternoon is the
   case: three `F`s in a twenty-minute run that could not be trusted.
 
-Henri answers in a line, or the default stands.
+**Henri, 2026-08-26:** *"live tree is fine, keep the default."*  Decided;
+the trigger above still moves a batch to a copy when something else is
+running on the tree.
 
 ### Where the verdicts go
 
