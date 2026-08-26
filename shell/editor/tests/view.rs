@@ -1892,3 +1892,34 @@ fn a_window_opens_teaching_the_key() {
              opted into the teaching would make the bar depend on which \
              constructor its caller reached for");
 }
+
+
+// ── The reason behind `behind` ─────────────────────────────────────────────
+
+/// The reason is the first thing to go and the key the last (`fixme.md`
+/// F183): a wide bar carries the sentence and its numbers, a narrower
+/// one keeps the sentence alone, and the narrowest drops both rather
+/// than teach half a key.
+#[test]
+fn the_reason_goes_before_the_key_does() {
+    use gestate_editor::furniture::Furniture;
+    use gestate_editor::view::frame_with;
+    let d = doc("x\n");
+    let chrome = Furniture::read(
+        "play\t1\t8.0\nbehind\tsound behind · audition Ctrl-Return\t\
+         1.1 s to rebuild, automatic under 0.5 s");
+    let said = |w: i32| -> Vec<String> {
+        runs(&frame_with(&d, &view(w, 200), &LARGE, &chrome)).into_iter()
+            .filter(|s| s.contains("behind")).collect()
+    };
+    let wide = said(1400);
+    assert_eq!(wide.len(), 1, "{wide:?}");
+    assert!(wide[0].contains("Ctrl-Return") && wide[0].contains("1.1 s"),
+            "{wide:?}");
+    let mid = said(560);
+    assert_eq!(mid.len(), 1, "{mid:?}");
+    assert!(mid[0].contains("Ctrl-Return") && !mid[0].contains("1.1 s"),
+            "the reason was kept at the key's expense: {mid:?}");
+    let narrow = said(200);
+    assert!(narrow.is_empty(), "half a key was taught: {narrow:?}");
+}

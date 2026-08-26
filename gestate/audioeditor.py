@@ -3122,6 +3122,37 @@ class Workbench:
             return False
         return text != self._built_from
 
+    def why_behind(self, text: str) -> str:
+        """Why nothing is catching the sound up by itself — or nothing,
+        when something is about to.
+
+        **The other half of `behind`** (F183).  `typed` shuts its gate
+        on a measurement and says nothing, so on a file that opened in
+        2.5 s the bar read *sound behind · audition Ctrl-Return* exactly
+        as it does on a file where the automatic audition is merely a
+        pause in typing away — and a person who had seen it work on one
+        file read the other as broken *"without apparent reason"*.  The
+        reason was in this object the whole time; this is it, in the
+        model's words, so the numbers on the bar are the numbers the
+        gate actually used.
+
+        Empty whenever the gate is open, because then the state is the
+        ordinary one and the sentence already says all there is.
+        """
+        if not self.behind(text):
+            return ""
+        cost = self.last_audition
+        if cost is None:
+            start = self.last_start
+            if start is None or start <= COLD_ENOUGH:
+                return ""
+            return (f"{start:.1f} s to open, "
+                    f"one try by itself under {COLD_ENOUGH:g} s")
+        if cost < AUTO_AUDITION:
+            return ""
+        return (f"{cost:.1f} s to rebuild, "
+                f"automatic under {AUTO_AUDITION:g} s")
+
     def redraw(self, text: str) -> None:
         """The pictures, from this text, without touching the sound.
 

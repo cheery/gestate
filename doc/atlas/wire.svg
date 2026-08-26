@@ -30,7 +30,7 @@
 <text class="subtitle" x="12.00" y="26.50">Where a Python model meets a Rust window. Every word here is written twice, in two languages, and nothing but this compares them: the sheet is drawn from <tspan class="mono">abi.rs</tspan> and <tspan class="mono">editor.py</tspan>, from <tspan class="mono">session.furniture</tspan> and <tspan class="mono">Furniture::read</tspan>, from <tspan class="mono">Gesture::line</tspan> and</text>
 <text class="subtitle" x="12.00" y="30.50"><tspan class="mono">session.act</tspan>.</text>
 <text class="foot" x="12.00" y="287.00"><tspan class="mono">test_atlas.py</tspan> fails when the two ends disagree — a word sent and never read, a call declared with the wrong arity, a type that means something else on the other side. This is the one sheet that is a test as well as a picture.</text>
-<text class="stamp" x="408.00" y="287.00">gestate f5200b5 · 2026-08-26+</text>
+<text class="stamp" x="408.00" y="287.00">gestate 0cf1e8e · 2026-08-26+</text>
 <rect class="lane" x="12.00" y="37.00" width="128.00" height="72.40" rx="2.4" style="fill:#eef3f7"/>
 <text class="lanetitle" x="16.00" y="44.40">The model asks the window</text>
 <text class="note" x="16.00" y="49.20">Text, chrome, pictures and orders, over a pointer and a string. Nothing is</text>
@@ -68,7 +68,7 @@
 <rect class="chip" x="16.00" y="141.50" width="11.53" height="4.6" rx="1.2"/><text class="chiptext" x="21.76" y="144.70">added</text><text class="extra" x="29.53" y="144.70">1 field</text>
 <rect class="chip" x="16.00" y="147.90" width="9.90" height="4.6" rx="1.2"/><text class="chiptext" x="20.95" y="151.10">away</text><text class="extra" x="27.90" y="151.10">2 fields</text>
 <rect class="chip" x="16.00" y="154.30" width="9.90" height="4.6" rx="1.2"/><text class="chiptext" x="20.95" y="157.50">bank</text><text class="extra" x="27.90" y="157.50">name line held voices listening wired</text>
-<rect class="chip" x="16.00" y="160.70" width="13.15" height="4.6" rx="1.2"/><text class="chiptext" x="22.58" y="163.90">behind</text><text class="extra" x="31.15" y="163.90">1 field</text>
+<rect class="chip" x="16.00" y="160.70" width="13.15" height="4.6" rx="1.2"/><text class="chiptext" x="22.58" y="163.90">behind</text><text class="extra" x="31.15" y="163.90">2 fields</text>
 <rect class="chip" x="16.00" y="167.10" width="13.15" height="4.6" rx="1.2"/><text class="chiptext" x="22.58" y="170.30">canvas</text><text class="extra" x="31.15" y="170.30">2 fields</text>
 <rect class="chip" x="16.00" y="173.50" width="13.15" height="4.6" rx="1.2"/><text class="chiptext" x="22.58" y="176.70">choice</text><text class="extra" x="31.15" y="176.70">text note here can step kind</text>
 <rect class="chip" x="16.00" y="179.90" width="14.78" height="4.6" rx="1.2"/><text class="chiptext" x="23.39" y="183.10">command</text><text class="extra" x="32.78" y="183.10">name usage key summary reverse section</text>

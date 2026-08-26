@@ -4421,10 +4421,19 @@ def furniture(session: "Session", bench=None, tally: str = "",
         # compose it, so the key this names cannot drift from the key
         # `KEYS` binds.  An old window skips the verb and loses the
         # mark, not the file.
+        #
+        # **And why nothing is catching it up** (F183), as a third field
+        # the window appends when there is room and drops first when
+        # there is not: the key must never be half-taught, the reason
+        # may be.  Empty when the gate is open, so the row is unchanged
+        # on the file where the feature works.
         held = getattr(session.view, "held", None)
         behind = getattr(b, "behind", None)
         if held is not None and behind is not None and behind(held()):
-            out.append(f"behind\tsound behind · audition {KEYS['audition']}")
+            why = getattr(b, "why_behind", None)
+            why = why(held()) if why is not None else ""
+            out.append(f"behind\tsound behind · audition {KEYS['audition']}"
+                       + (f"\t{why}" if why else ""))
     # **What a played note would do, and whether anything would hear
     # it.**  The keyboard is drawn from these two: a piano nobody is
     # listening to is drawn grey, because a control that does nothing

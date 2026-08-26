@@ -228,6 +228,11 @@ pub struct Furniture {
     /// him (`card:button.md`, `fixme.md` F151).  The words are the
     /// model's so the key it names cannot drift from the key bound.
     pub behind: String,
+    /// Why nothing is catching the sound up by itself — the gate's own
+    /// numbers, empty when the gate is open (`fixme.md` F183).  Drawn
+    /// after `behind` when the bar has room and dropped before it
+    /// when not: a key must never be half-taught, a reason may be.
+    pub behind_why: String,
     /// The scopes, as `(label, line, flavor)` — a signal watched
     /// where it is written: each grants a content box under its
     /// declaration, and the trace drawn in it arrives on the readings
@@ -376,6 +381,7 @@ impl Furniture {
                 }
                 "behind" => {
                     f.behind = p.get(1).copied().unwrap_or("").into();
+                    f.behind_why = p.get(2).copied().unwrap_or("").into();
                 }
                 "canvas" if p.len() >= 2 => {
                     if let Ok(line) = p[1].parse() {

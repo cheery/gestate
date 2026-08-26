@@ -31,7 +31,7 @@ from pathlib import Path
 
 import pytest
 
-from gestate.audioeditor import AUTO_AUDITION, Workbench
+from gestate.audioeditor import AUTO_AUDITION, COLD_ENOUGH, Workbench
 from gestate.session import KEYS
 
 AUDIO = Path(__file__).resolve().parent.parent / "examples" / "audio"
@@ -300,6 +300,74 @@ def test_the_bar_names_the_command_and_the_key_that_is_bound(bench):
         "the mark stayed after the text and the sound agreed"
 
 
+# ── and says why, when nothing will catch it up by itself ─────────────────
+#
+# Henri, 2026-08-26, having filmed `blues.ges` sitting at *sound behind*
+# through every bpm edit while `untitled.ges` auditioned itself: *"Oh
+# right!  Autoaudition only runs if the file compiles in time.  It's a
+# feature but it doesn't tell about itself!"* (F183).  The reason is the
+# gate's own numbers, in the model's words, and empty when the gate is
+# open.
+
+
+def test_a_file_whose_audition_is_dear_says_what_it_costs(bench):
+    bench.last_audition = AUTO_AUDITION * 10
+    why = bench.why_behind(_edit(bench, "   "))
+    assert f"{AUTO_AUDITION * 10:.1f} s" in why, why
+    assert f"{AUTO_AUDITION:g} s" in why, "it does not name the gate"
+
+
+def test_a_file_that_opened_slowly_says_it_was_never_tried(bench):
+    bench.last_audition = None
+    bench.last_start = COLD_ENOUGH + 0.5
+    why = bench.why_behind(_edit(bench, "    "))
+    assert f"{COLD_ENOUGH + 0.5:.1f} s to open" in why, why
+    assert f"{COLD_ENOUGH:g} s" in why, "it does not name the veto"
+
+
+def test_no_reason_while_the_gate_is_open(bench):
+    """Cheap, or unmeasured on a file that opened quickly: the automatic
+    audition is coming, and the sentence already says all there is."""
+    bench.last_audition = 0.01
+    assert bench.why_behind(_edit(bench, "     ")) == ""
+    bench.last_audition = None
+    bench.last_start = 0.3
+    assert bench.why_behind(_edit(bench, "      ")) == ""
+
+
+def test_no_reason_when_nothing_is_behind(bench):
+    bench.last_audition = AUTO_AUDITION * 10
+    assert bench.why_behind(bench.source()) == ""
+
+
+def test_the_bar_carries_the_reason_as_a_field_of_its_own(bench):
+    """A third field, so the window can drop the reason and keep the
+    key — half a key teaches a shortcut that does not exist, half a
+    reason is just short."""
+    from gestate.session import Session, furniture
+
+    class View:
+        def __init__(self, text): self._t = text
+        def held(self): return self._t
+        def visible(self): return []
+
+    session = Session(bench)
+    session.view = View(_edit(bench, "       "))
+    bench.last_audition = AUTO_AUDITION * 10
+    rows = [r for r in furniture(session, bench).splitlines()
+            if r.startswith("behind\t")]
+    assert rows, "the bar was told nothing"
+    fields = rows[0].split("\t")
+    assert len(fields) == 3, rows[0]
+    assert KEYS["audition"] in fields[1] and "s to rebuild" in fields[2]
+
+    bench.last_audition = 0.01
+    rows = [r for r in furniture(session, bench).splitlines()
+            if r.startswith("behind\t")]
+    assert len(rows[0].split("\t")) == 2, \
+        "a reason was sent while the gate was open: " + rows[0]
+
+
 def test_the_window_reads_the_verb(bench):
     """The other end of the wire — an unknown verb is skipped, so the
     row is only worth sending if `furniture.rs` knows it."""
@@ -307,3 +375,4 @@ def test_the_window_reads_the_verb(bench):
             / "src" / "furniture.rs").read_text()
     assert '"behind" =>' in rust, "the window does not read the row"
     assert "pub behind: String" in rust
+    assert "pub behind_why: String" in rust, "the window drops the reason"

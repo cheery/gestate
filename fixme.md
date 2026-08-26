@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 183 entries, **153 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 184 entries, **154 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -89,6 +89,7 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F180 | resolved | `test_suite_runner.py` fails alone and passes in the full run — its own `sys.path` line now |
 | F181 | bug | `seedaudit.py`'s piece paths are gestate's own, and a seed cannot say where its pieces are — the first instance was a slip the audit caught |
 | F182 | resolved | `test_precommit.py` read the hook as prose, and passed with the gate neutered |
+| F183 | resolved | The automatic audition shut its gate and said nothing, so a slow file read as a broken one |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -6301,3 +6302,59 @@ test stays for what it does hold: `--gates` and not the whole suite.
 gate: `test/test_precommit.py::test_the_hook_refuses_a_commit_when_a_gate_says_no`.
 **Measured 2026-08-26**, red with `|| true` behind the gate line, green
 without.
+
+### F183. **[resolved]** The automatic audition shut its gate and said nothing
+
+Henri, 2026-08-26, with a video (`~/misc/fail-on-bpm.webm`): *"automatic
+audition has something wrong with it.  Sometimes it doesn't run
+automatically and I have to ctrl+return to run it, without apparent
+reason."*  Then, narrowing it: *"The problem appears when editing bpm"*,
+*"It could also be something to do with blues.ges"* — and, by the time
+the numbers were on the table, the answer in his own words: **"Oh
+right!  Autoaudition only runs if the file compiles in time.  It's a
+feature but it doesn't tell about itself!"**
+
+**The feature was working, and that was the defect.**  Measured headless
+at 44100 Hz, three runs: `blues.ges` starts in 2.38–2.64 s, over
+`COLD_ENOUGH` (2 s), so the one audition on trust is never attempted;
+and a bpm-only audition costs 1.1–2.0 s, over `AUTO_AUDITION` (0.5 s),
+so it is never automatic afterwards either — `GESTATE_BUILD_TIME` puts
+0.6 s of it in the front end alone, because a tempo edit is a whole
+rebuild minus the substrate.  `untitled.ges` clears both gates, which is
+why the same edit auditioned itself there in the same video.  Both
+doors are F151's rule doing what he asked for on 2026-08-17.
+
+What was wrong is that the bar read `sound behind · audition
+Ctrl-Return` identically in both cases — gate closed by a measurement,
+gate never measured, and gate open with the audition merely pending —
+and a person who had seen it work on one file could only read the other
+as broken *without apparent reason*.  The reason sat in the model the
+whole time, as `last_start` and `last_audition`.
+
+**So the model says it**, `why_behind`, in its own words with the gate's
+own numbers: *1.1 s to rebuild, automatic under 0.5 s*, or *2.5 s to
+open, one try by itself under 2 s* — and nothing at all while the gate
+is open, so the row is unchanged on the file where the feature works.
+It crosses as a **third field** of the `behind` row, because the window
+drops that sentence whole rather than clip it (half of `audition
+Ctrl-Ret…` teaches a key that does not exist): the reason is tried
+after the sentence and dropped before it, so a narrow bar loses the
+numbers and never the key.
+
+Held by `test/test_autoaudition.py` §"and says why", and
+`shell/editor/tests/view.rs::the_reason_goes_before_the_key_does`.
+
+Photographed on this code, driven on `Xvfb`
+(`test/driven/20260826-124428-f183-behind-why`): *3.0 s to open, one
+try by itself under 2 s* before the first Ctrl-Return, *2.7 s to
+rebuild, automatic under 0.5 s* after it — slower than headless, with
+the sound card and a virtual display in the way, which is the point of
+saying the measured number and not a predicted one.  What the photograph
+also shows, and this does not touch: the `AWAY` sentence is drawn over
+the status text rather than beside it, in his video as much as here.
+
+**What it does not do** is make the tempo edit cheap.  That would open
+the gate for scores by itself and is a change to the build, not to the
+bar; the 0.6 s front end for a moved literal is the number to start
+from if it is ever taken up.
+

@@ -1319,12 +1319,23 @@ fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
     // of `audition Ctrl-Ret…` teaches a key that does not exist — and
     // the state it reports is recoverable by pressing the thing it
     // could not finish naming.
+    //
+    // **The reason rides after it and is the first thing to go** —
+    // `behind_why`, the gate's own numbers (`fixme.md` F183).  Tried
+    // whole first, then the sentence alone, then nothing: the same
+    // law, one more rung.
     if !chrome.behind.is_empty() {
-        let wanted = width_of(&chrome.behind) as i32 * cw;
-        let at = right - wanted;
-        if at > 4 {
-            f.items.push(Item::Run { x: at, y: sy + 2,
-                                     s: chrome.behind.clone(), c: AWAY });
+        let whole = if chrome.behind_why.is_empty() {
+            chrome.behind.clone()
+        } else {
+            format!("{} · {}", chrome.behind, chrome.behind_why)
+        };
+        for s in [whole, chrome.behind.clone()] {
+            let at = right - width_of(&s) as i32 * cw;
+            if at > 4 {
+                f.items.push(Item::Run { x: at, y: sy + 2, s, c: AWAY });
+                break;
+            }
         }
     }
 }
