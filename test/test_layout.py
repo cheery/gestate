@@ -206,6 +206,24 @@ def test_a_single_line_case_inside_brackets():
     S.parse("f = (case x of A -> 1, 2)\n")
 
 
+def test_a_comment_between_case_alternatives_is_trivia():
+    """`fixme.md` F77 — the `case` loop skipped newlines and not comments.
+
+    A comment between two alternatives was handed to the pattern parser.
+    Until 2026-08-26 the only thing holding this was `gestate/music.ges`,
+    which has carried a comment inside `>>=`'s `case` since F76 — so the
+    defect put back took every music test down and none of them said why.
+    A comment at the *outer* indentation still ends the block, and should.
+    """
+    import gestate.syntax as S
+
+    S.parse("f x = case x of\n"
+            "    A -> 1\n"
+            "    # a comment about the next alternative\n"
+            "    B -> 2\n"
+            "main = 1\n")
+
+
 def test_a_lambda_may_take_a_pattern():
     """`fixme.md` F71 — the parser accepted what the desugarer refused."""
     from gestate.pipeline import evaluate

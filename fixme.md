@@ -1730,6 +1730,12 @@ so the prelude's `elem : (Eq a) => …` looked like a missing instance.
 The CLI and the pipeline now agree, which is the property that matters: a
 second checker that disagrees with the compiler is worse than none.
 
+gate: `test/test_examples.py::test_the_typecheck_cli_accepts_every_non_music_example`,
+and it holds both defects.  **Measured 2026-08-26**: `check_scs` put back
+in `_find_errors` — red; the `_is_given` filter dropped, so the constraints
+an SC's own context grants are solved too — red.  One test, two defects,
+each on its own.
+
 ### F74. **[resolved]** The implicits mechanism was unusable, in three ways
 
 `spec/syntax.md` described `given`/`using` and the parser accepted both,
@@ -1766,6 +1772,19 @@ no `implicit n : τ`, and an implicit reaching `main` unfilled.  A program
 that leaves one unfilled cannot be constructed, which was the requirement.
 
 `test/test_implicits.py` (19 tests) and `doc/manual.md` §4.
+
+gate: `test/test_implicits.py`, and each of the three halves separately.
+**Measured 2026-08-26** by putting each back, against the file plus
+`test_manual.py`'s §4 tests (49): propagation — a reference to a needing
+definition carrying nothing — reddens 12, first
+`test_it_reaches_a_fixed_point_through_a_chain`; the binder analysis —
+every `VWord` read as a global — 20, first
+`test_a_parameter_shadows_a_supercombinator_of_the_same_name`, and the
+explicit `VCase` walk dropped, 35, with
+`test_a_case_alternative_binds_its_pattern_variables` among them; the
+signature left unextended, 20, with
+`test_a_signature_does_not_mention_the_implicit` and
+`test_the_declaration_gives_the_parameter_its_type` named.
 
 ### F75. **[resolved]** Inference was superlinear: `Subst` was an association list
 
@@ -1892,6 +1911,18 @@ Found while writing F76's rewrite, which wanted a comment on the `Seq` case
 explaining why the two sides are laid in order.  A comment at the *outer*
 indentation still ends the block, because the tokenizer emits the `DEDENT`
 before it.
+
+gate: `test/test_layout.py::test_a_comment_between_case_alternatives_is_trivia`,
+written 2026-08-26 beside F70 and F72, and the finding is the reason it was
+written.  **Measured** the same day: with the `case` loop back on
+`_skip_nl`, exactly one more file stopped parsing — of every `.ges` under
+`gestate/`, `examples/` and `test/` that parses at all — and it was
+`gestate/music.ges`, which has carried a comment between `>>=`'s
+alternatives since F76.  So the defect was held by the prelude, three
+tests deep in `test_manual.py`, and nothing in the tree said that comment
+was a gate; a tidy-up of it would have removed the gate silently.  The
+named test goes red on the mutation alone (`expected a pattern, got ' a
+comment about…'`).
 
 ### F78. **[resolved]** Inference threaded a persistent substitution
 
@@ -2035,6 +2066,19 @@ parenthesises its left operand anyway, which is evidence the looseness earns
 less than it costs — but changing it contradicts the spec's own example, so
 it is the author's call.
 
+gate: `test/test_manual.py::test_manual_s9_the_scaling_factor_does_not_swallow_what_follows`,
+with `test/test_music_syntax.py::test_two_scaled_groups_in_a_row` and
+`nocturne.ges` beside it.  **Measured 2026-08-26** with the defect isolated:
+`|*` and `|/` left at 6 and given a *right* precedence of 3 through
+`RIGHT_PREC` — the factor loose again, the left side untouched — and the
+three go red, the first on `a ++ b |* 2 ++ c`.  The naive mutation, both
+sides back to 3, also puts F83's defect back and took six down, which is
+why it had to be isolated.  **The repair this entry describes is no longer
+the one in the tree**: F83 took the left side to 6 as well, so both
+operators are plain `infixl 6` and `RIGHT_PREC` is an empty table — kept,
+because `infixl l r` is still a declaration a program may write.  Its
+docstring said the two operators lived there until today.
+
 ### F81. **[resolved]** A prefix operator could not stand as an argument
 
 `four '38` read as `four ' 38` — `'` infix — so every note passed to a
@@ -2050,6 +2094,14 @@ argument.  The operand is an *atom*, so `f 'x ++ 'y` still sequences: the
 `at 4 '60` needs no parentheses now, which retires the §9 entry — the
 manual's own test failed when the limitation was fixed, which is what that
 file is for.
+
+gate: `test/test_manual.py::test_manual_s3_a_prefix_operator_may_stand_as_an_argument`,
+and `examples/music/nocturne.ges` through
+`test/test_examples.py::test_nocturne_is_a_full_arrangement_on_the_grid`.
+**Measured 2026-08-26**: `_starts_prefix_arg` made to answer `False` — the
+defect exactly — and both go red, 2 of 61 in the targeted set.  The manual
+test is the §9 entry turned inside out, which is what this entry says it
+would be.
 
 ### F82. **[resolved]** A definition body could not be broken across lines
 

@@ -107,6 +107,11 @@ DEFAULT_POSTFIX: dict[str, int] = {
 #: 6 is the highest value that still leaves arithmetic alone: it takes `+`
 #: (7) and `*` (8), so `a |* 2 + 1` still scales by three, and stops before
 #: `::` (5) and `++` (4).
+#:
+#: Empty since F83: `|*` and `|/` are `infixl 6` on both sides now, because
+#: a loose left side read `a |/ 2 ++ b |/ 2` as one scaling of everything
+#: before it, and no built-in uses two precedences any more.  The table
+#: stays because `infixl l r` is still a declaration a program may write.
 RIGHT_PREC: dict[str, int] = {
 }
 

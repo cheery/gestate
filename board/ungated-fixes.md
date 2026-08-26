@@ -339,6 +339,36 @@ carries `partial` and says what a gate for it would have to measure.
 
 No uncertain verdict; the trip-wire did not fire.
 
+### Batch 6 — 2026-08-26, the Wednesday it was due
+
+Five verdicts, all five measured by mutation, and all five hold — the
+first batch of the sweep with no bare half.  Two things came out of it
+anyway.
+
+F81, F80, F74, F73: *a test, named*, each half of each on its own —
+F74's three defects reddened 12, 20 and 20 of the implicits tests
+separately, and F73's one test fails on either of its two.  F80's
+measurement had to be isolated first: the naive mutation, both sides
+back to 3, also puts F83's defect back and took six tests down;
+`RIGHT_PREC` at 3 with the left side untouched is F80 alone, and three go
+red.  **The repair the entry describes is not in the tree any more** —
+F83 replaced it, and the table it added is empty, with a docstring that
+still said otherwise until today.  A verdict read off the entry's text
+would have named a mechanism that does not exist; the mutation rule is
+what caught it.
+
+**F77 is the finding.**  The defect put back stops exactly one more file
+in the tree from parsing, and it is `gestate/music.ges` — the music
+prelude has carried a comment between two `case` alternatives since F76.
+So the fix was held, hard: every music test goes red.  And nothing named
+it; a tidy-up of that comment would have removed the gate without a line
+changing colour.  A five-line test now sits beside F70 and F72 in
+`test/test_layout.py`, red on the mutation alone.  **A gate nobody knows
+is a gate is the `partial` lesson arriving from the other side** — there
+it reads as held and is not, here it is held and reads as nothing.
+
+No uncertain verdict; the trip-wire did not fire.
+
 ## The schedule — heijunka, adopted 2026-08-18
 
 *Henri:* **"so it's a question of heijunka.  We need to balance the
