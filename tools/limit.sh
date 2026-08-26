@@ -147,6 +147,17 @@ if [ "${1:-}" = "--hook" ]; then
     note wake "gap=$gap"
     exit 0
   fi
+  # **And a message from another session is not an arrival either.**
+  # The wake's twin, 2026-08-26: a tend session's first message to this
+  # one came through the same hook, read as a person sitting down, and
+  # was blocked — `sittings.log` rows 343 and 344, two `block`s at 07:20
+  # and 07:24 that nobody caused, and a reply withheld from a session
+  # that had done its work.  Same call, same shape: its own name, never
+  # a block, before the state write.  `tools/sittings.py` skips it.
+  if [ "${prompt#*<cross-session-message}" != "$prompt" ]; then
+    note peer "gap=$gap"
+    exit 0
+  fi
 fi
 
 elapsed=$(( (now - started) / 60 ))

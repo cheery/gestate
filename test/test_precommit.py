@@ -77,6 +77,51 @@ def test_install_check_uninstall_in_a_scratch_repository(tmp_path):
     assert not hook.exists()
 
 
+def test_the_hook_refuses_a_commit_when_a_gate_says_no(tmp_path):
+    """`fixme.md` F182 — the test above reads the hook as prose.
+
+    **Measured 2026-08-26**: `|| true` put behind the gates line, and
+    every test in this file stayed green — the hook could stop refusing
+    and nothing here would say so.  Found from outside, by a tend
+    session mutating its borrowed copy of this file.  So this one does
+    what a person does: installs the hook in a scratch repository whose
+    `tools/suite.py` is a stub that answers by a file, and commits.  The
+    *message* is asserted and not only the exit, because a hook that
+    fails for the wrong reason also refuses — tend's first run did, on a
+    copy that was not executable.
+    """
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    git = lambda *a: subprocess.run(["git", "-C", str(tmp_path), *a],
+                                    capture_output=True, text=True)
+    git("config", "user.email", "t@example")
+    git("config", "user.name", "t")
+    tools = tmp_path / "tools"
+    tools.mkdir()
+    copy = tools / "pre-commit.sh"
+    copy.write_text(HOOK.read_text(encoding="utf-8"))
+    copy.chmod(0o755)
+    verdict = tmp_path / "verdict"
+    (tools / "suite.py").write_text(
+        "import pathlib, sys\n"
+        f"sys.exit(int(pathlib.Path({str(verdict)!r}).read_text()))\n")
+    (tools / "memoryindex.py").write_text("raise SystemExit(0)\n")
+    assert subprocess.run(["sh", str(copy), "--install"], cwd=tmp_path,
+                          capture_output=True).returncode == 0
+    (tmp_path / "a.txt").write_text("one\n")
+    git("add", "a.txt")
+
+    verdict.write_text("1")
+    r = git("commit", "-q", "-m", "refused?")
+    assert r.returncode != 0, "a red gate did not refuse the commit"
+    assert "a gate failed, so this commit was refused" in r.stderr, r.stderr
+    assert git("log", "--oneline").stdout == ""
+
+    verdict.write_text("0")
+    r = git("commit", "-q", "-m", "landed?")
+    assert r.returncode == 0, r.stderr
+    assert "landed?" in git("log", "--oneline").stdout
+
+
 def test_somebody_elses_hook_is_not_overwritten(tmp_path):
     subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
     (tmp_path / "tools").mkdir()

@@ -67,7 +67,9 @@ STARTS = ("grant", "open")
 #: skipped here entirely — not merely excluded from the count, because a
 #: wake that extended a sitting's end would put the machine's working
 #: hours into a person's day.
-IGNORED = ("wake",)
+#: And `peer`, 2026-08-26 — a message from another session arrives
+#: through the same hook and was blocked twice before it had a name.
+IGNORED = ("wake", "peer")
 
 #: **The day the ledger stopped counting machines.**  Rows before this
 #: cannot be repaired: a notification then wrote `prompt`, `open` or

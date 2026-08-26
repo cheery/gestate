@@ -230,6 +230,32 @@ def test_a_finished_background_task_is_not_an_arrival(tmp_path):
     assert [l[1] for l in desk.lines()][-1] == "wake"
 
 
+def test_a_message_from_another_session_is_not_an_arrival(tmp_path):
+    """**The wake's twin, 2026-08-26.**  A tend session's first message
+    to a gestate one arrived through this hook — `<cross-session-message>`
+    wrapped as a prompt — and was blocked as though a person had sat down
+    past the limit: rows 343 and 344 of the real ledger, a reply withheld
+    from a session that had done its work.  Same call as the wake: its
+    own name, never a block, and the state untouched."""
+    desk = Desk(tmp_path)
+    desk.prompt("sitting 15")
+    before = desk.state.read_text()
+    desk.rewind(20)
+    before_rewound = desk.state.read_text()
+
+    out = desk.prompt("Another Claude session sent a message:\n"
+                      "<cross-session-message from=\"uds:/x.sock\" "
+                      "from-name=\"tend-e8\">\nhello\n"
+                      "</cross-session-message>")
+
+    assert out.returncode == 0, f"a peer's message must never block: {out.stderr}"
+    assert desk.state.read_text() == before_rewound, \
+        "a peer's message moved the sitting's state"
+    assert [l[1] for l in desk.lines()][-1] == "peer"
+    assert "block" not in [l[1] for l in desk.lines()]
+    del before
+
+
 def test_a_wake_does_not_block_even_past_the_limit(tmp_path):
     """The whole point of the fix, at the moment it bit.
 

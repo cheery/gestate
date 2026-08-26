@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 182 entries, **152 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 183 entries, **153 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -88,6 +88,7 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F179 | resolved | The desktop icon's absent file opens the starter, which sounds |
 | F180 | resolved | `test_suite_runner.py` fails alone and passes in the full run — its own `sys.path` line now |
 | F181 | bug | `seedaudit.py`'s piece paths are gestate's own, and a seed cannot say where its pieces are — the first instance was a slip the audit caught |
+| F182 | resolved | `test_precommit.py` read the hook as prose, and passed with the gate neutered |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -6270,3 +6271,33 @@ reads that first — which makes the seed say what it has, which is what
 an audit from outside should be reading anyway.  Not urgent: the first
 seed matched the paths, and the slip was worth more than the manifest
 would have been.
+
+### F182. **[resolved]** `test_precommit.py` read the hook as prose, and passed with the gate neutered
+
+Found 2026-08-26 from outside: a tend session mutated its copy of this
+file — borrowed whole from gestate on 2026-08-24 — and its
+`test_the_hook_runs_the_suite_and_nothing_else` stayed green with
+`|| true` behind the gate line.  Asked whether gestate's copy had the
+same blindness; **measured** rather than read: line 114 of
+`tools/pre-commit.sh` changed to `if "$PY" tools/suite.py --gates ||
+true; then`, and `test_precommit.py` passed 6 of 6.
+
+The test asserts that every line naming `tools/suite.py` also says
+`--gates` — the arguments, as text.  Its docstring records the
+2026-08-25 fix that stopped it asserting one spelling of the
+interpreter; that repaired its fragility and kept its blindness, and the
+shape travelled to tend with both.  The hook itself does read the exit
+(the `if`), and `card:cheap-gates.md` records it refusing a commit once
+— evidence, not a gate.  `manifesto.md`'s second failure: an oracle that
+has only ever passed is a claim; the sweep's F88 found one by mutation
+from inside, this one arrived by mutation from another tree.
+
+`test_the_hook_refuses_a_commit_when_a_gate_says_no` installs the hook
+in a scratch repository whose `tools/suite.py` is a stub answering by a
+file, commits, and asserts the refusal *message* — not only the exit,
+because a hook that fails for the wrong reason also refuses.  The prose
+test stays for what it does hold: `--gates` and not the whole suite.
+
+gate: `test/test_precommit.py::test_the_hook_refuses_a_commit_when_a_gate_says_no`.
+**Measured 2026-08-26**, red with `|| true` behind the gate line, green
+without.
