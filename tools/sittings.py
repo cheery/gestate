@@ -69,6 +69,13 @@ STARTS = ("grant", "open")
 #: hours into a person's day.
 #: And `peer`, 2026-08-26 — a message from another session arrives
 #: through the same hook and was blocked twice before it had a name.
+#:
+#: **The ledger is shared with `~/tend`.**  Its `limit.sh` is a twin of
+#: this tree's and writes the same `sittings.log`, so an event name is
+#: agreed between two trees by hand: tend's copy first wrote `message`
+#: for the same thing, which this filter would have counted as a person
+#: sitting down, and was aligned to `peer` the same morning (tend
+#: dc18f08).  A new name here is a new name there, or the count lies.
 IGNORED = ("wake", "peer")
 
 #: **The day the ledger stopped counting machines.**  Rows before this
