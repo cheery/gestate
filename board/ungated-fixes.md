@@ -339,6 +339,12 @@ carries `partial` and says what a gate for it would have to measure.
 
 No uncertain verdict; the trip-wire did not fire.
 
+**What F88's finding earns — Henri, 2026-08-26: *"a card in tend."***
+`green.md` on `~/tend`'s board, written the same day: a gate that has only ever
+passed is a claim, and nothing in either tree checks that a detector
+detects.  The sweep keeps its schedule; the general question lives
+where the method's mechanisms do.
+
 ### Batch 6 — 2026-08-26, the Wednesday it was due
 
 Five verdicts, all five measured by mutation, and all five hold — the

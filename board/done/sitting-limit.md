@@ -196,7 +196,9 @@ number does turn on something:
 Which is the 30m row — five sittings a day of median 50 minutes, against
 eleven a day at 10m and under four at 90m.  **30 stays**, and it stays
 *measured* rather than picked in the writing, which is what F169 asked
-of it.  Nothing turns on 30 against 45: the two rows are identical, so
+of it.  **And said outright, 2026-08-26**, when the row was put to him
+as a decision still standing: *"the 30m row."*  The reading below was
+a session's and is now his.  Nothing turns on 30 against 45: the two rows are identical, so
 the number is insensitive exactly where a person would have argued about
 it.
 
