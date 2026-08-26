@@ -109,6 +109,7 @@ session inferred.
 - [A trial is refused until its sheet can decide](a-trial-is-refused-until-its-sheet-can-decide.md) — run `tools/prereg.sh` before spawning any arm; a blank decision, control or n is a stop, not a licence, and *told not to look* is not a control; kaizen 2026-08-24
 - [Ask for research that leaves a command](research-that-leaves-a-command.md) — a measurement carries a command you can re-run and a recommendation carries nothing; his rule 2026-08-23, and distrust a clean investigation hardest when it agrees with whoever ran it
 - [Don't conclude from a shallow check](dont-conclude-from-a-shallow-check.md) — an empty result from a guessed-at search is evidence about the search, not the world
+- [A driven wait that watches itself](a-driven-wait-that-watches-itself.md) — `pgrep -f`/`pkill -f` match their own shell: a kill takes the caller, a wait never ends; wait on a pid or the artefact the run leaves
 - [The andon](gestate-andon.md) — `tools/andon.sh` rings the sound card to reach Henri while he rests; capped at three, batch the questions first
 - [The fence, and what it denies me](gestate-hardening.md) — `tools/sandbox.sh --check` must say *the fence is up*; the deny-list blocks a session's own `sudo` on purpose
 - [The ungated-fixes sweep](gestate-ungated-sweep.md) — 62 entries, five a session capped; the plan is `card:ungated-fixes.md`

@@ -1355,6 +1355,14 @@ class _StubHost:
     def __init__(self, position: int):
         self.position = position
         self.wrote: list = []
+        #: The real host counts the blocks the card ran dry for, and
+        #: `_say_dry` reads it from the housekeeping thread — which
+        #: reached a stub without it whenever it woke before
+        #: `run_device` returned, and died there (F184: nine days as
+        #: *1 warning* in the totals line).  A double stands behind the
+        #: whole of the interface the thread reads, not the part the
+        #: test is about.
+        self.dry = 0
 
     def set_control(self, index, value, type_):
         self.wrote.append((index, value))

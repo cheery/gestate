@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 184 entries, **154 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 185 entries, **155 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -90,6 +90,7 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F181 | bug | `seedaudit.py`'s piece paths are gestate's own, and a seed cannot say where its pieces are — the first instance was a slip the audit caught |
 | F182 | resolved | `test_precommit.py` read the hook as prose, and passed with the gate neutered |
 | F183 | resolved | The automatic audition shut its gate and said nothing, so a slow file read as a broken one |
+| F184 | resolved | The housekeeping thread died under a test for nine days, and the suite called it *1 warning* |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -6358,3 +6359,42 @@ the gate for scores by itself and is a change to the build, not to the
 bar; the 0.6 s front end for a moved literal is the number to start
 from if it is ever taken up.
 
+### F184. **[resolved]** The housekeeping thread died under a test, and the suite called it *1 warning*
+
+Henri, 2026-08-26: *"I ran full suite today and it had one warning,
+able to check that one?"*  It could not be checked: `tools/suite.py`
+asked pytest for failures and errors (`-rfE`), so the count in the
+totals line was all of the warning that reached `test/report.md`, and
+naming it cost the twenty-five minutes again.
+
+**It was a thread dying.**  `test_audioeditor.py::test_no_knob_still_reads_zero_when_the_render_loop_begins`
+(F147, 2026-08-17) swaps a `_LoopHost` in and runs the C-host path;
+`run_device` on the stub returns at once, and whenever the housekeeping
+thread woke first — a 5 ms wait, lost only on a busy machine, which a
+full run is — it reached `_progress` → `_say_dry` → `host.dry`, which
+the stub never had, because `_StubHost` was written for the part of the
+host one test reads and `dry` had joined the real one two days earlier
+(2026-08-15, *the sound says when it tore*).  The thread died with an
+`AttributeError`, pytest filed it as `PytestUnhandledThreadExceptionWarning`,
+and the test passed.  Alone on an idle machine it never fires;
+reproduced on demand with `_HOUSEKEEPING` set to zero, three times
+running.
+
+Three things, because each was its own gap:
+
+* **The stub carries `dry`** — a double stands behind the whole of the
+  interface the thread reads, not the part the test is about.
+* **A dying thread is a failure**, `pytest.ini`:
+  `error::pytest.PytestUnhandledThreadExceptionWarning`.  This editor
+  runs its sound on threads; one of them dying is exactly what the suite
+  is for, and the same reproduction that passed under the old filter
+  fails under this one and passes again with the stub fixed.
+* **The page names what it counts**: `suite.py` asks for `-rfEw` and
+  writes a `## Warnings` section into `test/report.md` — the test and
+  the sentence — so the next *"which warning?"* is a page, not a run.
+  `test/test_suite_runner.py` holds the parser.
+
+The number sat in the totals line of every full run from 2026-08-17
+to 2026-08-26.  *A number nobody asked for is a number nobody checks*
+(`doc/instruments.md`); a number nobody **can** check is the same thing
+with a better excuse.

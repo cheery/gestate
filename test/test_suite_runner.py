@@ -205,3 +205,41 @@ def test_the_hook_refuses_to_overwrite_a_hook_it_did_not_write(tmp_path):
                        cwd=repo, capture_output=True, text=True)
     assert r.returncode == 3
     assert theirs.read_text() == "#!/bin/sh\necho mine\n", "it was overwritten"
+
+
+WARNED = """\
+..                                                                       [100%]
+=============================== warnings summary ===============================
+test/test_thing.py::test_it_warns
+  /home/somebody/gestate/gestate/thing.py:12: DeprecationWarning: datetime.utcnow() is deprecated
+    now = datetime.utcnow()
+
+test/test_other.py: 3 warnings
+  /usr/lib/python3/x.py:1: ResourceWarning: unclosed file
+    f = open(p)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+2 passed, 4 warnings in 0.10s
+"""
+
+
+def test_a_warning_reaches_the_page_by_name():
+    """The totals said *1 warning* and the page named none, so the only
+    way to know which was to run twenty-three minutes again (Henri,
+    2026-08-26).  The page keeps the test and the sentence."""
+    found = suite._warnings(WARNED)
+    assert [h for h, _ in found] == ["test/test_thing.py::test_it_warns",
+                                     "test/test_other.py: 3 warnings"]
+    assert found[0][1] == ["/home/somebody/gestate/gestate/thing.py:12: "
+                           "DeprecationWarning: datetime.utcnow() is deprecated"]
+    page = "\n".join(suite._warning_section(found))
+    assert "test_it_warns" in page and "utcnow" in page
+    assert "now = datetime.utcnow()" not in page, "the code line is noise"
+    assert suite._warning_section([]) == ["## Warnings", "", "None.", ""]
+    assert suite._warnings("2 passed in 0.1s\n") == []
+
+
+def test_the_command_asks_pytest_for_warnings():
+    """`-rfE` was the whole reason the page could count and not name."""
+    src = (ROOT / "tools" / "suite.py").read_text()
+    assert '"-rfEw"' in src

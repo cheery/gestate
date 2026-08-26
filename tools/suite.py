@@ -206,6 +206,15 @@ TOTALS = re.compile(
     r"(?:, )?)+)(?: in [\d.]+s)?",
     re.M,
 )
+# -rw renders, between these two lines, one unindented header per test
+# (or per file, when pytest folds a file's repeats) and the warning
+# under it indented by two, the offending line by four:
+#   ===== warnings summary =====
+#   test/test_x.py::test_y
+#     /path/to/file.py:12: DeprecationWarning: message
+#       the line
+#   -- Docs: https://docs.pytest.org/...
+WARNBLOCK = re.compile(r"^=+ warnings summary.*?=+\n(.*?)^-- Docs:", re.M | re.S)
 # --tb=line renders each failure as: /path/to/file.py:LINE: message
 FAILLINE = re.compile(r"^(/\S+?\.py):(\d+):\s*(.*)$", re.M)
 FAILNAME = re.compile(r"^(?:FAILED|ERROR)\s+(\S+)(?:\s+-\s+(.*))?$", re.M)
@@ -280,6 +289,44 @@ def _failures(out):
                    if str(path).startswith(str(ROOT)) else path)
             failures.append((f"{rel}:{line}", msg.strip()))
     return failures
+
+
+def _warnings(out):
+    """Every warning named, by the test that raised it and the sentence.
+
+    **The page counted them and named none** — 2026-08-26, Henri: *"I
+    ran full suite today and it had one warning, able to check that
+    one?"* — and the only way to answer was to run the twenty-three
+    minutes again, because `-rfE` asks pytest for failures and errors
+    and the count in the totals line was all that survived.  A number
+    nobody can check is a number nobody checks (`doc/instruments.md`).
+    """
+    found = []
+    for block in WARNBLOCK.findall(out):
+        head = None
+        for line in block.splitlines():
+            if not line.strip():
+                continue
+            if not line.startswith(" "):
+                head = line.strip()
+                found.append((head, []))
+            elif not line.startswith("    ") and found:
+                text = line.strip()
+                if str(ROOT) in text:
+                    text = text.replace(str(ROOT) + "/", "")
+                found[-1][1].append(text)
+    return found
+
+
+def _warning_section(warnings):
+    if not warnings:
+        return ["## Warnings", "", "None.", ""]
+    body = [f"## The {len(warnings)} warning{'s' if len(warnings) > 1 else ''}", ""]
+    for head, lines in warnings:
+        body.append(f"* `{head}`")
+        for text in lines:
+            body.append(f"  * {text}")
+    return body + [""]
 
 
 def _failure_section(failures):
@@ -475,7 +522,7 @@ def main():
         return 0
 
     pytest_cmd = [sys.executable, "-m", "pytest", "-q", "-p", "no:randomly",
-                  "--tb=line", "-rfE", *passthrough]
+                  "--tb=line", "-rfEw", *passthrough]
 
     # **The word that unlocks a whole-suite run** — `test/conftest.py`
     # refuses one that did not come through here, because a full run that
@@ -622,6 +669,7 @@ def main():
     ]
 
     body += _failure_section(failures)
+    body += _warning_section(_warnings(out))
 
     REPORT.parent.mkdir(parents=True, exist_ok=True)
     REPORT.write_text("\n".join(body) + "\n")
