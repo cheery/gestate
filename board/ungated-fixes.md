@@ -513,6 +513,23 @@ weekly sample is what tells the difference.
 **Henri's review lands on the Fridays**: 2026-08-21, 2026-08-28,
 2026-09-04.  Three verdicts, picked at random by him, disagreed with.
 
+### Live tree or a copy — a decision, shaped (2026-08-26)
+
+Yesterday's kaizen recommended mutating on a copy and left it as his
+call, in the journal; batch 6 never met it.  So it stands here, where a
+batch session reads:
+
+* **Default: the live tree**, with nothing else running on it and
+  `git status` clean before and after every mutation — what six batches
+  have done, and the batch's own script restores each file the moment
+  its measurement is read.
+* **Trigger to move to a copy**: any measurement in flight on the same
+  tree — a full `suite.py`, a `cargo test`, a driven run.  Two writers
+  on one tree is the board's own rule, and the 08-25 afternoon is the
+  case: three `F`s in a twenty-minute run that could not be trusted.
+
+Henri answers in a line, or the default stands.
+
 ### Where the verdicts go
 
 Into the entry itself, as a `gate:` line.  **Committed per batch**, one

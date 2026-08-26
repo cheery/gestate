@@ -2350,3 +2350,122 @@ built.
 Batch 6 of the sweep — F81 F80 F77 F74 F73, due Wed 2026-08-26 — and
 the two decisions today produced: what F88's finding earns, and which
 row of the gap table matches how the days actually felt.
+
+## Kaizen, 2026-08-26 — both halves, and the mechanism nobody met
+
+*Morning for him, end of a sitting for the session.  Yesterday's kaizen
+was one-sided at his ask and said so; today his half came first, as
+`spec/author.md` §"Five practices" has it, and this entry keeps that
+order.  The day: batch 6 of the sweep (`e69807a`), the log paging past
+200 (`f5200b5`), the diff over the file (`dec7ad7`) and its sibling
+`change`/`changeBack` (`4d324b0`).*
+
+### Read back first — yesterday's mechanism was not met
+
+Yesterday's third answer named one mechanism: *run the sweep's
+mutations on a copy, because intent did not survive three hours.*  This
+morning batch 6 mutated the live tree again, six times, `git checkout`
+after each, nothing else running, and it went fine.  The mechanism was
+written as *"the session's recommendation, and the call is his"* — into
+a journal entry, awaiting a decision, and not onto the card the next
+session reads.  So the next session read the card, ran the batch the
+way the card describes, and never met it.  That is
+`doc/memory/recorded-is-not-answered.md` and
+`doc/memory/sessions-write-where-readers-read.md` in one move: a
+mechanism filed where nobody owns reading it, waiting on a decision
+nobody was asked in a shape they could answer.  The fix is below,
+under the third question.
+
+Two decisions yesterday left for today — what F88's finding earns, and
+which row of the gap table matches the days — were not raised today
+either.  They stand.
+
+### Henri's half
+
+**What did we learn.**  *"i do not know whether I learned anything
+new.."*
+
+**What did we get wrong.**  *"Lately though, I've been rolling the
+though.  'I keep doing certain characteristic errors in my speech that
+translates to failures in communication'"*
+
+**What mechanism that earns.**  *"I think that would earn a mechanism,
+in my head."*  His, and in his head — not the tree's to write.  What the
+tree already holds is its own side of the same seam, and today was a
+measurement of it: three shaped questions with defaults went to him on
+the diff, one line came back, and the thing was built and walked in
+the window the same morning.  `doc/memory/decisions-arrive-shaped.md`
+is that side, and it worked once more.
+
+**The next thing.**  *"The next thing I do is to tend tend project."*
+
+### What the session learned
+
+**A gate can be held by the prelude and named by nothing.**  F77 put
+back stopped exactly one more file in the tree from parsing —
+`gestate/music.ges`, carrying a comment between two `case` alternatives
+since F76 — so every music test went red and none said why.  That is
+`partial` from the other side: there it reads as held and is not, here
+it was held and read as nothing, and a tidy-up of one comment would
+have taken the gate away with no line changing colour.  Only the
+mutation could show it; five lines beside F70 and F72 now name it.
+
+**Measure the want before building the thing.**  `MOST = 200` said
+paging was *a thing to build when somebody wants it*.  `git rev-list
+--count` said 496, so the want had been real for weeks and silent.
+And the window said two things the tests did not — the bar counting
+step rows among the names, the box reading `@0` on the way back —
+which is the driven run earning its two minutes again.
+
+**Three defaults, one line, one morning.**  The diff over the file had
+sat as a pull since 08-20 with a mechanism marked *suspected*; the
+guess held, and what unblocked it was not the guess but the question
+arriving shaped.
+
+### What the session got wrong
+
+**It did not read the last kaizen before starting the batch.**  The
+card holds the plan and the journal held the mechanism; it read the
+card.  The read-back above is the result.
+
+**It spent two turns finding the interpreter.**  `python` is not on
+this machine and `python3` has no `pytest`; `doc/install.md` says
+`.venv` in its first screen, and `tools/suite.py` says `"$PY"` in a
+comment about exactly this.  No mechanism — the page was there and
+was not read — and two turns is the cost, stated.
+
+**Its shell's working directory stayed in `shell/editor` after a cargo
+run**, so the release build that the window loads did not run, and the
+photographs would have been of the old library.  Caught by reading the
+`.so`'s timestamp — a habit, not an instrument.  **But the instrument
+was there**: `tools/driven.py`'s preflight refuses a library older than
+the crate (`lib["stale"]`), so the run would have refused rather than
+photographed old code.  Named as a got-wrong because the habit is what
+caught it; earns nothing because the gate already existed.
+
+**It let yesterday's two decisions lapse** without saying so until
+this entry.
+
+### What mechanism that earns
+
+**The open decision goes onto the card, shaped, so the next batch
+session meets it instead of the journal keeping it.**  Written into
+`card:ungated-fixes.md` §"Where the verdicts go" now: the default is
+the live tree with nothing else running and `git status` clean before
+and after each mutation — what six batches have done — and the trigger
+to move to a copy is any measurement in flight on the same tree.  He
+answers in a line or the default stands; either way the next session
+reads it where it reads the batch.
+
+**The rest earns nothing, and says so**: the interpreter is a page not
+read; the stale library was already refused by an instrument; the
+lapsed decisions are listed again under the fourth question, which is
+the only mechanism a decision has.
+
+### The next first thing
+
+Batch 7 of the sweep — F68 F65 F63 F56 F55, due Thu 2026-08-27 — run
+the way the card now says, live or copy by his line.  And three
+decisions standing, restated so they cannot lapse quietly: live or
+copy; what F88's finding earns; which row of the gap table matches the
+days.
