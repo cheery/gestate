@@ -451,6 +451,17 @@ that would have caught the defect — which is `manifesto.md`'s third
 failure mode, and the exact way the auto-audition shipped green and
 switched off.
 
+**And the cap holds when a batch turns out to be cheap.**  *Henri,
+2026-08-27*, the same day he corrected a session for reading a batch as
+a day's work — *"you run the batch in minutes"* — and before the reading
+could flip into doubling: **"I think that heijunka is still good thing.
+I stay on the track what's going on when we do it slowly with
+intention."**  So the bound has two reasons, one on each side of the
+desk: the session's judgement across a long uniform task, above, and the
+reviewer keeping track of what is going on.  A batch costing minutes
+changes neither; five a day is the pace at which the sample on Fridays
+means something.
+
 ### The order
 
 **Newest first, and human-found before compiler-found.**  The recent
