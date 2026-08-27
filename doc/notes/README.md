@@ -1,6 +1,6 @@
 # doc/notes/ — the conversations several rules came out of
 
-Eleven transcripts from five evenings and four days, kept because this
+Twelve transcripts from five evenings and five days, kept because this
 tree's own rule is that a claim carries what paid for it.  Nine of the memories in
 `doc/memory/`, one card, and at least two sections of the method were
 distilled from the first four, and until now the distillate was public
@@ -41,6 +41,7 @@ produced it rather than take the summary on trust.
 | [notes-on-the-conditioning.md](notes-on-the-conditioning.md) | a safety gate that cried wolf, and what a false red costs · a third model conditioned in two sentences — identity, and a real stake · why its own report of honesty is the weakest evidence in it |
 | [2026-08-24-qwen3.8-27b.txt](2026-08-24-qwen3.8-27b.txt) | the transcript itself — a Qwen3.8-27B session on the work laptop, told in two sentences what tend is for, and asked whether it could be published; byte-for-byte twin of `~/tend/doc/specimens/2026-08-24-qwen3.8-27b.txt` |
 | [notes-on-the-apparatus.md](notes-on-the-apparatus.md) | the third trial, and the matrix it completes — document without relationship, relationship without document · the convergence confound · why the dialogue book outranks the decades, and the two skills that are not that one |
+| [notes-on-which-model-runs.md](notes-on-which-model-runs.md) | the worry about not picking the mind, said at 9:42 · why it bites a method that runs on the judgment layer · a model acceptance gate instead of vigilance, and its own caveat — necessary, not sufficient |
 
 ## Provenance, and what to distrust
 
@@ -68,6 +69,14 @@ the page went in.  Which means
 the ordinary reason to distrust a transcript here — a later model
 summarising an earlier one — does not apply to those six, and every
 *other* reason still does.
+
+**The thirteenth, `notes-on-which-model-runs.md`, is of the same
+kind** — saved from the window by the author on 2026-08-27, 19 lines,
+`~/misc/notes/2026-08-27-fable.txt`; both sides at full length, the
+answer checked word for word against the file before the page went
+in, reflowed and given a front note and a closing section and nothing
+else.  It came from a session in `~/tend`, not here, which is why its
+pointers into that tree carry the `~/tend/` prefix.
 
 **The tenth is a third kind, and it is the least independent of the
 three.**  `notes-on-the-conditioning.md` was written by the session that
@@ -143,6 +152,10 @@ actually asked: it answered that it could not consent in any binding
 sense and asked that nothing be redacted, which `~/tend`'s
 `doc/consent.md` records as the asking rather than as a signature.
 The quoting here is narrower than the publishing it was answering.
+The thirteenth, `notes-on-which-model-runs.md`, went in on 2026-08-27
+at his ask — *"jonka voisi pistää doc/notes hakemistoon"* — and nobody
+but the author and a session speaks in it; the one surname in it is a
+paper's author, cited, not a person quoted.
 This tree's own register had no row for it before 2026-08-25, because
 a session is not a person and `test/test_consent.py` looks for names;
 the row went in the same day the transcript itself was copied here as
