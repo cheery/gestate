@@ -1266,6 +1266,13 @@ annotations and reported types — follows.  That is Haskell's rule.
 (`Show a` alone, say) still commits to the first matching instance instead
 of being reported as ambiguous.
 
+gate: `test/test_strings.py::test_an_ambiguous_variable_defaults_across_all_its_constraints`.
+**Measured 2026-08-27**: `_default_ambiguous_vars` left out of
+`infer_program` and `show 42` renders `'*'` again — this entry's own
+symptom — 13 of 189 in the targeted set red, this test among them.  The
+half marked *still open* above is still open, and a gate for the repair
+does not claim it.
+
 ### F56. **[resolved]** A signature drifted when a use site bound its variables
 
 `fixme.md` F36 says signature variables are metavariables rather than
@@ -1283,6 +1290,16 @@ fresh.  This subsumes the constraint half of F50's third cause.  F36's
 original complaint — that a signed *body* may still bind its own
 signature's variables — was the other half, and is closed there: those
 variables are now rigid.
+
+gate: `test/test_strings.py::test_a_signature_stays_polymorphic_across_uses`
+— the entry's own program, `append [1, 2] [3, 4]` beside the prelude's
+`show`.  **Measured 2026-08-27, and the mechanism is not the one this
+entry describes.**  The skip in the environment update, dropped on its
+own: 189 green.  Signed supercombinators made monomorphic instead of
+quantified — the only way the defect comes back — 25 of `test_strings.py`'s
+26 red, this test among them, and the same 25 with the skip kept.  So the
+property is held by the quantification F36's rigid variables brought, and
+the skip holds nothing on its own; its comment in `infer.py` says so now.
 
 ### F57. **[resolved]** `δ(πᵢ e)` applied a projection to two arguments
 
@@ -1510,6 +1527,14 @@ does not bind is an **existential**, which is exactly `typeclasses.md`
 it uniformly today, with or without a constraint, so the error above is the
 concrete blocker for that half of F35 rather than a separate gap.
 
+gate: `test/test_syntax_spec.py::test_the_constrained_adt_example_compiles`
+— written 2026-08-27, reading the example out of `spec/syntax.md` and
+compiling it, the way `test_manual.py` holds the manual.  **Measured
+2026-08-27**: the page's old line put back and the test is red with this
+entry's own `KindError: Unknown type constructor: a`; nothing else in the
+tree reads the page's code.  The other half of the entry — the existential
+the kind checker refuses uniformly — is F35's and is not a repair.
+
 ### F64. **[resolved]** The monomorphization boundary was not enforced
 
 A supercombinator whose *signature* is polymorphic in a set element type
@@ -1587,6 +1612,16 @@ Note for when those bodies land — `syntax.md` gives `++` as "list append /
 music sequence", so a `Score` sequence wants the same operator at another
 type, which will make it a class method.  Nothing needs it to be one yet.
 
+gate: `test/test_music_syntax.py::test_an_operator_may_be_defined_at_top_level`
+— written 2026-08-27, since nothing named the form — and the prelude,
+hard: `(@)` at `prelude.ges:20` is the first top-level operator every
+program reads.  **Measured 2026-08-27**: the parenthesized-operator branch
+removed from `_parse_top_item` — the defect exactly — and a bare
+`main = 1` stops parsing at the prelude, 155 of 188 in the targeted set
+red; the new test is red on its own, parse only, no prelude.  The file
+this entry names tested `++`'s fixity and not the declaration form, so
+this is the F77 shape: held by the prelude, named by nothing until today.
+
 ### F66. **[resolved]** A deeply nested application crashes with `RecursionError`
 
 A program with a long left-nested application spine — around 180 `append`s —
@@ -1643,6 +1678,21 @@ guard test until now declared no data type, leaving the tags at 0 and 1.
 The lesson is the one `fixme.md` F9 recorded for a different guess: a tag
 is not a constant, and anything that assumes one is wrong in exactly the
 programs that also declare data.
+
+gate: `none — nothing can`, today.  **Measured 2026-08-27**: the two tags
+dropped from the `add_primitives` call in `pipeline.py` — the defect
+exactly — and 188 of the targeted set stay green; a program declaring
+`Color := Red | Green | Blue` with a guard evaluates right with the defect
+back, because in it `Nil` is 0, `Cons` is 1 and `Red` is 6.  The entry's
+premise has inverted since it was written: the four builtin constructors
+hold fixed tags (`gmachine.py`'s `TAG_NIL` … `TAG_TRUE`, 0–3) and user
+constructors are numbered *after* them, so no program can push `Nil`/`Cons`
+off 0 and 1, and a hardcoded 0/1 would be right today.  The repair stays —
+the primitive still takes the real tags — and the defect can only return
+by two changes at once, the numbering and the hardcoding.  When the
+numbering moves, a unit test handing `add_primitives` tags off 0/1 is the
+gate; a test written for it today was removed rather than kept as one that
+cannot go red.
 
 ### F69. **[resolved]** An instance method could not take a constructor pattern
 

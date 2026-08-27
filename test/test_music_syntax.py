@@ -245,3 +245,20 @@ def test_a_backtick_with_no_name_in_it_says_so():
     for bad in ("main = x `` y\n", "main = x `over y\n"):
         with pytest.raises(ParseError, match="operator"):
             S.parse(bad)
+
+
+# ── An operator may be defined at top level — `fixme.md` F65 ─────────────────
+
+
+def test_an_operator_may_be_defined_at_top_level():
+    """`(++) xs ys = …` parsed as a class member and never as a declaration,
+    so an operator with a default fixity and no body was unusable *and*
+    unfixable.  The prelude holds the form hard — `(@)` at `prelude.ges:20`
+    stops every program from parsing — and this names it, so a tidy-up
+    there cannot take the gate away without a line changing colour."""
+    module = S.parse("(+++) : List a -> List a -> List a\n"
+                     "(+++) [] ys = ys\n"
+                     "(+++) (x :: xs) ys = x :: (xs +++ ys)\n")
+    assert [(type(i).__name__, i.name) for i in module.items] == [
+        ("VSig", "+++"), ("VSCDecl", "+++")]
+    assert len(module.items[1].equations) == 2

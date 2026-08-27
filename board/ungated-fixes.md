@@ -375,6 +375,43 @@ it reads as held and is not, here it is held and reads as nothing.
 
 No uncertain verdict; the trip-wire did not fire.
 
+### Batch 7 — 2026-08-27, the Thursday it was due
+
+Five verdicts, all five measured by mutation; two gates written, one
+`nothing can`, and two entries whose repair is not what holds the line.
+
+F55 is the clean one: defaulting left out, `show 42` renders `'*'`
+again, 13 red, the named test among them.  F65 and F63 are the F77
+shape twice — held by something nobody had named.  F65 by the prelude,
+hard: `(@)` at `prelude.ges:20` is the first top-level operator every
+program reads, so the branch removed stops a bare `main = 1` parsing and
+155 of 188 go red — and the file the entry names tested `++`'s fixity,
+not the declaration form.  A parse-only test names it now, red on the
+mutation alone.  F63 was a one-line correction to `spec/syntax.md` that
+nothing read; `test_syntax_spec.py` pulls the example off the page and
+compiles it, red with the old line back.
+
+**F56 is the one to read**: the entry's repair — the environment update
+skipping signed supercombinators — holds nothing on its own.  Dropped,
+189 green; signed schemes made monomorphic, 25 of 26 red with the skip
+or without it.  Quantification (F36's rigid variables) is the whole
+mechanism and the named test holds the property; the comment in
+`infer.py` said the skip was the guard until today.  That is batch 6's
+F80 again — a verdict read off the entry's text would have named a
+mechanism that does nothing.
+
+F68 inverted under it: the premise *user constructors are numbered
+first* is no longer the numbering — the builtin four hold fixed tags
+0–3 and user ones come after — so no program can push `Nil`/`Cons` off
+0/1, the tags dropped from the call leave 188 green, and the naive
+program with three constructors and a guard is right with the defect
+back.  `none — nothing can`, with the two changes it would take; the
+test written for it was removed rather than kept as a gate that cannot
+go red, and `pipeline.py`'s comment claiming the old numbering was
+corrected.
+
+No uncertain verdict; the trip-wire did not fire.
+
 ## The schedule — heijunka, adopted 2026-08-18
 
 *Henri:* **"so it's a question of heijunka.  We need to balance the

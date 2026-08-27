@@ -887,8 +887,11 @@ def _compile(source: str, *, typecheck: bool = True,
     state = compile_program(lifted)
     state.result_type = main_type
     # A backend reading a result out of the heap needs to know which
-    # tag is which — user constructors are numbered first, so no tag
-    # is a constant (`fixme.md` F68).
+    # tag is which (`fixme.md` F68).  The four builtin constructors hold
+    # fixed tags — `gmachine.py`'s `TAG_NIL` … `TAG_TRUE`, 0–3 — and
+    # user constructors are numbered after them, which is the opposite of
+    # the numbering F68 was found under (measured 2026-08-27); the tags
+    # are passed rather than assumed either way.
     state.cons = program.cons
     if "True" in program.cons and "False" in program.cons:
         state = add_primitives(state,

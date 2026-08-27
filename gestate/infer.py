@@ -1361,7 +1361,11 @@ def _infer_program(
         # the scheme lets one use site bind them for everybody, so the
         # prelude showing a `String` with `append` would monomorphise
         # `append : List a -> List a -> List a` to `Char` for the whole
-        # program (`fixme.md` F36).
+        # program (`fixme.md` F36).  Measured 2026-08-27 (`fixme.md` F56):
+        # with signed schemes quantified this skip holds nothing on its
+        # own — dropped, the suite stays green; signed schemes made
+        # monomorphic, it is red with the skip or without it.  Kept as the
+        # cheaper path, not as the guard.
         for n in env:
             if n in signed or n in imported:
                 # An import's variables are the exporting run's and are all
