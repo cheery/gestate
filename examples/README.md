@@ -134,6 +134,9 @@ Running it needs `pygame`.  `gestate.gui.scenes()` does not, which is why
 | `stereopad.ges` | a bank whose voices are *stereo* — `voices pad 6 padVoice : Sig Stereo` |
 | `substrate.ges` | a synth you can **see and touch**: a fader and a meter on the canvas behind the editor, feeding and fed by the same signals |
 | `twinkle.ges` | a **first song**: the intermediate lesson-1 instrument untouched, and a nursery tune written as three named lines — the smallest score-plus-instrument file, the one to hand to somebody who asks *how do I write my own* |
+| `blues.ges` | twelve bars in A, shuffled by arithmetic — the form written as the three lines it is, and a drummer who is a function of the clock |
+| `perjantai.ges` | a **Friday blues** in E for a visitor: three choruses — the band, a quiet one with the comp out, and a stop-time one — and a tag; loud only counts against quiet |
+| `tiksi.ges` | an instrumental in the shape of a lyric: a march in couplets, four observations as four gestures, a refrain in **7/8**, a **7/4** riff whose pitches group the bar, a humppa on a visitor's beat, and one hit to end.  Every section carries its line as a comment |
 | `lantern.ges` | **all three halves at once** — an unfolding seeded score, a compiled synth, and a canvas with two faders, a meter, and `label` captions naming them.  The one to export as a plugin (`--gui`) if you want to see the whole window doing its job |
 
 ```

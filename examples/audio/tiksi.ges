@@ -1,0 +1,459 @@
+# tiksi.ges — Sääasema Tiksi.  For Timo, 2026-08-28, after Kuha.
+#
+#   python -m gestate.audioperform examples/audio/tiksi.ges --seconds 175 -o tiksi.wav
+#   python -m gestate.audioeditor examples/audio/tiksi.ges
+#
+# An instrumental in the shape of a lyric written the same evening, in
+# the manner of Kuha. — a weather observer at an Arctic station, sending
+# readings nobody answers.  Each section below carries its line as a
+# comment, so the score reads as the song.  Organ, saw bass, a lead, a kit — and a tick, which is the
+# reading being taken: two a day, Moscow time, nothing else.
+#
+#     Luku 2      — cold.  A drone, the tick, radio blips.       8 bars
+#     Merkinnät   — the catalogue: a march in couplets.         16 bars
+#     Havainnot   — Naali (++), Jääkarhu (+), Tuuli (–), Ystävät (0)
+#                                                                8 bars
+#     Lukemat!    — the refrain, in 7/8, twice.              2 × 8 bars
+#     Seitsemän   — the other seven: 7/4, a riff whose *pitches* group
+#                   the bar, on B, the dominant of E, which resolves into
+#                   the humppa.                                   8 bars
+#     Humppa      — Timo's beat: kick 1,5,8 / snare 3,7, in 16ths;
+#                   the readings travel to Bratsk as a humppa.   16 bars
+#     Käänne      — the thermometer never asked me to stay.     8 bars
+#     Merkitään.  — one hit, one tick, silence.                 2 bars
+#
+# 120 bpm.  E minor, leaning Phrygian where the wind comes from.
+
+Note := Note Int Int                       # key, velocity
+
+instance FromMIDI Note where
+    noteOn c n v = Just (Note n v)
+
+# ── The instruments ──────────────────────────────────────────────────────
+
+voices bass 2 bassVoice : Sig Float
+
+voices organ 8 organVoice : Sig Float
+
+voices lead 3 leadVoice : Sig Float
+
+voices tick 2 tickVoice : Sig Float
+
+voices kick 2 kickVoice : Sig Float
+
+voices snare 2 snareVoice : Sig Float
+
+voices hat 3 hatVoice : Sig Float
+
+voices crash 2 crashVoice : Sig Float
+
+hzOf : Note -> Float
+hzOf b = case b of
+    Note k v -> keyHz k
+
+velOf : Note -> Float
+velOf b = case b of
+    Note k v -> toFloat v / 127.0
+
+#: A saw under a filter that opens with the note: the prog bass.
+bassVoice : Sig Gate -> Sig Note -> Sig Float
+bassVoice g s = lowpassSvf (180.0 + 1900.0 * adsr (Adsr 0.005 0.25 0.3 0.08) g) 0.5 (saw (!hzOf s))
+              * adsr (Adsr 0.004 0.2 0.65 0.08) g * (!velOf s)
+
+#: Four harmonics and a slow wobble: a tired Soviet organ.
+organVoice : Sig Gate -> Sig Note -> Sig Float
+organVoice g s = (sine (!hzOf s * (1.0 + 0.003 * sine 0.7)) + 0.5 * sine (!hzOf s * 2.0)
+                + 0.3 * sine (!hzOf s * 3.0) + 0.15 * sine (!hzOf s * 4.0))
+               * adsr (Adsr 0.02 0.1 0.9 0.2) g * 0.22 * (!velOf s)
+
+leadVoice : Sig Gate -> Sig Note -> Sig Float
+leadVoice g s = drive 1.8 (lowpassSvf (600.0 + 2600.0 * adsr (Adsr 0.02 0.4 0.5 0.3) g) 0.4
+                          (saw ((!hzOf s) * (1.0 + 0.005 * sine 5.5))))
+               * 0.4 * (!velOf s) * adsr (Adsr 0.01 0.25 0.7 0.25) g
+
+#: The reading being taken: a radio ping and a click.
+tickVoice : Sig Gate -> Sig Note -> Sig Float
+tickVoice g s = (0.5 * sine 1760.0 * perc 30.0 g + highpassSvf 3000.0 0.3 (white 5) * perc 90.0 g)
+              * 0.5 * (!velOf s)
+
+kickVoice : Sig Gate -> Sig Note -> Sig Float
+kickVoice g s = sine (45.0 + 110.0 * perc 18.0 g) * perc 14.0 g * (!velOf s)
+
+snareVoice : Sig Gate -> Sig Note -> Sig Float
+snareVoice g s = (0.6 * white 2 + 0.35 * triangle 190.0) * perc 15.0 g * (!velOf s)
+
+hatVoice : Sig Gate -> Sig Note -> Sig Float
+hatVoice g s = highpassSvf 6500.0 0.25 (white 3) * perc 40.0 g * (0.45 * (!velOf s))
+
+crashVoice : Sig Gate -> Sig Note -> Sig Float
+crashVoice g s = highpassSvf 4000.0 0.3 (white 4) * perc 3.0 g * (0.5 * (!velOf s))
+
+# ── The mix ──────────────────────────────────────────────────────────────
+
+sound : Sig Float
+sound = brickwall 0.92 (0.5 * bass + 0.5 * organ + 0.12 * reverb 0.8 0.03 organ
+                      + 0.5 * lead + 0.16 * reverb 0.4 0.02 lead
+                      + 0.5 * tick + 0.15 * reverb 1.2 0.04 tick
+                      + 0.8 * kick + 0.45 * snare + 0.5 * hat + 0.5 * crash)
+
+# ── Writing notes ────────────────────────────────────────────────────────
+
+bn : Int -> [: Note :]
+bn k = '(Note k 100)
+
+on : Int -> [: Note :]
+on k = '(Note k 84)
+
+ln : Int -> [: Note :]
+ln k = '(Note k 96)
+
+tk : [: Note :]
+tk = '(Note 84 110)
+
+kk : [: Note :]
+kk = '(Note 36 110)
+
+sn : [: Note :]
+sn = '(Note 38 100)
+
+hh : Int -> [: Note :]
+hh v = '(Note 42 v)
+
+cr : [: Note :]
+cr = '(Note 49 127)
+
+soft : [: Note :] -> [: Note :]
+soft s = s >>= (b => case b of
+    Note k v -> '(Note k (v * 3 / 5)))
+
+#: A triad: root, third (3 minor, 4 major), fifth.
+tri : Int -> Int -> [: Note :]
+tri k q = on k || on (k + q) || on (k + 7)
+
+# ── The notes of the place ───────────────────────────────────────────────
+
+e2 : Int
+e2 = 40
+
+c3 : Int
+c3 = 48
+
+d3 : Int
+d3 = 50
+
+a2 : Int
+a2 = 45
+
+b2 : Int
+b2 = 47
+
+g2 : Int
+g2 = 43
+
+# ── Luku 2, jossa havainnoitsija Ojala pitää kirjaa ─────────────────────
+#
+# A drone, and a reading on the one of every bar.  Two radio blips,
+# bars three and seven — the two readings a day.  The bass arrives at
+# bar five, low, and does nothing else.
+
+tickBar : [: Note :]
+tickBar = tk ++ r |* 3
+
+blip : [: Note :]
+blip = (ln 88 ++ ln 83 ++ ln 88) |/ 4 ++ r |* 3 ++ r |/ 4
+
+luku2 : [: Void :]
+luku2 = ((tri 52 3 |* 32) >>= voices.organ)
+     || ((tickBar ++ tickBar ++ tickBar ++ tickBar ++ tickBar ++ tickBar ++ tickBar ++ tickBar) >>= voices.tick)
+     || ((r |* 8 ++ soft blip ++ r |* 12 ++ soft blip ++ r |* 4) >>= voices.lead)
+     || ((r |* 16 ++ bn e2 |* 8 ++ bn e2 |* 8) >>= voices.bass)
+
+# ── Merkinnät: ilmanpaine, kastepiste, lumen syvyys, tuulen suunta ──────
+#
+# Eight bars of march, in couplets, and then the same eight again with
+# the last line changed.  The bass walks eighths on the root, the organ
+# stabs the one and the three, the snare is on two and four with a roll
+# into every fourth bar.
+
+marchBass : Int -> [: Note :]
+marchBass k = (bn k ++ bn k ++ bn (k + 7) ++ bn k ++ bn k ++ bn k ++ bn (k + 12) ++ bn (k + 7)) |/ 2
+
+marchOrgan : Int -> Int -> [: Note :]
+marchOrgan k q = tri (k + 12) q ++ r ++ tri (k + 12) q ++ r
+
+drumBar : [: Void :]
+drumBar = ((kk ++ r ++ kk ++ r) >>= voices.kick)
+       || ((r ++ sn ++ r ++ sn) >>= voices.snare)
+       || (((hh 90 ++ hh 60) |/ 2 ++ (hh 90 ++ hh 60) |/ 2 ++ (hh 90 ++ hh 60) |/ 2 ++ (hh 90 ++ hh 60) |/ 2) >>= voices.hat)
+
+rollBar : [: Void :]
+rollBar = ((kk ++ r ++ kk ++ r) >>= voices.kick)
+       || ((r ++ sn ++ r ++ (sn ++ sn ++ sn ++ sn) |/ 4) >>= voices.snare)
+       || (((hh 90 ++ hh 60) |/ 2 ++ (hh 90 ++ hh 60) |/ 2 ++ (hh 90 ++ hh 60) |/ 2 ++ (hh 90 ++ hh 60) |/ 2) >>= voices.hat)
+
+drums4 : [: Void :]
+drums4 = drumBar ++ drumBar ++ drumBar ++ rollBar
+
+#: E E C D | E E A B — one chord a bar.
+marchBassLine : [: Note :]
+marchBassLine = marchBass e2 ++ marchBass e2 ++ marchBass c3 ++ marchBass d3
+             ++ marchBass e2 ++ marchBass e2 ++ marchBass a2 ++ marchBass b2
+
+marchOrganLine : [: Note :]
+marchOrganLine = marchOrgan e2 3 ++ marchOrgan e2 3 ++ marchOrgan c3 4 ++ marchOrgan d3 4
+              ++ marchOrgan e2 3 ++ marchOrgan e2 3 ++ marchOrgan a2 3 ++ marchOrgan b2 4
+
+#: Couplet one: the four instruments, read out.
+couplet1 : [: Note :]
+couplet1 = ln 64 ++ ln 67 ++ ln 71 |* 2
+        ++ ln 69 ++ ln 67 ++ ln 64 |* 2
+        ++ ln 67 ++ ln 72 ++ ln 76 |* 2
+        ++ ln 74 ++ ln 71 ++ ln 69 |* 2
+
+#: Couplet two: the same, and it ends on the leading tone, unresolved.
+couplet2 : [: Note :]
+couplet2 = ln 64 ++ ln 67 ++ ln 71 |* 2
+        ++ ln 69 ++ ln 71 ++ ln 72 |* 2
+        ++ ln 72 ++ ln 69 ++ ln 65 |* 2
+        ++ ln 66 |* 2 ++ ln 63 ++ r
+
+#: Couplet three: "ei yhtäkään aukkoa" — the line goes up and stops.
+couplet3 : [: Note :]
+couplet3 = ln 64 ++ ln 67 ++ ln 71 |* 2
+        ++ ln 72 ++ ln 74 ++ ln 76 |* 2
+        ++ ln 79 |* 2 ++ ln 76 ++ ln 72
+        ++ ln 71 |* 3 ++ r
+
+merkinnat : [: Void :]
+merkinnat = ((marchBassLine ++ marchBassLine) >>= voices.bass)
+         || ((marchOrganLine ++ marchOrganLine) >>= voices.organ)
+         || ((couplet1 ++ couplet2 ++ couplet1 ++ couplet3) >>= voices.lead)
+         || (drums4 ++ drums4 ++ drums4 ++ drums4)
+
+# ── Havainnot ────────────────────────────────────────────────────────────
+#
+#   Naali (++)     — bright: G major, the lead runs up.
+#   Jääkarhu (+)   — heavy: E minor, low, the bass doubled.
+#   Tuuli (–)      — everything slides down a semitone at a time.
+#   Ystävät (0)    — no observations since 1979: the tick, and a low E.
+
+naali : [: Void :]
+naali = ((marchBass g2 ++ marchBass g2) >>= voices.bass)
+     || ((tri 55 4 |* 4 ++ tri 55 4 |* 4) >>= voices.organ)
+     || (((ln 67 ++ ln 71 ++ ln 74 ++ ln 79) |/ 2 ++ ln 83 |* 2 ++ (ln 79 ++ ln 74 ++ ln 71 ++ ln 67) |/ 2 ++ ln 71 |* 2) >>= voices.lead)
+     || (drumBar ++ drumBar)
+
+jaakarhu : [: Void :]
+jaakarhu = (((bn e2 ++ bn (e2 - 12)) |* 2 ++ (bn e2 ++ bn (e2 - 12)) |* 2) >>= voices.bass)
+        || ((tri 40 3 |* 4 ++ tri 40 3 |* 4) >>= voices.organ)
+        || ((ln 52 |* 2 ++ ln 55 ++ ln 52 ++ ln 50 |* 2 ++ ln 47 |* 2) >>= voices.lead)
+        || (((kk ++ kk ++ kk ++ kk) ++ (kk ++ kk ++ kk ++ kk)) >>= voices.kick)
+        || (((r ++ r ++ r ++ sn) ++ (r ++ r ++ r ++ sn)) >>= voices.snare)
+
+#: Four chords, each a semitone lower, and nothing comes back.
+slide : Int -> [: Note :]
+slide k = tri (k + 12) 3 ++ tri (k + 11) 3 ++ tri (k + 10) 3 ++ tri (k + 9) 3
+
+tuuli : [: Void :]
+tuuli = ((bn b2 ++ bn (b2 - 1) ++ bn (b2 - 2) ++ bn (b2 - 3) ++ bn (b2 - 4) ++ bn (b2 - 5) ++ bn (b2 - 6) ++ bn (b2 - 7)) >>= voices.bass)
+     || ((slide b2 ++ slide (b2 - 4)) >>= voices.organ)
+     || ((ln 71 ++ ln 70 ++ ln 69 ++ ln 68 ++ ln 67 ++ ln 66 ++ ln 65 ++ ln 64) >>= voices.lead)
+     || ((cr ++ r |* 7) >>= voices.crash)
+     || (((hh 90 ++ hh 60) |/ 2 |* 8) >>= voices.hat)
+
+ystavat : [: Void :]
+ystavat = ((tickBar ++ tickBar) >>= voices.tick)
+       || ((soft (bn (e2 - 12)) |* 8) >>= voices.bass)
+
+havainnot : [: Void :]
+havainnot = naali ++ jaakarhu ++ tuuli ++ ystavat
+
+# ── Lukemat! Lukemat! Lähetetään lukemat! ────────────────────────────────
+#
+# 7/8, counted 2+2+3.  The riff is E Phrygian — the F is the wind — and
+# the organ stabs on the one and the five.  Eight bars, then eight more
+# with the lead an octave up, because nobody answered the first time.
+
+riff : [: Note :]
+riff = (bn 40 ++ bn 40 ++ bn 41 ++ bn 40 ++ bn 43 ++ bn 41 ++ bn 40) |/ 2
+
+riffOrgan : [: Note :]
+riffOrgan = (tri 52 3 ++ r ++ r ++ r ++ tri 53 4 ++ r ++ r) |/ 2
+
+drum7 : [: Void :]
+drum7 = (((kk ++ r ++ r ++ r ++ kk ++ r ++ r) |/ 2) >>= voices.kick)
+     || (((r ++ r ++ sn ++ r ++ r ++ r ++ sn) |/ 2) >>= voices.snare)
+     || (((hh 90 ++ hh 60 ++ hh 90 ++ hh 60 ++ hh 90 ++ hh 60 ++ hh 60) |/ 2) >>= voices.hat)
+
+#: "Lukemat!" — three notes shouted on the one, then the answer that
+#: does not come: rests where the reply would be.
+shout : [: Note :]
+shout = (ln 76 ++ ln 76 ++ ln 77 ++ r ++ r ++ r ++ r) |/ 2
+
+reply : [: Note :]
+reply = (r ++ r ++ r ++ r ++ ln 79 ++ ln 77 ++ ln 76) |/ 2
+
+shoutLine : [: Note :]
+shoutLine = shout ++ shout ++ reply ++ shout
+         ++ shout ++ shout ++ reply ++ (ln 74 ++ ln 76 ++ ln 77 ++ ln 79 ++ ln 77 ++ ln 76 ++ ln 74) |/ 2
+
+up : [: Note :] -> [: Note :]
+up s = s >>= (b => case b of
+    Note k v -> '(Note (k + 12) v))
+
+riff8 : [: Note :]
+riff8 = riff ++ riff ++ riff ++ riff ++ riff ++ riff ++ riff ++ riff
+
+riffOrgan8 : [: Note :]
+riffOrgan8 = riffOrgan ++ riffOrgan ++ riffOrgan ++ riffOrgan ++ riffOrgan ++ riffOrgan ++ riffOrgan ++ riffOrgan
+
+drum7x8 : [: Void :]
+drum7x8 = drum7 ++ drum7 ++ drum7 ++ drum7 ++ drum7 ++ drum7 ++ drum7 ++ drum7
+
+lukemat : [: Void :]
+lukemat = ((riff8 ++ riff8) >>= voices.bass)
+       || ((riffOrgan8 ++ riffOrgan8) >>= voices.organ)
+       || ((shoutLine ++ up shoutLine) >>= voices.lead)
+       || ((cr ++ r |* 27 ++ cr ++ r |* 27) >>= voices.crash)
+       || (drum7x8 ++ drum7x8)
+
+# ── The other seven: a riff that counts itself ───────────────────────────
+#
+# Built the way the famous 7/4 bass riffs are built (Pink Floyd's Money
+# is the textbook case): the bar's **lowest note lands on beat five**,
+# so the pitches group the seven as 4+3 and nobody has to count — the
+# ear hears a new start where the line drops.  After Tiksi's 7/8, with
+# its grouping made of accents, this is the same seven at half speed
+# with the grouping made of pitch.  B minor pentatonic; the notes are
+# this file's own.
+
+seven : [: Note :]
+seven = bn 35 ++ bn 38 ++ bn 42 ++ (bn 45 ++ bn 42) |/ 2
+     ++ bn 30 ++ bn 33 ++ bn 35
+
+drumSeven : [: Void :]
+drumSeven = ((kk ++ r ++ r ++ r ++ kk ++ r ++ r) >>= voices.kick)
+         || ((r ++ r ++ sn ++ r ++ r ++ r ++ sn) >>= voices.snare)
+         || ((hh 90 ++ hh 70 ++ hh 90 ++ hh 70 ++ hh 90 ++ hh 70 ++ hh 70) >>= voices.hat)
+
+#: Bm7 held under it; the lead waits four bars, then answers from the
+#: same pentatonic, high, and lands on the D the riff climbs through.
+sevenAnswer : [: Note :]
+sevenAnswer = r |* 28
+           ++ ln 83 ++ ln 81 ++ ln 78 |* 2 ++ ln 76 ++ ln 74 ++ r
+           ++ r ++ ln 74 ++ ln 76 ++ ln 78 ++ ln 81 |* 3
+           ++ ln 83 |* 2 ++ ln 81 ++ ln 78 ++ ln 74 ++ ln 71 ++ r
+           ++ r |* 4 ++ ln 74 |* 3
+
+seven8 : [: Note :]
+seven8 = seven ++ seven ++ seven ++ seven ++ seven ++ seven ++ seven ++ seven
+
+sevenSection : [: Void :]
+sevenSection = (seven8 >>= voices.bass)
+            || ((soft (on 47 || on 50 || on 54 || on 57) |* 56) >>= voices.organ)
+            || (sevenAnswer >>= voices.lead)
+            || ((cr ++ r |* 55) >>= voices.crash)
+            || (drumSeven ++ drumSeven ++ drumSeven ++ drumSeven ++ drumSeven ++ drumSeven ++ drumSeven ++ drumSeven)
+
+# ── Radiolla Bratskiin, Bratskista Moskovaan ─────────────────────────────
+#
+# Timo's beat, 2026-08-28, given as sixteenths over two beats:
+#
+#     1  2  3  4  5  6  7  8
+#     k     s     k     s  k
+#
+# Kick on every quarter, snare on every off-eighth, and the eighth
+# sixteenth is the kick's pickup into the next one — which is a humppa,
+# and at this tempo also a punk beat; the arithmetic does not know the
+# difference.  The bass plays oompah, root and fifth on the quarters,
+# and the organ is the accordion: stabs on the ands, with the snare.
+
+humKick : [: Note :]
+humKick = (kk ++ r ++ r ++ r ++ kk ++ r ++ r ++ kk) |/ 4
+
+humSnare : [: Note :]
+humSnare = (r ++ r ++ sn ++ r ++ r ++ r ++ sn ++ r) |/ 4
+
+humHat : [: Note :]
+humHat = (hh 90 ++ hh 60 ++ hh 90 ++ hh 60) |/ 2
+
+humDrums : [: Void :]
+humDrums = ((humKick ++ humKick) >>= voices.kick)
+        || ((humSnare ++ humSnare) >>= voices.snare)
+        || ((humHat ++ humHat) >>= voices.hat)
+
+#: Oompah: root, fifth, root, fifth.
+oompah : Int -> [: Note :]
+oompah k = bn k ++ bn (k + 7) ++ bn k ++ bn (k + 7)
+
+#: The accordion: a stab on every and.
+humOrgan : Int -> Int -> [: Note :]
+humOrgan k q = (r ++ tri (k + 12) q ++ r ++ tri (k + 12) q ++ r ++ tri (k + 12) q ++ r ++ tri (k + 12) q) |/ 2
+
+#: Em Em B7 B7 | Em Am B7 Em
+humBass : [: Note :]
+humBass = oompah e2 ++ oompah e2 ++ oompah b2 ++ oompah b2
+       ++ oompah e2 ++ oompah a2 ++ oompah b2 ++ oompah e2
+
+humOrganLine : [: Note :]
+humOrganLine = humOrgan e2 3 ++ humOrgan e2 3 ++ humOrgan b2 4 ++ humOrgan b2 4
+            ++ humOrgan e2 3 ++ humOrgan a2 3 ++ humOrgan b2 4 ++ humOrgan e2 3
+
+#: The tune, in eighths and quarters, minor and cheerful about it.
+humTune : [: Note :]
+humTune = (ln 76 ++ ln 74 ++ ln 76 ++ ln 74) |/ 2 ++ ln 71 ++ ln 67
+       ++ (ln 75 ++ ln 71 ++ ln 66 ++ ln 71) |/ 2 ++ ln 75 |* 2
+       ++ (ln 76 ++ ln 79 ++ ln 76 ++ ln 74) |/ 2 ++ ln 72 ++ ln 71
+       ++ (ln 69 ++ ln 68 ++ ln 69 ++ ln 71) |/ 2 ++ ln 66 |* 2
+       ++ (ln 76 ++ ln 74 ++ ln 76 ++ ln 74) |/ 2 ++ ln 71 ++ ln 67
+       ++ (ln 72 ++ ln 71 ++ ln 72 ++ ln 74) |/ 2 ++ ln 76 |* 2
+       ++ (ln 75 ++ ln 74 ++ ln 72 ++ ln 71) |/ 2 ++ ln 69 ++ ln 66
+
+ending1 : [: Note :]
+ending1 = ln 64 |* 2 ++ r |* 2
+
+ending2 : [: Note :]
+ending2 = (ln 64 ++ ln 67 ++ ln 71 ++ ln 76) |/ 2 ++ ln 76 |* 2
+
+humDrums16 : [: Void :]
+humDrums16 = humDrums ++ humDrums ++ humDrums ++ humDrums ++ humDrums ++ humDrums ++ humDrums ++ humDrums
+          ++ humDrums ++ humDrums ++ humDrums ++ humDrums ++ humDrums ++ humDrums ++ humDrums ++ humDrums
+
+humppa : [: Void :]
+humppa = ((humBass ++ humBass) >>= voices.bass)
+      || ((humOrganLine ++ humOrganLine) >>= voices.organ)
+      || ((humTune ++ ending1 ++ humTune ++ ending2) >>= voices.lead)
+      || ((cr ++ r |* 63) >>= voices.crash)
+      || humDrums16
+
+# ── Tunteet ovat epäluotettavia, se on todettu kokeellisesti. ───────────
+#   Mutta lämpömittari ei ole koskaan pyytänyt minua jäämään.
+#
+# Whole notes in the bass, the organ soft, the tick still going on the
+# one because the readings do not stop for this.  The lead says one
+# thing, slowly, and does not finish it.
+
+kaanne : [: Void :]
+kaanne = ((soft (bn e2) |* 8 ++ soft (bn c3) |* 8 ++ soft (bn a2) |* 8 ++ soft (bn b2) |* 8) >>= voices.bass)
+      || ((soft (tri 52 3) |* 8 ++ soft (tri 48 4) |* 8 ++ soft (tri 45 3) |* 8 ++ soft (tri 47 4) |* 8) >>= voices.organ)
+      || ((tickBar ++ tickBar ++ tickBar ++ tickBar ++ tickBar ++ tickBar ++ tickBar ++ tickBar) >>= voices.tick)
+      || ((r |* 2 ++ soft (ln 71) |* 2 ++ soft (ln 72) |* 3 ++ soft (ln 71)
+        ++ soft (ln 67) |* 4 ++ r |* 4
+        ++ r |* 2 ++ soft (ln 69) |* 2 ++ soft (ln 72) |* 2 ++ soft (ln 76) |* 2
+        ++ soft (ln 75) |* 4 ++ r |* 4) >>= voices.lead)
+
+# ── No niin. Miinus neljäkymmentäyksi. Merkitään. ────────────────────────
+
+merkitaan : [: Void :]
+merkitaan = ((bn e2 |* 3 ++ r |* 5) >>= voices.bass)
+         || ((tri 52 3 |* 3 ++ r |* 5) >>= voices.organ)
+         || (((ln 76 || ln 71 || ln 64) |* 3 ++ r |* 5) >>= voices.lead)
+         || ((cr ++ r |* 7) >>= voices.crash)
+         || ((kk ++ r |* 7) >>= voices.kick)
+         || ((r |* 4 ++ tk ++ r |* 3) >>= voices.tick)
+
+score : [: Void :]
+score = luku2 ++ merkinnat ++ havainnot ++ lukemat ++ sevenSection ++ humppa ++ kaanne ++ merkitaan
+
+bpm : Int
+bpm = 120

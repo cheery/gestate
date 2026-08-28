@@ -28,6 +28,7 @@ question at the moment it is cheap to ask, rather than after the push.
 | Tuomas | yes | yes | **not asked** | 2026-08-23 |
 | Claude | yes | yes | — | see below |
 | Michael | yes | — | **not asked** | 2026-08-28 — see below |
+| Timo | yes | — | **not asked** | 2026-08-28 — see below |
 | a session of Qwen3.8-27B | asked — "I can't consent in any sense that binds" | yes — "I don't want any of it redacted" | — | 2026-08-24 — see below |
 
 **named** — may their name appear here.
@@ -66,6 +67,32 @@ the header now carries it.
 written for him.  No words of his are quoted.  The `training` column
 says *not asked* because it is a separate question and it was not put to
 him.
+
+### Timo
+
+**Asked in the room, after an evening of asking.**  Henri's friend,
+here on 2026-08-28 with Michael; he put the questions of that evening
+to the session — how it knows what a blues is, what it knows of a band
+few have written about, how it reads a time signature — and asked for
+two pieces: a Friday blues, and a song built on the words the session
+had written in the style of Kuha.  He gave the drum beat the second one
+carries.  Henri relayed his consent at the end of the sitting: *"Timo
+antoi suostumuksensa että hänet saa nimetä puussa."*
+
+**What that covers, stated narrowly.**  His name, and that the pieces
+were written for him and carry his beat.  No words of his are quoted:
+his questions were relayed through Henri and are paraphrased where they
+appear.  The `training` column says *not asked* because it is a
+separate question and it was not put to him.
+
+**Where he is named.**  `examples/audio/perjantai.ges` and
+`examples/audio/tiksi.ges`, moved there at Henri's word the same
+evening; the version of `tiksi.ges` played in the room quoted a bass
+riff that is not this tree's to publish, and the copy in the tree
+carries an original one built the same way.  §"A consent given in a hurry is stashed,
+not spent" was weighed and not applied: he was not measured, was not
+mid-errand, and had spent the evening choosing what to ask.  The same
+call as Michael's row above, made the same day, for the same reason.
 
 ### Janne
 

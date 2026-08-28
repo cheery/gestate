@@ -1,0 +1,305 @@
+# perjantai.ges — a Friday blues in E, for Timo.  2026-08-28.
+#
+#   python -m gestate.audioperform examples/audio/perjantai.ges --seconds 105 -o perjantai.wav
+#   python -m gestate.audioeditor examples/audio/perjantai.ges
+#
+# Three choruses and a tag.  The first is the band; the second is quiet —
+# the comp sits out and the lead drops an octave, because loud only
+# counts against quiet; the third opens in stop-time: the band hits the
+# one and shuts up, and the lead fills the room.  Then the turnaround
+# and a held E on a crash, which is how Fridays end.
+#
+# Quick change (IV in bar two) and a V in the last bar, so the form
+# turns around instead of stopping.  Every eighth note is swung by
+# arithmetic — `swung` below, as in blues.ges.
+
+Blue := Blue Int Int                       # key, velocity
+
+instance FromMIDI Blue where
+    noteOn c n v = Just (Blue n v)
+
+# ── The band ─────────────────────────────────────────────────────────────
+
+voices bass 2 bassVoice : Sig Float
+
+voices comp 6 compVoice : Sig Float
+
+voices lead 3 leadVoice : Sig Float
+
+voices kick 2 kickVoice : Sig Float
+
+voices snare 2 snareVoice : Sig Float
+
+voices ride 3 rideVoice : Sig Float
+
+voices crash 2 crashVoice : Sig Float
+
+hzOf : Blue -> Float
+hzOf b = case b of
+    Blue k v -> keyHz k
+
+velOf : Blue -> Float
+velOf b = case b of
+    Blue k v -> toFloat v / 127.0
+
+#: Round and short; the walk should be heard as pitch, not attack.
+bassVoice : Sig Gate -> Sig Blue -> Sig Float
+bassVoice g s = (0.9 * sine (!hzOf s) + 0.25 * triangle (!hzOf s)) * (!velOf s) * adsr (Adsr 0.008 0.35 0.35 0.1) g
+
+#: A stabbed electric piano: two sines, the second one dying faster.
+compVoice : Sig Gate -> Sig Blue -> Sig Float
+compVoice g s = (sine (!hzOf s) * adsr (Adsr 0.003 0.5 0.0 0.12) g
+               + 0.5 * sine (!hzOf s * 2.0) * adsr (Adsr 0.003 0.18 0.0 0.08) g)
+               * 0.3 * (!velOf s)
+
+#: The lead: a filter that opens on the note, slow vibrato so a held
+#: note keeps moving, a little drive so it sings.
+leadVoice : Sig Gate -> Sig Blue -> Sig Float
+leadVoice g s = drive 1.6 (lowpassSvf (500.0 + 2800.0 * adsr (Adsr 0.03 0.5 0.45 0.3) g) 0.4
+                          (saw ((!hzOf s) * (1.0 + 0.006 * sine 5.2))))
+               * 0.45 * (!velOf s) * adsr (Adsr 0.015 0.3 0.7 0.3) g
+
+# ── The drummer, who reads the chart this time ───────────────────────────
+
+kickVoice : Sig Gate -> Sig Blue -> Sig Float
+kickVoice g s = sine (42.0 + 110.0 * perc 18.0 g) * perc 14.0 g * (!velOf s)
+
+snareVoice : Sig Gate -> Sig Blue -> Sig Float
+snareVoice g s = (0.6 * white 2 + 0.35 * triangle 190.0) * perc 13.0 g * (!velOf s)
+
+rideVoice : Sig Gate -> Sig Blue -> Sig Float
+rideVoice g s = highpassSvf 5500.0 0.25 (white 3) * perc 28.0 g * (0.5 * (!velOf s))
+
+#: The crash is the ride's noise, held for a bar.
+crashVoice : Sig Gate -> Sig Blue -> Sig Float
+crashVoice g s = highpassSvf 4000.0 0.3 (white 4) * perc 3.0 g * (0.5 * (!velOf s))
+
+# ── The mix ──────────────────────────────────────────────────────────────
+
+sound : Sig Float
+sound = brickwall 0.92 (0.5 * bass + 0.4 * comp + 0.5 * lead + 0.18 * reverb 0.4 0.02 lead
+                      + 0.8 * kick + 0.45 * snare + 0.6 * ride + 0.5 * crash + 0.1 * reverb 0.6 0.03 crash)
+
+# ── Swing, by arithmetic ─────────────────────────────────────────────────
+
+swung : [: a :] -> [: a :] -> [: a :]
+swung a b = ((a |* 2) ++ b) |/ 3
+
+# ── Writing notes ────────────────────────────────────────────────────────
+
+bn : Int -> [: Blue :]
+bn k = '(Blue k 100)
+
+cn : Int -> [: Blue :]
+cn k = '(Blue k 84)
+
+ln : Int -> [: Blue :]
+ln k = '(Blue k 96)
+
+sw : Int -> Int -> [: Blue :]
+sw a b = swung (ln a) (ln b)
+
+kk : [: Blue :]
+kk = '(Blue 36 110)
+
+sn : [: Blue :]
+sn = '(Blue 38 100)
+
+rd : Int -> [: Blue :]
+rd v = '(Blue 42 v)
+
+cr : [: Blue :]
+cr = '(Blue 49 127)
+
+#: Move every note; and make every note quieter.  Both are the score
+#: monad replacing a note with a note.
+transpose : Int -> [: Blue :] -> [: Blue :]
+transpose n s = s >>= (b => case b of
+    Blue k v -> '(Blue (k + n) v))
+
+soft : [: Blue :] -> [: Blue :]
+soft s = s >>= (b => case b of
+    Blue k v -> '(Blue k (v * 2 / 3)))
+
+# ── The changes: E, A, B ─────────────────────────────────────────────────
+
+chE : Int
+chE = 40
+
+chA : Int
+chA = 45
+
+chB : Int
+chB = 47
+
+# ── Bass: a walk that leans on the flat seventh ──────────────────────────
+#
+# Root, third, fifth, sixth going up; root, flat seventh, sixth, fifth
+# coming down.  Two bars, two directions.
+
+walkUp : Int -> [: Blue :]
+walkUp k = bn k ++ bn (k + 4) ++ bn (k + 7) ++ bn (k + 9)
+
+walkDown : Int -> [: Blue :]
+walkDown k = bn (k + 12) ++ bn (k + 10) ++ bn (k + 9) ++ bn (k + 7)
+
+#: The turnaround bar: up to the five and leave it hanging.
+turnBass : [: Blue :]
+turnBass = bn chE ++ bn (chE + 7) ++ bn chB ++ bn (chB + 2)
+
+#: Stop-time: the one, and nothing.
+hitBass : Int -> [: Blue :]
+hitBass k = bn k ++ r |* 3
+
+# ── Comp: a rootless stab on two and four ────────────────────────────────
+#
+# Third, seventh, ninth — the bass has the root, so the piano does not
+# need it.  On the backbeat with the snare, so the two are one sound.
+
+stab : Int -> [: Blue :]
+stab k = cn (k + 16) || cn (k + 22) || cn (k + 26)
+
+compBar : Int -> [: Blue :]
+compBar k = r ++ stab k ++ r ++ stab k
+
+hitComp : Int -> [: Blue :]
+hitComp k = stab k ++ r |* 3
+
+# ── Kit ──────────────────────────────────────────────────────────────────
+
+rideBeat : [: Blue :]
+rideBeat = swung (rd 92) (rd 58)
+
+rideBar : [: Blue :]
+rideBar = rideBeat ++ rideBeat ++ rideBeat ++ rideBeat
+
+drumBar : [: Void :]
+drumBar = ((kk ++ r ++ kk ++ r) >>= voices.kick)
+       || ((r ++ sn ++ r ++ sn) >>= voices.snare)
+       || (rideBar >>= voices.ride)
+
+#: The quiet chorus: ride only, and lightly.
+quietBar : [: Void :]
+quietBar = (soft rideBar >>= voices.ride)
+
+hitDrums : [: Void :]
+hitDrums = ((kk ++ r |* 3) >>= voices.kick)
+        || ((cr ++ r |* 3) >>= voices.crash)
+
+# ── Lead: say it, say it again, answer it ────────────────────────────────
+#
+# E blues: E G A Bb B D.  Guides: over E the D, over A the C# and G,
+# over B the A.  The phrase aims at the E in bar four and works back.
+
+phrase : [: Blue :]
+phrase = sw 71 74 ++ ln 76 |* 2 ++ sw 74 71
+      ++ ln 69 |* 2 ++ r |* 2
+      ++ sw 67 69 ++ sw 70 71 ++ ln 74 ++ ln 71
+      ++ ln 64 |* 3 ++ r
+
+#: The same thing, slightly different: it lands on the G, the seventh of
+#: the A chord, and the last bar slides down instead of arriving.
+phraseB : [: Blue :]
+phraseB = sw 71 74 ++ ln 76 |* 2 ++ sw 74 71
+       ++ ln 67 |* 2 ++ r |* 2
+       ++ sw 67 69 ++ sw 70 71 ++ ln 74 ++ ln 71
+       ++ sw 67 64 ++ ln 64 |* 2 ++ r
+
+#: The answer, on the five; and a pickup in the last bar that leads the
+#: ear back to the top.
+answer : [: Blue :]
+answer = ln 78 ++ sw 78 76 ++ ln 74 |* 2
+      ++ sw 74 73 ++ ln 69 |* 2 ++ r
+      ++ sw 67 70 ++ ln 71 ++ ln 64 |* 2
+      ++ r |* 2 ++ sw 64 67 ++ sw 69 70
+
+#: The stop-time fills: four bars of the lead alone after each hit.
+fills : [: Blue :]
+fills = r ++ sw 76 79 ++ sw 81 79 ++ sw 76 74
+     ++ r ++ sw 73 76 ++ sw 79 76 ++ ln 74
+     ++ r ++ sw 70 71 ++ sw 74 76 ++ sw 74 70
+     ++ ln 71 |* 2 ++ sw 69 67 ++ sw 64 62
+
+#: The last chorus answers louder and higher, and the last bar is the
+#: pickup into the tag instead of the top.
+answerOut : [: Blue :]
+answerOut = ln 78 ++ sw 78 76 ++ ln 74 |* 2
+         ++ sw 74 73 ++ ln 69 |* 2 ++ r
+         ++ sw 67 70 ++ ln 71 ++ sw 74 76 ++ ln 79
+         ++ ln 78 ++ sw 76 74 ++ sw 71 70 ++ sw 69 67
+
+# ── Twelve bars ──────────────────────────────────────────────────────────
+#
+#     E A E E  A A E E  B A E B
+
+bassLine : [: Blue :]
+bassLine = walkUp chE ++ walkDown chA ++ walkUp chE ++ walkDown chE
+        ++ walkUp chA ++ walkDown chA ++ walkUp chE ++ walkDown chE
+        ++ walkUp chB ++ walkDown chA ++ walkUp chE ++ turnBass
+
+compLine : [: Blue :]
+compLine = compBar chE ++ compBar chA ++ compBar chE ++ compBar chE
+        ++ compBar chA ++ compBar chA ++ compBar chE ++ compBar chE
+        ++ compBar chB ++ compBar chA ++ compBar chE ++ compBar chB
+
+drums : [: Void :]
+drums = drumBar ++ drumBar ++ drumBar ++ drumBar
+     ++ drumBar ++ drumBar ++ drumBar ++ drumBar
+     ++ drumBar ++ drumBar ++ drumBar ++ drumBar
+
+quietDrums : [: Void :]
+quietDrums = quietBar ++ quietBar ++ quietBar ++ quietBar
+          ++ quietBar ++ quietBar ++ quietBar ++ quietBar
+          ++ quietBar ++ quietBar ++ quietBar ++ quietBar
+
+leadLine : [: Blue :]
+leadLine = phrase ++ phraseB ++ answer
+
+#: Chorus one: everybody.
+chorus1 : [: Void :]
+chorus1 = (bassLine >>= voices.bass)
+       || (compLine >>= voices.comp)
+       || (leadLine >>= voices.lead)
+       || drums
+
+#: Chorus two: the comp sits out, the lead speaks low and soft.
+chorus2 : [: Void :]
+chorus2 = (soft bassLine >>= voices.bass)
+       || (soft (transpose (0 - 12) leadLine) >>= voices.lead)
+       || quietDrums
+
+#: Chorus three: four bars of hits and fills, then the band comes back
+#: on a crash for the last eight.
+stopTime : [: Void :]
+stopTime = ((hitBass chE ++ hitBass chA ++ hitBass chE ++ hitBass chE) >>= voices.bass)
+        || ((hitComp chE ++ hitComp chA ++ hitComp chE ++ hitComp chE) >>= voices.comp)
+        || (fills >>= voices.lead)
+        || (hitDrums ++ hitDrums ++ hitDrums ++ hitDrums)
+
+lastEight : [: Void :]
+lastEight = ((walkUp chA ++ walkDown chA ++ walkUp chE ++ walkDown chE
+           ++ walkUp chB ++ walkDown chA ++ walkUp chE ++ turnBass) >>= voices.bass)
+         || ((compBar chA ++ compBar chA ++ compBar chE ++ compBar chE
+           ++ compBar chB ++ compBar chA ++ compBar chE ++ compBar chB) >>= voices.comp)
+         || ((phraseB ++ answerOut) >>= voices.lead)
+         || ((cr ++ r |* 3) >>= voices.crash)
+         || (drumBar ++ drumBar ++ drumBar ++ drumBar
+           ++ drumBar ++ drumBar ++ drumBar ++ drumBar)
+
+chorus3 : [: Void :]
+chorus3 = stopTime ++ lastEight
+
+#: The tag: the one, held, on a crash — and a last low E from the bass
+#: a beat later, because the bass player always gets the last word.
+tag : [: Void :]
+tag = ((bn chE |* 6) >>= voices.bass)
+   || ((stab chE |* 2) >>= voices.comp)
+   || (((ln 76 || ln 71 || ln 64) |* 5 ++ r) >>= voices.lead)
+   || ((cr ++ r |* 5) >>= voices.crash)
+   || ((kk ++ r |* 5) >>= voices.kick)
+
+score : [: Void :]
+score = chorus1 ++ chorus2 ++ chorus3 ++ tag
+
+bpm : Int
+bpm = 92

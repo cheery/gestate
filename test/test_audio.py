@@ -209,7 +209,21 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # instrument is `examples/intermediate/01-instrument.ges`
             # verbatim and `test_courses.py` builds that, and
             # `test_examples.py` compiles this one every run.
-            "twinkle.ges"]
+            "twinkle.ges",
+            # Two pieces written in the room on 2026-08-28 for Timo, who
+            # spent the evening asking and then asked for music.  Both
+            # scored, so no golden for the roster's standing reason; what
+            # each claims about itself is asserted directly below, the
+            # way `blues.ges`'s claims are.  A Friday blues whose second
+            # chorus is the first one an octave down and softer, and
+            # whose third opens in stop-time —
+            # `test_the_friday_blues_goes_quiet_then_stops`.
+            "perjantai.ges",
+            # An instrumental in the shape of a lyric: a refrain in 7/8,
+            # a 7/4 riff whose lowest note lands on beat five, a humppa
+            # on Timo's beat, and a silence where the friends were —
+            # `test_tiksi_counts_its_sevens`.
+            "tiksi.ges"]
 
 #: The ones with committed golden buffers — all of them, now.  `knob.ges`
 #: had none for as long as the interpreter and the engine disagreed about
@@ -1003,3 +1017,110 @@ def test_the_blues_writes_its_phrase_once():
     (a0, b0, _), (a1, b1, _) = call[0], call[1]
     assert (b0 - a0, b1 - a1) == (64, 32)
     assert a0 == 0 and a1 == b0 and b1 == BLUES_BEAT
+
+
+# ── `perjantai.ges` — a Friday blues that goes quiet, then stops ─────────────
+
+
+def test_the_friday_blues_goes_quiet_then_stops():
+    """**The header's three claims, asserted.**
+
+    `examples/audio/perjantai.ges` says its second chorus is the first
+    one with the comp out, the lead an octave down and everything
+    softer; that its third opens in stop-time, the band hitting the one
+    and nothing else for four bars; and that every eighth note is swung
+    by the same arithmetic as `blues.ges`.  None of those is a matter of
+    taste, and none would be checked by a golden of the samples.
+    """
+    from gestate.audioscore import perform_voices
+
+    bpm, events = perform_voices((AUDIO_DIR / "perjantai.ges").read_text(),
+                                 "", 4000, 0)
+    assert bpm == 92
+    chorus = 12 * BLUES_BAR
+
+    # Chorus two is chorus one, twelve bars later, an octave down, at
+    # two thirds of the velocity — and the comp is silent in it.
+    lead = [e for e in events if e[2] == "lead"]
+    first = [(a, b, ns) for a, b, _, ns in lead if a < chorus]
+    second = [(a - chorus, b - chorus, ns) for a, b, _, ns in lead
+              if chorus <= a < 2 * chorus]
+    assert first and len(first) == len(second)
+    for (a0, b0, n0), (a1, b1, n1) in zip(first, second):
+        assert (a0, b0) == (a1, b1)
+        assert n1 == tuple((k - 12, v * 2 // 3) for k, v in n0)
+    assert not [e for e in events
+                if e[2] == "comp" and chorus <= e[0] < 2 * chorus]
+
+    # Stop-time: bars 25-28 have one bass note each, on the one.
+    stop = [e[0] for e in events
+            if e[2] == "bass" and 2 * chorus <= e[0] < 2 * chorus + 4 * BLUES_BAR]
+    assert stop == [2 * chorus + i * BLUES_BAR for i in range(4)]
+
+    # The first swung pair: two thirds of a beat, then one third.
+    (a0, b0, _), (a1, b1, _) = first[0], first[1]
+    assert (b0 - a0, b1 - a1) == (64, 32) and a1 == b0
+
+    # Three choruses and a six-beat tag, and the bass has the last word.
+    assert max(e[1] for e in events) == 3 * chorus + 6 * BLUES_BEAT
+
+
+# ── `tiksi.ges` — two sevens, a humppa, and a silence ────────────────────────
+
+
+def test_tiksi_counts_its_sevens():
+    """**What the file says about its bars, measured in ticks.**
+
+    `examples/audio/tiksi.ges` has no time signature anywhere in it —
+    gestate has none — and claims three things about the meter its
+    durations imply.  The refrain is in 7/8: the bass riff is seven
+    eighths and the bars are three and a half beats long.  The section
+    after it is in 7/4 and its riff's *lowest note lands on beat five*,
+    which is the mechanism that groups the seven as 4+3 without an
+    accent.  And the humppa carries Timo's beat exactly as he gave it:
+    kick on sixteenths 1, 5 and 8, snare on 3 and 7.
+
+    Plus the one claim that is about silence: the fourth observation,
+    *Ystävät (0)*, has nothing in it but the tick and a low E.
+    """
+    from gestate.audioscore import perform_voices
+
+    beat = BLUES_BEAT
+    bpm, events = perform_voices((AUDIO_DIR / "tiksi.ges").read_text(),
+                                 "", 4000, 0)
+    assert bpm == 120
+
+    def onsets(bank, lo, hi):
+        return sorted(e[0] for e in events if e[2] == bank and lo <= e[0] < hi)
+
+    # Ystävät (0): beats 120-128, the tick on each bar's one, the bass, nothing else.
+    lo, hi = 120 * beat, 128 * beat
+    assert {e[2] for e in events if lo <= e[0] < hi} == {"tick", "bass"}
+    assert onsets("tick", lo, hi) == [lo, lo + 4 * beat]
+
+    # Lukemat!: beats 128-184, sixteen bars of seven eighths.
+    lo, hi = 128 * beat, 184 * beat
+    bar7_8 = 7 * beat // 2
+    assert onsets("bass", lo, hi) == \
+        [lo + i * bar7_8 + j * (beat // 2) for i in range(16) for j in range(7)]
+
+    # The other seven: beats 184-240, eight bars of 7/4, and in every bar
+    # the bass's lowest note starts on beat five.
+    lo, hi = 184 * beat, 240 * beat
+    for i in range(8):
+        bar = lo + i * 7 * beat
+        notes = [(e[0], e[3][0][0]) for e in events
+                 if e[2] == "bass" and bar <= e[0] < bar + 7 * beat]
+        assert min(notes, key=lambda n: n[1])[0] == bar + 4 * beat
+
+    # Humppa: beats 240-304.  Timo's beat, in sixteenths over two beats.
+    lo, hi = 240 * beat, 304 * beat
+    sixteenth, cell = beat // 4, 2 * beat
+    assert {(o - lo) % cell for o in onsets("kick", lo, hi)} == \
+        {0, 4 * sixteenth, 7 * sixteenth}
+    assert {(o - lo) % cell for o in onsets("snare", lo, hi)} == \
+        {2 * sixteenth, 6 * sixteenth}
+
+    # Merkitään: one hit, and a tick alone four beats later, the last thing.
+    last = max(events, key=lambda e: e[1])
+    assert last[2] == "tick" and last[1] == 341 * beat
