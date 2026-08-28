@@ -81,8 +81,14 @@ antoi suostumuksensa että hänet saa nimetä puussa."*
 
 **What that covers, stated narrowly.**  His name, and that the pieces
 were written for him and carry his beat.  No words of his are quoted:
-his questions were relayed through Henri and are paraphrased where they
-appear.  The `training` column says *not asked* because it is a
+his questions are paraphrased where they appear.
+
+*Corrected the same evening:* this said his questions were *relayed
+through Henri*.  They were not — Henri let him type them himself, at
+this terminal, into Henri's session.  That is the third thing the Mikko
+section below names, separate from naming and training: what he typed
+entered a context window.  Whether he was told that before he wrote is
+Henri's to say, and the row does not claim it.  The `training` column says *not asked* because it is a
 separate question and it was not put to him.
 
 **Where he is named.**  `examples/audio/perjantai.ges` and
