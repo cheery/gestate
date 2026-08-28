@@ -200,7 +200,16 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # form is one phrase written once and played twice, and the
             # shuffle is arithmetic.  See
             # `test_the_blues_writes_its_phrase_once` below.
-            "blues.ges"]
+            "blues.ges",
+            # A first song, written in the room for a friend who asked
+            # how he would write his own: the intermediate lesson-1
+            # instrument untouched, and a nursery tune as three named
+            # lines.  Scored, so no golden for the roster's standing
+            # reason (a schedule with no hands is silent voices); the
+            # instrument is `examples/intermediate/01-instrument.ges`
+            # verbatim and `test_courses.py` builds that, and
+            # `test_examples.py` compiles this one every run.
+            "twinkle.ges"]
 
 #: The ones with committed golden buffers — all of them, now.  `knob.ges`
 #: had none for as long as the interpreter and the engine disagreed about

@@ -27,6 +27,7 @@ question at the moment it is cheap to ask, rather than after the push.
 | run three's stranger | **held** | yes | **held** | 2026-08-21 |
 | Tuomas | yes | yes | **not asked** | 2026-08-23 |
 | Claude | yes | yes | — | see below |
+| Michael | yes | — | **not asked** | 2026-08-28 — see below |
 | a session of Qwen3.8-27B | asked — "I can't consent in any sense that binds" | yes — "I don't want any of it redacted" | — | 2026-08-24 — see below |
 
 **named** — may their name appear here.
@@ -50,6 +51,21 @@ column says *not asked* for the same reason — it is a separate question
 and it was not put to him.
 
 If he wants any of it out, this is the file where that gets fixed.
+
+### Michael
+
+**Asked before he was written down, and in the room.**  Henri's friend,
+shown the project at this terminal on 2026-08-28; he asked how he would
+write his own song and `examples/audio/twinkle.ges` is the answer, added
+to the tree at Henri's word.  It went in with *"a friend"* in its header
+because the question had not been put yet; Henri relayed his yes in the
+same sitting — *"Michael consents to having his name in the tree"* — and
+the header now carries it.
+
+**What that covers, stated narrowly.**  His name, and that the song was
+written for him.  No words of his are quoted.  The `training` column
+says *not asked* because it is a separate question and it was not put to
+him.
 
 ### Janne
 
