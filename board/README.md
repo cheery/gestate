@@ -77,6 +77,11 @@ still the tiebreak between two workable cards, and it is still his.
     the corner is findable by somebody who has never seen it — cannot be
     answered by any session, at any position in this list.  A card that
     cannot be worked does not belong above cards that can.
+7. **[online](online.md)** — gestate, the audio production tool, in a
+   browser tab: the vision's opening line for a person who is not at
+   this desk.  Michael's ask, 2026-08-28, relayed by Henri.  *Placed
+   last by the session that wrote it, at the end of a sitting, because
+   three of its six questions are still his — his to move.*
 
 **And the criterion has been checked once, on 2026-08-19, and it lost**
 — `journal.md` §"And what the day says about the board".  Ordering by
