@@ -15,6 +15,12 @@ metadata:
   and declined on the day, on the tree's own grounds: an unrequested
   number is a number nobody checks (F169, `doc/instruments.md`).  The
   missing capability that day was a desk crank, not a tool.
+* **Never call `stop` with a question of your own still out.**  The one
+  moment to close is when the thing he came for is done, and a reply
+  that ends *give me the title when you want a commit* has not finished
+  it — he has to sit down again to answer.  Henri, 2026-08-28, at the
+  first fire: *"you closed it too early since you had a question."*
+  Ask, get the answer, land it, then close.
 
 **Why: private, at Henri's call, 2026-08-24.**  `tools/limit.sh` was
 built on 2026-08-21 against a focus problem — *"one small thing, then it

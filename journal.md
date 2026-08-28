@@ -2469,3 +2469,19 @@ the way the card now says, live or copy by his line.  And three
 decisions standing, restated so they cannot lapse quietly: live or
 copy; what F88's finding earns; which row of the gap table matches the
 days.
+
+## The first fire, 2026-08-28
+
+`keeper.md` was adopted 2026-08-21 and held for the first time a week
+later, in one sitting, with a session drafting acts 1, 3 and 4 and
+shaping act 2.  The lamps were green — rules 1,989 of 2,000, journal
+2,471 of 8,000, no rotation due.  Three decisions were in the batch and
+all three took a line each: `card:memory-atrophy.md` move 2 at reading
+(a); `card:installation-test.md` given its event — tend, when it has
+matured; `card:premeditatio-malorum.md` question 1 — the page.  The
+rule measured was the sitting limit, whose meter said 39 reached and 34
+re-taken, and the verdict was his: *held*, with a wish for break
+signalling that nobody built.  The pile pass found seven shelved cards,
+four sediment and three half on him, and the three are the batch above.
+About half an hour.  He asked *"are we done here?"* and the session
+closed the sitting on that fact.

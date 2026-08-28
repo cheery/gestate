@@ -246,3 +246,16 @@ different model, on this same project; and the next prompt here was
 04:22.  That is not a defect in the hook, and it is not the hook's
 business to fix.  It is the scope, written down so that the instrument
 is never mistaken for a guarantee about the day.
+
+## Measured against a week, 2026-08-28 — the first fire
+
+`tools/sittings.py --days 7`: 62 sittings, 33h55m at the desk, the
+limit reached 39 times and the desk taken again straight after 34 of
+them (the first two days are an upper bound).  Henri: *"I see the
+sitting limit is working now, but it could use signaling for keeping
+breaks.  The situation has improved a lot and things are measurable
+now."*  Outcome: **held** — no session extended a sitting; the
+re-takings are his grants, typed cold, which is what the rule allows.
+The break signal is a capability he asked for and nothing has built;
+it stays his to pull, because a signal a session added on its own is
+the posture nagger F169 refuses.

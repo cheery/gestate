@@ -230,8 +230,13 @@ all.  *Open, 2026-08-21.*
   the rule from memory, then open it.
 * **Move 3 — 2026-08-24.**  `spec/rules.md` §"Why there is a cap at all"
   carries the second reason, in the card's words.
+* **Move 2 — 2026-08-28, at the first fire: reading (a).**  A session
+  answers with a question only when he asks about `vision.md` or the
+  five method documents.  Henri: *"(a), I think that I'm remembering
+  things again."*  The narrowest reading, and the trigger the card
+  waits on — an instance turning up — is unchanged.
 
-*Moves 2 and 4 are not taken.*  This card finishes when all four moves have been taken or
+*Move 4 is not taken.*  This card finishes when all four moves have been taken or
 explicitly declined — and it may sit open for months by design, which is
 what "slowly into use over time" was asked for.  A move landed gets one
 line here with its date; the story goes in `journal.md`.*

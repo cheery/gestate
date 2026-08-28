@@ -48,3 +48,6 @@ Henri's, because it edits the five documents and `spec/author.md` is his
 [[sediment-versus-debt]], [[the-tree-meets-people-on-pull]].
 
 The conversation this came from is `journal.md` §"Five questions at the fire".
+
+**First held 2026-08-28**, one sitting, about half an hour, three decisions
+in the batch and one rule measured — `journal.md` §"The first fire, 2026-08-28".

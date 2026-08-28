@@ -74,6 +74,10 @@ carries his use of the second half, on trust.
 ## Questions
 
 **1. Is the deliverable a page, or a section in an existing one?**
+*Answered 2026-08-28, at the first fire: "the page."*  A page in
+`doc/`, written by a session, and not a section of `spec/author.md` —
+the cap had 11 lines to spare that evening.  Still shelved; it wakes
+when he asks for the lesson.
 `card:git-lesson.md` produced `doc/reading-the-log.md`, a page.  This
 one may instead be a short section of `spec/author.md` — where the
 sources of the method are to be credited at all — in which case it is

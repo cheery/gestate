@@ -33,6 +33,13 @@ below still holds.  It comes back the way it left — by him saying so —
 and if it comes back wanting a lighter instrument than a container, that
 is a real question this shelving has surfaced rather than buried.
 
+**Event named, 2026-08-28, at the first fire.**  The pile pass found
+this card waiting on him rather than on an event, and he named one:
+*"when tend is matured a bit, we will use tend to do the installation
+test."*  So the instrument is `~/tend`, not podman, and the card is
+sediment until tend can carry a fresh machine — see
+`doc/memory/tend-the-workspace-tree.md`.
+
 ## The ask
 
 > I did install gestate to most recent ubuntu 26.04 LTS on worklaptop,
