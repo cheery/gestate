@@ -441,6 +441,34 @@ repair; that test holds it now.
 
 No uncertain verdict; the trip-wire did not fire.
 
+### The second Friday review — 2026-08-28, drawn at random
+
+Three drawn by `awk '/^### F[0-9]+\\./{e=$2} /^gate:/{print e}' fixme.md |
+shuf -n 3`: **F139, F116, F119**.  Henri, on the act itself: *"What I am
+supposed to do here exactly?  Disagree means what in this context?  Also
+I wonder whether this is a too big task for a person."*  Disagree means:
+assume the verdict is wrong and look for how — the measurement is not
+what it says, the gate holds the wrong thing, or a `none` is an excuse.
+
+His verdict: *"I'm not sure any of these are wrong, but.. I think I see
+too little now."*  None of the three overturned.  And on F119, a
+reading the entry did not have: *"I think the caret anchored the scroll
+used to be a feature, then it became a nonfeature as the program grew."*
+The history agrees — the follow-on-arrival is from `66d8fb0`, the first
+Rust editor commit, and was right while a description meant furniture
+had changed; the transport readout describing every beat arrived two
+days later and the same rule became the anchor.  The rule never broke,
+the traffic around it changed, so `follow` was never wrong and no test
+of it can hold this; only the handler can, which is where the `none —
+not yet built` already points.
+
+**"I see too little" is the finding**, and it is on the sessions' side:
+a gate line records what was measured and not what to doubt.  **From
+batch 9 on, every `gate:` line ends with the one place its verdict is
+weakest** — the caller a unit test does not reach, the half a `partial`
+leaves bare, the cost claim behind a `none` — so a Friday is three
+sentences to read and not three entries to reconstruct.
+
 ## The schedule — heijunka, adopted 2026-08-18
 
 *Henri:* **"so it's a question of heijunka.  We need to balance the
