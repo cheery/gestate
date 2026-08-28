@@ -412,6 +412,35 @@ corrected.
 
 No uncertain verdict; the trip-wire did not fire.
 
+### Batch 8 — 2026-08-28, the Friday it was due
+
+Five verdicts, all five measured by mutation against a targeted set of
+17 language test files, 316 tests, 37 seconds; three gates written, and
+one repair that holds nothing.
+
+F49 and F51 are clean: the wrap dropped from `Cyclic` arithmetic, 5 red
+with `test_cyclic_arithmetic_wraps` among them; the δ-`let` put back to
+binding only the change, 12 red with the every-sugar closure among them,
+the tuple pattern the entry names.  F54 is two files that were always
+its gate and never said so — `test_strings.py` and `test_deriving.py`,
+217 and 17 red under the two mutations that matter — and both name it
+now.
+
+F52 is the F77 shape a fourth time: `_close_inner_blocks` made a no-op
+and 233 of 316 red, because the prelude's `Functor List` is a multi-line
+member and nothing after it parses.  Two parse-only tests name the form
+now, red on the mutation alone.
+
+**F48 is the one to read**: the placeholder `ENum(0)` put back in the
+slot and **316 green**.  The synthetic `Num` instance that first
+projected it defines all four methods today, so nothing in the tree
+projects an undefined slot, and the repair this entry is named for was
+held by nothing — batch 7's F56 again.  A class of two methods with one
+defined: `0` with the placeholder, an error naming the method with the
+repair; that test holds it now.
+
+No uncertain verdict; the trip-wire did not fire.
+
 ## The schedule — heijunka, adopted 2026-08-18
 
 *Henri:* **"so it's a question of heijunka.  We need to balance the

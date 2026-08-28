@@ -141,6 +141,8 @@ def test_division_by_zero_is_reported():
 def test_cyclic_arithmetic_wraps():
     """Every operation returns to the range, not only `fromInteger`.
 
+    `fixme.md` F49, and the instance half of F48.
+
     The synthetic `Num` instance used to define `fromInteger` alone, so
     `+`/`-`/`*` projected an undefined dictionary slot — which held a
     number, and `Unwind` on a number ignores the spine, so `x + y` quietly

@@ -6,6 +6,8 @@ passing and code generation on exactly the path a hand-written instance
 takes.  That is what makes a parameterised type work without a special
 case: `Wrap a := W a deriving Show` derives `(Show a) => Show (Wrap a)`,
 and the field's dictionary is threaded like any other.
+
+This file is `fixme.md` F54's gate, with `test_strings.py`.
 """
 
 from __future__ import annotations

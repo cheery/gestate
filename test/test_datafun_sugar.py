@@ -122,7 +122,7 @@ def test_a_box_pattern_is_irrefutable():
                     "main : Int\nmain = k (Box 3)\n") == "3"
 
 
-# ── All of it at once ────────────────────────────────────────────────────────
+# ── All of it at once — and `fixme.md` F51, the `let` a tuple pattern makes ──
 
 
 def test_transitive_closure_with_every_sugar():

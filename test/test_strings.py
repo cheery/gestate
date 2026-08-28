@@ -4,6 +4,8 @@
 represented as an integer.  Making it an alias rather than a primitive is
 what lets every list function, `Eq (List a)` and `Show (List a)` apply to
 strings without a second implementation.
+
+This file is `fixme.md` F54's gate, with `test_deriving.py`.
 """
 
 from __future__ import annotations

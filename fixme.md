@@ -787,6 +787,19 @@ so `x + y` evaluated to `0` at every `Cyclic` type.  The slot now holds an
 undefined global, which fails if projected and is inert otherwise, and
 the synthetic instance defines all four methods.
 
+gate: `test/test_arith.py::test_cyclic_arithmetic_wraps` for the instance
+half, and `test/test_dictionaries.py::test_an_undefined_method_slot_fails_when_projected`
+— written 2026-08-28 — for the placeholder.  **Measured 2026-08-28, and the
+two halves are held separately.**  `+`/`-`/`*` dropped from
+`_make_num_instance` again: 40 of 316 in the targeted set red, the
+`Cyclic` test among them.  `ENum(0)` put back in the slot: **316 green** —
+nothing in the tree projected an undefined slot any more, because the
+synthetic instance defines all four methods, so the repair this entry is
+named for was held by nothing.  The new test is a class of two methods,
+an instance defining one, and `main = second2 5`: `0` with the
+placeholder back, `unknown global '__undefined_Two_second2__'` with the
+repair.
+
 ### F49. **[resolved]** `Cyclic n` arithmetic did not wrap
 
 Only `fromInteger` reduced mod `n`; `+`/`-`/`*` (once they existed at all,
@@ -796,6 +809,13 @@ arithmetic: the fixtype rule takes `Cyclic n` for a finite type, and a
 deliver.  `Bounded lo hi` still does not confine its values
 (`main : 0 .. 3; main = 7` gives 7), so it is deliberately *not* counted
 as a finite eqtype until its `fromInteger` clamps or wraps.
+
+gate: `test/test_arith.py::test_cyclic_arithmetic_wraps`.  **Measured
+2026-08-28**: the wrap dropped from `+`/`-`/`*` in `_num_body` and 5 of
+316 in the targeted set red — this test, and four fixed-point tests that
+converge only because `Cyclic n` is finite, which is the entry's own
+second point.  The `Bounded` half above is still open and the gate does
+not claim it.
 
 ### F29. **[partly resolved]** Property tests and examples exist; golden ASTs do not
 
@@ -1200,6 +1220,15 @@ is now `let x = ϕe ; dx = δe in δf`.  Nothing exercised it before because
 no desugaring produced a `let` inside a Datafun-transformed body; tuple
 patterns do.
 
+gate: `test/test_datafun_sugar.py::test_transitive_closure_with_every_sugar`
+— the tuple pattern `(x, y) in r` the entry names, inside a `fix`.
+**Measured 2026-08-28**: the `let` put back to `let x = δe in δf` and 12
+of 316 in the targeted set red — this test, five closures in
+`test_relations.py`, five in `test_comprehensions.py`, and
+`test_manual.py`'s product fixpoint.  The entry said nothing exercised the
+path when it was found; the comprehension sugar that landed after it
+exercises nothing else.
+
 ### F52. **[resolved]** A block inside a `class`/`instance` body, or inside a `case` alternative, ended the enclosing block
 
 `_parse_case` leaves its closing `DEDENT` for the caller — at the top level
@@ -1209,6 +1238,15 @@ same `DEDENT` read as the end of the *body*, and inside a `case`
 alternative as the end of the *match*: every member or alternative after a
 multi-line one silently moved out.  `Parser._close_inner_blocks` counts
 what the member opened and consumes exactly those.
+
+gate: `test/test_dictionaries.py::test_a_multi_line_member_does_not_end_the_instance_body`
+and `::test_a_multi_line_alternative_does_not_end_the_match`, written
+2026-08-28, parse only — and the prelude, hard.  **Measured 2026-08-28**:
+`_close_inner_blocks` made a no-op and 233 of 316 in the targeted set red,
+because `Functor List` at `prelude.ges:39` is a multi-line member and
+nothing after it parses.  The F77 shape again: held by the prelude, named
+by nothing until today.  The two new tests are red on the mutation alone,
+without the prelude.
 
 ### F53. **[resolved]** Nested `case`s shared subject names
 
@@ -1247,6 +1285,15 @@ literals were dropped in favour of it; `chr` covers the gap.
 `String` *is* `List Char` and coherence forbids an instance overlapping
 `Show (List a)`.  `deriving Ord` needs a way to compare constructor
 positions, which the surface language cannot name.
+
+gate: `test/test_strings.py` and `test/test_deriving.py` — the two files,
+26 and 19 tests, each written for this entry's landing and neither naming
+it until today.  **Measured 2026-08-28**, one mutation for each of the two
+load-bearing bullets: the `String` alias dropped from `declarations.py`
+and 217 of 316 in the targeted set red, all 26 of `test_strings.py` among
+them (the prelude reads `String`); `_with_derived` bypassed and 17 red,
+all of them in `test_deriving.py`.  The *Not done* paragraph above is
+still not done, and the gate does not claim it.
 
 ### F55. **[resolved]** Ambiguity was resolved one predicate at a time
 

@@ -13,6 +13,7 @@ from gestate.constraint import match_head
 from gestate.declarations import classify
 from gestate.elaborate import elaborate
 from gestate.expr import EAp, EGlobal, EProj, ETuple
+from gestate.gmachine import GmError
 from gestate.pipeline import evaluate
 from gestate.syntax import parse
 from gestate.types import TApp, TCon, TVar
@@ -270,3 +271,60 @@ def test_a_number_applied_to_arguments_says_so_first(tmp_path):
     assert "typo.ges:5" in bench.trouble, "not the file's own position"
     assert _line_of(bench.trouble, "typo.ges") == 5, \
         "the content box has no line to anchor under"
+
+
+# ── A block inside a member, or inside an alternative — `fixme.md` F52 ───────
+
+
+def test_a_multi_line_member_does_not_end_the_instance_body():
+    """`_parse_case` leaves its closing `DEDENT` for the caller, and inside
+    a `class`/`instance` body that `DEDENT` read as the end of the *body*:
+    every member after a multi-line one silently moved out to the top
+    level.  The prelude holds the form hard — `Functor List` at
+    `prelude.ges:39` is a multi-line member — and this names it, parse
+    only, so a tidy-up there cannot take the gate away without a line
+    changing colour."""
+    module = parse("instance Two Int where\n"
+                   "  first2 x = case x of\n"
+                   "    0 -> 1\n"
+                   "    n -> n\n"
+                   "  second2 x = x + 100\n"
+                   "\n"
+                   "main : Int\nmain = 1\n")
+    kinds = [type(i).__name__ for i in module.items]
+    assert kinds == ["VInstance", "VSig", "VSCDecl"], kinds
+    assert [m.name for m in module.items[0].members] == ["first2", "second2"]
+
+
+def test_a_multi_line_alternative_does_not_end_the_match():
+    """The same `DEDENT`, inside a `case` alternative, read as the end of
+    the *match*: an alternative after a nested multi-line `case` was lost
+    to the enclosing one."""
+    module = parse("f : Int -> Int -> Int\n"
+                   "f x y = case x of\n"
+                   "  0 -> case y of\n"
+                   "    0 -> 1\n"
+                   "    m -> m\n"
+                   "  n -> n\n")
+    (decl,) = [i for i in module.items if type(i).__name__ == "VSCDecl"]
+    body = decl.equations[0].body
+    assert type(body).__name__ == "VCase" and len(body.alts) == 2
+
+
+# ── A slot for an undefined method is loud, not zero — `fixme.md` F48 ────────
+
+
+def test_an_undefined_method_slot_fails_when_projected():
+    """`elaborate` filled a missing method's slot with `ENum(0)`, on the
+    reasoning that a well-typed program never projects it.  It does, and
+    `Unwind` on a number ignores the spine, so the call quietly evaluated
+    to `0`.  The slot holds an unbound global now — inert unless projected,
+    and an error naming the method when it is.  The synthetic `Num
+    (Cyclic n)` instance that first tripped this defines all four methods
+    today (`test_arith.py::test_cyclic_arithmetic_wraps`), so this is the
+    only program left that projects the placeholder."""
+    src = ("class Two a where\n  first2 : a -> Int\n  second2 : a -> Int\n\n"
+           "instance Two Int where\n  first2 x = x\n\n"
+           "main : Int\nmain = second2 5\n")
+    with pytest.raises(GmError, match="second2"):
+        evaluate(src)
