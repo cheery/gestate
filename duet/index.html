@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>duet.ges</title>
+<style>
+  body { margin: 2rem auto; max-width: 48rem; padding: 0 1rem;
+         font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fafaf7; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+  h1 code { font-weight: 600; }
+  .bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .4rem 1.2rem; border: 1px solid #888;
+           border-radius: 4px; background: #fff; cursor: pointer; }
+  button:disabled { color: #999; cursor: default; }
+  #status { color: #555; }
+  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  #check { display: none; }
+  footer { margin-top: 2rem; color: #777; font-size: .9rem; }
+</style>
+</head>
+<body data-stem="duet">
+<h1><code>duet.ges</code></h1>
+<div class="bar">
+  <button id="play" disabled>play</button>
+  <span id="status">loading…</span>
+</div>
+<pre id="source"># A duet: a bass line this file writes, and a lead you play yourself.
+#
+#   python -m gestate.audioperform examples/audio/duet.ges --midi --seconds 12
+#   python -m gestate.audioperform examples/audio/duet.ges -o duet.wav
+#
+# **One program.**  The instruments, the piece and the mix are all here, and
+# that is not tidiness: `voices.bass` names a bank *lexically*, so the type
+# checker can say whether the piece fits the instrument.  Written apart,
+# "does this bass line suit this bass" would be discovered as silence.
+#
+# Two banks, driven from two different places.  `bass` is fed by the `score`
+# below, laid out into timed events and scheduled ahead of time.  `lead` is
+# fed by whatever keyboard is plugged in, one note at a time as they arrive.
+#
+# **A note is the same thing either way**, and that is the point of the
+# example: only *when it is decided* differs.  One `Allocator` serves both,
+# and the engine cannot tell which of its channels was written by a
+# scheduler and which by a hand.
+#
+# **Written before `adsr` and `keyHz`**: the envelope below is a chain of
+# small functions and the pitch table climbs from `8.1758` by hand, which
+# is what those two names now save you.  Read this file for the two-bank
+# shape; imitate `undertow.ges` for the short way to write a voice.
+
+# ── What a note carries ──────────────────────────────────────────────────
+#
+# `Pitched` is this program's **payload** — what a note of these
+# instruments is, and nothing else.  A note's *timing* is not in it: that
+# comes from the layout that placed the note, or from the moment a key went
+# down, and the bank supplies it as `Gate on off` and the payload.
+#
+# So a voice is handed `Both Gate Pitched` and reads whichever half it needs.
+
+Pitched := Pitched Int Int          # key, velocity
+
+voices lead 6 reed : Sig Float
+
+voices bass 3 plucked : Sig Float
+
+# ── Taking a note from a keyboard ────────────────────────────────────────
+#
+# `noteOn` says how a MIDI note becomes a `Pitched` — and `Maybe` lets it
+# decline one.  Here everything is accepted; return `Nothing` for the notes
+# a bank should not answer, and the key simply does not reach it.
+#
+# It says the payload *can* come from MIDI, not that a bank listens.  Both
+# banks here carry `Pitched`, so they share this instance and nothing in
+# the type could tell them apart — which is why "does this bank listen" is
+# a switch in the environment, next to the bank's own line.
+
+instance FromMIDI Pitched where
+    noteOn ch p v = Just (Pitched p v)
+
+# ── Shared shapes ────────────────────────────────────────────────────────
+
+#: MIDI note number to Hz.  `8.1758` is note 0, and each semitone is the
+#: twelfth root of two — which is what `pow` is for.
+hzOf : Int -> Float
+hzOf k = 8.1758 * pow 2.0 (toFloat k / 12.0)
+
+#: The envelope every voice here shares: silent before its note, decaying
+#: while held, and falling away faster once released.
+#:
+#: Written as a chain of small functions rather than nested `case`s because
+#: a `case` alternative may not be broken across lines with a bare operand
+#: (`syntax.md` §"Continuation lines"), and this reads better anyway.
+levelAt : Int -> Int -> Int -> Float -> Float -> Float
+levelAt n on off hold release = case on of
+    0 -> 0.0
+    _ -> afterOn n on off hold release
+
+afterOn : Int -> Int -> Int -> Float -> Float -> Float
+afterOn n on off hold release = case n &lt; on - 1 of
+    True -> 0.0
+    False -> whileHeld n on off hold release
+
+whileHeld : Int -> Int -> Int -> Float -> Float -> Float
+whileHeld n on off hold release = case off of
+    0 -> decay n on hold
+    _ -> afterOff n on off hold release
+
+afterOff : Int -> Int -> Int -> Float -> Float -> Float
+afterOff n on off hold release = case n &lt; off - 1 of
+    True -> decay n on hold
+    False -> decay n off release
+
+decay : Int -> Int -> Float -> Float
+decay n from rate = exp (negate rate * toFloat (n - from + 1)
+                         / sampleRate)
+
+# ── The lead: a reed, played by hand ─────────────────────────────────────
+#
+# A triangle through a gentle filter — it holds while a key is down, so it
+# rewards being played rather than triggered.
+
+Reed := Reed Float Int
+
+stepReed : Reed -> Both Gate Pitched -> Reed
+stepReed r nn = case r of
+    Reed ph t -> pushReed ph t nn
+
+pushReed : Float -> Int -> Both Gate Pitched -> Reed
+pushReed ph t nn = case nn of
+    Both w q -> case w of
+        Gate on off -> bendReed ph t q
+
+bendReed : Float -> Int -> Pitched -> Reed
+bendReed ph t q = case q of
+    Pitched p v -> Reed (wrap (ph + hzOf p / sampleRate)) (t + 1)
+
+outReed : Reed -> Both Gate Pitched -> Float
+outReed r nn = case r of
+    Reed ph t -> reedAt ph t nn
+
+reedAt : Float -> Int -> Both Gate Pitched -> Float
+reedAt ph t nn = case nn of
+    Both w q -> case w of
+        Gate on off -> triangleOf ph * levelAt t on off 0.6 14.0 * 0.25
+
+reed : Sig Gate -> Sig Pitched -> Sig Float
+reed g s = reedFolded (!Both g s)
+
+#: The fold itself, over the two as one — `scan` takes a
+#: single signal, and this is what it takes.
+reedFolded : Sig (Both Gate Pitched) -> Sig Float
+reedFolded s = lowpass 0.5 (zip outReed (scan stepReed (Reed 0.0 0) s) s)
+
+# ── The bass: plucked, played by the score ───────────────────────────────
+#
+# A sawtooth, filtered harder, decaying on its own whether or not the note
+# is released — a plucked string does not sustain because you keep holding
+# it.
+
+Pluck := Pluck Float Int
+
+stepPluck : Pluck -> Both Gate Pitched -> Pluck
+stepPluck v nn = case v of
+    Pluck ph t -> pushPluck ph t nn
+
+pushPluck : Float -> Int -> Both Gate Pitched -> Pluck
+pushPluck ph t nn = case nn of
+    Both w q -> case w of
+        Gate on off -> bendPluck ph t q
+
+bendPluck : Float -> Int -> Pitched -> Pluck
+bendPluck ph t q = case q of
+    Pitched p v -> Pluck (wrap (ph + hzOf p / sampleRate)) (t + 1)
+
+outPluck : Pluck -> Both Gate Pitched -> Float
+outPluck v nn = case v of
+    Pluck ph t -> pluckAt ph t nn
+
+pluckAt : Float -> Int -> Both Gate Pitched -> Float
+pluckAt ph t nn = case nn of
+    Both w q -> case w of
+        Gate on off -> sawOf ph * levelAt t on off 3.5 18.0 * 0.3
+
+plucked : Sig Gate -> Sig Pitched -> Sig Float
+plucked g s = pluckedFolded (!Both g s)
+
+#: The fold itself, over the two as one — `scan` takes a
+#: single signal, and this is what it takes.
+pluckedFolded : Sig (Both Gate Pitched) -> Sig Float
+pluckedFolded s = lowpass 0.18 (zip outPluck (scan stepPluck (Pluck 0.0 0) s) s)
+
+# ── The piece ────────────────────────────────────────────────────────────
+#
+# `[: Pitched :]` — a score over *this program's own payload*, not over MIDI
+# key numbers that happen to mean something.  `voices.bass` assigns it to
+# the bank, and the result is `[: Void :]`: every note committed, checked.
+#
+# Try `voices.lead` instead and the piece plays on the reed — the payload
+# types agree, so it is a one-word change.  Give `lead` a different payload
+# and the same edit becomes a type error, which is the guarantee that
+# replaced "did you remember an instrument".
+
+bpm : Int
+bpm = 96
+
+#: Four bars over A minor, one note a beat, the fifth walking up to the next
+#: root — the shape that leaves room above it for a hand.
+walk : [: Pitched :]
+walk = '(Pitched 45 90) ++ '(Pitched 52 70) ++ '(Pitched 48 80) ++ '(Pitched 55 70)
+    ++ '(Pitched 41 90) ++ '(Pitched 48 70) ++ '(Pitched 45 80) ++ '(Pitched 52 70)
+    ++ '(Pitched 43 90) ++ '(Pitched 50 70) ++ '(Pitched 47 80) ++ '(Pitched 54 70)
+    ++ '(Pitched 45 90) ++ '(Pitched 52 70) ++ '(Pitched 48 80) ++ '(Pitched 43 70)
+
+score : [: Void :]
+score = walk >>= voices.bass
+
+# ── The mix ──────────────────────────────────────────────────────────────
+#
+# Each bank's name is bound to the *sum* of its voices, so mixing them is
+# ordinary signal arithmetic and needs nothing the language did not have —
+# and since `instance Num (Sig Float)`, "ordinary arithmetic" means the
+# arithmetic it looks like.  This line used to read
+# `addSig (gain 0.7 lead) (gain 1.0 bass)`, which is the same sum spelled
+# as a call to the thing `+` is built from.
+
+sound : Sig Float
+sound = 0.8 * (0.7 * lead + bass)
+</pre>
+<pre id="check"></pre>
+<footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
+<script src="player.js"></script>
+</body>
+</html>

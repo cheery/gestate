@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>twinkle.ges</title>
+<style>
+  body { margin: 2rem auto; max-width: 48rem; padding: 0 1rem;
+         font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fafaf7; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+  h1 code { font-weight: 600; }
+  .bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .4rem 1.2rem; border: 1px solid #888;
+           border-radius: 4px; background: #fff; cursor: pointer; }
+  button:disabled { color: #999; cursor: default; }
+  #status { color: #555; }
+  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  #check { display: none; }
+  footer { margin-top: 2rem; color: #777; font-size: .9rem; }
+</style>
+</head>
+<body data-stem="twinkle">
+<h1><code>twinkle.ges</code></h1>
+<div class="bar">
+  <button id="play" disabled>play</button>
+  <span id="status">loading…</span>
+</div>
+<pre id="source"># Twinkle Twinkle Little Star — a first song, written in the room on
+# 2026-08-28 for Michael, who had just heard the beginner piece and asked
+# how he would write his own.
+#
+#   python -m gestate.audioperform examples/audio/twinkle.ges -o twinkle.wav
+#   python -m gestate.workbench    examples/audio/twinkle.ges
+#
+# The instrument (top) is lesson 1 of doc/intermediate.md unchanged.
+# The song (bottom) is the part to play with: `n 60` is one beat of
+# middle C, `++` is "then", `|* 2` holds a note for two beats, and the
+# tune is the three lines in the order the song goes.
+Key := Key Int Int                        # key number, velocity
+
+voices lead 4 leadVoice : Sig Float
+
+instance FromMIDI Key where
+    noteOn ch p v = Just (Key p v)
+
+env : Adsr
+env = Adsr 0.01 0.2 0.6 0.35
+
+hzOf : Key -> Float
+hzOf q = case q of
+    Key k v -> keyHz k
+
+velOf : Key -> Float
+velOf q = case q of
+    Key k v -> toFloat v / 127.0
+
+leadVoice : Sig Gate -> Sig Key -> Sig Float
+leadVoice g s = triangle (!hzOf s) * adsr env g * !velOf s
+
+# ── The song ─────────────────────────────────────────────────────────────
+
+bpm : Int
+bpm = 100
+
+#: one note, one beat.  60 is middle C; each step of 1 is a semitone.
+n : Int -> [: Key :]
+n k = '(Key k 90)
+
+#: "twinkle twinkle little star"   C C G G A A G—
+line1 : [: Key :]
+line1 = n 60 ++ n 60 ++ n 67 ++ n 67 ++ n 69 ++ n 69 ++ n 67 |* 2
+
+#: "how I wonder what you are"     F F E E D D C—
+line2 : [: Key :]
+line2 = n 65 ++ n 65 ++ n 64 ++ n 64 ++ n 62 ++ n 62 ++ n 60 |* 2
+
+#: "up above the world so high"    G G F F E E D—   (twice)
+line3 : [: Key :]
+line3 = n 67 ++ n 67 ++ n 65 ++ n 65 ++ n 64 ++ n 64 ++ n 62 |* 2
+
+tune : [: Key :]
+tune = line1 ++ line2 ++ line3 ++ line3 ++ line1 ++ line2
+
+score : [: Void :]
+score = tune >>= voices.lead
+
+sound : Sig Float
+sound = gain 0.3 lead
+</pre>
+<pre id="check"></pre>
+<footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
+<script src="player.js"></script>
+</body>
+</html>

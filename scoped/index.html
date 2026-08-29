@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>scoped.ges</title>
+<style>
+  body { margin: 2rem auto; max-width: 48rem; padding: 0 1rem;
+         font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fafaf7; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+  h1 code { font-weight: 600; }
+  .bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .4rem 1.2rem; border: 1px solid #888;
+           border-radius: 4px; background: #fff; cursor: pointer; }
+  button:disabled { color: #999; cursor: default; }
+  #status { color: #555; }
+  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  #check { display: none; }
+  footer { margin-top: 2rem; color: #777; font-size: .9rem; }
+</style>
+</head>
+<body data-stem="scoped">
+<h1><code>scoped.ges</code></h1>
+<div class="bar">
+  <button id="play" disabled>play</button>
+  <span id="status">loading…</span>
+</div>
+<pre id="source"># scoped.ges — a scope on a playing signal, drawn — `spec/scope.md`.
+#
+#   python -m gestate.workbench examples/audio/scoped.ges
+#
+# Open the canvas and the trace is the sound: `scope "post"` keeps the
+# window of samples flowing through it, the engine publishes the ring,
+# and the picture below is an ordinary substrate folding the points
+# into rects.  A scope is not a widget — it is a substrate somebody
+# writes, and this file is the somebody.
+
+#: The trace arrives here: 128 points, the scope's window downsampled
+#: by max-absolute per bucket (`Workbench.TRACE_POINTS`).
+post : Chan (List Float)
+post = chan
+
+#: Something worth watching: a slow wobble on the level, so the trace
+#: breathes where a bare tone would stand still.
+wobble : Sig Float
+wobble = 0.5 + 0.4 * sine 0.4
+
+sound : Sig Float
+sound = scope "post" (0.3 * wobble * sine 220.0)
+
+night : Colour
+night = RGB 32 35 43
+
+lit : Colour
+lit = RGB 122 200 235
+
+#: One dot per point, placed at its value's own height — a waveform,
+#: drawn by recursion over the list like `ladder.ges` counts keys.
+dots : Int -> List Float -> Sub
+dots i ps = case ps of
+    Nil -> Gap 0 0
+    p :: rest -> Over (Shift (i * 3 - 192) (floor (p * 300.0))
+                             (Rect 2 3 lit))
+                      (dots (i + 1) rest)
+
+face : List Float -> Sub
+face ps = Over (Rect 400 140 night) (dots 0 ps)
+
+substrate : Sig Sub
+substrate = !face (Nil ::: mkSig (wait post))
+</pre>
+<pre id="check"></pre>
+<footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
+<script src="player.js"></script>
+</body>
+</html>

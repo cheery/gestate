@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pingpong.ges</title>
+<style>
+  body { margin: 2rem auto; max-width: 48rem; padding: 0 1rem;
+         font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fafaf7; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+  h1 code { font-weight: 600; }
+  .bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .4rem 1.2rem; border: 1px solid #888;
+           border-radius: 4px; background: #fff; cursor: pointer; }
+  button:disabled { color: #999; cursor: default; }
+  #status { color: #555; }
+  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  #check { display: none; }
+  footer { margin-top: 2rem; color: #777; font-size: .9rem; }
+</style>
+</head>
+<body data-stem="pingpong">
+<h1><code>pingpong.ges</code></h1>
+<div class="bar">
+  <button id="play" disabled>play</button>
+  <span id="status">loading…</span>
+</div>
+<pre id="source"># PINGPONG - a performance that only makes sense in two ears.
+#
+#   python -m gestate.export examples/audio/pingpong.ges -o pingpong.clap
+#
+# Three stereo statements, each on the renderer's clock: a pluck that
+# alternates ears on the beat (the DAW's beat - drag the tempo and the
+# bounce follows), a bed of two saws detuned across the field, and a
+# noise swoosh crossing slowly from left to right and back.  Mono it
+# and the piece collapses to a metronome; that is the point.
+
+bpm : Int
+bpm = 124
+
+#: The ping and the pong: even beats left, odd beats right, a fifth
+#: apart so the ears cannot be confused.
+pingEnv : Sig Float
+pingEnv = map (b => exp (negate 14.0 * wrap (b / 2.0))) beat
+
+pongEnv : Sig Float
+pongEnv = map (b => exp (negate 14.0 * wrap ((b + 1.0) / 2.0))) beat
+
+ping : Sig Float
+ping = triangle 440.0 * pingEnv * 0.6
+
+pong : Sig Float
+pong = triangle 660.0 * pongEnv * 0.6
+
+#: The bed: one saw per ear, seven cents apart - width as detune.
+bedL : Sig Float
+bedL = 0.16 * lowpassSvf 900.0 0.3 (saw 110.0)
+
+bedR : Sig Float
+bedR = 0.16 * lowpassSvf 900.0 0.3 (saw 110.45)
+
+#: The swoosh: filtered noise whose home crosses the field once every
+#: sixteen beats - `beatRate` keeps even the drift on the conductor.
+#: (`* 0.0625`: signals multiply but do not divide - no `Div (Sig
+#: Float)` instance, deliberately.)
+crossing : Sig Float
+crossing = unipolar (sine (beatRate * 0.0625))
+
+wash : Sig Float
+wash = 0.12 * bandpassSvf 2400.0 0.4 (white 11)
+
+sound : Sig Stereo
+sound = !Stereo (brickwall 0.9 (ping + bedL + wash * crossing))
+                (brickwall 0.9 (pong + bedR + wash * (1.0 - crossing)))
+</pre>
+<pre id="check"></pre>
+<footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
+<script src="player.js"></script>
+</body>
+</html>

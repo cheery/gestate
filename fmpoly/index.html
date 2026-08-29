@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>fmpoly.ges</title>
+<style>
+  body { margin: 2rem auto; max-width: 48rem; padding: 0 1rem;
+         font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fafaf7; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+  h1 code { font-weight: 600; }
+  .bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .4rem 1.2rem; border: 1px solid #888;
+           border-radius: 4px; background: #fff; cursor: pointer; }
+  button:disabled { color: #999; cursor: default; }
+  #status { color: #555; }
+  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  #check { display: none; }
+  footer { margin-top: 2rem; color: #777; font-size: .9rem; }
+</style>
+</head>
+<body data-stem="fmpoly">
+<h1><code>fmpoly.ges</code></h1>
+<div class="bar">
+  <button id="play" disabled>play</button>
+  <span id="status">loading…</span>
+</div>
+<pre id="source"># Six-voice FM: an electric piano, wired rather than chosen.
+#
+#   python -m gestate.audioperform examples/audio/fmpoly.ges -o fmpoly.wav
+#   python -m gestate.audioperform examples/audio/fmpoly.ges --midi --seconds 20
+#   python -m gestate.audioeditor examples/audio/fmpoly.ges
+#
+# `fm.ges` is one FM voice with the operators soldered together.  This is
+# the same idea with `synth.ges`'s four-operator bank underneath, and the
+# difference is the whole point of the example: **the algorithm is a value
+# in this file**, so changing which operator feeds which is editing a
+# matrix rather than rewriting the voice.
+#
+# ── Reading the wiring ───────────────────────────────────────────────────
+#
+# `modulates src dst amount` — three edges and the rest is silence:
+#
+#     modulates 2 1 1.10     -- op 2 drives op 1: the body
+#     modulates 2 2 0.18     -- op 2 drives itself: feedback
+#     modulates 4 3 0.55     -- op 4 drives op 3: the tine
+#
+# This was a sixteen-number `Matrix` literal with a comment beside each row
+# saying which number meant what, which is a data structure telling you it
+# is wrong for writing.  It is still that matrix underneath — `synth.ges`
+# builds it and the extractor folds the construction away, bit-identically.
+#
+# The diagonal is feedback and needs no separate mechanism, because every
+# operator already reads the *previous* sample's outputs — see `synth.ges`.
+# Operator 2 modulating itself is what gives the tine its bite, and it is
+# one number: turn 0.18 to 0.0 and the attack goes soft.
+
+#: This program's payload — what a note of this instrument *is*.
+#:
+#: Called `Key` and not `Note`, which is not a style choice: `music.ges`
+#: declares `Score a := Note a`, so a performance already has a `Note`
+#: constructor and `'x` desugars to it.  Shadowing it makes every `'`
+#: in the piece below a one-argument pattern against a two-argument
+#: constructor.
+Key := Key Int Int                        # key number, velocity
+
+voices keys 6 tine : Sig Float
+
+instance FromMIDI Key where
+    noteOn ch p v = Just (Key p v)
+
+# ── The patch ────────────────────────────────────────────────────────────
+#
+# Two pairs.  Operators 1 and 2 are the *body* — a 1:1 pair, so the tone is
+# harmonic and sounds like a pitched note.  Operators 3 and 4 are the
+# *tine*: 14× is far above the fundamental and not a whole-number multiple
+# of anything else here, which is what makes the attack read as a struck
+# metal bar rather than as a louder note.
+
+piano : Patch
+piano = Patch (Quad 1.0 1.0 1.0 14.0)
+              (modulates 2 1 1.1 (modulates 2 2 0.18
+                  (modulates 4 3 0.55 noWiring)))
+              (Quad 0.85 0.0 0.35 0.0)
+
+#: **Four envelopes, one per operator, and this is what makes it an
+#: instrument.**  A single envelope over the whole bank would fade a fixed
+#: timbre in and out.  Giving the modulators their own — faster ones — means
+#: the *brightness* decays ahead of the loudness, which is what every struck
+#: string and every real electric piano does.
+
+bodyEnv : Adsr
+bodyEnv = Adsr 0.002 2.4 0.28 0.35
+
+#: The modulator that shapes the body.  Shorter decay and no sustain floor
+#: worth speaking of: the note mellows as it rings.
+bodyModEnv : Adsr
+bodyModEnv = Adsr 0.001 0.9 0.06 0.2
+
+#: The tine.  Almost all decay — it is an attack transient, not a tone.
+tineEnv : Adsr
+tineEnv = Adsr 0.0 0.35 0.0 0.1
+
+tineModEnv : Adsr
+tineModEnv = Adsr 0.0 0.14 0.0 0.08
+
+# ── The voice ────────────────────────────────────────────────────────────
+#
+# A `voices` bank hands each voice a `Sig Gate` and a `Sig Key` — when the note
+# began, when it was released, and this program's own payload.  Everything
+# below reads one of those three.
+
+#: What the bank is fed each sample: the note's frequency, and a level for
+#: each of the four operators.
+#:
+#: This *is* the instrument.  Everything below it is `synth.ges`'s `fm`,
+#: and everything above it is four envelopes; this one function is where
+#: they meet.
+tineLevels : Int -> Both Gate Key -> Quad
+tineLevels t nn = case nn of
+    Both w q -> case w of
+        Gate on off -> Quad
+            (adsrOf bodyEnv t on off) (adsrOf bodyModEnv t on off)
+            (adsrOf tineEnv t on off) (adsrOf tineModEnv t on off)
+
+#: The pitch.  Two functions where there was one, because `fm` takes the
+#: frequency and the levels apart — the `Drive` that used to hold them
+#: together was a `zip`'s step record and is `synth.ges`'s business now.
+#:
+#: It reads the **payload alone**, not the gate beside it: a note's pitch
+#: does not depend on when it started.  Written against `Both Gate Key`
+#: first, which cost eighteen nodes — the pair had to be built a second
+#: time for it, three per voice across the bank — and was eighteen nodes
+#: spent saying something untrue about what a pitch depends on.
+tineHz : Key -> Float
+tineHz q = case q of
+    Key key vel -> keyHz key
+
+#: Velocity does two jobs on a real electric piano — louder *and* brighter
+#: — and only the first is here, because the second belongs in the drive.
+#: Left as the obvious next edit: scale `tineEnv`'s contribution by
+#: velocity and the instrument starts responding to how it is played.
+velOfKey : Key -> Float
+velOfKey q = case q of
+    Key key vel -> toFloat vel / 127.0 * 0.7
+
+#: **Three lines, and the bank is one of them.**  This was a hand-rolled
+#: state machine — a `Tine Fm Int` record, a `stepTine`, three functions to
+#: take the pair apart, and a `zip` of the output back against the input —
+#: because `synth.ges` had no signal-level face for FM.  It has one now, so
+#: the voice says what it is: a pitch, four envelopes, and a velocity.
+tine : Sig Gate -> Sig Key -> Sig Float
+tine g s = fm piano (map tineHz s) (zip tineLevels ticks (!Both g s))
+         * map velOfKey s
+
+# ── The piece ────────────────────────────────────────────────────────────
+#
+# Chords, so that six voices are doing something a monophonic synth could
+# not.  `||` overlays — the three notes share a span — and `++` sequences.
+
+bpm : Int
+bpm = 84
+
+chord : Int -> Int -> Int -> [: Key :]
+chord a b c = '(Key a 88) || '(Key b 76) || '(Key c 70)
+
+#: ii–V–I in F, the progression the sound was invented for.
+progression : [: Key :]
+progression = chord 57 60 64 ++ chord 55 59 62 ++ chord 53 57 60 ++ chord 53 60 65
+
+score : [: Void :]
+score = (progression ++ progression) >>= voices.keys
+
+# ── The mix ──────────────────────────────────────────────────────────────
+#
+# The bank's name is bound to the *sum* of its six voices, so this is
+# ordinary signal code.  A gentle lowpass takes the top off the tine, and
+# `dcBlock` earns its place because the FM output is not symmetric.
+
+sound : Sig Float
+sound = gain 0.5 (dcBlock (lowpassSvf 6500.0 0.12 keys))
+</pre>
+<pre id="check"></pre>
+<footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
+<script src="player.js"></script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>week.ges</title>
+<style>
+  body { margin: 2rem auto; max-width: 48rem; padding: 0 1rem;
+         font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fafaf7; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+  h1 code { font-weight: 600; }
+  .bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .4rem 1.2rem; border: 1px solid #888;
+           border-radius: 4px; background: #fff; cursor: pointer; }
+  button:disabled { color: #999; cursor: default; }
+  #status { color: #555; }
+  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  #check { display: none; }
+  footer { margin-top: 2rem; color: #777; font-size: .9rem; }
+</style>
+</head>
+<body data-stem="week">
+<h1><code>week.ges</code></h1>
+<div class="bar">
+  <button id="play" disabled>play</button>
+  <span id="status">loading…</span>
+</div>
+<pre id="source"># A week, and the rests are the piece.
+#
+#   python -m gestate.workbench examples/audio/week.ges
+#   python -m gestate.audioperform examples/audio/week.ges -o week.wav --seconds 52
+#
+# **Seven phrases, one a day, and each is the same phrase with more of it
+# taken away.**  Monday is eight notes; Sunday is one note and seven
+# rests.  Nothing is added over the week and nothing is transposed — the
+# only thing that changes is how much of the line is still there.
+#
+# The shape is meant to be read as well as heard: the rests below form a
+# triangle opening to the right, and that triangle *is* the music.
+#
+# **Two voices, because that is the argument.**  The upper one thins to
+# silence.  The lower one keeps its beat all seven days and does not
+# change at all.  `spec/timer.md` draws exactly these two things side by
+# side in the status bar — what the person did, and what the project did
+# — and the finding that made that file was that they are not the same
+# quantity and must not be fused.  Here they are a hand and a ground.
+#
+# And the rest is not an absence of music.  `spec/timer.md`'s law is that
+# a day with nothing in it draws **no ink at all**, because the ink grows
+# with the quantity and the quantity is zero — a rest day has to be
+# visible *as itself* or a week of them reads like a week of light days.
+# The same rule, one art over: the silence in the seventh phrase is the
+# loudest thing in the piece.
+#
+# Measured, so the shape is a fact rather than an intention —
+# `audioperform --report`, per bar:
+#
+#     0.224  0.229  0.227  0.205  0.198  0.197  0.169  0.170
+#     0.157  0.170  0.171  0.135  0.126  0.096  0.000
+#
+# Written 2026-08-17, the day the timer was built.
+
+# ── The hand ─────────────────────────────────────────────────────────────
+#
+# Sines, three partials, a slow attack and a long tail — the andon's
+# voice (`tools/andon.ges`), because the two were written the same day and
+# for the same reason.
+
+soft : Adsr
+soft = Adsr 0.030 1.60 0.00 1.30
+
+chime : Sig Gate -> Sig Int -> Sig Float
+chime g s = (0.50 * sine (!keyHz s)
+           + 0.14 * sine (2.0 * !keyHz s)
+           + 0.05 * sine (3.0 * !keyHz s))
+          * adsr soft g
+
+voices hand 6 chime : Sig Float
+
+deep : Adsr
+deep = Adsr 0.040 3.20 0.00 2.40
+
+low : Sig Gate -> Sig Int -> Sig Float
+low g s = (0.34 * sine (!keyHz s) + 0.10 * sine (2.0 * !keyHz s))
+        * adsr deep g
+
+voices ground 2 low : Sig Float
+
+# ── The week ─────────────────────────────────────────────────────────────
+#
+# One line, seven times, losing a little more of itself each pass.  The
+# first and last notes of every day survive to the end: a week that
+# thinned to nothing at both ends would be a fade, and a fade is not what
+# a rest is.
+
+monday    : [: Int :]
+monday    = '69 ++ '73 ++ '76 ++ '78 ++ '76 ++ '73 ++ '71 ++ '69
+tuesday   : [: Int :]
+tuesday   = '69 ++ '73 ++ '76 ++ '78 ++ '76 ++ '73 ++ r   ++ '69
+wednesday : [: Int :]
+wednesday = '69 ++ '73 ++ '76 ++ r   ++ '76 ++ '73 ++ r   ++ '69
+thursday  : [: Int :]
+thursday  = '69 ++ '73 ++ r   ++ r   ++ '76 ++ r   ++ r   ++ '69
+friday    : [: Int :]
+friday    = '69 ++ r   ++ r   ++ r   ++ '76 ++ r   ++ r   ++ '69
+saturday  : [: Int :]
+saturday  = '69 ++ r   ++ r   ++ r   ++ r   ++ r   ++ r   ++ '69
+sunday    : [: Int :]
+sunday    = '69 ++ r   ++ r   ++ r   ++ r   ++ r   ++ r   ++ r
+
+week : [: Int :]
+week = monday ++ tuesday ++ wednesday ++ thursday
+    ++ friday ++ saturday ++ sunday
+
+# ── The ground ───────────────────────────────────────────────────────────
+#
+# **Unchanged, all seven days.**  Two low notes a phrase, the same two,
+# for as long as the piece lasts.  The project keeps moving whether or
+# not anybody is at the desk — which was the measurement that split the
+# status row in two, and is the one line of this piece that never varies.
+#
+# **It is deliberately below what a laptop can reproduce, and that was
+# checked rather than assumed.**  A2 is 110 Hz and E3 is 165 Hz; a laptop
+# speaker has almost nothing under about 200, so on one the ground is a
+# suggestion and on headphones it is a floor.  Henri, having listened on
+# both, 2026-08-17: *"Lower track is too low to listen at laptop but
+# that's okay.  We leave it like that because headphones pick up the
+# piece."*
+#
+# So do not raise it to make it audible on a laptop.  Doing that would
+# put the ground in the same register as the hand, and the two voices
+# have to occupy different ground for the piece to be about anything —
+# one thins and one does not, and you should be able to hear which is
+# which without being told.
+
+standing : [: Int :]
+standing = ('45 |* 4 ++ '52 |* 4) |* 1
+
+ground7 : [: Int :]
+ground7 = standing ++ standing ++ standing ++ standing
+       ++ standing ++ standing ++ standing
+
+score : [: Void :]
+score = (week >>= voices.hand) || (ground7 >>= voices.ground)
+
+bpm : Int
+bpm = 66
+
+sound : Sig Float
+sound = brickwall 0.9 (gain 0.7 (hand + ground))
+</pre>
+<pre id="check"></pre>
+<footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
+<script src="player.js"></script>
+</body>
+</html>

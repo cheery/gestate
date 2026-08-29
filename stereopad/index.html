@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>stereopad.ges</title>
+<style>
+  body { margin: 2rem auto; max-width: 48rem; padding: 0 1rem;
+         font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fafaf7; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+  h1 code { font-weight: 600; }
+  .bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .4rem 1.2rem; border: 1px solid #888;
+           border-radius: 4px; background: #fff; cursor: pointer; }
+  button:disabled { color: #999; cursor: default; }
+  #status { color: #555; }
+  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  #check { display: none; }
+  footer { margin-top: 2rem; color: #777; font-size: .9rem; }
+</style>
+</head>
+<body data-stem="stereopad">
+<h1><code>stereopad.ges</code></h1>
+<div class="bar">
+  <button id="play" disabled>play</button>
+  <span id="status">loading…</span>
+</div>
+<pre id="source"># Six voices, spread across the stereo field.
+#
+#   python -m gestate.audioperform examples/audio/stereopad.ges -o stereopad.wav
+#   python -m gestate.audioperform examples/audio/stereopad.ges --midi --seconds 20
+#
+# `stereo.ges` is two channels from two oscillators.  This is two channels
+# from a *bank*: `voices pad 6 : Key -> Sig Stereo` declares voices whose
+# output is a frame, and the expander generates a componentwise adder — so
+# `pad` is the six voices summed left-with-left and right-with-right, and
+# nothing in the mix below has to know how many there were.
+#
+# **What the width is made of.**  A voice is panned by its own *key
+# number*, so a chord lays itself out across the field: low notes left, high
+# notes right, and the position of a voice is a property of the note rather
+# than of which of the six slots the allocator happened to choose.  That
+# distinction matters — panning by slot index would make the same chord
+# land differently depending on what was played before it.
+#
+# The second source of width is the two detuned oscillators being panned
+# *apart* from each other inside each voice, which is why `padVoice` returns
+# a `Stereo` rather than a `Float` that gets panned afterwards.
+#
+# **The voice is four lines and every one of them is a value.**  It used to
+# be a `Pad` record holding two phases, a filter and a sample counter, with
+# six functions to take it apart again — seventy lines that said, slowly,
+# what `lowpassSvf` and `adsr` say here.  `polysine.ges` makes the
+# argument on one sine; this is the same argument with a filter in it.
+
+Key := Key Int Int
+
+voices pad 6 padVoice : Sig Stereo
+
+instance FromMIDI Key where
+    noteOn ch p v = Just (Key p v)
+
+# ── The settings ─────────────────────────────────────────────────────────
+
+detune : Float
+detune = 9.0
+
+#: How far apart the two oscillators of one voice sit in the field.  1.0
+#: would be hard left and hard right, which is too wide to sound like one
+#: instrument.
+spread : Float
+spread = 0.55
+
+#: A slow pad: it arrives rather than starts.
+padEnv : Adsr
+padEnv = Adsr 0.35 1.2 0.6 0.9
+
+filtEnv : Adsr
+filtEnv = Adsr 0.9 1.5 0.35 0.8
+
+# ── The note, read three ways ────────────────────────────────────────────
+#
+# A `voices` bank hands each voice the note's *timing* and the note's
+# *payload* as two separate signals.  These three are the payload's three
+# uses, and each is lifted over the signal with `!` where it is wanted.
+
+hzOf : Key -> Float
+hzOf q = case q of
+    Key k v -> keyHz k
+
+levelOf : Key -> Float
+levelOf q = case q of
+    Key k v -> toFloat v / 127.0 * 0.35
+
+#: Where a key sits in the field.  Middle C is centred; three octaves
+#: either side reaches the edges, and `clamp` keeps anything beyond that
+#: from wrapping round.
+panOf' : Key -> Float
+panOf' q = case q of
+    Key k v -> clamp (negate 1.0) 1.0 (toFloat (k - 60) / 36.0)
+
+# ── The voice ────────────────────────────────────────────────────────────
+#
+# Two triangle oscillators — softer than saws, which a pad wants — through
+# one shared resonant lowpass, then panned.  The filter is *before* the
+# pan, so both channels are filtered identically and the width comes from
+# the oscillators rather than from the filter ringing on one side.
+
+#: A frequency signal moved by `cents`.  A detune is a *factor*, and this
+#: is `centsHz` lifted over a signal so that it can be one.
+detuned : Float -> Sig Float -> Sig Float
+detuned cents hz = map (h => centsHz cents h) hz
+
+#: The pair, summed.  Two of one shape at slightly different pitches is the
+#: cheapest thickness there is: they drift in and out of phase at the beat
+#: frequency, which at nine cents is a few seconds long.
+oscillators : Sig Float -> Sig Float
+oscillators hz = 0.5 * triangle (detuned (negate detune) hz)
+               + 0.5 * triangle (detuned detune hz)
+
+#: The cutoff, as a signal — the filter envelope scaled into hertz.
+#:
+#: Clamped at the top because `240 + 3400` can pass Nyquist at a low sample
+#: rate, and a filter asked for a cutoff it cannot have should sound like
+#: an open filter rather than like a divergence.
+cutoff : Sig Gate -> Sig Float
+cutoff g = map (x => clamp 20.0 nyquist (240.0 + 3400.0 * x))
+               (adsr filtEnv g)
+
+#: The filtered, enveloped voice, placed twice — once at each end of
+#: `spread`, with the note's own pitch sliding the pair as a whole.
+#:
+#: Both oscillators are in the filter's output as one number, so they
+#: cannot be panned apart after the fact; what is placed twice is the
+#: *filtered* signal, which is what makes the width survive the filter.
+place : Sig Float -> Sig Float -> Sig Stereo
+place x p = zip (v c => panOf (c - spread * 0.5) v
+                            + panOf (c + spread * 0.5) v) x p
+
+padVoice : Sig Gate -> Sig Key -> Sig Stereo
+padVoice g s = place (lowpassSvf (cutoff g) 0.35 (oscillators (!hzOf s))
+                      * adsr padEnv g * !levelOf s) (!panOf' s)
+
+# ── The piece ────────────────────────────────────────────────────────────
+
+bpm : Int
+bpm = 66
+
+chord : Int -> Int -> Int -> [: Key :]
+chord a b c = '(Key a 92) || '(Key b 80) || '(Key c 74)
+
+#: Wide voicings, so the pan spread has something to work with: the notes
+#: of one chord are octaves apart rather than adjacent.
+part : [: Key :]
+part = chord 45 64 76 |* 4 ++ chord 43 62 74 |* 4
+    ++ chord 41 60 72 |* 4 ++ chord 40 59 71 |* 4
+
+score : [: Void :]
+score = part >>= voices.pad
+
+# ── The mix ──────────────────────────────────────────────────────────────
+#
+# `pad` is already a `Sig Stereo` — the bank summed both channels — so the
+# mix is ordinary arithmetic at that type: `instance Num (Sig Stereo)` in
+# `synth.ges` is what makes `0.8 * pad` a fader rather than a type error,
+# and `sound` is a stereo signal all the way out to the `.wav`.
+
+sound : Sig Stereo
+sound = 0.8 * pad
+</pre>
+<pre id="check"></pre>
+<footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
+<script src="player.js"></script>
+</body>
+</html>

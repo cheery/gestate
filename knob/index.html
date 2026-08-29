@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>knob.ges</title>
+<style>
+  body { margin: 2rem auto; max-width: 48rem; padding: 0 1rem;
+         font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fafaf7; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+  h1 code { font-weight: 600; }
+  .bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .4rem 1.2rem; border: 1px solid #888;
+           border-radius: 4px; background: #fff; cursor: pointer; }
+  button:disabled { color: #999; cursor: default; }
+  #status { color: #555; }
+  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  #check { display: none; }
+  footer { margin-top: 2rem; color: #777; font-size: .9rem; }
+</style>
+</head>
+<body data-stem="knob">
+<h1><code>knob.ges</code></h1>
+<div class="bar">
+  <button id="play" disabled>play</button>
+  <span id="status">loading…</span>
+</div>
+<pre id="source"># A synth with a knob: the first example whose sound comes from outside it.
+#
+#   python -m gestate.audioeditor examples/audio/knob.ges
+#   python -m gestate.audioperform examples/audio/knob.ges -o knob.wav
+#
+# `blip.ges` and `drums.ges` are closed: given the sample rate, everything
+# they will ever do is already written down.  This one has a **control-rate
+# parameter** — a second clock, ticking once per block rather than once per
+# sample — and the environment's slider is what turns it.
+#
+# The two rates are not a convenience.  An audio-rate signal advances every
+# sample and a control-rate one is held constant across a block, so a knob
+# costs a few instructions per block instead of per sample.  `sync` had this
+# structure in the language before there was any engine to want it, and
+# `spec/liveaudio.md` §"Two clocks" is where it became `.kr` and `.ar`.
+
+# ── The parameter ────────────────────────────────────────────────────────
+
+knobChan : Chan Int
+knobChan = chan
+
+#: 0 .. 100 from the host, once per block.  The `:::` value is what it
+#: holds before the first arrival — so a synth is never waiting on a knob
+#: that has not been turned yet.
+knob : Sig Int
+knob = 40 ::: mkSig (wait knobChan)
+
+# ── The voice ────────────────────────────────────────────────────────────
+#
+# Two signals with two different clocks meet in a `zip`, and that meeting
+# *is* the `.kr → .ar` boundary.  They cannot simply be paired — each has
+# its own clock — so the combinator asks `sync` which arrived and carries
+# the other over, which is sound because a signal is a cell overwritten in
+# place.  `Reading` is the pair, spelled as a data type because it has to be
+# flat: a tuple would do as well, and a list would not.
+
+Reading := Reading Int Int
+
+readAt : Int -> Int -> Reading
+readAt n k = Reading n k
+
+#: 110 Hz at the bottom of the knob, 510 Hz at the top.
+hzOf : Int -> Float
+hzOf k = 115.0 + 4.0 * toFloat k
+
+stepPhase : Float -> Reading -> Float
+stepPhase p r = case r of
+    Reading n k -> wrap (p + hzOf k / sampleRate)
+
+#: A gentle two-second tremolo, so the tone is not a dead sine even when
+#: nobody is touching the knob.
+tremoloAt : Int -> Float
+tremoloAt n = 0.7 + 0.3 * triangleOf (wrap (toFloat n / (2.0 * sampleRate)))
+
+voiceOut : Reading -> Float
+voiceOut r = case r of
+    Reading n k -> tremoloAt n
+
+# ── The chain ────────────────────────────────────────────────────────────
+
+driven : Sig Reading
+driven = zip readAt ticks knob
+
+turning : Sig Float
+turning = scan stepPhase 0.0 driven
+
+raw : Sig Float
+raw = zip (p r => triangleOf p * voiceOut r) turning driven
+
+sound : Sig Float
+sound = gain 0.4 (lowpass 0.6 raw)
+</pre>
+<pre id="check"></pre>
+<footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
+<script src="player.js"></script>
+</body>
+</html>

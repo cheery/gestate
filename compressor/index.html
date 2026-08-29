@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>compressor.ges</title>
+<style>
+  body { margin: 2rem auto; max-width: 48rem; padding: 0 1rem;
+         font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fafaf7; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+  h1 code { font-weight: 600; }
+  .bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .4rem 1.2rem; border: 1px solid #888;
+           border-radius: 4px; background: #fff; cursor: pointer; }
+  button:disabled { color: #999; cursor: default; }
+  #status { color: #555; }
+  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  #check { display: none; }
+  footer { margin-top: 2rem; color: #777; font-size: .9rem; }
+</style>
+</head>
+<body data-stem="compressor">
+<h1><code>compressor.ges</code></h1>
+<div class="bar">
+  <button id="play" disabled>play</button>
+  <span id="status">loading…</span>
+</div>
+<pre id="source"># compressor.ges — hear the pump, see the dip — `spec/scope.md`'s demo.
+#
+#   python -m gestate.workbench examples/audio/compressor.ges
+#
+# A thump swells twice a second under a steady bright tone, and a
+# compressor pulls the whole mix down whenever the thump gets loud —
+# ducking, the oldest trick on the desk.  The two scopes are the
+# point: `in` swells where `out` dips, at the same moment, beside the
+# lines that made them.  You have always been able to hear this;
+# now the margin shows it while it plays.
+
+#: The pump: a low sine swelling on a slow LFO.
+thump : Sig Float
+thump = sine 55.0 * (0.5 + 0.5 * sine 2.0)
+
+#: A steady tone riding above it, so the ducking has a victim.
+bright : Sig Float
+bright = 0.15 * sine 660.0
+
+#: The mix going *into* the compressor, scoped: watch it swell.
+din : Sig Float
+din = scope "in" (0.5 * thump + bright)
+
+#: A power-envelope follower: rises at once, decays slowly — the
+#: `scan` is the whole of it.
+envelope : Sig Float
+envelope = scan (e x => max (x * x) (e * 0.9993)) 0.0 din
+
+#: Soft compression: the louder the envelope, the smaller the gain.
+#: No threshold and no knee — one division is enough to duck.
+gain : Sig Float
+gain = !(e => 1.0 / (1.0 + 9.0 * e)) envelope
+
+#: And the mix coming *out*, scoped: watch it dip where `in` swells —
+#: with the spectrum beside it, where the thump and the tone stand as
+#: two ridges and the ducking moves the whole floor.
+sound : Sig Float
+sound = spectro "spec" (scope "out" (din * gain))
+</pre>
+<pre id="check"></pre>
+<footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
+<script src="player.js"></script>
+</body>
+</html>

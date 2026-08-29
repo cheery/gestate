@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>noted.ges</title>
+<style>
+  body { margin: 2rem auto; max-width: 48rem; padding: 0 1rem;
+         font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fafaf7; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+  h1 code { font-weight: 600; }
+  .bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .4rem 1.2rem; border: 1px solid #888;
+           border-radius: 4px; background: #fff; cursor: pointer; }
+  button:disabled { color: #999; cursor: default; }
+  #status { color: #555; }
+  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  #check { display: none; }
+  footer { margin-top: 2rem; color: #777; font-size: .9rem; }
+</style>
+</head>
+<body data-stem="noted">
+<h1><code>noted.ges</code></h1>
+<div class="bar">
+  <button id="play" disabled>play</button>
+  <span id="status">loading…</span>
+</div>
+<pre id="source"># noted.ges — see what the score says — `spec/scorebox.md`'s demo.
+#
+#   python -m gestate.workbench examples/audio/noted.ges
+#   python -m gestate.audioperform examples/audio/noted.ges -o noted.wav
+#
+# Two hands over four bars: a left that is written down and a right
+# that rolls dice for its figure, bar by bar.  The `notes` lines are
+# the point — each one stands a roll of the expression beside it,
+# right there between the lines, and what you see is what plays.
+#
+# Three things to look at, in the boxes below:
+#
+#   * **The written hand and the drawn one look different.**  A note
+#     the file spells out is drawn bright; one the dice chose is
+#     dimmer, and the box's label says which take you are looking at
+#     (`TAKE 0`).  `reroll` gives you another and the left hand does
+#     not move — because it is written.
+#   * **A box reads whatever expression you name.**  `notes ground`
+#     is one hand, `notes tune` the other, `notes score` both at once
+#     in two colours — one per bank.
+#
+#     And the two boxes showing the right hand disagree, which is not
+#     a bug to be surprised by later: a seed splits by *position*, so
+#     `tune` sown on its own is not what `tune` draws at its place in
+#     the piece.  A box on a part shows a take of that part; the box
+#     on `score` shows the piece's.  (`spec/ariadne.md` is where the
+#     splitting is written down, and paths are what will one day let
+#     a part know where in the piece it stands.)
+#   * **Clicking a note shows you where it is written.**  Press one
+#     in any box and the caret goes to the line that made it — into
+#     `ground`'s own line for the left hand, onto the `do` block for
+#     the right, because that is as fine as the text gets.
+#
+# The boxes are read-only: a press moves the caret and nothing else.
+# The file is the only truth here, exactly as it is for a knob.
+
+Hit := Hit Int Int                        # key, velocity
+
+voices left 2 pluck : Sig Float
+
+voices right 3 bell : Sig Float
+
+#: Any keyboard can play either hand; the switch beside each bank's
+#: line decides who is listening.
+instance FromMIDI Hit where
+    noteOn ch p v = Just (Hit p v)
+
+#: **What the score box reads a note with.**  Two lines, and the roll
+#: knows where every note sits and how hard it was struck — without
+#: which the box would be guessing at the order of this record's own
+#: fields (`spec/scorebox.md`).
+instance Notable Hit where
+    noteKey h = case h of
+        Hit k v -> k
+    noteVel h = case h of
+        Hit k v -> v
+
+# ── The two hands ─────────────────────────────────────────────────────────
+
+keyOfHit : Hit -> Float
+keyOfHit h = case h of
+    Hit k v -> keyHz k
+
+levelOfHit : Hit -> Float
+levelOfHit h = case h of
+    Hit k v -> toFloat v / 127.0
+
+#: The left: short, round, and low.
+plucked : Adsr
+plucked = Adsr 0.004 0.30 0.15 0.20
+
+pluck : Sig Gate -> Sig Hit -> Sig Float
+pluck g s = 0.5 * sine (!keyOfHit s) * adsr plucked g * !levelOfHit s
+
+#: The right: struck and left to ring, with an octave above it for
+#: the shine.
+struck : Adsr
+struck = Adsr 0.002 1.10 0.05 0.60
+
+bell : Sig Gate -> Sig Hit -> Sig Float
+bell g s = (0.3 * sine (!keyOfHit s) + 0.1 * sine (2.0 * !keyOfHit s))
+         * adsr struck g * !levelOfHit s
+
+# ── What is written ───────────────────────────────────────────────────────
+#
+# The left hand, spelled out: D, A, F, A — one note a beat, the same
+# every bar.  Every note here is span ink, and clicking one lands on
+# this line.
+
+low : Int -> [: Hit :]
+low k = '(Hit k 72)
+
+ground : [: Hit :]
+ground = low 38 ++ low 45 ++ low 41 ++ low 45
+
+notes ground
+
+# ── What is drawn ─────────────────────────────────────────────────────────
+#
+# The right hand rolls one die a bar and plays the figure it names.
+# Each figure is exactly two beats wide, which is what lets `long 2`
+# hold the bar to the bar — and every note that comes out of here is
+# take ink, drawn dimmer, because the file does not say which of the
+# four you will hear.
+
+sing : Int -> [: Hit :]
+sing k = '(Hit k 88)
+
+#: Four figures over a D minor scale, two beats each.
+figureOf : Int -> [: Hit :]
+figureOf i = case i of
+    0 -> sing 74 ++ sing 77
+    1 -> (sing 79 |* 2)
+    2 -> sing 77 ++ sing 74
+    _ -> sing 81 ++ sing 79
+
+#: One bar: a seed, spent on one bounded pick, and the figure it
+#: names stretched to the bar.  `below` is `draw`'s usual companion.
+bar : [: Hit :]
+bar = do
+    s &lt;- draw
+    long 4 (figureOf (below 4 s) |* 2)
+
+tune : [: Hit :]
+tune = bar ++ bar ++ bar ++ bar
+
+notes tune
+
+# ── The piece ─────────────────────────────────────────────────────────────
+#
+# Both hands at once, each on its own bank — and the box below draws
+# them in two colours, one per bank, so you can see the right hand
+# moving over a left hand that does not.
+
+#: **Both halves parenthesised**, because `>>=` binds looser than
+#: `||`: written bare, `voices.left || tune` groups first and the
+#: checker asks for a score where a function is.
+score : [: Void :]
+score = ((ground ++ ground ++ ground ++ ground) >>= voices.left)
+     || (tune >>= voices.right)
+
+notes score
+
+bpm : Int
+bpm = 84
+
+sound : Sig Float
+sound = brickwall 0.9 (gain 0.7 (left + right))
+</pre>
+<pre id="check"></pre>
+<footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
+<script src="player.js"></script>
+</body>
+</html>

@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lead.ges</title>
+<style>
+  body { margin: 2rem auto; max-width: 48rem; padding: 0 1rem;
+         font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fafaf7; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+  h1 code { font-weight: 600; }
+  .bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .4rem 1.2rem; border: 1px solid #888;
+           border-radius: 4px; background: #fff; cursor: pointer; }
+  button:disabled { color: #999; cursor: default; }
+  #status { color: #555; }
+  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  #check { display: none; }
+  footer { margin-top: 2rem; color: #777; font-size: .9rem; }
+</style>
+</head>
+<body data-stem="lead">
+<h1><code>lead.ges</code></h1>
+<div class="bar">
+  <button id="play" disabled>play</button>
+  <span id="status">loading…</span>
+</div>
+<pre id="source"># A distorted lead guitar, and the slides are the point.
+#
+#   python -m gestate.audioperform examples/audio/lead.ges -o lead.wav --seconds 115
+#
+# Six sections of four bars at 100 bpm is 57.6 seconds, so 115 is two
+# passes through the form.
+#   python -m gestate.audiopygame examples/audio/lead.ges
+#
+# ── Why this lead is not a `string` ──────────────────────────────────────
+#
+# `strings.ges` is Karplus-Strong, and a Karplus-Strong string **cannot
+# slide**.  Its pitch is the length of a delay line — an integer line and
+# a tuning allpass, decided before the program runs — and a slide is a
+# pitch that moves continuously.  The delay line that *could* slide is `tap`,
+# whose position is a signal and may be fractional — but a string needs the
+# line's output fed back into it, and a feedback path that leaves a node
+# and comes back is a cycle in the graph, which the extractor still
+# refuses.  `spec/delaylines.md` says so and why.
+#
+# So the lead is an oscillator, and there it is free: `phase` takes a
+# **signal** frequency, so the pitch can be anything that changes, and a
+# slide is just what the pitch does between two notes.
+#
+# ── How a slide is written ───────────────────────────────────────────────
+#
+# `slew rate target` is a one-pole toward a target, and its rate is a
+# *signal* — which is the whole trick.  The note the riff is on is the
+# target; the rate says how fast to get there:
+#
+#     picked  ->  rate 1.0      the pitch is simply at the new note
+#     slid    ->  rate 0.00045  it takes about a tenth of a second
+#
+# One number per step, and the difference between a picked note and a note
+# slid into is that number and nothing else.  The amplitude envelope reads
+# the same table: a slide does not re-pick, so the note goes on ringing
+# through the change, which is what makes it sound like one finger moving
+# rather than two notes played.
+
+# ── Time ─────────────────────────────────────────────────────────────────
+
+tempo : Int
+tempo = 100
+
+samplesPerStep : Int
+samplesPerStep = floor (sampleRate * 15.0 / toFloat tempo)
+
+stepsPerBar : Int
+stepsPerBar = 16
+
+barsPerSection : Int
+barsPerSection = 4
+
+sections : Int
+sections = 6
+
+stepAt : Int -> Int
+stepAt n = prim_mod_int (prim_div_int n samplesPerStep) stepsPerBar
+
+throughStep : Int -> Float
+throughStep n = toFloat (prim_mod_int n samplesPerStep) / toFloat samplesPerStep
+
+barIndex : Int -> Int
+barIndex n = prim_div_int n (samplesPerStep * stepsPerBar)
+
+sectionAt : Int -> Int
+sectionAt n = prim_mod_int (prim_div_int (barIndex n) barsPerSection) sections
+
+#: The riff moves in eighths, so eight places to a bar.
+eighthAt : Int -> Int
+eighthAt n = prim_div_int (stepAt n) 2
+
+#: Is this the very first sample of an eighth?  `samplesPerStep` divides the
+#: instant exactly, so this is the one sample a pick can happen on.
+atEighth : Int -> Bool
+atEighth n = eqInt (prim_mod_int n (samplesPerStep * 2)) 0
+
+eqInt : Int -> Int -> Bool
+eqInt a b = case a - b of
+    0 -> True
+    _ -> False
+
+# ── The riff ─────────────────────────────────────────────────────────────
+#
+# A minor blues: A, C, D, Eb, E, G.  The Eb is the flat fifth and is the
+# note you slide *through* rather than land on, which is why it is marked
+# as a slide in every riff that uses it.
+#
+# MIDI numbers.  `leadNote` gives the note for each eighth of the bar and
+# `leadSlide` says whether it is reached by sliding.
+
+leadNote : Int -> Int -> Int
+leadNote sec i = case sec of
+    0 -> riffA i
+    1 -> riffA i
+    2 -> riffB i
+    3 -> riffB i
+    4 -> riffC i
+    _ -> riffA i
+
+leadSlide : Int -> Int -> Bool
+leadSlide sec i = case sec of
+    0 -> slideA i
+    1 -> slideA i
+    2 -> slideB i
+    3 -> slideB i
+    4 -> slideC i
+    _ -> slideA i
+
+#: The statement: up through the flat fifth and back down.  The slide into
+#: the Eb and out of it again is the whole phrase.
+riffA : Int -> Int
+riffA i = case i of
+    0 -> 57
+    1 -> 60
+    2 -> 62
+    3 -> 63
+    4 -> 64
+    5 -> 62
+    6 -> 60
+    _ -> 57
+
+slideA : Int -> Bool
+slideA i = case i of
+    3 -> True
+    4 -> True
+    _ -> False
+
+#: The answer, an octave up, with a long slide down at the end of it.
+riffB : Int -> Int
+riffB i = case i of
+    0 -> 69
+    1 -> 67
+    2 -> 69
+    3 -> 72
+    4 -> 71
+    5 -> 69
+    6 -> 64
+    _ -> 64
+
+slideB : Int -> Bool
+slideB i = case i of
+    4 -> True
+    6 -> True
+    _ -> False
+
+#: The climb: every note slid into except the first, which is what a whole
+#: bar of one finger moving sounds like.
+riffC : Int -> Int
+riffC i = case i of
+    0 -> 57
+    1 -> 60
+    2 -> 63
+    3 -> 64
+    4 -> 67
+    5 -> 69
+    6 -> 72
+    _ -> 74
+
+slideC : Int -> Bool
+slideC i = case i of
+    0 -> False
+    _ -> True
+
+#: Is this instant part of a note that was slid into?
+slidingAt : Int -> Bool
+slidingAt n = leadSlide (sectionAt n) (eighthAt n)
+
+#: A pick is the first sample of an eighth that is *not* slid into.
+picksAt : Int -> Bool
+picksAt n = case atEighth n of
+    True -> notB (slidingAt n)
+    False -> False
+
+notB : Bool -> Bool
+notB b = case b of
+    True -> False
+    False -> True
+
+# ── Pitch ────────────────────────────────────────────────────────────────
+
+hzOf : Int -> Float
+hzOf k = 8.1758 * pow 2.0 (toFloat k / 12.0)
+
+#: Where the pitch is heading — the note this eighth is on.
+targetHz : Sig Float
+targetHz = map (n => hzOf (leadNote (sectionAt n) (eighthAt n))) ticks
+
+#: **How fast to get there, and this is the slide.**  A one-pole
+#: coefficient: 1.0 arrives this sample, and 0.00045 takes a time constant
+#: of about fifty milliseconds, so the ear hears a finger moving.
+slideRate : Sig Float
+slideRate = map rateAt ticks
+
+rateAt : Int -> Float
+rateAt n = case slidingAt n of
+    True -> 0.00045
+    False -> 1.0
+
+glided : Sig Float
+glided = slew slideRate targetHz
+
+# ── How long since the last pick ─────────────────────────────────────────
+#
+# The envelope and the vibrato both want this, and neither can have it as a
+# function of the instant: a note reached by sliding does not restart, so
+# "how long has this note been sounding" is a count that some steps reset
+# and others do not.  That is a fold.
+
+Age := Age Int
+
+stepAge : Age -> Int -> Age
+stepAge a n = case a of
+    Age t -> Age (nextAge t n)
+
+nextAge : Int -> Int -> Int
+nextAge t n = case picksAt n of
+    True -> 0
+    False -> t + 1
+
+ageOf : Age -> Int
+ageOf a = case a of
+    Age t -> t
+
+#: Samples since the last pick, as a signal.
+age : Sig Int
+age = map ageOf (scan stepAge (Age 0) ticks)
+
+# ── The voice ────────────────────────────────────────────────────────────
+
+#: A fast attack and a long sustain, which is what distortion does to a
+#: guitar: the compression is in the clipping, so a note that would have
+#: died holds up instead.
+ampOf : Int -> Float
+ampOf t = ampAt (toFloat t / sampleRate)
+
+ampAt : Float -> Float
+ampAt sec = case sec &lt; 0.004 of
+    True -> sec / 0.004
+    False -> 0.45 + 0.55 * exp (negate (sec - 0.004) * 2.5)
+
+#: **Vibrato arrives late**, because a player does not start a note with it
+#: — they hold the note and then move the finger.  Nothing about this is
+#: hard once the age is a signal.
+vibDepth : Int -> Float
+vibDepth t = clamp 0.0 1.0 ((toFloat t / sampleRate - 0.22) * 2.0)
+
+vibAt : Int -> Float -> Float
+vibAt t lfo = 1.0 + 0.010 * vibDepth t * lfo
+
+vibrato : Sig Float
+vibrato = zip vibAt age (sine (!5.6))
+
+voiceHz : Sig Float
+voiceHz = glided * vibrato
+
+#: Two saws a few cents apart.  One saw through this much distortion is a
+#: buzz; two beating against each other is a guitar, and the detune is what
+#: gives the sustain its slow movement.
+osc : Sig Float
+osc = 0.5 * saw voiceHz + 0.5 * saw (1.007 * voiceHz)
+
+ampSig : Sig Float
+ampSig = map ampOf age
+
+# ── The amplifier ────────────────────────────────────────────────────────
+#
+# Order matters and is the whole sound: cut the bottom *before* the
+# distortion so the low end does not turn to mud in it, clip, then cut the
+# top *after* so what the clipping added is shaped rather than heard raw.
+# That last filter is what a speaker cabinet does, and leaving it out is
+# why a first distortion patch always sounds like a wasp.
+
+preamp : Sig Float
+preamp = highpassOnePole (!180.0) (1.1 * osc * ampSig)
+
+#: A slow sweep on the cabinet's corner — an amplifier does not have one,
+#: but a player moving in front of it does, and three minutes of a fixed
+#: filter is three minutes of the same note colour.
+cabHz : Sig Float
+cabHz = 2400.0 + 1200.0 * sine (!0.07)
+
+cabinet : Sig Float -> Sig Float
+cabinet s = lowpassLadder cabHz 0.22 s
+
+#: `dcBlock` because `drive` is the one stage that can *create* an offset:
+#: the highpass ahead of it leaves the waveform asymmetric, and a
+#: waveshaper turns asymmetry into DC — which the cabinet's lowpass then
+#: keeps.  An amplifier's coupling capacitor, in one word.
+leadDry : Sig Float
+leadDry = dcBlock (cabinet (drive 0.45 preamp))
+
+#: A slapback and a room.  The delay is a dotted eighth, which is the one
+#: every guitarist reaches for, and `damped` rather than `echo` so the
+#: repeats lose their edge instead of stacking up as buzz.
+delayTime : Float
+delayTime = 45.0 / toFloat tempo
+
+lead : Sig Float
+lead = leadDry + 0.30 * damped delayTime 0.45 0.55 leadDry
+
+# ── Behind it ────────────────────────────────────────────────────────────
+#
+# Power chords: a root and its fifth, distorted, with no third in them —
+# which is the whole reason a power chord works under a lead that is going
+# to play both a major and a minor third over it.
+
+rootOf : Int -> Float
+rootOf sec = case sec of
+    0 -> 55.00
+    1 -> 55.00
+    2 -> 73.42
+    3 -> 65.41
+    4 -> 55.00
+    _ -> 55.00
+
+chordHz : Sig Float
+chordHz = map (n => rootOf (sectionAt n)) ticks
+
+#: Palm-muted: the chord is gated on the beat so it chugs rather than
+#: drones, and the gate is short enough that what you hear is the attack.
+chugAt : Int -> Float
+chugAt n = case eqInt (prim_mod_int (stepAt n) 4) 0 of
+    True -> chugFall (throughStep n)
+    False -> 0.0
+
+chugFall : Float -> Float
+chugFall t = case t > 0.7 of
+    True -> 0.0
+    False -> (1.0 - t / 0.7) * (1.0 - t / 0.7)
+
+chugSig : Sig Float
+chugSig = map chugAt ticks
+
+chordOsc : Sig Float
+chordOsc = 0.5 * saw chordHz + 0.5 * saw (1.4983 * chordHz)
+
+backing : Sig Float
+backing = dcBlock (lowpassLadder (!1500.0) 0.15
+    (drive 0.7 (highpassOnePole (!90.0) (1.6 * chordOsc * chugSig))))
+
+# ── Drums ────────────────────────────────────────────────────────────────
+
+kickAt : Int -> Bool
+kickAt s = case s of
+    0 -> True
+    6 -> True
+    10 -> True
+    _ -> False
+
+snareAt : Int -> Bool
+snareAt s = case s of
+    4 -> True
+    12 -> True
+    _ -> False
+
+hatAt : Int -> Bool
+hatAt s = case prim_mod_int s 2 of
+    0 -> True
+    _ -> False
+
+cube : Float -> Float
+cube v = v * v * v
+
+fall : Float -> Float -> Float
+fall len t = case t > len of
+    True -> 0.0
+    False -> cube (1.0 - t / len)
+
+onlyIf : Bool -> Float -> Float
+onlyIf on v = case on of
+    True -> v
+    False -> 0.0
+
+Kit := Kit Float Int
+
+kickHz : Int -> Float
+kickHz n = 48.0 + 150.0 * fall 0.5 (throughStep n)
+
+stepKit : Kit -> Int -> Kit
+stepKit k n = case k of
+    Kit ph m -> Kit (wrap (ph + kickHz n / sampleRate)) n
+
+kickOut : Kit -> Float
+kickOut k = case k of
+    Kit ph n -> onlyIf (kickAt (stepAt n)) (triangleOf ph * fall 0.55 (throughStep n))
+
+kick : Sig Float
+kick = map kickOut (scan stepKit (Kit 0.0 0) ticks)
+
+#: The beater, and the reason it is here is in `strings2.ges`: without a
+#: broadband transient a kick is inaudible on a small speaker, because
+#: almost all of it is below what one can reproduce.
+kickClick : Sig Float
+kickClick = highpassOnePole (!2200.0) (zip clickMix ticks (white 71))
+
+clickMix : Int -> Float -> Float
+clickMix n w = onlyIf (kickAt (stepAt n)) (w * fall 0.035 (throughStep n))
+
+snareNoise : Sig Float
+snareNoise = zip snareMix ticks (white 31)
+
+snareMix : Int -> Float -> Float
+snareMix n w = onlyIf (snareAt (stepAt n)) (w * fall 0.30 (throughStep n))
+
+snare : Sig Float
+snare = 0.5 * snareNoise + 0.035 * resonate (!190.0) 0.14 snareNoise
+
+hatNoise : Sig Float
+hatNoise = zip hatMix ticks (white 57)
+
+hatMix : Int -> Float -> Float
+hatMix n w = onlyIf (hatAt (stepAt n)) (w * fall 0.05 (throughStep n))
+
+hat : Sig Float
+hat = highpassOnePole (!6000.0) hatNoise
+
+kit : Sig Float
+kit = 0.95 * kick + 1.80 * kickClick + 1.00 * snare + 0.60 * hat
+
+# ── The mix ──────────────────────────────────────────────────────────────
+
+#: **Measured, not guessed.**  The first setting drove the lead so hard
+#: that it came out at a crest factor of 1.42 — which is a square wave, not
+#: a guitar — and nine times the kit's level, so the limiter spent the
+#: whole piece flat out and everything behind the lead disappeared under
+#: it.  Distortion that removes all the dynamics has removed the playing
+#: too.
+band : Sig Float
+band = 0.34 * lead + 0.34 * backing + 1.0 * kit
+
+sound : Sig Float
+sound = brickwall 0.92 (band + 0.16 * reverb 1.6 0.5 band)
+</pre>
+<pre id="check"></pre>
+<footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
+<script src="player.js"></script>
+</body>
+</html>

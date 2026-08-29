@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pachelbel.ges</title>
+<style>
+  body { margin: 2rem auto; max-width: 48rem; padding: 0 1rem;
+         font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fafaf7; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+  h1 code { font-weight: 600; }
+  .bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .4rem 1.2rem; border: 1px solid #888;
+           border-radius: 4px; background: #fff; cursor: pointer; }
+  button:disabled { color: #999; cursor: default; }
+  #status { color: #555; }
+  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  #check { display: none; }
+  footer { margin-top: 2rem; color: #777; font-size: .9rem; }
+</style>
+</head>
+<body data-stem="pachelbel">
+<h1><code>pachelbel.ges</code></h1>
+<div class="bar">
+  <button id="play" disabled>play</button>
+  <span id="status">loading…</span>
+</div>
+<pre id="source"># Pachelbel's Canon: five parts at once, on an instrument that is a sum.
+#
+#   python -m gestate.audiopygame examples/audio/pachelbel.ges
+#   python -m gestate.audioeditor examples/audio/pachelbel.ges
+#   python -m gestate.audioperform examples/audio/pachelbel.ges --seconds 20
+#
+# **The whole instrument is nine lines and every one of them is a value.**
+# That is the example.  `polysine.ges` makes the argument on one sine; this
+# is what the argument buys once there is a real piece to play — a timbre
+# that is a sum of harmonics, a pitch that is a product with a vibrato, and
+# an amplitude that is a product with an envelope, all written as the
+# arithmetic they are:
+#
+#     timbre (!hzOf s * vibrato) * adsr env g * !levelOf s
+#
+# Nothing here declares a state record, folds one, or takes a note apart
+# per sample.  `duet.ges` and `quartet.ges` write their voices the long way
+# and are worth reading against this file: they are the same sounds spelled
+# as hand-rolled state machines, seventy lines where these are nine.  What
+# closed the gap was `sine`/`adsr` in `synth.ges` — the fold
+# written *once* — and `instance Num (Sig Float)` in `audio.ges`, which is
+# what makes `+` and `*` mean what they look like.  `spec/frp_lesson.md`
+# is the reading: in Fran a behaviour is a value, and `stretch (abs wiggle)
+# charlotte` applies ordinary functions to something that varies without
+# anywhere saying so.
+#
+# ── Why this piece ───────────────────────────────────────────────────────
+#
+# Because a ground bass is polyphony you can *check*.  Everything above the
+# bass is derived from it — the chords are what those eight notes imply and
+# the tune is a line through them — so there is nothing in the score that
+# is true only because it sounded right, and a wrong note is arithmetic
+# rather than taste.  It also puts five notes under the same instant, which
+# is the honest test that a `voices` bank is polyphonic: a monophonic synth
+# plays a fifth of this file.
+#
+# `examples/music/canon.ges` is a round handed to somebody else's
+# synthesiser over MIDI.  This one carries its own instrument, so the piece
+# and the sound are one program and `voices.consort` is checked against the
+# notes it is given.
+
+# ── What a note carries ──────────────────────────────────────────────────
+#
+# The key number and how hard.  A note's **timing is not in it**: that
+# comes from the layout that placed it, or from the moment a key went down,
+# and the bank supplies it separately as a `Sig Gate`.
+#
+# Not called `Note`: `music.ges` declares `Score a := Note a`, and `'x`
+# desugars to that constructor — shadowing it would turn every `'` in the
+# piece below into a pattern against the wrong thing.
+
+Bowed := Bowed Int Int                      # key number, velocity
+
+#: Twelve voices for five parts, and the factor of two is the **release**.
+#: A note is let go at the end of its ticksPerBeat and goes on decaying for 0.35 s
+#: into a ticksPerBeat that is 0.94 s long, so for a third of every ticksPerBeat the five
+#: notes arriving overlap the five leaving.  A bank of eight would steal a
+#: voice from a tail to give it to a new note, and a truncated release is a
+#: click — the one artefact in a slow piece that is impossible to miss and
+#: hard to attribute.
+#:
+#: The bank's name is bound to the **sum** of its voices, which is why
+#: `sound` at the bottom is ordinary signal code.
+voices consort 12 bowedVoice : Sig Float
+
+#: How a MIDI note becomes this payload.  It says the payload *can* come
+#: from a keyboard, not that this bank listens: which bank the keyboard
+#: drives is a switch in the editor, beside the bank's own line.  Play
+#: along with it.
+instance FromMIDI Bowed where
+    noteOn ch p v = Just (Bowed p v)
+
+# ── The instrument ───────────────────────────────────────────────────────
+
+#: Slow on and slow off, which is what makes a consort a consort: a fast
+#: attack on five sustained parts turns a suspension into a click.
+env : Adsr
+env = Adsr 0.06 0.35 0.72 0.35
+
+hzOf : Bowed -> Float
+hzOf b = case b of
+    Bowed k v -> keyHz k
+
+levelOf : Bowed -> Float
+levelOf b = case b of
+    Bowed k v -> toFloat v / 127.0
+
+#: The timbre: a fundamental and two harmonics over it, **added**.
+#:
+#: Additive synthesis is the one method that is nothing but arithmetic, so
+#: it is the one that shows what `Num (Sig Float)` is worth — this is three
+#: oscillators and two `zip`s, and it does not say so once.  Each
+#: harmonic is quieter than the last, which is roughly what a bowed string
+#: does and is the difference between a chord and a siren.
+timbre : Sig Float -> Sig Float
+timbre hz = sine hz + 0.5 * sine (hz * 2.0) + 0.3 * sine (hz * 3.0)
+
+#: A number near 1.0 that wavers, for a hertz to be multiplied by.
+#:
+#: **A vibrato is a factor, not a feature.**  There is no vibrato in this
+#: instrument and nothing implements one: there is a signal that hovers
+#: around one, and multiplying a frequency by it is the whole mechanism.
+#: `sine` is bipolar, so the note sits in the middle of the sweep rather
+#: than at the bottom of it.
+vibrato : Sig Float
+vibrato = 1.0 + 0.004 * sine 5.0
+
+#: The voice: three signals multiplied together, and the pitch is a product
+#: too.  A `voices` bank hands each of its voices the note's timing and the
+#: note's payload as two signals, so the envelope reads one and the pitch
+#: reads the other and neither opens a record to find its half.
+bowedVoice : Sig Gate -> Sig Bowed -> Sig Float
+bowedVoice g s = timbre (!hzOf s * vibrato) * adsr env g * !levelOf s
+
+# ── The piece ────────────────────────────────────────────────────────────
+#
+# 4/4, one note per ticksPerBeat throughout: the ground, the harmony above it and
+# the tune above that all move together, note against note.  That is what
+# makes the chords come out — F# over D, E over A, D over B, C# over F# —
+# every tune note a tone of the chord its bass note is standing on.
+#
+# **This is the progression and the tune, not the canon proper.**  In
+# Pachelbel the three upper parts are one line entered three times, two
+# bars apart, and that only works because the line has *three distinct
+# two-bar variations* before it repeats: with a single phrase and entries
+# one ground-cycle apart, the three voices come out in unison and there is
+# no canon at all.  Writing the variations is composition rather than an
+# example, so what stands here is the harmony those parts spell out, which
+# is the part everyone recognises anyway.
+#
+# **Five notes sound at once** — bass, three chord tones and the tune —
+# which is the honest test that a `voices` bank is polyphonic.  A `||`
+# starts everything inside it at the same instant, so a chord is three
+# notes written side by side and needs nothing the language did not have.
+
+#: Slow, which this piece is: the ground turns over in about seven seconds.
+bpm : Int
+bpm = 64
+
+bar : Int
+bar = 4 * ticksPerBeat
+
+#: A ground note, and loudest — it is carrying the harmony and the parts
+#: above it are thinner than it is.
+low : Int -> [: Bowed :]
+low k = '(Bowed k 100)
+
+#: An inner part.  Quietest of the three: there are three of them at once
+#: and they are filling the chord in rather than saying anything.
+mid : Int -> [: Bowed :]
+mid k = '(Bowed k 54)
+
+#: The tune, on top and clear of the rest.
+high : Int -> [: Bowed :]
+high k = '(Bowed k 78)
+
+#: Three notes at the same instant.  `||` is the whole mechanism.
+chord : Int -> Int -> Int -> [: Bowed :]
+chord a b c = mid a || mid b || mid c
+
+#: The basso ostinato: D A B F# G D G A, a ticksPerBeat each, two bars round.
+#: **Every chord in the piece is this line's doing** — the parts above it
+#: spell the harmony out, they do not choose it.
+ground : [: Bowed :]
+ground = low 50 ++ low 45 ++ low 47 ++ low 42
+      ++ low 43 ++ low 38 ++ low 43 ++ low 45
+
+#: What the ground implies, voiced in the octave below middle C:
+#: D, A, Bm, F#m, G, D, G, A.
+harmony : [: Bowed :]
+harmony = chord 62 66 69 ++ chord 57 61 64 ++ chord 59 62 66 ++ chord 54 57 61
+       ++ chord 55 59 62 ++ chord 50 54 57 ++ chord 55 59 62 ++ chord 57 61 64
+
+#: The tune: F# E D C# B A B C#, down the scale a step at a time and back
+#: up two.  Eight notes against the ground's eight, one for one.
+tune : [: Bowed :]
+tune = high 78 ++ high 76 ++ high 74 ++ high 73
+    ++ high 71 ++ high 69 ++ high 71 ++ high 73
+
+twice : [: Bowed :] -> [: Bowed :]
+twice s = s ++ s
+
+thrice : [: Bowed :] -> [: Bowed :]
+thrice s = s ++ s ++ s
+
+#: Eight statements of the ground — sixteen bars, which is the length of
+#: the piece.  `twice` three times, because a repeat is a function of a
+#: score and not a number to be kept in step with anything.
+bass : [: Bowed :]
+bass = twice (twice (twice ground))
+
+#: **The parts come in one at a time and leave the same way**, which is how
+#: a ground-bass piece opens and is the clearest way to hear what each of
+#: them is doing.  Two bars of bass alone, two more with the chords, the
+#: tune from bar five; then the tune stops at bar thirteen, the chords at
+#: fifteen, and the bass closes as it began — 1, 4, 5, 4, 1 parts.
+#:
+#: **None of that is written down as a length.**  `at` translates a score's
+#: extent and leaves its duration alone, so each part is simply as long as
+#: it is and starts where it starts: six statements of the harmony from bar
+#: three and four of the tune from bar five happen to end where they do.
+#: Every offset is measured from the same origin because `||` starts what
+#: is inside it together, which is also what makes the arithmetic
+#: checkable — see the note counts in the comment at the top of the piece.
+upper : [: Bowed :]
+upper = at (2 * bar) (twice (thrice harmony))
+     || at (4 * bar) (twice (twice tune))
+
+#: `voices.consort` names the bank **lexically**, so the type checker can
+#: say that this piece fits this instrument.  Written apart, "do these
+#: notes suit this bank" would be discovered as silence.  The result is
+#: `[: Void :]`: every note committed, and nothing left unassigned.
+score : [: Void :]
+score = (bass || upper) >>= voices.consort
+
+# ── The mix ──────────────────────────────────────────────────────────────
+
+#: 0.16, and set on the *thickest* bar rather than on one note: the bank's
+#: name is the sum of its voices, so four parts are four times a single
+#: note's amplitude and a level judged on the opening bass alone clips the
+#: moment the third entry arrives.
+#:
+#: The lowpass is the room.  Three harmonics on four parts is a lot of
+#: energy above 3 kHz, and taking the top off is what stops a consort of
+#: sine sums from sounding like a pipe organ.
+sound : Sig Float
+sound = gain 0.16 (lowpassOnePole 2400.0 consort)
+</pre>
+<pre id="check"></pre>
+<footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
+<script src="player.js"></script>
+</body>
+</html>

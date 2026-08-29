@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gyre.ges</title>
+<style>
+  body { margin: 2rem auto; max-width: 48rem; padding: 0 1rem;
+         font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fafaf7; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+  h1 code { font-weight: 600; }
+  .bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .4rem 1.2rem; border: 1px solid #888;
+           border-radius: 4px; background: #fff; cursor: pointer; }
+  button:disabled { color: #999; cursor: default; }
+  #status { color: #555; }
+  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  #check { display: none; }
+  footer { margin-top: 2rem; color: #777; font-size: .9rem; }
+</style>
+</head>
+<body data-stem="gyre">
+<h1><code>gyre.ges</code></h1>
+<div class="bar">
+  <button id="play" disabled>play</button>
+  <span id="status">loading…</span>
+</div>
+<pre id="source"># Gyre — a passacaglia that accelerates, for three banks and an autoharp.
+#
+#   python -m gestate.audioperform examples/audio/gyre.ges -o gyre.wav
+#   python -m gestate.audiopygame examples/audio/gyre.ges
+#
+# **The piece is the tempo envelope.**  A passacaglia repeats a short bass
+# line while everything above it accumulates; this one also *leans* — the
+# `tempo` below holds at 63, climbs through the middle sections to 100,
+# and falls away to 54 at the end, and every layer takes the curve
+# together because they all read the same clock:
+#
+#   * the three `voices` banks play a `score`, laid out in beats, so the
+#     schedule lands their notes on the moving grid;
+#   * the autoharp is not scored at all — eight fixed Karplus-Strong
+#     strings plucked by arithmetic over `beat`, the piece's own clock at
+#     audio rate — so it accelerates in lockstep with notes it never sees.
+#
+# That second half is the part to read: an instrument the score cannot
+# hold (a `string`'s pitch is fixed when the program is built, so it
+# cannot be a bank) still playing in time with the score, because `beat`
+# under a tempo envelope is piecewise quadratic and both readings are
+# compiled from the same derivation.
+#
+# ── What a note carries ──────────────────────────────────────────────────
+#
+# One payload for all three banks, as `quartet.ges` explains — two records
+# in one graph collide in the code generator, so the banks share one.
+
+Stroke := Stroke Int Int                  # key number, velocity
+
+voices deep 3 deepVoice : Sig Float
+
+voices chime 6 chimeVoice : Sig Float
+
+voices haze 8 hazeVoice : Sig Stereo
+
+#: Any bank can be played from a keyboard against the rest of the piece —
+#: which bank listens is a switch in the editor.
+instance FromMIDI Stroke where
+    noteOn ch p v = Just (Stroke p v)
+
+# ── The clock ────────────────────────────────────────────────────────────
+#
+# Points are (seconds, bpm).  Held low while the ground walks alone,
+# rising through the middle, at full stride for the high section, then
+# unwinding past where it began — the shape of turning something over in
+# your hands until it lets go.
+
+tempo : List Tempo
+tempo = [ Step 0.0 63.0, Step 30.0 63.0, Ramp 80.0 100.0
+        , Step 100.0 100.0, Ramp 150.0 54.0 ]
+
+# ── What every voice reads off its note ──────────────────────────────────
+
+hzOf : Stroke -> Float
+hzOf q = case q of
+    Stroke k v -> keyHz k
+
+velOf : Stroke -> Float
+velOf q = case q of
+    Stroke k v -> toFloat v / 127.0
+
+#: Where a key sits in the field: middle C centred, as `quartet.ges`.
+keyPan : Stroke -> Float
+keyPan q = case q of
+    Stroke k v -> clamp (negate 1.0) 1.0 (toFloat (k - 60) / 36.0)
+
+# ── The deep: the ground's own voice ─────────────────────────────────────
+#
+# A saw and its sub-octave square into a ladder that opens with the note
+# and closes ahead of it — `quartet.ges`'s bass, tuned darker: the ground
+# is carrying the whole form, so it should sound like the floor.
+
+deepAmp : Adsr
+deepAmp = Adsr 0.006 0.3 0.7 0.25
+
+deepFilt : Adsr
+deepFilt = Adsr 0.004 0.22 0.18 0.15
+
+deepVoice : Sig Gate -> Sig Stroke -> Sig Float
+deepVoice g s = lowpassLadder
+                    (map (x => clamp 20.0 nyquist (90.0 + 1500.0 * x))
+                         (adsr deepFilt g))
+                    0.35
+                    (0.6 * saw (!hzOf s) + 0.35 * square (!hzOf s * 0.5))
+              * adsr deepAmp g * !velOf s * 0.9
+
+# ── The chime: a struck thing, not an oscillator ─────────────────────────
+#
+# Three `resonate` modes at a bar's ratios (1 : 2.76 : 5.40), rung by a
+# few milliseconds of enveloped noise — modal synthesis inside a `voices`
+# bank, which is `bell.ges`'s instrument given a keyboard.  `resonate` is
+# fed an *impulse-like* burst on purpose: driven continuously at its own
+# frequency a peak-normalised resonator's gain is in the hundreds
+# (`doc/audit.md`), so the strike is short and the ring does the singing.
+
+strike : Sig Gate -> Sig Float
+strike g = white 1223 * perc 1600.0 g
+
+chimeVoice : Sig Gate -> Sig Stroke -> Sig Float
+chimeVoice g s = ( resonate (!hzOf s) 3.2 (strike g) * 1.0
+                 + resonate (!hzOf s * 2.756) 1.9 (strike g) * 0.5
+                 + resonate (!hzOf s * 5.404) 0.9 (strike g) * 0.22 )
+               * !velOf s * 0.55
+
+# ── The haze: slow, wide, and mostly felt ────────────────────────────────
+
+hazeAmp : Adsr
+hazeAmp = Adsr 0.6 1.6 0.5 1.4
+
+hazeFilt : Adsr
+hazeFilt = Adsr 1.2 2.0 0.35 1.2
+
+hazeVoice : Sig Gate -> Sig Stroke -> Sig Stereo
+hazeVoice g s = zip (v c => panOf c v)
+    (lowpassSvf (map (x => clamp 20.0 nyquist (180.0 + 2200.0 * x))
+                     (adsr hazeFilt g))
+                0.25
+                (0.5 * triangle (map (h => centsHz (negate 7.0) h) (!hzOf s))
+               + 0.28 * saw (map (h => centsHz 7.0 h) (!hzOf s)))
+     * adsr hazeAmp g * !velOf s * 0.35)
+    (!keyPan s)
+
+# ── The autoharp ─────────────────────────────────────────────────────────
+#
+# Eight strings of D minor pentatonic, D3 to A4, plucked by the beat.
+# `string hz` is in tune to a tenth of a cent now (`doc/audit.md`), which
+# is what allows eight of them to sound *together*: an autoharp whose
+# strings disagree beats against itself.
+#
+# The whole mechanism is four small functions of the beat: which eighth
+# we are on, how far through it we are, which string the figure names for
+# that eighth, and a burst while the front of the eighth passes.  All of
+# it reads `beat`, so when the tempo leans, the plucking leans with it —
+# there is no other coupling between the harp and the score.
+
+#: Which eighth of the piece, and where in it.  `beat` is a Float, so the
+#: fold to an index is one floor.
+eighth : Float -> Int
+eighth b = floor (b * 2.0)
+
+through : Float -> Float
+through b = b * 2.0 - toFloat (floor (b * 2.0))
+
+#: Which of the five sections (four grounds of eight beats each).
+sectionOf : Float -> Int
+sectionOf b = prim_mod_int (floor (b / 32.0)) 5
+
+placeOf : Float -> Int
+placeOf b = prim_mod_int (eighth b) 8
+
+#: The figure each section plays, one string index per eighth, -1 silent.
+#: Sparse before the piece leans, widest at full stride, falling notes as
+#: it unwinds — the same curve the tempo makes, drawn in strings.
+figure : Int -> Int -> Int
+figure sec i = case sec of
+    0 -> restFig i
+    1 -> risingFig i
+    2 -> turningFig i
+    3 -> strideFig i
+    _ -> settlingFig i
+
+restFig : Int -> Int
+restFig i = 0 - 1
+
+risingFig : Int -> Int
+risingFig i = case i of
+    0 -> 0
+    2 -> 2
+    4 -> 3
+    6 -> 2
+    _ -> 0 - 1
+
+turningFig : Int -> Int
+turningFig i = case i of
+    0 -> 0
+    1 -> 2
+    2 -> 3
+    3 -> 5
+    4 -> 4
+    5 -> 3
+    6 -> 2
+    _ -> 1
+
+strideFig : Int -> Int
+strideFig i = case i of
+    0 -> 2
+    1 -> 4
+    2 -> 5
+    3 -> 7
+    4 -> 6
+    5 -> 5
+    6 -> 4
+    _ -> 3
+
+settlingFig : Int -> Int
+settlingFig i = case i of
+    0 -> 4
+    2 -> 3
+    4 -> 1
+    6 -> 0
+    _ -> 0 - 1
+
+eqInt : Int -> Int -> Bool
+eqInt a b = case a - b of
+    0 -> True
+    _ -> False
+
+onlyIf : Bool -> Float -> Float
+onlyIf p v = case p of
+    True -> v
+    False -> 0.0
+
+#: Is string `k` named at this instant of the beat?
+struck : Int -> Float -> Bool
+struck k b = eqInt (figure (sectionOf b) (placeOf b)) k
+
+#: A pluck is the first sliver of the eighth: the window is a fraction of
+#: a *beat*, so it tightens as the tempo rises, which a real player's
+#: touch does too.
+burst : Float -> Float
+burst t = case t > 0.05 of
+    True -> 0.0
+    False -> 1.0 - t / 0.05
+
+pluckOf : Int -> Int -> Sig Float
+pluckOf k seed = zip (b w => onlyIf (struck k b) (w * burst (through b)))
+                     beat (white seed)
+
+#: One string: a fixed pitch, its own noise, its own place in the field.
+harpString : Float -> Int -> Float -> Sig Stereo
+harpString hz k spot = pan spot (string hz 2.4 (pluckOf k (401 + k)))
+
+#: D3 F3 G3 A3 C4 D4 F4 A4 — the low strings toward the left, the high
+#: toward the right, the way the instrument lies in the lap.
+harp : Sig Stereo
+harp = harpString 146.83 0 (negate 0.7) + harpString 174.61 1 (negate 0.5)
+     + harpString 196.00 2 (negate 0.3) + harpString 220.00 3 (negate 0.1)
+     + harpString 261.63 4 0.1 + harpString 293.66 5 0.3
+     + harpString 349.23 6 0.5 + harpString 440.00 7 0.7
+
+# ── The score ────────────────────────────────────────────────────────────
+#
+# D minor.  The ground is four notes, two beats each — D F A G — and it
+# never changes; five sections of four grounds is the whole form, 160
+# beats however long the clock takes to walk them.
+
+ground : [: Stroke :]
+ground = ('(Stroke 38 108) |* 2) ++ ('(Stroke 41 96) |* 2)
+      ++ ('(Stroke 45 100) |* 2) ++ ('(Stroke 43 92) |* 2)
+
+#: The same roots held whole, for the first and last sections.
+groundLong : [: Stroke :]
+groundLong = ('(Stroke 38 104) |* 4) ++ ('(Stroke 45 92) |* 4)
+
+#: Chords over the ground — Dm, F, Am, Gm — voiced to move by step.
+chord : Int -> Int -> Int -> Int -> Int -> [: Stroke :]
+chord v a b c d = ('(Stroke a v) || '(Stroke b v) || '(Stroke c v)
+                || '(Stroke d v)) |* 2
+
+hazeBar : Int -> [: Stroke :]
+hazeBar v = chord v 50 53 57 62 ++ chord v 53 57 60 65
+         ++ chord v 52 57 60 64 ++ chord v 50 55 58 62
+
+#: The chime's line, pentatonic and unhurried — it enters when the tempo
+#: starts to climb and answers itself at the top.
+chimeA : [: Stroke :]
+chimeA = ('(Stroke 74 84) |* 2) ++ '(Stroke 77 72) ++ '(Stroke 79 76)
+      ++ ('(Stroke 81 84) |* 3) ++ r
+
+chimeB : [: Stroke :]
+chimeB = '(Stroke 84 88) ++ '(Stroke 81 78) ++ '(Stroke 79 74)
+      ++ '(Stroke 77 78) ++ ('(Stroke 74 84) |* 2) ++ ('(Stroke 72 70) |* 2)
+
+chimeToll : [: Stroke :]
+chimeToll = ('(Stroke 62 76) |* 8)
+
+twice : [: a :] -> [: a :]
+twice x = x ++ x
+
+onDeep : [: Stroke :] -> [: Void :]
+onDeep s = s >>= voices.deep
+
+onChime : [: Stroke :] -> [: Void :]
+onChime s = s >>= voices.chime
+
+onHaze : [: Stroke :] -> [: Void :]
+onHaze s = s >>= voices.haze
+
+#: The five sections.  The harp is absent from this expression entirely —
+#: its entrances are written in `figure`, on the same clock.
+opening : [: Void :]
+opening = onDeep (twice (twice groundLong))
+       || onHaze (twice (twice (hazeBar 40)))
+
+rising : [: Void :]
+rising = onDeep (twice (twice ground))
+      || onHaze (twice (twice (hazeBar 56)))
+
+turning : [: Void :]
+turning = onDeep (twice (twice ground))
+       || onHaze (twice (twice (hazeBar 64)))
+       || onChime (chimeA ++ chimeB ++ chimeA ++ chimeB)
+
+stride : [: Void :]
+stride = onDeep (twice (twice ground))
+      || onHaze (twice (twice (hazeBar 72)))
+      || onChime (chimeB ++ chimeA ++ chimeB ++ chimeB)
+
+settling : [: Void :]
+settling = onDeep (twice (twice groundLong))
+        || onHaze (twice (twice (hazeBar 44)))
+        || onChime (chimeToll ++ chimeToll ++ chimeToll ++ chimeToll)
+
+score : [: Void :]
+score = opening ++ rising ++ turning ++ stride ++ settling
+
+# ── The mix ──────────────────────────────────────────────────────────────
+#
+# Measured, not guessed — levels set from a full render's peaks, with the
+# room fed by the things that ring (harp, chime) and not by the ground.
+
+room : Sig Float
+room = reverb 3.0 0.35 (0.5 * chime + 0.3 * monoHarp)
+
+#: The room wants the harp in mono; the field position is the dry copy's.
+monoHarp : Sig Float
+monoHarp = map (st => case st of
+    Stereo l rr -> 0.5 * (l + rr)) harp
+
+#: The ceiling, held per channel — `bar.ges`'s lesson: a sample over full
+#: scale is a click in the file, and a mix's word about its peaks is worth
+#: less than a bound.  Measured, this catches five samples in the whole
+#: piece — coinciding pluck and strike transients — and shapes nothing.
+bound : Sig Stereo -> Sig Stereo
+bound st = map (p => case p of
+    Stereo a b -> Stereo (clamp (negate 1.0) 1.0 a)
+                         (clamp (negate 1.0) 1.0 b)) st
+
+sound : Sig Stereo
+sound = bound (0.7 * ( widen (0.55 * deep)
+                     + 0.5 * harp
+                     + pan 0.12 (0.44 * chime)
+                     + 0.5 * haze
+                     + widen (0.4 * room) ))
+</pre>
+<pre id="check"></pre>
+<footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
+<script src="player.js"></script>
+</body>
+</html>

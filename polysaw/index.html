@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>polysaw.ges</title>
+<style>
+  body { margin: 2rem auto; max-width: 48rem; padding: 0 1rem;
+         font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fafaf7; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+  h1 code { font-weight: 600; }
+  .bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .4rem 1.2rem; border: 1px solid #888;
+           border-radius: 4px; background: #fff; cursor: pointer; }
+  button:disabled { color: #999; cursor: default; }
+  #status { color: #555; }
+  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  #check { display: none; }
+  footer { margin-top: 2rem; color: #777; font-size: .9rem; }
+</style>
+</head>
+<body data-stem="polysaw">
+<h1><code>polysaw.ges</code></h1>
+<div class="bar">
+  <button id="play" disabled>play</button>
+  <span id="status">loading…</span>
+</div>
+<pre id="source"># Eight-voice subtractive: two detuned saws into a resonant ladder.
+#
+#   python -m gestate.audioperform examples/audio/polysaw.ges -o polysaw.wav
+#   python -m gestate.audioperform examples/audio/polysaw.ges --midi --seconds 20
+#   python -m gestate.audioeditor examples/audio/polysaw.ges
+#
+# The other half of `synth.ges`.  `fmpoly.ges` builds a sound by *adding*
+# sidebands; this one starts with a waveform that has too many harmonics
+# and takes them away, which is what every analogue polysynth ever made
+# does and what a resonant filter is for.
+#
+# Three things carry the sound, and each is one line you can move:
+#
+#   * **detune** — two sawtooths a few cents apart.  Identical oscillators
+#     would sum to one louder sawtooth; a few cents apart they drift in and
+#     out of phase, and that slow beating is the whole of what "fat" means.
+#   * **the filter envelope** — the cutoff starts high and falls.  A fixed
+#     cutoff makes an organ; a falling one makes a note that *happens*.
+#   * **resonance** — a peak at the cutoff, so the sweep is audible as a
+#     sweep rather than as a fade.  `synth.ges`'s ladder saturates its own
+#     feedback, so turning `filtQ` up thickens rather than buzzes.
+#
+# **Every one of those is per voice**, which is what makes this a polysynth
+# rather than a filter on a chord: eight notes are eight filters, each with
+# its own envelope, and a note struck late sweeps late.
+
+#: Called `Key` and not `Note` because `music.ges` already has a `Note` —
+#: see `fmpoly.ges`, which explains what shadowing it costs.
+Key := Key Int Int                        # key number, velocity
+
+voices poly 8 sawVoice : Sig Float
+
+instance FromMIDI Key where
+    noteOn ch p v = Just (Key p v)
+
+# ── The settings ─────────────────────────────────────────────────────────
+#
+# Constants rather than knobs, so the file reads as a patch.  `knob.ges`
+# shows how to make any of them a channel the editor draws a slider for.
+
+#: How far apart the two oscillators sit.  Seven cents is about as wide as
+#: it goes before it stops sounding like one note.
+detune : Float
+detune = 7.0
+
+#: Where the filter sits with the envelope closed, and how far the envelope
+#: opens it.  The sweep is the sound.
+filtBase : Float
+filtBase = 180.0
+
+filtSweep : Float
+filtSweep = 5200.0
+
+#: 0.0 is no peak, 1.0 stops just short of self-oscillating.
+filtQ : Float
+filtQ = 0.72
+
+ampEnv : Adsr
+ampEnv = Adsr 0.01 0.35 0.55 0.45
+
+#: Deliberately shorter than the amplitude envelope: the note goes dull
+#: while it is still loud, which is the shape of a plucked or bowed string
+#: and the reason two envelopes are worth having.
+filtEnv : Adsr
+filtEnv = Adsr 0.005 0.6 0.18 0.3
+
+# ── The voice ────────────────────────────────────────────────────────────
+#
+# **Four lines, and every one of them is a value.**  Two detuned saws, a
+# ladder whose cutoff is a signal, and an envelope multiplied in — written
+# as the arithmetic they are rather than folded by hand.
+#
+# It used to be a `Saw` record holding two phases, a `Ladder` and a sample
+# counter, with six functions to take it apart again: seventy lines that
+# said, slowly, what `lowpassLadder` and `adsr` say here.  `polysine.ges`
+# makes the argument on one sine; this is the same argument with a filter
+# and two oscillators in it.
+
+hzOf : Key -> Float
+hzOf q = case q of
+    Key k v -> keyHz k
+
+levelOf : Key -> Float
+levelOf q = case q of
+    Key k v -> toFloat v / 127.0 * 0.5
+
+#: A frequency signal moved by `cents`.  A detune is a *factor*, and this
+#: is `centsHz` lifted over a signal so that it can be one.
+detuned : Float -> Sig Float -> Sig Float
+detuned cents hz = map (h => centsHz cents h) hz
+
+#: The pair, summed.  Identical oscillators would sum to one louder
+#: sawtooth; a few cents apart they drift in and out of phase, and that
+#: slow beating is the whole of what "fat" means.
+oscillators : Sig Float -> Sig Float
+oscillators hz = 0.5 * saw (detuned (negate detune) hz)
+               + 0.5 * saw (detuned detune hz)
+
+#: The cutoff this instant, as a signal.
+#:
+#: Clamped at the top because `filtBase + filtSweep` can pass Nyquist at a
+#: low sample rate, and a filter asked for a cutoff it cannot have should
+#: sound like an open filter rather than like a divergence.
+cutoff : Sig Gate -> Sig Float
+cutoff g = map (x => clamp 20.0 nyquist (filtBase + filtSweep * x))
+               (adsr filtEnv g)
+
+sawVoice : Sig Gate -> Sig Key -> Sig Float
+sawVoice g s = lowpassLadder (cutoff g) (!filtQ) (oscillators (!hzOf s))
+             * adsr ampEnv g * !levelOf s
+
+# ── The piece ────────────────────────────────────────────────────────────
+
+bpm : Int
+bpm = 112
+
+chord : Int -> Int -> Int -> Int -> [: Key :]
+chord a b c d = '(Key a 100) || '(Key b 84) || '(Key c 84) || '(Key d 76)
+
+#: Four bars of A minor with the bass moving underneath — held chords, so
+#: the filter has time to sweep and eight voices are all sounding at once.
+part : [: Key :]
+part = chord 45 60 64 67 |* 2 ++ chord 41 60 65 69 |* 2
+    ++ chord 43 59 62 67 |* 2 ++ chord 40 59 64 67 |* 2
+
+score : [: Void :]
+score = (part ++ part) >>= voices.poly
+
+# ── The mix ──────────────────────────────────────────────────────────────
+#
+# Eight voices summed can pass 1.0 on a dense chord.  `drive` is a soft
+# clipper, so the peaks round off instead of tearing — an analogue mixer
+# does the same thing and nobody calls it distortion until it is.
+
+sound : Sig Float
+sound = drive 0.06 (dcBlock (gain 0.34 poly))
+</pre>
+<pre id="check"></pre>
+<footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
+<script src="player.js"></script>
+</body>
+</html>

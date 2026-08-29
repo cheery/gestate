@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>flutter.ges</title>
+<style>
+  body { margin: 2rem auto; max-width: 48rem; padding: 0 1rem;
+         font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fafaf7; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+  h1 code { font-weight: 600; }
+  .bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .4rem 1.2rem; border: 1px solid #888;
+           border-radius: 4px; background: #fff; cursor: pointer; }
+  button:disabled { color: #999; cursor: default; }
+  #status { color: #555; }
+  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  #check { display: none; }
+  footer { margin-top: 2rem; color: #777; font-size: .9rem; }
+</style>
+</head>
+<body data-stem="flutter">
+<h1><code>flutter.ges</code></h1>
+<div class="bar">
+  <button id="play" disabled>play</button>
+  <span id="status">loading…</span>
+</div>
+<pre id="source"># Flutter — a worn tape echo, which is a delay whose *time* is a signal.
+#
+#   python -m gestate.audioperform examples/audio/flutter.ges -o flutter.wav --seconds 50
+#   python -m gestate.audiopygame examples/audio/flutter.ges
+#
+# `echo` repeats exactly, because `feedback`'s length is a constant — its
+# slot is its cursor and cannot move.  A tape machine does not repeat
+# exactly: the capstan drifts (wow, once a second or so), the tape
+# flutters against the head (a fast tremble), and the whole transport
+# slows as it warms — and because the *loop* is what moves, every
+# regeneration is re-pitched on its way round.  That is not an effect on
+# top of the echo; it is the echo's own time bending, and `slide` is the
+# first delay here that can do it:
+#
+#     echo  t g s              the loop is  t seconds, exactly, forever
+#     slide n f pos s          the loop is  pos[t] samples, and pos moves
+#
+# The wobble is three sines summed into the position — depths measured in
+# *cents* of the repeat pitch, because that is what the ear reads them as
+# — and everything else in the file exists to give the tape something
+# quiet and sparse to chew on.
+
+bpm : Int
+bpm = 66
+
+# ── A thumb piano, for the dry signal ────────────────────────────────────
+#
+# Sparse on purpose: tape echo is heard in the *gaps*, so the source
+# leaves them.  A tine is a sine with a fast decay and a touch of its
+# twelfth, gated by a beat table that plays fours with a rest in them.
+
+eighth : Float -> Int
+eighth b = floor (b * 2.0)
+
+through : Float -> Float
+through b = b * 2.0 - toFloat (floor (b * 2.0))
+
+placeOf : Float -> Int
+placeOf b = prim_mod_int (eighth b) 16
+
+#: D minor pentatonic tines, -1 for a rest.  The figure leans on the
+#: front of the bar and leaves the back half open for the machine.
+tineAt : Int -> Int
+tineAt i = case i of
+    0 -> 62
+    2 -> 65
+    3 -> 69
+    5 -> 67
+    8 -> 74
+    9 -> 72
+    11 -> 65
+    _ -> 0 - 1
+
+playing : Float -> Bool
+playing b = case tineAt (placeOf b) - (0 - 1) of
+    0 -> False
+    _ -> True
+
+#: How far into its own eighth this instant is, in seconds — the tine's
+#: envelope runs on it.
+sinceHit : Sig Float
+sinceHit = map (b => through b * 60.0 / (toFloat bpm * 2.0)) beat
+
+tineHz : Sig Float
+tineHz = map (b => case playing b of
+    True -> keyHz (tineAt (placeOf b))
+    False -> 440.0) beat
+
+gateAt : Float -> Float -> Float
+gateAt t on = on * exp (negate 9.0 * t)
+
+tine : Sig Float
+tine = ( sine tineHz
+       + 0.28 * sine (tineHz * 3.01)
+       + 0.1 * sine (tineHz * 6.24) )
+     * zip gateAt sinceHit (map (b => case playing b of
+           True -> case through b &lt; 0.5 of
+               True -> 0.8
+               False -> 0.0
+           False -> 0.0) beat)
+
+# ── The transport ────────────────────────────────────────────────────────
+#
+# The nominal delay is a dotted eighth.  On top of it, three movements:
+#
+#     wow      0.6 Hz, the capstan's once-around
+#     flutter  6.7 Hz, the tape trembling at the head
+#     drift    0.045 Hz, the machine warming up and letting go
+#
+# The depths are fractions of the *loop*, so their audible size is in
+# cents regardless of the delay setting: 0.004 of the loop is about seven
+# cents of wow, which is a machine that was serviced some years ago.
+
+nominal : Float
+nominal = 0.34 * 48000.0
+
+transport : Sig Float
+transport = !nominal *
+    ( 1.0 + 0.004 * sine (!0.6)
+          + 0.0007 * sine (!6.7)
+          + 0.011 * sine (!0.045) )
+
+#: The machine: forty per cent of each pass survives to go round again,
+#: and every pass is re-pitched by whatever the transport is doing when
+#: it comes off the head.  The half-sample smear of the interpolated read
+#: is the tape dulling its own top end, pass over pass.
+tape : Sig Float
+tape = slide 32768 (y x => x + 0.62 * y) transport tine
+
+#: Only the repeats: the dry tine is mixed on its own terms below, and a
+#: tape return always was a fader of its own.
+wet : Sig Float
+wet = lowpassOnePole (!3400.0) (tape - tine)
+
+# ── The room ─────────────────────────────────────────────────────────────
+
+sound : Sig Float
+sound = brickwall 0.9
+    ( 0.55 * tine
+    + 0.6 * wet
+    + 0.35 * reverb 2.6 0.45 (0.5 * tine + 0.5 * wet) )
+</pre>
+<pre id="check"></pre>
+<footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
+<script src="player.js"></script>
+</body>
+</html>
