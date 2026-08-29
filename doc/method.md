@@ -161,7 +161,7 @@ decline honestly:
 | [`fixme.md`](../fixme.md) | 185 entries, 155 resolved | where the implementation disagrees with the specs |
 | [`journal.md`](../journal.md) + `journal/` | the current month, plus one line per closed month | what happened, past tense |
 | [`doc/memory/`](memory/) | one fact per file | what a session that forgets everything carries across |
-| [`keeper.md`](../keeper.md) | 212 | standard work for the one person who keeps all of the above |
+| [`keeper.md`](../keeper.md) | 225 | standard work for the one person who keeps all of the above |
 
 Two of those are worth a word. `fixme.md` is a **register, not a
 backlog**: an entry is closed by being marked resolved, never by being

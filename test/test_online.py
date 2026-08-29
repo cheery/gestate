@@ -138,6 +138,28 @@ def test_the_generated_directory_is_what_a_host_serves():
 
 
 @needs_tools
+def test_a_directory_becomes_a_site_with_an_index_and_leaves_out_what_it_cannot():
+    """Three files in: two pages and an index naming them with their
+    first comment line; the unfolding one left out and reported, not
+    fatal.  `.nojekyll` beside them, because the branch is served by
+    Pages (`tools/pages.sh`)."""
+    with tempfile.TemporaryDirectory() as d:
+        src = Path(d) / "pieces"
+        src.mkdir()
+        for name in ("twinkle.ges", "twoknobs.ges", "arpeggiator.ges"):
+            shutil.copyfile(AUDIO_DIR / name, src / name)
+        made, refused = online.generate_site(src, Path(d) / "site")
+        site = Path(d) / "site"
+        index = (site / "index.html").read_text()
+        top = sorted(p.name for p in site.iterdir())
+    assert [n for n, _ in made] == ["twinkle.ges", "twoknobs.ges"]
+    assert [n for n, _ in refused] == ["arpeggiator.ges"] and "unfolds" in refused[0][1]
+    assert top == [".nojekyll", "index.html", "twinkle", "twoknobs"]
+    assert 'href="twinkle/"' in index and "Twinkle Twinkle Little Star" in index
+    assert "arpeggiator" not in index
+
+
+@needs_tools
 def test_an_unfolding_score_is_refused_with_the_reason():
     with tempfile.TemporaryDirectory() as d:
         with pytest.raises(online.OnlineError, match="unfolds"):

@@ -44,6 +44,7 @@ working, not the ritual failing.
 | 3. Measure one rule | every fire | 10 min |
 | 4. One pass over the pile | every fire | 10 min |
 | 5. Rotate the journal | when the lamp says so — about monthly | 30 min |
+| 6. Push the pieces | now and then — when a piece changed | 5 min |
 
 Weekly is the shape it was proposed at.  The cadence is yours to move;
 what is not yours to move is doing them in the head instead of on the
@@ -183,6 +184,18 @@ not out of ceremony: it edits the five documents, and `spec/author.md`
 is the author's.
 
 ---
+
+## 6. Push the pieces
+
+    tools/pages.sh
+
+The music pages — `card:online.md`, every piece in `examples/audio/`
+as a tab that plays it — live on the `gh-pages` branch, and nothing
+keeps them fresh but this.  Your own pick, 2026-08-29: *"tämän
+sivuston ei tarvitse olla tuore koko ajan."*  So not every fire: when
+a piece changed, or a new one landed, or you want to show somebody.
+The script generates, commits to the branch and pushes; it says
+"nothing to commit" when the site is already the tree's.
 
 ## If the doubt turns up while you are doing this
 

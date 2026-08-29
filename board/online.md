@@ -1,6 +1,6 @@
 # online — gestate, the audio production tool, reachable in a browser
 
-    status   doing — 2026-08-29, pieces A and B landed; question 8 is Henri's, §"Questions"
+    status   doing — 2026-08-29, pieces A and B landed, question 8 answered; C next, §"The pieces"
     because  "somebody who has never read this repository should be able
              to open a file, hear it, change it, and hear the change
              without being told anything first" (vision.md, 2026-08-16)
@@ -19,6 +19,8 @@
              doc/memory/the-tree-withers.md — a site with no source and no
              check rots; this must be generated from the tree and gated
              doc/consent.md — Michael's row
+             keeper.md §"6. Push the pieces" — how the site stays as
+             fresh as he wants it, which is not always
 
 ## The ask
 
@@ -136,8 +138,17 @@ the tree.  What it costs is a process outside the tree, which question
 `personal-and-personally-paid` mechanism is not touched.  The
 alternative is committing the generated site under a directory Pages
 can serve, with a gate that it is not behind the source, the way
-`doc/atlas/` is kept.  **Open — his to pick; the session did not write
-the workflow, because it is outward-facing.**
+`doc/atlas/` is kept.  *Answered 2026-08-29, Henri, given the three
+readings with facts (repo public, Pages off, 44 of 52 pieces generate,
+2.1 MB, 136 s):* **"R2 ja keeper.md -sivulle ohje ajaa tools/pages.sh
+silloin tällöin.  Tämän sivuston ei tarvitse olla tuore koko ajan."**
+So `tools/pages.sh` fills `gh-pages` without touching the working
+tree and he pushes; `keeper.md` §"6. Push the pieces" says when.
+`python -m gestate.online examples/audio -o site/` makes the whole
+site with an index, leaving out the eight that unfold.  Done by his hand
+the same hour: *"työnsin gh-pagesin ja se näkyy nyt
+https://cheery.github.io/gestate"* — **the pieces are online**,
+2026-08-29, 44 of them, from `172ea18`.
 
 ## The pieces
 
