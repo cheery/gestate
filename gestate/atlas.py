@@ -115,7 +115,9 @@ WHERE: dict[str, str] = {
     "midi": "music", "tempo": "music",
     "gui": "gui",
     "audio": "sound", "audioextract": "sound", "audiograph": "sound",
-    "audioir": "sound", "audiollvm": "sound", "audiovoices": "sound",
+    "audioir": "sound", "audiollvm": "sound", "audiowasm": "sound",
+    "online": "sound",
+    "audiovoices": "sound",
     "audioscore": "sound", "audioschedule": "sound", "audioalloc": "sound",
     "audiodynamic": "sound", "audiomidi": "sound", "transcript": "sound",
     # ── Playing it, and shipping it ─────────────────────────────────────

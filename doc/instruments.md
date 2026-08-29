@@ -378,6 +378,12 @@ evidence and not instruments.  `spec/verification.md` is the design.
 
 ---
 
+### `tools/wasmcheck.py` — the graph as wasm, held to the native render
+
+`python tools/wasmcheck.py examples/audio/twinkle.ges` compiles the graph
+for wasm32, links it, runs it under `wasmtime` and compares it with
+`run_native` sample for sample; `card:online.md` has the numbers.
+
 ## Knowing what the tree says about itself
 
 ### `python -m gestate.complaints` — every error message, with its verdict

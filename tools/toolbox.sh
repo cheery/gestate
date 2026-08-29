@@ -201,6 +201,36 @@ if ! report cairosvg "$(have_py cairosvg)" \
     "$py" -m pip install cairosvg
 fi
 
+# ── Linking the graph as wasm ────────────────────────────────────────
+#
+# `card:online.md`: the browser computes the sound, so the graph has to
+# arrive as a `.wasm`.  `clang --target=wasm32` is the same clang the
+# install already needs and it compiles `audiollvm.emit`'s text as it
+# is — but it then asks for `wasm-ld-18` by that exact name, and the
+# Ubuntu clang package does not carry it.  `tools/wasmcheck.py` stops
+# after the object file without it and says so.  (A rustup toolchain's
+# `gcc-ld/wasm-ld` links the same module and `wasmcheck` finds it, so
+# a machine with Rust on it may already be past this line.)
+if ! report wasm-ld "$( (command -v wasm-ld-18 || command -v wasm-ld) >/dev/null 2>&1 && echo yes || echo no)" \
+        "linking a graph compiled for wasm32 (tools/wasmcheck.py)" \
+        "apt install lld-18" && [ "$install" = 1 ]; then
+    as_root apt-get install -y lld-18
+fi
+
+# ── Running the wasm without a browser ───────────────────────────────
+#
+# What turns *it linked* into *it renders the same samples*:
+# `gestate.audiowasm.run` instantiates the module under `wasmtime`,
+# drives `render_block` with the same control values `run_native` gets,
+# and `test/test_wasm.py` compares — skipping, with this named, when it
+# is absent.  Imported lazily by that one function and nowhere else: the
+# page this is for runs the module in the browser, not here.
+if ! report wasmtime "$(have_py wasmtime)" \
+        "running a linked .wasm and comparing it to the native render" \
+        "pip install wasmtime" && [ "$install" = 1 ]; then
+    "$py" -m pip install wasmtime
+fi
+
 echo
 if [ "$missing" = 0 ]; then
     echo "the bench is ready."

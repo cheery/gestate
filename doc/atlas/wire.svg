@@ -30,7 +30,7 @@
 <text class="subtitle" x="12.00" y="26.50">Where a Python model meets a Rust window. Every word here is written twice, in two languages, and nothing but this compares them: the sheet is drawn from <tspan class="mono">abi.rs</tspan> and <tspan class="mono">editor.py</tspan>, from <tspan class="mono">session.furniture</tspan> and <tspan class="mono">Furniture::read</tspan>, from <tspan class="mono">Gesture::line</tspan> and</text>
 <text class="subtitle" x="12.00" y="30.50"><tspan class="mono">session.act</tspan>.</text>
 <text class="foot" x="12.00" y="287.00"><tspan class="mono">test_atlas.py</tspan> fails when the two ends disagree — a word sent and never read, a call declared with the wrong arity, a type that means something else on the other side. This is the one sheet that is a test as well as a picture.</text>
-<text class="stamp" x="408.00" y="287.00">gestate 0cf1e8e · 2026-08-26+</text>
+<text class="stamp" x="408.00" y="287.00">gestate 813d3a6 · 2026-08-28+</text>
 <rect class="lane" x="12.00" y="37.00" width="128.00" height="72.40" rx="2.4" style="fill:#eef3f7"/>
 <text class="lanetitle" x="16.00" y="44.40">The model asks the window</text>
 <text class="note" x="16.00" y="49.20">Text, chrome, pictures and orders, over a pointer and a string. Nothing is</text>

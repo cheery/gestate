@@ -30,7 +30,7 @@
 <text class="subtitle" x="12.00" y="26.50">The audio backend, both halves: what the language describes is compiled to machine code, and what the score says arrives as control values on the same graph. The vocabularies below are read from the compiler's own tables — the formers, the</text>
 <text class="subtitle" x="12.00" y="30.50">primitives, the IR's kinds, and the C host's exports.</text>
 <text class="foot" x="12.00" y="287.00"><tspan class="mono">test_atlas.py</tspan> fails when the sheet is not what the source renders, and when Python names a <tspan class="mono">host.c</tspan> function that is not there. Redraw with <tspan class="mono">python -m gestate.atlas</tspan>.</text>
-<text class="stamp" x="408.00" y="287.00">gestate f5200b5 · 2026-08-26+</text>
+<text class="stamp" x="408.00" y="287.00">gestate 813d3a6 · 2026-08-28+</text>
 <rect class="lane" x="12.00" y="37.00" width="94.50" height="81.70" rx="2.4" style="fill:#f6f2ea"/>
 <text class="lanetitle" x="16.00" y="44.40">What you write</text>
 <text class="note" x="16.00" y="49.20"><tspan class="mono">sound : Sig Float</tspan>, built from these and nothing else.</text>
