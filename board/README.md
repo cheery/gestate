@@ -488,9 +488,9 @@ is what the `blocked` field is for.
    not.  He still gives one whenever he wants to; the change is only that
    the absence of one is no longer a stop.
 
-   What has not changed is that a commit is the *end* of a card and not a
-   punctuation mark inside one: one card, one commit, with the card's
-   move riding in it.
+   *"One card, one commit" stood here 2026-08-17 to 2026-08-29*, a
+   session's tightening struck by Henri; what remains is his rule
+   below, and at every commit before the last, the card says where it stands.
 
 **Steps 1–3 ride in the same commit as the work**, which is Henri's own
 rule read forward: *"You take each out from this section once the commit
