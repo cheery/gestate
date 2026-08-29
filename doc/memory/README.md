@@ -89,6 +89,7 @@ session inferred.
 
 - [The instruments a session has](gestate-instruments.md) — `doc/instruments.md`: gemba, the andon, the wrist clock, `suite.py --gates` and the pre-commit hook; build a missing capability the moment the need arises, and a number nobody asked for is a number nobody checks (F169)
 - [Gestate verify workflow](gestate-verify-workflow.md) — fast LLVM render path, `audioperform -o`, headless LazyPerformer harness for dynamic scores, control-sweep clamping
+- [.ges is not music notation, yet](ges-is-not-music-notation-yet.md) — Henri, 2026-08-29, after `together.ges`: editing a score blind was heavy; good for synths, maybe not what he wants from notation — his to think over, so no fixes unprompted
 - [Gestate language pitfalls](gestate-language-pitfalls.md) — sown clips to ONE beat, `!` binding, fragment rules; OPEN: clipped cycle-of-rests diverges the stream walk
 - [Test what a person would do](test-what-a-person-would-do.md) — try the naive thing before declaring it done; a harness built from the implementation cannot find a missing affordance
 - [The kaizen is asked, not answered](the-kaizen-is-asked-not-answered.md) — put the three questions to Henri first and wait; a kaizen with one participant is a session grading itself, and both parties are supposed to learn from their mistakes
