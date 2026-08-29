@@ -82,7 +82,7 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `gui.py:590` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
 | `helpers.py:434` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `helpers.py:569` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
-| `pipeline.py:1102` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
+| `pipeline.py:1108` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
 | `reactive.py:146` | `ReactiveError` | fixme.md F159: reading a signal out of turn is the program's mistake, and the machine has the node but not its span |
 | `tempo.py:83` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
 | `tempo.py:171` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
@@ -131,8 +131,8 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `midi.py:172` | `MidiError` | how many instruments the whole piece uses |
 | `midi.py:191` | `MidiError` | a piece with no notes in it at all |
 | `online.py:64` | `OnlineError` | a score that unfolds forever cannot be baked to a file; a page for one is a performer in the browser, which is piece C's question |
-| `pipeline.py:279` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
-| `pipeline.py:920` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
+| `pipeline.py:285` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
+| `pipeline.py:926` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
 
 ## Every complaint
 
@@ -738,18 +738,18 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 279 | `PipelineError` | `author` | *nowhere, on purpose* | 'the program nests too deeply to compile (over {_COMPILE_RECURSION_LIMIT // 6:,} levels). This … |
-| 571 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
-| 601 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
-| 604 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
-| 644 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
-| 657 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
-| 660 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
-| 753 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
-| 777 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
-| 783 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
-| 920 | `PipelineError` | `author` | *nowhere, on purpose* | 'the type of this {what} did not reach code generation; it should have been annotated during in… |
-| 1102 | `MonomorphizationError` | `author` | *unplaced — fixme.md F157: the set type is named and the expression that needs it is not* | 'Datafun operations are compiled per concrete type, so a set type has to be known here:\n' + '\… |
+| 285 | `PipelineError` | `author` | *nowhere, on purpose* | 'the program nests too deeply to compile (over {_COMPILE_RECURSION_LIMIT // 6:,} levels). This … |
+| 577 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
+| 607 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
+| 610 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
+| 650 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
+| 663 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
+| 666 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
+| 759 | `ExhaustError` | `author` | carried from the complaints it collects | '\n'.join(exhaust_errors) |
+| 783 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
+| 789 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
+| 926 | `PipelineError` | `author` | *nowhere, on purpose* | 'the type of this {what} did not reach code generation; it should have been annotated during in… |
+| 1108 | `MonomorphizationError` | `author` | *unplaced — fixme.md F157: the set type is named and the expression that needs it is not* | 'Datafun operations are compiled per concrete type, so a set type has to be known here:\n' + '\… |
 
 ### `reactive.py`
 

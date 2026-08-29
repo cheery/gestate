@@ -267,7 +267,13 @@ def _deep_stack_alone(thunk):
     try:
         sys.setrecursionlimit(_COMPILE_RECURSION_LIMIT)
         t = threading.Thread(target=worker)
-        t.start()
+        try:
+            t.start()
+        except RuntimeError:
+            # The size was accepted and the thread still would not start
+            # — Pyodide's main thread, measured 2026-08-29 (card:online.md,
+            # C1): the same case as a refused size, taken the same way.
+            return thunk()
         t.join()
     finally:
         sys.setrecursionlimit(old_limit)

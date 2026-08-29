@@ -1,6 +1,6 @@
 # online — gestate, the audio production tool, reachable in a browser
 
-    status   doing — 2026-08-29, pieces A and B landed, question 8 answered; C next, §"The pieces"
+    status   doing — 2026-08-29, pieces A and B landed, online; C1 measured, the emitter is Henri's to weigh, §"The pieces"
     because  "somebody who has never read this repository should be able
              to open a file, hear it, change it, and hear the change
              without being told anything first" (vision.md, 2026-08-16)
@@ -221,6 +221,19 @@ that path (`mido`, `sounddevice`, `pygame`, `cairosvg` are the host's).
   keep, and *kept* is the cost that matters here.  **Killed if** the
   seconds per change are too many to feel like hearing a change; an
   afternoon with Pyodide measures that before anything is built.
+  **Measured 2026-08-29, kept as `python tools/pyodidecheck.py`:**
+  the front end runs under Pyodide in a real Chrome as it is, one
+  fix deep — `pipeline._deep_stack_alone` now takes its inline path
+  when a thread cannot start, not only when a stack cannot be sized
+  (`test/test_pipeline_stack.py`).  Twinkle: Pyodide loads in
+  **3.2 s** (once), `gestate/` is 0.9 MB zipped and unpacks in 0.09 s;
+  the first change is **5.2 s** cold, and the next three one-number
+  edits **1.2 / 1.2 / 1.8 s** against 0.5–0.7 s native — about 2×.
+  Under the 3 s line by the card's own rule.  **So the seconds do not
+  kill C1; what C1 costs is the emitter** — `emit` writes LLVM text and
+  no LLVM runs in a browser, so the graph needs a second writer that
+  puts out wasm bytes, and that writer is kept, not written once.  A
+  measurement decides nothing about keeping; that is his.
 * **C2 — every literal is a knob.**  No recompile: the page turns the
   numbers in the file into control slots and a change is a slot write,
   which A and B already do.  Cheapest by far.  **Killed if** "change
