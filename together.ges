@@ -1,0 +1,249 @@
+# together.ges — a band waiting for its music.
+#
+#   python -m gestate.audioperform together.ges -o together.wav --seconds 8
+#   python -m gestate.audioperform together.ges --midi
+#
+# The deal: the instruments here are the session's, the rhythm and the
+# notes are Henri's.  Everything below "THE PIECE" is yours to overwrite;
+# everything above it is the band, tuned and on stage.
+#
+# Six banks, one payload.  The drums are three separate banks — kick,
+# snare, hat — so a rhythm is written the same way a melody is: a score
+# per drum, no dispatching.  The key number is ignored by the drums;
+# velocity is not.
+
+Key := Key Int Int                        # key number, velocity
+
+voices lead 3 leadVoice : Sig Float
+voices bass 2 bassVoice : Sig Float
+voices pad 6 padVoice : Sig Float
+voices kick 2 kickVoice : Sig Float
+voices snare 2 snareVoice : Sig Float
+voices hat 2 hatVoice : Sig Float
+
+instance FromMIDI Key where
+    noteOn ch p v = Just (Key p v)
+
+hzOf : Key -> Float
+hzOf q = case q of
+    Key k v -> keyHz k
+
+velOf : Key -> Float
+velOf q = case q of
+    Key k v -> toFloat v / 127.0
+
+# ── The lead: bright, forward — the melody carrier ───────────────────────
+
+leadAmp : Adsr
+leadAmp = Adsr 0.01 0.15 0.7 0.25
+
+#: The filter has its own envelope so brightness and loudness part ways;
+#: try: sustain 0.15 here and every note starts with a spark that dies.
+leadFilt : Adsr
+leadFilt = Adsr 0.005 0.3 0.3 0.25
+
+#: Two saws a hair apart — the width comes from the beating, not from volume.
+leadVoice : Sig Gate -> Sig Key -> Sig Float
+leadVoice g s = lowpassSvf (200.0 + 5000.0 * adsr leadFilt g) 0.4
+                           (saw (!hzOf s) + saw (!hzOf s * 1.004))
+              * adsr leadAmp g * !velOf s * 0.5
+
+# ── The bass: plucked, dark — release means nothing to it ────────────────
+
+#: try: decay 2.5 and the pluck becomes a held finger.
+bassVoice : Sig Gate -> Sig Key -> Sig Float
+bassVoice g s = lowpassLadder (80.0 + 1600.0 * perc 8.0 g) 0.6
+                              (saw (!hzOf s))
+              * perc 5.0 g * !velOf s
+
+# ── The pad: slow, colourless on purpose — the ground under the lead ─────
+
+padEnv : Adsr
+padEnv = Adsr 0.6 0.4 0.7 1.2
+
+#: try: 2.001 -> 2.02 and the shimmer turns to seasickness.
+padVoice : Sig Gate -> Sig Key -> Sig Float
+padVoice g s = (sine (!hzOf s) + 0.5 * sine (!hzOf s * 2.001)
+                + 0.3 * sine (!hzOf s * 3.0))
+             * adsr padEnv g * !velOf s * 0.4
+
+# ── The kit: shaped noise, one bank per drum ─────────────────────────────
+
+#: The pitch envelope is the drum: 200 Hz falling to 45 in a few ms.
+kickVoice : Sig Gate -> Sig Key -> Sig Float
+kickVoice g s = sine (45.0 + 160.0 * perc 22.0 g) * perc 22.0 g * !velOf s
+
+snareVoice : Sig Gate -> Sig Key -> Sig Float
+snareVoice g s = (0.7 * white 12 + 0.4 * triangle 190.0)
+               * perc 14.0 g * !velOf s
+
+#: Velocity is the open/closed of this hat: soft taps vanish fast.
+hatVoice : Sig Gate -> Sig Key -> Sig Float
+hatVoice g s = highpassSvf 7000.0 0.2 (white 11) * perc 40.0 g * !velOf s
+
+# ═════════════════════════════ THE PIECE ═════════════════════════════════
+#
+# Henri's idea, grown with his blessing ("vapaat kädet", 2026-08-29).
+# His material: the intro gesture (F, an F#/E trill, F, high F), the
+# rising A-B-C#-D, the falling D-C-D-B, and a one-beat bass rip.  The
+# growth follows his own practice notes: hollow fifths under the
+# chromatic material, full triads after; say it, say it again, break it
+# the third time; and stop in the middle, make a cadence, continue.
+# Twenty bars in D dorian — the key his own notes spell out — with an
+# eight-bar calm where the trill turns from a rasp into an ornament,
+# and a picardy third to land.
+
+bpm : Int
+bpm = 96
+
+twice x = x ++ x
+quad x  = twice x ++ twice x
+
+# ── The material — Henri's phrases, kept as written ──────────────────────
+
+#: In the calm equations: long notes, stepwise, the chord's third held
+#: where it counts — and the fast trill kept as an ornament, diatonic
+#: now, until the last one (D against C#) turns chromatic to pull home.
+scoreLead : String -> [: Int :]
+scoreLead "intro"  = '65 ++ (quad ('54 ++ '52)) |/ 8 ++ '65 ++ '77
+scoreLead "hmm"    = '45 ++ '47 ++ '49 ++ '50
+scoreLead "answer" = '62 ++ '61 ++ '59 ++ '61
+scoreLead "final"  = '62 |* 4
+scoreLead "calm1"  = '57 |* 2 ++ '55 ++ '53
+scoreLead "calm2"  = '57 |* 2 ++ '60 ++ '57
+scoreLead "calm3"  = '59 |* 3 ++ quad ('62 ++ '60) |/ 8
+scoreLead "calm4"  = '57 |* 4
+scoreLead "calm5"  = '62 |* 2 ++ '60 ++ '59
+scoreLead "calm6"  = '60 |* 2 ++ '57 ++ '55
+scoreLead "calm7"  = '55 |* 2 ++ quad ('59 ++ '57) |/ 8 ++ '59
+scoreLead "calm8"  = '61 |* 3 ++ quad ('62 ++ '61) |/ 8
+scoreLead _        = '50 ++ '48 ++ '50 ++ '47
+
+#: His bass rip: sixteen notes in one beat, a zipper up the octave.
+burst : [: Int :]
+burst = quad ('49 ++ '50 ++ '64 ++ '54) |/ 16
+
+# ── Binding a phrase to its player ───────────────────────────────────────
+
+sing : String -> Int -> [: Void :]
+sing part v = do
+    n <- scoreLead part
+    voices.lead (Key n v)
+
+#: One bar of bass: root held, root again, up to the fifth.
+walk : Int -> Int -> [: Void :]
+walk root five = do
+    n <- '(root) |* 2 ++ '(root) ++ '(five)
+    voices.bass (Key n 105)
+
+padc : Int -> Int -> Int -> [: Void :]
+padc a b c = (('(Key a 65) || '(Key b 65) || '(Key c 65)) |* 4) >>= voices.pad
+
+#: The same chord at a murmur, for the calm.
+padq : Int -> Int -> Int -> [: Void :]
+padq a b c = (('(Key a 45) || '(Key b 45) || '(Key c 45)) |* 4) >>= voices.pad
+
+# ── The kit patterns ─────────────────────────────────────────────────────
+
+hatBar : [: Void :]
+hatBar = quad ('(Key 42 70) |/ 2 ++ '(Key 42 40) |/ 2) >>= voices.hat
+
+kickBar : [: Void :]
+kickBar = ('(Key 36 110) ++ '(Key 36 80) ++ '(Key 36 110) ++ '(Key 36 80))
+        >>= voices.kick
+
+snareBar : [: Void :]
+snareBar = (r ++ '(Key 38 100) ++ r ++ '(Key 38 100)) >>= voices.snare
+
+#: Three beats of nothing, then four sixteenths walking up in loudness.
+fillBar : [: Void :]
+fillBar = (r |* 3
+           ++ ('(Key 38 80) ++ '(Key 38 95) ++ '(Key 38 105) ++ '(Key 38 115)) |/ 4)
+        >>= voices.snare
+
+grooveBar : [: Void :]
+grooveBar = kickBar || snareBar || hatBar
+
+# ── The form: five his, one stop, four grown, eight calm, two to land ────
+
+#: Exposition — his five-bar lead track verbatim.  The lead's own notes
+#: name the key: F, C and B natural spell D dorian, so the chords are
+#: Dm, A7 (the dominant under the rising line), Dm7 and the dorian IV,
+#: G major — whose B natural is exactly the outro's.  The trill's F#
+#: is a chromatic lower neighbour and no chord has to answer for it.
+#: Bar one is still a hollow fifth; the band gathers one member per bar.
+expo : [: Void :]
+expo = (sing "intro" 100 || padc 50 57 62 || hatBar || walk 38 45)
+    ++ (sing "intro" 100 || padc 53 57 62 || hatBar || kickBar || walk 38 45)
+    ++ (sing "hmm" 95 || padc 55 61 64 || hatBar || kickBar || walk 33 40)
+    ++ (sing "outro" 100 || padc 53 57 60 || grooveBar || walk 38 45)
+    ++ (sing "outro" 90 || padc 55 59 62 || hatBar || kickBar || fillBar || walk 43 38)
+
+#: The stop: everything falls silent but a bare A7 — a half cadence
+#: hanging in the air for three beats, and one beat of true silence.
+cadence : [: Void :]
+cadence = ((('(Key 55 60) || '(Key 61 60) || '(Key 64 60)) |* 3 ++ r) >>= voices.pad)
+       || (('(Key 33 100) |* 3 ++ r) >>= voices.bass)
+
+#: The continue: the whole kit at once, the same phrases on i-V-IV-V
+#: ground, and the intro said a third time — over a minor chord now,
+#: which is the break in the saying.  The last bar ends in his rip.
+grown : [: Void :]
+grown = (sing "intro" 105 || padc 53 57 62 || grooveBar || walk 38 45)
+     ++ (sing "hmm" 100 || padc 55 61 64 || grooveBar || walk 33 40)
+     ++ (sing "outro" 100 || padc 55 59 62 || grooveBar || walk 43 38)
+     ++ (sing "answer" 105 || padc 55 61 64 || kickBar || hatBar || fillBar || ripBar)
+
+ripBar : [: Void :]
+ripBar = do
+    n <- '33 |* 2 ++ '33 ++ burst
+    voices.bass (Key n 105)
+
+#: One soft kick on the downbeat and nothing more.
+calmKick : [: Void :]
+calmKick = ('(Key 36 95) ++ r |* 3) >>= voices.kick
+
+#: The calm: eight bars after the rip's cliff-edge, lead singing low
+#: and long over Dm-F-G-Am, then the same four chords again with the
+#: floor back under them and A7 raised at the end for the way home.
+calm : [: Void :]
+calm = (sing "calm1" 75 || padq 53 57 62 || calmKick || walk 38 45)
+    ++ (sing "calm2" 75 || padq 53 57 60 || calmKick || walk 41 48)
+    ++ (sing "calm3" 80 || padq 55 59 62 || calmKick || walk 43 50)
+    ++ (sing "calm4" 70 || padq 57 60 64 || calmKick || walk 45 52)
+    ++ (sing "calm5" 80 || padc 53 57 62 || hatBar || kickBar || walk 38 45)
+    ++ (sing "calm6" 78 || padc 53 57 60 || hatBar || kickBar || walk 41 48)
+    ++ (sing "calm7" 80 || padc 55 59 62 || hatBar || kickBar || walk 43 50)
+    ++ (sing "calm8" 85 || padc 55 61 64 || hatBar || kickBar || fillBar || walk 33 40)
+
+#: The landing: A7 resolves and the D is *major* — a picardy third to
+#: close a dorian piece.  Two bars of ring, one kick, done.
+final : [: Void :]
+final = sing "final" 110
+     || ((('(Key 54 60) || '(Key 57 60) || '(Key 62 60) || '(Key 66 60)) |* 8)
+         >>= voices.pad)
+     || (('(Key 38 110) |* 4) >>= voices.bass)
+     || (('(Key 36 115) ++ r) >>= voices.kick)
+
+score : [: Void :]
+score = expo ++ cadence ++ grown ++ calm ++ final
+
+# ── The mix ──────────────────────────────────────────────────────────────
+
+#: The lead goes through a drive — `drive` is fierce (input gain
+#: 1 + 9*amount, output *1.5), so 0.2 is already a crunch.  The 0.45
+#: in front keeps quiet notes on the straight part of the clipper's
+#: cubic, so the calm stays calm and only the peaks distort; the echo
+#: is a dotted eighth at this tempo (0.625 s beat * 0.75), so the
+#: trills come back as ghosts.
+leadFx : Sig Float
+leadFx = drive 0.2 (0.45 * lead)
+
+#: One gain per band member; the reverb hears the lead, the pad and half
+#: the snare, and nobody else — the low end stays dry.
+sound : Sig Float
+sound = brickwall 0.9
+        (0.8 * kick + 0.5 * snare + 0.3 * hat
+         + 0.55 * bass + 0.32 * leadFx + 0.2 * echo 0.5 0.6 leadFx
+         + 0.3 * pad
+         + 0.25 * reverb 2.5 0.4 (0.6 * leadFx + pad + 0.5 * snare))
