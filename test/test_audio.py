@@ -223,7 +223,14 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # a 7/4 riff whose lowest note lands on beat five, a humppa
             # on Timo's beat, and a silence where the friends were —
             # `test_tiksi_counts_its_sevens`.
-            "tiksi.ges"]
+            "tiksi.ges",
+            # The first piece made together — Henri's phrases, the
+            # session's band, the deal in its header.  A piece, so no
+            # golden for the roster's standing reason; the form it
+            # claims — the stop, the calm, the trill turned ornament,
+            # the picardy landing — is what
+            # `test_together_stops_calms_and_lands_major` asserts.
+            "together.ges"]
 
 #: The ones with committed golden buffers — all of them, now.  `knob.ges`
 #: had none for as long as the interpreter and the engine disagreed about
@@ -1124,3 +1131,62 @@ def test_tiksi_counts_its_sevens():
     # Merkitään: one hit, and a tick alone four beats later, the last thing.
     last = max(events, key=lambda e: e[1])
     assert last[2] == "tick" and last[1] == 341 * beat
+
+
+# ── `together.ges` — the first piece made together ───────────────────────────
+
+
+def test_together_stops_calms_and_lands_major():
+    """**The header's form, asserted.**
+
+    `examples/audio/together.ges` claims a shape: five bars of Henri's
+    phrases said twice before they vary, a stop-bar holding a bare half
+    cadence with a beat of true silence, an eight-bar calm whose first
+    half drops the hats and where the fast trill returns as an ornament,
+    and a picardy third to land a dorian piece.  None of that is a
+    matter of taste, and none would be checked by a golden.
+    """
+    from gestate.audioscore import perform_voices
+
+    beat = BLUES_BEAT
+    bar = 4 * beat
+    bpm, events = perform_voices((AUDIO_DIR / "together.ges").read_text(),
+                                 "", 4000, 0)
+    assert bpm == 96
+
+    # Twenty bars, and the final pad chord rings to the very last tick.
+    assert max(e[1] for e in events) == 20 * bar
+
+    # His intro bar is said again, note for note, one bar later.
+    lead = [e for e in events if e[2] == "lead"]
+    first = [(a, b, ns) for a, b, _, ns in lead if a < bar]
+    second = [(a - bar, b - bar, ns) for a, b, _, ns in lead
+              if bar <= a < 2 * bar]
+    assert first and first == second
+
+    # The trill: eight notes of an eighth of a beat inside one beat,
+    # in his intro bar — and again, gentled, in the third calm bar.
+    def trill(lo, hi):
+        return [e for e in lead
+                if lo <= e[0] < hi and e[1] - e[0] == beat // 8]
+    assert len(trill(0, bar)) == 8
+    assert len(trill(12 * bar, 13 * bar)) == 8
+
+    # The stop: bar six holds pad and bass only, three beats each,
+    # and the fourth beat is silence.
+    stopping = [e for e in events if 5 * bar <= e[0] < 6 * bar]
+    assert {e[2] for e in stopping} == {"pad", "bass"}
+    assert max(e[1] for e in stopping) == 5 * bar + 3 * beat
+
+    # The calm's first half: no snare, no hats, one soft kick a bar.
+    calm = [e for e in events if 10 * bar <= e[0] < 14 * bar]
+    assert not [e for e in calm if e[2] in ("snare", "hat")]
+    assert sorted(e[0] for e in calm if e[2] == "kick") == \
+        [10 * bar + i * bar for i in range(4)]
+
+    # The landing is major: the last pad chord carries F sharp in two
+    # octaves, and no F natural sounds anywhere in the final two bars.
+    ending = [e for e in events if 18 * bar <= e[0]]
+    keys = {k for e in ending if e[2] == "pad" for k, v in e[3]}
+    assert {54, 66} <= keys
+    assert not [k for e in ending for k, v in e[3] if k in (53, 65)]

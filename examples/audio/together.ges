@@ -1,11 +1,11 @@
-# together.ges — a band waiting for its music.
+# together.ges — the first piece made together.
 #
-#   python -m gestate.audioperform together.ges -o together.wav --seconds 8
-#   python -m gestate.audioperform together.ges --midi
+#   python -m gestate.audioperform examples/audio/together.ges -o together.wav --seconds 52
+#   python -m gestate.audioperform examples/audio/together.ges --midi
 #
-# The deal: the instruments here are the session's, the rhythm and the
-# notes are Henri's.  Everything below "THE PIECE" is yours to overwrite;
-# everything above it is the band, tuned and on stage.
+# The deal that made it: the instruments are the session's, the rhythm
+# and the notes are Henri's.  Everything below "THE PIECE" began as his
+# sketch and was grown with his blessing; the band above it stays.
 #
 # Six banks, one payload.  The drums are three separate banks — kick,
 # snare, hat — so a rhythm is written the same way a melody is: a score
