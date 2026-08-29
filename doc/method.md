@@ -153,7 +153,7 @@ decline honestly:
 
 | | lines | who it is for |
 |---|---|---|
-| [`README.md`](../README.md) | 254 | you, if you want to hear it |
+| [`README.md`](../README.md) | 261 | you, if you want to hear it |
 | [`vision.md`](../vision.md) | 77 | what any of this is for; the author's own, dated |
 | [`manifesto.md`](../manifesto.md) | 377 | how an instrument fails, and the two standing rules |
 | [`board/README.md`](../board/README.md) | 612 | how a task is worked — written for sessions |

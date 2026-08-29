@@ -28,6 +28,13 @@ functions and values.  Scores, polyphonic voice banks, MIDI in, a tape
 echo you can gate, and a canvas the same program draws on are all
 library and language, documented down to the measured decibel.
 
+## Hear it first
+
+The pieces play in a browser tab at **<https://cheery.github.io/gestate>**
+— nothing to install, the sound is computed in the tab from the same
+graph the desk plays (`card:online.md`).  What is there is *open a file,
+hear it*; changing it is the tree below.
+
 ## Install it
 
 Gestate is a source tree you run **in place** — no `pip install`, no
