@@ -2517,5 +2517,8 @@ under `tools/sandbox.sh`, the fence binds `/usr` and Chrome lives in
 means it has been green only where tests are not supposed to run,
 yesterday's runs and today's alike.  Loopback is up inside the fence;
 the binary is the whole of what is missing, and the line that adds it
-is Henri's.  Pushing was his too: `gh-pages` was filled from the tree
-and left for him, and he asked for both.
+is Henri's.  He asked what F185 was, and then: *"ok, korjaa se."*  One
+conditional bind of `/opt/google/chrome` and a probe in `--check`, and
+the online gate ran fenced for the first time, green.  Pushing was
+his too: `gh-pages` was filled from the tree and left for him, and he
+asked for both.

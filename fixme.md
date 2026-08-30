@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 186 entries, **155 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 186 entries, **156 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -91,7 +91,7 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F182 | resolved | `test_precommit.py` read the hook as prose, and passed with the gate neutered |
 | F183 | resolved | The automatic audition shut its gate and said nothing, so a slow file read as a broken one |
 | F184 | resolved | The housekeeping thread died under a test for nine days, and the suite called it *1 warning* |
-| F185 | bug | The browser gate skips under the fence — Chrome is in `/opt`, which the fence does not bind — so its green has only ever been unfenced |
+| F185 | resolved | The browser gate skipped under the fence — Chrome is in `/opt`, which the fence did not bind — so its green had only ever been unfenced |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -6497,7 +6497,7 @@ to 2026-08-26.  *A number nobody asked for is a number nobody checks*
 (`doc/instruments.md`); a number nobody **can** check is the same thing
 with a better excuse.
 
-### F185. **[bug]** The browser gate skips under the fence, and green there says nothing about the page
+### F185. **[resolved]** The browser gate skips under the fence, and green there says nothing about the page
 
 `test/test_online.py` opens the generated page in a headless Chrome
 and holds the worklet's frames to `run_native` — the one check that
@@ -6519,3 +6519,11 @@ The fix is one line in `tools/sandbox.sh` — `--ro-bind /opt /opt`, or
 a narrower bind of the Chrome directory — and it is not a session's
 to add: the fence is Henri's (`spec/sandbox.md`), and widening it is
 his call.
+
+**Resolved the same day, at his word** — *"ok, korjaa se."*  The
+narrow bind: `/opt/google/chrome` read-only, and only when the
+directory exists, the way the toolchain homes are bound, so a machine
+without Chrome loses nothing.  `tools/sandbox.sh --check` gained the
+probe *chrome runs (F185)*, and `test/test_online.py` ran fenced for
+the first time: 10 passed in 19.7 s, the three browser tests among
+them.

@@ -93,6 +93,16 @@ for home in .cargo .rustup .rustup/toolchains .npm .m2 .stack; do
   [ -e "$HOME/$home" ] && FENCE+=(--ro-bind "$HOME/$home" "$HOME/$home")
 done
 
+# **Chrome, read-only, when it is installed.**  `test/test_online.py`
+# opens the generated page in a headless Chrome — the one check that
+# says the page plays what the desk plays — and Chrome lives in
+# `/opt/google/chrome`, which `/usr` does not reach; the `/usr/bin`
+# symlink resolved to nothing in here and the gate skipped, so it had
+# only ever been green unfenced (`fixme.md` F185, 2026-08-30).  The
+# directory alone, not `/opt`: nothing else there is wanted.
+CHROME=/opt/google/chrome
+[ -d "$CHROME" ] && FENCE+=(--ro-bind "$CHROME" "$CHROME")
+
 FENCE+=(
   # `.venv/bin` first: the suite's `pytest` lives there, and without it
   # the fence resolves the system one or nothing at all.
@@ -151,6 +161,7 @@ if [ "${1-}" = "--check" ]; then
   probe "python runs"                   ok      python3 -c 'print(1)'
   probe "cargo runs"                    ok      cargo --version
   probe "clang runs"                    ok      clang --version
+  [ -d "$CHROME" ] && probe "chrome runs (F185)"             ok      google-chrome --headless=new --no-sandbox --disable-gpu --version
   echo
   [ $fail -eq 0 ] && echo "  the fence is up." || echo "  FENCE INCOMPLETE — do not trust it."
   exit $fail
