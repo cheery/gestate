@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,50 +32,49 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># FOURFLOOR - the cliche, on purpose: kick on the floor, snare on the
-# backbeat, hats on the off.
-#
-#   python -m gestate.export examples/audio/fourfloor.ges -o fourfloor.clap
-#
-# Every envelope here is arithmetic on `beat` - the renderer's own
-# clock - so whoever conducts, conducts the drummer: offline it is the
-# `bpm` below, and in a DAW it is the session's tempo, ridden live.
-# Drag the project BPM mid-play and the machine follows without a
-# click, because `beat` is one smooth line and the envelopes are
-# functions of it.
-
-bpm : Int
-bpm = 128
-
-#: The floor: a pitch-dropping thump on every beat.
-kickEnv : Sig Float
-kickEnv = map (b => exp (negate 20.0 * wrap b)) beat
-
-kick : Sig Float
-kick = sine (46.0 + 130.0 * kickEnv) * kickEnv
-
-#: The backbeat: beats 2 and 4 of the bar - `(b + 1) / 2` crosses a
-#: whole number exactly there.
-snareEnv : Sig Float
-snareEnv = map (b => exp (negate 15.0 * wrap ((b + 1.0) / 2.0))) beat
-
-snare : Sig Float
-snare = (0.55 * white 2 + 0.4 * triangle 185.0) * snareEnv
-
-#: The off: closed hats between the kicks, and every fourth one held
-#: open a little longer - the cheapest shuffle there is.
-hatEnv : Sig Float
-hatEnv = map (b => exp (negate 55.0 * wrap (b + 0.5))) beat
-
-openEnv : Sig Float
-openEnv = map (b => exp (negate 9.0 * wrap ((b + 0.5) / 4.0))) beat
-
-hats : Sig Float
-hats = highpassSvf 7500.0 0.2 (white 3) * (0.5 * hatEnv + 0.35 * openEnv)
-
-sound : Sig Float
-sound = brickwall 0.9 (0.9 * kick + 0.55 * snare + hats)
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># FOURFLOOR - the cliche, on purpose: kick on the floor, snare on the</div>
+<div class="ln" data-line="2"># backbeat, hats on the off.</div>
+<div class="ln" data-line="3">#</div>
+<div class="ln" data-line="4">#   python -m gestate.export examples/audio/fourfloor.ges -o fourfloor.clap</div>
+<div class="ln" data-line="5">#</div>
+<div class="ln" data-line="6"># Every envelope here is arithmetic on `beat` - the renderer's own</div>
+<div class="ln" data-line="7"># clock - so whoever conducts, conducts the drummer: offline it is the</div>
+<div class="ln" data-line="8"># `bpm` below, and in a DAW it is the session's tempo, ridden live.</div>
+<div class="ln" data-line="9"># Drag the project BPM mid-play and the machine follows without a</div>
+<div class="ln" data-line="10"># click, because `beat` is one smooth line and the envelopes are</div>
+<div class="ln" data-line="11"># functions of it.</div>
+<div class="ln" data-line="12"> </div>
+<div class="ln" data-line="13">bpm : Int</div>
+<div class="ln" data-line="14">bpm = 128</div>
+<div class="ln" data-line="15"> </div>
+<div class="ln" data-line="16">#: The floor: a pitch-dropping thump on every beat.</div>
+<div class="ln" data-line="17">kickEnv : Sig Float</div>
+<div class="ln" data-line="18">kickEnv = map (b => exp (negate 20.0 * wrap b)) beat</div>
+<div class="ln" data-line="19"> </div>
+<div class="ln" data-line="20">kick : Sig Float</div>
+<div class="ln" data-line="21">kick = sine (46.0 + 130.0 * kickEnv) * kickEnv</div>
+<div class="ln" data-line="22"> </div>
+<div class="ln" data-line="23">#: The backbeat: beats 2 and 4 of the bar - `(b + 1) / 2` crosses a</div>
+<div class="ln" data-line="24">#: whole number exactly there.</div>
+<div class="ln" data-line="25">snareEnv : Sig Float</div>
+<div class="ln" data-line="26">snareEnv = map (b => exp (negate 15.0 * wrap ((b + 1.0) / 2.0))) beat</div>
+<div class="ln" data-line="27"> </div>
+<div class="ln" data-line="28">snare : Sig Float</div>
+<div class="ln" data-line="29">snare = (0.55 * white 2 + 0.4 * triangle 185.0) * snareEnv</div>
+<div class="ln" data-line="30"> </div>
+<div class="ln" data-line="31">#: The off: closed hats between the kicks, and every fourth one held</div>
+<div class="ln" data-line="32">#: open a little longer - the cheapest shuffle there is.</div>
+<div class="ln" data-line="33">hatEnv : Sig Float</div>
+<div class="ln" data-line="34">hatEnv = map (b => exp (negate 55.0 * wrap (b + 0.5))) beat</div>
+<div class="ln" data-line="35"> </div>
+<div class="ln" data-line="36">openEnv : Sig Float</div>
+<div class="ln" data-line="37">openEnv = map (b => exp (negate 9.0 * wrap ((b + 0.5) / 4.0))) beat</div>
+<div class="ln" data-line="38"> </div>
+<div class="ln" data-line="39">hats : Sig Float</div>
+<div class="ln" data-line="40">hats = highpassSvf 7500.0 0.2 (white 3) * (0.5 * hatEnv + 0.35 * openEnv)</div>
+<div class="ln" data-line="41"> </div>
+<div class="ln" data-line="42">sound : Sig Float</div>
+<div class="ln" data-line="43">sound = brickwall 0.9 (0.9 * kick + 0.55 * snare + hats)</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

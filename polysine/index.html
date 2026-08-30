@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,100 +32,99 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># The same sine, made an instrument: four voices, a keyboard and a piece.
-#
-#   python -m gestate.audioperform examples/audio/polysine.ges -o polysine.wav
-#   python -m gestate.audioperform examples/audio/polysine.ges --midi
-#   python -m gestate.audioeditor examples/audio/polysine.ges
-#
-# `sine.ges` is one note with its start and end written down as constants.
-# This is what it takes to stop writing them down — and it is four lines,
-# which is the point of the file.
-#
-# **A voice is an expression over signals.**  A `voices` bank hands each of
-# its voices two: a `Sig Gate`, which says when the note began and when it
-# was released, and a `Sig Key`, this program's own payload.  A pitch reads
-# the second and an envelope reads the first, so neither has to open a
-# record to find its half:
-#
-#   * `!hzOfKey s`      — the note's frequency, lifted over the payload
-#   * `adsr env g`  — the envelope, from the timing
-#   * `sine hz`     — an oscillator that follows a frequency *signal*
-#
-# and `Num (Sig Float)` makes `*` mean what it looks like.  So the voice is
-# a product of three signals, and nothing here declares state, folds it, or
-# takes a note apart per sample.
-#
-# It used to.  `spec/frp_lesson.md` is the reading that says why that was
-# worth fixing: beside Fran, where `stretch (abs wiggle) charlotte` applies
-# ordinary functions to things that vary, a synth written as a hand-rolled
-# state machine is ceremony in the way of its own subject.  What that cost
-# was four gaps in the compiler, not a new language.  `fmpoly.ges` and
-# `polysaw.ges` still write their voices out the long way, and are worth
-# reading against this one.
-
-#: What a note of this instrument is.  Its **timing is not in it**: that
-#: comes from the layout that placed the note, or from the moment a key
-#: went down, and the bank supplies it as a `Sig Gate` beside this one.
-#:
-#: Called `Key` and not `Note`, because `music.ges` declares
-#: `Score a := Note a` and `'x` desugars to that constructor — shadowing it
-#: would make every `'` in the piece below a pattern against the wrong
-#: thing.  A payload may also be a bare `Int` or `Float` when a note number
-#: is all a voice needs; this one carries velocity too.
-Key := Key Int Int                          # key number, velocity
-
-#: Four voices, so four notes can sound at once.  The bank's name is bound
-#: to the *sum* of them, which is why `sound` below is ordinary signal code.
-voices lead 4 sineVoice : Sig Float
-
-#: How a MIDI note becomes this payload — `Nothing` would decline it.  It
-#: says the payload *can* come from a keyboard, not that this bank listens:
-#: which bank the keyboard drives is a switch in the editor, beside the
-#: bank's own line.
-instance FromMIDI Key where
-    noteOn ch p v = Just (Key p v)
-
-env : Adsr
-env = Adsr 0.01 0.25 0.6 0.3
-
-hzOfKey : Key -> Float
-hzOfKey q = case q of
-    Key k v -> keyHz k
-
-velOfKey : Key -> Float
-velOfKey q = case q of
-    Key k v -> toFloat v / 127.0
-
-sineVoice : Sig Gate -> Sig Key -> Sig Float
-sineVoice g s = sine (!hzOfKey s) * adsr env g * !velOfKey s
-
-# ── The piece ────────────────────────────────────────────────────────────
-#
-# `||` overlays and `++` sequences, so the chord is three notes sharing a
-# span — three of the four voices, which a monophonic synth could not play.
-# `voices.lead` names the bank *lexically*, and that is what lets the type
-# checker say this piece fits this instrument rather than leaving you to
-# discover it as silence.
-
-bpm : Int
-bpm = 96
-
-chord : Int -> Int -> Int -> [: Key :]
-chord a b c = '(Key a 96) || '(Key b 84) || '(Key c 78)
-
-tune : [: Key :]
-tune = '(Key 60 100) ++ '(Key 64 100) ++ '(Key 67 100) ++ chord 60 64 67
-
-score : [: Void :]
-score = tune >>= voices.lead
-
-#: 0.35, not 0.5: the bank's name is the *sum* of its voices, so three
-#: notes at once are three times the amplitude and a level set by ear on a
-#: single note clips on the chord.
-sound : Sig Float
-sound = gain 0.35 lead
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># The same sine, made an instrument: four voices, a keyboard and a piece.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.audioperform examples/audio/polysine.ges -o polysine.wav</div>
+<div class="ln" data-line="4">#   python -m gestate.audioperform examples/audio/polysine.ges --midi</div>
+<div class="ln" data-line="5">#   python -m gestate.audioeditor examples/audio/polysine.ges</div>
+<div class="ln" data-line="6">#</div>
+<div class="ln" data-line="7"># `sine.ges` is one note with its start and end written down as constants.</div>
+<div class="ln" data-line="8"># This is what it takes to stop writing them down — and it is four lines,</div>
+<div class="ln" data-line="9"># which is the point of the file.</div>
+<div class="ln" data-line="10">#</div>
+<div class="ln" data-line="11"># **A voice is an expression over signals.**  A `voices` bank hands each of</div>
+<div class="ln" data-line="12"># its voices two: a `Sig Gate`, which says when the note began and when it</div>
+<div class="ln" data-line="13"># was released, and a `Sig Key`, this program's own payload.  A pitch reads</div>
+<div class="ln" data-line="14"># the second and an envelope reads the first, so neither has to open a</div>
+<div class="ln" data-line="15"># record to find its half:</div>
+<div class="ln" data-line="16">#</div>
+<div class="ln" data-line="17">#   * `!hzOfKey s`      — the note's frequency, lifted over the payload</div>
+<div class="ln" data-line="18">#   * `adsr env g`  — the envelope, from the timing</div>
+<div class="ln" data-line="19">#   * `sine hz`     — an oscillator that follows a frequency *signal*</div>
+<div class="ln" data-line="20">#</div>
+<div class="ln" data-line="21"># and `Num (Sig Float)` makes `*` mean what it looks like.  So the voice is</div>
+<div class="ln" data-line="22"># a product of three signals, and nothing here declares state, folds it, or</div>
+<div class="ln" data-line="23"># takes a note apart per sample.</div>
+<div class="ln" data-line="24">#</div>
+<div class="ln" data-line="25"># It used to.  `spec/frp_lesson.md` is the reading that says why that was</div>
+<div class="ln" data-line="26"># worth fixing: beside Fran, where `stretch (abs wiggle) charlotte` applies</div>
+<div class="ln" data-line="27"># ordinary functions to things that vary, a synth written as a hand-rolled</div>
+<div class="ln" data-line="28"># state machine is ceremony in the way of its own subject.  What that cost</div>
+<div class="ln" data-line="29"># was four gaps in the compiler, not a new language.  `fmpoly.ges` and</div>
+<div class="ln" data-line="30"># `polysaw.ges` still write their voices out the long way, and are worth</div>
+<div class="ln" data-line="31"># reading against this one.</div>
+<div class="ln" data-line="32"> </div>
+<div class="ln" data-line="33">#: What a note of this instrument is.  Its **timing is not in it**: that</div>
+<div class="ln" data-line="34">#: comes from the layout that placed the note, or from the moment a key</div>
+<div class="ln" data-line="35">#: went down, and the bank supplies it as a `Sig Gate` beside this one.</div>
+<div class="ln" data-line="36">#:</div>
+<div class="ln" data-line="37">#: Called `Key` and not `Note`, because `music.ges` declares</div>
+<div class="ln" data-line="38">#: `Score a := Note a` and `'x` desugars to that constructor — shadowing it</div>
+<div class="ln" data-line="39">#: would make every `'` in the piece below a pattern against the wrong</div>
+<div class="ln" data-line="40">#: thing.  A payload may also be a bare `Int` or `Float` when a note number</div>
+<div class="ln" data-line="41">#: is all a voice needs; this one carries velocity too.</div>
+<div class="ln" data-line="42">Key := Key Int Int                          # key number, velocity</div>
+<div class="ln" data-line="43"> </div>
+<div class="ln" data-line="44">#: Four voices, so four notes can sound at once.  The bank's name is bound</div>
+<div class="ln" data-line="45">#: to the *sum* of them, which is why `sound` below is ordinary signal code.</div>
+<div class="ln" data-line="46">voices lead 4 sineVoice : Sig Float</div>
+<div class="ln" data-line="47"> </div>
+<div class="ln" data-line="48">#: How a MIDI note becomes this payload — `Nothing` would decline it.  It</div>
+<div class="ln" data-line="49">#: says the payload *can* come from a keyboard, not that this bank listens:</div>
+<div class="ln" data-line="50">#: which bank the keyboard drives is a switch in the editor, beside the</div>
+<div class="ln" data-line="51">#: bank's own line.</div>
+<div class="ln" data-line="52">instance FromMIDI Key where</div>
+<div class="ln" data-line="53">    noteOn ch p v = Just (Key p v)</div>
+<div class="ln" data-line="54"> </div>
+<div class="ln" data-line="55">env : Adsr</div>
+<div class="ln" data-line="56">env = Adsr 0.01 0.25 0.6 0.3</div>
+<div class="ln" data-line="57"> </div>
+<div class="ln" data-line="58">hzOfKey : Key -> Float</div>
+<div class="ln" data-line="59">hzOfKey q = case q of</div>
+<div class="ln" data-line="60">    Key k v -> keyHz k</div>
+<div class="ln" data-line="61"> </div>
+<div class="ln" data-line="62">velOfKey : Key -> Float</div>
+<div class="ln" data-line="63">velOfKey q = case q of</div>
+<div class="ln" data-line="64">    Key k v -> toFloat v / 127.0</div>
+<div class="ln" data-line="65"> </div>
+<div class="ln" data-line="66">sineVoice : Sig Gate -> Sig Key -> Sig Float</div>
+<div class="ln" data-line="67">sineVoice g s = sine (!hzOfKey s) * adsr env g * !velOfKey s</div>
+<div class="ln" data-line="68"> </div>
+<div class="ln" data-line="69"># ── The piece ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="70">#</div>
+<div class="ln" data-line="71"># `||` overlays and `++` sequences, so the chord is three notes sharing a</div>
+<div class="ln" data-line="72"># span — three of the four voices, which a monophonic synth could not play.</div>
+<div class="ln" data-line="73"># `voices.lead` names the bank *lexically*, and that is what lets the type</div>
+<div class="ln" data-line="74"># checker say this piece fits this instrument rather than leaving you to</div>
+<div class="ln" data-line="75"># discover it as silence.</div>
+<div class="ln" data-line="76"> </div>
+<div class="ln" data-line="77">bpm : Int</div>
+<div class="ln" data-line="78">bpm = 96</div>
+<div class="ln" data-line="79"> </div>
+<div class="ln" data-line="80">chord : Int -> Int -> Int -> [: Key :]</div>
+<div class="ln" data-line="81">chord a b c = '(Key a 96) || '(Key b 84) || '(Key c 78)</div>
+<div class="ln" data-line="82"> </div>
+<div class="ln" data-line="83">tune : [: Key :]</div>
+<div class="ln" data-line="84">tune = '(Key 60 100) ++ '(Key 64 100) ++ '(Key 67 100) ++ chord 60 64 67</div>
+<div class="ln" data-line="85"> </div>
+<div class="ln" data-line="86">score : [: Void :]</div>
+<div class="ln" data-line="87">score = tune >>= voices.lead</div>
+<div class="ln" data-line="88"> </div>
+<div class="ln" data-line="89">#: 0.35, not 0.5: the bank's name is the *sum* of its voices, so three</div>
+<div class="ln" data-line="90">#: notes at once are three times the amplitude and a level set by ear on a</div>
+<div class="ln" data-line="91">#: single note clips on the chord.</div>
+<div class="ln" data-line="92">sound : Sig Float</div>
+<div class="ln" data-line="93">sound = gain 0.35 lead</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

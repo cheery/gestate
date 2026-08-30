@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,208 +32,207 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># A duet: a bass line this file writes, and a lead you play yourself.
-#
-#   python -m gestate.audioperform examples/audio/duet.ges --midi --seconds 12
-#   python -m gestate.audioperform examples/audio/duet.ges -o duet.wav
-#
-# **One program.**  The instruments, the piece and the mix are all here, and
-# that is not tidiness: `voices.bass` names a bank *lexically*, so the type
-# checker can say whether the piece fits the instrument.  Written apart,
-# "does this bass line suit this bass" would be discovered as silence.
-#
-# Two banks, driven from two different places.  `bass` is fed by the `score`
-# below, laid out into timed events and scheduled ahead of time.  `lead` is
-# fed by whatever keyboard is plugged in, one note at a time as they arrive.
-#
-# **A note is the same thing either way**, and that is the point of the
-# example: only *when it is decided* differs.  One `Allocator` serves both,
-# and the engine cannot tell which of its channels was written by a
-# scheduler and which by a hand.
-#
-# **Written before `adsr` and `keyHz`**: the envelope below is a chain of
-# small functions and the pitch table climbs from `8.1758` by hand, which
-# is what those two names now save you.  Read this file for the two-bank
-# shape; imitate `undertow.ges` for the short way to write a voice.
-
-# ── What a note carries ──────────────────────────────────────────────────
-#
-# `Pitched` is this program's **payload** — what a note of these
-# instruments is, and nothing else.  A note's *timing* is not in it: that
-# comes from the layout that placed the note, or from the moment a key went
-# down, and the bank supplies it as `Gate on off` and the payload.
-#
-# So a voice is handed `Both Gate Pitched` and reads whichever half it needs.
-
-Pitched := Pitched Int Int          # key, velocity
-
-voices lead 6 reed : Sig Float
-
-voices bass 3 plucked : Sig Float
-
-# ── Taking a note from a keyboard ────────────────────────────────────────
-#
-# `noteOn` says how a MIDI note becomes a `Pitched` — and `Maybe` lets it
-# decline one.  Here everything is accepted; return `Nothing` for the notes
-# a bank should not answer, and the key simply does not reach it.
-#
-# It says the payload *can* come from MIDI, not that a bank listens.  Both
-# banks here carry `Pitched`, so they share this instance and nothing in
-# the type could tell them apart — which is why "does this bank listen" is
-# a switch in the environment, next to the bank's own line.
-
-instance FromMIDI Pitched where
-    noteOn ch p v = Just (Pitched p v)
-
-# ── Shared shapes ────────────────────────────────────────────────────────
-
-#: MIDI note number to Hz.  `8.1758` is note 0, and each semitone is the
-#: twelfth root of two — which is what `pow` is for.
-hzOf : Int -> Float
-hzOf k = 8.1758 * pow 2.0 (toFloat k / 12.0)
-
-#: The envelope every voice here shares: silent before its note, decaying
-#: while held, and falling away faster once released.
-#:
-#: Written as a chain of small functions rather than nested `case`s because
-#: a `case` alternative may not be broken across lines with a bare operand
-#: (`syntax.md` §"Continuation lines"), and this reads better anyway.
-levelAt : Int -> Int -> Int -> Float -> Float -> Float
-levelAt n on off hold release = case on of
-    0 -> 0.0
-    _ -> afterOn n on off hold release
-
-afterOn : Int -> Int -> Int -> Float -> Float -> Float
-afterOn n on off hold release = case n &lt; on - 1 of
-    True -> 0.0
-    False -> whileHeld n on off hold release
-
-whileHeld : Int -> Int -> Int -> Float -> Float -> Float
-whileHeld n on off hold release = case off of
-    0 -> decay n on hold
-    _ -> afterOff n on off hold release
-
-afterOff : Int -> Int -> Int -> Float -> Float -> Float
-afterOff n on off hold release = case n &lt; off - 1 of
-    True -> decay n on hold
-    False -> decay n off release
-
-decay : Int -> Int -> Float -> Float
-decay n from rate = exp (negate rate * toFloat (n - from + 1)
-                         / sampleRate)
-
-# ── The lead: a reed, played by hand ─────────────────────────────────────
-#
-# A triangle through a gentle filter — it holds while a key is down, so it
-# rewards being played rather than triggered.
-
-Reed := Reed Float Int
-
-stepReed : Reed -> Both Gate Pitched -> Reed
-stepReed r nn = case r of
-    Reed ph t -> pushReed ph t nn
-
-pushReed : Float -> Int -> Both Gate Pitched -> Reed
-pushReed ph t nn = case nn of
-    Both w q -> case w of
-        Gate on off -> bendReed ph t q
-
-bendReed : Float -> Int -> Pitched -> Reed
-bendReed ph t q = case q of
-    Pitched p v -> Reed (wrap (ph + hzOf p / sampleRate)) (t + 1)
-
-outReed : Reed -> Both Gate Pitched -> Float
-outReed r nn = case r of
-    Reed ph t -> reedAt ph t nn
-
-reedAt : Float -> Int -> Both Gate Pitched -> Float
-reedAt ph t nn = case nn of
-    Both w q -> case w of
-        Gate on off -> triangleOf ph * levelAt t on off 0.6 14.0 * 0.25
-
-reed : Sig Gate -> Sig Pitched -> Sig Float
-reed g s = reedFolded (!Both g s)
-
-#: The fold itself, over the two as one — `scan` takes a
-#: single signal, and this is what it takes.
-reedFolded : Sig (Both Gate Pitched) -> Sig Float
-reedFolded s = lowpass 0.5 (zip outReed (scan stepReed (Reed 0.0 0) s) s)
-
-# ── The bass: plucked, played by the score ───────────────────────────────
-#
-# A sawtooth, filtered harder, decaying on its own whether or not the note
-# is released — a plucked string does not sustain because you keep holding
-# it.
-
-Pluck := Pluck Float Int
-
-stepPluck : Pluck -> Both Gate Pitched -> Pluck
-stepPluck v nn = case v of
-    Pluck ph t -> pushPluck ph t nn
-
-pushPluck : Float -> Int -> Both Gate Pitched -> Pluck
-pushPluck ph t nn = case nn of
-    Both w q -> case w of
-        Gate on off -> bendPluck ph t q
-
-bendPluck : Float -> Int -> Pitched -> Pluck
-bendPluck ph t q = case q of
-    Pitched p v -> Pluck (wrap (ph + hzOf p / sampleRate)) (t + 1)
-
-outPluck : Pluck -> Both Gate Pitched -> Float
-outPluck v nn = case v of
-    Pluck ph t -> pluckAt ph t nn
-
-pluckAt : Float -> Int -> Both Gate Pitched -> Float
-pluckAt ph t nn = case nn of
-    Both w q -> case w of
-        Gate on off -> sawOf ph * levelAt t on off 3.5 18.0 * 0.3
-
-plucked : Sig Gate -> Sig Pitched -> Sig Float
-plucked g s = pluckedFolded (!Both g s)
-
-#: The fold itself, over the two as one — `scan` takes a
-#: single signal, and this is what it takes.
-pluckedFolded : Sig (Both Gate Pitched) -> Sig Float
-pluckedFolded s = lowpass 0.18 (zip outPluck (scan stepPluck (Pluck 0.0 0) s) s)
-
-# ── The piece ────────────────────────────────────────────────────────────
-#
-# `[: Pitched :]` — a score over *this program's own payload*, not over MIDI
-# key numbers that happen to mean something.  `voices.bass` assigns it to
-# the bank, and the result is `[: Void :]`: every note committed, checked.
-#
-# Try `voices.lead` instead and the piece plays on the reed — the payload
-# types agree, so it is a one-word change.  Give `lead` a different payload
-# and the same edit becomes a type error, which is the guarantee that
-# replaced "did you remember an instrument".
-
-bpm : Int
-bpm = 96
-
-#: Four bars over A minor, one note a beat, the fifth walking up to the next
-#: root — the shape that leaves room above it for a hand.
-walk : [: Pitched :]
-walk = '(Pitched 45 90) ++ '(Pitched 52 70) ++ '(Pitched 48 80) ++ '(Pitched 55 70)
-    ++ '(Pitched 41 90) ++ '(Pitched 48 70) ++ '(Pitched 45 80) ++ '(Pitched 52 70)
-    ++ '(Pitched 43 90) ++ '(Pitched 50 70) ++ '(Pitched 47 80) ++ '(Pitched 54 70)
-    ++ '(Pitched 45 90) ++ '(Pitched 52 70) ++ '(Pitched 48 80) ++ '(Pitched 43 70)
-
-score : [: Void :]
-score = walk >>= voices.bass
-
-# ── The mix ──────────────────────────────────────────────────────────────
-#
-# Each bank's name is bound to the *sum* of its voices, so mixing them is
-# ordinary signal arithmetic and needs nothing the language did not have —
-# and since `instance Num (Sig Float)`, "ordinary arithmetic" means the
-# arithmetic it looks like.  This line used to read
-# `addSig (gain 0.7 lead) (gain 1.0 bass)`, which is the same sum spelled
-# as a call to the thing `+` is built from.
-
-sound : Sig Float
-sound = 0.8 * (0.7 * lead + bass)
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># A duet: a bass line this file writes, and a lead you play yourself.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.audioperform examples/audio/duet.ges --midi --seconds 12</div>
+<div class="ln" data-line="4">#   python -m gestate.audioperform examples/audio/duet.ges -o duet.wav</div>
+<div class="ln" data-line="5">#</div>
+<div class="ln" data-line="6"># **One program.**  The instruments, the piece and the mix are all here, and</div>
+<div class="ln" data-line="7"># that is not tidiness: `voices.bass` names a bank *lexically*, so the type</div>
+<div class="ln" data-line="8"># checker can say whether the piece fits the instrument.  Written apart,</div>
+<div class="ln" data-line="9"># "does this bass line suit this bass" would be discovered as silence.</div>
+<div class="ln" data-line="10">#</div>
+<div class="ln" data-line="11"># Two banks, driven from two different places.  `bass` is fed by the `score`</div>
+<div class="ln" data-line="12"># below, laid out into timed events and scheduled ahead of time.  `lead` is</div>
+<div class="ln" data-line="13"># fed by whatever keyboard is plugged in, one note at a time as they arrive.</div>
+<div class="ln" data-line="14">#</div>
+<div class="ln" data-line="15"># **A note is the same thing either way**, and that is the point of the</div>
+<div class="ln" data-line="16"># example: only *when it is decided* differs.  One `Allocator` serves both,</div>
+<div class="ln" data-line="17"># and the engine cannot tell which of its channels was written by a</div>
+<div class="ln" data-line="18"># scheduler and which by a hand.</div>
+<div class="ln" data-line="19">#</div>
+<div class="ln" data-line="20"># **Written before `adsr` and `keyHz`**: the envelope below is a chain of</div>
+<div class="ln" data-line="21"># small functions and the pitch table climbs from `8.1758` by hand, which</div>
+<div class="ln" data-line="22"># is what those two names now save you.  Read this file for the two-bank</div>
+<div class="ln" data-line="23"># shape; imitate `undertow.ges` for the short way to write a voice.</div>
+<div class="ln" data-line="24"> </div>
+<div class="ln" data-line="25"># ── What a note carries ──────────────────────────────────────────────────</div>
+<div class="ln" data-line="26">#</div>
+<div class="ln" data-line="27"># `Pitched` is this program's **payload** — what a note of these</div>
+<div class="ln" data-line="28"># instruments is, and nothing else.  A note's *timing* is not in it: that</div>
+<div class="ln" data-line="29"># comes from the layout that placed the note, or from the moment a key went</div>
+<div class="ln" data-line="30"># down, and the bank supplies it as `Gate on off` and the payload.</div>
+<div class="ln" data-line="31">#</div>
+<div class="ln" data-line="32"># So a voice is handed `Both Gate Pitched` and reads whichever half it needs.</div>
+<div class="ln" data-line="33"> </div>
+<div class="ln" data-line="34">Pitched := Pitched Int Int          # key, velocity</div>
+<div class="ln" data-line="35"> </div>
+<div class="ln" data-line="36">voices lead 6 reed : Sig Float</div>
+<div class="ln" data-line="37"> </div>
+<div class="ln" data-line="38">voices bass 3 plucked : Sig Float</div>
+<div class="ln" data-line="39"> </div>
+<div class="ln" data-line="40"># ── Taking a note from a keyboard ────────────────────────────────────────</div>
+<div class="ln" data-line="41">#</div>
+<div class="ln" data-line="42"># `noteOn` says how a MIDI note becomes a `Pitched` — and `Maybe` lets it</div>
+<div class="ln" data-line="43"># decline one.  Here everything is accepted; return `Nothing` for the notes</div>
+<div class="ln" data-line="44"># a bank should not answer, and the key simply does not reach it.</div>
+<div class="ln" data-line="45">#</div>
+<div class="ln" data-line="46"># It says the payload *can* come from MIDI, not that a bank listens.  Both</div>
+<div class="ln" data-line="47"># banks here carry `Pitched`, so they share this instance and nothing in</div>
+<div class="ln" data-line="48"># the type could tell them apart — which is why "does this bank listen" is</div>
+<div class="ln" data-line="49"># a switch in the environment, next to the bank's own line.</div>
+<div class="ln" data-line="50"> </div>
+<div class="ln" data-line="51">instance FromMIDI Pitched where</div>
+<div class="ln" data-line="52">    noteOn ch p v = Just (Pitched p v)</div>
+<div class="ln" data-line="53"> </div>
+<div class="ln" data-line="54"># ── Shared shapes ────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="55"> </div>
+<div class="ln" data-line="56">#: MIDI note number to Hz.  `8.1758` is note 0, and each semitone is the</div>
+<div class="ln" data-line="57">#: twelfth root of two — which is what `pow` is for.</div>
+<div class="ln" data-line="58">hzOf : Int -> Float</div>
+<div class="ln" data-line="59">hzOf k = 8.1758 * pow 2.0 (toFloat k / 12.0)</div>
+<div class="ln" data-line="60"> </div>
+<div class="ln" data-line="61">#: The envelope every voice here shares: silent before its note, decaying</div>
+<div class="ln" data-line="62">#: while held, and falling away faster once released.</div>
+<div class="ln" data-line="63">#:</div>
+<div class="ln" data-line="64">#: Written as a chain of small functions rather than nested `case`s because</div>
+<div class="ln" data-line="65">#: a `case` alternative may not be broken across lines with a bare operand</div>
+<div class="ln" data-line="66">#: (`syntax.md` §"Continuation lines"), and this reads better anyway.</div>
+<div class="ln" data-line="67">levelAt : Int -> Int -> Int -> Float -> Float -> Float</div>
+<div class="ln" data-line="68">levelAt n on off hold release = case on of</div>
+<div class="ln" data-line="69">    0 -> 0.0</div>
+<div class="ln" data-line="70">    _ -> afterOn n on off hold release</div>
+<div class="ln" data-line="71"> </div>
+<div class="ln" data-line="72">afterOn : Int -> Int -> Int -> Float -> Float -> Float</div>
+<div class="ln" data-line="73">afterOn n on off hold release = case n &lt; on - 1 of</div>
+<div class="ln" data-line="74">    True -> 0.0</div>
+<div class="ln" data-line="75">    False -> whileHeld n on off hold release</div>
+<div class="ln" data-line="76"> </div>
+<div class="ln" data-line="77">whileHeld : Int -> Int -> Int -> Float -> Float -> Float</div>
+<div class="ln" data-line="78">whileHeld n on off hold release = case off of</div>
+<div class="ln" data-line="79">    0 -> decay n on hold</div>
+<div class="ln" data-line="80">    _ -> afterOff n on off hold release</div>
+<div class="ln" data-line="81"> </div>
+<div class="ln" data-line="82">afterOff : Int -> Int -> Int -> Float -> Float -> Float</div>
+<div class="ln" data-line="83">afterOff n on off hold release = case n &lt; off - 1 of</div>
+<div class="ln" data-line="84">    True -> decay n on hold</div>
+<div class="ln" data-line="85">    False -> decay n off release</div>
+<div class="ln" data-line="86"> </div>
+<div class="ln" data-line="87">decay : Int -> Int -> Float -> Float</div>
+<div class="ln" data-line="88">decay n from rate = exp (negate rate * toFloat (n - from + 1)</div>
+<div class="ln" data-line="89">                         / sampleRate)</div>
+<div class="ln" data-line="90"> </div>
+<div class="ln" data-line="91"># ── The lead: a reed, played by hand ─────────────────────────────────────</div>
+<div class="ln" data-line="92">#</div>
+<div class="ln" data-line="93"># A triangle through a gentle filter — it holds while a key is down, so it</div>
+<div class="ln" data-line="94"># rewards being played rather than triggered.</div>
+<div class="ln" data-line="95"> </div>
+<div class="ln" data-line="96">Reed := Reed Float Int</div>
+<div class="ln" data-line="97"> </div>
+<div class="ln" data-line="98">stepReed : Reed -> Both Gate Pitched -> Reed</div>
+<div class="ln" data-line="99">stepReed r nn = case r of</div>
+<div class="ln" data-line="100">    Reed ph t -> pushReed ph t nn</div>
+<div class="ln" data-line="101"> </div>
+<div class="ln" data-line="102">pushReed : Float -> Int -> Both Gate Pitched -> Reed</div>
+<div class="ln" data-line="103">pushReed ph t nn = case nn of</div>
+<div class="ln" data-line="104">    Both w q -> case w of</div>
+<div class="ln" data-line="105">        Gate on off -> bendReed ph t q</div>
+<div class="ln" data-line="106"> </div>
+<div class="ln" data-line="107">bendReed : Float -> Int -> Pitched -> Reed</div>
+<div class="ln" data-line="108">bendReed ph t q = case q of</div>
+<div class="ln" data-line="109">    Pitched p v -> Reed (wrap (ph + hzOf p / sampleRate)) (t + 1)</div>
+<div class="ln" data-line="110"> </div>
+<div class="ln" data-line="111">outReed : Reed -> Both Gate Pitched -> Float</div>
+<div class="ln" data-line="112">outReed r nn = case r of</div>
+<div class="ln" data-line="113">    Reed ph t -> reedAt ph t nn</div>
+<div class="ln" data-line="114"> </div>
+<div class="ln" data-line="115">reedAt : Float -> Int -> Both Gate Pitched -> Float</div>
+<div class="ln" data-line="116">reedAt ph t nn = case nn of</div>
+<div class="ln" data-line="117">    Both w q -> case w of</div>
+<div class="ln" data-line="118">        Gate on off -> triangleOf ph * levelAt t on off 0.6 14.0 * 0.25</div>
+<div class="ln" data-line="119"> </div>
+<div class="ln" data-line="120">reed : Sig Gate -> Sig Pitched -> Sig Float</div>
+<div class="ln" data-line="121">reed g s = reedFolded (!Both g s)</div>
+<div class="ln" data-line="122"> </div>
+<div class="ln" data-line="123">#: The fold itself, over the two as one — `scan` takes a</div>
+<div class="ln" data-line="124">#: single signal, and this is what it takes.</div>
+<div class="ln" data-line="125">reedFolded : Sig (Both Gate Pitched) -> Sig Float</div>
+<div class="ln" data-line="126">reedFolded s = lowpass 0.5 (zip outReed (scan stepReed (Reed 0.0 0) s) s)</div>
+<div class="ln" data-line="127"> </div>
+<div class="ln" data-line="128"># ── The bass: plucked, played by the score ───────────────────────────────</div>
+<div class="ln" data-line="129">#</div>
+<div class="ln" data-line="130"># A sawtooth, filtered harder, decaying on its own whether or not the note</div>
+<div class="ln" data-line="131"># is released — a plucked string does not sustain because you keep holding</div>
+<div class="ln" data-line="132"># it.</div>
+<div class="ln" data-line="133"> </div>
+<div class="ln" data-line="134">Pluck := Pluck Float Int</div>
+<div class="ln" data-line="135"> </div>
+<div class="ln" data-line="136">stepPluck : Pluck -> Both Gate Pitched -> Pluck</div>
+<div class="ln" data-line="137">stepPluck v nn = case v of</div>
+<div class="ln" data-line="138">    Pluck ph t -> pushPluck ph t nn</div>
+<div class="ln" data-line="139"> </div>
+<div class="ln" data-line="140">pushPluck : Float -> Int -> Both Gate Pitched -> Pluck</div>
+<div class="ln" data-line="141">pushPluck ph t nn = case nn of</div>
+<div class="ln" data-line="142">    Both w q -> case w of</div>
+<div class="ln" data-line="143">        Gate on off -> bendPluck ph t q</div>
+<div class="ln" data-line="144"> </div>
+<div class="ln" data-line="145">bendPluck : Float -> Int -> Pitched -> Pluck</div>
+<div class="ln" data-line="146">bendPluck ph t q = case q of</div>
+<div class="ln" data-line="147">    Pitched p v -> Pluck (wrap (ph + hzOf p / sampleRate)) (t + 1)</div>
+<div class="ln" data-line="148"> </div>
+<div class="ln" data-line="149">outPluck : Pluck -> Both Gate Pitched -> Float</div>
+<div class="ln" data-line="150">outPluck v nn = case v of</div>
+<div class="ln" data-line="151">    Pluck ph t -> pluckAt ph t nn</div>
+<div class="ln" data-line="152"> </div>
+<div class="ln" data-line="153">pluckAt : Float -> Int -> Both Gate Pitched -> Float</div>
+<div class="ln" data-line="154">pluckAt ph t nn = case nn of</div>
+<div class="ln" data-line="155">    Both w q -> case w of</div>
+<div class="ln" data-line="156">        Gate on off -> sawOf ph * levelAt t on off 3.5 18.0 * 0.3</div>
+<div class="ln" data-line="157"> </div>
+<div class="ln" data-line="158">plucked : Sig Gate -> Sig Pitched -> Sig Float</div>
+<div class="ln" data-line="159">plucked g s = pluckedFolded (!Both g s)</div>
+<div class="ln" data-line="160"> </div>
+<div class="ln" data-line="161">#: The fold itself, over the two as one — `scan` takes a</div>
+<div class="ln" data-line="162">#: single signal, and this is what it takes.</div>
+<div class="ln" data-line="163">pluckedFolded : Sig (Both Gate Pitched) -> Sig Float</div>
+<div class="ln" data-line="164">pluckedFolded s = lowpass 0.18 (zip outPluck (scan stepPluck (Pluck 0.0 0) s) s)</div>
+<div class="ln" data-line="165"> </div>
+<div class="ln" data-line="166"># ── The piece ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="167">#</div>
+<div class="ln" data-line="168"># `[: Pitched :]` — a score over *this program's own payload*, not over MIDI</div>
+<div class="ln" data-line="169"># key numbers that happen to mean something.  `voices.bass` assigns it to</div>
+<div class="ln" data-line="170"># the bank, and the result is `[: Void :]`: every note committed, checked.</div>
+<div class="ln" data-line="171">#</div>
+<div class="ln" data-line="172"># Try `voices.lead` instead and the piece plays on the reed — the payload</div>
+<div class="ln" data-line="173"># types agree, so it is a one-word change.  Give `lead` a different payload</div>
+<div class="ln" data-line="174"># and the same edit becomes a type error, which is the guarantee that</div>
+<div class="ln" data-line="175"># replaced "did you remember an instrument".</div>
+<div class="ln" data-line="176"> </div>
+<div class="ln" data-line="177">bpm : Int</div>
+<div class="ln" data-line="178">bpm = 96</div>
+<div class="ln" data-line="179"> </div>
+<div class="ln" data-line="180">#: Four bars over A minor, one note a beat, the fifth walking up to the next</div>
+<div class="ln" data-line="181">#: root — the shape that leaves room above it for a hand.</div>
+<div class="ln" data-line="182">walk : [: Pitched :]</div>
+<div class="ln" data-line="183">walk = '(Pitched 45 90) ++ '(Pitched 52 70) ++ '(Pitched 48 80) ++ '(Pitched 55 70)</div>
+<div class="ln" data-line="184">    ++ '(Pitched 41 90) ++ '(Pitched 48 70) ++ '(Pitched 45 80) ++ '(Pitched 52 70)</div>
+<div class="ln" data-line="185">    ++ '(Pitched 43 90) ++ '(Pitched 50 70) ++ '(Pitched 47 80) ++ '(Pitched 54 70)</div>
+<div class="ln" data-line="186">    ++ '(Pitched 45 90) ++ '(Pitched 52 70) ++ '(Pitched 48 80) ++ '(Pitched 43 70)</div>
+<div class="ln" data-line="187"> </div>
+<div class="ln" data-line="188">score : [: Void :]</div>
+<div class="ln" data-line="189">score = walk >>= voices.bass</div>
+<div class="ln" data-line="190"> </div>
+<div class="ln" data-line="191"># ── The mix ──────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="192">#</div>
+<div class="ln" data-line="193"># Each bank's name is bound to the *sum* of its voices, so mixing them is</div>
+<div class="ln" data-line="194"># ordinary signal arithmetic and needs nothing the language did not have —</div>
+<div class="ln" data-line="195"># and since `instance Num (Sig Float)`, "ordinary arithmetic" means the</div>
+<div class="ln" data-line="196"># arithmetic it looks like.  This line used to read</div>
+<div class="ln" data-line="197"># `addSig (gain 0.7 lead) (gain 1.0 bass)`, which is the same sum spelled</div>
+<div class="ln" data-line="198"># as a call to the thing `+` is built from.</div>
+<div class="ln" data-line="199"> </div>
+<div class="ln" data-line="200">sound : Sig Float</div>
+<div class="ln" data-line="201">sound = 0.8 * (0.7 * lead + bass)</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

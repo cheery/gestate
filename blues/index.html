@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,237 +32,236 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># blues.ges — twelve bars in A, shuffled.
-#
-#   python -m gestate.audioperform examples/audio/blues.ges --seconds 60 -o blues.wav
-#   python -m gestate.audioeditor examples/audio/blues.ges
-#   python -m gestate.audioperform examples/audio/blues.ges --midi --midi-bank lead
-#
-# **The form is the example.**  A twelve-bar blues is AAB: a phrase, the
-# same phrase again over a different chord, then the answer.  That is
-# three lines of score and it is written here as three lines of score —
-# `phrase ++ phrase ++ answer` — because a repeat is a function of a
-# score and not a length to keep in step with anything.  Change the lead
-# and the second chorus changes with it; there is no second copy to
-# forget.
-#
-# **And the shuffle is arithmetic, not a feature.**  A swung pair is two
-# thirds of the beat and then one third: stretch the pair to three
-# beats, give the first note two of them, shrink the whole thing back by
-# three.  That is `swung` below, four lines down, and every eighth note
-# in the piece goes through it.  Nothing in the renderer knows what
-# swing is.
-#
-# **Three parts are a score and the drummer is a clock.**  The bass, the
-# comp and the lead are `voices` banks fed by `[: Blue :]` scores.  The
-# kit is `beat` arithmetic in the style of `fourfloor.ges` — envelopes
-# that are functions of the renderer's own clock — so it needs no notes
-# and follows whoever conducts.  Both idioms in one file, doing the jobs
-# each is better at: the band plays *notes*, the drummer plays *time*.
-
-Blue := Blue Int Int                       # key number, velocity
-
-#: Play along on any bank — the lead is the one to try.
-instance FromMIDI Blue where
-    noteOn c n v = Just (Blue n v)
-
-# ── The band ─────────────────────────────────────────────────────────────
-
-voices bass 2 bassVoice : Sig Float
-
-voices comp 6 compVoice : Sig Float
-
-voices lead 3 leadVoice : Sig Float
-
-hzOf : Blue -> Float
-hzOf b = case b of
-    Blue k v -> keyHz k
-
-velOf : Blue -> Float
-velOf b = case b of
-    Blue k v -> toFloat v / 127.0
-
-#: The bass: round, short, and mostly fundamental.  A walking line wants
-#: to be heard as *pitch* rather than as attack, so the edge is a little
-#: triangle and nothing else.
-bassVoice : Sig Gate -> Sig Blue -> Sig Float
-bassVoice g s = (0.9 * sine (!hzOf s) + 0.22 * triangle (!hzOf s)) * (!velOf s) * adsr (Adsr 0.008 0.4 0.3 0.09) g
-
-#: The comp: a driven saw under a fixed lowpass — the boogie figure is
-#: two notes at once and the grit is what keeps the pair from sounding
-#: like an organ.  Staccato on purpose: the gaps are the shuffle.
-compVoice : Sig Gate -> Sig Blue -> Sig Float
-compVoice g s = drive 2.2 (lowpassSvf 2400.0 0.4 (saw (!hzOf s))) * 0.35 * (!velOf s) * adsr (Adsr 0.004 0.16 0.0 0.06) g
-
-#: The lead: a filter that opens with the note, and a slow vibrato, so a
-#: held note keeps moving.  Blues is mostly long notes and space.
-leadVoice : Sig Gate -> Sig Blue -> Sig Float
-leadVoice g s = lowpassSvf (600.0 + 2600.0 * adsr (Adsr 0.03 0.45 0.5 0.25) g) 0.42 (saw ((!hzOf s) * (1.0 + 0.007 * sine 5.4))) * 0.55 * (!velOf s) * adsr (Adsr 0.02 0.3 0.65 0.25) g
-
-# ── The drummer, who is a function of the clock ──────────────────────────
-
-#: Kick on one and three: `b / 2` crosses a whole number exactly there.
-kickEnv : Sig Float
-kickEnv = map (b => exp (negate 18.0 * wrap (b / 2.0))) beat
-
-kick : Sig Float
-kick = sine (44.0 + 120.0 * kickEnv) * kickEnv
-
-#: Snare on two and four — the backbeat, and in a blues it is the loudest
-#: thing in the room after the singer.
-snareEnv : Sig Float
-snareEnv = map (b => exp (negate 13.0 * wrap ((b + 1.0) / 2.0))) beat
-
-snare : Sig Float
-snare = (0.6 * white 2 + 0.35 * triangle 190.0) * snareEnv
-
-#: The ride, swung: one hit on the beat and one two thirds of the way
-#: through it.  `wrap (b + 1/3)` reaches zero exactly at two thirds, so
-#: the second hit needs no second clock — it is the same line read from
-#: a third of a beat earlier.
-rideEnv : Sig Float
-rideEnv = map (b => exp (negate 26.0 * wrap b)) beat
-
-swingEnv : Sig Float
-swingEnv = map (b => exp (negate 30.0 * wrap (b + 0.33333))) beat
-
-ride : Sig Float
-ride = highpassSvf 6000.0 0.25 (white 3) * (0.42 * rideEnv + 0.3 * swingEnv)
-
-kit : Sig Float
-kit = 0.85 * kick + 0.5 * snare + ride
-
-# ── The mix ──────────────────────────────────────────────────────────────
-#
-# `brickwall` and not `limit`: `limit` overshoots on transients, and an
-# over-range sample is not loud, it is wrong.  The lead gets a short room
-# and the rest stays dry, which is roughly where a blues band stands.
-
-sound : Sig Float
-sound = brickwall 0.92 (0.5 * bass + 0.3 * comp + 0.42 * lead + 0.16 * reverb 0.3 0.014 lead + 0.5 * kit)
-
-# ── Swing, by arithmetic ─────────────────────────────────────────────────
-
-swung : [: a :] -> [: a :] -> [: a :]
-swung a b = ((a |* 2) ++ b) |/ 3
-
-# ── Writing notes ────────────────────────────────────────────────────────
-
-#: One beat, on the bass.
-bn : Int -> [: Blue :]
-bn k = '(Blue k 96)
-
-#: One beat, in the comp.
-cn : Int -> [: Blue :]
-cn k = '(Blue k 78)
-
-#: One beat, on the lead.
-ln : Int -> [: Blue :]
-ln k = '(Blue k 92)
-
-#: A swung pair on the lead — the eighth notes of the whole piece.
-sw : Int -> Int -> [: Blue :]
-sw a b = swung (ln a) (ln b)
-
-#: Two beats of nothing, which a blues needs as much as it needs notes.
-rest2 : [: Blue :]
-rest2 = r |* 2
-
-# ── The changes ──────────────────────────────────────────────────────────
-#
-# A, D and E as key numbers — the three chords, and every bar below names
-# one of them.  A2 is 45, so the bass walks from there and the comp sits
-# an octave above it.
-
-chordA : Int
-chordA = 45
-
-chordD : Int
-chordD = 50
-
-chordE : Int
-chordE = 52
-
-# ── The bass: a walking bar, and it walks both ways ──────────────────────
-#
-# One, three, five, six — the oldest walk there is — and the bar after it
-# comes back down the same four notes.  Alternating is what keeps twelve
-# bars of quarter notes from turning into a scale exercise.
-
-walkUp : Int -> [: Blue :]
-walkUp k = bn k ++ bn (k + 4) ++ bn (k + 7) ++ bn (k + 9)
-
-walkDown : Int -> [: Blue :]
-walkDown k = bn (k + 9) ++ bn (k + 7) ++ bn (k + 4) ++ bn k
-
-# ── The comp: the boogie figure ──────────────────────────────────────────
-#
-# Two notes at once — the root and one moving voice above it — walking
-# fifth, sixth, flat seventh, sixth across the bar.  It is the sound
-# everybody means by "a blues", and it is four dyads and a `||`.
-
-dyad : Int -> Int -> [: Blue :]
-dyad k x = cn (k + 12) || cn (k + 12 + x)
-
-boogie : Int -> [: Blue :]
-boogie k = dyad k 7 ++ dyad k 9 ++ dyad k 10 ++ dyad k 9
-
-# ── The lead: call, call again, answer ───────────────────────────────────
-#
-# The blues scale on A: A C D Eb E G, and the Eb is the whole reason the
-# scale has a name.  Four bars of call — two of line and two of room —
-# then the same four bars again while the chord moves under them, then
-# four bars that answer and land on the tonic.
-#
-# **The second chorus of the lead is not written down**, because it is
-# the first one: `phrase ++ phrase ++ answer` below.
-
-phrase : [: Blue :]
-phrase = sw 69 72 ++ sw 74 75 ++ ln 76 |* 2
-      ++ sw 76 74 ++ ln 72 ++ ln 69 |* 2
-      ++ r |* 4
-      ++ rest2 ++ sw 67 69 ++ ln 72
-
-answer : [: Blue :]
-answer = sw 76 79 ++ sw 81 79 ++ ln 76 |* 2
-      ++ sw 75 74 ++ ln 72 ++ ln 69 |* 2
-      ++ ln 69 |* 2 ++ rest2
-      ++ rest2 ++ sw 74 72 ++ ln 76
-
-# ── Twelve bars ──────────────────────────────────────────────────────────
-#
-#     A A A A  D D A A  E D A E
-#
-# Written once, as the three lines it is.  Every part below is twelve
-# bars long and they are laid side by side with `||`, which starts what
-# is inside it together.
-
-bassLine : [: Blue :]
-bassLine = walkUp chordA ++ walkDown chordA ++ walkUp chordA ++ walkDown chordA
-        ++ walkUp chordD ++ walkDown chordD ++ walkUp chordA ++ walkDown chordA
-        ++ walkUp chordE ++ walkDown chordD ++ walkUp chordA ++ walkDown chordE
-
-compLine : [: Blue :]
-compLine = boogie chordA ++ boogie chordA ++ boogie chordA ++ boogie chordA
-        ++ boogie chordD ++ boogie chordD ++ boogie chordA ++ boogie chordA
-        ++ boogie chordE ++ boogie chordD ++ boogie chordA ++ boogie chordE
-
-leadLine : [: Blue :]
-leadLine = phrase ++ phrase ++ answer
-
-chorus : [: Void :]
-chorus = (bassLine >>= voices.bass)
-      || (compLine >>= voices.comp)
-      || (leadLine >>= voices.lead)
-
-#: Three times round, which is what a blues is: the form is short and
-#: the point is that it comes back.
-score : [: Void :]
-score = chorus ++ chorus ++ chorus
-
-bpm : Int
-bpm = 104
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># blues.ges — twelve bars in A, shuffled.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.audioperform examples/audio/blues.ges --seconds 60 -o blues.wav</div>
+<div class="ln" data-line="4">#   python -m gestate.audioeditor examples/audio/blues.ges</div>
+<div class="ln" data-line="5">#   python -m gestate.audioperform examples/audio/blues.ges --midi --midi-bank lead</div>
+<div class="ln" data-line="6">#</div>
+<div class="ln" data-line="7"># **The form is the example.**  A twelve-bar blues is AAB: a phrase, the</div>
+<div class="ln" data-line="8"># same phrase again over a different chord, then the answer.  That is</div>
+<div class="ln" data-line="9"># three lines of score and it is written here as three lines of score —</div>
+<div class="ln" data-line="10"># `phrase ++ phrase ++ answer` — because a repeat is a function of a</div>
+<div class="ln" data-line="11"># score and not a length to keep in step with anything.  Change the lead</div>
+<div class="ln" data-line="12"># and the second chorus changes with it; there is no second copy to</div>
+<div class="ln" data-line="13"># forget.</div>
+<div class="ln" data-line="14">#</div>
+<div class="ln" data-line="15"># **And the shuffle is arithmetic, not a feature.**  A swung pair is two</div>
+<div class="ln" data-line="16"># thirds of the beat and then one third: stretch the pair to three</div>
+<div class="ln" data-line="17"># beats, give the first note two of them, shrink the whole thing back by</div>
+<div class="ln" data-line="18"># three.  That is `swung` below, four lines down, and every eighth note</div>
+<div class="ln" data-line="19"># in the piece goes through it.  Nothing in the renderer knows what</div>
+<div class="ln" data-line="20"># swing is.</div>
+<div class="ln" data-line="21">#</div>
+<div class="ln" data-line="22"># **Three parts are a score and the drummer is a clock.**  The bass, the</div>
+<div class="ln" data-line="23"># comp and the lead are `voices` banks fed by `[: Blue :]` scores.  The</div>
+<div class="ln" data-line="24"># kit is `beat` arithmetic in the style of `fourfloor.ges` — envelopes</div>
+<div class="ln" data-line="25"># that are functions of the renderer's own clock — so it needs no notes</div>
+<div class="ln" data-line="26"># and follows whoever conducts.  Both idioms in one file, doing the jobs</div>
+<div class="ln" data-line="27"># each is better at: the band plays *notes*, the drummer plays *time*.</div>
+<div class="ln" data-line="28"> </div>
+<div class="ln" data-line="29">Blue := Blue Int Int                       # key number, velocity</div>
+<div class="ln" data-line="30"> </div>
+<div class="ln" data-line="31">#: Play along on any bank — the lead is the one to try.</div>
+<div class="ln" data-line="32">instance FromMIDI Blue where</div>
+<div class="ln" data-line="33">    noteOn c n v = Just (Blue n v)</div>
+<div class="ln" data-line="34"> </div>
+<div class="ln" data-line="35"># ── The band ─────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="36"> </div>
+<div class="ln" data-line="37">voices bass 2 bassVoice : Sig Float</div>
+<div class="ln" data-line="38"> </div>
+<div class="ln" data-line="39">voices comp 6 compVoice : Sig Float</div>
+<div class="ln" data-line="40"> </div>
+<div class="ln" data-line="41">voices lead 3 leadVoice : Sig Float</div>
+<div class="ln" data-line="42"> </div>
+<div class="ln" data-line="43">hzOf : Blue -> Float</div>
+<div class="ln" data-line="44">hzOf b = case b of</div>
+<div class="ln" data-line="45">    Blue k v -> keyHz k</div>
+<div class="ln" data-line="46"> </div>
+<div class="ln" data-line="47">velOf : Blue -> Float</div>
+<div class="ln" data-line="48">velOf b = case b of</div>
+<div class="ln" data-line="49">    Blue k v -> toFloat v / 127.0</div>
+<div class="ln" data-line="50"> </div>
+<div class="ln" data-line="51">#: The bass: round, short, and mostly fundamental.  A walking line wants</div>
+<div class="ln" data-line="52">#: to be heard as *pitch* rather than as attack, so the edge is a little</div>
+<div class="ln" data-line="53">#: triangle and nothing else.</div>
+<div class="ln" data-line="54">bassVoice : Sig Gate -> Sig Blue -> Sig Float</div>
+<div class="ln" data-line="55">bassVoice g s = (0.9 * sine (!hzOf s) + 0.22 * triangle (!hzOf s)) * (!velOf s) * adsr (Adsr 0.008 0.4 0.3 0.09) g</div>
+<div class="ln" data-line="56"> </div>
+<div class="ln" data-line="57">#: The comp: a driven saw under a fixed lowpass — the boogie figure is</div>
+<div class="ln" data-line="58">#: two notes at once and the grit is what keeps the pair from sounding</div>
+<div class="ln" data-line="59">#: like an organ.  Staccato on purpose: the gaps are the shuffle.</div>
+<div class="ln" data-line="60">compVoice : Sig Gate -> Sig Blue -> Sig Float</div>
+<div class="ln" data-line="61">compVoice g s = drive 2.2 (lowpassSvf 2400.0 0.4 (saw (!hzOf s))) * 0.35 * (!velOf s) * adsr (Adsr 0.004 0.16 0.0 0.06) g</div>
+<div class="ln" data-line="62"> </div>
+<div class="ln" data-line="63">#: The lead: a filter that opens with the note, and a slow vibrato, so a</div>
+<div class="ln" data-line="64">#: held note keeps moving.  Blues is mostly long notes and space.</div>
+<div class="ln" data-line="65">leadVoice : Sig Gate -> Sig Blue -> Sig Float</div>
+<div class="ln" data-line="66">leadVoice g s = lowpassSvf (600.0 + 2600.0 * adsr (Adsr 0.03 0.45 0.5 0.25) g) 0.42 (saw ((!hzOf s) * (1.0 + 0.007 * sine 5.4))) * 0.55 * (!velOf s) * adsr (Adsr 0.02 0.3 0.65 0.25) g</div>
+<div class="ln" data-line="67"> </div>
+<div class="ln" data-line="68"># ── The drummer, who is a function of the clock ──────────────────────────</div>
+<div class="ln" data-line="69"> </div>
+<div class="ln" data-line="70">#: Kick on one and three: `b / 2` crosses a whole number exactly there.</div>
+<div class="ln" data-line="71">kickEnv : Sig Float</div>
+<div class="ln" data-line="72">kickEnv = map (b => exp (negate 18.0 * wrap (b / 2.0))) beat</div>
+<div class="ln" data-line="73"> </div>
+<div class="ln" data-line="74">kick : Sig Float</div>
+<div class="ln" data-line="75">kick = sine (44.0 + 120.0 * kickEnv) * kickEnv</div>
+<div class="ln" data-line="76"> </div>
+<div class="ln" data-line="77">#: Snare on two and four — the backbeat, and in a blues it is the loudest</div>
+<div class="ln" data-line="78">#: thing in the room after the singer.</div>
+<div class="ln" data-line="79">snareEnv : Sig Float</div>
+<div class="ln" data-line="80">snareEnv = map (b => exp (negate 13.0 * wrap ((b + 1.0) / 2.0))) beat</div>
+<div class="ln" data-line="81"> </div>
+<div class="ln" data-line="82">snare : Sig Float</div>
+<div class="ln" data-line="83">snare = (0.6 * white 2 + 0.35 * triangle 190.0) * snareEnv</div>
+<div class="ln" data-line="84"> </div>
+<div class="ln" data-line="85">#: The ride, swung: one hit on the beat and one two thirds of the way</div>
+<div class="ln" data-line="86">#: through it.  `wrap (b + 1/3)` reaches zero exactly at two thirds, so</div>
+<div class="ln" data-line="87">#: the second hit needs no second clock — it is the same line read from</div>
+<div class="ln" data-line="88">#: a third of a beat earlier.</div>
+<div class="ln" data-line="89">rideEnv : Sig Float</div>
+<div class="ln" data-line="90">rideEnv = map (b => exp (negate 26.0 * wrap b)) beat</div>
+<div class="ln" data-line="91"> </div>
+<div class="ln" data-line="92">swingEnv : Sig Float</div>
+<div class="ln" data-line="93">swingEnv = map (b => exp (negate 30.0 * wrap (b + 0.33333))) beat</div>
+<div class="ln" data-line="94"> </div>
+<div class="ln" data-line="95">ride : Sig Float</div>
+<div class="ln" data-line="96">ride = highpassSvf 6000.0 0.25 (white 3) * (0.42 * rideEnv + 0.3 * swingEnv)</div>
+<div class="ln" data-line="97"> </div>
+<div class="ln" data-line="98">kit : Sig Float</div>
+<div class="ln" data-line="99">kit = 0.85 * kick + 0.5 * snare + ride</div>
+<div class="ln" data-line="100"> </div>
+<div class="ln" data-line="101"># ── The mix ──────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="102">#</div>
+<div class="ln" data-line="103"># `brickwall` and not `limit`: `limit` overshoots on transients, and an</div>
+<div class="ln" data-line="104"># over-range sample is not loud, it is wrong.  The lead gets a short room</div>
+<div class="ln" data-line="105"># and the rest stays dry, which is roughly where a blues band stands.</div>
+<div class="ln" data-line="106"> </div>
+<div class="ln" data-line="107">sound : Sig Float</div>
+<div class="ln" data-line="108">sound = brickwall 0.92 (0.5 * bass + 0.3 * comp + 0.42 * lead + 0.16 * reverb 0.3 0.014 lead + 0.5 * kit)</div>
+<div class="ln" data-line="109"> </div>
+<div class="ln" data-line="110"># ── Swing, by arithmetic ─────────────────────────────────────────────────</div>
+<div class="ln" data-line="111"> </div>
+<div class="ln" data-line="112">swung : [: a :] -> [: a :] -> [: a :]</div>
+<div class="ln" data-line="113">swung a b = ((a |* 2) ++ b) |/ 3</div>
+<div class="ln" data-line="114"> </div>
+<div class="ln" data-line="115"># ── Writing notes ────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="116"> </div>
+<div class="ln" data-line="117">#: One beat, on the bass.</div>
+<div class="ln" data-line="118">bn : Int -> [: Blue :]</div>
+<div class="ln" data-line="119">bn k = '(Blue k 96)</div>
+<div class="ln" data-line="120"> </div>
+<div class="ln" data-line="121">#: One beat, in the comp.</div>
+<div class="ln" data-line="122">cn : Int -> [: Blue :]</div>
+<div class="ln" data-line="123">cn k = '(Blue k 78)</div>
+<div class="ln" data-line="124"> </div>
+<div class="ln" data-line="125">#: One beat, on the lead.</div>
+<div class="ln" data-line="126">ln : Int -> [: Blue :]</div>
+<div class="ln" data-line="127">ln k = '(Blue k 92)</div>
+<div class="ln" data-line="128"> </div>
+<div class="ln" data-line="129">#: A swung pair on the lead — the eighth notes of the whole piece.</div>
+<div class="ln" data-line="130">sw : Int -> Int -> [: Blue :]</div>
+<div class="ln" data-line="131">sw a b = swung (ln a) (ln b)</div>
+<div class="ln" data-line="132"> </div>
+<div class="ln" data-line="133">#: Two beats of nothing, which a blues needs as much as it needs notes.</div>
+<div class="ln" data-line="134">rest2 : [: Blue :]</div>
+<div class="ln" data-line="135">rest2 = r |* 2</div>
+<div class="ln" data-line="136"> </div>
+<div class="ln" data-line="137"># ── The changes ──────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="138">#</div>
+<div class="ln" data-line="139"># A, D and E as key numbers — the three chords, and every bar below names</div>
+<div class="ln" data-line="140"># one of them.  A2 is 45, so the bass walks from there and the comp sits</div>
+<div class="ln" data-line="141"># an octave above it.</div>
+<div class="ln" data-line="142"> </div>
+<div class="ln" data-line="143">chordA : Int</div>
+<div class="ln" data-line="144">chordA = 45</div>
+<div class="ln" data-line="145"> </div>
+<div class="ln" data-line="146">chordD : Int</div>
+<div class="ln" data-line="147">chordD = 50</div>
+<div class="ln" data-line="148"> </div>
+<div class="ln" data-line="149">chordE : Int</div>
+<div class="ln" data-line="150">chordE = 52</div>
+<div class="ln" data-line="151"> </div>
+<div class="ln" data-line="152"># ── The bass: a walking bar, and it walks both ways ──────────────────────</div>
+<div class="ln" data-line="153">#</div>
+<div class="ln" data-line="154"># One, three, five, six — the oldest walk there is — and the bar after it</div>
+<div class="ln" data-line="155"># comes back down the same four notes.  Alternating is what keeps twelve</div>
+<div class="ln" data-line="156"># bars of quarter notes from turning into a scale exercise.</div>
+<div class="ln" data-line="157"> </div>
+<div class="ln" data-line="158">walkUp : Int -> [: Blue :]</div>
+<div class="ln" data-line="159">walkUp k = bn k ++ bn (k + 4) ++ bn (k + 7) ++ bn (k + 9)</div>
+<div class="ln" data-line="160"> </div>
+<div class="ln" data-line="161">walkDown : Int -> [: Blue :]</div>
+<div class="ln" data-line="162">walkDown k = bn (k + 9) ++ bn (k + 7) ++ bn (k + 4) ++ bn k</div>
+<div class="ln" data-line="163"> </div>
+<div class="ln" data-line="164"># ── The comp: the boogie figure ──────────────────────────────────────────</div>
+<div class="ln" data-line="165">#</div>
+<div class="ln" data-line="166"># Two notes at once — the root and one moving voice above it — walking</div>
+<div class="ln" data-line="167"># fifth, sixth, flat seventh, sixth across the bar.  It is the sound</div>
+<div class="ln" data-line="168"># everybody means by "a blues", and it is four dyads and a `||`.</div>
+<div class="ln" data-line="169"> </div>
+<div class="ln" data-line="170">dyad : Int -> Int -> [: Blue :]</div>
+<div class="ln" data-line="171">dyad k x = cn (k + 12) || cn (k + 12 + x)</div>
+<div class="ln" data-line="172"> </div>
+<div class="ln" data-line="173">boogie : Int -> [: Blue :]</div>
+<div class="ln" data-line="174">boogie k = dyad k 7 ++ dyad k 9 ++ dyad k 10 ++ dyad k 9</div>
+<div class="ln" data-line="175"> </div>
+<div class="ln" data-line="176"># ── The lead: call, call again, answer ───────────────────────────────────</div>
+<div class="ln" data-line="177">#</div>
+<div class="ln" data-line="178"># The blues scale on A: A C D Eb E G, and the Eb is the whole reason the</div>
+<div class="ln" data-line="179"># scale has a name.  Four bars of call — two of line and two of room —</div>
+<div class="ln" data-line="180"># then the same four bars again while the chord moves under them, then</div>
+<div class="ln" data-line="181"># four bars that answer and land on the tonic.</div>
+<div class="ln" data-line="182">#</div>
+<div class="ln" data-line="183"># **The second chorus of the lead is not written down**, because it is</div>
+<div class="ln" data-line="184"># the first one: `phrase ++ phrase ++ answer` below.</div>
+<div class="ln" data-line="185"> </div>
+<div class="ln" data-line="186">phrase : [: Blue :]</div>
+<div class="ln" data-line="187">phrase = sw 69 72 ++ sw 74 75 ++ ln 76 |* 2</div>
+<div class="ln" data-line="188">      ++ sw 76 74 ++ ln 72 ++ ln 69 |* 2</div>
+<div class="ln" data-line="189">      ++ r |* 4</div>
+<div class="ln" data-line="190">      ++ rest2 ++ sw 67 69 ++ ln 72</div>
+<div class="ln" data-line="191"> </div>
+<div class="ln" data-line="192">answer : [: Blue :]</div>
+<div class="ln" data-line="193">answer = sw 76 79 ++ sw 81 79 ++ ln 76 |* 2</div>
+<div class="ln" data-line="194">      ++ sw 75 74 ++ ln 72 ++ ln 69 |* 2</div>
+<div class="ln" data-line="195">      ++ ln 69 |* 2 ++ rest2</div>
+<div class="ln" data-line="196">      ++ rest2 ++ sw 74 72 ++ ln 76</div>
+<div class="ln" data-line="197"> </div>
+<div class="ln" data-line="198"># ── Twelve bars ──────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="199">#</div>
+<div class="ln" data-line="200">#     A A A A  D D A A  E D A E</div>
+<div class="ln" data-line="201">#</div>
+<div class="ln" data-line="202"># Written once, as the three lines it is.  Every part below is twelve</div>
+<div class="ln" data-line="203"># bars long and they are laid side by side with `||`, which starts what</div>
+<div class="ln" data-line="204"># is inside it together.</div>
+<div class="ln" data-line="205"> </div>
+<div class="ln" data-line="206">bassLine : [: Blue :]</div>
+<div class="ln" data-line="207">bassLine = walkUp chordA ++ walkDown chordA ++ walkUp chordA ++ walkDown chordA</div>
+<div class="ln" data-line="208">        ++ walkUp chordD ++ walkDown chordD ++ walkUp chordA ++ walkDown chordA</div>
+<div class="ln" data-line="209">        ++ walkUp chordE ++ walkDown chordD ++ walkUp chordA ++ walkDown chordE</div>
+<div class="ln" data-line="210"> </div>
+<div class="ln" data-line="211">compLine : [: Blue :]</div>
+<div class="ln" data-line="212">compLine = boogie chordA ++ boogie chordA ++ boogie chordA ++ boogie chordA</div>
+<div class="ln" data-line="213">        ++ boogie chordD ++ boogie chordD ++ boogie chordA ++ boogie chordA</div>
+<div class="ln" data-line="214">        ++ boogie chordE ++ boogie chordD ++ boogie chordA ++ boogie chordE</div>
+<div class="ln" data-line="215"> </div>
+<div class="ln" data-line="216">leadLine : [: Blue :]</div>
+<div class="ln" data-line="217">leadLine = phrase ++ phrase ++ answer</div>
+<div class="ln" data-line="218"> </div>
+<div class="ln" data-line="219">chorus : [: Void :]</div>
+<div class="ln" data-line="220">chorus = (bassLine >>= voices.bass)</div>
+<div class="ln" data-line="221">      || (compLine >>= voices.comp)</div>
+<div class="ln" data-line="222">      || (leadLine >>= voices.lead)</div>
+<div class="ln" data-line="223"> </div>
+<div class="ln" data-line="224">#: Three times round, which is what a blues is: the form is short and</div>
+<div class="ln" data-line="225">#: the point is that it comes back.</div>
+<div class="ln" data-line="226">score : [: Void :]</div>
+<div class="ln" data-line="227">score = chorus ++ chorus ++ chorus</div>
+<div class="ln" data-line="228"> </div>
+<div class="ln" data-line="229">bpm : Int</div>
+<div class="ln" data-line="230">bpm = 104</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

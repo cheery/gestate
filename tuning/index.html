@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,88 +32,87 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># One knob, threaded through a drone without being passed — `using` and
-# `given`, which until today nothing in this tree had ever used.
-#
-#   python -m gestate.workbench examples/audio/tuning.ges
-#   python -m gestate.audioperform examples/audio/tuning.ges -o tuning.wav
-#
-# **The feature had no caller and that was noticed out loud.**  Henri,
-# adding the card that produced this file: *"using/given has never been
-# used anywhere yet!  I think it was important when we made it… Note
-# that I contradict project's rules there because it had no imminent
-# use."*  `doc/unused.md` is the audit; this is the caller arriving late.
-#
-# The problem it solves is the one every tuning table has.  A reference
-# pitch is not a parameter of any *one* function — it is a fact about the
-# whole instrument, wanted at the leaf and known at the root, and the
-# ordinary way to get it there is to thread it through every signature in
-# between.  Do that here and `partial` and `drone` both grow an argument
-# they have no opinion about, and every future function does too.
-#
-# `implicit` says the name exists; `(using …)` says a body reads it;
-# `given … in …` says where it comes from.  Nothing in the middle changes.
-
-implicit concert : Sig Float
-
-# ── What you turn ────────────────────────────────────────────────────────
-#
-# An ordinary knob, declared the way `twoknobs.ges` declares one, so it
-# gets a fader in the margin beside this line.  It is the *only* place in
-# the file that says what the reference pitch is.
-
-concertChan : Chan Int
-concertChan = chan
-
-#: 400 … 460 Hz — the reference the whole drone is tuned to.  415 is
-#: where it rests, which is a baroque A and audibly not 440.
-reference : Sig Float
-reference = map (h => toFloat h) (415 ::: mkSig (wait concertChan))
-
-# ── What reads it ────────────────────────────────────────────────────────
-
-#: `n` semitones above the reference, in equal temperament.
-#:
-#: **This is the only body that mentions `concert`.**  It does not take
-#: it as an argument and its signature does not carry it; the `(using …)`
-#: is the whole declaration, and the compiler threads it here from
-#: wherever it was bound.
-step : Float -> Sig Float
-step (using concert) n = concert * !(pow 2.0 (n / 12.0))
-
-#: One partial, and **notice what is not here**: no reference pitch, no
-#: knob, no extra parameter.  `partial` calls `step`, so it inherits the
-#: requirement without being told about it.
-partial : Float -> Float -> Sig Float
-partial level n = !level * sine (step n)
-
-#: Root, fifth, octave.  Two levels up from `step` now, and still silent
-#: about the thing all three partials depend on.
-drone : Sig Float
-drone = partial 0.30 0.0 + partial 0.18 7.0 + partial 0.10 12.0
-
-# ── Where it comes from ──────────────────────────────────────────────────
-#
-# One `given`, at the root, and the requirement stops travelling.  Take
-# this line away and the program does not compile — the message names the
-# name, who needs it, and what to write:
-#
-#     unfilled implicit: `concert` (required by `step`) reaches `main`,
-#     and nothing supplies it.  Bind it with `given concert = … in …`
-#     somewhere the use is inside
-#
-# There is no default and no runtime failure to find later.
-
-#: **0.95, for peak 0.502.**  It sat at 0.6 and Henri's first word on
-#: hearing it was that the drone was very quiet — measured, peak 0.317
-#: against a ceiling near 0.9, so half the headroom was going unused for
-#: no reason.  Three pure sines also *sound* quieter than anything with
-#: harmonics in it at the same peak, and that half is not fixable by
-#: gain; making the timbre richer would bury this file's actual subject
-#: under synthesis it does not need.
-sound : Sig Float
-sound = given concert = reference in 0.95 * drone
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># One knob, threaded through a drone without being passed — `using` and</div>
+<div class="ln" data-line="2"># `given`, which until today nothing in this tree had ever used.</div>
+<div class="ln" data-line="3">#</div>
+<div class="ln" data-line="4">#   python -m gestate.workbench examples/audio/tuning.ges</div>
+<div class="ln" data-line="5">#   python -m gestate.audioperform examples/audio/tuning.ges -o tuning.wav</div>
+<div class="ln" data-line="6">#</div>
+<div class="ln" data-line="7"># **The feature had no caller and that was noticed out loud.**  Henri,</div>
+<div class="ln" data-line="8"># adding the card that produced this file: *"using/given has never been</div>
+<div class="ln" data-line="9"># used anywhere yet!  I think it was important when we made it… Note</div>
+<div class="ln" data-line="10"># that I contradict project's rules there because it had no imminent</div>
+<div class="ln" data-line="11"># use."*  `doc/unused.md` is the audit; this is the caller arriving late.</div>
+<div class="ln" data-line="12">#</div>
+<div class="ln" data-line="13"># The problem it solves is the one every tuning table has.  A reference</div>
+<div class="ln" data-line="14"># pitch is not a parameter of any *one* function — it is a fact about the</div>
+<div class="ln" data-line="15"># whole instrument, wanted at the leaf and known at the root, and the</div>
+<div class="ln" data-line="16"># ordinary way to get it there is to thread it through every signature in</div>
+<div class="ln" data-line="17"># between.  Do that here and `partial` and `drone` both grow an argument</div>
+<div class="ln" data-line="18"># they have no opinion about, and every future function does too.</div>
+<div class="ln" data-line="19">#</div>
+<div class="ln" data-line="20"># `implicit` says the name exists; `(using …)` says a body reads it;</div>
+<div class="ln" data-line="21"># `given … in …` says where it comes from.  Nothing in the middle changes.</div>
+<div class="ln" data-line="22"> </div>
+<div class="ln" data-line="23">implicit concert : Sig Float</div>
+<div class="ln" data-line="24"> </div>
+<div class="ln" data-line="25"># ── What you turn ────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="26">#</div>
+<div class="ln" data-line="27"># An ordinary knob, declared the way `twoknobs.ges` declares one, so it</div>
+<div class="ln" data-line="28"># gets a fader in the margin beside this line.  It is the *only* place in</div>
+<div class="ln" data-line="29"># the file that says what the reference pitch is.</div>
+<div class="ln" data-line="30"> </div>
+<div class="ln" data-line="31">concertChan : Chan Int</div>
+<div class="ln" data-line="32">concertChan = chan</div>
+<div class="ln" data-line="33"> </div>
+<div class="ln" data-line="34">#: 400 … 460 Hz — the reference the whole drone is tuned to.  415 is</div>
+<div class="ln" data-line="35">#: where it rests, which is a baroque A and audibly not 440.</div>
+<div class="ln" data-line="36">reference : Sig Float</div>
+<div class="ln" data-line="37">reference = map (h => toFloat h) (415 ::: mkSig (wait concertChan))<label class="knob"><span class="knob-name">reference</span><input type="range" data-slot="0" data-type="Int" min="0" max="415" step="1" value="415"><output>415</output></label></div>
+<div class="ln" data-line="38"> </div>
+<div class="ln" data-line="39"># ── What reads it ────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="40"> </div>
+<div class="ln" data-line="41">#: `n` semitones above the reference, in equal temperament.</div>
+<div class="ln" data-line="42">#:</div>
+<div class="ln" data-line="43">#: **This is the only body that mentions `concert`.**  It does not take</div>
+<div class="ln" data-line="44">#: it as an argument and its signature does not carry it; the `(using …)`</div>
+<div class="ln" data-line="45">#: is the whole declaration, and the compiler threads it here from</div>
+<div class="ln" data-line="46">#: wherever it was bound.</div>
+<div class="ln" data-line="47">step : Float -> Sig Float</div>
+<div class="ln" data-line="48">step (using concert) n = concert * !(pow 2.0 (n / 12.0))</div>
+<div class="ln" data-line="49"> </div>
+<div class="ln" data-line="50">#: One partial, and **notice what is not here**: no reference pitch, no</div>
+<div class="ln" data-line="51">#: knob, no extra parameter.  `partial` calls `step`, so it inherits the</div>
+<div class="ln" data-line="52">#: requirement without being told about it.</div>
+<div class="ln" data-line="53">partial : Float -> Float -> Sig Float</div>
+<div class="ln" data-line="54">partial level n = !level * sine (step n)</div>
+<div class="ln" data-line="55"> </div>
+<div class="ln" data-line="56">#: Root, fifth, octave.  Two levels up from `step` now, and still silent</div>
+<div class="ln" data-line="57">#: about the thing all three partials depend on.</div>
+<div class="ln" data-line="58">drone : Sig Float</div>
+<div class="ln" data-line="59">drone = partial 0.30 0.0 + partial 0.18 7.0 + partial 0.10 12.0</div>
+<div class="ln" data-line="60"> </div>
+<div class="ln" data-line="61"># ── Where it comes from ──────────────────────────────────────────────────</div>
+<div class="ln" data-line="62">#</div>
+<div class="ln" data-line="63"># One `given`, at the root, and the requirement stops travelling.  Take</div>
+<div class="ln" data-line="64"># this line away and the program does not compile — the message names the</div>
+<div class="ln" data-line="65"># name, who needs it, and what to write:</div>
+<div class="ln" data-line="66">#</div>
+<div class="ln" data-line="67">#     unfilled implicit: `concert` (required by `step`) reaches `main`,</div>
+<div class="ln" data-line="68">#     and nothing supplies it.  Bind it with `given concert = … in …`</div>
+<div class="ln" data-line="69">#     somewhere the use is inside</div>
+<div class="ln" data-line="70">#</div>
+<div class="ln" data-line="71"># There is no default and no runtime failure to find later.</div>
+<div class="ln" data-line="72"> </div>
+<div class="ln" data-line="73">#: **0.95, for peak 0.502.**  It sat at 0.6 and Henri's first word on</div>
+<div class="ln" data-line="74">#: hearing it was that the drone was very quiet — measured, peak 0.317</div>
+<div class="ln" data-line="75">#: against a ceiling near 0.9, so half the headroom was going unused for</div>
+<div class="ln" data-line="76">#: no reason.  Three pure sines also *sound* quieter than anything with</div>
+<div class="ln" data-line="77">#: harmonics in it at the same peak, and that half is not fixable by</div>
+<div class="ln" data-line="78">#: gain; making the timbre richer would bury this file's actual subject</div>
+<div class="ln" data-line="79">#: under synthesis it does not need.</div>
+<div class="ln" data-line="80">sound : Sig Float</div>
+<div class="ln" data-line="81">sound = given concert = reference in 0.95 * drone</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

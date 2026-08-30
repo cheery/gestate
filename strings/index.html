@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,256 +32,255 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># An autoharp: eight plucked strings, a room, and three minutes to fill.
-#
-#   python -m gestate.audioperform examples/audio/strings.ges -o strings.wav --seconds 180
-#   python -m gestate.audiopygame examples/audio/strings.ges
-#
-# Everything new since the delay lines landed is here: `string` for the
-# strings, `damped` and `reverb` for the room, `chorus` for the width,
-# `flanger` on the pad, and `brickwall` holding the ceiling at the end.
-#
-# ── Why the strings are *fixed* ──────────────────────────────────────────
-#
-# `string hz decay s` is Karplus-Strong, and its pitch is the length of a
-# delay line — an integer line plus a tuning allpass, decided before the
-# program runs.  So a string cannot be retuned by a note arriving at run
-# time, and this cannot be a `voices` bank the way `duet.ges` is.
-#
-# That is not a workaround, it is an instrument.  An autoharp, a zither and
-# the sympathetic strings inside a sitar are all a fixed set that you excite
-# a subset of, and the harmony comes from *which* strings you pluck rather
-# than from retuning any of them.  Eight strings of A minor pentatonic over
-# two octaves is what is strung here, and the chords below choose among
-# them.
-#
-# The piece is written the way `drums.ges` is — arithmetic over `ticks`,
-# with the pattern as case tables — because there is no keyboard in it and
-# nothing to schedule.
-
-# ── Time ─────────────────────────────────────────────────────────────────
-
-tempo : Int
-tempo = 76
-
-#: A sixteenth note, in samples.  `15 / tempo` seconds is a quarter of a
-#: beat, which is what `drums.ges` calls a step too.
-samplesPerStep : Int
-samplesPerStep = floor (sampleRate * 15.0 / toFloat tempo)
-
-stepsPerBar : Int
-stepsPerBar = 16
-
-barsPerSection : Int
-barsPerSection = 8
-
-#: Which sixteenth of the bar sample `n` falls in.
-stepAt : Int -> Int
-stepAt n = prim_mod_int (prim_div_int n samplesPerStep) stepsPerBar
-
-#: How far through that sixteenth it is, 0.0 .. 1.0.
-throughStep : Int -> Float
-throughStep n = toFloat (prim_mod_int n samplesPerStep) / toFloat samplesPerStep
-
-#: Which of the seven sections, wrapping — so the form repeats rather than
-#: running out, and a render longer than three minutes simply goes round
-#: again.  Seven sections of eight bars at this tempo is 2:57.
-sectionAt : Int -> Int
-sectionAt n = prim_mod_int (prim_div_int (barIndex n) barsPerSection) sections
-
-sections : Int
-sections = 7
-
-#: Which bar of the piece, counting from the first.
-barIndex : Int -> Int
-barIndex n = prim_div_int n (samplesPerStep * stepsPerBar)
-
-#: Which bar of the section — used to thin the pattern out at the start of
-#: each one, which is what keeps eight bars from sounding like one bar.
-barAt : Int -> Int
-barAt n = prim_mod_int (barIndex n) barsPerSection
-
-# ── The pattern ──────────────────────────────────────────────────────────
-#
-# One string is plucked every eighth note, chosen by an eight-place figure
-# that changes with the section.  `-1` is silence, and every table returns
-# a string index otherwise.
-
-#: The string to pluck at this instant, or -1 for none.
-noteAt : Int -> Int
-noteAt n = case prim_mod_int (stepAt n) 2 of
-    0 -> figure (sectionAt n) (prim_div_int (stepAt n) 2)
-    _ -> 0 - 1
-
-#: The eight-place figure each section plays.  Four shapes over seven
-#: sections, so the form returns to where it started twice on the way
-#: through — which is the whole reason a listener hears it as a form.
-figure : Int -> Int -> Int
-figure sec i = case sec of
-    0 -> amin i
-    1 -> fmaj i
-    2 -> cmaj i
-    3 -> amin i
-    4 -> gmaj i
-    5 -> fmaj i
-    6 -> cmaj i
-    _ -> amin i
-
-#: A minor: the root, the fifth, the octave, and back down through the
-#: third.  Rising then falling is what makes a figure sound like a phrase
-#: rather than a scale.
-amin : Int -> Int
-amin i = case i of
-    0 -> 0
-    1 -> 3
-    2 -> 5
-    3 -> 7
-    4 -> 5
-    5 -> 4
-    6 -> 3
-    _ -> 1
-
-#: F major, reached by leaving the root where it is and moving everything
-#: above it — which is why the two chords sound related.
-fmaj : Int -> Int
-fmaj i = case i of
-    0 -> 1
-    1 -> 4
-    2 -> 6
-    3 -> 4
-    4 -> 5
-    5 -> 6
-    6 -> 4
-    _ -> 2
-
-cmaj : Int -> Int
-cmaj i = case i of
-    0 -> 1
-    1 -> 4
-    2 -> 6
-    3 -> 7
-    4 -> 6
-    5 -> 4
-    6 -> 2
-    _ -> 4
-
-gmaj : Int -> Int
-gmaj i = case i of
-    0 -> 2
-    1 -> 4
-    2 -> 7
-    3 -> 5
-    4 -> 4
-    5 -> 2
-    6 -> 5
-    _ -> 4
-
-# ── Exciting a string ────────────────────────────────────────────────────
-#
-# A string sounds like whatever you hand it, filtered down: a few
-# milliseconds of noise is a pluck.  The burst is deliberately shorter than
-# one round trip of the lowest string — `string`'s own documentation is
-# about what happens when it is not, which is that the excitation stacks and
-# the peak climbs.
-
-#: A short noise burst at the start of the step this string is plucked in.
-burst : Float -> Float
-burst t = case t > 0.02 of
-    True -> 0.0
-    False -> 1.0 - t / 0.02
-
-onlyIf : Bool -> Float -> Float
-onlyIf on v = case on of
-    True -> v
-    False -> 0.0
-
-#: Is string `k` plucked at instant `n`?  Two conditions, and the second is
-#: what stops eight bars sounding like one: the lowest string is struck only
-#: on the first bar of a section, so each section lands.
-struckAt : Int -> Int -> Bool
-struckAt k n = case eqInt (noteAt n) k of
-    True -> case eqInt k 0 of
-        True -> eqInt (barAt n) 0
-        False -> True
-    False -> False
-
-eqInt : Int -> Int -> Bool
-eqInt a b = case a - b of
-    0 -> True
-    _ -> False
-
-#: The excitation for one string: silence, except for a few milliseconds
-#: whenever the pattern calls for it.  Its own seed per string, so eight
-#: plucks are eight different bursts rather than the same one eight times.
-excite : Int -> Sig Float
-excite k = zip (n w => exciteAt k n w) ticks (white (101 + k))
-
-exciteAt : Int -> Int -> Float -> Float
-exciteAt k n w = onlyIf (struckAt k n) (w * burst (throughStep n))
-
-#: One string: a pitch, a decay, and what excites it.  `hz` is a parameter
-#: rather than a signal, and folds to a constant at each of the eight call
-#: sites below — which is what lets `string` turn it into a line length.
-voice : Float -> Int -> Sig Float
-voice hz k = string hz 2.6 (excite k)
-
-# ── The instrument ───────────────────────────────────────────────────────
-#
-# A minor pentatonic, A2 up to E4.  Eight strings is eight delay lines and
-# about 6000 samples of state at 44100 Hz, which is the price of the sound.
-
-harp : Sig Float
-harp = voice 110.00 0 + voice 130.81 1 + voice 146.83 2 + voice 164.81 3
-     + voice 196.00 4 + voice 220.00 5 + voice 261.63 6 + voice 329.63 7
-
-#: A drone under it, and the one place `flanger` earns its keep: a sound
-#: with no transients in it is where a moving notch is heard as motion
-#: rather than as a filter.  `pm` gives it more than a sine to move over.
-pad : Sig Float
-pad = 0.10 * flanger 0.13 0.9 (pm (!55.0) (0.5 * sine (!110.5)))
-
-#: Occasional high partials over the top, struck by `dust` rather than by
-#: the pattern — so they never quite line up with the strings, which is what
-#: keeps three minutes of an eight-bar figure from closing in.
-#:
-#: **Three modes, because one is a bottle.**  A single `resonate` ringing
-#: for four seconds, struck two thirds of a second apart at a peak of 0.31,
-#: does not sound like a bell over the music — it sounds like somebody
-#: tapping a wine bottle.  A bell is several partials at once and they are
-#: not whole-number multiples of one another; 2.76 and 5.40 are the ratios
-#: a struck bar gives, and they are what makes the sound metal.
-strike : Sig Float
-strike = dust 5 (!0.22)
-
-shimmer : Sig Float
-shimmer = 0.06 * resonate (!1318.5) 2.2 strike
-        + 0.03 * resonate (!3639.1) 1.4 strike
-        + 0.02 * resonate (!7120.0) 0.9 strike
-
-# ── The room ─────────────────────────────────────────────────────────────
-#
-# `damped` before `reverb` on purpose.  The reverb is a wash and has no
-# rhythm of its own; a single damped repeat three eighths behind the beat
-# puts the room *in time* with the piece, and loses its top end each pass so
-# it recedes instead of cluttering.
-
-echoTime : Float
-echoTime = 45.0 / toFloat tempo
-
-dry : Sig Float
-dry = 0.9 * harp + pad + shimmer
-
-#: The wet signal alone — mixed in below rather than returned mixed,
-#: because how far away a room sounds is a decision this file makes once.
-room : Sig Float
-room = reverb 3.4 0.35 (dry + 0.35 * damped echoTime 0.55 0.5 dry)
-
-#: `brickwall` last, and nothing after it.  Eight strings, a pad and a
-#: reverb can line up on a peak that none of them reaches alone; a limiter
-#: that sees it coming is the difference between a ceiling and a hope.
-sound : Sig Float
-sound = brickwall 0.92 (0.85 * chorus 0.21 0.55 dry + 0.45 * room)
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># An autoharp: eight plucked strings, a room, and three minutes to fill.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.audioperform examples/audio/strings.ges -o strings.wav --seconds 180</div>
+<div class="ln" data-line="4">#   python -m gestate.audiopygame examples/audio/strings.ges</div>
+<div class="ln" data-line="5">#</div>
+<div class="ln" data-line="6"># Everything new since the delay lines landed is here: `string` for the</div>
+<div class="ln" data-line="7"># strings, `damped` and `reverb` for the room, `chorus` for the width,</div>
+<div class="ln" data-line="8"># `flanger` on the pad, and `brickwall` holding the ceiling at the end.</div>
+<div class="ln" data-line="9">#</div>
+<div class="ln" data-line="10"># ── Why the strings are *fixed* ──────────────────────────────────────────</div>
+<div class="ln" data-line="11">#</div>
+<div class="ln" data-line="12"># `string hz decay s` is Karplus-Strong, and its pitch is the length of a</div>
+<div class="ln" data-line="13"># delay line — an integer line plus a tuning allpass, decided before the</div>
+<div class="ln" data-line="14"># program runs.  So a string cannot be retuned by a note arriving at run</div>
+<div class="ln" data-line="15"># time, and this cannot be a `voices` bank the way `duet.ges` is.</div>
+<div class="ln" data-line="16">#</div>
+<div class="ln" data-line="17"># That is not a workaround, it is an instrument.  An autoharp, a zither and</div>
+<div class="ln" data-line="18"># the sympathetic strings inside a sitar are all a fixed set that you excite</div>
+<div class="ln" data-line="19"># a subset of, and the harmony comes from *which* strings you pluck rather</div>
+<div class="ln" data-line="20"># than from retuning any of them.  Eight strings of A minor pentatonic over</div>
+<div class="ln" data-line="21"># two octaves is what is strung here, and the chords below choose among</div>
+<div class="ln" data-line="22"># them.</div>
+<div class="ln" data-line="23">#</div>
+<div class="ln" data-line="24"># The piece is written the way `drums.ges` is — arithmetic over `ticks`,</div>
+<div class="ln" data-line="25"># with the pattern as case tables — because there is no keyboard in it and</div>
+<div class="ln" data-line="26"># nothing to schedule.</div>
+<div class="ln" data-line="27"> </div>
+<div class="ln" data-line="28"># ── Time ─────────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="29"> </div>
+<div class="ln" data-line="30">tempo : Int</div>
+<div class="ln" data-line="31">tempo = 76</div>
+<div class="ln" data-line="32"> </div>
+<div class="ln" data-line="33">#: A sixteenth note, in samples.  `15 / tempo` seconds is a quarter of a</div>
+<div class="ln" data-line="34">#: beat, which is what `drums.ges` calls a step too.</div>
+<div class="ln" data-line="35">samplesPerStep : Int</div>
+<div class="ln" data-line="36">samplesPerStep = floor (sampleRate * 15.0 / toFloat tempo)</div>
+<div class="ln" data-line="37"> </div>
+<div class="ln" data-line="38">stepsPerBar : Int</div>
+<div class="ln" data-line="39">stepsPerBar = 16</div>
+<div class="ln" data-line="40"> </div>
+<div class="ln" data-line="41">barsPerSection : Int</div>
+<div class="ln" data-line="42">barsPerSection = 8</div>
+<div class="ln" data-line="43"> </div>
+<div class="ln" data-line="44">#: Which sixteenth of the bar sample `n` falls in.</div>
+<div class="ln" data-line="45">stepAt : Int -> Int</div>
+<div class="ln" data-line="46">stepAt n = prim_mod_int (prim_div_int n samplesPerStep) stepsPerBar</div>
+<div class="ln" data-line="47"> </div>
+<div class="ln" data-line="48">#: How far through that sixteenth it is, 0.0 .. 1.0.</div>
+<div class="ln" data-line="49">throughStep : Int -> Float</div>
+<div class="ln" data-line="50">throughStep n = toFloat (prim_mod_int n samplesPerStep) / toFloat samplesPerStep</div>
+<div class="ln" data-line="51"> </div>
+<div class="ln" data-line="52">#: Which of the seven sections, wrapping — so the form repeats rather than</div>
+<div class="ln" data-line="53">#: running out, and a render longer than three minutes simply goes round</div>
+<div class="ln" data-line="54">#: again.  Seven sections of eight bars at this tempo is 2:57.</div>
+<div class="ln" data-line="55">sectionAt : Int -> Int</div>
+<div class="ln" data-line="56">sectionAt n = prim_mod_int (prim_div_int (barIndex n) barsPerSection) sections</div>
+<div class="ln" data-line="57"> </div>
+<div class="ln" data-line="58">sections : Int</div>
+<div class="ln" data-line="59">sections = 7</div>
+<div class="ln" data-line="60"> </div>
+<div class="ln" data-line="61">#: Which bar of the piece, counting from the first.</div>
+<div class="ln" data-line="62">barIndex : Int -> Int</div>
+<div class="ln" data-line="63">barIndex n = prim_div_int n (samplesPerStep * stepsPerBar)</div>
+<div class="ln" data-line="64"> </div>
+<div class="ln" data-line="65">#: Which bar of the section — used to thin the pattern out at the start of</div>
+<div class="ln" data-line="66">#: each one, which is what keeps eight bars from sounding like one bar.</div>
+<div class="ln" data-line="67">barAt : Int -> Int</div>
+<div class="ln" data-line="68">barAt n = prim_mod_int (barIndex n) barsPerSection</div>
+<div class="ln" data-line="69"> </div>
+<div class="ln" data-line="70"># ── The pattern ──────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="71">#</div>
+<div class="ln" data-line="72"># One string is plucked every eighth note, chosen by an eight-place figure</div>
+<div class="ln" data-line="73"># that changes with the section.  `-1` is silence, and every table returns</div>
+<div class="ln" data-line="74"># a string index otherwise.</div>
+<div class="ln" data-line="75"> </div>
+<div class="ln" data-line="76">#: The string to pluck at this instant, or -1 for none.</div>
+<div class="ln" data-line="77">noteAt : Int -> Int</div>
+<div class="ln" data-line="78">noteAt n = case prim_mod_int (stepAt n) 2 of</div>
+<div class="ln" data-line="79">    0 -> figure (sectionAt n) (prim_div_int (stepAt n) 2)</div>
+<div class="ln" data-line="80">    _ -> 0 - 1</div>
+<div class="ln" data-line="81"> </div>
+<div class="ln" data-line="82">#: The eight-place figure each section plays.  Four shapes over seven</div>
+<div class="ln" data-line="83">#: sections, so the form returns to where it started twice on the way</div>
+<div class="ln" data-line="84">#: through — which is the whole reason a listener hears it as a form.</div>
+<div class="ln" data-line="85">figure : Int -> Int -> Int</div>
+<div class="ln" data-line="86">figure sec i = case sec of</div>
+<div class="ln" data-line="87">    0 -> amin i</div>
+<div class="ln" data-line="88">    1 -> fmaj i</div>
+<div class="ln" data-line="89">    2 -> cmaj i</div>
+<div class="ln" data-line="90">    3 -> amin i</div>
+<div class="ln" data-line="91">    4 -> gmaj i</div>
+<div class="ln" data-line="92">    5 -> fmaj i</div>
+<div class="ln" data-line="93">    6 -> cmaj i</div>
+<div class="ln" data-line="94">    _ -> amin i</div>
+<div class="ln" data-line="95"> </div>
+<div class="ln" data-line="96">#: A minor: the root, the fifth, the octave, and back down through the</div>
+<div class="ln" data-line="97">#: third.  Rising then falling is what makes a figure sound like a phrase</div>
+<div class="ln" data-line="98">#: rather than a scale.</div>
+<div class="ln" data-line="99">amin : Int -> Int</div>
+<div class="ln" data-line="100">amin i = case i of</div>
+<div class="ln" data-line="101">    0 -> 0</div>
+<div class="ln" data-line="102">    1 -> 3</div>
+<div class="ln" data-line="103">    2 -> 5</div>
+<div class="ln" data-line="104">    3 -> 7</div>
+<div class="ln" data-line="105">    4 -> 5</div>
+<div class="ln" data-line="106">    5 -> 4</div>
+<div class="ln" data-line="107">    6 -> 3</div>
+<div class="ln" data-line="108">    _ -> 1</div>
+<div class="ln" data-line="109"> </div>
+<div class="ln" data-line="110">#: F major, reached by leaving the root where it is and moving everything</div>
+<div class="ln" data-line="111">#: above it — which is why the two chords sound related.</div>
+<div class="ln" data-line="112">fmaj : Int -> Int</div>
+<div class="ln" data-line="113">fmaj i = case i of</div>
+<div class="ln" data-line="114">    0 -> 1</div>
+<div class="ln" data-line="115">    1 -> 4</div>
+<div class="ln" data-line="116">    2 -> 6</div>
+<div class="ln" data-line="117">    3 -> 4</div>
+<div class="ln" data-line="118">    4 -> 5</div>
+<div class="ln" data-line="119">    5 -> 6</div>
+<div class="ln" data-line="120">    6 -> 4</div>
+<div class="ln" data-line="121">    _ -> 2</div>
+<div class="ln" data-line="122"> </div>
+<div class="ln" data-line="123">cmaj : Int -> Int</div>
+<div class="ln" data-line="124">cmaj i = case i of</div>
+<div class="ln" data-line="125">    0 -> 1</div>
+<div class="ln" data-line="126">    1 -> 4</div>
+<div class="ln" data-line="127">    2 -> 6</div>
+<div class="ln" data-line="128">    3 -> 7</div>
+<div class="ln" data-line="129">    4 -> 6</div>
+<div class="ln" data-line="130">    5 -> 4</div>
+<div class="ln" data-line="131">    6 -> 2</div>
+<div class="ln" data-line="132">    _ -> 4</div>
+<div class="ln" data-line="133"> </div>
+<div class="ln" data-line="134">gmaj : Int -> Int</div>
+<div class="ln" data-line="135">gmaj i = case i of</div>
+<div class="ln" data-line="136">    0 -> 2</div>
+<div class="ln" data-line="137">    1 -> 4</div>
+<div class="ln" data-line="138">    2 -> 7</div>
+<div class="ln" data-line="139">    3 -> 5</div>
+<div class="ln" data-line="140">    4 -> 4</div>
+<div class="ln" data-line="141">    5 -> 2</div>
+<div class="ln" data-line="142">    6 -> 5</div>
+<div class="ln" data-line="143">    _ -> 4</div>
+<div class="ln" data-line="144"> </div>
+<div class="ln" data-line="145"># ── Exciting a string ────────────────────────────────────────────────────</div>
+<div class="ln" data-line="146">#</div>
+<div class="ln" data-line="147"># A string sounds like whatever you hand it, filtered down: a few</div>
+<div class="ln" data-line="148"># milliseconds of noise is a pluck.  The burst is deliberately shorter than</div>
+<div class="ln" data-line="149"># one round trip of the lowest string — `string`'s own documentation is</div>
+<div class="ln" data-line="150"># about what happens when it is not, which is that the excitation stacks and</div>
+<div class="ln" data-line="151"># the peak climbs.</div>
+<div class="ln" data-line="152"> </div>
+<div class="ln" data-line="153">#: A short noise burst at the start of the step this string is plucked in.</div>
+<div class="ln" data-line="154">burst : Float -> Float</div>
+<div class="ln" data-line="155">burst t = case t > 0.02 of</div>
+<div class="ln" data-line="156">    True -> 0.0</div>
+<div class="ln" data-line="157">    False -> 1.0 - t / 0.02</div>
+<div class="ln" data-line="158"> </div>
+<div class="ln" data-line="159">onlyIf : Bool -> Float -> Float</div>
+<div class="ln" data-line="160">onlyIf on v = case on of</div>
+<div class="ln" data-line="161">    True -> v</div>
+<div class="ln" data-line="162">    False -> 0.0</div>
+<div class="ln" data-line="163"> </div>
+<div class="ln" data-line="164">#: Is string `k` plucked at instant `n`?  Two conditions, and the second is</div>
+<div class="ln" data-line="165">#: what stops eight bars sounding like one: the lowest string is struck only</div>
+<div class="ln" data-line="166">#: on the first bar of a section, so each section lands.</div>
+<div class="ln" data-line="167">struckAt : Int -> Int -> Bool</div>
+<div class="ln" data-line="168">struckAt k n = case eqInt (noteAt n) k of</div>
+<div class="ln" data-line="169">    True -> case eqInt k 0 of</div>
+<div class="ln" data-line="170">        True -> eqInt (barAt n) 0</div>
+<div class="ln" data-line="171">        False -> True</div>
+<div class="ln" data-line="172">    False -> False</div>
+<div class="ln" data-line="173"> </div>
+<div class="ln" data-line="174">eqInt : Int -> Int -> Bool</div>
+<div class="ln" data-line="175">eqInt a b = case a - b of</div>
+<div class="ln" data-line="176">    0 -> True</div>
+<div class="ln" data-line="177">    _ -> False</div>
+<div class="ln" data-line="178"> </div>
+<div class="ln" data-line="179">#: The excitation for one string: silence, except for a few milliseconds</div>
+<div class="ln" data-line="180">#: whenever the pattern calls for it.  Its own seed per string, so eight</div>
+<div class="ln" data-line="181">#: plucks are eight different bursts rather than the same one eight times.</div>
+<div class="ln" data-line="182">excite : Int -> Sig Float</div>
+<div class="ln" data-line="183">excite k = zip (n w => exciteAt k n w) ticks (white (101 + k))</div>
+<div class="ln" data-line="184"> </div>
+<div class="ln" data-line="185">exciteAt : Int -> Int -> Float -> Float</div>
+<div class="ln" data-line="186">exciteAt k n w = onlyIf (struckAt k n) (w * burst (throughStep n))</div>
+<div class="ln" data-line="187"> </div>
+<div class="ln" data-line="188">#: One string: a pitch, a decay, and what excites it.  `hz` is a parameter</div>
+<div class="ln" data-line="189">#: rather than a signal, and folds to a constant at each of the eight call</div>
+<div class="ln" data-line="190">#: sites below — which is what lets `string` turn it into a line length.</div>
+<div class="ln" data-line="191">voice : Float -> Int -> Sig Float</div>
+<div class="ln" data-line="192">voice hz k = string hz 2.6 (excite k)</div>
+<div class="ln" data-line="193"> </div>
+<div class="ln" data-line="194"># ── The instrument ───────────────────────────────────────────────────────</div>
+<div class="ln" data-line="195">#</div>
+<div class="ln" data-line="196"># A minor pentatonic, A2 up to E4.  Eight strings is eight delay lines and</div>
+<div class="ln" data-line="197"># about 6000 samples of state at 44100 Hz, which is the price of the sound.</div>
+<div class="ln" data-line="198"> </div>
+<div class="ln" data-line="199">harp : Sig Float</div>
+<div class="ln" data-line="200">harp = voice 110.00 0 + voice 130.81 1 + voice 146.83 2 + voice 164.81 3</div>
+<div class="ln" data-line="201">     + voice 196.00 4 + voice 220.00 5 + voice 261.63 6 + voice 329.63 7</div>
+<div class="ln" data-line="202"> </div>
+<div class="ln" data-line="203">#: A drone under it, and the one place `flanger` earns its keep: a sound</div>
+<div class="ln" data-line="204">#: with no transients in it is where a moving notch is heard as motion</div>
+<div class="ln" data-line="205">#: rather than as a filter.  `pm` gives it more than a sine to move over.</div>
+<div class="ln" data-line="206">pad : Sig Float</div>
+<div class="ln" data-line="207">pad = 0.10 * flanger 0.13 0.9 (pm (!55.0) (0.5 * sine (!110.5)))</div>
+<div class="ln" data-line="208"> </div>
+<div class="ln" data-line="209">#: Occasional high partials over the top, struck by `dust` rather than by</div>
+<div class="ln" data-line="210">#: the pattern — so they never quite line up with the strings, which is what</div>
+<div class="ln" data-line="211">#: keeps three minutes of an eight-bar figure from closing in.</div>
+<div class="ln" data-line="212">#:</div>
+<div class="ln" data-line="213">#: **Three modes, because one is a bottle.**  A single `resonate` ringing</div>
+<div class="ln" data-line="214">#: for four seconds, struck two thirds of a second apart at a peak of 0.31,</div>
+<div class="ln" data-line="215">#: does not sound like a bell over the music — it sounds like somebody</div>
+<div class="ln" data-line="216">#: tapping a wine bottle.  A bell is several partials at once and they are</div>
+<div class="ln" data-line="217">#: not whole-number multiples of one another; 2.76 and 5.40 are the ratios</div>
+<div class="ln" data-line="218">#: a struck bar gives, and they are what makes the sound metal.</div>
+<div class="ln" data-line="219">strike : Sig Float</div>
+<div class="ln" data-line="220">strike = dust 5 (!0.22)</div>
+<div class="ln" data-line="221"> </div>
+<div class="ln" data-line="222">shimmer : Sig Float</div>
+<div class="ln" data-line="223">shimmer = 0.06 * resonate (!1318.5) 2.2 strike</div>
+<div class="ln" data-line="224">        + 0.03 * resonate (!3639.1) 1.4 strike</div>
+<div class="ln" data-line="225">        + 0.02 * resonate (!7120.0) 0.9 strike</div>
+<div class="ln" data-line="226"> </div>
+<div class="ln" data-line="227"># ── The room ─────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="228">#</div>
+<div class="ln" data-line="229"># `damped` before `reverb` on purpose.  The reverb is a wash and has no</div>
+<div class="ln" data-line="230"># rhythm of its own; a single damped repeat three eighths behind the beat</div>
+<div class="ln" data-line="231"># puts the room *in time* with the piece, and loses its top end each pass so</div>
+<div class="ln" data-line="232"># it recedes instead of cluttering.</div>
+<div class="ln" data-line="233"> </div>
+<div class="ln" data-line="234">echoTime : Float</div>
+<div class="ln" data-line="235">echoTime = 45.0 / toFloat tempo</div>
+<div class="ln" data-line="236"> </div>
+<div class="ln" data-line="237">dry : Sig Float</div>
+<div class="ln" data-line="238">dry = 0.9 * harp + pad + shimmer</div>
+<div class="ln" data-line="239"> </div>
+<div class="ln" data-line="240">#: The wet signal alone — mixed in below rather than returned mixed,</div>
+<div class="ln" data-line="241">#: because how far away a room sounds is a decision this file makes once.</div>
+<div class="ln" data-line="242">room : Sig Float</div>
+<div class="ln" data-line="243">room = reverb 3.4 0.35 (dry + 0.35 * damped echoTime 0.55 0.5 dry)</div>
+<div class="ln" data-line="244"> </div>
+<div class="ln" data-line="245">#: `brickwall` last, and nothing after it.  Eight strings, a pad and a</div>
+<div class="ln" data-line="246">#: reverb can line up on a peak that none of them reaches alone; a limiter</div>
+<div class="ln" data-line="247">#: that sees it coming is the difference between a ceiling and a hope.</div>
+<div class="ln" data-line="248">sound : Sig Float</div>
+<div class="ln" data-line="249">sound = brickwall 0.92 (0.85 * chorus 0.21 0.55 dry + 0.45 * room)</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

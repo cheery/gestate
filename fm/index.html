@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,125 +32,124 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># A fourth synth: FM, which is the one instrument that needs a real sine.
-#
-#   python -m gestate.audioperform examples/audio/fm.ges -o fm.wav
-#   python -m gestate.audioperform examples/audio/fm.ges --seconds 5
-#
-# `blip.ges` and `drums.ges` are built from ramps — a sawtooth is `2p - 1`
-# and a triangle is two lines, so both are arithmetic on a phase.  This one
-# cannot be: **FM's whole character comes from the modulator being a sine**,
-# because a sine's spectrum is one partial and everything you hear is the
-# sidebands the modulation creates.  Modulate with a sawtooth instead and
-# you get noise, not a bell.
-#
-# So this example exists to be the *caller* for `sin` (`spec/liveaudio.md`
-# open question 2), and it brings a second new thing with it: two
-# oscillators where one drives the other, which is two `scan`s in a chain
-# rather than two side by side.
-#
-# The signal chain:
-#
-#     ticks ─scan stepFM─► FM ─map voiceOut─► raw ─lowpass─► sound
-#
-# One `scan` carries both phases, because they advance together and a pair
-# of them would have to be re-zipped every sample to be used together.
-
-# ── The tune ─────────────────────────────────────────────────────────────
-#
-# A `case` table rather than a list, for the reason `blip.ges` gives at
-# length: a cons list is a heap structure walked once per sample, and the
-# audio fragment admits neither the allocation nor the unbounded walk.
-
-noteOf : Int -> Float
-noteOf i = case i of
-    0 -> 220.0
-    1 -> 293.66
-    2 -> 349.23
-    3 -> 440.0
-    4 -> 349.23
-    5 -> 293.66
-    _ -> 261.63
-
-noteCount : Int
-noteCount = 7
-
-speed : Int
-speed = 3
-
-samplesPerNote : Int
-samplesPerNote = floor (sampleRate / toFloat speed)
-
-noteAt : Int -> Float
-noteAt n = noteOf (prim_mod_int (prim_div_int n samplesPerNote) noteCount)
-
-#: How far through its note sample `n` is, 0.0 .. 1.0.
-throughNote : Int -> Float
-throughNote n = toFloat (prim_mod_int n samplesPerNote) / toFloat samplesPerNote
-
-# ── The two envelopes ────────────────────────────────────────────────────
-#
-# FM has two, and that is the point of it.  The amplitude envelope says how
-# loud, and the **index** envelope says how bright — the modulation depth
-# falling faster than the volume is what makes a struck sound: a bright
-# attack that settles into something near a sine.  One oscillator, two
-# envelopes, and the timbre changes over the note.
-
-#: Amplitude.  `exp` rather than a polynomial because a real decay *is*
-#: exponential, and `decay v = v * v * v` in `blip.ges` is an approximation
-#: of this shape that was chosen when there was no `exp`.
-ampAt : Int -> Float
-ampAt n = exp (negate 4.0 * throughNote n)
-
-#: Modulation depth, in radians of carrier phase.  Starts at `index` and
-#: falls three times as fast as the amplitude, so the partials die away
-#: while the note is still sounding.
-index : Float
-index = 4.0
-
-indexAt : Int -> Float
-indexAt n = index * exp (negate 12.0 * throughNote n)
-
-#: The modulator's frequency, as a ratio of the carrier's.  A small whole
-#: number gives a harmonic sound; 2.0 is a hollow, bell-like one.
-ratio : Float
-ratio = 2.0
-
-# ── The voice ────────────────────────────────────────────────────────────
-#
-# Both phases accumulate, for the same reason `blip.ges`'s does: the
-# frequency changes at a note boundary, and `n * f / rate` would jump where
-# `wrap (p + f/rate)` stays continuous.  A jump in phase is a click.
-
-FM := FM Float Float Int
-
-#: One step of a phase at `hz`.  Both oscillators advance the same way and
-#: differ only in frequency, so saying it once is saying what is true.
-advance : Float -> Float -> Float
-advance p hz = wrap (p + hz / sampleRate)
-
-stepFM : FM -> Int -> FM
-stepFM v n = case v of
-    FM c m i -> FM (advance c (noteAt n)) (advance m (ratio * noteAt n)) n
-
-#: Phase modulation, which is what every "FM" synth actually does: the
-#: modulator is added to the carrier's *phase* rather than to its frequency.
-#: The two are equivalent up to an envelope on the index, and this one does
-#: not drift, because the carrier's own phase is still the accumulated one.
-voiceOut : FM -> Float
-voiceOut v = case v of
-    FM c m n -> ampAt n * sin (tau * c + indexAt n * sineOf m)
-
-# ── The chain ────────────────────────────────────────────────────────────
-
-raw : Sig Float
-raw = map voiceOut (scan stepFM (FM 0.0 0.0 0) ticks)
-
-#: Gentler than `blip.ges`'s filter: FM's brightness is already under the
-#: index envelope's control, so this is only taking the corners off.
-sound : Sig Float
-sound = gain 0.5 (lowpass 0.7 raw)
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># A fourth synth: FM, which is the one instrument that needs a real sine.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.audioperform examples/audio/fm.ges -o fm.wav</div>
+<div class="ln" data-line="4">#   python -m gestate.audioperform examples/audio/fm.ges --seconds 5</div>
+<div class="ln" data-line="5">#</div>
+<div class="ln" data-line="6"># `blip.ges` and `drums.ges` are built from ramps — a sawtooth is `2p - 1`</div>
+<div class="ln" data-line="7"># and a triangle is two lines, so both are arithmetic on a phase.  This one</div>
+<div class="ln" data-line="8"># cannot be: **FM's whole character comes from the modulator being a sine**,</div>
+<div class="ln" data-line="9"># because a sine's spectrum is one partial and everything you hear is the</div>
+<div class="ln" data-line="10"># sidebands the modulation creates.  Modulate with a sawtooth instead and</div>
+<div class="ln" data-line="11"># you get noise, not a bell.</div>
+<div class="ln" data-line="12">#</div>
+<div class="ln" data-line="13"># So this example exists to be the *caller* for `sin` (`spec/liveaudio.md`</div>
+<div class="ln" data-line="14"># open question 2), and it brings a second new thing with it: two</div>
+<div class="ln" data-line="15"># oscillators where one drives the other, which is two `scan`s in a chain</div>
+<div class="ln" data-line="16"># rather than two side by side.</div>
+<div class="ln" data-line="17">#</div>
+<div class="ln" data-line="18"># The signal chain:</div>
+<div class="ln" data-line="19">#</div>
+<div class="ln" data-line="20">#     ticks ─scan stepFM─► FM ─map voiceOut─► raw ─lowpass─► sound</div>
+<div class="ln" data-line="21">#</div>
+<div class="ln" data-line="22"># One `scan` carries both phases, because they advance together and a pair</div>
+<div class="ln" data-line="23"># of them would have to be re-zipped every sample to be used together.</div>
+<div class="ln" data-line="24"> </div>
+<div class="ln" data-line="25"># ── The tune ─────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="26">#</div>
+<div class="ln" data-line="27"># A `case` table rather than a list, for the reason `blip.ges` gives at</div>
+<div class="ln" data-line="28"># length: a cons list is a heap structure walked once per sample, and the</div>
+<div class="ln" data-line="29"># audio fragment admits neither the allocation nor the unbounded walk.</div>
+<div class="ln" data-line="30"> </div>
+<div class="ln" data-line="31">noteOf : Int -> Float</div>
+<div class="ln" data-line="32">noteOf i = case i of</div>
+<div class="ln" data-line="33">    0 -> 220.0</div>
+<div class="ln" data-line="34">    1 -> 293.66</div>
+<div class="ln" data-line="35">    2 -> 349.23</div>
+<div class="ln" data-line="36">    3 -> 440.0</div>
+<div class="ln" data-line="37">    4 -> 349.23</div>
+<div class="ln" data-line="38">    5 -> 293.66</div>
+<div class="ln" data-line="39">    _ -> 261.63</div>
+<div class="ln" data-line="40"> </div>
+<div class="ln" data-line="41">noteCount : Int</div>
+<div class="ln" data-line="42">noteCount = 7</div>
+<div class="ln" data-line="43"> </div>
+<div class="ln" data-line="44">speed : Int</div>
+<div class="ln" data-line="45">speed = 3</div>
+<div class="ln" data-line="46"> </div>
+<div class="ln" data-line="47">samplesPerNote : Int</div>
+<div class="ln" data-line="48">samplesPerNote = floor (sampleRate / toFloat speed)</div>
+<div class="ln" data-line="49"> </div>
+<div class="ln" data-line="50">noteAt : Int -> Float</div>
+<div class="ln" data-line="51">noteAt n = noteOf (prim_mod_int (prim_div_int n samplesPerNote) noteCount)</div>
+<div class="ln" data-line="52"> </div>
+<div class="ln" data-line="53">#: How far through its note sample `n` is, 0.0 .. 1.0.</div>
+<div class="ln" data-line="54">throughNote : Int -> Float</div>
+<div class="ln" data-line="55">throughNote n = toFloat (prim_mod_int n samplesPerNote) / toFloat samplesPerNote</div>
+<div class="ln" data-line="56"> </div>
+<div class="ln" data-line="57"># ── The two envelopes ────────────────────────────────────────────────────</div>
+<div class="ln" data-line="58">#</div>
+<div class="ln" data-line="59"># FM has two, and that is the point of it.  The amplitude envelope says how</div>
+<div class="ln" data-line="60"># loud, and the **index** envelope says how bright — the modulation depth</div>
+<div class="ln" data-line="61"># falling faster than the volume is what makes a struck sound: a bright</div>
+<div class="ln" data-line="62"># attack that settles into something near a sine.  One oscillator, two</div>
+<div class="ln" data-line="63"># envelopes, and the timbre changes over the note.</div>
+<div class="ln" data-line="64"> </div>
+<div class="ln" data-line="65">#: Amplitude.  `exp` rather than a polynomial because a real decay *is*</div>
+<div class="ln" data-line="66">#: exponential, and `decay v = v * v * v` in `blip.ges` is an approximation</div>
+<div class="ln" data-line="67">#: of this shape that was chosen when there was no `exp`.</div>
+<div class="ln" data-line="68">ampAt : Int -> Float</div>
+<div class="ln" data-line="69">ampAt n = exp (negate 4.0 * throughNote n)</div>
+<div class="ln" data-line="70"> </div>
+<div class="ln" data-line="71">#: Modulation depth, in radians of carrier phase.  Starts at `index` and</div>
+<div class="ln" data-line="72">#: falls three times as fast as the amplitude, so the partials die away</div>
+<div class="ln" data-line="73">#: while the note is still sounding.</div>
+<div class="ln" data-line="74">index : Float</div>
+<div class="ln" data-line="75">index = 4.0</div>
+<div class="ln" data-line="76"> </div>
+<div class="ln" data-line="77">indexAt : Int -> Float</div>
+<div class="ln" data-line="78">indexAt n = index * exp (negate 12.0 * throughNote n)</div>
+<div class="ln" data-line="79"> </div>
+<div class="ln" data-line="80">#: The modulator's frequency, as a ratio of the carrier's.  A small whole</div>
+<div class="ln" data-line="81">#: number gives a harmonic sound; 2.0 is a hollow, bell-like one.</div>
+<div class="ln" data-line="82">ratio : Float</div>
+<div class="ln" data-line="83">ratio = 2.0</div>
+<div class="ln" data-line="84"> </div>
+<div class="ln" data-line="85"># ── The voice ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="86">#</div>
+<div class="ln" data-line="87"># Both phases accumulate, for the same reason `blip.ges`'s does: the</div>
+<div class="ln" data-line="88"># frequency changes at a note boundary, and `n * f / rate` would jump where</div>
+<div class="ln" data-line="89"># `wrap (p + f/rate)` stays continuous.  A jump in phase is a click.</div>
+<div class="ln" data-line="90"> </div>
+<div class="ln" data-line="91">FM := FM Float Float Int</div>
+<div class="ln" data-line="92"> </div>
+<div class="ln" data-line="93">#: One step of a phase at `hz`.  Both oscillators advance the same way and</div>
+<div class="ln" data-line="94">#: differ only in frequency, so saying it once is saying what is true.</div>
+<div class="ln" data-line="95">advance : Float -> Float -> Float</div>
+<div class="ln" data-line="96">advance p hz = wrap (p + hz / sampleRate)</div>
+<div class="ln" data-line="97"> </div>
+<div class="ln" data-line="98">stepFM : FM -> Int -> FM</div>
+<div class="ln" data-line="99">stepFM v n = case v of</div>
+<div class="ln" data-line="100">    FM c m i -> FM (advance c (noteAt n)) (advance m (ratio * noteAt n)) n</div>
+<div class="ln" data-line="101"> </div>
+<div class="ln" data-line="102">#: Phase modulation, which is what every "FM" synth actually does: the</div>
+<div class="ln" data-line="103">#: modulator is added to the carrier's *phase* rather than to its frequency.</div>
+<div class="ln" data-line="104">#: The two are equivalent up to an envelope on the index, and this one does</div>
+<div class="ln" data-line="105">#: not drift, because the carrier's own phase is still the accumulated one.</div>
+<div class="ln" data-line="106">voiceOut : FM -> Float</div>
+<div class="ln" data-line="107">voiceOut v = case v of</div>
+<div class="ln" data-line="108">    FM c m n -> ampAt n * sin (tau * c + indexAt n * sineOf m)</div>
+<div class="ln" data-line="109"> </div>
+<div class="ln" data-line="110"># ── The chain ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="111"> </div>
+<div class="ln" data-line="112">raw : Sig Float</div>
+<div class="ln" data-line="113">raw = map voiceOut (scan stepFM (FM 0.0 0.0 0) ticks)</div>
+<div class="ln" data-line="114"> </div>
+<div class="ln" data-line="115">#: Gentler than `blip.ges`'s filter: FM's brightness is already under the</div>
+<div class="ln" data-line="116">#: index envelope's control, so this is only taking the corners off.</div>
+<div class="ln" data-line="117">sound : Sig Float</div>
+<div class="ln" data-line="118">sound = gain 0.5 (lowpass 0.7 raw)</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

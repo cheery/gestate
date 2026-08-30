@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,158 +32,157 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># A spectrum analyser, and a sound to point it at — `spec/substrate.md`.
-#
-#   python -m gestate.audiopygame examples/audio/spectrum.ges
-#
-# `substrate.ges` shows a fader reaching the sound.  This is the other
-# direction: the **instrument reaching the picture**.  Eight numbers arrive
-# once a frame — `band0` is the lowest — and eight bars are drawn from
-# them.  Nothing here computes a spectrum; the host does that per sample in
-# `gestate/host.c`, because eight one-pole filters at the sample rate is
-# not something an interpreter should be asked for sixty times a second.
-#
-# **A program that does not declare these channels is not charged for the
-# filter bank**, which is the same bargain `peak` makes.  Declaring
-# `band0` is what switches it on.
-#
-# The two halves are one file, as always: change the sweep below and the
-# bars follow it on the next block, because they are a picture *of* it
-# rather than a picture beside it.
-
-# ── What you hear ────────────────────────────────────────────────────────
-#
-# Something with a moving spectrum, so there is something to watch: a slow
-# sweep through the bands, a bass note under it, and a hiss on top that the
-# top bars can find.
-
-#: A sweep that takes eight seconds to cross the range, exponentially —
-#: which is what makes it cross the *bars* evenly, since they are spaced by
-#: octaves and an octave is a doubling.
-sweepHz : Sig Float
-sweepHz = map hzAt (phase (!0.125))
-
-hzAt : Float -> Float
-hzAt p = 80.0 * pow 2.0 (p * 7.0)
-
-voice : Sig Float
-voice = 0.50 * sine sweepHz
-
-#: **Quiet on purpose.**  At 0.30 it held the bottom bar up the whole
-#: time and the sweep was the second thing you noticed; the point of the
-#: picture is the thing that moves.
-bass : Sig Float
-bass = 0.14 * sine (!55.0) * (0.5 + 0.5 * sine (!0.5))
-
-#: A little noise, so the top two bars have something to say even when the
-#: sweep is nowhere near them.
-air : Sig Float
-air = 0.05 * highpassOnePole (!6000.0) (white 3)
-
-sound : Sig Float
-sound = brickwall 0.9 (voice + bass + air)
-
-# ── What the instrument tells you ────────────────────────────────────────
-#
-# One channel per band, in order.  The host writes each once a frame and
-# says nothing about the ones a file does not declare.
-
-band0 : Chan Float
-band0 = chan
-band1 : Chan Float
-band1 = chan
-band2 : Chan Float
-band2 = chan
-band3 : Chan Float
-band3 = chan
-band4 : Chan Float
-band4 = chan
-band5 : Chan Float
-band5 = chan
-band6 : Chan Float
-band6 = chan
-band7 : Chan Float
-band7 = chan
-
-#: Each as a signal, starting at silence.  `0.0 ::: mkSig (wait c)` is the
-#: shape every readable channel takes — `substrate.ges` says why.
-level0 : Sig Float
-level0 = 0.0 ::: mkSig (wait band0)
-level1 : Sig Float
-level1 = 0.0 ::: mkSig (wait band1)
-level2 : Sig Float
-level2 = 0.0 ::: mkSig (wait band2)
-level3 : Sig Float
-level3 = 0.0 ::: mkSig (wait band3)
-level4 : Sig Float
-level4 = 0.0 ::: mkSig (wait band4)
-level5 : Sig Float
-level5 = 0.0 ::: mkSig (wait band5)
-level6 : Sig Float
-level6 = 0.0 ::: mkSig (wait band6)
-level7 : Sig Float
-level7 = 0.0 ::: mkSig (wait band7)
-
-# ── What you see ─────────────────────────────────────────────────────────
-
-tall : Int
-tall = 190
-
-wide : Int
-wide = 26
-
-#: How high a bar stands.  **A square root rather than the level itself**:
-#: a band that is a tenth as loud is not a tenth as interesting, and a
-#: linear bar spends most of its height showing the difference between
-#: loud and very loud.  Clamped, because the top of the window is the top
-#: of the window.
-heightOf : Float -> Int
-heightOf v = floor (toFloat tall * clamp 0.0 1.0 (sqrt (v * 2.2)))
-
-#: Cold at the bottom, warm at the top — the bar's *own* colour rather
-#: than a gradient, so which band is loud is legible at a glance and not
-#: only by height.
-hueOf : Int -> Colour
-hueOf i = RGB (60 + 22 * i) (200 - 14 * i) (200 - 20 * i)
-
-#: The trough a bar stands in — always there, so the row reads as eight
-#: places whether or not there is anything in them.
-trough : Sub
-trough = Rect wide tall (RGB 30 32 38)
-
-#: One bar: the trough, with the level standing in it from the bottom.
-#:
-#: Everything is placed by its centre, so a bar of height `h` sitting on
-#: the trough's floor has its centre `(tall - h) / 2` below the trough's.
-#: That is the whole of "grows upward" — there is no downward-counting
-#: canvas coordinate left in this file to get the wrong way round.
-#:
-#: `Sized` pins the extent whatever the level is, so the row does not
-#: breathe as the music moves; the six extra pixels are the gap between
-#: bars, declared once here instead of multiplied into eight positions.
-bar : Int -> Float -> Sub
-bar i v = Sized (wide + 6) tall (Over trough
-    (Shift 0 ((tall - heightOf v) / 2) (Rect wide (heightOf v) (hueOf i))))
-
-#: The row.
-#:
-#: **`!` lifts over any number of signals**, so the band index is an
-#: ordinary argument: `!bar 0 level0` is `bar` meeting two signals at
-#: once, and the `0` is a `Sig Int` because a bare number beside a
-#: substrate is the constant signal of it.  This file used to carry
-#: `bar0`…`bar7` — eight one-line wrappers whose only job was to spend the
-#: index before a lift that was thought to take one argument.
-#:
-#: And `row` does the placing, so no bar knows where it is.  The
-#: arithmetic that used to space them — `i * (wide + 6)` — is gone with
-#: the wrappers: a layout combinator is what that arithmetic *was*.
-substrate : Sig Sub
-substrate =
-    (       !bar 0 level0 `row` !bar 1 level1
-      `row` !bar 2 level2 `row` !bar 3 level3
-      `row` !bar 4 level4 `row` !bar 5 level5
-      `row` !bar 6 level6 `row` !bar 7 level7)
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># A spectrum analyser, and a sound to point it at — `spec/substrate.md`.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.audiopygame examples/audio/spectrum.ges</div>
+<div class="ln" data-line="4">#</div>
+<div class="ln" data-line="5"># `substrate.ges` shows a fader reaching the sound.  This is the other</div>
+<div class="ln" data-line="6"># direction: the **instrument reaching the picture**.  Eight numbers arrive</div>
+<div class="ln" data-line="7"># once a frame — `band0` is the lowest — and eight bars are drawn from</div>
+<div class="ln" data-line="8"># them.  Nothing here computes a spectrum; the host does that per sample in</div>
+<div class="ln" data-line="9"># `gestate/host.c`, because eight one-pole filters at the sample rate is</div>
+<div class="ln" data-line="10"># not something an interpreter should be asked for sixty times a second.</div>
+<div class="ln" data-line="11">#</div>
+<div class="ln" data-line="12"># **A program that does not declare these channels is not charged for the</div>
+<div class="ln" data-line="13"># filter bank**, which is the same bargain `peak` makes.  Declaring</div>
+<div class="ln" data-line="14"># `band0` is what switches it on.</div>
+<div class="ln" data-line="15">#</div>
+<div class="ln" data-line="16"># The two halves are one file, as always: change the sweep below and the</div>
+<div class="ln" data-line="17"># bars follow it on the next block, because they are a picture *of* it</div>
+<div class="ln" data-line="18"># rather than a picture beside it.</div>
+<div class="ln" data-line="19"> </div>
+<div class="ln" data-line="20"># ── What you hear ────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="21">#</div>
+<div class="ln" data-line="22"># Something with a moving spectrum, so there is something to watch: a slow</div>
+<div class="ln" data-line="23"># sweep through the bands, a bass note under it, and a hiss on top that the</div>
+<div class="ln" data-line="24"># top bars can find.</div>
+<div class="ln" data-line="25"> </div>
+<div class="ln" data-line="26">#: A sweep that takes eight seconds to cross the range, exponentially —</div>
+<div class="ln" data-line="27">#: which is what makes it cross the *bars* evenly, since they are spaced by</div>
+<div class="ln" data-line="28">#: octaves and an octave is a doubling.</div>
+<div class="ln" data-line="29">sweepHz : Sig Float</div>
+<div class="ln" data-line="30">sweepHz = map hzAt (phase (!0.125))</div>
+<div class="ln" data-line="31"> </div>
+<div class="ln" data-line="32">hzAt : Float -> Float</div>
+<div class="ln" data-line="33">hzAt p = 80.0 * pow 2.0 (p * 7.0)</div>
+<div class="ln" data-line="34"> </div>
+<div class="ln" data-line="35">voice : Sig Float</div>
+<div class="ln" data-line="36">voice = 0.50 * sine sweepHz</div>
+<div class="ln" data-line="37"> </div>
+<div class="ln" data-line="38">#: **Quiet on purpose.**  At 0.30 it held the bottom bar up the whole</div>
+<div class="ln" data-line="39">#: time and the sweep was the second thing you noticed; the point of the</div>
+<div class="ln" data-line="40">#: picture is the thing that moves.</div>
+<div class="ln" data-line="41">bass : Sig Float</div>
+<div class="ln" data-line="42">bass = 0.14 * sine (!55.0) * (0.5 + 0.5 * sine (!0.5))</div>
+<div class="ln" data-line="43"> </div>
+<div class="ln" data-line="44">#: A little noise, so the top two bars have something to say even when the</div>
+<div class="ln" data-line="45">#: sweep is nowhere near them.</div>
+<div class="ln" data-line="46">air : Sig Float</div>
+<div class="ln" data-line="47">air = 0.05 * highpassOnePole (!6000.0) (white 3)</div>
+<div class="ln" data-line="48"> </div>
+<div class="ln" data-line="49">sound : Sig Float</div>
+<div class="ln" data-line="50">sound = brickwall 0.9 (voice + bass + air)</div>
+<div class="ln" data-line="51"> </div>
+<div class="ln" data-line="52"># ── What the instrument tells you ────────────────────────────────────────</div>
+<div class="ln" data-line="53">#</div>
+<div class="ln" data-line="54"># One channel per band, in order.  The host writes each once a frame and</div>
+<div class="ln" data-line="55"># says nothing about the ones a file does not declare.</div>
+<div class="ln" data-line="56"> </div>
+<div class="ln" data-line="57">band0 : Chan Float</div>
+<div class="ln" data-line="58">band0 = chan</div>
+<div class="ln" data-line="59">band1 : Chan Float</div>
+<div class="ln" data-line="60">band1 = chan</div>
+<div class="ln" data-line="61">band2 : Chan Float</div>
+<div class="ln" data-line="62">band2 = chan</div>
+<div class="ln" data-line="63">band3 : Chan Float</div>
+<div class="ln" data-line="64">band3 = chan</div>
+<div class="ln" data-line="65">band4 : Chan Float</div>
+<div class="ln" data-line="66">band4 = chan</div>
+<div class="ln" data-line="67">band5 : Chan Float</div>
+<div class="ln" data-line="68">band5 = chan</div>
+<div class="ln" data-line="69">band6 : Chan Float</div>
+<div class="ln" data-line="70">band6 = chan</div>
+<div class="ln" data-line="71">band7 : Chan Float</div>
+<div class="ln" data-line="72">band7 = chan</div>
+<div class="ln" data-line="73"> </div>
+<div class="ln" data-line="74">#: Each as a signal, starting at silence.  `0.0 ::: mkSig (wait c)` is the</div>
+<div class="ln" data-line="75">#: shape every readable channel takes — `substrate.ges` says why.</div>
+<div class="ln" data-line="76">level0 : Sig Float</div>
+<div class="ln" data-line="77">level0 = 0.0 ::: mkSig (wait band0)</div>
+<div class="ln" data-line="78">level1 : Sig Float</div>
+<div class="ln" data-line="79">level1 = 0.0 ::: mkSig (wait band1)</div>
+<div class="ln" data-line="80">level2 : Sig Float</div>
+<div class="ln" data-line="81">level2 = 0.0 ::: mkSig (wait band2)</div>
+<div class="ln" data-line="82">level3 : Sig Float</div>
+<div class="ln" data-line="83">level3 = 0.0 ::: mkSig (wait band3)</div>
+<div class="ln" data-line="84">level4 : Sig Float</div>
+<div class="ln" data-line="85">level4 = 0.0 ::: mkSig (wait band4)</div>
+<div class="ln" data-line="86">level5 : Sig Float</div>
+<div class="ln" data-line="87">level5 = 0.0 ::: mkSig (wait band5)</div>
+<div class="ln" data-line="88">level6 : Sig Float</div>
+<div class="ln" data-line="89">level6 = 0.0 ::: mkSig (wait band6)</div>
+<div class="ln" data-line="90">level7 : Sig Float</div>
+<div class="ln" data-line="91">level7 = 0.0 ::: mkSig (wait band7)</div>
+<div class="ln" data-line="92"> </div>
+<div class="ln" data-line="93"># ── What you see ─────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="94"> </div>
+<div class="ln" data-line="95">tall : Int</div>
+<div class="ln" data-line="96">tall = 190</div>
+<div class="ln" data-line="97"> </div>
+<div class="ln" data-line="98">wide : Int</div>
+<div class="ln" data-line="99">wide = 26</div>
+<div class="ln" data-line="100"> </div>
+<div class="ln" data-line="101">#: How high a bar stands.  **A square root rather than the level itself**:</div>
+<div class="ln" data-line="102">#: a band that is a tenth as loud is not a tenth as interesting, and a</div>
+<div class="ln" data-line="103">#: linear bar spends most of its height showing the difference between</div>
+<div class="ln" data-line="104">#: loud and very loud.  Clamped, because the top of the window is the top</div>
+<div class="ln" data-line="105">#: of the window.</div>
+<div class="ln" data-line="106">heightOf : Float -> Int</div>
+<div class="ln" data-line="107">heightOf v = floor (toFloat tall * clamp 0.0 1.0 (sqrt (v * 2.2)))</div>
+<div class="ln" data-line="108"> </div>
+<div class="ln" data-line="109">#: Cold at the bottom, warm at the top — the bar's *own* colour rather</div>
+<div class="ln" data-line="110">#: than a gradient, so which band is loud is legible at a glance and not</div>
+<div class="ln" data-line="111">#: only by height.</div>
+<div class="ln" data-line="112">hueOf : Int -> Colour</div>
+<div class="ln" data-line="113">hueOf i = RGB (60 + 22 * i) (200 - 14 * i) (200 - 20 * i)</div>
+<div class="ln" data-line="114"> </div>
+<div class="ln" data-line="115">#: The trough a bar stands in — always there, so the row reads as eight</div>
+<div class="ln" data-line="116">#: places whether or not there is anything in them.</div>
+<div class="ln" data-line="117">trough : Sub</div>
+<div class="ln" data-line="118">trough = Rect wide tall (RGB 30 32 38)</div>
+<div class="ln" data-line="119"> </div>
+<div class="ln" data-line="120">#: One bar: the trough, with the level standing in it from the bottom.</div>
+<div class="ln" data-line="121">#:</div>
+<div class="ln" data-line="122">#: Everything is placed by its centre, so a bar of height `h` sitting on</div>
+<div class="ln" data-line="123">#: the trough's floor has its centre `(tall - h) / 2` below the trough's.</div>
+<div class="ln" data-line="124">#: That is the whole of "grows upward" — there is no downward-counting</div>
+<div class="ln" data-line="125">#: canvas coordinate left in this file to get the wrong way round.</div>
+<div class="ln" data-line="126">#:</div>
+<div class="ln" data-line="127">#: `Sized` pins the extent whatever the level is, so the row does not</div>
+<div class="ln" data-line="128">#: breathe as the music moves; the six extra pixels are the gap between</div>
+<div class="ln" data-line="129">#: bars, declared once here instead of multiplied into eight positions.</div>
+<div class="ln" data-line="130">bar : Int -> Float -> Sub</div>
+<div class="ln" data-line="131">bar i v = Sized (wide + 6) tall (Over trough</div>
+<div class="ln" data-line="132">    (Shift 0 ((tall - heightOf v) / 2) (Rect wide (heightOf v) (hueOf i))))</div>
+<div class="ln" data-line="133"> </div>
+<div class="ln" data-line="134">#: The row.</div>
+<div class="ln" data-line="135">#:</div>
+<div class="ln" data-line="136">#: **`!` lifts over any number of signals**, so the band index is an</div>
+<div class="ln" data-line="137">#: ordinary argument: `!bar 0 level0` is `bar` meeting two signals at</div>
+<div class="ln" data-line="138">#: once, and the `0` is a `Sig Int` because a bare number beside a</div>
+<div class="ln" data-line="139">#: substrate is the constant signal of it.  This file used to carry</div>
+<div class="ln" data-line="140">#: `bar0`…`bar7` — eight one-line wrappers whose only job was to spend the</div>
+<div class="ln" data-line="141">#: index before a lift that was thought to take one argument.</div>
+<div class="ln" data-line="142">#:</div>
+<div class="ln" data-line="143">#: And `row` does the placing, so no bar knows where it is.  The</div>
+<div class="ln" data-line="144">#: arithmetic that used to space them — `i * (wide + 6)` — is gone with</div>
+<div class="ln" data-line="145">#: the wrappers: a layout combinator is what that arithmetic *was*.</div>
+<div class="ln" data-line="146">substrate : Sig Sub</div>
+<div class="ln" data-line="147">substrate =</div>
+<div class="ln" data-line="148">    (       !bar 0 level0 `row` !bar 1 level1</div>
+<div class="ln" data-line="149">      `row` !bar 2 level2 `row` !bar 3 level3</div>
+<div class="ln" data-line="150">      `row` !bar 4 level4 `row` !bar 5 level5</div>
+<div class="ln" data-line="151">      `row` !bar 6 level6 `row` !bar 7 level7)</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

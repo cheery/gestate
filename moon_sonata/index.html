@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,221 +32,220 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># After Beethoven — the opening of Op. 27 No. 2, Adagio sostenuto.
-#
-#   python -m gestate.workbench examples/audio/moon_sonata.ges
-#   python -m gestate.audioperform examples/audio/moon_sonata.ges -o moon.wav --seconds 40
-#
-# Eight bars: four of arpeggios alone, then four with the tune over
-# them.  What makes it worth a file is that it is **three parts on
-# three different grids at once** — triplets in the right hand, whole
-# bars in the left, and a dotted figure in the tune that lines up with
-# neither — and none of the three knows the others exist.  `||` starts
-# them together and each one is simply as long as it is.
-#
-#     (bass || arpeggios || tune) >>= voices.piano
-#
-# `pachelbel.ges` makes the polyphony argument note against note, one
-# for one; this is the same argument when the parts *disagree* about
-# the beat.  The whole apparatus for that is two operators:
-#
-#     (soft a ++ soft b ++ soft c) |/ 3      -- three inside one beat
-#     (sing k |* 3 |/ 2)                     -- a dotted note
-#
-# A triplet is not a feature here and neither is a dot.  A note is one
-# beat by construction (`spec/music.md`), `|/ 3` is what makes three of
-# them fit where one stood, and a dot is three halves — so the notation
-# a musician would write comes out of arithmetic on durations rather
-# than out of a rhythm vocabulary somebody had to think of first.
-#
-# ── What is Beethoven's and what is not ─────────────────────────────────
-#
-# The notes are his: the arpeggio figure, the bass octaves under it, the
-# harmony (i, i, then the turn through the seventh over B and the
-# dominant, twice), and the tune's entry on the repeated G#.  The
-# reduction is that the tune here keeps its opening motif for all four
-# of its bars where Beethoven's line has already begun to climb, and
-# that the piece is played on three sine partials rather than on a
-# piano.  It is the opening period as a *sketch* — enough to read the
-# score against, not an edition.
-#
-# **There is no sustain pedal and nothing implements one.**  Beethoven
-# writes *senza sordino* — dampers up, the whole movement.  Here that is
-# the release stage of the envelope: every note is let go at the end of
-# its written duration and goes on sounding for another second and a
-# half, so four or five triplet notes are alive at any instant and the
-# bass octave is still ringing under the bar after it.  The pedal is a
-# number in `env` and a bank deep enough to hold the tails.
-
-# ── What a note carries ─────────────────────────────────────────────────
-#
-# Key number and how hard.  Not `Note`: `music.ges` already owns that
-# constructor and `'x` desugars to it.
-
-Hammer := Hammer Int Int
-
-#: Fourteen, and the number is the *pedal*.  A triplet note lasts a
-#: third of a beat and rings for the better part of two seconds after
-#: it, so five of them overlap; the bass octave's two notes are alive
-#: across a whole bar and their tails reach into the next; the tune
-#: holds one or two.  A smaller bank steals a voice from a tail to give
-#: it to a new note, and a truncated release is a click — which in a
-#: piece this quiet is the only thing anyone would hear.
-voices piano 14 hammerVoice : Sig Float
-
-instance FromMIDI Hammer where
-    noteOn ch p v = Just (Hammer p v)
-
-#: The way back out, so the score box can draw the roll
-#: (`spec/scorebox.md`) — `notes score` shows all three parts at once.
-instance Notable Hammer where
-    noteKey h = case h of
-        Hammer k v -> k
-    noteVel h = case h of
-        Hammer k v -> v
-
-# ── The instrument ──────────────────────────────────────────────────────
-
-#: Struck and left alone: the attack is immediate, the body is a long
-#: decay to almost nothing, and the release is longer than most notes
-#: are — that release *is* the raised damper, and it is why the
-#: arpeggio comes out as a chord rather than as three separate notes.
-env : Adsr
-env = Adsr 0.006 2.2 0.12 1.4
-
-hzOf : Hammer -> Float
-hzOf h = case h of
-    Hammer k v -> keyHz k
-
-levelOf : Hammer -> Float
-levelOf h = case h of
-    Hammer k v -> toFloat v / 127.0
-
-#: A fundamental and two overtones, each quieter — felt on string as
-#: far as three sines can say it.  `pachelbel.ges` is the long argument
-#: for why additive synthesis is the honest demonstration that
-#: `Num (Sig Float)` means what it looks like.
-timbre : Sig Float -> Sig Float
-timbre hz = sine hz + 0.4 * sine (hz * 2.0) + 0.15 * sine (hz * 3.0)
-
-#: Scaled here rather than in the mix: a bank is a sum, and fourteen
-#: voices of something that peaks at one peaks at fourteen.
-hammerVoice : Sig Gate -> Sig Hammer -> Sig Float
-hammerVoice g s = 0.25 * timbre (!hzOf s) * adsr env g * !levelOf s
-
-# ── The piece ───────────────────────────────────────────────────────────
-#
-# Beethoven writes alla breve with triplet quavers; the bar below is
-# four beats with four triplets in it, which is the same music counted
-# the way the durations here are spelled.  A bar takes about four and a
-# quarter seconds, which is what the Adagio asks for.
-
-bpm : Int
-bpm = 56
-
-bar : Int
-bar = 4 * ticksPerBeat
-
-#: *Sempre pianissimo*: the figure is the floor everything stands on
-#: and it never gets to be the subject.
-soft : Int -> [: Hammer :]
-soft k = '(Hammer k 42)
-
-#: The bass, louder than the figure because it is two octaves lower and
-#: has to carry four seconds on its own.
-deep : Int -> [: Hammer :]
-deep k = '(Hammer k 62)
-
-#: The tune, clear of both.
-sing : Int -> [: Hammer :]
-sing k = '(Hammer k 82)
-
-#: **The triplet.**  Three notes where one beat was: `|/ 3` divides the
-#: whole group's duration, so nothing here has to know that a third of
-#: 96 ticks is 32.
-triplet : Int -> Int -> Int -> [: Hammer :]
-triplet a b c = (soft a ++ soft b ++ soft c) |/ 3
-
-#: One bar of the right hand: a figure twice, then a figure twice.
-#: Every bar of this movement's opening is that shape, and the harmony
-#: is whichever two figures are named.
-sweep : [: Hammer :] -> [: Hammer :] -> [: Hammer :]
-sweep a b = a ++ a ++ b ++ b
-
-#: The four figures the first eight bars are built from, bottom note
-#: first — the low one is what the right thumb is holding down.
-tonic : [: Hammer :]
-tonic = triplet 56 61 64                    # g# c# e   — C# minor
-
-sixth : [: Hammer :]
-sixth = triplet 57 61 64                    # a  c# e   — A major over B
-
-seventh : [: Hammer :]
-seventh = triplet 57 62 66                  # a  d  f#  — B minor 7th
-
-dominant : [: Hammer :]
-dominant = triplet 56 60 66                 # g# b# f# — G#7
-
-#: The right hand, all eight bars.  The four-bar unit is stated twice:
-#: two bars of the tonic, a bar that leans away from it, and a bar that
-#: hangs on the dominant — the second time with the tune over it.
-arpeggios : [: Hammer :]
-arpeggios = sweep tonic tonic
-         ++ sweep tonic tonic
-         ++ sweep sixth seventh
-         ++ sweep tonic dominant
-         ++ sweep tonic tonic
-         ++ sweep tonic tonic
-         ++ sweep sixth seventh
-         ++ sweep tonic dominant
-
-#: A bass octave, struck once and held.  `n` is in bars, so the tie
-#: across the first two bars is `octave 37 2` and not a second stroke —
-#: which is what is written, and audibly different from restriking it.
-octave : Int -> Int -> [: Hammer :]
-octave k n = (deep k || deep (k + 12)) |* (4 * n)
-
-#: The left hand: C# held across two bars, then B, then G#, and the
-#: same again.  Four notes to describe eight bars, which is the whole
-#: reason a ground under an arpeggio works.
-bass : [: Hammer :]
-bass = octave 37 2 ++ octave 35 1 ++ octave 32 1
-    ++ octave 37 2 ++ octave 35 1 ++ octave 32 1
-
-#: **The tune's rhythm**: long, short, long — a dotted note, the short
-#: one that answers it, and a held one, filling the bar exactly
-#: (3/2 + 1/2 + 2).  Beethoven's dot is `|* 3 |/ 2` and nothing else.
-motif : Int -> Int -> Int -> [: Hammer :]
-motif a b c = (sing a |* 3 |/ 2) ++ (sing b |/ 2) ++ (sing c |* 2)
-
-#: The entry: the same G# over and over, the one note the movement is
-#: famous for refusing to leave, until it steps up to A in the seventh
-#: bar and comes back.
-tune : [: Hammer :]
-tune = motif 68 68 68
-    ++ motif 68 68 68
-    ++ motif 68 68 69
-    ++ motif 68 68 68
-
-#: `at` places the tune four bars in and leaves its duration alone, so
-#: nothing above has to be padded with rests to make room for it — the
-#: two hands start at the origin and the tune starts where it starts.
-#:
-#: `voices.piano` names the bank lexically, so the checker can say that
-#: these notes fit this instrument; `[: Void :]` says none are left
-#: unassigned.
-score : [: Void :]
-score = (bass || arpeggios || at (4 * bar) tune) >>= voices.piano
-
-# ── The mix ─────────────────────────────────────────────────────────────
-
-#: Judged on bar five, where the tune arrives on top of everything the
-#: first four bars already had ringing.  The lowpass is the room and the
-#: felt: three partials on a dozen live voices is more top than a
-#: pianissimo Adagio should have.
-sound : Sig Float
-sound = gain 0.85 (lowpassOnePole 2600.0 piano)
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># After Beethoven — the opening of Op. 27 No. 2, Adagio sostenuto.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.workbench examples/audio/moon_sonata.ges</div>
+<div class="ln" data-line="4">#   python -m gestate.audioperform examples/audio/moon_sonata.ges -o moon.wav --seconds 40</div>
+<div class="ln" data-line="5">#</div>
+<div class="ln" data-line="6"># Eight bars: four of arpeggios alone, then four with the tune over</div>
+<div class="ln" data-line="7"># them.  What makes it worth a file is that it is **three parts on</div>
+<div class="ln" data-line="8"># three different grids at once** — triplets in the right hand, whole</div>
+<div class="ln" data-line="9"># bars in the left, and a dotted figure in the tune that lines up with</div>
+<div class="ln" data-line="10"># neither — and none of the three knows the others exist.  `||` starts</div>
+<div class="ln" data-line="11"># them together and each one is simply as long as it is.</div>
+<div class="ln" data-line="12">#</div>
+<div class="ln" data-line="13">#     (bass || arpeggios || tune) >>= voices.piano</div>
+<div class="ln" data-line="14">#</div>
+<div class="ln" data-line="15"># `pachelbel.ges` makes the polyphony argument note against note, one</div>
+<div class="ln" data-line="16"># for one; this is the same argument when the parts *disagree* about</div>
+<div class="ln" data-line="17"># the beat.  The whole apparatus for that is two operators:</div>
+<div class="ln" data-line="18">#</div>
+<div class="ln" data-line="19">#     (soft a ++ soft b ++ soft c) |/ 3      -- three inside one beat</div>
+<div class="ln" data-line="20">#     (sing k |* 3 |/ 2)                     -- a dotted note</div>
+<div class="ln" data-line="21">#</div>
+<div class="ln" data-line="22"># A triplet is not a feature here and neither is a dot.  A note is one</div>
+<div class="ln" data-line="23"># beat by construction (`spec/music.md`), `|/ 3` is what makes three of</div>
+<div class="ln" data-line="24"># them fit where one stood, and a dot is three halves — so the notation</div>
+<div class="ln" data-line="25"># a musician would write comes out of arithmetic on durations rather</div>
+<div class="ln" data-line="26"># than out of a rhythm vocabulary somebody had to think of first.</div>
+<div class="ln" data-line="27">#</div>
+<div class="ln" data-line="28"># ── What is Beethoven's and what is not ─────────────────────────────────</div>
+<div class="ln" data-line="29">#</div>
+<div class="ln" data-line="30"># The notes are his: the arpeggio figure, the bass octaves under it, the</div>
+<div class="ln" data-line="31"># harmony (i, i, then the turn through the seventh over B and the</div>
+<div class="ln" data-line="32"># dominant, twice), and the tune's entry on the repeated G#.  The</div>
+<div class="ln" data-line="33"># reduction is that the tune here keeps its opening motif for all four</div>
+<div class="ln" data-line="34"># of its bars where Beethoven's line has already begun to climb, and</div>
+<div class="ln" data-line="35"># that the piece is played on three sine partials rather than on a</div>
+<div class="ln" data-line="36"># piano.  It is the opening period as a *sketch* — enough to read the</div>
+<div class="ln" data-line="37"># score against, not an edition.</div>
+<div class="ln" data-line="38">#</div>
+<div class="ln" data-line="39"># **There is no sustain pedal and nothing implements one.**  Beethoven</div>
+<div class="ln" data-line="40"># writes *senza sordino* — dampers up, the whole movement.  Here that is</div>
+<div class="ln" data-line="41"># the release stage of the envelope: every note is let go at the end of</div>
+<div class="ln" data-line="42"># its written duration and goes on sounding for another second and a</div>
+<div class="ln" data-line="43"># half, so four or five triplet notes are alive at any instant and the</div>
+<div class="ln" data-line="44"># bass octave is still ringing under the bar after it.  The pedal is a</div>
+<div class="ln" data-line="45"># number in `env` and a bank deep enough to hold the tails.</div>
+<div class="ln" data-line="46"> </div>
+<div class="ln" data-line="47"># ── What a note carries ─────────────────────────────────────────────────</div>
+<div class="ln" data-line="48">#</div>
+<div class="ln" data-line="49"># Key number and how hard.  Not `Note`: `music.ges` already owns that</div>
+<div class="ln" data-line="50"># constructor and `'x` desugars to it.</div>
+<div class="ln" data-line="51"> </div>
+<div class="ln" data-line="52">Hammer := Hammer Int Int</div>
+<div class="ln" data-line="53"> </div>
+<div class="ln" data-line="54">#: Fourteen, and the number is the *pedal*.  A triplet note lasts a</div>
+<div class="ln" data-line="55">#: third of a beat and rings for the better part of two seconds after</div>
+<div class="ln" data-line="56">#: it, so five of them overlap; the bass octave's two notes are alive</div>
+<div class="ln" data-line="57">#: across a whole bar and their tails reach into the next; the tune</div>
+<div class="ln" data-line="58">#: holds one or two.  A smaller bank steals a voice from a tail to give</div>
+<div class="ln" data-line="59">#: it to a new note, and a truncated release is a click — which in a</div>
+<div class="ln" data-line="60">#: piece this quiet is the only thing anyone would hear.</div>
+<div class="ln" data-line="61">voices piano 14 hammerVoice : Sig Float</div>
+<div class="ln" data-line="62"> </div>
+<div class="ln" data-line="63">instance FromMIDI Hammer where</div>
+<div class="ln" data-line="64">    noteOn ch p v = Just (Hammer p v)</div>
+<div class="ln" data-line="65"> </div>
+<div class="ln" data-line="66">#: The way back out, so the score box can draw the roll</div>
+<div class="ln" data-line="67">#: (`spec/scorebox.md`) — `notes score` shows all three parts at once.</div>
+<div class="ln" data-line="68">instance Notable Hammer where</div>
+<div class="ln" data-line="69">    noteKey h = case h of</div>
+<div class="ln" data-line="70">        Hammer k v -> k</div>
+<div class="ln" data-line="71">    noteVel h = case h of</div>
+<div class="ln" data-line="72">        Hammer k v -> v</div>
+<div class="ln" data-line="73"> </div>
+<div class="ln" data-line="74"># ── The instrument ──────────────────────────────────────────────────────</div>
+<div class="ln" data-line="75"> </div>
+<div class="ln" data-line="76">#: Struck and left alone: the attack is immediate, the body is a long</div>
+<div class="ln" data-line="77">#: decay to almost nothing, and the release is longer than most notes</div>
+<div class="ln" data-line="78">#: are — that release *is* the raised damper, and it is why the</div>
+<div class="ln" data-line="79">#: arpeggio comes out as a chord rather than as three separate notes.</div>
+<div class="ln" data-line="80">env : Adsr</div>
+<div class="ln" data-line="81">env = Adsr 0.006 2.2 0.12 1.4</div>
+<div class="ln" data-line="82"> </div>
+<div class="ln" data-line="83">hzOf : Hammer -> Float</div>
+<div class="ln" data-line="84">hzOf h = case h of</div>
+<div class="ln" data-line="85">    Hammer k v -> keyHz k</div>
+<div class="ln" data-line="86"> </div>
+<div class="ln" data-line="87">levelOf : Hammer -> Float</div>
+<div class="ln" data-line="88">levelOf h = case h of</div>
+<div class="ln" data-line="89">    Hammer k v -> toFloat v / 127.0</div>
+<div class="ln" data-line="90"> </div>
+<div class="ln" data-line="91">#: A fundamental and two overtones, each quieter — felt on string as</div>
+<div class="ln" data-line="92">#: far as three sines can say it.  `pachelbel.ges` is the long argument</div>
+<div class="ln" data-line="93">#: for why additive synthesis is the honest demonstration that</div>
+<div class="ln" data-line="94">#: `Num (Sig Float)` means what it looks like.</div>
+<div class="ln" data-line="95">timbre : Sig Float -> Sig Float</div>
+<div class="ln" data-line="96">timbre hz = sine hz + 0.4 * sine (hz * 2.0) + 0.15 * sine (hz * 3.0)</div>
+<div class="ln" data-line="97"> </div>
+<div class="ln" data-line="98">#: Scaled here rather than in the mix: a bank is a sum, and fourteen</div>
+<div class="ln" data-line="99">#: voices of something that peaks at one peaks at fourteen.</div>
+<div class="ln" data-line="100">hammerVoice : Sig Gate -> Sig Hammer -> Sig Float</div>
+<div class="ln" data-line="101">hammerVoice g s = 0.25 * timbre (!hzOf s) * adsr env g * !levelOf s</div>
+<div class="ln" data-line="102"> </div>
+<div class="ln" data-line="103"># ── The piece ───────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="104">#</div>
+<div class="ln" data-line="105"># Beethoven writes alla breve with triplet quavers; the bar below is</div>
+<div class="ln" data-line="106"># four beats with four triplets in it, which is the same music counted</div>
+<div class="ln" data-line="107"># the way the durations here are spelled.  A bar takes about four and a</div>
+<div class="ln" data-line="108"># quarter seconds, which is what the Adagio asks for.</div>
+<div class="ln" data-line="109"> </div>
+<div class="ln" data-line="110">bpm : Int</div>
+<div class="ln" data-line="111">bpm = 56</div>
+<div class="ln" data-line="112"> </div>
+<div class="ln" data-line="113">bar : Int</div>
+<div class="ln" data-line="114">bar = 4 * ticksPerBeat</div>
+<div class="ln" data-line="115"> </div>
+<div class="ln" data-line="116">#: *Sempre pianissimo*: the figure is the floor everything stands on</div>
+<div class="ln" data-line="117">#: and it never gets to be the subject.</div>
+<div class="ln" data-line="118">soft : Int -> [: Hammer :]</div>
+<div class="ln" data-line="119">soft k = '(Hammer k 42)</div>
+<div class="ln" data-line="120"> </div>
+<div class="ln" data-line="121">#: The bass, louder than the figure because it is two octaves lower and</div>
+<div class="ln" data-line="122">#: has to carry four seconds on its own.</div>
+<div class="ln" data-line="123">deep : Int -> [: Hammer :]</div>
+<div class="ln" data-line="124">deep k = '(Hammer k 62)</div>
+<div class="ln" data-line="125"> </div>
+<div class="ln" data-line="126">#: The tune, clear of both.</div>
+<div class="ln" data-line="127">sing : Int -> [: Hammer :]</div>
+<div class="ln" data-line="128">sing k = '(Hammer k 82)</div>
+<div class="ln" data-line="129"> </div>
+<div class="ln" data-line="130">#: **The triplet.**  Three notes where one beat was: `|/ 3` divides the</div>
+<div class="ln" data-line="131">#: whole group's duration, so nothing here has to know that a third of</div>
+<div class="ln" data-line="132">#: 96 ticks is 32.</div>
+<div class="ln" data-line="133">triplet : Int -> Int -> Int -> [: Hammer :]</div>
+<div class="ln" data-line="134">triplet a b c = (soft a ++ soft b ++ soft c) |/ 3</div>
+<div class="ln" data-line="135"> </div>
+<div class="ln" data-line="136">#: One bar of the right hand: a figure twice, then a figure twice.</div>
+<div class="ln" data-line="137">#: Every bar of this movement's opening is that shape, and the harmony</div>
+<div class="ln" data-line="138">#: is whichever two figures are named.</div>
+<div class="ln" data-line="139">sweep : [: Hammer :] -> [: Hammer :] -> [: Hammer :]</div>
+<div class="ln" data-line="140">sweep a b = a ++ a ++ b ++ b</div>
+<div class="ln" data-line="141"> </div>
+<div class="ln" data-line="142">#: The four figures the first eight bars are built from, bottom note</div>
+<div class="ln" data-line="143">#: first — the low one is what the right thumb is holding down.</div>
+<div class="ln" data-line="144">tonic : [: Hammer :]</div>
+<div class="ln" data-line="145">tonic = triplet 56 61 64                    # g# c# e   — C# minor</div>
+<div class="ln" data-line="146"> </div>
+<div class="ln" data-line="147">sixth : [: Hammer :]</div>
+<div class="ln" data-line="148">sixth = triplet 57 61 64                    # a  c# e   — A major over B</div>
+<div class="ln" data-line="149"> </div>
+<div class="ln" data-line="150">seventh : [: Hammer :]</div>
+<div class="ln" data-line="151">seventh = triplet 57 62 66                  # a  d  f#  — B minor 7th</div>
+<div class="ln" data-line="152"> </div>
+<div class="ln" data-line="153">dominant : [: Hammer :]</div>
+<div class="ln" data-line="154">dominant = triplet 56 60 66                 # g# b# f# — G#7</div>
+<div class="ln" data-line="155"> </div>
+<div class="ln" data-line="156">#: The right hand, all eight bars.  The four-bar unit is stated twice:</div>
+<div class="ln" data-line="157">#: two bars of the tonic, a bar that leans away from it, and a bar that</div>
+<div class="ln" data-line="158">#: hangs on the dominant — the second time with the tune over it.</div>
+<div class="ln" data-line="159">arpeggios : [: Hammer :]</div>
+<div class="ln" data-line="160">arpeggios = sweep tonic tonic</div>
+<div class="ln" data-line="161">         ++ sweep tonic tonic</div>
+<div class="ln" data-line="162">         ++ sweep sixth seventh</div>
+<div class="ln" data-line="163">         ++ sweep tonic dominant</div>
+<div class="ln" data-line="164">         ++ sweep tonic tonic</div>
+<div class="ln" data-line="165">         ++ sweep tonic tonic</div>
+<div class="ln" data-line="166">         ++ sweep sixth seventh</div>
+<div class="ln" data-line="167">         ++ sweep tonic dominant</div>
+<div class="ln" data-line="168"> </div>
+<div class="ln" data-line="169">#: A bass octave, struck once and held.  `n` is in bars, so the tie</div>
+<div class="ln" data-line="170">#: across the first two bars is `octave 37 2` and not a second stroke —</div>
+<div class="ln" data-line="171">#: which is what is written, and audibly different from restriking it.</div>
+<div class="ln" data-line="172">octave : Int -> Int -> [: Hammer :]</div>
+<div class="ln" data-line="173">octave k n = (deep k || deep (k + 12)) |* (4 * n)</div>
+<div class="ln" data-line="174"> </div>
+<div class="ln" data-line="175">#: The left hand: C# held across two bars, then B, then G#, and the</div>
+<div class="ln" data-line="176">#: same again.  Four notes to describe eight bars, which is the whole</div>
+<div class="ln" data-line="177">#: reason a ground under an arpeggio works.</div>
+<div class="ln" data-line="178">bass : [: Hammer :]</div>
+<div class="ln" data-line="179">bass = octave 37 2 ++ octave 35 1 ++ octave 32 1</div>
+<div class="ln" data-line="180">    ++ octave 37 2 ++ octave 35 1 ++ octave 32 1</div>
+<div class="ln" data-line="181"> </div>
+<div class="ln" data-line="182">#: **The tune's rhythm**: long, short, long — a dotted note, the short</div>
+<div class="ln" data-line="183">#: one that answers it, and a held one, filling the bar exactly</div>
+<div class="ln" data-line="184">#: (3/2 + 1/2 + 2).  Beethoven's dot is `|* 3 |/ 2` and nothing else.</div>
+<div class="ln" data-line="185">motif : Int -> Int -> Int -> [: Hammer :]</div>
+<div class="ln" data-line="186">motif a b c = (sing a |* 3 |/ 2) ++ (sing b |/ 2) ++ (sing c |* 2)</div>
+<div class="ln" data-line="187"> </div>
+<div class="ln" data-line="188">#: The entry: the same G# over and over, the one note the movement is</div>
+<div class="ln" data-line="189">#: famous for refusing to leave, until it steps up to A in the seventh</div>
+<div class="ln" data-line="190">#: bar and comes back.</div>
+<div class="ln" data-line="191">tune : [: Hammer :]</div>
+<div class="ln" data-line="192">tune = motif 68 68 68</div>
+<div class="ln" data-line="193">    ++ motif 68 68 68</div>
+<div class="ln" data-line="194">    ++ motif 68 68 69</div>
+<div class="ln" data-line="195">    ++ motif 68 68 68</div>
+<div class="ln" data-line="196"> </div>
+<div class="ln" data-line="197">#: `at` places the tune four bars in and leaves its duration alone, so</div>
+<div class="ln" data-line="198">#: nothing above has to be padded with rests to make room for it — the</div>
+<div class="ln" data-line="199">#: two hands start at the origin and the tune starts where it starts.</div>
+<div class="ln" data-line="200">#:</div>
+<div class="ln" data-line="201">#: `voices.piano` names the bank lexically, so the checker can say that</div>
+<div class="ln" data-line="202">#: these notes fit this instrument; `[: Void :]` says none are left</div>
+<div class="ln" data-line="203">#: unassigned.</div>
+<div class="ln" data-line="204">score : [: Void :]</div>
+<div class="ln" data-line="205">score = (bass || arpeggios || at (4 * bar) tune) >>= voices.piano</div>
+<div class="ln" data-line="206"> </div>
+<div class="ln" data-line="207"># ── The mix ─────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="208"> </div>
+<div class="ln" data-line="209">#: Judged on bar five, where the tune arrives on top of everything the</div>
+<div class="ln" data-line="210">#: first four bars already had ringing.  The lowpass is the room and the</div>
+<div class="ln" data-line="211">#: felt: three partials on a dozen live voices is more top than a</div>
+<div class="ln" data-line="212">#: pianissimo Adagio should have.</div>
+<div class="ln" data-line="213">sound : Sig Float</div>
+<div class="ln" data-line="214">sound = gain 0.85 (lowpassOnePole 2600.0 piano)</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

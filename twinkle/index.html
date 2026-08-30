@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,68 +32,67 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># Twinkle Twinkle Little Star — a first song, written in the room on
-# 2026-08-28 for Michael, who had just heard the beginner piece and asked
-# how he would write his own.
-#
-#   python -m gestate.audioperform examples/audio/twinkle.ges -o twinkle.wav
-#   python -m gestate.workbench    examples/audio/twinkle.ges
-#
-# The instrument (top) is lesson 1 of doc/intermediate.md unchanged.
-# The song (bottom) is the part to play with: `n 60` is one beat of
-# middle C, `++` is "then", `|* 2` holds a note for two beats, and the
-# tune is the three lines in the order the song goes.
-Key := Key Int Int                        # key number, velocity
-
-voices lead 4 leadVoice : Sig Float
-
-instance FromMIDI Key where
-    noteOn ch p v = Just (Key p v)
-
-env : Adsr
-env = Adsr 0.01 0.2 0.6 0.35
-
-hzOf : Key -> Float
-hzOf q = case q of
-    Key k v -> keyHz k
-
-velOf : Key -> Float
-velOf q = case q of
-    Key k v -> toFloat v / 127.0
-
-leadVoice : Sig Gate -> Sig Key -> Sig Float
-leadVoice g s = triangle (!hzOf s) * adsr env g * !velOf s
-
-# ── The song ─────────────────────────────────────────────────────────────
-
-bpm : Int
-bpm = 100
-
-#: one note, one beat.  60 is middle C; each step of 1 is a semitone.
-n : Int -> [: Key :]
-n k = '(Key k 90)
-
-#: "twinkle twinkle little star"   C C G G A A G—
-line1 : [: Key :]
-line1 = n 60 ++ n 60 ++ n 67 ++ n 67 ++ n 69 ++ n 69 ++ n 67 |* 2
-
-#: "how I wonder what you are"     F F E E D D C—
-line2 : [: Key :]
-line2 = n 65 ++ n 65 ++ n 64 ++ n 64 ++ n 62 ++ n 62 ++ n 60 |* 2
-
-#: "up above the world so high"    G G F F E E D—   (twice)
-line3 : [: Key :]
-line3 = n 67 ++ n 67 ++ n 65 ++ n 65 ++ n 64 ++ n 64 ++ n 62 |* 2
-
-tune : [: Key :]
-tune = line1 ++ line2 ++ line3 ++ line3 ++ line1 ++ line2
-
-score : [: Void :]
-score = tune >>= voices.lead
-
-sound : Sig Float
-sound = gain 0.3 lead
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># Twinkle Twinkle Little Star — a first song, written in the room on</div>
+<div class="ln" data-line="2"># 2026-08-28 for Michael, who had just heard the beginner piece and asked</div>
+<div class="ln" data-line="3"># how he would write his own.</div>
+<div class="ln" data-line="4">#</div>
+<div class="ln" data-line="5">#   python -m gestate.audioperform examples/audio/twinkle.ges -o twinkle.wav</div>
+<div class="ln" data-line="6">#   python -m gestate.workbench    examples/audio/twinkle.ges</div>
+<div class="ln" data-line="7">#</div>
+<div class="ln" data-line="8"># The instrument (top) is lesson 1 of doc/intermediate.md unchanged.</div>
+<div class="ln" data-line="9"># The song (bottom) is the part to play with: `n 60` is one beat of</div>
+<div class="ln" data-line="10"># middle C, `++` is "then", `|* 2` holds a note for two beats, and the</div>
+<div class="ln" data-line="11"># tune is the three lines in the order the song goes.</div>
+<div class="ln" data-line="12">Key := Key Int Int                        # key number, velocity</div>
+<div class="ln" data-line="13"> </div>
+<div class="ln" data-line="14">voices lead 4 leadVoice : Sig Float</div>
+<div class="ln" data-line="15"> </div>
+<div class="ln" data-line="16">instance FromMIDI Key where</div>
+<div class="ln" data-line="17">    noteOn ch p v = Just (Key p v)</div>
+<div class="ln" data-line="18"> </div>
+<div class="ln" data-line="19">env : Adsr</div>
+<div class="ln" data-line="20">env = Adsr 0.01 0.2 0.6 0.35</div>
+<div class="ln" data-line="21"> </div>
+<div class="ln" data-line="22">hzOf : Key -> Float</div>
+<div class="ln" data-line="23">hzOf q = case q of</div>
+<div class="ln" data-line="24">    Key k v -> keyHz k</div>
+<div class="ln" data-line="25"> </div>
+<div class="ln" data-line="26">velOf : Key -> Float</div>
+<div class="ln" data-line="27">velOf q = case q of</div>
+<div class="ln" data-line="28">    Key k v -> toFloat v / 127.0</div>
+<div class="ln" data-line="29"> </div>
+<div class="ln" data-line="30">leadVoice : Sig Gate -> Sig Key -> Sig Float</div>
+<div class="ln" data-line="31">leadVoice g s = triangle (!hzOf s) * adsr env g * !velOf s</div>
+<div class="ln" data-line="32"> </div>
+<div class="ln" data-line="33"># ── The song ─────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="34"> </div>
+<div class="ln" data-line="35">bpm : Int</div>
+<div class="ln" data-line="36">bpm = 100</div>
+<div class="ln" data-line="37"> </div>
+<div class="ln" data-line="38">#: one note, one beat.  60 is middle C; each step of 1 is a semitone.</div>
+<div class="ln" data-line="39">n : Int -> [: Key :]</div>
+<div class="ln" data-line="40">n k = '(Key k 90)</div>
+<div class="ln" data-line="41"> </div>
+<div class="ln" data-line="42">#: "twinkle twinkle little star"   C C G G A A G—</div>
+<div class="ln" data-line="43">line1 : [: Key :]</div>
+<div class="ln" data-line="44">line1 = n 60 ++ n 60 ++ n 67 ++ n 67 ++ n 69 ++ n 69 ++ n 67 |* 2</div>
+<div class="ln" data-line="45"> </div>
+<div class="ln" data-line="46">#: "how I wonder what you are"     F F E E D D C—</div>
+<div class="ln" data-line="47">line2 : [: Key :]</div>
+<div class="ln" data-line="48">line2 = n 65 ++ n 65 ++ n 64 ++ n 64 ++ n 62 ++ n 62 ++ n 60 |* 2</div>
+<div class="ln" data-line="49"> </div>
+<div class="ln" data-line="50">#: "up above the world so high"    G G F F E E D—   (twice)</div>
+<div class="ln" data-line="51">line3 : [: Key :]</div>
+<div class="ln" data-line="52">line3 = n 67 ++ n 67 ++ n 65 ++ n 65 ++ n 64 ++ n 64 ++ n 62 |* 2</div>
+<div class="ln" data-line="53"> </div>
+<div class="ln" data-line="54">tune : [: Key :]</div>
+<div class="ln" data-line="55">tune = line1 ++ line2 ++ line3 ++ line3 ++ line1 ++ line2</div>
+<div class="ln" data-line="56"> </div>
+<div class="ln" data-line="57">score : [: Void :]</div>
+<div class="ln" data-line="58">score = tune >>= voices.lead</div>
+<div class="ln" data-line="59"> </div>
+<div class="ln" data-line="60">sound : Sig Float</div>
+<div class="ln" data-line="61">sound = gain 0.3 lead</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

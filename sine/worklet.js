@@ -7,6 +7,18 @@
 // because an OfflineAudioContext renders to its end before an async
 // instantiate resolves, and a page whose check renders silence has
 // checked nothing.
+//
+// A knob the person turned is an *override*: written into its slot
+// after the score's changes every block, so it wins over the baked
+// value at t=0 and stays won.  It arrives with the options (turned
+// before play) or on the port (turned while playing), and a slot no
+// hand touched is the score's alone.  `{set: [[slot, value], …]}` is
+// several at once, for the page's check: of two turns posted together
+// to a *suspended* offline render, the first was applied at the next
+// quantum and the second not within the second that followed
+// (2026-08-30) — so the check turns every knob in one message and
+// resumes.  A playing context idles between quanta, and a slider's
+// own `{slot, value}` reaches it at once.
 class GestateProcessor extends AudioWorkletProcessor {
   constructor(options) {
     super();
@@ -18,6 +30,12 @@ class GestateProcessor extends AudioWorkletProcessor {
     this.types = o.types;
     this.changes = o.changes;
     this.duration = o.duration;
+    this.overrides = new Map();
+    for (const [slot, value] of Object.entries(o.overrides || {})) this.overrides.set(+slot, value);
+    this.port.onmessage = (e) => {
+      if ("slot" in e.data) this.overrides.set(e.data.slot, e.data.value);
+      for (const [slot, value] of e.data.set || []) this.overrides.set(slot, value);
+    };
     this.next = 0;
     this.t = 0;
     const heap = this.ex.__heap_base.value;
@@ -29,6 +47,11 @@ class GestateProcessor extends AudioWorkletProcessor {
     new Uint8Array(this.ex.memory.buffer, this.state, o.stateBytes).fill(0);
   }
 
+  write(f64, i64, base, slot, value) {
+    if (this.types[slot] === "Float") f64[base + slot] = value;
+    else i64[base + slot] = BigInt(Math.round(value));
+  }
+
   process(inputs, outputs) {
     const out = outputs[0];
     const n = out[0].length;
@@ -38,9 +61,9 @@ class GestateProcessor extends AudioWorkletProcessor {
     const base = this.slotsAt >> 3;
     while (this.next < this.changes.length && this.changes[this.next][0] <= this.t) {
       const [, slot, value] = this.changes[this.next++];
-      if (this.types[slot] === "Float") f64[base + slot] = value;
-      else i64[base + slot] = BigInt(value);
+      this.write(f64, i64, base, slot, value);
     }
+    for (const [slot, value] of this.overrides) this.write(f64, i64, base, slot, value);
     this.ex.render_block(this.state, this.buf, BigInt(n), this.slotsAt);
     const got = new Float64Array(this.ex.memory.buffer, this.buf, n * this.channels);
     for (let c = 0; c < out.length; c++) {

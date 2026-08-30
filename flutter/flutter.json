@@ -1,1 +1,1 @@
-{"rate":44100,"quantum":128,"channels":1,"stateBytes":431584,"slots":1,"types":[],"duration":1323000,"changes":[],"imports":["exp","sin","fmax"]}
+{"rate":44100,"quantum":128,"channels":1,"stateBytes":431584,"slots":1,"types":[],"duration":1323000,"changes":[],"imports":["exp","sin","fmax"],"knobs":[]}

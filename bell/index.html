@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,77 +32,76 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># A tubular bell, by modal synthesis — struck by chance.
-#
-#   python -m gestate.audioperform examples/audio/bell.ges -o bell.wav
-#   python -m gestate.audioperform examples/audio/bell.ges --seconds 6
-#
-# **This is physical modelling, and it needs nothing the library did not
-# already have.**  A struck bar or bell does not have a waveform; it has
-# *modes* — frequencies at which the metal likes to vibrate — and each one
-# is excited by the strike and then decays at its own rate.  A resonant
-# bandpass filter rung by an impulse is exactly one such mode, so a bell is
-# a handful of them summed.
-#
-# `spec/delaylines.md` sorts the three families of physical modelling:
-# the *modal* one is this file, the *mass-spring* one is an ordinary
-# `scan`, and the *waveguide* family — strings, tubes, brass — needed a
-# delay line with a filter in its loop, which `loop` now is:
-# `examples/audio/strings.ges` is Karplus-Strong on eight of them.
-
-# ── The strike ───────────────────────────────────────────────────────────
-#
-# `dust` is random impulses at an average rate, and the rate is a *signal*
-# — so a bell can be struck more often as the piece goes on.  Here it
-# drifts between about one and three strikes a second over eight seconds,
-# which is enough to stop the pattern being heard as a pattern.
-#
-# It is the whole excitation: a bell does not care how it was hit, only
-# that it was.
-
-strike : Sig Float
-strike = dust 23 (2.0 + 1.0 * sine 0.125)
-
-# ── The modes ────────────────────────────────────────────────────────────
-#
-# A tubular bell's partials are **inharmonic**, and that is what makes it a
-# bell rather than a note: 1 : 2.76 : 5.40 : 8.93 are the classic ratios
-# for a free bar, and no two of them are a whole number apart, so the ear
-# hears metal instead of pitch.
-#
-# `resonate` is the filter this needs, and it exists because this example
-# did not work without it.  Written first with `bandpassSvf` at maximum
-# resonance, the bell **sounded like a woodblock** — measured afterwards,
-# that filter's damping floor caps its ring at 0.503 s at 220 Hz however
-# hard it is pushed, which is a marimba bar and not a bell.  `resonate`
-# takes a decay time in seconds instead and will ring for as long as it is
-# asked to.
-
-#: One mode: a frequency, how long it rings, how loud it is in the sum.
-mode : Float -> Float -> Float -> Sig Float -> Sig Float
-mode hz seconds level s = !level * resonate (!hz) (!seconds) s
-
-#: Four modes, at the ratios a real bar has, and **the decays are in
-#: seconds** — which is how a bell is actually described.  The higher ones
-#: die away first, which is what makes the attack bright and the tail pure:
-#: the same idea `fmpoly.ges` gets from four envelopes on four operators.
-bell : Float -> Sig Float -> Sig Float
-bell f s = mode f              6.0 1.00 s
-         + mode (f * 2.76)     4.5 0.70 s
-         + mode (f * 5.40)     2.5 0.50 s
-         + mode (f * 8.93)     1.2 0.30 s
-
-# ── The output ───────────────────────────────────────────────────────────
-#
-# The bell alone peaks hard on a strike and is silent between, which is
-# exactly what a compressor is for: `Comp 0.25 4.0` leaves the tail alone
-# and takes 6 dB off the strike, so the ring is audible without the attack
-# being painful.  `limit` after it holds the ceiling — approximately, and
-# its own prose says by how much.
-
-sound : Sig Float
-sound = limit 0.9 (compress (Comp 0.25 4.0 0.003 0.25) (0.5 * bell 220.0 strike))
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># A tubular bell, by modal synthesis — struck by chance.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.audioperform examples/audio/bell.ges -o bell.wav</div>
+<div class="ln" data-line="4">#   python -m gestate.audioperform examples/audio/bell.ges --seconds 6</div>
+<div class="ln" data-line="5">#</div>
+<div class="ln" data-line="6"># **This is physical modelling, and it needs nothing the library did not</div>
+<div class="ln" data-line="7"># already have.**  A struck bar or bell does not have a waveform; it has</div>
+<div class="ln" data-line="8"># *modes* — frequencies at which the metal likes to vibrate — and each one</div>
+<div class="ln" data-line="9"># is excited by the strike and then decays at its own rate.  A resonant</div>
+<div class="ln" data-line="10"># bandpass filter rung by an impulse is exactly one such mode, so a bell is</div>
+<div class="ln" data-line="11"># a handful of them summed.</div>
+<div class="ln" data-line="12">#</div>
+<div class="ln" data-line="13"># `spec/delaylines.md` sorts the three families of physical modelling:</div>
+<div class="ln" data-line="14"># the *modal* one is this file, the *mass-spring* one is an ordinary</div>
+<div class="ln" data-line="15"># `scan`, and the *waveguide* family — strings, tubes, brass — needed a</div>
+<div class="ln" data-line="16"># delay line with a filter in its loop, which `loop` now is:</div>
+<div class="ln" data-line="17"># `examples/audio/strings.ges` is Karplus-Strong on eight of them.</div>
+<div class="ln" data-line="18"> </div>
+<div class="ln" data-line="19"># ── The strike ───────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="20">#</div>
+<div class="ln" data-line="21"># `dust` is random impulses at an average rate, and the rate is a *signal*</div>
+<div class="ln" data-line="22"># — so a bell can be struck more often as the piece goes on.  Here it</div>
+<div class="ln" data-line="23"># drifts between about one and three strikes a second over eight seconds,</div>
+<div class="ln" data-line="24"># which is enough to stop the pattern being heard as a pattern.</div>
+<div class="ln" data-line="25">#</div>
+<div class="ln" data-line="26"># It is the whole excitation: a bell does not care how it was hit, only</div>
+<div class="ln" data-line="27"># that it was.</div>
+<div class="ln" data-line="28"> </div>
+<div class="ln" data-line="29">strike : Sig Float</div>
+<div class="ln" data-line="30">strike = dust 23 (2.0 + 1.0 * sine 0.125)</div>
+<div class="ln" data-line="31"> </div>
+<div class="ln" data-line="32"># ── The modes ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="33">#</div>
+<div class="ln" data-line="34"># A tubular bell's partials are **inharmonic**, and that is what makes it a</div>
+<div class="ln" data-line="35"># bell rather than a note: 1 : 2.76 : 5.40 : 8.93 are the classic ratios</div>
+<div class="ln" data-line="36"># for a free bar, and no two of them are a whole number apart, so the ear</div>
+<div class="ln" data-line="37"># hears metal instead of pitch.</div>
+<div class="ln" data-line="38">#</div>
+<div class="ln" data-line="39"># `resonate` is the filter this needs, and it exists because this example</div>
+<div class="ln" data-line="40"># did not work without it.  Written first with `bandpassSvf` at maximum</div>
+<div class="ln" data-line="41"># resonance, the bell **sounded like a woodblock** — measured afterwards,</div>
+<div class="ln" data-line="42"># that filter's damping floor caps its ring at 0.503 s at 220 Hz however</div>
+<div class="ln" data-line="43"># hard it is pushed, which is a marimba bar and not a bell.  `resonate`</div>
+<div class="ln" data-line="44"># takes a decay time in seconds instead and will ring for as long as it is</div>
+<div class="ln" data-line="45"># asked to.</div>
+<div class="ln" data-line="46"> </div>
+<div class="ln" data-line="47">#: One mode: a frequency, how long it rings, how loud it is in the sum.</div>
+<div class="ln" data-line="48">mode : Float -> Float -> Float -> Sig Float -> Sig Float</div>
+<div class="ln" data-line="49">mode hz seconds level s = !level * resonate (!hz) (!seconds) s</div>
+<div class="ln" data-line="50"> </div>
+<div class="ln" data-line="51">#: Four modes, at the ratios a real bar has, and **the decays are in</div>
+<div class="ln" data-line="52">#: seconds** — which is how a bell is actually described.  The higher ones</div>
+<div class="ln" data-line="53">#: die away first, which is what makes the attack bright and the tail pure:</div>
+<div class="ln" data-line="54">#: the same idea `fmpoly.ges` gets from four envelopes on four operators.</div>
+<div class="ln" data-line="55">bell : Float -> Sig Float -> Sig Float</div>
+<div class="ln" data-line="56">bell f s = mode f              6.0 1.00 s</div>
+<div class="ln" data-line="57">         + mode (f * 2.76)     4.5 0.70 s</div>
+<div class="ln" data-line="58">         + mode (f * 5.40)     2.5 0.50 s</div>
+<div class="ln" data-line="59">         + mode (f * 8.93)     1.2 0.30 s</div>
+<div class="ln" data-line="60"> </div>
+<div class="ln" data-line="61"># ── The output ───────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="62">#</div>
+<div class="ln" data-line="63"># The bell alone peaks hard on a strike and is silent between, which is</div>
+<div class="ln" data-line="64"># exactly what a compressor is for: `Comp 0.25 4.0` leaves the tail alone</div>
+<div class="ln" data-line="65"># and takes 6 dB off the strike, so the ring is audible without the attack</div>
+<div class="ln" data-line="66"># being painful.  `limit` after it holds the ceiling — approximately, and</div>
+<div class="ln" data-line="67"># its own prose says by how much.</div>
+<div class="ln" data-line="68"> </div>
+<div class="ln" data-line="69">sound : Sig Float</div>
+<div class="ln" data-line="70">sound = limit 0.9 (compress (Comp 0.25 4.0 0.003 0.25) (0.5 * bell 220.0 strike))</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

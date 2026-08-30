@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,143 +32,142 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># Eight-voice subtractive: two detuned saws into a resonant ladder.
-#
-#   python -m gestate.audioperform examples/audio/polysaw.ges -o polysaw.wav
-#   python -m gestate.audioperform examples/audio/polysaw.ges --midi --seconds 20
-#   python -m gestate.audioeditor examples/audio/polysaw.ges
-#
-# The other half of `synth.ges`.  `fmpoly.ges` builds a sound by *adding*
-# sidebands; this one starts with a waveform that has too many harmonics
-# and takes them away, which is what every analogue polysynth ever made
-# does and what a resonant filter is for.
-#
-# Three things carry the sound, and each is one line you can move:
-#
-#   * **detune** — two sawtooths a few cents apart.  Identical oscillators
-#     would sum to one louder sawtooth; a few cents apart they drift in and
-#     out of phase, and that slow beating is the whole of what "fat" means.
-#   * **the filter envelope** — the cutoff starts high and falls.  A fixed
-#     cutoff makes an organ; a falling one makes a note that *happens*.
-#   * **resonance** — a peak at the cutoff, so the sweep is audible as a
-#     sweep rather than as a fade.  `synth.ges`'s ladder saturates its own
-#     feedback, so turning `filtQ` up thickens rather than buzzes.
-#
-# **Every one of those is per voice**, which is what makes this a polysynth
-# rather than a filter on a chord: eight notes are eight filters, each with
-# its own envelope, and a note struck late sweeps late.
-
-#: Called `Key` and not `Note` because `music.ges` already has a `Note` —
-#: see `fmpoly.ges`, which explains what shadowing it costs.
-Key := Key Int Int                        # key number, velocity
-
-voices poly 8 sawVoice : Sig Float
-
-instance FromMIDI Key where
-    noteOn ch p v = Just (Key p v)
-
-# ── The settings ─────────────────────────────────────────────────────────
-#
-# Constants rather than knobs, so the file reads as a patch.  `knob.ges`
-# shows how to make any of them a channel the editor draws a slider for.
-
-#: How far apart the two oscillators sit.  Seven cents is about as wide as
-#: it goes before it stops sounding like one note.
-detune : Float
-detune = 7.0
-
-#: Where the filter sits with the envelope closed, and how far the envelope
-#: opens it.  The sweep is the sound.
-filtBase : Float
-filtBase = 180.0
-
-filtSweep : Float
-filtSweep = 5200.0
-
-#: 0.0 is no peak, 1.0 stops just short of self-oscillating.
-filtQ : Float
-filtQ = 0.72
-
-ampEnv : Adsr
-ampEnv = Adsr 0.01 0.35 0.55 0.45
-
-#: Deliberately shorter than the amplitude envelope: the note goes dull
-#: while it is still loud, which is the shape of a plucked or bowed string
-#: and the reason two envelopes are worth having.
-filtEnv : Adsr
-filtEnv = Adsr 0.005 0.6 0.18 0.3
-
-# ── The voice ────────────────────────────────────────────────────────────
-#
-# **Four lines, and every one of them is a value.**  Two detuned saws, a
-# ladder whose cutoff is a signal, and an envelope multiplied in — written
-# as the arithmetic they are rather than folded by hand.
-#
-# It used to be a `Saw` record holding two phases, a `Ladder` and a sample
-# counter, with six functions to take it apart again: seventy lines that
-# said, slowly, what `lowpassLadder` and `adsr` say here.  `polysine.ges`
-# makes the argument on one sine; this is the same argument with a filter
-# and two oscillators in it.
-
-hzOf : Key -> Float
-hzOf q = case q of
-    Key k v -> keyHz k
-
-levelOf : Key -> Float
-levelOf q = case q of
-    Key k v -> toFloat v / 127.0 * 0.5
-
-#: A frequency signal moved by `cents`.  A detune is a *factor*, and this
-#: is `centsHz` lifted over a signal so that it can be one.
-detuned : Float -> Sig Float -> Sig Float
-detuned cents hz = map (h => centsHz cents h) hz
-
-#: The pair, summed.  Identical oscillators would sum to one louder
-#: sawtooth; a few cents apart they drift in and out of phase, and that
-#: slow beating is the whole of what "fat" means.
-oscillators : Sig Float -> Sig Float
-oscillators hz = 0.5 * saw (detuned (negate detune) hz)
-               + 0.5 * saw (detuned detune hz)
-
-#: The cutoff this instant, as a signal.
-#:
-#: Clamped at the top because `filtBase + filtSweep` can pass Nyquist at a
-#: low sample rate, and a filter asked for a cutoff it cannot have should
-#: sound like an open filter rather than like a divergence.
-cutoff : Sig Gate -> Sig Float
-cutoff g = map (x => clamp 20.0 nyquist (filtBase + filtSweep * x))
-               (adsr filtEnv g)
-
-sawVoice : Sig Gate -> Sig Key -> Sig Float
-sawVoice g s = lowpassLadder (cutoff g) (!filtQ) (oscillators (!hzOf s))
-             * adsr ampEnv g * !levelOf s
-
-# ── The piece ────────────────────────────────────────────────────────────
-
-bpm : Int
-bpm = 112
-
-chord : Int -> Int -> Int -> Int -> [: Key :]
-chord a b c d = '(Key a 100) || '(Key b 84) || '(Key c 84) || '(Key d 76)
-
-#: Four bars of A minor with the bass moving underneath — held chords, so
-#: the filter has time to sweep and eight voices are all sounding at once.
-part : [: Key :]
-part = chord 45 60 64 67 |* 2 ++ chord 41 60 65 69 |* 2
-    ++ chord 43 59 62 67 |* 2 ++ chord 40 59 64 67 |* 2
-
-score : [: Void :]
-score = (part ++ part) >>= voices.poly
-
-# ── The mix ──────────────────────────────────────────────────────────────
-#
-# Eight voices summed can pass 1.0 on a dense chord.  `drive` is a soft
-# clipper, so the peaks round off instead of tearing — an analogue mixer
-# does the same thing and nobody calls it distortion until it is.
-
-sound : Sig Float
-sound = drive 0.06 (dcBlock (gain 0.34 poly))
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># Eight-voice subtractive: two detuned saws into a resonant ladder.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.audioperform examples/audio/polysaw.ges -o polysaw.wav</div>
+<div class="ln" data-line="4">#   python -m gestate.audioperform examples/audio/polysaw.ges --midi --seconds 20</div>
+<div class="ln" data-line="5">#   python -m gestate.audioeditor examples/audio/polysaw.ges</div>
+<div class="ln" data-line="6">#</div>
+<div class="ln" data-line="7"># The other half of `synth.ges`.  `fmpoly.ges` builds a sound by *adding*</div>
+<div class="ln" data-line="8"># sidebands; this one starts with a waveform that has too many harmonics</div>
+<div class="ln" data-line="9"># and takes them away, which is what every analogue polysynth ever made</div>
+<div class="ln" data-line="10"># does and what a resonant filter is for.</div>
+<div class="ln" data-line="11">#</div>
+<div class="ln" data-line="12"># Three things carry the sound, and each is one line you can move:</div>
+<div class="ln" data-line="13">#</div>
+<div class="ln" data-line="14">#   * **detune** — two sawtooths a few cents apart.  Identical oscillators</div>
+<div class="ln" data-line="15">#     would sum to one louder sawtooth; a few cents apart they drift in and</div>
+<div class="ln" data-line="16">#     out of phase, and that slow beating is the whole of what "fat" means.</div>
+<div class="ln" data-line="17">#   * **the filter envelope** — the cutoff starts high and falls.  A fixed</div>
+<div class="ln" data-line="18">#     cutoff makes an organ; a falling one makes a note that *happens*.</div>
+<div class="ln" data-line="19">#   * **resonance** — a peak at the cutoff, so the sweep is audible as a</div>
+<div class="ln" data-line="20">#     sweep rather than as a fade.  `synth.ges`'s ladder saturates its own</div>
+<div class="ln" data-line="21">#     feedback, so turning `filtQ` up thickens rather than buzzes.</div>
+<div class="ln" data-line="22">#</div>
+<div class="ln" data-line="23"># **Every one of those is per voice**, which is what makes this a polysynth</div>
+<div class="ln" data-line="24"># rather than a filter on a chord: eight notes are eight filters, each with</div>
+<div class="ln" data-line="25"># its own envelope, and a note struck late sweeps late.</div>
+<div class="ln" data-line="26"> </div>
+<div class="ln" data-line="27">#: Called `Key` and not `Note` because `music.ges` already has a `Note` —</div>
+<div class="ln" data-line="28">#: see `fmpoly.ges`, which explains what shadowing it costs.</div>
+<div class="ln" data-line="29">Key := Key Int Int                        # key number, velocity</div>
+<div class="ln" data-line="30"> </div>
+<div class="ln" data-line="31">voices poly 8 sawVoice : Sig Float</div>
+<div class="ln" data-line="32"> </div>
+<div class="ln" data-line="33">instance FromMIDI Key where</div>
+<div class="ln" data-line="34">    noteOn ch p v = Just (Key p v)</div>
+<div class="ln" data-line="35"> </div>
+<div class="ln" data-line="36"># ── The settings ─────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="37">#</div>
+<div class="ln" data-line="38"># Constants rather than knobs, so the file reads as a patch.  `knob.ges`</div>
+<div class="ln" data-line="39"># shows how to make any of them a channel the editor draws a slider for.</div>
+<div class="ln" data-line="40"> </div>
+<div class="ln" data-line="41">#: How far apart the two oscillators sit.  Seven cents is about as wide as</div>
+<div class="ln" data-line="42">#: it goes before it stops sounding like one note.</div>
+<div class="ln" data-line="43">detune : Float</div>
+<div class="ln" data-line="44">detune = 7.0</div>
+<div class="ln" data-line="45"> </div>
+<div class="ln" data-line="46">#: Where the filter sits with the envelope closed, and how far the envelope</div>
+<div class="ln" data-line="47">#: opens it.  The sweep is the sound.</div>
+<div class="ln" data-line="48">filtBase : Float</div>
+<div class="ln" data-line="49">filtBase = 180.0</div>
+<div class="ln" data-line="50"> </div>
+<div class="ln" data-line="51">filtSweep : Float</div>
+<div class="ln" data-line="52">filtSweep = 5200.0</div>
+<div class="ln" data-line="53"> </div>
+<div class="ln" data-line="54">#: 0.0 is no peak, 1.0 stops just short of self-oscillating.</div>
+<div class="ln" data-line="55">filtQ : Float</div>
+<div class="ln" data-line="56">filtQ = 0.72</div>
+<div class="ln" data-line="57"> </div>
+<div class="ln" data-line="58">ampEnv : Adsr</div>
+<div class="ln" data-line="59">ampEnv = Adsr 0.01 0.35 0.55 0.45</div>
+<div class="ln" data-line="60"> </div>
+<div class="ln" data-line="61">#: Deliberately shorter than the amplitude envelope: the note goes dull</div>
+<div class="ln" data-line="62">#: while it is still loud, which is the shape of a plucked or bowed string</div>
+<div class="ln" data-line="63">#: and the reason two envelopes are worth having.</div>
+<div class="ln" data-line="64">filtEnv : Adsr</div>
+<div class="ln" data-line="65">filtEnv = Adsr 0.005 0.6 0.18 0.3</div>
+<div class="ln" data-line="66"> </div>
+<div class="ln" data-line="67"># ── The voice ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="68">#</div>
+<div class="ln" data-line="69"># **Four lines, and every one of them is a value.**  Two detuned saws, a</div>
+<div class="ln" data-line="70"># ladder whose cutoff is a signal, and an envelope multiplied in — written</div>
+<div class="ln" data-line="71"># as the arithmetic they are rather than folded by hand.</div>
+<div class="ln" data-line="72">#</div>
+<div class="ln" data-line="73"># It used to be a `Saw` record holding two phases, a `Ladder` and a sample</div>
+<div class="ln" data-line="74"># counter, with six functions to take it apart again: seventy lines that</div>
+<div class="ln" data-line="75"># said, slowly, what `lowpassLadder` and `adsr` say here.  `polysine.ges`</div>
+<div class="ln" data-line="76"># makes the argument on one sine; this is the same argument with a filter</div>
+<div class="ln" data-line="77"># and two oscillators in it.</div>
+<div class="ln" data-line="78"> </div>
+<div class="ln" data-line="79">hzOf : Key -> Float</div>
+<div class="ln" data-line="80">hzOf q = case q of</div>
+<div class="ln" data-line="81">    Key k v -> keyHz k</div>
+<div class="ln" data-line="82"> </div>
+<div class="ln" data-line="83">levelOf : Key -> Float</div>
+<div class="ln" data-line="84">levelOf q = case q of</div>
+<div class="ln" data-line="85">    Key k v -> toFloat v / 127.0 * 0.5</div>
+<div class="ln" data-line="86"> </div>
+<div class="ln" data-line="87">#: A frequency signal moved by `cents`.  A detune is a *factor*, and this</div>
+<div class="ln" data-line="88">#: is `centsHz` lifted over a signal so that it can be one.</div>
+<div class="ln" data-line="89">detuned : Float -> Sig Float -> Sig Float</div>
+<div class="ln" data-line="90">detuned cents hz = map (h => centsHz cents h) hz</div>
+<div class="ln" data-line="91"> </div>
+<div class="ln" data-line="92">#: The pair, summed.  Identical oscillators would sum to one louder</div>
+<div class="ln" data-line="93">#: sawtooth; a few cents apart they drift in and out of phase, and that</div>
+<div class="ln" data-line="94">#: slow beating is the whole of what "fat" means.</div>
+<div class="ln" data-line="95">oscillators : Sig Float -> Sig Float</div>
+<div class="ln" data-line="96">oscillators hz = 0.5 * saw (detuned (negate detune) hz)</div>
+<div class="ln" data-line="97">               + 0.5 * saw (detuned detune hz)</div>
+<div class="ln" data-line="98"> </div>
+<div class="ln" data-line="99">#: The cutoff this instant, as a signal.</div>
+<div class="ln" data-line="100">#:</div>
+<div class="ln" data-line="101">#: Clamped at the top because `filtBase + filtSweep` can pass Nyquist at a</div>
+<div class="ln" data-line="102">#: low sample rate, and a filter asked for a cutoff it cannot have should</div>
+<div class="ln" data-line="103">#: sound like an open filter rather than like a divergence.</div>
+<div class="ln" data-line="104">cutoff : Sig Gate -> Sig Float</div>
+<div class="ln" data-line="105">cutoff g = map (x => clamp 20.0 nyquist (filtBase + filtSweep * x))</div>
+<div class="ln" data-line="106">               (adsr filtEnv g)</div>
+<div class="ln" data-line="107"> </div>
+<div class="ln" data-line="108">sawVoice : Sig Gate -> Sig Key -> Sig Float</div>
+<div class="ln" data-line="109">sawVoice g s = lowpassLadder (cutoff g) (!filtQ) (oscillators (!hzOf s))</div>
+<div class="ln" data-line="110">             * adsr ampEnv g * !levelOf s</div>
+<div class="ln" data-line="111"> </div>
+<div class="ln" data-line="112"># ── The piece ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="113"> </div>
+<div class="ln" data-line="114">bpm : Int</div>
+<div class="ln" data-line="115">bpm = 112</div>
+<div class="ln" data-line="116"> </div>
+<div class="ln" data-line="117">chord : Int -> Int -> Int -> Int -> [: Key :]</div>
+<div class="ln" data-line="118">chord a b c d = '(Key a 100) || '(Key b 84) || '(Key c 84) || '(Key d 76)</div>
+<div class="ln" data-line="119"> </div>
+<div class="ln" data-line="120">#: Four bars of A minor with the bass moving underneath — held chords, so</div>
+<div class="ln" data-line="121">#: the filter has time to sweep and eight voices are all sounding at once.</div>
+<div class="ln" data-line="122">part : [: Key :]</div>
+<div class="ln" data-line="123">part = chord 45 60 64 67 |* 2 ++ chord 41 60 65 69 |* 2</div>
+<div class="ln" data-line="124">    ++ chord 43 59 62 67 |* 2 ++ chord 40 59 64 67 |* 2</div>
+<div class="ln" data-line="125"> </div>
+<div class="ln" data-line="126">score : [: Void :]</div>
+<div class="ln" data-line="127">score = (part ++ part) >>= voices.poly</div>
+<div class="ln" data-line="128"> </div>
+<div class="ln" data-line="129"># ── The mix ──────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="130">#</div>
+<div class="ln" data-line="131"># Eight voices summed can pass 1.0 on a dense chord.  `drive` is a soft</div>
+<div class="ln" data-line="132"># clipper, so the peaks round off instead of tearing — an analogue mixer</div>
+<div class="ln" data-line="133"># does the same thing and nobody calls it distortion until it is.</div>
+<div class="ln" data-line="134"> </div>
+<div class="ln" data-line="135">sound : Sig Float</div>
+<div class="ln" data-line="136">sound = drive 0.06 (dcBlock (gain 0.34 poly))</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

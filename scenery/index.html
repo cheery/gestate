@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,200 +32,199 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># An auditory scenery — ninety seconds of weather, and nothing plays a note.
-#
-#   python -m gestate.audiopygame examples/audio/scenery.ges
-#   python -m gestate.audioperform examples/audio/scenery.ges --seconds 90 -o scenery.wav
-#
-# **No score, no keyboard, no voices.**  There is nothing to trigger here:
-# the whole piece is a handful of continuous sounds whose *inputs* are
-# moved by envelopes, and what makes it a piece rather than a drone is that
-# every one of those envelopes is on a different clock face.
-#
-# The clock is `elapsed` — how long the program has been running, in
-# seconds.  A scored piece has `beat` instead, which counts the music's own
-# time; this has no music to count, so it counts the weather.
-#
-#     on &lt;points> elapsed
-#
-# `Step b y` steps to `y` at `b`.  `Ramp b y` slides to `y`, arriving
-# exactly at `b`.  Both are clamped at the ends, so an envelope is a
-# function on the whole line and the piece does not have to end when the
-# last point does.
-#
-# The curves below are laid out over several lines, which a bracketed
-# expression may be: inside brackets the offside rule is suspended, so a
-# list is written however it reads best.
-#
-# **What this example is really demonstrating** is that the line above
-# compiles at all.  `on` walks a cons list, which the static audio fragment
-# refuses — no fixed size — so `gestate/envexpand.py` rewrites a call whose
-# points are known at compile time into a balanced tree of comparisons over
-# the breakpoints.  A sixteen-point envelope costs five comparisons a
-# sample, not sixteen, and every leaf folds to `a + b·t`.
-
-# ── The weather ──────────────────────────────────────────────────────────
-#
-# Six curves, all against the same ninety seconds, and deliberately out of
-# phase with one another: the wind peaks while the drone is still opening,
-# the rain arrives after the wind has gone, and the bells only ring in the
-# quiet at the end.  Nothing here is periodic, which is the difference
-# between a scenery and an LFO.
-
-#: How loud the wind is.  Two gusts, the second longer and softer.
-windGain : List Envelope
-windGain = [ Step 0.0 0.00, Ramp  6.0 0.55, Ramp 14.0 0.18
-           , Ramp 22.0 0.70, Ramp 34.0 0.05, Ramp 52.0 0.30
-           , Ramp 68.0 0.00 ]
-
-#: Where the wind sits.  A gust is *brighter* as well as louder — that
-#: coupling is what stops two envelopes from sounding like two knobs.
-windHz : List Envelope
-windHz = [ Step 0.0 320.0, Ramp  6.0 1400.0, Ramp 14.0  520.0
-         , Ramp 22.0 2100.0, Ramp 34.0  380.0, Ramp 52.0  900.0
-         , Ramp 68.0 300.0 ]
-
-#: The drone underneath everything: absent, then present, then gone.
-droneGain : List Envelope
-droneGain = [ Step 0.0 0.00, Ramp 10.0 0.22, Step 40.0 0.22
-            , Ramp 58.0 0.34, Ramp 82.0 0.00 ]
-
-#: The drone's filter opens across the whole piece and shuts at the end.
-droneHz : List Envelope
-droneHz = [Step 0.0 180.0, Ramp 46.0 1600.0, Ramp 62.0 2600.0, Ramp 84.0 220.0]
-
-#: Detune, in cents, between the drone's two halves.  Nearly unison at the
-#: start and a full beating third of a semitone by the middle, which is
-#: what makes a static chord move without anything modulating it.
-droneSpread : List Envelope
-droneSpread = [Step 0.0 2.0, Ramp 36.0 33.0, Ramp 70.0 6.0]
-
-#: Rain: nothing, then a shower, then dripping.
-rainDensity : List Envelope
-rainDensity = [ Step 0.0 0.0, Step 26.0   0.0, Ramp 33.0 900.0
-              , Ramp 48.0 140.0, Ramp 64.0 22.0, Ramp 86.0 0.0 ]
-
-#: Bells, and they only exist in the last third.
-bellGain : List Envelope
-bellGain = [Step 0.0 0.0, Step 56.0 0.0, Ramp 64.0 0.5, Ramp 88.0 0.0]
-
-# ── Reading them ─────────────────────────────────────────────────────────
-#
-# One signal per curve, and **each one names its own points**.  That is not
-# style: the rewrite that makes `on` usable at audio rate has to *see* the
-# points, so they must be a literal or a name bound to one at the call
-# site.  A helper
-#
-#     at : List Envelope -> Sig Float
-#     at ps = map (t => on ps t) elapsed
-#
-# looks like the obvious tidy-up and defeats it completely — inside `at`
-# the points are a parameter, nothing can read them, and the whole file
-# goes back to being refused as a cons walk.  Six one-line definitions is
-# what abstraction costs here, and the error message says so plainly if
-# anybody forgets.
-
-windLevel : Sig Float
-windLevel = map (t => on windGain t) elapsed
-
-windCentre : Sig Float
-windCentre = map (t => on windHz t) elapsed
-
-droneLevel : Sig Float
-droneLevel = map (t => on droneGain t) elapsed
-
-droneCutoff : Sig Float
-droneCutoff = map (t => on droneHz t) elapsed
-
-droneCents : Sig Float
-droneCents = map (t => on droneSpread t) elapsed
-
-rainRate : Sig Float
-rainRate = map (t => on rainDensity t) elapsed
-
-bellLevel : Sig Float
-bellLevel = map (t => on bellGain t) elapsed
-
-# ── The wind ─────────────────────────────────────────────────────────────
-#
-# Noise through a bandpass whose centre moves.  Its *width* does not: a
-# filter's resonance is a `Float` here and not a signal, because the
-# coefficients are folded once at build time — so a gust changes pitch and
-# loudness but keeps its shape, and the edge on it comes from `resonate`
-# instead, a second and much narrower peak an octave above the first.
-
-gust : Sig Float
-gust = bandpassSvf windCentre 0.5 (white 40201)
-     * windLevel
-
-whistle : Sig Float
-whistle = resonate (windCentre * 2.0) 0.10 (white 90118)
-        * windLevel * 0.35
-
-# ── The drone ────────────────────────────────────────────────────────────
-#
-# Two saws a fifth apart, each split into a pair by the detune envelope.
-# `centsHz` is a factor, so a spread in cents is the same interval at every
-# pitch — which matters because the two halves are not at the same pitch.
-
-spread : Float -> Sig Float -> Sig Float
-spread sign hz = zip (h c => centsHz (sign * c) h) hz droneCents
-
-pair : Sig Float -> Sig Float
-pair hz = saw (spread 1.0 hz) + saw (spread (0.0 - 1.0) hz)
-
-drone : Sig Float
-drone = lowpassSvf droneCutoff 0.18
-          (pair (!55.0) + pair (!82.5) * 0.7
-             + sine (!27.5) * 0.9)
-      * droneLevel
-
-# ── The rain ─────────────────────────────────────────────────────────────
-#
-# `dust` fires at the density it is given and takes a **signal**, so the
-# shower thinning to a drip is one envelope and no gate anywhere.  Each
-# drop is a short ring: a resonator excited by an impulse is a struck
-# thing, and struck things are what rain on a roof is.
-
-drops : Sig Float
-drops = resonate (!2600.0) 0.09 (dust 7 rainRate) * 0.5
-      + resonate (!5400.0) 0.06 (dust 13 (rainRate * 0.4)) * 0.3
-
-# ── The bells ────────────────────────────────────────────────────────────
-#
-# Sparse, inharmonic, and left long — three resonators on one very thin
-# dust, so they ring together and never quite land on a chord.
-
-bells : Sig Float
-bells = ( resonate (!330.0) 2.0 (dust 5 (!0.55)) * 1.0
-        + resonate (!494.0) 1.6 (dust 9 (!0.40)) * 0.8
-        + resonate (!742.0) 1.3 (dust 17 (!0.28)) * 0.5 )
-      * bellLevel
-
-# ── The scenery ──────────────────────────────────────────────────────────
-#
-# `reverb` on the whole thing rather than on each part: they are all in the
-# same weather, and one room is what that means.  `brickwall` is a safety
-# net and should never be heard — the levels below are set so that it is
-# not working.
-
-#: **Measured, not guessed.**  Each part was rendered on its own first,
-#: because a `resonate` fed *continuous* noise is not the same animal as
-#: one fed an impulse: `whistle` peaked at 3.26 alone and needed a tenth of
-#: the level.  A scenery whose parts are all set to 1.0 is a scenery in
-#: which one of them is the whole sound.  Measured again when the bells
-#: were given their real two-second rings — three of them overlapping is
-#: about three times the level one tick was, and the old 1.7 spent the
-#: whole last third against the brickwall.
-sound : Sig Float
-sound = brickwall 0.9
-          ( drone * 0.34
-          + gust * 0.75
-          + whistle * 0.10
-          + drops * 0.24
-          + bells * 0.55
-          + reverb 2.6 0.32 (drops * 0.12 + bells * 0.5 + whistle * 0.05) )
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># An auditory scenery — ninety seconds of weather, and nothing plays a note.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.audiopygame examples/audio/scenery.ges</div>
+<div class="ln" data-line="4">#   python -m gestate.audioperform examples/audio/scenery.ges --seconds 90 -o scenery.wav</div>
+<div class="ln" data-line="5">#</div>
+<div class="ln" data-line="6"># **No score, no keyboard, no voices.**  There is nothing to trigger here:</div>
+<div class="ln" data-line="7"># the whole piece is a handful of continuous sounds whose *inputs* are</div>
+<div class="ln" data-line="8"># moved by envelopes, and what makes it a piece rather than a drone is that</div>
+<div class="ln" data-line="9"># every one of those envelopes is on a different clock face.</div>
+<div class="ln" data-line="10">#</div>
+<div class="ln" data-line="11"># The clock is `elapsed` — how long the program has been running, in</div>
+<div class="ln" data-line="12"># seconds.  A scored piece has `beat` instead, which counts the music's own</div>
+<div class="ln" data-line="13"># time; this has no music to count, so it counts the weather.</div>
+<div class="ln" data-line="14">#</div>
+<div class="ln" data-line="15">#     on &lt;points> elapsed</div>
+<div class="ln" data-line="16">#</div>
+<div class="ln" data-line="17"># `Step b y` steps to `y` at `b`.  `Ramp b y` slides to `y`, arriving</div>
+<div class="ln" data-line="18"># exactly at `b`.  Both are clamped at the ends, so an envelope is a</div>
+<div class="ln" data-line="19"># function on the whole line and the piece does not have to end when the</div>
+<div class="ln" data-line="20"># last point does.</div>
+<div class="ln" data-line="21">#</div>
+<div class="ln" data-line="22"># The curves below are laid out over several lines, which a bracketed</div>
+<div class="ln" data-line="23"># expression may be: inside brackets the offside rule is suspended, so a</div>
+<div class="ln" data-line="24"># list is written however it reads best.</div>
+<div class="ln" data-line="25">#</div>
+<div class="ln" data-line="26"># **What this example is really demonstrating** is that the line above</div>
+<div class="ln" data-line="27"># compiles at all.  `on` walks a cons list, which the static audio fragment</div>
+<div class="ln" data-line="28"># refuses — no fixed size — so `gestate/envexpand.py` rewrites a call whose</div>
+<div class="ln" data-line="29"># points are known at compile time into a balanced tree of comparisons over</div>
+<div class="ln" data-line="30"># the breakpoints.  A sixteen-point envelope costs five comparisons a</div>
+<div class="ln" data-line="31"># sample, not sixteen, and every leaf folds to `a + b·t`.</div>
+<div class="ln" data-line="32"> </div>
+<div class="ln" data-line="33"># ── The weather ──────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="34">#</div>
+<div class="ln" data-line="35"># Six curves, all against the same ninety seconds, and deliberately out of</div>
+<div class="ln" data-line="36"># phase with one another: the wind peaks while the drone is still opening,</div>
+<div class="ln" data-line="37"># the rain arrives after the wind has gone, and the bells only ring in the</div>
+<div class="ln" data-line="38"># quiet at the end.  Nothing here is periodic, which is the difference</div>
+<div class="ln" data-line="39"># between a scenery and an LFO.</div>
+<div class="ln" data-line="40"> </div>
+<div class="ln" data-line="41">#: How loud the wind is.  Two gusts, the second longer and softer.</div>
+<div class="ln" data-line="42">windGain : List Envelope</div>
+<div class="ln" data-line="43">windGain = [ Step 0.0 0.00, Ramp  6.0 0.55, Ramp 14.0 0.18</div>
+<div class="ln" data-line="44">           , Ramp 22.0 0.70, Ramp 34.0 0.05, Ramp 52.0 0.30</div>
+<div class="ln" data-line="45">           , Ramp 68.0 0.00 ]</div>
+<div class="ln" data-line="46"> </div>
+<div class="ln" data-line="47">#: Where the wind sits.  A gust is *brighter* as well as louder — that</div>
+<div class="ln" data-line="48">#: coupling is what stops two envelopes from sounding like two knobs.</div>
+<div class="ln" data-line="49">windHz : List Envelope</div>
+<div class="ln" data-line="50">windHz = [ Step 0.0 320.0, Ramp  6.0 1400.0, Ramp 14.0  520.0</div>
+<div class="ln" data-line="51">         , Ramp 22.0 2100.0, Ramp 34.0  380.0, Ramp 52.0  900.0</div>
+<div class="ln" data-line="52">         , Ramp 68.0 300.0 ]</div>
+<div class="ln" data-line="53"> </div>
+<div class="ln" data-line="54">#: The drone underneath everything: absent, then present, then gone.</div>
+<div class="ln" data-line="55">droneGain : List Envelope</div>
+<div class="ln" data-line="56">droneGain = [ Step 0.0 0.00, Ramp 10.0 0.22, Step 40.0 0.22</div>
+<div class="ln" data-line="57">            , Ramp 58.0 0.34, Ramp 82.0 0.00 ]</div>
+<div class="ln" data-line="58"> </div>
+<div class="ln" data-line="59">#: The drone's filter opens across the whole piece and shuts at the end.</div>
+<div class="ln" data-line="60">droneHz : List Envelope</div>
+<div class="ln" data-line="61">droneHz = [Step 0.0 180.0, Ramp 46.0 1600.0, Ramp 62.0 2600.0, Ramp 84.0 220.0]</div>
+<div class="ln" data-line="62"> </div>
+<div class="ln" data-line="63">#: Detune, in cents, between the drone's two halves.  Nearly unison at the</div>
+<div class="ln" data-line="64">#: start and a full beating third of a semitone by the middle, which is</div>
+<div class="ln" data-line="65">#: what makes a static chord move without anything modulating it.</div>
+<div class="ln" data-line="66">droneSpread : List Envelope</div>
+<div class="ln" data-line="67">droneSpread = [Step 0.0 2.0, Ramp 36.0 33.0, Ramp 70.0 6.0]</div>
+<div class="ln" data-line="68"> </div>
+<div class="ln" data-line="69">#: Rain: nothing, then a shower, then dripping.</div>
+<div class="ln" data-line="70">rainDensity : List Envelope</div>
+<div class="ln" data-line="71">rainDensity = [ Step 0.0 0.0, Step 26.0   0.0, Ramp 33.0 900.0</div>
+<div class="ln" data-line="72">              , Ramp 48.0 140.0, Ramp 64.0 22.0, Ramp 86.0 0.0 ]</div>
+<div class="ln" data-line="73"> </div>
+<div class="ln" data-line="74">#: Bells, and they only exist in the last third.</div>
+<div class="ln" data-line="75">bellGain : List Envelope</div>
+<div class="ln" data-line="76">bellGain = [Step 0.0 0.0, Step 56.0 0.0, Ramp 64.0 0.5, Ramp 88.0 0.0]</div>
+<div class="ln" data-line="77"> </div>
+<div class="ln" data-line="78"># ── Reading them ─────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="79">#</div>
+<div class="ln" data-line="80"># One signal per curve, and **each one names its own points**.  That is not</div>
+<div class="ln" data-line="81"># style: the rewrite that makes `on` usable at audio rate has to *see* the</div>
+<div class="ln" data-line="82"># points, so they must be a literal or a name bound to one at the call</div>
+<div class="ln" data-line="83"># site.  A helper</div>
+<div class="ln" data-line="84">#</div>
+<div class="ln" data-line="85">#     at : List Envelope -> Sig Float</div>
+<div class="ln" data-line="86">#     at ps = map (t => on ps t) elapsed</div>
+<div class="ln" data-line="87">#</div>
+<div class="ln" data-line="88"># looks like the obvious tidy-up and defeats it completely — inside `at`</div>
+<div class="ln" data-line="89"># the points are a parameter, nothing can read them, and the whole file</div>
+<div class="ln" data-line="90"># goes back to being refused as a cons walk.  Six one-line definitions is</div>
+<div class="ln" data-line="91"># what abstraction costs here, and the error message says so plainly if</div>
+<div class="ln" data-line="92"># anybody forgets.</div>
+<div class="ln" data-line="93"> </div>
+<div class="ln" data-line="94">windLevel : Sig Float</div>
+<div class="ln" data-line="95">windLevel = map (t => on windGain t) elapsed</div>
+<div class="ln" data-line="96"> </div>
+<div class="ln" data-line="97">windCentre : Sig Float</div>
+<div class="ln" data-line="98">windCentre = map (t => on windHz t) elapsed</div>
+<div class="ln" data-line="99"> </div>
+<div class="ln" data-line="100">droneLevel : Sig Float</div>
+<div class="ln" data-line="101">droneLevel = map (t => on droneGain t) elapsed</div>
+<div class="ln" data-line="102"> </div>
+<div class="ln" data-line="103">droneCutoff : Sig Float</div>
+<div class="ln" data-line="104">droneCutoff = map (t => on droneHz t) elapsed</div>
+<div class="ln" data-line="105"> </div>
+<div class="ln" data-line="106">droneCents : Sig Float</div>
+<div class="ln" data-line="107">droneCents = map (t => on droneSpread t) elapsed</div>
+<div class="ln" data-line="108"> </div>
+<div class="ln" data-line="109">rainRate : Sig Float</div>
+<div class="ln" data-line="110">rainRate = map (t => on rainDensity t) elapsed</div>
+<div class="ln" data-line="111"> </div>
+<div class="ln" data-line="112">bellLevel : Sig Float</div>
+<div class="ln" data-line="113">bellLevel = map (t => on bellGain t) elapsed</div>
+<div class="ln" data-line="114"> </div>
+<div class="ln" data-line="115"># ── The wind ─────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="116">#</div>
+<div class="ln" data-line="117"># Noise through a bandpass whose centre moves.  Its *width* does not: a</div>
+<div class="ln" data-line="118"># filter's resonance is a `Float` here and not a signal, because the</div>
+<div class="ln" data-line="119"># coefficients are folded once at build time — so a gust changes pitch and</div>
+<div class="ln" data-line="120"># loudness but keeps its shape, and the edge on it comes from `resonate`</div>
+<div class="ln" data-line="121"># instead, a second and much narrower peak an octave above the first.</div>
+<div class="ln" data-line="122"> </div>
+<div class="ln" data-line="123">gust : Sig Float</div>
+<div class="ln" data-line="124">gust = bandpassSvf windCentre 0.5 (white 40201)</div>
+<div class="ln" data-line="125">     * windLevel</div>
+<div class="ln" data-line="126"> </div>
+<div class="ln" data-line="127">whistle : Sig Float</div>
+<div class="ln" data-line="128">whistle = resonate (windCentre * 2.0) 0.10 (white 90118)</div>
+<div class="ln" data-line="129">        * windLevel * 0.35</div>
+<div class="ln" data-line="130"> </div>
+<div class="ln" data-line="131"># ── The drone ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="132">#</div>
+<div class="ln" data-line="133"># Two saws a fifth apart, each split into a pair by the detune envelope.</div>
+<div class="ln" data-line="134"># `centsHz` is a factor, so a spread in cents is the same interval at every</div>
+<div class="ln" data-line="135"># pitch — which matters because the two halves are not at the same pitch.</div>
+<div class="ln" data-line="136"> </div>
+<div class="ln" data-line="137">spread : Float -> Sig Float -> Sig Float</div>
+<div class="ln" data-line="138">spread sign hz = zip (h c => centsHz (sign * c) h) hz droneCents</div>
+<div class="ln" data-line="139"> </div>
+<div class="ln" data-line="140">pair : Sig Float -> Sig Float</div>
+<div class="ln" data-line="141">pair hz = saw (spread 1.0 hz) + saw (spread (0.0 - 1.0) hz)</div>
+<div class="ln" data-line="142"> </div>
+<div class="ln" data-line="143">drone : Sig Float</div>
+<div class="ln" data-line="144">drone = lowpassSvf droneCutoff 0.18</div>
+<div class="ln" data-line="145">          (pair (!55.0) + pair (!82.5) * 0.7</div>
+<div class="ln" data-line="146">             + sine (!27.5) * 0.9)</div>
+<div class="ln" data-line="147">      * droneLevel</div>
+<div class="ln" data-line="148"> </div>
+<div class="ln" data-line="149"># ── The rain ─────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="150">#</div>
+<div class="ln" data-line="151"># `dust` fires at the density it is given and takes a **signal**, so the</div>
+<div class="ln" data-line="152"># shower thinning to a drip is one envelope and no gate anywhere.  Each</div>
+<div class="ln" data-line="153"># drop is a short ring: a resonator excited by an impulse is a struck</div>
+<div class="ln" data-line="154"># thing, and struck things are what rain on a roof is.</div>
+<div class="ln" data-line="155"> </div>
+<div class="ln" data-line="156">drops : Sig Float</div>
+<div class="ln" data-line="157">drops = resonate (!2600.0) 0.09 (dust 7 rainRate) * 0.5</div>
+<div class="ln" data-line="158">      + resonate (!5400.0) 0.06 (dust 13 (rainRate * 0.4)) * 0.3</div>
+<div class="ln" data-line="159"> </div>
+<div class="ln" data-line="160"># ── The bells ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="161">#</div>
+<div class="ln" data-line="162"># Sparse, inharmonic, and left long — three resonators on one very thin</div>
+<div class="ln" data-line="163"># dust, so they ring together and never quite land on a chord.</div>
+<div class="ln" data-line="164"> </div>
+<div class="ln" data-line="165">bells : Sig Float</div>
+<div class="ln" data-line="166">bells = ( resonate (!330.0) 2.0 (dust 5 (!0.55)) * 1.0</div>
+<div class="ln" data-line="167">        + resonate (!494.0) 1.6 (dust 9 (!0.40)) * 0.8</div>
+<div class="ln" data-line="168">        + resonate (!742.0) 1.3 (dust 17 (!0.28)) * 0.5 )</div>
+<div class="ln" data-line="169">      * bellLevel</div>
+<div class="ln" data-line="170"> </div>
+<div class="ln" data-line="171"># ── The scenery ──────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="172">#</div>
+<div class="ln" data-line="173"># `reverb` on the whole thing rather than on each part: they are all in the</div>
+<div class="ln" data-line="174"># same weather, and one room is what that means.  `brickwall` is a safety</div>
+<div class="ln" data-line="175"># net and should never be heard — the levels below are set so that it is</div>
+<div class="ln" data-line="176"># not working.</div>
+<div class="ln" data-line="177"> </div>
+<div class="ln" data-line="178">#: **Measured, not guessed.**  Each part was rendered on its own first,</div>
+<div class="ln" data-line="179">#: because a `resonate` fed *continuous* noise is not the same animal as</div>
+<div class="ln" data-line="180">#: one fed an impulse: `whistle` peaked at 3.26 alone and needed a tenth of</div>
+<div class="ln" data-line="181">#: the level.  A scenery whose parts are all set to 1.0 is a scenery in</div>
+<div class="ln" data-line="182">#: which one of them is the whole sound.  Measured again when the bells</div>
+<div class="ln" data-line="183">#: were given their real two-second rings — three of them overlapping is</div>
+<div class="ln" data-line="184">#: about three times the level one tick was, and the old 1.7 spent the</div>
+<div class="ln" data-line="185">#: whole last third against the brickwall.</div>
+<div class="ln" data-line="186">sound : Sig Float</div>
+<div class="ln" data-line="187">sound = brickwall 0.9</div>
+<div class="ln" data-line="188">          ( drone * 0.34</div>
+<div class="ln" data-line="189">          + gust * 0.75</div>
+<div class="ln" data-line="190">          + whistle * 0.10</div>
+<div class="ln" data-line="191">          + drops * 0.24</div>
+<div class="ln" data-line="192">          + bells * 0.55</div>
+<div class="ln" data-line="193">          + reverb 2.6 0.32 (drops * 0.12 + bells * 0.5 + whistle * 0.05) )</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

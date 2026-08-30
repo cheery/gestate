@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,141 +32,140 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># Two knobs: the first synth with more than one parameter.
-#
-#   python -m gestate.audioeditor examples/audio/twoknobs.ges
-#   python -m gestate.audioperform examples/audio/twoknobs.ges -o twoknobs.wav
-#
-# `knob.ges` established that a control-rate parameter is a second clock.
-# This one establishes that **several parameters are several channels**,
-# not several fields of one record — and the reason is live coding rather
-# than taste.
-#
-# A record would make the knobs one value of one type.  Adding a third
-# parameter changes that type, and `spec/liveaudio.md` stage 5 migrates
-# state by *shape*, so the two knobs you were already turning would snap
-# back to their initial values the moment you declared a third.  Separate
-# channels are separate nodes with separate origins: add one, and the
-# others keep both their value and the oscillator phase downstream of them.
-#
-# It is also what lets an environment draw each knob beside the line that
-# declares it — one `Site` per parameter, which `gestate/audiospans.py`
-# reports and a single record could not.
-
-# ── The parameters ───────────────────────────────────────────────────────
-#
-# Each is its own channel, and each holds a value before anything arrives,
-# so the synth is never waiting on a knob nobody has touched.
-
-pitchChan : Chan Int
-pitchChan = chan
-
-#: 0 .. 100 — the note, low to high.
-pitch : Sig Int
-pitch = 40 ::: mkSig (wait pitchChan)
-
-cutoffChan : Chan Int
-cutoffChan = chan
-
-#: 0 .. 100 — how much of the harmonics survive the filter.
-cutoff : Sig Int
-cutoff = 70 ::: mkSig (wait cutoffChan)
-
-# ── Reading them together ────────────────────────────────────────────────
-#
-# `Reading` is the pair of knobs and the sample number, spelled as a data
-# type because it has to be flat.  The two `zip`s are the `.kr → .ar`
-# boundary twice over: each control value is held across the block and the
-# audio side advances every sample.
-
-Knobs := Knobs Int Int
-
-#: **Clamped at the boundary, and not as a nicety.**  A knob is the one
-#: value in a synth that does not come from the synth, so nothing here
-#: constrains it — the offline renderer drives every control channel with
-#: the *sample index*, which is exactly the sort of thing a host is free to
-#: send.  Unclamped, the filter coefficient below leaves 0 .. 1 within a
-#: few hundred samples and the one-pole feedback diverges to 1e40.
-#: Clamping is what makes this program's output defined for any input, and
-#: therefore what makes a golden buffer of it mean anything.
-clampKnob : Int -> Int
-clampKnob v = case v &lt; 0 of
-    True -> 0
-    False -> case v > 100 of
-        True -> 100
-        False -> v
-
-pairUp : Int -> Int -> Knobs
-pairUp p c = Knobs (clampKnob p) (clampKnob c)
-
-Reading := Reading Int Knobs
-
-readAt : Int -> Knobs -> Reading
-readAt n k = Reading n k
-
-#: 110 Hz at the bottom of the knob, 510 at the top.
-hzOf : Int -> Float
-hzOf k = 110.0 + 4.0 * toFloat k
-
-# ── The voice ────────────────────────────────────────────────────────────
-
-stepPhase : Float -> Reading -> Float
-stepPhase p r = case r of
-    Reading n k -> advanceBy p k
-
-advanceBy : Float -> Knobs -> Float
-advanceBy p k = case k of
-    Knobs pitchK cutoffK -> wrap (p + hzOf pitchK / sampleRate)
-
-#: A sawtooth, so the second knob has harmonics to take away.
-voiceAt : Float -> Reading -> Float
-voiceAt p r = case r of
-    Reading n k -> sawOf p * 0.5
-
-#: The filter coefficient is the *other* knob, which is what makes this
-#: example about two parameters rather than one twice.
-cutoffOf : Reading -> Float
-cutoffOf r = case r of
-    Reading n k -> coeffOf k
-
-coeffOf : Knobs -> Float
-coeffOf k = case k of
-    Knobs pitchK cutoffK -> 0.02 + 0.0098 * toFloat cutoffK
-
-# ── The chain ────────────────────────────────────────────────────────────
-
-knobs : Sig Knobs
-knobs = zip pairUp pitch cutoff
-
-driven : Sig Reading
-driven = zip readAt ticks knobs
-
-turning : Sig Float
-turning = scan stepPhase 0.0 driven
-
-raw : Sig Float
-raw = zip voiceAt turning driven
-
-#: A one-pole filter whose coefficient varies — so `lowpass` from
-#: `audio.ges` will not do, since that one takes a constant.  Written out
-#: here, which is the whole argument of `blip.ges` again: a filter is a
-#: `scan`, so a filter with a moving cutoff is the same `scan` reading one
-#: more input.
-filtered : Sig Float
-filtered = scan stepFilter 0.0 (zip withCutoff raw driven)
-
-Sample := Sample Float Float
-
-withCutoff : Float -> Reading -> Sample
-withCutoff x r = Sample x (cutoffOf r)
-
-stepFilter : Float -> Sample -> Float
-stepFilter y s = case s of
-    Sample x k -> y + k * (x - y)
-
-sound : Sig Float
-sound = gain 0.8 filtered
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># Two knobs: the first synth with more than one parameter.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.audioeditor examples/audio/twoknobs.ges</div>
+<div class="ln" data-line="4">#   python -m gestate.audioperform examples/audio/twoknobs.ges -o twoknobs.wav</div>
+<div class="ln" data-line="5">#</div>
+<div class="ln" data-line="6"># `knob.ges` established that a control-rate parameter is a second clock.</div>
+<div class="ln" data-line="7"># This one establishes that **several parameters are several channels**,</div>
+<div class="ln" data-line="8"># not several fields of one record — and the reason is live coding rather</div>
+<div class="ln" data-line="9"># than taste.</div>
+<div class="ln" data-line="10">#</div>
+<div class="ln" data-line="11"># A record would make the knobs one value of one type.  Adding a third</div>
+<div class="ln" data-line="12"># parameter changes that type, and `spec/liveaudio.md` stage 5 migrates</div>
+<div class="ln" data-line="13"># state by *shape*, so the two knobs you were already turning would snap</div>
+<div class="ln" data-line="14"># back to their initial values the moment you declared a third.  Separate</div>
+<div class="ln" data-line="15"># channels are separate nodes with separate origins: add one, and the</div>
+<div class="ln" data-line="16"># others keep both their value and the oscillator phase downstream of them.</div>
+<div class="ln" data-line="17">#</div>
+<div class="ln" data-line="18"># It is also what lets an environment draw each knob beside the line that</div>
+<div class="ln" data-line="19"># declares it — one `Site` per parameter, which `gestate/audiospans.py`</div>
+<div class="ln" data-line="20"># reports and a single record could not.</div>
+<div class="ln" data-line="21"> </div>
+<div class="ln" data-line="22"># ── The parameters ───────────────────────────────────────────────────────</div>
+<div class="ln" data-line="23">#</div>
+<div class="ln" data-line="24"># Each is its own channel, and each holds a value before anything arrives,</div>
+<div class="ln" data-line="25"># so the synth is never waiting on a knob nobody has touched.</div>
+<div class="ln" data-line="26"> </div>
+<div class="ln" data-line="27">pitchChan : Chan Int</div>
+<div class="ln" data-line="28">pitchChan = chan</div>
+<div class="ln" data-line="29"> </div>
+<div class="ln" data-line="30">#: 0 .. 100 — the note, low to high.</div>
+<div class="ln" data-line="31">pitch : Sig Int</div>
+<div class="ln" data-line="32">pitch = 40 ::: mkSig (wait pitchChan)<label class="knob"><span class="knob-name">pitch</span><input type="range" data-slot="0" data-type="Int" min="0" max="100" step="1" value="40"><output>40</output></label></div>
+<div class="ln" data-line="33"> </div>
+<div class="ln" data-line="34">cutoffChan : Chan Int</div>
+<div class="ln" data-line="35">cutoffChan = chan</div>
+<div class="ln" data-line="36"> </div>
+<div class="ln" data-line="37">#: 0 .. 100 — how much of the harmonics survive the filter.</div>
+<div class="ln" data-line="38">cutoff : Sig Int</div>
+<div class="ln" data-line="39">cutoff = 70 ::: mkSig (wait cutoffChan)<label class="knob"><span class="knob-name">cutoff</span><input type="range" data-slot="1" data-type="Int" min="0" max="100" step="1" value="70"><output>70</output></label></div>
+<div class="ln" data-line="40"> </div>
+<div class="ln" data-line="41"># ── Reading them together ────────────────────────────────────────────────</div>
+<div class="ln" data-line="42">#</div>
+<div class="ln" data-line="43"># `Reading` is the pair of knobs and the sample number, spelled as a data</div>
+<div class="ln" data-line="44"># type because it has to be flat.  The two `zip`s are the `.kr → .ar`</div>
+<div class="ln" data-line="45"># boundary twice over: each control value is held across the block and the</div>
+<div class="ln" data-line="46"># audio side advances every sample.</div>
+<div class="ln" data-line="47"> </div>
+<div class="ln" data-line="48">Knobs := Knobs Int Int</div>
+<div class="ln" data-line="49"> </div>
+<div class="ln" data-line="50">#: **Clamped at the boundary, and not as a nicety.**  A knob is the one</div>
+<div class="ln" data-line="51">#: value in a synth that does not come from the synth, so nothing here</div>
+<div class="ln" data-line="52">#: constrains it — the offline renderer drives every control channel with</div>
+<div class="ln" data-line="53">#: the *sample index*, which is exactly the sort of thing a host is free to</div>
+<div class="ln" data-line="54">#: send.  Unclamped, the filter coefficient below leaves 0 .. 1 within a</div>
+<div class="ln" data-line="55">#: few hundred samples and the one-pole feedback diverges to 1e40.</div>
+<div class="ln" data-line="56">#: Clamping is what makes this program's output defined for any input, and</div>
+<div class="ln" data-line="57">#: therefore what makes a golden buffer of it mean anything.</div>
+<div class="ln" data-line="58">clampKnob : Int -> Int</div>
+<div class="ln" data-line="59">clampKnob v = case v &lt; 0 of</div>
+<div class="ln" data-line="60">    True -> 0</div>
+<div class="ln" data-line="61">    False -> case v > 100 of</div>
+<div class="ln" data-line="62">        True -> 100</div>
+<div class="ln" data-line="63">        False -> v</div>
+<div class="ln" data-line="64"> </div>
+<div class="ln" data-line="65">pairUp : Int -> Int -> Knobs</div>
+<div class="ln" data-line="66">pairUp p c = Knobs (clampKnob p) (clampKnob c)</div>
+<div class="ln" data-line="67"> </div>
+<div class="ln" data-line="68">Reading := Reading Int Knobs</div>
+<div class="ln" data-line="69"> </div>
+<div class="ln" data-line="70">readAt : Int -> Knobs -> Reading</div>
+<div class="ln" data-line="71">readAt n k = Reading n k</div>
+<div class="ln" data-line="72"> </div>
+<div class="ln" data-line="73">#: 110 Hz at the bottom of the knob, 510 at the top.</div>
+<div class="ln" data-line="74">hzOf : Int -> Float</div>
+<div class="ln" data-line="75">hzOf k = 110.0 + 4.0 * toFloat k</div>
+<div class="ln" data-line="76"> </div>
+<div class="ln" data-line="77"># ── The voice ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="78"> </div>
+<div class="ln" data-line="79">stepPhase : Float -> Reading -> Float</div>
+<div class="ln" data-line="80">stepPhase p r = case r of</div>
+<div class="ln" data-line="81">    Reading n k -> advanceBy p k</div>
+<div class="ln" data-line="82"> </div>
+<div class="ln" data-line="83">advanceBy : Float -> Knobs -> Float</div>
+<div class="ln" data-line="84">advanceBy p k = case k of</div>
+<div class="ln" data-line="85">    Knobs pitchK cutoffK -> wrap (p + hzOf pitchK / sampleRate)</div>
+<div class="ln" data-line="86"> </div>
+<div class="ln" data-line="87">#: A sawtooth, so the second knob has harmonics to take away.</div>
+<div class="ln" data-line="88">voiceAt : Float -> Reading -> Float</div>
+<div class="ln" data-line="89">voiceAt p r = case r of</div>
+<div class="ln" data-line="90">    Reading n k -> sawOf p * 0.5</div>
+<div class="ln" data-line="91"> </div>
+<div class="ln" data-line="92">#: The filter coefficient is the *other* knob, which is what makes this</div>
+<div class="ln" data-line="93">#: example about two parameters rather than one twice.</div>
+<div class="ln" data-line="94">cutoffOf : Reading -> Float</div>
+<div class="ln" data-line="95">cutoffOf r = case r of</div>
+<div class="ln" data-line="96">    Reading n k -> coeffOf k</div>
+<div class="ln" data-line="97"> </div>
+<div class="ln" data-line="98">coeffOf : Knobs -> Float</div>
+<div class="ln" data-line="99">coeffOf k = case k of</div>
+<div class="ln" data-line="100">    Knobs pitchK cutoffK -> 0.02 + 0.0098 * toFloat cutoffK</div>
+<div class="ln" data-line="101"> </div>
+<div class="ln" data-line="102"># ── The chain ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="103"> </div>
+<div class="ln" data-line="104">knobs : Sig Knobs</div>
+<div class="ln" data-line="105">knobs = zip pairUp pitch cutoff</div>
+<div class="ln" data-line="106"> </div>
+<div class="ln" data-line="107">driven : Sig Reading</div>
+<div class="ln" data-line="108">driven = zip readAt ticks knobs</div>
+<div class="ln" data-line="109"> </div>
+<div class="ln" data-line="110">turning : Sig Float</div>
+<div class="ln" data-line="111">turning = scan stepPhase 0.0 driven</div>
+<div class="ln" data-line="112"> </div>
+<div class="ln" data-line="113">raw : Sig Float</div>
+<div class="ln" data-line="114">raw = zip voiceAt turning driven</div>
+<div class="ln" data-line="115"> </div>
+<div class="ln" data-line="116">#: A one-pole filter whose coefficient varies — so `lowpass` from</div>
+<div class="ln" data-line="117">#: `audio.ges` will not do, since that one takes a constant.  Written out</div>
+<div class="ln" data-line="118">#: here, which is the whole argument of `blip.ges` again: a filter is a</div>
+<div class="ln" data-line="119">#: `scan`, so a filter with a moving cutoff is the same `scan` reading one</div>
+<div class="ln" data-line="120">#: more input.</div>
+<div class="ln" data-line="121">filtered : Sig Float</div>
+<div class="ln" data-line="122">filtered = scan stepFilter 0.0 (zip withCutoff raw driven)</div>
+<div class="ln" data-line="123"> </div>
+<div class="ln" data-line="124">Sample := Sample Float Float</div>
+<div class="ln" data-line="125"> </div>
+<div class="ln" data-line="126">withCutoff : Float -> Reading -> Sample</div>
+<div class="ln" data-line="127">withCutoff x r = Sample x (cutoffOf r)</div>
+<div class="ln" data-line="128"> </div>
+<div class="ln" data-line="129">stepFilter : Float -> Sample -> Float</div>
+<div class="ln" data-line="130">stepFilter y s = case s of</div>
+<div class="ln" data-line="131">    Sample x k -> y + k * (x - y)</div>
+<div class="ln" data-line="132"> </div>
+<div class="ln" data-line="133">sound : Sig Float</div>
+<div class="ln" data-line="134">sound = gain 0.8 filtered</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

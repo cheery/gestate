@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,111 +32,110 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># VIOLIN OVER DUBGATE - a concert soloist wanders into the sound system.
-#
-#   python -m gestate.audioperform examples/audio/violin.ges
-#   python -m gestate.audioperform examples/audio/violin.ges -o violin.wav --seconds 16
-#
-# The dub half is `examples/super/dubgate.ges`, copied whole: a drum
-# machine drowning in tape echo, whose send only opens on the bar's last
-# quarter.  On top, a violin - saw through three body formants, wide
-# stage vibrato, portamento between every note because the player is
-# *expressive* - which stops bowing for exactly the quarter-bar the echo
-# answers in, out of professional courtesy, and is fed to the same tape
-# so the sound system dubs the fiddle too.
-
-# ── The dubgate, as it ships ─────────────────────────────────────────────
-
-kickEnv : Sig Float
-kickEnv = map (t => exp (negate 25.0 * wrap (2.0 * t))) elapsed
-
-kick : Sig Float
-kick = sine (44.0 + 150.0 * kickEnv) * kickEnv
-
-snareEnv : Sig Float
-snareEnv = map (t => exp (negate 20.0 * wrap (t + 0.5))) elapsed
-
-snare : Sig Float
-snare = (0.6 * white 2 + 0.5 * triangle 190.0) * snareEnv
-
-hat : Sig Float
-hat = highpassSvf 7000.0 0.2 (white 3)
-    * map (t => exp (negate 70.0 * wrap (4.0 * t + 0.5))) elapsed
-
-#: The skank: an offbeat stab, the reggae backbone.
-stab : Sig Float
-stab = lowpassSvf 1400.0 0.6 (saw 220.0 + saw 277.18 + saw 329.63)
-     * map (t => exp (negate 18.0 * wrap (2.0 * t + 0.5))) elapsed * 0.3
-
-#: THE TRICK: the echo's *input* is gated by a step pattern - it only
-#: hears the bar's last quarter, so the echo answers instead of smearing.
-#: Steal `sendGate` and gate any send you own.
-sendPat : List Envelope
-sendPat = [ Step 0.0 0.0, Step 1.5 1.0, Step 1.75 0.0 ]
-
-sendGate : Sig Float
-sendGate = map (t => on sendPat (2.0 * wrap (t / 2.0))) elapsed
-
-#: The echo itself warbles like a worn tape loop (slide, lesson A5),
-#: and gets duller each pass (the 0.55 * lowpass in the fold).
-tapePos : Sig Float
-tapePos = map (x => sampleRate * (0.375 + 0.004 * x)) (sine 0.9)
-
-tape : Sig Float -> Sig Float
-tape s = lowpass 0.35 (slide (seconds 0.45) (y x => x + 0.62 * y) tapePos s)
-
-dry : Sig Float
-dry = 0.65 * kick + 0.4 * snare + 0.2 * hat + stab
-
-# ── The soloist ──────────────────────────────────────────────────────────
-
-#: An A-major lick over two bars - the stab is an A-major triad, so the
-#: fiddle is *technically* in key, whatever else may be said of it.
-fiddleLine : List Envelope
-fiddleLine = [ Step 0.0 440.0,  Step 0.5 554.37, Step 1.0 659.25
-             , Step 2.0 880.0,  Step 2.5 739.99, Step 3.0 554.37
-             , Step 3.5 493.88 ]
-
-#: `slew` between the steps: at most 0.05 Hz a sample, so every
-#: interval is taken as a slide.  This is called portamento when a
-#: soloist does it and a problem when anyone else does.
-fiddleHz : Sig Float
-fiddleHz = slew 0.05 (map (t => on fiddleLine (4.0 * wrap (t / 4.0))) elapsed)
-
-#: Stage vibrato - wide, 5.5 Hz, applied to everything all the time.
-vibHz : Sig Float
-vibHz = fiddleHz * (1.0 + 0.012 * sine 5.5)
-
-#: The bow: on for the bar's first three quarters, lifted for exactly
-#: the quarter the echo answers in.  `gateOn` reads the courtesy off
-#: the same two-second cycle `sendPat` steps through, and `adsr` gives
-#: the swell a bow stroke has and a drum machine never will.
-bow : Sig Float
-bow = adsr (Adsr 0.09 0.2 0.8 0.12) (gateOn (!(x => x &lt; 0.75) (phase 0.5)))
-
-#: A violin body is formants: the air resonance, the wood, the sheen.
-#: The wood one *breathes* - its resonance is a signal, slowly leaning
-#: in and out like a player turning to face the audience.
-body : Sig Float -> Sig Float
-body s = 1.0 * bandpassSvf 290.0 0.7 s
-       + 0.8 * bandpassSvf 650.0 (0.55 + 0.2 * unipolar (sine 0.31)) s
-       + 0.45 * bandpassSvf 1350.0 0.5 s
-       + 0.25 * s
-
-#: Rosin: the noise a bow actually makes, riding the same envelope.
-scratch : Sig Float
-scratch = 0.06 * bandpassSvf 3600.0 0.3 (white 7) * bow
-
-violin : Sig Float
-violin = 0.5 * body (saw vibHz) * bow + scratch
-
-# ── The mix, fiddle in the sound system ──────────────────────────────────
-
-sound : Sig Float
-sound = brickwall 0.9
-    (dry + violin
-         + 0.8 * tape ((snare + stab + 0.5 * violin) * sendGate))
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># VIOLIN OVER DUBGATE - a concert soloist wanders into the sound system.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.audioperform examples/audio/violin.ges</div>
+<div class="ln" data-line="4">#   python -m gestate.audioperform examples/audio/violin.ges -o violin.wav --seconds 16</div>
+<div class="ln" data-line="5">#</div>
+<div class="ln" data-line="6"># The dub half is `examples/super/dubgate.ges`, copied whole: a drum</div>
+<div class="ln" data-line="7"># machine drowning in tape echo, whose send only opens on the bar's last</div>
+<div class="ln" data-line="8"># quarter.  On top, a violin - saw through three body formants, wide</div>
+<div class="ln" data-line="9"># stage vibrato, portamento between every note because the player is</div>
+<div class="ln" data-line="10"># *expressive* - which stops bowing for exactly the quarter-bar the echo</div>
+<div class="ln" data-line="11"># answers in, out of professional courtesy, and is fed to the same tape</div>
+<div class="ln" data-line="12"># so the sound system dubs the fiddle too.</div>
+<div class="ln" data-line="13"> </div>
+<div class="ln" data-line="14"># ── The dubgate, as it ships ─────────────────────────────────────────────</div>
+<div class="ln" data-line="15"> </div>
+<div class="ln" data-line="16">kickEnv : Sig Float</div>
+<div class="ln" data-line="17">kickEnv = map (t => exp (negate 25.0 * wrap (2.0 * t))) elapsed</div>
+<div class="ln" data-line="18"> </div>
+<div class="ln" data-line="19">kick : Sig Float</div>
+<div class="ln" data-line="20">kick = sine (44.0 + 150.0 * kickEnv) * kickEnv</div>
+<div class="ln" data-line="21"> </div>
+<div class="ln" data-line="22">snareEnv : Sig Float</div>
+<div class="ln" data-line="23">snareEnv = map (t => exp (negate 20.0 * wrap (t + 0.5))) elapsed</div>
+<div class="ln" data-line="24"> </div>
+<div class="ln" data-line="25">snare : Sig Float</div>
+<div class="ln" data-line="26">snare = (0.6 * white 2 + 0.5 * triangle 190.0) * snareEnv</div>
+<div class="ln" data-line="27"> </div>
+<div class="ln" data-line="28">hat : Sig Float</div>
+<div class="ln" data-line="29">hat = highpassSvf 7000.0 0.2 (white 3)</div>
+<div class="ln" data-line="30">    * map (t => exp (negate 70.0 * wrap (4.0 * t + 0.5))) elapsed</div>
+<div class="ln" data-line="31"> </div>
+<div class="ln" data-line="32">#: The skank: an offbeat stab, the reggae backbone.</div>
+<div class="ln" data-line="33">stab : Sig Float</div>
+<div class="ln" data-line="34">stab = lowpassSvf 1400.0 0.6 (saw 220.0 + saw 277.18 + saw 329.63)</div>
+<div class="ln" data-line="35">     * map (t => exp (negate 18.0 * wrap (2.0 * t + 0.5))) elapsed * 0.3</div>
+<div class="ln" data-line="36"> </div>
+<div class="ln" data-line="37">#: THE TRICK: the echo's *input* is gated by a step pattern - it only</div>
+<div class="ln" data-line="38">#: hears the bar's last quarter, so the echo answers instead of smearing.</div>
+<div class="ln" data-line="39">#: Steal `sendGate` and gate any send you own.</div>
+<div class="ln" data-line="40">sendPat : List Envelope</div>
+<div class="ln" data-line="41">sendPat = [ Step 0.0 0.0, Step 1.5 1.0, Step 1.75 0.0 ]</div>
+<div class="ln" data-line="42"> </div>
+<div class="ln" data-line="43">sendGate : Sig Float</div>
+<div class="ln" data-line="44">sendGate = map (t => on sendPat (2.0 * wrap (t / 2.0))) elapsed</div>
+<div class="ln" data-line="45"> </div>
+<div class="ln" data-line="46">#: The echo itself warbles like a worn tape loop (slide, lesson A5),</div>
+<div class="ln" data-line="47">#: and gets duller each pass (the 0.55 * lowpass in the fold).</div>
+<div class="ln" data-line="48">tapePos : Sig Float</div>
+<div class="ln" data-line="49">tapePos = map (x => sampleRate * (0.375 + 0.004 * x)) (sine 0.9)</div>
+<div class="ln" data-line="50"> </div>
+<div class="ln" data-line="51">tape : Sig Float -> Sig Float</div>
+<div class="ln" data-line="52">tape s = lowpass 0.35 (slide (seconds 0.45) (y x => x + 0.62 * y) tapePos s)</div>
+<div class="ln" data-line="53"> </div>
+<div class="ln" data-line="54">dry : Sig Float</div>
+<div class="ln" data-line="55">dry = 0.65 * kick + 0.4 * snare + 0.2 * hat + stab</div>
+<div class="ln" data-line="56"> </div>
+<div class="ln" data-line="57"># ── The soloist ──────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="58"> </div>
+<div class="ln" data-line="59">#: An A-major lick over two bars - the stab is an A-major triad, so the</div>
+<div class="ln" data-line="60">#: fiddle is *technically* in key, whatever else may be said of it.</div>
+<div class="ln" data-line="61">fiddleLine : List Envelope</div>
+<div class="ln" data-line="62">fiddleLine = [ Step 0.0 440.0,  Step 0.5 554.37, Step 1.0 659.25</div>
+<div class="ln" data-line="63">             , Step 2.0 880.0,  Step 2.5 739.99, Step 3.0 554.37</div>
+<div class="ln" data-line="64">             , Step 3.5 493.88 ]</div>
+<div class="ln" data-line="65"> </div>
+<div class="ln" data-line="66">#: `slew` between the steps: at most 0.05 Hz a sample, so every</div>
+<div class="ln" data-line="67">#: interval is taken as a slide.  This is called portamento when a</div>
+<div class="ln" data-line="68">#: soloist does it and a problem when anyone else does.</div>
+<div class="ln" data-line="69">fiddleHz : Sig Float</div>
+<div class="ln" data-line="70">fiddleHz = slew 0.05 (map (t => on fiddleLine (4.0 * wrap (t / 4.0))) elapsed)</div>
+<div class="ln" data-line="71"> </div>
+<div class="ln" data-line="72">#: Stage vibrato - wide, 5.5 Hz, applied to everything all the time.</div>
+<div class="ln" data-line="73">vibHz : Sig Float</div>
+<div class="ln" data-line="74">vibHz = fiddleHz * (1.0 + 0.012 * sine 5.5)</div>
+<div class="ln" data-line="75"> </div>
+<div class="ln" data-line="76">#: The bow: on for the bar's first three quarters, lifted for exactly</div>
+<div class="ln" data-line="77">#: the quarter the echo answers in.  `gateOn` reads the courtesy off</div>
+<div class="ln" data-line="78">#: the same two-second cycle `sendPat` steps through, and `adsr` gives</div>
+<div class="ln" data-line="79">#: the swell a bow stroke has and a drum machine never will.</div>
+<div class="ln" data-line="80">bow : Sig Float</div>
+<div class="ln" data-line="81">bow = adsr (Adsr 0.09 0.2 0.8 0.12) (gateOn (!(x => x &lt; 0.75) (phase 0.5)))</div>
+<div class="ln" data-line="82"> </div>
+<div class="ln" data-line="83">#: A violin body is formants: the air resonance, the wood, the sheen.</div>
+<div class="ln" data-line="84">#: The wood one *breathes* - its resonance is a signal, slowly leaning</div>
+<div class="ln" data-line="85">#: in and out like a player turning to face the audience.</div>
+<div class="ln" data-line="86">body : Sig Float -> Sig Float</div>
+<div class="ln" data-line="87">body s = 1.0 * bandpassSvf 290.0 0.7 s</div>
+<div class="ln" data-line="88">       + 0.8 * bandpassSvf 650.0 (0.55 + 0.2 * unipolar (sine 0.31)) s</div>
+<div class="ln" data-line="89">       + 0.45 * bandpassSvf 1350.0 0.5 s</div>
+<div class="ln" data-line="90">       + 0.25 * s</div>
+<div class="ln" data-line="91"> </div>
+<div class="ln" data-line="92">#: Rosin: the noise a bow actually makes, riding the same envelope.</div>
+<div class="ln" data-line="93">scratch : Sig Float</div>
+<div class="ln" data-line="94">scratch = 0.06 * bandpassSvf 3600.0 0.3 (white 7) * bow</div>
+<div class="ln" data-line="95"> </div>
+<div class="ln" data-line="96">violin : Sig Float</div>
+<div class="ln" data-line="97">violin = 0.5 * body (saw vibHz) * bow + scratch</div>
+<div class="ln" data-line="98"> </div>
+<div class="ln" data-line="99"># ── The mix, fiddle in the sound system ──────────────────────────────────</div>
+<div class="ln" data-line="100"> </div>
+<div class="ln" data-line="101">sound : Sig Float</div>
+<div class="ln" data-line="102">sound = brickwall 0.9</div>
+<div class="ln" data-line="103">    (dry + violin</div>
+<div class="ln" data-line="104">         + 0.8 * tape ((snare + stab + 0.5 * violin) * sendGate))</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

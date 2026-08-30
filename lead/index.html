@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,439 +32,438 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># A distorted lead guitar, and the slides are the point.
-#
-#   python -m gestate.audioperform examples/audio/lead.ges -o lead.wav --seconds 115
-#
-# Six sections of four bars at 100 bpm is 57.6 seconds, so 115 is two
-# passes through the form.
-#   python -m gestate.audiopygame examples/audio/lead.ges
-#
-# ── Why this lead is not a `string` ──────────────────────────────────────
-#
-# `strings.ges` is Karplus-Strong, and a Karplus-Strong string **cannot
-# slide**.  Its pitch is the length of a delay line — an integer line and
-# a tuning allpass, decided before the program runs — and a slide is a
-# pitch that moves continuously.  The delay line that *could* slide is `tap`,
-# whose position is a signal and may be fractional — but a string needs the
-# line's output fed back into it, and a feedback path that leaves a node
-# and comes back is a cycle in the graph, which the extractor still
-# refuses.  `spec/delaylines.md` says so and why.
-#
-# So the lead is an oscillator, and there it is free: `phase` takes a
-# **signal** frequency, so the pitch can be anything that changes, and a
-# slide is just what the pitch does between two notes.
-#
-# ── How a slide is written ───────────────────────────────────────────────
-#
-# `slew rate target` is a one-pole toward a target, and its rate is a
-# *signal* — which is the whole trick.  The note the riff is on is the
-# target; the rate says how fast to get there:
-#
-#     picked  ->  rate 1.0      the pitch is simply at the new note
-#     slid    ->  rate 0.00045  it takes about a tenth of a second
-#
-# One number per step, and the difference between a picked note and a note
-# slid into is that number and nothing else.  The amplitude envelope reads
-# the same table: a slide does not re-pick, so the note goes on ringing
-# through the change, which is what makes it sound like one finger moving
-# rather than two notes played.
-
-# ── Time ─────────────────────────────────────────────────────────────────
-
-tempo : Int
-tempo = 100
-
-samplesPerStep : Int
-samplesPerStep = floor (sampleRate * 15.0 / toFloat tempo)
-
-stepsPerBar : Int
-stepsPerBar = 16
-
-barsPerSection : Int
-barsPerSection = 4
-
-sections : Int
-sections = 6
-
-stepAt : Int -> Int
-stepAt n = prim_mod_int (prim_div_int n samplesPerStep) stepsPerBar
-
-throughStep : Int -> Float
-throughStep n = toFloat (prim_mod_int n samplesPerStep) / toFloat samplesPerStep
-
-barIndex : Int -> Int
-barIndex n = prim_div_int n (samplesPerStep * stepsPerBar)
-
-sectionAt : Int -> Int
-sectionAt n = prim_mod_int (prim_div_int (barIndex n) barsPerSection) sections
-
-#: The riff moves in eighths, so eight places to a bar.
-eighthAt : Int -> Int
-eighthAt n = prim_div_int (stepAt n) 2
-
-#: Is this the very first sample of an eighth?  `samplesPerStep` divides the
-#: instant exactly, so this is the one sample a pick can happen on.
-atEighth : Int -> Bool
-atEighth n = eqInt (prim_mod_int n (samplesPerStep * 2)) 0
-
-eqInt : Int -> Int -> Bool
-eqInt a b = case a - b of
-    0 -> True
-    _ -> False
-
-# ── The riff ─────────────────────────────────────────────────────────────
-#
-# A minor blues: A, C, D, Eb, E, G.  The Eb is the flat fifth and is the
-# note you slide *through* rather than land on, which is why it is marked
-# as a slide in every riff that uses it.
-#
-# MIDI numbers.  `leadNote` gives the note for each eighth of the bar and
-# `leadSlide` says whether it is reached by sliding.
-
-leadNote : Int -> Int -> Int
-leadNote sec i = case sec of
-    0 -> riffA i
-    1 -> riffA i
-    2 -> riffB i
-    3 -> riffB i
-    4 -> riffC i
-    _ -> riffA i
-
-leadSlide : Int -> Int -> Bool
-leadSlide sec i = case sec of
-    0 -> slideA i
-    1 -> slideA i
-    2 -> slideB i
-    3 -> slideB i
-    4 -> slideC i
-    _ -> slideA i
-
-#: The statement: up through the flat fifth and back down.  The slide into
-#: the Eb and out of it again is the whole phrase.
-riffA : Int -> Int
-riffA i = case i of
-    0 -> 57
-    1 -> 60
-    2 -> 62
-    3 -> 63
-    4 -> 64
-    5 -> 62
-    6 -> 60
-    _ -> 57
-
-slideA : Int -> Bool
-slideA i = case i of
-    3 -> True
-    4 -> True
-    _ -> False
-
-#: The answer, an octave up, with a long slide down at the end of it.
-riffB : Int -> Int
-riffB i = case i of
-    0 -> 69
-    1 -> 67
-    2 -> 69
-    3 -> 72
-    4 -> 71
-    5 -> 69
-    6 -> 64
-    _ -> 64
-
-slideB : Int -> Bool
-slideB i = case i of
-    4 -> True
-    6 -> True
-    _ -> False
-
-#: The climb: every note slid into except the first, which is what a whole
-#: bar of one finger moving sounds like.
-riffC : Int -> Int
-riffC i = case i of
-    0 -> 57
-    1 -> 60
-    2 -> 63
-    3 -> 64
-    4 -> 67
-    5 -> 69
-    6 -> 72
-    _ -> 74
-
-slideC : Int -> Bool
-slideC i = case i of
-    0 -> False
-    _ -> True
-
-#: Is this instant part of a note that was slid into?
-slidingAt : Int -> Bool
-slidingAt n = leadSlide (sectionAt n) (eighthAt n)
-
-#: A pick is the first sample of an eighth that is *not* slid into.
-picksAt : Int -> Bool
-picksAt n = case atEighth n of
-    True -> notB (slidingAt n)
-    False -> False
-
-notB : Bool -> Bool
-notB b = case b of
-    True -> False
-    False -> True
-
-# ── Pitch ────────────────────────────────────────────────────────────────
-
-hzOf : Int -> Float
-hzOf k = 8.1758 * pow 2.0 (toFloat k / 12.0)
-
-#: Where the pitch is heading — the note this eighth is on.
-targetHz : Sig Float
-targetHz = map (n => hzOf (leadNote (sectionAt n) (eighthAt n))) ticks
-
-#: **How fast to get there, and this is the slide.**  A one-pole
-#: coefficient: 1.0 arrives this sample, and 0.00045 takes a time constant
-#: of about fifty milliseconds, so the ear hears a finger moving.
-slideRate : Sig Float
-slideRate = map rateAt ticks
-
-rateAt : Int -> Float
-rateAt n = case slidingAt n of
-    True -> 0.00045
-    False -> 1.0
-
-glided : Sig Float
-glided = slew slideRate targetHz
-
-# ── How long since the last pick ─────────────────────────────────────────
-#
-# The envelope and the vibrato both want this, and neither can have it as a
-# function of the instant: a note reached by sliding does not restart, so
-# "how long has this note been sounding" is a count that some steps reset
-# and others do not.  That is a fold.
-
-Age := Age Int
-
-stepAge : Age -> Int -> Age
-stepAge a n = case a of
-    Age t -> Age (nextAge t n)
-
-nextAge : Int -> Int -> Int
-nextAge t n = case picksAt n of
-    True -> 0
-    False -> t + 1
-
-ageOf : Age -> Int
-ageOf a = case a of
-    Age t -> t
-
-#: Samples since the last pick, as a signal.
-age : Sig Int
-age = map ageOf (scan stepAge (Age 0) ticks)
-
-# ── The voice ────────────────────────────────────────────────────────────
-
-#: A fast attack and a long sustain, which is what distortion does to a
-#: guitar: the compression is in the clipping, so a note that would have
-#: died holds up instead.
-ampOf : Int -> Float
-ampOf t = ampAt (toFloat t / sampleRate)
-
-ampAt : Float -> Float
-ampAt sec = case sec &lt; 0.004 of
-    True -> sec / 0.004
-    False -> 0.45 + 0.55 * exp (negate (sec - 0.004) * 2.5)
-
-#: **Vibrato arrives late**, because a player does not start a note with it
-#: — they hold the note and then move the finger.  Nothing about this is
-#: hard once the age is a signal.
-vibDepth : Int -> Float
-vibDepth t = clamp 0.0 1.0 ((toFloat t / sampleRate - 0.22) * 2.0)
-
-vibAt : Int -> Float -> Float
-vibAt t lfo = 1.0 + 0.010 * vibDepth t * lfo
-
-vibrato : Sig Float
-vibrato = zip vibAt age (sine (!5.6))
-
-voiceHz : Sig Float
-voiceHz = glided * vibrato
-
-#: Two saws a few cents apart.  One saw through this much distortion is a
-#: buzz; two beating against each other is a guitar, and the detune is what
-#: gives the sustain its slow movement.
-osc : Sig Float
-osc = 0.5 * saw voiceHz + 0.5 * saw (1.007 * voiceHz)
-
-ampSig : Sig Float
-ampSig = map ampOf age
-
-# ── The amplifier ────────────────────────────────────────────────────────
-#
-# Order matters and is the whole sound: cut the bottom *before* the
-# distortion so the low end does not turn to mud in it, clip, then cut the
-# top *after* so what the clipping added is shaped rather than heard raw.
-# That last filter is what a speaker cabinet does, and leaving it out is
-# why a first distortion patch always sounds like a wasp.
-
-preamp : Sig Float
-preamp = highpassOnePole (!180.0) (1.1 * osc * ampSig)
-
-#: A slow sweep on the cabinet's corner — an amplifier does not have one,
-#: but a player moving in front of it does, and three minutes of a fixed
-#: filter is three minutes of the same note colour.
-cabHz : Sig Float
-cabHz = 2400.0 + 1200.0 * sine (!0.07)
-
-cabinet : Sig Float -> Sig Float
-cabinet s = lowpassLadder cabHz 0.22 s
-
-#: `dcBlock` because `drive` is the one stage that can *create* an offset:
-#: the highpass ahead of it leaves the waveform asymmetric, and a
-#: waveshaper turns asymmetry into DC — which the cabinet's lowpass then
-#: keeps.  An amplifier's coupling capacitor, in one word.
-leadDry : Sig Float
-leadDry = dcBlock (cabinet (drive 0.45 preamp))
-
-#: A slapback and a room.  The delay is a dotted eighth, which is the one
-#: every guitarist reaches for, and `damped` rather than `echo` so the
-#: repeats lose their edge instead of stacking up as buzz.
-delayTime : Float
-delayTime = 45.0 / toFloat tempo
-
-lead : Sig Float
-lead = leadDry + 0.30 * damped delayTime 0.45 0.55 leadDry
-
-# ── Behind it ────────────────────────────────────────────────────────────
-#
-# Power chords: a root and its fifth, distorted, with no third in them —
-# which is the whole reason a power chord works under a lead that is going
-# to play both a major and a minor third over it.
-
-rootOf : Int -> Float
-rootOf sec = case sec of
-    0 -> 55.00
-    1 -> 55.00
-    2 -> 73.42
-    3 -> 65.41
-    4 -> 55.00
-    _ -> 55.00
-
-chordHz : Sig Float
-chordHz = map (n => rootOf (sectionAt n)) ticks
-
-#: Palm-muted: the chord is gated on the beat so it chugs rather than
-#: drones, and the gate is short enough that what you hear is the attack.
-chugAt : Int -> Float
-chugAt n = case eqInt (prim_mod_int (stepAt n) 4) 0 of
-    True -> chugFall (throughStep n)
-    False -> 0.0
-
-chugFall : Float -> Float
-chugFall t = case t > 0.7 of
-    True -> 0.0
-    False -> (1.0 - t / 0.7) * (1.0 - t / 0.7)
-
-chugSig : Sig Float
-chugSig = map chugAt ticks
-
-chordOsc : Sig Float
-chordOsc = 0.5 * saw chordHz + 0.5 * saw (1.4983 * chordHz)
-
-backing : Sig Float
-backing = dcBlock (lowpassLadder (!1500.0) 0.15
-    (drive 0.7 (highpassOnePole (!90.0) (1.6 * chordOsc * chugSig))))
-
-# ── Drums ────────────────────────────────────────────────────────────────
-
-kickAt : Int -> Bool
-kickAt s = case s of
-    0 -> True
-    6 -> True
-    10 -> True
-    _ -> False
-
-snareAt : Int -> Bool
-snareAt s = case s of
-    4 -> True
-    12 -> True
-    _ -> False
-
-hatAt : Int -> Bool
-hatAt s = case prim_mod_int s 2 of
-    0 -> True
-    _ -> False
-
-cube : Float -> Float
-cube v = v * v * v
-
-fall : Float -> Float -> Float
-fall len t = case t > len of
-    True -> 0.0
-    False -> cube (1.0 - t / len)
-
-onlyIf : Bool -> Float -> Float
-onlyIf on v = case on of
-    True -> v
-    False -> 0.0
-
-Kit := Kit Float Int
-
-kickHz : Int -> Float
-kickHz n = 48.0 + 150.0 * fall 0.5 (throughStep n)
-
-stepKit : Kit -> Int -> Kit
-stepKit k n = case k of
-    Kit ph m -> Kit (wrap (ph + kickHz n / sampleRate)) n
-
-kickOut : Kit -> Float
-kickOut k = case k of
-    Kit ph n -> onlyIf (kickAt (stepAt n)) (triangleOf ph * fall 0.55 (throughStep n))
-
-kick : Sig Float
-kick = map kickOut (scan stepKit (Kit 0.0 0) ticks)
-
-#: The beater, and the reason it is here is in `strings2.ges`: without a
-#: broadband transient a kick is inaudible on a small speaker, because
-#: almost all of it is below what one can reproduce.
-kickClick : Sig Float
-kickClick = highpassOnePole (!2200.0) (zip clickMix ticks (white 71))
-
-clickMix : Int -> Float -> Float
-clickMix n w = onlyIf (kickAt (stepAt n)) (w * fall 0.035 (throughStep n))
-
-snareNoise : Sig Float
-snareNoise = zip snareMix ticks (white 31)
-
-snareMix : Int -> Float -> Float
-snareMix n w = onlyIf (snareAt (stepAt n)) (w * fall 0.30 (throughStep n))
-
-snare : Sig Float
-snare = 0.5 * snareNoise + 0.035 * resonate (!190.0) 0.14 snareNoise
-
-hatNoise : Sig Float
-hatNoise = zip hatMix ticks (white 57)
-
-hatMix : Int -> Float -> Float
-hatMix n w = onlyIf (hatAt (stepAt n)) (w * fall 0.05 (throughStep n))
-
-hat : Sig Float
-hat = highpassOnePole (!6000.0) hatNoise
-
-kit : Sig Float
-kit = 0.95 * kick + 1.80 * kickClick + 1.00 * snare + 0.60 * hat
-
-# ── The mix ──────────────────────────────────────────────────────────────
-
-#: **Measured, not guessed.**  The first setting drove the lead so hard
-#: that it came out at a crest factor of 1.42 — which is a square wave, not
-#: a guitar — and nine times the kit's level, so the limiter spent the
-#: whole piece flat out and everything behind the lead disappeared under
-#: it.  Distortion that removes all the dynamics has removed the playing
-#: too.
-band : Sig Float
-band = 0.34 * lead + 0.34 * backing + 1.0 * kit
-
-sound : Sig Float
-sound = brickwall 0.92 (band + 0.16 * reverb 1.6 0.5 band)
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># A distorted lead guitar, and the slides are the point.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.audioperform examples/audio/lead.ges -o lead.wav --seconds 115</div>
+<div class="ln" data-line="4">#</div>
+<div class="ln" data-line="5"># Six sections of four bars at 100 bpm is 57.6 seconds, so 115 is two</div>
+<div class="ln" data-line="6"># passes through the form.</div>
+<div class="ln" data-line="7">#   python -m gestate.audiopygame examples/audio/lead.ges</div>
+<div class="ln" data-line="8">#</div>
+<div class="ln" data-line="9"># ── Why this lead is not a `string` ──────────────────────────────────────</div>
+<div class="ln" data-line="10">#</div>
+<div class="ln" data-line="11"># `strings.ges` is Karplus-Strong, and a Karplus-Strong string **cannot</div>
+<div class="ln" data-line="12"># slide**.  Its pitch is the length of a delay line — an integer line and</div>
+<div class="ln" data-line="13"># a tuning allpass, decided before the program runs — and a slide is a</div>
+<div class="ln" data-line="14"># pitch that moves continuously.  The delay line that *could* slide is `tap`,</div>
+<div class="ln" data-line="15"># whose position is a signal and may be fractional — but a string needs the</div>
+<div class="ln" data-line="16"># line's output fed back into it, and a feedback path that leaves a node</div>
+<div class="ln" data-line="17"># and comes back is a cycle in the graph, which the extractor still</div>
+<div class="ln" data-line="18"># refuses.  `spec/delaylines.md` says so and why.</div>
+<div class="ln" data-line="19">#</div>
+<div class="ln" data-line="20"># So the lead is an oscillator, and there it is free: `phase` takes a</div>
+<div class="ln" data-line="21"># **signal** frequency, so the pitch can be anything that changes, and a</div>
+<div class="ln" data-line="22"># slide is just what the pitch does between two notes.</div>
+<div class="ln" data-line="23">#</div>
+<div class="ln" data-line="24"># ── How a slide is written ───────────────────────────────────────────────</div>
+<div class="ln" data-line="25">#</div>
+<div class="ln" data-line="26"># `slew rate target` is a one-pole toward a target, and its rate is a</div>
+<div class="ln" data-line="27"># *signal* — which is the whole trick.  The note the riff is on is the</div>
+<div class="ln" data-line="28"># target; the rate says how fast to get there:</div>
+<div class="ln" data-line="29">#</div>
+<div class="ln" data-line="30">#     picked  ->  rate 1.0      the pitch is simply at the new note</div>
+<div class="ln" data-line="31">#     slid    ->  rate 0.00045  it takes about a tenth of a second</div>
+<div class="ln" data-line="32">#</div>
+<div class="ln" data-line="33"># One number per step, and the difference between a picked note and a note</div>
+<div class="ln" data-line="34"># slid into is that number and nothing else.  The amplitude envelope reads</div>
+<div class="ln" data-line="35"># the same table: a slide does not re-pick, so the note goes on ringing</div>
+<div class="ln" data-line="36"># through the change, which is what makes it sound like one finger moving</div>
+<div class="ln" data-line="37"># rather than two notes played.</div>
+<div class="ln" data-line="38"> </div>
+<div class="ln" data-line="39"># ── Time ─────────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="40"> </div>
+<div class="ln" data-line="41">tempo : Int</div>
+<div class="ln" data-line="42">tempo = 100</div>
+<div class="ln" data-line="43"> </div>
+<div class="ln" data-line="44">samplesPerStep : Int</div>
+<div class="ln" data-line="45">samplesPerStep = floor (sampleRate * 15.0 / toFloat tempo)</div>
+<div class="ln" data-line="46"> </div>
+<div class="ln" data-line="47">stepsPerBar : Int</div>
+<div class="ln" data-line="48">stepsPerBar = 16</div>
+<div class="ln" data-line="49"> </div>
+<div class="ln" data-line="50">barsPerSection : Int</div>
+<div class="ln" data-line="51">barsPerSection = 4</div>
+<div class="ln" data-line="52"> </div>
+<div class="ln" data-line="53">sections : Int</div>
+<div class="ln" data-line="54">sections = 6</div>
+<div class="ln" data-line="55"> </div>
+<div class="ln" data-line="56">stepAt : Int -> Int</div>
+<div class="ln" data-line="57">stepAt n = prim_mod_int (prim_div_int n samplesPerStep) stepsPerBar</div>
+<div class="ln" data-line="58"> </div>
+<div class="ln" data-line="59">throughStep : Int -> Float</div>
+<div class="ln" data-line="60">throughStep n = toFloat (prim_mod_int n samplesPerStep) / toFloat samplesPerStep</div>
+<div class="ln" data-line="61"> </div>
+<div class="ln" data-line="62">barIndex : Int -> Int</div>
+<div class="ln" data-line="63">barIndex n = prim_div_int n (samplesPerStep * stepsPerBar)</div>
+<div class="ln" data-line="64"> </div>
+<div class="ln" data-line="65">sectionAt : Int -> Int</div>
+<div class="ln" data-line="66">sectionAt n = prim_mod_int (prim_div_int (barIndex n) barsPerSection) sections</div>
+<div class="ln" data-line="67"> </div>
+<div class="ln" data-line="68">#: The riff moves in eighths, so eight places to a bar.</div>
+<div class="ln" data-line="69">eighthAt : Int -> Int</div>
+<div class="ln" data-line="70">eighthAt n = prim_div_int (stepAt n) 2</div>
+<div class="ln" data-line="71"> </div>
+<div class="ln" data-line="72">#: Is this the very first sample of an eighth?  `samplesPerStep` divides the</div>
+<div class="ln" data-line="73">#: instant exactly, so this is the one sample a pick can happen on.</div>
+<div class="ln" data-line="74">atEighth : Int -> Bool</div>
+<div class="ln" data-line="75">atEighth n = eqInt (prim_mod_int n (samplesPerStep * 2)) 0</div>
+<div class="ln" data-line="76"> </div>
+<div class="ln" data-line="77">eqInt : Int -> Int -> Bool</div>
+<div class="ln" data-line="78">eqInt a b = case a - b of</div>
+<div class="ln" data-line="79">    0 -> True</div>
+<div class="ln" data-line="80">    _ -> False</div>
+<div class="ln" data-line="81"> </div>
+<div class="ln" data-line="82"># ── The riff ─────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="83">#</div>
+<div class="ln" data-line="84"># A minor blues: A, C, D, Eb, E, G.  The Eb is the flat fifth and is the</div>
+<div class="ln" data-line="85"># note you slide *through* rather than land on, which is why it is marked</div>
+<div class="ln" data-line="86"># as a slide in every riff that uses it.</div>
+<div class="ln" data-line="87">#</div>
+<div class="ln" data-line="88"># MIDI numbers.  `leadNote` gives the note for each eighth of the bar and</div>
+<div class="ln" data-line="89"># `leadSlide` says whether it is reached by sliding.</div>
+<div class="ln" data-line="90"> </div>
+<div class="ln" data-line="91">leadNote : Int -> Int -> Int</div>
+<div class="ln" data-line="92">leadNote sec i = case sec of</div>
+<div class="ln" data-line="93">    0 -> riffA i</div>
+<div class="ln" data-line="94">    1 -> riffA i</div>
+<div class="ln" data-line="95">    2 -> riffB i</div>
+<div class="ln" data-line="96">    3 -> riffB i</div>
+<div class="ln" data-line="97">    4 -> riffC i</div>
+<div class="ln" data-line="98">    _ -> riffA i</div>
+<div class="ln" data-line="99"> </div>
+<div class="ln" data-line="100">leadSlide : Int -> Int -> Bool</div>
+<div class="ln" data-line="101">leadSlide sec i = case sec of</div>
+<div class="ln" data-line="102">    0 -> slideA i</div>
+<div class="ln" data-line="103">    1 -> slideA i</div>
+<div class="ln" data-line="104">    2 -> slideB i</div>
+<div class="ln" data-line="105">    3 -> slideB i</div>
+<div class="ln" data-line="106">    4 -> slideC i</div>
+<div class="ln" data-line="107">    _ -> slideA i</div>
+<div class="ln" data-line="108"> </div>
+<div class="ln" data-line="109">#: The statement: up through the flat fifth and back down.  The slide into</div>
+<div class="ln" data-line="110">#: the Eb and out of it again is the whole phrase.</div>
+<div class="ln" data-line="111">riffA : Int -> Int</div>
+<div class="ln" data-line="112">riffA i = case i of</div>
+<div class="ln" data-line="113">    0 -> 57</div>
+<div class="ln" data-line="114">    1 -> 60</div>
+<div class="ln" data-line="115">    2 -> 62</div>
+<div class="ln" data-line="116">    3 -> 63</div>
+<div class="ln" data-line="117">    4 -> 64</div>
+<div class="ln" data-line="118">    5 -> 62</div>
+<div class="ln" data-line="119">    6 -> 60</div>
+<div class="ln" data-line="120">    _ -> 57</div>
+<div class="ln" data-line="121"> </div>
+<div class="ln" data-line="122">slideA : Int -> Bool</div>
+<div class="ln" data-line="123">slideA i = case i of</div>
+<div class="ln" data-line="124">    3 -> True</div>
+<div class="ln" data-line="125">    4 -> True</div>
+<div class="ln" data-line="126">    _ -> False</div>
+<div class="ln" data-line="127"> </div>
+<div class="ln" data-line="128">#: The answer, an octave up, with a long slide down at the end of it.</div>
+<div class="ln" data-line="129">riffB : Int -> Int</div>
+<div class="ln" data-line="130">riffB i = case i of</div>
+<div class="ln" data-line="131">    0 -> 69</div>
+<div class="ln" data-line="132">    1 -> 67</div>
+<div class="ln" data-line="133">    2 -> 69</div>
+<div class="ln" data-line="134">    3 -> 72</div>
+<div class="ln" data-line="135">    4 -> 71</div>
+<div class="ln" data-line="136">    5 -> 69</div>
+<div class="ln" data-line="137">    6 -> 64</div>
+<div class="ln" data-line="138">    _ -> 64</div>
+<div class="ln" data-line="139"> </div>
+<div class="ln" data-line="140">slideB : Int -> Bool</div>
+<div class="ln" data-line="141">slideB i = case i of</div>
+<div class="ln" data-line="142">    4 -> True</div>
+<div class="ln" data-line="143">    6 -> True</div>
+<div class="ln" data-line="144">    _ -> False</div>
+<div class="ln" data-line="145"> </div>
+<div class="ln" data-line="146">#: The climb: every note slid into except the first, which is what a whole</div>
+<div class="ln" data-line="147">#: bar of one finger moving sounds like.</div>
+<div class="ln" data-line="148">riffC : Int -> Int</div>
+<div class="ln" data-line="149">riffC i = case i of</div>
+<div class="ln" data-line="150">    0 -> 57</div>
+<div class="ln" data-line="151">    1 -> 60</div>
+<div class="ln" data-line="152">    2 -> 63</div>
+<div class="ln" data-line="153">    3 -> 64</div>
+<div class="ln" data-line="154">    4 -> 67</div>
+<div class="ln" data-line="155">    5 -> 69</div>
+<div class="ln" data-line="156">    6 -> 72</div>
+<div class="ln" data-line="157">    _ -> 74</div>
+<div class="ln" data-line="158"> </div>
+<div class="ln" data-line="159">slideC : Int -> Bool</div>
+<div class="ln" data-line="160">slideC i = case i of</div>
+<div class="ln" data-line="161">    0 -> False</div>
+<div class="ln" data-line="162">    _ -> True</div>
+<div class="ln" data-line="163"> </div>
+<div class="ln" data-line="164">#: Is this instant part of a note that was slid into?</div>
+<div class="ln" data-line="165">slidingAt : Int -> Bool</div>
+<div class="ln" data-line="166">slidingAt n = leadSlide (sectionAt n) (eighthAt n)</div>
+<div class="ln" data-line="167"> </div>
+<div class="ln" data-line="168">#: A pick is the first sample of an eighth that is *not* slid into.</div>
+<div class="ln" data-line="169">picksAt : Int -> Bool</div>
+<div class="ln" data-line="170">picksAt n = case atEighth n of</div>
+<div class="ln" data-line="171">    True -> notB (slidingAt n)</div>
+<div class="ln" data-line="172">    False -> False</div>
+<div class="ln" data-line="173"> </div>
+<div class="ln" data-line="174">notB : Bool -> Bool</div>
+<div class="ln" data-line="175">notB b = case b of</div>
+<div class="ln" data-line="176">    True -> False</div>
+<div class="ln" data-line="177">    False -> True</div>
+<div class="ln" data-line="178"> </div>
+<div class="ln" data-line="179"># ── Pitch ────────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="180"> </div>
+<div class="ln" data-line="181">hzOf : Int -> Float</div>
+<div class="ln" data-line="182">hzOf k = 8.1758 * pow 2.0 (toFloat k / 12.0)</div>
+<div class="ln" data-line="183"> </div>
+<div class="ln" data-line="184">#: Where the pitch is heading — the note this eighth is on.</div>
+<div class="ln" data-line="185">targetHz : Sig Float</div>
+<div class="ln" data-line="186">targetHz = map (n => hzOf (leadNote (sectionAt n) (eighthAt n))) ticks</div>
+<div class="ln" data-line="187"> </div>
+<div class="ln" data-line="188">#: **How fast to get there, and this is the slide.**  A one-pole</div>
+<div class="ln" data-line="189">#: coefficient: 1.0 arrives this sample, and 0.00045 takes a time constant</div>
+<div class="ln" data-line="190">#: of about fifty milliseconds, so the ear hears a finger moving.</div>
+<div class="ln" data-line="191">slideRate : Sig Float</div>
+<div class="ln" data-line="192">slideRate = map rateAt ticks</div>
+<div class="ln" data-line="193"> </div>
+<div class="ln" data-line="194">rateAt : Int -> Float</div>
+<div class="ln" data-line="195">rateAt n = case slidingAt n of</div>
+<div class="ln" data-line="196">    True -> 0.00045</div>
+<div class="ln" data-line="197">    False -> 1.0</div>
+<div class="ln" data-line="198"> </div>
+<div class="ln" data-line="199">glided : Sig Float</div>
+<div class="ln" data-line="200">glided = slew slideRate targetHz</div>
+<div class="ln" data-line="201"> </div>
+<div class="ln" data-line="202"># ── How long since the last pick ─────────────────────────────────────────</div>
+<div class="ln" data-line="203">#</div>
+<div class="ln" data-line="204"># The envelope and the vibrato both want this, and neither can have it as a</div>
+<div class="ln" data-line="205"># function of the instant: a note reached by sliding does not restart, so</div>
+<div class="ln" data-line="206"># "how long has this note been sounding" is a count that some steps reset</div>
+<div class="ln" data-line="207"># and others do not.  That is a fold.</div>
+<div class="ln" data-line="208"> </div>
+<div class="ln" data-line="209">Age := Age Int</div>
+<div class="ln" data-line="210"> </div>
+<div class="ln" data-line="211">stepAge : Age -> Int -> Age</div>
+<div class="ln" data-line="212">stepAge a n = case a of</div>
+<div class="ln" data-line="213">    Age t -> Age (nextAge t n)</div>
+<div class="ln" data-line="214"> </div>
+<div class="ln" data-line="215">nextAge : Int -> Int -> Int</div>
+<div class="ln" data-line="216">nextAge t n = case picksAt n of</div>
+<div class="ln" data-line="217">    True -> 0</div>
+<div class="ln" data-line="218">    False -> t + 1</div>
+<div class="ln" data-line="219"> </div>
+<div class="ln" data-line="220">ageOf : Age -> Int</div>
+<div class="ln" data-line="221">ageOf a = case a of</div>
+<div class="ln" data-line="222">    Age t -> t</div>
+<div class="ln" data-line="223"> </div>
+<div class="ln" data-line="224">#: Samples since the last pick, as a signal.</div>
+<div class="ln" data-line="225">age : Sig Int</div>
+<div class="ln" data-line="226">age = map ageOf (scan stepAge (Age 0) ticks)</div>
+<div class="ln" data-line="227"> </div>
+<div class="ln" data-line="228"># ── The voice ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="229"> </div>
+<div class="ln" data-line="230">#: A fast attack and a long sustain, which is what distortion does to a</div>
+<div class="ln" data-line="231">#: guitar: the compression is in the clipping, so a note that would have</div>
+<div class="ln" data-line="232">#: died holds up instead.</div>
+<div class="ln" data-line="233">ampOf : Int -> Float</div>
+<div class="ln" data-line="234">ampOf t = ampAt (toFloat t / sampleRate)</div>
+<div class="ln" data-line="235"> </div>
+<div class="ln" data-line="236">ampAt : Float -> Float</div>
+<div class="ln" data-line="237">ampAt sec = case sec &lt; 0.004 of</div>
+<div class="ln" data-line="238">    True -> sec / 0.004</div>
+<div class="ln" data-line="239">    False -> 0.45 + 0.55 * exp (negate (sec - 0.004) * 2.5)</div>
+<div class="ln" data-line="240"> </div>
+<div class="ln" data-line="241">#: **Vibrato arrives late**, because a player does not start a note with it</div>
+<div class="ln" data-line="242">#: — they hold the note and then move the finger.  Nothing about this is</div>
+<div class="ln" data-line="243">#: hard once the age is a signal.</div>
+<div class="ln" data-line="244">vibDepth : Int -> Float</div>
+<div class="ln" data-line="245">vibDepth t = clamp 0.0 1.0 ((toFloat t / sampleRate - 0.22) * 2.0)</div>
+<div class="ln" data-line="246"> </div>
+<div class="ln" data-line="247">vibAt : Int -> Float -> Float</div>
+<div class="ln" data-line="248">vibAt t lfo = 1.0 + 0.010 * vibDepth t * lfo</div>
+<div class="ln" data-line="249"> </div>
+<div class="ln" data-line="250">vibrato : Sig Float</div>
+<div class="ln" data-line="251">vibrato = zip vibAt age (sine (!5.6))</div>
+<div class="ln" data-line="252"> </div>
+<div class="ln" data-line="253">voiceHz : Sig Float</div>
+<div class="ln" data-line="254">voiceHz = glided * vibrato</div>
+<div class="ln" data-line="255"> </div>
+<div class="ln" data-line="256">#: Two saws a few cents apart.  One saw through this much distortion is a</div>
+<div class="ln" data-line="257">#: buzz; two beating against each other is a guitar, and the detune is what</div>
+<div class="ln" data-line="258">#: gives the sustain its slow movement.</div>
+<div class="ln" data-line="259">osc : Sig Float</div>
+<div class="ln" data-line="260">osc = 0.5 * saw voiceHz + 0.5 * saw (1.007 * voiceHz)</div>
+<div class="ln" data-line="261"> </div>
+<div class="ln" data-line="262">ampSig : Sig Float</div>
+<div class="ln" data-line="263">ampSig = map ampOf age</div>
+<div class="ln" data-line="264"> </div>
+<div class="ln" data-line="265"># ── The amplifier ────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="266">#</div>
+<div class="ln" data-line="267"># Order matters and is the whole sound: cut the bottom *before* the</div>
+<div class="ln" data-line="268"># distortion so the low end does not turn to mud in it, clip, then cut the</div>
+<div class="ln" data-line="269"># top *after* so what the clipping added is shaped rather than heard raw.</div>
+<div class="ln" data-line="270"># That last filter is what a speaker cabinet does, and leaving it out is</div>
+<div class="ln" data-line="271"># why a first distortion patch always sounds like a wasp.</div>
+<div class="ln" data-line="272"> </div>
+<div class="ln" data-line="273">preamp : Sig Float</div>
+<div class="ln" data-line="274">preamp = highpassOnePole (!180.0) (1.1 * osc * ampSig)</div>
+<div class="ln" data-line="275"> </div>
+<div class="ln" data-line="276">#: A slow sweep on the cabinet's corner — an amplifier does not have one,</div>
+<div class="ln" data-line="277">#: but a player moving in front of it does, and three minutes of a fixed</div>
+<div class="ln" data-line="278">#: filter is three minutes of the same note colour.</div>
+<div class="ln" data-line="279">cabHz : Sig Float</div>
+<div class="ln" data-line="280">cabHz = 2400.0 + 1200.0 * sine (!0.07)</div>
+<div class="ln" data-line="281"> </div>
+<div class="ln" data-line="282">cabinet : Sig Float -> Sig Float</div>
+<div class="ln" data-line="283">cabinet s = lowpassLadder cabHz 0.22 s</div>
+<div class="ln" data-line="284"> </div>
+<div class="ln" data-line="285">#: `dcBlock` because `drive` is the one stage that can *create* an offset:</div>
+<div class="ln" data-line="286">#: the highpass ahead of it leaves the waveform asymmetric, and a</div>
+<div class="ln" data-line="287">#: waveshaper turns asymmetry into DC — which the cabinet's lowpass then</div>
+<div class="ln" data-line="288">#: keeps.  An amplifier's coupling capacitor, in one word.</div>
+<div class="ln" data-line="289">leadDry : Sig Float</div>
+<div class="ln" data-line="290">leadDry = dcBlock (cabinet (drive 0.45 preamp))</div>
+<div class="ln" data-line="291"> </div>
+<div class="ln" data-line="292">#: A slapback and a room.  The delay is a dotted eighth, which is the one</div>
+<div class="ln" data-line="293">#: every guitarist reaches for, and `damped` rather than `echo` so the</div>
+<div class="ln" data-line="294">#: repeats lose their edge instead of stacking up as buzz.</div>
+<div class="ln" data-line="295">delayTime : Float</div>
+<div class="ln" data-line="296">delayTime = 45.0 / toFloat tempo</div>
+<div class="ln" data-line="297"> </div>
+<div class="ln" data-line="298">lead : Sig Float</div>
+<div class="ln" data-line="299">lead = leadDry + 0.30 * damped delayTime 0.45 0.55 leadDry</div>
+<div class="ln" data-line="300"> </div>
+<div class="ln" data-line="301"># ── Behind it ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="302">#</div>
+<div class="ln" data-line="303"># Power chords: a root and its fifth, distorted, with no third in them —</div>
+<div class="ln" data-line="304"># which is the whole reason a power chord works under a lead that is going</div>
+<div class="ln" data-line="305"># to play both a major and a minor third over it.</div>
+<div class="ln" data-line="306"> </div>
+<div class="ln" data-line="307">rootOf : Int -> Float</div>
+<div class="ln" data-line="308">rootOf sec = case sec of</div>
+<div class="ln" data-line="309">    0 -> 55.00</div>
+<div class="ln" data-line="310">    1 -> 55.00</div>
+<div class="ln" data-line="311">    2 -> 73.42</div>
+<div class="ln" data-line="312">    3 -> 65.41</div>
+<div class="ln" data-line="313">    4 -> 55.00</div>
+<div class="ln" data-line="314">    _ -> 55.00</div>
+<div class="ln" data-line="315"> </div>
+<div class="ln" data-line="316">chordHz : Sig Float</div>
+<div class="ln" data-line="317">chordHz = map (n => rootOf (sectionAt n)) ticks</div>
+<div class="ln" data-line="318"> </div>
+<div class="ln" data-line="319">#: Palm-muted: the chord is gated on the beat so it chugs rather than</div>
+<div class="ln" data-line="320">#: drones, and the gate is short enough that what you hear is the attack.</div>
+<div class="ln" data-line="321">chugAt : Int -> Float</div>
+<div class="ln" data-line="322">chugAt n = case eqInt (prim_mod_int (stepAt n) 4) 0 of</div>
+<div class="ln" data-line="323">    True -> chugFall (throughStep n)</div>
+<div class="ln" data-line="324">    False -> 0.0</div>
+<div class="ln" data-line="325"> </div>
+<div class="ln" data-line="326">chugFall : Float -> Float</div>
+<div class="ln" data-line="327">chugFall t = case t > 0.7 of</div>
+<div class="ln" data-line="328">    True -> 0.0</div>
+<div class="ln" data-line="329">    False -> (1.0 - t / 0.7) * (1.0 - t / 0.7)</div>
+<div class="ln" data-line="330"> </div>
+<div class="ln" data-line="331">chugSig : Sig Float</div>
+<div class="ln" data-line="332">chugSig = map chugAt ticks</div>
+<div class="ln" data-line="333"> </div>
+<div class="ln" data-line="334">chordOsc : Sig Float</div>
+<div class="ln" data-line="335">chordOsc = 0.5 * saw chordHz + 0.5 * saw (1.4983 * chordHz)</div>
+<div class="ln" data-line="336"> </div>
+<div class="ln" data-line="337">backing : Sig Float</div>
+<div class="ln" data-line="338">backing = dcBlock (lowpassLadder (!1500.0) 0.15</div>
+<div class="ln" data-line="339">    (drive 0.7 (highpassOnePole (!90.0) (1.6 * chordOsc * chugSig))))</div>
+<div class="ln" data-line="340"> </div>
+<div class="ln" data-line="341"># ── Drums ────────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="342"> </div>
+<div class="ln" data-line="343">kickAt : Int -> Bool</div>
+<div class="ln" data-line="344">kickAt s = case s of</div>
+<div class="ln" data-line="345">    0 -> True</div>
+<div class="ln" data-line="346">    6 -> True</div>
+<div class="ln" data-line="347">    10 -> True</div>
+<div class="ln" data-line="348">    _ -> False</div>
+<div class="ln" data-line="349"> </div>
+<div class="ln" data-line="350">snareAt : Int -> Bool</div>
+<div class="ln" data-line="351">snareAt s = case s of</div>
+<div class="ln" data-line="352">    4 -> True</div>
+<div class="ln" data-line="353">    12 -> True</div>
+<div class="ln" data-line="354">    _ -> False</div>
+<div class="ln" data-line="355"> </div>
+<div class="ln" data-line="356">hatAt : Int -> Bool</div>
+<div class="ln" data-line="357">hatAt s = case prim_mod_int s 2 of</div>
+<div class="ln" data-line="358">    0 -> True</div>
+<div class="ln" data-line="359">    _ -> False</div>
+<div class="ln" data-line="360"> </div>
+<div class="ln" data-line="361">cube : Float -> Float</div>
+<div class="ln" data-line="362">cube v = v * v * v</div>
+<div class="ln" data-line="363"> </div>
+<div class="ln" data-line="364">fall : Float -> Float -> Float</div>
+<div class="ln" data-line="365">fall len t = case t > len of</div>
+<div class="ln" data-line="366">    True -> 0.0</div>
+<div class="ln" data-line="367">    False -> cube (1.0 - t / len)</div>
+<div class="ln" data-line="368"> </div>
+<div class="ln" data-line="369">onlyIf : Bool -> Float -> Float</div>
+<div class="ln" data-line="370">onlyIf on v = case on of</div>
+<div class="ln" data-line="371">    True -> v</div>
+<div class="ln" data-line="372">    False -> 0.0</div>
+<div class="ln" data-line="373"> </div>
+<div class="ln" data-line="374">Kit := Kit Float Int</div>
+<div class="ln" data-line="375"> </div>
+<div class="ln" data-line="376">kickHz : Int -> Float</div>
+<div class="ln" data-line="377">kickHz n = 48.0 + 150.0 * fall 0.5 (throughStep n)</div>
+<div class="ln" data-line="378"> </div>
+<div class="ln" data-line="379">stepKit : Kit -> Int -> Kit</div>
+<div class="ln" data-line="380">stepKit k n = case k of</div>
+<div class="ln" data-line="381">    Kit ph m -> Kit (wrap (ph + kickHz n / sampleRate)) n</div>
+<div class="ln" data-line="382"> </div>
+<div class="ln" data-line="383">kickOut : Kit -> Float</div>
+<div class="ln" data-line="384">kickOut k = case k of</div>
+<div class="ln" data-line="385">    Kit ph n -> onlyIf (kickAt (stepAt n)) (triangleOf ph * fall 0.55 (throughStep n))</div>
+<div class="ln" data-line="386"> </div>
+<div class="ln" data-line="387">kick : Sig Float</div>
+<div class="ln" data-line="388">kick = map kickOut (scan stepKit (Kit 0.0 0) ticks)</div>
+<div class="ln" data-line="389"> </div>
+<div class="ln" data-line="390">#: The beater, and the reason it is here is in `strings2.ges`: without a</div>
+<div class="ln" data-line="391">#: broadband transient a kick is inaudible on a small speaker, because</div>
+<div class="ln" data-line="392">#: almost all of it is below what one can reproduce.</div>
+<div class="ln" data-line="393">kickClick : Sig Float</div>
+<div class="ln" data-line="394">kickClick = highpassOnePole (!2200.0) (zip clickMix ticks (white 71))</div>
+<div class="ln" data-line="395"> </div>
+<div class="ln" data-line="396">clickMix : Int -> Float -> Float</div>
+<div class="ln" data-line="397">clickMix n w = onlyIf (kickAt (stepAt n)) (w * fall 0.035 (throughStep n))</div>
+<div class="ln" data-line="398"> </div>
+<div class="ln" data-line="399">snareNoise : Sig Float</div>
+<div class="ln" data-line="400">snareNoise = zip snareMix ticks (white 31)</div>
+<div class="ln" data-line="401"> </div>
+<div class="ln" data-line="402">snareMix : Int -> Float -> Float</div>
+<div class="ln" data-line="403">snareMix n w = onlyIf (snareAt (stepAt n)) (w * fall 0.30 (throughStep n))</div>
+<div class="ln" data-line="404"> </div>
+<div class="ln" data-line="405">snare : Sig Float</div>
+<div class="ln" data-line="406">snare = 0.5 * snareNoise + 0.035 * resonate (!190.0) 0.14 snareNoise</div>
+<div class="ln" data-line="407"> </div>
+<div class="ln" data-line="408">hatNoise : Sig Float</div>
+<div class="ln" data-line="409">hatNoise = zip hatMix ticks (white 57)</div>
+<div class="ln" data-line="410"> </div>
+<div class="ln" data-line="411">hatMix : Int -> Float -> Float</div>
+<div class="ln" data-line="412">hatMix n w = onlyIf (hatAt (stepAt n)) (w * fall 0.05 (throughStep n))</div>
+<div class="ln" data-line="413"> </div>
+<div class="ln" data-line="414">hat : Sig Float</div>
+<div class="ln" data-line="415">hat = highpassOnePole (!6000.0) hatNoise</div>
+<div class="ln" data-line="416"> </div>
+<div class="ln" data-line="417">kit : Sig Float</div>
+<div class="ln" data-line="418">kit = 0.95 * kick + 1.80 * kickClick + 1.00 * snare + 0.60 * hat</div>
+<div class="ln" data-line="419"> </div>
+<div class="ln" data-line="420"># ── The mix ──────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="421"> </div>
+<div class="ln" data-line="422">#: **Measured, not guessed.**  The first setting drove the lead so hard</div>
+<div class="ln" data-line="423">#: that it came out at a crest factor of 1.42 — which is a square wave, not</div>
+<div class="ln" data-line="424">#: a guitar — and nine times the kit's level, so the limiter spent the</div>
+<div class="ln" data-line="425">#: whole piece flat out and everything behind the lead disappeared under</div>
+<div class="ln" data-line="426">#: it.  Distortion that removes all the dynamics has removed the playing</div>
+<div class="ln" data-line="427">#: too.</div>
+<div class="ln" data-line="428">band : Sig Float</div>
+<div class="ln" data-line="429">band = 0.34 * lead + 0.34 * backing + 1.0 * kit</div>
+<div class="ln" data-line="430"> </div>
+<div class="ln" data-line="431">sound : Sig Float</div>
+<div class="ln" data-line="432">sound = brickwall 0.92 (band + 0.16 * reverb 1.6 0.5 band)</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

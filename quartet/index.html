@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,672 +32,671 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># Three minutes for four synthesised instruments.
-#
-#   python -m gestate.audioperform examples/audio/quartet.ges
-#   python -m gestate.audioperform examples/audio/quartet.ges --seconds 20 -o intro.wav
-#
-# Both routes go through the compiled engine: without `-o` the piece
-# plays in real time, and `-o` renders the whole three minutes in under a
-# minute.  Only a machine with no `clang` falls back to `audioengine` —
-# one Python object per node per sample, about a thousandth of real time,
-# roughly a day and a half for this file.
-#
-# `polysaw.ges` is one bank playing eight bars.  `nocturne.ges` is a piece
-# of some length handed to somebody else's synthesiser.  This is both at
-# once: **four `voices` banks, their own piece, and the mix**, in one file
-# and therefore checked as one program — `voices.lead` names a bank
-# lexically, so "does this line suit this instrument" is a type error rather
-# than a silence.
-#
-# The four are chosen to be four *methods* rather than four timbres, so the
-# file is also a tour of `synth.ges`:
-#
-#   * `bass` — subtractive: a saw and a sub-octave square into a ladder
-#     whose cutoff an envelope sweeps.
-#   * `pad`  — subtractive too, but slow, detuned and **stereo**: a voice
-#     returns a `Stereo`, so the bank sums left with left.
-#   * `lead` — four-operator FM, the wiring written as a matrix.
-#   * `kit`  — hiss and a falling sine, with the *drum* in the payload:
-#     one voice function that is a kick, a snare or a hat depending on a
-#     number the score sends it.
-#
-# ── How a piece of this length is written ────────────────────────────────
-#
-# Every part below is a `[: Int :]` — bare numbers, no instrument — exactly
-# as in `examples/music/`, and the bank is attached in one place at the
-# bottom by `onPad`, `onBass` and friends.  That is what lets a phrase be
-# transposed, doubled at the octave, or moved to another instrument as a
-# one-word edit, and it is why `shift` below is four words: `>>=`
-# substitutes a score for every note, so "everything a fifth up" is a
-# function of one number.
-#
-# 72 bars of 4/4 at 96 bpm is three minutes to the second.  Nine sections
-# of eight bars, and the one rule to keep in mind when editing is that
-# everything inside a `||` starts at the same instant — so a section's four
-# voices must agree on how many bars they are.
-
-# ── What a note carries ──────────────────────────────────────────────────
-#
-# **One payload for all four banks**: a number and how hard.  For the three
-# pitched instruments the number is a key; for the kit it is which drum —
-# 0 kick, 1 snare, 2 closed hat, 3 open hat.
-#
-# The kit would rather have a payload of its own, and saying `Hit` where
-# the others say `Stroke` is exactly the kind of thing the type checker is
-# here for.  It does not build: two *instantiations of `Played`* in one
-# graph collide in the code generator, which picks a layout by constructor
-# tag and finds `Played` twice.  Fifteen lines reproduce it — two banks,
-# two records — so it is a defect rather than a rule of the fragment, and
-# until it is fixed the banks share a record.
-#
-# It is not called `Note`: `music.ges` declares `Score a := Note a`, so a
-# piece already has a `Note` constructor and `'x` desugars to it.
-# `fmpoly.ges` says what shadowing it costs.
-
-Stroke := Stroke Int Int                # key number (or drum), velocity
-
-voices bass 3 bassVoice : Sig Float
-
-voices pad 8 padVoice : Sig Stereo
-
-voices lead 8 leadVoice : Sig Float
-
-voices kit 4 kitVoice : Sig Float
-
-#: Every bank takes a `Stroke`, so a keyboard can play any of them against
-#: the score — `--midi-bank pad`, which is `duet.ges`'s trick with three
-#: more instruments to choose from.
-instance FromMIDI Stroke where
-    noteOn ch p v = Just (Stroke p v)
-
-# ── What every voice reads off its note ──────────────────────────────────
-#
-# A `voices` bank hands each voice the note's *timing* (`Sig Gate`) and the
-# note's *payload* (`Sig Stroke`) as two separate signals, and almost
-# nothing needs both.  These are the payload's readings; `!` lifts one over
-# the signal wherever it is wanted.
-
-hzOf : Stroke -> Float
-hzOf q = case q of
-    Stroke k v -> keyHz k
-
-velOf : Stroke -> Float
-velOf q = case q of
-    Stroke k v -> toFloat v / 127.0
-
-#: A frequency signal moved by `cents`.  A detune is a *factor*, and this
-#: is `centsHz` lifted over a signal so that it can be one.
-detuned : Float -> Sig Float -> Sig Float
-detuned cents hz = map (h => centsHz cents h) hz
-
-#: An envelope scaled into a cutoff in hertz, clamped at both ends.
-#:
-#: Every subtractive voice below wants this and none of them wants it
-#: differently: a filter asked for a cutoff past Nyquist should sound like
-#: an open filter rather than like a divergence.
-sweepOf : Float -> Float -> Sig Float -> Sig Float
-sweepOf base range env =
-    map (x => clamp 20.0 nyquist (base + range * x)) env
-
-#: Where a key sits in the field: middle C centred, three octaves either
-#: side reaching the edges.
-keyPan : Stroke -> Float
-keyPan q = case q of
-    Stroke k v -> clamp (negate 1.0) 1.0 (toFloat (k - 60) / 36.0)
-
-# ── The bass: subtractive, with a sub-octave ─────────────────────────────
-#
-# A sawtooth at the note, a square an octave *below* it, and a four-pole
-# ladder that opens fast and shuts again.  The square is what makes it
-# carry on a small speaker: the fundamental of a bass note at 73 Hz is
-# mostly inaudible there, and its octave is not.
-#
-# **Three lines, and each is a value.**  The sub-octave is `hz * 0.5` —
-# arithmetic on the frequency signal, not a second state record — and the
-# sweep is the filter envelope scaled into hertz.
-
-bassQ : Float
-bassQ = 0.42
-
-bassAmpEnv : Adsr
-bassAmpEnv = Adsr 0.004 0.22 0.72 0.12
-
-#: Shorter than the amplitude envelope, so the note goes dull while it is
-#: still loud — the shape of a plucked string, and the reason two envelopes
-#: are worth having.
-bassFiltEnv : Adsr
-bassFiltEnv = Adsr 0.002 0.16 0.22 0.10
-
-bassOsc : Sig Float -> Sig Float
-bassOsc hz = 0.6 * saw hz + 0.3 * square (hz * 0.5)
-
-bassVoice : Sig Gate -> Sig Stroke -> Sig Float
-bassVoice g s = lowpassLadder (sweepOf 120.0 2200.0 (adsr bassFiltEnv g)) (!bassQ)
-                    (bassOsc (!hzOf s))
-              * adsr bassAmpEnv g * !velOf s * 0.9
-
-# ── The pad: slow, detuned, and two channels wide ────────────────────────
-#
-# `stereopad.ges`'s voice, and its reasoning: a voice is panned by its own
-# *key number*, so a chord lays itself across the field and the position of
-# a note is a property of the note rather than of which of the eight slots
-# the allocator happened to hand it.  The two detuned oscillators are then
-# placed a little apart from each other inside the voice, which is the
-# second half of the width.
-#
-# Eight voices for four-note chords is not extravagance: the release is
-# over a second long, so a chord is still sounding while the next one
-# starts, and a bank of four would steal its own tail every bar.
-
-padDetune : Float
-padDetune = 8.0
-
-padSpread : Float
-padSpread = 0.5
-
-#: It arrives rather than starts.
-padAmpEnv : Adsr
-padAmpEnv = Adsr 0.45 1.4 0.55 1.1
-
-padFiltEnv : Adsr
-padFiltEnv = Adsr 1.1 1.8 0.4 0.9
-
-#: Triangle and saw rather than two of either: the triangle carries the
-#: body and the saw the top, and the filter takes back most of the saw.
-padOsc : Sig Float -> Sig Float
-padOsc hz = 0.55 * triangle (detuned (negate padDetune) hz)
-          + 0.3 * saw (detuned padDetune hz)
-
-#: The filtered, enveloped voice placed twice — once at each end of
-#: `padSpread`, with the note's own pitch sliding the pair as a whole.
-#:
-#: Both oscillators are in the filter's output as one number, so they
-#: cannot be panned apart afterwards; what is placed twice is the
-#: *filtered* signal, which is what makes the width survive the filter.
-place : Sig Float -> Sig Float -> Sig Stereo
-place x p = zip (v c => panOf (c - padSpread * 0.5) v
-                            + panOf (c + padSpread * 0.5) v) x p
-
-padVoice : Sig Gate -> Sig Stroke -> Sig Stereo
-padVoice g s = place (lowpassSvf (sweepOf 220.0 2600.0 (adsr padFiltEnv g)) 0.3
-                          (padOsc (!hzOf s))
-                      * adsr padAmpEnv g * !velOf s * 0.3)
-                     (!keyPan s)
-
-# ── The lead: FM, wired as a matrix ──────────────────────────────────────
-#
-# Two pairs.  Operators 1 and 2 are the body at a 1:1 ratio, so the tone is
-# harmonic and reads as a pitched note; 3 and 4 are a struck-metal
-# transient at 9×, which is not a whole-number multiple of anything else
-# here.  The diagonal entry on row 2 is operator 2 modulating itself —
-# feedback needs no separate mechanism, because every operator already
-# reads the previous sample's outputs.
-#
-# Turn `0.16` to `0.0` and the attack goes soft; turn `9.0` to `2.0` and
-# the instrument becomes a horn.
-
-bellPatch : Patch
-bellPatch = Patch (Quad 1.0 1.0 1.0 9.0)
-                  (modulates 2 1 1.05 (modulates 2 2 0.16
-                      (modulates 4 3 0.5 noWiring)))
-                  (Quad 0.8 0.0 0.3 0.0)
-
-#: Four envelopes, one per operator, and that is what makes it an
-#: instrument rather than a chord of sine waves: the modulators are faster,
-#: so the *brightness* decays ahead of the loudness the way every struck
-#: string does.
-bodyEnv : Adsr
-bodyEnv = Adsr 0.006 1.1 0.45 0.35
-
-bodyModEnv : Adsr
-bodyModEnv = Adsr 0.002 0.55 0.10 0.2
-
-strikeEnv : Adsr
-strikeEnv = Adsr 0.0 0.3 0.0 0.1
-
-strikeModEnv : Adsr
-strikeModEnv = Adsr 0.0 0.13 0.0 0.06
-
-#: The four operator levels as one signal.  `adsr` gives one envelope
-#: from a gate; this is the same fold giving four at once, which is what a
-#: `Quad` is and what saves three passes over the same two integers.
-leadLevels : Sig Gate -> Sig Quad
-leadLevels g = zip (t w => case w of
-    Gate on off -> Quad (adsrOf bodyEnv t on off) (adsrOf bodyModEnv t on off)
-                        (adsrOf strikeEnv t on off)
-                        (adsrOf strikeModEnv t on off)) ticks g
-
-#: The bank is fed the note's frequency and those four levels — and that
-#: is the whole voice.  There used to be a `leadDrive` between here and
-#: `fm` whose only job was to `zip` the two together; `fm` does its own
-#: plumbing now, as the filters always have.
-leadVoice : Sig Gate -> Sig Stroke -> Sig Float
-leadVoice g s = fm bellPatch (!hzOf s) (leadLevels g) * !velOf s * 0.6
-
-# ── The kit: one voice that is four drums ────────────────────────────────
-#
-# The payload's first field is *which* drum, and the voice sums four
-# drums each multiplied by whether this note is that drum.  A gate is a
-# number here rather than a branch, which is what lets the whole thing stay
-# an expression — and the three that are not playing are multiplied by
-# zero, so a kick costs a kick.
-#
-# Nothing here is a sample.  A kick is a sine whose pitch falls, a snare is
-# hiss through a bandpass, and a hat is the same hiss through a highpass.
-#
-# **The hiss is one signal, shared.**  Four voices each folding their own
-# generator from the same seed produced four identical sequences, which is
-# what `noise` is: a fold over time, so that a render is reproducible.
-
-hiss : Sig Float
-hiss = white 20260806
-
-#: A kick is a pitch envelope before it is an amplitude envelope: 178 Hz
-#: down to 48 in about forty milliseconds is the whole sound.
-kick : Sig Gate -> Sig Float
-kick g = sine (48.0 + 130.0 * perc 26.0 g) * perc 7.0 g * 0.95
-
-snare : Sig Gate -> Sig Float
-snare g = bandpassSvf 1900.0 0.45 hiss * perc 15.0 g * 0.8
-
-#: The two hats are the same filter and differ only in how long they ring,
-#: which is what a pedal does to a real one.
-closedHat : Sig Gate -> Sig Float
-closedHat g = highpassSvf 7400.0 0.18 hiss * perc 55.0 g * 0.3
-
-openHat : Sig Gate -> Sig Float
-openHat g = highpassSvf 7400.0 0.18 hiss * perc 10.0 g * 0.26
-
-#: One per drum: this note's velocity if it is that drum, and zero if it is
-#: not.  `perc` is already silent before a note and needs no `off`, so
-#: an untouched voice is silent on all four counts.
-isKick : Stroke -> Float
-isKick q = case q of
-    Stroke d vel -> case d of
-        0 -> toFloat vel / 127.0
-        _ -> 0.0
-
-isSnare : Stroke -> Float
-isSnare q = case q of
-    Stroke d vel -> case d of
-        1 -> toFloat vel / 127.0
-        _ -> 0.0
-
-isClosed : Stroke -> Float
-isClosed q = case q of
-    Stroke d vel -> case d of
-        2 -> toFloat vel / 127.0
-        _ -> 0.0
-
-isOpen : Stroke -> Float
-isOpen q = case q of
-    Stroke d vel -> case d of
-        3 -> toFloat vel / 127.0
-        _ -> 0.0
-
-kitVoice : Sig Gate -> Sig Stroke -> Sig Float
-kitVoice g s = kick g * !isKick s
-             + snare g * !isSnare s
-             + closedHat g * !isClosed s
-             + openHat g * !isOpen s
-
-# ── Shape ────────────────────────────────────────────────────────────────
-#
-# Repetition is a function rather than a copy, so the chord progression
-# below is written once and played through fifteen times.
-
-twice : [: a :] -> [: a :]
-twice x = x ++ x
-
-four : [: a :] -> [: a :]
-four x = twice (twice x)
-
-#: A bar of silence.  `r` is one ticksPerBeat, like a note, and `|* 4` is what
-#: makes it a bar — which means `barRest |* 4` is four bars.
-barRest : [: a :]
-barRest = r |* 4
-
-rest4 : [: a :]
-rest4 = barRest |* 4
-
-#: Everything `n` semitones up.  Four words, because `>>=` substitutes a
-#: score for every unassigned note and a transposed note is a score.
-shift : Int -> [: Int :] -> [: Int :]
-shift n s = s >>= (k => '(k + n))
-
-down : [: Int :] -> [: Int :]
-down s = shift (0 - 12) s
-
-# ── Harmony ──────────────────────────────────────────────────────────────
-#
-# D minor.  Dm - Bb - F - C is the piece; Gm - Bb - C - A is the bridge,
-# and the A is major, which is the one chord with an F# in it and the only
-# reason the return to Dm afterwards sounds like a return.
-#
-# The voicings move by step rather than by root, so the inner notes barely
-# shift between chords — which is what keeps eight slow voices from
-# sounding like eight separate events.
-
-padDm : [: Int :]
-padDm = ('50 || '57 || '62 || '65) |* 4
-
-padBb : [: Int :]
-padBb = ('46 || '58 || '62 || '65) |* 4
-
-padF : [: Int :]
-padF = ('53 || '57 || '60 || '65) |* 4
-
-padC : [: Int :]
-padC = ('48 || '55 || '60 || '64) |* 4
-
-padGm : [: Int :]
-padGm = ('43 || '55 || '58 || '62) |* 4
-
-padA : [: Int :]
-padA = ('45 || '57 || '61 || '64) |* 4
-
-padMain : [: Int :]
-padMain = padDm ++ padBb ++ padF ++ padC
-
-padBridge : [: Int :]
-padBridge = padGm ++ padBb ++ padC ++ padA
-
-# ── Bass ─────────────────────────────────────────────────────────────────
-#
-# One figure, given a root: two eighths up the octave, a quarter, two
-# eighths to the fifth, and the octave to finish.  Four beats however low
-# the root is, so the whole line is `bassFig` applied four times.
-
-bassFig : Int -> [: Int :]
-bassFig k = (('k ++ '(k + 12)) |/ 2)
-         ++ 'k
-         ++ (('k ++ '(k + 7)) |/ 2)
-         ++ '(k + 12)
-
-bassMain : [: Int :]
-bassMain = bassFig 38 ++ bassFig 34 ++ bassFig 41 ++ bassFig 36
-
-bassBridge : [: Int :]
-bassBridge = bassFig 31 ++ bassFig 34 ++ bassFig 36 ++ bassFig 33
-
-#: The same roots as whole notes, for the sections where the drums are out
-#: and the figure would be too busy.
-bassLong : [: Int :]
-bassLong = ('38 |* 4) ++ ('34 |* 4) ++ ('41 |* 4) ++ ('36 |* 4)
-
-# ── Drums ────────────────────────────────────────────────────────────────
-#
-# 0 is the kick, 1 the snare, 2 the closed hat and 3 the open one.  Hats on
-# the eighths, so `|/ 2` halves a note and eight of them fill the bar the
-# four backbeats do.
-
-hatBar : [: Int :]
-hatBar = twice (four ('2 |/ 2))
-
-#: The last eighth of the bar opened, which is what makes a straight
-#: pattern breathe at the bar line.
-hatBarOpen : [: Int :]
-hatBarOpen = twice (four ('2 |/ 2)) || at (7 * ticksPerBeat / 2) ('3 |/ 2)
-
-backbeat : [: Int :]
-backbeat = '0 ++ '1 ++ '0 ++ '1
-
-#: The same, with the kick doubled into the third ticksPerBeat.
-backbeatPush : [: Int :]
-backbeatPush = '0 ++ '1 ++ (('0 ++ '0) |/ 2) ++ '1
-
-groove : [: Int :]
-groove = backbeat || hatBar
-
-groovePush : [: Int :]
-groovePush = backbeatPush || hatBar
-
-#: Four snares in the space of one ticksPerBeat.
-fill : [: Int :]
-fill = four '1 |/ 4
-
-#: `||` rather than `++`, so the bar stays a bar: sequencing the fill on
-#: would make the phrase five beats long and every section after it would
-#: start late.  `at` places it inside the bar instead.
-grooveFill : [: Int :]
-grooveFill = groovePush || at (3 * ticksPerBeat) fill
-
-drumPhrase : [: Int :]
-drumPhrase = groove ++ groovePush ++ groove ++ grooveFill
-
-#: Eight bars of hats alone, with the fill arriving at the end — what the
-#: break needs so the return has something to arrive against.
-hatsPhrase : [: Int :]
-hatsPhrase = four hatBar
-          ++ hatBar ++ hatBarOpen ++ hatBar
-          ++ (hatBarOpen || at (3 * ticksPerBeat) fill)
-
-# ── The tune ─────────────────────────────────────────────────────────────
-#
-# Quarters in the first phrase, eighth-note runs in the second and a climb
-# in the third, so the return of the first in the reprise sounds like a
-# return rather than like more of the same.
-
-leadA1 : [: Int :]
-leadA1 = '74 ++ '72 ++ ('74 |* 2)
-      ++ '77 ++ '76 ++ ('74 |* 2)
-      ++ '72 ++ '74 ++ ('69 |* 2)
-      ++ '67 ++ '69 ++ ('72 |* 2)
-
-leadA2 : [: Int :]
-leadA2 = (('74 ++ '76) |/ 2) ++ '77 ++ ('76 |* 2)
-      ++ (('77 ++ '79) |/ 2) ++ '81 ++ ('79 |* 2)
-      ++ '77 ++ '76 ++ '74 ++ '72
-      ++ ('76 |* 2) ++ '74 ++ r
-
-leadA : [: Int :]
-leadA = leadA1 ++ leadA2
-
-#: The same eight bars with the runs turned into sixteenths — the verse
-#: repeating without repeating itself.
-leadA3 : [: Int :]
-leadA3 = (('74 ++ '72 ++ '74 ++ '76) |/ 4) ++ ('74 |* 3)
-      ++ (('77 ++ '76 ++ '77 ++ '79) |/ 4) ++ ('74 |* 3)
-      ++ (('72 ++ '74 ++ '76 ++ '77) |/ 4) ++ ('69 |* 3)
-      ++ '67 ++ '69 ++ ('72 |* 2)
-
-leadBridge : [: Int :]
-leadBridge = '70 ++ '69 ++ ('67 |* 2)
-          ++ '69 ++ '70 ++ ('74 |* 2)
-          ++ '72 ++ '74 ++ ('76 |* 2)
-          ++ '73 ++ '76 ++ ('69 |* 2)
-
-leadBridge2 : [: Int :]
-leadBridge2 = (('67 ++ '70 ++ '74 ++ '70) |/ 2) ++ ('72 |* 2)
-           ++ (('70 ++ '74 ++ '77 ++ '74) |/ 2) ++ ('76 |* 2)
-           ++ (('72 ++ '76 ++ '79 ++ '76) |/ 2) ++ ('77 |* 2)
-           ++ ('73 |* 2) ++ ('76 |* 2)
-
-#: The top of the piece: four bars that climb and four that come down.
-leadC : [: Int :]
-leadC = (('74 ++ '77 ++ '81 ++ '79) |/ 2) ++ ('81 |* 2)
-     ++ (('82 ++ '81 ++ '79 ++ '77) |/ 2) ++ ('77 |* 2)
-     ++ (('77 ++ '79 ++ '81 ++ '84) |/ 2) ++ ('81 |* 2)
-     ++ ('79 |* 2) ++ ('76 |* 2)
-
-leadC2 : [: Int :]
-leadC2 = (('81 ++ '79 ++ '77 ++ '76) |/ 2) ++ ('74 |* 2)
-      ++ (('77 ++ '76 ++ '74 ++ '72) |/ 2) ++ ('70 |* 2)
-      ++ (('72 ++ '74 ++ '76 ++ '79) |/ 2) ++ ('77 |* 2)
-      ++ ('76 |* 2) ++ ('74 |* 2)
-
-# ── Arpeggios ────────────────────────────────────────────────────────────
-#
-# Four chord tones, up and back, as eighths.  The same bank as the tune —
-# an arpeggio is not another instrument, it is what this one does when
-# there is no melody to play.
-
-arpBar : Int -> Int -> Int -> Int -> [: Int :]
-arpBar a b c d = ('a ++ 'b ++ 'c ++ 'd ++ 'c ++ 'b ++ 'c ++ 'd) |/ 2
-
-arpMain : [: Int :]
-arpMain = arpBar 62 65 69 74
-       ++ arpBar 58 62 65 70
-       ++ arpBar 57 60 65 69
-       ++ arpBar 55 60 64 67
-
-arpBridge : [: Int :]
-arpBridge = arpBar 55 58 62 67
-         ++ arpBar 58 62 65 70
-         ++ arpBar 55 60 64 67
-         ++ arpBar 57 61 64 69
-
-# ── Instruments ──────────────────────────────────────────────────────────
-#
-# Where a part stops being numbers and becomes an instrument.  `voices.pad`
-# names the bank lexically, and the result is `[: Void :]`: every note
-# committed, and the type checker will not let a `Stroke` reach the pad.
-
-pitched : Int -> [: Int :] -> [: Stroke :]
-pitched v s = s >>= (k => '(Stroke k v))
-
-onPad : [: Int :] -> [: Void :]
-onPad s = pitched 84 s >>= voices.pad
-
-onPadSoft : [: Int :] -> [: Void :]
-onPadSoft s = pitched 62 s >>= voices.pad
-
-onBass : [: Int :] -> [: Void :]
-onBass s = pitched 104 s >>= voices.bass
-
-onLead : [: Int :] -> [: Void :]
-onLead s = pitched 100 s >>= voices.lead
-
-onArp : [: Int :] -> [: Void :]
-onArp s = pitched 68 s >>= voices.lead
-
-onKit : [: Int :] -> [: Void :]
-onKit s = (s >>= (d => '(Stroke d 100))) >>= voices.kit
-
-# ── Sections ─────────────────────────────────────────────────────────────
-#
-# Nine of eight bars.  Each is an overlay of the four banks, and the piece
-# is their sequence — the same `++` that joins two notes.
-
-#: Pad and bass alone, with the lead arriving halfway as an arpeggio.
-intro : [: Void :]
-intro = onPadSoft (twice padMain)
-     || onBass (twice bassLong)
-     || onArp (rest4 ++ arpMain)
-
-#: The tune arrives, and so do the drums and the bass figure.
-verseA : [: Void :]
-verseA = onPad (twice padMain)
-      || onBass (twice bassMain)
-      || onLead leadA
-      || onKit (twice drumPhrase)
-
-#: The same eight bars, the tune broken into sixteenths and the arpeggio
-#: underneath it.
-verseB : [: Void :]
-verseB = onPad (twice padMain)
-      || onBass (twice bassMain)
-      || onLead (leadA3 ++ leadA2)
-      || onArp (twice arpMain)
-      || onKit (twice drumPhrase)
-
-#: Gm - Bb - C - A twice, and the A is where the piece leans.
-bridge : [: Void :]
-bridge = onPad (twice padBridge)
-      || onBass (twice bassBridge)
-      || onLead (leadBridge ++ leadBridge2)
-      || onKit (twice drumPhrase)
-
-#: Everything out but the hats: pad, held bass, and the arpeggio alone.
-break : [: Void :]
-break = onPadSoft (twice padMain)
-     || onBass (twice bassLong)
-     || onArp (twice arpMain)
-     || onKit hatsPhrase
-
-#: The top: the climbing tune, doubled an octave below itself.
-chorus : [: Void :]
-chorus = onPad (twice padMain)
-      || onBass (twice bassMain)
-      || onLead (leadC || down leadC)
-      || onArp (twice arpMain)
-      || onKit (twice drumPhrase)
-
-#: The first tune returns, the arpeggio now underneath it.
-reprise : [: Void :]
-reprise = onPad (twice padMain)
-       || onBass (twice bassMain)
-       || onLead leadA
-       || onArp (twice arpMain)
-       || onKit (twice drumPhrase)
-
-#: And once more, coming down.
-chorus2 : [: Void :]
-chorus2 = onPad (twice padMain)
-       || onBass (twice bassMain)
-       || onLead (leadC2 || down leadC2)
-       || onArp (twice arpMain)
-       || onKit (twice drumPhrase)
-
-#: Four bars as before, then a Dm held for four — the drums stop at the
-#: bar line and the pad's release does the rest.
-outroLast : [: Void :]
-outroLast = onPadSoft (padDm |* 4)
-         || onBass ('38 |* 16)
-         || onLead (('74 |* 6) ++ ('69 |* 10))
-
-outro : [: Void :]
-outro = (onPadSoft padMain
-      || onBass bassLong
-      || onArp arpMain
-      || onKit drumPhrase)
-     ++ outroLast
-
-# ── The piece ────────────────────────────────────────────────────────────
-#
-# 72 bars at 96 bpm: three minutes, less the pad's last release.
-
-bpm : Int
-bpm = 96
-
-score : [: Void :]
-score = intro
-     ++ verseA
-     ++ verseB
-     ++ bridge
-     ++ break
-     ++ chorus
-     ++ reprise
-     ++ chorus2
-     ++ outro
-
-# ── The mix ──────────────────────────────────────────────────────────────
-#
-# Each bank's name is bound to the *sum* of its voices, so the mix is
-# ordinary signal arithmetic.  `pad` is already a `Sig Stereo` — its voices
-# are — and the other three are placed with `pan` and `widen`, which
-# is why `sound` can be stereo without any bank being asked to care.
-#
-# `drive` on the bass and on the master is a soft clipper: twenty-one
-# voices summed pass 1.0 on a dense bar, and an analogue desk rounds those
-# peaks off rather than tearing.
-
-padMix : Sig Stereo
-padMix = 0.6 * pad
-
-bassMix : Sig Stereo
-bassMix = widen (drive 0.05 (gain 0.42 bass))
-
-leadMix : Sig Stereo
-leadMix = pan 0.22 (dcBlock (lowpassSvf 7000.0 0.15 (gain 0.45 lead)))
-
-kitMix : Sig Stereo
-kitMix = pan 0.06 (gain 0.6 kit)
-
-sound : Sig Stereo
-sound = 0.85 * (padMix + bassMix + leadMix + kitMix)
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># Three minutes for four synthesised instruments.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.audioperform examples/audio/quartet.ges</div>
+<div class="ln" data-line="4">#   python -m gestate.audioperform examples/audio/quartet.ges --seconds 20 -o intro.wav</div>
+<div class="ln" data-line="5">#</div>
+<div class="ln" data-line="6"># Both routes go through the compiled engine: without `-o` the piece</div>
+<div class="ln" data-line="7"># plays in real time, and `-o` renders the whole three minutes in under a</div>
+<div class="ln" data-line="8"># minute.  Only a machine with no `clang` falls back to `audioengine` —</div>
+<div class="ln" data-line="9"># one Python object per node per sample, about a thousandth of real time,</div>
+<div class="ln" data-line="10"># roughly a day and a half for this file.</div>
+<div class="ln" data-line="11">#</div>
+<div class="ln" data-line="12"># `polysaw.ges` is one bank playing eight bars.  `nocturne.ges` is a piece</div>
+<div class="ln" data-line="13"># of some length handed to somebody else's synthesiser.  This is both at</div>
+<div class="ln" data-line="14"># once: **four `voices` banks, their own piece, and the mix**, in one file</div>
+<div class="ln" data-line="15"># and therefore checked as one program — `voices.lead` names a bank</div>
+<div class="ln" data-line="16"># lexically, so "does this line suit this instrument" is a type error rather</div>
+<div class="ln" data-line="17"># than a silence.</div>
+<div class="ln" data-line="18">#</div>
+<div class="ln" data-line="19"># The four are chosen to be four *methods* rather than four timbres, so the</div>
+<div class="ln" data-line="20"># file is also a tour of `synth.ges`:</div>
+<div class="ln" data-line="21">#</div>
+<div class="ln" data-line="22">#   * `bass` — subtractive: a saw and a sub-octave square into a ladder</div>
+<div class="ln" data-line="23">#     whose cutoff an envelope sweeps.</div>
+<div class="ln" data-line="24">#   * `pad`  — subtractive too, but slow, detuned and **stereo**: a voice</div>
+<div class="ln" data-line="25">#     returns a `Stereo`, so the bank sums left with left.</div>
+<div class="ln" data-line="26">#   * `lead` — four-operator FM, the wiring written as a matrix.</div>
+<div class="ln" data-line="27">#   * `kit`  — hiss and a falling sine, with the *drum* in the payload:</div>
+<div class="ln" data-line="28">#     one voice function that is a kick, a snare or a hat depending on a</div>
+<div class="ln" data-line="29">#     number the score sends it.</div>
+<div class="ln" data-line="30">#</div>
+<div class="ln" data-line="31"># ── How a piece of this length is written ────────────────────────────────</div>
+<div class="ln" data-line="32">#</div>
+<div class="ln" data-line="33"># Every part below is a `[: Int :]` — bare numbers, no instrument — exactly</div>
+<div class="ln" data-line="34"># as in `examples/music/`, and the bank is attached in one place at the</div>
+<div class="ln" data-line="35"># bottom by `onPad`, `onBass` and friends.  That is what lets a phrase be</div>
+<div class="ln" data-line="36"># transposed, doubled at the octave, or moved to another instrument as a</div>
+<div class="ln" data-line="37"># one-word edit, and it is why `shift` below is four words: `>>=`</div>
+<div class="ln" data-line="38"># substitutes a score for every note, so "everything a fifth up" is a</div>
+<div class="ln" data-line="39"># function of one number.</div>
+<div class="ln" data-line="40">#</div>
+<div class="ln" data-line="41"># 72 bars of 4/4 at 96 bpm is three minutes to the second.  Nine sections</div>
+<div class="ln" data-line="42"># of eight bars, and the one rule to keep in mind when editing is that</div>
+<div class="ln" data-line="43"># everything inside a `||` starts at the same instant — so a section's four</div>
+<div class="ln" data-line="44"># voices must agree on how many bars they are.</div>
+<div class="ln" data-line="45"> </div>
+<div class="ln" data-line="46"># ── What a note carries ──────────────────────────────────────────────────</div>
+<div class="ln" data-line="47">#</div>
+<div class="ln" data-line="48"># **One payload for all four banks**: a number and how hard.  For the three</div>
+<div class="ln" data-line="49"># pitched instruments the number is a key; for the kit it is which drum —</div>
+<div class="ln" data-line="50"># 0 kick, 1 snare, 2 closed hat, 3 open hat.</div>
+<div class="ln" data-line="51">#</div>
+<div class="ln" data-line="52"># The kit would rather have a payload of its own, and saying `Hit` where</div>
+<div class="ln" data-line="53"># the others say `Stroke` is exactly the kind of thing the type checker is</div>
+<div class="ln" data-line="54"># here for.  It does not build: two *instantiations of `Played`* in one</div>
+<div class="ln" data-line="55"># graph collide in the code generator, which picks a layout by constructor</div>
+<div class="ln" data-line="56"># tag and finds `Played` twice.  Fifteen lines reproduce it — two banks,</div>
+<div class="ln" data-line="57"># two records — so it is a defect rather than a rule of the fragment, and</div>
+<div class="ln" data-line="58"># until it is fixed the banks share a record.</div>
+<div class="ln" data-line="59">#</div>
+<div class="ln" data-line="60"># It is not called `Note`: `music.ges` declares `Score a := Note a`, so a</div>
+<div class="ln" data-line="61"># piece already has a `Note` constructor and `'x` desugars to it.</div>
+<div class="ln" data-line="62"># `fmpoly.ges` says what shadowing it costs.</div>
+<div class="ln" data-line="63"> </div>
+<div class="ln" data-line="64">Stroke := Stroke Int Int                # key number (or drum), velocity</div>
+<div class="ln" data-line="65"> </div>
+<div class="ln" data-line="66">voices bass 3 bassVoice : Sig Float</div>
+<div class="ln" data-line="67"> </div>
+<div class="ln" data-line="68">voices pad 8 padVoice : Sig Stereo</div>
+<div class="ln" data-line="69"> </div>
+<div class="ln" data-line="70">voices lead 8 leadVoice : Sig Float</div>
+<div class="ln" data-line="71"> </div>
+<div class="ln" data-line="72">voices kit 4 kitVoice : Sig Float</div>
+<div class="ln" data-line="73"> </div>
+<div class="ln" data-line="74">#: Every bank takes a `Stroke`, so a keyboard can play any of them against</div>
+<div class="ln" data-line="75">#: the score — `--midi-bank pad`, which is `duet.ges`'s trick with three</div>
+<div class="ln" data-line="76">#: more instruments to choose from.</div>
+<div class="ln" data-line="77">instance FromMIDI Stroke where</div>
+<div class="ln" data-line="78">    noteOn ch p v = Just (Stroke p v)</div>
+<div class="ln" data-line="79"> </div>
+<div class="ln" data-line="80"># ── What every voice reads off its note ──────────────────────────────────</div>
+<div class="ln" data-line="81">#</div>
+<div class="ln" data-line="82"># A `voices` bank hands each voice the note's *timing* (`Sig Gate`) and the</div>
+<div class="ln" data-line="83"># note's *payload* (`Sig Stroke`) as two separate signals, and almost</div>
+<div class="ln" data-line="84"># nothing needs both.  These are the payload's readings; `!` lifts one over</div>
+<div class="ln" data-line="85"># the signal wherever it is wanted.</div>
+<div class="ln" data-line="86"> </div>
+<div class="ln" data-line="87">hzOf : Stroke -> Float</div>
+<div class="ln" data-line="88">hzOf q = case q of</div>
+<div class="ln" data-line="89">    Stroke k v -> keyHz k</div>
+<div class="ln" data-line="90"> </div>
+<div class="ln" data-line="91">velOf : Stroke -> Float</div>
+<div class="ln" data-line="92">velOf q = case q of</div>
+<div class="ln" data-line="93">    Stroke k v -> toFloat v / 127.0</div>
+<div class="ln" data-line="94"> </div>
+<div class="ln" data-line="95">#: A frequency signal moved by `cents`.  A detune is a *factor*, and this</div>
+<div class="ln" data-line="96">#: is `centsHz` lifted over a signal so that it can be one.</div>
+<div class="ln" data-line="97">detuned : Float -> Sig Float -> Sig Float</div>
+<div class="ln" data-line="98">detuned cents hz = map (h => centsHz cents h) hz</div>
+<div class="ln" data-line="99"> </div>
+<div class="ln" data-line="100">#: An envelope scaled into a cutoff in hertz, clamped at both ends.</div>
+<div class="ln" data-line="101">#:</div>
+<div class="ln" data-line="102">#: Every subtractive voice below wants this and none of them wants it</div>
+<div class="ln" data-line="103">#: differently: a filter asked for a cutoff past Nyquist should sound like</div>
+<div class="ln" data-line="104">#: an open filter rather than like a divergence.</div>
+<div class="ln" data-line="105">sweepOf : Float -> Float -> Sig Float -> Sig Float</div>
+<div class="ln" data-line="106">sweepOf base range env =</div>
+<div class="ln" data-line="107">    map (x => clamp 20.0 nyquist (base + range * x)) env</div>
+<div class="ln" data-line="108"> </div>
+<div class="ln" data-line="109">#: Where a key sits in the field: middle C centred, three octaves either</div>
+<div class="ln" data-line="110">#: side reaching the edges.</div>
+<div class="ln" data-line="111">keyPan : Stroke -> Float</div>
+<div class="ln" data-line="112">keyPan q = case q of</div>
+<div class="ln" data-line="113">    Stroke k v -> clamp (negate 1.0) 1.0 (toFloat (k - 60) / 36.0)</div>
+<div class="ln" data-line="114"> </div>
+<div class="ln" data-line="115"># ── The bass: subtractive, with a sub-octave ─────────────────────────────</div>
+<div class="ln" data-line="116">#</div>
+<div class="ln" data-line="117"># A sawtooth at the note, a square an octave *below* it, and a four-pole</div>
+<div class="ln" data-line="118"># ladder that opens fast and shuts again.  The square is what makes it</div>
+<div class="ln" data-line="119"># carry on a small speaker: the fundamental of a bass note at 73 Hz is</div>
+<div class="ln" data-line="120"># mostly inaudible there, and its octave is not.</div>
+<div class="ln" data-line="121">#</div>
+<div class="ln" data-line="122"># **Three lines, and each is a value.**  The sub-octave is `hz * 0.5` —</div>
+<div class="ln" data-line="123"># arithmetic on the frequency signal, not a second state record — and the</div>
+<div class="ln" data-line="124"># sweep is the filter envelope scaled into hertz.</div>
+<div class="ln" data-line="125"> </div>
+<div class="ln" data-line="126">bassQ : Float</div>
+<div class="ln" data-line="127">bassQ = 0.42</div>
+<div class="ln" data-line="128"> </div>
+<div class="ln" data-line="129">bassAmpEnv : Adsr</div>
+<div class="ln" data-line="130">bassAmpEnv = Adsr 0.004 0.22 0.72 0.12</div>
+<div class="ln" data-line="131"> </div>
+<div class="ln" data-line="132">#: Shorter than the amplitude envelope, so the note goes dull while it is</div>
+<div class="ln" data-line="133">#: still loud — the shape of a plucked string, and the reason two envelopes</div>
+<div class="ln" data-line="134">#: are worth having.</div>
+<div class="ln" data-line="135">bassFiltEnv : Adsr</div>
+<div class="ln" data-line="136">bassFiltEnv = Adsr 0.002 0.16 0.22 0.10</div>
+<div class="ln" data-line="137"> </div>
+<div class="ln" data-line="138">bassOsc : Sig Float -> Sig Float</div>
+<div class="ln" data-line="139">bassOsc hz = 0.6 * saw hz + 0.3 * square (hz * 0.5)</div>
+<div class="ln" data-line="140"> </div>
+<div class="ln" data-line="141">bassVoice : Sig Gate -> Sig Stroke -> Sig Float</div>
+<div class="ln" data-line="142">bassVoice g s = lowpassLadder (sweepOf 120.0 2200.0 (adsr bassFiltEnv g)) (!bassQ)</div>
+<div class="ln" data-line="143">                    (bassOsc (!hzOf s))</div>
+<div class="ln" data-line="144">              * adsr bassAmpEnv g * !velOf s * 0.9</div>
+<div class="ln" data-line="145"> </div>
+<div class="ln" data-line="146"># ── The pad: slow, detuned, and two channels wide ────────────────────────</div>
+<div class="ln" data-line="147">#</div>
+<div class="ln" data-line="148"># `stereopad.ges`'s voice, and its reasoning: a voice is panned by its own</div>
+<div class="ln" data-line="149"># *key number*, so a chord lays itself across the field and the position of</div>
+<div class="ln" data-line="150"># a note is a property of the note rather than of which of the eight slots</div>
+<div class="ln" data-line="151"># the allocator happened to hand it.  The two detuned oscillators are then</div>
+<div class="ln" data-line="152"># placed a little apart from each other inside the voice, which is the</div>
+<div class="ln" data-line="153"># second half of the width.</div>
+<div class="ln" data-line="154">#</div>
+<div class="ln" data-line="155"># Eight voices for four-note chords is not extravagance: the release is</div>
+<div class="ln" data-line="156"># over a second long, so a chord is still sounding while the next one</div>
+<div class="ln" data-line="157"># starts, and a bank of four would steal its own tail every bar.</div>
+<div class="ln" data-line="158"> </div>
+<div class="ln" data-line="159">padDetune : Float</div>
+<div class="ln" data-line="160">padDetune = 8.0</div>
+<div class="ln" data-line="161"> </div>
+<div class="ln" data-line="162">padSpread : Float</div>
+<div class="ln" data-line="163">padSpread = 0.5</div>
+<div class="ln" data-line="164"> </div>
+<div class="ln" data-line="165">#: It arrives rather than starts.</div>
+<div class="ln" data-line="166">padAmpEnv : Adsr</div>
+<div class="ln" data-line="167">padAmpEnv = Adsr 0.45 1.4 0.55 1.1</div>
+<div class="ln" data-line="168"> </div>
+<div class="ln" data-line="169">padFiltEnv : Adsr</div>
+<div class="ln" data-line="170">padFiltEnv = Adsr 1.1 1.8 0.4 0.9</div>
+<div class="ln" data-line="171"> </div>
+<div class="ln" data-line="172">#: Triangle and saw rather than two of either: the triangle carries the</div>
+<div class="ln" data-line="173">#: body and the saw the top, and the filter takes back most of the saw.</div>
+<div class="ln" data-line="174">padOsc : Sig Float -> Sig Float</div>
+<div class="ln" data-line="175">padOsc hz = 0.55 * triangle (detuned (negate padDetune) hz)</div>
+<div class="ln" data-line="176">          + 0.3 * saw (detuned padDetune hz)</div>
+<div class="ln" data-line="177"> </div>
+<div class="ln" data-line="178">#: The filtered, enveloped voice placed twice — once at each end of</div>
+<div class="ln" data-line="179">#: `padSpread`, with the note's own pitch sliding the pair as a whole.</div>
+<div class="ln" data-line="180">#:</div>
+<div class="ln" data-line="181">#: Both oscillators are in the filter's output as one number, so they</div>
+<div class="ln" data-line="182">#: cannot be panned apart afterwards; what is placed twice is the</div>
+<div class="ln" data-line="183">#: *filtered* signal, which is what makes the width survive the filter.</div>
+<div class="ln" data-line="184">place : Sig Float -> Sig Float -> Sig Stereo</div>
+<div class="ln" data-line="185">place x p = zip (v c => panOf (c - padSpread * 0.5) v</div>
+<div class="ln" data-line="186">                            + panOf (c + padSpread * 0.5) v) x p</div>
+<div class="ln" data-line="187"> </div>
+<div class="ln" data-line="188">padVoice : Sig Gate -> Sig Stroke -> Sig Stereo</div>
+<div class="ln" data-line="189">padVoice g s = place (lowpassSvf (sweepOf 220.0 2600.0 (adsr padFiltEnv g)) 0.3</div>
+<div class="ln" data-line="190">                          (padOsc (!hzOf s))</div>
+<div class="ln" data-line="191">                      * adsr padAmpEnv g * !velOf s * 0.3)</div>
+<div class="ln" data-line="192">                     (!keyPan s)</div>
+<div class="ln" data-line="193"> </div>
+<div class="ln" data-line="194"># ── The lead: FM, wired as a matrix ──────────────────────────────────────</div>
+<div class="ln" data-line="195">#</div>
+<div class="ln" data-line="196"># Two pairs.  Operators 1 and 2 are the body at a 1:1 ratio, so the tone is</div>
+<div class="ln" data-line="197"># harmonic and reads as a pitched note; 3 and 4 are a struck-metal</div>
+<div class="ln" data-line="198"># transient at 9×, which is not a whole-number multiple of anything else</div>
+<div class="ln" data-line="199"># here.  The diagonal entry on row 2 is operator 2 modulating itself —</div>
+<div class="ln" data-line="200"># feedback needs no separate mechanism, because every operator already</div>
+<div class="ln" data-line="201"># reads the previous sample's outputs.</div>
+<div class="ln" data-line="202">#</div>
+<div class="ln" data-line="203"># Turn `0.16` to `0.0` and the attack goes soft; turn `9.0` to `2.0` and</div>
+<div class="ln" data-line="204"># the instrument becomes a horn.</div>
+<div class="ln" data-line="205"> </div>
+<div class="ln" data-line="206">bellPatch : Patch</div>
+<div class="ln" data-line="207">bellPatch = Patch (Quad 1.0 1.0 1.0 9.0)</div>
+<div class="ln" data-line="208">                  (modulates 2 1 1.05 (modulates 2 2 0.16</div>
+<div class="ln" data-line="209">                      (modulates 4 3 0.5 noWiring)))</div>
+<div class="ln" data-line="210">                  (Quad 0.8 0.0 0.3 0.0)</div>
+<div class="ln" data-line="211"> </div>
+<div class="ln" data-line="212">#: Four envelopes, one per operator, and that is what makes it an</div>
+<div class="ln" data-line="213">#: instrument rather than a chord of sine waves: the modulators are faster,</div>
+<div class="ln" data-line="214">#: so the *brightness* decays ahead of the loudness the way every struck</div>
+<div class="ln" data-line="215">#: string does.</div>
+<div class="ln" data-line="216">bodyEnv : Adsr</div>
+<div class="ln" data-line="217">bodyEnv = Adsr 0.006 1.1 0.45 0.35</div>
+<div class="ln" data-line="218"> </div>
+<div class="ln" data-line="219">bodyModEnv : Adsr</div>
+<div class="ln" data-line="220">bodyModEnv = Adsr 0.002 0.55 0.10 0.2</div>
+<div class="ln" data-line="221"> </div>
+<div class="ln" data-line="222">strikeEnv : Adsr</div>
+<div class="ln" data-line="223">strikeEnv = Adsr 0.0 0.3 0.0 0.1</div>
+<div class="ln" data-line="224"> </div>
+<div class="ln" data-line="225">strikeModEnv : Adsr</div>
+<div class="ln" data-line="226">strikeModEnv = Adsr 0.0 0.13 0.0 0.06</div>
+<div class="ln" data-line="227"> </div>
+<div class="ln" data-line="228">#: The four operator levels as one signal.  `adsr` gives one envelope</div>
+<div class="ln" data-line="229">#: from a gate; this is the same fold giving four at once, which is what a</div>
+<div class="ln" data-line="230">#: `Quad` is and what saves three passes over the same two integers.</div>
+<div class="ln" data-line="231">leadLevels : Sig Gate -> Sig Quad</div>
+<div class="ln" data-line="232">leadLevels g = zip (t w => case w of</div>
+<div class="ln" data-line="233">    Gate on off -> Quad (adsrOf bodyEnv t on off) (adsrOf bodyModEnv t on off)</div>
+<div class="ln" data-line="234">                        (adsrOf strikeEnv t on off)</div>
+<div class="ln" data-line="235">                        (adsrOf strikeModEnv t on off)) ticks g</div>
+<div class="ln" data-line="236"> </div>
+<div class="ln" data-line="237">#: The bank is fed the note's frequency and those four levels — and that</div>
+<div class="ln" data-line="238">#: is the whole voice.  There used to be a `leadDrive` between here and</div>
+<div class="ln" data-line="239">#: `fm` whose only job was to `zip` the two together; `fm` does its own</div>
+<div class="ln" data-line="240">#: plumbing now, as the filters always have.</div>
+<div class="ln" data-line="241">leadVoice : Sig Gate -> Sig Stroke -> Sig Float</div>
+<div class="ln" data-line="242">leadVoice g s = fm bellPatch (!hzOf s) (leadLevels g) * !velOf s * 0.6</div>
+<div class="ln" data-line="243"> </div>
+<div class="ln" data-line="244"># ── The kit: one voice that is four drums ────────────────────────────────</div>
+<div class="ln" data-line="245">#</div>
+<div class="ln" data-line="246"># The payload's first field is *which* drum, and the voice sums four</div>
+<div class="ln" data-line="247"># drums each multiplied by whether this note is that drum.  A gate is a</div>
+<div class="ln" data-line="248"># number here rather than a branch, which is what lets the whole thing stay</div>
+<div class="ln" data-line="249"># an expression — and the three that are not playing are multiplied by</div>
+<div class="ln" data-line="250"># zero, so a kick costs a kick.</div>
+<div class="ln" data-line="251">#</div>
+<div class="ln" data-line="252"># Nothing here is a sample.  A kick is a sine whose pitch falls, a snare is</div>
+<div class="ln" data-line="253"># hiss through a bandpass, and a hat is the same hiss through a highpass.</div>
+<div class="ln" data-line="254">#</div>
+<div class="ln" data-line="255"># **The hiss is one signal, shared.**  Four voices each folding their own</div>
+<div class="ln" data-line="256"># generator from the same seed produced four identical sequences, which is</div>
+<div class="ln" data-line="257"># what `noise` is: a fold over time, so that a render is reproducible.</div>
+<div class="ln" data-line="258"> </div>
+<div class="ln" data-line="259">hiss : Sig Float</div>
+<div class="ln" data-line="260">hiss = white 20260806</div>
+<div class="ln" data-line="261"> </div>
+<div class="ln" data-line="262">#: A kick is a pitch envelope before it is an amplitude envelope: 178 Hz</div>
+<div class="ln" data-line="263">#: down to 48 in about forty milliseconds is the whole sound.</div>
+<div class="ln" data-line="264">kick : Sig Gate -> Sig Float</div>
+<div class="ln" data-line="265">kick g = sine (48.0 + 130.0 * perc 26.0 g) * perc 7.0 g * 0.95</div>
+<div class="ln" data-line="266"> </div>
+<div class="ln" data-line="267">snare : Sig Gate -> Sig Float</div>
+<div class="ln" data-line="268">snare g = bandpassSvf 1900.0 0.45 hiss * perc 15.0 g * 0.8</div>
+<div class="ln" data-line="269"> </div>
+<div class="ln" data-line="270">#: The two hats are the same filter and differ only in how long they ring,</div>
+<div class="ln" data-line="271">#: which is what a pedal does to a real one.</div>
+<div class="ln" data-line="272">closedHat : Sig Gate -> Sig Float</div>
+<div class="ln" data-line="273">closedHat g = highpassSvf 7400.0 0.18 hiss * perc 55.0 g * 0.3</div>
+<div class="ln" data-line="274"> </div>
+<div class="ln" data-line="275">openHat : Sig Gate -> Sig Float</div>
+<div class="ln" data-line="276">openHat g = highpassSvf 7400.0 0.18 hiss * perc 10.0 g * 0.26</div>
+<div class="ln" data-line="277"> </div>
+<div class="ln" data-line="278">#: One per drum: this note's velocity if it is that drum, and zero if it is</div>
+<div class="ln" data-line="279">#: not.  `perc` is already silent before a note and needs no `off`, so</div>
+<div class="ln" data-line="280">#: an untouched voice is silent on all four counts.</div>
+<div class="ln" data-line="281">isKick : Stroke -> Float</div>
+<div class="ln" data-line="282">isKick q = case q of</div>
+<div class="ln" data-line="283">    Stroke d vel -> case d of</div>
+<div class="ln" data-line="284">        0 -> toFloat vel / 127.0</div>
+<div class="ln" data-line="285">        _ -> 0.0</div>
+<div class="ln" data-line="286"> </div>
+<div class="ln" data-line="287">isSnare : Stroke -> Float</div>
+<div class="ln" data-line="288">isSnare q = case q of</div>
+<div class="ln" data-line="289">    Stroke d vel -> case d of</div>
+<div class="ln" data-line="290">        1 -> toFloat vel / 127.0</div>
+<div class="ln" data-line="291">        _ -> 0.0</div>
+<div class="ln" data-line="292"> </div>
+<div class="ln" data-line="293">isClosed : Stroke -> Float</div>
+<div class="ln" data-line="294">isClosed q = case q of</div>
+<div class="ln" data-line="295">    Stroke d vel -> case d of</div>
+<div class="ln" data-line="296">        2 -> toFloat vel / 127.0</div>
+<div class="ln" data-line="297">        _ -> 0.0</div>
+<div class="ln" data-line="298"> </div>
+<div class="ln" data-line="299">isOpen : Stroke -> Float</div>
+<div class="ln" data-line="300">isOpen q = case q of</div>
+<div class="ln" data-line="301">    Stroke d vel -> case d of</div>
+<div class="ln" data-line="302">        3 -> toFloat vel / 127.0</div>
+<div class="ln" data-line="303">        _ -> 0.0</div>
+<div class="ln" data-line="304"> </div>
+<div class="ln" data-line="305">kitVoice : Sig Gate -> Sig Stroke -> Sig Float</div>
+<div class="ln" data-line="306">kitVoice g s = kick g * !isKick s</div>
+<div class="ln" data-line="307">             + snare g * !isSnare s</div>
+<div class="ln" data-line="308">             + closedHat g * !isClosed s</div>
+<div class="ln" data-line="309">             + openHat g * !isOpen s</div>
+<div class="ln" data-line="310"> </div>
+<div class="ln" data-line="311"># ── Shape ────────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="312">#</div>
+<div class="ln" data-line="313"># Repetition is a function rather than a copy, so the chord progression</div>
+<div class="ln" data-line="314"># below is written once and played through fifteen times.</div>
+<div class="ln" data-line="315"> </div>
+<div class="ln" data-line="316">twice : [: a :] -> [: a :]</div>
+<div class="ln" data-line="317">twice x = x ++ x</div>
+<div class="ln" data-line="318"> </div>
+<div class="ln" data-line="319">four : [: a :] -> [: a :]</div>
+<div class="ln" data-line="320">four x = twice (twice x)</div>
+<div class="ln" data-line="321"> </div>
+<div class="ln" data-line="322">#: A bar of silence.  `r` is one ticksPerBeat, like a note, and `|* 4` is what</div>
+<div class="ln" data-line="323">#: makes it a bar — which means `barRest |* 4` is four bars.</div>
+<div class="ln" data-line="324">barRest : [: a :]</div>
+<div class="ln" data-line="325">barRest = r |* 4</div>
+<div class="ln" data-line="326"> </div>
+<div class="ln" data-line="327">rest4 : [: a :]</div>
+<div class="ln" data-line="328">rest4 = barRest |* 4</div>
+<div class="ln" data-line="329"> </div>
+<div class="ln" data-line="330">#: Everything `n` semitones up.  Four words, because `>>=` substitutes a</div>
+<div class="ln" data-line="331">#: score for every unassigned note and a transposed note is a score.</div>
+<div class="ln" data-line="332">shift : Int -> [: Int :] -> [: Int :]</div>
+<div class="ln" data-line="333">shift n s = s >>= (k => '(k + n))</div>
+<div class="ln" data-line="334"> </div>
+<div class="ln" data-line="335">down : [: Int :] -> [: Int :]</div>
+<div class="ln" data-line="336">down s = shift (0 - 12) s</div>
+<div class="ln" data-line="337"> </div>
+<div class="ln" data-line="338"># ── Harmony ──────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="339">#</div>
+<div class="ln" data-line="340"># D minor.  Dm - Bb - F - C is the piece; Gm - Bb - C - A is the bridge,</div>
+<div class="ln" data-line="341"># and the A is major, which is the one chord with an F# in it and the only</div>
+<div class="ln" data-line="342"># reason the return to Dm afterwards sounds like a return.</div>
+<div class="ln" data-line="343">#</div>
+<div class="ln" data-line="344"># The voicings move by step rather than by root, so the inner notes barely</div>
+<div class="ln" data-line="345"># shift between chords — which is what keeps eight slow voices from</div>
+<div class="ln" data-line="346"># sounding like eight separate events.</div>
+<div class="ln" data-line="347"> </div>
+<div class="ln" data-line="348">padDm : [: Int :]</div>
+<div class="ln" data-line="349">padDm = ('50 || '57 || '62 || '65) |* 4</div>
+<div class="ln" data-line="350"> </div>
+<div class="ln" data-line="351">padBb : [: Int :]</div>
+<div class="ln" data-line="352">padBb = ('46 || '58 || '62 || '65) |* 4</div>
+<div class="ln" data-line="353"> </div>
+<div class="ln" data-line="354">padF : [: Int :]</div>
+<div class="ln" data-line="355">padF = ('53 || '57 || '60 || '65) |* 4</div>
+<div class="ln" data-line="356"> </div>
+<div class="ln" data-line="357">padC : [: Int :]</div>
+<div class="ln" data-line="358">padC = ('48 || '55 || '60 || '64) |* 4</div>
+<div class="ln" data-line="359"> </div>
+<div class="ln" data-line="360">padGm : [: Int :]</div>
+<div class="ln" data-line="361">padGm = ('43 || '55 || '58 || '62) |* 4</div>
+<div class="ln" data-line="362"> </div>
+<div class="ln" data-line="363">padA : [: Int :]</div>
+<div class="ln" data-line="364">padA = ('45 || '57 || '61 || '64) |* 4</div>
+<div class="ln" data-line="365"> </div>
+<div class="ln" data-line="366">padMain : [: Int :]</div>
+<div class="ln" data-line="367">padMain = padDm ++ padBb ++ padF ++ padC</div>
+<div class="ln" data-line="368"> </div>
+<div class="ln" data-line="369">padBridge : [: Int :]</div>
+<div class="ln" data-line="370">padBridge = padGm ++ padBb ++ padC ++ padA</div>
+<div class="ln" data-line="371"> </div>
+<div class="ln" data-line="372"># ── Bass ─────────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="373">#</div>
+<div class="ln" data-line="374"># One figure, given a root: two eighths up the octave, a quarter, two</div>
+<div class="ln" data-line="375"># eighths to the fifth, and the octave to finish.  Four beats however low</div>
+<div class="ln" data-line="376"># the root is, so the whole line is `bassFig` applied four times.</div>
+<div class="ln" data-line="377"> </div>
+<div class="ln" data-line="378">bassFig : Int -> [: Int :]</div>
+<div class="ln" data-line="379">bassFig k = (('k ++ '(k + 12)) |/ 2)</div>
+<div class="ln" data-line="380">         ++ 'k</div>
+<div class="ln" data-line="381">         ++ (('k ++ '(k + 7)) |/ 2)</div>
+<div class="ln" data-line="382">         ++ '(k + 12)</div>
+<div class="ln" data-line="383"> </div>
+<div class="ln" data-line="384">bassMain : [: Int :]</div>
+<div class="ln" data-line="385">bassMain = bassFig 38 ++ bassFig 34 ++ bassFig 41 ++ bassFig 36</div>
+<div class="ln" data-line="386"> </div>
+<div class="ln" data-line="387">bassBridge : [: Int :]</div>
+<div class="ln" data-line="388">bassBridge = bassFig 31 ++ bassFig 34 ++ bassFig 36 ++ bassFig 33</div>
+<div class="ln" data-line="389"> </div>
+<div class="ln" data-line="390">#: The same roots as whole notes, for the sections where the drums are out</div>
+<div class="ln" data-line="391">#: and the figure would be too busy.</div>
+<div class="ln" data-line="392">bassLong : [: Int :]</div>
+<div class="ln" data-line="393">bassLong = ('38 |* 4) ++ ('34 |* 4) ++ ('41 |* 4) ++ ('36 |* 4)</div>
+<div class="ln" data-line="394"> </div>
+<div class="ln" data-line="395"># ── Drums ────────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="396">#</div>
+<div class="ln" data-line="397"># 0 is the kick, 1 the snare, 2 the closed hat and 3 the open one.  Hats on</div>
+<div class="ln" data-line="398"># the eighths, so `|/ 2` halves a note and eight of them fill the bar the</div>
+<div class="ln" data-line="399"># four backbeats do.</div>
+<div class="ln" data-line="400"> </div>
+<div class="ln" data-line="401">hatBar : [: Int :]</div>
+<div class="ln" data-line="402">hatBar = twice (four ('2 |/ 2))</div>
+<div class="ln" data-line="403"> </div>
+<div class="ln" data-line="404">#: The last eighth of the bar opened, which is what makes a straight</div>
+<div class="ln" data-line="405">#: pattern breathe at the bar line.</div>
+<div class="ln" data-line="406">hatBarOpen : [: Int :]</div>
+<div class="ln" data-line="407">hatBarOpen = twice (four ('2 |/ 2)) || at (7 * ticksPerBeat / 2) ('3 |/ 2)</div>
+<div class="ln" data-line="408"> </div>
+<div class="ln" data-line="409">backbeat : [: Int :]</div>
+<div class="ln" data-line="410">backbeat = '0 ++ '1 ++ '0 ++ '1</div>
+<div class="ln" data-line="411"> </div>
+<div class="ln" data-line="412">#: The same, with the kick doubled into the third ticksPerBeat.</div>
+<div class="ln" data-line="413">backbeatPush : [: Int :]</div>
+<div class="ln" data-line="414">backbeatPush = '0 ++ '1 ++ (('0 ++ '0) |/ 2) ++ '1</div>
+<div class="ln" data-line="415"> </div>
+<div class="ln" data-line="416">groove : [: Int :]</div>
+<div class="ln" data-line="417">groove = backbeat || hatBar</div>
+<div class="ln" data-line="418"> </div>
+<div class="ln" data-line="419">groovePush : [: Int :]</div>
+<div class="ln" data-line="420">groovePush = backbeatPush || hatBar</div>
+<div class="ln" data-line="421"> </div>
+<div class="ln" data-line="422">#: Four snares in the space of one ticksPerBeat.</div>
+<div class="ln" data-line="423">fill : [: Int :]</div>
+<div class="ln" data-line="424">fill = four '1 |/ 4</div>
+<div class="ln" data-line="425"> </div>
+<div class="ln" data-line="426">#: `||` rather than `++`, so the bar stays a bar: sequencing the fill on</div>
+<div class="ln" data-line="427">#: would make the phrase five beats long and every section after it would</div>
+<div class="ln" data-line="428">#: start late.  `at` places it inside the bar instead.</div>
+<div class="ln" data-line="429">grooveFill : [: Int :]</div>
+<div class="ln" data-line="430">grooveFill = groovePush || at (3 * ticksPerBeat) fill</div>
+<div class="ln" data-line="431"> </div>
+<div class="ln" data-line="432">drumPhrase : [: Int :]</div>
+<div class="ln" data-line="433">drumPhrase = groove ++ groovePush ++ groove ++ grooveFill</div>
+<div class="ln" data-line="434"> </div>
+<div class="ln" data-line="435">#: Eight bars of hats alone, with the fill arriving at the end — what the</div>
+<div class="ln" data-line="436">#: break needs so the return has something to arrive against.</div>
+<div class="ln" data-line="437">hatsPhrase : [: Int :]</div>
+<div class="ln" data-line="438">hatsPhrase = four hatBar</div>
+<div class="ln" data-line="439">          ++ hatBar ++ hatBarOpen ++ hatBar</div>
+<div class="ln" data-line="440">          ++ (hatBarOpen || at (3 * ticksPerBeat) fill)</div>
+<div class="ln" data-line="441"> </div>
+<div class="ln" data-line="442"># ── The tune ─────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="443">#</div>
+<div class="ln" data-line="444"># Quarters in the first phrase, eighth-note runs in the second and a climb</div>
+<div class="ln" data-line="445"># in the third, so the return of the first in the reprise sounds like a</div>
+<div class="ln" data-line="446"># return rather than like more of the same.</div>
+<div class="ln" data-line="447"> </div>
+<div class="ln" data-line="448">leadA1 : [: Int :]</div>
+<div class="ln" data-line="449">leadA1 = '74 ++ '72 ++ ('74 |* 2)</div>
+<div class="ln" data-line="450">      ++ '77 ++ '76 ++ ('74 |* 2)</div>
+<div class="ln" data-line="451">      ++ '72 ++ '74 ++ ('69 |* 2)</div>
+<div class="ln" data-line="452">      ++ '67 ++ '69 ++ ('72 |* 2)</div>
+<div class="ln" data-line="453"> </div>
+<div class="ln" data-line="454">leadA2 : [: Int :]</div>
+<div class="ln" data-line="455">leadA2 = (('74 ++ '76) |/ 2) ++ '77 ++ ('76 |* 2)</div>
+<div class="ln" data-line="456">      ++ (('77 ++ '79) |/ 2) ++ '81 ++ ('79 |* 2)</div>
+<div class="ln" data-line="457">      ++ '77 ++ '76 ++ '74 ++ '72</div>
+<div class="ln" data-line="458">      ++ ('76 |* 2) ++ '74 ++ r</div>
+<div class="ln" data-line="459"> </div>
+<div class="ln" data-line="460">leadA : [: Int :]</div>
+<div class="ln" data-line="461">leadA = leadA1 ++ leadA2</div>
+<div class="ln" data-line="462"> </div>
+<div class="ln" data-line="463">#: The same eight bars with the runs turned into sixteenths — the verse</div>
+<div class="ln" data-line="464">#: repeating without repeating itself.</div>
+<div class="ln" data-line="465">leadA3 : [: Int :]</div>
+<div class="ln" data-line="466">leadA3 = (('74 ++ '72 ++ '74 ++ '76) |/ 4) ++ ('74 |* 3)</div>
+<div class="ln" data-line="467">      ++ (('77 ++ '76 ++ '77 ++ '79) |/ 4) ++ ('74 |* 3)</div>
+<div class="ln" data-line="468">      ++ (('72 ++ '74 ++ '76 ++ '77) |/ 4) ++ ('69 |* 3)</div>
+<div class="ln" data-line="469">      ++ '67 ++ '69 ++ ('72 |* 2)</div>
+<div class="ln" data-line="470"> </div>
+<div class="ln" data-line="471">leadBridge : [: Int :]</div>
+<div class="ln" data-line="472">leadBridge = '70 ++ '69 ++ ('67 |* 2)</div>
+<div class="ln" data-line="473">          ++ '69 ++ '70 ++ ('74 |* 2)</div>
+<div class="ln" data-line="474">          ++ '72 ++ '74 ++ ('76 |* 2)</div>
+<div class="ln" data-line="475">          ++ '73 ++ '76 ++ ('69 |* 2)</div>
+<div class="ln" data-line="476"> </div>
+<div class="ln" data-line="477">leadBridge2 : [: Int :]</div>
+<div class="ln" data-line="478">leadBridge2 = (('67 ++ '70 ++ '74 ++ '70) |/ 2) ++ ('72 |* 2)</div>
+<div class="ln" data-line="479">           ++ (('70 ++ '74 ++ '77 ++ '74) |/ 2) ++ ('76 |* 2)</div>
+<div class="ln" data-line="480">           ++ (('72 ++ '76 ++ '79 ++ '76) |/ 2) ++ ('77 |* 2)</div>
+<div class="ln" data-line="481">           ++ ('73 |* 2) ++ ('76 |* 2)</div>
+<div class="ln" data-line="482"> </div>
+<div class="ln" data-line="483">#: The top of the piece: four bars that climb and four that come down.</div>
+<div class="ln" data-line="484">leadC : [: Int :]</div>
+<div class="ln" data-line="485">leadC = (('74 ++ '77 ++ '81 ++ '79) |/ 2) ++ ('81 |* 2)</div>
+<div class="ln" data-line="486">     ++ (('82 ++ '81 ++ '79 ++ '77) |/ 2) ++ ('77 |* 2)</div>
+<div class="ln" data-line="487">     ++ (('77 ++ '79 ++ '81 ++ '84) |/ 2) ++ ('81 |* 2)</div>
+<div class="ln" data-line="488">     ++ ('79 |* 2) ++ ('76 |* 2)</div>
+<div class="ln" data-line="489"> </div>
+<div class="ln" data-line="490">leadC2 : [: Int :]</div>
+<div class="ln" data-line="491">leadC2 = (('81 ++ '79 ++ '77 ++ '76) |/ 2) ++ ('74 |* 2)</div>
+<div class="ln" data-line="492">      ++ (('77 ++ '76 ++ '74 ++ '72) |/ 2) ++ ('70 |* 2)</div>
+<div class="ln" data-line="493">      ++ (('72 ++ '74 ++ '76 ++ '79) |/ 2) ++ ('77 |* 2)</div>
+<div class="ln" data-line="494">      ++ ('76 |* 2) ++ ('74 |* 2)</div>
+<div class="ln" data-line="495"> </div>
+<div class="ln" data-line="496"># ── Arpeggios ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="497">#</div>
+<div class="ln" data-line="498"># Four chord tones, up and back, as eighths.  The same bank as the tune —</div>
+<div class="ln" data-line="499"># an arpeggio is not another instrument, it is what this one does when</div>
+<div class="ln" data-line="500"># there is no melody to play.</div>
+<div class="ln" data-line="501"> </div>
+<div class="ln" data-line="502">arpBar : Int -> Int -> Int -> Int -> [: Int :]</div>
+<div class="ln" data-line="503">arpBar a b c d = ('a ++ 'b ++ 'c ++ 'd ++ 'c ++ 'b ++ 'c ++ 'd) |/ 2</div>
+<div class="ln" data-line="504"> </div>
+<div class="ln" data-line="505">arpMain : [: Int :]</div>
+<div class="ln" data-line="506">arpMain = arpBar 62 65 69 74</div>
+<div class="ln" data-line="507">       ++ arpBar 58 62 65 70</div>
+<div class="ln" data-line="508">       ++ arpBar 57 60 65 69</div>
+<div class="ln" data-line="509">       ++ arpBar 55 60 64 67</div>
+<div class="ln" data-line="510"> </div>
+<div class="ln" data-line="511">arpBridge : [: Int :]</div>
+<div class="ln" data-line="512">arpBridge = arpBar 55 58 62 67</div>
+<div class="ln" data-line="513">         ++ arpBar 58 62 65 70</div>
+<div class="ln" data-line="514">         ++ arpBar 55 60 64 67</div>
+<div class="ln" data-line="515">         ++ arpBar 57 61 64 69</div>
+<div class="ln" data-line="516"> </div>
+<div class="ln" data-line="517"># ── Instruments ──────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="518">#</div>
+<div class="ln" data-line="519"># Where a part stops being numbers and becomes an instrument.  `voices.pad`</div>
+<div class="ln" data-line="520"># names the bank lexically, and the result is `[: Void :]`: every note</div>
+<div class="ln" data-line="521"># committed, and the type checker will not let a `Stroke` reach the pad.</div>
+<div class="ln" data-line="522"> </div>
+<div class="ln" data-line="523">pitched : Int -> [: Int :] -> [: Stroke :]</div>
+<div class="ln" data-line="524">pitched v s = s >>= (k => '(Stroke k v))</div>
+<div class="ln" data-line="525"> </div>
+<div class="ln" data-line="526">onPad : [: Int :] -> [: Void :]</div>
+<div class="ln" data-line="527">onPad s = pitched 84 s >>= voices.pad</div>
+<div class="ln" data-line="528"> </div>
+<div class="ln" data-line="529">onPadSoft : [: Int :] -> [: Void :]</div>
+<div class="ln" data-line="530">onPadSoft s = pitched 62 s >>= voices.pad</div>
+<div class="ln" data-line="531"> </div>
+<div class="ln" data-line="532">onBass : [: Int :] -> [: Void :]</div>
+<div class="ln" data-line="533">onBass s = pitched 104 s >>= voices.bass</div>
+<div class="ln" data-line="534"> </div>
+<div class="ln" data-line="535">onLead : [: Int :] -> [: Void :]</div>
+<div class="ln" data-line="536">onLead s = pitched 100 s >>= voices.lead</div>
+<div class="ln" data-line="537"> </div>
+<div class="ln" data-line="538">onArp : [: Int :] -> [: Void :]</div>
+<div class="ln" data-line="539">onArp s = pitched 68 s >>= voices.lead</div>
+<div class="ln" data-line="540"> </div>
+<div class="ln" data-line="541">onKit : [: Int :] -> [: Void :]</div>
+<div class="ln" data-line="542">onKit s = (s >>= (d => '(Stroke d 100))) >>= voices.kit</div>
+<div class="ln" data-line="543"> </div>
+<div class="ln" data-line="544"># ── Sections ─────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="545">#</div>
+<div class="ln" data-line="546"># Nine of eight bars.  Each is an overlay of the four banks, and the piece</div>
+<div class="ln" data-line="547"># is their sequence — the same `++` that joins two notes.</div>
+<div class="ln" data-line="548"> </div>
+<div class="ln" data-line="549">#: Pad and bass alone, with the lead arriving halfway as an arpeggio.</div>
+<div class="ln" data-line="550">intro : [: Void :]</div>
+<div class="ln" data-line="551">intro = onPadSoft (twice padMain)</div>
+<div class="ln" data-line="552">     || onBass (twice bassLong)</div>
+<div class="ln" data-line="553">     || onArp (rest4 ++ arpMain)</div>
+<div class="ln" data-line="554"> </div>
+<div class="ln" data-line="555">#: The tune arrives, and so do the drums and the bass figure.</div>
+<div class="ln" data-line="556">verseA : [: Void :]</div>
+<div class="ln" data-line="557">verseA = onPad (twice padMain)</div>
+<div class="ln" data-line="558">      || onBass (twice bassMain)</div>
+<div class="ln" data-line="559">      || onLead leadA</div>
+<div class="ln" data-line="560">      || onKit (twice drumPhrase)</div>
+<div class="ln" data-line="561"> </div>
+<div class="ln" data-line="562">#: The same eight bars, the tune broken into sixteenths and the arpeggio</div>
+<div class="ln" data-line="563">#: underneath it.</div>
+<div class="ln" data-line="564">verseB : [: Void :]</div>
+<div class="ln" data-line="565">verseB = onPad (twice padMain)</div>
+<div class="ln" data-line="566">      || onBass (twice bassMain)</div>
+<div class="ln" data-line="567">      || onLead (leadA3 ++ leadA2)</div>
+<div class="ln" data-line="568">      || onArp (twice arpMain)</div>
+<div class="ln" data-line="569">      || onKit (twice drumPhrase)</div>
+<div class="ln" data-line="570"> </div>
+<div class="ln" data-line="571">#: Gm - Bb - C - A twice, and the A is where the piece leans.</div>
+<div class="ln" data-line="572">bridge : [: Void :]</div>
+<div class="ln" data-line="573">bridge = onPad (twice padBridge)</div>
+<div class="ln" data-line="574">      || onBass (twice bassBridge)</div>
+<div class="ln" data-line="575">      || onLead (leadBridge ++ leadBridge2)</div>
+<div class="ln" data-line="576">      || onKit (twice drumPhrase)</div>
+<div class="ln" data-line="577"> </div>
+<div class="ln" data-line="578">#: Everything out but the hats: pad, held bass, and the arpeggio alone.</div>
+<div class="ln" data-line="579">break : [: Void :]</div>
+<div class="ln" data-line="580">break = onPadSoft (twice padMain)</div>
+<div class="ln" data-line="581">     || onBass (twice bassLong)</div>
+<div class="ln" data-line="582">     || onArp (twice arpMain)</div>
+<div class="ln" data-line="583">     || onKit hatsPhrase</div>
+<div class="ln" data-line="584"> </div>
+<div class="ln" data-line="585">#: The top: the climbing tune, doubled an octave below itself.</div>
+<div class="ln" data-line="586">chorus : [: Void :]</div>
+<div class="ln" data-line="587">chorus = onPad (twice padMain)</div>
+<div class="ln" data-line="588">      || onBass (twice bassMain)</div>
+<div class="ln" data-line="589">      || onLead (leadC || down leadC)</div>
+<div class="ln" data-line="590">      || onArp (twice arpMain)</div>
+<div class="ln" data-line="591">      || onKit (twice drumPhrase)</div>
+<div class="ln" data-line="592"> </div>
+<div class="ln" data-line="593">#: The first tune returns, the arpeggio now underneath it.</div>
+<div class="ln" data-line="594">reprise : [: Void :]</div>
+<div class="ln" data-line="595">reprise = onPad (twice padMain)</div>
+<div class="ln" data-line="596">       || onBass (twice bassMain)</div>
+<div class="ln" data-line="597">       || onLead leadA</div>
+<div class="ln" data-line="598">       || onArp (twice arpMain)</div>
+<div class="ln" data-line="599">       || onKit (twice drumPhrase)</div>
+<div class="ln" data-line="600"> </div>
+<div class="ln" data-line="601">#: And once more, coming down.</div>
+<div class="ln" data-line="602">chorus2 : [: Void :]</div>
+<div class="ln" data-line="603">chorus2 = onPad (twice padMain)</div>
+<div class="ln" data-line="604">       || onBass (twice bassMain)</div>
+<div class="ln" data-line="605">       || onLead (leadC2 || down leadC2)</div>
+<div class="ln" data-line="606">       || onArp (twice arpMain)</div>
+<div class="ln" data-line="607">       || onKit (twice drumPhrase)</div>
+<div class="ln" data-line="608"> </div>
+<div class="ln" data-line="609">#: Four bars as before, then a Dm held for four — the drums stop at the</div>
+<div class="ln" data-line="610">#: bar line and the pad's release does the rest.</div>
+<div class="ln" data-line="611">outroLast : [: Void :]</div>
+<div class="ln" data-line="612">outroLast = onPadSoft (padDm |* 4)</div>
+<div class="ln" data-line="613">         || onBass ('38 |* 16)</div>
+<div class="ln" data-line="614">         || onLead (('74 |* 6) ++ ('69 |* 10))</div>
+<div class="ln" data-line="615"> </div>
+<div class="ln" data-line="616">outro : [: Void :]</div>
+<div class="ln" data-line="617">outro = (onPadSoft padMain</div>
+<div class="ln" data-line="618">      || onBass bassLong</div>
+<div class="ln" data-line="619">      || onArp arpMain</div>
+<div class="ln" data-line="620">      || onKit drumPhrase)</div>
+<div class="ln" data-line="621">     ++ outroLast</div>
+<div class="ln" data-line="622"> </div>
+<div class="ln" data-line="623"># ── The piece ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="624">#</div>
+<div class="ln" data-line="625"># 72 bars at 96 bpm: three minutes, less the pad's last release.</div>
+<div class="ln" data-line="626"> </div>
+<div class="ln" data-line="627">bpm : Int</div>
+<div class="ln" data-line="628">bpm = 96</div>
+<div class="ln" data-line="629"> </div>
+<div class="ln" data-line="630">score : [: Void :]</div>
+<div class="ln" data-line="631">score = intro</div>
+<div class="ln" data-line="632">     ++ verseA</div>
+<div class="ln" data-line="633">     ++ verseB</div>
+<div class="ln" data-line="634">     ++ bridge</div>
+<div class="ln" data-line="635">     ++ break</div>
+<div class="ln" data-line="636">     ++ chorus</div>
+<div class="ln" data-line="637">     ++ reprise</div>
+<div class="ln" data-line="638">     ++ chorus2</div>
+<div class="ln" data-line="639">     ++ outro</div>
+<div class="ln" data-line="640"> </div>
+<div class="ln" data-line="641"># ── The mix ──────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="642">#</div>
+<div class="ln" data-line="643"># Each bank's name is bound to the *sum* of its voices, so the mix is</div>
+<div class="ln" data-line="644"># ordinary signal arithmetic.  `pad` is already a `Sig Stereo` — its voices</div>
+<div class="ln" data-line="645"># are — and the other three are placed with `pan` and `widen`, which</div>
+<div class="ln" data-line="646"># is why `sound` can be stereo without any bank being asked to care.</div>
+<div class="ln" data-line="647">#</div>
+<div class="ln" data-line="648"># `drive` on the bass and on the master is a soft clipper: twenty-one</div>
+<div class="ln" data-line="649"># voices summed pass 1.0 on a dense bar, and an analogue desk rounds those</div>
+<div class="ln" data-line="650"># peaks off rather than tearing.</div>
+<div class="ln" data-line="651"> </div>
+<div class="ln" data-line="652">padMix : Sig Stereo</div>
+<div class="ln" data-line="653">padMix = 0.6 * pad</div>
+<div class="ln" data-line="654"> </div>
+<div class="ln" data-line="655">bassMix : Sig Stereo</div>
+<div class="ln" data-line="656">bassMix = widen (drive 0.05 (gain 0.42 bass))</div>
+<div class="ln" data-line="657"> </div>
+<div class="ln" data-line="658">leadMix : Sig Stereo</div>
+<div class="ln" data-line="659">leadMix = pan 0.22 (dcBlock (lowpassSvf 7000.0 0.15 (gain 0.45 lead)))</div>
+<div class="ln" data-line="660"> </div>
+<div class="ln" data-line="661">kitMix : Sig Stereo</div>
+<div class="ln" data-line="662">kitMix = pan 0.06 (gain 0.6 kit)</div>
+<div class="ln" data-line="663"> </div>
+<div class="ln" data-line="664">sound : Sig Stereo</div>
+<div class="ln" data-line="665">sound = 0.85 * (padMix + bassMix + leadMix + kitMix)</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

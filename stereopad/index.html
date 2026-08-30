@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,149 +32,148 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># Six voices, spread across the stereo field.
-#
-#   python -m gestate.audioperform examples/audio/stereopad.ges -o stereopad.wav
-#   python -m gestate.audioperform examples/audio/stereopad.ges --midi --seconds 20
-#
-# `stereo.ges` is two channels from two oscillators.  This is two channels
-# from a *bank*: `voices pad 6 : Key -> Sig Stereo` declares voices whose
-# output is a frame, and the expander generates a componentwise adder — so
-# `pad` is the six voices summed left-with-left and right-with-right, and
-# nothing in the mix below has to know how many there were.
-#
-# **What the width is made of.**  A voice is panned by its own *key
-# number*, so a chord lays itself out across the field: low notes left, high
-# notes right, and the position of a voice is a property of the note rather
-# than of which of the six slots the allocator happened to choose.  That
-# distinction matters — panning by slot index would make the same chord
-# land differently depending on what was played before it.
-#
-# The second source of width is the two detuned oscillators being panned
-# *apart* from each other inside each voice, which is why `padVoice` returns
-# a `Stereo` rather than a `Float` that gets panned afterwards.
-#
-# **The voice is four lines and every one of them is a value.**  It used to
-# be a `Pad` record holding two phases, a filter and a sample counter, with
-# six functions to take it apart again — seventy lines that said, slowly,
-# what `lowpassSvf` and `adsr` say here.  `polysine.ges` makes the
-# argument on one sine; this is the same argument with a filter in it.
-
-Key := Key Int Int
-
-voices pad 6 padVoice : Sig Stereo
-
-instance FromMIDI Key where
-    noteOn ch p v = Just (Key p v)
-
-# ── The settings ─────────────────────────────────────────────────────────
-
-detune : Float
-detune = 9.0
-
-#: How far apart the two oscillators of one voice sit in the field.  1.0
-#: would be hard left and hard right, which is too wide to sound like one
-#: instrument.
-spread : Float
-spread = 0.55
-
-#: A slow pad: it arrives rather than starts.
-padEnv : Adsr
-padEnv = Adsr 0.35 1.2 0.6 0.9
-
-filtEnv : Adsr
-filtEnv = Adsr 0.9 1.5 0.35 0.8
-
-# ── The note, read three ways ────────────────────────────────────────────
-#
-# A `voices` bank hands each voice the note's *timing* and the note's
-# *payload* as two separate signals.  These three are the payload's three
-# uses, and each is lifted over the signal with `!` where it is wanted.
-
-hzOf : Key -> Float
-hzOf q = case q of
-    Key k v -> keyHz k
-
-levelOf : Key -> Float
-levelOf q = case q of
-    Key k v -> toFloat v / 127.0 * 0.35
-
-#: Where a key sits in the field.  Middle C is centred; three octaves
-#: either side reaches the edges, and `clamp` keeps anything beyond that
-#: from wrapping round.
-panOf' : Key -> Float
-panOf' q = case q of
-    Key k v -> clamp (negate 1.0) 1.0 (toFloat (k - 60) / 36.0)
-
-# ── The voice ────────────────────────────────────────────────────────────
-#
-# Two triangle oscillators — softer than saws, which a pad wants — through
-# one shared resonant lowpass, then panned.  The filter is *before* the
-# pan, so both channels are filtered identically and the width comes from
-# the oscillators rather than from the filter ringing on one side.
-
-#: A frequency signal moved by `cents`.  A detune is a *factor*, and this
-#: is `centsHz` lifted over a signal so that it can be one.
-detuned : Float -> Sig Float -> Sig Float
-detuned cents hz = map (h => centsHz cents h) hz
-
-#: The pair, summed.  Two of one shape at slightly different pitches is the
-#: cheapest thickness there is: they drift in and out of phase at the beat
-#: frequency, which at nine cents is a few seconds long.
-oscillators : Sig Float -> Sig Float
-oscillators hz = 0.5 * triangle (detuned (negate detune) hz)
-               + 0.5 * triangle (detuned detune hz)
-
-#: The cutoff, as a signal — the filter envelope scaled into hertz.
-#:
-#: Clamped at the top because `240 + 3400` can pass Nyquist at a low sample
-#: rate, and a filter asked for a cutoff it cannot have should sound like
-#: an open filter rather than like a divergence.
-cutoff : Sig Gate -> Sig Float
-cutoff g = map (x => clamp 20.0 nyquist (240.0 + 3400.0 * x))
-               (adsr filtEnv g)
-
-#: The filtered, enveloped voice, placed twice — once at each end of
-#: `spread`, with the note's own pitch sliding the pair as a whole.
-#:
-#: Both oscillators are in the filter's output as one number, so they
-#: cannot be panned apart after the fact; what is placed twice is the
-#: *filtered* signal, which is what makes the width survive the filter.
-place : Sig Float -> Sig Float -> Sig Stereo
-place x p = zip (v c => panOf (c - spread * 0.5) v
-                            + panOf (c + spread * 0.5) v) x p
-
-padVoice : Sig Gate -> Sig Key -> Sig Stereo
-padVoice g s = place (lowpassSvf (cutoff g) 0.35 (oscillators (!hzOf s))
-                      * adsr padEnv g * !levelOf s) (!panOf' s)
-
-# ── The piece ────────────────────────────────────────────────────────────
-
-bpm : Int
-bpm = 66
-
-chord : Int -> Int -> Int -> [: Key :]
-chord a b c = '(Key a 92) || '(Key b 80) || '(Key c 74)
-
-#: Wide voicings, so the pan spread has something to work with: the notes
-#: of one chord are octaves apart rather than adjacent.
-part : [: Key :]
-part = chord 45 64 76 |* 4 ++ chord 43 62 74 |* 4
-    ++ chord 41 60 72 |* 4 ++ chord 40 59 71 |* 4
-
-score : [: Void :]
-score = part >>= voices.pad
-
-# ── The mix ──────────────────────────────────────────────────────────────
-#
-# `pad` is already a `Sig Stereo` — the bank summed both channels — so the
-# mix is ordinary arithmetic at that type: `instance Num (Sig Stereo)` in
-# `synth.ges` is what makes `0.8 * pad` a fader rather than a type error,
-# and `sound` is a stereo signal all the way out to the `.wav`.
-
-sound : Sig Stereo
-sound = 0.8 * pad
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># Six voices, spread across the stereo field.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.audioperform examples/audio/stereopad.ges -o stereopad.wav</div>
+<div class="ln" data-line="4">#   python -m gestate.audioperform examples/audio/stereopad.ges --midi --seconds 20</div>
+<div class="ln" data-line="5">#</div>
+<div class="ln" data-line="6"># `stereo.ges` is two channels from two oscillators.  This is two channels</div>
+<div class="ln" data-line="7"># from a *bank*: `voices pad 6 : Key -> Sig Stereo` declares voices whose</div>
+<div class="ln" data-line="8"># output is a frame, and the expander generates a componentwise adder — so</div>
+<div class="ln" data-line="9"># `pad` is the six voices summed left-with-left and right-with-right, and</div>
+<div class="ln" data-line="10"># nothing in the mix below has to know how many there were.</div>
+<div class="ln" data-line="11">#</div>
+<div class="ln" data-line="12"># **What the width is made of.**  A voice is panned by its own *key</div>
+<div class="ln" data-line="13"># number*, so a chord lays itself out across the field: low notes left, high</div>
+<div class="ln" data-line="14"># notes right, and the position of a voice is a property of the note rather</div>
+<div class="ln" data-line="15"># than of which of the six slots the allocator happened to choose.  That</div>
+<div class="ln" data-line="16"># distinction matters — panning by slot index would make the same chord</div>
+<div class="ln" data-line="17"># land differently depending on what was played before it.</div>
+<div class="ln" data-line="18">#</div>
+<div class="ln" data-line="19"># The second source of width is the two detuned oscillators being panned</div>
+<div class="ln" data-line="20"># *apart* from each other inside each voice, which is why `padVoice` returns</div>
+<div class="ln" data-line="21"># a `Stereo` rather than a `Float` that gets panned afterwards.</div>
+<div class="ln" data-line="22">#</div>
+<div class="ln" data-line="23"># **The voice is four lines and every one of them is a value.**  It used to</div>
+<div class="ln" data-line="24"># be a `Pad` record holding two phases, a filter and a sample counter, with</div>
+<div class="ln" data-line="25"># six functions to take it apart again — seventy lines that said, slowly,</div>
+<div class="ln" data-line="26"># what `lowpassSvf` and `adsr` say here.  `polysine.ges` makes the</div>
+<div class="ln" data-line="27"># argument on one sine; this is the same argument with a filter in it.</div>
+<div class="ln" data-line="28"> </div>
+<div class="ln" data-line="29">Key := Key Int Int</div>
+<div class="ln" data-line="30"> </div>
+<div class="ln" data-line="31">voices pad 6 padVoice : Sig Stereo</div>
+<div class="ln" data-line="32"> </div>
+<div class="ln" data-line="33">instance FromMIDI Key where</div>
+<div class="ln" data-line="34">    noteOn ch p v = Just (Key p v)</div>
+<div class="ln" data-line="35"> </div>
+<div class="ln" data-line="36"># ── The settings ─────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="37"> </div>
+<div class="ln" data-line="38">detune : Float</div>
+<div class="ln" data-line="39">detune = 9.0</div>
+<div class="ln" data-line="40"> </div>
+<div class="ln" data-line="41">#: How far apart the two oscillators of one voice sit in the field.  1.0</div>
+<div class="ln" data-line="42">#: would be hard left and hard right, which is too wide to sound like one</div>
+<div class="ln" data-line="43">#: instrument.</div>
+<div class="ln" data-line="44">spread : Float</div>
+<div class="ln" data-line="45">spread = 0.55</div>
+<div class="ln" data-line="46"> </div>
+<div class="ln" data-line="47">#: A slow pad: it arrives rather than starts.</div>
+<div class="ln" data-line="48">padEnv : Adsr</div>
+<div class="ln" data-line="49">padEnv = Adsr 0.35 1.2 0.6 0.9</div>
+<div class="ln" data-line="50"> </div>
+<div class="ln" data-line="51">filtEnv : Adsr</div>
+<div class="ln" data-line="52">filtEnv = Adsr 0.9 1.5 0.35 0.8</div>
+<div class="ln" data-line="53"> </div>
+<div class="ln" data-line="54"># ── The note, read three ways ────────────────────────────────────────────</div>
+<div class="ln" data-line="55">#</div>
+<div class="ln" data-line="56"># A `voices` bank hands each voice the note's *timing* and the note's</div>
+<div class="ln" data-line="57"># *payload* as two separate signals.  These three are the payload's three</div>
+<div class="ln" data-line="58"># uses, and each is lifted over the signal with `!` where it is wanted.</div>
+<div class="ln" data-line="59"> </div>
+<div class="ln" data-line="60">hzOf : Key -> Float</div>
+<div class="ln" data-line="61">hzOf q = case q of</div>
+<div class="ln" data-line="62">    Key k v -> keyHz k</div>
+<div class="ln" data-line="63"> </div>
+<div class="ln" data-line="64">levelOf : Key -> Float</div>
+<div class="ln" data-line="65">levelOf q = case q of</div>
+<div class="ln" data-line="66">    Key k v -> toFloat v / 127.0 * 0.35</div>
+<div class="ln" data-line="67"> </div>
+<div class="ln" data-line="68">#: Where a key sits in the field.  Middle C is centred; three octaves</div>
+<div class="ln" data-line="69">#: either side reaches the edges, and `clamp` keeps anything beyond that</div>
+<div class="ln" data-line="70">#: from wrapping round.</div>
+<div class="ln" data-line="71">panOf' : Key -> Float</div>
+<div class="ln" data-line="72">panOf' q = case q of</div>
+<div class="ln" data-line="73">    Key k v -> clamp (negate 1.0) 1.0 (toFloat (k - 60) / 36.0)</div>
+<div class="ln" data-line="74"> </div>
+<div class="ln" data-line="75"># ── The voice ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="76">#</div>
+<div class="ln" data-line="77"># Two triangle oscillators — softer than saws, which a pad wants — through</div>
+<div class="ln" data-line="78"># one shared resonant lowpass, then panned.  The filter is *before* the</div>
+<div class="ln" data-line="79"># pan, so both channels are filtered identically and the width comes from</div>
+<div class="ln" data-line="80"># the oscillators rather than from the filter ringing on one side.</div>
+<div class="ln" data-line="81"> </div>
+<div class="ln" data-line="82">#: A frequency signal moved by `cents`.  A detune is a *factor*, and this</div>
+<div class="ln" data-line="83">#: is `centsHz` lifted over a signal so that it can be one.</div>
+<div class="ln" data-line="84">detuned : Float -> Sig Float -> Sig Float</div>
+<div class="ln" data-line="85">detuned cents hz = map (h => centsHz cents h) hz</div>
+<div class="ln" data-line="86"> </div>
+<div class="ln" data-line="87">#: The pair, summed.  Two of one shape at slightly different pitches is the</div>
+<div class="ln" data-line="88">#: cheapest thickness there is: they drift in and out of phase at the beat</div>
+<div class="ln" data-line="89">#: frequency, which at nine cents is a few seconds long.</div>
+<div class="ln" data-line="90">oscillators : Sig Float -> Sig Float</div>
+<div class="ln" data-line="91">oscillators hz = 0.5 * triangle (detuned (negate detune) hz)</div>
+<div class="ln" data-line="92">               + 0.5 * triangle (detuned detune hz)</div>
+<div class="ln" data-line="93"> </div>
+<div class="ln" data-line="94">#: The cutoff, as a signal — the filter envelope scaled into hertz.</div>
+<div class="ln" data-line="95">#:</div>
+<div class="ln" data-line="96">#: Clamped at the top because `240 + 3400` can pass Nyquist at a low sample</div>
+<div class="ln" data-line="97">#: rate, and a filter asked for a cutoff it cannot have should sound like</div>
+<div class="ln" data-line="98">#: an open filter rather than like a divergence.</div>
+<div class="ln" data-line="99">cutoff : Sig Gate -> Sig Float</div>
+<div class="ln" data-line="100">cutoff g = map (x => clamp 20.0 nyquist (240.0 + 3400.0 * x))</div>
+<div class="ln" data-line="101">               (adsr filtEnv g)</div>
+<div class="ln" data-line="102"> </div>
+<div class="ln" data-line="103">#: The filtered, enveloped voice, placed twice — once at each end of</div>
+<div class="ln" data-line="104">#: `spread`, with the note's own pitch sliding the pair as a whole.</div>
+<div class="ln" data-line="105">#:</div>
+<div class="ln" data-line="106">#: Both oscillators are in the filter's output as one number, so they</div>
+<div class="ln" data-line="107">#: cannot be panned apart after the fact; what is placed twice is the</div>
+<div class="ln" data-line="108">#: *filtered* signal, which is what makes the width survive the filter.</div>
+<div class="ln" data-line="109">place : Sig Float -> Sig Float -> Sig Stereo</div>
+<div class="ln" data-line="110">place x p = zip (v c => panOf (c - spread * 0.5) v</div>
+<div class="ln" data-line="111">                            + panOf (c + spread * 0.5) v) x p</div>
+<div class="ln" data-line="112"> </div>
+<div class="ln" data-line="113">padVoice : Sig Gate -> Sig Key -> Sig Stereo</div>
+<div class="ln" data-line="114">padVoice g s = place (lowpassSvf (cutoff g) 0.35 (oscillators (!hzOf s))</div>
+<div class="ln" data-line="115">                      * adsr padEnv g * !levelOf s) (!panOf' s)</div>
+<div class="ln" data-line="116"> </div>
+<div class="ln" data-line="117"># ── The piece ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="118"> </div>
+<div class="ln" data-line="119">bpm : Int</div>
+<div class="ln" data-line="120">bpm = 66</div>
+<div class="ln" data-line="121"> </div>
+<div class="ln" data-line="122">chord : Int -> Int -> Int -> [: Key :]</div>
+<div class="ln" data-line="123">chord a b c = '(Key a 92) || '(Key b 80) || '(Key c 74)</div>
+<div class="ln" data-line="124"> </div>
+<div class="ln" data-line="125">#: Wide voicings, so the pan spread has something to work with: the notes</div>
+<div class="ln" data-line="126">#: of one chord are octaves apart rather than adjacent.</div>
+<div class="ln" data-line="127">part : [: Key :]</div>
+<div class="ln" data-line="128">part = chord 45 64 76 |* 4 ++ chord 43 62 74 |* 4</div>
+<div class="ln" data-line="129">    ++ chord 41 60 72 |* 4 ++ chord 40 59 71 |* 4</div>
+<div class="ln" data-line="130"> </div>
+<div class="ln" data-line="131">score : [: Void :]</div>
+<div class="ln" data-line="132">score = part >>= voices.pad</div>
+<div class="ln" data-line="133"> </div>
+<div class="ln" data-line="134"># ── The mix ──────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="135">#</div>
+<div class="ln" data-line="136"># `pad` is already a `Sig Stereo` — the bank summed both channels — so the</div>
+<div class="ln" data-line="137"># mix is ordinary arithmetic at that type: `instance Num (Sig Stereo)` in</div>
+<div class="ln" data-line="138"># `synth.ges` is what makes `0.8 * pad` a fader rather than a type error,</div>
+<div class="ln" data-line="139"># and `sound` is a stereo signal all the way out to the `.wav`.</div>
+<div class="ln" data-line="140"> </div>
+<div class="ln" data-line="141">sound : Sig Stereo</div>
+<div class="ln" data-line="142">sound = 0.8 * pad</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,50 +32,49 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># scoped.ges — a scope on a playing signal, drawn — `spec/scope.md`.
-#
-#   python -m gestate.workbench examples/audio/scoped.ges
-#
-# Open the canvas and the trace is the sound: `scope "post"` keeps the
-# window of samples flowing through it, the engine publishes the ring,
-# and the picture below is an ordinary substrate folding the points
-# into rects.  A scope is not a widget — it is a substrate somebody
-# writes, and this file is the somebody.
-
-#: The trace arrives here: 128 points, the scope's window downsampled
-#: by max-absolute per bucket (`Workbench.TRACE_POINTS`).
-post : Chan (List Float)
-post = chan
-
-#: Something worth watching: a slow wobble on the level, so the trace
-#: breathes where a bare tone would stand still.
-wobble : Sig Float
-wobble = 0.5 + 0.4 * sine 0.4
-
-sound : Sig Float
-sound = scope "post" (0.3 * wobble * sine 220.0)
-
-night : Colour
-night = RGB 32 35 43
-
-lit : Colour
-lit = RGB 122 200 235
-
-#: One dot per point, placed at its value's own height — a waveform,
-#: drawn by recursion over the list like `ladder.ges` counts keys.
-dots : Int -> List Float -> Sub
-dots i ps = case ps of
-    Nil -> Gap 0 0
-    p :: rest -> Over (Shift (i * 3 - 192) (floor (p * 300.0))
-                             (Rect 2 3 lit))
-                      (dots (i + 1) rest)
-
-face : List Float -> Sub
-face ps = Over (Rect 400 140 night) (dots 0 ps)
-
-substrate : Sig Sub
-substrate = !face (Nil ::: mkSig (wait post))
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># scoped.ges — a scope on a playing signal, drawn — `spec/scope.md`.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.workbench examples/audio/scoped.ges</div>
+<div class="ln" data-line="4">#</div>
+<div class="ln" data-line="5"># Open the canvas and the trace is the sound: `scope "post"` keeps the</div>
+<div class="ln" data-line="6"># window of samples flowing through it, the engine publishes the ring,</div>
+<div class="ln" data-line="7"># and the picture below is an ordinary substrate folding the points</div>
+<div class="ln" data-line="8"># into rects.  A scope is not a widget — it is a substrate somebody</div>
+<div class="ln" data-line="9"># writes, and this file is the somebody.</div>
+<div class="ln" data-line="10"> </div>
+<div class="ln" data-line="11">#: The trace arrives here: 128 points, the scope's window downsampled</div>
+<div class="ln" data-line="12">#: by max-absolute per bucket (`Workbench.TRACE_POINTS`).</div>
+<div class="ln" data-line="13">post : Chan (List Float)</div>
+<div class="ln" data-line="14">post = chan</div>
+<div class="ln" data-line="15"> </div>
+<div class="ln" data-line="16">#: Something worth watching: a slow wobble on the level, so the trace</div>
+<div class="ln" data-line="17">#: breathes where a bare tone would stand still.</div>
+<div class="ln" data-line="18">wobble : Sig Float</div>
+<div class="ln" data-line="19">wobble = 0.5 + 0.4 * sine 0.4</div>
+<div class="ln" data-line="20"> </div>
+<div class="ln" data-line="21">sound : Sig Float</div>
+<div class="ln" data-line="22">sound = scope "post" (0.3 * wobble * sine 220.0)</div>
+<div class="ln" data-line="23"> </div>
+<div class="ln" data-line="24">night : Colour</div>
+<div class="ln" data-line="25">night = RGB 32 35 43</div>
+<div class="ln" data-line="26"> </div>
+<div class="ln" data-line="27">lit : Colour</div>
+<div class="ln" data-line="28">lit = RGB 122 200 235</div>
+<div class="ln" data-line="29"> </div>
+<div class="ln" data-line="30">#: One dot per point, placed at its value's own height — a waveform,</div>
+<div class="ln" data-line="31">#: drawn by recursion over the list like `ladder.ges` counts keys.</div>
+<div class="ln" data-line="32">dots : Int -> List Float -> Sub</div>
+<div class="ln" data-line="33">dots i ps = case ps of</div>
+<div class="ln" data-line="34">    Nil -> Gap 0 0</div>
+<div class="ln" data-line="35">    p :: rest -> Over (Shift (i * 3 - 192) (floor (p * 300.0))</div>
+<div class="ln" data-line="36">                             (Rect 2 3 lit))</div>
+<div class="ln" data-line="37">                      (dots (i + 1) rest)</div>
+<div class="ln" data-line="38"> </div>
+<div class="ln" data-line="39">face : List Float -> Sub</div>
+<div class="ln" data-line="40">face ps = Over (Rect 400 140 night) (dots 0 ps)</div>
+<div class="ln" data-line="41"> </div>
+<div class="ln" data-line="42">substrate : Sig Sub</div>
+<div class="ln" data-line="43">substrate = !face (Nil ::: mkSig (wait post))</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

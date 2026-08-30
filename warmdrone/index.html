@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,36 +32,35 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># WARMDRONE - one chord, two Float dials.
-#
-#   python -m gestate.export examples/audio/warmdrone.ges -o warmdrone.clap
-#
-# `heat` is how hard the chord leans into the ceiling, `air` how open
-# the filter sits.  Both are Float knobs in 0..1 - the range a DAW
-# draws them with (`export._range_of`) - and the drone is the kind of
-# patch such dials are for: nothing to play, everything to lean on.
-
-heatChan : Chan Float
-heatChan = chan
-
-heat : Sig Float
-heat = 0.35 ::: mkSig (wait heatChan)
-
-airChan : Chan Float
-airChan = chan
-
-air : Sig Float
-air = 0.5 ::: mkSig (wait airChan)
-
-#: Three detuned saws and a sub - close enough to beat, far enough to
-#: shimmer.
-bed : Sig Float
-bed = saw 55.0 + 0.8 * saw 55.4 + 0.4 * saw 110.3 + 0.6 * sine 27.5
-
-sound : Sig Float
-sound = brickwall 0.9
-    (0.55 * lowpassSvf (220.0 + 4300.0 * air) 0.35 (bed * (0.5 + 2.5 * heat)))
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># WARMDRONE - one chord, two Float dials.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.export examples/audio/warmdrone.ges -o warmdrone.clap</div>
+<div class="ln" data-line="4">#</div>
+<div class="ln" data-line="5"># `heat` is how hard the chord leans into the ceiling, `air` how open</div>
+<div class="ln" data-line="6"># the filter sits.  Both are Float knobs in 0..1 - the range a DAW</div>
+<div class="ln" data-line="7"># draws them with (`export._range_of`) - and the drone is the kind of</div>
+<div class="ln" data-line="8"># patch such dials are for: nothing to play, everything to lean on.</div>
+<div class="ln" data-line="9"> </div>
+<div class="ln" data-line="10">heatChan : Chan Float</div>
+<div class="ln" data-line="11">heatChan = chan</div>
+<div class="ln" data-line="12"> </div>
+<div class="ln" data-line="13">heat : Sig Float</div>
+<div class="ln" data-line="14">heat = 0.35 ::: mkSig (wait heatChan)<label class="knob"><span class="knob-name">heat</span><input type="range" data-slot="1" data-type="Float" min="0.0" max="1.0" step="any" value="0.35"><output>0.35</output></label></div>
+<div class="ln" data-line="15"> </div>
+<div class="ln" data-line="16">airChan : Chan Float</div>
+<div class="ln" data-line="17">airChan = chan</div>
+<div class="ln" data-line="18"> </div>
+<div class="ln" data-line="19">air : Sig Float</div>
+<div class="ln" data-line="20">air = 0.5 ::: mkSig (wait airChan)<label class="knob"><span class="knob-name">air</span><input type="range" data-slot="0" data-type="Float" min="0.0" max="1.0" step="any" value="0.5"><output>0.5</output></label></div>
+<div class="ln" data-line="21"> </div>
+<div class="ln" data-line="22">#: Three detuned saws and a sub - close enough to beat, far enough to</div>
+<div class="ln" data-line="23">#: shimmer.</div>
+<div class="ln" data-line="24">bed : Sig Float</div>
+<div class="ln" data-line="25">bed = saw 55.0 + 0.8 * saw 55.4 + 0.4 * saw 110.3 + 0.6 * sine 27.5</div>
+<div class="ln" data-line="26"> </div>
+<div class="ln" data-line="27">sound : Sig Float</div>
+<div class="ln" data-line="28">sound = brickwall 0.9</div>
+<div class="ln" data-line="29">    (0.55 * lowpassSvf (220.0 + 4300.0 * air) 0.35 (bed * (0.5 + 2.5 * heat)))</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

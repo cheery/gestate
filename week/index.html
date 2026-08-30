@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,130 +32,129 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># A week, and the rests are the piece.
-#
-#   python -m gestate.workbench examples/audio/week.ges
-#   python -m gestate.audioperform examples/audio/week.ges -o week.wav --seconds 52
-#
-# **Seven phrases, one a day, and each is the same phrase with more of it
-# taken away.**  Monday is eight notes; Sunday is one note and seven
-# rests.  Nothing is added over the week and nothing is transposed — the
-# only thing that changes is how much of the line is still there.
-#
-# The shape is meant to be read as well as heard: the rests below form a
-# triangle opening to the right, and that triangle *is* the music.
-#
-# **Two voices, because that is the argument.**  The upper one thins to
-# silence.  The lower one keeps its beat all seven days and does not
-# change at all.  `spec/timer.md` draws exactly these two things side by
-# side in the status bar — what the person did, and what the project did
-# — and the finding that made that file was that they are not the same
-# quantity and must not be fused.  Here they are a hand and a ground.
-#
-# And the rest is not an absence of music.  `spec/timer.md`'s law is that
-# a day with nothing in it draws **no ink at all**, because the ink grows
-# with the quantity and the quantity is zero — a rest day has to be
-# visible *as itself* or a week of them reads like a week of light days.
-# The same rule, one art over: the silence in the seventh phrase is the
-# loudest thing in the piece.
-#
-# Measured, so the shape is a fact rather than an intention —
-# `audioperform --report`, per bar:
-#
-#     0.224  0.229  0.227  0.205  0.198  0.197  0.169  0.170
-#     0.157  0.170  0.171  0.135  0.126  0.096  0.000
-#
-# Written 2026-08-17, the day the timer was built.
-
-# ── The hand ─────────────────────────────────────────────────────────────
-#
-# Sines, three partials, a slow attack and a long tail — the andon's
-# voice (`tools/andon.ges`), because the two were written the same day and
-# for the same reason.
-
-soft : Adsr
-soft = Adsr 0.030 1.60 0.00 1.30
-
-chime : Sig Gate -> Sig Int -> Sig Float
-chime g s = (0.50 * sine (!keyHz s)
-           + 0.14 * sine (2.0 * !keyHz s)
-           + 0.05 * sine (3.0 * !keyHz s))
-          * adsr soft g
-
-voices hand 6 chime : Sig Float
-
-deep : Adsr
-deep = Adsr 0.040 3.20 0.00 2.40
-
-low : Sig Gate -> Sig Int -> Sig Float
-low g s = (0.34 * sine (!keyHz s) + 0.10 * sine (2.0 * !keyHz s))
-        * adsr deep g
-
-voices ground 2 low : Sig Float
-
-# ── The week ─────────────────────────────────────────────────────────────
-#
-# One line, seven times, losing a little more of itself each pass.  The
-# first and last notes of every day survive to the end: a week that
-# thinned to nothing at both ends would be a fade, and a fade is not what
-# a rest is.
-
-monday    : [: Int :]
-monday    = '69 ++ '73 ++ '76 ++ '78 ++ '76 ++ '73 ++ '71 ++ '69
-tuesday   : [: Int :]
-tuesday   = '69 ++ '73 ++ '76 ++ '78 ++ '76 ++ '73 ++ r   ++ '69
-wednesday : [: Int :]
-wednesday = '69 ++ '73 ++ '76 ++ r   ++ '76 ++ '73 ++ r   ++ '69
-thursday  : [: Int :]
-thursday  = '69 ++ '73 ++ r   ++ r   ++ '76 ++ r   ++ r   ++ '69
-friday    : [: Int :]
-friday    = '69 ++ r   ++ r   ++ r   ++ '76 ++ r   ++ r   ++ '69
-saturday  : [: Int :]
-saturday  = '69 ++ r   ++ r   ++ r   ++ r   ++ r   ++ r   ++ '69
-sunday    : [: Int :]
-sunday    = '69 ++ r   ++ r   ++ r   ++ r   ++ r   ++ r   ++ r
-
-week : [: Int :]
-week = monday ++ tuesday ++ wednesday ++ thursday
-    ++ friday ++ saturday ++ sunday
-
-# ── The ground ───────────────────────────────────────────────────────────
-#
-# **Unchanged, all seven days.**  Two low notes a phrase, the same two,
-# for as long as the piece lasts.  The project keeps moving whether or
-# not anybody is at the desk — which was the measurement that split the
-# status row in two, and is the one line of this piece that never varies.
-#
-# **It is deliberately below what a laptop can reproduce, and that was
-# checked rather than assumed.**  A2 is 110 Hz and E3 is 165 Hz; a laptop
-# speaker has almost nothing under about 200, so on one the ground is a
-# suggestion and on headphones it is a floor.  Henri, having listened on
-# both, 2026-08-17: *"Lower track is too low to listen at laptop but
-# that's okay.  We leave it like that because headphones pick up the
-# piece."*
-#
-# So do not raise it to make it audible on a laptop.  Doing that would
-# put the ground in the same register as the hand, and the two voices
-# have to occupy different ground for the piece to be about anything —
-# one thins and one does not, and you should be able to hear which is
-# which without being told.
-
-standing : [: Int :]
-standing = ('45 |* 4 ++ '52 |* 4) |* 1
-
-ground7 : [: Int :]
-ground7 = standing ++ standing ++ standing ++ standing
-       ++ standing ++ standing ++ standing
-
-score : [: Void :]
-score = (week >>= voices.hand) || (ground7 >>= voices.ground)
-
-bpm : Int
-bpm = 66
-
-sound : Sig Float
-sound = brickwall 0.9 (gain 0.7 (hand + ground))
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># A week, and the rests are the piece.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.workbench examples/audio/week.ges</div>
+<div class="ln" data-line="4">#   python -m gestate.audioperform examples/audio/week.ges -o week.wav --seconds 52</div>
+<div class="ln" data-line="5">#</div>
+<div class="ln" data-line="6"># **Seven phrases, one a day, and each is the same phrase with more of it</div>
+<div class="ln" data-line="7"># taken away.**  Monday is eight notes; Sunday is one note and seven</div>
+<div class="ln" data-line="8"># rests.  Nothing is added over the week and nothing is transposed — the</div>
+<div class="ln" data-line="9"># only thing that changes is how much of the line is still there.</div>
+<div class="ln" data-line="10">#</div>
+<div class="ln" data-line="11"># The shape is meant to be read as well as heard: the rests below form a</div>
+<div class="ln" data-line="12"># triangle opening to the right, and that triangle *is* the music.</div>
+<div class="ln" data-line="13">#</div>
+<div class="ln" data-line="14"># **Two voices, because that is the argument.**  The upper one thins to</div>
+<div class="ln" data-line="15"># silence.  The lower one keeps its beat all seven days and does not</div>
+<div class="ln" data-line="16"># change at all.  `spec/timer.md` draws exactly these two things side by</div>
+<div class="ln" data-line="17"># side in the status bar — what the person did, and what the project did</div>
+<div class="ln" data-line="18"># — and the finding that made that file was that they are not the same</div>
+<div class="ln" data-line="19"># quantity and must not be fused.  Here they are a hand and a ground.</div>
+<div class="ln" data-line="20">#</div>
+<div class="ln" data-line="21"># And the rest is not an absence of music.  `spec/timer.md`'s law is that</div>
+<div class="ln" data-line="22"># a day with nothing in it draws **no ink at all**, because the ink grows</div>
+<div class="ln" data-line="23"># with the quantity and the quantity is zero — a rest day has to be</div>
+<div class="ln" data-line="24"># visible *as itself* or a week of them reads like a week of light days.</div>
+<div class="ln" data-line="25"># The same rule, one art over: the silence in the seventh phrase is the</div>
+<div class="ln" data-line="26"># loudest thing in the piece.</div>
+<div class="ln" data-line="27">#</div>
+<div class="ln" data-line="28"># Measured, so the shape is a fact rather than an intention —</div>
+<div class="ln" data-line="29"># `audioperform --report`, per bar:</div>
+<div class="ln" data-line="30">#</div>
+<div class="ln" data-line="31">#     0.224  0.229  0.227  0.205  0.198  0.197  0.169  0.170</div>
+<div class="ln" data-line="32">#     0.157  0.170  0.171  0.135  0.126  0.096  0.000</div>
+<div class="ln" data-line="33">#</div>
+<div class="ln" data-line="34"># Written 2026-08-17, the day the timer was built.</div>
+<div class="ln" data-line="35"> </div>
+<div class="ln" data-line="36"># ── The hand ─────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="37">#</div>
+<div class="ln" data-line="38"># Sines, three partials, a slow attack and a long tail — the andon's</div>
+<div class="ln" data-line="39"># voice (`tools/andon.ges`), because the two were written the same day and</div>
+<div class="ln" data-line="40"># for the same reason.</div>
+<div class="ln" data-line="41"> </div>
+<div class="ln" data-line="42">soft : Adsr</div>
+<div class="ln" data-line="43">soft = Adsr 0.030 1.60 0.00 1.30</div>
+<div class="ln" data-line="44"> </div>
+<div class="ln" data-line="45">chime : Sig Gate -> Sig Int -> Sig Float</div>
+<div class="ln" data-line="46">chime g s = (0.50 * sine (!keyHz s)</div>
+<div class="ln" data-line="47">           + 0.14 * sine (2.0 * !keyHz s)</div>
+<div class="ln" data-line="48">           + 0.05 * sine (3.0 * !keyHz s))</div>
+<div class="ln" data-line="49">          * adsr soft g</div>
+<div class="ln" data-line="50"> </div>
+<div class="ln" data-line="51">voices hand 6 chime : Sig Float</div>
+<div class="ln" data-line="52"> </div>
+<div class="ln" data-line="53">deep : Adsr</div>
+<div class="ln" data-line="54">deep = Adsr 0.040 3.20 0.00 2.40</div>
+<div class="ln" data-line="55"> </div>
+<div class="ln" data-line="56">low : Sig Gate -> Sig Int -> Sig Float</div>
+<div class="ln" data-line="57">low g s = (0.34 * sine (!keyHz s) + 0.10 * sine (2.0 * !keyHz s))</div>
+<div class="ln" data-line="58">        * adsr deep g</div>
+<div class="ln" data-line="59"> </div>
+<div class="ln" data-line="60">voices ground 2 low : Sig Float</div>
+<div class="ln" data-line="61"> </div>
+<div class="ln" data-line="62"># ── The week ─────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="63">#</div>
+<div class="ln" data-line="64"># One line, seven times, losing a little more of itself each pass.  The</div>
+<div class="ln" data-line="65"># first and last notes of every day survive to the end: a week that</div>
+<div class="ln" data-line="66"># thinned to nothing at both ends would be a fade, and a fade is not what</div>
+<div class="ln" data-line="67"># a rest is.</div>
+<div class="ln" data-line="68"> </div>
+<div class="ln" data-line="69">monday    : [: Int :]</div>
+<div class="ln" data-line="70">monday    = '69 ++ '73 ++ '76 ++ '78 ++ '76 ++ '73 ++ '71 ++ '69</div>
+<div class="ln" data-line="71">tuesday   : [: Int :]</div>
+<div class="ln" data-line="72">tuesday   = '69 ++ '73 ++ '76 ++ '78 ++ '76 ++ '73 ++ r   ++ '69</div>
+<div class="ln" data-line="73">wednesday : [: Int :]</div>
+<div class="ln" data-line="74">wednesday = '69 ++ '73 ++ '76 ++ r   ++ '76 ++ '73 ++ r   ++ '69</div>
+<div class="ln" data-line="75">thursday  : [: Int :]</div>
+<div class="ln" data-line="76">thursday  = '69 ++ '73 ++ r   ++ r   ++ '76 ++ r   ++ r   ++ '69</div>
+<div class="ln" data-line="77">friday    : [: Int :]</div>
+<div class="ln" data-line="78">friday    = '69 ++ r   ++ r   ++ r   ++ '76 ++ r   ++ r   ++ '69</div>
+<div class="ln" data-line="79">saturday  : [: Int :]</div>
+<div class="ln" data-line="80">saturday  = '69 ++ r   ++ r   ++ r   ++ r   ++ r   ++ r   ++ '69</div>
+<div class="ln" data-line="81">sunday    : [: Int :]</div>
+<div class="ln" data-line="82">sunday    = '69 ++ r   ++ r   ++ r   ++ r   ++ r   ++ r   ++ r</div>
+<div class="ln" data-line="83"> </div>
+<div class="ln" data-line="84">week : [: Int :]</div>
+<div class="ln" data-line="85">week = monday ++ tuesday ++ wednesday ++ thursday</div>
+<div class="ln" data-line="86">    ++ friday ++ saturday ++ sunday</div>
+<div class="ln" data-line="87"> </div>
+<div class="ln" data-line="88"># ── The ground ───────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="89">#</div>
+<div class="ln" data-line="90"># **Unchanged, all seven days.**  Two low notes a phrase, the same two,</div>
+<div class="ln" data-line="91"># for as long as the piece lasts.  The project keeps moving whether or</div>
+<div class="ln" data-line="92"># not anybody is at the desk — which was the measurement that split the</div>
+<div class="ln" data-line="93"># status row in two, and is the one line of this piece that never varies.</div>
+<div class="ln" data-line="94">#</div>
+<div class="ln" data-line="95"># **It is deliberately below what a laptop can reproduce, and that was</div>
+<div class="ln" data-line="96"># checked rather than assumed.**  A2 is 110 Hz and E3 is 165 Hz; a laptop</div>
+<div class="ln" data-line="97"># speaker has almost nothing under about 200, so on one the ground is a</div>
+<div class="ln" data-line="98"># suggestion and on headphones it is a floor.  Henri, having listened on</div>
+<div class="ln" data-line="99"># both, 2026-08-17: *"Lower track is too low to listen at laptop but</div>
+<div class="ln" data-line="100"># that's okay.  We leave it like that because headphones pick up the</div>
+<div class="ln" data-line="101"># piece."*</div>
+<div class="ln" data-line="102">#</div>
+<div class="ln" data-line="103"># So do not raise it to make it audible on a laptop.  Doing that would</div>
+<div class="ln" data-line="104"># put the ground in the same register as the hand, and the two voices</div>
+<div class="ln" data-line="105"># have to occupy different ground for the piece to be about anything —</div>
+<div class="ln" data-line="106"># one thins and one does not, and you should be able to hear which is</div>
+<div class="ln" data-line="107"># which without being told.</div>
+<div class="ln" data-line="108"> </div>
+<div class="ln" data-line="109">standing : [: Int :]</div>
+<div class="ln" data-line="110">standing = ('45 |* 4 ++ '52 |* 4) |* 1</div>
+<div class="ln" data-line="111"> </div>
+<div class="ln" data-line="112">ground7 : [: Int :]</div>
+<div class="ln" data-line="113">ground7 = standing ++ standing ++ standing ++ standing</div>
+<div class="ln" data-line="114">       ++ standing ++ standing ++ standing</div>
+<div class="ln" data-line="115"> </div>
+<div class="ln" data-line="116">score : [: Void :]</div>
+<div class="ln" data-line="117">score = (week >>= voices.hand) || (ground7 >>= voices.ground)</div>
+<div class="ln" data-line="118"> </div>
+<div class="ln" data-line="119">bpm : Int</div>
+<div class="ln" data-line="120">bpm = 66</div>
+<div class="ln" data-line="121"> </div>
+<div class="ln" data-line="122">sound : Sig Float</div>
+<div class="ln" data-line="123">sound = brickwall 0.9 (gain 0.7 (hand + ground))</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

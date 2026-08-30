@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,78 +32,77 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># A synth with a knob: the first example whose sound comes from outside it.
-#
-#   python -m gestate.audioeditor examples/audio/knob.ges
-#   python -m gestate.audioperform examples/audio/knob.ges -o knob.wav
-#
-# `blip.ges` and `drums.ges` are closed: given the sample rate, everything
-# they will ever do is already written down.  This one has a **control-rate
-# parameter** — a second clock, ticking once per block rather than once per
-# sample — and the environment's slider is what turns it.
-#
-# The two rates are not a convenience.  An audio-rate signal advances every
-# sample and a control-rate one is held constant across a block, so a knob
-# costs a few instructions per block instead of per sample.  `sync` had this
-# structure in the language before there was any engine to want it, and
-# `spec/liveaudio.md` §"Two clocks" is where it became `.kr` and `.ar`.
-
-# ── The parameter ────────────────────────────────────────────────────────
-
-knobChan : Chan Int
-knobChan = chan
-
-#: 0 .. 100 from the host, once per block.  The `:::` value is what it
-#: holds before the first arrival — so a synth is never waiting on a knob
-#: that has not been turned yet.
-knob : Sig Int
-knob = 40 ::: mkSig (wait knobChan)
-
-# ── The voice ────────────────────────────────────────────────────────────
-#
-# Two signals with two different clocks meet in a `zip`, and that meeting
-# *is* the `.kr → .ar` boundary.  They cannot simply be paired — each has
-# its own clock — so the combinator asks `sync` which arrived and carries
-# the other over, which is sound because a signal is a cell overwritten in
-# place.  `Reading` is the pair, spelled as a data type because it has to be
-# flat: a tuple would do as well, and a list would not.
-
-Reading := Reading Int Int
-
-readAt : Int -> Int -> Reading
-readAt n k = Reading n k
-
-#: 110 Hz at the bottom of the knob, 510 Hz at the top.
-hzOf : Int -> Float
-hzOf k = 115.0 + 4.0 * toFloat k
-
-stepPhase : Float -> Reading -> Float
-stepPhase p r = case r of
-    Reading n k -> wrap (p + hzOf k / sampleRate)
-
-#: A gentle two-second tremolo, so the tone is not a dead sine even when
-#: nobody is touching the knob.
-tremoloAt : Int -> Float
-tremoloAt n = 0.7 + 0.3 * triangleOf (wrap (toFloat n / (2.0 * sampleRate)))
-
-voiceOut : Reading -> Float
-voiceOut r = case r of
-    Reading n k -> tremoloAt n
-
-# ── The chain ────────────────────────────────────────────────────────────
-
-driven : Sig Reading
-driven = zip readAt ticks knob
-
-turning : Sig Float
-turning = scan stepPhase 0.0 driven
-
-raw : Sig Float
-raw = zip (p r => triangleOf p * voiceOut r) turning driven
-
-sound : Sig Float
-sound = gain 0.4 (lowpass 0.6 raw)
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># A synth with a knob: the first example whose sound comes from outside it.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.audioeditor examples/audio/knob.ges</div>
+<div class="ln" data-line="4">#   python -m gestate.audioperform examples/audio/knob.ges -o knob.wav</div>
+<div class="ln" data-line="5">#</div>
+<div class="ln" data-line="6"># `blip.ges` and `drums.ges` are closed: given the sample rate, everything</div>
+<div class="ln" data-line="7"># they will ever do is already written down.  This one has a **control-rate</div>
+<div class="ln" data-line="8"># parameter** — a second clock, ticking once per block rather than once per</div>
+<div class="ln" data-line="9"># sample — and the environment's slider is what turns it.</div>
+<div class="ln" data-line="10">#</div>
+<div class="ln" data-line="11"># The two rates are not a convenience.  An audio-rate signal advances every</div>
+<div class="ln" data-line="12"># sample and a control-rate one is held constant across a block, so a knob</div>
+<div class="ln" data-line="13"># costs a few instructions per block instead of per sample.  `sync` had this</div>
+<div class="ln" data-line="14"># structure in the language before there was any engine to want it, and</div>
+<div class="ln" data-line="15"># `spec/liveaudio.md` §"Two clocks" is where it became `.kr` and `.ar`.</div>
+<div class="ln" data-line="16"> </div>
+<div class="ln" data-line="17"># ── The parameter ────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="18"> </div>
+<div class="ln" data-line="19">knobChan : Chan Int</div>
+<div class="ln" data-line="20">knobChan = chan</div>
+<div class="ln" data-line="21"> </div>
+<div class="ln" data-line="22">#: 0 .. 100 from the host, once per block.  The `:::` value is what it</div>
+<div class="ln" data-line="23">#: holds before the first arrival — so a synth is never waiting on a knob</div>
+<div class="ln" data-line="24">#: that has not been turned yet.</div>
+<div class="ln" data-line="25">knob : Sig Int</div>
+<div class="ln" data-line="26">knob = 40 ::: mkSig (wait knobChan)<label class="knob"><span class="knob-name">knob</span><input type="range" data-slot="0" data-type="Int" min="0" max="100" step="1" value="40"><output>40</output></label></div>
+<div class="ln" data-line="27"> </div>
+<div class="ln" data-line="28"># ── The voice ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="29">#</div>
+<div class="ln" data-line="30"># Two signals with two different clocks meet in a `zip`, and that meeting</div>
+<div class="ln" data-line="31"># *is* the `.kr → .ar` boundary.  They cannot simply be paired — each has</div>
+<div class="ln" data-line="32"># its own clock — so the combinator asks `sync` which arrived and carries</div>
+<div class="ln" data-line="33"># the other over, which is sound because a signal is a cell overwritten in</div>
+<div class="ln" data-line="34"># place.  `Reading` is the pair, spelled as a data type because it has to be</div>
+<div class="ln" data-line="35"># flat: a tuple would do as well, and a list would not.</div>
+<div class="ln" data-line="36"> </div>
+<div class="ln" data-line="37">Reading := Reading Int Int</div>
+<div class="ln" data-line="38"> </div>
+<div class="ln" data-line="39">readAt : Int -> Int -> Reading</div>
+<div class="ln" data-line="40">readAt n k = Reading n k</div>
+<div class="ln" data-line="41"> </div>
+<div class="ln" data-line="42">#: 110 Hz at the bottom of the knob, 510 Hz at the top.</div>
+<div class="ln" data-line="43">hzOf : Int -> Float</div>
+<div class="ln" data-line="44">hzOf k = 115.0 + 4.0 * toFloat k</div>
+<div class="ln" data-line="45"> </div>
+<div class="ln" data-line="46">stepPhase : Float -> Reading -> Float</div>
+<div class="ln" data-line="47">stepPhase p r = case r of</div>
+<div class="ln" data-line="48">    Reading n k -> wrap (p + hzOf k / sampleRate)</div>
+<div class="ln" data-line="49"> </div>
+<div class="ln" data-line="50">#: A gentle two-second tremolo, so the tone is not a dead sine even when</div>
+<div class="ln" data-line="51">#: nobody is touching the knob.</div>
+<div class="ln" data-line="52">tremoloAt : Int -> Float</div>
+<div class="ln" data-line="53">tremoloAt n = 0.7 + 0.3 * triangleOf (wrap (toFloat n / (2.0 * sampleRate)))</div>
+<div class="ln" data-line="54"> </div>
+<div class="ln" data-line="55">voiceOut : Reading -> Float</div>
+<div class="ln" data-line="56">voiceOut r = case r of</div>
+<div class="ln" data-line="57">    Reading n k -> tremoloAt n</div>
+<div class="ln" data-line="58"> </div>
+<div class="ln" data-line="59"># ── The chain ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="60"> </div>
+<div class="ln" data-line="61">driven : Sig Reading</div>
+<div class="ln" data-line="62">driven = zip readAt ticks knob</div>
+<div class="ln" data-line="63"> </div>
+<div class="ln" data-line="64">turning : Sig Float</div>
+<div class="ln" data-line="65">turning = scan stepPhase 0.0 driven</div>
+<div class="ln" data-line="66"> </div>
+<div class="ln" data-line="67">raw : Sig Float</div>
+<div class="ln" data-line="68">raw = zip (p r => triangleOf p * voiceOut r) turning driven</div>
+<div class="ln" data-line="69"> </div>
+<div class="ln" data-line="70">sound : Sig Float</div>
+<div class="ln" data-line="71">sound = gain 0.4 (lowpass 0.6 raw)</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

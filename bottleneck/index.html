@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,159 +32,158 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># Bottleneck — a Karplus-Strong string that slides, at last.
-#
-#   python -m gestate.audioperform examples/audio/bottleneck.ges -o bottleneck.wav --seconds 46
-#   python -m gestate.audiopygame examples/audio/bottleneck.ges
-#
-# `lead.ges` opens with an apology: a Karplus-Strong string cannot slide,
-# because its pitch is the length of a delay line and a feedback path that
-# leaves a node and comes back is a cycle the extractor refuses.  `slide`
-# is that apology retired — a delay line whose *length is a signal*, with
-# the loop closed inside the node — so this file is the instrument that
-# comment said was impossible: a plucked string with a bottleneck on it.
-#
-#     string : the loop is  N samples,  fixed when the program is built
-#     slide  : the loop is  pos[t]      samples, and pos is any signal
-#
-# The pitch chain is ordinary signal arithmetic: a riff table names the
-# target note, `slew` glides toward it — fast for a picked note, slow for
-# a slid one, which *is* the finger moving — vibrato multiplies in late,
-# and the result becomes the loop length as `sampleRate / hz`.  Everything
-# `lead.ges` does with an oscillator, done to a string.
-
-bpm : Int
-bpm = 76
-
-# ── The riff ─────────────────────────────────────────────────────────────
-#
-# A minor pentatonic, two bars, played twice per round: statement, then an
-# answer that climbs to the octave and falls back through the blue note.
-# `slideAt` marks the notes reached by sliding — the pairs the bottleneck
-# connects — and every other note is picked.
-
-eighth : Float -> Int
-eighth b = floor (b * 2.0)
-
-through : Float -> Float
-through b = b * 2.0 - toFloat (floor (b * 2.0))
-
-placeOf : Float -> Int
-placeOf b = prim_mod_int (eighth b) 16
-
-noteAt : Int -> Int
-noteAt i = case i of
-    0 -> 57
-    1 -> 57
-    2 -> 60
-    3 -> 62
-    4 -> 64
-    5 -> 62
-    6 -> 60
-    7 -> 57
-    8 -> 57
-    9 -> 60
-    10 -> 62
-    11 -> 63
-    12 -> 64
-    13 -> 69
-    14 -> 67
-    _ -> 64
-
-slideAt : Int -> Bool
-slideAt i = case i of
-    3 -> True
-    4 -> True
-    6 -> True
-    11 -> True
-    12 -> True
-    13 -> True
-    15 -> True
-    _ -> False
-
-# ── Pitch: where the finger is ───────────────────────────────────────────
-
-targetHz : Sig Float
-targetHz = map (b => keyHz (noteAt (placeOf b))) beat
-
-#: The glide.  A picked note arrives at once; a slid one takes a tenth of
-#: a second or so, and the ear hears the metal travel.
-glideRate : Sig Float
-glideRate = map (b => case slideAt (placeOf b) of
-    True -> 0.00042
-    False -> 1.0) beat
-
-#: Vibrato that arrives late in each note, as a hand's does — depth
-#: rises over the eighth, so a fresh note is steady and a held one sings.
-vibrato : Sig Float
-vibrato = zip (b w => 1.0 + 0.006 * w * clamp 0.0 1.0 (through b * 2.0 - 0.6))
-              beat (sine (!5.3))
-
-fingered : Sig Float
-fingered = slew glideRate targetHz * vibrato
-
-# ── The string ───────────────────────────────────────────────────────────
-#
-# The loop length *is* the pitch: `sampleRate / hz`, as a signal.  1024
-# samples of ring is room down to ~47 Hz, far below the riff's floor.
-#
-# The step is a bare feedback gain: `slide`'s interpolated read supplies
-# the fractional tuning, and its slight smearing of the top end is the
-# damping — a string this simple is bright, and the tone is shaped after
-# the loop instead of inside it, where a pure step cannot hold a filter's
-# state.
-
-pickAt : Int -> Bool
-pickAt i = case slideAt i of
-    True -> False
-    False -> True
-
-#: About one round trip of noise at the front of each *picked* eighth — a
-#: slid note is not re-picked, which is what makes it one gesture.  One
-#: trip and not more, which is `string`'s own rule: the loop sums whatever
-#: arrives during a round trip, so a long burst stacks and the level
-#: climbs — measured here at three times the intended peak before the
-#: window was cut to size.
-pick : Sig Float
-pick = zip (b w => case pickAt (placeOf b) of
-    True -> case through b &lt; 0.007 of
-        True -> w * (1.0 - through b / 0.007) * 0.8
-        False -> 0.0
-    False -> 0.0) beat (white 733)
-
-loopLen : Sig Float
-loopLen = map (h => sampleRate / clamp 47.0 nyquist h) fingered
-
-wire : Sig Float
-wire = slide 1024 (y x => x + 0.990 * y) loopLen pick
-
-#: The tone: take the pick's glass off, then a body around 400 Hz — a
-#: cigar-box resonance — and the string reads as wood and wire.
-voiced : Sig Float
-voiced = lowpassSvf (!2600.0) 0.15 wire
-       + 0.025 * resonate (!420.0) 0.12 wire
-
-# ── Under it ─────────────────────────────────────────────────────────────
-#
-# A drone on A, two octaves down: the string's open tuning, sounding
-# through everything the way sympathetic strings do.
-
-drone : Sig Float
-drone = lowpassOnePole (!320.0)
-            (0.5 * saw (!55.0) + 0.4 * saw (map (h => centsHz 9.0 h) (!55.0))
-           + 0.5 * sine (!110.0))
-      * 0.11
-
-#: The slap of the room and the wash behind it — the echo is a dotted
-#: eighth at this tempo, `damped` so the repeats dull as they recede.
-slap : Sig Float
-slap = 0.28 * damped 0.592 0.4 0.5 voiced
-
-sound : Sig Float
-sound = brickwall 0.9
-    (0.8 * voiced + 1.2 * slap + drone
-     + 0.42 * reverb 2.2 0.4 (0.9 * voiced + slap))
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># Bottleneck — a Karplus-Strong string that slides, at last.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.audioperform examples/audio/bottleneck.ges -o bottleneck.wav --seconds 46</div>
+<div class="ln" data-line="4">#   python -m gestate.audiopygame examples/audio/bottleneck.ges</div>
+<div class="ln" data-line="5">#</div>
+<div class="ln" data-line="6"># `lead.ges` opens with an apology: a Karplus-Strong string cannot slide,</div>
+<div class="ln" data-line="7"># because its pitch is the length of a delay line and a feedback path that</div>
+<div class="ln" data-line="8"># leaves a node and comes back is a cycle the extractor refuses.  `slide`</div>
+<div class="ln" data-line="9"># is that apology retired — a delay line whose *length is a signal*, with</div>
+<div class="ln" data-line="10"># the loop closed inside the node — so this file is the instrument that</div>
+<div class="ln" data-line="11"># comment said was impossible: a plucked string with a bottleneck on it.</div>
+<div class="ln" data-line="12">#</div>
+<div class="ln" data-line="13">#     string : the loop is  N samples,  fixed when the program is built</div>
+<div class="ln" data-line="14">#     slide  : the loop is  pos[t]      samples, and pos is any signal</div>
+<div class="ln" data-line="15">#</div>
+<div class="ln" data-line="16"># The pitch chain is ordinary signal arithmetic: a riff table names the</div>
+<div class="ln" data-line="17"># target note, `slew` glides toward it — fast for a picked note, slow for</div>
+<div class="ln" data-line="18"># a slid one, which *is* the finger moving — vibrato multiplies in late,</div>
+<div class="ln" data-line="19"># and the result becomes the loop length as `sampleRate / hz`.  Everything</div>
+<div class="ln" data-line="20"># `lead.ges` does with an oscillator, done to a string.</div>
+<div class="ln" data-line="21"> </div>
+<div class="ln" data-line="22">bpm : Int</div>
+<div class="ln" data-line="23">bpm = 76</div>
+<div class="ln" data-line="24"> </div>
+<div class="ln" data-line="25"># ── The riff ─────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="26">#</div>
+<div class="ln" data-line="27"># A minor pentatonic, two bars, played twice per round: statement, then an</div>
+<div class="ln" data-line="28"># answer that climbs to the octave and falls back through the blue note.</div>
+<div class="ln" data-line="29"># `slideAt` marks the notes reached by sliding — the pairs the bottleneck</div>
+<div class="ln" data-line="30"># connects — and every other note is picked.</div>
+<div class="ln" data-line="31"> </div>
+<div class="ln" data-line="32">eighth : Float -> Int</div>
+<div class="ln" data-line="33">eighth b = floor (b * 2.0)</div>
+<div class="ln" data-line="34"> </div>
+<div class="ln" data-line="35">through : Float -> Float</div>
+<div class="ln" data-line="36">through b = b * 2.0 - toFloat (floor (b * 2.0))</div>
+<div class="ln" data-line="37"> </div>
+<div class="ln" data-line="38">placeOf : Float -> Int</div>
+<div class="ln" data-line="39">placeOf b = prim_mod_int (eighth b) 16</div>
+<div class="ln" data-line="40"> </div>
+<div class="ln" data-line="41">noteAt : Int -> Int</div>
+<div class="ln" data-line="42">noteAt i = case i of</div>
+<div class="ln" data-line="43">    0 -> 57</div>
+<div class="ln" data-line="44">    1 -> 57</div>
+<div class="ln" data-line="45">    2 -> 60</div>
+<div class="ln" data-line="46">    3 -> 62</div>
+<div class="ln" data-line="47">    4 -> 64</div>
+<div class="ln" data-line="48">    5 -> 62</div>
+<div class="ln" data-line="49">    6 -> 60</div>
+<div class="ln" data-line="50">    7 -> 57</div>
+<div class="ln" data-line="51">    8 -> 57</div>
+<div class="ln" data-line="52">    9 -> 60</div>
+<div class="ln" data-line="53">    10 -> 62</div>
+<div class="ln" data-line="54">    11 -> 63</div>
+<div class="ln" data-line="55">    12 -> 64</div>
+<div class="ln" data-line="56">    13 -> 69</div>
+<div class="ln" data-line="57">    14 -> 67</div>
+<div class="ln" data-line="58">    _ -> 64</div>
+<div class="ln" data-line="59"> </div>
+<div class="ln" data-line="60">slideAt : Int -> Bool</div>
+<div class="ln" data-line="61">slideAt i = case i of</div>
+<div class="ln" data-line="62">    3 -> True</div>
+<div class="ln" data-line="63">    4 -> True</div>
+<div class="ln" data-line="64">    6 -> True</div>
+<div class="ln" data-line="65">    11 -> True</div>
+<div class="ln" data-line="66">    12 -> True</div>
+<div class="ln" data-line="67">    13 -> True</div>
+<div class="ln" data-line="68">    15 -> True</div>
+<div class="ln" data-line="69">    _ -> False</div>
+<div class="ln" data-line="70"> </div>
+<div class="ln" data-line="71"># ── Pitch: where the finger is ───────────────────────────────────────────</div>
+<div class="ln" data-line="72"> </div>
+<div class="ln" data-line="73">targetHz : Sig Float</div>
+<div class="ln" data-line="74">targetHz = map (b => keyHz (noteAt (placeOf b))) beat</div>
+<div class="ln" data-line="75"> </div>
+<div class="ln" data-line="76">#: The glide.  A picked note arrives at once; a slid one takes a tenth of</div>
+<div class="ln" data-line="77">#: a second or so, and the ear hears the metal travel.</div>
+<div class="ln" data-line="78">glideRate : Sig Float</div>
+<div class="ln" data-line="79">glideRate = map (b => case slideAt (placeOf b) of</div>
+<div class="ln" data-line="80">    True -> 0.00042</div>
+<div class="ln" data-line="81">    False -> 1.0) beat</div>
+<div class="ln" data-line="82"> </div>
+<div class="ln" data-line="83">#: Vibrato that arrives late in each note, as a hand's does — depth</div>
+<div class="ln" data-line="84">#: rises over the eighth, so a fresh note is steady and a held one sings.</div>
+<div class="ln" data-line="85">vibrato : Sig Float</div>
+<div class="ln" data-line="86">vibrato = zip (b w => 1.0 + 0.006 * w * clamp 0.0 1.0 (through b * 2.0 - 0.6))</div>
+<div class="ln" data-line="87">              beat (sine (!5.3))</div>
+<div class="ln" data-line="88"> </div>
+<div class="ln" data-line="89">fingered : Sig Float</div>
+<div class="ln" data-line="90">fingered = slew glideRate targetHz * vibrato</div>
+<div class="ln" data-line="91"> </div>
+<div class="ln" data-line="92"># ── The string ───────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="93">#</div>
+<div class="ln" data-line="94"># The loop length *is* the pitch: `sampleRate / hz`, as a signal.  1024</div>
+<div class="ln" data-line="95"># samples of ring is room down to ~47 Hz, far below the riff's floor.</div>
+<div class="ln" data-line="96">#</div>
+<div class="ln" data-line="97"># The step is a bare feedback gain: `slide`'s interpolated read supplies</div>
+<div class="ln" data-line="98"># the fractional tuning, and its slight smearing of the top end is the</div>
+<div class="ln" data-line="99"># damping — a string this simple is bright, and the tone is shaped after</div>
+<div class="ln" data-line="100"># the loop instead of inside it, where a pure step cannot hold a filter's</div>
+<div class="ln" data-line="101"># state.</div>
+<div class="ln" data-line="102"> </div>
+<div class="ln" data-line="103">pickAt : Int -> Bool</div>
+<div class="ln" data-line="104">pickAt i = case slideAt i of</div>
+<div class="ln" data-line="105">    True -> False</div>
+<div class="ln" data-line="106">    False -> True</div>
+<div class="ln" data-line="107"> </div>
+<div class="ln" data-line="108">#: About one round trip of noise at the front of each *picked* eighth — a</div>
+<div class="ln" data-line="109">#: slid note is not re-picked, which is what makes it one gesture.  One</div>
+<div class="ln" data-line="110">#: trip and not more, which is `string`'s own rule: the loop sums whatever</div>
+<div class="ln" data-line="111">#: arrives during a round trip, so a long burst stacks and the level</div>
+<div class="ln" data-line="112">#: climbs — measured here at three times the intended peak before the</div>
+<div class="ln" data-line="113">#: window was cut to size.</div>
+<div class="ln" data-line="114">pick : Sig Float</div>
+<div class="ln" data-line="115">pick = zip (b w => case pickAt (placeOf b) of</div>
+<div class="ln" data-line="116">    True -> case through b &lt; 0.007 of</div>
+<div class="ln" data-line="117">        True -> w * (1.0 - through b / 0.007) * 0.8</div>
+<div class="ln" data-line="118">        False -> 0.0</div>
+<div class="ln" data-line="119">    False -> 0.0) beat (white 733)</div>
+<div class="ln" data-line="120"> </div>
+<div class="ln" data-line="121">loopLen : Sig Float</div>
+<div class="ln" data-line="122">loopLen = map (h => sampleRate / clamp 47.0 nyquist h) fingered</div>
+<div class="ln" data-line="123"> </div>
+<div class="ln" data-line="124">wire : Sig Float</div>
+<div class="ln" data-line="125">wire = slide 1024 (y x => x + 0.990 * y) loopLen pick</div>
+<div class="ln" data-line="126"> </div>
+<div class="ln" data-line="127">#: The tone: take the pick's glass off, then a body around 400 Hz — a</div>
+<div class="ln" data-line="128">#: cigar-box resonance — and the string reads as wood and wire.</div>
+<div class="ln" data-line="129">voiced : Sig Float</div>
+<div class="ln" data-line="130">voiced = lowpassSvf (!2600.0) 0.15 wire</div>
+<div class="ln" data-line="131">       + 0.025 * resonate (!420.0) 0.12 wire</div>
+<div class="ln" data-line="132"> </div>
+<div class="ln" data-line="133"># ── Under it ─────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="134">#</div>
+<div class="ln" data-line="135"># A drone on A, two octaves down: the string's open tuning, sounding</div>
+<div class="ln" data-line="136"># through everything the way sympathetic strings do.</div>
+<div class="ln" data-line="137"> </div>
+<div class="ln" data-line="138">drone : Sig Float</div>
+<div class="ln" data-line="139">drone = lowpassOnePole (!320.0)</div>
+<div class="ln" data-line="140">            (0.5 * saw (!55.0) + 0.4 * saw (map (h => centsHz 9.0 h) (!55.0))</div>
+<div class="ln" data-line="141">           + 0.5 * sine (!110.0))</div>
+<div class="ln" data-line="142">      * 0.11</div>
+<div class="ln" data-line="143"> </div>
+<div class="ln" data-line="144">#: The slap of the room and the wash behind it — the echo is a dotted</div>
+<div class="ln" data-line="145">#: eighth at this tempo, `damped` so the repeats dull as they recede.</div>
+<div class="ln" data-line="146">slap : Sig Float</div>
+<div class="ln" data-line="147">slap = 0.28 * damped 0.592 0.4 0.5 voiced</div>
+<div class="ln" data-line="148"> </div>
+<div class="ln" data-line="149">sound : Sig Float</div>
+<div class="ln" data-line="150">sound = brickwall 0.9</div>
+<div class="ln" data-line="151">    (0.8 * voiced + 1.2 * slap + drone</div>
+<div class="ln" data-line="152">     + 0.42 * reverb 2.2 0.4 (0.9 * voiced + slap))</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

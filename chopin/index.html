@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,244 +32,243 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source"># After Chopin — the E minor prelude, Op. 28 No. 4, simplified.
-#
-#   python -m gestate.workbench examples/audio/chopin.ges
-#
-# The piece is two ideas: a melody that sighs on one note, and chords
-# under it that sink by semitones — one voice of the chord slipping at a
-# time while the others hold.  That is why it fits this file: the whole
-# harmony is a ladder written note by note, `pachelbel.ges`'s argument
-# in minor.  What stands here is the opening period, not the prelude
-# entire: the descent, the turn through E7 toward A minor, and the close
-# back on B7 into E minor.
-#
-# **The visual is the instrument seen** (`spec/substrate.md`): a disc
-# that breathes with the output's own peak, and eight hammer lamps — one
-# per voice of the bank — that strike bright and cool as their notes
-# age.  Chords land as three lamps at once; the tune holds one lamp lit
-# across the bar.  `envelope.ges` is the probe's teaching example; this
-# is a probe put to a piece.
-
-# ── The piece, seen ──────────────────────────────────────────────────────
-#
-# The bare `canvas` line below is the ask (`spec/workbench.md` §"Content
-# boxes"): the walked canvas stands as a live box right on that line —
-# `sink`'s manners, one line, one-line undo, and the file remembers.
-# The disc is the output's own peak breathing, and the eight lamps are
-# the bank's eight voices — struck bright, cooling as their notes age.
-# A chord is three lamps at once; the tune is one lamp held across the
-# bar.
-
-canvas
-
-dim : Sig Colour
-dim = colour 120 124 134
-
-#: The breath: a disc whose radius is the output's own peak.  `Sized`
-#: reserves the loudest breath's room, so the lamps below do not ride
-#: it — and the radius is clamped to that room, because the extent is
-#: declared and a circle that outgrows its own box is cut by whatever
-#: pane it lands in (it was, by the canvas box's top edge).
-discOf : Float -> Sub
-discOf v = Sized 170 96
-    (Circle (8 + floor (clamp 0.0 40.0 (v * 110.0))) (RGB 214 178 110))
-
-#: A hammer lamp.  Cold is a coal; struck is bright at its own hue and
-#: shrinks as the probe's age grows — about a third of a second a step,
-#: so a chord's afterglow fades over the bar it belongs to.  The age is
-#: one past the truth (`0` is *no voice*), the probe's own convention.
-emberOf : Int -> Float -> Sub
-emberOf i age = case age &lt; 1.0 of
-    True -> Circle 2 (RGB 58 56 66)
-    False -> Circle (11 - floor (clamp 0.0 7.0
-                       ((age - 1.0) / (0.35 * sampleRate))))
-                    (hueOf i)
-
-#: Ivory into amber, one shade per voice, so two lamps lit by one chord
-#: are still two voices.
-hueOf : Int -> Colour
-hueOf i = RGB (236 - 6 * i) (206 - 10 * i) (152 - 8 * i)
-
-lampAt : Int -> Float -> Sub
-lampAt i age = Sized 30 30 (emberOf i age)
-
-lamps : Sig Sub
-lamps = !lampAt 0 age0 `row` !lampAt 1 age1
- `row` !lampAt 2 age2 `row` !lampAt 3 age3
- `row` !lampAt 4 age4 `row` !lampAt 5 age5
- `row` !lampAt 6 age6 `row` !lampAt 7 age7
-
-caption : Sig Sub
-caption = label 150 14 "OP. 28 NO. 4" dim
-
-substrate : Sig Sub
-substrate = gap 0 14 `column` !discOf loud `column` gap 0 12
-            `column` lamps `column` gap 0 10 `column` caption
-
-# ── What the instrument tells you ────────────────────────────────────────
-
-peak : Chan Float
-peak = chan
-
-loud : Sig Float
-loud = 0.0 ::: mkSig (wait peak)
-
-# One probe per voice — the age in samples, `0` when silent
-# (`envelope.ges` is the long explanation).
-
-probe0 : Chan Float
-probe0 = chan
-probe1 : Chan Float
-probe1 = chan
-probe2 : Chan Float
-probe2 = chan
-probe3 : Chan Float
-probe3 = chan
-probe4 : Chan Float
-probe4 = chan
-probe5 : Chan Float
-probe5 = chan
-probe6 : Chan Float
-probe6 = chan
-probe7 : Chan Float
-probe7 = chan
-
-age0 : Sig Float
-age0 = 0.0 ::: mkSig (wait probe0)
-age1 : Sig Float
-age1 = 0.0 ::: mkSig (wait probe1)
-age2 : Sig Float
-age2 = 0.0 ::: mkSig (wait probe2)
-age3 : Sig Float
-age3 = 0.0 ::: mkSig (wait probe3)
-age4 : Sig Float
-age4 = 0.0 ::: mkSig (wait probe4)
-age5 : Sig Float
-age5 = 0.0 ::: mkSig (wait probe5)
-age6 : Sig Float
-age6 = 0.0 ::: mkSig (wait probe6)
-age7 : Sig Float
-age7 = 0.0 ::: mkSig (wait probe7)
-
-# ── What a note carries ──────────────────────────────────────────────────
-
-Hammer := Hammer Int Int                    # key number, velocity
-
-#: Eight, exactly the probes the editor can hand back: at the thickest a
-#: chord's three tails overlap the next stroke's three notes while the
-#: tune holds a note over both, and the eighth is the tune's own tail.
-voices piano 8 hammerVoice : Sig Float
-
-instance FromMIDI Hammer where
-    noteOn ch p v = Just (Hammer p v)
-
-#: The way back out, for the score box's roll (`spec/scorebox.md`).
-instance Notable Hammer where
-    noteKey h = case h of
-        Hammer k v -> k
-    noteVel h = case h of
-        Hammer k v -> v
-
-# ── The instrument ───────────────────────────────────────────────────────
-
-#: Struck, not bowed: the attack is immediate, the body is decay, and
-#: what sustain there is stands low — a held key on a piano is a note
-#: getting quieter slowly.
-env : Adsr
-env = Adsr 0.004 1.4 0.25 0.4
-
-hzOf : Hammer -> Float
-hzOf h = case h of
-    Hammer k v -> keyHz k
-
-levelOf : Hammer -> Float
-levelOf h = case h of
-    Hammer k v -> toFloat v / 127.0
-
-#: A fundamental and two overtones, each quieter — enough of a spectrum
-#: to read as felt on string without pretending to be a piano.
-timbre : Sig Float -> Sig Float
-timbre hz = sine hz + 0.4 * sine (hz * 2.0) + 0.15 * sine (hz * 3.0)
-
-hammerVoice : Sig Gate -> Sig Hammer -> Sig Float
-hammerVoice g s = timbre (!hzOf s) * adsr env g * !levelOf s
-
-# ── The piece ────────────────────────────────────────────────────────────
-#
-# Largo, 4/4 here: four chord strokes to the bar where Chopin writes
-# eight quavers, and the melody in the long values it actually has.
-# Every chord below is three notes written side by side with `||`, and
-# the descent is legible in the numbers: one column of the stroke moves
-# down a semitone per bar while the others wait their turn.
-
-bpm : Int
-bpm = 46
-
-#: A chord tone, quiet — there are three at once and they are the floor
-#: the tune stands on, eight strokes a bar in the original and four here.
-quiet : Int -> [: Hammer :]
-quiet k = '(Hammer k 46)
-
-#: The tune, singing clear of the accompaniment.
-sing : Int -> [: Hammer :]
-sing k = '(Hammer k 84)
-
-#: Three notes at the same instant: `||` is the whole mechanism.
-stroke : Int -> Int -> Int -> [: Hammer :]
-stroke a b c = quiet a || quiet b || quiet c
-
-#: One bar of accompaniment: the same chord struck four times.
-barOf : [: Hammer :] -> [: Hammer :]
-barOf s = s ++ s ++ s ++ s
-
-#: The ladder itself, a bar per rung.  Read it as three columns: the top
-#: voice E–E–E–D#–D–D–C#–C, the middle B–A#–A–A–A–G#–G–G, the bass
-#: G–F#–F#–F#–F–E–E–E — never two slipping in the same bar, which is the
-#: prelude's whole method.  Then the cadence: B7 in the old register,
-#: and E minor held to let the room ring out.
-chords : [: Hammer :]
-chords = barOf (stroke 55 59 64)            # E minor
-      ++ barOf (stroke 54 58 64)            # B7 leaning in
-      ++ barOf (stroke 54 57 64)
-      ++ barOf (stroke 54 57 63)            # B7
-      ++ barOf (stroke 53 57 62)            # the chromatic passing bar
-      ++ barOf (stroke 52 56 62)            # E7, turning toward A minor
-      ++ barOf (stroke 52 55 61)
-      ++ barOf (stroke 52 55 60)            # A minor over C
-      ++ barOf (stroke 47 51 57)            # B7, low
-      ++ barOf (stroke 47 51 57)
-      ++ (stroke 52 55 59 |* 4)             # E minor, one stroke, rung out
-
-#: The sigh: B held whole bars, falling to its upper neighbour and back,
-#: then stepping down — A, G, F#, E — and closing on the leading tone
-#: before it settles.  Durations are `|*` of the one-beat note, so the
-#: line is exactly as long as the ladder under it.
-tune : [: Hammer :]
-tune = (sing 71 |* 4)
-    ++ (sing 72 |* 2) ++ (sing 71 |* 2)
-    ++ (sing 71 |* 4)
-    ++ (sing 71 |* 3) ++ sing 69
-    ++ (sing 69 |* 2) ++ (sing 67 |* 2)
-    ++ (sing 67 |* 2) ++ (sing 66 |* 2)
-    ++ (sing 66 |* 4)
-    ++ (sing 66 |* 2) ++ (sing 64 |* 2)
-    ++ (sing 64 |* 2) ++ (sing 63 |* 2)
-    ++ (sing 63 |* 4)
-    ++ (sing 64 |* 4)
-
-score : [: Void :]
-score = (chords || tune) >>= voices.piano
-
-# ── The mix ──────────────────────────────────────────────────────────────
-
-#: Set on the thickest beat — three tails, three strikes and the tune —
-#: and the lowpass is the felt: three overtones on seven voices is more
-#: treble than a Largo wants.
-sound : Sig Float
-sound = gain 0.2 (lowpassOnePole 2800.0 piano)
-
-</pre>
+<div id="source" class="src"><div class="ln" data-line="1"># After Chopin — the E minor prelude, Op. 28 No. 4, simplified.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.workbench examples/audio/chopin.ges</div>
+<div class="ln" data-line="4">#</div>
+<div class="ln" data-line="5"># The piece is two ideas: a melody that sighs on one note, and chords</div>
+<div class="ln" data-line="6"># under it that sink by semitones — one voice of the chord slipping at a</div>
+<div class="ln" data-line="7"># time while the others hold.  That is why it fits this file: the whole</div>
+<div class="ln" data-line="8"># harmony is a ladder written note by note, `pachelbel.ges`'s argument</div>
+<div class="ln" data-line="9"># in minor.  What stands here is the opening period, not the prelude</div>
+<div class="ln" data-line="10"># entire: the descent, the turn through E7 toward A minor, and the close</div>
+<div class="ln" data-line="11"># back on B7 into E minor.</div>
+<div class="ln" data-line="12">#</div>
+<div class="ln" data-line="13"># **The visual is the instrument seen** (`spec/substrate.md`): a disc</div>
+<div class="ln" data-line="14"># that breathes with the output's own peak, and eight hammer lamps — one</div>
+<div class="ln" data-line="15"># per voice of the bank — that strike bright and cool as their notes</div>
+<div class="ln" data-line="16"># age.  Chords land as three lamps at once; the tune holds one lamp lit</div>
+<div class="ln" data-line="17"># across the bar.  `envelope.ges` is the probe's teaching example; this</div>
+<div class="ln" data-line="18"># is a probe put to a piece.</div>
+<div class="ln" data-line="19"> </div>
+<div class="ln" data-line="20"># ── The piece, seen ──────────────────────────────────────────────────────</div>
+<div class="ln" data-line="21">#</div>
+<div class="ln" data-line="22"># The bare `canvas` line below is the ask (`spec/workbench.md` §"Content</div>
+<div class="ln" data-line="23"># boxes"): the walked canvas stands as a live box right on that line —</div>
+<div class="ln" data-line="24"># `sink`'s manners, one line, one-line undo, and the file remembers.</div>
+<div class="ln" data-line="25"># The disc is the output's own peak breathing, and the eight lamps are</div>
+<div class="ln" data-line="26"># the bank's eight voices — struck bright, cooling as their notes age.</div>
+<div class="ln" data-line="27"># A chord is three lamps at once; the tune is one lamp held across the</div>
+<div class="ln" data-line="28"># bar.</div>
+<div class="ln" data-line="29"> </div>
+<div class="ln" data-line="30">canvas</div>
+<div class="ln" data-line="31"> </div>
+<div class="ln" data-line="32">dim : Sig Colour</div>
+<div class="ln" data-line="33">dim = colour 120 124 134</div>
+<div class="ln" data-line="34"> </div>
+<div class="ln" data-line="35">#: The breath: a disc whose radius is the output's own peak.  `Sized`</div>
+<div class="ln" data-line="36">#: reserves the loudest breath's room, so the lamps below do not ride</div>
+<div class="ln" data-line="37">#: it — and the radius is clamped to that room, because the extent is</div>
+<div class="ln" data-line="38">#: declared and a circle that outgrows its own box is cut by whatever</div>
+<div class="ln" data-line="39">#: pane it lands in (it was, by the canvas box's top edge).</div>
+<div class="ln" data-line="40">discOf : Float -> Sub</div>
+<div class="ln" data-line="41">discOf v = Sized 170 96</div>
+<div class="ln" data-line="42">    (Circle (8 + floor (clamp 0.0 40.0 (v * 110.0))) (RGB 214 178 110))</div>
+<div class="ln" data-line="43"> </div>
+<div class="ln" data-line="44">#: A hammer lamp.  Cold is a coal; struck is bright at its own hue and</div>
+<div class="ln" data-line="45">#: shrinks as the probe's age grows — about a third of a second a step,</div>
+<div class="ln" data-line="46">#: so a chord's afterglow fades over the bar it belongs to.  The age is</div>
+<div class="ln" data-line="47">#: one past the truth (`0` is *no voice*), the probe's own convention.</div>
+<div class="ln" data-line="48">emberOf : Int -> Float -> Sub</div>
+<div class="ln" data-line="49">emberOf i age = case age &lt; 1.0 of</div>
+<div class="ln" data-line="50">    True -> Circle 2 (RGB 58 56 66)</div>
+<div class="ln" data-line="51">    False -> Circle (11 - floor (clamp 0.0 7.0</div>
+<div class="ln" data-line="52">                       ((age - 1.0) / (0.35 * sampleRate))))</div>
+<div class="ln" data-line="53">                    (hueOf i)</div>
+<div class="ln" data-line="54"> </div>
+<div class="ln" data-line="55">#: Ivory into amber, one shade per voice, so two lamps lit by one chord</div>
+<div class="ln" data-line="56">#: are still two voices.</div>
+<div class="ln" data-line="57">hueOf : Int -> Colour</div>
+<div class="ln" data-line="58">hueOf i = RGB (236 - 6 * i) (206 - 10 * i) (152 - 8 * i)</div>
+<div class="ln" data-line="59"> </div>
+<div class="ln" data-line="60">lampAt : Int -> Float -> Sub</div>
+<div class="ln" data-line="61">lampAt i age = Sized 30 30 (emberOf i age)</div>
+<div class="ln" data-line="62"> </div>
+<div class="ln" data-line="63">lamps : Sig Sub</div>
+<div class="ln" data-line="64">lamps = !lampAt 0 age0 `row` !lampAt 1 age1</div>
+<div class="ln" data-line="65"> `row` !lampAt 2 age2 `row` !lampAt 3 age3</div>
+<div class="ln" data-line="66"> `row` !lampAt 4 age4 `row` !lampAt 5 age5</div>
+<div class="ln" data-line="67"> `row` !lampAt 6 age6 `row` !lampAt 7 age7</div>
+<div class="ln" data-line="68"> </div>
+<div class="ln" data-line="69">caption : Sig Sub</div>
+<div class="ln" data-line="70">caption = label 150 14 "OP. 28 NO. 4" dim</div>
+<div class="ln" data-line="71"> </div>
+<div class="ln" data-line="72">substrate : Sig Sub</div>
+<div class="ln" data-line="73">substrate = gap 0 14 `column` !discOf loud `column` gap 0 12</div>
+<div class="ln" data-line="74">            `column` lamps `column` gap 0 10 `column` caption</div>
+<div class="ln" data-line="75"> </div>
+<div class="ln" data-line="76"># ── What the instrument tells you ────────────────────────────────────────</div>
+<div class="ln" data-line="77"> </div>
+<div class="ln" data-line="78">peak : Chan Float</div>
+<div class="ln" data-line="79">peak = chan</div>
+<div class="ln" data-line="80"> </div>
+<div class="ln" data-line="81">loud : Sig Float</div>
+<div class="ln" data-line="82">loud = 0.0 ::: mkSig (wait peak)</div>
+<div class="ln" data-line="83"> </div>
+<div class="ln" data-line="84"># One probe per voice — the age in samples, `0` when silent</div>
+<div class="ln" data-line="85"># (`envelope.ges` is the long explanation).</div>
+<div class="ln" data-line="86"> </div>
+<div class="ln" data-line="87">probe0 : Chan Float</div>
+<div class="ln" data-line="88">probe0 = chan</div>
+<div class="ln" data-line="89">probe1 : Chan Float</div>
+<div class="ln" data-line="90">probe1 = chan</div>
+<div class="ln" data-line="91">probe2 : Chan Float</div>
+<div class="ln" data-line="92">probe2 = chan</div>
+<div class="ln" data-line="93">probe3 : Chan Float</div>
+<div class="ln" data-line="94">probe3 = chan</div>
+<div class="ln" data-line="95">probe4 : Chan Float</div>
+<div class="ln" data-line="96">probe4 = chan</div>
+<div class="ln" data-line="97">probe5 : Chan Float</div>
+<div class="ln" data-line="98">probe5 = chan</div>
+<div class="ln" data-line="99">probe6 : Chan Float</div>
+<div class="ln" data-line="100">probe6 = chan</div>
+<div class="ln" data-line="101">probe7 : Chan Float</div>
+<div class="ln" data-line="102">probe7 = chan</div>
+<div class="ln" data-line="103"> </div>
+<div class="ln" data-line="104">age0 : Sig Float</div>
+<div class="ln" data-line="105">age0 = 0.0 ::: mkSig (wait probe0)</div>
+<div class="ln" data-line="106">age1 : Sig Float</div>
+<div class="ln" data-line="107">age1 = 0.0 ::: mkSig (wait probe1)</div>
+<div class="ln" data-line="108">age2 : Sig Float</div>
+<div class="ln" data-line="109">age2 = 0.0 ::: mkSig (wait probe2)</div>
+<div class="ln" data-line="110">age3 : Sig Float</div>
+<div class="ln" data-line="111">age3 = 0.0 ::: mkSig (wait probe3)</div>
+<div class="ln" data-line="112">age4 : Sig Float</div>
+<div class="ln" data-line="113">age4 = 0.0 ::: mkSig (wait probe4)</div>
+<div class="ln" data-line="114">age5 : Sig Float</div>
+<div class="ln" data-line="115">age5 = 0.0 ::: mkSig (wait probe5)</div>
+<div class="ln" data-line="116">age6 : Sig Float</div>
+<div class="ln" data-line="117">age6 = 0.0 ::: mkSig (wait probe6)</div>
+<div class="ln" data-line="118">age7 : Sig Float</div>
+<div class="ln" data-line="119">age7 = 0.0 ::: mkSig (wait probe7)</div>
+<div class="ln" data-line="120"> </div>
+<div class="ln" data-line="121"># ── What a note carries ──────────────────────────────────────────────────</div>
+<div class="ln" data-line="122"> </div>
+<div class="ln" data-line="123">Hammer := Hammer Int Int                    # key number, velocity</div>
+<div class="ln" data-line="124"> </div>
+<div class="ln" data-line="125">#: Eight, exactly the probes the editor can hand back: at the thickest a</div>
+<div class="ln" data-line="126">#: chord's three tails overlap the next stroke's three notes while the</div>
+<div class="ln" data-line="127">#: tune holds a note over both, and the eighth is the tune's own tail.</div>
+<div class="ln" data-line="128">voices piano 8 hammerVoice : Sig Float</div>
+<div class="ln" data-line="129"> </div>
+<div class="ln" data-line="130">instance FromMIDI Hammer where</div>
+<div class="ln" data-line="131">    noteOn ch p v = Just (Hammer p v)</div>
+<div class="ln" data-line="132"> </div>
+<div class="ln" data-line="133">#: The way back out, for the score box's roll (`spec/scorebox.md`).</div>
+<div class="ln" data-line="134">instance Notable Hammer where</div>
+<div class="ln" data-line="135">    noteKey h = case h of</div>
+<div class="ln" data-line="136">        Hammer k v -> k</div>
+<div class="ln" data-line="137">    noteVel h = case h of</div>
+<div class="ln" data-line="138">        Hammer k v -> v</div>
+<div class="ln" data-line="139"> </div>
+<div class="ln" data-line="140"># ── The instrument ───────────────────────────────────────────────────────</div>
+<div class="ln" data-line="141"> </div>
+<div class="ln" data-line="142">#: Struck, not bowed: the attack is immediate, the body is decay, and</div>
+<div class="ln" data-line="143">#: what sustain there is stands low — a held key on a piano is a note</div>
+<div class="ln" data-line="144">#: getting quieter slowly.</div>
+<div class="ln" data-line="145">env : Adsr</div>
+<div class="ln" data-line="146">env = Adsr 0.004 1.4 0.25 0.4</div>
+<div class="ln" data-line="147"> </div>
+<div class="ln" data-line="148">hzOf : Hammer -> Float</div>
+<div class="ln" data-line="149">hzOf h = case h of</div>
+<div class="ln" data-line="150">    Hammer k v -> keyHz k</div>
+<div class="ln" data-line="151"> </div>
+<div class="ln" data-line="152">levelOf : Hammer -> Float</div>
+<div class="ln" data-line="153">levelOf h = case h of</div>
+<div class="ln" data-line="154">    Hammer k v -> toFloat v / 127.0</div>
+<div class="ln" data-line="155"> </div>
+<div class="ln" data-line="156">#: A fundamental and two overtones, each quieter — enough of a spectrum</div>
+<div class="ln" data-line="157">#: to read as felt on string without pretending to be a piano.</div>
+<div class="ln" data-line="158">timbre : Sig Float -> Sig Float</div>
+<div class="ln" data-line="159">timbre hz = sine hz + 0.4 * sine (hz * 2.0) + 0.15 * sine (hz * 3.0)</div>
+<div class="ln" data-line="160"> </div>
+<div class="ln" data-line="161">hammerVoice : Sig Gate -> Sig Hammer -> Sig Float</div>
+<div class="ln" data-line="162">hammerVoice g s = timbre (!hzOf s) * adsr env g * !levelOf s</div>
+<div class="ln" data-line="163"> </div>
+<div class="ln" data-line="164"># ── The piece ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="165">#</div>
+<div class="ln" data-line="166"># Largo, 4/4 here: four chord strokes to the bar where Chopin writes</div>
+<div class="ln" data-line="167"># eight quavers, and the melody in the long values it actually has.</div>
+<div class="ln" data-line="168"># Every chord below is three notes written side by side with `||`, and</div>
+<div class="ln" data-line="169"># the descent is legible in the numbers: one column of the stroke moves</div>
+<div class="ln" data-line="170"># down a semitone per bar while the others wait their turn.</div>
+<div class="ln" data-line="171"> </div>
+<div class="ln" data-line="172">bpm : Int</div>
+<div class="ln" data-line="173">bpm = 46</div>
+<div class="ln" data-line="174"> </div>
+<div class="ln" data-line="175">#: A chord tone, quiet — there are three at once and they are the floor</div>
+<div class="ln" data-line="176">#: the tune stands on, eight strokes a bar in the original and four here.</div>
+<div class="ln" data-line="177">quiet : Int -> [: Hammer :]</div>
+<div class="ln" data-line="178">quiet k = '(Hammer k 46)</div>
+<div class="ln" data-line="179"> </div>
+<div class="ln" data-line="180">#: The tune, singing clear of the accompaniment.</div>
+<div class="ln" data-line="181">sing : Int -> [: Hammer :]</div>
+<div class="ln" data-line="182">sing k = '(Hammer k 84)</div>
+<div class="ln" data-line="183"> </div>
+<div class="ln" data-line="184">#: Three notes at the same instant: `||` is the whole mechanism.</div>
+<div class="ln" data-line="185">stroke : Int -> Int -> Int -> [: Hammer :]</div>
+<div class="ln" data-line="186">stroke a b c = quiet a || quiet b || quiet c</div>
+<div class="ln" data-line="187"> </div>
+<div class="ln" data-line="188">#: One bar of accompaniment: the same chord struck four times.</div>
+<div class="ln" data-line="189">barOf : [: Hammer :] -> [: Hammer :]</div>
+<div class="ln" data-line="190">barOf s = s ++ s ++ s ++ s</div>
+<div class="ln" data-line="191"> </div>
+<div class="ln" data-line="192">#: The ladder itself, a bar per rung.  Read it as three columns: the top</div>
+<div class="ln" data-line="193">#: voice E–E–E–D#–D–D–C#–C, the middle B–A#–A–A–A–G#–G–G, the bass</div>
+<div class="ln" data-line="194">#: G–F#–F#–F#–F–E–E–E — never two slipping in the same bar, which is the</div>
+<div class="ln" data-line="195">#: prelude's whole method.  Then the cadence: B7 in the old register,</div>
+<div class="ln" data-line="196">#: and E minor held to let the room ring out.</div>
+<div class="ln" data-line="197">chords : [: Hammer :]</div>
+<div class="ln" data-line="198">chords = barOf (stroke 55 59 64)            # E minor</div>
+<div class="ln" data-line="199">      ++ barOf (stroke 54 58 64)            # B7 leaning in</div>
+<div class="ln" data-line="200">      ++ barOf (stroke 54 57 64)</div>
+<div class="ln" data-line="201">      ++ barOf (stroke 54 57 63)            # B7</div>
+<div class="ln" data-line="202">      ++ barOf (stroke 53 57 62)            # the chromatic passing bar</div>
+<div class="ln" data-line="203">      ++ barOf (stroke 52 56 62)            # E7, turning toward A minor</div>
+<div class="ln" data-line="204">      ++ barOf (stroke 52 55 61)</div>
+<div class="ln" data-line="205">      ++ barOf (stroke 52 55 60)            # A minor over C</div>
+<div class="ln" data-line="206">      ++ barOf (stroke 47 51 57)            # B7, low</div>
+<div class="ln" data-line="207">      ++ barOf (stroke 47 51 57)</div>
+<div class="ln" data-line="208">      ++ (stroke 52 55 59 |* 4)             # E minor, one stroke, rung out</div>
+<div class="ln" data-line="209"> </div>
+<div class="ln" data-line="210">#: The sigh: B held whole bars, falling to its upper neighbour and back,</div>
+<div class="ln" data-line="211">#: then stepping down — A, G, F#, E — and closing on the leading tone</div>
+<div class="ln" data-line="212">#: before it settles.  Durations are `|*` of the one-beat note, so the</div>
+<div class="ln" data-line="213">#: line is exactly as long as the ladder under it.</div>
+<div class="ln" data-line="214">tune : [: Hammer :]</div>
+<div class="ln" data-line="215">tune = (sing 71 |* 4)</div>
+<div class="ln" data-line="216">    ++ (sing 72 |* 2) ++ (sing 71 |* 2)</div>
+<div class="ln" data-line="217">    ++ (sing 71 |* 4)</div>
+<div class="ln" data-line="218">    ++ (sing 71 |* 3) ++ sing 69</div>
+<div class="ln" data-line="219">    ++ (sing 69 |* 2) ++ (sing 67 |* 2)</div>
+<div class="ln" data-line="220">    ++ (sing 67 |* 2) ++ (sing 66 |* 2)</div>
+<div class="ln" data-line="221">    ++ (sing 66 |* 4)</div>
+<div class="ln" data-line="222">    ++ (sing 66 |* 2) ++ (sing 64 |* 2)</div>
+<div class="ln" data-line="223">    ++ (sing 64 |* 2) ++ (sing 63 |* 2)</div>
+<div class="ln" data-line="224">    ++ (sing 63 |* 4)</div>
+<div class="ln" data-line="225">    ++ (sing 64 |* 4)</div>
+<div class="ln" data-line="226"> </div>
+<div class="ln" data-line="227">score : [: Void :]</div>
+<div class="ln" data-line="228">score = (chords || tune) >>= voices.piano</div>
+<div class="ln" data-line="229"> </div>
+<div class="ln" data-line="230"># ── The mix ──────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="231"> </div>
+<div class="ln" data-line="232">#: Set on the thickest beat — three tails, three strikes and the tune —</div>
+<div class="ln" data-line="233">#: and the lowpass is the felt: three overtones on seven voices is more</div>
+<div class="ln" data-line="234">#: treble than a Largo wants.</div>
+<div class="ln" data-line="235">sound : Sig Float</div>
+<div class="ln" data-line="236">sound = gain 0.2 (lowpassOnePole 2800.0 piano)</div>
+<div class="ln" data-line="237"> </div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>
