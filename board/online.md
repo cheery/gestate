@@ -270,7 +270,8 @@ that path (`mido`, `sounddevice`, `pygame`, `cairosvg` are the host's).
   offline render hands the worklet one message per quantum, so the
   check sends every knob in one; and **F185** — under the fence the
   browser gate skips (no `/opt`, so no Chrome), so it was run with
-  `NOFENCE=1` by hand, and says so here.
+  `NOFENCE=1` by hand, and says so here.  The story is `journal.md`
+  §"The knob beside its line, and a gate green only outside the fence".
 * **C3 — a compile server.**  Already killed by question 2: a process,
   a bill, a fence, and a laptop that cannot stay online.
 

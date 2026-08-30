@@ -2485,3 +2485,37 @@ signalling that nobody built.  The pile pass found seven shelved cards,
 four sediment and three half on him, and the three are the batch above.
 About half an hour.  He asked *"are we done here?"* and the session
 closed the sitting on that fact.
+
+## The knob beside its line, and a gate green only outside the fence — 2026-08-30
+
+Piece C2 of `card:online.md` landed in one sitting, commit `6aaa985`.
+The card's own words for it were *every literal is a knob*; read
+against the tree that was an extraction mode fighting
+`_fold_constants`, and the session took the window's reading instead
+— a knob is what the author declared, `audiospans.sites` places it,
+and the page draws a slider beside the declaring line with the
+window's three rules.  Five of the 45 pieces online got a hand on
+them; twinkle got none, and the card says why that is the reading's
+own kill.  The gate walks both ways in a headless Chrome, knobs set
+before an offline render and turned mid-render through the port, and
+the second way cost the afternoon's two findings.  First, an offline
+render hands the worklet one message per quantum: of two turns posted
+together, the desk showed the first applied at 22016 and the second
+never — measured against five candidate switch frames rather than
+guessed — so the check sends every knob in one message.  Second, and
+worth the honesty: a patch that overwrote its own first write left the
+worklet without the acknowledgement the page was awaiting, and for
+one run the session had *no messages are delivered while suspended*
+ready to write into the file as a browser fact.  It was the session's
+overwrite.  The comment records only what the desk measured.
+
+The finding that outlives the piece is **F185**.  A red test turned
+into a skipped one between two runs, and the difference was whether
+the command began with `pytest`: `tools/fence-hook.sh` puts that word
+under `tools/sandbox.sh`, the fence binds `/usr` and Chrome lives in
+`/opt`, so the browser gate says *no Chrome* and passes over — which
+means it has been green only where tests are not supposed to run,
+yesterday's runs and today's alike.  Loopback is up inside the fence;
+the binary is the whole of what is missing, and the line that adds it
+is Henri's.  Pushing was his too: `gh-pages` was filled from the tree
+and left for him, and he asked for both.
