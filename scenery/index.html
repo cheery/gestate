@@ -16,11 +16,21 @@
   #status { color: #555; }
   pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
-  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 0 1rem; }
+  /* Sticky to the visible right edge: the block scrolls sideways when a
+     comment line is wider than the window, and a knob sat at the end
+     of the *content* was off-screen (Henri, 2026-08-30). */
   .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
-          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
-          white-space: nowrap; }
-  .knob input { width: 9rem; }
+          padding: 0 .2rem 0 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; position: sticky; right: 0; background: #fff; }
+  .knob input { width: 7rem; }
+  /* Narrower than the declaration plus its knob: the knob takes the
+     next row, under the line, and sticks to the left edge instead. */
+  @media (max-width: 40rem) {
+    .ln { flex-wrap: wrap; }
+    .knob { flex-basis: 100%; margin-left: 0; justify-content: flex-start;
+            padding-left: 1.5rem; right: auto; left: 0; }
+  }
   .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
