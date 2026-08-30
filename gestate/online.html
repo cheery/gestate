@@ -14,8 +14,14 @@
            border-radius: 4px; background: #fff; cursor: pointer; }
   button:disabled { color: #999; cursor: default; }
   #status { color: #555; }
-  pre { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
         padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 1rem; }
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding-left: 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; }
+  .knob input { width: 9rem; }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -26,7 +32,7 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
-<pre id="source">{{source}}</pre>
+<div id="source" class="src">{{source}}</div>
 <pre id="check"></pre>
 <footer>{{up}}The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
 <script src="player.js"></script>

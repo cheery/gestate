@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 185 entries, **155 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 186 entries, **155 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -91,6 +91,7 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F182 | resolved | `test_precommit.py` read the hook as prose, and passed with the gate neutered |
 | F183 | resolved | The automatic audition shut its gate and said nothing, so a slow file read as a broken one |
 | F184 | resolved | The housekeeping thread died under a test for nine days, and the suite called it *1 warning* |
+| F185 | bug | The browser gate skips under the fence — Chrome is in `/opt`, which the fence does not bind — so its green has only ever been unfenced |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -6495,3 +6496,26 @@ The number sat in the totals line of every full run from 2026-08-17
 to 2026-08-26.  *A number nobody asked for is a number nobody checks*
 (`doc/instruments.md`); a number nobody **can** check is the same thing
 with a better excuse.
+
+### F185. **[bug]** The browser gate skips under the fence, and green there says nothing about the page
+
+`test/test_online.py` opens the generated page in a headless Chrome
+and holds the worklet's frames to `run_native` — the one check that
+says the page plays what the desk plays (`card:online.md`).  Under
+`tools/sandbox.sh`, where `tools/fence-hook.sh` puts every `pytest` a
+session runs, it skips: the fence binds `/usr` and Chrome lives in
+`/opt/google/chrome`, so `shutil.which("google-chrome")` finds a
+symlink with no target, and the test says *no Chrome to open the page
+in* and passes over.  Found 2026-08-30 when a red test turned into a
+skipped one between two runs, and the difference was whether the
+command began with `pytest`.
+
+So on this machine the gate has only ever been green *outside* the
+fence — 2026-08-29's runs and today's, `NOFENCE=1` by hand — and a
+fenced full run reports the page as unchecked in a skip line nobody
+reads.  Loopback is up inside the fence (`ip link` says so), so the
+page's own server would work there; what is missing is the binary.
+The fix is one line in `tools/sandbox.sh` — `--ro-bind /opt /opt`, or
+a narrower bind of the Chrome directory — and it is not a session's
+to add: the fence is Henri's (`spec/sandbox.md`), and widening it is
+his call.

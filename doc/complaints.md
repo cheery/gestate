@@ -130,7 +130,7 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `midi.py:124` | `MidiError` | a music program declaring the wrong names; the mistake is an absence |
 | `midi.py:172` | `MidiError` | how many instruments the whole piece uses |
 | `midi.py:191` | `MidiError` | a piece with no notes in it at all |
-| `online.py:64` | `OnlineError` | a score that unfolds forever cannot be baked to a file; a page for one is a performer in the browser, which is piece C's question |
+| `online.py:66` | `OnlineError` | a score that unfolds forever cannot be baked to a file; a page for one is a performer in the browser, which is piece C's question |
 | `pipeline.py:285` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
 | `pipeline.py:926` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
 
@@ -721,8 +721,8 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 64 | `OnlineError` | `author` | *nowhere, on purpose* | "this score unfolds, and a page carries a score baked to its end — the piece that unfolds forev… |
-| 159 | `OnlineError` | `world` | — | why |
+| 66 | `OnlineError` | `author` | *nowhere, on purpose* | "this score unfolds, and a page carries a score baked to its end — the piece that unfolds forev… |
+| 231 | `OnlineError` | `world` | — | why |
 
 ### `pipeline.py`
 

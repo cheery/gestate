@@ -63,9 +63,10 @@ def _serve(directory: Path):
     return server, f"http://127.0.0.1:{server.server_address[1]}"
 
 
-def _rendered(site: Path, frames: int) -> list:
+def _rendered(site: Path, frames: int, query: str = "") -> list:
     """Open the page's check mode in a headless Chrome and wait for the
-    frames it POSTs back.  Wall clock, not `--virtual-time-budget`: an
+    frames it POSTs back; `query` is more of the page's URL, `&set=…`
+    for a knob turned first.  Wall clock, not `--virtual-time-budget`: an
     OfflineAudioContext does not render to its end under virtual time,
     which cost an hour on 2026-08-29 to find out."""
     _Site.result.clear()
@@ -80,7 +81,7 @@ def _rendered(site: Path, frames: int) -> list:
     chrome = subprocess.Popen(
         [CHROME, "--headless=new", "--disable-gpu", "--no-sandbox",
          f"--user-data-dir={profile}",
-         f"{base}/index.html?check={frames}&to=/check"],
+         f"{base}/index.html?check={frames}&to=/check{query}"],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         ok = _Site.arrived.wait(timeout=60)
@@ -164,3 +165,95 @@ def test_an_unfolding_score_is_refused_with_the_reason():
     with tempfile.TemporaryDirectory() as d:
         with pytest.raises(online.OnlineError, match="unfolds"):
             online.generate(AUDIO_DIR / "arpeggiator.ges", d)
+
+
+def _knobs(name: str) -> tuple:
+    src = (AUDIO_DIR / name).read_text()
+    from gestate.audiospans import located
+    sites, graph = located(src, rate=online.RATE)
+    return online.knobs(src, graph, sites), graph, src
+
+
+def test_the_knobs_a_file_declares_are_baked_beside_their_lines():
+    """Piece C2: the workbench's knobs, as data the page can draw — at
+    the author's line, with the range the window would give them
+    (`fixme.md` F147: stretched to the declared value), and none for a
+    bank's channels, which the score writes."""
+    got, _, src = _knobs("twoknobs.ges")
+    lines = src.splitlines()
+    assert [(k["name"], k["slot"], k["type"], k["init"], k["low"], k["high"])
+            for k in got] == [("pitch", 0, "Int", 40, 0, 100),
+                              ("cutoff", 1, "Int", 70, 0, 100)]
+    assert lines[got[0]["line"] - 1].startswith("pitch = 40 :::")
+    assert lines[got[1]["line"] - 1].startswith("cutoff = 70 :::")
+    got, _, _ = _knobs("tuning.ges")
+    assert [(k["name"], k["init"], k["high"]) for k in got] == [("reference", 415, 415)]
+    got, graph, _ = _knobs("twinkle.ges")
+    assert got == [] and len(graph.control_sources()) == 16, \
+        "a voices bank's sixteen channels are the score's, not sliders"
+
+
+@needs_tools
+def test_the_page_draws_a_slider_on_the_line_that_declares_the_knob():
+    with tempfile.TemporaryDirectory() as d:
+        site = online.generate(AUDIO_DIR / "twoknobs.ges", d)
+        page = (site / "index.html").read_text()
+    row = next(l for l in page.splitlines() if 'data-line="32"' in l)
+    assert "pitch = 40 ::: mkSig (wait pitchChan)" in row
+    assert 'data-slot="0"' in row and 'min="0" max="100"' in row and 'value="40"' in row
+    assert page.count('type="range"') == 2
+
+
+@needs_tools
+@needs_chrome
+def test_a_knob_turned_on_the_page_is_what_the_desk_renders_at_that_value():
+    """The postcondition of piece C2, in the browser: both knobs turned
+    before the check, and the frames are the desk's under the same
+    two values — not merely different from the untouched render."""
+    from gestate.audiollvm import run_native
+    from gestate.audioperform import graph_of
+
+    with tempfile.TemporaryDirectory() as d:
+        site = online.generate(AUDIO_DIR / "twoknobs.ges", Path(d) / "site")
+        got = _rendered(site, FRAMES, "&set=0:80,1:20")
+
+        src = (AUDIO_DIR / "twoknobs.ges").read_text()
+        graph = graph_of(src, rate=online.RATE)
+        pitch, cutoff = (n.id for n in graph.control_sources())
+        base, _ = online._control(src, graph)
+        control = lambda node, t: {pitch: 80, cutoff: 20}.get(node, base(node, t))
+        want = run_native(graph, d, FRAMES, block=online.QUANTUM, control=control)
+        plain = run_native(graph, d, FRAMES, block=online.QUANTUM, control=base)
+    assert len(got) == 1 and len(got[0]) == FRAMES
+    off = [i for i, (a, b) in enumerate(zip(want, got[0])) if _as_float32(a) != b]
+    assert not off, (f"first differing frame {off[0]}: desk {want[off[0]]!r}, "
+                     f"page {got[0][off[0]]!r}")
+    assert any(_as_float32(a) != _as_float32(b) for a, b in zip(want, plain)), \
+        "turning both knobs changed nothing, so the check checked nothing"
+
+
+@needs_tools
+@needs_chrome
+def test_a_knob_turned_while_the_page_plays_reaches_the_sound_on_the_port():
+    """The other half of C2's postcondition — *while it plays*.  The
+    offline context is suspended at a quantum boundary, the knobs are
+    turned through the same port a playing page uses, and the render
+    resumes; the desk's control switches at the same frame."""
+    from gestate.audiollvm import run_native
+    from gestate.audioperform import graph_of
+
+    at = 172 * online.QUANTUM                          # half a second, on a quantum
+    with tempfile.TemporaryDirectory() as d:
+        site = online.generate(AUDIO_DIR / "twoknobs.ges", Path(d) / "site")
+        got = _rendered(site, FRAMES, f"&set=0:80,1:20&at={at}")
+
+        src = (AUDIO_DIR / "twoknobs.ges").read_text()
+        graph = graph_of(src, rate=online.RATE)
+        pitch, cutoff = (n.id for n in graph.control_sources())
+        base, _ = online._control(src, graph)
+        control = lambda node, t: ({pitch: 80, cutoff: 20}.get(node, base(node, t))
+                                   if t >= at else base(node, t))
+        want = run_native(graph, d, FRAMES, block=online.QUANTUM, control=control)
+    off = [i for i, (a, b) in enumerate(zip(want, got[0])) if _as_float32(a) != b]
+    assert not off, (f"first differing frame {off[0]} (turned at {at}): "
+                     f"desk {want[off[0]]!r}, page {got[0][off[0]]!r}")

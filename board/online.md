@@ -1,6 +1,6 @@
 # online — gestate, the audio production tool, reachable in a browser
 
-    status   doing — 2026-08-29, pieces A and B landed, online; C1 measured, the emitter is Henri's to weigh, §"The pieces"
+    status   doing — 2026-08-30, pieces A, B and C2 landed; C1 measured, the emitter is Henri's to weigh, §"The pieces"
     because  "somebody who has never read this repository should be able
              to open a file, hear it, change it, and hear the change
              without being told anything first" (vision.md, 2026-08-16)
@@ -234,6 +234,16 @@ that path (`mido`, `sounddevice`, `pygame`, `cairosvg` are the host's).
   no LLVM runs in a browser, so the graph needs a second writer that
   puts out wasm bytes, and that writer is kept, not written once.  A
   measurement decides nothing about keeping; that is his.
+  *A third writer, seen 2026-08-30 while reading `audiollvm` for the
+  emitter's size — the session's estimate, marked so:* `_Emit` and
+  `_render_block` are about 700 lines of LLVM text; a writer that puts
+  out **JavaScript text** instead mirrors them line for line, needs no
+  binary encoding, and the browser's JIT compiles it — where wasm
+  bytes add an encoder on top (sections, LEB128, locals, block types).
+  Either is a second backend kept.  Default: **not now** — five pieces
+  have a hand on them today (C2), and the tune is the score's, which is
+  Python under Pyodide in either reading; the trigger is Michael's
+  report, if what he wanted to change was a note.
 * **C2 — every literal is a knob.**  No recompile: the page turns the
   numbers in the file into control slots and a change is a slot write,
   which A and B already do.  Cheapest by far.  **Killed if** "change
@@ -241,6 +251,26 @@ that path (`mido`, `sounddevice`, `pygame`, `cairosvg` are the host's).
   says *the song (bottom) is the part to play with*, and `n 60 ++ n 62`
   is the performer's business, which is Python.  A knob answers the
   instrument, not the tune.
+  *Landed the same day (2026-08-30), read as the tree already reads a
+  knob and not as "every literal":* a literal is folded into the step that consumes it
+  on purpose (`audioextract._fold_constants`), so lifting every one is
+  an extraction mode nobody else uses; a knob is what the author
+  declared — `40 ::: mkSig (wait pitchChan)` — placed by
+  `audiospans.sites` and drawn by the window.  The page does the same:
+  a slider beside the declaring line, the window's range rule (F147's
+  stretch), a bank's channels never a slider.  Turning one writes the
+  slot in the worklet while the piece plays; turned before play it
+  rides in with the options.  Five of the 45 pieces online declare one
+  — `knob`, `substrate`, `tuning`, `twoknobs`, `warmdrone`; `twinkle`
+  declares none and is unchanged, which is this reading's own kill
+  above.  `test/test_online.py` holds it both ways in a headless
+  Chrome: knobs set before an offline render, and turned at frame
+  22016 through the port with the render suspended — bit-identical to
+  `run_native` under the same values, 2.5 s each.  Found on the way: an
+  offline render hands the worklet one message per quantum, so the
+  check sends every knob in one; and **F185** — under the fence the
+  browser gate skips (no `/opt`, so no Chrome), so it was run with
+  `NOFENCE=1` by hand, and says so here.
 * **C3 — a compile server.**  Already killed by question 2: a process,
   a bill, a fence, and a laptop that cannot stay online.
 

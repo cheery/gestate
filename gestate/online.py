@@ -14,9 +14,11 @@ the slot layout, and the score already baked to slot changes at
 **The browser computes the sound; the only server is a file host**
 (`card:online.md` §"Questions", 2).  So nothing here runs at request
 time: no Python in the page, no process behind it.  What the page does
-is the vision's first two verbs — open a file, hear it — and the
-source is shown read-only; *change it* is piece C, and this file does
-not pretend otherwise.
+is the vision's first two verbs — open a file, hear it — and, since
+piece C2, the fourth for the knobs a file declares: a slider beside
+each declaration writes the control slot while the piece plays
+(`knobs` below).  *Change the text* is still piece C1, and this file
+does not pretend otherwise.
 
 **How it reaches the web** is `tools/pages.sh` — Henri's pick,
 2026-08-29, R2 of the card's question 8: a `gh-pages` branch this
@@ -151,16 +153,88 @@ def _escape(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;")
 
 
+def knobs(src: str, graph, sites) -> list:
+    """The knobs the file declares, as the page draws them — piece C2.
+
+    **The workbench's own reading of a knob, not the card's first
+    words.**  `card:online.md` §"The pieces" said *every literal is a
+    knob*; in this tree a literal is folded into the step that consumes
+    it on purpose (`audioextract._fold_constants`), and a knob is a
+    control source the author declared — `40 ::: mkSig (wait
+    pitchChan)` — which `audiospans.sites` places at its declaration
+    and `audioeditor` draws beside it.  The page does what the window
+    does, with the same three rules taken from it: a bank's channels
+    are not knobs (a slider fighting the score would be a control that
+    does nothing you can predict); the range follows the channel's
+    type; and it is stretched to hold what the program declared
+    (`fixme.md` F147 — `415 ::: mkSig` means 415).
+
+    Each entry: `slot` into the worklet's control block, `name`,
+    `line` in the author's file, `type`, `init`, `low`, `high`.
+    """
+    from .audioeditor import KNOB_RANGE, KNOB_RANGE_FLOAT
+    from .audiovoices import banks_of, channels_of
+
+    try:
+        owned = {c for b in banks_of(src) for row in channels_of(src, b)
+                 for c in row}
+    except Exception:                                   # noqa: BLE001
+        owned = set()
+    slot_of = {n.id: i for i, n in enumerate(graph.control_sources())}
+    out = []
+    for site in sorted(sites, key=lambda s: (s.line, s.column)):
+        if not site.is_control or site.path is not None:
+            continue
+        node = graph.node(site.node)
+        if getattr(node, "chan", None) in owned:
+            continue
+        init = getattr(node, "init", None)
+        low, high = KNOB_RANGE_FLOAT if node.type_ == "Float" else KNOB_RANGE
+        if isinstance(init, (int, float)):
+            low, high = min(low, init), max(high, init)
+        out.append({"slot": slot_of[site.node], "name": site.name,
+                    "line": site.line, "type": node.type_,
+                    "init": init, "low": low, "high": high})
+    return out
+
+
+def _source_html(src: str, knobs: list) -> str:
+    """The file, one `<div>` a line, with a slider on the line that
+    declares a knob — beside its own declaration, the way the window
+    draws it, so a person reads the number and the knob together."""
+    by_line: dict = {}
+    for k in knobs:
+        by_line.setdefault(k["line"], []).append(k)
+    rows = []
+    for i, text in enumerate(src.splitlines(), 1):
+        row = f'<div class="ln" data-line="{i}">{_escape(text) or " "}'
+        for k in by_line.get(i, ()):
+            step = "any" if k["type"] == "Float" else "1"
+            value = k["init"] if k["init"] is not None else k["low"]
+            row += (f'<label class="knob"><span class="knob-name">'
+                    f'{_escape(k["name"])}</span>'
+                    f'<input type="range" data-slot="{k["slot"]}" '
+                    f'data-type="{k["type"]}" min="{k["low"]}" '
+                    f'max="{k["high"]}" step="{step}" value="{value}">'
+                    f'<output>{value}</output></label>')
+        rows.append(row + "</div>")
+    return "\n".join(rows)
+
+
 def generate(path, out, rate: int = RATE, up: bool = False) -> Path:
     """Write the page for `path` into `out` and return the directory.
     `up` adds the link back to an index one level above."""
+    from .audiospans import located
+
     why = audiowasm.missing()
     if why is not None:
         raise OnlineError(why)
     path, out = Path(path), Path(out)
     out.mkdir(parents=True, exist_ok=True)
     src = path.read_text()
-    graph = audioperform.graph_of(src, rate=rate)
+    # The same graph `audioperform.graph_of` builds, with its nodes
+    # placed in the file — one analysis, not two (`audiospans.located`).
+    sites, graph = located(src, rate=rate)
     stem = path.stem
     wasm = audiowasm.build(graph, out)
     wasm.replace(out / f"{stem}.wasm")
@@ -168,6 +242,7 @@ def generate(path, out, rate: int = RATE, up: bool = False) -> Path:
         stray.unlink()
     data = bake(src, graph, rate)
     data["imports"] = [n for _, n in audiowasm.imports_of(out / f"{stem}.wasm")]
+    data["knobs"] = knobs(src, graph, sites)
     (out / f"{stem}.json").write_text(json.dumps(data, separators=(",", ":")))
     here = Path(__file__).parent
     shutil.copyfile(here / "online.js", out / "player.js")
@@ -175,7 +250,7 @@ def generate(path, out, rate: int = RATE, up: bool = False) -> Path:
     page = (here / "online.html").read_text()
     page = (page.replace("{{name}}", path.name)
                 .replace("{{stem}}", stem)
-                .replace("{{source}}", _escape(src))
+                .replace("{{source}}", _source_html(src, data["knobs"]))
                 .replace("{{up}}", '<a href="../">all pieces</a> · ' if up else ""))
     (out / "index.html").write_text(page)
     return out
