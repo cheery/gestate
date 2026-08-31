@@ -2678,12 +2678,20 @@ One cached survey, and `format_module` handed the module `parse` already
 built — verified byte-for-byte identical to `format(text)` on all 89 — took
 it to **3.1 s**.
 
-So the recommendation is yes, and the reason is timing rather than
+The recommendation was yes, and the reason was timing rather than
 coverage: what breaks this gate is adding or editing a `.ges`, which is
 ordinary work here, and a ratchet is worth most at the commit that repairs
 a file — `card:cheap-gates.md`'s argument arriving a third time.  The cost
-against it is a quarter more on a thirteen-second budget.  The line is
-Henri's; the precedent is his own, 2026-08-25: *"they join the GATES."*
+against it was a quarter more on a thirteen-second budget.
+
+**Henri: *"does not join the gates."***  No reason given and none guessed;
+what the decision costs is written into the file instead of a rationale
+invented for it — the ratchet now reports at the long pass, so a file
+repaired and left named in a baseline is caught late rather than by the
+commit that repaired it.  A stale name found late, not a broken tree.  This
+is the first recommendation of the sitting he has turned down, and the
+useful part is that the thirteen-second budget is real and defended: a
+commit hook people learn to skip protects nothing at all.
 
 The full suite ran on the change, the shift's one pass: **3632 passed, 29
 skipped, 25m 56s**, plus the 28 outside the fence.  Nothing else in the tree

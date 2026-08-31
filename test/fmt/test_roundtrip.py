@@ -71,13 +71,19 @@ re-formatting their file, and every source parsed twice — once by `format`
 and once by the comparison.  One cached survey and `format_module` over an
 already-parsed module removed all of it.
 
-Whether it belongs in `suite.py`'s `GATES`, and so runs at every commit, is
-Henri's line and not this file's (`journal.md`, 2026-08-25: *"they join the
-GATES."*).  The argument for is that the work which breaks it — adding or
-editing a `.ges` — is ordinary here, and that a ratchet is worth most at the
-commit that repairs a file, which is `card:cheap-gates.md`'s whole point.
-The argument against is the budget: about thirteen seconds today, and this
-is a quarter more.
+**It does not join `suite.py`'s `GATES`** — Henri, 2026-08-31, asked and
+answered in a line, and no reason given, so none is invented here.  The
+session's recommendation was the other way: the work that breaks this gate
+is adding or editing a `.ges`, which is ordinary here, and a ratchet is
+worth most at the commit that repairs a file (`card:cheap-gates.md`).
+Against it was the budget — about thirteen seconds today, and this is a
+quarter more.
+
+**So it runs in the long pass, and the cost of that is known.**  A file
+repaired and left named in a list below is reported at the next full run
+rather than by the commit that repaired it.  That is a stale name found
+late, not a broken tree, and it is the price of keeping the commit hook
+cheap enough that nobody learns to skip it.
 """
 
 from __future__ import annotations
