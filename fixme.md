@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 186 entries, **156 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 189 entries, **156 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -92,6 +92,9 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F183 | resolved | The automatic audition shut its gate and said nothing, so a slow file read as a broken one |
 | F184 | resolved | The housekeeping thread died under a test for nine days, and the suite called it *1 warning* |
 | F185 | resolved | The browser gate skipped under the fence — Chrome is in `/opt`, which the fence did not bind — so its green had only ever been unfenced |
+| F186 | open | An application's head loses its parentheses: `(x => x + 1) 2` comes back as `x => x + 1 2` |
+| F187 | open | A lambda's and an instance member's parameters are not atoms — F46's third bullet, in the callers it did not reach |
+| F188 | open | A `Box` pattern formats as the debugging placeholder `<PBox>`, which does not parse |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -740,6 +743,16 @@ parsed as `Just (x :: xs)` — silently the wrong program, since both parse.
 Arguments are atoms now, as in expression space.  Found while adding the
 `:::` pattern, which made the same mistake visible as a type error.
 
+gate: `test/test_frp.py::test_signal_pattern_head_can_be_matched` — the entry's
+own occasion, in parameter position — and
+`test/test_match.py::test_constructor_inside_cons_pattern`, both named for this
+entry 2026-08-31.  **Measured the same day**: the constructor branch's
+`_parse_pat_atom` put back to `_parse_pat`, 4 of 789 red.  Weakest: all four
+fail as *non-exhaustive*, not as a wrong answer — what they hold is that the
+greedy parse is refused somewhere downstream, so a mis-parse that stayed
+exhaustive would pass them.  Nothing in the tree compares the *parse* against
+what was written, which is what would hold this directly.
+
 ### F46. **[resolved]** The formatter dropped meaning-changing parentheses
 
 `format` promises output that re-parses to the same AST.  Three cases
@@ -756,6 +769,20 @@ syntax:
 
 `_fmt_pat` now takes an `atom` flag for the juxtaposed positions
 (parameters, constructor arguments) and leaves a `case` alternative bare.
+
+gate: three tests written 2026-08-31 in `test/fmt/test_format.py`, one per
+bullet — `::test_an_operand_that_runs_to_the_end_keeps_its_parentheses`,
+`::test_an_infix_operand_is_parenthesised_by_associativity`,
+`::test_a_compound_pattern_in_juxtaposed_position_keeps_its_parentheses`.
+**Measured 2026-08-31**, each repair put back on its own: the `_TRAILING`
+guard dropped from `_fmt_infix`'s operand, the associativity term dropped from
+its precedence test, and `_fmt_pat`'s `atom` flag forced false — **789 of 789
+green every time**.  All three halves were held by nothing, and idempotency
+cannot hold them: `x => x + 1 + 2` formats to itself, so the wrong output is
+stable.  The gates instead feed the formatter its own output and ask for it
+back verbatim.  Weakest, and it is not small: they hold three shapes, not the
+promise.  The promise is false today in two more places — **F186** and
+**F187**, both found while measuring this one.
 
 ### F45. **[resolved]** A multi-line `case` inside parentheses does not parse
 
@@ -777,6 +804,18 @@ identity binding and `apply` follows variable chains iteratively with a
 cycle guard.  Pre-existing; it surfaced as soon as F45's fix let a
 program be written whose inference composes substitutions that way.
 Tests: `test/test_types.py`.
+
+gate: `test/test_types.py::test_a_self_binding_is_dropped`,
+`::test_composing_opposite_bindings_terminates` and
+`::test_a_variable_cycle_resolves_to_a_representative` — all three written for
+this repair, none of them naming it until 2026-08-31.  **Measured the same
+day**, one mutation per half: the identity filter dropped from `Subst.extend`,
+`Unifier.extend` and `compose`, 2 red; `_apply_var` returned to a recursive
+chase, 1 red as a `RecursionError`; both together, 4 red with the composition
+test among them.  Weakest: every one of those reds is a unit test on
+`Subst`/`Unifier` — **no program went red under either mutation**, so the path
+the defect actually arrived on, inference over a program F45's fix made
+writable, is held by nothing.
 
 ### F48. **[resolved]** A dictionary slot for an undefined method held `0`
 
@@ -1113,6 +1152,15 @@ Datafun form but no set type is visible in a signature — the residue of
 `journal.md` Part I §17, which is where it belongs.  A program with
 no Datafun form skips the whole block.
 
+gate: `test/test_monomorphization.py::test_a_program_with_no_datafun_form_gets_no_set_helpers`
+— written 2026-08-31.  **Measured the same day**: `_uses_datafun(scs)`
+replaced by `if True` and **789 of 789 green** in the targeted language set,
+so the guard was held by nothing.  The injection is visible only in what the
+compiler emitted — a program with no set anywhere went from 117 globals to
+130, eleven of them the `Set Int` helper family — which is what the new test
+reads.  Weakest: it reads the *names*, not the program, so a guard that
+skipped helper generation while still running the ϕ/δ pass would pass it.
+
 ### F42. **[resolved]** `spec/data.md` §I.7's sharing requirement is not tested
 
 §I.7: "codegen must actually share the compiled subexpressions (bind them once
@@ -1151,6 +1199,21 @@ arguably spec-conformant — but `spec/types.md` §4's `checkPattern` is written
 against arbitrary patterns, and `spec/data.md` §III.3's routing table has a
 `_`-wildcard implied by fig. 2.2's desugarings.  Tracked as
 `journal.md` Part I §3 (skipped).
+
+**The paragraph above is the report, not the state** — *corrected 2026-08-31,
+during the sweep, where the entry read `[resolved]` and its body described an
+open defect.*  `case x of y -> y` runs today: `gestate/match.py`'s matrix
+compiler has a variable rule, and the default arm `CaseJump` lacked is the
+`default` expression threaded through it.
+
+gate: `test/test_match.py::test_variable_catchall_alternative` and
+`::test_catchall_binds_the_scrutinee`, both named for this entry 2026-08-31.
+**Measured the same day** by making the match compiler refuse a variable
+alternative under `where="case"`: 361 of 789 red, because the desugarer writes
+that form itself for tuples, projections and aliases — so this one cannot come
+back quietly whatever is named.  Weakest: both tests put the variable *after*
+a constructor alternative, and the entry's own example — the sole bare
+variable — is held only by the internal desugarings that happen to use it.
 
 ---
 
@@ -6527,3 +6590,83 @@ without Chrome loses nothing.  `tools/sandbox.sh --check` gained the
 probe *chrome runs (F185)*, and `test/test_online.py` ran fenced for
 the first time: 10 passed in 19.7 s, the three browser tests among
 them.
+
+### F186. **[open]** An application's head loses its parentheses
+
+`_fmt_app` walks the spine parenthesising each *argument* with
+`_paren_val` and then writes the head with a bare `_fmt_val`, so a head
+that needs parentheses does not get them:
+
+    (x => x + 1) 2          ⇒   x => x + 1 2
+    (let f = y => y in f) 2 ⇒   let f = y => y in f 2
+
+and a parenthesised `case` in head position the same way: the argument
+lands inside the last alternative.
+
+Each of those re-parses as a different program — the argument is
+swallowed into the lambda, the `let` body, the alternative — which is
+exactly what F46 is about, one position further in.  `_needs_parens`
+already answers correctly for all three; nothing asks it.
+
+Found 2026-08-31 while measuring F46 for the ungated sweep
+(`card:ungated-fixes.md`, batch 9).  The fix is one call:
+`parts.append(_paren_val(cur, self._fmt_val(cur)))`.
+
+gate: `none — not yet built`.  **Measured 2026-08-31**: this is the current
+behaviour of the tree, not a mutation — the three shapes above were run
+through `gestate.fmt.format` and came back as written here — and the
+789-test language set is green with it.  Weakest: three shapes are what was
+tried; the head positions that are *not* broken have not been enumerated.
+
+### F187. **[open]** A lambda's parameters are not atoms
+
+`_fmt_func` formats its parameters with `_fmt_pat(p)` and not
+`_fmt_pat(p, atom=True)`, which is F46's third bullet in the one
+juxtaposed position it did not cover:
+
+    (x :: xs) => x   ⇒   x :: xs => x
+    (Just x) => x    ⇒   Just x => x
+
+`_format_sc_eqn` — an equation's parameters, the same grammar position —
+passes `atom=True`, so this is a missed caller rather than a missing
+mechanism.  `_format_instance_member` is the second one: an instance's
+
+    instance C (List Int) where
+        f (x :: xs) = x
+
+comes back as `f x :: xs = x`.
+
+Found 2026-08-31 while measuring F46, same sweep batch.
+
+gate: `none — not yet built`.  Same measurement as F186: current
+behaviour, and the language set is green with it.  Weakest: the fix is two
+`atom=True` arguments, and whether the *other* two `_fmt_pat` callers
+(`_fmt_unbox`, `_fmt_for`) want the flag was not settled — reading them is
+what turned up F188 instead.
+
+### F188. **[open]** A `Box` pattern formats as `<PBox>`, which is not a program
+
+`_fmt_pat` has a branch for every pattern node except `PBox`, and falls
+through to the debugging placeholder `f"<{type(pat).__name__}>"`:
+
+    f (Box x) = x        ⇒   f <PBox> = x
+
+and in a `case`, the alternative comes back as `<PBox> -> x`.
+
+This is worse than F46 and F186, which produce a *different* program: this
+produces output that does not parse at all, so the formatter's promise
+fails at the first step rather than the second.  `Box p` is fig. 2.2's
+spelling and `examples/closure.ges` and `examples/relations.ges` both open
+with it, so it is not an exotic corner.
+
+Found 2026-08-31, reading `_fmt_pat`'s callers for F187.  The fix is one
+branch, `f"(Box {self._fmt_pat(pat.pat)})"`, parenthesised in juxtaposed
+position like a constructor's.
+
+gate: `none — not yet built`.  **Measured 2026-08-31**: current behaviour,
+and the 789-test language set is green with it — nothing in the tree formats
+a source that contains a `Box` pattern, the two examples that do included.
+Weakest: the
+placeholder is a catch-all, so the same fall-through will be silent again
+for the next pattern node added; what wants holding is *no output contains
+`<`*, and no test says that.

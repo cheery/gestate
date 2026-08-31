@@ -117,6 +117,12 @@ main = f (Just (Just 42))
 
 
 def test_constructor_inside_cons_pattern():
+    """`fixme.md` F44 — a constructor's argument is an *atom*.
+
+    Parsed with the full pattern grammar it swallows the trailing `::`, so
+    `Just x :: rest` becomes `Just (x :: rest)` — a program that also parses,
+    which is why nothing caught it until a type error did.
+    """
     assert _eval("""f : List (Maybe Int) -> Int
 f ys = case ys of
     Just x :: rest -> x
@@ -273,6 +279,13 @@ main = f Nothing
 
 
 def test_variable_catchall_alternative():
+    """`fixme.md` F43 — a bare variable is a `case` alternative.
+
+    It was rejected while `CaseJump` had no default arm.  The matrix
+    compiler's variable rule is what supplies one, and the desugarer leans
+    on it far beyond the surface: putting the refusal back turns 361 of the
+    789 language tests red.
+    """
     assert _eval("""f : Maybe Int -> Int
 f m = case m of
     Just x -> x
@@ -284,6 +297,7 @@ main = f Nothing
 
 
 def test_catchall_binds_the_scrutinee():
+    """F43's other half: the variable *binds*, it is not a wildcard."""
     assert _eval("""f : List Int -> Int
 f xs = case xs of
     [] -> 0

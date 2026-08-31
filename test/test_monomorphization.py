@@ -19,7 +19,8 @@ import re
 
 import pytest
 
-from gestate.pipeline import MonomorphizationError, evaluate
+from gestate.pipeline import (MonomorphizationError,
+                              compile as pcompile, evaluate)
 
 _ELEM = re.compile(r"Pack\{1,2\} (\([^()]*\)|-?\d+)")
 
@@ -120,3 +121,24 @@ def test_a_guard_that_is_sometimes_false_under_a_fix():
     assert _elems("f : Box (Set (Cyclic 4)) -> Set (Cyclic 4)\n"
                   "f (Box e) = fix r => e \\/ {x + 1 | x in r, x < 2}\n\n"
                   "main : Set (Cyclic 4)\nmain = f (Box {0})\n") == ["0", "1", "2"]
+
+
+# ── The transform is skipped where nothing needs it — `fixme.md` F41 ─────────
+
+
+def test_a_program_with_no_datafun_form_gets_no_set_helpers():
+    """F41: a default `Set Int` was injected into every program.
+
+    The helper family is generated per concrete set type, and the set types
+    are collected from signatures — where a set used only inside a body is
+    invisible, so an injected `Set Int` covers it.  That fallback is right
+    *inside* a Datafun program and wrong outside one, where it hands a
+    program with no set anywhere the whole family plus a ϕ/δ pass that gives
+    every FRP combinator a nonsensical `f_delta`.  `_uses_datafun` is the
+    guard, and nothing named it until 2026-08-31.
+    """
+    state = pcompile("double : Int -> Int\ndouble n = n + n\n\n"
+                     "main : Int\nmain = double 21\n", prelude=True)
+    injected = sorted(n for n in state.globals
+                      if isinstance(n, str) and "_Set_Int" in n)
+    assert injected == []

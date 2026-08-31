@@ -499,3 +499,50 @@ def test_type_alias_params():
 def test_type_alias_conid():
     src = "type MyId = Id\n"
     assert _parse_output(src)
+
+
+# ── Parentheses that carry meaning — `fixme.md` F46 ──────────────────────────
+#
+# `format` promises output that re-parses to the same AST.  Three shapes broke
+# it and were repaired; none of them was named by a test until 2026-08-31, and
+# each stayed green under a mutation that put the defect back.
+#
+# **Idempotency does not hold these.**  `x => x + 1 + 2` formats to itself, so
+# `format(format(s)) == format(s)` passes on the wrong output.  What catches
+# them is feeding in the text the formatter itself produces and asking for it
+# back unchanged: a dropped parenthesis is then a diff on the first pass.
+
+
+def _survives(source: str) -> None:
+    """The formatter's own output, formatted again, comes back verbatim."""
+    assert format(source) == source
+
+
+def test_an_operand_that_runs_to_the_end_keeps_its_parentheses():
+    """F46, first bullet: `(x => x + 1) + 2` must not lose the parens.
+
+    `x => e`, `let … in e` and `case … of …` all run to the end of the
+    expression, so an unparenthesised one swallows the operator that
+    follows it.
+    """
+    _survives("main : Int\nmain = (let a = 1 in a) + 2\n")
+    _survives("main : Int\nmain = (x => x + 1) + 2\n")
+    _survives("g : Int -> Int\ng n = (case n of\n    _ -> 1) + 2\n")
+
+
+def test_an_infix_operand_is_parenthesised_by_associativity():
+    """F46, second bullet: `_fmt_infix` compared precedence and ignored
+    associativity, so `(a -> b) -> c` came back as `a -> b -> c` — a
+    different type — and `1 - (2 - 3)` as `1 - 2 - 3`.
+    """
+    _survives("f : (Int -> Int) -> Int\nf g = g 1\n")
+    _survives("main : Int\nmain = 1 - (2 - 3)\n")
+
+
+def test_a_compound_pattern_in_juxtaposed_position_keeps_its_parentheses():
+    """F46, third bullet: a parameter and a constructor argument are
+    juxtaposed, so a cons pattern printed bare there — `f x :: xs` — is a
+    different program from `f (x :: xs)`.
+    """
+    _survives("f : List Int -> Int\nf (x :: xs) = x\n")
+    _survives("g : Maybe Int -> Int\ng (Just x) = x\ng Nothing = 0\n")

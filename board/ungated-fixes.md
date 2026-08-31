@@ -441,6 +441,49 @@ repair; that test holds it now.
 
 No uncertain verdict; the trip-wire did not fire.
 
+### Batch 9 — 2026-08-31, the Monday it was due
+
+Five verdicts, measured by mutation against a targeted set of 26 language
+test files, 789 tests, 45 seconds.  Four gates written, three entries whose
+tests existed and never said so, one stale body corrected, and **three new
+defects**, all three in the formatter.
+
+**F46 is the one to read.**  Its three bullets are three separate repairs
+to the formatter, and each was put back on its own: **789 green every
+time.**  The whole entry was held by nothing.  Idempotency is why —
+`x => x + 1 + 2` formats to itself, so the file's `format(format(s)) ==
+format(s)` passes on the wrong output — and its other shape, *the output
+re-parses*, passes too, because all three defects produce programs that
+parse.  Sixty tests, and neither check can see any of it.  The gates
+written instead feed the formatter its own output and ask for it back
+verbatim.
+
+Reading `_fmt_pat`'s callers to write them turned up **F186** (an
+application's head loses its parentheses: `(x => x + 1) 2` comes back as
+`x => x + 1 2`), **F187** (a lambda's and an instance member's parameters
+are not atoms — F46's third bullet, two callers it did not reach) and
+**F188** (a `Box` pattern formats as the debugging placeholder `<PBox>`,
+which does not parse at all, and two of the tree's four language examples
+open with that pattern).  All three are current behaviour, not mutations.
+
+F41 is the same shape and a quieter one: the `_uses_datafun` guard replaced
+by `if True` and 789 green, because the injected `Set Int` family is
+visible only in the compiled globals — 117 names became 130 — and nothing
+was reading them.
+
+F43 was **marked `[resolved]` over a body that describes an open defect**;
+`case x of y -> y` runs today, and the entry never said what repaired it.
+The paragraph is corrected in place, dated.  Its gate is the loudest of the
+batch: put the refusal back and 361 of 789 go red, because the desugarer
+writes the form itself.
+
+F44 and F47 needed no new tests, only their names: four reds and four reds.
+F47's is the honest half — all of them are unit tests on `Subst`, and **no
+program went red under either mutation**, so the inference path the
+divergence actually arrived on is still held by nothing.
+
+No uncertain verdict; the trip-wire did not fire.
+
 ### The second Friday review — 2026-08-28, drawn at random
 
 Three drawn by `awk '/^### F[0-9]+\\./{e=$2} /^gate:/{print e}' fixme.md |

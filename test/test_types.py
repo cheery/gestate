@@ -4,6 +4,11 @@
 It has an occurs check, so no variable is ever bound to a type containing
 itself — but a *composition* can still produce a binding the occurs check
 never saw.
+
+That divergence is ``fixme.md`` **F47**, and the three tests below are its
+gate: the identity binding dropped in ``extend``/``compose``, and the
+variable chase made iterative and cycle-guarded in ``_apply_var``.  Named
+here 2026-08-31; they were written for the repair and did not cite it.
 """
 
 from __future__ import annotations

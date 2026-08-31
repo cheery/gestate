@@ -499,7 +499,12 @@ def test_signal_pattern_tail_must_be_a_variable():
 
 
 def test_signal_pattern_head_can_be_matched():
-    """`x ::: xs` is irrefutable, but its head is an ordinary value."""
+    """`x ::: xs` is irrefutable, but its head is an ordinary value.
+
+    Also `fixme.md` F44's own occasion: writing `f (Just x ::: xs)` in
+    parameter position is what made the constructor branch's greedy
+    sub-pattern visible, as a type error rather than a parse one.
+    """
     assert evaluate("f : Sig (Maybe Int) -> Int\n"
                     "f (Just x ::: xs) = x\n"
                     "f (Nothing ::: xs) = 0\n"

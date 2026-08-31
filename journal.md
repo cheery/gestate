@@ -2522,3 +2522,62 @@ conditional bind of `/opt/google/chrome` and a probe in `--check`, and
 the online gate ran fenced for the first time, green.  Pushing was
 his too: `gh-pages` was filled from the tree and left for him, and he
 asked for both.
+
+## Sixty tests that could not see it — batch 9, 2026-08-31
+
+Batch 9 of `card:ungated-fixes.md` — F47 F46 F44 F43 F41, the Monday it
+was due — measured by mutation against a targeted set of 26 language test
+files, 789 tests, 45 seconds a run, on the live tree with `git status`
+clean before and after each one.
+
+**F46 is what the batch is about.**  The entry names three repairs to the
+formatter, each for a place where dropping a parenthesis changes the
+program: an operand that runs to the end of the expression, an infix
+operand that needs parens by associativity rather than precedence, and a
+compound pattern in a juxtaposed position.  Each was put back on its own.
+**789 green, three times.**
+
+The reason is worth more than the finding.  `test/fmt/test_format.py` had
+sixty tests and two shapes of check — *formatting is idempotent*, and *the
+output re-parses* — and *neither can see any of these*.  The wrong output
+is stable: `x => x + 1 + 2` formats to itself.  And it parses: all three
+defects turn one program into another program, not into a syntax error.
+A file can be well tested along the axes it chose and blind along the one
+its subject actually promises, which here is written down in the entry's
+own first line — *output that re-parses to the same AST*.  The three gates
+written today take that literally: hand the formatter its own output back
+and require it verbatim.
+
+Reading `_fmt_pat`'s callers to write them cost three new numbers.
+**F186** — `_fmt_app` parenthesises every argument and writes the head
+bare, so `(x => x + 1) 2` comes back as `x => x + 1 2`.  **F187** — the
+same missing `atom=True` as F46's third bullet, in the two callers it did
+not reach, a lambda's parameters and an instance member's.  **F188** —
+`_fmt_pat` has no branch for `PBox` and falls through to the debugging
+placeholder, so `f (Box x) = x` formats to `f <PBox> = x`, which does not
+parse at all; `examples/closure.ges` and `examples/relations.ges` both
+open with that pattern and nothing formats them.  None of the three is a
+mutation.  They are what the tree does today.
+
+F41 is the same shape, quieter: `_uses_datafun` replaced by `if True` and
+789 green, because the injected `Set Int` helper family is visible only in
+what the compiler emitted — a program with no set anywhere went from 117
+globals to 130 — and no test reads those.
+
+**F43 was marked `[resolved]` over a body that describes an open defect.**
+It says `case x of y -> y` is unsupported and tracked as skipped; it runs.
+Corrected in place and dated, which is the small edit a session may make
+and must say out loud.  Its gate is the loudest of the batch and the least
+in need of one: put the refusal back and 361 of 789 go red, because the
+desugarer writes bare-variable alternatives itself for tuples, projections
+and aliases.
+
+F44 and F47 already had their tests and had never been named by them — the
+F54 case from batch 8, twice.  F47's weakest point is the one worth
+carrying: the identity filter dropped, 2 red; the recursive chase back, 1
+red; both, 4 red — and **every red is a unit test on `Subst`**.  No program
+moved.  The divergence arrived through inference on a program F45's fix
+made writable, and that path is held by nothing.
+
+Batch 10 — F40 F39 F31 F25 F23 — is due Tue 2026-09-01, and the third
+Friday review is 2026-09-04.
