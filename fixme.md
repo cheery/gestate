@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 190 entries, **156 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 190 entries, **159 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -92,9 +92,9 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F183 | resolved | The automatic audition shut its gate and said nothing, so a slow file read as a broken one |
 | F184 | resolved | The housekeeping thread died under a test for nine days, and the suite called it *1 warning* |
 | F185 | resolved | The browser gate skipped under the fence — Chrome is in `/opt`, which the fence did not bind — so its green had only ever been unfenced |
-| F186 | open | An application's head loses its parentheses: `(x => x + 1) 2` comes back as `x => x + 1 2` |
-| F187 | open | A lambda's and an instance member's parameters are not atoms — F46's third bullet, in the callers it did not reach |
-| F188 | open | A `Box` pattern formats as the debugging placeholder `<PBox>`, which does not parse |
+| F186 | resolved | An application's head loses its parentheses: `(x => x + 1) 2` comes back as `x => x + 1 2` |
+| F187 | resolved | A lambda's and an instance member's parameters are not atoms — F46's third bullet, in the callers it did not reach |
+| F188 | resolved | A `Box` pattern formats as the debugging placeholder `<PBox>`, which does not parse |
 | F189 | open | The leash reported itself off at session start against a file it had not touched, and it was on — not reproduced |
 
 Several of these are **closed rather than pending** under
@@ -6592,7 +6592,7 @@ probe *chrome runs (F185)*, and `test/test_online.py` ran fenced for
 the first time: 10 passed in 19.7 s, the three browser tests among
 them.
 
-### F186. **[open]** An application's head loses its parentheses
+### F186. **[resolved]** An application's head loses its parentheses
 
 `_fmt_app` walks the spine parenthesising each *argument* with
 `_paren_val` and then writes the head with a bare `_fmt_val`, so a head
@@ -6613,13 +6613,20 @@ Found 2026-08-31 while measuring F46 for the ungated sweep
 (`card:ungated-fixes.md`, batch 9).  The fix is one call:
 `parts.append(_paren_val(cur, self._fmt_val(cur)))`.
 
-gate: `none — not yet built`.  **Measured 2026-08-31**: this is the current
-behaviour of the tree, not a mutation — the three shapes above were run
-through `gestate.fmt.format` and came back as written here — and the
-789-test language set is green with it.  Weakest: three shapes are what was
-tried; the head positions that are *not* broken have not been enumerated.
+**Resolved the same day, at Henri's word** — *"you may fix F186, F187 and
+F188 if you want to fix them now."*  One line: the head goes through
+`_paren_val` like every argument.  The `while` loop has already left `VApp`
+behind by then, so a spine is never re-parenthesised.
 
-### F187. **[open]** A lambda's parameters are not atoms
+gate: `test/fmt/test_format.py::test_an_application_head_keeps_its_parentheses`,
+the three shapes above.  **Measured 2026-08-31** by reverting the one line:
+that test alone goes red, and the language set stays green either way — which
+is the finding restated, not a doubt about the gate.  Weakest: it holds three
+head shapes, and the heads that were *never* broken are still not enumerated,
+so a future `_needs_parens` that over-answers would parenthesise a bare head
+and no test here would object.
+
+### F187. **[resolved]** A lambda's parameters are not atoms
 
 `_fmt_func` formats its parameters with `_fmt_pat(p)` and not
 `_fmt_pat(p, atom=True)`, which is F46's third bullet in the one
@@ -6639,13 +6646,17 @@ comes back as `f x :: xs = x`.
 
 Found 2026-08-31 while measuring F46, same sweep batch.
 
-gate: `none — not yet built`.  Same measurement as F186: current
-behaviour, and the language set is green with it.  Weakest: the fix is two
-`atom=True` arguments, and whether the *other* two `_fmt_pat` callers
-(`_fmt_unbox`, `_fmt_for`) want the flag was not settled — reading them is
-what turned up F188 instead.
+**Resolved the same day, same word.**  Two `atom=True` arguments, in
+`_fmt_func` and `_format_instance_member`.
 
-### F188. **[open]** A `Box` pattern formats as `<PBox>`, which is not a program
+gate: `test/fmt/test_format.py::test_a_lambdas_parameters_are_atoms`, which
+covers both callers.  **Measured 2026-08-31** by reverting each argument on
+its own: that test goes red for either, and nothing else moves.  Weakest: the
+remaining two `_fmt_pat` callers — `_fmt_unbox` and `_fmt_for` — are left
+bare, deliberately, because neither position juxtaposes; that reading is a
+judgement and no test states it.
+
+### F188. **[resolved]** A `Box` pattern formats as `<PBox>`, which is not a program
 
 `_fmt_pat` has a branch for every pattern node except `PBox`, and falls
 through to the debugging placeholder `f"<{type(pat).__name__}>"`:
@@ -6664,13 +6675,19 @@ Found 2026-08-31, reading `_fmt_pat`'s callers for F187.  The fix is one
 branch, `f"(Box {self._fmt_pat(pat.pat)})"`, parenthesised in juxtaposed
 position like a constructor's.
 
-gate: `none — not yet built`.  **Measured 2026-08-31**: current behaviour,
-and the 789-test language set is green with it — nothing in the tree formats
-a source that contains a `Box` pattern, the two examples that do included.
-Weakest: the
-placeholder is a catch-all, so the same fall-through will be silent again
-for the next pattern node added; what wants holding is *no output contains
-`<`*, and no test says that.
+**Resolved the same day, same word.**  One branch, shaped like the
+constructor one: `(Box p)` where a pattern is juxtaposed, `Box p` where it
+stands alone.  `PBox` had to be exported from `gestate.syntax` — it was in
+`ast.py` and in neither the import list nor `__all__`, which is the smaller
+half of why nothing noticed.
+
+gate: `test/fmt/test_format.py::test_a_box_pattern_is_written_as_one`, and
+`::test_no_output_wears_a_placeholder` beside it, which is the question the
+entry actually wanted asked — the fall-through is a catch-all, so the next
+pattern node added would have been silent the same way.  **Measured
+2026-08-31** by removing the branch again: both go red.  Weakest: the
+placeholder test names five patterns rather than enumerating the node types,
+so a new one still arrives unheld unless somebody adds it to that list.
 
 ### F189. **[open]** The leash reported itself off, and it was on
 

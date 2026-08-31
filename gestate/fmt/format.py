@@ -15,7 +15,7 @@ Usage::
 from __future__ import annotations
 
 from gestate.syntax import (
-    Pat, PVar, PCon, PLit, PTuple, PList, PSigCons, PAnnot,
+    Pat, PVar, PCon, PLit, PTuple, PList, PSigCons, PBox, PAnnot,
     Val, VWord, VConId, VNum, VStr,
     VApp, VFunc, VLet, VGiven, VCase, VAlt,
     VInfix, VPrefix, VPostfix,
@@ -350,7 +350,7 @@ class Formatter:
         if isinstance(m, VKind):
             self._ln(f"type {m.name} = {self._fmt_val(m.kind)}")
         elif isinstance(m, VSCEqn):
-            pats = [self._fmt_pat(p) for p in m.params]
+            pats = [self._fmt_pat(p, atom=True) for p in m.params]
             body = self._fmt_val(m.body)
             if _is_operator(m.name) and len(pats) == 2:
                 self._ln(f"{pats[0]} {m.name} {pats[1]} = {body}")
@@ -430,11 +430,17 @@ class Formatter:
             arg_text = self._fmt_val(cur.arg)
             parts.append(_paren_val(cur.arg, arg_text))
             cur = cur.fn
-        parts.append(self._fmt_val(cur))
+        # The head is juxtaposed like every argument, so it wants the same
+        # question asked of it (`fixme.md` F186).  It was written bare, and
+        # a head that runs to the end of the expression — a lambda, a `let`,
+        # a `case` — then swallowed the argument standing next to it.  The
+        # loop has already left `VApp` behind, so this never re-parenthesises
+        # a spine.
+        parts.append(_paren_val(cur, self._fmt_val(cur)))
         return " ".join(reversed(parts))
 
     def _fmt_func(self, func: VFunc) -> str:
-        pats = " ".join(self._fmt_pat(p) for p in func.params)
+        pats = " ".join(self._fmt_pat(p, atom=True) for p in func.params)
         return f"{pats} => {self._fmt_val(func.body)}"
 
     def _fmt_let(self, l: VLet) -> str:
@@ -610,6 +616,13 @@ class Formatter:
                     return f"({cons})" if atom else cons
                 return f"[{items_str} :: {tail}]" if items_str else f"[{tail}]"
             return f"[{items_str}]"
+        if isinstance(pat, PBox):
+            # `Box p` takes one *atomic* sub-pattern, the way a constructor
+            # takes each of its arguments, and is itself juxtaposed wherever
+            # `atom` is set.  Without this branch it fell through to the
+            # placeholder below and printed `<PBox>` (`fixme.md` F188).
+            inner = self._fmt_pat(pat.pat, atom=True)
+            return f"(Box {inner})" if atom else f"Box {inner}"
         if isinstance(pat, PSigCons):
             cons = f"{self._fmt_pat(pat.head)} ::: {self._fmt_pat(pat.tail)}"
             return f"({cons})" if atom else cons

@@ -546,3 +546,54 @@ def test_a_compound_pattern_in_juxtaposed_position_keeps_its_parentheses():
     """
     _survives("f : List Int -> Int\nf (x :: xs) = x\n")
     _survives("g : Maybe Int -> Int\ng (Just x) = x\ng Nothing = 0\n")
+
+
+# ── The positions F46 did not reach — F186, F187, F188 ───────────────────────
+#
+# Found 2026-08-31 while writing the three gates above, and repaired the same
+# day.  Same check, same reason it works: the formatter's own output, handed
+# back to it, must come out verbatim.
+
+
+def test_an_application_head_keeps_its_parentheses():
+    """`fixme.md` F186 — `_fmt_app` parenthesised every argument and wrote
+    the head bare, so a head that runs to the end of the expression swallowed
+    the argument beside it: `(x => x + 1) 2` came back as `x => x + 1 2`.
+    """
+    _survives("main : Int\nmain = (x => x + 1) 2\n")
+    _survives("main : Int\nmain = (let f = y => y in f) 2\n")
+    _survives("f : Int -> Int\nf n = (case n of\n    _ -> y => y) 2\n")
+
+
+def test_a_lambdas_parameters_are_atoms():
+    """`fixme.md` F187 — F46's third bullet in the two callers it did not
+    reach: a lambda's parameters, and an instance member's.
+    """
+    _survives("f : List Int -> Int\nf = (x :: xs) => x\n")
+    _survives("f : Maybe Int -> Int\nf = (Just x) => x\n")
+    _survives("class C a where\n    f : a -> Int\n\n"
+              "instance C (List Int) where\n    f (x :: xs) = x\n    f [] = 0\n")
+
+
+def test_a_box_pattern_is_written_as_one():
+    """`fixme.md` F188 — `_fmt_pat` had no `PBox` branch and fell through to
+    the debugging placeholder, so `f (Box x) = x` formatted as `f <PBox> = x`,
+    which does not parse at all.  Parenthesised where it is juxtaposed and
+    bare where it stands alone, like a constructor pattern.
+    """
+    _survives("f : Box Int -> Int\nf (Box x) = x\n")
+    _survives("f : Box Int -> Int\nf b = case b of\n    Box x -> x\n")
+
+
+def test_no_output_wears_a_placeholder():
+    """The catch-all `<PBox>` was silent, and the next pattern node added
+    would be silent the same way — so this asks the question F188 wanted
+    asked: nothing the formatter emits may be a `repr`.
+    """
+    for src in ("f : Box Int -> Int\nf (Box x) = x\n",
+                "f : List Int -> Int\nf (x :: xs) = x\n",
+                "f : (Int, Int) -> Int\nf (a, b) = a\n",
+                "f : Sig Int -> Int\nf (x ::: xs) = x\n",
+                "f : Maybe Int -> Int\nf (Just x) = x\nf Nothing = 0\n"):
+        out = format(src)
+        assert "<" not in out, f"placeholder in output for {src!r}: {out!r}"

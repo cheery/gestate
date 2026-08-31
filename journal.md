@@ -2593,5 +2593,33 @@ answer was *"file it as F189"*, so it is **F189**, with what was checked
 and what was not.  A safety check that says *off* while it is on is the
 failure its own header was written against.
 
+**And the three were fixed the same evening**, at his word — *"you may fix
+F186, F187 and F188 if you want to fix them now."*  One line for F186 (the
+head through `_paren_val`, and the loop has left `VApp` behind by then, so a
+spine is never re-parenthesised), two `atom=True` arguments for F187, one
+branch for F188 — plus the export `PBox` never had: it lived in `ast.py` and
+was in neither `gestate/syntax/__init__.py`'s import list nor its `__all__`,
+which is the smaller half of why nothing had noticed.  Four gates, each
+verified by reverting its own fix on its own.  The fourth is the one worth
+keeping: `test_no_output_wears_a_placeholder`, because `<PBox>` came from a
+catch-all `f"<{type(pat).__name__}>"` and the next pattern node added would
+have been silent in exactly the same way.
+
+**What the fixes turned up and did not chase.**  Formatting all 147 `.ges`
+files in the tree: 67 of them the formatter cannot parse at all, and 10 more
+are not idempotent — identical counts before and after the change, so this is
+the tree's state and not a regression.  Most of the 67 are the audio
+subgrammar, which `pipeline` handles before parsing and `gestate.fmt` does
+not.  A formatter that cannot read two thirds of the sources in its own
+repository is a bigger fact than the three defects that led to it, and it is
+not filed here: what it wants is a decision about what `fmt` is *for*, and
+that is Henri's.
+
+The full suite ran on the change, the shift's one pass: **3632 passed, 29
+skipped, 25m 56s**, plus the 28 outside the fence.  Nothing else in the tree
+reads the formatter's output — `gestate/session.py` and `gestate/scorebox.py`
+are its only callers — so the risk was in what a person sees in the window,
+and there was none to find.
+
 Batch 10 — F40 F39 F31 F25 F23 — is due Tue 2026-09-01, and the third
 Friday review is 2026-09-04.

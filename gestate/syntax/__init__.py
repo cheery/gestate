@@ -11,7 +11,7 @@ Usage::
 from __future__ import annotations
 
 from .ast import (
-    Pat, PVar, PCon, PLit, PTuple, PList, PSigCons, PAnnot,
+    Pat, PVar, PCon, PLit, PTuple, PList, PSigCons, PBox, PAnnot,
     Val, VWord, VConId, VNum, VStr,
     VApp, VFunc, VLet, VGiven, VCase, VAlt,
     VOpPhrase, VInfix, VPrefix, VPostfix,
@@ -98,7 +98,8 @@ __all__ = [
     "tokenize",
     "parse_module",
     "descend",
-    "Pat", "PVar", "PCon", "PLit", "PTuple", "PList", "PSigCons", "PAnnot",
+    "Pat", "PVar", "PCon", "PLit", "PTuple", "PList", "PSigCons", "PBox",
+    "PAnnot",
     "Val", "VWord", "VConId", "VNum", "VStr",
     "VApp", "VFunc", "VLet", "VGiven", "VCase", "VAlt",
     "VOpPhrase", "VInfix", "VPrefix", "VPostfix",
