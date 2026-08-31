@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 190 entries, **159 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 192 entries, **159 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -95,6 +95,8 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F186 | resolved | An application's head loses its parentheses: `(x => x + 1) 2` comes back as `x => x + 1 2` |
 | F187 | resolved | A lambda's and an instance member's parameters are not atoms — F46's third bullet, in the callers it did not reach |
 | F188 | resolved | A `Box` pattern formats as the debugging placeholder `<PBox>`, which does not parse |
+| F190 | open | The formatter is not idempotent: a second pass moves comments and deletes 27 of them |
+| F191 | open | For nine sources — the prelude among them — the formatter's output does not parse |
 | F189 | open | The leash reported itself off at session start against a file it had not touched, and it was on — not reproduced |
 
 Several of these are **closed rather than pending** under
@@ -6742,3 +6744,88 @@ it read: the deny-list it parsed, and the mtime and size of the file it
 parsed it from, into its own output.  Weakest: that is a guess at the
 layer, made without a reproduction — the fault may be in the client
 rather than in the script, and this entry cannot tell.
+
+### F190. **[open]** The formatter is not idempotent: comments move, and some are lost
+
+*Henri's rule, 2026-08-31, is what makes this a defect rather than an
+observation:* **"the formatter should be idempotent, but the code doesn't
+need to be autoformatted."**  Confirmed the same evening.  Nobody has to
+run `gestate.fmt` over a source; what it writes, written again, must come
+back the same.
+
+It does not, for **10 of the 80 `.ges` files that survive two passes**, and
+every difference is a comment:
+
+| file | comments after pass 1 → 2 → 3 |
+|---|---|
+| `examples/advanced/01-fold.ges` | 28 → 28 → 27 |
+| `examples/advanced/02-samplehold.ges` | 31 → 29 → 28 |
+| `examples/advanced/04-loop.ges` | 29 → 24 → 23 |
+| `examples/audio/drums.ges` | 49 → 47 → 47 |
+| `examples/audio/fm.ges` | 58 → 56 → 56 |
+| `examples/audio/twoknobs.ges` | 51 → 43 → 43 |
+| `examples/gui/bounce.ges` | 40 → 40 → 39 |
+| `examples/gui/chain.ges` | 42 → 41 → 41 |
+| `examples/records.ges` | 10 → 10 → 9 |
+| `gestate/command.ges` | 421 → 414 → 414 |
+
+**27 comments deleted by the second pass**, and five of the ten are still
+moving on the third — so it is not a one-off settling into a fixed point,
+it is a walk.  Some comments move rather than vanish (`01-fold.ges` loses
+`# phase, instant` at line 49 and gains it at 67); the ones that vanish are
+`#:` blocks attached to a declaration, which is the trivia reattachment
+`test_trailing_comment_survives_the_formatter` holds for one small case and
+nothing holds at scale.
+
+Measured 2026-08-31, formatting every `.ges` in the tree three times and
+counting lines beginning `#`.
+
+gate: `none — not yet built`, and it is cheap: format every `.ges` the
+formatter can read, twice, and require the two equal.  That is a real gate
+and it would be **red on arrival** for these ten, which is the reason it is
+described here rather than committed — a gate that lands red teaches the
+next reader to skip it, and the repair is a separate piece of work.
+Weakest: the measurement counts comment *lines*, so a comment whose text
+changed while the count held would not show.
+
+### F191. **[open]** For nine sources the formatter's output does not parse
+
+Worse than F190 and found beside it.  Of the 89 `.ges` files
+`gestate.fmt.format` can read, **9 produce output it cannot** — the
+formatter's promise fails at the first step rather than the second, and the
+nine include the prelude:
+
+    examples/closure.ges  examples/relations.ges  examples/gui/patchbay.ges
+    gestate/audio.ges  gestate/gui.ges  gestate/music.ges
+    gestate/prelude.ges  gestate/signal.ges  gestate/synth.ges
+
+Four causes, each separately fixable:
+
+* **A value node with no branch prints `<VInternal>`** — the same catch-all
+  as F188, on the value side of `_fmt_val` rather than the pattern side.
+  `signal.ges`, `audio.ges`, `gui.ges`.
+* **A set comprehension comes back as its lowering, with a generated name
+  in it.**  `{x | x in s, x < Blue}` formats as
+  `for (x in s, _guard1# in guard (x < Blue)) {x}` — a different surface
+  form, and the `#` in the synthesised binder opens a comment, which is the
+  `expected ')'` the parser then reports.  `relations.ges`, `closure.ges`,
+  `patchbay.ges`.
+* **A constructor's field loses its parentheses.**  `| Sow Int (Score a)`
+  comes back as `| Sow Int Score a` — F186's family in
+  `_format_type_decl`'s fields, where the arguments are juxtaposed the same
+  way.  `music.ges`.
+* **A member's multi-line `case` loses its indentation.**  An instance's
+  `foldr f z xs = case xs of` is followed by its alternatives at the
+  member's own level, so the block is gone.  `prelude.ges`, `synth.ges`.
+
+Found 2026-08-31, checking Henri's idempotency rule against the tree.  The
+earlier count in this session's report — *67 files the formatter cannot
+parse* — folded these nine in with the 58 it genuinely cannot read; they
+are a different and worse thing, and the split is 58 unreadable, 9 read and
+mis-written, 80 clean through two passes.
+
+gate: `none — not yet built`, and the same shape as F190's: format every
+readable `.ges` and re-parse the output.  Red on arrival for these nine.
+Weakest: four causes are named from four error messages, and only the first
+was read back to the code that produces it — the other three are diagnoses
+from the output, not from the branch.

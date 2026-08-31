@@ -2612,8 +2612,32 @@ the tree's state and not a regression.  Most of the 67 are the audio
 subgrammar, which `pipeline` handles before parsing and `gestate.fmt` does
 not.  A formatter that cannot read two thirds of the sources in its own
 repository is a bigger fact than the three defects that led to it, and it is
-not filed here: what it wants is a decision about what `fmt` is *for*, and
-that is Henri's.
+not filed here at first: what it wanted was a decision about what `fmt` is
+*for*, and that is Henri's.  He gave it in one sentence the same evening:
+**"the formatter should be idempotent, but the code doesn't need to be
+autoformatted.  I think that's how it would go."**  Which settles both
+halves — nobody has to run it, and what it writes must survive being
+written again.
+
+**And measuring against that rule found the number was wrong.**  The 67 I
+reported were two things folded together.  The split is: **58** the
+formatter genuinely cannot read, mostly the audio subgrammar that
+`pipeline` handles before parsing and `gestate.fmt` does not; **9** it
+reads and then writes output *it cannot read back* — `gestate/prelude.ges`
+among them — which is F191; and of the 80 that survive two passes, **10**
+are not idempotent, all of it comments, 27 of them deleted by the second
+pass and five files still moving on the third, which is F190.  F191's four
+causes are separate: a `<VInternal>` catch-all on the value side, F188's
+twin; a set comprehension printed as its own lowering with a generated
+`_guard1#` binder whose `#` opens a comment; a constructor field losing its
+parentheses, which is F186's family one position over; and a member's
+multi-line `case` losing its indentation.
+
+Neither gets a gate today, and the reason is worth stating: the gate is
+obvious and cheap — format every readable `.ges` twice, require equality
+and require the output to parse — and it would land **red**.  A gate that
+arrives red teaches the next reader to skip it.  It goes in with the
+repair.
 
 The full suite ran on the change, the shift's one pass: **3632 passed, 29
 skipped, 25m 56s**, plus the 28 outside the fence.  Nothing else in the tree
