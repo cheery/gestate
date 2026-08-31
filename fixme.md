@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 189 entries, **156 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 190 entries, **156 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -95,6 +95,7 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F186 | open | An application's head loses its parentheses: `(x => x + 1) 2` comes back as `x => x + 1 2` |
 | F187 | open | A lambda's and an instance member's parameters are not atoms — F46's third bullet, in the callers it did not reach |
 | F188 | open | A `Box` pattern formats as the debugging placeholder `<PBox>`, which does not parse |
+| F189 | open | The leash reported itself off at session start against a file it had not touched, and it was on — not reproduced |
 
 Several of these are **closed rather than pending** under
 `journal.md` Part I's rule — *do not build what nothing needs*.
@@ -6670,3 +6671,57 @@ Weakest: the
 placeholder is a catch-all, so the same fall-through will be silent again
 for the next pattern node added; what wants holding is *no output contains
 `<`*, and no test says that.
+
+### F189. **[open]** The leash reported itself off, and it was on
+
+`tools/leash.sh` is the check that says whether `.claude/settings.json`'s
+deny-list is actually in force.  It runs as a `SessionStart` hook.  On
+2026-08-31 at 05:15 it printed
+
+    leash: .claude/settings.json parses — not reverting it, in case the edit was yours.
+      ✗ Edit(./.claude/**)  — MISSING
+      ✓ Bash(sudo:*)
+      ✓ Bash(git push:*)
+      ✓ Read(~/.ssh/**)
+      ✓ fence hook installed and executable
+
+      THE LEASH IS OFF.  tools/leash.sh --restore
+
+and the leash was on.  Checked the same session, about forty minutes
+later: `tools/leash.sh` says *the leash is on*, `Edit(./.claude/**)` is
+the fourth-from-last entry of `.permissions.deny`, and the file's mtime
+is **2026-08-24 16:02** — it had not been written since, and `git status`
+showed it unmodified.  Nothing restored it; the hook says in as many
+words that it did not.
+
+**Not reproduced.**  Tried: the hook's own command string verbatim in a
+plain shell, and `--restore` again — both green.  `HOME` unset, the shape
+that produced the 2026-08-24 false alarm, errors out at line 115 rather
+than reporting a rule missing, so it is not that mechanism returning.
+The rule that was reported missing is the one spelling in `CRITICAL`
+that needs **no** normalisation — no `(~/` to rewrite — which rules out
+the tilde/absolute handling that the whole check was rewritten around.
+
+**Filed because the failure is the expensive kind.**  This script's own
+header says it: *a gate that fails closed on a spelling change is a gate
+people learn to wave past*.  A second false *off* is worse than the
+first, because the first was diagnosed and this one cannot be.  Left
+unrecorded it becomes a thing a session reads past at every session
+start, which is exactly the protection gone with no symptom that the
+leash exists to prevent.
+
+Reported to Henri 2026-08-31 at the end of batch 9 of
+`card:ungated-fixes.md`; filed at his word — *"file it as F189"*.
+
+gate: `none — nothing can`, not yet.  `test/test_safety.py::test_the_leash_is_on`
+already runs the script and requires exit 0, and it passes.  Whether it
+would have passed at 05:15 is the one thing nobody can now say, and it is
+the whole question.  A test could also feed the script a
+weakened settings file and require the ✗, but that is the half that
+already works.  What went wrong is between the hook's environment at session
+start and the file on disk, and neither is reachable from a test.  The
+cheapest thing that *would* catch a recurrence is the check writing what
+it read: the deny-list it parsed, and the mtime and size of the file it
+parsed it from, into its own output.  Weakest: that is a guess at the
+layer, made without a reproduction — the fault may be in the client
+rather than in the script, and this entry cannot tell.

@@ -2579,5 +2579,19 @@ red; both, 4 red — and **every red is a unit test on `Subst`**.  No program
 moved.  The divergence arrived through inference on a program F45's fix
 made writable, and that path is held by nothing.
 
+**And the day's own instrument lied.**  The `SessionStart` hook printed
+*THE LEASH IS OFF* at 05:15, naming `Edit(./.claude/**)` as missing; the
+rule was in the file, the file had not been written since 2026-08-24
+16:02, and `tools/leash.sh` said *the leash is on* forty minutes later.
+Not reproduced — not by the hook's own command string, not by `--restore`,
+and not by the `HOME`-unset shape that caused the 2026-08-24 false alarm,
+which errors out rather than reporting a rule missing.  The rule that was
+reported missing is the one spelling in `CRITICAL` needing no
+normalisation, so it is not the tilde handling coming back either.
+Reported rather than filed, because an entry with no mechanism rots; his
+answer was *"file it as F189"*, so it is **F189**, with what was checked
+and what was not.  A safety check that says *off* while it is on is the
+failure its own header was written against.
+
 Batch 10 — F40 F39 F31 F25 F23 — is due Tue 2026-09-01, and the third
 Friday review is 2026-09-04.
