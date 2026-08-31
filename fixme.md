@@ -6780,13 +6780,16 @@ nothing holds at scale.
 Measured 2026-08-31, formatting every `.ges` in the tree three times and
 counting lines beginning `#`.
 
-gate: `none — not yet built`, and it is cheap: format every `.ges` the
-formatter can read, twice, and require the two equal.  That is a real gate
-and it would be **red on arrival** for these ten, which is the reason it is
-described here rather than committed — a gate that lands red teaches the
-next reader to skip it, and the repair is a separate piece of work.
-Weakest: the measurement counts comment *lines*, so a comment whose text
-changed while the count held would not show.
+gate: `test/fmt/test_roundtrip.py::test_formatting_is_idempotent`, with
+these ten named in `NOT_IDEMPOTENT` — **written 2026-08-31, at Henri's
+ask.**  The list is a ratchet: `::test_a_listed_idempotency_failure_is_still_one`
+fails on any name that has stopped failing, so repairing a file and leaving
+its name behind is caught by the commit that repairs it.  That is
+`card:ungated-fixes.md`'s *accepted baseline that may shrink and never
+grow*, built for the first time.  Verified the same day by naming a clean
+file in the list and watching the ratchet refuse it.  Weakest: the property
+is exact but the corpus is not — 89 readable sources, most of them audio
+pieces, so a comment shape none of them writes is unheld.
 
 ### F191. **[open]** For nine sources the formatter's output does not parse
 
@@ -6824,8 +6827,28 @@ parse* — folded these nine in with the 58 it genuinely cannot read; they
 are a different and worse thing, and the split is 58 unreadable, 9 read and
 mis-written, 80 clean through two passes.
 
-gate: `none — not yet built`, and the same shape as F190's: format every
-readable `.ges` and re-parse the output.  Red on arrival for these nine.
-Weakest: four causes are named from four error messages, and only the first
-was read back to the code that produces it — the other three are diagnoses
-from the output, not from the branch.
+**And the quieter half, found while building the gate:** seven more files
+whose output *does* parse and **is a different program**.  Two of the causes
+above account for most of it, arriving in their milder form — the
+constructor field losing its parentheses turns `List Point` into two fields
+in `examples/gui/chain.ges`, and the lost `case` indentation re-associates
+an inner block's alternatives into the outer one in
+`examples/audio/bottleneck.ges` and three of its neighbours.  Two are their
+own: `examples/records.ges` loses a whole `deriving (Show, Eq, Ord)`
+clause, and `gestate/command.ges` comes back with a `VSCEqn` whose
+`using_params` holds a `Span` — **that one is unexplained and is written
+down as unexplained.**
+
+gate: `test/fmt/test_roundtrip.py`, three tests over the corpus —
+`::test_the_output_of_every_readable_source_parses` with these nine in
+`OUTPUT_DOES_NOT_PARSE`, and
+`::test_formatting_does_not_change_the_program` with the seven in
+`PROGRAM_CHANGES`, both ratcheted the way F190's list is.  **Written
+2026-08-31, at Henri's ask.**  The program comparison is the AST with spans
+and comments set aside, which is the property `format`'s own docstring
+promises and the one idempotency cannot see.  Weakest, and it is measured
+rather than guessed: reverting F186, F187 or F188 leaves this whole file
+green — no clean source in the tree writes a parenthesised application
+head, a compound lambda parameter, or a `Box` pattern outside the two files
+already listed.  A corpus gate is only as strong as its corpus, and this
+one is 89 files that are mostly audio.

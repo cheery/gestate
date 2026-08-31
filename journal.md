@@ -2633,11 +2633,44 @@ twin; a set comprehension printed as its own lowering with a generated
 parentheses, which is F186's family one position over; and a member's
 multi-line `case` losing its indentation.
 
-Neither gets a gate today, and the reason is worth stating: the gate is
-obvious and cheap — format every readable `.ges` twice, require equality
-and require the output to parse — and it would land **red**.  A gate that
-arrives red teaches the next reader to skip it.  It goes in with the
-repair.
+Neither got a gate at first, and the reason was that the obvious one —
+format every readable `.ges` twice, require equality and require the output
+to parse — would land **red**, and a gate that arrives red teaches the next
+reader to skip it.  Henri asked for it anyway, in the form of a question:
+*"lets do that gate? would you want to do it?"*  The answer to the red
+problem was already in the tree: `card:ungated-fixes.md`'s **accepted
+baseline that may shrink and never grow**, proposed there and never built.
+`test/fmt/test_roundtrip.py` is the first thing to use it.
+
+**Building it made the finding sharper twice.**  The first version held two
+properties — the output parses, and formatting is idempotent — and reverting
+F186 left all of it green.  Idempotency cannot see a changed program:
+`x => x + 1 2` formats to itself and parses, which is the same blindness
+that let F46 live through sixty unit tests.  So the gate grew a third
+property, the AST with spans and comments set aside, and that is what the
+formatter's own docstring actually promises.  Comparing programs then found
+**seven more files whose output parses and is a different program** —
+`examples/records.ges` loses a whole `deriving (Show, Eq, Ord)` clause, four
+audio pieces have an inner `case`'s alternatives re-associated into the
+outer one, `examples/gui/chain.ges` turns a constructor's `List Point` field
+into two fields, and `gestate/command.ges` comes back with a `using_params`
+holding a `Span`, which is written down as unexplained because it is.
+
+The three properties are independent and the numbers say so: two files are
+non-idempotent with an unchanged program, four change the program while
+being perfectly idempotent.  Each check catches what the others cannot, so
+all three are there.
+
+**And the gate's own weakest point is measured, not guessed.**  Reverting
+F186, F187 or F188 leaves the whole corpus file green — no clean readable
+source in the tree writes a parenthesised application head, a compound
+lambda parameter, or a `Box` pattern outside the two already listed.  A
+corpus gate is only as strong as its corpus, and this one is 89 files that
+are mostly audio pieces.  `test_format.py` holds those three; the division
+is the point, and neither half substitutes for the other.
+
+It is not in `GATES` — 8.2 s against a budget of about thirteen, and that
+set is Henri's to add to.
 
 The full suite ran on the change, the shift's one pass: **3632 passed, 29
 skipped, 25m 56s**, plus the 28 outside the fence.  Nothing else in the tree
