@@ -6787,7 +6787,8 @@ fails on any name that has stopped failing, so repairing a file and leaving
 its name behind is caught by the commit that repairs it.  That is
 `card:ungated-fixes.md`'s *accepted baseline that may shrink and never
 grow*, built for the first time.  Verified the same day by naming a clean
-file in the list and watching the ratchet refuse it.  Weakest: the property
+file in the list and watching the ratchet refuse it; 3.1 s for the file,
+after the first draft's 8.2 was found to be four walks over one corpus.  Weakest: the property
 is exact but the corpus is not — 89 readable sources, most of them audio
 pieces, so a comment shape none of them writes is unheld.
 

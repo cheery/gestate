@@ -2669,8 +2669,21 @@ corpus gate is only as strong as its corpus, and this one is 89 files that
 are mostly audio pieces.  `test_format.py` holds those three; the division
 is the point, and neither half substitutes for the other.
 
-It is not in `GATES` — 8.2 s against a budget of about thirteen, and that
-set is Henri's to add to.
+It is not in `GATES`, and the question came straight back: *"hmm.. should it
+join gates?"*  Measuring rather than arguing turned out to be the answer —
+**8.2 s was two thirds this file's own waste.**  Four checks each walked the
+corpus, twenty-six ratchet cases each re-formatted their own file, and every
+source was parsed twice, once inside `format` and once for the comparison.
+One cached survey, and `format_module` handed the module `parse` already
+built — verified byte-for-byte identical to `format(text)` on all 89 — took
+it to **3.1 s**.
+
+So the recommendation is yes, and the reason is timing rather than
+coverage: what breaks this gate is adding or editing a `.ges`, which is
+ordinary work here, and a ratchet is worth most at the commit that repairs
+a file — `card:cheap-gates.md`'s argument arriving a third time.  The cost
+against it is a quarter more on a thirteen-second budget.  The line is
+Henri's; the precedent is his own, 2026-08-25: *"they join the GATES."*
 
 The full suite ran on the change, the shift's one pass: **3632 passed, 29
 skipped, 25m 56s**, plus the 28 outside the fence.  Nothing else in the tree

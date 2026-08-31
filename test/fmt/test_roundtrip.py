@@ -62,16 +62,33 @@ neither substitutes for the other.
 The 89 are also not a language sample: most are audio pieces, so the surface
 they exercise is narrow.  A source added here widens what is held, which is
 a reason to keep examples rather than a reason to trust the number.
+
+## What it costs, because that is what decides where it runs
+
+**3.1 s**, and it started at 8.2.  Two thirds of that was this file's own
+waste: four checks each walking the corpus, twenty-six ratchet cases each
+re-formatting their file, and every source parsed twice — once by `format`
+and once by the comparison.  One cached survey and `format_module` over an
+already-parsed module removed all of it.
+
+Whether it belongs in `suite.py`'s `GATES`, and so runs at every commit, is
+Henri's line and not this file's (`journal.md`, 2026-08-25: *"they join the
+GATES."*).  The argument for is that the work which breaks it — adding or
+editing a `.ges` — is ordinary here, and that a ratchet is worth most at the
+commit that repairs a file, which is `card:cheap-gates.md`'s whole point.
+The argument against is the budget: about thirteen seconds today, and this
+is a quarter more.
 """
 
 from __future__ import annotations
 
 import dataclasses
+import functools
 import pathlib
 
 import pytest
 
-from gestate.fmt import format
+from gestate.fmt import format_module
 from gestate.syntax import parse
 from gestate.syntax.ast import Span, VComment
 
@@ -86,12 +103,56 @@ def _rel(p: pathlib.Path) -> str:
     return str(p.relative_to(ROOT))
 
 
-def _formats(src: str):
-    """`format(src)`, or `None` if the formatter cannot read it."""
-    try:
-        return format(src)
-    except Exception:
-        return None
+@dataclasses.dataclass(frozen=True)
+class Reading:
+    """What one source did, read once and shared by every test below."""
+    readable: bool
+    output_parses: bool
+    program_survives: bool
+    idempotent: bool
+    why: str = ""
+
+
+@functools.lru_cache(maxsize=1)
+def _survey() -> dict[str, Reading]:
+    """Format every source once, and answer all four questions from that.
+
+    **One pass, not four.**  Each check below used to walk the corpus on its
+    own and the twenty-six ratchet cases re-formatted their file a second
+    time, which is four times the work for one reading of the tree — and the
+    cost is what decides whether this can sit in `suite.py`'s `GATES` and
+    run at every commit.  Cached at module scope because the tree does not
+    change under a run; that is this file's own version of the freeze rule
+    `board/README.md` states for the long pass.
+    """
+    out: dict[str, Reading] = {}
+    for p in _sources():
+        src = p.read_text()
+        # `format(text)` is `format_module(parse(text))` — checked against all
+        # 89 readable sources on 2026-08-31, byte for byte — and going through
+        # the module keeps the parse this survey needs anyway instead of doing
+        # it twice.  Half the run time is that one substitution.
+        try:
+            before = parse(src)
+        except Exception:
+            out[_rel(p)] = Reading(False, False, False, False)
+            continue
+        once = format_module(before)
+        # A second pass can raise where the first did not — that *is* one of
+        # the failures being recorded (F191), so it is caught rather than
+        # allowed to end the survey.
+        try:
+            after = parse(once)
+        except Exception as e:
+            out[_rel(p)] = Reading(True, False, False, False, str(e))
+            continue
+        out[_rel(p)] = Reading(
+            readable=True,
+            output_parses=True,
+            program_survives=_program(before) == _program(after),
+            idempotent=format_module(after) == once,
+        )
+    return out
 
 
 def _program(node):
@@ -259,27 +320,18 @@ NOT_IDEMPOTENT = {
 
 def test_a_file_that_reads_today_still_reads():
     """The unreadable set is a scope question; losing a readable file is not."""
+    survey = _survey()
     lost = sorted(name for name in READABLE
-                  if not (ROOT / name).exists()
-                  or _formats((ROOT / name).read_text()) is None)
+                  if name not in survey or not survey[name].readable)
     assert lost == [], (
         "these formatted on 2026-08-31 and no longer do (or are gone):\n  "
         + "\n  ".join(lost))
 
 
 def test_the_output_of_every_readable_source_parses():
-    broken = []
-    for p in _sources():
-        name = _rel(p)
-        if name in OUTPUT_DOES_NOT_PARSE:
-            continue
-        once = _formats(p.read_text())
-        if once is None:
-            continue
-        try:
-            parse(once)
-        except Exception as e:
-            broken.append(f"{name}: {e}")
+    broken = [f"{name}: {r.why}" for name, r in sorted(_survey().items())
+              if r.readable and not r.output_parses
+              and name not in OUTPUT_DOES_NOT_PARSE]
     assert broken == [], "output does not parse:\n  " + "\n  ".join(broken)
 
 
@@ -289,21 +341,9 @@ def test_formatting_does_not_change_the_program():
     This is the property `format`'s own docstring promises and the one no
     other check here can see.
     """
-    changed = []
-    for p in _sources():
-        name = _rel(p)
-        if name in OUTPUT_DOES_NOT_PARSE or name in PROGRAM_CHANGES:
-            continue
-        src = p.read_text()
-        once = _formats(src)
-        if once is None:
-            continue
-        try:
-            before, after = _program(parse(src)), _program(parse(once))
-        except Exception:
-            continue          # held by the test above
-        if before != after:
-            changed.append(name)
+    changed = [name for name, r in sorted(_survey().items())
+               if r.readable and r.output_parses and not r.program_survives
+               and name not in PROGRAM_CHANGES]
     assert changed == [], (
         "the formatter rewrote these into a different program:\n  "
         + "\n  ".join(changed))
@@ -311,16 +351,10 @@ def test_formatting_does_not_change_the_program():
 
 def test_formatting_is_idempotent():
     """What it writes, written again, comes back the same — his rule."""
-    moved = []
-    for p in _sources():
-        name = _rel(p)
-        if name in OUTPUT_DOES_NOT_PARSE or name in NOT_IDEMPOTENT:
-            continue
-        once = _formats(p.read_text())
-        if once is None:
-            continue
-        if format(once) != once:
-            moved.append(name)
+    moved = [name for name, r in sorted(_survey().items())
+             if r.readable and not r.idempotent
+             and name not in OUTPUT_DOES_NOT_PARSE
+             and name not in NOT_IDEMPOTENT]
     assert moved == [], "a second pass changed:\n  " + "\n  ".join(moved)
 
 
@@ -331,26 +365,26 @@ def test_formatting_is_idempotent():
 # catch it is the commit that fixes the file.
 
 
+def _listed(name: str, which: str) -> Reading:
+    r = _survey().get(name)
+    assert r is not None, f"{name} is named in {which} and is not in the tree"
+    assert r.readable, f"{name} no longer formats at all — {which} is stale"
+    return r
+
+
 @pytest.mark.parametrize("name", sorted(OUTPUT_DOES_NOT_PARSE))
 def test_a_listed_output_failure_is_still_one(name):
-    once = _formats((ROOT / name).read_text())
-    assert once is not None, f"{name} no longer formats at all — F191's list is stale"
-    with pytest.raises(Exception):
-        parse(once)
+    assert not _listed(name, "OUTPUT_DOES_NOT_PARSE").output_parses, (
+        f"{name}'s output parses now — take it out of OUTPUT_DOES_NOT_PARSE (F191)")
 
 
 @pytest.mark.parametrize("name", sorted(PROGRAM_CHANGES))
 def test_a_listed_program_change_is_still_one(name):
-    src = (ROOT / name).read_text()
-    once = _formats(src)
-    assert once is not None, f"{name} no longer formats at all — F191's list is stale"
-    assert _program(parse(src)) != _program(parse(once)), (
+    assert not _listed(name, "PROGRAM_CHANGES").program_survives, (
         f"{name} round-trips now — take it out of PROGRAM_CHANGES (F191)")
 
 
 @pytest.mark.parametrize("name", sorted(NOT_IDEMPOTENT))
 def test_a_listed_idempotency_failure_is_still_one(name):
-    once = _formats((ROOT / name).read_text())
-    assert once is not None, f"{name} no longer formats at all — F190's list is stale"
-    assert format(once) != once, (
+    assert not _listed(name, "NOT_IDEMPOTENT").idempotent, (
         f"{name} is idempotent now — take it out of NOT_IDEMPOTENT (F190)")
