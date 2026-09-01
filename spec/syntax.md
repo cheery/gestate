@@ -93,7 +93,7 @@ Here are reserved characters:
 Reserved words are:
 
     class instance case let letrec where in for of type kind gfix fix unbox given using
-    deriving implicit Box
+    deriving implicit Box internal do
 
 Note that `=` and `|` may also appear as a part of a symbol.
 Otherwise these are special characters and should be always separated.
@@ -182,7 +182,7 @@ resolved by fixity.
 | `infixl 6`   | `<`, `>`, `<=`, `>=` | ordering (Ord class)       |
 | `infixl 7`   | `+`, `-`  | numeric                               |
 | `prefix 7`   | `+`, `-`  | numeric unary                         |
-| `infixl 8`   | `*`, `/`  | numeric                               |
+| `infixl 8`   | `*`, `/`, `%` | numeric — `%` is remainder        |
 | `infixr 9`   | `^`       | power                                 |
 | `infixr 9`   | `@`       | function composition (the prelude's `(@)`) |
 | `infixr 0`   | `$`       | apply (lowest)                        |

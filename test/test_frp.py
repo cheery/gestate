@@ -111,6 +111,21 @@ def test_signal_interface_typechecks():
     )
 
 
+def test_the_two_later_modalities_are_writable_in_a_signature():
+    """`fixme.md` F39: `FaL`/`ExL` exist as type constructors, so a program
+    may *name* them.
+
+    `ExL` is held hard — removed from `kindcheck._BUILTIN_KINDS`, 136 of
+    780 language tests go red, because `signal.ges` writes `mkSig : ExL a
+    -> ExL (Sig a)`.  `FaL` was held by nothing: removed on its own, 780
+    stayed green, because inference constructs a `FaL` for every `delay`
+    and no source in the tree ever writes one.  A written `FaL` is what
+    this holds (batch 10, 2026-09-01).
+    """
+    compile("later : Int -> FaL Int\nlater n = delay (n + 1)\n\n"
+            "main : Int\nmain = 1\n")
+
+
 def test_maybe_and_sync_are_reserved():
     """`watch`/`sync` name these types, so a user copy would shadow them."""
     for name in ("Maybe", "Sync"):

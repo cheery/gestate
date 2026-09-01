@@ -484,6 +484,64 @@ divergence actually arrived on is still held by nothing.
 
 No uncertain verdict; the trip-wire did not fire.
 
+### Batch 10 — 2026-09-01, the Tuesday it was due
+
+**F40 F39 F31 F25 F23**, measured by mutation against a targeted set of 37
+language test files, **780 tests**, about three minutes a run.  Two gates
+written, three entries that had their tests and never said so, **two new
+defects**, and the batch's own finding is about the archive rather than about
+a fix.
+
+**F40 is the one to read.**  Its repair — the pipeline diagram rewritten
+against the real `pipeline.py` — is now in `journal/2026-08.md`, moved there by
+the rotation this morning, and a closed month is **append-only**.  The defect
+put back verbatim (ϕ/δ swapped back after Datafun desugaring, line count
+unchanged): **298 of 298** doc and pipeline tests green.  The only thing that
+notices the file is its *length* — delete a line instead of moving one and two
+gates go red, because the archive's line count is quoted in the index row and
+in `doc/method.md`.  And a gate is not merely missing, it is **unwritable**: it
+would be red the day it was written, since `_analyse` runs `envexpand.expand`
+and `specialise` and the diagram has neither, and it could never be made green
+because the file may not be corrected.  *The claim outlived the file's
+editability*, which is a cost of the rotation nobody had priced.
+
+**F31 is held by nothing and could not be gated either.**  `TApp(fn, arg,
+t.span)` put back to `TApp(fn, arg)`: 780 green.  `apply` returns `t` itself
+when neither part changed, so the repaired line runs only on a rebuild — and no
+program could be constructed in which it is the line that decides a message,
+even with the upstream severance repaired.  That severance is **F192**:
+`_apply_subst_map` rebuilds `TFun` with its span and `TApp` without, three
+lines apart, so a type the author *wrote* loses its position at instantiation.
+F31's own repair, in the sibling it did not reach.
+
+**F23 and F25 were repairs to a page nothing read.**  Both were edits to
+`spec/syntax.md` — `Box` and `deriving` into the reserved-word list, `..` into
+the fixity table — and the language suite cannot see an edit to a page.  Two
+tests now pull both lists off the page and compare them with
+`tokenize._RESERVED` and `descend.DEFAULT_INFIX`, in both directions: `Box`
+struck, red; `deriving` struck, red; the `..` row struck, red; the parser's
+`..` moved from 7 to 9, red.  Their reverse direction is **F193** — `do`,
+`internal` and `%` in the implementation and on no list, which is the drift F23
+and F25 were opened for, arriving a third time.  Carried as a shrink-only
+baseline and then **closed the same afternoon** at Henri's *"do the three
+edits"*; both sets are empty, which is question 3's shape working the way it was
+supposed to.
+
+F25's other half was gated all along:
+`test_music_syntax.py::test_the_function_arrow_cannot_be_given_a_fixity` reddens
+on `_UNOVERRIDABLE`, and named neither this entry nor F24.  **The batch's set
+missed it** — `test_music_syntax.py` was not among the 37, so the first
+measurement read *780 green* and would have written *ungated* on a gated half.
+The file was added to the run by hand after reading the code.  A targeted set is
+a claim about coverage and this one was wrong once.
+
+F39 is `partial` made whole: `ExL` struck from the kind table takes **136 of
+780** down, `FaL` struck takes **none** — the table is consulted only for a
+type somebody wrote, and nothing in the tree writes a `FaL`, though inference
+builds one for every `delay`.  Four lines now do.
+
+No uncertain verdict; the trip-wire did not fire.
+
 ### The second Friday review — 2026-08-28, drawn at random
 
 Three drawn by `awk '/^### F[0-9]+\\./{e=$2} /^gate:/{print e}' fixme.md |

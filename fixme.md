@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 192 entries, **159 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 195 entries, **160 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -97,6 +97,9 @@ claim does not rot, and this sentence had rotted by twenty-five entries before a
 | F188 | resolved | A `Box` pattern formats as the debugging placeholder `<PBox>`, which does not parse |
 | F190 | open | The formatter is not idempotent: a second pass moves comments and deletes 27 of them |
 | F191 | open | For nine sources — the prelude among them — the formatter's output does not parse |
+| F192 | open | A written type loses its source position at instantiation: `_apply_subst_map` carries the span on `TFun` and not on `TApp` |
+| F193 | resolved | `spec/syntax.md` did not list `do`, `internal` or `%`, which the tokenizer and the parser have |
+| F194 | open | `memoryindex.py` writes nothing and exits 0 behind the fence, where `$HOME` is a tmpfs — and its own gate skips there |
 | F189 | open | The leash reported itself off at session start against a file it had not touched, and it was on — not reproduced |
 
 Several of these are **closed rather than pending** under
@@ -623,6 +626,17 @@ using`.  Either the spec gains `Box` or the tokenizer loses it (it is a
 capitalised word, so it would otherwise lex as a type/constructor name — which
 is arguably what `Box type` wants).
 
+gate: `test/test_syntax_spec.py::test_the_pages_reserved_words_are_the_tokenizers`,
+written 2026-09-01 — it pulls the list off the page and compares it with
+`tokenize._RESERVED`, both directions.  **Measured the same day**: `Box` struck
+from the page's list, red; `deriving` struck, red.  Before it, nothing read the
+page at all: the whole repair was an edit to `spec/syntax.md` and the language
+suite cannot see one.  Weakest: it holds the page against the *tokenizer* and
+not against the grammar, so a word reserved and then never given a meaning
+still passes.  The reverse direction carried a baseline of two — `do` and
+`internal`, **F193**, the same defect standing again — and it was emptied the
+same afternoon at Henri's word.
+
 ### F24. **[resolved]** `->` could be redefined by a user fixity declaration
 
 **Fixed.**  `syntax.md`'s reserved-word list now includes `Box` and
@@ -650,6 +664,27 @@ overridden and it could.  `_UNOVERRIDABLE` in `descend.py`.
 reserved character sequences and shows `4 .. 30`, but its default-fixity table
 has no row for it — so the implementation is inventing a binding power equal to
 `+`/`-`.  (Spec-side gap: `errata.md` S3.)
+
+gate: `test/test_syntax_spec.py::test_the_pages_default_fixities_are_the_parsers`
+for the page's half and
+`test/test_music_syntax.py::test_the_function_arrow_cannot_be_given_a_fixity`
+for `_UNOVERRIDABLE` — the second existed already and had never named this
+entry.  **Measured 2026-09-01**: the `..` row struck from the page, red; the
+parser's `..` moved from `infixl 7` to `infixl 9`, red; the un-overridable
+check replaced by `if False`, one red in `test_music_syntax.py`.
+
+Weakest, and it is worth stating plainly: **the binding power itself is not
+held by any behaviour.**  Dropping `"..": ("L", 7)` altogether leaves 780 of
+780 language tests green, because `..` exists only in *type* space — `4 .. 30`
+in an expression is an unknown global — and type space has no operator between
+`->` at 1 and the `("L", 9)` fallback, so 7 and 9 parse every program in the
+tree identically.  What the gate holds is that the page and the parser *agree*,
+not that 7 is the right number.  Nothing in the tree could tell.
+
+*And this entry's `Fixed.` paragraph is shared verbatim with F23 and F24*: all
+three name all three repairs, so each reads as larger than it is.  Noted
+2026-09-01 rather than rewritten — the repairs are real and correctly
+described, only misattributed across the three entries.
 
 ### F26. **[missing]** `{: … :}` parses to a type constructor nothing knows about
 
@@ -970,6 +1005,18 @@ handed, so the plumbing existed but was severed at the first `apply`.
 
 Fixed: `TApp` now carries `t.span` through `apply` as `TFun` already did.
 
+gate: `none — not yet built`.  **Measured 2026-09-01**, batch 10: `TApp(fn,
+arg, t.span)` put back to `TApp(fn, arg)` and **780 of 780** language tests
+green.  Two things make it invisible.  `apply` returns `t` itself when neither
+part changed, so the repaired line runs only when a variable was actually
+bound; and the types that reach it built by inference never had a span to
+lose.  Weakest, and it is the whole verdict: **no program could be constructed
+in which the repaired line is the one that decides a message** — with the
+severance at `_apply_subst_map` repaired as well (**F192**, found here), three
+probes printed identical positions with the defect back and without it.  So
+*ungated* is measured; *gateable and cheap* is not, and a gate would have to
+start by finding the case.
+
 ### F32. **[partly resolved]** Ambiguous `Num`/`Eq`/`Ord` constraints default silently to `Int`
 
 `elaborate.py:356-368`.  `spec/typeclasses.md` §3 Phase 2 says an ambiguous
@@ -1138,6 +1185,25 @@ primitive is typed against them (`errata.md` R1).  `tail : Sig a -> ExL
 
 ## 6. Pipeline and documentation drift
 
+gate: `test/test_frp.py::test_signal_interface_typechecks` for `ExL` — it
+writes `nxt : ExL (Sig Int)` and had never named this entry — and
+`test/test_frp.py::test_the_two_later_modalities_are_writable_in_a_signature`,
+written 2026-09-01, for `FaL`.
+
+**Measured the same day**, each constructor struck from
+`kindcheck._BUILTIN_KINDS` on its own: `ExL` → **136 of 780** language tests
+red, because `gestate/signal.ges` opens with `mkSig : ExL a -> ExL (Sig a)` and
+every reactive program is compiled through it.  `FaL` → **780 green**.  The
+kind table is consulted only for a type somebody *wrote*, and inference builds
+its own `FaL` for every `delay`, so the constructor was exercised constantly
+and named nowhere.  The new test writes one: `later : Int -> FaL Int`, red with
+a kind error under the mutation.
+
+Weakest: the entry also claims `Maybe` and `Sync`, and
+`::test_maybe_and_sync_are_reserved` is about a *name clash* in
+`declarations.py`, not about the kind table — so those two are held against
+being shadowed and not against being deleted.  Neither was mutated.
+
 ### F40. **[resolved]** `journal.md` Part I's flow diagram was stale
 
 It had ϕ/δ *after* Datafun desugaring, which `spec/data.md` §0 forbids — ϕ/δ
@@ -1147,6 +1213,28 @@ exhaustiveness, monotone, subgrammar, helper-generation, change-structure
 and ⊥-propagation stages entirely.  The three places where order is
 load-bearing are stated under it, so the next drift is visible rather than
 silent.
+
+gate: `none — nothing can`, and the reason is new.  **Measured 2026-09-01**:
+the diagram's ϕ/δ line and its Datafun-desugar line swapped — this entry's own
+defect, put back verbatim, line count unchanged — and **298 of 298** doc and
+pipeline tests green.  The only thing in the tree that notices the file at all
+is its *length*: delete a line rather than move one and two gates go red,
+because the archive's line count is quoted in `journal.md`'s index row and in
+`doc/method.md`.
+
+**Why *nothing can* rather than *not yet built*.**  The diagram was in
+`journal.md` Part I; the rotation of 2026-09-01 moved it into
+`journal/2026-08.md`, which is append-only and never edited (`spec/rules.md`
+§"Archive, don't airbrush").  A gate holding it against `pipeline.py` would be
+**red the day it was written** — `_analyse` runs `envexpand.expand` and
+`specialise`, and the diagram has neither, so it has drifted again since this
+entry closed it — and it could never be made green, because the file may not be
+corrected.  The claim outlived the file's editability.
+
+Weakest: the *live* picture is `spec/data.md` §0, a gate there is possible, and
+this entry does not name it.  §0 omits the same two stages and may be right to
+— it is a design-level pipeline, not a module list — so whether it is meant to
+be exhaustive is a question for the spec and not one a measurement settles.
 
 ### F41. **[resolved]** A default `Set Int` is injected when the program mentions no set type
 
@@ -6853,3 +6941,105 @@ green — no clean source in the tree writes a parenthesised application
 head, a compound lambda parameter, or a `Box` pattern outside the two files
 already listed.  A corpus gate is only as strong as its corpus, and this
 one is 89 files that are mostly audio.
+
+### F192. **[bug]** `_apply_subst_map` drops the span on `TApp`, so a written type loses its place at instantiation
+
+`types.py:524-525`: instantiating a scheme rewrites its quantified variables
+through `_apply_subst_map`, which rebuilds `TFun` carrying `t.span` and `TApp`
+carrying nothing.  So a type the author *wrote* has a position in the file and
+none by the time a complaint is made about it.  The asymmetry between the two
+branches, three lines apart, is what says this is an oversight rather than a
+decision.
+
+Measured 2026-09-01 on `f : List a -> Int` … `bad = f 3`:
+
+    today                 No instance for Num (List a377)
+    with `t.span` carried No instance for Num (List a377) (at 0:4–0:10)
+
+`spec/types.md` §9 asks for spans threaded "through `Type` and `Kind`
+representation from the beginning" so that "when `unify` fails, report original
+source locations" — the same requirement F31 repaired one function over, in the
+sibling it did not reach.  Found by batch 10 of `card:ungated-fixes.md` while
+measuring F31, and it is why F31's own repair cannot be observed.
+
+**Not repaired here, on purpose.**  The position recovered is in the *callee's*
+signature, so a complaint about `bad` would be drawn under `f`'s line — F152's
+editor puts a message in a box under the line it names.  Whether that is the
+right place, or whether the use site's span should win, is a design question
+and not a typo.
+
+### F193. **[resolved]** `spec/syntax.md`'s two lists had drifted from the tokenizer and the parser again
+
+The defect F23 and F25 were opened for, recurring — found 2026-09-01 by the
+gates written to hold them.  Three names, all of them in the implementation and
+none of them on the page:
+
+* **`do`** is reserved by `tokenize._RESERVED` and is not in the page's
+  reserved-word list.  `spec/monad.md` §"Desugared in the parser, and gone"
+  prices the feature at *"one reserved word"* and the word was never added to
+  the list that names them.
+* **`internal`** likewise — and it is not a corner: `gestate/signal.ges` uses
+  it as a section marker, so every reactive program is compiled through it.
+* **`%`** has a default fixity of `infixl 8` in `descend.DEFAULT_INFIX` and no
+  row in the page's fixity table.  That is F25 exactly: the implementation
+  inventing a binding power the spec does not give.
+
+**Fixed the same day**, at Henri's word — *"Do the three edits to
+spec/syntax.md"*: `internal` and `do` added to the reserved-word list, and `%`
+added to the `infixl 8` row beside `*` and `/`.  Both baseline sets in
+`test/test_syntax_spec.py` are empty since, which is the shape
+`card:ungated-fixes.md` question 3 asks for — an accepted baseline that may
+shrink and never grow, and this one shrank to nothing in an afternoon.
+
+The list entries are the whole of it.  What `internal` *means* — the marker
+that divides a library's public face from the names its own definitions need —
+is described in `spec/liveaudio.md` and shown in `gestate/signal.ges`, and the
+syntax page names words rather than defining them.
+
+gate: `test/test_syntax_spec.py::test_the_pages_reserved_words_are_the_tokenizers`
+and `::test_the_pages_default_fixities_are_the_parsers` — the same two that
+found this.  **Measured 2026-09-01**, each name struck back off the page on its
+own: `do`, red; `internal`, red; the `%` row, red.  Weakest: the gate holds the
+page against the *tables*, so a word both of them have and nothing implements
+would still pass — and it says nothing about whether the page explains any of
+the three.
+
+### F194. **[bug]** `memoryindex.py` says *nothing to do* behind the fence, and its gate skips there too
+
+`tools/memoryindex.py:96` prints *"no index at … — nothing to do here"* and
+**returns 0** when the private index is not where it expects.  Inside
+`tools/sandbox.sh` it never is: the fence puts a **tmpfs over `$HOME`**
+(`sandbox.sh`, the comment at the head of the fence list), and the index lives
+at `~/.claude/projects/-home-cheery-gestate/memory/MEMORY.md`, which is not one
+of the directories bound back in.
+
+`tools/fence-hook.sh` fences a whole command line when any segment of it starts
+with `pytest` or `python -m pytest`, so the shape that hits this is ordinary:
+
+    python tools/memoryindex.py && python -m pytest test/test_memory.py -q
+    → memoryindex: no index at …/MEMORY.md — nothing to do here
+    → 146 passed
+
+    python tools/memoryindex.py                       # the same command alone
+    → memoryindex: wrote 71 hooks into …/MEMORY.md
+
+Measured 2026-09-01, both shapes, on the live tree.  **A session that
+regenerates the index in the same breath as running a test gets a silent
+no-op**, and the hooks it just wrote into `doc/memory/README.md` reach nobody —
+which is the exact failure `doc/memory/README.md` §"Why the bodies are here and
+the hooks are not" exists to prevent, arriving through the fence instead of
+through forgetting.
+
+**And the gate goes quiet in the same direction.**
+`test/test_memoryindex.py:69` skips with *"no private index … — nothing to hold
+in step here"* under the same conditions, so it has never run where tests run.
+That is F185's shape a second time — a check whose green has only ever been
+unfenced — and the two together mean nothing on this machine can notice.
+
+The fix is not obvious enough to make in passing, which is why this is an
+entry.  Exiting non-zero would break a legitimate case (a checkout with no
+private index at all, which is what the branch was written for); binding
+`~/.claude` into the fence gives fenced code a path to a session's own
+configuration, which is the one thing the deny-list exists to prevent; and detecting the fence in order to say *"skipped because fenced"* is
+a third source of truth about where the index is.  Naming the three is the work
+this entry hands on.
