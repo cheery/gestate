@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>spiral.ges</title>
+<style>
+  body { margin: 2rem auto; max-width: 48rem; padding: 0 1rem;
+         font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fafaf7; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+  h1 code { font-weight: 600; }
+  .bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .4rem 1.2rem; border: 1px solid #888;
+           border-radius: 4px; background: #fff; cursor: pointer; }
+  button:disabled { color: #999; cursor: default; }
+  #status { color: #555; }
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 0 1rem; }
+  /* Sticky to the visible right edge: the block scrolls sideways when a
+     comment line is wider than the window, and a knob sat at the end
+     of the *content* was off-screen (Henri, 2026-08-30). */
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding: 0 .2rem 0 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; position: sticky; right: 0; background: #fff; }
+  .knob input { width: 7rem; }
+  /* Narrower than the declaration plus its knob: the knob takes the
+     next row, under the line, and sticks to the left edge instead. */
+  @media (max-width: 40rem) {
+    .ln { flex-wrap: wrap; }
+    .knob { flex-basis: 100%; margin-left: 0; justify-content: flex-start;
+            padding-left: 1.5rem; right: auto; left: 0; }
+  }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
+  .note { color: #555; font-size: .95rem; margin: 0 0 1rem;
+          border-left: 3px solid #ddd; padding-left: .8rem; }
+  #check { display: none; }
+  footer { margin-top: 2rem; color: #777; font-size: .9rem; }
+</style>
+</head>
+<body data-stem="spiral">
+<h1><code>spiral.ges</code></h1>
+<div class="bar">
+  <button id="play" disabled>play</button>
+  <span id="status">loading…</span>
+</div>
+<p id="unfolds" class="note" hidden></p>
+<div id="source" class="src"><div class="ln" data-line="1"># SPIRAL — one figure, turning faster each time round.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.workbench examples/audio/spiral.ges</div>
+<div class="ln" data-line="4">#   python -m gestate.audioperform examples/audio/spiral.ges --seconds 32 -o spiral.wav</div>
+<div class="ln" data-line="5">#</div>
+<div class="ln" data-line="6"># The whole piece is one four-note figure and a number that says how</div>
+<div class="ln" data-line="7"># finely to divide it.  The number walks 1, 2, 2, 4 and back to 1, so the</div>
+<div class="ln" data-line="8"># figure tightens for three turns and opens again — an accelerando you</div>
+<div class="ln" data-line="9"># can hear the shape of, rather than one that dissolves.</div>
+<div class="ln" data-line="10">#</div>
+<div class="ln" data-line="11"># `unfold` is what makes that possible: the score is endless and each</div>
+<div class="ln" data-line="12"># turn is written from the one before it, so nothing is a list of bars.</div>
+<div class="ln" data-line="13"># The drone underneath is not in the score at all — it is arithmetic on</div>
+<div class="ln" data-line="14"># the renderer's own clock, so it keeps time whatever the figure does.</div>
+<div class="ln" data-line="15"> </div>
+<div class="ln" data-line="16">bpm : Int</div>
+<div class="ln" data-line="17">bpm = 96</div>
+<div class="ln" data-line="18"> </div>
+<div class="ln" data-line="19">#: Beats per second, which is the only place the tempo is written twice.</div>
+<div class="ln" data-line="20">#: Everything with a rate reads it, so changing `bpm` moves the drone</div>
+<div class="ln" data-line="21">#: and the hits with the notes instead of leaving them behind.</div>
+<div class="ln" data-line="22">#:</div>
+<div class="ln" data-line="23">#: A plain `Float`, lifted with `!` where a signal is wanted — so the</div>
+<div class="ln" data-line="24">#: arithmetic on it (`pulseHz / 2`) happens once at the value level</div>
+<div class="ln" data-line="25">#: rather than every sample.</div>
+<div class="ln" data-line="26">pulseHz : Float</div>
+<div class="ln" data-line="27">pulseHz = 1.6</div>
+<div class="ln" data-line="28"> </div>
+<div class="ln" data-line="29"># ── The mode ─────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="30">#</div>
+<div class="ln" data-line="31"># A natural minor on A, written out rather than computed: two octaves is</div>
+<div class="ln" data-line="32"># fourteen numbers and a table you can read beats an expression you have</div>
+<div class="ln" data-line="33"># to evaluate.  **Every part reads pitch through here**, so the figure,</div>
+<div class="ln" data-line="34"># the bass and the bell cannot drift apart — the same discipline</div>
+<div class="ln" data-line="35"># `nightdrive.ges` uses for its chords.</div>
+<div class="ln" data-line="36"> </div>
+<div class="ln" data-line="37">step : Int -> Int</div>
+<div class="ln" data-line="38">step d = case d of</div>
+<div class="ln" data-line="39">    0 -> 0</div>
+<div class="ln" data-line="40">    1 -> 2</div>
+<div class="ln" data-line="41">    2 -> 3</div>
+<div class="ln" data-line="42">    3 -> 5</div>
+<div class="ln" data-line="43">    4 -> 7</div>
+<div class="ln" data-line="44">    5 -> 8</div>
+<div class="ln" data-line="45">    6 -> 10</div>
+<div class="ln" data-line="46">    7 -> 12</div>
+<div class="ln" data-line="47">    8 -> 14</div>
+<div class="ln" data-line="48">    9 -> 15</div>
+<div class="ln" data-line="49">    10 -> 17</div>
+<div class="ln" data-line="50">    11 -> 19</div>
+<div class="ln" data-line="51">    12 -> 20</div>
+<div class="ln" data-line="52">    _ -> 22</div>
+<div class="ln" data-line="53"> </div>
+<div class="ln" data-line="54">#: A degree of the mode, as a key.  A3 is the floor of the piece.</div>
+<div class="ln" data-line="55">pitch : Int -> Int</div>
+<div class="ln" data-line="56">pitch d = 57 + step d</div>
+<div class="ln" data-line="57"> </div>
+<div class="ln" data-line="58"># ── The turning ──────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="59">#</div>
+<div class="ln" data-line="60"># Four turns to a lap.  A turn names where in the mode the figure sits</div>
+<div class="ln" data-line="61"># and how finely it divides — and both are read from the same index, so</div>
+<div class="ln" data-line="62"># the spiral tightens *as* it climbs rather than doing the two things at</div>
+<div class="ln" data-line="63"># unrelated times.</div>
+<div class="ln" data-line="64"> </div>
+<div class="ln" data-line="65">#: Which degree the figure starts on.  Down a third, up a fourth, down a</div>
+<div class="ln" data-line="66">#: third: it wanders and comes home, which is what keeps four turns from</div>
+<div class="ln" data-line="67">#: sounding like a scale.</div>
+<div class="ln" data-line="68">rootOf : Int -> Int</div>
+<div class="ln" data-line="69">rootOf t = case t % 4 of</div>
+<div class="ln" data-line="70">    0 -> 0</div>
+<div class="ln" data-line="71">    1 -> 4</div>
+<div class="ln" data-line="72">    2 -> 2</div>
+<div class="ln" data-line="73">    _ -> 5</div>
+<div class="ln" data-line="74"> </div>
+<div class="ln" data-line="75">#: How many pieces the figure is cut into on this turn.</div>
+<div class="ln" data-line="76">speedOf : Int -> Int</div>
+<div class="ln" data-line="77">speedOf t = case t % 4 of</div>
+<div class="ln" data-line="78">    0 -> 1</div>
+<div class="ln" data-line="79">    1 -> 2</div>
+<div class="ln" data-line="80">    2 -> 2</div>
+<div class="ln" data-line="81">    _ -> 4</div>
+<div class="ln" data-line="82"> </div>
+<div class="ln" data-line="83">#: Up the triad and back down a step.  Four notes, the same four every</div>
+<div class="ln" data-line="84">#: turn — what changes is where they sit and how fast they go.</div>
+<div class="ln" data-line="85">triad : Int -> [: Int :]</div>
+<div class="ln" data-line="86">triad r = '(pitch r) ++ '(pitch (r + 2)) ++ '(pitch (r + 4)) ++ '(pitch (r + 3))</div>
+<div class="ln" data-line="87"> </div>
+<div class="ln" data-line="88">figure : Int -> [: Int :]</div>
+<div class="ln" data-line="89">figure t = triad (rootOf t)</div>
+<div class="ln" data-line="90"> </div>
+<div class="ln" data-line="91">#: The bass, one note under the whole turn, two octaves down.</div>
+<div class="ln" data-line="92">under : Int -> [: Int :]</div>
+<div class="ln" data-line="93">under t = '(pitch (rootOf t) - 24)</div>
+<div class="ln" data-line="94"> </div>
+<div class="ln" data-line="95"># ── The score ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="96">#</div>
+<div class="ln" data-line="97"># `unfold` grows one turn from the last, so the piece is endless without</div>
+<div class="ln" data-line="98"># being a list.  The turn index rides in the score as a *value* lasting</div>
+<div class="ln" data-line="99"># four beats; binding it spreads the figure across exactly that span,</div>
+<div class="ln" data-line="100"># which is why `speedOf` divides rather than shortens.</div>
+<div class="ln" data-line="101"> </div>
+<div class="ln" data-line="102">#: The figure, cut as finely as this turn asks.</div>
+<div class="ln" data-line="103">plays : Int -> [: Void :]</div>
+<div class="ln" data-line="104">plays t = (figure t |/ speedOf t) >>= voices.lead @ Note</div>
+<div class="ln" data-line="105"> </div>
+<div class="ln" data-line="106">#: And the ground under it, one note for the whole turn.</div>
+<div class="ln" data-line="107">grounds : Int -> [: Void :]</div>
+<div class="ln" data-line="108">grounds t = under t >>= voices.bass @ Note</div>
+<div class="ln" data-line="109"> </div>
+<div class="ln" data-line="110">score : [: Void :]</div>
+<div class="ln" data-line="111">score = do</div>
+<div class="ln" data-line="112">    t &lt;- unfold 0 (t => ('t |* 4, t + 1))</div>
+<div class="ln" data-line="113">    plays t || grounds t</div>
+<div class="ln" data-line="114"> </div>
+<div class="ln" data-line="115"># ── The voices ───────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="116"> </div>
+<div class="ln" data-line="117">Note := Note Int</div>
+<div class="ln" data-line="118"> </div>
+<div class="ln" data-line="119">freq : Note -> Float</div>
+<div class="ln" data-line="120">freq (Note x) = keyHz x</div>
+<div class="ln" data-line="121"> </div>
+<div class="ln" data-line="122">#: So the piece can be played from a keyboard as well as performed —</div>
+<div class="ln" data-line="123">#: which is the point of the editor's piano, and costs one instance.</div>
+<div class="ln" data-line="124">instance FromMIDI Note where</div>
+<div class="ln" data-line="125">    noteOn c n v = Just (Note n)</div>
+<div class="ln" data-line="126"> </div>
+<div class="ln" data-line="127">voices lead 8 leadVoice : Sig Float</div>
+<div class="ln" data-line="128">voices bass 2 bassVoice : Sig Float</div>
+<div class="ln" data-line="129"> </div>
+<div class="ln" data-line="130">#: A pluck: saw for edge, triangle for body, and a filter that opens</div>
+<div class="ln" data-line="131">#: with the envelope so the *start* of a note is the loud bright part.</div>
+<div class="ln" data-line="132">#: The figure is the subject of the piece, so what its notes need is a</div>
+<div class="ln" data-line="133">#: clear front edge rather than a rich tail.</div>
+<div class="ln" data-line="134">#: **Scaled here rather than in the mix.**  A bank is a *sum* — eight</div>
+<div class="ln" data-line="135">#: voices of it — so a voice that peaks at one peaks at eight when the</div>
+<div class="ln" data-line="136">#: figure is dense, and the limiter ends up doing the mixing.  One voice</div>
+<div class="ln" data-line="137">#: is quiet on purpose.</div>
+<div class="ln" data-line="138">pluck : Sig Float -> Sig Float -> Sig Float</div>
+<div class="ln" data-line="139">pluck hz env = 0.45 * lowpassSvf (300 + 4200 * env) 0.55</div>
+<div class="ln" data-line="140">                                 (saw hz * 0.5 + triangle hz * 0.5)</div>
+<div class="ln" data-line="141">             * env</div>
+<div class="ln" data-line="142"> </div>
+<div class="ln" data-line="143">leadVoice : Sig Gate -> Sig Note -> Sig Float</div>
+<div class="ln" data-line="144">leadVoice gate note = pluck (!freq note) (perc 9 gate)</div>
+<div class="ln" data-line="145"> </div>
+<div class="ln" data-line="146">#: Round, and slow to arrive, so it reads as ground rather than as a</div>
+<div class="ln" data-line="147">#: second voice competing with the figure.</div>
+<div class="ln" data-line="148">bassVoice : Sig Gate -> Sig Note -> Sig Float</div>
+<div class="ln" data-line="149">bassVoice gate note = 0.5 * lowpassSvf 400 0.7 (saw (!freq note))</div>
+<div class="ln" data-line="150">                    * adsr (Adsr 0.02 0.3 0.7 0.4) gate</div>
+<div class="ln" data-line="151"> </div>
+<div class="ln" data-line="152"># ── The drone ────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="153">#</div>
+<div class="ln" data-line="154"># None of this is in the score.  It is arithmetic on the renderer's</div>
+<div class="ln" data-line="155"># clock, so it keeps time however the figure divides — the argument</div>
+<div class="ln" data-line="156"># `nightdrive.ges` makes for its drums, and the reason the piece has a</div>
+<div class="ln" data-line="157"># floor to stand on while the top of it accelerates.</div>
+<div class="ln" data-line="158"> </div>
+<div class="ln" data-line="159">#: A gate every `1 / n` of a second — the metronome the hits read.</div>
+<div class="ln" data-line="160">every : Sig Float -> Sig Gate</div>
+<div class="ln" data-line="161">every n = gateOn (!(x => x &lt; 0.2) (phase n))</div>
+<div class="ln" data-line="162"> </div>
+<div class="ln" data-line="163">#: A saw that will not sit still, filtered by something that will not</div>
+<div class="ln" data-line="164">#: either.  Two slow movements at different rates never line up, which</div>
+<div class="ln" data-line="165">#: is what keeps a drone from turning into a note.</div>
+<div class="ln" data-line="166">grind : Sig Float</div>
+<div class="ln" data-line="167">grind = saw (55.0 + 8 * sine 0.07) * unipolar (triangle 0.11)</div>
+<div class="ln" data-line="168"> </div>
+<div class="ln" data-line="169">bed : Sig Float</div>
+<div class="ln" data-line="170">bed = 0.16 * lowpassSvf (700 + 500 * unipolar (sine 0.13)) 0.8 grind</div>
+<div class="ln" data-line="171"> </div>
+<div class="ln" data-line="172">#: Chopped on the beat, and only *half* chopped — the untouched copy</div>
+<div class="ln" data-line="173">#: underneath is what stops the gaps from sounding like dropouts.</div>
+<div class="ln" data-line="174">chop : Sig Float</div>
+<div class="ln" data-line="175">chop = bed * (0.45 + 0.55 * unipolar (pulse 0.35 (!pulseHz)))</div>
+<div class="ln" data-line="176"> </div>
+<div class="ln" data-line="177">#: Air: a noise burst every two beats, through the same room the rest</div>
+<div class="ln" data-line="178">#: of the piece is in.</div>
+<div class="ln" data-line="179">breath : Sig Float</div>
+<div class="ln" data-line="180">breath = 0.35 * white 7 * perc 26 (every (!(pulseHz / 2)))</div>
+<div class="ln" data-line="181"> </div>
+<div class="ln" data-line="182">#: And a tick on every beat, dry, to hold the grid.</div>
+<div class="ln" data-line="183">tick : Sig Float</div>
+<div class="ln" data-line="184">tick = 0.18 * pulse 0.25 (!(pulseHz * 220)) * perc 90 (every (!pulseHz))</div>
+<div class="ln" data-line="185"> </div>
+<div class="ln" data-line="186"># ── The mix ──────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="187">#</div>
+<div class="ln" data-line="188"># One room, and everything that should sound *in* it goes in together —</div>
+<div class="ln" data-line="189"># two separate reverbs on two sources is two rooms, which is the sketch's</div>
+<div class="ln" data-line="190"># mistake and the easiest one to hear.</div>
+<div class="ln" data-line="191"> </div>
+<div class="ln" data-line="192">wet : Sig Float</div>
+<div class="ln" data-line="193">wet = 0.35 * reverb 0.6 0.02 (lead * 0.5 + breath)</div>
+<div class="ln" data-line="194"> </div>
+<div class="ln" data-line="195">#: `limit` is a seatbelt, not a mixer: the sum below is written to sit</div>
+<div class="ln" data-line="196">#: near 0.8 on its own, so the limiter only catches the turns where the</div>
+<div class="ln" data-line="197">#: figure is at its densest and every voice lands together.</div>
+<div class="ln" data-line="198">sound : Sig Float</div>
+<div class="ln" data-line="199">sound = limit 0.95 (dcBlock (chop + tick + bass * 0.35 + lead * 0.4 + wet))</div></div>
+<pre id="check"></pre>
+<footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
+<script src="player.js"></script>
+</body>
+</html>

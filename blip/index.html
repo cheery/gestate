@@ -32,6 +32,8 @@
             padding-left: 1.5rem; right: auto; left: 0; }
   }
   .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
+  .note { color: #555; font-size: .95rem; margin: 0 0 1rem;
+          border-left: 3px solid #ddd; padding-left: .8rem; }
   #check { display: none; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
@@ -42,6 +44,7 @@
   <button id="play" disabled>play</button>
   <span id="status">loading…</span>
 </div>
+<p id="unfolds" class="note" hidden></p>
 <div id="source" class="src"><div class="ln" data-line="1"># A little synth: eight notes, a sawtooth, an envelope and a filter.</div>
 <div class="ln" data-line="2">#</div>
 <div class="ln" data-line="3">#   python -m gestate.audioperform examples/audio/blip.ges -o blip.wav</div>

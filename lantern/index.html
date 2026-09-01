@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lantern.ges</title>
+<style>
+  body { margin: 2rem auto; max-width: 48rem; padding: 0 1rem;
+         font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fafaf7; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+  h1 code { font-weight: 600; }
+  .bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .4rem 1.2rem; border: 1px solid #888;
+           border-radius: 4px; background: #fff; cursor: pointer; }
+  button:disabled { color: #999; cursor: default; }
+  #status { color: #555; }
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 0 1rem; }
+  /* Sticky to the visible right edge: the block scrolls sideways when a
+     comment line is wider than the window, and a knob sat at the end
+     of the *content* was off-screen (Henri, 2026-08-30). */
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding: 0 .2rem 0 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; position: sticky; right: 0; background: #fff; }
+  .knob input { width: 7rem; }
+  /* Narrower than the declaration plus its knob: the knob takes the
+     next row, under the line, and sticks to the left edge instead. */
+  @media (max-width: 40rem) {
+    .ln { flex-wrap: wrap; }
+    .knob { flex-basis: 100%; margin-left: 0; justify-content: flex-start;
+            padding-left: 1.5rem; right: auto; left: 0; }
+  }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
+  .note { color: #555; font-size: .95rem; margin: 0 0 1rem;
+          border-left: 3px solid #ddd; padding-left: .8rem; }
+  #check { display: none; }
+  footer { margin-top: 2rem; color: #777; font-size: .9rem; }
+</style>
+</head>
+<body data-stem="lantern">
+<h1><code>lantern.ges</code></h1>
+<div class="bar">
+  <button id="play" disabled>play</button>
+  <span id="status">loading…</span>
+</div>
+<p id="unfolds" class="note" hidden></p>
+<div id="source" class="src"><div class="ln" data-line="1"># lantern.ges — a night piece with a face on it.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.audioperform examples/audio/lantern.ges --seconds 40 -o take.wav</div>
+<div class="ln" data-line="4">#   python -m gestate.audioperform examples/audio/lantern.ges --seconds 40 -o take.wav --seed 7</div>
+<div class="ln" data-line="5">#   python -m gestate.export examples/audio/lantern.ges -o ~/.clap/lantern.clap --gui</div>
+<div class="ln" data-line="6">#</div>
+<div class="ln" data-line="7"># **One file, three halves**, which is the point of it: a score that</div>
+<div class="ln" data-line="8"># unfolds, a synth that is compiled, and a canvas that is interpreted.</div>
+<div class="ln" data-line="9"># Nothing here bridges them — they were never apart.  `warmth` is one</div>
+<div class="ln" data-line="10"># channel: the fader on the canvas writes it, the filter in the synth</div>
+<div class="ln" data-line="11"># reads it, and the panel shows it as a knob the DAW can automate,</div>
+<div class="ln" data-line="12"># because they are the same declaration.</div>
+<div class="ln" data-line="13">#</div>
+<div class="ln" data-line="14"># It exists to be the example where the plugin window has both its</div>
+<div class="ln" data-line="15"># halves lit at once — `CANVAS` drawing this file's own picture, `SEED`</div>
+<div class="ln" data-line="16"># choosing which of its nights you are hearing.  Every other example</div>
+<div class="ln" data-line="17"># has one or the other.</div>
+<div class="ln" data-line="18">#</div>
+<div class="ln" data-line="19"># The bare `canvas` line asks for the picture as a live content box on</div>
+<div class="ln" data-line="20"># that line, faders working (`spec/workbench.md` §"Content boxes") —</div>
+<div class="ln" data-line="21"># delete the line and the box goes, `sink`'s manners.</div>
+<div class="ln" data-line="22"> </div>
+<div class="ln" data-line="23">canvas</div>
+<div class="ln" data-line="24"> </div>
+<div class="ln" data-line="25"># ── What you turn ────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="26">#</div>
+<div class="ln" data-line="27"># Two channels, and **fractions**, because that is what an element</div>
+<div class="ln" data-line="28"># reports: the host clamps a touch to the extent the element declared, so</div>
+<div class="ln" data-line="29"># the value cannot leave 0…1 and nothing here has to say that it should</div>
+<div class="ln" data-line="30"># not.  Turning them into hertz and decibels is this file's business and</div>
+<div class="ln" data-line="31"># happens once, below, where you can read it.</div>
+<div class="ln" data-line="32"> </div>
+<div class="ln" data-line="33">warmthChan : Chan Float</div>
+<div class="ln" data-line="34">warmthChan = chan</div>
+<div class="ln" data-line="35"> </div>
+<div class="ln" data-line="36">#: How open the lanterns are.  **0 is the top of the fader** and 1 the</div>
+<div class="ln" data-line="37">#: bottom, because that is where a touch is measured from — so pulling</div>
+<div class="ln" data-line="38">#: down opens them, and the range below is written to suit.</div>
+<div class="ln" data-line="39">warmth : Sig Float</div>
+<div class="ln" data-line="40">warmth = 0.55 ::: mkSig (wait warmthChan)<label class="knob"><span class="knob-name">warmth</span><input type="range" data-slot="4" data-type="Float" min="0.0" max="1.0" step="any" value="0.55"><output>0.55</output></label></div>
+<div class="ln" data-line="41"> </div>
+<div class="ln" data-line="42">glowChan : Chan Float</div>
+<div class="ln" data-line="43">glowChan = chan</div>
+<div class="ln" data-line="44"> </div>
+<div class="ln" data-line="45">#: How hard they burn.  Level and bite together, because "how much" is</div>
+<div class="ln" data-line="46">#: one decision however many parameters it moves — and pulled down, like</div>
+<div class="ln" data-line="47">#: its neighbour.</div>
+<div class="ln" data-line="48">glow : Sig Float</div>
+<div class="ln" data-line="49">glow = 0.35 ::: mkSig (wait glowChan)<label class="knob"><span class="knob-name">glow</span><input type="range" data-slot="29" data-type="Float" min="0.0" max="1.0" step="any" value="0.35"><output>0.35</output></label></div>
+<div class="ln" data-line="50"> </div>
+<div class="ln" data-line="51">#: What the instrument says back — written by the host once a frame, the</div>
+<div class="ln" data-line="52">#: loudest sample since it last looked.  A file that does not declare it</div>
+<div class="ln" data-line="53">#: is told nothing and pays nothing for the silence.</div>
+<div class="ln" data-line="54">peak : Chan Float</div>
+<div class="ln" data-line="55">peak = chan</div>
+<div class="ln" data-line="56"> </div>
+<div class="ln" data-line="57">loud : Sig Float</div>
+<div class="ln" data-line="58">loud = 0.0 ::: mkSig (wait peak)</div>
+<div class="ln" data-line="59"> </div>
+<div class="ln" data-line="60"># ── What you hear ────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="61"> </div>
+<div class="ln" data-line="62">#: A note is a **degree and a weight**, not a pitch: the score decides</div>
+<div class="ln" data-line="63">#: which step of the scale, and the voice decides what that sounds like.</div>
+<div class="ln" data-line="64">#: That is what lets the knobs re-voice a note while it is still ringing.</div>
+<div class="ln" data-line="65">Tone := Tone Float Int</div>
+<div class="ln" data-line="66"> </div>
+<div class="ln" data-line="67">#: The scale — a minor ninth, which is the sound of the thing.  Degrees</div>
+<div class="ln" data-line="68">#: run 0…7 and then keep climbing by octaves, so a phrase can reach up</div>
+<div class="ln" data-line="69">#: without the table growing.</div>
+<div class="ln" data-line="70">stepOf : Int -> Int</div>
+<div class="ln" data-line="71">stepOf d = case d of</div>
+<div class="ln" data-line="72">    0 -> 0</div>
+<div class="ln" data-line="73">    1 -> 2</div>
+<div class="ln" data-line="74">    2 -> 3</div>
+<div class="ln" data-line="75">    3 -> 5</div>
+<div class="ln" data-line="76">    4 -> 7</div>
+<div class="ln" data-line="77">    5 -> 10</div>
+<div class="ln" data-line="78">    6 -> 12</div>
+<div class="ln" data-line="79">    _ -> 14</div>
+<div class="ln" data-line="80"> </div>
+<div class="ln" data-line="81">hzOf : Tone -> Float</div>
+<div class="ln" data-line="82">hzOf t = case t of</div>
+<div class="ln" data-line="83">    Tone v d -> keyHz (45 + stepOf d)</div>
+<div class="ln" data-line="84"> </div>
+<div class="ln" data-line="85">velOf : Tone -> Float</div>
+<div class="ln" data-line="86">velOf t = case t of</div>
+<div class="ln" data-line="87">    Tone v d -> v</div>
+<div class="ln" data-line="88"> </div>
+<div class="ln" data-line="89">#: The filter, in hertz.  **The only place the range is written down**,</div>
+<div class="ln" data-line="90">#: and the reason the fader does not have to know it: at the top of its</div>
+<div class="ln" data-line="91">#: travel 180 Hz is a lantern seen through fog, at the bottom 4200 is one</div>
+<div class="ln" data-line="92">#: held up to your face.</div>
+<div class="ln" data-line="93">cutoffAt : Float -> Float</div>
+<div class="ln" data-line="94">cutoffAt w = bimix 180.0 4200.0 w</div>
+<div class="ln" data-line="95"> </div>
+<div class="ln" data-line="96">#: A lantern: a triangle through a filter that the knob opens, struck and</div>
+<div class="ln" data-line="97">#: left to ring.  The bell is in the decay, not in the waveform.</div>
+<div class="ln" data-line="98">lanternVoice : Sig Gate -> Sig Tone -> Sig Float</div>
+<div class="ln" data-line="99">lanternVoice g s =</div>
+<div class="ln" data-line="100">    lowpassSvf (!cutoffAt warmth) 0.22 (triangle (!hzOf s))</div>
+<div class="ln" data-line="101">        * (!velOf s) * perc 5.0 g</div>
+<div class="ln" data-line="102"> </div>
+<div class="ln" data-line="103">#: And the ground it stands on: two octaves down, soft, slow to fade.</div>
+<div class="ln" data-line="104">groundVoice : Sig Gate -> Sig Tone -> Sig Float</div>
+<div class="ln" data-line="105">groundVoice g s =</div>
+<div class="ln" data-line="106">    lowpassSvf 420.0 0.12 (triangle (!hzOf s) * 0.25)</div>
+<div class="ln" data-line="107">        * (!velOf s) * perc 1.4 g</div>
+<div class="ln" data-line="108"> </div>
+<div class="ln" data-line="109">voices lamps 5 lanternVoice : Sig Float</div>
+<div class="ln" data-line="110"> </div>
+<div class="ln" data-line="111">voices ground 2 groundVoice : Sig Float</div>
+<div class="ln" data-line="112"> </div>
+<div class="ln" data-line="113">#: What the second knob does: quiet and round at one end, driven and</div>
+<div class="ln" data-line="114">#: near-clipped at the other, with the level climbing all the way.</div>
+<div class="ln" data-line="115">burnAt : Float -> Float -> Float</div>
+<div class="ln" data-line="116">burnAt x g = bimix (0.14 * x) (0.44 * clip (x * 2.2)) g</div>
+<div class="ln" data-line="117"> </div>
+<div class="ln" data-line="118">sound : Sig Float</div>
+<div class="ln" data-line="119">sound = reverb 0.72 0.35 (zip burnAt (lamps + ground) glow)</div>
+<div class="ln" data-line="120"> </div>
+<div class="ln" data-line="121"># ── What it plays ────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="122">#</div>
+<div class="ln" data-line="123"># Endless (`cycle`) and chancy (`draw`), so it routes to the dynamic</div>
+<div class="ln" data-line="124"># performer by itself and the plugin carries the *program* rather than a</div>
+<div class="ln" data-line="125"># list of events.  A take with no `--seed` draws one and says so; the</div>
+<div class="ln" data-line="126"># plugin's `SEED` field is the same number, under your hand.</div>
+<div class="ln" data-line="127"> </div>
+<div class="ln" data-line="128">#: Four figures, and the seed picks one per bar.  They share a shape — up</div>
+<div class="ln" data-line="129">#: and settle — so the piece has a character the dice cannot spend.</div>
+<div class="ln" data-line="130">figureOf : Int -> [: Tone :]</div>
+<div class="ln" data-line="131">figureOf n = case n of</div>
+<div class="ln" data-line="132">    0 -> '(Tone 0.85 0) ++ '(Tone 0.60 2) ++ ('(Tone 0.75 4) |* 2)</div>
+<div class="ln" data-line="133">    1 -> ('(Tone 0.80 4) |* 2) ++ '(Tone 0.55 3) ++ '(Tone 0.85 1)</div>
+<div class="ln" data-line="134">    2 -> '(Tone 0.90 5) ++ '(Tone 0.55 4) ++ '(Tone 0.70 2) ++ '(Tone 0.80 0)</div>
+<div class="ln" data-line="135">    _ -> ('(Tone 0.70 2) |* 2)</div>
+<div class="ln" data-line="136">      ++ (chance 0.55 (('(Tone 0.95 7) ++ '(Tone 0.70 5)) |/ 2) |* 2)</div>
+<div class="ln" data-line="137"> </div>
+<div class="ln" data-line="138">#: One bar.  **A decision is one beat wide** — content bends, time does</div>
+<div class="ln" data-line="139">#: not — so the four-beat figure is drawn inside a beat and the beat is</div>
+<div class="ln" data-line="140">#: widened back to the bar with `long`.  The `chance` above bends its own</div>
+<div class="ln" data-line="141">#: pair the same way, or only the first of the two would survive its box.</div>
+<div class="ln" data-line="142">bar : [: Tone :]</div>
+<div class="ln" data-line="143">bar = do</div>
+<div class="ln" data-line="144">    s &lt;- draw</div>
+<div class="ln" data-line="145">    long 4 (figureOf (below 4 s))</div>
+<div class="ln" data-line="146"> </div>
+<div class="ln" data-line="147">#: The ground: two long tones a bar, alternating, and never in doubt.</div>
+<div class="ln" data-line="148">#: Something has to stay put or a chancy piece is only weather.</div>
+<div class="ln" data-line="149">footing : [: Tone :]</div>
+<div class="ln" data-line="150">footing = ('(Tone 0.9 0) |* 2) ++ ('(Tone 0.8 3) |* 2)</div>
+<div class="ln" data-line="151"> </div>
+<div class="ln" data-line="152">score : [: Void :]</div>
+<div class="ln" data-line="153">score = (cycle bar >>= voices.lamps) || (cycle footing >>= voices.ground)</div>
+<div class="ln" data-line="154"> </div>
+<div class="ln" data-line="155">bpm : Int</div>
+<div class="ln" data-line="156">bpm = 78</div>
+<div class="ln" data-line="157"> </div>
+<div class="ln" data-line="158"># ── What you see ─────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="159">#</div>
+<div class="ln" data-line="160"># **Nothing here is a widget.**  A fader is a picture with a channel</div>
+<div class="ln" data-line="161"># attached to it, composed with the same `row` and `over` any other</div>
+<div class="ln" data-line="162"># picture is, and the value it feeds is the signal declared at the top of</div>
+<div class="ln" data-line="163"># this file — the *same* signal the filter reads.</div>
+<div class="ln" data-line="164">#</div>
+<div class="ln" data-line="165"># The whole face is drawn from three numbers: the two knobs and the</div>
+<div class="ln" data-line="166"># level.  Everything below is an ordinary function to a `Sub`, lifted</div>
+<div class="ln" data-line="167"># over its signal with `!` at the very end, which is why none of it</div>
+<div class="ln" data-line="168"># mentions time.</div>
+<div class="ln" data-line="169"> </div>
+<div class="ln" data-line="170">night : Colour</div>
+<div class="ln" data-line="171">night = RGB 32 35 43</div>
+<div class="ln" data-line="172"> </div>
+<div class="ln" data-line="173">bone : Colour</div>
+<div class="ln" data-line="174">bone = RGB 232 236 244</div>
+<div class="ln" data-line="175"> </div>
+<div class="ln" data-line="176">dim : Sig Colour</div>
+<div class="ln" data-line="177">dim = colour 122 130 142</div>
+<div class="ln" data-line="178"> </div>
+<div class="ln" data-line="179">#: A fader: a dark track, the part you have pulled through, and a handle</div>
+<div class="ln" data-line="180">#: where the value says.</div>
+<div class="ln" data-line="181">#:</div>
+<div class="ln" data-line="182">#: **The handle follows the finger, which decides which way is up.**</div>
+<div class="ln" data-line="183">#: `onTouchY` reports 0 at the *top* edge and 1 at the bottom — that is</div>
+<div class="ln" data-line="184">#: what the host measures and there is nowhere else for it to come from</div>
+<div class="ln" data-line="185">#: — so the handle sits at `-100 + 200v` and the fill runs from the top</div>
+<div class="ln" data-line="186">#: down to meet it.  Drawing it the other way round is the obvious</div>
+<div class="ln" data-line="187">#: mistake and it looks fine standing still: the picture only argues</div>
+<div class="ln" data-line="188">#: with your hand once you drag it, and then it runs backwards.</div>
+<div class="ln" data-line="189">#:</div>
+<div class="ln" data-line="190">#: Everything is placed by its centre and the track is 200 tall, so the</div>
+<div class="ln" data-line="191">#: travel is -100…100 and a fill of height `h` hangs from the top at</div>
+<div class="ln" data-line="192">#: `h/2 - 100`.  `Shift` is **layout-neutral** — the extent stays the</div>
+<div class="ln" data-line="193">#: track's — so nothing beside this moves as the handle slides.</div>
+<div class="ln" data-line="194">faderOf : Int -> Int -> Int -> Float -> Sub</div>
+<div class="ln" data-line="195">faderOf r g b v =</div>
+<div class="ln" data-line="196">    Over (Over (Rect 44 200 night)</div>
+<div class="ln" data-line="197">               (Shift 0 (floor (v * 100.0 - 100.0))</div>
+<div class="ln" data-line="198">                        (Rect 44 (floor (v * 200.0)) (RGB r g b))))</div>
+<div class="ln" data-line="199">         (Shift 0 (floor (v * 200.0 - 100.0)) (Rect 52 6 bone))</div>
+<div class="ln" data-line="200"> </div>
+<div class="ln" data-line="201">#: Two of them, told apart by colour *and* by name — cool for the filter,</div>
+<div class="ln" data-line="202">#: warm for the burn.</div>
+<div class="ln" data-line="203">warmPic : Float -> Sub</div>
+<div class="ln" data-line="204">warmPic v = faderOf 92 168 214 v</div>
+<div class="ln" data-line="205"> </div>
+<div class="ln" data-line="206">glowPic : Float -> Sub</div>
+<div class="ln" data-line="207">glowPic v = faderOf 226 158 74 v</div>
+<div class="ln" data-line="208"> </div>
+<div class="ln" data-line="209">#: A caption under the thing it names.  **The box is written down and</div>
+<div class="ln" data-line="210">#: the letters are fitted into it**, which is the whole of `label`: this</div>
+<div class="ln" data-line="211">#: file says how much room to reserve and the host draws glyphs in that</div>
+<div class="ln" data-line="212">#: room, so nothing here measures text and no layout depends on what a</div>
+<div class="ln" data-line="213">#: font did.</div>
+<div class="ln" data-line="214">#:</div>
+<div class="ln" data-line="215">#: Which means **the box decides how big the letters come out** —</div>
+<div class="ln" data-line="216">#: `min(w / (4n - 1), h / 5)` on a 3×5 cell — so 52 by 14 draws</div>
+<div class="ln" data-line="217">#: `WARMTH` at two, and a box a few pixels narrower would draw it at</div>
+<div class="ln" data-line="218">#: one.  Sizing a caption *is* setting its type size; the only way to</div>
+<div class="ln" data-line="219">#: ask for bigger letters is to reserve more room for them.</div>
+<div class="ln" data-line="220">#:</div>
+<div class="ln" data-line="221">#: `column` puts it under what it names and lines their centres up, so</div>
+<div class="ln" data-line="222">#: the caption sits square with the track whatever it says.</div>
+<div class="ln" data-line="223">caption : String -> Sig Sub</div>
+<div class="ln" data-line="224">caption s = column (gap 0 8) (label 52 14 s dim)</div>
+<div class="ln" data-line="225"> </div>
+<div class="ln" data-line="226">warmFader : Sig Sub</div>
+<div class="ln" data-line="227">warmFader = column (onTouchY warmthChan (!warmPic warmth))</div>
+<div class="ln" data-line="228">                   (caption "WARMTH")</div>
+<div class="ln" data-line="229"> </div>
+<div class="ln" data-line="230">glowFader : Sig Sub</div>
+<div class="ln" data-line="231">glowFader = column (onTouchY glowChan (!glowPic glow))</div>
+<div class="ln" data-line="232">                   (caption "GLOW")</div>
+<div class="ln" data-line="233"> </div>
+<div class="ln" data-line="234">#: The meter's ladder: green while there is room, amber near the top, red</div>
+<div class="ln" data-line="235">#: at the last two.  A segment above the level is drawn dark rather than</div>
+<div class="ln" data-line="236">#: left out, so the ladder keeps its shape and the eye reads a height</div>
+<div class="ln" data-line="237">#: instead of counting bars.</div>
+<div class="ln" data-line="238">#:</div>
+<div class="ln" data-line="239">#: **It rises where the faders fall, and that is not an inconsistency.**</div>
+<div class="ln" data-line="240">#: A fader is a thing you pull and its handle has to be under your</div>
+<div class="ln" data-line="241">#: finger; a meter is a level and a level goes up.  They are different</div>
+<div class="ln" data-line="242">#: objects and they read differently on purpose — the mixer on the</div>
+<div class="ln" data-line="243">#: desk beside you does the same.</div>
+<div class="ln" data-line="244">litOf : Int -> Colour</div>
+<div class="ln" data-line="245">litOf i = case i > 5 of</div>
+<div class="ln" data-line="246">    True -> RGB 226 92 78</div>
+<div class="ln" data-line="247">    False -> case i > 3 of</div>
+<div class="ln" data-line="248">        True -> RGB 226 176 74</div>
+<div class="ln" data-line="249">        False -> RGB 92 198 132</div>
+<div class="ln" data-line="250"> </div>
+<div class="ln" data-line="251">segOf : Int -> Float -> Sub</div>
+<div class="ln" data-line="252">segOf i v = case v * 8.0 > toFloat i of</div>
+<div class="ln" data-line="253">    True -> Rect 30 18 (litOf i)</div>
+<div class="ln" data-line="254">    False -> Rect 30 18 night</div>
+<div class="ln" data-line="255"> </div>
+<div class="ln" data-line="256">#: Eight of them, stacked, top segment first.  Ordinary recursion: this</div>
+<div class="ln" data-line="257">#: is a function to a picture and nothing about it is reactive.</div>
+<div class="ln" data-line="258">ladderOf : Int -> Float -> Sub</div>
+<div class="ln" data-line="259">ladderOf i v = case i of</div>
+<div class="ln" data-line="260">    0 -> segOf 0 v</div>
+<div class="ln" data-line="261">    _ -> Column (segOf i v) (Column (Gap 30 5) (ladderOf (i - 1) v))</div>
+<div class="ln" data-line="262"> </div>
+<div class="ln" data-line="263">#: `Sized` keeps the meter reserving the same room whatever it shows, so</div>
+<div class="ln" data-line="264">#: the row does not breathe with the music.</div>
+<div class="ln" data-line="265">meterOf : Float -> Sub</div>
+<div class="ln" data-line="266">meterOf v = Sized 34 200 (ladderOf 7 v)</div>
+<div class="ln" data-line="267"> </div>
+<div class="ln" data-line="268">meter : Sig Sub</div>
+<div class="ln" data-line="269">meter = column (!meterOf loud) (caption "PEAK")</div>
+<div class="ln" data-line="270"> </div>
+<div class="ln" data-line="271">#: And the layout, which is the one place that composes things that vary.</div>
+<div class="ln" data-line="272">#: `row` puts them side by side and lines their centres up; there is no</div>
+<div class="ln" data-line="273">#: alignment to state because a centre is the only point any of them is</div>
+<div class="ln" data-line="274">#: placed by.  The whole row lands in the middle of the pane, because</div>
+<div class="ln" data-line="275">#: that is where a host puts the origin — a picture is placed by its</div>
+<div class="ln" data-line="276">#: centre all the way up, window included.</div>
+<div class="ln" data-line="277">substrate : Sig Sub</div>
+<div class="ln" data-line="278">substrate =</div>
+<div class="ln" data-line="279">    warmFader `row` gap 22 0 `row` glowFader `row` gap 34 0 `row` meter</div></div>
+<pre id="check"></pre>
+<footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
+<script src="player.js"></script>
+</body>
+</html>

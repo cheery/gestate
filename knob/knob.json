@@ -1,1 +1,1 @@
-{"rate":44100,"quantum":128,"channels":1,"stateBytes":104,"slots":1,"types":["Int"],"duration":1323000,"changes":[[0,0,40]],"imports":[],"knobs":[{"slot":0,"name":"knob","line":26,"type":"Int","init":40,"low":0,"high":100}]}
+{"rate":44100,"quantum":128,"channels":1,"stateBytes":104,"slots":1,"types":["Int"],"duration":1323000,"unfolds":[],"changes":[[0,0,40]],"imports":[],"knobs":[{"slot":0,"name":"knob","line":26,"type":"Int","init":40,"low":0,"high":100}]}

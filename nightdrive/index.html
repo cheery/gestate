@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nightdrive.ges</title>
+<style>
+  body { margin: 2rem auto; max-width: 48rem; padding: 0 1rem;
+         font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fafaf7; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+  h1 code { font-weight: 600; }
+  .bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .4rem 1.2rem; border: 1px solid #888;
+           border-radius: 4px; background: #fff; cursor: pointer; }
+  button:disabled { color: #999; cursor: default; }
+  #status { color: #555; }
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 0 1rem; }
+  /* Sticky to the visible right edge: the block scrolls sideways when a
+     comment line is wider than the window, and a knob sat at the end
+     of the *content* was off-screen (Henri, 2026-08-30). */
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding: 0 .2rem 0 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; position: sticky; right: 0; background: #fff; }
+  .knob input { width: 7rem; }
+  /* Narrower than the declaration plus its knob: the knob takes the
+     next row, under the line, and sticks to the left edge instead. */
+  @media (max-width: 40rem) {
+    .ln { flex-wrap: wrap; }
+    .knob { flex-basis: 100%; margin-left: 0; justify-content: flex-start;
+            padding-left: 1.5rem; right: auto; left: 0; }
+  }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
+  .note { color: #555; font-size: .95rem; margin: 0 0 1rem;
+          border-left: 3px solid #ddd; padding-left: .8rem; }
+  #check { display: none; }
+  footer { margin-top: 2rem; color: #777; font-size: .9rem; }
+</style>
+</head>
+<body data-stem="nightdrive">
+<h1><code>nightdrive.ges</code></h1>
+<div class="bar">
+  <button id="play" disabled>play</button>
+  <span id="status">loading…</span>
+</div>
+<p id="unfolds" class="note" hidden></p>
+<div id="source" class="src"><div class="ln" data-line="1"># NIGHTDRIVE — dark synthwave: an octave bass that never stops, chords</div>
+<div class="ln" data-line="2"># that arrive rather than strike, drums with the reverb of a room much</div>
+<div class="ln" data-line="3"># larger than the one you are in.</div>
+<div class="ln" data-line="4">#</div>
+<div class="ln" data-line="5">#   python -m gestate.audioperform examples/audio/nightdrive.ges --seconds 32 -o nightdrive.wav</div>
+<div class="ln" data-line="6">#   python -m gestate.audioperform examples/audio/nightdrive.ges --seconds 32 -o take.wav --seed 7</div>
+<div class="ln" data-line="7">#</div>
+<div class="ln" data-line="8"># The score is endless (`cycle`) and chancy (`sown`), so it performs</div>
+<div class="ln" data-line="9"># dynamically and a take with no `--seed` draws one and says so.  The</div>
+<div class="ln" data-line="10"># decision is taken once per four bars: one seed picks the progression</div>
+<div class="ln" data-line="11"># the pad, the bass and the lead all read, so however the dice land the</div>
+<div class="ln" data-line="12"># band lands together.  Inside the block the lead rolls its own bars —</div>
+<div class="ln" data-line="13"># including bar `3`, which is four beats of nothing, because the genre</div>
+<div class="ln" data-line="14"># is a groove with a view and the view needs the space.</div>
+<div class="ln" data-line="15">#</div>
+<div class="ln" data-line="16"># The drums and the sidechain pump are not in the score at all: they are</div>
+<div class="ln" data-line="17"># arithmetic on `beat`, the renderer's own clock (`fourfloor.ges` makes</div>
+<div class="ln" data-line="18"># the argument), so the pulse survives any decision the seed takes.</div>
+<div class="ln" data-line="19"> </div>
+<div class="ln" data-line="20"># ── The record, seen ─────────────────────────────────────────────────────</div>
+<div class="ln" data-line="21">#</div>
+<div class="ln" data-line="22"># Two spectrograms, high in the file so their boxes greet you: the low</div>
+<div class="ln" data-line="23"># half — kick, snare, bass, and the room they fire into — and the</div>
+<div class="ln" data-line="24"># harmony riding over it.  A `sink` watches without touching</div>
+<div class="ln" data-line="25"># (`spec/scope.md`): the definitions below never learn they are being</div>
+<div class="ln" data-line="26"># seen, and deleting a line takes its window with it.</div>
+<div class="ln" data-line="27"> </div>
+<div class="ln" data-line="28">sink spectro "low end" centre</div>
+<div class="ln" data-line="29"> </div>
+<div class="ln" data-line="30">sink spectro "harmony" (padDucked + leadDucked)</div>
+<div class="ln" data-line="31"> </div>
+<div class="ln" data-line="32">Tone := Tone Float Int</div>
+<div class="ln" data-line="33"> </div>
+<div class="ln" data-line="34">hzOf : Tone -> Float</div>
+<div class="ln" data-line="35">hzOf t = case t of</div>
+<div class="ln" data-line="36">    Tone v k -> keyHz k</div>
+<div class="ln" data-line="37"> </div>
+<div class="ln" data-line="38">velOf : Tone -> Float</div>
+<div class="ln" data-line="39">velOf t = case t of</div>
+<div class="ln" data-line="40">    Tone v k -> v</div>
+<div class="ln" data-line="41"> </div>
+<div class="ln" data-line="42"># ── The harmony: seven chords, four roads through them ───────────────────</div>
+<div class="ln" data-line="43">#</div>
+<div class="ln" data-line="44"># Everything is written against a chord *index* rather than a pitch, so</div>
+<div class="ln" data-line="45"># one table owns the voicing and the three parts cannot drift apart.</div>
+<div class="ln" data-line="46"># All of it sits in A minor; the E major in two of the roads is the</div>
+<div class="ln" data-line="47"># harmonic-minor dominant, which is the darkest cheap trick there is.</div>
+<div class="ln" data-line="48"> </div>
+<div class="ln" data-line="49">#: 0 Am, 1 C, 2 Dm, 3 Em, 4 E, 5 F, 6 G — roots around A3, where the</div>
+<div class="ln" data-line="50">#: pad wants them; the bass reads two octaves down, the lead one up.</div>
+<div class="ln" data-line="51">chordRoot : Int -> Int</div>
+<div class="ln" data-line="52">chordRoot c = case c of</div>
+<div class="ln" data-line="53">    0 -> 57</div>
+<div class="ln" data-line="54">    1 -> 60</div>
+<div class="ln" data-line="55">    2 -> 62</div>
+<div class="ln" data-line="56">    3 -> 64</div>
+<div class="ln" data-line="57">    4 -> 64</div>
+<div class="ln" data-line="58">    5 -> 53</div>
+<div class="ln" data-line="59">    _ -> 55</div>
+<div class="ln" data-line="60"> </div>
+<div class="ln" data-line="61">chordThird : Int -> Int</div>
+<div class="ln" data-line="62">chordThird c = case c of</div>
+<div class="ln" data-line="63">    0 -> 3</div>
+<div class="ln" data-line="64">    1 -> 4</div>
+<div class="ln" data-line="65">    2 -> 3</div>
+<div class="ln" data-line="66">    3 -> 3</div>
+<div class="ln" data-line="67">    4 -> 4</div>
+<div class="ln" data-line="68">    5 -> 4</div>
+<div class="ln" data-line="69">    _ -> 4</div>
+<div class="ln" data-line="70"> </div>
+<div class="ln" data-line="71">#: The four roads: the seed picks one per block.  Every road leaves</div>
+<div class="ln" data-line="72">#: from Am, because the tonic is the road surface — what varies is</div>
+<div class="ln" data-line="73">#: where the middle leans and whether the turn home is E or G.</div>
+<div class="ln" data-line="74">progAt : Int -> Int -> Int</div>
+<div class="ln" data-line="75">progAt v j = case v of</div>
+<div class="ln" data-line="76">    0 -> case j of</div>
+<div class="ln" data-line="77">        0 -> 0</div>
+<div class="ln" data-line="78">        1 -> 5</div>
+<div class="ln" data-line="79">        2 -> 1</div>
+<div class="ln" data-line="80">        _ -> 6</div>
+<div class="ln" data-line="81">    1 -> case j of</div>
+<div class="ln" data-line="82">        0 -> 0</div>
+<div class="ln" data-line="83">        1 -> 5</div>
+<div class="ln" data-line="84">        2 -> 2</div>
+<div class="ln" data-line="85">        _ -> 4</div>
+<div class="ln" data-line="86">    2 -> case j of</div>
+<div class="ln" data-line="87">        0 -> 0</div>
+<div class="ln" data-line="88">        1 -> 6</div>
+<div class="ln" data-line="89">        2 -> 5</div>
+<div class="ln" data-line="90">        _ -> 4</div>
+<div class="ln" data-line="91">    _ -> case j of</div>
+<div class="ln" data-line="92">        0 -> 0</div>
+<div class="ln" data-line="93">        1 -> 3</div>
+<div class="ln" data-line="94">        2 -> 5</div>
+<div class="ln" data-line="95">        _ -> 6</div>
+<div class="ln" data-line="96"> </div>
+<div class="ln" data-line="97"># ── The voices ───────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="98"> </div>
+<div class="ln" data-line="99">voices pad 6 padVoice : Sig Float</div>
+<div class="ln" data-line="100"> </div>
+<div class="ln" data-line="101">voices bass 2 bassVoice : Sig Float</div>
+<div class="ln" data-line="102"> </div>
+<div class="ln" data-line="103">voices lead 2 leadVoice : Sig Float</div>
+<div class="ln" data-line="104"> </div>
+<div class="ln" data-line="105">#: A frequency signal moved by `cents` — `centsHz` lifted, so a detune</div>
+<div class="ln" data-line="106">#: can be applied to a pitch that is itself a signal.</div>
+<div class="ln" data-line="107">detuned : Float -> Sig Float -> Sig Float</div>
+<div class="ln" data-line="108">detuned cents hz = map (h => centsHz cents h) hz</div>
+<div class="ln" data-line="109"> </div>
+<div class="ln" data-line="110">#: Two saws eight cents apart into a dark lowpass whose envelope opens</div>
+<div class="ln" data-line="111">#: slower than the amplitude's: the chord is *there* before it is</div>
+<div class="ln" data-line="112">#: bright, which is what "arrives rather than strikes" means.</div>
+<div class="ln" data-line="113">padCut : Sig Gate -> Sig Float</div>
+<div class="ln" data-line="114">padCut g = map (x => clamp 60.0 nyquist (220.0 + 1500.0 * x))</div>
+<div class="ln" data-line="115">               (adsr (Adsr 0.9 1.4 0.5 1.4) g)</div>
+<div class="ln" data-line="116"> </div>
+<div class="ln" data-line="117">padVoice : Sig Gate -> Sig Tone -> Sig Float</div>
+<div class="ln" data-line="118">padVoice g s = lowpassSvf (padCut g) 0.15</div>
+<div class="ln" data-line="119">                   (0.5 * saw (detuned (negate 8.0) (!hzOf s))</div>
+<div class="ln" data-line="120">                  + 0.5 * saw (detuned 8.0 (!hzOf s)))</div>
+<div class="ln" data-line="121">             * adsr (Adsr 0.5 1.0 0.75 1.2) g * (!velOf s)</div>
+<div class="ln" data-line="122"> </div>
+<div class="ln" data-line="123">#: Saw plus a square one octave under it, through the ladder — whose</div>
+<div class="ln" data-line="124">#: resonance thinning the bass as it climbs is exactly the snap this</div>
+<div class="ln" data-line="125">#: wants — with a fast filter envelope and `drive` after: the classic</div>
+<div class="ln" data-line="126">#: rubber pluck every synthwave bassline is made of.</div>
+<div class="ln" data-line="127">bassCut : Sig Gate -> Sig Float</div>
+<div class="ln" data-line="128">bassCut g = map (x => clamp 40.0 nyquist (80.0 + 2200.0 * x))</div>
+<div class="ln" data-line="129">                (adsr (Adsr 0.004 0.16 0.2 0.08) g)</div>
+<div class="ln" data-line="130"> </div>
+<div class="ln" data-line="131">bassVoice : Sig Gate -> Sig Tone -> Sig Float</div>
+<div class="ln" data-line="132">bassVoice g s = drive 1.5</div>
+<div class="ln" data-line="133">                    (lowpassLadder (bassCut g) 0.2</div>
+<div class="ln" data-line="134">                        (saw (!hzOf s) + 0.6 * pulse 0.5 (0.5 * (!hzOf s))))</div>
+<div class="ln" data-line="135">              * adsr (Adsr 0.003 0.18 0.55 0.06) g * (!velOf s)</div>
+<div class="ln" data-line="136"> </div>
+<div class="ln" data-line="137">#: A hollow pulse with a saw behind it, darker filter than a lead</div>
+<div class="ln" data-line="138">#: usually gets — it should sound like it is remembering the melody,</div>
+<div class="ln" data-line="139">#: not announcing it.</div>
+<div class="ln" data-line="140">leadVoice : Sig Gate -> Sig Tone -> Sig Float</div>
+<div class="ln" data-line="141">leadVoice g s = lowpassSvf 2600.0 0.2</div>
+<div class="ln" data-line="142">                    (0.6 * pulse 0.35 (!hzOf s)</div>
+<div class="ln" data-line="143">                   + 0.4 * saw (detuned 6.0 (!hzOf s)))</div>
+<div class="ln" data-line="144">              * adsr (Adsr 0.012 0.22 0.45 0.3) g * (!velOf s)</div>
+<div class="ln" data-line="145"> </div>
+<div class="ln" data-line="146"># ── The drums: arithmetic on the renderer's clock ────────────────────────</div>
+<div class="ln" data-line="147"> </div>
+<div class="ln" data-line="148">kickEnv : Sig Float</div>
+<div class="ln" data-line="149">kickEnv = map (b => exp (negate 17.0 * wrap b)) beat</div>
+<div class="ln" data-line="150"> </div>
+<div class="ln" data-line="151">kick : Sig Float</div>
+<div class="ln" data-line="152">kick = sine (44.0 + 110.0 * kickEnv) * kickEnv</div>
+<div class="ln" data-line="153"> </div>
+<div class="ln" data-line="154">#: Beats 2 and 4.  The burst is mostly noise with a little tone at</div>
+<div class="ln" data-line="155">#: 180 Hz for the shell; the room it fires into is in the mix below,</div>
+<div class="ln" data-line="156">#: because how much snare a canyon gets is a mix decision.</div>
+<div class="ln" data-line="157">snareEnv : Sig Float</div>
+<div class="ln" data-line="158">snareEnv = map (b => exp (negate 11.0 * wrap ((b + 1.0) / 2.0))) beat</div>
+<div class="ln" data-line="159"> </div>
+<div class="ln" data-line="160">snare : Sig Float</div>
+<div class="ln" data-line="161">snare = (0.6 * highpassSvf 1700.0 0.3 (white 4) + 0.3 * triangle 180.0)</div>
+<div class="ln" data-line="162">      * snareEnv</div>
+<div class="ln" data-line="163"> </div>
+<div class="ln" data-line="164">hatEnv : Sig Float</div>
+<div class="ln" data-line="165">hatEnv = map (b => exp (negate 60.0 * wrap (b + 0.5))) beat</div>
+<div class="ln" data-line="166"> </div>
+<div class="ln" data-line="167">hats : Sig Float</div>
+<div class="ln" data-line="168">hats = highpassSvf 8200.0 0.2 (white 9) * (0.4 * hatEnv)</div>
+<div class="ln" data-line="169"> </div>
+<div class="ln" data-line="170">#: The sidechain, without the chain: dip at every downbeat, recover</div>
+<div class="ln" data-line="171">#: across the beat.  The pad and the lead breathe with the kick, which</div>
+<div class="ln" data-line="172">#: is most of what makes a synthwave record sound like it is *driving*.</div>
+<div class="ln" data-line="173">pump : Sig Float</div>
+<div class="ln" data-line="174">pump = map (b => 0.4 + 0.6 * (1.0 - exp (negate 4.5 * wrap b))) beat</div>
+<div class="ln" data-line="175"> </div>
+<div class="ln" data-line="176"># ── The score: one decision per four bars, taken by everyone ─────────────</div>
+<div class="ln" data-line="177"> </div>
+<div class="ln" data-line="178">note : Float -> Int -> Int -> [: Tone :]</div>
+<div class="ln" data-line="179">note v c off = '(Tone v (chordRoot c + off))</div>
+<div class="ln" data-line="180"> </div>
+<div class="ln" data-line="181">#: Root, third, fifth, octave — held for the bar, wide enough that the</div>
+<div class="ln" data-line="182">#: detune has something to shimmer between.</div>
+<div class="ln" data-line="183">padChord : Int -> [: Tone :]</div>
+<div class="ln" data-line="184">padChord c = note 0.5 c 0 || note 0.4 c (chordThird c)</div>
+<div class="ln" data-line="185">          || note 0.4 c 7 || note 0.35 c 12</div>
+<div class="ln" data-line="186"> </div>
+<div class="ln" data-line="187">padPart : Int -> [: Tone :]</div>
+<div class="ln" data-line="188">padPart v = long 16 ((padChord (progAt v 0) |* 4)</div>
+<div class="ln" data-line="189">         ++ (padChord (progAt v 1) |* 4)</div>
+<div class="ln" data-line="190">         ++ (padChord (progAt v 2) |* 4) ++ (padChord (progAt v 3) |* 4))</div>
+<div class="ln" data-line="191"> </div>
+<div class="ln" data-line="192">#: The engine: root-octave eighths, accents on the floor.  The last</div>
+<div class="ln" data-line="193">#: eighth of each bar sometimes leans on the minor seventh instead of</div>
+<div class="ln" data-line="194">#: the octave — a passing shadow, and the only luck the bass takes.</div>
+<div class="ln" data-line="195">bn : Int -> Int -> Float -> [: Tone :]</div>
+<div class="ln" data-line="196">bn c off v = '(Tone v (chordRoot c - 24 + off))</div>
+<div class="ln" data-line="197"> </div>
+<div class="ln" data-line="198">#: **`long 4` because the `roll` is a question.**  A drawn leaf has no</div>
+<div class="ln" data-line="199">#: width until it is answered, so `durOf` of this bar is zero and a</div>
+<div class="ln" data-line="200">#: resume cannot step over it by arithmetic — it has to force it.  The</div>
+<div class="ln" data-line="201">#: bar *is* four beats and always was; saying so costs no event (the</div>
+<div class="ln" data-line="202">#: constant law) and is what lets a seek skip whole bars instead of</div>
+<div class="ln" data-line="203">#: playing them silently on the way past.</div>
+<div class="ln" data-line="204">bassBar : Int -> [: Tone :]</div>
+<div class="ln" data-line="205">bassBar c = long 4 ((bn c 0 0.95 ++ bn c 12 0.6 ++ bn c 0 0.8 ++ bn c 12 0.6</div>
+<div class="ln" data-line="206">          ++ bn c 0 0.9 ++ bn c 12 0.6 ++ bn c 0 0.8</div>
+<div class="ln" data-line="207">          ++ roll (x => case x &lt; 0.3 of</div>
+<div class="ln" data-line="208">                 True -> bn c 10 0.85</div>
+<div class="ln" data-line="209">                 False -> bn c 12 0.6)) |/ 2)</div>
+<div class="ln" data-line="210"> </div>
+<div class="ln" data-line="211">bassPart : Int -> [: Tone :]</div>
+<div class="ln" data-line="212">bassPart v = long 16 (bassBar (progAt v 0) ++ bassBar (progAt v 1)</div>
+<div class="ln" data-line="213">          ++ bassBar (progAt v 2) ++ bassBar (progAt v 3))</div>
+<div class="ln" data-line="214"> </div>
+<div class="ln" data-line="215">#: Four bars the lead can roll: an answer low, a run down from the</div>
+<div class="ln" data-line="216">#: octave, something high and unresolved, and silence — which is a</div>
+<div class="ln" data-line="217">#: bar of music here, not a bar of nothing.</div>
+<div class="ln" data-line="218">phraseAt : Int -> Int -> [: Tone :]</div>
+<div class="ln" data-line="219">phraseAt n c = case n of</div>
+<div class="ln" data-line="220">    0 -> note 0.6 c 12 ++ r ++ note 0.5 c 19 ++ note 0.55 c 22</div>
+<div class="ln" data-line="221">    1 -> ((note 0.6 c 24 ++ note 0.5 c 22 ++ note 0.5 c 19</div>
+<div class="ln" data-line="222">        ++ note 0.5 c (12 + chordThird c)) |/ 2) ++ (note 0.55 c 12 |* 2)</div>
+<div class="ln" data-line="223">    2 -> r ++ note 0.5 c 27 ++ note 0.45 c 24 ++ r</div>
+<div class="ln" data-line="224">    _ -> r |* 4</div>
+<div class="ln" data-line="225"> </div>
+<div class="ln" data-line="226">leadBar : Int -> [: Tone :]</div>
+<div class="ln" data-line="227">leadBar c = do</div>
+<div class="ln" data-line="228">    s &lt;- draw</div>
+<div class="ln" data-line="229">    long 4 (phraseAt (below 4 s) c)</div>
+<div class="ln" data-line="230"> </div>
+<div class="ln" data-line="231">leadPart : Int -> [: Tone :]</div>
+<div class="ln" data-line="232">leadPart v = long 16 (leadBar (progAt v 0) ++ leadBar (progAt v 1)</div>
+<div class="ln" data-line="233">          ++ leadBar (progAt v 2) ++ leadBar (progAt v 3))</div>
+<div class="ln" data-line="234"> </div>
+<div class="ln" data-line="235">blockOf : Int -> [: Void :]</div>
+<div class="ln" data-line="236">blockOf v = (padPart v >>= voices.pad)</div>
+<div class="ln" data-line="237">         || (bassPart v >>= voices.bass)</div>
+<div class="ln" data-line="238">         || (leadPart v >>= voices.lead)</div>
+<div class="ln" data-line="239"> </div>
+<div class="ln" data-line="240">#: A drawn block is sixteen declared beats (`long`) — content bends,</div>
+<div class="ln" data-line="241">#: doesn't.  To let one seed govern four bars, the four bars bend:</div>
+<div class="ln" data-line="242">#: written `|/ 16` so the whole block fits the decision's beat, then</div>
+<div class="ln" data-line="243">#: `|* 16` so the beat is four bars long again.  Each turn of the</div>
+<div class="ln" data-line="244">#: `cycle` is a fresh split, so every block draws its own road.</div>
+<div class="ln" data-line="245">score : [: Void :]</div>
+<div class="ln" data-line="246">score = cycle (do</div>
+<div class="ln" data-line="247">    s &lt;- draw</div>
+<div class="ln" data-line="248">    long 16 (blockOf (below 4 s)))</div>
+<div class="ln" data-line="249"> </div>
+<div class="ln" data-line="250">bpm : Int</div>
+<div class="ln" data-line="251">bpm = 104</div>
+<div class="ln" data-line="252"> </div>
+<div class="ln" data-line="253"># ── The mix ──────────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="254">#</div>
+<div class="ln" data-line="255"># Stereo made honestly from mono parts: the pad goes through two</div>
+<div class="ln" data-line="256"># choruses at different rates, one per ear, so the width *moves*; the</div>
+<div class="ln" data-line="257"># lead's echo — a dotted eighth at this tempo — leans right; the hats</div>
+<div class="ln" data-line="258"># lean left to answer it.  Kick, snare and bass stay centred, because</div>
+<div class="ln" data-line="259"># the low end of a record that drives is a single lane.</div>
+<div class="ln" data-line="260"> </div>
+<div class="ln" data-line="261">padDucked : Sig Float</div>
+<div class="ln" data-line="262">padDucked = pump * pad</div>
+<div class="ln" data-line="263"> </div>
+<div class="ln" data-line="264">leadDucked : Sig Float</div>
+<div class="ln" data-line="265">leadDucked = pump * lead</div>
+<div class="ln" data-line="266"> </div>
+<div class="ln" data-line="267">echoTail : Sig Float</div>
+<div class="ln" data-line="268">echoTail = echo 0.433 0.4 (0.6 * leadDucked)</div>
+<div class="ln" data-line="269"> </div>
+<div class="ln" data-line="270">#: One room for everyone — mostly snare, a little pad and lead — so</div>
+<div class="ln" data-line="271">#: the parts sound like they were played in the same place.</div>
+<div class="ln" data-line="272">room : Sig Float</div>
+<div class="ln" data-line="273">room = reverb 1.7 0.45 (0.5 * snare + 0.2 * padDucked + 0.2 * leadDucked)</div>
+<div class="ln" data-line="274"> </div>
+<div class="ln" data-line="275">centre : Sig Float</div>
+<div class="ln" data-line="276">centre = 0.95 * kick + 0.7 * snare + 0.85 * bass + 0.28 * room</div>
+<div class="ln" data-line="277"> </div>
+<div class="ln" data-line="278">sound : Sig Stereo</div>
+<div class="ln" data-line="279">sound = pair</div>
+<div class="ln" data-line="280">    (brickwall 0.9 (centre + 0.55 * hats + 0.5 * leadDucked</div>
+<div class="ln" data-line="281">                  + 0.25 * echoTail + 0.6 * chorus 0.29 0.5 padDucked))</div>
+<div class="ln" data-line="282">    (brickwall 0.9 (centre + 0.4 * hats + 0.5 * leadDucked</div>
+<div class="ln" data-line="283">                  + 0.45 * echoTail + 0.6 * chorus 0.41 0.5 padDucked))</div></div>
+<pre id="check"></pre>
+<footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
+<script src="player.js"></script>
+</body>
+</html>

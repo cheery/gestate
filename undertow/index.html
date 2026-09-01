@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>undertow.ges</title>
+<style>
+  body { margin: 2rem auto; max-width: 48rem; padding: 0 1rem;
+         font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fafaf7; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+  h1 code { font-weight: 600; }
+  .bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .4rem 1.2rem; border: 1px solid #888;
+           border-radius: 4px; background: #fff; cursor: pointer; }
+  button:disabled { color: #999; cursor: default; }
+  #status { color: #555; }
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 0 1rem; }
+  /* Sticky to the visible right edge: the block scrolls sideways when a
+     comment line is wider than the window, and a knob sat at the end
+     of the *content* was off-screen (Henri, 2026-08-30). */
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding: 0 .2rem 0 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; position: sticky; right: 0; background: #fff; }
+  .knob input { width: 7rem; }
+  /* Narrower than the declaration plus its knob: the knob takes the
+     next row, under the line, and sticks to the left edge instead. */
+  @media (max-width: 40rem) {
+    .ln { flex-wrap: wrap; }
+    .knob { flex-basis: 100%; margin-left: 0; justify-content: flex-start;
+            padding-left: 1.5rem; right: auto; left: 0; }
+  }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
+  .note { color: #555; font-size: .95rem; margin: 0 0 1rem;
+          border-left: 3px solid #ddd; padding-left: .8rem; }
+  #check { display: none; }
+  footer { margin-top: 2rem; color: #777; font-size: .9rem; }
+</style>
+</head>
+<body data-stem="undertow">
+<h1><code>undertow.ges</code></h1>
+<div class="bar">
+  <button id="play" disabled>play</button>
+  <span id="status">loading…</span>
+</div>
+<p id="unfolds" class="note" hidden></p>
+<div id="source" class="src"><div class="ln" data-line="1"># UNDERTOW — a slow tide.  A bass that walks the sea floor, chimes the</div>
+<div class="ln" data-line="2"># score rolls dice for, and every strike washed back by a long feedback</div>
+<div class="ln" data-line="3"># delay under a filter that breathes out of step with the bars.</div>
+<div class="ln" data-line="4">#</div>
+<div class="ln" data-line="5">#   python -m gestate.audioperform examples/audio/undertow.ges -o undertow.wav --seconds 32</div>
+<div class="ln" data-line="6">#   python -m gestate.workbench examples/audio/undertow.ges</div>
+<div class="ln" data-line="7">#</div>
+<div class="ln" data-line="8"># As an example this is the *modern* voice kit in one place — `adsr`</div>
+<div class="ln" data-line="9"># and `keyHz` where `duet.ges` hand-rolls both — plus a chancy score</div>
+<div class="ln" data-line="10"># in the `do` notation and `feedback` with its length written in</div>
+<div class="ln" data-line="11"># seconds.  Roll the seed and the chimes tell a different night over</div>
+<div class="ln" data-line="12"># the same floor.</div>
+<div class="ln" data-line="13"> </div>
+<div class="ln" data-line="14">Key := Key Int Int                        # key, velocity</div>
+<div class="ln" data-line="15"> </div>
+<div class="ln" data-line="16">voices chimes 5 chime : Sig Float</div>
+<div class="ln" data-line="17"> </div>
+<div class="ln" data-line="18">voices bass 2 pluck : Sig Float</div>
+<div class="ln" data-line="19"> </div>
+<div class="ln" data-line="20">#: Any key can reach either bank; the switch beside each bank's line</div>
+<div class="ln" data-line="21">#: decides who is actually listening.</div>
+<div class="ln" data-line="22">instance FromMIDI Key where</div>
+<div class="ln" data-line="23">    noteOn ch p v = Just (Key p v)</div>
+<div class="ln" data-line="24"> </div>
+<div class="ln" data-line="25">#: The way back out, for the score box's roll (`spec/scorebox.md`).</div>
+<div class="ln" data-line="26">instance Notable Key where</div>
+<div class="ln" data-line="27">    noteKey q = case q of</div>
+<div class="ln" data-line="28">        Key k v -> k</div>
+<div class="ln" data-line="29">    noteVel q = case q of</div>
+<div class="ln" data-line="30">        Key k v -> v</div>
+<div class="ln" data-line="31"> </div>
+<div class="ln" data-line="32"># ── what a voice reads off its payload ────────────────────────────────</div>
+<div class="ln" data-line="33"> </div>
+<div class="ln" data-line="34">pitchOf : Key -> Float</div>
+<div class="ln" data-line="35">pitchOf q = case q of</div>
+<div class="ln" data-line="36">    Key k v -> keyHz k</div>
+<div class="ln" data-line="37"> </div>
+<div class="ln" data-line="38">#: The chime's second partial, a hair sharp of the octave — the slow</div>
+<div class="ln" data-line="39">#: beat between the two is the shimmer.</div>
+<div class="ln" data-line="40">shineOf : Key -> Float</div>
+<div class="ln" data-line="41">shineOf q = pitchOf q * 2.013</div>
+<div class="ln" data-line="42"> </div>
+<div class="ln" data-line="43">velOf : Key -> Float</div>
+<div class="ln" data-line="44">velOf q = case q of</div>
+<div class="ln" data-line="45">    Key k v -> toFloat v / 127.0</div>
+<div class="ln" data-line="46"> </div>
+<div class="ln" data-line="47"># ── the chime ─────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="48"> </div>
+<div class="ln" data-line="49">bellEnv : Adsr</div>
+<div class="ln" data-line="50">bellEnv = Adsr 0.004 0.4 0.22 1.7</div>
+<div class="ln" data-line="51"> </div>
+<div class="ln" data-line="52">chime : Sig Gate -> Sig Key -> Sig Float</div>
+<div class="ln" data-line="53">chime g s = (sine (!pitchOf s) + sine (!shineOf s) * 0.35)</div>
+<div class="ln" data-line="54">          * adsr bellEnv g * !velOf s * 0.2</div>
+<div class="ln" data-line="55"> </div>
+<div class="ln" data-line="56"># ── the bass ──────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="57"> </div>
+<div class="ln" data-line="58">bassEnv : Adsr</div>
+<div class="ln" data-line="59">bassEnv = Adsr 0.012 0.28 0.5 0.22</div>
+<div class="ln" data-line="60"> </div>
+<div class="ln" data-line="61">pluck : Sig Gate -> Sig Key -> Sig Float</div>
+<div class="ln" data-line="62">pluck g s = lowpass 0.16 (saw (!pitchOf s)) * adsr bassEnv g * 0.45</div>
+<div class="ln" data-line="63"> </div>
+<div class="ln" data-line="64"># ── the wash ──────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="65">#: A long echo: 0.68 s is a dotted quarter at this tempo, and each</div>
+<div class="ln" data-line="66">#: return comes back at just over half strength, so the fourth repeat</div>
+<div class="ln" data-line="67">#: is a memory rather than a note.</div>
+<div class="ln" data-line="68"> </div>
+<div class="ln" data-line="69">wash : Sig Float -> Sig Float</div>
+<div class="ln" data-line="70">wash s = feedback (seconds 0.68) (y x => x + y * 0.55) s</div>
+<div class="ln" data-line="71"> </div>
+<div class="ln" data-line="72">#: How much of the washed channel reaches the mix — the piece's one</div>
+<div class="ln" data-line="73">#: knob.  At zero the chimes still speak dry; turned up, the tide</div>
+<div class="ln" data-line="74">#: comes in.</div>
+<div class="ln" data-line="75">depth : Sig Float</div>
+<div class="ln" data-line="76">depth = mkKnob 0.5<label class="knob"><span class="knob-name">depth</span><input type="range" data-slot="28" data-type="Float" min="0.0" max="1.0" step="any" value="0.5"><output>0.5</output></label></div>
+<div class="ln" data-line="77"> </div>
+<div class="ln" data-line="78"># ── the breath ────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="79">#: The filter opens and closes on an eleven-second swell — out of step</div>
+<div class="ln" data-line="80">#: with the four-second bars on purpose.  The tide and the music agree</div>
+<div class="ln" data-line="81">#: only sometimes, which is what keeps either interesting.</div>
+<div class="ln" data-line="82"> </div>
+<div class="ln" data-line="83">breathe : Sig Float</div>
+<div class="ln" data-line="84">breathe = map (t => 0.42 + 0.3 * sineOf (wrap (t / 11.0))) elapsed</div>
+<div class="ln" data-line="85"> </div>
+<div class="ln" data-line="86">sound : Sig Float</div>
+<div class="ln" data-line="87">sound = lowpass breathe</div>
+<div class="ln" data-line="88">        (bass * 0.7 + chimes * 0.55 + wash chimes * depth * 0.6)</div>
+<div class="ln" data-line="89"> </div>
+<div class="ln" data-line="90"># ── the tide (the score) ──────────────────────────────────────────────</div>
+<div class="ln" data-line="91"> </div>
+<div class="ln" data-line="92">#: E minor pentatonic, as semitone offsets.</div>
+<div class="ln" data-line="93">pent : Int -> Int</div>
+<div class="ln" data-line="94">pent i = case i of</div>
+<div class="ln" data-line="95">    0 -> 0</div>
+<div class="ln" data-line="96">    1 -> 3</div>
+<div class="ln" data-line="97">    2 -> 5</div>
+<div class="ln" data-line="98">    3 -> 7</div>
+<div class="ln" data-line="99">    _ -> 10</div>
+<div class="ln" data-line="100"> </div>
+<div class="ln" data-line="101">#: The floor: two bars of root, the fifth, the fourth — one note a</div>
+<div class="ln" data-line="102">#: beat, forever.</div>
+<div class="ln" data-line="103">groundBar : [: Int :]</div>
+<div class="ln" data-line="104">groundBar = '28 ++ '28 ++ '35 ++ '33</div>
+<div class="ln" data-line="105"> </div>
+<div class="ln" data-line="106">groundPart : [: Void :]</div>
+<div class="ln" data-line="107">groundPart = do</div>
+<div class="ln" data-line="108">    k &lt;- cycle groundBar</div>
+<div class="ln" data-line="109">    voices.bass (Key k 96)</div>
+<div class="ln" data-line="110"> </div>
+<div class="ln" data-line="111">chimeNote : Int -> [: Void :]</div>
+<div class="ln" data-line="112">chimeNote k = voices.chimes (Key k 88)</div>
+<div class="ln" data-line="113"> </div>
+<div class="ln" data-line="114">#: One bar of chimes, decided by two dice: one for the bar's shape,</div>
+<div class="ln" data-line="115">#: one for where in the scale it rings.  Every shape is four beats</div>
+<div class="ln" data-line="116">#: wide, which is what lets `long 4` hold the bar to the bar.</div>
+<div class="ln" data-line="117">barOf : Int -> Int -> [: Void :]</div>
+<div class="ln" data-line="118">barOf d p = case d of</div>
+<div class="ln" data-line="119">    0 -> chimeNote (52 + pent p) |* 4</div>
+<div class="ln" data-line="120">    1 -> (chimeNote (52 + pent p) |* 2) ++ (chimeNote (59 + pent p) |* 2)</div>
+<div class="ln" data-line="121">    _ -> (chimeNote (64 + pent p) ++ chimeNote (52 + pent p)) |* 2</div>
+<div class="ln" data-line="122"> </div>
+<div class="ln" data-line="123">chimeBar : [: Void :]</div>
+<div class="ln" data-line="124">chimeBar = do</div>
+<div class="ln" data-line="125">    d &lt;- draw</div>
+<div class="ln" data-line="126">    p &lt;- draw</div>
+<div class="ln" data-line="127">    long 4 (barOf (below 3 d) (below 5 p))</div>
+<div class="ln" data-line="128"> </div>
+<div class="ln" data-line="129">score : [: Void :]</div>
+<div class="ln" data-line="130">score = cycle chimeBar || groundPart</div>
+<div class="ln" data-line="131"> </div>
+<div class="ln" data-line="132">bpm : Int</div>
+<div class="ln" data-line="133">bpm = 66</div></div>
+<pre id="check"></pre>
+<footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
+<script src="player.js"></script>
+</body>
+</html>

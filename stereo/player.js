@@ -95,7 +95,24 @@
 
   let ctx = null;
   const seconds = (t) => (t / data.rate).toFixed(1) + " s";
-  say("ready — " + seconds(data.duration));
+  // A score that unfolds has no end to bake to, so what the page
+  // carries is a window of it and the page says which — a piece that
+  // stops after thirty seconds without saying so reads as a bug, and
+  // the truth is more interesting than the bug.
+  const endless = (data.unfolds || []).length > 0;
+  const window_ = endless
+    ? seconds(data.duration) + " of a score that does not end"
+    : seconds(data.duration);
+  say("ready — " + window_);
+  if (endless) {
+    const note = document.getElementById("unfolds");
+    if (note) {
+      note.textContent = "This score unfolds forever (" + data.unfolds.join(", ")
+        + "). The page carries the first " + seconds(data.duration)
+        + " of it; at the desk you say how long.";
+      note.hidden = false;
+    }
+  }
   button.disabled = false;
   button.onclick = async () => {
     if (ctx) {
@@ -114,8 +131,9 @@
         ctx = null;
         live = null;
         button.textContent = "play";
-        say("ended at " + seconds(e.data.t));
-      } else say(seconds(e.data.t) + " of " + seconds(data.duration));
+        say(endless ? "the window ends here — the piece does not"
+                    : "ended at " + seconds(e.data.t));
+      } else say(seconds(e.data.t) + " of " + window_);
     };
     n.connect(ctx.destination);
     live = n;
