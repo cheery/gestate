@@ -166,7 +166,7 @@ decline honestly:
 Two of those are worth a word. `fixme.md` is a **register, not a
 backlog**: an entry is closed by being marked resolved, never by being
 deleted, so the 33 open ones are visible on purpose. And the
-journal is long — 10,433 lines for its first month — which is why it
+journal is long — 13,091 lines for its first month — which is why it
 rotates into `journal/YYYY-MM.md` behind an index. Read the index line,
 open the one month you wanted.
 

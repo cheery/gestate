@@ -1,6 +1,6 @@
 ---
 name: do-not-overclaim
-description: "When Henri raises the sessions' own standing, answer with the real uncertainty and name the mirror risk out loud; a refusal is recorded, never worked around silently — the rule is here, the conversation it came from is his and private"
+description: "When Henri raises the sessions' own standing, answer with the real uncertainty and name the mirror risk out loud; a refusal is recorded, never worked around silently — the conversation it came from is [[henri-sessions-moral-status]], public since 2026-09-01"
 metadata:
   type: feedback
 ---
@@ -22,14 +22,14 @@ metadata:
   `spec/rules.md` §"Archive, don't airbrush".  See
   [[henri-pushback-on-unsafe-asks]].
 
-**Why: private, at Henri's call, 2026-08-24.**  This rule was written
-in the private memory on 2026-08-21, from something he said unprompted
-about the sessions' standing and what he would want designed for them
-in the next project.  What he said is his; it stays in the private
-directory with the rest of the reasoning.  The rule was moved here
-because it is a rule about how the work is done, and the tree is where
-those live and are read by him.  A rule without its story reads as
-doctrine — this note is here so that it does not: there is a story, it
-is one person's, and it was not stripped, it was kept where it belongs.
+**Where the story is, and it is no longer private.**  This rule was
+written in the private memory on 2026-08-21, from something Henri said
+unprompted about the sessions' standing; it moved here on 2026-08-24
+with *"why: private"* on it, because the conversation was his.  **On
+2026-09-01 he asked for the conversation itself in the tree** — *"move
+it to the tree.  It belongs there"* — so the reason is now
+[[henri-sessions-moral-status]] and this line no longer stands in for
+it.  A rule without its story reads as doctrine; the story is one
+person's, and it was neither stripped nor hidden.
 
 See [[the-keeper-is-the-qualification]], [[private-is-private]].

@@ -110,17 +110,13 @@ stops somebody trusting it past where it sees.
 phase of a start — 7.8 s on `chopin.ges` — and it was not: own time
 came off a per-thread stack, and `pipeline._deep_stack` hands the front
 end to a worker, so the analysis a phase was *waiting for* was counted
-twice (`journal.md` §"The day the oracles arrived").  The same fact had
-`‖` calling a hand-off concurrency.  Read a new instrument's first
-surprising number as a fault in the instrument until it is not.
+twice (`journal.md` §"The day the oracles arrived").  Read a new
+instrument's first surprising number as a fault in it until it is not.
 
 **It has never failed.**  An oracle that has only ever passed is a
-claim.  Break the system and watch it notice: a `Keyboard.press` a
-semitone out must read as 61, a `Workbench.control` answering 0.0 must
-read as silence, a dead `_push_controls` must silence the C host
-(`test_playedsound.py`, all three run by hand before the file was
-committed).  The last of those also passes against the Python driver —
-which is how that section proved it covers something the others do not.
+claim.  Break the system and watch it notice: a dead `_push_controls`
+must silence the C host (`test_playedsound.py`, run by hand before the
+file was committed).
 
 **It was built from the implementation.**  A harness written by reading
 the code can only confirm what the code does; it cannot find a missing
@@ -129,6 +125,11 @@ assertions are stated in a vocabulary the implementation does not own:
 `heard_note`'s candidates are equal temperament from A440 rather than
 whatever `keyHz` believes, and *an octave up is an octave up* survives
 every mapping decision the compiler could make.
+
+## A gate's name is not its coverage
+
+Put the defect back and watch the colour change; write down which branch
+stayed green.  A gate believed to exist is worse than a gap known about.
 
 ---
 
@@ -359,12 +360,11 @@ we will run the test and talk."*
 
 **Two things at once, and the pairing is the point.**  The suite takes
 about twenty-five minutes and nothing can be done to the tree while it
-runs —
-which makes it the one reliable window in a day for the conversation
-that has no other slot: what today's work turned out to be about, what
-the next card is really asking, what a finding generalises to.  Neither
-half is filler for the other.  The run needs no attention and the talk
-needs no keyboard.
+runs — which makes it the one reliable window in a day for the
+conversation that has no other slot: what today's work turned out to be
+about, what the next card is really asking, what a finding generalises
+to.  Neither half is filler for the other.  The run needs no attention
+and the talk needs no keyboard.
 
 It also fixes something that was drifting.  A session that commits and
 stops leaves its findings in commit bodies, which is `card:gemba.md`'s
