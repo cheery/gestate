@@ -1,6 +1,6 @@
 # online — gestate, the audio production tool, reachable in a browser
 
-    status   doing — 2026-08-30, pieces A, B and C2 landed; C1 measured, the emitter is Henri's to weigh, §"The pieces"
+    status   doing — 2026-09-01, pieces A, B, B2 and C2 landed; C1 measured, the emitter is Henri's to weigh, §"The pieces"
     because  "somebody who has never read this repository should be able
              to open a file, hear it, change it, and hear the change
              without being told anything first" (vision.md, 2026-08-16)
@@ -202,6 +202,46 @@ open without its own `--user-data-dir` while a desktop Chrome is up.
 **"Se toimii.  vieläpä oikein hyvin."**  The live path — the button,
 `AudioContext({sampleRate})`, the speakers — which the gate does not
 walk, walked by the one person who could.
+
+**B2. The pieces that do not end — five of the eight left out.**
+*Henri, 2026-09-01, given the four readings of "more of gestate
+online": the pieces left out.*  B refused a score that unfolds with
+`"a page carries a score baked to its end"`, and the refusal was one
+word too wide.  The terminal does not refuse such a score — it routes
+it to `audioperform.dynamic` and asks *how long* (`--seconds`).  A page
+has nobody to ask, so it answers itself: **thirty seconds**, the number
+`_control` already gave a synth with no score at all, forced quantum by
+quantum through the same performer and written down as the changes it
+made.  What the page carries is then a **window**, and it says so on
+its own face rather than stopping at thirty seconds like a bug.
+
+*Measured before it was built (2026-09-01, a session's numbers):* all
+eight bake in 2.0–3.8 s of Python per 20 s of audio, and two
+independent forcings at one seed agree change-for-change on every one —
+which is what lets the gate render the window twice and compare, and
+`test_online.py` now holds `lantern.ges` bit-identical to `run_native`
+in a headless Chrome, the same as `twinkle`.
+
+**And three of the eight are not about unfolding at all.**
+`arpeggiator`, `jazz` and `ladder` are `hear holds.keys` pieces: 20 s
+baked gave 40 changes for 40 slots, every one an initial value.  *Empty
+hands are silence* is `arpeggiator.ges`'s own design, at every level,
+no fallback pitch — so the page was going to serve thirty seconds of
+nothing and call it a piece.  They stay out, with the true reason in
+the refusal, and `audioscore.heard_banks` is the detector: parsed,
+reachable from `score`, the rule `assigned_banks` is already held to.
+It names exactly the three the measurement found silent, which is the
+two-way check.  **A keyboard in the tab is not this card** — it was the
+fourth reading offered on 2026-09-01 and not the one picked.
+
+*Landed the same day (2026-09-01):* `examples/audio` becomes **50
+pages** rather than 45 — `lantern`, `moods`, `nightdrive`, `spiral`,
+`undertow` join — 2.9 MB, 3 m 34 s to generate.  The other four endless
+pieces were walked once by hand through the gate's own helper (identical
+in 9–31 s each) and left out of the suite, rather than paying two
+minutes a run for a property one of them already holds.  The story is
+`journal.md` §"The window a page carries, and the three pieces with no
+hands".
 
 **C. Change it, hear the change — the big thing, and it is not wasm.**
 A change to the text means parse → typecheck → extract → emit →

@@ -54,8 +54,8 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `audioextract.py:645` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
 | `audioextract.py:974` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
 | `audiollvm.py:432` | `LLVMError` | fixme.md F157: a definition used at two types inside one fragment is the author's, and the name is carried where the line is not |
-| `audioscore.py:1007` | `ScoreError` | fixme.md F158: a `shape` written in the piece, named by its channel and not by its line |
-| `audioscore.py:1023` | `ScoreError` | fixme.md F158: a `shape` written in the piece, named by its beat and not by its line |
+| `audioscore.py:1070` | `ScoreError` | fixme.md F158: a `shape` written in the piece, named by its channel and not by its line |
+| `audioscore.py:1086` | `ScoreError` | fixme.md F158: a `shape` written in the piece, named by its beat and not by its line |
 | `audiovoices.py:912` | `VoicesError` | fixme.md F158: the clash is between a declaration and a definition, and neither line is carried here |
 | `audiovoices.py:936` | `VoicesError` | fixme.md F158: `holds.NAME` is written in the source and its line is not carried to here |
 | `audiovoices.py:989` | `VoicesError` | fixme.md F158: `voices.NAME` is written in the source and its line is not carried to here |
@@ -115,7 +115,7 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `audioscore.py:304` | `ScoreError` | the piece declares two ways of saying how fast it goes; the mistake is the pair |
 | `audioscore.py:462` | `ScoreError` | a score that unfolds forever, which is a property of the piece |
 | `audioscore.py:528` | `ScoreError` | a note names a bank the piece does not declare |
-| `audioscore.py:1255` | `ScoreError` | the piece names a bank that was given no allocator |
+| `audioscore.py:1318` | `ScoreError` | the piece names a bank that was given no allocator |
 | `crust.py:489` | `CrustError` | a note names a bank the piece does not declare, which is about two declarations |
 | `deriving.py:211` | `DeriveError` | caught and re-raised by the `declarations.py` that reads the `deriving` clause, which is what places it |
 | `deriving.py:216` | `DeriveError` | caught and re-raised by the `declarations.py` that reads the `deriving` clause, which is what places it |
@@ -130,7 +130,7 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `midi.py:124` | `MidiError` | a music program declaring the wrong names; the mistake is an absence |
 | `midi.py:172` | `MidiError` | how many instruments the whole piece uses |
 | `midi.py:191` | `MidiError` | a piece with no notes in it at all |
-| `online.py:66` | `OnlineError` | a score that unfolds forever cannot be baked to a file; a page for one is a performer in the browser, which is piece C's question |
+| `online.py:92` | `OnlineError` | a score that plays what a keyboard holds has nothing to play in a tab with no keyboard; MIDI in the browser is not this page's yet |
 | `pipeline.py:285` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
 | `pipeline.py:926` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
 
@@ -347,19 +347,19 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 519 | `ScoreError` | `machine` | — | 'expected an (onset, offset, voice) triple' |
 | 524 | `ScoreError` | `machine` | — | 'expected a `Voice` value' |
 | 528 | `ScoreError` | `author` | *nowhere, on purpose* | 'a note assigned to a voice bank this program does not declare (constructor tag {v.tag})' |
-| 753 | `ScoreError` | `machine` | — | 'internal: the entry point did not produce a pair' |
-| 865 | `ScoreError` | `machine` | — | 'internal: the spans stream is not a list' |
-| 871 | `ScoreError` | `machine` | — | 'internal: a span is not (from, to, points)' |
-| 996 | `ScoreError` | `machine` | — | 'internal: the shapes stream is not a list' |
-| 1002 | `ScoreError` | `machine` | — | 'internal: a shape span has four parts' |
-| 1007 | `ScoreError` | `author` | *unplaced — fixme.md F158: a `shape` written in the piece, named by its channel and not by its line* | 'a shape must name a channel' |
-| 1023 | `ScoreError` | `author` | *unplaced — fixme.md F158: a `shape` written in the piece, named by its beat and not by its line* | "a `shape` at beat {start / TICKS_PER_BEAT:g} has no width to spread its envelope over — the sp… |
-| 1103 | `ScoreError` | `machine` | — | 'internal: the marks stream is not a list' |
-| 1109 | `ScoreError` | `machine` | — | 'internal: a mark is not a (tick, name)' |
-| 1181 | `ScoreError` | `machine` | — | 'expected a `Step` or a `Ramp` in `tempo`' |
-| 1187 | `ScoreError` | `author` | carried from `caught` | str(caught) |
-| 1207 | `ScoreError` | `machine` | — | 'a payload field that is not a value: {type(node).__name__}' |
-| 1255 | `ScoreError` | `author` | *nowhere, on purpose* | 'this piece assigns notes to `{bank}` and no allocator was given for it; there is ' + (', '.joi… |
+| 816 | `ScoreError` | `machine` | — | 'internal: the entry point did not produce a pair' |
+| 928 | `ScoreError` | `machine` | — | 'internal: the spans stream is not a list' |
+| 934 | `ScoreError` | `machine` | — | 'internal: a span is not (from, to, points)' |
+| 1059 | `ScoreError` | `machine` | — | 'internal: the shapes stream is not a list' |
+| 1065 | `ScoreError` | `machine` | — | 'internal: a shape span has four parts' |
+| 1070 | `ScoreError` | `author` | *unplaced — fixme.md F158: a `shape` written in the piece, named by its channel and not by its line* | 'a shape must name a channel' |
+| 1086 | `ScoreError` | `author` | *unplaced — fixme.md F158: a `shape` written in the piece, named by its beat and not by its line* | "a `shape` at beat {start / TICKS_PER_BEAT:g} has no width to spread its envelope over — the sp… |
+| 1166 | `ScoreError` | `machine` | — | 'internal: the marks stream is not a list' |
+| 1172 | `ScoreError` | `machine` | — | 'internal: a mark is not a (tick, name)' |
+| 1244 | `ScoreError` | `machine` | — | 'expected a `Step` or a `Ramp` in `tempo`' |
+| 1250 | `ScoreError` | `author` | carried from `caught` | str(caught) |
+| 1270 | `ScoreError` | `machine` | — | 'a payload field that is not a value: {type(node).__name__}' |
+| 1318 | `ScoreError` | `author` | *nowhere, on purpose* | 'this piece assigns notes to `{bank}` and no allocator was given for it; there is ' + (', '.joi… |
 
 ### `audiovoices.py`
 
@@ -721,8 +721,8 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 66 | `OnlineError` | `author` | *nowhere, on purpose* | "this score unfolds, and a page carries a score baked to its end — the piece that unfolds forev… |
-| 231 | `OnlineError` | `world` | — | why |
+| 92 | `OnlineError` | `author` | *nowhere, on purpose* | 'this piece plays what your hands hold — `hear holds.' + sorted(heard)[0] + '` — and empty hand… |
+| 268 | `OnlineError` | `world` | — | why |
 
 ### `pipeline.py`
 

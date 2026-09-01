@@ -11,6 +11,12 @@ the slot layout, and the score already baked to slot changes at
 128-frame boundaries, because 128 is the worklet's quantum and
 `scored` delivers on the block the caller names.
 
+A score that **unfolds forever** is performed rather than baked — the
+dynamic path, forced quantum by quantum for `WINDOW` seconds — and the
+page says that what it carries is a window (`_control`, 2026-09-01).
+A score that **listens** is still refused, with the reason: a tab has
+no keyboard, and `hear holds.keys` with empty hands is silence.
+
 **The browser computes the sound; the only server is a file host**
 (`card:online.md` §"Questions", 2).  So nothing here runs at request
 time: no Python in the page, no process behind it.  What the page does
@@ -45,6 +51,12 @@ from . import audioperform, audiowasm
 QUANTUM = 128
 RATE = 44100
 
+#: Seconds a page carries when nothing in the file says when the piece
+#: ends — a synth with no score at all, and (since 2026-09-01) a score
+#: that unfolds forever.  The terminal's answer to the same question is
+#: `--seconds`, which a page has nobody to ask.
+WINDOW = 30
+
 #: complaint  world — a page cannot be written where the tools are not (audiowasm says which)
 
 
@@ -55,21 +67,42 @@ class OnlineError(Exception):
 def _control(src: str, graph, rate: int = RATE):
     """`(control, duration)` — the desk's own control function for the
     file, and how long the piece is in frames.  Shared with the test so
-    the comparison drives both renders through one reading."""
-    from .audioscore import unfolding_names
+    the comparison drives both renders through one reading.
+
+    **A score that unfolds is performed, not baked to its end** — the
+    dynamic path (`audioperform.dynamic`), forced quantum by quantum
+    for `WINDOW` seconds and written down as the changes it made.
+    That is the same routing the terminal does for `--dynamic`, with
+    the page's own answer to *how long*: the terminal asks for
+    `--seconds` and a page has nobody to ask.  What the page carries is
+    then a **window**, not the piece, and it says so (`bake`'s
+    `unfolds`).  Deterministic across two forcings at one seed, which
+    is what lets the gate render the same thing twice and compare
+    (measured on all five, 2026-09-01).
+    """
+    from .audioscore import heard_banks, unfolding_names
 
     perf = audioperform.Performance(graph)
-    duration = int(30 * rate)
+    duration = int(WINDOW * rate)
     if audioperform.has_score(src):
         if unfolding_names(src):
-            #: complaint  author, nowhere — a score that unfolds forever cannot be baked to a file; a page for one is a performer in the browser, which is piece C's question
-            raise OnlineError("this score unfolds, and a page carries a "
-                              "score baked to its end — the piece that "
-                              "unfolds forever is not this page's yet")
-        schedule, samples, _ = audioperform.scored(src, rate=rate,
-                                                   block=QUANTUM)
-        perf.sources.append(audioperform.from_schedule(schedule))
-        duration = samples
+            heard = heard_banks(src)
+            if heard:
+                #: complaint  author, nowhere — a score that plays what a keyboard holds has nothing to play in a tab with no keyboard; MIDI in the browser is not this page's yet
+                raise OnlineError(
+                    "this piece plays what your hands hold — `hear "
+                    "holds." + sorted(heard)[0] + "` — and empty hands "
+                    "are silence, so a tab with no keyboard has nothing "
+                    "to play")
+            performer, _ = audioperform.dynamic(src, rate=rate,
+                                                block=QUANTUM,
+                                                patience=None)
+            perf.sources.append(audioperform.from_performer(performer))
+        else:
+            schedule, samples, _ = audioperform.scored(src, rate=rate,
+                                                       block=QUANTUM)
+            perf.sources.append(audioperform.from_schedule(schedule))
+            duration = samples
     return perf.control(), duration
 
 
@@ -83,6 +116,7 @@ def bake(src: str, graph, rate: int = RATE) -> dict:
     construction rather than by a second reading of the schedule.
     """
     from .audiollvm import _slots, out_channels
+    from .audioscore import unfolding_names
 
     control, duration = _control(src, graph, rate)
     sources = graph.control_sources()
@@ -102,6 +136,9 @@ def bake(src: str, graph, rate: int = RATE) -> dict:
         "slots": max(1, len(sources)),
         "types": [n.type_ for n in sources],
         "duration": duration,
+        # The names that make this score endless, or `[]` — what the
+        # page says instead of pretending `duration` is the piece.
+        "unfolds": unfolding_names(src) if audioperform.has_score(src) else [],
         "changes": changes,
     }
 
@@ -121,9 +158,9 @@ def blurb(src: str) -> str:
 def generate_site(directory, out, rate: int = RATE) -> tuple:
     """Every `.ges` under `directory` as a page, and an index — `(made,
     refused)`, the second as `(name, reason)` pairs.  A piece the
-    generator refuses (an unfolding score) is left out of the index
-    rather than failing the site: one piece's limit is not the
-    others'."""
+    generator refuses (one whose score listens for a keyboard) is left
+    out of the index rather than failing the site: one piece's limit is
+    not the others'."""
     directory, out = Path(directory), Path(out)
     out.mkdir(parents=True, exist_ok=True)
     made, refused = [], []

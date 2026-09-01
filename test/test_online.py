@@ -10,12 +10,19 @@ loaded, compiled, instantiated and rendered in a real browser is the
 claim; a test of the JSON alone would be a test of the generator's
 opinion of itself.
 
+A score that unfolds forever is carried as a *window* — performed
+through the dynamic path for `online.WINDOW` seconds — and the same
+comparison holds it, which works only because two forcings of one
+endless score at one seed agree (held below, and by the browser case
+on `lantern.ges`).
+
 Skips, naming the tool, without `clang`/`wasm-ld` or a Chrome.
 """
 
 from __future__ import annotations
 
 import http.server
+import json
 import shutil
 import struct
 import subprocess
@@ -101,7 +108,8 @@ def _as_float32(x: float) -> float:
 
 @needs_tools
 @needs_chrome
-@pytest.mark.parametrize("name", ["twinkle.ges", "twoknobs.ges", "gyre.ges"])
+@pytest.mark.parametrize("name", ["twinkle.ges", "twoknobs.ges", "gyre.ges",
+                                  "lantern.ges"])
 def test_the_page_renders_in_a_browser_what_the_desk_renders(name):
     from gestate.audiollvm import run_native
     from gestate.audioperform import graph_of
@@ -154,17 +162,70 @@ def test_a_directory_becomes_a_site_with_an_index_and_leaves_out_what_it_cannot(
         index = (site / "index.html").read_text()
         top = sorted(p.name for p in site.iterdir())
     assert [n for n, _ in made] == ["twinkle.ges", "twoknobs.ges"]
-    assert [n for n, _ in refused] == ["arpeggiator.ges"] and "unfolds" in refused[0][1]
+    assert [n for n, _ in refused] == ["arpeggiator.ges"] and "hands" in refused[0][1]
     assert top == [".nojekyll", "index.html", "twinkle", "twoknobs"]
     assert 'href="twinkle/"' in index and "Twinkle Twinkle Little Star" in index
     assert "arpeggiator" not in index
 
 
 @needs_tools
-def test_an_unfolding_score_is_refused_with_the_reason():
+def test_a_score_that_plays_what_hands_hold_is_refused_with_the_reason():
+    """The one refusal left, and it is not about unfolding: a page has
+    no keyboard, and `hear holds.keys` with empty hands is silence by
+    design (`examples/audio/arpeggiator.ges`).  Baking thirty seconds
+    of it measured 40 changes for 40 slots — every one an initial value
+    — which is a page that plays nothing and says nothing about why."""
     with tempfile.TemporaryDirectory() as d:
-        with pytest.raises(online.OnlineError, match="unfolds"):
+        with pytest.raises(online.OnlineError, match="hands"):
             online.generate(AUDIO_DIR / "arpeggiator.ges", d)
+
+
+def test_the_banks_a_score_listens_to_are_read_from_its_declarations():
+    """`audioscore.heard_banks`, the detector behind that refusal —
+    parsed and reachable from `score`, never text, the same rule
+    `assigned_banks` is held to.  Three of the tree's fifty-three
+    pieces name one, and they are exactly the three whose baked window
+    measured silent."""
+    from gestate.audioscore import heard_banks
+
+    listening = {p.name for p in sorted(AUDIO_DIR.glob("*.ges"))
+                 if heard_banks(p.read_text())}
+    assert listening == {"arpeggiator.ges", "jazz.ges", "ladder.ges"}
+    assert heard_banks((AUDIO_DIR / "arpeggiator.ges").read_text()) == {"keys"}
+    assert heard_banks((AUDIO_DIR / "twinkle.ges").read_text()) == set()
+
+
+@needs_tools
+def test_a_score_that_unfolds_is_carried_as_a_window_that_says_so():
+    """A score with no end is performed rather than baked, for
+    `WINDOW` seconds, and the page says that is what it is — a piece
+    that stops after thirty seconds without saying why reads as a bug.
+    `lantern.ges` is `cycle`: endless by contract."""
+    with tempfile.TemporaryDirectory() as d:
+        site = online.generate(AUDIO_DIR / "lantern.ges", Path(d) / "site")
+        data = json.loads((site / "lantern.json").read_text())
+        page = (site / "index.html").read_text()
+    assert data["unfolds"] == ["cycle"]
+    assert data["duration"] == online.WINDOW * online.RATE
+    beyond = [c for c in data["changes"] if c[0] > 0]
+    assert len(beyond) > 20, "the window was baked, but nothing happens in it"
+    assert 'id="unfolds"' in page, "the page has nowhere to say the piece goes on"
+
+
+@needs_tools
+def test_the_window_a_page_carries_is_the_same_window_twice():
+    """The property the browser gate rests on.  A page's changes are
+    forced once at generate time and the comparison forces them again
+    for `run_native`, so two independent performances of one endless
+    score at one seed have to agree — measured on all five, 2026-09-01,
+    and held here on the cheapest of them."""
+    from gestate.audioperform import graph_of
+
+    src = (AUDIO_DIR / "spiral.ges").read_text()
+    graph = graph_of(src, rate=online.RATE)
+    once = online.bake(src, graph)["changes"]
+    again = online.bake(src, graph)["changes"]
+    assert once == again and len([c for c in once if c[0] > 0]) > 10
 
 
 def _knobs(name: str) -> tuple:

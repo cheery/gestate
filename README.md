@@ -33,7 +33,8 @@ library and language, documented down to the measured decibel.
 The pieces play in a browser tab at **<https://cheery.github.io/gestate>**
 — nothing to install, the sound is computed in the tab from the same
 graph the desk plays (`card:online.md`).  What is there is *open a file,
-hear it*; changing it is the tree below.
+hear it*, and turn the knobs the file declares; changing the **text** is
+the tree below.
 
 ## Install it
 

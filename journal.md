@@ -330,3 +330,60 @@ fixed — the three candidate fixes each break something, and naming them is wha
 the entry hands on.
 
 No uncertain verdict; the trip-wire did not fire.
+
+## The window a page carries, and the three pieces with no hands — 2026-09-01
+
+*`card:online.md`, piece B2.  Henri: "could we work on the card:online.md
+to get more of gestate online?" — and, given four readings of what
+*more* meant, **the pieces left out**.*
+
+Forty-five of the tree's fifty-three examples had pages; eight were
+refused with one sentence — *a page carries a score baked to its end*.
+That sentence was one word too wide.  The terminal does not refuse an
+endless score: `unfolding_names` routes it to `audioperform.dynamic`
+and it asks *how long*, which is what `--seconds` is for.  A page has
+nobody to ask, so it answers itself — **thirty seconds**, the number
+`online._control` already gave a synth with no score at all — and
+forces the performer quantum by quantum for that long, writing down
+the changes it made.  Nothing new computes the sound; the same bake
+loop reads a `from_performer` source instead of a `from_schedule` one.
+
+**The measurement came before the build**, which is what made the
+answer small.  All eight bake in 2.0–3.8 s of Python per twenty
+seconds of audio.  Two independent forcings at one seed agree
+change-for-change on every one — the property the whole gate rests on,
+because the page's changes are forced at generate time and the
+comparison forces them again for `run_native`.  `test_online.py` now
+carries `lantern.ges` beside `twinkle`, bit-identical through the
+page's own worklet in a headless Chrome; the other four
+(`moods`, `nightdrive`, `spiral`, `undertow`) were walked once by hand
+through the same helper, identical in 9 to 31 seconds each, and left
+out of the suite rather than paying two minutes a run for a property
+one endless piece already holds.
+
+**And three of the eight were never about unfolding.**  Baking twenty
+seconds of `arpeggiator.ges` gave forty changes for forty slots —
+every one an initial value, nothing after t=0.  It is a `hear
+holds.keys` piece, and *empty hands are silence* is its own design
+decision, written into its header at every level: no idle figure, no
+fallback pitch.  So the page was about to serve thirty seconds of
+nothing and call it a piece.  `jazz` and `ladder` are the same shape.
+They stay out, with the true reason in the refusal — and the detector
+is `audioscore.heard_banks`, `assigned_banks` read the other way
+round: parsed declarations reachable from `score`, never text.  It
+names exactly the three the silent bakes found, which is the same
+claim arriving from two directions.
+
+The number is **50 pages** where there were 45, 2.9 MB, 3 m 34 s to
+generate the site.  What a person meets is one line of the page's own
+face: *this score unfolds forever (cycle); the page carries the first
+30.0 s of it.*  Without that, a piece that stops at thirty seconds
+reads as a bug rather than as a window — and the window is the
+honest thing, since the piece really does go on.
+
+**What was not done, and by whose call.**  Four readings of "more
+online" were offered with what would kill each; he picked the pieces.
+Saving to a file the person chooses (question 5, answered and unbuilt),
+the second emitter (C1, measured and his to weigh) and a keyboard in
+the tab — the thing the three refused pieces actually want — are all
+still where they were.

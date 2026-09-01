@@ -693,6 +693,69 @@ def assigned_banks(source: str) -> set:
     return banks
 
 
+def heard_banks(source: str) -> set:
+    """Which banks the score *listens* to — `hear holds.<bank>`, or `set()`.
+
+    `assigned_banks`' twin, read the other way round and by the same
+    rule: parsed declarations reachable from `score`, never text.  The
+    expander has rewritten `holds.<bank>` to `holds<Bank>`
+    (`audiovoices._rewrite_dots`) by the time anything parses, so those
+    are the words looked for.
+
+    What it is for is a caller that has no hands to offer.  A piece
+    built around `hear holds.keys` is silent without a keyboard — on
+    purpose, `examples/audio/arpeggiator.ges`: *empty hands are
+    silence*, at every level, no fallback pitch.  So a renderer with no
+    input can tell the difference between a piece it may play and a
+    piece it would play as thirty seconds of nothing, and say which.
+    """
+    import dataclasses
+
+    from .audio import _expansion_prelude
+    from .audiovoices import banks_of
+    from .prelude import _parsed
+    from .syntax.ast import VSCDecl, VWord
+
+    try:
+        module = _parsed(source)
+    except Exception:                                    # noqa: BLE001
+        try:
+            from .audiovoices import expand
+
+            module = _parsed(expand(source, _expansion_prelude()))
+        except Exception:                                # noqa: BLE001
+            return set()
+    defs = {item.name: item for item in module.items
+            if isinstance(item, VSCDecl)}
+    spelling = {"holds" + b.name[0].upper() + b.name[1:]: b.name
+                for b in banks_of(source)}
+
+    def words_of(node, out):
+        if isinstance(node, VWord):
+            out.add(node.value)
+        if dataclasses.is_dataclass(node):
+            for f in dataclasses.fields(node):
+                words_of(getattr(node, f.name), out)
+        elif isinstance(node, (list, tuple)):
+            for item in node:
+                words_of(item, out)
+
+    banks, seen, stack = set(), set(), ["score"]
+    while stack:
+        name = stack.pop()
+        if name in seen or name not in defs:
+            continue
+        seen.add(name)
+        out: set = set()
+        words_of(defs[name].equations, out)
+        for word in out:
+            if word in spelling:
+                banks.add(spelling[word])
+            if word in defs:
+                stack.append(word)
+    return banks
+
+
 def ports_of(source: str, state=None) -> dict:
     """`{channel id: bank name}` — the note ports `holds.<bank>` names.
 
