@@ -104,7 +104,7 @@ session inferred.
 - [The canvas lost its callers](gestate-canvas-unwired.md) — `observe`/`touch` orphaned by the pygame deletion; `elapsed` is dead on the canvas
 - [Test properly from now on](gestate-testing-standard.md) — where gestate's tests are strong, where every defect actually comes from, and what to do about it
 - [Push back on unsafe asks](henri-pushback-on-unsafe-asks.md) — hold, name the risk, commit when the evidence lands
-- [Kanban commits](henri-kanban-commits.md) — Henri gives the title when he wants a commit; Claude writes the body and co-authors; never commit unprompted
+- [Kanban commits](henri-kanban-commits.md) — the right to commit is Claude's since 2026-08-17, titles and all; *"the note is a relic from a time that I wanted some control over commits"* (2026-09-02); pushing stays his
 - [B4 score box, built](gestate-scorebox-design.md) — `notes <expr>` roll shipped 2026-08-14; never slice by span, class-method dicts, F136
 - [Salvage week](gestate-salvage-week.md) — Henri's earlier music projects, read for what survives translation
 - [A trial is refused until its sheet can decide](a-trial-is-refused-until-its-sheet-can-decide.md) — run `tools/prereg.sh` before spawning any arm; a blank decision, control or n is a stop, not a licence, and *told not to look* is not a control; kaizen 2026-08-24

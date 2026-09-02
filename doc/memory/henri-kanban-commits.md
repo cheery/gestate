@@ -1,11 +1,11 @@
 ---
 name: henri-kanban-commits
-description: "Commit workflow: Claude writes titles and bodies itself since 2026-08-17; granular, one commit per card, card move rides along; pushing stays Henri's"
+description: "Commit workflow: the right to commit is Claude's since 2026-08-17, titles and bodies too; granular, card move rides along; one-card-one-commit struck 2026-08-29; pushing stays Henri's"
 metadata: 
   node_type: memory
   type: feedback
   originSessionId: 2b12cb6a-4013-4995-ad75-b7b219fabf84
-  modified: 2026-08-17T01:14:04.174Z
+  modified: 2026-09-02T00:00:00.000Z
 ---
 
 **Titles are Claude's since 2026-08-17**, on the morning Henri started
@@ -15,8 +15,20 @@ adds the Co-Authored-By line.  He still names a title whenever he wants
 one; the change is that the absence of one is no longer a stop.
 
 Before that (2026-08-13 → 08-17) he gave every title and a session asked
-for it.  **Pushing is still his** unless he says otherwise, and a commit
-is still a decision that the card is *done* — not punctuation inside one.
+for it.  **Pushing is still his** unless he says otherwise.
+
+**And the right to commit is Claude's too, not only the title.**  *His
+own words, 2026-09-02, when a session read this memory as a reason to
+stop and ask:* **"I gave you the right to commit.  The note is a relic
+from a time that I wanted some control over commits."**  So a session
+that has finished a piece commits it; asking first is the thing that was
+struck, and a session that asks anyway is spending his attention on a
+permission he has already given twice.
+
+**"One commit is the card being done" was struck 2026-08-29** — a
+session's tightening, not his rule, and `board/README.md` records the
+strike: it stood from 2026-08-17 and what remains is granularity, with
+the card saying where it stands at every commit before the last.
 
 **Why:** the commit point is a decision about the board (what counts
 as a finished card), and that decision is his; the body is a record of
