@@ -1,6 +1,7 @@
 # audiovisual-gallery — a gallery of controllable audio-visual experiences
 
-    status   shelved — 2026-09-02
+    status   open — 2026-09-02, off the shelf: the measurement his
+             green light was conditional on came back green, §"The measurement"
     because  "people do not currently see with ease, without
              installation, what gestate can create.  And it's a bit sad
              situation there." — Henri, 2026-09-02, asked for the
@@ -149,9 +150,81 @@ their own test set — a fold drawn in the tab is checkable against the
 plugin drawing the same fold on the same frame.  If it does not, the
 row is dead and nobody had to decide anything to find out.
 
-## Shelved
+## The measurement
 
-**Shelved at his word, and it is debt rather than sediment** —
+*Measured 2026-09-02, the same day the card was written.  Henri, giving
+the word: "go."  The question is Q4's: does `crust` — the G-machine's
+pure core in Rust — build for `wasm32`, and can a browser force a
+substrate at frame rate?*
+
+**It builds, first try, and it is small.**
+
+    rustup target add wasm32-unknown-unknown     already cached, instant
+    cargo build --release --target wasm32-unknown-unknown --lib
+                                                 Finished in 1.59s
+    crust.wasm                                   163,929 bytes, imports: none
+
+Zero imports means the page supplies the machine *nothing* — no host
+functions, no glue.  That is the crate's zero-dependency rule paying
+out, and its own `Cargo.toml` predicted the day: *"the crate stays
+buildable the day a plugin shell needs it."*  For scale, C1's Pyodide is
+10 MB and this is 0.16 MB.
+
+**All six pictures serialize, and they are small too.**
+`export.substrate_of` already produces exactly the payload a page would
+carry — the program text, the entry, the 14 `Sub` tags, the channels:
+
+    scoped 4,289   substrate 9,184   spectrum 11,285
+    lantern 14,783   chopin 15,770   envelope 17,436   bytes
+
+So a page costs **164 KB once, plus 4–17 KB per piece**.
+
+**And the module runs a real one.**  `crust_load` accepted `scoped`'s
+program under `wasmtime` and `crust_force` reached `Machine::show`,
+which then refused it — *"show: unexpected node Sig(1)"*.  That refusal
+is correct and is the finding below: `substrate : Sig Sub` is a
+**signal**, and `show` prints values.
+
+**A frame is not the risk.**  Measured through `gui.Substrate`, which is
+the *Python* G-machine — the slow reference `crust` is a Rust mirror of,
+held equal by `test_crust.py`:
+
+| piece | a frame, in CPython | shapes |
+|---|---|---|
+| scoped | 0.06 ms | 1 |
+| substrate | 1.81 ms | 3 |
+| spectrum | 5.97 ms | 16 |
+| chopin | 6.12 ms | 10 |
+| lantern | 6.22 ms | 17 |
+| envelope | 8.74 ms | 43 |
+
+A 60 Hz budget is 16.7 ms and the heaviest piece fits twice over **in
+the slow implementation**.  *Marked as the session's, and as a bound
+rather than a number:* `crust` in wasm was not timed per frame, for the
+reason below — what is measured is that the work itself is small enough
+that the implementation cannot be the problem.
+
+### What is missing, and it is a task rather than a risk
+
+**There is no C entry point that drives a picture.**  `crust_force`
+forces and prints, and a substrate is a signal.  The stream seam
+(`crust_stream_open`/`_pull`) is shaped for *scores* — it takes
+`cons_tag`, `nil_tag`, `tuple3_tag` and yields events
+(`spec/dynamicscore.md` stage two).  The plugin does not use either: it
+links `crust` as a Rust crate and walks the `Sub` value with
+`gestate_panel::substrate::SubTags`.
+
+So a page needs a small Rust shim exposing *advance one frame, hand me
+the shapes* — beside `crust`, compiled with it, the same walk
+`shell/clap/src/gui.rs` already performs in its 574 lines.  That is
+ordinary work in a language the tree already builds in, and it is **not
+a second implementation kept**, which is the cost `card:online.md` C1
+was stood down for.  Day one is that shim.
+
+## How it came off the shelf
+
+**It arrived shelved, was named as debt rather than sediment, and came
+off the shelf the same day on a condition he set in advance** —
 `board/README.md` §"The priority", *is this waiting on an event, or on
 me?*
 
