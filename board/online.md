@@ -1,6 +1,6 @@
 # online — gestate, the audio production tool, reachable in a browser
 
-    status   doing — 2026-09-01, pieces A, B, B2 and C2 landed; C1 measured, the emitter is Henri's to weigh, §"The pieces"
+    status   doing — 2026-09-02, pieces A, B, B2 and C2 landed; C1 stood down for C4 — the song needs no compiler, measured — §"The pieces"
     because  "somebody who has never read this repository should be able
              to open a file, hear it, change it, and hear the change
              without being told anything first" (vision.md, 2026-08-16)
@@ -284,6 +284,20 @@ that path (`mido`, `sounddevice`, `pygame`, `cairosvg` are the host's).
   have a hand on them today (C2), and the tune is the score's, which is
   Python under Pyodide in either reading; the trigger is Michael's
   report, if what he wanted to change was a note.
+  *The trigger fired, 2026-09-02, and the answer moved the default
+  rather than lifting it.*  Michael's go-ahead arrived through Henri —
+  *"Michael saw the work we did on card:online.md and told that we could
+  go ahead with it"*, meant as C1 — and with it his own doubt, which is
+  the better half of it: *"now I wonder about 'having to keep it
+  forever' and I kind of feel pushback.  Is it important enough to do
+  it?"*  Not yet, and what says so is **C4** below: the edits an emitter
+  would serve are the instrument's, and the song's need no compiler at
+  all.  So C1 stands on *not now* with a trigger a person's hand pulls
+  rather than a guess — somebody meets C4's refusal because what they
+  wanted to change was an envelope.  A go-ahead on *"change it"* is not
+  a go-ahead on a second backend, and the cheap reading delivers the
+  first without buying the second.  *Henri, 2026-09-02: "go with your
+  recommendation."*
 * **C2 — every literal is a knob.**  No recompile: the page turns the
   numbers in the file into control slots and a change is a slot write,
   which A and B already do.  Cheapest by far.  **Killed if** "change
@@ -313,12 +327,57 @@ that path (`mido`, `sounddevice`, `pygame`, `cairosvg` are the host's).
   `NOFENCE=1` by hand — fixed the same day at his word, and the gate
   runs fenced now.  The story is `journal.md`
   §"The knob beside its line, and a gate green only outside the fence".
+* **C4 — the song is not the compiler's business.**  *Measured
+  2026-09-02, by a session, after Michael's go-ahead reopened C1.*  C1
+  rests on an assumption nobody had checked — that changing the text
+  means recompiling.  Eight one-edit variants of `twinkle.ges`, each
+  through `graph_of` and `audiollvm.emit`:
+
+  | the edit | the module |
+  |---|---|
+  | a note's pitch (`n 60` → `n 72`) | **bit-identical** |
+  | the tempo (`bpm 100` → `120`) | **bit-identical** |
+  | a note added to a line | **bit-identical** |
+  | note velocity (`Key k 90` → `40`) | **bit-identical** |
+  | the envelope (`Adsr 0.01` → `0.20`) | a new graph |
+  | the gain (`0.3` → `0.1`) | a new graph |
+  | the waveform (`triangle` → `saw`) | a new graph |
+  | voice count (`voices lead 4` → `8`) | a new graph |
+
+  **Bit-identical is the linked `.wasm`, not only the `.ll`** — 3163
+  bytes, one sha from two fresh processes.  Inside a single run the two
+  differ by exactly one byte, and it is `audiowasm.build`'s counter
+  spelling `synth0`/`synth1` into the module's own name section, which
+  is the file's name and not the program.  The boundary the table draws
+  is the line `twinkle.ges`'s header already drew: *the song (bottom) is
+  the part to play with*.
+
+  So the page needs no second backend to serve "change it".  Pyodide
+  re-runs the front end, `online.bake` re-bakes the score, and the new
+  changes reach the worklet over the port C2 already opened; the shipped
+  module is never touched.  **And the check comes free** — the front end
+  runs `emit` on the way, so hash it against what shipped: same hash,
+  play it; different hash, the edit touched the instrument and the page
+  says *that needs a compiler this tab does not have* rather than
+  playing something the person did not write.  A refusal with the reason
+  in it, which is what this tree does instead of a silent wrong answer.
+
+  Reach: **26 of the 53 pieces carry a score**, about 23 of them
+  editable this way, against the five that declare a knob.  Cost per
+  change, native: `graph_of` 0.6–1.1 s and `bake` 0.13–0.25 s;
+  *suspected* 1.5–2.5 s under Pyodide, extrapolated from C1's measured
+  2× and **not measured here**.  **Killed if** that extrapolation is
+  wrong against the same 3 s line C1 was held to — or if the honest
+  refusal is what a person meets first, which is C1's trigger arriving.
+
 * **C3 — a compile server.**  Already killed by question 2: a process,
   a bill, a fence, and a laptop that cannot stay online.
 
 C is where the card's size lives, and picking between C1 and C2 is not
 a session's call: C2 narrows the `because` ("change it") and C1 adds a
-backend the tree keeps.  A and B are workable today, and together they
+backend the tree keeps.  *C4 is what the measurement of 2026-09-02 put
+between them* — it narrows nothing a person would notice and keeps
+nothing, which is why it is the one taken.  A and B are workable today, and together they
 are worth having under either reading of C — a page that plays a file
 and lets nobody change it is still the stranger test's *way in*, and it
 is the half of run two that cost fifteen minutes.
