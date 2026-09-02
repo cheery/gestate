@@ -34,6 +34,24 @@ and the only reason was timing.
   him drop anything anywhere without having to remember whether the tree
   is watching.
 
+**And `git add` is all-or-nothing, which is how a commit loses its
+content.**  *2026-09-02, hit while a card came off `later/`:* one bad
+path in `git add a b c d` — here the *old* path of a file `git mv` had
+already moved — makes the whole command fail and stage **nothing**.
+With `2>/dev/null` on it the error is invisible, and the commit that
+follows takes only what was already staged.  It produced a commit
+holding a rename and none of the 87 lines that were the point.
+
+This tree walks into that trap more than most: cards move between
+`board/`, `done/` and `later/` constantly — sixteen moves in the ten
+days the board existed — so *`git mv` then stage the old path* is a
+weekly shape here, not a one-off.
+
+**So: never silence `git add`, and read `git status --porcelain` after
+staging, before committing.**  A staged file reads `M ` in the first
+column; an unstaged one reads ` M` in the second.  That one space is
+the whole difference and it is worth looking at.
+
 The general form is this house's own: **fix the task, not the person.**
 A rule that depends on the author remembering where he saves a file is a
 rule that will fail on a tired evening; a session that stages only what
