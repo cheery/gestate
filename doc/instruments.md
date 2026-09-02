@@ -446,6 +446,31 @@ is ~25 minutes and the tree must be frozen while it runs** —
 editing under a run produces a red that describes a moment rather than a
 defect, which has cost two runs already.
 
+### `tools/mutate.py` — put the defect back, and get the tree back
+
+    python tools/mutate.py batch.json -- python -m pytest -q test/test_frp.py
+    python tools/mutate.py --check          is the working tree clean?
+
+**The ratchet's method, as an instrument** (`card:ungated-fixes.md`).  A
+repair that left no test is found by putting its defect back and seeing
+whether anything goes red; nine batches wrote that harness by hand, and
+on 2026-09-02 one of them was killed mid-run and left the defect in
+`gestate/reactive.py`, where the next `git commit -a` would have taken
+it.  A `finally` covers an exception and does not cover a signal.
+
+So the promise here is the **restore**, made four ways — bytes held in
+memory before anything is written, `finally`, `SIGINT`/`SIGTERM`
+handlers that restore then re-raise, and `atexit` — and then *verified
+by hash*, because a restore that is merely assumed is the same class of
+instrument as a check nobody feeds.  It refuses to start when a target
+file is already modified, and every edit carries an occurrence count, so
+an anchor that silently missed is refused rather than producing a green
+that means nothing.
+
+A batch is a JSON file, committable beside its verdicts.  **After any
+abnormal end to a run — a kill, a crash — `--check` is the first thing,
+before anything is read or committed.**
+
 ### `tools/covercount.py` — which lines the suite has never run
 
     python tools/covercount.py test/test_arith.py     # one file, seconds
