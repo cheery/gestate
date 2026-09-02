@@ -387,3 +387,80 @@ Saving to a file the person chooses (question 5, answered and unbuilt),
 the second emitter (C1, measured and his to weigh) and a keyboard in
 the tab — the thing the three refused pieces actually want — are all
 still where they were.
+
+
+## The tail of the sweep is unreconstructable — batch 11, 2026-09-02
+
+Batch 11 of `card:ungated-fixes.md` — F21 F20 F19 F18 F17, the FRP
+scheduler, the Wednesday it was due — took the five entries as **13
+mutations**, because three of them repaired more than one site and one
+mutation per entry would have hidden which half was held.  542 tests
+across 16 files behind each `none`.
+
+**The thing that turned up first was not about any entry.**  All five
+repairs are already present at `b049e0c`, the initial commit: they were
+fixed before this repository existed, so git cannot return the original
+defective code for any of them, and every mutation in this batch is a
+**reconstruction from the entry's own prose**.  F15, in Thursday's
+batch, is the same.  The card had predicted the tail would be *easier*
+— older entries, early compiler era.  What it actually is, is
+unreconstructable, which is a weaker kind of evidence and had to be
+written into every `gate:` line rather than discovered again on Friday.
+
+**F20 had been read past on a parenthetical that expired.**  The entry
+says its branch is *"dead code today (F14)"* — and F14 has been
+`[resolved]` since before the file was split, its own text listing
+`map`, `mkSig`, `sample`, `switch` and `filter` coming back into reach.
+Making `_apply` raise on entry takes **61 of 281** reactive tests red.
+It is one of the hottest paths in the suite, and a fortnight of sessions
+had read *dead code* and moved on.  Corrected in place and struck rather
+than deleted, so the reason it went ungated stays readable.
+
+Reaching for its gate produced **F195**.  The narrow claim is true and
+is now held: a `GmError` in the sub-evaluation leaves `code`, `stack`
+and `dump` exactly as they were — the scratch state doing its job.  One
+level up nothing holds.  `reactive_step` empties `gm.now` and refills it
+as the sweep goes, so an injected failure leaves `now = 0`, and **every
+instant after that runs, raises nothing and does nothing**.  A host
+would see silence and no error.  `spec/frp.md` models the step as a
+function and `react = scanl reactiveStep`; a fold that raises does not
+destroy its input.  Second time this sweep that hunting one entry's gate
+found its sibling — F31 gave F192 the same way.
+
+**Two `partial`s, and both are one rule with several readers, only one
+of them held.**  F18's ✓ frontier is read by `head`, `watch` and `tail`;
+only `head` had a test.  F17's invariant has a comparison and a snapshot
+that feeds it, and
+`test_ticked_cl_invariant_is_checked_every_step` **injects
+`reactive.clocks` by hand** and calls `_update_one` directly — so it
+holds the comparison and never walks the snapshot.  Stop taking the
+snapshot and the invariant silently stops being asked, with all 542
+green including that test.  Its own docstring says the other traces
+*"therefore all assert the fig. 10 invariant as a side effect"*, true
+exactly as long as the snapshot runs, and held by nothing.  A check
+starved of its input is F189's shape, arriving in the language instead
+of the tooling.  Four gates written; F19 was gated all along and had
+never said so, the fourth of that shape in this sweep.
+
+**And the batch cost a near miss that became the instrument.**  A helper
+script `import`ed the sweep script, whose body ran at module level, so
+the whole thirteen-mutation run started a second time; killing it left
+`gestate/reactive.py` holding F21c's defect in the working tree, caught
+by the next `git status`.  A `git commit -a` in that window would have
+put a deliberate bug in the tree under an innocent message.  The restore
+was in a `finally`, which covers an exception and does not cover a
+signal.
+
+Henri: *"card worthy issue, or even a defect."*  It was neither — no
+implementation disagrees with a spec, and the decision it belongs to
+already had a home in the card's own §"Live tree or a copy", where he
+chose the live tree on 2026-08-26 without this failure mode on the
+table.  What it was, was a missing instrument that nine batches had each
+rebuilt by hand.  So `tools/mutate.py`, per the standing rule that a
+missing capability is built the moment the need arises: the restore made
+four ways and **verified by hash**, an occurrence count on every edit so
+a missed anchor is refused rather than passing green, and a refusal to
+start on a file somebody else has modified.  Tested by being killed —
+mutation on disk, `kill -TERM`, exit 143, file back byte-for-byte.  Its
+`--check` caught a live mutation the first time it ran.
+

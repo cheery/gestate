@@ -542,6 +542,93 @@ builds one for every `delay`.  Four lines now do.
 
 No uncertain verdict; the trip-wire did not fire.
 
+### Batch 11 — 2026-09-02, the Wednesday it was due
+
+**F21 F20 F19 F18 F17**, the FRP scheduler, measured by mutation as **13
+mutations** rather than five — three of the entries repaired more than one
+site, and a single mutation per entry would have hidden which half was held.
+Two test sets: the reactive-facing 8 files (281 tests, ~3 min a run) for every
+mutation, then the 8 further files the repairs' vocabulary greps to (261 tests,
+~4 min) for every mutation that came back green — **542 tests across 16 files**
+behind each `none`.  Four gates written, one new defect, two `partial`s, and no
+uncertain verdict.
+
+**The batch's structural finding is that this tail is unreconstructable.**
+Every one of the five repairs is already present at `b049e0c`, the initial
+commit — they were fixed **before this repository existed**, so `git` cannot
+return the original defective code for any of them.  (F15, in Thursday's
+batch, is the same.)  Batches 1–10 put back code that had once been there;
+from here on a mutation is a **reconstruction from the entry's own prose**, and
+every `gate:` line in this batch says so.  A green means no test sees the
+reconstruction — not that the original defect would have escaped.  The card
+predicted this tail would be *easier*; the property it actually has is
+different and worth more.
+
+**F20 is the one to read: its stated reason for having no gate had expired.**
+The entry says the `TAG_EXISTS5` branch is *"dead code today (F14)"*, and F14
+has been `[resolved]` since before the split — its own text lists `map`,
+`mkSig`, `sample`, `switch` and `filter` coming back into reach.  Made `_apply`
+raise on entry: **61 of 281** go red.  It is one of the hottest paths in the
+reactive suite, and it had been read past for a fortnight on a parenthetical
+that was true when it was written.  Corrected in place, struck rather than
+deleted, so the reason is still readable.
+
+**And reaching for F20's gate turned up F195.**  The narrow claim — a `GmError`
+in the sub-evaluation must not leave the machine mid-frame — is true, and now
+gated.  The claim one level up is false: `reactive_step` empties `gm.now` and
+refills it as it goes, so an injected failure leaves `now = 0` **and every
+instant after that runs, raises nothing, and does nothing**.  `spec/frp.md`
+models the step as a function and `react = scanl reactiveStep`; a fold that
+raises does not destroy its input.  Second time in this sweep that a gate hunt
+found the sibling defect — F31 gave F192 the same way.
+
+**F17 and F18 are both `partial`, and both in the same shape: one reader of a
+rule held, the others bare.**  F18's ✓ frontier is checked by `head`, `watch`
+and `tail`; only `head` had a test, and deleting `_require_current` left all
+542 green.  F17's ticked/cl invariant has a comparison and a snapshot that
+feeds it; `test_ticked_cl_invariant_is_checked_every_step` **injects
+`reactive.clocks` by hand** and calls `_update_one` directly, so it holds the
+comparison and never walks `reactive_step`'s snapshot — stop taking the
+snapshot and the invariant silently stops being asked, with 542 green,
+including that test.  Its own docstring says *"the traces above therefore all
+assert the fig. 10 invariant as a side effect"*, which is true exactly as long
+as the snapshot runs, and nothing held that.  A check starved of its input is
+F189's shape arriving in the language rather than in the tooling.
+
+**F19 was gated all along and never said so** — the fourth of that shape in
+this sweep.  The refusal drops: exactly 1 red, and it is
+`test_input_on_an_unknown_channel_is_rejected`, which is the repair in a
+sentence.  `NewChan` not writing Δ: 63 of 281.
+
+**F21 is the batch's only clean `none`.**  Four sites, separately, 542 tests,
+zero red — including `test_surface_guarded_recursion_runs`, which is the `gfix`
+case whose indirection the repair exists for.
+
+### What the batch cost, and the instrument it left
+
+**A killed harness does not run its restore.**  The batch's own harness was
+started a second time by accident — a helper `import`ed the sweep script, whose
+body ran at module level — and killing it left `gestate/reactive.py` holding
+F21c's defect in the working tree.  It was caught by the next `git status`, and
+a `git commit -a` in that window would have put a deliberate bug in the tree
+under an innocent message.  The restore was in a `finally`, which covers an
+exception and **does not cover a signal**.
+
+Nine batches have each written this harness by hand.  So it is now
+`tools/mutate.py` — the sweep's method as an instrument, per
+`doc/instruments.md`'s standing rule.  The spec is JSON, one object per
+mutation, committable beside its verdicts; every edit carries an occurrence
+count, so an anchor that silently missed is refused instead of producing a
+green that means nothing; and the restore is made four ways — bytes held in
+memory, `finally`, `SIGINT`/`SIGTERM` handlers that restore and re-raise,
+`atexit` — and then **verified by hash**, because a restore that is assumed is
+the same class of instrument as the check F17 was starving.  Tested by being
+killed: mutation on disk, `kill -TERM`, exit 143, file back byte-for-byte.
+`--check` says whether the tree is clean, and caught a live mutation the first
+time it was run.
+
+Batches 12 and 13 use it.
+
 ### The second Friday review — 2026-08-28, drawn at random
 
 Three drawn by `awk '/^### F[0-9]+\\./{e=$2} /^gate:/{print e}' fixme.md |
@@ -743,6 +830,18 @@ batch session reads:
 **Henri, 2026-08-26:** *"live tree is fine, keep the default."*  Decided;
 the trigger above still moves a batch to a copy when something else is
 running on the tree.
+
+**And the default has a cost, measured 2026-09-02** — batch 11, §"What the
+batch cost".  A harness killed mid-mutation leaves the defect in the working
+tree, because a `finally` does not run on a signal.  That is not an argument
+against the decision: `tools/mutate.py` closes it directly, restoring on
+`SIGINT`/`SIGTERM` and verifying by hash.  It is written here because the
+decision was made without this failure mode being on the table, and the
+honest record of a decision includes what it cost afterwards.
+
+**Second trigger, added the same day:** after *any* abnormal end to a batch
+run — a kill, a crash, a machine going down — the next thing is
+`python tools/mutate.py --check`, before anything is read or committed.
 
 ### Where the verdicts go
 

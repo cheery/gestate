@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 195 entries, **160 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 196 entries, **160 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -533,6 +533,22 @@ driver snapshots every signal's clock before a sweep begins — §4.3's
 `ticked` answer against it, so a driver that recomputed clocks mid-sweep
 now fails loudly instead of silently.  See `errata.md` R7.
 
+gate: `test/test_frp.py::test_ticked_cl_invariant_is_checked_every_step` — for
+the *comparison*, and **partial** is the verdict.  It holds that half hard:
+`cl` made to answer the empty clock for everything takes **29 of 49** in that
+file and 69 of 281 across the reactive set, and removing the driver's check
+outright takes exactly 1.  **The snapshot that feeds the check was held by
+nothing.**  `reactive_step` takes `{sig: cl(sig.tail) …}` before the sweep; stop
+taking it and `sig in reactive.clocks` is never true, the invariant silently
+stops being asked, and 542 tests across 16 files stay green — including the
+test above, which injects `reactive.clocks` by hand and calls `_update_one`
+directly, so it never walks the snapshot at all.
+`::test_the_sweep_snapshots_a_clock_for_every_signal_it_is_about_to_update`
+written 2026-09-02 for that half.  Weakest point: the new gate spies on
+`_update_one` and asserts a clock was taken, not that its *contents* are right
+— `cl`'s answers are still held only by the comparison one raise away, and by
+nothing at all if that raise is ever softened to a warning.
+
 ### F18. **[resolved]** No now/earlier check on `head`
 
 Fixed: `NSig.current` is the ✓ frontier as a per-cell mark.  `SigHead`
@@ -541,6 +557,16 @@ the same for `watch l`/`tail l`, whose fig. 10 rules are also stated
 against the new heap.  A scheduler-ordering bug is now an error rather
 than a stale read.  See `errata.md` R8.
 
+gate: `test/test_frp.py::test_head_of_an_earlier_heap_signal_is_stuck` — for the
+`head` half only, and **partial** is the verdict.  `ticked` asks the same fig. 10
+question of `watch l` and `tail l` through `_require_current`, and deleting that
+check left **542 tests across 16 files green** (2026-09-02, by mutation).
+`::test_watch_of_an_earlier_heap_signal_is_refused` and its `tail` twin were
+written the same day for the bare half.  Weakest point: all three set
+`current = False` by hand, because no program in the tree reaches an
+out-of-turn read — so what is held is that the check fires, not that the
+frontier is maintained correctly.
+
 ### F19. **[resolved]** Channel context is never tracked
 
 Fixed: `GmState.chans` is Δ, exposed as `GmReactive.chans`; `NewChan`
@@ -548,6 +574,16 @@ extends it with the element type inference recorded on the `EChan` node,
 and `advance`'s sub-evaluation shares the dict so a channel minted
 mid-sweep registers.  `react` rejects an input on a channel that was never
 allocated.  See `errata.md` R11.
+
+gate: `test/test_frp.py::test_input_on_an_unknown_channel_is_rejected` for the
+refusal, and `::test_channel_context_records_allocated_channels`,
+`::test_unforced_channel_is_not_in_the_context` and
+`::test_channel_element_type_is_recorded` for Δ itself.  Measured 2026-09-02 by
+mutation: dropping the `k not in chans` refusal takes exactly **1** red;
+`NewChan` not writing `s.chans[cid]` takes **25 of 49** in that file and 63 of
+281 across the reactive set.  **Gated all along, and this entry never said so**
+— the fourth of that shape in this sweep.  Weakest point: none of the four
+names F19, so the citation resolves in one direction only.
 
 ### F20. **[resolved]** `advance` for `TAG_EXISTS5` mutated the shared `GmState`
 
@@ -562,9 +598,27 @@ original diagnosis:
 `putStack [f, v'] s' then [Mkap, Eval]` on a state value and returns
 `(result, s'' with stack popped)`.  The in-place version leaves `gm.code`
 empty and relies on the dump being balanced; a `GmError` inside `run` leaves
-the machine wedged.  Dead code today (F14) but it is the one place the
+the machine wedged.  ~~Dead code today (F14)~~ but it is the one place the
 scheduler re-enters the evaluator, so it should match the spec before it is
 reachable.
+
+**"Dead code today" was true when it was written and stopped being true when
+F14 was resolved** — corrected in place 2026-09-02, dated, and left struck
+rather than deleted so the reason this entry went ungated for so long is still
+readable.  `map`, `mkSig`, `sample`, `switch` and `filter` all reach
+`TAG_EXISTS5` now: made `_apply` raise on entry and **61 of 281** reactive
+tests go red.  It is one of the hottest paths in the reactive suite.
+
+gate: `test/test_frp.py::test_an_error_in_the_sub_evaluation_does_not_wedge_the_machine`,
+**written 2026-09-02** — the property was held by nothing, and the reason it had
+gone unheld had expired (above).  It injects a `GmError` into the sub-evaluation
+and requires `code`, `stack` and `dump` to come back exactly as they were.
+Reaching it cost the disagreement that is now **F195**: the *G-machine* survives
+the failure and the *sweep* does not.  Weakest point: the in-place `_apply` that
+this was measured against is a reconstruction from the prose (the repair
+predates `b049e0c`), and it reddens 17 of 53 — so most of that red is the
+reconstruction computing wrong answers, not this property being asserted.  The
+gate above is the narrow claim, and it is the one that is actually held.
 
 ### F21. **[resolved]** `ticked`/`advance` required already-forced operands
 
@@ -578,6 +632,17 @@ argument can be an `NInd` or an unforced graph (`compile_c` inserts `Eval`
 before `Pack`, so this holds today for source-built nodes, but not for nodes
 rebuilt by `advance`).  `advance`'s `TAG_DELAY` branch already chases one level
 of `NInd` (`reactive.py:109-112`); the others do not.
+
+gate: `none — not yet built`.  Measured 2026-09-02 by mutation, the repair's
+four sites put back separately: `ticked`'s operand dereferences, `advance`'s,
+either function's dereference of its own node, and `MkDelayAp`'s chase of the
+indirection a `gfix` binder arrives as.  **542 tests across 16 files, zero red,
+all four** — including `test_surface_guarded_recursion_runs`, which is the
+`gfix` case the entry was written for.  Weakest point, and it is the whole
+entry: the repair predates `b049e0c`, so git cannot return the original code
+and every mutation above is a **reconstruction from this entry's own prose**.
+A green means no test sees that reconstruction, not that the original defect
+would have escaped.
 
 ### F22. **[resolved]** FRP tests
 
@@ -7043,3 +7108,45 @@ private index at all, which is what the branch was written for); binding
 configuration, which is the one thing the deny-list exists to prevent; and detecting the fence in order to say *"skipped because fenced"* is
 a third source of truth about where the index is.  Naming the three is the work
 this entry hands on.
+
+
+### F195. **[bug]** A sweep interrupted mid-flight loses the now heap, silently
+
+`reactive_step` empties `gm.now` at the top and refills it signal by signal as
+the sweep reaches them (`reactive.py`, `reactive.gm.now = []` then
+`_update_one`'s two `now.append(sig)` paths).  There is no rollback, so an
+exception raised part-way through the sweep leaves **every signal that had not
+yet been re-appended simply gone**, and `reactive.clocks` uncleared.
+
+`spec/frp.md` models this as a function: `reactiveStep : Arrivals → State →
+State`, and `react = scanl reactiveStep`.  A fold that raises does not produce
+the next state; it does not destroy the previous one.  The implementation
+updates in place and has no such property.
+
+**And the failure is silent.**  Measured 2026-09-02 on
+`main = 0 ::: mkSig (wait c1)`, with a `GmError` injected into the
+sub-evaluation `advance` runs:
+
+    before the failed instant   now = 1   code = 0  dump = 0  stack = 1
+    after                       now = 0   code = 0  dump = 0  stack = 1
+    the next instant            runs, raises nothing, now = 0
+
+So the machine does not wedge — F20's repair is doing exactly what it claims,
+and the G-machine state is untouched — it *empties*, and every instant after
+that is a well-formed sweep over no signals at all.  A host driving this would
+see silence and no error.
+
+Found while writing F20's gate (`card:ungated-fixes.md`, batch 11), which is
+the second time in that sweep that reaching for one entry's gate turned up its
+sibling — F31's severance was F192 the same way.
+
+gate: `none — not yet built`.  The measurement above is the shape of one:
+inject into the sub-evaluation, then require `gm.now` to be either the old
+heap or a complete new one, never a partial.  Not written today because the
+repair is a design question — whether `reactive_step` builds the new now-heap
+beside the old and swaps, or catches and restores — and that is not a gate's
+call.  Weakest point: the injection is a `monkeypatch` of `run`, so this is
+measured on an error that cannot arise from a well-typed program today; what
+makes it real is that `advance` runs user code, and user code is exactly what
+`fixme.md` exists to say can be wrong.
+

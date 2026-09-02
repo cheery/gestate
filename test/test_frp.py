@@ -23,10 +23,12 @@ import pytest
 
 from gestate.declarations import DeclError
 from gestate.desugar import DesugarError
-from gestate.gmachine import GmError, NNum, NSig, SigHead, run
+from gestate.gmachine import (GmError, NCon, NNum, NSig, SigHead, TAG_TAIL,
+                              TAG_WATCH, run)
 from gestate.pipeline import compile, evaluate
+import gestate.reactive as _reactive
 from gestate.reactive import (ReactiveError, _update_one, cl, init_program,
-                              react, react_instant)
+                              react, react_instant, ticked)
 from gestate.unify import UnifyError
 
 
@@ -393,6 +395,41 @@ def test_ticked_cl_invariant_is_checked_every_step():
         _update_one({0: NNum(2)}, reactive)
 
 
+def test_the_sweep_snapshots_a_clock_for_every_signal_it_is_about_to_update(
+        monkeypatch):
+    """And the check above is only as good as the snapshot that feeds it.
+
+    The test above sets `clocks` by hand and calls `_update_one` directly,
+    so it holds the *comparison*.  Nothing held the *snapshot*: delete
+    `reactive_step`'s `{sig: cl(sig.tail) …}` and `sig in reactive.clocks`
+    is never true, the invariant silently stops being asked, and every
+    test in this file — including the one above — still passes.  Measured
+    2026-09-02 against 542 tests (`card:ungated-fixes.md`, batch 11);
+    `fixme.md` F17.
+    """
+    source = (MKSIG
+              + "c1 : Chan Int\nc1 = chan\n"
+              "main : Sig Int\nmain = 0 ::: mkSig (wait c1)\n")
+    state = compile(source)
+    reactive = init_program(state)
+    assert reactive.check_clocks
+
+    sizes = []
+    real = _reactive._update_one
+
+    def spy(arrivals, r):
+        sizes.append(len(r.clocks))
+        return real(arrivals, r)
+
+    monkeypatch.setattr(_reactive, "_update_one", spy)
+    react_instant(reactive, [(0, 1)])
+
+    assert sizes, "the sweep updated no signal at all"
+    assert all(n > 0 for n in sizes), (
+        f"the sweep ran with no clock snapshotted (sizes {sizes}): the "
+        f"ticked/cl check above cannot fire, and nothing else notices")
+
+
 # ── head is defined only on the now heap ─────────────────────────────────────
 
 
@@ -424,6 +461,65 @@ def test_the_frontier_is_restored_by_a_sweep():
 
     react(reactive, [(0, 1)])
     assert sig.current            # back on the now heap after the sweep
+
+
+# `head` is one of three readers of the ✓ frontier and the only one that
+# was held.  `ticked` asks the same question of `watch l` and `tail l`
+# through `_require_current`, whose fig. 10 rules are equally stated
+# against the new heap — and deleting that check left all 542 tests green
+# (`card:ungated-fixes.md`, batch 11, 2026-09-02).  `fixme.md` F18.
+
+
+def test_watch_of_an_earlier_heap_signal_is_refused():
+    state = compile("main : Sig Int\nmain = 7 ::: never\n")
+    reactive = init_program(state)
+    sig = state.now[0]
+    sig.current = False
+    with pytest.raises(ReactiveError, match="earlier heap"):
+        ticked({}, NCon(TAG_WATCH, (sig,)), reactive)
+
+
+def test_tail_of_an_earlier_heap_signal_is_refused():
+    state = compile("main : Sig Int\nmain = 7 ::: never\n")
+    reactive = init_program(state)
+    sig = state.now[0]
+    sig.current = False
+    with pytest.raises(ReactiveError, match="earlier heap"):
+        ticked({}, NCon(TAG_TAIL, (sig,)), reactive)
+
+
+def test_an_error_in_the_sub_evaluation_does_not_wedge_the_machine(monkeypatch):
+    """`advance` re-enters the evaluator on a *scratch* state (`_apply`).
+
+    A `GmError` raised in user code run by the scheduler must not leave
+    the live machine mid-frame, with code spliced in and a dump frame
+    unbalanced.  The entry that repaired this read "dead code today
+    (F14)" and F14 has been resolved since, so the branch is on the hot
+    path — 61 of 281 reactive tests reach `_apply`, and none of them
+    asked this.  `fixme.md` F20.
+
+    **The reactive sweep is a separate question and is not atomic**: the
+    same injected error empties `gm.now` and leaves it empty, silently.
+    That is `fixme.md` F195, and this test deliberately does not claim it.
+    """
+    source = (MKSIG
+              + "c1 : Chan Int\nc1 = chan\n"
+              "main : Sig Int\nmain = 0 ::: mkSig (wait c1)\n")
+    state = compile(source)
+    reactive = init_program(state)
+    react(reactive, [(0, 1)])
+    before = (list(state.code), list(state.stack), list(state.dump))
+
+    def boom(gm):
+        raise GmError("injected failure inside the sub-evaluation")
+
+    monkeypatch.setattr(_reactive, "run", boom)
+    with pytest.raises(GmError, match="injected"):
+        react(reactive, [(0, 2)])
+
+    assert list(state.code) == before[0], "code left spliced by a failed re-entry"
+    assert list(state.stack) == before[1], "stack left pushed by a failed re-entry"
+    assert list(state.dump) == before[2], "dump frame left unbalanced"
 
 
 # ── Surface syntax for guarded recursion (§2.4, errata R5) ───────────────────
