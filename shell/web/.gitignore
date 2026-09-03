@@ -1,0 +1,6 @@
+# `test/test_gallery.py` builds the `wasm32` module here — the crate's
+# own `target/`, for the reason `test_crust.py` gives about `crust/`:
+# a workspace member built with `--target-dir` keeps its artifacts
+# where the caller says, and a wasm build must not throw away what
+# `cargo test` just made natively.
+target/

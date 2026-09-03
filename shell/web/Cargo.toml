@@ -1,0 +1,22 @@
+[package]
+name = "gestate-web"
+version = "0.1.0"
+edition = "2021"
+description = "The browser's shell for the picture — a substrate walked and driven, over a flat wire."
+license = "MIT"
+
+[lib]
+# `cdylib` is the wasm module a page instantiates; `rlib` is what
+# `cargo test` links, so the wire can be checked on this machine
+# without a browser in the loop.  Same pair, and the same reason, as
+# `crust`'s.
+crate-type = ["rlib", "cdylib"]
+
+# **Zero dependencies outside the tree**, which is the property that
+# makes this shell possible at all: `crust` has none by rule, and
+# `gestate-panel` under `substrate` alone takes only `crust`.  A page
+# therefore supplies the machine *nothing* — `crust.wasm` imports no
+# host function, and neither does this.
+[dependencies]
+crust = { path = "../../crust" }
+gestate-panel = { path = "../panel", features = ["substrate"] }

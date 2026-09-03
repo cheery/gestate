@@ -1,7 +1,8 @@
 # audiovisual-gallery — a gallery of controllable audio-visual experiences
 
-    status   open — 2026-09-02, off the shelf: the measurement his
-             green light was conditional on came back green, §"The measurement"
+    status   doing — 2026-09-03, day one landed: `shell/web` walks all
+             six pictures in `wasm32`, equal to the reference,
+             §"Day one, and what it left"
     because  "people do not currently see with ease, without
              installation, what gestate can create.  And it's a bit sad
              situation there." — Henri, 2026-09-02, asked for the
@@ -220,6 +221,80 @@ the shapes* — beside `crust`, compiled with it, the same walk
 ordinary work in a language the tree already builds in, and it is **not
 a second implementation kept**, which is the cost `card:online.md` C1
 was stood down for.  Day one is that shim.
+
+## Day one, and what it left
+
+*2026-09-03.  Q4's answer was "day one is that shim", and this is the
+shim: `shell/web`, a crate whose whole content is a C ABI over the
+canvas driver the plugin's window already turns.*
+
+**It keeps no walk of its own, and that was the point.**  The driver is
+`gestate_panel::canvas::Canvas` and the walk under it is
+`gestate_panel::substrate` — the same pair `shell/clap` uses, held to
+`gestate/gui.py` tree for tree by `substrate_parity.rs`.  Under
+`--features substrate` the panel's only dependency is `crust`, so the
+whole stack crosses to `wasm32` with nothing added.  What the shim
+supplies is the *seam*: a page cannot call a Rust method, so the loop —
+one instant, one picture, one press — is offered as ten C functions and
+one flat `i32` buffer.
+
+**All six pieces draw in wasm exactly what the reference draws.**
+
+| | a frame, in wasm | records | (the card's CPython bound) |
+|---|---:|---:|---:|
+| scoped | 0.18 ms | 1 | 0.06 ms |
+| substrate | 0.26 ms | 4 | 1.81 ms |
+| chopin | 0.48 ms | 10 | 6.12 ms |
+| spectrum | 0.59 ms | 16 | 5.97 ms |
+| lantern | 1.14 ms | 19 | 6.22 ms |
+| envelope | 1.98 ms | 43 | 8.74 ms |
+
+    gestate_web.wasm    221,228 bytes, imports: none
+
+**So the bound the card marked as a bound is now a measurement**, and it
+came in better than the thing it bounded: the heaviest piece is 1.98 ms
+in the target that will actually run it against 8.74 ms in the reference
+it was estimated from — eight times inside a 60 Hz budget.  The module
+is 221 KB against `crust`'s 164 KB; the walk and the driver cost 57 KB.
+
+`test/test_gallery.py` is the end-to-end: the module built for
+`wasm32`, driven under `wasmtime` through nothing but pointers into its
+linear memory, its picture compared line for line with what `gui.py`
+draws.  Twelve tests — the six pieces, a channel keeping the id the
+picture carries, an arrival moving the fold, a hand reaching the
+program and back, a program that is not a picture refused with a
+sentence, and the frame.  `shell/web/src/tests.rs` holds the wire
+natively, against the fixtures `shell/panel/tests/` already carries.
+
+**One correction, and it is worth keeping.**  The first run had four of
+six matching and two disagreeing about *channel ids* while every
+rectangle agreed.  Both readings were correct: the shell forces the
+declarations before the program runs and the test's own reference did
+not, which is the two-readings problem `export.substrate_of`'s
+docstring is written about, arriving in a test rather than in a shell.
+The fix was to make the reference `gui.Substrate` itself — the actual
+reference host — rather than a walk assembled beside it.
+
+### What day two is
+
+**The page.**  Nothing here is wired into `gestate/online*.{js,html}`
+yet: the module exists, the wire is tested, and no tab loads it.  That
+is the row's remaining half and it needs no decision.
+
+**And one thing found on the way, which is `fixme.md` F197.**  The
+canvas's frame clock does not cross.  `gui._crossing` sends `Tick`'s tag
+and the `wallclock` channel; `export.substrate_of` sends neither, and no
+host outside `gui.py` pulses at all — `Panel::tick_canvas` passes
+`None`.  `web_tick` takes a pulse tag already and has nothing to pass
+it.  *The honest half:* no piece in `examples/audio/` was found whose
+picture moves on a bare frame clock — `lantern` folds over `events` and
+`envelope` reads `now`, and **both stand still in the reference host
+too** — so this is a seam with no demonstrated victim, and the first
+thing to write is a substrate that moves on `Tick` alone.
+
+**Q2 is still open and still his.**  Everything above is the `clap.gui`
+row, which was the session's own default; the rows below it in the
+table have not been touched.
 
 ## How it came off the shelf
 

@@ -554,3 +554,72 @@ one refuses to mutate a file that is already modified and the fix had
 just modified it.  The refusal working is why the verification was
 awkward, which is the right way round.
 
+## The picture crosses — the gallery's day one, 2026-09-03
+
+`card:audiovisual-gallery.md` came off the shelf yesterday on a
+condition Henri set in advance, and its day one was named for it: *a
+small Rust shim exposing advance one frame, hand me the shapes.*  That
+shim is `shell/web`, and it turned out to be smaller than the card
+expected, because the thing it wraps was already written.
+
+**Nothing new walks a `Sub`.**  `gestate_panel::canvas::Canvas` is the
+loop — arrivals, `reactive_step`, `main`'s cell, walk, display — and
+the plugin's window has been turning it since the substrate landed.
+Under `--features substrate` the panel's only dependency is `crust`, so
+the whole stack crosses to `wasm32` untouched; what a page lacks is not
+the walk but a way to *call* it.  So the crate is a seam and not an
+implementation: ten C functions and one flat `i32` buffer, and its own
+tests read that buffer the way JavaScript will — one cursor, record
+lengths implied by kind — because a reader written from the writer's
+structs would not catch a layout the page cannot parse.
+
+**All six pieces draw in wasm exactly what `gui.py` draws.**  221 KB,
+no imports, and a frame for the heaviest of them — `envelope`, 43
+records — is **1.98 ms** against the 8.74 ms the card measured in the
+CPython reference it was estimating from.  The card had marked the wasm
+number as a bound rather than a measurement and said so; the
+measurement came in four times better than the bound.
+
+`test/test_gallery.py` is deliberately end to end: the module built for
+the browser's own target, driven under `wasmtime` through nothing but
+pointers into its linear memory, and the picture compared with the
+reference line for line.  Not against a fixture — `shell/panel/tests/`
+already holds those and `test_panel_fixtures.py` pins them to today's
+exporter — because a shell checked against a recording of itself agrees
+with itself.
+
+**The one thing that went wrong is worth more than the twelve that did
+not.**  The first run had four pieces matching and two disagreeing, and
+the disagreement was entirely in *channel ids*: every rectangle agreed
+and every `hit` line did not.  Both readings were correct.  A channel is
+allocated when its declaration is first forced, so forcing the
+declarations first gives `cutoff` id 0 and letting the program reach it
+gives id 2 — the two-readings problem `export.substrate_of`'s docstring
+was written about, arriving in a *test* this time rather than in a
+shell.  The test's reference had been assembled beside `gui.py` instead
+of being `gui.py`, and the fix was to use `gui.Substrate` itself.  A
+reference built by hand from the same parts is not the reference; it is
+a second implementation with the same bug available to it.
+
+## The frame clock does not cross — F197
+
+Found reaching for the pulse argument.  `gui._crossing` sends `Tick`'s
+tag and the `wallclock` channel, so the editor's canvas has a frame
+clock; `export.substrate_of` sends neither, so no canvas abroad has
+one.  And no host outside `gui.py` pulses in any case —
+`Panel::tick_canvas` calls `Canvas::tick`, which passes `None`, and
+`Canvas::step`'s own docstring states the price: *"a host that never
+pulses shows a canvas whose faders work and whose animation stands
+still."*
+
+**Then the measurement refused to demonstrate it**, which is the part
+to keep.  `lantern.ges` folds over `events` and `envelope.ges` reads
+`now`, so both were expected to stand still abroad and move at home.
+They stand still in **both** — thirty frames of the reference host's own
+`tick` and the picture does not change.  So what is broken is the seam,
+and its cost is not shown on today's example set; the entry says so, and
+says that the first thing to write is a substrate that moves on `Tick`
+alone.  A defect with a stated victim that turns out to have none is a
+defect written from reading, and this one was three sentences from being
+filed that way.
+

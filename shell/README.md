@@ -22,8 +22,20 @@ blocks.
   `cargo tree -p gestate-clap` is still one line.  The pure half
   builds and tests with no dependencies at all; `--features window`
   adds `baseview` and `softbuffer`.
+* **`web/`** — the browser's shell for the *picture*
+  (`card:audiovisual-gallery.md`): `crust` and the panel's `Sub` walk
+  compiled for `wasm32`, offered to a page as a handful of C functions
+  and one flat `i32` buffer.  221 KB, and it imports nothing — a page
+  supplies the machine no host functions and no glue, which is `crust`'s
+  zero-dependency rule and the panel's dependency-free half reaching the
+  browser intact.  It keeps no walk of its own: the driver is
+  `gestate_panel::canvas::Canvas`, the same one the plugin's window
+  turns.  `test/test_gallery.py` holds the six pieces that declare a
+  substrate to what `gestate/gui.py` draws, through the module a browser
+  would load.
 * A `worklet/` for the browser playground belongs here when its day
-  comes.
+  comes — the sound in a tab is `gestate.audiowasm`'s LLVM-emitted
+  module today, and `web/` is the picture beside it, not a replacement.
 
 ## When a plugin misbehaves in a DAW and not in a test
 

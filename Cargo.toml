@@ -7,7 +7,7 @@
 # joining the tree moved no artifact anyone reads.
 [workspace]
 resolver = "2"
-members = ["crust", "shell/clap", "shell/editor", "shell/panel"]
+members = ["crust", "shell/clap", "shell/editor", "shell/panel", "shell/web"]
 
 # **A software rasterizer needs an optimiser, even to be debugged.**
 #

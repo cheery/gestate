@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 197 entries, **161 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 198 entries, **161 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7262,3 +7262,43 @@ red on the defect — measured 2026-09-03 against a reverted copy of the tool
 refuses to mutate a file that is already modified).  Weakest point: the file
 does not hold the `atexit` path or a restore that fails its hash check, and
 both would need the tool to be lied to about its own bytes.
+
+### F197. **[bug]** The canvas's frame clock does not cross
+
+`spec/substrate.md`: *"what a signal is constant over is a clock — the audio
+renderer supplies one over `ticks`, the canvas one over `events`."*  At home
+`gestate.gui.Substrate.tick` supplies it: one `Tick` on `input` a frame, and
+real seconds on `wallclock` beside it (F134).  **Abroad neither crosses.**
+
+    gui._crossing        text entry tags tick chans(+wallclock)
+    export.substrate_of  text entry tags      chans
+
+Two halves of one payload, written for one purpose, and the exported half is
+missing the clock.  `Tick`'s tag is a position in the program's own table, so a
+host cannot derive it — the same argument the other fourteen tags travel on —
+and `wallclock` is the renderer's own declaration, so it is not in
+`_channel_names` and never reaches `chans`.  Measured 2026-09-03 on
+`lantern.ges` and `envelope.ges`: `substrate_of` returns
+`['bridge', 'chans', 'entry', 'tags', 'text']`, and asking the shell for the
+`wallclock` channel gives `-1` because the name was never sent.
+
+**And no host outside `gui.py` pulses anyway.**  `Panel::tick_canvas` calls
+`Canvas::tick`, which is `step(writes, None, …)`; `Canvas::step`'s own
+docstring states the cost — *"a host that never pulses shows a canvas whose
+faders work and whose animation stands still"*.  `shell/web` takes a pulse tag
+in `web_tick` and has nothing to pass it.
+
+**What is not shown, and it is the honest half.**  No piece in
+`examples/audio/` was found whose picture visibly moves on a bare frame clock:
+`lantern.ges` folds over `events` and `envelope.ges` reads `now`, and both
+stand still for 30 frames **in the reference host too** — so what is broken is
+the seam, and the cost of it is not demonstrated on today's example set.  A
+piece that animates from the clock alone is the first thing to write here, and
+it decides whether this is a gap or a defect with a victim.
+
+gate: `none — not yet built`.  The measurement above is the shape of one, and
+it needs the missing piece first: a substrate that moves on `Tick` alone, drawn
+in `test/test_gallery.py` twice — once with the tag and once without — which
+goes red the moment either half of the clock stops crossing.  Weakest point:
+until that piece exists, a gate here could only assert the *payload's shape*,
+which is a test that the export has a key rather than that a picture moves.
