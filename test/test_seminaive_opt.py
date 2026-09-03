@@ -14,7 +14,8 @@ from gestate.bottoms import is_bottom, propagate
 from gestate.expr import (
     EAp, ECon, EFor, EGlobal, EJoin, ELambda, ELet, ENum, ESet, EVar,
 )
-from gestate.pipeline import evaluate
+from gestate.gmachine import step
+from gestate.pipeline import compile, evaluate
 from gestate.seminaive import make_semifix_helpers
 from gestate.types import TApp, TCon
 
@@ -129,6 +130,45 @@ def test_diff_is_generated_per_semilattice():
     program = classify(parse("main : Int\nmain = 1\n"))
     names = {n for n, _a, _l in generate_all_helpers([SET_INT], program.cons)}
     assert "diff_Set_Int" in names
+
+
+# ── And the pipeline runs the pass ───────────────────────────────────────────
+
+#: A query whose δ collapses: `for (x in r) {x + 1}` cannot change
+#: independently of its own recomputation, so ϕ marks it ⊥ and pass 1
+#: deletes the loop that would iterate over it.
+PATH = ("path : Box (Set (Cyclic 8)) -> Set (Cyclic 8)\n"
+        "path bs = unbox s = bs in fix Box (r => s \\/ (for (x in r) {x + 1}))\n"
+        "\n"
+        "main : Set (Cyclic 8)\nmain = path (Box {1})\n")
+
+
+def _steps(source: str) -> int:
+    s = compile(source)
+    n = 0
+    while not s.isFinal:
+        step(s)
+        n += 1
+    return n
+
+
+def test_the_compiled_query_pays_the_propagated_price():
+    """`propagate` above is a function; this asks whether it is *called*.
+
+    Every rewrite in the section above is tested on a hand-built term,
+    and `pipeline.py` wiring the pass into the compilation was held by
+    nothing: taking `propagate_bottoms(scs)` out left all 429 tests of
+    the batch's set green, though the pass demonstrably fires — a probe
+    raising when it changed anything took 52 of them down
+    (`card:ungated-fixes.md`, batch 12, 2026-09-03).  `fixme.md` F10.
+
+    Measured 2026-09-03: **8,966** G-machine steps with the pass,
+    **12,130** without — the 26% the thesis §4.2.3 says ϕ/δ alone does
+    not buy.  The bound is a number and will drift as the compiler
+    changes; re-measure it rather than raise it blindly, because a bound
+    raised past 12,130 is this gate switched off.
+    """
+    assert _steps(PATH) < 10_500
 
 
 # ── The answers do not change ────────────────────────────────────────────────

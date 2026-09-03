@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from gestate.gmachine import step
 from gestate.pipeline import compile, evaluate
+from gestate.seminaive import _is_user_sc
 
 
 def _steps(source: str) -> int:
@@ -89,6 +90,30 @@ def test_a_primitive_the_transform_never_generated_is_not_renamed():
     `main` escaped it, by not being transformed."""
     assert evaluate("f : Set Char\nf = {chr 98, chr 97}\n\n"
                     "main : Set Char\nmain = f\n").count(",2}") == 2
+
+
+def test_a_generated_helper_is_not_a_user_name_at_any_type():
+    """`fixme.md` F8's third half: the exclusion is by *prefix*.
+
+    It used to be a hardcoded list, and every name on it said
+    `Set_Int` — so the moment a program used a set of anything else,
+    `union_Set_Cyclic_8` looked like a user definition and ϕ renamed it
+    to `union_Set_Cyclic_8_phi`, which does not exist.
+
+    Narrowed back to that list, all 429 tests of the batch's set stayed
+    green (`card:ungated-fixes.md`, batch 12, 2026-09-03).  Weakest
+    point, and it is why this is a unit test: `transform` passes the set
+    it is generating pairs for, so `_is_user_sc` is only the fallback for
+    a direct call to `phi`/`delta` — 5 tests in the set reach it, and
+    none of them names a helper at a type other than `Set Int`.
+    """
+    for name in ("eq_Set_Int", "union_Set_Cyclic_8", "bottom_Set_Char",
+                 "join_Set_Float", "diff_Set_Cyclic_4", "dummy_Cyclic_8",
+                 "fix_Set_Cyclic_8", "fixLoop_Set_Char", "for_Set_Float",
+                 "semifix_Set_Cyclic_4", "semifixL_Set_Cyclic_4",
+                 "subset_Set_Char"):
+        assert not _is_user_sc(name), name
+    assert _is_user_sc("path")     # and an ordinary definition still is
 
 
 # ── Each half is generated only where it is needed (F7) ──────────────────────

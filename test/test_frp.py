@@ -23,8 +23,8 @@ import pytest
 
 from gestate.declarations import DeclError
 from gestate.desugar import DesugarError
-from gestate.gmachine import (GmError, NCon, NNum, NSig, SigHead, TAG_TAIL,
-                              TAG_WATCH, run)
+from gestate.gmachine import (GmError, NCon, NNum, NSig, SigHead, TAG_DELAY,
+                              TAG_TAIL, TAG_WATCH, run)
 from gestate.pipeline import compile, evaluate
 import gestate.reactive as _reactive
 from gestate.reactive import (ReactiveError, _update_one, cl, init_program,
@@ -84,6 +84,52 @@ def test_delay_is_universal_and_a_tail_is_existential():
     """
     with pytest.raises(UnifyError, match=r"expected ExL[\s\S]*got FaL"):
         compile("main : Sig Int\nmain = gfix self => 0 ::: delay self\n")
+
+
+def test_ticked_has_no_case_for_a_delay_node():
+    """Fig. 10's `ticked` has six cases and `delay` is not one of them.
+
+    The driver once had a seventh — `TAG_DELAY -> True` — put there to
+    make `syntax.md`'s ill-typed `gfix self => 0 ::: delay self` run.
+    Its effect was that any signal whose tail was a delay updated on
+    every arrival on every channel: an empty clock behaving like a
+    universal one.  `fixme.md` F15.
+
+    The test above is what let the case go, and it is *not* a gate for
+    it: the case put back leaves 396 tests across 16 files green, and a
+    probe raising on entry is never reached either, because nothing the
+    type checker accepts can build such a node
+    (`card:ungated-fixes.md`, batch 12, 2026-09-03).  So the rule is
+    asked here directly, of `ticked` itself.
+    """
+    state = compile("main : Sig Int\nmain = 7 ::: never\n")
+    reactive = init_program(state)
+    delayed = NCon(TAG_DELAY, (NNum(1),))
+    assert ticked({}, delayed, reactive) is False
+    assert ticked({0: NNum(1)}, delayed, reactive) is False
+
+
+def test_a_signal_whose_tail_is_a_delay_does_not_fire():
+    """And `_update_one` has no `gfix cycle` case either.
+
+    The other half of `fixme.md` F15: a special case that re-marked the
+    signal ticked while keeping the same tail, so the cell claimed to
+    have been updated every step without ever changing.  Same
+    measurement as above — put back, 396 green.
+    """
+    state = compile("main : Sig Int\nmain = 7 ::: never\n")
+    reactive = init_program(state)
+    sig = state.now[0]
+    tail = NCon(TAG_DELAY, (NNum(1),))
+    sig.tail = tail
+    sig.current = False
+    reactive.earlier = [sig]
+    reactive.gm.now = []
+
+    _update_one({0: NNum(2)}, reactive)
+
+    assert not sig.ticked           # an empty clock does not fire
+    assert sig.tail is tail         # and the tail is left where it was
 
 
 def test_ap_ex_requires_a_universal_function():

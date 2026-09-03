@@ -203,7 +203,20 @@ def main(argv=None) -> int:
                     help="report whether the working tree is clean and exit")
     ap.add_argument("command", nargs="*",
                     help="after --, the command to run per mutation")
+
+    # The command is split off *before* argparse sees it, because argparse
+    # cannot hold an option after a positional whose `nargs` is open —
+    # `mutate.py spec.json --only F8a -- pytest …`, the form this file's
+    # own docstring gives, was rejected as "unrecognized arguments" the
+    # first time a batch used it (`fixme.md` F196).  Everything after the
+    # first bare `--` is the command, verbatim, whatever its shape.
+    argv = list(sys.argv[1:] if argv is None else argv)
+    command: list[str] = []
+    if "--" in argv:
+        cut = argv.index("--")
+        argv, command = argv[:cut], argv[cut + 1:]
     args = ap.parse_args(argv)
+    args.command = command
 
     if args.check:
         out = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT,
