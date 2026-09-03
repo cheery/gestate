@@ -114,6 +114,7 @@ session inferred.
 - [The andon](gestate-andon.md) — `tools/andon.sh` rings the sound card to reach Henri while he rests; capped at three, batch the questions first
 - [The fence, and what it denies me](gestate-hardening.md) — `tools/sandbox.sh --check` must say *the fence is up*; the deny-list blocks a session's own `sudo` on purpose
 - [The ungated-fixes sweep](gestate-ungated-sweep.md) — 62 entries, five a session capped; the plan is `card:ungated-fixes.md`
+- [A measurement in flight outlives the sitting](a-measurement-in-flight-outlives-the-sitting.md) — closing the sitting ends the work, not a run already going; kill it only when the tree must change under it, and by pid
 - [Subagents are his call](henri-subagents.md) — propose one and wait; and none is spawned without a way to raise a question and be answered
 - [The blind three-model test](gestate-blind-model-test.md) — clones not worktrees, keep the mapping out of the shared parent; haiku won on form and was wrong on F153
 - [House rules on authorship](gestate-house-rules-authorship.md) — `spec/author.md` is his to keep; gemba is opt-in
