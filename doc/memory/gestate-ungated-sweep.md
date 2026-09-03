@@ -26,4 +26,14 @@ repair`* are honourable verdicts; a quota answered by inventing tests is
 the failure this is designed against. Henri picks three verdicts at
 random each Friday and disagrees with them.
 
+**Two rules the batches earned, and they are a pair.** *A named test is
+not yet a gate* (batch 2): read the entry against the test's name and you
+get it wrong two times in five, so put the defect back and watch the test
+go red. *A green is not yet a gap* (batch 12): a mutation nothing noticed
+has two readings — the branch ran and no test looked, or **the branch
+never ran at all** — so before writing `none`, mutate the branch to
+*raise* and see whether anything reaches it. That probe changed two of
+five verdicts in one batch: F15's greens were tautologies, F8's was a
+real gap.
+
 See [[gestate-board-goal]] and [[test-what-a-person-would-do]].
