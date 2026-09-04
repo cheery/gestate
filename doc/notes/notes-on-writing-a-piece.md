@@ -481,6 +481,53 @@ velocity floats (`W4`) nor its total absence of breath explains the
 difference.  It was interval motion and speed, and nothing else the
 numbers could see.
 
+### The injection, and the first check that went ahead of the ear
+
+*Henri: "Can you do one thing?  transpose the pitch sequence of
+maybe-locrian and inject it directly into the piece."*  His line, +8 so
+its tonic lands on G, over the piece's own harmony, bass and voice.
+
+**And before he listened, the check said what would happen.**  His line
+and the harmony under it use *complementary halves of the mode*:
+
+| | notes used |
+|---|---|
+| his line, transposed | C, E♭, F, G, A♭ |
+| the chord beneath it | B♭, D♭, G |
+
+**G is the only note they share.**  The chord is built on the ♭5 his
+melody deliberately avoids — D♭ is in nearly every chord written here
+and appears nowhere in his line.  The same disagreement as §H6, now
+stacked vertically: *the session read locrian as the tritone and he
+read it as the ♭2*, and neither is wrong alone.
+
+*The prediction, written before he played it:* it will hold in the four
+bars whose chord is G–B♭–D♭ and fall apart at bars 14 and 16, and
+throughout there will be a sense of the accompaniment **arguing rather
+than supporting**, because it insists on the note he left out.
+
+*His verdict:* **"yes.  the accompanient doesn't support the melody
+now."**
+
+**That is one pre-registered success, and it is worth exactly one.**
+§"The result that bounds the whole exercise" says the proposal — *a box
+that answers a musical question about the span it covers* — was a
+hypothesis with four anecdotes behind it, all written after the ear had
+spoken.  This is the first check written **before**, and it named the
+fault.  n = 1, and the honest weight of that is: the shape of the
+evidence is now right, and there is one of it.
+
+**And he could not finish it either.**  *"I could actually try that in
+reaper as well... nope.  I'm not figuring it out this time."*  Which is
+where the piece stops: `arc.ges` stands at pass five, his line lives in
+`examples/midi/maybe-locrian.mid`, and the injection was an experiment
+and not folded in — it is his melody and not this piece's.
+
+*The fix nobody has tried:* rebuild the chords on the ♭2 as well — A♭
+over the G pedal instead of G–B♭–D♭ — so the harmony and the melody
+hold the same theory of the mode.  Left undone, deliberately, because
+he stopped and the log is worth more finished than the piece is.
+
 ---
 
 ## What the two passes cost, in one place
