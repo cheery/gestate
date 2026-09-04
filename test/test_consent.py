@@ -53,7 +53,7 @@ NOT_A_PERSON = frozenset("""
     Kaizen Known Measured Mon Tue Wed Thu Fri Sat Sun Noted Offered
     Monday Tuesday Wednesday Thursday Friday Saturday Sunday His Her Their
     Opened Predicted Recommendation Reported Resolution Resolved
-    Shelved Shown Spent Status Steal Tried Unprompted Vacuous Verified
+    Shelved Shown Spent Status Steal Struck Tried Unprompted Vacuous Verified
     Written From The This That And But For When Where With Then Only
     Both Each Every All Not None Three Two One Four Five Six Seen
 """.split())

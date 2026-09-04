@@ -1,6 +1,9 @@
 # online — gestate, the audio production tool, reachable in a browser
 
-    status   doing — 2026-09-02, pieces A, B, B2 and C2 landed; C1 stood down for C4 — the song needs no compiler, measured — §"The pieces"
+    status   doing — 2026-09-04, pieces A, B, B2 and C2 landed; C is
+             settled — C3 killed, **C1 struck with Pyodide at Henri's
+             word**, C4 a finding with no runner, C2 what the page does
+             — §"The pieces"
     because  "somebody who has never read this repository should be able
              to open a file, hear it, change it, and hear the change
              without being told anything first" (vision.md, 2026-08-16)
@@ -250,7 +253,34 @@ measured: `gestate/` imports nothing outside the standard library on
 that path (`mido`, `sounddevice`, `pygame`, `cairosvg` are the host's).
 `graph_of` on twinkle is 1.2 s native.  Three readings:
 
-* **C1 — the front end in the browser, and a direct wasm emitter.**
+* **C1 — the front end in the browser, and a direct wasm emitter.
+  Struck 2026-09-04, and what is struck is Pyodide.**  *Henri, at this
+  terminal:* **"strike out the C1 choice so that it's not proposed
+  anymore"** — and, when the session read it as C1's emitter alone,
+  **"or precisely, the pyodide choice."**  So the refusal is not a
+  reading's, it is a mechanism's: **no Python runtime runs in the tab**,
+  in this reading or any other.  That is wider than C1 and it is meant
+  to be, because C1 is only where the mechanism was first written down.
+
+  *Why a strike and not a third weighing.*  It had stood on *not now
+  with a trigger* since 2026-09-02, and *not now* is what a session
+  reads as an invitation — on 2026-09-04 one that had read this card
+  opened the sitting by proposing Pyodide in every page as the next
+  work, two days after the same cost had been weighed and declined.
+  That is the failure a deferral has and a refusal does not.
+
+  *What the tree does instead*, and it is not a gap: the browser gets
+  **the tree's own compiled artefacts**.  `card:audiovisual-gallery.md`
+  landed day one of exactly that on 2026-09-03 — `crust` and the
+  panel's walk in `wasm32`, 221 KB, **zero imports**, the page supplying
+  the machine nothing.  Against C1's 10 MB and a second language's
+  whole runtime, that is the comparison the strike rests on, and it is
+  measured on both sides rather than argued.
+
+  **The measurement below is kept**, because a refusal carrying the
+  numbers that made it is worth more than the refusal, and because it is
+  the answer to anyone who asks whether it was tried.
+
   Pyodide runs the Python front end (about 10 MB once, and Python
   under wasm is slower, so *suspected* four to six seconds per change
   until measured); the compiler cannot come along, so the graph would
@@ -292,12 +322,18 @@ that path (`mido`, `sounddevice`, `pygame`, `cairosvg` are the host's).
   forever' and I kind of feel pushback.  Is it important enough to do
   it?"*  Not yet, and what says so is **C4** below: the edits an emitter
   would serve are the instrument's, and the song's need no compiler at
-  all.  So C1 stands on *not now* with a trigger a person's hand pulls
+  all.  So C1 stood on *not now* with a trigger a person's hand pulls
   rather than a guess — somebody meets C4's refusal because what they
   wanted to change was an envelope.  A go-ahead on *"change it"* is not
   a go-ahead on a second backend, and the cheap reading delivers the
   first without buying the second.  *Henri, 2026-09-02: "go with your
   recommendation."*
+
+  **That trigger is cancelled by the strike, 2026-09-04**, and it is
+  worth saying which part died with it.  A person meeting C4's refusal
+  because they wanted to change an envelope is still a real event and
+  still worth hearing about; what it no longer opens is *this* answer.
+  Somebody who reports it is reporting a want, not pulling a lever.
 * **C2 — every literal is a knob.**  No recompile: the page turns the
   numbers in the file into control slots and a change is a slot write,
   which A and B already do.  Cheapest by far.  **Killed if** "change
@@ -370,14 +406,36 @@ that path (`mido`, `sounddevice`, `pygame`, `cairosvg` are the host's).
   wrong against the same 3 s line C1 was held to — or if the honest
   refusal is what a person meets first, which is C1's trigger arriving.
 
+  **What the Pyodide strike does to C4, 2026-09-04, and it is worth
+  separating.**  C4 is two things: a *finding* and a *delivery*.  The
+  finding — the table above, the boundary between the song and the
+  instrument, bit-identical modules under four edits a person would
+  actually make — is a fact about the compiler and survives untouched;
+  it is what killed C1's emitter and it keeps doing that.  The delivery
+  was *Pyodide re-runs the front end*, and the strike takes it: parse,
+  typecheck, extract and `bake` are Python, no Python runs in the tab,
+  and there is no other runner in the tree today.  **So C4 has a
+  standing result and no way into a page**, which is not the same as
+  being wrong and is not the same as being workable.  What it would
+  need is the front end reaching `wasm32` the way `crust` did — a
+  different and much larger question than this card, and nobody has
+  asked it.  Written down as the state, not as a proposal.
+
 * **C3 — a compile server.**  Already killed by question 2: a process,
   a bill, a fence, and a laptop that cannot stay online.
 
-C is where the card's size lives, and picking between C1 and C2 is not
-a session's call: C2 narrows the `because` ("change it") and C1 adds a
-backend the tree keeps.  *C4 is what the measurement of 2026-09-02 put
-between them* — it narrows nothing a person would notice and keeps
-nothing, which is why it is the one taken.  A and B are workable today, and together they
+C was where the card's size lived, and **as of 2026-09-04 it is
+settled**: C3 killed by question 2, C1 struck with Pyodide, C4 a
+standing finding with no runner, and **C2 is what the page does** —
+shipped 2026-08-30, a slider beside each declaration, five pieces.  So
+*"change it"* in the tab means the instrument's knobs and not the text,
+and a page says which rather than implying more.  Reopening C is a
+question about the front end reaching `wasm32`, and it is nobody's
+today.
+
+*Kept as it was written, because a settled section still has to show
+its working:* C2 narrows the `because` and C1 added a backend the tree
+keeps.  A and B are workable today, and together they
 are worth having under either reading of C — a page that plays a file
 and lets nobody change it is still the stranger test's *way in*, and it
 is the half of run two that cost fifteen minutes.

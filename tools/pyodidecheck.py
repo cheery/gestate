@@ -5,6 +5,18 @@
     python tools/pyodidecheck.py                       # twinkle, four edits
     python tools/pyodidecheck.py examples/audio/bell.ges
 
+**The answer this measured is struck, 2026-09-04.**  Henri, at the
+terminal: *"strike out the C1 choice so that it's not proposed
+anymore"* — *"or precisely, the pyodide choice."*  **No Python runtime
+runs in a gestate page**, and this file is the evidence for a decision
+rather than a route to one: if you are reading it while looking for a
+way to put the front end in a browser, the answer is
+`card:online.md` §"The pieces", C1, and the direction the tree took
+instead is `card:audiovisual-gallery.md` — the tree's own artefacts
+compiled for `wasm32`, 221 KB with no imports, against the 10 MB this
+tool loads.  It is kept because a refusal carrying its numbers is worth
+more than the refusal, and it still runs.
+
 `card:online.md` piece C1 asks one number before anything is built:
 how long a *change* to a file costs when gestate's own Python front end
 (parse → typecheck → extract → emit) runs in the browser.  This zips
