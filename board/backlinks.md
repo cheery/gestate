@@ -1,6 +1,6 @@
 # backlinks — what I am reading is cited by things I cannot see
 
-    status   open
+    status   doing — 2026-09-04, the command, the hook and the lamp landed; the install is Henri's — §"Day one, done"
     because  "When I open a memory file, an instrument, or a spec
              section, nothing tells me who cites it.  The tree's own
              record says this is where sessions actually fail.  A
@@ -255,6 +255,57 @@ next time a session rebuilds an instrument that existed, or misses a
 memory it was standing next to, ask whether a backlink was in front of
 it at the time.  That is the only measurement of the `because`, and it
 runs on the next failure, not on this build.
+
+## Day one, done — 2026-09-04
+
+**The check that decided reading 5 came back yes.**  Claude Code's hook
+reference, read the same morning: for a `PostToolUse` hook,
+*"`additionalContext` is a string that Claude Code adds to the model as
+a system message after the tool response"* — and plain stdout is *not*
+shown for that event, which is why the hook prints JSON and nothing
+else.  So the hook is alive and the foot stays unbuilt.
+
+**What landed.**
+
+- `tools/backlinks.py` — the command, over the five citer kinds;
+  `--hook`, `--check`, `--install`, `--time`.  A cache under
+  `$XDG_CACHE_HOME` keyed by each file's size and mtime.
+- `test/test_backlinks.py` — one small tree per citer kind with a
+  citer known in advance, the hook contract by subprocess, the cache's
+  rescan-only-what-moved, a known answer in this tree, and the budget.
+- `doc/instruments.md` §"`tools/backlinks.py` — who cites this?" and a
+  line in the instruments memory — the file this card says a session
+  fails to reach, so it now names the thing that would have shown it.
+- `tools/pre-commit.sh` — a lamp that says whether the hook is
+  installed and never refuses a commit, because the install is behind
+  the leash and a red a session cannot clear gets muted.
+
+**Three defects the known answers found and reading did not**, which
+is the argument for validating that way: a card naming its own id was
+counted as its own citer; a line naming a card by id *and* by basename
+came back as two citations; and a target reached through a symlinked
+directory did not resolve.  All three fixed the same hour.
+
+**The budget, measured.**  `python tools/backlinks.py --time`:
+
+| walk | cost |
+|---|---|
+| cold, cache dropped, 692 files | 2.2 s |
+| warm, in process | 20 ms |
+| one hook call, wall clock, interpreter included | 76 ms |
+
+The first version walked the tree twice and warmed at 83–179 ms, over
+the tenth of a second; one scandir pass that keeps the stat brought it
+to 20.  The test holds the warm walk under a quarter second, loose
+enough that a loaded machine does not make it lie.
+
+**What is left, and whose.**  The install is Henri's — three lines
+under `"hooks"` in `.claude/settings.json`, printed by
+`python tools/backlinks.py --install`; the pre-commit lamp says when it
+is in.  And the measurement of the `because` runs on the next failure,
+not on this build: the next time a session rebuilds an instrument or
+misses a memory it was standing next to, ask whether a backlink was in
+front of it.
 
 ## What the suite can hold
 

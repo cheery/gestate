@@ -56,6 +56,12 @@ The ones easiest to forget you have:
   one** — `stop "why"` is open, `reset` refuses under `CLAUDECODE`, and the
   one moment to call `stop` is when the thing he came for is done, never
   when a session judges he has had enough.  Built 2026-08-21 at his ask.
+- **`tools/backlinks.py <path | card:… | F123 | [[name]]>`** — who cites
+  this?  The tree's citations run one way and the reader of a target
+  cannot see who leans on it; this is the inverse index, and as a
+  `PostToolUse` hook on `Read` it arrives unasked after every file, once
+  Henri has installed it (`--check` says).  Built 2026-09-04,
+  `card:backlinks.md`.
 - **`tools/gapcheck.py`** — the reader for the sitting log: how many
   sittings each candidate silence-gap would have cut the same days into.
   Built 2026-08-22 at his ask, because `GESTATE_LIMIT_GAP=30` is a number

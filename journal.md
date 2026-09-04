@@ -721,3 +721,38 @@ been chosen by precedent and reversed on being asked *why*.
 `board/README.md` for the new card put `doc/method.md` behind by
 five, and the gate refused the commit until the number was fixed —
 the third time that check has fired on the day it was needed.
+
+## Backlinks, day one — the check came back yes, and the known answers found three defects — 2026-09-04
+
+`card:backlinks.md`'s day one, the same sitting the card was opened in.
+The first thing it owed was the check that decided its default: can a
+`PostToolUse` hook hand text back into a session's context.  Claude
+Code's hook reference says yes for exactly that event —
+`hookSpecificOutput.additionalContext` becomes a system message after
+the tool response — and says plain stdout is *not* shown there, which
+settled the output shape before a line was written.
+
+**Built:** `tools/backlinks.py`, the inverse of `test_citations.py`'s
+walk over five citer kinds, cached by size and mtime; `--hook`,
+`--check`, `--install`, `--time`.  `test/test_backlinks.py` validates
+it the way `tools/dangling.py` is validated, against cases whose answer
+is known before the tool runs, and that found three defects in an hour
+that reading the code had not: a card counted as its own citer when it
+named its own id, one line naming a card by id and by basename came
+back twice, and a symlinked directory did not resolve.  The budget was
+missed first — the walk ran twice and warmed at up to 179 ms against a
+tenth of a second — and met at 20 ms with one scandir pass.
+
+```sh
+python tools/backlinks.py --time card:ungated-fixes.md      # cold 2.2 s, warm 20 ms
+time (echo '{"tool_name":"Read","tool_input":{"file_path":"'$PWD'/gestate/host.c"}}' \
+      | python tools/backlinks.py --hook >/dev/null)         # 76 ms wall
+```
+
+**What a session may not do, and did not.**  The install line goes in
+`.claude/settings.json`, which the leash denies, so the hook is built,
+tested and documented and not installed.  `tools/pre-commit.sh` prints
+its state as a lamp — the memory index check beside it is a gate, and
+this one is deliberately not, because a red that only Henri can clear
+is a red that gets muted.  Three lines, printed by `--install`, are
+his.

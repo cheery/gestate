@@ -122,6 +122,10 @@ if "$PY" tools/suite.py --gates; then
         echo >&2 "            $PY tools/memoryindex.py"
         exit 1
     }
+    # A lamp, not a gate: the install is behind the leash and is Henri's,
+    # and a red a session cannot clear is a red that gets muted
+    # (card:backlinks.md).  So it prints and never refuses.
+    "$PY" tools/backlinks.py --check || true
     exit 0
 fi
 

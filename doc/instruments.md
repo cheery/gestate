@@ -437,6 +437,29 @@ that way after changing it: all three bugs this detector has had were
 found by checking it against a case whose answer was already known, and
 none of them by reading it.  Its range prints under every run.
 
+### `tools/backlinks.py` — who cites this?
+
+    python tools/backlinks.py PATH            every place that cites a file
+    python tools/backlinks.py card:<name>.md  … a card, F123 a defect, [[name]] a memory
+    python tools/backlinks.py --check         is the Read hook installed
+
+Every citation in the tree runs one way, and a session reading
+`gestate/host.c` cannot see that a card and a memory lean on it.  This
+is the inverse index — the walk `test_citations.py` makes with the
+pairs turned around — over five kinds of citer: `§"…"` passages,
+`card:` ids, `[[name]]` memory links, F-numbers, and a file named by
+path or unique basename.  `card:backlinks.md` is why, and why it is a
+hook rather than a generated block: the failure happens while reading
+source and spec, where a block cannot go.
+
+**It arrives unasked, as a `PostToolUse` hook on `Read`**, handing the
+citers back as context after the file — silent when there are none,
+never fatal, and under a tenth of a second warm because the index is
+cached by size and mtime.  The install line lives in
+`.claude/settings.json`, which the leash denies a session, so it is
+Henri's: `--install` prints it and the pre-commit lamp says whether it
+is there.  `tools/dangling.py` above is the other direction.
+
 ### `tools/suite.py` — the whole suite, gates first
 
 The gates are seconds-long structural checks that a working session
