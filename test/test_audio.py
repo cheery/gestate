@@ -59,6 +59,13 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # `substrate.ges` has none: what it *shows* is the point, and a
             # buffer of the sound it makes would not check that.
             "spectrum.ges", "envelope.ges",
+            # The gallery's readout, and the same reasoning twice over:
+            # what it *shows* is the point, and it is an endless seeded
+            # piece besides, so a golden is impossible by construction.
+            # What it draws is held to `gestate/gui.py` in a real browser
+            # and under `wasmtime` (`test_online.py`, `test_gallery.py`),
+            # which is a sharper oracle than a buffer of its sound.
+            "mirror.ges",
             # A soundscape: no score, no notes, no keyboard — every input
             # moved by an `Envelope` read against `elapsed`.  No golden for
             # the reason the pieces have none: ninety seconds re-rendered

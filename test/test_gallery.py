@@ -200,8 +200,8 @@ def _rgb(word: int) -> str:
 
 #: Every piece in `examples/audio/` that declares a substrate — the six
 #: `card:audiovisual-gallery.md` counted, and the row it turns on.
-PIECES = ["chopin.ges", "envelope.ges", "lantern.ges", "scoped.ges",
-          "spectrum.ges", "substrate.ges"]
+PIECES = ["chopin.ges", "envelope.ges", "lantern.ges", "mirror.ges",
+          "scoped.ges", "spectrum.ges", "substrate.ges"]
 
 
 def _export(name: str) -> dict:

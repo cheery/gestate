@@ -338,6 +338,28 @@ silent, `substrate`'s peak above zero, `scoped`'s 128 points not flat.
 | pages that draw | 6 |
 | the shared shell | 221 KB, no imports, fetched by those 6 |
 
+**And a piece written for the gallery — `mirror.ges`, the same day.**
+*Henri:* **"Lets make some nice demo that uses canvas for something
+interesting and effective, then plug it to gh-pages.  Specifically
+meant to show on those pages."**  So: the only file that carries all
+three of the host's readings at once — a scope's trace, the eight
+bands and a peak — where `lantern` had the peak, `spectrum` the bands
+and `scoped` the trace and no file had ever had all three.  Which makes
+it the piece where a broken feed shows.
+
+**It has no faders, and that is the design.**  On a page a fader moves
+the picture and not the sound, so a demo built around one would have
+its centrepiece do nothing.  Every pixel of this face is something the
+instrument said.  Both halves are gates: the three feeds are asserted
+present, and so is the *absence* of any attachment, because adding a
+control to it later would look like an improvement.
+
+The sound is shaped for the face rather than the other way round — the
+lead's filter opens with its own note, so a phrase climbing the scale
+walks the bank instead of lighting one bar and holding it.  **Seven
+pieces now declare a substrate**, against the six the table above
+counted on 2026-09-02.
+
 **What is still not wired, and it is the next row not an oversight.**
 A touch on the canvas moves the *picture* and not the sound: the
 gesture's writes go back in on the next tick, and `CanvasProgram`'s

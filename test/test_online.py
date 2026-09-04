@@ -332,8 +332,8 @@ def test_a_knob_turned_while_the_page_plays_reaches_the_sound_on_the_port():
 #: The six pieces in `examples/audio/` that declare a substrate.  Kept
 #: here rather than imported from `test_gallery.py` for that file's own
 #: stated reason: neither test's helpers become the other's contract.
-DRAWS = ["chopin.ges", "envelope.ges", "lantern.ges", "scoped.ges",
-         "spectrum.ges", "substrate.ges"]
+DRAWS = ["chopin.ges", "envelope.ges", "lantern.ges", "mirror.ges",
+         "scoped.ges", "spectrum.ges", "substrate.ges"]
 
 needs_shell = pytest.mark.skipif(webshell.missing() is not None,
                                  reason=webshell.missing() or "")
@@ -563,7 +563,9 @@ def test_the_instrument_reaches_the_picture(name, want):
         online.generate(AUDIO_DIR / name, site)
         got = _metered(site, FRAMES)
     assert got["reports"] > 0, f"{name}: the worklet never reported"
-    last = got["last"]
+    # **The loudest report, not the final one.**  A render ends where it
+    # ends, and that may be between notes — the page says why.
+    last = got["loudest"]
     assert last is not None and want in last, f"{name}: no {want} in {last}"
     if want == "bands":
         values = list(last["bands"].values())
@@ -652,3 +654,35 @@ def test_no_piece_is_cropped_by_the_box_it_is_drawn_in(name):
         f"{name} is {min(xs)}..{max(xs)} wide against a {online.CANVAS_W} box")
     assert min(ys) >= -(online.CANVAS_H >> 1) and max(ys) <= online.CANVAS_H >> 1, (
         f"{name} is {min(ys)}..{max(ys)} tall against a {online.CANVAS_H} box")
+
+
+@needs_tools
+@needs_shell
+def test_the_gallery_piece_carries_every_reading_and_no_controls():
+    """`mirror.ges` is what the gallery is for, and both halves of that
+    are properties rather than taste.
+
+    **Every reading**: it is the only file declaring all three of the
+    host's channels at once — a trace, the eight bands and a peak — so
+    if one of the three feeds breaks, this piece is where it shows.
+
+    **No controls**: a fader on a page would move the picture and not
+    the sound, because `CanvasProgram`'s bridge is the plugin's and the
+    tab has none.  A demo whose centrepiece did nothing would be worse
+    than no demo, so this file has no attachments at all — and that is
+    checked, not trusted, because adding an `onTouchY` to it later would
+    look like an improvement.
+    """
+    from gestate.audiospans import located
+    from gestate.gui import Substrate, _attachments
+
+    src = (AUDIO_DIR / "mirror.ges").read_text()
+    _sites, graph = located(src, rate=online.RATE)
+    meters = online.canvas_of(src, graph)["meters"]
+    assert meters["peak"] is True
+    assert meters["bands"] == list(range(8))
+    assert [s["label"] for s in meters["scopes"]] == ["trace"]
+
+    canvas = Substrate(src, online.RATE)
+    assert list(_attachments(canvas.signal.value, canvas.state)) == [], (
+        "mirror.ges grew a control; on a page it would do nothing")

@@ -137,6 +137,7 @@ Running it needs `pygame`.  `gestate.gui.scenes()` does not, which is why
 | `blues.ges` | twelve bars in A, shuffled by arithmetic — the form written as the three lines it is, and a drummer who is a function of the clock |
 | `perjantai.ges` | a **Friday blues** in E for a visitor: three choruses — the band, a quiet one with the comp out, and a stop-time one — and a tag; loud only counts against quiet |
 | `tiksi.ges` | an instrumental in the shape of a lyric: a march in couplets, four observations as four gestures, a refrain in **7/8**, a **7/4** riff whose pitches group the bar, a humppa on a visitor's beat, and one hit to end.  Every section carries its line as a comment |
+| `mirror.ges` | **a piece that watches itself** — the only file carrying all three readings the host sends a canvas at once: a scope's trace, eight spectrum bands and a peak.  Written for the gallery (`card:audiovisual-gallery.md`), so it is a *readout* and has no faders on purpose — in a browser a fader would move the picture and not the sound |
 | `lantern.ges` | **all three halves at once** — an unfolding seeded score, a compiled synth, and a canvas with two faders, a meter, and `label` captions naming them.  The one to export as a plugin (`--gui`) if you want to see the whole window doing its job |
 
 ```
