@@ -313,6 +313,88 @@ it.
 
 ---
 
+## He went and did it, and it is the best evidence here — 2026-09-04
+
+*`examples/midi/maybe-locrian.mid` — his, made in Reaper on a licensed
+copy, from a piano roll, nothing copied with intent.  Named* **maybe**
+*by him, and the name is load-bearing.*
+
+**How he got there matters as much as what he got.**  *"this was
+something I produced in DAW with a piano roll.  So I sort of felt it
+through what I am supposed to do and knew how to do it with a pianoroll
+alone."*  He reached it **by feel**, with a piano roll and no theory,
+after four passes in which the session reached for theory and chose the
+wrong material.  That is a datum about what an editing surface is *for*
+and it is the opposite of what the session would have predicted.
+
+**What the file does, measured** — and stated as measurement, because
+he does not claim it is locrian and neither does this:
+
+| | his 57 notes | the session's locrian section |
+|---|---|---|
+| tonic as a share of notes | **39%** | 9% |
+| moves touching the ♭5 | 4 | **8** |
+| moves touching the ♭2 | **10** | 6 |
+| harmony | **none — monophonic** | three voice-led parts |
+
+**The session built its locrian around the ♭5 and he barely uses it.**
+The tritone was in nearly every bar as *"the mode's own wound"*; his
+line uses it four times in fifty-six moves.  What his line does instead
+is **B↔C, the ♭2 against the tonic, ten times**, with `B→B` and `E→B`
+eight times each — it keeps returning.  Which is the Arabic music he
+found while reading: **maqam leans on the semitone above the tonic**,
+and the tritone is incidental.
+
+*So the session's analysis was right about why locrian is unstable and
+wrong about what to do with it.*  The missing perfect fifth explains
+the **problem**; it is not the **material**.  And he established the
+mode with one line and nothing under it, which the session had said
+required harmony.
+
+### And whether it is locrian at all — the evidence splits
+
+Same seven notes as E phrygian; the mode is decided by which note feels
+like home.
+
+| points to **B locrian** | points to **E phrygian** |
+|---|---|
+| B is the most frequent note, 22 of 57 | E **begins** it |
+| B is the most returned-to | E **ends** it |
+| | E is the **lowest** note |
+| | the five longest-held notes are **all E** |
+
+Every marker on E's side is a *structural* tonic cue — first, last,
+lowest, longest — and frequency is the weakest of the lot.  **The
+session's reading, offered as a reading:** he aimed at B locrian and the
+piece's own structure argues E phrygian.
+
+**Which is not a failure but the phenomenon itself.**  Locrian is hard
+because its tonic cannot hold the argument, and here is a case where
+the composer aiming at it, working by hand, produced something whose
+every structural marker points at the neighbouring mode.  His hands
+reached for the note that wanted to be home — the same thing that
+happens to a listener, and why the mode barely exists in the
+repertoire.
+
+### Two over-readings, recorded because they are a pattern
+
+The session read **the missing D** as a deliberate practice — no third,
+so the mode cannot collapse — and even withdrew a correction on the
+strength of it.  *Henri:* **"that D was really my mistake of losing.
+it's funny coincidence that I didn't use it."**  It was a slip, twice.
+
+And it treated a file called **maybe**-locrian as the reference against
+which to score the session's own attempt, when its author had said in
+the filename that he was unsure.
+
+**Both are the same failure**, and it is the one that put an untrue
+comment on bar 16: *asserting more than the evidence carries.*  A
+reader of anything the session writes here should know it runs that
+way, and that the numbers in this file are worth more than the
+sentences around them.
+
+---
+
 ## What the two passes cost, in one place
 
 | | pass 1 | pass 2 |
