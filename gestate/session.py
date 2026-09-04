@@ -2253,6 +2253,49 @@ class Session:
                 again(text)
         return said
 
+    def do_mark(self, region: str, was: str, manners: str) -> str:
+        """Write how one note of a score box is to be played.
+
+        **`transpose`'s path, for the other field** — the descent says
+        where the note is written, the event says which number is its
+        manner, `marked` replaces that atom's characters and reads the
+        file back first.  One edit through the same door, so it is one
+        undo.
+
+        What it does *not* do yet is sound.  `spec/annotations.md` asks
+        for the mark to be heard as it is written, stopped or playing,
+        and the mechanism for that does not exist: `audition` re-applies
+        the whole file rather than playing one note, and `play_note`
+        plays a bare key with no payload and so cannot carry a manner.
+        So this follows `transpose` exactly — heard while something
+        plays, redrawn when nothing does — and the preview is named as
+        the slice's remaining work rather than faked.
+        """
+        from .scorebox import RefusedError, marked, note_of
+
+        places = getattr(self.bench, "note_regions", None) or {}
+        found = places.get(region)
+        if found is None:
+            return f"mark: no score box region called `{region}`"
+        roll, hand = found.roll, found.hand
+        try:
+            note = note_of(roll, hand, int(was))
+            text, said = marked(self._source(), roll, note, int(manners))
+        except RefusedError as exc:
+            return f"mark: {exc}"
+        if not self.view.replace(text):
+            return "mark: nowhere to put it"
+        if getattr(self.bench, "playing", False):
+            hear = (getattr(self.bench, "audition_soon", None)
+                    or getattr(self.bench, "audition", None))
+            if hear is not None:
+                hear(text)
+        else:
+            again = getattr(self.bench, "redraw", None)
+            if again is not None:
+                again(text)
+        return said
+
     # -- the text ------------------------------------------------------
 
     def do_undo(self) -> str:

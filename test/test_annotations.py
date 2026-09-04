@@ -191,3 +191,108 @@ def test_a_staccato_note_is_drawn_with_a_dot_and_a_plain_one_is_not():
     assert "% 2 == 1" in text, "the picture does not decode the manner set"
     rows = [l for l in text.splitlines() if l.strip().startswith("__nb_rows")]
     assert rows, "no row listing in the generated picture"
+
+
+# ── the gesture — `spec/annotations.md` §"The gesture" ──────────────────────
+
+#: `marked.ges` writes `line m` and calls it with `Plain` and
+#: `Staccato`, so the manner is a *parameter* and no note carries an
+#: atom for it — which is the right way to write that piece and the
+#: wrong shape for a gesture to bite on (§"What a written manner
+#: costs").  So the manners are written out here, note by note.
+WRITTEN = """written : [: Tone :]
+written = '(Tone 0.9 0 0) ++ '(Tone 0.9 1 0) ++ '(Tone 0.9 2 1) ++ '(Tone 0.9 3 1)
+       ++ '(Tone 0.9 4 0) ++ '(Tone 0.9 3 2) ++ '(Tone 0.9 2 1) ++ '(Tone 0.9 1 0)
+
+score = written >>= voices.bow"""
+
+
+def _written_out() -> tuple:
+    from gestate.scorebox import asks as box_asks, build_rolls
+
+    source = MARKED.read_text().replace(WHOLE, WRITTEN) + "\nnotes score\n"
+    return source, build_rolls(source, box_asks(source), 44100, 0)[0]
+
+
+def test_marking_a_note_changes_one_atom_and_nothing_else():
+    """Byte-exact, which is the tier-one invariant `transpose` set.
+
+    One atom's characters are replaced; no reflow, no reprint, no
+    reparse-and-print.  So the diff of a mark is one number and text
+    undo puts it back.
+    """
+    from gestate.scorebox import marked
+
+    source, roll = _written_out()
+    note = next(i for i, e in enumerate(roll.events) if e[5] == 0
+                and len([a for a in roll.leaves[e[2]].atoms if a[3] == 0]) == 1)
+    text, said = marked(source, roll, note, 1)
+    before, after = source.splitlines(), text.splitlines()
+    changed = [i for i, (a, b) in enumerate(zip(before, after)) if a != b]
+    assert len(changed) == 1, f"{len(changed)} lines moved, not one"
+    assert len(before) == len(after), "the file changed length"
+    assert "staccato" in said, said
+
+
+def test_the_margin_says_the_marks_by_name_and_not_by_number():
+    """A number is what the file holds; it is not what a margin says.
+
+    `3` is a staccato accent, and a person reading a transcript should
+    not have to decode a bitmask to know what they did.
+    """
+    from gestate.scorebox import _manner_words
+
+    assert _manner_words(0) == "plain"
+    assert _manner_words(1) == "staccato"
+    assert _manner_words(3) == "staccato + accent"
+    assert _manner_words(7) == "staccato + accent + portamento"
+
+
+def test_a_manner_the_box_cannot_tell_apart_is_refused_not_guessed():
+    """The measured hazard, held as a refusal.
+
+    A manner is a small number and so is a degree, so `'(Tone 0.9 0 0)`
+    has two atoms equal to `0`.  **A guess here would write the wrong
+    field of the right note** — the worst kind of wrong, because the
+    file still parses and the piece still plays.  So it refuses with a
+    sentence, and `spec/annotations.md` §"What a written manner costs"
+    carries the open question about finding it by position instead.
+    """
+    from gestate.scorebox import RefusedError, marked
+
+    source, roll = _written_out()
+    note = next(i for i, e in enumerate(roll.events)
+                if len([a for a in roll.leaves[e[2]].atoms if a[3] == e[5]]) > 1)
+    with pytest.raises(RefusedError) as caught:
+        marked(source, roll, note, 1)
+    assert "cannot tell the manner" in str(caught.value)
+
+
+def test_a_note_whose_payload_has_no_manner_is_refused_rather_than_rewritten():
+    """The gesture replaces and never adds.
+
+    Adding a field moves every character after it, which the tier-one
+    invariant forbids — so a payload with nothing to change says so.
+    `marked.ges`'s own `line m` form is exactly this case.
+    """
+    from gestate.scorebox import RefusedError, asks as box_asks, build_rolls, marked
+
+    source = MARKED.read_text() + "\nnotes score\n"
+    roll = build_rolls(source, box_asks(source), 44100, 0)[0]
+    with pytest.raises(RefusedError) as caught:
+        marked(source, roll, 0, 1)
+    assert "no manner field" in str(caught.value) or "not written" in str(caught.value)
+
+
+def test_mark_is_a_command_or_it_is_not_a_capability():
+    """`spec/north_star.md`: *a gesture with no command behind it is a
+    capability that does not exist.*  So it is in `command.ges`, it
+    appears in the list, it carries its own sentence, and a gesture
+    records in the transcript as a command a replay can read back.
+    """
+    from gestate.session import Session
+
+    text = (ROOT / "gestate" / "command.ges").read_text()
+    assert "mark : Text -> Int -> Int -> Command" in text
+    assert "mark region was manners = Stated" in text
+    assert hasattr(Session, "do_mark"), "the command has no verb behind it"

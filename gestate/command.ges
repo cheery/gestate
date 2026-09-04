@@ -181,6 +181,28 @@ octave n = Stated
 transpose : Text -> Int -> Int -> Command
 transpose region was key = Stated
 
+#: Write how a note is to be **played** — `spec/annotations.md`.
+#:
+#: The manner is a *set of marks* in one number, so this takes the whole
+#: set rather than one mark: 0 plain, 1 staccato, 2 accent, 4 portamento,
+#: and a note may ask for more than one — 3 is a staccato accent, which
+#: any violinist writes on one head.  `audio.ges` names the bits.
+#:
+#: **Not a toggle**, for the reason `transpose` names both keys: a
+#: transcript that said *toggle* would mean a different thing the second
+#: time it was read, and a replay is the one reader that cannot ask.
+#:
+#: `region` and `was` name the note the way `transpose` does — the place
+#: and the key it sounds at — because it is the same note being named
+#: and a second way of naming one would be a second thing to be wrong.
+#:
+#: It refuses by name: a note the dice drew, a payload with no manner
+#: field to change, and — more often than `transpose` does — a line
+#: where the manner cannot be told from the rest of the note, since a
+#: manner is a small number and so is a degree.
+mark : Text -> Int -> Int -> Command
+mark region was manners = Stated
+
 #: A MIDI input on this machine.
 #:
 #: **Its own type so that the list can appear** — the rule `Named`,

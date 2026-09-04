@@ -357,6 +357,70 @@ through the bank it belongs to, both ways so the difference is what is
 heard.  It is the smallest thing that makes the mark's meaning audible
 at the moment it is written.
 
+## What a written manner costs — measured 2026-09-04
+
+*Building the gesture found two things the design had not, and both are
+about the difference between a mark that is **written** and a mark that
+is **computed**.*
+
+**A manner is often not written per note at all.**  `marked.ges` writes
+`line m` and calls it `line Plain` and `line Staccato`, so the manner is
+a *parameter* — the roll's leaves carry **no atom for it**, and there is
+nothing on the page for a gesture to replace.  That is not a fault in
+the file; it is the good way to write that piece.  It does mean the
+demo for the voice half is not a demo for the gesture half, which is the
+same lesson `pitch_atom` records: *the obvious rule refused four real
+files in five.*
+
+**And where it is written, it is ambiguous more often than a pitch.**
+`manner_atom` follows `pitch_atom` — the one literal in the leaf whose
+value *is* the note's manner — and a manner is a small number from a
+tiny range while a degree is a small number too.  On a written-out line
+of eight notes: **seven resolved, one did not**, and the one was
+`'(Tone 0.9 0 0)`, where the degree and the manner are both `0`.  Every
+plain note whose degree is `0` has this shape, so the rate is not
+incidental.
+
+*A positional tie-break was considered and not taken.*  The manner is
+usually the last field, so "the last atom" would resolve the case above
+— but `pitch_atom`'s docstring is the argument against inventing one:
+the positional rule was **measured** and refused four files in five.
+Deciding here what that measurement settled there would be trading a
+refusal a person can read for a wrong write they cannot see.
+
+**So the gesture replaces and never adds.**  A payload with no manner
+field is refused with a sentence rather than rewritten, because adding a
+field moves every character after it and the tier-one invariant is that
+one atom's bytes change and nothing else.
+
+**The question this leaves, and it is the next decision:** should a
+manner be findable by *position within the payload constructor* rather
+than by value?  The instance body says which field it is — `manner t =
+case t of Tone v d m -> m` names the third — so it is knowable by
+reading the instance, and the descent would have to carry constructor
+positions rather than a flat atom list.  That is real work and it is
+what would make marking a plain note reliable.  **Not taken here.**
+
+## What the preview costs — found 2026-09-04
+
+The slice asks for the mark to sound as it is written, stopped or
+playing, and §"The preview tone" took the decision that it should.
+**The mechanism does not exist**, which the building found rather than
+the design:
+
+* `audition` **re-applies the whole file** — `apply(text, save=False)`.
+  With nothing playing that starts the piece, which is not a preview of
+  a note, it is a performance.
+* `play_note` plays **a bare MIDI key** and carries no payload, so it
+  cannot sound a *manner* at all — the mark would be inaudible in the
+  one thing meant to demonstrate it.
+
+So `mark` follows `transpose` exactly for now: heard while something
+plays, redrawn when nothing does.  Sounding one note *through its own
+bank, with and without the mark* is a third path neither of the two
+above is, and it is named here as the slice's remaining work rather than
+approximated with one of them.
+
 ## Refusals, each with a sentence
 
 * **A payload that answers `Plain`** is not warned about; it has no

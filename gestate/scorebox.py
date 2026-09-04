@@ -852,6 +852,98 @@ def pitch_atom(roll: Roll, note: int) -> tuple:
     return hits[0]
 
 
+def manner_atom(roll: Roll, note: int) -> tuple:
+    """Where the note's manner is written: `(line, col, width, value)`.
+
+    **`pitch_atom`'s rule, and its refusals** — the one numeric literal
+    in the leaf whose value *is* the note's manner — because the two
+    gestures write the same kind of thing and a second rule would be a
+    second thing to be wrong.
+
+    **And it is ambiguous more often than the pitch is**, which is
+    measured rather than supposed: a manner is a small number from a
+    tiny range and a degree is a small number too, so
+    `'(Tone 0.9 0 0)` has two atoms equal to `0` and the box cannot tell
+    the manner from the degree.  On a written-out line of eight notes,
+    seven resolved and one did not (2026-09-04).  A tie-break on
+    position was considered and **not taken**: `pitch_atom`'s own
+    docstring says the positional rule refused four real files in five,
+    and inventing one here for the harder case would be deciding what
+    that one measured.
+
+    So this refuses, with the sentence, and `spec/annotations.md`
+    §"What a written manner costs" carries the open question.
+    """
+    _on, _off, k, _key, _vel, mark = roll.events[note]
+    leaf = roll.leaves[k] if 0 <= k < len(roll.leaves) else None
+    if leaf is None:
+        raise RefusedError("that note has no source region")
+    if leaf.chancy:
+        raise RefusedError(
+            f"that note was drawn, not written — the generator is on "
+            f"line {leaf.line}, and marking it is programming rather "
+            f"than a gesture")
+    if leaf.collapsed:
+        raise RefusedError(
+            f"this piece writes more regions than the box can hand out "
+            f"({MAX_LEAVES}), so the tail shares one — it still jumps "
+            f"to line {leaf.line} and cannot be marked")
+    hits = [a for a in leaf.atoms if a[3] == mark]
+    if not hits:
+        raise RefusedError(
+            f"this note's manner is not written on line {leaf.line} — "
+            f"a mark is written into the payload, and a note whose "
+            f"payload has no manner field has nothing to change")
+    if len(hits) > 1:
+        raise RefusedError(
+            f"line {leaf.line} writes {mark} more than once, so the box "
+            f"cannot tell the manner from the rest of the note")
+    return hits[0]
+
+
+def marked(source: str, roll: Roll, note: int, manner: int) -> tuple:
+    """`(text, said)` — the file with that note's manner written as
+    `manner`.  `transposed`'s contract, for the other field.
+
+    **Byte-exact**, and it *replaces* rather than adds: a note whose
+    payload carries no manner is refused above rather than rewritten,
+    because adding a field moves every character after it and the
+    tier-one invariant is that one atom's bytes change and nothing else
+    (`spec/north_star.md`).
+    """
+    line, col, width, value = manner_atom(roll, note)
+    lines = source.splitlines(keepends=True)
+    if not 0 < line <= len(lines):
+        raise RefusedError(f"line {line} is not in this file any more")
+    row = lines[line - 1]
+    if row[col:col + width] != _spelling(value):
+        raise RefusedError(
+            f"line {line} does not say {_spelling(value)} where the box "
+            f"thought — the file has moved under the picture")
+    if not isinstance(value, int):
+        raise RefusedError("that manner is written as a fraction, which "
+                           "is not a set of marks")
+    manner = int(manner)
+    lines[line - 1] = row[:col] + str(manner) + row[col + width:]
+    _on, _off, k, _key, _vel, was = roll.events[note]
+    voices = sum(1 for e in roll.events if e[2] == k and e[5] == was)
+    said = f"{_manner_words(was)} → {_manner_words(manner)} on line {line}"
+    if voices > 1:
+        said += f" — written once, played {voices} times"
+    return "".join(lines), said
+
+
+#: The manner set as a person reads it — the names `audio.ges` declares,
+#: in bit order.  A number is what the file holds and is not what a
+#: margin should say back.
+MANNERS = ((1, "staccato"), (2, "accent"), (4, "portamento"))
+
+
+def _manner_words(ms: int) -> str:
+    got = [w for bit, w in MANNERS if (ms // bit) % 2 == 1]
+    return " + ".join(got) if got else "plain"
+
+
 def transposed(source: str, roll: Roll, note: int, key: int) -> tuple:
     """`(text, said)` — the file with that note's pitch written as `key`.
 
