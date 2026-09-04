@@ -15,12 +15,13 @@
              examples/audio/together.ges — the sitting that found the pain
              spec/scorebox.md — the roll that draws, today, as a *view*
 
-**What this is:** a sketch of a drawable score format that keeps the
-two properties Henri named as `.ges`'s fine ones — endless tracks, and
-tracks that change and live — while making the writing visible.  **What
-it is not:** a feature request with a design ready to build, and not a
-replacement for `.ges` synths, which he judged good.  **When it runs:**
-never yet; it is an idea to try some day, and it arrived shelved.
+**What this is:** a sketch of a drawable score format, **deliberately
+restricted**, that makes the writing visible.  **What it is not:** a
+format with `.ges`'s full power — the ask it arrived as, which its own
+author has since withdrawn (§"The restriction is the design").  Not a
+feature request with a design ready to build, and not a replacement for
+`.ges` synths, which he judged good.  **When it runs:** never yet; it is
+an idea to try some day, and it arrived shelved.
 
 ## The ask
 
@@ -57,12 +58,15 @@ the problem:
   on an edge is transpose / thin / reverse.  Endlessness is *a loop in
   the picture*; living is *a weighted edge in the picture*.
 
-**The properties are exactly the same, not nearly the same**, because
-the picture compiles to the same `[: a :]` expressions the dynamic
-path already plays — a new drawable syntax for the existing algebra,
-no new semantics.  And the picture is the *source*, not a view that
-can disagree, which is the second-source-of-truth mistake this project
-has twice designed against.
+**Within that boundary the properties are exactly the same**, because
+the picture compiles to the same `[: a :]` expressions the dynamic path
+already plays — a new drawable syntax for the existing algebra, no new
+semantics.  *The bold claim that stood here until 2026-09-04 was that
+they were exactly the same **without** a boundary, and that is the
+sentence its author struck; §"The restriction is the design" is what
+replaced it.*  And the picture is the *source*, not a view that can
+disagree, which is the second-source-of-truth mistake this project has
+twice designed against.
 
 Two honest caveats, said at the time:
 
@@ -104,6 +108,71 @@ Ableton's session view with follow actions (a clip grid that is a
 drawn Markov chain, but not composable into a language), and tracker
 order-lists (the same idea, poorer).
 
+## The restriction is the design — 2026-09-04
+
+**Henri, re-reading the sitting this card was written from**, and
+withdrawing the ask it was written for:
+
+> *"alkuperäinen ideani siitä että formaatilla olisi täysin samat
+> ominaisuudet, ei oikeastaan toimi.  Jotta formaatti on
+> käyttökelpoinen, sen täytyy olla rajattu johonkin jota sellaisella
+> tekee hyvin."*
+
+So the restriction is not a caveat on the design, it **is** the design,
+and the card had it the wrong way round: it led with *täysin samat
+ominaisuudet* in bold and demoted the boundary to a reservation
+underneath.  That is this board's own most expensive lesson arriving in
+a new place — a card that leads with the ambition hides the finding,
+and the finding is the part a reader can build.
+
+**What the ask was and what it becomes.**  *Would a graphical format be
+possible with completely the same properties?* — answered, and the
+answer is no in the way that matters: possible, and unusable, because
+full generality means drawing recursion, `case` and `do` as boxes,
+which is a visual programming language and worse text by the very
+measure the language goal sets.  The question this card now carries is
+the one worth money: **what is the thing such a format does well, and
+where exactly is its edge.**
+
+## Measured against the piece that produced the pain — 2026-09-04
+
+*A session's measurement, and it reaches the same conclusion from the
+other side.*  This card rests on `together.ges`, and the card claims
+the split was visible there — *"the phrases were finite data, all the
+structure came from the operators between them."*  Half of that holds
+and the other half is where the design question actually lives.
+
+**The leaf level is as described.**  Thirteen named phrases, each a
+finite list — `scoreLead "intro" = '65 ++ (quad ('54 ++ '52)) |/ 8 ++
+'65 ++ '77` — which is exactly what a roll draws well.
+
+**The structure level is not a graph of phrases.  It is function
+application.**
+
+    (sing "intro" 100 || padc 50 57 62 || hatBar || walk 38 45)
+
+`padc a b c` takes three pitches, `walk` takes two, `sing` a name and a
+velocity.  So a node cannot be a phrase; it is a *function with its
+arguments*.  That is the boundary question made concrete: **is a node
+`padc 50 57 62`, or is `padc` a node with three drawn inputs?**  The
+first stays readable and gives up composition; the second is Max/PD,
+which caveat 1 already names as the failure.
+
+**And `together.ges` is neither endless nor living:**
+
+| combinator | uses in `together.ges` |
+|---|---|
+| `cycle`, `unfold`, `draw`, `sown`, `chance` | **0, 0, 0, 0, 0** |
+| `++`, `\|\|`, `\|*`, `\|/`, `>>=` | 70, 77, 19, 8, 12 |
+
+The piece that produced the complaint is finite and deterministic
+throughout.  **So the pain and the ambition are two different
+problems**, and the card had fused them: what was written blind was a
+fully-written-out finite score, and endlessness was wanted from `.ges`'s
+general capability rather than from anything this piece needed.  Which
+is the same verdict as the section above, arrived at by counting
+instead of by re-reading — and it says which half to restrict *to*.
+
 ## Questions
 
 *Open, for whenever it is unshelved.*
@@ -111,14 +180,29 @@ order-lists (the same idea, poorer).
 * **Where exactly does the picture end and the expression begin?**
   The hard part is not endlessness or living — one edge each — but
   this boundary, and it is language design and taste: his, and named
-  by him as needing peace.  One answer arrived 2026-08-29 and is
-  transcribed above: wherever the boundary falls, the store is text,
-  because a textual being must be able to edit it too.
+  by him as needing peace.  Two answers have arrived.  *2026-08-29:*
+  wherever it falls, the store is text, because a textual being must
+  be able to edit it too.  *2026-09-04:* there **must** be a boundary,
+  because the unbounded version does not work — so the question is no
+  longer whether to draw one but where, and the measurement above puts
+  the first hard case on the table: a bar of `together.ges` is a stack
+  of *applied functions*, not of phrases.
 * What does a session do on day one?  Suspected answer: a compiler
   from a small graph description to `[: a :]` score expressions,
   proven against `together.ges` rewritten as a graph — the semantics
   exist, so the first day is syntax and a parity test.  Marked
-  *suspected*; the elaboration has not been done.
+  *suspected*.  **The first piece of the elaboration was done on
+  2026-09-04** and is the section above; what it found is that
+  `together.ges` cannot be rewritten as a graph of phrases without
+  first answering the boundary question, so day one as written is
+  blocked on a decision rather than on work.
+* **What is the restricted thing worth doing well?**  Added 2026-09-04,
+  and it replaces the withdrawn ask.  Two candidates the tree can
+  already argue about: the *finite phrase roll* — which is the pain he
+  actually reported, and which `spec/scorebox.md` half-draws today as a
+  view that cannot be edited — and the *weighted phrase graph*, which
+  is the Markov-checkable object caveat 2 describes and which no piece
+  he has written yet needs.  Naming which is his.
 
 ## Shelved, 2026-08-29
 

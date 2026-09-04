@@ -419,7 +419,7 @@ over the same command.  He chose the second the same evening —
 the sentence is in `doc/instruments.md` beside the tool, `sed` still
 allowed — and the fire log is what says whether it worked.
 
-**It did not work, and the log said so — 2026-09-05.**  A fresh session
+**It did not work, and the log said so the same day.**  A later session
 read the tree all day and the hook fired **twelve times**, because this
 environment's own instruction tells a session to *"read files with cat,
 head, or sed -n"* and prefer the shell wherever it will do.  The rule

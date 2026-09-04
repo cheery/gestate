@@ -461,7 +461,7 @@ Henri's and he ran it 2026-09-04.  `dangling.py` is the other way.
 actually *reads* — `cat`, `sed -n`, `head`, a non-recursive `grep`.
 Henri's rule of 2026-09-04, *read the tree's documents with `Read`*,
 stands and no longer has to be obeyed for the citers to arrive: it lost
-twice to this environment's "prefer the shell" instruction, and a
+twice the same day to this environment's "prefer the shell" line, and a
 mechanism should not rest on which one won.  A file already answered
 for in a sitting is not answered for again.
 

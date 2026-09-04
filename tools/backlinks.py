@@ -684,9 +684,10 @@ def hook(stdin: str, root: Path = ROOT) -> str:
 
     Two matchers over one answer.  `Read` names its file outright;
     `Bash` is parsed for the files it actually reads, because this
-    environment tells a session to prefer the shell and the rule asking
-    it not to lost to that instruction on 2026-09-04 and again on
-    2026-09-05.  A hook does not depend on which instruction won.
+    environment tells a session to prefer the shell, and the rule asking
+    it not to lost to that instruction twice on 2026-09-04 — once in the
+    sitting that wrote the rule and once in the next.  A hook does not
+    depend on which instruction won.
     """
     try:
         payload = json.loads(stdin or "{}")
