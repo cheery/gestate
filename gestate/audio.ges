@@ -248,6 +248,58 @@ instance Notable Int where
     noteKey k = k
     noteVel k = 64
 
+#: **How a note is played, as against which note it is** — `spec/annotations.md`.
+#:
+#: A manner is a *hint the voice interprets*, not a quantity the score
+#: chose.  On a violin staccato is a bow stroke whose shortness is a
+#: consequence, and accent is bow speed rather than a velocity number; a
+#: pad has no bow.  So a mark that meant `duration * 0.5` would be wrong
+#: for both.  The score says how it should be played and each voice says
+#: what it can do — the same split `Notable` above is the other half of.
+#:
+#: **A set in one `Int`, and both halves of that are forced.**  One
+#: number because every payload field becomes a control channel and a
+#: control value is one slot — a list or an enum field is refused by the
+#: bank expander, which is the whole reason this is bits and not a
+#: datatype.  A *set* because a note may be accented and staccato at
+#: once, which any violinist writes on one head, and an ordinal would
+#: have made them exclusive by accident.
+Plain : Int
+Plain = 0
+
+Staccato : Int
+Staccato = 1
+
+Accent : Int
+Accent = 2
+
+Portamento : Int
+Portamento = 4
+
+#: Does this note ask for that manner?  **The one place the encoding is
+#: read**, so no voice ever writes arithmetic about bits, and the day the
+#: set outgrows an `Int` only this line changes.
+asks : Int -> Int -> Bool
+asks ms m = (ms / m) % 2 == 1
+
+#: What a voice needs from a note to play it the way it is written.
+#:
+#: Separate from `Notable` rather than folded into it, because they
+#: answer to different readers: the score box reads `Notable` to *draw* a
+#: note, and a voice reads this to *play* one.  A piece may want either
+#: without the other, and `manner _ = Plain` below is why asking costs a
+#: melody nothing.
+class Mannered a where
+    manner : a -> Int
+
+#: The bare note: a `[: Int :]` melody is a key number and nothing else,
+#: so it asks for nothing — the same promise `instance Notable Int` makes
+#: about velocity.  **An unmarked note is not a special case**, it is a
+#: note whose set is empty, and every `asks` on it answers `False`
+#: without a branch anywhere else.
+instance Mannered Int where
+    manner _ = Plain
+
 #: A one-pole lowpass, as a *signal transformation*.  A coefficient near 0
 #: is very smooth, near 1 lets everything through.  This is the shape the whole
 #: design is for: a signal in, a signal out, state held by `scan`.

@@ -59,6 +59,12 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # `substrate.ges` has none: what it *shows* is the point, and a
             # buffer of the sound it makes would not check that.
             "spectrum.ges", "envelope.ges",
+            # `spec/annotations.md`'s demo: one line, two voices, one of
+            # which reads the mark.  No golden — what it shows is that
+            # the *ignoring* voice is bit-identical under the mark, and a
+            # buffer of one rendering cannot say that.
+            # `test_annotations.py` renders both and compares.
+            "marked.ges",
             # The gallery's readout, and the same reasoning twice over:
             # what it *shows* is the point, and it is an endless seeded
             # piece besides, so a golden is impossible by construction.

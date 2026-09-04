@@ -1,0 +1,109 @@
+# marked.ges — the same notes, played two ways — `spec/annotations.md`'s demo.
+#
+#   python -m gestate.audioperform examples/audio/marked.ges -o take.wav
+#
+# **One mark, and two voices that disagree about it.**  The line is
+# written once and played four times; the only thing that ever changes is
+# the manner field, and the only reason it sounds different is that one
+# of these voices decided it should.
+#
+#   1. the bow, unmarked          notes run into each other
+#   2. the bow, staccato          detached — it chose a quicker envelope
+#   3. the pad, unmarked          long and soft
+#   4. the pad, staccato          **exactly the same as 3**
+#
+# The fourth phrase is the point of the file.  `padVoice` never reads a
+# manner, so the mark reaches it and does nothing, and that is not a bug
+# — a pad has no bow.  A mark names an **intention**; what it means is
+# the voice's, which is what a score has always asked of a player.
+#
+# `spec/annotations.md` is the design; `Mannered` and `asks` are in
+# `audio.ges` beside `Notable`, because the two are halves of one seam —
+# `Notable` says which note, this says how it is played.
+
+# ── What is written ──────────────────────────────────────────────────────
+
+#: Weight, degree, and the manners asked for.  **All three are `Int` or
+#: `Float` and they have to be**: every payload field becomes a control
+#: channel and a control value is one slot, so the manners travel as a
+#: set of bits rather than as a list (`spec/annotations.md` §"What the
+#: compiler refused").
+Tone := Tone Float Int Int
+
+instance Mannered Tone where
+    manner t = case t of
+        Tone v d m -> m
+
+#: A major pentatonic — nothing here turns on the notes, they are only
+#: something to be played two ways.
+stepOf : Int -> Int
+stepOf d = case d of
+    0 -> 0
+    1 -> 2
+    2 -> 4
+    3 -> 7
+    4 -> 9
+    _ -> 12
+
+hzOf : Tone -> Float
+hzOf t = case t of
+    Tone v d m -> keyHz (57 + stepOf d)
+
+velOf : Tone -> Float
+velOf t = case t of
+    Tone v d m -> v
+
+# ── The voice that reads the mark ────────────────────────────────────────
+
+#: **0.0 or 1.0, and not a rate.**  `perc` takes a `Float`, not a `Sig
+#: Float`, so a voice cannot parameterise its envelope per note — it
+#: blends two envelopes it computed anyway.  That is the shape a manner
+#: is honoured in throughout, and it prices the feature honestly: one
+#: control slot per voice, and a doubling of whatever the manner varies.
+bowOf : Tone -> Float
+bowOf t = case asks (manner t) Staccato of
+    True  -> 1.0
+    False -> 0.0
+
+#: A bowed string, near enough: a saw through a filter, struck and left
+#: to ring — or not, if the note asked to be detached.
+#:
+#: **The staccato is a shorter stroke, not a quieter note.**  Both
+#: envelopes reach the same height and one of them lets go sooner, which
+#: is why the marked phrase is not simply the unmarked one turned down.
+bowVoice : Sig Gate -> Sig Tone -> Sig Float
+bowVoice g s = lowpassSvf 1400.0 0.28 (saw (!hzOf s)) * (!velOf s) * 0.32
+    * (perc 5.0 g * (1.0 - (!bowOf s)) + perc 20.0 g * (!bowOf s))
+
+voices bow 4 bowVoice : Sig Float
+
+# ── The voice that does not ──────────────────────────────────────────────
+
+#: **This is a complete program and not a stub.**  It never mentions
+#: `manner`, so every mark in the score reaches it and none of them does
+#: anything.  Nothing warns, because there is nothing wrong: the score
+#: asked for a bow stroke and this instrument has no bow.
+padVoice : Sig Gate -> Sig Tone -> Sig Float
+padVoice g s = triangle (!hzOf s) * (!velOf s) * 0.22 * perc 1.1 g
+
+voices pad 3 padVoice : Sig Float
+
+#: Both banks into one output.  They never sound at once — the score
+#: hands the line to one and then to the other — so this is a sum of two
+#: things only one of which is ever busy.
+sound : Sig Float
+sound = bow + pad
+
+# ── What is played ───────────────────────────────────────────────────────
+
+#: One line, written once.  `m` is the whole experiment.
+line : Int -> [: Tone :]
+line m = '(Tone 0.9 0 m) ++ '(Tone 0.9 1 m) ++ '(Tone 0.9 2 m) ++ '(Tone 0.9 3 m)
+      ++ '(Tone 0.9 4 m) ++ '(Tone 0.9 3 m) ++ '(Tone 0.9 2 m) ++ '(Tone 0.9 1 m)
+
+score : [: Void :]
+score = ((line Plain ++ line Staccato) >>= voices.bow)
+     ++ ((line Plain ++ line Staccato) >>= voices.pad)
+
+bpm : Int
+bpm = 104
