@@ -1,6 +1,6 @@
 # git-viewer — a git viewer in the workbench
 
-    status   open — three views 2026-08-18, the fourth 2026-08-19, paging and the diff over the file 2026-08-26; a stranger is what is left
+    status   shelved — 2026-09-04
     because  a gemba walk through the log should be ergonomic, and my
              friend could use it as well
     asked    Henri, 2026-08-16
@@ -205,3 +205,11 @@ an added one is marked.
   same count `open` gives with its directories and is left alone; and
   the box reads `@0` after coming back to the top, because the page is
   the query — honest, and a person can clear it.
+
+## Shelved — 2026-09-04
+
+The seven-day lamp (`tools/flow.py --check`, his rule the same
+evening) named this card on its first run, and he said why it waits,
+in one line: *"sama juttu, selkeä later/."*
+
+Waits on the same person as `card:stranger-test.md`: three views walk, the fourth landed, and a stranger is what is left.  An event.  It comes back the way every card does: by him saying so.

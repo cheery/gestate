@@ -1,6 +1,6 @@
 # stranger-test — run the vision's own top claim
 
-    status   open
+    status   shelved — 2026-09-04
     because  the first line of vision.md is a test nobody has ever run
     asked    Henri, 2026-08-16
     see      vision.md §"Ease of use and efficiency"
@@ -544,3 +544,11 @@ engine boundary is reachable and undocumented.**  It was found by
 reading source, by a model, on the first attempt — which is evidence it
 is legible, and evidence that nothing would have helped a person who
 tried the same thing with `doc/` alone.
+
+## Shelved — 2026-09-04
+
+The seven-day lamp (`tools/flow.py --check`, his rule the same
+evening) named this card on its first run, and he said why it waits,
+in one line: *"selkeästi kuuluu later/ kentälle."*
+
+Waits on a person nobody has, which is an event.  The card said so itself on 2026-08-18; the shelf is where that sentence should have put it then.  It comes back the way every card does: by him saying so.

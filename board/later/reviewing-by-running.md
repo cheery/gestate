@@ -1,6 +1,6 @@
 # reviewing-by-running — the editor runs code nobody has read yet
 
-    status   open
+    status   shelved — 2026-09-04
     because  I tend to run the workbench along reading the commits.
              It allows me to quickly check if anything was missed.
              Tests have not catched all the bugs, but a simple visual
@@ -214,3 +214,11 @@ built.
 Placed **at the end of the order**, at his ask on 2026-08-17, having
 arrived unplaced — even though the `because` describes something he does
 today.  His call, recorded here so it is not re-litigated.
+
+## Shelved — 2026-09-04
+
+The seven-day lamp (`tools/flow.py --check`, his rule the same
+evening) named this card on its first run, and he said why it waits,
+in one line: *"ehkä se on tend-projektin aluetta."*
+
+Waits on a decision that is his: whether the review loop belongs to `~/tend`, the workspace tree, rather than here.  A decision, not an event — so it is debt on this shelf until he moves it or says no.  It comes back the way every card does: by him saying so.

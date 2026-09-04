@@ -1,6 +1,6 @@
 # unseen-flare — the sound stuttered and I could not find out whether the program noticed
 
-    status   open
+    status   shelved — 2026-09-04
     because  The audio is crackling without running audition now.  But I
              haven't seen the mechanism flare that is supposed to catch
              that.  It's likely in hardware like we predicted.
@@ -219,3 +219,11 @@ on a decision.
 this card the cause was a session's own footprint.  That does not make
 the instrument less worth having: it turns *what a session costs the
 person listening* from an anecdote into a column.
+
+## Shelved — 2026-09-04
+
+The seven-day lamp (`tools/flow.py --check`, his rule the same
+evening) named this card on its first run, and he said why it waits,
+in one line: *"rätinää ei ole näkynyt."*
+
+Waits on the crackle coming back on the real machine — an event.  The mechanism was checked and works; what is missing is the case that shows whether it flares when it should.  It comes back the way every card does: by him saying so.

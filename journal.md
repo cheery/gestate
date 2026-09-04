@@ -840,3 +840,20 @@ python tools/flow.py --check    # the lamp; 2 when it trips
 — nine to nineteen days untouched.  Their sentences are his and the
 next thing this sitting asks.  Two memories went in earlier the same
 evening: the customer is Henri, and keeper.md does not pull him.
+
+**The five went to the shelf the same evening**, each with his line:
+git-lesson *"taitaa olla tarpeeton"* — the board's first card that may
+be unneeded rather than waiting, and whether it is deleted is his;
+reviewing-by-running *"ehkä se on tend-projektin aluetta"* — a
+decision, so debt on the shelf; stranger-test, unseen-flare and
+git-viewer wait on events, a person and a crackle.  The live board is
+three cards.  And the lamp, asked again, said every open card was
+touched within seven days — which is the first time a number on this
+board has gone green by somebody answering it rather than by work.
+
+**And the backlinks log answered the question he asked next** —
+whether the hook has worked — with one line: it fired once all
+evening.  Every other read this session made went through `cat` and
+`sed` in the shell, which the hook does not see.  The mechanism works;
+the reader it was built for reads another way.  That goes on the
+closed card as its first measurement.

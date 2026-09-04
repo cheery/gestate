@@ -57,27 +57,7 @@ still the tiebreak between two workable cards, and it is still his.
    back without anybody being told.  Directly under the oracle
    because they are the same family and the oracle is what makes the
    interface-shaped ones closable at all.
-2. **[unseen-flare](unseen-flare.md)** — narrower than
-   `unheard-output`, and overlapping it.
-3. **[reviewing-by-running](reviewing-by-running.md)** — the review
-   loop `spec/author.md` says is the scarce resource.
-4. **[git-lesson](git-lesson.md)** — teach git, well enough to follow
-   the changes a session makes.
-5. **[git-viewer](git-viewer.md)** — a git viewer in the workbench.
-   *A proof of concept landed 2026-08-18 — three of its four views walk
-   in the real window.  What is left is the fourth, paging, and a
-   stranger.*
-6. **[stranger-test](stranger-test.md)** — **moved here from first on
-    2026-08-18**, the day it produced its largest result: *"I think that
-    we need another stranger.  move the card to the last."*  It is not
-    demoted for being less valuable — run two carried the vision's whole
-    opening claim to a person, found F162 and F163, and cost half its
-    thirty minutes to the way in.  It is last because **it waits on a
-    person nobody has**, and the one question it still owes — whether
-    the corner is findable by somebody who has never seen it — cannot be
-    answered by any session, at any position in this list.  A card that
-    cannot be worked does not belong above cards that can.
-7. **[audiovisual-gallery](audiovisual-gallery.md)** — a gallery of
+2. **[audiovisual-gallery](audiovisual-gallery.md)** — a gallery of
    controllable audio-visual experiences: six pieces already on the site
    declare a picture the tab drops on the floor.  *Written shelved on
    2026-09-02 at Henri's ask and pulled the same day on a condition he
@@ -86,11 +66,17 @@ still the tiebreak between two workable cards, and it is still his.
    building for `wasm32` at 164 KB with no imports met.  Placed here
    under `online`, whose report it still waits on for how much of its
    table to do.
-8. **[online](online.md)** — gestate, the audio production tool, in a
+3. **[online](online.md)** — gestate, the audio production tool, in a
    browser tab: the vision's opening line for a person who is not at
    this desk.  Michael's ask, 2026-08-28, relayed by Henri.  *Placed
    last by the session that wrote it, at the end of a sitting, because
    three of its six questions are still his — his to move.*
+
+**Five cards left this list on 2026-09-04**, the first run of the
+seven-day lamp: `card:git-lesson.md`, `card:reviewing-by-running.md`,
+`card:stranger-test.md`, `card:unseen-flare.md` and
+`card:git-viewer.md`, each shelved with his sentence.  Three wait on an
+event, two on him — the shelf says which.
 
 **And the criterion has been checked once, on 2026-08-19, and it lost**
 — `journal.md` §"And what the day says about the board".  Ordering by

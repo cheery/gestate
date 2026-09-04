@@ -340,3 +340,21 @@ front of it.  And the foot over the same command waits on its trigger,
 a reader who is not a Claude Code session.
 
 Journal: `journal.md` §"Backlinks, day one".
+
+## The first measurement, the same evening — 2026-09-04
+
+Henri asked whether the hook had worked.  The log had one line.  The
+session that built it read through `cat` and `sed -n` in the shell for
+the rest of the evening — this environment tells a session to prefer
+the shell for reading — and a `PostToolUse` hook on `Read` does not see
+a shell command.  So the hook fired once on a real read, and every
+backlink the session could have used went unshown.
+
+The mechanism is fine and the reader reads another way.  Two fixes,
+neither built tonight, both cheap: a hook on `Bash` that finds tree
+paths in a `cat`/`sed`/`head` command and answers for them, or the
+session using `Read` for the tree's own documents.  The second costs
+nothing and is a sentence in the rules; the first is a second matcher
+over the same command.  His call which, and the fire log is what
+says whether either worked.
+

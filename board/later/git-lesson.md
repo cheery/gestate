@@ -1,6 +1,6 @@
 # git-lesson — enough git to follow the changes Claude makes
 
-    status   open — the page is written, the walkthrough is not
+    status   shelved — 2026-09-04
     because  auto mode is on, and nothing tells me whether what was done
              was right
     asked    Henri, 2026-08-16
@@ -44,3 +44,11 @@ same skill, and the second is the one the card was asked for.
 **It is also the card the [git-viewer](git-viewer.md) waits on** — that
 viewer is meant to encode this workflow, and a workflow nobody has walked
 through yet is not one to build a window around.
+
+## Shelved — 2026-09-04
+
+The seven-day lamp (`tools/flow.py --check`, his rule the same
+evening) named this card on its first run, and he said why it waits,
+in one line: *"git-lesson taitaa olla tarpeeton."*
+
+Not an event and not a decision: he thinks the card may not be needed at all.  Shelved with that sentence rather than deleted, because the board has never deleted a card and whether it is the first is his to say on the next pass over this shelf.  It comes back the way every card does: by him saying so.
