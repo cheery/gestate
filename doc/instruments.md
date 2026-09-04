@@ -457,11 +457,13 @@ keyed by size and mtime.  Its install line is in
 `.claude/settings.json`, which the leash denies a session, so it was
 Henri's and he ran it 2026-09-04.  `dangling.py` is the other way.
 
-**So read the tree's documents with `Read`, not `sed`.**  Henri,
-2026-09-04, after the log showed one fire while a session read through
-the shell all day: *"puun dokumentit luetaan Read-työkalulla
-sed-työkalun sijasta … sed-komentoa saa kanssa käyttää, mutta se ei
-anna näitä."*  `sed` and `cat` stay allowed; they bring no citers.
+**It matches `Bash` as well as `Read`**, parsing a command for what it
+actually *reads* — `cat`, `sed -n`, `head`, a non-recursive `grep`.
+Henri's rule of 2026-09-04, *read the tree's documents with `Read`*,
+stands and no longer has to be obeyed for the citers to arrive: it lost
+twice to this environment's "prefer the shell" instruction, and a
+mechanism should not rest on which one won.  A file already answered
+for in a sitting is not answered for again.
 
 **Ranked, because not all citations are equal** (Henri, the day it
 fired): live cards and memory first, then documents, code, shelved
@@ -469,14 +471,12 @@ cards, the ledger, the journal last; within a tier an explicit citation
 before a file named in passing.  The cut at twenty falls on history.
 `TIERS` is the table.
 
-**And it watches itself, and is asked to earn its place** — Henri,
-2026-09-04.  Every fire is a line in
-`~/.local/state/gestate/backlinks.log`, and `--earned` counts
-**follows**: a fire on a file an earlier fire *in the same sitting*
-offered and the reader had not already opened.  A follow is another
-fire, so nothing but the log is needed — and it is correlation, which
-the docstring is honest about.  **The floor is zero**: decoration with
-a context bill.
+**And it is asked to earn its place** — Henri, 2026-09-04.  Every fire
+is a line in `~/.local/state/gestate/backlinks.log`, and `--earned`
+counts **follows**: a fire on a file an earlier fire *in the same
+sitting* offered and the reader had not already opened.  A follow is
+another fire, so nothing but the log is needed — and it is correlation,
+which the docstring is honest about.  **The floor is zero**.
 
 `--check`, the pre-commit lamp, names **two causes apart** (one
 sentence for two reasons is how an andon gets muted): nothing followed

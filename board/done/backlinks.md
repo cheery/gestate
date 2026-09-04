@@ -419,3 +419,33 @@ over the same command.  He chose the second the same evening —
 the sentence is in `doc/instruments.md` beside the tool, `sed` still
 allowed — and the fire log is what says whether it worked.
 
+**It did not work, and the log said so — 2026-09-05.**  A fresh session
+read the tree all day and the hook fired **twelve times**, because this
+environment's own instruction tells a session to *"read files with cat,
+head, or sed -n"* and prefer the shell wherever it will do.  The rule
+and the harness say opposite things in one context, and the harness
+won, twice, on two different sessions.  A rule that competes with a
+stronger instruction in the same window is not a mechanism.
+
+So the first fix was built after all, at Henri's word — *"lets do the
+Bash matcher, I'll add the settings line"*.  `--hook` now matches
+`Bash` as well as `Read` and parses the command for what it actually
+**reads**: a segment whose verb is `cat`, `sed`, `head`, `grep` and the
+rest, and within it only tokens that resolve to a file inside the tree
+— which is what keeps `sed -n '1,40p'` from offering `1,40p` with no
+per-tool flag table to keep in step.  Refused, each with a test: naming
+a path is not reading it (`pytest test/x.py`, `ls`), `sed -i` is an
+edit, a recursive `grep` is a search whose operand is a directory.
+
+**And a repeat stopped being a fire.**  One file was answered for four
+times in the sitting of 2026-09-04 and paid the same twenty lines each
+time; a repeat can never be a *follow* either, because the file had
+already been opened, so it was pure denominator against the one number
+the tool is judged on.  A file already answered for in a sitting is not
+answered for again.  This arrives with the Bash matcher rather than
+before it because shell reads repeat far more than `Read` calls do.
+
+The install widened to `"matcher": "Read|Bash"` and is Henri's; a
+checkout carrying only `Read` still registers as installed, because it
+is narrower rather than broken.
+

@@ -443,3 +443,93 @@ def test_the_lamp_says_when_nothing_offered_was_ever_opened(tmp_path, monkeypatc
     _sitting(log, rows, now)
     tripped, line = backlinks.lamp(now=now)
     assert tripped is False and "1 of 30 followed" in line
+
+
+# --- the Bash matcher ------------------------------------------------------------------
+
+def test_only_a_command_that_reads_a_file_is_answered_for():
+    """The extractor is narrow, and every row here is a way to be wrong.
+
+    A shell command has a grammar where `Read` has one argument, so the
+    rule is: a segment whose verb reads content, and within it only
+    tokens that **resolve to a file inside the tree** — which is what
+    keeps `sed -n '1,40p'` from offering `1,40p` with no per-tool flag
+    table to maintain.
+    """
+    reads = backlinks.read_targets
+    assert reads("sed -n '1,40p' doc/instruments.md") == ["doc/instruments.md"]
+    assert reads("cat board/README.md") == ["board/README.md"]
+    assert reads("grep -n 'foo' tools/backlinks.py") == ["tools/backlinks.py"]
+    assert reads("head -5 vision.md && cat manifesto.md") == ["vision.md", "manifesto.md"]
+    assert reads("cat gestate/online.py | head -20") == ["gestate/online.py"]
+
+    # **Naming a path is not reading it.**  A test run, an import and a
+    # listing all carry tree paths and none of them opens the file.
+    assert reads("python -m pytest test/test_online.py") == []
+    assert reads("ls board/") == []
+    # **An edit is not a read**, and a recursive grep is a search whose
+    # operand is a directory and whose hits are the answer.
+    assert reads("sed -i 's/a/b/' doc/instruments.md") == []
+    assert reads("grep -rn 'foo' tools/") == []
+    # A path that does not exist, and one outside the tree.
+    assert reads("cat doc/nosuchfile.md") == []
+    assert reads("cat /etc/hostname") == []
+    # Unbalanced quotes are given up on rather than guessed at.
+    assert reads("cat 'board/README.md") == []
+
+
+def test_the_bash_matcher_answers_the_way_the_read_matcher_does(tmp_path):
+    """The reason this exists: this environment tells a session to
+    prefer the shell for reading, the rule asking it not to lost to that
+    instruction twice, and a hook does not depend on which instruction
+    won (`card:backlinks.md` §"The first measurement").
+    """
+    log = tmp_path / "fires.log"
+    env = {"GESTATE_BACKLINKS_CACHE": str(tmp_path / "c.json"),
+           "GESTATE_BACKLINKS_LOG": str(log)}
+    got = run_hook({"tool_name": "Bash", "session_id": "s1",
+                    "tool_input": {"command": "sed -n 1,5p vision.md"}}, env).stdout
+    assert "vision.md is cited by" in got
+    lines = [l.split("\t") for l in log.read_text().splitlines()]
+    assert len(lines) == 1 and lines[0][1] == "vision.md" and lines[0][4] == "s1"
+
+
+def test_one_command_may_read_several_files_and_is_capped(tmp_path):
+    """A command naming a dozen files is a sweep, and a dozen citer
+    lists at once is the noise the cut at twenty was invented to stop."""
+    log = tmp_path / "fires.log"
+    env = {"GESTATE_BACKLINKS_CACHE": str(tmp_path / "c.json"),
+           "GESTATE_BACKLINKS_LOG": str(log)}
+    got = run_hook({"tool_name": "Bash", "session_id": "s1",
+                    "tool_input": {"command": "cat vision.md manifesto.md"}}, env).stdout
+    assert got.count("is cited by") == 2
+
+    many = " ".join(str(p.relative_to(ROOT)) for p in
+                    sorted((ROOT / "doc" / "memory").glob("*.md"))[:8])
+    got = run_hook({"tool_name": "Bash", "session_id": "s2",
+                    "tool_input": {"command": f"cat {many}"}}, env).stdout
+    assert got.count("is cited by") <= backlinks.BASH_CUT
+
+
+def test_a_file_already_answered_for_in_this_sitting_is_not_answered_again(tmp_path):
+    """A repeat pays for the same twenty lines twice.
+
+    And it can never be a *follow* — the file had already been opened —
+    so a repeat was pure denominator, making the one number the tool is
+    judged on look worse than the reading deserved.  Shell reads repeat
+    far more than `Read` calls, which is why this arrives with the Bash
+    matcher rather than before it.
+    """
+    log = tmp_path / "fires.log"
+    env = {"GESTATE_BACKLINKS_CACHE": str(tmp_path / "c.json"),
+           "GESTATE_BACKLINKS_LOG": str(log)}
+    first = run_hook({"tool_name": "Bash", "session_id": "s1",
+                      "tool_input": {"command": "cat vision.md"}}, env).stdout
+    again = run_hook({"tool_name": "Bash", "session_id": "s1",
+                      "tool_input": {"command": "sed -n 1,3p vision.md"}}, env).stdout
+    assert "vision.md is cited by" in first and again == ""
+    # A different sitting has not been told, so it is told.
+    other = run_hook({"tool_name": "Read", "session_id": "s2",
+                      "tool_input": {"file_path": str(ROOT / "vision.md")}}, env).stdout
+    assert "vision.md is cited by" in other
+    assert len(log.read_text().splitlines()) == 2, "the silent repeat is not a fire"

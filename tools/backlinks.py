@@ -6,7 +6,7 @@
     python tools/backlinks.py card:<name>.md     … a card, by its id
     python tools/backlinks.py F123               … a defect
     python tools/backlinks.py [[name]]           … a memory (the bare name works too)
-    python tools/backlinks.py --hook             as a PostToolUse hook on Read: stdin in, context out
+    python tools/backlinks.py --hook             as a PostToolUse hook on Read and Bash: stdin in, context out
     python tools/backlinks.py --time PATH        the walk's cost, cold and warm
     python tools/backlinks.py --check            the lamp: 1 not installed, 2 the cut has become noise
     python tools/backlinks.py --report           what the hook has been doing, from its own log
@@ -590,13 +590,115 @@ def report_fires(days: int = LAMP_DAYS) -> str:
     return "\n".join(lines)
 
 
+#: Shell commands that read a file's *content*.  `pytest`, `python` and
+#: `ls` name paths and do not read them, and answering for those would
+#: spend a reader's attention on a citer list they never asked to see.
+READERS = {"cat", "sed", "head", "tail", "less", "more", "nl", "bat",
+           "grep", "rg", "awk", "ug", "ugrep"}
+
+#: Flags that turn a reader into something else.  `sed -i` edits, and a
+#: recursive grep is a *search* over the tree rather than a read of a
+#: file — its operand is a directory and its hits are the answer.
+NOT_READING = {"-i", "--in-place", "-r", "-R", "--recursive", "-l",
+               "--files-with-matches"}
+
+#: How many files one command may be answered for.  A command naming a
+#: dozen is a sweep, and a dozen citer lists at once is the noise the
+#: cut at twenty was invented to stop.
+BASH_CUT = 3
+
+
+def read_targets(command: str, root: Path = ROOT) -> list[str]:
+    """The tree files a shell command actually *reads*, in order.
+
+    **Narrow on purpose.**  The `Read` hook has one unambiguous
+    argument; a shell command has a grammar.  So this accepts only a
+    segment whose verb is in `READERS`, and within it only tokens that
+    **resolve to a file that exists inside the tree** — which is what
+    keeps `sed -n '1,40p' doc/x.md` from offering `1,40p`, and
+    `grep -n "foo" tools/y.py` from offering `foo`, with no per-command
+    flag table to keep in step with seven tools.
+    """
+    import shlex
+
+    try:
+        words = shlex.split(command, comments=True)
+    except ValueError:                                    # unbalanced quotes
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    segment: list[str] = []
+    for word in [*words, ";"]:
+        if word in (";", "&&", "||", "|", "&"):
+            _targets_of(segment, root, out, seen)
+            segment = []
+        else:
+            segment.append(word)
+    return out
+
+
+def _targets_of(segment: list[str], root: Path, out: list, seen: set) -> None:
+    while segment and "=" in segment[0] and not segment[0].startswith("-"):
+        segment = segment[1:]                             # FOO=bar cat x
+    if not segment or Path(segment[0]).name not in READERS:
+        return
+    if any(w in NOT_READING for w in segment[1:]):
+        return
+    skip = False
+    for word in segment[1:]:
+        if word.startswith(">") or word in ("2>", "1>"):
+            skip = True                                   # a redirect target
+            continue
+        if skip:
+            skip = False
+            continue
+        if word.startswith("-"):
+            continue
+        try:
+            p = (root / word).resolve() if not Path(word).is_absolute() else Path(word).resolve()
+            rel = str(p.relative_to(root.resolve()))
+        except (ValueError, OSError):
+            continue
+        if p.is_file() and rel not in seen:
+            seen.add(rel)
+            out.append(rel)
+
+
+def already_answered(session: str, days: int = LAMP_DAYS) -> set[str]:
+    """Files this sitting has already been given the citers for.
+
+    **A repeat is not worth its context.**  One file was read four times
+    in the sitting of 2026-09-04 and paid for the same twenty lines each
+    time — and a repeat can never be a *follow* anyway, because the file
+    had already been opened, so it was inflating the denominator of the
+    one number the tool is judged on.  Shell reads repeat far more than
+    `Read` calls do, which is why this arrives with the Bash matcher.
+    """
+    if not session:
+        return set()
+    return {rel for _w, rel, _t, _s, sess, _o in _rows(days) if sess == session}
+
+
 def hook(stdin: str, root: Path = ROOT) -> str:
-    """The PostToolUse contract: JSON in, JSON out, or nothing."""
+    """The PostToolUse contract: JSON in, JSON out, or nothing.
+
+    Two matchers over one answer.  `Read` names its file outright;
+    `Bash` is parsed for the files it actually reads, because this
+    environment tells a session to prefer the shell and the rule asking
+    it not to lost to that instruction on 2026-09-04 and again on
+    2026-09-05.  A hook does not depend on which instruction won.
+    """
     try:
         payload = json.loads(stdin or "{}")
-        if payload.get("tool_name", "Read") != "Read":
+        tool = payload.get("tool_name", "Read")
+        args = payload.get("tool_input") or {}
+        session = str(payload.get("session_id") or "")
+        if tool == "Bash":
+            return _for_paths(read_targets(args.get("command") or "", root),
+                              session, root)
+        if tool != "Read":
             return ""
-        path = (payload.get("tool_input") or {}).get("file_path")
+        path = args.get("file_path")
         if not path:
             return ""
         p = Path(path)
@@ -604,17 +706,30 @@ def hook(stdin: str, root: Path = ROOT) -> str:
             p.resolve().relative_to(root.resolve())
         except ValueError:
             return ""
-        tree = Tree(root)
-        name, rows = citers(tree, str(p))
-        if not rows:
-            return ""
+        return _for_paths([str(p)], session, root)
+    except Exception as e:                                # noqa: BLE001
+        print(f"backlinks --hook: {e!r}", file=sys.stderr)
+        return ""
+
+
+def _for_paths(paths: list[str], session: str, root: Path) -> str:
+    """One answer for however many files the reader just opened."""
+    if not paths:
+        return ""
+    done = already_answered(session)
+    tree = Tree(root)
+    blocks: list[str] = []
+    for path in paths[:BASH_CUT]:
+        name, rows = citers(tree, path)
+        if not rows or name in done:
+            continue
+        done.add(name)
         shown = rows[:HOOK_CUT]
         # The sitting, and what was actually put in front of the reader
         # — the two fields `earned` needs.  `session_id` is the harness's
         # own; when it is absent the fire still counts as a fire and
         # simply cannot take part in a follow.
-        note(name, len(rows), len(shown),
-             str(payload.get("session_id") or ""),
+        note(name, len(rows), len(shown), session,
              {rel for rel, _line, _text in shown})
         lines = [f"{name} is cited by {len(rows)} place{'s' if len(rows) != 1 else ''} "
                  f"(tools/backlinks.py):"]
@@ -622,18 +737,18 @@ def hook(stdin: str, root: Path = ROOT) -> str:
         if len(rows) > HOOK_CUT:
             lines.append(f"  … and {len(rows) - HOOK_CUT} more: "
                          f"python tools/backlinks.py {name}")
-        return json.dumps({"hookSpecificOutput": {
-            "hookEventName": "PostToolUse",
-            "additionalContext": "\n".join(lines)}})
-    except Exception as e:                                # noqa: BLE001
-        print(f"backlinks --hook: {e!r}", file=sys.stderr)
+        blocks.append("\n".join(lines))
+    if not blocks:
         return ""
+    return json.dumps({"hookSpecificOutput": {
+        "hookEventName": "PostToolUse",
+        "additionalContext": "\n\n".join(blocks)}})
 
 
 INSTALL = """\
     "PostToolUse": [
       {
-        "matcher": "Read",
+        "matcher": "Read|Bash",
         "hooks": [
           { "type": "command", "command": "~/gestate/tools/backlinks.py --hook", "timeout": 5 }
         ]
@@ -647,7 +762,11 @@ def installed(settings: Path = ROOT / ".claude" / "settings.json") -> bool:
     except (OSError, ValueError):
         return False
     for entry in (conf.get("hooks") or {}).get("PostToolUse", []):
-        if entry.get("matcher") not in ("Read", "^Read$"):
+        #: Either matcher counts as installed.  `Read` alone was the
+        #: 2026-09-04 install and still works; `Read|Bash` is what a
+        #: shell-reading session needs, and a checkout with only the
+        #: first is not broken, it is narrower.
+        if "Read" not in (entry.get("matcher") or ""):
             continue
         for h in entry.get("hooks", []):
             cmd = h.get("command", "")
