@@ -157,6 +157,42 @@ trigger" says so): **retire the cut-share cause, keep `--earned`.**
 --earned"* — so `lamp` has one cause now and the share is reported
 without tripping.
 
+### And the fix that did survive — built 2026-09-04
+
+*Henri: "lets do the backlink -thing before it is forgotten."*  The
+three refusals above left one thing standing, and it came out of asking
+which rows a session **actually followed**: code citers of
+`card:online.md` and `card:audiovisual-gallery.md` were followed; code
+citers of `gestate/audio.ges` were not.
+
+**So the rule is about the target, not the citer.**  Reading a **card
+or a memory**, its citers are the people who apply it — the code that
+implements it, the test that holds it — and the answer stays exactly as
+it was.  Reading a **source file, a spec or a ledger**, its citers are
+mostly files naming it in passing, and only the tiers that say *who
+leans on this* are shown; the rest is counted by tier.
+
+| target | citers | before | after |
+|---|---|---|---|
+| `spec/scope.md` | 46 | 20 rows | **10** |
+| `gestate/host.c` | 79 | 20 | 18 |
+| `card:online.md` | 35 | 20 | **20, unchanged** |
+
+The last row is the property the two rejected rules could not hold: the
+case where the tool already worked is untouched.  And `gestate/host.c`
+keeps both `card:unseen-flare.md` and
+`doc/memory/gestate-audio-teardown.md` — the two rows
+`card:backlinks.md` was written about — which needed **shelved cards**
+in the kept tiers, because a finished or shelved card citing source is
+the record of why that code exists.
+
+*Found while building, and it is why the summary reads right:* the tier
+table is written in reading order and numbered separately, so
+enumerating it put history before code and the summary read as if the
+journal mattered more than the tests.
+
+**And the ranging fix stays unbuilt**, which is what this card was for.
+
 **And this card's trigger went with it**, which is worth saying plainly
 rather than leaving the card pointing at a lamp that cannot light.  It
 now waits on a *measurement*, not a counter: **the day a reader can

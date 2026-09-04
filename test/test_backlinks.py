@@ -296,7 +296,11 @@ def test_every_fire_is_logged_with_its_denominator(tmp_path):
     assert len(lines) == 1, "a silent fire is not a fire"
     _when, rel, total, shown, session, offered = lines[0]
     assert rel == "gestate/host.c"
-    assert int(total) > int(shown) == backlinks.HOOK_CUT
+    #: `host.c` is a source file, so it is shaped by tier rather than
+    #: cut flat at twenty — what is logged is what was actually put in
+    #: front of the reader, which is the number `--earned` divides by.
+    assert int(total) > int(shown)
+    assert int(shown) <= sum(backlinks.SOURCE_CAPS.values())
     #: The two fields `earned` needs.  The offers are the paths actually
     #: put in front of the reader — not the whole citer list, because a
     #: name cut at twenty was never shown and cannot have been followed.
@@ -549,3 +553,72 @@ def test_a_file_already_answered_for_in_this_sitting_is_not_answered_again(tmp_p
                       "tool_input": {"file_path": str(ROOT / "vision.md")}}, env).stdout
     assert "vision.md is cited by" in other
     assert len(log.read_text().splitlines()) == 2, "the silent repeat is not a fire"
+
+
+# --- what is being read decides how much is shown ---------------------------------------
+
+def test_a_card_is_answered_in_full_and_a_source_file_is_summarised():
+    """**The rule that survived measurement** — `card:backlinks-ranges.md`.
+
+    Reading a card, its citers are the people who apply it: the code
+    that implements it, the test that holds it.  Reading a source file,
+    they are mostly files naming it in passing — `spec/scope.md` has
+    over forty and *none* is a card or a memory.  Twenty rows of that
+    trains a reader to skim, which is how an andon gets muted.
+
+    Two rules that did **not** survive are worth naming here so nobody
+    tries them again: ranking by the range being read reorders nothing
+    (the files that need help have almost no `§` citations), and capping
+    every tier alike drops rows a session actually followed on a card.
+    """
+    tree = backlinks.Tree(ROOT)
+
+    _n, rows = backlinks.citers(tree, "spec/scope.md")
+    shown, counted = backlinks.shape("spec/scope.md", rows)
+    assert len(shown) < len(rows), "a source file was not summarised at all"
+    assert len(shown) <= sum(backlinks.SOURCE_CAPS.values())
+    assert sum(n for _l, n in counted) == len(rows) - len(shown), (
+        "the summary does not account for what it left out")
+    assert all(label for label, _n in counted), "a source summary names its tiers"
+
+    #: Named by its **id**, not by its path — `card:` is the spelling the
+    #: tree checks for, and a path here would be read as a citation by
+    #: `test_citations.py` and rot the day the card moves shelf.
+    _n, rows = backlinks.citers(tree, "card:online.md")
+    shown, counted = backlinks.shape("card:online.md", rows)
+    assert len(shown) == min(len(rows), backlinks.HOOK_CUT), (
+        "a card's answer was cut by tier; the case where the tool works "
+        "is the one that must not change")
+    assert all(label is None for label, _n in counted), (
+        "a card is cut by count, not by tier, so there is nothing to name")
+
+
+def test_a_shelved_card_citing_source_is_kept():
+    """`card:unseen-flare.md` is the example the backlinks card was
+    written from — *a session that does not know an instrument exists
+    rebuilds it* — and it is **shelved**.  A rule that kept only live
+    cards would have dropped the row the whole idea came from, which the
+    first draft of this one did.
+    """
+    tree = backlinks.Tree(ROOT)
+    _n, rows = backlinks.citers(tree, "gestate/host.c")
+    kept = {r[0] for r in backlinks.shape("gestate/host.c", rows)[0]}
+    #: By basename, for the reason above: the shelf is not part of a
+    #: card's name and this one is on `later/` today.
+    assert any(r.endswith("unseen-flare.md") for r in kept)
+    assert "doc/memory/gestate-audio-teardown.md" in kept
+
+
+def test_the_summary_counts_tiers_in_rank_order():
+    """By the tier's own rank, not by where it sits in `TIERS`.
+
+    The table is written in reading order and numbered separately, so
+    enumerating it put history before code and the summary read as if
+    the journal mattered more than the tests.
+    """
+    tree = backlinks.Tree(ROOT)
+    _n, rows = backlinks.citers(tree, "gestate/host.c")
+    _shown, counted = backlinks.shape("gestate/host.c", rows)
+    order = {label: rank for rank, label, _f in backlinks.TIERS}
+    ranks = [order[label] for label, _n in counted]
+    assert ranks == sorted(ranks), f"summary out of rank order: {counted}"

@@ -465,11 +465,11 @@ twice the same day to this environment's "prefer the shell" line, and a
 mechanism should not rest on which one won.  A file already answered
 for in a sitting is not answered for again.
 
-**Ranked, because not all citations are equal** (Henri, the day it
-fired): live cards and memory first, then documents, code, shelved
-cards, the ledger, the journal last; within a tier an explicit citation
-before a file named in passing.  The cut at twenty falls on history.
-`TIERS` is the table.
+**Ranked, and shaped by what is being read.**  Cards and memory first,
+then documents, code, shelved cards, the ledger, history; `TIERS` is
+the table.  **A card is answered in full** — its citers are who applies
+it — and **a source file is summarised**, its own being mostly files
+naming it in passing: `spec/scope.md` has 46, none a card.  20 rows → 10.
 
 **And it is asked to earn its place** — Henri, 2026-09-04.  Every fire
 is a line in `~/.local/state/gestate/backlinks.log`, and `--earned`

@@ -121,6 +121,35 @@ MENTION = re.compile(
 TEXT_CUT = 100
 HOOK_CUT = 20
 
+#: **What is being read decides how much is shown** — the one rule that
+#: survived measurement (`card:backlinks-ranges.md`).
+#:
+#: Reading a **card or a memory**, its citers are the people who apply
+#: it: the code that implements the card, the test that holds it.  Worth
+#: reading, and the answer stays as it was.
+#:
+#: Reading a **source file, a spec or a ledger**, its citers are mostly
+#: files naming it in passing — `spec/scope.md` has 43 and *none* is a
+#: card or a memory; `gestate/audio.ges` has 153 and one.  Twenty rows
+#: of that trains a reader to skim, which is how an andon gets muted.
+#: So the tiers that say *who leans on this* are shown and the rest is
+#: counted.
+#:
+#: Measured before it was built, on the files that set the old lamp off:
+#: `spec/scope.md` 20 rows → 7, `audio.ges` → 10, `gestate/host.c` → 14
+#: while keeping both the card and the memory the backlinks card was
+#: written about, and `card:online.md` unchanged at 20 — the case where
+#: the tool already worked is untouched, which two earlier candidate
+#: rules could not manage.
+WANTED = ("board/", "doc/memory/")
+
+#: How many of each tier a *source* target shows before the rest is
+#: counted; a tier absent here is summarised outright.  Shelved cards
+#: are in it because a finished or shelved card citing source is the
+#: record of why that code exists — `card:unseen-flare.md`, the example
+#: the backlinks card was written from, is shelved.
+SOURCE_CAPS = {"cards and memory": 10, "shelved cards": 4, "documents": 4}
+
 #: The lamp's window, and the floor under it — how many fires a verdict
 #: needs before it means anything.
 LAMP_DAYS = 14
@@ -722,6 +751,42 @@ def hook(stdin: str, root: Path = ROOT) -> str:
         return ""
 
 
+def shape(name: str, rows) -> tuple:
+    """`(shown, counted)` — how much of the answer to spell out.
+
+    **The rule is about the target, not the citer** (`WANTED`).  Two
+    rules that did not survive measurement: ranking passage citers by
+    the range being read reorders nothing, because the files that need
+    help have almost no passage citations (0 of 43 for `spec/scope.md`);
+    and capping every tier alike shortens the noisy lists but drops rows
+    a session actually followed on a card.
+
+    `counted` is `[(tier label, how many), …]` in tier order, so the
+    answer ends by saying what it left out rather than trailing off.
+    """
+    if name.startswith(WANTED) or name.startswith("card:"):
+        shown = rows[:HOOK_CUT]
+        rest = len(rows) - len(shown)
+        #: No label: a card's answer is cut by count, not by tier, so
+        #: there is nothing to name and "15 more — 15 more" is what
+        #: naming it looked like.
+        return shown, ([(None, rest)] if rest else [])
+    shown, seen, dropped = [], {}, {}
+    for row in rows:
+        label = tier(row[0])[1]
+        if seen.get(label, 0) < SOURCE_CAPS.get(label, 0):
+            seen[label] = seen.get(label, 0) + 1
+            shown.append(row)
+        else:
+            dropped[label] = dropped.get(label, 0) + 1
+    #: By the tier's own **rank**, not by where it sits in `TIERS` —
+    #: the table is written in reading order and numbered separately, so
+    #: enumerating it put history before code in the summary.
+    order = {label: rank for rank, label, _f in TIERS}
+    counted = sorted(dropped.items(), key=lambda kv: order.get(kv[0], 99))
+    return shown, counted
+
+
 def _for_paths(paths: list[str], session: str, root: Path) -> str:
     """One answer for however many files the reader just opened."""
     if not paths:
@@ -734,7 +799,7 @@ def _for_paths(paths: list[str], session: str, root: Path) -> str:
         if not rows or name in done:
             continue
         done.add(name)
-        shown = rows[:HOOK_CUT]
+        shown, counted = shape(name, rows)
         # The sitting, and what was actually put in front of the reader
         # — the two fields `earned` needs.  `session_id` is the harness's
         # own; when it is absent the fire still counts as a fire and
@@ -744,9 +809,12 @@ def _for_paths(paths: list[str], session: str, root: Path) -> str:
         lines = [f"{name} is cited by {len(rows)} place{'s' if len(rows) != 1 else ''} "
                  f"(tools/backlinks.py):"]
         lines += grouped(shown)
-        if len(rows) > HOOK_CUT:
-            lines.append(f"  … and {len(rows) - HOOK_CUT} more: "
-                         f"python tools/backlinks.py {name}")
+        if counted:
+            total = sum(n for _l, n in counted)
+            rest = ", ".join(f"{n} {label}" for label, n in counted if label)
+            lines.append(f"  … and {total} more"
+                         + (f" — {rest}" if rest else "")
+                         + f": python tools/backlinks.py {name}")
         blocks.append("\n".join(lines))
     if not blocks:
         return ""
