@@ -50,10 +50,11 @@ is cited — the notations stay exactly as they are, because the claim is
 that they already carry the whole graph and only the reading direction
 is missing.
 
-**When it runs** is the open question (Q1 below).  Either at read time,
-as a block a session sees because it is in the file it opened, or on
-demand, as a command whose existence the session has to know about —
-and the second is the failure the card is about.
+**When it runs** is the open question (Q1 below), and the answer has
+to be *at read time*, because on demand means a command whose existence
+the session has to know about, which is the failure the card is about.
+At read time can mean a block in the file or a hook on the reader, and
+§"Q1, reasoned" is the choice between them.
 
 ## Found by looking, 2026-09-04
 
@@ -147,36 +148,107 @@ touch that directory, the block moves out to reading 2.
 Each carries a default and the trigger that would change it, so a
 one-line answer settles it and silence leaves the default standing.
 
-**Q1 — where does the answer appear?**  Readings 1–4 above.  Default:
-reading 4.  *Henri:* —
+**Q1 — where does the answer appear?**  Readings 1–4 above.  Default
+was reading 4.  *Henri, 2026-09-04:* "Defaults are fine, except that
+'where the answer appears', can you reason why that choice of
+generating it would be the correct approach?"  The reasoning is
+§"Q1, reasoned" below, and it moved the default to reading 5.  Still
+his to settle; silence leaves reading 5 standing.
 
 **Q2 — what counts as a citer?**  The default is everything the walker
 already parses plus the two it does not: `§"…"` passages, `card:` ids,
 `[[name]]` memory links, F-numbers, and a tool's filename named in
 prose or code.  A plain markdown link is not counted, because the tree
-uses those for navigation, not citation.  *Henri:* —
+uses those for navigation, not citation.  *Henri, 2026-09-04:*
+"Defaults are fine."  Settled.
 
 **Q3 — is the generated block a gate?**  Default: yes, the same as
 `tools/memoryindex.py --check` — a body whose block is behind the tree
 refuses the commit, because a "cited by" list that is wrong is worse
 than none (`doc/memory/the-tree-withers.md`).  Trigger to make it a
 report instead: the gate goes red on a commit that did not touch a
-citation, twice.  *Henri:* —
+citation, twice.  *Henri, 2026-09-04:* "Defaults are fine."
+Settled.
 
 **Q4 — does it belong further up the priority?**  It arrives last, as
 every new card does.  The argument for higher: it costs about a day
 and changes how every card above it is worked.  The argument against:
-none of the cards above it wait on it.  *Henri:* —
+none of the cards above it wait on it.  *Henri, 2026-09-04:*
+"Defaults are fine."  It stays ninth.
+
+## Q1, reasoned — 2026-09-04
+
+Henri asked why generating the answer into the files would be the
+correct approach, and the honest answer is that the default was chosen
+by precedent and does not survive being reasoned through.
+
+**What the `because` needs is delivery at read time.**  A session that
+does not know a thing exists cannot run a command for it or open a
+page about it; the only moment the information is useful is when the
+session is reading the target, so it has to arrive then, unasked.
+That rules out readings 2 and 3 as the primary delivery, and it is the
+whole of the argument for a generated foot.
+
+**But the foot reaches the wrong end of the failure.**  Trace the
+failure the card names: a session rebuilds an instrument it did not
+know about.  It did not know because it never opened the memory that
+names it.  A "cited by" foot on that memory helps nobody who is not
+already there.  What would have helped is the backlink on the thing the
+session *was* reading — `gestate/host.c`, a spec passage, a test —
+saying *this is cited by `doc/memory/gestate-audio-teardown.md` and
+`card:unseen-flare.md`*.  The discovery runs from source and spec
+toward memory and card, and those are exactly the targets reading 4
+served with a command only, because a foot cannot go into a `.py`.
+
+**Two ways to deliver at read time, then.**  Put it in the file, or
+put it in the reader.
+
+| | generated foot in the file | a hook on the reader's `Read` |
+|---|---|---|
+| reaches | memory bodies and cards | every file, source and spec included |
+| fresh | at the last regeneration; the gate makes it fresh at commit and stale between | always, computed from the working tree |
+| churn | 128 of the 556 commits since 2026-08-05 added a memory or card citation, median two targets each — a quarter of all commits would rewrite foot blocks in files the work did not touch | none |
+| who sees it | any reader, in any editor, on GitHub, in another harness | a Claude Code session, and nothing else |
+| the suite can hold | that the block is in step with the tree | that the hook is installed and the command gives the known answer; not that it fired |
+| two writers on one file | the generator and Henri both write memory bodies | the file is untouched |
+
+The churn row is measured, and the command that measured it is in the
+journal for the day.  The measurement is an upper bound on the foot's
+rewrites and a fair one: every such commit would carry a median of
+two generated files it did not otherwise touch, in a tree whose rule is
+*commit what you wrote*.
+
+**Reading 5, and it becomes the default: the command, and a `Read`
+hook that calls it.**  `tools/backlinks.py <path>` stays the thing in
+the tree, validated against a known answer; `.claude/settings.json`
+gains a post-read hook that runs it on the file just read and hands the
+citers back as context, silent when there are none.  The fence hook
+already lives there, so the shape has a precedent in this tree too.
+*Killed if* the hook cannot return context to the session — that is
+the first thing day one checks — or if it is too slow to run on every
+read, which sets the budget: the whole walk under a tenth of a second,
+or an index cached against the tree's state.
+
+**What reading 5 gives up, said plainly.**  Henri reading a memory
+body in his editor sees nothing, and an arm run in another harness sees
+nothing.  Neither is the reader the `because` names.  The trigger that
+brings the foot back is either of them turning out to be: he asks for
+it, or a trial arm is run outside Claude Code and the citers are
+wanted there.  When that happens the foot is reading 1 over the same
+command, and its gate is the memory index's.
 
 ## Day one
 
-The first sitting builds the command (reading 3) whatever Q1 says,
-because every other reading is a view over it: `tools/backlinks.py
-<target>` prints every file that cites the target, with the line, for
-all five citer kinds.  It validates against a known answer the way
-`dangling.py` does — `card:ungated-fixes.md` is cited from a known set
-of files, and the command must print exactly those.  Then the block,
-if Q1 keeps the default, and its gate.
+The first sitting builds the command whatever Q1 says, because every
+other reading is a view over it: `tools/backlinks.py <target>` prints
+every file that cites the target, with the line, for all five citer
+kinds.  It validates against a known answer the way `dangling.py` does
+— `card:ungated-fixes.md` is cited from a known set of files, and the
+command must print exactly those.  Then, before anything else, the
+check that decides reading 5: can a post-read hook hand text back into
+the session's context at all.  If yes, the hook, with a test that it
+is installed and a stopwatch on the walk.  If no, reading 5 is dead and
+the foot is the default again.
 
 Then the check that the card is about, which no test can hold: the
 next time a session rebuilds an instrument that existed, or misses a
@@ -186,8 +258,9 @@ runs on the next failure, not on this build.
 
 ## What the suite can hold
 
-The gate on the generated block, if Q3 keeps the default, and the
-known-answer validation of the command.  It cannot hold the thing the
+The known-answer validation of the command; that the hook is installed,
+the way the fence hook is checked; and the gate on the generated block
+if the foot ever comes back under Q3's answer.  It cannot hold the thing the
 card exists for — whether a session *looked* — and saying so here is
 the same honesty `board/README.md` §"What the suite can hold, and what
 it cannot" asks of every card.

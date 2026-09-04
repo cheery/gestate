@@ -679,3 +679,45 @@ alone.  A defect with a stated victim that turns out to have none is a
 defect written from reading, and this one was three sentences from being
 filed that way.
 
+
+## A card opened from a conversation about Xanadu — 2026-09-04
+
+Henri brought two pages on Project Xanadu, gwern.net/xanadu and
+zed.dev/blog/agentic-xanadu, and asked what in the design space could
+change how a session works, given that retrieval over embeddings does
+not pay.  The answer measured this tree against Nelson's data model
+and found it already runs most of it by hand — permanent ids,
+never-overwrite, provenance in prose — and lacks one piece: nothing
+tells a reader who cites what they are reading.  He opened
+`card:backlinks.md` on that sentence.
+
+**Two measurements, both with their command.**  How much of the graph
+exists and how many targets no one cites, from a throwaway script over
+the citation walker's file set — 258 passage citations over 108
+targets, 13 of 72 memory bodies reachable only through the index.  And
+the churn a generated foot would cost, which decided Q1: of the
+commits since the board began, how many added a citation to a memory
+or card, and to how many targets.
+
+```sh
+since=2026-08-05
+git log --since=$since --format='%h' | while read h; do
+  n=$(git show $h --format= --unified=0 -- . ':!doc/memory/README.md' \
+      | grep -E '^\+' | grep -vE '^\+\+\+' \
+      | grep -oE '\[\[[a-z0-9-]+\]\]|card:[a-z0-9-]+\.md|doc/memory/[a-z0-9-]+\.md' \
+      | sort -u | wc -l)
+  [ "$n" -gt 0 ] && echo "$h $n"
+done | awk '{c++; a[c]=$2} END{print c " commits; median targets " a[int((c+1)/2)]}'
+```
+
+128 of 556, median two.  A foot generated into target files would have
+been rewritten in a quarter of all commits, in files the work did not
+touch, and that number moved the card's default from a generated block
+to a hook on the reader's `Read` — the reasoning is on the card under
+§"Q1, reasoned", and the part worth keeping is that the default had
+been chosen by precedent and reversed on being asked *why*.
+
+**And the size table caught its own case.**  Five lines added to
+`board/README.md` for the new card put `doc/method.md` behind by
+five, and the gate refused the commit until the number was fixed —
+the third time that check has fired on the day it was needed.
