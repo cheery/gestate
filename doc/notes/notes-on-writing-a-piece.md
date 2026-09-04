@@ -186,6 +186,58 @@ count goes to **0 of 8**.  That take is
 `arc-pedal.ges` in the scratchpad, deliberately **not** folded into
 `arc.ges` until he has heard whether it is right.
 
+**H4 — the cadences were not there, and he heard their absence.**
+*Henri:* **"I didn't hear cadences.. but they're harder to understand
+and I think those would be chords that need to make cadences."**  He is
+right twice: a cadence is a **harmonic** event, and there were none.
+
+**Checked, and it is worse than missing.**  The brief asked for a
+deceptive cadence in the middle and a perfect one at the end.  The
+piece has:
+
+    bar 16 → 17   A7 → Dm     perfect
+    bar 23 → 24   A7 → Dm     perfect
+
+**The same cadence twice, and the deceptive one is not in the piece at
+all.**  The only B minor sits at bar 6, inside section A, where it
+cadences nothing.  *And the file's own comments say otherwise* — bar 16
+is annotated "the hinge… what comes underneath is not home", which is
+untrue of the notes under it.  **A comment claiming a musical fact the
+notes do not carry is worse than no comment**, and nothing in the tree
+can catch it: prose about music is unchecked in a way prose about code
+is not.
+
+*What would make it a cadence:* A7 → B♭ at bar 17.  B♭ is the ♭VI of D
+minor and is **already in D phrygian** (D E♭ F G A B♭ C), so the
+deceptive turn and the mode's own colour are the same chord — which is
+the kind of thing that is obvious once the modes are written down and
+invisible while they are in somebody's head (**W2**).
+
+**H5 — the tonic was not visited, which is his own rule and the one
+thing he was sure of.**  *Henri:* *"the melody should occasionally
+visit the tonal note to establish a tonal center.  But that's all I
+know and sometimes I don't get it right either."*
+
+Counted in the locrian section: **3 of 32 notes touched G**, one of
+them at a bar's end, and four of the eight bars never touched it at
+all.  His rule was right and the melody broke it.
+
+*And why the rule is the whole mechanism, worth writing down because he
+said he could not remember it:* **B locrian is the white notes** — the
+same notes as C major — so the ear, given them, defaults to C, the
+strongest tonic available.  Locrian's instability *is* that pull, and B
+has no perfect fifth to build a defending triad with.  So it is a tonic
+that must be asserted continuously against a scale that keeps proposing
+a better one, with no consonant chord to assert it.
+
+**Which makes three of today's findings one fact:** visit the tonic
+(the only thing holding it), pedal the root (brute assertion), and let
+no consonant triad in (a stable chord wins the argument instantly).
+
+*The experiment, one variable:* the locrian melody rewritten to land on
+G at the end of every bar — 12 of 32 notes on the tonic, up from 3, and
+harmony untouched.  `arc-melody.ges` in the scratchpad.
+
 ---
 
 ## What the two passes cost, in one place
