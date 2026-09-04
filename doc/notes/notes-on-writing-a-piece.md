@@ -421,6 +421,66 @@ bottom.
 **Whether it works is his to say**, and the honest note is that the
 numbers agreeing with his file proves only that the numbers agree.
 
+### H6 — *"something in the way you select notes"*
+
+*Henri, on pass four, after the pitch statistics already matched his
+file:* **"I think you learned and understood how it's done, but there's
+something else wrong in the way you produce it, and that makes it not
+land."**  And when the session leapt at rhythm: **"I mean that there is
+something in the way you select notes there.  But lets add the rhythm
+because it's one of those things that I think would make it more
+going."**
+
+**He was pointing at the melodic motion, and it measures.**  The
+session had only ever counted *which* notes; this counts *how they
+move*:
+
+| | his | pass four | pass five |
+|---|---|---|---|
+| stepwise moves, a tone or less | 70% | 58% | 74% |
+| leaps | 30% | **42%** | 10% |
+| direction changes | 30% | **44%** | 31% |
+| widest leap | a fifth | **a minor seventh, ×3** | a fifth |
+| repeated notes | 19% | 15% | 15% |
+
+**His line walks; the session's zigzagged.**  The semitone is his
+commonest interval, seventeen of fifty-six; and the minor sevenths came
+from a cell that started a tenth above where the last one ended — the
+session was *picking notes out of the scale* rather than moving through
+it, which is the difference between a line and a list.
+
+*And the leaps are still short of his* — 10% against 30% — which is
+left standing rather than fitted, because matching a histogram is not
+the same as writing a phrase and the session has already spent a day
+learning what over-fitting to a number looks like.
+
+### And the rhythm, which was a second thing and closes W1
+
+**56 of his 57 notes are shorter than a quarter.  0 of the first
+draft's 91 were.**  His line runs at eighths and sixteenths; the
+session's ran at quarters for sixty-two seconds.
+
+**That is `W1` arriving as a musical fault.**  The first friction in
+this log — *length is not a property of a note* — was written down in
+the morning and treated as filed.  It is also why four passes were
+spent tuning pitch on a line that had no rhythm in it: the format made
+the rhythmically dead version the easy one to write, and it was written
+four times without anybody noticing.
+
+*So the bound in §"The result that bounds the whole exercise" needs
+one qualification.*  **His** failure in the DAW was not a notation
+problem — that stands.  But **the session's** failure substantially
+was: the easy thing to write was the wrong thing, and the log had said
+so before the first note was played.
+
+### Two things ruled out on the way
+
+His velocities are **all 96** — no dynamics anywhere — and his file is
+**100% sounding, no rests**.  So neither the session's invented
+velocity floats (`W4`) nor its total absence of breath explains the
+difference.  It was interval motion and speed, and nothing else the
+numbers could see.
+
 ---
 
 ## What the two passes cost, in one place

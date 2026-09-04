@@ -145,6 +145,17 @@ a8 = '(Tone 0.80 74 0) ++ '(Tone 0.75 76 0) ++ '(Tone 0.85 80 2) ++ '(Tone 0.70 
 #   again, which is the maqam sound he found while reading; the tritone
 #   appears once here where it was in nearly every bar before;
 # * **it is a short cell repeated**, not a scale walked;
+# * **it moves by step and rarely turns** — 70% of his moves are a tone
+#   or less, the semitone is his commonest interval, and his widest
+#   leap is a fifth.  The first rewrite of this section leapt a minor
+#   seventh three times and changed direction on 44% of its notes: it
+#   was *picking notes from the scale* rather than moving through it,
+#   which is the difference between a line and a list;
+# * and **it runs at eighths and sixteenths** — 56 of his 57 notes are
+#   shorter than a quarter, where every one of the first draft's 91 was
+#   a quarter or longer.  Which is `W1` arriving as a musical fault:
+#   length is not a property of a note here, so the easy thing to write
+#   is the rhythmically dead thing, and it was written four times;
 # * and **the structural cues all point at G** — it is the *first* note
 #   of the section, the *last*, the *lowest*, and the *longest held*.
 #
@@ -158,35 +169,35 @@ a8 = '(Tone 0.80 74 0) ++ '(Tone 0.75 76 0) ++ '(Tone 0.85 80 2) ++ '(Tone 0.70 
 #: Bar 9 — the arrival, and the ♭2 immediately, so the darkness is not
 #: eased into.
 b1 : [: Tone :]
-b1 = ('(Tone 0.85 67 0) |* 2) ++ '(Tone 0.70 68 0) ++ '(Tone 0.80 67 0)
+b1 = ('(Tone 0.88 67 0) ++ '(Tone 0.72 68 0) ++ '(Tone 0.80 67 0) ++ '(Tone 0.84 67 0) ++ '(Tone 0.78 72 0) ++ '(Tone 0.72 70 0) ++ '(Tone 0.70 68 0) ++ '(Tone 0.86 67 0)) |/ 2
 
 #: Bar 10 — the flat fifth, which is the mode's own wound.
 b2 : [: Tone :]
-b2 = '(Tone 0.75 77 0) ++ '(Tone 0.70 75 0) ++ '(Tone 0.75 72 0) ++ '(Tone 0.85 67 2)
+b2 = ('(Tone 0.78 67 0) ++ '(Tone 0.78 68 0) ++ '(Tone 0.78 67 0) ++ '(Tone 0.78 67 0) ++ '(Tone 0.78 72 0) ++ '(Tone 0.78 70 0) ++ '(Tone 0.78 68 0) ++ '(Tone 0.78 67 0)) |/ 2
 
 #: Bar 11 — down through the ♭6 and ♭7, no foothold anywhere.
 b3 : [: Tone :]
-b3 = ('(Tone 0.85 67 0) |* 2) ++ '(Tone 0.70 68 0) ++ '(Tone 0.80 67 0)
+b3 = ('(Tone 0.78 73 0) ++ '(Tone 0.78 72 0) ++ '(Tone 0.78 70 0) ++ '(Tone 0.78 68 0) ++ '(Tone 0.78 67 0) ++ '(Tone 0.78 68 0) ++ '(Tone 0.78 67 0) ++ '(Tone 0.78 67 0)) |/ 2
 
 #: Bar 12 — a slide down into the ♭2 again, sagging.
 b4 : [: Tone :]
-b4 = '(Tone 0.75 77 0) ++ '(Tone 0.70 75 0) ++ '(Tone 0.75 72 0) ++ '(Tone 0.85 67 2)
+b4 = ('(Tone 0.78 72 0) ++ '(Tone 0.78 70 0) ++ '(Tone 0.78 68 0) ++ '(Tone 0.78 67 0) ++ '(Tone 0.78 73 0) ++ '(Tone 0.78 72 0) ++ '(Tone 0.78 70 0) ++ '(Tone 0.78 68 0)) |/ 2
 
 #: Bars 13-15 — the same shape wound tighter and higher, because the
 #: section has nowhere stable to go and climbing is the only motion left.
 b5 : [: Tone :]
-b5 = '(Tone 0.80 67 0) ++ '(Tone 0.75 68 0) ++ '(Tone 0.80 70 0) ++ '(Tone 0.75 68 1)
+b5 = ('(Tone 0.78 75 0) ++ '(Tone 0.78 73 0) ++ '(Tone 0.78 72 0) ++ '(Tone 0.78 70 0) ++ '(Tone 0.78 68 0) ++ '(Tone 0.78 67 0) ++ '(Tone 0.78 68 0) ++ '(Tone 0.78 67 0)) |/ 2
 
 b6 : [: Tone :]
-b6 = ('(Tone 0.85 67 0) |* 2) ++ '(Tone 0.80 73 2) ++ '(Tone 0.85 67 0)
+b6 = ('(Tone 0.78 67 0) ++ '(Tone 0.78 68 0) ++ '(Tone 0.78 67 0) ++ '(Tone 0.78 67 0) ++ '(Tone 0.78 68 0) ++ '(Tone 0.78 70 0) ++ '(Tone 0.78 72 0) ++ '(Tone 0.78 73 0)) |/ 2
 
 b7 : [: Tone :]
-b7 = '(Tone 0.75 77 0) ++ '(Tone 0.70 75 0) ++ '(Tone 0.75 72 0) ++ '(Tone 0.85 67 0)
+b7 = ('(Tone 0.78 75 0) ++ '(Tone 0.78 73 0) ++ '(Tone 0.78 72 0) ++ '(Tone 0.78 70 0) ++ '(Tone 0.78 68 0) ++ '(Tone 0.78 67 0) ++ '(Tone 0.78 67 0) ++ '(Tone 0.78 67 0)) |/ 2
 
 #: Bar 16 — the hinge.  The line lands on A, the fifth of D, and asks
 #: for home; what comes underneath is not home.
 b8 : [: Tone :]
-b8 = ('(Tone 0.90 67 0) |* 3) ++ '(Tone 0.75 67 2)
+b8 = ('(Tone 0.90 67 0) |* 2) ++ '(Tone 0.80 68 0) ++ '(Tone 0.92 67 2)
 
 # ── A′ — D phrygian, dark and settled ────────────────────────────────────
 #
