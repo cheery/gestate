@@ -475,14 +475,13 @@ before a file named in passing.  The cut at twenty falls on history.
 is a line in `~/.local/state/gestate/backlinks.log`, and `--earned`
 counts **follows**: a fire on a file an earlier fire *in the same
 sitting* offered and the reader had not already opened.  A follow is
-another fire, so nothing but the log is needed — and it is correlation,
-which the docstring is honest about.  **The floor is zero**.
+another fire, so nothing but the log is needed — it is correlation,
+which the docstring is honest about, and **the floor is zero**.
 
 `--check`, the pre-commit lamp, trips on **one** thing: nothing
-followed over thirty fires.  A cut-share cause was retired 2026-09-04
-at his word, when the check its card demanded found it firing on a fact
-about the tree — many files here have over twenty citers — and not on a
-fault in the tool.
+followed over thirty fires.  A cut-share cause was retired 2026-09-04,
+when the check its card demanded found it firing on a fact about the
+tree — many files here have over twenty citers — not on a fault here.
 
 ### `tools/flow.py` — the board's flow, and the seven-day lamp
 
