@@ -173,6 +173,90 @@ general capability rather than from anything this piece needed.  Which
 is the same verdict as the section above, arrived at by counting
 instead of by re-reading — and it says which half to restrict *to*.
 
+## What the notation turned out to be — 2026-09-04
+
+**Henri, thinking it through at the terminal:** *"I think that I'd want
+something like a real score-notation, with annotations.  But it could
+be simplified somehow."*  And on what an annotation is for, given three
+readings — exact (a number with a pretty face), inert (a comment), or
+**a hint an interpreter reads** — he took the third: *"I think the
+third option would be interesting."*
+
+**That is the one that makes it notation rather than syntax**, and his
+own instrument is the argument.  He plays violin, three years, and on a
+violin staccato is not "shorter" — it is a bow stroke whose shortness
+is a *consequence*; accent is bow speed and pressure, not a velocity
+number.  A pad voice has no bow.  So a mark compiling to `duration ×
+0.5` would be wrong for the violin **and** wrong for the pad.  A mark
+names an **intention** and each voice realises it in its own terms,
+which is what an orchestra does and what `lantern.ges` already says of
+its own notes: *the score decides which step, the voice decides what
+that sounds like.*
+
+**And it needs no new language mechanism.**  The payload is the
+author's datatype and the voice already pattern-matches it, so the work
+is convention, drawing and gesture.  Henri picked the convention over
+the per-file field — *"2. convention the tree names once"* — for the
+reason he gave a paragraph earlier: **the score has to be readable by a
+session too.**  With a per-file field, *readable* means parseable; with
+a named convention it means understood.  `audio.ges`'s `Notable a`
+class (`noteKey`/`noteVel`) is the same move already made once, and is
+the shape to copy.
+
+**Three marks, his: staccato, accent, portamento.**  The type is
+`Manner` — his pick, and `Mark` was unavailable because `Score a`
+already spends it on `Mark String`, a named point zero wide.
+
+**Both roll and staff**, and his reason is better than the `because`
+this card was written with: *"what I have available changes what I
+create.  I've noticed that when working on score."*  The tool has been
+shaping the music and he can feel it.  The roll is standing and already
+writes back (`spec/north_star.md`, built); the staff is a second
+renderer and the expensive half, so marks land on the roll first and
+the staff is its own slice.
+
+**And a preview tone**, his ask — which is half built: `north_star`
+acceptance 5 already gates *the sound moved with it*, and
+`session.py`'s transpose sounds where it was dropped.  The gap is that
+it sounds **only while something is playing**; annotating is not
+performing, so the stopped case is a decision the spec owes.
+
+### Points, not spans — a session's call, 2026-09-04
+
+Asked whether a span mark like portamento is stored as a span or as a
+point, Henri said *"I don't know.  answer to this one."*  So this is
+the session's, marked as such.
+
+**Points.  A span is a pair of points, and the drawing pairs them.**
+Lilypond attaches slurs to notes, MusicXML writes `slur type="start"`
+and `type="stop"` on two notes, MIDI has only events at points; the
+field converged here.  `spec/editor.md`'s law admits a field of one
+constructor and not a relation between two.  And `manners : a -> [Manner]`
+is a function of one payload, as `Notable a` is.
+
+**The decisive one is the algebra.**  `Score a` carries `Retro`
+(reverse), `Sow` (re-root a seed) and `Draw` (the notes are not known
+until a seed arrives).  **A span stored as "note 3 to note 7" has no
+stable referent under any of them** — reversed it dangles, re-sown the
+notes differ, drawn they do not exist yet.  A point mark rides with its
+payload through all three for free: reverse the phrase and *slide into
+this note* still means slide into this note, arriving from a different
+predecessor, which is musically right.
+
+*The cost, stated rather than discovered:* a chancy score can produce a
+start whose stop never comes.  **An unpaired start ends at its `Clip`
+boundary** — `long n s` already declares a span, so the score's own
+bracket supplies the ending, and an unclosed crescendo is defined
+rather than refused.
+
+*And the one that reaches furthest:* portamento constrains **voice
+allocation**.  Staccato and accent are read entirely inside the voice
+function; a slide needs the *same* voice to carry both notes or there
+is nothing to slide from.  `slew` exists (`synth.ges:335`) and
+`violin.ges` already plays a portamento violin, so there is a working
+reference to hold a spec against — but this mark is the expensive one
+of the three and belongs last.
+
 ## Questions
 
 *Open, for whenever it is unshelved.*
