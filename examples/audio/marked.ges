@@ -79,6 +79,16 @@ pushOf t = case asks (manner t) Accent of
     True  -> 1.0
     False -> 0.0
 
+#: **A one-pole coefficient, not hertz a sample.**  `slewStep` is
+#: `y + k * (t - y)`, so **1.0 arrives at once** — which is what makes
+#: this transparent to a note that asked for nothing — and a small
+#: number takes its time.  Reading it as a rate overshoots and diverges
+#: to NaN, which is how this file learned the difference.
+glideOf : Tone -> Float
+glideOf t = case asks (manner t) Portamento of
+    True  -> 0.0006
+    False -> 1.0
+
 #: A bowed string, near enough: a saw through a filter, struck and left
 #: to ring — or not, if the note asked to be detached.
 #:
@@ -93,9 +103,18 @@ pushOf t = case asks (manner t) Accent of
 #: have done and what the score deliberately did not say.  The two marks
 #: are independent: a note may ask for both, and the arithmetic below
 #: adds rather than chooses.
+#: **And the portamento is the finger, not the note.**  The pitch is
+#: slewed toward where the note is written, so a marked note *arrives*
+#: rather than appearing — and what it arrives **from** is whatever this
+#: voice last played, which is the allocator's business and not the
+#: score's.  In a line taken one note at a time that is the note before,
+#: which is what a violinist means.  Across a chord it is whichever note
+#: this voice happened to hold, and the file says so rather than
+#: pretending the mark means more than it can.
 bowVoice : Sig Gate -> Sig Tone -> Sig Float
 bowVoice g s =
-    lowpassSvf (1400.0 + (!pushOf s) * 2600.0 * perc 22.0 g) 0.28 (saw (!hzOf s))
+    lowpassSvf (1400.0 + (!pushOf s) * 2600.0 * perc 22.0 g) 0.28
+               (saw (slew (!glideOf s) (!hzOf s)))
         * (!velOf s) * 0.32
         * (perc 5.0 g * (1.0 - (!bowOf s)) + perc 20.0 g * (!bowOf s))
 

@@ -542,15 +542,61 @@ cannot drift from what a voice reads.
 as a number, so `mark r 60 3` writes a staccato accent — which is why
 it was specified as a set rather than as one mark per gesture.
 
+## The third slice, landed — 2026-09-04
+
+**`Portamento`, and the prediction about it was wrong.**  §"What waits
+behind this" said it reached into `audioalloc`'s choice of voice where
+the other two are read inside the voice function, and that it was the
+expensive one.  Measured at one, two and four voices, the slide is
+**identical**.  The allocator was never the obstacle.
+
+**What is true is subtler and better.**  A voice slews its pitch toward
+where the note is written, so a marked note *arrives* rather than
+appears — 110 Hz to 220 read as 176, 198, 220 over about 136 ms.  What
+it arrives **from** is whatever that voice last played, and *that* is
+the allocator's business: in a line taken one note at a time it is the
+note before, which is what a violinist means; across a chord it is
+whichever note the voice happened to hold, and a fresh voice slides up
+out of silence.  So the mark is honest in a line and arbitrary in a
+chord, and the example says so rather than pretending otherwise.
+
+**And it cost nothing the other two did not.**  `slew 1.0` is the
+identity — `slewStep` is `y + k * (t - y)` — so an unmarked note is
+untouched and every earlier test passed unchanged.
+
+*The mistake worth keeping:* the first attempt read `slew`'s first
+argument as **hertz per sample** and passed `9999.0` for *no slide*.
+It is a **one-pole coefficient in 0…1**, so that overshoots, diverges,
+and fills the buffer with NaN.  The type is `Sig Float -> Sig Float ->
+Sig Float` and says nothing about the range; `synth.ges`'s own
+docstring does — *a smoothed knob is `slew 0.001 level`* — and reading
+it was the fix.  A defect was nearly filed against the tree for this.
+
+**Drawn as a tick leaning into the head**, not as a line between two
+heads: the picture walks one row at a time and a row does not know its
+neighbour, and §"Points, not spans" already stores a slide on the note
+it arrives at.  The drawing follows the storage rather than fighting
+it.
+
+**Every combination is now gated** — the manners run 0…7 and each glyph
+is counted against the notes that asked for it, including the note that
+asks for all three.  A drawing that handled one mark and forgot the sum
+would look right on every single-mark note and wrong only where they
+meet, which is the case a person writes and a fixture usually misses.
+
 ## What waits behind this
 
-`Portamento`, then the staff.
+The staff, which is the second renderer and the expensive half.  And
+the two questions the building left: finding a manner by **position**
+within the constructor rather than by value (§"What a written manner
+costs"), and the **one-payload seam** a note-in-isolation preview needs
+(§"The three paths, priced").
 
-**And `Portamento` is the expensive one**, which is why it is last and
-not first despite being the most interesting.  `Staccato` and `Accent`
-are read entirely inside the voice function.  A slide is not: it needs
-the *same* voice to carry both notes, or there is nothing to slide from
-— so it reaches into `audioalloc`'s choice of voice, which the other two
-never touch.  `examples/audio/violin.ges` already plays a portamento
-violin with `slew`, so the behaviour has a reference to be held against
-before any of it is designed.
+**`Portamento` was predicted to be the expensive one** — read inside no
+voice function, reaching into `audioalloc` for the same voice to carry
+both notes.  *Measured 2026-09-04 and it is not:* the slide is
+identical at one, two and four voices, and what the allocator decides
+is the note a slide comes **from**, not whether there is one.  The
+prediction is kept here because it was wrong in a way worth seeing: it
+reasoned from the mechanism instead of measuring it, and the measuring
+took one command.

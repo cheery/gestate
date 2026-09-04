@@ -504,6 +504,42 @@ def test_the_roll_draws_each_mark_and_both_together():
     assert any(e[5] == 3 for e in roll.events), "and one note asking for both"
 
 
+def test_every_combination_of_marks_is_drawn():
+    """All eight, including the note that asks for all three.
+
+    **A drawing that handled one mark and forgot the sum** would look
+    right on every single-mark note and wrong only where they meet,
+    which is the case a person writes and a fixture usually misses.  So
+    the manners here run 0…7 and each glyph is counted against the
+    notes that asked for it.
+    """
+    from collections import Counter
+
+    from gestate.gui import Substrate, _flatten
+    from gestate.scorebox import MANNERS, asks as box_asks, build_rolls, roll_program
+
+    every = """written : [: Tone :]
+written = '(Tone 0.9 0 0) ++ '(Tone 0.9 1 1) ++ '(Tone 0.9 2 2) ++ '(Tone 0.9 3 4)
+       ++ '(Tone 0.9 4 3) ++ '(Tone 0.9 3 5) ++ '(Tone 0.9 2 6) ++ '(Tone 0.9 1 7)
+
+score = written >>= voices.bow"""
+    source = MARKED.read_text().replace(WHOLE, every) + "\nnotes score\n"
+    roll = build_rolls(source, box_asks(source), 44100, 0)[0]
+    assert sorted(e[5] for e in roll.events) == list(range(8)), (
+        "the fixture must carry every combination, 0 through 7")
+
+    program, _named = roll_program(roll)
+    canvas = Substrate(source + "\n" + program, 44100)
+    shapes = Counter((i[3], i[4]) for i in _flatten(canvas.signal.value, canvas.state)
+                     if i[0] == "rect")
+    glyph = {1: (2, 2), 2: (6, 2), 4: (2, 9)}
+    for bit, word in MANNERS:
+        asked = sum(1 for e in roll.events if (e[5] // bit) % 2)
+        assert asked == 4, f"{word} should be asked for by four of the eight"
+        assert shapes[glyph[bit]] == asked, (
+            f"{word}: {asked} notes ask, {shapes[glyph[bit]]} drawn")
+
+
 def test_the_drawn_bits_are_the_ones_audio_ges_declares():
     """One fact, two copies, held equal.
 

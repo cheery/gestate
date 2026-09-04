@@ -1394,6 +1394,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
     one_g, all_g = f"__nb_one_{box}__", f"__nb_all_{box}__"
     dot_g, asks_g = f"__nb_dot_{box}__", f"__nb_asks_{box}__"
     stac_g, acc_g = f"__nb_stac_{box}__", f"__nb_acc_{box}__"
+    port_g = f"__nb_port_{box}__"
     held_s, lift_s = f"__nb_h_{box}__", f"__nb_l_{box}__"
     pic_g = f"__nb_pic_{box}__"
     text = (chans
@@ -1431,7 +1432,18 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
             # the two read apart at a glance and a note asking for both
             # shows both — the whole reason a manner is a set.
             + f"{dot_g} : Int -> Int -> Int -> Int -> Sub\n"
-            + f"{dot_g} m t d w = Over ({stac_g} m t d) ({acc_g} m t d)\n\n"
+            + f"{dot_g} m t d w = Over (Over ({stac_g} m t d) ({acc_g} m t d))"
+              f" ({port_g} m t d w)\n\n"
+            # **Before the head, because that is where it comes from.**
+            # A portamento is stored on the note it arrives at
+            # (`spec/annotations.md` §"Points, not spans"), so it is
+            # drawn as a tick leaning into the head rather than as a
+            # line between two: the picture walks one row at a time and
+            # a row does not know its neighbour.
+            + f"{port_g} : Int -> Int -> Int -> Int -> Sub\n"
+            + f"{port_g} m t d w = case {asks_g} m {MANNERS[2][0]} of\n"
+            + f"    True -> Shift (0 - (w / 2) - 2) 0 (Rect 2 9 ({hue_g} t d))\n"
+            + "    False -> Gap 0 0\n\n"
             + f"{stac_g} : Int -> Int -> Int -> Sub\n"
             + f"{stac_g} m t d = case {asks_g} m {MANNERS[0][0]} of\n"
             + f"    True -> Shift 0 5 (Rect 2 2 ({hue_g} t d))\n"
