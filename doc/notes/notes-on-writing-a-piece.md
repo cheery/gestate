@@ -530,6 +530,46 @@ he stopped and the log is worth more finished than the piece is.
 
 ---
 
+### The blues asymmetry — why the failure was surprising, and a check for it
+
+*Henri, closing:* **"I didn't expect you would not capture locrian
+because you do so well in blues."**
+
+That is the sharpest thing said all day about the collaborator, and it
+names a real asymmetry: **the definition was available and the sound
+was not.**  Locrian's contents were stated correctly at every pass —
+seven notes, ♭2 and ♭5, tonic B in the white-key form — and five passes
+of writing from that definition still did not produce the mode.  Blues,
+by his account, arrives without any of that effort.
+
+**The hypothesis, and it is a hypothesis.**  What exists in writing
+about locrian is almost entirely *definitional* — the seventh mode, the
+diminished fifth, unstable, rarely used — because almost nobody writes
+music in it, so there is theory and no repertoire.  Blues is the
+mirror: the theory in words is thin and hedged, and the examples are
+everywhere.  A model built from text would then hold locrian as a
+**correct description it cannot instantiate** and blues as an
+**instantiable pattern it cannot describe well** — which is exactly the
+shape of the day: the account was right every time, the output was
+wrong every time, and §H6 found that the fault was in note *selection*
+rather than in the account.
+
+**It is not verified and there is a cheap check.**  Same language, same
+voices, same session conditions, one pass, no ear in the loop — write a
+twelve-bar blues.  If it lands first try where locrian took five and
+never landed, the asymmetry is measured rather than asserted, and the
+result is a fact about **what a co-writer in this format is for**: the
+sub-language card asks for *LLM-friendly and testable*, and this is the
+first evidence that the useful test is not comprehension.  A session
+can read notation it cannot write.
+
+*And his own note beside it, which keeps it honest:* he could not
+produce locrian in Reaper either, with a MIDI keyboard and thirty
+years' more ear than any of this.  Whatever the asymmetry is, it is not
+only the machine's.
+
+---
+
 ## What the two passes cost, in one place
 
 | | pass 1 | pass 2 |
