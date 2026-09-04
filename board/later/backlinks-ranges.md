@@ -86,6 +86,76 @@ remembering.
    expense, and the budget is still a tenth of a second warm — cache
    the heading-to-line map beside the index if it is not.
 
+## The lamp tripped, and the measurement refuses the fix — 2026-09-04
+
+*The card's own §"The trigger" says the first thing to do when the lamp
+trips is check whether it tripped for the right reason.  It did trip —
+40 fires, 20 cut, 50% — and the check says **no**, three times over.
+Henri: "ok. lets do the fix that lamp points at."  This is what
+happened instead.*
+
+**The check offered two answers and the truth was a third.**  The card
+expected either the ledger and journal (build the fix) or cards and
+memory (the cut is too low, change a number).  The cut fires are
+**spec files and libraries** — `spec/scope.md`, `dynamicscore.md`,
+`north_star.md`, `gestate/audio.ges`, `music.ges`, `command.ges`,
+`session.py`, `tools/suite.py` — which is neither.
+
+**1. There is almost nothing for the range to rank.**  The fix ranks
+passage citers by whether their heading falls in the range.  Of the
+files that actually trip the lamp:
+
+| file | citers | `§"heading"` citations |
+|---|---|---|
+| `spec/scope.md` | 37 | **0** |
+| `gestate/audio.ges` | 150 | **0** |
+| `gestate/music.ges` | 140 | **0** |
+| `spec/scorebox.md` | 43 | 5 |
+
+Reading a passage of `spec/scope.md` and applying the whole designed
+fix would reorder **zero rows**.  The card assumed the noise was
+passage citations pointing at other sections; it is bare mentions of
+the filename, which name no section at all.
+
+**2. The tiering already works — the cut is falling correctly.**
+
+    spec/scope.md   shown 20: {documents 2, code and tests 18}
+    fixme.md        shown 20: {cards and memory 20}   cut 616 lower
+    audio.ges       shown 20: {cards 1, documents 19}  cut 89 code, 13 history
+
+Nothing good is being lost.  For `spec/scope.md` the top twenty are all
+low-tier **because there is nothing better to show** — no card and no
+memory cites it at all.
+
+**3. And the obvious alternative makes the good case worse.**  Capping
+each tier separately was measured at three settings.  It cuts
+`spec/scope.md` from 20 rows to 4 — and at *every* setting it loses
+`shell/web/src/lib.rs` and `tools/pages.sh` from `card:online.md`,
+which are two of the three rows a session actually followed on
+2026-09-04.  A fix that damages the case where the tool works, to
+improve the case where it does not, is not a fix.
+
+### So the finding is about the lamp, not the tool
+
+**Being cut at twenty is not evidence of noise.**  It is evidence that
+many files in this tree have more than twenty citers, which is a fact
+about the tree.  The cut-share cause fires on a property of the
+repository rather than on a fault in the instrument, and it will go on
+firing at every commit — which is how an andon gets muted
+(`doc/memory/recorded-is-not-answered.md`).
+
+**The lamp's other cause already measures the thing that matters.**
+`--earned` asks whether anything the tool offered was ever opened, and
+it stands at 4 of 17 followed — not zero, which is the floor that would
+condemn the hook.
+
+*The session's recommendation, and the numbers are Henri's* (§"The
+trigger" says so): **retire the cut-share cause, keep `--earned`.**  One
+line — `LAMP_CUT_SHARE` — and the card stays shelved for the day a
+measurement shows the twenty rows losing something, which this one
+does not.  **Not taken here**, because a lamp a session silences on its
+own is a lamp that was never his.
+
 ## Shelved
 
 Waits on the lamp — an event, not a decision.  Henri, 2026-09-04, on
