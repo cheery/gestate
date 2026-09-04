@@ -133,44 +133,60 @@ a7 = '(Tone 0.85 69 0) ++ '(Tone 0.70 73 0) ++ '(Tone 0.80 76 2) ++ '(Tone 0.70 
 a8 : [: Tone :]
 a8 = '(Tone 0.80 74 0) ++ '(Tone 0.75 76 0) ++ '(Tone 0.85 80 2) ++ '(Tone 0.70 80 4)
 
-# ── B — G locrian, brutal ────────────────────────────────────────────────
+# ── B — G locrian ────────────────────────────────────────────────────────
 #
-# G Ab Bb C Db Eb F.  There is no perfect fifth over G, so nothing here
-# can rest; the Ab is the flat second and the colour of the whole
-# section.
+# G Ab Bb C Db Eb F.  **Rewritten from Henri's own attempt**
+# (`examples/midi/maybe-locrian.mid`), which does four things this
+# section did not, and every one of them is measurable:
+#
+# * **the tonic is hammered** — 39% of his notes against 9% of the
+#   first draft's, and the line always returns to it;
+# * **the colour is the ♭2, not the ♭5** — G against Ab, said again and
+#   again, which is the maqam sound he found while reading; the tritone
+#   appears once here where it was in nearly every bar before;
+# * **it is a short cell repeated**, not a scale walked;
+# * and **the structural cues all point at G** — it is the *first* note
+#   of the section, the *last*, the *lowest*, and the *longest held*.
+#
+# That last one is the sharpest and neither of us used it on purpose.
+# His file's tonic is the most frequent note and its structure still
+# argues for a different one, because first-last-lowest-longest beat
+# frequency.  So they are spent on G here deliberately.
+#
+# `doc/notes/notes-on-writing-a-piece.md` has the counts.
 
 #: Bar 9 — the arrival, and the ♭2 immediately, so the darkness is not
 #: eased into.
 b1 : [: Tone :]
-b1 = '(Tone 0.85 67 0) ++ '(Tone 0.75 68 2) ++ '(Tone 0.70 70 0) ++ '(Tone 0.80 72 0)
+b1 = ('(Tone 0.85 67 0) |* 2) ++ '(Tone 0.70 68 0) ++ '(Tone 0.80 67 0)
 
 #: Bar 10 — the flat fifth, which is the mode's own wound.
 b2 : [: Tone :]
-b2 = '(Tone 0.80 73 0) ++ '(Tone 0.70 72 0) ++ '(Tone 0.85 70 1) ++ '(Tone 0.65 68 1)
+b2 = '(Tone 0.75 77 0) ++ '(Tone 0.70 75 0) ++ '(Tone 0.75 72 0) ++ '(Tone 0.85 67 2)
 
 #: Bar 11 — down through the ♭6 and ♭7, no foothold anywhere.
 b3 : [: Tone :]
-b3 = '(Tone 0.75 75 0) ++ '(Tone 0.80 77 2) ++ '(Tone 0.70 75 0) ++ '(Tone 0.75 73 0)
+b3 = ('(Tone 0.85 67 0) |* 2) ++ '(Tone 0.70 68 0) ++ '(Tone 0.80 67 0)
 
 #: Bar 12 — a slide down into the ♭2 again, sagging.
 b4 : [: Tone :]
-b4 = '(Tone 0.85 72 0) ++ '(Tone 0.70 70 0) ++ '(Tone 0.80 68 4) ++ '(Tone 0.65 67 0)
+b4 = '(Tone 0.75 77 0) ++ '(Tone 0.70 75 0) ++ '(Tone 0.75 72 0) ++ '(Tone 0.85 67 2)
 
 #: Bars 13-15 — the same shape wound tighter and higher, because the
 #: section has nowhere stable to go and climbing is the only motion left.
 b5 : [: Tone :]
-b5 = '(Tone 0.80 70 0) ++ '(Tone 0.75 72 0) ++ '(Tone 0.85 73 2) ++ '(Tone 0.70 75 0)
+b5 = '(Tone 0.80 67 0) ++ '(Tone 0.75 68 0) ++ '(Tone 0.80 70 0) ++ '(Tone 0.75 68 1)
 
 b6 : [: Tone :]
-b6 = '(Tone 0.85 77 0) ++ '(Tone 0.70 75 1) ++ '(Tone 0.80 73 1) ++ '(Tone 0.75 72 0)
+b6 = ('(Tone 0.85 67 0) |* 2) ++ '(Tone 0.80 73 2) ++ '(Tone 0.85 67 0)
 
 b7 : [: Tone :]
-b7 = '(Tone 0.80 75 0) ++ '(Tone 0.85 79 2) ++ '(Tone 0.70 77 0) ++ '(Tone 0.75 75 0)
+b7 = '(Tone 0.75 77 0) ++ '(Tone 0.70 75 0) ++ '(Tone 0.75 72 0) ++ '(Tone 0.85 67 0)
 
 #: Bar 16 — the hinge.  The line lands on A, the fifth of D, and asks
 #: for home; what comes underneath is not home.
 b8 : [: Tone :]
-b8 = '(Tone 0.85 76 0) ++ '(Tone 0.80 74 0) ++ '(Tone 0.90 69 2) ++ '(Tone 0.70 69 0)
+b8 = ('(Tone 0.90 67 0) |* 3) ++ '(Tone 0.75 67 2)
 
 # ── A′ — D phrygian, dark and settled ────────────────────────────────────
 #
@@ -404,21 +420,21 @@ root7 = '(Tone 0.70 45 0) |* 4
 root8 : [: Tone :]
 root8 = '(Tone 0.70 45 0) |* 4
 root9 : [: Tone :]
-root9 = '(Tone 0.70 43 0) |* 4
+root9 = '(Tone 0.72 43 0) |* 4
 root10 : [: Tone :]
-root10 = '(Tone 0.70 43 0) |* 4
+root10 = '(Tone 0.72 43 0) |* 4
 root11 : [: Tone :]
-root11 = '(Tone 0.70 44 0) |* 4
+root11 = '(Tone 0.72 43 0) |* 4
 root12 : [: Tone :]
-root12 = '(Tone 0.70 43 0) |* 4
+root12 = '(Tone 0.72 43 0) |* 4
 root13 : [: Tone :]
-root13 = '(Tone 0.70 48 0) |* 4
+root13 = '(Tone 0.72 43 0) |* 4
 root14 : [: Tone :]
-root14 = '(Tone 0.70 44 0) |* 4
+root14 = '(Tone 0.72 43 0) |* 4
 root15 : [: Tone :]
-root15 = '(Tone 0.70 43 0) |* 4
+root15 = '(Tone 0.72 43 0) |* 4
 root16 : [: Tone :]
-root16 = '(Tone 0.70 45 0) |* 4
+root16 = '(Tone 0.72 43 0) |* 4
 root17 : [: Tone :]
 root17 = '(Tone 0.70 38 0) |* 4
 root18 : [: Tone :]
@@ -467,7 +483,12 @@ g7 = '(Tone 0.80 45 0) ++ '(Tone 0.55 52 0) ++ '(Tone 0.65 45 0) ++ '(Tone 0.55 
 g8 : [: Tone :]
 g8 = '(Tone 0.80 45 0) ++ '(Tone 0.55 52 0) ++ '(Tone 0.65 45 0) ++ '(Tone 0.55 52 0)
 
-#: B — G, and the fifth is flat.  Nothing to lean on, all section long.
+#: B — **pedalled on G for all eight bars**, so every chord above it
+#: becomes a slash chord that contradicts its own root: Ab/G, Cm/G,
+#: A/G.  Measured, the places the ear can rest — a perfect fifth above
+#: the sounding bass — go from **4 of 8 to 0 of 8**.  Locrian has no
+#: perfect fifth above its tonic and so cannot establish itself the
+#: ordinary way; it has to be insisted on, and this is the insisting.
 h1 : [: Tone :]
 h1 = '(Tone 0.80 43 0) ++ '(Tone 0.55 49 0) ++ '(Tone 0.65 43 0) ++ '(Tone 0.55 49 0)
 

@@ -393,6 +393,34 @@ reader of anything the session writes here should know it runs that
 way, and that the numbers in this file are worth more than the
 sentences around them.
 
+### Pass four — the section rewritten from his file
+
+*Henri: "Would you like to try locrian again with the new information
+you got?"*  Four lessons, three of them from his MIDI and the fourth
+from the analysis of it, and **the checks were run before listening** —
+which is the first time all day that happened and was the whole point
+of §"The result that bounds the whole exercise".
+
+|  | his | the first draft | pass four |
+|---|---|---|---|
+| tonic as a share of notes | 39% | 9% | **44%** |
+| moves touching the ♭5 | 4 | 8 | **2** |
+| moves touching the ♭2 | 10 | 6 | **8** |
+
+And the four structural cues, spent on G on purpose: **first** note of
+the section, **last**, **lowest**, **longest held** — plus the bass
+pedalled on G, which is 0 of 8 places to rest.
+
+*That fourth lesson is the one neither of us had used deliberately.*
+His file's tonic is the most frequent note and its structure still
+argues for a different one, because first-last-lowest-longest beat
+frequency.  A mode is not established by which note you play most; it
+is established by which note the **shape** puts at the ends and the
+bottom.
+
+**Whether it works is his to say**, and the honest note is that the
+numbers agreeing with his file proves only that the numbers agree.
+
 ---
 
 ## What the two passes cost, in one place
