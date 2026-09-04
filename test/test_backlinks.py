@@ -294,9 +294,22 @@ def test_every_fire_is_logged_with_its_denominator(tmp_path):
     run_hook({"tool_name": "Read", "tool_input": {"file_path": "/etc/hostname"}}, env)
     lines = [l.split("\t") for l in log.read_text().splitlines()]
     assert len(lines) == 1, "a silent fire is not a fire"
-    _when, rel, total, shown = lines[0]
+    _when, rel, total, shown, session, offered = lines[0]
     assert rel == "gestate/host.c"
     assert int(total) > int(shown) == backlinks.HOOK_CUT
+    #: The two fields `earned` needs.  The offers are the paths actually
+    #: put in front of the reader — not the whole citer list, because a
+    #: name cut at twenty was never shown and cannot have been followed.
+    assert session == "", "no session_id in this payload"
+    #: **Distinct files, not rows.**  Twenty citations may come from
+    #: thirteen files, because one file cites a target on several lines;
+    #: what a reader can go and open is the file.  So the offers are a
+    #: set, and counting rows here would have made every repeat citation
+    #: look like another chance the tool gave the reader.
+    names = offered.split(",")
+    assert 0 < len(names) <= backlinks.HOOK_CUT
+    assert len(set(names)) == len(names)
+    assert all((ROOT / n).exists() for n in names)
 
 
 def _log(path, rows, now):
@@ -336,3 +349,97 @@ def test_check_exits_two_when_the_lamp_trips_and_zero_when_not(tmp_path):
     _log(log, [(7, 7)] * 30, int(time.time()))
     r = subprocess.run([sys.executable, str(TOOL), "--check"], env=env, capture_output=True, text=True)
     assert r.returncode == 0 and "installed" in r.stdout
+
+
+# --- did it earn its place? -----------------------------------------------------------
+
+def _sitting(path, rows, now):
+    """`rows` as `(seconds ago, session, file read, [names offered])`."""
+    path.write_text("".join(
+        f"{now - ago}\t{rel}\t9\t9\t{sess}\t{','.join(offered)}\n"
+        for ago, sess, rel, offered in rows))
+
+
+def test_a_follow_is_a_later_fire_on_a_name_the_tool_offered(tmp_path, monkeypatch):
+    """The number `card:backlinks.md` left open and Henri asked for:
+    *does the answer change what the reader does next?*
+
+    A follow is a fire on a file an **earlier fire in the same sitting**
+    put in front of the reader.  Everything it must not count is here,
+    because each of them would inflate the one number the tool is being
+    judged on.
+    """
+    log = tmp_path / "fires.log"
+    monkeypatch.setenv("GESTATE_BACKLINKS_LOG", str(log))
+    now = 1_800_000_000
+
+    # Offered, then opened: the whole point.
+    _sitting(log, [(300, "s1", "a.md", ["b.md"]), (200, "s1", "b.md", [])], now)
+    assert backlinks.earned(now=now)["follows"] == 1
+
+    # **Not across sittings.**  A name offered yesterday cannot explain
+    # a file opened today; the reader is a different session with no
+    # memory of the offer.
+    _sitting(log, [(300, "s1", "a.md", ["b.md"]), (200, "s2", "b.md", [])], now)
+    assert backlinks.earned(now=now)["follows"] == 0
+
+    # **Not backwards.**  Reading `b` and then being told `a` cites it is
+    # the tool describing a journey already made.
+    _sitting(log, [(300, "s1", "b.md", []), (200, "s1", "a.md", ["b.md"])], now)
+    assert backlinks.earned(now=now)["follows"] == 0
+
+    # **Not a re-read.**  A file opened before it was offered was on the
+    # reader's own path; opening it again is not the tool's doing.
+    _sitting(log, [(400, "s1", "b.md", []), (300, "s1", "a.md", ["b.md"]),
+                   (200, "s1", "b.md", [])], now)
+    assert backlinks.earned(now=now)["follows"] == 0
+
+    # **Not a name that was never shown.**  The offers logged are the
+    # rows that survived the cut at twenty.
+    _sitting(log, [(300, "s1", "a.md", []), (200, "s1", "b.md", [])], now)
+    assert backlinks.earned(now=now)["follows"] == 0
+
+
+def test_the_fires_that_predate_the_sitting_id_are_named_not_dropped(tmp_path, monkeypatch):
+    """A four-field line is still a fire.
+
+    It cannot take part in a follow, and the honest thing is to say how
+    many were left out rather than divide by the smaller number and
+    report a healthier rate than the log supports.
+    """
+    log = tmp_path / "fires.log"
+    monkeypatch.setenv("GESTATE_BACKLINKS_LOG", str(log))
+    now = 1_800_000_000
+    log.write_text(f"{now - 500}\told.md\t9\t9\n"
+                   f"{now - 300}\ta.md\t9\t9\ts1\tb.md\n"
+                   f"{now - 200}\tb.md\t9\t9\ts1\t\n")
+    got = backlinks.earned(now=now)
+    assert (got["fires"], got["follows"], got["blind"]) == (2, 1, 1)
+    assert "1 fires predate" in backlinks.report_earned()
+    # And the old line still counts as a fire everywhere else.
+    assert len(backlinks.fires(now=now)) == 3
+
+
+def test_the_lamp_says_when_nothing_offered_was_ever_opened(tmp_path, monkeypatch):
+    """The second cause, and it is the decision the card asked for.
+
+    Zero follows over a real number of fires means the tool is
+    decoration with a context bill.  It is named apart from the cut
+    share, because one lamp lighting for two reasons under one sentence
+    is how an andon gets muted.
+    """
+    log = tmp_path / "fires.log"
+    monkeypatch.setenv("GESTATE_BACKLINKS_LOG", str(log))
+    now = 1_800_000_000
+    # Thirty fires, none of them following anything, and none cut.
+    _sitting(log, [(i * 60, "s1", f"f{i}.md", []) for i in range(30)], now)
+    tripped, line = backlinks.lamp(now=now)
+    assert tripped and "none of 30 fires was followed" in line
+    assert "card:backlinks-ranges.md" not in line, "that is the other cause"
+
+    # One follow is enough to say it did something no other route did.
+    rows = [(i * 60, "s1", f"f{i}.md", []) for i in range(29)]
+    rows.insert(0, (30 * 60, "s1", "f1.md", ["f0.md"]))
+    _sitting(log, rows, now)
+    tripped, line = backlinks.lamp(now=now)
+    assert tripped is False and "1 of 30 followed" in line

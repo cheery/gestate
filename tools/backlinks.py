@@ -10,6 +10,7 @@
     python tools/backlinks.py --time PATH        the walk's cost, cold and warm
     python tools/backlinks.py --check            the lamp: 1 not installed, 2 the cut has become noise
     python tools/backlinks.py --report           what the hook has been doing, from its own log
+    python tools/backlinks.py --earned           whether the answer changed what the reader did next
     python tools/backlinks.py --install          the settings.json lines to add
 
 **What this answers.**  Every citation in this tree runs one way: the
@@ -54,9 +55,19 @@ citation — a passage, a `card:` id, a `[[memory]]` — outrank a file
 named in passing.  The cut at twenty falls on history first, which is
 where the noise is.  `TIERS` is the table, and it is his to change.
 
-**The hook watches itself.**  Every fire appends one line to
-`~/.local/state/gestate/backlinks.log` — epoch, file, citers, shown —
-and `--report` reads it.  `--check` trips when, over the last fortnight,
+**The hook watches itself, and it is asked to earn its place.**  Every
+fire appends one line to `~/.local/state/gestate/backlinks.log` —
+epoch, file, citers, shown, the sitting, and the paths it put in front
+of the reader.  `--report` says what it has been doing; **`--earned`
+says whether it mattered**: a *follow* is a fire on a file an earlier
+fire in the same sitting offered and the reader had not already opened,
+which is entirely inside the log because a follow is another fire.  A
+follow is correlation and `earned`'s docstring says what it cannot rule
+out; the honest floor is zero, and zero over a real number of fires
+means the tool is decoration with a context bill.  Henri asked for that
+number on 2026-09-04 — *"I think the new 'cited by' reading tool needs
+a number that verifies whether it earns its place"* — and picked this
+reading of it the same day.  `--check` trips when, over the last fortnight,
 a third or more of the fires were cut at twenty and there were at least
 thirty of them: that is the noise the card warned about arriving, and
 the lamp names `card:backlinks-ranges.md`, the fix already designed.
@@ -381,21 +392,49 @@ def log_path() -> Path:
     return Path.home() / ".local" / "state" / "gestate" / "backlinks.log"
 
 
-def note(rel: str, total: int, shown: int) -> None:
+def note(rel: str, total: int, shown: int, session: str = "",
+         offered=()) -> None:
     """One line per fire, never fatal — the same shape as the sitting
     log, and for the same reason: a number a session picked (twenty)
-    that nobody has checked needs the denominator kept somewhere."""
+    that nobody has checked needs the denominator kept somewhere.
+
+    **Six fields since 2026-09-04**, and the last two are what make
+    `earned` possible: the sitting this fire happened in, and the paths
+    the answer put in front of the reader.  A follow is *another fire*
+    — the reader opening one of those paths — so the whole measurement
+    lives in this file and needs nothing else.
+
+    Four-field lines from before that day still parse; they simply
+    cannot take part in the follow count, and `earned` says how many it
+    had to leave out rather than quietly dividing by a smaller number.
+
+    A path never contains a tab or a comma, so the offer list is joined
+    with commas and the record stays one line.
+    """
     try:
         lp = log_path()
         lp.parent.mkdir(parents=True, exist_ok=True)
+        names = ",".join(sorted({r for r in offered if "," not in r}))
         with lp.open("a", encoding="utf-8") as f:
-            f.write(f"{int(time.time())}\t{rel}\t{total}\t{shown}\n")
+            f.write(f"{int(time.time())}\t{rel}\t{total}\t{shown}\t"
+                    f"{session}\t{names}\n")
     except OSError:
         pass
 
 
 def fires(days: int = LAMP_DAYS, now: float | None = None) -> list[tuple[int, str, int, int]]:
-    """The log's lines from the last `days`, parsed."""
+    """The log's lines from the last `days`, parsed — `(when, file,
+    total, shown)`, which is what the lamp and the report read."""
+    return [(w, rel, total, shown) for w, rel, total, shown, _s, _o
+            in _rows(days, now)]
+
+
+def _rows(days: int = LAMP_DAYS, now: float | None = None) -> list:
+    """Every field, including the two `earned` needs — `(when, file,
+    total, shown, session, offered)`.  A pre-2026-09-04 line has an
+    empty session and no offers and is kept, because it is still a fire
+    and still counts in the denominator the cut share is read against.
+    """
     lp = log_path()
     if not lp.exists():
         return []
@@ -404,14 +443,18 @@ def fires(days: int = LAMP_DAYS, now: float | None = None) -> list[tuple[int, st
     try:
         for ln in lp.read_text(encoding="utf-8").splitlines():
             parts = ln.split("\t")
-            if len(parts) != 4:
+            if len(parts) < 4:
                 continue
             try:
                 when, total, shown = int(parts[0]), int(parts[2]), int(parts[3])
             except ValueError:
                 continue
-            if when >= since:
-                out.append((when, parts[1], total, shown))
+            if when < since:
+                continue
+            session = parts[4] if len(parts) > 4 else ""
+            offered = [r for r in (parts[5].split(",") if len(parts) > 5 else [])
+                       if r]
+            out.append((when, parts[1], total, shown, session, offered))
     except OSError:
         return []
     return out
@@ -431,7 +474,106 @@ def lamp(days: int = LAMP_DAYS, now: float | None = None) -> tuple[bool, str]:
     if len(rows) >= LAMP_MIN_FIRES and share >= LAMP_CUT_SHARE:
         return True, (line + " — the twenty lines have become noise; the fix is "
                       "designed in card:backlinks-ranges.md, and this is its trigger")
+    #: **The second cause, and it is named apart from the first** — one
+    #: lamp lighting for two reasons with one sentence is how an andon
+    #: gets muted.  This one says the tool has not earned its place: no
+    #: reading it offered was ever opened.  The answer is to take the
+    #: hook out, or to say why not; it is not a nudge.
+    g = earned(days, now)
+    if g["fires"] >= LAMP_MIN_FIRES and g["follows"] == 0:
+        return True, (line + f" — and none of {g['fires']} fires was followed: "
+                      "nothing the tool offered was opened.  `--earned` has the "
+                      "numbers; card:backlinks.md asked for this one, and zero "
+                      "is the answer that takes the hook out")
+    if g["fires"]:
+        line += f"; {g['follows']} of {g['fires']} followed"
     return False, line
+
+
+def earned(days: int = LAMP_DAYS, now: float | None = None) -> dict:
+    """Did the answer change what the reader did next?
+
+    **The number `card:backlinks.md` left open**, asked for by Henri on
+    2026-09-04 — *"the new 'cited by' reading tool needs a number that
+    verifies whether it earns its place"* — and this is it: a **follow**
+    is a fire on a file that an *earlier fire in the same sitting* put
+    in front of the reader and that the reader had not already opened.
+    The reader was shown a name they had no other route to from what
+    they were reading, and then they opened it.
+
+    It is entirely inside the log, because a follow is another fire.
+
+    **What it is not, said plainly.**  A follow is *correlation*.  The
+    session may have been going to that file anyway — from the task,
+    from a grep, from having read it in an earlier sitting.  Nothing
+    here rules that out and no number in this log can.  What the log
+    does establish is the direction and the order: the name was offered
+    before it was opened, and it was offered by the one instrument that
+    shows a target its citers.
+
+    **The honest floor is zero.**  A rate of zero over a real number of
+    fires means the tool is decoration with a context bill, and that is
+    a decision rather than a nudge.  A rate above zero is something no
+    other route delivered, and what it is worth is the reader's to say
+    — which is why nothing here picks a threshold (`fixme.md` F169: a
+    number nobody asked for is a number nobody checks).
+
+    Returns the counts, and `blind` for the fires too old to carry a
+    sitting id, so the denominator is never quietly the smaller one.
+    """
+    rows = sorted(_rows(days, now), key=lambda r: r[0])
+    blind = sum(1 for r in rows if not r[4])
+    sittings: dict[str, list] = {}
+    for row in rows:
+        if row[4]:
+            sittings.setdefault(row[4], []).append(row)
+    fires_seen = follows = 0
+    offers: set[str] = set()
+    taken: set[str] = set()
+    lag: list[int] = []
+    for rows_of in sittings.values():
+        #: When each name was first put in front of this sitting, and
+        #: which files this sitting had already opened.  A name offered
+        #: *after* it was read is not an offer that led anywhere.
+        first_offer: dict[str, int] = {}
+        read: set[str] = set()
+        for when, rel, _total, _shown, _s, offered in rows_of:
+            fires_seen += 1
+            if rel in first_offer and rel not in read:
+                follows += 1
+                taken.add(rel)
+                lag.append(when - first_offer[rel])
+            read.add(rel)
+            for name in offered:
+                if name not in read and name not in first_offer:
+                    first_offer[name] = when
+                    offers.add(name)
+    return {"days": days, "fires": fires_seen, "blind": blind,
+            "follows": follows, "offered": len(offers), "taken": len(taken),
+            "lag": lag}
+
+
+def report_earned(days: int = LAMP_DAYS) -> str:
+    g = earned(days)
+    if not g["fires"]:
+        return (f"backlinks: no fires with a sitting id in {days} days"
+                + (f" ({g['blind']} older ones cannot be followed)"
+                   if g["blind"] else ""))
+    rate = g["follows"] / g["fires"]
+    lines = [f"backlinks --earned, {days} days: {g['follows']} of "
+             f"{g['fires']} fires were followed ({rate:.0%})"]
+    if g["offered"]:
+        lines.append(f"  names offered: {g['offered']}, opened after being "
+                     f"offered: {g['taken']}")
+    if g["lag"]:
+        mid = sorted(g["lag"])[len(g["lag"]) // 2]
+        lines.append(f"  median time from offer to opening: {mid}s")
+    if g["blind"]:
+        lines.append(f"  {g['blind']} fires predate the sitting id and are "
+                     "not in the numbers above")
+    lines.append("  a follow is correlation, not cause — the docstring says "
+                 "what it cannot rule out")
+    return "\n".join(lines)
 
 
 def report_fires(days: int = LAMP_DAYS) -> str:
@@ -467,7 +609,13 @@ def hook(stdin: str, root: Path = ROOT) -> str:
         if not rows:
             return ""
         shown = rows[:HOOK_CUT]
-        note(name, len(rows), len(shown))
+        # The sitting, and what was actually put in front of the reader
+        # — the two fields `earned` needs.  `session_id` is the harness's
+        # own; when it is absent the fire still counts as a fire and
+        # simply cannot take part in a follow.
+        note(name, len(rows), len(shown),
+             str(payload.get("session_id") or ""),
+             {rel for rel, _line, _text in shown})
         lines = [f"{name} is cited by {len(rows)} place{'s' if len(rows) != 1 else ''} "
                  f"(tools/backlinks.py):"]
         lines += grouped(shown)
@@ -530,6 +678,8 @@ def main(argv=None) -> int:
     ap.add_argument("--check", action="store_true", help="exit 1 if the hook is not installed")
     ap.add_argument("--install", action="store_true", help="print the settings.json lines")
     ap.add_argument("--report", action="store_true", help="what the hook has been doing")
+    ap.add_argument("--earned", action="store_true",
+                    help="did the answer change what the reader did next")
     ap.add_argument("--days", type=int, default=LAMP_DAYS, help="the report's window")
     ap.add_argument("--no-cache", action="store_true", help="walk the whole tree")
     a = ap.parse_args(argv)
@@ -544,6 +694,8 @@ def main(argv=None) -> int:
         return 0
     if a.report:
         print(report_fires(a.days))
+    elif a.earned:
+        print(report_earned(a.days))
         return 0
     if a.check:
         if not installed():

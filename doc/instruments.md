@@ -441,47 +441,47 @@ none of them by reading it.  Its range prints under every run.
 
     python tools/backlinks.py PATH            every place that cites a file
     python tools/backlinks.py card:<name>.md  … a card, F123 a defect, [[name]] a memory
-    python tools/backlinks.py --check         is the Read hook installed
+    python tools/backlinks.py --check --earned   the lamp; whether it is used
 
-Every citation in the tree runs one way, and a session reading
-`gestate/host.c` cannot see that a card and a memory lean on it.  This
-is the inverse index — the walk `test_citations.py` makes with the
-pairs turned around — over five kinds of citer: `§"…"` passages,
-`card:` ids, `[[name]]` memory links, F-numbers, and a file named by
-path or unique basename.  `card:backlinks.md` is why, and why it is a
-hook rather than a generated block: the failure happens while reading
-source and spec, where a block cannot go.
+Every citation runs one way: a session reading `gestate/host.c` cannot
+see that a card and a memory lean on it.  This is the inverse index —
+`test_citations.py`'s walk with the pairs turned around — over five
+kinds of citer: `§"…"` passages, `card:` ids, `[[name]]` links,
+F-numbers, and a file named by path or unique basename.
+`card:backlinks.md` is why it is a hook: the failure happens while
+reading source, where a generated block cannot go.
 
-**It arrives unasked, as a `PostToolUse` hook on `Read`**, handing the
-citers back as context after the file — silent when there are none,
-never fatal, and under a tenth of a second warm because the index is
-cached by size and mtime.  The install line lives in
+**It arrives unasked, as a `PostToolUse` hook on `Read`** — silent when
+there are none, never fatal, under a tenth of a second warm off a cache
+keyed by size and mtime.  Its install line is in
 `.claude/settings.json`, which the leash denies a session, so it was
-Henri's, and he ran it 2026-09-04: `--install` prints it and the
-pre-commit lamp says whether a checkout has it.  `tools/dangling.py`
-above is the other direction.
+Henri's and he ran it 2026-09-04.  `dangling.py` is the other way.
 
 **So read the tree's documents with `Read`, not `sed`.**  Henri,
-2026-09-04, the evening the log showed the hook had fired once while
-the session read through the shell all day: *"puun dokumentit luetaan
-Read-työkalulla sed-työkalun sijasta … siten saat taustalinkit lukemisen
-mukana.  sed-komentoa saa kanssa käyttää, mutta se ei anna näitä."*
-`sed` and `cat` are still allowed; they do not bring the citers.
+2026-09-04, after the log showed one fire while a session read through
+the shell all day: *"puun dokumentit luetaan Read-työkalulla
+sed-työkalun sijasta … sed-komentoa saa kanssa käyttää, mutta se ei
+anna näitä."*  `sed` and `cat` stay allowed; they bring no citers.
 
 **Ranked, because not all citations are equal** (Henri, the day it
-fired): live cards and memory first, then the standing documents, code
-and tests, shelved cards, the ledger, and the journal last; within a
-tier a card's `see` line and an explicit citation before a file named
-in passing.  The cut at twenty falls on history.  `TIERS` in the tool
-is the table.
+fired): live cards and memory first, then documents, code, shelved
+cards, the ledger, the journal last; within a tier an explicit citation
+before a file named in passing.  The cut at twenty falls on history.
+`TIERS` is the table.
 
-**And it watches itself.**  Every fire is one line in
-`~/.local/state/gestate/backlinks.log`; `--report` reads it, and
-`--check` — the pre-commit lamp — trips when a third of a fortnight's
-fires were cut at twenty, naming `card:backlinks-ranges.md`, where the
-fix is already designed: answer for the passage being read, not the
-file.  The lamp exits 2 and the commit goes through; the correction is
-a build, and the card is what the next session reads.
+**And it watches itself, and is asked to earn its place** — Henri,
+2026-09-04.  Every fire is a line in
+`~/.local/state/gestate/backlinks.log`, and `--earned` counts
+**follows**: a fire on a file an earlier fire *in the same sitting*
+offered and the reader had not already opened.  A follow is another
+fire, so nothing but the log is needed — and it is correlation, which
+the docstring is honest about.  **The floor is zero**: decoration with
+a context bill.
+
+`--check`, the pre-commit lamp, names **two causes apart** (one
+sentence for two reasons is how an andon gets muted): nothing followed
+over thirty fires, or a third of them cut at twenty — the second naming
+`card:backlinks-ranges.md`, where the fix is designed.
 
 ### `tools/flow.py` — the board's flow, and the seven-day lamp
 

@@ -341,6 +341,66 @@ a reader who is not a Claude Code session.
 
 Journal: `journal.md` §"Backlinks, day one".
 
+## The number that says whether it earns its place — 2026-09-04
+
+**The question this card left open, asked back the next morning.**
+*Henri:* **"I think the new 'cited by' reading tool needs a number that
+verifies whether it earns its place.  But I don't know what that number
+would be."**  The card had said the only measurement of the `because`
+runs on the next failure — the next time a session rebuilds an
+instrument it did not know about.  That is true and it is not enough:
+it waits on a failure nobody can schedule, and until one arrives the
+tool is unjudged.
+
+**Three candidates were offered, in a chain, and he took the third.**
+
+1. *Coverage* — does it fire at all.  At the time: 2 fires ever, one of
+   them a minute old.  The denominator lives in the transcripts.
+2. *Novelty* — of the names shown, how many were new to the sitting.
+3. **The attributed follow** — the share of fires whose citer list was
+   followed.  *"lets do yes to --earned .. you have earned it."*
+
+**A follow is a fire on a file an earlier fire *in the same sitting*
+offered and the reader had not already opened.**  Which is what makes
+it cheap: a follow is *another fire*, so the whole measurement is
+inside the log and needs no transcript, no second instrument and no
+new plumbing beyond two fields.  The log went from four columns to six
+— the sitting, and the paths actually put in front of the reader, which
+is the rows that survived the cut at twenty and not the whole citer
+list.  Four-column lines from the first day still parse, cannot take
+part in a follow, and are **counted and named** rather than dropped, so
+the rate is never quietly divided by the smaller denominator.
+
+**Four things it must not count**, each one a way to inflate the single
+number the tool is judged on, and each one a test:
+
+* across sittings — a name offered yesterday cannot explain a file
+  opened today;
+* backwards — being told afterwards that `a` cites `b` describes a
+  journey already made;
+* a re-read — a file opened *before* it was offered was on the reader's
+  own path;
+* a name that was cut — an offer nobody saw.
+
+**And what it cannot do, said rather than implied.**  A follow is
+correlation.  The session may have been going to that file anyway, from
+the task or a grep or an earlier sitting, and no number in this log
+rules that out.  What the log establishes is order and direction: the
+name was offered before it was opened, by the one instrument that shows
+a target its citers.
+
+**The floor is zero and no threshold above it was picked** — F169, a
+number nobody asked for is a number nobody checks.  Zero follows over
+thirty fires means decoration with a context bill, and the lamp says to
+take the hook out.  `--check` now names **two causes apart**, because
+one lamp with one sentence for two reasons is how an andon gets muted.
+
+At the time of writing: 12 fires, all of them from before the sitting
+id, so the number has no data yet and says so.  The warm walk is
+unchanged at 23 ms.  And the whole entry in `doc/instruments.md` was
+paid for by compressing what was already there — the five capped
+documents sat at exactly 2,000 before it and exactly 2,000 after.
+
 ## The first measurement, the same evening — 2026-09-04
 
 Henri asked whether the hook had worked.  The log had one line.  The
