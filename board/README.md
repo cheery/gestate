@@ -52,25 +52,25 @@ drops out of today regardless of where it stands here.
 That is not a licence to skip down the list on preference.  Priority is
 still the tiebreak between two workable cards, and it is still his.
 
-1. **[ungated-fixes](ungated-fixes.md)** — 62 of `fixme.md`'s repairs
+1. **[idiom-or-load](idiom-or-load.md)** — a session wrote a blues
+   Henri called perfect and then could not write a mode it had defined
+   correctly five times running; two causes fit, and the two results in
+   the tree sit on a diagonal that cannot separate them.  *First
+   because it must run **cold** — its loose arm is void in a session
+   that has read the card — so this position is a scheduling fact and
+   not a claim about worth.*
+2. **[ungated-fixes](ungated-fixes.md)** — 62 of `fixme.md`'s repairs
    are named by no test, so a defect closed on a photograph can come
-   back without anybody being told.  Directly under the oracle
-   because they are the same family and the oracle is what makes the
-   interface-shaped ones closable at all.
-2. **[audiovisual-gallery](audiovisual-gallery.md)** — a gallery of
+   back without anybody being told.
+3. **[audiovisual-gallery](audiovisual-gallery.md)** — a gallery of
    controllable audio-visual experiences: six pieces already on the site
-   declare a picture the tab drops on the floor.  *Written shelved on
-   2026-09-02 at Henri's ask and pulled the same day on a condition he
-   set in advance* — **"if the measurement looks green light, you can
-   take the card from later/ shelf and work on it"** — which `crust`
-   building for `wasm32` at 164 KB with no imports met.  Placed here
-   under `online`, whose report it still waits on for how much of its
-   table to do.
-3. **[online](online.md)** — gestate, the audio production tool, in a
+   declare a picture the tab drops on the floor.  *Shelved and pulled
+   the same day, 2026-09-02, on a condition he set in advance and the
+   wasm measurement met.*  Under `online`, which says how much to do.
+4. **[online](online.md)** — gestate, the audio production tool, in a
    browser tab: the vision's opening line for a person who is not at
-   this desk.  Michael's ask, 2026-08-28, relayed by Henri.  *Placed
-   last by the session that wrote it, at the end of a sitting, because
-   three of its six questions are still his — his to move.*
+   this desk.  Michael's ask, 2026-08-28.  *Last: its open questions
+   are his.*
 
 **Five cards left this list on 2026-09-04**, the first run of the
 seven-day lamp: `card:git-lesson.md`, `card:reviewing-by-running.md`,
