@@ -416,10 +416,58 @@ the design:
   one thing meant to demonstrate it.
 
 So `mark` follows `transpose` exactly for now: heard while something
-plays, redrawn when nothing does.  Sounding one note *through its own
-bank, with and without the mark* is a third path neither of the two
-above is, and it is named here as the slice's remaining work rather than
-approximated with one of them.
+plays, redrawn when nothing does.
+
+### The three paths, priced — 2026-09-04
+
+*Henri: "lets look at the third path."  There are three, and the
+pricing is what decides between them, so it is here rather than in a
+reply.*
+
+**1. Through the keyboard.**  `play_note` → `bench.keyboard.press` →
+`audiomidi.Notes.feed`, which routes to a bank and **runs the
+program's `FromMIDI` instance to build a payload**.  `noteOn` takes
+*channel, pitch, velocity* — there is no manner in it and there cannot
+be, because a keyboard has no marks.  So this path plays the note
+**plain**.
+
+*Which makes it worse than silence for this gesture.*  You mark a note
+staccato and hear it played long: the preview would be a confident
+answer to the wrong question, and a person would believe it.  **Cheap
+and wrong.**
+
+**2. Render the note offline, both ways.**  Correct, and it is what
+§"The preview tone" first asked for.  It needs a compile per gesture —
+`graph_of` is 0.6–1.1 s on a small piece — and a seam that does not
+exist: a way to sound **one payload, with its fields, through its
+bank**.  The keyboard is the only door into the engine that takes a
+note, and it only takes MIDI numbers.  **Right and expensive.**
+
+**3. Seek to the note and play.**  `Transport.seek(sample)` and
+`start` are both standing, and the roll's event carries the note's
+onset in ticks (`midi.TICKS_PER_BEAT` and the piece's `bpm` convert
+it).  The mark is carried **because the score plays it** — no new seam,
+no compile beyond the rebuild the edit already causes, and what you
+hear is the marked note in its own context with its own voice.
+**Right and cheap.**
+
+**And the reason path 3 is not simply taken is that it is not a
+tone.**  It *starts the piece*.  Mark five notes and it restarts five
+times unless debounced the way `audition_soon` already debounces.  That
+is a change to what the editor does under your hands, not a detail of
+this spec, and *"a preview-tone to be played"* is not obviously the
+same thing as *"the piece plays from here"*.
+
+*The question, and it is the author's:* **is hearing the piece from the
+marked note the preview you wanted?**  If yes, path 3 is the build and
+it is small.  If you meant a tone in isolation, that is path 2 and it
+needs the one-payload seam first, which is a card of its own rather
+than a slice of this one.
+
+*The session's earlier decision in §"The preview tone" — that `mark`
+sounds stopped or playing — stands as an intent and is underspecified
+by exactly this fork; it was written before any of the three had been
+priced.*
 
 ## Refusals, each with a sentence
 
