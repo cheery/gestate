@@ -767,3 +767,39 @@ written that morning, 58 by the time it fired, and the five between are
 the card, the instrument section, the memory line and this journal
 naming the file — the graph grew while it was being indexed, which is
 what a hook computed at read time is for.
+
+## The hook ranks, logs and can trip — 2026-09-04, afternoon
+
+Henri asked three things of the two-hour-old hook: write the potential
+fix somewhere, write something that *ensures* the fix happens if the
+noise becomes real, and sort the citations, because *"not all
+citations are equal."*
+
+**The ranking** is a table, `TIERS`: live cards and memory, the
+standing documents, code and tests, shelved cards, the ledger, the
+journal — and within a tier a card's header `see` line, then an
+explicit citation, then a file named in passing.  Reading `host.c`
+now opens with `card:unseen-flare.md`'s `see` line and closes with the
+journal, and the cut at twenty falls on the journal.
+
+**The ensuring** is not a note.  Every fire appends epoch, file,
+citers and shown to `~/.local/state/gestate/backlinks.log`, the sitting
+log's shape; `--check`, which the pre-commit prints at every commit,
+trips at thirty fires in fourteen days with a third of them cut, and
+when it trips it prints the id of `card:backlinks-ranges.md` and exits
+2 without refusing the commit.  So the session that next commits after
+the noise arrives is handed the card, and the card is the design.
+Nothing depends on anyone remembering — which is the only shape of
+*ensure* this tree has ever trusted.
+
+**The fix**, on that card in `later/`: index the cited heading, resolve
+it to a line, read the range from the hook's input, and put a citer of
+a heading inside the range ahead of every tier.  Shelved on arrival
+because building it now would be a session guessing its twenty lines
+were noise, and the three lamp numbers are marked as the session's
+guess, nobody's measurement.
+
+```sh
+python tools/backlinks.py --report          # fires, cut share, most-read files
+python tools/backlinks.py --check; echo $?  # 0 quiet, 1 not installed, 2 tripped
+```

@@ -43,7 +43,8 @@ def tree(tmp_path, monkeypatch):
     """A small tree of its own, with its own cache, so nothing here
     reads or writes the desk's."""
     monkeypatch.setenv("GESTATE_BACKLINKS_CACHE", str(tmp_path / "cache.json"))
-    for rel in ("board", "board/done", "doc/memory", "spec", "tools", "gestate"):
+    monkeypatch.setenv("GESTATE_BACKLINKS_LOG", str(tmp_path / "fires.log"))
+    for rel in ("board", "board/done", "doc/memory", "spec", "tools", "gestate", "journal"):
         (tmp_path / rel).mkdir(parents=True)
     (tmp_path / "board" / "thing.md").write_text("# thing\n")
     (tmp_path / "doc" / "memory" / "a-rule.md").write_text("# a rule\n")
@@ -147,7 +148,8 @@ def run_hook(payload, env=None):
     stdin = payload if isinstance(payload, str) else json.dumps(payload)
     return subprocess.run([sys.executable, str(TOOL), "--hook"], input=stdin,
                           capture_output=True, text=True,
-                          env={**os.environ, **(env or {})})
+                          env={**os.environ, "GESTATE_BACKLINKS_LOG": os.devnull,
+                               **(env or {})})
 
 
 def test_the_hook_hands_context_back_in_the_shape_claude_code_reads(tmp_path):
@@ -164,7 +166,7 @@ def test_the_hook_hands_context_back_in_the_shape_claude_code_reads(tmp_path):
     text = spec["additionalContext"]
     assert text.startswith(SHELF + "ungated-fixes.md is cited by ")
     assert "board/README.md:" in text
-    assert len(text.splitlines()) <= backlinks.HOOK_CUT + 2
+    assert len(text.splitlines()) <= backlinks.HOOK_CUT + 2 + len(backlinks.TIERS)
 
 
 def test_the_hook_is_silent_on_a_file_outside_the_tree_and_on_garbage(tmp_path):
@@ -196,7 +198,10 @@ def test_a_known_answer_in_this_tree(tmp_path, monkeypatch):
     name, rows = backlinks.citers(backlinks.Tree(ROOT), "tools/dangling.py")
     assert name == "tools/dangling.py"
     files = {rel for rel, _line, _text in rows}
-    assert {"doc/instruments.md", str(Path("board") / "backlinks.md")} <= files
+    assert "doc/instruments.md" in files
+    #: The card moved to `done/` the day it was written; a citer is
+    #: found on whatever shelf it stands.
+    assert any(f.startswith("board") and f.endswith("/backlinks.md") for f in files)
     assert "tools/dangling.py" not in files
 
 
@@ -234,3 +239,100 @@ def test_install_prints_lines_that_check_accepts(tmp_path):
     p = tmp_path / "s.json"
     p.write_text(json.dumps(conf))
     assert backlinks.installed(p) is True
+
+
+# --- not all citations are equal --------------------------------------------------
+
+def test_the_rows_come_ranked_and_the_cut_falls_on_history(tree):
+    """Henri, 2026-09-04: *"Not all citations are equal."*  A reader of
+    the target wants what currently leans on it first and the past last,
+    and within a tier a deliberate pointer before a passing mention."""
+    (tree / "journal" / "2026-08.md").write_text("we read gestate/host.c today\n")
+    (tree / "fixme.md").write_text("### F7. **[fixed]**\n\nhost.c did it\n")
+    (tree / "test" ).mkdir()
+    (tree / "test" / "test_host.py").write_text("# gestate/host.c\n")
+    (tree / "spec" / "audio.md").write_text("`gestate/host.c` is the callback\n")
+    (tree / "board" / "done" / "old.md").write_text("see gestate/host.c\n")
+    (tree / "board" / "flare.md").write_text("# flare\n" + "\n" * 30 + "later, host.c\n")
+    (tree / "board" / "crack.md").write_text("# crack\n    see gestate/host.c\n")
+    (tree / "doc" / "memory" / "m.md").write_text("host.c\n")
+    _name, rows = ask(tree, "gestate/host.c")
+    assert [r for r, _l in rows] == [
+        SHELF + "crack.md",        # a live card's header block
+        SHELF + "flare.md",        # a live card, further down
+        "doc/memory/m.md",         # memory, same tier, after the cards by name
+        "spec/audio.md",           # a standing document
+        "test/test_host.py",       # code and tests
+        DONE + "old.md",           # shelved
+        "fixme.md",                # the ledger
+        "journal/2026-08.md",      # history last
+    ]
+
+
+def test_an_explicit_citation_outranks_a_mention_in_the_same_tier(tree):
+    (tree / "doc" / "a.md").write_text("mentions thing.md in passing\n")
+    (tree / "doc" / "b.md").write_text("cites " + THING + " on purpose\n")
+    _name, rows = ask(tree, str(tree / "board" / "thing.md"))
+    assert rows == [("doc/b.md", 1), ("doc/a.md", 1)]
+
+
+def test_the_output_is_grouped_under_tier_labels(tree):
+    (tree / "journal" / "j.md").write_text("gestate/host.c\n")
+    (tree / "board" / "c.md").write_text("gestate/host.c\n")
+    name, rows = backlinks.citers(backlinks.Tree(tree), "gestate/host.c")
+    lines = backlinks.report(name, rows).splitlines()
+    assert lines[1] == "cards and memory:"
+    assert lines[3] == "history:"
+
+
+# --- the hook watches itself ----------------------------------------------------------
+
+def test_every_fire_is_logged_with_its_denominator(tmp_path):
+    log = tmp_path / "fires.log"
+    env = {"GESTATE_BACKLINKS_CACHE": str(tmp_path / "c.json"), "GESTATE_BACKLINKS_LOG": str(log)}
+    run_hook({"tool_name": "Read", "tool_input": {"file_path": str(ROOT / "gestate" / "host.c")}}, env)
+    run_hook({"tool_name": "Read", "tool_input": {"file_path": "/etc/hostname"}}, env)
+    lines = [l.split("\t") for l in log.read_text().splitlines()]
+    assert len(lines) == 1, "a silent fire is not a fire"
+    _when, rel, total, shown = lines[0]
+    assert rel == "gestate/host.c"
+    assert int(total) > int(shown) == backlinks.HOOK_CUT
+
+
+def _log(path, rows, now):
+    path.write_text("".join(f"{now - i * 3600}\tf{i}.md\t{total}\t{shown}\n"
+                            for i, (total, shown) in enumerate(rows)))
+
+
+def test_the_lamp_trips_when_the_cut_has_become_the_rule(tmp_path, monkeypatch):
+    """The mechanism behind *write something that ensures you will
+    correct the issue if it becomes an issue* (Henri, 2026-09-04): the
+    hook keeps its own denominator, and the pre-commit lamp names the
+    designed fix the day a third of a fortnight's fires were cut."""
+    log = tmp_path / "fires.log"
+    monkeypatch.setenv("GESTATE_BACKLINKS_LOG", str(log))
+    now = 1_800_000_000
+    cut, ok = (58, backlinks.HOOK_CUT), (7, 7)
+    _log(log, [cut] * 10 + [ok] * 20, now)                # 30 fires, a third cut
+    tripped, line = backlinks.lamp(now=now)
+    assert tripped and "card:backlinks-ranges.md" in line
+    _log(log, [cut] * 9 + [ok] * 21, now)                 # under a third
+    assert backlinks.lamp(now=now)[0] is False
+    _log(log, [cut] * 10 + [ok] * 19, now)                # under the floor
+    assert backlinks.lamp(now=now)[0] is False
+    _log(log, [cut] * 30, now - 15 * 86400)               # all of it outside the window
+    tripped, line = backlinks.lamp(now=now)
+    assert tripped is False and "no fires" in line
+
+
+def test_check_exits_two_when_the_lamp_trips_and_zero_when_not(tmp_path):
+    log = tmp_path / "fires.log"
+    env = {**os.environ, "GESTATE_BACKLINKS_LOG": str(log)}
+    if not backlinks.installed():
+        pytest.skip("the Read hook is not installed on this desk")
+    _log(log, [(58, 20)] * 30, int(time.time()))
+    r = subprocess.run([sys.executable, str(TOOL), "--check"], env=env, capture_output=True, text=True)
+    assert r.returncode == 2 and "backlinks-ranges" in r.stdout
+    _log(log, [(7, 7)] * 30, int(time.time()))
+    r = subprocess.run([sys.executable, str(TOOL), "--check"], env=env, capture_output=True, text=True)
+    assert r.returncode == 0 and "installed" in r.stdout

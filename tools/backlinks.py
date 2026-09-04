@@ -8,7 +8,8 @@
     python tools/backlinks.py [[name]]           … a memory (the bare name works too)
     python tools/backlinks.py --hook             as a PostToolUse hook on Read: stdin in, context out
     python tools/backlinks.py --time PATH        the walk's cost, cold and warm
-    python tools/backlinks.py --check            exit 1 if the hook is not in .claude/settings.json
+    python tools/backlinks.py --check            the lamp: 1 not installed, 2 the cut has become noise
+    python tools/backlinks.py --report           what the hook has been doing, from its own log
     python tools/backlinks.py --install          the settings.json lines to add
 
 **What this answers.**  Every citation in this tree runs one way: the
@@ -43,6 +44,24 @@ every one.  A cold walk over the tree costs more than that, so the
 index is cached under `$XDG_CACHE_HOME` keyed by each file's size and
 mtime, and a warm run rescans only what changed.  `--time` prints both
 numbers; the test holds the warm one.
+
+**Not all citations are equal**, Henri's words on the day it fired, so
+the rows come ranked and grouped: what is currently wanted or known
+first (live cards, memory), then the standing documents, then code and
+tests that name the file, then shelved cards, the defect ledger, and
+history last.  Within a group a card's own `see` line and an explicit
+citation — a passage, a `card:` id, a `[[memory]]` — outrank a file
+named in passing.  The cut at twenty falls on history first, which is
+where the noise is.  `TIERS` is the table, and it is his to change.
+
+**The hook watches itself.**  Every fire appends one line to
+`~/.local/state/gestate/backlinks.log` — epoch, file, citers, shown —
+and `--report` reads it.  `--check` trips when, over the last fortnight,
+a third or more of the fires were cut at twenty and there were at least
+thirty of them: that is the noise the card warned about arriving, and
+the lamp names `card:backlinks-ranges.md`, the fix already designed.
+The three numbers are the session's, picked 2026-09-04, and nobody has
+checked them.
 
 **Never fatal in the hook.**  A hook that dies takes the desk with it,
 so `--hook` prints nothing and exits 0 on any failure, with the reason
@@ -86,6 +105,29 @@ MENTION = re.compile(
 
 TEXT_CUT = 100
 HOOK_CUT = 20
+
+#: The lamp's three numbers — window, floor, and the share of fires cut
+#: at HOOK_CUT that means the twenty lines have become noise.
+LAMP_DAYS = 14
+LAMP_MIN_FIRES = 30
+LAMP_CUT_SHARE = 1 / 3
+
+#: Where a citer stands, by what it is.  Lower comes first.  The order
+#: is what a reader of the *target* most wants to know: what currently
+#: leans on it, then what defines the tree, then code, then the past.
+TIERS = (
+    (0, "cards and memory", lambda r: (r.startswith("board/") and not r.startswith(("board/done/", "board/later/")))
+                                      or r.startswith("doc/memory/")),
+    (3, "shelved cards",    lambda r: r.startswith(("board/done/", "board/later/"))),
+    (4, "the ledger",       lambda r: r == "fixme.md"),
+    (5, "history",          lambda r: r == "journal.md" or r.startswith("journal/")),
+    (2, "code and tests",   lambda r: r.startswith(("test/", "gestate/", "tools/", "shell/", "examples/"))
+                                      or r.endswith((".py", ".rs", ".c", ".h", ".sh", ".ges"))),
+    (1, "documents",        lambda r: True),
+)
+#: A card's header block — `status`, `because`, `asked`, `see` — where a
+#: citation is a deliberate pointer and not a mention.
+HEADER_LINES = 20
 
 
 # --- the tree ---------------------------------------------------------------
@@ -199,27 +241,30 @@ def scan(tree: Tree, rel: str, text: str) -> list[list]:
     out = []
     seen = set()
     for n, line in enumerate(text.splitlines(), 1):
-        hits: list[str] = []
+        #: (key, explicit) — a passage, an id, a wiki link or a defect
+        #: number is a citation somebody wrote on purpose; a file named
+        #: in passing is not, and ranks below it.
+        hits: list[tuple[str, bool]] = []
         for target, _section in SEC.findall(line):
             r = tree.resolve_section(target, rel)
             if r:
-                hits.append(r)
-        hits += [f"card:{c}" for c in CARD.findall(line)]
-        hits += [f"mem:{w}" for w in WIKI.findall(line)]
+                hits.append((r, True))
+        hits += [(f"card:{c}", True) for c in CARD.findall(line)]
+        hits += [(f"mem:{w}", True) for w in WIKI.findall(line)]
         #: `fixme.md`'s own `### F25.` heading is the entry, not a citer
         #: of it — the one line that defines a defect rather than leans
         #: on it.
         if not (rel == "fixme.md" and DEFINES.match(line)):
-            hits += [f"F{f}" for f in FNUM.findall(line)]
+            hits += [(f"F{f}", True) for f in FNUM.findall(line)]
         for tok in MENTION.findall(line):
             r = tree.resolve(tok, rel)
             if r:
-                hits.append(r)
-        for key in hits:
+                hits.append((r, False))
+        for key, explicit in hits:
             if key == rel or (n, key) in seen:
                 continue
             seen.add((n, key))
-            out.append([n, key, " ".join(line.split())[:TEXT_CUT]])
+            out.append([n, key, " ".join(line.split())[:TEXT_CUT], explicit])
     return out
 
 
@@ -228,11 +273,11 @@ def cache_path(root: Path) -> Path:
         return Path(os.environ["GESTATE_BACKLINKS_CACHE"])
     home = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache")
     tag = hashlib.sha1(str(root).encode()).hexdigest()[:12]
-    return home / "gestate" / f"backlinks-{tag}.json"
+    return home / "gestate" / f"backlinks-v2-{tag}.json"
 
 
 def index(tree: Tree, use_cache: bool = True) -> dict:
-    """`{rel: {"m": mtime_ns, "s": size, "c": [[line, key, text], …]}}`,
+    """`{rel: {"m": mtime_ns, "s": size, "c": [[line, key, text, explicit], …]}}`,
     rescanning only what moved since the cache was written."""
     cp = cache_path(tree.root)
     old: dict = {}
@@ -271,30 +316,132 @@ def citers(tree: Tree, target: str, use_cache: bool = True):
     if not keys:
         return name, []
     want = set(keys)
-    rows = []
-    seen = set()
+    found: dict[tuple[str, int], tuple[str, bool]] = {}
     for rel, entry in index(tree, use_cache).items():
         if rel in own:
             continue
-        for line, key, text in entry["c"]:
+        for line, key, text, explicit in entry["c"]:
             #: One line, one row — a card named by id and by its basename
-            #: on the same line answers to two keys and is one citation.
-            if key in want and (rel, line) not in seen:
-                seen.add((rel, line))
-                rows.append((rel, line, text))
-    rows.sort()
-    return name, rows
+            #: on the same line answers to two keys and is one citation,
+            #: and it is explicit if either spelling was.
+            if key in want:
+                had = found.get((rel, line))
+                found[(rel, line)] = (text, explicit or (had[1] if had else False))
+    rows = [(rel, line, text, explicit) for (rel, line), (text, explicit) in found.items()]
+    rows.sort(key=rank)
+    return name, [(rel, line, text) for rel, line, text, _e in rows]
+
+
+def tier(rel: str) -> tuple[int, str]:
+    for order, label, fits in TIERS:
+        if fits(rel):
+            return order, label
+    return 1, "documents"                                  # pragma: no cover
+
+
+def rank(row) -> tuple:
+    """Where a citation sorts: its tier, then a card's header block, then
+    an explicit citation over a mention, then the file and the line."""
+    rel, line, _text, explicit = row
+    order, _label = tier(rel)
+    header = 0 if (rel.startswith("board/") and line <= HEADER_LINES) else 1
+    return (order, header, 0 if explicit else 1, rel, line)
 
 
 # --- the four ways it is used ------------------------------------------------
+
+def grouped(rows) -> list[str]:
+    """The rows as lines, each tier under its label, in rank order."""
+    out = []
+    last = None
+    for rel, line, text in rows:
+        _order, label = tier(rel)
+        if label != last:
+            out.append(f"{label}:")
+            last = label
+        out.append(f"  {rel}:{line}  {text}")
+    return out
+
 
 def report(name: str, rows) -> str:
     if not rows:
         return f"{name} — cited by nothing"
     n = len(rows)
     head = f"{name} — cited by {n} place{'s' if n != 1 else ''}"
-    body = "\n".join(f"  {rel}:{line}  {text}" for rel, line, text in rows)
-    return f"{head}\n{body}"
+    return "\n".join([head, *grouped(rows)])
+
+
+def log_path() -> Path:
+    if os.environ.get("GESTATE_BACKLINKS_LOG"):
+        return Path(os.environ["GESTATE_BACKLINKS_LOG"])
+    return Path.home() / ".local" / "state" / "gestate" / "backlinks.log"
+
+
+def note(rel: str, total: int, shown: int) -> None:
+    """One line per fire, never fatal — the same shape as the sitting
+    log, and for the same reason: a number a session picked (twenty)
+    that nobody has checked needs the denominator kept somewhere."""
+    try:
+        lp = log_path()
+        lp.parent.mkdir(parents=True, exist_ok=True)
+        with lp.open("a", encoding="utf-8") as f:
+            f.write(f"{int(time.time())}\t{rel}\t{total}\t{shown}\n")
+    except OSError:
+        pass
+
+
+def fires(days: int = LAMP_DAYS, now: float | None = None) -> list[tuple[int, str, int, int]]:
+    """The log's lines from the last `days`, parsed."""
+    lp = log_path()
+    if not lp.exists():
+        return []
+    since = (now if now is not None else time.time()) - days * 86400
+    out = []
+    try:
+        for ln in lp.read_text(encoding="utf-8").splitlines():
+            parts = ln.split("\t")
+            if len(parts) != 4:
+                continue
+            try:
+                when, total, shown = int(parts[0]), int(parts[2]), int(parts[3])
+            except ValueError:
+                continue
+            if when >= since:
+                out.append((when, parts[1], total, shown))
+    except OSError:
+        return []
+    return out
+
+
+def lamp(days: int = LAMP_DAYS, now: float | None = None) -> tuple[bool, str]:
+    """(tripped, the line to print).  Trips when the cut has become the
+    rule: at least LAMP_MIN_FIRES fires in the window and LAMP_CUT_SHARE
+    of them cut at HOOK_CUT."""
+    rows = fires(days, now)
+    if not rows:
+        return False, f"backlinks: no fires logged in {days} days"
+    cut = sum(1 for _w, _r, total, shown in rows if total > shown)
+    share = cut / len(rows)
+    line = (f"backlinks: {len(rows)} fires in {days} days, {cut} cut at {HOOK_CUT} "
+            f"({share:.0%})")
+    if len(rows) >= LAMP_MIN_FIRES and share >= LAMP_CUT_SHARE:
+        return True, (line + " — the twenty lines have become noise; the fix is "
+                      "designed in card:backlinks-ranges.md, and this is its trigger")
+    return False, line
+
+
+def report_fires(days: int = LAMP_DAYS) -> str:
+    rows = fires(days)
+    _tripped, head = lamp(days)
+    if not rows:
+        return head
+    by_file: dict[str, list[int]] = {}
+    for _w, rel, total, _shown in rows:
+        by_file.setdefault(rel, []).append(total)
+    top = sorted(by_file.items(), key=lambda kv: (-len(kv[1]), kv[0]))[:8]
+    lines = [head, "  most read, with their citer counts:"]
+    lines += [f"    {rel}  ×{len(ts)}, {max(ts)} citers" for rel, ts in top]
+    return "\n".join(lines)
 
 
 def hook(stdin: str, root: Path = ROOT) -> str:
@@ -316,9 +463,10 @@ def hook(stdin: str, root: Path = ROOT) -> str:
         if not rows:
             return ""
         shown = rows[:HOOK_CUT]
+        note(name, len(rows), len(shown))
         lines = [f"{name} is cited by {len(rows)} place{'s' if len(rows) != 1 else ''} "
                  f"(tools/backlinks.py):"]
-        lines += [f"  {rel}:{line}  {text}" for rel, line, text in shown]
+        lines += grouped(shown)
         if len(rows) > HOOK_CUT:
             lines.append(f"  … and {len(rows) - HOOK_CUT} more: "
                          f"python tools/backlinks.py {name}")
@@ -377,6 +525,8 @@ def main(argv=None) -> int:
     ap.add_argument("--time", action="store_true", help="cold and warm cost of the walk")
     ap.add_argument("--check", action="store_true", help="exit 1 if the hook is not installed")
     ap.add_argument("--install", action="store_true", help="print the settings.json lines")
+    ap.add_argument("--report", action="store_true", help="what the hook has been doing")
+    ap.add_argument("--days", type=int, default=LAMP_DAYS, help="the report's window")
     ap.add_argument("--no-cache", action="store_true", help="walk the whole tree")
     a = ap.parse_args(argv)
 
@@ -388,12 +538,16 @@ def main(argv=None) -> int:
     if a.install:
         print("add to .claude/settings.json under \"hooks\":\n" + INSTALL)
         return 0
+    if a.report:
+        print(report_fires(a.days))
+        return 0
     if a.check:
-        if installed():
-            print("backlinks: the Read hook is installed")
-            return 0
-        print("backlinks: the Read hook is not installed — python tools/backlinks.py --install")
-        return 1
+        if not installed():
+            print("backlinks: the Read hook is not installed — python tools/backlinks.py --install")
+            return 1
+        tripped, line = lamp(a.days)
+        print("backlinks: the Read hook is installed; " + line[len("backlinks: "):])
+        return 2 if tripped else 0
     if not a.target:
         ap.print_usage()
         return 2

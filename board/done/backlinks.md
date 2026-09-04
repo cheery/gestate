@@ -326,6 +326,13 @@ first twenty shown, `card:unseen-flare.md` and
 and the memory the `because` said a reader could not see.  The lamp
 says *installed*.
 
+**The same afternoon, two more of his asks landed on the tool** and
+one card: the rows come ranked — *"Not all citations are equal"* — and
+the hook logs every fire so the pre-commit lamp can trip when the cut
+at twenty has become the rule.  What it trips to is
+`card:backlinks-ranges.md`, shelved on arrival with the fix designed:
+answer for the passage being read, not the file.
+
 What stays open is not work: the measurement of the `because` runs on
 the next failure — the next time a session rebuilds an instrument or
 misses a memory it was standing next to, ask whether a backlink was in

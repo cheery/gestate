@@ -456,9 +456,25 @@ source and spec, where a block cannot go.
 citers back as context after the file — silent when there are none,
 never fatal, and under a tenth of a second warm because the index is
 cached by size and mtime.  The install line lives in
-`.claude/settings.json`, which the leash denies a session, so it is
-Henri's: `--install` prints it and the pre-commit lamp says whether it
-is there.  `tools/dangling.py` above is the other direction.
+`.claude/settings.json`, which the leash denies a session, so it was
+Henri's, and he ran it 2026-09-04: `--install` prints it and the
+pre-commit lamp says whether a checkout has it.  `tools/dangling.py`
+above is the other direction.
+
+**Ranked, because not all citations are equal** (Henri, the day it
+fired): live cards and memory first, then the standing documents, code
+and tests, shelved cards, the ledger, and the journal last; within a
+tier a card's `see` line and an explicit citation before a file named
+in passing.  The cut at twenty falls on history.  `TIERS` in the tool
+is the table.
+
+**And it watches itself.**  Every fire is one line in
+`~/.local/state/gestate/backlinks.log`; `--report` reads it, and
+`--check` — the pre-commit lamp — trips when a third of a fortnight's
+fires were cut at twenty, naming `card:backlinks-ranges.md`, where the
+fix is already designed: answer for the passage being read, not the
+file.  The lamp exits 2 and the commit goes through; the correction is
+a build, and the card is what the next session reads.
 
 ### `tools/suite.py` — the whole suite, gates first
 
