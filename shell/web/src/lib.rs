@@ -24,6 +24,7 @@
 //! ```text
 //!   web_alloc            → bytes the page writes the program into
 //!   web_open             → a canvas, or null and web_error
+//!   web_list             → a whole window staged for the next tick
 //!   web_tick             → one instant, then one picture
 //!   web_display          → the wire: items, then attachments
 //!   web_press/motion/release → a hand, and the writes it produced
@@ -72,6 +73,8 @@ pub struct Web {
     wire: Vec<i32>,
     writes: Vec<f64>,
     error: Vec<u8>,
+    /// Whole windows staged for the next `web_tick` — see `web_list`.
+    lists: Vec<(i64, Vec<f64>)>,
 }
 
 impl Web {
@@ -188,6 +191,7 @@ pub unsafe extern "C" fn web_open(text: *const u8, text_len: usize,
             wire: Vec::new(),
             writes: Vec::new(),
             error: Vec::new(),
+            lists: Vec::new(),
         })),
         Err(why) => {
             park_opening(&why);
@@ -280,7 +284,38 @@ pub unsafe extern "C" fn web_tick(w: *mut Web, writes: *const f64,
     let web = &mut *w;
     let arrivals = read_writes(writes, pairs);
     let pulse = if pulse < 0 { None } else { Some(pulse) };
-    web.canvas.step(&arrivals, pulse, cx, cy);
+    // Taken, so the staged windows are spent by exactly one instant —
+    // a trace left on the pile would be redrawn as if it had arrived
+    // again, which is a scope that lies about when it looked.
+    let lists = std::mem::take(&mut web.lists);
+    web.canvas.advance(&arrivals, &lists, pulse, cx, cy);
+}
+
+/// Stage a whole window for the next `web_tick` — a scope's trace.
+///
+/// A `List Float` on a channel (`spec/scope.md`), which the scalar wire
+/// cannot carry: `web_tick` speaks `(chan, value)` doubles and a trace
+/// is 128 of them under one name.  So it is **staged rather than
+/// passed**, which keeps `web_tick`'s signature as it was and costs a
+/// page one extra call per scope per frame.
+///
+/// The list is built with the program's own `Cons` and `Nil` on the far
+/// side — `Canvas::advance` does it, from the tags `web_open` was given
+/// — so nothing here decides what a list is.
+///
+/// Staged windows are spent by the next `web_tick` and are gone whether
+/// or not the program read them.
+///
+/// # Safety
+/// `w` from `web_open`; `points` readable for `n` doubles.
+#[no_mangle]
+pub unsafe extern "C" fn web_list(w: *mut Web, chan: i64,
+                                  points: *const f64, n: usize) {
+    if w.is_null() || points.is_null() {
+        return;
+    }
+    let got = std::slice::from_raw_parts(points, n).to_vec();
+    (*w).lists.push((chan, got));
 }
 
 unsafe fn read_writes(p: *const f64, pairs: usize) -> Vec<(i64, f64)> {

@@ -32,7 +32,7 @@ from pathlib import Path
 
 import pytest
 
-from gestate import audiowasm, online
+from gestate import audiowasm, online, webshell
 
 AUDIO_DIR = Path(__file__).resolve().parents[1] / "examples" / "audio"
 FRAMES = 44100                             # a second: past the first note change
@@ -138,7 +138,14 @@ def test_the_page_renders_in_a_browser_what_the_desk_renders(name):
 @needs_tools
 def test_the_generated_directory_is_what_a_host_serves():
     """No stray build products, and every file the page fetches is there
-    under the name it fetches it by."""
+    under the name it fetches it by.
+
+    **And nothing a piece does not need.**  `twinkle.ges` declares no
+    substrate, so it carries neither `canvas.js` nor the picture's
+    shell — `player.js` imports the first dynamically and only when the
+    data says there is a canvas.  45 of the site's 50 pages are this
+    piece, and 221 KB apiece is what the conditional is worth.
+    """
     with tempfile.TemporaryDirectory() as d:
         site = online.generate(AUDIO_DIR / "twinkle.ges", d)
         names = sorted(p.name for p in site.iterdir())
@@ -318,3 +325,274 @@ def test_a_knob_turned_while_the_page_plays_reaches_the_sound_on_the_port():
     off = [i for i, (a, b) in enumerate(zip(want, got[0])) if _as_float32(a) != b]
     assert not off, (f"first differing frame {off[0]} (turned at {at}): "
                      f"desk {want[off[0]]!r}, page {got[0][off[0]]!r}")
+
+
+# ── The picture, on the page — card:audiovisual-gallery.md, day two ─────────
+
+#: The six pieces in `examples/audio/` that declare a substrate.  Kept
+#: here rather than imported from `test_gallery.py` for that file's own
+#: stated reason: neither test's helpers become the other's contract.
+DRAWS = ["chopin.ges", "envelope.ges", "lantern.ges", "scoped.ges",
+         "spectrum.ges", "substrate.ges"]
+
+needs_shell = pytest.mark.skipif(webshell.missing() is not None,
+                                 reason=webshell.missing() or "")
+
+#: The page reads the display wire and posts it back in the grammar
+#: `test_gallery.py` and `shell/panel/tests/*.display` both speak, so
+#: the comparison is between two pictures and not two encodings.  Walked
+#: in the page because that is where the module's memory is.
+_WIRE_PROBE = """
+<script type="module">
+const post = (s) => fetch("/check", {method: "POST", body: s});
+window.onerror = (m, s, l, c, e) => post("ERROR " + m + "\\n" + (e && e.stack));
+window.addEventListener("unhandledrejection",
+  (e) => post("REJECT " + e.reason + "\\n" + (e.reason && e.reason.stack)));
+const rgb = (w) => `${(w >> 16) & 255} ${(w >> 8) & 255} ${w & 255}`;
+setTimeout(() => {
+  const p = window.gestatePicture;
+  if (!p) return post("ERROR no picture on the page");
+  const base = p.ex.web_display(p.w);
+  const words = new Int32Array(p.ex.memory.buffer);
+  const at = (i) => words[(base >> 2) + i];
+  const items = at(0), hits = at(1);
+  let c = 2; const out = [];
+  for (let n = 0; n < items; n++) {
+    const k = at(c);
+    if (k === 0) { out.push(`rect ${at(c+1)} ${at(c+2)} ${at(c+3)} ${at(c+4)} ${rgb(at(c+5))}`); c += 6; }
+    else if (k === 1) { out.push(`dot ${at(c+1)} ${at(c+2)} ${at(c+3)} ${rgb(at(c+4))}`); c += 5; }
+    else if (k === 2) {
+      const len = at(c+5); let s = "";
+      for (let i = 0; i < len; i++) s += String.fromCodePoint(at(c+6+i));
+      out.push(`text ${at(c+1)} ${at(c+2)} ${at(c+3)} ${rgb(at(c+4))} ${s}`); c += 6 + len;
+    } else return post("ERROR unknown record kind " + k);
+  }
+  for (let n = 0; n < hits; n++) {
+    out.push(`hit ${"xy"[at(c+1)]} ${at(c+2)} ${at(c+3)} ${at(c+4)} ${at(c+5)} ${at(c+6)}`);
+    c += 7;
+  }
+  post(out.join("\\n"));
+}, 3000);
+</script>
+"""
+
+
+def _drawn(site: Path) -> list:
+    """What the page's own shell drew, over the wire, from a real
+    browser.  The probe is appended to the generated page rather than
+    built into it: a gate's affordance is `window.gestatePicture`, and
+    the walk belongs to the test."""
+    page = site / "index.html"
+    page.write_text(page.read_text().replace("</body>", _WIRE_PROBE + "</body>"))
+    _Site.result.clear()
+    _Site.arrived.clear()
+    server, base = _serve(site)
+    profile = tempfile.mkdtemp(prefix="gestate-chrome")
+    chrome = subprocess.Popen(
+        [CHROME, "--headless=new", "--disable-gpu", "--no-sandbox",
+         f"--user-data-dir={profile}", f"{base}/index.html"],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        ok = _Site.arrived.wait(timeout=60)
+    finally:
+        chrome.kill()
+        chrome.wait()
+        server.shutdown()
+        shutil.rmtree(profile, ignore_errors=True)
+    assert ok, "the page never posted its picture — it did not load"
+    got = _Site.result[0]
+    assert not got.startswith(("ERROR", "REJECT")), got
+    return got.strip().split("\n") if got.strip() else []
+
+
+def _reference(name: str, rate: int = online.RATE) -> list:
+    """What `gestate/gui.py` draws from `cx = cy = 0` — the definition of
+    correct, and `test_gallery.py` §`_reference` says at length why it
+    goes through `Substrate` rather than through a walk assembled beside
+    it.  The page places the origin at the canvas centre, so the
+    comparison is made against that same centre."""
+    from gestate.gui import Substrate, _attachments, _flatten
+
+    canvas = Substrate((AUDIO_DIR / name).read_text(), rate)
+    lines = []
+    for item in _flatten(canvas.signal.value, canvas.state):
+        if item[0] == "rect":
+            _, x, y, w, h, (r, g, b) = item
+            lines.append(f"rect {x} {y} {w} {h} {r} {g} {b}")
+        elif item[0] == "dot":
+            _, x, y, rad, (r, g, b) = item
+            lines.append(f"dot {x} {y} {rad} {r} {g} {b}")
+        else:
+            _, x, y, text, (r, g, b), scale = item
+            lines.append(f"text {x} {y} {scale} {r} {g} {b} {text}")
+    for hit in _attachments(canvas.signal.value, canvas.state):
+        x0, y0, x1, y1 = hit["region"]
+        lines.append(f"hit {hit['axis']} {hit['chan']} {x0} {y0} {x1} {y1}")
+    return lines
+
+
+def _shift(lines: list, dx: int, dy: int) -> list:
+    """The reference, moved to where the page puts the origin."""
+    out = []
+    for line in lines:
+        parts = line.split()
+        if parts[0] in ("rect", "dot", "text"):
+            parts[1] = str(int(parts[1]) + dx)
+            parts[2] = str(int(parts[2]) + dy)
+        else:
+            for i in (3, 5):
+                parts[i] = str(int(parts[i]) + dx)
+            for i in (4, 6):
+                parts[i] = str(int(parts[i]) + dy)
+        out.append(" ".join(parts))
+    return out
+
+
+@needs_tools
+@needs_shell
+@needs_chrome
+@pytest.mark.parametrize("name", DRAWS)
+def test_the_page_draws_what_the_desk_draws(name):
+    """The row `card:audiovisual-gallery.md` turns on, on the page.
+
+    `test_gallery.py` already holds the *module* to `gui.py` under
+    `wasmtime`.  What is between the two and checked nowhere else is the
+    **payload this generator writes** — the serialized program, the
+    fourteen tags, and the channel names in declaration order.  A tag
+    off by one draws a `Row` as whatever shares its number, and a
+    chan list in the wrong order gives a fader somebody else's channel;
+    both would pass every test in that file and fail on the page.
+
+    So this opens the page a person opens, in a real browser, and reads
+    the picture back over the wire.
+    """
+    with tempfile.TemporaryDirectory() as d:
+        site = Path(d) / "site"
+        online.generate(AUDIO_DIR / name, site)
+        drawn = _drawn(site)
+    assert drawn, f"{name} drew nothing"
+    assert drawn == _shift(_reference(name), 480 >> 1, 320 >> 1), (
+        f"{name}: the page's picture is not the one gui.py draws")
+
+
+@needs_tools
+@needs_shell
+def test_a_piece_that_draws_carries_its_substrate_and_its_meters():
+    """The generator's half, without a browser.
+
+    **What a piece declares is what it is charged for** — the bargain
+    `examples/audio/spectrum.ges` states for the filter bank and `peak`
+    makes for the meter.  So the config is a list of what this file
+    asked for and never a flag meaning *all of them*.
+    """
+    with tempfile.TemporaryDirectory() as d:
+        site = Path(d) / "site"
+        online.generate(AUDIO_DIR / "spectrum.ges", site)
+        data = json.loads((site / "spectrum.json").read_text())
+        assert (site / online.webshell.NAME).exists()
+        assert (site / "canvas.js").exists()
+    canvas = data["canvas"]
+    assert len(canvas["tags"]) == 14, "the walk decodes cells with all fourteen"
+    assert canvas["chans"] == [f"band{k}" for k in range(8)]
+    assert canvas["meters"]["bands"] == list(range(8))
+    assert canvas["meters"]["peak"] is False, "spectrum declares no peak"
+    assert canvas["meters"]["scopes"] == []
+
+
+@needs_tools
+@needs_shell
+def test_a_scope_is_carried_as_the_ring_the_module_already_keeps():
+    """`scoped.ges`'s trace — the meter that is not a number.
+
+    A `List Float` cannot ride the scalar wire, so the page stages it
+    with `web_list` and the worklet reads it from the module's own ring
+    through `read_scope_<i>`.  What this holds is that the generator
+    names the right reader and the right window, because an index off by
+    one reads another scope's ring and would look like a working scope
+    drawing the wrong sound.
+    """
+    src = (AUDIO_DIR / "scoped.ges").read_text()
+    from gestate.audiospans import located
+    _sites, graph = located(src, rate=online.RATE)
+    canvas = online.canvas_of(src, graph)
+    assert canvas["meters"]["scopes"] == [
+        {"label": "post", "length": 4096, "index": 0,
+         "points": online.TRACE_POINTS}]
+    #: The label is a channel the canvas declared *and* a scope the graph
+    #: keeps — one name doing both jobs is what makes the wiring possible.
+    assert "post" in canvas["chans"]
+    assert [label for label, _n, _node in graph.scopes()] == ["post"]
+
+
+def test_the_pages_trace_is_the_editors_trace():
+    """One number, in two files, held equal.
+
+    `online.TRACE_POINTS` is repeated rather than imported — the page
+    does not otherwise depend on the editor — and a repeated constant is
+    two things that can disagree unless something says they may not.
+    """
+    from gestate.audioeditor import Workbench
+
+    assert online.TRACE_POINTS == Workbench.TRACE_POINTS
+
+
+@needs_tools
+@needs_shell
+@needs_chrome
+@pytest.mark.parametrize("name,want", [("spectrum.ges", "bands"),
+                                       ("substrate.ges", "peak"),
+                                       ("scoped.ges", "traces")])
+def test_the_instrument_reaches_the_picture(name, want):
+    """The meters — *"the meters are cool"*, Henri, 2026-09-04.
+
+    Three of the six pieces draw a picture **of** the sound rather than
+    beside it: `spectrum` reads eight bands, `substrate` a `peak`, and
+    `scoped` the window its own ring holds.  On the desk those arrive
+    once a frame from `gestate/host.c` and the engine's rings; a page has
+    no such host, so the worklet measures them next to the samples it is
+    already rendering.
+
+    This renders a second through the real worklet in a real browser and
+    holds that the report arrived, named what the file declared, and
+    **moved** — a bank wired to nothing reports zeros forever, which is
+    the failure a presence check would pass.
+    """
+    with tempfile.TemporaryDirectory() as d:
+        site = Path(d) / "site"
+        online.generate(AUDIO_DIR / name, site)
+        got = _metered(site, FRAMES)
+    assert got["reports"] > 0, f"{name}: the worklet never reported"
+    last = got["last"]
+    assert last is not None and want in last, f"{name}: no {want} in {last}"
+    if want == "bands":
+        values = list(last["bands"].values())
+        assert len(values) == 8
+        assert any(v > 0 for v in values), "eight bands and all of them silent"
+    elif want == "peak":
+        assert last["peak"] > 0, "a piece that makes sound reported no peak"
+    else:
+        points = last["traces"]["post"]
+        assert len(points) == online.TRACE_POINTS
+        assert any(p != 0 for p in points), "a trace of a playing signal, flat"
+
+
+def _metered(site: Path, frames: int) -> dict:
+    """The worklet's last meter report, from a real offline render."""
+    _Site.result.clear()
+    _Site.arrived.clear()
+    server, base = _serve(site)
+    profile = tempfile.mkdtemp(prefix="gestate-chrome")
+    chrome = subprocess.Popen(
+        [CHROME, "--headless=new", "--disable-gpu", "--no-sandbox",
+         f"--user-data-dir={profile}",
+         f"{base}/index.html?check={frames}&meters=1&to=/check"],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        ok = _Site.arrived.wait(timeout=60)
+    finally:
+        chrome.kill()
+        chrome.wait()
+        server.shutdown()
+        shutil.rmtree(profile, ignore_errors=True)
+    assert ok, "the page never posted its meters"
+    return json.loads(_Site.result[0])

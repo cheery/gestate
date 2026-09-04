@@ -20,13 +20,13 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**397 complaints**, in 43 files.
+**399 complaints**, in 44 files.
 
 | | |
 |---|---|
 | `author` | 192 |
 | `command` | 32 |
-| `world` | 25 |
+| `world` | 27 |
 | `machine` | 148 |
 | say where | 112 |
 | say `nowhere`, on purpose | 35 |
@@ -130,7 +130,7 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `midi.py:124` | `MidiError` | a music program declaring the wrong names; the mistake is an absence |
 | `midi.py:172` | `MidiError` | how many instruments the whole piece uses |
 | `midi.py:191` | `MidiError` | a piece with no notes in it at all |
-| `online.py:92` | `OnlineError` | a score that plays what a keyboard holds has nothing to play in a tab with no keyboard; MIDI in the browser is not this page's yet |
+| `online.py:100` | `OnlineError` | a score that plays what a keyboard holds has nothing to play in a tab with no keyboard; MIDI in the browser is not this page's yet |
 | `pipeline.py:285` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
 | `pipeline.py:926` | `PipelineError` | the program as a whole was too deep to compile, which is a property of the whole |
 
@@ -721,8 +721,8 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 92 | `OnlineError` | `author` | *nowhere, on purpose* | 'this piece plays what your hands hold — `hear holds.' + sorted(heard)[0] + '` — and empty hand… |
-| 268 | `OnlineError` | `world` | — | why |
+| 100 | `OnlineError` | `author` | *nowhere, on purpose* | 'this piece plays what your hands hold — `hear holds.' + sorted(heard)[0] + '` — and empty hand… |
+| 345 | `OnlineError` | `world` | — | why |
 
 ### `pipeline.py`
 
@@ -853,3 +853,12 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 147 | `UnifyError` | `author` | `_span_str()` | 'Type mismatch: expected {gb}{_span_str(b)}\n got {ga}{_span_str(a)}' |
 | 156 | `UnifyError` | `author` | `_span_str()` | 'Type mismatch: expected {gb}{_span_str(b)}\n got {ga}{_span_str(a)}' |
 | 230 | `UnifyError` | `author` | `_span_str()` | 'Occurs check: `{names.get(var_id, f'a{var_id}')}` would contain itself in {show_type(t, names)… |
+
+### `webshell.py`
+
+*a toolchain this machine lacks, named.  Nothing*
+
+| line | error | verdict | says where | message |
+|---|---|---|---|---|
+| 77 | `ShellError` | `world` | — | why |
+| 84 | `ShellError` | `world` | — | 'cargo built nothing at {made}' |

@@ -45,11 +45,19 @@ import json
 import shutil
 from pathlib import Path
 
-from . import audioperform, audiowasm
+from . import audioperform, audiowasm, webshell
 
 #: The worklet's render quantum, which is what the schedule is baked on.
 QUANTUM = 128
 RATE = 44100
+
+#: How many points a scope's trace crosses as, and it is
+#: `audioeditor.Workbench.TRACE_POINTS` — the window downsampled by
+#: **max-absolute per bucket**, because a scope that averages away a
+#: click is a scope that lies (`spec/scope.md`).  The number is repeated
+#: rather than imported because the editor is a desk program the page
+#: does not otherwise depend on; `test_online.py` holds the two equal.
+TRACE_POINTS = 128
 
 #: Seconds a page carries when nothing in the file says when the piece
 #: ends — a synth with no score at all, and (since 2026-09-01) a score
@@ -172,6 +180,14 @@ def generate_site(directory, out, rate: int = RATE) -> tuple:
             shutil.rmtree(out / path.stem, ignore_errors=True)
             continue
         made.append((path.name, blurb(path.read_text())))
+    # **Once, at the root, and only if anything drew** — the canvas
+    # driver is the same program for every page and only the substrate
+    # it is handed differs, so it is shared; but a gallery of pieces
+    # that draw nothing must not carry 221 KB nobody fetches.  A page
+    # that wanted it and could not have it says so itself
+    # (`canvasSkipped`).
+    if any((out / Path(name).stem / "canvas.js").exists() for name, _ in made):
+        webshell.build(out)
     here = Path(__file__).parent
     items = "\n".join(
         f'<li><a href="{Path(name).stem}/">{name}</a>'
@@ -235,6 +251,67 @@ def knobs(src: str, graph, sites) -> list:
     return out
 
 
+#: The eight bands `gestate/host.c` reports, by the names a file
+#: declares to switch the filter bank on (`examples/audio/spectrum.ges`:
+#: *a program that does not declare these channels is not charged for
+#: it*).  The page keeps that bargain — the worklet runs the bank only
+#: when one of these is in the substrate's channel list.
+BANDS = tuple(f"band{k}" for k in range(8))
+
+
+def canvas_of(src: str, graph, rate: int = RATE) -> dict | None:
+    """The substrate a page draws beside the sound, or `None` — piece
+    `clap.gui` of `card:audiovisual-gallery.md`.
+
+    **The same payload a plugin gets.**  `export.substrate_of` writes
+    the serialized second program, the constructor tags the walk decodes
+    cells with, and the channel names in declaration order; `shell/web`
+    opens exactly that, and `test_gallery.py` already holds the picture
+    it draws equal to `gestate/gui.py`'s.  Nothing here reads a
+    substrate or decides what one means.
+
+    **And `meters` is what the instrument owes the picture.**  Six
+    pieces declare a canvas and three of them are pictures *of the
+    sound*: `spectrum` reads eight bands, a `peak` is a meter, and a
+    `scope`'s trace is the window the ring already holds.  On the desk
+    those arrive once a frame from `audioeditor.Editor` — `peak` from
+    the transport, the bands from `host.c`'s filter bank, a trace from
+    the engine's own ring.  A page has no such host, so the worklet
+    computes them beside the sound it is already rendering and the
+    main thread writes them to the canvas.  What is listed here is only
+    **what this file declared**, which is the bargain each of those
+    readings is offered under.
+    """
+    from .export import _BEAT_CHANS, bank_channels, substrate_of
+
+    banked = bank_channels(src)
+    knobs = frozenset(n.chan for n in graph.control_sources()
+                      if n.chan not in banked and n.chan not in _BEAT_CHANS)
+    sub = substrate_of(src, rate, graph, knobs)
+    if sub is None:
+        return None
+    declared = set(sub["chans"])
+    return {
+        "text": sub["text"], "entry": sub["entry"],
+        "tags": sub["tags"], "chans": sub["chans"],
+        "meters": {
+            "peak": "peak" in declared,
+            # Which bands, not how many: a file may declare `band0` and
+            # `band7` and nothing between, and the bank costs the same.
+            "bands": [k for k, name in enumerate(BANDS) if name in declared],
+            # A scope whose label is a channel this canvas declared.  The
+            # index is the `read_scope_<i>` the module exports, in the
+            # order `graph.scopes()` gives — which is the order
+            # `audiollvm._read_scopes` numbered them in.
+            "scopes": [{"label": label, "length": length, "index": i,
+                        "points": TRACE_POINTS}
+                       for i, (label, length, _node)
+                       in enumerate(graph.scopes())
+                       if label in declared],
+        },
+    }
+
+
 def _source_html(src: str, knobs: list) -> str:
     """The file, one `<div>` a line, with a slider on the line that
     declares a knob — beside its own declaration, the way the window
@@ -280,10 +357,32 @@ def generate(path, out, rate: int = RATE, up: bool = False) -> Path:
     data = bake(src, graph, rate)
     data["imports"] = [n for _, n in audiowasm.imports_of(out / f"{stem}.wasm")]
     data["knobs"] = knobs(src, graph, sites)
+    # **The picture, when the file draws one and this machine can build
+    # the shell.**  A toolchain the page generator lacks costs the piece
+    # its canvas and nothing else — the sound is a different module and
+    # was linked before we got here — so this is a skip with the reason
+    # kept, not a refusal of the page (`generate_site` prints them).
+    canvas = canvas_of(src, graph, rate)
+    if canvas is not None:
+        why = webshell.missing()
+        if why is None:
+            # One module for the whole gallery: written at the site root
+            # by `generate_site`, and beside the page when there is no
+            # root to share.  `webshell` says why.
+            if not up:
+                webshell.build(out)
+            data["canvas"] = {**canvas,
+                              "wasm": ("../" if up else "") + webshell.NAME}
+        else:
+            data["canvasSkipped"] = why
     (out / f"{stem}.json").write_text(json.dumps(data, separators=(",", ":")))
     here = Path(__file__).parent
     shutil.copyfile(here / "online.js", out / "player.js")
     shutil.copyfile(here / "online-worklet.js", out / "worklet.js")
+    # Only for a piece that draws — `player.js` imports it dynamically,
+    # so 45 of the site's 50 pages carry neither the file nor the fetch.
+    if "canvas" in data:
+        shutil.copyfile(here / "online-canvas.js", out / "canvas.js")
     page = (here / "online.html").read_text()
     page = (page.replace("{{name}}", path.name)
                 .replace("{{stem}}", stem)

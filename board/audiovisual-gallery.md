@@ -1,8 +1,9 @@
 # audiovisual-gallery — a gallery of controllable audio-visual experiences
 
-    status   doing — 2026-09-03, day one landed: `shell/web` walks all
-             six pictures in `wasm32`, equal to the reference,
-             §"Day one, and what it left"
+    status   doing — 2026-09-04, day two landed: all six pieces draw on
+             the page in a real browser, equal to `gui.py`, and the
+             meters came with them at his ask — §"Day two, landed".
+             Q2's remaining rows are still his
     because  "people do not currently see with ease, without
              installation, what gestate can create.  And it's a bit sad
              situation there." — Henri, 2026-09-02, asked for the
@@ -275,11 +276,76 @@ docstring is written about, arriving in a test rather than in a shell.
 The fix was to make the reference `gui.Substrate` itself — the actual
 reference host — rather than a walk assembled beside it.
 
-### What day two is
+### Day two, landed — 2026-09-04
 
-**The page.**  Nothing here is wired into `gestate/online*.{js,html}`
-yet: the module exists, the wire is tested, and no tab loads it.  That
-is the row's remaining half and it needs no decision.
+**The page draws, and the meters came with it.**  *Henri, giving the
+scope the same day the shelf question was asked:* **"I think that
+meters should come with it.  The meters are cool."**  So this is the
+`clap.gui` row plus the half of `clap.params` that runs the other way —
+the instrument reaching the picture — and not the hand reaching the
+sound, which is untouched.
+
+**What landed.**
+
+- `gestate/webshell.py` — builds `shell/web` for `wasm32` from Python,
+  the way `audiowasm.build` builds the synth.  **One module for the
+  whole gallery**, at the site root: the synth is the piece and every
+  `.ges` compiles to its own, but the canvas driver is the same program
+  for all of them and only the substrate it is handed differs.
+- `online.canvas_of` — the payload a page opens the shell with, which
+  is *the same one a plugin gets* (`export.substrate_of`), plus
+  `meters`: what this file declared and therefore what it is charged
+  for.
+- `gestate/online-canvas.js` — the page's half of the seam.  It moves
+  bytes across the C ABI and paints an `i32` array; **it keeps no walk
+  of its own**, which is the whole reason day one was built the way it
+  was.
+- `gestate/online-worklet.js` — the meters, measured beside the samples
+  because a picture *of* the sound needs the numbers on the thread the
+  samples are on.  The filter bank is `gestate/host.c`'s, constant for
+  constant: seven one-pole lowpasses at 110–11000 Hz, a 150 ms release,
+  the peak sampled at sixteen points of a block.  Reported once every
+  six quanta — 57 Hz against the quantum's 344, because the picture is
+  redrawn on a frame anyway.
+- `shell/web` gained **`web_list`**: a scope's trace is a `List Float`
+  and the scalar wire carries `(chan, value)` doubles, so a window is
+  staged and spent by the next `web_tick`.  `Canvas::advance` already
+  took lists — the shim was the only thing dropping them — and it
+  builds the list with the program's own `Cons` and `Nil`, so nothing
+  new decides what a list is.
+- `player.js` imports the canvas **dynamically**, and the generator
+  writes `canvas.js` and the shared module only when something draws:
+  45 of the 50 pages carry neither.
+
+**All six draw in a real browser what `gui.py` draws.**
+`test_online.py::test_the_page_draws_what_the_desk_draws` opens the
+page a person opens in a headless Chrome and reads the picture back
+over the wire.  `test_gallery.py` already held the *module* to the
+reference under `wasmtime`; what sits between them and was checked
+nowhere is **the payload this generator writes** — a tag off by one
+draws a `Row` as whatever shares its number, a chan list out of order
+gives a fader somebody else's channel, and both pass every test in that
+file.
+
+**And the meters move**, which a presence check would not have caught:
+a bank wired to nothing reports zeros forever.  Held on a real offline
+render through the real worklet — `spectrum`'s eight bands not all
+silent, `substrate`'s peak above zero, `scoped`'s 128 points not flat.
+
+| | measured |
+|---|---|
+| the whole site | **50 pages, 3.8 MB, 1 m 57 s** (was 2.9 MB) |
+| pages that draw | 6 |
+| the shared shell | 221 KB, no imports, fetched by those 6 |
+
+**What is still not wired, and it is the next row not an oversight.**
+A touch on the canvas moves the *picture* and not the sound: the
+gesture's writes go back in on the next tick, and `CanvasProgram`'s
+`bridge` is still empty.  That is `clap.params` in the table, and Q2 is
+still his.  F197's frame clock is also still uncrossed — `web_tick`
+takes a pulse tag and the page passes none, so a substrate that moves
+on `Tick` alone would stand still; no piece in `examples/audio/` is one,
+which is the honest half day one already recorded.
 
 **And one thing found on the way, which is `fixme.md` F197.**  The
 canvas's frame clock does not cross.  `gui._crossing` sends `Tick`'s tag
