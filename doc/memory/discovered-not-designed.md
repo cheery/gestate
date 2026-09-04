@@ -38,6 +38,12 @@ as character in a sitting is context doing its work —
 [[weights-context-suite]], and [[the-evaluation-loop]], which closes the
 door on a session being the one to answer this.
 
+**And the dated record cannot settle it either**, which was found on
+2026-09-04 and is [[day-one-was-not-day-one]]: the method's spine is in
+git's initial commit, five days before any session commit — but that
+tree was already model-assisted (*"the voice is mix of mine and mix of
+claude's"*), so no artefact here attributes it to either party.
+
 **And his version has a dent in it, from his own evidence.**
 [[conditioning-shows-under-work]] found that the dialogue conditions and
 the document alone does not, and [[deriving-strips-the-payment]] found
