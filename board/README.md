@@ -154,6 +154,18 @@ decision**, and it belongs in the next batch of those.  A deep `later/`
 is a rich board when it is sediment and a stalled one when it is debt,
 and the directory looks identical either way.
 
+**And a card nobody has touched for seven days goes there, through a
+session and him.**  *Henri, 2026-09-04*, the evening the board's flow
+was first measured and six of eight open cards had stood past
+seventeen days while same-day cards finished: *"se voisi olla kortit
+joihin ei ole koskettu 7 päivään, niiden pitäisi mennä later/ hyllyyn
+meidän kauttamme."*  `tools/flow.py --check` is the lamp, printed at
+every commit; it names the cards and moves nothing.  A session opens
+the next sitting with them, he says why each one waits, and the
+session shelves it with that sentence — which is the paragraph below,
+made to happen on a clock instead of when somebody notices.  A touch
+is a commit to the card's own file, not this list moving.
+
 **And the reason it was displaced goes in the card, in Henri's words.**
 Without that it is a graveyard nobody re-reads, which is the failure
 mode of every "later" folder ever made.  A card comes back the same

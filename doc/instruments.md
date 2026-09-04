@@ -476,6 +476,25 @@ fix is already designed: answer for the passage being read, not the
 file.  The lamp exits 2 and the commit goes through; the correction is
 a build, and the card is what the next session reads.
 
+### `tools/flow.py` — the board's flow, and the seven-day lamp
+
+    python tools/flow.py            lead times, open cards by age and last touch, arrivals against drain
+    python tools/flow.py --check    the lamp: exit 2 and the names when a live card is untouched for 7 days
+
+The first measurement of the board's flow, 2026-09-04, found two
+populations: a card finishes the day it is written or it stands, and
+six of eight open cards had stood past seventeen days.  Git knew it
+and nobody read it.  This reads it, from one `git log --name-status`
+walk over `board/`.
+
+**The lamp is Henri's rule, in his words that evening:** *"kortit
+joihin ei ole koskettu 7 päivään, niiden pitäisi mennä later/ hyllyyn
+meidän kauttamme"* — untouched for seven days means `later/`, **through
+us**.  So the lamp names the cards at every commit and moves nothing:
+a session brings them to him, the reason goes in each card in his
+words, and the session shelves.  A touch is a commit to the card's own
+file; the README's order moving is not one.
+
 ### `tools/suite.py` — the whole suite, gates first
 
 The gates are seconds-long structural checks that a working session

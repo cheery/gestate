@@ -126,6 +126,10 @@ if "$PY" tools/suite.py --gates; then
     # and a red a session cannot clear is a red that gets muted
     # (card:backlinks.md).  So it prints and never refuses.
     "$PY" tools/backlinks.py --check || true
+    # The seven-day lamp — Henri's rule 2026-09-04: a live card nobody has
+    # touched for seven days goes to later/, through a session and him.
+    # Names the cards, never moves one, never refuses.
+    "$PY" tools/flow.py --check || true
     exit 0
 fi
 

@@ -803,3 +803,40 @@ guess, nobody's measurement.
 python tools/backlinks.py --report          # fires, cut share, most-read files
 python tools/backlinks.py --check; echo $?  # 0 quiet, 1 not installed, 2 tripped
 ```
+
+## The board's flow, made visible — and the seven-day lamp — 2026-09-04, evening
+
+The lean assessment Henri asked for named flow measurement as the
+biggest gap, and he answered *"virtauksen mittaaminen todella
+voitaisiin tehdä nyt näkyväksi."*  A throwaway script over `git log`
+did it in five minutes, and the numbers went into `~/gestate-lean.md`,
+his paper outside the tree.
+
+**Two populations.**  Of 22 finished cards, 13 finished the day they
+were written and the median lead time is half a day; of 8 open cards,
+six had stood past seventeen days.  When arrivals fell after week 33
+— his *four fewer, none new* — the drain fell with them, 16 to 2 to
+1.  Work comes from what arrives, not from the queue.  And it is the
+same shape as his other sentence that evening, about `keeper.md`: *"se
+ei motivoi minua tekemään, toisin kuin arkinen pöhinä session kanssa."*
+The list pulls nobody; the conversation pulls both.
+
+**The lamp is his, chosen in one line:** *"se voisi olla kortit joihin
+ei ole koskettu 7 päivään, niiden pitäisi mennä later/ hyllyyn meidän
+kauttamme."*  So `tools/flow.py --check` names every live card whose
+own file has not changed in a commit for seven days, exits 2, and the
+pre-commit prints it beside the other lamps and refuses nothing —
+*through us* means a session brings the cards to him, he says why each
+waits, and the session shelves it with his sentence.  The rule is in
+`board/README.md` beside the paragraph it makes happen on a clock.
+
+```sh
+python tools/flow.py            # lead times, open cards by age and last touch, weekly flow
+python tools/flow.py --check    # the lamp; 2 when it trips
+```
+
+**It tripped on its first run**, naming five: `git-lesson`,
+`reviewing-by-running`, `stranger-test`, `unseen-flare`, `git-viewer`
+— nine to nineteen days untouched.  Their sentences are his and the
+next thing this sitting asks.  Two memories went in earlier the same
+evening: the customer is Henri, and keeper.md does not pull him.
