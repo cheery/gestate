@@ -143,6 +143,49 @@ now five times over, and it is the plainest requirement to come out of
 this: *a format that holds voices separately must know they are the
 same twenty-four bars.*
 
+**H3 — and the loop we are using is not his loop.**  *Henri, after pass
+three:* **"At this point I'd take the editor up open, and see why
+locrian doesn't locrian, examine, maybe under the constraints that are
+set here."**
+
+**That is an editor requirement stated as a working habit**, and it is
+worth more than a feature request.  The loop this log was made with —
+the session writes, renders, and hands over a `.wav` — is *not how he
+works*.  At the point where the piece is nearly right and the question
+is **why does this section not do what it should**, what he wants is
+the file open and the thing under his hands, changing one number and
+hearing it.  A format and an editor that serve only the first loop
+would serve the wrong half of composing.
+
+*So the log's own method has a bias in it, now named:* it produces
+evidence about **writing** a piece and almost none about **examining**
+one, because examining is the half a `.wav` cannot carry.
+
+## Why locrian did not locrian — measured 2026-09-04
+
+**Half the section was not locrian at all.**  Counting a *place to
+rest* as a perfect fifth above the sounding bass:
+
+| bar | bass | chord | rest? |
+|---|---|---|---|
+| 9, 10, 12, 15 | G | G B♭ D♭ | no — diminished |
+| 11, 14 | A♭ | A♭ C E♭ | **yes** — major triad |
+| 13 | C | C E♭ G | **yes** — minor triad |
+| 16 | A | A C♯ E | **yes** — major triad |
+
+**Four of eight bars gave the ear somewhere to stand**, and the bass
+moved between four different roots, so nothing said which note was
+home.  Locrian has no perfect fifth above its own tonic, which is
+exactly why it cannot establish a centre the ordinary way — it has to
+be **forced**, usually by pedalling the root until the ear gives in.
+
+*The experiment, one variable:* pedal the bass on G through all eight
+bars and change nothing else.  Every consonant triad becomes a slash
+chord over a root that contradicts it — A♭/G, Cm/G, A/G — and the
+count goes to **0 of 8**.  That take is
+`arc-pedal.ges` in the scratchpad, deliberately **not** folded into
+`arc.ges` until he has heard whether it is right.
+
 ---
 
 ## What the two passes cost, in one place
