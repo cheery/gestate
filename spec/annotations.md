@@ -584,12 +584,54 @@ asks for all three.  A drawing that handled one mark and forgot the sum
 would look right on every single-mark note and wrong only where they
 meet, which is the case a person writes and a fixture usually misses.
 
+## The staff, and why it is not this — 2026-09-04
+
+*Henri: "lets do the staff next."  What follows is what the looking
+found before anything was drawn, and it turns the staff from a drawing
+job into a decision.*
+
+**A staff cannot be the roll's arithmetic, and the reason is a law.**
+`spec/scorebox.md`'s *one arithmetic, several readers*: `y_of` draws a
+note, `key_at` inverts it for the hand, and `session.py` uses both —
+`key_at` for the drag and `y_of` for the live preview offset.  They
+must be inverses.
+
+**A staff position is not a pitch.**  Twelve semitones map onto seven
+positions, so C and C♯ share a line: the mapping is not injective and
+**cannot be inverted**.  A staff laid over the drag would leave a hand
+on the C line meaning either note, and the widget law does not bend for
+a prettier picture.
+
+So the staff is a fork, and each arm costs something different:
+
+**A — a second box.**  `staff <expr>` beside `notes <expr>`, its own
+arithmetic, its own gesture or none.  Nothing breaks, the law is kept
+per box, and it is a genuine second renderer: heads, lines, stems,
+accidentals, and note values from onsets in ticks.  *The expensive one,
+and the only one that is really notation.*
+
+**B — the staff replaces the roll and the drag becomes diatonic.**  Up
+a line is up a scale step, which is what a hand on a staff means, and
+accidentals stop being draggable — they become marks, like the manners
+already are.  Musically natural, and it **narrows** the gesture: a
+chromatic passage could no longer be dragged into.  It also rewrites a
+contract `spec/north_star.md` settled.
+
+**C — rule the roll, which is what was built today.**  A line at every
+C, labelled, drawn behind the bars.  `y_of` is untouched, so nothing
+inverts differently and no test moved.  **It is not notation and does
+not pretend to be**: it turns a heap of heights into pitches you can
+read, which is the half of the value that costs nothing.
+
+*C is standing.  A and B are his*, and they are not exclusive — C stays
+useful under either.
+
 ## What waits behind this
 
-The staff, which is the second renderer and the expensive half.  And
-the two questions the building left: finding a manner by **position**
-within the constructor rather than by value (§"What a written manner
-costs"), and the **one-payload seam** a note-in-isolation preview needs
+The staff itself, once the fork above is answered.  And the two
+questions the building left: finding a manner by **position** within
+the constructor rather than by value (§"What a written manner costs"),
+and the **one-payload seam** a note-in-isolation preview needs
 (§"The three paths, priced").
 
 **`Portamento` was predicted to be the expensive one** — read inside no

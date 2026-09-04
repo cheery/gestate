@@ -265,14 +265,25 @@ def test_the_roll_is_an_ordinary_substrate_that_draws():
     window would have nothing to walk."""
     from gestate.gui import Substrate
 
-    from gestate.scorebox import hands_of
+    from gestate.scorebox import ROLL_W, hands_of
 
     roll, _ = _roll("chopin.ges")
     program, hands = roll_program(roll)
     sub = Substrate(program, RATE)
 
-    assert len(sub.picture()) == len(roll.events) + 2, \
-        "one rect per note, on a ground, under a caption"
+    #: **Counted by what each item is, not by a total.**  The picture
+    #: also carries the ruled octaves — a line and a label at every C —
+    #: so a bare count would have to be edited every time the drawing
+    #: gains a part, which is a test that measures the drawing's size
+    #: rather than its shape.
+    items = sub.picture()
+    bars = [i for i in items if i[0] == "rect" and i[4] == 3]
+    ground = [i for i in items if i[0] == "rect" and i[3] == ROLL_W and i[4] > 3]
+    rules = [i for i in items if i[0] == "rect" and i[3] == ROLL_W and i[4] == 1]
+    labels = [i for i in items if i[0] == "text"]
+    assert len(bars) == len(roll.events), "one bar per note"
+    assert len(ground) == 1, "on a ground"
+    assert len(labels) == len(rules) + 1, "a caption, and a name per ruled octave"
     assert sub.crossing is not None, "the window could not walk it"
     assert len(hands) == len(hands_of(roll)), "a hand per column"
 

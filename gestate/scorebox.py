@@ -1310,6 +1310,35 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
     # `scoped.ges` already draws a trace by recursion over a list, and
     # this is the same picture built the same way — the chain stays
     # flat and the depth is a small function's.
+    #: **A line at every C, named.**  The roll draws pitch as a height
+    #: and a height is not a note you can read — `card:drawn-scores.md`,
+    #: Henri: *what I have available changes what I create*.  So the
+    #: octaves are ruled and labelled, which turns a heap of bars into
+    #: pitches without touching `y_of`.
+    #:
+    #: **Not a staff**, and the difference is a law rather than taste:
+    #: `y_of` and `key_at` must invert each other (§"One arithmetic,
+    #: several readers"), and a staff position is *not* a pitch — C and
+    #: C sharp share a line — so a staff cannot be the drag's arithmetic.
+    #: `spec/annotations.md` §"The staff, and why it is not this" holds
+    #: the fork.
+    rules = []
+    for key in range(lo, hi + 1):
+        if key % 12:
+            continue
+        y = y_of(key)                      # the local, roll already bound
+        rules.append(f"(Shift 0 {_n(y)} (Rect {ROLL_W} 1 (RGB 46 51 62)))")
+        rules.append(f"(Shift {_n(18 - ROLL_W // 2)} {_n(y - 6)} "
+                     f'(Label 22 9 "C{key // 12 - 1}" (RGB 92 100 114)))')
+
+    #: Folded here rather than spliced into the template: one `Over` per
+    #: rule, each a complete expression, so the parentheses cannot come
+    #: out unbalanced the way a joined string's did.
+    ground = (f"(Rect {ROLL_W} {ROLL_H} "
+              f"(RGB {_NIGHT[0]} {_NIGHT[1]} {_NIGHT[2]}))")
+    for rule in rules:
+        ground = f"(Over {ground} {rule})"
+
     rows = []
     for i, (on, off, k, key, vel, mark) in enumerate(events):
         x0, x1 = x_of(on), x_of(off)
@@ -1476,8 +1505,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
               f"({all_g} h v rest)\n\n"
             + f"{pic_g} : Float -> Float -> Sub\n"
             + f"{pic_g} h v = Sized {ROLL_W} {ROLL_H} (Over (Over (Over\n"
-            + f"    (Rect {ROLL_W} {ROLL_H} (RGB {_NIGHT[0]} {_NIGHT[1]} "
-              f"{_NIGHT[2]}))\n"
+            + f"    {ground}\n"
             + f"    ({all_g} (floor h) (floor v) {rows_g}))\n"
             + f"    (Shift 0 {ROLL_H // 2 - 8} (Label 120 12 \"{caption}\" "
               f"(RGB 120 124 134))))\n"
