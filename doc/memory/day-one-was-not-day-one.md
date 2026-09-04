@@ -91,6 +91,23 @@ recognised answers to irritations he had been carrying long enough to
 name exactly.  **His "yet" is doing the work** — *"I tolerated it but
 didn't like, yet"* — the dislike had a shape before it had a rule.
 
+## What he took from it — his conclusion, 2026-09-04
+
+> *"What this teaches me: I should have used git from the beginning."*
+
+**And it is right narrowly.**  Nothing of the work was lost — the
+108,541 lines are all there.  What was lost is exactly what he was
+asking about: *who wrote which idea, and when.*  Those months arrived
+as one commit, so the five days above are the only five that can be
+reconstructed, and the paragraph before this one is a hedge that
+commits would have replaced with an answer.
+
+**The other half, so the lesson is not over-drawn.**  What made this
+read possible at all is not git: dated entries, the asker's words kept
+verbatim, ids that never renumber.  He was already doing that by hand
+in `journal.md` before the repository existed.  Git would have recorded
+the authorship; it would not have supplied the record.
+
 ## What the sessions contributed, so the read is not one-sided
 
 Machinery, elaboration, and the tests that make a rule bite.  The dated
