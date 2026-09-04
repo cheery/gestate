@@ -51,6 +51,27 @@ from . import audioperform, audiowasm, webshell
 QUANTUM = 128
 RATE = 44100
 
+#: What the picture sits on, and it is the plugin's own ground —
+#: `shell/panel/src/panels.rs`'s `BG`, which is what
+#: `Panel::render_into` clears to before the canvas is drawn over it.
+#:
+#: **A picture is composed against this and not against a page.**  Every
+#: one of the six was drawn by somebody looking at the plugin's window,
+#: so a substrate leaves the ground showing wherever it means to — and
+#: on white that reads as a hole rather than as a background (Henri,
+#: 2026-09-04, on `lantern.ges`: *"shows against a white background and
+#: it seems a bit ugly that way"*).  Repeated here rather than imported
+#: because Rust constants do not cross; `test_online.py` holds the two
+#: equal.
+CANVAS_BG = "#14161a"
+
+#: The box the picture is drawn in, and the origin is its centre — which
+#: is where `gui.py` puts `cx, cy` and therefore where every one of these
+#: substrates was composed around.  **A picture wider or taller than this
+#: is cropped in silence**, so `test_online.py` measures all six against
+#: it rather than trusting that today's fit is tomorrow's.
+CANVAS_W, CANVAS_H = 480, 320
+
 #: How many points a scope's trace crosses as, and it is
 #: `audioeditor.Workbench.TRACE_POINTS` — the window downsampled by
 #: **max-absolute per bucket**, because a scope that averages away a
@@ -387,7 +408,10 @@ def generate(path, out, rate: int = RATE, up: bool = False) -> Path:
     page = (page.replace("{{name}}", path.name)
                 .replace("{{stem}}", stem)
                 .replace("{{source}}", _source_html(src, data["knobs"]))
-                .replace("{{up}}", '<a href="../">all pieces</a> · ' if up else ""))
+                .replace("{{up}}", '<a href="../">all pieces</a> · ' if up else "")
+                .replace("{{ground}}", CANVAS_BG)
+                .replace("{{cw}}", str(CANVAS_W))
+                .replace("{{ch}}", str(CANVAS_H)))
     (out / "index.html").write_text(page)
     return out
 

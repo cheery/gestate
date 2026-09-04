@@ -471,7 +471,8 @@ def test_the_page_draws_what_the_desk_draws(name):
         online.generate(AUDIO_DIR / name, site)
         drawn = _drawn(site)
     assert drawn, f"{name} drew nothing"
-    assert drawn == _shift(_reference(name), 480 >> 1, 320 >> 1), (
+    assert drawn == _shift(_reference(name), online.CANVAS_W >> 1,
+                           online.CANVAS_H >> 1), (
         f"{name}: the page's picture is not the one gui.py draws")
 
 
@@ -596,3 +597,58 @@ def _metered(site: Path, frames: int) -> dict:
         shutil.rmtree(profile, ignore_errors=True)
     assert ok, "the page never posted its meters"
     return json.loads(_Site.result[0])
+
+
+def test_the_picture_sits_on_the_grounds_the_plugin_uses():
+    """One colour, in two languages, held equal.
+
+    A substrate is composed against the plugin window's ground and
+    leaves it showing wherever it means to, so a page that painted white
+    behind the same picture would be showing holes rather than a
+    background — which is what `lantern.ges` looked like on 2026-09-04.
+    `panels::BG` is the authority; `online.CANVAS_BG` is a copy, and a
+    copy nothing checks is two things that can disagree.
+    """
+    import re
+
+    panels = (Path(__file__).resolve().parents[1]
+              / "shell" / "panel" / "src" / "panels.rs").read_text()
+    m = re.search(r"pub const BG: Colour = Colour::rgb\("
+                  r"0x([0-9a-fA-F]{2}), 0x([0-9a-fA-F]{2}), 0x([0-9a-fA-F]{2})\)",
+                  panels)
+    assert m, "panels.rs no longer spells BG the way this test reads it"
+    assert online.CANVAS_BG == "#" + "".join(g.lower() for g in m.groups())
+
+
+@pytest.mark.parametrize("name", DRAWS)
+def test_no_piece_is_cropped_by_the_box_it_is_drawn_in(name):
+    """Every picture fits, and the failure this catches is a silent one.
+
+    The canvas is a fixed box with the origin at its centre.  A
+    substrate that reached past it would simply lose an edge — the page
+    would look right, the wire would be right, and
+    `test_the_page_draws_what_the_desk_draws` would still pass, because
+    the wire is compared before anything is painted.  So the bound is
+    measured from `gui.py`'s own picture instead.
+    """
+    from gestate.gui import Substrate, _flatten
+
+    canvas = Substrate((AUDIO_DIR / name).read_text(), online.RATE)
+    xs, ys = [], []
+    for item in _flatten(canvas.signal.value, canvas.state):
+        if item[0] == "rect":
+            _, x, y, w, h, _c = item
+            xs += [x, x + w]
+            ys += [y, y + h]
+        elif item[0] == "dot":
+            _, x, y, r, _c = item
+            xs += [x - r, x + r]
+            ys += [y - r, y + r]
+        else:
+            _, x, y, text, _c, scale = item
+            xs += [x, x + len(text) * 6 * scale]
+            ys += [y, y + 7 * scale]
+    assert min(xs) >= -(online.CANVAS_W >> 1) and max(xs) <= online.CANVAS_W >> 1, (
+        f"{name} is {min(xs)}..{max(xs)} wide against a {online.CANVAS_W} box")
+    assert min(ys) >= -(online.CANVAS_H >> 1) and max(ys) <= online.CANVAS_H >> 1, (
+        f"{name} is {min(ys)}..{max(ys)} tall against a {online.CANVAS_H} box")

@@ -38,7 +38,7 @@
   /* The picture is sized by the substrate, not by the page: the walk
      places its own origin at the canvas centre and a page that scaled
      it would be drawing a different picture from the plugin. */
-  #picture { display: block; background: #fff; border: 1px solid #ddd;
+  #picture { display: block; background: {{ground}}; border: 1px solid #ddd;
              border-radius: 4px; margin-bottom: 1rem; touch-action: none;
              max-width: 100%; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
@@ -52,7 +52,7 @@
 </div>
 <p id="unfolds" class="note" hidden></p>
 <p id="nopicture" class="note" hidden></p>
-<canvas id="picture" width="480" height="320" hidden></canvas>
+<canvas id="picture" width="{{cw}}" height="{{ch}}" hidden></canvas>
 <div id="source" class="src">{{source}}</div>
 <pre id="check"></pre>
 <footer>{{up}}The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
