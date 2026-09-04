@@ -67,13 +67,28 @@ voices song 4 lead : Sig Float
 #: are heard against a root rather than in the air.
 under : Sig Gate -> Sig Tone -> Sig Float
 under g s = lowpassSvf 320.0 0.16 (triangle (!hzOf s) * 0.6)
-    * (!velOf s) * 0.30 * perc 1.3 g
+    * (!velOf s) * 0.34 * adsr (Adsr 0.02 0.20 0.75 0.30) g
 
 voices ground 2 under : Sig Float
 
-#: The harmony's own bank — three voices, and it needs three because
-#: they sound at once and each holds a whole bar.
-voices chord 3 under : Sig Float
+#: The harmony's own bank — three voices, because they sound at once
+#: and each holds a whole bar.
+#:
+#: **It sustains, and that is the whole of pass three.**  Henri, on pass
+#: two: *"the chords could be more present, they sink into the
+#: background now"* — and they did, because this voice used `perc`,
+#: which `synth.ges` says in as many words is *"for a struck or plucked
+#: voice, which does not sustain"*.  A whole-bar chord under a
+#: percussive envelope states its mode for an instant and then leaves
+#: two seconds of nothing, so the piece had harmony on paper and almost
+#: none in the air.  `adsr` with a real sustain is what a held chord
+#: needs, and a mode is a *chord you are still hearing*.
+chordVoice : Sig Gate -> Sig Tone -> Sig Float
+chordVoice g s = lowpassSvf 1500.0 0.20
+    (saw (!hzOf s) * 0.35 + triangle (!hzOf s) * 0.65)
+    * (!velOf s) * 0.42 * adsr (Adsr 0.04 0.35 0.80 0.45) g
+
+voices chord 3 chordVoice : Sig Float
 
 sound : Sig Float
 sound = reverb 0.55 0.20 (song + chord + ground)

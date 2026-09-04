@@ -191,8 +191,37 @@ and was treated as a limit rather than as a reason to check something
 else.  **A level meter cannot hear a third.**  The ear found in one
 listen what no number in the file was watching for.
 
-**What he asked for next, and it is a format requirement not a
-compositional note:** *harmony with open chords, voice-led as
+**H2 — pass two: the chords are there and still not present.**
+*Henri:* **"it begins as hopeful and happy, maybe a bit random-feeling,
+but doesn't go to locrian or phrygian.. there's not that unsettling
+feeling about it that would belong to those modes.  Also the chords
+could be more present, they sink into the background now."**
+
+**And the cause was in the instrument, not in the notes.**  The harmony
+voice used `perc`, which `synth.ges` describes in as many words as
+*"for a struck or plucked voice, which does not sustain"*.  A whole-bar
+chord under a percussive envelope states its mode for an instant and
+leaves two seconds of nothing after it.  Measured across the piece:
+
+| | level at the end of a bar, against its start |
+|---|---|
+| pass 2, `perc` | **46%** |
+| pass 3, `adsr` with sustain | **92%** |
+
+So the piece had harmony **on paper and almost none in the air**, and
+*a mode is a chord you are still hearing*.  Written down as a hearing
+friction rather than a compositional one because that is what it was:
+the notes were right and the voice threw them away, and no reading of
+the score could have shown it.
+
+**And the measurement that would have caught it is the one nobody
+wrote.**  Twice now the session has measured *level per section* — a
+number that cannot see a third and cannot see a decay.  What it should
+have asked is **how much of a bar still has harmony in it**, which is
+one line and is now in the log.
+
+**What he asked for after pass one, and it is a format requirement not
+a compositional note:** *harmony with open chords, voice-led as
 individual voices.*  Voice leading means each chord tone is **its own
 line through time**, not a stack rebuilt every bar.  Written the way
 this file writes things, that is four separate lists aligned by nothing
