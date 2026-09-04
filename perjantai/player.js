@@ -56,9 +56,66 @@
       numberOfInputs: 0,
       numberOfOutputs: 1,
       outputChannelCount: [data.channels],
-      processorOptions: { module, overrides: { ...turned }, ...data },
+      processorOptions: {
+        module, overrides: { ...turned }, ...data,
+        // Only when the picture is actually up: the filter bank and the
+        // ring read are the instrument reaching a canvas, and a page
+        // with no canvas must not pay for either.
+        meters: picture ? data.canvas.meters : null,
+      },
     });
   };
+
+  // The picture — `card:audiovisual-gallery.md`.  A piece that draws
+  // one gets it whether or not it is playing: a fader on a stopped
+  // piece still moves, which is `gestate/gui.py`'s own rule and the
+  // strangest thing to get wrong.  A shell that will not load costs the
+  // canvas and never the sound.
+  let picture = null;
+  const face = document.getElementById("picture");
+  if (data.canvas && face) {
+    try {
+      // Imported only when the file draws: a piece with no substrate
+      // gets no `canvas.js` written beside it at all, and 45 of the 50
+      // pages on the site are that piece.
+      const { Picture } = await import("./canvas.js");
+      picture = await Picture.load(data.canvas.wasm, data.canvas, face);
+      face.hidden = false;
+      const spot = (e) => {
+        const r = face.getBoundingClientRect();
+        return [Math.round(e.clientX - r.left), Math.round(e.clientY - r.top)];
+      };
+      face.onpointerdown = (e) => {
+        face.setPointerCapture(e.pointerId);
+        picture.press(...spot(e));
+      };
+      face.onpointermove = (e) => { if (picture.grabbing) picture.motion(...spot(e)); };
+      face.onpointerup = () => picture.release();
+      const frame = () => { picture.step(); requestAnimationFrame(frame); };
+      requestAnimationFrame(frame);
+      // **For the gate, and it is the same affordance `?check=N` is.**
+      // `test_online.py` reads the picture back over the wire and holds
+      // it to what `gestate/gui.py` draws — the comparison
+      // `test_gallery.py` makes under `wasmtime`, made again here
+      // against the page a person actually loads, because the payload
+      // the generator wrote is between the two and nothing else checks
+      // it.  A page nobody is testing is not slowed by one property.
+      window.gestatePicture = picture;
+    } catch (e) {
+      picture = null;
+      say("the picture would not load: " + e);
+    }
+  } else if (data.canvasSkipped) {
+    // Said rather than swallowed: the page was made on a machine
+    // without the toolchain, and a silent missing canvas is a bug
+    // report nobody can write.
+    const note = document.getElementById("nopicture");
+    if (note) {
+      note.textContent = "This piece draws a picture and this page was "
+        + "built without it — " + data.canvasSkipped + ".";
+      note.hidden = false;
+    }
+  }
 
   const params = new URLSearchParams(location.search);
   const check = params.get("check");
@@ -82,8 +139,23 @@
       });
     } else for (const [slot, value] of sets) turn(slot, value);
     n = await node(ctx);
+    // **The meters, on the same render.**  A picture *of* the sound —
+    // a peak, a band, a scope's trace — is measured in the worklet
+    // beside the samples, so the only place to check it is a render
+    // that produced samples.  `&meters=1` keeps the last report the
+    // worklet posted and returns it instead of the frames.
+    const seen = [];
+    n.port.onmessage = (e) => { if (e.data.meters) seen.push(e.data.meters); };
     n.connect(ctx.destination);
     const buf = await ctx.startRendering();
+    if (params.get("meters")) {
+      const body = JSON.stringify({ reports: seen.length, last: seen[seen.length - 1] || null });
+      document.getElementById("check").textContent = body;
+      say("metered " + seen.length + " reports");
+      const to0 = params.get("to");
+      if (to0) await fetch(to0, { method: "POST", body });
+      return;
+    }
     const lines = [];
     for (let c = 0; c < data.channels; c++) lines.push(Array.from(buf.getChannelData(c)).join(" "));
     document.getElementById("check").textContent = lines.join("\n");
@@ -126,6 +198,7 @@
     ctx = new AudioContext({ sampleRate: data.rate });
     const n = await node(ctx);
     n.port.onmessage = async (e) => {
+      if (e.data.meters) { if (picture) picture.tell(e.data.meters); return; }
       if (e.data.done) {
         if (ctx) await ctx.close();
         ctx = null;

@@ -35,6 +35,12 @@
   .note { color: #555; font-size: .95rem; margin: 0 0 1rem;
           border-left: 3px solid #ddd; padding-left: .8rem; }
   #check { display: none; }
+  /* The picture is sized by the substrate, not by the page: the walk
+     places its own origin at the canvas centre and a page that scaled
+     it would be drawing a different picture from the plugin. */
+  #picture { display: block; background: #fff; border: 1px solid #ddd;
+             border-radius: 4px; margin-bottom: 1rem; touch-action: none;
+             max-width: 100%; }
   footer { margin-top: 2rem; color: #777; font-size: .9rem; }
 </style>
 </head>
@@ -45,6 +51,8 @@
   <span id="status">loading…</span>
 </div>
 <p id="unfolds" class="note" hidden></p>
+<p id="nopicture" class="note" hidden></p>
+<canvas id="picture" width="480" height="320" hidden></canvas>
 <div id="source" class="src"><div class="ln" data-line="1"># A duet: a bass line this file writes, and a lead you play yourself.</div>
 <div class="ln" data-line="2">#</div>
 <div class="ln" data-line="3">#   python -m gestate.audioperform examples/audio/duet.ges --midi --seconds 12</div>
@@ -248,6 +256,6 @@
 <div class="ln" data-line="201">sound = 0.8 * (0.7 * lead + bass)</div></div>
 <pre id="check"></pre>
 <footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
-<script src="player.js"></script>
+<script type="module" src="player.js"></script>
 </body>
 </html>
