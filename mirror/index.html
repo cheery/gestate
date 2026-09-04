@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mirror.ges</title>
+<style>
+  body { margin: 2rem auto; max-width: 48rem; padding: 0 1rem;
+         font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fafaf7; }
+  h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+  h1 code { font-weight: 600; }
+  .bar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  button { font: inherit; padding: .4rem 1.2rem; border: 1px solid #888;
+           border-radius: 4px; background: #fff; cursor: pointer; }
+  button:disabled { color: #999; cursor: default; }
+  #status { color: #555; }
+  pre, .src { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 1rem; overflow-x: auto; font: 14px/1.4 ui-monospace, monospace; }
+  .ln { white-space: pre; display: flex; align-items: center; gap: 0 1rem; }
+  /* Sticky to the visible right edge: the block scrolls sideways when a
+     comment line is wider than the window, and a knob sat at the end
+     of the *content* was off-screen (Henri, 2026-08-30). */
+  .knob { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto;
+          padding: 0 .2rem 0 1rem; font: 13px system-ui, sans-serif; color: #555;
+          white-space: nowrap; position: sticky; right: 0; background: #fff; }
+  .knob input { width: 7rem; }
+  /* Narrower than the declaration plus its knob: the knob takes the
+     next row, under the line, and sticks to the left edge instead. */
+  @media (max-width: 40rem) {
+    .ln { flex-wrap: wrap; }
+    .knob { flex-basis: 100%; margin-left: 0; justify-content: flex-start;
+            padding-left: 1.5rem; right: auto; left: 0; }
+  }
+  .knob output { min-width: 3rem; text-align: right; font: 13px ui-monospace, monospace; color: #222; }
+  .note { color: #555; font-size: .95rem; margin: 0 0 1rem;
+          border-left: 3px solid #ddd; padding-left: .8rem; }
+  #check { display: none; }
+  /* The picture is sized by the substrate, not by the page: the walk
+     places its own origin at the canvas centre and a page that scaled
+     it would be drawing a different picture from the plugin. */
+  #picture { display: block; background: #14161a; border: 1px solid #ddd;
+             border-radius: 4px; margin-bottom: 1rem; touch-action: none;
+             max-width: 100%; }
+  footer { margin-top: 2rem; color: #777; font-size: .9rem; }
+</style>
+</head>
+<body data-stem="mirror">
+<h1><code>mirror.ges</code></h1>
+<div class="bar">
+  <button id="play" disabled>play</button>
+  <span id="status">loading…</span>
+</div>
+<p id="unfolds" class="note" hidden></p>
+<p id="nopicture" class="note" hidden></p>
+<canvas id="picture" width="480" height="320" hidden></canvas>
+<div id="source" class="src"><div class="ln" data-line="1"># mirror.ges — a piece that watches itself.</div>
+<div class="ln" data-line="2">#</div>
+<div class="ln" data-line="3">#   python -m gestate.audioperform examples/audio/mirror.ges --seconds 40 -o take.wav</div>
+<div class="ln" data-line="4">#   python -m gestate.online examples/audio/mirror.ges -o site/</div>
+<div class="ln" data-line="5">#</div>
+<div class="ln" data-line="6"># **Written for the gallery**, which is what makes it different from its</div>
+<div class="ln" data-line="7"># neighbours: `lantern.ges` shows a peak, `spectrum.ges` shows eight</div>
+<div class="ln" data-line="8"># bands and `scoped.ges` shows a trace, and no file had ever shown all</div>
+<div class="ln" data-line="9"># three at once.  This one does, and every one of them is the *host*</div>
+<div class="ln" data-line="10"># reaching the picture — the direction that costs a program nothing to</div>
+<div class="ln" data-line="11"># ask for and that a tab could not do until 2026-09-04</div>
+<div class="ln" data-line="12"># (`card:audiovisual-gallery.md`).</div>
+<div class="ln" data-line="13">#</div>
+<div class="ln" data-line="14"># **There are no faders on it, on purpose.**  A fader on this page would</div>
+<div class="ln" data-line="15"># move the picture and not the sound: the canvas-to-parameter bridge is</div>
+<div class="ln" data-line="16"># the plugin's and the tab has none yet.  So the face here is a</div>
+<div class="ln" data-line="17"># *readout* and nothing on it pretends to be a control — every pixel is</div>
+<div class="ln" data-line="18"># something the instrument said.  When the bridge lands, faders belong</div>
+<div class="ln" data-line="19"># on `lantern.ges`, which already has them.</div>
+<div class="ln" data-line="20">#</div>
+<div class="ln" data-line="21"># The bare `canvas` line asks for the picture as a live content box on</div>
+<div class="ln" data-line="22"># that line in the workbench; delete it and the box goes.</div>
+<div class="ln" data-line="23"> </div>
+<div class="ln" data-line="24">canvas</div>
+<div class="ln" data-line="25"> </div>
+<div class="ln" data-line="26"># ── What the instrument says back ────────────────────────────────────────</div>
+<div class="ln" data-line="27">#</div>
+<div class="ln" data-line="28"># Three readings, three shapes, and a file is charged only for the ones</div>
+<div class="ln" data-line="29"># it declares: the trace is the window the scope's own ring already</div>
+<div class="ln" data-line="30"># holds, the bands come from a filter bank the host runs per sample, and</div>
+<div class="ln" data-line="31"># the peak is the loudest sample since the picture last looked.</div>
+<div class="ln" data-line="32"> </div>
+<div class="ln" data-line="33">#: The waveform.  128 points, the scope's window downsampled by</div>
+<div class="ln" data-line="34">#: max-absolute per bucket — a scope that averaged away a click would be</div>
+<div class="ln" data-line="35">#: a scope that lies (`spec/scope.md`).</div>
+<div class="ln" data-line="36">trace : Chan (List Float)</div>
+<div class="ln" data-line="37">trace = chan</div>
+<div class="ln" data-line="38"> </div>
+<div class="ln" data-line="39">wave : Sig (List Float)</div>
+<div class="ln" data-line="40">wave = Nil ::: mkSig (wait trace)</div>
+<div class="ln" data-line="41"> </div>
+<div class="ln" data-line="42">#: The spectrum, low to high.  Declaring `band0` is what switches the</div>
+<div class="ln" data-line="43">#: bank on; a file that does not is not charged for it.</div>
+<div class="ln" data-line="44">band0 : Chan Float</div>
+<div class="ln" data-line="45">band0 = chan</div>
+<div class="ln" data-line="46">band1 : Chan Float</div>
+<div class="ln" data-line="47">band1 = chan</div>
+<div class="ln" data-line="48">band2 : Chan Float</div>
+<div class="ln" data-line="49">band2 = chan</div>
+<div class="ln" data-line="50">band3 : Chan Float</div>
+<div class="ln" data-line="51">band3 = chan</div>
+<div class="ln" data-line="52">band4 : Chan Float</div>
+<div class="ln" data-line="53">band4 = chan</div>
+<div class="ln" data-line="54">band5 : Chan Float</div>
+<div class="ln" data-line="55">band5 = chan</div>
+<div class="ln" data-line="56">band6 : Chan Float</div>
+<div class="ln" data-line="57">band6 = chan</div>
+<div class="ln" data-line="58">band7 : Chan Float</div>
+<div class="ln" data-line="59">band7 = chan</div>
+<div class="ln" data-line="60"> </div>
+<div class="ln" data-line="61">level0 : Sig Float</div>
+<div class="ln" data-line="62">level0 = 0.0 ::: mkSig (wait band0)</div>
+<div class="ln" data-line="63">level1 : Sig Float</div>
+<div class="ln" data-line="64">level1 = 0.0 ::: mkSig (wait band1)</div>
+<div class="ln" data-line="65">level2 : Sig Float</div>
+<div class="ln" data-line="66">level2 = 0.0 ::: mkSig (wait band2)</div>
+<div class="ln" data-line="67">level3 : Sig Float</div>
+<div class="ln" data-line="68">level3 = 0.0 ::: mkSig (wait band3)</div>
+<div class="ln" data-line="69">level4 : Sig Float</div>
+<div class="ln" data-line="70">level4 = 0.0 ::: mkSig (wait band4)</div>
+<div class="ln" data-line="71">level5 : Sig Float</div>
+<div class="ln" data-line="72">level5 = 0.0 ::: mkSig (wait band5)</div>
+<div class="ln" data-line="73">level6 : Sig Float</div>
+<div class="ln" data-line="74">level6 = 0.0 ::: mkSig (wait band6)</div>
+<div class="ln" data-line="75">level7 : Sig Float</div>
+<div class="ln" data-line="76">level7 = 0.0 ::: mkSig (wait band7)</div>
+<div class="ln" data-line="77"> </div>
+<div class="ln" data-line="78">#: How loud, since the last frame.</div>
+<div class="ln" data-line="79">peak : Chan Float</div>
+<div class="ln" data-line="80">peak = chan</div>
+<div class="ln" data-line="81"> </div>
+<div class="ln" data-line="82">loud : Sig Float</div>
+<div class="ln" data-line="83">loud = 0.0 ::: mkSig (wait peak)</div>
+<div class="ln" data-line="84"> </div>
+<div class="ln" data-line="85"># ── What you hear ────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="86">#</div>
+<div class="ln" data-line="87"># Something with a **moving spectrum and a legible waveform**, because</div>
+<div class="ln" data-line="88"># those are the two things the face is showing and a piece that sat still</div>
+<div class="ln" data-line="89"># would be a demonstration of nothing.  A plucked lead climbing through a</div>
+<div class="ln" data-line="90"># filter that opens as it goes, a bass that stays put, and a little air</div>
+<div class="ln" data-line="91"># so the top bars have something to say.</div>
+<div class="ln" data-line="92"> </div>
+<div class="ln" data-line="93">#: A note is a degree and a weight — the score picks the step, the voice</div>
+<div class="ln" data-line="94">#: decides what it sounds like.</div>
+<div class="ln" data-line="95">Tone := Tone Float Int</div>
+<div class="ln" data-line="96"> </div>
+<div class="ln" data-line="97">#: A minor pentatonic, which keeps a drawn phrase consonant however the</div>
+<div class="ln" data-line="98">#: dice fall.  Degrees climb by octaves past the table's end.</div>
+<div class="ln" data-line="99">stepOf : Int -> Int</div>
+<div class="ln" data-line="100">stepOf d = case d of</div>
+<div class="ln" data-line="101">    0 -> 0</div>
+<div class="ln" data-line="102">    1 -> 3</div>
+<div class="ln" data-line="103">    2 -> 5</div>
+<div class="ln" data-line="104">    3 -> 7</div>
+<div class="ln" data-line="105">    4 -> 10</div>
+<div class="ln" data-line="106">    5 -> 12</div>
+<div class="ln" data-line="107">    6 -> 15</div>
+<div class="ln" data-line="108">    _ -> 17</div>
+<div class="ln" data-line="109"> </div>
+<div class="ln" data-line="110">hzOf : Tone -> Float</div>
+<div class="ln" data-line="111">hzOf t = case t of</div>
+<div class="ln" data-line="112">    Tone v d -> keyHz (45 + stepOf d)</div>
+<div class="ln" data-line="113"> </div>
+<div class="ln" data-line="114">velOf : Tone -> Float</div>
+<div class="ln" data-line="115">velOf t = case t of</div>
+<div class="ln" data-line="116">    Tone v d -> v</div>
+<div class="ln" data-line="117"> </div>
+<div class="ln" data-line="118">lowOf : Tone -> Float</div>
+<div class="ln" data-line="119">lowOf t = case t of</div>
+<div class="ln" data-line="120">    Tone v d -> keyHz (21 + stepOf d)</div>
+<div class="ln" data-line="121"> </div>
+<div class="ln" data-line="122">#: **The filter opens with the note's own pitch**, so a phrase climbing</div>
+<div class="ln" data-line="123">#: the scale sweeps the bank rather than lighting one bar and holding it.</div>
+<div class="ln" data-line="124">#: That is the whole reason this voice is shaped the way it is: the</div>
+<div class="ln" data-line="125">#: picture is of the sound, so the sound has to give the picture</div>
+<div class="ln" data-line="126">#: something to draw.</div>
+<div class="ln" data-line="127">brightOf : Tone -> Float</div>
+<div class="ln" data-line="128">brightOf t = case t of</div>
+<div class="ln" data-line="129">    Tone v d -> 320.0 + 260.0 * toFloat (stepOf d)</div>
+<div class="ln" data-line="130"> </div>
+<div class="ln" data-line="131">leadVoice : Sig Gate -> Sig Tone -> Sig Float</div>
+<div class="ln" data-line="132">leadVoice g s =</div>
+<div class="ln" data-line="133">    lowpassSvf (!brightOf s) 0.30 (saw (!hzOf s))</div>
+<div class="ln" data-line="134">        * (!velOf s) * 0.30 * perc 6.0 g</div>
+<div class="ln" data-line="135"> </div>
+<div class="ln" data-line="136">#: The ground: two octaves down, round, slow to fade — the bottom two</div>
+<div class="ln" data-line="137">#: bars, and something for the trace to sit on.</div>
+<div class="ln" data-line="138">bassVoice : Sig Gate -> Sig Tone -> Sig Float</div>
+<div class="ln" data-line="139">bassVoice g s =</div>
+<div class="ln" data-line="140">    lowpassSvf 240.0 0.14 (triangle (!lowOf s) * 0.55)</div>
+<div class="ln" data-line="141">        * (!velOf s) * perc 1.6 g</div>
+<div class="ln" data-line="142"> </div>
+<div class="ln" data-line="143">voices lead 5 leadVoice : Sig Float</div>
+<div class="ln" data-line="144"> </div>
+<div class="ln" data-line="145">voices bass 2 bassVoice : Sig Float</div>
+<div class="ln" data-line="146"> </div>
+<div class="ln" data-line="147">#: A hiss, quiet, so the top two bands are not dead the whole time.</div>
+<div class="ln" data-line="148">air : Sig Float</div>
+<div class="ln" data-line="149">air = 0.035 * highpassOnePole 5200.0 (white 5)</div>
+<div class="ln" data-line="150"> </div>
+<div class="ln" data-line="151">#: **`scope` is where the trace comes from** — it keeps a window of the</div>
+<div class="ln" data-line="152">#: samples flowing through it and the engine publishes the ring.  It is a</div>
+<div class="ln" data-line="153">#: pass-through: the sound is unchanged by being watched.</div>
+<div class="ln" data-line="154">sound : Sig Float</div>
+<div class="ln" data-line="155">sound = scope "trace" (brickwall 0.92 (reverb 0.55 0.22 (lead + bass) + air))</div>
+<div class="ln" data-line="156"> </div>
+<div class="ln" data-line="157"># ── What it plays ────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="158"> </div>
+<div class="ln" data-line="159">#: Four figures, drawn a bar at a time.  They climb, because a phrase</div>
+<div class="ln" data-line="160">#: that climbs walks the filter up the bank and the bars follow it.</div>
+<div class="ln" data-line="161">figureOf : Int -> [: Tone :]</div>
+<div class="ln" data-line="162">figureOf n = case n of</div>
+<div class="ln" data-line="163">    0 -> '(Tone 0.85 0) ++ '(Tone 0.70 2) ++ '(Tone 0.80 4) ++ '(Tone 0.65 6)</div>
+<div class="ln" data-line="164">    1 -> '(Tone 0.80 1) ++ '(Tone 0.75 3) ++ ('(Tone 0.90 5) |* 2)</div>
+<div class="ln" data-line="165">    2 -> ('(Tone 0.70 2) |* 2) ++ '(Tone 0.85 5) ++ '(Tone 0.60 7)</div>
+<div class="ln" data-line="166">    _ -> '(Tone 0.90 4) ++ '(Tone 0.60 3) ++ '(Tone 0.75 6)</div>
+<div class="ln" data-line="167">      ++ (chance 0.5 '(Tone 0.95 7))</div>
+<div class="ln" data-line="168"> </div>
+<div class="ln" data-line="169">bar : [: Tone :]</div>
+<div class="ln" data-line="170">bar = do</div>
+<div class="ln" data-line="171">    s &lt;- draw</div>
+<div class="ln" data-line="172">    long 4 (figureOf (below 4 s))</div>
+<div class="ln" data-line="173"> </div>
+<div class="ln" data-line="174">#: The footing, and it never moves: a chancy piece with nothing fixed is</div>
+<div class="ln" data-line="175">#: only weather.</div>
+<div class="ln" data-line="176">footing : [: Tone :]</div>
+<div class="ln" data-line="177">footing = ('(Tone 0.9 0) |* 2) ++ ('(Tone 0.8 2) |* 2)</div>
+<div class="ln" data-line="178"> </div>
+<div class="ln" data-line="179">score : [: Void :]</div>
+<div class="ln" data-line="180">score = (cycle bar >>= voices.lead) || (cycle footing >>= voices.bass)</div>
+<div class="ln" data-line="181"> </div>
+<div class="ln" data-line="182">bpm : Int</div>
+<div class="ln" data-line="183">bpm = 96</div>
+<div class="ln" data-line="184"> </div>
+<div class="ln" data-line="185"># ── What you see ─────────────────────────────────────────────────────────</div>
+<div class="ln" data-line="186">#</div>
+<div class="ln" data-line="187"># A readout in three parts, stacked: the waveform across the top, the</div>
+<div class="ln" data-line="188"># spectrum under it, and the level down the right of the bars.  Nothing</div>
+<div class="ln" data-line="189"># below mentions time — they are ordinary functions to a `Sub`, lifted</div>
+<div class="ln" data-line="190"># over their signals with `!` at the very end.</div>
+<div class="ln" data-line="191"> </div>
+<div class="ln" data-line="192">night : Colour</div>
+<div class="ln" data-line="193">night = RGB 26 29 36</div>
+<div class="ln" data-line="194"> </div>
+<div class="ln" data-line="195">dim : Sig Colour</div>
+<div class="ln" data-line="196">dim = colour 118 126 140</div>
+<div class="ln" data-line="197"> </div>
+<div class="ln" data-line="198"># ── the waveform ────</div>
+<div class="ln" data-line="199"> </div>
+<div class="ln" data-line="200">traceW : Int</div>
+<div class="ln" data-line="201">traceW = 384</div>
+<div class="ln" data-line="202"> </div>
+<div class="ln" data-line="203">traceH : Int</div>
+<div class="ln" data-line="204">traceH = 96</div>
+<div class="ln" data-line="205"> </div>
+<div class="ln" data-line="206">#: One point of the trace, as a short bar hanging from the centre line at</div>
+<div class="ln" data-line="207">#: its own value's height.  Placed by its centre like everything else, so</div>
+<div class="ln" data-line="208">#: the height is where the value says and the bar is what makes a thin</div>
+<div class="ln" data-line="209">#: waveform readable at a glance.</div>
+<div class="ln" data-line="210">#:</div>
+<div class="ln" data-line="211">#: **Clamped**, because a sample may exceed the height the picture</div>
+<div class="ln" data-line="212">#: reserved and a picture that grew with the music would move the</div>
+<div class="ln" data-line="213">#: spectrum underneath it.</div>
+<div class="ln" data-line="214">pointAt : Int -> Float -> Sub</div>
+<div class="ln" data-line="215">pointAt i p = Shift (i * 3 - 192)</div>
+<div class="ln" data-line="216">                    (floor (clamp (0.0 - 1.0) 1.0 (p * 2.4) * toFloat (traceH / 2)))</div>
+<div class="ln" data-line="217">                    (Rect 2 3 (RGB 122 200 235))</div>
+<div class="ln" data-line="218"> </div>
+<div class="ln" data-line="219">#: Drawn by recursion over the list, the way `ladder.ges` counts keys.</div>
+<div class="ln" data-line="220">#: An empty list is an empty picture, which is what a piece that is not</div>
+<div class="ln" data-line="221">#: playing correctly shows.</div>
+<div class="ln" data-line="222">pointsFrom : Int -> List Float -> Sub</div>
+<div class="ln" data-line="223">pointsFrom i ps = case ps of</div>
+<div class="ln" data-line="224">    Nil -> Gap 0 0</div>
+<div class="ln" data-line="225">    p :: rest -> Over (pointAt i p) (pointsFrom (i + 1) rest)</div>
+<div class="ln" data-line="226"> </div>
+<div class="ln" data-line="227">#: The centre line, so the trace has something to be a deviation from —</div>
+<div class="ln" data-line="228">#: and `Sized` pins the box whatever the wave is doing.</div>
+<div class="ln" data-line="229">scopeOf : List Float -> Sub</div>
+<div class="ln" data-line="230">scopeOf ps = Sized traceW traceH</div>
+<div class="ln" data-line="231">    (Over (Over (Rect traceW traceH night) (Rect traceW 1 (RGB 52 58 70)))</div>
+<div class="ln" data-line="232">          (pointsFrom 0 ps))</div>
+<div class="ln" data-line="233"> </div>
+<div class="ln" data-line="234"># ── the spectrum ────</div>
+<div class="ln" data-line="235"> </div>
+<div class="ln" data-line="236">barW : Int</div>
+<div class="ln" data-line="237">barW = 30</div>
+<div class="ln" data-line="238"> </div>
+<div class="ln" data-line="239">barH : Int</div>
+<div class="ln" data-line="240">barH = 120</div>
+<div class="ln" data-line="241"> </div>
+<div class="ln" data-line="242">#: A square root rather than the level: a band a tenth as loud is not a</div>
+<div class="ln" data-line="243">#: tenth as interesting, and a linear bar spends most of its height on</div>
+<div class="ln" data-line="244">#: the difference between loud and very loud.</div>
+<div class="ln" data-line="245">heightOf : Float -> Int</div>
+<div class="ln" data-line="246">heightOf v = floor (toFloat barH * clamp 0.0 1.0 (sqrt (v * 1.8)))</div>
+<div class="ln" data-line="247"> </div>
+<div class="ln" data-line="248">#: Cold at the bottom of the range, warm at the top, so which band is</div>
+<div class="ln" data-line="249">#: loud reads by colour as well as by height.</div>
+<div class="ln" data-line="250">hueOf : Int -> Colour</div>
+<div class="ln" data-line="251">hueOf i = RGB (64 + 22 * i) (198 - 13 * i) (214 - 20 * i)</div>
+<div class="ln" data-line="252"> </div>
+<div class="ln" data-line="253">trough : Sub</div>
+<div class="ln" data-line="254">trough = Rect barW barH (RGB 34 38 46)</div>
+<div class="ln" data-line="255"> </div>
+<div class="ln" data-line="256">barOf : Int -> Float -> Sub</div>
+<div class="ln" data-line="257">barOf i v = Sized (barW + 6) barH (Over trough</div>
+<div class="ln" data-line="258">    (Shift 0 ((barH - heightOf v) / 2) (Rect barW (heightOf v) (hueOf i))))</div>
+<div class="ln" data-line="259"> </div>
+<div class="ln" data-line="260">bars : Sig Sub</div>
+<div class="ln" data-line="261">bars = !barOf 0 level0 `row` !barOf 1 level1</div>
+<div class="ln" data-line="262">    `row` !barOf 2 level2 `row` !barOf 3 level3</div>
+<div class="ln" data-line="263">    `row` !barOf 4 level4 `row` !barOf 5 level5</div>
+<div class="ln" data-line="264">    `row` !barOf 6 level6 `row` !barOf 7 level7</div>
+<div class="ln" data-line="265"> </div>
+<div class="ln" data-line="266"># ── the level ────</div>
+<div class="ln" data-line="267"> </div>
+<div class="ln" data-line="268">#: Green while there is room, amber near the top, red at the last two —</div>
+<div class="ln" data-line="269">#: and a segment above the level is drawn dark rather than left out, so</div>
+<div class="ln" data-line="270">#: the eye reads a height instead of counting bars.</div>
+<div class="ln" data-line="271">litOf : Int -> Colour</div>
+<div class="ln" data-line="272">litOf i = case i > 5 of</div>
+<div class="ln" data-line="273">    True -> RGB 226 92 78</div>
+<div class="ln" data-line="274">    False -> case i > 3 of</div>
+<div class="ln" data-line="275">        True -> RGB 226 176 74</div>
+<div class="ln" data-line="276">        False -> RGB 92 198 132</div>
+<div class="ln" data-line="277"> </div>
+<div class="ln" data-line="278">segOf : Int -> Float -> Sub</div>
+<div class="ln" data-line="279">segOf i v = case v * 8.0 > toFloat i of</div>
+<div class="ln" data-line="280">    True -> Rect 22 11 (litOf i)</div>
+<div class="ln" data-line="281">    False -> Rect 22 11 night</div>
+<div class="ln" data-line="282"> </div>
+<div class="ln" data-line="283">ladderOf : Int -> Float -> Sub</div>
+<div class="ln" data-line="284">ladderOf i v = case i of</div>
+<div class="ln" data-line="285">    0 -> segOf 0 v</div>
+<div class="ln" data-line="286">    _ -> Column (segOf i v) (Column (Gap 22 4) (ladderOf (i - 1) v))</div>
+<div class="ln" data-line="287"> </div>
+<div class="ln" data-line="288">meterOf : Float -> Sub</div>
+<div class="ln" data-line="289">meterOf v = Sized 26 barH (ladderOf 7 v)</div>
+<div class="ln" data-line="290"> </div>
+<div class="ln" data-line="291">#: A caption under the thing it names.  The box is written down here and</div>
+<div class="ln" data-line="292">#: the host fits the glyphs into it, so nothing in this file measures</div>
+<div class="ln" data-line="293">#: text.</div>
+<div class="ln" data-line="294">#: **The box decides how big the letters come out** — `label` fits them</div>
+<div class="ln" data-line="295">#: into the room reserved, `min(w / (4n - 1), h / 5)` on a 3x5 cell — so</div>
+<div class="ln" data-line="296">#: 100 wide draws `SPECTRUM`'s eight characters at 2 where 60 drew them</div>
+<div class="ln" data-line="297">#: at 1.  Asking for bigger letters *is* reserving more room.</div>
+<div class="ln" data-line="298">caption : String -> Sig Sub</div>
+<div class="ln" data-line="299">caption s = column (gap 0 7) (label 100 12 s dim)</div>
+<div class="ln" data-line="300"> </div>
+<div class="ln" data-line="301">#: **Each part captioned under itself**, not the row captioned as a</div>
+<div class="ln" data-line="302">#: whole.  `label` fits the glyphs into the box this file reserves —</div>
+<div class="ln" data-line="303">#: `min(w / (4n - 1), h / 5)` on a 3x5 cell — so a long string in a</div>
+<div class="ln" data-line="304">#: small box comes out at scale 1 and is unreadable.  Sizing a caption</div>
+<div class="ln" data-line="305">#: *is* setting its type size, and two short words in their own boxes</div>
+<div class="ln" data-line="306">#: read where one long one did not.</div>
+<div class="ln" data-line="307">readout : Sig Sub</div>
+<div class="ln" data-line="308">readout = column bars (caption "SPECTRUM")</div>
+<div class="ln" data-line="309">    `row` gap 16 0</div>
+<div class="ln" data-line="310">    `row` column (!meterOf loud) (caption "PEAK")</div>
+<div class="ln" data-line="311"> </div>
+<div class="ln" data-line="312">substrate : Sig Sub</div>
+<div class="ln" data-line="313">substrate =</div>
+<div class="ln" data-line="314">    column (column (!scopeOf wave) (caption "TRACE"))</div>
+<div class="ln" data-line="315">           (column (gap 0 12) readout)</div></div>
+<pre id="check"></pre>
+<footer><a href="../">all pieces</a> · The sound is computed in this tab — <a href="https://github.com/cheery/gestate">gestate</a>.</footer>
+<script type="module" src="player.js"></script>
+</body>
+</html>

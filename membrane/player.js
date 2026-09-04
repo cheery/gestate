@@ -149,7 +149,20 @@
     n.connect(ctx.destination);
     const buf = await ctx.startRendering();
     if (params.get("meters")) {
-      const body = JSON.stringify({ reports: seen.length, last: seen[seen.length - 1] || null });
+      // **The loudest report, not the last one.**  A render ends where
+      // it ends, which may be between notes: a five-second render of
+      // `mirror.ges` finished on a frame whose peak was 0.057 while the
+      // piece reaches 0.78.  A check that read the final frame would be
+      // asserting about a silence and would flake with the tempo.
+      let loudest = null;
+      for (const m of seen) {
+        if (!loudest || (m.peak || 0) > (loudest.peak || 0)) loudest = m;
+      }
+      const body = JSON.stringify({
+        reports: seen.length,
+        last: seen[seen.length - 1] || null,
+        loudest,
+      });
       document.getElementById("check").textContent = body;
       say("metered " + seen.length + " reports");
       const to0 = params.get("to");
