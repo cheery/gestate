@@ -355,6 +355,7 @@ neither built tonight, both cheap: a hook on `Bash` that finds tree
 paths in a `cat`/`sed`/`head` command and answers for them, or the
 session using `Read` for the tree's own documents.  The second costs
 nothing and is a sentence in the rules; the first is a second matcher
-over the same command.  His call which, and the fire log is what
-says whether either worked.
+over the same command.  He chose the second the same evening —
+the sentence is in `doc/instruments.md` beside the tool, `sed` still
+allowed — and the fire log is what says whether it worked.
 

@@ -461,6 +461,13 @@ Henri's, and he ran it 2026-09-04: `--install` prints it and the
 pre-commit lamp says whether a checkout has it.  `tools/dangling.py`
 above is the other direction.
 
+**So read the tree's documents with `Read`, not `sed`.**  Henri,
+2026-09-04, the evening the log showed the hook had fired once while
+the session read through the shell all day: *"puun dokumentit luetaan
+Read-työkalulla sed-työkalun sijasta … siten saat taustalinkit lukemisen
+mukana.  sed-komentoa saa kanssa käyttää, mutta se ei anna näitä."*
+`sed` and `cat` are still allowed; they do not bring the citers.
+
 **Ranked, because not all citations are equal** (Henri, the day it
 fired): live cards and memory first, then the standing documents, code
 and tests, shelved cards, the ledger, and the journal last; within a
