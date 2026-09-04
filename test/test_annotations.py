@@ -296,3 +296,128 @@ def test_mark_is_a_command_or_it_is_not_a_capability():
     assert "mark : Text -> Int -> Int -> Command" in text
     assert "mark region was manners = Stated" in text
     assert hasattr(Session, "do_mark"), "the command has no verb behind it"
+
+
+# ── the preview — `spec/annotations.md` §"The three paths, priced" ──────────
+
+class _Bench:
+    """A bench that records what was asked of it, and nothing else."""
+
+    def __init__(self, playing=False):
+        self.playing = playing
+        self.rate, self.bpm = 44100, 104
+        self.calls = []
+        self.note_regions = {}
+
+    def beats_to_samples(self, beat):
+        return int(beat * 60 * self.rate / max(1, self.bpm))
+
+    def start(self, seconds=None, text=None):
+        self.calls.append("start")
+        self.playing = True
+
+    def seek(self, sample):
+        self.calls.append(("seek", sample))
+
+    def audition_soon(self, text, quiet=False):
+        self.calls.append("audition")
+
+    def redraw(self, text):
+        self.calls.append("redraw")
+
+
+def _clean_note(roll) -> tuple:
+    """`(hand, note)` for a note the gesture can actually reach.
+
+    Three things have to line up, and each is a real refusal rather than
+    a quirk of this fixture: the note must sit under a **column**, since
+    that is how a hand names it; the column must sound its key **once**;
+    and its manner atom must be unambiguous.  A test that reached past
+    any of them would be exercising a path a hand cannot take.
+    """
+    from gestate.scorebox import hands_of
+
+    for hand, (_t0, _t1, under) in enumerate(hands_of(roll)):
+        for j in under:
+            e = roll.events[j]
+            if len([k for k in under if roll.events[k][3] == e[3]]) != 1:
+                continue
+            if len([a for a in roll.leaves[e[2]].atoms if a[3] == e[5]]) == 1:
+                return hand, j
+    raise AssertionError("no note in this take is nameable and unambiguous")
+
+
+def _seated(playing: bool):
+    """A session with one score box region on a written-out `marked.ges`."""
+    from types import SimpleNamespace
+
+    from gestate.scorebox import asks as box_asks, build_rolls
+    from gestate.session import Session
+
+    source = MARKED.read_text().replace(WHOLE, WRITTEN) + "\nnotes score\n"
+    roll = build_rolls(source, box_asks(source), 44100, 0)[0]
+    seat = Session.__new__(Session)
+    seat.bench = _Bench(playing)
+    seat.bench.note_regions = {"r": SimpleNamespace(roll=roll, hand=0)}
+    seat.view = SimpleNamespace(replace=lambda text: True)
+    seat._source = lambda: source
+    return seat, roll
+
+
+def test_marking_while_stopped_plays_the_piece_from_that_note():
+    """Path 3, and it carries the mark **because the score plays it**.
+
+    The other two are priced in the spec: the keyboard sounds a note
+    *plain* — `FromMIDI` has no manner and cannot — and rendering one
+    note in isolation needs a seam into the engine that does not exist.
+    This one needed nothing new: the roll knows the onset, the bench
+    converts beats to samples, the transport seeks.
+    """
+    from gestate.midi import TICKS_PER_BEAT
+
+    seat, roll = _seated(playing=False)
+    hand, note = _clean_note(roll)
+    seat.bench.note_regions["r"].hand = hand
+    said = seat.do_mark("r", str(roll.events[note][3]), "1")
+    assert "playing from there" in said, said
+    assert "start" in seat.bench.calls, "it did not play"
+    seeks = [c for c in seat.bench.calls if isinstance(c, tuple)]
+    assert seeks, "it played from the top rather than from the note"
+    want = int(roll.events[note][0] / TICKS_PER_BEAT * 60 * 44100 / 104)
+    assert seeks[0][1] == want, f"sought {seeks[0][1]}, not the note's onset {want}"
+
+
+def test_marking_while_it_plays_does_not_restart_it():
+    """**The answer to the objection**, and the reason path 3 was
+    takeable at all.
+
+    Henri, on being shown it: *"this is really hard question again.
+    maybe play from the marked note would work."*  The hesitation was
+    that marking starts the piece — so mark five notes and it restarts
+    five times.  It cannot: the seek-and-play branch is only reached
+    from a **standing start**.  The first mark starts it; every mark
+    after that finds it playing and auditions in place.
+    """
+    seat, roll = _seated(playing=True)
+    hand, note = _clean_note(roll)
+    seat.bench.note_regions["r"].hand = hand
+    said = seat.do_mark("r", str(roll.events[note][3]), "1")
+    assert "playing from there" not in said
+    assert "start" not in seat.bench.calls, "it restarted a piece already playing"
+    assert "audition" in seat.bench.calls, "it did not hear the edit at all"
+
+
+def test_a_refused_mark_neither_writes_nor_plays():
+    """A courtesy on top of an edit that succeeded — so no edit, no
+    courtesy.  A preview after a refusal would say the mark took."""
+    seat, roll = _seated(playing=False)
+    from gestate.scorebox import hands_of
+
+    hand, note = next((h, j) for h, (_a, _b, under) in enumerate(hands_of(roll))
+                      for j in under
+                      if len([a for a in roll.leaves[roll.events[j][2]].atoms
+                              if a[3] == roll.events[j][5]]) > 1)
+    seat.bench.note_regions["r"].hand = hand
+    said = seat.do_mark("r", str(roll.events[note][3]), "1")
+    assert said.startswith("mark: "), said
+    assert seat.bench.calls == [], f"it acted on a refusal: {seat.bench.calls}"

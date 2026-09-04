@@ -13,7 +13,7 @@ note is played, and each voice decides for itself what that means.
 
 **And the first slice, in one sentence:** **staccato on the roll,
 honoured by one voice and ignored by another, added by a command,
-sounding when you add it.**
+sounding when you add it.**  *All four landed on 2026-09-04.*
 
 ---
 
@@ -62,8 +62,7 @@ the whole of *grounded to what can be delivered*.
 | a voice that already plays portamento | `examples/audio/violin.ges` | built — the reference |
 | an `Int` field on a bank's payload, and the voice reading it | measured 2026-09-04 — §"The vocabulary" | **built; a list or an enum is not** |
 
-**What is not standing:** the command and one decision about the preview
-tone.  The manner names, `asks`, `Notable`'s `manner`, the voice
+**What is not standing:** nothing in the first slice.  The manner names, `asks`, `Notable`'s `manner`, the voice
 behaviour and the dot on the roll all landed on 2026-09-04.  That is
 what is left — and it is smaller than the first draft of this file thought,
 because §"What the compiler refused" removed a language change it had
@@ -458,16 +457,25 @@ is a change to what the editor does under your hands, not a detail of
 this spec, and *"a preview-tone to be played"* is not obviously the
 same thing as *"the piece plays from here"*.
 
-*The question, and it is the author's:* **is hearing the piece from the
-marked note the preview you wanted?**  If yes, path 3 is the build and
-it is small.  If you meant a tone in isolation, that is path 2 and it
-needs the one-payload seam first, which is a card of its own rather
-than a slice of this one.
+**Path 3, taken 2026-09-04.**  *Henri, hesitating and then choosing:*
+*"this is really hard question again.  maybe play from the marked note
+would work."*
 
-*The session's earlier decision in §"The preview tone" — that `mark`
-sounds stopped or playing — stands as an intent and is underspecified
-by exactly this fork; it was written before any of the three had been
-priced.*
+**And the hesitation is answered by the design rather than argued
+with.**  The objection was that marking starts the piece, so five marks
+restart it five times.  The seek-and-play branch is reached **only from
+a standing start**: the first mark starts it, and every mark after that
+finds it playing and auditions in place, which is what `transpose`
+already does.  Five marks restart it once.
+
+*Silent about its own failures*, because it is a courtesy on top of an
+edit that has already succeeded — and a refusal neither writes nor
+plays, since a preview after a refusal would say the mark took.
+
+*Path 2 stays wanted and stays unbuilt.*  Hearing a note **in
+isolation, both ways** is a different thing from hearing it in context,
+and the seam it needs — sound one payload, with its fields, through its
+bank — is a card of its own rather than a slice of this one.
 
 ## Refusals, each with a sentence
 

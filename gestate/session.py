@@ -2290,11 +2290,54 @@ class Session:
                     or getattr(self.bench, "audition", None))
             if hear is not None:
                 hear(text)
-        else:
-            again = getattr(self.bench, "redraw", None)
-            if again is not None:
-                again(text)
-        return said
+            return said
+        again = getattr(self.bench, "redraw", None)
+        if again is not None:
+            again(text)
+        return said + self._hear_from(roll, note, text)
+
+    def _hear_from(self, roll, note: int, text: str) -> str:
+        """Play the piece from the note that was just marked.
+
+        **The preview, and it is the third of three paths** — the other
+        two are priced in `spec/annotations.md` §"The three paths,
+        priced".  Playing the note through the keyboard would sound it
+        *plain*, because `FromMIDI` builds a payload from channel, pitch
+        and velocity and a keyboard has no marks — a confident answer to
+        the wrong question.  Rendering one note in isolation is right
+        and needs a seam into the engine that does not exist.  This one
+        carries the mark **because the score plays it**, and every part
+        of it was already standing: the roll knows the onset, the bench
+        converts beats to samples, the transport seeks.
+
+        **Only from a standing start**, which is the whole answer to the
+        objection Henri raised — *it starts the piece*.  Mark a note
+        while stopped and it plays from there; mark four more and the
+        piece is already playing, so those take the branch above and
+        sound in place.  Five marks restart it once, not five times.
+
+        Silent about its own failures on purpose: this is a courtesy on
+        top of an edit that has already succeeded, and a sentence about
+        the transport over the top of the one about the note is noise
+        where an answer should be.
+        """
+        from .midi import TICKS_PER_BEAT
+
+        start = getattr(self.bench, "start", None)
+        beats_to = getattr(self.bench, "beats_to_samples", None)
+        if start is None or beats_to is None:
+            return ""
+        try:
+            onset = roll.events[note][0]
+            at = beats_to(onset / TICKS_PER_BEAT)
+            start(text=text)
+            seek = getattr(self.bench, "seek", None) or getattr(
+                getattr(self.bench, "transport", None), "seek", None)
+            if seek is not None:
+                seek(at)
+        except Exception:                                 # noqa: BLE001
+            return ""
+        return " — playing from there"
 
     # -- the text ------------------------------------------------------
 
