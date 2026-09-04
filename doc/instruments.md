@@ -478,10 +478,11 @@ sitting* offered and the reader had not already opened.  A follow is
 another fire, so nothing but the log is needed — and it is correlation,
 which the docstring is honest about.  **The floor is zero**.
 
-`--check`, the pre-commit lamp, names **two causes apart** (one
-sentence for two reasons is how an andon gets muted): nothing followed
-over thirty fires, or a third of them cut at twenty — the second naming
-`card:backlinks-ranges.md`, where the fix is designed.
+`--check`, the pre-commit lamp, trips on **one** thing: nothing
+followed over thirty fires.  A cut-share cause was retired 2026-09-04
+at his word, when the check its card demanded found it firing on a fact
+about the tree — many files here have over twenty citers — and not on a
+fault in the tool.
 
 ### `tools/flow.py` — the board's flow, and the seven-day lamp
 

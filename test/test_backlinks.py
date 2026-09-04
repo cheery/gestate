@@ -317,35 +317,51 @@ def _log(path, rows, now):
                             for i, (total, shown) in enumerate(rows)))
 
 
-def test_the_lamp_trips_when_the_cut_has_become_the_rule(tmp_path, monkeypatch):
-    """The mechanism behind *write something that ensures you will
-    correct the issue if it becomes an issue* (Henri, 2026-09-04): the
-    hook keeps its own denominator, and the pre-commit lamp names the
-    designed fix the day a third of a fortnight's fires were cut."""
+def test_the_cut_share_is_reported_and_no_longer_trips(tmp_path, monkeypatch):
+    """**A retired cause, held retired** — Henri, 2026-09-04: *"retire
+    the cut-share cause, keep --earned."*
+
+    It used to trip when a third of a fortnight's fires were cut at
+    twenty.  Then it tripped, and the check its own card demanded found
+    it firing on a property of the tree: of the files that set it off,
+    passage citations were 0 of 37, 0 of 150 and 0 of 140; the tiering
+    was cutting the right rows; and the obvious repair lost two rows a
+    session had actually followed.  Being cut at twenty means many files
+    here have more than twenty citers.
+
+    The number is still *said*, because it is `HOOK_CUT`'s denominator
+    and somebody may want the cause back.  This holds that saying it is
+    all it does — a lamp that lights on a fact about the repository
+    lights at every commit, which is how an andon gets muted.
+    """
     log = tmp_path / "fires.log"
     monkeypatch.setenv("GESTATE_BACKLINKS_LOG", str(log))
     now = 1_800_000_000
-    cut, ok = (58, backlinks.HOOK_CUT), (7, 7)
-    _log(log, [cut] * 10 + [ok] * 20, now)                # 30 fires, a third cut
+    cut = (58, backlinks.HOOK_CUT)
+    _log(log, [cut] * 60, now)                            # every fire cut
     tripped, line = backlinks.lamp(now=now)
-    assert tripped and "card:backlinks-ranges.md" in line
-    _log(log, [cut] * 9 + [ok] * 21, now)                 # under a third
-    assert backlinks.lamp(now=now)[0] is False
-    _log(log, [cut] * 10 + [ok] * 19, now)                # under the floor
-    assert backlinks.lamp(now=now)[0] is False
-    _log(log, [cut] * 30, now - 15 * 86400)               # all of it outside the window
+    assert tripped is False, "the cut share tripped the lamp again"
+    assert "60 fires" in line and "100%" in line, f"it stopped saying it: {line}"
+    _log(log, [cut] * 30, now - 15 * 86400)               # outside the window
     tripped, line = backlinks.lamp(now=now)
     assert tripped is False and "no fires" in line
 
 
 def test_check_exits_two_when_the_lamp_trips_and_zero_when_not(tmp_path):
+    """The lamp reaches the commit, and says which of the two it is.
+
+    Thirty fires that offered names and none of them opened is the one
+    remaining cause: the tool has not earned its place.
+    """
     log = tmp_path / "fires.log"
     env = {**os.environ, "GESTATE_BACKLINKS_LOG": str(log)}
     if not backlinks.installed():
         pytest.skip("the Read hook is not installed on this desk")
-    _log(log, [(58, 20)] * 30, int(time.time()))
-    r = subprocess.run([sys.executable, str(TOOL), "--check"], env=env, capture_output=True, text=True)
-    assert r.returncode == 2 and "backlinks-ranges" in r.stdout
+    now = int(time.time())
+    _sitting(log, [(i * 60, "s1", f"f{i}.md", []) for i in range(30)], now)
+    r = subprocess.run([sys.executable, str(TOOL), "--check"], env=env,
+                       capture_output=True, text=True)
+    assert r.returncode == 2 and "none of 30 fires was followed" in r.stdout
     _log(log, [(7, 7)] * 30, int(time.time()))
     r = subprocess.run([sys.executable, str(TOOL), "--check"], env=env, capture_output=True, text=True)
     assert r.returncode == 0 and "installed" in r.stdout

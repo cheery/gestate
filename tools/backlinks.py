@@ -67,12 +67,12 @@ out; the honest floor is zero, and zero over a real number of fires
 means the tool is decoration with a context bill.  Henri asked for that
 number on 2026-09-04 — *"I think the new 'cited by' reading tool needs
 a number that verifies whether it earns its place"* — and picked this
-reading of it the same day.  `--check` trips when, over the last fortnight,
-a third or more of the fires were cut at twenty and there were at least
-thirty of them: that is the noise the card warned about arriving, and
-the lamp names `card:backlinks-ranges.md`, the fix already designed.
-The three numbers are the session's, picked 2026-09-04, and nobody has
-checked them.
+reading of it the same day.  `--check` trips on one thing since
+2026-09-04: nothing the tool offered was ever opened, over at least
+thirty fires.  It used to trip on the *cut share* as well, and that
+cause was retired at Henri's word once the check its own card demanded
+found it firing on a property of the tree rather than a fault here —
+`card:backlinks-ranges.md` carries the three measurements.
 
 **Never fatal in the hook.**  A hook that dies takes the desk with it,
 so `--hook` prints nothing and exits 0 on any failure, with the reason
@@ -121,11 +121,24 @@ MENTION = re.compile(
 TEXT_CUT = 100
 HOOK_CUT = 20
 
-#: The lamp's three numbers — window, floor, and the share of fires cut
-#: at HOOK_CUT that means the twenty lines have become noise.
+#: The lamp's window, and the floor under it — how many fires a verdict
+#: needs before it means anything.
 LAMP_DAYS = 14
 LAMP_MIN_FIRES = 30
-LAMP_CUT_SHARE = 1 / 3
+
+#: **The cut share was a cause and is not one any more** — Henri,
+#: 2026-09-04, *"retire the cut-share cause, keep --earned"*, on the
+#: measurement in `card:backlinks-ranges.md`.  It tripped, and the check
+#: its own card asked for said it had tripped on a property of the tree
+#: rather than a fault here: of the files that set it off, passage
+#: citations were 0 of 37, 0 of 150 and 0 of 140, the tiering was
+#: cutting the right rows, and the obvious repair lost two rows a
+#: session had actually followed.  Being cut at twenty means many files
+#: here have more than twenty citers.  A lamp that fires on that fires
+#: at every commit, which is how an andon gets muted.
+#:
+#: The number is still *reported*, because it is the denominator behind
+#: `HOOK_CUT` and somebody may want it back; it no longer trips.
 
 #: Where a citer stands, by what it is.  Lower comes first.  The order
 #: is what a reader of the *target* most wants to know: what currently
@@ -471,14 +484,10 @@ def lamp(days: int = LAMP_DAYS, now: float | None = None) -> tuple[bool, str]:
     share = cut / len(rows)
     line = (f"backlinks: {len(rows)} fires in {days} days, {cut} cut at {HOOK_CUT} "
             f"({share:.0%})")
-    if len(rows) >= LAMP_MIN_FIRES and share >= LAMP_CUT_SHARE:
-        return True, (line + " — the twenty lines have become noise; the fix is "
-                      "designed in card:backlinks-ranges.md, and this is its trigger")
-    #: **The second cause, and it is named apart from the first** — one
-    #: lamp lighting for two reasons with one sentence is how an andon
-    #: gets muted.  This one says the tool has not earned its place: no
-    #: reading it offered was ever opened.  The answer is to take the
-    #: hook out, or to say why not; it is not a nudge.
+    #: **One cause, since 2026-09-04** — the tool has not earned its
+    #: place: nothing it offered was ever opened.  The answer to that is
+    #: to take the hook out, or to say why not; it is not a nudge.  The
+    #: cut share above is reported and does not trip (see `LAMP_DAYS`).
     g = earned(days, now)
     if g["fires"] >= LAMP_MIN_FIRES and g["follows"] == 0:
         return True, (line + f" — and none of {g['fires']} fires was followed: "

@@ -1,6 +1,8 @@
 # backlinks-ranges — the citers of the passage being read, not of the file
 
-    status   shelved — 2026-09-04, on arrival; wakes when the lamp trips
+    status   shelved — 2026-09-04, on arrival; the lamp it waited on was
+             retired the same day and the measurement refused the fix —
+             §"The lamp tripped, and the measurement refuses the fix"
     because  "The C host has 58 citers.  The journal, the ledger and the
              board README have hundreds, and most of those citations are
              the file's name in passing.  A hook that shows twenty lines
@@ -150,11 +152,18 @@ it stands at 4 of 17 followed — not zero, which is the floor that would
 condemn the hook.
 
 *The session's recommendation, and the numbers are Henri's* (§"The
-trigger" says so): **retire the cut-share cause, keep `--earned`.**  One
-line — `LAMP_CUT_SHARE` — and the card stays shelved for the day a
-measurement shows the twenty rows losing something, which this one
-does not.  **Not taken here**, because a lamp a session silences on its
-own is a lamp that was never his.
+trigger" says so): **retire the cut-share cause, keep `--earned`.**
+**Taken the same hour** — Henri: *"retire the cut-share cause, keep
+--earned"* — so `lamp` has one cause now and the share is reported
+without tripping.
+
+**And this card's trigger went with it**, which is worth saying plainly
+rather than leaving the card pointing at a lamp that cannot light.  It
+now waits on a *measurement*, not a counter: **the day a reader can
+show that the twenty rows lost something they wanted.**  Today's
+measurement is the opposite — the tiering cuts the right rows, and the
+repair that shortens the lists drops two rows a session followed.  The
+three tables above are what the next attempt has to beat.
 
 ## Shelved
 
