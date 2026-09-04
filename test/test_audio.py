@@ -59,6 +59,11 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # `substrate.ges` has none: what it *shows* is the point, and a
             # buffer of the sound it makes would not check that.
             "spectrum.ges", "envelope.ges",
+            # Written to find out what a notation format has to carry
+            # (`doc/notes/notes-on-writing-a-piece.md`), so it is a piece
+            # and has no golden for the reason the others have none —
+            # and the thing it is evidence *for* is a log, not a buffer.
+            "arc.ges",
             # `spec/annotations.md`'s demo: one line, two voices, one of
             # which reads the mark.  No golden — what it shows is that
             # the *ignoring* voice is bit-identical under the mark, and a

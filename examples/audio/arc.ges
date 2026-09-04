@@ -1,0 +1,552 @@
+# arc.ges — bright, brutal, dark: D lydian → G locrian → D phrygian.
+#
+#   python -m gestate.audioperform examples/audio/arc.ges -o take.wav
+#
+# **Written to find out what a notation format has to carry** —
+# `doc/notes/notes-on-writing-a-piece.md` is the log and the point.  So
+# every note here is **spelled out**, with no helper and no repetition
+# operator anywhere: the tedium is the measurement.  A file that reached
+# for `quad (…) |/ 8` would be shorter and would have hidden the thing
+# we are trying to see.
+#
+# Henri's brief, 2026-09-04: standard blues/jazz harmony, 1-4-5,
+# ABA-form, lydian in A, locrian in B, phrygian on the return; deceptive
+# cadence in the middle, perfect at the end; D, to G, and back.
+
+# ── What is written ──────────────────────────────────────────────────────
+
+Tone := Tone Float Int Int
+
+instance Notable Tone where
+    noteKey t = case t of
+        Tone v k m -> k
+    noteVel t = case t of
+        Tone v k m -> floor (v * 127.0)
+    manner t = case t of
+        Tone v k m -> m
+
+hzOf : Tone -> Float
+hzOf t = case t of
+    Tone v k m -> keyHz k
+
+velOf : Tone -> Float
+velOf t = case t of
+    Tone v k m -> v
+
+bowOf : Tone -> Float
+bowOf t = case asks (manner t) Staccato of
+    True  -> 1.0
+    False -> 0.0
+
+pushOf : Tone -> Float
+pushOf t = case asks (manner t) Accent of
+    True  -> 1.0
+    False -> 0.0
+
+glideOf : Tone -> Float
+glideOf t = case asks (manner t) Portamento of
+    True  -> 0.0007
+    False -> 1.0
+
+# ── What plays it ────────────────────────────────────────────────────────
+
+#: The lead: a saw through a filter that opens on an accent, shortens on
+#: a staccato, and slides into a note that asked to be arrived at.
+#: `spec/annotations.md` is the design; this is the third voice written
+#: to it and the first in a piece rather than a demo.
+lead : Sig Gate -> Sig Tone -> Sig Float
+lead g s =
+    lowpassSvf (1100.0 + (!pushOf s) * 2400.0 * perc 20.0 g) 0.30
+               (saw (slew (!glideOf s) (!hzOf s)))
+        * (!velOf s) * 0.26
+        * (perc 4.0 g * (1.0 - (!bowOf s)) + perc 18.0 g * (!bowOf s))
+
+voices song 4 lead : Sig Float
+
+#: The ground: a triangle two octaves down, round and slow, so the modes
+#: are heard against a root rather than in the air.
+under : Sig Gate -> Sig Tone -> Sig Float
+under g s = lowpassSvf 320.0 0.16 (triangle (!hzOf s) * 0.6)
+    * (!velOf s) * 0.30 * perc 1.3 g
+
+voices ground 2 under : Sig Float
+
+#: The harmony's own bank — three voices, and it needs three because
+#: they sound at once and each holds a whole bar.
+voices chord 3 under : Sig Float
+
+sound : Sig Float
+sound = reverb 0.55 0.20 (song + chord + ground)
+
+# ── A — D lydian, bright ─────────────────────────────────────────────────
+#
+# D E F# G# A B C#.  The G# is the mode: over a D7 it lands as the #11,
+# which is lydian dominant and idiomatic rather than clever.  Blues bones
+# underneath — I, IV, V as D7, G7, A7.
+
+#: Bar 1 — I.  D over D7, reaching up to the sharp fourth and settling.
+a1 : [: Tone :]
+a1 = '(Tone 0.85 62 0) ++ '(Tone 0.70 66 0) ++ '(Tone 0.80 68 2) ++ '(Tone 0.65 69 0)
+
+#: Bar 2 — I still, the G# said again a step higher so the ear catches it.
+a2 : [: Tone :]
+a2 = '(Tone 0.75 71 0) ++ '(Tone 0.70 68 0) ++ '(Tone 0.85 66 1) ++ '(Tone 0.60 64 1)
+
+#: Bar 3 — IV.  G7, and the melody keeps the C# above it, which is the
+#: lydian colour arriving on a chord that does not own it.
+a3 : [: Tone :]
+a3 = '(Tone 0.80 67 0) ++ '(Tone 0.70 71 0) ++ '(Tone 0.85 73 2) ++ '(Tone 0.65 71 0)
+
+#: Bar 4 — back to I, falling.
+a4 : [: Tone :]
+a4 = '(Tone 0.75 69 0) ++ '(Tone 0.70 68 0) ++ '(Tone 0.80 66 0) ++ '(Tone 0.70 62 0)
+
+#: Bars 5-6 — the same thought twice more, the rule of three: said once,
+#: again a little differently, and the third time it breaks upward.
+a5 : [: Tone :]
+a5 = '(Tone 0.85 62 0) ++ '(Tone 0.70 66 0) ++ '(Tone 0.80 68 2) ++ '(Tone 0.65 71 0)
+
+a6 : [: Tone :]
+a6 = '(Tone 0.75 73 0) ++ '(Tone 0.70 71 0) ++ '(Tone 0.85 68 1) ++ '(Tone 0.60 66 1)
+
+#: Bar 7 — V.  A7, the fifth held, leaning.
+a7 : [: Tone :]
+a7 = '(Tone 0.85 69 0) ++ '(Tone 0.70 73 0) ++ '(Tone 0.80 76 2) ++ '(Tone 0.70 73 0)
+
+#: Bar 8 — the third saying, broken: it climbs past where it went before
+#: and stops on the sharp fourth instead of the tonic.
+a8 : [: Tone :]
+a8 = '(Tone 0.80 74 0) ++ '(Tone 0.75 76 0) ++ '(Tone 0.85 80 2) ++ '(Tone 0.70 80 4)
+
+# ── B — G locrian, brutal ────────────────────────────────────────────────
+#
+# G Ab Bb C Db Eb F.  There is no perfect fifth over G, so nothing here
+# can rest; the Ab is the flat second and the colour of the whole
+# section.
+
+#: Bar 9 — the arrival, and the ♭2 immediately, so the darkness is not
+#: eased into.
+b1 : [: Tone :]
+b1 = '(Tone 0.85 67 0) ++ '(Tone 0.75 68 2) ++ '(Tone 0.70 70 0) ++ '(Tone 0.80 72 0)
+
+#: Bar 10 — the flat fifth, which is the mode's own wound.
+b2 : [: Tone :]
+b2 = '(Tone 0.80 73 0) ++ '(Tone 0.70 72 0) ++ '(Tone 0.85 70 1) ++ '(Tone 0.65 68 1)
+
+#: Bar 11 — down through the ♭6 and ♭7, no foothold anywhere.
+b3 : [: Tone :]
+b3 = '(Tone 0.75 75 0) ++ '(Tone 0.80 77 2) ++ '(Tone 0.70 75 0) ++ '(Tone 0.75 73 0)
+
+#: Bar 12 — a slide down into the ♭2 again, sagging.
+b4 : [: Tone :]
+b4 = '(Tone 0.85 72 0) ++ '(Tone 0.70 70 0) ++ '(Tone 0.80 68 4) ++ '(Tone 0.65 67 0)
+
+#: Bars 13-15 — the same shape wound tighter and higher, because the
+#: section has nowhere stable to go and climbing is the only motion left.
+b5 : [: Tone :]
+b5 = '(Tone 0.80 70 0) ++ '(Tone 0.75 72 0) ++ '(Tone 0.85 73 2) ++ '(Tone 0.70 75 0)
+
+b6 : [: Tone :]
+b6 = '(Tone 0.85 77 0) ++ '(Tone 0.70 75 1) ++ '(Tone 0.80 73 1) ++ '(Tone 0.75 72 0)
+
+b7 : [: Tone :]
+b7 = '(Tone 0.80 75 0) ++ '(Tone 0.85 79 2) ++ '(Tone 0.70 77 0) ++ '(Tone 0.75 75 0)
+
+#: Bar 16 — the hinge.  The line lands on A, the fifth of D, and asks
+#: for home; what comes underneath is not home.
+b8 : [: Tone :]
+b8 = '(Tone 0.85 76 0) ++ '(Tone 0.80 74 0) ++ '(Tone 0.90 69 2) ++ '(Tone 0.70 69 0)
+
+# ── A′ — D phrygian, dark and settled ────────────────────────────────────
+#
+# D Eb F G A Bb C.  The Eb is the signature, and ♭II–i is the sound of
+# the return: the same room as A, with the light off.
+
+#: Bar 17 — home, but minor, and the ♭2 on the second beat says which
+#: mode this is before anything else can.
+c1 : [: Tone :]
+c1 = '(Tone 0.85 62 0) ++ '(Tone 0.75 63 2) ++ '(Tone 0.70 65 0) ++ '(Tone 0.80 67 0)
+
+#: Bar 18 — the A section's own shape, remembered in the dark: the same
+#: contour as `a1`, a semitone flatter where the mode differs.
+c2 : [: Tone :]
+c2 = '(Tone 0.75 69 0) ++ '(Tone 0.70 67 0) ++ '(Tone 0.85 65 1) ++ '(Tone 0.60 63 1)
+
+#: Bar 19 — iv, falling.
+c3 : [: Tone :]
+c3 = '(Tone 0.80 67 0) ++ '(Tone 0.70 70 0) ++ '(Tone 0.85 72 2) ++ '(Tone 0.65 70 0)
+
+#: Bar 20 — down onto the ♭2 and lean there.
+c4 : [: Tone :]
+c4 = '(Tone 0.75 69 0) ++ '(Tone 0.70 67 0) ++ '(Tone 0.80 63 4) ++ '(Tone 0.70 62 0)
+
+#: Bars 21-23 — the third saying, and this time it does not break
+#: upward; it walks down to the cadence.
+c5 : [: Tone :]
+c5 = '(Tone 0.85 62 0) ++ '(Tone 0.75 63 0) ++ '(Tone 0.80 65 2) ++ '(Tone 0.65 67 0)
+
+c6 : [: Tone :]
+c6 = '(Tone 0.80 70 0) ++ '(Tone 0.75 69 0) ++ '(Tone 0.85 67 1) ++ '(Tone 0.70 65 1)
+
+c7 : [: Tone :]
+c7 = '(Tone 0.85 63 0) ++ '(Tone 0.70 65 0) ++ '(Tone 0.80 67 0) ++ '(Tone 0.75 69 2)
+
+#: Bar 24 — the perfect cadence.  The leading tone is borrowed from the
+#: harmonic minor because a perfect cadence needs one and phrygian has
+#: none; that borrowing is the oldest lie in the repertoire.
+c8 : [: Tone :]
+c8 = '(Tone 0.85 73 0) ++ '(Tone 0.80 69 0) ++ '(Tone 0.90 62 2) ++ '(Tone 0.70 62 0)
+
+# ── The harmony — three voices, each its own line ────────────────────────
+#
+# **Pass two.**  Henri, hearing pass one: *"bright all through… tonal
+# center is missing, and harmony would do lots to the tone, but it's
+# absent.  Harmony with open chords in it, voice leaded as individual
+# voices."*  He was right and the file proved it: every interval in the
+# first pass's ground was a **perfect fifth**, and a bare fifth is
+# modeless, so lydian and phrygian sounded identical.
+#
+# The whole arc is now one semitone in one voice — bar 1 is A D **F♯**
+# and bar 17 is A D **F** — which is what a third is for.
+#
+# The voicings are **minimal-motion, no crossings, every chord tone
+# present, and open** (no interval under a minor third).  That last
+# constraint had to be *stated*: a leader told only to move least drops
+# the third, because dropping it moves least, and it produced A D A for
+# a D minor before anybody looked.
+#
+# Written out one voice at a time, as he asked, so each line is a line.
+# `doc/notes/notes-on-writing-a-piece.md` has what that cost.
+
+#: Voice 1 of the harmony, its own line through all
+#: twenty-four bars.  Each note is a whole bar (`|* 4`).
+upper1 : [: Tone :]
+upper1 = '(Tone 0.48 57 0) |* 4
+upper2 : [: Tone :]
+upper2 = '(Tone 0.48 57 0) |* 4
+upper3 : [: Tone :]
+upper3 = '(Tone 0.48 56 0) |* 4
+upper4 : [: Tone :]
+upper4 = '(Tone 0.48 57 0) |* 4
+upper5 : [: Tone :]
+upper5 = '(Tone 0.48 57 0) |* 4
+upper6 : [: Tone :]
+upper6 = '(Tone 0.48 59 0) |* 4
+upper7 : [: Tone :]
+upper7 = '(Tone 0.48 57 0) |* 4
+upper8 : [: Tone :]
+upper8 = '(Tone 0.48 57 0) |* 4
+upper9 : [: Tone :]
+upper9 = '(Tone 0.48 58 0) |* 4
+upper10 : [: Tone :]
+upper10 = '(Tone 0.48 58 0) |* 4
+upper11 : [: Tone :]
+upper11 = '(Tone 0.48 60 0) |* 4
+upper12 : [: Tone :]
+upper12 = '(Tone 0.48 58 0) |* 4
+upper13 : [: Tone :]
+upper13 = '(Tone 0.48 60 0) |* 4
+upper14 : [: Tone :]
+upper14 = '(Tone 0.48 60 0) |* 4
+upper15 : [: Tone :]
+upper15 = '(Tone 0.48 58 0) |* 4
+upper16 : [: Tone :]
+upper16 = '(Tone 0.48 57 0) |* 4
+upper17 : [: Tone :]
+upper17 = '(Tone 0.48 57 0) |* 4
+upper18 : [: Tone :]
+upper18 = '(Tone 0.48 57 0) |* 4
+upper19 : [: Tone :]
+upper19 = '(Tone 0.48 58 0) |* 4
+upper20 : [: Tone :]
+upper20 = '(Tone 0.48 57 0) |* 4
+upper21 : [: Tone :]
+upper21 = '(Tone 0.48 57 0) |* 4
+upper22 : [: Tone :]
+upper22 = '(Tone 0.48 58 0) |* 4
+upper23 : [: Tone :]
+upper23 = '(Tone 0.48 57 0) |* 4
+upper24 : [: Tone :]
+upper24 = '(Tone 0.48 57 0) |* 4
+
+#: Voice 2 of the harmony, its own line through all
+#: twenty-four bars.  Each note is a whole bar (`|* 4`).
+middle1 : [: Tone :]
+middle1 = '(Tone 0.42 62 0) |* 4
+middle2 : [: Tone :]
+middle2 = '(Tone 0.42 62 0) |* 4
+middle3 : [: Tone :]
+middle3 = '(Tone 0.42 59 0) |* 4
+middle4 : [: Tone :]
+middle4 = '(Tone 0.42 62 0) |* 4
+middle5 : [: Tone :]
+middle5 = '(Tone 0.42 62 0) |* 4
+middle6 : [: Tone :]
+middle6 = '(Tone 0.42 62 0) |* 4
+middle7 : [: Tone :]
+middle7 = '(Tone 0.42 61 0) |* 4
+middle8 : [: Tone :]
+middle8 = '(Tone 0.42 61 0) |* 4
+middle9 : [: Tone :]
+middle9 = '(Tone 0.42 61 0) |* 4
+middle10 : [: Tone :]
+middle10 = '(Tone 0.42 61 0) |* 4
+middle11 : [: Tone :]
+middle11 = '(Tone 0.42 63 0) |* 4
+middle12 : [: Tone :]
+middle12 = '(Tone 0.42 61 0) |* 4
+middle13 : [: Tone :]
+middle13 = '(Tone 0.42 63 0) |* 4
+middle14 : [: Tone :]
+middle14 = '(Tone 0.42 63 0) |* 4
+middle15 : [: Tone :]
+middle15 = '(Tone 0.42 61 0) |* 4
+middle16 : [: Tone :]
+middle16 = '(Tone 0.42 61 0) |* 4
+middle17 : [: Tone :]
+middle17 = '(Tone 0.42 62 0) |* 4
+middle18 : [: Tone :]
+middle18 = '(Tone 0.42 62 0) |* 4
+middle19 : [: Tone :]
+middle19 = '(Tone 0.42 63 0) |* 4
+middle20 : [: Tone :]
+middle20 = '(Tone 0.42 62 0) |* 4
+middle21 : [: Tone :]
+middle21 = '(Tone 0.42 62 0) |* 4
+middle22 : [: Tone :]
+middle22 = '(Tone 0.42 63 0) |* 4
+middle23 : [: Tone :]
+middle23 = '(Tone 0.42 61 0) |* 4
+middle24 : [: Tone :]
+middle24 = '(Tone 0.42 62 0) |* 4
+
+#: Voice 3 of the harmony, its own line through all
+#: twenty-four bars.  Each note is a whole bar (`|* 4`).
+lower1 : [: Tone :]
+lower1 = '(Tone 0.42 66 0) |* 4
+lower2 : [: Tone :]
+lower2 = '(Tone 0.42 66 0) |* 4
+lower3 : [: Tone :]
+lower3 = '(Tone 0.42 64 0) |* 4
+lower4 : [: Tone :]
+lower4 = '(Tone 0.42 66 0) |* 4
+lower5 : [: Tone :]
+lower5 = '(Tone 0.42 66 0) |* 4
+lower6 : [: Tone :]
+lower6 = '(Tone 0.42 66 0) |* 4
+lower7 : [: Tone :]
+lower7 = '(Tone 0.42 64 0) |* 4
+lower8 : [: Tone :]
+lower8 = '(Tone 0.42 64 0) |* 4
+lower9 : [: Tone :]
+lower9 = '(Tone 0.42 67 0) |* 4
+lower10 : [: Tone :]
+lower10 = '(Tone 0.42 67 0) |* 4
+lower11 : [: Tone :]
+lower11 = '(Tone 0.42 68 0) |* 4
+lower12 : [: Tone :]
+lower12 = '(Tone 0.42 67 0) |* 4
+lower13 : [: Tone :]
+lower13 = '(Tone 0.42 67 0) |* 4
+lower14 : [: Tone :]
+lower14 = '(Tone 0.42 68 0) |* 4
+lower15 : [: Tone :]
+lower15 = '(Tone 0.42 67 0) |* 4
+lower16 : [: Tone :]
+lower16 = '(Tone 0.42 64 0) |* 4
+lower17 : [: Tone :]
+lower17 = '(Tone 0.42 65 0) |* 4
+lower18 : [: Tone :]
+lower18 = '(Tone 0.42 65 0) |* 4
+lower19 : [: Tone :]
+lower19 = '(Tone 0.42 67 0) |* 4
+lower20 : [: Tone :]
+lower20 = '(Tone 0.42 65 0) |* 4
+lower21 : [: Tone :]
+lower21 = '(Tone 0.42 65 0) |* 4
+lower22 : [: Tone :]
+lower22 = '(Tone 0.42 67 0) |* 4
+lower23 : [: Tone :]
+lower23 = '(Tone 0.42 64 0) |* 4
+lower24 : [: Tone :]
+lower24 = '(Tone 0.42 65 0) |* 4
+
+#: The roots, one to a bar.
+root1 : [: Tone :]
+root1 = '(Tone 0.70 38 0) |* 4
+root2 : [: Tone :]
+root2 = '(Tone 0.70 38 0) |* 4
+root3 : [: Tone :]
+root3 = '(Tone 0.70 40 0) |* 4
+root4 : [: Tone :]
+root4 = '(Tone 0.70 38 0) |* 4
+root5 : [: Tone :]
+root5 = '(Tone 0.70 38 0) |* 4
+root6 : [: Tone :]
+root6 = '(Tone 0.70 47 0) |* 4
+root7 : [: Tone :]
+root7 = '(Tone 0.70 45 0) |* 4
+root8 : [: Tone :]
+root8 = '(Tone 0.70 45 0) |* 4
+root9 : [: Tone :]
+root9 = '(Tone 0.70 43 0) |* 4
+root10 : [: Tone :]
+root10 = '(Tone 0.70 43 0) |* 4
+root11 : [: Tone :]
+root11 = '(Tone 0.70 44 0) |* 4
+root12 : [: Tone :]
+root12 = '(Tone 0.70 43 0) |* 4
+root13 : [: Tone :]
+root13 = '(Tone 0.70 48 0) |* 4
+root14 : [: Tone :]
+root14 = '(Tone 0.70 44 0) |* 4
+root15 : [: Tone :]
+root15 = '(Tone 0.70 43 0) |* 4
+root16 : [: Tone :]
+root16 = '(Tone 0.70 45 0) |* 4
+root17 : [: Tone :]
+root17 = '(Tone 0.70 38 0) |* 4
+root18 : [: Tone :]
+root18 = '(Tone 0.70 38 0) |* 4
+root19 : [: Tone :]
+root19 = '(Tone 0.70 39 0) |* 4
+root20 : [: Tone :]
+root20 = '(Tone 0.70 38 0) |* 4
+root21 : [: Tone :]
+root21 = '(Tone 0.70 38 0) |* 4
+root22 : [: Tone :]
+root22 = '(Tone 0.70 39 0) |* 4
+root23 : [: Tone :]
+root23 = '(Tone 0.70 45 0) |* 4
+root24 : [: Tone :]
+root24 = '(Tone 0.70 38 0) |* 4
+
+# ── The ground, bar by bar ───────────────────────────────────────────────
+#
+# Roots and fifths, one to a bar, spelled out for the same reason the
+# melody is.  A: D, D, G, D, D, D, A, A.  B: G half-diminished has no
+# fifth, so the ♭5 is written and the emptiness is the point.  A′: D
+# minor, with the ♭II under bar 20 and the dominant under bar 24.
+
+g1 : [: Tone :]
+g1 = '(Tone 0.80 38 0) ++ '(Tone 0.55 45 0) ++ '(Tone 0.65 38 0) ++ '(Tone 0.55 45 0)
+
+g2 : [: Tone :]
+g2 = '(Tone 0.75 38 0) ++ '(Tone 0.55 45 0) ++ '(Tone 0.65 38 0) ++ '(Tone 0.55 45 0)
+
+g3 : [: Tone :]
+g3 = '(Tone 0.80 43 0) ++ '(Tone 0.55 50 0) ++ '(Tone 0.65 43 0) ++ '(Tone 0.55 50 0)
+
+g4 : [: Tone :]
+g4 = '(Tone 0.75 38 0) ++ '(Tone 0.55 45 0) ++ '(Tone 0.65 38 0) ++ '(Tone 0.55 45 0)
+
+g5 : [: Tone :]
+g5 = '(Tone 0.80 38 0) ++ '(Tone 0.55 45 0) ++ '(Tone 0.65 38 0) ++ '(Tone 0.55 45 0)
+
+g6 : [: Tone :]
+g6 = '(Tone 0.75 38 0) ++ '(Tone 0.55 45 0) ++ '(Tone 0.65 38 0) ++ '(Tone 0.55 45 0)
+
+g7 : [: Tone :]
+g7 = '(Tone 0.80 45 0) ++ '(Tone 0.55 52 0) ++ '(Tone 0.65 45 0) ++ '(Tone 0.55 52 0)
+
+g8 : [: Tone :]
+g8 = '(Tone 0.80 45 0) ++ '(Tone 0.55 52 0) ++ '(Tone 0.65 45 0) ++ '(Tone 0.55 52 0)
+
+#: B — G, and the fifth is flat.  Nothing to lean on, all section long.
+h1 : [: Tone :]
+h1 = '(Tone 0.80 43 0) ++ '(Tone 0.55 49 0) ++ '(Tone 0.65 43 0) ++ '(Tone 0.55 49 0)
+
+h2 : [: Tone :]
+h2 = '(Tone 0.75 43 0) ++ '(Tone 0.55 49 0) ++ '(Tone 0.65 43 0) ++ '(Tone 0.55 49 0)
+
+h3 : [: Tone :]
+h3 = '(Tone 0.80 44 0) ++ '(Tone 0.55 51 0) ++ '(Tone 0.65 44 0) ++ '(Tone 0.55 51 0)
+
+h4 : [: Tone :]
+h4 = '(Tone 0.75 43 0) ++ '(Tone 0.55 49 0) ++ '(Tone 0.65 43 0) ++ '(Tone 0.55 49 0)
+
+h5 : [: Tone :]
+h5 = '(Tone 0.80 46 0) ++ '(Tone 0.55 53 0) ++ '(Tone 0.65 46 0) ++ '(Tone 0.55 53 0)
+
+h6 : [: Tone :]
+h6 = '(Tone 0.75 44 0) ++ '(Tone 0.55 51 0) ++ '(Tone 0.65 44 0) ++ '(Tone 0.55 51 0)
+
+h7 : [: Tone :]
+h7 = '(Tone 0.80 43 0) ++ '(Tone 0.55 49 0) ++ '(Tone 0.65 43 0) ++ '(Tone 0.55 49 0)
+
+#: Bar 16 — the deceptive cadence.  A7 underneath the line's cry for D,
+#: and then B, not D: 5 going to 6 instead of to 1.
+h8 : [: Tone :]
+h8 = '(Tone 0.85 45 0) ++ '(Tone 0.60 52 0) ++ '(Tone 0.85 47 0) ++ '(Tone 0.60 54 0)
+
+#: A′ — D minor, with the flat second under bar 20.
+i1 : [: Tone :]
+i1 = '(Tone 0.80 38 0) ++ '(Tone 0.55 45 0) ++ '(Tone 0.65 38 0) ++ '(Tone 0.55 45 0)
+
+i2 : [: Tone :]
+i2 = '(Tone 0.75 38 0) ++ '(Tone 0.55 45 0) ++ '(Tone 0.65 38 0) ++ '(Tone 0.55 45 0)
+
+i3 : [: Tone :]
+i3 = '(Tone 0.80 43 0) ++ '(Tone 0.55 50 0) ++ '(Tone 0.65 43 0) ++ '(Tone 0.55 50 0)
+
+i4 : [: Tone :]
+i4 = '(Tone 0.80 39 0) ++ '(Tone 0.55 46 0) ++ '(Tone 0.65 39 0) ++ '(Tone 0.55 46 0)
+
+i5 : [: Tone :]
+i5 = '(Tone 0.80 38 0) ++ '(Tone 0.55 45 0) ++ '(Tone 0.65 38 0) ++ '(Tone 0.55 45 0)
+
+i6 : [: Tone :]
+i6 = '(Tone 0.75 38 0) ++ '(Tone 0.55 45 0) ++ '(Tone 0.65 38 0) ++ '(Tone 0.55 45 0)
+
+i7 : [: Tone :]
+i7 = '(Tone 0.80 39 0) ++ '(Tone 0.55 46 0) ++ '(Tone 0.65 39 0) ++ '(Tone 0.55 46 0)
+
+#: Bar 24 — the perfect cadence: A to D, and it stops.
+i8 : [: Tone :]
+i8 = '(Tone 0.85 45 0) ++ '(Tone 0.60 52 0) ++ '(Tone 0.90 38 0) ++ '(Tone 0.60 38 0)
+
+# ── What it plays ────────────────────────────────────────────────────────
+#
+# Twenty-four bars, laid out one after another, because that is what
+# there is to say them with.
+
+melody : [: Tone :]
+melody = a1 ++ a2 ++ a3 ++ a4 ++ a5 ++ a6 ++ a7 ++ a8
+      ++ b1 ++ b2 ++ b3 ++ b4 ++ b5 ++ b6 ++ b7 ++ b8
+      ++ c1 ++ c2 ++ c3 ++ c4 ++ c5 ++ c6 ++ c7 ++ c8
+
+bass : [: Tone :]
+bass = g1 ++ g2 ++ g3 ++ g4 ++ g5 ++ g6 ++ g7 ++ g8
+    ++ h1 ++ h2 ++ h3 ++ h4 ++ h5 ++ h6 ++ h7 ++ h8
+    ++ i1 ++ i2 ++ i3 ++ i4 ++ i5 ++ i6 ++ i7 ++ i8
+
+upper : [: Tone :]
+upper = upper1 ++ upper2 ++ upper3 ++ upper4 ++ upper5 ++ upper6 ++ upper7 ++ upper8
+     ++ upper9 ++ upper10 ++ upper11 ++ upper12 ++ upper13 ++ upper14 ++ upper15 ++ upper16
+     ++ upper17 ++ upper18 ++ upper19 ++ upper20 ++ upper21 ++ upper22 ++ upper23 ++ upper24
+
+middle : [: Tone :]
+middle = middle1 ++ middle2 ++ middle3 ++ middle4 ++ middle5 ++ middle6 ++ middle7 ++ middle8
+      ++ middle9 ++ middle10 ++ middle11 ++ middle12 ++ middle13 ++ middle14 ++ middle15 ++ middle16
+      ++ middle17 ++ middle18 ++ middle19 ++ middle20 ++ middle21 ++ middle22 ++ middle23 ++ middle24
+
+lower : [: Tone :]
+lower = lower1 ++ lower2 ++ lower3 ++ lower4 ++ lower5 ++ lower6 ++ lower7 ++ lower8
+     ++ lower9 ++ lower10 ++ lower11 ++ lower12 ++ lower13 ++ lower14 ++ lower15 ++ lower16
+     ++ lower17 ++ lower18 ++ lower19 ++ lower20 ++ lower21 ++ lower22 ++ lower23 ++ lower24
+
+roots : [: Tone :]
+roots = root1 ++ root2 ++ root3 ++ root4 ++ root5 ++ root6 ++ root7 ++ root8
+     ++ root9 ++ root10 ++ root11 ++ root12 ++ root13 ++ root14 ++ root15 ++ root16
+     ++ root17 ++ root18 ++ root19 ++ root20 ++ root21 ++ root22 ++ root23 ++ root24
+
+#: **Five lines, aligned by nothing but their lengths.**  Twenty-four
+#: bars in each, and if one of them had twenty-three the piece would
+#: still compile and everything after the short one would be a bar out.
+score : [: Void :]
+score = (melody >>= voices.song)
+     || (upper >>= voices.chord) || (middle >>= voices.chord)
+     || (lower >>= voices.chord) || (roots >>= voices.ground)
+
+bpm : Int
+bpm = 92
