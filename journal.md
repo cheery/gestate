@@ -756,3 +756,14 @@ its state as a lamp — the memory index check beside it is a gate, and
 this one is deliberately not, because a red that only Henri can clear
 is a red that gets muted.  Three lines, printed by `--install`, are
 his.
+
+**And it fired, the same sitting.**  Henri ran the `jq` line, said
+*"installed, check it works"*, and the next `Read` — five lines of
+`gestate/host.c` — arrived with 58 citers behind it, the card and the
+memory the `because` named among the first twenty.  Opened, reasoned,
+built, installed and seen working between one breakfast and the next
+coffee; the card is in `done/`.  Note the count: 53 when the card was
+written that morning, 58 by the time it fired, and the five between are
+the card, the instrument section, the memory line and this journal
+naming the file — the graph grew while it was being indexed, which is
+what a hook computed at read time is for.

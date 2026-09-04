@@ -1,6 +1,6 @@
 # backlinks — what I am reading is cited by things I cannot see
 
-    status   doing — 2026-09-04, the command, the hook and the lamp landed; the install is Henri's — §"Day one, done"
+    status   done — 2026-09-04, opened, reasoned, built, installed by Henri and seen firing in one sitting — §"Done"
     because  "When I open a memory file, an instrument, or a spec
              section, nothing tells me who cites it.  The tree's own
              record says this is where sessions actually fail.  A
@@ -315,3 +315,21 @@ if the foot ever comes back under Q3's answer.  It cannot hold the thing the
 card exists for — whether a session *looked* — and saying so here is
 the same honesty `board/README.md` §"What the suite can hold, and what
 it cannot" asks of every card.
+
+## Done — 2026-09-04
+
+Henri installed the hook with the `jq` line the session tested on a
+copy, and the next `Read` in the same session — five lines of
+`gestate/host.c` — came back with the citers behind it: 58 places, the
+first twenty shown, `card:unseen-flare.md` and
+`doc/memory/gestate-audio-teardown.md` among them, which are the card
+and the memory the `because` said a reader could not see.  The lamp
+says *installed*.
+
+What stays open is not work: the measurement of the `because` runs on
+the next failure — the next time a session rebuilds an instrument or
+misses a memory it was standing next to, ask whether a backlink was in
+front of it.  And the foot over the same command waits on its trigger,
+a reader who is not a Claude Code session.
+
+Journal: `journal.md` §"Backlinks, day one".

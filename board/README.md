@@ -91,11 +91,6 @@ still the tiebreak between two workable cards, and it is still his.
    this desk.  Michael's ask, 2026-08-28, relayed by Henri.  *Placed
    last by the session that wrote it, at the end of a sitting, because
    three of its six questions are still his — his to move.*
-9. **[backlinks](backlinks.md)** — every citation in the tree runs one
-   way, and a session reading a target cannot see who leans on it.
-   *Opened 2026-09-04 at Henri's ask, on the session's own `because`;
-   arrives last, as every new card does, and asks whether it belongs
-   higher.*
 
 **And the criterion has been checked once, on 2026-08-19, and it lost**
 — `journal.md` §"And what the day says about the board".  Ordering by
