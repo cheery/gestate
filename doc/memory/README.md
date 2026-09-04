@@ -120,6 +120,7 @@ session inferred.
 - [House rules on authorship](gestate-house-rules-authorship.md) — `spec/author.md` is his to keep; gemba is opt-in
 - [Concrete good](concrete-good.md) — good is an act whose effects can be seen, understood, measured or mechanised; and **do not try to change others — create the environment where they can thrive**, which is what this repository is
 - [Horizontal, not vertical](horizontal-not-vertical.md) — praise ranks, so it manipulates; the horizontal form is gratitude and what changed, never a verdict from above — and raise a fault with care
+- [Blame the task, not the character](blame-the-task-not-the-character.md) — Henri, 2026-09-04: he used to blame a model's personality when work went badly and has stopped; scolding a character is inert because nothing carries it forward, and the environment he built changed him
 - [Dialogue is its own mode](dialogue-is-its-own-mode.md) — Alhanen: understanding rather than winning or agreeing; and a rhetorical question is an opinion wearing a question mark, so say the view instead
 - [The language goal](the-language-goal.md) — 2026-08-20, his words: a language that compiles to wasm, is easy to model-check, and is optimised for reading; **wasm is new**, and it sits against the environment card's deferral
 - [Music craft](music-craft.md) — the harmonic vocabulary he actually works in, and the four mistakes he has named in his own writing
