@@ -147,6 +147,21 @@ main = f (Box 5)
 
 The δ branch at `seminaive.py:251-258` has the correct shape; copy it.
 
+gate: `partial — the unbound `_box` is held, the per-variable temporary is
+not, and nothing reaches it`.  Measured 2026-09-04 (batch 13), 484 tests in 23
+Datafun-facing files.  Putting the defect back — `x`/`dx` projected out of an
+unbound `_box`, the compiled binding discarded — takes **38 red**, of which 37
+are real (`test_complaints.py::test_the_page_is_not_behind_the_source` is a
+line-number canary, see below); `test_relations.py`'s transitive-closure
+family and `test_datafun_fix.py`'s fix spellings are the ones that name the
+failure.  The second half of the repair — `tmp = f"_box_{var}"`, so nested
+unboxes do not shadow — is **484 green** with the shared `_box` put back, and
+a probe raising whenever an unbox is compiled inside another one never fired
+across 471 tests.  So the green is a tautology, not a gap: **no program in
+this tree nests unboxes at all.**  Weakest point: a test that nests them
+would have to be written before there is anything to gate, and it would be a
+test of the compiler rather than of any program anybody writes.
+
 ### F2. **[resolved]** `f_delta`'s parameters are grouped, but `δ(e f)` supplies them interleaved
 
 `seminaive.py:190-196` and `seminaive.py:326`.  For an SC of arity *n* the
@@ -282,8 +297,13 @@ up.
 
 ### F6. **[resolved]** `semifix`'s convergence test
 
-Fixed in both spec and implementation: the test is `dx ⊑ x` via a
-generated `subset_L`.  See `errata.md` D2 — the first expressible Datalog
+Fixed in the implementation: the test is `dx ⊑ x` via a generated
+`subset_L`.  ~~Fixed in both spec and implementation~~ — **corrected
+2026-09-04 (batch 13): the spec half had never landed.**  `spec/data.md`
+§I.5 still prescribed `eqL dx' bottomL`, and `errata.md` D2, marked
+*resolved*, still ended with the sentence *"`spec/data.md` §I.5 should be
+amended to the thesis's test"*.  Amended the same day; the original §I.5
+text is kept below the amendment.  See `errata.md` D2 — the first expressible Datalog
 query hung under the old one.  The original text:
 
 `seminaive.py:368-376` tests `eq_Set_Int dx' bottom_Set_Int`, faithfully
@@ -291,6 +311,23 @@ implementing `spec/data.md` §I.5 — but §I.5 itself disagrees with the thesis
 which tests `dx ⊑ x`.  See `spec/errata.md` D2; the fix belongs in the spec
 first, then here (and `helpers.py` needs a generated `subset_*`/`leq_*`
 alongside `eq_*`).
+
+gate: `test/test_datafun_fix.py::test_semifix_stabilises_on_containment_not_emptiness`
+for the term `semifixL` builds, and the transitive-closure family for what it
+computes.  Measured 2026-09-04 (batch 13): stopping on `dx ⊑ ⊥` instead of
+`dx ⊑ x` — §I.5's test, reconstructed through the same helper so no arity
+changes — is **6 red**, including `test_transitive_closure_of_a_path`; with
+change minimisation removed as well, the loop as it stood when the first
+Datalog query hung, **10 red**, and `test_a_datalog_fixed_point_terminates` is
+one of them.  The `subset_` prefix half is held separately:
+`test_transform_scope.py::test_a_generated_helper_is_not_a_user_name_at_any_type`
+is the single red when `subset_` is dropped from `_HELPER_PREFIXES`.
+Weakest point: **the entry's claim that the spec was fixed was false until
+today** — `spec/data.md` §I.5 still prescribed `eqL dx' bottomL` — and the
+gate written for that half
+(`test_datafun_fix.py::test_the_spec_prescribes_the_test_the_generator_builds`)
+holds the two texts against each other by their words, which is a citation check and not a proof that the
+implementation follows the spec.
 
 ### F7. **[resolved]** ϕ/δ is applied to every user SC of a Datafun program
 

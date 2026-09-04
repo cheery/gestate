@@ -464,6 +464,62 @@ start on a file somebody else has modified.  Tested by being killed —
 mutation on disk, `kill -TERM`, exit 143, file back byte-for-byte.  Its
 `--check` caught a live mutation the first time it ran.
 
+## The sweep closes, and the last entry it read was lying — batch 13, 2026-09-04
+
+**F6 and F1, the two oldest entries in `fixme.md`, on the Friday the schedule
+gave them, and that is all sixty-two.**  Thirteen batches, 19 August to 4
+September, five a session capped, no day doubled to make up a miss.  Every
+repair in the working set now carries a `gate:` line saying either the
+instrument that fires if the defect comes back or the honest reason there
+isn't one.
+
+Both of today's are gated.  The batch's finding is not in a verdict.
+
+**F6 said it had been fixed in the spec, and it had not.**  The entry opened
+*"Fixed in both spec and implementation"*; `spec/data.md` §I.5 still
+prescribed `eq dx' ⊥`, the convergence test the thesis says loops forever on
+the shape every Datalog query has.  And `errata.md` D2, under a **resolved**
+heading, still ended with the sentence that gives the game away: *"`spec/data.md`
+§I.5 should be amended to the thesis's test."*  Both had stood a fortnight.
+
+Batch 9 found this shape once at F43 and batch 12 twice at F10 and F13 — a
+`[resolved]` marker over a body describing an open defect.  Today is its
+sharpest form: **a resolution that names its own outstanding half.**  Nothing
+was hidden, nothing was wrong in the prose, and the file still told a reader
+the work was done, because the marker is what a reader trusts and the body is
+what a reader acts on.  §I.5 is amended with the original kept below it, D2
+and F6 are corrected in place and dated, and the two texts are now held
+against each other by a test — a citation check, and its gate line says so.
+
+**And the measurement had to be built twice, which is the other lesson.**
+The first reconstruction of F6's defect — the convergence test written back
+as `eq dx ⊥` by hand — produced 13 red.  They were the wrong 13: at
+`Set (Cyclic 8)` the generated `eq_` takes the modulus, so the hand-built term
+was under-applied, and the failures were an arity artefact with nothing to say
+about convergence.  Rebuilt through the helper the loop already calls
+(`subset dx ⊥`), it is 6 red; with change minimization taken out as well — the
+loop exactly as it stood the day the first Datalog query hung — 10 red, one of
+them `test_a_datalog_fixed_point_terminates`.  Batch 12 earned *a green is not
+yet a gap*; this is its other face.  **A red is not yet a gate.**  Thirteen
+confident failures are as easy to produce as a tautological green, and neither
+is read correctly without asking what the mutation actually did.
+
+**F1 is `partial`, and its bare half cannot be reached.**  The unbound `_box`
+is 38 red.  The per-variable temporary that stops nested unboxes shadowing is
+484 green — and a probe raising whenever an unbox is compiled inside another
+one never fired across 471 tests.  No program in this tree nests them.  The
+entry says that, rather than sending somebody to write a test that can never
+go red.
+
+**The sweep also found a canary it had been misreading all along.**
+`test_complaints.py::test_the_page_is_not_behind_the_source` renders
+`doc/complaints.md` from the sources and compares, and the page carries line
+numbers — so **every mutation that changed a file's line count has gone red
+for that reason alone, in every batch since the first.**  F1a's 38 is 37.  It
+never changed a verdict, because a `none` rests on a green and a green is
+unaffected; but it inflated every red this card ever counted, and
+`tools/mutate.py` is the place to say so.
+
 ## A green is not yet a gap — batch 12, 2026-09-03
 
 Batch 12 of `card:ungated-fixes.md` — F15 F13 F12 F10 F8, the Datafun

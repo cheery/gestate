@@ -708,6 +708,61 @@ to mutate a file that is already modified, and the fix had modified it.  The
 refusal working is the reason the verification was awkward, which is the right
 way round.
 
+### Batch 13 — 2026-09-04, the last of the thirteen
+
+**F6 F1**, the two oldest entries in the file, taken as seven mutations and
+one probe against **484 tests in 23 Datafun-facing files**.  Both are gated;
+the batch's finding is not in a verdict but in a body — **F6 said it had been
+fixed in the spec and it had not.**
+
+**F1 is `partial`, and the bare half is unreachable.**  The defect the entry
+names — `x` and `dx` projected out of an unbound `_box`, the compiled binding
+thrown away — is **38 red**, and it is held from both ends: the closure
+family in `test_relations.py` and the fix spellings in `test_datafun_fix.py`.
+The repair's *second* half, the per-variable temporary that stops nested
+unboxes shadowing, is **484 green** with the shared `_box` put back.  A probe
+raising whenever an unbox is compiled inside another one **never fired across
+471 tests**: nothing in this tree nests unboxes at all.  So the green is a
+tautology, and the entry says so rather than sending somebody to write a test
+that cannot go red — batch 12's rule, *a green is not yet a gap*, doing its
+second day of work.
+
+**F6 is gated twice over, and the measurement had to be built twice.**  The
+first reconstruction — the convergence test written back as `eq dx ⊥` by hand
+— produced 13 red and they were the **wrong** 13: at `Set (Cyclic 8)` the
+generated `eq_` takes the modulus, so the hand-built term was *under-applied*
+and the failures were an arity artefact, not the historical defect.  Rebuilt
+through the helper the loop already calls — `subset dx ⊥`, which is *stop when
+the delta is empty* with no arity change — it is **6 red**, including
+`test_transitive_closure_of_a_path`; and with change minimization removed as
+well, the loop exactly as it stood the day the first Datalog query hung, **10
+red**, one of which is `test_a_datalog_fixed_point_terminates`.  *A red is not
+yet a gate either*: the first thirteen were confidently produced and said
+nothing about F6.
+
+**F6's spec half had never landed.**  `spec/data.md` §I.5 still prescribed
+`eq dx' ⊥`, the test the thesis says loops forever, while the entry read
+*"Fixed in both spec and implementation"* and `errata.md` D2, under a
+**resolved** heading, still ended with the sentence *"`spec/data.md` §I.5
+should be amended to the thesis's test."*  Both stood that way for a
+fortnight.  This is batch 9's F43 shape and batch 12's F10/F13 shape arriving
+a third time, and in its sharpest form yet: **a resolution that names its own
+outstanding half is an open defect wearing a closed marker**, and it is the
+cheapest possible lie for this file to tell, because the marker is what a
+reader trusts.  §I.5 is amended, D2 and F6 corrected in place with the
+original text kept, and the two texts are now held against each other by
+`test_datafun_fix.py::test_the_spec_prescribes_the_test_the_generator_builds`
+— a citation check, and the entry's gate line says that is what it is.
+
+**And the sweep found a canary it has been misreading.**
+`test_complaints.py::test_the_page_is_not_behind_the_source` renders
+`doc/complaints.md` from the sources and compares; the page carries line
+numbers, so **any mutation that changes a file's line count goes red for that
+reason alone**, in every batch that has ever run.  F1a's 38 is 37 real.  A
+line-count-preserving edit avoids it, and `tools/mutate.py` should say so —
+the sweep's verdicts have been one red off whenever the edit grew or shrank a
+file.
+
 ### The second Friday review — 2026-08-28, drawn at random
 
 Three drawn by `awk '/^### F[0-9]+\\./{e=$2} /^gate:/{print e}' fixme.md |
@@ -869,6 +924,13 @@ him reading, not by me checking.**
 | 11 | Wed 2026-09-02 | F21 F20 F19 F18 F17 |
 | 12 | Thu 2026-09-03 | F15 F13 F12 F10 F8 |
 | 13 | Fri 2026-09-04 | F6 F1 |
+
+**Run to the day, and all 62 carry a `gate:` line as of 2026-09-04.**
+Thirteen batches, thirteen sessions, no day doubled to make up a miss.
+What the card still owes is Henri's: the third Friday review (three
+verdicts, drawn at random, disagreed with), and the ratchet question
+§"What the suite can hold" leaves open — an accepted baseline that may
+shrink and never grow.  The card stays open for those two.
 
 **Weekdays only, and three weeks runs to 2026-09-08** — so there are
 five weekdays of slack built in.  They are not spare capacity: the

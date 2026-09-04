@@ -186,3 +186,37 @@ def test_a_datalog_fixed_point_terminates():
         "main = reach (Box {1})\n"
     )
     assert result.startswith("Pack")
+
+
+def test_the_spec_prescribes_the_test_the_generator_builds():
+    """`spec/data.md` §I.5 and `semifixL` say the same thing.
+
+    F6's entry said the convergence test was "fixed in both spec and
+    implementation" and, for a fortnight, only one of those was true:
+    §I.5 still prescribed `eq dx' ⊥` while `make_semifix_helpers` had
+    built `subset_L dx x` since the repair, and `errata.md` D2 carried
+    the outstanding sentence under a *resolved* heading.  Nothing held
+    the two texts together, so nothing said so.
+
+    This is a citation check and not a proof — it catches the spec being
+    reverted, not the implementation drifting from a spec that still
+    reads correctly.  The behavioural half is the test above and the
+    transitive-closure family in `test_relations.py`.
+    """
+    from pathlib import Path
+
+    spec = Path(__file__).resolve().parent.parent / "spec" / "data.md"
+    body = spec.read_text()
+    i = body.index("### I.5 `semifix`")
+    section = body[i:body.index("### I.6", i)]
+
+    # The amendment states the thesis's test and marks the old one wrong.
+    assert "dxi ⊑ xi" in section
+    assert "**wrong**" in section
+
+    # And the generator builds exactly that test.
+    helpers = dict((name, (arity, lam))
+                   for name, arity, lam in make_semifix_helpers(0, 1, 3, 2))
+    _arity, lam = helpers["semifixL_Set_Int"]
+    assert lam.body.scrut == EAp(EAp(EGlobal("subset_Set_Int"),
+                                     EVar("dx")), EVar("x"))

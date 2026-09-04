@@ -314,9 +314,21 @@ product but not under an arrow.
 ```
 semifixL (f, f′) :
   x0  = ⊥          x{i+1} = xi ∨ dxi
-  dx0 = f ⊥         dx{i+1} = f′ xi dxi
-  -- stop when dxi is empty-equivalent (∨-idempotent), i.e. x{i+1} = xi
+  dx0 = f ⊥         dx{i+1} = (f′ xi dxi) \ x{i+1}
+  -- stop when dxi ⊑ xi — the change is subsumed by the accumulator
 ```
+
+**Amended 2026-09-04** (`errata.md` D2, `fixme.md` F6).  This section
+prescribed `eq dx' ⊥` — *stop when the delta is empty* — which is not the
+thesis's test (fig. 4.2, p. 71: "seminaïve iteration stabilizes once
+`dxi ⩽ xi`") and **loops forever** on the shape every Datalog query has:
+`δ(e ∨ f) = δe ∨ δf` overapproximates, so a delta routinely contains
+elements `x` already holds, and such a delta is non-empty while `x` has
+stopped growing.  `gestate/seminaive.py` has tested `subset_L dx x` since
+the fix; the paragraph below, which argues for the empty-delta test, is
+the original text and is **wrong** — kept because the reasoning in it is
+what a reader will otherwise reconstruct.  The `\ x{i+1}` is change
+minimization (§4.3, `errata.md` D4), separate and also implemented.
 
 Compare to I.5 of the earlier (naïve) spec's `fixLoop`, which recomputed `f u2` every
 iteration and tested full equality of successive iterates. `semifixL` instead:
@@ -329,7 +341,8 @@ semifixLoop f f' x dx =
 semifix (f, f') = semifixLoop f f' bottomL (f bottomL)
 ```
 
-Convergence test changed from "compare two full iterates" to "is the new delta empty" —
+*Original text, superseded by the amendment above.*  Convergence test changed
+from "compare two full iterates" to "is the new delta empty" —
 cheaper on both counts (smaller value to compare, and it's the natural stopping
 condition already implied by `∨`'s idempotence). `f` here is `ϕe`'s first projection,
 `f′` its second — recall `ϕ(fix e) = semifix ϕe` where `ϕe : □((fixL → fixL) ×

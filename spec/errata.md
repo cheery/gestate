@@ -114,8 +114,13 @@ Consequences the spec does not state:
 This was not theoretical.  The first Datalog query gestate could express
 — `fix (r => seed ∨ for (x in r) {x + 1})`, which only became writable
 once `∨` was added — **hung** under the old `dx = ⊥` test, exactly as the
-analysis below predicts.  `spec/data.md` §I.5 should be amended to the
-thesis's test.
+analysis below predicts.  ~~`spec/data.md` §I.5 should be amended to the
+thesis's test.~~  **Amended 2026-09-04**, batch 13 of
+`card:ungated-fixes.md`: this sentence had stood under a *resolved*
+heading for a fortnight, and §I.5 still prescribed `eqL dx' bottomL` the
+whole time — a resolution that names its own outstanding half is still
+an open defect wearing a closed marker.  `test_datafun_fix.py::test_the_spec_prescribes_the_test_the_generator_builds`
+now holds the two texts against each other.
 
 The naive `fix` still compares `next == cur`.  That one is equivalent:
 `f` is monotone, so `next ⊇ cur` always, and then `next ⊆ cur` iff
