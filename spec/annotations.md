@@ -626,6 +626,27 @@ read, which is the half of the value that costs nothing.
 *C is standing.  A and B are his*, and they are not exclusive — C stays
 useful under either.
 
+## The ceiling this whole file has — 2026-09-04
+
+*Measured after the three slices, and it should have been measured
+before them.*  Everything here rides on the score box's gesture, and
+`card:drawn-scores.md` §"The editing surface, measured" counts what
+that gesture reaches: **100% of the three files written for the box,
+0–5% of real pieces**, and `together.ges` will not draw at all.
+
+`mark` inherits that exactly.  The vocabulary, the voices' readings and
+the drawing are unaffected — a manner is a fact about a note and the
+sound is real — but **writing one by gesture reaches the same 0–5%**,
+and today the manners in `marked.ges` itself are parameters with no
+atom to point at.
+
+The direction taken instead is a **sub-language in its own files,
+included by the score** (that card, §"The direction"), where the notes
+are literal by construction.  `Manner` is already shaped for it: a
+small named set, a number on the wire, read by whoever cares and
+ignorable.  What this file specifies stays true there; what changes is
+where a mark is *written*.
+
 ## What waits behind this
 
 The staff itself, once the fork above is answered.  And the two

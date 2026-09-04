@@ -257,6 +257,128 @@ is nothing to slide from.  `slew` exists (`synth.ges:335`) and
 reference to hold a spec against — but this mark is the expensive one
 of the three and belongs last.
 
+## The editing surface, measured — 2026-09-04
+
+*Three slices of `spec/annotations.md` were built on the score box's
+gesture before anybody counted what that gesture reaches.  Henri, after
+them:* **"the scorebox and existing north_star is a cool demo, but
+doesn't solve many things that one meets in a full fledged note editing
+tool.  Also we still have the problem that it's just as inaccessible
+for editing as what it supplements."**  The count says he is right.
+
+| piece | notes | the box can edit | why not |
+|---|---|---|---|
+| `noted.ges` | 4 | **100%** | |
+| `minute.ges` | 16 | **100%** | |
+| `chopin.ges` | 140 | **100%** | |
+| `moon_sonata.ges` | 120 | **5%** | 102 not written, 11 ambiguous |
+| `undertow.ges` | 366 | **0%** | 366 not written |
+| **`together.ges`** | — | **will not draw** | *No instance for Notable Key* |
+
+**The three at 100% are the files written for the box.**  On real
+pieces it is 0–5%, and the file this card's `because` came from does
+not open at all.
+
+**Why, precisely.**  The descent carries provenance *to the leaf* — it
+knows which written region produced a note — and then inside that leaf
+it **guesses by value**: the pitch is whichever literal equals the
+note's key (`pitch_atom`, whose own docstring records that the
+positional rule refused four files in five).  Where a pitch is
+computed, no literal equals it and the answer is *not written*.
+
+**And the deeper version: some notes have no written pitch at all.**
+`keyHz (57 + stepOf d)` means the author wrote a **degree**.
+`pitch_atom` is looking for the wrong thing — not *where is this pitch
+written* but *what did the author write that this note came from*,
+which may be a degree, a velocity, or an index into a table.
+
+## Refused: provenance through the computation — 2026-09-04
+
+The obvious repair is to carry provenance *through* the arithmetic, so
+a note from `quad ('54 ++ '52) |/ 8` points at `'54`.  **Henri: "lets
+forget about provenance idea.  It's the sauce that is least likely to
+work everywhere."**
+
+**And the reason is sharper than unlikely — it cannot work everywhere.**
+A pitch computed as `45 + stepOf d` has no single literal to point at:
+the degree is written, the pitch never is.  So provenance would answer
+on the easy files and fail on the rest, which is the worst shape a
+feature can have — a gesture that works until it silently does not.
+Recorded here rather than deleted, because it is the first thing the
+next person will think of.
+
+## The direction: a sub-language, included — 2026-09-04
+
+**Henri, proposing it:** *"we create a sub-language meant to be
+editable by simpler editor.  Manner is in that direction already.  And
+we would include these sub-language files by `(include "thing.manner")`
+or similar, into the score.  The layouter references the files relative
+to the score that included them.  and we create a format that is
+LLM-friendly, and specific editor support for editing these files,
+maybe a separate editor view that pops up for them.. or maybe something
+pluggable.. a plugin."*
+
+**This is not the second source of truth this card refused earlier**,
+and the difference is worth stating because the earlier refusal reads
+as if it covered this.  A phrase file is not a second *rendering* of
+something the program also says — it is the only place those phrases
+exist.  That is a module boundary, and two files that each own their
+content cannot disagree.  The constraint of 2026-08-29 is kept whole:
+the store is text, and a session can edit it.
+
+**What is standing, and it is more than half.**  The language has **no
+source include** — `open` is an editor command — so `(include …)` is
+new.  But `audiospans.py` already merges `prelude.ges` as a *module*,
+parsed separately, *"so its spans are in its own coordinates and start
+again at 1"*, and every `Site` names its file and carries a line
+**within that file**.  Multi-file provenance — an error or a gesture
+pointing at the right line of the right file — is built.  What is
+missing is the door.  And resolving a path relative to the including
+file is solved too: `session.py` does it for `open`, nearest first.
+
+## What is decided, and what is not
+
+**1. What a phrase file is for** — one voice's line, or a bar across
+voices?  *Deferred to an experiment, his call:* **"we should experiment
+and write something together, then consider how it would happen with
+this new format."**  So the next move is to *write music*, not to
+specify a format for music nobody has written yet.  §"The idea, as said
+in the room" already names the two relatives to look at while doing it:
+the weighted phrase graph as a Markov chain, and Ableton's session view
+with follow actions — *the DAW whose name he could not recall, named
+here so the next reading does not have to.*
+
+**2. Flat, and the tuplet is the test.**  *Henri:* **"I'd like flat,
+but only if it allows writing triplets/tuplets.. or then we say how the
+staff is subdivided in each bar, and imitate musical notation / come up
+with good-enough notation based on that grid."**
+
+*And the tree already answers the second half.*  `midi.TICKS_PER_BEAT`
+is **96**, and `spec/music.md` chose it *"because it divides by 2, 3,
+4, 6, 8, 12, 16, 24, 32 and 48"* — a grid that carries triplets and
+tuplets as whole numbers, with no fractions in the format and no
+special case in the editor.  So flat **and** tuplets is not a trade;
+the subdivision he proposes as the fallback is the one the tree already
+counts in.
+
+**3. What the score gets back** — a `[: Tone :]`, which needs the
+author's payload type, or something generic the score adapts?  *Open,
+and deliberately:* **"I think we need to see that first, how it turns
+out naturally from what we have."**
+
+**4. LLM-friendly, as gates rather than as an adjective.**  *His:*
+**"lets make it testable on your requirements."**  The session's four,
+each checkable:
+
+* **one note per line** — an edit is a line, so a diff is the edit;
+* **every field named, never positional** — the failure that made
+  `manner` unfindable was two fields of one shape telling apart only by
+  position;
+* **no significant whitespace and no nesting** — a format whose meaning
+  survives being reflowed by anything;
+* **a stable order** — two writings of one phrase are byte-identical,
+  so a diff shows what changed and nothing else.
+
 ## Questions
 
 *Open, for whenever it is unshelved.*
