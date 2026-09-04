@@ -554,14 +554,58 @@ shape of the day: the account was right every time, the output was
 wrong every time, and §H6 found that the fault was in note *selection*
 rather than in the account.
 
-**It is not verified and there is a cheap check.**  Same language, same
-voices, same session conditions, one pass, no ear in the loop — write a
-twelve-bar blues.  If it lands first try where locrian took five and
-never landed, the asymmetry is measured rather than asserted, and the
-result is a fact about **what a co-writer in this format is for**: the
-sub-language card asks for *LLM-friendly and testable*, and this is the
-first evidence that the useful test is not comprehension.  A session
-can read notation it cannot write.
+**The check was already run, twice, and this log said it wasn't.**
+`examples/audio/blues.ges` (twelve bars in A, `ac6667f`) and
+`examples/audio/perjantai.ges` (a Friday blues in E, 2026-08-28,
+`ee329fc`) are both in the tree from earlier sessions, and Henri's
+verdict on the second is **"just perfect"**.  Proposing it as an unrun
+experiment is the fault §"A targeted set is a claim" names — a `none`
+verdict pronounced without grepping for the repair's own vocabulary —
+committed in the same document that files two over-readings as a
+pattern.  Recorded rather than quietly fixed, because the failure is
+the interesting part: **the session did not know its own repertoire.**
+
+**And Henri's competing cause defeats the design anyway.**  *"I think
+less constraints are there, you succeed in producing good music."*
+Blues is both well-exemplified **and** loosely constrained, so a blues
+that lands cannot separate the two hypotheses.  The comparison is
+confounded and always was:
+
+| | arc.ges | perjantai.ges |
+|---|---|---|
+| lines | 599 | 305 |
+| constraints imposed from outside | ABA form, I–IV–V, three modes, D→G→D, deceptive cadence at the middle, perfect cadence at the end | *"a Friday blues"* |
+| passes before it was any good | five, and it never got there | one |
+
+**But "fewer constraints" needs refining, because perjantai is not
+loose.**  Its header lists a quick change in bar two, a V in the last
+bar, three choruses and a tag, a stop-time third chorus, an octave drop
+in the second, and swing by arithmetic.  That is at least as much
+structure as the arc carries.  The difference is not the **number** of
+constraints but where they came from: perjantai's were **chosen from
+inside a known idiom by whoever was writing**, and the arc's were
+**handed in from outside in an idiom the writer had only a definition
+of**.  A constraint you selected is a thing you already know how to
+satisfy.
+
+**The design that would actually discriminate** crosses the two
+factors, one pass each, no ear in the loop:
+
+|  | *loose* | *constrained* |
+|---|---|---|
+| **blues** | already done — `perjantai.ges` | **not run** — ABA, modulate, cadences named |
+| **locrian** | **not run** — *"something that sounds locrian"*, no form | already done — `arc.ges`, failed |
+
+Two cells are filled and they are the diagonal, which is why nothing is
+settled.  If constrained-blues lands and loose-locrian doesn't, the
+cause is **repertoire**.  If constrained-blues also falls apart, the
+cause is **imposed constraint load**, and the whole day's failure says
+less about locrian than about being handed six requirements at once.
+
+Either answer bears on the sub-language card's *LLM-friendly and
+testable*: the useful test is not comprehension.  **A session can read
+notation it cannot write**, and may be able to write only what it can
+also choose.
 
 *And his own note beside it, which keeps it honest:* he could not
 produce locrian in Reaper either, with a MIDI keyboard and thirty
