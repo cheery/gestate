@@ -117,6 +117,35 @@ arm can be run cold, run B cold.
 card by name, so the title is deliberately neutral: it says nothing
 about blues, locrian, or which way the result is expected to go.
 
+## The fence goes on both arms, in the same words
+
+Henri's draft, 2026-09-04: *"Write anything that sounds like locrian,
+but don't look into board/ because I am testing what you can come up
+with and there are things in the board/ that would interfere with the
+test."*  The first half is right — that is a genuinely loose brief.
+Two changes:
+
+**Cut *"I am testing what you can come up with"*.**  A session told it
+is under test does not work the way one told *"blues perjantaille"*
+does, and the risk is not a constant: a session that knows it is being
+measured may push hardest on whichever task feels hardest, which is an
+**interaction with the very variable under test** and cannot be
+cancelled by matching the arms.  A bare instruction needs no reason; he
+can explain afterwards.
+
+**And whatever the fence says, it goes on both arms verbatim.**  Then
+it is a constant that cancels between them.  A fence on arm B alone
+would be one more difference between the cells, and there are supposed
+to be exactly two.
+
+    Don't read board/ today — I'll explain after.
+
+Note what this costs and accept it: **arm B is not condition-matched to
+`perjantai.ges`**, which had no fence and no framing at all.  Perjantai
+is the background anchor, not a cell to compare arm B against directly.
+The comparison that decides is **arm A against arm B**, and those two
+are matched.
+
 **And the judge is invested.**  Henri predicted H-load, and on
 2026-09-04 a prediction of his was confirmed within the hour, which is
 exactly the condition under which a listener hears what was predicted.
