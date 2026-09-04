@@ -206,7 +206,7 @@ below is a correct program.
 | manner | what it asks | what a voice might do | what it must not mean |
 |---|---|---|---|
 | `Staccato` | detached, shorter than written | blend toward a quicker envelope | a multiplier the score chose |
-| `Accent` | this note is attacked harder | more drive, a brighter filter on the attack | a velocity number the score chose |
+| `Accent` | this note is attacked harder | a brighter filter for the first instant, settling back | a velocity number the score chose |
 | `Portamento` | arrive at this pitch from the last one | `slew` the pitch signal instead of jumping | a fixed glide time |
 
 **Worked, and this compiles** — it was run before it was written down,
@@ -516,9 +516,35 @@ The first four are the slice; the fifth is the one that matters.
    *ignoring* voice, which is the half that says a manner is a hint and
    not a command.
 
+## The second slice, landed — 2026-09-04
+
+**`Accent`, and the set.**  Read by `bowVoice` as a *faster bow* — the
+filter opens for the first instant and settles back, on an envelope of
+its own — rather than as a louder note, which is what a velocity number
+would have done and what the score deliberately did not say.  The gate
+holds exactly that distinction: the accented render differs from the
+plain one in most of its samples while its **level stays within a
+third**, so a voice that answered a mark by turning the note up would
+fail it.
+
+**And the set stopped being a claim.**  `Staccato + Accent` on one head
+now sounds different from plain, from staccato alone *and* from accent
+alone, and draws both marks.  That is the property the bitmask was
+chosen for, and the first slice could not exercise it with one mark.
+
+**The picture puts them where a score does** — the dot under the head,
+the accent above it.  Different side *and* different shape, so they
+read apart at a glance.  The generated program asks with the tree's own
+`Staccato` and `Accent` rather than with `1` and `2`, so what is drawn
+cannot drift from what a voice reads.
+
+**And the command needed nothing.**  `mark` already takes the whole set
+as a number, so `mark r 60 3` writes a staccato accent — which is why
+it was specified as a set rather than as one mark per gesture.
+
 ## What waits behind this
 
-`Accent`, then `Portamento`, then the staff.
+`Portamento`, then the staff.
 
 **And `Portamento` is the expensive one**, which is why it is last and
 not first despite being the most interesting.  `Staccato` and `Accent`

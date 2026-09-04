@@ -792,13 +792,13 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 917 | `RefusedError` | `command` | — | 'line {line} is not in this file any more' |
 | 920 | `RefusedError` | `command` | — | 'line {line} does not say {_spelling(value)} where the box thought — the file has moved under t… |
 | 924 | `RefusedError` | `command` | — | 'that manner is written as a fraction, which is not a set of marks' |
-| 969 | `RefusedError` | `command` | — | 'line {line} is not in this file any more' |
-| 972 | `RefusedError` | `command` | — | 'line {line} does not say {_spelling(value)} where the box thought — the file has moved under t… |
-| 976 | `RefusedError` | `command` | — | 'that pitch is written as a fraction; a semitone step would round it' |
-| 1124 | `RefusedError` | `command` | — | 'that column is not in this box any more' |
-| 1146 | `RefusedError` | `command` | — | 'that column is not in this box any more' |
-| 1150 | `RefusedError` | `command` | — | 'nothing under that column sounds {key}' |
-| 1152 | `RefusedError` | `command` | — | 'that column sounds {key} {len(found)} times, so which note is meant is not written down anywhe… |
+| 973 | `RefusedError` | `command` | — | 'line {line} is not in this file any more' |
+| 976 | `RefusedError` | `command` | — | 'line {line} does not say {_spelling(value)} where the box thought — the file has moved under t… |
+| 980 | `RefusedError` | `command` | — | 'that pitch is written as a fraction; a semitone step would round it' |
+| 1128 | `RefusedError` | `command` | — | 'that column is not in this box any more' |
+| 1150 | `RefusedError` | `command` | — | 'that column is not in this box any more' |
+| 1154 | `RefusedError` | `command` | — | 'nothing under that column sounds {key}' |
+| 1156 | `RefusedError` | `command` | — | 'that column sounds {key} {len(found)} times, so which note is meant is not written down anywhe… |
 
 ### `seminaive.py`
 

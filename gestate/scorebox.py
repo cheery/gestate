@@ -936,6 +936,10 @@ def marked(source: str, roll: Roll, note: int, manner: int) -> tuple:
 #: The manner set as a person reads it — the names `audio.ges` declares,
 #: in bit order.  A number is what the file holds and is not what a
 #: margin should say back.
+#:
+#: **And the bits the drawn picture asks with**, because a canvas
+#: program is assembled without `audio.ges` and cannot say `Staccato`.
+#: Two copies of one fact, held equal by `test_annotations.py`.
 MANNERS = ((1, "staccato"), (2, "accent"), (4, "portamento"))
 
 
@@ -1389,6 +1393,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
     lit_g, dim_g = f"__nb_lit_{box}__", f"__nb_dim_{box}__"
     one_g, all_g = f"__nb_one_{box}__", f"__nb_all_{box}__"
     dot_g, asks_g = f"__nb_dot_{box}__", f"__nb_asks_{box}__"
+    stac_g, acc_g = f"__nb_stac_{box}__", f"__nb_acc_{box}__"
     held_s, lift_s = f"__nb_h_{box}__", f"__nb_l_{box}__"
     pic_g = f"__nb_pic_{box}__"
     text = (chans
@@ -1420,10 +1425,28 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
             # keeps its full written length and the dot says how it is
             # to be played (`spec/annotations.md`).  Drawn at the note's
             # own colour so the two read as one thing.
+            # **Under the head and over it**, which is where a score
+            # has always put them: a staccato dot below the note, an
+            # accent above it.  Different side *and* different shape, so
+            # the two read apart at a glance and a note asking for both
+            # shows both — the whole reason a manner is a set.
             + f"{dot_g} : Int -> Int -> Int -> Int -> Sub\n"
-            + f"{dot_g} m t d w = case {asks_g} m 1 of\n"
+            + f"{dot_g} m t d w = Over ({stac_g} m t d) ({acc_g} m t d)\n\n"
+            + f"{stac_g} : Int -> Int -> Int -> Sub\n"
+            + f"{stac_g} m t d = case {asks_g} m {MANNERS[0][0]} of\n"
             + f"    True -> Shift 0 5 (Rect 2 2 ({hue_g} t d))\n"
             + "    False -> Gap 0 0\n\n"
+            + f"{acc_g} : Int -> Int -> Int -> Sub\n"
+            + f"{acc_g} m t d = case {asks_g} m {MANNERS[1][0]} of\n"
+            + f"    True -> Shift 0 (0 - 5) (Rect 6 2 ({hue_g} t d))\n"
+            + "    False -> Gap 0 0\n\n"
+            # **The bits come from `MANNERS`, not from the names**, and
+            # that is a correction the building made: a canvas program
+            # is assembled without `audio.ges`, so `Staccato` is not in
+            # scope where a voice would have it.  `test_annotations.py`
+            # holds `MANNERS` equal to what `audio.ges` declares, which
+            # is the same trade `online.CANVAS_BG` makes with a colour
+            # the panel owns.
             + f"{asks_g} : Int -> Int -> Bool\n"
             + f"{asks_g} ms m = (ms / m) % 2 == 1\n\n"
             + f"{one_g} : Int -> Int -> "

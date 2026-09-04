@@ -73,15 +73,31 @@ bowOf t = case asks (manner t) Staccato of
     True  -> 1.0
     False -> 0.0
 
+#: And the same, for the accent.
+pushOf : Tone -> Float
+pushOf t = case asks (manner t) Accent of
+    True  -> 1.0
+    False -> 0.0
+
 #: A bowed string, near enough: a saw through a filter, struck and left
 #: to ring — or not, if the note asked to be detached.
 #:
 #: **The staccato is a shorter stroke, not a quieter note.**  Both
 #: envelopes reach the same height and one of them lets go sooner, which
 #: is why the marked phrase is not simply the unmarked one turned down.
+#:
+#: **And the accent is in the attack, not in the level.**  A faster bow
+#: opens the string's brightness for the first instant and it settles
+#: back — so the filter is lifted by an envelope of its own rather than
+#: the note being made louder, which is what a velocity number would
+#: have done and what the score deliberately did not say.  The two marks
+#: are independent: a note may ask for both, and the arithmetic below
+#: adds rather than chooses.
 bowVoice : Sig Gate -> Sig Tone -> Sig Float
-bowVoice g s = lowpassSvf 1400.0 0.28 (saw (!hzOf s)) * (!velOf s) * 0.32
-    * (perc 5.0 g * (1.0 - (!bowOf s)) + perc 20.0 g * (!bowOf s))
+bowVoice g s =
+    lowpassSvf (1400.0 + (!pushOf s) * 2600.0 * perc 22.0 g) 0.28 (saw (!hzOf s))
+        * (!velOf s) * 0.32
+        * (perc 5.0 g * (1.0 - (!bowOf s)) + perc 20.0 g * (!bowOf s))
 
 voices bow 4 bowVoice : Sig Float
 

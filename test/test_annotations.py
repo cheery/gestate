@@ -421,3 +421,107 @@ def test_a_refused_mark_neither_writes_nor_plays():
     said = seat.do_mark("r", str(roll.events[note][3]), "1")
     assert said.startswith("mark: "), said
     assert seat.bench.calls == [], f"it acted on a refusal: {seat.bench.calls}"
+
+
+# ── Accent, and the set — `spec/annotations.md`, the second slice ───────────
+
+def test_the_accent_is_in_the_attack_and_not_in_the_level():
+    """A mark is an intention, and this voice's reading of it is a
+    faster bow — brightness for the first instant, settling back.
+
+    **Not a louder note**, which is what a velocity number would have
+    done and what the score deliberately did not say.  So the check is
+    not that it differs but that it differs *without* being simply
+    turned up: the accented render is brighter, and its overall level
+    stays within a hair of the plain one.
+    """
+    plain = _render(_one("bow", "Plain"))
+    acc = _render(_one("bow", "Accent"))
+    n = min(len(plain), len(acc))
+    assert sum(1 for i in range(n) if plain[i] != acc[i]) > n * 0.5
+
+    rms = lambda xs: (sum(x * x for x in xs[:n]) / n) ** 0.5  # noqa: E731
+    assert abs(rms(acc) - rms(plain)) < rms(plain) * 0.35, (
+        "the accent moved the level rather than the attack — that is a "
+        "velocity number wearing a mark's name")
+
+
+def test_a_note_may_ask_for_two_marks_at_once():
+    """**The reason a manner is a set and not a choice.**
+
+    Any violinist writes a staccato accent on one head.  An ordinal
+    would have made the two exclusive by accident, so the property to
+    hold is that `Staccato + Accent` is *neither* of them: it differs
+    from plain, from staccato alone and from accent alone.
+    """
+    takes = {m: _render(_one("bow", m)) for m in
+             ("Plain", "Staccato", "Accent", "(Staccato + Accent)")}
+    both = takes["(Staccato + Accent)"]
+    for name in ("Plain", "Staccato", "Accent"):
+        other = takes[name]
+        n = min(len(both), len(other))
+        assert sum(1 for i in range(n) if both[i] != other[i]) > 0, (
+            f"a note asking for both sounded the same as {name} alone")
+
+
+@pytest.mark.parametrize("mark", ["Accent", "(Staccato + Accent)"])
+def test_a_voice_that_reads_no_manner_is_untouched_by_any_of_them(mark):
+    """The claim, held for every mark rather than only the first.
+
+    `padVoice` never mentions `manner`.  Bit-identical, not close — the
+    day it drifts, a manner has become a command the score imposes.
+    """
+    assert _render(_one("pad", mark)) == _render(_one("pad", "Plain"))
+
+
+def test_the_roll_draws_each_mark_and_both_together():
+    """Under the head and over it, which is where a score puts them.
+
+    Different side **and** different shape, so the two read apart at a
+    glance — and a note asking for both draws both, which is the set
+    made visible.  The generated picture asks with the tree's own
+    `Staccato` and `Accent`, so it cannot drift from what a voice reads.
+    """
+    from collections import Counter
+
+    from gestate.gui import Substrate, _flatten
+    from gestate.scorebox import asks as box_asks, build_rolls, roll_program
+
+    written = WRITTEN.replace("0 0)", "0 0)").replace(
+        "'(Tone 0.9 1 0) ++ '(Tone 0.9 2 1) ++ '(Tone 0.9 3 1)",
+        "'(Tone 0.9 1 1) ++ '(Tone 0.9 2 2) ++ '(Tone 0.9 3 3)")
+    source = MARKED.read_text().replace(WHOLE, written) + "\nnotes score\n"
+    roll = build_rolls(source, box_asks(source), 44100, 0)[0]
+    program, _named = roll_program(roll)
+    canvas = Substrate(source + "\n" + program, 44100)
+    shapes = Counter((i[3], i[4]) for i in _flatten(canvas.signal.value, canvas.state)
+                     if i[0] == "rect")
+
+    wants = lambda bit: sum(1 for e in roll.events if (e[5] // bit) % 2)  # noqa: E731
+    assert shapes[(2, 2)] == wants(1), "a staccato dot per staccato note"
+    assert shapes[(6, 2)] == wants(2), "an accent bar per accented note"
+    assert wants(1) and wants(2), "this fixture must exercise both marks"
+    assert any(e[5] == 3 for e in roll.events), "and one note asking for both"
+
+
+def test_the_drawn_bits_are_the_ones_audio_ges_declares():
+    """One fact, two copies, held equal.
+
+    A canvas program is assembled **without** `audio.ges`, so the
+    picture cannot ask `asks m Staccato` the way a voice does — it has
+    to write the bit.  `scorebox.MANNERS` is that copy, and a copy
+    nothing checks is two things that can disagree: the day `Accent`
+    moves, the roll would draw dots where a voice hears bars and neither
+    would complain.
+    """
+    import re
+
+    from gestate.scorebox import MANNERS
+
+    text = (ROOT / "gestate" / "audio.ges").read_text()
+    for bit, word in MANNERS:
+        name = word.capitalize()
+        m = re.search(rf"^{name}\s*=\s*(\d+)$", text, re.M)
+        assert m, f"audio.ges no longer declares {name}"
+        assert int(m.group(1)) == bit, (
+            f"audio.ges says {name} = {m.group(1)}, scorebox draws {bit}")
