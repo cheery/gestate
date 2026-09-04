@@ -50,7 +50,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 STALE_DAYS = 7
 DAY = 86400
-SHELVES = ("board", "board/done", "board/later")
+SHELVES = ("board", "board/done", "board/later", "board/refused")
 
 
 def _log(root: Path) -> list[tuple[int, list[tuple[str, str, str]]]]:
@@ -141,7 +141,9 @@ def report(rows: list[dict], days: int = STALE_DAYS, now: float | None = None) -
     live = [r for r in rows if r["shelf"] == "board"]
     done = [r for r in rows if r["done"]]
     later = [r for r in rows if r["shelf"] == "board/later"]
-    lines = [f"{len(rows)} cards: {len(live)} open, {len(done)} done, {len(later)} shelved"]
+    refused = [r for r in rows if r["shelf"] == "board/refused"]
+    lines = [f"{len(rows)} cards: {len(live)} open, {len(done)} done, "
+             f"{len(later)} shelved, {len(refused)} refused"]
     if done:
         lead = [(r["done"] - r["born"]) / DAY for r in done]
         lines.append(f"lead time, done cards, days: median {statistics.median(lead):.1f}, "

@@ -42,13 +42,14 @@ BOARD = ROOT / "board"
 FIELD = re.compile(r"^ {4}(\w+)\s{2,}(.*)$")
 
 #: What `status` may say.  `done` carries its date; the rest stand alone.
-STATES = ("open", "doing", "blocked", "done", "shelved")
+STATES = ("open", "doing", "blocked", "done", "shelved", "refused")
 
 
 def cards() -> list[Path]:
     return (sorted(BOARD.glob("*.md"))
         + sorted((BOARD / "done").glob("*.md"))
-        + sorted((BOARD / "later").glob("*.md")))
+        + sorted((BOARD / "later").glob("*.md"))
+        + sorted((BOARD / "refused").glob("*.md")))
 
 
 def header(path: Path) -> dict:
@@ -134,11 +135,13 @@ def test_a_finished_card_is_in_done_and_an_open_one_is_not(card: Path):
         return
     said = fields["status"].split()[0]
     #: Which directory each state belongs in — `later/` joined on
-    #: 2026-08-17, for cards displaced by the arrivals rule.  A shelved
-    #: card is off the live board and is *not* finished, which is the
-    #: distinction the two directories carry and a status word alone
-    #: could not.
-    belongs = {"done": "done", "shelved": "later"}.get(said, "board")
+    #: 2026-08-17, for cards displaced by the arrivals rule, and
+    #: `refused/` on 2026-09-04 for cards whose question was answered
+    #: *no*.  Each says a different thing about the problem: solved,
+    #: real and not being worked, or closed — a distinction three
+    #: directories carry and a status word alone could not.
+    belongs = {"done": "done", "shelved": "later",
+               "refused": "refused"}.get(said, "board")
     sitting = card.parent.name if card.parent.name != "board" else "board"
     assert belongs == sitting, (
         f"{card.relative_to(ROOT)} says `status "

@@ -1,6 +1,8 @@
 # portable-package — the way in is Ubuntu-shaped, and other distros translate it by hand
 
-    status   shelved — 2026-08-20
+    status   refused — 2026-08-20, answered; moved to board/refused/ on
+             2026-09-04 when the shelf was built — §"Refused, and why it
+             is not on the later/ shelf"
     because  "The installation on ubuntu is fine, but I think we need to
              think that there are other distros as well" — the way in is
              written for one distro's package names, and anybody else
@@ -13,6 +15,23 @@
              doc/install.md — what a package would have to replace
              vision.md — what "accessibility" is being measured against
              README.md §Ubuntu, from nothing
+
+## Refused, and why it is not on the later/ shelf
+
+*Moved 2026-09-04, the day `board/refused/` was built.*  **Henri:**
+*"we need some place for cards that were struck or refused.  I think
+later/ is not for those cards."*
+
+This card was the measurement that said the shelf was needed.  It sat
+in `later/` for fifteen days carrying an **answer**, not a wait — the
+section below is Henri closing the question rather than deferring it —
+and `later/`'s own contract asks of every card it holds *is this
+waiting on an event, or on me?*, which this one answers neither way.
+A reader doing that pass had to re-read the whole card to find out it
+was already decided, every time, which is the cost a wrong shelf
+charges.  Nothing here wakes on its own and nothing is owed.
+
+Everything below is as it was written on 2026-08-20.
 
 ## Shelved, 2026-08-20 — and it is the answer to program-or-workshop
 

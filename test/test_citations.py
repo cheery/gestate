@@ -83,7 +83,7 @@ CARD = re.compile(r"`?card:([\w-]+\.md)`?")
 
 #: Where a card may sit.  The shelf is not part of the id, which is the
 #: whole point: finishing a card must not break a citation to it.
-SHELVES = ("board", "board/done", "board/later")
+SHELVES = ("board", "board/done", "board/later", "board/refused")
 
 
 def _files():

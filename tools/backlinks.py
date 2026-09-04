@@ -91,7 +91,11 @@ ROOT = Path(__file__).resolve().parent.parent
 CITERS = {".py", ".rs", ".md", ".ges", ".sh", ".c", ".h", ".toml", ".txt"}
 SKIP = {"target", ".venv", "__pycache__", ".git", "node_modules", ".claude",
         ".pytest_cache", ".mypy_cache", "dist", "build"}
-SHELVES = ("board", "board/done", "board/later")
+SHELVES = ("board", "board/done", "board/later", "board/refused")
+#: The shelves a card is no longer worked on — every one of them ranks
+#: below the live board, because a reader of a target wants to know what
+#: currently leans on it before what once did.
+SHELVED = ("board/done/", "board/later/", "board/refused/")
 
 SEC = re.compile(r"`?([\w./-]+\.md)`?\s*§\"([^\"]+)\"")
 CARD = re.compile(r"`?card:([\w-]+\.md)`?")
@@ -116,9 +120,9 @@ LAMP_CUT_SHARE = 1 / 3
 #: is what a reader of the *target* most wants to know: what currently
 #: leans on it, then what defines the tree, then code, then the past.
 TIERS = (
-    (0, "cards and memory", lambda r: (r.startswith("board/") and not r.startswith(("board/done/", "board/later/")))
+    (0, "cards and memory", lambda r: (r.startswith("board/") and not r.startswith(SHELVED))
                                       or r.startswith("doc/memory/")),
-    (3, "shelved cards",    lambda r: r.startswith(("board/done/", "board/later/"))),
+    (3, "shelved cards",    lambda r: r.startswith(SHELVED)),
     (4, "the ledger",       lambda r: r == "fixme.md"),
     (5, "history",          lambda r: r == "journal.md" or r.startswith("journal/")),
     (2, "code and tests",   lambda r: r.startswith(("test/", "gestate/", "tools/", "shell/", "examples/"))

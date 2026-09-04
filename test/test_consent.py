@@ -50,7 +50,7 @@ NOT_A_PERSON = frozenset("""
     Checked Confirmed Corrected Costs Established Granular Named Open
     Picked Proposed Reproduced Ruled Started Why
     Buys Counted Decided Diagnosis Done Filed Fixed Found Generated Imposed
-    Kaizen Known Measured Mon Tue Wed Thu Fri Sat Sun Noted Offered
+    Kaizen Known Measured Mon Tue Wed Thu Fri Sat Sun Moved Noted Offered
     Monday Tuesday Wednesday Thursday Friday Saturday Sunday His Her Their
     Opened Predicted Recommendation Reported Resolution Resolved
     Shelved Shown Spent Status Steal Struck Tried Unprompted Vacuous Verified

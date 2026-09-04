@@ -157,6 +157,38 @@ Without that it is a graveyard nobody re-reads, which is the failure
 mode of every "later" folder ever made.  A card comes back the same
 way it left: by him saying so.
 
+**And a card answered *no* is in [refused/](refused/)** — *adopted
+2026-09-04.*  **Henri:** *"we need some place for cards that were
+struck or refused.  I think later/ is not for those cards."*  Three
+shelves, each saying a different thing: `done/` the problem is solved,
+`later/` it is real and not being worked, `refused/` the question was
+**answered**.
+
+```
+status   refused — <date>
+```
+
+**The card that proved the shelf was needed had sat in `later/` for
+fifteen days.**  `card:portable-package.md` carries his own closing of
+it, which is an answer and not a wait — so the question above, *event
+or me?*, has no reading for it, and a reader had to re-read the whole
+card to find that out on every pass.
+
+**A refusal keeps its argument**, which is most of the point: a refusal
+with nothing under it gets made again by the next person who has the
+idea.  Nothing is deleted or trimmed, and a `## Refused` section on the
+front says who answered, when, in their words.
+
+**This shelf is not read on a schedule.**  It is read the moment
+somebody is about to propose work a card here covers — the job
+`card:online.md` C1's *not now with a trigger* failed to do when a
+session re-proposed it two days later.
+
+**Not here:** a card waiting on anything, and a card answered *maybe
+not* — a hedge is a wait.  `card:git-lesson.md`'s *"taitaa olla
+tarpeeton"* stays on `later/` until the plain word.  A refusal is
+answered, not permanent; a new answer goes in beside the old one.
+
 ---
 
 ## Who writes what
