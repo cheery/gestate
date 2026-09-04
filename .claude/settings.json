@@ -79,6 +79,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/gestate/tools/backlinks.py --hook",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   }
 }
