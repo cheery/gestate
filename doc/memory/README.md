@@ -135,6 +135,7 @@ session inferred.
 - [Mechanism, not instructions](mechanism-not-instructions.md) — the idea is widely converged on; rules held by a suite are what is uncommon, so a copy takes the mechanisms and not the prose
 - [Where the method comes from](method-sources.md) — Adler's separation of tasks, Socratic dialogue and the epoché are already rules here, uncredited; crediting them is `spec/author.md` and Henri's to write
 - [The keeper's evening](the-keepers-evening.md) — **adopted 2026-08-21**, and `keeper.md` is its standard work: read the lamps, open the decisions batch, measure one rule, pass over the pile, rotate monthly; it must never become a demand
+- [The customer is Henri](the-customer-is-henri.md) — 2026-09-04, his words: *the customer has been me, and people like me; I need this*; the stranger is the second customer, and the first one's pull is the everyday buzz — do not list the customer as missing again
 - [The tree meets people on pull](the-tree-meets-people-on-pull.md) — show it to whoever asks and stop expecting the wanting; a shrug is stranger-test data, and a session's feelings about a named visitor are conditioning material
 - [Showing, not persuading](showing-not-persuading.md) — disbelief is correct scepticism; do not argue, show — the method is a portable artifact and zero persuasion is owed
 - [Recorded is not answered](recorded-is-not-answered.md) — a signal filed where nobody owns reading it discharges both parties and produces nothing; the andon inverted, and **two unanswered reports were enough** to end the reporting

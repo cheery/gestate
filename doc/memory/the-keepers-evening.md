@@ -51,3 +51,15 @@ The conversation this came from is `journal.md` §"Five questions at the fire".
 
 **First held 2026-08-28**, one sitting, about half an hour, three decisions
 in the batch and one rule measured — `journal.md` §"The first fire, 2026-08-28".
+
+**And on 2026-09-04 he said it does not pull him.**  *"minulla on
+ongelma keeper.md:n kanssa.  Jotenkin se ei motivoi minua tekemään,
+toisin kuin arkinen pöhinä session kanssa"* — the everyday buzz with a
+session does, the page does not.  The same evening's flow measurement
+showed the board has the same shape: six of eight open cards had stood
+seventeen days while same-day cards finished, so the queue pulls
+nobody and the conversation pulls both.  *Fix the task, not the
+person* applies to the page itself: the acts may need to arrive as a
+session's opening in a sitting, with his part being the answers —
+his call, and `~/gestate-lean.md` is where he parked it.
+
