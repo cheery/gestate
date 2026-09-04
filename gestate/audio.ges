@@ -236,9 +236,19 @@ class FromMIDI a where
 #: Not `pitchOf`/`velOf`, which pieces already define as their own
 #: helpers — a class must not collide with the names its authors were
 #: taught to write.
+#: **And how it asks to be played** — `manner`, `spec/annotations.md`.
+#: In this class rather than in one of its own, which is a correction
+#: the building made: a manner was going to be a separate `Mannered`,
+#: on the argument that the box reads a note to *draw* it and a voice
+#: reads one to *play* it.  Then the box had to draw the mark, so the
+#: box needs it too, and a second class would have been two constraints
+#: on every reader for one fact about a note.  The language has no
+#: default methods, so every instance answers — and answering `Plain`
+#: costs a line.
 class Notable a where
     noteKey : a -> Int
     noteVel : a -> Int
+    manner : a -> Int
 
 #: The bare note: a `[: Int :]` melody carries its key number
 #: directly, and the velocity is the 64 that `prog` itself assigns —
@@ -247,6 +257,7 @@ class Notable a where
 instance Notable Int where
     noteKey k = k
     noteVel k = 64
+    manner _ = Plain
 
 #: **How a note is played, as against which note it is** — `spec/annotations.md`.
 #:
@@ -281,24 +292,6 @@ Portamento = 4
 #: set outgrows an `Int` only this line changes.
 asks : Int -> Int -> Bool
 asks ms m = (ms / m) % 2 == 1
-
-#: What a voice needs from a note to play it the way it is written.
-#:
-#: Separate from `Notable` rather than folded into it, because they
-#: answer to different readers: the score box reads `Notable` to *draw* a
-#: note, and a voice reads this to *play* one.  A piece may want either
-#: without the other, and `manner _ = Plain` below is why asking costs a
-#: melody nothing.
-class Mannered a where
-    manner : a -> Int
-
-#: The bare note: a `[: Int :]` melody is a key number and nothing else,
-#: so it asks for nothing — the same promise `instance Notable Int` makes
-#: about velocity.  **An unmarked note is not a special case**, it is a
-#: note whose set is empty, and every `asks` on it answers `False`
-#: without a branch anywhere else.
-instance Mannered Int where
-    manner _ = Plain
 
 #: A one-pole lowpass, as a *signal transformation*.  A coefficient near 0
 #: is very smooth, near 1 lets everything through.  This is the shape the whole

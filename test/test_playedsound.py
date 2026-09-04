@@ -547,14 +547,19 @@ def test_the_band_plays_along_and_lays_out(tmp_path):
 
 
 def _with_notes(source: str) -> str:
-    """A piece with a score box on it — the two lines a person adds to
-    see its notes: what a payload's key and velocity are, and the ask."""
+    """A piece with a score box on it — the lines a person adds to see
+    its notes: what a payload's key, velocity and manner are, and the
+    ask.  `manner` joined `Notable` with `spec/annotations.md`, and it
+    is written out here rather than defaulted because the language has
+    no default methods — which is exactly what a person adding a box to
+    their own piece will meet."""
     return (source
             + "\ninstance Notable Pitched where\n"
             + "    noteKey p = case p of\n"
             + "        Pitched k v -> k\n"
             + "    noteVel p = case p of\n"
             + "        Pitched k v -> v\n"
+            + "    manner _ = Plain\n"
             + "\nnotes score\n")
 
 

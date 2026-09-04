@@ -28,6 +28,10 @@ instance Notable Key where
         Key k v -> k
     noteVel q = case q of
         Key k v -> v
+    #: This piece writes no manners, so every note is plain — the one
+    #: line a payload owes now that `Notable` carries `manner`
+    #: (`spec/annotations.md`).
+    manner _ = Plain
 
 # ── what a voice reads off its payload ────────────────────────────────
 

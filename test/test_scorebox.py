@@ -758,7 +758,7 @@ def test_a_hand_reaches_two_octaves_past_the_music():
 
     # And the same line read backwards: a height where a note is
     # *drawn* still means that note, which is what picking depends on.
-    for _on, _off, _k, key, _vel in roll.events:
+    for _on, _off, _k, key, _vel, _m in roll.events:
         drawn = y_of(roll, key)
         top, bottom = y_of(roll, high), y_of(roll, low)
         assert key_at(roll, (drawn - top) / (bottom - top)) == key

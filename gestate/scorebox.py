@@ -139,7 +139,7 @@ class Leaf:
 @dataclass
 class Roll:
     """A built take: events tagged with the leaf that wrote them."""
-    events: list                  # (onset, offset, leaf, key, vel) in ticks
+    events: list                  # (onset, offset, leaf, key, vel, manner) in ticks
     leaves: list                  # Leaf per id
     cut: bool                     # the fuel ran out — say so, don't lie
     chancy: bool                  # any take ink: the label owes a seed
@@ -711,7 +711,7 @@ def build_rolls(source: str, asks_: list, rate: int, seed: int, *,
               f"(sowScore {seed} __nb_root_{k}__)\n"
             + f"__nb_fuel_{k}__ : Int\n"
             + f"__nb_fuel_{k}__ = fst __nb_take_{k}__\n"
-            + f"__nb_ev_{k}__ : List (Int, Int, Int, Int, Int)\n"
+            + f"__nb_ev_{k}__ : List (Int, Int, Int, Int, Int, Int)\n"
             + f"__nb_ev_{k}__ = map (e => __nb_read__ e) "
               f"(snd __nb_take_{k}__)\n")
     if not built:
@@ -737,11 +737,16 @@ def build_rolls(source: str, asks_: list, rate: int, seed: int, *,
            # Signed, and the constraint written out, so the payload
            # stays the caller's to determine — which it is: the take's
            # own element type.  One copy serves every box.
+           #
+           # **And the manner rides out with the key and the weight**
+           # (`spec/annotations.md`): the box draws the mark, so the box
+           # has to read it, which is the whole reason `manner` is a
+           # method of `Notable` and not of a class of its own.
            + "__nb_read__ : (Notable a) => (Int, Int, (Int, a)) "
-             "-> (Int, Int, Int, Int, Int)\n"
+             "-> (Int, Int, Int, Int, Int, Int)\n"
            + "__nb_read__ e = case e of\n"
            + "    (a, b, p) -> case p of\n"
-           + "        (k, x) -> (a, b, k, noteKey x, noteVel x)\n")
+           + "        (k, x) -> (a, b, k, noteKey x, noteVel x, manner x)\n")
     try:
         state = _compile(assemble_performance(aux, "", rate))
     except (ScoreError, Exception) as exc:            # noqa: BLE001
@@ -821,7 +826,7 @@ def pitch_atom(roll: Roll, note: int) -> tuple:
 
     Raises `RefusedError` with the sentence the margin should say.
     """
-    _on, _off, k, key, _vel = roll.events[note]
+    _on, _off, k, key, _vel, _m = roll.events[note]
     leaf = roll.leaves[k] if 0 <= k < len(roll.leaves) else None
     if leaf is None:
         raise RefusedError("that note has no source region")
@@ -880,7 +885,7 @@ def transposed(source: str, roll: Roll, note: int, key: int) -> tuple:
                            "semitone step would round it")
     key = int(key)
     lines[line - 1] = row[:col] + str(key) + row[col + width:]
-    _on, _off, k, was, _vel = roll.events[note]
+    _on, _off, k, was, _vel, _m = roll.events[note]
     voices = sum(1 for e in roll.events if e[2] == k and e[3] == was)
     step = key - was
     said = (f"{'+' if step > 0 else ''}{step} semitone"
@@ -1210,7 +1215,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
     # this is the same picture built the same way — the chain stays
     # flat and the depth is a small function's.
     rows = []
-    for i, (on, off, k, key, vel) in enumerate(events):
+    for i, (on, off, k, key, vel, mark) in enumerate(events):
         x0, x1 = x_of(on), x_of(off)
         w = max(2, x1 - x0) - 1
         leaf = leaves[k] if 0 <= k < len(leaves) else leaves[-1]
@@ -1218,8 +1223,13 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
         # **The note's own number rides with it**, so that one of them
         # can be moved without the others: which one a hand has hold of
         # arrives as a reading, and the picture compares it here.
+        # **The manner rides in the row**, so the picture can draw the
+        # mark without a second walk: a note that asked to be detached
+        # gets a dot under its head, the way a score has always said it
+        # (`spec/annotations.md`).
         rows.append(f"({i}, {_n(x0 + (w + 1) // 2)}, {_n(y_of(key))}, "
-                    f"{max(2, w)}, {tone}, {1 if leaf.chancy else 0})")
+                    f"{max(2, w)}, {tone}, {1 if leaf.chancy else 0}, "
+                    f"{mark})")
     listing = " :: ".join(rows + ["Nil"]) if rows else "Nil"
 
     hues = ["    _ -> RGB %d %d %d" % _HUES[0]]
@@ -1286,6 +1296,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
     rows_g, hue_g = f"__nb_rows_{box}__", f"__nb_hue_{box}__"
     lit_g, dim_g = f"__nb_lit_{box}__", f"__nb_dim_{box}__"
     one_g, all_g = f"__nb_one_{box}__", f"__nb_all_{box}__"
+    dot_g, asks_g = f"__nb_dot_{box}__", f"__nb_asks_{box}__"
     held_s, lift_s = f"__nb_h_{box}__", f"__nb_l_{box}__"
     pic_g = f"__nb_pic_{box}__"
     text = (chans
@@ -1295,7 +1306,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
             + f"{held_s} = (0.0 - 1.0) ::: mkSig (wait {held_c})\n\n"
             + f"{lift_s} : Sig Float\n"
             + f"{lift_s} = 0.0 ::: mkSig (wait {lift_c})\n\n"
-            + f"{rows_g} : List (Int, Int, Int, Int, Int, Int)\n"
+            + f"{rows_g} : List (Int, Int, Int, Int, Int, Int, Int)\n"
             + f"{rows_g} = {listing}\n\n"
             + f"{hue_g} : Int -> Int -> Colour\n"
             + f"{hue_g} t d = case d of\n"
@@ -1312,15 +1323,26 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
                 + ["    _ -> RGB %d %d %d"
                    % (_DIM * _HUES[0][0] // 255, _DIM * _HUES[0][1] // 255,
                       _DIM * _HUES[0][2] // 255)]) + "\n\n"
+            # **The mark is drawn under the head, not instead of it**
+            # — a staccato note is still the note it was, so the bar
+            # keeps its full written length and the dot says how it is
+            # to be played (`spec/annotations.md`).  Drawn at the note's
+            # own colour so the two read as one thing.
+            + f"{dot_g} : Int -> Int -> Int -> Int -> Sub\n"
+            + f"{dot_g} m t d w = case {asks_g} m 1 of\n"
+            + f"    True -> Shift 0 5 (Rect 2 2 ({hue_g} t d))\n"
+            + "    False -> Gap 0 0\n\n"
+            + f"{asks_g} : Int -> Int -> Bool\n"
+            + f"{asks_g} ms m = (ms / m) % 2 == 1\n\n"
             + f"{one_g} : Int -> Int -> "
-              f"(Int, Int, Int, Int, Int, Int) -> Sub\n"
+              f"(Int, Int, Int, Int, Int, Int, Int) -> Sub\n"
             + f"{one_g} h v e = case e of\n"
-            + "    (i, x, y, w, t, d) -> Shift x (y + (case i == h of\n"
+            + "    (i, x, y, w, t, d, m) -> Shift x (y + (case i == h of\n"
             + "        True -> v\n"
             + "        False -> 0))"
-              f" (Rect w 3 ({hue_g} t d))\n\n"
+              f" (Over (Rect w 3 ({hue_g} t d)) ({dot_g} m t d w))\n\n"
             + f"{all_g} : Int -> Int -> "
-              f"List (Int, Int, Int, Int, Int, Int) -> Sub\n"
+              f"List (Int, Int, Int, Int, Int, Int, Int) -> Sub\n"
             + f"{all_g} h v es = case es of\n"
             + "    Nil -> Gap 0 0\n"
             + f"    e :: rest -> Over ({one_g} h v e) "

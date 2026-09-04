@@ -70,6 +70,10 @@ instance Notable Hammer where
         Hammer k v -> k
     noteVel h = case h of
         Hammer k v -> v
+    #: This piece writes no manners, so every note is plain — the one
+    #: line a payload owes now that `Notable` carries `manner`
+    #: (`spec/annotations.md`).
+    manner _ = Plain
 
 # ── The instrument ──────────────────────────────────────────────────────
 

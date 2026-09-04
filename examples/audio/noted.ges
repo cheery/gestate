@@ -54,6 +54,10 @@ instance Notable Hit where
         Hit k v -> k
     noteVel h = case h of
         Hit k v -> v
+    #: This piece writes no manners, so every note is plain — the one
+    #: line a payload owes now that `Notable` carries `manner`
+    #: (`spec/annotations.md`).
+    manner _ = Plain
 
 # ── The two hands ─────────────────────────────────────────────────────────
 

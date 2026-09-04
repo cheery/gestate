@@ -75,12 +75,14 @@ def test_a_manner_is_a_set_and_every_combination_decodes():
 
 
 def test_an_unmarked_melody_asks_for_nothing():
-    """`instance Mannered Int` — the promise that costs a melody nothing.
+    """`instance Notable Int` — the promise that costs a melody nothing.
 
-    A `[: Int :]` melody is a key number and nothing else.  It must be
-    able to reach a voice that reads manners without the author writing
-    anything, the same way `instance Notable Int` already gives it a
-    velocity of 64.  **An unmarked note is not a special case.**
+    A `[: Int :]` melody is a key number and nothing else.  It must reach
+    a voice that reads manners without the author writing anything, the
+    same way that instance already gives it a velocity of 64.  **An
+    unmarked note is not a special case**, and since the language has no
+    default methods this is the *only* thing standing between a bare
+    melody and a compile error.
     """
     source = """
 manners : Int -> Int
@@ -90,7 +92,7 @@ sound : Sig Float
 sound = !(toFloat (manners 60)) * 0.0 + sine 220.0 * 0.1
 """
     graph = audioperform.graph_of(source, rate=44100)
-    assert graph.nodes, "a bare Int must satisfy Mannered with no instance written"
+    assert graph.nodes, "a bare Int must answer `manner` with no instance written"
 
 
 # ── the claim ───────────────────────────────────────────────────────────────
@@ -143,3 +145,49 @@ def test_every_manner_crosses_whether_or_not_a_voice_reads_it(mark):
     use a word before any of its instruments answers to it.
     """
     assert _render(_one("bow", mark)), f"{mark} did not render"
+
+
+# ── the mark on the roll — `spec/annotations.md` §"The picture" ─────────────
+
+def test_the_roll_reads_the_manner_off_every_note():
+    """The box draws the mark, so the box has to read it.
+
+    **That is the reason `manner` is a method of `Notable`** and not of
+    a class of its own — a design this file's spec had the other way
+    round until the building found that the roll needs the same fact the
+    voice does.  Here it is, riding out of the take with the key and the
+    velocity.
+    """
+    from gestate.scorebox import asks as box_asks, build_rolls
+
+    source = MARKED.read_text()
+    roll = build_rolls(source, box_asks(source + "\nnotes score\n"), 44100, 0)
+    assert roll, "marked.ges built no roll"
+    events = roll[0].events
+    assert events, "the roll is empty"
+    marks = {e[5] for e in events}
+    assert marks == {0, 1}, (
+        f"the roll saw manners {marks}; marked.ges writes Plain and Staccato")
+
+
+def test_a_staccato_note_is_drawn_with_a_dot_and_a_plain_one_is_not():
+    """The picture, and the property that a mark is *added* to a note.
+
+    **The bar keeps its full written length.**  A staccato note is still
+    the note it was — the dot says how it is to be played, and a picture
+    that shortened the bar instead would be drawing the voice's decision
+    rather than the score's instruction, which is the confusion this
+    whole spec exists to avoid.
+    """
+    from gestate.scorebox import asks as box_asks, build_rolls, roll_program
+
+    source = MARKED.read_text() + "\nnotes score\n"
+    roll = build_rolls(source, box_asks(source), 44100, 0)[0]
+    text, _named = roll_program(roll)
+    #: The generated program draws the dot only when the row's manner
+    #: asks for it — the same `asks` arithmetic `audio.ges` uses, so the
+    #: two cannot drift without this failing.
+    assert "Rect 2 2" in text, "no dot is drawn at all"
+    assert "% 2 == 1" in text, "the picture does not decode the manner set"
+    rows = [l for l in text.splitlines() if l.strip().startswith("__nb_rows")]
+    assert rows, "no row listing in the generated picture"

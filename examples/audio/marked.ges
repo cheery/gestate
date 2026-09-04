@@ -17,9 +17,10 @@
 # — a pad has no bow.  A mark names an **intention**; what it means is
 # the voice's, which is what a score has always asked of a player.
 #
-# `spec/annotations.md` is the design; `Mannered` and `asks` are in
-# `audio.ges` beside `Notable`, because the two are halves of one seam —
-# `Notable` says which note, this says how it is played.
+# `spec/annotations.md` is the design; the manner names, `asks` and
+# `Notable`'s `manner` method are in `audio.ges`.  One class, because
+# the box draws the mark and the voice plays it and neither should need
+# a second constraint for one fact about a note.
 
 # ── What is written ──────────────────────────────────────────────────────
 
@@ -29,10 +30,6 @@
 #: set of bits rather than as a list (`spec/annotations.md` §"What the
 #: compiler refused").
 Tone := Tone Float Int Int
-
-instance Mannered Tone where
-    manner t = case t of
-        Tone v d m -> m
 
 #: A major pentatonic — nothing here turns on the notes, they are only
 #: something to be played two ways.
@@ -52,6 +49,17 @@ hzOf t = case t of
 velOf : Tone -> Float
 velOf t = case t of
     Tone v d m -> v
+
+#: **The box reads this to draw the note and the voice reads it to play
+#: one** — one class, because the mark is wanted by both.  `noteKey`
+#: answers in MIDI numbers, which is what a roll's vertical axis is.
+instance Notable Tone where
+    noteKey t = case t of
+        Tone v d m -> 57 + stepOf d
+    noteVel t = case t of
+        Tone v d m -> floor (v * 127.0)
+    manner t = case t of
+        Tone v d m -> m
 
 # ── The voice that reads the mark ────────────────────────────────────────
 

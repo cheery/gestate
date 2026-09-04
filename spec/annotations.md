@@ -62,9 +62,10 @@ the whole of *grounded to what can be delivered*.
 | a voice that already plays portamento | `examples/audio/violin.ges` | built — the reference |
 | an `Int` field on a bank's payload, and the voice reading it | measured 2026-09-04 — §"The vocabulary" | **built; a list or an enum is not** |
 
-**What is not standing:** the manner names and `asks`, the class, the
-drawing, the command, and one decision about the preview tone.  That is
-the work — and it is smaller than the first draft of this file thought,
+**What is not standing:** the command and one decision about the preview
+tone.  The manner names, `asks`, `Notable`'s `manner`, the voice
+behaviour and the dot on the roll all landed on 2026-09-04.  That is
+what is left — and it is smaller than the first draft of this file thought,
 because §"What the compiler refused" removed a language change it had
 quietly assumed.
 
@@ -149,21 +150,40 @@ Accent     = 2
 Portamento : Int
 Portamento = 4
 
-class Mannered a where
-    manner : a -> Int
+class Notable a where
+    noteKey : a -> Int
+    noteVel : a -> Int
+    manner  : a -> Int          -- joined here; see below
 
-instance Mannered Int where
-    manner _ = Plain
+instance Notable Int where
+    noteKey k = k
+    noteVel k = 64
+    manner  _ = Plain
 
 #: Does this note ask for that manner?  The one place the encoding is
 #: read, so a voice never writes arithmetic about bits.
 asks : Int -> Int -> Bool
 ```
 
+**`manner` is a method of `Notable`, and that is the third thing the
+building corrected.**  This file first gave it a class of its own,
+`Mannered`, arguing that the two answer to different readers: the box
+reads `Notable` to *draw* a note and a voice reads a manner to *play*
+one.  Then the box had to **draw the mark** — §"The picture" — and the
+argument fell over.  A second class would have been two constraints on
+every reader for one fact about a note.
+
+*The cost is real and was paid:* the language has **no default
+methods** — the parser refuses a body in a class declaration — so every
+`Notable` instance must answer.  Six existed and each gained
+`manner _ = Plain`, one line, and `instance Notable Int` carries it for
+every bare `[: Int :]` melody, which is why asking costs a melody
+nothing.
+
 **`manner`, not `marksOf` or `articulation`**, and the reason is
 `Notable`'s own, quoted because it applies unchanged: *"a class must not
 collide with the names its authors were taught to write."*  No file in
-the tree or in `examples/audio/` uses `manner` or `Manner` today.
+the tree or in `examples/audio/` used `manner` before this.
 
 **A set and not a choice**, which the bitmask buys back: a note may be
 accented *and* staccato, and a violinist writes both marks on one head.
@@ -196,7 +216,11 @@ which is the only reason it is the shape it is:
 ```
 Tone := Tone Float Int Int          -- weight, degree, manners
 
-instance Mannered Tone where
+instance Notable Tone where
+    noteKey t = case t of
+        Tone v d m -> 57 + stepOf d
+    noteVel t = case t of
+        Tone v d m -> floor (v * 127.0)
     manner t = case t of
         Tone v d m -> m
 
@@ -335,9 +359,9 @@ at the moment it is written.
 
 ## Refusals, each with a sentence
 
-* **A payload with no `Mannered` instance** is not an error and is not
-  warned about; it has no manners.  A warning here would punish every
-  melody written as `[: Int :]`.
+* **A payload that answers `Plain`** is not warned about; it has no
+  manners.  A warning would punish every melody written as `[: Int :]`,
+  and `instance Notable Int` answers for all of them.
 * **A manner a voice does not read** is silent by design.  The score
   says how it should be played and the voice says what it can do; a
   pad that cannot bow is not a fault.
