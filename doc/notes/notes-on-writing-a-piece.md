@@ -240,6 +240,79 @@ harmony untouched.  `arc-melody.ges` in the scratchpad.
 
 ---
 
+## The result that bounds the whole exercise — 2026-09-04
+
+**Henri went and did it himself, and could not either.**
+
+> *"I think I take the editor.. then I take a MIDI input device I have
+> here.. And I'll try to replicate locrian sound from what I
+> understand.  I'll do it in a DAW and produce midi out for it……..  and
+> you know what.  I failed!  I am myself right now, unable to produce
+> locrian sounds.  it would be irreasonable to expect you, with your
+> limits, to produce something I am unable to produce myself."*
+
+**The absolution is declined and the fact is kept**, because they point
+different ways.
+
+*Declined:* the four things his ear caught were **not** locrian errors.
+No third in twenty-four bars.  A percussive envelope under a chord
+meant to be held.  The same cadence written twice while the comment
+claimed otherwise.  Three tonic visits in thirty-two notes.  Every one
+is checkable without knowing what locrian is supposed to feel like, and
+every one was found by listening once.  Those were not a limit that
+needed excusing; they were four things a number would have caught.
+
+*Kept, and it is the most useful result of the day:* he went to **the
+most direct music-writing setup that exists** — a MIDI keyboard, a DAW,
+hands on keys, instant sound — and it did not help.
+
+**So "locrian doesn't locrian" is not a notation problem.**  Not a
+format problem and not an editor problem.  If it were, the DAW would
+have solved it, because a DAW is that problem already solved.  It is a
+compositional-knowledge problem, and it stayed hard in the tool best
+suited to it.
+
+**That bounds what this card may promise.**  W1–W8 are real notation
+problems and a format fixes them — a note that cannot carry its own
+length, a bar that does not exist, five lines aligned by counting.
+**This was not one of them**, and four passes went into finding that
+out.  A future reading that treats "the modes did not land" as a format
+requirement is reading the wrong half of this file.
+
+## And what did move it, which neither tool gives
+
+Every step forward came from turning a feeling into a count:
+
+| the feeling, heard | the number, written afterwards |
+|---|---|
+| *bright all through* | **0** thirds in 24 bars |
+| *the chords sink into the background* | **46%** of the bar's opening level at its end |
+| *doesn't go to locrian* | **4 of 8** bars offer a perfect fifth over the bass |
+| *not that unsettling feeling* | **3 of 32** notes touch the tonic |
+
+**A DAW gives you your ears and nothing else.**  It will not say that
+four of your eight bars have somewhere to rest, or that your melody
+never says G.  **And neither did gestate** — every one of those four
+checks was written by hand, by a session, *after* his ear had already
+found the problem.
+
+*The proposal this suggests, and it is not what the exercise set out to
+find:* what gestate could offer that a DAW cannot is **not a better way
+to write notes**.  It is the box saying *how many bars have a perfect
+fifth over the bass* while you write them — the same shape the score
+box already is, a view over a span of source, answering a **musical
+question** instead of drawing a picture.
+
+**Marked as a proposal and not a finding**, because the evidence is the
+wrong way round: all four checks were written after the ear had
+spoken, which says nothing about whether they would have found it
+first.  *The test is cheap and is the next thing to do:* pick the check
+**before** listening, and see whether it names the problem.  Until that
+has been run, this paragraph is a hypothesis with four anecdotes behind
+it.
+
+---
+
 ## What the two passes cost, in one place
 
 | | pass 1 | pass 2 |

@@ -379,6 +379,41 @@ each checkable:
 * **a stable order** — two writings of one phrase are byte-identical,
   so a diff shows what changed and nothing else.
 
+## What the first piece found — 2026-09-04
+
+*Written with him, logged in `doc/notes/notes-on-writing-a-piece.md`.
+Eight frictions, and **one result that bounds this card**.*
+
+**The eight are real and a format fixes them.**  The load-bearing ones:
+a note cannot carry its own **length**, so two durations cannot sit
+side by side without a bracket and the first pass came out with no
+rhythm at all; the **bar** is not a thing, so a fifth note in a bar
+compiles and shifts everything after it; and five voices ended up
+**aligned by nothing but their lengths**, which is the plainest
+requirement of the day — *a format holding voices separately must know
+they are the same bars*.
+
+**And the one that bounds it:** he took a MIDI keyboard and a DAW and
+tried to write the same modal passage himself, and **could not
+either**.  So the thing four passes were spent on — *the modes do not
+land* — **is not a notation problem**: it stayed hard in the tool where
+format and editor are already solved.  A future reading must not take
+it as a requirement on this card.
+
+**What did move it was measurement**, every time and always too late:
+0 thirds in 24 bars, 46% of a bar's harmony gone by its end, 4 of 8
+bars offering a perfect fifth to rest on, 3 of 32 notes touching the
+tonic.  *A DAW gives you your ears and nothing else, and so did
+gestate* — a session wrote each check by hand after his ear had already
+found the fault.
+
+*Which suggests a different thing to build than this card was going
+toward*, marked as a proposal: **a box that answers a musical question
+about the span it covers**, the way the score box draws one.  The
+evidence is the wrong way round — every check was written after the
+listening — so the next move is to pick a check **before** listening
+and see whether it names the fault first.
+
 ## Questions
 
 *Open, for whenever it is unshelved.*
