@@ -3,7 +3,9 @@
     status   doing — 2026-09-04, day two landed: all six pieces draw on
              the page in a real browser, equal to `gui.py`, and the
              meters came with them at his ask — §"Day two, landed".
-             Q2's remaining rows are still his
+             **Q2 answered 2026-09-04: not the gui row alone** — MIDI
+             next, and a fader that moves the picture and not the sound
+             is a fault a person has now met
     because  "people do not currently see with ease, without
              installation, what gestate can create.  And it's a bit sad
              situation there." — Henri, 2026-09-02, asked for the
@@ -380,9 +382,43 @@ picture moves on a bare frame clock — `lantern` folds over `events` and
 too** — so this is a seam with no demonstrated victim, and the first
 thing to write is a substrate that moves on `Tick` alone.
 
-**Q2 is still open and still his.**  Everything above is the `clap.gui`
-row, which was the session's own default; the rows below it in the
-table have not been touched.
+**Q2 is answered, 2026-09-04, and it is not the gui row alone.**
+*Henri, having opened `lantern.ges` on the live site:* **"Lets not close
+the audiovisual-gallery.md … I think the page could use MIDI
+support."**  So the card stays open and the next row is
+`clap.note-ports`.
+
+**And that row was recorded here as a refusal, which it no longer is.**
+`online._control` refuses `arpeggiator`, `jazz` and `ladder` with *"a
+tab with no keyboard has nothing to play"*, and B2 of `card:online.md`
+turned down *a keyboard in the tab* on 2026-09-01 as the reading not
+picked.  Both rest on the same premise — that a tab has no keyboard —
+and **Web MIDI is the premise being false**: a browser can be handed a
+real instrument.  Whether the answer is Web MIDI, keys drawn on the
+page, or the computer keyboard is his; the three refused pieces are the
+test set either way, and the refusal sentence will have to be rewritten
+rather than deleted, because it is true of a tab with no MIDI device
+attached.
+
+**And one thing he found by using it, which is a defect this card
+owns.**  *Henri, on `lantern.ges`:* **"I tried it in lantern and the
+knobs appear to work.  Not certain if they do anything there."**  They
+half do, and the half is the point:
+
+| what he can touch on that page | writes | reaches |
+|---|---|---|
+| the **slider beside line 40**, `warmth` | control slot 4 | **the sound** — gated (`test_online.py`) |
+| the **WARMTH fader in the picture** | canvas channel `warmthChan` | **the picture only** |
+
+They are the *same declaration* — `warmth = 0.55 ::: mkSig (wait
+warmthChan)`, which `lantern.ges`'s own header calls out as one channel
+the fader writes and the filter reads — split across two controls that
+each do half and do not move together.  On the desk and in the plugin
+they are one thing.  **On the page a person meets two of them
+disagreeing**, and nothing says which is which.  That is the
+`clap.params` row stated as a user-visible fault rather than as a
+missing feature, and it is the argument for doing that row before or
+with the MIDI one.
 
 ## How it came off the shelf
 
