@@ -901,7 +901,8 @@ def manner_atom(roll: Roll, note: int) -> tuple:
     return hits[0]
 
 
-def marked(source: str, roll: Roll, note: int, manner: int) -> tuple:
+def marked(source: str, roll: Roll, note: int, manner: int,
+           origins: dict | None = None) -> tuple:
     """`(text, said)` — the file with that note's manner written as
     `manner`.  `transposed`'s contract, for the other field.
 
@@ -912,6 +913,7 @@ def marked(source: str, roll: Roll, note: int, manner: int) -> tuple:
     (`spec/north_star.md`).
     """
     line, col, width, value = manner_atom(roll, note)
+    _elsewhere(line, origins)
     lines = source.splitlines(keepends=True)
     if not 0 < line <= len(lines):
         raise RefusedError(f"line {line} is not in this file any more")
@@ -948,7 +950,39 @@ def _manner_words(ms: int) -> str:
     return " + ".join(got) if got else "plain"
 
 
-def transposed(source: str, roll: Roll, note: int, key: int) -> tuple:
+
+def _elsewhere(line: int, origins: dict | None) -> None:
+    """Refuse a rewrite of a line this file did not write.
+
+    **The picture is drawn from the *expanded* program and the rewrite
+    lands in the author's text** — identical for a program with no
+    `include`, which is why this never mattered until 2026-09-05, and
+    divergent past one.  Henri met it the hour rung 0 shipped: a
+    transpose on a `.notes` roll answered *"line 57 is not in this file
+    any more"*, because line 57 of the expansion is past the end of a
+    thirty-line sketch.
+
+    **It was never a silent corruption, and that was checked rather than
+    assumed.**  The expansion appends its block *after* the author's
+    text, so a note's line is always past the end of it and the old range
+    check always refused — padding the author's file only pushes the
+    block down with it.  What was wrong was the *sentence*: a person is
+    told a line of their file vanished, when the line was never theirs.
+
+    So the note's own origin answers.  Writing into the included file is
+    `spec/drawnscores.md` rung 4 and is not built; until it is, this says
+    which file and which line, which is what a person needs to make the
+    edit by hand.
+    """
+    where = (origins or {}).get(line)
+    if where is not None:
+        raise RefusedError(
+            f"that note is written in {where[0]}:{where[1]}, not in this "
+            f"file — editing an included `.notes` from the roll is not "
+            f"built yet")
+
+def transposed(source: str, roll: Roll, note: int, key: int,
+               origins: dict | None = None) -> tuple:
     """`(text, said)` — the file with that note's pitch written as `key`.
 
     **Byte-exact**: one atom's characters are replaced and nothing else
@@ -968,6 +1002,7 @@ def transposed(source: str, roll: Roll, note: int, key: int) -> tuple:
     that let you move "this one" would be lying about the file.
     """
     line, col, width, value = pitch_atom(roll, note)
+    _elsewhere(line, origins)
     lines = source.splitlines(keepends=True)
     if not 0 < line <= len(lines):
         raise RefusedError(f"line {line} is not in this file any more")

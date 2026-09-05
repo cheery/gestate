@@ -823,6 +823,12 @@ class Workbench:
         #: file with an `include` — Henri, 2026-09-05: *"It shows that
         #: it's not auditioned at the start."*
         self._built_program: str | None = None
+        #: `{line of the compiled program: (included file, line of it)}` —
+        #: `spec/drawnscores.md` rung 1, kept because rung 3 needs it at
+        #: the moment of a *gesture*, not at the moment of a compile.
+        #: Empty for a program with no `include`, which is every program
+        #: written before 2026-09-05.
+        self.origins: dict = {}
         self._built_seed = None
         self.schedule = None
         #: The piece again, when it *unfolds* (`spec/dynamicscore.md`):
@@ -3447,10 +3453,11 @@ class Workbench:
         the compiler is handed only text.  A path is exactly what this
         object has and `audio.assemble` does not.
         """
-        from .notes import expand
+        from .notes import expanded
 
-        return expand(self.source() if text is None else text,
-                      self.path.parent)
+        out, self.origins = expanded(self.source() if text is None else text,
+                                     self.path.parent)
+        return out
 
     @property
     def _source_text(self) -> str:

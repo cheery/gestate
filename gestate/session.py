@@ -2236,7 +2236,9 @@ class Session:
         roll, hand = found.roll, found.hand
         try:
             note = note_of(roll, hand, int(was))
-            text, said = transposed(self._source(), roll, note, int(key))
+            text, said = transposed(self._source(), roll, note,
+                                    int(key),
+                                    getattr(self.bench, "origins", None))
         except RefusedError as exc:
             return f"transpose: {exc}"
         if not self.view.replace(text):
@@ -2300,7 +2302,9 @@ class Session:
         roll, hand = found.roll, found.hand
         try:
             note = note_of(roll, hand, int(was))
-            text, said = marked(self._source(), roll, note, int(manners))
+            text, said = marked(self._source(), roll, note,
+                                int(manners),
+                                getattr(self.bench, "origins", None))
         except RefusedError as exc:
             return f"mark: {exc}"
         if not self.view.replace(text):

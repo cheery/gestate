@@ -1226,3 +1226,67 @@ def test_a_program_with_no_include_has_no_origins_and_is_unchanged():
     text, where = notes.expanded(source, ARC.parent)
     assert text is source
     assert where == {}
+
+
+# ── Rung 3: a gesture knows which file wrote the note ───────────────────────
+
+
+def _first_roll():
+    """The rung-0 roll of `arcnotes.ges`, with the map beside it."""
+    import re
+
+    from gestate.scorebox import build_rolls
+
+    source, origins = notes.expanded(ARCNOTES.read_text(), ARCNOTES.parent)
+    asks = [(i + 1, m.group(1))
+            for i, line in enumerate(source.splitlines())
+            for m in [re.match(r"^notes\s+(\S.*)$", line)] if m]
+    return build_rolls(source, asks, 22050, 0)[0], origins
+
+
+def test_a_transpose_of_an_included_note_names_the_file_it_lives_in():
+    """**Henri met this the hour rung 0 shipped**, in his own sketch:
+
+        transpose: line 57 is not in this file any more
+
+    The picture is drawn from the *expanded* program and the rewrite
+    lands in the author's text.  Identical for a program with no
+    `include` — which is every program written before 2026-09-05 — and
+    divergent past one, so line 57 of the expansion is past the end of a
+    thirty-line file.
+    """
+    from gestate.scorebox import RefusedError, transposed
+
+    roll, origins = _first_roll()
+    author = ARCNOTES.read_text()
+
+    with pytest.raises(RefusedError, match=r"arc\.notes:\d+, not in this file"):
+        transposed(author, roll, 0, 64, origins)
+
+    # And without the map it still refuses — just uselessly, which is the
+    # sentence that was wrong rather than the safety.
+    with pytest.raises(RefusedError, match="not in this file any more"):
+        transposed(author, roll, 0, 64)
+
+
+def test_the_generated_block_is_always_past_the_author_s_last_line():
+    """**Why this was never a silent corruption**, checked rather than
+    assumed — I nearly wrote the opposite into the tree.
+
+    The expansion appends after the author's text, so a note's line is
+    always beyond it and the range check always fires.  Padding the
+    author's file pushes the block down with it, which is the property
+    that makes it structural rather than lucky.
+    """
+    from gestate.scorebox import pitch_atom
+
+    for extra in (0, 120):
+        text = ARCNOTES.read_text() + "\n".join(
+            f"# filler {i}" for i in range(extra))
+        source, origins = notes.expanded(text, ARCNOTES.parent)
+        authored = len(text.splitlines())
+        assert min(origins) > authored, (
+            "a generated line landed inside the author's text")
+        roll, _ = _first_roll()
+        line, _c, _w, _v = pitch_atom(roll, 0)
+        assert line > len(ARCNOTES.read_text().splitlines())

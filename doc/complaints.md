@@ -20,12 +20,12 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**437 complaints**, in 45 files.
+**438 complaints**, in 45 files.
 
 | | |
 |---|---|
 | `author` | 220 |
-| `command` | 40 |
+| `command` | 41 |
 | `world` | 27 |
 | `machine` | 150 |
 | say where | 139 |
@@ -827,16 +827,17 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 887 | `RefusedError` | `command` | — | 'this piece writes more regions than the box can hand out ({MAX_LEAVES}), so the tail shares on… |
 | 893 | `RefusedError` | `command` | — | "this note's manner is not written on line {leaf.line} — a mark is written into the payload, an… |
 | 898 | `RefusedError` | `command` | — | 'line {leaf.line} writes {mark} more than once, so the box cannot tell the manner from the rest… |
-| 917 | `RefusedError` | `command` | — | 'line {line} is not in this file any more' |
-| 920 | `RefusedError` | `command` | — | 'line {line} does not say {_spelling(value)} where the box thought — the file has moved under t… |
-| 924 | `RefusedError` | `command` | — | 'that manner is written as a fraction, which is not a set of marks' |
-| 973 | `RefusedError` | `command` | — | 'line {line} is not in this file any more' |
-| 976 | `RefusedError` | `command` | — | 'line {line} does not say {_spelling(value)} where the box thought — the file has moved under t… |
-| 980 | `RefusedError` | `command` | — | 'that pitch is written as a fraction; a semitone step would round it' |
-| 1128 | `RefusedError` | `command` | — | 'that column is not in this box any more' |
-| 1150 | `RefusedError` | `command` | — | 'that column is not in this box any more' |
-| 1154 | `RefusedError` | `command` | — | 'nothing under that column sounds {key}' |
-| 1156 | `RefusedError` | `command` | — | 'that column sounds {key} {len(found)} times, so which note is meant is not written down anywhe… |
+| 919 | `RefusedError` | `command` | — | 'line {line} is not in this file any more' |
+| 922 | `RefusedError` | `command` | — | 'line {line} does not say {_spelling(value)} where the box thought — the file has moved under t… |
+| 926 | `RefusedError` | `command` | — | 'that manner is written as a fraction, which is not a set of marks' |
+| 979 | `RefusedError` | `command` | — | 'that note is written in {where[0]}:{where[1]}, not in this file — editing an included `.notes`… |
+| 1008 | `RefusedError` | `command` | — | 'line {line} is not in this file any more' |
+| 1011 | `RefusedError` | `command` | — | 'line {line} does not say {_spelling(value)} where the box thought — the file has moved under t… |
+| 1015 | `RefusedError` | `command` | — | 'that pitch is written as a fraction; a semitone step would round it' |
+| 1163 | `RefusedError` | `command` | — | 'that column is not in this box any more' |
+| 1185 | `RefusedError` | `command` | — | 'that column is not in this box any more' |
+| 1189 | `RefusedError` | `command` | — | 'nothing under that column sounds {key}' |
+| 1191 | `RefusedError` | `command` | — | 'that column sounds {key} {len(found)} times, so which note is meant is not written down anywhe… |
 
 ### `seminaive.py`
 
