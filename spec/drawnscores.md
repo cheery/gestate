@@ -375,6 +375,66 @@ program has no `FromNote` instance (suspected: the same refusal
 whether one instance can serve a file whose voices want different
 payload types.  Both are day-one questions rather than design ones.
 
+## The three spellings, and two of them are derived — 2026-09-05
+
+**Henri, after the preference trial:** *"That we'd have all three
+notations?  MIDI, functional harmony, and some ascii-notation for
+pitches?"*
+
+**Three views, one storage.**  They are not three spellings competing
+for the file:
+
+| | |
+|---|---|
+| `key 68` | **stored** — the literal a drag rewrites and the roll points at |
+| `gis4` | a function of the number **and the declared key and mode** |
+| `♯4`, `vi` | a function of the same two, read as scale position |
+
+Storing all three would be one fact written three ways in one file,
+which is what `card:` notation, `Manner` against `Mark`, and the
+shadowing rule all exist to stop — and it would bring the round-trip
+problem back three times over.  Views over one storage cost nothing,
+because **nothing round-trips through a view**.
+
+**And what the arms produced says which view matters.**  They did not
+only convert to letters; they wrote *"G minor in first inversion over a
+Bb bass"*, *"vi of Bb"*, *"the raised fourth giving the lydian
+shimmer"*.  Letters were the substrate and **function was the
+content** — so the report prints both columns, because a report has
+room and a `key` field does not.
+
+**The section header is what makes either derivable.**  `key` and `mode`
+went in as a lamp (§"What is decided" 3); they turn out to be the whole
+input to the spelling.  `notes.spell` is the rule and `notes.degree_of`
+the other, both written and tested — nearest degree first, then the
+smallest accidental, both halves found by getting them wrong.
+
+**The one arbitrary choice, and it is the trigger.**  Where two
+spellings cost one accidental each — D♯ against E♭ in D — the rule takes
+the flat.  A piece that needs the other is **the case that would put
+names in the file**, and until one turns up the spelling is a report's
+business, correctable by re-running it.
+
+### And a view has to be in the loop, or it is a command nobody runs
+
+*Henri, the same day:* **"It needs a 'view', just like how I look toward
+to that score being rendered in the editor."**
+
+He is right and it is the sharper half.  `spec/scorebox.md`'s principle
+is *a widget is a view over a span of source* — and `tools/bars.py` is
+exactly that widget for a reader with no eyes.  But **his roll is beside
+the text he is editing and this is a command somebody has to think of**,
+which is the gap both trials of 2026-09-05 found from opposite sides: a
+session asked to check is exact, and a session not asked does not look.
+
+So the report is not finished as a tool.  It is finished when it appears
+without being asked — and `card:the-first-jam.md` item 1 already names
+the shape, for a different number: *"a `ceiling: X%` line after a render
+would put the criterion into every run's own mouth."*  The same move
+here is the report riding on a render, or beside a `notes` ask in the
+window.  **Not built, and named so the tool is not mistaken for the
+answer.**
+
 ## The payload nobody had to declare — 2026-09-05
 
 **Henri, reading the first `arcnotes.ges`:** *"The `Tone := Tone Float

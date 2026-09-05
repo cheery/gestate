@@ -770,3 +770,117 @@ def test_a_bank_may_play_a_payload_the_vocabulary_declares():
     assert len(rows[0]) == len(channels_of(ARC.read_text(),
                                            banks_of(ARC.read_text())[0])[0]), (
         "the library payload and arc.ges's own are both three fields")
+
+
+# ── What a bar sounds, said in words — card:the-first-jam.md item 2 ─────────
+
+
+def test_a_degree_is_named_by_its_place_in_the_mode():
+    """Six semitones over the tonic is lydian's ♯4 and locrian's ♭5.
+
+    The same pitch, a different scale position.  Calling locrian's ♭5 a
+    sharp fourth would misname the interval
+    `doc/notes/notes-on-writing-a-piece.md` spends a day on.
+    """
+    assert notes.degree_of(68, "D", "lydian") == "♯4"
+    assert notes.degree_of(61, "G", "locrian") == "♭5"
+    # And a tone the mode does not own has no position in it, so the
+    # chromatic reading answers.
+    assert notes.degree_of(67, "D", "lydian") == "4"
+    assert notes.degree_of(68, "D") == "♯4"
+
+
+@pytest.mark.parametrize("key,tonic,mode,want,why", [
+    (66, "D", "lydian", "fis4", "the mode's own third, not a flattened ♯4"),
+    (68, "D", "lydian", "gis4", "the ♯4 itself"),
+    (67, "D", "lydian", "g4", "the ♯4 lowered — sharpening the third is `fisis4`"),
+    (64, "D", "phrygian", "e4", "the ♭2 raised — flattening the ♭3 is `fes4`"),
+    (61, "D", "lydian", "cis4", "the seventh, in the octave its letter sits in"),
+    (68, "Bb", "lydian", "aes4", "the seventh lowered, in a flat key"),
+])
+def test_a_pitch_is_spelled_the_way_its_mode_asks(key, tonic, mode, want, why):
+    """Nearest degree first, then the smallest accidental.
+
+    Both halves were found by getting them wrong: sorting on the
+    accidental alone spelled D lydian's third `ges4`, and preferring the
+    flat unconditionally spelled D phrygian's second `fes4`.
+    """
+    assert notes.spell(key, tonic, mode) == want, why
+
+
+def test_the_one_arbitrary_choice_is_the_documented_one():
+    """Where both readings cost exactly one accidental, the flat wins —
+    and this is the case that would put names in the file."""
+    assert notes.spell(63, "D", "lydian") == "ees4"    # not `dis4`
+
+
+def test_a_held_note_sounds_in_every_bar_it_spans():
+    """The half a list of onsets cannot say, and item 2's whole point:
+    a whole-bar chord under a melody is the harmony of that bar."""
+    text = ("section A  bars 3  beats 4  voices lead\n"
+            "note  section A  bar 1  at 0  len 1152  voice lead  key 60  vel mf\n")
+    heard = notes.sounding(notes.parse(text, "held.notes"))
+    assert [(s, b, k) for s, b, k in heard] == [
+        ("A", 1, [60]), ("A", 2, [60]), ("A", 3, [60])]
+
+
+def test_the_report_reads_arc_the_same_way_from_either_file():
+    """`arc.notes` and `arc.ges` are the same music, so the report must
+    say the same words about them — which is a cross-check on `spell`
+    and on `pitch_of` at once, since the two paths reach the pitches by
+    completely different routes."""
+    import subprocess
+    import sys
+
+    def lines(argv):
+        out = subprocess.run([sys.executable, "tools/bars.py"] + argv,
+                             cwd=ROOT, capture_output=True, text=True)
+        assert out.returncode == 0, out.stderr
+        return [l.split(maxsplit=1)[1] for l in out.stdout.splitlines()
+                if l.strip()[:1].isdigit()]
+
+    from_notes = lines(["examples/audio/arc.notes"])[:8]
+    from_ges = lines(["examples/audio/arc.ges", "D", "lydian"])[:8]
+    assert from_notes == from_ges, "the two readings of one piece disagree"
+    assert "gis4" in from_notes[0] and "♯4" in from_notes[0]
+    assert from_notes[2].endswith("g4"), (
+        "bar 3's natural fourth is the note the mode lamp found, named")
+
+
+# ── Which field of a payload is the pitch — fixme.md F201 ───────────────────
+
+
+def test_the_pitch_is_found_in_a_payload_of_either_shape():
+    """`Tone Float Int Int` puts the key second, `audio.ges`'s own
+    `Tone Int Int Int` puts it first, and a reader that assumed a
+    position crashed on every piece written since manners landed."""
+    from gestate.audioscore import pitch_of
+
+    assert pitch_of(((0.85, 62, 0),)) == 62      # a piece's own payload
+    assert pitch_of(((62, 4, 0),)) == 62         # audio.ges's `Tone`
+    assert pitch_of(((0.7, 38),)) == 38          # the two-field shape
+
+
+def test_an_ambiguous_payload_is_refused_rather_than_guessed():
+    """A wrong pitch would be a report that reads plausibly and is
+    false, which is worse than no report."""
+    from gestate.audioscore import ScoreError, pitch_of
+
+    with pytest.raises(ScoreError, match="cannot tell which field"):
+        pitch_of(((60, 64),))                    # two playable numbers
+    with pytest.raises(ScoreError, match="cannot tell which field"):
+        pitch_of(((0.5, 7),))                    # none in the playable range
+
+
+def test_modecheck_runs_on_a_piece_that_carries_manners():
+    """The regression F201 is: `tools/modecheck.py` unpacked every
+    payload as a pair, so it crashed on `arc.ges` — the file it was
+    written to measure — from the day annotations landed."""
+    import subprocess
+    import sys
+
+    out = subprocess.run(
+        [sys.executable, "tools/modecheck.py", "examples/audio/arc.ges",
+         "song", "2"], cwd=ROOT, capture_output=True, text=True)
+    assert out.returncode == 0, out.stderr
+    assert "123 notes" in out.stdout

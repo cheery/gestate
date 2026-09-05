@@ -483,6 +483,16 @@ followed over thirty fires.  A cut-share cause was retired 2026-09-04,
 when the check its card demanded found it firing on a fact about the
 tree — many files here have over twenty citers — not on a fault here.
 
+### `tools/bars.py` — what each bar sounds, in words
+
+    python tools/bars.py examples/audio/arc.notes
+    python tools/bars.py examples/audio/together.ges D lydian
+
+Per bar, across every voice: the pitches as note names, their degrees in
+the mode, and any sitting outside it.  **This is the roll, for a reader
+who has no eyes** — and letters because it was measured:
+`doc/trial/spelling-preference.md`, eight of eight converted unprompted.
+
 ### `tools/flow.py` — the board's flow, and the seven-day lamp
 
     python tools/flow.py            lead times, open cards by age and last touch, arrivals against drain

@@ -450,6 +450,52 @@ def assemble_performance(synth: str, piece: str = "", rate: int = 22050,
     return out
 
 
+#: The pitches a MIDI keyboard can send — A0 to C8.  Narrower than
+#: `0..127` on purpose; see `pitch_of`.
+PLAYABLE = range(21, 109)
+
+
+def pitch_of(payload: tuple) -> int:
+    """The key number in one of `perform_voices`' payloads.
+
+    **A payload is the author's own record**, so which field is the pitch
+    is the author's business: `Tone Float Int Int` puts it second and
+    `audio.ges`'s own `Tone Int Int Int` puts it first.  A reader that
+    assumed a position got it wrong the moment a piece gained a manner —
+    `tools/modecheck.py` unpacked every payload as a pair and crashed on
+    `arc.ges`, `marked.ges` and every other file written since
+    `spec/annotations.md` landed (`fixme.md` F201).
+
+    **The exact answer is `Notable.noteKey`**, and it is not available
+    here: reading it means compiling an auxiliary program the way
+    `scorebox.build_rolls` does, which needs a `notes <expr>` ask in the
+    source to hang on.  So this is a rule instead, and it is stated
+    rather than guessed: **the one field that is an `Int` in the
+    playable range.**
+
+    That works because the other `Int` fields a payload carries in this
+    tree are small — a manner is a three-bit set and a dynamic level is
+    0–7, both far below 21 — and it **refuses** rather than picking when
+    none or several qualify, because a wrong pitch would be a report
+    that reads plausibly and is false.
+    """
+    flat: list = []
+    rest = list(payload)
+    while rest:                     # a payload arrives as `((v, k, m),)`
+        one = rest.pop()
+        rest.extend(one) if isinstance(one, tuple) else flat.append(one)
+    found = [f for f in flat
+             if isinstance(f, int) and not isinstance(f, bool)
+             and f in PLAYABLE]
+    if len(found) != 1:
+        raise ScoreError(
+            f"cannot tell which field of {payload} is the pitch — "
+            f"{len(found)} of them are whole numbers in {PLAYABLE.start}"
+            f"..{PLAYABLE.stop - 1}.  The exact answer is this program's "
+            "`Notable noteKey`, which this reader cannot run")
+    return found[0]
+
+
 def perform_voices(synth: str, piece: str = "", rate: int = 22050,
                    seed: int = 0) -> tuple:
     """`(bpm, [(onset, offset, bank, payload)])` — a piece, in ticks.

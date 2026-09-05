@@ -44,10 +44,15 @@ from gestate.midi import TICKS_PER_BEAT as TPB
 
 def notes_of_ges(path, bank):
     """`(notes, events)` — one bank's line, and the whole score behind it."""
-    bpm, events = perform_voices(Path(path).read_text(), "", 48000, 0)
-    line = sorted((on, off, key)
-                  for on, off, bk, payload in events if bk == bank
-                  for _, key in payload)
+    from gestate.audioscore import pitch_of
+    from gestate.notes import read
+
+    bpm, events = perform_voices(read(path), "", 48000, 0)
+    #: `pitch_of` and not `for _, key in payload`, which assumed every
+    #: payload was a pair and crashed on every piece written since
+    #: manners landed — `fixme.md` F201.
+    line = sorted((on, off, pitch_of(payload))
+                  for on, off, bk, payload in events if bk == bank)
     if not line:
         banks = sorted({bk for _, _, bk, _ in events})
         raise SystemExit(f"{path}: no bank named {bank!r}; it has {banks}")
@@ -110,10 +115,12 @@ def places_to_rest(events):
     way, so anywhere the ear *can* stand is somewhere it will stand.
     """
     sounding = collections.defaultdict(list)
+    from gestate.audioscore import pitch_of
+
     for on, off, _bank, payload in events:
-        for _, key in payload:
-            for b in range(on // (4 * TPB), max(on, off - 1) // (4 * TPB) + 1):
-                sounding[b].append(key)
+        key = pitch_of(payload)
+        for b in range(on // (4 * TPB), max(on, off - 1) // (4 * TPB) + 1):
+            sounding[b].append(key)
     bars = [ks for _, ks in sorted(sounding.items()) if ks]
     rest = sum(1 for ks in bars if any((k - min(ks)) % 12 == 7 for k in ks))
     print(f"── places to rest: {rest} of {len(bars)} bars have a perfect fifth "

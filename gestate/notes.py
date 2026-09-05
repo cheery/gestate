@@ -412,6 +412,124 @@ def outside(out: NotesFile) -> list[tuple[Note, int]]:
     return found
 
 
+# ── What a bar sounds, said in words ────────────────────────────────────────
+
+#: The twelve, named against the tonic the way a musician names them —
+#: `♯4`, `♭7` — rather than against the mode.  Mode-independent on
+#: purpose: *the sharp fourth* means the same thing whether or not the
+#: mode contains it, which is exactly the case worth reporting.
+DEGREES = ("1", "♭2", "2", "♭3", "3", "4", "♯4", "5", "♭6", "6", "♭7", "7")
+
+#: The letter each natural sits on, and the seven in order.
+_NATURAL = {"c": 0, "d": 2, "e": 4, "f": 5, "g": 7, "a": 9, "b": 11}
+_LETTERS = "cdefgab"
+_MARKS = {-2: "eses", -1: "es", 0: "", 1: "is", 2: "isis"}
+
+
+#: The major scale, which every degree name is measured against — that
+#: is what makes `♭3` and `♯4` mean the same thing in every mode.
+_MAJOR = (0, 2, 4, 5, 7, 9, 11)
+
+
+def degree_of(key: int, tonic: str, mode: str | None = None) -> str:
+    """`♯4` — where this pitch stands against the tonic.
+
+    **The mode decides which name a tone wears when it owns it.**  Six
+    semitones above the tonic is lydian's `♯4` and locrian's `♭5` — the
+    same pitch, a different scale position, and calling locrian's `♭5` a
+    sharp fourth would misname the interval this tree's own log keeps
+    talking about.  So where the mode contains the tone, its *position*
+    in the mode names it; where it does not, the chromatic reading does,
+    because a tone outside the scale has no position in it.
+    """
+    away = (key - _PITCH_CLASS[tonic]) % 12
+    steps = _MODES[mode.lower()] if mode else ()
+    if away in steps:
+        place = steps.index(away)
+        mark = {-1: "♭", 0: "", 1: "♯"}.get(away - _MAJOR[place])
+        if mark is not None:
+            return f"{mark}{place + 1}"
+    return DEGREES[away]
+
+
+def spell(key: int, tonic: str, mode: str) -> str:
+    """`gis4` — the pitch, spelled the way its mode asks for.
+
+    **The letter comes from the degree, not from the pitch**, which is
+    what an accidental *is*: a raised fourth keeps the fourth's letter
+    and takes a sharp, so `gis` and `g` sit on one line of a stave and a
+    reader sees the alteration rather than a different note.
+
+    *Derived and never stored* — `spec/drawnscores.md` §"The three
+    spellings, and two of them are derived".  The file keeps the MIDI
+    number, because that is what a drag rewrites and what the roll
+    points at; this is a view over it, and a view costs nothing because
+    nothing round-trips through a report.
+
+    **The one place it must choose, and the limit is named:** a pitch the
+    mode does not contain could be a raised degree or a lowered one.
+    **Nearest degree first, then the smallest accidental**, and neither
+    half is taste.  *Nearest* because a pitch the mode contains is that
+    degree and nothing else: D lydian's third is `fis4`, and reaching it
+    as a flattened ♯4 gives `ges4`, which is one accidental too and is a
+    different note on the page.  A first pass sorted on the accidental
+    alone and produced exactly that, on a file the `.notes` path had
+    already spelled correctly.
+
+    Then *the smallest accidental*, which is not taste either: the
+    natural fourth of D lydian is `g4` — the ♯4 lowered, needing none —
+    where sharpening the third would spell it `fisis4`, and the natural
+    second of D phrygian is `e4` rather than `fes4` for the same reason.
+    A first draft preferred the flat unconditionally and produced that
+    `fes4`, which is how this rule was found.
+
+    Where **both** readings cost exactly one accidental — D♯ against E♭
+    in D — this takes the flat.  That is the one arbitrary choice here,
+    and a piece that wants the other is **the case that would put names
+    in the file**; until one turns up the spelling is a report's
+    business, correctable by re-running it.
+    """
+    steps, base = _MODES[mode.lower()], _PITCH_CLASS[tonic]
+    root = _LETTERS.index(tonic[0].lower())
+    away = (key - base) % 12
+    found = []
+    for shift in (0, -1, 1, -2, 2):
+        if (away - shift) % 12 not in steps:
+            continue
+        index = steps.index((away - shift) % 12)
+        letter = _LETTERS[(root + index) % 7]
+        for octave in range(-1, 10):
+            delta = key - (_NATURAL[letter] + (octave + 1) * 12)
+            if -2 <= delta <= 2:
+                found.append((abs(shift), abs(delta), delta, letter, octave))
+                break
+    if not found:
+        return str(key)                   # no letter reaches it; say the number
+    _far, _size, delta, letter, octave = min(found)
+    return f"{letter}{_MARKS[delta]}{octave}"
+
+
+def sounding(out: NotesFile) -> list:
+    """`[(section, bar, [keys low to high])]` — what is heard in each bar.
+
+    A note counts in every bar it is still sounding in, because a held
+    root under four bars is part of all four — which is the thing a list
+    of note *starts* cannot say and the reason
+    `card:the-first-jam.md` item 2 exists.
+    """
+    heard: dict = {}
+    for one in out.notes:
+        section = out.section(one.section)
+        if section is None:
+            continue
+        last = one.bar + (one.at + one.length - 1) // section.bar_ticks
+        for bar in range(one.bar, min(last, section.bars) + 1):
+            heard.setdefault((one.section, bar), set()).add(one.key)
+    order = {s.name: i for i, s in enumerate(out.sections)}
+    return [(s, b, sorted(keys)) for (s, b), keys
+            in sorted(heard.items(), key=lambda kv: (order[kv[0][0]], kv[0][1]))]
+
+
 # ── The expansion into `.ges` ───────────────────────────────────────────────
 
 #: The name a voice of a section becomes.  Underscored and prefixed

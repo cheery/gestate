@@ -20,17 +20,17 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**437 complaints**, in 45 files.
+**438 complaints**, in 45 files.
 
 | | |
 |---|---|
-| `author` | 220 |
+| `author` | 221 |
 | `command` | 40 |
 | `world` | 27 |
 | `machine` | 150 |
 | say where | 140 |
 | say `nowhere`, on purpose | 35 |
-| `unplaced`, with a defect that owns it | 58 |
+| `unplaced`, with a defect that owns it | 59 |
 
 ## A place that could exist, and does not
 
@@ -54,8 +54,9 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `audioextract.py:645` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
 | `audioextract.py:974` | `ExtractError` | fixme.md F156: extraction names the definition it reached (`sound/raw/phase`) and never the line, though `audiospans` exists to turn one into the other |
 | `audiollvm.py:432` | `LLVMError` | fixme.md F157: a definition used at two types inside one fragment is the author's, and the name is carried where the line is not |
-| `audioscore.py:1087` | `ScoreError` | fixme.md F158: a `shape` written in the piece, named by its channel and not by its line |
-| `audioscore.py:1103` | `ScoreError` | fixme.md F158: a `shape` written in the piece, named by its beat and not by its line |
+| `audioscore.py:491` | `ScoreError` | fixme.md F158: a piece's complaints name a beat or a bank, never the line the note is written on |
+| `audioscore.py:1133` | `ScoreError` | fixme.md F158: a `shape` written in the piece, named by its channel and not by its line |
+| `audioscore.py:1149` | `ScoreError` | fixme.md F158: a `shape` written in the piece, named by its beat and not by its line |
 | `audiovoices.py:935` | `VoicesError` | fixme.md F158: the clash is between a declaration and a definition, and neither line is carried here |
 | `audiovoices.py:959` | `VoicesError` | fixme.md F158: `holds.NAME` is written in the source and its line is not carried to here |
 | `audiovoices.py:1012` | `VoicesError` | fixme.md F158: `voices.NAME` is written in the source and its line is not carried to here |
@@ -113,9 +114,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `audioscore.py:114` | `ScoreError` | the piece names an instrument no bank plays, which is about two declarations |
 | `audioscore.py:138` | `ScoreError` | a piece with no bank to play it through at all |
 | `audioscore.py:304` | `ScoreError` | the piece declares two ways of saying how fast it goes; the mistake is the pair |
-| `audioscore.py:479` | `ScoreError` | a score that unfolds forever, which is a property of the piece |
-| `audioscore.py:545` | `ScoreError` | a note names a bank the piece does not declare |
-| `audioscore.py:1335` | `ScoreError` | the piece names a bank that was given no allocator |
+| `audioscore.py:525` | `ScoreError` | a score that unfolds forever, which is a property of the piece |
+| `audioscore.py:591` | `ScoreError` | a note names a bank the piece does not declare |
+| `audioscore.py:1381` | `ScoreError` | the piece names a bank that was given no allocator |
 | `crust.py:489` | `CrustError` | a note names a bank the piece does not declare, which is about two declarations |
 | `deriving.py:211` | `DeriveError` | caught and re-raised by the `declarations.py` that reads the `deriving` clause, which is what places it |
 | `deriving.py:216` | `DeriveError` | caught and re-raised by the `declarations.py` that reads the `deriving` clause, which is what places it |
@@ -344,24 +345,25 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 287 | `ScoreError` | `author` | written out | 'at line {line}:0: {hint}' |
 | 304 | `ScoreError` | `author` | *nowhere, on purpose* | 'this piece declares both a `bpm` and a `tempo`, and only one of them says how fast it goes. A … |
 | 392 | `NotesError` | `machine` | — | '`include "{left[0]}"` reached the assembler: this program was read without `gestate.notes.read… |
-| 479 | `ScoreError` | `author` | *nowhere, on purpose* | 'this score unfolds — ' + ', '.join((f'`{n}`' for n in unfolding)) + ' — so laying it out whole… |
-| 512 | `ScoreError` | `machine` | — | 'internal: the entry point did not produce a pair' |
-| 536 | `ScoreError` | `machine` | — | 'expected an (onset, offset, voice) triple' |
-| 541 | `ScoreError` | `machine` | — | 'expected a `Voice` value' |
-| 545 | `ScoreError` | `author` | *nowhere, on purpose* | 'a note assigned to a voice bank this program does not declare (constructor tag {v.tag})' |
-| 833 | `ScoreError` | `machine` | — | 'internal: the entry point did not produce a pair' |
-| 945 | `ScoreError` | `machine` | — | 'internal: the spans stream is not a list' |
-| 951 | `ScoreError` | `machine` | — | 'internal: a span is not (from, to, points)' |
-| 1076 | `ScoreError` | `machine` | — | 'internal: the shapes stream is not a list' |
-| 1082 | `ScoreError` | `machine` | — | 'internal: a shape span has four parts' |
-| 1087 | `ScoreError` | `author` | *unplaced — fixme.md F158: a `shape` written in the piece, named by its channel and not by its line* | 'a shape must name a channel' |
-| 1103 | `ScoreError` | `author` | *unplaced — fixme.md F158: a `shape` written in the piece, named by its beat and not by its line* | "a `shape` at beat {start / TICKS_PER_BEAT:g} has no width to spread its envelope over — the sp… |
-| 1183 | `ScoreError` | `machine` | — | 'internal: the marks stream is not a list' |
-| 1189 | `ScoreError` | `machine` | — | 'internal: a mark is not a (tick, name)' |
-| 1261 | `ScoreError` | `machine` | — | 'expected a `Step` or a `Ramp` in `tempo`' |
-| 1267 | `ScoreError` | `author` | carried from `caught` | str(caught) |
-| 1287 | `ScoreError` | `machine` | — | 'a payload field that is not a value: {type(node).__name__}' |
-| 1335 | `ScoreError` | `author` | *nowhere, on purpose* | 'this piece assigns notes to `{bank}` and no allocator was given for it; there is ' + (', '.joi… |
+| 491 | `ScoreError` | `author` | *unplaced — fixme.md F158: a piece's complaints name a beat or a bank, never the line the note is written on* | "cannot tell which field of {payload} is the pitch — {len(found)} of them are whole numbers in … |
+| 525 | `ScoreError` | `author` | *nowhere, on purpose* | 'this score unfolds — ' + ', '.join((f'`{n}`' for n in unfolding)) + ' — so laying it out whole… |
+| 558 | `ScoreError` | `machine` | — | 'internal: the entry point did not produce a pair' |
+| 582 | `ScoreError` | `machine` | — | 'expected an (onset, offset, voice) triple' |
+| 587 | `ScoreError` | `machine` | — | 'expected a `Voice` value' |
+| 591 | `ScoreError` | `author` | *nowhere, on purpose* | 'a note assigned to a voice bank this program does not declare (constructor tag {v.tag})' |
+| 879 | `ScoreError` | `machine` | — | 'internal: the entry point did not produce a pair' |
+| 991 | `ScoreError` | `machine` | — | 'internal: the spans stream is not a list' |
+| 997 | `ScoreError` | `machine` | — | 'internal: a span is not (from, to, points)' |
+| 1122 | `ScoreError` | `machine` | — | 'internal: the shapes stream is not a list' |
+| 1128 | `ScoreError` | `machine` | — | 'internal: a shape span has four parts' |
+| 1133 | `ScoreError` | `author` | *unplaced — fixme.md F158: a `shape` written in the piece, named by its channel and not by its line* | 'a shape must name a channel' |
+| 1149 | `ScoreError` | `author` | *unplaced — fixme.md F158: a `shape` written in the piece, named by its beat and not by its line* | "a `shape` at beat {start / TICKS_PER_BEAT:g} has no width to spread its envelope over — the sp… |
+| 1229 | `ScoreError` | `machine` | — | 'internal: the marks stream is not a list' |
+| 1235 | `ScoreError` | `machine` | — | 'internal: a mark is not a (tick, name)' |
+| 1307 | `ScoreError` | `machine` | — | 'expected a `Step` or a `Ramp` in `tempo`' |
+| 1313 | `ScoreError` | `author` | carried from `caught` | str(caught) |
+| 1333 | `ScoreError` | `machine` | — | 'a payload field that is not a value: {type(node).__name__}' |
+| 1381 | `ScoreError` | `author` | *nowhere, on purpose* | 'this piece assigns notes to `{bank}` and no allocator was given for it; there is ' + (', '.joi… |
 
 ### `audiovoices.py`
 
@@ -748,9 +750,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 308 | `NotesError` | `author` | handed in | '{place}: `{one}` is not a manner; ' + ' '.join(sorted(MANNERS)) |
 | 312 | `NotesError` | `author` | handed in | '{place}: `{one}` is asked for twice' |
 | 330 | `NotesError` | `author` | handed in | '{place}: this note is already written at {name}:{seen[spot]} — same section, bar, voice, tick … |
-| 522 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
-| 527 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section.name}` is already included; two files cannot brin… |
-| 566 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
+| 640 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
+| 645 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section.name}` is already included; two files cannot brin… |
+| 684 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
 
 ### `online.py`
 

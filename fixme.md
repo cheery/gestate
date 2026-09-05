@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 201 entries, **161 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 202 entries, **162 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7450,3 +7450,42 @@ gate: `none — not yet built`.  What would hold it is a round trip over a file
 carrying both a whole-line comment and a trailing one, asserted byte-identical —
 one test, once the ownership question above is answered.  Weakest point: a gate
 written before that answer would pin whichever behaviour was implemented first.
+
+### F201. **[resolved]** `tools/modecheck.py` crashed on every piece written since manners landed
+
+`notes_of_ges` unpacked each payload as a pair — `for _, key in payload` — which
+is true of `Tone Float Int` and false of every payload carrying a manner.  So
+the tool written on 2026-09-05 to measure `hollow.ges` could not read
+`arc.ges`, `arcnotes.ges`, `marked.ges` or `drums.ges`:
+
+    python tools/modecheck.py examples/audio/arc.ges song 2
+    ValueError: too many values to unpack (expected 2)
+
+**Found 2026-09-05 while building `tools/bars.py`** (`card:the-first-jam.md`
+item 2), which needed the same field and hit the same wall — and `arc.ges` is
+the piece `modecheck.py`'s own docstring is about.  The tool was a day old and
+had been run on one file.
+
+**Why a position cannot be assumed.**  A payload is the author's own record, so
+which field is the pitch is the author's business: `arc.ges` writes
+`Tone Float Int Int` and puts it second, `audio.ges`'s own `Tone Int Int Int`
+puts it first.  **The exact answer is `Notable.noteKey`** — and it is not
+reachable from a tool, because reading it means compiling an auxiliary program
+the way `scorebox.build_rolls` does, which needs a `notes <expr>` ask in the
+source to hang on.
+
+**The repair is `audioscore.pitch_of`**, a stated rule rather than a guess: the
+one field that is an `Int` in the playable range, 21..108.  It holds because
+every other `Int` a payload carries here is small — a manner is a three-bit set
+and a dynamic level is 0–7 — and it **refuses** when none or several qualify,
+because a wrong pitch would be a report that reads plausibly and is false.
+`modecheck.py` and `bars.py` both go through it.
+
+gate: `test_drawnscores.py::test_modecheck_runs_on_a_piece_that_carries_manners`
+runs the tool on `arc.ges` and reads its count back, plus
+`test_the_pitch_is_found_in_a_payload_of_either_shape` and
+`test_an_ambiguous_payload_is_refused_rather_than_guessed` on the rule itself.
+Weakest point: the rule is not `Notable`, so a piece whose payload carries two
+playable numbers — a note and a transposition, say — is refused rather than
+read, and the honest fix is to make `scorebox`'s auxiliary-program trick
+reusable without an ask.
