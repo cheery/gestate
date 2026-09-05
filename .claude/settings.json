@@ -84,6 +84,12 @@
       {
         "matcher": "Read",
         "hooks": [
+          { "type": "command", "command": "~/gestate/tools/bars.py --hook", "timeout": 5 }
+        ]
+      },
+      {
+        "matcher": "Read|Bash",
+        "hooks": [
           {
             "type": "command",
             "command": "~/gestate/tools/backlinks.py --hook",
