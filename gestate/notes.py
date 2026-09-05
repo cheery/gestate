@@ -690,13 +690,36 @@ def expand(source: str, base: Path | None = None) -> str:
     A program with no `include` is returned unchanged and pays nothing —
     the same contract `voices` has.
     """
+    return expanded(source, base)[0]
+
+
+def expanded(source: str, base: Path | None = None) -> tuple:
+    """`(text, {line of the text: (included file, line of it)})`.
+
+    **The offset has to come from here**, which is the whole of rung 1
+    (`spec/drawnscores.md` §"The slices after").  `declarations` already
+    knows which generated line each note was written on; what it cannot
+    know is where its block lands once the author's source is in front of
+    it.  That was reconstructed from outside on 2026-09-05 — count the
+    author's lines, add one for the separator — and it was **wrong by one
+    on the fourth note**, silently, because three of four still resolved.
+
+    So the concatenation and the counting are one loop.  Nothing that
+    needs a line number does arithmetic it cannot check, and a reader
+    asking *which line of which file wrote this note* gets an answer
+    rather than a recipe.
+
+    Only note lines are in the map.  The `long 4 (` that opens a bar and
+    the `))` that closes it were written by nobody, and answering for
+    them would be inventing a provenance.
+    """
     found = [(_line_of(source, m.start()), m.group(2))
              for m in _INCLUDE.finditer(source)]
     if not found:
-        return source
+        return source, {}
     root = Path(base) if base is not None else Path.cwd()
-    out = _INCLUDE.sub(lambda m: m.group(1), source)
-    tail: list[str] = []
+    blanked = _INCLUDE.sub(lambda m: m.group(1), source)
+    read: list = []
     known: dict[str, set[str]] = {}
     for line, one in found:
         place = f"line {line}"
@@ -712,9 +735,20 @@ def expand(source: str, base: Path | None = None) -> str:
                     "already included; two files cannot bring the same "
                     "section name")
             known[section.name] = set(section.voices)
-        text, _ = declarations(parsed)
-        tail.append(text)
-    return _dots(out, known) + "\n" + "\n".join(tail)
+        read.append((one, parsed))
+
+    lines = _dots(blanked, known).splitlines()
+    where: dict = {}
+    for one, parsed in read:
+        text, origin = declarations(parsed)
+        #: **The line the block's first line becomes**, counted rather
+        #: than derived — `lines` is the answer to *how much is in front
+        #: of it* and it is already in hand.
+        at = len(lines) + 1
+        lines += text.splitlines()
+        for generated, wrote in origin.items():
+            where[at + generated - 1] = (one, wrote)
+    return "\n".join(lines) + "\n", where
 
 
 def _line_of(source: str, offset: int) -> int:

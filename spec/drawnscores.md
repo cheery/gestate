@@ -714,13 +714,20 @@ number" counted for real `.ges` pieces.  Its job is to answer by use the
 questions the later rungs would otherwise settle by taste: voices
 stacked or one at a time, degrees or names in the margin.
 
-**1 — `expand()` returns its origins.**  `declarations()` already builds
-`{generated line → .notes line}` and its only caller throws it away.
-What is missing is the offset of the generated block in the expanded
-text, and **that must come from the function that does the
-concatenation**: reconstructing it outside was tried on 2026-09-05 and
-was wrong by one line on the fourth note.  Invisible, small, and
-everything below needs it.
+**1 — `expand()` returns its origins.**  ***Built 2026-09-05.***
+`notes.expanded` returns `(text, {line of the text: (file, line of it)})`
+and `expand` is a thin wrapper on it.  The concatenation and the counting
+are one loop, so nothing does arithmetic it cannot check — which is the
+whole lesson: the offset was reconstructed from outside first, by
+counting the author's lines and adding one for a separator, and it was
+**wrong by one on the fourth note** while three of four still resolved.
+
+Measured after: **32 of 32 notes of a roll resolve to the `arc.notes`
+line that wrote them**, and each of those lines really says that pitch —
+checked, not assumed.  291 origins for 291 notes, and none for the
+`long 4 (` that opens a bar or the `))` that closes it, because those
+were written by nobody and answering for them would be inventing a
+provenance.
 
 **2 — a strip at the include line, not a roll.**  One row per section:
 `A  D lydian  8 bars  melody upper middle lower bass`.  A box cannot

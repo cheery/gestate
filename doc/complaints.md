@@ -749,9 +749,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 291 | `NotesError` | `author` | handed in | '{place}: `vel {got['vel']}` is not a dynamic; ' + ' '.join(LEVELS) |
 | 307 | `NotesError` | `author` | handed in | '{place}: `{one}` is not a manner; ' + ' '.join(sorted(MANNERS)) |
 | 311 | `NotesError` | `author` | handed in | '{place}: `{one}` is asked for twice' |
-| 705 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
-| 710 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section.name}` is already included; two files cannot brin… |
-| 749 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
+| 728 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
+| 733 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section.name}` is already included; two files cannot brin… |
+| 783 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
 
 ### `online.py`
 

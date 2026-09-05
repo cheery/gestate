@@ -1157,3 +1157,72 @@ def test_a_voice_of_an_included_section_draws_and_is_wholly_editable():
             f"{ask}: {written} of {len(roll.events)} notes carry a pitch "
             "atom; the whole point is that all of them do")
         assert written == 32
+
+
+# ── Rung 1: the expansion counts its own offset ─────────────────────────────
+
+
+def test_every_note_resolves_to_the_file_and_line_that_wrote_it():
+    """**Rung 1** — `spec/drawnscores.md` §"The slices after".
+
+    `declarations` always knew which generated line a note was written
+    on.  What it cannot know is where its block lands once the author's
+    source is in front of it — and that was reconstructed from outside
+    on 2026-09-05, by counting the author's lines and adding one for a
+    separator.  It was **wrong by one, on the fourth note**, and three
+    of four still resolved, which is how it went unnoticed.
+
+    So the concatenation and the counting are one loop now, and this
+    asserts the end-to-end join the roll will make: a note drawn on the
+    box, back to the line of `arc.notes` that says it.
+    """
+    import re
+
+    from gestate.scorebox import build_rolls, pitch_atom
+
+    source, where = notes.expanded(ARCNOTES.read_text(), ARCNOTES.parent)
+    asks = [(i + 1, m.group(1))
+            for i, line in enumerate(source.splitlines())
+            for m in [re.match(r"^notes\s+(\S.*)$", line)] if m]
+    assert asks, "arcnotes.ges should carry the rung-0 asks"
+
+    written = NOTES.read_text().splitlines()
+    for roll in build_rolls(source, asks, 22050, 0):
+        assert hasattr(roll, "events"), roll
+        for index in range(len(roll.events)):
+            line, _col, _width, value = pitch_atom(roll, index)
+            got = where.get(line)
+            assert got is not None, (
+                f"a note on expanded line {line} resolves to no file")
+            name, at = got
+            assert name == "arc.notes"
+            # Not "a line exists" — *that* line says *that* pitch.
+            assert f"key {value}" in written[at - 1], (
+                f"{name}:{at} does not say key {value}: {written[at - 1]!r}")
+
+
+def test_the_origin_map_answers_for_notes_and_not_for_scaffolding():
+    """`long 4 (` and `))` were written by nobody.
+
+    Answering for them would be inventing a provenance, and a roll that
+    jumped to a line the author never typed is worse than one that
+    admits it cannot.
+    """
+    source, where = notes.expanded(ARCNOTES.read_text(), ARCNOTES.parent)
+    lines = source.splitlines()
+    assert len(where) == 291, "one origin per note, and no more"
+    for at in where:
+        assert "fromNote" in lines[at - 1], lines[at - 1]
+    scaffolding = [i + 1 for i, line in enumerate(lines)
+                   if line.strip().startswith("(long ")]
+    assert scaffolding, "the bars are opened by something"
+    assert not (set(scaffolding) & set(where)), "scaffolding claims no origin"
+
+
+def test_a_program_with_no_include_has_no_origins_and_is_unchanged():
+    """The contract `voices` has: a feature costs nothing to a program
+    that does not use it — including the cost of being copied."""
+    source = ARC.read_text()
+    text, where = notes.expanded(source, ARC.parent)
+    assert text is source
+    assert where == {}
