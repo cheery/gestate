@@ -546,6 +546,7 @@ def _oracle_main(args) -> int:
 
     from .audio import (DEFAULT_RATE, GOLDEN_SUFFIX, render_frames,
                         write, write_golden)
+    from .notes import read as _read_source
 
     if args.piece:
         print("gestate: --oracle renders one program; give it one file",
@@ -563,7 +564,7 @@ def _oracle_main(args) -> int:
             print(f"\r{out}: {n} samples at {rate} Hz")
             return 0
 
-        source = Path(args.synth).read_text()
+        source = _read_source(args.synth)
         seconds = 2.0 if args.seconds is None else args.seconds
         rate = DEFAULT_RATE if args.rate is None else args.rate
         if args.peak:
@@ -587,7 +588,7 @@ def _oracle_main(args) -> int:
         from .audiospans import in_source
 
         try:
-            text = in_source(str(exc), Path(args.synth).read_text(),
+            text = in_source(str(exc), _read_source(args.synth),
                              args.synth)
         except Exception:                        # noqa: BLE001
             text = str(exc)
@@ -669,11 +670,13 @@ def main(argv=None, tell=None) -> int:
     if args.rate is None:
         args.rate = DEFAULT_RATE
 
+    from .notes import NotesError, read as _read_source
+
     listener = None
     performer = None
     try:
-        synth = Path(args.synth).read_text()
-        piece = Path(args.piece).read_text() if args.piece else ""
+        synth = _read_source(args.synth)
+        piece = _read_source(args.piece) if args.piece else ""
         graph = graph_of(synth, piece, rate=args.rate)
         performance = Performance(graph)
         seconds = args.seconds
@@ -845,7 +848,8 @@ def main(argv=None, tell=None) -> int:
                                control=control)
         print(f"{args.synth}: {frames} frames through {backend}",
               file=sys.stderr)
-    except (ExtractError, LLVMError, LiveError, PerformError) as exc:
+    except (ExtractError, LLVMError, LiveError, PerformError,
+            NotesError) as exc:
         print(f"gestate: {cli_error(exc, args.synth)}", file=sys.stderr)
         return 1
     except FileNotFoundError as exc:

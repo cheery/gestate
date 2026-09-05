@@ -1,0 +1,246 @@
+section A  key D  mode lydian  bars 8  beats 4  voices melody,upper,middle,lower,roots
+section B  key G  mode locrian  bars 8  beats 4  voices melody,upper,middle,lower,roots
+section C  key D  mode phrygian  bars 8  beats 4  voices melody,upper,middle,lower,roots
+
+note  section A  bar 1  at 0  len 96  voice melody  key 62  vel ff
+note  section A  bar 1  at 0  len 384  voice upper  key 57  vel mp
+note  section A  bar 1  at 0  len 384  voice middle  key 62  vel p
+note  section A  bar 1  at 0  len 384  voice lower  key 66  vel p
+note  section A  bar 1  at 0  len 384  voice roots  key 38  vel f
+note  section A  bar 1  at 96  len 96  voice melody  key 66  vel f
+note  section A  bar 1  at 192  len 96  voice melody  key 68  vel f  manner accent
+note  section A  bar 1  at 288  len 96  voice melody  key 69  vel mf
+
+note  section A  bar 2  at 0  len 96  voice melody  key 71  vel f
+note  section A  bar 2  at 0  len 384  voice upper  key 57  vel mp
+note  section A  bar 2  at 0  len 384  voice middle  key 62  vel p
+note  section A  bar 2  at 0  len 384  voice lower  key 66  vel p
+note  section A  bar 2  at 0  len 384  voice roots  key 38  vel f
+note  section A  bar 2  at 96  len 96  voice melody  key 68  vel f
+note  section A  bar 2  at 192  len 96  voice melody  key 66  vel ff  manner staccato
+note  section A  bar 2  at 288  len 96  voice melody  key 64  vel mf  manner staccato
+
+note  section A  bar 3  at 0  len 96  voice melody  key 67  vel f
+note  section A  bar 3  at 0  len 384  voice upper  key 56  vel mp
+note  section A  bar 3  at 0  len 384  voice middle  key 59  vel p
+note  section A  bar 3  at 0  len 384  voice lower  key 64  vel p
+note  section A  bar 3  at 0  len 384  voice roots  key 40  vel f
+note  section A  bar 3  at 96  len 96  voice melody  key 71  vel f
+note  section A  bar 3  at 192  len 96  voice melody  key 73  vel ff  manner accent
+note  section A  bar 3  at 288  len 96  voice melody  key 71  vel mf
+
+note  section A  bar 4  at 0  len 96  voice melody  key 69  vel f
+note  section A  bar 4  at 0  len 384  voice upper  key 57  vel mp
+note  section A  bar 4  at 0  len 384  voice middle  key 62  vel p
+note  section A  bar 4  at 0  len 384  voice lower  key 66  vel p
+note  section A  bar 4  at 0  len 384  voice roots  key 38  vel f
+note  section A  bar 4  at 96  len 96  voice melody  key 68  vel f
+note  section A  bar 4  at 192  len 96  voice melody  key 66  vel f
+note  section A  bar 4  at 288  len 96  voice melody  key 62  vel f
+
+note  section A  bar 5  at 0  len 96  voice melody  key 62  vel ff
+note  section A  bar 5  at 0  len 384  voice upper  key 57  vel mp
+note  section A  bar 5  at 0  len 384  voice middle  key 62  vel p
+note  section A  bar 5  at 0  len 384  voice lower  key 66  vel p
+note  section A  bar 5  at 0  len 384  voice roots  key 38  vel f
+note  section A  bar 5  at 96  len 96  voice melody  key 66  vel f
+note  section A  bar 5  at 192  len 96  voice melody  key 68  vel f  manner accent
+note  section A  bar 5  at 288  len 96  voice melody  key 71  vel mf
+
+note  section A  bar 6  at 0  len 96  voice melody  key 73  vel f
+note  section A  bar 6  at 0  len 384  voice upper  key 59  vel mp
+note  section A  bar 6  at 0  len 384  voice middle  key 62  vel p
+note  section A  bar 6  at 0  len 384  voice lower  key 66  vel p
+note  section A  bar 6  at 0  len 384  voice roots  key 47  vel f
+note  section A  bar 6  at 96  len 96  voice melody  key 71  vel f
+note  section A  bar 6  at 192  len 96  voice melody  key 68  vel ff  manner staccato
+note  section A  bar 6  at 288  len 96  voice melody  key 66  vel mf  manner staccato
+
+note  section A  bar 7  at 0  len 96  voice melody  key 69  vel ff
+note  section A  bar 7  at 0  len 384  voice upper  key 57  vel mp
+note  section A  bar 7  at 0  len 384  voice middle  key 61  vel p
+note  section A  bar 7  at 0  len 384  voice lower  key 64  vel p
+note  section A  bar 7  at 0  len 384  voice roots  key 45  vel f
+note  section A  bar 7  at 96  len 96  voice melody  key 73  vel f
+note  section A  bar 7  at 192  len 96  voice melody  key 76  vel f  manner accent
+note  section A  bar 7  at 288  len 96  voice melody  key 73  vel f
+
+note  section A  bar 8  at 0  len 96  voice melody  key 74  vel f
+note  section A  bar 8  at 0  len 384  voice upper  key 57  vel mp
+note  section A  bar 8  at 0  len 384  voice middle  key 61  vel p
+note  section A  bar 8  at 0  len 384  voice lower  key 64  vel p
+note  section A  bar 8  at 0  len 384  voice roots  key 45  vel f
+note  section A  bar 8  at 96  len 96  voice melody  key 76  vel f
+note  section A  bar 8  at 192  len 96  voice melody  key 80  vel ff  manner accent
+note  section A  bar 8  at 288  len 96  voice melody  key 80  vel f  manner portamento
+
+note  section B  bar 1  at 0  len 48  voice melody  key 67  vel ff
+note  section B  bar 1  at 0  len 384  voice upper  key 58  vel mp
+note  section B  bar 1  at 0  len 384  voice middle  key 61  vel p
+note  section B  bar 1  at 0  len 384  voice lower  key 67  vel p
+note  section B  bar 1  at 0  len 384  voice roots  key 43  vel f
+note  section B  bar 1  at 48  len 48  voice melody  key 68  vel f
+note  section B  bar 1  at 96  len 48  voice melody  key 67  vel f
+note  section B  bar 1  at 144  len 48  voice melody  key 67  vel ff
+note  section B  bar 1  at 192  len 48  voice melody  key 72  vel f
+note  section B  bar 1  at 240  len 48  voice melody  key 70  vel f
+note  section B  bar 1  at 288  len 48  voice melody  key 68  vel f
+note  section B  bar 1  at 336  len 48  voice melody  key 67  vel ff
+
+note  section B  bar 2  at 0  len 48  voice melody  key 67  vel f
+note  section B  bar 2  at 0  len 384  voice upper  key 58  vel mp
+note  section B  bar 2  at 0  len 384  voice middle  key 61  vel p
+note  section B  bar 2  at 0  len 384  voice lower  key 67  vel p
+note  section B  bar 2  at 0  len 384  voice roots  key 43  vel f
+note  section B  bar 2  at 48  len 48  voice melody  key 68  vel f
+note  section B  bar 2  at 96  len 48  voice melody  key 67  vel f
+note  section B  bar 2  at 144  len 48  voice melody  key 67  vel f
+note  section B  bar 2  at 192  len 48  voice melody  key 72  vel f
+note  section B  bar 2  at 240  len 48  voice melody  key 70  vel f
+note  section B  bar 2  at 288  len 48  voice melody  key 68  vel f
+note  section B  bar 2  at 336  len 48  voice melody  key 67  vel f
+
+note  section B  bar 3  at 0  len 48  voice melody  key 73  vel f
+note  section B  bar 3  at 0  len 384  voice upper  key 60  vel mp
+note  section B  bar 3  at 0  len 384  voice middle  key 63  vel p
+note  section B  bar 3  at 0  len 384  voice lower  key 68  vel p
+note  section B  bar 3  at 0  len 384  voice roots  key 43  vel f
+note  section B  bar 3  at 48  len 48  voice melody  key 72  vel f
+note  section B  bar 3  at 96  len 48  voice melody  key 70  vel f
+note  section B  bar 3  at 144  len 48  voice melody  key 68  vel f
+note  section B  bar 3  at 192  len 48  voice melody  key 67  vel f
+note  section B  bar 3  at 240  len 48  voice melody  key 68  vel f
+note  section B  bar 3  at 288  len 48  voice melody  key 67  vel f
+note  section B  bar 3  at 336  len 48  voice melody  key 67  vel f
+
+note  section B  bar 4  at 0  len 48  voice melody  key 72  vel f
+note  section B  bar 4  at 0  len 384  voice upper  key 58  vel mp
+note  section B  bar 4  at 0  len 384  voice middle  key 61  vel p
+note  section B  bar 4  at 0  len 384  voice lower  key 67  vel p
+note  section B  bar 4  at 0  len 384  voice roots  key 43  vel f
+note  section B  bar 4  at 48  len 48  voice melody  key 70  vel f
+note  section B  bar 4  at 96  len 48  voice melody  key 68  vel f
+note  section B  bar 4  at 144  len 48  voice melody  key 67  vel f
+note  section B  bar 4  at 192  len 48  voice melody  key 73  vel f
+note  section B  bar 4  at 240  len 48  voice melody  key 72  vel f
+note  section B  bar 4  at 288  len 48  voice melody  key 70  vel f
+note  section B  bar 4  at 336  len 48  voice melody  key 68  vel f
+
+note  section B  bar 5  at 0  len 48  voice melody  key 75  vel f
+note  section B  bar 5  at 0  len 384  voice upper  key 60  vel mp
+note  section B  bar 5  at 0  len 384  voice middle  key 63  vel p
+note  section B  bar 5  at 0  len 384  voice lower  key 67  vel p
+note  section B  bar 5  at 0  len 384  voice roots  key 43  vel f
+note  section B  bar 5  at 48  len 48  voice melody  key 73  vel f
+note  section B  bar 5  at 96  len 48  voice melody  key 72  vel f
+note  section B  bar 5  at 144  len 48  voice melody  key 70  vel f
+note  section B  bar 5  at 192  len 48  voice melody  key 68  vel f
+note  section B  bar 5  at 240  len 48  voice melody  key 67  vel f
+note  section B  bar 5  at 288  len 48  voice melody  key 68  vel f
+note  section B  bar 5  at 336  len 48  voice melody  key 67  vel f
+
+note  section B  bar 6  at 0  len 48  voice melody  key 67  vel f
+note  section B  bar 6  at 0  len 384  voice upper  key 60  vel mp
+note  section B  bar 6  at 0  len 384  voice middle  key 63  vel p
+note  section B  bar 6  at 0  len 384  voice lower  key 68  vel p
+note  section B  bar 6  at 0  len 384  voice roots  key 43  vel f
+note  section B  bar 6  at 48  len 48  voice melody  key 68  vel f
+note  section B  bar 6  at 96  len 48  voice melody  key 67  vel f
+note  section B  bar 6  at 144  len 48  voice melody  key 67  vel f
+note  section B  bar 6  at 192  len 48  voice melody  key 68  vel f
+note  section B  bar 6  at 240  len 48  voice melody  key 70  vel f
+note  section B  bar 6  at 288  len 48  voice melody  key 72  vel f
+note  section B  bar 6  at 336  len 48  voice melody  key 73  vel f
+
+note  section B  bar 7  at 0  len 48  voice melody  key 75  vel f
+note  section B  bar 7  at 0  len 384  voice upper  key 58  vel mp
+note  section B  bar 7  at 0  len 384  voice middle  key 61  vel p
+note  section B  bar 7  at 0  len 384  voice lower  key 67  vel p
+note  section B  bar 7  at 0  len 384  voice roots  key 43  vel f
+note  section B  bar 7  at 48  len 48  voice melody  key 73  vel f
+note  section B  bar 7  at 96  len 48  voice melody  key 72  vel f
+note  section B  bar 7  at 144  len 48  voice melody  key 70  vel f
+note  section B  bar 7  at 192  len 48  voice melody  key 68  vel f
+note  section B  bar 7  at 240  len 48  voice melody  key 67  vel f
+note  section B  bar 7  at 288  len 48  voice melody  key 67  vel f
+note  section B  bar 7  at 336  len 48  voice melody  key 67  vel f
+
+note  section B  bar 8  at 0  len 192  voice melody  key 67  vel ff
+note  section B  bar 8  at 0  len 384  voice upper  key 57  vel mp
+note  section B  bar 8  at 0  len 384  voice middle  key 61  vel p
+note  section B  bar 8  at 0  len 384  voice lower  key 64  vel p
+note  section B  bar 8  at 0  len 384  voice roots  key 43  vel f
+note  section B  bar 8  at 192  len 96  voice melody  key 68  vel f
+note  section B  bar 8  at 288  len 96  voice melody  key 67  vel ff  manner accent
+
+note  section C  bar 1  at 0  len 96  voice melody  key 62  vel ff
+note  section C  bar 1  at 0  len 384  voice upper  key 57  vel mp
+note  section C  bar 1  at 0  len 384  voice middle  key 62  vel p
+note  section C  bar 1  at 0  len 384  voice lower  key 65  vel p
+note  section C  bar 1  at 0  len 384  voice roots  key 38  vel f
+note  section C  bar 1  at 96  len 96  voice melody  key 63  vel f  manner accent
+note  section C  bar 1  at 192  len 96  voice melody  key 65  vel f
+note  section C  bar 1  at 288  len 96  voice melody  key 67  vel f
+
+note  section C  bar 2  at 0  len 96  voice melody  key 69  vel f
+note  section C  bar 2  at 0  len 384  voice upper  key 57  vel mp
+note  section C  bar 2  at 0  len 384  voice middle  key 62  vel p
+note  section C  bar 2  at 0  len 384  voice lower  key 65  vel p
+note  section C  bar 2  at 0  len 384  voice roots  key 38  vel f
+note  section C  bar 2  at 96  len 96  voice melody  key 67  vel f
+note  section C  bar 2  at 192  len 96  voice melody  key 65  vel ff  manner staccato
+note  section C  bar 2  at 288  len 96  voice melody  key 63  vel mf  manner staccato
+
+note  section C  bar 3  at 0  len 96  voice melody  key 67  vel f
+note  section C  bar 3  at 0  len 384  voice upper  key 58  vel mp
+note  section C  bar 3  at 0  len 384  voice middle  key 63  vel p
+note  section C  bar 3  at 0  len 384  voice lower  key 67  vel p
+note  section C  bar 3  at 0  len 384  voice roots  key 39  vel f
+note  section C  bar 3  at 96  len 96  voice melody  key 70  vel f
+note  section C  bar 3  at 192  len 96  voice melody  key 72  vel ff  manner accent
+note  section C  bar 3  at 288  len 96  voice melody  key 70  vel mf
+
+note  section C  bar 4  at 0  len 96  voice melody  key 69  vel f
+note  section C  bar 4  at 0  len 384  voice upper  key 57  vel mp
+note  section C  bar 4  at 0  len 384  voice middle  key 62  vel p
+note  section C  bar 4  at 0  len 384  voice lower  key 65  vel p
+note  section C  bar 4  at 0  len 384  voice roots  key 38  vel f
+note  section C  bar 4  at 96  len 96  voice melody  key 67  vel f
+note  section C  bar 4  at 192  len 96  voice melody  key 63  vel f  manner portamento
+note  section C  bar 4  at 288  len 96  voice melody  key 62  vel f
+
+note  section C  bar 5  at 0  len 96  voice melody  key 62  vel ff
+note  section C  bar 5  at 0  len 384  voice upper  key 57  vel mp
+note  section C  bar 5  at 0  len 384  voice middle  key 62  vel p
+note  section C  bar 5  at 0  len 384  voice lower  key 65  vel p
+note  section C  bar 5  at 0  len 384  voice roots  key 38  vel f
+note  section C  bar 5  at 96  len 96  voice melody  key 63  vel f
+note  section C  bar 5  at 192  len 96  voice melody  key 65  vel f  manner accent
+note  section C  bar 5  at 288  len 96  voice melody  key 67  vel mf
+
+note  section C  bar 6  at 0  len 96  voice melody  key 70  vel f
+note  section C  bar 6  at 0  len 384  voice upper  key 58  vel mp
+note  section C  bar 6  at 0  len 384  voice middle  key 63  vel p
+note  section C  bar 6  at 0  len 384  voice lower  key 67  vel p
+note  section C  bar 6  at 0  len 384  voice roots  key 39  vel f
+note  section C  bar 6  at 96  len 96  voice melody  key 69  vel f
+note  section C  bar 6  at 192  len 96  voice melody  key 67  vel ff  manner staccato
+note  section C  bar 6  at 288  len 96  voice melody  key 65  vel f  manner staccato
+
+note  section C  bar 7  at 0  len 96  voice melody  key 63  vel ff
+note  section C  bar 7  at 0  len 384  voice upper  key 57  vel mp
+note  section C  bar 7  at 0  len 384  voice middle  key 61  vel p
+note  section C  bar 7  at 0  len 384  voice lower  key 64  vel p
+note  section C  bar 7  at 0  len 384  voice roots  key 45  vel f
+note  section C  bar 7  at 96  len 96  voice melody  key 65  vel f
+note  section C  bar 7  at 192  len 96  voice melody  key 67  vel f
+note  section C  bar 7  at 288  len 96  voice melody  key 69  vel f  manner accent
+
+note  section C  bar 8  at 0  len 96  voice melody  key 73  vel ff
+note  section C  bar 8  at 0  len 384  voice upper  key 57  vel mp
+note  section C  bar 8  at 0  len 384  voice middle  key 62  vel p
+note  section C  bar 8  at 0  len 384  voice lower  key 65  vel p
+note  section C  bar 8  at 0  len 384  voice roots  key 38  vel f
+note  section C  bar 8  at 96  len 96  voice melody  key 69  vel f
+note  section C  bar 8  at 192  len 96  voice melody  key 62  vel ff  manner accent
+note  section C  bar 8  at 288  len 96  voice melody  key 62  vel f

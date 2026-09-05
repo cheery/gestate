@@ -114,6 +114,10 @@ WHERE: dict[str, str] = {
     # ── The three backends ──────────────────────────────────────────────
     "midi": "music", "tempo": "music",
     "gui": "gui",
+    # `notes` is the `.notes` sub-language — a source-to-source expansion
+    # into ordinary score declarations (`spec/drawnscores.md`), which is
+    # `audiovoices` next door doing the same job for a bank.
+    "notes": "sound",
     "audio": "sound", "audioextract": "sound", "audiograph": "sound",
     "audioir": "sound", "audiollvm": "sound", "audiowasm": "sound",
     "online": "sound", "webshell": "sound",

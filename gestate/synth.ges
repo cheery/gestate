@@ -61,6 +61,18 @@ dbGain db = pow 10.0 (db / 20.0)
 keyHz : Int -> Float
 keyHz k = 440.0 * pow 2.0 (toFloat (k - 69) / 12.0)
 
+#: A note's pitch, so a voice does not unpack one by hand —
+#: `spec/drawnscores.md` §"The payload nobody had to declare".
+#:
+#: **Here rather than in `audio.ges` beside the rest of `Tone`**, because
+#: `keyHz` is here and `audio.ges` is loaded on its own by one test that
+#: is entitled to expect it to work.  The pair being split across two
+#: files is the honest cost of that: a name goes where the thing it
+#: calls lives.
+noteHz : Tone -> Float
+noteHz t = case t of
+    Tone k lv ms -> keyHz k
+
 #: Detune in cents.  A hundred cents is a semitone.
 centsHz : Float -> Float -> Float
 centsHz cents hz = hz * pow 2.0 (cents / 1200.0)

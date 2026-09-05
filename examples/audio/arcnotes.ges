@@ -1,0 +1,117 @@
+# arcnotes.ges — `arc.ges`, with its notes in a `.notes` file.
+#
+#   python -m gestate.audioperform examples/audio/arcnotes.ges -o take.wav
+#
+# **The same piece, written the other way** — `spec/drawnscores.md`, and
+# `card:drawn-scores.md` is why.  `arc.ges` beside this one is kept
+# exactly as it was: it is the exhibit
+# `doc/notes/notes-on-writing-a-piece.md` was written from, five hundred
+# lines of notes spelled out by hand, and overwriting it would have
+# destroyed the measurement.  So the two stand side by side and
+# `test/test_drawnscores.py` holds them to the same notes.
+#
+# What is gone from this file: **four hundred and ninety lines** of
+# `a1 = '(Tone 0.85 62 0) ++ …`, replaced by one `include` — and then
+# twenty more, the payload type and its two instances, once `audio.ges`
+# named the note every piece was already writing.  What is gained:
+# every note is a line of `arc.notes`, so a bar cannot quietly hold five
+# beats and five voices cannot drift apart by one.
+#
+# What is not identical, and it is the format's own decision rather than
+# a limitation: `arc.ges` writes sixteen different velocities as raw
+# floats, and this writes eight named dynamics —
+# `doc/notes/notes-on-writing-a-piece.md` W4 is that the floats were
+# invented by their writer and checkable by nobody.  219 notes, 209 of
+# them moved, by at most 0.05.
+
+# ── What is written ──────────────────────────────────────────────────────
+
+#: **No payload declared, and that is the change.**  `audio.ges` names
+#: `Tone` — key, dynamic level, manners — with its `Notable` and
+#: `FromNote` instances and `noteHz`/`noteLoud` written once, because
+#: twenty-four pieces in `examples/audio/` had all declared the same two
+#: or three fields under seven different names.  A piece that wants its
+#: own payload still declares one and shadows the library's; this one
+#: does not want one.
+#:
+#: What is left below is the part that really is this piece's: **what a
+#: manner does to this voice.**  `spec/annotations.md` is the argument —
+#: a mark names an intention and each voice realises it in its own
+#: terms, so a staccato is a filter and an envelope here and would be a
+#: bow stroke somewhere else.
+
+bowOf : Tone -> Float
+bowOf t = case asks (manner t) Staccato of
+    True  -> 1.0
+    False -> 0.0
+
+pushOf : Tone -> Float
+pushOf t = case asks (manner t) Accent of
+    True  -> 1.0
+    False -> 0.0
+
+glideOf : Tone -> Float
+glideOf t = case asks (manner t) Portamento of
+    True  -> 0.0007
+    False -> 1.0
+
+# ── What plays it ────────────────────────────────────────────────────────
+
+#: The lead: a saw through a filter that opens on an accent, shortens on
+#: a staccato, and slides into a note that asked to be arrived at.
+#: `spec/annotations.md` is the design; this is the third voice written
+#: to it and the first in a piece rather than a demo.
+lead : Sig Gate -> Sig Tone -> Sig Float
+lead g s =
+    lowpassSvf (1100.0 + (!pushOf s) * 2400.0 * perc 20.0 g) 0.30
+               (saw (slew (!glideOf s) (!noteHz s)))
+        * (!noteLoud s) * 0.26
+        * (perc 4.0 g * (1.0 - (!bowOf s)) + perc 18.0 g * (!bowOf s))
+
+voices song 4 lead : Sig Float
+
+#: The ground: a triangle two octaves down, round and slow, so the modes
+#: are heard against a root rather than in the air.
+under : Sig Gate -> Sig Tone -> Sig Float
+under g s = lowpassSvf 320.0 0.16 (triangle (!noteHz s) * 0.6)
+    * (!noteLoud s) * 0.34 * adsr (Adsr 0.02 0.20 0.75 0.30) g
+
+voices ground 2 under : Sig Float
+
+#: The harmony's own bank — three voices, because they sound at once
+#: and each holds a whole bar.
+#:
+#: **It sustains, and that is the whole of pass three.**  Henri, on pass
+#: two: *"the chords could be more present, they sink into the
+#: background now"* — and they did, because this voice used `perc`,
+#: which `synth.ges` says in as many words is *"for a struck or plucked
+#: voice, which does not sustain"*.  A whole-bar chord under a
+#: percussive envelope states its mode for an instant and then leaves
+#: two seconds of nothing, so the piece had harmony on paper and almost
+#: none in the air.  `adsr` with a real sustain is what a held chord
+#: needs, and a mode is a *chord you are still hearing*.
+chordVoice : Sig Gate -> Sig Tone -> Sig Float
+chordVoice g s = lowpassSvf 1500.0 0.20
+    (saw (!noteHz s) * 0.35 + triangle (!noteHz s) * 0.65)
+    * (!noteLoud s) * 0.42 * adsr (Adsr 0.04 0.35 0.80 0.45) g
+
+voices chord 3 chordVoice : Sig Float
+
+sound : Sig Float
+sound = reverb 0.55 0.20 (song + chord + ground)
+
+include "arc.notes"
+
+#: **Five lines, and the file they come from knows they are the same
+#: twenty-four bars.**  `arc.ges`'s own comment here reads *"aligned by
+#: nothing but their lengths"*; a section declares `bars 8`, so a voice
+#: with seven of them is a refusal and not a piece that is a bar out.
+score : [: Void :]
+score = ((A.melody ++ B.melody ++ C.melody) >>= voices.song)
+     || ((A.upper  ++ B.upper  ++ C.upper)  >>= voices.chord)
+     || ((A.middle ++ B.middle ++ C.middle) >>= voices.chord)
+     || ((A.lower  ++ B.lower  ++ C.lower)  >>= voices.chord)
+     || ((A.roots  ++ B.roots  ++ C.roots)  >>= voices.ground)
+
+bpm : Int
+bpm = 92

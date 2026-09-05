@@ -177,6 +177,26 @@ def _arrow_parts(node) -> list:
 _VOCABULARY: dict = {}
 
 
+def _compiled(bench, text: str | None = None) -> str:
+    """The text a compiler should see — with `include` lines expanded.
+
+    `Workbench.program` does the expansion, against the file's own
+    directory (`spec/drawnscores.md`).  **Asked for rather than
+    required**, because not every bench this file is driven with is a
+    `Workbench`: the session takes a stand-in in `test_session.py` and
+    on replay, and three tests went red the day this was written as a
+    plain method call.  The same shape as `getattr(self.bench, "rate",
+    22050)` a few lines from its first caller — and the fallback is the
+    behaviour that stood before includes existed, so a bench without the
+    method is not degraded, it is unchanged.
+    """
+    program = getattr(bench, "program", None)
+    if program is not None:
+        return program(text)
+    whole = text if text is not None else ""
+    return whole or bench.source()
+
+
 def vocabulary(path: Path = COMMANDS) -> list:
     """Every command `command.ges` declares, in the order written.
 
@@ -2753,7 +2773,11 @@ class Session:
         from .typecheck import FitsError, fits_in_source
 
         try:
-            text = self.view.text() or self.bench.source()
+            # Expanded, because this hands the text to the type checker —
+            # `_source` below is the other kind of read, the window's own
+            # copy, which every gesture rewrites and which must stay the
+            # author's bytes.
+            text = _compiled(self.bench, self.view.text() or None)
         except Exception:                                # noqa: BLE001
             text = ""
         if not (wanted or "").strip():
@@ -4811,7 +4835,7 @@ def _draws(bench) -> bool:
     try:
         from .audio import has_substrate
 
-        return bool(has_substrate(bench.source()))
+        return bool(has_substrate(_compiled(bench)))
     except Exception:                                    # noqa: BLE001
         return False
 

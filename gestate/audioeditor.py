@@ -811,6 +811,18 @@ class Workbench:
         #: to decide whether a phase has to run at all.  `None` until
         #: something has been built, which reads as "rebuild".
         self._built_from: str | None = None
+        #: **The same build, as the compiler saw it** — the author's text
+        #: with its `include` lines expanded (`spec/drawnscores.md`).
+        #:
+        #: Two fields and not one, because two questions are being asked
+        #: of one build.  `_built_from` answers *is the window ahead of
+        #: the sound*, which is about what a person can see and must
+        #: therefore be their own bytes; this one answers *what may this
+        #: rebuild skip*, which is about what was compiled.  Holding the
+        #: expanded text in `_built_from` made `behind` permanently true for any
+        #: file with an `include` — Henri, 2026-09-05: *"It shows that
+        #: it's not auditioned at the start."*
+        self._built_program: str | None = None
         self._built_seed = None
         self.schedule = None
         #: The piece again, when it *unfolds* (`spec/dynamicscore.md`):
@@ -984,7 +996,8 @@ class Workbench:
         import tempfile
 
         self._directory = tempfile.mkdtemp()
-        text = self.source() if text is None else text
+        authored = self.source() if text is None else text
+        text = self.program(authored)
         # **The canvas, the score and the `FromMIDI` interpreter used to
         # compile on a side thread here**, to overlap `Live.start`'s
         # `clang` — the one stretch of a start that holds no GIL.  They
@@ -1029,7 +1042,8 @@ class Workbench:
             # Without this the first Ctrl-S after opening a file rebuilds
             # everything — safe, and a wasted second on the one edit
             # somebody is most likely to be watching.
-            self._built_from, self._built_seed = text, self.seed
+            self._built_from, self._built_seed = authored, self.seed
+            self._built_program = text
 
         threaded = os.environ.get("GESTATE_SIDE_THREAD", "") not in ("", "0")
         side = threading.Thread(target=loaders) if threaded else None
@@ -2321,7 +2335,7 @@ class Workbench:
         from .audioalloc import AllocError, Allocator
         from .audiovoices import banks_of, channels_of
 
-        text = self.source() if text is None else text
+        text = self.program(text)
         out = {}
         for bank in banks_of(text):
             try:
@@ -2728,7 +2742,7 @@ class Workbench:
         the score with everything else left alone.
         """
         self.seed = int(value)
-        self._load_score(self.source())
+        self._load_score(self.program())
         self.say(f"seed {self.seed}")
 
     def roll_seed(self) -> int:
@@ -2973,7 +2987,26 @@ class Workbench:
 
     def _built(self, text: str, save: bool, quiet: bool = False) -> None:
         errors = len(self.live.errors)
-        self.live.compile(text)
+        # **What is compiled is the window's text with its includes
+        # expanded** — `program`, never `text`.  `apply` above has
+        # already written `text` to the file, which is right: the file
+        # holds what the author wrote and this holds what runs.
+        #
+        # A bad `include` is reported down the same path a compile error
+        # is, because to the person at the window it is one: they typed
+        # a name and it is not a file.  And a quiet audition still may
+        # not complain (F151) — nobody asked.
+        from .notes import NotesError
+
+        try:
+            program = self.program(text)
+        except NotesError as bad:
+            if quiet:
+                self._hush(errors)
+                return
+            self.say(f"not applied: {self._first_line(bad)}")
+            return
+        self.live.compile(program)
         if isinstance(self.live.pending, Exception):
             # **A quiet audition may not complain** (F151).  It was
             # nobody's request: half of what a person types is, for a
@@ -3008,36 +3041,38 @@ class Workbench:
         # saved seconds is worth that.
         from . import unchanged
 
-        was = self._built_from
+        was = self._built_program
         # **The pictures read more than `substrate`.**  A score box is
         # a roll of whatever its `notes <expr>` ask names, and its
         # region map — which is what a drag rewrites through — is built
         # here.  Rolls are drawn at the session's seed, too, so a reroll
         # redraws them however little the text moved.
         if self.seed == self._built_seed \
-                and unchanged.kept(was, text, unchanged.picture_roots(text)):
+                and unchanged.kept(was, program,
+                                   unchanged.picture_roots(program)):
             self._skipped("substrate")
         else:
-            self._load_substrate(text)
-        self._place(text)
+            self._load_substrate(program)
+        self._place(program)
         # The seed is not in the text and decides every note a chancy
         # score draws, so a reroll rebuilds however little else moved.
         if self.seed == self._built_seed \
-                and unchanged.kept(was, text, ("score", "bpm")):
+                and unchanged.kept(was, program, ("score", "bpm")):
             self._skipped("score")
         else:
-            self._load_score(text)
+            self._load_score(program)
         # **The strictest question, because its inputs cannot be bounded
         # honestly.**  A `FromMIDI` instance body reaches whatever it
         # names, and an instance is chosen by *type* rather than by a
         # name anything reaches — so this one is kept only when nothing
         # at all changed.
-        if unchanged.kept(was, text):
+        if unchanged.kept(was, program):
             self._skipped("midi")
         else:
-            self._load_from_midi(text)
-        self._refresh_notes(text)
+            self._load_from_midi(program)
+        self._refresh_notes(program)
         self._built_from, self._built_seed = text, self.seed
+        self._built_program = program
         # **The build succeeded, so the complaint is over.**  This used
         # to be cleared only in `_progress`, which the driver calls
         # *between blocks* — so an error survived being fixed for as
@@ -3376,19 +3411,46 @@ class Workbench:
         return lines[0] if lines else "unknown error"
 
     def source(self) -> str:
-        """The program's text — **from the file, or from what will be saved
-        into it.**
+        """**The author's own text**, from the file or from what will be
+        saved into it — byte for byte, and nothing added.
 
-        Every reader of the program goes through here: compiling it,
-        placing its knobs, finding its banks, sizing the prelude in front
-        of it.  A new file has none of that on disk yet and all of it in
-        `pending`, and routing the reads through one method is what lets
-        the engine play a program that has never been written.
+        A new file has none of it on disk yet and all of it in `pending`,
+        and routing the reads through one method is what lets the engine
+        play a program that has never been written.
+
+        **This is what the window shows and what a save writes**, which is
+        why it expands nothing.  `program` below is the other half: for a
+        moment on 2026-09-05 this method expanded `include` lines, and the
+        editor then displayed a file the author had not written — the
+        `include` line blanked and nine hundred generated lines after it —
+        which a `Ctrl-S` would have made true.  Henri found it by opening
+        `arcnotes.ges` and not finding its own `include`.  Two needs, two
+        methods; one method serving both is how a view becomes a second
+        source of truth.
         """
         try:
             return self.path.read_text()
         except OSError:
             return self.pending
+
+    def program(self, text: str | None = None) -> str:
+        """**What is compiled** — the author's text with its `include`
+        lines expanded (`spec/drawnscores.md`).
+
+        Every reader that hands the text to a compiler goes through here:
+        starting the instrument, placing its knobs, finding its banks,
+        loading its score.  `text` is the window's own buffer when there
+        is one, because what a person is looking at is what should play.
+
+        **The Workbench is where this belongs and nowhere lower**, because
+        expanding an `include` needs the *directory* the file sits in and
+        the compiler is handed only text.  A path is exactly what this
+        object has and `audio.assemble` does not.
+        """
+        from .notes import expand
+
+        return expand(self.source() if text is None else text,
+                      self.path.parent)
 
     @property
     def _source_text(self) -> str:
@@ -3396,8 +3458,14 @@ class Workbench:
 
         A program with a `score` is assembled with `music.ges` as well, so
         the offset depends on the source — see `audiospans._regions`.
+
+        `program` and not `source`: an error is placed against the text
+        that was *compiled*, and an `include` expands to lines the author
+        does not have.  Their own lines do not move — the `include` is
+        blanked in place, not removed — so a complaint about a line they
+        wrote still lands on it.
         """
-        return self.source()
+        return self.program()
 
     # -- what the performance owned up to -------------------------------
 

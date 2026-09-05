@@ -18,6 +18,7 @@ import pytest
 
 from gestate.midi import perform
 from gestate.pipeline import evaluate
+from gestate.notes import read
 
 EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
 
@@ -383,7 +384,7 @@ def test_every_audio_example_compiles(name):
     from gestate.audioscore import assemble_performance
     from gestate.pipeline import analyse
 
-    source = (AUDIO_DIR / name).read_text()
+    source = read(AUDIO_DIR / name)
     text = (assemble_performance(source, "", 44100) if has_score(source)
             else assemble(source, 44100))
     analyse(text)
@@ -411,7 +412,7 @@ def _canvas_example_names() -> list:
     from gestate.audio import has_substrate
 
     return sorted(p.name for p in AUDIO_DIR.glob("*.ges")
-                  if has_substrate(p.read_text()))
+                  if has_substrate(read(p)))
 
 
 @pytest.mark.parametrize("name", _canvas_example_names())
@@ -421,7 +422,7 @@ def test_every_canvas_example_builds_a_substrate(name, tmp_path):
     would have skipped."""
     from gestate.audioeditor import Workbench
 
-    source = (AUDIO_DIR / name).read_text()
+    source = read(AUDIO_DIR / name)
     path = tmp_path / name
     path.write_text(source)
     bench = Workbench(path, rate=22050, block=256)
@@ -440,7 +441,7 @@ def test_every_canvas_example_puts_something_on_screen(name, tmp_path):
     one that did not build."""
     from gestate.audioeditor import Workbench
 
-    source = (AUDIO_DIR / name).read_text()
+    source = read(AUDIO_DIR / name)
     path = tmp_path / name
     path.write_text(source)
     bench = Workbench(path, rate=22050, block=256)

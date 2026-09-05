@@ -230,8 +230,34 @@ def test_the_two_part_spelling_is_retired_by_name():
 def test_a_bank_naming_no_data_type_is_refused():
     source = ("\nvoices lead 2 f : Sig Float\n"
               "\nf : Sig Gate -> Sig Note -> Sig Float\n")
-    with pytest.raises(VoicesError, match="nor a data type declared here"):
+    with pytest.raises(VoicesError,
+                       match="nor a data type declared in this program or "
+                             "its vocabulary"):
         expand(source)
+
+
+def test_a_bank_may_name_a_data_type_the_vocabulary_declares():
+    """The other half of the same lookup, added 2026-09-05.
+
+    `_frame` had always looked for a bank's *result* type in the program
+    and then in the prelude — *"`synth.ges` declares `Stereo` so that two
+    programs mean the same thing by a stereo frame"* — while the
+    **payload** lookup read the program alone.  `audio.ges`'s `Tone`
+    (`spec/drawnscores.md`) is the first library payload, and it raised
+    *"neither Float or Int nor a data type declared here"* until this
+    was fixed.
+
+    The refusal above still stands, and that is what makes this pair
+    worth having: `Note` is in `music.ges`, which a plain synth is not
+    given, so the vocabulary a program is compiled against is genuinely
+    consulted rather than everything being waved through.
+    """
+    source = ("\nvoices lead 2 f : Sig Float\n"
+              "\nf : Sig Gate -> Sig Tone -> Sig Float\n")
+    out = expand(source)
+    assert "leadChan0f2" in out, (
+        "three payload fields — key, level, manners — should open three "
+        "channels per voice")
 
 
 def test_a_line_that_is_not_a_full_signature_is_not_a_bank():

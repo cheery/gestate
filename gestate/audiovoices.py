@@ -386,6 +386,29 @@ def _fields(source: str, record: str, bank: str) -> list:
     return list(_field_types(source, record, bank))
 
 
+def _vocabulary(source: str) -> str:
+    """The library text this program is compiled against.
+
+    **The program first, then this** — the same two places `_frame` looks
+    for a bank's frame type, and for the same sentence: *`synth.ges`
+    declares `Stereo` so that two programs mean the same thing by a
+    stereo frame; without the second place a bank could only be stereo by
+    redeclaring the type it was already given.*  That argument was always
+    about the payload too, and `audio.ges`'s `Tone` is what made it
+    concrete (`spec/drawnscores.md`).
+
+    Derived from the source rather than passed in, because `channels_of`
+    is asked this question from ten places that have a program and no
+    prelude, and threading one through all of them would be ten chances
+    to pass a different vocabulary than the compiler used.  `preludes` is
+    the one function that decides it (`audio.preludes`), and
+    `_type_decls` is cached on the text it returns.
+    """
+    from .audio import preludes
+
+    return preludes(source)
+
+
 @lru_cache(maxsize=8)
 def _field_types(source: str, record: str, bank: str) -> tuple:
     from .syntax.ast import VConId, VTypeDecl
@@ -394,17 +417,17 @@ def _field_types(source: str, record: str, bank: str) -> tuple:
         return (record,)
 
     try:
-        module = _module(source)
+        decls = _type_decls(source) + _type_decls(_vocabulary(source))
     except Exception as exc:                            # noqa: BLE001
         raise VoicesError(f"could not read the program: {exc}") from None
 
-    decl = next((i for i in module.items
-                 if isinstance(i, VTypeDecl) and i.name == record), None)
+    decl = next((i for i in decls if i.name == record), None)
     if decl is None:
         allowed = " or ".join(sorted(_FIELD_DEFAULT))
         raise VoicesError(
             f"the bank `{bank}` plays `{record}`, which is neither "
-            f"{allowed} nor a data type declared here{_at(bank)}")
+            f"{allowed} nor a data type declared in this program or its "
+            f"vocabulary{_at(bank)}")
     if len(decl.constructors) != 1:
         raise VoicesError(
             f"`{record}` has {len(decl.constructors)} constructors; a voice's "

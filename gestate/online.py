@@ -46,6 +46,7 @@ import shutil
 from pathlib import Path
 
 from . import audioperform, audiowasm, webshell
+from .notes import read
 
 #: The worklet's render quantum, which is what the schedule is baked on.
 QUANTUM = 128
@@ -200,7 +201,7 @@ def generate_site(directory, out, rate: int = RATE) -> tuple:
             refused.append((path.name, str(e)))
             shutil.rmtree(out / path.stem, ignore_errors=True)
             continue
-        made.append((path.name, blurb(path.read_text())))
+        made.append((path.name, blurb(read(path))))
     # **Once, at the root, and only if anything drew** — the canvas
     # driver is the same program for every page and only the substrate
     # it is handed differs, so it is shared; but a gallery of pieces
@@ -366,7 +367,7 @@ def generate(path, out, rate: int = RATE, up: bool = False) -> Path:
         raise OnlineError(why)
     path, out = Path(path), Path(out)
     out.mkdir(parents=True, exist_ok=True)
-    src = path.read_text()
+    src = read(path)
     # The same graph `audioperform.graph_of` builds, with its nodes
     # placed in the file — one analysis, not two (`audiospans.located`).
     sites, graph = located(src, rate=rate)

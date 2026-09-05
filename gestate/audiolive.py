@@ -866,7 +866,9 @@ class SourceWatcher:
             return False
         self.stamp = now
         try:
-            source = self.path.read_text()
+            from .notes import read as _read_source
+
+            source = _read_source(self.path)
         except OSError:
             return False
         self.live.compile(source)
@@ -907,7 +909,9 @@ def watch(path, seconds: float | None = None, rate: int = DEFAULT_RATE,
         # twice quickly and the second one vanishes.  Taking it early can
         # instead cost one redundant rebuild, which is the right way round.
         watcher = SourceWatcher(path)
-        live = Live.start(path.read_text(), rate, directory)
+        from .notes import read as _read_source
+
+        live = Live.start(_read_source(path), rate, directory)
         watcher.live = live
         stop = threading.Event()
 

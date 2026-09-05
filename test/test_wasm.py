@@ -17,6 +17,7 @@ from pathlib import Path
 import pytest
 
 from gestate import audiowasm
+from gestate.notes import read
 
 AUDIO_DIR = Path(__file__).resolve().parents[1] / "examples" / "audio"
 RATE, BLOCK, FRAMES = 22050, 64, 2205          # a tenth of a second
@@ -32,7 +33,7 @@ def _names() -> list:
 def _graph(name: str):
     from gestate.audioperform import graph_of
 
-    return graph_of((AUDIO_DIR / name).read_text(), rate=RATE)
+    return graph_of(read(AUDIO_DIR / name), rate=RATE)
 
 
 def _control(name: str, graph):
@@ -41,7 +42,7 @@ def _control(name: str, graph):
     from gestate import audioperform
     from gestate.audioscore import unfolding_names
 
-    src = (AUDIO_DIR / name).read_text()
+    src = read(AUDIO_DIR / name)
     perf = audioperform.Performance(graph)
     total = FRAMES
     if audioperform.has_score(src):

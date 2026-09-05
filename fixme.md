@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 198 entries, **161 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 201 entries, **161 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7339,3 +7339,114 @@ in `test/test_gallery.py` twice — once with the tag and once without — which
 goes red the moment either half of the clock stops crossing.  Weakest point:
 until that piece exists, a gate here could only assert the *payload's shape*,
 which is a test that the export has a key rather than that a picture moves.
+
+### F198. **[bug]** `arc.ges` writes twenty-four bars of bass that its score never plays
+
+`examples/audio/arc.ges` defines `bass` (line 566) out of `g1 … g8`,
+`h1 … h8` and `i1 … i8` — twenty-four bars, spelled out by hand like the rest
+of the file — and its `score` (line 594) plays `melody`, `upper`, `middle`,
+`lower` and `roots`.  **`bass` is named nowhere else in the file.**
+
+    grep -n 'bass' examples/audio/arc.ges
+    566:bass : [: Tone :]      567:bass = g1 ++ g2 ++ …
+
+Found 2026-09-05 while writing `examples/audio/arc.notes`
+(`spec/drawnscores.md`): the note file has 219 notes and so does the piece,
+and the count only agreed once the `g`/`h`/`i` bars were left out.  A second
+number says the same thing from the other side —
+`test_drawnscores.py::test_the_velocity_difference_is_the_one_the_format_chose`
+asserts **15** distinct velocities in what sounds, against **16** written in
+the file: the sixteenth belongs to a bar of `bass` and is never heard.
+
+**Why it is a defect and not a style note.** `doc/notes/notes-on-writing-a-piece.md`
+W8 is *"five lines, and the count is the only thing holding them"* — and this
+is that failure's sibling and worse: a sixth line held by nothing at all, which
+compiles, renders, and is silent.  Nothing in the language, the suite or the
+window says a `[: Tone :]` was written and never reached a bank.  The piece
+`card:drawn-scores.md` rests on carries a whole unheard voice, and neither
+writer noticed for a day.
+
+**The repair is not obvious and is the author's**, which is why this is filed
+rather than fixed: either `bass` belongs in the score and the piece has been
+heard wrong three times, or it is a draft that should go — and only Henri can
+say which, because the question is what the piece is meant to sound like.
+`arc.notes` leaves it out, which is faithful to what `arc.ges` *plays*.
+
+gate: `none — not yet built`.  What would hold it is a lamp rather than a test
+of this file: a score-carrying program whose author declares a `[: a :]` that
+no `>>=` ever reaches has written notes nobody will hear, and that is decidable
+from the declarations `audio._authored` already returns.  Weakest point: a
+piece may legitimately keep an unused phrase while working, so this is an andon
+and not a refusal — which is the same shape `tools/dangling.py` already has for
+citations.
+
+### F199. **[bug]** `.notes` acceptance 5 claims more than it holds, and its test picked the case that passes
+
+`spec/drawnscores.md` §"Acceptance" 5 says **moving one note changes exactly one
+line** of a `.notes` file, and `test_drawnscores.py::test_moving_one_note_changes_exactly_one_line`
+asserts it — by changing a note's **key**.  Measured 2026-09-05 on
+`examples/audio/arc.notes`:
+
+    drag in pitch  -> 1 line differs
+    drag in time   -> 5 lines differ   (file the same length)
+
+A key is not part of the canonical order; `at` is (`notes.ordered` sorts
+section, bar, tick, voice, key).  So the edit an editor actually produces —
+**dragging a note in time**, which is what a roll is for — moves the note's line
+and shifts every line between its old and new place.  The file stays byte-stable
+and the music stays right; what fails is the property the gate was written for,
+which is that a diff of a `.notes` file shows *the edit* rather than a
+delete-and-insert plus churn.
+
+**Found by asking Henri's question rather than by the suite** — *"does this
+remain writable/readable if an editor is written around it?"*  The gate was green
+over the case an editor produces, which is `doc/memory/a-targeted-set-is-a-claim.md`
+arriving on this session's own acceptance list.
+
+Two readings, and choosing between them is design work not yet done: either the
+claim is narrowed to *a note's own line carries the whole edit* (true, and much
+weaker), or the canonical order stops sorting by `at` — bar-then-voice-then-tick
+would keep a dragged note among its own voice's lines and move it far less.  The
+second changes `notes.ordered` and every shipped `.notes` file with it.
+
+gate: `partial — test_drawnscores.py::test_moving_one_note_changes_exactly_one_line`,
+which passes and measures the wrong drag.  What is missing is the same assertion
+for a change to `at`, with whatever number is then true written into it.  Weakest
+point: a test that pins today's 5 would pass forever without the property
+improving, so it should assert against the *voice's* line span rather than a
+constant.
+
+### F200. **[bug]** `notes.write()` drops every comment in a `.notes` file
+
+`gestate/notes.py`'s parser strips `#` to end of line and the writer never emits
+one, so a round trip deletes them:
+
+    # the lydian section — the G# is the mode        <- gone
+    note  … key 68 vel mf   # the sharp fourth       <- gone
+
+Measured 2026-09-05.  Nothing caught it because `examples/audio/arc.notes` is
+generated and carries no comments, so the shipped file has nothing to lose —
+`doc/memory/a-targeted-set-is-a-claim.md` again, from the other side: the fixture
+had none of the thing the property is about.
+
+**Why it matters more here than in a generated format.**  The whole premise of
+`spec/drawnscores.md` is that a person and a session edit the same file, and
+Henri's constraint of 2026-08-29 is that a textual being must be able to edit it.
+The first time an editor writes back a hand-annotated file, the annotations that
+explain the music are gone — silently, and in the same gesture that was supposed
+to be byte-exact.  `arc.ges` next door is 599 lines of which a large share is
+`#:` prose about *why* those notes; the format that replaces it currently cannot
+hold a word of it.
+
+The shape of the repair is not obvious and is why this is filed rather than
+fixed.  A comment has no record to belong to once the lines are reordered:
+attaching it to the note below it makes a section comment jump when that note is
+dragged, and attaching it to nothing makes it a line with no position in a
+canonical order.  The honest options are a `#` line owned by the (section, bar)
+it precedes, or a trailing field on the note record itself — and the second is
+the one that survives reflow, which is gate three.
+
+gate: `none — not yet built`.  What would hold it is a round trip over a file
+carrying both a whole-line comment and a trailing one, asserted byte-identical —
+one test, once the ownership question above is answered.  Weakest point: a gate
+written before that answer would pin whichever behaviour was implemented first.

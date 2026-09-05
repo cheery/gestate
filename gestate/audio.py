@@ -425,6 +425,23 @@ def assemble(source: str, rate: int = DEFAULT_RATE,
     from .prelude import shadow_libraries
     from .syntax.ast import ParseError
 
+    # **A program that still has an `include` in it was read without the
+    # door**, and saying so beats what the parser says next.  `.notes`
+    # files are expanded when an author's file is *read*
+    # (`gestate.notes.read`), because `has_score` parses the text to
+    # decide which assembly to build and so cannot wait for one.  A
+    # caller that used `Path.read_text()` instead gets "expected '=',
+    # got end of line" pointing at a line they wrote correctly, which is
+    # the F150 shape: the symptom named and not one word of the cause.
+    from .notes import NotesError, includes as _includes
+
+    left = _includes(source)
+    if left:
+        #: complaint  machine — a caller of this module skipped `notes.read`
+        raise NotesError(
+            f'`include "{left[0]}"` reached the assembler: this program was '
+            "read without `gestate.notes.read`, which is the door that "
+            "expands a `.notes` file")
     prelude = preludes(source)
     # **Both of these parse the author's text on its own**, so a
     # `ParseError` out of either carries a position in the *author's*

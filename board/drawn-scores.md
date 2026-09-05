@@ -1,8 +1,10 @@
 # drawn-scores — a graphical score format with .ges's whole power
 
-    status   open — 2026-09-05, off the shelf at his word, and
-             `spec/drawnscores.md` is written — §"How it came off the
-             shelf".  What is left is the building
+    status   doing — 2026-09-05.  Off the shelf at his word, the spec
+             written, and **the first slice built the same day**: the
+             parser, the `include` door, `arc.notes`, and 219 notes of
+             `arc.ges` played from a flat file — §"Day one, landed".
+             What is left is the roll
     because  "Minä koin että .ges tiedoston muokkaaminen näkemättä mitä
              on tekemässä oli aika raskasta hommaa. .ges on hyvä
              formaatti syntetisaattoreihin, mutta ehkä ei sittenkään
@@ -552,3 +554,75 @@ a sketch, and what replaced it leads with a file.*
 > feature request with a design ready to build, and not a replacement
 > for `.ges` synths, which he judged good.  **When it runs:** never yet;
 > it is an idea to try some day, and it arrived shelved.
+
+## Day one, landed — 2026-09-05
+
+**Henri:** *"lets build it — parser, include, arc.notes."*  All three,
+and `spec/drawnscores.md` §"Acceptance" is the contract they are held
+to — 32 tests, green.
+
+| | |
+|---|---|
+| the parser, the refusals, the expansion | `gestate/notes.py` |
+| eight dynamics and the road in | `gestate/audio.ges` — `Ppp`…`Fff`, `loudness`, `class FromNote` |
+| the notes | `examples/audio/arc.notes` — 219 of them, 246 lines |
+| the piece that includes them | `examples/audio/arcnotes.ges` |
+| the acceptance | `test/test_drawnscores.py` |
+
+**The number the card exists for:** `arcnotes.ges` plays **219 of
+`arc.ges`'s 219 notes** at the same tick, for the same length, on the
+same bank, at the same pitch.  Four hundred and ninety lines of
+`'(Tone 0.85 62 0) ++ …` became one `include`.
+
+**And `arc.ges` was not touched.**  It is the exhibit
+`doc/notes/notes-on-writing-a-piece.md` was written from, so the two
+files stand side by side and the suite holds them to each other — which
+is better evidence than a rewrite, because a person can render both.
+
+**What is not identical, and it is the design rather than a shortfall:**
+209 of 219 velocities moved, by at most 0.050.  `arc.ges` writes sixteen
+raw floats and the format writes eight named dynamics, which is W4
+answered — *"no `mf`, no `p`, nothing a reader can check or a second
+writer can match."*  Both numbers are asserted, because a design that
+quietly moved a piece would be indistinguishable from a bug.
+
+**Four things the building found**, in `spec/drawnscores.md` §"What the
+building taught": the include door leaks to any tool that reads a file
+directly and now says so instead of blaming the author's line; `arc.ges`
+writes a whole voice its score never plays (`fixme.md` **F198**, and the
+repair is his); and the mode lamp's first run found a **67** in a
+lydian section, which is W2's own sentence answered in its own numbers.
+
+**And the fourth is his, and it was three defects rather than one** —
+found within the hour by opening the file and then trying to play it:
+
+> *"arcnotes.ges … I don't find the `include` there in other than
+> comments."*
+>
+> *"It shows that it's not auditioned at the start.  And when I try to
+> audition it, it gives me an error."*
+
+The expansion had been put on `Workbench.source()`, which fills the
+editor's text buffer as well as feeding every compiler — so **the window
+showed a program he had not written** and a `Ctrl-S` would have made it
+true.  Then `apply`/`audition` are handed that buffer, so the
+assembler's guard fired on the one gesture the editor exists for.  And
+`behind()` compares the buffer to what was built, so storing the
+expanded text there said *behind* forever.
+
+One cause, three faces: **expansion introduces a second text, and every
+field and method that held "the program" has to say which of the two it
+means.**  `source`/`program`, `_built_from`/`_built_program`, and
+`_built` expanding before it compiles — six tests on the split, four of
+them driving the editor rather than a compiler.
+
+**The suite was green over all three**, twice, because nothing in it
+opened the file the way a person does.  `doc/memory/test-what-a-person-would-do.md`
+is the memory that says so, and it was not enough to have read it.
+
+**What is left is the roll** — `spec/drawnscores.md` §"The slice after".
+Acceptance 6 was narrowed on purpose and says so: what is executed is
+that every sounding note has one line that wrote it and the expansion
+carries every one of those line numbers into the `.ges`.  Making the
+roll *follow* that map is the next slice, and claiming its number before
+the wiring exists would have been a number nobody checks.

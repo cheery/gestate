@@ -293,6 +293,124 @@ Portamento = 4
 asks : Int -> Int -> Bool
 asks ms m = (ms / m) % 2 == 1
 
+#: **The eight dynamics, as names** — `spec/drawnscores.md` §"`vel` is a
+#: named level".  A dynamic is the same kind of thing a manner is: an
+#: *intention*, which each voice realises in its own terms.  On a violin
+#: a forte is bow speed and pressure and on a pad it is a number, and
+#: `doc/notes/notes-on-writing-a-piece.md` W4 is what the raw float cost
+#: — `0.85`, `0.70`, `0.65`, invented by the writer, checkable by nobody
+#: and matchable by no second writer.
+#:
+#: An `Int` for `Manner`'s own reason: every field of a payload is one
+#: control value, and a control value is one slot.  An *ordinal* here
+#: where a manner is a set, because a note has exactly one dynamic and
+#: two of them at once is not a thing anybody writes.
+Ppp : Int
+Ppp = 0
+
+Pp : Int
+Pp = 1
+
+P : Int
+P = 2
+
+Mp : Int
+Mp = 3
+
+Mf : Int
+Mf = 4
+
+F : Int
+F = 5
+
+Ff : Int
+Ff = 6
+
+Fff : Int
+Fff = 7
+
+#: A dynamic as a weight in `0.0 .. 1.0`, for a voice that has nothing
+#: better to do with one.  **The one place the scale is written**, so a
+#: piece never spells the numbers and the day the curve is wrong only
+#: this line changes.
+#:
+#: Even steps of an eighth rather than a curve: a level is a name, and
+#: what a voice makes of it is the voice's business — a shaping applied
+#: here would be this file deciding for every instrument at once, which
+#: is exactly the mistake `spec/annotations.md` refuses for manners.
+loudness : Int -> Float
+loudness lv = 0.125 + toFloat lv * 0.125
+
+#: **The road in that a note file travels** — `spec/drawnscores.md`
+#: §"What the score gets back".  `Notable` reads a payload and this
+#: builds one, so the two are inverses and a round trip through the roll
+#: is a checkable thing rather than a careful one.
+#:
+#: `FromMIDI` is the same road from a *keyboard*, and it is not this
+#: one: a keyboard sends a channel and cannot send a manner, while a
+#: note file sends a manner and has no channel.  Two roads in, and each
+#: carries what its source actually has.
+class FromNote a where
+    fromNote : Int -> Int -> Int -> a
+
+#: The bare note, as `instance Notable Int` is its other half: a
+#: `[: Int :]` melody is the key number and nothing else, so the level
+#: and the manner have nowhere to go and are dropped rather than
+#: silently folded into the pitch.
+instance FromNote Int where
+    fromNote k lv ms = k
+
+#: **The note every piece was already writing** — `spec/drawnscores.md`
+#: §"The payload nobody had to declare".
+#:
+#: Measured 2026-09-05 across `examples/audio/`: **twenty-four payload
+#: declarations, under seven names — `Tone`, `Key`, `Kit`, `Hit`,
+#: `Blue`, `Voice`, `Stroke` — and every one of them the same two or
+#: three fields.**  A key, a loudness, and since `spec/annotations.md` a
+#: manner.  Nine files then hand-write a `Notable` instance whose three
+#: methods differ only in the constructor's name.  The per-piece payload
+#: is a freedom this tree offered two dozen times and exercised nowhere.
+#:
+#: So it is named once here, and the freedom stays: a piece that wants
+#: its own payload declares one and shadows this — `prelude.shadow_libraries`
+#: renames constructors as well as values, which is what makes eleven
+#: existing pieces' own `Tone` go on meaning theirs.  **`FromNote` is
+#: the exception now rather than the entry fee.**
+#:
+#: `Tone` and not `Note`, and the reason is one line of
+#: `prelude._renames`: `Score a := Note a` already spends that
+#: constructor, and two libraries wearing one name is a collision no
+#: shadowing rule covers — a program's own name wins over a library's,
+#: and neither of two libraries is a program.  `Tone` is the word eleven
+#: pieces reached for on their own.
+Tone := Tone Int Int Int              # key, dynamic level, manners
+
+instance Notable Tone where
+    noteKey t = case t of
+        Tone k lv ms -> k
+    noteVel t = case t of
+        Tone k lv ms -> floor (loudness lv * 127.0)
+    manner t = case t of
+        Tone k lv ms -> ms
+
+instance FromNote Tone where
+    fromNote k lv ms = Tone k lv ms
+
+#: What a voice wants from a note, so that a piece does not unpack one
+#: by hand.  **The manner accessors stay the piece's**, because what a
+#: staccato *does* is the voice's own answer and `spec/annotations.md`
+#: is the whole argument for that.
+#:
+#: `noteHz` is not here but in `synth.ges`, beside the `keyHz` it calls.
+#: Every sounding program is given both files (`audio.preludes`), so a
+#: piece never notices — but this one is loaded alone by
+#: `test_audio.py::test_the_oscillator_shapes` to check its own
+#: functions, and a library that cannot load without the one below it is
+#: a layering fault whatever assembles it in practice.
+noteLoud : Tone -> Float
+noteLoud t = case t of
+    Tone k lv ms -> loudness lv
+
 #: A one-pole lowpass, as a *signal transformation*.  A coefficient near 0
 #: is very smooth, near 1 lets everything through.  This is the shape the whole
 #: design is for: a signal in, a signal out, state held by `scan`.

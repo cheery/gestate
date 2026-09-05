@@ -857,3 +857,35 @@ evening.  Every other read this session made went through `cat` and
 `sed` in the shell, which the hook does not see.  The mechanism works;
 the reader it was built for reads another way.  That goes on the
 closed card as its first measurement.
+
+## `idiom-or-load` refused, and the fence that could not be built — 2026-09-05
+
+*Written here because `board/README.md` recorded it and should not
+have: a card leaving the list is an event, and events are this file's.*
+
+The card asked whether a **loose** brief lands better than a
+**constrained** one, and its control was that neither arm may read
+`board/`.  The loose arm ran — `examples/audio/hollow.ges`, B locrian,
+one pass — and **Henri: *"I think that this unconstrained was better
+than constrained version."*** Then he closed the card: *"it's too hard
+for me to isolate and restrict everything down to make a good test
+here."*  And before that: *"I noticed that asking to not look into
+`board/` was insufficient.  You still figured it out this was a test
+setting."*
+
+**Neither the arm nor the fence was at fault — the tree reads `board/`
+for you.**  `tools/backlinks.py`'s Read hook fires on every file open
+and quotes the citing cards back, so opening the log the work required
+printed two lines of the card into the arm's context on its second tool
+call, one of them containing the words *the two arms*.  Citing a file
+is precisely what makes the hook read its cards aloud, so the fence was
+unbuildable here without three pieces of setup nobody had budgeted:
+`board/` absent from the arm's clone, the hook silenced, and the log's
+own leaking section split out.
+
+`board/refused/idiom-or-load.md` keeps the whole argument, and
+`doc/notes/notes-on-writing-a-piece.md`'s entry for the next day
+carries the measurement — a heading this file cannot cite by §, because
+it quotes a section of its own.  The
+rule that was missing and is now written: **two arms never in one
+working tree.**

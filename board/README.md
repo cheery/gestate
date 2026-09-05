@@ -68,18 +68,6 @@ still the tiebreak between two workable cards, and it is still his.
    written in; the roll edits 0–5% of a real piece and would edit all
    of one of these.  *Off the shelf 2026-09-05, unplaced, spec written.*
 
-**`idiom-or-load` left this list on 2026-09-05**, refused — its loose
-arm ran, and the fence it depended on turned out to be unbuildable
-here: `tools/backlinks.py`'s Read hook quotes `board/` at a session
-that never opened it.  [refused/idiom-or-load.md](refused/idiom-or-load.md)
-keeps the argument, and the arm's file is `examples/audio/hollow.ges`.
-
-**Five cards left this list on 2026-09-04**, the first run of the
-seven-day lamp: `card:git-lesson.md`, `card:reviewing-by-running.md`,
-`card:stranger-test.md`, `card:unseen-flare.md` and
-`card:git-viewer.md`, each shelved with his sentence.  Three wait on an
-event, two on him — the shelf says which.
-
 **And the criterion has been checked once, on 2026-08-19, and it lost**
 — `journal.md` §"And what the day says about the board".  Ordering by
 impact ranked a crash seventh, which is the kind of answer a rule gives
@@ -89,16 +77,12 @@ when nobody checks it.
 Henri's ask: *"order them by some quality, such as, what is the impact
 of it for me or others who would use it… It's the proper order to do
 these tasks."*  The criterion is deliberate and demotes good cards:
-`gemba`, `reviewing-by-running` and the git pair change how the work is
-*made* rather than what a person meets, and they sit below things that
-a user feels directly.
+work that changes how the work is *made* sits below what a person
+feels directly.
 
-**None of these is a decision wearing a card**, which is new.  No session
-can finish one, so its position is academic until it is answered or
-shelved (`spec/author.md` §"Triaging the board").  `command-categories`
-was answered, built and finished in one sitting on 2026-08-18;
-`portable-package` was shelved by its answer on 2026-08-20 — which is
-what a decision card is worth when somebody answers it rather than files it.
+**A decision wearing a card cannot be finished by a session**, so its
+position here is academic until somebody answers or shelves it —
+`spec/author.md` §"Triaging the board".
 
 Finished cards are in [done/](done/), newest work last.  `ls board/*.md`
 is the live board; nothing has to be trimmed by hand for that to stay

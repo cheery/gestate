@@ -64,6 +64,15 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # and has no golden for the reason the others have none —
             # and the thing it is evidence *for* is a log, not a buffer.
             "arc.ges",
+            # `arc.ges` again, with its notes in a `.notes` file
+            # (`spec/drawnscores.md`).  The two stand side by side on
+            # purpose: `arc.ges` is the exhibit that log was written from,
+            # so it is kept exactly as it was, and parity between them is
+            # a real A/B a person can render and hear.  No golden, for
+            # `arc.ges`'s reason — and `test_drawnscores.py` holds the
+            # pair to the same 219 notes, which is a stronger oracle than
+            # a buffer.
+            "arcnotes.ges",
             # The loose-brief locrian — *"anything that sounds like
             # locrian"* — and a piece for the same reason `arc.ges` is
             # one.  No golden: what it is evidence for is whether a mode

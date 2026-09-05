@@ -19,6 +19,10 @@ what to spend attention on, which is the scarcer question.*
 
 ## The problem, stated without softening
 
+A defect is a caller, not a verdict: it asks for what broke, what fixed it,
+and what now holds it — and nobody owes anything on top of that.
+Mistakes we catch are the best kind of mistakes.
+
 Two hundred and seventy-odd commits in nine days, around thirty a
 calendar day, written by something that does not get tired.  Auto mode
 is on.  The fence and the deny-list stop the work *damaging* anything —

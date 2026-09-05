@@ -376,6 +376,23 @@ def assemble_performance(synth: str, piece: str = "", rate: int = 22050,
     from .internals import enforce
     from .prelude import shadow_libraries
 
+    # **A program that still has an `include` in it was read without the
+    # door**, and saying so beats what the parser says next.  `.notes`
+    # files are expanded when an author's file is *read*
+    # (`gestate.notes.read`), because `has_score` parses the text to
+    # decide which assembly to build and so cannot wait for one.  A
+    # caller that used `Path.read_text()` instead gets "expected '=',
+    # got end of line" pointing at a line they wrote correctly, which is
+    # the F150 shape: the symptom named and not one word of the cause.
+    from .notes import NotesError, includes as _includes
+
+    left = _includes(synth) + _includes(piece)
+    if left:
+        #: complaint  machine — a caller of this module skipped `notes.read`
+        raise NotesError(
+            f'`include "{left[0]}"` reached the assembler: this program was '
+            "read without `gestate.notes.read`, which is the door that "
+            "expands a `.notes` file")
     music = (Path(__file__).with_name("music.ges")).read_text()
     head = preludes(synth + "\n" + piece) + "\n" + music
     # `audio._entry`'s tail — `sampleRate`, `constSig`, `main = sound` —

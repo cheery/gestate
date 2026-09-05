@@ -35,6 +35,7 @@ import pathlib
 import subprocess
 import sys
 import time
+from gestate.notes import read
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
@@ -50,7 +51,7 @@ def playable(path: pathlib.Path) -> str | None:
     from gestate.audio import has_sound
 
     try:
-        source = path.read_text()
+        source = read(path)
     except OSError as exc:                              # noqa: BLE001
         return f"unreadable ({exc.strerror})"
     if not has_sound(source):

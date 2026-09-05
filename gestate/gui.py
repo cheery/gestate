@@ -1339,7 +1339,9 @@ def main(argv=None) -> int:
     # was the one error this boundary could not report, because reading it
     # happened before the boundary began.
     try:
-        source = Path(args.file).read_text()
+        from .notes import read as _read_source
+
+        source = _read_source(args.file)
         if args.frames is not None:
             for i, scene in enumerate(scenes(source, [("Tick",)] * args.frames)):
                 print(f"frame {i}: " + ", ".join(

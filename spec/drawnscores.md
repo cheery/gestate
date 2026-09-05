@@ -14,8 +14,10 @@ session can edit them as text, and the two are looking at the same
 bytes.
 
 **And the first slice, in one sentence:** **`arc.ges`'s twenty-four bars
-rewritten as `arc.notes`, included by one line, rendering to the same
-audio, and every note of it editable on the roll.**
+rewritten as `arc.notes`, included by one line, playing the same 219
+notes.**  *Built 2026-09-05, and this file was revised from the code
+afterward — three things the building taught are folded in where they
+belong, each marked **as built**, and the rest stood.*
 
 ---
 
@@ -50,10 +52,17 @@ sinäkin, tekstillisenä olentona, pystyt sitä muokkaamaan"* — the store
 is text, and a session edits it with the same tools it edits everything
 else.
 
-**When it runs:** at assembly, like a prelude.  `include` is read when
-the program is put together, the notes become ordinary score values, and
-nothing is different at render time.  Not built yet; this file is the
-argument for building it.
+**When it runs:** at the door, when an author's `.ges` file is read.
+`include` is expanded there, the notes become ordinary score
+declarations, and nothing downstream — the type checker, the extractor,
+the renderer, the window — sees anything it did not already understand.
+
+***As built:*** at the *reading* of the file and not inside
+`audio.assemble`, which is where the design assumed it would go.  The
+reason is that `has_score` parses the author's text to decide *which*
+assembly to build, so an unexpanded `include` breaks the question before
+the answer picks a door.  `gestate/notes.py`'s `read` is that one door
+and eight callers go through it.
 
 ## Why, in one number
 
@@ -135,10 +144,13 @@ Nothing below is a guess; each row was read in the tree on 2026-09-05.
 | a dotted namespace made by an ask keyword | `voices bow 4 bowVoice` → `voices.bow` | built — the spelling to copy |
 | a tool that counts what a line does musically | `tools/modecheck.py` | built 2026-09-05 |
 
-**What is not standing:** the parser, the `include` keyword, the class in
-§"What the score gets back", the four gate checks, and the roll knowing
-that a note came from another file.  That is the whole of the work, and
-it is smaller than this document is long.
+**What was not standing, 2026-09-05:** the parser, the `include`
+keyword, the class in §"What the score gets back", the four gate checks,
+and the roll knowing that a note came from another file.  **All but the
+last landed the same day** — `gestate/notes.py`, `audio.ges`'s
+`FromNote` and its eight dynamics, `examples/audio/arc.notes`,
+`examples/audio/arcnotes.ges`, `test/test_drawnscores.py`.  The roll is
+the slice after.
 
 ## What is decided
 
@@ -354,34 +366,253 @@ program has no `FromNote` instance (suspected: the same refusal
 whether one instance can serve a file whose voices want different
 payload types.  Both are day-one questions rather than design ones.
 
+## The payload nobody had to declare — 2026-09-05
+
+**Henri, reading the first `arcnotes.ges`:** *"The `Tone := Tone Float
+Int Int` feels like ceremony in the file.  I wonder why it is necessary
+there now?"*
+
+**It was not, and the measurement is the answer.**  Twenty-four payload
+declarations across `examples/audio/`, under seven names:
+
+| | | | |
+|---|---|---|---|
+| `Tone Float Int` | 7 | `Kit Float Int` | 2 |
+| `Key Int Int` | 4 | `Hit Int Int` | 2 |
+| `Tone Float Int Int` | 3 | `Blue Int Int` | 2 |
+| | | `Voice`, `Stroke`, `Note` | 4 |
+
+**Every one is the same two or three fields** — a key, a loudness, and
+since `spec/annotations.md` a manner.  Nine of them then hand-write a
+`Notable` instance whose three methods differ only in the constructor's
+name.  **The per-piece payload is a freedom this tree offered two dozen
+times and exercised nowhere.**
+
+**And this format made it worse before it made it better.**  Before,
+a piece paid a type and one instance.  §"What the score gets back" added
+a second — and `FromNote`'s body is pure repacking of the three fields
+the format has already fixed:
+
+    fromNote k lv ms = Tone (loudness lv) k ms
+
+That line turns the format's *(key, level, manners)* into a piece's
+*(loudness, key, manners)* so that five accessors can take it apart
+again.  An entry fee where there should have been an escape hatch.
+
+**So the note is named once, in `audio.ges`:**
+
+    Tone := Tone Int Int Int              # key, dynamic level, manners
+
+with `Notable` and `FromNote` instances and two accessors, `noteHz` and
+`noteLoud`.  `include` needs no change at all: the generated binding is
+already `(FromNote a) => [: a :]`, so a piece whose voice says
+`Sig Tone` gets this one and a piece that declares its own gets theirs.
+
+**`Tone` and not `Note`**, and the reason is one line of
+`prelude._renames`: `Score a := Note a` already spends that constructor,
+and two *libraries* wearing one name is a collision no shadowing rule
+covers — a program's own name wins over a library's, and neither of two
+libraries is a program.  `Tone` is the word eleven pieces reached for on
+their own, and it is free in every library.
+
+**The freedom is kept and is what keeps it honest.**
+`prelude.shadow_libraries` renames constructors as well as values, so
+`arc.ges`'s `Tone Float Int Int` goes on meaning `arc.ges`'s — checked
+by `test_drawnscores.py`, because the failure it prevents is silent:
+two constructors wearing one name, and the cons table keeping whichever.
+All 59 audio examples compile unchanged.
+
+**What stays the piece's, and must:** `bowOf`, `pushOf`, `glideOf` —
+what a mark *does*.  `spec/annotations.md` is the whole argument: a
+staccato is a filter and an envelope here and a bow stroke elsewhere, so
+however repetitive those look they are the one part that cannot move
+into a library.
+
+**One change the expander needed.**  `audiovoices._frame` already looked
+for a bank's *result* type in the program and then in the prelude —
+*"`synth.ges` declares `Stereo` so that two programs mean the same thing
+by a stereo frame."*  That sentence was always about the payload too,
+and the payload lookup read the program alone, so a library type raised
+*"neither Float or Int nor a data type declared here"*.  It now reads
+the program and then the vocabulary `audio.preludes` gives it — derived
+from the source rather than passed in, because `channels_of` is asked
+this from ten places that hold a program and no prelude, and threading
+one through all ten is ten chances to pass a vocabulary the compiler did
+not use.
+
+**What it cost `arcnotes.ges`: twenty lines of one hundred and
+thirty-seven**, and the render is unchanged — 219 of `arc.ges`'s 219
+notes, same tick, same length, same bank, same pitch, same loudness.
+
+**What is not done:** the other twenty-three pieces still declare their
+own.  That sweep is a bigger and better change than the one that was
+asked for, and a correspondingly worse one to get wrong, so it is named
+here rather than taken.
+
 ## Acceptance
 
-Held by `test/test_drawnscores.py`, and the piece is `arc.ges`.
+Held by `test/test_drawnscores.py` — **32 tests, all green 2026-09-05** —
+and the piece is `arc.ges`.
 
-1. **Parity.**  `examples/audio/arc.notes` plus a shortened `arc.ges`
-   that includes it renders **sample-identical** audio to today's
-   `arc.ges`.  Sample-identical, not similar: the format claims to be a
-   different spelling of the same score, and anything less is a
-   different piece.
+***As built:*** `examples/audio/arc.ges` is **not** replaced.  It is the
+exhibit `doc/notes/notes-on-writing-a-piece.md` was written from, and
+overwriting it would have destroyed the measurement, so the piece
+written the new way is `examples/audio/arcnotes.ges` beside it and the
+two are held to each other.  That is better evidence than a rewrite: a
+person can render both and hear the difference, or fail to.
+
+1. **Parity.**  `arcnotes.ges` plays **every note of `arc.ges` at the
+   same tick, for the same length, on the same bank, at the same
+   pitch — 219 of 219**, and the same `bpm`.
+
+   ***As built:*** *sample-identical*, which this file asked for, **is
+   not what was delivered and could not have been.**  `arc.ges` writes
+   its velocities as raw floats and the format writes eight named
+   dynamics — which is the design, not a shortfall: W4 is precisely
+   that those floats were invented by their writer and checkable by
+   nobody.  So the exception is measured instead of waved at: **209 of
+   219 velocities moved, by at most 0.050**, and both numbers are
+   asserted.  A design that quietly moved a piece would be
+   indistinguishable from a bug.
 2. **The bar is a thing.**  A fifth quarter note in a four-beat bar
-   fails to load, and the message names the file, the line, and the bar
-   it overflowed.  *W3.*
-3. **The voices cannot drift.**  Deleting every note of bar 17 for one
-   voice leaves the piece the same length and the other voices in
-   place.  *W5, W8.*
-4. **Reflow.**  A file whose note lines are shuffled renders identically
-   to the same file sorted.  *Gate three.*
-5. **Round trip.**  Reading a file and writing it back is a byte
-   no-op, and moving one note on the roll changes exactly the bytes of
-   that note's line.  *Gate four, and `spec/north_star.md`'s law.*
-6. **The whole file is editable.**  The roll reports **100%** of
-   `arc.notes`'s notes as writable — the number §"Why, in one number"
-   measured at 0–5% for real `.ges` pieces.  *This is the acceptance
-   the format exists for; if it does not hold, nothing else here
-   matters.*
-7. **The mode lamp reports and does not refuse.**  `arc.notes`'s A
-   section loads with its ♯11 intact, and a check names that note as
-   outside D lydian.
+   fails to load, and the message names the file, the line, the bar and
+   how long that bar is.  A note that *lasts* past its bar is a tie and
+   is allowed — the rule is about where a note starts.  *W3.*
+3. **The voices cannot drift.**  Deleting every note of one bar for one
+   voice leaves the piece exactly one note shorter, the same length, and
+   every other voice in place.  *W5, W8.*
+4. **Reflow.**  The shipped file with its lines shuffled renders
+   identically, and so does the same file indented by six spaces.
+   *Gate three.*
+5. **Round trip.**  Writing `arc.notes` back is a byte no-op, and moving
+   one note changes exactly one line of it.  *Gate four, and
+   `spec/north_star.md`'s law — here a property of the format rather
+   than a careful implementation.*
+6. **Every note is written down.**  ***As built, and narrowed on
+   purpose:*** what is executed is the property that makes the guess
+   unnecessary — every one of the 219 sounding notes has exactly one
+   line of `arc.notes` that wrote it, that line spells the pitch as a
+   literal, and the expansion carries every one of those line numbers
+   into the generated `.ges`.  **That is 100%, and it is the half the
+   format is responsible for.**  Wiring the roll to *follow* the map
+   into the `.notes` file is the slice after this one, and claiming the
+   roll number before that wiring exists would have been the thing this
+   tree calls a number nobody checks.
+7. **The mode lamp reports and does not refuse.**  `arc.notes` loads
+   with all 219 notes, and the lamp names **6** of them as outside their
+   section's mode.
+
+   ***As built, and it is the best thing the building found:*** the
+   first of the six is `A bar 3 melody key 67`, in a section declared D
+   lydian — whose fourth is 68.  That is W2's own sentence answered
+   word for word: *"nothing can check that 68 is the sharp fourth and
+   not a typo for 67."*  Something now can.  And it is **not** a typo —
+   bar 3 is the IV chord and 67 is its root — which is exactly why this
+   reports and never refuses.
+
+## What the building taught — 2026-09-05
+
+Three things, none of which this file had.
+
+**1. The door leaks, and the leak is named rather than closed.**  The
+expansion happens when an author's `.ges` file is *read*, so a tool that
+calls `Path.read_text()` instead meets a bare `include` line and the
+parser says *"expected '=', got end of line"* — a line the author wrote
+correctly, blamed for a door somebody else skipped.  That is the F150
+shape exactly: the symptom named, and not one word of the cause.  Four
+sweeps in the tree read every audio example directly and all four now go
+through `gestate.notes.read`; the fifth has not been written yet.
+
+So `audio.assemble` and `audioscore.assemble_performance` refuse an
+`include` that survives to them, and say *this program was read without
+`gestate.notes.read`*.  **That is a guard and not a fix** — the fix
+would be for the text to carry its own path, which it does not, and
+threading one through every caller of `assemble` is a change this slice
+did not earn.  Named here so it is a decision rather than a gap.
+
+*And the guard was itself wrong for half an hour*, which is worth the
+line: written once and pasted into both assemblers, it named `source`
+where the score path's parameter is `synth`, so **every scored program
+crashed with a `NameError`** and 34 tests were green over it.  What
+found it was typing the command — `python -m gestate.audioperform
+examples/audio/arcnotes.ges -o take.wav` — which is the tree's own rule
+about running the thing a person runs, and there is now a test that does
+exactly that.
+
+**And the door was put on the wrong method in the editor, which is the
+worst of the three.**  `Workbench.source()` fills the window's text
+buffer *and* was the door every compiler went through, so expanding
+there made the editor **display a program the author had not written** —
+the `include` line blanked, nine hundred generated lines after it — and
+a `Ctrl-S` would have written that over their file.  Henri found it by
+opening `arcnotes.ges` and looking for its own `include`.
+
+**Two needs, two methods**, and the split is now the contract:
+
+| | |
+|---|---|
+| `Workbench.source()` | the author's bytes — what the window shows and what a save writes.  Expands nothing |
+| `Workbench.program(text)` | what compiles — that text with its includes expanded, against the file's own directory |
+
+*And the Workbench is the right place and nothing lower is*, which is
+the answer to §"the door leaks" one paragraph up: expanding an `include`
+needs the **directory** the file sits in, a compiler is handed only
+text, and the Workbench is the object that has both.  A live buffer has
+no path at all, so no door beneath it could have served the editor.
+
+**And the split had to be made twice more**, because two more places
+were asking one field to answer two questions.
+
+*`apply` and `audition` take the window's buffer*, which has an
+`include` in it and no path attached, so the assembler's guard fired on
+the one gesture the editor exists for — Henri's log again: `audition`
+→ *"not applied: `include "arc.notes"` reached the assembler."*
+`_built` now expands before it compiles, and reports a bad include the
+way it reports a compile error, because to the person at the window it
+is one: they typed a name and it is not a file.
+
+*And a build records two texts, not one.*  `_built_from` is the
+author's bytes and answers **is the window ahead of the sound**;
+`_built_program` is what the compiler saw and answers **what may this
+rebuild skip**.  Holding the expanded text in the first made `behind`
+permanently true for any file with an `include` — his words, *"It shows
+that it's not auditioned at the start."*
+
+**The lesson is this file's own, arriving from behind.**  A `.notes`
+file is not a second source of truth because the picture and the text
+are one file; a `source()` that expanded made the *window* a second
+rendering of the file, which is the same mistake at one remove.  A view
+that shows something other than what a save writes is the failure this
+project has now designed against three times.
+
+**And the shape of all three is one shape**, worth naming because the
+next person adding a sub-language will meet it: *expansion introduces a
+second text, and every field, method and comparison that held "the
+program" now has to say which of the two it means.*  Three places in
+`audioeditor.py` did not, and the suite was green over every one of
+them, because nothing in it opened the file the way a person does.
+
+**2. A whole voice of `arc.ges` is never played** — `fixme.md` F198.
+The file writes twenty-four bars of `bass` and its `score` does not
+mention it.  Found because the note counts refused to agree: the piece
+has 219 events and the file has 314 written notes, and the difference is
+`bass` plus the chord bank's three voices sharing a bank.  A second
+number says it from the other side — 15 velocities sound and 16 are
+written.
+
+**This is W8's failure with the count removed as a defence**, and worse
+than the one that log named: not five lines aligned by nothing, but a
+sixth line held by nothing at all, which compiles, renders and is
+silent.  The repair is Henri's, because the question is what the piece
+is meant to sound like.  `arc.notes` is faithful to what `arc.ges`
+*plays*.
+
+**3. The mode lamp earned itself on its first run.**  Six of 219 notes
+are outside their section's mode, and the first is a **67** in a section
+declared D lydian — whose fourth is 68.  W2 asked for exactly this, in
+these numbers: *"nothing can check that 68 is the sharp fourth and not a
+typo for 67."*  It is not a typo, and a version of this that refused
+would have refused the piece.  The lamp cost eleven lines.
 
 ## The slice after — the view
 
