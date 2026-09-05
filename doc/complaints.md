@@ -750,9 +750,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 308 | `NotesError` | `author` | handed in | '{place}: `{one}` is not a manner; ' + ' '.join(sorted(MANNERS)) |
 | 312 | `NotesError` | `author` | handed in | '{place}: `{one}` is asked for twice' |
 | 330 | `NotesError` | `author` | handed in | '{place}: this note is already written at {name}:{seen[spot]} — same section, bar, voice, tick … |
-| 640 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
-| 645 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section.name}` is already included; two files cannot brin… |
-| 684 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
+| 675 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
+| 680 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section.name}` is already included; two files cannot brin… |
+| 719 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
 
 ### `online.py`
 

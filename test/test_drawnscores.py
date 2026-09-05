@@ -884,3 +884,99 @@ def test_modecheck_runs_on_a_piece_that_carries_manners():
          "song", "2"], cwd=ROOT, capture_output=True, text=True)
     assert out.returncode == 0, out.stderr
     assert "123 notes" in out.stdout
+
+
+# ── The view arrives without being asked ────────────────────────────────────
+
+
+def test_a_render_says_what_its_bars_sound():
+    """*"It needs a 'view', just like how I look toward to that score
+    being rendered in the editor."* — Henri, 2026-09-05.
+
+    `card:the-first-jam.md` item 1 named the shape first, for the
+    ceiling share: a line after a render puts the criterion into every
+    run's own mouth.  This is the same move for item 2, and it is the
+    half that makes the report a view rather than a command somebody has
+    to think of.
+    """
+    import io
+    import contextlib
+    import tempfile
+
+    from gestate import audioperform
+
+    with _copied() as here, tempfile.TemporaryDirectory() as out:
+        said = io.StringIO()
+        with contextlib.redirect_stderr(said):
+            code = audioperform.main([str(here), "-o", f"{out}/take.wav",
+                                      "--seconds", "1.0", "--rate", "8000"])
+        assert code == 0
+        page = said.getvalue()
+        assert "── section A — D lydian" in page
+        assert "gis4" in page and "♯4" in page
+        assert "more bars" in page, "it should point at the rest"
+
+
+def test_a_render_of_a_piece_with_no_include_says_nothing_about_bars():
+    """Only where the piece says what key it is in.  Nothing else in this
+    tree declares a mode, and a report that guessed a tonic would print
+    confident nonsense."""
+    import io
+    import contextlib
+    import tempfile
+
+    from gestate import audioperform
+
+    with tempfile.TemporaryDirectory() as out:
+        said = io.StringIO()
+        with contextlib.redirect_stderr(said):
+            audioperform.main([str(ARC), "-o", f"{out}/take.wav",
+                               "--seconds", "1.0", "--rate", "8000"])
+        assert "sounding" not in said.getvalue()
+
+
+def test_the_read_hook_answers_for_a_notes_file_and_nothing_else():
+    """A `PostToolUse` hook on `Read`, so opening a `.notes` file shows
+    its bars — `tools/backlinks.py`'s shape, and its rule: silent on
+    everything it is not about, and silent on failure."""
+    import json
+    import subprocess
+    import sys
+
+    def fired(payload):
+        out = subprocess.run([sys.executable, "tools/bars.py", "--hook"],
+                             cwd=ROOT, input=json.dumps(payload),
+                             capture_output=True, text=True)
+        assert out.returncode == 0, out.stderr
+        return out.stdout.strip()
+
+    spoke = fired({"tool_name": "Read",
+                   "tool_input": {"file_path": str(NOTES)}})
+    said = json.loads(spoke)["hookSpecificOutput"]
+    assert said["hookEventName"] == "PostToolUse"
+    assert "── section A — D lydian" in said["additionalContext"]
+
+    # Not for another file, not for another tool, and not for a `.notes`
+    # that is not there — each of which a reader is about to hear about
+    # from whatever they were actually running.
+    assert fired({"tool_name": "Read",
+                  "tool_input": {"file_path": str(ARC)}}) == ""
+    assert fired({"tool_name": "Edit",
+                  "tool_input": {"file_path": str(NOTES)}}) == ""
+    assert fired({"tool_name": "Read",
+                  "tool_input": {"file_path": "no/such.notes"}}) == ""
+    assert fired({}) == ""
+
+
+def test_the_hook_is_not_installed_by_a_session():
+    """`.claude/settings.json` is behind the leash — `--install` prints
+    the lines and the install is Henri's, exactly as `backlinks.py` has
+    it."""
+    import subprocess
+    import sys
+
+    out = subprocess.run([sys.executable, "tools/bars.py", "--install"],
+                         cwd=ROOT, capture_output=True, text=True)
+    assert out.returncode == 0
+    assert '"matcher": "Read"' in out.stdout
+    assert "bars.py --hook" in out.stdout

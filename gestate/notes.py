@@ -530,6 +530,41 @@ def sounding(out: NotesFile) -> list:
             in sorted(heard.items(), key=lambda kv: (order[kv[0][0]], kv[0][1]))]
 
 
+def rows_of_notes(path) -> list:
+    """`(section, bar, keys, tonic, mode)` from a `.notes` file's own headers."""
+    path = Path(path)
+    out = parse(path.read_text(), path.name)
+    modes = {s.name: (s.key, s.mode) for s in out.sections}
+    return [(s, b, keys) + modes[s] for s, b, keys in sounding(out)]
+
+
+def report(rows: list, tell=print) -> None:
+    at = None
+    for section, bar, keys, tonic, mode in rows:
+        if (section, tonic, mode) != at:
+            at = (section, tonic, mode)
+            head = f"── {'section ' + section if section else 'the piece'}"
+            tell(f"{head} — {tonic} {mode}" if tonic and mode else head)
+            tell(f"   {'bar':>3}  {'sounding':<34} {'degrees':<26} outside")
+        if tonic and mode:
+            names = " ".join(spell(k, tonic, mode) for k in keys)
+            steps = _MODES[mode.lower()]
+            marks = " ".join(degree_of(k, tonic, mode) for k in keys)
+            #: **Named, not counted.**  A count says a bar is wrong; a
+            #: name says which note, and the note is what an author
+            #: decides about.  `arc.notes`' one out-of-mode note in
+            #: section A is a `g4` where the mode's fourth is `gis` —
+            #: which is `doc/notes/notes-on-writing-a-piece.md` W2's own
+            #: sentence, and it is not a typo.
+            odd = [spell(k, tonic, mode) for k in keys
+                   if (k - _PITCH_CLASS[tonic]) % 12 not in steps]
+        else:
+            names = " ".join(str(k) for k in keys)
+            marks, odd = "", []
+        tell(f"   {bar:>3}  {names:<34} {marks:<26} "
+             + (" ".join(odd) if odd else "—"))
+
+
 # ── The expansion into `.ges` ───────────────────────────────────────────────
 
 #: The name a voice of a section becomes.  Underscored and prefixed

@@ -28,6 +28,30 @@ nothing, which is why names are free here and are not free in the file.
 
 A `.notes` file declares `key` and `mode` per section and needs no
 argument.  A `.ges` piece declares neither, so they are given.
+
+**And it must arrive without being asked, or it is a command nobody
+runs.**  *Henri, 2026-09-05:* **"It needs a 'view', just like how I look
+toward to that score being rendered in the editor."**  His roll is
+beside the text he is editing; a tool is a thing somebody has to think
+of — and both trials of that day found the same gap from opposite
+sides: a session asked to check is exact, a session not asked does not
+look.  So there are two doors and neither is a command:
+
+* **the render** — `audioperform` prints this after a take of any
+  program that includes a `.notes` file, the way it already prints its
+  seed and its channel count.  `card:the-first-jam.md` item 1 named the
+  shape first, for a different number: *"a `ceiling: X%` line after a
+  render would put the criterion into every run's own mouth."*
+* **the read** — a `PostToolUse` hook on `Read`, so opening a `.notes`
+  file shows its bars, exactly as `tools/backlinks.py` shows who cites
+  what.  `.claude/settings.json` is behind the leash and a session may
+  not edit it, so `--install` prints the lines and the install is
+  Henri's.
+
+**The hook never speaks about anything else.**  Only a `.notes` file,
+only when it parses, only its first sections — a hook that answered on
+every read would be noise, and noise is how the last one nearly died
+(`card:backlinks-ranges.md`).
 """
 
 from __future__ import annotations
@@ -37,15 +61,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from gestate.notes import (_MODES, NotesError, degree_of,  # noqa: E402
-                           parse, sounding, spell)
-
-
-def rows_of_notes(path: Path) -> list:
-    """`(section, bar, keys, tonic, mode)` from a `.notes` file's own headers."""
-    out = parse(path.read_text(), path.name)
-    modes = {s.name: (s.key, s.mode) for s in out.sections}
-    return [(s, b, keys) + modes[s] for s, b, keys in sounding(out)]
+from gestate.notes import (_MODES, NotesError, report,  # noqa: E402
+                           rows_of_notes)
 
 
 def rows_of_ges(path: Path, tonic: str, mode: str) -> list:
@@ -70,41 +87,89 @@ def rows_of_ges(path: Path, tonic: str, mode: str) -> list:
             for bar, keys in sorted(heard.items())]
 
 
-def report(rows: list, tell=print) -> None:
-    at = None
-    for section, bar, keys, tonic, mode in rows:
-        if (section, tonic, mode) != at:
-            at = (section, tonic, mode)
-            head = f"── {'section ' + section if section else 'the piece'}"
-            tell(f"{head} — {tonic} {mode}" if tonic and mode else head)
-            tell(f"   {'bar':>3}  {'sounding':<34} {'degrees':<26} outside")
-        if tonic and mode:
-            names = " ".join(spell(k, tonic, mode) for k in keys)
-            steps = _MODES[mode.lower()]
-            marks = " ".join(degree_of(k, tonic, mode) for k in keys)
-            #: **Named, not counted.**  A count says a bar is wrong; a
-            #: name says which note, and the note is what an author
-            #: decides about.  `arc.notes`' one out-of-mode note in
-            #: section A is a `g4` where the mode's fourth is `gis` —
-            #: which is `doc/notes/notes-on-writing-a-piece.md` W2's own
-            #: sentence, and it is not a typo.
-            odd = [spell(k, tonic, mode) for k in keys
-                   if (k - _PITCH_CLASS_OF(tonic)) % 12 not in steps]
-        else:
-            names = " ".join(str(k) for k in keys)
-            marks, odd = "", []
-        tell(f"   {bar:>3}  {names:<34} {marks:<26} "
-             + (" ".join(odd) if odd else "—"))
+#: How many bars a hook shows before it stops.  A whole piece is a
+#: hundred lines and a hook that prints one is a hook a reader learns to
+#: skip; the first bars of each section are what a reader wants and the
+#: command is there for the rest.
+HOOK_BARS = 8
+
+INSTALL = """\
+    "PostToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          { "type": "command", "command": "~/gestate/tools/bars.py --hook", "timeout": 5 }
+        ]
+      }
+    ]"""
 
 
-def _PITCH_CLASS_OF(tonic: str) -> int:
-    from gestate.notes import _PITCH_CLASS
+def installed(settings: Path | None = None) -> bool:
+    import json
 
-    return _PITCH_CLASS[tonic]
+    settings = settings or Path(__file__).resolve().parents[1] / ".claude" / "settings.json"
+    try:
+        conf = json.loads(settings.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    for entry in (conf.get("hooks") or {}).get("PostToolUse", []):
+        if "Read" not in (entry.get("matcher") or ""):
+            continue
+        for h in entry.get("hooks", []):
+            if "bars.py" in h.get("command", "") and "--hook" in h.get("command", ""):
+                return True
+    return False
+
+
+def hook(stdin: str) -> str:
+    """The PostToolUse contract: JSON in, JSON out, or nothing.
+
+    **Silent on everything it is not about**, and silent on failure —
+    `tools/backlinks.py`'s rule, and for its reason: a hook that raises
+    interrupts a session over a file it was only reading.  A `.notes`
+    file that does not parse gets nothing, because the reader is about
+    to see the parse error from the tool they were actually running.
+    """
+    import json
+
+    try:
+        payload = json.loads(stdin or "{}")
+        if payload.get("tool_name") != "Read":
+            return ""
+        path = Path((payload.get("tool_input") or {}).get("file_path") or "")
+        if path.suffix != ".notes" or not path.exists():
+            return ""
+        rows = rows_of_notes(path)
+        said: list = []
+        report(rows[:HOOK_BARS], tell=said.append)
+        if len(rows) > HOOK_BARS:
+            said.append(f"   … and {len(rows) - HOOK_BARS} more bars: "
+                        f"python tools/bars.py {path}")
+        return json.dumps({"hookSpecificOutput": {
+            "hookEventName": "PostToolUse",
+            "additionalContext": "\n".join(said)}})
+    except Exception as e:                                # noqa: BLE001
+        print(f"bars --hook: {e!r}", file=sys.stderr)
+        return ""
 
 
 def main(argv=None) -> int:
     argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["--hook"]:
+        out = hook(sys.stdin.read())
+        if out:
+            print(out)
+        return 0
+    if argv[:1] == ["--install"]:
+        print(INSTALL)
+        return 0
+    if argv[:1] == ["--check"]:
+        if installed():
+            print("bars: the Read hook is installed")
+            return 0
+        print("bars: the Read hook is NOT installed — "
+              "python tools/bars.py --install", file=sys.stderr)
+        return 1
     if not argv:
         print(__doc__.strip().splitlines()[0], file=sys.stderr)
         print("usage: tools/bars.py FILE.notes | FILE.ges TONIC MODE",

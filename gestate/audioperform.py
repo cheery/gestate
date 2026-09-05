@@ -596,6 +596,52 @@ def _oracle_main(args) -> int:
         return 1
 
 
+#: How many bars a render says out loud before it stops.  A take of
+#: `arc.ges` is twenty-four and a wall of them after every render is a
+#: wall a reader learns to skip; the first are what says whether the
+#: piece is the piece, and `tools/bars.py` is there for the rest.
+RENDER_BARS = 8
+
+
+def _say_bars(synth) -> None:
+    """What this take sounds, per bar, beside the seed and the channels.
+
+    **A view has to arrive without being asked** — Henri, 2026-09-05:
+    *"It needs a 'view', just like how I look toward to that score being
+    rendered in the editor."*  `card:the-first-jam.md` item 1 named the
+    shape first, for the ceiling share: *a line after a render puts the
+    criterion into every run's own mouth.*
+
+    **Only where the piece says what key it is in**, which today means a
+    program that includes a `.notes` file — nothing else in this tree
+    declares a mode, and a report that guessed a tonic would print
+    confident nonsense.  Silent otherwise, and silent on any failure: a
+    render that worked must not fail over its own commentary.
+    """
+    import sys
+    from pathlib import Path
+
+    try:
+        from .notes import includes
+
+        source = Path(synth)
+        found = includes(source.read_text())
+        if not found:
+            return
+        from .notes import report, rows_of_notes
+
+        rows: list = []
+        for one in found:
+            rows += rows_of_notes(source.parent / one)
+        report(rows[:RENDER_BARS], tell=lambda s: print(s, file=sys.stderr))
+        if len(rows) > RENDER_BARS:
+            print(f"   … and {len(rows) - RENDER_BARS} more bars: "
+                  f"python tools/bars.py {source.parent / found[0]}",
+                  file=sys.stderr)
+    except Exception as e:                                # noqa: BLE001
+        print(f"bars: {e!r}", file=sys.stderr)
+
+
 def main(argv=None, tell=None) -> int:
     import argparse
 
@@ -751,6 +797,7 @@ def main(argv=None, tell=None) -> int:
                 print(f"score: {len(schedule.channels())} channels across "
                       f"{', '.join('`' + b + '`' for b in sorted(allocators))}"
                       f", {samples / args.rate:.1f}s", file=sys.stderr)
+                _say_bars(args.synth)
         elif args.piece is not None:
             schedule, samples = scored_midi(
                 synth, piece, args.score_bank,
