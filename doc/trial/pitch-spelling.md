@@ -1,6 +1,7 @@
 # Pre-registration — does a session read `gis4` better than `68`?
 
-*Written 2026-09-05, at Henri's ask, and not run.  `tools/prereg.sh` is
+*Written 2026-09-05, at Henri's ask, and **run the same day** —
+§"The result" is at the foot of this file.  `tools/prereg.sh` is
 the gate this sheet exists to pass; spawning any arm is his call
 (`doc/instruments.md` §"Spawning one — it gets a way to ask").*
 
@@ -91,6 +92,43 @@ Six binary facts per sample rather than an impression — `doc/trial/README.md`
 where *"form was the loudest thing on the page and accuracy was
 invisible."*
 
+## Two things this cannot fence, said before the run
+
+**1. Tool use is not fenceable, and it does not have to be.**  An arm
+could compute the answer instead of reading it — the mode tables are in
+`gestate/notes.py` and `outside()` would hand it over.  There is no
+`tools` argument on the spawner, so *told not to compute* would be the
+same empty fence `card:idiom-or-load.md` was refused for.
+
+What saves the trial is that the exposure is **equal across arms**: a
+computing arm scores near 100% whichever spelling it was given, so tool
+use does not favour one and it is caught by the ceiling condition below
+rather than hidden by it.  The prompt asks for reading and the score
+does not trust the asking.
+
+**2. The names arm is not a valid `.notes` file.**  Today's parser wants
+`key` to be a whole number, so the fixture's `key gis4` would be
+refused.  That is the point — the trial exists to decide whether the
+field should accept a name — but it means the arms are reading a
+*proposed* format and not a shipped one, and a result cannot be quoted
+as being about the format as it stands.
+
+## The spelling, and the fork left open
+
+Letters with `is` for a sharp and `es` for a flat — `gis4`, `es4` — the
+convention Henri named (*"c4, cis4"*).  **`b` is B natural and `bes` is
+B flat**, which is *not* the German convention he writes in, where `h`
+is B natural and `b` is B flat.  Left that way deliberately: `h` is the
+one genuinely ambiguous letter, introducing it would confound legibility
+with an unfamiliar convention, and which way it goes is his and is not
+answered.  Recorded so the choice is visible rather than assumed.
+
+**A note is spelled by its degree in the declared mode**, so an altered
+degree keeps its letter and changes only its accidental — `gis4`
+becoming `g4`.  That is what an accidental *is*, and it is the whole
+tell the names arm is being offered.  A fixture that spelled by nearest
+convenience would have tested arbitrary names rather than names.
+
 ## What would make the result void
 
 * **A fixture the tree describes.**  Checked by generating it in a
@@ -122,3 +160,76 @@ must choose a spelling, and MIDI numbers have no such decision to make.
 16 agent runs, one file each, no repository and no build.  The generator
 is perhaps forty lines.  The whole of it is an afternoon, and the
 expensive half is deciding what to do with the answer.
+
+
+---
+
+# The result — 2026-09-05: void, and the premise was wrong
+
+**Both arms returned the ground truth exactly.**
+
+| arm | files | planted | found | false | recall | precision |
+|---|---|---|---|---|---|---|
+| numbers | 8 | 99 | 99 | 0 | **100%** | **100%** |
+| names | 8 | 99 | 99 | 0 | **100%** | **100%** |
+
+2,304 note lines read across sixteen runs, one tool call each — the
+`Read` — so nothing was computed with a script.  Every arm scored 8 of 8
+files at 100% recall.
+
+**Void by this sheet's own ceiling condition**, which said: *if both arms
+score near 100%, the trial has measured the fixture's difficulty and not
+the spelling.*  So `decision:` does not fire.  `spec/drawnscores.md`
+decision 2 stands unchanged — **and not because numbers won.**  The
+instrument could not speak.
+
+## The premise was wrong, and that is what this cost bought
+
+The hypothesis rested on two things from this tree:
+
+* the mode lamp found a `67` in a section declared D lydian that a
+  session had read several times and not seen;
+* a session wrote twenty-four bars of `arc.ges` in which every harmonic
+  interval was a perfect fifth, and never noticed.
+
+**In both, nobody was asked to check.**  Given the question explicitly —
+the mode on the line above, the task stated — a session is exact, 99 out
+of 99, in either spelling.  So the failure those anecdotes record was
+never legibility.  **It was that the question was never posed.**
+
+That is the same sentence `doc/notes/notes-on-writing-a-piece.md`
+already closed with — *"what did move it was measurement, every time and
+always too late"* — and it points somewhere other than the format.  A
+`.notes` file does not need note names to make a wrong degree findable.
+It needs the check to run.
+
+## And the remedy this sheet pre-registered was also wrong
+
+It said: *change the number of planted faults rather than reporting a
+tie.*  More faults is more of the same arithmetic at the same accuracy;
+it would not move the ceiling.  What the sheet should have foreseen is
+that **stating the check is exactly the condition under which spelling
+stops mattering** — and the trial the two anecdotes are really about is
+the *implicit* one: would a session notice unprompted, while doing
+something else.
+
+That is a much harder thing to build, and it is not designed here.  The
+obvious shapes all fail the same way: any task that mentions the mode
+poses the question, and any task that does not gives an arm no reason to
+look at pitch at all.  Recorded as unsolved rather than left as an
+exercise.
+
+## What it did establish, which is worth keeping
+
+**A session asked to check a `.notes` file against its declared modes is
+exact.**  Sixteen for sixteen, no false positives.  So the value of
+`notes.outside()` is not that it can do something a session cannot — it
+is that **it runs without being asked**, which is the whole of what a
+lamp is for, and an argument for wiring it into something automatic
+rather than for changing the format.
+
+## Cost
+
+Sixteen runs, about 800,000 subagent tokens, forty minutes end to end
+including the fixture.  The generator is `doc/trial/pitch-spelling.py`
+and reproduces the exact files the arms read.

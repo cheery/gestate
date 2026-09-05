@@ -175,6 +175,15 @@ number" describes: no literal in the file would equal the sounding
 pitch, and the roll would be guessing again.  **Every sounding pitch is
 written down.  That is the rule the whole format hangs on.**
 
+***And whether it is written as `68` or as `gis4` is still open.***  Those
+are two decisions and this one only made the first: a note *name* is a
+bijection with a key number, not a computation, so the argument that
+killed degrees does not touch it.  `doc/trial/pitch-spelling.md` put the
+question to sixteen arms on 2026-09-05 and **could not decide it** —
+both spellings scored 99 of 99 — which voided the trial by its own
+ceiling condition and, more usefully, showed the premise was wrong: the
+faults this tree has met were never unreadable, they were unasked.
+
 **3. The check reports; it never refuses.**  A ♯11 over a dominant is
 the whole of `arc.ges`'s A section and it is idiomatic, not a typo.  A
 mode declaration that refused out-of-mode notes would refuse the blues.
