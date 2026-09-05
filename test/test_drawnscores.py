@@ -1330,3 +1330,74 @@ def test_a_whole_section_stacks_on_one_roll_with_every_note_placeable():
     assert len(roll.events) > 48, (
         "the point is that it is past the old cap; this piece got smaller")
     assert voices == {"melody", "upper", "middle", "lower", "bass"}, voices
+
+
+# ── Rung 4: the drag writes into the file that owns the note ───────────────
+
+
+def test_a_field_of_a_note_line_is_rewritten_byte_exactly():
+    """`spec/north_star.md`'s law, for a `.notes` file.
+
+    One field's bytes change and nothing else — including every other
+    field of that same line — which is what makes a drag undoable by
+    dragging back.  And the rewrite needs no column arithmetic, because
+    the field is named: gate two met from the other side.
+    """
+    text = NOTES.read_text()
+    out, said = notes.retune(text, 5, "key", 62, 64)
+
+    assert "key 62 → 64" in said
+    was, now = text.splitlines(), out.splitlines()
+    differ = [i for i, (a, b) in enumerate(zip(was, now)) if a != b]
+    assert differ == [4], "exactly the one line"
+    assert now[4] == was[4].replace("key 62", "key 64")
+    assert len(out) == len(text), "and the file did not change length"
+
+
+@pytest.mark.parametrize("line,was,says", [
+    (3, 62, "is not a note"),
+    (5, 999, "the file has moved under the picture"),
+    (99999, 62, "not in this file any more"),
+])
+def test_a_rewrite_is_refused_rather_than_forced(line, was, says):
+    with pytest.raises(notes.NotesError, match=says):
+        notes.retune(NOTES.read_text(), line, "key", was, 64)
+
+
+def test_a_drag_on_an_included_note_writes_that_file_and_says_so():
+    """**Rung 4** — the first time this window writes a file it is not
+    editing, which is stated rather than hidden.
+
+    There is no buffer for an included file, so the edit reaches the
+    disk at once where a `.ges` drag waits for `Ctrl-S`.  The person is
+    told which file moved, because a gesture that silently writes
+    something you are not looking at is the one thing an editor must
+    not do.
+    """
+    import re
+
+    from gestate.scorebox import build_rolls, pitch_atom
+
+    with _copied() as here:
+        source, origins = notes.expanded(here.read_text(), here.parent)
+        asks = [(i + 1, m.group(1))
+                for i, line in enumerate(source.splitlines())
+                for m in [re.match(r"^notes\s+(\S.*)$", line)] if m]
+        roll = build_rolls(source, asks[:1], 22050, 0)[0]
+        line, _c, _w, was = pitch_atom(roll, 0)
+        name, at = origins[line]
+
+        target = here.parent / name
+        before = target.read_text()
+        out, said = notes.retune(before, at, "key", was, was + 2)
+        target.write_text(out)
+
+        # The file moved, by one line, and the roll would now draw it there.
+        after = target.read_text()
+        assert sum(1 for a, b in zip(before.splitlines(), after.splitlines())
+                   if a != b) == 1
+        assert f"key {was + 2}" in after.splitlines()[at - 1]
+
+        # And the piece still plays, with the note where it was dropped.
+        again, _ = notes.expanded(here.read_text(), here.parent)
+        assert f"fromNote {was + 2} " in again

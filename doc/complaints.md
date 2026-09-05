@@ -20,15 +20,15 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**438 complaints**, in 45 files.
+**443 complaints**, in 46 files.
 
 | | |
 |---|---|
-| `author` | 220 |
+| `author` | 225 |
 | `command` | 41 |
 | `world` | 27 |
 | `machine` | 150 |
-| say where | 139 |
+| say where | 144 |
 | say `nowhere`, on purpose | 35 |
 | `unplaced`, with a defect that owns it | 59 |
 
@@ -749,9 +749,13 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 291 | `NotesError` | `author` | handed in | '{place}: `vel {got['vel']}` is not a dynamic; ' + ' '.join(LEVELS) |
 | 307 | `NotesError` | `author` | handed in | '{place}: `{one}` is not a manner; ' + ' '.join(sorted(MANNERS)) |
 | 311 | `NotesError` | `author` | handed in | '{place}: `{one}` is asked for twice' |
-| 728 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
-| 733 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section.name}` is already included; two files cannot brin… |
-| 783 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
+| 451 | `NotesError` | `author` | handed in | '{place} is not in this file any more' |
+| 454 | `NotesError` | `author` | handed in | '{place} is not a note' |
+| 457 | `NotesError` | `author` | handed in | '{place} has no `{field}` to change' |
+| 459 | `NotesError` | `author` | handed in | '{place} says `{field} {found.group(2)}` where the roll thought `{field} {was}` — the file has … |
+| 773 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
+| 778 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section.name}` is already included; two files cannot brin… |
+| 828 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
 
 ### `online.py`
 
@@ -848,6 +852,12 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 124 | `SeminaiveError` | `machine` | — | "internal: δ needs a derivative of '{name}', which the ϕ/δ gate did not plan one for (`fixme.md… |
 | 221 | `SeminaiveError` | `machine` | — | 'the type of this {what} did not reach the ϕ/δ transform; it should have been annotated during … |
 | 431 | `SeminaiveError` | `machine` | — | 'internal: δ needs the derivative of a discrete function, which has none — its change is `()` a… |
+
+### `session.py`
+
+| line | error | verdict | says where | message |
+|---|---|---|---|---|
+| 4067 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
 
 ### `tempo.py`
 

@@ -756,17 +756,41 @@ drag *columns*, not notes.
 what a section holds, and the Read hook gives a session the whole file
 already.
 
-**3 — the roll names the right file.**  A click on a note jumps to
-`arc.notes:47` rather than to a generated line nobody wrote.  Needs 1;
-`audiospans.Site` already carries a path and a line within it.  Still
-read-only, and this is where the read-only ladder ends.
+**3 — the roll names the right file.**  ***Built 2026-09-05.***  Two
+halves.  A **drag** on a note this file did not write is refused by
+name — *"that note is written in arc.notes:5"* — which Henri met the
+hour rung 0 shipped, as `transpose: line 57 is not in this file any
+more`: the roll is drawn from the expanded program and the rewrite
+landed in the author's text, identical for every program written before
+today and divergent past an `include`.
 
-**4 — the drag writes into the `.notes`.**  F199 is answered as of
-2026-09-05: the order is voice-major, and a drag moves one line per
-position it passes plus one, all inside its own voice.  What remains is
-the first time the window writes a file it is **not** editing, which is
-a real change to `Workbench` — and the two-writers rule to think about,
-since that file may be open elsewhere.
+And a **click** now answers at all.  `spec/scorebox.md` says *"the one
+gesture it owns is a click that jumps to source"*; a hand let go where
+it began returned `""`, so that sentence was true of the design and of
+nothing else.  It reveals the note's place, and jumps there when the
+note is this file's own.  **It does not switch files** — opening another
+document out from under a click is a large answer to a small gesture,
+and the window has one buffer, so it says the place and lets `open` be
+the person's next move.
+
+**4 — the drag writes into the `.notes`.**  ***Built 2026-09-05.***
+`notes.retune` rewrites one named field of one line byte-exactly —
+`spec/north_star.md`'s law, and easier here than in a `.ges` because the
+field is *named*, which is gate two met from the other side: the
+property that stops two fields telling apart by position is what lets an
+editor find one without counting.
+
+**And one thing is genuinely different, so it is said and not hidden.**
+There is no buffer for an included file, so the edit **reaches the disk
+at once** where a `.ges` drag waits for `Ctrl-S`.  The gesture names the
+file it moved, because writing something a person is not looking at,
+silently, is the one thing an editor must not do.  Then the program is
+rebuilt from the unchanged buffer: the expansion re-reads the file, so
+the roll redraws with the note where it was dropped.
+
+Refused where the drag cannot be resolved — `notes.doubled`, the
+constraint that moved from the bytes to the gesture the same day.  Still
+open: the two-writers rule, if that `.notes` is open in another window.
 
 *And one thing this rung owes rather than inherits:* `notes.doubled`
 names the places a drag cannot resolve — one voice, one bar, one tick,

@@ -10,6 +10,7 @@ person would say it is written.
 
 from __future__ import annotations
 
+import re
 import time
 from pathlib import Path
 
@@ -781,10 +782,17 @@ def test_a_hand_reaches_two_octaves_past_the_music():
                / max(1, hi - lo)) < 0.5
 
 
-def test_a_note_let_go_where_it_began_writes_nothing():
+def test_a_note_let_go_where_it_began_reveals_it_and_writes_nothing():
     """A press that wandered and came home is a press.  Nothing is
     written, so nothing is undone — and the transcript holds the
-    gesture rather than an edit that did not happen."""
+    gesture rather than an edit that did not happen.
+
+    **And it says where the note is**, since 2026-09-05.  This file's
+    §"The ask" promised *"the one gesture it owns is a click that jumps
+    to source"* and the path returned `""`, so the sentence was true of
+    the design and of nothing else.  The guarantee this test protects is
+    that nothing is *written*; that is asserted below and is unchanged.
+    """
     source, roll = _rolled("noted.ges", "ground")
     seat = _seated(source, roll)
     chan = next(iter(seat.bench.note_regions))
@@ -794,8 +802,9 @@ def test_a_note_let_go_where_it_began_writes_nothing():
     seat.touched(chan, 0.2)
     seat.touched(chan, 0.5)
     assert seat.holding[4] == was, seat.holding
-    assert seat.released(chan) == ""
-    assert seat.view.text() == source
+    said = seat.released(chan)
+    assert re.fullmatch(rf"{was}, line \d+", said), said
+    assert seat.view.text() == source, "a click must not write"
     assert seat.holding is None, "the hand is still held after it let go"
 
 

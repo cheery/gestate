@@ -2234,11 +2234,18 @@ class Session:
         if found is None:
             return f"transpose: no score box region called `{region}`"
         roll, hand = found.roll, found.hand
+        origins = getattr(self.bench, "origins", None) or {}
         try:
             note = note_of(roll, hand, int(was))
+            # **A note from an included `.notes` is edited in that file**,
+            # not in this buffer — `spec/drawnscores.md` rung 4.  Tried
+            # first, because `transposed` refuses it by name and the
+            # refusal is what stood here until 2026-09-05.
+            said = self._retune_included(roll, note, int(key), origins)
+            if said is not None:
+                return said
             text, said = transposed(self._source(), roll, note,
-                                    int(key),
-                                    getattr(self.bench, "origins", None))
+                                    int(key), origins)
         except RefusedError as exc:
             return f"transpose: {exc}"
         if not self.view.replace(text):
@@ -3996,7 +4003,14 @@ class Session:
             found = (getattr(self.bench, "note_regions", None) or {})[name]
             if key == was:
                 self._unpreview(found)
-                return ""                      # let go where it began
+                # **Let go where it began is a click, and a click is the
+                # one gesture the read-only box owns** —
+                # `spec/scorebox.md`: *"it renders the score expression
+                # under it, and the one gesture it owns is a click that
+                # jumps to source."*  It returned `""` until 2026-09-05,
+                # so the sentence was true of the design and of nothing
+                # else.
+                return self._reveal(found, was)
             said = self.run("transpose", name, was, key)
             if said.startswith("transpose:"):
                 # Refused, so the note did not move and must not look
@@ -4009,6 +4023,88 @@ class Session:
         said = doing(name) if doing is not None else ""
         self._journal().add("released", (name,), "")
         return said or ""
+
+    def _retune_included(self, roll, note: int, key: int, origins) -> str | None:
+        """A drag on a note an included `.notes` wrote — or `None`.
+
+        **Rung 4 of `spec/drawnscores.md`**, and the first time this
+        window writes a file it is not editing.  That is the whole of
+        what is new, and it is stated rather than hidden: there is no
+        buffer for an included file, so the edit **reaches the disk at
+        once** where a `.ges` drag would have waited for `Ctrl-S`.  A
+        person is told which file moved, because a gesture that silently
+        writes something you are not looking at is the one thing an
+        editor must not do.
+
+        Refused where the drag cannot be resolved — `notes.doubled`, the
+        constraint that moved from the bytes to the gesture on
+        2026-09-05, when refusing a duplicate at `parse` stopped a
+        sketch mid-write.
+
+        Then the program is rebuilt from the buffer, unchanged: the
+        expansion re-reads the file, so the roll redraws with the note
+        where it was dropped, which is the same answer a `.ges` drag
+        gets by a different road.
+        """
+        from pathlib import Path
+
+        from .notes import NotesError, doubled, parse, retune
+        from .scorebox import RefusedError, pitch_atom
+
+        line, _col, _width, was = pitch_atom(roll, note)
+        where = origins.get(line)
+        if where is None:
+            return None                    # this file's own note; the old road
+        name, at = where
+        path = Path(getattr(self.bench, "path", ".")).parent / name
+        try:
+            text = path.read_text()
+            twice = [b for a, b in doubled(parse(text, name)) if b.line == at]
+            if twice:
+                place = f"{name}:{at}"
+                #: complaint  author — the line a drag landed on, in the
+                #: file that wrote it
+                raise NotesError(
+                    f"{place} is written twice over, so a drag cannot "
+                    "tell which line it means")
+            out, said = retune(text, at, "key", was, key)
+            path.write_text(out)
+        except (OSError, NotesError) as exc:
+            return f"transpose: {exc}"
+        self.bench.audition(self.view.text())
+        return f"transpose: {name} — {said}"
+
+
+    def _reveal(self, found, at: int) -> str:
+        """Where the note under a click is written — and go there.
+
+        **Rung 3 of `spec/drawnscores.md`.**  The roll is drawn from the
+        expanded program, so a note's line is the *compiled* one; if it
+        came from an included `.notes` the map says which file and which
+        line, and that is what a person wants to be told.
+
+        **It does not switch files.**  Opening another document out from
+        under a click is a large answer to a small gesture, and the
+        window has one buffer; saying the place lets `open` be the
+        person's own next move.  A note written in this file is jumped
+        to, because there the caret is the whole answer.
+        """
+        from .scorebox import RefusedError, note_of, pitch_atom
+
+        try:
+            note = note_of(found.roll, found.hand, int(at))
+            line, _col, _width, key = pitch_atom(found.roll, note)
+        except (RefusedError, Exception):                # noqa: BLE001
+            return ""
+        where = (getattr(self.bench, "origins", None) or {}).get(line)
+        if where is not None:
+            return f"{key} is written in {where[0]}:{where[1]}"
+        try:
+            self.view.goto(line)
+        except Exception:                                # noqa: BLE001
+            return f"{key} is written on line {line}"
+        return f"{key}, line {line}"
+
 
     def _unpreview(self, found) -> None:
         """Put the picture back where the file says it is.

@@ -419,6 +419,51 @@ def _line(one: Note) -> str:
     return out + ("  manner " + ",".join(asked) if asked else "")
 
 
+# ── Rewriting one field of one line ─────────────────────────────────────────
+
+#: A named field and its value, on a note line.  **Named, so the rewrite
+#: needs no column arithmetic** — which is the whole reason
+#: `spec/drawnscores.md` gate two exists, met from the other side: the
+#: same property that stops two fields telling apart by position is what
+#: lets an editor find one without counting.
+_FIELD = r"(\b{0} )(\S+)"
+
+
+def retune(text: str, line: int, field: str, was, now) -> tuple:
+    """`(text, said)` — one field of one line, rewritten byte-exactly.
+
+    `spec/north_star.md`'s law for a `.notes` file: **one field's bytes
+    change and nothing else.**  Every other character of the file,
+    including every other field of this very line, is the same
+    afterwards — which is what makes a drag safe to undo by dragging
+    back.
+
+    Refused rather than forced when the line is not a note, when it has
+    no such field, or when the field does not currently say `was` — the
+    last being *the file has moved under the picture*, the same guard
+    `scorebox.transposed` keeps and for the same reason.
+    """
+    import re
+
+    lines = text.splitlines(keepends=True)
+    place = f"line {line}"
+    if not 0 < line <= len(lines):
+        raise NotesError(f"{place} is not in this file any more")
+    row = lines[line - 1]
+    if not row.lstrip().startswith("note "):
+        raise NotesError(f"{place} is not a note")
+    found = re.search(_FIELD.format(re.escape(field)), row)
+    if found is None:
+        raise NotesError(f"{place} has no `{field}` to change")
+    if found.group(2) != str(was):
+        raise NotesError(
+            f"{place} says `{field} {found.group(2)}` where the roll "
+            f"thought `{field} {was}` — the file has moved under the picture")
+    lines[line - 1] = (row[:found.start(2)] + str(now)
+                       + row[found.end(2):])
+    return "".join(lines), f"{field} {was} → {now} on line {line}"
+
+
 # ── The lamp: what the mode says, and what it never does ────────────────────
 
 
