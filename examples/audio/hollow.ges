@@ -1,0 +1,346 @@
+# hollow.ges — B locrian, and nothing else.
+#
+#   python -m gestate.audioperform examples/audio/hollow.ges -o hollow.wav --seconds 72
+#   python -m gestate.audioeditor examples/audio/hollow.ges
+#
+# **The brief was one line: something that sounds locrian.**  So this
+# piece has no form imposed on it, no cadences to hit and nowhere to
+# modulate to — it is one mode, one tonic, seventy seconds, and the only
+# question it has to answer is whether the mode is audible.
+#
+# `doc/notes/notes-on-writing-a-piece.md` is where the material comes
+# from, and it is five passes of getting this wrong.  Four things out of
+# it are built into the file rather than aimed at:
+#
+# * **the tonic is asserted continuously, because it cannot defend
+#   itself.**  B locrian is the white notes, so the ear hands the crown
+#   to C the moment nobody is holding it, and B has no perfect fifth to
+#   build a triad with.  There is a B pedal under every bar and it never
+#   moves.  A perfect fifth above it would be F♯, which is not in the
+#   mode at all — so *there is no bar in this piece where the ear has
+#   somewhere to rest*, and that is arithmetic rather than taste.
+#
+# * **the colour is the ♭2, not the ♭5.**  Henri's own attempt
+#   (`examples/midi/maybe-locrian.mid`) leans on the semitone above the
+#   tonic ten times and touches the tritone four; the session's earlier
+#   passes did the opposite and were wrong.  C against B is the whole
+#   sound here, in the line and in the chords both — which is the fix
+#   that log names and leaves undone: *the harmony holds the same
+#   theory of the mode as the melody.*
+#
+# * **the line walks.**  Steps, mostly semitones and tones — 8 of its
+#   112 moves are wider, and the widest is the tritone in bar 14, where
+#   the ♭5 is heard as an interval instead of as a passing note.  An
+#   earlier pass leapt minor sevenths and was picking notes out of the
+#   scale rather than moving through it, which is the difference
+#   between a line and a list.
+#
+# * **the shape spends its structural cues on B** — first note, last
+#   note, lowest note, longest note.  Those beat frequency, and neither
+#   of us had used them on purpose.
+#
+# ── What it measures, and where it differs ───────────────────────────────
+#
+#   python tools/modecheck.py examples/audio/hollow.ges song 11
+#   python tools/modecheck.py examples/midi/maybe-locrian.mid - 11
+#
+# The counts were taken **before anybody listened**, which is the one
+# thing that log asks for and the one thing four of its five passes did
+# not do.  Against Henri's own file:
+#
+#   |                         | his 57 notes | here, 113 notes |
+#   |-------------------------|--------------|-----------------|
+#   | tonic share             | 39%          | 33%             |
+#   | moves touching the ♭2   | 10           | 59              |
+#   | moves touching the ♭5   | 4            | 16              |
+#   | stepwise, a tone or less| 70%          | 93%             |
+#   | leaps                   | 30%          | **7%**          |
+#   | direction changes       | 30%          | **38%**         |
+#   | notes under a quarter   | 56 of 57     | 78 of 113       |
+#   | structural cues on tonic| none         | all four        |
+#   | places to rest          | — (one line) | **0 of 24 bars**|
+#
+# **The two bold rows are left standing rather than fitted.**  His line
+# leaps four times as often as this one and turns less; a line that is
+# 93% steps and changes direction on 38% of them is a line that wanders
+# in a small space, and matching a histogram is not the same as writing
+# a phrase.  They are written down so that if this does not land, the
+# next pass has somewhere to start.
+#
+# And the row that is not a difference is the last one.  His file is a
+# single line and cannot have a place to rest or fail to; this one has a
+# pedal under it, and the pedal is the whole argument.
+#
+# Whether it lands is Henri's to say and no number in here decides it.
+
+Tone := Tone Float Int                     # velocity 0..1, key
+
+instance Notable Tone where
+    noteKey t = case t of
+        Tone v k -> k
+    noteVel t = case t of
+        Tone v k -> floor (v * 127.0)
+    manner _ = Plain
+
+#: Play along on any bank.
+instance FromMIDI Tone where
+    noteOn c n v = Just (Tone (toFloat v / 127.0) n)
+
+hzOf : Tone -> Float
+hzOf t = case t of
+    Tone v k -> keyHz k
+
+velOf : Tone -> Float
+velOf t = case t of
+    Tone v k -> v
+
+# ── Three banks ──────────────────────────────────────────────────────────
+
+#: The pedal: B1 and B2, low and round, swelling rather than struck.  It
+#: is written as four long notes and not one, so each section can come
+#: in at its own weight — the attack is nearly a second, so a change of
+#: section is heard as the room leaning in and not as a new note.
+pedalVoice : Sig Gate -> Sig Tone -> Sig Float
+pedalVoice g s = lowpassSvf 260.0 0.14
+    (triangle (!hzOf s) * 0.75 + saw ((!hzOf s) * 1.004) * 0.32)
+    * (!velOf s) * 0.60 * adsr (Adsr 0.85 0.60 0.88 2.20) g
+
+voices drone 4 pedalVoice : Sig Float
+
+#: The harmony.  **It sustains**, which is the one thing pass three of
+#: the arc had to learn: a whole-bar chord under a percussive envelope
+#: states its mode for an instant and leaves the rest of the bar empty,
+#: and *a mode is a chord you are still hearing*.
+chordVoice : Sig Gate -> Sig Tone -> Sig Float
+chordVoice g s = lowpassSvf 1450.0 0.18
+    (saw (!hzOf s) * 0.30 + triangle (!hzOf s) * 0.70)
+    * (!velOf s) * 0.30 * adsr (Adsr 0.22 0.45 0.80 1.10) g
+
+voices chord 4 chordVoice : Sig Float
+
+#: The line: one voice, a filter that opens a little with the note, and
+#: a slow vibrato so the long tonic at the end keeps breathing instead
+#: of sitting there.
+leadVoice : Sig Gate -> Sig Tone -> Sig Float
+leadVoice g s = lowpassSvf (520.0 + 2100.0 * adsr (Adsr 0.02 0.30 0.55 0.20) g) 0.34
+    (saw ((!hzOf s) * (1.0 + 0.005 * sine 4.6)) * 0.55
+        + triangle ((!hzOf s) * (1.0 + 0.005 * sine 4.6)) * 0.45)
+    * (!velOf s) * 0.46 * adsr (Adsr 0.014 0.10 0.72 0.26) g
+
+voices song 3 leadVoice : Sig Float
+
+sound : Sig Float
+sound = brickwall 0.92
+    (0.60 * drone + 0.52 * chord + 0.58 * song
+        + reverb 0.50 0.030 (0.24 * song + 0.20 * chord))
+
+# ── How a bar is written ─────────────────────────────────────────────────
+#
+# Durations are counted in sixteenths and the bar is divided by four at
+# the end, so every bar's numbers add to 16 and a bar that does not is a
+# bar you can see is wrong.  `arc.ges` spelled every note out to measure
+# how much that hurts; the measurement has been taken and this file
+# spends it.
+
+#: One note of the line, `d` sixteenths long.
+n : Float -> Int -> Int -> [: Tone :]
+n v k d = '(Tone v k) |* d
+
+#: A bar of the line: sixteenths in, beats out.
+bar : [: Tone :] -> [: Tone :]
+bar x = x |/ 4
+
+#: A whole chord as one thing, `d` beats long.  **Three tones stacked
+#: with `||` rather than three lines aligned by their lengths** — the
+#: arc wrote five parallel lists and the log's `W5` is about what that
+#: costs; a chord that is one expression cannot come apart.
+ch : Float -> Int -> Int -> Int -> Int -> [: Tone :]
+ch v a b c d = ('(Tone v a) || '(Tone v b) || '(Tone v c)) |* d
+
+#: A stretch of pedal: B1 and B2 together, `d` beats.
+ped : Float -> Int -> [: Tone :]
+ped v d = ('(Tone v 35) || '(Tone (v * 0.72) 47)) |* d
+
+# ── The four chords, and why there are only four ─────────────────────────
+#
+# Every one of them sounds over the B pedal and not one of them offers a
+# fifth above it, because the mode has no F♯ to offer.  Three of the
+# seven diatonic triads never appear and two of them are refused on
+# purpose: **E minor and G major** both contain B as a consonance
+# belonging to somebody else, and either one hands the ear a home for a
+# bar.  Em/B is the door to E phrygian besides, which is where Henri's
+# own file drifted and where anything built out of these seven notes
+# drifts if it is left alone.  (D minor is the third, and it is merely
+# not needed.)
+
+#: i° — B D F, the tonic triad, with B on top where it can be heard.
+dim : Float -> Int -> [: Tone :]
+dim v d = ch v 50 53 59 d
+
+#: ♭II — C E G over B.  The wound, and the piece's home chord in every
+#: sense except the theoretical one.
+lean : Float -> Int -> [: Tone :]
+lean v d = ch v 52 55 60 d
+
+#: ♭V — F A C over B.  Tritone in the bass relation; used three times
+#: and never twice running.
+sour : Float -> Int -> [: Tone :]
+sour v d = ch v 53 57 60 d
+
+#: ♭vii — A C E over B.  The mildest thing available, and used twice:
+#: once before the break lands and once on the way down from it.
+fall : Float -> Int -> [: Tone :]
+fall v d = ch v 57 60 64 d
+
+# ── The line ─────────────────────────────────────────────────────────────
+#
+# B C D E F G A, from B3 up.  **B3 is the floor**: the line never goes
+# below its own tonic, so every descent ends by arriving there, and the
+# only way into B is down a semitone from C.
+#
+# Rule of three — said once (bars 3-6), said again reaching higher
+# (7-10), and the third time it breaks (11-18).
+
+#: Bars 1-2 — the pedal alone, and the chord under bar 2.  Nothing is
+#: eased into afterwards, but somebody has to say which note is home
+#: before the argument starts.
+m1 : [: Tone :]
+m1 = r |* 8
+
+#: Bar 3 — the first note is B, said twice before anything else
+#: happens, and then the ♭2.
+m3 : [: Tone :]
+m3 = bar (n 0.62 59 2 ++ n 0.58 59 2 ++ n 0.55 60 2 ++ n 0.60 59 2 ++ n 0.58 62 4 ++ n 0.54 60 2 ++ n 0.60 59 2)
+
+#: Bar 4 — up to the fourth and back down by step, landing on B again.
+m4 : [: Tone :]
+m4 = bar (n 0.56 60 2 ++ n 0.58 62 2 ++ n 0.60 64 2 ++ n 0.56 62 2 ++ n 0.54 60 4 ++ n 0.62 59 4)
+
+#: Bar 5 — the lean, then a reach up to the fourth so the phrase is a
+#: phrase and not a trill, and it is left hanging on C.
+m5 : [: Tone :]
+m5 = bar (n 0.58 59 2 ++ n 0.54 60 2 ++ n 0.58 59 2 ++ n 0.60 64 2 ++ n 0.58 62 4 ++ n 0.56 60 4)
+
+#: Bar 6 — and it falls to B and stays there.
+m6 : [: Tone :]
+m6 = bar (n 0.64 59 6 ++ n 0.54 60 2 ++ n 0.60 59 8)
+
+#: Bar 7 — the phrase again, louder, and reaching a fourth up on the
+#: beat instead of after it.
+m7 : [: Tone :]
+m7 = bar (n 0.68 59 4 ++ n 0.60 60 2 ++ n 0.64 59 2 ++ n 0.66 64 4 ++ n 0.60 62 2 ++ n 0.62 60 2)
+
+#: Bar 8 — the ♭5, once, in passing, an eighth long and off the beat.
+#: It is the mode's most famous note and it gets no more room than that.
+m8 : [: Tone :]
+m8 = bar (n 0.62 62 2 ++ n 0.64 64 2 ++ n 0.58 65 2 ++ n 0.62 64 2 ++ n 0.60 62 4 ++ n 0.64 60 4)
+
+#: Bar 9 — turning around C and B under the phrase's top note.
+m9 : [: Tone :]
+m9 = bar (n 0.60 60 2 ++ n 0.66 59 2 ++ n 0.60 60 2 ++ n 0.62 62 2 ++ n 0.68 64 4 ++ n 0.62 62 4)
+
+#: Bar 10 — the lean, then the widest thing the first half of the piece
+#: does, and home.
+m10 : [: Tone :]
+m10 = bar (n 0.62 60 2 ++ n 0.70 59 2 ++ n 0.68 64 4 ++ n 0.64 62 2 ++ n 0.62 60 2 ++ n 0.72 59 4)
+
+#: Bar 11 — the break, and it is the first time the line runs in
+#: sixteenths.
+m11 : [: Tone :]
+m11 = bar (n 0.78 59 1 ++ n 0.70 60 1 ++ n 0.74 62 2 ++ n 0.78 64 2 ++ n 0.82 67 2 ++ n 0.76 65 2 ++ n 0.74 64 2 ++ n 0.72 62 2 ++ n 0.74 60 2)
+
+#: Bar 12 — B twice, the lean, and then out past the ♭5 to the ♭6.
+m12 : [: Tone :]
+m12 = bar (n 0.80 59 2 ++ n 0.76 59 2 ++ n 0.72 60 2 ++ n 0.78 59 2 ++ n 0.74 64 2 ++ n 0.72 65 2 ++ n 0.82 67 4)
+
+#: Bar 13 — the whole scale down, and it can only stop on B.
+m13 : [: Tone :]
+m13 = bar (n 0.84 69 2 ++ n 0.78 67 2 ++ n 0.72 65 1 ++ n 0.72 64 1 ++ n 0.76 62 2 ++ n 0.74 60 2 ++ n 0.80 59 2 ++ n 0.70 60 2 ++ n 0.80 59 2)
+
+#: Bar 14 — the semitone twice and then the tritone as a *leap*, which
+#: is the one place in the piece the ♭5 is heard as an interval rather
+#: than as a note passed through.  It is also the widest move here.
+m14 : [: Tone :]
+m14 = bar (n 0.76 59 2 ++ n 0.70 60 2 ++ n 0.78 59 2 ++ n 0.82 65 2 ++ n 0.74 64 2 ++ n 0.70 60 2 ++ n 0.84 59 4)
+
+#: Bar 15 — the climb, straight up the mode to the octave above.  The
+#: loudest bar, and with bar 16 the only place the line leaves the
+#: octave it otherwise lives in.
+m15 : [: Tone :]
+m15 = bar (n 0.72 60 2 ++ n 0.76 62 2 ++ n 0.80 64 2 ++ n 0.78 65 2 ++ n 0.84 67 2 ++ n 0.86 69 2 ++ n 0.90 71 4)
+
+#: Bar 16 — and down again, because there is nothing up there either.
+m16 : [: Tone :]
+m16 = bar (n 0.88 71 4 ++ n 0.80 69 2 ++ n 0.78 67 2 ++ n 0.74 65 4 ++ n 0.72 64 4)
+
+#: Bar 17 — the fall arrives back at the semitone, which is where the
+#: piece has been all along.
+m17 : [: Tone :]
+m17 = bar (n 0.70 65 2 ++ n 0.68 64 1 ++ n 0.66 62 1 ++ n 0.66 60 2 ++ n 0.70 59 2 ++ n 0.64 60 2 ++ n 0.68 59 2 ++ n 0.62 60 2 ++ n 0.68 59 2)
+
+#: Bar 18 — and stops.
+m18 : [: Tone :]
+m18 = bar (n 0.58 60 4 ++ n 0.66 59 12)
+
+#: Bars 19-22 — what is left when the piece stops arguing: C and B, and
+#: then B.  Quiet against the loud, which is the binary Henri asks his
+#: own music for.
+m19 : [: Tone :]
+m19 = bar (n 0.50 59 4 ++ n 0.46 59 4 ++ n 0.44 60 4 ++ n 0.50 59 4)
+
+m20 : [: Tone :]
+m20 = bar (n 0.46 60 4 ++ n 0.50 59 4 ++ n 0.44 60 4 ++ n 0.50 59 4)
+
+m21 : [: Tone :]
+m21 = bar (n 0.48 59 8 ++ n 0.42 60 4 ++ n 0.48 59 4)
+
+#: Bar 22 — the last note and the longest, and it is the same pitch the
+#: piece opened on and never went below.  All four structural cues on B,
+#: spent on purpose: they beat frequency, and frequency is all any
+#: earlier pass counted.
+m22 : [: Tone :]
+m22 = bar (n 0.52 59 16)
+
+#: Bars 23-24 — the pedal on its own again, and nobody contradicting it.
+m23 : [: Tone :]
+m23 = r |* 8
+
+melody : [: Tone :]
+melody = m1 ++ m3 ++ m4 ++ m5 ++ m6
+      ++ m7 ++ m8 ++ m9 ++ m10
+      ++ m11 ++ m12 ++ m13 ++ m14
+      ++ m15 ++ m16 ++ m17 ++ m18
+      ++ m19 ++ m20 ++ m21 ++ m22 ++ m23
+
+# ── The harmony ──────────────────────────────────────────────────────────
+#
+# One chord a bar while the line is walking, two a bar where it breaks.
+# Four chords over twenty-two bars of pedal, and none of them repeated
+# twice running except the tonic triad, which is repeated on purpose:
+# it is the only one that says B.
+
+harmony : [: Tone :]
+harmony = r |* 4 ++ dim 0.34 4
+       ++ dim 0.36 4 ++ lean 0.34 4 ++ dim 0.36 4 ++ dim 0.34 4
+       ++ dim 0.42 4 ++ lean 0.40 4 ++ sour 0.40 4 ++ lean 0.44 4
+       ++ dim 0.50 4 ++ lean 0.48 4 ++ fall 0.46 4 ++ dim 0.52 4
+       ++ lean 0.56 2 ++ sour 0.54 2 ++ fall 0.54 2 ++ lean 0.56 2
+       ++ sour 0.48 2 ++ dim 0.50 2 ++ lean 0.42 2 ++ dim 0.44 2
+       ++ dim 0.30 4 ++ lean 0.28 4 ++ dim 0.30 4 ++ dim 0.28 4
+       ++ r |* 8
+
+# ── The pedal ────────────────────────────────────────────────────────────
+#
+# Twenty-four bars of B, in four breaths.  It is the loudest thing in
+# the piece at the climax and the last thing left at the end.
+
+pedal : [: Tone :]
+pedal = ped 0.62 24 ++ ped 0.72 16 ++ ped 0.88 32 ++ ped 0.52 24
+
+score : [: Void :]
+score = (melody >>= voices.song)
+     || (harmony >>= voices.chord)
+     || (pedal >>= voices.drone)
+
+bpm : Int
+bpm = 84

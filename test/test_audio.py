@@ -64,6 +64,13 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # and has no golden for the reason the others have none —
             # and the thing it is evidence *for* is a log, not a buffer.
             "arc.ges",
+            # The loose-brief locrian — *"anything that sounds like
+            # locrian"* — and a piece for the same reason `arc.ges` is
+            # one.  No golden: what it is evidence for is whether a mode
+            # lands on an ear, which no buffer decides.  What *is*
+            # checkable about it is checked by `tools/modecheck.py`,
+            # whose counts its own header quotes.
+            "hollow.ges",
             # `spec/annotations.md`'s demo: one line, two voices, one of
             # which reads the mark.  No golden — what it shows is that
             # the *ignoring* voice is bit-identical under the mark, and a
