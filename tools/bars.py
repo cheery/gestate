@@ -56,6 +56,7 @@ every read would be noise, and noise is how the last one nearly died
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -164,12 +165,25 @@ def main(argv=None) -> int:
         print(INSTALL)
         return 0
     if argv[:1] == ["--check"]:
-        if installed():
-            print("bars: the Read hook is installed")
-            return 0
-        print("bars: the Read hook is NOT installed — "
-              "python tools/bars.py --install", file=sys.stderr)
-        return 1
+        #: **Registered is not the same as runnable.**  The hook command
+        #: executes this file directly, so a missing execute bit makes
+        #: `settings.json` say yes and the hook say nothing — which is
+        #: exactly `manifesto.md` §"A gate's name is not its coverage":
+        #: a gate believed to exist is worse than a gap known about.
+        #: Found on 2026-09-05 the only way it could be, by installing
+        #: it and watching it not fire.
+        here = Path(__file__).resolve()
+        if not installed():
+            print("bars: the Read hook is NOT installed — "
+                  "python tools/bars.py --install", file=sys.stderr)
+            return 1
+        if not os.access(here, os.X_OK):
+            print(f"bars: the Read hook is installed and {here.name} is not "
+                  f"executable, so it runs and says nothing — chmod +x {here}",
+                  file=sys.stderr)
+            return 2
+        print("bars: the Read hook is installed and executable")
+        return 0
     if not argv:
         print(__doc__.strip().splitlines()[0], file=sys.stderr)
         print("usage: tools/bars.py FILE.notes | FILE.ges TONIC MODE",
