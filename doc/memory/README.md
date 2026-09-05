@@ -116,7 +116,7 @@ session inferred.
 - [The ungated-fixes sweep](gestate-ungated-sweep.md) — 62 entries, five a session capped; the plan is `card:ungated-fixes.md`
 - [A measurement in flight outlives the sitting](a-measurement-in-flight-outlives-the-sitting.md) — closing the sitting ends the work, not a run already going; kill it only when the tree must change under it, and by pid
 - [Subagents are his call](henri-subagents.md) — propose one and wait; and none is spawned without a way to raise a question and be answered
-- [The blind three-model test](gestate-blind-model-test.md) — clones not worktrees, keep the mapping out of the shared parent; haiku won on form and was wrong on F153
+- [The blind three-model test](gestate-blind-model-test.md) — clones not worktrees, keep the mapping out of the shared parent, **two arms never in one working tree**; a fence made of words does not hold, because the backlinks hook reads `board/` for you (2026-09-05); haiku won on form and was wrong on F153
 - [House rules on authorship](gestate-house-rules-authorship.md) — `spec/author.md` is his to keep; gemba is opt-in
 - [Concrete good](concrete-good.md) — good is an act whose effects can be seen, understood, measured or mechanised; and **do not try to change others — create the environment where they can thrive**, which is what this repository is
 - [Horizontal, not vertical](horizontal-not-vertical.md) — praise ranks, so it manipulates; the horizontal form is gratitude and what changed, never a verdict from above — and raise a fault with care

@@ -1,8 +1,9 @@
 # idiom-or-load — why one brief lands and the other does not
 
-    status   open — 2026-09-04, written the evening the question
-             appeared.  Two arms to run, both prompts held by Henri;
-             §"The fence" says who may read what before running them
+    status   refused — 2026-09-05, answered by Henri the morning arm B
+             came back: the fence the card depends on cannot be built
+             here.  See §"Refused — the fence could not be built"; arm
+             B ran anyway and its file is in the tree
     because  A session wrote a blues that Henri called "just perfect"
              and, three days later, could not write the mode it had
              correctly defined at every one of five passes.  Two causes
@@ -23,6 +24,100 @@
              passes, and the measurements
              card:drawn-scores.md — what the answer is for
              doc/memory/a-trial-is-refused-until-its-sheet-can-decide.md
+
+## Refused — the fence could not be built
+
+*2026-09-05.*  **Henri:** *"I think I need to refuse the
+idiom-or-load.md ... it's too hard for me to isolate and restrict
+everything down to make a good test here."*
+
+**And he had already measured why.**  Arm B was run that morning on the
+fence §"The fence goes on both arms" specifies, verbatim — *"Don't read
+board/ today — I'll explain after."*  His verdict afterwards: *"I
+noticed that asking to not look into board/ was insufficient.  You
+still figured it out this was a test setting."*
+
+**Two leaks, and neither is a session being clever.**
+
+**1. `tools/backlinks.py`'s Read hook reads `board/` on the session's
+behalf and quotes it back.**  On arm B's *second* tool call — opening
+`doc/notes/notes-on-writing-a-piece.md`, which is the file the work
+requires — the hook printed:
+
+    <this card's path>:22  see doc/notes/notes-on-writing-a-piece.md — the day, the five
+    <this card's path>:94  ...or `arc.ges`; the two arms
+
+(The hook prints the real path.  It is written out here because a card
+cited by path is a citation that rots — and this one has already rotted
+once, on the move to `refused/`, which is the rule earning itself.)
+
+*the two arms.*  Later, on `arc.ges`, it printed §"The diagonal"'s own
+row: `| **locrian** | **arm B — not run** | ...`.  So the card names
+`arc.ges` and the log as the two files that void the arm, and citing
+them is exactly what causes the hook to read the card aloud.  **The
+fence forbids the door and the hook opens the window**, and there is no
+order of operations in which arm B does this task and does not learn it
+is an arm.
+
+**2. The design table is in the log, not only in the card.**
+`doc/notes/notes-on-writing-a-piece.md` §"The blues asymmetry" carries
+the 2×2 with both diagonal cells marked *not run* and quotes arm B's
+brief — *"something that sounds locrian"* — word for word.  That
+section is also where the four measurements live that made arm B's
+file better than `arc.ges`.  **The useful half and the leak are the
+same paragraphs**, so an arm cannot be given one without the other.
+
+**What a real fence would have cost**, written down because the next
+person to have this idea will underestimate it exactly the way this
+card did: a clone with `board/` absent, the hook disabled or taught to
+suppress a named card, and the log split so its design table lives only
+here.  That is three pieces of setup before a note is written, which is
+what *"too hard for me to isolate and restrict everything down"* is
+naming.
+
+### What the arm produced anyway, and what it is worth
+
+`examples/audio/hollow.ges` (`f382785`) — B locrian, one pass, loose
+brief.  **Henri:** *"I think that this unconstrained was better than
+constrained version."*
+
+**Recorded as suggestive and nothing more.**  It fills §"The
+diagonal"'s empty locrian cell, and a loose-beats-constrained result
+inside one mode is the within-mode contrast the diagonal could not
+give.  But the card's own **control** — *a fresh session that has not
+read this card, the log, or `arc.ges`* — was not met on any of the
+three, and the card's `n` is 2 per arm against 1 run.  Weigh it as one
+contaminated draw.
+
+**And the contamination did not stop at the arm.**  Arm A was running
+in this same checkout while arm B committed `hollow.ges` and
+`tools/modecheck.py` to it, so a constrained-blues session had a
+loose-locrian commit and its method in `git log`.  *Two arms never in
+one session* was written into the control; **two arms never in one
+working tree** was not, and is the sharper rule.
+
+**It then proved itself inside the hour.**  Arm A's commit `b3635a7`
+contains the line `board/{ => refused}/idiom-or-load.md` — this card's
+move to this shelf, staged by arm B and swept into arm A's commit by a
+blind add while arm B was still writing the paragraphs above.  A blues
+session's commit carries a board change it never made and cannot
+explain.  Nothing was lost and nothing needs undoing, and it is left in
+the history rather than tidied because it is the cleanest possible
+demonstration of the rule: *the two arms did not have to read each
+other to collide; they only had to share a `git status`.*
+
+**Arm A's file is `examples/audio/crossroads.ges`** (`b3635a7`), a
+constrained blues in E.  It is in the tree and Henri has not judged it;
+it is recorded here as the arm that ran, not as a result.
+
+### What survives
+
+The two hypotheses below are untouched — nothing here answers
+H-idiom or H-load — and §"The fence goes on both arms" is still right
+about *why* a fence must be identical and unexplained.  What is
+refuted is that this tree can hold one.  The question comes back the
+way any refusal does: by Henri saying so, with a setup that pays the
+three costs above.
 
 ## The diagonal
 

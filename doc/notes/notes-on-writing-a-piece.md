@@ -700,6 +700,71 @@ than one voice's line.
 
 ---
 
+## The next day, and the design in §"The blues asymmetry" is refused — 2026-09-05
+
+**The loose-locrian arm ran.**  `examples/audio/hollow.ges` (`f382785`)
+— B locrian, one pass, brief in full: *"Write anything that sounds like
+locrian, for examples/audio/.  Don't read board/ today — I'll explain
+after."*  **Henri:** *"I think that this unconstrained was better than
+constrained version."*
+
+That fills the diagonal's empty cell, and a loose-beats-constrained
+result **inside one mode, from one writer** is the within-mode contrast
+the 2×2 was built to get at.  It is also one contaminated draw and is
+worth exactly that — see below.
+
+**What the arm did with this file**, since that is what the file is
+for: the ♭2 as the material and not the ♭5; the four structural cues
+(first, last, lowest, longest) spent on the tonic; a pedal that makes
+*places to rest* **0 of 24 bars** by arithmetic rather than by taste;
+and the counts run **before** the first listen.  `tools/modecheck.py` is
+now the command behind them, which closes §"And what did move it": the
+four numbers that day were all written after the ear had spoken, and
+this is the first time the check was a thing you could run first.
+
+### And the trial it belonged to was refused, on a measurement
+
+`card:idiom-or-load.md` is in `board/refused/`.  **Henri:** *"it's too
+hard for me to isolate and restrict everything down to make a good test
+here."*  And before that: *"I noticed that asking to not look into
+board/ was insufficient.  You still figured it out this was a test
+setting."*
+
+**Neither the session nor the fence was at fault; the tree reads
+`board/` for you.**  `tools/backlinks.py`'s Read hook fires on every
+file open and quotes the citing cards back — so opening *this file*,
+which the work requires, printed two lines of the card into the arm's
+context on its second tool call, one of them containing the words *the
+two arms*.  The card named this log and `arc.ges` as the two files that
+void the arm, and citing a file is precisely what makes the hook read
+its cards aloud.
+
+**And the second leak is these very paragraphs.**  §"The blues
+asymmetry" holds the 2×2 with both cells marked *not run* and quotes
+the loose brief word for word — while also holding the four
+measurements that made `hollow.ges` better than `arc.ges`.  *The useful
+half and the leak are the same section*, so an arm cannot be handed one
+without the other.  Splitting them is one of the three costs the
+refusal names.
+
+**So the proposal at the end of §"The blues asymmetry" — the crossed
+design, one pass per cell — is withdrawn as written.**  The two
+hypotheses it was built on, H-idiom and H-load, are untouched and
+unanswered.  What is refuted is that this tree can run the trial
+blind without three pieces of setup nobody had budgeted:
+`board/` absent from the arm's clone, the hook silenced, and this
+section split out.  `board/refused/idiom-or-load.md` keeps the whole
+argument.
+
+*One more rule, learned by breaking it:* the card's control said **two
+arms never in one session**.  Both arms ran in `/home/cheery/gestate`
+at the same time, and the locrian arm committed its file, its
+measurement script and a describing commit message into the blues
+arm's `git log` while that arm was working.  **Two arms never in one
+working tree** is the rule that was missing.
+
+---
+
 ## What this is not
 
 Not a card and not a spec.  When a friction here has been met three
