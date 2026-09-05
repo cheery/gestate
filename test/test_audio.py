@@ -22,6 +22,7 @@ import pytest
 from gestate.audio import (AudioError, golden_text, parse_golden, render,
                            render_frames, write)
 
+ROOT = Path(__file__).resolve().parents[1]
 AUDIO_DIR = Path(__file__).resolve().parent.parent / "examples" / "audio"
 EXAMPLE = AUDIO_DIR / "blip.ges"
 DRUMS = AUDIO_DIR / "drums.ges"
@@ -590,8 +591,41 @@ def test_the_oscillator_shapes():
 # ── `drums.ges` — three voices and a noise source ───────────────────────────
 
 
+def _not_ignored(paths: list) -> set:
+    """The names git would actually carry, of those given.
+
+    **A sketch is not an example.**  `untitled.ges` is gitignored — the
+    editor's starter file, which *"is not a piece and never becomes one:
+    it is the starter, and the moment it is worth keeping it gets a
+    name"* (`.gitignore`, F154) — and since 2026-09-05 so is its
+    `untitled.notes`.  Globbing the working tree counted those, so the
+    gate went red on the author's own machine the moment he sketched,
+    and green on every clone.  **A gate that fires because somebody used
+    the editor is a gate that teaches people to stop reading it.**
+
+    Ignored rather than tracked, deliberately: a genuinely new example
+    that nobody has committed yet *should* still be caught, which is the
+    whole point of this check.  Only what git is told to disregard is
+    disregarded here.
+
+    Falls back to the plain list where there is no git — a tarball is a
+    real way to read this tree, and the answer there is the same one a
+    clone gets.
+    """
+    import subprocess
+
+    try:
+        out = subprocess.run(["git", "check-ignore", "--stdin"],
+                             cwd=ROOT, input="\n".join(str(p) for p in paths),
+                             capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError):        # noqa: BLE001
+        return {p.name for p in paths}
+    ignored = {line.strip() for line in out.stdout.splitlines() if line.strip()}
+    return {p.name for p in paths if str(p) not in ignored}
+
+
 def test_every_audio_example_is_exercised_here():
-    assert {p.name for p in AUDIO_DIR.glob("*.ges")} == set(EXAMPLES)
+    assert _not_ignored(sorted(AUDIO_DIR.glob("*.ges"))) == set(EXAMPLES)
 
 
 def _steps(rate=3000, bars=1.0):

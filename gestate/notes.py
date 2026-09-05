@@ -219,7 +219,6 @@ def parse(text: str, name: str = "<notes>") -> NotesFile:
     for number, tokens in note_lines:
         out.notes.append(_note(tokens, number, f"{name}:{number}", out))
 
-    _refuse_doubles(out, name)
     return out
 
 
@@ -314,42 +313,73 @@ def _manners(text: str | None, place: str) -> int:
     return bits
 
 
-def _refuse_doubles(out: NotesFile, name: str) -> None:
-    """One voice, one place, one note.
+def doubled(out: NotesFile) -> list:
+    """`[(first, second)]` — notes at one place a drag cannot tell apart.
 
-    Not a taste rule: two identical notes at one instant are one note
-    played twice as loud by every renderer here, so the file would say
-    something it cannot mean, and a round trip through the roll could not
-    tell which line to rewrite.
+    One voice, one bar, one tick, one key, twice.  **Allowed in the file
+    and refused at the gesture**, which is the shape Henri chose on
+    2026-09-05 after a half-written sketch was rejected wholesale:
+    *"lets do the middle one.  I think that's fairly fair."*
+
+    **The constraint belongs on the gesture, not on the bytes.**  What is
+    genuinely impossible is a *drag*: two identical lines, and nothing in
+    a click says which to rewrite, so `spec/north_star.md`'s byte-exact
+    law has no answer.  Writing them by hand is merely redundant — the
+    renderer plays both, which is louder, and that is what the file
+    honestly says.
+
+    The first draft of this refused at `parse`, on the argument that a
+    file should not be able to say something it cannot mean.  It can mean
+    it; it is the *editor* that cannot act on it.  And the cost of
+    getting that wrong was paid by the person the format is for, in the
+    middle of a sketch, which is the worst moment to be stopped.
+
+    Round-tripping is unaffected: two identical notes sort adjacently and
+    `sorted` is stable, so `write` emits them in the order they were read
+    and reading that back is a no-op.
     """
-    seen: dict[tuple, int] = {}
+    seen: dict = {}
+    out_pairs = []
     for one in out.notes:
         spot = (one.section, one.bar, one.at, one.voice, one.key)
         if spot in seen:
-            place = f"{name}:{one.line}"
-            raise NotesError(
-                f"{place}: this note is already written at "
-                f"{name}:{seen[spot]} — same section, bar, voice, tick and key")
-        seen[spot] = one.line
+            out_pairs.append((seen[spot], one))
+        else:
+            seen[spot] = one
+    return out_pairs
 
 
 # ── The stable order, and writing one back ──────────────────────────────────
 
 
 def ordered(out: NotesFile) -> list[Note]:
-    """The canonical order: section, bar, tick, the section's own voice
-    order, then key.
+    """The canonical order: section, bar, **voice**, tick, then key.
 
     Gate four of `spec/drawnscores.md` — *two writings of one phrase are
     byte-identical, so a diff shows what changed and nothing else.*  The
-    voice order is the section's rather than alphabetical because that is
-    the order the roll stacks them in, so a written file reads top voice
-    down like a score does.
+    voice order is the section's own rather than alphabetical, because
+    that is the order the roll stacks them in.
+
+    **Voice before tick, decided by Henri on 2026-09-05, and it is a
+    trade.**  Tick-major read like a score — everything sounding at beat
+    one together — and `fixme.md` F199 is what that cost: a note dragged
+    in *time* changes its place in the order, so **five lines of
+    `arc.notes` moved for one dragged note** where the gate claimed one.
+
+    Voice-major keeps a voice's notes contiguous inside a bar, so a
+    time-drag moves a note among its own few lines.  What is given up is
+    that the *file* no longer reads bar-wise — and that loss is
+    recoverable by a view, because `tools/bars.py` and its Read hook
+    reassemble the bar across voices from the parsed file rather than
+    from its line order.  **The editing property is not recoverable by a
+    view; it is a property of the bytes.**  So the trade is the right way
+    round, and it was made while exactly one `.notes` file existed.
     """
     rank = {(s.name, v): i for s in out.sections for i, v in enumerate(s.voices)}
     place = {s.name: i for i, s in enumerate(out.sections)}
-    return sorted(out.notes, key=lambda n: (place[n.section], n.bar, n.at,
-                                            rank[(n.section, n.voice)], n.key))
+    return sorted(out.notes, key=lambda n: (place[n.section], n.bar,
+                                            rank[(n.section, n.voice)],
+                                            n.at, n.key))
 
 
 def write(out: NotesFile) -> str:

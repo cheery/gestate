@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 203 entries, **163 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 203 entries, **164 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7416,7 +7416,7 @@ piece may legitimately keep an unused phrase while working, so this is an andon
 and not a refusal — which is the same shape `tools/dangling.py` already has for
 citations.
 
-### F199. **[bug]** `.notes` acceptance 5 claims more than it holds, and its test picked the case that passes
+### F199. **[resolved]** `.notes` acceptance 5 claimed more than it held, and its test picked the case that passes
 
 `spec/drawnscores.md` §"Acceptance" 5 says **moving one note changes exactly one
 line** of a `.notes` file, and `test_drawnscores.py::test_moving_one_note_changes_exactly_one_line`
@@ -7439,18 +7439,34 @@ remain writable/readable if an editor is written around it?"*  The gate was gree
 over the case an editor produces, which is `doc/memory/a-targeted-set-is-a-claim.md`
 arriving on this session's own acceptance list.
 
-Two readings, and choosing between them is design work not yet done: either the
-claim is narrowed to *a note's own line carries the whole edit* (true, and much
-weaker), or the canonical order stops sorting by `at` — bar-then-voice-then-tick
-would keep a dragged note among its own voice's lines and move it far less.  The
-second changes `notes.ordered` and every shipped `.notes` file with it.
+Two readings were offered and **Henri took the second, 2026-09-05: "lets go with
+bar → voice → tick."**  `notes.ordered` sorts section, bar, voice, tick, key, and
+`arc.notes` was rewritten under it — the cheapest this could ever be, with
+exactly one `.notes` file in existence.
 
-gate: `partial — test_drawnscores.py::test_moving_one_note_changes_exactly_one_line`,
-which passes and measures the wrong drag.  What is missing is the same assertion
-for a change to `at`, with whatever number is then true written into it.  Weakest
-point: a test that pins today's 5 would pass forever without the property
-improving, so it should assert against the *voice's* line span rather than a
-constant.
+Measured after:
+
+    drag in pitch               1 line    (was 1)
+    drag in time, half a beat   2 lines   (was 5)
+    drag in time, a whole beat  3 lines   (was 5)
+
+**And the rule is exact rather than approximate: one line per position the note
+moves past, plus one**, which is inherent to any sorted file.  All of them are
+now inside the dragged note's own voice.
+
+**What was given up**, stated because it is real: the file no longer reads
+bar-wise — bar 1 is the melody's four notes, then the upper's, not everything
+sounding at beat one.  That loss is recoverable by a view, and both views
+already exist: `tools/bars.py` and its Read hook reassemble the bar across
+voices from the *parsed* file rather than from its line order.  The editing
+property is not recoverable by a view; it is a property of the bytes.
+
+gate: `test_drawnscores.py::test_moving_one_note_in_time_moves_it_among_its_own_voice`,
+which drags in time by half a beat and by a whole one and pins 2 and 3, beside
+the pitch case that pins 1.  Weakest point: those are constants, so a change
+that made the property *worse* in some other bar would pass — the honest gate
+asserts against the dragged note's own voice's line span, and that needs the
+span to be a thing `notes.py` can name, which it is not yet.
 
 ### F200. **[bug]** `notes.write()` drops every comment in a `.notes` file
 

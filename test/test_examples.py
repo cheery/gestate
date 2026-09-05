@@ -20,7 +20,8 @@ from gestate.midi import perform
 from gestate.pipeline import evaluate
 from gestate.notes import read
 
-EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
+ROOT = Path(__file__).resolve().parent.parent
+EXAMPLES = ROOT / "examples"
 
 #: Music programs define `score`/`bpm` and live in `examples/music/`.
 MUSIC_DIR = EXAMPLES / "music"
@@ -35,10 +36,38 @@ def _source(name: str) -> str:
     return (root / name).read_text()
 
 
+def not_ignored(paths) -> list:
+    """Those of `paths` git is not told to disregard, by name.
+
+    **A sketch is not an example.**  `untitled.ges` and its
+    `untitled.notes` are gitignored — the editor's starter, which
+    *"is not a piece and never becomes one"* (`.gitignore`, F154) — and
+    globbing the working tree swept them in.  Two costs, both met on
+    2026-09-05: the roster gate went red on the author's own machine the
+    moment he sketched, and worse, a half-written `untitled.notes`
+    raised at **collection** time and took every test in this file with
+    it.  Not a red test — no tests.
+
+    A genuinely new, uncommitted example is still caught, which is what
+    these rosters are for.  Only what git disregards is disregarded.
+    """
+    import subprocess
+
+    paths = sorted(paths)
+    try:
+        out = subprocess.run(["git", "check-ignore", "--stdin"], cwd=ROOT,
+                             input="\n".join(str(q) for q in paths),
+                             capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError):        # noqa: BLE001
+        return [q.name for q in paths]
+    ignored = {line.strip() for line in out.stdout.splitlines() if line.strip()}
+    return [q.name for q in paths if str(q) not in ignored]
+
+
 def test_every_example_is_covered_by_this_file():
     """A new example must be exercised, not just added."""
-    assert {p.name for p in EXAMPLES.glob("*.ges")} == LANGUAGE
-    assert {p.name for p in MUSIC_DIR.glob("*.ges")} == MUSIC
+    assert set(not_ignored(EXAMPLES.glob("*.ges"))) == LANGUAGE
+    assert set(not_ignored(MUSIC_DIR.glob("*.ges"))) == MUSIC
 
 
 # ── Datafun ─────────────────────────────────────────────────────────────────
@@ -333,14 +362,14 @@ AUDIO_DIR = EXAMPLES / "audio"
 
 
 def _audio_example_names() -> list:
-    return sorted(p.name for p in AUDIO_DIR.glob("*.ges"))
+    return not_ignored(AUDIO_DIR.glob("*.ges"))
 
 
 CONTRIB = EXAMPLES / "contrib"
 
 
 def _contrib_names() -> list:
-    return sorted(p.name for p in CONTRIB.glob("*.ges"))
+    return not_ignored(CONTRIB.glob("*.ges"))
 
 
 @pytest.mark.parametrize("name", _contrib_names())
@@ -411,8 +440,8 @@ def test_the_audio_examples_are_actually_being_found():
 def _canvas_example_names() -> list:
     from gestate.audio import has_substrate
 
-    return sorted(p.name for p in AUDIO_DIR.glob("*.ges")
-                  if has_substrate(read(p)))
+    return [n for n in not_ignored(AUDIO_DIR.glob("*.ges"))
+            if has_substrate(read(AUDIO_DIR / n))]
 
 
 @pytest.mark.parametrize("name", _canvas_example_names())
@@ -478,7 +507,7 @@ LONG_RATE, LONG_BLOCK = 4000, 256
 
 
 def _long_names() -> list:
-    return sorted(p.name for p in LONG_DIR.glob("*.ges"))
+    return not_ignored(LONG_DIR.glob("*.ges"))
 
 
 def _stated_seconds(source: str, name: str) -> int:

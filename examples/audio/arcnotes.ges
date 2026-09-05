@@ -102,6 +102,18 @@ sound = reverb 0.55 0.20 (song + chord + ground)
 
 include "arc.notes"
 
+#: **The roll, on one voice at a time** — `spec/drawnscores.md` §"The
+#: slices after", rung 0.  Nothing was built for these: `A.melody` is an
+#: ordinary `[: Tone :]` once the include has run, and the ask names it
+#: because the dotted rewrite reaches this line too.
+#:
+#: **Every note of them is editable**, which is the whole claim of this
+#: format — 32 of 32 on each, where the score box manages 0–5% of a real
+#: `.ges` piece because it has to guess which literal is the pitch.
+#: Here a note *is* a line and there is nothing to guess.
+notes A.melody
+notes A.bass
+
 #: **Five lines, and the file they come from knows they are the same
 #: twenty-four bars.**  `arc.ges`'s own comment here reads *"aligned by
 #: nothing but their lengths"*; a section declares `bars 8`, so a voice

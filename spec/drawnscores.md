@@ -295,7 +295,7 @@ does not.
 | **one note per line** | an edit is a line, so a diff is the edit | every record fits on one line; no continuations |
 | **every field named, never positional** | the failure that made `manner` unfindable was two fields of one shape telling apart only by position | every value is preceded by its key; a bare token is refused |
 | **no significant whitespace and no nesting** | the meaning survives being reflowed by anything | a file whose lines are shuffled parses to the same score |
-| **a stable order** | two writings of one phrase are byte-identical, so a diff shows what changed and nothing else | the writer emits section, then bar, then `at`, then the section's own voice order, then key; writing a file it just read is a no-op |
+| **a stable order** | two writings of one phrase are byte-identical, so a diff shows what changed and nothing else | the writer emits section, then bar, then the section's own **voice** order, then `at`, then key; writing a file it just read is a no-op |
 
 **The third gate is why every note line names its section and bar.**  A
 header that opened a block would be cheaper to type and would make a
@@ -307,6 +307,21 @@ gate, paid on purpose.
 already holds the roll to writing back byte-exactly; here that is not a
 careful implementation but a property of the format, so a drag that
 moves one note cannot rewrite the file around it.
+
+***As built, and the order was chosen twice.***  It sorted by `at`
+before the voice until 2026-09-05, which read like a score — everything
+sounding at beat one together — and cost what `fixme.md` F199 measured:
+**a note dragged in time moved five lines**, because it changed places
+in the order.  Voice before tick keeps a voice's notes contiguous inside
+its bar, and the rule becomes exact: **one line per position the note
+moves past, plus one** — 1 for a pitch drag, 2 for half a beat, 3 for a
+whole one, all of them inside that note's own voice.
+
+*What was given up is that the file no longer reads bar-wise*, and it is
+recoverable where the property was not: `tools/bars.py` and its Read
+hook reassemble a bar across voices from the **parsed** file, not from
+its line order.  A view can restore a reading; nothing restores a
+property of the bytes.
 
 ## The include door
 
@@ -683,12 +698,69 @@ these numbers: *"nothing can check that 68 is the sharp fourth and not a
 typo for 67."*  It is not a typo, and a version of this that refused
 would have refused the piece.  The lamp cost eleven lines.
 
-## The slice after — the view
+## The slices after — the view, one rung at a time
 
-Named, not designed, so that the format is not shaped around a guess at
-it.  What it has to do: **open a `.notes` file to a roll rather than to
-text**, honour the drag `spec/north_star.md` already built, and sound
-the note it moved.
+*Henri, 2026-09-05: "I'm realising I'd need the .notes editor, fully
+featured.  But we should go slice at a time because it's a tall order."*
+So it is a ladder, each rung usable on its own, each with its blocker
+named.
+
+**0 — the roll you already have, and it costs nothing.**  `notes
+A.melody` written into the `.ges` **after** the include.  No code: the
+dotted rewrite reaches the ask line too, so it names the generated
+binding and `scorebox` draws it.  Measured 2026-09-05: **32 of 32 notes
+editable on every voice tried — 100%**, against the 0–5% §"Why, in one
+number" counted for real `.ges` pieces.  Its job is to answer by use the
+questions the later rungs would otherwise settle by taste: voices
+stacked or one at a time, degrees or names in the margin.
+
+**1 — `expand()` returns its origins.**  `declarations()` already builds
+`{generated line → .notes line}` and its only caller throws it away.
+What is missing is the offset of the generated block in the expanded
+text, and **that must come from the function that does the
+concatenation**: reconstructing it outside was tried on 2026-09-05 and
+was wrong by one line on the fourth note.  Invisible, small, and
+everything below needs it.
+
+**2 — a strip at the include line, not a roll.**  One row per section:
+`A  D lydian  8 bars  melody upper middle lower bass`.  A box cannot
+grow to fit a whole file — `spec/scorebox.md`: *an accordion that grows
+under the hands would move the text being edited* — and an `include`
+views a file where `notes <expr>` views a phrase.  So the line gets a
+table of contents and the document goes elsewhere.  Read-only.
+
+**3 — the roll names the right file.**  A click on a note jumps to
+`arc.notes:47` rather than to a generated line nobody wrote.  Needs 1;
+`audiospans.Site` already carries a path and a line within it.  Still
+read-only, and this is where the read-only ladder ends.
+
+**4 — the drag writes into the `.notes`.**  F199 is answered as of
+2026-09-05: the order is voice-major, and a drag moves one line per
+position it passes plus one, all inside its own voice.  What remains is
+the first time the window writes a file it is **not** editing, which is
+a real change to `Workbench` — and the two-writers rule to think about,
+since that file may be open elsewhere.
+
+*And one thing this rung owes rather than inherits:* `notes.doubled`
+names the places a drag cannot resolve — one voice, one bar, one tick,
+one key, written twice — and **the gesture must refuse those, because
+the file no longer does.**  That constraint moved from the bytes to the
+gesture on 2026-09-05, after refusing at `parse` stopped Henri
+mid-sketch and took a whole test file's collection with it.  A file may
+say a thing the editor cannot act on; the editor says so at the moment
+it cannot.
+
+**5 — the view that takes the window.**  Sections and voices stacked,
+the margin columns `tools/bars.py` already computes.  Henri's own word
+for it, 2026-09-04: *"a separate editor view that pops up for them.."*
+Expensive, and for a named reason rather than its size: a new furniture
+kind crosses `furniture.rs`, `window.rs` and the verb table — the three
+seams that lost `touch` when the pygame editor went, none of which
+failed loudly (`doc/memory/gestate-canvas-unwired.md`).
+
+What the view has to do, whichever rung reaches it: **open a `.notes`
+file to a roll rather than to text**, honour the drag
+`spec/north_star.md` already built, and sound the note it moved.
 
 **And the stopped case is a decision it will owe.**  `north_star`
 acceptance 5 gates *the sound moved with it*, and `session.py`'s

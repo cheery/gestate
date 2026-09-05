@@ -230,6 +230,40 @@ def test_writing_the_shipped_file_back_is_a_no_op():
     assert notes.write(notes.parse(text, "arc.notes")) == text
 
 
+def test_moving_one_note_in_time_moves_it_among_its_own_voice():
+    """**F199, and the gate it never had.**
+
+    The old claim was *moving one note changes exactly one line*, and the
+    old test proved it by changing a **key** — which is not part of the
+    canonical order.  A drag in *time* is what a roll is for, and under
+    the tick-major order it moved **five** lines for one note.
+
+    Henri chose voice-major on 2026-09-05, so a note now reorders only
+    among its own voice's notes in its own bar.  The rule is exact:
+    **one line per position it moves past, plus one** — which is
+    inherent to any sorted file and is worth writing down rather than
+    approximating, because the next person will otherwise re-derive it
+    from a surprise.
+    """
+    text = NOTES.read_text()
+    before = text.splitlines()
+
+    def moved(**change):
+        parsed = notes.parse(text, "arc.notes")
+        one = notes.ordered(parsed)[40]
+        parsed.notes[parsed.notes.index(one)] = notes.Note(
+            **{**one.__dict__, **change})
+        after = notes.write(parsed).splitlines()
+        assert len(before) == len(after), "a drag must not change the length"
+        return sum(1 for a, b in zip(before, after) if a != b)
+
+    assert moved(at=96 + 48) == 2, "half a beat: past one neighbour"
+    assert moved(at=288) == 3, "a whole beat: past two"
+    # And the property the whole format rests on is unaffected by any of
+    # it: the note's own line still carries the whole of its own edit.
+    assert moved(key=64) == 1
+
+
 def test_moving_one_note_changes_exactly_one_line():
     """The property the roll rests on — `spec/north_star.md`'s law, here
     for free rather than by careful implementation."""
@@ -366,12 +400,34 @@ def test_a_positional_value_is_refused():
         notes.parse(text, "bare.notes")
 
 
-def test_the_same_note_written_twice_is_refused():
+def test_the_same_note_written_twice_is_allowed_and_named():
+    """**The constraint belongs on the gesture, not on the bytes.**
+
+    This refused at `parse` until 2026-09-05, when a half-written sketch
+    of Henri's was rejected wholesale — and took the collection of a
+    whole test file with it.  His call: *"lets do the middle one.  I
+    think that's fairly fair."*
+
+    Writing two identical notes is merely redundant; the renderer plays
+    both and that is what the file says.  What is genuinely impossible is
+    a **drag**: nothing in a click on one of two identical lines says
+    which to rewrite, so `spec/north_star.md`'s byte-exact law has no
+    answer.  `doubled` is the predicate rung 4 owes.
+    """
     text = ("section A  bars 1  beats 4  voices lead\n"
             "note  section A  bar 1  at 0  len 96  voice lead  key 60  vel mf\n"
             "note  section A  bar 1  at 0  len 48  voice lead  key 60  vel f\n")
-    with pytest.raises(notes.NotesError, match="already written"):
-        notes.parse(text, "twice.notes")
+    parsed = notes.parse(text, "twice.notes")
+    assert len(parsed.notes) == 2, "a hand-written file may say it twice"
+    assert [(a.line, b.line) for a, b in notes.doubled(parsed)] == [(2, 3)]
+
+    # And it still round-trips, which is what makes allowing it safe:
+    # identical notes sort adjacently and `sorted` is stable.
+    once = notes.write(parsed)
+    assert notes.write(notes.parse(once, "twice.notes")) == once
+
+    # The shipped file has none, so the gesture is unblocked on it.
+    assert notes.doubled(notes.parse(NOTES.read_text(), "arc.notes")) == []
 
 
 # ── The vocabulary is one vocabulary ────────────────────────────────────────
@@ -1055,3 +1111,49 @@ def test_the_report_still_says_peak_and_rms():
     assert "report: peak 0.900" in said
     assert "below 160 Hz" in said
     assert "bar   1: rms" in said
+
+
+# ── Slice 0: the roll a `.notes` file already has ───────────────────────────
+
+
+def test_a_voice_of_an_included_section_draws_and_is_wholly_editable():
+    """**The claim this format exists for, executed** —
+    `spec/drawnscores.md` §"The slices after", rung 0.
+
+    `card:drawn-scores.md` §"The editing surface, measured" counted the
+    score box at **0–5%** on real `.ges` pieces: provenance is guessed by
+    value, and a computed pitch has no literal to point at.  A `.notes`
+    line *is* the note, so there is nothing to guess — and this asserts
+    the number rather than the argument.
+
+    Nothing was built for it.  `A.melody` is an ordinary `[: Tone :]`
+    once the include has run, and the ask names it because the dotted
+    rewrite reaches the ask line too.
+    """
+    import re
+
+    from gestate.scorebox import build_rolls, pitch_atom
+
+    source = notes.read(ARCNOTES)
+    asks = [(i + 1, m.group(1))
+            for i, line in enumerate(source.splitlines())
+            for m in [re.match(r"^notes\s+(\S.*)$", line)] if m]
+    assert [a for _, a in asks] == [notes.bound("A", "melody"),
+                                    notes.bound("A", "bass")], asks
+
+    for (_, ask), roll in zip(asks, build_rolls(source, asks, 22050, 0)):
+        assert hasattr(roll, "events"), f"{ask} did not draw: {roll}"
+        assert roll.events, f"{ask} drew nothing"
+        written = 0
+        for index in range(len(roll.events)):
+            try:
+                _line, _col, _width, value = pitch_atom(roll, index)
+            except Exception:                             # noqa: BLE001
+                continue
+            assert value == roll.events[index][3], (
+                "the atom must be the note's own pitch")
+            written += 1
+        assert written == len(roll.events), (
+            f"{ask}: {written} of {len(roll.events)} notes carry a pitch "
+            "atom; the whole point is that all of them do")
+        assert written == 32

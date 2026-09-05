@@ -184,6 +184,12 @@ gemba.tsv
 # to no piece at all.  F164.
 untitled.ges
 untitled.desk
+#: And its notes, for the same reason one step further out — the rule
+#: above predates `.notes` existing (`spec/drawnscores.md`, 2026-09-05)
+#: and did not follow the format.  Henri, the day a sketch first grew
+#: one: *"I got untitled.notes there as well now.  Be careful to not
+#: commit it in."*  Careful is not a mechanism; this line is.
+untitled.notes
 
 # **And `*.desk` is deliberately not here**, which is the neighbouring
 # decision and the opposite one.  `<piece>.desk` is where the workbench
