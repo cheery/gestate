@@ -47,6 +47,17 @@ And, on where it lands:
    `card:drawn-scores.md`'s constraint: a textual being needs a
    textual projection for *hearing*, not only for editing.
 
+   **Answered in part, 2026-09-05, and the answer is that it should
+   print note names.**  `doc/trial/spelling-preference.md` gave eight
+   arms this section's own material — a file of MIDI numbers — and asked
+   only for the harmony described.  **Eight of eight wrote the report
+   this item asks for, and eight of eight wrote it in letters**, then
+   said unprompted why: *"mod-12 every value by hand"*, *"that
+   arithmetic layer is exactly where a wrong-by-one slip would go
+   unnoticed."*  And `tools/modecheck.py`'s `places_to_rest` already
+   collects the sounding pitches per bar across banks and reduces them
+   to one number — the set it throws away is most of this item.
+
 3. **A `#:` comment splits an equation group.**  Documenting the calm
    phrases where they stand broke `scoreLead` (*equations must be
    adjacent* — the message itself was good).  The question is whether

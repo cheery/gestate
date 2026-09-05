@@ -1,6 +1,7 @@
 # Pre-registration — which spelling does a session *reach for*?
 
-*Written 2026-09-05, at Henri's ask, and not run.  `tools/prereg.sh` is
+*Written 2026-09-05, at Henri's ask, and **run the same day** —
+§"The result" is at the foot of this file.  `tools/prereg.sh` is
 the gate this sheet exists to pass; spawning any arm is his call.*
 
 **What this is:** a revealed-preference trial on the same variable
@@ -165,3 +166,106 @@ trial, and it is not about notation at all.
 Sixteen runs plus sixteen follow-up messages, no repository, no build.
 The fixture for task B already exists and reproduces from
 `doc/trial/pitch-spelling.py`.
+
+
+---
+
+# The result — 2026-09-05
+
+| | revealed | stated |
+|---|---|---|
+| **Task B** — describe the harmony, spelling never mentioned | **8 of 8 named pitches as letters** | **8 of 8 said names** |
+| **Task A** — write a file, either spelling offered | 8 of 8 wrote numbers | *not asked — void* |
+
+## Task B: the decision fires
+
+The threshold was **≥ 4 of 8 converting unprompted**.  Every arm
+converted.  Not one described a chord as `57 61 64 67`; they wrote *"G
+minor in first inversion over a Bb bass"*, *"the raised fourth giving
+the lydian shimmer"*, *"the tonic surfaces exactly once, as a passing
+bass note under vi in bar 3"*.
+
+**So `card:the-first-jam.md` item 2's report prints note names.**  That
+item asked for a per-bar score report *"to a textual being what the roll
+is to a person"* — and eight arms, asked only to describe harmony, wrote
+that report themselves and wrote it in letters.
+
+**Where names cost nothing.**  §"Why the report and not the file"
+predicted this split and it held: every objection to names — storing an
+enharmonic to round-trip, a drag choosing `gis` or `as`, a canonical
+order with an opinion — belongs to the file and none of it to a report.
+
+## Task A: void, and by design error rather than bad luck
+
+Six of eight arms went and consulted the implementation, and two quoted
+it:
+
+> *"`spec/drawnscores.md` says 'the MIDI key number, written out.
+> **Always a literal**' and the parser rejects a note name there — so I
+> wrote MIDI numbers for every note."*
+
+Two more ran `notes.py` on their own output and were told the same by
+the parser.  One wrote a file into `examples/audio/`.
+
+**The sheet said "no arm is given a path into this repository."**  That
+was never true and could not be: **a subagent stands *in* the repo**,
+and `CLAUDE.md` line 1 tells it to read `board/README.md` before it
+begins.  Inlining the prompt fenced nothing.
+
+**And the deeper fault is mine and is not the leak.**  The brief said
+the `key` field accepts either spelling.  **In the shipped parser it does
+not** — `_int` refuses a name.  So arms were asked to express a
+preference inside a counterfactual, standing next to the code that
+contradicts it, and an arm that checked was *correctly* told numbers
+only.  That is not a preference; it is compliance, and it is the right
+behaviour from the arm.
+
+**What task A actually measured:** whether an arm verifies its output
+against the implementation before answering.  **Six of eight did, and
+the six were right.**  Useful, and not the question asked.
+
+## The stated/revealed comparison is undecided, and the reason matters
+
+The prediction was a **gap** — stated preference exceeding revealed,
+the flattery asymmetry showing.  There is none: both are 8 of 8.
+
+**But no gap could have appeared**, because the revealed measure was
+already at ceiling.  *Inflation is undetectable against a ceiling*, so
+this does not falsify the flattery hypothesis — it fails to test it, for
+the same structural reason `doc/trial/pitch-spelling.md` failed to test
+legibility.  Two trials, two ceilings, and the lesson is one: **pick a
+measure with room in it.**
+
+What is worth something is that the stated reasons are **mechanistic and
+match work the arms visibly did** — *"mod-12 every value by hand"*,
+*"that arithmetic layer is exactly where a wrong-by-one slip would go
+unnoticed"*, *"errors like mixing up 68 as Ab vs G# stay invisible"*.
+Those are reports of a cost paid, not opinions about a preference, and
+one arm named the enharmonic argument this tree makes without having
+read it.
+
+*And the question was asked in a spelling none of the arms used* —
+`gis4`, where all eight wrote `G#`/`Ab`.  If that biased anything it
+biased against names, which the answers survived.
+
+## My predictions, scored
+
+| | predicted | actual |
+|---|---|---|
+| Task B conversion | ≥ 6 of 8 | **8 of 8** ✓ |
+| Task A names | about 5 of 8 | 0 of 8, **void** ✗ |
+| Stated preference | 7–8 of 8 | 8 of 8 ✓ |
+| **A gap, stated over revealed** | **expected** | **none, and unmeasurable** ✗ |
+
+## The third leak, and the rule it earns
+
+`card:idiom-or-load.md` was refused because `tools/backlinks.py`'s Read
+hook quoted `board/` at an arm.  `doc/trial/pitch-spelling.md` dodged it
+by generating a fixture the tree had never described.  This one walked
+into it from a new direction: the arm did not need a hook, because it
+was standing in the tree and had been told to read it.
+
+**You cannot fence a subagent that runs in the repository.**  A trial
+needs an arm with no tree, or a question the tree cannot answer.  Task B
+had the second — describing harmony asks nothing of the implementation —
+and that is the only reason it survived.
