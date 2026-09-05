@@ -24,9 +24,15 @@ had already found the problem:
     rhythmically dead           notes shorter than a quarter
 
 `spec/annotations.md`-style prose about music is unchecked in a way
-prose about code is not — that log has a comment on `arc.ges` bar 16
-claiming a cadence the notes do not contain.  A file that states its own
-counts should carry the command that produces them, which is this.
+prose about code is not.  A file that states its own counts should carry
+the command that produces them, which is this.
+
+*The example this docstring used to give was wrong* — it said `arc.ges`
+bar 16 claimed a cadence the notes do not contain.  The notes contained
+it; the score played a different bass line (`fixme.md` F198).  Kept as a
+correction rather than swapped for a better example, because the
+mistake it made is the one this tool is for: **it checked the render and
+concluded about the file.**
 
 **Stepwise counts a repeated note as a step** (|interval| ≤ 2, zero
 included), because that is how the log counted and the comparisons in

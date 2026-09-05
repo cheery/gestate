@@ -207,7 +207,32 @@ notes do not carry is worse than no comment**, and nothing in the tree
 can catch it: prose about music is unchecked in a way prose about code
 is not.
 
-*What would make it a cadence:* A7 → B♭ at bar 17.  B♭ is the ♭VI of D
+### Corrected 2026-09-05 — the notes carried it and the score did not
+
+**The paragraphs above are wrong, and they are kept because how they
+went wrong is the finding.**  `arc.ges` defines **two** bass lines:
+`roots`, which `score` played, and `bass`, which it did not.  `bass`
+is where the brief lives —
+
+    bar  3   bass: G D G D   the IV      roots: E
+    bar 16   bass: A E B F#  A → B       roots: G, a pedal, all 8 bars
+
+— so bar 16's annotation, *"the hinge… what comes underneath is not
+home"*, was **true of the notes under it** and false only of the sound.
+The deceptive cadence was written, on the day, exactly as the brief
+asked.  Twenty-four bars of it were never sent to a bank.
+
+**So the accusation was itself the failure it named.**  This file called
+that comment *"asserting more than the evidence carries"* and made it
+the example the whole §"Two over-readings" section rests on — while
+checking the render and concluding about the file.  A session repeated
+the same move on 2026-09-05, in the same words, before it read `bass`.
+`fixme.md` F198 is the defect; the lesson here is narrower and worse:
+**when the artefact and the prose disagree, "the prose is wrong" is a
+conclusion and not a default**, and this file reached for it twice.
+
+*What would have made the sounding piece cadence:* A7 → B♭ at bar 17.
+B♭ is the ♭VI of D
 minor and is **already in D phrygian** (D E♭ F G A B♭ C), so the
 deceptive turn and the mode's own colour are the same chord — which is
 the kind of thing that is obvious once the modes are written down and

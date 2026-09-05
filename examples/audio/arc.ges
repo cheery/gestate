@@ -590,10 +590,24 @@ roots = root1 ++ root2 ++ root3 ++ root4 ++ root5 ++ root6 ++ root7 ++ root8
 #: **Five lines, aligned by nothing but their lengths.**  Twenty-four
 #: bars in each, and if one of them had twenty-three the piece would
 #: still compile and everything after the short one would be a bar out.
+#:
+#: **And for a fortnight it played the wrong one** — `fixme.md` F198.
+#: `bass` above carries the I-IV-V and the deceptive cadence this file's
+#: own comments describe; `roots` is an earlier line that does not, and
+#: `score` named `roots`.  So every comment here was true of the notes
+#: and false of the sound, and three separate readings — including
+#: `doc/notes/notes-on-writing-a-piece.md` on bar 16 — concluded the
+#: prose was lying when it was the score that was.
+#:
+#: Henri chose, 2026-09-05, having heard both: *"arc-bassonly is
+#: better.  I like the bass moving there."*  `roots` is kept rather than
+#: deleted, because it is what was written on the day and this file is
+#: an exhibit — but it is **not played**, and that sentence is the one
+#: nothing said before.
 score : [: Void :]
 score = (melody >>= voices.song)
      || (upper >>= voices.chord) || (middle >>= voices.chord)
-     || (lower >>= voices.chord) || (roots >>= voices.ground)
+     || (lower >>= voices.chord) || (bass >>= voices.ground)
 
 bpm : Int
 bpm = 92

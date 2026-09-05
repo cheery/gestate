@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 202 entries, **162 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 203 entries, **163 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7340,7 +7340,7 @@ goes red the moment either half of the clock stops crossing.  Weakest point:
 until that piece exists, a gate here could only assert the *payload's shape*,
 which is a test that the export has a key rather than that a picture moves.
 
-### F198. **[bug]** `arc.ges` writes twenty-four bars of bass that its score never plays
+### F198. **[resolved]** `arc.ges` played the wrong one of its two bass lines
 
 `examples/audio/arc.ges` defines `bass` (line 566) out of `g1 … g8`,
 `h1 … h8` and `i1 … i8` — twenty-four bars, spelled out by hand like the rest
@@ -7390,11 +7390,23 @@ center is missing, and harmony would do lots to the tone, but it's absent."*
 Four passes went into the melody and the chord voicings; the line that would
 have said I-IV-V under them was written, sitting in the file, and unplayed.
 
-**The repair is still the author's**, and now it is a real question about the
-music rather than about tidiness: `bass` and `roots` are two different
-harmonic readings of the same twenty-four bars, and playing both is a third
-piece again.  `arc.notes` leaves `bass` out, which is faithful to what
-`arc.ges` *plays* and is therefore faithful to the wrong half.
+**Answered 2026-09-05 by hearing it.**  Three renders — as it played, with
+`bass` instead of `roots`, and with both — went to Henri, and the first two
+sounded identical to him because *the only thing that changed lives below what
+a laptop speaker reproduces* (F202).  On headphones: **"arc-bassonly is
+better.  I like the bass moving there."**
+
+So `score` plays `bass` in `arc.ges` and in `arcnotes.ges`, and `arc.notes`
+carries it.  `roots` is kept and not deleted — it is what was written on the
+day and that file is an exhibit — but the comment beside `score` now says in
+one sentence that it is not played, which is the sentence whose absence cost
+three readings.
+
+**And the piece gained back what its own comments promised**: the I-IV-V, and
+bar 16's A going to B.  `python tools/bars.py examples/audio/arc.notes` shows
+the IV at bar 3 and the hinge at bar 16, and the mode lamp went from six
+out-of-mode notes to thirteen — most of them the IV's own root, which is
+outside lydian and is the chord the section is built on.
 
 gate: `none — not yet built`.  What would hold it is a lamp rather than a test
 of this file: a score-carrying program whose author declares a `[: a :]` that
@@ -7513,3 +7525,46 @@ Weakest point: the rule is not `Notable`, so a piece whose payload carries two
 playable numbers — a note and a transposition, say — is refused rather than
 read, and the honest fix is to make `scorebox`'s auxiliary-program trick
 reusable without an ask.
+
+### F202. **[bug]** `arc.ges`'s ground bank is mixed below what a laptop can play
+
+Every note the `ground` bank plays is between 73 and 185 Hz, through a 320 Hz
+lowpass (`under`).  Measured 2026-09-05 on the isolated stem:
+
+    40–80   Hz    0.0 dB          the fundamentals
+    80–160  Hz   -7.6 dB
+    160–320 Hz  -17.7 dB          where a laptop speaker starts
+    320–640 Hz  -30.0 dB
+
+So the filter removes exactly the harmonics through which a small speaker
+conveys a bass note, and **the fundamental is under its floor.**  On a laptop,
+a phone or most earbuds the line is not quiet, it is absent.
+
+**Found because it hid a different defect for a fortnight.**  Three renders of
+`arc.ges` differing only in the bass line went to Henri and he could not tell
+them apart — *"I don't hear bass.  The three files sound about the same"* —
+and the reason was not the notes (F198) but that the only thing changing lived
+below his monitors.  Two passes of judgement about this piece's harmony were
+made through that hole, including the pass-one verdict *"tonal center is
+missing… harmony would do lots to the tone, but it's absent."*
+
+**The instrument that was missing is built**: `audioperform --report` now says
+what share of the energy sits below 160 Hz, and this stem reads 58%–61% where
+ten real pieces span 14%–51%.  That is the general lamp; this entry is the
+particular piece.
+
+**The repair is the author's and is deliberately not taken.**  A brightened
+`under` — the second and third partials added, the filter opened to 1800 Hz —
+moves the stem from 58% to 43%, which helps and does not solve it; the
+fundamental of a 73 Hz triangle mostly *is* 73 Hz.  Henri heard both on
+headphones and kept `under` as written: **"arc-bassonly is better."**  So the
+piece is mixed for headphones on purpose, and what is unresolved is whether
+that is right for `card:online.md`'s world, where the tab puts it in front of
+people on laptops.
+
+gate: `none — not yet built`.  `--report`'s line is a lamp a person reads, not
+a check that fails.  What would hold it is a threshold in
+`test_examples.py`'s long-piece sweep — the same shape as
+`test_every_long_piece_keeps_headroom` — and it should not go in until
+somebody decides what share is *wrong* rather than merely worth knowing, which
+is the decision this entry is waiting on.

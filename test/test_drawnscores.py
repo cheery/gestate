@@ -90,7 +90,7 @@ def test_the_same_notes_at_the_same_ticks():
     now_bpm, now = _events(_arcnotes())
 
     assert was_bpm == now_bpm == 92
-    assert len(was) == len(now) == 219, "the two files do not hold the same count"
+    assert len(was) == len(now) == 291, "the two files do not hold the same count"
     for old, new in zip(was, now):
         assert old[:4] == new[:4], (
             f"arc.ges plays {old[3]} at {old[0]}-{old[1]} on `{old[2]}`; "
@@ -109,14 +109,15 @@ def test_the_velocity_difference_is_the_one_the_format_chose():
     _, now = _events(_arcnotes())
     moved = [abs(o[4] - n[4]) for o, n in zip(was, now) if abs(o[4] - n[4]) > 1e-9]
 
-    assert len(moved) == 209, f"{len(moved)} of 219 velocities moved, not 209"
+    assert len(moved) == 273, f"{len(moved)} of 291 velocities moved, not 273"
     assert max(moved) <= 0.05 + 1e-9, f"worst velocity move is {max(moved)}"
-    # Fifteen and not sixteen: `arc.ges` writes sixteen distinct floats,
-    # but one of them is only ever used by `bass`, which the piece
-    # defines in twenty-four bars and its `score` never plays
-    # (`fixme.md` F198).  Found by this assertion failing, and left in as
-    # the count of what *sounds*.
-    assert len({round(v[4], 6) for v in was}) == 15
+    # **Sixteen, and it was fifteen until 2026-09-05.**  The missing
+    # one belonged to `bass`, which `arc.ges` defined in twenty-four
+    # bars and never played (`fixme.md` F198).  This assertion is how
+    # that defect was first seen — it failed at 15 against an expected
+    # 16 — and it is left in as the count of what *sounds*, so the day
+    # the score drops a voice again the number says so.
+    assert len({round(v[4], 6) for v in was}) == 16
     assert set(round(v[4], 6) for v in now) <= set(_LOUDNESS), (
         "every loudness that sounds should be one of the eight levels")
 
@@ -267,7 +268,7 @@ def test_every_note_of_the_file_is_one_line_and_carries_its_own_pitch():
     parsed = notes.parse(NOTES.read_text(), "arc.notes")
     _, played = _events(_arcnotes())
 
-    assert len(parsed.notes) == len(played) == 219
+    assert len(parsed.notes) == len(played) == 291
     lines = NOTES.read_text().splitlines()
     for one in parsed.notes:
         written = lines[one.line - 1]
@@ -297,18 +298,24 @@ def test_the_mode_reports_and_does_not_refuse():
     parsed = notes.parse(NOTES.read_text(), "arc.notes")
     outside = notes.outside(parsed)
 
-    # Six of 219, and the first of them is W2's own sentence answered:
-    # *"nothing can check that 68 is the sharp fourth and not a typo for
-    # 67"*.  Section A is D lydian, whose fourth is 68; bar 3 of the
-    # melody is a **67**, and the lamp says so.  It is not a typo — bar 3
-    # is the IV chord and 67 is its root — which is exactly why this
-    # reports and never refuses.
-    assert len(outside) == 6, [(n.line, d) for n, d in outside]
+    # **Thirteen of 291, and it was six before the bass was played.**
+    # The first is W2's own sentence answered: *"nothing can check that
+    # 68 is the sharp fourth and not a typo for 67"*.  Section A is D
+    # lydian, whose fourth is 68; bar 3 of the melody is a **67**, and
+    # the lamp says so.
+    #
+    # It is not a typo, and the bass is now the proof: bar 3 is the IV,
+    # and `bass` plays a G under that melody G.  A lamp that refused
+    # would have refused the chord the section is built on — which is
+    # exactly why this reports and never refuses.
+    assert len(outside) == 13, [(n.line, d) for n, d in outside]
     first = outside[0][0]
     assert (first.section, first.bar, first.voice, first.key) == ("A", 3, "melody", 67)
     assert outside[0][1] == 5, "the natural fourth, in a mode whose fourth is sharp"
+    assert any(n.voice == "bass" and n.key % 12 == 7 for n, _ in outside), (
+        "the IV's own root is out of lydian, and that is the point of it")
     # And it loaded.  That is the other half of the assertion.
-    assert len(parsed.notes) == 219
+    assert len(parsed.notes) == 291
 
 
 def test_a_section_with_no_mode_says_nothing():
@@ -421,10 +428,9 @@ def test_the_include_line_is_blanked_and_the_lines_below_do_not_move():
     for index, line in enumerate(was):
         if index == at[0]:
             continue
+        voices = {"melody", "upper", "middle", "lower", "bass"}
         assert now[index] == notes._dots(
-            line, {"A": {"melody", "upper", "middle", "lower", "roots"},
-                   "B": {"melody", "upper", "middle", "lower", "roots"},
-                   "C": {"melody", "upper", "middle", "lower", "roots"}})
+            line, {"A": voices, "B": voices, "C": voices})
 
 
 def test_an_include_of_a_file_that_is_not_there_says_so():
@@ -580,7 +586,7 @@ def test_the_window_compiles_what_it_is_looking_at():
     edited = ARCNOTES.read_text().replace("bpm = 92", "bpm = 120")
     program = bench.program(edited)
     assert "bpm = 120" in program
-    assert notes.bound("C", "roots") in program
+    assert notes.bound("C", "bass") in program
 
 
 def test_the_editor_can_build_the_piece():

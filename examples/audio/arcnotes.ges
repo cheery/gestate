@@ -106,12 +106,29 @@ include "arc.notes"
 #: twenty-four bars.**  `arc.ges`'s own comment here reads *"aligned by
 #: nothing but their lengths"*; a section declares `bars 8`, so a voice
 #: with seven of them is a refusal and not a piece that is a bar out.
+#:
+#: **What the harmony does, which `arc.ges` says in twenty-four comments
+#: and this file has room for in one.**  Blues bones under a modal line:
+#:
+#:     A — D lydian, bright.  I (D) for two bars, the IV (G) at bar 3
+#:         under the melody's C#, back to I, then vi (B) and the V (A)
+#:         held across bars 7 and 8, leaning.
+#:     B — G locrian, brutal.  The bass sits on G and will not move for
+#:         seven bars; there is no perfect fifth over it to rest on.
+#:         Bar 16 is the hinge: A going to B — 5 to 6, not 5 to 1.
+#:     C — D phrygian, dark.  The same frame as A with the third a
+#:         semitone lower (bar 1 is `a3 d4 fis4` there and `a3 d4 f4`
+#:         here), the flat second under bars 19 and 22, and a perfect
+#:         cadence at the end: A with its C# to D.
+#:
+#: `python tools/bars.py examples/audio/arc.notes` says the same thing
+#: in numbers, and says it about what actually sounds.
 score : [: Void :]
 score = ((A.melody ++ B.melody ++ C.melody) >>= voices.song)
      || ((A.upper  ++ B.upper  ++ C.upper)  >>= voices.chord)
      || ((A.middle ++ B.middle ++ C.middle) >>= voices.chord)
      || ((A.lower  ++ B.lower  ++ C.lower)  >>= voices.chord)
-     || ((A.roots  ++ B.roots  ++ C.roots)  >>= voices.ground)
+     || ((A.bass   ++ B.bass   ++ C.bass)   >>= voices.ground)
 
 bpm : Int
 bpm = 92

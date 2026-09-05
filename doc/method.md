@@ -158,7 +158,7 @@ decline honestly:
 | [`manifesto.md`](../manifesto.md) | 377 | how an instrument fails, and the two standing rules |
 | [`board/README.md`](../board/README.md) | 637 | how a task is worked — written for sessions |
 | [`spec/`](../spec/) | ~17,000 | how each part is designed, and what it cost |
-| [`fixme.md`](../fixme.md) | 202 entries, 162 resolved | where the implementation disagrees with the specs |
+| [`fixme.md`](../fixme.md) | 203 entries, 163 resolved | where the implementation disagrees with the specs |
 | [`journal.md`](../journal.md) + `journal/` | the current month, plus one line per closed month | what happened, past tense |
 | [`doc/memory/`](memory/) | one fact per file | what a session that forgets everything carries across |
 | [`keeper.md`](../keeper.md) | 225 | standard work for the one person who keeps all of the above |
