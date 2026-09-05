@@ -255,7 +255,15 @@ EXAMPLES = ["sine.ges", "blip.ges", "drums.ges", "knob.ges", "fm.ges",
             # claims — the stop, the calm, the trill turned ornament,
             # the picardy landing — is what
             # `test_together_stops_calms_and_lands_major` asserts.
-            "together.ges"]
+            "together.ges",
+            # A blues in E in ABA rather than in choruses of one form,
+            # written to a brief: away to the subdominant and back, a
+            # deceptive cadence ending the middle, a perfect one ending
+            # the piece, and the last chorus in stop-time.  A piece, so
+            # no golden for the roster's standing reason; the three
+            # cadences and the holes are what
+            # `test_the_crossroads_lands_three_different_ways` asserts.
+            "crossroads.ges"]
 
 #: The ones with committed golden buffers — all of them, now.  `knob.ges`
 #: had none for as long as the interpreter and the engine disagreed about
@@ -1049,6 +1057,93 @@ def test_the_blues_writes_its_phrase_once():
     (a0, b0, _), (a1, b1, _) = call[0], call[1]
     assert (b0 - a0, b1 - a1) == (64, 32)
     assert a0 == 0 and a1 == b0 and b1 == BLUES_BEAT
+
+
+# ── `crossroads.ges` — three arrivals on the same two bars ──────────────────
+
+
+def test_the_crossroads_lands_three_different_ways():
+    """**The header's argument, asserted rather than admired.**
+
+    `examples/audio/crossroads.ges` is ABA, and it says the three
+    sections end on the *same dominant* and differ only in what comes
+    after it.  That is a claim about pitch classes in three bars, and a
+    golden of the samples would check none of it.
+
+    **Bar 8, open.**  The chord is home and the melody is not: the lead
+    holds D, the flat seventh, over an E7.
+
+    **Bar 16, deceptive.**  The lead lands on E — on the downbeat, held
+    the whole bar — and the band lands on C♯ minor under it.  So the
+    melody note is the one bar 24 also ends on, and the difference is
+    entirely underneath it.  The bass root moves *down* a minor third
+    rather than up a sixth, which is the header's reason for spelling
+    C♯ below the tonic.
+
+    **Bar 24, perfect.**  B7 to E, the bass leaping the fifth down into
+    the root, and the last chord a plain major triad — no D anywhere in
+    it, in a piece whose every other chord has a flat seventh.  That
+    last one is asserted across *all* the bar's banks, because a
+    seventh left in by the comp would undo it silently.
+
+    **And the stop-time is holes.**  Bars 17–21 have exactly one attack
+    per bank on the downbeat and nothing after it — for the bass, the
+    comp and all three drums at once, which is what makes it a hole
+    rather than a thin bar — while the lead plays on through.
+    """
+    from gestate.audioscore import perform_voices
+
+    bar = BLUES_BAR
+    bpm, events = perform_voices((AUDIO_DIR / "crossroads.ges").read_text(),
+                                 "", 4000, 0)
+    assert bpm == 96
+    assert max(e[1] for e in events) == 24 * bar        # three eights
+
+    def keys(bank, n):
+        """The key numbers bank `bank` attacks during bar `n` (1-based)."""
+        return sorted(k for e in events if e[2] == bank
+                      and (n - 1) * bar <= e[0] < n * bar
+                      for k, v in e[3])
+
+    def classes(n):
+        return {k % 12 for b in ("bass", "comp", "lead") for k in keys(b, n)}
+
+    # Bar 8: one lead attack, D held for two beats, over the tonic's
+    # own root — the chord is home and the note is not.
+    assert keys("lead", 8) == [74]
+    assert keys("bass", 8)[0] % 12 == 4                 # still E
+
+    # Bar 16: one lead note, E, and the band on C♯ minor — C♯ E G♯ and
+    # nothing else, with the dominant's B gone from every part.
+    assert keys("lead", 16) == [76]
+    assert keys("bass", 16) == [37]
+    assert keys("comp", 16) == [49, 52, 56]
+    assert classes(16) == {1, 4, 8}
+
+    # Bar 24: the same melody note an octave down, and E major under it.
+    assert keys("lead", 24) == [64]
+    assert keys("bass", 24) == [40]
+    assert keys("comp", 24) == [52, 56, 59]
+    assert classes(24) == {4, 8, 11}                    # no D: no seventh
+
+    # ...and the bass leapt a fifth *down* into it: bar 23 is the only
+    # dominant bar in the piece that *ends* on its own root, so the last
+    # thing under the melody before home is B, and the next is E.
+    b7 = [e for e in events if e[2] == "bass" and 22 * bar <= e[0] < 23 * bar]
+    assert max(b7, key=lambda e: e[0])[3] == ((47, 96),)
+
+    # Bars 17-21: five holes.  Every bank but the lead speaks once, on
+    # the one — the comp's dyad is two notes and still one *moment* —
+    # and says nothing for the remaining three beats.
+    for n in range(17, 22):
+        for bank in ("bass", "comp", "kick", "snare", "ride"):
+            assert sorted({e[0] - (n - 1) * bar for e in events
+                           if e[2] == bank
+                           and (n - 1) * bar <= e[0] < n * bar}) == [0], (n, bank)
+        assert len(keys("lead", n)) > 3, n
+
+    # And bar 22 is the band walking back in, still inside the chorus.
+    assert len(keys("bass", 22)) == 3 and len(keys("ride", 22)) == 8
 
 
 # ── `perjantai.ges` — a Friday blues that goes quiet, then stops ─────────────

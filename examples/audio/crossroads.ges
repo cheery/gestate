@@ -1,0 +1,415 @@
+# crossroads.ges — a blues in E that leaves and comes back.
+#
+#   python -m gestate.audioperform examples/audio/crossroads.ges --seconds 60 -o crossroads.wav
+#   python -m gestate.audioeditor examples/audio/crossroads.ges
+#   python -m gestate.audioperform examples/audio/crossroads.ges --midi --midi-bank lead
+#
+# `blues.ges` is twelve bars in A, AAB, three times round: the form is a
+# loop and the point is that it comes back unchanged.  This is the other
+# shape.  Three choruses of eight bars, **ABA** — home, away, home — and
+# the three arrivals are three different endings written on the same two
+# bars.  What the piece is *about* is those two bars.
+#
+# **A cadence is two chords and a landing, and all three landings here
+# use the same dominant.**  Bar seven is B7 every time.  Bar eight is:
+#
+#   * end of A — E7 with the line hanging on D, the flat seventh.  The
+#     chord is home and the melody is not, so nothing has closed and the
+#     B section can start anywhere.
+#   * end of B — the line lands on E, correctly, on the beat, and the
+#     band lands on **C♯ minor** underneath it.  The note is right and
+#     the floor moved.  That is the deceptive cadence, and it is worth
+#     noticing that the deception is *cheap*: one root moved a minor
+#     third, and the melody did not have to know.
+#   * end of A′ — B7 to E, bass leaping the fifth down into the root,
+#     melody stepping F♯ to E, and the chord a **plain major triad**.
+#     Every other chord in this piece has a flat seventh in it.  The one
+#     that does not is the last one, which is most of why it sounds like
+#     a door closing.
+#
+# **The B section goes to the subdominant and comes back inside itself.**
+# Four bars of A7, two of E7, then the cadence — so the return home has
+# already happened by bar five and the deceptive ending takes it away
+# again.  Away, back, away.  The third chorus is then the only time in
+# the piece that home is allowed to stay home.
+#
+# **Stop-time is why the drummer plays notes here.**  In `blues.ges` the
+# kit is arithmetic on the renderer's own clock — envelopes that are
+# functions of `beat` — and that drummer is very good and cannot stop.
+# Stop-time is a hole punched in time: the whole band hits beat one and
+# vanishes for three beats while the lead plays into the gap.  A clock
+# has no way to be told about a hole, so the kit here is a score like
+# everything else, three banks of one line each, and the third chorus
+# says the silence in the same place it says the notes.
+
+Blue := Blue Int Int                       # key number, velocity
+
+#: Play along on any bank — the lead is the one to try.
+instance FromMIDI Blue where
+    noteOn c n v = Just (Blue n v)
+
+# ── The band ─────────────────────────────────────────────────────────────
+
+voices bass 2 bassVoice : Sig Float
+
+voices comp 6 compVoice : Sig Float
+
+voices lead 3 leadVoice : Sig Float
+
+voices kick 1 kickVoice : Sig Float
+
+voices snare 1 snareVoice : Sig Float
+
+voices ride 2 rideVoice : Sig Float
+
+hzOf : Blue -> Float
+hzOf b = case b of
+    Blue k v -> keyHz k
+
+velOf : Blue -> Float
+velOf b = case b of
+    Blue k v -> toFloat v / 127.0
+
+#: The bass: round, short, mostly fundamental — a walking line wants to
+#: be heard as *pitch* rather than as attack.
+bassVoice : Sig Gate -> Sig Blue -> Sig Float
+bassVoice g s = (0.9 * sine (!hzOf s) + 0.22 * triangle (!hzOf s)) * (!velOf s) * adsr (Adsr 0.008 0.4 0.3 0.09) g
+
+#: The comp: a driven saw under a fixed lowpass.  Short, but not *dead*
+#: short — the sustain is 0.2 rather than zero, because two of the eight
+#: bars ask this bank to hold a chord for a whole bar and a boogie
+#: envelope would have swallowed both cadences.
+compVoice : Sig Gate -> Sig Blue -> Sig Float
+compVoice g s = drive 2.2 (lowpassSvf 2400.0 0.4 (saw (!hzOf s))) * 0.34 * (!velOf s) * adsr (Adsr 0.004 0.18 0.2 0.14) g
+
+#: The lead: a filter that opens with the note and a slow vibrato, so a
+#: held note keeps moving.  Blues is mostly long notes and space.
+leadVoice : Sig Gate -> Sig Blue -> Sig Float
+leadVoice g s = lowpassSvf (600.0 + 2600.0 * adsr (Adsr 0.03 0.45 0.5 0.25) g) 0.42 (saw ((!hzOf s) * (1.0 + 0.007 * sine 5.4))) * 0.55 * (!velOf s) * adsr (Adsr 0.02 0.3 0.65 0.25) g
+
+# ── The kit, as three banks ──────────────────────────────────────────────
+#
+# `Adsr` takes plain `Float`s, so a decay cannot vary per note and one
+# drum bank cannot be three drums.  Three banks then — which costs three
+# lines and buys the thing the piece needs, a kit that can be written
+# not to play.  The key numbers are General MIDI's (36 kick, 38 snare,
+# 51 ride), so an exported take reads as a kit and not as three bass
+# notes; the voices themselves only read the velocity.
+
+#: A swept sine, most of it gone in a tenth of a second.
+kickSweep : Sig Gate -> Sig Float
+kickSweep g = adsr (Adsr 0.002 0.09 0.0 0.02) g
+
+kickVoice : Sig Gate -> Sig Blue -> Sig Float
+kickVoice g s = sine (46.0 + 130.0 * kickSweep g) * kickSweep g * (!velOf s)
+
+#: Noise for the wires, a triangle for the head.
+snareVoice : Sig Gate -> Sig Blue -> Sig Float
+snareVoice g s = (0.7 * highpassSvf 1200.0 0.3 (white 5) + 0.32 * triangle 195.0) * adsr (Adsr 0.002 0.13 0.0 0.05) g * (!velOf s)
+
+#: Two voices, because the swung pair overlaps itself.
+rideVoice : Sig Gate -> Sig Blue -> Sig Float
+rideVoice g s = highpassSvf 6500.0 0.25 (white 7) * adsr (Adsr 0.002 0.25 0.0 0.08) g * (!velOf s)
+
+# ── The mix ──────────────────────────────────────────────────────────────
+#
+# `brickwall` and not `limit`: `limit` overshoots on transients, and an
+# over-range sample is not loud, it is wrong.  The gains are set so the
+# stop-time accent — kick, snare, ride, bass and comp all on the same
+# sample, once a bar, which is the loudest event in the piece — has room
+# under the ceiling without the limiter doing the mixing.
+
+sound : Sig Float
+sound = brickwall 0.92 (0.38 * bass + 0.22 * comp + 0.36 * lead + 0.13 * reverb 0.3 0.014 lead
+                        + 0.34 * kick + 0.24 * snare + 0.2 * ride)
+
+# ── Swing, by arithmetic ─────────────────────────────────────────────────
+#
+# A swung pair is two thirds of the beat and then one third: stretch the
+# pair to three beats, give the first note two of them, shrink the whole
+# thing back by three.  Nothing in the renderer knows what swing is.
+
+swung : [: a :] -> [: a :] -> [: a :]
+swung a b = ((a |* 2) ++ b) |/ 3
+
+#: Repetition is a function of a score, not a length to keep in step
+#: with anything.  The kit is written one bar at a time and stretched
+#: over the chorus with these.
+four : [: a :] -> [: a :]
+four s = s ++ s ++ s ++ s
+
+eight : [: a :] -> [: a :]
+eight s = four s ++ four s
+
+# ── Writing notes ────────────────────────────────────────────────────────
+
+#: One beat, on the bass.
+bn : Int -> [: Blue :]
+bn k = '(Blue k 96)
+
+#: One beat, in the comp.
+cn : Int -> [: Blue :]
+cn k = '(Blue k 78)
+
+#: One beat, on the lead.
+ln : Int -> [: Blue :]
+ln k = '(Blue k 92)
+
+#: A swung pair on the lead — the eighth notes of the whole piece.
+sw : Int -> Int -> [: Blue :]
+sw a b = swung (ln a) (ln b)
+
+#: Two beats of nothing, which a blues needs as much as it needs notes.
+rest2 : [: Blue :]
+rest2 = r |* 2
+
+# ── The changes ──────────────────────────────────────────────────────────
+#
+# E, its subdominant A, its dominant B — and C♯, which is none of those
+# and is the whole point of bar sixteen.  It is written a minor third
+# *below* the tonic rather than above it, so the deception is a floor
+# dropping out and not a chord brightening.
+
+chordE : Int
+chordE = 40                                # E2
+
+chordA : Int
+chordA = 45                                # A2
+
+chordB : Int
+chordB = 47                                # B2
+
+chordCs : Int
+chordCs = 37                               # C♯2 — vi, and lower than home
+
+# ── The bass ─────────────────────────────────────────────────────────────
+#
+# One, three, five, six — the oldest walk there is — and the bar after
+# it comes back down the same four notes.  Alternating is what keeps
+# eight bars of quarter notes from turning into a scale exercise.
+
+walkUp : Int -> [: Blue :]
+walkUp k = bn k ++ bn (k + 4) ++ bn (k + 7) ++ bn (k + 9)
+
+walkDown : Int -> [: Blue :]
+walkDown k = bn (k + 9) ++ bn (k + 7) ++ bn (k + 4) ++ bn k
+
+#: The stop-time bar: the root on one, and then the band is not there.
+stopBass : [: Blue :]
+stopBass = bn chordE ++ r |* 3
+
+#: Bar six of the last chorus, where everybody walks back in.
+returnBass : [: Blue :]
+returnBass = bn chordE ++ r ++ bn (chordE + 7) ++ bn (chordE + 9)
+
+#: Bar seven of the last chorus: B7 that begins *and ends* on its root,
+#: so the last thing the bass does before home is leap a fifth down into
+#: it.  The other two sevens walk; this one stands still and jumps.
+dominantBass : [: Blue :]
+dominantBass = bn chordB ++ bn (chordB + 7) ++ bn (chordB + 4) ++ bn chordB
+
+bassA : [: Blue :]
+bassA = walkUp chordE ++ walkDown chordE ++ walkUp chordE ++ walkDown chordE
+     ++ walkUp chordE ++ walkDown chordE ++ walkUp chordB ++ walkDown chordE
+
+bassB : [: Blue :]
+bassB = walkUp chordA ++ walkDown chordA ++ walkUp chordA ++ walkDown chordA
+     ++ walkUp chordE ++ walkDown chordE ++ walkUp chordB ++ bn chordCs |* 4
+
+bassStop : [: Blue :]
+bassStop = four stopBass ++ stopBass ++ returnBass ++ dominantBass ++ bn chordE |* 4
+
+# ── The comp ─────────────────────────────────────────────────────────────
+#
+# Two notes at once — the root and one moving voice above it — walking
+# fifth, sixth, flat seventh, sixth across the bar.  It is the sound
+# everybody means by "a blues", and it is four dyads and a `||`.
+
+dyad : Int -> Int -> [: Blue :]
+dyad k x = cn (k + 12) || cn (k + 12 + x)
+
+boogie : Int -> [: Blue :]
+boogie k = dyad k 7 ++ dyad k 9 ++ dyad k 10 ++ dyad k 9
+
+#: A triad held for the bar.  Two of these exist and they are the two
+#: endings that mean something: minor for the one that lies, major for
+#: the one that closes.  Neither has a seventh in it, which after
+#: twenty-three bars of boogie is itself the announcement.
+minorHold : Int -> [: Blue :]
+minorHold k = (cn (k + 12) || cn (k + 15) || cn (k + 19)) |* 4
+
+majorHold : Int -> [: Blue :]
+majorHold k = (cn (k + 12) || cn (k + 16) || cn (k + 19)) |* 4
+
+stopComp : [: Blue :]
+stopComp = dyad chordE 7 ++ r |* 3
+
+returnComp : [: Blue :]
+returnComp = dyad chordE 7 ++ r ++ dyad chordE 9 ++ dyad chordE 10
+
+compA : [: Blue :]
+compA = boogie chordE ++ boogie chordE ++ boogie chordE ++ boogie chordE
+     ++ boogie chordE ++ boogie chordE ++ boogie chordB ++ boogie chordE
+
+compB : [: Blue :]
+compB = boogie chordA ++ boogie chordA ++ boogie chordA ++ boogie chordA
+     ++ boogie chordE ++ boogie chordE ++ boogie chordB ++ minorHold chordCs
+
+compStop : [: Blue :]
+compStop = four stopComp ++ stopComp ++ returnComp ++ boogie chordB ++ majorHold chordE
+
+# ── The lead ─────────────────────────────────────────────────────────────
+#
+# The blues scale on E: E G A B♭ B D, and the B♭ is the whole reason the
+# scale has a name.  Six bars of line and room, then two bars of cadence
+# — and the six bars are different in each chorus while the two bars are
+# the argument, so they are written apart from each other below.
+
+leadA : [: Blue :]
+leadA = sw 64 67 ++ sw 69 70 ++ ln 71 |* 2
+     ++ sw 71 69 ++ ln 67 ++ ln 64 |* 2
+     ++ r |* 4
+     ++ rest2 ++ sw 62 64 ++ ln 67
+     ++ sw 71 74 ++ ln 76 |* 2 ++ ln 74
+     ++ sw 74 71 ++ ln 70 ++ ln 69 |* 2
+     ++ openCadence
+
+#: The B section sits an octave's worth higher and keeps moving — the
+#: subdominant is the loud part of a blues and it should not sound like
+#: the same man in a different chair.
+leadB : [: Blue :]
+leadB = sw 69 72 ++ sw 74 75 ++ ln 76 |* 2
+     ++ sw 76 79 ++ ln 81 |* 2 ++ ln 79
+     ++ sw 79 76 ++ ln 75 ++ ln 74 |* 2
+     ++ rest2 ++ sw 72 74 ++ ln 76
+     ++ sw 76 74 ++ ln 71 |* 2 ++ ln 74
+     ++ sw 74 71 ++ ln 70 ++ ln 69 |* 2
+     ++ deceptiveCadence
+
+#: The stop-time chorus, where the lead is the only thing in the room
+#: for three beats out of every four.  So it is the busiest line in the
+#: piece: the holes are what it is playing against.
+leadStop : [: Blue :]
+leadStop = sw 76 79 ++ sw 81 79 ++ ln 76 |* 2
+        ++ sw 76 74 ++ sw 71 74 ++ ln 76 |* 2
+        ++ ln 79 ++ sw 79 76 ++ sw 74 71 ++ ln 70
+        ++ ln 69 |* 2 ++ sw 67 69 ++ ln 71
+        ++ sw 74 76 ++ ln 79 |* 2 ++ ln 76
+        ++ sw 76 74 ++ sw 71 70 ++ ln 69 |* 2
+        ++ perfectCadence
+
+# ── The three endings ────────────────────────────────────────────────────
+
+#: **Open.**  Bar seven climbs, bar eight sits on D — the flat seventh
+#: of the tonic chord.  A note that belongs to the chord and refuses to
+#: be the end of anything.
+openCadence : [: Blue :]
+openCadence = sw 71 74 ++ ln 76 |* 2 ++ ln 74
+           ++ ln 74 |* 2 ++ r |* 2
+
+#: **Deceptive.**  Bar seven ends on D♯, the third of B7 and the leading
+#: note of E, which is the loudest possible promise this music can make.
+#: Bar eight keeps the promise in the melody — E, on the downbeat, held
+#: the whole bar — and breaks it everywhere else.  E is also the third
+#: of C♯ minor, so the line is not even dissonant against what happened;
+#: it has simply been reinterpreted, which is worse.
+deceptiveCadence : [: Blue :]
+deceptiveCadence = sw 71 74 ++ sw 75 74 ++ ln 75 |* 2
+                ++ ln 76 |* 4
+
+#: **Perfect.**  Bar seven falls the whole way down the scale — B, B♭,
+#: A, G, F♯ — and bar eight is E, alone, for four beats, one step below
+#: where the run stopped.  The bass leaps down its fifth underneath at
+#: the same moment.  Nothing is left over.
+perfectCadence : [: Blue :]
+perfectCadence = sw 71 70 ++ ln 69 ++ ln 67 ++ ln 66
+              ++ ln 64 |* 4
+
+# ── The drummer ──────────────────────────────────────────────────────────
+
+kk : [: Blue :]
+kk = '(Blue 36 112)
+
+sn : [: Blue :]
+sn = '(Blue 38 100)
+
+rc : Int -> [: Blue :]
+rc v = '(Blue 51 v)
+
+#: Kick on one and three.
+kickBar : [: Blue :]
+kickBar = kk ++ r ++ kk ++ r
+
+#: Snare on two and four — the backbeat, and in a blues it is the
+#: loudest thing in the room after the singer.
+snareBar : [: Blue :]
+snareBar = r ++ sn ++ r ++ sn
+
+#: The ride, swung: one hit on the beat and a quieter one two thirds of
+#: the way through it.  Same arithmetic as every eighth note above.
+rideBeat : [: Blue :]
+rideBeat = swung (rc 80) (rc 52)
+
+rideBar : [: Blue :]
+rideBar = four rideBeat
+
+#: Stop-time: the accent, and then nothing.  Three banks saying the same
+#: silence at the same time is what makes it a hole rather than a thin
+#: bar.
+stopKick : [: Blue :]
+stopKick = kk ++ r |* 3
+
+stopSnare : [: Blue :]
+stopSnare = sn ++ r |* 3
+
+stopRide : [: Blue :]
+stopRide = rc 100 ++ r |* 3
+
+#: Five bars of accent, then the kit walks back in for bar six and plays
+#: the cadence — and bar eight is one hit and out, so the last chord is
+#: left to ring with nobody keeping time over it.
+kickStop : [: Blue :]
+kickStop = four stopKick ++ stopKick ++ kickBar ++ kickBar ++ stopKick
+
+snareStop : [: Blue :]
+snareStop = four stopSnare ++ stopSnare ++ snareBar ++ snareBar ++ stopSnare
+
+rideStop : [: Blue :]
+rideStop = four stopRide ++ stopRide ++ rideBar ++ rideBar ++ stopRide
+
+# ── The form ─────────────────────────────────────────────────────────────
+#
+# `section` is a zero-width mark with the music after it, so naming the
+# three choruses costs the algebra nothing and buys a transport that can
+# be told "B" — the form of the piece is a set of places in it, not a
+# comment about it.
+
+chorusA : [: Void :]
+chorusA = section "A" ((bassA >>= voices.bass)
+                    || (compA >>= voices.comp)
+                    || (leadA >>= voices.lead)
+                    || (eight kickBar >>= voices.kick)
+                    || (eight snareBar >>= voices.snare)
+                    || (eight rideBar >>= voices.ride))
+
+chorusB : [: Void :]
+chorusB = section "B" ((bassB >>= voices.bass)
+                    || (compB >>= voices.comp)
+                    || (leadB >>= voices.lead)
+                    || (eight kickBar >>= voices.kick)
+                    || (eight snareBar >>= voices.snare)
+                    || (eight rideBar >>= voices.ride))
+
+chorusStop : [: Void :]
+chorusStop = section "A'" ((bassStop >>= voices.bass)
+                        || (compStop >>= voices.comp)
+                        || (leadStop >>= voices.lead)
+                        || (kickStop >>= voices.kick)
+                        || (snareStop >>= voices.snare)
+                        || (rideStop >>= voices.ride))
+
+score : [: Void :]
+score = chorusA ++ chorusB ++ chorusStop
+
+bpm : Int
+bpm = 96
