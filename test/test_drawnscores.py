@@ -1138,10 +1138,13 @@ def test_a_voice_of_an_included_section_draws_and_is_wholly_editable():
     asks = [(i + 1, m.group(1))
             for i, line in enumerate(source.splitlines())
             for m in [re.match(r"^notes\s+(\S.*)$", line)] if m]
-    assert [a for _, a in asks] == [notes.bound("A", "melody"),
-                                    notes.bound("A", "bass")], asks
+    # The single-voice asks are what this test is about; the stacked one
+    # beside them is `test_a_whole_section_stacks_on_one_roll…`.
+    single = [a for a in asks if "||" not in a[1]]
+    assert [a for _, a in single] == [notes.bound("A", "melody"),
+                                      notes.bound("A", "bass")], asks
 
-    for (_, ask), roll in zip(asks, build_rolls(source, asks, 22050, 0)):
+    for (_, ask), roll in zip(single, build_rolls(source, single, 22050, 0)):
         assert hasattr(roll, "events"), f"{ask} did not draw: {roll}"
         assert roll.events, f"{ask} drew nothing"
         written = 0
@@ -1290,3 +1293,40 @@ def test_the_generated_block_is_always_past_the_author_s_last_line():
         roll, _ = _first_roll()
         line, _c, _w, _v = pitch_atom(roll, 0)
         assert line > len(ARCNOTES.read_text().splitlines())
+
+
+def test_a_whole_section_stacks_on_one_roll_with_every_note_placeable():
+    """**The thing only a `.notes` roll can draw** — and rung 2.
+
+    A `.ges` box draws an expression and cannot know that `melody` and
+    `bass` are the same eight bars; a section declares them.  So W5 and
+    W8 stop being merely refusable and become visible.
+
+    It could not be drawn until `scorebox.MAX_LEAVES` was raised on
+    2026-09-05: the cap was 48 for a reason that had stopped being true,
+    and a stacked section drew with 244 of its notes pointing at a line
+    that was not theirs.  This asserts the count rather than the fix.
+    """
+    import re
+
+    from gestate.scorebox import build_rolls, pitch_atom
+
+    source, origins = notes.expanded(ARCNOTES.read_text(), ARCNOTES.parent)
+    asks = [(i + 1, m.group(1))
+            for i, line in enumerate(source.splitlines())
+            for m in [re.match(r"^notes\s+(\S.*)$", line)] if m]
+    stacked = [a for a in asks if "||" in a[1]]
+    assert len(stacked) == 1, "arcnotes.ges should carry one stacked ask"
+
+    roll = build_rolls(source, stacked, 22050, 0)[0]
+    assert hasattr(roll, "events"), roll
+    voices = set()
+    for index in range(len(roll.events)):
+        line, _col, _width, _value = pitch_atom(roll, index)   # never refuses
+        where = origins.get(line)
+        assert where is not None, f"note {index} resolves to no file"
+        voices.add(NOTES.read_text().splitlines()[where[1] - 1].split(
+            "voice ")[1].split()[0])
+    assert len(roll.events) > 48, (
+        "the point is that it is past the old cap; this piece got smaller")
+    assert voices == {"melody", "upper", "middle", "lower", "bass"}, voices

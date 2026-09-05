@@ -48,11 +48,31 @@ FUEL = 200_000
 #: piece in the tree, and the cut that makes an endless one welcome.
 WINDOW_BEATS = 256
 
-#: Leaves beyond this are collapsed into the last one: a descent that
-#: found a hundred spans is drawing a picture nobody can click — and
-#: each one is a nested `Over` in the generated picture, which is a
-#: parenthesis the parser has to hold open.
-MAX_LEAVES = 48
+#: Leaves beyond this are collapsed into the last one, so a runaway
+#: descent cannot allocate for ever.  **A bound on the walk, not on the
+#: picture** — and it was 48 for a reason that had already stopped being
+#: true.
+#:
+#: It said *"each one is a nested `Over` in the generated picture, which
+#: is a parenthesis the parser has to hold open"*, which described the
+#: design `page_program` replaced: the notes travel as a **list** now
+#: (see its own comment, *"chopin's hundred and forty overflowed the
+#: parser"*), and a leaf reaches the picture as an integer in that list
+#: — `tagAll k` — not as a wrapper.  The cap's comment was never
+#: updated with the change it was the reason for.
+#:
+#: Measured 2026-09-05 on the whole of `arc.notes`, five voices on one
+#: roll, before touching anything:
+#:
+#:     cap  48   291 notes,  48 leaves,  47 placeable, picture 18963 chars, 5.0s
+#:     cap 512   291 notes, 291 leaves, 291 placeable, picture 18963 chars, 4.4s
+#:
+#: **The picture is byte-identical**, and the descent is no slower.  What
+#: 48 cost was provenance: 244 of 291 notes drew, jumped to a line that
+#: was not theirs, and could not be dragged.  The 48 that really shapes
+#: the picture is `MAX_HANDS`, which is nested `Over`s and is about drag
+#: columns rather than notes.
+MAX_LEAVES = 512
 
 TICKS_PER_BEAT = 96
 

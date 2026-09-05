@@ -729,12 +729,32 @@ checked, not assumed.  291 origins for 291 notes, and none for the
 were written by nobody and answering for them would be inventing a
 provenance.
 
-**2 — a strip at the include line, not a roll.**  One row per section:
-`A  D lydian  8 bars  melody upper middle lower bass`.  A box cannot
-grow to fit a whole file — `spec/scorebox.md`: *an accordion that grows
-under the hands would move the text being edited* — and an `include`
-views a file where `notes <expr>` views a phrase.  So the line gets a
-table of contents and the document goes elsewhere.  Read-only.
+**2 — the region budget.**  ***Built 2026-09-05, and it was not the rung
+that was specified.***  The plan here was a strip at the include line, a
+table of contents for a box that cannot grow.  Typing rung 0's ask
+showed that was the wrong work twice over: **a section stacks today
+without any code** — `notes (A.melody || A.upper || …)`, because the ask
+takes an expression — and what actually stopped it was
+`scorebox.MAX_LEAVES = 48`.
+
+Its reason had stopped being true.  It said each leaf was *"a nested
+`Over` in the generated picture, which is a parenthesis the parser has
+to hold open"*, describing the design `page_program` replaced: notes
+travel as a **list** now, and a leaf reaches the picture as an integer
+in it.  Measured on the whole of `arc.notes`, five voices on one roll:
+
+    cap  48   291 notes,  48 leaves,  47 placeable, picture 18963 chars, 5.0s
+    cap 512   291 notes, 291 leaves, 291 placeable, picture 18963 chars, 4.4s
+
+**Byte-identical picture, no slower.**  What 48 cost was provenance —
+244 notes that drew, jumped to a line that was not theirs, and could not
+be dragged, which is `pitch_atom`'s own failure shape in a new place.
+`MAX_HANDS` stays 48 and should: those are nested `Over`s and are about
+drag *columns*, not notes.
+
+*And a strip is no longer worth building.*  The `notes` expression says
+what a section holds, and the Read hook gives a session the whole file
+already.
 
 **3 — the roll names the right file.**  A click on a note jumps to
 `arc.notes:47` rather than to a generated line nobody wrote.  Needs 1;

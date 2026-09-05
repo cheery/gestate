@@ -114,6 +114,18 @@ include "arc.notes"
 notes A.melody
 notes A.bass
 
+#: **And the whole section on one grid**, which is the thing only a
+#: `.notes` roll can draw: the `.ges` box draws an expression and cannot
+#: know that `melody` and `bass` are the same eight bars, where a section
+#: declares them.  This is W5 and W8 made visible instead of merely
+#: refusable.
+#:
+#: It could not be drawn until 2026-09-05: `scorebox.MAX_LEAVES` capped
+#: provenance at 48 notes for a reason that had stopped being true, so a
+#: stacked section drew and 244 of its notes pointed at a line that was
+#: not theirs.
+notes (A.melody || A.upper || A.middle || A.lower || A.bass)
+
 #: **Five lines, and the file they come from knows they are the same
 #: twenty-four bars.**  `arc.ges`'s own comment here reads *"aligned by
 #: nothing but their lengths"*; a section declares `bars 8`, so a voice
