@@ -413,8 +413,22 @@ def heard_note(samples, rate: int, among=range(36, 96)) -> int | None:
     return best
 
 
+#: **Where a small speaker stops.**  A laptop, a phone and most earbuds
+#: produce almost nothing below this; the number is the low end of the
+#: band they are usually specified to, and it is deliberately generous —
+#: a piece that clears it here may still be thin on the actual hardware.
+#:
+#: Measured 2026-09-05 on `arc.ges`, whose ground bank puts every note
+#: between 73 and 185 Hz through a 320 Hz lowpass: **17.7 dB down by
+#: this band and 30 dB down by the next.**  Henri could not hear his own
+#: bass through four passes of rewriting, and no instrument here said
+#: why — the peak was fine, the RMS was fine, and both are deaf to
+#: *where* the energy sits.
+SMALL_SPEAKER_HZ = 160.0
+
+
 class _Meter:
-    """Peak and per-stretch RMS, fed as the render streams past.
+    """Peak, per-stretch RMS, and how much of it a small speaker can play.
 
     The ears a CI has (`spec/firstpiece.md`): every author of a piece
     rebuilt this same throwaway analyzer to trust a mix — undertow's
@@ -425,7 +439,8 @@ class _Meter:
     hearing about.
     """
 
-    def __init__(self, channels: int, stretch: int, label: str):
+    def __init__(self, channels: int, stretch: int, label: str,
+                 rate: int = 22050):
         self.channels = channels
         self.stretch = stretch          # frames per stretch
         self.label = label              # "bar" or "second"
@@ -433,19 +448,41 @@ class _Meter:
         self.rms: list = []
         self._sq = 0.0
         self._n = 0                     # frames into the current stretch
+        #: **Two one-poles cascaded, not a transform.**  The render
+        #: already walks every sample in Python, so a per-sample FFT or
+        #: a bank of Goertzels would cost more than the render; two
+        #: multiply-adds give a 12 dB/octave split, which is enough to
+        #: answer *is the energy under the speaker* and not enough to
+        #: answer *what is the spectrum* — and the second question is
+        #: not the one that cost an hour.
+        import math
+
+        self._k = 1.0 - math.exp(-2.0 * math.pi * SMALL_SPEAKER_HZ / rate)
+        self._a = self._b = 0.0
+        self._low_sq = 0.0
+        self._all_sq = 0.0
 
     def feed(self, doubles) -> None:
         ch = self.channels
+        k, a, b = self._k, self._a, self._b
+        low = self._low_sq
         for i in range(0, len(doubles), ch):
+            frame = 0.0
             for j in range(i, i + ch):
                 x = doubles[j]
-                a = x if x >= 0.0 else -x
-                if a > self.peak:
-                    self.peak = a
+                mag = x if x >= 0.0 else -x
+                if mag > self.peak:
+                    self.peak = mag
                 self._sq += x * x
+                frame += x
+            a += k * (frame - a)        # the low half, 12 dB/octave
+            b += k * (a - b)
+            low += b * b
+            self._all_sq += frame * frame
             self._n += 1
             if self._n == self.stretch:
                 self._cut()
+        self._a, self._b, self._low_sq = a, b, low
 
     def _cut(self) -> None:
         if self._n:
@@ -457,8 +494,56 @@ class _Meter:
     def say(self) -> None:
         self._cut()
         print(f"report: peak {self.peak:.3f}")
+        print(self.low_line())
         for i, v in enumerate(self.rms, 1):
             print(f"{self.label} {i:3}: rms {v:.3f}")
+
+    #: Above this share the mix is mostly in a band a laptop cannot
+    #: play, and the line says so rather than leaving a number to be
+    #: read.
+    #:
+    #: **Measured across the tree rather than chosen**, because a
+    #: threshold calibrated on the two files that raised the question is
+    #: a threshold that answers them and nothing else.  Ten pieces,
+    #: 2026-09-05, first ten seconds each:
+    #:
+    #:     together 14   arc 20   arcnotes 23   blues 24   drums 30
+    #:     pachelbel 31  lantern 32  crossroads 32  quartet 44
+    #:     hollow 51                    …and arc's ground bank alone 61
+    #:
+    #: So this sits above every piece here and still fires on the stem
+    #: that started it — `manifesto.md` §"The three ways an instrument
+    #: fails", the second one: an oracle that has only ever passed is a
+    #: claim, and this one has been made to light.  **The margin is nine
+    #: points**, and `hollow.ges` is the piece that would trip first.
+    #:
+    #: And the scale is not linear in what an ear loses: a pure 60 Hz
+    #: tone reads **77%** through this split (see `low_line`), so 61% is
+    #: already most of the way to *all of it*.
+    LOUD_BELOW = 0.60
+
+    def low_line(self) -> str:
+        """How much of the energy sits under a small speaker's floor.
+
+        **A floor and not a measurement of the spectrum**, and here is
+        the number that says how much of a floor: **a pure 60 Hz tone —
+        entirely under a laptop's reach — reads 77%, not 100%.**  The
+        split is two one-poles, so content near the corner is only
+        half-counted.  Read the share as *at least this much*, and read
+        anything near 77% as *essentially all of it*.
+
+        Found by a test asserting 80% and getting 0.769, which is the
+        cheapest way this could have been learned.
+        """
+        if self._all_sq <= 0.0:
+            return f"report: below {SMALL_SPEAKER_HZ:.0f} Hz — no signal"
+        share = self._low_sq / self._all_sq
+        said = (f"report: below {SMALL_SPEAKER_HZ:.0f} Hz — "
+                f"{share * 100:.0f}% of the energy")
+        if share >= self.LOUD_BELOW:
+            said += ("; a laptop, a phone and most earbuds reproduce "
+                     "little of that")
+        return said
 
 
 def _stretch_of(source: str, rate: int) -> tuple:
@@ -859,7 +944,7 @@ def main(argv=None, tell=None) -> int:
             if args.report:
                 stretch, label = _stretch_of(synth + "\n" + piece,
                                              args.rate)
-                meter = _Meter(graph.channels(), stretch, label)
+                meter = _Meter(graph.channels(), stretch, label, args.rate)
             n = render_wav(graph, args.output, seconds or 2.0,
                            args.rate, args.block, control, meter=meter)
             getattr(control, "finish", lambda: None)()

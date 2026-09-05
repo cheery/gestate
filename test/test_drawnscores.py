@@ -980,3 +980,72 @@ def test_the_hook_is_not_installed_by_a_session():
     assert out.returncode == 0
     assert '"matcher": "Read"' in out.stdout
     assert "bars.py --hook" in out.stdout
+
+
+# ── Where the energy sits — the instrument that was missing ─────────────────
+
+
+def test_a_render_says_how_much_a_small_speaker_cannot_play():
+    """**Henri could not hear his own bass**, 2026-09-05, through four
+    passes of rewriting — and no instrument here said why.
+
+    The peak was fine and the RMS was fine, and both are deaf to *where*
+    the energy sits: `arc.ges`'s ground bank puts every note between 73
+    and 185 Hz through a 320 Hz lowpass, which is under a laptop
+    speaker's floor and under most of a phone's.  `doc/instruments.md`'s
+    first rule is his — *a missing capability is built the moment the
+    need arises* — and this one had cost an hour.
+    """
+    import tempfile
+
+    from gestate.audioperform import _Meter, SMALL_SPEAKER_HZ
+
+    rate = 8000
+    # A 60 Hz tone is under the floor; a 1 kHz tone is well over it.
+    import math
+
+    for hz, want_low in ((60.0, True), (1000.0, False)):
+        meter = _Meter(1, rate, "second", rate)
+        block = [math.sin(2 * math.pi * hz * i / rate) for i in range(rate)]
+        meter.feed(block)
+        said = meter.low_line()
+        share = meter._low_sq / meter._all_sq
+        if want_low:
+            # 0.77, not 1.0 — the split is two one-poles and a pure tone
+            # entirely under the floor still leaks a quarter of itself
+            # across.  The docstring carries this number so a reader
+            # knows what "77%" means before they meet one.
+            assert share > 0.75, f"{hz} Hz read as {share:.0%} low: {said}"
+            assert "reproduce little of that" in said
+        else:
+            assert share < 0.05, f"{hz} Hz read as {share:.0%} low: {said}"
+            assert "reproduce little of that" not in said
+    assert SMALL_SPEAKER_HZ == 160.0
+
+
+def test_the_low_share_line_survives_a_silent_render():
+    """A render of nothing must not divide by nothing."""
+    from gestate.audioperform import _Meter
+
+    meter = _Meter(1, 100, "second", 8000)
+    meter.feed([0.0] * 200)
+    assert "no signal" in meter.low_line()
+
+
+def test_the_report_still_says_peak_and_rms():
+    """The line is added beside what `--report` already said, not
+    instead of it — `spec/firstpiece.md`'s ears are what a CI has."""
+    import io
+    import contextlib
+
+    from gestate.audioperform import _Meter
+
+    meter = _Meter(1, 4, "bar", 8000)
+    meter.feed([0.5, -0.9, 0.2, 0.1] * 2)
+    page = io.StringIO()
+    with contextlib.redirect_stdout(page):
+        meter.say()
+    said = page.getvalue()
+    assert "report: peak 0.900" in said
+    assert "below 160 Hz" in said
+    assert "bar   1: rms" in said

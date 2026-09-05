@@ -7366,11 +7366,35 @@ window says a `[: Tone :]` was written and never reached a bank.  The piece
 `card:drawn-scores.md` rests on carries a whole unheard voice, and neither
 writer noticed for a day.
 
-**The repair is not obvious and is the author's**, which is why this is filed
-rather than fixed: either `bass` belongs in the score and the piece has been
-heard wrong three times, or it is a draft that should go — and only Henri can
-say which, because the question is what the piece is meant to sound like.
-`arc.notes` leaves it out, which is faithful to what `arc.ges` *plays*.
+**And it is not a spare draft — it is the voice the brief is about.**
+Read on 2026-09-05, later the same day, at Henri's ask to check the piece
+against its own comments:
+
+    bar  3   bass: G D G D   the IV        roots: E
+    bar  7   bass: A E       the V         roots: A
+    bar 16   bass: A E B F#  A going to B  roots: G (a pedal, all 8 bars)
+    bar 24   bass: A E D D   V to I        roots: A to D
+
+**`arc.ges` has two bass lines.**  `bass` carries the 1-4-5 blues bones and
+the deceptive cadence; `roots` is a different line, and `score` plays `roots`.
+So the file's own comments — *"Bar 3 — IV.  G7"*, *"Bar 16 — the deceptive
+cadence… 5 going to 6 instead of to 1"* — are **accurate about the notes and
+false about the sound**, and every reading that checked the render blamed the
+prose.  `doc/notes/notes-on-writing-a-piece.md` says of this file *"a comment
+on bar 16 claiming a cadence the notes do not contain"*; the notes contain it.
+So did a session's verdict on 2026-09-05, in the same words, before it read
+`bass`.
+
+**That is very likely why the arc did not land.**  Henri, on pass one: *"tonal
+center is missing, and harmony would do lots to the tone, but it's absent."*
+Four passes went into the melody and the chord voicings; the line that would
+have said I-IV-V under them was written, sitting in the file, and unplayed.
+
+**The repair is still the author's**, and now it is a real question about the
+music rather than about tidiness: `bass` and `roots` are two different
+harmonic readings of the same twenty-four bars, and playing both is a third
+piece again.  `arc.notes` leaves `bass` out, which is faithful to what
+`arc.ges` *plays* and is therefore faithful to the wrong half.
 
 gate: `none — not yet built`.  What would hold it is a lamp rather than a test
 of this file: a score-carrying program whose author declares a `[: a :]` that
