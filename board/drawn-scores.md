@@ -1,6 +1,8 @@
 # drawn-scores — a graphical score format with .ges's whole power
 
-    status   shelved — 2026-08-29
+    status   open — 2026-09-05, off the shelf at his word, and
+             `spec/drawnscores.md` is written — §"How it came off the
+             shelf".  What is left is the building
     because  "Minä koin että .ges tiedoston muokkaaminen näkemättä mitä
              on tekemässä oli aika raskasta hommaa. .ges on hyvä
              formaatti syntetisaattoreihin, mutta ehkä ei sittenkään
@@ -9,19 +11,28 @@
              and nothing sounds or draws until a render is asked for;
              said the day it was paid for, over together.ges
     asked    Henri, 2026-08-29 (Claude wrote the card at his ask)
-    see      doc/memory/ges-is-not-music-notation-yet.md — the verdict
+    see      spec/drawnscores.md — the contract, written 2026-09-05
+             doc/notes/notes-on-writing-a-piece.md — the piece written
+             by hand to find out what a format has to carry
+             doc/memory/ges-is-not-music-notation-yet.md — the verdict
              doc/memory/the-language-goal.md — optimised for reading,
              easy to model-check; both bear directly on this
              examples/audio/together.ges — the sitting that found the pain
+             examples/audio/arc.ges — the piece the format has to beat
              spec/scorebox.md — the roll that draws, today, as a *view*
+             spec/annotations.md — the mark the voice interprets, built
 
-**What this is:** a sketch of a drawable score format, **deliberately
-restricted**, that makes the writing visible.  **What it is not:** a
-format with `.ges`'s full power — the ask it arrived as, which its own
-author has since withdrawn (§"The restriction is the design").  Not a
-feature request with a design ready to build, and not a replacement for
-`.ges` synths, which he judged good.  **When it runs:** never yet; it is
-an idea to try some day, and it arrived shelved.
+**What this is:** *(rewritten 2026-09-05, when the card came off the
+shelf; the paragraph it replaces is at §"What this was, while it was
+shelved".)*  The card for a **flat note file** — a sub-language a `.ges`
+score includes, holding the part of a piece that is data, poor enough
+that a simple editor can own it whole.  `spec/drawnscores.md` is its
+contract.  **What it is not:** a graphical format, and not a format with
+`.ges`'s full power — the ask it arrived as, which its own author has
+since withdrawn (§"The restriction is the design").  Not a replacement
+for `.ges` synths, which he judged good.  **When it runs:** at assembly,
+like a prelude — and it is not built.  What stands today is the spec and
+the piece it has to beat.
 
 ## The ask
 
@@ -339,10 +350,20 @@ file is solved too: `session.py` does it for `open`, nearest first.
 ## What is decided, and what is not
 
 **1. What a phrase file is for** — one voice's line, or a bar across
-voices?  *Deferred to an experiment, his call:* **"we should experiment
-and write something together, then consider how it would happen with
-this new format."**  So the next move is to *write music*, not to
-specify a format for music nobody has written yet.  §"The idea, as said
+voices?  **Answered 2026-09-05, and the experiment is what answered
+it.**  *Henri, given both shapes:* **"I think it could contain several
+sections, voices side by side, yeah."**  So a file holds several
+sections and a section holds its voices side by side on one declared
+bar grid — `spec/drawnscores.md` §"What is decided" 1.
+
+*The deferral it replaces, and it worked:* **"we should experiment and
+write something together, then consider how it would happen with this
+new format."**  The experiment was `arc.ges` and
+`doc/notes/notes-on-writing-a-piece.md`, and W5 and W8 came back from it
+— five lines aligned by nothing but their length, and *"if one of them
+had twenty-three bars the piece would still compile."*  That is the
+answer arriving from the work rather than from taste, which is what the
+deferral was for.  §"The idea, as said
 in the room" already names the two relatives to look at while doing it:
 the weighted phrase graph as a Markov chain, and Ableton's session view
 with follow actions — *the DAW whose name he could not recall, named
@@ -365,6 +386,15 @@ counts in.
 author's payload type, or something generic the score adapts?  *Open,
 and deliberately:* **"I think we need to see that first, how it turns
 out naturally from what we have."**
+
+*Looked at 2026-09-05, and `spec/drawnscores.md` §"What the score gets
+back" carries the answer with its reasoning:* `Notable` reads a payload
+and `FromMIDI` builds one from a keyboard, so the shape that turns out
+naturally is `FromMIDI`'s sibling for the road a note file travels —
+`fromNote key level manners` — because a keyboard cannot send a manner
+and a note file can.  **Marked as the session's derivation, and named
+in that spec as the part most worth striking**, since the deferral was
+his and this is not him answering it.
 
 **4. LLM-friendly, as gates rather than as an adjective.**  *His:*
 **"lets make it testable on your requirements."**  The session's four,
@@ -416,7 +446,36 @@ and see whether it names the fault first.
 
 ## Questions
 
-*Open, for whenever it is unshelved.*
+*Three stood here while the card was shelved.  All three are answered
+as of 2026-09-05, and the answers are what made a spec writable —
+kept below with their answers under them rather than struck, because
+the reasoning is the part a reader can argue with.*
+
+**A — where the picture ends and the expression begins.**  *Answered by
+the format:* everything that **generates** — `cycle`, `unfold`, `draw`,
+`sown`, every function and every combinator — stays in `.ges`, and a
+`.notes` file holds only the leaves.  It is finite and deterministic by
+construction, which is the boundary drawn at the one place it can be
+stated in a sentence instead of by taste.  §"The restriction is the
+design" said there must be a boundary; this is where it fell.
+
+**B — what a session does on day one.**  *Answerable now, where on
+2026-09-04 it was blocked on a decision:* write the parser and the
+`include` keyword, rewrite `examples/audio/arc.ges` as `arc.notes`, and
+hold the two to **sample-identical** audio.  `spec/drawnscores.md`
+§"Acceptance" is the seven-item list, and item 6 is the one the format
+exists for.
+
+**C — what the restricted thing is worth doing well.**  *Answered, and
+it is a number rather than a preference:* the score box can edit 0–5% of
+the notes in a real `.ges` piece and 100% of the three files written for
+it, because provenance is guessed by value.  A note file makes the
+question disappear — a note **is** a line — so the answer is **the file
+every note of which is editable, forever, by construction**.  The other
+candidate this question named, the weighted phrase graph, is untouched
+and no piece he has written needs it.
+
+*The three as they were asked:*
 
 * **Where exactly does the picture end and the expression begin?**
   The hard part is not endlessness or living — one edge each — but
@@ -452,3 +511,44 @@ tätä ideaa"* — and it waits on an event rather than a queue: his
 thinking, which he reserved for himself the day before this card in
 the same breath as the `because`: *"Tätä täytynee miettiä silleen
 rauhassa."*  It comes back the way every card does: by him saying so.
+
+## How it came off the shelf — 2026-09-05
+
+**By him saying so, which is the only way a card comes back.**  *Henri,
+opening the sitting:* **"Today lets lift the card:drawn-scores.md out of
+later/ and write a spec for drawn-scores.  I discussed this yesterday
+with a session and I think we got somewhere."**
+
+**And the event it was waiting on had happened.**  §"Shelved" says it
+waits on his thinking, reserved for himself — *"Tätä täytynee miettiä
+silleen rauhassa"* — which is sediment and not debt, and it wakes when
+the thinking is done rather than when somebody asks again.  It was done
+on 2026-09-04: the ambition withdrawn, the notation named, the
+sub-language proposed, and the four gates asked for.  This card is
+**five sections longer than the day it was shelved**, and every one of
+them is his thinking arriving.
+
+**What was left after that was three decisions**, put to him in one
+batch on 2026-09-05 and answered in one pass — the file's grain, pitch
+against degree, and how far the spec goes.  They are transcribed at
+§"What is decided, and what is not" and at `spec/drawnscores.md` §"What
+is decided", in his words.
+
+**Where it stands in the priority: unplaced, at the end**, which is what
+`board/README.md` §"Who writes what" says a card does when it arrives.
+It is below the three that were already there and he can move it in a
+sentence.
+
+## What this was, while it was shelved
+
+*The front paragraph this card carried from 2026-09-04 to 2026-09-05,
+kept because the card's own shape is part of its argument — it led with
+a sketch, and what replaced it leads with a file.*
+
+> **What this is:** a sketch of a drawable score format, **deliberately
+> restricted**, that makes the writing visible.  **What it is not:** a
+> format with `.ges`'s full power — the ask it arrived as, which its own
+> author has since withdrawn (§"The restriction is the design").  Not a
+> feature request with a design ready to build, and not a replacement
+> for `.ges` synths, which he judged good.  **When it runs:** never yet;
+> it is an idea to try some day, and it arrived shelved.

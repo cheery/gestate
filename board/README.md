@@ -64,6 +64,9 @@ still the tiebreak between two workable cards, and it is still his.
    browser tab: the vision's opening line for a person who is not at
    this desk.  Michael's ask, 2026-08-28.  *Last: its open questions
    are his.*
+4. **[drawn-scores](drawn-scores.md)** — a flat note file the score is
+   written in; the roll edits 0–5% of a real piece and would edit all
+   of one of these.  *Off the shelf 2026-09-05, unplaced, spec written.*
 
 **`idiom-or-load` left this list on 2026-09-05**, refused — its loose
 arm ran, and the fence it depended on turned out to be unbuildable

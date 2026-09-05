@@ -156,8 +156,8 @@ decline honestly:
 | [`README.md`](../README.md) | 262 | you, if you want to hear it |
 | [`vision.md`](../vision.md) | 77 | what any of this is for; the author's own, dated |
 | [`manifesto.md`](../manifesto.md) | 377 | how an instrument fails, and the two standing rules |
-| [`board/README.md`](../board/README.md) | 650 | how a task is worked — written for sessions |
-| [`spec/`](../spec/) | ~16,000 | how each part is designed, and what it cost |
+| [`board/README.md`](../board/README.md) | 653 | how a task is worked — written for sessions |
+| [`spec/`](../spec/) | ~17,000 | how each part is designed, and what it cost |
 | [`fixme.md`](../fixme.md) | 198 entries, 161 resolved | where the implementation disagrees with the specs |
 | [`journal.md`](../journal.md) + `journal/` | the current month, plus one line per closed month | what happened, past tense |
 | [`doc/memory/`](memory/) | one fact per file | what a session that forgets everything carries across |
