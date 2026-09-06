@@ -380,6 +380,10 @@ def test_a_section_with_no_mode_says_nothing():
      "at least one tick"),
     ("note  section A  bar 1  at 0  len 96  voice lead  key 200  vel mf",
      "not a MIDI key number"),
+    ("note  section A  bar 1  at 0  len 96  voice lead  key 60  spell d4  vel mf",
+     "names key 62, and this note is `key 60`"),
+    ("note  section A  bar 1  at 0  len 96  voice lead  key 60  spell middle-c  vel mf",
+     "is not a pitch name"),
 ])
 def test_each_mistake_is_named_in_the_author_s_terms(line, says):
     text = "section A  bars 1  beats 4  voices lead\n" + line + "\n"
@@ -871,8 +875,13 @@ def test_a_pitch_is_spelled_the_way_its_mode_asks(key, tonic, mode, want, why):
 
 
 def test_the_one_arbitrary_choice_is_the_documented_one():
-    """Where both readings cost exactly one accidental, the flat wins —
-    and this is the case that would put names in the file."""
+    """Where both readings cost exactly one accidental, the flat wins.
+
+    **And this is the case that put names in the file** — the rule is
+    unchanged and still arbitrary here, which is why the file may
+    overrule it per note; see §"The spelling a rule cannot guess" at the
+    foot of this file.
+    """
     assert notes.spell(63, "D", "lydian") == "ees4"    # not `dis4`
 
 
@@ -1401,3 +1410,137 @@ def test_a_drag_on_an_included_note_writes_that_file_and_says_so():
         # And the piece still plays, with the note where it was dropped.
         again, _ = notes.expanded(here.read_text(), here.parent)
         assert f"fromNote {was + 2} " in again
+
+
+# ── The spelling a rule cannot guess — 2026-09-06 ───────────────────────────
+
+
+def test_the_cadence_the_rule_could_not_spell_is_written_out():
+    """The trigger `spec/drawnscores.md` named, fired in the only
+    `.notes` file there is.
+
+    The rule takes the flat where both readings cost one accidental, and
+    the last bar of `arc.notes` is `73 → 69 → 62` in D phrygian — a
+    leading tone resolving up to the tonic, which is a `cis` and cannot
+    be a `des`.  The degree column said `7` all along; the letter column
+    disagreed with it, on one file, at its cadence.
+    """
+    parsed = notes.parse(NOTES.read_text(), "arc.notes")
+    one, = [n for n in parsed.notes
+            if n.section == "C" and n.bar == 8 and n.voice == "melody"
+            and n.at == 0]
+    assert one.key == 73
+    assert notes.spell(73, "D", "phrygian") == "des5", "the rule is unchanged"
+    assert one.spell == "cis5", "and the file overrules it, on this note"
+    assert notes.degree_of(73, "D", "phrygian") == "7", (
+        "the two columns of one report now agree about this note")
+
+
+def test_one_pitch_is_spelled_by_the_section_it_is_in():
+    """Why the field is on the note and not on the file.
+
+    Key 61 is `des4` in section B and `cis4` in section C of the shipped
+    file — G locrian's flattened fifth and D phrygian's leading tone,
+    the same twelve-tone pitch, two different notes.  A spelling table
+    per file could not say this and neither can a rule.
+    """
+    parsed = notes.parse(NOTES.read_text(), "arc.notes")
+    at_b = [n for n in parsed.notes if n.section == "B" and n.key == 61]
+    at_c = [n for n in parsed.notes if n.section == "C" and n.key == 61]
+    assert at_b and at_c
+    assert all(n.spell is None for n in at_b), "B's is what the rule says"
+    assert notes.spell(61, "G", "locrian") == "des4"
+    assert [n.spell for n in at_c] == ["cis4"], "C's is written down"
+
+
+def test_the_report_prints_the_written_letter_where_there_is_one():
+    """The field is read back where a person reads the file, or it is a
+    thing stored and never looked at."""
+    said: list = []
+    notes.report(notes.rows_of_notes(NOTES), tell=said.append)
+    bars = [l for l in said if l.strip()[:1].isdigit()]
+    assert "cis5" in bars[-1] and "des5" not in bars[-1], bars[-1]
+    assert "cis4" in bars[-2], bars[-2]
+    #: and one bar carries both readings at once — section B's last bar
+    #: writes `fis3` and lets the rule spell `des4` beside it, which is
+    #: the field doing exactly as much as it claims and no more
+    assert "fis3" in bars[15] and "des4" in bars[15], bars[15]
+    #: while section A, which wrote none, reads as it did before
+    assert "gis4" in bars[0] and "spell" not in bars[0]
+
+
+def test_a_spelling_travels_with_a_held_note_through_its_bars():
+    """A held note is part of every bar it sounds in, and so is the
+    letter it was written with — the same walk `sounding` makes."""
+    text = ("section A  key D  mode phrygian  bars 3  beats 4  voices lead\n"
+            "note  section A  bar 1  at 0  len 1152  voice lead  key 61"
+            "  spell cis4  vel mf\n")
+    said = notes.spellings(notes.parse(text, "held.notes"))
+    assert said == {("A", 1, 61): "cis4", ("A", 2, 61): "cis4",
+                    ("A", 3, 61): "cis4"}
+
+
+def test_a_note_cannot_be_made_to_contradict_its_own_spelling():
+    """The refusal is on the record, so there is one rule and every
+    caller meets it — the parser, a drag, and anything that moves a note
+    by rebuilding it."""
+    parsed = notes.parse(NOTES.read_text(), "arc.notes")
+    one, = [n for n in parsed.notes if n.spell == "cis5"]
+    with pytest.raises(notes.NotesError, match="names key 73"):
+        notes.Note(**{**one.__dict__, "key": one.key + 2})
+    # and the same note, spelled by nobody, moves freely
+    plain = notes.Note(**{**one.__dict__, "spell": None})
+    assert notes.Note(**{**plain.__dict__, "key": 75}).key == 75
+
+
+def test_a_drag_in_pitch_drops_the_written_spelling_and_says_so():
+    """A stored letter is an intention about the pitch that *was*.
+
+    `cis5` because it resolves up to `d`; drag it and no rule can carry
+    that anywhere.  So the field goes with the note that had it, the
+    gesture names the loss, and every other byte of the line — `at`,
+    `len`, `voice`, `vel` — is untouched.
+    """
+    text = NOTES.read_text()
+    at = text.splitlines().index(
+        [l for l in text.splitlines() if "spell cis5" in l][0]) + 1
+
+    out, said = notes.retune(text, at, "key", 73, 75)
+    assert "key 73 → 75" in said and "`spell cis5` with it" in said
+    was, now = text.splitlines(), out.splitlines()
+    assert [i for i, (a, b) in enumerate(zip(was, now)) if a != b] == [at - 1]
+    assert now[at - 1] == was[at - 1].replace("key 73  spell cis5", "key 75")
+    #: and the file that comes back is one a person can still load
+    assert notes.parse(out, "dragged.notes")
+
+
+def test_a_drag_in_time_keeps_the_spelling():
+    """Only the pitch invalidates a spelling.  Everything else about a
+    note may move and the letter still names the same note."""
+    text = NOTES.read_text()
+    at = text.splitlines().index(
+        [l for l in text.splitlines() if "spell cis5" in l][0]) + 1
+    out, said = notes.retune(text, at, "at", 0, 96)
+    assert "with it" not in said
+    assert "spell cis5" in out.splitlines()[at - 1]
+
+
+def test_a_written_spelling_survives_the_four_gates():
+    """One line, a named field, no nesting, a stable order — the field
+    is new and the gates are not, so it is held to them."""
+    text = NOTES.read_text()
+    parsed = notes.parse(text, "arc.notes")
+
+    # one note per line, and the spelling is on the note's own line
+    lines = [l for l in text.splitlines() if l.startswith("note ")]
+    assert len(lines) == len(parsed.notes)
+    assert sum(1 for l in lines if " spell " in l) == 3
+
+    # named, never positional
+    with pytest.raises(notes.NotesError, match="is not a field here"):
+        notes.parse("section A  bars 1  beats 4  voices lead\n"
+                    "note  section A  bar 1  at 0  len 96  voice lead"
+                    "  key 60  c4  vel mf\n", "bare.notes")
+
+    # a stable order: writing the file back is byte-identical
+    assert notes.write(parsed) == text

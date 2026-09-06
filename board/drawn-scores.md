@@ -1,10 +1,13 @@
 # drawn-scores — a graphical score format with .ges's whole power
 
-    status   doing — 2026-09-05.  Off the shelf at his word, the spec
-             written, and **the first slice built the same day**: the
+    status   doing — 2026-09-06.  Off the shelf 2026-09-05, the spec
+             written, and the first slice built the same day: the
              parser, the `include` door, `arc.notes`, and 219 notes of
              `arc.ges` played from a flat file — §"Day one, landed".
-             What is left is the roll
+             Rungs 0-4 of the roll landed with it.  **2026-09-06: the
+             written spelling** — §"His own tools answered one of
+             these".  What is left is rung 5, the view, and it is a
+             decision before it is work
     because  "Minä koin että .ges tiedoston muokkaaminen näkemättä mitä
              on tekemässä oli aika raskasta hommaa. .ges on hyvä
              formaatti syntetisaattoreihin, mutta ehkä ei sittenkään
@@ -14,6 +17,8 @@
              said the day it was paid for, over together.ges
     asked    Henri, 2026-08-29 (Claude wrote the card at his ask)
     see      spec/drawnscores.md — the contract, written 2026-09-05
+             doc/memory/henri-prior-tools.md — oscillseq, mide, xylem,
+             and the four things in them that answer questions here
              doc/notes/notes-on-writing-a-piece.md — the piece written
              by hand to find out what a format has to carry
              doc/memory/ges-is-not-music-notation-yet.md — the verdict
@@ -33,8 +38,11 @@ contract.  **What it is not:** a graphical format, and not a format with
 `.ges`'s full power — the ask it arrived as, which its own author has
 since withdrawn (§"The restriction is the design").  Not a replacement
 for `.ges` synths, which he judged good.  **When it runs:** at assembly,
-like a prelude — and it is not built.  What stands today is the spec and
-the piece it has to beat.
+like a prelude — and it *is* built, since 2026-09-05: `arc.notes` plays
+219 of `arc.ges`'s 219 notes through an `include`.  What is not built is
+rung 5, the view that takes the window.  *(The sentence here said "it is
+not built" until 2026-09-06, written the morning of the day it stopped
+being true.)*
 
 ## The ask
 
@@ -626,3 +634,66 @@ that every sounding note has one line that wrote it and the expansion
 carries every one of those line numbers into the `.ges`.  Making the
 roll *follow* that map is the next slice, and claiming its number before
 the wiring exists would have been a number nobody checks.
+
+## His own tools answered one of these — 2026-09-06
+
+**Henri, opening the sitting:** *"We could look into implementing the
+card:drawn-scores.md but recall what I shown yesterday (oscillseq,
+beet, mide) to take some lessons from there."*
+
+`doc/memory/henri-prior-tools.md` names four things in those tools that
+answer something open here.  **One of them was answerable the same
+morning, because the tree already held the case for it.**
+
+### The trigger fired, and nobody had looked
+
+`spec/drawnscores.md` §"The three spellings" wrote its own trigger:
+where two spellings cost one accidental each the rule takes the flat,
+and *"a piece that needs the other is the case that would put names in
+the file"*.  There is one such piece and it is the only `.notes` file
+in the tree.
+
+    python -c "from gestate import notes; print(notes.spell(73,'D','phrygian'), notes.degree_of(73,'D','phrygian'))"
+    des5 7
+
+`arc.notes`' last bar is `73 → 69 → 62` in D phrygian — a leading tone
+resolving up to the tonic, a C♯ and not a D♭ — and the report had been
+printing the two columns beside each other, disagreeing, at the cadence.
+Three notes of 291 sit in that position; the other two are the held C♯
+under bar 7 and a bass walking A–E–B–F♯ where G♭ would break the chain
+of fifths.
+
+**And the fix is item 1 of that memory, which is his own answer from
+before this project:** a musical pitch held as a `(pitch, accidental)`
+pair *beside* the MIDI number, not derived from it — *a rule cannot know
+where the line is going and a stored accidental does not have to.*  So
+the note record has an optional `spell`, `spec/drawnscores.md` §"The
+spelling a rule cannot guess" is the contract, and `journal.md` §"The
+letter the rule could not guess" is what happened.
+
+**Three lines of 291 carry one.**  The rule is untouched and still
+answers for the other 288.
+
+### What the rest of them say about rung 5, which is not built
+
+Recorded rather than acted on, because rung 5 is a decision before it is
+work and the decision is his:
+
+* **`oscillseq` puts mouse gestures in the minority**, driving a working
+  sequencer from a command language in a textbox.  Rung 0 here is
+  already that shape and cost no code (100% of notes editable); rung 5
+  proposes the mouse-first window view his own tool decided against.
+* **`mide` writes its UI as datalog** — `draggable (note K) :- order K
+  Onset 1.` — a wholly different answer to the problem `furniture.rs`
+  solves, and rung 5's named cost is that file plus `window.rs` plus
+  the verb table, the three seams that lost `touch`.
+* **`xylem`'s Knuth–Plass line breaker** is rung 5's other hard half:
+  stacking sections and voices into a window is line breaking.
+* **Playback as states** — OFFLINE / ONLINE / FABRIC / PLAYING — is the
+  name for the decision `spec/drawnscores.md` says rung 5 will owe: a
+  preview tone with the transport stopped.
+
+**The open question this leaves him**, and it is the only one: rung 5 as
+specified is a new furniture kind, and two of his own tools argue about
+how — or whether — to build it.  Reading them before designing it is
+what item 3's rule already says to do, and they are his to open.

@@ -21,10 +21,16 @@ arithmetic layer is exactly where a wrong-by-one slip would go
 unnoticed"*.  This is that translation, done once and correctly, instead
 of in a reader's head every time.
 
-**And nothing is stored.**  Both columns are derived from the MIDI
-number and the declared key — `spec/drawnscores.md` §"The three
-spellings, and two of them are derived".  A report round-trips through
-nothing, which is why names are free here and are not free in the file.
+**Both columns are derived from the MIDI number and the declared key** —
+`spec/drawnscores.md` §"The three spellings, and two of them are
+derived".  A report round-trips through nothing, which is why names are
+free here and are not free in the file.
+
+**Except where the file spelled a note itself**, which it may since
+2026-09-06 and does three times in `arc.notes`: the rule has one
+arbitrary choice and a `.notes` file may overrule it per note, so this
+prints the written letter where there is one.  A `.ges` piece has
+nowhere to write one, so that path is derived throughout.
 
 A `.notes` file declares `key` and `mode` per section and needs no
 argument.  A `.ges` piece declares neither, so they are given.
@@ -84,7 +90,7 @@ def rows_of_ges(path: Path, tonic: str, mode: str) -> list:
         key = pitch_of(payload)
         for bar in range(on // per, max(on, off - 1) // per + 1):
             heard.setdefault(bar, set()).add(key)
-    return [("", bar + 1, sorted(keys), tonic, mode)
+    return [("", bar + 1, sorted(keys), tonic, mode, {})
             for bar, keys in sorted(heard.items())]
 
 

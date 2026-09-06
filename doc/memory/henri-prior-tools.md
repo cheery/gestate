@@ -39,10 +39,18 @@ MIDI number and the frequency, not derived from it.  That is the
 answer to the question `spec/drawnscores.md` §"The three spellings"
 leaves open and `notes.spell` documents as *"the one arbitrary choice…
 the case that would put names in the file"*.  It arrived the same day
-the case did: `arc.notes`' final cadence prints `des4` where the
+the case did: `arc.notes`' final cadence prints `des5` where the
 leading tone is a **C♯**, because a rule cannot know where the line is
 going and a stored accidental does not have to.  **He solved this
 before.**
+
+***And it was taken, 2026-09-06.***  The note record has an optional `spell`,
+written only where the rule has to guess and guesses wrong — 3 lines of
+`arc.notes`' 291 carry one, the rule is untouched for the other 288.
+`spec/drawnscores.md` §"The spelling a rule cannot guess" is the
+contract and `journal.md` §"The letter the rule could not guess" is the
+day.  **The safety is that a file may choose the letter and may not
+choose the note**: `spell des5` beside `key 60` will not load.
 
 **2. `.desc` files name what a parameter *means*.**  A synthdef is
 annotated `frequency: hz`, `note: pitch`, `volume: db`, from a closed
@@ -77,6 +85,16 @@ in time is the awkward gesture.
   the same problem and no such name for it.
 * **Bus allocation by biclique decomposition** — arbitrary node graph
   onto SuperCollider's fixed buses, each biclique cover one bus.
+
+**And the three not yet taken bear on one thing between them** — rung 5
+of `spec/drawnscores.md`, the `.notes` view that takes the window, which
+is the card's whole remainder.  `oscillseq` puts **mouse gestures in the
+minority** and rung 5 is mouse-first; `mide`'s datalog is a different
+answer to what `furniture.rs` does, and rung 5's named cost is that file
+plus `window.rs` plus the verb table; `xylem`'s Knuth–Plass is how
+sections and voices stack into a window, which is line breaking.  Two of
+his own tools argue about whether to build it that way at all, so it is
+a decision before it is work.
 
 **How to apply:** read one of these *before* designing the thing it
 already did — the staff, the spelling, a parameter vocabulary, a

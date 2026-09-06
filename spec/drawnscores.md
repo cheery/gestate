@@ -239,6 +239,7 @@ thing W8 is about.
     note  section A  bar 1  at 288  len 96  voice melody  key 69  vel p
     note  section A  bar 1  at 0    len 384 voice upper   key 57  vel mp
     note  section A  bar 1  at 0    len 384 voice roots   key 38  vel mf
+    note  section C  bar 8  at 0    len 96  voice melody  key 73  spell cis5  vel ff
 
 | field | what it says |
 |---|---|
@@ -246,6 +247,7 @@ thing W8 is about.
 | `at` | ticks from the **start of its bar**.  `0` is the downbeat |
 | `len` | ticks.  96 is a beat, 32 a triplet eighth, 24 a sixteenth |
 | `key` | the MIDI key number, written out.  **Always a literal** |
+| `spell` | *optional* — the letter this note is, where the rule would pick the other one.  `cis5`, not `des5`.  Read by the views, by nothing that sounds |
 | `vel` | a named level — see below |
 | `manner` | zero or more names from `spec/annotations.md`'s vocabulary.  Absent means `Plain` |
 
@@ -429,6 +431,57 @@ spellings cost one accidental each — D♯ against E♭ in D — the rule takes
 the flat.  A piece that needs the other is **the case that would put
 names in the file**, and until one turns up the spelling is a report's
 business, correctable by re-running it.
+
+### The spelling a rule cannot guess — 2026-09-06
+
+**The trigger fired, in the only `.notes` file there is.**  `arc.notes`'
+last bar is `73 → 69 → 62` in D phrygian: a leading tone resolving up to
+the tonic, which is a **C♯** and cannot be a D♭.  The rule spelled it
+`des5`, and the report's own degree column beside it said `7` — two
+views of one file, disagreeing about one note, at its cadence.  Three
+notes of 291 are in that position:
+
+| | | the rule | written |
+|---|---|---|---|
+| `arc.notes:222` | B, G locrian, bass | `ges3` | **`fis3`** — the bass walks A–E–B–F♯, and B to G♭ is not a fifth |
+| `arc.notes:301` | C, D phrygian, middle | `des4` | **`cis4`** — held under bar 7, resolving up to `d` in bar 8 |
+| `arc.notes:308` | C, D phrygian, melody | `des5` | **`cis5`** — the cadence |
+
+**And the answer is Henri's own, from before this project.**
+`doc/memory/henri-prior-tools.md` item 1: in `oscillseq` a musical pitch
+is a **`(pitch, accidental)` pair held beside the MIDI number**, not
+derived from it — *a rule cannot know where the line is going and a
+stored accidental does not have to.*  That is the whole argument, and it
+was reached once already on a working sequencer.
+
+**What is stored is still one fact.**  `spell` is not a fourth spelling
+competing with the three; it is the **tie-break**, written down only
+where the rule has to guess and the guess is wrong.  Three lines of 291
+carry one, every other note is derived exactly as before, and nothing
+round-trips through a view — which is the section above, unchanged.
+
+**Three properties make it safe to store rather than dangerous:**
+
+* **A spelling that does not name its own key is refused**, by one rule
+  the parser and the record both call — so a hand-written file, a drag,
+  and anything that rebuilds a note all meet it, and each says the place
+  it knows.  `spell des5` on `key 60` will not load.  A file may choose
+  the letter and may not choose the note.
+* **It is per note, not per file.**  Key 61 is `des4` in section B and
+  `cis4` in section C of the shipped file — G locrian's flattened fifth
+  and D phrygian's leading tone, one pitch and two notes.  A table per
+  file could not say that.
+* **A drag in pitch drops it, and says so.**  The letter is an intention
+  about the pitch that *was*; no rule carries it to the note the drag
+  made.  So `notes.retune` removes the field with the key it belonged
+  to and names the loss in what the gesture says, and the person writes
+  the new one if they meant one.  A drag in time, in velocity or in
+  manner keeps it, because none of those change which note it is.
+
+**What is deliberately not done:** the rule is untouched.  It still
+takes the flat on a tie, and it is still right on 288 of 291 notes.  The
+field exists so the three cases a rule cannot reach are writable, not so
+the rule can be tuned by hand.
 
 ### And a view has to be in the loop, or it is a command nobody runs
 

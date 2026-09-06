@@ -489,9 +489,9 @@ tree — many files here have over twenty citers — not on a fault here.
     python tools/bars.py examples/audio/together.ges D lydian
 
 Per bar, across every voice: the pitches as note names, their degrees in
-the mode, and any sitting outside it.  **This is the roll, for a reader
-who has no eyes** — and letters because it was measured:
-`doc/trial/spelling-preference.md`, eight of eight converted unprompted.
+the mode, any sitting outside it — derived, unless a line writes `spell
+cis5` itself.  **The roll, for a reader who has no eyes**, in letters
+because measured: `doc/trial/spelling-preference.md`, 8 of 8 unprompted.
 
 ### `tools/flow.py` — the board's flow, and the seven-day lamp
 

@@ -889,3 +889,71 @@ carries the measurement — a heading this file cannot cite by §, because
 it quotes a section of its own.  The
 rule that was missing and is now written: **two arms never in one
 working tree.**
+
+## The letter the rule could not guess — 2026-09-06
+
+*Henri, opening the sitting:* **"We could look into implementing the
+card:drawn-scores.md but recall what I shown yesterday (oscillseq,
+beet, mide) to take some lessons from there."*
+
+The lessons were shown on 2026-09-05 and written down as
+`doc/memory/henri-prior-tools.md` — three of his own tools, and four
+things in them that answer questions open here.  **Item 1 answered one
+outright**, and the tree turned out to have the case for it already.
+
+`spec/drawnscores.md` §"The three spellings" had a trigger written into
+it: where two spellings cost one accidental each, the rule takes the
+flat, and *"a piece that needs the other is the case that would put
+names in the file"*.  Nobody had looked for one.  Looking took a
+minute:
+
+    python -c "from gestate import notes; print(notes.spell(73,'D','phrygian'), notes.degree_of(73,'D','phrygian'))"
+    des5 7
+
+That is `arc.notes`' **last bar** — `73 → 69 → 62` in D phrygian, a
+leading tone resolving up to the tonic, which is a C♯ and cannot be a
+D♭.  The report had been printing both columns side by side and they
+disagreed about that note, at the cadence, on the only `.notes` file
+there is.  Three notes of 291 are in that position; the other two are a
+held C♯ under bar 7 resolving the same way, and a bass walking A–E–B–F♯
+where G♭ would break the chain of fifths.
+
+**And the answer was his, from before this project.**  In `oscillseq` a
+musical pitch is a `(pitch, accidental)` pair held *beside* the MIDI
+number rather than derived from it, because a rule cannot know where the
+line is going and a stored accidental does not have to.  So the note
+record gained an optional `spell`, written only where the rule has to
+guess and guesses wrong: 3 lines of 291 carry one, 288 are derived
+exactly as before, and the rule is untouched.
+
+**What made it safe to store a thing that can disagree** — which is what
+this project has twice designed against, so it is worth the three
+sentences.  A file may choose the **letter** and may not choose the
+**note**: `spell des5` beside `key 60` will not load, by one rule that
+the parser and the record both call.  It is per note and not per file,
+which the shipped file proves in its own bytes — key 61 is `des4` in
+section B and `cis4` in section C, G locrian's flattened fifth and D
+phrygian's leading tone, one pitch and two notes.  And a drag in pitch
+**drops** it and says so, because the letter was an intention about the
+pitch that was; a drag in time, velocity or manner keeps it.
+
+**What the other three tools say, recorded rather than acted on**, since
+the rest of this card is rung 5 and that is a decision:
+
+* `oscillseq` is driven by a command language in a textbox with **mouse
+  gestures in the minority**.  Rung 0 of this ladder is already that
+  shape and cost no code; rung 5 proposes a mouse-first window view,
+  which his own working sequencer decided against.  Worth weighing
+  before three seams are crossed.
+* `mide` writes its UI as datalog — `draggable (note K) :- order K
+  Onset 1.` — which is a wholly different answer to the problem
+  `furniture.rs` solves, and rung 5's named cost is exactly that file
+  plus `window.rs` plus the verb table.
+* `xylem`'s Knuth–Plass line breaker is rung 5's other hard half:
+  stacking sections and voices into a window is line breaking.
+* And **playback as states** — OFFLINE / ONLINE / FABRIC / PLAYING — is
+  the missing name for the decision `spec/drawnscores.md` says rung 5
+  will owe: a preview tone with the transport stopped.
+
+*The card is `card:drawn-scores.md`; the contract is
+`spec/drawnscores.md` §"The spelling a rule cannot guess".*

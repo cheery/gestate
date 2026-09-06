@@ -91,9 +91,26 @@ class Note:
     length: int
     voice: str
     key: int
+    spell: str | None
     level: int
     manners: int
     line: int
+
+    def __post_init__(self):
+        """A spelling that does not name this note's key is refused.
+
+        **On the record, so there is one rule and every caller meets
+        it.**  A `Note` is made by the parser and by anything that moves
+        one, and a spelling contradicting its own key is a file that
+        *lies* about the pitch it plays — which is worse than the
+        derived spelling it replaced, because a reader cannot tell it
+        from an intention.  So a drag that changes `key` has to say what
+        becomes of `spell` rather than carrying a stale letter forward.
+
+        The parser checks the same rule first, because it knows the file
+        as well as the line; this catches everyone else.
+        """
+        _spelled(self.spell, self.key, f"line {self.line}")
 
 
 @dataclass
@@ -139,7 +156,8 @@ class NotesFile:
 #: `voices.NAME` refusal already has.
 _SECTION_FIELDS = {"key", "mode", "bars", "beats", "voices"}
 _SECTION_REQUIRED = {"bars", "beats", "voices"}
-_NOTE_FIELDS = {"section", "bar", "at", "len", "voice", "key", "vel", "manner"}
+_NOTE_FIELDS = {"section", "bar", "at", "len", "voice", "key", "spell", "vel",
+                "manner"}
 _NOTE_REQUIRED = {"section", "bar", "at", "len", "voice", "key", "vel"}
 
 
@@ -292,8 +310,33 @@ def _note(tokens: list[str], number: int, place: str, out: NotesFile) -> Note:
             f"{place}: `vel {got['vel']}` is not a dynamic; "
             + " ".join(LEVELS))
     return Note(section=section.name, bar=bar, at=tick, length=length,
-                voice=got["voice"], key=key, level=LEVELS.index(got["vel"]),
+                voice=got["voice"], key=key,
+                spell=_spelled(got.get("spell"), key, place),
+                level=LEVELS.index(got["vel"]),
                 manners=_manners(got.get("manner"), place), line=number)
+
+
+def _spelled(spell: str | None, key: int, place: str) -> str | None:
+    """The written spelling, or the refusal that it names another note.
+
+    **A file may choose the letter and may not choose the note.**  That
+    is the whole safety of storing a spelling at all: `cis5` and `des5`
+    are both key 73 and either may be written, but `spell des5` on `key
+    60` would make the report say a pitch the render does not play, and
+    nothing downstream could catch it.
+    """
+    if spell is None:
+        return None
+    named = key_of(spell)
+    if named is None:
+        raise NotesError(
+            f"{place}: `spell {spell}` is not a pitch name — a letter, an "
+            "optional `is`/`es`/`isis`/`eses`, and an octave, as `cis5`")
+    if named != key:
+        raise NotesError(
+            f"{place}: `spell {spell}` names key {named}, and this note is "
+            f"`key {key}`")
+    return spell
 
 
 def _manners(text: str | None, place: str) -> int:
@@ -411,9 +454,14 @@ def write(out: NotesFile) -> str:
 
 
 def _line(one: Note) -> str:
+    #: `spell` goes beside `key`, because it is about that field and
+    #: nothing else — and it is absent on almost every line, which is
+    #: the point: a spelling is written only where the rule would get it
+    #: wrong.  Gate four holds either way, the order being fixed here.
     out = (f"note  section {one.section}  bar {one.bar}  at {one.at}  "
            f"len {one.length}  voice {one.voice}  key {one.key}  "
-           f"vel {LEVELS[one.level]}")
+           + (f"spell {one.spell}  " if one.spell else "")
+           + f"vel {LEVELS[one.level]}")
     asked = [m for m, bit in sorted(MANNERS.items(), key=lambda kv: kv[1])
              if one.manners & bit]
     return out + ("  manner " + ",".join(asked) if asked else "")
@@ -459,9 +507,26 @@ def retune(text: str, line: int, field: str, was, now) -> tuple:
         raise NotesError(
             f"{place} says `{field} {found.group(2)}` where the roll "
             f"thought `{field} {was}` — the file has moved under the picture")
-    lines[line - 1] = (row[:found.start(2)] + str(now)
-                       + row[found.end(2):])
-    return "".join(lines), f"{field} {was} → {now} on line {line}"
+    row = row[:found.start(2)] + str(now) + row[found.end(2):]
+    said = f"{field} {was} → {now} on line {line}"
+
+    #: **A drag in pitch drops the spelling the note was written with**,
+    #: and says so.  The stored letter is an intention about the *old*
+    #: pitch — `cis5` because it resolves up to `d` — and no rule can
+    #: carry that to the note it became; keeping it would leave the line
+    #: contradicting itself, which `Note.__post_init__` refuses anyway.
+    #: So the field goes, the gesture names it, and the person writes
+    #: the new one if they meant one.  `spec/drawnscores.md` §"The
+    #: spelling a rule cannot guess".
+    if field == "key":
+        for one in re.finditer(r"\s+spell (\S+)", row):
+            if key_of(one.group(1)) == int(was):
+                row = row[:one.start()] + row[one.end():]
+                said += f", and `spell {one.group(1)}` with it"
+                break
+
+    lines[line - 1] = row
+    return "".join(lines), said
 
 
 # ── The lamp: what the mode says, and what it never does ────────────────────
@@ -499,6 +564,29 @@ DEGREES = ("1", "♭2", "2", "♭3", "3", "4", "♯4", "5", "♭6", "6", "♭7",
 _NATURAL = {"c": 0, "d": 2, "e": 4, "f": 5, "g": 7, "a": 9, "b": 11}
 _LETTERS = "cdefgab"
 _MARKS = {-2: "eses", -1: "es", 0: "", 1: "is", 2: "isis"}
+
+#: A pitch name as `spell` writes one: a letter, an optional accidental,
+#: an octave — `cis5`, `des4`, `fisis3`, `a4`, `c-1`.
+_SPELLED = re.compile(r"^([a-g])(isis|is|eses|es)?(-?\d+)$")
+
+
+def key_of(name: str) -> int | None:
+    """The MIDI key a spelling names, or `None` if it is not a spelling.
+
+    **`spell`'s inverse, and it is total where `spell` is not.**  Many
+    names reach one key — `cis5` and `des5` are both 73 — so this
+    direction is a function and the other one has to choose, which is
+    the whole reason a written spelling exists.  It is what makes the
+    field checkable rather than decorative: a file may say a letter the
+    rule would not have picked, and may not say a letter that is a
+    different note.
+    """
+    found = _SPELLED.match(name)
+    if found is None:
+        return None
+    letter, mark, octave = found.groups()
+    delta = {v: k for k, v in _MARKS.items()}[mark or ""]
+    return _NATURAL[letter] + (int(octave) + 1) * 12 + delta
 
 
 #: The major scale, which every degree name is measured against — that
@@ -605,24 +693,66 @@ def sounding(out: NotesFile) -> list:
             in sorted(heard.items(), key=lambda kv: (order[kv[0][0]], kv[0][1]))]
 
 
+def spellings(out: NotesFile) -> dict:
+    """`{(section, bar, key): name}` — the spellings the file wrote out.
+
+    A note's spelling holds for every bar it sounds in, the same walk
+    `sounding` makes and for the same reason: a held note is part of
+    every bar it is heard in, and the letter it was written with is part
+    of it.
+
+    **Where one bar spells one key twice, the canonical order decides**
+    — the first note of `ordered` wins.  That is a limit of a bar-wise
+    view and not of the file: two voices may legitimately write a `cis`
+    and a `des` at once, and both lines stay exactly as written.  Only
+    this column has to pick one.
+    """
+    said: dict = {}
+    for one in ordered(out):
+        if one.spell is None:
+            continue
+        section = out.section(one.section)
+        if section is None:
+            continue
+        last = one.bar + (one.at + one.length - 1) // section.bar_ticks
+        for bar in range(one.bar, min(last, section.bars) + 1):
+            said.setdefault((one.section, bar, one.key), one.spell)
+    return said
+
+
 def rows_of_notes(path) -> list:
-    """`(section, bar, keys, tonic, mode)` from a `.notes` file's own headers."""
+    """`(section, bar, keys, tonic, mode, spelled)` from a file's own headers.
+
+    `spelled` is `{key: name}` for that bar — empty wherever the file
+    wrote no spelling, which is almost everywhere.
+    """
     path = Path(path)
     out = parse(path.read_text(), path.name)
     modes = {s.name: (s.key, s.mode) for s in out.sections}
-    return [(s, b, keys) + modes[s] for s, b, keys in sounding(out)]
+    said = spellings(out)
+    return [(s, b, keys) + modes[s]
+            + ({k: said[(s, b, k)] for k in keys if (s, b, k) in said},)
+            for s, b, keys in sounding(out)]
 
 
 def report(rows: list, tell=print) -> None:
     at = None
-    for section, bar, keys, tonic, mode in rows:
+    for section, bar, keys, tonic, mode, spelled in rows:
         if (section, tonic, mode) != at:
             at = (section, tonic, mode)
             head = f"── {'section ' + section if section else 'the piece'}"
             tell(f"{head} — {tonic} {mode}" if tonic and mode else head)
             tell(f"   {'bar':>3}  {'sounding':<34} {'degrees':<26} outside")
         if tonic and mode:
-            names = " ".join(spell(k, tonic, mode) for k in keys)
+            #: **A written spelling wins over the derived one**, which is
+            #: the whole of the field: the rule takes the flat where two
+            #: readings cost one accidental each, and `arc.notes`' final
+            #: cadence is a `cis` resolving up to `d`.  Everywhere else
+            #: this map is empty and the rule answers, as it did before.
+            def named(k, _t=tonic, _m=mode, _s=spelled):
+                return _s.get(k) or spell(k, _t, _m)
+
+            names = " ".join(named(k) for k in keys)
             steps = _MODES[mode.lower()]
             marks = " ".join(degree_of(k, tonic, mode) for k in keys)
             #: **Named, not counted.**  A count says a bar is wrong; a
@@ -631,7 +761,7 @@ def report(rows: list, tell=print) -> None:
             #: section A is a `g4` where the mode's fourth is `gis` —
             #: which is `doc/notes/notes-on-writing-a-piece.md` W2's own
             #: sentence, and it is not a typo.
-            odd = [spell(k, tonic, mode) for k in keys
+            odd = [named(k) for k in keys
                    if (k - _PITCH_CLASS[tonic]) % 12 not in steps]
         else:
             names = " ".join(str(k) for k in keys)
