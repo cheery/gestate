@@ -1079,5 +1079,21 @@ known.  `doc/memory/dont-conclude-from-a-shallow-check.md`, on the
 page whose subject is retrieval, and it is now the first candidate
 standing question's own example.
 
-*Cards: `card:standing-questions.md` (doing, waiting on his choice),
-`card:testimony-inventory.md` (done).*
+### The source, corrected within the hour
+
+Henri chose — *"Your proposals are good, pick those"* — and brought a
+guest session's reading of the design: a session inventing its own
+cue invents it from the context that produced its answer, so it asks
+what it can already answer and calls that diligence.  Keep the idea,
+change the source: questions come from him or are harvested in
+hindsight at the close of a card, and answering is never mandatory.
+Taken the same morning — the hook line carries *consider; act if it
+changes anything; say nothing if it does not*, and `standing --check`
+at every commit that moves a card to `done/` asks *what question
+would have helped at the start of this?*  Five questions stand; the
+seven not chosen wait for the fire, which is the guest's other note:
+this is fire material, and it was built at 07:11.  The hook was
+installed on his side before the choosing was reported.
+
+*Cards: `card:standing-questions.md` (doing — live, and judged by its
+log from here), `card:testimony-inventory.md` (done).*

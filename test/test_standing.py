@@ -185,3 +185,17 @@ def test_the_command_answers_for_a_card_of_this_tree():
                          capture_output=True, text=True, cwd=ROOT)
     assert out.returncode == 0
     assert SHELF + "online.md" in out.stdout
+
+
+# --- the harvest --------------------------------------------------------------
+
+def test_a_commit_that_finishes_a_card_is_asked_the_harvest_question():
+    lines = ["M\tjournal.md", "R100\t" + SHELF + "thing.md\t" + DONE + "thing.md",
+             "A\t" + DONE + "other.md", "A\t" + LATER + "rest.md", "D\t" + DONE + "gone.md"]
+    assert standing.finished(lines) == [DONE + "thing.md", DONE + "other.md"]
+    line = standing.harvest_line(standing.finished(lines))
+    assert "thing.md, other.md is finished" in line and standing.HARVEST in line
+
+
+def test_a_commit_that_finishes_nothing_is_asked_nothing():
+    assert standing.harvest_line(standing.finished(["M\tjournal.md"])) == ""

@@ -6,7 +6,8 @@
 
     python tools/standing.py --hook          as a PostToolUse hook on Read and Bash: stdin in, context out
     python tools/standing.py card:<name>.md  what the hook would say for that card, on demand
-    python tools/standing.py --check         the lamp: 1 not installed, 2 the questions file is not usable
+    python tools/standing.py --check         the lamp: 1 not installed, 2 the questions file is not usable;
+                                             and the harvest question when a staged commit finishes a card
     python tools/standing.py --report        what the hook has been doing, from its own log
     python tools/standing.py --install       the settings.json lines to add
 
@@ -207,7 +208,8 @@ def _for_paths(paths: list[str], session: str, root: Path) -> str:
         asked_before.add(rel)
         note(rel, session, len(qs))
         shelf = shelf_of(path, root)
-        lines = [f"standing questions for a {shelf} card, {rel} (tools/standing.py):"]
+        lines = [f"standing questions for a {shelf} card, {rel} (tools/standing.py) — "
+                 "consider; act if it changes anything; say nothing if it does not:"]
         lines += [f"  - {q}" for q in qs]
         blocks.append("\n".join(lines))
     if not blocks:
@@ -237,6 +239,50 @@ def hook(stdin: str, root: Path = ROOT) -> str:
     except Exception as e:                                # noqa: BLE001
         print(f"standing --hook: {e!r}", file=sys.stderr)
         return ""
+
+
+# --- the harvest ---------------------------------------------------------------
+
+HARVEST = "what question would have helped at the start of this card?"
+
+
+def finished(status_lines: list[str]) -> list[str]:
+    """The cards a staged commit moves onto `done/`, from `git diff
+    --cached --name-status` lines: an `A` onto the done shelf, or an
+    `R` whose destination is."""
+    out = []
+    for line in status_lines:
+        parts = line.split("\t")
+        if len(parts) < 2:
+            continue
+        dest = parts[-1]
+        if parts[0][:1] in "AR" and dest.startswith("board/done/") and dest.endswith(".md"):
+            out.append(dest)
+    return out
+
+
+def staged(root: Path = ROOT) -> list[str]:
+    import subprocess
+    try:
+        r = subprocess.run(["git", "diff", "--cached", "--name-status"],
+                           capture_output=True, text=True, cwd=root, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return r.stdout.splitlines() if r.returncode == 0 else []
+
+
+def harvest_line(done: list[str]) -> str:
+    """**A question is harvested, not invented** — a session may propose one
+    only in hindsight, at the close of a card, because hindsight has the
+    evidence and the present has only the train of thought that produced
+    the answer (a guest session, relayed by Henri, 2026-09-06).  So the
+    one moment to ask is the commit that finishes a card, and this is
+    the line that asks; the answer goes under `## proposed`."""
+    if not done:
+        return ""
+    names = ", ".join(d[len("board/done/"):] for d in done)
+    return (f"standing: {names} is finished — {HARVEST}  "
+            f"A line under `## proposed` in board/standing.md, dated, naming the card; or nothing.")
 
 
 # --- the lamp, the report, the install ----------------------------------------
@@ -324,6 +370,9 @@ def main(argv=None) -> int:
     if a.check:
         code, line = check()
         print(line)
+        h = harvest_line(finished(staged()))
+        if h:
+            print(h)
         return code
     if a.report:
         print(report(a.days))

@@ -130,6 +130,10 @@ if "$PY" tools/suite.py --gates; then
     # touched for seven days goes to later/, through a session and him.
     # Names the cards, never moves one, never refuses.
     "$PY" tools/flow.py --check || true
+    # The standing questions' lamp, and the harvest: a commit that moves a
+    # card to done/ is asked what question would have helped at its start
+    # (card:standing-questions.md).  Prints, never refuses.
+    "$PY" tools/standing.py --check || true
     exit 0
 fi
 

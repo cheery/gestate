@@ -492,8 +492,9 @@ tree — many files here have over twenty citers — not on a fault here.
 once lands in front of a session at the moment it opens a card — the
 backlinks shape, once per card per sitting, three at most.  The
 questions are `board/standing.md`, a heading per shelf and a `proposed`
-heading that never fires; he chooses, a session proposes.  The install
-line is his.
+heading that never fires; he chooses, and a session proposes only in
+hindsight — the lamp at a commit that finishes a card asks what
+question would have helped at its start.  The install line is his.
 
 ### `tools/testimony.py` — what each memory's load-bearing claim rests on
 

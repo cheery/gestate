@@ -61,9 +61,10 @@ answered.
   denied to a session by the leash, so the hook is built and tested
   and does nothing until he pastes `python tools/standing.py --install`'s
   lines in — the same as the two before it.
-* **Nothing fires until a question is chosen.**  The candidates are
-  under `## proposed`, and `--check` says *installed; no question
-  chosen yet, so it fires on nothing* until one moves up.
+* **Chosen and installed the same morning.**  Five questions stand —
+  three for a live card, one each for shelved and refused — and
+  `--check` said *installed* at 07:40 on 2026-09-06, the settings line
+  pasted by Henri before the choosing was even reported.
 * **The measurement it is judged by is not built.**  `backlinks
   --earned` counts a follow: a fire whose offered file was opened next.
   A standing question has no such artefact — the nearest is whether the
@@ -73,9 +74,12 @@ answered.
 ## Questions
 
 1. **Which questions stand, and under which heading?** — twelve
-   candidates in `board/standing.md` §"proposed", each with what it
-   cost the last time nobody asked it.  *Henri's; open, 2026-09-06.*
-   Default if undecided: none fires, and the hook stays silent.
+   candidates under the questions file's `proposed` heading, each with
+   what it cost the last time nobody asked it.  **Answered, Henri,
+   2026-09-06:** *"Your proposals are good, pick those."* — the
+   session's own pick of 1, 3 and 4 for a live card, *event or Henri*
+   for a shelved one, and the refusal check for a refused one; the
+   other seven wait for the fire.
 2. **How is it judged?** — options: (a) the fire log alone, `--report`,
    which says it ran and nothing about whether it helped; (b) a follow
    in the backlinks sense, *the card's own file was edited in the
@@ -89,3 +93,25 @@ answered.
    card is the one place a session is about to decide something, and
    the cues page's own constraint is *at what moment* the cue lands.
    Widening is a new because.  *Session's, 2026-09-06.*
+4. **Where may a question come from?** — *A guest session, relayed by
+   Henri the same morning, on the design as first built:* **"you're
+   asking the fast system to generate its own cue.  The standing
+   question exists precisely because a session can't know what it
+   isn't thinking of.  If the session invents the question, it invents
+   it from the same activated context that produced its answer — so it
+   will generate a question it can already answer, and then answer it,
+   and the whole thing reads like diligence while retrieving nothing
+   new."*  Its fix, taken: **keep the idea, change the source** — the
+   questions come from Henri or are *harvested* in hindsight at the
+   close of a card (*"what question would have helped at the start of
+   this?"*), which is not invention but evidence; and answering is
+   never mandatory — *"consider it, act if it changes anything, say
+   nothing if it doesn't"*.  Built the same morning: the hook line
+   carries that clause, and `tools/standing.py --check` at every
+   commit that moves a card to `done/` asks the harvest question.
+   What it changes about the twelve: they were written by a session
+   from the tree's record, not from the card in hand — hindsight of a
+   kind — but in one morning, an hour downstream of the idea, so the
+   seven not chosen sit under `proposed` for the fire rather than
+   being struck or promoted.  *Its meta-note stands as the standing
+   caveat on this whole card: fire material, not keyboard material.*
