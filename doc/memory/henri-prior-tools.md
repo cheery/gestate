@@ -32,7 +32,9 @@ his to name.
   `staves.ui` is datalog: `present (note K) [X-5,290-5,10,10] :- offset
   K X Onset W, order K Onset 1.` and `draggable (note K) :- order K
   Onset 1.`  A wholly different answer to the furniture problem than
-  `furniture.rs`.
+  `furniture.rs`.  **Read in full 2026-09-06 and written up as
+  [[mide-staves-ui]]** — what the 55 lines do, the nine holes he named
+  as open, and the eight experiments elsewhere that each answer one.
 * **xylem** — a layout engine: a Cassowary-shaped linear-constraint
   solver (`constrainer.py`, `LinearExpr`/`flex`/`slack`/`eq`/`les`) with
   a **Knuth–Plass** line breaker and a lark stylesheet.
@@ -99,9 +101,9 @@ path — which is a requirement on rung 5, not an argument against it;
 `mide`'s datalog is a different
 answer to what `furniture.rs` does, and rung 5's named cost is that file
 plus `window.rs` plus the verb table; `xylem`'s Knuth–Plass is how
-sections and voices stack into a window, which is line breaking.  Two of
-his own tools argue about whether to build it that way at all, so it is
-a decision before it is work.
+sections and voices stack into a window, which is line breaking.  It is
+a decision before it is work, and [[mide-staves-ui]] is what the reading
+found: take the property, not the rule language.
 
 **How to apply:** read one of these *before* designing the thing it
 already did — the staff, the spelling, a parameter vocabulary, a
