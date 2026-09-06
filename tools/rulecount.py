@@ -47,8 +47,9 @@ RULES = (
     "vision.md",
 )
 
-#: Henri, 2026-08-20: *"2000 lines, for now."*
-CAP = 2000
+#: Henri, 2026-08-20: *"2000 lines, for now."*  Raised 2026-09-06, by him:
+#: *"Raise the cap to 2500, write it in."* — `spec/rules.md` §"The rule".
+CAP = 2500
 
 
 def counts() -> list[tuple[str, int]]:

@@ -1,4 +1,4 @@
-# rules.md — the method is capped at 2000 lines, and the cap is measured
+# rules.md — the method is capped at 2500 lines, and the cap is measured
 
 *Written as a contract, 2026-08-20, at Henri's ask, at five in the
 morning.  The cap is stated here and nowhere else; the count is
@@ -15,7 +15,7 @@ and a number that nobody measures is a mood.
 
 ## The rule
 
-**The rules set is five documents and it may not exceed 2000 lines
+**The rules set is five documents and it may not exceed 2500 lines
 total.**
 
 | file | what it is |
@@ -29,6 +29,17 @@ total.**
 *2000 for now* — Henri, 2026-08-20.  The number is allowed to move,
 by him, in writing, with the date.  It is not allowed to move because a
 session found it inconvenient on a Tuesday.
+
+**Moved once: 2000 → 2500, Henri, 2026-09-06.**  *"I think we've grown.
+rules cap could be raised to 2500"* — and, asked for the session's view:
+*"Raise the cap to 2500, write it in."*  The five stood at exactly 2000
+that morning and went 24 over on two instrument sections and one board
+line: an inventory of capabilities growing one section per tool, not
+narration — and a lamp that lights on every new instrument is the kind
+that gets muted.  The cost named at the time: about 500 more lines read
+by every session before it works, roughly seven thousand tokens, and a
+smaller model pays a larger share of its attention for it.  The fat
+rule is unchanged: narration still goes to the journal.
 
 ## Why there is a cap at all
 
@@ -62,7 +73,7 @@ says the set is getting fatter.
 
 **And the cap's second reason is the keeper's, not a stranger's** —
 `card:memory-atrophy.md`, move 3, 2026-08-24: *a method he could recite
-is worth more than a longer one he can search.*  The 2,000 lines and
+is worth more than a longer one he can search.*  The 2,500 lines and
 `vision.md`'s deliberate shortness are atrophy controls for the person
 who has to hold the shape of this in his head, and whoever is tempted
 to raise the number should know it is holding both things.

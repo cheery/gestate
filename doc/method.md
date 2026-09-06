@@ -78,7 +78,7 @@ tree breaks:
 | a generated page behind the source it describes | five A3 sheets, the API reference, the complaints register |
 | a register whose own header miscounts its entries | the defect ledger said 130 when it held 155 |
 | one of the ten pieces below missing, or without its declared test | a rule with no gate is a wish, and a directory of wishes reads like a directory of rules |
-| the five method documents growing past 2,000 lines | growth in the method may happen, and may not happen quietly |
+| the five method documents growing past 2,500 lines | growth in the method may happen, and may not happen quietly |
 | the journal's month index falling behind its archive | the index is the only way into a closed month |
 
 The last two are lamps rather than refusals. Growth in the method is

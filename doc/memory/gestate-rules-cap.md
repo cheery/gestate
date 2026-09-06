@@ -1,6 +1,6 @@
 ---
 name: gestate-rules-cap
-description: The method documents are capped at 2000 lines (spec/rules.md); the fat is session narration, and Fable's other lessons arrive one at a time
+description: The method documents are capped at 2500 lines since 2026-09-06, 2000 before (spec/rules.md); the fat is session narration, and Fable's other lessons arrive one at a time
 metadata:
   type: project
 ---
@@ -41,3 +41,9 @@ I pace them."* Take them one at a time too; do not try to synthesise the
 whole batch early.
 
 See [[gestate-board-goal]], [[henri-working-style]], [[gestate-instruments]].
+
+**Raised to 2500, 2026-09-06, by Henri** — *"I think we've grown.
+rules cap could be raised to 2500"*, then *"Raise the cap to 2500,
+write it in."*  `spec/rules.md` §"The rule" carries the reasoning: the
+overage was instrument sections, not narration.  The three cheats and
+the fat rule stand as written.
