@@ -2925,3 +2925,147 @@ def test_the_picture_outlines_the_group_and_moves_it_with_the_hand():
     after = heads(view)
     assert [a[1] - b[1] for a, b in zip(after, before)] == [-16, -16, -16, 0], \
         "the three selected move with a hand on the second; the fourth stays"
+
+
+# ── Slice 4, continued — resize a note by its end, and the selection with it ──
+
+
+def _end_of(roll, note):
+    """Where a hand takes a note's end: three pixels inside its last
+    column, on its own row."""
+    from gestate.scorebox import x_of, y_of
+
+    on, off, _k, key, _v, _m = roll.events[note]
+    return x_of(roll, off) - 3, y_of(roll, key)
+
+
+def test_a_press_in_a_notes_last_column_takes_its_end():
+    """The note's offset falls in the pressed column and the note is
+    wider than a column: the press reveals the line and says *its end*,
+    and pitch is not carried while the end is held."""
+    _here, seat, view, roll = _page_seat()
+    n = next(i for i, e in enumerate(roll.events) if e[1] - e[0] == 384)
+    ex, ey = _end_of(roll, n)
+    said = _feed(seat, view, "press", ex, ey)
+    assert said[0].endswith("— its end"), said
+    assert seat.resizing is not None and seat.resizing[1] == n
+    _feed(seat, view, "drag", ex, ey - 24)
+    assert seat.bench.previewing["__nb_lift_0__"] == 0.0, "a hand on an end carries no pitch"
+    before = seat.view.text()
+    said = _feed(seat, view, "release", ex, ey - 24)
+    assert "line " in said[0], "let go where it took hold is a click"
+    assert seat.view.text() == before
+    assert seat.resizing is None
+
+
+def test_a_press_in_the_middle_of_a_note_is_not_its_end():
+    from gestate.scorebox import x_of, y_of
+
+    _here, seat, view, roll = _page_seat()
+    n = next(i for i, e in enumerate(roll.events) if e[1] - e[0] == 384)
+    on, off, _k, key, _v, _m = roll.events[n]
+    _feed(seat, view, "press", (x_of(roll, on) + x_of(roll, off)) // 2, y_of(roll, key))
+    assert seat.resizing is None
+    _feed(seat, view, "release", (x_of(roll, on) + x_of(roll, off)) // 2, y_of(roll, key))
+
+
+def test_a_drag_on_the_end_rewrites_one_notes_length_by_the_grid():
+    """The slice's own number: a whole-bar note's end carried back one
+    beat changes its `len` field — 384 to 288 — on one line, and the
+    transcript says `resize`."""
+    _here, seat, view, roll = _page_seat()
+    n = next(i for i, e in enumerate(roll.events) if e[1] - e[0] == 384)
+    ex, ey = _end_of(roll, n)
+    _feed(seat, view, "press", ex, ey)
+    _feed(seat, view, "drag", ex - 16, ey)
+    said = _feed(seat, view, "drag", ex - 32, ey)
+    assert "len 384 → 288" in said[1], said
+    assert seat.bench.previewing["__nb_grow_0__"] == -32.0, "the picture shows it shorter first"
+    before = seat.view.text()
+    said = _feed(seat, view, "release", ex - 32, ey)
+    assert said[0].startswith("resize: arc.notes — len 384 → 288 on line "), said
+    changed = [(a, b) for a, b in zip(before.splitlines(), seat.view.text().splitlines()) if a != b]
+    assert len(changed) == 1
+    assert changed[0][0].replace("len 384", "len 288") == changed[0][1], "only the length moved"
+    assert any(step.verb == "resize" for step in seat.log.steps)
+
+
+def test_a_typed_resize_names_the_note_as_transpose_does():
+    _here, seat, view, roll = _page_seat()
+    n = next(i for i, e in enumerate(roll.events) if e[1] - e[0] == 384)
+    from gestate.scorebox import hands_of
+    column = next(h for h, (_t0, _t1, under) in enumerate(hands_of(roll)) if n in under)
+    key = roll.events[n][3]
+    before = seat.view.text()
+    assert seat.run("resize", f"__nb_c0_{column}__", key, 0).startswith("resize: a note is at least one tick")
+    assert seat.run("resize", "__nb_rail_0__", key, 96).startswith("resize: name the note's column")
+    assert seat.run("resize", f"__nb_c0_{column}__", key, 384).startswith("resize: nothing to do")
+    assert seat.view.text() == before
+    said = seat.run("resize", f"__nb_c0_{column}__", key, 480)
+    assert said.startswith("resize: arc.notes — len 384 → 480"), said
+    assert "len 480" in seat.view.text(), "past the bar line is written as it is"
+
+
+def test_a_hand_on_the_end_of_any_note_of_the_group_stretches_them_all():
+    """Sweep bar 1, take the end of one of the melody's notes, carry it
+    along one beat: six lines change their `len` by the same ticks,
+    through one rewrite, and the transcript says `stretch`."""
+    _here, seat, view, roll = _page_seat()
+    _sweep(seat, view, roll, 0, 78, 384, 62)
+    group = seat.group[0]
+    m = next(i for i in group if roll.events[i][1] - roll.events[i][0] == 96)
+    ex, ey = _end_of(roll, m)
+    _feed(seat, view, "press", ex, ey)
+    assert seat.group[0] == group, "a press on the end of a group's note keeps the group"
+    _feed(seat, view, "drag", ex + 16, ey)
+    _feed(seat, view, "drag", ex + 32, ey)
+    assert seat.bench.previewing["__nb_sels_0__"] == [float(x) for x in group]
+    assert seat.bench.previewing["__nb_grow_0__"] == 32.0
+    before = seat.view.text()
+    writes = []
+    real = seat.view.replace
+    seat.view.replace = lambda text: writes.append(text) or real(text)
+    said = _feed(seat, view, "release", ex + 32, ey)
+    assert said[0].startswith("stretch: arc.notes — ") and f"{len(group)} notes, +96 ticks" in said[0], said
+    assert len(writes) == 1
+    changed = [(a, b) for a, b in zip(before.splitlines(), seat.view.text().splitlines()) if a != b]
+    assert len(changed) == len(group)
+    for a, b in changed:
+        la = int(a.split("len ")[1].split()[0]); lb = int(b.split("len ")[1].split()[0])
+        assert lb - la == 96, (a, b)
+    assert 0 not in seat.group, "spent with the commit"
+
+
+def test_a_stretch_that_would_leave_a_note_shorter_than_a_tick_refuses_whole():
+    _here, seat, view, roll = _page_seat()
+    _sweep(seat, view, roll, 0, 78, 384, 62)
+    group = seat.group[0]
+    before = seat.view.text()
+    assert seat.run("stretch", "__nb_rail_0__", -96).startswith("stretch: arc.notes:"), "the melody's beat-long notes would vanish"
+    assert seat.view.text() == before and seat.group[0] == group
+    assert seat.run("stretch", "__nb_rail_0__", 0).startswith("stretch: nothing to do")
+    assert seat.run("stretch", "__nb_c0_0__", 12).startswith("stretch: name the box's rail")
+    said = seat.run("stretch", "__nb_rail_0__", -48)
+    assert said.startswith("stretch: arc.notes — ") and "-48 ticks" in said, said
+
+
+def test_the_picture_draws_the_held_selection_longer_from_its_start():
+    from gestate.gui import Substrate
+    from gestate.scorebox import geometry_of, rows_channel, rows_reading
+
+    rolls, _b, (live, _r, entries) = _live_and_baked()
+    view = Substrate.several(live, 44100, entries)[0]
+    roll = rolls[0]
+    geo = geometry_of(roll)
+    view.write(rows_channel(0), rows_reading(roll))
+    view.tick()
+    heads = lambda: [i for i in view.picture() if i[0] == "rect" and i[4] == geo.note_h][:3]
+    before = heads()
+    view.write("__nb_sels_0__", [0.0, 1.0])
+    view.write("__nb_held_0__", 0.0)
+    view.write("__nb_grow_0__", 24.0)
+    view.tick()
+    after = heads()
+    for k in (0, 1):
+        assert after[k][1] == before[k][1] and after[k][3] == before[k][3] + 24, "the start stays, the end moves"
+    assert after[2] == before[2], "an unselected note is untouched"

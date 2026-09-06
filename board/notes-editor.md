@@ -245,7 +245,21 @@ What made it possible was a rule the roll had been missing: a press
 farther than three semitones from any note is empty roll, where
 before it took the nearest note at any distance.
 
-**Left of slice 4:** resize a note or the selection, resize the
+**Left of slice 4** *(as of the seventh slice)*: resize a note or the selection, resize the
 section, tap a tempo.  And what this slice does not do: a group is
 spent with its commit rather than kept, as Reaper keeps it; and a
 click on a group keeps the group where a click elsewhere selects one.
+
+## A note resized by its end, and the selection with it — 2026-09-06
+
+**Henri:** *"take the next slice, resize a note and the selection."*
+A press in a note's last column takes its end, the body's hand
+carries the end along by the grid, and the release runs `resize` for
+one note or `stretch` for the group — every selected note's length by
+the same ticks, one rewrite.  Pitch is not carried while an end is
+held.  `spec/drawnscores.md` §"The eighth slice, built" is the
+contract, driven first time
+(`test/driven/20260906-160458-notes-resize-end-and-stretch`).
+
+**Left of slice 4:** resize the section — the clip, Q3's answer: an
+edit to the section record's `bars` — and the tapped tempo, Q2's.

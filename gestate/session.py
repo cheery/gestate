@@ -968,6 +968,10 @@ class Session:
     #: corners in keys and ticks — `{"found", "y", "k0", "k1", "t0",
     #: "t1"}` — until the hand lets go and `select` runs.
     banding: object = None
+    #: A hand on a note's **end** — `(column channel, note, its length
+    #: in ticks, box)` — so the drag along changes its length and not
+    #: its place (`card:notes-editor.md` slice 4: *adjust offset*).
+    resizing: object = None
     #: **The note the last press selected, per score box** — `{box:
     #: note}`.  It outlives the press, which `holding` does not, and
     #: it is the noun a command on the rail takes: a hand on the rail
@@ -2549,6 +2553,136 @@ class Session:
                  else self._hear_at(first, self.view.text()))
         step = f"{'+' if keys > 0 else ''}{keys}"
         return (f"carry: {name} — {len(rows)} notes, {step} semitones, "
+                f"{'+' if ticks > 0 else ''}{ticks} ticks{heard}")
+
+    def do_resize(self, region: str, key: int, length: int) -> str:
+        """Give one note of a score box a new length, in ticks.
+
+        **What a hand on a note's end runs when it lets go**
+        (`card:notes-editor.md` slice 4: *adjust offset*).  The note is
+        named as `transpose` names one — the column and the key it
+        sounds at — and only a note written in a `.notes` file can be
+        resized, where its length is one named field on one line.  A
+        length past the bar line is written as it is: the format allows
+        it and the bar clips it when it sounds.  Refused by name: no
+        such note, a `.ges`-written one, and a length under one tick.
+        """
+        from pathlib import Path
+
+        from .notes import NotesError, parse, retune
+        from .scorebox import RefusedError, note_of, pitch_atom
+
+        places = getattr(self.bench, "note_regions", None) or {}
+        found = places.get(region)
+        if found is None:
+            return f"resize: no score box region called `{region}`"
+        if getattr(found, "on_rail", False):
+            return "resize: name the note's column, as transpose does — the rail is the box's"
+        roll = found.roll
+        try:
+            note = note_of(roll, found.hand, int(key))
+            line, _col, _width, _key = pitch_atom(roll, note)
+        except RefusedError as exc:
+            return f"resize: {exc}"
+        where = (getattr(self.bench, "origins", None) or {}).get(line)
+        if where is None:
+            return ("resize: this note's length is not written as one number "
+                    "in this file — a note from a `.notes` file can be resized")
+        length = int(length)
+        if length < 1:
+            return "resize: a note is at least one tick long"
+        name, row = where
+        path = Path(getattr(self.bench, "path", ".")).parent / name
+        mine = self._is_document(name)
+        try:
+            text = self.view.text() if mine else path.read_text()
+            one = next((n for n in parse(text, name).notes if n.line == row), None)
+            place = f"{name}:{row}"
+            if one is None:
+                #: complaint  author — the line a hand on an end meant, in
+                #: the file that wrote it, which has changed under the roll
+                raise NotesError(f"{place} is not a note any more")
+            if one.length == length:
+                return "resize: nothing to do — that is its length"
+            out, said = retune(text, row, "len", one.length, length)
+            self._write_included(path, out, mine)
+        except (OSError, NotesError) as exc:
+            return f"resize: {exc}"
+        self.bench.audition(self.view.text())
+        heard = ("" if getattr(self.bench, "playing", False)
+                 else self._hear_at(roll.events[note][0], self.view.text()))
+        return f"resize: {name} — {said}{heard}"
+
+    def do_stretch(self, region: str, ticks: int) -> str:
+        """Lengthen or shorten every selected note by the same ticks.
+
+        `resize` for a group in one rewrite — what a hand on the end of
+        any note of the group runs when it lets go.  Refused whole if
+        any one of them cannot be resized or would be shorter than a
+        tick; the selection is spent with the commit, as `carry`'s is.
+        """
+        from pathlib import Path
+
+        from .notes import NotesError, parse, retune
+        from .scorebox import RefusedError, pitch_atom
+
+        places = getattr(self.bench, "note_regions", None) or {}
+        found = places.get(region)
+        if found is None:
+            return f"stretch: no score box region called `{region}`"
+        if not getattr(found, "on_rail", False):
+            return "stretch: name the box's rail — a group is the box's, not a column's"
+        group = self.group.get(found.box, ())
+        if not group:
+            return "stretch: nothing selected — sweep a band first"
+        ticks = int(ticks)
+        if ticks == 0:
+            return "stretch: nothing to do — no ticks"
+        roll = found.roll
+        origins = getattr(self.bench, "origins", None) or {}
+        rows, name = [], None
+        for note in group:
+            try:
+                line, _col, _width, _key = pitch_atom(roll, note)
+            except RefusedError as exc:
+                return f"stretch: {exc}"
+            where = origins.get(line)
+            if where is None:
+                return (f"stretch: the note at tick {roll.events[note][0]} is "
+                        "written in this `.ges`, not in a `.notes` file — "
+                        "a group is stretched in a `.notes` file only")
+            if name is not None and where[0] != name:
+                return "stretch: the group spans two files, and a stretch is one file's"
+            name = where[0]
+            rows.append(where[1])
+        path = Path(getattr(self.bench, "path", ".")).parent / name
+        mine = self._is_document(name)
+        try:
+            text = self.view.text() if mine else path.read_text()
+            by_line = {n.line: n for n in parse(text, name).notes}
+            out = text
+            for row in rows:
+                one = by_line.get(row)
+                place = f"{name}:{row}"
+                if one is None:
+                    #: complaint  author — the line a group's note was on, in
+                    #: the file that wrote it, which has changed under the roll
+                    raise NotesError(f"{place} is not a note any more")
+                if one.length + ticks < 1:
+                    #: complaint  author — the line, and the ticks that would
+                    #: leave it shorter than one
+                    raise NotesError(f"{place} would be shorter than a tick")
+                out, _word = retune(out, row, "len", one.length, one.length + ticks)
+            self._write_included(path, out, mine)
+        except (OSError, NotesError) as exc:
+            return f"stretch: {exc}"
+        first = min(roll.events[n][0] for n in group)
+        self.group.pop(found.box, None)
+        self.selected.pop(found.box, None)
+        self.bench.audition(self.view.text())
+        heard = ("" if getattr(self.bench, "playing", False)
+                 else self._hear_at(first, self.view.text()))
+        return (f"stretch: {name} — {len(rows)} notes, "
                 f"{'+' if ticks > 0 else ''}{ticks} ticks{heard}")
 
     def do_mark(self, region: str, was: str, manners: str) -> str:
@@ -4230,6 +4364,17 @@ class Session:
             if note not in self.group.get(found.box, ()):
                 self.group[found.box] = (note,)
             was = roll.events[note][3]
+            # **A press in a note's last column takes its end** — the
+            # column the note's offset falls in, when the note is wider
+            # than one column — and the drag along is a change of
+            # length, not of place (`resize`, `stretch`).  Pitch is
+            # not carried during it: a hand on an end is on an end.
+            from .scorebox import hands_of
+            t0, t1, _under = hands_of(roll)[hand]
+            on, off = roll.events[note][0], roll.events[note][1]
+            self.resizing = ((name, note, off - on, found.box)
+                             if t0 <= off - 1 < t1 and off - on > t1 - t0
+                             else None)
             # **Where the hand took hold, not where the note is.**  A
             # column is the full height of the roll, so a press lands
             # at *some* pitch and rarely the note's own — carried
@@ -4248,13 +4393,16 @@ class Session:
             # `.ges` included it the place is said and the caret stays
             # (rung 3: a click does not switch files).
             where = (getattr(self.bench, "origins", None) or {}).get(leaf.line)
+            end = " — its end" if self.resizing is not None else ""
             if where is None:
                 self.view.goto(leaf.line)
-                return f"line {leaf.line}"
+                return f"line {leaf.line}{end}"
             if self._is_document(where[0]):
                 self.view.goto(where[1])
-                return f"line {where[1]}"
-            return f"line {where[1]} of {where[0]}"
+                return f"line {where[1]}{end}"
+            return f"line {where[1]} of {where[0]}{end}"
+        if self.resizing is not None:
+            return ""                  # a hand on an end carries no pitch
         _n, note, was, grabbed, _at = self.holding
         key = was + key_at(roll, down) - grabbed
         self.holding = (name, note, was, grabbed, key)
@@ -4296,7 +4444,7 @@ class Session:
                                      found.sel: float(note),
                                      found.slide: float(slide),
                                      found.sels: self._group_reading(found),
-                                     found.band: []}
+                                     found.band: [], found.grow: 0.0}
         except Exception:                                # noqa: BLE001
             pass                       # a bench with no canvas to show
 
@@ -4323,7 +4471,8 @@ class Session:
                          float(ys[1] - ys[0] + 2 * pad)]
             self.bench.previewing = {found.held: -1.0, found.lift: 0.0,
                                      found.sel: -1.0, found.slide: 0.0,
-                                     found.sels: [], found.band: shown}
+                                     found.sels: [], found.band: shown,
+                                     found.grow: 0.0}
         except Exception:                                # noqa: BLE001
             pass
 
@@ -4351,6 +4500,25 @@ class Session:
             band["t1"] = tick
             self._show_band(found)
             return ""
+        rz = self.resizing
+        if rz is not None and rz[3] == found.box:
+            # **The end follows the hand**, by whole grid steps, never
+            # shorter than one; nothing is written until it lets go.
+            _yname, note, was, _box = rz
+            if self.holding_x is None or self.holding_x[0] != name:
+                self.holding_x = (name, note, was, tick_at(roll, across), was)
+                self._grow(found, note, was, was)
+                return ""
+            _n, note, was, grabbed, _len = self.holding_x
+            grid = grid_of(roll)
+            delta = tick_at(roll, across) - grabbed
+            length = max(grid, was + int(round(delta / grid)) * grid)
+            self.holding_x = (name, note, was, grabbed, length)
+            self._grow(found, note, was, length)
+            if length == was:
+                return ""
+            step = length - was
+            return f"len {was} → {length} ({'+' if step > 0 else ''}{step})"
         note = self.selected.get(found.box)
         if note is None or not 0 <= note < len(roll.events):
             return ("nothing selected — press a note first, then drag "
@@ -4391,7 +4559,23 @@ class Session:
                                      found.slide: float(x_of(found.roll, at)
                                                         - x_of(found.roll, was)),
                                      found.sels: self._group_reading(found),
-                                     found.band: []}
+                                     found.band: [], found.grow: 0.0}
+        except Exception:                                # noqa: BLE001
+            pass
+
+    def _grow(self, found, note: int, was: int, length: int) -> None:
+        """Show the held selection longer or shorter by what the hand on
+        the end has said — `_slide`'s sibling for a note's length."""
+        from .scorebox import x_of
+
+        on = found.roll.events[note][0]
+        try:
+            self.bench.previewing = {found.held: float(note), found.lift: 0.0,
+                                     found.sel: float(note), found.slide: 0.0,
+                                     found.sels: self._group_reading(found),
+                                     found.band: [],
+                                     found.grow: float(x_of(found.roll, on + length)
+                                                       - x_of(found.roll, on + was))}
         except Exception:                                # noqa: BLE001
             pass
 
@@ -4437,6 +4621,32 @@ class Session:
         held, held_x = self.holding, self.holding_x
         mine = held is not None and held[0] == name
         mine_x = held_x is not None and held_x[0] == name
+        rz = self.resizing
+        if rz is not None and (mine or mine_x):
+            # **The end's commit is `resize`** for one note and
+            # `stretch` for a group — one line, or every selected line,
+            # by the same ticks.  Let go where it took hold is a click
+            # on the note, and reveals it as any click does.
+            self.resizing = self.holding = self.holding_x = None
+            self._journal().add("released", (name,), "")
+            regions = getattr(self.bench, "note_regions", None) or {}
+            yname, note, was, box = rz
+            found = regions[yname]
+            length = held_x[4] if held_x is not None else was
+            if length == was:
+                self._unpreview(found)
+                return self._reveal(found, found.roll.events[note][3])
+            group = self.group.get(box, ())
+            if len(group) > 1 and note in group:
+                rail = next(k for k, r in regions.items() if r.box == box and r.on_rail)
+                said = self.run("stretch", rail, length - was)
+                if said.startswith("stretch:") and "—" not in said:
+                    self._unpreview(found)
+                return said
+            said = self.run("resize", yname, found.roll.events[note][3], length)
+            if said.startswith("resize:") and "—" not in said:
+                self._unpreview(found)
+            return said
         if mine or mine_x:
             # **The commit, and the only place a drag writes.**  One
             # text edit, one undo entry, one rebuild — and it goes
@@ -4651,7 +4861,7 @@ class Session:
                                      found.sel: float(-1 if sel is None else sel),
                                      found.slide: 0.0,
                                      found.sels: self._group_reading(found),
-                                     found.band: []}
+                                     found.band: [], found.grow: 0.0}
         except Exception:                                # noqa: BLE001
             pass
 

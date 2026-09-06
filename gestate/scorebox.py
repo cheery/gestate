@@ -1310,6 +1310,13 @@ class Region(NamedTuple):
         return f"__nb_sels_{self.box}__"
 
     @property
+    def grow(self) -> str:
+        """The channel that says how much wider the held selection is
+        drawn, in pixels — a hand on a note's end, before the file
+        changes (`card:notes-editor.md` slice 4: *adjust offset*)."""
+        return f"__nb_grow_{self.box}__"
+
+    @property
     def band(self) -> str:
         """The channel that draws the band a hand is sweeping on empty
         roll — `[cx, cy, w, h]` in the roll's own pixels, or nothing."""
@@ -1976,8 +1983,11 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
     # its outlines and moves with the hand as one; and the band a hand
     # sweeps over empty roll to select them, drawn while it sweeps.
     sels_c, band_c = f"__nb_sels_{box}__", f"__nb_band_{box}__"
+    # **And how much longer** (slice 4 again): a hand on a note's end
+    # widens the held selection before anything is written.
+    grow_c = f"__nb_grow_{box}__"
     chans = "".join(f"{c} : Chan Float\n{c} = chan\n"
-                    for c in [*named, held_c, lift_c, sel_c, slide_c])
+                    for c in [*named, held_c, lift_c, sel_c, slide_c, grow_c])
     chans += "".join(f"{c} : Chan (List Float)\n{c} = chan\n"
                      for c in [sels_c, band_c])
     rows_c, rows_s = rows_channel(box), f"__nb_rs_{box}__"
@@ -1992,6 +2002,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
     held_s, lift_s = f"__nb_h_{box}__", f"__nb_l_{box}__"
     sel_s, slide_s = f"__nb_s_{box}__", f"__nb_sl_{box}__"
     sels_s, band_s = f"__nb_ss_{box}__", f"__nb_bs_{box}__"
+    grow_s = f"__nb_gr_{box}__"
     member_g, band_g = f"__nb_member_{box}__", f"__nb_bandpic_{box}__"
     on_g = f"__nb_on_{box}__"
     shift_g, seln_g, mark_g = (f"__nb_shift_{box}__", f"__nb_seln_{box}__",
@@ -2008,6 +2019,8 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
             + f"{sel_s} = (0.0 - 1.0) ::: mkSig (wait {sel_c})\n\n"
             + f"{slide_s} : Sig Float\n"
             + f"{slide_s} = 0.0 ::: mkSig (wait {slide_c})\n\n"
+            + f"{grow_s} : Sig Float\n"
+            + f"{grow_s} = 0.0 ::: mkSig (wait {grow_c})\n\n"
             + f"{sels_s} : Sig (List Float)\n"
             + f"{sels_s} = Nil ::: mkSig (wait {sels_c})\n\n"
             + f"{band_s} : Sig (List Float)\n"
@@ -2112,35 +2125,37 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
             + f"{mark_g} on dy t d = case on of\n"
             + f"    True -> Shift 0 dy (Rect 3 {rail_h} ({hue_g} t d))\n"
             + "    False -> Gap 0 0\n\n"
-            + f"{one_g} : Int -> Int -> Int -> Int -> List Float -> "
+            + f"{one_g} : Int -> Int -> Int -> Int -> List Float -> Int -> "
               f"Int -> Int -> Int -> Int -> Int -> Int -> Int -> Sub\n"
-            + f"{one_g} h v s dx ss i x y w t d m = {one_g}_ h v dx "
-              f"({on_g} i s ss) i x y w t d m\n\n"
-            + f"{one_g}_ : Int -> Int -> Int -> Bool -> "
+            + f"{one_g} h v s dx ss gg i x y w t d m = {one_g}_ h v dx "
+              f"({shift_g} ({on_g} i s ss) h gg) ({on_g} i s ss) i x y w t d m\n\n"
+            # **A note grows from its end**: the bar keeps its start and
+            # is drawn `gr` wider, so its centre moves by half of that.
+            + f"{one_g}_ : Int -> Int -> Int -> Int -> Bool -> "
               f"Int -> Int -> Int -> Int -> Int -> Int -> Int -> Sub\n"
-            + f"{one_g}_ h v dx on i x y w t d m = Shift (x + {shift_g} on h dx) "
-              f"(y + {shift_g} on h v) (Over (Over ({seln_g} on w) "
-              f"(Rect w {geo.note_h} ({hue_g} t d))) (Over ({dot_g} m t d w) "
+            + f"{one_g}_ h v dx gr on i x y w t d m = Shift (x + {shift_g} on h dx + (gr / 2)) "
+              f"(y + {shift_g} on h v) (Over (Over ({seln_g} on (w + gr)) "
+              f"(Rect (w + gr) {geo.note_h} ({hue_g} t d))) (Over ({dot_g} m t d (w + gr)) "
               f"({mark_g} on ({_n(rail_y)} - y - {shift_g} on h v) t d)))\n\n"
-            + (f"{all_g} : Int -> Int -> Int -> Int -> List Float -> List Float -> Sub\n"
-               f"{all_g} h v s dx ss es = case es of\n"
+            + (f"{all_g} : Int -> Int -> Int -> Int -> List Float -> Int -> List Float -> Sub\n"
+               f"{all_g} h v s dx ss gg es = case es of\n"
                f"    i :: x :: y :: w :: t :: d :: m :: rest -> Over "
-               f"({one_g} h v s dx ss (floor i) (floor x) (floor y) (floor w) "
-               f"(floor t) (floor d) (floor m)) ({all_g} h v s dx ss rest)\n"
+               f"({one_g} h v s dx ss gg (floor i) (floor x) (floor y) (floor w) "
+               f"(floor t) (floor d) (floor m)) ({all_g} h v s dx ss gg rest)\n"
                "    _ -> Gap 0 0\n\n" if live else
-               f"{all_g} : Int -> Int -> Int -> Int -> List Float -> "
+               f"{all_g} : Int -> Int -> Int -> Int -> List Float -> Int -> "
                f"List (Int, Int, Int, Int, Int, Int, Int) -> Sub\n"
-               f"{all_g} h v s dx ss es = case es of\n"
+               f"{all_g} h v s dx ss gg es = case es of\n"
                "    Nil -> Gap 0 0\n"
                f"    (i, x, y, w, t, d, m) :: rest -> Over "
-               f"({one_g} h v s dx ss i x y w t d m) ({all_g} h v s dx ss rest)\n\n")
-            + (f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> List Float -> List Float -> Sub\n"
-               f"{pic_g} h v s dx ss bd es = Sized {geo.w} {geo.h} (Over (Over (Over\n"
+               f"({one_g} h v s dx ss gg i x y w t d m) ({all_g} h v s dx ss gg rest)\n\n")
+            + (f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> List Float -> Float -> List Float -> Sub\n"
+               f"{pic_g} h v s dx ss bd gg es = Sized {geo.w} {geo.h} (Over (Over (Over\n"
                if live else
-               f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> List Float -> Sub\n"
-               f"{pic_g} h v s dx ss bd = Sized {geo.w} {geo.h} (Over (Over (Over\n")
+               f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> List Float -> Float -> Sub\n"
+               f"{pic_g} h v s dx ss bd gg = Sized {geo.w} {geo.h} (Over (Over (Over\n")
             + f"    (Over {ground} ({band_g} bd))\n"
-            + f"    ({all_g} (floor h) (floor v) (floor s) (floor dx) ss "
+            + f"    ({all_g} (floor h) (floor v) (floor s) (floor dx) ss (floor gg) "
               f"{'es' if live else rows_g}))\n"
             + f"    (Shift {_n(0 if geo is COMPACT else left + body_w // 2)} "
               f"{geo.h // 2 - geo.foot // 2 - 1} (Label {120 if geo is COMPACT else body_w - 8} "
@@ -2151,7 +2166,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
             # does, and lifting the picture over the two channels above
             # is what lets the note follow before anything is rebuilt.
             + f"{entry} : Sig Sub\n"
-            + (f"{entry} = !{pic_g} {held_s} {lift_s} {sel_s} {slide_s} {sels_s} {band_s} {rows_s}\n"
+            + (f"{entry} = !{pic_g} {held_s} {lift_s} {sel_s} {slide_s} {sels_s} {band_s} {grow_s} {rows_s}\n"
                if live else
-               f"{entry} = !{pic_g} {held_s} {lift_s} {sel_s} {slide_s} {sels_s} {band_s}\n"))
+               f"{entry} = !{pic_g} {held_s} {lift_s} {sel_s} {slide_s} {sels_s} {band_s} {grow_s}\n"))
     return text, named

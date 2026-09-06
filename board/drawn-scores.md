@@ -870,3 +870,6 @@ And the slice after: *"take the next slice, multi-select and move as
 a group"* — a band swept over empty roll selects, a hand on any note
 of the group carries them all, `card:notes-editor.md` §"Select
 several, carry them as one".
+And the one after that: *"resize a note and the selection"* — a note's
+end taken in its last column, `resize` and `stretch`,
+`card:notes-editor.md` §"A note resized by its end".

@@ -242,6 +242,23 @@ select region tick0 key0 tick1 key1 = Stated
 carry : Text -> Int -> Int -> Command
 carry region keys ticks = Stated
 
+#: Give one note of a score box a new length, in ticks — what a hand on
+#: a note's end runs when it lets go (`card:notes-editor.md` slice 4).
+#: The note is named as `transpose` names one, the column and the key
+#: it sounds at.  Only a note written in a `.notes` file, where its
+#: length is one named field on one line; a length past the bar line is
+#: written as it is, and the bar clips it when it sounds.  Refuses by
+#: name no such note, a `.ges`-written one, and a length under a tick.
+resize : Text -> Int -> Int -> Command
+resize region key len = Stated
+
+#: Lengthen or shorten every selected note by the same ticks — `resize`
+#: for a group in one rewrite, what a hand on the end of any note of
+#: the group runs when it lets go.  Refused whole if any one of them
+#: cannot be resized or would be shorter than a tick.
+stretch : Text -> Int -> Command
+stretch region ticks = Stated
+
 #: A MIDI input on this machine.
 #:
 #: **Its own type so that the list can appear** — the rule `Named`,

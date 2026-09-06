@@ -85,6 +85,7 @@ DELIBERATELY_FRESH = {
              "of the new file has been swept",
     "banding": "a band being swept over empty roll — there is no hand on "
                "the new file",
+    "resizing": "a hand on a note's end — there is no hand on the new file",
     "selected": "the note the last press picked in a score box, per box — "
                 "no box of the new file has been pressed, and the rail "
                 "would move a note of the old one",

@@ -1322,3 +1322,16 @@ outlines, the group carried up two, six lines changed by two.  The
 compact box's own tests had pressed mid-column and meant the nearest
 note at any distance; they press on a note now, which is what a hand
 does.
+
+## A note resized by its end — 2026-09-06
+
+*"take the next slice, resize a note and the selection."*  The hands
+were already there: a press in a note's last column means its end,
+the body's hand carries the end along, and the release runs `resize`
+or, for a group, `stretch`.  The picture grows the held selection
+from its start by a reading in pixels.  Headless first time: the
+whole-bar note back a beat, six lines of a group along a beat.  On the window, first time too: shorter before the
+drop, `384` to `288`; six ends along a beat, seven lines.  The
+lookup test's bound tripped again inside the full-file run, 1.5 s
+against a lookup measured in a process that had just run 180 tests;
+still left as it is.

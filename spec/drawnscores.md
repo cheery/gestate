@@ -1294,6 +1294,49 @@ alone at well under it, with and without this slice: a bound written
 for a lookup measured in a process that had just run 170 tests.  Left
 as it is, and said here.
 
+### The eighth slice, built — a note resized by its end, and the selection with it — 2026-09-06
+
+*Henri: "take the next slice, resize a note and the selection."*  Slice
+4's *adjust offset* and *resize selection*, on the same two hands and
+with no new word on the wire.
+
+**A press in a note's last column takes its end** — the column the
+note's offset falls in, when the note is wider than one column, so a
+beat-long note at editing scale has an eight-pixel end and a whole-bar
+one the same.  The reveal says *its end*; pitch is not carried while
+an end is held, because a hand on an end is on an end.  The body's
+hand then carries the end along, by whole grid steps and never under
+one, the picture drawing the held selection longer or shorter from its
+start (`__nb_grow_k__`, pixels), and the release commits **`resize
+<column> key len`** for one note — named as `transpose` names one —
+or **`stretch <rail> ticks`** for a group, every selected line's `len`
+by the same ticks in one rewrite.  A length past the bar line is
+written as it is: the format allows it and the bar clips it when it
+sounds.  Refused by name: a `.ges`-written note, a length under a
+tick, and for a group the whole if any one of them would be.
+
+**Measured, headless:** the whole-bar `upper` note of bar 1, its end
+carried back a beat, `len 384` to `288` on one line; bar 1 swept and
+a melody note's end carried along a beat, six lines' `len` by `+96`
+through one `replace`, the four beat-long notes to `192` and the two
+held ones to `480`, past their bar line as written.  Seven tests under
+*Slice 4, continued*.
+
+**Driven, first time.**  `test/driven/20260906-160458-notes-resize-end-and-stretch`
+on the desk that ran it: the whole-bar note's end taken and carried
+back a beat, drawn shorter before the drop, `len 384` to `288`; then
+bar 1 swept, a melody note's end carried along a beat, the group drawn
+longer before the drop, and `Ctrl-S` left seven lines changed in the
+copy — the resize, and every selected `len` by `+96`, nothing else on
+any of them.
+
+**What this slice does not do, said now.**  A note's *start* cannot be
+taken — `at` moves with `move` and `carry`, the end with `resize` and
+`stretch`, and a hand on the first column is a move.  A group's ends
+move by the same ticks, not to the same place.  And the end of a note
+one column wide — a sixteenth at editing scale — is not a handle, the
+note being too narrow to have one; a typed `resize` still reaches it.
+
 ### What plugin-like scopes
 
 *"I'd like plugin-like, reusable behavior for this feature.  I think
