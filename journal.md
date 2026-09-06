@@ -1335,3 +1335,16 @@ drop, `384` to `288`; six ends along a beat, seven lines.  The
 lookup test's bound tripped again inside the full-file run, 1.5 s
 against a lookup measured in a process that had just run 180 tests;
 still left as it is.
+
+## The section resized on its ruler — 2026-09-06
+
+*"take the next slice, resize the section."*  The ruler had been a
+drawing since the sixth slice retired the rail; it is the section's
+handle now, a `TouchX` recorded before the body so it wins where the
+columns reach under it, and a hand on it carries the section's end by
+whole bars.  `bars` rewrites the section record's one field; a
+section grows freely and shrinks only past empty bars.  The compact
+box stays item-identical, having no section.  On the window, first time: one line, `bars 8` to
+`bars 9` — and a nine-bar section wider than the window, cut at its
+edge, which is the horizontal scroll the editing scale deferred,
+arriving from the first drag that could ask for it.

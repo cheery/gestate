@@ -972,6 +972,11 @@ class Session:
     #: in ticks, box)` — so the drag along changes its length and not
     #: its place (`card:notes-editor.md` slice 4: *adjust offset*).
     resizing: object = None
+    #: A hand on the ruler — the section's end — `(ruler channel, box,
+    #: bars it has, tick the hand took hold at, bars it is carried to)`
+    #: until the hand lets go and `bars` runs (slice 4: *resize the
+    #: clip*, answered as the section's `bars`).
+    sizing: object = None
     #: **The note the last press selected, per score box** — `{box:
     #: note}`.  It outlives the press, which `holding` does not, and
     #: it is the noun a command on the rail takes: a hand on the rail
@@ -2685,6 +2690,68 @@ class Session:
         return (f"stretch: {name} — {len(rows)} notes, "
                 f"{'+' if ticks > 0 else ''}{ticks} ticks{heard}")
 
+    def do_bars(self, region: str, was: int, now: int) -> str:
+        """Give the section a score box draws a new length, in bars.
+
+        **What a hand on the ruler runs when it lets go** — the clip of
+        `card:notes-editor.md` slice 4, which Henri answered as *section
+        resize is sufficient*: one field of the section record,
+        `bars`.  `region` is the box's ruler, which says whose section;
+        `was` is the bars it has, so a replayed line means the same
+        edit.  A section grows freely — a voice that stops early rests
+        — and shrinks only past empty bars: a bar with notes in it is
+        not cut by dragging, the notes being the point.
+        """
+        from pathlib import Path
+
+        from .notes import NotesError, parse, retune
+
+        places = getattr(self.bench, "note_regions", None) or {}
+        found = places.get(region)
+        if found is None:
+            return f"bars: no score box region called `{region}`"
+        if not getattr(found, "on_ruler", False):
+            return "bars: name the box's ruler — the section's end is taken there"
+        roll = found.roll
+        if len(roll.sections) != 1:
+            return (f"bars: this roll draws {len(roll.sections)} sections — "
+                    "a section is resized on a roll of its own")
+        was, now = int(was), int(now)
+        if now < 1:
+            return "bars: a section is at least one bar long"
+        name = Path(getattr(self.bench, "path", "untitled.notes")).name
+        if not self._is_document(name):
+            return "bars: the section is resized in its own `.notes` file, opened alone"
+        section_name = roll.sections[0]
+        try:
+            text = self.view.text()
+            parsed = parse(text, name)
+            section = next((s for s in parsed.sections if s.name == section_name), None)
+            place = f"{name}:{section.line}" if section is not None else name
+            if section is None:
+                #: complaint  author — the file, and the section the roll
+                #: was drawn from, which is not in it any more
+                raise NotesError(f"{place}: section {section_name} is not written any more")
+            if section.bars != was:
+                return (f"bars: section {section_name} has {section.bars} bars, "
+                        f"not {was} — the file has moved under the picture")
+            if now == was:
+                return "bars: nothing to do — that is its length"
+            full = sorted({n.bar for n in parsed.notes
+                           if n.section == section_name and n.bar > now})
+            if full:
+                #: complaint  author — the section's line, and the bar the
+                #: drag would cut that still has notes in it
+                raise NotesError(
+                    f"{place}: bar {full[0]} of section {section_name} has notes — "
+                    "a section does not shrink past its notes by dragging")
+            out, said = retune(text, section.line, "bars", was, now)
+            self._write_included(Path(getattr(self.bench, "path", ".")), out, True)
+        except (OSError, NotesError) as exc:
+            return f"bars: {exc}"
+        self.bench.audition(self.view.text())
+        return f"bars: {name} — section {section_name} {said}"
+
     def do_mark(self, region: str, was: str, manners: str) -> str:
         """Write how one note of a score box is to be played.
 
@@ -4325,6 +4392,8 @@ class Session:
             return None
         roll, hand = found.roll, found.hand
         self._journal().slid("touched", (name, down))
+        if getattr(found, "on_ruler", False):
+            return self._ruler_touched(found, name, down)
         if getattr(found, "on_rail", False):
             return self._rail_touched(found, name, down)
         band = self.banding
@@ -4444,7 +4513,8 @@ class Session:
                                      found.sel: float(note),
                                      found.slide: float(slide),
                                      found.sels: self._group_reading(found),
-                                     found.band: [], found.grow: 0.0}
+                                     found.band: [], found.grow: 0.0,
+                                     found.endx: -10000.0}
         except Exception:                                # noqa: BLE001
             pass                       # a bench with no canvas to show
 
@@ -4472,7 +4542,7 @@ class Session:
             self.bench.previewing = {found.held: -1.0, found.lift: 0.0,
                                      found.sel: -1.0, found.slide: 0.0,
                                      found.sels: [], found.band: shown,
-                                     found.grow: 0.0}
+                                     found.grow: 0.0, found.endx: -10000.0}
         except Exception:                                # noqa: BLE001
             pass
 
@@ -4490,6 +4560,8 @@ class Session:
         from .scorebox import grid_of, tick_at, x_of
 
         roll = found.roll
+        if self.sizing is not None:
+            return ""                  # the ruler has the hand; the body carries nothing
         band = self.banding
         if band is not None and band["found"].box == found.box:
             # The band's corners in time: the press's tick, then wherever
@@ -4544,6 +4616,54 @@ class Session:
         step = at - was
         return f"tick {was} → {at} ({'+' if step > 0 else ''}{step})"
 
+    def _ruler_touched(self, found, name: str, across: float) -> str:
+        """A hand on the ruler — the section's end, carried by whole bars.
+
+        **The ruler is the section's handle** (`card:notes-editor.md`
+        slice 4, *resize the clip* — Henri: *"section resize is
+        sufficient"*): a press on it takes the end of the section the
+        roll draws, the drag along carries it by the bars the hand has
+        travelled, never under one, and the release runs `bars`.  The
+        picture draws the end where it would fall, inside the roll; a
+        section growing past the roll's edge is said in the status line
+        and drawn when the file has it.
+        """
+        from .scorebox import scale_of, tick_at
+
+        roll = found.roll
+        bars = roll.bars or ()
+        _lo, _hi, span = scale_of(roll)
+        one = (bars[1] - bars[0]) if len(bars) > 1 else span
+        if self.sizing is None or self.sizing[0] != name:
+            was = len(bars)
+            self.sizing = (name, found.box, was, tick_at(roll, across), was)
+            self._show_end(found, span)
+            return "the section's end — drag along to change its bars"
+        _n, _box, was, grabbed, _now = self.sizing
+        delta = tick_at(roll, across) - grabbed
+        now = max(1, was + int(round(delta / max(1, one))))
+        self.sizing = (name, found.box, was, grabbed, now)
+        self._show_end(found, now * one)
+        if now == was:
+            return f"bars {was} — as written"
+        step = now - was
+        return f"bars {was} → {now} ({'+' if step > 0 else ''}{step})"
+
+    def _show_end(self, found, tick: int) -> None:
+        """Draw the section's end at this tick, inside the roll."""
+        from .scorebox import body_of, x_of
+
+        left, _top, width, _h = body_of(found.roll)
+        try:
+            self.bench.previewing = {found.held: -1.0, found.lift: 0.0,
+                                     found.sel: -1.0, found.slide: 0.0,
+                                     found.sels: self._group_reading(found),
+                                     found.band: [], found.grow: 0.0,
+                                     found.endx: float(min(left + width - 1,
+                                                           x_of(found.roll, tick)))}
+        except Exception:                                # noqa: BLE001
+            pass
+
     def _slide(self, found, note: int, was: int, at: int) -> None:
         """Show the selected note where the hand on the rail has carried
         it, before anything is rebuilt — `_preview`'s sibling for the
@@ -4559,7 +4679,8 @@ class Session:
                                      found.slide: float(x_of(found.roll, at)
                                                         - x_of(found.roll, was)),
                                      found.sels: self._group_reading(found),
-                                     found.band: [], found.grow: 0.0}
+                                     found.band: [], found.grow: 0.0,
+                                     found.endx: -10000.0}
         except Exception:                                # noqa: BLE001
             pass
 
@@ -4575,7 +4696,8 @@ class Session:
                                      found.sels: self._group_reading(found),
                                      found.band: [],
                                      found.grow: float(x_of(found.roll, on + length)
-                                                       - x_of(found.roll, on + was))}
+                                                       - x_of(found.roll, on + was)),
+                                     found.endx: -10000.0}
         except Exception:                                # noqa: BLE001
             pass
 
@@ -4601,6 +4723,25 @@ class Session:
         for.  A model that does not know the verb answers "no gesture"
         and loses a commit, not the editor.
         """
+        sz = self.sizing
+        if sz is not None:
+            regions = getattr(self.bench, "note_regions", None) or {}
+            rail = next((k for k, r in regions.items()
+                         if r.box == sz[1] and r.on_rail), None)
+            if name == sz[0] or name == rail:
+                # **The ruler's commit is `bars`**: one line of the
+                # section record.  Let go where it took hold changes
+                # nothing and says nothing.
+                self.sizing = self.holding_x = None
+                self._journal().add("released", (name,), "")
+                rname, _box, was, _grabbed, now = sz
+                if now == was:
+                    self._unpreview(regions[rname])
+                    return ""
+                said = self.run("bars", rname, was, now)
+                if said.startswith("bars:") and "—" not in said:
+                    self._unpreview(regions[rname])
+                return said
         band = self.banding
         if band is not None:
             regions = getattr(self.bench, "note_regions", None) or {}
@@ -4861,7 +5002,8 @@ class Session:
                                      found.sel: float(-1 if sel is None else sel),
                                      found.slide: 0.0,
                                      found.sels: self._group_reading(found),
-                                     found.band: [], found.grow: 0.0}
+                                     found.band: [], found.grow: 0.0,
+                                     found.endx: -10000.0}
         except Exception:                                # noqa: BLE001
             pass
 

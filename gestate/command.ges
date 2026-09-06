@@ -259,6 +259,17 @@ resize region key len = Stated
 stretch : Text -> Int -> Command
 stretch region ticks = Stated
 
+#: Give the section a score box draws a new length in bars — what a
+#: hand on the box's **ruler** runs when it lets go (`card:notes-editor.md`
+#: slice 4, *resize the clip*, which Henri answered as the section's
+#: `bars`).  `region` is the ruler, which says whose section; `was` the
+#: bars it has, so a replayed line means the same edit.  A section
+#: grows freely and shrinks only past empty bars: a bar with notes in
+#: it is not cut by dragging.  Refuses by name a roll of several
+#: sections, and a `.notes` not opened alone.
+bars : Text -> Int -> Int -> Command
+bars region was now = Stated
+
 #: A MIDI input on this machine.
 #:
 #: **Its own type so that the list can appear** — the rule `Named`,

@@ -873,3 +873,5 @@ several, carry them as one".
 And the one after that: *"resize a note and the selection"* — a note's
 end taken in its last column, `resize` and `stretch`,
 `card:notes-editor.md` §"A note resized by its end".
+And *"resize the section"*: the ruler as the section's handle, `bars`,
+`card:notes-editor.md` §"The section resized on its ruler".

@@ -261,5 +261,21 @@ held.  `spec/drawnscores.md` §"The eighth slice, built" is the
 contract, driven first time
 (`test/driven/20260906-160458-notes-resize-end-and-stretch`).
 
-**Left of slice 4:** resize the section — the clip, Q3's answer: an
+**Left of slice 4** *(as of the eighth slice)*: resize the section — the clip, Q3's answer: an
 edit to the section record's `bars` — and the tapped tempo, Q2's.
+
+## The section resized on its ruler — 2026-09-06
+
+**Henri:** *"take the next slice, resize the section."*  The ruler is
+the section's handle now: a press takes the section's end, the drag
+along carries it by whole bars, and the release runs `bars`, one
+field of the section record.  It grows freely and shrinks only past
+empty bars.  `spec/drawnscores.md` §"The ninth slice, built" is the
+contract, driven first time
+(`test/driven/20260906-162036-notes-section-resized-on-ruler`).
+
+**Left of slice 4:** the tapped tempo, Q2's answer — the `.ges`'s
+`bpm` line edited the way a knob writes its number back, and a
+`.notes` `bpm` record read only when no `.ges` says.  And a grown
+section is wider than the window, which is the horizontal scroll the
+fifth slice said no section of eight bars would ask for.

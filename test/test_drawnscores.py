@@ -1376,7 +1376,11 @@ def test_a_field_of_a_note_line_is_rewritten_byte_exactly():
 
 
 @pytest.mark.parametrize("where,was,says", [
-    ("section", 62, "is not a note"),
+    # A section line is a record too, since its `bars` is dragged
+    # (slice 4): a pitch drag aimed at it is refused on its `key`, the
+    # tonic, which never says a number.
+    ("section", 62, "says `key D` where the roll thought `key 62`"),
+    ("comment", 62, "is not a record"),
     ("note", 999, "the file has moved under the picture"),
     ("past the end", 62, "not in this file any more"),
 ])
@@ -1384,6 +1388,7 @@ def test_a_rewrite_is_refused_rather_than_forced(where, was, says):
     text = NOTES.read_text()
     line = {"section": text.splitlines().index(
                 [l for l in text.splitlines() if l.startswith("section ")][0]) + 1,
+            "comment": 1,
             "note": _first_note(text),
             "past the end": 99999}[where]
     with pytest.raises(notes.NotesError, match=says):
@@ -3069,3 +3074,66 @@ def test_the_picture_draws_the_held_selection_longer_from_its_start():
     for k in (0, 1):
         assert after[k][1] == before[k][1] and after[k][3] == before[k][3] + 24, "the start stays, the end moves"
     assert after[2] == before[2], "an unselected note is untouched"
+
+
+# ── Slice 4, continued — the section resized on its ruler ──────────────────
+
+
+def test_the_ruler_is_the_sections_handle_and_a_drag_along_rewrites_its_bars():
+    """A press on the ruler takes the section's end; a drag along by one
+    bar says `bars 8 → 9`, the picture marks the end, and the release
+    runs `bars`: the section record's one field on one line."""
+    from gestate.scorebox import rail_of, scale_of, x_of
+
+    _here, seat, view, roll = _page_seat()
+    cx, cy, w, h = rail_of(roll)
+    _lo, _hi, span = scale_of(roll)
+    one = roll.bars[1] - roll.bars[0]
+    said = _feed(seat, view, "press", x_of(roll, 4 * one), cy)
+    assert said[0].startswith("the section's end"), said
+    assert said[1] == "", "the body carries nothing while the ruler has the hand"
+    assert seat.sizing is not None and seat.sizing[2] == 8
+    assert seat.bench.previewing["__nb_endx_0__"] > -9000, "the end is drawn"
+    _feed(seat, view, "drag", x_of(roll, 4 * one) + 64, cy)
+    said = _feed(seat, view, "drag", x_of(roll, 5 * one), cy)
+    assert said[0] == "bars 8 → 9 (+1)", said
+    before = seat.view.text()
+    said = _feed(seat, view, "release", x_of(roll, 5 * one), cy)
+    assert said[0].startswith("bars: arc.notes — section A bars 8 → 9 on line "), said
+    changed = [(a, b) for a, b in zip(before.splitlines(), seat.view.text().splitlines()) if a != b]
+    assert changed == [("section A  key D  mode lydian  bars 8  beats 4  voices melody,upper,middle,lower,bass",
+                        "section A  key D  mode lydian  bars 9  beats 4  voices melody,upper,middle,lower,bass")]
+    assert seat.sizing is None
+    assert any(step.verb == "bars" for step in seat.log.steps)
+
+
+def test_a_section_does_not_shrink_past_its_notes_and_grows_freely():
+    _here, seat, view, roll = _page_seat()
+    before = seat.view.text()
+    said = seat.run("bars", "__nb_ruler_0__", 8, 7)
+    assert said.startswith("bars: arc.notes:") and "bar 8 of section A has notes" in said, said
+    assert seat.view.text() == before
+    assert seat.run("bars", "__nb_ruler_0__", 8, 0).startswith("bars: a section is at least one bar")
+    assert seat.run("bars", "__nb_ruler_0__", 7, 9).startswith("bars: section A has 8 bars, not 7")
+    assert seat.run("bars", "__nb_ruler_0__", 8, 8).startswith("bars: nothing to do")
+    assert seat.run("bars", "__nb_rail_0__", 8, 9).startswith("bars: name the box's ruler")
+    assert seat.run("bars", "__nb_ruler_0__", 8, 10).startswith("bars: arc.notes — section A bars 8 → 10")
+    assert "bars 10  beats 4" in seat.view.text()
+    assert seat.run("bars", "__nb_ruler_0__", 10, 8).startswith("bars: arc.notes — section A bars 10 → 8"), "back past empty bars"
+
+
+def test_a_click_on_the_ruler_changes_nothing_and_the_compact_box_has_no_ruler():
+    from gestate.scorebox import RULER, build_rolls, rail_of, regions_of
+
+    _here, seat, view, roll = _page_seat()
+    cx, cy, _w, _h = rail_of(roll)
+    before = seat.view.text()
+    _feed(seat, view, "press", cx, cy)
+    said = _feed(seat, view, "release", cx, cy)
+    assert said == ["", ""] and seat.view.text() == before
+    assert seat.bench.previewing["__nb_endx_0__"] == -10000.0, "the end mark is gone"
+
+    source, _o = notes.expanded(ARCNOTES.read_text(), ARCNOTES.parent)
+    asks = [(i + 1, l[6:]) for i, l in enumerate(source.splitlines()) if l.startswith("notes ")]
+    box = build_rolls(source, asks[:1], 22050, 0)[0]
+    assert not any(r.hand == RULER for r in regions_of([box]).values()), "no section, no handle"

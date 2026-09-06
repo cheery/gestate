@@ -182,6 +182,9 @@ class Roll:
     #: them, and `None` for a `.ges` take, which has no bars to draw.
     bars: tuple | None = None
     beat: int | None = None
+    #: The names of the `.notes` sections this roll draws, in order —
+    #: what `bars` resizes.  Empty for a `.ges` take.
+    sections: tuple = ()
 
 
 # ── The descent ─────────────────────────────────────────────────────────────
@@ -1211,6 +1214,12 @@ RAIL_H = 4
 RAIL_Y = -(ROLL_H // 2) + RAIL_H // 2
 #: The rail's hand number in a `Region` — no column has it.
 RAIL = -1
+#: The ruler's hand number in a `Region` — the section's end, taken
+#: there (`card:notes-editor.md` slice 4: *resize the clip*, which
+#: Henri answered as the section's `bars`).  Only a roll that knows
+#: its bars hands one out; the compact box beside a `.ges` line does
+#: not, having no section to resize.
+RULER = -2
 
 #: **A drag in time snaps to the roll's own grid**, and never finer
 #: than a thirty-second: the largest tick that divides every onset and
@@ -1323,6 +1332,16 @@ class Region(NamedTuple):
         return f"__nb_band_{self.box}__"
 
     @property
+    def endx(self) -> str:
+        """The channel that draws where a section's end is being carried
+        to, in the roll's own pixels — or nothing, far off the roll."""
+        return f"__nb_endx_{self.box}__"
+
+    @property
+    def on_ruler(self) -> bool:
+        return self.hand == RULER
+
+    @property
     def on_rail(self) -> bool:
         return self.hand == RAIL
 
@@ -1336,12 +1355,19 @@ def regions_of(rolls: list) -> dict:
         for i, _hand in enumerate(hands_of(roll)):
             out[_chan(box, i)] = Region(roll, i, box)
         out[_rail(box)] = Region(roll, RAIL, box)
+        if roll.bars:
+            out[_ruler(box)] = Region(roll, RULER, box)
     return out
 
 
 def _rail(box: int) -> str:
     """The channel the box's time rail writes."""
     return f"__nb_rail_{box}__"
+
+
+def _ruler(box: int) -> str:
+    """The channel the box's ruler writes — a hand on the section's end."""
+    return f"__nb_ruler_{box}__"
 
 
 def note_under(roll: Roll, hand: int, down: float) -> int:
@@ -1509,7 +1535,8 @@ def notes_rolls(program: str, asks_: list, origins: dict, parsed) -> list:
                           for n in drawn)
         out.append(Roll(events, leaves, False, False, 0, scale=scale,
                         geometry=editing(*scale), title=title,
-                        bars=tuple(bars), beat=TICKS_PER_BEAT))
+                        bars=tuple(bars), beat=TICKS_PER_BEAT,
+                        sections=tuple(drawn)))
     return out
 
 
@@ -1794,7 +1821,7 @@ def _furniture(roll: Roll) -> list:
     return out
 
 
-def _ruler(roll: Roll) -> str:
+def _ruler_pic(roll: Roll) -> str:
     """What the rail draws inside its own `Sized`: the compact box's
     faint track, unchanged; at editing scale the track along its foot,
     a tick at every beat, and the bar's number at every bar line."""
@@ -1955,7 +1982,14 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
     body = (f"(Shift {_n(bcx)} {_n(bcy)} "
             f"(TouchX {rail_c} (Sized {body_w} {reach_bottom - reach_top} "
             f"{_overs(['(Gap 0 0)'] + regions)})))")
-    ruler = f"(Shift {_n(rail_x)} {_n(rail_y)} (Sized {rail_w} {rail_h} {_ruler(roll)}))"
+    # **The ruler is the section's handle** where there is a section:
+    # a `TouchX` the body's width, recorded before the body so it wins
+    # where the columns reach up under it, and a hand on it carries the
+    # section's end by whole bars (`bars`).  The compact box's strip
+    # stays a drawing.
+    ruler_pic = f"(Sized {rail_w} {rail_h} {_ruler_pic(roll)})"
+    ruler = (f"(Shift {_n(rail_x)} {_n(rail_y)} (TouchX {_ruler(box)} {ruler_pic}))"
+             if roll.bars else f"(Shift {_n(rail_x)} {_n(rail_y)} {ruler_pic})")
     hands = _overs(["(Gap 0 0)", ruler, body])
 
     caption = f"TAKE {roll.seed}" if roll.chancy else (roll.title or "NOTES")
@@ -1986,8 +2020,13 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
     # **And how much longer** (slice 4 again): a hand on a note's end
     # widens the held selection before anything is written.
     grow_c = f"__nb_grow_{box}__"
+    # **And where a section's end is being carried** — an x in the
+    # roll's own pixels, or far off it for none.
+    endx_c = f"__nb_endx_{box}__"
+    if roll.bars:
+        named = named + [_ruler(box)]
     chans = "".join(f"{c} : Chan Float\n{c} = chan\n"
-                    for c in [*named, held_c, lift_c, sel_c, slide_c, grow_c])
+                    for c in [*named, held_c, lift_c, sel_c, slide_c, grow_c, endx_c])
     chans += "".join(f"{c} : Chan (List Float)\n{c} = chan\n"
                      for c in [sels_c, band_c])
     rows_c, rows_s = rows_channel(box), f"__nb_rs_{box}__"
@@ -2002,7 +2041,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
     held_s, lift_s = f"__nb_h_{box}__", f"__nb_l_{box}__"
     sel_s, slide_s = f"__nb_s_{box}__", f"__nb_sl_{box}__"
     sels_s, band_s = f"__nb_ss_{box}__", f"__nb_bs_{box}__"
-    grow_s = f"__nb_gr_{box}__"
+    grow_s, endx_s, end_g = f"__nb_gr_{box}__", f"__nb_ex_{box}__", f"__nb_end_{box}__"
     member_g, band_g = f"__nb_member_{box}__", f"__nb_bandpic_{box}__"
     on_g = f"__nb_on_{box}__"
     shift_g, seln_g, mark_g = (f"__nb_shift_{box}__", f"__nb_seln_{box}__",
@@ -2021,6 +2060,14 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
             + f"{slide_s} = 0.0 ::: mkSig (wait {slide_c})\n\n"
             + f"{grow_s} : Sig Float\n"
             + f"{grow_s} = 0.0 ::: mkSig (wait {grow_c})\n\n"
+            + f"{endx_s} : Sig Float\n"
+            + f"{endx_s} = (0.0 - 10000.0) ::: mkSig (wait {endx_c})\n\n"
+            # **The section's end, while a hand carries it**: a bright
+            # line the body's height, or nothing.
+            + f"{end_g} : Int -> Sub\n"
+            + f"{end_g} e = case e > (0 - 9000) of\n"
+            + f"    True -> Shift e {_n(top + body_h // 2)} (Rect 2 {body_h} (RGB 236 200 120))\n"
+            + "    False -> Gap 0 0\n\n"
             + f"{sels_s} : Sig (List Float)\n"
             + f"{sels_s} = Nil ::: mkSig (wait {sels_c})\n\n"
             + f"{band_s} : Sig (List Float)\n"
@@ -2149,14 +2196,14 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
                "    Nil -> Gap 0 0\n"
                f"    (i, x, y, w, t, d, m) :: rest -> Over "
                f"({one_g} h v s dx ss gg i x y w t d m) ({all_g} h v s dx ss gg rest)\n\n")
-            + (f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> List Float -> Float -> List Float -> Sub\n"
-               f"{pic_g} h v s dx ss bd gg es = Sized {geo.w} {geo.h} (Over (Over (Over\n"
+            + (f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> List Float -> Float -> Float -> List Float -> Sub\n"
+               f"{pic_g} h v s dx ss bd gg ex es = Sized {geo.w} {geo.h} (Over (Over (Over\n"
                if live else
-               f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> List Float -> Float -> Sub\n"
-               f"{pic_g} h v s dx ss bd gg = Sized {geo.w} {geo.h} (Over (Over (Over\n")
+               f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> List Float -> Float -> Float -> Sub\n"
+               f"{pic_g} h v s dx ss bd gg ex = Sized {geo.w} {geo.h} (Over (Over (Over\n")
             + f"    (Over {ground} ({band_g} bd))\n"
-            + f"    ({all_g} (floor h) (floor v) (floor s) (floor dx) ss (floor gg) "
-              f"{'es' if live else rows_g}))\n"
+            + f"    (Over ({all_g} (floor h) (floor v) (floor s) (floor dx) ss (floor gg) "
+              f"{'es' if live else rows_g}) ({end_g} (floor ex))))\n"
             + f"    (Shift {_n(0 if geo is COMPACT else left + body_w // 2)} "
               f"{geo.h // 2 - geo.foot // 2 - 1} (Label {120 if geo is COMPACT else body_w - 8} "
               f"12 \"{caption}\" (RGB 120 124 134))))\n"
@@ -2166,7 +2213,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
             # does, and lifting the picture over the two channels above
             # is what lets the note follow before anything is rebuilt.
             + f"{entry} : Sig Sub\n"
-            + (f"{entry} = !{pic_g} {held_s} {lift_s} {sel_s} {slide_s} {sels_s} {band_s} {grow_s} {rows_s}\n"
+            + (f"{entry} = !{pic_g} {held_s} {lift_s} {sel_s} {slide_s} {sels_s} {band_s} {grow_s} {endx_s} {rows_s}\n"
                if live else
-               f"{entry} = !{pic_g} {held_s} {lift_s} {sel_s} {slide_s} {sels_s} {band_s} {grow_s}\n"))
+               f"{entry} = !{pic_g} {held_s} {lift_s} {sel_s} {slide_s} {sels_s} {band_s} {grow_s} {endx_s}\n"))
     return text, named

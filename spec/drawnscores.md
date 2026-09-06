@@ -1337,6 +1337,54 @@ move by the same ticks, not to the same place.  And the end of a note
 one column wide — a sixteenth at editing scale — is not a handle, the
 note being too narrow to have one; a typed `resize` still reaches it.
 
+### The ninth slice, built — the section resized on its ruler — 2026-09-06
+
+*Henri: "take the next slice, resize the section."*  The clip of slice
+4, which he answered on the card as *section resize is sufficient*: an
+edit to the section record's `bars`.
+
+**The ruler is the section's handle.**  On a roll that knows its bars
+the ruler strip is a `TouchX` the body's width, recorded before the
+body so it wins where the columns reach up under it — the control the
+seventh slice said the ruler was not yet.  A press on it takes the
+section's end; the drag along carries the end by the whole bars the
+hand has travelled, never under one, the picture drawing a bright
+line where the end would fall (`__nb_endx_k__`, inside the roll); and
+the release commits **`bars <ruler> was now`**, one field of the
+section record on one line, `was` carried so a replayed line means the
+same edit.  The body's hand, grabbed by the same press, carries
+nothing while the ruler has it.  The compact box beside a `.ges` line
+hands out no such thing, having no section, and stays item-identical.
+
+**A section grows freely and shrinks only past empty bars.**  Growing
+is a rest for every voice; shrinking past a bar with notes in it is
+refused by name, the notes being the point.  Refused too: a roll of
+several sections, a `.notes` not opened alone, and a length under a
+bar.  A grown section is a wider roll — the program's text changes
+and is compiled once more, which is the one edit here that is not a
+lookup.
+
+**Measured, headless:** the ruler pressed at bar 5's line and carried
+along one bar says `bars 8 → 9`, and the release changes the section
+line of `arc.notes` and nothing else; `bars 8 → 7` is refused because
+bar 8 of section A has notes; `8 → 10` and back to `8` both go, the
+two bars being empty.  Three tests under *the section resized*.
+
+**Driven, first time.**  `test/driven/20260906-162036-notes-section-resized-on-ruler`
+on the desk that ran it: the ruler pressed at bar 5's line and carried
+along one bar, the end drawn as it went, and `Ctrl-S` left one line of
+the copy changed — the section record's `bars 8` to `bars 9`, nothing
+else.  The nine-bar section is 1182 pixels wide in a window 1100
+wide, so the rebuilt page is cut at the view's right edge: the
+horizontal scroll the fifth slice said no section of eight bars would
+ask for, asked for by the first section of nine.
+
+**What this slice does not do, said now.**  No horizontal scroll, as
+above.  A section cannot be resized on a roll that draws several, nor
+from a `.ges` that includes it.  `notes.retune` rewrites a section
+line now as well as a note's, so a pitch drag aimed at a section line
+is refused on its tonic rather than as *not a note*.
+
 ### What plugin-like scopes
 
 *"I'd like plugin-like, reusable behavior for this feature.  I think

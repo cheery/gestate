@@ -382,10 +382,10 @@ def test_a_page_is_one_program_and_still_three_pictures():
         # seam") — and those are the box's own too, or one roll's drag
         # would move another's note.
         spare = mine - set(jumps)
-        assert all(c.startswith(("__nb_held_", "__nb_lift_", "__nb_sel_", "__nb_sels_", "__nb_band_", "__nb_grow_",
+        assert all(c.startswith(("__nb_held_", "__nb_lift_", "__nb_sel_", "__nb_sels_", "__nb_band_", "__nb_grow_", "__nb_endx_",
                                  "__nb_slide_"))
                    for c in spare), f"a channel that is nobody's: {spare}"
-        assert len(spare) == 7, spare
+        assert len(spare) == 8, spare
         seen |= mine
         assert v.payload(), "the box could not cross"
 

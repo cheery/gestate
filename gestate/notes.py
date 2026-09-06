@@ -557,8 +557,11 @@ def retune(text: str, line: int, field: str, was, now) -> tuple:
     if not 0 < line <= len(lines):
         raise NotesError(f"{place} is not in this file any more")
     row = lines[line - 1]
-    if not row.lstrip().startswith("note "):
-        raise NotesError(f"{place} is not a note")
+    # **A note's line, or a section's** — the section record's `bars` is
+    # rewritten the same way when its end is dragged (`card:notes-editor.md`
+    # slice 4, *resize the clip*), one field's bytes and nothing else.
+    if not row.lstrip().startswith(("note ", "section ")):
+        raise NotesError(f"{place} is not a record — a line is `section …` or `note …`")
     #: **Only the record half is rewritten.**  A line may carry prose
     #: (`fixme.md` F200) and that prose may say anything at all — `# the
     #: key 70 next door` — so a search over the whole line could edit a
@@ -582,7 +585,7 @@ def retune(text: str, line: int, field: str, was, now) -> tuple:
     #: So the field goes, the gesture names it, and the person writes
     #: the new one if they meant one.  `spec/drawnscores.md` §"The
     #: spelling a rule cannot guess".
-    if field == "key":
+    if field == "key" and row.lstrip().startswith("note "):
         for one in re.finditer(r"\s+spell (\S+)", _uncomment(row)[0]):
             if key_of(one.group(1)) == int(was):
                 row = row[:one.start()] + row[one.end():]
