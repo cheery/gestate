@@ -1451,6 +1451,40 @@ for the file: no tempo change inside a piece, which `tempo.md`'s
 envelope can say in a `.ges` and this record cannot.  And a `.ges`
 with no `bpm = …` line is refused rather than given one.
 
+### The picture computed, not written — 2026-09-06, evening
+
+*Henri, on the page's program having grown to eighty thousand
+characters:* **"Se että G-kone ne laskee olisi hieman parempi kuin
+että python kirjoittaisi suuret määrät .ges tekstiä."**
+
+The growth was unrolled repetition: 128 columns, 42 keys, 42 rows, 40
+lines, each its own expression written by Python.  Now the editing
+scale's furniture, ruler and columns are **recursion in the program
+over a few numbers** — `_generated`: the range of keys, the span, the
+beat, the bar lines, the geometry — with `y_of`, `x_of` and `hands_of`
+restated to the integer, and the words the vocabulary cannot compute
+(a key's octave, a bar's number) as case tables.  The ground and the
+hands are top-level constants, so the G-machine computes them once and
+every frame of a drag shares them; inside the picture function they
+were rebuilt at every application.
+
+| `arc.notes`, one section, live page | unrolled | computed |
+|---|---|---|
+| the program's text | 85,233 chars | 51,273 |
+| compiled once | 4.4 s | 1.75 s |
+| the first picture, once per rebuild | 84 ms | 410 ms |
+| a drag's frame, three measured | 90 ms | 80 ms |
+| picture and hit table | — | item-identical, 248 and 130 |
+
+**Where the rest of the text is**: the channel declarations, one line a
+column; the note-drawing functions, once per box of the page; and the
+same generator definitions once per box, numbered by box.  Sharing one
+copy across the boxes — a module the roll's program imports, which the
+canvas prelude has no door for yet — is the next halving and is idea 2
+of the evening's list, not built.  Idea 4, a `Many` constructor for a
+list of pictures, turned out unnecessary here: the parser's depth was
+the problem and recursion at run time never shows it a chain.
+
 ### What plugin-like scopes
 
 *"I'd like plugin-like, reusable behavior for this feature.  I think

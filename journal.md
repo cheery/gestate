@@ -1370,3 +1370,18 @@ changed engine, so the rebuild held the model's thread through the
 next tap's stamp.  The typing road's coalesced audition, on its own
 thread after the hand stops, is the door; through it the same taps
 read 121.  A clock is only as honest as the thread it is read on.
+
+## The picture computed, not written — 2026-09-06, evening
+
+Henri asked how the GUI work had gone, and whether it was laborious,
+and the honest answer named the page's text at eighty thousand
+characters.  He asked for an abstraction, took the evening's list, and
+said the G-machine computing the furniture would be a little better
+than Python writing it.  It was: the furniture, ruler and columns are
+recursion over a few numbers now, held item-for-item to the unrolled
+picture and hit table, the text down to fifty-one thousand and the
+compile from 4.4 to 1.75 s.  Two things learned on the way: a constant
+subexpression inside the picture function is rebuilt at every
+application, so the ground and the hands went to the top level; and
+the drag's frame was never the furniture — it is the reference walk
+over the items, the same eighty milliseconds before and after.
