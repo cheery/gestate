@@ -18,23 +18,58 @@
 
 # ── The box's numbers ────────────────────────────────────────────────────
 
-#: The body — where the notes are drawn: its left, top, width and height,
-#: in the box's own pixels, the box's centre at the origin.
+#: A box's numbers: the **body** — where the notes are drawn: its left,
+#: top, width and height, in the box's own pixels, the box's centre at
+#: the origin — and the **scale**, the lowest and highest key and the
+#: span in ticks.  (Declared together with nothing between them: `fmt`
+#: moves prose that sits between two type declarations to the end of
+#: the file, `fixme.md` F209.)
 Body := Body Int Int Int Int
-
-#: The roll's axes: the lowest and highest key, and the span in ticks.
 Scale := Scale Int Int Int
 
-#: The editing scale's fixed numbers — `scorebox.SEMI_H`, the note's
-#: height, and the ruler's — stated here as well, and held equal there.
 rollSemi : Int
 rollSemi = 8
 
+#: `rollSemi` above, and these: the editing scale's fixed numbers —
+#: `scorebox.SEMI_H`, the note's height, and the ruler's — stated here
+#: as well, and held equal there.  (`rollSemi` carries no prose of its
+#: own because prose right after a type declaration is what F209 moves.)
 rollNoteH : Int
 rollNoteH = 6
 
 rollRulerH : Int
 rollRulerH = 16
+
+#: The body's numbers, one at a time — so that no function below needs
+#: a `case` inside a `case`, which `fmt` reindents to the outer level
+#: (F209 again).
+rollLeft : Body -> Int
+rollLeft b = case b of
+    Body l t w h -> l
+
+rollTop : Body -> Int
+rollTop b = case b of
+    Body l t w h -> t
+
+rollWidth : Body -> Int
+rollWidth b = case b of
+    Body l t w h -> w
+
+rollHeight : Body -> Int
+rollHeight b = case b of
+    Body l t w h -> h
+
+rollLo : Scale -> Int
+rollLo s = case s of
+    Scale lo hi span -> lo
+
+rollHi : Scale -> Int
+rollHi s = case s of
+    Scale lo hi span -> hi
+
+rollSpan : Scale -> Int
+rollSpan s = case s of
+    Scale lo hi span -> span
 
 #: `lo .. hi`, inclusive.
 rollRange : Int -> Int -> List Int
@@ -45,15 +80,11 @@ rollRange lo hi = case lo > hi of
 #: Where a key is drawn — `scorebox.y_of` at editing scale: a semitone a
 #: row, the lowest key half a row up from the body's foot.
 rollY : Body -> Scale -> Int -> Int
-rollY b s k = case b of
-    Body l t w h -> case s of
-        Scale lo hi span -> t + h - (rollSemi / 2) - (k - lo) * rollSemi
+rollY b s k = rollTop b + rollHeight b - rollSemi / 2 - (k - rollLo s) * rollSemi
 
 #: Where a tick is drawn — `scorebox.x_of`.
 rollX : Body -> Scale -> Int -> Int
-rollX b s tk = case b of
-    Body l t w h -> case s of
-        Scale lo hi span -> l + tk * w / span
+rollX b s tk = rollLeft b + tk * rollWidth b / rollSpan s
 
 #: A black key's row.
 rollBlack : Int -> Bool
@@ -131,12 +162,15 @@ rollHue t d = case d of
 
 #: A black key's row striped across the body; a line under every C.
 rollRow : Body -> Scale -> Int -> Sub
-rollRow b s k = case b of
-    Body l t w h -> case rollBlack k of
-        True -> Shift (l + w / 2) (rollY b s k) (Rect w rollSemi rollStripe)
-        False -> case k % 12 of
-            0 -> Shift (l + w / 2) (rollY b s k + (rollSemi / 2)) (Rect w 1 rollOctave)
-            _ -> Gap 0 0
+rollRow b s k = case rollBlack k of
+    True -> Shift (rollLeft b + rollWidth b / 2) (rollY b s k) (Rect (rollWidth b) rollSemi rollStripe)
+    False -> rollOctaveLine b s k
+
+#: The line under a C — and nothing under any other white key.
+rollOctaveLine : Body -> Scale -> Int -> Sub
+rollOctaveLine b s k = case k % 12 of
+    0 -> Shift (rollLeft b + rollWidth b / 2) (rollY b s k + rollSemi / 2) (Rect (rollWidth b) 1 rollOctave)
+    _ -> Gap 0 0
 
 rollRows : Body -> Scale -> List Int -> Sub
 rollRows b s ks = case ks of
@@ -145,20 +179,21 @@ rollRows b s ks = case ks of
 
 #: Vertical lines the body's height at these ticks, in a colour.
 rollLines : Body -> Scale -> List Int -> Colour -> Sub
-rollLines b s ts c = case b of
-    Body l t w h -> case ts of
-        tk :: rest -> Over (Shift (rollX b s tk) (t + h / 2) (Rect 1 h c)) (rollLines b s rest c)
-        _ -> Gap 0 0
+rollLines b s ts c = case ts of
+    tk :: rest -> Over (Shift (rollX b s tk) (rollTop b + rollHeight b / 2) (Rect 1 (rollHeight b) c)) (rollLines b s rest c)
+    _ -> Gap 0 0
 
 #: The ticks of every beat: `0, beat, 2 beat …` under the span.
 rollBeats : Scale -> Int -> List Int
-rollBeats s beat = case s of
-    Scale lo hi span -> rollTimes beat (rollRange 0 ((span + beat - 1) / beat - 1))
+rollBeats s beat = rollTimes beat (rollRange 0 ((rollSpan s + beat - 1) / beat - 1))
 
 rollTimes : Int -> List Int -> List Int
 rollTimes beat is = case is of
-    i :: rest -> (i * beat) :: rollTimes beat rest
+    i :: rest -> rollTick beat i :: rollTimes beat rest
     _ -> Nil
+
+rollTick : Int -> Int -> Int
+rollTick beat i = i * beat
 
 #: An octave's name, for the C that opens it.
 rollOctName : Int -> String
@@ -180,9 +215,13 @@ rollOctName n = case n of
 rollKey : Body -> Scale -> Int -> Int -> Int -> Sub
 rollKey b s kx kw k = case rollBlack k of
     True -> Shift kx (rollY b s k) (Rect kw (rollSemi - 1) rollBlackKey)
-    False -> case k % 12 of
-        0 -> Over (Shift kx (rollY b s k) (Rect kw (rollSemi - 1) rollWhiteKey)) (Shift kx (rollY b s k) (Label (kw - 2) 7 (rollOctName (k / 12)) rollKeyName))
-        _ -> Shift kx (rollY b s k) (Rect kw (rollSemi - 1) rollWhiteKey)
+    False -> rollWhite b s kx kw k
+
+#: A white key, and its name when it is a C.
+rollWhite : Body -> Scale -> Int -> Int -> Int -> Sub
+rollWhite b s kx kw k = case k % 12 of
+    0 -> Over (Shift kx (rollY b s k) (Rect kw (rollSemi - 1) rollWhiteKey)) (Shift kx (rollY b s k) (Label (kw - 2) 7 (rollOctName (k / 12)) rollKeyName))
+    _ -> Shift kx (rollY b s k) (Rect kw (rollSemi - 1) rollWhiteKey)
 
 rollKeys : Body -> Scale -> Int -> Int -> List Int -> Sub
 rollKeys b s kx kw ks = case ks of
@@ -192,8 +231,7 @@ rollKeys b s kx kw ks = case ks of
 #: Everything under the notes: the rows, a line per beat, a brighter one
 #: per bar, and the keyboard down the left.
 rollFurniture : Body -> Scale -> Int -> List Int -> Int -> Int -> Sub
-rollFurniture b s beat bars kx kw = case s of
-    Scale lo hi span -> Over (Over (Over (rollRows b s (rollRange lo hi)) (rollLines b s (rollBeats s beat) rollBeatLine)) (rollLines b s bars rollBarLine)) (rollKeys b s kx kw (rollRange lo hi))
+rollFurniture b s beat bars kx kw = Over (Over (Over (rollRows b s (rollRange (rollLo s) (rollHi s))) (rollLines b s (rollBeats s beat) rollBeatLine)) (rollLines b s bars rollBarLine)) (rollKeys b s kx kw (rollRange (rollLo s) (rollHi s)))
 
 # ── The ruler ────────────────────────────────────────────────────────────
 
@@ -254,11 +292,11 @@ rollRuler b s rx rw rh beat bars = Over (Over (Shift 0 (rh / 2 - 1) (Rect rw 2 r
 
 #: Does this manner ask for this mark?  The bits are `scorebox.MANNERS`.
 rollAsks : Int -> Int -> Bool
-rollAsks ms m = (ms / m) % 2 == 1
+rollAsks ms m = ms / m % 2 == 1
 
 rollPort : Int -> Int -> Int -> Int -> Sub
 rollPort m t d w = case rollAsks m 4 of
-    True -> Shift (0 - (w / 2) - 2) 0 (Rect 2 (rollNoteH + 6) (rollHue t d))
+    True -> Shift (0 - w / 2 - 2) 0 (Rect 2 (rollNoteH + 6) (rollHue t d))
     False -> Gap 0 0
 
 rollStac : Int -> Int -> Int -> Sub
@@ -278,17 +316,25 @@ rollDot m t d w = Over (Over (rollStac m t d) (rollAcc m t d)) (rollPort m t d w
 #: How far a selected note moves with a hand on any selected note.
 rollShift : Bool -> Int -> Int -> Int
 rollShift on h by = case on of
-    True -> case h >= 0 of
-        True -> by
-        False -> 0
+    True -> rollHeld h by
+    False -> 0
+
+#: `by` while a note is held, nothing otherwise.
+rollHeld : Int -> Int -> Int
+rollHeld h by = case h >= 0 of
+    True -> by
     False -> 0
 
 rollMember : Int -> List Float -> Bool
 rollMember i xs = case xs of
-    x :: rest -> case floor x == i of
-        True -> True
-        False -> rollMember i rest
+    x :: rest -> rollEither (floor x == i) (rollMember i rest)
     _ -> False
+
+#: `a`, or else `b` — the `||` the vocabulary does not have.
+rollEither : Bool -> Bool -> Bool
+rollEither a b = case a of
+    True -> True
+    False -> b
 
 #: Is note `i` selected — the one the last press picked, or of the group?
 rollOn : Int -> Int -> List Float -> Bool
@@ -310,7 +356,7 @@ rollMark on dy t d = case on of
 #: One note: its bar, `gr` wider from its start when held, its outline
 #: when selected, its marks, its marker on the ruler at `ry`.
 rollOne : Int -> Int -> Int -> Int -> Bool -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Sub
-rollOne h v dx gr on ry i x y w t d m = Shift (x + rollShift on h dx + (gr / 2)) (y + rollShift on h v) (Over (Over (rollSeln on (w + gr)) (Rect (w + gr) rollNoteH (rollHue t d))) (Over (rollDot m t d (w + gr)) (rollMark on (ry - y - rollShift on h v) t d)))
+rollOne h v dx gr on ry i x y w t d m = Shift (x + rollShift on h dx + gr / 2) (y + rollShift on h v) (Over (Over (rollSeln on (w + gr)) (Rect (w + gr) rollNoteH (rollHue t d))) (Over (rollDot m t d (w + gr)) (rollMark on (ry - y - rollShift on h v) t d)))
 
 rollNote : Int -> Int -> Int -> Int -> List Float -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Sub
 rollNote h v s dx ss gg ry i x y w t d m = rollOne h v dx (rollShift (rollOn i s ss) h gg) (rollOn i s ss) ry i x y w t d m
@@ -325,7 +371,13 @@ rollNotes h v s dx ss gg ry es = case es of
 rollNotesBaked : Int -> Int -> Int -> Int -> List Float -> Int -> Int -> List (Int, Int, Int, Int, Int, Int, Int) -> Sub
 rollNotesBaked h v s dx ss gg ry es = case es of
     Nil -> Gap 0 0
-    (i, x, y, w, t, d, m) :: rest -> Over (rollNote h v s dx ss gg ry i x y w t d m) (rollNotesBaked h v s dx ss gg ry rest)
+    row :: rest -> Over (rollRow7 h v s dx ss gg ry row) (rollNotesBaked h v s dx ss gg ry rest)
+
+#: One baked row, taken apart — its own `case`, because a tuple pattern
+#: written before `::` is bracketed by `fmt` into another program (F209).
+rollRow7 : Int -> Int -> Int -> Int -> List Float -> Int -> Int -> (Int, Int, Int, Int, Int, Int, Int) -> Sub
+rollRow7 h v s dx ss gg ry row = case row of
+    (i, x, y, w, t, d, m) -> rollNote h v s dx ss gg ry i x y w t d m
 
 #: The band a hand is sweeping: centre and size, or nothing.
 rollBand : List Float -> Sub
@@ -336,7 +388,6 @@ rollBand xs = case xs of
 #: The section's end while a hand carries it: a line the body's height at
 #: `e`, or nothing when `e` is far off the roll.
 rollEnd : Body -> Int -> Sub
-rollEnd b e = case b of
-    Body l t w h -> case e > (0 - 9000) of
-        True -> Shift e (t + h / 2) (Rect 2 h rollEndInk)
-        False -> Gap 0 0
+rollEnd b e = case e > 0 - 9000 of
+    True -> Shift e (rollTop b + rollHeight b / 2) (Rect 2 (rollHeight b) rollEndInk)
+    False -> Gap 0 0

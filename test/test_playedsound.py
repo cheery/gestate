@@ -604,12 +604,18 @@ def test_a_note_dropped_while_it_plays_changes_the_sound_not_the_file(tmp_path):
         held["bench"] = bench
         regions = getattr(bench, "note_regions", {})
         assert regions, "the piece was built with no score box to drag"
-        chan = sorted(regions)[0]
-        roll = regions[chan].roll
+        roll = regions["__nb_rail_0__"].roll
         seat = session()
         seat.bench, seat.view = bench, _View(source)
-        assert seat.touched(chan, 0.5).startswith("line ")
-        grabbed = key_at(roll, 0.5)
+        # **The pad's two hands**: the rail at the first note's tick,
+        # then the pitch hand at its key (2026-09-06, evening).
+        from gestate.scorebox import across_of, reach_of
+        low, high = reach_of(roll)
+        aim = (high - BASS_NOTE) / (high - low)
+        assert seat.touched("__nb_rail_0__", across_of(roll, 0)) == ""
+        chan = "__nb_pitch_0__"
+        assert seat.touched(chan, aim).startswith("line ")
+        grabbed = key_at(roll, aim)
         down = next(d / 200 for d in range(200, -1, -1)
                     if key_at(roll, d / 200) == grabbed + 4)
         seat.touched(chan, down)
@@ -668,13 +674,17 @@ def test_a_dragged_note_is_heard_where_it_was_dropped(tmp_path):
     # The first note of the walk, taken hold of by name — the *place* a
     # hand aims at is `test_scorebox.py`'s business, and the two meet
     # at the channel.
-    chan = next(iter(seat.bench.note_regions))
-    assert seat.touched(chan, 0.5).startswith("line ")
+    from gestate.scorebox import across_of, reach_of
+    low, high = reach_of(roll)
+    aim = (high - BASS_NOTE) / (high - low)
+    assert seat.touched("__nb_rail_0__", across_of(roll, 0)) == ""
+    chan = "__nb_pitch_0__"
+    assert seat.touched(chan, aim).startswith("line ")
     was = roll.events[seat.holding[1]][3]
     assert was == BASS_NOTE, "the first note of the walk moved"
 
     # Carry it up a third: four semitones from wherever it was grabbed.
-    grabbed = key_at(roll, 0.5)
+    grabbed = key_at(roll, aim)
     down = next(d / 200 for d in range(200, -1, -1)
                 if key_at(roll, d / 200) == grabbed + 4)
     seat.touched(chan, down)

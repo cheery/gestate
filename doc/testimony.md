@@ -14,7 +14,7 @@ disagrees with a row changes the row; the count follows.*
 
 ## The count
 
-    testimony: 80 of 80 memories classified — 22 harness, 38 henri, 14 session, 6 argument
+    testimony: 81 of 81 memories classified — 23 harness, 38 henri, 14 session, 6 argument
 
 **Read it this way.**  Sixty of eighty rest on something a reader can
 check without trusting a session — a command, a test, a transcript, or
@@ -115,6 +115,7 @@ sentence that was taken to be.
 | recorded-is-not-answered | session | a kaizen finding; *two unanswered reports were enough* is an instance that is private, so the number cannot be checked from the tree |
 | research-that-leaves-a-command | henri | his rule, 2026-08-23, in Finnish |
 | restore-a-mutation-from-memory | harness | the case, 2026-09-01 — two failures where one was expected |
+| a-traceback-quotes-the-file-not-the-run | harness | the case, 2026-09-06 — a failure quoting a test's new source with its old assertion's message, and a re-run that passed |
 | retargeting-not-reversal | argument | the sycophancy literature and the preference-signal asymmetry; marked a product of the method in its own text |
 | sediment-versus-debt | session | a session's framing from a 2026-08-20 dialogue; the test question is useful and unmeasured |
 | sessions-write-where-readers-read | session | a session's analysis of why memories leak; *make it light the andon* is his ruling on the remedy |

@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 209 entries, **167 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 210 entries, **167 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7813,3 +7813,31 @@ Found driving `card:notes-editor.md`'s editing scale; not fixed there
 because the slice was the page and this is the row under it.
 
 gate: none yet — the photograph is the evidence.
+
+### F209. **[bug]** `fmt` rewrites `roll.ges` into another program: a tuple pattern before `::` is bracketed, and prose between two type declarations moves to the end of the file
+
+Found 2026-09-06 by `test/fmt/test_roundtrip.py`, the first time a library
+was written with these two shapes.  Three things the formatter does to
+`gestate/roll.ges` as first written, each a different program or a
+displaced line:
+
+    (i, x, y, w, t, d, m) :: rest -> …      becomes   [(i, x, y, w, t, d, m) :: rest] -> …
+    Body := Body Int Int Int Int
+    # prose
+    Scale := Scale Int Int Int              the prose lands after the last declaration
+    True -> case h >= 0 of                  the inner arms are reindented to the
+        True -> by                          outer case's column
+        False -> 0
+
+The first two are `parse(format(src)) != parse(src)`, which is the
+round-trip test's own word for it; the third is a change of meaning by
+indentation.  `gui.ges` and the rest of the corpus never wrote any of
+the three, which is why 89 sources round-tripped on 2026-08-31 and this
+one did not.  The library is written around all three — one `case` a
+function, a helper that takes the tuple apart, the two types declared
+with nothing between them — so the round trip holds; the formatter is
+what owes the repair.
+
+gate: `test/fmt/test_roundtrip.py` over `gestate/roll.ges`, which holds
+the workaround, not the repair — a test that formats the three shapes
+above and compares the parse belongs with the fix.
