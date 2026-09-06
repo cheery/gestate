@@ -193,15 +193,24 @@ measurements for it.
 *By the session that filed it, the same morning, from a grep of both
 trees and three measurements.*
 
-**In neither tree.**  *The SimpleQA think arm* and its bins,
-62/31/57 → 60/31/59, appear nowhere in this repository or in `~/tend`;
-nor does *Delta's "landmarks"*; nor an *afternoon's inventory* of which
-claims rest on session testimony versus harness output.  Each is the
-conversation's own context, and the page's second section is the
-argument for why it would be: the writing session was cued by a
-conversation this tree did not see.  They stand as reported, unchecked,
-until Henri points at a file.  *The competence list* is the page filed
-beside this one, `notes-on-prerequisites.md`.
+**In `~/tend`, and a first grep said otherwise.**  *The SimpleQA
+think arm* and its bins, 62/31/57 → 60/31/59, are
+`~/tend/doc/benchmark-simpleqa-2026-08-31.md`, committed 2026-08-31:
+150 questions, four arms, and the *think* arm as the control that
+separating the reasoning channel barely moves the bins, exactly as
+quoted.  The session filing this page grepped both trees for the word
+and wrote *in neither tree*; Henri pointed at the file within the
+hour, and the same grep re-run found it.  Why the first returned
+nothing is not known, and it does not matter: an empty result from one
+search was taken as a fact about the world, which is
+`doc/memory/dont-conclude-from-a-shallow-check.md` word for word, on
+the page whose subject is retrieval.
+
+**In neither tree.**  *Delta's "landmarks"* — Henri: *"nothing on
+Delta"* — and the *afternoon's inventory* of which claims rest on
+session testimony versus harness output, which became
+`card:testimony-inventory.md` the same morning.  *The competence list*
+is the page filed beside this one, `notes-on-prerequisites.md`.
 
 **In the tree.**  *The old hallucination finding* is
 `doc/memory/why-models-hallucinate.md`.  *Why derived.md failed* is

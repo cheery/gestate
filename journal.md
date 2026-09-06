@@ -1025,3 +1025,59 @@ that letter.  A round trip gives all seven back, and that is a gate.
 
 *`fixme.md` F200 and F203; the contract is `spec/drawnscores.md` §"The
 prose belongs to the record below it".*
+
+## Standing questions, and what the memories rest on — 2026-09-06
+
+Two projects out of one Sunday-morning page.  `doc/notes/notes-on-cues.md`
+had ended with three things that could be built and four questions to
+be asking; Henri's instruction on reading it was *"initiate some
+projects today"*, then *"Do cards for these, and implement standing
+questions immediately, but come up with some good standing questions
+and let me choose among them"*, then, mid-turn, *"and do the
+measurement as well."*
+
+### The three buildable things, measured before any card
+
+The page's coverage map mostly existed: a walk from `CLAUDE.md` over
+every `.md` reference reaches 191 of 241 pages, and the 50 it misses
+are the three shelves (reached by `ls` on purpose), seven driven-run
+reports, and four READMEs nothing links.  The retrieval index existed
+too — `tools/backlinks.py --report`, 172 fires in fourteen days.  The
+third, a stored question that lands at a moment, existed nowhere.  So
+one card, not three.
+
+### `tools/standing.py`, and the questions Henri has not chosen yet
+
+The third hook of the backlinks shape: `--hook` on `Read|Bash`,
+borrowing `read_targets` outright, once per card per sitting, three
+questions at most.  The questions are `board/standing.md`, a heading
+per shelf; twelve candidates sit under `## proposed`, each with the
+lesson it was turned around from, and nothing fires until he moves
+one up.  `test/test_standing.py`, sixteen cases on a small tree, and
+the one that reads this tree's file is gate nineteen.  The install
+line is his, as for the two hooks before.
+
+### `doc/testimony.md` — eighty memories, four kinds
+
+The inventory the cues page called *still unrun*: of each memory,
+what does its load-bearing claim rest on?  Read in one morning, one
+row each: **22 harness, 38 henri, 14 session, 6 argument.**  Sixty of
+eighty rest on something a reader can check without trusting a
+session.  The fourteen that rest on a session's word are the product —
+a second table names the measurement or the sentence that would move
+each — and the classifier is inside the count, said on the page.
+`tools/testimony.py` holds the table to the directory; a memory with
+no row is printed, not refused, which was the card's own default.
+
+### And the grep that said *in neither tree*
+
+The cues page quotes a SimpleQA run.  A grep of both trees for the
+word returned nothing, and the closing section said so; Henri pointed
+at `~/tend/doc/benchmark-simpleqa-2026-08-31.md` within the hour, and
+the same grep re-run found it.  Why the first returned nothing is not
+known.  `doc/memory/dont-conclude-from-a-shallow-check.md`, on the
+page whose subject is retrieval, and it is now the first candidate
+standing question's own example.
+
+*Cards: `card:standing-questions.md` (doing, waiting on his choice),
+`card:testimony-inventory.md` (done).*
