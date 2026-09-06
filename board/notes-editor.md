@@ -300,3 +300,17 @@ is not this card's — the score view — and what the building left
 open is the horizontal scroll a nine-bar section asks for, a group
 spent with its commit where Reaper keeps it, and the lookup test's
 timing bound inside a full-file run.
+
+## The picture as a library — 2026-09-06, evening
+
+**Henri**, asked how the GUI work had gone and told the page's text
+stood at eighty thousand characters: *"Se että G-kone ne laskee olisi
+hieman parempi kuin että python kirjoittaisi suuret määrät .ges
+tekstiä"* — and then *"Tehdään sitten se idea 2, moduuli."*  Two
+halvings the same evening, each held item-identical: the furniture
+computed by the G-machine, and then the whole drawing moved into
+`gestate/roll.ges`, a library in front of the page's program.  Text
+85 → 32 thousand, compile 4.4 → 1.1 s.  `spec/drawnscores.md` §"The
+picture computed, not written" and §"The roll's vocabulary is a
+library".  Left of the evening's list: idea 3, one hand over the whole
+body instead of a channel per column, which is his.

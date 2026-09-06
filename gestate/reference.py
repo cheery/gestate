@@ -59,6 +59,9 @@ LIBRARIES = (
      "Programs with a `score` — the MIDI backend and performances."),
     ("gui.ges", "Canvas",
      "Programs with a `substrate` — `gui`, and the editor's canvas tab."),
+    ("roll.ges", "Roll",
+     "A score box's editing scale — what a `.notes` page is drawn with; "
+     "in front of the page's program, after `gui.ges`."),
 )
 
 #: **The editor's vocabulary, and it is not a library.**

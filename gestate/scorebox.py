@@ -1766,156 +1766,13 @@ def _overs(items: list) -> str:
     return f"(Over {_overs(items[:mid])} {_overs(items[mid:])})"
 
 
-#: The editing scale's ink: the rows a black key crosses, the line under
-#: each C, the beat and bar lines, the keys, and the ruler's numbers.
-_STRIPE = (37, 40, 49)
-_OCTAVE = (52, 57, 70)
-_BEAT_LINE = (44, 48, 58)
+#: The compact box's ink — the rest of the editing scale's is `roll.ges`'s.
 _BAR_LINE = (78, 84, 100)
-_WHITE_KEY = (196, 200, 210)
-_BLACK_KEY = (58, 62, 74)
-_KEY_NAME = (40, 44, 52)
-_RULER_NAME = (140, 146, 160)
 _TRACK = (60, 66, 80)
-_ACCIDENTALS = frozenset({1, 3, 6, 8, 10})
 
 
 def _rgb(c: tuple) -> str:
     return f"(RGB {c[0]} {c[1]} {c[2]})"
-
-
-def _generated(roll: Roll, box: int) -> tuple:
-    """The editing-scale furniture, ruler and columns **as the G-machine
-    computes them** — `(definitions, furniture, ruler, columns)`, the
-    last three expressions over the definitions.
-
-    **Henri, 2026-09-06, on the page's text having grown to eighty
-    thousand characters:** *"Se että G-kone ne laskee olisi hieman
-    parempi kuin että python kirjoittaisi suuret määrät .ges tekstiä."*
-    So the picture is a function of a few numbers — the geometry, the
-    range, the span, the beat, the bar lines — and recursion over
-    ranges does what `_furniture` and the column loop unrolled into
-    three hundred expressions.  The arithmetic is `y_of`/`x_of` and
-    `hands_of` restated in the program, to the integer: the picture and
-    the hit table are held item-for-item to what the unrolled text
-    drew (`test_drawnscores.py`).  The labels' words are the one thing
-    a program cannot compute here — there is no number-to-string in the
-    canvas vocabulary — so they are a case table, one line each.
-    """
-    from .midi import TICKS_PER_BEAT
-
-    lo, hi, span = scale_of(roll)
-    g = geometry_of(roll)
-    left, top, body_w, body_h = body_of(roll)
-    rail_x, _rail_y, rail_w, rail_h = rail_of(roll)
-    cx, cy = left + body_w // 2, top + body_h // 2
-    low, high = reach_of(roll)
-    reach_top, reach_bottom = y_of(roll, high), y_of(roll, low)
-    bcx = left + body_w // 2
-    wide = max(1, min(MAX_HANDS, body_w // HAND_W))
-    step = max(1, -(-span // wide))
-    beat = roll.beat or TICKS_PER_BEAT
-    n_beats = -(-span // beat)
-    bars = list(roll.bars or ())
-    kx = -(g.w // 2) + g.keys // 2 - 1
-    N = lambda k: f"__nb_{k}_{box}__"
-    rng, y, x, acc = N("range"), N("y"), N("x"), N("black")
-    rowpic, row, lines, keypic, key, oct_ = (N("rowpic"), N("row"), N("lines"),
-                                            N("keypic"), N("key"), N("oct"))
-    tick, num, cols, colx, colw, t1 = (N("tick"), N("num"), N("cols"), N("colx"),
-                                       N("colw"), N("t1"))
-    octaves = "\n".join(f"    {n + 1} -> \"C{n}\"" for n in range(-1, 10))
-    numbers = "\n".join(f"    {i + 1} -> \"{i + 1}\"" for i in range(len(bars)))
-    bars_list = " :: ".join(str(t) for t in bars) + " :: Nil" if bars else "Nil"
-    beats_list = f"{rng} 0 {n_beats - 1}" if n_beats > 0 else "Nil"
-    keys_list = " :: ".join(_chan(box, i) for i in range(len(hands_of(roll)))) + " :: Nil"
-    defs = (
-        f"{rng} : Int -> Int -> List Int\n"
-        f"{rng} lo hi = case lo > hi of\n"
-        "    True -> Nil\n"
-        f"    False -> lo :: {rng} (lo + 1) hi\n\n"
-        # y_of and x_of, restated: editing scale is SEMI_H a semitone exactly
-        f"{y} : Int -> Int\n"
-        f"{y} k = {_n(top + body_h - g.pad)} - (k - {_n(lo)}) * {SEMI_H}\n\n"
-        f"{x} : Int -> Int\n"
-        f"{x} t = {_n(left)} + t * {body_w} / {max(1, span)}\n\n"
-        f"{acc} : Int -> Bool\n"
-        f"{acc} k = case k % 12 of\n"
-        "    1 -> True\n    3 -> True\n    6 -> True\n    8 -> True\n    10 -> True\n"
-        "    _ -> False\n\n"
-        # the rows: a stripe across a black key's row, a line under every C
-        f"{row} : Int -> Sub\n"
-        f"{row} k = case {acc} k of\n"
-        f"    True -> Shift {_n(cx)} ({y} k) (Rect {body_w} {SEMI_H} {_rgb(_STRIPE)})\n"
-        "    False -> case k % 12 of\n"
-        f"        0 -> Shift {_n(cx)} ({y} k + {g.pad}) (Rect {body_w} 1 {_rgb(_OCTAVE)})\n"
-        "        _ -> Gap 0 0\n\n"
-        f"{rowpic} : List Int -> Sub\n"
-        f"{rowpic} ks = case ks of\n"
-        f"    k :: rest -> Over ({row} k) ({rowpic} rest)\n"
-        "    _ -> Gap 0 0\n\n"
-        # vertical lines at ticks, the body's height, in a colour
-        f"{lines} : List Int -> Colour -> Sub\n"
-        f"{lines} ts c = case ts of\n"
-        f"    t :: rest -> Over (Shift ({x} t) {_n(cy)} (Rect 1 {body_h} c)) ({lines} rest c)\n"
-        "    _ -> Gap 0 0\n\n"
-        # the keyboard, the octaves named on the Cs
-        f"{oct_} : Int -> String\n"
-        f"{oct_} n = case n of\n{octaves}\n    _ -> \"C\"\n\n"
-        f"{key} : Int -> Sub\n"
-        f"{key} k = case {acc} k of\n"
-        f"    True -> Shift {_n(kx)} ({y} k) (Rect {g.keys - 4} {SEMI_H - 1} {_rgb(_BLACK_KEY)})\n"
-        "    False -> case k % 12 of\n"
-        f"        0 -> Over (Shift {_n(kx)} ({y} k) (Rect {g.keys - 4} {SEMI_H - 1} {_rgb(_WHITE_KEY)})) "
-        f"(Shift {_n(kx)} ({y} k) (Label {g.keys - 6} 7 ({oct_} (k / 12)) {_rgb(_KEY_NAME)}))\n"
-        f"        _ -> Shift {_n(kx)} ({y} k) (Rect {g.keys - 4} {SEMI_H - 1} {_rgb(_WHITE_KEY)})\n\n"
-        f"{keypic} : List Int -> Sub\n"
-        f"{keypic} ks = case ks of\n"
-        f"    k :: rest -> Over ({key} k) ({keypic} rest)\n"
-        "    _ -> Gap 0 0\n\n"
-        # the ruler: a tick at every beat, the bar's number at every bar line
-        f"{tick} : List Int -> Sub\n"
-        f"{tick} is = case is of\n"
-        f"    i :: rest -> Over (Shift ({x} (i * {beat}) - {_n(rail_x)}) {rail_h // 2 - 3} "
-        f"(Rect 1 4 {_rgb(_BAR_LINE)})) ({tick} rest)\n"
-        "    _ -> Gap 0 0\n\n"
-        f"{num} : Int -> String\n"
-        f"{num} i = case i of\n{numbers}\n    _ -> \"\"\n\n"
-        f"__nb_barnum_{box}__ : List Int -> Int -> Sub\n"
-        f"__nb_barnum_{box}__ ts i = case ts of\n"
-        f"    t :: rest -> Over (Shift ({x} t - {_n(rail_x)} + 10) (0 - 1) "
-        f"(Label 16 10 ({num} i) {_rgb(_RULER_NAME)})) (__nb_barnum_{box}__ rest (i + 1))\n"
-        "    _ -> Gap 0 0\n\n"
-        # the columns: `hands_of` restated — every tile, its hand a channel
-        f"{t1} : Int -> Int\n"
-        f"{t1} i = case (i + 1) * {step} > {span} of\n"
-        f"    True -> {span}\n"
-        f"    False -> (i + 1) * {step}\n\n"
-        f"{colw} : Int -> Int\n"
-        f"{colw} i = case {x} ({t1} i) - {x} (i * {step}) < 4 of\n"
-        "    True -> 4\n"
-        f"    False -> {x} ({t1} i) - {x} (i * {step})\n\n"
-        f"{colx} : Int -> Int\n"
-        f"{colx} i = {x} (i * {step}) + {colw} i / 2 - {_n(bcx)}\n\n"
-        f"{cols} : List (Chan Float) -> Int -> Sub\n"
-        f"{cols} cs i = case cs of\n"
-        f"    c :: rest -> Over (Shift ({colx} i) 0 (TouchY c (Sized ({colw} i) "
-        f"{reach_bottom - reach_top} (Gap 0 0)))) ({cols} rest (i + 1))\n"
-        "    _ -> Gap 0 0\n\n"
-    )
-    beats_ticks = f"({rng} 0 {n_beats - 1})" if n_beats > 0 else "Nil"
-    furniture = (f"(Over (Over (Over ({rowpic} ({rng} {_n(lo)} {_n(hi)})) "
-                 f"({lines} (__nb_beatticks_{box}__ {beats_ticks}) {_rgb(_BEAT_LINE)})) "
-                 f"({lines} ({bars_list}) {_rgb(_BAR_LINE)})) "
-                 f"({keypic} ({rng} {_n(lo)} {_n(hi)})))")
-    defs += (f"__nb_beatticks_{box}__ : List Int -> List Int\n"
-             f"__nb_beatticks_{box}__ is = case is of\n"
-             f"    i :: rest -> (i * {beat}) :: __nb_beatticks_{box}__ rest\n"
-             "    _ -> Nil\n\n")
-    ruler = (f"(Over (Over (Shift 0 {rail_h // 2 - 1} (Rect {rail_w} 2 {_rgb(_TRACK)})) "
-             f"({tick} {beats_ticks})) (__nb_barnum_{box}__ ({bars_list}) 1))")
-    columns = f"({cols} ({keys_list}) 0)"
-    return defs, furniture, ruler, columns
 
 
 def _ruler_pic(roll: Roll) -> str:
@@ -1937,6 +1794,93 @@ def _ruler_pic(roll: Roll) -> str:
     return _overs(items)
 
 
+def _module_program(roll: Roll, box: int, entry: str, live: bool) -> tuple:
+    """The editing-scale box's program **over `roll.ges`** — the box's
+    numbers, its channels, and one picture lifted over them.
+
+    `(ges_text, [chan_name])`, as `roll_program` answers.  Everything
+    the picture is made of is the library's (`rollFurniture`,
+    `rollRuler`, `rollColumns`, `rollNotes` …); what is written here is
+    what differs from box to box: the `Body` and `Scale`, the beat and
+    the bar lines, the channel a column is, and the caption.  The ground
+    and the hands are top-level constants, computed once.
+    """
+    from .midi import TICKS_PER_BEAT
+
+    lo, hi, span = scale_of(roll)
+    geo = geometry_of(roll)
+    left, top, body_w, body_h = body_of(roll)
+    rail_x, rail_y, rail_w, rail_h = rail_of(roll)
+    low, high = reach_of(roll)
+    reach_top, reach_bottom = y_of(roll, high), y_of(roll, low)
+    bcx, bcy = left + body_w // 2, (reach_top + reach_bottom) // 2
+    wide = max(1, min(MAX_HANDS, body_w // HAND_W))
+    step = max(1, -(-span // wide))
+    beat = roll.beat or TICKS_PER_BEAT
+    bars = list(roll.bars or ())
+    kx = -(geo.w // 2) + geo.keys // 2 - 1
+    columns = [_chan(box, i) for i, _h in enumerate(hands_of(roll))]
+    rail_c = _rail(box)
+    named = columns + [rail_c] + ([_ruler(box)] if roll.bars else [])
+    N = lambda k: f"__nb_{k}_{box}__"
+    held_c, lift_c, sel_c, slide_c = N("held"), N("lift"), N("sel"), N("slide")
+    grow_c, endx_c, sels_c, band_c = N("grow"), N("endx"), N("sels"), N("band")
+    rows_c = rows_channel(box)
+    chans = "".join(f"{c} : Chan Float\n{c} = chan\n"
+                    for c in [*named, held_c, lift_c, sel_c, slide_c, grow_c, endx_c])
+    chans += "".join(f"{c} : Chan (List Float)\n{c} = chan\n" for c in [sels_c, band_c])
+    if live:
+        chans += f"{rows_c} : Chan (List Float)\n{rows_c} = chan\n"
+    rows = ["(%d, %s, %s, %d, %d, %d, %d)" % (i, _n(x), _n(y), w, tone, d, m)
+            for i, x, y, w, tone, d, m in rows_of(roll)]
+    listing = " :: ".join(rows + ["Nil"]) if rows else "Nil"
+    bars_list = (" :: ".join(str(t) for t in bars) + " :: Nil") if bars else "Nil"
+    cols_list = (" :: ".join(columns) + " :: Nil") if columns else "Nil"
+    caption = f"TAKE {roll.seed}" if roll.chancy else (roll.title or "NOTES")
+    if roll.cut:
+        caption += " · CUT"
+    body_g, scale_g, ground_g, hands_g, pic_g = (N("body"), N("scale"), N("ground"),
+                                                 N("hands"), N("pic"))
+    ruler_pic = (f"Sized {rail_w} {rail_h} (rollRuler {body_g} {scale_g} {_n(rail_x)} "
+                 f"{rail_w} {rail_h} {beat} ({bars_list}))")
+    ruler = (f"Shift {_n(rail_x)} {_n(rail_y)} (TouchX {_ruler(box)} ({ruler_pic}))"
+             if roll.bars else f"Shift {_n(rail_x)} {_n(rail_y)} ({ruler_pic})")
+    body = (f"Shift {_n(bcx)} {_n(bcy)} (TouchX {rail_c} (Sized {body_w} "
+            f"{reach_bottom - reach_top} (Over (Gap 0 0) (rollColumns {body_g} {scale_g} "
+            f"{step} {reach_bottom - reach_top} ({cols_list}) 0))))")
+    sig = lambda c, zero: f"{c}_s : Sig Float\n{c}_s = {zero} ::: mkSig (wait {c})\n\n"
+    text = (chans + "\n"
+            + sig(held_c, "(0.0 - 1.0)") + sig(lift_c, "0.0") + sig(sel_c, "(0.0 - 1.0)")
+            + sig(slide_c, "0.0") + sig(grow_c, "0.0") + sig(endx_c, "(0.0 - 10000.0)")
+            + f"{sels_c}_s : Sig (List Float)\n{sels_c}_s = Nil ::: mkSig (wait {sels_c})\n\n"
+            + f"{band_c}_s : Sig (List Float)\n{band_c}_s = Nil ::: mkSig (wait {band_c})\n\n"
+            + (f"{rows_c}_s : Sig (List Float)\n{rows_c}_s = Nil ::: mkSig (wait {rows_c})\n\n"
+               if live else
+               f"{N('rows')} : List (Int, Int, Int, Int, Int, Int, Int)\n{N('rows')} = {listing}\n\n")
+            + f"{body_g} : Body\n{body_g} = Body {_n(left)} {_n(top)} {body_w} {body_h}\n\n"
+            + f"{scale_g} : Scale\n{scale_g} = Scale {_n(lo)} {_n(hi)} {span}\n\n"
+            + f"{ground_g} : Sub\n"
+            + f"{ground_g} = Over (Rect {geo.w} {geo.h} rollNight) "
+              f"(rollFurniture {body_g} {scale_g} {beat} ({bars_list}) {_n(kx)} {geo.keys - 4})\n\n"
+            + f"{hands_g} : Sub\n{hands_g} = Over (Over (Gap 0 0) ({ruler})) ({body})\n\n"
+            + (f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> List Float -> Float -> Float -> List Float -> Sub\n"
+               f"{pic_g} h v s dx ss bd gg ex es = " if live else
+               f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> List Float -> Float -> Float -> Sub\n"
+               f"{pic_g} h v s dx ss bd gg ex = ")
+            + f"Sized {geo.w} {geo.h} (Over (Over (Over\n"
+            + f"    (Over {ground_g} (rollBand bd))\n"
+            + f"    (Over ({'rollNotes' if live else 'rollNotesBaked'} (floor h) (floor v) (floor s) "
+              f"(floor dx) ss (floor gg) {_n(rail_y)} {'es' if live else N('rows')}) "
+              f"(rollEnd {body_g} (floor ex))))\n"
+            + f"    (Shift {_n(left + body_w // 2)} {geo.h // 2 - geo.foot // 2 - 1} "
+              f"(Label {body_w - 8} 12 \"{caption}\" (RGB 120 124 134))))\n"
+            + f"    {hands_g})\n\n"
+            + f"{entry} : Sig Sub\n"
+            + f"{entry} = !{pic_g} {held_c}_s {lift_c}_s {sel_c}_s {slide_c}_s {sels_c}_s "
+              f"{band_c}_s {grow_c}_s {endx_c}_s" + (f" {rows_c}_s\n" if live else "\n"))
+    return text, named
+
+
 def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
                  live: bool = False) -> tuple:
     """The box's substrate program, and the hands it hands out.
@@ -1952,6 +1896,11 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
     other name it makes is numbered by `box` so that several may be
     concatenated (`page_program`).
     """
+    if geometry_of(roll) is not COMPACT:
+        # **The editing scale is written over `roll.ges`** — the box's
+        # numbers and channels, and one picture; the drawing is the
+        # library's.  The compact box below stays the program it was.
+        return _module_program(roll, box, entry, live)
     events, leaves = roll.events, roll.leaves
     lo, hi, span_ticks = scale_of(roll)
     geo = geometry_of(roll)
@@ -1998,12 +1947,6 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
             rules.append(f"(Shift 0 {_n(y)} (Rect {ROLL_W} 1 (RGB 46 51 62)))")
             rules.append(f"(Shift {_n(18 - ROLL_W // 2)} {_n(y - 6)} "
                          f'(Label 22 9 "C{key // 12 - 1}" (RGB 92 100 114)))')
-    else:
-        # **Computed by the G-machine, not written by Python** —
-        # `_generated`: the furniture is one expression over a few
-        # numbers, where it was three hundred.
-        gen_defs, gen_furniture, gen_ruler, gen_columns = _generated(roll, box)
-        rules = [gen_furniture]
 
     #: Folded here rather than spliced into the template: one `Over` per
     #: rule, each a complete expression, so the parentheses cannot come
@@ -2080,8 +2023,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
     # being the ruler the day this landed: the strip along the top is
     # drawn, and listens to nothing.
     rail_c = _rail(box)
-    inside = (_overs(['(Gap 0 0)'] + regions) if geo is COMPACT
-              else f"(Over (Gap 0 0) {gen_columns})")
+    inside = _overs(['(Gap 0 0)'] + regions)
     body = (f"(Shift {_n(bcx)} {_n(bcy)} "
             f"(TouchX {rail_c} (Sized {body_w} {reach_bottom - reach_top} "
             f"{inside})))")
@@ -2090,8 +2032,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
     # where the columns reach up under it, and a hand on it carries the
     # section's end by whole bars (`bars`).  The compact box's strip
     # stays a drawing.
-    ruler_pic = (f"(Sized {rail_w} {rail_h} {_ruler_pic(roll)})" if geo is COMPACT
-                 else f"(Sized {rail_w} {rail_h} {gen_ruler})")
+    ruler_pic = f"(Sized {rail_w} {rail_h} {_ruler_pic(roll)})"
     ruler = (f"(Shift {_n(rail_x)} {_n(rail_y)} (TouchX {_ruler(box)} {ruler_pic}))"
              if roll.bars else f"(Shift {_n(rail_x)} {_n(rail_y)} {ruler_pic})")
     hands = _overs(["(Gap 0 0)", ruler, body])
@@ -2131,8 +2072,6 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
         named = named + [_ruler(box)]
     chans = "".join(f"{c} : Chan Float\n{c} = chan\n"
                     for c in [*named, held_c, lift_c, sel_c, slide_c, grow_c, endx_c])
-    if geo is not COMPACT:
-        chans += "\n" + gen_defs
     chans += "".join(f"{c} : Chan (List Float)\n{c} = chan\n"
                      for c in [sels_c, band_c])
     rows_c, rows_s = rows_channel(box), f"__nb_rs_{box}__"

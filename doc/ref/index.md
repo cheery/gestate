@@ -61,6 +61,7 @@ Each renderer writes it, so **a program that defines its own `now` keeps it** an
 - **[Synthesis](synth.md)** — Synths, beside `audio.ges`. Oscillators, envelopes, filters, FM.
 - **[Music](music.md)** — Programs with a `score` — the MIDI backend and performances.
 - **[Canvas](gui.md)** — Programs with a `substrate` — `gui`, and the editor's canvas tab.
+- **[Roll](roll.md)** — A score box's editing scale — what a `.notes` page is drawn with; in front of the page's program, after `gui.ges`.
 
 - **[Commands](commands.md)** — What the editor can be asked to do — the list `Ctrl-K` opens.  Not in scope in a program.  Generated from `gestate/command.ges`, which is the same file the editor's own `Ctrl-K` list is derived from — so the page and the palette cannot disagree.
 

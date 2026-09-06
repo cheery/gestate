@@ -3233,3 +3233,43 @@ def test_tap_has_a_chord_and_the_command_list_advertises_it():
     _here, seat, _view, _roll = _page_seat()
     assert any(getattr(c, "name", None) == "tap" and getattr(c, "key", "") == "Ctrl-T"
                for c in seat.commands()), "the window binds the chord off the list"
+
+
+# ── The roll's vocabulary is a library — 2026-09-06, evening ───────────────
+
+
+def test_the_page_is_written_over_roll_ges_and_the_compact_box_is_not():
+    """Henri: *"Tehdään sitten se idea 2, moduuli."*  A `.notes` page's
+    program declares its boxes' `Body` and is compiled with `roll.ges`
+    in front; a `.ges` box beside a line still carries its own drawing
+    and gets `gui.ges` alone.  The page's text is a third of what the
+    unrolled program was."""
+    from gestate.audio import has_roll, library_text, preludes
+    from gestate.scorebox import asks, build_rolls, page_program
+
+    _rolls, (baked, _r, _e), (live, _r2, _e2) = _live_and_baked()
+    assert has_roll(live) and has_roll(baked)
+    assert library_text("roll.ges") in preludes(live)
+    assert len(live) < 40_000, len(live)
+    assert "rollFurniture" in live and "rollColumns" in live and "rollNotes" in live
+
+    source, _o = notes.expanded(ARCNOTES.read_text(), ARCNOTES.parent)
+    asks_ = [(i + 1, l[6:]) for i, l in enumerate(source.splitlines()) if l.startswith("notes ")]
+    compact, _regions, _entries = page_program(build_rolls(source, asks_[:1], 22050, 0))
+    assert not has_roll(compact)
+    assert library_text("roll.ges") not in preludes(compact)
+
+
+def test_roll_ges_states_the_editing_scales_numbers_as_scorebox_does():
+    """The library says `rollSemi`, `rollNoteH`, `rollRulerH` for itself,
+    and they are `scorebox`'s — one arithmetic, held in two places."""
+    import re
+
+    from gestate.audio import library_text
+    from gestate.scorebox import RULER_H, SEMI_H, editing
+
+    text = library_text("roll.ges")
+    said = {m.group(1): int(m.group(2)) for m in re.finditer(r"^(roll\w+) : Int\n\1 = (\d+)$", text, re.M)}
+    assert said["rollSemi"] == SEMI_H
+    assert said["rollNoteH"] == editing(60, 72, 384).note_h
+    assert said["rollRulerH"] == RULER_H

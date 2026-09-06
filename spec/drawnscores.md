@@ -1485,6 +1485,41 @@ of the evening's list, not built.  Idea 4, a `Many` constructor for a
 list of pictures, turned out unnecessary here: the parser's depth was
 the problem and recursion at run time never shows it a chain.
 
+### The roll's vocabulary is a library — 2026-09-06, evening
+
+*Henri: "Tehdään sitten se idea 2, moduuli."*  The evening's second
+idea: the drawing written once, as functions of a box's few numbers,
+and the page's program reduced to the numbers.
+
+**`gestate/roll.ges`**, in front of a program that draws a roll —
+`audio.preludes` puts it after `gui.ges` when the program declares a
+`Body`, which is the library's own type and a hand-written canvas never
+names — so the staged front end caches its analysis as one more head
+and a page's compile pays for the page's own lines.  What it holds:
+`Body` and `Scale`, the editing scale's three numbers stated for
+themselves and held to `scorebox`'s by a test, `rollY` and `rollX`
+(`y_of` and `x_of` to the integer), the furniture, the ruler, the
+columns (`hands_of` restated), the notes with their marks, the band
+and the section's end.  What a box's program still says:
+its channels — one a column, which is what crosses — its `Body`,
+`Scale`, beat and bar lines, the ground and the hands as constants,
+and one picture lifted over its readings.  The compact box beside a
+`.ges` line keeps the program it had, item-identical.
+
+| `arc.notes`, one section, live page | unrolled | computed | library |
+|---|---|---|---|
+| the program's text | 85,233 chars | 51,273 | 32,136 |
+| compiled once, cold / warm | 4.4 s | 1.75 s | 2.2 / 1.06 s |
+| the first picture | 84 ms | 410 ms | 366 ms |
+| a drag's frame | 90 ms | 80 ms | 84 ms |
+| picture and hits | — | identical | identical |
+
+**What is left in the text** is what differs from box to box and
+cannot be a function of anything: a hundred and thirty channel
+declarations a box.  A channel per column exists because a press
+crosses as a name, and that is idea 3 of the evening's list, his to
+decide.
+
 ### What plugin-like scopes
 
 *"I'd like plugin-like, reusable behavior for this feature.  I think

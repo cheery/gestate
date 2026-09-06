@@ -1385,3 +1385,15 @@ subexpression inside the picture function is rebuilt at every
 application, so the ground and the hands went to the top level; and
 the drag's frame was never the furniture — it is the reference walk
 over the items, the same eighty milliseconds before and after.
+
+## The roll's vocabulary is a library — 2026-09-06, evening
+
+*"Tehdään sitten se idea 2, moduuli."*  `roll.ges`, in front of a
+page's program after `gui.ges` whenever the program declares a
+`Body`; the staged front end caches it as one more head.  The page's
+text went from fifty-one thousand characters to thirty-two, the warm
+compile to one second, and the picture and the hit table stayed
+item-identical to the morning's unrolled program — held by the same
+harness that held the first halving.  What remains in the text is
+the channels, one a column, and that is the evening's third idea,
+which touches the wire's rule and is Henri's to decide.

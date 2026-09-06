@@ -32,6 +32,7 @@ import struct
 import sys
 import wave
 from functools import lru_cache
+import re
 from pathlib import Path
 
 from .gmachine import NInd, NNum
@@ -295,14 +296,35 @@ def preludes(source: str) -> str:
     sounds, draws = has_sound(source), has_substrate(source)
     if sounds and draws:
         return _AUDIO_GUI
+    if draws and has_roll(source):
+        return _GUI_ROLL
     if draws:
         return _GUI_ONLY
     return _AUDIO
 
 
+def has_roll(source: str) -> bool:
+    """Does this program draw a score box's editing scale?
+
+    `scorebox.roll_program` declares each box's `Body`, which is
+    `roll.ges`'s own type — so a program that names one is written in
+    that vocabulary and gets it in front, after `gui.ges`.  A hand-written
+    canvas never says `Body`, and pays nothing.
+    """
+    return re.search(r"^__nb_body_\d+__ : Body$", source, re.M) is not None
+
+
 #: A program that only draws: no audio vocabulary, and none of its cost.
 _GUI_ONLY = (_SIGNAL + "\n"
              + library_text("gui.ges"))
+
+#: A program that draws a score box's page — `gui.ges` and then the roll's
+#: own vocabulary, which builds `gui.ges`'s `Sub`.  Its own head, so the
+#: staged front end caches its analysis once and a page's compile pays
+#: for the page's few lines (`spec/drawnscores.md` §"The roll's
+#: vocabulary is a library").
+_GUI_ROLL = (_GUI_ONLY + "\n"
+             + library_text("roll.ges"))
 
 #: 22,050 is a compromise: high enough that a sawtooth is recognisably
 #: itself, low enough that a second of sound is a few seconds of work.
