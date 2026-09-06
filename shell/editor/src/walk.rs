@@ -279,11 +279,15 @@ impl Walker {
     /// nothing a gesture that must *commit* can use: a score box's
     /// drag is one text edit, one undo entry, one rebuild, and
     /// without this it cannot know when to make them.
-    pub fn release(&mut self) -> Option<String> {
-        let held = self.canvas.grabbed().and_then(|c| {
+    ///
+    /// **One name per grab, innermost first**: a pad lets go of two, a
+    /// note on a roll of its column and the body around it, and the
+    /// model hears `released` for each (F204).
+    pub fn release(&mut self) -> Vec<String> {
+        let held = self.canvas.grabbed().into_iter().filter_map(|c| {
             self.names.iter().find(|(id, _)| *id == c)
                 .map(|(_, n)| n.clone())
-        });
+        }).collect();
         self.canvas.release();
         held
     }
@@ -524,9 +528,9 @@ mod walker_tests {
         assert!(!w.hear("peak", 0.5), "it took a channel it does not have");
         // And the release says what let go, which is what a gesture
         // that has to commit waits for.
-        assert_eq!(w.release(), Some("dragged".to_string()));
+        assert_eq!(w.release(), vec!["dragged".to_string()]);
         assert!(!w.is_grabbing());
-        assert_eq!(w.release(), None, "nothing was held the second time");
+        assert!(w.release().is_empty(), "nothing was held the second time");
     }
 
     #[test]

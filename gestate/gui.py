@@ -550,6 +550,40 @@ def _under(hits: list, x: int, y: int) -> dict | None:
     return None
 
 
+def _encloses(outer: tuple, inner: tuple) -> bool:
+    """Whether one region holds the whole of another."""
+    return (outer[0] <= inner[0] and outer[1] <= inner[1]
+            and outer[2] >= inner[2] and outer[3] >= inner[3])
+
+
+def _grabbed(hits: list, x: int, y: int) -> list:
+    """Every attachment a press here takes hold of, innermost first.
+
+    **The deepest attachment containing the point, and every attachment
+    around it.**  `_walk` records an attachment after the subtree it
+    wraps, so what encloses the deepest one is recorded *after* it, and
+    an enclosing attachment's extent holds the inner one's whole extent
+    — which is what "around" is read as here, off the hit table: a
+    later hit whose region contains the grabbed region.  A pad written
+    `onTouchX cx (onTouchY cy rect)` is two attachments on one extent
+    and both are taken; a fader beside another fader shares no extent
+    with it and is left alone.  `shell/panel/src/canvas.rs` keeps the
+    same rule, and the two are held to each other.
+    """
+    deepest = _under(hits, x, y)
+    if deepest is None:
+        return []
+    out = [deepest]
+    past = False
+    for hit in hits:
+        if hit is deepest:
+            past = True
+            continue
+        if past and _encloses(hit["region"], deepest["region"]):
+            out.append(hit)
+    return out
+
+
 # ── Driving it ──────────────────────────────────────────────────────────────
 
 
@@ -1040,29 +1074,48 @@ class Substrate:
         was let go; what changed is that the *model* is now told, which
         is what a gesture that must commit needs and a fader never did.
         """
+        said = self.touch_all(kind, x, y)
+        return said[0] if said else None
+
+    def touch_all(self, kind: str, x: int, y: int) -> list:
+        """`touch`, answering for **every** attachment the press grabbed.
+
+        **A press grabs the deepest attachment containing the point, and
+        every attachment around it** — `_grabbed`.  A pad is `onTouchX
+        cx (onTouchY cy rect)`, two attachments on one extent, and until
+        2026-09-06 a press wrote the inner one only (`fixme.md` F204):
+        `spec/substrate.md` promised two and the walk delivered one, in
+        both machines.  So the grab is a list now, innermost first, and
+        a hand writes each of them a fraction of *its own* extent: the
+        inner one its column, the outer one the body it encloses — which
+        is how a note is carried in pitch and in time by one hand.
+
+        `touch` answers the innermost, as it always did; this answers all
+        of them in the order they were recorded, and a release names
+        each grab it lets go of.
+        """
         hits = _attachments(self.signal.value, self.state)
         if kind == "press":
-            self._held = _under(hits, x, y)
-        target = self._held
+            self._held = _grabbed(hits, x, y)
+        targets = self._held or []
         if kind == "release":
             self._held = None
-            if target is None:
-                return None
-            return (("released", self._named(target["chan"]))
-                    if self._named(target["chan"]) else None)
-        if target is None:
-            return None
-        value = _gesture_value(target, kind, x, y)
-        if value is None:
-            return None
-        react(self.reactive, [(target["chan"], NNum(value))])
-        name = self._named(target["chan"])
-        if name is not None:
-            self.values[name] = value
-            return ("touched", name, value)
-        # An anonymous channel still moves the picture and has no name
-        # to be recorded or heard by — the wire's rule, kept here.
-        return None
+            return [("released", self._named(t["chan"])) for t in targets
+                    if self._named(t["chan"])]
+        out = []
+        for target in targets:
+            value = _gesture_value(target, kind, x, y)
+            if value is None:
+                continue
+            react(self.reactive, [(target["chan"], NNum(value))])
+            name = self._named(target["chan"])
+            if name is not None:
+                self.values[name] = value
+                out.append(("touched", name, value))
+            # An anonymous channel still moves the picture and has no
+            # name to be recorded or heard by — the wire's rule, kept
+            # here.
+        return out
 
     def _named(self, chan: int) -> str | None:
         """The declared name of a channel id, or `None` for a hidden one."""

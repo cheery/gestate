@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 209 entries, **166 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 209 entries, **167 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7645,7 +7645,7 @@ gate: `test_drawnscores.py::test_a_sharp_tonic_is_a_tonic_and_not_a_comment`,
 parametrized over all five, each with a real trailing comment beside it so the
 two readings are held apart rather than one of them merely allowed.
 
-### F204. **[bug]** the substrate spec promises a pad as two touches on one element, and a press writes one
+### F204. **[resolved]** the substrate spec promises a pad as two touches on one element, and a press writes one
 
 `spec/substrate.md` §"S3 — attachment, and the walk": *"a fader is one
 `onTouchY`, and a pad is two on one element, which is honest: a pad *is* two
@@ -7678,8 +7678,26 @@ rail can retire; or the sentence in `spec/substrate.md` is corrected to
 the better instrument and costs both machines plus a parity fixture with a
 pad in it; the second is a line.  Henri's.
 
-gate: none yet — the measurement above is the check, and a test naming it
-belongs with whichever repair is chosen.
+**Resolved 2026-09-06, the first way — Henri: *"go with the default,
+repair the walk."***  A press grabs the deepest attachment containing
+the point **and every attachment around it**, innermost first, in both
+machines: `gui._grabbed` and `Display::grabbed` (`shell/panel/src/list.rs`),
+each reading *around* off its own hit table as a later attachment whose
+region holds the grabbed one's whole region — which is what enclosing
+looks like from a table the walk fills innermost-first.  The six-line
+program above writes `cy` **and** `cx` now, 0.625 each from the same
+press; two faders side by side still write one.  A hand writes each grab
+a fraction of *its own* extent, so the roll's columns went *inside* a
+body-wide `TouchX` and one press carries a note in pitch and in time —
+the rail retired to being the ruler, drawn and listening to nothing.
+`Walker::release` names every grab, the window says `released` for
+each, and the model commits both axes at the first.
+
+gate: `test_drawnscores.py::test_a_pad_is_two_attachments_on_one_element_and_a_press_writes_both`
+(the reference), `list::grab_tests` in `shell/panel/src/list.rs` (the
+port, four cases), and
+`test_drawnscores.py::test_one_drag_carries_a_note_in_pitch_and_in_time`
+(what it was for).
 
 ### F205. **[bug]** the page of a `.notes` sometimes takes ninety seconds to appear, and sometimes two
 

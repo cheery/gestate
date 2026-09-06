@@ -604,9 +604,9 @@ impl Panel {
                 // once — an unmatched `Begin` leaves the host in a
                 // gesture forever.
                 let out: Vec<Change> = c.grabbed()
-                    .and_then(|ch| c.param_of(ch))
-                    .map(Change::End)
                     .into_iter()
+                    .filter_map(|ch| c.param_of(ch))
+                    .map(Change::End)
                     .collect();
                 c.release();
                 return out;

@@ -859,6 +859,9 @@ hand can work, keys named, bars numbered, sections captioned, and the
 `.ges` box beside a line is unchanged to the pixel.  Driven and
 photographed the same hour.
 
-Still his: F204, both axes in one drag, put with a default at the
-start of the sitting.  Found on the way: F208, the status row painting
-two fields over each other under the page.
+F204, put with a default at the start of the sitting — *"go with the
+default, repair the walk"* — and built the same afternoon: one hand
+carries a note in pitch and in time, the rail is a ruler, and the
+walk's rule is the substrate spec's own.  `card:notes-editor.md` §"One
+hand, both axes".  Found on the way: F208, the status row painting two
+fields over each other under the page, photographed twice.

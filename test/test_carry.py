@@ -78,6 +78,9 @@ DELIBERATELY_FRESH = {
     "given": "the arguments the old box was holding",
     "holding": "a note a hand has hold of in a score box, between press and "
                "release — there is no hand on the new file",
+    "holding_x": "the same hand's grab on the body around the column — the "
+                 "note carried in time (F204's repair) — and there is no "
+                 "hand on the new file",
     "selected": "the note the last press picked in a score box, per box — "
                 "no box of the new file has been pressed, and the rail "
                 "would move a note of the old one",

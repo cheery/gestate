@@ -1272,3 +1272,34 @@ through the sound card — and `Ctrl-S` changed one line of the copy,
 painting two fields over each other, F208.  One decision went to Henri
 at the start with a default and is still his: F204, both axes in one
 drag, by repairing the walk.
+
+## One hand, both axes — F204 repaired, 2026-09-06
+
+*"go with the default, repair the walk."*  The walk in both machines:
+a press grabs the deepest attachment containing the point and every
+attachment around it, innermost first, read off the hit table as a
+later attachment whose region holds the grabbed one's.  Four cases in
+Rust, the six-line pad in Python writing `cy` and `cx` from one press.
+The roll's columns went inside a body-wide `TouchX`, so the press that
+takes a note also takes the body, and the rail became a ruler.  The
+model holds two grabs and commits both at the first `released`.
+
+### The window said no, twice
+
+Headless, every test was green.  Driven, the key moved and the tick
+did not — twice, the second run confounded by a palette left open.
+Not the walk: the door.  A replacement through `ged_set_text` lands on
+the window's next frame and `ged_text` reads what the window last
+published, so `move` wrote, `transpose` read the text from before it,
+and the last write won.  No headless view can show that, because every
+one of them is synchronous.  The view answers its own replacement now
+until the document has taken it, held by a test whose editor lands a
+frame late — and the third run changed one line in both fields.
+
+Two lessons paid for.  A timing test in the suite failed while a cargo
+build ran beside it and passed alone in six seconds: the machine is
+shared, and I was the load.  And a session log is written by the
+`transcript` command, not on quit — two runs went to learning that,
+and the transcript never did come; the bench reproduced the drop
+instead, with the real audition wired in, and it was green there too,
+which is what pointed at the door.

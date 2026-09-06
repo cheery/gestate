@@ -79,8 +79,8 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `gmachine.py:1395` | `GmError` | fixme.md F159 |
 | `gmachine.py:1403` | `GmError` | fixme.md F159 |
 | `gmachine.py:1435` | `GmError` | fixme.md F159: a primitive overflowed at the value it was given |
-| `gui.py:587` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
-| `gui.py:590` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
+| `gui.py:621` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
+| `gui.py:624` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
 | `helpers.py:434` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `helpers.py:569` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
 | `pipeline.py:1108` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
@@ -125,9 +125,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | `export.py:752` | `ExportError` | two rates ordering their channels differently is a property of the pair, not of a line |
 | `gmachine.py:1523` | `StepLimit` | a budget running out is about a whole evaluation, not a line of it |
 | `gui.py:112` | `GuiError` | the canvas program declares the retired name; the mistake is which name, and the retired one is searched for rather than placed |
-| `gui.py:571` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
-| `gui.py:869` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
-| `gui.py:891` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
+| `gui.py:605` | `GuiError` | what `scene` evaluated to, which is about the declaration as a whole |
+| `gui.py:903` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
+| `gui.py:925` | `GuiError` | what a declaration evaluated to, which is about the declaration as a whole |
 | `midi.py:124` | `MidiError` | a music program declaring the wrong names; the mistake is an absence |
 | `midi.py:172` | `MidiError` | how many instruments the whole piece uses |
 | `midi.py:191` | `MidiError` | a piece with no notes in it at all |
@@ -613,13 +613,13 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 423 | `GuiError` | `machine` | — | 'expected a substrate, got {type(node).__name__}' |
 | 499 | `GuiError` | `machine` | — | 'unknown substrate tag {tag}' |
 | 511 | `GuiError` | `machine` | — | 'expected a channel, got {type(node).__name__}' |
-| 571 | `GuiError` | `author` | *nowhere, on purpose* | "the program's `scene` did not evaluate to a signal (got {type(sig).__name__})" |
-| 587 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | 'unknown event {name!r} (the program knows: {known})' |
-| 590 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | '{name} takes {info.arity} argument(s), got {len(args)}' |
-| 614 | `GuiError` | `machine` | — | '`{name}` is declared `Chan` and is not one' |
-| 869 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` did not evaluate to a signal (got {type(sig).__name__})' |
-| 891 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` is declared `Chan` and is not one' |
-| 1163 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
+| 605 | `GuiError` | `author` | *nowhere, on purpose* | "the program's `scene` did not evaluate to a signal (got {type(sig).__name__})" |
+| 621 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | 'unknown event {name!r} (the program knows: {known})' |
+| 624 | `GuiError` | `author` | *unplaced — fixme.md F157: an event named in the program, carried here without its line* | '{name} takes {info.arity} argument(s), got {len(args)}' |
+| 648 | `GuiError` | `machine` | — | '`{name}` is declared `Chan` and is not one' |
+| 903 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` did not evaluate to a signal (got {type(sig).__name__})' |
+| 925 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` is declared `Chan` and is not one' |
+| 1216 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
 
 ### `helpers.py`
 
@@ -860,10 +860,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 2363 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2369 | `NotesError` | `author` | handed in | '{place} would leave section {section.name} — a note does not leave its section by dragging' |
-| 2383 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
-| 4270 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
+| 2367 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2373 | `NotesError` | `author` | handed in | '{place} would leave section {section.name} — a note does not leave its section by dragging' |
+| 2387 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
+| 4314 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
 
 ### `tempo.py`
 

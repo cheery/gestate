@@ -2262,7 +2262,7 @@ impl WindowHandler for EditorWindow {
                         // a gesture that has to commit needs the full
                         // stop (`spec/workbench.md`, and the score
                         // box's drag is the caller).
-                        if let Some(name) = w.release() {
+                        for name in w.release() {
                             self.host.gesture(
                                 Gesture::Released(name).line());
                         }

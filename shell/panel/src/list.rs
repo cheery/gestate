@@ -201,4 +201,81 @@ impl Display {
     pub fn pick(&self, x: i32, y: i32) -> Option<Hit> {
         self.hits.iter().copied().find(|h| h.contains(x, y))
     }
+
+    /// **What a press takes hold of: the deepest channel attachment
+    /// containing the point, and every one around it** — innermost
+    /// first.  `gui.py`'s `_grabbed`, kept to the letter: the walk
+    /// records an attachment after the subtree it wraps, so what
+    /// encloses the deepest one is recorded after it, and *around* is
+    /// read off this table as a later attachment whose region holds
+    /// the grabbed one's whole region.  A pad, `onTouchX cx (onTouchY
+    /// cy rect)`, is two attachments on one extent and both are taken
+    /// (`fixme.md` F204: until 2026-09-06 one was, in both machines);
+    /// two faders side by side share no extent, and a press on one
+    /// leaves the other alone.  A deepest hit that is not a channel —
+    /// a button, a toggle — takes nothing here; those are the panel's.
+    pub fn grabbed(&self, x: i32, y: i32) -> Vec<Hit> {
+        let Some(at) = self.hits.iter().position(|h| h.contains(x, y))
+        else { return Vec::new() };
+        if !matches!(self.hits[at].kind, Kind::Chan(..)) {
+            return Vec::new();
+        }
+        let (dx0, dy0, dx1, dy1) = self.hits[at].region;
+        self.hits.iter().enumerate().filter_map(|(i, h)| {
+            let (x0, y0, x1, y1) = h.region;
+            let around = i > at && matches!(h.kind, Kind::Chan(..))
+                && x0 <= dx0 && y0 <= dy0 && x1 >= dx1 && y1 >= dy1;
+            (i == at || around).then_some(*h)
+        }).collect()
+    }
+}
+
+#[cfg(test)]
+mod grab_tests {
+    use super::*;
+
+    fn chan(axis: Axis, id: i64, r: (i32, i32, i32, i32)) -> Hit {
+        Hit { kind: Kind::Chan(axis, id), param: NO_PARAM, region: r }
+    }
+
+    #[test]
+    fn a_pad_is_two_attachments_on_one_element_and_a_press_takes_both() {
+        // Recorded as the walk records them: the inner `TouchY` first,
+        // the `TouchX` around it after.
+        let mut d = Display::new();
+        d.hits.push(chan(Axis::Y, 2, (0, 0, 40, 40)));
+        d.hits.push(chan(Axis::X, 1, (0, 0, 40, 40)));
+        let got: Vec<i64> = d.grabbed(5, 5).iter().map(|h| match h.kind {
+            Kind::Chan(_, c) => c, _ => -1 }).collect();
+        assert_eq!(got, vec![2, 1], "cy first, then cx around it");
+    }
+
+    #[test]
+    fn a_column_inside_a_body_takes_the_column_and_the_body() {
+        let mut d = Display::new();
+        d.hits.push(chan(Axis::Y, 10, (0, 0, 8, 100)));
+        d.hits.push(chan(Axis::Y, 11, (8, 0, 16, 100)));
+        d.hits.push(chan(Axis::X, 20, (0, 0, 400, 100)));
+        let got: Vec<i64> = d.grabbed(12, 50).iter().map(|h| match h.kind {
+            Kind::Chan(_, c) => c, _ => -1 }).collect();
+        assert_eq!(got, vec![11, 20], "the column under the point, and the body");
+    }
+
+    #[test]
+    fn two_faders_side_by_side_are_still_one_press_each() {
+        let mut d = Display::new();
+        d.hits.push(chan(Axis::Y, 1, (0, 0, 40, 40)));
+        d.hits.push(chan(Axis::Y, 2, (40, 0, 80, 40)));
+        assert_eq!(d.grabbed(10, 10).len(), 1);
+        assert_eq!(d.grabbed(50, 10).len(), 1);
+        assert!(d.grabbed(200, 10).is_empty());
+    }
+
+    #[test]
+    fn a_button_under_the_point_takes_no_channel() {
+        let mut d = Display::new();
+        d.hits.push(Hit { kind: Kind::Button(3), param: NO_PARAM, region: (0, 0, 40, 40) });
+        d.hits.push(chan(Axis::X, 1, (0, 0, 40, 40)));
+        assert!(d.grabbed(5, 5).is_empty());
+    }
 }

@@ -2519,13 +2519,14 @@ def test_the_page_names_its_keys_its_bars_and_its_sections():
         assert len(caption) == 1, "captioned with what it is"
 
 
-def test_a_hand_takes_a_note_by_its_row_and_the_ruler_by_its_strip():
+def test_a_hand_takes_a_note_by_its_row_and_the_body_around_it():
     """The reference walk over the editing-scale page: a press on a
-    note's own rectangle lands on a column and names that note, and a
-    press in the ruler lands on the rail — the hands folded balanced
-    (`_overs`) record in the same order the chain did, rail first."""
+    note's own rectangle lands on a column and names that note — and
+    on the body around the column, which is the hand for time (F204's
+    repair).  The hands folded balanced (`_overs`) record in the same
+    order the chain did."""
     from gestate.gui import Substrate
-    from gestate.scorebox import (RAIL, geometry_of, note_under, rail_of,
+    from gestate.scorebox import (RAIL, geometry_of, note_under,
                                   regions_of)
 
     rolls, (baked, _r, entries), _l = _live_and_baked()
@@ -2537,24 +2538,21 @@ def test_a_hand_takes_a_note_by_its_row_and_the_ruler_by_its_strip():
     assert len(heads) == len(roll.events)
     hit, named = 0, 0
     for _kind, x, y, w, h, _c in heads:
-        meant = view.touch("press", x + w // 2, y + h // 2)
-        view.touch("release", x + w // 2, y + h // 2)
-        if not meant or meant[0] != "touched":
+        meant = view.touch_all("press", x + w // 2, y + h // 2)
+        view.touch_all("release", x + w // 2, y + h // 2)
+        if not meant:
             continue
         hit += 1
-        found = regions[meant[1]]
-        assert found.hand != RAIL, "a note's row is not the ruler"
+        column, body = meant
+        assert regions[column[1]].hand != RAIL, "the column first"
+        assert regions[body[1]].hand == RAIL, "and the body around it"
         try:
-            note_under(roll, found.hand, meant[2])
+            note_under(roll, regions[column[1]].hand, column[2])
             named += 1
         except Exception:                                # noqa: BLE001
             pass
     assert hit == len(heads), f"{hit} of {len(heads)} notes could be pressed"
     assert named == hit
-    cx, cy, _w, _h = rail_of(roll)
-    meant = view.touch("press", cx, cy)
-    view.touch("release", cx, cy)
-    assert meant and meant[0] == "touched" and regions[meant[1]].hand == RAIL
 
 
 def test_two_sections_on_one_roll_follow_one_another():
@@ -2578,3 +2576,161 @@ def test_two_sections_on_one_roll_follow_one_another():
     assert roll.bars[a.bars] == first, "the second section's first bar line"
     assert any(on >= first for on, *_r in roll.events), "the second section's notes follow the first's"
     assert roll.title == f"{a.name} {a.key} {a.mode}  {b.name} {b.key} {b.mode}"
+
+
+# ── F204 repaired — a pad is two on one element, and a note is carried in both axes ──
+
+
+def test_a_pad_is_two_attachments_on_one_element_and_a_press_writes_both():
+    """`spec/substrate.md` §"S3": *a pad is two on one element*.  Measured
+    false on 2026-09-06 (F204): a press wrote the inner one only, in
+    both machines.  Now a press grabs the deepest attachment and every
+    one around it, so `onTouchX cx (onTouchY cy rect)` writes `cy` and
+    `cx` from one press — and two faders side by side still write one."""
+    from gestate.gui import Substrate
+
+    pad = ("cx : Chan Float\ncx = chan\ncy : Chan Float\ncy = chan\n"
+           "substrate : Sig Sub\n"
+           "substrate = !(TouchX cx (TouchY cy (Rect 40 40 (RGB 9 9 9))))\n")
+    v = Substrate(pad, 22050)
+    said = v.touch_all("press", 5, 5)
+    assert [s[1] for s in said] == ["cy", "cx"], said
+    assert abs(said[0][2] - 0.625) < 1e-9 and abs(said[1][2] - 0.625) < 1e-9
+    said = v.touch_all("drag", 10, 12)
+    assert dict((s[1], round(s[2], 3)) for s in said) == {"cy": 0.8, "cx": 0.75}
+    assert v.touch_all("release", 10, 12) == [("released", "cy"), ("released", "cx")]
+    assert v.touch("press", 5, 5) == ("touched", "cy", 0.625), "touch answers the innermost, as before"
+
+    two = ("a : Chan Float\na = chan\nb : Chan Float\nb = chan\n"
+           "substrate : Sig Sub\n"
+           "substrate = !(Row (TouchY a (Rect 40 40 (RGB 9 9 9))) "
+           "(TouchY b (Rect 40 40 (RGB 9 9 9))))\n")
+    v = Substrate(two, 22050)
+    assert [s[1] for s in v.touch_all("press", -10, 0)] == ["a"]
+
+
+def _diagonal(seat, roll, note: int):
+    """Press `note`, carry it up two semitones and along one grid step,
+    and let go — the way one hand does it since F204's repair, the
+    column's channel and the body's written by the same press and
+    released one after the other."""
+    from gestate.scorebox import across_of, grid_of
+
+    chan = _press_a_note(seat, roll, note)
+    on = roll.events[note][0]
+    seat.touched("__nb_rail_0__", across_of(roll, on))
+    _n, _note, was, grabbed, _k = seat.holding
+    from gestate.scorebox import reach_of
+    low, high = reach_of(roll)
+    up = (high - (grabbed + 2)) / (high - low)
+    seat.touched(chan, up)
+    seat.touched("__nb_rail_0__", across_of(roll, on + grid_of(roll)))
+    first = seat.released(chan)
+    second = seat.released("__nb_rail_0__")
+    return first, second
+
+
+def test_one_drag_carries_a_note_in_pitch_and_in_time():
+    """The postcondition F204 stood in front of: a note moves in both
+    axes under one hand.  The first `released` commits both — `transpose`
+    then `move` — and the second finds nothing held."""
+    from gestate.scorebox import grid_of
+
+    with _copied() as here:
+        roll, seat = _rolled_page(here)
+        note = 0
+        on, key = roll.events[note][0], roll.events[note][3]
+        assert seat.bench.previewing == {}
+        first, second = _diagonal(seat, roll, note)
+        assert "transpose: arc.notes" in first and "move: arc.notes" in first, first
+        assert second == "", second
+        target = here.parent / "arc.notes"
+        moved = [l for l in target.read_text().splitlines()
+                 if f"key {key + 2}" in l and f"at {on + grid_of(roll)}" in l]
+        assert moved, "the line carries both the new key and the new tick"
+        assert seat.holding is None and seat.holding_x is None
+
+
+def test_a_drag_previews_both_axes_at_once():
+    """The picture follows the hand in pitch *and* time before anything
+    is written: neither preview wipes the other's reading."""
+    from gestate.scorebox import across_of, grid_of, reach_of
+
+    with _copied() as here:
+        roll, seat = _rolled_page(here)
+        chan = _press_a_note(seat, roll, 0)
+        on = roll.events[0][0]
+        seat.touched("__nb_rail_0__", across_of(roll, on))
+        _n, _note, _was, grabbed, _k = seat.holding
+        low, high = reach_of(roll)
+        seat.touched(chan, (high - (grabbed + 3)) / (high - low))
+        seat.touched("__nb_rail_0__", across_of(roll, on + grid_of(roll)))
+        shown = seat.bench.previewing
+        assert shown["__nb_lift_0__"] < 0, "carried up"
+        assert shown["__nb_slide_0__"] > 0, "and along"
+        seat.released(chan)
+        seat.released("__nb_rail_0__")
+
+
+def test_a_press_on_nothing_selects_nothing_and_the_body_carries_nothing():
+    """A press on an empty column, with a note selected earlier, must
+    not let the body drag that old selection off in time."""
+    from gestate.scorebox import RefusedError, _chan, across_of, hands_of, note_under
+
+    with _copied() as here:
+        roll, seat = _rolled_page(here)
+        chan = _press_a_note(seat, roll, 0)
+        seat.released(chan)
+        assert 0 in seat.selected.values()
+        empty = next((h for h, (_t0, _t1, under) in enumerate(hands_of(roll)) if not under), None)
+        if empty is None:
+            pytest.skip("every column of this roll has a note under it")
+        said = seat.touched(_chan(0, empty), 0.5)
+        assert "nothing sounds" in said, said
+        said = seat.touched("__nb_rail_0__", across_of(roll, 0))
+        assert said.startswith("nothing selected"), said
+        seat.released(_chan(0, empty))
+        seat.released("__nb_rail_0__")
+        assert here.parent.joinpath("arc.notes").read_text() == (ROOT / "examples/audio/arc.notes").read_text()
+
+
+def test_the_window_view_answers_its_own_replacement_until_the_window_takes_it():
+    """Found on the real window and on no headless bench: `ged_set_text`
+    is picked up on the window's next frame and `ged_text` reads what
+    the window last published, so two commands writing back to back —
+    `transpose` then `move`, one hand's drag — had the second read the
+    text from before the first, and the last write won.  The view
+    answers the replacement until the document has taken it."""
+    from gestate.workbench import Window
+
+    class _Deferred:
+        """An editor whose `text` setter lands on the next frame."""
+
+        def __init__(self, text):
+            self._text, self._pending, self.orders = text, None, []
+
+        @property
+        def text(self):
+            return self._text
+
+        @text.setter
+        def text(self, value):
+            self._pending = value
+
+        def frame(self):
+            if self._pending is not None:
+                self._text, self._pending = self._pending, None
+
+        def changed(self):
+            return False
+
+    ed = _Deferred("a 1\nb 2\n")
+    view = Window(ed)
+    assert view.replace("a 9\nb 2\n")
+    assert view.text() == "a 9\nb 2\n", "the replacement, before the window's frame"
+    assert view.replace(view.text().replace("b 2", "b 8"))
+    ed.frame()
+    assert ed.text == "a 9\nb 8\n", "both writes landed, the second on top of the first"
+    assert view.text() == "a 9\nb 8\n"
+    ed._text = "typed\n"
+    assert view.text() == "typed\n", "the document is the answer once it says something else"

@@ -79,13 +79,37 @@ class Window:
         #: hundred times a second; comparing two strings already in hand
         #: is a `memcmp`, and fetching one is not.
         self._held: str = ""
+        #: `(what the document said, what `replace` told it to say)`
+        #: until the window has taken it — see `text`.
+        self._replaced: tuple | None = None
         #: Whether the document moved since anybody asked — read and
         #: cleared by the loop, which is what turns typing into an
         #: audition (`audioeditor.Workbench.typed`).
         self.moved = False
 
     def text(self) -> str:
-        return self.editor.text
+        """What the document says — **including what this model has
+        just told it to say.**
+
+        `replace` goes through `ged_set_text`, which the window picks
+        up on its next frame; `ged_text` reads the text the window last
+        published.  So two commands writing the document back to back —
+        a note carried in pitch and in time by one hand commits
+        `transpose` and then `move` (F204's repair, 2026-09-06) — had
+        the second read the text from before the first, and the last
+        write won: the key moved and the tick did not, on the real
+        window and on no headless bench, whose views are synchronous.
+        Until the document has taken the replacement, the replacement
+        is the answer; the moment it says something else — the window
+        applied it, or somebody typed — the document is.
+        """
+        got = self.editor.text
+        if self._replaced is not None:
+            before, after = self._replaced
+            if got == before:
+                return after
+            self._replaced = None
+        return got
 
     def lines(self) -> list:
         """The document's lines, copied only when it has moved.
@@ -358,6 +382,9 @@ class Window:
         """
         if not text:
             return False
+        # Remembered with what the document said, so `text()` can tell
+        # *not yet applied* from *applied and then changed again*.
+        self._replaced = (self.editor.text, text)
         self.editor.text = text
         return True
 

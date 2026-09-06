@@ -975,7 +975,7 @@ full-width `TouchX` strip along its top, drawn as a faint track, written
 into the picture *before* the columns so it wins where a column reaches
 over it.  Press a note to select it; drag the rail to carry it in time.
 Two motions where a pad would be one, stated rather than hidden, and
-the rail retires the day F204 is repaired the first way.
+the rail retires the day F204 is repaired the first way.  *(It did, the same day — §"The sixth slice, built".)*
 
 | built | where |
 |---|---|
@@ -1096,7 +1096,7 @@ the headless tests had not:
 roll, honour the drag, sound the moved note — is in the window, with
 the seam untouched where the round said it would be: nothing new
 crosses the wire.  What is not done is not on the ladder: the seven
-candidate questions for the fire, F204's pad, F205's wait.
+candidate questions for the fire, F204's pad *(repaired that afternoon)*, F205's wait.
 
 ### The fifth slice, built — the editing scale — 2026-09-06, the second sitting
 
@@ -1168,11 +1168,70 @@ scale* in `test/test_drawnscores.py`; 131 in the file, green.
 to the window: a section wider than the view is cut at the view's
 edge, and there is no horizontal scroll — a section of more than eight
 bars of four is the case that would ask for one.  The rail is still the
-second axis (F204 stands); the ruler only gives it a face.  No playhead
+second axis (F204 stands — *until the slice below, the same afternoon*);
+the ruler only gives it a face.  No playhead
 crosses the page while the transport runs — the picture reads no
 transport position — and the margin words `tools/bars.py` computes are
 not drawn yet.  And the run photographed F208, two fields of the status
 row painted over each other under the page.
+
+### The sixth slice, built — one hand, both axes — 2026-09-06
+
+*Henri: "go with the default, repair the walk."*  F204's first repair,
+and the sentence `spec/substrate.md` §"S3" had promised all along: **a
+pad is two on one element.**
+
+**The walk, in both machines.**  A press grabs the deepest attachment
+containing the point **and every attachment around it**, innermost
+first — `gui._grabbed` and `Display::grabbed`, each reading *around*
+off its own hit table as a later attachment whose region holds the
+grabbed one's whole region, which is what enclosing looks like from a
+table the walk fills innermost-first.  A hand writes each grab a
+fraction of *its own* extent, and a release lets go of each by name:
+`Substrate.touch_all` answers every write, `Walker::release` names
+every grab, the window says `released` for each.  Two faders side by
+side share no extent and a press on one still leaves the other alone;
+`touch` still answers the innermost, so nothing that read one answer
+reads a different one.
+
+**The roll, rearranged around it.**  The columns went *inside* a
+`TouchX` the body's whole width and the columns' whole height, so the
+press that takes a note writes the column — which note, how far in
+pitch — and the body — how far along, a fraction of the width
+`tick_at` already read.  The rail retired to being the ruler: drawn,
+listening to nothing.  In the model the body's grab stands beside the
+column's (`holding_x` beside `holding`), each preview keeps the other
+axis's reading, and **the first `released` commits both** — `move` and
+`transpose`, two lines in the transcript, each replayable alone — so the
+second arrives to nothing held.  A press on an empty column drops the
+selection, so the body has nothing to carry off in time.
+
+**And the window found what no bench could.**  Driven, the first run
+moved the key and not the tick.  The reason was the door, not the
+walk: `ged_set_text` is picked up on the window's next frame and
+`ged_text` reads what the window last published, so the second command
+read the document from before the first and the last write won.  Every
+headless view is synchronous, which is why 131 tests had not seen it.
+`workbench.Window.text` answers its own replacement until the document
+has taken it, and one test holds that with an editor whose setter lands
+a frame late.
+
+**Measured.**  The six-line pad program writes `cy` and `cx` from one
+press, 0.625 each.  The page: every note's own rectangle pressed lands
+on its column and the body.  Driven on `Xvfb :99`,
+`test/driven/20260906-145334-notes-both-axes-one-drag` on the desk
+that ran it: a whole-bar note carried up three semitones and along one
+beat with the picture following in both axes, dropped, and one line of
+the copy changed in both fields — `key 57` to `60`, `at 0` to `96`.
+Four grab cases in `shell/panel/src/list.rs`, panel and editor crates
+green; five new Python tests under *F204 repaired*.
+
+**What this slice does not do, said now.**  A diagonal drag is two
+rewrites and two rebuilds, not one; the transcript says `move` then
+`transpose`.  A press in the ruler strip lands on the column reaching
+under it, since the columns are `DRAG_REACH` taller than the notes,
+and takes a note there by aim — the ruler is not yet a control.  F208
+was photographed again.
 
 ### What plugin-like scopes
 

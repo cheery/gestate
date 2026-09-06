@@ -1877,6 +1877,11 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
     # lands at is which note it meant; the height it is let go at is
     # where that note goes (`spec/north_star.md`).
     regions = []
+    low, high = reach_of(roll)
+    reach_top, reach_bottom = y_of(high), y_of(low)
+    # The columns are written relative to the body's centre, because
+    # the body is the element they sit inside (below).
+    bcx, bcy = left + body_w // 2, (reach_top + reach_bottom) // 2
     for i, (t0, t1, _under) in enumerate(hands_of(roll)):
         x0, x1 = x_of(t0), x_of(t1)
         w = max(4, x1 - x0)
@@ -1897,23 +1902,27 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
         # box's own clip hides it — a hand can go there, an eye has
         # nothing to see there, and a press can only start inside the
         # band because that is all the window routes to this walk.
-        low, high = reach_of(roll)
-        reach_top, reach_bottom = y_of(high), y_of(low)
-        regions.append(f"(Shift {_n(x0 + w // 2)} "
-                       f"{_n((reach_top + reach_bottom) // 2)} "
+        regions.append(f"(Shift {_n(x0 + w // 2 - bcx)} 0 "
                        f"(TouchY {chan} (Sized {w} {reach_bottom - reach_top} "
                        f"(Gap 0 0))))")
-    # **The rail goes in first, so it wins where a column reaches over
-    # it.**  A press lands on the first attachment recorded that
-    # contains it, and a column is `DRAG_REACH` taller than the notes
-    # at each end — so the strip along the top would be shadowed by
-    # every column under it if it were written after them.  One
-    # `TouchX`, the body's whole width, drawn as a faint track — and at
-    # editing scale it *is* the ruler, the bar numbers drawn inside it.
+    # **The body is the hand for time, and it goes *around* the
+    # columns.**  A press grabs the deepest attachment containing it
+    # and every attachment around it (`gui._grabbed`, `canvas.rs`
+    # `press` — F204's repair, 2026-09-06), so a `TouchX` the body's
+    # whole width and the columns' whole height, enclosing every
+    # column, is written by the same press that took a note: the
+    # column says which note and how far in pitch, the body how far
+    # along.  One hand, both axes, and the fraction each writes is of
+    # its own extent — the column's reach for pitch, the body's width
+    # for time, which is what `tick_at` reads.  The rail retired to
+    # being the ruler the day this landed: the strip along the top is
+    # drawn, and listens to nothing.
     rail_c = _rail(box)
-    rail = (f"(Shift {_n(rail_x)} {_n(rail_y)} (TouchX {rail_c} "
-            f"(Sized {rail_w} {rail_h} {_ruler(roll)})))")
-    hands = _overs(["(Gap 0 0)", rail] + regions)
+    body = (f"(Shift {_n(bcx)} {_n(bcy)} "
+            f"(TouchX {rail_c} (Sized {body_w} {reach_bottom - reach_top} "
+            f"{_overs(['(Gap 0 0)'] + regions)})))")
+    ruler = f"(Shift {_n(rail_x)} {_n(rail_y)} (Sized {rail_w} {rail_h} {_ruler(roll)}))"
+    hands = _overs(["(Gap 0 0)", ruler, body])
 
     caption = f"TAKE {roll.seed}" if roll.chancy else (roll.title or "NOTES")
     if roll.cut:

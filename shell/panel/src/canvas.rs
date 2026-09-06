@@ -105,7 +105,10 @@ pub struct Canvas {
     /// **A press grabs**, so a drag that leaves the element still
     /// reaches it.  That is what a fader is, and doing it any other way
     /// makes one that stops following your hand at its own edge.
-    held: Option<(Axis, i64, (i32, i32, i32, i32))>,
+    /// Every attachment the press took hold of, innermost first: one
+    /// for a fader, two for a pad, a column and the body around it
+    /// for a note on a roll (`press`).
+    held: Vec<(Axis, i64, (i32, i32, i32, i32))>,
     /// `input`'s channel, when the program has one — where a frame's
     /// `Tick` arrives, which is the only clock a canvas has.
     input: Option<i64>,
@@ -164,7 +167,7 @@ impl Canvas {
             .filter_map(|(name, param)| Some((*by_name.get(name)?, *param)))
             .collect();
         Ok(Canvas { program, machine, root, by_name, bridge, input,
-                    display: Display::new(), held: None, failed: None })
+                    display: Display::new(), held: Vec::new(), failed: None })
     }
 
     pub fn fault(&self) -> Option<&str> {
@@ -268,12 +271,22 @@ impl Canvas {
         }
     }
 
-    /// A press.  Grabs the deepest attachment it lands on.
+    /// A press.  **Grabs the deepest attachment it lands on, and every
+    /// attachment around it** — `gui.py`'s `_grabbed`, kept to the
+    /// letter: the walk records an attachment after the subtree it
+    /// wraps, so what encloses the deepest one is recorded after it,
+    /// and *around* is read off the hit table as a later attachment
+    /// whose region holds the grabbed one's whole region.  A pad,
+    /// `onTouchX cx (onTouchY cy rect)`, is two attachments on one
+    /// extent and both are taken (`fixme.md` F204: until 2026-09-06
+    /// one was); two faders side by side share no extent and a press
+    /// on one leaves the other alone.
     pub fn press(&mut self, x: i32, y: i32) -> Vec<(i64, f64)> {
-        self.held = self.display.pick(x, y).and_then(|hit| match hit.kind {
-            Kind::Chan(axis, chan) => Some((axis, chan, hit.region)),
-            _ => None,
-        });
+        self.held = self.display.grabbed(x, y).into_iter()
+            .filter_map(|hit| match hit.kind {
+                Kind::Chan(axis, chan) => Some((axis, chan, hit.region)),
+                _ => None,
+            }).collect();
         self.value_at(x, y)
     }
 
@@ -284,11 +297,11 @@ impl Canvas {
     /// A release writes nothing — **a fader stays where it was let
     /// go** — and lets go of the grab.
     pub fn release(&mut self) {
-        self.held = None;
+        self.held.clear();
     }
 
     pub fn is_grabbing(&self) -> bool {
-        self.held.is_some()
+        !self.held.is_empty()
     }
 
     /// What the grabbed element hears from a pointer here.
@@ -301,22 +314,21 @@ impl Canvas {
     /// restate it; and the number means something without knowing the
     /// size, so the same signal drives a synth parameter directly.
     fn value_at(&self, x: i32, y: i32) -> Vec<(i64, f64)> {
-        let Some((axis, chan, (x0, y0, x1, y1))) = self.held else {
-            return Vec::new();
-        };
-        let (here, low, span) = match axis {
-            Axis::X => (x, x0, x1 - x0),
-            Axis::Y => (y, y0, y1 - y0),
-        };
-        // An element with no extent on the axis it listens to has no
-        // fraction to report; 0 is the honest answer and the
-        // alternative is a division by zero on a `Gap`.
-        let f = if span <= 0 {
-            0.0
-        } else {
-            (((here - low) as f64) / span as f64).clamp(0.0, 1.0)
-        };
-        vec![(chan, f)]
+        self.held.iter().map(|&(axis, chan, (x0, y0, x1, y1))| {
+            let (here, low, span) = match axis {
+                Axis::X => (x, x0, x1 - x0),
+                Axis::Y => (y, y0, y1 - y0),
+            };
+            // An element with no extent on the axis it listens to has
+            // no fraction to report; 0 is the honest answer and the
+            // alternative is a division by zero on a `Gap`.
+            let f = if span <= 0 {
+                0.0
+            } else {
+                (((here - low) as f64) / span as f64).clamp(0.0, 1.0)
+            };
+            (chan, f)
+        }).collect()
     }
 
     /// The parameter a channel also is, if the export found one.
@@ -361,8 +373,9 @@ impl Canvas {
             .collect()
     }
 
-    /// What the grab is writing, for the caller that has to close it.
-    pub fn grabbed(&self) -> Option<i64> {
-        self.held.map(|(_, c, _)| c)
+    /// What the grab is writing, for the caller that has to close it —
+    /// every channel a press took hold of, innermost first.
+    pub fn grabbed(&self) -> Vec<i64> {
+        self.held.iter().map(|&(_, c, _)| c).collect()
     }
 }

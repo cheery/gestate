@@ -368,6 +368,20 @@ following your hand at its own edge, which is not a fader.
 **Innermost wins**, and it falls out: an attachment is recorded after the
 subtree it wraps, so the deepest is the first one written down.
 
+**And what is around the innermost is taken with it** — *2026-09-06,
+`fixme.md` F204.*  The pad sentence above was measured false the day a
+note wanted carrying in two axes: a press wrote the deepest attachment
+and no other, in both machines, so `onTouchX cx (onTouchY cy rect)` was
+one fader wearing two names.  A press grabs the deepest attachment
+containing the point and every attachment enclosing it, innermost
+first, and a hand writes each a fraction of *its own* extent; a release
+lets go of each by name.  Read off the hit table rather than the tree —
+an enclosing attachment is a later one whose region holds the grabbed
+one's whole region — and kept to the letter in `gui._grabbed` and
+`Display::grabbed`, held to each other by the same six-line pad.  What
+it does not do: two faders side by side share no extent and a press on
+one leaves the other alone, as before.
+
 The editor's half is done too.  `gui.Substrate` is one file's canvas with
 a hand on it — `touch(kind, x, y)` and `picture()` — and `Workbench` holds
 one, rebuilds it with the sound, and consults it in `control` **by channel

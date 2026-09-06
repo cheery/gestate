@@ -954,6 +954,10 @@ class Session:
     #: A drag lives here between the press and the release, because
     #: nothing is written until the hand comes off.
     holding: object = None
+    #: The body's grab, beside the column's — the same press writes
+    #: both (F204's repair, 2026-09-06): `(channel, note, tick it was
+    #: at, tick the hand took hold at, tick it is carried to)`.
+    holding_x: object = None
     #: **The note the last press selected, per score box** — `{box:
     #: note}`.  It outlives the press, which `holding` does not, and
     #: it is the noun a command on the rail takes: a hand on the rail
@@ -4041,6 +4045,10 @@ class Session:
             try:
                 note = note_under(roll, hand, down)
             except RefusedError as exc:
+                # A press on nothing selects nothing — so the body's
+                # hand, written by the same press, has nothing to carry
+                # off in time (F204's repair).
+                self.selected.pop(found.box, None)
                 return str(exc)
             # **A press selects**, and the selection outlives the press:
             # it is what a hand on the rail moves, and what the picture
@@ -4102,11 +4110,16 @@ class Session:
         roll = found.roll
         was = roll.events[note][3]
         try:
+            # The other axis keeps what its own hand wrote: a note
+            # carried in pitch and in time by one press is previewed
+            # in both (F204's repair).
+            slide = (self.bench.previewing or {}).get(found.slide, 0.0) \
+                if self.holding_x is not None else 0.0
             self.bench.previewing = {found.held: float(note),
                                      found.lift: float(y_of(roll, key)
                                                        - y_of(roll, was)),
                                      found.sel: float(note),
-                                     found.slide: 0.0}
+                                     found.slide: float(slide)}
         except Exception:                                # noqa: BLE001
             pass                       # a bench with no canvas to show
 
@@ -4128,19 +4141,24 @@ class Session:
         if note is None or not 0 <= note < len(roll.events):
             return ("nothing selected — press a note first, then drag "
                     "here to move it in time")
-        if self.holding is None or self.holding[0] != name:
+        # **Its own grab, beside the column's** (F204's repair): the
+        # body is written by the same press that took the note, so the
+        # two hands hold at once and neither may overwrite the other.
+        if self.holding_x is None or self.holding_x[0] != name:
             was = roll.events[note][0]
-            self.holding = (name, note, was, tick_at(roll, across), was)
+            self.holding_x = (name, note, was, tick_at(roll, across), was)
             self._slide(found, note, was, was)
-            return f"tick {was}, grid {grid_of(roll)}"
-        _n, note, was, grabbed, _at = self.holding
+            # The column's press has already said where the note is
+            # written; the body's, arriving with it, adds nothing.
+            return "" if self.holding is not None else f"tick {was}, grid {grid_of(roll)}"
+        _n, note, was, grabbed, _at = self.holding_x
         grid = grid_of(roll)
         delta = tick_at(roll, across) - grabbed
         at = max(0, was + int(round(delta / grid)) * grid)
-        self.holding = (name, note, was, grabbed, at)
+        self.holding_x = (name, note, was, grabbed, at)
         self._slide(found, note, was, at)
         if at == was:
-            return f"tick {was} — where it is written"
+            return "" if self.holding is not None else f"tick {was} — where it is written"
         step = at - was
         return f"tick {was} → {at} ({'+' if step > 0 else ''}{step})"
 
@@ -4151,8 +4169,10 @@ class Session:
         from .scorebox import x_of
 
         try:
+            lift = (self.bench.previewing or {}).get(found.lift, 0.0) \
+                if self.holding is not None else 0.0
             self.bench.previewing = {found.held: float(note),
-                                     found.lift: 0.0,
+                                     found.lift: float(lift),
                                      found.sel: float(note),
                                      found.slide: float(x_of(found.roll, at)
                                                         - x_of(found.roll, was))}
@@ -4181,28 +4201,51 @@ class Session:
         for.  A model that does not know the verb answers "no gesture"
         and loses a commit, not the editor.
         """
-        held, self.holding = self.holding, None
-        if held is not None and held[0] == name:
+        held, held_x = self.holding, self.holding_x
+        mine = held is not None and held[0] == name
+        mine_x = held_x is not None and held_x[0] == name
+        if mine or mine_x:
             # **The commit, and the only place a drag writes.**  One
             # text edit, one undo entry, one rebuild — and it goes
             # through the command, so a drag records in the transcript
             # as `transpose` and replays as one.
-            _n, _note, was, _grabbed, key = held
+            #
+            # **Both hands let go at the first `released`** (F204's
+            # repair): a press on a note grabs its column and the body
+            # around it, the window says `released` for each, and the
+            # first of the two commits whatever both have carried —
+            # `transpose` for pitch, `move` for time, both when both
+            # moved — so the second arrives to nothing held and says
+            # nothing.  Two lines in the transcript for one diagonal
+            # drag, each replayable on its own.
+            self.holding = self.holding_x = None
             self._journal().add("released", (name,), "")
-            found = (getattr(self.bench, "note_regions", None) or {})[name]
-            if getattr(found, "on_rail", False):
-                # **The rail's commit is `move`**, the same door as
-                # `transpose`: one command line in the transcript, one
-                # rewrite, one rebuild.  Let go where it took hold moves
-                # nothing and says nothing — a click on a rail is not a
-                # gesture.
-                if key == was:
-                    self._unpreview(found)
+            regions = getattr(self.bench, "note_regions", None) or {}
+            said = []
+            if held_x is not None:
+                xname, _note, was_at, _grabbed, at = held_x
+                found_x = regions[xname]
+                if at != was_at:
+                    # **The body's commit is `move`**, the same door as
+                    # `transpose`: one command line in the transcript,
+                    # one rewrite, one rebuild.
+                    moved = self.run("move", xname, was_at, at)
+                    if moved.startswith("move:") and "—" not in moved:
+                        self._unpreview(found_x)
+                    said.append(moved)
+                elif held is None:
+                    # Let go where it took hold moves nothing and says
+                    # nothing — a click on the body alone is not a
+                    # gesture.
+                    self._unpreview(found_x)
                     return ""
-                said = self.run("move", name, was, key)
-                if said.startswith("move:") and "—" not in said:
-                    self._unpreview(found)
-                return said
+            if held is None:
+                return "  ".join(said)
+            _n, _note, was, _grabbed, key = held
+            name = held[0]
+            found = regions[name]
+            if key == was and said:
+                return "  ".join(said)
             if key == was:
                 self._unpreview(found)
                 # **Let go where it began is a click, and a click is the
@@ -4213,14 +4256,15 @@ class Session:
                 # so the sentence was true of the design and of nothing
                 # else.
                 return self._reveal(found, was)
-            said = self.run("transpose", name, was, key)
-            if said.startswith("transpose:"):
+            moved = self.run("transpose", name, was, key)
+            if moved.startswith("transpose:"):
                 # Refused, so the note did not move and must not look
                 # as though it had.  A *written* one keeps its lift
                 # until the rebuild arrives with it in the picture,
                 # which is what stops it flicking back and forth.
                 self._unpreview(found)
-            return said
+            said.append(moved)
+            return "  ".join(said)
         doing = getattr(self.bench, "released", None)
         said = doing(name) if doing is not None else ""
         self._journal().add("released", (name,), "")

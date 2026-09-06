@@ -70,7 +70,7 @@ record and the player reads it on the next block.
    plays live through the running instrument already.  *What could
    kill it:* the two-machine parity rule, if a swapped score must stay
    sample-identical with the compiled road under every edit — Q1.
-3. **Both axes in one drag** — F204's first repair, in the walk.
+3. **Both axes in one drag** — F204's first repair, in the walk.  ***Built 2026-09-06, the second sitting*** — §"One hand, both axes".
 4. **The tools he reaches for**, his list, 2026-09-06: *"I do transpose
    them, adjust onset/offset, drag and select multiple and move them
    around, resize the clip, resize selection, select bpm by tapping."*
@@ -208,3 +208,23 @@ three-pixel note and a person cannot tell which one it took.  Slice 4's
 list stands, and F204 — both axes in one drag — is the decision put to
 him with a default at the sitting's start: repair the walk so a pad is
 what `spec/substrate.md` says, and the rail retires to being the ruler.
+
+## One hand, both axes — 2026-09-06, the second sitting
+
+**Henri:** *"go with the default, repair the walk."*  Slice 3, built:
+a press grabs the deepest attachment and every one around it, in both
+machines, so a pad is what the substrate spec said and a note's column
+sits inside a body that is the hand for time.  One drag carries a note
+in pitch and in time; the rail is a ruler now.  `spec/drawnscores.md`
+§"The sixth slice, built" is the contract; F204 is resolved with its
+gates named.  Driven and photographed
+(`test/driven/20260906-145334-notes-both-axes-one-drag`): one line of
+the copy changed in both fields.
+
+**What the window taught that the bench could not:** the first driven
+run moved the key and not the tick, because a replacement through
+`ged_set_text` lands on the window's next frame and the second command
+read the text from before the first.  The view answers its own
+replacement until the document takes it now.  Slice 4's list is what
+is left: multi-select, move as a group, resize, the clip, the tapped
+tempo.

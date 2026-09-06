@@ -561,10 +561,13 @@ def test_a_press_where_a_note_is_drawn_finds_it():
         # is finer than any note is tall and coarser than aiming.
         for x in range(-ROLL_W // 2, ROLL_W // 2, 4):
             for y in range(-ROLL_H // 2, ROLL_H // 2, 4):
-                meant = view.touch("press", x, y)
-                if meant and meant[0] == "touched":
-                    reached.add(meant[1])
-                view.touch("release", x, y)
+                # **Every grab a press takes**, since F204's repair: a
+                # note's column and the body around it are written by
+                # one press, and the body's channel is never the first.
+                for meant in view.touch_all("press", x, y):
+                    if meant[0] == "touched":
+                        reached.add(meant[1])
+                view.touch_all("release", x, y)
 
     assert reached, "no press anywhere in any box landed on a note"
     missed = set(jumps) - reached
