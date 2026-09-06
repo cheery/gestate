@@ -859,10 +859,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 2357 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2363 | `NotesError` | `author` | handed in | '{place} would leave section {section.name} — a note does not leave its section by dragging' |
-| 2377 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
-| 4241 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
+| 2362 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2368 | `NotesError` | `author` | handed in | '{place} would leave section {section.name} — a note does not leave its section by dragging' |
+| 2382 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
+| 4255 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
 
 ### `tempo.py`
 

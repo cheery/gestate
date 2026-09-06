@@ -1028,6 +1028,96 @@ def _dots(source: str, known: dict[str, set[str]]) -> str:
     return _DOTTED.sub(one, source)
 
 
+#: **The voice a `.notes` file gets when it is opened alone.**  A note
+#: file names no instrument — `spec/drawnscores.md` §"Open questions",
+#: kept that way so the format stays poor — and *play from the dragged
+#: note* needs something to play through.  Henri, 2026-09-06: *"the
+#: .notes could get a default voice, something that sounds piano-like"*,
+#: and on how: the wrapper carries `chopin.ges`'s hammer verbatim, no
+#: library word — a new word in the vocabulary is a one-way door and
+#: wants a second caller first.  The envelope and the timbre are
+#: chopin's to the digit; what differs is the payload it reads, `Tone`
+#: from `audio.ges` rather than that piece's own `Hammer`, because that
+#: is what `fromNote` builds.
+HAMMER = """\
+#: Struck, not bowed: the attack is immediate, the body is decay, and
+#: what sustain there is stands low — a held key on a piano is a note
+#: getting quieter slowly.  `examples/audio/chopin.ges`'s hammer, verbatim.
+env : Adsr
+env = Adsr 0.004 1.4 0.25 0.4
+
+#: A fundamental and two overtones, each quieter — enough of a spectrum
+#: to read as felt on string without pretending to be a piano.
+timbre : Sig Float -> Sig Float
+timbre hz = sine hz + 0.4 * sine (hz * 2.0) + 0.15 * sine (hz * 3.0)
+
+hammerVoice : Sig Gate -> Sig Tone -> Sig Float
+hammerVoice g s = timbre (!noteHz s) * adsr env g * !noteLoud s
+"""
+
+#: A tempo the file does not carry.  A `.notes` says bars and beats and
+#: nothing about how fast; the wrapper has to say something, and says
+#: this, in a comment a person can see.
+WRAPPER_BPM = 100
+
+#: How many notes one voice may sound at once through the wrapper.  A
+#: `.notes` voice is written as a line, and a chord across lines is
+#: several voices — but a tail overlaps the next stroke, so more than one.
+WRAPPER_POLYPHONY = 4
+
+
+def wrapper(path: Path | str) -> str:
+    """The `.ges` a `.notes` file is played through when opened alone.
+
+    **Generated, never written to disk**: the file stays the one source
+    and this is the projection over it, the same way a roll is.  It
+    includes the file by name, binds every voice the file's sections
+    declare to `HAMMER`, concatenates the sections in the order written
+    — a section that lacks a voice rests for its length, so the voices
+    stay the same bars — and asks a roll of every section, which is
+    what rung 5's view draws.  Expand it with `expanded(text,
+    path.parent)`, as any program with an `include`.
+    """
+    path = Path(path)
+    out = parse(path.read_text(encoding="utf-8"), path.name)
+    voices: list[str] = []
+    for section in out.sections:
+        for voice in section.voices:
+            if voice not in voices:
+                voices.append(voice)
+    lines = [f"# {path.name}, opened alone — played through a piano the tree",
+             "# lends it (`notes.wrapper`).  Generated; the file is the source.",
+             "", HAMMER]
+    for voice in voices:
+        lines.append(f"voices {voice} {WRAPPER_POLYPHONY} hammerVoice : Sig Float")
+    lines.append("")
+    lines.append("sound : Sig Float")
+    lines.append(("sound = " + " + ".join(voices)) if voices else "sound = 0.0 * sine 440.0")
+    lines.append("")
+    lines.append(f'include "{path.name}"')
+    lines.append("")
+    parts = []
+    for voice in voices:
+        run = []
+        for section in out.sections:
+            if voice in section.voices:
+                run.append(bound(section.name, voice))
+            else:
+                run.append(f"(long {section.bars * section.beats} r)")
+        parts.append(f"(({' ++ '.join(run)}) >>= voices.{voice})")
+    lines.append("score : [: Void :]")
+    lines.append("score = " + ("\n     || ".join(parts) if parts else "r"))
+    lines.append("")
+    lines.append("#: The file says nothing about tempo; this is `notes.WRAPPER_BPM`.")
+    lines.append("bpm : Int")
+    lines.append(f"bpm = {WRAPPER_BPM}")
+    lines.append("")
+    for section in out.sections:
+        stacked = " || ".join(bound(section.name, v) for v in section.voices)
+        lines.append(f"notes ({stacked})")
+    return "\n".join(lines) + "\n"
+
+
 def read(path: Path | str) -> str:
     """A `.ges` file, with its includes expanded — the door every reader
     of an author's file goes through."""

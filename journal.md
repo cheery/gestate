@@ -1136,3 +1136,13 @@ On `arc.notes`, `A.melody`: grid 96, a drag of one step changes one
 line, its `at` field, and the transcript says `move`.  Ten tests.
 Nothing sounds yet with the transport stopped; that is the next slice,
 with the piano-like voice.
+
+### The second slice — heard, and a piano lent
+
+Henri took (a) for the voice: chopin's hammer carried verbatim by a
+generated wrapper, no library word.  A committing drag with the
+transport stopped now plays from the note, the road the mark gesture
+opened, and `move` plays from where the note went.  `notes.wrapper`
+plays every one of `arc.notes`' 291 notes through five hammer banks,
+held by four tests, and is not yet what the window opens — the file
+kind is the next slice, and it is a registration.

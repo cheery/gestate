@@ -815,3 +815,13 @@ both machines, so a note cannot listen in two axes — `fixme.md` F204,
 the substrate spec's pad promise measured false — and time got its own
 element rather than a second touch on the note.  Next: the sound with
 the transport stopped, then the scroll, then the file kind.
+
+### The second slice, the same afternoon
+
+*"(a)"* — the wrapper carries chopin's hammer.  A drag that commits
+with the transport stopped plays the piece from the note, from where
+it went for `move`; and `notes.wrapper` lends a lone `.notes` its
+piano, playing 291 of `arc.notes`' 291 notes through five hammer
+banks.  `spec/drawnscores.md` §"The second slice, built".  Next: the
+file kind as a registration, so opening `arc.notes` opens that wrapper
+and `Ctrl-Tab` shows the page; then the scroll.

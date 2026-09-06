@@ -1697,13 +1697,26 @@ def _rolled_page(here):
     class _Bench:
         note_regions = regions_of([roll])
         playing = False
-        auditioned = []
+        rate, bpm = 44100, 104
 
         def __init__(self):
             self.origins, self.path, self.previewing = origins, here, {}
+            self.auditioned, self.calls = [], []
 
         def audition(self, text):
             self.auditioned.append(text)
+
+        # The three things `_hear_at` asks of a bench, recorded — the
+        # form `test_annotations.py`'s bench takes for the mark gesture.
+        def beats_to_samples(self, beat):
+            return int(beat * 60 * self.rate / max(1, self.bpm))
+
+        def start(self, seconds=None, text=None):
+            self.calls.append("start")
+            self.playing = True
+
+        def seek(self, sample):
+            self.calls.append(("seek", sample))
 
     class _View:
         saved = True
@@ -1901,3 +1914,97 @@ def test_a_ges_written_note_cannot_be_moved_on_the_rail():
         said = seat.released("__nb_rail_0__")
         assert said.startswith("move:") and ".notes" in said, said
         assert here.read_text().endswith("notes score\n"), "nothing was written"
+
+
+# ── Rung 5, the second slice — the sound with the transport stopped ─────────
+
+
+def test_a_move_while_stopped_plays_the_piece_from_where_the_note_went():
+    """Decision 2 of rung 5 — Henri: *"lets do (a)"*: annotating is not
+    performing, so a note dragged with the transport stopped is heard,
+    and heard from itself — where it *went*, not where it was."""
+    from gestate.midi import TICKS_PER_BEAT
+    from gestate.scorebox import ROLL_W, grid_of, scale_of, x_of
+
+    with _copied() as here:
+        roll, seat = _rolled_page(here)
+        chan = _press_a_note(seat, roll, 0)
+        seat.released(chan)
+        on, grid = roll.events[0][0], grid_of(roll)
+        _lo, _hi, span = scale_of(roll)
+        across0 = (x_of(roll, on) + ROLL_W // 2) / ROLL_W
+        seat.touched("__nb_rail_0__", across0)
+        seat.touched("__nb_rail_0__", across0 + grid / span)
+        said = seat.released("__nb_rail_0__")
+        assert said.startswith("move: arc.notes —") and "playing from there" in said, said
+        assert "start" in seat.bench.calls, "it did not play"
+        seeks = [c for c in seat.bench.calls if isinstance(c, tuple)]
+        want = int((on + grid) / TICKS_PER_BEAT * 60 * 44100 / 104)
+        assert seeks and seeks[0][1] == want, (seeks, want)
+
+
+def test_a_transpose_of_an_included_note_while_stopped_plays_from_it():
+    from gestate.midi import TICKS_PER_BEAT
+    from gestate.scorebox import key_at, reach_of
+
+    with _copied() as here:
+        roll, seat = _rolled_page(here)
+        chan = _press_a_note(seat, roll, 0)
+        low, high = reach_of(roll)
+        grabbed = key_at(roll, (high - roll.events[0][3]) / (high - low))
+        # two semitones up: the fraction that reads as grabbed + 2
+        up = next(d / 1000 for d in range(1000)
+                  if key_at(roll, d / 1000) == grabbed + 2)
+        seat.touched(chan, up)
+        said = seat.released(chan)
+        assert said.startswith("transpose: arc.notes —") and "playing from there" in said, said
+        want = int(roll.events[0][0] / TICKS_PER_BEAT * 60 * 44100 / 104)
+        seeks = [c for c in seat.bench.calls if isinstance(c, tuple)]
+        assert seeks and seeks[0][1] == want, (seeks, want)
+
+
+def test_a_lone_notes_file_is_lent_chopins_hammer_and_plays_every_note():
+    """Henri, 2026-09-06: *"the .notes could get a default voice,
+    something that sounds piano-like"*, and (a): the wrapper carries
+    `chopin.ges`'s hammer verbatim rather than the library gaining a
+    word.  Verbatim is checked, not claimed."""
+    from pathlib import Path
+
+    chopin = (ROOT / "examples" / "audio" / "chopin.ges").read_text()
+    for line in ("env = Adsr 0.004 1.4 0.25 0.4",
+                 "timbre hz = sine hz + 0.4 * sine (hz * 2.0) + 0.15 * sine (hz * 3.0)"):
+        assert line in chopin and line in notes.HAMMER, line
+
+    text = notes.wrapper(NOTES)
+    source, _origins = notes.expanded(text, NOTES.parent)
+    bpm, raw = perform_voices(source, "", 48000, 0)
+    parsed = notes.parse(NOTES.read_text(), "arc.notes")
+    assert bpm == notes.WRAPPER_BPM
+    assert len(raw) == len(parsed.notes), "every written note plays"
+    voices = {v for s in parsed.sections for v in s.voices}
+    assert {b for _on, _off, b, _p in raw} == voices, "each voice its own bank"
+    assert text.count("\nnotes (") == len(parsed.sections), "a roll per section"
+
+
+def test_the_wrapper_rests_a_voice_a_section_lacks():
+    """Two sections, one voice missing from the second: the wrapper
+    rests it for the section's length, so the voices stay the same
+    bars — W5 and W8, the alignment this format exists for."""
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as tmp:
+        here = Path(tmp) / "two.notes"
+        here.write_text(
+            "section A  key C  mode ionian  bars 1  beats 4  voices lead,low\n"
+            "note  section A  bar 1  at 0  len 96  voice lead  key 72  vel mf\n"
+            "note  section A  bar 1  at 0  len 384  voice low  key 48  vel mf\n"
+            "section B  key C  mode ionian  bars 2  beats 4  voices lead\n"
+            "note  section B  bar 2  at 0  len 96  voice lead  key 74  vel mf\n")
+        text = notes.wrapper(here)
+        assert "(long 8 r)" in text, "the low voice rests through section B's eight beats"
+        source, _o = notes.expanded(text, here.parent)
+        _bpm, raw = perform_voices(source, "", 48000, 0)
+        assert len(raw) == 3
+        lead = sorted(on for on, _off, b, _p in raw if b == "lead")
+        assert lead == [0, 4 * 96 + 4 * 96], "B's note lands after A's one bar and B's first"

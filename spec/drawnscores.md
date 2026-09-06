@@ -995,6 +995,28 @@ transport stopped — decision 2's *play from the dragged note* is the
 next slice, with the piano-like default voice; the canvas view does not
 scroll; a `.notes` opened alone still compiles as a `.ges`.
 
+### The second slice, built — the sound with the transport stopped — 2026-09-06
+
+*Decision 2, (a), and Henri's "(a)" again on the voice.*  A drag that
+commits with the transport stopped now plays the piece from the note —
+`transpose` on a `.ges` note, `transpose` on an included note, and
+`move` from where the note *went* — the road the mark gesture opened
+(`session._hear_at`).  Nothing changes while something plays: the edit
+is auditioned in place, as before.
+
+**And a `.notes` opened alone is lent a piano.**  `notes.wrapper(path)`
+is the `.ges` it is played through, generated and never written to
+disk: it includes the file, binds every voice its sections declare to
+`chopin.ges`'s hammer — the envelope and the timbre verbatim, reading
+`Tone` because that is what `fromNote` builds — concatenates the
+sections in the order written with a rest for a voice a section lacks,
+says a tempo the file does not carry (`WRAPPER_BPM`, 100, in a comment
+a person can see), and asks a roll of every section.  Measured:
+`arc.notes` plays **291 of 291** notes through it, one bank per voice.
+Not yet wired to the window — that is the file-kind slice, reading 1 —
+but built and held by four tests so the slice after it is a
+registration and not a design.
+
 ### What plugin-like scopes
 
 *"I'd like plugin-like, reusable behavior for this feature.  I think

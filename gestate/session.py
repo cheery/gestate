@@ -2289,6 +2289,11 @@ class Session:
             again = getattr(self.bench, "redraw", None)
             if again is not None:
                 again(text)
+            # **And it is heard, from the note** — decision 2 of rung 5,
+            # 2026-09-06: annotating is not performing, so a dragged
+            # note with the transport stopped plays the piece from
+            # itself, the road `mark` opened.
+            return said + self._hear_from(roll, note, text)
         return said
 
     def do_move(self, region: str, was: int, at: int) -> str:
@@ -2384,7 +2389,10 @@ class Session:
         # spent with the commit.
         self.selected.pop(found.box, None)
         self.bench.audition(self.view.text())
-        return f"move: {name} — {said}"
+        heard = ("" if getattr(self.bench, "playing", False)
+                 else self._hear_at(found.roll.events[note][0] + by,
+                                    self.view.text()))
+        return f"move: {name} — {said}{heard}"
 
     def do_mark(self, region: str, was: str, manners: str) -> str:
         """Write how one note of a score box is to be played.
@@ -2456,6 +2464,13 @@ class Session:
         the transport over the top of the one about the note is noise
         where an answer should be.
         """
+        return self._hear_at(roll.events[note][0], text)
+
+    def _hear_at(self, onset: int, text: str) -> str:
+        """Play the piece from a tick, from a standing start — the road
+        `_hear_from` takes, for a gesture that already knows where the
+        note went.  `card:drawn-scores.md` §"Rung 5, decided" 2: *a
+        drag with the transport stopped plays from the dragged note.*"""
         from .midi import TICKS_PER_BEAT
 
         start = getattr(self.bench, "start", None)
@@ -2463,7 +2478,6 @@ class Session:
         if start is None or beats_to is None:
             return ""
         try:
-            onset = roll.events[note][0]
             at = beats_to(onset / TICKS_PER_BEAT)
             start(text=text)
             seek = getattr(self.bench, "seek", None) or getattr(
@@ -4246,7 +4260,9 @@ class Session:
         except (OSError, NotesError) as exc:
             return f"transpose: {exc}"
         self.bench.audition(self.view.text())
-        return f"transpose: {name} — {said}"
+        heard = ("" if getattr(self.bench, "playing", False)
+                 else self._hear_from(roll, note, self.view.text()))
+        return f"transpose: {name} — {said}{heard}"
 
 
     def _reveal(self, found, at: int) -> str:
