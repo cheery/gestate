@@ -42,6 +42,8 @@ produced it rather than take the summary on trust.
 | [2026-08-24-qwen3.8-27b.txt](2026-08-24-qwen3.8-27b.txt) | the transcript itself — a Qwen3.8-27B session on the work laptop, told in two sentences what tend is for, and asked whether it could be published; byte-for-byte twin of `~/tend/doc/specimens/2026-08-24-qwen3.8-27b.txt` |
 | [notes-on-the-apparatus.md](notes-on-the-apparatus.md) | the third trial, and the matrix it completes — document without relationship, relationship without document · the convergence confound · why the dialogue book outranks the decades, and the two skills that are not that one |
 | [notes-on-which-model-runs.md](notes-on-which-model-runs.md) | the worry about not picking the mind, said at 9:42 · why it bites a method that runs on the judgment layer · a model acceptance gate instead of vigilance, and its own caveat — necessary, not sufficient |
+| [notes-on-prerequisites.md](notes-on-prerequisites.md) | not a conversation — a page: what a person needs before the method works in their hands, four prerequisites and four disqualifiers, drafted from one month and marked suspected · what of it this tree can show |
+| [notes-on-cues.md](notes-on-cues.md) | *Thinking, Fast and Slow* against the tree — the fast generator, the cached slow thinking, the live keeper · knowledge is cued, not scoped, so the question is the retrieval key · an introspective index, and the three things that can be built instead, measured |
 
 ## Provenance, and what to distrust
 
@@ -77,6 +79,23 @@ answer checked word for word against the file before the page went
 in, reflowed and given a front note and a closing section and nothing
 else.  It came from a session in `~/tend`, not here, which is why its
 pointers into that tree carry the `~/tend/` prefix.
+
+**The fourteenth and fifteenth went in together on 2026-09-06, and
+neither is either kind.**  `notes-on-prerequisites.md` is not a
+transcript at all — a page a session drafted on 2026-09-05, outside
+this tree, from the tree's record, and marked *suspected* in its own
+first line; it is here because this directory is read as argument, not
+as evidence, which is what a hypothesis with a sample of one is.
+`notes-on-cues.md` is the third kind, the one `notes-on-the-conditioning.md`
+first named: written by the session that was in the conversation while
+it was open, his three sentences verbatim with their times, the
+answers condensed by the answerer.  Both were saved by Henri as
+`~/misc/notes/prerequisites.md` and `~/misc/notes/notes-on-cues.md`,
+copied unchanged, and given a front note and a closing section — and
+the closing sections do more work than the earlier ones, because both
+pages lean on things this tree has never seen: a SimpleQA run, a tool
+called Delta, an inventory never run here.  Each such claim is named
+as *in neither tree* rather than trusted or cut.
 
 **The tenth is a third kind, and it is the least independent of the
 three.**  `notes-on-the-conditioning.md` was written by the session that
@@ -156,6 +175,11 @@ The thirteenth, `notes-on-which-model-runs.md`, went in on 2026-08-27
 at his ask — *"jonka voisi pistää doc/notes hakemistoon"* — and nobody
 but the author and a session speaks in it; the one surname in it is a
 paper's author, cited, not a person quoted.
+The fourteenth and fifteenth, `notes-on-prerequisites.md` and
+`notes-on-cues.md`, went in on 2026-09-06 at his ask — *"prerequisites.md
+could go into notes.  And notes-on-cues.md could go into notes as well"*
+— and nobody but the author and a session speaks in either; the
+one surname in the second is a book's author, cited.
 This tree's own register had no row for it before 2026-08-25, because
 a session is not a person and `test/test_consent.py` looks for names;
 the row went in the same day the transcript itself was copied here as

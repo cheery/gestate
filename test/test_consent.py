@@ -54,7 +54,7 @@ NOT_A_PERSON = frozenset("""
     Monday Tuesday Wednesday Thursday Friday Saturday Sunday His Her Their
     Opened Predicted Recommendation Reported Resolution Resolved
     Shelved Shown Spent Status Steal Struck Tried Unprompted Vacuous Verified
-    Written From The This That And But For When Where With Then Only
+    Written Drafted Thinking From The This That And But For When Where With Then Only
     Both Each Every All Not None Three Two One Four Five Six Seen
 """.split())
 
