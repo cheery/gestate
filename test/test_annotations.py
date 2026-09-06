@@ -293,8 +293,8 @@ def test_mark_is_a_command_or_it_is_not_a_capability():
     from gestate.session import Session
 
     text = (ROOT / "gestate" / "command.ges").read_text()
-    assert "mark : Text -> Int -> Int -> Command" in text
-    assert "mark region was manners = Stated" in text
+    assert "mark : Text -> Int -> Int -> Int -> Command" in text
+    assert "mark region tick was manners = Stated" in text
     assert hasattr(Session, "do_mark"), "the command has no verb behind it"
 
 
@@ -327,24 +327,21 @@ class _Bench:
 
 
 def _clean_note(roll) -> tuple:
-    """`(hand, note)` for a note the gesture can actually reach.
+    """`(tick, note)` for a note the gesture can actually reach.
 
-    Three things have to line up, and each is a real refusal rather than
-    a quirk of this fixture: the note must sit under a **column**, since
-    that is how a hand names it; the column must sound its key **once**;
-    and its manner atom must be unambiguous.  A test that reached past
-    any of them would be exercising a path a hand cannot take.
+    Two things have to line up, and each is a real refusal rather than
+    a quirk of this fixture: the note's key must sound **once** at its
+    tick, since a tick and a key are how a hand names it; and its
+    manner atom must be unambiguous.  A test that reached past either
+    would be exercising a path a hand cannot take.
     """
-    from gestate.scorebox import hands_of
-
-    for hand, (_t0, _t1, under) in enumerate(hands_of(roll)):
-        for j in under:
-            e = roll.events[j]
-            if len([k for k in under if roll.events[k][3] == e[3]]) != 1:
-                continue
-            if len([a for a in roll.leaves[e[2]].atoms if a[3] == e[5]]) == 1:
-                return hand, j
-    raise AssertionError("no note in this take is nameable and unambiguous")
+    for j, e in enumerate(roll.events):
+        at_tick = [k for k, f in enumerate(roll.events) if f[0] <= e[0] < f[1]]
+        if len([k for k in at_tick if roll.events[k][3] == e[3]]) != 1:
+            continue
+        if len([a for a in roll.leaves[e[2]].atoms if a[3] == e[5]]) == 1:
+            return e[0], j
+    raise AssertionError("no note of the fixture can be marked cleanly")
 
 
 def _seated(playing: bool):
@@ -358,7 +355,7 @@ def _seated(playing: bool):
     roll = build_rolls(source, box_asks(source), 44100, 0)[0]
     seat = Session.__new__(Session)
     seat.bench = _Bench(playing)
-    seat.bench.note_regions = {"r": SimpleNamespace(roll=roll, hand=0)}
+    seat.bench.note_regions = {"r": SimpleNamespace(roll=roll, hand=-3, on_pitch=True)}
     seat.view = SimpleNamespace(replace=lambda text: True)
     seat._source = lambda: source
     return seat, roll
@@ -376,9 +373,8 @@ def test_marking_while_stopped_plays_the_piece_from_that_note():
     from gestate.midi import TICKS_PER_BEAT
 
     seat, roll = _seated(playing=False)
-    hand, note = _clean_note(roll)
-    seat.bench.note_regions["r"].hand = hand
-    said = seat.do_mark("r", str(roll.events[note][3]), "1")
+    tick, note = _clean_note(roll)
+    said = seat.do_mark("r", tick, str(roll.events[note][3]), "1")
     assert "playing from there" in said, said
     assert "start" in seat.bench.calls, "it did not play"
     seeks = [c for c in seat.bench.calls if isinstance(c, tuple)]
@@ -399,9 +395,8 @@ def test_marking_while_it_plays_does_not_restart_it():
     after that finds it playing and auditions in place.
     """
     seat, roll = _seated(playing=True)
-    hand, note = _clean_note(roll)
-    seat.bench.note_regions["r"].hand = hand
-    said = seat.do_mark("r", str(roll.events[note][3]), "1")
+    tick, note = _clean_note(roll)
+    said = seat.do_mark("r", tick, str(roll.events[note][3]), "1")
     assert "playing from there" not in said
     assert "start" not in seat.bench.calls, "it restarted a piece already playing"
     assert "audition" in seat.bench.calls, "it did not hear the edit at all"
@@ -411,14 +406,9 @@ def test_a_refused_mark_neither_writes_nor_plays():
     """A courtesy on top of an edit that succeeded — so no edit, no
     courtesy.  A preview after a refusal would say the mark took."""
     seat, roll = _seated(playing=False)
-    from gestate.scorebox import hands_of
-
-    hand, note = next((h, j) for h, (_a, _b, under) in enumerate(hands_of(roll))
-                      for j in under
-                      if len([a for a in roll.leaves[roll.events[j][2]].atoms
-                              if a[3] == roll.events[j][5]]) > 1)
-    seat.bench.note_regions["r"].hand = hand
-    said = seat.do_mark("r", str(roll.events[note][3]), "1")
+    note = next(j for j, e in enumerate(roll.events)
+                if len([a for a in roll.leaves[e[2]].atoms if a[3] == e[5]]) > 1)
+    said = seat.do_mark("r", roll.events[note][0], str(roll.events[note][3]), "1")
     assert said.startswith("mark: "), said
     assert seat.bench.calls == [], f"it acted on a refusal: {seat.bench.calls}"
 

@@ -236,6 +236,12 @@ That is aiming, in both directions at once, and it made the press
 to its own line however you aimed at it, and its notes are now four
 places to press.
 
+**And the column is gone** — *2026-09-06, evening.*  The body is one
+pad, the rail's fraction a tick and the pitch hand's a key, so a note
+is found at a place in both axes (`scorebox.note_under`) and named in
+a command by its tick and key: `spec/drawnscores.md` §"The body is one
+pad".  What follows about the reach still holds, in key.
+
 **And the aim has a reach** — *2026-09-06, `card:notes-editor.md` slice
 4.*  Nearest at any distance meant a column with one note in it had no
 empty roll anywhere along its height, and empty roll is where a hand

@@ -1397,3 +1397,18 @@ item-identical to the morning's unrolled program — held by the same
 harness that held the first halving.  What remains in the text is
 the channels, one a column, and that is the evening's third idea,
 which touches the wire's rule and is Henri's to decide.
+
+## The body is one pad — 2026-09-06, evening
+
+*"Tehdään myös idea 3, yksi käsi koko rungon yli.  Jos se yhä
+kuulostaa järkevältä sinun mielestäsi."*  It did: the substrate spec
+had said a pad was two touches on one element since before the roll
+existed, and the columns were the workaround for its not being true.
+The body is that pad now, the rail inner so its press is read first
+and the pitch hand's press finds the note at the tick it holds.  Three
+hands a box where there were a hundred and thirty, the page's program
+at eight thousand characters from the morning's eighty-five, and the
+three commands that named a note by its column name it by its tick.
+Both pictures item-identical.  The tests were where the columns
+lived: every press in them had aimed at a column, and every one aims
+at a place now.

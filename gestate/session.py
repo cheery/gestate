@@ -2252,7 +2252,7 @@ class Session:
         where = self.bench.keyboard.transpose(by)
         return f"octave {where}"
 
-    def do_transpose(self, region: str, was: int, key: int) -> str:
+    def do_transpose(self, region: str, tick: int, was: int, key: int) -> str:
         """Write one note of a score box at a different pitch.
 
         **The first gesture in this project that writes text**
@@ -2274,10 +2274,10 @@ class Session:
         found = places.get(region)
         if found is None:
             return f"transpose: no score box region called `{region}`"
-        roll, hand = found.roll, found.hand
+        roll = found.roll
         origins = getattr(self.bench, "origins", None) or {}
         try:
-            note = note_of(roll, hand, int(was))
+            note = note_of(roll, int(tick), int(was))
             # **A note from an included `.notes` is edited in that file**,
             # not in this buffer — `spec/drawnscores.md` rung 4.  Tried
             # first, because `transposed` refuses it by name and the
@@ -2569,7 +2569,7 @@ class Session:
         return (f"carry: {name} — {len(rows)} notes, {step} semitones, "
                 f"{'+' if ticks > 0 else ''}{ticks} ticks{heard}")
 
-    def do_resize(self, region: str, key: int, length: int) -> str:
+    def do_resize(self, region: str, tick: int, key: int, length: int) -> str:
         """Give one note of a score box a new length, in ticks.
 
         **What a hand on a note's end runs when it lets go**
@@ -2590,11 +2590,9 @@ class Session:
         found = places.get(region)
         if found is None:
             return f"resize: no score box region called `{region}`"
-        if getattr(found, "on_rail", False):
-            return "resize: name the note's column, as transpose does — the rail is the box's"
         roll = found.roll
         try:
-            note = note_of(roll, found.hand, int(key))
+            note = note_of(roll, int(tick), int(key))
             line, _col, _width, _key = pitch_atom(roll, note)
         except RefusedError as exc:
             return f"resize: {exc}"
@@ -2847,7 +2845,7 @@ class Session:
         self.bench.audition(self.view.text())
         return f"bars: {name} — section {section_name} {said}"
 
-    def do_mark(self, region: str, was: str, manners: str) -> str:
+    def do_mark(self, region: str, tick: int, was: str, manners: str) -> str:
         """Write how one note of a score box is to be played.
 
         **`transpose`'s path, for the other field** — the descent says
@@ -2871,9 +2869,9 @@ class Session:
         found = places.get(region)
         if found is None:
             return f"mark: no score box region called `{region}`"
-        roll, hand = found.roll, found.hand
+        roll = found.roll
         try:
-            note = note_of(roll, hand, int(was))
+            note = note_of(roll, int(tick), int(was))
             text, said = marked(self._source(), roll, note,
                                 int(manners),
                                 getattr(self.bench, "origins", None))
@@ -4472,81 +4470,107 @@ class Session:
         return ""
 
     def _note_touched(self, name: str, down: float) -> str | None:
-        """A hand on a score box column, or `None` for any other hand.
+        """A hand on a score box, or `None` for any other hand.
 
-        The press picks the note by where it lands and says where it is
-        written; every touch after it is the same note being carried,
-        and the answer is the interval so far — read, not written,
-        because a drag that edited per frame would be a hundred undo
-        entries for one gesture.
+        **The box is one pad** (2026-09-06, evening — Henri: *"yksi käsi
+        koko rungon yli"*): a press writes the rail — the fraction of
+        the body's width, a tick — and then the pitch hand, the fraction
+        of its height, a key, and the note is the one sounding at that
+        place (`scorebox.note_under`).  The ruler is its own hand above.
+        Every touch after the press is the same note being carried, and
+        the answer is the interval so far — read, not written, because
+        a drag that edited per frame would be a hundred undo entries
+        for one gesture.
         """
-        from .scorebox import RefusedError, key_at, note_under
-
         found = (getattr(self.bench, "note_regions", None) or {}).get(name)
         if found is None:
             return None
-        roll, hand = found.roll, found.hand
         self._journal().slid("touched", (name, down))
         if getattr(found, "on_ruler", False):
             return self._ruler_touched(found, name, down)
         if getattr(found, "on_rail", False):
             return self._rail_touched(found, name, down)
+        return self._pitch_touched(found, name, down)
+
+    def _pressed_tick(self, found) -> int | None:
+        """The tick the rail's press wrote a moment before the pitch
+        hand's — the pad's two halves arrive rail first."""
+        rail = self._rail_name(found)
+        if self.holding_x is not None and self.holding_x[0] == rail:
+            return self.holding_x[3]
+        return None
+
+    def _rail_name(self, found) -> str:
+        regions = getattr(self.bench, "note_regions", None) or {}
+        return next((k for k, r in regions.items()
+                     if r.box == found.box and r.on_rail), "")
+
+    def _pitch_touched(self, found, name: str, down: float) -> str:
+        """The pad's pitch half: a press picks the note at the rail's
+        tick and this key, a drag carries it in pitch."""
+        from .scorebox import EDGE_PX, RefusedError, key_at, note_under, x_of
+
+        roll = found.roll
+        if self.sizing is not None:
+            return ""                  # the ruler has the hand
         band = self.banding
         if band is not None and band["y"] == name:
             # **The band's other corner follows the hand** in pitch;
-            # the body's hand carries it in time (`_rail_touched`).
+            # the rail carries it in time (`_rail_touched`).
             band["k1"] = key_at(roll, down)
             self._show_band(found)
             return ""
         if self.holding is None or self.holding[0] != name:
+            key = key_at(roll, down)
+            tick = self._pressed_tick(found)
+            if tick is None:
+                return ""              # the rail has not spoken; it will
             try:
-                note = note_under(roll, hand, down)
-            except RefusedError as exc:
+                note = note_under(roll, tick, key)
+            except RefusedError:
                 # **A press on nothing starts a band** — slice 4 of
                 # `card:notes-editor.md`, *select multiple*: the hand
                 # sweeps a rectangle over empty roll, in keys on this
-                # column and in ticks on the body around it, and lets go
-                # to `select` whatever it covers.  Nothing is selected
-                # until then, so the body has nothing to carry off in
-                # time (F204's repair).
+                # hand and in ticks on the rail, and lets go to
+                # `select` whatever it covers.  Nothing is selected
+                # until then.
                 self.selected.pop(found.box, None)
                 self.group.pop(found.box, None)
-                if "nothing sounds" in str(exc):
-                    key = key_at(roll, down)
-                    self.banding = {"found": found, "y": name, "k0": key,
-                                    "k1": key, "t0": None, "t1": None}
-                    self._show_band(found)
-                    return "sweep a band to select notes"
-                return str(exc)
+                self.holding_x = None
+                self.banding = {"found": found, "y": name, "k0": key,
+                                "k1": key, "t0": tick, "t1": tick}
+                self._show_band(found)
+                return "sweep a band to select notes"
             # **A press selects**, and the selection outlives the press:
-            # it is what a hand on the rail moves, and what the picture
-            # outlines until the next press or the next rebuild.
-            # **A press on a note of the group keeps the group**, so a
-            # hand on any selected note carries them all; a press on any
-            # other note is a selection of one.
+            # it is what the picture outlines until the next press or
+            # the next rebuild.  **A press on a note of the group keeps
+            # the group**, so a hand on any selected note carries them
+            # all; a press on any other note is a selection of one.
             self.selected[found.box] = note
             if note not in self.group.get(found.box, ()):
                 self.group[found.box] = (note,)
-            was = roll.events[note][3]
-            # **A press in a note's last column takes its end** — the
-            # column the note's offset falls in, when the note is wider
-            # than one column — and the drag along is a change of
-            # length, not of place (`resize`, `stretch`).  Pitch is
-            # not carried during it: a hand on an end is on an end.
-            from .scorebox import hands_of
-            t0, t1, _under = hands_of(roll)[hand]
-            on, off = roll.events[note][0], roll.events[note][1]
-            self.resizing = ((name, note, off - on, found.box)
-                             if t0 <= off - 1 < t1 and off - on > t1 - t0
-                             else None)
+            on, off, _k, was, _v, _m = roll.events[note]
+            # **A press in a note's last `EDGE_PX` takes its end** — for
+            # a note wider than twice that — and the drag along is a
+            # change of length, not of place (`resize`, `stretch`).
+            # Pitch is not carried during it: a hand on an end is on an
+            # end.
+            edge = (x_of(roll, off) - x_of(roll, tick) <= EDGE_PX
+                    and x_of(roll, off) - x_of(roll, on) > 2 * EDGE_PX)
+            self.resizing = (name, note, off - on, found.box) if edge else None
             # **Where the hand took hold, not where the note is.**  A
-            # column is the full height of the roll, so a press lands
-            # at *some* pitch and rarely the note's own — carried
-            # absolutely, letting go without moving would transpose the
-            # note to wherever you happened to grab it, and a press
-            # that does not become a drag has to stay a jump.  So the
-            # note moves by the interval the hand has travelled.
-            self.holding = (name, note, was, key_at(roll, down), was)
+            # press lands at *some* pitch and rarely the note's own —
+            # carried absolutely, letting go without moving would
+            # transpose the note to wherever you happened to grab it,
+            # and a press that does not become a drag has to stay a
+            # jump.  So the note moves by the interval the hand has
+            # travelled — and the rail's grab, provisional until now,
+            # is filled in with the note and its tick.
+            self.holding = (name, note, was, key, was)
+            rail = self._rail_name(found)
+            grabbed = self.holding_x[3]
+            self.holding_x = ((rail, note, off - on, grabbed, off - on) if edge
+                              else (rail, note, on, grabbed, on))
             self._preview(found, note, was)
             leaf = roll.leaves[roll.events[note][2]]
             # **Where the note is written, in the file that wrote it.**
@@ -4557,7 +4581,7 @@ class Session:
             # `.ges` included it the place is said and the caret stays
             # (rung 3: a click does not switch files).
             where = (getattr(self.bench, "origins", None) or {}).get(leaf.line)
-            end = " — its end" if self.resizing is not None else ""
+            end = " — its end" if edge else ""
             if where is None:
                 self.view.goto(leaf.line)
                 return f"line {leaf.line}{end}"
@@ -4668,14 +4692,10 @@ class Session:
             self._show_band(found)
             return ""
         rz = self.resizing
-        if rz is not None and rz[3] == found.box:
+        if rz is not None and rz[3] == found.box and self.holding_x is not None \
+                and self.holding_x[0] == name and self.holding_x[1] is not None:
             # **The end follows the hand**, by whole grid steps, never
             # shorter than one; nothing is written until it lets go.
-            _yname, note, was, _box = rz
-            if self.holding_x is None or self.holding_x[0] != name:
-                self.holding_x = (name, note, was, tick_at(roll, across), was)
-                self._grow(found, note, was, was)
-                return ""
             _n, note, was, grabbed, _len = self.holding_x
             grid = grid_of(roll)
             delta = tick_at(roll, across) - grabbed
@@ -4686,20 +4706,15 @@ class Session:
                 return ""
             step = length - was
             return f"len {was} → {length} ({'+' if step > 0 else ''}{step})"
-        note = self.selected.get(found.box)
-        if note is None or not 0 <= note < len(roll.events):
-            return ("nothing selected — press a note first, then drag "
-                    "here to move it in time")
-        # **Its own grab, beside the column's** (F204's repair): the
-        # body is written by the same press that took the note, so the
-        # two hands hold at once and neither may overwrite the other.
         if self.holding_x is None or self.holding_x[0] != name:
-            was = roll.events[note][0]
-            self.holding_x = (name, note, was, tick_at(roll, across), was)
-            self._slide(found, note, was, was)
-            # The column's press has already said where the note is
-            # written; the body's, arriving with it, adds nothing.
-            return "" if self.holding is not None else f"tick {was}, grid {grid_of(roll)}"
+            # **The rail's press comes first and names no note yet**:
+            # the pad's pitch half arrives a moment later, finds the
+            # note at this tick, and fills the grab in
+            # (`_pitch_touched`).  Until then the tick is all it holds.
+            self.holding_x = (name, None, None, tick_at(roll, across), None)
+            return ""
+        if self.holding_x[1] is None:
+            return ""                  # a press the pitch hand has not answered
         _n, note, was, grabbed, _at = self.holding_x
         grid = grid_of(roll)
         delta = tick_at(roll, across) - grabbed
@@ -4871,7 +4886,7 @@ class Session:
             length = held_x[4] if held_x is not None else was
             if length == was:
                 self._unpreview(found)
-                return self._reveal(found, found.roll.events[note][3])
+                return self._reveal(found, note)
             group = self.group.get(box, ())
             if len(group) > 1 and note in group:
                 rail = next(k for k, r in regions.items() if r.box == box and r.on_rail)
@@ -4879,7 +4894,8 @@ class Session:
                 if said.startswith("stretch:") and "—" not in said:
                     self._unpreview(found)
                 return said
-            said = self.run("resize", yname, found.roll.events[note][3], length)
+            said = self.run("resize", yname, found.roll.events[note][0],
+                            found.roll.events[note][3], length)
             if said.startswith("resize:") and "—" not in said:
                 self._unpreview(found)
             return said
@@ -4912,14 +4928,14 @@ class Session:
                 dticks = (held_x[4] - held_x[2]) if held_x is not None else 0
                 if dkey == 0 and dticks == 0:
                     self._unpreview(found)
-                    return self._reveal(found, held[2])
+                    return self._reveal(found, held[1])
                 rail = next(k for k, r in regions.items()
                             if r.box == found.box and r.on_rail)
                 carried = self.run("carry", rail, dkey, dticks)
                 if carried.startswith("carry:") and "—" not in carried:
                     self._unpreview(found)
                 return carried
-            if held_x is not None:
+            if held_x is not None and held_x[1] is not None:
                 xname, _note, was_at, _grabbed, at = held_x
                 found_x = regions[xname]
                 if at != was_at:
@@ -4938,7 +4954,7 @@ class Session:
                     return ""
             if held is None:
                 return "  ".join(said)
-            _n, _note, was, _grabbed, key = held
+            _n, note, was, _grabbed, key = held
             name = held[0]
             found = regions[name]
             if key == was and said:
@@ -4952,8 +4968,8 @@ class Session:
                 # jumps to source."*  It returned `""` until 2026-09-05,
                 # so the sentence was true of the design and of nothing
                 # else.
-                return self._reveal(found, was)
-            moved = self.run("transpose", name, was, key)
+                return self._reveal(found, note)
+            moved = self.run("transpose", name, found.roll.events[note][0], was, key)
             if moved.startswith("transpose:"):
                 # Refused, so the note did not move and must not look
                 # as though it had.  A *written* one keeps its lift
@@ -5039,7 +5055,7 @@ class Session:
         else:
             path.write_text(out)
 
-    def _reveal(self, found, at: int) -> str:
+    def _reveal(self, found, note: int) -> str:
         """Where the note under a click is written — and go there.
 
         **Rung 3 of `spec/drawnscores.md`.**  The roll is drawn from the
@@ -5053,11 +5069,10 @@ class Session:
         person's own next move.  A note written in this file is jumped
         to, because there the caret is the whole answer.
         """
-        from .scorebox import RefusedError, note_of, pitch_atom
+        from .scorebox import RefusedError, pitch_atom
 
         try:
-            note = note_of(found.roll, found.hand, int(at))
-            line, _col, _width, key = pitch_atom(found.roll, note)
+            line, _col, _width, key = pitch_atom(found.roll, int(note))
         except (RefusedError, Exception):                # noqa: BLE001
             return ""
         where = (getattr(self.bench, "origins", None) or {}).get(line)

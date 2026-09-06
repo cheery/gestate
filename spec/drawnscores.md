@@ -1520,6 +1520,44 @@ declarations a box.  A channel per column exists because a press
 crosses as a name, and that is idea 3 of the evening's list, his to
 decide.
 
+### The body is one pad — 2026-09-06, evening
+
+*Henri: "Tehdään myös idea 3, yksi käsi koko rungon yli.  Jos se yhä
+kuulostaa järkevältä sinun mielestäsi."*  It did, and the reason is
+the substrate spec's own sentence: *a pad is two on one element.*
+
+**The body is `TouchY pitch (TouchX rail (Sized …))`**, the rail inner
+so its press is read first: the fraction of the width is a tick, the
+fraction of the height a key, and the model finds the note sounding at
+that place — `note_under(roll, tick, key)`, nearest in key among the
+notes sounding at the tick, ties to the earlier onset, beyond
+`BAND_REACH` or at a tick nothing sounds at being empty roll.  The
+columns this replaces — one `TouchY` a tile, 48 in the compact box
+and 128 on the page — existed because a press wrote one attachment
+(F204); they quantised the aim to a tile, cost a channel declaration
+each, and could refuse a key *a column sounds twice*.  A note's end
+is its last `EDGE_PX` pixels now, for a note wider than twice that,
+where it was its last column.  Both boxes take the pad, the compact
+one too, and both pictures are item-identical to before; the hit
+table of a page's box went from 130 to 3, the ruler, the rail and
+the pitch hand.
+
+**A note is named by where it sounds.**  `transpose`, `mark` and
+`resize` took a column and a key; they take a tick and a key now —
+`transpose <hand> tick was key` — which is what the file and the
+picture agree on, and a chord is as many names as it has keys.  No
+tracked transcript held the old shape.  The model's grab is in two
+halves that arrive in order: the rail's press holds a tick and names
+no note, the pitch hand's press finds the note there and fills the
+rail's grab in; a rail let go alone writes nothing.
+
+| `arc.notes`, one section, live page | morning | library | pad |
+|---|---|---|---|
+| the program's text | 85,233 chars | 32,136 | 8,193 |
+| compiled once, warm | 4.4 s | 1.06 s | 0.36 s |
+| hits a box | 130 | 130 | 3 |
+| picture | — | identical | identical |
+
 ### What plugin-like scopes
 
 *"I'd like plugin-like, reusable behavior for this feature.  I think

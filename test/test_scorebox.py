@@ -266,7 +266,7 @@ def test_the_roll_is_an_ordinary_substrate_that_draws():
     window would have nothing to walk."""
     from gestate.gui import Substrate
 
-    from gestate.scorebox import ROLL_W, hands_of
+    from gestate.scorebox import ROLL_W
 
     roll, _ = _roll("chopin.ges")
     program, hands = roll_program(roll)
@@ -286,7 +286,7 @@ def test_the_roll_is_an_ordinary_substrate_that_draws():
     assert len(ground) == 1, "on a ground"
     assert len(labels) == len(rules) + 1, "a caption, and a name per ruled octave"
     assert sub.crossing is not None, "the window could not walk it"
-    assert len(hands) == len(hands_of(roll)) + 1, "a hand per column, and the rail"
+    assert hands == ["__nb_rail_0__", "__nb_pitch_0__"], "one pad: the rail and the pitch hand"
 
 
 def test_two_boxes_do_not_share_a_hand():
@@ -390,41 +390,38 @@ def test_a_page_is_one_program_and_still_three_pictures():
         assert v.payload(), "the box could not cross"
 
 
-def test_every_hand_lands_on_a_line_that_exists():
-    """A press anywhere in any column finds a note, and that note is
-    written on a line of this file."""
-    from gestate.scorebox import hands_of, note_under
+def test_every_note_pressed_at_its_own_place_lands_on_a_line_that_exists():
+    """A press at any note's own tick and key finds a note, and that
+    note is written on a line of this file.  Aimed, since `BAND_REACH`:
+    a press farther than three semitones from any note is empty roll,
+    where a band is swept, and no longer the nearest note at any
+    distance (`card:notes-editor.md` slice 4) — and since the body
+    became one pad, aimed in time as well."""
+    from gestate.scorebox import note_under
 
     roll, source = _roll("chopin.ges")
     last = len(source.splitlines())
-    hands = hands_of(roll)
-    assert hands
+    assert roll.events
+    for on, _off, _k, key, _v, _m in roll.events:
+        note = note_under(roll, on, key)
+        line = roll.leaves[roll.events[note][2]].line
+        assert 1 <= line <= last, (on, key, line)
 
-    # **Aimed at each note under the column**, since `BAND_REACH`: a
-    # press farther than three semitones from any note is empty roll,
-    # where a band is swept, and no longer the nearest note at any
-    # distance (`card:notes-editor.md` slice 4).
-    from gestate.scorebox import reach_of
+
+def _press(seat, roll, note: int = 0) -> tuple:
+    """Press `note` at its own tick and key — the pad's rail half first,
+    then its pitch half, as a hand aiming at it does — and answer
+    `(pitch channel, the fraction pressed at)`.  Since `BAND_REACH` a
+    press more than three semitones off any note is empty roll (a
+    band), so a test that means a note presses *on* one."""
+    from gestate.scorebox import across_of, reach_of
+
     low, high = reach_of(roll)
-    for hand, (_t0, _t1, under) in enumerate(hands):
-        for j in under:
-            down = (high - roll.events[j][3]) / (high - low)
-            note = note_under(roll, hand, down)
-            line = roll.leaves[roll.events[note][2]].line
-            assert 1 <= line <= last, (hand, down, line)
-
-
-def _aim(region) -> float:
-    """The fraction a press at the first note under this column writes —
-    what a hand aiming at it does.  Since `BAND_REACH` a press more than
-    three semitones off any note is empty roll (a band), so a test that
-    means a note presses *on* one."""
-    from gestate.scorebox import hands_of, reach_of
-
-    roll = region.roll
-    low, high = reach_of(roll)
-    _t0, _t1, under = hands_of(roll)[region.hand]
-    return (high - roll.events[under[0]][3]) / (high - low)
+    on, _off, _k, key, _v, _m = roll.events[note]
+    assert seat.touched("__nb_rail_0__", across_of(roll, on)) == ""
+    aim = (high - key) / (high - low)
+    seat.touched("__nb_pitch_0__", aim)
+    return "__nb_pitch_0__", aim
 
 
 # ── In the workbench ────────────────────────────────────────────────────────
@@ -455,9 +452,8 @@ def test_the_workbench_stands_a_box_on_the_ask_and_a_press_jumps(tmp_path):
     # says where *that one* is written, and the file is not touched.
     from gestate.scorebox import note_under
 
-    where = bench.note_regions["__nb_c0_0__"]
-    note = note_under(where.roll, where.hand, 0.5)
-    roll = where.roll
+    roll = bench.note_regions["__nb_rail_0__"].roll
+    note = note_under(roll, roll.events[0][0], roll.events[0][3])
     where = roll.leaves[roll.events[note][2]].line
     assert source.splitlines()[where - 1].strip().startswith("chords =") \
         or "stroke" in source.splitlines()[where - 1]
@@ -537,11 +533,13 @@ def test_a_press_moves_the_caret_and_writes_nothing(tmp_path):
     seat = session()
     seat.view = _View(source)
     seat.bench = bench
-    said = seat.touched("__nb_c0_0__", 0.5)
+    roll = bench.note_regions["__nb_rail_0__"].roll
+    from gestate.scorebox import across_of, reach_of
+    low, high = reach_of(roll)
+    seat.touched("__nb_rail_0__", across_of(roll, roll.events[0][0]))
+    said = seat.touched("__nb_pitch_0__", (high - roll.events[0][3]) / (high - low))
 
-    where = bench.note_regions["__nb_c0_0__"]
-    note = note_under(where.roll, where.hand, 0.5)
-    roll = where.roll
+    note = note_under(roll, roll.events[0][0], roll.events[0][3])
     assert seat.view.went == roll.leaves[roll.events[note][2]].line
     assert said == f"line {seat.view.went}"
     assert seat.view.text() == source, "a press alone wrote to the file"
@@ -696,10 +694,10 @@ def test_the_command_writes_the_note_the_region_and_the_key_name():
     """
     source, roll = _rolled("noted.ges", "ground")
     seat = _seated(source, roll)
-    chan = next(iter(seat.bench.note_regions))
-    was = next(e[3] for e in roll.events if e[2] == 0)
+    chan = "__nb_pitch_0__"
+    on, was = next((e[0], e[3]) for e in roll.events if e[2] == 0)
 
-    said = seat.run("transpose", chan, was, was + 2)
+    said = seat.run("transpose", chan, on, was, was + 2)
 
     assert "+2 semitone" in said, said
     before, after = _only_change(source, seat.view.text())
@@ -740,11 +738,13 @@ def test_a_note_dragged_by_hand_is_written_where_it_was_dropped():
     _kind, nx, ny, nw, _nh, _c = notes[0]
     x, y = nx + nw // 2, ny + 1
 
-    meant = view.touch("press", x, y)
-    assert meant and meant[0] == "touched" and meant[1] in regions, meant
-    chan, down = meant[1], meant[2]
-    said = seat.touched(chan, down)
+    # **The pad's two hands**, the rail first and then the pitch hand;
+    # the pitch hand's press is the one that names the note.
+    meant = view.touch_all("press", x, y)
+    assert len(meant) == 2 and all(m[1] in regions for m in meant), meant
+    said = [seat.touched(m[1], m[2]) for m in meant][-1]
     assert said.startswith("line "), said
+    chan, down = meant[1][1], meant[1][2]
     note = seat.holding[1]
     was = roll.events[note][3]
     assert seat.view.text() == source, "the press wrote to the file"
@@ -752,15 +752,14 @@ def test_a_note_dragged_by_hand_is_written_where_it_was_dropped():
     # Carry it upward until the hand has travelled three semitones.
     grabbed = key_at(roll, down)
     up = next((yy for yy in range(y, -ROLL_H, -1)
-               if key_at(roll, view.touch("drag", x, yy)[2]) == grabbed + 3),
+               if key_at(roll, view.touch_all("drag", x, yy)[1][2]) == grabbed + 3),
               None)
     assert up is not None, "the box has no room for a third"
-    moving = seat.touched(chan, view.touch("drag", x, up)[2])
+    moving = [seat.touched(m[1], m[2]) for m in view.touch_all("drag", x, up)][-1]
     assert "+3" in moving, moving
     assert seat.view.text() == source, "the drag wrote before it was done"
 
-    view.touch("release", x, up)
-    said = seat.released(chan)
+    said = [seat.released(m[1]) for m in view.touch_all("release", x, up)][0]
 
     assert "+3 semitone" in said, said
     before, after = _only_change(source, seat.view.text())
@@ -822,10 +821,7 @@ def test_a_note_let_go_where_it_began_reveals_it_and_writes_nothing():
     """
     source, roll = _rolled("noted.ges", "ground")
     seat = _seated(source, roll)
-    chan = next(iter(seat.bench.note_regions))
-    aim = _aim(seat.bench.note_regions[chan])
-
-    seat.touched(chan, aim)
+    chan, aim = _press(seat, roll, 0)
     was = roll.events[seat.holding[1]][3]
     seat.touched(chan, aim - 0.3)
     seat.touched(chan, aim)
@@ -855,9 +851,8 @@ def test_a_note_dropped_while_it_plays_is_auditioned():
         seat = _seated(source, roll)
         seat.bench.playing = playing
         seat.bench.audition = lambda text: heard.append(text)
-        chan = next(iter(seat.bench.note_regions))
-        was = next(e[3] for e in roll.events if e[2] == 0)
-        seat.run("transpose", chan, was, was + 2)
+        on, was = next((e[0], e[3]) for e in roll.events if e[2] == 0)
+        seat.run("transpose", "__nb_pitch_0__", on, was, was + 2)
 
     assert len(heard) == 1, "auditioned while stopped, or not while playing"
     assert f"low {was + 2}" in heard[0] or str(was + 2) in heard[0]
@@ -904,9 +899,8 @@ def test_the_picture_follows_a_drop_with_nothing_playing(tmp_path):
 
     seat = session()
     seat.bench, seat.view = bench, _View(source)
-    chan = sorted(bench.note_regions)[0]
-    aim = _aim(bench.note_regions[chan])
-    seat.touched(chan, aim)
+    roll = bench.note_regions["__nb_rail_0__"].roll
+    chan, aim = _press(seat, roll, 0)
     seat.touched(chan, max(0.0, aim - 0.4))
     assert "semitone" in seat.released(chan)
 
@@ -961,10 +955,8 @@ def test_the_note_follows_the_hand_before_anything_is_rebuilt(tmp_path):
 
     seat = session()
     seat.bench, seat.view = bench, _View(source)
-    chan = sorted(bench.note_regions)[0]
-    aim = _aim(bench.note_regions[chan])
-
-    seat.touched(chan, aim)
+    roll = bench.note_regions["__nb_rail_0__"].roll
+    chan, aim = _press(seat, roll, 0)
     bench.observe()
     # **A press selects, and the selection is drawn** — an outline under
     # the note's bar and a marker on the rail (2026-09-06).  What a press
@@ -1039,15 +1031,15 @@ def test_the_command_refuses_by_name_and_writes_nothing():
     which is the property that lets a hand try things."""
     source, roll = _rolled("noted.ges", "ground")
     seat = _seated(source, roll)
-    chan = next(iter(seat.bench.note_regions))
-    was = next(e[3] for e in roll.events if e[2] == 0)
+    chan = "__nb_pitch_0__"
+    on, was = next((e[0], e[3]) for e in roll.events if e[2] == 0)
 
     # A region nobody drew.
-    assert "no score box region" in seat.run("transpose", "__nb_c9_9__",
-                                             was, was + 1)
-    # A pitch that region does not sound: the picture and the file
+    assert "no score box region" in seat.run("transpose", "__nb_pitch_9__",
+                                             on, was, was + 1)
+    # A pitch nothing sounds at that tick: the picture and the file
     # disagree, which is a refusal rather than a guess.
-    assert "sounds" in seat.run("transpose", chan, was + 7, was + 8)
+    assert "sounds" in seat.run("transpose", chan, on, was + 7, was + 8)
     assert seat.view.text() == source, "a refusal wrote to the file"
 
 

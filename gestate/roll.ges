@@ -250,33 +250,6 @@ rollBarNums b s rx ts i = case ts of
 rollRuler : Body -> Scale -> Int -> Int -> Int -> Int -> List Int -> Sub
 rollRuler b s rx rw rh beat bars = Over (Over (Shift 0 (rh / 2 - 1) (Rect rw 2 rollTrack)) (rollTicks b s rx rh (rollBeats s beat))) (rollBarNums b s rx bars 1)
 
-# ── The columns: the hands ───────────────────────────────────────────────
-
-#: Where column `i` ends, in ticks — `scorebox.hands_of`, the last one
-#: reaching the span.
-rollT1 : Scale -> Int -> Int -> Int
-rollT1 s step i = case s of
-    Scale lo hi span -> case (i + 1) * step > span of
-        True -> span
-        False -> (i + 1) * step
-
-#: A column's width in pixels, never under four.
-rollColW : Body -> Scale -> Int -> Int -> Int
-rollColW b s step i = case rollX b s (rollT1 s step i) - rollX b s (i * step) < 4 of
-    True -> 4
-    False -> rollX b s (rollT1 s step i) - rollX b s (i * step)
-
-#: A column's centre, relative to the body's — the element it sits in.
-rollColX : Body -> Scale -> Int -> Int -> Int
-rollColX b s step i = case b of
-    Body l t w h -> rollX b s (i * step) + rollColW b s step i / 2 - (l + w / 2)
-
-#: Every column, one `TouchY` a channel, `reach` tall, innermost first.
-rollColumns : Body -> Scale -> Int -> Int -> List (Chan Float) -> Int -> Sub
-rollColumns b s step reach cs i = case cs of
-    c :: rest -> Over (Shift (rollColX b s step i) 0 (TouchY c (Sized (rollColW b s step i) reach (Gap 0 0)))) (rollColumns b s step reach rest (i + 1))
-    _ -> Gap 0 0
-
 # ── The notes ────────────────────────────────────────────────────────────
 
 #: Does this manner ask for this mark?  The bits are `scorebox.MANNERS`.

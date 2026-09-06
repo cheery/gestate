@@ -312,5 +312,7 @@ computed by the G-machine, and then the whole drawing moved into
 `gestate/roll.ges`, a library in front of the page's program.  Text
 85 → 32 thousand, compile 4.4 → 1.1 s.  `spec/drawnscores.md` §"The
 picture computed, not written" and §"The roll's vocabulary is a
-library".  Left of the evening's list: idea 3, one hand over the whole
-body instead of a channel per column, which is his.
+library".  And then idea 3, at his *"tehdään myös"*: the body is one pad, three
+hands a box where there were a hundred and thirty, the page at eight
+thousand characters, `spec/drawnscores.md` §"The body is one pad".
+The evening's list is done.

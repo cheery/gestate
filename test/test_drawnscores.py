@@ -1744,22 +1744,18 @@ def _rolled_page(here):
     return roll, seat
 
 
-def _press_a_note(seat, roll, note: int):
-    """Press the column note `note` sounds under, at its own key —
-    what a hand aiming at it does — and answer the channel."""
-    from gestate.scorebox import _chan, hands_of, note_under, reach_of
+def _press_a_note(seat, roll, note: int, box: int = 0):
+    """Press note `note` at its own tick and key — what a hand aiming at
+    it does: the pad's rail half first, then its pitch half — and
+    answer the pitch channel."""
+    from gestate.scorebox import across_of, reach_of
 
     low, high = reach_of(roll)
     on, _off, _k, key, _v, _m = roll.events[note]
-    for i, (t0, t1, under) in enumerate(hands_of(roll)):
-        if note in under:
-            down = (high - key) / (high - low)
-            if note_under(roll, i, down) == note:
-                chan = _chan(0, i)
-                said = seat.touched(chan, down)
-                assert said.startswith("line "), said
-                return chan
-    raise AssertionError(f"note {note} is under no column at its own key")
+    assert seat.touched(f"__nb_rail_{box}__", across_of(roll, on)) == ""
+    said = seat.touched(f"__nb_pitch_{box}__", (high - key) / (high - low))
+    assert said.startswith("line "), said
+    return f"__nb_pitch_{box}__"
 
 
 def test_the_roll_has_a_rail_a_selection_and_a_slide():
@@ -1775,10 +1771,10 @@ def test_the_roll_has_a_rail_a_selection_and_a_slide():
             if l.startswith("notes ")]
     roll = build_rolls(source, asks[:1], 22050, 0)[0]
     text, named = roll_program(roll, 0)
-    for chan in ("__nb_rail_0__", "__nb_sel_0__", "__nb_slide_0__"):
+    for chan in ("__nb_rail_0__", "__nb_pitch_0__", "__nb_sel_0__", "__nb_slide_0__"):
         assert f"{chan} : Chan Float" in text, chan
-    assert "__nb_rail_0__" in named, "the rail is a hand the window writes"
-    assert "TouchX __nb_rail_0__" in text, "and it listens along, not down"
+    assert "__nb_rail_0__" in named and "__nb_pitch_0__" in named, "the pad's two hands"
+    assert "TouchY __nb_pitch_0__ (TouchX __nb_rail_0__" in text, "one pad, the rail inner"
     rail = [k for k, r in regions_of([roll]).items() if r.hand == RAIL]
     assert rail == ["__nb_rail_0__"]
     assert regions_of([roll])["__nb_rail_0__"].on_rail
@@ -1820,12 +1816,18 @@ def test_a_press_selects_and_a_click_keeps_the_selection():
         assert seat.bench.previewing["__nb_held_0__"] == -1.0
 
 
-def test_the_rail_refuses_with_nothing_selected():
+def test_the_rail_alone_holds_a_tick_and_commits_nothing():
+    """The pad's rail half arrives first and names no note until the
+    pitch half has spoken; released alone it writes nothing."""
     with _copied() as here:
         _roll, seat = _rolled_page(here)
-        said = seat.touched("__nb_rail_0__", 0.5)
-        assert "nothing selected" in said and "press a note first" in said
-        assert seat.holding is None
+        target = here.parent / "arc.notes"
+        before = target.read_text()
+        assert seat.touched("__nb_rail_0__", 0.5) == ""
+        assert seat.holding is None and seat.holding_x[1] is None
+        assert seat.touched("__nb_rail_0__", 0.6) == ""
+        assert seat.released("__nb_rail_0__") == ""
+        assert target.read_text() == before and seat.holding_x is None
 
 
 def test_a_rail_drag_moves_the_selected_note_by_the_grid_and_writes_one_line():
@@ -1837,13 +1839,11 @@ def test_a_rail_drag_moves_the_selected_note_by_the_grid_and_writes_one_line():
     with _copied() as here:
         roll, seat = _rolled_page(here)
         note = 0
-        chan = _press_a_note(seat, roll, note)
-        seat.released(chan)
+        _press_a_note(seat, roll, note)
         on = roll.events[note][0]
         grid = grid_of(roll)
         _lo, _hi, span = scale_of(roll)
         across0 = across_of(roll, on)
-        assert seat.touched("__nb_rail_0__", across0).startswith("tick ")
         across1 = across0 + grid / span
         moving = seat.touched("__nb_rail_0__", across1)
         assert f"→ {on + grid}" in moving, moving
@@ -1884,10 +1884,8 @@ def test_a_move_onto_a_written_note_is_refused_and_writes_nothing():
         assert pair is not None, "the roll repeats no pitch"
         first, second = pair
         on, nxt = events[first][0], events[second][0]
-        chan = _press_a_note(seat, roll, first)
-        seat.released(chan)
+        _press_a_note(seat, roll, first)
         _lo, _hi, span = scale_of(roll)
-        seat.touched("__nb_rail_0__", across_of(roll, on))
         seat.touched("__nb_rail_0__", across_of(roll, nxt))
         target = here.parent / "arc.notes"
         before = target.read_text()
@@ -1910,11 +1908,9 @@ def test_a_ges_written_note_cannot_be_moved_on_the_rail():
         shutil.copy(ROOT / "examples" / "audio" / "noted.ges", here)
         here.write_text(here.read_text() + "\nnotes score\n")
         roll, seat = _rolled_page(here)
-        chan = _press_a_note(seat, roll, 0)
-        seat.released(chan)
+        _press_a_note(seat, roll, 0)
         on = roll.events[0][0]
         _lo, _hi, span = scale_of(roll)
-        seat.touched("__nb_rail_0__", across_of(roll, on))
         seat.touched("__nb_rail_0__", across_of(roll, on) + 0.2)
         said = seat.released("__nb_rail_0__")
         assert said.startswith("move:") and ".notes" in said, said
@@ -1933,12 +1929,10 @@ def test_a_move_while_stopped_plays_the_piece_from_where_the_note_went():
 
     with _copied() as here:
         roll, seat = _rolled_page(here)
-        chan = _press_a_note(seat, roll, 0)
-        seat.released(chan)
+        _press_a_note(seat, roll, 0)
         on, grid = roll.events[0][0], grid_of(roll)
         _lo, _hi, span = scale_of(roll)
         across0 = across_of(roll, on)
-        seat.touched("__nb_rail_0__", across0)
         seat.touched("__nb_rail_0__", across0 + grid / span)
         said = seat.released("__nb_rail_0__")
         assert said.startswith("move: arc.notes —") and "playing from there" in said, said
@@ -2076,18 +2070,15 @@ def _clear_note(roll) -> int:
     """A note a hand can name without ambiguity — the stacked page puts
     five voices in one column, and a key sounding twice under a column
     is refused by name, as `note_of` says."""
-    from gestate.scorebox import RefusedError, hands_of, note_of
+    from gestate.scorebox import RefusedError, note_of
 
-    for i, (_on, _off, _k, key, _v, _m) in enumerate(roll.events):
-        for h, (_t0, _t1, under) in enumerate(hands_of(roll)):
-            if i in under:
-                try:
-                    if note_of(roll, h, key) == i:
-                        return i
-                except RefusedError:
-                    pass
-                break
-    raise AssertionError("every note of the roll is ambiguous under its column")
+    for i, (on, _off, _k, key, _v, _m) in enumerate(roll.events):
+        try:
+            if note_of(roll, on, key) == i:
+                return i
+        except RefusedError:
+            pass
+    raise AssertionError("every note of the roll is ambiguous at its own place")
 
 
 def _seated_on(bench, text: str):
@@ -2129,7 +2120,7 @@ def test_a_drag_on_the_notes_document_writes_the_buffer_not_the_disk():
     bench._load_substrate(bench.program())
     before = here.read_text()
     seat = _seated_on(bench, before)
-    roll = bench.note_regions["__nb_c0_0__"].roll
+    roll = bench.note_regions["__nb_rail_0__"].roll
     note = _clear_note(roll)
     chan = _press_a_note(seat, roll, note)
     low, high = reach_of(roll)
@@ -2150,7 +2141,7 @@ def test_a_click_on_the_notes_document_goes_to_its_own_line():
     here, bench = _opened_alone()
     bench._load_substrate(bench.program())
     seat = _seated_on(bench, here.read_text())
-    roll = bench.note_regions["__nb_c0_0__"].roll
+    roll = bench.note_regions["__nb_rail_0__"].roll
     note = _clear_note(roll)
     chan = _press_a_note(seat, roll, note)
     line = roll.leaves[roll.events[note][2]].line
@@ -2420,20 +2411,19 @@ def test_the_data_roads_scale_is_the_sections_length_and_the_files_range():
         assert x_of(roll, last) > left + width // 4, "the notes reach across the roll"
 
 
-def test_the_columns_tile_the_roll_and_an_empty_one_refuses_by_name():
-    from gestate.scorebox import (HAND_W, MAX_HANDS, RefusedError, body_of,
-                                  hands_of, note_under)
+def test_the_body_is_one_pad_and_every_note_is_found_at_its_own_place():
+    """Henri, 2026-09-06, evening: *"yksi käsi koko rungon yli"* — a
+    `TouchY` around a `TouchX` over the whole body, three hands a box
+    with the ruler where there were a hundred and thirty, and every
+    note found by its tick and key."""
+    from gestate.scorebox import PITCH, RAIL, RULER, note_under, regions_of
 
     rolls, _b, _l = _live_and_baked()
     roll = rolls[0]
-    tiles = hands_of(roll)
-    assert len(tiles) == min(MAX_HANDS, body_of(roll)[2] // HAND_W) == 128
-    for i in range(len(roll.events)):
-        assert sum(1 for _t0, _t1, under in tiles if i in under) >= 1, f"note {i} under no column"
-    empty = next((h for h, (_t0, _t1, under) in enumerate(tiles) if not under), None)
-    if empty is not None:
-        with pytest.raises(RefusedError, match="nothing sounds under that column"):
-            note_under(roll, empty, 0.5)
+    regions = regions_of(rolls)
+    assert sorted(r.hand for k, r in regions.items() if r.box == 0) == sorted([PITCH, RAIL, RULER])
+    for i, (on, off, _k, key, _v, _m) in enumerate(roll.events):
+        assert note_under(roll, on, key) == i or roll.events[note_under(roll, on, key)][3] == key
 
 
 def test_the_page_after_a_moved_note_is_a_lookup_not_a_compile():
@@ -2451,7 +2441,7 @@ def test_the_page_after_a_moved_note_is_a_lookup_not_a_compile():
     bench._load_substrate(moved)
     took = time.perf_counter() - t0
     assert took < 1.5, f"{took:.2f} s"
-    roll = bench.note_regions["__nb_c0_0__"].roll
+    roll = bench.note_regions["__nb_rail_0__"].roll
     bars = [i for i in bench.canvases["__notes_0__"].picture()
             if i[0] == "rect" and i[4] == geometry_of(roll).note_h]
     assert len(bars) == len(roll.events)
@@ -2531,8 +2521,8 @@ def test_a_hand_takes_a_note_by_its_row_and_the_body_around_it():
     repair).  The hands folded balanced (`_overs`) record in the same
     order the chain did."""
     from gestate.gui import Substrate
-    from gestate.scorebox import (RAIL, geometry_of, note_under,
-                                  regions_of)
+    from gestate.scorebox import (geometry_of, key_at, note_under,
+                                  regions_of, tick_at)
 
     rolls, (baked, _r, entries), _l = _live_and_baked()
     regions = regions_of(rolls)
@@ -2548,11 +2538,11 @@ def test_a_hand_takes_a_note_by_its_row_and_the_body_around_it():
         if not meant:
             continue
         hit += 1
-        column, body = meant
-        assert regions[column[1]].hand != RAIL, "the column first"
-        assert regions[body[1]].hand == RAIL, "and the body around it"
+        rail, pitch = meant
+        assert regions[rail[1]].on_rail, "the rail first"
+        assert regions[pitch[1]].on_pitch, "then the pitch hand around it"
         try:
-            note_under(roll, regions[column[1]].hand, column[2])
+            note_under(roll, tick_at(roll, rail[2]), key_at(roll, pitch[2]))
             named += 1
         except Exception:                                # noqa: BLE001
             pass
@@ -2680,22 +2670,20 @@ def test_a_drag_previews_both_axes_at_once():
 def test_a_press_on_nothing_selects_nothing_and_the_body_carries_nothing():
     """A press on an empty column, with a note selected earlier, must
     not let the body drag that old selection off in time."""
-    from gestate.scorebox import RefusedError, _chan, across_of, hands_of, note_under
+    from gestate.scorebox import across_of, reach_of
 
     with _copied() as here:
         roll, seat = _rolled_page(here)
         chan = _press_a_note(seat, roll, 0)
         seat.released(chan)
         assert 0 in seat.selected.values()
-        empty = next((h for h, (_t0, _t1, under) in enumerate(hands_of(roll)) if not under), None)
-        if empty is None:
-            pytest.skip("every column of this roll has a note under it")
-        said = seat.touched(_chan(0, empty), 0.5)
+        low, high = reach_of(roll)
+        assert seat.touched("__nb_rail_0__", across_of(roll, 0)) == ""
+        said = seat.touched("__nb_pitch_0__", (high - min(high, 110)) / (high - low))
         assert said.startswith("sweep a band"), said
-        said = seat.touched("__nb_rail_0__", across_of(roll, 0))
-        assert said.startswith("nothing selected"), said
-        seat.released(_chan(0, empty))
+        assert 0 not in seat.selected, "a press on nothing selects nothing"
         seat.released("__nb_rail_0__")
+        seat.released("__nb_pitch_0__")
         assert here.parent.joinpath("arc.notes").read_text() == (ROOT / "examples/audio/arc.notes").read_text()
 
 
@@ -2757,7 +2745,7 @@ def _page_seat():
     bench._load_substrate(bench.program())
     seat = _seated_on(bench, here.read_text())
     view = bench.canvases["__notes_0__"]
-    roll = bench.note_regions["__nb_c0_0__"].roll
+    roll = bench.note_regions["__nb_rail_0__"].roll
     return here, seat, view, roll
 
 
@@ -2776,7 +2764,7 @@ def _sweep(seat, view, roll, t0, k0, t1, k1):
     x0, y0 = x_of(roll, t0) + 2, y_of(roll, k0)
     x1, y1 = x_of(roll, t1) - 2, y_of(roll, k1)
     said = _feed(seat, view, "press", x0, y0)
-    assert said[0].startswith("sweep a band"), said
+    assert said[-1].startswith("sweep a band"), said
     _feed(seat, view, "drag", (x0 + x1) // 2, (y0 + y1) // 2)
     _feed(seat, view, "drag", x1, y1)
     band = seat.bench.previewing.get("__nb_band_0__")
@@ -2788,22 +2776,18 @@ def test_a_press_beyond_reach_of_any_note_is_empty_roll():
     """`BAND_REACH`: a column is the roll's whole height, so a press four
     semitones off the only note under it means empty roll, not that
     note — and a press within three still means it."""
-    from gestate.scorebox import (BAND_REACH, RefusedError, hands_of,
-                                  note_under, reach_of)
+    from gestate.scorebox import BAND_REACH, RefusedError, note_under
 
     _here, _seat, _view, roll = _page_seat()
-    low, high = reach_of(roll)
-    for h, (_t0, _t1, under) in enumerate(hands_of(roll)):
-        if len(under) != 1:
-            continue
-        key = roll.events[under[0]][3]
-        near = (high - (key + BAND_REACH)) / (high - low)
-        assert note_under(roll, h, near) == under[0]
-        far = (high - (key + BAND_REACH + 1)) / (high - low)
-        with pytest.raises(RefusedError, match="within reach"):
-            note_under(roll, h, far)
-        return
-    pytest.skip("no column of this roll has exactly one note under it")
+    on = roll.events[0][0]
+    top = max((j for j, e in enumerate(roll.events) if e[0] <= on < e[1]),
+              key=lambda j: roll.events[j][3])
+    key = roll.events[top][3]
+    assert note_under(roll, on, key + BAND_REACH) == top
+    with pytest.raises(RefusedError, match="within reach"):
+        note_under(roll, on, key + BAND_REACH + 1)
+    with pytest.raises(RefusedError, match="nothing sounds at that tick"):
+        note_under(roll, 10**9, key)
 
 
 def test_a_band_selects_every_note_it_touches_as_one_command():
@@ -2834,7 +2818,7 @@ def test_a_typed_select_picks_the_same_notes_a_sweep_did():
     said = seat.run("select", "__nb_rail_0__", 384, 62, 0, 78)
     assert said.startswith("select: ")
     assert seat.group[0] == swept, "either way round, the same notes"
-    assert seat.run("select", "__nb_c0_0__", 0, 60, 96, 70).startswith("select: name the box's rail")
+    assert seat.run("select", "__nb_pitch_0__", 0, 60, 96, 70).startswith("select: name the box's rail")
     assert seat.run("select", "__nb_rail_0__", 0, 120, 10, 127).startswith("select: nothing sounds")
     assert 0 not in seat.group, "a band over nothing clears the selection"
 
@@ -2852,7 +2836,7 @@ def test_a_hand_on_any_note_of_the_group_carries_them_all_in_one_rewrite():
     on, off, _k, key, _v, _m = roll.events[n]
     nx, ny = (x_of(roll, on) + x_of(roll, off)) // 2, y_of(roll, key)
     said = _feed(seat, view, "press", nx, ny)
-    assert said[0].startswith("line "), said
+    assert said[-1].startswith("line "), said
     assert seat.group[0] == group, "a press on a note of the group keeps the group"
     _feed(seat, view, "drag", nx, ny - 8)
     _feed(seat, view, "drag", nx, ny - 16)
@@ -2886,7 +2870,7 @@ def test_a_carry_that_would_double_a_note_refuses_whole_and_keeps_the_group():
     assert seat.view.text() == before
     assert seat.group[0] == group
     assert seat.run("carry", "__nb_rail_0__", 0, 0).startswith("carry: nothing to do")
-    assert seat.run("carry", "__nb_c0_0__", 1, 0).startswith("carry: name the box's rail")
+    assert seat.run("carry", "__nb_pitch_0__", 1, 0).startswith("carry: name the box's rail")
     seat.group.clear()
     assert seat.run("carry", "__nb_rail_0__", 1, 0).startswith("carry: nothing selected")
 
@@ -2952,13 +2936,13 @@ def test_a_press_in_a_notes_last_column_takes_its_end():
     n = next(i for i, e in enumerate(roll.events) if e[1] - e[0] == 384)
     ex, ey = _end_of(roll, n)
     said = _feed(seat, view, "press", ex, ey)
-    assert said[0].endswith("— its end"), said
+    assert said[-1].endswith("— its end"), said
     assert seat.resizing is not None and seat.resizing[1] == n
     _feed(seat, view, "drag", ex, ey - 24)
     assert seat.bench.previewing["__nb_lift_0__"] == 0.0, "a hand on an end carries no pitch"
     before = seat.view.text()
     said = _feed(seat, view, "release", ex, ey - 24)
-    assert "line " in said[0], "let go where it took hold is a click"
+    assert any("line " in x for x in said), "let go where it took hold is a click"
     assert seat.view.text() == before
     assert seat.resizing is None
 
@@ -2984,7 +2968,7 @@ def test_a_drag_on_the_end_rewrites_one_notes_length_by_the_grid():
     _feed(seat, view, "press", ex, ey)
     _feed(seat, view, "drag", ex - 16, ey)
     said = _feed(seat, view, "drag", ex - 32, ey)
-    assert "len 384 → 288" in said[1], said
+    assert "len 384 → 288" in said[0], said
     assert seat.bench.previewing["__nb_grow_0__"] == -32.0, "the picture shows it shorter first"
     before = seat.view.text()
     said = _feed(seat, view, "release", ex - 32, ey)
@@ -2998,15 +2982,13 @@ def test_a_drag_on_the_end_rewrites_one_notes_length_by_the_grid():
 def test_a_typed_resize_names_the_note_as_transpose_does():
     _here, seat, view, roll = _page_seat()
     n = next(i for i, e in enumerate(roll.events) if e[1] - e[0] == 384)
-    from gestate.scorebox import hands_of
-    column = next(h for h, (_t0, _t1, under) in enumerate(hands_of(roll)) if n in under)
-    key = roll.events[n][3]
+    on, key = roll.events[n][0], roll.events[n][3]
     before = seat.view.text()
-    assert seat.run("resize", f"__nb_c0_{column}__", key, 0).startswith("resize: a note is at least one tick")
-    assert seat.run("resize", "__nb_rail_0__", key, 96).startswith("resize: name the note's column")
-    assert seat.run("resize", f"__nb_c0_{column}__", key, 384).startswith("resize: nothing to do")
+    assert seat.run("resize", "__nb_pitch_0__", on, key, 0).startswith("resize: a note is at least one tick")
+    assert seat.run("resize", "__nb_pitch_0__", on, key + 1, 96).startswith("resize: nothing sounds")
+    assert seat.run("resize", "__nb_pitch_0__", on, key, 384).startswith("resize: nothing to do")
     assert seat.view.text() == before
-    said = seat.run("resize", f"__nb_c0_{column}__", key, 480)
+    said = seat.run("resize", "__nb_pitch_0__", on, key, 480)
     assert said.startswith("resize: arc.notes — len 384 → 480"), said
     assert "len 480" in seat.view.text(), "past the bar line is written as it is"
 
@@ -3049,7 +3031,7 @@ def test_a_stretch_that_would_leave_a_note_shorter_than_a_tick_refuses_whole():
     assert seat.run("stretch", "__nb_rail_0__", -96).startswith("stretch: arc.notes:"), "the melody's beat-long notes would vanish"
     assert seat.view.text() == before and seat.group[0] == group
     assert seat.run("stretch", "__nb_rail_0__", 0).startswith("stretch: nothing to do")
-    assert seat.run("stretch", "__nb_c0_0__", 12).startswith("stretch: name the box's rail")
+    assert seat.run("stretch", "__nb_pitch_0__", 12).startswith("stretch: name the box's rail")
     said = seat.run("stretch", "__nb_rail_0__", -48)
     assert said.startswith("stretch: arc.notes — ") and "-48 ticks" in said, said
 
@@ -3130,7 +3112,7 @@ def test_a_click_on_the_ruler_changes_nothing_and_the_compact_box_has_no_ruler()
     before = seat.view.text()
     _feed(seat, view, "press", cx, cy)
     said = _feed(seat, view, "release", cx, cy)
-    assert said == ["", ""] and seat.view.text() == before
+    assert said == ["", "", ""] and seat.view.text() == before
     assert seat.bench.previewing["__nb_endx_0__"] == -10000.0, "the end mark is gone"
 
     source, _o = notes.expanded(ARCNOTES.read_text(), ARCNOTES.parent)
@@ -3251,7 +3233,7 @@ def test_the_page_is_written_over_roll_ges_and_the_compact_box_is_not():
     assert has_roll(live) and has_roll(baked)
     assert library_text("roll.ges") in preludes(live)
     assert len(live) < 40_000, len(live)
-    assert "rollFurniture" in live and "rollColumns" in live and "rollNotes" in live
+    assert "rollFurniture" in live and "rollNotes" in live and "TouchY __nb_pitch_0__ (TouchX __nb_rail_0__" in live
 
     source, _o = notes.expanded(ARCNOTES.read_text(), ARCNOTES.parent)
     asks_ = [(i + 1, l[6:]) for i, l in enumerate(source.splitlines()) if l.startswith("notes ")]

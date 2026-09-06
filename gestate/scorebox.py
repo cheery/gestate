@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from typing import NamedTuple
 
 __all__ = ["asks", "build_roll", "build_rolls", "page_program",
-           "hands_of", "key_at", "note_of", "note_under", "pitch_atom",
+           "key_at", "note_of", "note_under", "pitch_atom",
            "Region",
            "reach_of", "regions_of", "roll_program", "scale_of",
            "transposed", "y_of",
@@ -69,9 +69,9 @@ WINDOW_BEATS = 256
 #:
 #: **The picture is byte-identical**, and the descent is no slower.  What
 #: 48 cost was provenance: 244 of 291 notes drew, jumped to a line that
-#: was not theirs, and could not be dragged.  The 48 that really shapes
-#: the picture is `MAX_HANDS`, which is nested `Over`s and is about drag
-#: columns rather than notes.
+#: was not theirs, and could not be dragged.  (The 48 that shaped the
+#: picture for a while after was `MAX_HANDS`, the drag columns — gone
+#: since the body became one pad, 2026-09-06.)
 MAX_LEAVES = 512
 
 TICKS_PER_BEAT = 96
@@ -1175,45 +1175,32 @@ def _n(v: int) -> str:
     return str(v) if v >= 0 else f"(0 - {-v})"
 
 
-#: How many hands a box hands out, and how wide each one is.
+#: **One hand over the whole body** — Henri, 2026-09-06, evening:
+#: *"Tehdään myös idea 3, yksi käsi koko rungon yli."*  The body is a
+#: pad, `TouchY pitch (TouchX rail (Sized …))`: the fraction of its
+#: width is the tick and the fraction of its height the key, and the
+#: model finds the note at that place (`note_under`).  The columns
+#: this replaced — one `TouchY` a tile, 48 then 128 a box — existed
+#: because a press wrote one attachment (F204); they quantised the aim
+#: to a tile and cost a channel declaration each.  A pad is what
+#: `spec/substrate.md` §"S3" always said an element could be.
 #:
-#: **A column of the picture, not a note and not a written place**, and
-#: the reason is the thing this box is for.  A hand has to give a drag
-#: room for an interval, so it is the full height of the roll — and
-#: full-height regions that *overlap* hide each other, because the
-#: substrate resolves a press to the innermost region written first.
-#: One per written place looked safe on `minute.ges` and `noted.ges`,
-#: which have no two places sounding at once; `chopin.ges` has
-#: seventeen such pairs out of twenty-eight, and the shadowed one
-#: could not be pressed at any height.  Columns tile: no two overlap,
-#: every note is under one wherever it sounds, and *which* note a
-#: press means is read off the height — which is aiming, and is how a
-#: chord's own notes became pressable at all.
-HAND_W = 8
-#: Bounded the way the leaves are, and for the same reason: the hands
-#: are nested `Over`s, and chopin's hundred and forty notes overflowed
-#: the parser the day the *notes* were nested.  **Folded balanced since
-#: the editing scale** (`_overs`): a chain of `n` is `n` parentheses
-#: held open and a balanced tree is `log n`, so a page's 128 columns
-#: cost the parser eight levels and the bound is a bound, not a limit
-#: the compact box happened to fit under.
-MAX_HANDS = 256
+#: **A note's end is the last `EDGE_PX` of it**, for a note wider than
+#: twice that: a press there takes the end (`resize`), anywhere else
+#: the note.
+EDGE_PX = 8
 
-#: **The rail — a note's time is moved here, not on its column.**  A
-#: press writes exactly one attachment, the deepest containing it, in
-#: both machines (`gui._under`, `substrate.rs`), so a column that
-#: listens in Y cannot also listen in X — `fixme.md` F204 is the
-#: substrate spec's *"a pad is two on one element"* measured against
-#: that.  So time gets its own element: one full-width `TouchX` strip
-#: along the top of the roll, and the note it moves is the one the
-#: last press *selected* (`card:drawn-scores.md` §"Rung 5, the seam" —
-#: Henri: *"Give roll a selected -channel"*).  Above the highest note's
-#: own row, so no note is shadowed by it: the highest is drawn at
-#: `y_of(hi)`, three pixels tall, and the strip ends two above that.
+#: **The rail is the body's hand for time** — the `TouchX` half of the
+#: pad — and the compact box's strip along the top, `RAIL_H` tall, is
+#: what the ruler is drawn as there.  (It was its own element, the
+#: second axis given a strip of its own while a press wrote one
+#: attachment — `fixme.md` F204, repaired 2026-09-06.)
 RAIL_H = 4
 RAIL_Y = -(ROLL_H // 2) + RAIL_H // 2
-#: The rail's hand number in a `Region` — no column has it.
+#: The rail's hand number in a `Region`.
 RAIL = -1
+#: The pitch hand's — the `TouchY` half of the pad.
+PITCH = -3
 #: The ruler's hand number in a `Region` — the section's end, taken
 #: there (`card:notes-editor.md` slice 4: *resize the clip*, which
 #: Henri answered as the section's `bars`).  Only a roll that knows
@@ -1235,45 +1222,9 @@ GRID_MIN = 12
 BAND_REACH = 3
 
 
-def _chan(box: int, hand: int) -> str:
-    """The channel one column's hand writes.
-
-    **Unique across boxes**: two rolls in one file are two walks in one
-    program's channel namespace, and a shared name would make a press
-    in either land on whichever was built last.  Spelled here because
-    two readers need it — the picture that makes the hand, and the
-    editor that looks the hand up when it moves.
-    """
-    return f"__nb_c{box}_{hand}__"
-
-
-def hands_of(roll: Roll) -> list:
-    """`[(first tick, last tick, [note])]` — the roll's columns.
-
-    Every column that has a note under it, left to right.  A note
-    spanning several columns is in each of them, so a long one can be
-    taken hold of anywhere along its length rather than only where it
-    starts.
-    """
-    _lo, _hi, span = scale_of(roll)
-    if span <= 0:
-        return []
-    _left, _top, body_w, _body_h = body_of(roll)
-    wide = max(1, min(MAX_HANDS, body_w // HAND_W))
-    step = max(1, -(-span // wide))             # ceiling, so the last
-    out = []                                    # column reaches the end
-    for i in range(wide):
-        t0, t1 = i * step, min(span, (i + 1) * step)
-        if t0 >= t1:
-            break
-        under = [j for j, e in enumerate(roll.events)
-                 if e[0] < t1 and e[1] > t0]
-        # **Every tile, with or without a note under it** (2026-09-06):
-        # the columns are part of the picture's *text*, and a text that
-        # changed with the notes was recompiled at every drag.  An
-        # empty column is a hand on nothing, and `note_under` says so.
-        out.append((t0, t1, under))
-    return out
+def _pitch(box: int) -> str:
+    """The channel the box's pitch hand writes — the pad's `TouchY`."""
+    return f"__nb_pitch_{box}__"
 
 
 class Region(NamedTuple):
@@ -1342,6 +1293,10 @@ class Region(NamedTuple):
         return self.hand == RULER
 
     @property
+    def on_pitch(self) -> bool:
+        return self.hand == PITCH
+
+    @property
     def on_rail(self) -> bool:
         return self.hand == RAIL
 
@@ -1352,9 +1307,8 @@ def regions_of(rolls: list) -> dict:
     for box, roll in enumerate(rolls):
         if isinstance(roll, Exception):
             continue
-        for i, _hand in enumerate(hands_of(roll)):
-            out[_chan(box, i)] = Region(roll, i, box)
         out[_rail(box)] = Region(roll, RAIL, box)
+        out[_pitch(box)] = Region(roll, PITCH, box)
         if roll.bars:
             out[_ruler(box)] = Region(roll, RULER, box)
     return out
@@ -1370,60 +1324,42 @@ def _ruler(box: int) -> str:
     return f"__nb_ruler_{box}__"
 
 
-def note_under(roll: Roll, hand: int, down: float) -> int:
-    """Which note a hand at this height in this column has hold of.
+def note_under(roll: Roll, tick: int, key: int) -> int:
+    """Which note a hand at this tick and key has hold of.
 
-    **Aim decides, in both directions.**  The column says where along
-    the piece the hand is and the height says which of the notes
-    sounding there it means — so a chord is four notes to press rather
-    than one region, which is what the leaf-shaped hands could not do.
-
-    Ties go to the one that starts first, because that is the one whose
-    onset is nearest the hand when two sound at one pitch.
+    **Aim decides, in both axes.**  The notes sounding at the tick are
+    the candidates, the nearest in key is the one, ties to the earlier
+    onset — a chord is as many places to press as it has notes.  Beyond
+    `BAND_REACH` semitones of any of them is empty roll, where a band is
+    swept; so is a tick nothing sounds at.
     """
-    hands = hands_of(roll)
-    if not 0 <= hand < len(hands):
-        raise RefusedError("that column is not in this box any more")
-    _t0, _t1, under = hands[hand]
+    under = [j for j, e in enumerate(roll.events) if e[0] <= tick < e[1]]
     if not under:
-        raise RefusedError("nothing sounds under that column")
-    key = key_at(roll, down)
+        raise RefusedError("nothing sounds at that tick")
     nearest = min(under, key=lambda j: (abs(roll.events[j][3] - key),
                                         roll.events[j][0]))
-    # **Beyond reach is empty roll.**  A column is the roll's whole
-    # height, so without this a press anywhere in a column with one
-    # note took that note — and empty roll, where a band is swept to
-    # select several (`card:notes-editor.md` slice 4), existed only
-    # where a column had nothing under it at all.
     if abs(roll.events[nearest][3] - key) > BAND_REACH:
         raise RefusedError("nothing sounds within reach of that press")
     return nearest
 
 
-def note_of(roll: Roll, hand: int, key: int) -> int:
-    """Which note under that column sounds `key` — its index in `events`.
+def note_of(roll: Roll, tick: int, key: int) -> int:
+    """The note sounding `key` at `tick` — its index in `events`.
 
-    **A column is a place in the picture, and a place can sound a
-    chord.**  `chord 45 60 64 67` draws four notes an aim apart, so the
-    channel alone does not say which one a gesture had hold of; what it
-    says is the one thing the file and the picture already agree on
-    (`spec/north_star.md` §"The vocabulary").
-
-    Raises `RefusedError` for a column that sounds it twice — the same
-    ambiguity `pitch_atom` refuses, caught one step earlier and in the
-    same words.
+    How a typed `transpose`, `mark` or `resize` names a note: a place
+    in time and a pitch, which is what the file and the picture agree
+    on (`spec/north_star.md` §"The vocabulary").  Raises `RefusedError`
+    for nothing there, and for the same key sounding twice at one tick,
+    which is the ambiguity `pitch_atom` refuses, caught earlier.
     """
-    hands = hands_of(roll)
-    if not 0 <= hand < len(hands):
-        raise RefusedError("that column is not in this box any more")
-    _t0, _t1, under = hands[hand]
-    found = [j for j in under if roll.events[j][3] == key]
+    found = [j for j, e in enumerate(roll.events)
+             if e[0] <= tick < e[1] and e[3] == key]
     if not found:
-        raise RefusedError(f"nothing under that column sounds {key}")
+        raise RefusedError(f"nothing sounds {key} at tick {tick}")
     if len(found) > 1:
         raise RefusedError(
-            f"that column sounds {key} {len(found)} times, so which "
-            f"note is meant is not written down anywhere")
+            f"{key} sounds {len(found)} times at tick {tick}, so which "
+            "note is meant is not written down anywhere")
     return found[0]
 
 
@@ -1814,14 +1750,11 @@ def _module_program(roll: Roll, box: int, entry: str, live: bool) -> tuple:
     low, high = reach_of(roll)
     reach_top, reach_bottom = y_of(roll, high), y_of(roll, low)
     bcx, bcy = left + body_w // 2, (reach_top + reach_bottom) // 2
-    wide = max(1, min(MAX_HANDS, body_w // HAND_W))
-    step = max(1, -(-span // wide))
     beat = roll.beat or TICKS_PER_BEAT
     bars = list(roll.bars or ())
     kx = -(geo.w // 2) + geo.keys // 2 - 1
-    columns = [_chan(box, i) for i, _h in enumerate(hands_of(roll))]
-    rail_c = _rail(box)
-    named = columns + [rail_c] + ([_ruler(box)] if roll.bars else [])
+    rail_c, pitch_c = _rail(box), _pitch(box)
+    named = [rail_c, pitch_c] + ([_ruler(box)] if roll.bars else [])
     N = lambda k: f"__nb_{k}_{box}__"
     held_c, lift_c, sel_c, slide_c = N("held"), N("lift"), N("sel"), N("slide")
     grow_c, endx_c, sels_c, band_c = N("grow"), N("endx"), N("sels"), N("band")
@@ -1835,7 +1768,6 @@ def _module_program(roll: Roll, box: int, entry: str, live: bool) -> tuple:
             for i, x, y, w, tone, d, m in rows_of(roll)]
     listing = " :: ".join(rows + ["Nil"]) if rows else "Nil"
     bars_list = (" :: ".join(str(t) for t in bars) + " :: Nil") if bars else "Nil"
-    cols_list = (" :: ".join(columns) + " :: Nil") if columns else "Nil"
     caption = f"TAKE {roll.seed}" if roll.chancy else (roll.title or "NOTES")
     if roll.cut:
         caption += " · CUT"
@@ -1845,9 +1777,8 @@ def _module_program(roll: Roll, box: int, entry: str, live: bool) -> tuple:
                  f"{rail_w} {rail_h} {beat} ({bars_list}))")
     ruler = (f"Shift {_n(rail_x)} {_n(rail_y)} (TouchX {_ruler(box)} ({ruler_pic}))"
              if roll.bars else f"Shift {_n(rail_x)} {_n(rail_y)} ({ruler_pic})")
-    body = (f"Shift {_n(bcx)} {_n(bcy)} (TouchX {rail_c} (Sized {body_w} "
-            f"{reach_bottom - reach_top} (Over (Gap 0 0) (rollColumns {body_g} {scale_g} "
-            f"{step} {reach_bottom - reach_top} ({cols_list}) 0))))")
+    body = (f"Shift {_n(bcx)} {_n(bcy)} (TouchY {pitch_c} (TouchX {rail_c} (Sized {body_w} "
+            f"{reach_bottom - reach_top} (Gap 0 0))))")
     sig = lambda c, zero: f"{c}_s : Sig Float\n{c}_s = {zero} ::: mkSig (wait {c})\n\n"
     text = (chans + "\n"
             + sig(held_c, "(0.0 - 1.0)") + sig(lift_c, "0.0") + sig(sel_c, "(0.0 - 1.0)")
@@ -1887,7 +1818,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
 
     Returns `(ges_text, [chan_name])`, in column order.  The program is
     ordinary substrate vocabulary — rects in a `Sized` box, one
-    full-height `TouchY` column per hand — so the window walks it
+    one pad for the body — so the window walks it
     exactly as it walks any canvas ask, and a press writes a channel
     whose name the editor looks up, with the height it landed at.
 
@@ -1970,63 +1901,18 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
     for i, (r, g, b) in enumerate(_HUES):
         hues.insert(i, f"    {i} -> RGB {r} {g} {b}")
 
-    # **One hand per column of the picture** — `hands_of`, and the
-    # reason it is not one per written place is written there.  These
-    # *are* nested `Over`s, which is why they are bounded: chopin's
-    # hundred and forty overflowed the parser the day the notes were
-    # nested, and `MAX_HANDS` is that lesson kept.
-    #
-    # Full height and `TouchY`, because the box has to hold a drag: a
-    # note's own box gives about four pixels to a semitone and would
-    # saturate before the hand had said anything.  The height a press
-    # lands at is which note it meant; the height it is let go at is
-    # where that note goes (`spec/north_star.md`).
-    regions = []
+    # **The body is one pad** — `TouchY` for pitch around `TouchX` for
+    # time, the rail inner so its press is read first, the columns'
+    # reach for height: a press writes both, the model reads the tick
+    # off one fraction and the key off the other and finds the note
+    # (`note_under`).  `DRAG_REACH` taller than the notes at each end,
+    # so a hand has room to carry one; the box's own clip hides it.
     low, high = reach_of(roll)
     reach_top, reach_bottom = y_of(high), y_of(low)
-    # The columns are written relative to the body's centre, because
-    # the body is the element they sit inside (below).
     bcx, bcy = left + body_w // 2, (reach_top + reach_bottom) // 2
-    for i, (t0, t1, _under) in enumerate(hands_of(roll)):
-        x0, x1 = x_of(t0), x_of(t1)
-        w = max(4, x1 - x0)
-        chan = _chan(box, i)
-        # **The `Sized` goes *inside* the touch**, which is the whole
-        # difference between a hand and a pixel.  An attachment's
-        # region is the extent of what it wraps, so `Sized w h (TouchY
-        # c (Gap 0 0))` hands the touch a *gap* — zero by zero — and
-        # every note in every box could only be hit by a press landing
-        # exactly on one point.  `onTouchY cutoff (rect 40 200 grey)`
-        # is the idiom `gui.ges` documents and every fader uses: the
-        # thing with an extent is what the touch wraps.
-        # **Cut from the same line the notes are drawn on**, and
-        # `DRAG_REACH` taller at each end: the extent is what the
-        # gesture is clamped to, so the room to carry a note is put
-        # here rather than taken out of the rule.  It reaches off the
-        # top and bottom of the band, where nothing is drawn and the
-        # box's own clip hides it — a hand can go there, an eye has
-        # nothing to see there, and a press can only start inside the
-        # band because that is all the window routes to this walk.
-        regions.append(f"(Shift {_n(x0 + w // 2 - bcx)} 0 "
-                       f"(TouchY {chan} (Sized {w} {reach_bottom - reach_top} "
-                       f"(Gap 0 0))))")
-    # **The body is the hand for time, and it goes *around* the
-    # columns.**  A press grabs the deepest attachment containing it
-    # and every attachment around it (`gui._grabbed`, `canvas.rs`
-    # `press` — F204's repair, 2026-09-06), so a `TouchX` the body's
-    # whole width and the columns' whole height, enclosing every
-    # column, is written by the same press that took a note: the
-    # column says which note and how far in pitch, the body how far
-    # along.  One hand, both axes, and the fraction each writes is of
-    # its own extent — the column's reach for pitch, the body's width
-    # for time, which is what `tick_at` reads.  The rail retired to
-    # being the ruler the day this landed: the strip along the top is
-    # drawn, and listens to nothing.
-    rail_c = _rail(box)
-    inside = _overs(['(Gap 0 0)'] + regions)
-    body = (f"(Shift {_n(bcx)} {_n(bcy)} "
-            f"(TouchX {rail_c} (Sized {body_w} {reach_bottom - reach_top} "
-            f"{inside})))")
+    rail_c, pitch_c = _rail(box), _pitch(box)
+    body = (f"(Shift {_n(bcx)} {_n(bcy)} (TouchY {pitch_c} (TouchX {rail_c} "
+            f"(Sized {body_w} {reach_bottom - reach_top} (Gap 0 0)))))")
     # **The ruler is the section's handle** where there is a section:
     # a `TouchX` the body's width, recorded before the body so it wins
     # where the columns reach up under it, and a hand on it carries the
@@ -2041,7 +1927,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
     if roll.cut:
         caption += " · CUT"
 
-    named = [_chan(box, i) for i, _h in enumerate(hands_of(roll))] + [rail_c]
+    named = [rail_c, pitch_c]
     # **And two the model writes**: the note a hand has hold of, and how
     # far it has carried it, in this picture's own pixels.  A drag used
     # to show nothing at all until the file had been rebuilt — half a

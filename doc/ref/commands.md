@@ -256,7 +256,7 @@ Move the played octave.  Negative goes down.
 ### `transpose`
 
 ```
-transpose region was key : Text -> Int -> Int -> Command
+transpose region tick was key : Text -> Int -> Int -> Int -> Command
 ```
 
 Write a note in a score box at a different pitch — the region it is
@@ -269,8 +269,9 @@ replaced and nothing else in the file moves — no reflow, no
 reprint — so the diff of a transposition is one number and text
 undo puts it back.
 
-**Both keys, not a step.**  A region is one written place and a
-place can sound a chord, so the note is named by what it says; and
+**A tick and both keys, not a step.**  The box is one hand over its
+whole body now, so the note is named by where it sounds — the tick —
+and what it sounds, a chord being as many notes as it has keys; and
 a recording that held `+3` would mean a different note the second
 time it was read, which is the one thing a replay cannot ask about.
 
@@ -284,7 +285,7 @@ moves every voicing, and the answer says how many.
 ### `mark`
 
 ```
-mark region was manners : Text -> Int -> Int -> Command
+mark region tick was manners : Text -> Int -> Int -> Int -> Command
 ```
 
 Write how a note is to be **played** — `spec/annotations.md`.
@@ -298,8 +299,8 @@ any violinist writes on one head.  `audio.ges` names the bits.
 transcript that said *toggle* would mean a different thing the second
 time it was read, and a replay is the one reader that cannot ask.
 
-`region` and `was` name the note the way `transpose` does — the place
-and the key it sounds at — because it is the same note being named
+`region`, `tick` and `was` name the note the way `transpose` does — the
+box, a place in time and the key sounding there — because it is the same note being named
 and a second way of naming one would be a second thing to be wrong.
 
 It refuses by name: a note the dice drew, a payload with no manner
@@ -365,7 +366,7 @@ keyboard or its section, or would land on a note already written.
 ### `resize`
 
 ```
-resize region key len : Text -> Int -> Int -> Command
+resize region tick key len : Text -> Int -> Int -> Int -> Command
 ```
 
 Give one note of a score box a new length, in ticks — what a hand on

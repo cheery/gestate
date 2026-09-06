@@ -20,12 +20,12 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**462 complaints**, in 46 files.
+**460 complaints**, in 46 files.
 
 | | |
 |---|---|
 | `author` | 242 |
-| `command` | 43 |
+| `command` | 41 |
 | `world` | 27 |
 | `machine` | 150 |
 | say where | 161 |
@@ -843,12 +843,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 1049 | `RefusedError` | `command` | — | 'line {line} is not in this file any more' |
 | 1052 | `RefusedError` | `command` | — | 'line {line} does not say {_spelling(value)} where the box thought — the file has moved under t… |
 | 1056 | `RefusedError` | `command` | — | 'that pitch is written as a fraction; a semitone step would round it' |
-| 1386 | `RefusedError` | `command` | — | 'that column is not in this box any more' |
-| 1389 | `RefusedError` | `command` | — | 'nothing sounds under that column' |
-| 1399 | `RefusedError` | `command` | — | 'nothing sounds within reach of that press' |
-| 1418 | `RefusedError` | `command` | — | 'that column is not in this box any more' |
-| 1422 | `RefusedError` | `command` | — | 'nothing under that column sounds {key}' |
-| 1424 | `RefusedError` | `command` | — | 'that column sounds {key} {len(found)} times, so which note is meant is not written down anywhe… |
+| 1338 | `RefusedError` | `command` | — | 'nothing sounds at that tick' |
+| 1342 | `RefusedError` | `command` | — | 'nothing sounds within reach of that press' |
+| 1358 | `RefusedError` | `command` | — | 'nothing sounds {key} at tick {tick}' |
+| 1360 | `RefusedError` | `command` | — | '{key} sounds {len(found)} times at tick {tick}, so which note is meant is not written down any… |
 
 ### `seminaive.py`
 
@@ -871,12 +869,12 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 2531 | `NotesError` | `author` | handed in | '{place}:{row} would leave the keyboard' |
 | 2536 | `NotesError` | `author` | handed in | '{place}:{row} would leave section {section.name} — a note does not leave its section by draggi… |
 | 2554 | `NotesError` | `author` | handed in | '{place}: a note would land on one already written there — the file cannot say one place twice' |
-| 2618 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2684 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2688 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
-| 2829 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
-| 2840 | `NotesError` | `author` | handed in | '{place}: bar {full[0]} of section {section_name} has notes — a section does not shrink past it… |
-| 5011 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
+| 2616 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2682 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2686 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
+| 2827 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
+| 2838 | `NotesError` | `author` | handed in | '{place}: bar {full[0]} of section {section_name} has notes — a section does not shrink past it… |
+| 5027 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
 
 ### `tempo.py`
 
