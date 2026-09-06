@@ -1345,6 +1345,10 @@ columns reach under it, and a hand on it carries the section's end by
 whole bars.  `bars` rewrites the section record's one field; a
 section grows freely and shrinks only past empty bars.  The compact
 box stays item-identical, having no section.  On the window, first time: one line, `bars 8` to
-`bars 9` — and a nine-bar section wider than the window, cut at its
-edge, which is the horizontal scroll the editing scale deferred,
-arriving from the first drag that could ask for it.
+`bars 9` — and, six seconds after the drop, a blank canvas saying
+*8.8 s to open*: a grown section is a new program text, and the page
+was not photographed rebuilt.  I first wrote that the photograph
+showed the nine-bar section cut at the window's edge; it did not, and
+the cut is arithmetic — 1182 pixels in 1100 — until a longer run
+looks.  The horizontal scroll the editing scale deferred is what that
+arithmetic asks for.

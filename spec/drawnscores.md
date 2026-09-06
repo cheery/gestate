@@ -1374,10 +1374,14 @@ two bars being empty.  Three tests under *the section resized*.
 on the desk that ran it: the ruler pressed at bar 5's line and carried
 along one bar, the end drawn as it went, and `Ctrl-S` left one line of
 the copy changed — the section record's `bars 8` to `bars 9`, nothing
-else.  The nine-bar section is 1182 pixels wide in a window 1100
-wide, so the rebuilt page is cut at the view's right edge: the
-horizontal scroll the fifth slice said no section of eight bars would
-ask for, asked for by the first section of nine.
+else.  **What the photograph after the drop shows is a blank canvas
+and *8.8 s to open* in the status row** — a grown section is a new
+program text, and six seconds was not enough for it; the page was not
+photographed rebuilt.  That a nine-bar section is 1182 pixels wide in
+a window 1100 wide, and so cut at the view's right edge, is arithmetic
+and not a photograph: the horizontal scroll the fifth slice said no
+section of eight bars would ask for, asked for by the first section of
+nine.
 
 **What this slice does not do, said now.**  No horizontal scroll, as
 above.  A section cannot be resized on a roll that draws several, nor
