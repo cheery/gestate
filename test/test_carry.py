@@ -88,6 +88,9 @@ DELIBERATELY_FRESH = {
     "resizing": "a hand on a note's end — there is no hand on the new file",
     "sizing": "a hand on the ruler, the section's end — there is no hand on "
               "the new file",
+    "taps": "when the last taps landed — a tempo tapped into one file is "
+            "not a run of taps on the next",
+    "tapped": "the tempo the last run of taps wrote — into the old file",
     "selected": "the note the last press picked in a score box, per box — "
                 "no box of the new file has been pressed, and the rail "
                 "would move a note of the old one",

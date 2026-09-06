@@ -1352,3 +1352,21 @@ showed the nine-bar section cut at the window's edge; it did not, and
 the cut is arithmetic — 1182 pixels in 1100 — until a longer run
 looks.  The horizontal scroll the editing scale deferred is what that
 arithmetic asks for.
+
+## The tapped tempo — 2026-09-06
+
+*"take the next slice, the tapped tempo."*  The format gained its
+one file-level record, `bpm`, exactly as Henri had answered Q2 on the
+card two sittings ago — read by the wrapper and the records road for a
+`.notes` played alone, ignored by an including `.ges`.  `tap` on
+`Ctrl-T` averages a run of taps; `tempo` writes the number, into the
+`.ges` literal or the `.notes` record, and is the half a transcript
+replays exactly.  The bench had been playing a lone `.notes` at a
+constant since slice 2 of this card; it plays at the file's tempo
+now.  Slice 4 of `card:notes-editor.md` — his list of tools — is
+built whole.  On the window, the first run read four taps at 120 as
+102 — the write auditioned synchronously, and a changed `bpm` is a
+changed engine, so the rebuild held the model's thread through the
+next tap's stamp.  The typing road's coalesced audition, on its own
+thread after the hand stops, is the door; through it the same taps
+read 121.  A clock is only as honest as the thread it is read on.

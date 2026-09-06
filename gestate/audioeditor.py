@@ -2660,12 +2660,16 @@ class Workbench:
                 # off the engine's half, which is small and unchanged,
                 # and the schedule is baked from the parsed file.
                 from .audioscore import schedule_voices
-                from .notes import WRAPPER_BPM
+                from .notes import WRAPPER_BPM, tempo_of
 
                 source = getattr(self, "_engine", None) or text
                 allocators = {b.name: Allocator(channels_of(source, b))
                               for b in banks_of(source)}
-                self.bpm = WRAPPER_BPM
+                # **At the file's own tempo** when it says one — a `bpm`
+                # record — and the wrapper's otherwise (Q2 of
+                # `card:notes-editor.md`).
+                parsed = getattr(self, "notes_parsed", None)
+                self.bpm = tempo_of(parsed) if parsed is not None else WRAPPER_BPM
                 self.performer = None
                 self.schedule = schedule_voices(player(self), self.bpm,
                                                 self.rate, allocators,

@@ -143,6 +143,16 @@ class NotesFile:
     #: else belongs to the record under it — `spec/drawnscores.md` §"The
     #: prose belongs to the record below it".
     closing: tuple[str, ...] = ()
+    #: **The file's own tempo, when it says one** — a `bpm N` record,
+    #: at most one.  Henri, 2026-09-06 (`card:notes-editor.md` Q2):
+    #: *".notes could also have bpm marking, but it's not used if .ges
+    #: has one."*  So `notes.wrapper` reads it for a file played alone,
+    #: and an including `.ges` keeps its own `bpm`, the include bringing
+    #: notes only.  `None` says the file is silent about tempo.
+    bpm: int | None = None
+    bpm_line: int = 0
+    bpm_above: tuple[str, ...] = ()
+    bpm_beside: str | None = None
 
     def section(self, name: str) -> Section | None:
         for one in self.sections:
@@ -264,10 +274,19 @@ def parse(text: str, name: str = "<notes>") -> NotesFile:
                 _section(tokens[1:], number, place, tuple(above), beside))
         elif kind == "note":
             note_lines.append((number, tokens[1:], tuple(above), beside))
+        elif kind == "bpm":
+            if out.bpm is not None:
+                raise NotesError(f"{place}: `bpm` is declared twice")
+            if len(tokens) != 2:
+                raise NotesError(f"{place}: `bpm` takes one number")
+            out.bpm = _int(tokens[1], "bpm", place)
+            if out.bpm < 1:
+                raise NotesError(f"{place}: `bpm {tokens[1]}` — a tempo is at least one")
+            out.bpm_line, out.bpm_above, out.bpm_beside = number, tuple(above), beside
         else:
             raise NotesError(
-                f"{place}: `{kind}` is not a record; a line is `section …` "
-                "or `note …`")
+                f"{place}: `{kind}` is not a record; a line is `section …`, "
+                "`note …` or `bpm …`")
         above = []
     out.closing = tuple(above)
 
@@ -488,6 +507,11 @@ def write(out: NotesFile) -> str:
     second thing to be canonical about.
     """
     lines: list[str] = []
+    if out.bpm is not None:
+        # First, as the one fact about the whole file — and so a
+        # `tempo` that writes one into a file without it writes line 1.
+        lines += list(out.bpm_above)
+        lines.append(f"bpm {out.bpm}" + (f"  {out.bpm_beside}" if out.bpm_beside else ""))
     for one in out.sections:
         lines += list(one.above)
         head = [f"section {one.name}"]
@@ -560,8 +584,8 @@ def retune(text: str, line: int, field: str, was, now) -> tuple:
     # **A note's line, or a section's** — the section record's `bars` is
     # rewritten the same way when its end is dragged (`card:notes-editor.md`
     # slice 4, *resize the clip*), one field's bytes and nothing else.
-    if not row.lstrip().startswith(("note ", "section ")):
-        raise NotesError(f"{place} is not a record — a line is `section …` or `note …`")
+    if not row.lstrip().startswith(("note ", "section ", "bpm ")):
+        raise NotesError(f"{place} is not a record — a line is `section …`, `note …` or `bpm …`")
     #: **Only the record half is rewritten.**  A line may carry prose
     #: (`fixme.md` F200) and that prose may say anything at all — `# the
     #: key 70 next door` — so a search over the whole line could edit a
@@ -1073,6 +1097,19 @@ hammerVoice g s = timbre (!noteHz s) * adsr env g * !noteLoud s
 #: this, in a comment a person can see.
 WRAPPER_BPM = 100
 
+
+def tempo_of(out: NotesFile) -> int:
+    """The tempo a `.notes` file played alone goes at: its own `bpm`
+    record, or `WRAPPER_BPM` when it says nothing."""
+    return out.bpm if out.bpm is not None else WRAPPER_BPM
+
+
+def _tempo_lines(out: NotesFile) -> list[str]:
+    """The wrapper's `bpm`, saying where the number came from."""
+    said = (f"#: The file says `bpm {out.bpm}`." if out.bpm is not None
+            else "#: The file says nothing about tempo; this is `notes.WRAPPER_BPM`.")
+    return [said, "bpm : Int", f"bpm = {tempo_of(out)}"]
+
 #: How many notes one voice may sound at once through the wrapper.  A
 #: `.notes` voice is written as a line, and a chord across lines is
 #: several voices — but a tail overlaps the next stroke, so more than one.
@@ -1143,8 +1180,7 @@ def _wrapper_of(out: NotesFile, name: str, notes: bool = True) -> str:
         # same `Voice` constructors, the same channels.
         rests = " || ".join(f"(r >>= voices.{v})" for v in voices) if voices else "r"
         lines += ["score : [: Void :]", f"score = {rests}", "",
-                  "#: The file says nothing about tempo; this is `notes.WRAPPER_BPM`.",
-                  "bpm : Int", f"bpm = {WRAPPER_BPM}", ""]
+                  *_tempo_lines(out), ""]
         return "\n".join(lines) + "\n"
     lines.append(f'include "{name}"')
     lines.append("")
@@ -1160,9 +1196,7 @@ def _wrapper_of(out: NotesFile, name: str, notes: bool = True) -> str:
     lines.append("score : [: Void :]")
     lines.append("score = " + ("\n     || ".join(parts) if parts else "r"))
     lines.append("")
-    lines.append("#: The file says nothing about tempo; this is `notes.WRAPPER_BPM`.")
-    lines.append("bpm : Int")
-    lines.append(f"bpm = {WRAPPER_BPM}")
+    lines += _tempo_lines(out)
     lines.append("")
     for section in out.sections:
         stacked = " || ".join(bound(section.name, v) for v in section.voices)

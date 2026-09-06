@@ -274,8 +274,29 @@ empty bars.  `spec/drawnscores.md` §"The ninth slice, built" is the
 contract, driven first time
 (`test/driven/20260906-162036-notes-section-resized-on-ruler`).
 
-**Left of slice 4:** the tapped tempo, Q2's answer — the `.ges`'s
+**Left of slice 4** *(as of the ninth slice)*: the tapped tempo, Q2's answer — the `.ges`'s
 `bpm` line edited the way a knob writes its number back, and a
 `.notes` `bpm` record read only when no `.ges` says.  And a grown
 section is wider than the window, which is the horizontal scroll the
 fifth slice said no section of eight bars would ask for.
+
+## The tapped tempo — 2026-09-06
+
+**Henri:** *"take the next slice, the tapped tempo."*  `tap` on
+`Ctrl-T`, a run of taps in time being a tempo; `tempo N` the written
+half — the `.ges`'s `bpm = …` literal, or a `.notes` `bpm` record
+written on line 1 when the file had none — exactly as Q2 answered
+it.  `spec/drawnscores.md` §"The tempo record" is the format's word and
+§"The tenth slice, built" the contract.  Driven twice: the first run
+read four taps at 120 as `bpm 102`, because a tempo's audition was
+holding the model's thread through the next tap; through the
+coalesced audition the second read `bpm 121`
+(`test/driven/20260906-163812-notes-tapped-tempo`).
+
+**Slice 4 is built, every tool on his list:** transpose, onset and
+offset, drag and select several and move them around, resize the
+clip, resize the selection, tap a tempo.  What the card still says
+is not this card's — the score view — and what the building left
+open is the horizontal scroll a nine-bar section asks for, a group
+spent with its commit where Reaper keeps it, and the lookup test's
+timing bound inside a full-file run.

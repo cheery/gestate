@@ -3137,3 +3137,99 @@ def test_a_click_on_the_ruler_changes_nothing_and_the_compact_box_has_no_ruler()
     asks = [(i + 1, l[6:]) for i, l in enumerate(source.splitlines()) if l.startswith("notes ")]
     box = build_rolls(source, asks[:1], 22050, 0)[0]
     assert not any(r.hand == RULER for r in regions_of([box]).values()), "no section, no handle"
+
+
+# ── Slice 4, the last tool — the tapped tempo ─────────────────────────────
+#
+# Henri, Q2: *"tempo could still live in .ges, but allow tapping it.  bit
+# like how mkKnob creates sliders that can be edited.  .notes could also
+# have bpm marking, but it's not used if .ges has one."*
+
+
+def test_a_notes_file_may_say_its_tempo_once_and_the_writer_puts_it_first():
+    text = "section A  bars 1  beats 4  voices lead\nbpm 132\nnote  section A  bar 1  at 0  len 96  voice lead  key 60  vel mf\n"
+    parsed = notes.parse(text, "t.notes")
+    assert parsed.bpm == 132 and parsed.bpm_line == 2
+    assert notes.write(parsed).splitlines()[0] == "bpm 132", "first, the one fact about the whole file"
+    assert notes.parse(notes.write(parsed), "t.notes").bpm == 132, "and it survives the round trip"
+    assert notes.parse("section A  bars 1  beats 4  voices lead\n", "t.notes").bpm is None
+    with pytest.raises(notes.NotesError, match="declared twice"):
+        notes.parse("bpm 100\nbpm 120\nsection A  bars 1  beats 4  voices lead\n", "t.notes")
+    with pytest.raises(notes.NotesError, match="takes one number"):
+        notes.parse("bpm 100 120\nsection A  bars 1  beats 4  voices lead\n", "t.notes")
+    with pytest.raises(notes.NotesError, match="at least one"):
+        notes.parse("bpm 0\nsection A  bars 1  beats 4  voices lead\n", "t.notes")
+    with pytest.raises(notes.NotesError, match="not a whole number"):
+        notes.parse("bpm fast\nsection A  bars 1  beats 4  voices lead\n", "t.notes")
+    # the prose above it belongs to it, and comes back with it
+    prosed = ("# the tempo of the day\nbpm 132  # tapped\nsection A  bars 1  beats 4  voices lead\n\n"
+              "note  section A  bar 1  at 0  len 96  voice lead  key 60  vel mf\n")
+    assert notes.write(notes.parse(prosed, "t.notes")) == prosed
+
+
+def test_the_wrapper_plays_a_notes_file_at_its_own_tempo_and_an_including_ges_keeps_its_own():
+    with _copied() as here:
+        target = here.parent / "arc.notes"
+        target.write_text("bpm 132\n" + target.read_text())
+        wrapped = notes.wrapper(target)
+        assert "bpm = 132" in wrapped and "The file says `bpm 132`" in wrapped
+        assert "bpm = 100" not in wrapped
+        assert "bpm = 100" in notes.wrapper(NOTES), "a silent file goes at the wrapper's tempo"
+        source, _o = notes.expanded(here.read_text(), here.parent)
+        assert "bpm = 92" in source and "132" not in source, "the include brings notes only"
+
+
+def test_tempo_writes_the_notes_record_and_rewrites_it_and_the_bench_plays_at_it():
+    _here, seat, _view, _roll = _page_seat()
+    before = seat.view.text()
+    said = seat.run("tempo", 132)
+    assert said == "tempo: arc.notes — bpm 132 written on line 1", said
+    assert seat.view.text() == "bpm 132\n" + before
+    said = seat.run("tempo", 96)
+    assert said == "tempo: arc.notes — bpm 132 → 96 on line 1", said
+    assert seat.run("tempo", 96).startswith("tempo: nothing to do")
+    assert seat.run("tempo", 0).startswith("tempo: a tempo is between")
+    assert seat.run("tempo", 1000).startswith("tempo: a tempo is between")
+    # the records road goes at the file's tempo
+    program = seat.bench.program(seat.view.text())
+    seat.bench._engine = seat.bench.kind.engine_program(seat.bench, seat.view.text())
+    seat.bench._load_score(program)
+    assert seat.bench.bpm == 96 and "bpm = 96" in seat.bench._engine
+
+
+def test_tempo_rewrites_the_ges_files_bpm_literal_and_refuses_a_file_without_one():
+    with _copied() as here:
+        _roll, seat = _rolled_page(here)
+        said = seat.run("tempo", 120)
+        assert said == "tempo: arcnotes.ges — bpm 92 → 120 on line 158", said
+        assert [l for l in seat.view.text().splitlines() if l.startswith("bpm")] == ["bpm : Int", "bpm = 120"]
+        assert seat.run("tempo", 120).startswith("tempo: nothing to do")
+        seat.view._text = seat.view._text.replace("bpm = 120", "tempo = 120")
+        assert seat.run("tempo", 100).startswith("tempo: this file says no `bpm = …`")
+
+
+def test_taps_in_time_are_a_tempo_and_a_pause_starts_a_new_run(monkeypatch):
+    from gestate import session as S
+
+    ticks = iter([10.0, 10.5, 11.0, 11.5, 20.0, 20.25, 20.5])
+    monkeypatch.setattr(S, "_tap_clock", lambda: next(ticks))
+    _here, seat, _view, _roll = _page_seat()
+    assert seat.run("tap") == "tap 1 — again, in time"
+    assert seat.run("tap") == "tap 2 — 120 bpm; tempo: arc.notes — bpm 120 written on line 1"
+    assert seat.run("tap").startswith("tap 3 — 120 bpm")
+    assert seat.run("tap").startswith("tap 4 — 120 bpm")
+    assert seat.run("tap") == "tap 1 — again, in time", "eight and a half seconds later is a new run"
+    assert seat.run("tap") == "tap 2 — 240 bpm; tempo: arc.notes — bpm 120 → 240 on line 1"
+    assert seat.run("tap") == "tap 3 — 240 bpm"
+    assert seat.view.text().splitlines()[0] == "bpm 240"
+    assert [step.verb for step in seat.log.steps if step.verb in ("tap", "tempo")].count("tempo") == 2, \
+        "the written half is in the transcript exactly as often as the number changed"
+
+
+def test_tap_has_a_chord_and_the_command_list_advertises_it():
+    from gestate.session import KEYS
+
+    assert KEYS["tap"] == "Ctrl-T"
+    _here, seat, _view, _roll = _page_seat()
+    assert any(getattr(c, "name", None) == "tap" and getattr(c, "key", "") == "Ctrl-T"
+               for c in seat.commands()), "the window binds the chord off the list"

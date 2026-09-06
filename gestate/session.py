@@ -742,6 +742,9 @@ REVERSE = {
 KEYS = {
     "apply": "Ctrl-S",
     "audition": "Ctrl-Return",
+    # **A chord, because tapping is done with one finger, in time.**
+    # The palette is three keystrokes a beat, which is not a tap.
+    "tap": "Ctrl-T",
     "play": "Ctrl-Space",
     "undo": "Ctrl-Z",
     "redo": "Ctrl-Y",
@@ -977,6 +980,12 @@ class Session:
     #: until the hand lets go and `bars` runs (slice 4: *resize the
     #: clip*, answered as the section's `bars`).
     sizing: object = None
+    #: When the last taps landed, `tap` — a run of them is a tempo
+    #: (`card:notes-editor.md` slice 4: *select bpm by tapping*).
+    taps: list = field(default_factory=list)
+    #: The tempo the last run of taps wrote, so a tap that lands on the
+    #: same number runs no `tempo` — the transcript holds one per change.
+    tapped: int = 0
     #: **The note the last press selected, per score box** — `{box:
     #: note}`.  It outlives the press, which `holding` does not, and
     #: it is the noun a command on the rail takes: a hand on the rail
@@ -2689,6 +2698,92 @@ class Session:
                  else self._hear_at(first, self.view.text()))
         return (f"stretch: {name} — {len(rows)} notes, "
                 f"{'+' if ticks > 0 else ''}{ticks} ticks{heard}")
+
+    def do_tap(self) -> str:
+        """Tap a tempo: this tap and the ones before it, in time.
+
+        **`select bpm by tapping`** — Henri's list, `card:notes-editor.md`
+        slice 4.  A tap is a moment on the wall clock; two or more
+        within `TAP_GAP` of each other are a tempo, the mean of their
+        gaps, and the last eight count.  The tempo is then *written* by
+        `tempo`, which is the replayable half: a tap replayed at another
+        speed answers another number, and the transcript's report says
+        so, while the `tempo` line it ran replays exactly.
+        """
+        now = _tap_clock()
+        if self.taps and now - self.taps[-1] > TAP_GAP:
+            self.taps = []
+        self.taps.append(now)
+        if len(self.taps) < 2:
+            return "tap 1 — again, in time"
+        run = self.taps[-TAP_COUNT:]
+        mean = (run[-1] - run[0]) / (len(run) - 1)
+        bpm = max(TAP_LOW, min(TAP_HIGH, int(round(60.0 / max(1e-3, mean)))))
+        if bpm == self.tapped:
+            return f"tap {len(self.taps)} — {bpm} bpm"
+        self.tapped = bpm
+        said = self.run("tempo", bpm)
+        return f"tap {len(self.taps)} — {bpm} bpm; {said}"
+
+    def do_tempo(self, bpm: int) -> str:
+        """Write a tempo into the document — its `bpm`.
+
+        **The way a knob writes its number back** (Henri, Q2 of
+        `card:notes-editor.md`: *"tempo could still live in .ges, but
+        allow tapping it.  bit like how mkKnob creates sliders that can
+        be edited"*).  In a `.ges` the literal of its `bpm = …` line is
+        rewritten, and a file with no such line is refused rather than
+        given one — where it goes is the author's.  In a `.notes` the
+        `bpm` record is rewritten, or written on line 1 when the file
+        had none, which is where the canonical order puts it; an
+        including `.ges` keeps its own `bpm` regardless.
+        """
+        import re
+        from pathlib import Path
+
+        from .notes import NotesError, parse, retune
+
+        bpm = int(bpm)
+        if not 1 <= bpm <= 999:
+            return "tempo: a tempo is between 1 and 999 beats a minute"
+        name = Path(getattr(self.bench, "path", "") or "untitled.ges").name
+        text = self.view.text()
+        try:
+            if name.endswith(".notes"):
+                parsed = parse(text, name)
+                if parsed.bpm is None:
+                    out = f"bpm {bpm}\n" + text
+                    said = f"bpm {bpm} written on line 1"
+                elif parsed.bpm == bpm:
+                    return f"tempo: nothing to do — the file says bpm {bpm}"
+                else:
+                    out, said = retune(text, parsed.bpm_line, "bpm", parsed.bpm, bpm)
+            else:
+                found = re.search(r"^(bpm\s*=\s*)(\d+)[ \t]*$", text, re.M)
+                if found is None:
+                    return ("tempo: this file says no `bpm = …` — write one where "
+                            "it belongs, and tap again")
+                was = int(found.group(2))
+                if was == bpm:
+                    return f"tempo: nothing to do — the file says bpm = {bpm}"
+                out = text[:found.start(2)] + str(bpm) + text[found.end(2):]
+                line = text.count("\n", 0, found.start()) + 1
+                said = f"bpm {was} → {bpm} on line {line}"
+            if not self.view.replace(out):
+                raise OSError("nowhere to put it")
+        except (OSError, NotesError) as exc:
+            return f"tempo: {exc}"
+        # **Soon, not now.**  A tempo is tapped in a run, and a rebuild
+        # between two taps — a changed `bpm` is a changed engine —
+        # held the model's thread and stamped the next tap late: four
+        # taps at 120 to the minute read as 102 on the real window.
+        # The coalesced audition waits for the hand to stop and works
+        # on its own thread, so the clock the taps land on is free.
+        hear = (getattr(self.bench, "audition_soon", None)
+                or getattr(self.bench, "audition", None))
+        if hear is not None:
+            hear(self.view.text())
+        return f"tempo: {name} — {said}"
 
     def do_bars(self, region: str, was: int, now: int) -> str:
         """Give the section a score box draws a new length, in bars.
@@ -5020,6 +5115,20 @@ class Session:
 
 #: Bars, beats and samples all count from zero.
 BEATS_PER_BAR = 4
+
+#: **Tapping a tempo.**  Two taps farther apart than this are two
+#: runs, not one slow tempo; the last `TAP_COUNT` taps of a run are
+#: averaged; and the answer is held to a range a piece can be in.
+TAP_GAP = 2.0
+TAP_COUNT = 8
+TAP_LOW, TAP_HIGH = 20, 400
+
+
+def _tap_clock() -> float:
+    """The wall clock a tap lands on — one name, so a test can hold it."""
+    import time
+
+    return time.monotonic()
 
 
 def _typed(verb: "Verb", args: tuple) -> tuple:

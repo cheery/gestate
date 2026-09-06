@@ -285,6 +285,21 @@ argument, not a new one.
 *And it is the one place this spec adds to the language's vocabulary
 rather than only to its syntax.*  Named so it can be struck on its own.
 
+### The tempo record — 2026-09-06
+
+    bpm 120
+
+At most one, anywhere in the file; the canonical writer puts it first,
+as the one fact about the whole file, and its prose belongs to it as
+any record's does.  **Henri, Q2 of `card:notes-editor.md`:** *"tempo
+could still live in .ges, but allow tapping it … .notes could also have
+bpm marking, but it's not used if .ges has one."*  So a `.notes` played
+alone goes at its own `bpm`, `notes.wrapper` writing the number into
+the `.ges` it generates and saying where it came from, and at
+`WRAPPER_BPM` when the file is silent; an including `.ges` keeps its
+own `bpm`, the include bringing notes only.  A whole number of at least
+one; twice, or with two numbers, is refused by name.
+
 ### The prose belongs to the record below it — 2026-09-06
 
 **A `.notes` file may carry comments, and a rewrite gives them all
@@ -1388,6 +1403,53 @@ above.  A section cannot be resized on a roll that draws several, nor
 from a `.ges` that includes it.  `notes.retune` rewrites a section
 line now as well as a note's, so a pitch drag aimed at a section line
 is refused on its tonic rather than as *not a note*.
+
+### The tenth slice, built — the tapped tempo — 2026-09-06
+
+*Henri: "take the next slice, the tapped tempo."*  The last of slice
+4's tools, and his answer to Q2 built as said: the `.ges` line's
+`bpm` edited the way a knob writes its number back, a `.notes` `bpm`
+record read only when no `.ges` says.
+
+**`tap`, on `Ctrl-T`** — a chord, because tapping is done with one
+finger in time and the palette is three keystrokes a beat.  A tap is a
+moment on the wall clock; two or more within two seconds of each
+other are a tempo, the mean of their gaps, the last eight counting,
+held between 20 and 400.  **`tempo N`** is the written half: in a
+`.ges` the literal of its `bpm = …` line is rewritten, and a file with
+no such line is refused rather than given one, where it goes being
+the author's; in a `.notes` the `bpm` record is rewritten, or written
+on line 1 when the file had none.  `tap` runs `tempo` when the number
+changes, so the transcript holds a `tap` whose answer a replay at
+another speed will not reproduce — and says so in its report — beside
+a `tempo` line that replays exactly.  The records road plays a lone
+`.notes` at its own tempo now, where it went at the wrapper's constant
+before.
+
+**Measured, headless:** four taps half a second apart write `bpm 120`
+on line 1 of `arc.notes` and then have nothing to do; a pause and two
+taps a quarter second apart rewrite it to `240`; on `arcnotes.ges`,
+`tempo 120` rewrites `bpm = 92` on line 158 and nothing else, and a
+file whose `bpm` line is gone is refused.  Six tests under *the tapped
+tempo*.
+
+**Driven, and the first run was wrong by fifteen percent.**
+`test/driven/20260906-163649-notes-tapped-tempo` on the desk that ran
+it: four `Ctrl-T` half a second apart, and the file said `bpm 102`.
+The model stamps a tap when it reads it, and a `tempo` had been
+auditioning synchronously — a changed `bpm` is a changed engine, a
+rebuild — so the model's thread was held through the next tap.  The
+coalesced audition the typing road already uses waits for the hand to
+stop and works on its own thread; through that door
+(`…163812-notes-tapped-tempo`) the same four taps read `bpm 121`, and
+the rest of the file untouched.
+
+**What this slice does not do, said now.**  A tap's answer depends on
+the wall clock, and a replayed transcript will say another number
+where the `tempo` beside it replays exactly.  The tempo is one number
+for the file: no tempo change inside a piece, which `tempo.md`'s
+envelope can say in a `.ges` and this record cannot.  And a `.ges`
+with no `bpm = …` line is refused rather than given one.
 
 ### What plugin-like scopes
 

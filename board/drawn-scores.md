@@ -875,3 +875,7 @@ end taken in its last column, `resize` and `stretch`,
 `card:notes-editor.md` §"A note resized by its end".
 And *"resize the section"*: the ruler as the section's handle, `bars`,
 `card:notes-editor.md` §"The section resized on its ruler".
+And the last of the list, *"the tapped tempo"*: `tap` on `Ctrl-T`,
+`tempo` writing the number back, a `bpm` record for the format —
+`card:notes-editor.md` §"The tapped tempo".  **Slice 4 of that card is
+built whole.**

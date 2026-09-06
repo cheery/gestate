@@ -270,6 +270,23 @@ stretch region ticks = Stated
 bars : Text -> Int -> Int -> Command
 bars region was now = Stated
 
+#: Tap a tempo — this tap and the ones before it, in time.  Two or more
+#: taps within two seconds of each other are a tempo, the mean of their
+#: gaps, the last eight counting; it is then written by `tempo`, which
+#: is the half a transcript replays exactly.  On `Ctrl-T`, because
+#: tapping is done with one finger in time and the palette is not.
+tap : Command
+tap = Stated
+
+#: Write a tempo into the document — its `bpm`, the way a knob writes
+#: its number back.  In a `.ges` the literal of its `bpm = …` line; a
+#: file with none is refused rather than given one.  In a `.notes` the
+#: `bpm` record, written on line 1 when the file had none — and an
+#: including `.ges` keeps its own `bpm` regardless (Henri, Q2 of
+#: `card:notes-editor.md`).
+tempo : Int -> Command
+tempo bpm = Stated
+
 #: A MIDI input on this machine.
 #:
 #: **Its own type so that the list can appear** — the rule `Named`,
