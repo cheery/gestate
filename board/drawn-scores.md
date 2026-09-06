@@ -679,10 +679,16 @@ answers for the other 288.
 Recorded rather than acted on, because rung 5 is a decision before it is
 work and the decision is his:
 
-* **`oscillseq` puts mouse gestures in the minority**, driving a working
-  sequencer from a command language in a textbox.  Rung 0 here is
-  already that shape and cost no code (100% of notes editable); rung 5
-  proposes the mouse-first window view his own tool decided against.
+* **`oscillseq` gives everything a command underneath**, driving a
+  working sequencer from a command language in a textbox, with mouse
+  gestures *associating to* commands rather than running beside them.
+  *Henri, 2026-09-06, correcting a session that had written "mouse
+  gestures in the minority" and made an argument out of it:* **"it
+  assigns that everything has a command under it.  The mouse gestures
+  associate to commands."**  So this is a **requirement on rung 5** —
+  every gesture in the view is a binding to a command — and not a
+  reason to leave it unbuilt.  Rung 0 already has that shape and cost
+  no code (100% of notes editable).
 * **`mide` writes its UI as datalog** — `draggable (note K) :- order K
   Onset 1.` — a wholly different answer to the problem `furniture.rs`
   solves, and rung 5's named cost is that file plus `window.rs` plus

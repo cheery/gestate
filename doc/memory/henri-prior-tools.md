@@ -20,9 +20,14 @@ his to name.
 * **oscillseq** — *"my repeated attempts to create a music sequencer.
   At winter 2026, I got things working and finally understood how to
   create this kind of software."*  A sequencer over SuperCollider's
-  `scsynth`, driven by a **command language in a textbox** with mouse
-  gestures in the minority — the same shape as gestate's session
-  commands, arrived at independently.
+  `scsynth`, driven by a **command language in a textbox** — the same
+  shape as gestate's session commands, arrived at independently.  **And
+  everything has a command under it**, mouse gestures included: a
+  gesture *associates to* a command rather than being a second path
+  beside the commands.  *(Corrected by Henri 2026-09-06, after a
+  session wrote "mouse gestures in the minority" — which is a claim
+  about how much the mouse is used, and the real property is about what
+  a gesture is made of.)*
 * **mide** — an older editor whose UI is written as **logic rules**.
   `staves.ui` is datalog: `present (note K) [X-5,290-5,10,10] :- offset
   K X Onset W, order K Onset 1.` and `draggable (note K) :- order K
@@ -88,8 +93,10 @@ in time is the awkward gesture.
 
 **And the three not yet taken bear on one thing between them** — rung 5
 of `spec/drawnscores.md`, the `.notes` view that takes the window, which
-is the card's whole remainder.  `oscillseq` puts **mouse gestures in the
-minority** and rung 5 is mouse-first; `mide`'s datalog is a different
+is the card's whole remainder.  In `oscillseq` **every gesture has a
+command under it**, so a view is a set of bindings and not a second
+path — which is a requirement on rung 5, not an argument against it;
+`mide`'s datalog is a different
 answer to what `furniture.rs` does, and rung 5's named cost is that file
 plus `window.rs` plus the verb table; `xylem`'s Knuth–Plass is how
 sections and voices stack into a window, which is line breaking.  Two of

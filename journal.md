@@ -940,11 +940,15 @@ pitch that was; a drag in time, velocity or manner keeps it.
 **What the other three tools say, recorded rather than acted on**, since
 the rest of this card is rung 5 and that is a decision:
 
-* `oscillseq` is driven by a command language in a textbox with **mouse
-  gestures in the minority**.  Rung 0 of this ladder is already that
-  shape and cost no code; rung 5 proposes a mouse-first window view,
-  which his own working sequencer decided against.  Worth weighing
-  before three seams are crossed.
+* `oscillseq` is driven by a command language in a textbox, and
+  **everything has a command under it** — a mouse gesture *associates
+  to* a command rather than being a second path beside them.  That is a
+  requirement on rung 5 rather than an argument against it: a view is a
+  set of bindings.  *(This paragraph first said "mouse gestures in the
+  minority", which Henri corrected the same day — that is a claim about
+  how much the mouse is used, and the property is about what a gesture
+  is made of.  The wrong version had been used here as an argument
+  against building rung 5 at all.)*
 * `mide` writes its UI as datalog — `draggable (note K) :- order K
   Onset 1.` — which is a wholly different answer to the problem
   `furniture.rs` solves, and rung 5's named cost is exactly that file
