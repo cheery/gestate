@@ -204,7 +204,9 @@ def test_every_card_citation_resolves():
 #: A card written as a path, which is the spelling this replaced.
 #: `board/README.md` is exempt: it is a real file that never moves, so
 #: it is a path and not a card.
-AS_PATH = re.compile(r"board/(?:done/|later/)?(?!README)[a-z][\w-]*\.md")
+#: And `board/standing.md` since 2026-09-06 — the standing questions,
+#: not a card, and `test_board.py` leaves it out by the same name.
+AS_PATH = re.compile(r"board/(?:done/|later/)?(?!README|standing\.md)[a-z][\w-]*\.md")
 
 
 def test_no_card_is_cited_as_a_path():

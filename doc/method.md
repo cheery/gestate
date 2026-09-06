@@ -65,7 +65,7 @@ Three habits follow, and they are most of it:
 
 ## What is actually enforced
 
-Eighteen structural checks run at every commit, through a git hook, in
+Nineteen structural checks run at every commit, through a git hook, in
 about fourteen seconds. They test nothing about whether the program
 works — that is a separate twenty-five-minute suite. They test that the
 tree still agrees with itself, which is the property that editing the
@@ -156,7 +156,7 @@ decline honestly:
 | [`README.md`](../README.md) | 262 | you, if you want to hear it |
 | [`vision.md`](../vision.md) | 77 | what any of this is for; the author's own, dated |
 | [`manifesto.md`](../manifesto.md) | 377 | how an instrument fails, and the two standing rules |
-| [`board/README.md`](../board/README.md) | 637 | how a task is worked — written for sessions |
+| [`board/README.md`](../board/README.md) | 640 | how a task is worked — written for sessions |
 | [`spec/`](../spec/) | ~17,000 | how each part is designed, and what it cost |
 | [`fixme.md`](../fixme.md) | 204 entries, 166 resolved | where the implementation disagrees with the specs |
 | [`journal.md`](../journal.md) + `journal/` | the current month, plus one line per closed month | what happened, past tense |

@@ -483,6 +483,26 @@ followed over thirty fires.  A cut-share cause was retired 2026-09-04,
 when the check its card demanded found it firing on a fact about the
 tree — many files here have over twenty citers — not on a fault here.
 
+### `tools/standing.py` — the question a session is asked when it opens a card
+
+    python tools/standing.py card:online.md   what the hook would say for that card
+    python tools/standing.py --check          the lamp; --report the fires; --install the settings lines
+
+`card:standing-questions.md`, 2026-09-06.  A question Henri wrote down
+once lands in front of a session at the moment it opens a card — the
+backlinks shape, once per card per sitting, three at most.  The
+questions are `board/standing.md`, a heading per shelf and a `proposed`
+heading that never fires; he chooses, a session proposes.  The install
+line is his.
+
+### `tools/testimony.py` — what each memory's load-bearing claim rests on
+
+    python tools/testimony.py [--kind session | --check]
+
+`card:testimony-inventory.md`, 2026-09-06.  `doc/testimony.md` gives
+each memory one of four kinds by what its claim rests on; the judgment
+is a session's, and the tool holds the table to the directory.
+
 ### `tools/bars.py` — what each bar sounds, in words
 
     python tools/bars.py examples/audio/arc.notes

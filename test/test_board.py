@@ -45,8 +45,15 @@ FIELD = re.compile(r"^ {4}(\w+)\s{2,}(.*)$")
 STATES = ("open", "doing", "blocked", "done", "shelved", "refused")
 
 
+#: Files on the live shelf that are not cards: the contract, and the
+#: standing questions (`card:standing-questions.md`), which has no
+#: `because` of its own because it is not work — it is what a session is
+#: asked when it opens work.
+NOT_A_CARD = {"README.md", "standing.md"}
+
+
 def cards() -> list[Path]:
-    return (sorted(BOARD.glob("*.md"))
+    return (sorted(p for p in BOARD.glob("*.md") if p.name not in NOT_A_CARD)
         + sorted((BOARD / "done").glob("*.md"))
         + sorted((BOARD / "later").glob("*.md"))
         + sorted((BOARD / "refused").glob("*.md")))
@@ -188,7 +195,7 @@ def test_the_board_lists_every_open_card_in_order():
     """
     listed = set(re.findall(r"\[[^\]]+\]\((\w[\w-]*\.md)\)",
                             (BOARD / "README.md").read_text()))
-    on_disk = {p.name for p in BOARD.glob("*.md")} - {"README.md"}
+    on_disk = {p.name for p in BOARD.glob("*.md")} - NOT_A_CARD
     assert on_disk - listed == set(), (
         "these cards are on the board and not in the priority — a new card "
         "arrives unplaced, and this is where it gets placed:\n  "

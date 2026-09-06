@@ -147,6 +147,12 @@ GATES = {
         "the who-asked register, against the tools it registers",
     "test/test_precommit.py":
         "the hook is installed here, parses, and runs the gates and nothing else",
+    #: **Joined 2026-09-06**, with `card:standing-questions.md`: the
+    #: questions file is edited by hand, by Henri, and a heading over the
+    #: cap is a question nobody is ever asked — sub-second, structural,
+    #: and exactly the edit that breaks it.
+    "test/test_standing.py::test_this_trees_questions_file_is_usable":
+        "board/standing.md parses and no shelf holds more questions than are asked",
 }
 
 
