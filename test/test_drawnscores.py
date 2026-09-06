@@ -2184,3 +2184,88 @@ def test_the_canvas_opens_on_a_notes_file_before_its_page_has_built():
     said = seat.do_canvas()
     assert "draws nothing" not in said, said
     assert said.startswith("opening the canvas"), said
+
+
+
+# ── card:notes-editor.md, slice 1 — the roll drawn from the file ────────────
+
+
+def _both_roads():
+    from gestate.scorebox import asks, build_rolls, notes_rolls
+
+    text = notes.wrapper(NOTES)
+    source, origins = notes.expanded(text, NOTES.parent)
+    parsed = notes.parse(NOTES.read_text(), "arc.notes")
+    page = asks(source)
+    fast = notes_rolls(source, page, origins, parsed)
+    slow = build_rolls(source, page, 44100, 0)
+    return page, parsed, fast, slow
+
+
+def test_the_data_road_draws_what_the_compiled_road_draws():
+    """**Held to the compiled road, event for event** — onset, offset,
+    which leaf, which key — and leaf for leaf: the line in the expanded
+    program and the literals it writes, so every gesture reads either
+    road the same.  Velocity and manner are compared against the *file*
+    in the test below, because the compiled road gets them wrong for a
+    note-file note (`fixme.md` F206)."""
+    page, _parsed, fast, slow = _both_roads()
+    assert len(fast) == len(slow) == len(page)
+    for a, b in zip(fast, slow):
+        assert [e[:4] for e in a.events] == [e[:4] for e in b.events]
+        assert [(l.line, l.bank, l.chancy, l.atoms) for l in a.leaves] == \
+            [(l.line, l.bank, l.chancy, l.atoms) for l in b.leaves]
+        assert (a.cut, a.chancy) == (b.cut, b.chancy) == (False, False)
+
+
+def test_the_data_road_says_what_the_file_says_about_loudness_and_manner():
+    from gestate.notes import LEVELS
+
+    _page, parsed, fast, _slow = _both_roads()
+    by_line = {n.line: n for n in parsed.notes}
+    text = notes.wrapper(NOTES)
+    _source, origins = notes.expanded(text, NOTES.parent)
+    accents = 0
+    for roll in fast:
+        for on, off, k, key, vel, manner in roll.events:
+            note = by_line[origins[roll.leaves[k].line][1]]
+            assert manner == note.manners
+            assert vel == int((0.125 + note.level * 0.125) * 127.0)
+            accents += manner != 0
+    assert accents > 0, "arc.notes writes accents, and they must reach the roll"
+
+
+def test_the_data_road_is_milliseconds_and_the_bench_takes_it():
+    """The number this slice exists for: 5.0 s for one section through
+    the compiler on 2026-09-06, against a lookup."""
+    import time
+
+    from gestate.scorebox import asks, notes_rolls
+
+    text = notes.wrapper(NOTES)
+    source, origins = notes.expanded(text, NOTES.parent)
+    parsed = notes.parse(NOTES.read_text(), "arc.notes")
+    t0 = time.perf_counter()
+    rolls = notes_rolls(source, asks(source), origins, parsed)
+    took = time.perf_counter() - t0
+    assert len(rolls) == 3 and took < 0.5, f"{took:.2f} s for the page"
+
+    here, bench = _opened_alone()
+    program = bench.program()
+    assert bench.notes_parsed is not None
+    fast = bench.kind.rolls(bench, program, asks(program))
+    assert [e[:4] for e in fast[0].events] == [e[:4] for e in rolls[0].events]
+
+
+def test_an_ask_the_data_road_cannot_read_is_a_roll_error_in_its_slot():
+    from gestate.scorebox import RollError, notes_rolls
+
+    text = notes.wrapper(NOTES)
+    source, origins = notes.expanded(text, NOTES.parent)
+    parsed = notes.parse(NOTES.read_text(), "arc.notes")
+    out = notes_rolls(source, [(1, "notes_A_melody ++ notes_B_melody"),
+                               (2, "notes_Q_nothing"),
+                               (3, "(notes_A_bass)")], origins, parsed)
+    assert isinstance(out[0], RollError) and "names something else" in str(out[0])
+    assert isinstance(out[1], RollError) and "no voice of this file" in str(out[1])
+    assert not isinstance(out[2], RollError) and len(out[2].events) > 0

@@ -70,6 +70,10 @@ still the tiebreak between two workable cards, and it is still his.
 5. **[standing-questions](standing-questions.md)** — a stored question
    lands when a session opens a card; built 2026-09-06, fires on nothing
    until he chooses which stand.  *Arrived unplaced.*
+6. **[notes-editor](notes-editor.md)** — a note moves and you hear it
+   before the hand has left the mouse; today it is 5 s to redraw and
+   5 s to hear, against Reaper's next block.  His list of tools, and
+   the data path first.  *Arrived unplaced, 2026-09-06.*
 
 **And the criterion has been checked once, on 2026-08-19, and it lost**
 — `journal.md` §"And what the day says about the board".  Ordering by

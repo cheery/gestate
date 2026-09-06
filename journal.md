@@ -1174,3 +1174,26 @@ defects fixed and one filed (F205: 88 s to a page in two runs, 2 s in
 two others, the same script — and the first suspected cause falsified
 by the last run before it was an hour old).  `doc/memory/test-what-a-person-would-do.md`
 again, and the harness it names is the one that found all three.
+
+## A different league — `card:notes-editor.md` — 2026-09-06
+
+Henri put three screenshots side by side, Reaper's MIDI editor, this
+roll, Reaper's score view: *"There's visual differences and that's
+okay, but they're in different league.  Reaper note movement reacts
+immediately and I can hear the change immediately."*  Measured within
+the hour: a moved note took 5.0 s to redraw and 5.3 s to hear here,
+and the file itself parses in 10 ms.  The league is structural — the
+format made the notes data on disk and the expansion handed them back
+to the compiler as source.  He answered the three questions in one
+line — the data path first; his list of tools; the score view later,
+*"pie in the sky"* — and the card was written from his sentences.
+
+### Slice 1 the same hour
+
+The roll read off the parsed file: 93 ms for the page against 6.2 s,
+the same `Roll` leaf for leaf.  The parity test disagreed with the
+compiled road on every velocity and manner, and the file settled it:
+the compiled road reads a note-file note as a bare key, so an accent
+written in `arc.notes` never drew its mark — F206.  What is left of a
+redraw is the picture's own compile, 3.0 s, and that is the next
+slice's number.

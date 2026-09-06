@@ -1339,8 +1339,13 @@ class Workbench:
         # in one slot leaves the others drawn.
         page = scorebox.asks(text)
         if page:
-            rolls = scorebox.build_rolls(text, page, self.rate,
-                                         self.seed or 0)
+            # **A registered kind may draw its rolls its own way** —
+            # a `.notes` off its parsed file, a table lookup where the
+            # compiled road is a take (`card:notes-editor.md`).
+            drawer = getattr(self.kind, "rolls", None)
+            rolls = (drawer(self, text, page) if drawer is not None
+                     else scorebox.build_rolls(text, page, self.rate,
+                                               self.seed or 0))
             for (line, _expr), roll in zip(page, rolls):
                 if isinstance(roll, Exception):
                     self.say(f"no notes on line {line}: "
@@ -3596,8 +3601,28 @@ class NotesKind:
 
         if text.startswith(generated(bench.path.name)):
             return text, dict(getattr(bench, "origins", None) or {})
+        from .notes import parse
+
+        # The parsed file rides on the bench for the page's data road
+        # (`rolls` below): the roll is read off these records, not off
+        # a take, so a picture costs a lookup and not a compile.
+        bench.notes_parsed = parse(text, bench.path.name)
         return expanded(wrapper(bench.path), bench.path.parent,
                         texts={bench.path.name: text})
+
+    @staticmethod
+    def rolls(bench, program: str, asks_: list) -> list:
+        """The page's rolls, off the parsed file — `card:notes-editor.md`
+        slice 1: milliseconds where `build_rolls` is seconds."""
+        from . import scorebox
+
+        parsed = getattr(bench, "notes_parsed", None)
+        if parsed is None:
+            return scorebox.build_rolls(program, asks_, bench.rate,
+                                        bench.seed or 0)
+        return scorebox.notes_rolls(program, asks_,
+                                    getattr(bench, "origins", None) or {},
+                                    parsed)
 
 
 #: **A file kind is a registration, not a branch** — Henri's reading of

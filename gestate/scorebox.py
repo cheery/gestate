@@ -1260,6 +1260,87 @@ def note_of(roll: Roll, hand: int, key: int) -> int:
     return found[0]
 
 
+# ── The data road: a `.notes` page drawn from the file, not from a take ──────
+
+def _tone_vel(level: int) -> int:
+    """What `audio.ges`'s `Notable Tone` answers for a level —
+    `floor (loudness lv * 127.0)`, `loudness lv = 0.125 + lv * 0.125`.
+    Spelled here because the compiled road does *not* answer it for a
+    note-file note (`fixme.md` F206): it reads every one as a bare key,
+    velocity 64 and no manner, so the data road is held to the file and
+    the parity test compares the two roads on everything else."""
+    return int((0.125 + level * 0.125) * 127.0)
+
+_BOUND = re.compile(r"\bnotes_[A-Za-z0-9_]+\b")
+_FROM_NOTE = re.compile(r"fromNote\s+(\d+)\s+(\d+)\s+(\d+)")
+
+
+def notes_rolls(program: str, asks_: list, origins: dict, parsed) -> list:
+    """The rolls of a `.notes` page, read off the parsed file.
+
+    **`card:notes-editor.md`, slice 1.**  `build_rolls` draws a roll by
+    running the score through the compiler — 5 s for one section of
+    `arc.notes` — and for a `.notes` there is nothing to run: a note is a
+    line, its bar and tick and length are fields, so the picture is a
+    table lookup.  This answers the same `(line, expr)` asks with the
+    same `Roll` records the compiled road makes — the leaf's line is the
+    expanded program's, its atoms are the literals that line writes — so
+    every gesture, `pitch_atom`, `transposed`, `_retune_included`, reads
+    it unchanged.  `test_drawnscores.py` holds the two roads equal event
+    for event on `arc.notes`.
+
+    An ask this road cannot read — a term that is not a section's voice
+    of this file — is a `RollError` in that slot, as `build_rolls`
+    answers per ask.
+    """
+    from .midi import TICKS_PER_BEAT
+    from .notes import bound, ordered
+
+    lines = program.splitlines()
+    # The line each note's generated line is: `origins` runs the other
+    # way, from the generated line to `(file, row)`.
+    generated = {row: line for line, (_name, row) in origins.items()}
+    bounds = {bound(s.name, v): (s, v) for s in parsed.sections for v in s.voices}
+    order = ordered(parsed)
+    out = []
+    for _line, expr in asks_:
+        terms = _BOUND.findall(expr)
+        stripped = re.sub(r"[\s()|]", "", _BOUND.sub("", expr))
+        if not terms or stripped:
+            out.append(RollError(
+                "a note file's roll draws its sections' voices, and this "
+                f"ask names something else: `{expr}`"))
+            continue
+        unknown = [w for w in terms if w not in bounds]
+        if unknown:
+            out.append(RollError(f"`{unknown[0]}` is no voice of this file"))
+            continue
+        events, leaves = [], []
+        for term in terms:
+            section, voice = bounds[term]
+            bar_ticks = section.beats * TICKS_PER_BEAT
+            for one in order:
+                if one.section != section.name or one.voice != voice:
+                    continue
+                line = generated.get(one.line)
+                if line is None or not 0 < line <= len(lines):
+                    continue
+                on = (one.bar - 1) * bar_ticks + one.at
+                # `long beats (…)` clips the bar, so a note written past
+                # the bar line sounds to the bar line — the same clip.
+                off = min(on + one.length, one.bar * bar_ticks)
+                m = _FROM_NOTE.search(lines[line - 1])
+                atoms = ()
+                if m:
+                    atoms = tuple((line, m.start(g), len(m.group(g)), int(m.group(g)))
+                                  for g in (1, 2, 3))
+                leaves.append(Leaf(line, None, False, atoms))
+                events.append((on, off, len(leaves) - 1, one.key,
+                               _tone_vel(one.level), one.manners))
+        out.append(Roll(events, leaves, False, False, 0))
+    return out
+
+
 def page_program(rolls: list, *, stacked: bool = False) -> tuple:
     """Every box of a page in **one** program, and where its hands are.
 
