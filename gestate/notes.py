@@ -1076,7 +1076,7 @@ WRAPPER_BPM = 100
 WRAPPER_POLYPHONY = 4
 
 
-def wrapper(path: Path | str) -> str:
+def wrapper(path: Path | str, *, notes: bool = True) -> str:
     """The `.ges` a `.notes` file is played through when opened alone.
 
     **Generated, never written to disk**: the file stays the one source
@@ -1090,7 +1090,7 @@ def wrapper(path: Path | str) -> str:
     """
     path = Path(path)
     out = parse(path.read_text(encoding="utf-8"), path.name)
-    return _wrapper_of(out, path.name)
+    return _wrapper_of(out, path.name, notes=notes)
 
 
 def generated(name: str) -> str:
@@ -1105,7 +1105,17 @@ def generated(name: str) -> str:
     return f"# {name}, opened alone — played through a piano the tree"
 
 
-def _wrapper_of(out: NotesFile, name: str) -> str:
+def _wrapper_of(out: NotesFile, name: str, notes: bool = True) -> str:
+    """`notes=False` is the **engine's** half of the wrapper — the same
+    voices, sound and tempo with the score a rest and no `include`.
+    `card:notes-editor.md` slice 2: 291 notes expanded to nine hundred
+    lines of source, and the language front end paid for every one of
+    them twice per audition (3.95 s ×2 on 2026-09-06) though the
+    instrument had not changed.  The engine compiles this text, which a
+    note edit leaves byte-identical, and the notes reach the performer
+    as records (`audioeditor.NotesKind.events`).  The banks and their
+    channels are the same either way, because they come from the
+    `voices` lines and those are here."""
     voices: list[str] = []
     for section in out.sections:
         for voice in section.voices:
@@ -1120,6 +1130,19 @@ def _wrapper_of(out: NotesFile, name: str) -> str:
     lines.append("sound : Sig Float")
     lines.append(("sound = " + " + ".join(voices)) if voices else "sound = 0.0 * sine 440.0")
     lines.append("")
+    if not notes:
+        # **A rest on every bank**, not one bare rest: the voices
+        # expander declares `Voice` from the banks a score *assigns*
+        # to, so a score that assigns none leaves `Voice` undeclared
+        # and the music prelude fails its kind check at a line the
+        # author never wrote (`fixme.md` F207).  Resting on each bank
+        # also keeps this assembly the shape the full one has — the
+        # same `Voice` constructors, the same channels.
+        rests = " || ".join(f"(r >>= voices.{v})" for v in voices) if voices else "r"
+        lines += ["score : [: Void :]", f"score = {rests}", "",
+                  "#: The file says nothing about tempo; this is `notes.WRAPPER_BPM`.",
+                  "bpm : Int", f"bpm = {WRAPPER_BPM}", ""]
+        return "\n".join(lines) + "\n"
     lines.append(f'include "{name}"')
     lines.append("")
     parts = []

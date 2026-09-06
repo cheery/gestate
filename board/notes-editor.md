@@ -90,14 +90,18 @@ record and the player reads it on the next block.
    `_events` comparison `test_drawnscores.py` already makes; the
    samples are the instrument's and it did not change.*  Default: the
    events.
-2. **Where a tapped tempo lives.**  A `.notes` says bars and beats and
-   nothing about how fast; the wrapper says 100.  A file-level record
-   (`tempo 92`), the section record, or the including `.ges`?  Default:
-   a file-level record, one line, because the file is the source and
-   the wrapper is a projection.
-3. **What "the clip" is in a `.notes`.**  Reaper's clip is the item on
-   the track; here the nearest thing is the section's `bars`.  Resizing
-   it would be a change to the section record.  *His to say.*
+2. **Where a tapped tempo lives.**  **Answered, Henri, 2026-09-06:**
+   *"tempo could still live in .ges, but allow tapping it.  bit like
+   how mkKnob creates sliders that can be edited.  .notes could also
+   have bpm marking, but it's not used if .ges has one."*  So: the
+   `.ges`'s `bpm` is the tempo when it has one, and tapping edits that
+   line the way a knob's drag writes its number back; a `.notes` may
+   carry a `bpm` record, read only when no `.ges` says.
+3. **What "the clip" is in a `.notes`.**  **Answered, Henri,
+   2026-09-06:** *"yes, section resize is sufficient."*  Resizing the
+   clip is an edit to the section record's `bars`.
+
+*Q1 was not answered and its default stands: the events.*
 
 ## Slice 1, landed — 2026-09-06
 
@@ -124,3 +128,29 @@ notes as *data* — one compiled program, the note list arriving the way
 readings do — is the next slice on the picture side; slice 2, the
 score swapped under the instrument, is the sound side.  Both are the
 same idea: compile once, then move records.
+
+## Slice 2, landed — 2026-09-06
+
+**The engine compiles the wrapper's synth half and the notes reach the
+performer as records.**  `notes.wrapper(notes=False)` is the engine's
+text — the same voices and channels, no `include`, a score that rests
+on every bank — and a note edit leaves it byte-identical, so the bench
+keeps the engine playing (*kept engine — nothing it reads moved*) and
+only the records under it change.  `NotesKind.events` bakes the piece
+off the parsed file in the shape `perform_voices` answers, held to it
+on `arc.notes` event for event and schedule for schedule.  And the
+score is loaded before the picture, so the sound no longer waits for a
+compile it did not need.
+
+| one moved note, `arc.notes`, the instrument running | before | after |
+|---|---|---|
+| the new score installed — the note audible on the next block | 6.3 s | **0.6 s** |
+| the audition reported done, picture and all | 6.3 s | 3.6 s |
+| the front end, whole build | 3.95 s ×2 | 2.0 s ×1, the picture's |
+
+**What the 3 s still is:** the picture, and only the picture — its
+generated program's front end (2.0 s) and compile (0.9–1.3 s).  Slice 3
+on the picture side is the same idea as this one: the roll compiled
+once, the notes arriving as readings.  Found on the way: **F207**, a
+program that declares banks and assigns none fails a kind check at a
+prelude line.

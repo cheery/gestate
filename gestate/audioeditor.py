@@ -1006,6 +1006,7 @@ class Workbench:
         self._directory = tempfile.mkdtemp()
         authored = self.source() if text is None else text
         text = self.program(authored)
+        engine = self._engine_text(authored, text)
         # **The canvas, the score and the `FromMIDI` interpreter used to
         # compile on a side thread here**, to overlap `Live.start`'s
         # `clang` — the one stretch of a start that holds no GIL.  They
@@ -1045,7 +1046,7 @@ class Workbench:
         def loaders():
             self._load_substrate(text)
             self._load_score(text)
-            self._load_from_midi(text)
+            self._load_from_midi(engine)
             # What the *first* edit of the session is compared against.
             # Without this the first Ctrl-S after opening a file rebuilds
             # everything — safe, and a wasted second on the one edit
@@ -1057,15 +1058,16 @@ class Workbench:
         side = threading.Thread(target=loaders) if threaded else None
         if side is not None:
             side.start()
-        self.live = Live.start(text, self.rate, self._directory)
-        self._place(text)
+        self.live = Live.start(engine, self.rate, self._directory)
+        self._built_engine = engine
+        self._place(engine)
         if side is not None:
             side.join()
         else:
             loaders()
         # Always, and before the port: the on-screen keyboard needs the
         # allocators whether or not a MIDI device was asked for.
-        self._start_notes(text)
+        self._start_notes(engine)
         if self._want_midi:
             self._start_midi()
         # It compiled and it is playing; whatever it said last time is
@@ -2631,6 +2633,24 @@ class Workbench:
 
                 self.seed = int.from_bytes(os.urandom(8), "big")
                 self.say(f"seed {self.seed} — this session's take")
+            player = getattr(self.kind, "events", None)
+            if player is not None:
+                # **The piece as records** (`card:notes-editor.md` slice
+                # 2): no front end runs over the notes — the banks come
+                # off the engine's half, which is small and unchanged,
+                # and the schedule is baked from the parsed file.
+                from .audioscore import schedule_voices
+                from .notes import WRAPPER_BPM
+
+                source = getattr(self, "_engine", None) or text
+                allocators = {b.name: Allocator(channels_of(source, b))
+                              for b in banks_of(source)}
+                self.bpm = WRAPPER_BPM
+                self.performer = None
+                self.schedule = schedule_voices(player(self), self.bpm,
+                                                self.rate, allocators,
+                                                block=self.block)
+                return
             allocators = {b.name: Allocator(channels_of(text, b))
                           for b in banks_of(text)}
             if unfolding_names(text):
@@ -3024,13 +3044,23 @@ class Workbench:
 
         try:
             program = self.program(text)
+            engine = self._engine_text(text, program)
         except NotesError as bad:
             if quiet:
                 self._hush(errors)
                 return
             self.say(f"not applied: {self._first_line(bad)}")
             return
-        self.live.compile(program)
+        # **An engine whose text did not move is not rebuilt** — a
+        # `.notes` edit leaves the kind's engine half byte-identical
+        # (`card:notes-editor.md` slice 2), so the instrument playing
+        # goes on playing and only the records under it change; a
+        # crossfade into an identical engine would be a seam for
+        # nothing.  A `.ges` has no engine half and always moves.
+        if engine == getattr(self, "_built_engine", None) and self.kind is not None:
+            self._skipped("engine")
+        else:
+            self.live.compile(engine)
         if isinstance(self.live.pending, Exception):
             # **A quiet audition may not complain** (F151).  It was
             # nobody's request: half of what a person types is, for a
@@ -3046,7 +3076,7 @@ class Workbench:
                 return
             self.say(f"not applied: {self._first_line(self.live.pending)}")
             return
-        if quiet:
+        if quiet and self.live.pending is not None:
             # **Nobody asked, so nothing is announced when it lands.**
             # The sentence `_progress` writes on a generation change —
             # *applied edit 4 (no knob in this synth)* — is right for a
@@ -3066,6 +3096,17 @@ class Workbench:
         from . import unchanged
 
         was = self._built_program
+        # **The score before the picture.**  The sound is what a person
+        # is waiting for and the schedule is installed the moment it is
+        # assigned; the picture's compile is seconds and was in front of
+        # it, so a moved note was heard after it was drawn.  Reordered
+        # 2026-09-06 (`card:notes-editor.md` slice 2); the roll under a
+        # hand already follows the hand before either lands.
+        if self.seed == self._built_seed \
+                and unchanged.kept(was, program, ("score", "bpm")):
+            self._skipped("score")
+        else:
+            self._load_score(program)
         # **The pictures read more than `substrate`.**  A score box is
         # a roll of whatever its `notes <expr>` ask names, and its
         # region map — which is what a drag rewrites through — is built
@@ -3077,14 +3118,7 @@ class Workbench:
             self._skipped("substrate")
         else:
             self._load_substrate(program)
-        self._place(program)
-        # The seed is not in the text and decides every note a chancy
-        # score draws, so a reroll rebuilds however little else moved.
-        if self.seed == self._built_seed \
-                and unchanged.kept(was, program, ("score", "bpm")):
-            self._skipped("score")
-        else:
-            self._load_score(program)
+        self._place(engine)
         # **The strictest question, because its inputs cannot be bounded
         # honestly.**  A `FromMIDI` instance body reaches whatever it
         # names, and an instance is chosen by *type* rather than by a
@@ -3093,10 +3127,11 @@ class Workbench:
         if unchanged.kept(was, program):
             self._skipped("midi")
         else:
-            self._load_from_midi(program)
-        self._refresh_notes(program)
+            self._load_from_midi(engine)
+        self._refresh_notes(engine)
         self._built_from, self._built_seed = text, self.seed
         self._built_program = program
+        self._built_engine = engine
         # **The build succeeded, so the complaint is over.**  This used
         # to be cleared only in `_progress`, which the driver calls
         # *between blocks* — so an error survived being fixed for as
@@ -3457,6 +3492,15 @@ class Workbench:
         except OSError:
             return self.pending
 
+    def _engine_text(self, authored: str, program: str) -> str:
+        """What the engine compiles: the program, unless the file's kind
+        has an engine half of its own (`NotesKind.engine_program`)."""
+        maker = getattr(self.kind, "engine_program", None)
+        if maker is None:
+            return program
+        self._engine = maker(self, authored)
+        return self._engine
+
     def program(self, text: str | None = None) -> str:
         """**What is compiled** — the author's text with its `include`
         lines expanded (`spec/drawnscores.md`).
@@ -3609,6 +3653,43 @@ class NotesKind:
         bench.notes_parsed = parse(text, bench.path.name)
         return expanded(wrapper(bench.path), bench.path.parent,
                         texts={bench.path.name: text})
+
+    @staticmethod
+    def engine_program(bench, text: str) -> str:
+        """The text the **engine** compiles: the wrapper without its
+        notes — `notes.wrapper(notes=False)`.  Byte-identical across
+        note edits, so the front end's caches answer it and the synth
+        is compiled once (`card:notes-editor.md` slice 2)."""
+        from .notes import _wrapper_of, parse
+
+        parsed = getattr(bench, "notes_parsed", None)
+        if parsed is None:
+            parsed = bench.notes_parsed = parse(text, bench.path.name)
+        return _wrapper_of(parsed, bench.path.name, notes=False)
+
+    @staticmethod
+    def events(bench) -> list:
+        """The piece as records — `(onset, offset, bank, ((key, level,
+        manners),))` in ticks, the shape `perform_voices` answers, read
+        off the parsed file: sections in the order written, each bar
+        `beats` long, a note clipped at its bar line as `long` clips it.
+        Held to `perform_voices` on `arc.notes` by `test_drawnscores.py`."""
+        from .midi import TICKS_PER_BEAT
+        from .notes import ordered
+
+        parsed = bench.notes_parsed
+        starts, at = {}, 0
+        for section in parsed.sections:
+            starts[section.name] = at
+            at += section.bars * section.beats * TICKS_PER_BEAT
+        ticks = {s.name: s.beats * TICKS_PER_BEAT for s in parsed.sections}
+        out = []
+        for one in ordered(parsed):
+            bar = ticks[one.section]
+            on = starts[one.section] + (one.bar - 1) * bar + one.at
+            off = min(on + one.length, starts[one.section] + one.bar * bar)
+            out.append((on, off, one.voice, ((one.key, one.level, one.manners),)))
+        return out
 
     @staticmethod
     def rolls(bench, program: str, asks_: list) -> list:

@@ -2269,3 +2269,80 @@ def test_an_ask_the_data_road_cannot_read_is_a_roll_error_in_its_slot():
     assert isinstance(out[0], RollError) and "names something else" in str(out[0])
     assert isinstance(out[1], RollError) and "no voice of this file" in str(out[1])
     assert not isinstance(out[2], RollError) and len(out[2].events) > 0
+
+
+# ── card:notes-editor.md, slice 2 — the score as records, the engine once ──
+
+
+def test_the_engine_half_has_the_full_programs_banks_and_no_notes():
+    """`notes.wrapper(notes=False)`: the same voices and channels as the
+    full wrapper, no `include`, a score that rests on every bank — so
+    `Voice` is declared as the full program declares it (F207) — and it
+    compiles to a graph."""
+    from gestate.audioperform import graph_of
+    from gestate.audiovoices import banks_of, channels_of
+
+    full = notes.wrapper(NOTES)
+    engine = notes.wrapper(NOTES, notes=False)
+    assert "include" not in engine and "notes (" not in engine
+    assert len(engine.splitlines()) < 60
+    source, _o = notes.expanded(full, NOTES.parent)
+    assert [b.name for b in banks_of(engine)] == [b.name for b in banks_of(source)]
+    for a, b in zip(banks_of(engine), banks_of(source)):
+        assert channels_of(engine, a) == channels_of(source, b)
+    graph_of(engine, rate=44100)
+
+
+def test_the_records_are_the_events_the_compiled_road_performs():
+    """Held to `perform_voices` on `arc.notes`: the same `(onset, offset,
+    bank, payload)` set — and then the same `Schedule`, channel for
+    channel, sample for sample.  Q1's default: the events."""
+    from gestate.audioalloc import Allocator
+    from gestate.audioeditor import NotesKind
+    from gestate.audioscore import perform_voices, schedule_voices
+    from gestate.audiovoices import banks_of, channels_of
+
+    here, bench = _opened_alone()
+    program = bench.program()
+    engine = NotesKind.engine_program(bench, bench.source())
+    data = NotesKind.events(bench)
+    bpm, played = perform_voices(program, "", 44100, 0)
+    assert sorted(data) == sorted(played)
+    assert bpm == notes.WRAPPER_BPM
+
+    def allocs(src):
+        return {b.name: Allocator(channels_of(src, b)) for b in banks_of(src)}
+
+    fast = schedule_voices(data, bpm, 44100, allocs(engine), block=256)
+    slow = schedule_voices(played, bpm, 44100, allocs(program), block=256)
+    assert fast.changes == slow.changes
+
+
+def test_the_score_loads_off_the_records_without_a_front_end():
+    """The number: 4.5 s cold through `perform_voices` on 2026-09-06,
+    against the records."""
+    import time
+
+    here, bench = _opened_alone()
+    program = bench.program()
+    bench._engine = bench.kind.engine_program(bench, bench.source())
+    t0 = time.perf_counter()
+    bench._load_score(program)
+    took = time.perf_counter() - t0
+    assert bench.schedule is not None and bench.performer is None
+    assert took < 1.0, f"{took:.2f} s"
+    assert bench.bpm == notes.WRAPPER_BPM
+
+
+def test_a_note_edit_leaves_the_engine_text_byte_identical():
+    """What lets the bench keep the engine: the kind's engine half does
+    not read the notes, so a moved note changes nothing in it."""
+    from gestate.audioeditor import NotesKind
+
+    here, bench = _opened_alone()
+    before = NotesKind.engine_program(bench, bench.source())
+    bench.notes_parsed = None
+    moved = bench.source().replace("key 62", "key 63", 1)
+    after = NotesKind.engine_program(bench, moved)
+    assert after == before
+    assert bench.program(moved) != bench.program(bench.source()), "the program did move"

@@ -1197,3 +1197,19 @@ the compiled road reads a note-file note as a bare key, so an accent
 written in `arc.notes` never drew its mark — F206.  What is left of a
 redraw is the picture's own compile, 3.0 s, and that is the next
 slice's number.
+
+### Slice 2 — the engine once, the notes as records
+
+The breakdown of a one-note audition was the answer: the language
+front end ran twice over the nine hundred generated lines, four
+seconds each, and the instrument was a few dozen of them.  So the
+engine now compiles the wrapper's synth half — byte-identical across
+note edits, kept rather than rebuilt — and the notes reach the
+performer as records baked off the parsed file, held to
+`perform_voices` event for event.  The score is loaded before the
+picture.  Measured with the instrument running on a muted card: the
+moved note's score installed **0.6 s** after the audition, from 6.3.
+The picture's own compile is what remains, 3 s, and it is the next
+slice.  On the way: F207, the expander declares `Voice` from the banks
+a score assigns to, so a score that assigns none fails at a prelude
+line — the engine half rests on every bank instead.

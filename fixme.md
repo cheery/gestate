@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 207 entries, **166 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 208 entries, **166 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7747,3 +7747,28 @@ data road says what the file says; the compiled road still draws a
 gate: `test_drawnscores.py::test_the_data_road_says_what_the_file_says_about_loudness_and_manner`
 holds the data road; nothing yet holds the compiled road on this, and the
 repair owes a test that a `.notes` accent draws its dot through it.
+
+### F207. **[bug]** a program that declares `voices` banks and assigns none of them in its score fails a kind check at a line of `music.ges`
+
+Found 2026-09-06 building `card:notes-editor.md`'s engine half: a wrapper
+with five `voices … hammerVoice` declarations and `score = r` compiles to
+
+    gestate.kindcheck.KindError: Unknown type constructor: Voice (at 2907:20)
+
+— line 2907 of the *assembled* program, which is `music.ges`'s own `Cue :=
+CueEv Int Int Voice`.  `music.ges:34` says *"a program with no banks gets
+`Voice := NoVoice` from the expander"*, and the expander declares `Voice`
+from the banks a score **assigns** to (`Voice := MelodyNote Tone` appears
+only when `>>= voices.melody` does), so a program with banks and a score
+that uses none gets no `Voice` at all — and the complaint names a prelude
+line the author never wrote, which is the shape `doc/complaints.md`
+exists to stop.
+
+The engine half rests on every bank instead (`notes._wrapper_of`,
+`notes=False`), which is also what keeps its assembly the shape the full
+program's is.  The repair belongs in `audiovoices`: declare `Voice` from
+the banks *declared*, or emit `NoVoice` when none is assigned, and place
+the complaint at the author's `voices` line if neither can be done.
+
+gate: none yet — `test_drawnscores.py` holds the engine half compiling,
+which is the workaround, not the repair.
