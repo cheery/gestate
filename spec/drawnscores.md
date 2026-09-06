@@ -1052,6 +1052,52 @@ changes one line of the buffer and none of the disk.  Four tests.
 and the canvas view centres it; the window's one line is the slice
 after this.
 
+### The fourth slice, built — the scroll — 2026-09-06
+
+*Henri: "lets do the scroll."*  The one thing the window learns, and
+it is one number: `canvas_scroll`, how far the canvas view's picture
+is carried up.  The painter hands the walk its origin lower by that
+much, so the display the walk produces — which the press and the drag
+already hit-test in window coordinates — moves with the picture and
+needs no second transform; the wheel changes the number and nothing
+else.  `view::canvas_scroll` is the arithmetic, pure and tested: a
+picture that fits never moves, and one that overhangs stops at its own
+ends.  `view::canvas_opening` places a page at its top when the view
+opens and the page is taller than the window, once; a drag rebuilds
+the page and a rebuild keeps the scroll where the wheel left it.
+
+**Driven, not only tested.**  `test/driven/20260906-085009-notes-page-scroll`
+on the desk that ran it — `test/driven/` is not tracked, so what a
+clone gets is this paragraph and the numbers in it: `arc.notes` opened alone on a virtual screen, the
+window shrunk to 260 pixels under a three-section page, the wheel
+turned down and back.  The page opened at its top, moved under the
+wheel, and came back to the pixel.  And the driving found three things
+the headless tests had not:
+
+* **The wrapper was expanded twice.**  Every reader hands `program` the
+  buffer, and some hand it a program it already produced; for a `.ges`
+  a second expansion is the first, for a `.notes` it parsed the
+  wrapper as the note file — *`env` is not a record*, at line 7, in the
+  status bar (`test/driven/20260906-083403-notes-page-scroll`).
+  `NotesKind.program` is idempotent now, and a test says so.
+* **The canvas command refused the page.**  Its guard asked the
+  program's text for a `substrate`, which a `.notes` never declares —
+  the page does — so `Ctrl-Tab` before the page had built answered
+  *this file draws nothing* (`…083625`).  A registered kind whose page
+  is the file's picture draws by registration.
+* **The page took 88 s to appear in two runs and 2 s in two others**,
+  the same script in the last three — `fixme.md` F205.  The first
+  suspicion, that opening the view before the build slowed it, was
+  falsified by the last run; the cause is unrecorded, and the next move
+  is a driven run that writes down the load it ran under.  Not fixed
+  here: the scroll was the slice and this is the start.
+
+**Rung 5 is built.**  What the ladder named — open a `.notes` to a
+roll, honour the drag, sound the moved note — is in the window, with
+the seam untouched where the round said it would be: nothing new
+crosses the wire.  What is not done is not on the ladder: the seven
+candidate questions for the fire, F204's pad, F205's wait.
+
 ### What plugin-like scopes
 
 *"I'd like plugin-like, reusable behavior for this feature.  I think

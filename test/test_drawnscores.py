@@ -2154,3 +2154,33 @@ def test_a_click_on_the_notes_document_goes_to_its_own_line():
     said = seat.released(chan)
     assert seat.view.went == row, (seat.view.went, row)
     assert said.endswith(f"line {row}"), said
+
+
+def test_the_notes_program_is_idempotent_like_a_ges_expansion():
+    """**Found by a driven window, not by these tests** (2026-09-06):
+    the bench hands `program` a program it already produced, which for a
+    `.ges` is harmless and for a `.notes` parsed the wrapper as the note
+    file — *`env` is not a record*, at line 7 of `arc.notes`, in the
+    status bar of the real window.  A second expansion is the first."""
+    here, bench = _opened_alone()
+    once = bench.program()
+    origins = dict(bench.origins)
+    twice = bench.program(once)
+    assert twice == once
+    assert bench.origins == origins, "and the origins survive the second call"
+
+
+def test_the_canvas_opens_on_a_notes_file_before_its_page_has_built():
+    """**Found by a driven window** (2026-09-06): `Ctrl-Tab` pressed
+    while the page was still building answered *this file draws
+    nothing*, because the guard asked the program's text for a
+    `substrate` and the wrapper declares none — the page does.  A
+    registered kind whose page is the file's picture draws by
+    registration, and the view opens and fills in when it arrives."""
+    here, bench = _opened_alone()
+    assert bench.substrate is None, "the page has not been built yet"
+    seat = _seated_on(bench, here.read_text())
+    seat.view.show = lambda what: True
+    said = seat.do_canvas()
+    assert "draws nothing" not in said, said
+    assert said.startswith("opening the canvas"), said

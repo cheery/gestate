@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 205 entries, **166 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 206 entries, **166 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7680,3 +7680,36 @@ pad in it; the second is a line.  Henri's.
 
 gate: none yet — the measurement above is the check, and a test naming it
 belongs with whichever repair is chosen.
+
+### F205. **[bug]** the page of a `.notes` sometimes takes ninety seconds to appear, and sometimes two
+
+Measured 2026-09-06 on a driven window (`Xvfb :99`, `arc.notes` opened alone,
+three sections of five voices), the same library and the same script for
+the last three:
+
+    test/driven/20260906-083625-notes-page-scroll   Ctrl-Tab 12 s after the window   page within 2 s more
+    test/driven/20260906-084221-notes-page-scroll   Ctrl-Tab at once                 page after 88 s
+    test/driven/20260906-084609-notes-page-scroll   Ctrl-Tab at once                 page after 86 s
+    test/driven/20260906-085009-notes-page-scroll   Ctrl-Tab at once                 page after 2 s
+
+The status bar reads *opening the canvas — it will appear when it builds*
+the whole while, which is the honest sentence; what is wrong is the wait,
+and it is not the same wait twice.  The transport stood at `0.0` through
+the slow runs too, so the whole start slowed and not the roll.
+
+**What was suspected and is falsified:** that opening the canvas view
+before the build slowed it — the gesture loop's fast cadence against the
+build thread.  The last run opened the view first and took two seconds,
+so the order is not the cause.  What differs between the runs is not
+recorded: the two slow ones ran within minutes of a `cargo build` and of
+each other; the fast one ten minutes later.  Load on the machine is the
+next thing to write down beside a run, and nothing does yet.
+
+Found building `card:drawn-scores.md` rung 5's scroll; not fixed there
+because the scroll was the slice and this is the start.
+
+gate: none yet — the four run reports are the measurement (on the desk
+that ran them: `test/driven/` is not tracked, so the numbers above are
+what a clone gets); a test
+belongs with whatever the cause turns out to be, and the first move is a
+driven run that records the load it ran under.

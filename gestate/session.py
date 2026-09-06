@@ -5169,6 +5169,14 @@ def _draws(bench) -> bool:
     """
     if getattr(bench, "substrate", None) is not None:
         return True
+    # **A registered kind whose page is the file's own picture draws by
+    # registration** (`audioeditor.KINDS`, `NotesKind.stacked`): the
+    # program declares no `substrate` — the page does — so asking the
+    # text would say *draws nothing* about a file whose whole view is
+    # a picture, which is what a driven window said on 2026-09-06 when
+    # `Ctrl-Tab` was pressed before the page had built.
+    if getattr(getattr(bench, "kind", None), "stacked", False):
+        return True
     try:
         from .audio import has_substrate
 

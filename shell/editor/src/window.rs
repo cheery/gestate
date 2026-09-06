@@ -256,6 +256,17 @@ struct EditorWindow {
     /// yours; this is which of the two the window is pointed at, the
     /// way a second tab in the plugin panel is.
     on_canvas: Cell<bool>,
+    /// How far the canvas view is carried up, in pixels — the one
+    /// number the painter, the press and the wheel read
+    /// (`view::canvas_scroll`).  Zero for a picture that fits.
+    canvas_scroll: Cell<i32>,
+    /// Where the last walked frame reached, top and bottom, as it
+    /// would sit unscrolled — what the wheel clamps against.
+    canvas_span: Cell<(i32, i32)>,
+    /// Whether the canvas view has been placed since it was opened —
+    /// a page opens at its top (`view::canvas_opening`), once, and
+    /// keeps its scroll across the rebuilds a drag causes.
+    canvas_aligned: Cell<bool>,
     /// The canvas, as the model last drew it, and which version.
     picture: RefCell<Vec<gestate_panel::list::Item>>,
     drawn: Cell<u64>,
@@ -500,6 +511,9 @@ impl EditorWindow {
             playing: Cell::new(None),
             at_piano: Cell::new(false),
             on_canvas: Cell::new(false),
+            canvas_scroll: Cell::new(0),
+            canvas_span: Cell::new((0, 0)),
+            canvas_aligned: Cell::new(false),
             picture: RefCell::new(Vec::new()),
             drawn: Cell::new(0),
             fingers: RefCell::new(std::collections::HashSet::new()),
@@ -841,7 +855,7 @@ impl EditorWindow {
 
     fn canvas_centre(&self) -> (i32, i32) {
         let view = self.view.borrow();
-        (view.w / 2, view.h / 2)
+        (view.w / 2, view.h / 2 - self.canvas_scroll.get())
     }
 
     /// Let go of every key the piano is holding.
@@ -1023,6 +1037,8 @@ impl EditorWindow {
                 let want = what == "canvas";
                 if self.on_canvas.get() != want {
                     self.on_canvas.set(want);
+                    // Opening the view places the page afresh.
+                    self.canvas_aligned.set(false);
                     self.dirty.set(true);
                 }
                 Did::nothing()
@@ -1646,12 +1662,37 @@ impl WindowHandler for EditorWindow {
                 // the centre and produces window coordinates, so a
                 // press needs no second transform.
                 canvas.clear(view::BG);
-                let (dx, dy) = (view.w / 2, view.h / 2);
+                // **The scroll is the origin moving**, and only here:
+                // the walk places its display in window coordinates,
+                // so the press that hit-tests that display needs no
+                // second transform — the rule this path already kept,
+                // with one more number in it.
+                let scroll = self.canvas_scroll.get();
+                let (dx, dy) = (view.w / 2, view.h / 2 - scroll);
                 if let Some(w) =
                     self.walkers.borrow_mut().get_mut("substrate")
                 {
-                    gestate_panel::paint::paint(&mut canvas,
-                                                w.frame(dx, dy));
+                    let shown = w.frame(dx, dy);
+                    gestate_panel::paint::paint(&mut canvas, shown);
+                    let (top, bottom) = view::span_of(shown);
+                    let span = (top + scroll, bottom + scroll);
+                    self.canvas_span.set(span);
+                    // **Placed once, then clamped.**  The first frame
+                    // after the view opens puts a tall page at its top;
+                    // every frame after keeps the scroll where the
+                    // wheel left it, inside the page as it now is — a
+                    // drag rebuilds the page, and a rebuild must not
+                    // send the reader back to the top.
+                    let placed = if self.canvas_aligned.get() {
+                        view::canvas_scroll(scroll, 0, span, view.h)
+                    } else {
+                        self.canvas_aligned.set(true);
+                        view::canvas_opening(span, view.h)
+                    };
+                    if placed != scroll {
+                        self.canvas_scroll.set(placed);
+                        self.dirty.set(true);
+                    }
                 }
                 view::paint(&mut canvas,
                             &view::chrome_only(&view, font, &chrome), font,
@@ -1670,7 +1711,7 @@ impl WindowHandler for EditorWindow {
                 // subtracts below: one number, two directions, or the
                 // picture and the hand disagree.
                 canvas.clear(view::BG);
-                let (dx, dy) = (view.w / 2, view.h / 2);
+                let (dx, dy) = (view.w / 2, view.h / 2 - self.canvas_scroll.get());
                 let items = self.picture.borrow().iter()
                     .map(|i| match i.clone() {
                         Item::Rect { x, y, w, h, c } =>
@@ -2276,6 +2317,26 @@ impl WindowHandler for EditorWindow {
                     return EventStatus::Captured;
                 }
                 let step = self.view.borrow().ch(self.font()).max(1);
+                // **The canvas view scrolls its picture**, by pixels,
+                // clamped to where the picture reaches — a page of
+                // rolls taller than the window (`card:drawn-scores.md`
+                // rung 5).  A picture that fits does not move.
+                if self.on_canvas.get() {
+                    let by = match delta {
+                        baseview::ScrollDelta::Lines { y, .. } =>
+                            -(y * 3.0) as i32 * step,
+                        baseview::ScrollDelta::Pixels { y, .. } => -(y as i32),
+                    };
+                    let h = self.view.borrow().h;
+                    let was = self.canvas_scroll.get();
+                    let now = view::canvas_scroll(was, by,
+                                                  self.canvas_span.get(), h);
+                    if now != was {
+                        self.canvas_scroll.set(now);
+                        self.dirty.set(true);
+                    }
+                    return EventStatus::Captured;
+                }
                 let lines = match delta {
                     baseview::ScrollDelta::Lines { y, .. } => -(y * 3.0) as i32,
                     baseview::ScrollDelta::Pixels { y, .. } =>

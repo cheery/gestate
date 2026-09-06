@@ -3585,9 +3585,17 @@ class NotesKind:
 
     @staticmethod
     def program(bench, text: str) -> tuple:
-        """`(program, origins)` — the wrapper, expanded over `text`."""
-        from .notes import expanded, wrapper
+        """`(program, origins)` — the wrapper, expanded over `text`.
 
+        **Idempotent, as `expanded` is for a `.ges`.**  `program` is
+        called on the buffer and, by some readers, on a program it
+        already produced; the second call must hand the program back
+        untouched with the origins it was built with, or the wrapper is
+        parsed as the note file (`notes.generated`)."""
+        from .notes import expanded, generated, wrapper
+
+        if text.startswith(generated(bench.path.name)):
+            return text, dict(getattr(bench, "origins", None) or {})
         return expanded(wrapper(bench.path), bench.path.parent,
                         texts={bench.path.name: text})
 

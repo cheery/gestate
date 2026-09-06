@@ -8,8 +8,8 @@
              written spelling** — §"His own tools answered one of
              these" — **and the prose the format could not hold**,
              `fixme.md` F200 and F203.  What is left is rung 5, the
-             view — **decided 2026-09-06, (B), the seam talked through
-             first, and its first slice built the same day** — §"Rung
+             view — **decided 2026-09-06, (B), and built the same day in
+             four slices, the last driven and photographed** — §"Rung
              5, decided" and §"Rung 5, the seam"
     because  "Minä koin että .ges tiedoston muokkaaminen näkemättä mitä
              on tekemässä oli aika raskasta hommaa. .ges on hyvä
@@ -833,3 +833,15 @@ first row: a `.notes` opened in the window builds through the wrapper
 over its own buffer, `Ctrl-Tab` shows its sections stacked, and a drag
 on it edits the buffer, not the disk.  `spec/drawnscores.md` §"The
 third slice, built".  What is left of rung 5 is the scroll.
+
+### The fourth slice — the scroll, and what driving the window found
+
+*"lets do the scroll."*  One number in the window, `canvas_scroll`,
+read by the painter, the press and the wheel; a page opens at its top
+and keeps its place across the rebuilds a drag causes.  Driven on a
+virtual screen and photographed — `spec/drawnscores.md` §"The fourth
+slice, built" — which found two defects the headless tests had passed
+over (the wrapper expanded twice; the canvas command refusing the
+page) and one measurement filed as `fixme.md` F205.  **Rung 5 is
+built.**  What the card still carries is his: the seven candidate
+standing questions wait for the fire, F204 and F205 are decisions.

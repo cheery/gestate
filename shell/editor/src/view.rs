@@ -15,7 +15,7 @@
 //! that read the whole document to draw fifty lines would make the rope
 //! decorative.
 
-use gestate_panel::list::Colour;
+use gestate_panel::list::{Colour, Display, Item as Drawn};
 use gestate_panel::paint::Canvas;
 
 use crate::document::{column_of, width_of, Document};
@@ -2023,4 +2023,55 @@ mod tests {
         assert_eq!(h, view.ch(font));
         assert!(x + w < view.w, "the word leans on the window's edge");
     }
+}
+
+// ── The canvas view's scroll ─────────────────────────────────────────────
+
+/// Where a walked picture reaches, top and bottom, in the coordinates
+/// it was placed in — read off the display the walk produced, so the
+/// painter, the press and the scroll all answer from one frame.
+///
+/// **A page taller than the window** is the case this exists for:
+/// `card:drawn-scores.md` rung 5 stacks a `.notes` file's sections into
+/// one column, three rolls tall, and the canvas view centred it and
+/// cut both ends.  Henri, 2026-09-06: *"I'd like view to grow a
+/// vertical scroll."*
+pub fn span_of(d: &Display) -> (i32, i32) {
+    let mut top = i32::MAX;
+    let mut bottom = i32::MIN;
+    for item in &d.items {
+        let (a, b) = match item {
+            Drawn::Rect { y, h, .. } => (*y, *y + *h),
+            Drawn::Dot { cy, r, .. } => (*cy - *r, *cy + *r),
+            // The walk draws a label in 3×5 cells times its scale.
+            Drawn::Text { y, scale, .. } => (*y, *y + 5 * *scale),
+        };
+        top = top.min(a);
+        bottom = bottom.max(b);
+    }
+    if top > bottom { (0, 0) } else { (top, bottom) }
+}
+
+/// The scroll a wheel leaves the canvas view at.
+///
+/// `current` is how far the picture is already carried up, `by` what the
+/// wheel asks for in pixels, `span` where the picture reaches with no
+/// scroll, `h` the window's height.  **A picture that fits never
+/// scrolls**, and one that does not stops at its own ends: the range is
+/// from the top's overhang to the bottom's, and a picture inside the
+/// window has none of either — so zero, always, with no case for it.
+pub fn canvas_scroll(current: i32, by: i32, span: (i32, i32), h: i32) -> i32 {
+    let (top, bottom) = span;
+    let low = top.min(0);
+    let high = (bottom - h).max(0);
+    (current + by).clamp(low, high)
+}
+
+/// Where a page opens: at its top when it overhangs the window, and
+/// where it always was — centred — when it fits.  A `.notes` page is
+/// read from its first section down, and a first section cut off by
+/// the window's top edge is what the first driven run of the scroll
+/// photographed (`test/driven/20260906-083842-notes-page-scroll`).
+pub fn canvas_opening(span: (i32, i32), h: i32) -> i32 {
+    canvas_scroll(0, span.0.min(0), span, h)
 }

@@ -1090,12 +1090,28 @@ def wrapper(path: Path | str) -> str:
     """
     path = Path(path)
     out = parse(path.read_text(encoding="utf-8"), path.name)
+    return _wrapper_of(out, path.name)
+
+
+def generated(name: str) -> str:
+    """The first line of the wrapper for `name` — how a reader tells the
+    generated program from the file it wraps.  `audioeditor.NotesKind`
+    needs it: every reader that hands text to a compiler goes through
+    `program`, and some hand it a program already expanded, which for a
+    `.ges` is harmless (`expanded` of an expanded text is the text) and
+    for a `.notes` would parse the wrapper as the note file — which is
+    what a driven window did on 2026-09-06, complaining that `env` is not
+    a record at line 7 of `arc.notes`."""
+    return f"# {name}, opened alone — played through a piano the tree"
+
+
+def _wrapper_of(out: NotesFile, name: str) -> str:
     voices: list[str] = []
     for section in out.sections:
         for voice in section.voices:
             if voice not in voices:
                 voices.append(voice)
-    lines = [f"# {path.name}, opened alone — played through a piano the tree",
+    lines = [generated(name),
              "# lends it (`notes.wrapper`).  Generated; the file is the source.",
              "", HAMMER]
     for voice in voices:
@@ -1104,7 +1120,7 @@ def wrapper(path: Path | str) -> str:
     lines.append("sound : Sig Float")
     lines.append(("sound = " + " + ".join(voices)) if voices else "sound = 0.0 * sine 440.0")
     lines.append("")
-    lines.append(f'include "{path.name}"')
+    lines.append(f'include "{name}"')
     lines.append("")
     parts = []
     for voice in voices:

@@ -1156,3 +1156,21 @@ sections into the file's own picture for `Ctrl-Tab`, and routes a drag
 into the buffer rather than the disk, so the note file is edited the
 way a `.ges` is — undo, `Ctrl-S`.  Four tests.  Rung 5 has one thing
 left, the scroll.
+
+### The fourth slice — the scroll, and the window driven
+
+One number in the window and a wheel that moves it; the pure
+arithmetic in `view.rs` with four tests.  Then the real window on
+`Xvfb :99`, `arc.notes` opened alone, the window shrunk under the
+page.  The first photograph showed no page at all: the status bar
+said *`env` is not a record* at line 7 of `arc.notes` — the wrapper
+had been handed back in as the file and expanded twice.  The second
+showed the text still: the canvas command's guard asked the program
+for a `substrate` and a `.notes` declares none.  The third showed the
+page centred with its first section cut, so a page opens at its top
+now.  The last shows it opening at the top, moving under the wheel,
+and coming back to the pixel.  Six runs, four kept as evidence, two
+defects fixed and one filed (F205: 88 s to a page in two runs, 2 s in
+two others, the same script — and the first suspected cause falsified
+by the last run before it was an hour old).  `doc/memory/test-what-a-person-would-do.md`
+again, and the harness it names is the one that found all three.

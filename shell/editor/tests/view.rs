@@ -1923,3 +1923,47 @@ fn the_reason_goes_before_the_key_does() {
     let narrow = said(200);
     assert!(narrow.is_empty(), "half a key was taught: {narrow:?}");
 }
+
+// ── The canvas view's scroll ─────────────────────────────────────────────
+
+#[test]
+fn a_picture_that_fits_never_scrolls() {
+    use gestate_editor::view::canvas_scroll;
+    // Reaches from 100 to 300 in a 400-tall window: inside, both ends.
+    for by in [-500, -10, 0, 10, 500] {
+        assert_eq!(canvas_scroll(0, by, (100, 300), 400), 0);
+    }
+}
+
+#[test]
+fn a_taller_picture_scrolls_to_its_own_ends_and_no_further() {
+    use gestate_editor::view::canvas_scroll;
+    // Centred, a 900-tall picture in a 400-tall window overhangs by
+    // 250 at each end: the scroll runs from -250 to +250.
+    let span = (-250, 650);
+    assert_eq!(canvas_scroll(0, 100, span, 400), 100);
+    assert_eq!(canvas_scroll(100, 100, span, 400), 200);
+    assert_eq!(canvas_scroll(200, 100, span, 400), 250, "stops at the bottom");
+    assert_eq!(canvas_scroll(250, 100, span, 400), 250);
+    assert_eq!(canvas_scroll(0, -300, span, 400), -250, "and at the top");
+}
+
+#[test]
+fn the_span_is_read_off_what_was_drawn() {
+    use gestate_editor::view::span_of;
+    use gestate_panel::list::{Display, Item};
+    let mut d = Display::new();
+    assert_eq!(span_of(&d), (0, 0), "nothing drawn reaches nowhere");
+    d.items.push(Item::Rect { x: 0, y: -50, w: 10, h: 20, c: Colour::rgb(1, 2, 3) });
+    d.items.push(Item::Dot { cx: 0, cy: 100, r: 8, c: Colour::rgb(1, 2, 3) });
+    d.items.push(Item::Text { x: 0, y: 120, s: "NOTES".into(), c: Colour::rgb(1, 2, 3), scale: 2 });
+    assert_eq!(span_of(&d), (-50, 130));
+}
+
+#[test]
+fn a_page_opens_at_its_top_and_a_fitting_picture_where_it_was() {
+    use gestate_editor::view::canvas_opening;
+    assert_eq!(canvas_opening((100, 300), 400), 0, "fits: centred, as ever");
+    assert_eq!(canvas_opening((-250, 650), 400), -250, "overhangs: its top at the window's");
+    assert_eq!(canvas_opening((-10, 600), 400), -10);
+}
