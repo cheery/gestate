@@ -8,7 +8,8 @@
              written spelling** — §"His own tools answered one of
              these" — **and the prose the format could not hold**,
              `fixme.md` F200 and F203.  What is left is rung 5, the
-             view, and it is a decision before it is work
+             view — **decided 2026-09-06, (B), the seam talked through
+             first** — §"Rung 5, decided"
     because  "Minä koin että .ges tiedoston muokkaaminen näkemättä mitä
              on tekemässä oli aika raskasta hommaa. .ges on hyvä
              formaatti syntetisaattoreihin, mutta ehkä ei sittenkään
@@ -730,3 +731,74 @@ property was about.
 specified is a new furniture kind, and two of his own tools argue about
 how — or whether — to build it.  Reading them before designing it is
 what item 3's rule already says to do, and they are his to open.
+
+## Rung 5, decided — 2026-09-06
+
+*Three decisions, put in one batch with a default each, answered in one
+line.*  **Henri:** *"Go with (B), but lets pingpong ideas of how to
+change the seam with each other at first., and lets do (a).  And lets
+keep default on the last question."*
+
+1. **What rung 5 is made of — (B), the view that takes the window.**
+   A new furniture kind, as `spec/drawnscores.md` §"The slices after"
+   prices it, over (A) the score box beside each `section` line of a
+   `.notes` buffer, which was the session's default.  **Not built
+   before the seam is talked through**: his condition is a ping-pong
+   on how `furniture.rs`, `window.rs` and the verb table change,
+   before a line of it is written.
+2. **What sounds with the transport stopped — (a).**  The piece plays
+   from the dragged note, from a standing start — the path the mark
+   gesture already has (`session._hear_from`).  A `.notes` names no
+   voice, so what a file opened alone sounds through is still open
+   inside this answer.
+3. **Two writers on one `.notes` — the default.**  Last writer wins
+   and the gesture names the file, as today; revisited the first time
+   it bites.
+
+**Measured before the batch, the same morning:** opening `arc.notes`
+in the window compiles it as a `.ges` and fails with a parse error at
+line 2859 — a prelude line the author never wrote.  Not inert like
+`.md`, not a roll.  The postcondition rung 5 is built to: *a person
+who opens a `.notes` file sees its notes as a roll, drags one, hears
+it, and the file changes by one line.*
+
+## Rung 5, the seam — the ping-pong, 2026-09-06
+
+*The session's opening move: the three feared seams need not move.
+Coordinates never cross the wire and the roll already crosses as a
+picture the window hit-tests itself; `Ctrl-Tab` already shows a file's
+own picture whole; and `onTouchX` stands beside `onTouchY`, a pad being
+two touches on one element.  So the change lands in the bench's file
+kind, the roll program and the verb table — and the one real fork was
+height, since a roll is 116 pixels and the canvas view does not
+scroll.*
+
+**Henri's round, verbatim:** *"I'd like plugin-like, reusable behavior
+for this feature.  I think that already scopes it a bit.  Also, mouse
+controls could have commands under them, so that commands are
+generated for mouse gestures as well.  For height.. I think I'd like
+view to grow a vertical scroll.  Yes.  Give roll a selected -channel.
+And allow grid snap.  I think the .notes could get a default voice,
+something that sounds piano-like."*
+
+Taken, each:
+
+* **Vertical scroll** — the canvas view grows one, in the window.  The
+  one line the window learns; nothing new crosses the wire.
+* **A `selected` channel on the roll** — a press writes it, and it is
+  the noun commands take (mide's hole 8).
+* **Grid snap** — in the model, off the wire: the `touched` fraction
+  is snapped to the section's subdivision where the meaning is.
+* **Commands under mouse gestures** — a drag *generates* a command,
+  `move` beside `transpose`, so it stands in the transcript and can be
+  typed; oscillseq's rule made a requirement, and it already holds for
+  `transpose`.
+* **A default voice, piano-like**, for a `.notes` opened alone, so
+  *play from the dragged note* has something to play through.
+* **Plugin-like, reusable** — the scoping word, and the one the tree
+  uses for two things; the session's reading and its default are
+  §"What plugin-like scopes", `spec/drawnscores.md`, and the question
+  is open until he says which.
+
+`spec/drawnscores.md` §"The view — rung 5, the seam as decided" is the
+contract these went into.

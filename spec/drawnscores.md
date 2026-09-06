@@ -906,7 +906,7 @@ mid-sketch and took a whole test file's collection with it.  A file may
 say a thing the editor cannot act on; the editor says so at the moment
 it cannot.
 
-**5 — the view that takes the window.**  Sections and voices stacked,
+**5 — the view that takes the window.**  *Decided 2026-09-06 — §"The view — rung 5, the seam as decided".*  Sections and voices stacked,
 the margin columns `tools/bars.py` already computes.  Henri's own word
 for it, 2026-09-04: *"a separate editor view that pops up for them.."*
 Expensive, and for a named reason rather than its size: a new furniture
@@ -924,6 +924,64 @@ transpose sounds where it was dropped — but only **while something is
 playing**.  Annotating is not performing, so a preview tone with the
 transport stopped is a thing that has to be decided rather than
 inherited.
+
+## The view — rung 5, the seam as decided — 2026-09-06
+
+*Henri chose the view that takes the window over the score box beside
+each section line, on the condition that the seam be talked through
+first.  One round each; `card:drawn-scores.md` §"Rung 5, the seam"
+carries both verbatim.  This is what the round decided.*
+
+**The three seams that lost `touch` do not move.**  No new furniture
+row, no new gesture, nothing new for `Furniture::read` or the window
+to learn about the wire: coordinates never cross it and meanings do
+(`spec/workbench.md` §"The canvas walks over crust"), the roll already
+crosses as a picture the window hit-tests off its own walk — which is
+mide's requirement met by construction, *one place says where a note
+is* — and `onTouchX` stands beside `onTouchY` in `gui.ges`, a pad
+being two touches on one element.  What changes:
+
+| where | what | his word |
+|---|---|---|
+| the bench's file kind | a `.notes` opened in the window builds through a wrapper whose own picture is its page; `Ctrl-Tab` is the view | — |
+| the roll program | sections stacked in one picture; the margin words `tools/bars.py` computes drawn as labels; `onTouchX` on each note beside its `onTouchY`; a **`selected`** channel a press writes | *"Give roll a selected -channel"* |
+| the model | the `touched` fraction snapped to the section's grid, off the wire | *"allow grid snap"* |
+| the verb table | a time drag becomes **`move`** beside `transpose`: one line rewritten, the file re-ordered under the canonical order it was chosen for | *"commands are generated for mouse gestures"* |
+| the window | the canvas view grows a **vertical scroll** — the one thing it learns | *"I'd like view to grow a vertical scroll"* |
+| the wrapper | a `.notes` opened alone binds every voice to a **default, piano-like** synth, so *play from the dragged note* (§"The slices after", 5) has something to play through | *"something that sounds piano-like"* |
+
+**Every gesture is a command**, and the drag is what makes it a rule
+rather than a description: the window sends `touched` and `released`,
+the model turns them into `move <region> <note> <at>` or `transpose …`,
+and that line is what the transcript records and what a person or a
+session can type.  Nothing routes on a coordinate.
+
+### What plugin-like scopes
+
+*"I'd like plugin-like, reusable behavior for this feature.  I think
+that already scopes it a bit."*  The tree uses the word for two things
+and his 2026-09-04 sentence for a third, so the reading is written down
+rather than guessed at, with a default:
+
+1. **A file kind is a registration, not a branch.**  Today
+   `audioeditor.py` decides a file by suffix in one set (`INERT`); the
+   view makes that a table — suffix → how it builds, what its picture
+   is, which commands it adds — and `.notes` is the first row.  The
+   next sub-language (`.manner` was named) is a second row and no new
+   seam.  *Suspected to be what he means; the default.*
+2. **Reusable across hosts, and it is free.**  The page is a
+   substrate, and `shell/panel/src/substrate.rs` walks any substrate
+   for the CLAP plugin as the editor does — so the same view draws in
+   a DAW without a line written for it.  Taken as a dividend, not a
+   goal.
+3. **A separate window that pops up**, his 2026-09-04 phrasing — a
+   second front end.  *Not taken unless he says so*: it is the second
+   source of truth the workbench refuses twice by name, and the atlas's
+   wire checks would not reach it.
+
+**Trigger:** if undecided, 1 with 2 as it falls out, and the first
+slice is the roll's `selected` channel and `onTouchX` in the box that
+exists, because those are the same code under every reading.
 
 ## What is deliberately not here
 
