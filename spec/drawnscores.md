@@ -1098,6 +1098,82 @@ the seam untouched where the round said it would be: nothing new
 crosses the wire.  What is not done is not on the ladder: the seven
 candidate questions for the fire, F204's pad, F205's wait.
 
+### The fifth slice, built — the editing scale — 2026-09-06, the second sitting
+
+*Henri, opening a second sitting: "I'd like us to continue the
+drawn-scores.. make it more like what it's supposed to be."*  What it
+is supposed to be is `card:notes-editor.md`'s league, and the
+photographs said where the gap was: rung 5 opened a `.notes` to the
+score box's *glance* — 384 by 116, a note three pixels tall, no keys,
+no bars, `NOTES` on every section — where Reaper fills the window,
+names the keys and numbers the bars.  **The postcondition, written
+before the code:** *a person opening a `.notes` sees each section at a
+size where a note can be taken by the hand, with the keys named down
+the side and the bars numbered along the top.*
+
+**Two scales, one arithmetic.**  A `Roll` now carries a `Geometry` —
+its box, the three margins around the body, and how tall a note is —
+and `y_of`/`x_of` draw from it while `key_at`/`tick_at` read back
+through it, so the picture and the gesture cannot disagree at either
+scale.  `COMPACT` is the box beside a line of a `.ges`, **held to the
+pixel**: the pictures of `chopin.ges`, `minute.ges`, `noted.ges` and
+`arcnotes.ges` were snapshotted before the change and are item-identical
+after it, hands included.  `editing` is what a `.notes` roll gets from
+the data road, and its numbers are fixed rather than fitted to a window,
+so a section is the same picture on every desk and a test can hold it:
+
+| | |
+|---|---|
+| a semitone | 8 px — a row a hand can take; a note is 6 px tall |
+| a beat | 32 px — a sixteenth is 8 px, the finest thing `GRID_MIN` asks a hand to hit |
+| the keys | 30 px down the left, a key per semitone of the file's range, the octaves named on the Cs |
+| the ruler | 16 px along the top — the rail *is* the ruler: the bar's number at every bar line, a tick at every beat |
+| the body | the black-key rows striped across it, a line under every C, a beat line and a brighter bar line where the section declares them |
+| the caption | the section's name, key and mode — `A D lydian` — where `NOTES` said only what kind of box it was |
+| `arc.notes` | 1054 by 376 a section, 128 columns of 8 px, three sections 1128 px tall under the scroll |
+
+**The bars are the section's.**  A `Roll` carries the ticks its bar
+lines fall on and its beat, known for a `.notes` roll and `None` for a
+`.ges` take, which has no bars to draw.  And a roll asked for the voices
+of *two* sections draws the second after the first now — every section
+began at tick 0 before and only the span was summed, which the page
+never showed because it asks one section a roll.
+
+**The hands folded balanced.**  A chain of `n` `Over`s is `n`
+parentheses held open, which is what overflowed the parser on chopin's
+notes and what `MAX_HANDS = 48` was for; `_overs` folds the same list
+into a tree of depth `log n` in the same order — the walk paints in
+order and records attachments in order, and an in-order walk of a
+balanced tree is the list — so a page's 128 columns cost eight levels
+and the bound is 256.  The reference walk is held to it: every note's
+own rectangle pressed lands on a column that names that note, and a
+press in the ruler lands on the rail, rail first as the chain had it.
+
+**Measured.**  The page's program grew from 19 k to 80 k characters —
+the furniture is unrolled — and compiles once in 3.9 s (live) where the
+glance took about 3 s; a moved note is still a lookup under the 1.5 s
+the slice-3 test holds it to, because the text holds still.  Then the
+real window on `Xvfb :99`, `arc.notes` opened alone:
+`test/driven/20260906-141355-notes-page-editing-scale` on the desk
+that ran it — the page appeared 2 s after `Ctrl-Tab`, the run aimed at
+a whole-bar note of the `upper` voice by reading its rectangle off the
+reference walk and the page's ground off the photograph, carried it
+three semitones with the picture following, dropped it, and `Ctrl-S`
+changed **one line** of the copy: `key 57` to `key 60`.  The drop
+played the piece from the note through the sound card for a few
+seconds, as decision 2 says it should.  Four tests under *The editing
+scale* in `test/test_drawnscores.py`; 131 in the file, green.
+
+**What this slice does not do, said now.**  The numbers are not fitted
+to the window: a section wider than the view is cut at the view's
+edge, and there is no horizontal scroll — a section of more than eight
+bars of four is the case that would ask for one.  The rail is still the
+second axis (F204 stands); the ruler only gives it a face.  No playhead
+crosses the page while the transport runs — the picture reads no
+transport position — and the margin words `tools/bars.py` computes are
+not drawn yet.  And the run photographed F208, two fields of the status
+row painted over each other under the page.
+
 ### What plugin-like scopes
 
 *"I'd like plugin-like, reusable behavior for this feature.  I think

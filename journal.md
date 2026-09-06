@@ -1226,3 +1226,49 @@ as the baked road.  Measured with the instrument running: one moved
 note, the audition done in 1.1 s, from 6.3 s this morning and 3.6 s
 after slice 2; the note audible at 0.6 s.  What remains is
 bookkeeping in Python, not a compile.
+
+## The editing scale — the second sitting, 2026-09-06
+
+Henri came back for a second sitting: *"continue the drawn-scores..
+make it more like what it's supposed to be."*  Short on purpose, so the
+session went and looked before asking: the notes-editor card says what
+it is supposed to be, and the two photographs beside each other said
+where the gap was — his roll a 384 by 116 box in the middle of the
+window with three-pixel notes, Reaper's filling the window with keys,
+a ruler and a grid.
+
+### Two scales, one arithmetic
+
+The postcondition first, naming no function: *a person opening a
+`.notes` sees each section at a size where a note can be taken by the
+hand, with the keys named down the side and the bars numbered along
+the top.*  Then a `Geometry` on the `Roll` — the box, three margins,
+how tall a note is — read by the same `y_of`/`x_of` that draw and the
+same `key_at`/`tick_at` that read back.  The compact box was
+snapshotted on four files before a line changed and held item-identical
+after, hands included, which is how the `.ges` score box got through
+the day untouched.  The `.notes` page got eight pixels a semitone,
+thirty-two a beat, a keyboard, a ruler that is the rail, beat and bar
+lines, stripes, and its section's name for a caption.
+
+### What was found on the way
+
+The hands were a chain of `Over`s bounded at 48 because chopin's notes
+had once overflowed the parser; a page at editing scale wants 128
+columns.  Folded balanced, the same order, depth eight — and a test
+that presses every note's own rectangle on the reference walk and gets
+that note back.  And a roll asked for two sections had been drawing
+both from tick 0 while summing the span; the page never showed it
+because it asks one section a roll.  Fixed with the bars.
+
+### Driven
+
+The real window on `Xvfb :99`, 27 s wall: the page 2 s after
+`Ctrl-Tab`, a whole-bar `upper` note found by reading the reference
+walk and the page's ground off the photograph, carried three semitones
+with the picture following, dropped — the piano played from there
+through the sound card — and `Ctrl-S` changed one line of the copy,
+`key 57` to `key 60`.  The photograph also showed the status row
+painting two fields over each other, F208.  One decision went to Henri
+at the start with a default and is still his: F204, both axes in one
+drag, by repairing the walk.

@@ -182,3 +182,29 @@ written into three reference machines in Python.  Neither is a
 compile any more.  Before the hand has left the mouse is the
 postcondition and it is not met yet; what stands between is now
 bookkeeping, not architecture.
+
+## The editing scale, landed — 2026-09-06, the second sitting
+
+**Henri:** *"I'd like us to continue the drawn-scores.. make it more
+like what it's supposed to be."*  Read against the three screenshots
+this card was written from: the roll was still the score box's glance,
+384 by 116 in the middle of the window, a note three pixels tall.
+
+**A `.notes` page is drawn at an editing scale now** — eight pixels a
+semitone, thirty-two a beat, a keyboard down the side with the octaves
+named, the bars numbered along the ruler, beat and bar lines, the
+black-key rows striped, each section captioned with its name and mode.
+The `.ges` box beside a line is unchanged to the pixel.  One
+arithmetic still, at two scales, so every gesture reads the new picture
+unchanged.  `spec/drawnscores.md` §"The fifth slice, built" is the
+contract and the numbers; driven and photographed
+(`test/driven/20260906-141355-notes-page-editing-scale`): a whole-bar
+note taken by the hand, carried three semitones with the picture
+following, dropped, and the file changed by one line.
+
+**Where this sits in the slices above:** between 3 and 4 — it is not a
+tool, it is the surface the tools need; a hand cannot take a
+three-pixel note and a person cannot tell which one it took.  Slice 4's
+list stands, and F204 — both axes in one drag — is the decision put to
+him with a default at the sitting's start: repair the walk so a pad is
+what `spec/substrate.md` says, and the rail retires to being the ruler.

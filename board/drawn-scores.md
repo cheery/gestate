@@ -10,7 +10,8 @@
              `fixme.md` F200 and F203.  What is left is rung 5, the
              view — **decided 2026-09-06, (B), and built the same day in
              four slices, the last driven and photographed** — §"Rung
-             5, decided" and §"Rung 5, the seam"
+             5, decided" and §"Rung 5, the seam".  **The second sitting,
+             2026-09-06: the editing scale** — §"The second sitting"
     because  "Minä koin että .ges tiedoston muokkaaminen näkemättä mitä
              on tekemässä oli aika raskasta hommaa. .ges on hyvä
              formaatti syntetisaattoreihin, mutta ehkä ei sittenkään
@@ -845,3 +846,19 @@ over (the wrapper expanded twice; the canvas command refusing the
 page) and one measurement filed as `fixme.md` F205.  **Rung 5 is
 built.**  What the card still carries is his: the seven candidate
 standing questions wait for the fire, F204 and F205 are decisions.
+
+## The second sitting — the editing scale, 2026-09-06
+
+**Henri:** *"I decided for a second sitting.  I'd like us to continue
+the drawn-scores.. make it more like what it's supposed to be."*  What
+it is supposed to be is written on `card:notes-editor.md`, from his
+three screenshots, and that card carries the slice — §"The editing
+scale, landed" — with `spec/drawnscores.md` §"The fifth slice, built"
+as the contract.  In one line: a `.notes` page is drawn at a size a
+hand can work, keys named, bars numbered, sections captioned, and the
+`.ges` box beside a line is unchanged to the pixel.  Driven and
+photographed the same hour.
+
+Still his: F204, both axes in one drag, put with a default at the
+start of the sitting.  Found on the way: F208, the status row painting
+two fields over each other under the page.

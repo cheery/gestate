@@ -170,6 +170,18 @@ class Roll:
     #: (`card:notes-editor.md` slice 3) — and every section of a page
     #: shares one pitch axis.
     scale: tuple | None = None
+    #: The roll's pixels — `COMPACT` for a box beside a line of a `.ges`,
+    #: or the editing scale for a `.notes` page (`editing`), where a
+    #: semitone is a row a hand can take.  `None` is `COMPACT`.
+    geometry: "Geometry | None" = None
+    #: The caption, when the roll knows what it is drawing — a `.notes`
+    #: section's name and mode.  `None` says `NOTES` or `TAKE n`.
+    title: str | None = None
+    #: The bar lines, as the tick each one falls on, and the beat in
+    #: ticks — known for a `.notes` roll, where the section declares
+    #: them, and `None` for a `.ges` take, which has no bars to draw.
+    bars: tuple | None = None
+    beat: int | None = None
 
 
 # ── The descent ─────────────────────────────────────────────────────────────
@@ -1063,6 +1075,85 @@ def _spelling(value) -> str:
 #: band; `Sized` reserves this much of it and the walk centres it.
 ROLL_W, ROLL_H = 384, 116
 
+
+class Geometry(NamedTuple):
+    """A roll's pixels: its box, the three margins around the body the
+    notes are drawn in, and how tall a note is.
+
+    **Two scales, one arithmetic.**  The box beside a line of a `.ges`
+    is a glance — `COMPACT`, 384 by 116, a note three pixels tall — and
+    a `.notes` page is an editor, where a semitone is a row a hand can
+    take (`editing`).  Both are drawn by the same `y_of`/`x_of` and read
+    back by the same `key_at`/`tick_at`, so the picture and the gesture
+    cannot disagree at either scale (§"One arithmetic, several readers").
+    """
+
+    w: int
+    h: int
+    #: Above the body: the rail, and at editing scale the bar numbers.
+    ruler: int
+    #: Below the body: the caption.
+    foot: int
+    #: Left of the body: the keyboard, zero for the compact box.
+    keys: int
+    #: How far the lowest and highest keys sit in from the body's ends —
+    #: half a row at editing scale, so a note is drawn *on* its row.
+    pad: int
+    #: How tall a note is drawn.
+    note_h: int
+
+
+#: The box beside a line: the size the score box has had since it was
+#: built, unchanged to the pixel by the editing scale's arrival.
+COMPACT = Geometry(ROLL_W, ROLL_H, 6, 14, 0, 0, 3)
+
+#: **The editing scale** — `card:notes-editor.md`, and the league it is
+#: named for: a `.notes` page is drawn at a size a hand can work, not a
+#: size a glance can take in.  Fixed numbers, said here rather than
+#: fitted to a window, so that a section is the same picture on every
+#: desk and a test can hold it: eight pixels a semitone, thirty-two a
+#: beat — a sixteenth is eight pixels, which is the finest thing the
+#: `GRID_MIN` snap can ask a hand to hit.
+SEMI_H = 8
+BEAT_W = 32
+KEYS_W = 30
+RULER_H = 16
+FOOT_H = 16
+
+
+def editing(lo: int, hi: int, span: int) -> Geometry:
+    """The geometry a `.notes` roll of this range and length is drawn at."""
+    from .midi import TICKS_PER_BEAT
+
+    pad = SEMI_H // 2
+    body_h = max(0, hi - lo) * SEMI_H + 2 * pad
+    body_w = max(BEAT_W, -(-span * BEAT_W // TICKS_PER_BEAT))
+    return Geometry(KEYS_W + body_w, RULER_H + body_h + FOOT_H,
+                    RULER_H, FOOT_H, KEYS_W, pad, SEMI_H - 2)
+
+
+def geometry_of(roll: Roll) -> Geometry:
+    return roll.geometry or COMPACT
+
+
+def body_of(roll: Roll) -> tuple:
+    """`(left, top, width, height)` of the body — where the notes are
+    drawn — in the box's own coordinates, its centre at the origin."""
+    g = geometry_of(roll)
+    return (-(g.w // 2) + g.keys, -(g.h // 2) + g.ruler,
+            g.w - g.keys, g.h - g.ruler - g.foot)
+
+
+def rail_of(roll: Roll) -> tuple:
+    """`(cx, cy, w, h)` of the rail — the `TouchX` strip along the top
+    of the body.  The body's width, so `tick_at` reads a fraction of
+    it; `RAIL_H` tall in the compact box, the whole ruler at editing
+    scale, where it carries the bar numbers as well."""
+    g = geometry_of(roll)
+    left, _top, width, _height = body_of(roll)
+    h = RAIL_H if g is COMPACT else g.ruler
+    return (left + width // 2, -(g.h // 2) + h // 2, width, h)
+
 #: Bank hues, assigned in reading order; the palette wraps.
 _HUES = [(122, 200, 235), (235, 178, 110), (150, 220, 150),
          (220, 140, 190)]
@@ -1098,8 +1189,12 @@ def _n(v: int) -> str:
 HAND_W = 8
 #: Bounded the way the leaves are, and for the same reason: the hands
 #: are nested `Over`s, and chopin's hundred and forty notes overflowed
-#: the parser the day the *notes* were nested.
-MAX_HANDS = 48
+#: the parser the day the *notes* were nested.  **Folded balanced since
+#: the editing scale** (`_overs`): a chain of `n` is `n` parentheses
+#: held open and a balanced tree is `log n`, so a page's 128 columns
+#: cost the parser eight levels and the bound is a bound, not a limit
+#: the compact box happened to fit under.
+MAX_HANDS = 256
 
 #: **The rail — a note's time is moved here, not on its column.**  A
 #: press writes exactly one attachment, the deepest containing it, in
@@ -1149,7 +1244,8 @@ def hands_of(roll: Roll) -> list:
     _lo, _hi, span = scale_of(roll)
     if span <= 0:
         return []
-    wide = max(1, min(MAX_HANDS, ROLL_W // HAND_W))
+    _left, _top, body_w, _body_h = body_of(roll)
+    wide = max(1, min(MAX_HANDS, body_w // HAND_W))
     step = max(1, -(-span // wide))             # ceiling, so the last
     out = []                                    # column reaches the end
     for i in range(wide):
@@ -1327,6 +1423,21 @@ def notes_rolls(program: str, asks_: list, origins: dict, parsed) -> list:
             out.append(RollError(f"`{unknown[0]}` is no voice of this file"))
             continue
         events, leaves = [], []
+        # The sections the ask draws, each once — not once per voice,
+        # which put every note in the left fifth of the roll on the
+        # first driven photograph (2026-09-06) while the headless
+        # parity, sharing the same scale on both roads, saw nothing.
+        # **In the order written, one after another**, each starting
+        # where the one before it ends, which is where the bar lines
+        # fall too.
+        drawn = dict.fromkeys(bounds[w][0].name for w in terms)
+        by_name = {s.name: s for s in parsed.sections}
+        starts, bars, at = {}, [], 0
+        for name in drawn:
+            starts[name] = at
+            one_bar = by_name[name].beats * TICKS_PER_BEAT
+            bars.extend(at + b * one_bar for b in range(by_name[name].bars))
+            at += by_name[name].bars * one_bar
         for term in terms:
             section, voice = bounds[term]
             bar_ticks = section.beats * TICKS_PER_BEAT
@@ -1336,10 +1447,11 @@ def notes_rolls(program: str, asks_: list, origins: dict, parsed) -> list:
                 line = generated.get(one.line)
                 if line is None or not 0 < line <= len(lines):
                     continue
-                on = (one.bar - 1) * bar_ticks + one.at
+                on = starts[section.name] + (one.bar - 1) * bar_ticks + one.at
                 # `long beats (…)` clips the bar, so a note written past
                 # the bar line sounds to the bar line — the same clip.
-                off = min(on + one.length, one.bar * bar_ticks)
+                off = min(on + one.length,
+                          starts[section.name] + one.bar * bar_ticks)
                 m = _FROM_NOTE.search(lines[line - 1])
                 atoms = ()
                 if m:
@@ -1353,17 +1465,17 @@ def notes_rolls(program: str, asks_: list, origins: dict, parsed) -> list:
         # holds still while notes move inside it.  The span is what the
         # sections declare, not where the last note ends.
         keys = [n.key for n in parsed.notes] or [60]
-        # The sections the ask draws, each once — not once per voice,
-        # which put every note in the left fifth of the roll on the
-        # first driven photograph (2026-09-06) while the headless
-        # parity, sharing the same scale on both roads, saw nothing.
-        drawn = dict.fromkeys(bounds[w][0].name for w in terms)
-        by_name = {s.name: s for s in parsed.sections}
-        span = sum(by_name[n].bars * by_name[n].beats * TICKS_PER_BEAT
-                   for n in drawn)
-        span = max(span, max((off for _on, off, *_r in events), default=0))
-        out.append(Roll(events, leaves, False, False, 0,
-                        scale=(min(keys), max(keys), span)))
+        span = max(at, max((off for _on, off, *_r in events), default=0))
+        scale = (min(keys), max(keys), span)
+        # **Drawn at the editing scale**, captioned with what it is —
+        # the section's name and its key and mode, which is what a
+        # person reading the page wants to know about the box, where
+        # `NOTES` said only what kind of box it was.
+        title = "  ".join(" ".join(w for w in (n, by_name[n].key, by_name[n].mode) if w)
+                          for n in drawn)
+        out.append(Roll(events, leaves, False, False, 0, scale=scale,
+                        geometry=editing(*scale), title=title,
+                        bars=tuple(bars), beat=TICKS_PER_BEAT))
     return out
 
 
@@ -1456,7 +1568,7 @@ def scale_of(roll: Roll) -> tuple:
 #: is simply off the top and bottom of the band.
 DRAG_REACH = 24
 
-#: The roll's drawing height — the label takes the rest.
+#: The compact roll's drawing height — the label takes the rest.
 BODY_H = ROLL_H - 20
 
 
@@ -1471,10 +1583,16 @@ def y_of(roll: Roll, key: int) -> int:
     Linear past the ends as well, which is what gives `DRAG_REACH` its
     pixels: the keys above and below the music are drawn nowhere but
     are still *somewhere*.
+
+    At either scale: the body's height less its padding, over the
+    roll's range — which at editing scale is exactly `SEMI_H` a
+    semitone, and in the compact box whatever 96 pixels divide into.
     """
     lo, hi, _span = scale_of(roll)
-    return (ROLL_H // 2 - 14
-            - int((key - lo) * BODY_H / max(1, hi - lo)))
+    g = geometry_of(roll)
+    _left, top, _width, height = body_of(roll)
+    return (top + height - g.pad
+            - int((key - lo) * (height - 2 * g.pad) / max(1, hi - lo)))
 
 
 def reach_of(roll: Roll) -> tuple:
@@ -1501,15 +1619,25 @@ def x_of(roll: Roll, tick: int) -> int:
     """Where a tick is drawn, in the box's own coordinates — `y_of`'s
     sibling, and `tick_at` inverts it for the same reason."""
     _lo, _hi, span = scale_of(roll)
-    return int(tick * ROLL_W / max(1, span)) - ROLL_W // 2
+    left, _top, width, _height = body_of(roll)
+    return left + int(tick * width / max(1, span))
 
 
 def tick_at(roll: Roll, across: float) -> int:
     """Which tick a hand this far along the rail means — `x_of`
     inverted.  `across` is what a `TouchX` writes: 0 at the left edge
-    of the rail, 1 at the right, and the rail is the roll's width."""
+    of the rail, 1 at the right, and the rail is the body's width."""
     _lo, _hi, span = scale_of(roll)
     return max(0, min(span, round(float(across) * span)))
+
+
+def across_of(roll: Roll, tick: int) -> float:
+    """How far along the rail a tick is — what a `TouchX` would write
+    for a hand there.  `tick_at` read backwards, and the one place a
+    test or a driver should get that fraction from, since the rail's
+    left edge and width are the geometry's and not the roll's."""
+    _lo, _hi, span = scale_of(roll)
+    return tick / max(1, span)
 
 
 def grid_of(roll: Roll) -> int:
@@ -1557,6 +1685,100 @@ def rows_channel(box: int) -> str:
     return f"__nb_rc_{box}__"
 
 
+def _overs(items: list) -> str:
+    """`items` folded into one `Over`, balanced.
+
+    **Order is meaning, depth is cost.**  The walk paints in order and
+    records attachments in order, so the fold has to keep the list's
+    order — and does, since an in-order walk of a balanced tree is the
+    list.  What changes is the depth: a chain of `n` `Over`s is `n`
+    parentheses held open, which is what overflowed the parser on
+    chopin's notes; a balanced tree holds `log n`.  Every item is a
+    complete, parenthesised expression, so the parentheses cannot come
+    out unbalanced the way a joined string's did.
+    """
+    if not items:
+        return "(Gap 0 0)"
+    if len(items) == 1:
+        return items[0]
+    mid = len(items) // 2
+    return f"(Over {_overs(items[:mid])} {_overs(items[mid:])})"
+
+
+#: The editing scale's ink: the rows a black key crosses, the line under
+#: each C, the beat and bar lines, the keys, and the ruler's numbers.
+_STRIPE = (37, 40, 49)
+_OCTAVE = (52, 57, 70)
+_BEAT_LINE = (44, 48, 58)
+_BAR_LINE = (78, 84, 100)
+_WHITE_KEY = (196, 200, 210)
+_BLACK_KEY = (58, 62, 74)
+_KEY_NAME = (40, 44, 52)
+_RULER_NAME = (140, 146, 160)
+_TRACK = (60, 66, 80)
+_ACCIDENTALS = frozenset({1, 3, 6, 8, 10})
+
+
+def _rgb(c: tuple) -> str:
+    return f"(RGB {c[0]} {c[1]} {c[2]})"
+
+
+def _furniture(roll: Roll) -> list:
+    """What an editing-scale roll draws under its notes, each a complete
+    expression: the black-key rows striped across the body so a height
+    reads as a pitch from anywhere along it, a line under every C, a
+    beat line and a brighter bar line wherever the section declares
+    them, and a keyboard down the left with the octaves named on it.
+    Reaper's editor has all four, and each answers *which note is this*
+    without the eye leaving the note (`card:notes-editor.md`)."""
+    lo, hi, span = scale_of(roll)
+    g = geometry_of(roll)
+    left, top, body_w, body_h = body_of(roll)
+    cx, cy = left + body_w // 2, top + body_h // 2
+    out = []
+    for key in range(lo, hi + 1):
+        y = y_of(roll, key)
+        if key % 12 in _ACCIDENTALS:
+            out.append(f"(Shift {_n(cx)} {_n(y)} (Rect {body_w} {SEMI_H} {_rgb(_STRIPE)}))")
+        if key % 12 == 0:
+            out.append(f"(Shift {_n(cx)} {_n(y + g.pad)} (Rect {body_w} 1 {_rgb(_OCTAVE)}))")
+    if roll.beat:
+        for t in range(0, span, roll.beat):
+            out.append(f"(Shift {_n(x_of(roll, t))} {_n(cy)} "
+                       f"(Rect 1 {body_h} {_rgb(_BEAT_LINE)}))")
+    for t in roll.bars or ():
+        out.append(f"(Shift {_n(x_of(roll, t))} {_n(cy)} "
+                   f"(Rect 1 {body_h} {_rgb(_BAR_LINE)}))")
+    kx = -(g.w // 2) + g.keys // 2 - 1
+    for key in range(lo, hi + 1):
+        y = y_of(roll, key)
+        ink = _BLACK_KEY if key % 12 in _ACCIDENTALS else _WHITE_KEY
+        out.append(f"(Shift {_n(kx)} {_n(y)} (Rect {g.keys - 4} {SEMI_H - 1} {_rgb(ink)}))")
+        if key % 12 == 0:
+            out.append(f"(Shift {_n(kx)} {_n(y)} (Label {g.keys - 6} 7 "
+                       f'"C{key // 12 - 1}" {_rgb(_KEY_NAME)}))')
+    return out
+
+
+def _ruler(roll: Roll) -> str:
+    """What the rail draws inside its own `Sized`: the compact box's
+    faint track, unchanged; at editing scale the track along its foot,
+    a tick at every beat, and the bar's number at every bar line."""
+    if geometry_of(roll) is COMPACT:
+        return f"(Rect {ROLL_W} 2 {_rgb(_TRACK)})"
+    _lo, _hi, span = scale_of(roll)
+    rail_x, _rail_y, rail_w, rail_h = rail_of(roll)
+    items = [f"(Shift 0 {rail_h // 2 - 1} (Rect {rail_w} 2 {_rgb(_TRACK)}))"]
+    if roll.beat:
+        for t in range(0, span, roll.beat):
+            items.append(f"(Shift {_n(x_of(roll, t) - rail_x)} {rail_h // 2 - 3} "
+                         f"(Rect 1 4 {_rgb(_BAR_LINE)}))")
+    for i, t in enumerate(roll.bars or ()):
+        items.append(f"(Shift {_n(x_of(roll, t) - rail_x + 10)} (0 - 1) "
+                     f'(Label 16 10 "{i + 1}" {_rgb(_RULER_NAME)}))')
+    return _overs(items)
+
+
 def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
                  live: bool = False) -> tuple:
     """The box's substrate program, and the hands it hands out.
@@ -1574,7 +1796,9 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
     """
     events, leaves = roll.events, roll.leaves
     lo, hi, span_ticks = scale_of(roll)
-    body_h = BODY_H                            # the label's room
+    geo = geometry_of(roll)
+    left, top, body_w, body_h = body_of(roll)
+    rail_x, rail_y, rail_w, rail_h = rail_of(roll)
     x_of = lambda t: globals()["x_of"](roll, t)
     y_of = lambda k: globals()["y_of"](roll, k)
 
@@ -1608,21 +1832,22 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
     #: `spec/annotations.md` §"The staff, and why it is not this" holds
     #: the fork.
     rules = []
-    for key in range(lo, hi + 1):
-        if key % 12:
-            continue
-        y = y_of(key)                      # the local, roll already bound
-        rules.append(f"(Shift 0 {_n(y)} (Rect {ROLL_W} 1 (RGB 46 51 62)))")
-        rules.append(f"(Shift {_n(18 - ROLL_W // 2)} {_n(y - 6)} "
-                     f'(Label 22 9 "C{key // 12 - 1}" (RGB 92 100 114)))')
+    if geo is COMPACT:
+        for key in range(lo, hi + 1):
+            if key % 12:
+                continue
+            y = y_of(key)                  # the local, roll already bound
+            rules.append(f"(Shift 0 {_n(y)} (Rect {ROLL_W} 1 (RGB 46 51 62)))")
+            rules.append(f"(Shift {_n(18 - ROLL_W // 2)} {_n(y - 6)} "
+                         f'(Label 22 9 "C{key // 12 - 1}" (RGB 92 100 114)))')
+    else:
+        rules = _furniture(roll)
 
     #: Folded here rather than spliced into the template: one `Over` per
     #: rule, each a complete expression, so the parentheses cannot come
     #: out unbalanced the way a joined string's did.
-    ground = (f"(Rect {ROLL_W} {ROLL_H} "
-              f"(RGB {_NIGHT[0]} {_NIGHT[1]} {_NIGHT[2]}))")
-    for rule in rules:
-        ground = f"(Over {ground} {rule})"
+    ground = _overs([f"(Rect {geo.w} {geo.h} "
+                     f"(RGB {_NIGHT[0]} {_NIGHT[1]} {_NIGHT[2]}))"] + rules)
 
     # **The note's own number rides with it**, so that one of them can
     # be moved without the others: which one a hand has hold of arrives
@@ -1673,25 +1898,24 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
         # nothing to see there, and a press can only start inside the
         # band because that is all the window routes to this walk.
         low, high = reach_of(roll)
-        top, bottom = y_of(high), y_of(low)
-        regions.append(f"Shift {_n(x0 + w // 2)} {_n((top + bottom) // 2)} "
-                       f"(TouchY {chan} (Sized {w} {bottom - top} "
-                       f"(Gap 0 0)))")
-    hands = "Gap 0 0"
-    for r in regions:
-        hands = f"Over ({hands}) ({r})"
+        reach_top, reach_bottom = y_of(high), y_of(low)
+        regions.append(f"(Shift {_n(x0 + w // 2)} "
+                       f"{_n((reach_top + reach_bottom) // 2)} "
+                       f"(TouchY {chan} (Sized {w} {reach_bottom - reach_top} "
+                       f"(Gap 0 0))))")
     # **The rail goes in first, so it wins where a column reaches over
     # it.**  A press lands on the first attachment recorded that
     # contains it, and a column is `DRAG_REACH` taller than the notes
     # at each end — so the strip along the top would be shadowed by
     # every column under it if it were written after them.  One
-    # `TouchX`, the roll's whole width, drawn as a faint track.
+    # `TouchX`, the body's whole width, drawn as a faint track — and at
+    # editing scale it *is* the ruler, the bar numbers drawn inside it.
     rail_c = _rail(box)
-    rail = (f"Shift 0 {_n(RAIL_Y)} (TouchX {rail_c} (Sized {ROLL_W} {RAIL_H} "
-            f"(Rect {ROLL_W} 2 (RGB 60 66 80))))")
-    hands = f"Over ({rail}) ({hands})"
+    rail = (f"(Shift {_n(rail_x)} {_n(rail_y)} (TouchX {rail_c} "
+            f"(Sized {rail_w} {rail_h} {_ruler(roll)})))")
+    hands = _overs(["(Gap 0 0)", rail] + regions)
 
-    caption = f"TAKE {roll.seed}" if roll.chancy else "NOTES"
+    caption = f"TAKE {roll.seed}" if roll.chancy else (roll.title or "NOTES")
     if roll.cut:
         caption += " · CUT"
 
@@ -1778,15 +2002,16 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
             # a row does not know its neighbour.
             + f"{port_g} : Int -> Int -> Int -> Int -> Sub\n"
             + f"{port_g} m t d w = case {asks_g} m {MANNERS[2][0]} of\n"
-            + f"    True -> Shift (0 - (w / 2) - 2) 0 (Rect 2 9 ({hue_g} t d))\n"
+            + f"    True -> Shift (0 - (w / 2) - 2) 0 (Rect 2 {geo.note_h + 6} "
+              f"({hue_g} t d))\n"
             + "    False -> Gap 0 0\n\n"
             + f"{stac_g} : Int -> Int -> Int -> Sub\n"
             + f"{stac_g} m t d = case {asks_g} m {MANNERS[0][0]} of\n"
-            + f"    True -> Shift 0 5 (Rect 2 2 ({hue_g} t d))\n"
+            + f"    True -> Shift 0 {geo.note_h + 2} (Rect 2 2 ({hue_g} t d))\n"
             + "    False -> Gap 0 0\n\n"
             + f"{acc_g} : Int -> Int -> Int -> Sub\n"
             + f"{acc_g} m t d = case {asks_g} m {MANNERS[1][0]} of\n"
-            + f"    True -> Shift 0 (0 - 5) (Rect 6 2 ({hue_g} t d))\n"
+            + f"    True -> Shift 0 (0 - {geo.note_h + 2}) (Rect 6 2 ({hue_g} t d))\n"
             + "    False -> Gap 0 0\n\n"
             # **The bits come from `MANNERS`, not from the names**, and
             # that is a correction the building made: a canvas program
@@ -1807,18 +2032,18 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
             + "    False -> 0\n\n"
             + f"{seln_g} : Bool -> Int -> Sub\n"
             + f"{seln_g} on w = case on of\n"
-            + "    True -> Rect (w + 2) 5 (RGB 236 240 248)\n"
+            + f"    True -> Rect (w + 2) {geo.note_h + 2} (RGB 236 240 248)\n"
             + "    False -> Gap 0 0\n\n"
             + f"{mark_g} : Bool -> Int -> Int -> Int -> Sub\n"
             + f"{mark_g} on dy t d = case on of\n"
-            + f"    True -> Shift 0 dy (Rect 3 {RAIL_H} ({hue_g} t d))\n"
+            + f"    True -> Shift 0 dy (Rect 3 {rail_h} ({hue_g} t d))\n"
             + "    False -> Gap 0 0\n\n"
             + f"{one_g} : Int -> Int -> Int -> Int -> "
               f"Int -> Int -> Int -> Int -> Int -> Int -> Int -> Sub\n"
             + f"{one_g} h v s dx i x y w t d m = Shift (x + {shift_g} i h dx) "
               f"(y + {shift_g} i h v) (Over (Over ({seln_g} (i == s) w) "
-              f"(Rect w 3 ({hue_g} t d))) (Over ({dot_g} m t d w) "
-              f"({mark_g} (i == s) ({_n(RAIL_Y)} - y - {shift_g} i h v) t d)))\n\n"
+              f"(Rect w {geo.note_h} ({hue_g} t d))) (Over ({dot_g} m t d w) "
+              f"({mark_g} (i == s) ({_n(rail_y)} - y - {shift_g} i h v) t d)))\n\n"
             + (f"{all_g} : Int -> Int -> Int -> Int -> List Float -> Sub\n"
                f"{all_g} h v s dx es = case es of\n"
                f"    i :: x :: y :: w :: t :: d :: m :: rest -> Over "
@@ -1832,16 +2057,17 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
                f"    (i, x, y, w, t, d, m) :: rest -> Over "
                f"({one_g} h v s dx i x y w t d m) ({all_g} h v s dx rest)\n\n")
             + (f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> Sub\n"
-               f"{pic_g} h v s dx es = Sized {ROLL_W} {ROLL_H} (Over (Over (Over\n"
+               f"{pic_g} h v s dx es = Sized {geo.w} {geo.h} (Over (Over (Over\n"
                if live else
                f"{pic_g} : Float -> Float -> Float -> Float -> Sub\n"
-               f"{pic_g} h v s dx = Sized {ROLL_W} {ROLL_H} (Over (Over (Over\n")
+               f"{pic_g} h v s dx = Sized {geo.w} {geo.h} (Over (Over (Over\n")
             + f"    {ground}\n"
             + f"    ({all_g} (floor h) (floor v) (floor s) (floor dx) "
               f"{'es' if live else rows_g}))\n"
-            + f"    (Shift 0 {ROLL_H // 2 - 8} (Label 120 12 \"{caption}\" "
-              f"(RGB 120 124 134))))\n"
-            + f"    ({hands}))\n\n"
+            + f"    (Shift {_n(0 if geo is COMPACT else left + body_w // 2)} "
+              f"{geo.h // 2 - geo.foot // 2 - 1} (Label {120 if geo is COMPACT else body_w - 8} "
+              f"12 \"{caption}\" (RGB 120 124 134))))\n"
+            + f"    {hands})\n\n"
             # **A signal, because one note may be moving.**  The roll
             # is a take and a take does not animate — but a hand on it
             # does, and lifting the picture over the two channels above

@@ -1783,8 +1783,8 @@ def test_a_tick_is_x_inverted_and_the_grid_is_the_rolls_own():
     """One arithmetic, two readers, the law `y_of`/`key_at` keep — now
     for time.  And the grid is read off the roll's events, never finer
     than a thirty-second."""
-    from gestate.scorebox import (GRID_MIN, ROLL_W, build_rolls, grid_of,
-                                  scale_of, tick_at, x_of)
+    from gestate.scorebox import (GRID_MIN, across_of, body_of, build_rolls,
+                                  grid_of, scale_of, tick_at)
 
     source, _o = notes.expanded(ARCNOTES.read_text(), ARCNOTES.parent)
     asks = [(i + 1, l[6:]) for i, l in enumerate(source.splitlines())
@@ -1792,8 +1792,8 @@ def test_a_tick_is_x_inverted_and_the_grid_is_the_rolls_own():
     roll = build_rolls(source, asks[:1], 22050, 0)[0]
     _lo, _hi, span = scale_of(roll)
     for tick in (0, 96, 288, span):
-        across = (x_of(roll, tick) + ROLL_W // 2) / ROLL_W
-        assert abs(tick_at(roll, across) - tick) <= span / ROLL_W + 1
+        across = across_of(roll, tick)
+        assert abs(tick_at(roll, across) - tick) <= span / body_of(roll)[2] + 1
     grid = grid_of(roll)
     assert grid >= GRID_MIN
     assert all((on % grid == 0) and ((off - on) % grid == 0)
@@ -1827,7 +1827,7 @@ def test_a_rail_drag_moves_the_selected_note_by_the_grid_and_writes_one_line():
     """**The slice's own number**: press a note, drag the rail one beat,
     let go — one line of the `.notes` file changes, by one field, and
     the transcript holds it as `move`."""
-    from gestate.scorebox import ROLL_W, grid_of, scale_of, x_of
+    from gestate.scorebox import across_of, grid_of, scale_of
 
     with _copied() as here:
         roll, seat = _rolled_page(here)
@@ -1837,7 +1837,7 @@ def test_a_rail_drag_moves_the_selected_note_by_the_grid_and_writes_one_line():
         on = roll.events[note][0]
         grid = grid_of(roll)
         _lo, _hi, span = scale_of(roll)
-        across0 = (x_of(roll, on) + ROLL_W // 2) / ROLL_W
+        across0 = across_of(roll, on)
         assert seat.touched("__nb_rail_0__", across0).startswith("tick ")
         across1 = across0 + grid / span
         moving = seat.touched("__nb_rail_0__", across1)
@@ -1863,7 +1863,7 @@ def test_a_rail_drag_moves_the_selected_note_by_the_grid_and_writes_one_line():
 def test_a_move_onto_a_written_note_is_refused_and_writes_nothing():
     """`notes.doubled` on the gesture, as rung 4 put it: the file may
     not say one place twice, so the drag says so and moves nothing."""
-    from gestate.scorebox import ROLL_W, scale_of, x_of
+    from gestate.scorebox import across_of, scale_of
 
     with _copied() as here:
         roll, seat = _rolled_page(here)
@@ -1882,8 +1882,8 @@ def test_a_move_onto_a_written_note_is_refused_and_writes_nothing():
         chan = _press_a_note(seat, roll, first)
         seat.released(chan)
         _lo, _hi, span = scale_of(roll)
-        seat.touched("__nb_rail_0__", (x_of(roll, on) + ROLL_W // 2) / ROLL_W)
-        seat.touched("__nb_rail_0__", (x_of(roll, nxt) + ROLL_W // 2) / ROLL_W)
+        seat.touched("__nb_rail_0__", across_of(roll, on))
+        seat.touched("__nb_rail_0__", across_of(roll, nxt))
         target = here.parent / "arc.notes"
         before = target.read_text()
         said = seat.released("__nb_rail_0__")
@@ -1898,7 +1898,7 @@ def test_a_ges_written_note_cannot_be_moved_on_the_rail():
     import tempfile
     from pathlib import Path
 
-    from gestate.scorebox import ROLL_W, scale_of, x_of
+    from gestate.scorebox import across_of, scale_of
 
     with tempfile.TemporaryDirectory() as tmp:
         here = Path(tmp) / "noted.ges"
@@ -1909,8 +1909,8 @@ def test_a_ges_written_note_cannot_be_moved_on_the_rail():
         seat.released(chan)
         on = roll.events[0][0]
         _lo, _hi, span = scale_of(roll)
-        seat.touched("__nb_rail_0__", (x_of(roll, on) + ROLL_W // 2) / ROLL_W)
-        seat.touched("__nb_rail_0__", (x_of(roll, on) + ROLL_W // 2) / ROLL_W + 0.2)
+        seat.touched("__nb_rail_0__", across_of(roll, on))
+        seat.touched("__nb_rail_0__", across_of(roll, on) + 0.2)
         said = seat.released("__nb_rail_0__")
         assert said.startswith("move:") and ".notes" in said, said
         assert here.read_text().endswith("notes score\n"), "nothing was written"
@@ -1924,7 +1924,7 @@ def test_a_move_while_stopped_plays_the_piece_from_where_the_note_went():
     performing, so a note dragged with the transport stopped is heard,
     and heard from itself — where it *went*, not where it was."""
     from gestate.midi import TICKS_PER_BEAT
-    from gestate.scorebox import ROLL_W, grid_of, scale_of, x_of
+    from gestate.scorebox import across_of, grid_of, scale_of
 
     with _copied() as here:
         roll, seat = _rolled_page(here)
@@ -1932,7 +1932,7 @@ def test_a_move_while_stopped_plays_the_piece_from_where_the_note_went():
         seat.released(chan)
         on, grid = roll.events[0][0], grid_of(roll)
         _lo, _hi, span = scale_of(roll)
-        across0 = (x_of(roll, on) + ROLL_W // 2) / ROLL_W
+        across0 = across_of(roll, on)
         seat.touched("__nb_rail_0__", across0)
         seat.touched("__nb_rail_0__", across0 + grid / span)
         said = seat.released("__nb_rail_0__")
@@ -2058,8 +2058,9 @@ def test_the_page_is_the_files_own_picture_stacked():
     assert sorted(bench.canvases) == [f"__notes_{k}__" for k in range(len(parsed.sections))]
     assert bench.substrate is not None, "the page is the file's own picture"
     picture = bench.substrate.picture()
-    captions = [i for i in picture if i[0] == "text" and i[3] == "NOTES"]
-    assert len(captions) == len(parsed.sections), "one roll per section, stacked"
+    titles = [f"{s.name} {s.key} {s.mode}".upper() for s in parsed.sections]
+    captions = [i for i in picture if i[0] == "text" and i[3] in titles]
+    assert len(captions) == len(parsed.sections), "one roll per section, stacked, each captioned with its section"
     tops = sorted(i[2] for i in captions)
     assert len(set(tops)) == len(tops), "stacked, not overlaid"
     rails = [k for k, r in bench.note_regions.items() if r.hand == RAIL]
@@ -2379,7 +2380,7 @@ def test_a_live_rolls_text_holds_still_while_a_note_moves():
 
 def test_a_live_roll_draws_the_picture_the_baked_one_draws():
     from gestate.gui import Substrate
-    from gestate.scorebox import rows_channel, rows_reading
+    from gestate.scorebox import geometry_of, rows_channel, rows_reading
 
     rolls, (baked, _r, entries), (live, _r2, _e2) = _live_and_baked()
     vb = Substrate.several(baked, 44100, entries)
@@ -2391,7 +2392,7 @@ def test_a_live_roll_draws_the_picture_the_baked_one_draws():
     for k in range(len(entries)):
         rects = lambda v: [i for i in v.picture() if i[0] == "rect"]
         assert rects(vl[k]) == rects(vb[k]), f"box {k} differs"
-        assert any(i[4] == 3 for i in rects(vl[k])), "and there are notes in it"
+        assert any(i[4] == geometry_of(rolls[k]).note_h for i in rects(vl[k])), "and there are notes in it"
 
 
 def test_the_data_roads_scale_is_the_sections_length_and_the_files_range():
@@ -2400,7 +2401,7 @@ def test_the_data_roads_scale_is_the_sections_length_and_the_files_range():
     fifth of the roll — and the baked and live roads, sharing the
     scale, agreed with each other about the wrong picture."""
     from gestate.midi import TICKS_PER_BEAT
-    from gestate.scorebox import ROLL_W, scale_of, x_of
+    from gestate.scorebox import body_of, scale_of, x_of
 
     rolls, _b, _l = _live_and_baked()
     parsed = notes.parse(NOTES.read_text(), "arc.notes")
@@ -2410,16 +2411,18 @@ def test_the_data_roads_scale_is_the_sections_length_and_the_files_range():
         assert span == section.bars * section.beats * TICKS_PER_BEAT
         assert (lo, hi) == (min(keys), max(keys)), "one axis for the page"
         last = max(off for _on, off, *_r in roll.events)
-        assert x_of(roll, last) > ROLL_W // 4, "the notes reach across the roll"
+        left, _top, width, _h = body_of(roll)
+        assert x_of(roll, last) > left + width // 4, "the notes reach across the roll"
 
 
 def test_the_columns_tile_the_roll_and_an_empty_one_refuses_by_name():
-    from gestate.scorebox import RefusedError, hands_of, note_under
+    from gestate.scorebox import (HAND_W, MAX_HANDS, RefusedError, body_of,
+                                  hands_of, note_under)
 
     rolls, _b, _l = _live_and_baked()
     roll = rolls[0]
     tiles = hands_of(roll)
-    assert len(tiles) == 48
+    assert len(tiles) == min(MAX_HANDS, body_of(roll)[2] // HAND_W) == 128
     for i in range(len(roll.events)):
         assert sum(1 for _t0, _t1, under in tiles if i in under) >= 1, f"note {i} under no column"
     empty = next((h for h, (_t0, _t1, under) in enumerate(tiles) if not under), None)
@@ -2433,6 +2436,8 @@ def test_the_page_after_a_moved_note_is_a_lookup_not_a_compile():
     move, so only the rows are written."""
     import time
 
+    from gestate.scorebox import geometry_of
+
     here, bench = _opened_alone()
     bench._load_substrate(bench.program())
     assert len(bench.note_rows) == 3
@@ -2441,5 +2446,135 @@ def test_the_page_after_a_moved_note_is_a_lookup_not_a_compile():
     bench._load_substrate(moved)
     took = time.perf_counter() - t0
     assert took < 1.5, f"{took:.2f} s"
-    bars = [i for i in bench.canvases["__notes_0__"].picture() if i[0] == "rect" and i[4] == 3]
-    assert len(bars) == len(bench.note_regions["__nb_c0_0__"].roll.events)
+    roll = bench.note_regions["__nb_c0_0__"].roll
+    bars = [i for i in bench.canvases["__notes_0__"].picture()
+            if i[0] == "rect" and i[4] == geometry_of(roll).note_h]
+    assert len(bars) == len(roll.events)
+
+
+# ── The editing scale — `card:notes-editor.md`, 2026-09-06 ──────────────────
+#
+# Rung 5 opened a `.notes` as a roll; what it opened was the score box's
+# glance — 384 by 116, a note three pixels tall, no keys, no bars.  The
+# league the card names needs a page a hand can work: a semitone a row,
+# a beat a stride, the keys named down the side and the bars numbered
+# along the top.  One arithmetic still, at two scales.
+
+
+def test_a_notes_page_is_drawn_at_editing_scale_and_the_box_is_not():
+    """A `.notes` roll is `editing`: a semitone is `SEMI_H` pixels and a
+    beat `BEAT_W`, read off the same `y_of`/`x_of` every gesture reads.
+    A `.ges` box beside a line is `COMPACT`, to the pixel it was."""
+    from gestate.midi import TICKS_PER_BEAT
+    from gestate.scorebox import (BEAT_W, BODY_H, COMPACT, ROLL_H, SEMI_H,
+                                  build_rolls, geometry_of, scale_of, x_of,
+                                  y_of)
+
+    rolls, _b, _l = _live_and_baked()
+    for roll in rolls:
+        geo = geometry_of(roll)
+        assert geo is not COMPACT and geo.note_h == SEMI_H - 2
+        lo, hi, _span = scale_of(roll)
+        for key in range(lo, hi):
+            assert y_of(roll, key) - y_of(roll, key + 1) == SEMI_H, key
+        assert x_of(roll, TICKS_PER_BEAT) - x_of(roll, 0) == BEAT_W
+
+    source, _o = notes.expanded(ARCNOTES.read_text(), ARCNOTES.parent)
+    asks = [(i + 1, l[6:]) for i, l in enumerate(source.splitlines())
+            if l.startswith("notes ")]
+    box = build_rolls(source, asks[:1], 22050, 0)[0]
+    assert geometry_of(box) is COMPACT
+    lo, hi, _span = scale_of(box)
+    for key in range(lo, hi + 1):
+        assert y_of(box, key) == ROLL_H // 2 - 14 - int((key - lo) * BODY_H / max(1, hi - lo)), \
+            "the compact box's line, as it was written before the editing scale"
+
+
+def test_the_page_names_its_keys_its_bars_and_its_sections():
+    """What the eye needs to read a note without leaving it: a key per
+    semitone down the side with the octaves named, a number per bar
+    along the ruler, a line per beat, and the section's own name and
+    mode as the caption — the four things Reaper's editor has and the
+    glance did not (`card:notes-editor.md`)."""
+    from gestate.gui import Substrate
+    from gestate.scorebox import body_of, geometry_of, scale_of
+
+    rolls, (baked, _r, entries), _l = _live_and_baked()
+    parsed = notes.parse(NOTES.read_text(), "arc.notes")
+    views = Substrate.several(baked, 44100, entries)
+    for roll, section, view in zip(rolls, parsed.sections, views):
+        geo = geometry_of(roll)
+        lo, hi, _span = scale_of(roll)
+        items = view.picture()
+        keys = [i for i in items if i[0] == "rect" and i[3] == geo.keys - 4]
+        assert len(keys) == hi - lo + 1, "a key per semitone of the range"
+        names = sorted(i[3] for i in items if i[0] == "text" and i[3].startswith("C") and i[3][1:].lstrip("-").isdigit())
+        assert names == sorted(f"C{k // 12 - 1}" for k in range(lo, hi + 1) if k % 12 == 0)
+        numbers = sorted(int(i[3]) for i in items if i[0] == "text" and i[3].isdigit())
+        assert numbers == list(range(1, section.bars + 1)), "a number per bar"
+        _left, _top, _w, body_h = body_of(roll)
+        lines = [i for i in items if i[0] == "rect" and i[3] == 1 and i[4] == body_h]
+        assert len(lines) == section.bars * section.beats + section.bars, "a line per beat, and a brighter one per bar"
+        caption = [i for i in items if i[0] == "text" and i[3] == f"{section.name} {section.key} {section.mode}".upper()]
+        assert len(caption) == 1, "captioned with what it is"
+
+
+def test_a_hand_takes_a_note_by_its_row_and_the_ruler_by_its_strip():
+    """The reference walk over the editing-scale page: a press on a
+    note's own rectangle lands on a column and names that note, and a
+    press in the ruler lands on the rail — the hands folded balanced
+    (`_overs`) record in the same order the chain did, rail first."""
+    from gestate.gui import Substrate
+    from gestate.scorebox import (RAIL, geometry_of, note_under, rail_of,
+                                  regions_of)
+
+    rolls, (baked, _r, entries), _l = _live_and_baked()
+    regions = regions_of(rolls)
+    view = Substrate.several(baked, 44100, entries)[0]
+    roll = rolls[0]
+    geo = geometry_of(roll)
+    heads = [i for i in view.picture() if i[0] == "rect" and i[4] == geo.note_h]
+    assert len(heads) == len(roll.events)
+    hit, named = 0, 0
+    for _kind, x, y, w, h, _c in heads:
+        meant = view.touch("press", x + w // 2, y + h // 2)
+        view.touch("release", x + w // 2, y + h // 2)
+        if not meant or meant[0] != "touched":
+            continue
+        hit += 1
+        found = regions[meant[1]]
+        assert found.hand != RAIL, "a note's row is not the ruler"
+        try:
+            note_under(roll, found.hand, meant[2])
+            named += 1
+        except Exception:                                # noqa: BLE001
+            pass
+    assert hit == len(heads), f"{hit} of {len(heads)} notes could be pressed"
+    assert named == hit
+    cx, cy, _w, _h = rail_of(roll)
+    meant = view.touch("press", cx, cy)
+    view.touch("release", cx, cy)
+    assert meant and meant[0] == "touched" and regions[meant[1]].hand == RAIL
+
+
+def test_two_sections_on_one_roll_follow_one_another():
+    """An ask naming voices of two sections draws the second after the
+    first — the bar lines and the notes agree on where a section
+    starts, which they did not before the editing scale: every section
+    began at tick 0 and only the span was summed."""
+    from gestate.midi import TICKS_PER_BEAT
+    from gestate.scorebox import notes_rolls, scale_of
+
+    text = notes.wrapper(NOTES)
+    source, origins = notes.expanded(text, NOTES.parent)
+    parsed = notes.parse(NOTES.read_text(), "arc.notes")
+    a, b = parsed.sections[0], parsed.sections[1]
+    ask = f"(notes_{a.name}_{a.voices[0]} || notes_{b.name}_{b.voices[0]})"
+    line = next(i + 1 for i, l in enumerate(source.splitlines()) if l.startswith("notes "))
+    roll = notes_rolls(source, [(line, ask)], origins, parsed)[0]
+    first = a.bars * a.beats * TICKS_PER_BEAT
+    _lo, _hi, span = scale_of(roll)
+    assert span == first + b.bars * b.beats * TICKS_PER_BEAT
+    assert roll.bars[a.bars] == first, "the second section's first bar line"
+    assert any(on >= first for on, *_r in roll.events), "the second section's notes follow the first's"
+    assert roll.title == f"{a.name} {a.key} {a.mode}  {b.name} {b.key} {b.mode}"
