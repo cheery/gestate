@@ -963,8 +963,13 @@ class Substrate:
             head.append(f"tick\t{c['tick']}")
         for name in c["chans"]:
             value = self.values.get(name)
+            # A list channel's value does not ride the `chan` line — the
+            # window carries a number there and a list arrives as a
+            # `trace` (`spec/scope.md`); printed here it was 300 KB of
+            # text the parser could not read.
             head.append(f"chan\t{name}"
-                        + ("" if value is None else f"\t{value}"))
+                        + ("" if value is None or isinstance(value, list)
+                           else f"\t{value}"))
         return "\n".join(head) + "\nprogram\n" + c["text"]
 
     def tick(self) -> None:

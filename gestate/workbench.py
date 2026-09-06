@@ -862,6 +862,7 @@ def run(path, rate: int = 44100, block: int = 512,
     #: Starts as a sentinel no substrate can be, so the first pass
     #: sends whatever is there, `None` included.
     walked: object = run
+    rows_sent: object = None
     wait, next_frame = IDLE, 0.0
     clock = _LoopClock() if os.environ.get("GESTATE_LOOP_TIME") else None
     #: **Waiting for the window to say where it is**, before putting it
@@ -1014,6 +1015,19 @@ def run(path, rate: int = 44100, block: int = 512,
             if marks != walked:
                 walked = marks
                 editor.walk(_payloads(sub, boxes))
+                # A rebuilt walker starts with no rows; they go again.
+                rows_sent = None
+            # **A live roll's notes cross as a trace** — `spec/scope.md`'s
+            # word, a `List Float` reading — and only when they change,
+            # which is a rebuild or a drag's commit; the picture between
+            # them is the walk's own (`card:notes-editor.md` slice 3).
+            rows_now = getattr(bench, "note_rows", None) or []
+            if rows_now and rows_now != rows_sent:
+                editor.readings("\n".join(
+                    "trace\t" + chan + "\t"
+                    + "\t".join(f"{v:.5g}" for v in flat)
+                    for chan, flat in rows_now))
+                rows_sent = rows_now
 
             t2 = time.monotonic()
             # **The canvas, and only while it is what you are looking

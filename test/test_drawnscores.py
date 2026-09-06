@@ -2346,3 +2346,100 @@ def test_a_note_edit_leaves_the_engine_text_byte_identical():
     after = NotesKind.engine_program(bench, moved)
     assert after == before
     assert bench.program(moved) != bench.program(bench.source()), "the program did move"
+
+
+# ── card:notes-editor.md, slice 3 — the roll compiled once, the notes as a reading ──
+
+
+def _live_and_baked():
+    from gestate.scorebox import asks, notes_rolls, page_program
+
+    text = notes.wrapper(NOTES)
+    source, origins = notes.expanded(text, NOTES.parent)
+    parsed = notes.parse(NOTES.read_text(), "arc.notes")
+    rolls = notes_rolls(source, asks(source), origins, parsed)
+    return rolls, page_program(rolls, stacked=True), page_program(rolls, stacked=True, live=True)
+
+
+def test_a_live_rolls_text_holds_still_while_a_note_moves():
+    """The number this slice exists for: a picture whose text names no
+    note is compiled once, and a moved note recompiles nothing."""
+    from gestate.scorebox import asks, notes_rolls, page_program
+
+    rolls, (baked, _r, _e), (live, _r2, _e2) = _live_and_baked()
+    assert "__nb_rc_0__ : Chan (List Float)" in live
+    text = notes.wrapper(NOTES)
+    moved_file = NOTES.read_text().replace("key 62", "key 64", 1)
+    source, origins = notes.expanded(text, NOTES.parent, texts={"arc.notes": moved_file})
+    parsed = notes.parse(moved_file, "arc.notes")
+    rolls2 = notes_rolls(source, asks(source), origins, parsed)
+    assert page_program(rolls2, stacked=True, live=True)[0] == live
+    assert page_program(rolls2, stacked=True)[0] != baked, "the baked text moves; that was the cost"
+
+
+def test_a_live_roll_draws_the_picture_the_baked_one_draws():
+    from gestate.gui import Substrate
+    from gestate.scorebox import rows_channel, rows_reading
+
+    rolls, (baked, _r, entries), (live, _r2, _e2) = _live_and_baked()
+    vb = Substrate.several(baked, 44100, entries)
+    vl = Substrate.several(live, 44100, entries)
+    for k, (roll, view) in enumerate(zip(rolls, vl)):
+        view.write(rows_channel(k), rows_reading(roll))
+    for view in vl:
+        view.tick()
+    for k in range(len(entries)):
+        rects = lambda v: [i for i in v.picture() if i[0] == "rect"]
+        assert rects(vl[k]) == rects(vb[k]), f"box {k} differs"
+        assert any(i[4] == 3 for i in rects(vl[k])), "and there are notes in it"
+
+
+def test_the_data_roads_scale_is_the_sections_length_and_the_files_range():
+    """**Found by a photograph, not by the parity test**: the span had
+    counted the section once per voice, so every note sat in the left
+    fifth of the roll — and the baked and live roads, sharing the
+    scale, agreed with each other about the wrong picture."""
+    from gestate.midi import TICKS_PER_BEAT
+    from gestate.scorebox import ROLL_W, scale_of, x_of
+
+    rolls, _b, _l = _live_and_baked()
+    parsed = notes.parse(NOTES.read_text(), "arc.notes")
+    keys = [n.key for n in parsed.notes]
+    for roll, section in zip(rolls, parsed.sections):
+        lo, hi, span = scale_of(roll)
+        assert span == section.bars * section.beats * TICKS_PER_BEAT
+        assert (lo, hi) == (min(keys), max(keys)), "one axis for the page"
+        last = max(off for _on, off, *_r in roll.events)
+        assert x_of(roll, last) > ROLL_W // 4, "the notes reach across the roll"
+
+
+def test_the_columns_tile_the_roll_and_an_empty_one_refuses_by_name():
+    from gestate.scorebox import RefusedError, hands_of, note_under
+
+    rolls, _b, _l = _live_and_baked()
+    roll = rolls[0]
+    tiles = hands_of(roll)
+    assert len(tiles) == 48
+    for i in range(len(roll.events)):
+        assert sum(1 for _t0, _t1, under in tiles if i in under) >= 1, f"note {i} under no column"
+    empty = next((h for h, (_t0, _t1, under) in enumerate(tiles) if not under), None)
+    if empty is not None:
+        with pytest.raises(RefusedError, match="nothing sounds under that column"):
+            note_under(roll, empty, 0.5)
+
+
+def test_the_page_after_a_moved_note_is_a_lookup_not_a_compile():
+    """1.96 s cold, and then under a second — the compiled text did not
+    move, so only the rows are written."""
+    import time
+
+    here, bench = _opened_alone()
+    bench._load_substrate(bench.program())
+    assert len(bench.note_rows) == 3
+    moved = bench.program(here.read_text().replace("key 62", "key 63", 1))
+    t0 = time.perf_counter()
+    bench._load_substrate(moved)
+    took = time.perf_counter() - t0
+    assert took < 1.5, f"{took:.2f} s"
+    bars = [i for i in bench.canvases["__notes_0__"].picture() if i[0] == "rect" and i[4] == 3]
+    assert len(bars) == len(bench.note_regions["__nb_c0_0__"].roll.events)

@@ -164,6 +164,12 @@ class Roll:
     cut: bool                     # the fuel ran out — say so, don't lie
     chancy: bool                  # any take ink: the label owes a seed
     seed: int
+    #: `(lo, hi, span)` fixed from outside, or `None` to read it off the
+    #: events.  The data road sets it from the whole file, so a roll's
+    #: program text stays the same while notes move inside the range
+    #: (`card:notes-editor.md` slice 3) — and every section of a page
+    #: shares one pitch axis.
+    scale: tuple | None = None
 
 
 # ── The descent ─────────────────────────────────────────────────────────────
@@ -1140,9 +1146,9 @@ def hands_of(roll: Roll) -> list:
     taken hold of anywhere along its length rather than only where it
     starts.
     """
-    if not roll.events:
-        return []
     _lo, _hi, span = scale_of(roll)
+    if span <= 0:
+        return []
     wide = max(1, min(MAX_HANDS, ROLL_W // HAND_W))
     step = max(1, -(-span // wide))             # ceiling, so the last
     out = []                                    # column reaches the end
@@ -1152,8 +1158,11 @@ def hands_of(roll: Roll) -> list:
             break
         under = [j for j, e in enumerate(roll.events)
                  if e[0] < t1 and e[1] > t0]
-        if under:
-            out.append((t0, t1, under))
+        # **Every tile, with or without a note under it** (2026-09-06):
+        # the columns are part of the picture's *text*, and a text that
+        # changed with the notes was recompiled at every drag.  An
+        # empty column is a hand on nothing, and `note_under` says so.
+        out.append((t0, t1, under))
     return out
 
 
@@ -1228,6 +1237,8 @@ def note_under(roll: Roll, hand: int, down: float) -> int:
     if not 0 <= hand < len(hands):
         raise RefusedError("that column is not in this box any more")
     _t0, _t1, under = hands[hand]
+    if not under:
+        raise RefusedError("nothing sounds under that column")
     key = key_at(roll, down)
     return min(under, key=lambda j: (abs(roll.events[j][3] - key),
                                      roll.events[j][0]))
@@ -1337,11 +1348,27 @@ def notes_rolls(program: str, asks_: list, origins: dict, parsed) -> list:
                 leaves.append(Leaf(line, None, False, atoms))
                 events.append((on, off, len(leaves) - 1, one.key,
                                _tone_vel(one.level), one.manners))
-        out.append(Roll(events, leaves, False, False, 0))
+        # **The scale is the file's, not the section's** — one pitch
+        # axis for every roll of the page, and a program text that
+        # holds still while notes move inside it.  The span is what the
+        # sections declare, not where the last note ends.
+        keys = [n.key for n in parsed.notes] or [60]
+        # The sections the ask draws, each once — not once per voice,
+        # which put every note in the left fifth of the roll on the
+        # first driven photograph (2026-09-06) while the headless
+        # parity, sharing the same scale on both roads, saw nothing.
+        drawn = dict.fromkeys(bounds[w][0].name for w in terms)
+        by_name = {s.name: s for s in parsed.sections}
+        span = sum(by_name[n].bars * by_name[n].beats * TICKS_PER_BEAT
+                   for n in drawn)
+        span = max(span, max((off for _on, off, *_r in events), default=0))
+        out.append(Roll(events, leaves, False, False, 0,
+                        scale=(min(keys), max(keys), span)))
     return out
 
 
-def page_program(rolls: list, *, stacked: bool = False) -> tuple:
+def page_program(rolls: list, *, stacked: bool = False,
+                 live: bool = False) -> tuple:
     """Every box of a page in **one** program, and where its hands are.
 
     `rolls` is what `build_rolls` returned; a `RollError` in it is a box
@@ -1369,7 +1396,7 @@ def page_program(rolls: list, *, stacked: bool = False) -> tuple:
             entries.append(None)
             continue
         entry = f"__notes_{k}__"
-        text, _hands = roll_program(roll, k, entry=entry)
+        text, _hands = roll_program(roll, k, entry=entry, live=live)
         texts.append(text)
         entries.append(entry)
     drawn = [e for e in entries if e is not None]
@@ -1407,6 +1434,8 @@ def scale_of(roll: Roll) -> tuple:
     means.  A semitone of margin above and below, because a note drawn
     hard against the edge reads as clipped.
     """
+    if roll.scale is not None:
+        return roll.scale
     span = max((e[1] for e in roll.events), default=0) or TICKS_PER_BEAT
     keys = [e[3] for e in roll.events] or [60]
     return (min(keys) - 1, max(keys) + 1, span)
@@ -1497,7 +1526,39 @@ def grid_of(roll: Roll) -> int:
     return max(GRID_MIN, g)
 
 
-def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple:
+def rows_of(roll: Roll) -> list:
+    """`(i, x, y, w, tone, dim, mark)` per event — what the picture
+    draws, in the roll's own pixels.  One function for the baked list
+    and the live reading, so the two roads draw one picture."""
+    leaves = roll.leaves
+    banks = []
+    for leaf in leaves:
+        if leaf.bank not in banks:
+            banks.append(leaf.bank)
+    out = []
+    for i, (on, off, k, key, _vel, mark) in enumerate(roll.events):
+        x0, x1 = x_of(roll, on), x_of(roll, off)
+        w = max(2, x1 - x0) - 1
+        leaf = leaves[k] if 0 <= k < len(leaves) else leaves[-1]
+        tone = banks.index(leaf.bank) % len(_HUES)
+        out.append((i, x0 + (w + 1) // 2, y_of(roll, key), max(2, w), tone,
+                    1 if leaf.chancy else 0, mark))
+    return out
+
+
+def rows_reading(roll: Roll) -> list:
+    """The rows flat, as the `List Float` a live roll's channel reads —
+    seven numbers a note, in `rows_of`'s order."""
+    return [float(v) for row in rows_of(roll) for v in row]
+
+
+def rows_channel(box: int) -> str:
+    """The channel a live roll's notes arrive on."""
+    return f"__nb_rc_{box}__"
+
+
+def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
+                 live: bool = False) -> tuple:
     """The box's substrate program, and the hands it hands out.
 
     Returns `(ges_text, [chan_name])`, in column order.  The program is
@@ -1563,22 +1624,16 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
     for rule in rules:
         ground = f"(Over {ground} {rule})"
 
-    rows = []
-    for i, (on, off, k, key, vel, mark) in enumerate(events):
-        x0, x1 = x_of(on), x_of(off)
-        w = max(2, x1 - x0) - 1
-        leaf = leaves[k] if 0 <= k < len(leaves) else leaves[-1]
-        tone = banks.index(leaf.bank) % len(_HUES)
-        # **The note's own number rides with it**, so that one of them
-        # can be moved without the others: which one a hand has hold of
-        # arrives as a reading, and the picture compares it here.
-        # **The manner rides in the row**, so the picture can draw the
-        # mark without a second walk: a note that asked to be detached
-        # gets a dot under its head, the way a score has always said it
-        # (`spec/annotations.md`).
-        rows.append(f"({i}, {_n(x0 + (w + 1) // 2)}, {_n(y_of(key))}, "
-                    f"{max(2, w)}, {tone}, {1 if leaf.chancy else 0}, "
-                    f"{mark})")
+    # **The note's own number rides with it**, so that one of them can
+    # be moved without the others: which one a hand has hold of arrives
+    # as a reading, and the picture compares it here.  **The manner
+    # rides in the row**, so the picture can draw the mark without a
+    # second walk (`spec/annotations.md`).  **Baked into the text, or
+    # read off a channel** (`live`, `card:notes-editor.md` slice 3):
+    # a live roll's text names no note, so moving one recompiles
+    # nothing — the rows arrive as a `List Float` reading, seven a note.
+    rows = ["(%d, %s, %s, %d, %d, %d, %d)" % (i, _n(x), _n(y), w, tone, d, m)
+            for i, x, y, w, tone, d, m in rows_of(roll)]
     listing = " :: ".join(rows + ["Nil"]) if rows else "Nil"
 
     hues = ["    _ -> RGB %d %d %d" % _HUES[0]]
@@ -1658,6 +1713,9 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
     sel_c, slide_c = f"__nb_sel_{box}__", f"__nb_slide_{box}__"
     chans = "".join(f"{c} : Chan Float\n{c} = chan\n"
                     for c in [*named, held_c, lift_c, sel_c, slide_c])
+    rows_c, rows_s = rows_channel(box), f"__nb_rs_{box}__"
+    if live:
+        chans += f"{rows_c} : Chan (List Float)\n{rows_c} = chan\n"
     rows_g, hue_g = f"__nb_rows_{box}__", f"__nb_hue_{box}__"
     lit_g, dim_g = f"__nb_lit_{box}__", f"__nb_dim_{box}__"
     one_g, all_g = f"__nb_one_{box}__", f"__nb_all_{box}__"
@@ -1680,8 +1738,10 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
             + f"{sel_s} = (0.0 - 1.0) ::: mkSig (wait {sel_c})\n\n"
             + f"{slide_s} : Sig Float\n"
             + f"{slide_s} = 0.0 ::: mkSig (wait {slide_c})\n\n"
-            + f"{rows_g} : List (Int, Int, Int, Int, Int, Int, Int)\n"
-            + f"{rows_g} = {listing}\n\n"
+            + (f"{rows_s} : Sig (List Float)\n"
+               f"{rows_s} = Nil ::: mkSig (wait {rows_c})\n\n" if live else
+               f"{rows_g} : List (Int, Int, Int, Int, Int, Int, Int)\n"
+               f"{rows_g} = {listing}\n\n")
             + f"{hue_g} : Int -> Int -> Colour\n"
             + f"{hue_g} t d = case d of\n"
             + f"    0 -> {lit_g} t\n"
@@ -1754,22 +1814,31 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
             + f"    True -> Shift 0 dy (Rect 3 {RAIL_H} ({hue_g} t d))\n"
             + "    False -> Gap 0 0\n\n"
             + f"{one_g} : Int -> Int -> Int -> Int -> "
-              f"(Int, Int, Int, Int, Int, Int, Int) -> Sub\n"
-            + f"{one_g} h v s dx e = case e of\n"
-            + f"    (i, x, y, w, t, d, m) -> Shift (x + {shift_g} i h dx) "
+              f"Int -> Int -> Int -> Int -> Int -> Int -> Int -> Sub\n"
+            + f"{one_g} h v s dx i x y w t d m = Shift (x + {shift_g} i h dx) "
               f"(y + {shift_g} i h v) (Over (Over ({seln_g} (i == s) w) "
               f"(Rect w 3 ({hue_g} t d))) (Over ({dot_g} m t d w) "
               f"({mark_g} (i == s) ({_n(RAIL_Y)} - y - {shift_g} i h v) t d)))\n\n"
-            + f"{all_g} : Int -> Int -> Int -> Int -> "
-              f"List (Int, Int, Int, Int, Int, Int, Int) -> Sub\n"
-            + f"{all_g} h v s dx es = case es of\n"
-            + "    Nil -> Gap 0 0\n"
-            + f"    e :: rest -> Over ({one_g} h v s dx e) "
-              f"({all_g} h v s dx rest)\n\n"
-            + f"{pic_g} : Float -> Float -> Float -> Float -> Sub\n"
-            + f"{pic_g} h v s dx = Sized {ROLL_W} {ROLL_H} (Over (Over (Over\n"
+            + (f"{all_g} : Int -> Int -> Int -> Int -> List Float -> Sub\n"
+               f"{all_g} h v s dx es = case es of\n"
+               f"    i :: x :: y :: w :: t :: d :: m :: rest -> Over "
+               f"({one_g} h v s dx (floor i) (floor x) (floor y) (floor w) "
+               f"(floor t) (floor d) (floor m)) ({all_g} h v s dx rest)\n"
+               "    _ -> Gap 0 0\n\n" if live else
+               f"{all_g} : Int -> Int -> Int -> Int -> "
+               f"List (Int, Int, Int, Int, Int, Int, Int) -> Sub\n"
+               f"{all_g} h v s dx es = case es of\n"
+               "    Nil -> Gap 0 0\n"
+               f"    (i, x, y, w, t, d, m) :: rest -> Over "
+               f"({one_g} h v s dx i x y w t d m) ({all_g} h v s dx rest)\n\n")
+            + (f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> Sub\n"
+               f"{pic_g} h v s dx es = Sized {ROLL_W} {ROLL_H} (Over (Over (Over\n"
+               if live else
+               f"{pic_g} : Float -> Float -> Float -> Float -> Sub\n"
+               f"{pic_g} h v s dx = Sized {ROLL_W} {ROLL_H} (Over (Over (Over\n")
             + f"    {ground}\n"
-            + f"    ({all_g} (floor h) (floor v) (floor s) (floor dx) {rows_g}))\n"
+            + f"    ({all_g} (floor h) (floor v) (floor s) (floor dx) "
+              f"{'es' if live else rows_g}))\n"
             + f"    (Shift 0 {ROLL_H // 2 - 8} (Label 120 12 \"{caption}\" "
               f"(RGB 120 124 134))))\n"
             + f"    ({hands}))\n\n"
@@ -1778,5 +1847,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
             # does, and lifting the picture over the two channels above
             # is what lets the note follow before anything is rebuilt.
             + f"{entry} : Sig Sub\n"
-            + f"{entry} = !{pic_g} {held_s} {lift_s} {sel_s} {slide_s}\n")
+            + (f"{entry} = !{pic_g} {held_s} {lift_s} {sel_s} {slide_s} {rows_s}\n"
+               if live else
+               f"{entry} = !{pic_g} {held_s} {lift_s} {sel_s} {slide_s}\n"))
     return text, named

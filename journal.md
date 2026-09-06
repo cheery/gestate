@@ -1213,3 +1213,16 @@ The picture's own compile is what remains, 3 s, and it is the next
 slice.  On the way: F207, the expander declares `Voice` from the banks
 a score assigns to, so a score that assigns none fails at a prelude
 line — the engine half rests on every bank instead.
+
+### Slice 3 — the roll compiled once
+
+The last of the day, at Henri's *"still one slice, then I declare
+done for today."*  The picture's program names no note now: the rows
+arrive as a `List Float` reading, the way a scope's trace does, so the
+text holds still while notes move and the front end's cache answers
+it.  The columns tile the roll whether or not a note is under them,
+and the scale is the file's.  Rectangle for rectangle the same picture
+as the baked road.  Measured with the instrument running: one moved
+note, the audition done in 1.1 s, from 6.3 s this morning and 3.6 s
+after slice 2; the note audible at 0.6 s.  What remains is
+bookkeeping in Python, not a compile.

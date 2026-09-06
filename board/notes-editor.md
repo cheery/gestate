@@ -154,3 +154,31 @@ on the picture side is the same idea as this one: the roll compiled
 once, the notes arriving as readings.  Found on the way: **F207**, a
 program that declares banks and assigns none fails a kind check at a
 prelude line.
+
+## Slice 3, landed — 2026-09-06
+
+**The roll is compiled once and the notes arrive as a reading.**  A
+live roll's program names no note: the rows cross on a `Chan (List
+Float)` the way a scope's trace does — seven numbers a note, written
+to the reference views at the build and sent to the window as a
+`trace` whenever they change — so a moved note recompiles nothing and
+the front end's cache answers the unchanged text.  Two things had to
+hold still for that: the columns tile the roll whether or not a note
+is under them (an empty one refuses by name), and the scale is the
+file's, one pitch axis for every section, so the text changes only
+when a note leaves the range.  Held to the baked road rectangle for
+rectangle.
+
+| one moved note, `arc.notes`, the instrument running | this morning | after slice 2 | now |
+|---|---|---|---|
+| the new score installed — the note audible on the next block | 6.3 s | 0.6 s | **0.6 s** |
+| the audition reported done, picture and all | 6.3 s | 3.6 s | **1.1 s** |
+| the page rebuilt after a move, headless | ≈ 6 s | 3.0 s | **0.7 s** |
+
+**What is left of the second**, said for the next sitting: the score's
+0.4–0.6 s is `schedule_voices` over 291 notes plus the bank lookup,
+and the picture's 0.4 s is the views re-serialised and the rows
+written into three reference machines in Python.  Neither is a
+compile any more.  Before the hand has left the mouse is the
+postcondition and it is not met yet; what stands between is now
+bookkeeping, not architecture.

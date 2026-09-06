@@ -1325,6 +1325,7 @@ class Workbench:
         # roll that will not build must not stop the instrument, and
         # what went wrong is said once, in the author's terms.
         self.note_regions = {}
+        self.note_rows = []
         # **A rebuilt picture is the file's own answer**, so whatever a
         # hand was showing over the old one is spent: kept, it would be
         # applied to the new roll and move a note that had already
@@ -1353,8 +1354,12 @@ class Workbench:
                     self.say(f"no notes on line {line}: "
                              f"{self._first_line(roll)}")
             stacked = bool(getattr(self.kind, "stacked", False))
+            # **A registered kind's rolls are live**: their text names
+            # no note, so a moved note recompiles nothing and the rows
+            # arrive as a reading (`card:notes-editor.md` slice 3).
+            live = drawer is not None
             program, regions, entries = scorebox.page_program(
-                rolls, stacked=stacked)
+                rolls, stacked=stacked, live=live)
             drawn = [e for e in entries if e is not None]
             if drawn and stacked:
                 # **The page is this file's own picture.**  A `.notes`
@@ -1375,6 +1380,21 @@ class Workbench:
                         views, drawn = views[:-1], drawn[:-1]
                     boxes.update(zip(drawn, views))
                     self.note_regions.update(regions)
+                    # The rows, written to the reference views now and
+                    # kept for the window, which is sent them as a
+                    # trace whenever they change (`workbench.py`).
+                    rows = []
+                    if live:
+                        for view, roll in zip(views, [r for r in rolls
+                                                      if not isinstance(r, Exception)]):
+                            chan = scorebox.rows_channel(
+                                int(view.entry[len("__notes_"):-2]))
+                            flat = scorebox.rows_reading(roll)
+                            view.write(chan, flat)
+                            rows.append((chan, flat))
+                        for view in views:
+                            view.tick()
+                    self.note_rows = rows
                 except Exception as exc:                # noqa: BLE001
                     self.say(f"no notes drawn: {self._first_line(exc)}")
         self.canvases = boxes

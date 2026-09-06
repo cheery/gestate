@@ -20,12 +20,12 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**448 complaints**, in 46 files.
+**449 complaints**, in 46 files.
 
 | | |
 |---|---|
 | `author` | 230 |
-| `command` | 41 |
+| `command` | 42 |
 | `world` | 27 |
 | `machine` | 150 |
 | say where | 149 |
@@ -619,7 +619,7 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 614 | `GuiError` | `machine` | — | '`{name}` is declared `Chan` and is not one' |
 | 869 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` did not evaluate to a signal (got {type(sig).__name__})' |
 | 891 | `GuiError` | `author` | *nowhere, on purpose* | '`{name}` is declared `Chan` and is not one' |
-| 1158 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
+| 1163 | `GuiError` | `world` | — | 'running a GUI program needs pygame (`pip install pygame`); `scenes()` works without it' |
 
 ### `helpers.py`
 
@@ -823,27 +823,28 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 852 | `RefusedError` | `command` | — | 'that note has no source region' |
-| 854 | `RefusedError` | `command` | — | 'that note was drawn, not written — the generator is on line {leaf.line}, and moving it is prog… |
-| 859 | `RefusedError` | `command` | — | 'this piece writes more regions than the box can hand out ({MAX_LEAVES}), so the tail shares on… |
-| 865 | `RefusedError` | `command` | — | 'the pitch is not written on line {leaf.line} — it comes from somewhere the box cannot point at' |
-| 869 | `RefusedError` | `command` | — | 'line {leaf.line} writes {key} more than once, so the box cannot tell which one is this note' |
-| 900 | `RefusedError` | `command` | — | 'that note has no source region' |
-| 902 | `RefusedError` | `command` | — | 'that note was drawn, not written — the generator is on line {leaf.line}, and marking it is pro… |
-| 907 | `RefusedError` | `command` | — | 'this piece writes more regions than the box can hand out ({MAX_LEAVES}), so the tail shares on… |
-| 913 | `RefusedError` | `command` | — | "this note's manner is not written on line {leaf.line} — a mark is written into the payload, an… |
-| 918 | `RefusedError` | `command` | — | 'line {leaf.line} writes {mark} more than once, so the box cannot tell the manner from the rest… |
-| 939 | `RefusedError` | `command` | — | 'line {line} is not in this file any more' |
-| 942 | `RefusedError` | `command` | — | 'line {line} does not say {_spelling(value)} where the box thought — the file has moved under t… |
-| 946 | `RefusedError` | `command` | — | 'that manner is written as a fraction, which is not a set of marks' |
-| 999 | `RefusedError` | `command` | — | 'that note is written in {where[0]}:{where[1]}, not in this file — editing an included `.notes`… |
-| 1028 | `RefusedError` | `command` | — | 'line {line} is not in this file any more' |
-| 1031 | `RefusedError` | `command` | — | 'line {line} does not say {_spelling(value)} where the box thought — the file has moved under t… |
-| 1035 | `RefusedError` | `command` | — | 'that pitch is written as a fraction; a semitone step would round it' |
-| 1229 | `RefusedError` | `command` | — | 'that column is not in this box any more' |
-| 1251 | `RefusedError` | `command` | — | 'that column is not in this box any more' |
-| 1255 | `RefusedError` | `command` | — | 'nothing under that column sounds {key}' |
-| 1257 | `RefusedError` | `command` | — | 'that column sounds {key} {len(found)} times, so which note is meant is not written down anywhe… |
+| 858 | `RefusedError` | `command` | — | 'that note has no source region' |
+| 860 | `RefusedError` | `command` | — | 'that note was drawn, not written — the generator is on line {leaf.line}, and moving it is prog… |
+| 865 | `RefusedError` | `command` | — | 'this piece writes more regions than the box can hand out ({MAX_LEAVES}), so the tail shares on… |
+| 871 | `RefusedError` | `command` | — | 'the pitch is not written on line {leaf.line} — it comes from somewhere the box cannot point at' |
+| 875 | `RefusedError` | `command` | — | 'line {leaf.line} writes {key} more than once, so the box cannot tell which one is this note' |
+| 906 | `RefusedError` | `command` | — | 'that note has no source region' |
+| 908 | `RefusedError` | `command` | — | 'that note was drawn, not written — the generator is on line {leaf.line}, and marking it is pro… |
+| 913 | `RefusedError` | `command` | — | 'this piece writes more regions than the box can hand out ({MAX_LEAVES}), so the tail shares on… |
+| 919 | `RefusedError` | `command` | — | "this note's manner is not written on line {leaf.line} — a mark is written into the payload, an… |
+| 924 | `RefusedError` | `command` | — | 'line {leaf.line} writes {mark} more than once, so the box cannot tell the manner from the rest… |
+| 945 | `RefusedError` | `command` | — | 'line {line} is not in this file any more' |
+| 948 | `RefusedError` | `command` | — | 'line {line} does not say {_spelling(value)} where the box thought — the file has moved under t… |
+| 952 | `RefusedError` | `command` | — | 'that manner is written as a fraction, which is not a set of marks' |
+| 1005 | `RefusedError` | `command` | — | 'that note is written in {where[0]}:{where[1]}, not in this file — editing an included `.notes`… |
+| 1034 | `RefusedError` | `command` | — | 'line {line} is not in this file any more' |
+| 1037 | `RefusedError` | `command` | — | 'line {line} does not say {_spelling(value)} where the box thought — the file has moved under t… |
+| 1041 | `RefusedError` | `command` | — | 'that pitch is written as a fraction; a semitone step would round it' |
+| 1238 | `RefusedError` | `command` | — | 'that column is not in this box any more' |
+| 1241 | `RefusedError` | `command` | — | 'nothing sounds under that column' |
+| 1262 | `RefusedError` | `command` | — | 'that column is not in this box any more' |
+| 1266 | `RefusedError` | `command` | — | 'nothing under that column sounds {key}' |
+| 1268 | `RefusedError` | `command` | — | 'that column sounds {key} {len(found)} times, so which note is meant is not written down anywhe… |
 
 ### `seminaive.py`
 
