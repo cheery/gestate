@@ -236,6 +236,14 @@ That is aiming, in both directions at once, and it made the press
 to its own line however you aimed at it, and its notes are now four
 places to press.
 
+**And the aim has a reach** — *2026-09-06, `card:notes-editor.md` slice
+4.*  Nearest at any distance meant a column with one note in it had no
+empty roll anywhere along its height, and empty roll is where a hand
+sweeps a band to select several.  So a press farther than
+`scorebox.BAND_REACH` semitones — three — from the nearest note under
+its column means empty roll and starts a band; within three it means
+the note, as before.  Every test that meant a note presses on one.
+
 **And the drag is relative.**  A column is the whole height of the
 roll, so a press lands at some pitch and rarely the note's own; carried
 absolutely, letting go without moving would transpose the note to

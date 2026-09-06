@@ -2686,7 +2686,7 @@ def test_a_press_on_nothing_selects_nothing_and_the_body_carries_nothing():
         if empty is None:
             pytest.skip("every column of this roll has a note under it")
         said = seat.touched(_chan(0, empty), 0.5)
-        assert "nothing sounds" in said, said
+        assert said.startswith("sweep a band"), said
         said = seat.touched("__nb_rail_0__", across_of(roll, 0))
         assert said.startswith("nothing selected"), said
         seat.released(_chan(0, empty))
@@ -2734,3 +2734,194 @@ def test_the_window_view_answers_its_own_replacement_until_the_window_takes_it()
     assert view.text() == "a 9\nb 8\n"
     ed._text = "typed\n"
     assert view.text() == "typed\n", "the document is the answer once it says something else"
+
+
+# ── Slice 4 of card:notes-editor.md — select multiple, and move them around ──
+#
+# A hand sweeping over empty roll selects the notes its band covers
+# (`select`), and a hand on any note of the group carries them all by
+# one interval and one number of ticks (`carry`): one rewrite, one
+# undo entry, one rebuild.  Every gesture a command, as before.
+
+
+def _page_seat():
+    """The `.notes` page opened alone, its first roll's reference view,
+    and a seat over the bench — the way the window does it, one press
+    writing the column and the body around it."""
+    here, bench = _opened_alone()
+    bench._load_substrate(bench.program())
+    seat = _seated_on(bench, here.read_text())
+    view = bench.canvases["__notes_0__"]
+    roll = bench.note_regions["__nb_c0_0__"].roll
+    return here, seat, view, roll
+
+
+def _feed(seat, view, kind, x, y):
+    out = []
+    for meant in view.touch_all(kind, x, y):
+        out.append(seat.touched(meant[1], meant[2]) if meant[0] == "touched"
+                   else seat.released(meant[1]))
+    return out
+
+
+def _sweep(seat, view, roll, t0, k0, t1, k1):
+    """Press on empty roll at `(t0, k0)`, sweep to `(t1, k1)`, let go."""
+    from gestate.scorebox import x_of, y_of
+
+    x0, y0 = x_of(roll, t0) + 2, y_of(roll, k0)
+    x1, y1 = x_of(roll, t1) - 2, y_of(roll, k1)
+    said = _feed(seat, view, "press", x0, y0)
+    assert said[0].startswith("sweep a band"), said
+    _feed(seat, view, "drag", (x0 + x1) // 2, (y0 + y1) // 2)
+    _feed(seat, view, "drag", x1, y1)
+    band = seat.bench.previewing.get("__nb_band_0__")
+    assert band and len(band) == 4 and band[2] > 0 and band[3] > 0, "the band is drawn while it is swept"
+    return _feed(seat, view, "release", x1, y1)
+
+
+def test_a_press_beyond_reach_of_any_note_is_empty_roll():
+    """`BAND_REACH`: a column is the roll's whole height, so a press four
+    semitones off the only note under it means empty roll, not that
+    note — and a press within three still means it."""
+    from gestate.scorebox import (BAND_REACH, RefusedError, hands_of,
+                                  note_under, reach_of)
+
+    _here, _seat, _view, roll = _page_seat()
+    low, high = reach_of(roll)
+    for h, (_t0, _t1, under) in enumerate(hands_of(roll)):
+        if len(under) != 1:
+            continue
+        key = roll.events[under[0]][3]
+        near = (high - (key + BAND_REACH)) / (high - low)
+        assert note_under(roll, h, near) == under[0]
+        far = (high - (key + BAND_REACH + 1)) / (high - low)
+        with pytest.raises(RefusedError, match="within reach"):
+            note_under(roll, h, far)
+        return
+    pytest.skip("no column of this roll has exactly one note under it")
+
+
+def test_a_band_selects_every_note_it_touches_as_one_command():
+    """Sweep bar 1 of section A from key 78 down to 62: the melody's
+    four notes and whatever else sounds there, `select` in the
+    transcript with the corners in the roll's own ticks and keys, the
+    group outlined in the picture."""
+    _here, seat, view, roll = _page_seat()
+    said = _sweep(seat, view, roll, 0, 78, 384, 62)
+    assert said[0].startswith("select: ") and " notes — ticks " in said[0], said
+    assert said[1] == "", "the second release finds no band"
+    group = seat.group[0]
+    assert len(group) >= 4
+    for n in group:
+        on, off, _k, key, _v, _m = roll.events[n]
+        assert on < 384 and off > 0 and 62 <= key <= 78
+    assert seat.selected[0] == group[0]
+    assert seat.bench.previewing["__nb_sels_0__"] == [float(n) for n in group]
+    assert seat.bench.previewing["__nb_band_0__"] == [], "the band is gone once it has selected"
+    assert any(step.verb == "select" for step in seat.log.steps), "select is in the transcript"
+
+
+def test_a_typed_select_picks_the_same_notes_a_sweep_did():
+    _here, seat, view, roll = _page_seat()
+    _sweep(seat, view, roll, 0, 78, 384, 62)
+    swept = seat.group[0]
+    seat.group.clear()
+    said = seat.run("select", "__nb_rail_0__", 384, 62, 0, 78)
+    assert said.startswith("select: ")
+    assert seat.group[0] == swept, "either way round, the same notes"
+    assert seat.run("select", "__nb_c0_0__", 0, 60, 96, 70).startswith("select: name the box's rail")
+    assert seat.run("select", "__nb_rail_0__", 0, 120, 10, 127).startswith("select: nothing sounds")
+    assert 0 not in seat.group, "a band over nothing clears the selection"
+
+
+def test_a_hand_on_any_note_of_the_group_carries_them_all_in_one_rewrite():
+    """The slice's own number: N selected lines change by the same
+    interval and the same ticks, through one `replace` of the buffer,
+    and the transcript says `carry`."""
+    from gestate.scorebox import x_of, y_of
+
+    _here, seat, view, roll = _page_seat()
+    _sweep(seat, view, roll, 0, 78, 384, 62)
+    group = seat.group[0]
+    n = group[-1]
+    on, off, _k, key, _v, _m = roll.events[n]
+    nx, ny = (x_of(roll, on) + x_of(roll, off)) // 2, y_of(roll, key)
+    said = _feed(seat, view, "press", nx, ny)
+    assert said[0].startswith("line "), said
+    assert seat.group[0] == group, "a press on a note of the group keeps the group"
+    _feed(seat, view, "drag", nx, ny - 8)
+    _feed(seat, view, "drag", nx, ny - 16)
+    assert seat.bench.previewing["__nb_sels_0__"] == [float(m) for m in group]
+    assert seat.bench.previewing["__nb_lift_0__"] < 0
+    before = seat.view.text()
+    writes = []
+    real = seat.view.replace
+    seat.view.replace = lambda text: writes.append(text) or real(text)
+    said = _feed(seat, view, "release", nx, ny - 16)
+    assert said[0].startswith("carry: arc.notes — ") and f"{len(group)} notes" in said[0], said
+    assert len(writes) == 1, "one rewrite for the whole group"
+    changed = [(a, b) for a, b in zip(before.splitlines(), seat.view.text().splitlines()) if a != b]
+    assert len(changed) == len(group)
+    for a, b in changed:
+        ka = int(a.split("key ")[1].split()[0]); kb = int(b.split("key ")[1].split()[0])
+        assert kb - ka == 2, (a, b)
+        assert a.split("key")[0] == b.split("key")[0], "only the key moved"
+    assert 0 not in seat.group, "the selection is spent with the commit"
+
+
+def test_a_carry_that_would_double_a_note_refuses_whole_and_keeps_the_group():
+    """Bar 1's melody carried one beat along puts its last note where
+    bar 2's first already is: nothing moves, and the group stands."""
+    _here, seat, view, roll = _page_seat()
+    _sweep(seat, view, roll, 0, 78, 384, 62)
+    group = seat.group[0]
+    before = seat.view.text()
+    said = seat.run("carry", "__nb_rail_0__", 2, 96)
+    assert said.startswith("carry: arc.notes: a note would land on one already written"), said
+    assert seat.view.text() == before
+    assert seat.group[0] == group
+    assert seat.run("carry", "__nb_rail_0__", 0, 0).startswith("carry: nothing to do")
+    assert seat.run("carry", "__nb_c0_0__", 1, 0).startswith("carry: name the box's rail")
+    seat.group.clear()
+    assert seat.run("carry", "__nb_rail_0__", 1, 0).startswith("carry: nothing selected")
+
+
+def test_a_press_on_a_note_outside_the_group_selects_that_one_alone():
+    from gestate.scorebox import x_of, y_of
+
+    _here, seat, view, roll = _page_seat()
+    _sweep(seat, view, roll, 0, 78, 384, 62)
+    group = seat.group[0]
+    outside = next(i for i, (on, *_r) in enumerate(roll.events) if on >= 384 * 4 and i not in group)
+    on, off, _k, key, _v, _m = roll.events[outside]
+    nx, ny = (x_of(roll, on) + x_of(roll, off)) // 2, y_of(roll, key)
+    _feed(seat, view, "press", nx, ny)
+    assert seat.group[0] == (seat.selected[0],) and seat.selected[0] not in group
+    _feed(seat, view, "release", nx, ny)
+
+
+def test_the_picture_outlines_the_group_and_moves_it_with_the_hand():
+    from gestate.gui import Substrate
+    from gestate.scorebox import geometry_of, rows_channel, rows_reading
+
+    rolls, _b, (live, _r, entries) = _live_and_baked()
+    view = Substrate.several(live, 44100, entries)[0]
+    roll = rolls[0]
+    view.write(rows_channel(0), rows_reading(roll))
+    view.write("__nb_sels_0__", [0.0, 1.0, 2.0])
+    view.write("__nb_band_0__", [-300.0, 0.0, 200.0, 100.0])
+    view.tick()
+    geo = geometry_of(roll)
+    pic = view.picture()
+    outlines = [i for i in pic if i[0] == "rect" and i[4] == geo.note_h + 2 and i[5] == (236, 240, 248)]
+    assert len(outlines) == 3, "every selected note wears an outline"
+    band = [i for i in pic if i[0] == "rect" and i[5] == (58, 70, 96)]
+    assert band and band[0][3:5] == (200, 100), "the band is drawn where it was said"
+    heads = lambda v: [(i[1], i[2]) for i in v.picture() if i[0] == "rect" and i[4] == geo.note_h][:4]
+    before = heads(view)
+    view.write("__nb_held_0__", 1.0)
+    view.write("__nb_lift_0__", -16.0)
+    view.tick()
+    after = heads(view)
+    assert [a[1] - b[1] for a, b in zip(after, before)] == [-16, -16, -16, 0], \
+        "the three selected move with a hand on the second; the fourth stays"

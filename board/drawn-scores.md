@@ -865,3 +865,8 @@ carries a note in pitch and in time, the rail is a ruler, and the
 walk's rule is the substrate spec's own.  `card:notes-editor.md` §"One
 hand, both axes".  Found on the way: F208, the status row painting two
 fields over each other under the page, photographed twice.
+
+And the slice after: *"take the next slice, multi-select and move as
+a group"* — a band swept over empty roll selects, a hand on any note
+of the group carries them all, `card:notes-editor.md` §"Select
+several, carry them as one".

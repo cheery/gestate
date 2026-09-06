@@ -1220,6 +1220,11 @@ RAIL = -1
 #: from and a `.notes` roll's events already say what its writer used.
 GRID_MIN = 12
 
+#: How far, in semitones, a press may miss a note and still mean it —
+#: three rows at editing scale.  Farther is empty roll, where a hand
+#: sweeps a band (`note_under`).
+BAND_REACH = 3
+
 
 def _chan(box: int, hand: int) -> str:
     """The channel one column's hand writes.
@@ -1297,6 +1302,20 @@ class Region(NamedTuple):
         return f"__nb_slide_{self.box}__"
 
     @property
+    def sels(self) -> str:
+        """The channel that carries **every** selected note, as a list —
+        the group a band selected (`card:notes-editor.md`, slice 4:
+        *drag and select multiple and move them around*).  `sel` still
+        names the one the last press picked; this names the rest."""
+        return f"__nb_sels_{self.box}__"
+
+    @property
+    def band(self) -> str:
+        """The channel that draws the band a hand is sweeping on empty
+        roll — `[cx, cy, w, h]` in the roll's own pixels, or nothing."""
+        return f"__nb_band_{self.box}__"
+
+    @property
     def on_rail(self) -> bool:
         return self.hand == RAIL
 
@@ -1336,8 +1355,16 @@ def note_under(roll: Roll, hand: int, down: float) -> int:
     if not under:
         raise RefusedError("nothing sounds under that column")
     key = key_at(roll, down)
-    return min(under, key=lambda j: (abs(roll.events[j][3] - key),
-                                     roll.events[j][0]))
+    nearest = min(under, key=lambda j: (abs(roll.events[j][3] - key),
+                                        roll.events[j][0]))
+    # **Beyond reach is empty roll.**  A column is the roll's whole
+    # height, so without this a press anywhere in a column with one
+    # note took that note — and empty roll, where a band is swept to
+    # select several (`card:notes-editor.md` slice 4), existed only
+    # where a column had nothing under it at all.
+    if abs(roll.events[nearest][3] - key) > BAND_REACH:
+        raise RefusedError("nothing sounds within reach of that press")
+    return nearest
 
 
 def note_of(roll: Roll, hand: int, key: int) -> int:
@@ -1944,8 +1971,15 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
     # selected note wears an outline and a marker on the rail, so the
     # rail is a control a person can see (`fixme.md` F150's lesson).
     sel_c, slide_c = f"__nb_sel_{box}__", f"__nb_slide_{box}__"
+    # **And two lists the model writes** (slice 4 of
+    # `card:notes-editor.md`): every selected note, so a group wears
+    # its outlines and moves with the hand as one; and the band a hand
+    # sweeps over empty roll to select them, drawn while it sweeps.
+    sels_c, band_c = f"__nb_sels_{box}__", f"__nb_band_{box}__"
     chans = "".join(f"{c} : Chan Float\n{c} = chan\n"
                     for c in [*named, held_c, lift_c, sel_c, slide_c])
+    chans += "".join(f"{c} : Chan (List Float)\n{c} = chan\n"
+                     for c in [sels_c, band_c])
     rows_c, rows_s = rows_channel(box), f"__nb_rs_{box}__"
     if live:
         chans += f"{rows_c} : Chan (List Float)\n{rows_c} = chan\n"
@@ -1957,6 +1991,9 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
     port_g = f"__nb_port_{box}__"
     held_s, lift_s = f"__nb_h_{box}__", f"__nb_l_{box}__"
     sel_s, slide_s = f"__nb_s_{box}__", f"__nb_sl_{box}__"
+    sels_s, band_s = f"__nb_ss_{box}__", f"__nb_bs_{box}__"
+    member_g, band_g = f"__nb_member_{box}__", f"__nb_bandpic_{box}__"
+    on_g = f"__nb_on_{box}__"
     shift_g, seln_g, mark_g = (f"__nb_shift_{box}__", f"__nb_seln_{box}__",
                                f"__nb_mark_{box}__")
     pic_g = f"__nb_pic_{box}__"
@@ -1971,6 +2008,25 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
             + f"{sel_s} = (0.0 - 1.0) ::: mkSig (wait {sel_c})\n\n"
             + f"{slide_s} : Sig Float\n"
             + f"{slide_s} = 0.0 ::: mkSig (wait {slide_c})\n\n"
+            + f"{sels_s} : Sig (List Float)\n"
+            + f"{sels_s} = Nil ::: mkSig (wait {sels_c})\n\n"
+            + f"{band_s} : Sig (List Float)\n"
+            + f"{band_s} = Nil ::: mkSig (wait {band_c})\n\n"
+            # **Is this note one of the selected?**  The group crosses as
+            # a list of note numbers, and each row asks it once.
+            + f"{member_g} : Int -> List Float -> Bool\n"
+            + f"{member_g} i xs = case xs of\n"
+            + f"    x :: rest -> case floor x == i of\n"
+            + "        True -> True\n"
+            + f"        False -> {member_g} i rest\n"
+            + "    _ -> False\n\n"
+            # **The band a hand is sweeping**, drawn under the notes:
+            # centre and size in the roll's own pixels, or nothing.
+            + f"{band_g} : List Float -> Sub\n"
+            + f"{band_g} xs = case xs of\n"
+            + "    x :: y :: w :: h :: _ -> Shift (floor x) (floor y) "
+              "(Rect (floor w) (floor h) (RGB 58 70 96))\n"
+            + "    _ -> Gap 0 0\n\n"
             + (f"{rows_s} : Sig (List Float)\n"
                f"{rows_s} = Nil ::: mkSig (wait {rows_c})\n\n" if live else
                f"{rows_g} : List (Int, Int, Int, Int, Int, Int, Int)\n"
@@ -2035,10 +2091,19 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
             # down for a column's hand and `dx` along for the rail's;
             # the selected note wears an outline under its bar and a
             # marker up on the rail, at its own x.
-            + f"{shift_g} : Int -> Int -> Int -> Int\n"
-            + f"{shift_g} i h by = case i == h of\n"
-            + "    True -> by\n"
+            # **A selected note moves with the hand on any selected
+            # note** — the group is carried as one (`card:notes-editor.md`
+            # slice 4); with nothing held (`h < 0`) nothing moves.
+            + f"{shift_g} : Bool -> Int -> Int -> Int\n"
+            + f"{shift_g} on h by = case on of\n"
+            + "    True -> case h >= 0 of\n"
+            + "        True -> by\n"
+            + "        False -> 0\n"
             + "    False -> 0\n\n"
+            + f"{on_g} : Int -> Int -> List Float -> Bool\n"
+            + f"{on_g} i s ss = case i == s of\n"
+            + "    True -> True\n"
+            + f"    False -> {member_g} i ss\n\n"
             + f"{seln_g} : Bool -> Int -> Sub\n"
             + f"{seln_g} on w = case on of\n"
             + f"    True -> Rect (w + 2) {geo.note_h + 2} (RGB 236 240 248)\n"
@@ -2047,31 +2112,35 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
             + f"{mark_g} on dy t d = case on of\n"
             + f"    True -> Shift 0 dy (Rect 3 {rail_h} ({hue_g} t d))\n"
             + "    False -> Gap 0 0\n\n"
-            + f"{one_g} : Int -> Int -> Int -> Int -> "
+            + f"{one_g} : Int -> Int -> Int -> Int -> List Float -> "
               f"Int -> Int -> Int -> Int -> Int -> Int -> Int -> Sub\n"
-            + f"{one_g} h v s dx i x y w t d m = Shift (x + {shift_g} i h dx) "
-              f"(y + {shift_g} i h v) (Over (Over ({seln_g} (i == s) w) "
+            + f"{one_g} h v s dx ss i x y w t d m = {one_g}_ h v dx "
+              f"({on_g} i s ss) i x y w t d m\n\n"
+            + f"{one_g}_ : Int -> Int -> Int -> Bool -> "
+              f"Int -> Int -> Int -> Int -> Int -> Int -> Int -> Sub\n"
+            + f"{one_g}_ h v dx on i x y w t d m = Shift (x + {shift_g} on h dx) "
+              f"(y + {shift_g} on h v) (Over (Over ({seln_g} on w) "
               f"(Rect w {geo.note_h} ({hue_g} t d))) (Over ({dot_g} m t d w) "
-              f"({mark_g} (i == s) ({_n(rail_y)} - y - {shift_g} i h v) t d)))\n\n"
-            + (f"{all_g} : Int -> Int -> Int -> Int -> List Float -> Sub\n"
-               f"{all_g} h v s dx es = case es of\n"
+              f"({mark_g} on ({_n(rail_y)} - y - {shift_g} on h v) t d)))\n\n"
+            + (f"{all_g} : Int -> Int -> Int -> Int -> List Float -> List Float -> Sub\n"
+               f"{all_g} h v s dx ss es = case es of\n"
                f"    i :: x :: y :: w :: t :: d :: m :: rest -> Over "
-               f"({one_g} h v s dx (floor i) (floor x) (floor y) (floor w) "
-               f"(floor t) (floor d) (floor m)) ({all_g} h v s dx rest)\n"
+               f"({one_g} h v s dx ss (floor i) (floor x) (floor y) (floor w) "
+               f"(floor t) (floor d) (floor m)) ({all_g} h v s dx ss rest)\n"
                "    _ -> Gap 0 0\n\n" if live else
-               f"{all_g} : Int -> Int -> Int -> Int -> "
+               f"{all_g} : Int -> Int -> Int -> Int -> List Float -> "
                f"List (Int, Int, Int, Int, Int, Int, Int) -> Sub\n"
-               f"{all_g} h v s dx es = case es of\n"
+               f"{all_g} h v s dx ss es = case es of\n"
                "    Nil -> Gap 0 0\n"
                f"    (i, x, y, w, t, d, m) :: rest -> Over "
-               f"({one_g} h v s dx i x y w t d m) ({all_g} h v s dx rest)\n\n")
-            + (f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> Sub\n"
-               f"{pic_g} h v s dx es = Sized {geo.w} {geo.h} (Over (Over (Over\n"
+               f"({one_g} h v s dx ss i x y w t d m) ({all_g} h v s dx ss rest)\n\n")
+            + (f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> List Float -> List Float -> Sub\n"
+               f"{pic_g} h v s dx ss bd es = Sized {geo.w} {geo.h} (Over (Over (Over\n"
                if live else
-               f"{pic_g} : Float -> Float -> Float -> Float -> Sub\n"
-               f"{pic_g} h v s dx = Sized {geo.w} {geo.h} (Over (Over (Over\n")
-            + f"    {ground}\n"
-            + f"    ({all_g} (floor h) (floor v) (floor s) (floor dx) "
+               f"{pic_g} : Float -> Float -> Float -> Float -> List Float -> List Float -> Sub\n"
+               f"{pic_g} h v s dx ss bd = Sized {geo.w} {geo.h} (Over (Over (Over\n")
+            + f"    (Over {ground} ({band_g} bd))\n"
+            + f"    ({all_g} (floor h) (floor v) (floor s) (floor dx) ss "
               f"{'es' if live else rows_g}))\n"
             + f"    (Shift {_n(0 if geo is COMPACT else left + body_w // 2)} "
               f"{geo.h // 2 - geo.foot // 2 - 1} (Label {120 if geo is COMPACT else body_w - 8} "
@@ -2082,7 +2151,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate",
             # does, and lifting the picture over the two channels above
             # is what lets the note follow before anything is rebuilt.
             + f"{entry} : Sig Sub\n"
-            + (f"{entry} = !{pic_g} {held_s} {lift_s} {sel_s} {slide_s} {rows_s}\n"
+            + (f"{entry} = !{pic_g} {held_s} {lift_s} {sel_s} {slide_s} {sels_s} {band_s} {rows_s}\n"
                if live else
-               f"{entry} = !{pic_g} {held_s} {lift_s} {sel_s} {slide_s}\n"))
+               f"{entry} = !{pic_g} {held_s} {lift_s} {sel_s} {slide_s} {sels_s} {band_s}\n"))
     return text, named

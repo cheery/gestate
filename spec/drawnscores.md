@@ -1233,6 +1233,67 @@ under it, since the columns are `DRAG_REACH` taller than the notes,
 and takes a note there by aim — the ruler is not yet a control.  F208
 was photographed again.
 
+### The seventh slice, built — select several, carry them as one — 2026-09-06
+
+*Henri: "take the next slice, multi-select and move as a group."*
+`card:notes-editor.md` slice 4's first two tools, and no new word on
+the wire: both are gestures the walk already delivers, turned into
+commands the transcript already holds.
+
+**A band, swept over empty roll.**  A press that lands on no note —
+*beyond reach* of any, `BAND_REACH` three semitones, because a column
+is the roll's whole height and before this a press anywhere in a
+column with one note took that note — starts a band: the column's
+hand carries one corner in keys, the body's the other in ticks, the
+picture draws the rectangle as it grows (`__nb_band_k__`, a list
+reading), and the release commits **`select <rail> tick0 key0 tick1
+key1`**.  A note the band touches is in, Reaper's rule; the corners
+are the roll's own ticks and keys either way round, so a typed or
+replayed `select` picks what a sweep did.  The group outlives the
+sweep: every selected note wears an outline (`__nb_sels_k__`, the
+group as a list), and a press on any of them keeps it, a press on any
+other note is a selection of one, a press on nothing clears it.
+
+**A hand on any note of the group carries them all.**  The picture
+moves every selected note with the hand in both axes, and the release
+commits **`carry <rail> semitones ticks`**: `transpose` and `move` for
+a group in one rewrite — every selected line changes by the same two
+numbers, one text edit, one undo entry, one rebuild.  Refused whole
+rather than half-done: a note written in a `.ges`, a note that would
+leave the keyboard or its section, a note that would land where the
+file already says one is (`notes.doubled`).  The selection is spent
+with the commit, as `move`'s is — the rebuild renumbers the roll.
+
+**A list-valued reading crosses as a trace**, the word a scope's window
+and a live roll's rows already use; `observe` writes it to the
+reference views as before, and the workbench turns it into a `trace`
+line rather than a `reading`.
+
+**Measured, headless:** bar 1 of section A swept from key 78 to 62
+selects 6 notes — the melody's four and two held under them; carried
+up two semitones, 6 lines change by `+2` through one `replace`;
+carried along one beat as well, the whole is refused because the
+melody's last note would land on bar 2's first, and the group stands.
+Eight tests under *Slice 4* in `test/test_drawnscores.py`.
+
+**Driven, first time.**  `test/driven/20260906-154518-notes-band-select-and-carry`
+on the desk that ran it: `arc.notes` opened alone on `Xvfb :99`, the
+hand pressed above the melody in bar 1 and swept to below it — the band
+drawn as it grew — let go, and six notes wore their outlines; then it
+took the first of them and carried it up three rows, and `Ctrl-S`
+changed six lines of the copy, each `key` by two, nothing else.
+
+**What this slice does not do, said now.**  A group is spent with its
+commit, where Reaper keeps it; a band selects by touching, with no way
+yet to add or drop one note from a group; the compact box beside a
+`.ges` line sweeps bands too, on a roll three pixels a semitone where
+three semitones is five pixels — honest, and not much use there.  And
+`test_the_page_after_a_moved_note_is_a_lookup_not_a_compile`'s 1.5 s
+bound tripped at 1.63 s inside the full-file run and passed five times
+alone at well under it, with and without this slice: a bound written
+for a lookup measured in a process that had just run 170 tests.  Left
+as it is, and said here.
+
 ### What plugin-like scopes
 
 *"I'd like plugin-like, reusable behavior for this feature.  I think

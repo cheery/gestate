@@ -1303,3 +1303,22 @@ shared, and I was the load.  And a session log is written by the
 and the transcript never did come; the bench reproduced the drop
 instead, with the real audition wired in, and it was green there too,
 which is what pointed at the door.
+
+## Select several, carry them as one — 2026-09-06
+
+*"take the next slice, multi-select and move as a group."*  Two
+commands, `select` and `carry`, and two list readings the picture
+folds over, the group and the band; nothing new on the wire.  The
+first headless sweep selected nothing, because it never started: a
+column is the roll's whole height and a press anywhere in one took the
+nearest note, so empty roll existed only where a column was empty —
+almost nowhere on a page of five voices.  `BAND_REACH`, three
+semitones, is the rule that was missing.  The second sweep took six
+notes; the first carry was refused whole because the melody's last
+note would have landed on bar 2's first, which is the file's rule
+arriving at the gesture, and the third carried six lines by two
+semitones in one rewrite.  On the window, first time: a band swept over bar 1, six
+outlines, the group carried up two, six lines changed by two.  The
+compact box's own tests had pressed mid-column and meant the nearest
+note at any distance; they press on a note now, which is what a hand
+does.

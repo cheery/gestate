@@ -1089,8 +1089,17 @@ def run(path, rate: int = 44100, block: int = 512,
                     next_frame = time.monotonic() + READ_EVERY
                     lines_out = []
                     if told:
-                        lines_out += [f"reading\t{n}\t{v}"
-                                      for n, v in bench.observe()]
+                        # **A list-valued reading crosses as a trace**
+                        # — a score box's group, or the band a hand is
+                        # sweeping — the same word a scope's window and
+                        # a live roll's rows use (`spec/scope.md`).
+                        for n, v in bench.observe():
+                            if isinstance(v, (list, tuple)):
+                                lines_out.append(
+                                    "trace\t" + n + "\t"
+                                    + "\t".join(f"{p:.5g}" for p in v))
+                            else:
+                                lines_out.append(f"reading\t{n}\t{v}")
                     for label, points in bench.scope_traces():
                         lines_out.append(
                             "trace\t" + label + "\t"

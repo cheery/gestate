@@ -222,6 +222,26 @@ mark region was manners = Stated
 move : Text -> Int -> Int -> Command
 move region was at = Stated
 
+#: Select every note of a score box that a band covers — what a hand
+#: sweeping over empty roll runs when it lets go (`card:notes-editor.md`
+#: slice 4).  `region` is the box's rail, which says whose notes; the
+#: corners are in the roll's own ticks and keys, either way round, so a
+#: replay selects the same notes a sweep did.  A note the band touches
+#: is in.  Refuses by name a region that is not a rail, and says so
+#: when the band covers nothing.
+select : Text -> Int -> Int -> Int -> Int -> Command
+select region tick0 key0 tick1 key1 = Stated
+
+#: Carry the selected notes as one — by an interval in semitones and a
+#: number of ticks — what a hand on any note of a group runs when it
+#: lets go.  `transpose` and `move` for a group in one rewrite: every
+#: selected line changes by the same two numbers, one undo entry, one
+#: rebuild.  Only notes written in a `.notes` file; the whole group is
+#: refused if any one of them cannot be carried, or would leave the
+#: keyboard or its section, or would land on a note already written.
+carry : Text -> Int -> Int -> Command
+carry region keys ticks = Stated
+
 #: A MIDI input on this machine.
 #:
 #: **Its own type so that the list can appear** — the rule `Named`,

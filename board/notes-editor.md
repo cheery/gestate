@@ -71,7 +71,7 @@ record and the player reads it on the next block.
    kill it:* the two-machine parity rule, if a swapped score must stay
    sample-identical with the compiled road under every edit — Q1.
 3. **Both axes in one drag** — F204's first repair, in the walk.  ***Built 2026-09-06, the second sitting*** — §"One hand, both axes".
-4. **The tools he reaches for**, his list, 2026-09-06: *"I do transpose
+4. **The tools he reaches for**, his list, 2026-09-06 — *multi-select and move as a group built the same day, §"Select several, carry them as one"*: *"I do transpose
    them, adjust onset/offset, drag and select multiple and move them
    around, resize the clip, resize selection, select bpm by tapping."*
    Transpose is built; onset is the rail; offset is a length drag;
@@ -228,3 +228,24 @@ read the text from before the first.  The view answers its own
 replacement until the document takes it now.  Slice 4's list is what
 is left: multi-select, move as a group, resize, the clip, the tapped
 tempo.
+
+## Select several, carry them as one — 2026-09-06
+
+**Henri:** *"take the next slice, multi-select and move as a group."*
+A press on empty roll sweeps a band, and its release runs `select`; a
+hand on any note of the group carries them all, and its release runs
+`carry` — one rewrite of every selected line, one undo entry, one
+rebuild.  Nothing new crosses the wire: the picture reads the group
+and the band as list readings, the way it reads a live roll's rows.
+`spec/drawnscores.md` §"The seventh slice, built" is the contract,
+driven and photographed first time
+(`test/driven/20260906-154518-notes-band-select-and-carry`): six lines
+of the copy, each two semitones up.
+What made it possible was a rule the roll had been missing: a press
+farther than three semitones from any note is empty roll, where
+before it took the nearest note at any distance.
+
+**Left of slice 4:** resize a note or the selection, resize the
+section, tap a tempo.  And what this slice does not do: a group is
+spent with its commit rather than kept, as Reaper keeps it; and a
+click on a group keeps the group where a click elsewhere selects one.

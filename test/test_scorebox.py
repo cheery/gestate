@@ -382,10 +382,10 @@ def test_a_page_is_one_program_and_still_three_pictures():
         # seam") — and those are the box's own too, or one roll's drag
         # would move another's note.
         spare = mine - set(jumps)
-        assert all(c.startswith(("__nb_held_", "__nb_lift_", "__nb_sel_",
+        assert all(c.startswith(("__nb_held_", "__nb_lift_", "__nb_sel_", "__nb_sels_", "__nb_band_",
                                  "__nb_slide_"))
                    for c in spare), f"a channel that is nobody's: {spare}"
-        assert len(spare) == 4, spare
+        assert len(spare) == 6, spare
         seen |= mine
         assert v.payload(), "the box could not cross"
 
@@ -400,11 +400,31 @@ def test_every_hand_lands_on_a_line_that_exists():
     hands = hands_of(roll)
     assert hands
 
-    for hand, _h in enumerate(hands):
-        for down in (0.0, 0.25, 0.5, 0.75, 1.0):
+    # **Aimed at each note under the column**, since `BAND_REACH`: a
+    # press farther than three semitones from any note is empty roll,
+    # where a band is swept, and no longer the nearest note at any
+    # distance (`card:notes-editor.md` slice 4).
+    from gestate.scorebox import reach_of
+    low, high = reach_of(roll)
+    for hand, (_t0, _t1, under) in enumerate(hands):
+        for j in under:
+            down = (high - roll.events[j][3]) / (high - low)
             note = note_under(roll, hand, down)
             line = roll.leaves[roll.events[note][2]].line
             assert 1 <= line <= last, (hand, down, line)
+
+
+def _aim(region) -> float:
+    """The fraction a press at the first note under this column writes —
+    what a hand aiming at it does.  Since `BAND_REACH` a press more than
+    three semitones off any note is empty roll (a band), so a test that
+    means a note presses *on* one."""
+    from gestate.scorebox import hands_of, reach_of
+
+    roll = region.roll
+    low, high = reach_of(roll)
+    _t0, _t1, under = hands_of(roll)[region.hand]
+    return (high - roll.events[under[0]][3]) / (high - low)
 
 
 # ── In the workbench ────────────────────────────────────────────────────────
@@ -803,11 +823,12 @@ def test_a_note_let_go_where_it_began_reveals_it_and_writes_nothing():
     source, roll = _rolled("noted.ges", "ground")
     seat = _seated(source, roll)
     chan = next(iter(seat.bench.note_regions))
+    aim = _aim(seat.bench.note_regions[chan])
 
-    seat.touched(chan, 0.5)
+    seat.touched(chan, aim)
     was = roll.events[seat.holding[1]][3]
-    seat.touched(chan, 0.2)
-    seat.touched(chan, 0.5)
+    seat.touched(chan, aim - 0.3)
+    seat.touched(chan, aim)
     assert seat.holding[4] == was, seat.holding
     said = seat.released(chan)
     assert re.fullmatch(rf"{was}, line \d+", said), said
@@ -884,8 +905,9 @@ def test_the_picture_follows_a_drop_with_nothing_playing(tmp_path):
     seat = session()
     seat.bench, seat.view = bench, _View(source)
     chan = sorted(bench.note_regions)[0]
-    seat.touched(chan, 0.5)
-    seat.touched(chan, 0.1)
+    aim = _aim(bench.note_regions[chan])
+    seat.touched(chan, aim)
+    seat.touched(chan, max(0.0, aim - 0.4))
     assert "semitone" in seat.released(chan)
 
     end = time.time() + 30.0
@@ -940,8 +962,9 @@ def test_the_note_follows_the_hand_before_anything_is_rebuilt(tmp_path):
     seat = session()
     seat.bench, seat.view = bench, _View(source)
     chan = sorted(bench.note_regions)[0]
+    aim = _aim(bench.note_regions[chan])
 
-    seat.touched(chan, 0.5)
+    seat.touched(chan, aim)
     bench.observe()
     # **A press selects, and the selection is drawn** — an outline under
     # the note's bar and a marker on the rail (2026-09-06).  What a press
@@ -952,7 +975,7 @@ def test_the_note_follows_the_hand_before_anything_is_rebuilt(tmp_path):
     outline = [i for i in after if i[0] == "rect" and i[5] == (236, 240, 248)]
     assert len(outline) == 1, "the selected note wears one outline"
 
-    seat.touched(chan, 0.1)              # carried well up the box
+    seat.touched(chan, max(0.0, aim - 0.4))   # carried well up the box
     told = dict(bench.observe())
     where = bench.note_regions[chan]
     assert told[where.held] == float(seat.holding[1]), told
@@ -972,7 +995,7 @@ def test_the_note_follows_the_hand_before_anything_is_rebuilt(tmp_path):
 
     # And a hand that comes home puts the picture back where the file
     # says it is, because nothing was written.
-    seat.touched(chan, 0.5)
+    seat.touched(chan, aim)
     seat.released(chan)
     bench.observe()
     home = list(box.picture())

@@ -20,15 +20,15 @@ An `author` complaint may say `nowhere` instead, and then the reason is printed 
 
 ## The count
 
-**449 complaints**, in 46 files.
+**454 complaints**, in 46 files.
 
 | | |
 |---|---|
-| `author` | 230 |
-| `command` | 42 |
+| `author` | 234 |
+| `command` | 43 |
 | `world` | 27 |
 | `machine` | 150 |
-| say where | 149 |
+| say where | 153 |
 | say `nowhere`, on purpose | 35 |
 | `unplaced`, with a defect that owns it | 59 |
 
@@ -840,11 +840,12 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 1046 | `RefusedError` | `command` | — | 'line {line} is not in this file any more' |
 | 1049 | `RefusedError` | `command` | — | 'line {line} does not say {_spelling(value)} where the box thought — the file has moved under t… |
 | 1053 | `RefusedError` | `command` | — | 'that pitch is written as a fraction; a semitone step would round it' |
-| 1334 | `RefusedError` | `command` | — | 'that column is not in this box any more' |
-| 1337 | `RefusedError` | `command` | — | 'nothing sounds under that column' |
-| 1358 | `RefusedError` | `command` | — | 'that column is not in this box any more' |
-| 1362 | `RefusedError` | `command` | — | 'nothing under that column sounds {key}' |
-| 1364 | `RefusedError` | `command` | — | 'that column sounds {key} {len(found)} times, so which note is meant is not written down anywhe… |
+| 1353 | `RefusedError` | `command` | — | 'that column is not in this box any more' |
+| 1356 | `RefusedError` | `command` | — | 'nothing sounds under that column' |
+| 1366 | `RefusedError` | `command` | — | 'nothing sounds within reach of that press' |
+| 1385 | `RefusedError` | `command` | — | 'that column is not in this box any more' |
+| 1389 | `RefusedError` | `command` | — | 'nothing under that column sounds {key}' |
+| 1391 | `RefusedError` | `command` | — | 'that column sounds {key} {len(found)} times, so which note is meant is not written down anywhe… |
 
 ### `seminaive.py`
 
@@ -860,10 +861,14 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 2367 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2373 | `NotesError` | `author` | handed in | '{place} would leave section {section.name} — a note does not leave its section by dragging' |
-| 2387 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
-| 4314 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
+| 2377 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2383 | `NotesError` | `author` | handed in | '{place} would leave section {section.name} — a note does not leave its section by dragging' |
+| 2397 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
+| 2507 | `NotesError` | `author` | handed in | '{place}:{row} is not a note any more' |
+| 2513 | `NotesError` | `author` | handed in | '{place}:{row} would leave the keyboard' |
+| 2518 | `NotesError` | `author` | handed in | '{place}:{row} would leave section {section.name} — a note does not leave its section by draggi… |
+| 2536 | `NotesError` | `author` | handed in | '{place}: a note would land on one already written there — the file cannot say one place twice' |
+| 4565 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
 
 ### `tempo.py`
 

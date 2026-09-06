@@ -958,6 +958,16 @@ class Session:
     #: both (F204's repair, 2026-09-06): `(channel, note, tick it was
     #: at, tick the hand took hold at, tick it is carried to)`.
     holding_x: object = None
+    #: **The group**, per score box — every note a band selected, or the
+    #: one the last press picked (`card:notes-editor.md` slice 4: *drag
+    #: and select multiple and move them around*).  `selected` still
+    #: names the one; this names them all, and a hand on any of them
+    #: carries the lot.
+    group: dict = field(default_factory=dict)
+    #: A band being swept over empty roll: the column pressed, and the
+    #: corners in keys and ticks — `{"found", "y", "k0", "k1", "t0",
+    #: "t1"}` — until the hand lets go and `select` runs.
+    banding: object = None
     #: **The note the last press selected, per score box** — `{box:
     #: note}`.  It outlives the press, which `holding` does not, and
     #: it is the noun a command on the rail takes: a hand on the rail
@@ -2398,6 +2408,148 @@ class Session:
                  else self._hear_at(found.roll.events[note][0] + by,
                                     self.view.text()))
         return f"move: {name} — {said}{heard}"
+
+    def do_select(self, region: str, tick0: int, key0: int,
+                  tick1: int, key1: int) -> str:
+        """Select every note of a score box that a band covers.
+
+        **What a hand sweeping over empty roll runs when it lets go**
+        (`card:notes-editor.md` slice 4).  `region` is the box's rail,
+        which says whose notes; the corners are in the roll's own ticks
+        and keys, either way round, so a typed or replayed `select`
+        picks the same notes a sweep did.  A note the band touches is
+        in — Reaper's rule, and the one a hand expects — and the group
+        outlives the sweep until the next press on a note outside it.
+        """
+        places = getattr(self.bench, "note_regions", None) or {}
+        found = places.get(region)
+        if found is None:
+            return f"select: no score box region called `{region}`"
+        if not getattr(found, "on_rail", False):
+            return "select: name the box's rail — the band is the box's, not a column's"
+        lo_t, hi_t = sorted((int(tick0), int(tick1)))
+        lo_k, hi_k = sorted((int(key0), int(key1)))
+        roll = found.roll
+        notes = tuple(i for i, (on, off, _k, key, _v, _m) in enumerate(roll.events)
+                      if on < hi_t and off > lo_t and lo_k <= key <= hi_k)
+        if not notes:
+            self.group.pop(found.box, None)
+            self.selected.pop(found.box, None)
+            self._unpreview(found)
+            return (f"select: nothing sounds between ticks {lo_t}–{hi_t} "
+                    f"and keys {lo_k}–{hi_k}")
+        self.group[found.box] = notes
+        self.selected[found.box] = notes[0]
+        self._unpreview(found)
+        return (f"select: {len(notes)} note{'s' if len(notes) != 1 else ''} — "
+                f"ticks {lo_t}–{hi_t}, keys {lo_k}–{hi_k}")
+
+    def do_carry(self, region: str, keys: int, ticks: int) -> str:
+        """Carry the selected notes as one — by an interval, and by ticks.
+
+        **`transpose` and `move` for a group, in one rewrite**: every
+        selected line changes by the same interval and the same number
+        of ticks, one text edit, one undo entry, one rebuild.  Only
+        notes written in a `.notes` file can be carried, and the whole
+        group is refused if any one of them cannot be — a group that
+        half-moved would be a picture the file disagrees with.  Refused
+        by name, too, for a note that would leave the keyboard or its
+        section, and for one that would land where the file already says
+        a note is.  The selection is spent with the commit, as `move`'s
+        is: the rebuild renumbers the roll.
+        """
+        from pathlib import Path
+
+        from .notes import NotesError, doubled, parse, retune
+        from .scorebox import RefusedError, pitch_atom
+
+        places = getattr(self.bench, "note_regions", None) or {}
+        found = places.get(region)
+        if found is None:
+            return f"carry: no score box region called `{region}`"
+        if not getattr(found, "on_rail", False):
+            return "carry: name the box's rail — a group is the box's, not a column's"
+        group = self.group.get(found.box, ())
+        if not group:
+            return "carry: nothing selected — sweep a band first"
+        keys, ticks = int(keys), int(ticks)
+        roll = found.roll
+        origins = getattr(self.bench, "origins", None) or {}
+        rows, name = [], None
+        for note in group:
+            try:
+                line, _col, _width, _key = pitch_atom(roll, note)
+            except RefusedError as exc:
+                return f"carry: {exc}"
+            where = origins.get(line)
+            if where is None:
+                return (f"carry: the note at tick {roll.events[note][0]} is "
+                        "written in this `.ges`, not in a `.notes` file — "
+                        "a group is carried in a `.notes` file only")
+            if name is not None and where[0] != name:
+                return "carry: the group spans two files, and a carry is one file's"
+            name = where[0]
+            rows.append((note, where[1]))
+        place = f"{name}"
+        path = Path(getattr(self.bench, "path", ".")).parent / name
+        mine = self._is_document(name)
+        try:
+            text = self.view.text() if mine else path.read_text()
+            parsed = parse(text, name)
+            by_line = {n.line: n for n in parsed.notes}
+            sections = {s.name: s for s in parsed.sections}
+            out, said = text, []
+            for _note, row in rows:
+                one = by_line.get(row)
+                if one is None:
+                    #: complaint  author — the line a group's note was on, in
+                    #: the file that wrote it, which has changed under the roll
+                    raise NotesError(f"{place}:{row} is not a note any more")
+                section = sections[one.section]
+                key = one.key + keys
+                if not 0 <= key <= 127:
+                    #: complaint  author — the line, and the interval that
+                    #: carries it off the keyboard
+                    raise NotesError(f"{place}:{row} would leave the keyboard")
+                total = (one.bar - 1) * section.bar_ticks + one.at + ticks
+                if total < 0 or total >= section.bars * section.bar_ticks:
+                    #: complaint  author — the line, and the section whose
+                    #: edge the carry would take it past
+                    raise NotesError(
+                        f"{place}:{row} would leave section {section.name} — "
+                        "a note does not leave its section by dragging")
+                bar, tick = divmod(total, section.bar_ticks)
+                bar += 1
+                if keys:
+                    out, word = retune(out, row, "key", one.key, key)
+                    said.append(word)
+                if tick != one.at:
+                    out, word = retune(out, row, "at", one.at, tick)
+                    said.append(word)
+                if bar != one.bar:
+                    out, word = retune(out, row, "bar", one.bar, bar)
+                    said.append(word)
+            moved = {row for _n, row in rows}
+            if any(a.line in moved or b.line in moved for a, b in doubled(parse(out, name))):
+                #: complaint  author — the file, and the place it already
+                #: says a note is
+                raise NotesError(
+                    f"{place}: a note would land on one already written "
+                    "there — the file cannot say one place twice")
+            if out == text:
+                return "carry: nothing to do — no interval and no ticks"
+            self._write_included(path, out, mine)
+        except (OSError, NotesError, KeyError) as exc:
+            return f"carry: {exc}"
+        first = min(roll.events[n][0] for n in group) + ticks
+        self.group.pop(found.box, None)
+        self.selected.pop(found.box, None)
+        self.bench.audition(self.view.text())
+        heard = ("" if getattr(self.bench, "playing", False)
+                 else self._hear_at(first, self.view.text()))
+        step = f"{'+' if keys > 0 else ''}{keys}"
+        return (f"carry: {name} — {len(rows)} notes, {step} semitones, "
+                f"{'+' if ticks > 0 else ''}{ticks} ticks{heard}")
 
     def do_mark(self, region: str, was: str, manners: str) -> str:
         """Write how one note of a score box is to be played.
@@ -4041,19 +4193,42 @@ class Session:
         self._journal().slid("touched", (name, down))
         if getattr(found, "on_rail", False):
             return self._rail_touched(found, name, down)
+        band = self.banding
+        if band is not None and band["y"] == name:
+            # **The band's other corner follows the hand** in pitch;
+            # the body's hand carries it in time (`_rail_touched`).
+            band["k1"] = key_at(roll, down)
+            self._show_band(found)
+            return ""
         if self.holding is None or self.holding[0] != name:
             try:
                 note = note_under(roll, hand, down)
             except RefusedError as exc:
-                # A press on nothing selects nothing — so the body's
-                # hand, written by the same press, has nothing to carry
-                # off in time (F204's repair).
+                # **A press on nothing starts a band** — slice 4 of
+                # `card:notes-editor.md`, *select multiple*: the hand
+                # sweeps a rectangle over empty roll, in keys on this
+                # column and in ticks on the body around it, and lets go
+                # to `select` whatever it covers.  Nothing is selected
+                # until then, so the body has nothing to carry off in
+                # time (F204's repair).
                 self.selected.pop(found.box, None)
+                self.group.pop(found.box, None)
+                if "nothing sounds" in str(exc):
+                    key = key_at(roll, down)
+                    self.banding = {"found": found, "y": name, "k0": key,
+                                    "k1": key, "t0": None, "t1": None}
+                    self._show_band(found)
+                    return "sweep a band to select notes"
                 return str(exc)
             # **A press selects**, and the selection outlives the press:
             # it is what a hand on the rail moves, and what the picture
             # outlines until the next press or the next rebuild.
+            # **A press on a note of the group keeps the group**, so a
+            # hand on any selected note carries them all; a press on any
+            # other note is a selection of one.
             self.selected[found.box] = note
+            if note not in self.group.get(found.box, ()):
+                self.group[found.box] = (note,)
             was = roll.events[note][3]
             # **Where the hand took hold, not where the note is.**  A
             # column is the full height of the roll, so a press lands
@@ -4119,9 +4294,38 @@ class Session:
                                      found.lift: float(y_of(roll, key)
                                                        - y_of(roll, was)),
                                      found.sel: float(note),
-                                     found.slide: float(slide)}
+                                     found.slide: float(slide),
+                                     found.sels: self._group_reading(found),
+                                     found.band: []}
         except Exception:                                # noqa: BLE001
             pass                       # a bench with no canvas to show
+
+    def _group_reading(self, found) -> list:
+        """The group as the picture reads it — note numbers, as floats."""
+        return [float(n) for n in self.group.get(found.box, ())]
+
+    def _show_band(self, found) -> None:
+        """Draw the band a hand is sweeping — its corners in the roll's
+        own pixels — or nothing until both hands have spoken."""
+        from .scorebox import geometry_of, x_of, y_of
+
+        band = self.banding
+        try:
+            if band is None or band["t0"] is None or band["t1"] is None:
+                shown = []
+            else:
+                roll = found.roll
+                pad = geometry_of(roll).pad + 1
+                xs = sorted((x_of(roll, band["t0"]), x_of(roll, band["t1"])))
+                ys = sorted((y_of(roll, band["k0"]), y_of(roll, band["k1"])))
+                shown = [float((xs[0] + xs[1]) // 2), float((ys[0] + ys[1]) // 2),
+                         float(max(2, xs[1] - xs[0])),
+                         float(ys[1] - ys[0] + 2 * pad)]
+            self.bench.previewing = {found.held: -1.0, found.lift: 0.0,
+                                     found.sel: -1.0, found.slide: 0.0,
+                                     found.sels: [], found.band: shown}
+        except Exception:                                # noqa: BLE001
+            pass
 
     def _rail_touched(self, found, name: str, across: float) -> str:
         """A hand on the rail — the selected note, carried in time.
@@ -4137,6 +4341,16 @@ class Session:
         from .scorebox import grid_of, tick_at, x_of
 
         roll = found.roll
+        band = self.banding
+        if band is not None and band["found"].box == found.box:
+            # The band's corners in time: the press's tick, then wherever
+            # the hand has swept to.
+            tick = tick_at(roll, across)
+            if band["t0"] is None:
+                band["t0"] = tick
+            band["t1"] = tick
+            self._show_band(found)
+            return ""
         note = self.selected.get(found.box)
         if note is None or not 0 <= note < len(roll.events):
             return ("nothing selected — press a note first, then drag "
@@ -4175,7 +4389,9 @@ class Session:
                                      found.lift: float(lift),
                                      found.sel: float(note),
                                      found.slide: float(x_of(found.roll, at)
-                                                        - x_of(found.roll, was))}
+                                                        - x_of(found.roll, was)),
+                                     found.sels: self._group_reading(found),
+                                     found.band: []}
         except Exception:                                # noqa: BLE001
             pass
 
@@ -4201,6 +4417,23 @@ class Session:
         for.  A model that does not know the verb answers "no gesture"
         and loses a commit, not the editor.
         """
+        band = self.banding
+        if band is not None:
+            regions = getattr(self.bench, "note_regions", None) or {}
+            rail = next((k for k, r in regions.items()
+                         if r.box == band["found"].box and r.on_rail), None)
+            if name == band["y"] or name == rail:
+                # **The band's commit is `select`**: one command line,
+                # the corners in the roll's own ticks and keys, so a
+                # replay selects the same notes.  The second `released`
+                # of the pair finds no band and says nothing.
+                self.banding = None
+                self._journal().add("released", (name,), "")
+                if band["t0"] is None or band["t1"] is None or rail is None:
+                    self._unpreview(band["found"])
+                    return ""
+                return self.run("select", rail, band["t0"], band["k0"],
+                                band["t1"], band["k1"])
         held, held_x = self.holding, self.holding_x
         mine = held is not None and held[0] == name
         mine_x = held_x is not None and held_x[0] == name
@@ -4222,6 +4455,24 @@ class Session:
             self._journal().add("released", (name,), "")
             regions = getattr(self.bench, "note_regions", None) or {}
             said = []
+            if held is not None and len(self.group.get(regions[held[0]].box, ())) > 1:
+                # **A group is carried as one** — `carry`, one command
+                # line, one rewrite of every selected line, one rebuild:
+                # by the interval the column's hand travelled and the
+                # ticks the body's did.  Let go where it took hold in
+                # both is a click, and a click on a group keeps it.
+                found = regions[held[0]]
+                dkey = held[4] - held[2]
+                dticks = (held_x[4] - held_x[2]) if held_x is not None else 0
+                if dkey == 0 and dticks == 0:
+                    self._unpreview(found)
+                    return self._reveal(found, held[2])
+                rail = next(k for k, r in regions.items()
+                            if r.box == found.box and r.on_rail)
+                carried = self.run("carry", rail, dkey, dticks)
+                if carried.startswith("carry:") and "—" not in carried:
+                    self._unpreview(found)
+                return carried
             if held_x is not None:
                 xname, _note, was_at, _grabbed, at = held_x
                 found_x = regions[xname]
@@ -4398,7 +4649,9 @@ class Session:
             sel = self.selected.get(found.box)
             self.bench.previewing = {found.held: -1.0, found.lift: 0.0,
                                      found.sel: float(-1 if sel is None else sel),
-                                     found.slide: 0.0}
+                                     found.slide: 0.0,
+                                     found.sels: self._group_reading(found),
+                                     found.band: []}
         except Exception:                                # noqa: BLE001
             pass
 
