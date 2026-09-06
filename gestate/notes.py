@@ -95,6 +95,8 @@ class Note:
     level: int
     manners: int
     line: int
+    above: tuple[str, ...] = ()
+    beside: str | None = None
 
     def __post_init__(self):
         """A spelling that does not name this note's key is refused.
@@ -123,6 +125,8 @@ class Section:
     key: str | None
     mode: str | None
     line: int
+    above: tuple[str, ...] = ()
+    beside: str | None = None
 
     @property
     def bar_ticks(self) -> int:
@@ -135,6 +139,10 @@ class NotesFile:
     name: str
     sections: list[Section] = field(default_factory=list)
     notes: list[Note] = field(default_factory=list)
+    #: Prose after the last record, which no record follows.  Everything
+    #: else belongs to the record under it — `spec/drawnscores.md` §"The
+    #: prose belongs to the record below it".
+    closing: tuple[str, ...] = ()
 
     def section(self, name: str) -> Section | None:
         for one in self.sections:
@@ -193,6 +201,24 @@ def _required(allowed: set[str]) -> set[str]:
     return _SECTION_REQUIRED if allowed is _SECTION_FIELDS else _NOTE_REQUIRED
 
 
+#: A `#` opens a comment only where a **token** could start — at the
+#: beginning of the line or after whitespace.  `key C#` is a tonic and
+#: not a comment, and five of the seventeen names `_PITCH_CLASS` offers
+#: end in a sharp: `fixme.md` F203, where the old rule made `C#`, `D#`,
+#: `F#`, `G#` and `A#` unwritable and blamed the author for the fields
+#: it had just eaten.  Every value in this format is one `\S+` token, so
+#: there is no other reading to lose.
+_COMMENT = re.compile(r"(?:^|(?<=\s))#")
+
+
+def _uncomment(raw: str) -> tuple[str, str | None]:
+    """`(the record, the comment)` — either may be empty, neither is lost."""
+    found = _COMMENT.search(raw)
+    if found is None:
+        return raw, None
+    return raw[:found.start()], raw[found.start():].rstrip()
+
+
 def _int(text: str, key: str, place: str) -> int:
     try:
         return int(text)
@@ -207,25 +233,43 @@ def parse(text: str, name: str = "<notes>") -> NotesFile:
     — which is the reflow gate: a file whose lines are shuffled has to
     parse to the same score, and a parser that needed the header first
     would not have that property.
+
+    **And the prose is kept.**  A comment line belongs to the record
+    below it and a trailing comment to the record it sits on, so that a
+    canonical rewrite puts every word back where its author put it —
+    `fixme.md` F200, and `spec/drawnscores.md` §"The prose belongs to
+    the record below it" is the rule and its one limit.
     """
     out = NotesFile(name=name)
-    note_lines: list[tuple[int, list[str]]] = []
+    note_lines: list[tuple[int, list[str], tuple, str | None]] = []
+    above: list[str] = []
 
     for number, raw in enumerate(text.splitlines(), start=1):
-        line = raw.split("#", 1)[0].strip()
+        record, beside = _uncomment(raw)
+        line = record.strip()
         if not line:
+            #: **Stripped, not kept as written.**  A comment's indentation
+            #: means nothing in a format with no nesting, and keeping it
+            #: would make `test_indentation_means_nothing` false for the
+            #: prose while it stays true for the records — one file with
+            #: two rules about whitespace.
+            if beside is not None:
+                above.append(raw.strip())
             continue
         tokens = line.split()
         place = f"{name}:{number}"
         kind = tokens[0]
         if kind == "section":
-            out.sections.append(_section(tokens[1:], number, place))
+            out.sections.append(
+                _section(tokens[1:], number, place, tuple(above), beside))
         elif kind == "note":
-            note_lines.append((number, tokens[1:]))
+            note_lines.append((number, tokens[1:], tuple(above), beside))
         else:
             raise NotesError(
                 f"{place}: `{kind}` is not a record; a line is `section …` "
                 "or `note …`")
+        above = []
+    out.closing = tuple(above)
 
     seen: set[str] = set()
     for one in out.sections:
@@ -234,13 +278,15 @@ def parse(text: str, name: str = "<notes>") -> NotesFile:
             raise NotesError(f"{place}: section `{one.name}` is declared twice")
         seen.add(one.name)
 
-    for number, tokens in note_lines:
-        out.notes.append(_note(tokens, number, f"{name}:{number}", out))
+    for number, tokens, above, beside in note_lines:
+        out.notes.append(
+            _note(tokens, number, f"{name}:{number}", out, above, beside))
 
     return out
 
 
-def _section(tokens: list[str], number: int, place: str) -> Section:
+def _section(tokens: list[str], number: int, place: str,
+             above: tuple = (), beside: str | None = None) -> Section:
     if not tokens or not _NAME.match(tokens[0]):
         raise NotesError(
             f"{place}: `section` needs a name — `section A key D bars 8 "
@@ -270,10 +316,11 @@ def _section(tokens: list[str], number: int, place: str) -> Section:
             f"{place}: `mode {mode}` is not one this knows; "
             + ", ".join(sorted(_MODES)))
     return Section(name=tokens[0], bars=bars, beats=beats, voices=voices,
-                   key=key, mode=mode, line=number)
+                   key=key, mode=mode, line=number, above=above, beside=beside)
 
 
-def _note(tokens: list[str], number: int, place: str, out: NotesFile) -> Note:
+def _note(tokens: list[str], number: int, place: str, out: NotesFile,
+          above: tuple = (), beside: str | None = None) -> Note:
     got = _fields(tokens, _NOTE_FIELDS, place)
     section = out.section(got["section"])
     if section is None:
@@ -313,7 +360,8 @@ def _note(tokens: list[str], number: int, place: str, out: NotesFile) -> Note:
                 voice=got["voice"], key=key,
                 spell=_spelled(got.get("spell"), key, place),
                 level=LEVELS.index(got["vel"]),
-                manners=_manners(got.get("manner"), place), line=number)
+                manners=_manners(got.get("manner"), place), line=number,
+                above=above, beside=beside)
 
 
 def _spelled(spell: str | None, key: int, place: str) -> str | None:
@@ -431,9 +479,17 @@ def write(out: NotesFile) -> str:
     Reading a file this wrote and writing it again is a no-op, which is
     what makes a gesture on the roll able to rewrite one line without
     disturbing the file around it.
+
+    **And every comment comes back**, above the record it was written
+    above or beside the record it was written beside — `fixme.md` F200.
+    What this does *not* keep is a blank line inside a run of prose: the
+    house spelling for that is a bare `#`, which `arc.ges` already uses,
+    and a canonical writer that guessed at blank lines would have a
+    second thing to be canonical about.
     """
-    lines = []
+    lines: list[str] = []
     for one in out.sections:
+        lines += list(one.above)
         head = [f"section {one.name}"]
         if one.key is not None:
             head.append(f"key {one.key}")
@@ -441,7 +497,7 @@ def write(out: NotesFile) -> str:
             head.append(f"mode {one.mode}")
         head += [f"bars {one.bars}", f"beats {one.beats}",
                  "voices " + ",".join(one.voices)]
-        lines.append("  ".join(head))
+        lines.append("  ".join(head) + (f"  {one.beside}" if one.beside else ""))
     lines.append("")
     at_bar = None
     for one in ordered(out):
@@ -449,7 +505,9 @@ def write(out: NotesFile) -> str:
             if at_bar is not None:
                 lines.append("")
             at_bar = (one.section, one.bar)
+        lines += list(one.above)
         lines.append(_line(one))
+    lines += list(out.closing)
     return "\n".join(lines) + "\n"
 
 
@@ -464,7 +522,8 @@ def _line(one: Note) -> str:
            + f"vel {LEVELS[one.level]}")
     asked = [m for m, bit in sorted(MANNERS.items(), key=lambda kv: kv[1])
              if one.manners & bit]
-    return out + ("  manner " + ",".join(asked) if asked else "")
+    out += "  manner " + ",".join(asked) if asked else ""
+    return out + (f"  {one.beside}" if one.beside else "")
 
 
 # ── Rewriting one field of one line ─────────────────────────────────────────
@@ -500,7 +559,12 @@ def retune(text: str, line: int, field: str, was, now) -> tuple:
     row = lines[line - 1]
     if not row.lstrip().startswith("note "):
         raise NotesError(f"{place} is not a note")
-    found = re.search(_FIELD.format(re.escape(field)), row)
+    #: **Only the record half is rewritten.**  A line may carry prose
+    #: (`fixme.md` F200) and that prose may say anything at all — `# the
+    #: key 70 next door` — so a search over the whole line could edit a
+    #: sentence and call it a drag.
+    record, _said = _uncomment(row)
+    found = re.search(_FIELD.format(re.escape(field)), record)
     if found is None:
         raise NotesError(f"{place} has no `{field}` to change")
     if found.group(2) != str(was):
@@ -519,7 +583,7 @@ def retune(text: str, line: int, field: str, was, now) -> tuple:
     #: the new one if they meant one.  `spec/drawnscores.md` §"The
     #: spelling a rule cannot guess".
     if field == "key":
-        for one in re.finditer(r"\s+spell (\S+)", row):
+        for one in re.finditer(r"\s+spell (\S+)", _uncomment(row)[0]):
             if key_of(one.group(1)) == int(was):
                 row = row[:one.start()] + row[one.end():]
                 said += f", and `spell {one.group(1)}` with it"

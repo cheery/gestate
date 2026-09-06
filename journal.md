@@ -961,3 +961,67 @@ the rest of this card is rung 5 and that is a decision:
 
 *The card is `card:drawn-scores.md`; the contract is
 `spec/drawnscores.md` §"The spelling a rule cannot guess".*
+
+## The prose the format could not hold — F200, and the tonic it could not spell — 2026-09-06
+
+*Henri, after the spelling slice:* **"F200 could be tackled."**
+
+**F200 was that `notes.write()` deleted every comment in a `.notes`
+file.**  It had been filed rather than fixed, with two candidate repairs
+and a preference between them: *"a `#` line owned by the (section, bar)
+it precedes, or a trailing field on the note record itself — and the
+second is the one that survives reflow, which is gate three."*
+
+**The count refused the preferred one.**  `arc.ges` — the piece this
+format replaces, and the reason the defect matters — carries **169
+whole-line comments and 0 trailing ones**.  A trailing field would have
+survived reflow and held none of the prose the defect is about.  The
+preference had been reasoned from a property, and one command said what
+was actually there.
+
+**What landed is one rule covering both shapes.**  A comment belongs to
+the **record below it**, or to the record it shares a line with — which
+is how a doc comment attaches in every language, and it means the prose
+names its owner instead of depending on a position.  F200's other worry
+— *a section comment jumps when a note is dragged* — does not arise,
+because a remark about a section belongs to the `section` record and
+that record never moves.
+
+**The limit is stated rather than discovered**, and tested: a remark
+written above the first note of a *bar* belongs to that note, and a drag
+takes it along.  There is no bar record for it to belong to, and the
+spec refuses to invent one.
+
+### And it could not be written until F203 was found
+
+Deciding where a comment *starts* turned up a defect that had been
+there since the parser was written.  `#` opened a comment anywhere, and
+five of the seventeen tonics `_PITCH_CLASS` offers end in a sharp:
+
+    section A  key C#  mode lydian  bars 8  beats 4  voices melody
+    -> sharp.notes:1: missing `bars`, `beats`, `voices`
+
+**C♯, D♯, F♯, G♯ and A♯ were unwritable**, and the refusal blamed the
+author for the three fields it had just swallowed — the worst shape an
+error message can have, in the one file whose whole discipline is that
+a complaint names a place a person can look at.
+
+Nothing caught it because the only `.notes` file in the tree is in D, G
+and D, and every handwritten fixture omits `key` or uses a natural.
+`doc/memory/a-targeted-set-is-a-claim.md` again, and it turned up the
+same way twice in one day.
+
+The rule now: **a `#` opens a comment where a token could start** — line
+start, or after whitespace.  Every value in this format is one `\S+`
+token, so `key C#  # a real comment` reads as both and nothing is lost.
+
+### And the fixture was given the thing the property is about
+
+`arc.notes` was generated and carried no comment, which is *why* F200
+went unnoticed: the only file in the tree had nothing to lose.  It
+carries seven now — a header, and a remark beside each of the three
+notes whose letter the spelling rule could not guess, each saying why
+that letter.  A round trip gives all seven back, and that is a gate.
+
+*`fixme.md` F200 and F203; the contract is `spec/drawnscores.md` §"The
+prose belongs to the record below it".*

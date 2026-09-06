@@ -1344,6 +1344,14 @@ def test_a_whole_section_stacks_on_one_roll_with_every_note_placeable():
 # ── Rung 4: the drag writes into the file that owns the note ───────────────
 
 
+def _first_note(text: str) -> int:
+    """The 1-based line of the first `note` record, found and not counted."""
+    for i, line in enumerate(text.splitlines(), start=1):
+        if line.startswith("note "):
+            return i
+    raise AssertionError("the fixture has no note records")
+
+
 def test_a_field_of_a_note_line_is_rewritten_byte_exactly():
     """`spec/north_star.md`'s law, for a `.notes` file.
 
@@ -1353,24 +1361,33 @@ def test_a_field_of_a_note_line_is_rewritten_byte_exactly():
     the field is named: gate two met from the other side.
     """
     text = NOTES.read_text()
-    out, said = notes.retune(text, 5, "key", 62, 64)
+    #: Found rather than counted — a line number written into a test is
+    #: a claim about a fixture, and four of them rotted the day
+    #: `arc.notes` grew a header.
+    at = _first_note(text)
+    out, said = notes.retune(text, at, "key", 62, 64)
 
     assert "key 62 → 64" in said
     was, now = text.splitlines(), out.splitlines()
     differ = [i for i, (a, b) in enumerate(zip(was, now)) if a != b]
-    assert differ == [4], "exactly the one line"
-    assert now[4] == was[4].replace("key 62", "key 64")
+    assert differ == [at - 1], "exactly the one line"
+    assert now[at - 1] == was[at - 1].replace("key 62", "key 64")
     assert len(out) == len(text), "and the file did not change length"
 
 
-@pytest.mark.parametrize("line,was,says", [
-    (3, 62, "is not a note"),
-    (5, 999, "the file has moved under the picture"),
-    (99999, 62, "not in this file any more"),
+@pytest.mark.parametrize("where,was,says", [
+    ("section", 62, "is not a note"),
+    ("note", 999, "the file has moved under the picture"),
+    ("past the end", 62, "not in this file any more"),
 ])
-def test_a_rewrite_is_refused_rather_than_forced(line, was, says):
+def test_a_rewrite_is_refused_rather_than_forced(where, was, says):
+    text = NOTES.read_text()
+    line = {"section": text.splitlines().index(
+                [l for l in text.splitlines() if l.startswith("section ")][0]) + 1,
+            "note": _first_note(text),
+            "past the end": 99999}[where]
     with pytest.raises(notes.NotesError, match=says):
-        notes.retune(NOTES.read_text(), line, "key", was, 64)
+        notes.retune(text, line, "key", was, 64)
 
 
 def test_a_drag_on_an_included_note_writes_that_file_and_says_so():
@@ -1544,3 +1561,116 @@ def test_a_written_spelling_survives_the_four_gates():
 
     # a stable order: writing the file back is byte-identical
     assert notes.write(parsed) == text
+
+
+# ── The prose survives a rewrite — fixme.md F200 ───────────────────────────
+
+
+HAND = '''\
+# arc.notes — three sections, bright to dark
+#
+#   python -m gestate.audioperform examples/audio/arcnotes.ges
+section A  key D  mode lydian  bars 1  beats 4  voices melody,bass  # G# is the mode
+section B  key G  mode locrian  bars 1  beats 4  voices melody,bass
+
+#: the melody opens on the tonic and reaches the sharp fourth
+note  section A  bar 1  at 0  len 96  voice melody  key 62  vel ff
+note  section A  bar 1  at 96  len 96  voice melody  key 68  vel f  # the sharp fourth
+note  section A  bar 1  at 0  len 384  voice bass  key 38  vel mf
+
+note  section B  bar 1  at 0  len 96  voice melody  key 67  vel f
+note  section B  bar 1  at 0  len 384  voice bass  key 43  vel mf
+# and that is all of it
+'''
+
+
+def test_the_shipped_file_carries_prose_and_keeps_it():
+    """The fixture now has the thing the property is about.
+
+    F200 went unnoticed because `arc.notes` was generated and carried no
+    comment, so the only file in the tree had nothing to lose —
+    `doc/memory/a-targeted-set-is-a-claim.md` from the other side.  It
+    carries seven now: a header run and a remark beside each of the
+    three notes the spelling rule could not guess.
+    """
+    text = NOTES.read_text()
+    parsed = notes.parse(text, "arc.notes")
+    said = [n for n in parsed.notes if n.beside]
+    assert len(said) == 3 and {n.spell for n in said} == {"fis3", "cis4", "cis5"}
+    assert parsed.sections[0].above[0].startswith("# arc.notes")
+    assert notes.write(parsed) == text, "and a rewrite gives all seven back"
+
+
+def test_a_hand_annotated_file_comes_back_word_for_word():
+    """F200: the round trip used to delete every comment.
+
+    The premise of this format is that a person and a session edit one
+    file, and `arc.ges` next door is 27% prose about *why* those notes.
+    A writer that dropped it would take the explanation in the same
+    gesture that was supposed to be byte-exact.
+    """
+    back = notes.write(notes.parse(HAND, "hand.notes"))
+    for said in [l for l in HAND.splitlines() if "#" in l]:
+        assert said.strip() in back, f"lost: {said}"
+    assert back == HAND, "and in the same places"
+
+
+def test_prose_belongs_to_the_record_below_it_and_travels_with_it():
+    """The rule, and the one thing it costs.
+
+    A comment names its owner by sitting above it or beside it, so a
+    reorder carries it along — which is right for a note's own remark
+    and is the stated limit for a remark about a bar.
+    """
+    parsed = notes.parse(HAND, "hand.notes")
+    one, = [n for n in parsed.notes if n.key == 68]
+    assert one.beside == "# the sharp fourth"
+    two, = [n for n in parsed.notes if n.key == 62]
+    assert two.above == ("#: the melody opens on the tonic "
+                         "and reaches the sharp fourth",)
+    assert parsed.sections[0].beside == "# G# is the mode"
+    assert parsed.sections[0].above[0].startswith("# arc.notes")
+    assert parsed.closing == ("# and that is all of it",)
+
+    #: and the prose moves with the note, not with the line number
+    moved = notes.Note(**{**one.__dict__, "at": 0, "key": 68, "spell": None})
+    parsed.notes[parsed.notes.index(one)] = moved
+    back = notes.write(parsed)
+    said = [l for l in back.splitlines() if l.endswith("# the sharp fourth")]
+    assert len(said) == 1 and "key 68" in said[0] and " at 0 " in said[0], (
+        "the remark rode with the note it was written beside")
+
+
+def test_a_drag_rewrites_the_record_and_never_the_prose():
+    """A line's prose may say anything, including the words a rewrite
+    looks for.  `# the key 70 next door` is a sentence, not a field."""
+    text = ("section A  bars 1  beats 4  voices lead\n"
+            "note  section A  bar 1  at 0  len 96  voice lead  key 60"
+            "  spell c4  vel mf  # not the key 70 next door, nor spell des5\n")
+    out, said = notes.retune(text, 2, "key", 60, 62)
+    assert "`spell c4` with it" in said
+    row = out.splitlines()[1]
+    assert " key 62 " in row and "spell c4" not in row
+    assert row.endswith("# not the key 70 next door, nor spell des5")
+
+
+def test_a_comment_only_file_still_parses_to_nothing():
+    """Prose with no record under it is the file's, and is not lost."""
+    parsed = notes.parse("# nothing here yet\n# but a plan\n", "empty.notes")
+    assert parsed.notes == [] and parsed.sections == []
+    assert parsed.closing == ("# nothing here yet", "# but a plan")
+
+
+@pytest.mark.parametrize("tonic", ["C#", "D#", "F#", "G#", "A#"])
+def test_a_sharp_tonic_is_a_tonic_and_not_a_comment(tonic):
+    """**fixme.md F203.**  `_PITCH_CLASS` offers seventeen names and five
+    of them end in a sharp; `#` opening a comment anywhere made those
+    five unwritable, and the refusal blamed the author for the `bars` it
+    had just eaten.  A `#` opens a comment where a token could start."""
+    text = (f"section A  key {tonic}  mode lydian  bars 1  beats 4"
+            "  voices lead  # and a real comment after it\n"
+            "note  section A  bar 1  at 0  len 96  voice lead  key 61  vel mf\n")
+    parsed = notes.parse(text, "sharp.notes")
+    assert parsed.sections[0].key == tonic
+    assert parsed.sections[0].mode == "lydian"
+    assert parsed.sections[0].beside == "# and a real comment after it"

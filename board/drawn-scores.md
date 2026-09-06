@@ -6,8 +6,9 @@
              `arc.ges` played from a flat file — §"Day one, landed".
              Rungs 0-4 of the roll landed with it.  **2026-09-06: the
              written spelling** — §"His own tools answered one of
-             these".  What is left is rung 5, the view, and it is a
-             decision before it is work
+             these" — **and the prose the format could not hold**,
+             `fixme.md` F200 and F203.  What is left is rung 5, the
+             view, and it is a decision before it is work
     because  "Minä koin että .ges tiedoston muokkaaminen näkemättä mitä
              on tekemässä oli aika raskasta hommaa. .ges on hyvä
              formaatti syntetisaattoreihin, mutta ehkä ei sittenkään
@@ -698,6 +699,32 @@ work and the decision is his:
 * **Playback as states** — OFFLINE / ONLINE / FABRIC / PLAYING — is the
   name for the decision `spec/drawnscores.md` says rung 5 will owe: a
   preview tone with the transport stopped.
+
+## The prose, and the tonic — F200 and F203, 2026-09-06
+
+**Henri:** *"F200 could be tackled."*
+
+The format could not hold a comment: `notes.write()` deleted every one,
+and `arc.ges` next door is 27% prose about *why* those notes.  F200 had
+been filed with a preferred repair — a trailing field on the note record
+— and **the count refused it**: `arc.ges` carries 169 whole-line
+comments and 0 trailing ones, so the preferred shape would have held
+none of the prose the defect is about.
+
+One rule covers both shapes now: **a comment belongs to the record below
+it, or beside it if it shares the line.**  `spec/drawnscores.md` §"The
+prose belongs to the record below it" is the contract, the limit and the
+reasoning; `journal.md` §"The prose the format could not hold" is the
+day.
+
+**And it could not be written until F203 was found** — `#` opened a
+comment anywhere, so `key C#`, `D#`, `F#`, `G#` and `A#` were
+unwritable, five of the seventeen tonics the format offers, and the
+refusal blamed the author for the fields it had just eaten.
+
+`arc.notes` now carries seven comments of its own, which is the repair
+of the reason F200 went unnoticed: the fixture had none of the thing the
+property was about.
 
 **The open question this leaves him**, and it is the only one: rung 5 as
 specified is a new furniture kind, and two of his own tools argue about

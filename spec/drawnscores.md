@@ -285,6 +285,58 @@ argument, not a new one.
 *And it is the one place this spec adds to the language's vocabulary
 rather than only to its syntax.*  Named so it can be struck on its own.
 
+### The prose belongs to the record below it — 2026-09-06
+
+**A `.notes` file may carry comments, and a rewrite gives them all
+back.**  `fixme.md` F200 is what it could not do before: the parser
+stripped `#` to end of line and the writer never emitted one, so the
+first tool to write a hand-annotated file back deleted every word
+explaining the music — in the same gesture that was supposed to be
+byte-exact.
+
+**The rule is one sentence.**  A comment belongs to the **record below
+it**, or to the record it shares a line with.  Which is how a doc
+comment attaches in every language, and it means the prose names its
+owner instead of depending on a position in the file:
+
+    # arc.notes — three sections, bright to dark          <- section A's
+    section A  key D  mode lydian  bars 8  beats 4  voices melody,bass  # G# is the mode
+
+    #: the melody opens on the tonic and reaches the sharp fourth
+    note  section A  bar 1  at 0   len 96  voice melody  key 62  vel ff
+    note  section A  bar 1  at 96  len 96  voice melody  key 68  vel f  # the sharp fourth
+
+**Why not a trailing field, which was the shape F200 preferred.**  That
+was chosen on a property and the count refuses it: `arc.ges` carries
+**169 whole-line comments and 0 trailing ones**, so a trailing field
+would have held none of the prose the defect is about.  Both shapes are
+one rule here, so neither is given up.
+
+**And a remark about a section cannot jump**, which was F200's other
+worry: it belongs to the `section` record, and that record never moves.
+
+**The one limit, stated rather than discovered.**  A remark written
+above the first note of a *bar* belongs to that note, and a drag takes
+it along.  There is no bar record for it to belong to and this spec
+refuses to invent one — §"What is deliberately not here" — so the
+honest thing is to say where prose about a bar goes: on the section, or
+beside the note it is really about.
+
+**And a blank line inside a run of prose is not kept, nor is a
+comment's indentation.**  The house spelling for a blank row is a bare
+`#`, which `arc.ges` uses throughout; indentation means nothing in a
+format with no nesting, and keeping it would leave one file with two
+rules about whitespace — true for the records, false for the prose.
+`write()` is the canonical writer, not a formatter.
+
+**Where a comment starts, which had to be settled first.**  A `#` opens
+a comment **where a token could start** — the beginning of a line, or
+after whitespace.  `fixme.md` F203 is why: the old rule cut at any `#`,
+and five of the seventeen tonics this format offers end in one, so
+`key C#` was unwritable and the refusal blamed the author for the
+`bars` it had just eaten.  Every value here is one `\S+` token, so
+there is no other reading to lose.
+
 ## The four gates, as runnable checks
 
 *Henri, 2026-09-04, on LLM-friendliness:* **"lets make it testable on

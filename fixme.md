@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 203 entries, **164 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 204 entries, **166 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7468,7 +7468,7 @@ that made the property *worse* in some other bar would pass — the honest gate
 asserts against the dragged note's own voice's line span, and that needs the
 span to be a thing `notes.py` can name, which it is not yet.
 
-### F200. **[bug]** `notes.write()` drops every comment in a `.notes` file
+### F200. **[resolved]** `notes.write()` drops every comment in a `.notes` file
 
 `gestate/notes.py`'s parser strips `#` to end of line and the writer never emits
 one, so a round trip deletes them:
@@ -7497,6 +7497,35 @@ dragged, and attaching it to nothing makes it a line with no position in a
 canonical order.  The honest options are a `#` line owned by the (section, bar)
 it precedes, or a trailing field on the note record itself — and the second is
 the one that survives reflow, which is gate three.
+
+**This was repaired on 2026-09-06, and neither of those is what it took.**  The second option
+was preferred here on a property rather than on a count, and the count refuses
+it: `arc.ges` carries **169 whole-line comments and 0 trailing ones**, so a
+trailing field would have held none of the prose this defect is about.
+
+What landed is one rule covering both shapes — **a comment belongs to the record
+below it, or beside it if it shares the line** — so the prose names its owner the
+way every doc comment in every language does, and a reorder carries it along.
+The section record is what a remark about a section attaches to, and that record
+never moves.  The stated limit, tested rather than discovered: a remark written
+above the first note of a bar belongs to *that note*, and a drag takes it along;
+there is no bar record for it to belong to, and `spec/drawnscores.md` refuses to
+invent one.
+
+A blank line inside a run of prose is not kept — the house spelling is a bare
+`#`, which `arc.ges` already uses throughout.  `write()` is the canonical writer,
+not a formatter.
+
+gate: `test_drawnscores.py::test_a_hand_annotated_file_comes_back_word_for_word`,
+which round-trips a file carrying all four shapes — a header run, a trailing
+comment on a section, a `#:` run above a note, a trailing comment on a note, and
+a closing line — and asserts byte-identity, beside
+`test_prose_belongs_to_the_record_below_it_and_travels_with_it`, which pins the
+ownership rule and the limit, and
+`test_a_drag_rewrites_the_record_and_never_the_prose`.
+
+**And it uncovered F203**, which had to be fixed first: `#` opened a comment
+anywhere, so `key C#` was unparseable.
 
 gate: `none — not yet built`.  What would hold it is a round trip over a file
 carrying both a whole-line comment and a trailing one, asserted byte-identical —
@@ -7584,3 +7613,34 @@ a check that fails.  What would hold it is a threshold in
 `test_every_long_piece_keeps_headroom` — and it should not go in until
 somebody decides what share is *wrong* rather than merely worth knowing, which
 is the decision this entry is waiting on.
+
+### F203. **[resolved]** five of the seventeen tonics could not be written, because `#` opened a comment anywhere
+
+`gestate/notes.py`'s parser cut a line at its first `#`.  `_PITCH_CLASS` offers
+seventeen note names and **five of them end in a sharp** — `C#`, `D#`, `F#`,
+`G#`, `A#` — so a section header in any of those keys had its own fields eaten:
+
+    section A  key C#  mode lydian  bars 8  beats 4  voices melody
+    -> sharp.notes:1: missing `bars`, `beats`, `voices`
+
+Measured 2026-09-06.  **And the refusal blamed the author for the fields it had
+just swallowed**, which are visible on the line it is complaining about — the
+worst shape an error message can have, and the thing `doc/complaints.md` exists
+to stop.
+
+Nothing caught it because the only `.notes` file in the tree is in D, G and D,
+none of them sharp, and `test_drawnscores.py`'s handwritten fixtures all omit
+`key` or use a natural — `doc/memory/a-targeted-set-is-a-claim.md` again: the
+fixtures had none of the thing the property is about.
+
+**Found while repairing F200**, which could not be written until *where a
+comment starts* was decided.
+
+The rule now: **a `#` opens a comment where a token could start** — at the
+beginning of a line or after whitespace.  Every value in this format is one
+`\S+` token, so there is no other reading to lose, and `key C#  # a real
+comment` reads as both.
+
+gate: `test_drawnscores.py::test_a_sharp_tonic_is_a_tonic_and_not_a_comment`,
+parametrized over all five, each with a real trailing comment beside it so the
+two readings are held apart rather than one of them merely allowed.
