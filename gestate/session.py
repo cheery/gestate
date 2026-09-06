@@ -2352,8 +2352,9 @@ class Session:
         name, row = where
         place = f"{name}:{row}"
         path = Path(getattr(self.bench, "path", ".")).parent / name
+        mine = self._is_document(name)
         try:
-            text = path.read_text()
+            text = self.view.text() if mine else path.read_text()
             parsed = parse(text, name)
             one = next((n for n in parsed.notes if n.line == row), None)
             if one is None:
@@ -2382,7 +2383,7 @@ class Session:
                 raise NotesError(
                     f"{place} would land on a note already written "
                     "there — the file cannot say one place twice")
-            path.write_text(out)
+            self._write_included(path, out, mine)
         except (OSError, NotesError, StopIteration) as exc:
             return f"move: {exc}"
         # The rebuild renumbers the roll's notes, so the selection is
@@ -4056,8 +4057,21 @@ class Session:
             self.holding = (name, note, was, key_at(roll, down), was)
             self._preview(found, note, was)
             leaf = roll.leaves[roll.events[note][2]]
-            self.view.goto(leaf.line)
-            return f"line {leaf.line}"
+            # **Where the note is written, in the file that wrote it.**
+            # A note from an included `.notes` has a line in the
+            # expanded program that the buffer does not have; the
+            # origins say which file and which line.  When that file is
+            # this window's own document the caret goes there; when a
+            # `.ges` included it the place is said and the caret stays
+            # (rung 3: a click does not switch files).
+            where = (getattr(self.bench, "origins", None) or {}).get(leaf.line)
+            if where is None:
+                self.view.goto(leaf.line)
+                return f"line {leaf.line}"
+            if self._is_document(where[0]):
+                self.view.goto(where[1])
+                return f"line {where[1]}"
+            return f"line {where[1]} of {where[0]}"
         _n, note, was, grabbed, _at = self.holding
         key = was + key_at(roll, down) - grabbed
         self.holding = (name, note, was, grabbed, key)
@@ -4245,8 +4259,9 @@ class Session:
             return None                    # this file's own note; the old road
         name, at = where
         path = Path(getattr(self.bench, "path", ".")).parent / name
+        mine = self._is_document(name)
         try:
-            text = path.read_text()
+            text = self.view.text() if mine else path.read_text()
             twice = [b for a, b in doubled(parse(text, name)) if b.line == at]
             if twice:
                 place = f"{name}:{at}"
@@ -4256,7 +4271,7 @@ class Session:
                     f"{place} is written twice over, so a drag cannot "
                     "tell which line it means")
             out, said = retune(text, at, "key", was, key)
-            path.write_text(out)
+            self._write_included(path, out, mine)
         except (OSError, NotesError) as exc:
             return f"transpose: {exc}"
         self.bench.audition(self.view.text())
@@ -4264,6 +4279,24 @@ class Session:
                  else self._hear_from(roll, note, self.view.text()))
         return f"transpose: {name} — {said}{heard}"
 
+
+    def _is_document(self, name: str) -> bool:
+        """Whether the included file a note came from *is* the document
+        in the window — a `.notes` opened alone (`audioeditor.KINDS`),
+        whose program includes itself.  Then the edit is a buffer edit,
+        undoable, waiting for `Ctrl-S` like any other; the disk road of
+        rung 4 is for a `.notes` included by a `.ges`."""
+        from pathlib import Path
+
+        return (getattr(self.bench, "kind", None) is not None
+                and Path(getattr(self.bench, "path", "")).name == name)
+
+    def _write_included(self, path, out: str, mine: bool) -> None:
+        if mine:
+            if not self.view.replace(out):
+                raise OSError("nowhere to put it")
+        else:
+            path.write_text(out)
 
     def _reveal(self, found, at: int) -> str:
         """Where the note under a click is written — and go there.
@@ -4287,6 +4320,14 @@ class Session:
         except (RefusedError, Exception):                # noqa: BLE001
             return ""
         where = (getattr(self.bench, "origins", None) or {}).get(line)
+        if where is not None and self._is_document(where[0]):
+            # The note's file is this window's own: the line is the
+            # whole answer, as it is for a `.ges`.
+            try:
+                self.view.goto(where[1])
+            except Exception:                            # noqa: BLE001
+                return f"{key} is written on line {where[1]}"
+            return f"{key}, line {where[1]}"
         if where is not None:
             return f"{key} is written in {where[0]}:{where[1]}"
         try:

@@ -825,3 +825,11 @@ piano, playing 291 of `arc.notes`' 291 notes through five hammer
 banks.  `spec/drawnscores.md` §"The second slice, built".  Next: the
 file kind as a registration, so opening `arc.notes` opens that wrapper
 and `Ctrl-Tab` shows the page; then the scroll.
+
+### The third slice — the registration
+
+*"take the next slice."*  `audioeditor.KINDS`, with `.notes` as its
+first row: a `.notes` opened in the window builds through the wrapper
+over its own buffer, `Ctrl-Tab` shows its sections stacked, and a drag
+on it edits the buffer, not the disk.  `spec/drawnscores.md` §"The
+third slice, built".  What is left of rung 5 is the scroll.

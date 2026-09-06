@@ -932,8 +932,15 @@ def expand(source: str, base: Path | None = None) -> str:
     return expanded(source, base)[0]
 
 
-def expanded(source: str, base: Path | None = None) -> tuple:
+def expanded(source: str, base: Path | None = None,
+             texts: dict | None = None) -> tuple:
     """`(text, {line of the text: (included file, line of it)})`.
+
+    `texts` is `{file name: its text}` for an included file whose text
+    is *not* what is on disk — the window's own buffer, when the
+    document being edited is the `.notes` itself (`audioeditor.KINDS`).
+    What a person is looking at is what should play, which is the rule
+    `program` keeps for a `.ges`; this is the same rule one file over.
 
     **The offset has to come from here**, which is the whole of rung 1
     (`spec/drawnscores.md` §"The slices after").  `declarations` already
@@ -963,10 +970,13 @@ def expanded(source: str, base: Path | None = None) -> tuple:
     for line, one in found:
         place = f"line {line}"
         path = (root / one)
-        if not path.exists():
+        if texts and one in texts:
+            parsed = parse(texts[one], name=one)
+        elif not path.exists():
             raise NotesError(
                 f'{place}: include "{one}" — no such file beside {root}')
-        parsed = parse(path.read_text(), name=one)
+        else:
+            parsed = parse(path.read_text(), name=one)
         for section in parsed.sections:
             if section.name in known:
                 raise NotesError(

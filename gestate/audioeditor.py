@@ -753,6 +753,8 @@ class Workbench:
         #: (asked for from use; `journal.md` §"The canvas walks over
         #: crust" is the day it landed).
         self.inert = self.path.suffix.lower() in INERT
+        #: The file's kind, when it is not a `.ges` — `KINDS`.
+        self.kind = KINDS.get(self.path.suffix.lower())
         #: **A file that is not there yet, held in memory until it is
         #: saved.**  Naming a file that does not exist is how an editor is
         #: asked to start a new one, and every other editor waits for the
@@ -1343,8 +1345,16 @@ class Workbench:
                 if isinstance(roll, Exception):
                     self.say(f"no notes on line {line}: "
                              f"{self._first_line(roll)}")
-            program, regions, entries = scorebox.page_program(rolls)
+            stacked = bool(getattr(self.kind, "stacked", False))
+            program, regions, entries = scorebox.page_program(
+                rolls, stacked=stacked)
             drawn = [e for e in entries if e is not None]
+            if drawn and stacked:
+                # **The page is this file's own picture.**  A `.notes`
+                # declares no `substrate`, so the file's canvas is the
+                # page's — the `substrate` entry the stacked program
+                # declares, walked by the canvas view.
+                drawn = drawn + ["substrate"]
             if drawn:
                 # **One program for the page, drawn as many.**  Each box
                 # used to be its own gui program — another 35,000-character
@@ -1353,6 +1363,9 @@ class Workbench:
                 # once and gives a view per entry.
                 try:
                     views = Substrate.several(program, self.rate, drawn)
+                    if stacked and drawn[-1] == "substrate":
+                        self.substrate = views[-1]
+                        views, drawn = views[:-1], drawn[:-1]
                     boxes.update(zip(drawn, views))
                     self.note_regions.update(regions)
                 except Exception as exc:                # noqa: BLE001
@@ -3455,8 +3468,11 @@ class Workbench:
         """
         from .notes import expanded
 
-        out, self.origins = expanded(self.source() if text is None else text,
-                                     self.path.parent)
+        authored = self.source() if text is None else text
+        if self.kind is not None:
+            out, self.origins = self.kind.program(self, authored)
+            return out
+        out, self.origins = expanded(authored, self.path.parent)
         return out
 
     @property
@@ -3549,6 +3565,40 @@ class Workbench:
 #: than useless here, because it is *true of gestate* and false of the
 #: file, so a reader has to know the whole design to dismiss it.
 INERT = {".txt", ".md", ".py", ".rs", ".c", ".h", ".toml", ".json"}
+
+
+class NotesKind:
+    """A `.notes` file, opened alone — rung 5 of `spec/drawnscores.md`.
+
+    The document is the note file; the *program* is `notes.wrapper`'s
+    text with the file included, and the include reads the window's own
+    buffer rather than the disk, so what a person is looking at is what
+    plays (`notes.expanded`'s `texts`).  Its page is the file's own
+    picture: every section's roll in one column, which `Ctrl-Tab` shows
+    and a hand on any box writes through that box's own channels.
+    """
+
+    suffix = ".notes"
+    #: The page is the file's own picture — `scorebox.page_program`'s
+    #: `stacked`, and `_load_substrate` takes the `substrate` entry.
+    stacked = True
+
+    @staticmethod
+    def program(bench, text: str) -> tuple:
+        """`(program, origins)` — the wrapper, expanded over `text`."""
+        from .notes import expanded, wrapper
+
+        return expanded(wrapper(bench.path), bench.path.parent,
+                        texts={bench.path.name: text})
+
+
+#: **A file kind is a registration, not a branch** — Henri's reading of
+#: *plugin-like*, 2026-09-06 (`card:drawn-scores.md` §"What plugin-like
+#: scopes", 1): a row says how a suffix builds its program and what its
+#: page is, and the bench branches on nothing else.  A `.ges` is the
+#: default and needs no row; an inert suffix is `INERT`; the next
+#: sub-language (`.manner` was named) is a second row and no new seam.
+KINDS = {NotesKind.suffix: NotesKind}
 
 #: The first screen anybody ever sees — a bare click on the desktop icon
 #: opens the editor on this, sounding.  **So every sentence in it is an

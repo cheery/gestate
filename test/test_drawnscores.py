@@ -2008,3 +2008,149 @@ def test_the_wrapper_rests_a_voice_a_section_lacks():
         assert len(raw) == 3
         lead = sorted(on for on, _off, b, _p in raw if b == "lead")
         assert lead == [0, 4 * 96 + 4 * 96], "B's note lands after A's one bar and B's first"
+
+
+# ── Rung 5, the third slice — a file kind is a registration ─────────────────
+
+
+def _opened_alone():
+    """`arc.notes` opened as the document, in a scratch directory, on a
+    headless bench: the kind, the program, the page."""
+    import shutil
+    import tempfile
+    from pathlib import Path
+
+    from gestate.audioeditor import Workbench
+
+    tmp = Path(tempfile.mkdtemp())
+    here = tmp / "arc.notes"
+    shutil.copy(NOTES, here)
+    bench = Workbench(here, rate=22050, block=256)
+    return here, bench
+
+
+def test_a_notes_file_opens_as_a_program_through_the_wrapper():
+    """Henri's reading of *plugin-like*, 1: a file kind is a registration.
+    `.notes` is the first row, and what it registers is how the file
+    builds — the wrapper, expanded over the window's own text."""
+    from gestate.audioeditor import KINDS, NotesKind
+
+    assert KINDS[".notes"] is NotesKind
+    here, bench = _opened_alone()
+    assert bench.kind is NotesKind and not bench.inert
+    program = bench.program()
+    assert "hammerVoice" in program and 'include' not in program.split("\n")[0]
+    assert bench.origins and {n for n, _l in bench.origins.values()} == {"arc.notes"}
+    # The buffer, not the disk: a note retuned in the text plays retuned.
+    edited = here.read_text().replace("key 62", "key 63", 1)
+    was = bench.program().count("fromNote 63 ")
+    assert bench.program(edited).count("fromNote 63 ") == was + 1
+
+
+def test_the_page_is_the_files_own_picture_stacked():
+    """`Ctrl-Tab` on a `.notes` shows every section's roll in one
+    column — the file's `substrate`, which it never declared."""
+    from gestate.scorebox import RAIL
+
+    here, bench = _opened_alone()
+    bench._load_substrate(bench.program())
+    parsed = notes.parse(here.read_text(), "arc.notes")
+    assert sorted(bench.canvases) == [f"__notes_{k}__" for k in range(len(parsed.sections))]
+    assert bench.substrate is not None, "the page is the file's own picture"
+    picture = bench.substrate.picture()
+    captions = [i for i in picture if i[0] == "text" and i[3] == "NOTES"]
+    assert len(captions) == len(parsed.sections), "one roll per section, stacked"
+    tops = sorted(i[2] for i in captions)
+    assert len(set(tops)) == len(tops), "stacked, not overlaid"
+    rails = [k for k, r in bench.note_regions.items() if r.hand == RAIL]
+    assert len(rails) == len(parsed.sections)
+
+
+def _clear_note(roll) -> int:
+    """A note a hand can name without ambiguity — the stacked page puts
+    five voices in one column, and a key sounding twice under a column
+    is refused by name, as `note_of` says."""
+    from gestate.scorebox import RefusedError, hands_of, note_of
+
+    for i, (_on, _off, _k, key, _v, _m) in enumerate(roll.events):
+        for h, (_t0, _t1, under) in enumerate(hands_of(roll)):
+            if i in under:
+                try:
+                    if note_of(roll, h, key) == i:
+                        return i
+                except RefusedError:
+                    pass
+                break
+    raise AssertionError("every note of the roll is ambiguous under its column")
+
+
+def _seated_on(bench, text: str):
+    from gestate.session import Session
+
+    class _View:
+        saved = True
+
+        def __init__(self, text):
+            self._text, self.went = text, None
+
+        def text(self):
+            return self._text
+
+        def replace(self, text):
+            self._text = text
+            return True
+
+        def goto(self, line):
+            self.went = line
+            return True
+
+    bench.previewing = {}
+    bench.auditioned = []
+    bench.audition = lambda text: bench.auditioned.append(text)
+    seat = Session(bench=bench)
+    seat.view = _View(text)
+    return seat
+
+
+def test_a_drag_on_the_notes_document_writes_the_buffer_not_the_disk():
+    """Rung 4 wrote an included file to disk at once, because there was
+    no buffer for it.  When the `.notes` *is* the document there is, so
+    the drag is a text edit like a `.ges`'s — undoable, waiting for
+    `Ctrl-S` — and the disk is untouched until then."""
+    from gestate.scorebox import key_at, reach_of
+
+    here, bench = _opened_alone()
+    bench._load_substrate(bench.program())
+    before = here.read_text()
+    seat = _seated_on(bench, before)
+    roll = bench.note_regions["__nb_c0_0__"].roll
+    note = _clear_note(roll)
+    chan = _press_a_note(seat, roll, note)
+    low, high = reach_of(roll)
+    grabbed = key_at(roll, (high - roll.events[note][3]) / (high - low))
+    up = next(d / 1000 for d in range(1000) if key_at(roll, d / 1000) == grabbed + 2)
+    seat.touched(chan, up)
+    said = seat.released(chan)
+    assert said.startswith("transpose: arc.notes —"), said
+    assert here.read_text() == before, "the disk moved under a buffer edit"
+    changed = [(a, b) for a, b in zip(before.splitlines(), seat.view.text().splitlines())
+               if a != b]
+    assert len(changed) == 1 and f"key {roll.events[note][3] + 2}" in changed[0][1], changed
+    assert bench.auditioned and bench.auditioned[-1] == seat.view.text(), \
+        "the audition is of the buffer"
+
+
+def test_a_click_on_the_notes_document_goes_to_its_own_line():
+    here, bench = _opened_alone()
+    bench._load_substrate(bench.program())
+    seat = _seated_on(bench, here.read_text())
+    roll = bench.note_regions["__nb_c0_0__"].roll
+    note = _clear_note(roll)
+    chan = _press_a_note(seat, roll, note)
+    line = roll.leaves[roll.events[note][2]].line
+    row = bench.origins[line][1]
+    assert seat.view.went == row, "the press goes to the note's own line"
+    seat.view.went = None
+    said = seat.released(chan)
+    assert seat.view.went == row, (seat.view.went, row)
+    assert said.endswith(f"line {row}"), said

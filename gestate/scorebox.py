@@ -1260,7 +1260,7 @@ def note_of(roll: Roll, hand: int, key: int) -> int:
     return found[0]
 
 
-def page_program(rolls: list) -> tuple:
+def page_program(rolls: list, *, stacked: bool = False) -> tuple:
     """Every box of a page in **one** program, and where its hands are.
 
     `rolls` is what `build_rolls` returned; a `RollError` in it is a box
@@ -1292,7 +1292,20 @@ def page_program(rolls: list) -> tuple:
         texts.append(text)
         entries.append(entry)
     drawn = [e for e in entries if e is not None]
-    if drawn:
+    if drawn and stacked and len(drawn) > 1:
+        # **The page is the file's own picture** — rung 5, for a
+        # `.notes` opened alone (`audioeditor.KINDS`): every box in one
+        # column, so `Ctrl-Tab` shows the sections stacked and a hand on
+        # any of them writes that box's own channels.  `Column` is the
+        # vocabulary's; the lift is over every entry at once.
+        args = " ".join(f"a{i}" for i in range(len(drawn)))
+        body = "a0"
+        for i in range(1, len(drawn)):
+            body = f"Column ({body}) a{i}"
+        texts.append(f"__nb_stack__ : {' -> '.join(['Sub'] * (len(drawn) + 1))}\n"
+                     f"__nb_stack__ {args} = {body}\n\n"
+                     f"substrate : Sig Sub\nsubstrate = !__nb_stack__ {' '.join(drawn)}\n")
+    elif drawn:
         # **A page still declares a `substrate`**, and it is not
         # decoration: `audio.preludes` reads that word to decide that
         # this program is a canvas and puts `gui.ges` in front of it.

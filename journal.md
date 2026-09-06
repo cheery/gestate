@@ -1146,3 +1146,13 @@ opened, and `move` plays from where the note went.  `notes.wrapper`
 plays every one of `arc.notes`' 291 notes through five hammer banks,
 held by four tests, and is not yet what the window opens — the file
 kind is the next slice, and it is a registration.
+
+### The third slice — a registration, not a branch
+
+`audioeditor.KINDS`: a row per suffix saying how the file builds and
+what its page is, `.notes` the first.  Opening `arc.notes` alone now
+builds the wrapper over the window's own buffer, stacks the three
+sections into the file's own picture for `Ctrl-Tab`, and routes a drag
+into the buffer rather than the disk, so the note file is edited the
+way a `.ges` is — undo, `Ctrl-S`.  Four tests.  Rung 5 has one thing
+left, the scroll.

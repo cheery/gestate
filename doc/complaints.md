@@ -755,9 +755,9 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 561 | `NotesError` | `author` | handed in | '{place} is not a note' |
 | 569 | `NotesError` | `author` | handed in | '{place} has no `{field}` to change' |
 | 571 | `NotesError` | `author` | handed in | '{place} says `{field} {found.group(2)}` where the roll thought `{field} {was}` — the file has … |
-| 967 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
-| 972 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section.name}` is already included; two files cannot brin… |
-| 1022 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
+| 976 | `NotesError` | `author` | handed in | '{place}: include "{one}" — no such file beside {root}' |
+| 982 | `NotesError` | `author` | handed in | '{place}: include "{one}" — section `{section.name}` is already included; two files cannot brin… |
+| 1032 | `NotesError` | `author` | handed in | '{place}: `{section}.{voice}` names no voice; section `{section}` has ' + ', '.join((f'`{v}`' f… |
 
 ### `online.py`
 
@@ -859,10 +859,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 2362 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2368 | `NotesError` | `author` | handed in | '{place} would leave section {section.name} — a note does not leave its section by dragging' |
-| 2382 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
-| 4255 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
+| 2363 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2369 | `NotesError` | `author` | handed in | '{place} would leave section {section.name} — a note does not leave its section by dragging' |
+| 2383 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
+| 4270 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
 
 ### `tempo.py`
 

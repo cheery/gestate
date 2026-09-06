@@ -1017,6 +1017,41 @@ Not yet wired to the window — that is the file-kind slice, reading 1 —
 but built and held by four tests so the slice after it is a
 registration and not a design.
 
+### The third slice, built — a file kind is a registration — 2026-09-06
+
+*Henri: "take the next slice."*  `audioeditor.KINDS` is the table
+reading 1 asked for: a row says how a suffix builds its program and
+what its page is, and the bench branches on nothing else.  `.notes` is
+the first row, `NotesKind`.  A `.ges` is the default and needs no row;
+an inert suffix stays in `INERT`; the next sub-language is a second
+row and no new seam.
+
+**What the row says.**  The document is the note file; the program is
+`notes.wrapper` expanded over the window's own buffer — `expanded`
+takes the file's text from the buffer rather than the disk, so what a
+person is looking at is what plays, the rule a `.ges` already keeps.
+The page is the file's own picture: `page_program(rolls, stacked=True)`
+declares `substrate` as every section's roll in one `Column`, and the
+bench takes that entry as the file's canvas, so **`Ctrl-Tab` shows the
+sections stacked** and a hand on any of them writes that box's own
+channels.
+
+**And a drag on the document writes the buffer.**  Rung 4 wrote an
+included file to disk at once because there was no buffer for it; when
+the `.notes` is the document there is one, so `transpose` and `move`
+rewrite the buffer through the same door a `.ges` drag uses — one undo
+entry, `Ctrl-S` to keep — and a click goes to the line, since the line
+is the whole answer in one's own file.  The disk road stays for a
+`.notes` a `.ges` includes.
+
+Measured on `arc.notes` opened alone: three boxes, one per section; a
+page with three captions at three heights; three rails; a pitch drag
+changes one line of the buffer and none of the disk.  Four tests.
+
+**Still not built:** the scroll.  The stacked page is three rolls tall
+and the canvas view centres it; the window's one line is the slice
+after this.
+
 ### What plugin-like scopes
 
 *"I'd like plugin-like, reusable behavior for this feature.  I think
