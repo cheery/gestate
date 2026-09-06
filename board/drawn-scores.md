@@ -9,7 +9,8 @@
              these" — **and the prose the format could not hold**,
              `fixme.md` F200 and F203.  What is left is rung 5, the
              view — **decided 2026-09-06, (B), the seam talked through
-             first** — §"Rung 5, decided"
+             first, and its first slice built the same day** — §"Rung
+             5, decided" and §"Rung 5, the seam"
     because  "Minä koin että .ges tiedoston muokkaaminen näkemättä mitä
              on tekemässä oli aika raskasta hommaa. .ges on hyvä
              formaatti syntetisaattoreihin, mutta ehkä ei sittenkään
@@ -802,3 +803,15 @@ Taken, each:
 
 `spec/drawnscores.md` §"The view — rung 5, the seam as decided" is the
 contract these went into.
+
+### The first slice landed the same day
+
+*"Yes, reading 1 matches, take that first slice."*  Built and tested:
+the roll's `selected` channel, a **rail** for time, the grid snap, and
+`move` as the command under the rail gesture — `spec/drawnscores.md`
+§"The first slice, built" has the table and the number.  One thing
+changed on the way from the plan: a press writes one attachment in
+both machines, so a note cannot listen in two axes — `fixme.md` F204,
+the substrate spec's pad promise measured false — and time got its own
+element rather than a second touch on the note.  Next: the sound with
+the transport stopped, then the scroll, then the file kind.

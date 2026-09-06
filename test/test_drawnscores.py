@@ -1674,3 +1674,230 @@ def test_a_sharp_tonic_is_a_tonic_and_not_a_comment(tonic):
     assert parsed.sections[0].key == tonic
     assert parsed.sections[0].mode == "lydian"
     assert parsed.sections[0].beside == "# and a real comment after it"
+
+
+# ── Rung 5, the first slice — the rail, the selection, `move` — 2026-09-06 ──
+
+
+def _rolled_page(here):
+    """The first roll of a `.ges` on disk, its regions, and a headless
+    session seated over it with the bench a gesture needs: the regions,
+    the origins, the path, and somewhere for the previews to go."""
+    import re
+
+    from gestate.scorebox import build_rolls, regions_of
+    from gestate.session import Session
+
+    source, origins = notes.expanded(here.read_text(), here.parent)
+    asks = [(i + 1, m.group(1))
+            for i, line in enumerate(source.splitlines())
+            for m in [re.match(r"^notes\s+(\S.*)$", line)] if m]
+    roll = build_rolls(source, asks[:1], 22050, 0)[0]
+
+    class _Bench:
+        note_regions = regions_of([roll])
+        playing = False
+        auditioned = []
+
+        def __init__(self):
+            self.origins, self.path, self.previewing = origins, here, {}
+
+        def audition(self, text):
+            self.auditioned.append(text)
+
+    class _View:
+        saved = True
+
+        def __init__(self, text):
+            self._text = text
+
+        def text(self):
+            return self._text
+
+        def replace(self, text):
+            self._text = text
+            return True
+
+        def goto(self, line):
+            return True
+
+    seat = Session(bench=_Bench())
+    seat.view = _View(here.read_text())
+    return roll, seat
+
+
+def _press_a_note(seat, roll, note: int):
+    """Press the column note `note` sounds under, at its own key —
+    what a hand aiming at it does — and answer the channel."""
+    from gestate.scorebox import _chan, hands_of, note_under, reach_of
+
+    low, high = reach_of(roll)
+    on, _off, _k, key, _v, _m = roll.events[note]
+    for i, (t0, t1, under) in enumerate(hands_of(roll)):
+        if note in under:
+            down = (high - key) / (high - low)
+            if note_under(roll, i, down) == note:
+                chan = _chan(0, i)
+                said = seat.touched(chan, down)
+                assert said.startswith("line "), said
+                return chan
+    raise AssertionError(f"note {note} is under no column at its own key")
+
+
+def test_the_roll_has_a_rail_a_selection_and_a_slide():
+    """**The three things the seam round asked the roll for** — Henri,
+    2026-09-06: *"Give roll a selected -channel"*, a hand for time, and
+    the picture following it.  Declared in the program, so the window
+    that walks it needs to learn nothing (`spec/drawnscores.md` §"The
+    view — rung 5, the seam as decided")."""
+    from gestate.scorebox import RAIL, build_rolls, regions_of, roll_program
+
+    source, _o = notes.expanded(ARCNOTES.read_text(), ARCNOTES.parent)
+    asks = [(i + 1, l[6:]) for i, l in enumerate(source.splitlines())
+            if l.startswith("notes ")]
+    roll = build_rolls(source, asks[:1], 22050, 0)[0]
+    text, named = roll_program(roll, 0)
+    for chan in ("__nb_rail_0__", "__nb_sel_0__", "__nb_slide_0__"):
+        assert f"{chan} : Chan Float" in text, chan
+    assert "__nb_rail_0__" in named, "the rail is a hand the window writes"
+    assert "TouchX __nb_rail_0__" in text, "and it listens along, not down"
+    rail = [k for k, r in regions_of([roll]).items() if r.hand == RAIL]
+    assert rail == ["__nb_rail_0__"]
+    assert regions_of([roll])["__nb_rail_0__"].on_rail
+
+
+def test_a_tick_is_x_inverted_and_the_grid_is_the_rolls_own():
+    """One arithmetic, two readers, the law `y_of`/`key_at` keep — now
+    for time.  And the grid is read off the roll's events, never finer
+    than a thirty-second."""
+    from gestate.scorebox import (GRID_MIN, ROLL_W, build_rolls, grid_of,
+                                  scale_of, tick_at, x_of)
+
+    source, _o = notes.expanded(ARCNOTES.read_text(), ARCNOTES.parent)
+    asks = [(i + 1, l[6:]) for i, l in enumerate(source.splitlines())
+            if l.startswith("notes ")]
+    roll = build_rolls(source, asks[:1], 22050, 0)[0]
+    _lo, _hi, span = scale_of(roll)
+    for tick in (0, 96, 288, span):
+        across = (x_of(roll, tick) + ROLL_W // 2) / ROLL_W
+        assert abs(tick_at(roll, across) - tick) <= span / ROLL_W + 1
+    grid = grid_of(roll)
+    assert grid >= GRID_MIN
+    assert all((on % grid == 0) and ((off - on) % grid == 0)
+               for on, off, *_ in roll.events), "the grid divides every note"
+
+
+def test_a_press_selects_and_a_click_keeps_the_selection():
+    """A press picks the note; letting go where it began is a click, and
+    the selection outlives it — the outline and the rail marker keep
+    saying which note the next command is about."""
+    with _copied() as here:
+        roll, seat = _rolled_page(here)
+        chan = _press_a_note(seat, roll, 0)
+        assert seat.selected[0] == 0
+        assert seat.bench.previewing["__nb_sel_0__"] == 0.0
+        seat.released(chan)
+        assert seat.selected[0] == 0, "a click does not unselect"
+        assert seat.bench.previewing["__nb_sel_0__"] == 0.0
+        assert seat.bench.previewing["__nb_held_0__"] == -1.0
+
+
+def test_the_rail_refuses_with_nothing_selected():
+    with _copied() as here:
+        _roll, seat = _rolled_page(here)
+        said = seat.touched("__nb_rail_0__", 0.5)
+        assert "nothing selected" in said and "press a note first" in said
+        assert seat.holding is None
+
+
+def test_a_rail_drag_moves_the_selected_note_by_the_grid_and_writes_one_line():
+    """**The slice's own number**: press a note, drag the rail one beat,
+    let go — one line of the `.notes` file changes, by one field, and
+    the transcript holds it as `move`."""
+    from gestate.scorebox import ROLL_W, grid_of, scale_of, x_of
+
+    with _copied() as here:
+        roll, seat = _rolled_page(here)
+        note = 0
+        chan = _press_a_note(seat, roll, note)
+        seat.released(chan)
+        on = roll.events[note][0]
+        grid = grid_of(roll)
+        _lo, _hi, span = scale_of(roll)
+        across0 = (x_of(roll, on) + ROLL_W // 2) / ROLL_W
+        assert seat.touched("__nb_rail_0__", across0).startswith("tick ")
+        across1 = across0 + grid / span
+        moving = seat.touched("__nb_rail_0__", across1)
+        assert f"→ {on + grid}" in moving, moving
+        assert seat.bench.previewing["__nb_slide_0__"] > 0, "the picture slid"
+
+        target = here.parent / "arc.notes"
+        before = target.read_text()
+        said = seat.released("__nb_rail_0__")
+        assert said.startswith("move: arc.notes —"), said
+        after = target.read_text()
+        changed = [(a, b) for a, b in zip(before.splitlines(), after.splitlines())
+                   if a != b]
+        assert len(changed) == 1, f"{len(changed)} lines changed"
+        a, b = changed[0]
+        assert a.replace(f"at {on}", "", 1) == b.replace(f"at {on + grid}", "", 1) \
+            or "bar" in said, f"more than the time moved:\n  {a}\n  {b}"
+        assert "move" in seat._journal().text()
+        assert 0 not in seat.selected, "the selection is spent with the commit"
+        assert seat.bench.auditioned, "and the piece is rebuilt"
+
+
+def test_a_move_onto_a_written_note_is_refused_and_writes_nothing():
+    """`notes.doubled` on the gesture, as rung 4 put it: the file may
+    not say one place twice, so the drag says so and moves nothing."""
+    from gestate.scorebox import ROLL_W, scale_of, x_of
+
+    with _copied() as here:
+        roll, seat = _rolled_page(here)
+        # The roll is one voice (`notes A.melody`).  Two notes at one
+        # tick with different keys are a chord and legal; a double is
+        # the *same* key written twice, so find two notes of one pitch
+        # and drag the earlier onto the later's onset.
+        events = roll.events
+        pair = next(((i, j) for i in range(len(events))
+                     for j in range(i + 1, len(events))
+                     if events[i][3] == events[j][3]
+                     and events[i][0] != events[j][0]), None)
+        assert pair is not None, "the roll repeats no pitch"
+        first, second = pair
+        on, nxt = events[first][0], events[second][0]
+        chan = _press_a_note(seat, roll, first)
+        seat.released(chan)
+        _lo, _hi, span = scale_of(roll)
+        seat.touched("__nb_rail_0__", (x_of(roll, on) + ROLL_W // 2) / ROLL_W)
+        seat.touched("__nb_rail_0__", (x_of(roll, nxt) + ROLL_W // 2) / ROLL_W)
+        target = here.parent / "arc.notes"
+        before = target.read_text()
+        said = seat.released("__nb_rail_0__")
+        assert said.startswith("move:") and "already written" in said, said
+        assert target.read_text() == before
+
+
+def test_a_ges_written_note_cannot_be_moved_on_the_rail():
+    """A note whose time is arithmetic in a `.ges` is refused by name —
+    the provenance idea the card declined, not attempted here."""
+    import shutil
+    import tempfile
+    from pathlib import Path
+
+    from gestate.scorebox import ROLL_W, scale_of, x_of
+
+    with tempfile.TemporaryDirectory() as tmp:
+        here = Path(tmp) / "noted.ges"
+        shutil.copy(ROOT / "examples" / "audio" / "noted.ges", here)
+        here.write_text(here.read_text() + "\nnotes score\n")
+        roll, seat = _rolled_page(here)
+        chan = _press_a_note(seat, roll, 0)
+        seat.released(chan)
+        on = roll.events[0][0]
+        _lo, _hi, span = scale_of(roll)
+        seat.touched("__nb_rail_0__", (x_of(roll, on) + ROLL_W // 2) / ROLL_W)
+        seat.touched("__nb_rail_0__", (x_of(roll, on) + ROLL_W // 2) / ROLL_W + 0.2)
+        said = seat.released("__nb_rail_0__")
+        assert said.startswith("move:") and ".notes" in said, said
+        assert here.read_text().endswith("notes score\n"), "nothing was written"

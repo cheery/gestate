@@ -1097,3 +1097,42 @@ installed on his side before the choosing was reported.
 
 *Cards: `card:standing-questions.md` (doing — live, and judged by its
 log from here), `card:testimony-inventory.md` (done).*
+
+## Rung 5, the seam that did not move, and the rail — 2026-09-06
+
+`card:drawn-scores.md` had one thing left, the view that takes the
+window, priced as a new furniture kind across the three seams that
+lost `touch`.  Henri chose it over the cheaper box-beside-the-line,
+on the condition that the seam be talked through first.
+
+### The ping-pong
+
+One round each.  The session's: coordinates never cross the wire and
+meanings do, the roll already crosses as a picture the window
+hit-tests off its own walk, `Ctrl-Tab` already shows a file's own
+picture whole, and `onTouchX` stands beside `onTouchY` — so none of
+the three seams needs to move, and the one real fork is height.  His,
+verbatim on the card: plugin-like and reusable, commands generated for
+mouse gestures, a vertical scroll, a `selected` channel, grid snap, a
+piano-like default voice.  *Plugin-like* was the word that scoped it,
+and it went back as three readings with a default; he took the first —
+a file kind is a registration, not a branch.
+
+### The pad that was not there
+
+The first slice was to be the same code under every reading: the
+selection, `onTouchX` on each note, the snap, `move`.  Measured before
+building: a press writes exactly one attachment, the deepest containing
+it, in both machines.  `spec/substrate.md` says *a pad is two on one
+element*; a program written that way writes `cy` and never `cx`.
+**F204.**  The walk is the parity seam and the day's contract was that
+no seam moves, so the roll grew a rail instead — one `TouchX` strip
+along its top, recorded before the columns so it wins where they reach
+over it.  Press a note, drag the rail.
+
+### The number
+
+On `arc.notes`, `A.melody`: grid 96, a drag of one step changes one
+line, its `at` field, and the transcript says `move`.  Ten tests.
+Nothing sounds yet with the transport stopped; that is the next slice,
+with the piano-like voice.

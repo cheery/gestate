@@ -17,7 +17,7 @@ Legend: **[bug]** wrong behaviour · **[missing]** spec'd, not built ·
 **[deviates]** built differently than spec'd · **[dead]** built, unreachable ·
 **[resolved]** closed since this file was written, kept for the record.
 
-Of 204 entries, **166 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
+Of 205 entries, **166 are resolved**.  (Those two numbers are checked by `test_citations.py`, because this file's whole discipline is that a
 claim does not rot, and this sentence had rotted by twenty-five entries before anybody read it.)  What is left:
 
 | # | State | What |
@@ -7644,3 +7644,39 @@ comment` reads as both.
 gate: `test_drawnscores.py::test_a_sharp_tonic_is_a_tonic_and_not_a_comment`,
 parametrized over all five, each with a real trailing comment beside it so the
 two readings are held apart rather than one of them merely allowed.
+
+### F204. **[bug]** the substrate spec promises a pad as two touches on one element, and a press writes one
+
+`spec/substrate.md` §"S3 — attachment, and the walk": *"a fader is one
+`onTouchY`, and a pad is two on one element, which is honest: a pad *is* two
+parameters and would be two knobs."*  Written as the spec describes —
+`onTouchX cx (onTouchY cy rect)` — a press writes **one** channel, the deepest
+attachment containing the point, in both machines: `gui._under` returns the
+first hit, `substrate.rs` says *"the deepest attachment containing a point is
+the one that gets it"*, and `substrate_parity.rs` holds them to each other on
+that.  Measured 2026-09-06, with a six-line program declaring `cx` and `cy`
+as `Chan Float` and `substrate = onTouchX cx (onTouchY cy (!(Rect 40 40 …)))`:
+
+    v = Substrate(program, 22050)
+    v.touch("press", 5, 5)   -> ('touched', 'cy', 0.625)
+    v.touch("drag", 10, 12)  -> ('touched', 'cy', 0.8)
+
+`cx` is never written.  So there is no pad, and no program in the tree writes
+one — which is why it went unnoticed.
+
+**Found designing `card:drawn-scores.md` rung 5's first slice**, where a note
+wanted dragging in time as well as pitch.  The slice did not fix the walk —
+it is the parity seam, walked by the editor and the CLAP panel alike, and the
+card's contract for the day was that no seam moves — so the roll grew a
+**rail**: a second element for the second axis, moving the note the last
+press selected (`scorebox.RAIL`, `session._rail_touched`).
+
+Two honest repairs, either one a decision: the walk writes every attachment
+that shares the innermost extent, so a pad is what the spec says and the
+rail can retire; or the sentence in `spec/substrate.md` is corrected to
+*one press, one axis* and a pad is written as two elements.  The first is
+the better instrument and costs both machines plus a parity fixture with a
+pad in it; the second is a line.  Henri's.
+
+gate: none yet — the measurement above is the check, and a test naming it
+belongs with whichever repair is chosen.

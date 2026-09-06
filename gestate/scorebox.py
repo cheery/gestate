@@ -1095,6 +1095,30 @@ HAND_W = 8
 #: the parser the day the *notes* were nested.
 MAX_HANDS = 48
 
+#: **The rail — a note's time is moved here, not on its column.**  A
+#: press writes exactly one attachment, the deepest containing it, in
+#: both machines (`gui._under`, `substrate.rs`), so a column that
+#: listens in Y cannot also listen in X — `fixme.md` F204 is the
+#: substrate spec's *"a pad is two on one element"* measured against
+#: that.  So time gets its own element: one full-width `TouchX` strip
+#: along the top of the roll, and the note it moves is the one the
+#: last press *selected* (`card:drawn-scores.md` §"Rung 5, the seam" —
+#: Henri: *"Give roll a selected -channel"*).  Above the highest note's
+#: own row, so no note is shadowed by it: the highest is drawn at
+#: `y_of(hi)`, three pixels tall, and the strip ends two above that.
+RAIL_H = 4
+RAIL_Y = -(ROLL_H // 2) + RAIL_H // 2
+#: The rail's hand number in a `Region` — no column has it.
+RAIL = -1
+
+#: **A drag in time snaps to the roll's own grid**, and never finer
+#: than a thirty-second: the largest tick that divides every onset and
+#: length in the roll, floored at `GRID_MIN`.  Henri, 2026-09-06:
+#: *"allow grid snap."*  Read off the events rather than declared,
+#: because a `.ges` score has no section record to read a subdivision
+#: from and a `.notes` roll's events already say what its writer used.
+GRID_MIN = 12
+
 
 def _chan(box: int, hand: int) -> str:
     """The channel one column's hand writes.
@@ -1155,6 +1179,22 @@ class Region(NamedTuple):
         """The channel that says how far it has carried it, in pixels."""
         return f"__nb_lift_{self.box}__"
 
+    @property
+    def sel(self) -> str:
+        """The channel that says which note the last press selected —
+        it outlives the press, which `held` does not."""
+        return f"__nb_sel_{self.box}__"
+
+    @property
+    def slide(self) -> str:
+        """The channel that says how far a hand on the rail has carried
+        the selected note along, in pixels."""
+        return f"__nb_slide_{self.box}__"
+
+    @property
+    def on_rail(self) -> bool:
+        return self.hand == RAIL
+
 
 def regions_of(rolls: list) -> dict:
     """`{channel: Region}` for a page of rolls."""
@@ -1164,7 +1204,13 @@ def regions_of(rolls: list) -> dict:
             continue
         for i, _hand in enumerate(hands_of(roll)):
             out[_chan(box, i)] = Region(roll, i, box)
+        out[_rail(box)] = Region(roll, RAIL, box)
     return out
+
+
+def _rail(box: int) -> str:
+    """The channel the box's time rail writes."""
+    return f"__nb_rail_{box}__"
 
 
 def note_under(roll: Roll, hand: int, down: float) -> int:
@@ -1328,6 +1374,35 @@ def key_at(roll: Roll, down: float) -> int:
     return max(low, min(high, round(high - float(down) * (high - low))))
 
 
+def x_of(roll: Roll, tick: int) -> int:
+    """Where a tick is drawn, in the box's own coordinates — `y_of`'s
+    sibling, and `tick_at` inverts it for the same reason."""
+    _lo, _hi, span = scale_of(roll)
+    return int(tick * ROLL_W / max(1, span)) - ROLL_W // 2
+
+
+def tick_at(roll: Roll, across: float) -> int:
+    """Which tick a hand this far along the rail means — `x_of`
+    inverted.  `across` is what a `TouchX` writes: 0 at the left edge
+    of the rail, 1 at the right, and the rail is the roll's width."""
+    _lo, _hi, span = scale_of(roll)
+    return max(0, min(span, round(float(across) * span)))
+
+
+def grid_of(roll: Roll) -> int:
+    """The tick a drag in time snaps to — the roll's own, floored."""
+    from math import gcd
+
+    g = 0
+    for on, off, _k, _key, _vel, _mark in roll.events:
+        g = gcd(g, int(on))
+        g = gcd(g, int(off - on))
+    if g <= 0:
+        from .midi import TICKS_PER_BEAT
+        return TICKS_PER_BEAT
+    return max(GRID_MIN, g)
+
+
 def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple:
     """The box's substrate program, and the hands it hands out.
 
@@ -1345,7 +1420,7 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
     events, leaves = roll.events, roll.leaves
     lo, hi, span_ticks = scale_of(roll)
     body_h = BODY_H                            # the label's room
-    x_of = lambda t: int(t * ROLL_W / max(1, span_ticks)) - ROLL_W // 2
+    x_of = lambda t: globals()["x_of"](roll, t)
     y_of = lambda k: globals()["y_of"](roll, k)
 
     banks = []
@@ -1456,12 +1531,22 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
     hands = "Gap 0 0"
     for r in regions:
         hands = f"Over ({hands}) ({r})"
+    # **The rail goes in first, so it wins where a column reaches over
+    # it.**  A press lands on the first attachment recorded that
+    # contains it, and a column is `DRAG_REACH` taller than the notes
+    # at each end — so the strip along the top would be shadowed by
+    # every column under it if it were written after them.  One
+    # `TouchX`, the roll's whole width, drawn as a faint track.
+    rail_c = _rail(box)
+    rail = (f"Shift 0 {_n(RAIL_Y)} (TouchX {rail_c} (Sized {ROLL_W} {RAIL_H} "
+            f"(Rect {ROLL_W} 2 (RGB 60 66 80))))")
+    hands = f"Over ({rail}) ({hands})"
 
     caption = f"TAKE {roll.seed}" if roll.chancy else "NOTES"
     if roll.cut:
         caption += " · CUT"
 
-    named = [_chan(box, i) for i, _h in enumerate(hands_of(roll))]
+    named = [_chan(box, i) for i, _h in enumerate(hands_of(roll))] + [rail_c]
     # **And two the model writes**: the note a hand has hold of, and how
     # far it has carried it, in this picture's own pixels.  A drag used
     # to show nothing at all until the file had been rebuilt — half a
@@ -1471,8 +1556,14 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
     # direction `peak` travels; the roll is the one canvas whose facts
     # are the editor's rather than the instrument's.
     held_c, lift_c = f"__nb_held_{box}__", f"__nb_lift_{box}__"
+    # **And two more the model writes** (2026-09-06): which note the
+    # last press *selected*, which outlives the press where `held` does
+    # not, and how far a hand on the rail has slid it along.  The
+    # selected note wears an outline and a marker on the rail, so the
+    # rail is a control a person can see (`fixme.md` F150's lesson).
+    sel_c, slide_c = f"__nb_sel_{box}__", f"__nb_slide_{box}__"
     chans = "".join(f"{c} : Chan Float\n{c} = chan\n"
-                    for c in [*named, held_c, lift_c])
+                    for c in [*named, held_c, lift_c, sel_c, slide_c])
     rows_g, hue_g = f"__nb_rows_{box}__", f"__nb_hue_{box}__"
     lit_g, dim_g = f"__nb_lit_{box}__", f"__nb_dim_{box}__"
     one_g, all_g = f"__nb_one_{box}__", f"__nb_all_{box}__"
@@ -1480,6 +1571,9 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
     stac_g, acc_g = f"__nb_stac_{box}__", f"__nb_acc_{box}__"
     port_g = f"__nb_port_{box}__"
     held_s, lift_s = f"__nb_h_{box}__", f"__nb_l_{box}__"
+    sel_s, slide_s = f"__nb_s_{box}__", f"__nb_sl_{box}__"
+    shift_g, seln_g, mark_g = (f"__nb_shift_{box}__", f"__nb_seln_{box}__",
+                               f"__nb_mark_{box}__")
     pic_g = f"__nb_pic_{box}__"
     text = (chans
             # A channel is read as a signal the way every canvas reads
@@ -1488,6 +1582,10 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
             + f"{held_s} = (0.0 - 1.0) ::: mkSig (wait {held_c})\n\n"
             + f"{lift_s} : Sig Float\n"
             + f"{lift_s} = 0.0 ::: mkSig (wait {lift_c})\n\n"
+            + f"{sel_s} : Sig Float\n"
+            + f"{sel_s} = (0.0 - 1.0) ::: mkSig (wait {sel_c})\n\n"
+            + f"{slide_s} : Sig Float\n"
+            + f"{slide_s} = 0.0 ::: mkSig (wait {slide_c})\n\n"
             + f"{rows_g} : List (Int, Int, Int, Int, Int, Int, Int)\n"
             + f"{rows_g} = {listing}\n\n"
             + f"{hue_g} : Int -> Int -> Colour\n"
@@ -1545,23 +1643,39 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
             # the panel owns.
             + f"{asks_g} : Int -> Int -> Bool\n"
             + f"{asks_g} ms m = (ms / m) % 2 == 1\n\n"
-            + f"{one_g} : Int -> Int -> "
+            # **The held note moves with the hand in both axes**, `v`
+            # down for a column's hand and `dx` along for the rail's;
+            # the selected note wears an outline under its bar and a
+            # marker up on the rail, at its own x.
+            + f"{shift_g} : Int -> Int -> Int -> Int\n"
+            + f"{shift_g} i h by = case i == h of\n"
+            + "    True -> by\n"
+            + "    False -> 0\n\n"
+            + f"{seln_g} : Bool -> Int -> Sub\n"
+            + f"{seln_g} on w = case on of\n"
+            + "    True -> Rect (w + 2) 5 (RGB 236 240 248)\n"
+            + "    False -> Gap 0 0\n\n"
+            + f"{mark_g} : Bool -> Int -> Int -> Int -> Sub\n"
+            + f"{mark_g} on dy t d = case on of\n"
+            + f"    True -> Shift 0 dy (Rect 3 {RAIL_H} ({hue_g} t d))\n"
+            + "    False -> Gap 0 0\n\n"
+            + f"{one_g} : Int -> Int -> Int -> Int -> "
               f"(Int, Int, Int, Int, Int, Int, Int) -> Sub\n"
-            + f"{one_g} h v e = case e of\n"
-            + "    (i, x, y, w, t, d, m) -> Shift x (y + (case i == h of\n"
-            + "        True -> v\n"
-            + "        False -> 0))"
-              f" (Over (Rect w 3 ({hue_g} t d)) ({dot_g} m t d w))\n\n"
-            + f"{all_g} : Int -> Int -> "
+            + f"{one_g} h v s dx e = case e of\n"
+            + f"    (i, x, y, w, t, d, m) -> Shift (x + {shift_g} i h dx) "
+              f"(y + {shift_g} i h v) (Over (Over ({seln_g} (i == s) w) "
+              f"(Rect w 3 ({hue_g} t d))) (Over ({dot_g} m t d w) "
+              f"({mark_g} (i == s) ({_n(RAIL_Y)} - y - {shift_g} i h v) t d)))\n\n"
+            + f"{all_g} : Int -> Int -> Int -> Int -> "
               f"List (Int, Int, Int, Int, Int, Int, Int) -> Sub\n"
-            + f"{all_g} h v es = case es of\n"
+            + f"{all_g} h v s dx es = case es of\n"
             + "    Nil -> Gap 0 0\n"
-            + f"    e :: rest -> Over ({one_g} h v e) "
-              f"({all_g} h v rest)\n\n"
-            + f"{pic_g} : Float -> Float -> Sub\n"
-            + f"{pic_g} h v = Sized {ROLL_W} {ROLL_H} (Over (Over (Over\n"
+            + f"    e :: rest -> Over ({one_g} h v s dx e) "
+              f"({all_g} h v s dx rest)\n\n"
+            + f"{pic_g} : Float -> Float -> Float -> Float -> Sub\n"
+            + f"{pic_g} h v s dx = Sized {ROLL_W} {ROLL_H} (Over (Over (Over\n"
             + f"    {ground}\n"
-            + f"    ({all_g} (floor h) (floor v) {rows_g}))\n"
+            + f"    ({all_g} (floor h) (floor v) (floor s) (floor dx) {rows_g}))\n"
             + f"    (Shift 0 {ROLL_H // 2 - 8} (Label 120 12 \"{caption}\" "
               f"(RGB 120 124 134))))\n"
             + f"    ({hands}))\n\n"
@@ -1570,5 +1684,5 @@ def roll_program(roll: Roll, box: int = 0, *, entry: str = "substrate") -> tuple
             # does, and lifting the picture over the two channels above
             # is what lets the note follow before anything is rebuilt.
             + f"{entry} : Sig Sub\n"
-            + f"{entry} = !{pic_g} {held_s} {lift_s}\n")
+            + f"{entry} = !{pic_g} {held_s} {lift_s} {sel_s} {slide_s}\n")
     return text, named

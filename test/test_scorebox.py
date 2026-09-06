@@ -286,7 +286,7 @@ def test_the_roll_is_an_ordinary_substrate_that_draws():
     assert len(ground) == 1, "on a ground"
     assert len(labels) == len(rules) + 1, "a caption, and a name per ruled octave"
     assert sub.crossing is not None, "the window could not walk it"
-    assert len(hands) == len(hands_of(roll)), "a hand per column"
+    assert len(hands) == len(hands_of(roll)) + 1, "a hand per column, and the rail"
 
 
 def test_two_boxes_do_not_share_a_hand():
@@ -375,13 +375,17 @@ def test_a_page_is_one_program_and_still_three_pictures():
         mine = set(v.crossing["chans"])
         assert mine, "a box with no hands cannot be pressed"
         assert not mine & seen, "two boxes claimed one channel"
-        # Every channel is either a hand or one of the two the *model*
-        # writes to show a note under a hand — and those are the box's
-        # own too, or one roll's drag would move another's note.
+        # Every channel is either a hand or one of the four the *model*
+        # writes — which note a hand holds and how far it has lifted
+        # it, and since 2026-09-06 which note is selected and how far
+        # the rail has slid it (`card:drawn-scores.md` §"Rung 5, the
+        # seam") — and those are the box's own too, or one roll's drag
+        # would move another's note.
         spare = mine - set(jumps)
-        assert all(c.startswith(("__nb_held_", "__nb_lift_"))
+        assert all(c.startswith(("__nb_held_", "__nb_lift_", "__nb_sel_",
+                                 "__nb_slide_"))
                    for c in spare), f"a channel that is nobody's: {spare}"
-        assert len(spare) == 2, spare
+        assert len(spare) == 4, spare
         seen |= mine
         assert v.payload(), "the box could not cross"
 
@@ -936,7 +940,14 @@ def test_the_note_follows_the_hand_before_anything_is_rebuilt(tmp_path):
 
     seat.touched(chan, 0.5)
     bench.observe()
-    assert list(box.picture()) == before, "the press alone moved the picture"
+    # **A press selects, and the selection is drawn** — an outline under
+    # the note's bar and a marker on the rail (2026-09-06).  What a press
+    # must *not* do is move a note: every bar is where it was.
+    after = list(box.picture())
+    bars = lambda items: [i for i in items if i[0] == "rect" and i[4] == 3]
+    assert bars(after) == bars(before), "the press alone moved a note"
+    outline = [i for i in after if i[0] == "rect" and i[5] == (236, 240, 248)]
+    assert len(outline) == 1, "the selected note wears one outline"
 
     seat.touched(chan, 0.1)              # carried well up the box
     told = dict(bench.observe())
@@ -948,8 +959,10 @@ def test_the_note_follows_the_hand_before_anything_is_rebuilt(tmp_path):
     assert during != before, "the note did not follow the hand"
     assert seat.view.text() == source, "a drag wrote to the file"
 
-    # Exactly one note moved, and by exactly the lift.
-    moved = [(a, b) for a, b in zip(before, during) if a != b]
+    # Exactly one note moved, and by exactly the lift — counted over the
+    # bars, because the selection's outline and rail marker ride with
+    # the held note too and are not notes.
+    moved = [(a, b) for a, b in zip(bars(before), bars(during)) if a != b]
     assert len(moved) == 1, moved
     was, now = moved[0]
     assert now[2] - was[2] == told[where.lift], (was, now)
@@ -959,7 +972,12 @@ def test_the_note_follows_the_hand_before_anything_is_rebuilt(tmp_path):
     seat.touched(chan, 0.5)
     seat.released(chan)
     bench.observe()
-    assert list(box.picture()) == before, "the picture kept a lift nobody made"
+    home = list(box.picture())
+    assert bars(home) == bars(before), "the picture kept a lift nobody made"
+    # The selection outlives the hand: the outline stays on the note the
+    # press picked, which is what the next command is about.
+    assert [i for i in home if i[0] == "rect" and i[5] == (236, 240, 248)], \
+        "the release dropped the selection"
 
 
 def test_a_burst_of_drops_is_one_redraw_and_the_newest_text(tmp_path):

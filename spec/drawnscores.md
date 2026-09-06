@@ -944,7 +944,7 @@ being two touches on one element.  What changes:
 | where | what | his word |
 |---|---|---|
 | the bench's file kind | a `.notes` opened in the window builds through a wrapper whose own picture is its page; `Ctrl-Tab` is the view | — |
-| the roll program | sections stacked in one picture; the margin words `tools/bars.py` computes drawn as labels; `onTouchX` on each note beside its `onTouchY`; a **`selected`** channel a press writes | *"Give roll a selected -channel"* |
+| the roll program | sections stacked in one picture; the margin words `tools/bars.py` computes drawn as labels; a **rail** for time (below: why not `onTouchX` on the note); a **`selected`** channel a press writes | *"Give roll a selected -channel"* |
 | the model | the `touched` fraction snapped to the section's grid, off the wire | *"allow grid snap"* |
 | the verb table | a time drag becomes **`move`** beside `transpose`: one line rewritten, the file re-ordered under the canonical order it was chosen for | *"commands are generated for mouse gestures"* |
 | the window | the canvas view grows a **vertical scroll** — the one thing it learns | *"I'd like view to grow a vertical scroll"* |
@@ -955,6 +955,45 @@ rather than a description: the window sends `touched` and `released`,
 the model turns them into `move <region> <note> <at>` or `transpose …`,
 and that line is what the transcript records and what a person or a
 session can type.  Nothing routes on a coordinate.
+
+### The first slice, built — 2026-09-06
+
+*Henri: "Yes, reading 1 matches, take that first slice."*  The same
+code under every reading of *plugin-like*: the roll's selection, the
+second axis, the snap, and the command under the gesture — inside the
+score box that exists, so `arc.notes` proves the drag in time before
+the window learns to scroll.
+
+**A press writes one attachment, so time got its own element.**  The
+plan above said `onTouchX` on each note beside its `onTouchY`, and the
+substrate spec says a pad is two touches on one element.  Measured
+before building: a press writes the deepest attachment containing it
+and no other, in both machines — `fixme.md` **F204**.  The walk is the
+parity seam, walked by the editor and the CLAP panel alike, and this
+day's contract was that no seam moves.  So the roll grew a **rail**: one
+full-width `TouchX` strip along its top, drawn as a faint track, written
+into the picture *before* the columns so it wins where a column reaches
+over it.  Press a note to select it; drag the rail to carry it in time.
+Two motions where a pad would be one, stated rather than hidden, and
+the rail retires the day F204 is repaired the first way.
+
+| built | where |
+|---|---|
+| `selected` and `slide`, two readings the model writes; the selected note wears an outline and a marker on the rail | `scorebox.roll_program` |
+| the rail, a `Region` with `hand == RAIL`; `x_of`/`tick_at` as `y_of`/`key_at`'s siblings — one arithmetic, two readers | `scorebox.x_of`, `tick_at`, `regions_of` |
+| the grid: the largest tick dividing every onset and length in the roll, never finer than a thirty-second | `scorebox.grid_of`, `GRID_MIN` |
+| a press selects and the selection outlives the click; a hand on the rail moves the selected note by whole grid steps, relative, previewed, and commits as **`move`** on release | `session._note_touched`, `_rail_touched`, `released` |
+| `move <rail> <was> <at>`: one `at` field rewritten on one `.notes` line, and `bar` with it past a bar line; refused by name for nothing selected, a `.ges`-written note, a note leaving its section, or a double | `command.ges`, `session.do_move`, `_move_included` |
+
+**Measured on `arc.notes`, `A.melody`:** the grid reads 96, one beat;
+a drag of one grid step changes **one line** of the file, its `at`
+field only, and the transcript holds it as `move`.  Ten tests in
+`test/test_drawnscores.py` under *Rung 5, the first slice*.
+
+**What this slice does not do, said now:** nothing sounds with the
+transport stopped — decision 2's *play from the dragged note* is the
+next slice, with the piano-like default voice; the canvas view does not
+scroll; a `.notes` opened alone still compiles as a `.ges`.
 
 ### What plugin-like scopes
 

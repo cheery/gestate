@@ -954,6 +954,15 @@ class Session:
     #: A drag lives here between the press and the release, because
     #: nothing is written until the hand comes off.
     holding: object = None
+    #: **The note the last press selected, per score box** — `{box:
+    #: note}`.  It outlives the press, which `holding` does not, and
+    #: it is the noun a command on the rail takes: a hand on the rail
+    #: moves *this* note, because a press writes one attachment and a
+    #: column that listens in Y cannot also listen in X (`fixme.md`
+    #: F204).  Henri, 2026-09-06: *"Give roll a selected -channel."*
+    #: Dropped with a commit, because the file's notes are renumbered
+    #: by the rebuild that follows it.
+    selected: dict = field(default_factory=dict)
     #: `(text, holes)` — the program the hole marks are true for, and
     #: the list that was true for it, so `move_marks` can tell a hole
     #: list it has already carried from one the workbench just made.
@@ -2281,6 +2290,101 @@ class Session:
             if again is not None:
                 again(text)
         return said
+
+    def do_move(self, region: str, was: int, at: int) -> str:
+        """Move the note a score box has selected, in time.
+
+        **`transpose`'s sibling for the other axis**, and the first
+        command a rail gesture runs (`card:drawn-scores.md` §"Rung 5,
+        the seam").  `region` is the box's rail, which names *which
+        box's* selection; `was` is the tick the note sounds at and
+        `at` where it goes, both in the roll's own ticks — so a
+        transcript line means the same note the second time it is
+        read, which is the rule `transpose` keeps with two keys.
+
+        Only a note written in a `.notes` file can be moved: there a
+        note's time is one named field on one line (`notes.retune`),
+        and the section it sits in says how long a bar is, so a move
+        past a bar line rewrites `bar` on the same line.  A note whose
+        time is arithmetic in a `.ges` is refused by name — following
+        `durOf` back to a literal is the provenance idea
+        `card:drawn-scores.md` §"Refused" already declined.
+        """
+        from .scorebox import RefusedError, pitch_atom
+
+        places = getattr(self.bench, "note_regions", None) or {}
+        found = places.get(region)
+        if found is None:
+            return f"move: no score box region called `{region}`"
+        if not getattr(found, "on_rail", False):
+            return "move: that is a pitch hand — a note is moved in time on the rail"
+        note = self.selected.get(found.box)
+        roll = found.roll
+        if note is None or not 0 <= note < len(roll.events):
+            return "move: nothing selected — press a note first"
+        if roll.events[note][0] != int(was):
+            return (f"move: the selected note is at tick {roll.events[note][0]}, "
+                    f"not {was} — the file has moved under the picture")
+        origins = getattr(self.bench, "origins", None) or {}
+        try:
+            line, _col, _width, _key = pitch_atom(roll, note)
+        except RefusedError as exc:
+            return f"move: {exc}"
+        where = origins.get(line)
+        if where is None:
+            return ("move: this note's time is not written as one number "
+                    "in this file — a note from a `.notes` file can be moved")
+        said = self._move_included(found, note, where, int(at) - int(was))
+        return said
+
+    def _move_included(self, found, note: int, where, by: int) -> str:
+        """Rewrite one `.notes` line's `at` — and its `bar`, past a bar
+        line — by `by` ticks, refusing what the file cannot hold."""
+        from pathlib import Path
+
+        from .notes import NotesError, doubled, parse, retune
+
+        name, row = where
+        place = f"{name}:{row}"
+        path = Path(getattr(self.bench, "path", ".")).parent / name
+        try:
+            text = path.read_text()
+            parsed = parse(text, name)
+            one = next((n for n in parsed.notes if n.line == row), None)
+            if one is None:
+                #: complaint  author — the line a rail drag meant, in the
+                #: file that wrote it, which has changed under the roll
+                raise NotesError(f"{place} is not a note any more")
+            section = next(s for s in parsed.sections if s.name == one.section)
+            total = (one.bar - 1) * section.bar_ticks + one.at + by
+            if total < 0 or total >= section.bars * section.bar_ticks:
+                #: complaint  author — the line, and the section whose
+                #: edge the drag would carry it past
+                raise NotesError(
+                    f"{place} would leave section {section.name} — "
+                    "a note does not leave its section by dragging")
+            bar, tick = divmod(total, section.bar_ticks)
+            bar += 1
+            out, said = retune(text, row, "at", one.at, tick)
+            if bar != one.bar:
+                out, more = retune(out, row, "bar", one.bar, bar)
+                said += f", {more}"
+            twice = [pair for pair in doubled(parse(out, name))
+                     if row in (pair[0].line, pair[1].line)]
+            if twice:
+                #: complaint  author — the line, and the place the file
+                #: already says a note is
+                raise NotesError(
+                    f"{place} would land on a note already written "
+                    "there — the file cannot say one place twice")
+            path.write_text(out)
+        except (OSError, NotesError, StopIteration) as exc:
+            return f"move: {exc}"
+        # The rebuild renumbers the roll's notes, so the selection is
+        # spent with the commit.
+        self.selected.pop(found.box, None)
+        self.bench.audition(self.view.text())
+        return f"move: {name} — {said}"
 
     def do_mark(self, region: str, was: str, manners: str) -> str:
         """Write how one note of a score box is to be played.
@@ -3916,11 +4020,17 @@ class Session:
             return None
         roll, hand = found.roll, found.hand
         self._journal().slid("touched", (name, down))
+        if getattr(found, "on_rail", False):
+            return self._rail_touched(found, name, down)
         if self.holding is None or self.holding[0] != name:
             try:
                 note = note_under(roll, hand, down)
             except RefusedError as exc:
                 return str(exc)
+            # **A press selects**, and the selection outlives the press:
+            # it is what a hand on the rail moves, and what the picture
+            # outlines until the next press or the next rebuild.
+            self.selected[found.box] = note
             was = roll.events[note][3]
             # **Where the hand took hold, not where the note is.**  A
             # column is the full height of the roll, so a press lands
@@ -3966,9 +4076,60 @@ class Session:
         try:
             self.bench.previewing = {found.held: float(note),
                                      found.lift: float(y_of(roll, key)
-                                                       - y_of(roll, was))}
+                                                       - y_of(roll, was)),
+                                     found.sel: float(note),
+                                     found.slide: 0.0}
         except Exception:                                # noqa: BLE001
             pass                       # a bench with no canvas to show
+
+    def _rail_touched(self, found, name: str, across: float) -> str:
+        """A hand on the rail — the selected note, carried in time.
+
+        **The rail moves the note the last press selected**, because a
+        press writes one attachment and a column cannot listen in two
+        axes (`fixme.md` F204); the rail is the second axis given its
+        own element.  Relative, as the columns are: the note moves by
+        the ticks the hand has travelled from where it took hold,
+        snapped to the roll's own grid (`scorebox.grid_of`), and
+        nothing is written until the hand comes off.
+        """
+        from .scorebox import grid_of, tick_at, x_of
+
+        roll = found.roll
+        note = self.selected.get(found.box)
+        if note is None or not 0 <= note < len(roll.events):
+            return ("nothing selected — press a note first, then drag "
+                    "here to move it in time")
+        if self.holding is None or self.holding[0] != name:
+            was = roll.events[note][0]
+            self.holding = (name, note, was, tick_at(roll, across), was)
+            self._slide(found, note, was, was)
+            return f"tick {was}, grid {grid_of(roll)}"
+        _n, note, was, grabbed, _at = self.holding
+        grid = grid_of(roll)
+        delta = tick_at(roll, across) - grabbed
+        at = max(0, was + int(round(delta / grid)) * grid)
+        self.holding = (name, note, was, grabbed, at)
+        self._slide(found, note, was, at)
+        if at == was:
+            return f"tick {was} — where it is written"
+        step = at - was
+        return f"tick {was} → {at} ({'+' if step > 0 else ''}{step})"
+
+    def _slide(self, found, note: int, was: int, at: int) -> None:
+        """Show the selected note where the hand on the rail has carried
+        it, before anything is rebuilt — `_preview`'s sibling for the
+        other axis."""
+        from .scorebox import x_of
+
+        try:
+            self.bench.previewing = {found.held: float(note),
+                                     found.lift: 0.0,
+                                     found.sel: float(note),
+                                     found.slide: float(x_of(found.roll, at)
+                                                        - x_of(found.roll, was))}
+        except Exception:                                # noqa: BLE001
+            pass
 
     def released(self, name: str) -> str:
         """That channel's grab let go — the end of a gesture, by name.
@@ -4001,6 +4162,19 @@ class Session:
             _n, _note, was, _grabbed, key = held
             self._journal().add("released", (name,), "")
             found = (getattr(self.bench, "note_regions", None) or {})[name]
+            if getattr(found, "on_rail", False):
+                # **The rail's commit is `move`**, the same door as
+                # `transpose`: one command line in the transcript, one
+                # rewrite, one rebuild.  Let go where it took hold moves
+                # nothing and says nothing — a click on a rail is not a
+                # gesture.
+                if key == was:
+                    self._unpreview(found)
+                    return ""
+                said = self.run("move", name, was, key)
+                if said.startswith("move:") and "—" not in said:
+                    self._unpreview(found)
+                return said
             if key == was:
                 self._unpreview(found)
                 # **Let go where it began is a click, and a click is the
@@ -4117,7 +4291,13 @@ class Session:
         channels are new and start there.)
         """
         try:
-            self.bench.previewing = {found.held: -1.0, found.lift: 0.0}
+            # **The selection stays.**  A release ends the hand, not the
+            # choice: the outline and the rail marker keep saying which
+            # note the next command is about.
+            sel = self.selected.get(found.box)
+            self.bench.previewing = {found.held: -1.0, found.lift: 0.0,
+                                     found.sel: float(-1 if sel is None else sel),
+                                     found.slide: 0.0}
         except Exception:                                # noqa: BLE001
             pass
 
