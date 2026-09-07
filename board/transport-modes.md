@@ -1,6 +1,6 @@
 # transport-modes — the synth being on, and the score playing, as two switches
 
-    status   open
+    status   doing
     because  "we need separate modes for synthetizer being on, and for
              when it's playing score." — Henri, 2026-09-07, recalling
              oscillseq's playback states
@@ -86,14 +86,24 @@ elsewhere.
    about writing, not about sound.
 4. **Does the trial of the model languages happen here?**
    `card:gui-is-difficult.md` Q5 — this card is small and is a
-   statechart by nature: three states, the commands as transitions,
-   and invariants worth checking — *the card is never held in
-   `silent`*, *the clock never moves outside `playing`*.  His to say.
+   statechart by nature.  **Answered, Henri, 2026-09-07:** *"Yes, try
+   the model languages on the transport card first.  One problem is
+   that it's not an isolated case.  But maybe that's ok."*  The
+   not-isolated part is §"Not isolated" of `spec/transport.md`: the
+   model names its neighbours and owns none of them.
+5. **Five decisions the model forced**, each a session's default in
+   `spec/transport.md` §5, his to strike: `stop` from silent does
+   nothing; `play` from silent is one word; `audition` brings the
+   engine up; the keyboard's audibility is two axes; `inert` is a
+   fixed mode, not a fourth.
 
-## What a session does on day one
+## Day one, done — 2026-09-07
 
-If Q4 is yes: write the three states as sentences, then as a type,
-then the invariants, and check them before touching `Transport`.  If
-no: a three-valued state on the transport read by `fill`, `stop`
-landing on `sounding`, a new command for the third state, and the
-status line saying which of the three the window is in.
+Q4 was yes, so: `spec/transport.md` says the model in sentences, as a
+type in the tree's own spelling, as eight invariants and as a
+statechart; `gestate/transportmode.py` is the type in Python with
+`step` written out; `test/test_transport_model.py` holds the two
+spellings to each other by name and walks all thirty steps.  `Transport`
+is untouched.  What lands next, when he says, is §6 of the spec: the
+boolean becomes the mode, two verbs join `command.ges`, and the status
+line names the mode.

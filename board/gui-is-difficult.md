@@ -288,7 +288,10 @@ his words.*
    recommendation tried *"somewhere before we apply it to gestate"*.
    A candidate the session can name: the transport's three modes,
    `card:transport-modes.md` — small, a statechart by nature, and an
-   invariant or two worth checking.  His to pick.
+   invariant or two worth checking.  **Answered, Henri,
+   2026-09-07:** *"Yes, try the model languages on the transport card
+   first."*  Done the same day — `spec/transport.md`; what the
+   languages found is its §5.
 4. **Day one.**  What does a session do on the first sitting after
    the design?  If the answer needs a decision only he can make, this
    is a decision wearing a card, and it says so here rather than

@@ -1412,3 +1412,31 @@ three commands that named a note by its column name it by its tick.
 Both pictures item-identical.  The tests were where the columns
 lived: every press in them had aimed at a column, and every one aims
 at a place now.
+
+## The model before the code — `card:transport-modes.md`, 2026-09-07
+
+Henri asked, before reading the GUI card, whether there is a taxonomy
+or a modelling language for models, and what gestate's model is aside
+the rope; the answer became a section of `card:gui-is-difficult.md`
+and a recommendation — sentences to say it, a type to write it,
+invariants to check it, a statechart for the gestures — that he
+accepted on condition it was tried somewhere small first.  The
+somewhere was the transport, whose card he had written the same hour:
+*"we need separate modes for synthetizer being on, and for when it's
+playing score."*  Measured, neither mode existed; a program file takes
+the card on open and stopped is silence for the keyboard too.
+
+So the trial: `spec/transport.md`, the three modes in four spellings,
+`gestate/transportmode.py` the type, and a test that walks all thirty
+steps and holds the spec's constructors to the enum's.  The languages
+earned their keep in one way I had not expected: writing the eight
+sentences forced five decisions the two-state transport never had to
+make — where `stop` lands from silent, whether `play` from silent is
+one word, what `audition` means without an engine, that the keyboard
+is a conjunction of two axes, that `inert` is a fixed mode and not a
+fourth.  None of them was in the `because`.  What the languages did
+not do is say whether *sounding* is the right name.  His concern that
+the transport is not an isolated case turned into the spec's own
+section: the model names the engine, the card, the clock, the
+keyboard's switch and the rebuild, and owns none of them.  Alloy
+itself was not run and will not be; the enumeration is the check.
