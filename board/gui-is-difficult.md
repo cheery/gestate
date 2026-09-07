@@ -483,6 +483,52 @@ picture-as-data (idea 10) makes a diff of two display lists cheap —
 *and never at the cost of idea 9's rule that an idle frame still
 presents.*
 
+**The two gulfs — elaborated at his ask, 2026-09-07, evening.**
+Norman, *The Design of Everyday Things* (1988), after Hutchins, Hollan
+and Norman (1985).  A person has a goal and the system has a state,
+and two distances lie between them, one each way.
+
+*The gulf of execution* is the distance from what the person wants to
+what the system lets them do — form the intention, choose an action,
+specify it in the system's terms, perform it.  Wide when the person
+knows what they want and cannot find how to say it.  *Here:*
+`card:button.md`, F151 — a stranger could type and nothing typed
+reached the sound; the action existed, the path did not.
+
+*The gulf of evaluation* is the distance from what the system did to
+the person knowing it — perceive the state, interpret it, compare it
+to the intention.  Wide when the thing changed and the person cannot
+tell, or did not and they think it did.  **"Very visual", this
+morning, is this gulf by another name.**  *Here:* the dragged note
+drawn where it used to be (`spec/north_star.md` acceptance 2); the
+transport before this afternoon, engine up and score held wearing the
+same square as stopped.
+
+*Why the pair is useful:* every fix falls on one side, and the side
+says what kind of fix it is.  Execution-side repairs are affordances,
+constraints and mappings — the thing shows what can be done to it,
+refuses what cannot, the control lies where the effect is; *every
+gesture has a command under it* is an execution-side property and the
+palette its front.  Evaluation-side repairs are feedback and a visible
+system image — the effect at once, where the person is looking, in
+terms they can compare to what they meant; direct manipulation's
+fourth property, the status line naming the state, the three glyphs.
+
+*What binds it to this card:* both gulfs are bridged by the same thing,
+the conceptual model — Cooper's represented model, §"The models".  A
+model the person can hold predicts both what to do and what will show,
+which is why the command language and the model come first: they
+narrow both gulfs at once, where a picture built first narrows the
+evaluation side only, and only for the pictures somebody thought to
+draw.
+
+*The checks:* the execution gulf is the stranger test — a person with
+a goal, the count of steps, the point where they stop.  The evaluation
+gulf is the roster from direct manipulation's first property — every
+state the model can be in has a distinct picture, and a person shown
+the picture can say the state.  Neither is a unit test; both are cheap
+because the model is finite.
+
 ## Questions
 
 *The session collected these on 2026-09-07; they are Henri's to answer.  He said he would ask
@@ -493,6 +539,29 @@ his words.*
    line names.  Today they are the roll's events, the selection, the
    group, the section, the tempo.  Is that the model of the framework,
    or one client of it?
+   **Henri, 2026-09-07, evening:** *"I think it could be a mix of
+   algebraic types and relations.. what do you think about that?"*
+   *Session's view:* the right pair, and the tree already works that
+   way unsaid — the `Roll` is a six-column relation and a note is found
+   by a lookup on tick and key; a `.notes` file is a table, a row a
+   line; the display list is a relation of items with regions and a
+   press is a query over it; the transport's state is a sum type.  The
+   rule that falls out: **types for the few, relations for the many.**
+   A state, a hand, a verb want a sum type, so illegal states are
+   unrepresentable; notes, cells, hits and knobs want a relation, so
+   identity is a key — address, tick and key — and not a position in a
+   list, which is idea 1's hard problem answered by construction.  And
+   the language has the query half: Datafun with seminaive evaluation
+   (`spec/data.md`).  If the picture is a query over the model's
+   relations, two of the secondary goals fall out of one machinery —
+   the derivative of the query is the damage rectangle, and a lens from
+   a row to the line that wrote it is the bidirectional edit, exact
+   where a row has one source line.  **What would kill it:** seminaive
+   evaluation is built for growth, and a deleted note, a cleared cell,
+   a shrinking selection are retractions; `spec/data.md` names
+   non-monotone constructs as a scope class and says nothing about
+   retracting a fact.  *Measured first, before the mix is written as
+   the model.*  Otherwise: not answered as a whole until he says so.
 2. **What is the framework's own command language?**  The workbench
    has `Ctrl-K`; the roll has its verbs.  Does the framework own the
    verbs, or only the way a gesture reaches one?
@@ -510,9 +579,11 @@ his words.*
 6. **Does the transport's state survive a close?**  Today none does,
    by the desk's own rule.  With three states, *silent* is the one
    worth keeping: a person who freed the sound card and reopens the
-   file did not ask for it back.  *Session's default: restore
-   `silent` only; `sounding` and `playing` reopen as today, playing.*
-   His to strike.
+   file did not ask for it back.  *Session's default was: restore
+   `silent` only.*  **Answered, Henri, 2026-09-07:** *"I think that's
+   answered already, it should not."*  So no transport state survives
+   a close, as `gestate/desk.py` §"What is never restored" says; the
+   session's default is struck.
 4. **Day one.**  What does a session do on the first sitting after
    the design?  If the answer needs a decision only he can make, this
    is a decision wearing a card, and it says so here rather than
