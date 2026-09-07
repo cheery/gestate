@@ -1,6 +1,6 @@
 # relations-at-frame-rate — a query over a few hundred rows takes seconds, and a picture has a frame
 
-    status   doing
+    status   done — 2026-09-07
     because  the picture as a query over the model's relations — the
              derivative of the query as the damage rectangle, a lens
              from a row to the line that wrote it — is the shape
@@ -142,7 +142,18 @@ it is 627 ms, and a hundred rows is 33 ms.  Which machine "the window
 runs" is his to say — the canvas is walked in Rust, the roll's
 reference walk in Python — and so is whether this card is done.
 
-## What a session does on day one
+## Done — 2026-09-07
+
+**Henri:** *"ok.  I think the card is done.  Planning to run on crust
+everything that can run there."*  So the machine the window runs, for
+Q3, is crust, and the six-hundred-row picture at 14 ms is under the
+number; the reference machine's 627 ms stands as what the Python road
+costs and is not the road.  Reading 1 landed the growth; reading 2 is
+his plan, and not a card — *everything that can run there*, which is
+wider than this card and his to sequence.  The story is `journal.md`
+§"Reading 1".
+
+## What a session did on day one
 
 ~~Answer Q1 and Q2 by reading and running, put both numbers on this
 card~~ — done 2026-09-07, evening, with Henri at the desk.  Next:

@@ -597,6 +597,13 @@ his words.*
    derivative-as-damage-rectangle idea waits on a set that unions in
    better than linear time, or on `crust` running the same query.**
    His call whether that is worth a card; nothing is minted.
+   **It was — `card:relations-at-frame-rate.md`, done the same
+   evening:** a `for` and a set literal merge pairwise now, the query
+   alone is 33 ms over a hundred rows on the reference machine and 8
+   ms on crust, 14 ms over six hundred there.  And his plan, closing
+   it: *"Planning to run on crust everything that can run there."*  So
+   the relations half of the model is back on the table: a picture
+   may be a query, on crust.
 2. **What is the framework's own command language?**  The workbench
    has `Ctrl-K`; the roll has its verbs.  Does the framework own the
    verbs, or only the way a gesture reaches one?

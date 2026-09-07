@@ -1528,3 +1528,8 @@ hundred, and on crust 8, 20 and 14 ms — a picture can be a query on
 the Rust machine today, and on the reference machine for a hundred
 rows.  What stays quadratic is a program's own recursion over unions,
 and the closure's output, which is its size.
+
+Closed the same hour.  *"ok.  I think the card is done.  Planning to
+run on crust everything that can run there."*  The machine the window
+runs is crust, then, and the picture as a query over the model's
+relations is back on the GUI card's table.
