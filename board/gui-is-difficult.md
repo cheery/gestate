@@ -455,6 +455,21 @@ from each chart's own history payload rather than from a chart of the
 whole window, which §"Statecharts" refuses.  A chart that cannot say
 which of its states survive a close is not finished.
 
+**Bidirectional editing, secondary.**  *"bidirectional editing could
+be useful.. but make that a secondary goal that is satisfied only if
+it's possible."*  From the second list (Sketch-n-Sketch, lenses): edit
+the picture and the source changes, edit the source and the picture
+changes, held to each other by law.  *Here:* one direction is built
+and byte-exact — `transposed`, `carry`, `resize` and `bars` write the
+file back from a gesture — and the other is the ordinary rebuild.  So
+the goal is not *whether* but *how far*: which edits to the picture
+have an exact source edit under them, and which do not (a note whose
+pitch is a bound variable, `spec/north_star.md` §"What it edits, and
+how the atom is found" — *written elsewhere*, declined).  **Secondary,
+his word: the framework never bends its model to reach it, and where
+a lens has no exact write-back the picture says so rather than
+guessing one.**
+
 ## Questions
 
 *The session collected these on 2026-09-07; they are Henri's to answer.  He said he would ask
