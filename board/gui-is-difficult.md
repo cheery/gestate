@@ -415,6 +415,46 @@ up, starting from 'modes are the enemy'.  Most of them I think are
 good.  But some of them probably won't belong together.  I think we'll
 see what we can get."*
 
+## Two more from Henri — 2026-09-07, evening
+
+**Zooming.**  *"It could be a zooming interface.  That makes sense for
+a pianoroll and sheet."*  From the second list above (Pad++,
+Bederson): the roll at the editing scale and the page at the compact
+one are two zoom levels written by hand today, and the sheet
+(`card:gex-sheet.md`) would be a third surface.  *Here:* the text
+view already zooms by rungs (`Window.zoom_rungs`) and the desk
+remembers the rung; the roll does not zoom, it has two fixed scales.
+A requirement on the framework, not a slice.
+
+**Start where you left.**  *"There is one requirement I want that is
+not stated: It's that the program would start into the state where it
+left from, most of the time.  Some exception occur, but that should be
+the thing."*
+
+*Measured the same evening:* stated once already, and half built.
+`card:persistent-workbench-state.md`, done 2026-08-18 from his
+*"as if that state was a document in itself"*: `<piece>.desk` beside
+the file holds the caret, the zoom, the seed, the loop, the octave and
+the knob values, and `~/.config/gestate/desk` which piece you were
+last in; a bare launch reopens it.  **And the exception is already
+decided there** — `gestate/desk.py` §"What is never restored": *a
+transport that was playing, and a build*, because a window that
+reopened playing would be a stale instrument wearing a current
+document.  So *most of the time* is the desk, and *some exceptions*
+is that section, and both were his words in August.
+
+What the new states sharpen: the transport now has three, and the
+desk writes none of them.  A window that closed *silent* and reopens
+*playing* takes the sound card the person had freed on purpose.  That
+is Q6 below.
+
+**And for the framework it is one law**: every subsystem's chart
+state, minus its named exceptions, is written to the desk at close and
+restored at open — Harel's deep history at the window's level, built
+from each chart's own history payload rather than from a chart of the
+whole window, which §"Statecharts" refuses.  A chart that cannot say
+which of its states survive a close is not finished.
+
 ## Questions
 
 *The session collected these on 2026-09-07; they are Henri's to answer.  He said he would ask
@@ -439,6 +479,12 @@ his words.*
    2026-09-07:** *"Yes, try the model languages on the transport card
    first."*  Done the same day — `spec/transport.md`; what the
    languages found is its §5.
+6. **Does the transport's state survive a close?**  Today none does,
+   by the desk's own rule.  With three states, *silent* is the one
+   worth keeping: a person who freed the sound card and reopens the
+   file did not ask for it back.  *Session's default: restore
+   `silent` only; `sounding` and `playing` reopen as today, playing.*
+   His to strike.
 4. **Day one.**  What does a session do on the first sitting after
    the design?  If the answer needs a decision only he can make, this
    is a decision wearing a card, and it says so here rather than
