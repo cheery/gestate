@@ -565,6 +565,14 @@ his words.*
 2. **What is the framework's own command language?**  The workbench
    has `Ctrl-K`; the roll has its verbs.  Does the framework own the
    verbs, or only the way a gesture reaches one?
+   **Henri, 2026-09-07, evening — half-open on purpose:** *"depends on
+   implementation a lot.. I think verbs should be possible to define by
+   the GUI itself, but framework should provide some verbs as well."*
+   So two sources of verbs, and the seam between them is what the first
+   slice is chosen to find: a chart's actions name verbs, and the
+   transport's chart names `sound`, `hush`, `seek`, `allOff` — which of
+   those the framework provides and which the transport's own file
+   declares is answered by building it, not here.
 3. **Which of the four hard things does he want removed first?**  The
    session's candidate is the eye (idea 7, the window inspecting
    itself); his may differ, and the card is ordered by his answer.
@@ -588,6 +596,55 @@ his words.*
    the design?  If the answer needs a decision only he can make, this
    is a decision wearing a card, and it says so here rather than
    queueing.
+
+## The first slice — proposed 2026-09-07, evening; his to take or strike
+
+Henri: *"what should be the first slice here?  Are we ready to decide
+that?  Right now it's bunch of good ideas.. And I think that's where we
+should start sculpting it from.  With some questions left half-open."*
+
+**Ready to decide the slice, not the model** — so the slice is the
+piece that needs no more model than is already accepted (the sum-type
+half of Q1, and the transport's, tried and landed), and that turns the
+next half-open question into a thing that can be built and measured.
+
+**Proposed: the chart library, executable, with the transport as its
+first chart.**  `chart.ges` — `Step`, `Chart`, `run`, `beside`, the
+four lines of §"Statecharts" — loaded by the editor the way
+`command.ges` is, evaluated by the reference G-machine; the transport
+written in it, replacing `gestate/transportstate.py`'s `step`; the
+session's `play`, `stop` and `audition` sending events to it and
+running the commands it answers with.  Why this one:
+
+- It is framework and not client — the first piece that every later
+  chart, the gestures included, sits on.
+- It is already measured: twelve model tests, three bench tests and
+  five photographs hold the transport, so a port that changes
+  behaviour is caught the same hour.
+- It forces Q2 at the seam his answer points at: the chart names verbs
+  the framework provides and verbs the transport's file declares, and
+  the slice has to say which is which to compile.
+- It is small enough to be wrong cheaply.  *What kills it:* if wiring
+  chart events into `Session.run` and chart actions back out costs more
+  than the library itself, the four lines were the easy half and the
+  card should say so.
+
+**Alongside, not blocking — the measurement Q1 waits on:** whether the
+tree's Datafun retracts a fact or recomputes, a number on a relation
+of a few hundred rows with one row removed.  Half a sitting, and it
+decides the relations half of the model before anything is drawn on
+it.
+
+**Second, when the first is in:** idea 7's instrument — press a thing
+and the window says its region, its channel and the line that wrote
+it — because it is the seam "very visual" points at, it is cheap on
+today's hit table, and it is what a session walks with instead of
+walking code.
+
+*Not chosen first:* a gesture as a chart (the roll's four hands),
+because it needs the chart library and touches the notes-editor's
+live work; the grid over `.notes`, shelved on this card's own
+completion; anything drawn.
 
 ## What a session does now
 
