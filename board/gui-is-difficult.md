@@ -470,6 +470,19 @@ his word: the framework never bends its model to reach it, and where
 a lens has no exact write-back the picture says so rather than
 guessing one.**
 
+**Damage rectangles, secondary on the same basis.**  *"and damage
+rectangles make sense as well, on same basis."*  From the second list:
+repaint only the region that changed, instead of the frame.  *Here:*
+the window keeps one `dirty` flag and repaints whole when it is set,
+and presents every frame regardless, because presenting is what
+drains X and the one-behind bug lived in an idle frame that did not
+(`doc/memory/gestate-editor-latency.md`); the description is compared
+whole and sent only when it differs, which is the same idea one layer
+up, at the wire.  A region-level dirty is the framework's, if the
+picture-as-data (idea 10) makes a diff of two display lists cheap —
+*and never at the cost of idea 9's rule that an idle frame still
+presents.*
+
 ## Questions
 
 *The session collected these on 2026-09-07; they are Henri's to answer.  He said he would ask
