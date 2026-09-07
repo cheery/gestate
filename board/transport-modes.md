@@ -52,14 +52,21 @@ editing is what makes the machine crackle for the person at the desk
 (`board/README.md` §"What the first full day of this taught", *the
 machine is shared*).
 
-## Names — the session's proposal, his to pick
+## Names — `silent`, `sounding`, `playing`
+
+**Henri, 2026-09-07:** *"the names you gave 'silent' 'sounding'
+'playing' are excellent."*  Set 1 below, chosen; the verbs that land
+in each are `silence`, `sound`, `play`, and `stop` lands in
+`sounding` (`spec/transport.md` sentence 4).  The other two sets stay
+here as the argument.
+
 
 oscillseq had four; he asked for three and better words than
 OFFLINE / ACTIVE / PLAYING.  Three sets, each with what would kill it:
 
 | | synth down, card free | synth up, clock held | score running |
 |---|---|---|---|
-| **1. what the ears get** *(recommended)* | `silent` | `sounding` | `playing` |
+| **1. what the ears get** *(chosen)* | `silent` | `sounding` | `playing` |
 | 2. what the machine is | `down` | `up` | `running` |
 | 3. a musician's day | `off` | `tuning` | `playing` |
 
