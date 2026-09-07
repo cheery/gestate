@@ -4,6 +4,7 @@
 
     python tools/retraction.py            # the table below, ~10 s
     python tools/retraction.py 400 800    # other relation sizes
+    python tools/retraction.py --crust    # the picture rows on crust, the Rust machine
 
 `card:gui-is-difficult.md` Q1 (Henri: *"a mix of algebraic types and
 relations"*) waits on this: if the picture is a query over the model's
@@ -84,8 +85,45 @@ def _timed(state, fn, *args) -> float:
     return time.perf_counter() - began
 
 
+def crust(sizes) -> int:
+    """The picture rows on `crust`: the same program, `main` set to each
+    query, serialized and run by the Rust machine — the constant, not
+    the growth (`card:relations-at-frame-rate.md` Q2)."""
+    import subprocess
+    import tempfile
+
+    from gestate.crust import serialize
+
+    root = Path(__file__).resolve().parent.parent
+    crate = root / "crust"
+    subprocess.run(["cargo", "build", "--quiet", "--release",
+                    "--target-dir", str(crate / "target")],
+                   cwd=crate, check=True)
+    binary = crate / "target" / "release" / "crust"
+    print(f"{'rows':>6} {'picture on crust':>18}")
+    with tempfile.TemporaryDirectory() as tmp:
+        for n in sizes:
+            source = PROGRAM.replace(
+                "main : Int\nmain = 0\n",
+                "main : Set (Cyclic 4096, Cyclic 4096)\n"
+                f"main = picture (rows {n})\n")
+            path = Path(tmp) / f"picture{n}.crust"
+            path.write_text(serialize(compile_program(source), "main"))
+            began = time.perf_counter()
+            subprocess.run([str(binary), str(path)], capture_output=True,
+                           text=True, check=True)
+            print(f"{n:>6} {(time.perf_counter() - began) * 1000:>16.1f}ms")
+    print()
+    print("process start included; the growth is the fold's, the constant the machine's")
+    return 0
+
+
 def main(argv=None) -> int:
-    sizes = [int(a) for a in (argv or sys.argv[1:])] or [100, 300, 600]
+    args = list(argv if argv is not None else sys.argv[1:])
+    on_crust = "--crust" in args
+    sizes = [int(a) for a in args if a != "--crust"] or [100, 300, 600]
+    if on_crust:
+        return crust(sizes)
     began = time.perf_counter()
     state = compile_program(PROGRAM)
     print(f"compiled once in {time.perf_counter() - began:.2f} s")

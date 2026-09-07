@@ -69,16 +69,39 @@ that `crust` brings the constant down by the usual factor.
 
 ## Questions
 
-1. **Does ϕ/δ care how `for` builds its result?**  Read
-   `gestate/seminaive.py`'s rewrite of `EFor` before reading 1 is
-   taken.  *A session can answer this by reading.*
-2. **Does `crust` run a `for`?**  *A session can answer this by
-   running `tools/retraction.py`'s program on it.*
+1. **Does ϕ/δ care how `for` builds its result?**  **Answered by
+   reading, 2026-09-07, with Henri** — *no.*  `seminaive.py`'s ϕ keeps
+   a `for` as a `for` node and δ wraps two `for` nodes in `join_` and
+   `union_` calls; neither looks inside.  The fold is later and
+   elsewhere: `pipeline._desugar_datafun` lowers `for (x in s) body`
+   to `for_L s (λx. body)`, and `for_L` is the generated helper in
+   `gestate/helpers.py` that joins one body result at a time.  So
+   reading 1 changes one generated helper — a balanced merge of the
+   body results, `O(n log n)` merges where there are `n` — and nothing
+   the transform sees.
+2. **Does `crust` run a `for`?**  **Answered by running, the same
+   evening** — *yes*, the helpers are ordinary supercombinators.
+   `python tools/retraction.py --crust`:
+
+   | rows | Python | crust | ratio |
+   |---|---|---|---|
+   | 100 | 665 ms | 49 ms | 13.6 |
+   | 300 | 6.2 s | 430 ms | 14.3 |
+   | 600 | 27.0 s | 2.1 s | 12.7 |
+
+   The constant falls by thirteen and the growth stays (×8.8, ×4.9):
+   crust is the machine and the fold is the fold, as the front said.
+   A hundred rows is under a frame on crust today, process start
+   included; six hundred is not on either.
 3. **What is the number that says done?**  *Session's proposal:* the
    `picture` row of `tools/retraction.py` at 600 under 80 ms, on the
    machine the window runs.  His to set.
 
 ## What a session does on day one
 
-Answer Q1 and Q2 by reading and running, put both numbers on this
-card, then take reading 1 if Q1 allows it.  Nothing is drawn.
+~~Answer Q1 and Q2 by reading and running, put both numbers on this
+card~~ — done 2026-09-07, evening, with Henri at the desk.  Next:
+reading 1, since Q1 allows it — the `for_L` helper as a balanced
+merge, held by `tools/retraction.py`'s table before and after and by
+the Datafun suites unchanged.  Then reading 2 is a switch, not a
+build.  Nothing is drawn.
