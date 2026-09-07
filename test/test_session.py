@@ -38,8 +38,8 @@ class Bench:
         self.values = {"cutoff": 40, "drive": 0.5}
         self.ranges = {"cutoff": (0, 100), "drive": (0.0, 1.0)}
         self.on = True
-        from gestate.transportmode import Mode
-        self._mode = Mode.PLAYING
+        from gestate.transportstate import State
+        self._state = State.PLAYING
         self.keyboard = self
         self.octaves = 0
         self.ends = 32.0
@@ -71,19 +71,19 @@ class Bench:
     def pause(self):
         self.on = False
 
-    # the three modes — `spec/transport.md`; a file opens playing
+    # the three states — `spec/transport.md`; a file opens playing
     @property
-    def mode(self):
-        from gestate.transportmode import Mode
-        return Mode.PLAYING if self.on else self._mode
+    def state(self):
+        from gestate.transportstate import State
+        return State.PLAYING if self.on else self._state
 
-    def set_mode(self, target):
-        from gestate.transportmode import Mode
-        self.on = target is Mode.PLAYING
-        self._mode = target
-        self.log.append(("mode", target.value))
+    def set_state(self, target):
+        from gestate.transportstate import State
+        self.on = target is State.PLAYING
+        self._state = target
+        self.log.append(("state", target.value))
 
-    _mode = None
+    _state = None
 
     def seek_beats(self, beat):
         self.log.append(("seek", beat))
@@ -2004,20 +2004,20 @@ class _Transport:
         self.loop = None
 
 
-def test_the_play_line_carries_the_mode_by_name():
+def test_the_play_line_carries_the_state_by_name():
     """`Workbench.playing` asks whether the audio *thread* is alive — a
     different question wearing the same word.  The line says which of
-    the three modes the bench is in (`spec/transport.md`), read off
-    `mode` when the bench has one and off the transport when it does
+    the three states the bench is in (`spec/transport.md`), read off
+    `state` when the bench has one and off the transport when it does
     not: no transport is *silent*, a held one *sounding*."""
-    from gestate.transportmode import Mode
+    from gestate.transportstate import State
 
     it = session()
-    it.bench.set_mode(Mode.SOUNDING)
+    it.bench.set_state(State.SOUNDING)
     assert "play\tsounding\t" in furniture(it)
-    it.bench.set_mode(Mode.PLAYING)
+    it.bench.set_state(State.PLAYING)
     assert "play\tplaying\t" in furniture(it)
-    it.bench.set_mode(Mode.SILENT)
+    it.bench.set_state(State.SILENT)
     assert "play\tsilent\t" in furniture(it)
 
     class Bare:                      # a stand-in with a transport only

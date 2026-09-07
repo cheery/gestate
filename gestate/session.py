@@ -2102,35 +2102,35 @@ class Session:
     def do_audition(self) -> str:
         # **A request to hear** — `spec/transport.md` sentence 4: from
         # *silent* it brings the instrument up first.
-        from .transportmode import Mode
+        from .transportstate import State
 
-        if _mode_of(self.bench) is Mode.SILENT \
-                and getattr(self.bench, "set_mode", None) is not None:
-            self.bench.set_mode(Mode.SOUNDING)
+        if _state_of(self.bench) is State.SILENT \
+                and getattr(self.bench, "set_state", None) is not None:
+            self.bench.set_state(State.SOUNDING)
         self.bench.audition(self.view.text())
         return "auditioning"
 
     def do_play(self) -> str:
         """*playing*, or *sounding* if it was — the toggle, through the
-        model (`gestate/transportmode.py`, `spec/transport.md`)."""
-        from .transportmode import Verb, step
+        model (`gestate/transportstate.py`, `spec/transport.md`)."""
+        from .transportstate import Verb, step
 
         # "silent" for a file that cannot play would be the quiet
         # reading as breakage — the exact thing inert mode is worded
         # against.
         if getattr(self.bench, "inert", False):
             return "nothing plays — the file is inert"
-        target = step(_mode_of(self.bench), Verb.PLAY)
-        self.bench.set_mode(target)
+        target = step(_state_of(self.bench), Verb.PLAY)
+        self.bench.set_state(target)
         return target.value
 
     def do_stop(self) -> str:
         """*silent*: the instrument down and the sound card free, the
         file still open — Henri, 2026-09-07: *"'stop' goes to silence."*"""
-        from .transportmode import Mode
+        from .transportstate import State
 
-        self.bench.set_mode(Mode.SILENT)
-        return Mode.SILENT.value
+        self.bench.set_state(State.SILENT)
+        return State.SILENT.value
 
     def do_seek(self, bar: int) -> str:
         # Bars, beats and samples all count from zero; the conversion
@@ -5643,9 +5643,9 @@ def furniture(session: "Session", bench=None, tally: str = "",
                 out.append(f"paint\t{line}\t{runs}")
 
     if not inert:
-        # The mode by name — *silent*, *sounding*, *playing* — so the bar
+        # The state by name — *silent*, *sounding*, *playing* — so the bar
         # draws *sounding* as a state of its own (Henri, 2026-09-07).
-        out.append(f"play\t{_mode_of(b).value}\t{_beats(b)}")
+        out.append(f"play\t{_state_of(b).value}\t{_beats(b)}")
         # **What you are hearing is not what you are looking at**
         # (`fixme.md` F151).  Not a complaint and deliberately not
         # written like one: an edit that has not reached the sound is
@@ -6239,26 +6239,26 @@ def _listening(bench, name: str) -> bool:
         return False
 
 
-def _mode_of(bench):
-    """*silent*, *sounding* or *playing* — `gestate/transportmode.py`.
+def _state_of(bench):
+    """*silent*, *sounding* or *playing* — `gestate/transportstate.py`.
 
     **Not `Workbench.playing`**, which asks whether the audio *thread*
     is alive — a different question wearing the same word.  The bench
-    answers `mode` itself; a stand-in without one is read off its
+    answers `state` itself; a stand-in without one is read off its
     transport, and no transport is *silent*.
     """
-    from .transportmode import Mode
+    from .transportstate import State
 
-    mode = getattr(bench, "mode", None)
-    if isinstance(mode, Mode):
-        return mode
+    state = getattr(bench, "state", None)
+    if isinstance(state, State):
+        return state
     transport = getattr(bench, "transport", None)
     if transport is None:
-        return Mode.SILENT
+        return State.SILENT
     if getattr(transport, "playing", False) \
             and getattr(transport, "advancing", True):
-        return Mode.PLAYING
-    return Mode.SOUNDING
+        return State.PLAYING
+    return State.SOUNDING
 
 
 def _looping(bench) -> tuple | None:

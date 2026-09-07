@@ -60,13 +60,12 @@ vision.md."*  Read for them, the same afternoon:
 - *"Broad platforms are historically terrible at the stranger test …
   the ease of use is preferred."* — the tension every everyday client
   is measured against before it lands.
-- **And one that cuts the other way:** *"Gestate won't grow modes.
-  (there is one mode: typing)."*  The transport's three states are not
-  modes in that sense — a key means the same thing in all three, and
-  typing stays the one mode — but `card:transport-modes.md`,
-  `spec/transport.md` and `gestate/transportmode.py` all wear the
-  word.  Named here so the collision is his to rule on, not renamed
-  unasked.
+- **And one that cut the other way:** *"Gestate won't grow modes.
+  (there is one mode: typing)."*  The transport's three states were
+  first written as *modes*, in the card, the spec and the module.
+  **Henri, 2026-09-07:** *"rename them to states, modes is the wrong
+  word."*  Renamed the same afternoon; `card:transport-modes.md` keeps
+  its filename, which is its id.
 
 ## The one that comes first, and must be stressed
 

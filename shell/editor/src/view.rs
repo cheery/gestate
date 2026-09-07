@@ -1241,7 +1241,7 @@ fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
     // running is the play triangle, the score held under a live
     // instrument is the pause bars, the instrument down is the stop
     // square (`spec/transport.md`).
-    let glyph = match chrome.mode.as_str() {
+    let glyph = match chrome.state.as_str() {
         "playing" => "\u{25b6}",
         "sounding" => "\u{2016}",
         _ => "\u{25a0}",
@@ -1261,7 +1261,7 @@ fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
     }
     let at = view.w - 4 - width_of(&when) as i32 * cw;
     f.items.push(Item::Run { x: at, y: sy + 2, s: when,
-                             c: if chrome.mode == "silent" { FAINT } else { LIVE } });
+                             c: if chrome.state == "silent" { FAINT } else { LIVE } });
     right = at - 2 * cw;
     }
 

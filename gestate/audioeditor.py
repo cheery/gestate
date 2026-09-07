@@ -1172,25 +1172,25 @@ class Workbench:
         self._audio = threading.Thread(target=run, daemon=True)
         self._audio.start()
 
-    # -- the three modes ----------------------------------------------------
+    # -- the three states ---------------------------------------------------
 
     @property
-    def mode(self):
-        """*silent*, *sounding* or *playing* — `spec/transport.md`.
+    def state(self):
+        """The transport's state — *silent*, *sounding* or *playing*, `spec/transport.md`.
 
         The instrument is up exactly when there is a transport over it;
         the score's clock moves exactly when that transport is advancing.
         """
-        from .transportmode import Mode
+        from .transportstate import State
 
         if self.inert or self.transport is None:
-            return Mode.SILENT
+            return State.SILENT
         if self.transport.playing and self.transport.advancing:
-            return Mode.PLAYING
-        return Mode.SOUNDING
+            return State.PLAYING
+        return State.SOUNDING
 
-    def set_mode(self, target) -> None:
-        """Go to a mode, whatever the way there costs.
+    def set_state(self, target) -> None:
+        """Go to a state, whatever the way there costs.
 
         *silent* brings the instrument down and frees the sound card,
         the file still open and the score's position kept.  *sounding*
@@ -1200,20 +1200,20 @@ class Workbench:
         and releases the notes it had going, as a seek does; *playing*
         from *sounding* seeks the engine back to the held position.
         """
-        from .transportmode import Mode
+        from .transportstate import State
 
-        here = self.mode
+        here = self.state
         if target is here or self.inert:
             return
-        if target is Mode.SILENT:
+        if target is State.SILENT:
             self.stop(keep=True)
             self.say("silent")
             return
-        if here is Mode.SILENT:
+        if here is State.SILENT:
             self.sound()
             if self.transport is None:
                 return
-        if target is Mode.PLAYING:
+        if target is State.PLAYING:
             self.transport.playing = True
             self.transport.advancing = True
             self.say("playing")
@@ -2550,9 +2550,9 @@ class Workbench:
     # -- the transport ------------------------------------------------------
 
     def play(self) -> None:
-        from .transportmode import Mode
+        from .transportstate import State
 
-        self.set_mode(Mode.PLAYING)
+        self.set_state(State.PLAYING)
 
     def pause(self) -> None:
         """Silence, and the clock stops.  The instrument is untouched.
@@ -2566,16 +2566,16 @@ class Workbench:
         close.  Two methods of one name is a thing Python will not tell you
         about; the fix is not to have two.
         """
-        from .transportmode import Mode
+        from .transportstate import State
 
-        self.set_mode(Mode.SOUNDING)
+        self.set_state(State.SOUNDING)
 
     def toggle(self) -> bool:
         """`play`'s toggle — *playing*, or *sounding* if it was."""
-        from .transportmode import Mode, Verb, step
+        from .transportstate import State, Verb, step
 
-        self.set_mode(step(self.mode, Verb.PLAY))
-        return self.mode is Mode.PLAYING
+        self.set_state(step(self.state, Verb.PLAY))
+        return self.state is State.PLAYING
 
     def seek_beats(self, beat: float) -> None:
         if self.transport is not None:

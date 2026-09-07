@@ -25,7 +25,7 @@ from pathlib import Path
 
 import pytest
 
-from gestate.transportmode import Mode
+from gestate.transportstate import State
 from gestate.audioeditor import (KNOB_RANGE, KNOB_RANGE_FLOAT,
                                  Workbench)
 
@@ -788,14 +788,14 @@ def test_stopping_holds_the_clock_and_keeps_the_instrument(tmp_path):
         # (`spec/transport.md`): the score's clock is held and the engine
         # keeps rendering, its own clock running on.
         bench.pause()
-        assert bench.mode is Mode.SOUNDING
+        assert bench.state is State.SOUNDING
         transport.fill(buffer, 64, bench.control, 0)
         assert transport.position == 64, "a held transport advanced"
         assert transport.clock == 128, "the engine's clock should run on"
         assert bench.live is not None, "the engine was torn down"
 
         bench.play()
-        assert bench.mode is Mode.PLAYING
+        assert bench.state is State.PLAYING
         assert transport.clock == 64, "resuming seeks the engine back"
         transport.fill(buffer, 64, bench.control, 0)
         assert transport.position == 128
@@ -821,7 +821,7 @@ def test_a_key_pressed_while_sounding_is_heard(tmp_path):
             transport.fill(buffer, 64, bench.control, 0)
         bench.pause()
         held = transport.position
-        assert bench.mode is Mode.SOUNDING
+        assert bench.state is State.SOUNDING
 
         assert bench.keyboard.press(62)
         assert bench.notes.sounding_on("lead") == [62]
@@ -856,21 +856,21 @@ def test_silent_frees_the_card_and_sound_brings_the_instrument_back(tmp_path):
         was = transport.position
         engine = bench.live
 
-        bench.set_mode(Mode.SILENT)
-        assert bench.mode is Mode.SILENT
+        bench.set_state(State.SILENT)
+        assert bench.state is State.SILENT
         assert bench.transport is None and bench.host is None
         assert bench.live is engine, "silent tore the engine down"
         assert bench.position_in_beats() == bench.samples_to_beats(was), \
             "the bar lost its readout"
 
-        bench.set_mode(Mode.SOUNDING)
-        assert bench.mode is Mode.SOUNDING
+        bench.set_state(State.SOUNDING)
+        assert bench.state is State.SOUNDING
         assert bench.live is engine, "sound built a new engine"
         assert bench.transport.position == was, "sound forgot where it was"
         assert bench.transport.advancing is False
 
-        bench.set_mode(Mode.PLAYING)
-        assert bench.mode is Mode.PLAYING
+        bench.set_state(State.PLAYING)
+        assert bench.state is State.PLAYING
     finally:
         bench.stop()
 

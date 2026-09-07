@@ -135,7 +135,7 @@ WHERE: dict[str, str] = {
     "session": "window", "sessionlog": "window", "audioeditor": "window",
     "workbench": "window", "audiospans": "window", "scorebox": "window",
     "editor": "window", "buildtime": "window", "unchanged": "window",
-    "presence": "window", "icon": "window", "transportmode": "window",
+    "presence": "window", "icon": "window", "transportstate": "window",
     # The three that arrived on 2026-08-18, all of them state the
     # *window* owns rather than the instrument under it: where the desk
     # was left, where a session is standing, and what the repository

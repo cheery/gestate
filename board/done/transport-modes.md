@@ -1,10 +1,10 @@
 # transport-modes — the synth being on, and the score playing, as two switches
 
     status   done — 2026-09-07
-    because  "we need separate modes for synthetizer being on, and for
+    because  "we need separate states for synthetizer being on, and for
              when it's playing score." — Henri, 2026-09-07, recalling
              oscillseq's playback states
-    asked    Henri, 2026-09-07 — "implement three transport modes,
+    asked    Henri, 2026-09-07 — "implement three transport states,
              OFFLINE, ACTIVE, PLAYING (come up with better names for
              these) on the gestate.  Write a card from that."
     see      doc/memory/henri-prior-tools.md — oscillseq: OFFLINE /
@@ -53,6 +53,14 @@ editing is what makes the machine crackle for the person at the desk
 machine is shared*).
 
 ## Names — `silent`, `sounding`, `playing`
+
+**And the word is *states*, not *modes*** — Henri, 2026-09-07, after
+the collision with `vision.md`'s *gestate won't grow modes* was put to
+him: *"rename them to states, modes is the wrong word."*  Renamed in
+the spec, the module (`gestate/transportstate.py`), the wire's field
+and the tests the same afternoon; this card keeps its filename, which
+is its id.
+
 
 **Henri, 2026-09-07:** *"the names you gave 'silent' 'sounding'
 'playing' are excellent."*  Set 1 below, chosen.  And the verbs are
@@ -109,13 +117,13 @@ elsewhere.
    keyboard is two axes; `inert` is fixed.
 6. **The bar.**  His: *"'sounding' should show as some state of it's
    own in the bar."*  The furniture's `playing` boolean becomes the
-   mode on the wire — the landing, §6 of the spec.
+   state on the wire — the landing, §6 of the spec.
 
 ## Done — 2026-09-07
 
 Landed the same afternoon, `spec/transport.md` §6: the C host holds
 the score's position while the engine's clock runs on, both transports
-carry `advancing` and `clock`, the workbench has `mode`, `set_mode`,
+carry `advancing` and `clock`, the workbench has `state`, `set_mode`,
 `sound` and `stop(keep=True)`, the three verbs run `step`, and the bar
 draws ▶, ‖ and ■.  **The postcondition, both halves, held by tests**:
 `test_a_key_pressed_while_sounding_is_heard` and
@@ -130,9 +138,9 @@ silent ‖.  The story is `journal.md` §"The three modes, landed".
 
 Q4 was yes, so: `spec/transport.md` says the model in sentences, as a
 type in the tree's own spelling, as eight invariants and as a
-statechart; `gestate/transportmode.py` is the type in Python with
+statechart; `gestate/transportstate.py` is the type in Python with
 `step` written out; `test/test_transport_model.py` holds the two
 spellings to each other by name and walks all thirty steps.  `Transport`
 is untouched.  What lands next, when he says, is §6 of the spec: the
-boolean becomes the mode, two verbs join `command.ges`, and the status
-line names the mode.
+boolean becomes the state, two verbs join `command.ges`, and the status
+line names the state.
