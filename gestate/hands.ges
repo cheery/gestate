@@ -1,0 +1,47 @@
+# hands.ges — what a played note does, as a chart: the second one.
+#
+# `command.ges`'s `pianoOff`, `pianoOn` and `pianoStep`, which set one
+# word on the `Session` (`performing`) and say a sentence.  Written as
+# a chart beside `transport.ges` on 2026-09-07 to settle `beside`'s
+# question (`card:gui-is-difficult.md` Q2): a second file cannot share
+# the transport's `Do`, so the framework tags each side's actions with
+# `Or` and demands no shared type.  The session asks `advance hands`
+# for every piano verb and reads its `Cue` for the sentence.
+#
+# **Two rules a second chart file taught** (2026-09-07): its names are
+# global, so its functions carry the chart's name (`handsStep`, not
+# `step`), and its constructors must not repeat another chart's or the
+# library's — `Step` is the library's type, `Playing` the transport's
+# state, so a played note's third state is `Noting`.
+
+# ── The states, the events, the cues ─────────────────────────────────────
+
+#: Where a played note goes: nowhere, to the instrument, or to the
+#: instrument and the text.
+Hands := Off | On | Noting
+
+#: The three verbs.
+Piano := PianoOff | PianoOn | PianoStep
+
+#: What entering a state tells the bar — the chart says which, the
+#: host spells it.
+Cue := Quiet | Loud | Written
+
+# ── The chart ────────────────────────────────────────────────────────────
+
+#: A file opens with the piano off: it is opened to be read at least
+#: as often as to be played (`session.py`'s own argument).
+hands : Chart Hands Piano Cue
+hands = Chart Off handsStep handsEnter
+
+#: Every verb lands in its state from anywhere — one line each.
+handsStep : Hands -> Piano -> Step Hands Cue
+handsStep h PianoOff = Go Off []
+handsStep h PianoOn = Go On []
+handsStep h PianoStep = Go Noting []
+
+#: Entering a state says what notes do now.
+handsEnter : Hands -> List Cue
+handsEnter Off = [Quiet]
+handsEnter On = [Loud]
+handsEnter Noting = [Written]

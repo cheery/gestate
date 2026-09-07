@@ -615,6 +615,19 @@ his words.*
    transport's chart names `sound`, `hush`, `seek`, `allOff` — which of
    those the framework provides and which the transport's own file
    declares is answered by building it, not here.
+   **Settled by the second chart, 2026-09-07, evening** —
+   `gestate/hands.ges`, the piano's off/on/step beside the transport.
+   A second file cannot share the first's action type (no imports), so
+   `beside` demands none: the product is the state, `Or` the events,
+   and `Or` the actions, each side's tagged with whose it is.  The
+   framework owns the seams — `Step`, `Chart`, `Or`, `initial`,
+   `advance`, `beside` — and **no verbs**; a subsystem's verbs are its
+   own action type, executed by its host; the palette's commands are
+   its events.  Two rules a second file taught: a chart's functions
+   carry its name, and its constructors must not repeat another's or
+   the library's.  And a mistake the composition caught: the product
+   ran both sides' entry actions on every step; Harel's rule is the
+   side that moved, and the library says so now.
 3. **Which of the four hard things does he want removed first?**  The
    session's candidate is the eye (idea 7, the window inspecting
    itself); his may differ, and the card is ordered by his answer.

@@ -1533,3 +1533,25 @@ Closed the same hour.  *"ok.  I think the card is done.  Planning to
 run on crust everything that can run there."*  The machine the window
 runs is crust, then, and the picture as a query over the model's
 relations is back on the GUI card's table.
+
+## The probe, and the second chart — 2026-09-07, late
+
+*"schedule gesture as a chart for 2026-09-08 (tomorrow morning), lets
+do the 1. and 2. today."*  The probe first: `probe x y`, every
+attachment a press there would take, innermost first, with channel,
+axis and region, and for a note the tick, the key and the line that
+wrote it — read off the substrate's own hit table, nothing written.
+It is idea 7 as a command, and it is what tomorrow's walk uses.
+
+Then the piano's off/on/step as `hands.ges`, beside the transport, to
+settle the last corner of Q2 by building it.  A second file cannot
+share the first's action type, so `beside` was wrong to demand one:
+it tags each side's actions with `Or` now, and the framework owns the
+seams and no verbs.  The composition caught a mistake in the library
+itself — the product ran both sides' entry cues on every step, so
+stopping the transport re-said what the piano does — and Harel's rule,
+the side that moved, is in `beside` now.  Two small rules for a chart
+file: its functions carry its name, and its constructors are global
+and must not repeat the library's or another chart's — `Step` and
+`Playing` were both taken, which is how a played note's third state
+came to be called `Noting`.

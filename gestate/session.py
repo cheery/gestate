@@ -4404,10 +4404,21 @@ class Session:
         return self._perform("step")
 
     def _perform(self, how: str) -> str:
-        self.performing = how
-        return {"off": "notes go nowhere",
-                "on": "notes sound",
-                "step": "notes sound and are written"}[how]
+        """One piano verb through `gestate/hands.ges`, the second chart
+        (`card:gui-is-difficult.md` Q2): the chart answers the state
+        and a `Cue`, this spells the cue.  `performing` stays the word
+        the readers below and the furniture already know."""
+        from .charts import load
+
+        words = {"off": "Off", "on": "On", "step": "Noting"}
+        back = {v: k for k, v in words.items()}
+        state = (words.get(self.performing, "Off"),)
+        new, cues = load("hands").advance(state, (f"Piano{how.capitalize()}",))
+        self.performing = back[(new or state)[0]]
+        spelled = {"Quiet": "notes go nowhere",
+                   "Loud": "notes sound",
+                   "Written": "notes sound and are written"}
+        return "; ".join(spelled.get(cue[0], cue[0]) for cue in cues) or self.performing
 
     # -- chance --------------------------------------------------------
 

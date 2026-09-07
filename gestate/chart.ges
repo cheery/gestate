@@ -31,7 +31,13 @@ Step s a := Stay | Go s (List a)
 #: whole rule — `s -> e -> Step s a`, nothing of the world in it.
 Chart s e a := Chart s (s -> e -> Step s a) (s -> List a)
 
-#: Two events of two charts, so `beside` can hand each its own.
+#: Two of anything from two charts — events in, actions out — so
+#: `beside` can hand each side its own and say whose an action is.
+#: **This is the whole of what the framework owns at a seam**: a
+#: subsystem's file cannot share a type with another's (there are no
+#: imports), so two charts never share an action type; the product is
+#: the state, the sum the events, and the sum the actions
+#: (`card:gui-is-difficult.md` Q2, settled 2026-09-07 by `hands.ges`).
 Or a b := L a | R b
 
 # ── Running one ──────────────────────────────────────────────────────────
@@ -53,24 +59,41 @@ advance (Chart s0 step enter) s e = case step s e of
 
 #: Two charts side by side, each in a state of its own: the product is
 #: the region, an event reaches one side, and neither side can reach
-#: into the other because neither step's type admits it.
-beside : Chart a e x -> Chart b f x -> Chart (a, b) (Or e f) x
+#: into the other because neither step's type admits it.  Each side's
+#: actions come back tagged `L` or `R`, so the host knows whose to do.
+#: **An entry action fires for the side that moved** — Harel's rule,
+#: and the first draft got it wrong by running both sides' entries on
+#: every step — so each side's `enter` is folded into its own arrow
+#: here, and the product itself enters nothing.
+beside : Chart a e x -> Chart b f y -> Chart (a, b) (Or e f) (Or x y)
 beside (Chart a0 sa ea) (Chart b0 sb eb) =
-    Chart (a0, b0) (besideStep sa sb) (besideEnter ea eb)
+    Chart (a0, b0) (besideStep sa ea sb eb) besideEnter
 
 #: `beside`'s step — the left event moves the left state and leaves
-#: the right where it was, and the other way round.
-besideStep : (a -> e -> Step a x) -> (b -> f -> Step b x) -> (a, b) -> Or e f -> Step (a, b) x
-besideStep sa sb p ev = case p of
+#: the right where it was, and the other way round; the side that
+#: moved gets its entry actions.
+besideStep : (a -> e -> Step a x) -> (a -> List x) -> (b -> f -> Step b y) -> (b -> List y) -> (a, b) -> Or e f -> Step (a, b) (Or x y)
+besideStep sa ea sb eb p ev = case p of
     (a, b) -> case ev of
         L e -> case sa a e of
             Stay -> Stay
-            Go t acts -> Go (t, b) acts
+            Go t acts -> Go (t, b) (tagL (append acts (ea t)))
         R f -> case sb b f of
             Stay -> Stay
-            Go t acts -> Go (a, t) acts
+            Go t acts -> Go (a, t) (tagR (append acts (eb t)))
 
-#: `beside`'s entry actions — both sides', left first.
-besideEnter : (a -> List x) -> (b -> List x) -> (a, b) -> List x
-besideEnter ea eb p = case p of
-    (a, b) -> append (ea a) (eb b)
+#: The product enters nothing of its own — see `beside`.
+besideEnter : (a, b) -> List (Or x y)
+besideEnter p = Nil
+
+#: The left side's actions, tagged.
+tagL : List x -> List (Or x y)
+tagL xs = case xs of
+    Nil -> Nil
+    Cons a rest -> Cons (L a) (tagL rest)
+
+#: The right side's.
+tagR : List y -> List (Or x y)
+tagR ys = case ys of
+    Nil -> Nil
+    Cons b rest -> Cons (R b) (tagR rest)

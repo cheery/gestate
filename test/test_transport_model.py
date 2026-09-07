@@ -64,37 +64,41 @@ def test_a_stop_parks_the_position_the_event_carried():
 
 
 def test_two_charts_beside_each_other_share_nothing(tmp_path):
-    """`beside`: the product is the region, an event reaches one side,
-    and the other side's state is untouched."""
+    """`beside` over the two real files, `transport.ges` and `hands.ges`:
+    the product is the region, an event reaches one side, the other
+    side's state is untouched, and each side's actions come back tagged
+    — so two files that cannot share a type compose (Q2)."""
     from gestate.charts import Chart
 
     both = tmp_path / "both.ges"
     both.write_text(
         (ROOT / "gestate" / "transport.ges").read_text()
+        + (ROOT / "gestate" / "hands.ges").read_text()
         + """
-Hands := Off | On
-Piano := PianoOn | PianoOff
-
-hands : Chart Hands Piano Do
-hands = Chart Off handStep handEnter
-
-handStep : Hands -> Piano -> Step Hands Do
-handStep Off PianoOn = Go On []
-handStep On PianoOff = Go Off []
-handStep h p = Stay
-
-handEnter : Hands -> List Do
-handEnter h = []
-
-both : Chart (State, Hands) (Or Verb Piano) Do
+both : Chart (State, Hands) (Or Verb Piano) (Or Do Cue)
 both = beside transport hands
 """)
     chart = Chart(both, "both")
     assert chart.initial() == (("Up", ("Playing",)), ("Off",))
     new, acts = chart.advance((("Up", ("Playing",)), ("Off",)), ("R", ("PianoOn",)))
-    assert new == (("Up", ("Playing",)), ("On",)) and acts == []
+    assert new == (("Up", ("Playing",)), ("On",))
+    assert acts == [("R", ("Loud",))], "the right side's entry cue, tagged"
     new, acts = chart.advance(new, ("L", ("Stop", 5)))
-    assert new == (("Silent", 5), ("On",)) and acts == [("Hush",)]
+    assert new == (("Silent", 5), ("On",))
+    assert acts == [("L", ("Hush",))], "the left side's action, tagged"
+
+
+def test_the_hands_chart_lands_every_verb_in_its_state():
+    from gestate.charts import load
+
+    hands = load("hands")
+    assert hands.initial() == ("Off",)
+    for verb, state, cue in (("PianoOn", "On", "Loud"),
+                             ("PianoStep", "Noting", "Written"),
+                             ("PianoOff", "Off", "Quiet")):
+        for here in ("Off", "On", "Noting"):
+            new, cues = hands.advance((here,), (verb,))
+            assert new == (state,) and cues == [(cue,)], (here, verb)
 
 
 def test_I1_I2_I3_the_facts_are_a_function_of_the_state():

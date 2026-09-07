@@ -889,7 +889,7 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 2706 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
 | 2847 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
 | 2858 | `NotesError` | `author` | handed in | '{place}: bar {full[0]} of section {section_name} has notes — a section does not shrink past it… |
-| 5047 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
+| 5058 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
 
 ### `tempo.py`
 
