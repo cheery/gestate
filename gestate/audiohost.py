@@ -121,6 +121,7 @@ def library(directory=None):
                                      ctypes.c_void_p, ctypes.c_int64,
                                      ctypes.c_int64]
     for name in ("gestate_host_frames", "gestate_host_position",
+                 "gestate_host_clock",
                  "gestate_host_dry", "gestate_host_worst_us",
                  "gestate_host_take_worst", "gestate_host_tap_frames"):
         fn = getattr(lib, name)
@@ -129,11 +130,13 @@ def library(directory=None):
     lib.gestate_host_tap_read.restype = ctypes.c_int64
     lib.gestate_host_tap_read.argtypes = [ctypes.c_void_p, ctypes.c_void_p,
                                           ctypes.c_int64]
-    for name in ("gestate_host_fading", "gestate_host_is_playing"):
+    for name in ("gestate_host_fading", "gestate_host_is_playing",
+                 "gestate_host_is_advancing"):
         fn = getattr(lib, name)
         fn.restype = ctypes.c_int
         fn.argtypes = [ctypes.c_void_p]
-    for name in ("gestate_host_playing", "gestate_host_watch_peak"):
+    for name in ("gestate_host_playing", "gestate_host_watch_peak",
+                 "gestate_host_advancing"):
         fn = getattr(lib, name)
         fn.restype = None
         fn.argtypes = [ctypes.c_void_p, ctypes.c_int]
@@ -444,6 +447,30 @@ class Host:
         if self._closed:
             return
         self.lib.gestate_host_playing(self._host, 1 if on else 0)
+
+    @property
+    def advancing(self) -> bool:
+        """Whether the score's clock moves — *playing* — or is held
+        while the engine keeps rendering — *sounding*
+        (`spec/transport.md`)."""
+        if self._closed:
+            return False
+        return bool(self.lib.gestate_host_is_advancing(self._host))
+
+    @advancing.setter
+    def advancing(self, on: bool) -> None:
+        if self._closed:
+            return
+        self.lib.gestate_host_advancing(self._host, 1 if on else 0)
+
+    @property
+    def clock(self) -> int:
+        """The engine's own instant — what a note is stamped against.
+        The same as `position` while playing; ahead of it while
+        sounding."""
+        if self._closed:
+            return 0
+        return self.lib.gestate_host_clock(self._host)
 
     @property
     def position(self) -> int:

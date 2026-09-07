@@ -146,6 +146,18 @@ class HostTransport:
         self.host.playing = bool(on)
 
     @property
+    def advancing(self) -> bool:
+        return self.host.advancing
+
+    @advancing.setter
+    def advancing(self, on: bool) -> None:
+        self.host.advancing = bool(on)
+
+    @property
+    def clock(self) -> int:
+        return self.host.clock
+
+    @property
     def position(self) -> int:
         return self.host.position
 
@@ -240,6 +252,12 @@ class Transport:
         self.rate = rate
         self.block = block
         self.playing = True
+        #: **Sounding is the engine running and the score held**
+        #: (`spec/transport.md`): while this is `False` a block is still
+        #: rendered — a pressed key is heard — and `position` does not
+        #: move.  `clock` is the engine's own instant, which does.
+        self._advancing = True
+        self.clock = 0
         #: `(start, end)` in samples, or `None`.
         self.loop: tuple | None = None
         #: Where the engine has reached.  Tracked rather than read back out
@@ -288,7 +306,9 @@ class Transport:
             return
 
         self.live.fill(buffer, frames, control, self.position)
-        self.position += frames
+        self.clock += frames
+        if self._advancing:
+            self.position += frames
 
         if self.watch_peak:
             # **Sampled, not scanned.**  Sixteen points of a block is
@@ -357,9 +377,25 @@ class Transport:
         # shape as an oscillator's phase is.
         values, _t, lines = self.live.engine.snapshot()
         self.live.engine.restore(values, sample, lines)
-        self.position = sample
+        self.position = self.clock = sample
         if self.on_seek is not None:
             self.on_seek(sample)
+
+    @property
+    def advancing(self) -> bool:
+        return self._advancing
+
+    @advancing.setter
+    def advancing(self, on: bool) -> None:
+        on = bool(on)
+        if on and not self._advancing:
+            # Resuming: the engine's clock back to the score's, without
+            # releasing what the hands hold — a seek's restore and not
+            # its `on_seek`.
+            values, _t, lines = self.live.engine.snapshot()
+            self.live.engine.restore(values, self.position, lines)
+            self.clock = self.position
+        self._advancing = on
 
 
 class Keyboard:
@@ -951,6 +987,9 @@ class Workbench:
         self._stop = threading.Event()
         self._directory = None
         self._seen = 0
+        #: Where the score was when the instrument went *silent*, so the
+        #: bar keeps its readout and `sound` resumes there.
+        self._parked = 0
 
     # -- lifecycle ----------------------------------------------------------
 
@@ -1099,6 +1138,24 @@ class Workbench:
             self.transport.watch_bands(
                 any(n in self.substrate.by_name for n in self.BANDS))
 
+        self._run_audio(seconds)
+
+    def _wire_transport(self) -> None:
+        """A transport over the live engine — the C host's face when
+        there is one, Python's otherwise — with the view's hooks on it."""
+        self.transport = (HostTransport(self.host, self.live, self.rate,
+                                        self.block)
+                          if self.host is not None
+                          else Transport(self.live, self.rate, self.block))
+        self.transport.on_seek = self._after_seek
+        if self.substrate is not None:
+            self.transport.watch_peak = "peak" in self.substrate.by_name
+            self.transport.watch_bands(
+                any(n in self.substrate.by_name for n in self.BANDS))
+
+    def _run_audio(self, seconds: float | None) -> None:
+        """The audio thread: the C loop when a host is open, the Python
+        driver otherwise.  Started by `_start` and again by `sound`."""
         def run():
             try:
                 if self.host is not None:
@@ -1114,6 +1171,72 @@ class Workbench:
 
         self._audio = threading.Thread(target=run, daemon=True)
         self._audio.start()
+
+    # -- the three modes ----------------------------------------------------
+
+    @property
+    def mode(self):
+        """*silent*, *sounding* or *playing* — `spec/transport.md`.
+
+        The instrument is up exactly when there is a transport over it;
+        the score's clock moves exactly when that transport is advancing.
+        """
+        from .transportmode import Mode
+
+        if self.inert or self.transport is None:
+            return Mode.SILENT
+        if self.transport.playing and self.transport.advancing:
+            return Mode.PLAYING
+        return Mode.SOUNDING
+
+    def set_mode(self, target) -> None:
+        """Go to a mode, whatever the way there costs.
+
+        *silent* brings the instrument down and frees the sound card,
+        the file still open and the score's position kept.  *sounding*
+        from *silent* opens the card again over the same engine, with
+        every knob where it was — `Transport`'s own reason: the state
+        *is* the instrument.  *sounding* from *playing* holds the score
+        and releases the notes it had going, as a seek does; *playing*
+        from *sounding* seeks the engine back to the held position.
+        """
+        from .transportmode import Mode
+
+        here = self.mode
+        if target is here or self.inert:
+            return
+        if target is Mode.SILENT:
+            self.stop(keep=True)
+            self.say("silent")
+            return
+        if here is Mode.SILENT:
+            self.sound()
+            if self.transport is None:
+                return
+        if target is Mode.PLAYING:
+            self.transport.playing = True
+            self.transport.advancing = True
+            self.say("playing")
+        else:
+            self.transport.playing = True
+            self.transport.advancing = False
+            self._after_seek(self.transport.position)
+            self.say(f"sounding at {self.position_in_beats():.1f}")
+
+    def sound(self) -> None:
+        """The instrument up again after *silent*: the card opened over
+        the engine that was kept, the transport rewired, the audio
+        thread started, the score where it was parked."""
+        if self.inert or self.live is None or self.transport is not None:
+            return
+        self._stop.clear()
+        self.host = self._open_host()
+        self._wire_transport()
+        if self._parked:
+            self.transport.seek(self._parked)
+        self._run_audio(None)
+        if self._want_midi:
+            self._start_midi()
 
     #: How often the housekeeping thread looks, in seconds.  **Matched to
     #: what a block gave**, not chosen: `control` used to stamp
@@ -1190,7 +1313,11 @@ class Workbench:
                 was = at
                 self._push_controls(at)
                 if self.notes is not None:
-                    self.notes.now = at
+                    # **The engine's clock, not the score's.**  A note is
+                    # stamped against the instant the engine is at, and
+                    # while *sounding* the score's position is held
+                    # while the engine runs on (`spec/transport.md`).
+                    self.notes.now = self.host.clock
                 self._progress(self.host.frames)
                 self._report_confessions()
 
@@ -1682,7 +1809,12 @@ class Workbench:
         except Exception as exc:                        # noqa: BLE001
             self.say(f"could not restart: {self._first_line(exc)}")
 
-    def stop(self, timeout: float = 2.0) -> None:
+    def stop(self, timeout: float = 2.0, keep: bool = False) -> None:
+        """Bring the audio down.  **`keep` is *silent* rather than
+        quitting**: the engine, its build directory and the score's
+        position stay, so `sound` can bring it back."""
+        if keep and self.transport is not None:
+            self._parked = self.transport.position
         self._stop.set()
         # **The C loop is asked to stop first**, because it is the one that
         # cannot be asked anything else: it is inside a foreign call with
@@ -1733,7 +1865,10 @@ class Workbench:
                     self.host.close()
                     self.host = None
                 self._audio = None
-                self._clean_up()
+                if not keep:
+                    self._clean_up()
+        if keep:
+            self.transport = None
 
     def _clean_up(self) -> None:
         """Remove the directory the engines were built in.
@@ -2149,7 +2284,10 @@ class Workbench:
         # engine was at instant 200,000, and its envelope had decayed to
         # nothing before it was ever read.  The note played, silently.
         if self.notes is not None:
-            self.notes.now = _t
+            # The engine's clock where a transport has one — held apart
+            # from `_t`, the score's, while *sounding*.
+            clock = getattr(self.transport, "clock", None)
+            self.notes.now = _t if clock is None else clock
 
         chan = self.live.engine.graph.node(node).chan if self.live else ""
         # **A bank handed to the keyboard is not driven by the score.**
@@ -2412,9 +2550,9 @@ class Workbench:
     # -- the transport ------------------------------------------------------
 
     def play(self) -> None:
-        if self.transport is not None:
-            self.transport.playing = True
-            self.say("playing")
+        from .transportmode import Mode
+
+        self.set_mode(Mode.PLAYING)
 
     def pause(self) -> None:
         """Silence, and the clock stops.  The instrument is untouched.
@@ -2428,15 +2566,16 @@ class Workbench:
         close.  Two methods of one name is a thing Python will not tell you
         about; the fix is not to have two.
         """
-        if self.transport is not None:
-            self.transport.playing = False
-            self.say(f"stopped at {self.position_in_beats():.1f}")
+        from .transportmode import Mode
+
+        self.set_mode(Mode.SOUNDING)
 
     def toggle(self) -> bool:
-        if self.transport is None:
-            return False
-        (self.pause if self.transport.playing else self.play)()
-        return self.transport.playing
+        """`play`'s toggle — *playing*, or *sounding* if it was."""
+        from .transportmode import Mode, Verb, step
+
+        self.set_mode(step(self.mode, Verb.PLAY))
+        return self.mode is Mode.PLAYING
 
     def seek_beats(self, beat: float) -> None:
         if self.transport is not None:
@@ -2535,7 +2674,7 @@ class Workbench:
 
     def position_in_beats(self) -> float:
         return self.samples_to_beats(
-            self.transport.position if self.transport else 0)
+            self.transport.position if self.transport else self._parked)
 
     @_timed("midi")
     def _load_from_midi(self, text: str) -> None:

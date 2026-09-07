@@ -99,6 +99,16 @@ typedef struct {
      * each — cheap here, and the reason they were up there was that a
      * block boundary is the only place they are cheap *anywhere*. */
     volatile int playing;
+    /* **The score's clock, and the engine's, are one number while
+     * playing and two while *sounding*** (`spec/transport.md`): the
+     * engine keeps rendering — a key pressed is heard, its envelope
+     * runs — while the position the score and the bar read is held.
+     * `advancing` says which; `held` is the position frozen while it
+     * is 0, and -1 otherwise.  `gestate_host_position` answers the
+     * held one, `gestate_host_clock` the engine's own; resuming seeks
+     * the engine back to the held position, the way any seek does. */
+    volatile int advancing;
+    volatile int64_t held;
     int64_t position;      /* where the engine has reached, in frames */
     int64_t loop_start;
     int64_t loop_end;      /* 0 or less: no loop */
@@ -235,6 +245,8 @@ host *gestate_host_new(int channels, int64_t fade_len, void *control) {
     h->fade_len = fade_len < 1 ? 1 : fade_len;
     h->control = control;
     h->playing = 1;
+    h->advancing = 1;
+    h->held = -1;
     h->seek_to = -1;
     /* Silent, and fading up: the first block of a session is the same
      * step as any other and pops the same way. */
@@ -351,9 +363,25 @@ int64_t gestate_host_take_worst(host *h) {
     h->worst_us = 0;
     return worst;
 }
-int64_t gestate_host_position(host *h) { return h->position; }
+int64_t gestate_host_position(host *h) {
+    return h->held >= 0 ? h->held : h->position;
+}
+int64_t gestate_host_clock(host *h) { return h->position; }
 void gestate_host_playing(host *h, int on) { h->playing = on ? 1 : 0; }
 int gestate_host_is_playing(host *h) { return h->playing; }
+void gestate_host_advancing(host *h, int on) {
+    if (on) {
+        /* Back to where the score was held: a seek, taken at the next
+         * block like any other, so the engine's clock and the score's
+         * agree again before a note is stamped against them. */
+        if (h->held >= 0) { h->seek_to = h->held; h->held = -1; }
+        h->advancing = 1;
+    } else if (h->advancing) {
+        h->held = h->position;
+        h->advancing = 0;
+    }
+}
+int gestate_host_is_advancing(host *h) { return h->advancing; }
 void gestate_host_seek(host *h, int64_t to) { h->seek_to = to < 0 ? 0 : to; }
 void gestate_host_watch_peak(host *h, int on) { h->watch_peak = on ? 1 : 0; }
 
@@ -453,8 +481,9 @@ void gestate_host_fill(host *h, float *out, int64_t n) {
         seek_state(h->current.state, to);
         seek_state(h->leaving.state, to);
         h->position = to;
+        if (h->held >= 0) h->held = to;
     }
-    if (h->loop_end > 0 && h->position >= h->loop_end) {
+    if (h->advancing && h->loop_end > 0 && h->position >= h->loop_end) {
         seek_state(h->current.state, h->loop_start);
         seek_state(h->leaving.state, h->loop_start);
         h->position = h->loop_start;

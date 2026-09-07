@@ -37,7 +37,9 @@ class Bench:
         self.log = []
         self.values = {"cutoff": 40, "drive": 0.5}
         self.ranges = {"cutoff": (0, 100), "drive": (0.0, 1.0)}
-        self.on = False
+        self.on = True
+        from gestate.transportmode import Mode
+        self._mode = Mode.PLAYING
         self.keyboard = self
         self.octaves = 0
         self.ends = 32.0
@@ -68,6 +70,20 @@ class Bench:
 
     def pause(self):
         self.on = False
+
+    # the three modes — `spec/transport.md`; a file opens playing
+    @property
+    def mode(self):
+        from gestate.transportmode import Mode
+        return Mode.PLAYING if self.on else self._mode
+
+    def set_mode(self, target):
+        from gestate.transportmode import Mode
+        self.on = target is Mode.PLAYING
+        self._mode = target
+        self.log.append(("mode", target.value))
+
+    _mode = None
 
     def seek_beats(self, beat):
         self.log.append(("seek", beat))
@@ -220,12 +236,14 @@ def test_a_transcript_of_names_reads_as_what_it_did():
         ("play",), ("loop", 1, 5), ("set", "cutoff", 70), ("loopOff",),
         ("play",), ("octave", -1),
     ]]
+    # A file opens playing, so the first `play` is the toggle to
+    # *sounding* and the second brings it back (`spec/transport.md`).
     assert said == [
-        "playing",
+        "sounding",
         "looping bars 1-5",
         "cutoff = 70",
         "not looping",
-        "stopped",
+        "playing",
         "octave -1",
     ]
     assert s.said == said, "everything said is kept, newest last"
@@ -1414,10 +1432,10 @@ def test_the_furniture_is_a_reading_of_facts_the_model_already_keeps():
     s = session()
     s.bench.sites = [Site("cutoff", 40), Site("drive", 44)]
     s.bench.trouble = "expected a type, got `sound` (at 12:8-12:11)"
-    s.run("play")
+    s.run("play")            # a file opens playing; the toggle holds it
 
     lines = furniture(s).splitlines()
-    assert lines[0] == "status\tplaying"
+    assert lines[0] == "status\tsounding"
     assert "trouble\t12\texpected a type, got `sound` (at 12:8-12:11)" in lines
     assert "knob\tcutoff\t40\t40\t0\t100\tInt\t1" in lines
     assert "knob\tdrive\t44\t0.5\t0.0\t1.0\tFloat\t1" in lines
@@ -1454,7 +1472,7 @@ def test_a_gesture_is_a_verb_and_literals():
     from gestate.session import act
 
     s = session()
-    assert act(s, "command\tplay") == "playing"
+    assert act(s, "command\tplay") == "sounding"   # opened playing
     assert act(s, "turn\tcutoff\t70") == "cutoff = 70"
     assert act(s, "edited") == ""
     assert act(s, "wobble\t1") == "no gesture `wobble`"
@@ -1980,20 +1998,40 @@ def test_a_command_keeps_the_last_word():
 
 
 class _Transport:
-    def __init__(self, playing):
+    def __init__(self, playing, advancing=True):
         self.playing = playing
+        self.advancing = advancing
         self.loop = None
 
 
-def test_playing_means_the_beat_is_moving_not_the_thread_is_alive():
+def test_the_play_line_carries_the_mode_by_name():
     """`Workbench.playing` asks whether the audio *thread* is alive — a
-    different question wearing the same word, and true while stopped."""
+    different question wearing the same word.  The line says which of
+    the three modes the bench is in (`spec/transport.md`), read off
+    `mode` when the bench has one and off the transport when it does
+    not: no transport is *silent*, a held one *sounding*."""
+    from gestate.transportmode import Mode
+
     it = session()
-    it.bench.playing = True                  # the thread is up …
-    it.bench.transport = _Transport(False)   # … and time is not moving
-    assert "play\t0\t" in furniture(it)
-    it.bench.transport.playing = True
-    assert "play\t1\t" in furniture(it)
+    it.bench.set_mode(Mode.SOUNDING)
+    assert "play\tsounding\t" in furniture(it)
+    it.bench.set_mode(Mode.PLAYING)
+    assert "play\tplaying\t" in furniture(it)
+    it.bench.set_mode(Mode.SILENT)
+    assert "play\tsilent\t" in furniture(it)
+
+    class Bare:                      # a stand-in with a transport only
+        inert = False
+        playing = True               # the thread is up …
+        transport = _Transport(True, advancing=False)   # … and time is held
+        def position_in_beats(self):
+            return 0.0
+    it.bench = Bare()
+    assert "play\tsounding\t" in furniture(it)
+    it.bench.transport.advancing = True
+    assert "play\tplaying\t" in furniture(it)
+    it.bench.transport = None
+    assert "play\tsilent\t" in furniture(it)
 
 
 def test_every_shortcut_takes_control_except_tab():

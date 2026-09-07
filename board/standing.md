@@ -94,6 +94,12 @@ here too, dated, with the card it came from.*
   *— `doc/memory/gestate-canvas-unwired.md`: callers lost in a deletion
   and nobody told; the `blocked` field is for this and is the one most
   often left stale*
+- Which clock is this stamped against, and is it the one the card is about?
+  *— harvested 2026-09-07 at the close of `card:transport-modes.md`:
+  the model said "the clock is held" and the engineering was that a
+  note is stamped against the engine's clock, not the score's, so
+  *sounding* needed two numbers where there had been one; a card that
+  names a clock, a position or a time owes this question on day one*
 
 **For a shelved card:**
 

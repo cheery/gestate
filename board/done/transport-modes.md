@@ -1,6 +1,6 @@
 # transport-modes — the synth being on, and the score playing, as two switches
 
-    status   doing
+    status   done — 2026-09-07
     because  "we need separate modes for synthetizer being on, and for
              when it's playing score." — Henri, 2026-09-07, recalling
              oscillseq's playback states
@@ -111,7 +111,22 @@ elsewhere.
    own in the bar."*  The furniture's `playing` boolean becomes the
    mode on the wire — the landing, §6 of the spec.
 
-## Day one, done — 2026-09-07
+## Done — 2026-09-07
+
+Landed the same afternoon, `spec/transport.md` §6: the C host holds
+the score's position while the engine's clock runs on, both transports
+carry `advancing` and `clock`, the workbench has `mode`, `set_mode`,
+`sound` and `stop(keep=True)`, the three verbs run `step`, and the bar
+draws ▶, ‖ and ■.  **The postcondition, both halves, held by tests**:
+`test_a_key_pressed_while_sounding_is_heard` and
+`test_silent_frees_the_card_and_sound_brings_the_instrument_back` in
+`test/test_audioeditor.py`.  **The bar, photographed** — five shots in
+`test/driven/20260907-143215-transport-modes/`: opened ▶, after `play`
+‖ *sounding at 9.2*, after `stop` ■ *silent* with the readout kept,
+after `play` from silent ▶ with the beat moving, after `audition` from
+silent ‖.  The story is `journal.md` §"The three modes, landed".
+
+## Day one — 2026-09-07
 
 Q4 was yes, so: `spec/transport.md` says the model in sentences, as a
 type in the tree's own spelling, as eight invariants and as a

@@ -135,6 +135,7 @@ audition : Command
 Key: **`Ctrl-Return`**
 
 The same, without saving — hear the change before committing to it.
+A request to hear: from silent it brings the instrument up first.
 
 
 ### `play`
@@ -145,7 +146,8 @@ play : Command
 
 Key: **`Ctrl-Space`**
 
-Start the transport, or stop it if it is running.
+Start the score — playing — or stop it where it is if it is running,
+the instrument still up under your hands — sounding.
 
 
 ### `stop`
@@ -154,7 +156,8 @@ Start the transport, or stop it if it is running.
 stop : Command
 ```
 
-Stop it, wherever it is.
+Bring the instrument down — silent — the sound card free and the
+file still open where it was.
 
 
 ### `seek`

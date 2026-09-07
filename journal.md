@@ -1440,3 +1440,33 @@ the transport is not an isolated case turned into the spec's own
 section: the model names the engine, the card, the clock, the
 keyboard's switch and the rebuild, and owns none of them.  Alloy
 itself was not run and will not be; the enumeration is the check.
+
+## The three modes, landed — 2026-09-07
+
+*"This looks good.  do the next slice."*  The model went into the
+transport the same afternoon it was written, and the one thing the
+model had not said turned out to be the whole of the engineering: a
+key is stamped against the engine's own clock, the first word of its
+state, and a *sounding* transport holds the score's position while
+that clock runs on — so the two numbers that had always been one had
+to be two, in C and in Python, and re-synced by a seek when play
+resumes.  Without that a key pressed while sounding arrived with its
+attack already spent.  The first test subject, the arpeggiator, was
+the wrong one — its lead is played by the performer, which reads the
+held position, so *sounding* rightly plays nothing on it; duet's lead
+handed to the keyboard is the case the card meant.
+
+Two corrections along the way.  The model had said a file opens
+*sounding*; it opens *playing*, as it always has and as a test already
+said in words, and the spec now says the session misread the card.
+And the atlas's wire check read my Rust `match` on the mode's name as
+three verbs the window receives, which was fair: it reads readers, and
+a `"sounding" =>` at the start of a line is what a reader looks like.
+The editor's library, too, was built into the wrong `target/` once
+more, exactly as the memory warned.
+
+Five photographs on the virtual display, the bar reading ▶ 1.2,
+‖ 2.1, ■ 2.1, ▶ 3.3, ‖ 4.2 — the square faint and the readout kept
+through *silent*.  Twelve model tests, three new bench tests, 233
+Rust tests, the gates.  Transport in one commit, the model in the two
+before it; the card is on the done shelf the day it arrived.

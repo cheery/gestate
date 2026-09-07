@@ -254,10 +254,10 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 67 | `HostError` | `world` | — | '{source} is missing' |
 | 103 | `HostError` | `world` | — | 'no `clang` to build the audio host with' |
 | 105 | `HostError` | `world` | — | exc.stderr.decode('utf-8', 'replace') |
-| 211 | `HostError` | `world` | — | 'could not make an audio host' |
-| 286 | `HostError` | `world` | — | 'this host was built without a device backend; install `libasound2-dev` and let it rebuild, or … |
-| 292 | `HostError` | `world` | — | 'could not open `{device}` ' + ('(no such device)' if code == -1 else '(it would not take float… |
-| 541 | `HostError` | `machine` | — | 'no control slot {index}' |
+| 214 | `HostError` | `world` | — | 'could not make an audio host' |
+| 289 | `HostError` | `world` | — | 'this host was built without a device backend; install `libasound2-dev` and let it rebuild, or … |
+| 295 | `HostError` | `world` | — | 'could not open `{device}` ' + ('(no such device)' if code == -1 else '(it would not take float… |
+| 568 | `HostError` | `machine` | — | 'no control slot {index}' |
 
 ### `audioir.py`
 
@@ -862,19 +862,19 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 2395 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2401 | `NotesError` | `author` | handed in | '{place} would leave section {section.name} — a note does not leave its section by dragging' |
-| 2415 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
-| 2525 | `NotesError` | `author` | handed in | '{place}:{row} is not a note any more' |
-| 2531 | `NotesError` | `author` | handed in | '{place}:{row} would leave the keyboard' |
-| 2536 | `NotesError` | `author` | handed in | '{place}:{row} would leave section {section.name} — a note does not leave its section by draggi… |
-| 2554 | `NotesError` | `author` | handed in | '{place}: a note would land on one already written there — the file cannot say one place twice' |
-| 2616 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2682 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
-| 2686 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
-| 2827 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
-| 2838 | `NotesError` | `author` | handed in | '{place}: bar {full[0]} of section {section_name} has notes — a section does not shrink past it… |
-| 5027 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
+| 2412 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2418 | `NotesError` | `author` | handed in | '{place} would leave section {section.name} — a note does not leave its section by dragging' |
+| 2432 | `NotesError` | `author` | handed in | '{place} would land on a note already written there — the file cannot say one place twice' |
+| 2542 | `NotesError` | `author` | handed in | '{place}:{row} is not a note any more' |
+| 2548 | `NotesError` | `author` | handed in | '{place}:{row} would leave the keyboard' |
+| 2553 | `NotesError` | `author` | handed in | '{place}:{row} would leave section {section.name} — a note does not leave its section by draggi… |
+| 2571 | `NotesError` | `author` | handed in | '{place}: a note would land on one already written there — the file cannot say one place twice' |
+| 2633 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2699 | `NotesError` | `author` | handed in | '{place} is not a note any more' |
+| 2703 | `NotesError` | `author` | handed in | '{place} would be shorter than a tick' |
+| 2844 | `NotesError` | `author` | handed in | '{place}: section {section_name} is not written any more' |
+| 2855 | `NotesError` | `author` | handed in | '{place}: bar {full[0]} of section {section_name} has notes — a section does not shrink past it… |
+| 5044 | `NotesError` | `author` | handed in | '{place} is written twice over, so a drag cannot tell which line it means' |
 
 ### `tempo.py`
 

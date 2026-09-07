@@ -1236,9 +1236,17 @@ fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
     // reader do arithmetic to cross between the program and the window.
     let beat = chrome.beat.max(0.0);
     let bar = (beat / 4.0).floor() as i64;
-    let mut when = format!("{} {}.{}",
-                           if chrome.playing { "\u{25b6}" } else { "\u{25a0}" },
-                           bar, (beat as i64).rem_euclid(4));
+    // **Three states, three glyphs** — Henri, 2026-09-07: *"'sounding'
+    // should show as some state of its own in the bar."*  The score
+    // running is the play triangle, the score held under a live
+    // instrument is the pause bars, the instrument down is the stop
+    // square (`spec/transport.md`).
+    let glyph = match chrome.mode.as_str() {
+        "playing" => "\u{25b6}",
+        "sounding" => "\u{2016}",
+        _ => "\u{25a0}",
+    };
+    let mut when = format!("{} {}.{}", glyph, bar, (beat as i64).rem_euclid(4));
     if let Some((from, to)) = chrome.looping {
         // Bars, because that is what `loop` is given and a readout in
         // other units than the command is a second thing to learn.
@@ -1253,7 +1261,7 @@ fn foot(f: &mut Frame, view: &View, font: &Font, chrome: &Furniture) {
     }
     let at = view.w - 4 - width_of(&when) as i32 * cw;
     f.items.push(Item::Run { x: at, y: sy + 2, s: when,
-                             c: if chrome.playing { LIVE } else { FAINT } });
+                             c: if chrome.mode == "silent" { FAINT } else { LIVE } });
     right = at - 2 * cw;
     }
 

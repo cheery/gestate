@@ -102,7 +102,7 @@ the test walks every one.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Sounding : open a program file
+    [*] --> Playing : open a program file
     [*] --> Silent : open an inert file
     Silent --> Sounding : audition
     Silent --> Playing : play
@@ -142,7 +142,28 @@ implementation will read instead of a boolean.  **What they did not
 do:** say whether *sounding* is the right name; a model checks
 consistency, not taste.
 
-## 6. How it lands in the code, when Henri says
+## 6. How it landed — 2026-09-07, the same day
+
+`Transport` and `HostTransport` gained `advancing` and `clock`: while
+*sounding* a block is still rendered and the engine's clock runs, and
+the score's `position` is held — in C, `held` in `gestate/host.c`,
+with `gestate_host_position` answering the held one and
+`gestate_host_clock` the engine's own; resuming is a seek to the held
+position.  A note is stamped against the engine's clock in both
+drivers, which is what keeps a key pressed while sounding from
+arriving with its attack already spent.  `Workbench.mode`,
+`set_mode`, `sound` and `stop(keep=True)` are the transitions;
+`play`, `pause` and `toggle` go through them.  `do_play`, `do_stop`
+and `do_audition` run `step`; the furniture line carries the mode by
+name and `view.rs` draws ▶, ‖ and ■.  No verb joined `command.ges`;
+three doc lines changed.  Photographed on the virtual display,
+`test/driven/20260907-143215-transport-modes/`: ▶, ‖ and ■ in the bar,
+each with its word in the status line.  **A correction to §4 while
+landing**: a
+program file opens *playing*, as it always has, not *sounding* — the
+session had misread the card's Q2.
+
+### How it was to land — as written before
 
 `Transport.playing: bool` becomes `mode: Mode` read by `fill`;
 `Workbench.play/pause/toggle` call `step`; no verb joins

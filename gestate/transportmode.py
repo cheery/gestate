@@ -46,8 +46,11 @@ def facts(mode: Mode) -> Facts:
                  clock_moving=mode is Mode.PLAYING)
 
 
-#: Where a program file opens (today: the card taken at once).
-OPENS_IN = Mode.SOUNDING
+#: Where a program file opens — *playing*, as it always has: "opening a
+#: file and hearing it is the point" (`test_session_live.py`).  The
+#: first draft of this model said *sounding*, which was the session
+#: misreading the card's Q2; corrected 2026-09-07 while landing.
+OPENS_IN = Mode.PLAYING
 
 
 def step(mode: Mode, verb: Verb, inert: bool = False) -> Mode:

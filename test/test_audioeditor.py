@@ -25,6 +25,7 @@ from pathlib import Path
 
 import pytest
 
+from gestate.transportmode import Mode
 from gestate.audioeditor import (KNOB_RANGE, KNOB_RANGE_FLOAT,
                                  Workbench)
 
@@ -783,18 +784,93 @@ def test_stopping_holds_the_clock_and_keeps_the_instrument(tmp_path):
         # `pause`, not `stop`: the transport half was renamed when a second
         # `def stop` on `Workbench` turned out to be silently replacing the
         # lifecycle one, which is why closing the window never joined the
-        # audio thread.
+        # audio thread.  **And since 2026-09-07 it is *sounding***
+        # (`spec/transport.md`): the score's clock is held and the engine
+        # keeps rendering, its own clock running on.
         bench.pause()
-        before = list(buffer)
+        assert bench.mode is Mode.SOUNDING
         transport.fill(buffer, 64, bench.control, 0)
-        assert transport.position == 64, "a paused transport advanced"
-        assert list(buffer) == [0.0] * 64, "stop should be silence"
+        assert transport.position == 64, "a held transport advanced"
+        assert transport.clock == 128, "the engine's clock should run on"
         assert bench.live is not None, "the engine was torn down"
 
         bench.play()
+        assert bench.mode is Mode.PLAYING
+        assert transport.clock == 64, "resuming seeks the engine back"
         transport.fill(buffer, 64, bench.control, 0)
         assert transport.position == 128
-        assert before is not None
+    finally:
+        bench.stop()
+
+
+def test_a_key_pressed_while_sounding_is_heard(tmp_path):
+    """The card's postcondition, the first half (`card:transport-modes.md`):
+    the score stopped, a note is still heard.  `duet.ges`'s lead handed
+    to the keyboard, the transport held, a key pressed — the bank
+    sounds it, the block is not silence, and the score's clock has not
+    moved to let it."""
+    import ctypes
+
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start(seconds=0.0)
+    try:
+        transport = bench.transport
+        buffer = (ctypes.c_float * 64)()
+        bench.listen("lead", True)
+        for _ in range(8):
+            transport.fill(buffer, 64, bench.control, 0)
+        bench.pause()
+        held = transport.position
+        assert bench.mode is Mode.SOUNDING
+
+        assert bench.keyboard.press(62)
+        assert bench.notes.sounding_on("lead") == [62]
+        loud = 0.0
+        for _ in range(16):
+            transport.fill(buffer, 64, bench.control, 0)
+            loud = max(loud, max(abs(x) for x in buffer))
+        assert loud > 0.0, "a key pressed while sounding was not heard"
+        assert transport.position == held, "sounding moved the score"
+        # Stamped against the engine's clock, which ran on — not the
+        # held position, which would put the attack in the past.
+        assert bench.notes.now > held
+        bench.keyboard.release(62)
+    finally:
+        bench.stop()
+
+
+def test_silent_frees_the_card_and_sound_brings_the_instrument_back(tmp_path):
+    """The postcondition's second half: a file edited with the synth
+    off.  *silent* keeps the engine and the score's position and lets
+    the audio go; `sound` opens again over the same engine, where the
+    score was parked."""
+    import ctypes
+
+    bench = _bench(tmp_path, "duet.ges")
+    bench.start(seconds=0.0)
+    try:
+        transport = bench.transport
+        buffer = (ctypes.c_float * 64)()
+        for _ in range(4):
+            transport.fill(buffer, 64, bench.control, 0)
+        was = transport.position
+        engine = bench.live
+
+        bench.set_mode(Mode.SILENT)
+        assert bench.mode is Mode.SILENT
+        assert bench.transport is None and bench.host is None
+        assert bench.live is engine, "silent tore the engine down"
+        assert bench.position_in_beats() == bench.samples_to_beats(was), \
+            "the bar lost its readout"
+
+        bench.set_mode(Mode.SOUNDING)
+        assert bench.mode is Mode.SOUNDING
+        assert bench.live is engine, "sound built a new engine"
+        assert bench.transport.position == was, "sound forgot where it was"
+        assert bench.transport.advancing is False
+
+        bench.set_mode(Mode.PLAYING)
+        assert bench.mode is Mode.PLAYING
     finally:
         bench.stop()
 

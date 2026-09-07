@@ -200,6 +200,10 @@ pub struct Furniture {
     /// fact that explains a visible note not sounding.
     pub aways: Vec<(usize, String)>,
     pub playing: bool,
+    /// The transport's mode by name — `silent`, `sounding` or `playing`
+    /// (`spec/transport.md`).  `playing` above is the same fact as a
+    /// boolean, kept for the readers that only ask that.
+    pub mode: String,
     pub beat: f64,
     /// What a played note would do — `off`, `on` or `step`.
     pub performing: String,
@@ -372,7 +376,13 @@ impl Furniture {
                         .unwrap_or(4);
                 }
                 "play" => {
-                    f.playing = p.get(1).copied() == Some("1");
+                    // `1`/`0` is the wire before the modes had names
+                    // (2026-09-07), and a `0` drew the stopped square.
+                    let word = p.get(1).copied().unwrap_or("");
+                    f.mode = if word == "1" || word == "playing" { "playing" }
+                             else if word == "sounding" { "sounding" }
+                             else { "silent" }.to_string();
+                    f.playing = f.mode == "playing";
                     f.beat = num(p.get(2));
                     f.has_transport = true;
                 }

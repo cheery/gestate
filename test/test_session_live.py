@@ -206,8 +206,9 @@ def test_a_transcript_of_names_moves_a_real_instrument(tmp_path):
         # decision of the model — opening a file and hearing it is the
         # point — so the toggle is checked as a toggle rather than
         # against an assumed starting state.
-        first = "stopped" if s.bench.playing else "playing"
-        second = "playing" if first == "stopped" else "stopped"
+        from gestate.transportmode import Mode
+        first = "sounding" if s.bench.mode is Mode.PLAYING else "playing"
+        second = "playing" if first == "sounding" else "sounding"
         assert [s.run("play"), s.run("play")] == [first, second]
     finally:
         s.bench.stop()
