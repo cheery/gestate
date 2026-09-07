@@ -1490,3 +1490,15 @@ action, the parked position riding on the event, two charts beside
 each other sharing nothing.  Q2 came out concrete: the framework
 provides structure and no verbs; a subsystem's verbs are its own
 action type, and the palette's commands are its events.
+
+And the measurement, the same hour.  `tools/retraction.py`: the
+tree's Datafun does not retract — every evaluation is whole and ϕ/δ
+lives inside `fix` — and that was the smaller finding.  The larger is
+the constant: a picture-shaped `for` over a hundred rows costs 665 ms
+and grows quadratically, which puts *the picture as a query over the
+model's relations* out of reach in the reference machine as it stands,
+while the same machine walks a roll of hundreds of notes in 80 ms.  So
+the mix of types and relations stands as the model, and the relational
+half is data and lookup, not a query language for drawing, until a set
+unions faster or `crust` runs it.  The number is on the card, with the
+command that made it.

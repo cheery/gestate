@@ -562,6 +562,41 @@ his words.*
    non-monotone constructs as a scope class and says nothing about
    retracting a fact.  *Measured first, before the mix is written as
    the model.*  Otherwise: not answered as a whole until he says so.
+
+   **Measured, 2026-09-07, evening — `python tools/retraction.py`**,
+   one program compiled once, a relation of `n` rows built at run
+   time, a picture-shaped `for` over it, then the same with one row
+   gone; and a transitive closure through `fix`, where ϕ/δ runs:
+
+   | rows | picture | one gone | ratio |
+   |---|---|---|---|
+   | 100 | 665 ms | 634 ms | 0.95 |
+   | 300 | 6.2 s | 6.7 s | 1.09 |
+   | 600 | 27.0 s | 27.1 s | 1.00 |
+
+   | chain | closure | one gone | ratio |
+   |---|---|---|---|
+   | 8 | 375 ms | 88 ms | 0.23 |
+   | 16 | 4.2 s | 1.2 s | 0.28 |
+   | 24 | 19.8 s | 5.3 s | 0.27 |
+
+   **Two findings, and the second is the one that decides.**  *There
+   is no retraction*: every evaluation is whole, ϕ/δ lives inside
+   `fix`, and a row gone costs the same as the row kept (ratio 1.0);
+   the closure's 0.27 is the chain breaking in the middle, not
+   incrementality.  *And the constant factor rules the idea out
+   today*: 665 ms for a hundred rows is eight frames, and the growth
+   is quadratic (×9 from 100 to 300, ×4.4 from 300 to 600 — *suspected*
+   a linear set union under `\/` and `for`, not measured).  `roll.ges`
+   draws hundreds of notes in the same G-machine at 80 ms a frame by
+   walking a list, so the machine is not the ceiling; the set
+   representation is.  **So: types for the few, relations for the
+   many, still — as the model on disk and the Python lookup, which the
+   `Roll` and `.notes` already are.  The picture as a Datafun query
+   over those relations is not available at this speed, and the
+   derivative-as-damage-rectangle idea waits on a set that unions in
+   better than linear time, or on `crust` running the same query.**
+   His call whether that is worth a card; nothing is minted.
 2. **What is the framework's own command language?**  The workbench
    has `Ctrl-K`; the roll has its verbs.  Does the framework own the
    verbs, or only the way a gesture reaches one?
