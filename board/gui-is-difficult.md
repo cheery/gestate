@@ -22,6 +22,9 @@
              each already answered one of these once
              doc/memory/gui-command-language-first.md — the rule below,
              as a memory
+             vision.md §"Gestate as a generic working platform" and
+             §"Ease of use and efficiency" — the sentences this binds
+             to, §"What the vision says" below
 
 ## What this is, what it is not, and when it runs
 
@@ -34,6 +37,36 @@ It is not the substrate, which stands and which most of the ideas
 below are already partly true of.  And it is **not a session's to
 design**: the critical parts are Henri's, by his own sentence, and
 day one of this card is a dialogue, not code.
+
+## What the vision says — Henri, 2026-09-07
+
+*"btw.  The GUI framework binds to several sentences we have at the
+vision.md."*  Read for them, the same afternoon:
+
+- *"a very good user interface for everyday work: Gestate gestates.
+  It's like emacs or vim in that sense, except that it's a visual
+  system along the text."* — the framework is how that sentence gets
+  built, and `card:gex-sheet.md` and `card:markdown-reader.md` are its
+  first two everyday clients.
+- *"open a file, hear it, change it, and hear the change without being
+  told anything first"* and *"both can be edited while they sound"* —
+  ideas 6 and 9, the postcondition with a number on it.
+- *"It's so much ceremony, to get a simple thing done!  … poor tooling
+  leads to poor results."* — the `because` of this card, in the
+  vision's words before they were his of that morning.
+- *"Gestate won't do anything unexpected silently."* — idea 7, the
+  window that inspects itself; and the walk's stop 5, a press that
+  returned an empty string.
+- *"Broad platforms are historically terrible at the stranger test …
+  the ease of use is preferred."* — the tension every everyday client
+  is measured against before it lands.
+- **And one that cuts the other way:** *"Gestate won't grow modes.
+  (there is one mode: typing)."*  The transport's three states are not
+  modes in that sense — a key means the same thing in all three, and
+  typing stays the one mode — but `card:transport-modes.md`,
+  `spec/transport.md` and `gestate/transportmode.py` all wear the
+  word.  Named here so the collision is his to rule on, not renamed
+  unasked.
 
 ## The one that comes first, and must be stressed
 
