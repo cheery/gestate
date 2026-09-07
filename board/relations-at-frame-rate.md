@@ -1,6 +1,6 @@
 # relations-at-frame-rate — a query over a few hundred rows takes seconds, and a picture has a frame
 
-    status   open
+    status   doing
     because  the picture as a query over the model's relations — the
              derivative of the query as the damage rectangle, a lens
              from a row to the line that wrote it — is the shape
@@ -96,6 +96,51 @@ that `crust` brings the constant down by the usual factor.
 3. **What is the number that says done?**  *Session's proposal:* the
    `picture` row of `tools/retraction.py` at 600 under 80 ms, on the
    machine the window runs.  His to set.
+
+## Reading 1, landed — 2026-09-07, evening
+
+*"okay, do reading 1."*  `helpers._gen_for` generates the
+comprehension as a balanced merge — the body results gathered into a
+list, merged pairwise in rounds — and the set literal
+(`pipeline._desugar_datafun`) uses the same `mergeAll_X` over its
+singletons instead of folding them into an accumulator.  Three new
+helper prefixes (`forList_`, `mergeAll_`, `mergePairs_`) registered
+with the transform; nothing about what a set is changed, and the 104
+tests of the Datafun suites are green unchanged.
+
+**Two things the measuring itself taught.**  The first table timed
+`picture (rows n)` as one evaluation, and after reading 1 it barely
+moved — because `rows`, the benchmark's own recursive union, is the
+other quadratic and was inside the number.  And the machine is lazy:
+a `rows n` timed to weak head normal form had built one cons cell and
+left the rest for the query to pay, so the second table lied the
+other way (*build 18 ms*).  `tools/retraction.py` now forces the
+whole value, on the pipeline's deep stack (compiled off it: nested,
+the two deadlock), and times the query over a relation already built.
+
+**The query, alone, before and after** — `python tools/retraction.py`
+and `--crust`:
+
+| rows | Python, before | Python, after | crust, after |
+|---|---|---|---|
+| 100 | 665 ms | 33 ms | 8 ms |
+| 300 | 6.2 s | 123 ms | 20 ms |
+| 600 | 27.0 s | 627 ms *(281 ms with a row gone — noisy, not chased)* | 14 ms |
+
+Linear now, where it was quadratic.  **What remains quadratic is the
+relation's construction by repeated union** — `rows n = {(n, n+1)} \/
+rows (n - 1)`, 464 ms / 4.7 s / 19 s — which is a program's own
+recursion and not the language's: a relation written as a literal or
+built by a `for` is `n log n` now, and one handed in from Python
+(`charts.py`'s way, the `.notes` records as a canonical list) is
+linear.  The closure through `fix` is unchanged and should be: its
+output is the chain's `n²` pairs.
+
+**The done-number, Q3, both ways:** on crust the six-hundred-row
+picture is 14 ms, under the 80 ms proposed; on the reference machine
+it is 627 ms, and a hundred rows is 33 ms.  Which machine "the window
+runs" is his to say — the canvas is walked in Rust, the roll's
+reference walk in Python — and so is whether this card is done.
 
 ## What a session does on day one
 

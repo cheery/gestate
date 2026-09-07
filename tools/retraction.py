@@ -61,6 +61,9 @@ closure be = unbox e = be in fix Box (r => e \\/ (for (p in r) (for (q in e) (co
 closureOf : Cyclic 4096 -> Set (Cyclic 4096, Cyclic 4096)
 closureOf n = closure (Box (rows n))
 
+closureOfSet : Set (Cyclic 4096, Cyclic 4096) -> Set (Cyclic 4096, Cyclic 4096)
+closureOfSet r = closure (Box r)
+
 closureBut : Cyclic 4096 -> Cyclic 4096 -> Set (Cyclic 4096, Cyclic 4096)
 closureBut n k = closure (Box (rowsBut n k))
 
@@ -79,10 +82,18 @@ def _apply(state, fn, *args):
     return state.stack[0]
 
 
-def _timed(state, fn, *args) -> float:
+def _timed(state, fn, *args) -> tuple:
+    """`(seconds, result node)` — **the whole value forced**, not the
+    outer constructor: the machine is lazy, and a `rows n` timed to
+    weak head normal form had built one cons cell and left the rest
+    for the query to pay (the first table said *build 18 ms*).
+    `canonical` walks and forces everything."""
+    from gestate.crust import canonical
+
     began = time.perf_counter()
-    _apply(state, fn, *args)
-    return time.perf_counter() - began
+    node = _apply(state, fn, *args)
+    canonical(node, state)
+    return time.perf_counter() - began, node
 
 
 def crust(sizes) -> int:
@@ -100,21 +111,28 @@ def crust(sizes) -> int:
                     "--target-dir", str(crate / "target")],
                    cwd=crate, check=True)
     binary = crate / "target" / "release" / "crust"
-    print(f"{'rows':>6} {'picture on crust':>18}")
+    def timed(source: str, tmp: str, label: str) -> float:
+        path = Path(tmp) / f"{label}.crust"
+        path.write_text(serialize(compile_program(source), "main"))
+        began = time.perf_counter()
+        subprocess.run([str(binary), str(path)], capture_output=True,
+                       text=True, check=True)
+        return time.perf_counter() - began
+
+    head = "main : Set (Cyclic 4096, Cyclic 4096)\n"
+    print(f"{'rows':>6} {'build':>10} {'build+picture':>14} {'picture':>10}")
     with tempfile.TemporaryDirectory() as tmp:
         for n in sizes:
-            source = PROGRAM.replace(
-                "main : Int\nmain = 0\n",
-                "main : Set (Cyclic 4096, Cyclic 4096)\n"
-                f"main = picture (rows {n})\n")
-            path = Path(tmp) / f"picture{n}.crust"
-            path.write_text(serialize(compile_program(source), "main"))
-            began = time.perf_counter()
-            subprocess.run([str(binary), str(path)], capture_output=True,
-                           text=True, check=True)
-            print(f"{n:>6} {(time.perf_counter() - began) * 1000:>16.1f}ms")
+            build = timed(PROGRAM.replace("main : Int\nmain = 0\n",
+                                          head + f"main = rows {n}\n"),
+                          tmp, f"rows{n}")
+            both = timed(PROGRAM.replace("main : Int\nmain = 0\n",
+                                         head + f"main = picture (rows {n})\n"),
+                         tmp, f"picture{n}")
+            print(f"{n:>6} {build * 1000:>8.1f}ms {both * 1000:>12.1f}ms "
+                  f"{(both - build) * 1000:>8.1f}ms")
     print()
-    print("process start included; the growth is the fold's, the constant the machine's")
+    print("process start included in each; picture is the difference")
     return 0
 
 
@@ -127,20 +145,39 @@ def main(argv=None) -> int:
     began = time.perf_counter()
     state = compile_program(PROGRAM)
     print(f"compiled once in {time.perf_counter() - began:.2f} s")
+    # **Forced on the pipeline's deep stack, compiled off it**: a value
+    # of a few hundred rows recurses past Python's default limit when
+    # forced, and `compile` takes the deep stack itself — nested, the
+    # two deadlock before a line is printed (2026-09-07).
+    from gestate.pipeline import _deep_stack
+
+    return _deep_stack(lambda: _tables(state, sizes))
+
+
+def _tables(state, sizes) -> int:
     g = state.globals
     num = gm.NNum
-    print(f"{'rows':>6} {'picture':>10} {'one gone':>10} {'ratio':>6}")
+    # **The relation is built first and the query timed alone.**  The
+    # first version of this table timed `picture (rows n)` as one
+    # evaluation, and `rows` — n unions of a singleton into a growing
+    # set — is quadratic on its own; the card's reading 1 changed the
+    # query's fold and the table barely moved, which is how the two
+    # were told apart (2026-09-07, evening).
+    print(f"{'rows':>6} {'build':>10} {'picture':>10} {'one gone':>10} {'ratio':>6}")
     for n in sizes:
-        whole = _timed(state, g["picture"], gm.NAp(g["rows"], num(n)))
-        gone = _timed(state, g["picture"],
-                      gm.NAp(gm.NAp(g["rowsBut"], num(n)), num(n // 2)))
-        print(f"{n:>6} {whole * 1000:>8.1f}ms {gone * 1000:>8.1f}ms "
-              f"{gone / whole:>6.2f}")
+        built, relation = _timed(state, g["rows"], num(n))
+        _b, relation_but = _timed(state, g["rowsBut"], num(n), num(n // 2))
+        whole, _r = _timed(state, g["picture"], relation)
+        gone, _r = _timed(state, g["picture"], relation_but)
+        print(f"{n:>6} {built * 1000:>8.1f}ms {whole * 1000:>8.1f}ms "
+              f"{gone * 1000:>8.1f}ms {gone / whole:>6.2f}")
     print()
     print(f"{'chain':>6} {'closure':>10} {'one gone':>10} {'ratio':>6}")
     for n in [8, 16, 24]:
-        whole = _timed(state, g["closureOf"], num(n))
-        gone = _timed(state, g["closureBut"], num(n), num(n // 2))
+        _b, relation = _timed(state, g["rows"], num(n))
+        _b, relation_but = _timed(state, g["rowsBut"], num(n), num(n // 2))
+        whole, _r = _timed(state, g["closureOfSet"], relation)
+        gone, _r = _timed(state, g["closureOfSet"], relation_but)
         print(f"{n:>6} {whole * 1000:>8.1f}ms {gone * 1000:>8.1f}ms "
               f"{gone / whole:>6.2f}")
     print()

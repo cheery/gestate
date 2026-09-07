@@ -267,24 +267,74 @@ def _gen_fix(suffix: str, nil_tag: int, cons_tag: int,
 # for — set comprehension (fold + join)
 # ---------------------------------------------------------------------------
 
-def _gen_for(suffix: str, nil_tag: int, cons_tag: int) -> tuple[str, int, ELambda]:
-    """Generate: for_X set f = case set of
-         Nil      -> bottom_X
-         Cons h t -> join_X (f h) (for_X t f)
+def _gen_for(suffix: str, nil_tag: int, cons_tag: int) -> list:
+    """Generate the comprehension as a **balanced merge**, not a fold:
+
+         for_X set f          = mergeAll_X (forList_X set f)
+         forList_X set f      = case set of
+             Nil      -> Nil
+             Cons h t -> Cons (f h) (forList_X t f)
+         mergeAll_X xs        = case xs of
+             Nil            -> bottom_X
+             Cons a rest    -> case rest of
+                 Nil        -> a
+                 Cons b more -> mergeAll_X (mergePairs_X xs)
+         mergePairs_X xs      = case xs of
+             Nil            -> Nil
+             Cons a rest    -> case rest of
+                 Nil         -> xs
+                 Cons b more -> Cons (join_X a b) (mergePairs_X more)
+
+    **Why not `join_X (f h) (for_X t f)`**, which it was until
+    2026-09-07 (`card:relations-at-frame-rate.md`): a `join` is one
+    linear merge of two sorted lists, and folding `n` body results one
+    at a time into a growing accumulator is `n` merges of growing
+    length — quadratic, and the whole of a picture-shaped query costing
+    665 ms over a hundred rows.  Merging the results pairwise in rounds
+    is `log n` rounds of linear work over the same elements.  The body
+    results are gathered into a plain cons-list first — the synthetic
+    `List` ADT's own `Nil`/`Cons`, a list *of* sets, which is why the
+    tags are shared — and nothing about what a set *is* changes: every
+    merge is still `join_X`, and the result is still canonical.
     """
     name = f"for_{suffix}"
-    s = _var("set")
-    f = _var("f")
+    lst = f"forList_{suffix}"
+    merge_all = f"mergeAll_{suffix}"
+    merge_pairs = f"mergePairs_{suffix}"
+    s, f = _var("set"), _var("f")
     h, t = _var("h"), _var("t")
+    xs, a, rest, b, more = (_var("xs"), _var("a"), _var("rest"),
+                            _var("b"), _var("more"))
 
-    body = _case_of(s, [
-        (nil_tag, [], EGlobal(f"bottom_{suffix}")),
+    for_body = EAp(EGlobal(merge_all), EAp(EAp(EGlobal(lst), s), f))
+    list_body = _case_of(s, [
+        (nil_tag, [], ECon(nil_tag, [])),
         (cons_tag, ["h", "t"],
-         EAp(EAp(EGlobal(f"join_{suffix}"),
-                 EAp(f, h)),
-             EAp(EAp(EGlobal(name), t), f))),
+         ECon(cons_tag, [EAp(f, h), EAp(EAp(EGlobal(lst), t), f)])),
     ])
-    return (name, 2, ELambda(["set", "f"], body))
+    all_body = _case_of(xs, [
+        (nil_tag, [], EGlobal(f"bottom_{suffix}")),
+        (cons_tag, ["a", "rest"], _case_of(rest, [
+            (nil_tag, [], a),
+            (cons_tag, ["b", "more"],
+             EAp(EGlobal(merge_all), EAp(EGlobal(merge_pairs), xs))),
+        ])),
+    ])
+    pairs_body = _case_of(xs, [
+        (nil_tag, [], ECon(nil_tag, [])),
+        (cons_tag, ["a", "rest"], _case_of(rest, [
+            (nil_tag, [], xs),
+            (cons_tag, ["b", "more"],
+             ECon(cons_tag, [EAp(EAp(EGlobal(f"join_{suffix}"), a), b),
+                             EAp(EGlobal(merge_pairs), more)])),
+        ])),
+    ])
+    return [
+        (name, 2, ELambda(["set", "f"], for_body)),
+        (lst, 2, ELambda(["set", "f"], list_body)),
+        (merge_all, 1, ELambda(["xs"], all_body)),
+        (merge_pairs, 1, ELambda(["xs"], pairs_body)),
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -609,7 +659,7 @@ def _gen_product_helpers(prod: Type, parts: list[Type],
 
     out.append((f"eq_{suffix}", 2, ELambda(["x", "y"], _conj("eq"))))
     out.append((f"subset_{suffix}", 2, ELambda(["x", "y"], _conj("subset"))))
-    out.append(_gen_for(suffix, nil_tag, cons_tag))
+    out.extend(_gen_for(suffix, nil_tag, cons_tag))
     loop, fix = _gen_fix(suffix, nil_tag, cons_tag, true_tag, false_tag)
     out.append(loop)
     out.append(fix)
@@ -655,7 +705,7 @@ def generate_all_helpers(
         loop, fix = _gen_fix(suffix, nil_tag, cons_tag, true_tag, false_tag)
         results.append(loop)
         results.append(fix)
-        results.append(_gen_for(suffix, nil_tag, cons_tag))
+        results.extend(_gen_for(suffix, nil_tag, cons_tag))
     return results
 
 

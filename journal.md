@@ -1502,3 +1502,29 @@ the mix of types and relations stands as the model, and the relational
 half is data and lookup, not a query language for drawing, until a set
 unions faster or `crust` runs it.  The number is on the card, with the
 command that made it.
+
+## Reading 1 — 2026-09-07, evening, with Henri at the desk
+
+*"lets check the two questions together"*, then *"okay, do reading
+1."*  The two questions took a reading and a run: the seminaive
+transform keeps a `for` as a node and never looks inside it, and
+crust runs the helpers as the ordinary supercombinators they are,
+thirteen times the constant and the same growth.  Then the fold:
+`for_X` was `join (f h) (for_X t f)`, n merges into a growing
+accumulator, and became a balanced merge in log n rounds; the set
+literal, which folded the same way, uses the same merge.  The Datafun
+suites did not notice, which is the point.
+
+The measuring taught more than the fix.  The first table had barely
+moved after the change, because the benchmark's own `rows`, built by
+repeated union, was quadratic too and inside the number; and the
+reference machine is lazy, so a relation timed to weak head normal
+form had built one cell and handed the rest to the query — a second
+table that lied the other way.  Told apart by forcing whole values on
+the pipeline's deep stack, which deadlocked once when nested inside
+`compile`'s own.  The query alone: 665 ms to 33 ms over a hundred
+rows, 6.2 s to 123 ms over three hundred, 27 s to 627 ms over six
+hundred, and on crust 8, 20 and 14 ms — a picture can be a query on
+the Rust machine today, and on the reference machine for a hundred
+rows.  What stays quadratic is a program's own recursion over unions,
+and the closure's output, which is its size.

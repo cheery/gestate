@@ -177,7 +177,8 @@ _BUILTINS = {
 #: not have to be enumerated here.
 _HELPER_PREFIXES = (
     "eq_", "union_", "bottom_", "join_", "diff_", "dummy_",
-    "fix_", "fixLoop_", "for_", "semifix_", "semifixL_", "subset_",
+    "fix_", "fixLoop_", "for_", "forList_", "mergeAll_", "mergePairs_",
+    "semifix_", "semifixL_", "subset_",
 )
 
 

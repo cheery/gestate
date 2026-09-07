@@ -948,25 +948,29 @@ def _desugar_datafun(
             return EAp(EAp(EGlobal(f"join_{suffix}"), desugar(expr.left)),
                        desugar(expr.right))
         if isinstance(expr, ESet):
-            # {e1, …, en} → union {e1} (union {e2} … ⊥)
+            # {e1, …, en} → mergeAll_X [{e1}, {e2}, …]
             #
             # Not a bare cons chain: a set *is* a sorted, duplicate-free
             # list, and every operation on one (`union`, `diff`, `eq`,
             # `subset`) is a merge that assumes it.  Building the literal
-            # with `union` establishes the invariant instead of trusting
+            # by merging establishes the invariant instead of trusting
             # the author to have written the elements in order —
             # `{(1,2), (0,1)}` is a perfectly ordinary thing to write.
+            # **Merged pairwise, not folded** (2026-09-07,
+            # `card:relations-at-frame-rate.md`): `union {e1} (union {e2}
+            # … ⊥)` was n merges into a growing accumulator, quadratic
+            # in the literal's length; `mergeAll_X` is `for`'s own
+            # balanced merge (`helpers._gen_for`), log n rounds.
             nil_tag = cons["Nil"].tag
             cons_tag = cons["Cons"].tag
             if not expr.items:
                 return ECon(nil_tag, [])
             suffix = suffix_for(expr.set_type, "set literal")
-            union = EGlobal(f"union_{suffix}")
-            acc: Expr = ECon(nil_tag, [])
+            singles: Expr = ECon(nil_tag, [])
             for item in reversed(expr.items):
                 single = ECon(cons_tag, [desugar(item), ECon(nil_tag, [])])
-                acc = EAp(EAp(union, single), acc)
-            return acc
+                singles = ECon(cons_tag, [single, singles])
+            return EAp(EGlobal(f"mergeAll_{suffix}"), singles)
         if isinstance(expr, EBox):
             # A box is the pair `(base, change)` at runtime.  ϕ/δ needs the
             # second half; code outside the transform has no change to

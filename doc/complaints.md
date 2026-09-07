@@ -81,9 +81,9 @@ The data is at hand and nobody has carried it through.  **These are debts, not d
 | `gmachine.py:1435` | `GmError` | fixme.md F159: a primitive overflowed at the value it was given |
 | `gui.py:621` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
 | `gui.py:624` | `GuiError` | fixme.md F157: an event named in the program, carried here without its line |
-| `helpers.py:434` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
-| `helpers.py:569` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
-| `pipeline.py:1108` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
+| `helpers.py:484` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
+| `helpers.py:619` | `ComparatorError` | fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked |
+| `pipeline.py:1112` | `MonomorphizationError` | fixme.md F157: the set type is named and the expression that needs it is not |
 | `reactive.py:146` | `ReactiveError` | fixme.md F159: reading a signal out of turn is the program's mistake, and the machine has the node but not its span |
 | `tempo.py:83` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
 | `tempo.py:171` | `TempoError` | fixme.md F158: a tempo or an envelope named by its numbers, never by its line |
@@ -642,8 +642,8 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
-| 434 | `ComparatorError` | `author` | *unplaced — fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked* | 'a set of {show_type(elem)} cannot be built: the generated set operations need a total order on… |
-| 569 | `ComparatorError` | `author` | *unplaced — fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked* | '`fix` at {show_type(prod)} needs every component to be a semilattice, and {show_type(part)} is… |
+| 484 | `ComparatorError` | `author` | *unplaced — fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked* | 'a set of {show_type(elem)} cannot be built: the generated set operations need a total order on… |
+| 619 | `ComparatorError` | `author` | *unplaced — fixme.md F157: a generated operation naming the type it cannot be built for, and not the expression that asked* | '`fix` at {show_type(prod)} needs every component to be a semilattice, and {show_type(part)} is… |
 
 ### `infer.py`
 
@@ -811,7 +811,7 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | 783 | `MonotoneError` | `author` | carried from the complaints it collects | '\n'.join(mono_errors) |
 | 789 | `SubgrammarError` | `author` | carried from the complaints it collects | '\n'.join(grammar_errors) |
 | 926 | `PipelineError` | `author` | *nowhere, on purpose* | 'the type of this {what} did not reach code generation; it should have been annotated during in… |
-| 1108 | `MonomorphizationError` | `author` | *unplaced — fixme.md F157: the set type is named and the expression that needs it is not* | 'Datafun operations are compiled per concrete type, so a set type has to be known here:\n' + '\… |
+| 1112 | `MonomorphizationError` | `author` | *unplaced — fixme.md F157: the set type is named and the expression that needs it is not* | 'Datafun operations are compiled per concrete type, so a set type has to be known here:\n' + '\… |
 
 ### `reactive.py`
 
@@ -870,8 +870,8 @@ The exceptions, with their reasons — so that a later reader cannot mistake one
 | line | error | verdict | says where | message |
 |---|---|---|---|---|
 | 124 | `SeminaiveError` | `machine` | — | "internal: δ needs a derivative of '{name}', which the ϕ/δ gate did not plan one for (`fixme.md… |
-| 221 | `SeminaiveError` | `machine` | — | 'the type of this {what} did not reach the ϕ/δ transform; it should have been annotated during … |
-| 431 | `SeminaiveError` | `machine` | — | 'internal: δ needs the derivative of a discrete function, which has none — its change is `()` a… |
+| 222 | `SeminaiveError` | `machine` | — | 'the type of this {what} did not reach the ϕ/δ transform; it should have been annotated during … |
+| 432 | `SeminaiveError` | `machine` | — | 'internal: δ needs the derivative of a discrete function, which has none — its change is `()` a… |
 
 ### `session.py`
 
